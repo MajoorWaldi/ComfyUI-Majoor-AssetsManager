@@ -317,12 +317,15 @@ function _assetMatchesActiveFilters(gridContainer, asset) {
         .trim()
         .toLowerCase();
     const assetDate = String(asset?.date_exact || asset?.date || "").trim();
-    const hasWorkflow = Boolean(asset?.has_workflow ?? asset?.hasWorkflow);
+    const hasWorkflow = asset?.has_workflow ?? asset?.hasWorkflow ?? null;
 
     if (scope && scope !== "all" && assetType && assetType !== scope) return false;
     if (subfolder && assetSubfolder !== subfolder) return false;
     if (kind && assetKind && assetKind !== kind) return false;
-    if (workflowOnly && !hasWorkflow) return false;
+    // Treat null/undefined has_workflow as "pending" (enrichment in progress)
+    // so freshly generated assets are not rejected by the workflow-only filter.
+    // Only reject when has_workflow is explicitly false/0.
+    if (workflowOnly && hasWorkflow !== null && !hasWorkflow) return false;
     if (minRating > 0 && (Number(asset?.rating || 0) || 0) < minRating) return false;
     if (workflowType && assetWorkflowType !== workflowType) return false;
     if (dateExact && assetDate && assetDate !== dateExact) return false;
@@ -379,9 +382,18 @@ export async function fetchPage(
         : requestedQuery;
     const safeQuery = deps.sanitizeQuery(normalizedRequestedQuery) || normalizedRequestedQuery;
     try {
-        const includeTotal = !(
-            String(scope || "").toLowerCase() === "output" && Number(offset ?? 0) > 0
-        );
+        const isOutputScope = String(scope || "").toLowerCase() === "output";
+        const hasActiveFilters =
+            !!(subfolder || customRootId || kind || workflowOnly || minRating > 0 || minSizeMB > 0 ||
+            maxSizeMB > 0 || minWidth > 0 || minHeight > 0 || maxWidth > 0 || maxHeight > 0 ||
+            workflowType || dateRange || dateExact || groupStacks);
+        const isDefaultOutputBrowse =
+            isOutputScope &&
+            Number(offset ?? 0) === 0 &&
+            safeQuery === "*" &&
+            !hasActiveFilters &&
+            String(sortKey || "mtime_desc").toLowerCase() === "mtime_desc";
+        const includeTotal = !(isOutputScope && (Number(offset ?? 0) > 0 || isDefaultOutputBrowse));
         const url = deps.buildListURL({
             q: safeQuery,
             limit,
@@ -406,7 +418,7 @@ export async function fetchPage(
             includeTotal,
             groupStacks,
         });
-        const result = await deps.get(url, signal ? { signal } : undefined);
+        const result = await deps.get(url, { timeoutMs: 120_000, ...(signal ? { signal } : {}) });
         try {
             const state = deps.getGridState(gridContainer);
             if (state && Number(state.requestId) !== Number(requestId)) {
@@ -642,6 +654,31 @@ function _findExistingAssetIndex(state, assetId, candidateAsset) {
     return list.findIndex((asset) => _getAssetIdentityKey(asset) === identityKey);
 }
 
+function _shouldKeepExistingAssetOnFilterMismatch(incomingAsset, existingAsset) {
+    if (!existingAsset || typeof existingAsset !== "object") return false;
+    if (!incomingAsset || typeof incomingAsset !== "object") return false;
+    if (_isLivePlaceholderAsset(existingAsset)) return true;
+    const protectedFields = [
+        "filename",
+        "filepath",
+        "path",
+        "fullpath",
+        "full_path",
+        "subfolder",
+        "type",
+        "source",
+        "root_id",
+        "custom_root_id",
+        "kind",
+        "rating",
+        "workflow_type",
+        "workflowType",
+        "date_exact",
+        "date",
+    ];
+    return !protectedFields.some((field) => Object.prototype.hasOwnProperty.call(incomingAsset, field));
+}
+
 function dedupeAssetsByKey(state, deps) {
     const seenIds = new Set();
     const seenKeys = new Set();
@@ -761,6 +798,15 @@ export function flushUpsertBatch(gridContainer, deps) {
             const matchesFilters = _assetMatchesActiveFilters(gridContainer, mergedCandidate);
             if (!matchesFilters) {
                 if (resolvedExistingIndex > -1) {
+                    if (_shouldKeepExistingAssetOnFilterMismatch(asset, resolvedExistingAsset)) {
+                        Object.assign(resolvedExistingAsset, asset);
+                        if (!incomingIsPlaceholder) {
+                            _clearLivePlaceholderState(resolvedExistingAsset);
+                        }
+                        state.assets[resolvedExistingIndex] = { ...resolvedExistingAsset };
+                        modified = true;
+                        continue;
+                    }
                     const [removedAsset] = state.assets.splice(resolvedExistingIndex, 1);
                     unregisterHiddenSibling(state, removedAsset, state);
                     modified = true;
@@ -811,12 +857,16 @@ export function flushUpsertBatch(gridContainer, deps) {
         }
     } finally {
         batchState.flushing = false;
-        // Items may have arrived during the flush â€” reschedule if needed (BUG-01).
+        // Items may have arrived during the flush — reschedule if needed (BUG-01).
+        // Use a short delay (1 frame) instead of the full debounce so rapid
+        // generation events chain quickly instead of waiting 200 ms between
+        // each visible card insertion.
         if (batchState.pending.size > 0 && !batchState.timer) {
+            const followUpDelay = Math.min(16, deps.debounceMs);
             batchState.timer = setTimeout(() => {
                 batchState.timer = null;
                 flushUpsertBatch(gridContainer, deps);
-            }, deps.debounceMs);
+            }, followUpDelay);
         }
     }
 }

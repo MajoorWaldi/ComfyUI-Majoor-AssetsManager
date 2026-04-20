@@ -585,6 +585,6 @@ NODE_CLASS_MAPPINGS: dict[str, type] = {
 }
 
 NODE_DISPLAY_NAME_MAPPINGS: dict[str, str] = {
-    "MajoorSaveImage": "Majoor Save Image 💾",
-    "MajoorSaveVideo": "Majoor Save Video 🎬",
+    "MajoorSaveImage": "〽️ Majoor Save Image 💾",
+    "MajoorSaveVideo": "〽️ Majoor Save Video 🎬",
 }

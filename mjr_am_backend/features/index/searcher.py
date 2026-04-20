@@ -139,7 +139,14 @@ def _is_meaningful_token(token: str) -> bool:
     return True
 
 
+_SAFE_ALIAS_RE = re.compile(r"^[a-zA-Z_][a-zA-Z0-9_.]{0,60}$")
+
+
 def _build_sort_sql(sort: str | None, *, table_alias: str = "a", rank_alias: str | None = None) -> str:
+    if not _SAFE_ALIAS_RE.fullmatch(table_alias):
+        raise ValueError(f"Unsafe table_alias: {table_alias!r}")
+    if rank_alias is not None and not _SAFE_ALIAS_RE.fullmatch(rank_alias):
+        raise ValueError(f"Unsafe rank_alias: {rank_alias!r}")
     key = _normalize_sort_key(sort)
     if key == "name_asc":
         return f"ORDER BY LOWER({table_alias}.filename) ASC, {table_alias}.id DESC"
@@ -842,6 +849,7 @@ class IndexSearcher:
         # _BROWSE_COUNT_TTL seconds.
         self._browse_count_cache: dict[str, tuple[float, int]] = {}
         self._BROWSE_COUNT_TTL = 5.0  # seconds
+        self._BROWSE_COUNT_CACHE_MAX = 128
 
     async def ensure_vocab(self):
         """Ensure FTS5 vocab table exists for autocomplete."""
@@ -1023,6 +1031,13 @@ class IndexSearcher:
                 count_result = await self.db.aquery(count_sql, tuple(count_params))
                 total = count_result.data[0]["total"] if count_result.ok and count_result.data else 0
                 self._browse_count_cache[cache_key] = (now, total)
+                # Evict oldest entries when the cache grows beyond the bound.
+                if len(self._browse_count_cache) > self._BROWSE_COUNT_CACHE_MAX:
+                    try:
+                        oldest_key = min(self._browse_count_cache, key=lambda k: self._browse_count_cache[k][0])
+                        del self._browse_count_cache[oldest_key]
+                    except Exception:  # pragma: no cover
+                        pass
         return Result.Ok({"rows": rows, "total": total})
 
     async def _search_global_fts_rows(

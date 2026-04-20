@@ -295,19 +295,14 @@ export function createGridController({
     };
 
     const runReloadOnce = async (reloadOptions = {}) => {
-        // Expose the current query on the container so external listeners (ComfyUI executed events)
-        // can decide whether to do incremental upserts or avoid disrupting an active search.
-        try {
-            gridContainer.dataset.mjrQuery = String(getQuery?.() ?? "*") || "*";
-        } catch (e) {
-            console.debug?.(e);
-        }
         const prevViewScope = String(gridContainer.dataset.mjrViewScope || "")
             .trim()
             .toLowerCase();
         const nextViewScope = String(read("viewScope", state?.viewScope || "") || "")
             .trim()
             .toLowerCase();
+        // Write scope and filter state to the container dataset BEFORE reading
+        // the query so that fetchPage sees the finalized scope context.
         gridContainer.dataset.mjrScope = read("scope", "output");
         gridContainer.dataset.mjrViewScope = nextViewScope;
         gridContainer.dataset.mjrCustomRootId = read("customRootId", "") || "";
@@ -328,6 +323,15 @@ export function createGridController({
         gridContainer.dataset.mjrFilterDateExact = read("dateExactFilter", "") || "";
         gridContainer.dataset.mjrSort = read("sort", "mtime_desc") || "mtime_desc";
         gridContainer.dataset.mjrCollectionId = read("collectionId", "") || "";
+        gridContainer.dataset.mjrSemanticMode = _isSemanticMode() ? "1" : "0";
+        // Expose the current query on the container so external listeners (ComfyUI executed events)
+        // can decide whether to do incremental upserts or avoid disrupting an active search.
+        // Written after scope so that fetchPage sees the finalized context.
+        try {
+            gridContainer.dataset.mjrQuery = String(getQuery?.() ?? "*") || "*";
+        } catch (e) {
+            console.debug?.(e);
+        }
         gridContainer.dataset.mjrGroupStacks =
             APP_CONFIG.EXECUTION_GROUPING_ENABLED &&
             (read("scope", "output") === "output" || read("scope", "output") === "all")

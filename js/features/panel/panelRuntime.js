@@ -800,18 +800,26 @@ async function _mountPanelRuntimeImpl(container, { useComfyThemeUI = true, exter
                 signal: panelLifecycleAC?.signal,
             });
             let raf = null;
+            let debounceTimer = null;
             const schedule = () => {
-                if (raf) cancelAnimationFrame(raf);
-                raf = requestAnimationFrame(() => { raf = null; notifyContextChanged(); });
+                // Debounce MutationObserver callbacks during pagination bursts
+                // (many cards inserted rapidly). Coalesce to a single update.
+                if (debounceTimer) clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(() => {
+                    debounceTimer = null;
+                    if (raf) cancelAnimationFrame(raf);
+                    raf = requestAnimationFrame(() => { raf = null; notifyContextChanged(); });
+                }, 250);
             };
             const mo = new MutationObserver(() => schedule());
-            mo.observe(gridContainer, { childList: true, subtree: true });
+            mo.observe(gridContainer, { childList: true });
             gridContainer._mjrSummaryBarObserver = mo;
             registerSummaryDispose(() => {
                 try { gridContainer.removeEventListener("mjr:grid-stats", onStats); }
                 catch (e) { console.debug?.(e); }
                 try { window.removeEventListener?.("mjr-settings-changed", onStats); }
                 catch (e) { console.debug?.(e); }
+                try { if (debounceTimer) clearTimeout(debounceTimer); } catch (e) { console.debug?.(e); }
                 try { mo.disconnect(); } catch (e) { console.debug?.(e); }
             });
         }

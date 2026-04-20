@@ -123,6 +123,7 @@ let lastSaved = [...initialTags];
 
 const retryDelay = (attemptIndex) => Math.min(100 * 2 ** Math.max(0, attemptIndex - 1), 2000);
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const handleInputBlur = () => setTimeout(() => (showDropdown.value = false), 200);
 
 const filteredSuggestions = computed(() => {
     const query = inputValue.value.toLowerCase().trim();
@@ -420,7 +421,7 @@ watch(
                 @focus="showDropdown = inputValue.length > 0"
                 @input="showDropdown = inputValue.length > 0"
                 @keydown="handleInputKeydown"
-                @blur="setTimeout(() => (showDropdown = false), 200)"
+                @blur="handleInputBlur"
             />
 
             <div

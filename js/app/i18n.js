@@ -396,6 +396,7 @@ const DICTIONARY = {
         "tags.title": "Tags: {tags}",
         "tags.label": "Tags",
         "tags.addLabel": "Add tag",
+        "tags.remove": "Remove tag",
         "tags.suggestions": "Tag suggestions",
         "label.messages": "Messages",
         "label.readMe": "Read Me",
@@ -639,6 +640,14 @@ const DICTIONARY = {
         "msg.shortcuts.section.mfv": "Floating Viewer",
         "msg.shortcuts.section.video": "Video Playback",
         "msg.category.release": "Release",
+        "msg.whatsNew.title.version246": "New Version 2.4.6",
+        "msg.whatsNew.body.version246":
+            "Version 2.4.6 released: Various bug fixes and performance & fluidity improvements. Improved concatenate support for default and custom nodes (by Forsion07). Added support helpers for Api Node and Ernie Image. Live Stream in Floating Viewer is now disabled by default. See CHANGELOG for details.",
+        "label.changelog": "Changelog",
+        "label.settingsGuide": "Settings Guide",
+        "msg.tip.title.mfvLivePreviewDefaults": "Tip — Floating Viewer Auto-Open",
+        "msg.tip.body.mfvLivePreviewDefaults":
+            "Live Stream (green button in the viewer) and KSampler Preview can be activated by default via Settings \u2192 Majoor Assets Manager \u203a Viewer. When Live Stream is on, clicking a Load Image node or when a generation ends will automatically open the Floating Viewer and display the result. KSampler Preview streams the denoising steps live. Both toggles can be set as the default state so the viewer is always ready.",
         "msg.whatsNew.title.version243": "New Version 2.4.3",
         "msg.whatsNew.body.version243":
             "Version 2.4.3 released: Improved assets metadata parsing, Grid Compare capability in floating viewer up to 4 Assets, ping pong loop in main Viewer player, job id and stack id in DB for better assets management, stack assets generated from same workflow job with same job ID, generated feed feature, lite version of grid in bottom tab. Code refactor for maintainability and various bug fixes. See CHANGELOG for details.",
@@ -1154,6 +1163,7 @@ const DICTIONARY = {
         "tags.title": "Tags : {tags}",
         "tags.label": "Tags",
         "tags.addLabel": "Ajouter un tag",
+        "tags.remove": "Supprimer le tag",
         "tags.suggestions": "Suggestions de tags",
         "label.thisFile": "ce fichier",
         "label.messages": "Messages",
@@ -1180,6 +1190,14 @@ const DICTIONARY = {
         "msg.shortcuts.section.mfv": "Floating Viewer",
         "msg.shortcuts.section.video": "Lecture video",
         "msg.category.release": "Version",
+        "msg.whatsNew.title.version246": "Nouvelle Version 2.4.6",
+        "msg.whatsNew.body.version246":
+            "Version 2.4.6 publiee : divers correctifs de bugs et ameliorations de performances et fluidite. Support concatenate ameliore pour les nodes par defaut et custom (par Forsion07). Ajout des helpers pour Api Node et Ernie Image. Le Live Stream du Floating Viewer est desormais desactive par defaut. Voir CHANGELOG pour details.",
+        "label.changelog": "Changelog",
+        "label.settingsGuide": "Guide des param\u00e8tres",
+        "msg.tip.title.mfvLivePreviewDefaults": "Conseil — Ouverture automatique du Viewer",
+        "msg.tip.body.mfvLivePreviewDefaults":
+            "Le Live Stream (bouton vert dans le viewer) et la pr\u00e9visualisation KSampler peuvent \u00eatre activ\u00e9s par d\u00e9faut via Param\u00e8tres \u2192 Majoor Assets Manager \u203a Viewer. Lorsque le Live Stream est actif, cliquer sur un node Load Image ou la fin d'une g\u00e9n\u00e9ration ouvrira automatiquement le Floating Viewer et affichera le r\u00e9sultat. La pr\u00e9visualisation KSampler diffuse les \u00e9tapes de d\u00e9bruitage en direct. Les deux options peuvent \u00eatre d\u00e9finies comme \u00e9tat par d\u00e9faut pour que le viewer soit toujours pr\u00eat.",
         "msg.whatsNew.title.version243": "Nouvelle Version 2.4.3",
         "msg.whatsNew.body.version243":
             "Version 2.4.3 publiee : analyse des metadonnees des assets amelioree, capacite Grid Compare dans le floating viewer jusqu'a 4 Assets, boucle ping pong dans le Viewer principal, job id et stack id dans la BDD pour une meilleure gestion des assets, empilement des assets generes depuis le meme workflow avec le meme job ID, fonctionnalite de feed genere, version legere de la grille dans l'onglet bottom. Refactorisation du code pour la maintenabilite et divers correctifs de bugs. Voir CHANGELOG pour details.",

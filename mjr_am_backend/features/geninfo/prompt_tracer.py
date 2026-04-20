@@ -210,12 +210,68 @@ def _resolve_lora_stacker_node(
                     active_loras.append(f"<lora:{name}:{strength}>")
     return _join_text_fragments(active_loras, " ") or ""
 
+def _resolve_text_generate_node(
+    nodes_by_id: dict[str, dict[str, Any]], ins: dict[str, Any], memo: set[str]
+) -> str | None:
+    """
+    TextGenerate is an LLM prompt-enhancer (e.g. Ernie Image).  Its ``prompt``
+    input is typically a system-prompt template processed through a chain of
+    StringReplace nodes that substitute ``{prompt}``, ``{width}``, ``{height}``.
+
+    We trace the StringReplace chain upstream to extract the *original* user
+    prompt (the ``replace`` value whose ``find`` matches ``{prompt}``), rather
+    than the LLM-enhanced output.
+    """
+    prompt_val = ins.get("prompt")
+    if isinstance(prompt_val, str) and prompt_val.strip():
+        return prompt_val.strip()
+    if not _is_link(prompt_val):
+        return None
+    user_prompt = _trace_user_prompt_in_replace_chain(nodes_by_id, prompt_val, memo)
+    if user_prompt:
+        return user_prompt
+    return _resolve_text_value(nodes_by_id, prompt_val, memo)
+
+
+def _trace_user_prompt_in_replace_chain(
+    nodes_by_id: dict[str, dict[str, Any]], link: Any, memo: set[str], max_hops: int = 10
+) -> str | None:
+    """
+    Follow a chain of StringReplace nodes upstream from *link*.  When one has a
+    ``find`` value containing the word ``prompt`` (e.g. ``{prompt}``), return
+    the resolved ``replace`` value — that is the user's original prompt text.
+    """
+    current_link = link
+    for _ in range(max_hops):
+        src_id = _walk_passthrough(nodes_by_id, current_link)
+        if not src_id or src_id in memo:
+            break
+        node = nodes_by_id.get(src_id)
+        if not isinstance(node, dict):
+            break
+        ct = _lower(_node_type(node))
+        if ct != "stringreplace":
+            break
+        node_ins = _inputs(node)
+        find_val = node_ins.get("find")
+        if isinstance(find_val, str) and "prompt" in find_val.lower():
+            return _resolve_text_value(nodes_by_id, node_ins.get("replace"), memo | {src_id})
+        string_link = node_ins.get("string")
+        if _is_link(string_link):
+            current_link = string_link
+            continue
+        break
+    return None
+
+
 def _resolve_composed_string_from_node(
     nodes_by_id: dict[str, dict[str, Any]], node: dict[str, Any], memo: set[str]
 ) -> str | None:
     ct = _lower(_node_type(node))
     ins = _inputs(node)
     widgets = node.get("widgets_values")
+    if ct == "textgenerate":
+        return _resolve_text_generate_node(nodes_by_id, ins, memo)
     preview_text = _resolve_preview_text(ins)
     if preview_text is not None:
         return preview_text

@@ -59,6 +59,7 @@ import {
     mountGlobalRuntime,
     registerAssetsSidebar,
     registerNativeCommands,
+    startEarlyFetch,
     teardownTopBarMfvButton,
     teardownGeneratedFeed,
     teardownAssetsSidebar,
@@ -362,6 +363,15 @@ app.registerExtension({
         setTimeout(() => {
             void checkMajoorVersion();
         }, 5000);
+
+        // 8b. Proactive early fetch — start the first assets page in the background
+        //     so the data is ready (or already in-flight) when the user opens the
+        //     sidebar.  A 4-second delay lets ComfyUI finish its own startup work
+        //     and the backend DB warm-up to settle before we hit /mjr/am/list.
+        //     startEarlyFetch() is a no-op when ComfyUI is executing a prompt.
+        setTimeout(() => {
+            startEarlyFetch();
+        }, 4000);
 
         // 9. WebSocket / realtime listeners.
         void setupApiListeners(runtimeApp, executionRuntime).catch((e) =>

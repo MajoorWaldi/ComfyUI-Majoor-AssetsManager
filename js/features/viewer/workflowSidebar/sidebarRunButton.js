@@ -150,7 +150,9 @@ export function createRunButton() {
 
     async function stopCurrentGeneration() {
         const app = getComfyApp();
-        const api = getComfyApi(app);
+        // Prefer live app.api for the same auth-context reasons as queueCurrentPrompt.
+        const liveApi = (app?.api && typeof app.api.interrupt === "function") ? app.api : null;
+        const api = liveApi ?? getComfyApi(app);
 
         if (api && typeof api.interrupt === "function") {
             await api.interrupt();
@@ -163,7 +165,7 @@ export function createRunButton() {
             return { tracked: true };
         }
 
-        const resp = await fetch("/interrupt", { method: "POST" });
+        const resp = await fetch("/interrupt", { method: "POST", credentials: "include" });
         if (!resp.ok) throw new Error(`POST /interrupt failed (${resp.status})`);
         return { tracked: false };
     }
@@ -295,7 +297,15 @@ function resolveClientId(api, app) {
 
 /**
  * Queue the current workflow for execution.
- * Tries, in order: api.queuePrompt -> POST /prompt.
+ *
+ * Tries, in order:
+ *   1. app.api.queuePrompt  — live reference on the app object (always has the
+ *      current auth session, same source as the native ComfyUI Queue button).
+ *   2. api.queuePrompt      — broader detection via getComfyApi() (window.api, …).
+ *   3. api.fetchApi         — direct HTTP via ComfyUI's authenticated fetch helper.
+ *   4. app.queuePrompt(0)   — native ComfyUI app-level path; handles auth tokens
+ *      and CSRF checks natively; no preview-method enrichment on this path.
+ *   5. fetch (last resort)  — raw fetch with credentials:'include' for cookie auth.
  */
 async function queueCurrentPrompt() {
     const app = getComfyApp();
@@ -306,7 +316,12 @@ async function queueCurrentPrompt() {
         : null;
     if (!promptData?.output) throw new Error("graphToPrompt returned empty output");
 
-    const api = getComfyApi(app);
+    // Prefer the live app.api reference — this matches the native Queue button's
+    // auth context and avoids stale cached references when ComfyUI refreshes its
+    // auth state (e.g. after user logs in or session is renewed).
+    const liveApi = (app?.api && typeof app.api.queuePrompt === "function") ? app.api : null;
+    const api = liveApi ?? getComfyApi(app);
+
     if (api && typeof api.queuePrompt === "function") {
         await api.queuePrompt(0, enrichPromptDataForMfv(promptData));
         return { tracked: true };
@@ -326,12 +341,20 @@ async function queueCurrentPrompt() {
         return { tracked: true };
     }
 
+    // Native app-level path: uses ComfyUI's own auth handling (same as the
+    // native Queue button). No preview-method enrichment on this fallback.
+    if (typeof app.queuePrompt === "function") {
+        await app.queuePrompt(0);
+        return { tracked: true };
+    }
+
     const resp = await fetch("/prompt", {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(
             buildPromptRequestBody(promptData, {
-                clientId: resolveClientId(api, app),
+                clientId: resolveClientId(null, app),
             }),
         ),
     });

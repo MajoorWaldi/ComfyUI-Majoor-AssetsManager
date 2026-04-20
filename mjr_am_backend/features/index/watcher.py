@@ -161,6 +161,8 @@ class DebouncedWatchHandler(FileSystemEventHandler):
         concurrency = max(1, flush_concurrency or 1)
         self._flush_semaphore = asyncio.Semaphore(concurrency)
         self._last_pending_warning = 0.0
+        self._last_overflow_drop_warning = 0.0
+        self._dropped_count = 0
         self._refresh_runtime_settings()
 
     def _is_ignored_path(self, path: str) -> bool:
@@ -246,6 +248,22 @@ class DebouncedWatchHandler(FileSystemEventHandler):
             pass
         self._last_pending_warning = now
 
+    def _maybe_log_overflow_drop(self, path: str) -> None:
+        now = time.time()
+        if (now - self._last_overflow_drop_warning) < _PENDING_LIMIT_WARN_INTERVAL:
+            return
+        try:
+            logger.warning(
+                "Watcher overflow queue full (%d); file dropped: %s (total dropped: %d). "
+                "Files will be picked up on next scan.",
+                _MAX_PENDING_FILES,
+                path,
+                self._dropped_count,
+            )
+        except Exception:
+            pass
+        self._last_overflow_drop_warning = now
+
     def on_created(self, event):
         if isinstance(event, DirCreatedEvent):
             return
@@ -301,6 +319,9 @@ class DebouncedWatchHandler(FileSystemEventHandler):
                 # pending stays full and events arrive faster than they are flushed.
                 if key not in self._overflow and len(self._overflow) < _MAX_PENDING_FILES:
                     self._overflow[key] = now
+                elif key not in self._overflow:
+                    self._dropped_count += 1
+                    self._maybe_log_overflow_drop(path)
                 self._maybe_log_pending_limit(path)
                 self._schedule_flush()
                 return
@@ -440,10 +461,19 @@ class DebouncedWatchHandler(FileSystemEventHandler):
     def _requeue_failed_files(self, files: list[str]) -> None:
         """Re-queue files that the index callback failed to process into overflow."""
         now = time.time()
+        dropped = 0
         with self._lock:
             for f in files:
                 if _MAX_PENDING_FILES <= 0 or len(self._overflow) < _MAX_PENDING_FILES:
                     self._overflow[f] = now
+                else:
+                    dropped += 1
+        if dropped:
+            logger.warning(
+                "Watcher: %d failed files could not be re-queued (overflow full at %d)",
+                dropped,
+                _MAX_PENDING_FILES,
+            )
 
     def _requeue_runtime_deferred_files(self, files: list[str]) -> None:
         now = time.time()

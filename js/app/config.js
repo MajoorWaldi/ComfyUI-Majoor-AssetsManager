@@ -58,12 +58,13 @@ export const APP_DEFAULTS = Object.freeze({
     BADGE_DUPLICATE_ALERT_COLOR: "#FF1744",
 
     // Pagination
-    DEFAULT_PAGE_SIZE: 200,
+    DEFAULT_PAGE_SIZE: 80,
     // Upper bound for a single list request. The backend allows more, but very large
     // pages can create huge DOM batches; keep this as a safety cap.
     MAX_PAGE_SIZE: 2000,
-    // Prefetch next page immediately after initial load for faster scrolling
+    // Prefetch next page after the first paint so initial grid render stays responsive
     PREFETCH_NEXT_PAGE: true,
+    PREFETCH_NEXT_PAGE_DELAY_MS: 700,
     // Client-side default for search request limit (user-adjustable in settings)
     SEARCH_DEFAULT_LIMIT: 500,
     INFINITE_SCROLL_ENABLED: true,
@@ -83,7 +84,7 @@ export const APP_DEFAULTS = Object.freeze({
     VIEWER_PAUSE_DURING_EXECUTION: true,
     FLOATING_VIEWER_PAUSE_DURING_EXECUTION: false,
     MFV_SIDEBAR_POSITION: "right",
-    MFV_LIVE_DEFAULT: true,
+    MFV_LIVE_DEFAULT: false,
     MFV_PREVIEW_DEFAULT: true,
     MFV_PREVIEW_METHOD: "taesd",
 

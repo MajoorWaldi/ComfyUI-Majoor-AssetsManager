@@ -98,6 +98,32 @@ function normalizeSnapshotPart(value, fallback = "") {
     }
 }
 
+function getStableRealtimeAssetKey(asset) {
+    if (!asset || typeof asset !== "object") return "";
+    if (asset.id != null && String(asset.id).trim()) {
+        return `id:${String(asset.id).trim()}`;
+    }
+    const type = String(asset?.type || asset?.source || "output")
+        .trim()
+        .toLowerCase();
+    const rootId = String(pickRootId(asset) || "")
+        .trim()
+        .toLowerCase();
+    const subfolder = String(asset?.subfolder || "")
+        .trim()
+        .toLowerCase();
+    const filename = String(asset?.filename || "")
+        .trim()
+        .toLowerCase();
+    if (filename) return `${type}|${rootId}|${subfolder}|${filename}`;
+    const filepath = String(
+        asset?.filepath || asset?.path || asset?.fullpath || asset?.full_path || "",
+    )
+        .trim()
+        .toLowerCase();
+    return filepath ? `${type}|${rootId}|path|${filepath}` : "";
+}
+
 export function buildGridSnapshotKey(parts = {}) {
     return JSON.stringify({
         scope: normalizeSnapshotPart(parts.scope || "output", "output"),
@@ -120,6 +146,7 @@ export function buildGridSnapshotKey(parts = {}) {
         dateRange: normalizeSnapshotPart(parts.dateRange || ""),
         dateExact: normalizeSnapshotPart(parts.dateExact || ""),
         sort: normalizeSnapshotPart(parts.sort || "mtime_desc", "mtime_desc"),
+        semanticMode: normalizeSnapshotPart(parts.semanticMode ? "1" : ""),
     });
 }
 
@@ -355,6 +382,7 @@ export function useGridLoader({
 } = {}) {
     let deferVisualResetUntilNextPage = false;
     let deferredExecutionReload = null;
+    let prefetchTimer = null;
 
     function getGridContainer() {
         return resolveElement(gridContainerRef);
@@ -383,6 +411,7 @@ export function useGridLoader({
             dateRange: gridContainer?.dataset?.mjrFilterDateRange || "",
             dateExact: gridContainer?.dataset?.mjrFilterDateExact || "",
             sort: gridContainer?.dataset?.mjrSort || "mtime_desc",
+            semanticMode: gridContainer?.dataset?.mjrSemanticMode === "1",
         };
     }
 
@@ -432,6 +461,34 @@ export function useGridLoader({
         deferredExecutionReload = null;
     }
 
+    function clearPrefetchTimer() {
+        try {
+            if (prefetchTimer) {
+                clearTimeout(prefetchTimer);
+            }
+        } catch (e) {
+            console.debug?.(e);
+        }
+        prefetchTimer = null;
+    }
+
+    function scheduleNextPagePrefetch(requestId, delayMs = APP_CONFIG.PREFETCH_NEXT_PAGE_DELAY_MS) {
+        if (!APP_CONFIG.PREFETCH_NEXT_PAGE) {
+            return;
+        }
+        clearPrefetchTimer();
+        const resolvedDelayMs = Math.max(0, Number(delayMs) || 0);
+        prefetchTimer = setTimeout(() => {
+            prefetchTimer = null;
+            if (state.requestId !== requestId || state.done || state.loading) {
+                return;
+            }
+            loadNextPage().catch((error) => {
+                console.debug?.("[AssetsManager][GridLoader] Delayed prefetch failed", error);
+            });
+        }, resolvedDelayMs);
+    }
+
     function scheduleDeferredExecutionReload(query, options = {}) {
         clearDeferredExecutionReload();
         const retry = () => {
@@ -447,9 +504,15 @@ export function useGridLoader({
                 return;
             }
             clearDeferredExecutionReload();
+            // Re-read the current query from the grid container at retry time
+            // instead of using the stale captured value. The user may have
+            // changed the search query while execution was in progress.
+            const gridContainer = getGridContainer();
+            const freshQuery =
+                String(gridContainer?.dataset?.mjrQuery || "").trim() || query;
             Promise.resolve()
                 .then(() =>
-                    loadAssets(query, {
+                    loadAssets(freshQuery, {
                         ...(options || {}),
                         reset: true,
                         preserveVisibleUntilReady: true,
@@ -592,14 +655,27 @@ export function useGridLoader({
                 if (earlyFetchPromise) {
                     try {
                         const earlyResult = await earlyFetchPromise;
+                        // Discard early fetch if the request has been superseded
+                        // (e.g. scope switch while the promise was pending).
+                        if (Number(state.requestId) !== Number(requestId)) {
+                            return { ok: false, stale: true, error: "Stale early fetch" };
+                        }
+                        if (signal?.aborted) {
+                            return { ok: false, aborted: true, error: "Aborted" };
+                        }
                         // API returns { ok, data: { assets: [...], total, ... } }
                         const earlyAssets = earlyResult?.data?.assets;
                         if (earlyResult?.ok && Array.isArray(earlyAssets)) {
                             mjrDbg("[Grid] Using early-fetched data:", earlyAssets.length, "assets");
+                            // Use null when the backend did not return a total (includeTotal=false).
+                            // Falling back to earlyAssets.length would incorrectly set state.total
+                            // to the page size (e.g. 80), causing state.done=true after the first
+                            // page and blocking all subsequent pagination / infinite scroll.
+                            const rawTotal = earlyResult.data?.total ?? earlyResult.meta?.total ?? null;
                             return {
                                 ok: true,
                                 assets: earlyAssets,
-                                total: Number(earlyResult.data?.total ?? earlyResult.meta?.total ?? earlyAssets.length) || 0,
+                                total: rawTotal != null ? Number(rawTotal) || 0 : null,
                                 count: earlyAssets.length,
                                 limit: limit,
                                 offset: 0,
@@ -827,6 +903,7 @@ export function useGridLoader({
                 state.abortController = null;
             }
             state.requestId = (Number(state.requestId) || 0) + 1;
+            clearPrefetchTimer();
             clearPendingUpserts();
             clearStatusMessage();
             if (deferVisualResetUntilNextPage) {
@@ -864,13 +941,11 @@ export function useGridLoader({
                         state.done = false;
                         state.loading = false;
                         clearLoadingMessage();
-                        queueMicrotask(() => {
-                            loadNextPage().then((bgResult) => {
-                                if (bgResult?.ok && !bgResult?.aborted) {
-                                    finalizeLoad({ title: safeQuery });
-                                }
-                            }).catch(() => {});
-                        });
+                        const bgRequestId = state.requestId;
+                        scheduleNextPagePrefetch(
+                            bgRequestId,
+                            Math.min(APP_CONFIG.PREFETCH_NEXT_PAGE_DELAY_MS ?? 700, 250),
+                        );
                         return {
                             ok: true,
                             count: Number(state.offset || 0) || 0,
@@ -886,7 +961,7 @@ export function useGridLoader({
 
         const result = await loadNextPage();
 
-        // Prefetch next page immediately for faster scrolling (non-blocking)
+        // Prefetch next page after the first render settles.
         if (
             APP_CONFIG.PREFETCH_NEXT_PAGE &&
             result?.ok &&
@@ -894,12 +969,7 @@ export function useGridLoader({
             !state.done &&
             !result?.aborted
         ) {
-            // Schedule prefetch after current microtask to not block initial render
-            queueMicrotask(() => {
-                if (!state.done && !state.loading) {
-                    loadNextPage().catch(() => {/* ignore prefetch errors */});
-                }
-            });
+            scheduleNextPagePrefetch(state.requestId);
         }
 
         if (reset) {
@@ -1031,6 +1101,7 @@ export function useGridLoader({
         }
         state.requestId = (Number(state.requestId) || 0) + 1;
         state.loading = false;
+        clearPrefetchTimer();
         clearPendingUpserts();
         clearLoadingMessage();
         clearStatusMessage();
@@ -1189,6 +1260,7 @@ export function useGridLoader({
             state.abortController = null;
         }
         state.requestId = (Number(state.requestId) || 0) + 1;
+        clearPrefetchTimer();
         clearPendingUpserts();
         resetAssets({
             query: snapshot.query || options.title || "Cached",
@@ -1218,7 +1290,7 @@ export function useGridLoader({
             upsertState: UPSERT_BATCH_STATE,
             maxBatchSize: UPSERT_BATCH_MAX_SIZE,
             debounceMs: UPSERT_BATCH_DEBOUNCE_MS,
-            assetKey: (asset) => assetKey(asset, gridContainer),
+            assetKey: (asset) => getStableRealtimeAssetKey(asset) || assetKey(asset, gridContainer),
             loadMajoorSettings,
         };
     }
@@ -1230,22 +1302,35 @@ export function useGridLoader({
     }
 
     /**
-     * Upsert an asset and immediately flush the batch to the virtual grid,
-     * bypassing the debounce timer. Used for live generation events so the
-     * card appears as soon as the WS event arrives rather than ~200 ms later.
+     * Upsert an asset and flush within the current microtask boundary.
+     *
+     * Multiple calls in the same event-loop tick are coalesced into a single
+     * flush via queueMicrotask.  This avoids N separate flush+setItems calls
+     * when N WebSocket events arrive nearly simultaneously (e.g. 5 images
+     * generated in a batch), while still being much faster than the 200 ms
+     * debounce path.
      */
+    let _immediateFlushScheduled = false;
     function upsertAssetNow(asset) {
         const gridContainer = getGridContainer();
         if (!gridContainer || !asset || !asset.id) return false;
         const deps = _buildUpsertDeps(gridContainer);
         const ok = queueUpsertAsset(gridContainer, asset, deps);
-        if (ok) flushUpsertBatch(gridContainer, deps);
+        if (ok && !_immediateFlushScheduled) {
+            _immediateFlushScheduled = true;
+            queueMicrotask(() => {
+                _immediateFlushScheduled = false;
+                const gc = getGridContainer();
+                if (gc) flushUpsertBatch(gc, _buildUpsertDeps(gc));
+            });
+        }
         return ok;
     }
 
     function dispose() {
         rememberSnapshot(state.query || "Cached");
         clearDeferredExecutionReload();
+        clearPrefetchTimer();
         try {
             state.abortController?.abort?.();
         } catch (e) {
@@ -1264,6 +1349,14 @@ export function useGridLoader({
                 console.debug?.(e);
             }
         }
+    }
+
+    // Abort any in-flight requests before the page unloads so they don't
+    // appear as epoch-1 cancelled requests in the next session's network log.
+    try {
+        window.addEventListener("pagehide", dispose, { once: true });
+    } catch (e) {
+        console.debug?.(e);
     }
 
     return {

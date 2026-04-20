@@ -75,7 +75,7 @@ export function buildFloatingViewerHeader(viewer) {
     const title = document.createElement("span");
     title.className = "mjr-mfv-header-title";
     title.id = viewer._titleId;
-    title.textContent = "Majoor Viewer Lite";
+    title.textContent = "〽️ Majoor Viewer Lite";
 
     const closeBtn = document.createElement("button");
     viewer._closeBtn = closeBtn;

@@ -400,7 +400,11 @@ export async function registerRealtimeListeners({
                 if (executionRuntime.isRenderableLiveAsset(detail)) {
                     pushGeneratedAsset(detail);
                 }
-                upsertLiveAssetIntoGrid(grid, detail);
+                // Use immediate flush for updates to assets already visible in
+                // the grid (enrichment / vector indexing results). This avoids
+                // a 200 ms debounce window during which the card shows stale
+                // metadata or temporarily disappears then reappears.
+                upsertLiveAssetIntoGrid(grid, detail, { immediate: true });
             }
         } catch (error) {
             reportError(error, "entry.asset_updated");

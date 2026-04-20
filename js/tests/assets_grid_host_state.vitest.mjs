@@ -100,7 +100,10 @@ describe("assetsGridHostState", () => {
 
         expect(gridWrapper.scrollTop).toBe(33);
         expect(gridContainer._mjrSetSelection).toHaveBeenCalledWith(["asset-7"], "asset-7");
-        expect(gridContainer._mjrScrollToAssetId).not.toHaveBeenCalled();
+        // scrollToAssetId is now always called so the selected card is scrolled into
+        // view even when a saved scrollTop was restored (align:"auto" keeps the view
+        // stable when the card is already visible).
+        expect(gridContainer._mjrScrollToAssetId).toHaveBeenCalledWith("asset-7");
         expect(onRestoreSidebar).toHaveBeenCalledTimes(1);
     });
 });

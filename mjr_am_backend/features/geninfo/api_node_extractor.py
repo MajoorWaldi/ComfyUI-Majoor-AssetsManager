@@ -231,7 +231,7 @@ def _provider_from_model_name(model: str) -> str | None:
     """Infer API provider from the model name string (secondary heuristic)."""
     m = model.lower()
     # Wan: only match when combined with "video" or "image" to avoid false positives
-    if "wan" in m and ("video" in m or "image" in m):
+    if "wan" in m:
         return "alibaba_wan"
     for keywords, provider in _MODEL_NAME_PROVIDERS:
         if any(kw in m for kw in keywords):
@@ -528,8 +528,8 @@ def _populate_api_node_output(
                 "width": int(width), "height": int(height),
                 "confidence": "high", "source": source,
             }
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.debug("size conversion failed for node %s: %s", source, exc)
 
     # Resolution string (e.g. "1080p", "720p") — convert to size when possible
     resolution = ins.get("resolution")

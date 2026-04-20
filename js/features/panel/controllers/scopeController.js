@@ -82,6 +82,9 @@ export function createScopeController({
     const clearSimilarScope = async ({ reload = true } = {}) => {
         const hadSimilar = hasSimilarResults();
         resetSimilarScope();
+        // Clear stale search query when exiting similar view to avoid
+        // applying it to the scope the user returns to.
+        writeState("searchQuery", "");
         setActiveTabStyles();
         try {
             onChanged?.();
@@ -124,9 +127,11 @@ export function createScopeController({
             return;
         }
 
-        // Switching scope exits any active collection view.
+        // Switching scope exits any active collection view and clears
+        // the search query so the new scope starts with a clean browse.
         writeState("collectionId", "");
         writeState("collectionName", "");
+        writeState("searchQuery", "");
         resetSimilarScope();
 
         const nextScope =

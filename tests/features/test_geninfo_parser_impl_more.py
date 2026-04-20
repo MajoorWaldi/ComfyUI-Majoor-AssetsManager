@@ -278,6 +278,117 @@ def test_resolve_scalar_from_string_replace():
     assert p._resolve_scalar_from_link(nodes, ["2", 0]) == "cinematic portrait of a woman"
 
 
+def test_ernie_image_turbo_real_graph_extracts_original_prompt():
+    """Real Ernie Image Turbo subgraph: TextGenerate enhances the user prompt
+    via a chain of StringReplace nodes feeding a system-prompt template.
+    The parser must extract the *original* user prompt, not the LLM-enhanced text."""
+    user_prompt = "A stylized cinematic portrait of a woman at twilight"
+    nodes = {
+        "88:93": {
+            "class_type": "StringReplace",
+            "inputs": {
+                "string": '<s>[SYSTEM_PROMPT]You are a prompt enhancer.[/SYSTEM_PROMPT][INST]{{"prompt": "{prompt}", "width": {width}, "height": {height}}}[/INST]',
+                "find": "{prompt}",
+                "replace": ["88:94", 0],
+            },
+        },
+        "88:94": {
+            "class_type": "PrimitiveStringMultiline",
+            "inputs": {"value": user_prompt},
+        },
+        "88:99": {
+            "class_type": "PreviewAny",
+            "inputs": {"preview_text": "1024", "source": 1024},
+        },
+        "88:100": {
+            "class_type": "PreviewAny",
+            "inputs": {"preview_text": "1024", "source": 1024},
+        },
+        "88:101": {
+            "class_type": "StringReplace",
+            "inputs": {"string": ["88:93", 0], "find": "{width}", "replace": ["88:99", 0]},
+        },
+        "88:102": {
+            "class_type": "StringReplace",
+            "inputs": {"string": ["88:101", 0], "find": "{height}", "replace": ["88:100", 0]},
+        },
+        "88:95": {
+            "class_type": "TextGenerate",
+            "inputs": {"prompt": ["88:102", 0], "max_length": 2048, "clip": ["88:98", 0]},
+        },
+        "88:96": {"class_type": "PrimitiveBoolean", "inputs": {"value": True}},
+        "88:97": {
+            "class_type": "ComfySwitchNode",
+            "inputs": {"switch": ["88:96", 0], "on_false": ["88:94", 0], "on_true": ["88:95", 0]},
+        },
+        "88:103": {
+            "class_type": "PreviewAny",
+            "inputs": {
+                "source": ["88:95", 0],
+                "preview_text": "Enhanced Chinese LLM description of the image",
+            },
+        },
+        "88:67": {
+            "class_type": "CLIPTextEncode",
+            "inputs": {"text": ["88:97", 0], "clip": ["88:62", 0]},
+        },
+        "88:62": {
+            "class_type": "CLIPLoader",
+            "inputs": {"clip_name": "ministral-3-3b.safetensors", "type": "flux2"},
+        },
+        "88:91": {
+            "class_type": "ConditioningZeroOut",
+            "inputs": {"conditioning": ["88:67", 0]},
+        },
+        "88:66": {
+            "class_type": "UNETLoader",
+            "inputs": {"unet_name": "ernie-image-turbo.safetensors"},
+        },
+        "88:63": {"class_type": "VAELoader", "inputs": {"vae_name": "flux2-vae.safetensors"}},
+        "88:71": {
+            "class_type": "EmptyFlux2LatentImage",
+            "inputs": {"width": 1024, "height": 1024, "batch_size": 1},
+        },
+        "88:70": {
+            "class_type": "KSampler",
+            "inputs": {
+                "seed": 42,
+                "steps": 8,
+                "cfg": 1.0,
+                "sampler_name": "euler",
+                "scheduler": "simple",
+                "denoise": 1.0,
+                "model": ["88:66", 0],
+                "positive": ["88:67", 0],
+                "negative": ["88:91", 0],
+                "latent_image": ["88:71", 0],
+            },
+        },
+        "88:65": {
+            "class_type": "VAEDecode",
+            "inputs": {"samples": ["88:70", 0], "vae": ["88:63", 0]},
+        },
+        "88:98": {
+            "class_type": "CLIPLoader",
+            "inputs": {"clip_name": "ernie-image-prompt-enhancer.safetensors", "type": "flux2"},
+        },
+        "104": {
+            "class_type": "SaveImage",
+            "inputs": {"filename_prefix": "output", "images": ["88:65", 0]},
+        },
+    }
+
+    res = p.parse_geninfo_from_prompt(nodes)
+    assert res.ok
+    data = res.data
+    assert isinstance(data, dict)
+    pos = data.get("positive", {})
+    assert pos.get("value") == user_prompt
+    # Negative is ConditioningZeroOut — no text expected.
+    neg = data.get("negative", {})
+    assert not neg.get("value")
+
+
 def test_prompt_extracted_through_ernie_switch_and_preview_any_output():
     nodes = {
         "1": {"class_type": "PrimitiveStringMultiline", "inputs": {"value": "portrait of a woman at dusk"}},
@@ -328,7 +439,7 @@ def test_prompt_extracted_through_ernie_switch_and_preview_any_output():
     data = res.data
     assert isinstance(data, dict)
     pos = data.get("positive", {})
-    assert pos.get("value") == "A cinematic side-profile portrait of a woman at dusk with dramatic neon rim lighting."
+    assert pos.get("value") == "portrait of a woman at dusk"
 
 
 def test_parse_geninfo_supports_pysssss_string_function_append():

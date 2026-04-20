@@ -20,6 +20,7 @@ const EXECUTION_START_TTL_MS = 10 * 60 * 1000;
 const EXECUTION_STARTS_MAX = 500;
 const ORPHAN_GENERATION_RETRY_MAX_ATTEMPTS = 6;
 const ORPHAN_GENERATION_ABSOLUTE_TIMEOUT_MS = 30_000;
+const POST_EXECUTION_BUFFER_FLUSH_FAST_MS = 500;
 
 export function createExecutionRuntimeController({
     post,
@@ -202,7 +203,7 @@ export function createExecutionRuntimeController({
     }
 
     function schedulePostExecutionWork(work, delayMs = executionIdleGraceMs) {
-        const waitMs = Math.max(0, Number(delayMs) || 0, executionIdleGraceMs);
+        const waitMs = Math.max(0, Number(delayMs) || 0);
         clearPostExecutionWorkTimer();
         postExecutionWorkTimer = setTimeout(() => {
             postExecutionWorkTimer = null;
@@ -420,6 +421,18 @@ export function createExecutionRuntimeController({
             });
     }
 
+    function hasBufferedGenerationFiles(jobId) {
+        const promptId = String(jobId || "").trim();
+        if (!promptId) return false;
+        try {
+            const bucket = executionAssetBuffer?._jobs?.get?.(promptId);
+            return !!bucket && typeof bucket.size === "number" && bucket.size > 0;
+        } catch (e) {
+            console.debug?.(e);
+            return false;
+        }
+    }
+
     function prepareLiveAssetEvent(detail) {
         if (!isExecutionGroupingEnabled()) {
             return { detail, jobId: "", defer: false };
@@ -485,7 +498,18 @@ export function createExecutionRuntimeController({
         } catch (e) {
             console.debug?.(e);
         }
-        bufferGenerationIndex(files, { prompt_id: promptId });
+        const immediateFiles = files.length > 0 ? [files[0]] : [];
+        const bufferedFiles = files.length > 1 ? files.slice(1) : [];
+
+        // Prioritize the first renderable asset from each executed payload so the
+        // placeholder is replaced by a real card almost immediately, while the
+        // remaining outputs continue through the grouped post-execution flow.
+        if (immediateFiles.length > 0) {
+            scheduleGenerationIndex(immediateFiles, 1, { prompt_id: promptId });
+        }
+        if (bufferedFiles.length > 0) {
+            bufferGenerationIndex(bufferedFiles, { prompt_id: promptId });
+        }
     }
 
     function handleExecutionStart(event, { setCurrentJobId }) {
@@ -545,12 +569,15 @@ export function createExecutionRuntimeController({
             if (policy.usePostExecutionScan) {
                 schedulePostExecutionScan(executionIdleGraceMs);
             } else {
+                const flushDelayMs = hasBufferedGenerationFiles(promptId)
+                    ? Math.min(executionIdleGraceMs, POST_EXECUTION_BUFFER_FLUSH_FAST_MS)
+                    : executionIdleGraceMs;
                 schedulePostExecutionWork(() => {
                     if (promptId) {
                         flushOrphanGenerationEntries(promptId);
                     }
                     flushBufferedGenerationIndex(promptId);
-                }, executionIdleGraceMs);
+                }, flushDelayMs);
             }
         }
     }

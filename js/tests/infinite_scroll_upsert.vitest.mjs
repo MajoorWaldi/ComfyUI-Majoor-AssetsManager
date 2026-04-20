@@ -48,7 +48,7 @@ describe("InfiniteScroll upsert", () => {
         ).toBe(16);
     });
 
-    it("only skips total counts after the first page for output scope", async () => {
+    it("skips total counts for default output browse and later output pages only", async () => {
         const buildListURL = vi.fn(() => "/mjr/am/list");
         const deps = {
             sanitizeQuery: (value) => value,
@@ -61,19 +61,25 @@ describe("InfiniteScroll upsert", () => {
         };
 
         const cases = [
-            ["output", 0, true],
-            ["output", 100, false],
-            ["all", 100, true],
-            ["input", 100, true],
-            ["custom", 100, true],
+            [{ dataset: { mjrScope: "output", mjrSort: "mtime_desc" } }, "*", 0, false],
+            [{ dataset: { mjrScope: "output", mjrSort: "mtime_desc" } }, "*", 100, false],
+            [{ dataset: { mjrScope: "output", mjrSort: "mtime_desc" } }, "portrait", 0, true],
+            [{ dataset: { mjrScope: "output", mjrSort: "mtime_desc", mjrFilterMinRating: "3" } }, "*", 0, true],
+            [{ dataset: { mjrScope: "all", mjrSort: "mtime_desc" } }, "*", 100, true],
+            [{ dataset: { mjrScope: "input", mjrSort: "mtime_desc" } }, "*", 100, true],
+            [{ dataset: { mjrScope: "custom", mjrSort: "mtime_desc" } }, "*", 100, true],
         ];
 
-        for (const [scope, offset, includeTotal] of cases) {
-            await fetchPage({ dataset: { mjrScope: scope } }, "*", 100, offset, deps, {
+        for (const [gridContainer, query, offset, includeTotal] of cases) {
+            await fetchPage(gridContainer, query, 100, offset, deps, {
                 requestId: 1,
             });
             const lastCall = buildListURL.mock.calls[buildListURL.mock.calls.length - 1]?.[0];
-            expect(lastCall).toMatchObject({ scope, offset, includeTotal });
+            expect(lastCall).toMatchObject({
+                scope: gridContainer.dataset.mjrScope,
+                offset,
+                includeTotal,
+            });
         }
     });
 

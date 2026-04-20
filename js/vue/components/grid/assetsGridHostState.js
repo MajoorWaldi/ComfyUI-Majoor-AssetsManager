@@ -234,22 +234,32 @@ export async function restoreGridUiState({
             console.debug?.(e);
         }
 
-        if (activeId && scrollTop === 0) {
-            try {
-                if (typeof gridContainer?._mjrScrollToAssetId === "function") {
-                    gridContainer._mjrScrollToAssetId(activeId);
-                } else {
-                    const activeCard = gridContainer.querySelector?.(
-                        `.mjr-asset-card[data-mjr-asset-id="${safeEscapeAttr(activeId)}"]`,
-                    );
-                    activeCard?.scrollIntoView?.({
-                        block: "nearest",
-                        behavior: "instant",
-                    });
+        // Always scroll to the active card so the selection is visible regardless of
+        // the saved scroll position. Using align:"auto" (default) means the virtualizer
+        // will not move if the card is already in view, so this is side-effect-free
+        // when the saved scrollTop already shows the right area.
+        if (activeId) {
+            const scrollToSelection = () => {
+                try {
+                    if (typeof gridContainer?._mjrScrollToAssetId === "function") {
+                        gridContainer._mjrScrollToAssetId(activeId);
+                    } else {
+                        const activeCard = gridContainer.querySelector?.(
+                            `.mjr-asset-card[data-mjr-asset-id="${safeEscapeAttr(activeId)}"]`,
+                        );
+                        activeCard?.scrollIntoView?.({
+                            block: "nearest",
+                            behavior: "instant",
+                        });
+                    }
+                } catch (e) {
+                    console.debug?.(e);
                 }
-            } catch (e) {
-                console.debug?.(e);
-            }
+            };
+            scrollToSelection();
+            // Second pass: handles fresh loads where Vue needs extra time to render items
+            // into the virtualizer before scrollToIndex can locate the correct row.
+            setTimeout(scrollToSelection, 160);
         }
     }
 

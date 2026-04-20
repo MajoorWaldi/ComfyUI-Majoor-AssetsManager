@@ -2,6 +2,25 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased]
+
+### 🐛 Bug Fixes & Performance
+- **Bug Fixes**: Various bug fixes
+- **Performance and Fluidity**: Performance and fluidity improvements
+
+### ✨ Improved
+- **Concatenate Support**: Improved concatenate support for default and custom nodes — by Forsion07
+
+### 🔌 API & Integrations
+- **Api Node Helpers**: Add support helpers for Api Node
+- **Ernie Image Helper**: Add support helper for Ernie Image
+
+### ⚙️ Settings & Defaults
+- **Live Stream disabled by default**: MFV Live Stream (green button) is now OFF by default; can be re-enabled permanently via Settings → Majoor Assets Manager › Viewer
+- **Live Stream & KSampler Preview configurable by default**: Both toggles can be set as the default state via Settings → Viewer; when Live Stream is active, clicking a Load Image node or a generation end automatically opens the Floating Viewer
+
+---
+
 ## [2.4.5] - 2026-04-10
 
 ### 🎉 New Features — Floating Viewer

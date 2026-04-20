@@ -45,8 +45,22 @@ const FEED_MOUNT_KEY = "_mjrFeedVueApp";
 // This prefetched data is consumed by useGridLoader when it initializes.
 let _earlyFetchPromise = null;
 let _earlyFetchKey = null;
-const EARLY_FETCH_TTL_MS = 5000; // Prefetch valid for 5 seconds
+// 15 seconds — wide enough to cover slow ComfyUI startups and delayed sidebar
+// opens while still invalidating stale data before it becomes misleading.
+const EARLY_FETCH_TTL_MS = 15000;
 let _earlyFetchTimestamp = 0;
+let _earlyFetchAC = null;
+
+// Abort the in-flight early fetch on page unload so it doesn't appear as an
+// epoch-1 cancelled request in the next session's network log.
+try {
+    window.addEventListener("pagehide", () => {
+        try { _earlyFetchAC?.abort?.(); } catch (e) { /* ignore */ }
+        _earlyFetchAC = null;
+        _earlyFetchPromise = null;
+        _earlyFetchKey = null;
+    }, { once: true });
+} catch (e) { /* ignore */ }
 
 function isExecutionBusy() {
     try {
@@ -72,20 +86,37 @@ function startEarlyFetch() {
     _earlyFetchTimestamp = now;
 
     try {
+        // Create a dedicated AbortController so we can cancel this request
+        // cleanly on page unload (pagehide) instead of letting the browser
+        // kill it mid-flight and produce epoch-1 entries in the next session.
+        try { _earlyFetchAC?.abort?.(); } catch (e) { /* ignore */ }
+        _earlyFetchAC = typeof AbortController !== "undefined" ? new AbortController() : null;
         const url = buildListURL({
             query: "*",
             limit: APP_CONFIG.DEFAULT_PAGE_SIZE || 200,
             offset: 0,
             scope: "output",
             sort: "mtime_desc",
+            // Include total so useGridLoader can set state.total correctly.
+            // Without it the fallback was earlyAssets.length (page size),
+            // which caused state.done=true after the first page and blocked
+            // all subsequent pagination / infinite scroll.
+            includeTotal: true,
         });
-        _earlyFetchPromise = get(url).catch(() => null);
+        _earlyFetchPromise = get(url, _earlyFetchAC ? { signal: _earlyFetchAC.signal } : {}).catch(() => null);
     } catch {
         _earlyFetchPromise = null;
+        _earlyFetchAC = null;
     }
 
     return _earlyFetchPromise;
 }
+
+/**
+ * Start the early fetch from an external caller (e.g. entry.js setup).
+ * Safe to call multiple times — returns existing promise if still valid.
+ */
+export { startEarlyFetch };
 
 /**
  * Consume the early fetch result if available and matching.
@@ -105,6 +136,7 @@ export function consumeEarlyFetch(key = "output:*:mtime_desc") {
     // Clear after consumption to avoid stale reuse
     _earlyFetchPromise = null;
     _earlyFetchKey = null;
+    _earlyFetchAC = null;
     return promise;
 }
 

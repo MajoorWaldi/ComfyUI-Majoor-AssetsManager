@@ -1107,7 +1107,7 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
                                 (row_job_id, asset_id),
                             )
                             restack_job_ids.add(row_job_id)
-                        
+
                         # Propagate job_id to base video/audio files from suffixed siblings (e.g. -audio.mp4)
                         for row in sibling_rows:
                             filename_value = row.get("filename") or ""
@@ -1185,6 +1185,10 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
                                 )
                     except Exception as ex:
                         logger.debug("Failed to assign node provenance: %s", ex)
+
+                if restack_job_ids:
+                    await _finalize_indexed_execution_stacks(svc, restack_job_ids)
+                    restack_job_ids.clear()
 
                 if gen_time_by_id:
                     try:

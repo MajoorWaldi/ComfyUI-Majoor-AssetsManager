@@ -767,7 +767,11 @@ watch(
 
 watch(
     () => state.assets,
-    async () => {
+    async (newAssets) => {
+        if (!Array.isArray(newAssets) || newAssets.length === 0) {
+            const gc = gridContainerRef.value;
+            if (gc?._mjrStackMembersCache) gc._mjrStackMembersCache.clear();
+        }
         await nextTick();
         syncAllRenderedDuplicateCards();
     },
@@ -1025,8 +1029,29 @@ function handleCardDblclick(asset) {
 
 let scrollCleanup = null;
 
+function _forceVirtualizerMeasure() {
+    updateHostWidth();
+    try {
+        rowVirtualizer.value?.measure?.();
+    } catch (e) {
+        console.debug?.(e);
+    }
+}
+
 function handleKeepAliveAttached() {
-    if (!isGridVisible()) return;
+    _forceVirtualizerMeasure();
+    if (!isGridVisible()) {
+        // Le layout du nouveau container n'est pas encore calculé au moment
+        // où keepalive-attached est dispatché. On reporte sur le prochain
+        // cycle de rendu pour que le navigateur ait fini la mise en page.
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                _forceVirtualizerMeasure();
+                void maybeFillViewport();
+            });
+        });
+        return;
+    }
     void maybeFillViewport();
 }
 
@@ -1037,7 +1062,10 @@ function bindInfiniteScroll(element) {
         const remaining =
             Number(element.scrollHeight || 0) -
             (Number(element.scrollTop || 0) + Number(element.clientHeight || 0));
-        if (remaining <= Math.max(120, estimateRowHeight.value * 2)) {
+        // Start loading the next page when the user is 4 card-rows from the bottom
+        // (was 2). This hides API latency and prevents the visible "waiting at
+        // the bottom" freeze.
+        if (remaining <= Math.max(600, estimateRowHeight.value * 4)) {
             void loader.loadNextPage();
         }
     };

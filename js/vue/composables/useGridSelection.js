@@ -57,8 +57,11 @@ export function bindGridSelectionState({
             console.debug?.(e);
         }
 
-        if (!activeId || Number(scrollTop || 0) > 0) return;
+        if (!activeId) return;
 
+        // Always scroll to the active card. align:"auto" (default) ensures the
+        // virtualizer won't move if the card is already in the viewport, so
+        // this is side-effect-free when the saved scroll position is still valid.
         try {
             if (typeof gridContainer?._mjrScrollToAssetId === "function") {
                 gridContainer._mjrScrollToAssetId(activeId);

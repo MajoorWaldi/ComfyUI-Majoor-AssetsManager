@@ -122,8 +122,12 @@ export function createAssetsQueryController({
                     try {
                         const currentScrollTop = Number(readScrollTop() || 0) || 0;
                         const anchorScrollTop = Number(anchor?.scrollTop || 0) || 0;
-                        const userScrolledDuringReload = Math.abs(currentScrollTop - anchorScrollTop) > 8;
-                        if (userScrolledDuringReload) {
+                        // Only skip restore if user actively scrolled DOWN past the original
+                        // position during the reload. A drop in scrollTop (currentScrollTop <
+                        // anchorScrollTop) means the reload itself reset the scroll — we must
+                        // restore in that case to avoid losing the user's position.
+                        const userScrolledPastAnchor = currentScrollTop > anchorScrollTop + 8;
+                        if (userScrolledPastAnchor) {
                             continue;
                         }
                         await restoreAnchor(gridContainer, anchor);
@@ -291,7 +295,7 @@ export function createAssetsQueryController({
             const needsFallbackReload =
                 hasNewIndexEnd && !hasNewScan && !hasNewTotal && !upsertHandledRecently;
 
-            if (totalExplainedByRecentUpserts && !hasNewScan) {
+            if (totalExplainedByRecentUpserts) {
                 lastKnownScan = counters.last_scan_end;
                 lastKnownIndexEnd = counters.last_index_end;
                 try {
@@ -306,7 +310,7 @@ export function createAssetsQueryController({
                 lastKnownIndexEnd = counters.last_index_end;
                 return;
             }
-            if (upsertHandledRecently && !hasNewScan) return;
+            if (upsertHandledRecently) return;
             if (!hasNewScan && !hasNewTotal && !needsFallbackReload) return;
             if (!syncVisibilityState()) return;
 
