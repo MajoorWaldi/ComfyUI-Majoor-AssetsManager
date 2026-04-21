@@ -47,6 +47,7 @@ const COLOR_SETTING_KEYS = new Set([
 ]);
 
 let _settingsStorageListenerBound = false;
+let _settingsStorageListenerRef = null;
 let _settingsContext = null;
 let _settingsDefinitions = null;
 let _settingsRuntimeInitialized = false;
@@ -151,9 +152,14 @@ function ensureMajoorSettingsContext(app, onApplied, { initRuntime = false } = {
         };
 
         if (!_settingsStorageListenerBound) {
+            // Remove stale listener from a previous init (hot-reload safety)
+            if (_settingsStorageListenerRef && typeof window !== "undefined") {
+                try { window.removeEventListener("storage", _settingsStorageListenerRef); } catch (e) { console.debug?.(e); }
+            }
             try {
                 window.addEventListener("storage", storageListener);
                 _settingsStorageListenerBound = true;
+                _settingsStorageListenerRef = storageListener;
             } catch (e) {
                 console.debug?.(e);
             }

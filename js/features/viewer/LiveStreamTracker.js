@@ -454,7 +454,9 @@ export function initLiveStreamTracker(app) {
             console.debug?.("[MFV] generation output error", err);
         }
     };
-    window.addEventListener(EVENTS.NEW_GENERATION_OUTPUT, _genOutputHandler);
+    if (typeof window !== "undefined") {
+        window.addEventListener(EVENTS.NEW_GENERATION_OUTPUT, _genOutputHandler);
+    }
 
     // 2. Hook LiteGraph canvas for media node selection
     _hookCanvasWhenReady(app);
@@ -474,7 +476,9 @@ export function initLiveStreamTracker(app) {
  */
 export function teardownLiveStreamTracker(app) {
     if (_genOutputHandler) {
-        window.removeEventListener(EVENTS.NEW_GENERATION_OUTPUT, _genOutputHandler);
+        if (typeof window !== "undefined") {
+            window.removeEventListener(EVENTS.NEW_GENERATION_OUTPUT, _genOutputHandler);
+        }
         _genOutputHandler = null;
     }
     _previewHookGeneration += 1;

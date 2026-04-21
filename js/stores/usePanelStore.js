@@ -11,7 +11,7 @@
  */
 
 import { defineStore } from "pinia";
-import { ref, watch } from "vue";
+import { ref, watch, onScopeDispose } from "vue";
 
 const STORAGE_KEY = "mjr_panel_state";
 const ALLOWED_SCOPES = new Set(["output", "input", "all", "custom"]);
@@ -237,6 +237,9 @@ export const usePanelStore = defineStore("mjr-panel", () => {
     } catch {
         /* ignore */
     }
+    onScopeDispose(() => {
+        try { window.removeEventListener("storage", _onStorage); } catch { /* ignore */ }
+    });
 
     // ── actions ───────────────────────────────────────────────────────────────
     function resetFilters() {

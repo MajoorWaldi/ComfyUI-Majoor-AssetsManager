@@ -147,6 +147,7 @@ function _disposeInstance() {
 }
 
 function _emitVisibilityChanged(visible) {
+    if (typeof window === "undefined") return;
     window.dispatchEvent(
         new CustomEvent(EVENTS.MFV_VISIBILITY_CHANGED, {
             detail: { visible: Boolean(visible) },
@@ -316,12 +317,15 @@ function _onSelectionChanged(e) {
 
 function _bindSelectionListener() {
     if (_selectionListenerBound) return;
+    if (typeof window === "undefined") return;
     window.addEventListener(EVENTS.SELECTION_CHANGED, _onSelectionChanged);
     _selectionListenerBound = true;
 }
 
 function _unbindSelectionListener() {
-    window.removeEventListener(EVENTS.SELECTION_CHANGED, _onSelectionChanged);
+    if (typeof window !== "undefined") {
+        window.removeEventListener(EVENTS.SELECTION_CHANGED, _onSelectionChanged);
+    }
     _selectionListenerBound = false;
     _cancelFetch();
 }
