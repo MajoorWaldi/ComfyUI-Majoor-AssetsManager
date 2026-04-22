@@ -1040,19 +1040,22 @@ function _forceVirtualizerMeasure() {
 
 function handleKeepAliveAttached() {
     _forceVirtualizerMeasure();
-    if (!isGridVisible()) {
-        // Le layout du nouveau container n'est pas encore calculé au moment
-        // où keepalive-attached est dispatché. On reporte sur le prochain
-        // cycle de rendu pour que le navigateur ait fini la mise en page.
+    // Le layout du nouveau container n'est pas encore calculé au moment
+    // où keepalive-attached est dispatché. Double-rAF + setTimeout 150ms
+    // couvrent les layouts complexes (animations ComfyUI, heavy CSS recalc).
+    requestAnimationFrame(() => {
         requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
-                _forceVirtualizerMeasure();
-                void maybeFillViewport();
-            });
+            _forceVirtualizerMeasure();
+            void maybeFillViewport();
         });
-        return;
-    }
-    void maybeFillViewport();
+    });
+    // Fallback: certains environnements (animations, heavy reflow) ne
+    // stabilisent pas les dimensions dans deux frames. Ce setTimeout garantit
+    // une mesure finale après que le navigateur ait fini la mise en page.
+    setTimeout(() => {
+        _forceVirtualizerMeasure();
+        void maybeFillViewport();
+    }, 150);
 }
 
 function bindInfiniteScroll(element) {

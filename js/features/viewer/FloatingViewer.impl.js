@@ -90,7 +90,11 @@ import { disposeFloatingViewerProgressBar } from "./floatingViewerProgress.js";
 
 function _hasSimplePlayerControls(mediaEl) {
     try {
-        return !!mediaEl?.classList?.contains("mjr-mfv-simple-player");
+        return (
+            !!mediaEl?.classList?.contains("mjr-mfv-simple-player")
+            || !!mediaEl?.classList?.contains("mjr-mfv-player-host")
+            || !!mediaEl?.querySelector?.(".mjr-video-controls, .mjr-mfv-simple-player-controls")
+        );
     } catch (e) {
         console.debug?.(e);
         return false;
@@ -183,6 +187,14 @@ export class FloatingViewer {
         this._progressCurrentNodeId = null;
         this._docClickHost = null;
         this._handleDocClick = null;
+        this._mediaControlHandles = [];
+        this._layoutObserver = null;
+        this._channel = "rgb";
+        this._exposureEV = 0;
+        this._gridMode = 0;
+        this._overlayMaskEnabled = false;
+        this._overlayMaskOpacity = 0.65;
+        this._overlayFormat = "image";
     }
 
     _dispatchControllerAction(methodName, fallbackEventType) {
@@ -387,6 +399,223 @@ export class FloatingViewer {
                 this._dragging ? "mjr-mfv-content--grabbing" : "mjr-mfv-content--grab",
             );
         }
+        this._applyMediaToneControls();
+        this._redrawOverlayGuides();
+    }
+
+    _ensureToneFilterDefs() {
+        if (this._toneFilterDefsEl?.isConnected) return this._toneFilterDefsEl;
+        const svgNs = "http://www.w3.org/2000/svg";
+        const svg = document.createElementNS(svgNs, "svg");
+        svg.setAttribute("aria-hidden", "true");
+        svg.style.position = "absolute";
+        svg.style.width = "0";
+        svg.style.height = "0";
+        svg.style.pointerEvents = "none";
+        const defs = document.createElementNS(svgNs, "defs");
+        const filters = [
+            ["mjr-mfv-ch-r", "1 0 0 0 0  1 0 0 0 0  1 0 0 0 0  0 0 0 1 0"],
+            ["mjr-mfv-ch-g", "0 1 0 0 0  0 1 0 0 0  0 1 0 0 0  0 0 0 1 0"],
+            ["mjr-mfv-ch-b", "0 0 1 0 0  0 0 1 0 0  0 0 1 0 0  0 0 0 1 0"],
+            ["mjr-mfv-ch-a", "0 0 0 1 0  0 0 0 1 0  0 0 0 1 0  0 0 0 1 0"],
+            ["mjr-mfv-ch-l", "0.2126 0.7152 0.0722 0 0  0.2126 0.7152 0.0722 0 0  0.2126 0.7152 0.0722 0 0  0 0 0 1 0"],
+        ];
+        for (const [id, values] of filters) {
+            const filter = document.createElementNS(svgNs, "filter");
+            filter.setAttribute("id", id);
+            const matrix = document.createElementNS(svgNs, "feColorMatrix");
+            matrix.setAttribute("type", "matrix");
+            matrix.setAttribute("values", values);
+            filter.appendChild(matrix);
+            defs.appendChild(filter);
+        }
+        svg.appendChild(defs);
+        this.element?.appendChild(svg);
+        this._toneFilterDefsEl = svg;
+        return svg;
+    }
+
+    _applyMediaToneControls() {
+        this._ensureToneFilterDefs();
+        if (!this._contentEl) return;
+        const channel = String(this._channel || "rgb");
+        const exposureScale = Math.pow(2, Number(this._exposureEV) || 0);
+        const channelFilter =
+            channel === "rgb" ? "" : `url(#mjr-mfv-ch-${channel})`;
+        const brightnessFilter =
+            Math.abs(exposureScale - 1) < 0.0001 ? "" : `brightness(${exposureScale})`;
+        const filterValue = [channelFilter, brightnessFilter].filter(Boolean).join(" ").trim();
+        const mediaEls = this._contentEl.querySelectorAll?.(".mjr-mfv-media") || [];
+        for (const el of mediaEls) {
+            try {
+                el.style.filter = filterValue || "";
+            } catch (e) {
+                console.debug?.(e);
+            }
+        }
+    }
+
+    _getOverlayAspect(format, mediaEl, panelRect) {
+        try {
+            const f = String(format || "image");
+            if (f === "image") {
+                const nw =
+                    Number(mediaEl?.videoWidth)
+                    || Number(mediaEl?.naturalWidth)
+                    || Number(panelRect?.width)
+                    || 1;
+                const nh =
+                    Number(mediaEl?.videoHeight)
+                    || Number(mediaEl?.naturalHeight)
+                    || Number(panelRect?.height)
+                    || 1;
+                const a = nw / nh;
+                return Number.isFinite(a) && a > 0 ? a : 1;
+            }
+            if (f === "16:9") return 16 / 9;
+            if (f === "9:16") return 9 / 16;
+            if (f === "1:1") return 1;
+            if (f === "4:3") return 4 / 3;
+            if (f === "2.39") return 2.39;
+        } catch (e) {
+            console.debug?.(e);
+        }
+        return 1;
+    }
+
+    _fitAspectInBox(boxW, boxH, aspect) {
+        try {
+            const bw = Number(boxW) || 0;
+            const bh = Number(boxH) || 0;
+            const a = Number(aspect) || 1;
+            if (!(bw > 0 && bh > 0 && a > 0)) return { x: 0, y: 0, w: bw, h: bh };
+            const boxA = bw / bh;
+            let w = bw;
+            let h = bh;
+            if (a >= boxA) {
+                h = bw / a;
+            } else {
+                w = bh * a;
+            }
+            return { x: (bw - w) / 2, y: (bh - h) / 2, w, h };
+        } catch (e) {
+            console.debug?.(e);
+            return { x: 0, y: 0, w: Number(boxW) || 0, h: Number(boxH) || 0 };
+        }
+    }
+
+    _drawMaskOutside(ctx, canvas, rects, alpha) {
+        try {
+            const a = Math.max(0, Math.min(0.92, Number(alpha) || 0));
+            if (!(a > 0)) return;
+            ctx.save();
+            ctx.fillStyle = `rgba(0,0,0,${a})`;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.globalCompositeOperation = "destination-out";
+            for (const r of rects) {
+                if (!r || !(r.w > 1 && r.h > 1)) continue;
+                ctx.fillRect(r.x, r.y, r.w, r.h);
+            }
+            ctx.restore();
+        } catch (e) {
+            console.debug?.(e);
+        }
+    }
+
+    _redrawOverlayGuides() {
+        const canvas = this._overlayCanvas;
+        const host = this._contentEl;
+        if (!canvas || !host) return;
+        const ctx = canvas.getContext?.("2d");
+        if (!ctx) return;
+
+        const dpr = Math.max(1, Math.min(3, Number(window.devicePixelRatio) || 1));
+        const cssW = host.clientWidth || 0;
+        const cssH = host.clientHeight || 0;
+        canvas.width = Math.max(1, Math.floor(cssW * dpr));
+        canvas.height = Math.max(1, Math.floor(cssH * dpr));
+        canvas.style.width = `${cssW}px`;
+        canvas.style.height = `${cssH}px`;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        if (!(this._gridMode || this._overlayMaskEnabled)) return;
+
+        const hostRect = host.getBoundingClientRect?.();
+        if (!hostRect) return;
+        const panels = Array.from(
+            host.querySelectorAll?.(
+                ".mjr-mfv-simple-container, .mjr-mfv-side-panel, .mjr-mfv-grid-cell, .mjr-mfv-ab-layer",
+            ) || [],
+        );
+        const panelEls = panels.length ? panels : [host];
+        const formatRects = [];
+
+        for (const panelEl of panelEls) {
+            const mediaEl = panelEl.querySelector?.(".mjr-mfv-media");
+            if (!mediaEl) continue;
+            const panelRect = panelEl.getBoundingClientRect?.();
+            if (!panelRect?.width || !panelRect?.height) continue;
+            const baseW = Number(panelRect.width) || 0;
+            const baseH = Number(panelRect.height) || 0;
+            const aspect = this._getOverlayAspect(this._overlayFormat, mediaEl, panelRect);
+            const fit = this._fitAspectInBox(baseW, baseH, aspect);
+            const centerX = (panelRect.left - hostRect.left) + baseW / 2;
+            const centerY = (panelRect.top - hostRect.top) + baseH / 2;
+            const z = Math.max(0.1, Math.min(16, Number(this._zoom) || 1));
+            const rectCss = {
+                x: centerX + fit.x * z - baseW * z / 2 + (Number(this._panX) || 0),
+                y: centerY + fit.y * z - baseH * z / 2 + (Number(this._panY) || 0),
+                w: fit.w * z,
+                h: fit.h * z,
+            };
+            formatRects.push({
+                x: rectCss.x * dpr,
+                y: rectCss.y * dpr,
+                w: rectCss.w * dpr,
+                h: rectCss.h * dpr,
+            });
+        }
+
+        if (!formatRects.length) return;
+
+        if (this._overlayMaskEnabled) {
+            this._drawMaskOutside(ctx, canvas, formatRects, this._overlayMaskOpacity);
+            ctx.save();
+            ctx.setLineDash?.([Math.max(2, 4 * dpr), Math.max(2, 3 * dpr)]);
+            ctx.strokeStyle = "rgba(255,255,255,0.22)";
+            ctx.lineWidth = Math.max(1, Math.floor(dpr));
+            for (const r of formatRects) {
+                ctx.strokeRect(r.x + 0.5, r.y + 0.5, r.w - 1, r.h - 1);
+            }
+            ctx.restore();
+        }
+
+        if (this._mode !== MFV_MODES.SIMPLE || !this._gridMode) return;
+        const rect = formatRects[0];
+        if (!rect) return;
+        ctx.save();
+        ctx.translate(rect.x, rect.y);
+        ctx.strokeStyle = "rgba(255,255,255,0.22)";
+        ctx.lineWidth = Math.max(2, Math.round(1.25 * dpr));
+        const drawLine = (x1, y1, x2, y2) => {
+            ctx.beginPath();
+            ctx.moveTo(Math.round(x1) + 0.5, Math.round(y1) + 0.5);
+            ctx.lineTo(Math.round(x2) + 0.5, Math.round(y2) + 0.5);
+            ctx.stroke();
+        };
+        if (this._gridMode === 1) {
+            drawLine(rect.w / 3, 0, rect.w / 3, rect.h);
+            drawLine((2 * rect.w) / 3, 0, (2 * rect.w) / 3, rect.h);
+            drawLine(0, rect.h / 3, rect.w, rect.h / 3);
+            drawLine(0, (2 * rect.h) / 3, rect.w, (2 * rect.h) / 3);
+        } else if (this._gridMode === 2) {
+            drawLine(rect.w / 2, 0, rect.w / 2, rect.h);
+            drawLine(0, rect.h / 2, rect.w, rect.h / 2);
+        } else if (this._gridMode === 3) {
+            ctx.strokeRect(rect.w * 0.1 + 0.5, rect.h * 0.1 + 0.5, rect.w * 0.8 - 1, rect.h * 0.8 - 1);
+            ctx.strokeRect(rect.w * 0.05 + 0.5, rect.h * 0.05 + 0.5, rect.w * 0.9 - 1, rect.h * 0.9 - 1);
+        }
+        ctx.restore();
     }
 
     /**
@@ -422,6 +651,30 @@ export class FloatingViewer {
         this._applyTransform();
     }
 
+    _bindLayoutObserver() {
+        this._unbindLayoutObserver();
+        const target = this._contentEl;
+        if (!target || typeof ResizeObserver === "undefined") return;
+        try {
+            this._layoutObserver = new ResizeObserver(() => {
+                this._applyTransform();
+            });
+            this._layoutObserver.observe(target);
+        } catch (e) {
+            console.debug?.(e);
+            this._layoutObserver = null;
+        }
+    }
+
+    _unbindLayoutObserver() {
+        try {
+            this._layoutObserver?.disconnect?.();
+        } catch (e) {
+            console.debug?.(e);
+        }
+        this._layoutObserver = null;
+    }
+
     /** Bind wheel + pointer events to the clip viewport element. */
     _initPanZoom(contentEl) {
         this._destroyPanZoom();
@@ -434,7 +687,7 @@ export class FloatingViewer {
             "wheel",
             (e) => {
                 if (e.target?.closest?.("audio")) return;
-                if (e.target?.closest?.(".mjr-mfv-simple-player-controls")) return;
+                if (e.target?.closest?.(".mjr-video-controls, .mjr-mfv-simple-player-controls")) return;
                 if (isModel3DInteractionTarget(e.target)) return;
                 const scrollableAncestor = _findScrollableAncestor(e.target, contentEl);
                 if (
@@ -470,7 +723,7 @@ export class FloatingViewer {
                 // Let native video controls and the AB divider handle their own events.
                 if (e.target?.closest?.("video")) return;
                 if (e.target?.closest?.("audio")) return;
-                if (e.target?.closest?.(".mjr-mfv-simple-player-controls")) return;
+                if (e.target?.closest?.(".mjr-video-controls, .mjr-mfv-simple-player-controls")) return;
                 if (e.target?.closest?.(".mjr-mfv-ab-divider")) return;
                 if (isModel3DInteractionTarget(e.target)) return;
                 e.preventDefault();
@@ -521,7 +774,7 @@ export class FloatingViewer {
             (e) => {
                 if (e.target?.closest?.("video")) return;
                 if (e.target?.closest?.("audio")) return;
-                if (e.target?.closest?.(".mjr-mfv-simple-player-controls")) return;
+                if (e.target?.closest?.(".mjr-video-controls, .mjr-mfv-simple-player-controls")) return;
                 if (isModel3DInteractionTarget(e.target)) return;
                 const isNearFit = Math.abs(this._zoom - 1) < 0.05;
                 this._setMfvZoom(isNearFit ? Math.min(4, this._zoom * 4) : 1, e.clientX, e.clientY);
@@ -550,6 +803,28 @@ export class FloatingViewer {
         this._compareSyncAC = null;
     }
 
+    _destroyMediaControls() {
+        const handles = Array.isArray(this._mediaControlHandles) ? this._mediaControlHandles : [];
+        for (const handle of handles) {
+            try {
+                handle?.destroy?.();
+            } catch (e) {
+                console.debug?.(e);
+            }
+        }
+        this._mediaControlHandles = [];
+    }
+
+    _trackMediaControls(rootEl) {
+        try {
+            const handle = rootEl?._mjrMediaControlsHandle || null;
+            if (handle?.destroy) this._mediaControlHandles.push(handle);
+        } catch (e) {
+            console.debug?.(e);
+        }
+        return rootEl;
+    }
+
     _initCompareSync() {
         this._destroyCompareSync();
         if (!this._contentEl) return;
@@ -573,6 +848,8 @@ export class FloatingViewer {
         // Tear down previous panzoom bindings before clearing DOM.
         this._destroyPanZoom();
         this._destroyCompareSync();
+        this._destroyMediaControls();
+        const overlayCanvas = this._overlayCanvas || null;
         this._contentEl.replaceChildren();
         this._contentEl.style.overflow = "hidden";
 
@@ -591,10 +868,15 @@ export class FloatingViewer {
                 break;
         }
 
+        if (overlayCanvas) {
+            this._contentEl.appendChild(overlayCanvas);
+        }
+
         if (this._mediaProgressEl) {
             this._contentEl.appendChild(this._mediaProgressEl);
         }
 
+        this._applyMediaToneControls();
         this._applyTransform();
         this._initPanZoom(this._contentEl);
         this._initCompareSync();
@@ -606,7 +888,8 @@ export class FloatingViewer {
             return;
         }
         const mediaKind = _mediaKind(this._mediaA);
-        const mediaEl = _buildMediaEl(this._mediaA);
+        const rawMediaEl = _buildMediaEl(this._mediaA);
+        const mediaEl = this._trackMediaControls?.(rawMediaEl) || rawMediaEl;
         if (!mediaEl) {
             this._contentEl.appendChild(_makeEmptyState("Could not load media"));
             return;
@@ -631,8 +914,10 @@ export class FloatingViewer {
     }
 
     _renderAB() {
-        const elA = this._mediaA ? _buildMediaEl(this._mediaA, { fill: true }) : null;
-        const elB = this._mediaB ? _buildMediaEl(this._mediaB, { fill: true }) : null;
+        const rawElA = this._mediaA ? _buildMediaEl(this._mediaA, { fill: true }) : null;
+        const rawElB = this._mediaB ? _buildMediaEl(this._mediaB, { fill: true }) : null;
+        const elA = this._trackMediaControls?.(rawElA) || rawElA;
+        const elB = this._trackMediaControls?.(rawElB) || rawElB;
         const kindA = this._mediaA ? _mediaKind(this._mediaA) : "";
         const kindB = this._mediaB ? _mediaKind(this._mediaB) : "";
 
@@ -745,8 +1030,10 @@ export class FloatingViewer {
     }
 
     _renderSide() {
-        const elA = this._mediaA ? _buildMediaEl(this._mediaA) : null;
-        const elB = this._mediaB ? _buildMediaEl(this._mediaB) : null;
+        const rawElA = this._mediaA ? _buildMediaEl(this._mediaA) : null;
+        const rawElB = this._mediaB ? _buildMediaEl(this._mediaB) : null;
+        const elA = this._trackMediaControls?.(rawElA) || rawElA;
+        const elB = this._trackMediaControls?.(rawElB) || rawElB;
         const kindA = this._mediaA ? _mediaKind(this._mediaA) : "";
         const kindB = this._mediaB ? _mediaKind(this._mediaB) : "";
 
@@ -822,7 +1109,8 @@ export class FloatingViewer {
             cell.className = "mjr-mfv-grid-cell";
             if (media) {
                 const kind = _mediaKind(media);
-                const el = _buildMediaEl(media);
+                const rawEl = _buildMediaEl(media);
+                const el = this._trackMediaControls?.(rawEl) || rawEl;
                 if (el) cell.appendChild(el);
                 else cell.appendChild(_makeEmptyState("—"));
                 cell.appendChild(
@@ -970,6 +1258,8 @@ export class FloatingViewer {
         disposeFloatingViewerProgressBar(this);
         this._destroyPanZoom();
         this._destroyCompareSync();
+        this._destroyMediaControls();
+        this._unbindLayoutObserver();
         this._stopEdgeResize();
         this._clearPopoutCloseWatch();
         try {

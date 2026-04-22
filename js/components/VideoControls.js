@@ -302,6 +302,7 @@ export function mountVideoControls(video, opts = {}) {
         const controls = document.createElement("div");
         controls.className = `mjr-video-controls mjr-video-controls--${variant}`;
         if (isViewerBar) controls.classList.add("mjr-video-controls--modern");
+        controls.dataset.mjrLayout = "regular";
         controls.setAttribute("role", "group");
         controls.setAttribute(
             "aria-label",
@@ -686,6 +687,36 @@ export function mountVideoControls(video, opts = {}) {
                 console.debug?.(e);
             }
         });
+
+        const applyResponsiveLayout = () => {
+            try {
+                const width = Number(hostEl?.clientWidth) || Number(controls?.clientWidth) || 0;
+                let layout = "regular";
+                if (width > 0 && width < 560) layout = "stacked";
+                else if (width > 0 && width < 860) layout = "compact";
+                controls.dataset.mjrLayout = layout;
+            } catch (e) {
+                console.debug?.(e);
+            }
+        };
+
+        applyResponsiveLayout();
+
+        try {
+            if (typeof ResizeObserver === "function" && hostEl) {
+                const ro = new ResizeObserver(() => applyResponsiveLayout());
+                ro.observe(hostEl);
+                unsubs.push(() => {
+                    try {
+                        ro.disconnect();
+                    } catch (e) {
+                        console.debug?.(e);
+                    }
+                });
+            }
+        } catch (e) {
+            console.debug?.(e);
+        }
         // Must NOT run in capture phase, otherwise it blocks pointerdown on child controls
         // like the draggable In/Out handles. We stop bubbling instead, and rely on the
         // window-capture guards below to prevent viewer pan/zoom handlers.

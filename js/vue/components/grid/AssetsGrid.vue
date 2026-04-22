@@ -37,6 +37,20 @@ function syncAssetsQueryVisibility() {
     }
 }
 
+function onKeepAliveAttached() {
+    // Re-register the grid container in case the global ref was cleared or
+    // became stale during the keep-alive detach/reattach cycle.
+    try {
+        const container = gridContainerRef.value;
+        if (container) {
+            setActiveGridContainer(container);
+        }
+    } catch (e) {
+        console.debug?.(e);
+    }
+    syncAssetsQueryVisibility();
+}
+
 function installVisibilityObservers() {
     try {
         disposeVisibilityObservers?.();
@@ -143,7 +157,7 @@ onMounted(() => {
     }
     installVisibilityObservers();
     try {
-        window.addEventListener("mjr:keepalive-attached", syncAssetsQueryVisibility);
+        window.addEventListener("mjr:keepalive-attached", onKeepAliveAttached);
         document.addEventListener("visibilitychange", syncAssetsQueryVisibility);
     } catch (e) {
         console.debug?.(e);
@@ -182,7 +196,7 @@ onBeforeUnmount(() => {
     }
     assetsQueryController = null;
     try {
-        window.removeEventListener("mjr:keepalive-attached", syncAssetsQueryVisibility);
+        window.removeEventListener("mjr:keepalive-attached", onKeepAliveAttached);
         document.removeEventListener("visibilitychange", syncAssetsQueryVisibility);
     } catch (e) {
         console.debug?.(e);

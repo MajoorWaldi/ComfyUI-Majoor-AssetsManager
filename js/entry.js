@@ -366,12 +366,12 @@ app.registerExtension({
 
         // 8b. Proactive early fetch — start the first assets page in the background
         //     so the data is ready (or already in-flight) when the user opens the
-        //     sidebar.  A 4-second delay lets ComfyUI finish its own startup work
-        //     and the backend DB warm-up to settle before we hit /mjr/am/list.
+        //     sidebar.  800ms lets ComfyUI finish registering extensions before we
+        //     hit /mjr/am/list (was 4000ms — too long, caused visible blank grid).
         //     startEarlyFetch() is a no-op when ComfyUI is executing a prompt.
         setTimeout(() => {
             startEarlyFetch();
-        }, 4000);
+        }, 800);
 
         // 9. WebSocket / realtime listeners.
         void setupApiListeners(runtimeApp, executionRuntime).catch((e) =>

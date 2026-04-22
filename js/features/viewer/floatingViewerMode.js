@@ -45,8 +45,10 @@ export function updateFloatingViewerPinUI(viewer) {
         const active = viewer._pinnedSlots.has(slot);
         btn.classList.toggle("is-pinned", active);
         btn.setAttribute("aria-pressed", String(active));
-        btn.title = active ? `Unpin ${slot}` : `Pin ${slot}`;
+        btn.title = active ? `Unpin Asset ${slot}` : `Pin Asset ${slot}`;
     }
+    // Highlight pin trigger when any slot is pinned
+    viewer._pinBtn?.classList.toggle("is-on", (viewer._pinnedSlots?.size ?? 0) > 0);
 }
 
 export function updateFloatingViewerModeButtonUI(viewer) {
@@ -69,6 +71,8 @@ export function updateFloatingViewerModeButtonUI(viewer) {
     viewer._modeBtn.title = tooltip;
     viewer._modeBtn.setAttribute("aria-label", tooltip);
     viewer._modeBtn.removeAttribute("aria-pressed");
+    // Highlight when any comparison mode is active
+    viewer._modeBtn.classList.toggle("is-on", viewer._mode !== MFV_MODES.SIMPLE);
 }
 
 export function setFloatingViewerLiveActive(viewer, active) {

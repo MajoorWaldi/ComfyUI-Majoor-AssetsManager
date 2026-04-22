@@ -4,7 +4,9 @@ import {
     createModel3DMediaElement,
     MODEL3D_EXTS,
 } from "./model3dRenderer.js";
+import { mountUnifiedMediaControls } from "./mediaPlayer.js";
 import { mountFloatingViewerSimplePlayer } from "./floatingViewerSimplePlayer.js";
+import { readAssetFps, readAssetFrameCount } from "../../utils/mediaFps.js";
 
 const VIDEO_EXTS = new Set([".mp4", ".webm", ".mov", ".avi", ".mkv"]);
 const AUDIO_EXTS = new Set([".mp3", ".wav", ".flac", ".ogg", ".m4a", ".aac", ".opus", ".wma"]);
@@ -128,6 +130,28 @@ export function buildFloatingViewerMediaElement(fileData, { fill = false } = {})
         ext === ".webp" &&
         Number(fileData?.duration ?? fileData?.metadata_raw?.duration ?? 0) > 0;
 
+    const buildPlayableMediaHost = (mediaEl, mediaKind) => {
+        const host = document.createElement("div");
+        host.className = `mjr-mfv-player-host${fill ? " mjr-mfv-player-host--fill" : ""}`;
+        host.appendChild(mediaEl);
+
+        const mounted = mountUnifiedMediaControls(mediaEl, {
+            variant: "viewer",
+            hostEl: host,
+            mediaKind,
+            initialFps: readAssetFps(fileData) || undefined,
+            initialFrameCount: readAssetFrameCount(fileData) || undefined,
+        });
+
+        try {
+            if (mounted) host._mjrMediaControlsHandle = mounted;
+        } catch (e) {
+            console.debug?.(e);
+        }
+
+        return host;
+    };
+
     if (kind === "audio") {
         const audio = document.createElement("audio");
         audio.className = mediaClass;
@@ -143,8 +167,7 @@ export function buildFloatingViewerMediaElement(fileData, { fill = false } = {})
             console.debug?.(e);
         }
         attemptFloatingViewerAutoplay(audio);
-        const playerRoot = mountFloatingViewerSimplePlayer(audio, fileData, { kind: "audio" });
-        return playerRoot || audio;
+        return buildPlayableMediaHost(audio, "audio");
     }
 
     if (kind === "video") {
@@ -156,8 +179,7 @@ export function buildFloatingViewerMediaElement(fileData, { fill = false } = {})
         v.muted = true;
         v.autoplay = true;
         v.playsInline = true;
-        const playerRoot = mountFloatingViewerSimplePlayer(v, fileData, { kind: "video" });
-        return playerRoot || v;
+        return buildPlayableMediaHost(v, "video");
     }
 
     if (kind === "model3d") {

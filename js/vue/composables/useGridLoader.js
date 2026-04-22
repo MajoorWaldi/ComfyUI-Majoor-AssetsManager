@@ -723,6 +723,12 @@ export function useGridLoader({
         const gridContainer = getGridContainer();
         if (!gridContainer || state.loading || state.done) return { ok: true, skipped: true };
         if (!canLoadFromHost()) {
+            // When the grid is empty (initial load or post-reattach) and the host
+            // isn't measured yet, schedule a single retry so the first page loads
+            // once the layout settles — prevents a permanent blank grid.
+            if (!state.assets.length && !state.loading && APP_CONFIG.PREFETCH_NEXT_PAGE) {
+                scheduleNextPagePrefetch(state.requestId, 400);
+            }
             return { ok: true, skipped: true, hidden: true };
         }
         if (isExecutionBusy()) {

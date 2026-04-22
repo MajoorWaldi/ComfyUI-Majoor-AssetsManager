@@ -296,6 +296,21 @@ function resolveClientId(api, app) {
 }
 
 /**
+ * Walk all nodes in a ComfyUI graph recursively, including inner nodes of any
+ * subgraphs, and invoke callback(node) for each. This mirrors the graph-walk
+ * ComfyUI's native queuePrompt performs before/after serialising the prompt.
+ */
+function _walkAllNodes(graph, callback) {
+    for (const node of graph?.nodes ?? []) {
+        callback(node);
+        // Recurse into ComfyUI subgraph inner nodes.
+        if (node.subgraph?.nodes) {
+            _walkAllNodes(node.subgraph, callback);
+        }
+    }
+}
+
+/**
  * Queue the current workflow for execution.
  *
  * Tries, in order:
@@ -303,31 +318,61 @@ function resolveClientId(api, app) {
  *      current auth session, same source as the native ComfyUI Queue button).
  *   2. api.queuePrompt      — broader detection via getComfyApi() (window.api, …).
  *   3. api.fetchApi         — direct HTTP via ComfyUI's authenticated fetch helper.
- *   4. app.queuePrompt(0)   — native ComfyUI app-level path; handles auth tokens
- *      and CSRF checks natively; no preview-method enrichment on this path.
+ *   4. app.queuePrompt(0)   — native ComfyUI app-level path; handles auth tokens,
+ *      beforeQueued/afterQueued and CSRF natively; used only when no direct API
+ *      path is available (no preview-method enrichment on this path).
  *   5. fetch (last resort)  — raw fetch with credentials:'include' for cookie auth.
+ *
+ * Paths 1-3 and 5 manually mirror ComfyUI's beforeQueued/afterQueued widget cycle
+ * so that control_after_generate (randomize / increment / decrement) is applied
+ * correctly on every run, including inside subgraph inner nodes.
  */
 async function queueCurrentPrompt() {
     const app = getComfyApp();
     if (!app) throw new Error("ComfyUI app not available");
+
+    // Resolve API references early so we can choose the path before touching
+    // widget state (beforeQueued must not be called twice for the same run).
+    const liveApi = (app?.api && typeof app.api.queuePrompt === "function") ? app.api : null;
+    const api = liveApi ?? getComfyApi(app);
+    const hasApiPath = Boolean(
+        (api && typeof api.queuePrompt === "function") ||
+        (api && typeof api.fetchApi === "function"),
+    );
+
+    // Path 4: delegate entirely to app.queuePrompt which handles beforeQueued,
+    // graphToPrompt, afterQueued, and auth internally. Only taken when no direct
+    // API path is available because it cannot carry MFV preview-method enrichment.
+    if (!hasApiPath && typeof app.queuePrompt === "function") {
+        await app.queuePrompt(0);
+        return { tracked: true };
+    }
+
+    // Paths 1-3 and 5: mirror ComfyUI's native beforeQueued cycle.
+    // ComfyUI's queuePrompt walks ALL nodes (including inner subgraph nodes) and
+    // calls widget.beforeQueued() before serialising the graph. This is what
+    // triggers control_after_generate (randomize / increment / decrement) to
+    // update the seed widget value before graphToPrompt reads it.
+    const rootGraph = app.rootGraph ?? app.graph;
+    _walkAllNodes(rootGraph, (node) => {
+        for (const w of node.widgets ?? []) {
+            w.beforeQueued?.({ isPartialExecution: false });
+        }
+    });
 
     const promptData = typeof app.graphToPrompt === "function"
         ? await app.graphToPrompt()
         : null;
     if (!promptData?.output) throw new Error("graphToPrompt returned empty output");
 
-    // Prefer the live app.api reference — this matches the native Queue button's
-    // auth context and avoids stale cached references when ComfyUI refreshes its
-    // auth state (e.g. after user logs in or session is renewed).
-    const liveApi = (app?.api && typeof app.api.queuePrompt === "function") ? app.api : null;
-    const api = liveApi ?? getComfyApi(app);
+    let result;
 
     if (api && typeof api.queuePrompt === "function") {
+        // Prefer the live app.api reference — matches the native Queue button's
+        // auth context and avoids stale cached references after session renewal.
         await api.queuePrompt(0, enrichPromptDataForMfv(promptData));
-        return { tracked: true };
-    }
-
-    if (api && typeof api.fetchApi === "function") {
+        result = { tracked: true };
+    } else if (api && typeof api.fetchApi === "function") {
         const resp = await api.fetchApi("/prompt", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -338,26 +383,30 @@ async function queueCurrentPrompt() {
             ),
         });
         if (!resp?.ok) throw new Error(`POST /prompt failed (${resp?.status})`);
-        return { tracked: true };
+        result = { tracked: true };
+    } else {
+        const resp = await fetch("/prompt", {
+            method: "POST",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(
+                buildPromptRequestBody(promptData, {
+                    clientId: resolveClientId(null, app),
+                }),
+            ),
+        });
+        if (!resp.ok) throw new Error(`POST /prompt failed (${resp.status})`);
+        result = { tracked: false };
     }
 
-    // Native app-level path: uses ComfyUI's own auth handling (same as the
-    // native Queue button). No preview-method enrichment on this fallback.
-    if (typeof app.queuePrompt === "function") {
-        await app.queuePrompt(0);
-        return { tracked: true };
-    }
-
-    const resp = await fetch("/prompt", {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(
-            buildPromptRequestBody(promptData, {
-                clientId: resolveClientId(null, app),
-            }),
-        ),
+    // Mirror ComfyUI's afterQueued cycle and redraw the canvas so that widget
+    // displays (e.g. the new seed value) reflect the post-queue state immediately.
+    _walkAllNodes(rootGraph, (node) => {
+        for (const w of node.widgets ?? []) {
+            w.afterQueued?.({ isPartialExecution: false });
+        }
     });
-    if (!resp.ok) throw new Error(`POST /prompt failed (${resp.status})`);
-    return { tracked: false };
+    app.canvas?.draw?.(true, true);
+
+    return result;
 }

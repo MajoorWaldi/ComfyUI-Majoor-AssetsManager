@@ -22,6 +22,100 @@ import {
     sanitizePromptForDisplay,
 } from "../../components/sidebar/parsers/geninfoParser.js";
 
+// ---------------------------------------------------------------------------
+// Toolbar icon-dropdown helper
+// ---------------------------------------------------------------------------
+function _mkIconDrop(triggerHtml, title, items, viewer) {
+    const wrap = document.createElement("div");
+    wrap.className = "mjr-mfv-idrop";
+
+    const trigger = document.createElement("button");
+    trigger.type = "button";
+    trigger.className = "mjr-icon-btn mjr-mfv-idrop-trigger";
+    trigger.title = title || "";
+    trigger.innerHTML = triggerHtml;
+    trigger.setAttribute("aria-haspopup", "listbox");
+    trigger.setAttribute("aria-expanded", "false");
+    wrap.appendChild(trigger);
+
+    const menu = document.createElement("div");
+    menu.className = "mjr-mfv-idrop-menu";
+    menu.setAttribute("role", "listbox");
+    wrap.appendChild(menu);
+
+    // Hidden select: existing event handlers read .value from it and bind "change"
+    const hiddenSel = document.createElement("select");
+    hiddenSel.style.cssText = "position:absolute;opacity:0;pointer-events:none;width:0;height:0;overflow:hidden;";
+    wrap.appendChild(hiddenSel);
+
+    const itemEls = [];
+    for (const item of items) {
+        const opt = document.createElement("option");
+        opt.value = String(item.value);
+        hiddenSel.appendChild(opt);
+
+        const row = document.createElement("button");
+        row.type = "button";
+        row.className = "mjr-mfv-idrop-item";
+        row.setAttribute("role", "option");
+        row.dataset.value = String(item.value);
+        row.innerHTML = item.html ?? String(item.label ?? item.value);
+        menu.appendChild(row);
+        itemEls.push(row);
+    }
+
+    const _closeMenu = () => {
+        menu.classList.remove("is-open");
+        trigger.setAttribute("aria-expanded", "false");
+    };
+
+    trigger.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const isOpen = menu.classList.contains("is-open");
+        // Close all other open icon-dropdowns in this viewer
+        viewer?.element?.querySelectorAll?.(".mjr-mfv-idrop-menu.is-open").forEach(m => m.classList.remove("is-open"));
+        if (!isOpen) {
+            menu.classList.add("is-open");
+            trigger.setAttribute("aria-expanded", "true");
+        }
+    });
+
+    menu.addEventListener("click", (e) => {
+        const row = e.target.closest(".mjr-mfv-idrop-item");
+        if (!row) return;
+        hiddenSel.value = row.dataset.value;
+        hiddenSel.dispatchEvent(new Event("change", { bubbles: true }));
+        itemEls.forEach(i => {
+            i.classList.toggle("is-selected", i === row);
+            i.setAttribute("aria-selected", String(i === row));
+        });
+        _closeMenu();
+    });
+
+    const selectItem = (val) => {
+        hiddenSel.value = String(val);
+        itemEls.forEach(i => {
+            i.classList.toggle("is-selected", i.dataset.value === String(val));
+            i.setAttribute("aria-selected", String(i.dataset.value === String(val)));
+        });
+    };
+
+    return { wrap, trigger, menu, select: hiddenSel, selectItem };
+}
+
+// Channel letter coloring
+const _CH_COLOR = { rgb: "#e0e0e0", r: "#ff5555", g: "#44dd66", b: "#5599ff", a: "#ffffff", l: "#bbbbbb" };
+const _CH_LABEL = { rgb: "RGB", r: "R", g: "G", b: "B", a: "A", l: "L" };
+const _CH_WEIGHT = { rgb: "500", r: "700", g: "700", b: "700", a: "700", l: "400" };
+
+function _channelHtml(ch) {
+    const k = String(ch || "rgb").toLowerCase();
+    const color = _CH_COLOR[k] || "#e0e0e0";
+    const label = _CH_LABEL[k] || k.toUpperCase();
+    const fw = _CH_WEIGHT[k] || "500";
+    return `<span class="mjr-mfv-ch-label" style="color:${color};font-weight:${fw}">${label}</span>`;
+}
+
 export function renderFloatingViewer(viewer) {
     const el = document.createElement("div");
     el.className = "mjr-mfv";
@@ -42,6 +136,9 @@ export function renderFloatingViewer(viewer) {
     viewer._contentEl = document.createElement("div");
     viewer._contentEl.className = "mjr-mfv-content";
     viewer._contentWrapper.appendChild(viewer._contentEl);
+    viewer._overlayCanvas = document.createElement("canvas");
+    viewer._overlayCanvas.className = "mjr-mfv-overlay-canvas";
+    viewer._contentEl.appendChild(viewer._overlayCanvas);
     viewer._contentEl.appendChild(buildFloatingViewerMediaProgressOverlay(viewer));
 
     viewer._sidebar = new WorkflowSidebar({
@@ -56,6 +153,7 @@ export function renderFloatingViewer(viewer) {
     viewer._rebindControlHandlers();
     viewer._bindPanelInteractions();
     viewer._bindDocumentUiHandlers();
+    viewer._bindLayoutObserver?.();
 
     viewer._onSidebarPosChanged = (e) => {
         if (e?.detail?.key === "viewer.mfvSidebarPosition") {
@@ -75,7 +173,7 @@ export function buildFloatingViewerHeader(viewer) {
     const title = document.createElement("span");
     title.className = "mjr-mfv-header-title";
     title.id = viewer._titleId;
-    title.textContent = "〽️ Majoor Viewer Lite";
+    title.textContent = "〽️ Majoor Floating Viewer";
 
     const closeBtn = document.createElement("button");
     viewer._closeBtn = closeBtn;
@@ -93,6 +191,37 @@ export function buildFloatingViewerHeader(viewer) {
 }
 
 export function buildFloatingViewerToolbar(viewer) {
+    const createMiniSelect = (title, options) => {
+        const s = document.createElement("select");
+        s.className = "mjr-mfv-toolbar-select";
+        s.title = title || "";
+        for (const option of options || []) {
+            const opt = document.createElement("option");
+            opt.value = String(option.value);
+            opt.textContent = String(option.label);
+            s.appendChild(opt);
+        }
+        return s;
+    };
+
+    const createMiniRange = (title, { min, max, step, value } = {}) => {
+        const wrap = document.createElement("div");
+        wrap.className = "mjr-mfv-toolbar-range";
+        const input = document.createElement("input");
+        input.type = "range";
+        input.min = String(min);
+        input.max = String(max);
+        input.step = String(step);
+        input.value = String(value);
+        input.title = title || "";
+        const out = document.createElement("span");
+        out.className = "mjr-mfv-toolbar-range-out";
+        out.textContent = Number(value).toFixed(2);
+        wrap.appendChild(input);
+        wrap.appendChild(out);
+        return { wrap, input, out };
+    };
+
     const bar = document.createElement("div");
     bar.className = "mjr-mfv-toolbar";
 
@@ -102,24 +231,448 @@ export function buildFloatingViewerToolbar(viewer) {
     viewer._updateModeBtnUI();
     bar.appendChild(viewer._modeBtn);
 
-    viewer._pinGroup = document.createElement("div");
-    viewer._pinGroup.className = "mjr-mfv-pin-group";
-    viewer._pinGroup.setAttribute("role", "group");
-    viewer._pinGroup.setAttribute("aria-label", "Pin References");
+    // Pin: icon button + sort-style context menu popover (stays open for multi-toggle)
+    const pinBtn = document.createElement("button");
+    pinBtn.type = "button";
+    pinBtn.className = "mjr-icon-btn mjr-mfv-pin-trigger";
+    pinBtn.title = "Pin slots A/B/C/D";
+    pinBtn.setAttribute("aria-haspopup", "dialog");
+    pinBtn.setAttribute("aria-expanded", "false");
+    pinBtn.innerHTML = '<i class="pi pi-map-marker" aria-hidden="true"></i>';
+    bar.appendChild(pinBtn);
+
+    const pinPopover = document.createElement("div");
+    pinPopover.className = "mjr-mfv-pin-popover";
+    viewer.element.appendChild(pinPopover);
+
+    const pinMenuDiv = document.createElement("div");
+    pinMenuDiv.className = "mjr-menu";
+    pinMenuDiv.style.cssText = "display:grid;gap:4px;";
+    pinMenuDiv.setAttribute("role", "group");
+    pinMenuDiv.setAttribute("aria-label", "Pin References");
+    pinPopover.appendChild(pinMenuDiv);
+
+    viewer._pinGroup = pinMenuDiv;
     viewer._pinBtns = {};
     for (const slot of ["A", "B", "C", "D"]) {
         const btn = document.createElement("button");
         btn.type = "button";
-        btn.className = "mjr-mfv-pin-btn";
-        btn.textContent = slot;
+        btn.className = "mjr-menu-item mjr-mfv-pin-btn";
         btn.dataset.slot = slot;
-        btn.title = `Pin ${slot}`;
+        btn.title = `Pin Asset ${slot}`;
         btn.setAttribute("aria-pressed", "false");
+
+        const lbl = document.createElement("span");
+        lbl.className = "mjr-menu-item-label";
+        lbl.textContent = `Asset ${slot}`;
+
+        const chk = document.createElement("i");
+        chk.className = "pi pi-map-marker mjr-menu-item-check";
+        chk.style.opacity = "0";
+
+        btn.appendChild(lbl);
+        btn.appendChild(chk);
+        pinMenuDiv.appendChild(btn);
         viewer._pinBtns[slot] = btn;
-        viewer._pinGroup.appendChild(btn);
     }
     viewer._updatePinUI();
-    bar.appendChild(viewer._pinGroup);
+    viewer._pinBtn = pinBtn;
+    viewer._pinPopover = pinPopover;
+
+    const _openPinPopover = () => {
+        const btnRect = pinBtn.getBoundingClientRect();
+        const parentRect = viewer.element.getBoundingClientRect();
+        pinPopover.style.left = `${btnRect.left - parentRect.left}px`;
+        pinPopover.style.top = `${btnRect.bottom - parentRect.top + 4}px`;
+        pinPopover.classList.add("is-open");
+        pinBtn.setAttribute("aria-expanded", "true");
+    };
+    viewer._closePinPopover = () => {
+        pinPopover.classList.remove("is-open");
+        pinBtn.setAttribute("aria-expanded", "false");
+    };
+    pinBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (pinPopover.classList.contains("is-open")) {
+            viewer._closePinPopover();
+        } else {
+            viewer._closeAllToolbarPopovers?.();
+            _openPinPopover();
+        }
+    });
+    // Note: pinMenuDiv click is handled by rebindFloatingViewerControlHandlers via event delegation.
+    // Dropdown stays open to allow toggling multiple slots.
+
+    // Guides: icon button + sort-style context menu popover
+    const guideBtn = document.createElement("button");
+    guideBtn.type = "button";
+    guideBtn.className = "mjr-icon-btn mjr-mfv-guides-trigger";
+    guideBtn.title = "Guides";
+    guideBtn.setAttribute("aria-haspopup", "listbox");
+    guideBtn.setAttribute("aria-expanded", "false");
+    const guideImg = document.createElement("img");
+    guideImg.src = new URL("../../assets/guides-icon.png", import.meta.url).href;
+    guideImg.className = "mjr-mfv-guides-icon";
+    guideImg.alt = "";
+    guideImg.setAttribute("aria-hidden", "true");
+    guideBtn.appendChild(guideImg);
+    bar.appendChild(guideBtn);
+
+    const guidePopover = document.createElement("div");
+    guidePopover.className = "mjr-mfv-guides-popover";
+    viewer.element.appendChild(guidePopover);
+
+    const guideMenu = document.createElement("div");
+    guideMenu.className = "mjr-menu";
+    guideMenu.style.cssText = "display:grid;gap:4px;";
+    guidePopover.appendChild(guideMenu);
+
+    const guideHiddenSel = document.createElement("select");
+    guideHiddenSel.style.cssText = "position:absolute;opacity:0;pointer-events:none;width:0;height:0;overflow:hidden;";
+    guidePopover.appendChild(guideHiddenSel);
+
+    const _GUIDE_OPTS = [
+        { value: "0", label: "Off" },
+        { value: "1", label: "Thirds" },
+        { value: "2", label: "Center" },
+        { value: "3", label: "Safe" },
+    ];
+    const _initGuide = String(viewer._gridMode || 0);
+    const guideItemEls = [];
+    for (const opt of _GUIDE_OPTS) {
+        const optEl = document.createElement("option");
+        optEl.value = opt.value;
+        guideHiddenSel.appendChild(optEl);
+
+        const item = document.createElement("button");
+        item.type = "button";
+        item.className = "mjr-menu-item";
+        item.dataset.value = opt.value;
+
+        const lbl = document.createElement("span");
+        lbl.className = "mjr-menu-item-label";
+        lbl.textContent = opt.label;
+
+        const chk = document.createElement("i");
+        chk.className = "pi pi-check mjr-menu-item-check";
+        chk.style.opacity = opt.value === _initGuide ? "1" : "0";
+
+        item.appendChild(lbl);
+        item.appendChild(chk);
+        guideMenu.appendChild(item);
+        guideItemEls.push(item);
+        if (opt.value === _initGuide) item.classList.add("is-active");
+    }
+    guideHiddenSel.value = _initGuide;
+    guideBtn.classList.toggle("is-on", _initGuide !== "0");
+    viewer._guidesSelect = guideHiddenSel;
+    viewer._guideBtn = guideBtn;
+    viewer._guidePopover = guidePopover;
+
+    const _openGuidePopover = () => {
+        const btnRect = guideBtn.getBoundingClientRect();
+        const parentRect = viewer.element.getBoundingClientRect();
+        guidePopover.style.left = `${btnRect.left - parentRect.left}px`;
+        guidePopover.style.top = `${btnRect.bottom - parentRect.top + 4}px`;
+        guidePopover.classList.add("is-open");
+        guideBtn.setAttribute("aria-expanded", "true");
+    };
+    viewer._closeGuidePopover = () => {
+        guidePopover.classList.remove("is-open");
+        guideBtn.setAttribute("aria-expanded", "false");
+    };
+    guideBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (guidePopover.classList.contains("is-open")) {
+            viewer._closeGuidePopover();
+        } else {
+            viewer._closeAllToolbarPopovers?.();
+            _openGuidePopover();
+        }
+    });
+    guideMenu.addEventListener("click", (e) => {
+        const item = e.target.closest(".mjr-menu-item");
+        if (!item) return;
+        const val = item.dataset.value;
+        guideHiddenSel.value = val;
+        guideHiddenSel.dispatchEvent(new Event("change", { bubbles: true }));
+        guideItemEls.forEach(it => {
+            const active = it.dataset.value === val;
+            it.classList.toggle("is-active", active);
+            it.querySelector(".mjr-menu-item-check").style.opacity = active ? "1" : "0";
+        });
+        guideBtn.classList.toggle("is-on", val !== "0");
+        viewer._closeGuidePopover();
+    });
+
+    // Channel: icon button + sort-style context menu popover
+    const _initCh = String(viewer._channel || "rgb");
+    const chBtn = document.createElement("button");
+    chBtn.type = "button";
+    chBtn.className = "mjr-icon-btn mjr-mfv-ch-trigger";
+    chBtn.title = "Channel";
+    chBtn.setAttribute("aria-haspopup", "listbox");
+    chBtn.setAttribute("aria-expanded", "false");
+    const chImg = document.createElement("img");
+    chImg.src = new URL("../../assets/channel-icon.png", import.meta.url).href;
+    chImg.className = "mjr-mfv-ch-icon";
+    chImg.alt = "";
+    chImg.setAttribute("aria-hidden", "true");
+    chBtn.appendChild(chImg);
+    bar.appendChild(chBtn);
+
+    const _updateChBtnDisplay = (val) => {
+        if (!val || val === "rgb") {
+            chBtn.replaceChildren(chImg);
+        } else {
+            const color = _CH_COLOR[val] || "#e0e0e0";
+            const weight = _CH_WEIGHT[val] || "500";
+            const label = _CH_LABEL[val] || val.toUpperCase();
+            const span = document.createElement("span");
+            span.className = "mjr-mfv-ch-label";
+            span.style.color = color;
+            span.style.fontWeight = weight;
+            span.textContent = label;
+            chBtn.replaceChildren(span);
+        }
+    };
+
+    const chPopover = document.createElement("div");
+    chPopover.className = "mjr-mfv-ch-popover";
+    viewer.element.appendChild(chPopover);
+
+    const chMenu = document.createElement("div");
+    chMenu.className = "mjr-menu";
+    chMenu.style.cssText = "display:grid;gap:4px;";
+    chPopover.appendChild(chMenu);
+
+    const chHiddenSel = document.createElement("select");
+    chHiddenSel.style.cssText = "position:absolute;opacity:0;pointer-events:none;width:0;height:0;overflow:hidden;";
+    chPopover.appendChild(chHiddenSel);
+
+    const _CH_OPTS = [
+        { value: "rgb", color: "#e0e0e0", weight: "500", label: "RGB" },
+        { value: "r",   color: "#ff5555", weight: "700", label: "R" },
+        { value: "g",   color: "#44dd66", weight: "700", label: "G" },
+        { value: "b",   color: "#5599ff", weight: "700", label: "B" },
+        { value: "a",   color: "#ffffff", weight: "700", label: "A" },
+        { value: "l",   color: "#bbbbbb", weight: "400", label: "L" },
+    ];
+    const chItemEls = [];
+    for (const opt of _CH_OPTS) {
+        const optEl = document.createElement("option");
+        optEl.value = opt.value;
+        chHiddenSel.appendChild(optEl);
+
+        const item = document.createElement("button");
+        item.type = "button";
+        item.className = "mjr-menu-item";
+        item.dataset.value = opt.value;
+
+        const lbl = document.createElement("span");
+        lbl.className = "mjr-menu-item-label";
+        const colored = document.createElement("span");
+        colored.textContent = opt.label;
+        colored.style.color = opt.color;
+        colored.style.fontWeight = opt.weight;
+        lbl.appendChild(colored);
+
+        const chk = document.createElement("i");
+        chk.className = "pi pi-check mjr-menu-item-check";
+        chk.style.opacity = opt.value === _initCh ? "1" : "0";
+
+        item.appendChild(lbl);
+        item.appendChild(chk);
+        chMenu.appendChild(item);
+        chItemEls.push(item);
+        if (opt.value === _initCh) item.classList.add("is-active");
+    }
+    chHiddenSel.value = _initCh;
+    _updateChBtnDisplay(_initCh);
+    chBtn.classList.toggle("is-on", _initCh !== "rgb");
+    viewer._channelSelect = chHiddenSel;
+    viewer._chBtn = chBtn;
+    viewer._chPopover = chPopover;
+
+    const _openChPopover = () => {
+        const btnRect = chBtn.getBoundingClientRect();
+        const parentRect = viewer.element.getBoundingClientRect();
+        chPopover.style.left = `${btnRect.left - parentRect.left}px`;
+        chPopover.style.top = `${btnRect.bottom - parentRect.top + 4}px`;
+        chPopover.classList.add("is-open");
+        chBtn.setAttribute("aria-expanded", "true");
+    };
+    viewer._closeChPopover = () => {
+        chPopover.classList.remove("is-open");
+        chBtn.setAttribute("aria-expanded", "false");
+    };
+    chBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (chPopover.classList.contains("is-open")) {
+            viewer._closeChPopover();
+        } else {
+            viewer._closeAllToolbarPopovers?.();
+            _openChPopover();
+        }
+    });
+    chMenu.addEventListener("click", (e) => {
+        const item = e.target.closest(".mjr-menu-item");
+        if (!item) return;
+        const val = item.dataset.value;
+        chHiddenSel.value = val;
+        chHiddenSel.dispatchEvent(new Event("change", { bubbles: true }));
+        chItemEls.forEach(it => {
+            const active = it.dataset.value === val;
+            it.classList.toggle("is-active", active);
+            it.querySelector(".mjr-menu-item-check").style.opacity = active ? "1" : "0";
+        });
+        _updateChBtnDisplay(val);
+        chBtn.classList.toggle("is-on", val !== "rgb");
+        viewer._closeChPopover();
+    });
+
+    // Mutual exclusion: close all toolbar popovers (called before any one opens)
+    viewer._closeAllToolbarPopovers = () => {
+        viewer._closeChPopover?.();
+        viewer._closeGuidePopover?.();
+        viewer._closePinPopover?.();
+        viewer._closeFormatPopover?.();
+        viewer._closeGenDropdown?.();
+    };
+
+    viewer._exposureCtl = createMiniRange("Exposure (EV)", {
+        min: -10,
+        max: 10,
+        step: 0.1,
+        value: Number(viewer._exposureEV || 0),
+    });
+    viewer._exposureCtl.out.textContent = `${Number(viewer._exposureEV || 0).toFixed(1)}EV`;
+    viewer._exposureCtl.out.title = "Click to reset to 0 EV";
+    viewer._exposureCtl.out.style.cursor = "pointer";
+    viewer._exposureCtl.wrap.classList.toggle("is-active", (viewer._exposureEV || 0) !== 0);
+    bar.appendChild(viewer._exposureCtl.wrap);
+
+    // Format mask: single trigger button + popover (format options + opacity slider)
+    viewer._formatToggle = document.createElement("button");
+    viewer._formatToggle.type = "button";
+    viewer._formatToggle.className = "mjr-icon-btn mjr-mfv-format-trigger";
+    viewer._formatToggle.setAttribute("aria-haspopup", "dialog");
+    viewer._formatToggle.setAttribute("aria-expanded", "false");
+    viewer._formatToggle.setAttribute("aria-pressed", "false");
+    viewer._formatToggle.title = "Format mask";
+    viewer._formatToggle.innerHTML = '<i class="pi pi-stop" aria-hidden="true"></i>';
+    bar.appendChild(viewer._formatToggle);
+
+    const fmtPopover = document.createElement("div");
+    fmtPopover.className = "mjr-mfv-format-popover";
+    viewer.element.appendChild(fmtPopover);
+
+    const fmtMenu = document.createElement("div");
+    fmtMenu.className = "mjr-menu";
+    fmtMenu.style.cssText = "display:grid;gap:4px;";
+    fmtPopover.appendChild(fmtMenu);
+
+    const fmtHiddenSel = document.createElement("select");
+    fmtHiddenSel.style.cssText = "position:absolute;opacity:0;pointer-events:none;width:0;height:0;overflow:hidden;";
+    fmtPopover.appendChild(fmtHiddenSel);
+
+    const _FMT_OPTS = [
+        { value: "off",  label: "Off" },
+        { value: "image",label: "Image" },
+        { value: "16:9", label: "16:9" },
+        { value: "1:1",  label: "1:1" },
+        { value: "4:3",  label: "4:3" },
+        { value: "9:16", label: "9:16" },
+        { value: "2.39", label: "2.39" },
+    ];
+    const fmtItemEls = [];
+    const _initFmt = viewer._overlayMaskEnabled ? String(viewer._overlayFormat || "image") : "off";
+    for (const opt of _FMT_OPTS) {
+        const optEl = document.createElement("option");
+        optEl.value = opt.value;
+        fmtHiddenSel.appendChild(optEl);
+
+        const item = document.createElement("button");
+        item.type = "button";
+        item.className = "mjr-menu-item";
+        item.dataset.value = opt.value;
+
+        const lbl = document.createElement("span");
+        lbl.className = "mjr-menu-item-label";
+        lbl.textContent = opt.label;
+
+        const chk = document.createElement("i");
+        chk.className = "pi pi-check mjr-menu-item-check";
+        chk.style.opacity = opt.value === _initFmt ? "1" : "0";
+
+        item.appendChild(lbl);
+        item.appendChild(chk);
+        fmtMenu.appendChild(item);
+        fmtItemEls.push(item);
+        if (opt.value === _initFmt) item.classList.add("is-active");
+    }
+    fmtHiddenSel.value = _initFmt;
+
+    // Separator + opacity slider row
+    const fmtSep = document.createElement("div");
+    fmtSep.className = "mjr-mfv-format-sep";
+    fmtPopover.appendChild(fmtSep);
+
+    const fmtSliderRow = document.createElement("div");
+    fmtSliderRow.className = "mjr-mfv-format-slider-row";
+    fmtPopover.appendChild(fmtSliderRow);
+
+    const fmtSliderLabel = document.createElement("span");
+    fmtSliderLabel.className = "mjr-mfv-format-slider-label";
+    fmtSliderLabel.textContent = "Opacity";
+    fmtSliderRow.appendChild(fmtSliderLabel);
+
+    viewer._maskOpacityCtl = createMiniRange("Mask opacity", {
+        min: 0,
+        max: 0.9,
+        step: 0.01,
+        value: Number(viewer._overlayMaskOpacity ?? 0.65),
+    });
+    fmtSliderRow.appendChild(viewer._maskOpacityCtl.input);
+    fmtSliderRow.appendChild(viewer._maskOpacityCtl.out);
+
+    viewer._formatSelect = fmtHiddenSel;
+    viewer._formatPopover = fmtPopover;
+
+    const _openFmtPopover = () => {
+        const btnRect = viewer._formatToggle.getBoundingClientRect();
+        const parentRect = viewer.element.getBoundingClientRect();
+        fmtPopover.style.left = `${btnRect.left - parentRect.left}px`;
+        fmtPopover.style.top = `${btnRect.bottom - parentRect.top + 4}px`;
+        fmtPopover.classList.add("is-open");
+        viewer._formatToggle.setAttribute("aria-expanded", "true");
+    };
+    viewer._closeFormatPopover = () => {
+        fmtPopover.classList.remove("is-open");
+        viewer._formatToggle.setAttribute("aria-expanded", "false");
+    };
+    viewer._formatToggle.addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (fmtPopover.classList.contains("is-open")) {
+            viewer._closeFormatPopover();
+        } else {
+            viewer._closeAllToolbarPopovers?.();
+            _openFmtPopover();
+        }
+    });
+    fmtMenu.addEventListener("click", (e) => {
+        const item = e.target.closest(".mjr-menu-item");
+        if (!item) return;
+        const val = item.dataset.value;
+        fmtHiddenSel.value = val;
+        fmtHiddenSel.dispatchEvent(new Event("change", { bubbles: true }));
+        fmtItemEls.forEach(it => {
+            const active = it.dataset.value === val;
+            it.classList.toggle("is-active", active);
+            it.querySelector(".mjr-menu-item-check").style.opacity = active ? "1" : "0";
+        });
+        viewer._closeFormatPopover();
+    });
 
     const sep = document.createElement("div");
     sep.className = "mjr-mfv-toolbar-sep";
@@ -229,11 +782,42 @@ export function buildFloatingViewerToolbar(viewer) {
     bar.appendChild(viewer._runHandle.el);
 
     viewer._handleDocClick = (ev) => {
-        if (!viewer._genDropdown) return;
         const target = ev?.target;
-        if (viewer._genBtn?.contains?.(target)) return;
-        if (viewer._genDropdown.contains(target)) return;
-        viewer._closeGenDropdown();
+        // Gen dropdown
+        if (viewer._genDropdown) {
+            if (!viewer._genBtn?.contains?.(target) && !viewer._genDropdown.contains(target)) {
+                viewer._closeGenDropdown();
+            }
+        }
+        // Channel popover
+        if (viewer._chPopover?.classList?.contains("is-open")) {
+            if (!viewer._chBtn?.contains?.(target) && !viewer._chPopover.contains(target)) {
+                viewer._closeChPopover?.();
+            }
+        }
+        // Guides popover
+        if (viewer._guidePopover?.classList?.contains("is-open")) {
+            if (!viewer._guideBtn?.contains?.(target) && !viewer._guidePopover.contains(target)) {
+                viewer._closeGuidePopover?.();
+            }
+        }
+        // Pin popover
+        if (viewer._pinPopover?.classList?.contains("is-open")) {
+            if (!viewer._pinBtn?.contains?.(target) && !viewer._pinPopover.contains(target)) {
+                viewer._closePinPopover?.();
+            }
+        }
+        // Format popover
+        if (viewer._formatPopover?.classList?.contains("is-open")) {
+            if (!viewer._formatToggle?.contains?.(target) && !viewer._formatPopover.contains(target)) {
+                viewer._closeFormatPopover?.();
+            }
+        }
+        // Icon dropdowns: close if click is outside any .mjr-mfv-idrop
+        if (!target?.closest?.(".mjr-mfv-idrop")) {
+            viewer.element?.querySelectorAll?.(".mjr-mfv-idrop-menu.is-open")
+                .forEach(m => m.classList.remove("is-open"));
+        }
     };
     viewer._bindDocumentUiHandlers();
 
@@ -312,6 +896,7 @@ export function rebindFloatingViewerControlHandlers(viewer) {
             if (viewer._genDropdown?.classList?.contains("is-visible")) {
                 viewer._closeGenDropdown();
             } else {
+                viewer._closeAllToolbarPopovers?.();
                 viewer._openGenDropdown();
             }
         },
@@ -333,6 +918,79 @@ export function rebindFloatingViewerControlHandlers(viewer) {
         () => {
             viewer._sidebar?.toggle();
             viewer._updateSettingsBtnState(viewer._sidebar?.isVisible ?? false);
+        },
+        { signal },
+    );
+
+    viewer._guidesSelect?.addEventListener(
+        "change",
+        () => {
+            viewer._gridMode = Number(viewer._guidesSelect.value) || 0;
+            viewer._guideBtn?.classList.toggle("is-on", viewer._gridMode !== 0);
+            viewer._redrawOverlayGuides?.();
+        },
+        { signal },
+    );
+
+    viewer._channelSelect?.addEventListener(
+        "change",
+        () => {
+            viewer._channel = String(viewer._channelSelect.value || "rgb");
+            viewer._chBtn?.classList.toggle("is-on", viewer._channel !== "rgb");
+            viewer._applyMediaToneControls?.();
+        },
+        { signal },
+    );
+
+    viewer._exposureCtl?.input?.addEventListener(
+        "input",
+        () => {
+            const v = Math.max(-10, Math.min(10, Number(viewer._exposureCtl.input.value) || 0));
+            viewer._exposureEV = Math.round(v * 10) / 10;
+            viewer._exposureCtl.out.textContent = `${viewer._exposureEV.toFixed(1)}EV`;
+            viewer._exposureCtl.wrap.classList.toggle("is-active", viewer._exposureEV !== 0);
+            viewer._applyMediaToneControls?.();
+        },
+        { signal },
+    );
+
+    viewer._exposureCtl?.out?.addEventListener(
+        "click",
+        () => {
+            viewer._exposureEV = 0;
+            viewer._exposureCtl.input.value = "0";
+            viewer._exposureCtl.out.textContent = "0.0EV";
+            viewer._exposureCtl.wrap.classList.remove("is-active");
+            viewer._applyMediaToneControls?.();
+        },
+        { signal },
+    );
+
+    viewer._formatSelect?.addEventListener(
+        "change",
+        () => {
+            const val = String(viewer._formatSelect.value || "image");
+            if (val === "off") {
+                viewer._overlayMaskEnabled = false;
+            } else {
+                viewer._overlayMaskEnabled = true;
+                viewer._overlayFormat = val;
+            }
+            viewer._formatToggle?.classList.toggle("is-on", Boolean(viewer._overlayMaskEnabled));
+            viewer._formatToggle?.setAttribute("aria-pressed", String(Boolean(viewer._overlayMaskEnabled)));
+            viewer._redrawOverlayGuides?.();
+        },
+        { signal },
+    );
+
+    viewer._maskOpacityCtl?.input?.addEventListener(
+        "input",
+        () => {
+            const v = Number(viewer._maskOpacityCtl.input.value);
+            const clamped = Math.max(0, Math.min(0.9, Number.isFinite(v) ? v : 0.65));
+            viewer._overlayMaskOpacity = Math.round(clamped * 100) / 100;
+            viewer._maskOpacityCtl.out.textContent = viewer._overlayMaskOpacity.toFixed(2);
+            viewer._redrawOverlayGuides?.();
         },
         { signal },
     );

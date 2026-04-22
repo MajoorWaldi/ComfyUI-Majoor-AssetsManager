@@ -1,31 +1,23 @@
 /**
- * WorkflowSidebar — slide-in panel for the Floating Viewer (MFV).
+ * WorkflowSidebar is the slide-in panel for the Floating Viewer.
  *
- * Shows editable widgets for the currently selected ComfyUI nodes.
- * Reads from `app.canvas.selected_nodes` via comfyApiBridge.
- * Writes back via widgetAdapters (widget.value + callback).
+ * It now exposes a single unified "Nodes" view: each workflow node can be
+ * expanded inline to reveal editable parameters.
  */
 
-import { getComfyApp } from "../../../app/comfyApiBridge.js";
-import { NodeWidgetRenderer } from "./NodeWidgetRenderer.js";
+import { WorkflowNodesTab } from "./WorkflowNodesTab.js";
 
 const LIVE_SYNC_FALLBACK_MS = 16;
 
 export class WorkflowSidebar {
-    /**
-     * @param {object} opts
-     * @param {HTMLElement} opts.hostEl  The MFV root element to append to
-     * @param {() => void}  [opts.onClose]
-     */
     constructor({ hostEl, onClose } = {}) {
         this._hostEl = hostEl;
         this._onClose = onClose ?? null;
-        /** @type {NodeWidgetRenderer[]} */
-        this._renderers = [];
         this._visible = false;
-        this._selectionKey = "";
         this._liveSyncHandle = null;
         this._liveSyncMode = "";
+        this._resizeCleanup = null;
+        this._nodesTab = new WorkflowNodesTab();
         this._el = this._build();
     }
 
@@ -35,7 +27,7 @@ export class WorkflowSidebar {
     show() {
         this._visible = true;
         this._el.classList.add("open");
-        this.refresh({ force: true });
+        this._nodesTab.refresh();
         this._startLiveSync();
     }
 
@@ -54,96 +46,61 @@ export class WorkflowSidebar {
         }
     }
 
-    /** Re-read selected nodes and rebuild widget sections. */
-    refresh({ force = false } = {}) {
+    refresh() {
         if (!this._visible) return;
-        const { key, nodes } = _getSelectedNodeSnapshot();
-        if (!force && key === this._selectionKey && this._renderers.length === nodes.length) {
-            this.syncFromGraph({ allowSelectionRefresh: false });
-            return;
-        }
-
-        this._clear();
-        this._selectionKey = key;
-        if (!nodes.length) {
-            this._showEmpty();
-            return;
-        }
-        for (const node of nodes) {
-            const renderer = new NodeWidgetRenderer(node);
-            this._renderers.push(renderer);
-            this._body.appendChild(renderer.el);
-        }
-        this.syncFromGraph({ allowSelectionRefresh: false });
+        this._nodesTab.refresh();
     }
 
-    /** Sync existing renderers from graph values without full rebuild. */
-    syncFromGraph({ allowSelectionRefresh = true } = {}) {
+    syncFromGraph() {
         if (!this._visible) return;
-        const { key } = _getSelectedNodeSnapshot();
-        if (allowSelectionRefresh && key !== this._selectionKey) {
-            this.refresh({ force: true });
-            return;
-        }
-        for (const r of this._renderers) r.syncFromGraph();
+        this._nodesTab.refresh();
     }
 
     dispose() {
         this._stopLiveSync();
-        this._clear();
+        this._disposeResize();
+        this._nodesTab?.dispose?.();
+        this._nodesTab = null;
         this._el?.remove();
     }
-
-    // ── Private ───────────────────────────────────────────────────────────────
 
     _build() {
         const panel = document.createElement("div");
         panel.className = "mjr-ws-sidebar";
 
-        // Header
         const header = document.createElement("div");
         header.className = "mjr-ws-sidebar-header";
 
         const title = document.createElement("span");
         title.className = "mjr-ws-sidebar-title";
-        title.textContent = "Node Parameters";
+        title.textContent = "Nodes";
         header.appendChild(title);
 
         const closeBtn = document.createElement("button");
         closeBtn.type = "button";
         closeBtn.className = "mjr-icon-btn";
         closeBtn.title = "Close sidebar";
-        const closeIcon = document.createElement("i");
-        closeIcon.className = "pi pi-times";
-        closeIcon.setAttribute("aria-hidden", "true");
-        closeBtn.appendChild(closeIcon);
+        closeBtn.innerHTML = '<i class="pi pi-times" aria-hidden="true"></i>';
         closeBtn.addEventListener("click", () => {
             this.hide();
             this._onClose?.();
         });
         header.appendChild(closeBtn);
-
         panel.appendChild(header);
 
-        // Scrollable body
-        this._body = document.createElement("div");
-        this._body.className = "mjr-ws-sidebar-body";
+        const resizer = document.createElement("div");
+        resizer.className = "mjr-ws-sidebar-resizer";
+        resizer.setAttribute("role", "separator");
+        resizer.setAttribute("aria-orientation", "vertical");
+        resizer.setAttribute("aria-hidden", "true");
+        panel.appendChild(resizer);
+        this._bindResize(resizer);
+
+        this._body = this._nodesTab.el;
+        this._body.classList.add("mjr-ws-sidebar-body");
         panel.appendChild(this._body);
 
         return panel;
-    }
-
-    _clear() {
-        for (const r of this._renderers) r.dispose();
-        this._renderers = [];
-        if (this._body) this._body.innerHTML = "";
-    }
-
-    _showEmpty() {
-        const empty = document.createElement("div");
-        empty.className = "mjr-ws-sidebar-empty";
-        empty.textContent = "Select nodes on the canvas to edit their parameters";
-        this._body.appendChild(empty);
     }
 
     _startLiveSync() {
@@ -182,38 +139,67 @@ export class WorkflowSidebar {
         this._liveSyncHandle = null;
         this._liveSyncMode = "";
     }
-}
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+    _bindResize(handle) {
+        if (!handle) return;
+        const doc = handle.ownerDocument || document;
+        const win = doc.defaultView || window;
+        const MIN_WIDTH = 180;
 
-/**
- * Read the currently selected nodes from the ComfyUI canvas.
- * Supports multiple ComfyUI versions (object, Map, Array).
- */
-function _getSelectedNodes() {
-    try {
-        const app = getComfyApp();
-        const selected =
-            app?.canvas?.selected_nodes ??
-            app?.canvas?.selectedNodes ??
-            null;
-        if (!selected) return [];
-        if (Array.isArray(selected)) return selected.filter(Boolean);
-        if (selected instanceof Map) return Array.from(selected.values()).filter(Boolean);
-        if (typeof selected === "object") return Object.values(selected).filter(Boolean);
-    } catch (e) {
-        console.debug?.("[MFV sidebar] _getSelectedNodes error", e);
+        const onPointerDown = (event) => {
+            if (event.button !== 0 || !this._el?.classList.contains("open")) return;
+            const wrapper = this._el.parentElement;
+            if (!wrapper) return;
+            const sidebarRect = this._el.getBoundingClientRect();
+            const wrapperRect = wrapper.getBoundingClientRect();
+            const sidebarPos = wrapper.getAttribute("data-sidebar-pos") || "right";
+            const maxWidth = Math.max(
+                MIN_WIDTH,
+                Math.floor(wrapperRect.width * (sidebarPos === "bottom" ? 1 : 0.65)),
+            );
+            if (sidebarPos === "bottom") return;
+
+            event.preventDefault();
+            event.stopPropagation();
+            handle.classList.add("is-dragging");
+            this._el.classList.add("is-resizing");
+
+            const startX = event.clientX;
+            const startWidth = sidebarRect.width;
+
+            const onPointerMove = (moveEvent) => {
+                const deltaX = moveEvent.clientX - startX;
+                const nextWidth =
+                    sidebarPos === "left" ? startWidth - deltaX : startWidth + deltaX;
+                const clampedWidth = Math.max(MIN_WIDTH, Math.min(maxWidth, nextWidth));
+                this._el.style.width = `${Math.round(clampedWidth)}px`;
+            };
+
+            const stopResize = () => {
+                handle.classList.remove("is-dragging");
+                this._el.classList.remove("is-resizing");
+                win.removeEventListener("pointermove", onPointerMove);
+                win.removeEventListener("pointerup", stopResize);
+                win.removeEventListener("pointercancel", stopResize);
+            };
+
+            win.addEventListener("pointermove", onPointerMove);
+            win.addEventListener("pointerup", stopResize);
+            win.addEventListener("pointercancel", stopResize);
+        };
+
+        handle.addEventListener("pointerdown", onPointerDown);
+        this._resizeCleanup = () => handle.removeEventListener("pointerdown", onPointerDown);
     }
-    return [];
-}
 
-function _getSelectedNodeSnapshot() {
-    const nodes = _getSelectedNodes();
-    const key = nodes
-        .map((node) => String(node?.id ?? ""))
-        .filter(Boolean)
-        .join("|");
-    return { key, nodes };
+    _disposeResize() {
+        try {
+            this._resizeCleanup?.();
+        } catch (e) {
+            console.debug?.(e);
+        }
+        this._resizeCleanup = null;
+    }
 }
 
 function _getFrameHost(el) {
