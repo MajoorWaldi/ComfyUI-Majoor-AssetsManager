@@ -54,6 +54,7 @@ describe("floating viewer toolbar overlay controls", () => {
         const { buildFloatingViewerToolbar } = await import("../features/viewer/floatingViewerUi.js");
 
         const viewer = {
+            element: document.createElement("div"),
             _channel: "rgb",
             _exposureEV: 0,
             _gridMode: 0,
@@ -69,7 +70,8 @@ describe("floating viewer toolbar overlay controls", () => {
 
         const bar = buildFloatingViewerToolbar(viewer);
 
-        expect(bar.querySelector(".mjr-mfv-toolbar-select")).toBeTruthy();
+        expect(bar.querySelector(".mjr-mfv-guides-trigger")).toBeTruthy();
+        expect(bar.querySelector(".mjr-mfv-ch-trigger")).toBeTruthy();
         expect(viewer._guidesSelect).toBeTruthy();
         expect(viewer._channelSelect).toBeTruthy();
         expect(viewer._exposureCtl?.input).toBeTruthy();
@@ -78,6 +80,7 @@ describe("floating viewer toolbar overlay controls", () => {
         expect(viewer._maskOpacityCtl?.input).toBeTruthy();
         expect(viewer._guidesSelect.value).toBe("0");
         expect(viewer._channelSelect.value).toBe("rgb");
-        expect(viewer._formatSelect.value).toBe("image");
+        // When _overlayMaskEnabled is false, format initialises to "off"
+        expect(viewer._formatSelect.value).toBe("off");
     });
 });
