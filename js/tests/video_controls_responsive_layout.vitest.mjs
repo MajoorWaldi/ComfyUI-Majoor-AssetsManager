@@ -43,6 +43,9 @@ describe("video controls responsive layout", () => {
         });
 
         resizeObservers[0]?.cb?.();
+        // ResizeObserver callback is now coalesced via requestAnimationFrame
+        // when available; falls back to sync application when rAF is missing
+        // (as in this happy-dom test env), so no extra await is required.
 
         expect(mounted.controlsEl?.dataset?.mjrLayout).toBe("stacked");
         mounted.destroy();

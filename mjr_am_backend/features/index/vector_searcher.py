@@ -122,6 +122,23 @@ class VectorSearcher:
             logger.info("Vector index built (0 vectors)")
             return
 
+        # Surface truncation so users know older assets fall outside semantic search.
+        if len(rows.data) >= _MAX_ROWS:
+            try:
+                total_res = await self.db.aquery(
+                    "SELECT COUNT(*) AS c FROM vec.asset_embeddings WHERE vector IS NOT NULL"
+                )
+                total = int((total_res.data or [{}])[0].get("c") or 0) if total_res.ok else _MAX_ROWS
+            except Exception:
+                total = _MAX_ROWS
+            if total > _MAX_ROWS:
+                logger.warning(
+                    "Vector index truncated: %d / %d embeddings loaded (oldest %d "
+                    "excluded from semantic search). Set MJR_AM_VECTOR_INDEX_MAX_ROWS "
+                    "to raise the cap if you have enough RAM.",
+                    _MAX_ROWS, total, total - _MAX_ROWS,
+                )
+
         id_map: list[int] = []
         vectors: list[list[float]] = []
         for row in rows.data:

@@ -17,19 +17,36 @@ _MAX_ENTRY_AGE = max(600, int(MANUAL_BG_SCAN_GRACE_SECONDS * 5))
 _CLEANUP_INTERVAL_S = 60.0
 _LAST_CLEANUP = 0.0
 
+# Cache resolved paths to avoid repeated Path(...).resolve() filesystem stats
+# on hot throttle-check paths. The throttle key only needs a stable
+# normalization, not strict realpath, so a small TTL cache is safe.
+_NORMALIZE_CACHE: dict[str, str] = {}
+_NORMALIZE_CACHE_MAX = 1024
+
 
 def normalize_scan_directory(directory: str) -> str:
     """Normalize and resolve a directory path for consistent throttling keys."""
     if not directory:
         return ""
+    cached = _NORMALIZE_CACHE.get(directory)
+    if cached is not None:
+        return cached
     try:
         resolved = Path(directory).resolve()
-        return str(resolved)
+        result = str(resolved)
     except Exception:
         try:
-            return os.path.abspath(directory)
+            result = os.path.abspath(directory)
         except Exception:
-            return str(directory)
+            result = str(directory)
+    if len(_NORMALIZE_CACHE) >= _NORMALIZE_CACHE_MAX:
+        # Simple bounded cache: drop one arbitrary entry rather than grow unbounded.
+        try:
+            _NORMALIZE_CACHE.pop(next(iter(_NORMALIZE_CACHE)))
+        except StopIteration:
+            pass
+    _NORMALIZE_CACHE[directory] = result
+    return result
 
 
 def _scan_key(directory: str, source: str, root_id: str | None) -> str:

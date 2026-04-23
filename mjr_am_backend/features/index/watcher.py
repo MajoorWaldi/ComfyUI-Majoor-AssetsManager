@@ -39,7 +39,6 @@ from ...config import (
     WATCHER_STREAM_ALERT_THRESHOLD,
     WATCHER_STREAM_ALERT_WINDOW_SECONDS,
 )
-from ...runtime_activity import is_generation_busy
 from ...shared import EXTENSIONS, get_logger
 from ..watcher_settings import get_watcher_settings
 
@@ -437,9 +436,14 @@ class DebouncedWatchHandler(FileSystemEventHandler):
         candidates = self._drain_pending_candidates()
         if not candidates:
             return
-        if is_generation_busy():
-            self._requeue_runtime_deferred_files(candidates)
-            return
+        # NOTE: We deliberately do NOT defer the entire flush during ComfyUI
+        # generation. Manual file additions, external tool drops, and copy
+        # operations must be indexed in real time even while a prompt is
+        # running. ComfyUI-generated files are still skipped per-file via
+        # `_is_recent_generated()` inside `_filter_flush_candidates`, so we
+        # cannot double-index. The previous global early-return blocked all
+        # external/manual files and broke the user's expectation that the
+        # watcher remains live during execution.
 
         async with self._flush_semaphore:
             _record_flush_volume(len(candidates))

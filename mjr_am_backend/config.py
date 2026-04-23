@@ -715,6 +715,15 @@ VECTOR_AUTOTAG_THRESHOLD = _env_float(
     max_value=1.0,
 )
 
+# Auto-tagging: include the "nsfw" classifier prompt in the vocabulary.
+# Off by default — opt-in to avoid writing "nsfw" labels into the DB without
+# explicit user consent.
+VECTOR_AUTOTAG_NSFW_ENABLED = _env_bool(
+    False,
+    "MJR_AM_VECTOR_AUTOTAG_NSFW",
+    "MAJOOR_VECTOR_AUTOTAG_NSFW",
+)
+
 # Semantic text search: score floor and relative cutoff versus best hit.
 VECTOR_TEXT_SEARCH_MIN_SCORE = _env_float(
     0.02,

@@ -704,10 +704,25 @@ export function mountVideoControls(video, opts = {}) {
 
         try {
             if (typeof ResizeObserver === "function" && hostEl) {
-                const ro = new ResizeObserver(() => applyResponsiveLayout());
+                // Coalesce ResizeObserver bursts (e.g. window drag) into a single
+                // layout recalc per frame to avoid layout thrash.
+                const raf = typeof requestAnimationFrame === "function" ? requestAnimationFrame : null;
+                const caf = typeof cancelAnimationFrame === "function" ? cancelAnimationFrame : null;
+                let roFrame = 0;
+                const scheduleLayout = raf
+                    ? () => {
+                        if (roFrame) return;
+                        roFrame = raf(() => {
+                            roFrame = 0;
+                            applyResponsiveLayout();
+                        });
+                    }
+                    : () => applyResponsiveLayout();
+                const ro = new ResizeObserver(scheduleLayout);
                 ro.observe(hostEl);
                 unsubs.push(() => {
                     try {
+                        if (roFrame && caf) caf(roFrame);
                         ro.disconnect();
                     } catch (e) {
                         console.debug?.(e);

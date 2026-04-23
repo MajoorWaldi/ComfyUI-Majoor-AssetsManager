@@ -62,20 +62,28 @@ try {
     }, { once: true });
 } catch (e) { /* ignore */ }
 
-function isExecutionBusy() {
+function readPersistedDefaultContext() {
+    // Read the same localStorage key written by the Pinia panel store so the
+    // early fetch matches whatever scope/sort the user last left the panel in.
+    // Without this, only the literal output:*:mtime_desc combo benefited from
+    // prefetch and most users hit a cold /list on every cold open.
     try {
-        return !!String(window?.__MJR_EXECUTION_RUNTIME__?.active_prompt_id || "").trim();
+        const raw = globalThis?.localStorage?.getItem?.("mjr_panel_state");
+        if (!raw) return { scope: "output", sort: "mtime_desc" };
+        const parsed = JSON.parse(raw);
+        const scope = String(parsed?.scope || "output").toLowerCase();
+        const sort = String(parsed?.sort || "mtime_desc").toLowerCase();
+        const allowedScope = ["output", "input", "all"].includes(scope) ? scope : "output";
+        return { scope: allowedScope, sort: sort || "mtime_desc" };
     } catch {
-        return false;
+        return { scope: "output", sort: "mtime_desc" };
     }
 }
 
 function startEarlyFetch() {
-    if (isExecutionBusy()) {
-        return null;
-    }
     const now = Date.now();
-    const key = "output:*:mtime_desc"; // Default browse context
+    const { scope, sort } = readPersistedDefaultContext();
+    const key = `${scope}:*:${sort}`;
 
     // Skip if we already have a valid prefetch
     if (_earlyFetchPromise && _earlyFetchKey === key && (now - _earlyFetchTimestamp) < EARLY_FETCH_TTL_MS) {
@@ -95,13 +103,12 @@ function startEarlyFetch() {
             query: "*",
             limit: APP_CONFIG.DEFAULT_PAGE_SIZE || 200,
             offset: 0,
-            scope: "output",
-            sort: "mtime_desc",
-            // Include total so useGridLoader can set state.total correctly.
-            // Without it the fallback was earlyAssets.length (page size),
-            // which caused state.done=true after the first page and blocked
-            // all subsequent pagination / infinite scroll.
-            includeTotal: true,
+            scope,
+            sort,
+            // includeTotal forces a backend COUNT(*) which can add 100-400ms on
+            // large libraries. The first paint does not need the total — it is
+            // resolved lazily on subsequent pages by the loader.
+            includeTotal: false,
         });
         _earlyFetchPromise = get(url, _earlyFetchAC ? { signal: _earlyFetchAC.signal } : {}).catch(() => null);
     } catch {
@@ -122,10 +129,13 @@ export { startEarlyFetch };
  * Consume the early fetch result if available and matching.
  * Called by useGridLoader on first load.
  */
-export function consumeEarlyFetch(key = "output:*:mtime_desc") {
-    if (!_earlyFetchPromise || _earlyFetchKey !== key) {
-        return null;
-    }
+export function consumeEarlyFetch(key = null) {
+    if (!_earlyFetchPromise) return null;
+    // When the caller supplies a key, only return the promise if it matches
+    // the scope/sort combination that was prefetched. A null key means "give
+    // me whatever was prefetched" and is used by callers that have already
+    // verified context separately.
+    if (key && _earlyFetchKey !== key) return null;
     const now = Date.now();
     if ((now - _earlyFetchTimestamp) >= EARLY_FETCH_TTL_MS) {
         _earlyFetchPromise = null;
@@ -270,12 +280,11 @@ export function registerAssetsSidebar(runtimeApp, { sidebarTabId }) {
         type: "custom",
 
         render(el) {
-            if (!isExecutionBusy()) {
-                // Start fetching assets immediately to reduce perceived load time.
-                // The Vue app will consume this prefetched data when it mounts.
-                startEarlyFetch();
-                void runStartupWarmup({ idleOnly: true }).catch(() => null);
-            }
+            // Generation/execution must not block panel rendering or warmup.
+            // Backend handlers are independent of the prompt queue, so always
+            // kick off the early fetch + warmup when the sidebar mounts.
+            startEarlyFetch();
+            void runStartupWarmup({ idleOnly: true }).catch(() => null);
             // Mount the Vue app once; subsequent calls reuse the live instance.
             mountKeepAlive(el, AssetsManagerApp, SIDEBAR_MOUNT_KEY);
         },

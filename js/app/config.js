@@ -80,7 +80,10 @@ export const APP_DEFAULTS = Object.freeze({
     AUTO_SCAN_ON_STARTUP: false,
     EXECUTION_GROUPING_ENABLED: true,
     EXECUTION_IDLE_GRACE_MS: 6000,
-    DEFER_GRID_FETCH_DURING_EXECUTION: true,
+    // Generation/execution must NEVER block panel navigation, scope switches,
+    // grid loads, or file I/O. Backend handlers are independent of the prompt
+    // queue. Keep this false unless explicitly debugging contention.
+    DEFER_GRID_FETCH_DURING_EXECUTION: false,
     VIEWER_PAUSE_DURING_EXECUTION: true,
     FLOATING_VIEWER_PAUSE_DURING_EXECUTION: false,
     MFV_SIDEBAR_POSITION: "right",

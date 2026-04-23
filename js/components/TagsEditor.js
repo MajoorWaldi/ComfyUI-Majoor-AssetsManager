@@ -245,7 +245,7 @@ export function createTagsEditor(asset, onUpdate) {
             item.addEventListener("mouseenter", () => {
                 selectedIndex = index;
                 showSuggestions(query);
-            });
+            }, { passive: true });
 
             item.addEventListener("click", () => {
                 addTag(tag);
@@ -548,11 +548,11 @@ function createTagChip(tag, onRemove) {
 
     removeBtn.addEventListener("mouseenter", () => {
         removeBtn.style.opacity = "1";
-    });
+    }, { passive: true });
 
     removeBtn.addEventListener("mouseleave", () => {
         removeBtn.style.opacity = "0.7";
-    });
+    }, { passive: true });
 
     removeBtn.addEventListener("click", (e) => {
         e.stopPropagation();

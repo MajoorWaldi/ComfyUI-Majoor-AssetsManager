@@ -11,6 +11,7 @@ from typing import Any
 
 from ...adapters.db.sqlite import Sqlite
 from ...config import MAX_TO_ENRICH_ITEMS, is_vector_index_on_scan_enabled
+from ...runtime_activity import is_generation_busy
 from ...shared import FileKind, get_logger
 from ...utils import sanitize_for_json
 from ..metadata import MetadataService
@@ -185,6 +186,12 @@ async def _run_vector_index_entry(
 ) -> tuple[str, int, Any]:
     aid, filepath, entry_kind = _vector_entry_context(entry)
     if not filepath:
+        return "skip", aid, None
+
+    # Yield GPU/VRAM to ComfyUI sampling. Skipped entries remain unindexed
+    # in vec.asset_embeddings and will be picked up by the next call to
+    # _index_missing_asset_vectors (which queries unindexed rows).
+    if is_generation_busy(include_cooldown=False):
         return "skip", aid, None
 
     try:

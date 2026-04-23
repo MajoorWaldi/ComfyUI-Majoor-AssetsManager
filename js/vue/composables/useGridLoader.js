@@ -30,8 +30,14 @@ const GRID_SNAPSHOT_TTL_MS = 30 * 60 * 1000;
 const UPSERT_BATCH_DEBOUNCE_MS = 200;
 const UPSERT_BATCH_MAX_SIZE = 50;
 const UPSERT_BATCH_STATE = new WeakMap();
-const MIN_LOADING_SKELETON_MS = 50;
+// 0 = no artificial skeleton hold. The skeleton naturally lasts the duration
+// of the network/render work; an additional minimum delay only made the first
+// paint feel sluggish on cold opens. Keep at 0 unless flicker is reintroduced.
+const MIN_LOADING_SKELETON_MS = 0;
+const GRID_SNAPSHOT_PERSIST_DEBOUNCE_MS = 1500;
 let gridSnapshotStorageLoaded = false;
+let gridSnapshotPersistTimer = null;
+let gridSnapshotPersistPending = false;
 
 const GRID_SNAPSHOT_ASSET_FIELDS = [
     "id",
@@ -151,10 +157,32 @@ export function buildGridSnapshotKey(parts = {}) {
 }
 
 function gridSnapshotStorage() {
+    // Use localStorage so cached grid snapshots survive a full ComfyUI tab
+    // reload and the very first cold open of a new session can paint instantly
+    // from cache before the first /list response arrives. sessionStorage was
+    // wiped on every reload, defeating the whole purpose of the snapshot.
     try {
-        return globalThis?.sessionStorage || null;
+        return globalThis?.localStorage || null;
     } catch {
         return null;
+    }
+}
+
+function migrateLegacySessionSnapshots(storage) {
+    // One-shot migration: lift any pre-existing sessionStorage snapshot into
+    // localStorage so users keep their cached grid on the very first run after
+    // upgrade. Safe no-op when nothing legacy is present.
+    try {
+        const legacy = globalThis?.sessionStorage;
+        if (!legacy || !storage) return;
+        const raw = legacy.getItem?.(GRID_SNAPSHOT_STORAGE_KEY);
+        if (!raw) return;
+        if (!storage.getItem?.(GRID_SNAPSHOT_STORAGE_KEY)) {
+            storage.setItem(GRID_SNAPSHOT_STORAGE_KEY, raw);
+        }
+        legacy.removeItem(GRID_SNAPSHOT_STORAGE_KEY);
+    } catch (e) {
+        console.debug?.(e);
     }
 }
 
@@ -213,6 +241,7 @@ function loadGridSnapshotsFromStorage() {
     gridSnapshotStorageLoaded = true;
     try {
         const storage = gridSnapshotStorage();
+        migrateLegacySessionSnapshots(storage);
         const raw = storage?.getItem?.(GRID_SNAPSHOT_STORAGE_KEY);
         if (!raw) return;
         const parsed = JSON.parse(raw);
@@ -229,7 +258,7 @@ function loadGridSnapshotsFromStorage() {
     }
 }
 
-function persistGridSnapshotsToStorage() {
+function persistGridSnapshotsToStorageNow() {
     try {
         pruneGridSnapshotCache();
         const storage = gridSnapshotStorage();
@@ -244,6 +273,31 @@ function persistGridSnapshotsToStorage() {
     } catch (e) {
         console.debug?.(e);
     }
+}
+
+// Debounced persist: snapshot writes can be expensive (multi-MB JSON.stringify
+// of up to 8 snapshots * 800 assets). Pagination + realtime upserts can call
+// rememberSnapshot() repeatedly; collapse those into a single async write to
+// keep the main thread responsive during scroll/generation bursts.
+function persistGridSnapshotsToStorage() {
+    gridSnapshotPersistPending = true;
+    if (gridSnapshotPersistTimer) return;
+    gridSnapshotPersistTimer = setTimeout(() => {
+        gridSnapshotPersistTimer = null;
+        if (!gridSnapshotPersistPending) return;
+        gridSnapshotPersistPending = false;
+        persistGridSnapshotsToStorageNow();
+    }, GRID_SNAPSHOT_PERSIST_DEBOUNCE_MS);
+}
+
+function flushGridSnapshotsPersist() {
+    if (gridSnapshotPersistTimer) {
+        clearTimeout(gridSnapshotPersistTimer);
+        gridSnapshotPersistTimer = null;
+    }
+    if (!gridSnapshotPersistPending) return;
+    gridSnapshotPersistPending = false;
+    persistGridSnapshotsToStorageNow();
 }
 
 function getGridSnapshot(key) {
@@ -491,6 +545,19 @@ export function useGridLoader({
 
     function scheduleDeferredExecutionReload(query, options = {}) {
         clearDeferredExecutionReload();
+        // Capture the snapshot context at schedule time so we can detect a
+        // user-initiated scope/sort/filter switch during execution. If the
+        // user navigates away (e.g. starts a generation on Output, switches
+        // to Custom, generation finishes) the deferred reload must NOT fire
+        // — otherwise it would clobber the new context's grid state.
+        const scheduledScopeKey = (() => {
+            try {
+                return buildGridSnapshotKey(buildCurrentSnapshotParts());
+            } catch (e) {
+                console.debug?.(e);
+                return null;
+            }
+        })();
         const retry = () => {
             if (isExecutionBusy()) {
                 try {
@@ -508,6 +575,23 @@ export function useGridLoader({
             // instead of using the stale captured value. The user may have
             // changed the search query while execution was in progress.
             const gridContainer = getGridContainer();
+            // Bail if the grid context (scope/sort/filters) changed during
+            // execution — the user is now looking at a different view and a
+            // reload would corrupt it.
+            if (scheduledScopeKey) {
+                let currentKey = null;
+                try {
+                    currentKey = buildGridSnapshotKey(buildCurrentSnapshotParts());
+                } catch (e) {
+                    console.debug?.(e);
+                }
+                if (currentKey && currentKey !== scheduledScopeKey) {
+                    mjrDbg(
+                        "[Grid] Deferred execution reload skipped — scope/filter changed during execution",
+                    );
+                    return;
+                }
+            }
             const freshQuery =
                 String(gridContainer?.dataset?.mjrQuery || "").trim() || query;
             Promise.resolve()
@@ -648,10 +732,10 @@ export function useGridLoader({
             const scope = String(gridContainer.dataset?.mjrScope || "output").toLowerCase();
             const sort = String(gridContainer.dataset?.mjrSort || "mtime_desc").toLowerCase();
             const normalizedQuery = String(query || "*").trim() || "*";
-            const isDefaultContext = scope === "output" && normalizedQuery === "*" && sort === "mtime_desc";
+            const isDefaultContext = normalizedQuery === "*";
 
             if (isDefaultContext) {
-                const earlyFetchPromise = consumeEarlyFetch("output:*:mtime_desc");
+                const earlyFetchPromise = consumeEarlyFetch(`${scope}:*:${sort}`);
                 if (earlyFetchPromise) {
                     try {
                         const earlyResult = await earlyFetchPromise;
@@ -777,10 +861,36 @@ export function useGridLoader({
                     state.total = Number(page.total) || 0;
                 }
 
+                const pageAssets = Array.isArray(page.assets) ? page.assets : [];
+                const responseHasItems = pageAssets.length > 0;
+                // Only commit a visual reset (which clears the previously
+                // cached / snapshot-hydrated cards) when the new page has
+                // something to render OR when the backend authoritatively
+                // reports total=0. A transient empty response (network race,
+                // stale offset after rapid scope switches, etc.) must NOT
+                // wipe the visible assets — that was the root cause of the
+                // "grid disappears on scope switch / return to Output" bug.
                 if (deferVisualResetUntilNextPage) {
-                    resetAssets({ query: state.query || "*", total: null, done: false });
-                    resetAssetCollectionsState(state);
-                    deferVisualResetUntilNextPage = false;
+                    const responseAssertsEmpty =
+                        page.total != null && Number(page.total) === 0;
+                    if (responseHasItems || responseAssertsEmpty) {
+                        resetAssets({ query: state.query || "*", total: null, done: false });
+                        resetAssetCollectionsState(state);
+                        deferVisualResetUntilNextPage = false;
+                    } else if (Array.isArray(state.assets) && state.assets.length) {
+                        // Keep cached cards visible, treat as benign empty
+                        // batch and let the loop bail naturally.
+                        mjrDbg(
+                            "[Grid LoadPage] empty response with cached visible assets — preserving cached view",
+                            { offset: state.offset, query: state.query },
+                        );
+                        return {
+                            ok: true,
+                            count: 0,
+                            total: state.total,
+                            preservedCached: true,
+                        };
+                    }
                 }
 
                 const fetchedCount = Number(page.count || 0) || 0;
@@ -790,7 +900,9 @@ export function useGridLoader({
                     offset: state.offset,
                     total: page.total != null ? page.total : state.total,
                 });
-                const addedCount = Number(appendAssets(gridContainer, page.assets || []) || 0) || 0;
+                const addedCount = responseHasItems
+                    ? Number(appendAssets(gridContainer, pageAssets) || 0) || 0
+                    : 0;
                 state.offset += consumedCount;
                 const wasDone = state.done;
                 state.done =
@@ -861,6 +973,96 @@ export function useGridLoader({
         }
     }
 
+    /**
+     * Background "head refresh" used after the snapshot fast-path returns
+     * cached:true. The snapshot may be stale (assets were generated while
+     * the user was on another scope, or the snapshot was restored from
+     * localStorage at page load), so we silently re-fetch page 0 and
+     * upsert any new items at their correct sort position. Existing cards
+     * stay put, scroll position is preserved, no flicker.
+     *
+     * Returns early when the request is superseded (state.requestId
+     * changed during the fetch) or when ComfyUI is generating.
+     */
+    let _headRefreshTimer = null;
+    function scheduleSnapshotHeadRefresh(delayMs = 250) {
+        try {
+            if (_headRefreshTimer) clearTimeout(_headRefreshTimer);
+        } catch (e) {
+            console.debug?.(e);
+        }
+        const requestId = state.requestId;
+        // Capture the active grid context (scope/sort/filters) at schedule
+        // time. If the user changes any filter or scope before the head
+        // refresh fires, we must abort — otherwise upsertAsset() would
+        // inject items that don't match the current filter into the grid.
+        let scheduledKey = null;
+        try {
+            scheduledKey = buildGridSnapshotKey(buildCurrentSnapshotParts());
+        } catch (e) {
+            console.debug?.(e);
+        }
+        _headRefreshTimer = setTimeout(async () => {
+            _headRefreshTimer = null;
+            if (Number(state.requestId) !== Number(requestId)) return;
+            if (isExecutionBusy()) return;
+            const gridContainer = getGridContainer();
+            if (!gridContainer) return;
+            // Filter/scope guard: bail if the user navigated away.
+            if (scheduledKey) {
+                let currentKey = null;
+                try {
+                    currentKey = buildGridSnapshotKey(buildCurrentSnapshotParts());
+                } catch (e) {
+                    console.debug?.(e);
+                }
+                if (currentKey && currentKey !== scheduledKey) {
+                    mjrDbg("[Grid] Snapshot head refresh skipped — context changed");
+                    return;
+                }
+            }
+            const headLimit = Math.max(
+                1,
+                Math.min(APP_CONFIG.MAX_PAGE_SIZE, APP_CONFIG.DEFAULT_PAGE_SIZE),
+            );
+            try {
+                const page = await fetchPage(state.query || "*", headLimit, 0, {
+                    requestId,
+                    signal: state.abortController?.signal || null,
+                });
+                if (Number(state.requestId) !== Number(requestId)) return;
+                // Re-check context after the await — the user may have
+                // switched scope while the fetch was in flight.
+                if (scheduledKey) {
+                    let currentKey = null;
+                    try {
+                        currentKey = buildGridSnapshotKey(buildCurrentSnapshotParts());
+                    } catch (e) {
+                        console.debug?.(e);
+                    }
+                    if (currentKey && currentKey !== scheduledKey) {
+                        mjrDbg("[Grid] Snapshot head refresh discarded — context changed mid-fetch");
+                        return;
+                    }
+                }
+                if (!page?.ok) return;
+                const pageAssets = Array.isArray(page.assets) ? page.assets : [];
+                if (page.total != null) state.total = Number(page.total) || state.total;
+                if (!pageAssets.length) return;
+                let inserted = 0;
+                for (const asset of pageAssets) {
+                    if (asset && asset.id != null && upsertAsset(asset)) inserted += 1;
+                }
+                if (inserted > 0) {
+                    rememberSnapshot(state.query || "*");
+                    mjrDbg("[Grid] Snapshot head refresh: inserted", inserted, "new asset(s)");
+                }
+            } catch (e) {
+                console.debug?.("[Grid] Snapshot head refresh failed", e);
+            }
+        }, Math.max(0, Number(delayMs) || 0));
+    }
+
     async function loadAssets(query = "*", options = {}) {
         const { reset = true, preserveVisibleUntilReady = true } = options || {};
         const gridContainer = getGridContainer();
@@ -882,11 +1084,35 @@ export function useGridLoader({
         state.query = safeQuery;
 
         if (reset && isExecutionBusy()) {
-            setLoadingMessage("Grid refresh deferred while ComfyUI is generating...");
+            // Try to hydrate from a cached snapshot before deferring so the
+            // grid never appears empty during a generation. Only the API
+            // refresh is deferred — the user still sees the previously loaded
+            // assets immediately. Falls back to the original "deferred" state
+            // when no snapshot is available.
+            let hydratedFromSnapshot = false;
+            try {
+                const snapshotParts = buildCurrentSnapshotParts();
+                snapshotParts.query = safeQuery;
+                const snapshotKey = buildGridSnapshotKey(snapshotParts);
+                if (GRID_SNAPSHOT_CACHE.has(snapshotKey)) {
+                    hydratedFromSnapshot = await hydrateFromSnapshot(snapshotParts, {
+                        allowReplaceExisting: true,
+                    });
+                }
+            } catch (e) {
+                console.debug?.(e);
+            }
+            if (hydratedFromSnapshot) {
+                clearLoadingMessage();
+                state.loading = false;
+            } else {
+                setLoadingMessage("Grid refresh deferred while ComfyUI is generating...");
+            }
             scheduleDeferredExecutionReload(safeQuery, options || {});
             return {
                 ok: true,
                 deferred: true,
+                cached: hydratedFromSnapshot,
                 count: Number(state.offset || 0) || 0,
                 total: Number(state.total || 0) || 0,
             };
@@ -935,6 +1161,35 @@ export function useGridLoader({
                     // actually exists, to avoid an unnecessary microtask yield
                     // that would delay the fetchPage call.
                     const snapshotKey = buildGridSnapshotKey(snapshotParts);
+                    // De-duplicate: scopeController.onBeforeReload already runs
+                    // prepareGridForScopeSwitch() which hydrates the same snapshot
+                    // synchronously. Without this guard the same hydrate (with
+                    // appendAssets / setItems / finalizeLoad) runs twice back to
+                    // back on every scope switch with query=='*'.
+                    if (state._mjrLastHydrateKey === snapshotKey &&
+                        Date.now() - Number(state._mjrLastHydrateAt || 0) < 1500) {
+                        state.offset = Math.max(
+                            Number(state.offset || 0) || 0,
+                            Number(state.assets?.length || 0) || 0,
+                        );
+                        state.loading = false;
+                        clearLoadingMessage();
+                        const bgRequestId = state.requestId;
+                        scheduleNextPagePrefetch(
+                            bgRequestId,
+                            Math.min(APP_CONFIG.PREFETCH_NEXT_PAGE_DELAY_MS ?? 700, 250),
+                        );
+                        // Re-fetch page 0 and upsert any new items at the
+                        // top so cards generated while the user was on
+                        // another scope (or since last session) reappear.
+                        scheduleSnapshotHeadRefresh(200);
+                        return {
+                            ok: true,
+                            count: Number(state.offset || 0) || 0,
+                            total: Number(state.total || 0) || 0,
+                            cached: true,
+                        };
+                    }
                     const hasSnapshot = GRID_SNAPSHOT_CACHE.has(snapshotKey);
                     const didHydrate = hasSnapshot
                         ? await hydrateFromSnapshot(snapshotParts, {
@@ -943,7 +1198,10 @@ export function useGridLoader({
                         : false;
                     if (didHydrate) {
                         // Snapshot restored — launch a background refresh and return immediately
-                        state.offset = 0;
+                        state.offset = Math.max(
+                            Number(state.offset || 0) || 0,
+                            Number(state.assets?.length || 0) || 0,
+                        );
                         state.done = false;
                         state.loading = false;
                         clearLoadingMessage();
@@ -952,6 +1210,10 @@ export function useGridLoader({
                             bgRequestId,
                             Math.min(APP_CONFIG.PREFETCH_NEXT_PAGE_DELAY_MS ?? 700, 250),
                         );
+                        // Re-fetch page 0 and upsert any new items at the
+                        // top so cards generated while the user was on
+                        // another scope (or since last session) reappear.
+                        scheduleSnapshotHeadRefresh(200);
                         return {
                             ok: true,
                             count: Number(state.offset || 0) || 0,
@@ -1285,6 +1547,10 @@ export function useGridLoader({
         );
         state.total = Number(snapshot.total ?? snapshot.assets.length) || snapshot.assets.length;
         state.done = !!snapshot.done;
+        // Mark this hydrate so loadAssets fast-path can skip a redundant
+        // re-hydrate triggered immediately after by scopeController.
+        state._mjrLastHydrateKey = key;
+        state._mjrLastHydrateAt = Date.now();
         finalizeLoad({ title: snapshot.title || options.title || "Cached" });
         return true;
     }
@@ -1335,6 +1601,8 @@ export function useGridLoader({
 
     function dispose() {
         rememberSnapshot(state.query || "Cached");
+        // Force any pending debounced storage write to flush before unload.
+        try { flushGridSnapshotsPersist(); } catch (e) { console.debug?.(e); }
         clearDeferredExecutionReload();
         clearPrefetchTimer();
         try {

@@ -1069,7 +1069,25 @@ async function _mountPanelRuntimeImpl(container, { useComfyThemeUI = true, exter
           })
         : gridController.reloadGrid();
 
-    try { await refreshDuplicateAlerts(); } catch (e) { console.debug?.(e); }
+    // When we showed cached snapshot data on first launch, schedule a silent
+    // background refresh so the user always sees an up-to-date grid without
+    // waiting for the API on cold open. The refresh reuses preserveVisibleUntilReady
+    // so the cached cards remain visible until the fresh page arrives.
+    if (didHydrateFromSnapshot) {
+        try {
+            setTimeout(() => {
+                try {
+                    if (panelLifecycleAC?.signal?.aborted) return;
+                } catch (e) { console.debug?.(e); }
+                gridController.reloadGrid().catch(() => {});
+            }, 200);
+        } catch (e) { console.debug?.(e); }
+    }
+
+    // Fire-and-forget: do not block the panel mount on the duplicate alerts
+    // request. It contended with the initial /list call on the single-threaded
+    // backend and added perceptible latency before the first paint.
+    refreshDuplicateAlerts().catch(() => {});
     try {
         _dupPollTimer = setInterval(() => {
             try { if (panelLifecycleAC?.signal?.aborted) return; }

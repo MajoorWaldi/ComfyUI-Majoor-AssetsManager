@@ -30,6 +30,7 @@ from typing import Any
 
 from ...adapters.db.sqlite import Sqlite
 from ...config import (
+    VECTOR_AUTOTAG_NSFW_ENABLED,
     VECTOR_AUTOTAG_THRESHOLD,
     is_vector_search_enabled,
 )
@@ -121,10 +122,17 @@ _autotag_cache_version: str = ""
 def _autotag_cache_version_key(vs: VectorService) -> str:
     payload = {
         "model_name": str(getattr(vs, "_model_name", "") or "").strip(),
-        "vocabulary": sorted(AUTOTAG_VOCABULARY.items()),
+        "vocabulary": sorted(_active_autotag_vocabulary().items()),
     }
     encoded = json.dumps(payload, ensure_ascii=False, sort_keys=True).encode("utf-8", errors="ignore")
     return hashlib.sha256(encoded).hexdigest()[:16]
+
+
+def _active_autotag_vocabulary() -> dict[str, str]:
+    """Return the vocabulary actually used for tagging (NSFW gated by setting)."""
+    if VECTOR_AUTOTAG_NSFW_ENABLED:
+        return AUTOTAG_VOCABULARY
+    return {tag: prompt for tag, prompt in AUTOTAG_VOCABULARY.items() if tag != "nsfw"}
 
 
 def invalidate_autotag_cache() -> None:
@@ -143,7 +151,8 @@ async def _get_autotag_embeddings(vs: VectorService) -> dict[str, list[float]]:
             return _autotag_cache
 
         cache: dict[str, list[float]] = {}
-        for tag, prompt in AUTOTAG_VOCABULARY.items():
+        vocabulary = _active_autotag_vocabulary()
+        for tag, prompt in vocabulary.items():
             result = await vs.get_text_embedding(prompt)
             if result.ok and result.data:
                 cache[tag] = result.data
@@ -151,7 +160,7 @@ async def _get_autotag_embeddings(vs: VectorService) -> dict[str, list[float]]:
                 logger.debug("Auto-tag embedding failed for '%s': %s", tag, result.error)
         _autotag_cache = cache
         _autotag_cache_version = version
-        logger.info("Auto-tag vocabulary embedded (%d / %d tags)", len(cache), len(AUTOTAG_VOCABULARY))
+        logger.info("Auto-tag vocabulary embedded (%d / %d tags)", len(cache), len(vocabulary))
         return cache
 
 

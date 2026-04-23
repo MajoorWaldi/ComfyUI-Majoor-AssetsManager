@@ -287,24 +287,14 @@ emitSelectionChanged._lastSelectionKey = "";
 function buildDisplayAssets(assets) {
     const list = Array.isArray(assets) ? assets : [];
     const buckets = new Map();
-    const singles = [];
-
-    for (const asset of list) {
-        const filenameKey = getFilenameKey(asset?.filename);
-        if (!filenameKey) {
-            singles.push(asset);
-            continue;
-        }
-        let bucket = buckets.get(filenameKey);
-        if (!bucket) {
-            bucket = [];
-            buckets.set(filenameKey, bucket);
-        }
-        bucket.push(asset);
-    }
-
     const output = [];
+
+    // Single pass: classify each asset and pre-collect representatives in
+    // their original order. Non-representative duplicates are tracked in their
+    // bucket but skipped from `output`. This replaces the previous two full
+    // passes over `list`, halving work on large grids.
     for (const asset of list) {
+        if (!asset) continue;
         const filenameKey = getFilenameKey(asset?.filename);
         if (!filenameKey) {
             asset._mjrNameCollision = false;
@@ -317,10 +307,21 @@ function buildDisplayAssets(assets) {
             continue;
         }
 
-        const bucket = buckets.get(filenameKey) || [];
-        if (!bucket.length) continue;
-        if (bucket[0] !== asset) continue;
+        let bucket = buckets.get(filenameKey);
+        if (!bucket) {
+            bucket = [];
+            buckets.set(filenameKey, bucket);
+            // First occurrence: this asset is the representative and enters
+            // the output stream now to preserve original ordering.
+            output.push(asset);
+        }
+        bucket.push(asset);
+    }
 
+    // Second (cheap) pass over representatives only: reset collision/dup flags
+    // for every bucket member, then mark the representative as a dup-stack if
+    // the bucket gathered ≥2 members.
+    for (const bucket of buckets.values()) {
         for (const member of bucket) {
             member._mjrNameCollision = false;
             delete member._mjrNameCollisionCount;
@@ -329,20 +330,18 @@ function buildDisplayAssets(assets) {
             member._mjrDupMembers = null;
             member._mjrDupCount = 0;
         }
-
         if (bucket.length >= 2) {
-            const prevMembers = Array.isArray(asset._mjrDupMembers) ? asset._mjrDupMembers : [];
+            const rep = bucket[0];
+            const prevMembers = Array.isArray(rep._mjrDupMembers) ? rep._mjrDupMembers : [];
             const memberIds = new Set(prevMembers.map((entry) => String(entry?.id || "")));
             const mergedMembers = [
                 ...prevMembers,
                 ...bucket.filter((entry) => !memberIds.has(String(entry?.id || ""))),
             ];
-            asset._mjrDupStack = true;
-            asset._mjrDupMembers = mergedMembers;
-            asset._mjrDupCount = mergedMembers.length;
+            rep._mjrDupStack = true;
+            rep._mjrDupMembers = mergedMembers;
+            rep._mjrDupCount = mergedMembers.length;
         }
-
-        output.push(asset);
     }
 
     return output;
@@ -1289,7 +1288,7 @@ defineExpose({
         style="position: relative; min-height: 100%;"
     >
         <div
-            v-if="(state.loading && !state.assets.length) || (!hasMeasuredHostWidthOnce && state.assets.length)"
+            v-if="state.loading && !state.assets.length"
             class="mjr-grid-loading-overlay"
             style="position:absolute; inset:0; z-index:4; display:flex; align-items:flex-start; justify-content:center; padding:14px; pointer-events:none;"
         >
