@@ -458,3 +458,9 @@ def _reset_security_state_for_tests() -> None:
         _WARNED_TOKEN_SOURCES.clear()
     except Exception:
         pass
+    try:
+        from .security_prefs_snapshot import reset_snapshot_for_tests
+
+        reset_snapshot_for_tests()
+    except Exception:
+        pass

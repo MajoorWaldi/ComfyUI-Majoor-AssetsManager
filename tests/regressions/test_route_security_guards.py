@@ -34,6 +34,10 @@ def _clear_write_auth_env(monkeypatch) -> None:
         "MAJOOR_ALLOW_INSECURE_TOKEN_TRANSPORT",
     ):
         monkeypatch.delenv(key, raising=False)
+    # Reset cached security state (lru caches + persisted prefs snapshot) so
+    # tests that toggle env vars are not influenced by an earlier test that
+    # caused `ensure_security_bootstrap()` to publish a snapshot.
+    sec._reset_security_state_for_tests()
 
 
 @pytest.mark.asyncio
@@ -254,11 +258,11 @@ def test_rate_limit_overflow_keeps_per_client_state(monkeypatch) -> None:
     monkeypatch.setattr(sec, "_MAX_RATE_LIMIT_CLIENTS", 2)
     monkeypatch.setattr(sec, "_get_client_identifier", lambda req: str(req.headers.get("X-Test-Client") or ""))
 
-    assert sec._check_rate_limit(_Req("a"), "ep", max_requests=1, window_seconds=60)[0] is True
-    assert sec._check_rate_limit(_Req("b"), "ep", max_requests=1, window_seconds=60)[0] is True
-    assert sec._check_rate_limit(_Req("c"), "ep", max_requests=1, window_seconds=60)[0] is True
+    assert sec._check_rate_limit(_Req("a"), "ep", max_requests=1, window_seconds=60)[0] is True  # type: ignore[arg-type]
+    assert sec._check_rate_limit(_Req("b"), "ep", max_requests=1, window_seconds=60)[0] is True  # type: ignore[arg-type]
+    assert sec._check_rate_limit(_Req("c"), "ep", max_requests=1, window_seconds=60)[0] is True  # type: ignore[arg-type]
 
     # "b" should still have its own tracked state and be rate-limited on second request.
-    assert sec._check_rate_limit(_Req("b"), "ep", max_requests=1, window_seconds=60)[0] is False
+    assert sec._check_rate_limit(_Req("b"), "ep", max_requests=1, window_seconds=60)[0] is False  # type: ignore[arg-type]
     # "a" was evicted as oldest, so it should be treated as new.
-    assert sec._check_rate_limit(_Req("a"), "ep", max_requests=1, window_seconds=60)[0] is True
+    assert sec._check_rate_limit(_Req("a"), "ep", max_requests=1, window_seconds=60)[0] is True  # type: ignore[arg-type]

@@ -9,8 +9,10 @@
  * value sync runs every frame without touching the DOM structure.
  */
 
-import { getComfyApp } from "../../../app/comfyApiBridge.js";
+import { getRawHostApp } from "../../../app/hostAdapter.js";
 import { NodeWidgetRenderer } from "./NodeWidgetRenderer.js";
+
+const getComfyApp = () => getRawHostApp();
 
 export class WorkflowNodesTab {
     constructor() {
