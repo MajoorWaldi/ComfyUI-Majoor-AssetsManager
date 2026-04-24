@@ -32,7 +32,7 @@
     "vitest": "^4.1.2"
   },
   "dependencies": {
-    "@tanstack/vue-virtual": "^3.13.23",
+    "@tanstack/vue-virtual": "^3.13.24",
     "pinia": "^2.3.1",
     "three": "0.183.2",
     "vue": "^3.5.32"
