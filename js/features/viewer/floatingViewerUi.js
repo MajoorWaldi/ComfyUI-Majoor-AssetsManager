@@ -45,7 +45,8 @@ function _mkIconDrop(triggerHtml, title, items, viewer) {
 
     // Hidden select: existing event handlers read .value from it and bind "change"
     const hiddenSel = document.createElement("select");
-    hiddenSel.style.cssText = "position:absolute;opacity:0;pointer-events:none;width:0;height:0;overflow:hidden;";
+    hiddenSel.style.cssText =
+        "position:absolute;opacity:0;pointer-events:none;width:0;height:0;overflow:hidden;";
     wrap.appendChild(hiddenSel);
 
     const itemEls = [];
@@ -73,7 +74,9 @@ function _mkIconDrop(triggerHtml, title, items, viewer) {
         e.stopPropagation();
         const isOpen = menu.classList.contains("is-open");
         // Close all other open icon-dropdowns in this viewer
-        viewer?.element?.querySelectorAll?.(".mjr-mfv-idrop-menu.is-open").forEach(m => m.classList.remove("is-open"));
+        viewer?.element
+            ?.querySelectorAll?.(".mjr-mfv-idrop-menu.is-open")
+            .forEach((m) => m.classList.remove("is-open"));
         if (!isOpen) {
             menu.classList.add("is-open");
             trigger.setAttribute("aria-expanded", "true");
@@ -85,7 +88,7 @@ function _mkIconDrop(triggerHtml, title, items, viewer) {
         if (!row) return;
         hiddenSel.value = row.dataset.value;
         hiddenSel.dispatchEvent(new Event("change", { bubbles: true }));
-        itemEls.forEach(i => {
+        itemEls.forEach((i) => {
             i.classList.toggle("is-selected", i === row);
             i.setAttribute("aria-selected", String(i === row));
         });
@@ -94,7 +97,7 @@ function _mkIconDrop(triggerHtml, title, items, viewer) {
 
     const selectItem = (val) => {
         hiddenSel.value = String(val);
-        itemEls.forEach(i => {
+        itemEls.forEach((i) => {
             i.classList.toggle("is-selected", i.dataset.value === String(val));
             i.setAttribute("aria-selected", String(i.dataset.value === String(val)));
         });
@@ -104,7 +107,14 @@ function _mkIconDrop(triggerHtml, title, items, viewer) {
 }
 
 // Channel letter coloring
-const _CH_COLOR = { rgb: "#e0e0e0", r: "#ff5555", g: "#44dd66", b: "#5599ff", a: "#ffffff", l: "#bbbbbb" };
+const _CH_COLOR = {
+    rgb: "#e0e0e0",
+    r: "#ff5555",
+    g: "#44dd66",
+    b: "#5599ff",
+    a: "#ffffff",
+    l: "#bbbbbb",
+};
 const _CH_LABEL = { rgb: "RGB", r: "R", g: "G", b: "B", a: "A", l: "L" };
 const _CH_WEIGHT = { rgb: "500", r: "700", g: "700", b: "700", a: "700", l: "400" };
 
@@ -328,7 +338,8 @@ export function buildFloatingViewerToolbar(viewer) {
     guidePopover.appendChild(guideMenu);
 
     const guideHiddenSel = document.createElement("select");
-    guideHiddenSel.style.cssText = "position:absolute;opacity:0;pointer-events:none;width:0;height:0;overflow:hidden;";
+    guideHiddenSel.style.cssText =
+        "position:absolute;opacity:0;pointer-events:none;width:0;height:0;overflow:hidden;";
     guidePopover.appendChild(guideHiddenSel);
 
     const _GUIDE_OPTS = [
@@ -396,7 +407,7 @@ export function buildFloatingViewerToolbar(viewer) {
         const val = item.dataset.value;
         guideHiddenSel.value = val;
         guideHiddenSel.dispatchEvent(new Event("change", { bubbles: true }));
-        guideItemEls.forEach(it => {
+        guideItemEls.forEach((it) => {
             const active = it.dataset.value === val;
             it.classList.toggle("is-active", active);
             it.querySelector(".mjr-menu-item-check").style.opacity = active ? "1" : "0";
@@ -447,16 +458,17 @@ export function buildFloatingViewerToolbar(viewer) {
     chPopover.appendChild(chMenu);
 
     const chHiddenSel = document.createElement("select");
-    chHiddenSel.style.cssText = "position:absolute;opacity:0;pointer-events:none;width:0;height:0;overflow:hidden;";
+    chHiddenSel.style.cssText =
+        "position:absolute;opacity:0;pointer-events:none;width:0;height:0;overflow:hidden;";
     chPopover.appendChild(chHiddenSel);
 
     const _CH_OPTS = [
         { value: "rgb", color: "#e0e0e0", weight: "500", label: "RGB" },
-        { value: "r",   color: "#ff5555", weight: "700", label: "R" },
-        { value: "g",   color: "#44dd66", weight: "700", label: "G" },
-        { value: "b",   color: "#5599ff", weight: "700", label: "B" },
-        { value: "a",   color: "#ffffff", weight: "700", label: "A" },
-        { value: "l",   color: "#bbbbbb", weight: "400", label: "L" },
+        { value: "r", color: "#ff5555", weight: "700", label: "R" },
+        { value: "g", color: "#44dd66", weight: "700", label: "G" },
+        { value: "b", color: "#5599ff", weight: "700", label: "B" },
+        { value: "a", color: "#ffffff", weight: "700", label: "A" },
+        { value: "l", color: "#bbbbbb", weight: "400", label: "L" },
     ];
     const chItemEls = [];
     for (const opt of _CH_OPTS) {
@@ -521,7 +533,7 @@ export function buildFloatingViewerToolbar(viewer) {
         const val = item.dataset.value;
         chHiddenSel.value = val;
         chHiddenSel.dispatchEvent(new Event("change", { bubbles: true }));
-        chItemEls.forEach(it => {
+        chItemEls.forEach((it) => {
             const active = it.dataset.value === val;
             it.classList.toggle("is-active", active);
             it.querySelector(".mjr-menu-item-check").style.opacity = active ? "1" : "0";
@@ -573,15 +585,16 @@ export function buildFloatingViewerToolbar(viewer) {
     fmtPopover.appendChild(fmtMenu);
 
     const fmtHiddenSel = document.createElement("select");
-    fmtHiddenSel.style.cssText = "position:absolute;opacity:0;pointer-events:none;width:0;height:0;overflow:hidden;";
+    fmtHiddenSel.style.cssText =
+        "position:absolute;opacity:0;pointer-events:none;width:0;height:0;overflow:hidden;";
     fmtPopover.appendChild(fmtHiddenSel);
 
     const _FMT_OPTS = [
-        { value: "off",  label: "Off" },
-        { value: "image",label: "Image" },
+        { value: "off", label: "Off" },
+        { value: "image", label: "Image" },
         { value: "16:9", label: "16:9" },
-        { value: "1:1",  label: "1:1" },
-        { value: "4:3",  label: "4:3" },
+        { value: "1:1", label: "1:1" },
+        { value: "4:3", label: "4:3" },
         { value: "9:16", label: "9:16" },
         { value: "2.39", label: "2.39" },
     ];
@@ -666,7 +679,7 @@ export function buildFloatingViewerToolbar(viewer) {
         const val = item.dataset.value;
         fmtHiddenSel.value = val;
         fmtHiddenSel.dispatchEvent(new Event("change", { bubbles: true }));
-        fmtItemEls.forEach(it => {
+        fmtItemEls.forEach((it) => {
             const active = it.dataset.value === val;
             it.classList.toggle("is-active", active);
             it.querySelector(".mjr-menu-item-check").style.opacity = active ? "1" : "0";
@@ -686,7 +699,7 @@ export function buildFloatingViewerToolbar(viewer) {
     viewer._liveBtn.setAttribute("aria-pressed", "false");
     setTooltipHint(
         viewer._liveBtn,
-        t("tooltip.liveStreamOff", "Live Stream: OFF — click to follow"),
+        t("tooltip.liveStreamOff", "Live Stream: OFF - click to follow final generation outputs"),
         MFV_LIVE_HINT,
     );
     bar.appendChild(viewer._liveBtn);
@@ -700,7 +713,7 @@ export function buildFloatingViewerToolbar(viewer) {
         viewer._previewBtn,
         t(
             "tooltip.previewStreamOff",
-            "KSampler Preview: OFF — click to stream denoising steps",
+            "KSampler Preview: OFF - click to stream sampler denoising frames",
         ),
         MFV_PREVIEW_HINT,
     );
@@ -713,7 +726,10 @@ export function buildFloatingViewerToolbar(viewer) {
     viewer._nodeStreamBtn.setAttribute("aria-pressed", "false");
     setTooltipHint(
         viewer._nodeStreamBtn,
-        t("tooltip.nodeStreamOff", "Node Stream: OFF — click to stream selected node output"),
+        t(
+            "tooltip.nodeStreamOff",
+            "Node Stream: OFF - click to follow selected node previews, including ImageOps live canvases",
+        ),
         MFV_NODESTREAM_HINT,
     );
     bar.appendChild(viewer._nodeStreamBtn);
@@ -809,14 +825,18 @@ export function buildFloatingViewerToolbar(viewer) {
         }
         // Format popover
         if (viewer._formatPopover?.classList?.contains("is-open")) {
-            if (!viewer._formatToggle?.contains?.(target) && !viewer._formatPopover.contains(target)) {
+            if (
+                !viewer._formatToggle?.contains?.(target) &&
+                !viewer._formatPopover.contains(target)
+            ) {
                 viewer._closeFormatPopover?.();
             }
         }
         // Icon dropdowns: close if click is outside any .mjr-mfv-idrop
         if (!target?.closest?.(".mjr-mfv-idrop")) {
-            viewer.element?.querySelectorAll?.(".mjr-mfv-idrop-menu.is-open")
-                .forEach(m => m.classList.remove("is-open"));
+            viewer.element
+                ?.querySelectorAll?.(".mjr-mfv-idrop-menu.is-open")
+                .forEach((m) => m.classList.remove("is-open"));
         }
     };
     viewer._bindDocumentUiHandlers();
@@ -977,7 +997,10 @@ export function rebindFloatingViewerControlHandlers(viewer) {
                 viewer._overlayFormat = val;
             }
             viewer._formatToggle?.classList.toggle("is-on", Boolean(viewer._overlayMaskEnabled));
-            viewer._formatToggle?.setAttribute("aria-pressed", String(Boolean(viewer._overlayMaskEnabled)));
+            viewer._formatToggle?.setAttribute(
+                "aria-pressed",
+                String(Boolean(viewer._overlayMaskEnabled)),
+            );
             viewer._redrawOverlayGuides?.();
         },
         { signal },
@@ -1145,7 +1168,9 @@ function formatFloatingViewerGenTime(totalSeconds) {
 }
 
 function parseFloatingViewerGenTimeSeconds(value) {
-    const text = String(value || "").trim().toLowerCase();
+    const text = String(value || "")
+        .trim()
+        .toLowerCase();
     if (!text) return 0;
     if (text.endsWith("m")) {
         const mins = Number.parseFloat(text.slice(0, -1));
@@ -1185,9 +1210,7 @@ export function getFloatingViewerGenFields(_viewer, fileData) {
             if (Array.isArray(norm.loras)) {
                 out.lora = norm.loras
                     .map((l) =>
-                        typeof l === "string"
-                            ? l
-                            : l?.name || l?.lora_name || l?.model_name || "",
+                        typeof l === "string" ? l : l?.name || l?.lora_name || l?.model_name || "",
                     )
                     .filter(Boolean)
                     .join(", ");

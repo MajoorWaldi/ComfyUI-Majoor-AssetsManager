@@ -90,13 +90,31 @@ export class WorkflowNodesTab {
     _syncCanvasSelection() {
         const selectedIds = _getSelectedNodeIds();
         const selectedId = selectedIds[0] || "";
-        if (!selectedId || selectedId === this._lastSelectedId) return;
-        this._lastSelectedId = selectedId;
+        if (!selectedId) return;
+        // Toggle the highlight class on every render so it survives DOM
+        // rebuilds (signature changes after adding/removing a node).
+        let target = null;
         for (const renderer of this._renderers) {
-            if (String(renderer._node?.id ?? "") === selectedId && !renderer._expanded) {
-                renderer.setExpanded(true);
-                break;
+            const isSelected = String(renderer._node?.id ?? "") === selectedId;
+            renderer.el?.classList?.toggle("is-selected-from-graph", isSelected);
+            if (isSelected) target = renderer;
+        }
+        if (selectedId === this._lastSelectedId) return;
+        this._lastSelectedId = selectedId;
+        if (!target) return;
+        if (!target._expanded) target.setExpanded(true);
+        // Promote the selected node to the first position of its container.
+        // For nested nodes, that's the top of their parent subgraph group;
+        // top-level nodes go to the very top of the sidebar list. Order
+        // resets naturally on the next full rebuild (graph topology change).
+        try {
+            const parent = target.el?.parentElement;
+            if (parent && parent.firstElementChild !== target.el) {
+                parent.insertBefore(target.el, parent.firstElementChild);
             }
+            target.el?.scrollIntoView({ block: "start", inline: "nearest" });
+        } catch (e) {
+            console.debug?.("[MFV] promote selected node failed", e);
         }
     }
 

@@ -649,6 +649,25 @@ export const floatingViewerManager = {
     },
 
     /**
+     * Forward the canvas-selected node info to the viewer overlay.
+     * Called by NodeStreamController.onStatus when the selection changes.
+     * Only takes effect when the feature flag is on.
+     * @param {string} nodeId
+     * @param {string} classType
+     * @param {string} [title]
+     */
+    setNodeStreamSelection(nodeId, classType, title) {
+        if (!NODE_STREAM_FEATURE_ENABLED) return;
+        const inst = _instance;
+        if (!inst) return;
+        if (nodeId == null || nodeId === "") {
+            inst.setNodeStreamSelection?.(null);
+            return;
+        }
+        inst.setNodeStreamSelection?.({ nodeId, classType, title });
+    },
+
+    /**
      * Feed an intermediate node output into the viewer.
      * Called by the NodeStreamController when a watched node produces output.
      * @param {object} fileData  { filename, subfolder, type, kind?, _nodeId?, _classType? }

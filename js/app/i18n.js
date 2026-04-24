@@ -457,12 +457,17 @@ const DICTIONARY = {
         "tooltip.closeViewer": "Close viewer",
         "tooltip.popInViewer": "Return to floating panel",
         "tooltip.popOutViewer": "Pop out viewer to separate window",
-        "tooltip.liveStreamOff": "Live Stream: OFF — click to follow",
-        "tooltip.liveStreamOn": "Live Stream: ON — click to disable",
-        "tooltip.previewStreamOff": "KSampler Preview: OFF — click to stream denoising steps",
-        "tooltip.previewStreamOn": "KSampler Preview: ON — streaming denoising steps",
-        "tooltip.nodeStreamOff": "Node Stream: OFF — click to stream selected node output",
-        "tooltip.nodeStreamOn": "Node Stream: ON — streaming selected node output",
+        "tooltip.liveStreamOff": "Live Stream: OFF - click to follow final generation outputs",
+        "tooltip.liveStreamOn":
+            "Live Stream: ON - follows final generation outputs after execution",
+        "tooltip.previewStreamOff":
+            "KSampler Preview: OFF - click to stream sampler denoising frames",
+        "tooltip.previewStreamOn":
+            "KSampler Preview: ON - streams sampler denoising frames during execution",
+        "tooltip.nodeStreamOff":
+            "Node Stream: OFF - click to follow selected node previews, including ImageOps live canvases",
+        "tooltip.nodeStreamOn":
+            "Node Stream: ON - follows the selected node preview when frontend media exists",
         "tooltip.nodeParams": "Node Parameters",
         "tooltip.queuePrompt": "Queue Prompt (Run)",
         "tooltip.queueStop": "Stop Generation",
@@ -647,7 +652,7 @@ const DICTIONARY = {
         "label.settingsGuide": "Settings Guide",
         "msg.tip.title.mfvLivePreviewDefaults": "Tip — Floating Viewer Auto-Open",
         "msg.tip.body.mfvLivePreviewDefaults":
-            "Live Stream (green button in the viewer) and KSampler Preview can be activated by default via Settings \u2192 Majoor Assets Manager \u203a Viewer. When Live Stream is on, clicking a Load Image node or when a generation ends will automatically open the Floating Viewer and display the result. KSampler Preview streams the denoising steps live. Both toggles can be set as the default state so the viewer is always ready.",
+            "Live Stream (green button in the viewer) and KSampler Preview can be activated by default via Settings \u2192 Majoor Assets Manager \u203a Viewer. Live Stream follows final generation outputs after execution. KSampler Preview streams denoising frames during execution. Selected-node previews are handled by Node Stream.",
         "msg.whatsNew.title.version243": "New Version 2.4.3",
         "msg.whatsNew.body.version243":
             "Version 2.4.3 released: Improved assets metadata parsing, Grid Compare capability in floating viewer up to 4 Assets, ping pong loop in main Viewer player, job id and stack id in DB for better assets management, stack assets generated from same workflow job with same job ID, generated feed feature, lite version of grid in bottom tab. Code refactor for maintainability and various bug fixes. See CHANGELOG for details.",
@@ -1032,10 +1037,14 @@ const DICTIONARY = {
         "tooltip.openMessages": "Messages et nouveautes",
         "tooltip.openMessagesUnread": "Messages ({count} non lus)",
         "tooltip.markMessagesRead": "Marquer tous les messages comme lus",
-        "tooltip.previewStreamOff": "Preview KSampler : OFF — cliquer pour afficher les etapes de denoising",
-        "tooltip.previewStreamOn": "Preview KSampler : ON — affichage des etapes de denoising",
-        "tooltip.nodeStreamOff": "Node Stream : OFF — cliquer pour afficher la sortie du noeud selectionne",
-        "tooltip.nodeStreamOn": "Node Stream : ON — affichage de la sortie du noeud selectionne",
+        "tooltip.previewStreamOff":
+            "Preview KSampler : OFF - cliquer pour afficher les images de denoising pendant l'execution",
+        "tooltip.previewStreamOn":
+            "Preview KSampler : ON - affiche les images de denoising pendant l'execution",
+        "tooltip.nodeStreamOff":
+            "Node Stream : OFF - cliquer pour suivre les previews du noeud selectionne, dont les canvas live ImageOps",
+        "tooltip.nodeStreamOn":
+            "Node Stream : ON - suit la preview du noeud selectionne quand un media frontend existe",
         "tooltip.nodeParams": "Parametres du noeud",
         "tooltip.queuePrompt": "Lancer le prompt",
         "tooltip.queueStop": "Arreter la generation",

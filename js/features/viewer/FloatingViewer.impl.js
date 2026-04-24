@@ -162,9 +162,12 @@ export class FloatingViewer {
         this._previewBlobUrl = null;
         this._previewActive = false;
 
-        // Node stream state: button ref.
+        // Node stream state: button ref + currently selected node overlay.
         this._nodeStreamBtn = null;
         this._nodeStreamActive = false;
+        /** @type {{ nodeId: string, classType: string, title?: string } | null} */
+        this._nodeStreamSelection = null;
+        this._nodeStreamOverlayEl = null;
 
         // Master AbortController for document-level UI handlers (e.g. click-outside).
         // Aborted in dispose() to guarantee all listeners are removed atomically.
@@ -354,6 +357,53 @@ export class FloatingViewer {
 
     setNodeStreamActive(active) {
         return setFloatingViewerNodeStreamActive(this, active);
+    }
+
+    /**
+     * Update the "currently streamed node" overlay.
+     * Pass `null` to hide the overlay (no node selected).
+     * The overlay is purely informational and independent of media rendering:
+     * if the selected node has no streamable preview, the existing media stays
+     * but the overlay is still shown.
+     * @param {{ nodeId: string|number, classType?: string, title?: string } | null} selection
+     */
+    setNodeStreamSelection(selection) {
+        if (selection && (selection.nodeId != null || selection.classType)) {
+            this._nodeStreamSelection = {
+                nodeId: String(selection.nodeId ?? ""),
+                classType: String(selection.classType || ""),
+                title: selection.title ? String(selection.title) : "",
+            };
+        } else {
+            this._nodeStreamSelection = null;
+        }
+        this._updateNodeStreamOverlay();
+    }
+
+    _updateNodeStreamOverlay() {
+        const host = this._contentEl;
+        if (!host) return;
+        const sel = this._nodeStreamSelection;
+        if (!sel) {
+            if (this._nodeStreamOverlayEl) {
+                this._nodeStreamOverlayEl.remove();
+                this._nodeStreamOverlayEl = null;
+            }
+            return;
+        }
+        if (!this._nodeStreamOverlayEl || !this._nodeStreamOverlayEl.isConnected) {
+            const el = document.createElement("div");
+            el.className = "mjr-mfv-node-overlay";
+            el.setAttribute("aria-live", "polite");
+            this._nodeStreamOverlayEl = el;
+        }
+        if (this._nodeStreamOverlayEl.parentNode !== host) {
+            host.appendChild(this._nodeStreamOverlayEl);
+        }
+        const idPart = sel.nodeId ? `#${sel.nodeId}` : "";
+        const classPart = sel.classType || "Node";
+        const titlePart = sel.title && sel.title !== sel.classType ? ` — ${sel.title}` : "";
+        this._nodeStreamOverlayEl.textContent = `${idPart} · ${classPart}${titlePart}`.trim();
     }
 
     loadMediaA(fileData, { autoMode = false } = {}) {
@@ -872,6 +922,13 @@ export class FloatingViewer {
             this._contentEl.appendChild(overlayCanvas);
         }
 
+        // The Node Stream overlay lives inside the content area (top-left)
+        // and must be re-attached after each refresh since replaceChildren()
+        // above removes it.
+        if (this._nodeStreamSelection) {
+            this._updateNodeStreamOverlay();
+        }
+
         if (this._mediaProgressEl) {
             this._contentEl.appendChild(this._mediaProgressEl);
         }
@@ -897,7 +954,8 @@ export class FloatingViewer {
         const wrap = document.createElement("div");
         wrap.className = "mjr-mfv-simple-container";
         wrap.appendChild(mediaEl);
-        // Keep native audio controls unobstructed.
+        // Audio controls stay unobstructed; everything else may show gen-info.
+        // ImageOps live previews never carry geninfo so this naturally no-ops.
         if (mediaKind !== "audio") {
             const infoFrag = this._buildGenInfoDOM(this._mediaA);
             if (infoFrag) {

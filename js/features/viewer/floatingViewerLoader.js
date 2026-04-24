@@ -2,14 +2,34 @@ import { ensureViewerMetadataAsset } from "./genInfo.js";
 import { getAssetMetadata, getFileMetadataScoped } from "../../api/client.js";
 import { MFV_MODES } from "./floatingViewerConstants.js";
 
+const IMAGEOPS_LIVE_SOURCE = "imageops-live-preview";
+
+function _isImageOpsLive(fileData) {
+    return String(fileData?._source || "") === IMAGEOPS_LIVE_SOURCE;
+}
+
 export function loadFloatingViewerMediaA(viewer, fileData, { autoMode = false } = {}) {
+    const prev = viewer._mediaA || null;
+    const isLive = _isImageOpsLive(fileData);
+    // Live ImageOps frames re-emit every ~150ms. Resetting the user's
+    // pan/zoom on every frame would defeat the MFV's interactive zoom.
+    // Preserve it as long as the streamed node hasn't changed.
+    const sameNodeStream =
+        isLive
+        && _isImageOpsLive(prev)
+        && String(prev?._nodeId || "") === String(fileData?._nodeId || "");
     viewer._mediaA = fileData || null;
-    viewer._resetMfvZoom();
+    if (!sameNodeStream) {
+        viewer._resetMfvZoom();
+    }
     if (autoMode && viewer._mode !== MFV_MODES.SIMPLE) {
         viewer._mode = MFV_MODES.SIMPLE;
         viewer._updateModeBtnUI();
     }
-    if (viewer._mediaA && typeof ensureViewerMetadataAsset === "function") {
+    // ImageOps live previews are transient client-side canvas snapshots;
+    // there is no backend asset to fetch metadata for. Skip the API round
+    // trip entirely (also avoids the enrichment-vs-new-emission race).
+    if (viewer._mediaA && !isLive && typeof ensureViewerMetadataAsset === "function") {
         const gen = ++viewer._refreshGen;
         (async () => {
             try {

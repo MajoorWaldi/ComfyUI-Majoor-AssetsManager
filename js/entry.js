@@ -207,6 +207,19 @@ function setupLazyModules(runtimeApp) {
                 mod.initNodeStream({
                     app: runtimeApp,
                     onOutput: (fileData) => floatingViewerManager.feedNodeStream(fileData),
+                    onStatus: (nodeId, classType) => {
+                        try {
+                            const node = runtimeApp?.graph?.getNodeById?.(Number(nodeId));
+                            const title = node?.title || "";
+                            floatingViewerManager.setNodeStreamSelection?.(
+                                nodeId,
+                                classType,
+                                title,
+                            );
+                        } catch (err) {
+                            console.debug?.("[NodeStream] onStatus failed", err);
+                        }
+                    },
                 });
             } catch (e) {
                 console.warn("[MJR setup] initNodeStream failed:", e);

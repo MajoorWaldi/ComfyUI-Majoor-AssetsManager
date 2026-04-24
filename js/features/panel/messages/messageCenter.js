@@ -195,7 +195,7 @@ const BUILTIN_PANEL_MESSAGES = Object.freeze([
         categoryKey: "msg.category.information",
         level: "info",
         createdAt: Date.parse("2026-04-20T10:00:00Z"),
-        body: "Live Stream (green button in the viewer) and KSampler Preview can be activated by default via Settings → Majoor Assets Manager › Viewer. When Live Stream is on, clicking a Load Image node or when a generation ends will automatically open the Floating Viewer and display the result. KSampler Preview streams the denoising steps live. Both toggles can be set as the default state so the viewer is always ready.",
+        body: "Live Stream (green button in the viewer) and KSampler Preview can be activated by default via Settings → Majoor Assets Manager › Viewer. Live Stream follows final generation outputs after execution. KSampler Preview streams denoising frames during execution. Selected-node previews are handled by Node Stream.",
         bodyKey: "msg.tip.body.mfvLivePreviewDefaults",
         actionLabel: "Settings Guide",
         actionLabelKey: "label.settingsGuide",

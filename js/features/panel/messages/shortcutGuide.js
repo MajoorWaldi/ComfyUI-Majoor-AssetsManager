@@ -51,9 +51,9 @@ const SHORTCUT_GUIDE_SECTIONS = Object.freeze([
             { keys: "Esc", description: "Close Floating Viewer" },
             { keys: "V / Ctrl+V / Cmd+V", description: "Open or close Floating Viewer" },
             { keys: "C", description: "Cycle compare modes: A/B, Side-by-side, Off (Simple mode)" },
-            { keys: "K", description: "Toggle KSampler preview on or off" },
-            { keys: "L", description: "Toggle Live Stream on or off" },
-            { keys: "N", description: "Toggle node tracking" },
+            { keys: "K", description: "Toggle KSampler denoising preview" },
+            { keys: "L", description: "Toggle final-output Live Stream" },
+            { keys: "N", description: "Toggle selected-node Node Stream" },
         ]),
     },
     {

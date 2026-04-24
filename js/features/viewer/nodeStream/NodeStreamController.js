@@ -7,10 +7,8 @@
  * immediately pushes that node's existing preview to the MFV if one is
  * available. No workflow execution event is required.
  *
- * NOTE:
- * This feature is currently disabled by NODE_STREAM_FEATURE_ENABLED. The code
- * remains in-tree on purpose so it can be reactivated later without being
- * rebuilt from scratch.
+ * The feature is still guarded by NODE_STREAM_FEATURE_ENABLED so it can be
+ * disabled quickly if a ComfyUI runtime incompatibility is found.
  */
 
 import { registerAdapter, listAdapters } from "./NodeStreamRegistry.js";
@@ -18,6 +16,7 @@ import { DefaultImageAdapter } from "./adapters/DefaultImageAdapter.js";
 import { VideoAdapter } from "./adapters/VideoAdapter.js";
 import { KnownNodesAdapter } from "./adapters/KnownNodesAdapter.js";
 import { NODE_STREAM_FEATURE_ENABLED } from "./nodeStreamFeatureFlag.js";
+import { extractImageOpsPreview } from "./imageOpsPreviewBridge.js";
 
 // Bootstrap built-in adapters for compatibility with the public API exposed in
 // entry.js. Selection-only mode does not consume execution output updates, but
@@ -363,7 +362,10 @@ function _extractFromLoadWidget(node) {
 
 function _extractFromCanvasNode(node) {
     return (
-        _extractFromNodeImgs(node) || _extractFromWidgetMedia(node) || _extractFromLoadWidget(node)
+        extractImageOpsPreview(node) ||
+        _extractFromNodeImgs(node) ||
+        _extractFromWidgetMedia(node) ||
+        _extractFromLoadWidget(node)
     );
 }
 
@@ -413,10 +415,12 @@ function _fileDataSignature(fileData) {
     if (!fileData) return "";
     return [
         fileData._nodeId || "",
+        fileData._signature || "",
         fileData.kind || "",
         fileData.type || "",
         fileData.subfolder || "",
         fileData.filename || "",
+        fileData.url || "",
     ].join("|");
 }
 
@@ -454,7 +458,7 @@ function _emitPreviewFromWatchedNode({ force = false } = {}) {
 
     const previewKey = _fileDataSignature(fileData);
     const nodeChanged = nodeId !== _lastPreviewNodeId;
-    if (!force && !nodeChanged) return;
+    if (!force && !nodeChanged && previewKey === _lastPreviewKey) return;
 
     _lastPreviewNodeId = nodeId;
     _lastPreviewKey = previewKey;

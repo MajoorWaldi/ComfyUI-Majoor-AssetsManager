@@ -80,8 +80,11 @@ export function setFloatingViewerLiveActive(viewer, active) {
     const isActive = Boolean(active);
     viewer._liveBtn.classList.toggle("mjr-live-active", isActive);
     const label = isActive
-        ? t("tooltip.liveStreamOn", "Live Stream: ON — click to disable")
-        : t("tooltip.liveStreamOff", "Live Stream: OFF — click to follow");
+        ? t(
+              "tooltip.liveStreamOn",
+              "Live Stream: ON - follows final generation outputs after execution",
+          )
+        : t("tooltip.liveStreamOff", "Live Stream: OFF - click to follow final generation outputs");
     const tooltip = appendTooltipHint(label, MFV_LIVE_HINT);
     viewer._liveBtn.setAttribute("aria-pressed", String(isActive));
     viewer._liveBtn.setAttribute("aria-label", tooltip);
@@ -97,10 +100,13 @@ export function setFloatingViewerPreviewActive(viewer, active) {
     if (!viewer._previewBtn) return;
     viewer._previewBtn.classList.toggle("mjr-preview-active", viewer._previewActive);
     const label = viewer._previewActive
-        ? t("tooltip.previewStreamOn", "KSampler Preview: ON — streaming denoising steps")
+        ? t(
+              "tooltip.previewStreamOn",
+              "KSampler Preview: ON - streams sampler denoising frames during execution",
+          )
         : t(
               "tooltip.previewStreamOff",
-              "KSampler Preview: OFF — click to stream denoising steps",
+              "KSampler Preview: OFF - click to stream sampler denoising frames",
           );
     const tooltip = appendTooltipHint(label, MFV_PREVIEW_HINT);
     viewer._previewBtn.setAttribute("aria-pressed", String(viewer._previewActive));
@@ -173,11 +179,21 @@ export function setFloatingViewerNodeStreamActive(viewer, active) {
     }
 
     viewer._nodeStreamActive = Boolean(active);
+    if (!viewer._nodeStreamActive) {
+        // Hide the selected-node overlay when the feature is turned off.
+        viewer.setNodeStreamSelection?.(null);
+    }
     if (!viewer._nodeStreamBtn) return;
     viewer._nodeStreamBtn.classList.toggle("mjr-nodestream-active", viewer._nodeStreamActive);
     const label = viewer._nodeStreamActive
-        ? t("tooltip.nodeStreamOn", "Node Stream: ON — streaming selected node output")
-        : t("tooltip.nodeStreamOff", "Node Stream: OFF — click to stream selected node output");
+        ? t(
+              "tooltip.nodeStreamOn",
+              "Node Stream: ON - follows the selected node preview when frontend media exists",
+          )
+        : t(
+              "tooltip.nodeStreamOff",
+              "Node Stream: OFF - click to follow selected node previews, including ImageOps live canvases",
+          );
     const tooltip = appendTooltipHint(label, MFV_NODESTREAM_HINT);
     viewer._nodeStreamBtn.setAttribute("aria-pressed", String(viewer._nodeStreamActive));
     viewer._nodeStreamBtn.setAttribute("aria-label", tooltip);
