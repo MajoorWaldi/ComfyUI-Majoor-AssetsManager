@@ -721,6 +721,37 @@ export MJR_AM_NO_AUTO_PIP=1
 ```
 
 #### API Security
+
+> **Most users do not need to do anything.** Out of the box, Majoor:
+>
+> - Auto-generates an API token at first startup (visible in
+>   Settings → Majoor → Security).
+> - Allows remote LAN clients to bootstrap that token automatically on first
+>   write (`Allow Remote Full Access` is **on by default**).
+> - Accepts the API token over plain HTTP for trusted-LAN setups
+>   (`Allow HTTP Token Transport` is **on by default**).
+>
+> If you expose ComfyUI to the public Internet, open Settings → Majoor →
+> Security and either disable `Allow HTTP Token Transport` (forcing HTTPS) or
+> enable the **Recommended Remote LAN Setup** preset (token-strict mode).
+
+##### Settings UI
+
+For everyday LAN use you should not need to change anything. The relevant
+toggles, in order of restrictiveness:
+
+- `Allow Remote Full Access` *(default: on)* — permits remote bootstrap of the
+  API token. Disable on Internet-exposed instances.
+- `Allow HTTP Token Transport` *(default: on)* — permits the API token to be
+  sent over plain HTTP. Disable when serving over HTTPS only.
+- `Require Token For All Writes` *(default: off)* — when on, every write
+  (including loopback) must carry the token. Recommended for shared hosts.
+- `Recommended Remote LAN Setup` *(preset)* — enables token auth for all
+  writes, generates a token if missing, and keeps `Allow HTTP Token Transport`
+  on so LAN clients still work.
+
+##### Env var fallback (headless / containers)
+
 ```bash
 # Set API token for remote access
 export MAJOOR_API_TOKEN="your-secret-token"
@@ -728,12 +759,19 @@ export MAJOOR_API_TOKEN="your-secret-token"
 # Force token auth even for loopback
 export MAJOOR_REQUIRE_AUTH=1
 
-# Allow remote write without token (UNSAFE)
+# Allow remote write without token (UNSAFE on public networks)
 export MAJOOR_ALLOW_REMOTE_WRITE=1
 
-# Enable initial bootstrap token endpoint
+# Allow API-token delivery / bootstrap over plain HTTP (trusted LAN only)
+export MAJOOR_ALLOW_INSECURE_TOKEN_TRANSPORT=1
+
+# Enable initial bootstrap token endpoint (remote, no Comfy auth)
 export MAJOOR_ALLOW_BOOTSTRAP=1
 ```
+
+Precedence: persisted UI prefs (Settings → Security) override env vars when
+both are set. Env var values are only used when no UI value has been
+configured for that key.
 
 #### Safe Mode Operations
 ```bash

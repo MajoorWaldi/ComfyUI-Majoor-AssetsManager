@@ -53,10 +53,17 @@ _SECURITY_PREFS_INFO: Mapping[str, dict[str, bool | str]] = {
     "safe_mode": {"env": "MAJOOR_SAFE_MODE", "default": True},
     "allow_write": {"env": "MAJOOR_ALLOW_WRITE", "default": False},
     "require_auth": {"env": "MAJOOR_REQUIRE_AUTH", "default": False},
-    "allow_remote_write": {"env": "MAJOOR_ALLOW_REMOTE_WRITE", "default": False},
+    # Permissive default: enables first-run remote LAN bootstrap without manual
+    # toggling. An API token is still auto-generated at startup and required for
+    # writes once configured; this flag only governs the no-token fallback and
+    # whether `_bootstrap_enabled()` accepts unauthenticated remote bootstrap.
+    "allow_remote_write": {"env": "MAJOOR_ALLOW_REMOTE_WRITE", "default": True},
+    # Permissive default: lets the auto-generated API token be delivered and used
+    # over plain HTTP on a trusted LAN. Operators exposing Majoor to the public
+    # Internet should disable this in Settings -> Security.
     "allow_insecure_token_transport": {
         "env": "MAJOOR_ALLOW_INSECURE_TOKEN_TRANSPORT",
-        "default": False,
+        "default": True,
     },
     "allow_delete": {"env": "MAJOOR_ALLOW_DELETE", "default": False},
     "allow_rename": {"env": "MAJOOR_ALLOW_RENAME", "default": False},
@@ -496,6 +503,22 @@ class AppSettings:
         """
         async with self._lock:
             await self._get_or_create_api_token_locked()
+            try:
+                prefs = await self._get_security_prefs_locked(include_secret=False)
+                self._publish_security_prefs_snapshot(prefs)
+            except Exception as exc:
+                logger.debug("Failed to hydrate security prefs snapshot: %s", exc)
+
+    @staticmethod
+    def _publish_security_prefs_snapshot(prefs: Mapping[str, Any] | None) -> None:
+        if not prefs:
+            return
+        try:
+            from .routes.core.security_prefs_snapshot import update_security_prefs_snapshot
+
+            update_security_prefs_snapshot(prefs)
+        except Exception as exc:
+            logger.debug("Failed to publish security prefs snapshot: %s", exc)
 
     async def _get_security_prefs_locked(self, *, include_secret: bool = False) -> dict[str, Any]:
         output: dict[str, Any] = {}
@@ -538,7 +561,9 @@ class AppSettings:
                 if token_err is not None:
                     return token_err
             await self._warn_if_bump_fails("Failed to bump settings version")
-            return Result.Ok(await self._get_security_prefs_locked(include_secret=False))
+            current = await self._get_security_prefs_locked(include_secret=False)
+            self._publish_security_prefs_snapshot(current)
+            return Result.Ok(current)
 
     def _extract_security_prefs_to_write(self, prefs: Mapping[str, Any]) -> dict[str, bool]:
         to_write: dict[str, bool] = {}

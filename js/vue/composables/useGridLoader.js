@@ -1173,6 +1173,12 @@ export function useGridLoader({
                             Number(state.assets?.length || 0) || 0,
                         );
                         state.loading = false;
+                        // Snapshot is already on screen — clear the "defer reset"
+                        // flag so the upcoming next-page prefetch APPENDS rather
+                        // than calling resetAssets() and wiping visible cards
+                        // (that produced the brief disappear/reappear flicker on
+                        // scope switch custom -> output).
+                        deferVisualResetUntilNextPage = false;
                         clearLoadingMessage();
                         const bgRequestId = state.requestId;
                         scheduleNextPagePrefetch(
@@ -1204,6 +1210,9 @@ export function useGridLoader({
                         );
                         state.done = false;
                         state.loading = false;
+                        // Same rationale as the dedup branch above: the
+                        // snapshot is on screen, so prefetch must APPEND.
+                        deferVisualResetUntilNextPage = false;
                         clearLoadingMessage();
                         const bgRequestId = state.requestId;
                         scheduleNextPagePrefetch(
@@ -1551,6 +1560,11 @@ export function useGridLoader({
         // re-hydrate triggered immediately after by scopeController.
         state._mjrLastHydrateKey = key;
         state._mjrLastHydrateAt = Date.now();
+        // The snapshot is now on screen — any subsequent prefetch must
+        // APPEND, not reset. Clear the defer flag set by
+        // prepareGridForScopeSwitch / loadAssets so loadNextPage doesn't
+        // wipe visible cards on the next response.
+        deferVisualResetUntilNextPage = false;
         finalizeLoad({ title: snapshot.title || options.title || "Cached" });
         return true;
     }

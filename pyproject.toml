@@ -112,3 +112,6 @@ ignore = ["E501", "S105", "S110", "S112", "S311", "S603", "S607", "S608"]
 [tool.ruff.lint.per-file-ignores]
 "scripts/junit_to_html.py" = ["S314"]
 "tests/**/*.py" = ["S101", "S108", "S605"]
+# security.py is the single import point that re-exports from sub-modules;
+# ruff would otherwise trim those re-exports as unused.
+"mjr_am_backend/routes/core/security.py" = ["F401"]
