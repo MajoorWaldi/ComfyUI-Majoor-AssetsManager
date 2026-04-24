@@ -182,7 +182,7 @@ export const DEFAULT_SETTINGS = {
     security: {
         safeMode: false,
         allowWrite: true,
-        allowRemoteWrite: false,
+        allowRemoteWrite: true,
         allowDelete: true,
         allowRename: true,
         allowOpenInFolder: true,

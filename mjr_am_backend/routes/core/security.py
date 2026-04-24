@@ -19,7 +19,6 @@ from functools import lru_cache
 from typing import Any
 
 from aiohttp import web
-
 from mjr_am_backend.shared import Result, get_logger
 
 # --- Sub-module re-exports (keep this module as the single import point) ---
@@ -53,6 +52,7 @@ from .security_policy import (
     _safe_mode_enabled,
     _validate_token_format,
 )
+from .security_prefs_snapshot import get_security_pref
 from .security_proxies import (
     _CLIENT_ID_HASH_HEX_CHARS,
     _extract_peer_ip,
@@ -60,16 +60,20 @@ from .security_proxies import (
     _header_value,
     _is_loopback_ip,
     _is_valid_ip,
-    _parse_trusted_proxies as _parse_trusted_proxies_impl,
     _real_ip_from_header,
+)
+from .security_proxies import (
+    _parse_trusted_proxies as _parse_trusted_proxies_impl,
 )
 from .security_rate_limit import (
     _MAX_RATE_LIMIT_CLIENTS,
     _MAX_RATE_LIMIT_ENDPOINTS_PER_CLIENT,
     _RATE_LIMIT_BACKGROUND_CLEANUP_SECONDS,
     _RATE_LIMIT_MIN_WINDOW_SECONDS,
-    _check_rate_limit as _check_rate_limit_impl,
     _rate_limit_state,
+)
+from .security_rate_limit import (
+    _check_rate_limit as _check_rate_limit_impl,
 )
 from .security_tokens import (
     _extract_bearer_token,
@@ -84,6 +88,18 @@ from .security_tokens import (
 )
 
 logger = get_logger(__name__)
+
+
+def _resolve_security_flag(pref_key: str, env_var: str, *, default: bool = False) -> bool:
+    """
+    Read a security boolean preference, prioritizing the persisted user setting
+    (snapshot) over the environment variable fallback. UI toggles in
+    Settings -> Security must take effect even when no MAJOOR_* env var is set.
+    """
+    snapshot_value = get_security_pref(pref_key)
+    if snapshot_value is not None:
+        return bool(snapshot_value)
+    return _env_truthy(env_var, default=default)
 
 
 # ---------------------------------------------------------------------------
@@ -245,10 +261,14 @@ def _check_write_access_with_token(
         if not _request_transport_is_secure(
             peer_ip=peer_ip, headers=headers, request_scheme=request_scheme
         ):
-            if not _env_truthy("MAJOOR_ALLOW_INSECURE_TOKEN_TRANSPORT", default=False):
+            if not _resolve_security_flag(
+                "allow_insecure_token_transport",
+                "MAJOOR_ALLOW_INSECURE_TOKEN_TRANSPORT",
+                default=False,
+            ):
                 return Result.Err(
                     "FORBIDDEN",
-                    "Write operation blocked: API token over insecure transport. Use HTTPS (or trusted proxy with X-Forwarded-Proto=https), or set MAJOOR_ALLOW_INSECURE_TOKEN_TRANSPORT=1.",
+                    "Write operation blocked: API token over insecure transport. Use HTTPS (or trusted proxy with X-Forwarded-Proto=https), or enable 'Allow HTTP Token Transport' in Settings -> Security (or set MAJOOR_ALLOW_INSECURE_TOKEN_TRANSPORT=1).",
                     auth="token_insecure_transport",
                     client_ip=client_ip,
                 )
@@ -259,7 +279,7 @@ def _check_write_access_with_token(
         return Result.Ok(True, auth="loopback_unknown_peer", client_ip=client_ip)
     return Result.Err(
         "AUTH_REQUIRED",
-        "Write operation blocked: missing or invalid API token. Set MAJOOR_API_TOKEN and send it via X-MJR-Token or Authorization: Bearer <token>.",
+        "Write operation blocked: missing or invalid API token. Sign in to ComfyUI to bootstrap the session token automatically, or paste the API token in Settings -> Security (or send it via X-MJR-Token / Authorization: Bearer <token>).",
         auth="token",
         client_ip=client_ip,
     )
@@ -276,7 +296,7 @@ def _check_write_access_without_token(
     if require_auth:
         return Result.Err(
             "AUTH_REQUIRED",
-            "Write operation blocked: MAJOOR_REQUIRE_AUTH=1 is set but no MAJOOR_API_TOKEN is configured.",
+            "Write operation blocked: 'Require Token For All Writes' is enabled but no API token is configured. Generate one in Settings -> Security or set MAJOOR_API_TOKEN.",
             auth="required_missing_token",
             client_ip=client_ip,
         )
@@ -288,7 +308,7 @@ def _check_write_access_without_token(
         return Result.Ok(True, auth="loopback_unknown_peer", client_ip=client_ip)
     return Result.Err(
         "FORBIDDEN",
-        "Write operation blocked for non-local clients. Configure MAJOOR_API_TOKEN (recommended) or set MAJOOR_ALLOW_REMOTE_WRITE=1 to allow remote writes when no token is configured.",
+        "Write operation blocked for non-local clients. Configure an API token (recommended) in Settings -> Security, or enable 'Allow Remote Full Access' to permit remote writes without a token (or set MAJOOR_ALLOW_REMOTE_WRITE=1).",
         auth="loopback_only",
         client_ip=client_ip,
     )
@@ -305,13 +325,17 @@ def _check_write_access(
       - If a token is configured AND the client is remote: token is required.
       - If no token is configured: allow loopback, deny remote.
 
-    Overrides:
-      - MAJOOR_REQUIRE_AUTH=1 forces token auth even for loopback.
-      - MAJOOR_ALLOW_REMOTE_WRITE=1 allows remote writes when no token is set.
+    Overrides (env var OR persisted UI setting in Settings -> Security):
+      - require_auth / MAJOOR_REQUIRE_AUTH=1 forces token auth even for loopback.
+      - allow_remote_write / MAJOOR_ALLOW_REMOTE_WRITE=1 allows remote writes
+        when no token is set.
+    Persisted UI settings take precedence over env var fallbacks.
     """
     configured_hash = _get_write_token_hash()
-    require_auth = _env_truthy("MAJOOR_REQUIRE_AUTH")
-    allow_remote = _env_truthy("MAJOOR_ALLOW_REMOTE_WRITE", default=False)
+    require_auth = _resolve_security_flag("require_auth", "MAJOOR_REQUIRE_AUTH", default=False)
+    allow_remote = _resolve_security_flag(
+        "allow_remote_write", "MAJOOR_ALLOW_REMOTE_WRITE", default=False
+    )
 
     client_ip = _resolve_client_ip(peer_ip, headers)
     provided = _extract_write_token_from_headers(headers)
@@ -397,8 +421,6 @@ def _request_transport_is_secure(
 
     if not _is_trusted_proxy(peer_ip):
         return False
-
-    from .security_proxies import _header_value
 
     forwarded_proto = _header_value(headers, "X-Forwarded-Proto")
     if not forwarded_proto:

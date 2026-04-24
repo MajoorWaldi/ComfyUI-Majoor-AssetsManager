@@ -137,6 +137,41 @@ def _bootstrap_enabled() -> bool:
         raw = str(os.environ.get("MAJOOR_ALLOW_BOOTSTRAP") or "").strip().lower()
     except Exception:
         raw = ""
+    if raw in {"1", "true", "yes", "on"}:
+        return True
+    # User-facing toggle: if "Allow Remote Full Access" is explicitly enabled in
+    # Settings -> Security, treat that as consent to bootstrap remote sessions
+    # so users can connect from another LAN machine without setting env vars.
+    try:
+        from mjr_am_backend.routes.core.security_prefs_snapshot import get_security_pref
+
+        if get_security_pref("allow_remote_write") is True:
+            return True
+    except Exception:
+        pass
+    return False
+
+
+def _bootstrap_allows_insecure_transport() -> bool:
+    """
+    Return True when the operator has explicitly opted into accepting bootstrap
+    token delivery over plain HTTP (e.g. trusted LAN). Reads the persisted UI
+    pref `allow_insecure_token_transport` and the legacy env var fallback.
+    """
+    try:
+        from mjr_am_backend.routes.core.security_prefs_snapshot import get_security_pref
+
+        snapshot = get_security_pref("allow_insecure_token_transport")
+        if snapshot is True:
+            return True
+        if snapshot is False:
+            return False
+    except Exception:
+        pass
+    try:
+        raw = str(os.environ.get("MAJOOR_ALLOW_INSECURE_TOKEN_TRANSPORT") or "").strip().lower()
+    except Exception:
+        raw = ""
     return raw in {"1", "true", "yes", "on"}
 
 
@@ -1426,11 +1461,11 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
         settings_service = svc.get("settings")
         if not settings_service:
             return _json_response(Result.Err("SERVICE_UNAVAILABLE", "Settings service unavailable"))
-        if not _is_secure_request_transport(request):
+        if not _is_secure_request_transport(request) and not _bootstrap_allows_insecure_transport():
             return _json_response(
                 Result.Err(
                     "FORBIDDEN",
-                    "Token rotation response is only allowed over HTTPS or loopback transport.",
+                    "Token rotation response is only allowed over HTTPS or loopback transport. Enable 'Allow HTTP Token Transport' in Settings -> Security to opt into plain-HTTP delivery on a trusted LAN.",
                 )
             )
 
@@ -1511,7 +1546,7 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
                     return _json_response(
                         Result.Err(
                             "BOOTSTRAP_DISABLED",
-                            "Bootstrap token is disabled for remote clients unless an authenticated ComfyUI user is requesting initial provisioning. Sign in to ComfyUI and retry, or set MAJOOR_ALLOW_BOOTSTRAP=1.",
+                            "Bootstrap token is disabled for remote clients unless an authenticated ComfyUI user is requesting initial provisioning. Sign in to ComfyUI and retry, or enable 'Allow Remote Full Access' in Settings -> Security (or set MAJOOR_ALLOW_BOOTSTRAP=1).",
                         )
                     )
 
@@ -1534,11 +1569,11 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
         settings_service = svc.get("settings")
         if not settings_service:
             return _json_response(Result.Err("SERVICE_UNAVAILABLE", "Settings service unavailable"))
-        if not _is_secure_request_transport(request):
+        if not _is_secure_request_transport(request) and not _bootstrap_allows_insecure_transport():
             return _json_response(
                 Result.Err(
                     "FORBIDDEN",
-                    "Token bootstrap response is only allowed over HTTPS or loopback transport.",
+                    "Token bootstrap response is only allowed over HTTPS or loopback transport. Enable 'Allow HTTP Token Transport' in Settings -> Security to opt into plain-HTTP delivery on a trusted LAN.",
                 )
             )
 
