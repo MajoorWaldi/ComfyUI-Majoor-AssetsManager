@@ -302,6 +302,7 @@ describe("FloatingViewer", () => {
 
         const modeBtn = {
             title: "",
+            classList: { toggle: vi.fn() },
             replaceChildren: vi.fn(),
             setAttribute: vi.fn(),
             removeAttribute: vi.fn(),

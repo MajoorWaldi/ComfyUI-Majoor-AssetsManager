@@ -79,7 +79,7 @@ describe("floating viewer geninfo overlap protection", () => {
 
         viewer._renderSimple();
 
-        const player = viewer._contentEl.querySelector(".mjr-mfv-simple-player");
+        const player = viewer._contentEl.querySelector(".mjr-mfv-player-host");
         const overlay = viewer._contentEl.querySelector(".mjr-mfv-geninfo");
 
         expect(player).toBeTruthy();

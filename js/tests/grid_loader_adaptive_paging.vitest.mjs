@@ -84,6 +84,7 @@ describe("useGridLoader adaptive paging", () => {
         vi.resetModules();
         vi.clearAllMocks();
         globalThis.sessionStorage = makeStorage();
+        globalThis.localStorage = makeStorage();
         ensureWindowStub();
     });
 
