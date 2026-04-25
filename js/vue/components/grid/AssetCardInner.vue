@@ -451,7 +451,6 @@ function onFileBadgeClick(event) {
                 ref="imgRef"
                 class="mjr-thumb-media"
                 :alt="filename"
-                loading="lazy"
                 decoding="async"
                 :src="cachedImageSrc || viewUrl"
                 @error="onImgError"
@@ -487,7 +486,6 @@ function onFileBadgeClick(event) {
                 class="mjr-thumb-media"
                 :src="AUDIO_THUMB_URL"
                 :draggable="false"
-                loading="lazy"
                 alt=""
             />
             <div

@@ -7,6 +7,16 @@ from __future__ import annotations
 import os
 from pathlib import Path, PureWindowsPath
 
+# Cap on the number of path segments accepted in a subfolder argument.
+# Override via ``MJR_MAX_SUBFOLDER_DEPTH`` if you legitimately have deeply
+# nested asset libraries.
+try:
+    _MAX_SUBFOLDER_DEPTH = int(os.environ.get("MJR_MAX_SUBFOLDER_DEPTH", "10"))
+except Exception:
+    _MAX_SUBFOLDER_DEPTH = 10
+if _MAX_SUBFOLDER_DEPTH < 1:
+    _MAX_SUBFOLDER_DEPTH = 1
+
 
 def normalize_path(value: str) -> Path | None:
     if not value:
@@ -44,6 +54,12 @@ def safe_rel_path(value: str) -> Path | None:
         return None
     if any(part == ".." for part in rel.parts):
         return None
+    # Defence-in-depth: reject pathologically deep client-supplied subfolders.
+    # Real custom roots stay well under 10 nested directories; deeper paths
+    # are typically traversal attempts or malformed input that would force
+    # the filesystem walker into long sequential stat() chains.
+    if len(rel.parts) > _MAX_SUBFOLDER_DEPTH:
+        return None
     return rel
 
 
@@ -61,4 +77,3 @@ def is_within_root(candidate: Path, root: Path) -> bool:
             return os.path.normcase(common) == os.path.normcase(str(root_resolved))
         except ValueError:
             return False
-

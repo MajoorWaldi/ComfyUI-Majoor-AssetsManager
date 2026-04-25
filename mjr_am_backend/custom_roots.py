@@ -14,6 +14,7 @@ import os
 import re
 import sys
 import threading
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -29,6 +30,17 @@ _STORE_PATH = Path(INDEX_DIR) / "custom_roots.json"
 _USER_STORES_DIR = Path(INDEX_DIR) / "users"
 _DEFAULT_MAX_STORE_BYTES = 1024 * 1024  # 1MB
 _USER_SEGMENT_RE = re.compile(r"[^A-Za-z0-9._-]+")
+
+# Offline / existence probe cache.  Keyed on normcase(normpath(str(path))).
+# Tuple = (exists, is_dir, monotonic_timestamp).
+_OFFLINE_LOCK = threading.Lock()
+_OFFLINE_CACHE: dict[str, tuple[bool, bool, float]] = {}
+try:
+    _OFFLINE_TTL = float(os.environ.get("MJR_CUSTOM_ROOT_OFFLINE_TTL", "8.0"))
+except Exception:
+    _OFFLINE_TTL = 8.0
+if _OFFLINE_TTL < 0:
+    _OFFLINE_TTL = 0.0
 try:
     _MAX_STORE_BYTES = int(os.environ.get("MJR_CUSTOM_ROOTS_MAX_BYTES", str(_DEFAULT_MAX_STORE_BYTES)))
 except Exception:
@@ -74,6 +86,16 @@ def _store_path_for_user(user_id: str | None = None) -> Path:
 def _is_symlink_like(path: Path) -> bool:
     """
     Best-effort detection for symlinks/junctions/reparse points.
+
+    On Windows we also accept other reparse-point flavours (mount points,
+    OneDrive placeholders, Dev Drive virtualisation) since any of those can
+    redirect access outside the user-declared root.  See FILE_ATTRIBUTE_*
+    constants in winnt.h:
+
+      FILE_ATTRIBUTE_REPARSE_POINT          = 0x00000400
+      FILE_ATTRIBUTE_OFFLINE                = 0x00001000
+      FILE_ATTRIBUTE_RECALL_ON_OPEN         = 0x00040000
+      FILE_ATTRIBUTE_RECALL_ON_DATA_ACCESS  = 0x00400000
     """
     try:
         if path.is_symlink():
@@ -82,9 +104,12 @@ def _is_symlink_like(path: Path) -> bool:
         pass
     try:
         st = path.lstat()
-        # Windows: reparse points cover symlinks/junctions.
+        # Windows: reparse points cover symlinks/junctions + cloud placeholders.
         if sys.platform == "win32" and hasattr(st, "st_file_attributes"):
-            return bool(int(getattr(st, "st_file_attributes", 0)) & 0x400)
+            attrs = int(getattr(st, "st_file_attributes", 0))
+            mask = 0x400 | 0x1000 | 0x40000 | 0x400000
+            if attrs & mask:
+                return True
     except Exception:
         pass
     # Detect symlink/junction traversal in parent segments.
@@ -225,10 +250,48 @@ def _normalized_root_payload(row: dict[str, Any], *, rid: str, normalized: Path)
 
 
 def _path_exists_and_is_dir(path: Path) -> tuple[bool, bool]:
+    """
+    Existence/dir check with a small TTL cache.
+
+    `list_custom_roots` is called from /list (every grid render) and the
+    underlying `Path.exists()` / `is_dir()` syscalls hit the disk for every
+    custom root.  When a root points to a slow / disconnected drive (network
+    mount, removed USB key) each stat can take several seconds and blocks the
+    whole listing.  Cache positive *and* negative results for a few seconds
+    so the panel stays responsive — staleness is bounded by `_OFFLINE_TTL`.
+    """
+    now = time.monotonic()
+    key = os.path.normcase(os.path.normpath(str(path)))
+    with _OFFLINE_LOCK:
+        cached = _OFFLINE_CACHE.get(key)
+        if cached and (now - cached[2]) < _OFFLINE_TTL:
+            return cached[0], cached[1]
     try:
-        return path.exists(), path.is_dir()
+        exists = path.exists()
+        is_dir = path.is_dir() if exists else False
     except Exception:
-        return False, False
+        exists, is_dir = False, False
+    with _OFFLINE_LOCK:
+        # Trim cache if it grows beyond a sensible bound — custom roots are
+        # typically <50 per user, so 512 leaves headroom for edge cases.
+        if len(_OFFLINE_CACHE) > 512:
+            _OFFLINE_CACHE.clear()
+        _OFFLINE_CACHE[key] = (exists, is_dir, now)
+    return exists, is_dir
+
+
+def invalidate_offline_cache(path: str | Path | None = None) -> None:
+    """
+    Drop a single entry (or all entries) from the offline cache.  Called by
+    the add/remove handlers so freshly-added roots don't pick up a stale
+    "missing" entry from a previous probe.
+    """
+    with _OFFLINE_LOCK:
+        if path is None:
+            _OFFLINE_CACHE.clear()
+            return
+        key = os.path.normcase(os.path.normpath(str(path)))
+        _OFFLINE_CACHE.pop(key, None)
 
 
 def add_custom_root(path: str, label: str | None = None, *, user_id: str | None = None) -> Result[dict[str, Any]]:
@@ -273,6 +336,7 @@ def add_custom_root(path: str, label: str | None = None, *, user_id: str | None 
         if not write_result.ok:
             return write_result  # type: ignore[return-value]
 
+    invalidate_offline_cache(resolved)
     return Result.Ok(_root_row(root_id, resolved, safe_label, created_at))
 
 
@@ -380,10 +444,16 @@ def remove_custom_root(root_id: str, *, user_id: str | None = None) -> Result[bo
     if not rid:
         return Result.Err("INVALID_INPUT", "Missing root_id")
 
+    removed_path: str | None = None
     with _LOCK:
         store = _read_store(user_id=user_id)
         roots = store.get("roots") or []
-        kept = [r for r in roots if not (isinstance(r, dict) and str(r.get("id") or "") == rid)]
+        kept = []
+        for r in roots:
+            if isinstance(r, dict) and str(r.get("id") or "") == rid:
+                removed_path = str(r.get("path") or "")
+                continue
+            kept.append(r)
         if len(kept) == len(roots):
             return Result.Err("NOT_FOUND", f"Custom root not found: {rid}")
         store["roots"] = kept
@@ -391,6 +461,8 @@ def remove_custom_root(root_id: str, *, user_id: str | None = None) -> Result[bo
         if not write_result.ok:
             return write_result
 
+    if removed_path:
+        invalidate_offline_cache(removed_path)
     return Result.Ok(True)
 
 
@@ -398,14 +470,29 @@ def resolve_custom_root(root_id: str, *, user_id: str | None = None) -> Result[P
     """Resolve a custom root id to a validated directory path."""
     rid = str(root_id or "").strip()
     if not rid:
+        logger.info("resolve_custom_root: missing root_id (user=%r)", user_id)
         return Result.Err("INVALID_INPUT", "Missing root_id")
 
     roots_result = list_custom_roots(user_id=user_id)
     if not roots_result.ok:
+        logger.warning(
+            "resolve_custom_root: list failed for rid=%s user=%r code=%s err=%s",
+            rid, user_id, roots_result.code, roots_result.error,
+        )
         return Result.Err(roots_result.code, roots_result.error or "Failed to list custom roots")
     root_row = _find_custom_root_row_by_id(roots_result.data or [], rid)
     if root_row is not None:
-        return _resolve_custom_root_path_from_row(root_row)
+        resolved = _resolve_custom_root_path_from_row(root_row)
+        if not resolved.ok:
+            # Surfacing the failure (offline / invalid) at warn level lets
+            # operators correlate "viewer 404" reports with the actual root
+            # state without enabling debug logging.
+            logger.warning(
+                "resolve_custom_root: rid=%s user=%r code=%s err=%s path=%r",
+                rid, user_id, resolved.code, resolved.error, root_row.get("path"),
+            )
+        return resolved
+    logger.info("resolve_custom_root: rid=%s not found (user=%r)", rid, user_id)
     return Result.Err("NOT_FOUND", f"Custom root not found: {rid}")
 
 

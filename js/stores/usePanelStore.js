@@ -12,6 +12,7 @@
 
 import { defineStore } from "pinia";
 import { ref, watch, onScopeDispose } from "vue";
+import { get as apiGet } from "../api/client.js";
 
 const STORAGE_KEY = "mjr_panel_state";
 const ALLOWED_SCOPES = new Set(["output", "input", "all", "custom"]);
@@ -283,6 +284,40 @@ export const usePanelStore = defineStore("mjr-panel", () => {
         clearSelection();
     }
 
+    /**
+     * Verify the persisted `customRootId` still matches a configured custom
+     * root.  Stale ids (e.g. a root that was removed in another tab or in a
+     * previous session) silently broke the grid by triggering 404 listings;
+     * clearing them here lets the panel fall back to the default scope.
+     */
+    async function validatePersistedCustomRoot() {
+        const persistedId = String(customRootId.value || "").trim();
+        if (!persistedId) return;
+        try {
+            const resp = await apiGet("/mjr/am/custom-roots");
+            const rows = Array.isArray(resp?.data) ? resp.data : [];
+            const match = rows.find((r) => String(r?.id || "") === persistedId);
+            if (!match) {
+                customRootId.value = "";
+                customRootLabel.value = "";
+                if (scope.value === "custom") {
+                    scope.value = "output";
+                    currentFolderRelativePath.value = "";
+                }
+                return;
+            }
+            // Refresh cached label in case it was renamed elsewhere.
+            const freshLabel = String(match.label || "").trim();
+            if (freshLabel && freshLabel !== customRootLabel.value) {
+                customRootLabel.value = freshLabel;
+            }
+        } catch {
+            // Network / auth failure: don't clobber persisted state — the
+            // user might be offline; the listing endpoint will surface the
+            // real error if/when they actually open the custom scope.
+        }
+    }
+
     return {
         // persistent
         scope,
@@ -322,5 +357,6 @@ export const usePanelStore = defineStore("mjr-panel", () => {
         clearSelection,
         setSelection,
         navigateToScope,
+        validatePersistedCustomRoot,
     };
 });

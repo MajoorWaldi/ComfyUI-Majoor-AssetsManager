@@ -3,11 +3,23 @@
 from __future__ import annotations
 
 import asyncio
+import os
 from collections.abc import Callable
 from typing import Any
 
 from aiohttp import web
 from mjr_am_backend.shared import Result
+
+# Maximum wall-clock duration (seconds) for a single custom-root filesystem
+# listing.  A custom root pointing to an unresponsive network share or to a
+# folder with millions of entries can otherwise pin a request worker
+# indefinitely.  Override via ``MJR_CUSTOM_LIST_TIMEOUT`` for slow drives.
+try:
+    _CUSTOM_LIST_TIMEOUT = float(os.environ.get("MJR_CUSTOM_LIST_TIMEOUT", "20.0"))
+except Exception:
+    _CUSTOM_LIST_TIMEOUT = 20.0
+if _CUSTOM_LIST_TIMEOUT < 1.0:
+    _CUSTOM_LIST_TIMEOUT = 1.0
 
 
 def _is_browser_mode(request: web.Request) -> bool:
@@ -194,18 +206,32 @@ async def _handle_custom_root_listing(
             incremental=True,
         )
 
-    result = await list_filesystem_assets(
-        root_dir,
-        subfolder,
-        query,
-        limit,
-        offset,
-        asset_type="custom",
-        root_id=str(root_id),
-        filters=filters or None,
-        index_service=(svc or {}).get("index") if isinstance(svc, dict) else None,
-        sort=sort_key,
-    )
+    # Bound the synchronous filesystem walk: a custom root pointing at a slow
+    # network mount or a directory with millions of entries can pin the
+    # request worker for minutes.  Cap at _CUSTOM_LIST_TIMEOUT seconds and
+    # surface a TIMEOUT result so the panel can render an empty grid + retry
+    # button instead of stalling.
+    try:
+        result = await asyncio.wait_for(
+            list_filesystem_assets(
+                root_dir,
+                subfolder,
+                query,
+                limit,
+                offset,
+                asset_type="custom",
+                root_id=str(root_id),
+                filters=filters or None,
+                index_service=(svc or {}).get("index") if isinstance(svc, dict) else None,
+                sort=sort_key,
+            ),
+            timeout=_CUSTOM_LIST_TIMEOUT,
+        )
+    except asyncio.TimeoutError:
+        return Result.Err(
+            "TIMEOUT",
+            f"Custom root listing exceeded {_CUSTOM_LIST_TIMEOUT:.0f}s",
+        )
     if not result.ok or not isinstance(result.data, dict):
         return result
 

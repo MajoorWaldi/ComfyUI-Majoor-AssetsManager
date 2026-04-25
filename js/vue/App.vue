@@ -8,6 +8,7 @@
 
 import { ref, onMounted, onUnmounted } from "vue";
 import { mountAssetsManagerPanelRuntime } from "../features/panel/panelRuntime.js";
+import { usePanelStore } from "../stores/usePanelStore.js";
 import StatusSection from "./components/status/StatusSection.vue";
 import HeaderSection from "./components/panel/HeaderSection.vue";
 import SummaryBarSection from "./components/panel/SummaryBarSection.vue";
@@ -89,6 +90,16 @@ onMounted(async () => {
         });
     } catch (e) {
         console.warn("[Majoor] App.vue: mountAssetsManagerPanelRuntime failed", e);
+    }
+
+    // Validate persisted custom-root id against backend so we don't render a
+    // stale scope pointing at a removed root (would otherwise surface as a
+    // silent empty grid + 404).  Fire-and-forget — best effort.
+    try {
+        const panelStore = usePanelStore();
+        panelStore.validatePersistedCustomRoot?.();
+    } catch {
+        /* ignore */
     }
 });
 

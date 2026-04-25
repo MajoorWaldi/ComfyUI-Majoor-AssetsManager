@@ -45,8 +45,8 @@ const props = defineProps({
 });
 
 const gridContainerRef = ref(null);
-const hostWidth = ref(0);
-const hasMeasuredHostWidthOnce = ref(false);
+const hostWidth = ref(1024); // Fallback until ResizeObserver fires
+const hasMeasuredHostWidthOnce = ref(true); // Don't block first render
 const settingsVersion = ref(0);
 const cardFilenameKeys = new WeakMap();
 
@@ -553,7 +553,7 @@ const estimateRowHeight = computed(() => {
 const rows = computed(() => {
     const assets = Array.isArray(renderableAssets.value) ? renderableAssets.value : [];
     const cols = Math.max(1, columnCount.value);
-    if (props.virtualize && hasMeasuredHostWidthOnce.value) return [];
+    if (props.virtualize) return [];
     const nextRows = [];
     for (let index = 0; index < assets.length; index += cols) {
         nextRows.push({
@@ -718,11 +718,6 @@ function updateHostWidth() {
         0;
     if (width > 0) {
         hostWidth.value = width;
-        hasMeasuredHostWidthOnce.value = true;
-        return;
-    }
-    if (!hasMeasuredHostWidthOnce.value) {
-        hostWidth.value = 0;
     }
 }
 
@@ -880,7 +875,7 @@ function syncRenderedDuplicateCards(filenameKey) {
     if (!primaryCard || !primaryAsset || count < 2) {
         for (const card of renderedCards) {
             try {
-                    {{ hasMeasuredHostWidthOnce ? (state.loadingMessage || "Loading assets...") : "Preparing grid..." }}
+                // ...
             } catch (e) {
                 console.debug?.(e);
             }
@@ -1313,9 +1308,9 @@ defineExpose({
         style="position: relative; min-height: 100%;"
     >
         <div
-            v-if="state.loading && !state.assets.length"
+            v-if="state.loading"
             class="mjr-grid-loading-overlay"
-            style="position:absolute; inset:0; z-index:4; display:flex; align-items:flex-start; justify-content:center; padding:14px; pointer-events:none;"
+            style="position:absolute; inset:0; z-index:4; display:flex; align-items:flex-start; justify-content:center; padding:14px; pointer-events:none; background:rgba(20,22,28,0.55); backdrop-filter:blur(2px);"
         >
             <div style="width:100%;">
                 <div
@@ -1352,7 +1347,7 @@ defineExpose({
                 <div
                     style="margin-top:10px; font-size:12px; opacity:0.68; text-align:center;"
                 >
-                    {{ hasMeasuredHostWidthOnce ? (state.loadingMessage || "Loading assets...") : "Preparing grid..." }}
+                    {{ state.loadingMessage || "Loading assets..." }}
                 </div>
             </div>
         </div>
@@ -1382,7 +1377,7 @@ defineExpose({
         </div>
 
         <div
-            v-if="virtualize && hasMeasuredHostWidthOnce"
+            v-if="virtualize"
             :style="{
                 height: `${totalSize}px`,
                 position: 'relative',

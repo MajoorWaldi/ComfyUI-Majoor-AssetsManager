@@ -90,15 +90,46 @@ async function warmDbAndStatus() {
  * Run a single explicit startup warmup sequence:
  * 1. warm API/DB/status endpoints
  * 2. schedule a background incremental scan if enabled and runtime is idle
+ *
+ * The warmup is yielded to the next idle/RAF tick so it does NOT contend with
+ * the early /list fetch on the single-threaded aiohttp backend during cold
+ * start. Three GETs (health, counters, db) running in parallel ahead of /list
+ * was adding 200-600ms of perceived latency before the first card paint.
  */
 export async function runStartupWarmup(options = {}) {
     if (startupWarmupDone) return startupWarmupPromise || Promise.resolve();
     startupWarmupDone = true;
     startupWarmupPromise = (async () => {
+        await _yieldUntilIdleOrFirstPaint();
         await warmDbAndStatus();
         await triggerStartupScan(options);
     })();
     return startupWarmupPromise;
+}
+
+function _yieldUntilIdleOrFirstPaint() {
+    return new Promise((resolve) => {
+        try {
+            if (typeof window === "undefined") {
+                resolve();
+                return;
+            }
+            // Prefer requestIdleCallback so we yield until the browser is idle
+            // (after the first /list response has been parsed and the panel
+            // has had a chance to render its first cards). Fall back to a
+            // double-rAF + small timeout for environments without rIC.
+            const ric = window.requestIdleCallback;
+            if (typeof ric === "function") {
+                ric(() => resolve(), { timeout: 1500 });
+                return;
+            }
+            const raf = window.requestAnimationFrame
+                || ((cb) => setTimeout(cb, 16));
+            raf(() => raf(() => setTimeout(resolve, 250)));
+        } catch {
+            resolve();
+        }
+    });
 }
 
 /**

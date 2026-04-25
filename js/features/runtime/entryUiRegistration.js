@@ -15,10 +15,7 @@
  * without any extra imperative registration calls.
  */
 
-import { get } from "../../api/client.js";
-import { buildListURL } from "../../api/endpoints.js";
 import { runStartupWarmup } from "../../app/bootstrap.js";
-import { APP_CONFIG } from "../../app/config.js";
 import {
     activateSidebarTabCompat,
     registerBottomPanelTabCompat,
@@ -33,6 +30,7 @@ import GlobalRuntimeApp from "../../vue/GlobalRuntime.vue";
 import AssetsManagerApp from "../../vue/App.vue";
 import GeneratedFeedApp from "../../vue/GeneratedFeedApp.vue";
 import { mountTopBarMfvButton, teardownTopBarMfvButton } from "./topBarMfvButton.js";
+import { startEarlyFetch, consumeEarlyFetch } from "./earlyFetch.js";
 
 // ── keep-alive mount keys ─────────────────────────────────────────────────────
 const GLOBAL_RUNTIME_ROOT_ID = "mjr-global-runtime-root";
@@ -40,115 +38,11 @@ const GLOBAL_RUNTIME_MOUNT_KEY = "_mjrGlobalRuntimeVueApp";
 const SIDEBAR_MOUNT_KEY = "_mjrSidebarVueApp";
 const FEED_MOUNT_KEY = "_mjrFeedVueApp";
 
-// ── early fetch for faster initial load ──────────────────────────────────────
-// Start fetching assets as soon as sidebar is activated, before Vue fully mounts.
-// This prefetched data is consumed by useGridLoader when it initializes.
-let _earlyFetchPromise = null;
-let _earlyFetchKey = null;
-// 15 seconds — wide enough to cover slow ComfyUI startups and delayed sidebar
-// opens while still invalidating stale data before it becomes misleading.
-const EARLY_FETCH_TTL_MS = 15000;
-let _earlyFetchTimestamp = 0;
-let _earlyFetchAC = null;
-
-// Abort the in-flight early fetch on page unload so it doesn't appear as an
-// epoch-1 cancelled request in the next session's network log.
-try {
-    window.addEventListener("pagehide", () => {
-        try { _earlyFetchAC?.abort?.(); } catch (e) { /* ignore */ }
-        _earlyFetchAC = null;
-        _earlyFetchPromise = null;
-        _earlyFetchKey = null;
-    }, { once: true });
-} catch (e) { /* ignore */ }
-
-function readPersistedDefaultContext() {
-    // Read the same localStorage key written by the Pinia panel store so the
-    // early fetch matches whatever scope/sort the user last left the panel in.
-    // Without this, only the literal output:*:mtime_desc combo benefited from
-    // prefetch and most users hit a cold /list on every cold open.
-    try {
-        const raw = globalThis?.localStorage?.getItem?.("mjr_panel_state");
-        if (!raw) return { scope: "output", sort: "mtime_desc" };
-        const parsed = JSON.parse(raw);
-        const scope = String(parsed?.scope || "output").toLowerCase();
-        const sort = String(parsed?.sort || "mtime_desc").toLowerCase();
-        const allowedScope = ["output", "input", "all"].includes(scope) ? scope : "output";
-        return { scope: allowedScope, sort: sort || "mtime_desc" };
-    } catch {
-        return { scope: "output", sort: "mtime_desc" };
-    }
-}
-
-function startEarlyFetch() {
-    const now = Date.now();
-    const { scope, sort } = readPersistedDefaultContext();
-    const key = `${scope}:*:${sort}`;
-
-    // Skip if we already have a valid prefetch
-    if (_earlyFetchPromise && _earlyFetchKey === key && (now - _earlyFetchTimestamp) < EARLY_FETCH_TTL_MS) {
-        return _earlyFetchPromise;
-    }
-
-    _earlyFetchKey = key;
-    _earlyFetchTimestamp = now;
-
-    try {
-        // Create a dedicated AbortController so we can cancel this request
-        // cleanly on page unload (pagehide) instead of letting the browser
-        // kill it mid-flight and produce epoch-1 entries in the next session.
-        try { _earlyFetchAC?.abort?.(); } catch (e) { /* ignore */ }
-        _earlyFetchAC = typeof AbortController !== "undefined" ? new AbortController() : null;
-        const url = buildListURL({
-            query: "*",
-            limit: APP_CONFIG.DEFAULT_PAGE_SIZE || 200,
-            offset: 0,
-            scope,
-            sort,
-            // includeTotal forces a backend COUNT(*) which can add 100-400ms on
-            // large libraries. The first paint does not need the total — it is
-            // resolved lazily on subsequent pages by the loader.
-            includeTotal: false,
-        });
-        _earlyFetchPromise = get(url, _earlyFetchAC ? { signal: _earlyFetchAC.signal } : {}).catch(() => null);
-    } catch {
-        _earlyFetchPromise = null;
-        _earlyFetchAC = null;
-    }
-
-    return _earlyFetchPromise;
-}
-
-/**
- * Start the early fetch from an external caller (e.g. entry.js setup).
- * Safe to call multiple times — returns existing promise if still valid.
- */
-export { startEarlyFetch };
-
-/**
- * Consume the early fetch result if available and matching.
- * Called by useGridLoader on first load.
- */
-export function consumeEarlyFetch(key = null) {
-    if (!_earlyFetchPromise) return null;
-    // When the caller supplies a key, only return the promise if it matches
-    // the scope/sort combination that was prefetched. A null key means "give
-    // me whatever was prefetched" and is used by callers that have already
-    // verified context separately.
-    if (key && _earlyFetchKey !== key) return null;
-    const now = Date.now();
-    if ((now - _earlyFetchTimestamp) >= EARLY_FETCH_TTL_MS) {
-        _earlyFetchPromise = null;
-        _earlyFetchKey = null;
-        return null;
-    }
-    const promise = _earlyFetchPromise;
-    // Clear after consumption to avoid stale reuse
-    _earlyFetchPromise = null;
-    _earlyFetchKey = null;
-    _earlyFetchAC = null;
-    return promise;
-}
+// Re-exported from the dedicated lightweight module so existing imports
+// continue to work. The module is auto-evaluated as a top-level side effect
+// from `entry.js` so the first /list request leaves the browser before this
+// (heavier, Vue-importing) module is even parsed.
+export { startEarlyFetch, consumeEarlyFetch };
 
 function ensureGlobalRuntimeRoot() {
     if (typeof document === "undefined" || !document?.body) return null;
@@ -307,6 +201,48 @@ export function teardownAssetsSidebar() {
         unmountKeepAlive(null, SIDEBAR_MOUNT_KEY);
     } catch {
         /* ignore */
+    }
+}
+
+let _sidebarPrewarmStarted = false;
+const PREWARM_HOST_ID = "mjr-sidebar-prewarm-host";
+
+/**
+ * Prewarm the Assets Manager sidebar Vue app on a detached container so the
+ * heavy Vue mount (component tree creation, lazy chunk imports, store hydrate)
+ * happens during browser idle time — well before the user clicks the tab.
+ *
+ * When `render(el)` is later called by ComfyUI, `mountKeepAlive` finds the
+ * existing record and only re-attaches the live host into `el` (a single
+ * `replaceChildren` call), making the click→cards latency drop from ~2 s to
+ * essentially the time it takes to flush one DOM frame.
+ *
+ * Safe to call multiple times: only the first call does the work.
+ */
+export function prewarmAssetsSidebar() {
+    if (_sidebarPrewarmStarted) return false;
+    if (typeof document === "undefined" || !document?.body) return false;
+    _sidebarPrewarmStarted = true;
+    try {
+        let host = document.getElementById(PREWARM_HOST_ID);
+        if (!host) {
+            host = document.createElement("div");
+            host.id = PREWARM_HOST_ID;
+            // Off-screen but attached so layout/measure paths work the same as
+            // when the panel is visible. ResizeObserver and clientWidth still
+            // need a non-zero box, so size the host like a typical sidebar.
+            host.style.cssText =
+                "position:fixed;left:-99999px;top:0;width:360px;height:600px;" +
+                "overflow:hidden;visibility:hidden;pointer-events:none;contain:strict;";
+            host.setAttribute("aria-hidden", "true");
+            document.body.appendChild(host);
+        }
+        mountKeepAlive(host, AssetsManagerApp, SIDEBAR_MOUNT_KEY);
+        return true;
+    } catch (e) {
+        console.debug?.(e);
+        _sidebarPrewarmStarted = false;
+        return false;
     }
 }
 

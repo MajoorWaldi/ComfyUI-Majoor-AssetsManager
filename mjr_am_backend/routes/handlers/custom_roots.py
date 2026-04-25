@@ -5,6 +5,7 @@ import asyncio
 import errno
 import os
 import shutil
+import stat
 import sys
 from collections.abc import Sequence
 from pathlib import Path
@@ -133,22 +134,80 @@ def _resolve_custom_root_path_safe(root_id: object) -> str | None:
     return None
 
 
-async def _remove_custom_root_runtime_artifacts(root_path: str, rid: object) -> None:
+async def _remove_custom_root_runtime_artifacts(root_path: str, rid: object) -> dict:
+    """
+    Remove watcher binding and DB rows for a custom root.
+
+    Returns a dict with `watcher_ok`, `db_ok`, `deleted_rows` and `errors`
+    so the caller (and audit log) can record partial-failure modes.  On a
+    DELETE failure we retry once after a short delay before giving up.
+    """
+    report: dict = {
+        "watcher_ok": True,
+        "db_ok": True,
+        "deleted_rows": 0,
+        "errors": [],
+    }
     try:
         svc, _ = await _require_services()
-        if not svc:
-            return
-        watcher = svc.get("watcher")
-        if watcher:
+    except Exception as exc:
+        report["watcher_ok"] = False
+        report["db_ok"] = False
+        report["errors"].append(f"services_unavailable:{exc.__class__.__name__}")
+        return report
+    if not svc:
+        report["errors"].append("services_unavailable")
+        report["watcher_ok"] = False
+        report["db_ok"] = False
+        return report
+
+    watcher = svc.get("watcher")
+    if watcher:
+        try:
             watcher.remove_path(str(root_path))
-        db = svc.get("db")
-        if db:
-            await db.aexecute(
-                "DELETE FROM assets WHERE source = 'custom' AND root_id = ?",
-                (str(rid or ""),),
+        except Exception as exc:
+            report["watcher_ok"] = False
+            report["errors"].append(f"watcher:{exc.__class__.__name__}")
+            logger.warning(
+                "Custom root watcher removal failed for %s: %s", root_path, exc
             )
-    except Exception:
-        return
+
+    db = svc.get("db")
+    if not db:
+        report["db_ok"] = False
+        report["errors"].append("db_unavailable")
+        return report
+
+    sql = "DELETE FROM assets WHERE source = 'custom' AND root_id = ?"
+    rid_param = (str(rid or ""),)
+    last_exc: Exception | None = None
+    for attempt in range(2):
+        try:
+            cursor = await db.aexecute(sql, rid_param)
+            try:
+                report["deleted_rows"] = int(getattr(cursor, "rowcount", 0) or 0)
+            except Exception:
+                report["deleted_rows"] = 0
+            report["db_ok"] = True
+            last_exc = None
+            break
+        except Exception as exc:
+            last_exc = exc
+            logger.warning(
+                "Custom root DB cleanup attempt %d failed for %s: %s",
+                attempt + 1,
+                rid,
+                exc,
+            )
+            if attempt == 0:
+                try:
+                    await asyncio.sleep(0.25)
+                except Exception:
+                    pass
+    if last_exc is not None:
+        report["db_ok"] = False
+        report["errors"].append(f"db:{last_exc.__class__.__name__}")
+    return report
 
 
 def _compute_folder_stats(folder_path: Path, *, max_entries: int = 200000) -> dict:
@@ -423,6 +482,15 @@ def register_custom_roots_routes(routes: web.RouteTableDef) -> None:
         if not auth.ok:
             return _json_response(auth)
 
+        # Rate-limit destructive ops to mitigate accidental / scripted abuse.
+        allowed, retry_after = _check_rate_limit(
+            request, "custom_root_remove", max_requests=10, window_seconds=60
+        )
+        if not allowed:
+            return _json_response(
+                Result.Err("RATE_LIMIT", "Too many remove requests", retry_after=retry_after)
+            )
+
         body_res = await _read_json(request)
         if not body_res.ok:
             return _json_response(body_res)
@@ -432,8 +500,16 @@ def register_custom_roots_routes(routes: web.RouteTableDef) -> None:
         root_path = _resolve_custom_root_path_safe(rid)
 
         result = remove_custom_root(str(rid or ""))
+        cleanup_report: dict | None = None
         if result.ok and root_path:
-            await _remove_custom_root_runtime_artifacts(str(root_path), rid)
+            cleanup_report = await _remove_custom_root_runtime_artifacts(str(root_path), rid)
+            # Surface partial cleanup failures in the response payload so the
+            # frontend can warn the user (DB rows may linger and reappear in
+            # the grid until restart).
+            if isinstance(result.data, dict):
+                result.data["cleanup"] = cleanup_report
+            else:
+                result = Result.Ok({"removed": True, "cleanup": cleanup_report})
         await _audit_custom_root_write(
             request,
             "custom_root_remove",
@@ -441,6 +517,7 @@ def register_custom_roots_routes(routes: web.RouteTableDef) -> None:
             result,
             root_id=str(rid or ""),
             path=root_path or "",
+            cleanup=cleanup_report or {},
         )
         return _json_response(result)
 
@@ -543,6 +620,25 @@ def register_custom_roots_routes(routes: web.RouteTableDef) -> None:
             # Viewer hardening: only serve image/video media files from custom roots.
             if not _is_allowed_view_media_file(resolved_path):
                 return _json_response(Result.Err("UNSUPPORTED", "Unsupported file type for viewer"))
+
+            # TOCTOU narrowing: re-verify lstat / realpath / inode immediately
+            # before handing the path to FileResponse.  If anything changed
+            # since `_validate_no_symlink_open`, abort.
+            try:
+                st_after = os.lstat(str(resolved_path))
+                if stat.S_ISLNK(st_after.st_mode):
+                    return _json_response(Result.Err("FORBIDDEN", "Symlinked file not allowed"))
+                # Detect parent-component swap: realpath must still equal the
+                # validated resolved_path string (case-insensitive on Windows).
+                real_after = os.path.realpath(str(resolved_path))
+                if os.path.normcase(real_after) != os.path.normcase(str(resolved_path)):
+                    return _json_response(Result.Err("FORBIDDEN", "Path changed during validation"))
+                if root_dir is not None and not _is_within_root(Path(real_after), root_dir):
+                    return _json_response(Result.Err("FORBIDDEN", "Path escapes root"))
+            except FileNotFoundError:
+                return _json_response(Result.Err("NOT_FOUND", "File not found"))
+            except OSError:
+                return _json_response(Result.Err("FORBIDDEN", "Unable to verify file safety"))
 
             content_type = _guess_content_type_for_file(resolved_path)
             resp = web.FileResponse(path=str(resolved_path))

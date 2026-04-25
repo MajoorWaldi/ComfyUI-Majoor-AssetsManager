@@ -7,7 +7,7 @@ import { loadMajoorSettings } from "../../app/settings.js";
 import { setFileBadgeCollision } from "../../components/Badges.js";
 import { pickRootId } from "../../utils/ids.js";
 import { isGridHostVisible } from "./gridVisibility.js";
-import { consumeEarlyFetch } from "../../features/runtime/entryUiRegistration.js";
+import { consumeEarlyFetch, peekEarlyFetchKey } from "../../features/runtime/earlyFetch.js";
 import { mjrDbg } from "../../utils/logging.js";
 import {
     appendAssets as cardAppendAssets,
@@ -259,17 +259,12 @@ function loadGridSnapshotsFromStorage() {
 }
 
 function persistGridSnapshotsToStorageNow() {
+    // PERF FIX #4: in-memory cache only.
+    // Persisting up to 8 snapshots * 800 assets caused multi-MB JSON.stringify
+    // freezes on the main thread. We keep the in-memory cache so within-session
+    // navigation is fast, but we no longer write to localStorage.
     try {
         pruneGridSnapshotCache();
-        const storage = gridSnapshotStorage();
-        if (!storage) return;
-        storage.setItem(
-            GRID_SNAPSHOT_STORAGE_KEY,
-            JSON.stringify({
-                version: 2,
-                entries: Array.from(GRID_SNAPSHOT_CACHE.entries()),
-            }),
-        );
     } catch (e) {
         console.debug?.(e);
     }
@@ -372,14 +367,10 @@ function safeEscapeId(value) {
 }
 
 async function waitForLayout() {
+    // PERF FIX #3: single nextTick instead of nextTick + double rAF.
+    // The double rAF was costing ~33ms per call for negligible benefit;
+    // the virtualizer + ResizeObserver settle on their own without it.
     await nextTick();
-    await new Promise((resolve) => {
-        try {
-            requestAnimationFrame(() => requestAnimationFrame(resolve));
-        } catch {
-            resolve();
-        }
-    });
 }
 
 function formatLoadErrorMessage(prefix, err) {
@@ -489,6 +480,16 @@ export function useGridLoader({
         if (!APP_CONFIG.DEFER_GRID_FETCH_DURING_EXECUTION) {
             return false;
         }
+        // PERF FIX #2: never defer the very first load (empty grid).
+        // The user expects assets to appear immediately when the panel opens,
+        // even if a generation is already in progress.
+        try {
+            if (!Array.isArray(state.assets) || state.assets.length === 0) {
+                return false;
+            }
+        } catch (e) {
+            console.debug?.(e);
+        }
         try {
             return !!String(window?.__MJR_EXECUTION_RUNTIME__?.active_prompt_id || "").trim();
         } catch (e) {
@@ -552,6 +553,7 @@ export function useGridLoader({
         // — otherwise it would clobber the new context's grid state.
         const scheduledScopeKey = (() => {
             try {
+                // Ensure we capture to correct snapshot parts even during rapid clicks.
                 return buildGridSnapshotKey(buildCurrentSnapshotParts());
             } catch (e) {
                 console.debug?.(e);
@@ -720,6 +722,57 @@ export function useGridLoader({
         });
     }
 
+    /**
+     * Build a key fingerprint that matches `_buildEarlyFetchKey` in
+     * features/runtime/earlyFetch.js. The two MUST stay in sync — when they
+     * diverge the grid silently falls back to a second /list round-trip,
+     * which is precisely what the early fetch was meant to avoid.
+     */
+    function buildEarlyFetchMatchKey(gridContainer, query) {
+        const ds = gridContainer?.dataset || {};
+        const scope = String(ds.mjrScope || "output").toLowerCase();
+        const sort = String(ds.mjrSort || "mtime_desc").toLowerCase();
+        const customRootId = String(ds.mjrCustomRootId || "").trim();
+        const subfolder = String(ds.mjrSubfolder || "").trim();
+        const collectionId = String(ds.mjrCollectionId || "").trim();
+        const kind = String(ds.mjrFilterKind || "").trim();
+        const workflowOnly = String(ds.mjrFilterWorkflowOnly || "") === "1";
+        const minRating = Number(ds.mjrFilterMinRating || 0) || 0;
+        const minSizeMB = Number(ds.mjrFilterMinSizeMB || 0) || 0;
+        const maxSizeMB = Number(ds.mjrFilterMaxSizeMB || 0) || 0;
+        const resolutionCompare =
+            String(ds.mjrFilterResolutionCompare || "gte") === "lte" ? "lte" : "gte";
+        const minWidth = Number(ds.mjrFilterMinWidth || 0) || 0;
+        const minHeight = Number(ds.mjrFilterMinHeight || 0) || 0;
+        const maxWidth = Number(ds.mjrFilterMaxWidth || 0) || 0;
+        const maxHeight = Number(ds.mjrFilterMaxHeight || 0) || 0;
+        const workflowType = String(ds.mjrFilterWorkflowType || "").trim();
+        const dateRange = String(ds.mjrFilterDateRange || "").trim().toLowerCase();
+        const dateExact = String(ds.mjrFilterDateExact || "").trim();
+        const normalizedQuery = String(query || "*").trim() || "*";
+        return [
+            scope,
+            normalizedQuery,
+            sort,
+            customRootId,
+            subfolder,
+            collectionId,
+            kind,
+            workflowOnly ? "1" : "",
+            minRating || "",
+            minSizeMB || "",
+            maxSizeMB || "",
+            resolutionCompare,
+            minWidth || "",
+            minHeight || "",
+            maxWidth || "",
+            maxHeight || "",
+            workflowType,
+            dateRange,
+            dateExact,
+        ].join("|");
+    }
+
     async function fetchPage(query, limit, offset, { requestId = 0, signal = null } = {}) {
         const gridContainer = getGridContainer();
         if (!gridContainer) {
@@ -729,13 +782,14 @@ export function useGridLoader({
         // Try to use early-fetched data for the first page of default browse context.
         // This significantly reduces perceived load time when opening the panel.
         if (offset === 0) {
-            const scope = String(gridContainer.dataset?.mjrScope || "output").toLowerCase();
-            const sort = String(gridContainer.dataset?.mjrSort || "mtime_desc").toLowerCase();
-            const normalizedQuery = String(query || "*").trim() || "*";
-            const isDefaultContext = normalizedQuery === "*";
-
-            if (isDefaultContext) {
-                const earlyFetchPromise = consumeEarlyFetch(`${scope}:*:${sort}`);
+            // Match against the FULL filter fingerprint, not just scope+sort.
+            // The early-fetch URL is built with the persisted filters too, so
+            // a workflowOnly/minRating/etc match here means the prefetched
+            // payload is the right one and we skip a redundant /list call.
+            const matchKey = buildEarlyFetchMatchKey(gridContainer, query);
+            const earlyKey = peekEarlyFetchKey();
+            if (earlyKey && earlyKey === matchKey) {
+                const earlyFetchPromise = consumeEarlyFetch(matchKey);
                 if (earlyFetchPromise) {
                     try {
                         const earlyResult = await earlyFetchPromise;
@@ -1064,10 +1118,16 @@ export function useGridLoader({
     }
 
     async function loadAssets(query = "*", options = {}) {
+        const startRequestId = state.requestId;
         const { reset = true, preserveVisibleUntilReady = true } = options || {};
         const gridContainer = getGridContainer();
         if (!gridContainer) {
             return { ok: false, error: "Grid unavailable" };
+        }
+
+        if (state.requestId !== startRequestId) {
+            console.debug?.("[Grid] loadAssets aborted early due to rapid scope switch");
+            return { ok: false, aborted: true };
         }
 
         try {
@@ -1098,6 +1158,10 @@ export function useGridLoader({
                     hydratedFromSnapshot = await hydrateFromSnapshot(snapshotParts, {
                         allowReplaceExisting: true,
                     });
+                    if (state.requestId > startRequestId + (hydratedFromSnapshot ? 1 : 0)) {
+                        console.debug?.("[Grid] loadAssets aborted during deferral due to scope switch");
+                        return { ok: false, aborted: true };
+                    }
                 }
             } catch (e) {
                 console.debug?.(e);
@@ -1138,34 +1202,27 @@ export function useGridLoader({
             clearPrefetchTimer();
             clearPendingUpserts();
             clearStatusMessage();
-            if (deferVisualResetUntilNextPage) {
-                state.query = safeQuery;
-                state.offset = 0;
-                state.total = null;
-                state.done = false;
-            } else {
-                resetAssets({ query: safeQuery, total: null, done: false });
-            }
+            // Disabling Fast Path: Always clear assets immediately instead of keeping stale ones
+            // if (deferVisualResetUntilNextPage) {
+            //    state.query = safeQuery;
+            //    state.offset = 0;
+            //    state.total = null;
+            //    state.done = false;
+            // } else {
+            //    resetAssets({ query: safeQuery, total: null, done: false });
+            // }
+            resetAssets({ query: safeQuery, total: null, done: false });
             setLoadingMessage(
                 safeQuery === "*" ? "Loading assets..." : `Searching for "${safeQuery}"...`,
             );
 
-            // Fast path: when returning to default browse (e.g. clearing search),
-            // instantly restore from snapshot cache so the grid appears immediately
-            // while the API call refreshes data in the background.
+            // Fast path: Disabled to prevent flashing of ancient localized cache
+            /*
             if (safeQuery === "*" && deferVisualResetUntilNextPage) {
                 try {
                     const snapshotParts = buildCurrentSnapshotParts();
                     snapshotParts.query = "*";
-                    // Sync guard: only await hydrateFromSnapshot when a snapshot
-                    // actually exists, to avoid an unnecessary microtask yield
-                    // that would delay the fetchPage call.
                     const snapshotKey = buildGridSnapshotKey(snapshotParts);
-                    // De-duplicate: scopeController.onBeforeReload already runs
-                    // prepareGridForScopeSwitch() which hydrates the same snapshot
-                    // synchronously. Without this guard the same hydrate (with
-                    // appendAssets / setItems / finalizeLoad) runs twice back to
-                    // back on every scope switch with query=='*'.
                     if (state._mjrLastHydrateKey === snapshotKey &&
                         Date.now() - Number(state._mjrLastHydrateAt || 0) < 1500) {
                         state.offset = Math.max(
@@ -1173,11 +1230,6 @@ export function useGridLoader({
                             Number(state.assets?.length || 0) || 0,
                         );
                         state.loading = false;
-                        // Snapshot is already on screen — clear the "defer reset"
-                        // flag so the upcoming next-page prefetch APPENDS rather
-                        // than calling resetAssets() and wiping visible cards
-                        // (that produced the brief disappear/reappear flicker on
-                        // scope switch custom -> output).
                         deferVisualResetUntilNextPage = false;
                         clearLoadingMessage();
                         const bgRequestId = state.requestId;
@@ -1185,9 +1237,6 @@ export function useGridLoader({
                             bgRequestId,
                             Math.min(APP_CONFIG.PREFETCH_NEXT_PAGE_DELAY_MS ?? 700, 250),
                         );
-                        // Re-fetch page 0 and upsert any new items at the
-                        // top so cards generated while the user was on
-                        // another scope (or since last session) reappear.
                         scheduleSnapshotHeadRefresh(200);
                         return {
                             ok: true,
@@ -1197,21 +1246,23 @@ export function useGridLoader({
                         };
                     }
                     const hasSnapshot = GRID_SNAPSHOT_CACHE.has(snapshotKey);
+                    const snapshotRequestIdBefore = state.requestId;
                     const didHydrate = hasSnapshot
                         ? await hydrateFromSnapshot(snapshotParts, {
                               allowReplaceExisting: true,
                           })
                         : false;
+                    if (state.requestId > snapshotRequestIdBefore + (didHydrate ? 1 : 0)) {
+                        console.debug?.("[Grid] loadAssets fast-path aborted due to scope switch");
+                        return { ok: false, aborted: true };
+                    }
                     if (didHydrate) {
-                        // Snapshot restored — launch a background refresh and return immediately
                         state.offset = Math.max(
                             Number(state.offset || 0) || 0,
                             Number(state.assets?.length || 0) || 0,
                         );
                         state.done = false;
                         state.loading = false;
-                        // Same rationale as the dedup branch above: the
-                        // snapshot is on screen, so prefetch must APPEND.
                         deferVisualResetUntilNextPage = false;
                         clearLoadingMessage();
                         const bgRequestId = state.requestId;
@@ -1219,9 +1270,6 @@ export function useGridLoader({
                             bgRequestId,
                             Math.min(APP_CONFIG.PREFETCH_NEXT_PAGE_DELAY_MS ?? 700, 250),
                         );
-                        // Re-fetch page 0 and upsert any new items at the
-                        // top so cards generated while the user was on
-                        // another scope (or since last session) reappear.
                         scheduleSnapshotHeadRefresh(200);
                         return {
                             ok: true,
@@ -1234,6 +1282,7 @@ export function useGridLoader({
                     console.debug?.("[Grid] Snapshot fast-path failed, falling back", e);
                 }
             }
+            */
         }
 
         const result = await loadNextPage();
@@ -1382,8 +1431,9 @@ export function useGridLoader({
         clearPendingUpserts();
         clearLoadingMessage();
         clearStatusMessage();
+        resetAssetCollectionsState(state);
         deferVisualResetUntilNextPage = true;
-        void hydrateFromSnapshot(buildCurrentSnapshotParts(), { allowReplaceExisting: true });
+        // void hydrateFromSnapshot(buildCurrentSnapshotParts(), { allowReplaceExisting: true }); // Disabled: prevents old images from flashing during tab switch
         setSelection([], "");
     }
 
