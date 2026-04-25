@@ -32,6 +32,7 @@ from ...adapters.db.sqlite import Sqlite
 from ...config import (
     VECTOR_AUTOTAG_NSFW_ENABLED,
     VECTOR_AUTOTAG_THRESHOLD,
+    is_vector_caption_on_index_enabled,
     is_vector_search_enabled,
 )
 from ...shared import FileKind, Result, get_logger
@@ -217,9 +218,11 @@ async def index_asset_vector(
     vector = emb_result.data
 
     # 2. Enhanced caption (Florence-2) for image assets (best-effort).
-    #    Generated BEFORE alignment so it can contribute to the score.
+    #    This is intentionally opt-in for automatic indexing: Florence is much
+    #    heavier than SigLIP embeddings and made scan/backfill jobs monopolize
+    #    the runtime while the grid was waiting for normal indexed assets.
     caption: str | None = None
-    if kind == "image":
+    if kind == "image" and is_vector_caption_on_index_enabled():
         caption = await _generate_and_store_caption(db, vs, asset_id, filepath)
 
     # 3. Prompt-image alignment score (optional, uses caption if available)

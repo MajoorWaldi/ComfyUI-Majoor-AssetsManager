@@ -64,6 +64,51 @@ export function registerSearchSettings(safeAddSetting, settings, notifyApplied) 
         },
     });
 
+    safeAddSetting({
+        id: `${SETTINGS_PREFIX}.AI.VectorCaptionOnIndex`,
+        category: cat(t("cat.search", "Search"), "AI"),
+        name: t("setting.ai.vector.captionOnIndex.name", "Generate AI captions during indexing"),
+        tooltip: t(
+            "setting.ai.vector.captionOnIndex.desc",
+            "Allow automatic vector indexing and backfill to run Florence-2 captions for image assets. This is slower and can use significant VRAM/CPU; leave it off for faster grid startup.",
+        ),
+        type: "boolean",
+        defaultValue: !!(settings.ai?.vectorCaptionOnIndex ?? false),
+        onChange: async (value) => {
+            settings.ai = settings.ai || {};
+            const previous = !!(settings.ai.vectorCaptionOnIndex ?? false);
+            const next = !!value;
+            settings.ai.vectorCaptionOnIndex = next;
+            saveMajoorSettings(settings);
+            applySettingsToConfig(settings);
+            notifyApplied("ai.vectorCaptionOnIndex");
+            try {
+                const res = await setVectorSearchSettings({ caption_on_index: next });
+                if (!res?.ok) {
+                    settings.ai.vectorCaptionOnIndex = previous;
+                    saveMajoorSettings(settings);
+                    applySettingsToConfig(settings);
+                    notifyApplied("ai.vectorCaptionOnIndex");
+                    comfyToast(res?.error || "Failed to update AI caption indexing setting", "error");
+                    return;
+                }
+                comfyToast(
+                    next
+                        ? "AI captions during indexing enabled"
+                        : "AI captions during indexing disabled",
+                    "info",
+                    2600,
+                );
+            } catch (error) {
+                settings.ai.vectorCaptionOnIndex = previous;
+                saveMajoorSettings(settings);
+                applySettingsToConfig(settings);
+                notifyApplied("ai.vectorCaptionOnIndex");
+                comfyToast(error?.message || "Failed to update AI caption indexing setting", "error");
+            }
+        },
+    });
+
     // ------------------------
     // Search UI setting
     // ------------------------
@@ -117,6 +162,7 @@ export function registerSearchSettings(safeAddSetting, settings, notifyApplied) 
             "MJR_WATCHER_FLUSH_MAX_FILES — Max files per flush batch (default: 256)",
             "MJR_WATCHER_PENDING_MAX — Max pending watcher queue (default: 5000)",
             "MJR_AM_ENABLE_VECTOR_SEARCH — Enable AI vector/semantic search: 1|0 (default: 1)",
+            "MJR_AM_VECTOR_CAPTION_ON_INDEX — Generate Florence captions during vector indexing: 1|0 (default: 0)",
             "MAJOOR_SEARCH_MAX_LIMIT — Max search results (default: 500)",
             "MAJOOR_BG_SCAN_ON_LIST — Scan on directory list: 0|1 (default: 0)",
         ].join("\n"),

@@ -362,12 +362,10 @@ export function createGridController({
             !read("customRootId", "") &&
             !read("currentFolderRelativePath", "")
         ) {
-            try {
-                disposeGrid(gridContainer);
-            } catch (e) {
-                console.debug?.(e);
-            }
             // Browser mode: no selected custom root required. Start at filesystem roots.
+            // Do not dispose the live Vue grid here: disposal snapshots the current
+            // visible assets under the already-updated dataset context, which can
+            // cache Output assets as Browser assets during scope switches.
             write("currentFolderRelativePath", "");
         }
 

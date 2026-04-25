@@ -32,8 +32,15 @@ export async function getVectorSearchSettings() {
     return get(ENDPOINTS.SETTINGS_VECTOR_SEARCH);
 }
 
-export async function setVectorSearchSettings(enabled = true) {
-    return post(ENDPOINTS.SETTINGS_VECTOR_SEARCH, { enabled: !!enabled });
+export async function setVectorSearchSettings(settings = true) {
+    if (settings && typeof settings === "object") {
+        const payload = {};
+        if ("enabled" in settings) payload.enabled = !!settings.enabled;
+        if ("caption_on_index" in settings) payload.caption_on_index = !!settings.caption_on_index;
+        if ("captionOnIndex" in settings) payload.caption_on_index = !!settings.captionOnIndex;
+        return post(ENDPOINTS.SETTINGS_VECTOR_SEARCH, payload);
+    }
+    return post(ENDPOINTS.SETTINGS_VECTOR_SEARCH, { enabled: !!settings });
 }
 
 export async function getExecutionGroupingSettings() {

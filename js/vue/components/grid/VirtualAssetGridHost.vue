@@ -1,5 +1,5 @@
 <script setup>
-import { computed, nextTick, onBeforeUnmount, provide, ref, watch } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, provide, ref, watch } from "vue";
 import { measureElement, useVirtualizer } from "@tanstack/vue-virtual";
 import { APP_CONFIG } from "../../../app/config.js";
 import { EVENTS } from "../../../app/events.js";
@@ -553,7 +553,7 @@ const estimateRowHeight = computed(() => {
 const rows = computed(() => {
     const assets = Array.isArray(renderableAssets.value) ? renderableAssets.value : [];
     const cols = Math.max(1, columnCount.value);
-    if (props.virtualize) return [];
+    if (props.virtualize && hasMeasuredHostWidthOnce.value) return [];
     const nextRows = [];
     for (let index = 0; index < assets.length; index += cols) {
         nextRows.push({
@@ -712,7 +712,10 @@ const skeletonInfoStyle = computed(() => ({
 }));
 
 function updateHostWidth() {
-    const width = Number(scrollElementRef.value?.clientWidth || 0) || 0;
+    const width =
+        Number(scrollElementRef.value?.clientWidth || 0) ||
+        Number(gridContainerRef.value?.clientWidth || 0) ||
+        0;
     if (width > 0) {
         hostWidth.value = width;
         hasMeasuredHostWidthOnce.value = true;
@@ -726,6 +729,28 @@ function updateHostWidth() {
 let resizeObserver = null;
 let disposeAssetDragStart = null;
 let settingsListenerBound = false;
+
+function scheduleInitialHostMeasurements() {
+    _forceVirtualizerMeasure();
+    const measureSoon = () => {
+        _forceVirtualizerMeasure();
+        void maybeFillViewport();
+    };
+    try {
+        requestAnimationFrame(() => {
+            requestAnimationFrame(measureSoon);
+        });
+    } catch {
+        setTimeout(measureSoon, 0);
+    }
+    for (const delayMs of [80, 180, 400]) {
+        setTimeout(measureSoon, delayMs);
+    }
+}
+
+onMounted(() => {
+    scheduleInitialHostMeasurements();
+});
 
 watch(
     scrollElementRef,

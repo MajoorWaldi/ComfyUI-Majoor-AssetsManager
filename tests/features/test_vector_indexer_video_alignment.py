@@ -16,13 +16,23 @@ class _VS:
     def __init__(self):
         self._model_name = "test-model"
         self.video_calls = 0
+        self.image_calls = 0
+        self.caption_calls = 0
 
     async def get_video_embedding(self, _filepath):
         self.video_calls += 1
         return Result.Ok([1.0, 0.0])
 
+    async def get_image_embedding(self, _filepath):
+        self.image_calls += 1
+        return Result.Ok([1.0, 0.0])
+
     async def get_text_embedding(self, _prompt):
         return Result.Ok([1.0, 0.0])
+
+    async def generate_enhanced_caption(self, _filepath):
+        self.caption_calls += 1
+        return Result.Ok("generated caption")
 
 
 @pytest.mark.asyncio
@@ -113,6 +123,61 @@ async def test_index_asset_vector_video_filepath_prompt_stores_null_alignment(mo
     _, store_params = db.calls[0]
     assert store_params[0] == 789
     assert store_params[2] is None
+
+
+@pytest.mark.asyncio
+async def test_index_asset_vector_image_does_not_generate_caption_by_default(monkeypatch):
+    db = _DB()
+    vs = _VS()
+
+    monkeypatch.setattr(m, "is_vector_search_enabled", lambda: True)
+    monkeypatch.setattr(m, "is_vector_caption_on_index_enabled", lambda: False)
+
+    async def _noop_autotags(_db, _vs, _asset_id, _image_vector):
+        return None
+
+    monkeypatch.setattr(m, "_apply_autotags", _noop_autotags)
+
+    out = await m.index_asset_vector(
+        db,
+        vs,
+        asset_id=321,
+        filepath="C:/images/sample.png",
+        kind="image",
+        metadata_raw={"prompt": "cinematic robot portrait"},
+    )
+
+    assert out.ok and out.data is True
+    assert vs.image_calls == 1
+    assert vs.caption_calls == 0
+
+
+@pytest.mark.asyncio
+async def test_index_asset_vector_image_caption_generation_is_opt_in(monkeypatch):
+    db = _DB()
+    vs = _VS()
+
+    monkeypatch.setattr(m, "is_vector_search_enabled", lambda: True)
+    monkeypatch.setattr(m, "is_vector_caption_on_index_enabled", lambda: True)
+
+    async def _noop_autotags(_db, _vs, _asset_id, _image_vector):
+        return None
+
+    monkeypatch.setattr(m, "_apply_autotags", _noop_autotags)
+
+    out = await m.index_asset_vector(
+        db,
+        vs,
+        asset_id=322,
+        filepath="C:/images/sample.png",
+        kind="image",
+        metadata_raw={"prompt": "cinematic robot portrait"},
+    )
+
+    assert out.ok and out.data is True
+    assert vs.image_calls == 1
+    assert vs.caption_calls == 1
+    assert any("UPDATE assets" in sql for sql, _params in db.calls)
 
 
 class _AutotagVS:

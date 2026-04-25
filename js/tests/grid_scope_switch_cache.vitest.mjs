@@ -251,4 +251,38 @@ describe("gridController scope switch cache behavior", () => {
         expect(gridContainer.dataset.mjrScope).toBe("input");
         expect(loadAssets).toHaveBeenCalled();
     });
+
+    it("does not dispose the live grid when entering browser root scope", async () => {
+        const { createGridController } = await import(
+            "../features/panel/controllers/gridController.js"
+        );
+
+        Object.assign(bridgeState.values, {
+            scope: "custom",
+            customRootId: "",
+            currentFolderRelativePath: "",
+        });
+
+        const gridContainer = createGridContainer();
+        const loadAssets = vi.fn(async () => ({ ok: true, count: 4, total: 4 }));
+        const disposeGrid = vi.fn();
+
+        const controller = createGridController({
+            gridContainer,
+            loadAssets,
+            loadAssetsFromList: vi.fn(async () => ({ ok: true })),
+            getCollectionAssets: vi.fn(),
+            disposeGrid,
+            getQuery: () => "*",
+            searchInputEl: { dataset: { mjrSemanticMode: "0" } },
+            state: {},
+        });
+
+        await controller.reloadGrid();
+
+        expect(gridContainer.dataset.mjrScope).toBe("custom");
+        expect(gridContainer.dataset.mjrCustomRootId).toBe("");
+        expect(loadAssets).toHaveBeenCalled();
+        expect(disposeGrid).not.toHaveBeenCalled();
+    });
 });

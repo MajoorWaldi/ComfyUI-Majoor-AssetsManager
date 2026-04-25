@@ -157,6 +157,7 @@ export const DEFAULT_SETTINGS = {
     },
     ai: {
         vectorSearchEnabled: true,
+        vectorCaptionOnIndex: false,
         verboseAiLogs: false,
     },
     executionGrouping: {
@@ -710,11 +711,15 @@ export async function syncBackendVectorSearchSettings() {
             prefs.enabled,
             settings.ai.vectorSearchEnabled ?? true,
         );
+        settings.ai.vectorCaptionOnIndex = _safeBool(
+            prefs.caption_on_index ?? prefs.captionOnIndex,
+            settings.ai.vectorCaptionOnIndex ?? false,
+        );
         saveMajoorSettings(settings);
         applySettingsToConfig(settings);
         safeDispatchCustomEvent(
             "mjr-settings-changed",
-            { key: "ai.vectorSearchEnabled" },
+            { key: "ai.vectorSearch" },
             { warnPrefix: "[Majoor]" },
         );
     } catch (error) {

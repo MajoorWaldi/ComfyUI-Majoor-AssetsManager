@@ -385,6 +385,8 @@ class _Settings:
         self.sec = {"allow_write": True}
         self.hf_token = ""
         self.ai_verbose_logs = False
+        self.vector_search_enabled = True
+        self.vector_caption_on_index = False
 
     async def get_output_directory(self):
         return self.output
@@ -409,6 +411,20 @@ class _Settings:
         if media is not None:
             self.prefs["media"] = bool(media)
         return Result.Ok(dict(self.prefs))
+
+    async def get_vector_search_enabled(self):
+        return bool(self.vector_search_enabled)
+
+    async def set_vector_search_enabled(self, enabled):
+        self.vector_search_enabled = bool(enabled)
+        return Result.Ok(self.vector_search_enabled)
+
+    async def get_vector_caption_on_index_enabled(self):
+        return bool(self.vector_caption_on_index)
+
+    async def set_vector_caption_on_index_enabled(self, enabled):
+        self.vector_caption_on_index = bool(enabled)
+        return Result.Ok(self.vector_caption_on_index)
 
     async def get_security_prefs(self, include_secret=False):
         _ = include_secret
@@ -635,6 +651,36 @@ async def test_metadata_fallback_and_security_routes(monkeypatch) -> None:
     assert json.loads(resp4.text).get("ok") is True
     assert settings.sec.get("require_auth") is True
     assert settings.sec.get("allow_insecure_token_transport") is True
+
+
+@pytest.mark.asyncio
+async def test_vector_search_settings_route_includes_caption_on_index(monkeypatch) -> None:
+    settings = _Settings()
+
+    async def _svc():
+        return {"settings": settings}, None
+
+    async def _read_vector(_request):
+        return Result.Ok({"prefs": {"caption_on_index": True}})
+
+    monkeypatch.setattr(health_mod, "_require_services", _svc)
+    monkeypatch.setattr(health_mod, "_csrf_error", lambda _req: None)
+    monkeypatch.setattr(health_mod, "_require_write_access", lambda _req: Result.Ok({}))
+
+    app = _build_health_app()
+
+    req1 = make_mocked_request("GET", "/mjr/am/settings/vector-search", app=app)
+    resp1 = await (await app.router.resolve(req1)).handler(req1)
+    body1 = json.loads(resp1.text)
+    assert body1["data"]["prefs"]["caption_on_index"] is False
+
+    monkeypatch.setattr(health_mod, "_read_json", _read_vector)
+    req2 = make_mocked_request("POST", "/mjr/am/settings/vector-search", app=app)
+    resp2 = await (await app.router.resolve(req2)).handler(req2)
+    body2 = json.loads(resp2.text)
+    assert body2["data"]["prefs"]["enabled"] is True
+    assert body2["data"]["prefs"]["caption_on_index"] is True
+    assert settings.vector_caption_on_index is True
 
 
 @pytest.mark.asyncio

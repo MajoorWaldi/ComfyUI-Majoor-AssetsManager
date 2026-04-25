@@ -26,6 +26,7 @@ from .config import (
     MEDIA_PROBE_BACKEND,
     OUTPUT_ROOT,
     is_execution_grouping_enabled,
+    is_vector_caption_on_index_enabled,
     is_vector_search_enabled,
 )
 from .shared import Result, get_logger
@@ -39,6 +40,7 @@ _OUTPUT_DIRECTORY_KEY = "output_directory_override"
 _METADATA_FALLBACK_IMAGE_KEY = "metadata_fallback_image"
 _METADATA_FALLBACK_MEDIA_KEY = "metadata_fallback_media"
 _VECTOR_SEARCH_ENABLED_KEY = "vector_search_enabled"
+_VECTOR_CAPTION_ON_INDEX_KEY = "vector_caption_on_index"
 _EXECUTION_GROUPING_ENABLED_KEY = "execution_grouping_enabled"
 _HUGGINGFACE_TOKEN_KEY = "huggingface_token"
 _AI_VERBOSE_LOGS_KEY = "ai_verbose_logs"
@@ -160,6 +162,7 @@ class AppSettings:
         self._default_metadata_fallback_image = True
         self._default_metadata_fallback_media = True
         self._default_vector_search_enabled = bool(is_vector_search_enabled())
+        self._default_vector_caption_on_index = bool(is_vector_caption_on_index_enabled())
         self._default_execution_grouping_enabled = bool(is_execution_grouping_enabled())
         self._default_ai_verbose_logs = self._env_ai_verbose_logs_enabled()
         self._default_route_verbose_logs = self._env_route_verbose_logs_enabled()
@@ -902,6 +905,22 @@ class AppSettings:
             self._cache.put(_VECTOR_SEARCH_ENABLED_KEY, "1" if enabled else "0", version=current_version)
             return enabled
 
+    async def get_vector_caption_on_index_enabled(self) -> bool:
+        """Return persisted automatic vector-caption preference."""
+        async with self._lock:
+            current_version = await self._get_settings_version()
+            cached = self._cache.get(_VECTOR_CAPTION_ON_INDEX_KEY, version=current_version)
+            if cached is not None:
+                return parse_bool(cached, self._default_vector_caption_on_index)
+            raw = await self._read_setting(_VECTOR_CAPTION_ON_INDEX_KEY)
+            enabled = (
+                parse_bool(raw, self._default_vector_caption_on_index)
+                if raw is not None
+                else self._default_vector_caption_on_index
+            )
+            self._cache.put(_VECTOR_CAPTION_ON_INDEX_KEY, "1" if enabled else "0", version=current_version)
+            return enabled
+
     def _cached_vector_search_pref(self, current_version: int) -> bool | None:
         cached = self._cache.get(_VECTOR_SEARCH_ENABLED_KEY, version=current_version)
         if cached is None:
@@ -930,6 +949,24 @@ class AppSettings:
                     pass
             current_version = int(bump.data or await self._get_settings_version() or 0)
             self._cache.put(_VECTOR_SEARCH_ENABLED_KEY, "1" if normalized else "0", version=current_version)
+            return Result.Ok(normalized)
+
+    async def set_vector_caption_on_index_enabled(self, enabled: Any) -> Result[bool]:
+        """Persist automatic vector-caption preference and apply runtime env vars."""
+        normalized = parse_bool(enabled, self._default_vector_caption_on_index)
+        async with self._lock:
+            res = await self._write_setting(_VECTOR_CAPTION_ON_INDEX_KEY, "1" if normalized else "0")
+            if not res.ok:
+                return Result.Err("DB_ERROR", res.error or "Failed to persist vector_caption_on_index")
+            self._set_vector_caption_on_index_env_vars(normalized)
+            bump = await self._bump_settings_version_locked()
+            if not bump.ok:
+                try:
+                    logger.warning("Failed to bump settings version: %s", bump.error)
+                except Exception:
+                    pass
+            current_version = int(bump.data or await self._get_settings_version() or 0)
+            self._cache.put(_VECTOR_CAPTION_ON_INDEX_KEY, "1" if normalized else "0", version=current_version)
             return Result.Ok(normalized)
 
     async def get_execution_grouping_enabled(self) -> bool:
@@ -1212,6 +1249,14 @@ class AppSettings:
         except Exception:
             return
 
+    def _set_vector_caption_on_index_env_vars(self, enabled: bool) -> None:
+        value = "1" if enabled else "0"
+        try:
+            os.environ["MJR_AM_VECTOR_CAPTION_ON_INDEX"] = value
+            os.environ["MAJOOR_VECTOR_CAPTION_ON_INDEX"] = value
+        except Exception:
+            return
+
     def _set_ai_verbose_logs_env_vars(self, enabled: bool) -> None:
         value = "1" if enabled else "0"
         try:
@@ -1443,20 +1488,33 @@ class AppSettings:
             logger.warning("Failed to restore output directory override on startup: %s", exc)
 
     async def apply_vector_search_override_on_startup(self) -> None:
-        """Restore vector-search enabled preference into environment on startup."""
+        """Restore vector-search preferences into environment on startup."""
         try:
             async with self._lock:
                 raw = await self._read_setting(_VECTOR_SEARCH_ENABLED_KEY)
                 enabled = parse_bool(raw, self._default_vector_search_enabled) if raw is not None else self._default_vector_search_enabled
                 self._set_vector_search_env_vars(enabled)
                 self._cache.put(_VECTOR_SEARCH_ENABLED_KEY, "1" if enabled else "0", version=int(await self._get_settings_version() or 0))
+                caption_raw = await self._read_setting(_VECTOR_CAPTION_ON_INDEX_KEY)
+                caption_enabled = (
+                    parse_bool(caption_raw, self._default_vector_caption_on_index)
+                    if caption_raw is not None
+                    else self._default_vector_caption_on_index
+                )
+                self._set_vector_caption_on_index_env_vars(caption_enabled)
+                self._cache.put(
+                    _VECTOR_CAPTION_ON_INDEX_KEY,
+                    "1" if caption_enabled else "0",
+                    version=int(await self._get_settings_version() or 0),
+                )
                 startup_log_info(
                     logger,
-                    "Restored vector search setting on startup: %s",
+                    "Restored vector search settings on startup: search=%s caption_on_index=%s",
                     "enabled" if enabled else "disabled",
+                    "enabled" if caption_enabled else "disabled",
                 )
         except Exception as exc:
-            logger.warning("Failed to restore vector search setting on startup: %s", exc)
+            logger.warning("Failed to restore vector search settings on startup: %s", exc)
 
     async def apply_execution_grouping_override_on_startup(self) -> None:
         """Restore execution-grouping enabled preference into environment on startup."""

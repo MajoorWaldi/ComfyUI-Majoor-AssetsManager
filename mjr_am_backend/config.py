@@ -635,6 +635,15 @@ def is_vector_index_on_scan_enabled() -> bool:
     )
 
 
+def is_vector_caption_on_index_enabled() -> bool:
+    """Return whether automatic vector indexing may run Florence captioning."""
+    return _env_bool(
+        False,
+        "MJR_AM_VECTOR_CAPTION_ON_INDEX",
+        "MAJOOR_VECTOR_CAPTION_ON_INDEX",
+    )
+
+
 def is_execution_grouping_enabled() -> bool:
     """Return runtime toggle for job_id / stack_id execution grouping logic."""
     return _env_bool(

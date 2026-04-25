@@ -13,6 +13,7 @@ from mjr_am_backend.settings import (
     _SECURITY_API_TOKEN_HASH_KEY,
     _SECURITY_API_TOKEN_KEY,
     _SETTINGS_VERSION_KEY,
+    _VECTOR_CAPTION_ON_INDEX_KEY,
     AppSettings,
 )
 from mjr_am_backend.shared import Result
@@ -230,6 +231,25 @@ async def test_probe_backend_get_set_paths(monkeypatch):
 
     monkeypatch.setattr(s, "_cache_ttl_s", -1)
     assert await s.get_probe_backend() == "ffprobe"
+
+
+@pytest.mark.asyncio
+async def test_vector_caption_on_index_get_set_and_startup_restore(monkeypatch):
+    db = _DB()
+    s = AppSettings(db)
+    monkeypatch.delenv("MJR_AM_VECTOR_CAPTION_ON_INDEX", raising=False)
+    monkeypatch.delenv("MAJOOR_VECTOR_CAPTION_ON_INDEX", raising=False)
+
+    assert await s.get_vector_caption_on_index_enabled() is False
+
+    out = await s.set_vector_caption_on_index_enabled(True)
+    assert out.ok and out.data is True
+    assert db.store.get(_VECTOR_CAPTION_ON_INDEX_KEY) == "1"
+    assert os.environ.get("MJR_AM_VECTOR_CAPTION_ON_INDEX") == "1"
+
+    monkeypatch.setenv("MJR_AM_VECTOR_CAPTION_ON_INDEX", "0")
+    await s.apply_vector_search_override_on_startup()
+    assert os.environ.get("MJR_AM_VECTOR_CAPTION_ON_INDEX") == "1"
 
 
 def test_cached_probe_backend_helper_paths():

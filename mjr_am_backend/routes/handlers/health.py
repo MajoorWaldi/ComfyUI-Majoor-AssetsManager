@@ -233,6 +233,17 @@ def _extract_vector_search_payload(body: dict) -> object | None:
     return None
 
 
+def _extract_vector_caption_on_index_payload(body: dict) -> object | None:
+    for key in ("caption_on_index", "captionOnIndex"):
+        if key in body:
+            return body.get(key)
+    prefs = body.get("prefs") if isinstance(body.get("prefs"), dict) else {}
+    if isinstance(prefs, dict):
+        for key in ("caption_on_index", "captionOnIndex"):
+            if key in prefs:
+                return prefs.get(key)
+    return None
+
 
 def _str_token_from_body(source: dict, *keys: str) -> str | None:
     for key in keys:
@@ -951,7 +962,17 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
             return _json_response(Result.Err("SERVICE_UNAVAILABLE", "Settings service unavailable"))
 
         enabled = await settings_service.get_vector_search_enabled()
-        return _json_response(Result.Ok({"prefs": {"enabled": bool(enabled)}}))
+        caption_on_index = await settings_service.get_vector_caption_on_index_enabled()
+        return _json_response(
+            Result.Ok(
+                {
+                    "prefs": {
+                        "enabled": bool(enabled),
+                        "caption_on_index": bool(caption_on_index),
+                    }
+                }
+            )
+        )
 
     @routes.post("/mjr/am/settings/vector-search")
     async def update_vector_search_settings(request):
@@ -976,10 +997,21 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
         body = body_res.data or {}
 
         enabled = _extract_vector_search_payload(body)
-        if enabled is None:
-            return _json_response(Result.Err("INVALID_INPUT", "Missing vector-search enabled value"))
+        caption_on_index = _extract_vector_caption_on_index_payload(body)
+        if enabled is None and caption_on_index is None:
+            return _json_response(Result.Err("INVALID_INPUT", "Missing vector-search settings value"))
 
-        result = await settings_service.set_vector_search_enabled(enabled)
+        if enabled is not None:
+            result = await settings_service.set_vector_search_enabled(enabled)
+        else:
+            result = Result.Ok(await settings_service.get_vector_search_enabled())
+        caption_result = (
+            await settings_service.set_vector_caption_on_index_enabled(caption_on_index)
+            if caption_on_index is not None
+            else Result.Ok(await settings_service.get_vector_caption_on_index_enabled())
+        )
+        if result.ok and not caption_result.ok:
+            result = caption_result
         if not result.ok:
             await _audit_settings_write(
                 svc,
@@ -988,9 +1020,17 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
                 "settings:vector_search",
                 result,
                 enabled=enabled,
+                caption_on_index=caption_on_index,
             )
             return _json_response(result)
-        response_result = Result.Ok({"prefs": {"enabled": bool(result.data)}})
+        response_result = Result.Ok(
+            {
+                "prefs": {
+                    "enabled": bool(result.data),
+                    "caption_on_index": bool(caption_result.data),
+                }
+            }
+        )
         await _audit_settings_write(
             svc,
             request,
@@ -998,6 +1038,7 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
             "settings:vector_search",
             response_result,
             enabled=enabled,
+            caption_on_index=caption_on_index,
         )
         return _json_response(response_result)
 
