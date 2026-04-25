@@ -121,8 +121,8 @@ export class WorkflowNodesTab {
     }
 
     _maybeRebuildList() {
-        const graph = _getGraph();
-        const tree = graph ? _buildNodeTree(graph) : [];
+        const selected = _getSelectedNodes();
+        const tree = selected.map((node) => ({ node, children: [] }));
         const q = (this._searchQuery || "").toLowerCase().trim();
         const filtered = q ? _filterTree(tree, q) : tree;
         const sig = _treeSignature(filtered);
@@ -336,6 +336,24 @@ function _getSelectedNodeIds() {
         }
     } catch (e) {
         console.debug?.("[MFV] _getSelectedNodeIds", e);
+    }
+    return [];
+}
+
+function _getSelectedNodes() {
+    try {
+        const app = getComfyApp();
+        const selected = app?.canvas?.selected_nodes ?? app?.canvas?.selectedNodes ?? null;
+        if (!selected) return [];
+        if (Array.isArray(selected)) return selected.filter((n) => n && typeof n === "object");
+        if (selected instanceof Map) {
+            return Array.from(selected.values()).filter((n) => n && typeof n === "object");
+        }
+        if (typeof selected === "object") {
+            return Object.values(selected).filter((n) => n && typeof n === "object");
+        }
+    } catch (e) {
+        console.debug?.("[MFV] _getSelectedNodes", e);
     }
     return [];
 }
