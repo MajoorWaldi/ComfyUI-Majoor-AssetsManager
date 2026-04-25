@@ -39,7 +39,7 @@ def get_watcher_settings() -> WatcherSettings:
 def update_watcher_settings(*, debounce_ms: int | None = None, dedupe_ttl_ms: int | None = None) -> WatcherSettings:
     with _lock:
         if debounce_ms is not None:
-            _state["debounce_ms"] = _clamp(int(debounce_ms), 50, 5000)
+            _state["debounce_ms"] = _clamp(int(debounce_ms), 50, 60_000)
         if dedupe_ttl_ms is not None:
-            _state["dedupe_ttl_ms"] = _clamp(int(dedupe_ttl_ms), 100, 30_000)
+            _state["dedupe_ttl_ms"] = _clamp(int(dedupe_ttl_ms), 100, 120_000)
         return get_watcher_settings()

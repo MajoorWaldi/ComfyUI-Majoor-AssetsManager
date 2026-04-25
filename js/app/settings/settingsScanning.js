@@ -202,10 +202,10 @@ export function registerScanningSettings(safeAddSetting, settings, notifyApplied
         tooltip: t("setting.watcher.debounce.desc") + " (env: MJR_WATCHER_DEBOUNCE_MS)",
         type: "number",
         defaultValue: settings.watcher?.debounceMs ?? APP_DEFAULTS.WATCHER_DEBOUNCE_MS,
-        attrs: { min: 50, max: 5000, step: 50 },
+        attrs: { min: 50, max: 60000, step: 50 },
         onChange: async (value) => {
             const fallback = APP_DEFAULTS.WATCHER_DEBOUNCE_MS;
-            const clamped = _clampWatcherValue(value, fallback, 50, 5000);
+            const clamped = _clampWatcherValue(value, fallback, 50, 60000);
             const previous = settings.watcher?.debounceMs ?? fallback;
             if (clamped === previous) return;
             settings.watcher = settings.watcher || {};
@@ -239,10 +239,10 @@ export function registerScanningSettings(safeAddSetting, settings, notifyApplied
         tooltip: t("setting.watcher.dedupe.desc") + " (env: MJR_WATCHER_DEDUPE_TTL_MS)",
         type: "number",
         defaultValue: settings.watcher?.dedupeTtlMs ?? APP_DEFAULTS.WATCHER_DEDUPE_TTL_MS,
-        attrs: { min: 100, max: 30000, step: 100 },
+        attrs: { min: 100, max: 120000, step: 100 },
         onChange: async (value) => {
             const fallback = APP_DEFAULTS.WATCHER_DEDUPE_TTL_MS;
-            const clamped = _clampWatcherValue(value, fallback, 100, 30000);
+            const clamped = _clampWatcherValue(value, fallback, 100, 120000);
             const previous = settings.watcher?.dedupeTtlMs ?? fallback;
             if (clamped === previous) return;
             settings.watcher = settings.watcher || {};

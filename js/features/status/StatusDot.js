@@ -234,6 +234,21 @@ function emitGlobalGridReload(reason = "status-action") {
     }
 }
 
+function markGridDirty(reason = "status-action", detail = {}) {
+    try {
+        window?.dispatchEvent?.(
+            new CustomEvent("mjr-grid-dirty", {
+                detail: {
+                    reason: String(reason || "status-action"),
+                    ...detail,
+                },
+            }),
+        );
+    } catch (e) {
+        console.debug?.(e);
+    }
+}
+
 function requestOpenMessageHistory(reason = "") {
     try {
         window?.dispatchEvent?.(
@@ -1430,7 +1445,13 @@ export async function triggerScan(
                 },
             ),
         );
-        emitGlobalGridReload("scan-complete");
+        markGridDirty("scan-complete", {
+            stats: {
+                added: stats.added || 0,
+                updated: stats.updated || 0,
+                skipped: stats.skipped || 0,
+            },
+        });
 
         // Refresh status after 2 seconds
         setTimeout(() => {
@@ -1646,8 +1667,14 @@ export async function updateStatus(
           ? `${ENDPOINTS.HEALTH_COUNTERS}?scope=custom&custom_root_id=${encodeURIComponent(String(desiredCustomRootId || ""))}`
           : `${ENDPOINTS.HEALTH_COUNTERS}?scope=${encodeURIComponent(desiredScope || "output")}`;
     const lightweight = !!options?.lightweight;
+    const scanAuxBackoffActive =
+        !force &&
+        meta &&
+        typeof meta === "object" &&
+        Number(meta._scanAuxBackoffUntil || 0) > Date.now();
     const shouldFetchAux =
-        force || !lightweight || !(meta && typeof meta === "object" && meta._auxCached);
+        !scanAuxBackoffActive &&
+        (force || !lightweight || !(meta && typeof meta === "object" && meta._auxCached));
 
     let result;
     let healthResult;
@@ -1699,6 +1726,9 @@ export async function updateStatus(
 
     if (result.ok) {
         const counters = result.data;
+        if (meta && typeof meta === "object") {
+            meta._scanAuxBackoffUntil = counters?.scan_active ? Date.now() + 30_000 : 0;
+        }
         const totalAssets = counters.total_assets || 0;
         const withWorkflows = counters.with_workflows ?? 0;
         const withGenerationData = counters.with_generation_data ?? 0;

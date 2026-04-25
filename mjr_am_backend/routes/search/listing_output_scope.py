@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 from aiohttp import web
-
 from mjr_am_backend.shared import Result
 
 
@@ -55,8 +55,17 @@ async def handle_output_scope(
     )
     try:
         is_initial = query == "*" and offset == 0 and not (filters or None)
-        total = int((out_res.data or {}).get("total") or 0) if out_res.ok else 0
-        if is_initial and out_res.ok and total == 0:
+        out_data = out_res.data or {}
+        assets = out_data.get("assets") or []
+        raw_total = out_data.get("total")
+        total_known = raw_total is not None
+        try:
+            total = int(raw_total or 0) if total_known else None
+        except Exception:
+            total = None
+            total_known = False
+
+        if is_initial and out_res.ok and total_known and total == 0 and not assets:
             await kickoff_background_scan(
                 str(Path(output_root)),
                 source="output",

@@ -502,8 +502,10 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
                     if index_svc and hasattr(index_svc, "get_runtime_status"):
                         idx_rt = index_svc.get_runtime_status() or {}
                         result.data["enrichment_queue_length"] = int(idx_rt.get("enrichment_queue_length") or 0)
+                        result.data["scan_active"] = bool(idx_rt.get("scan_active"))
                 except Exception:
                     result.data["enrichment_queue_length"] = 0
+                    result.data["scan_active"] = False
                 try:
                     watcher = svc.get("watcher") if isinstance(svc, dict) else None
                     watcher_scope = svc.get("watcher_scope") if isinstance(svc, dict) else None

@@ -295,7 +295,7 @@ function buildDisplayAssets(assets) {
     // passes over `list`, halving work on large grids.
     for (const asset of list) {
         if (!asset) continue;
-        const filenameKey = getFilenameKey(asset?.filename);
+        const filenameKey = getDisplayGroupKey(asset);
         if (!filenameKey) {
             asset._mjrNameCollision = false;
             delete asset._mjrNameCollisionCount;
@@ -345,6 +345,15 @@ function buildDisplayAssets(assets) {
     }
 
     return output;
+}
+
+function getDisplayGroupKey(asset) {
+    const filenameKey = getFilenameKey(asset?.filename);
+    if (!filenameKey) return "";
+    const source = String(asset?.source || asset?.type || "").trim().toLowerCase();
+    const rootId = String(asset?.root_id || asset?.custom_root_id || "").trim().toLowerCase();
+    const subfolder = String(asset?.subfolder || "").trim().toLowerCase();
+    return `${source}|${rootId}|${subfolder}|${filenameKey}`;
 }
 
 const displayAssets = computed(() => buildDisplayAssets(state.assets));
@@ -1047,6 +1056,9 @@ function handleCardDblclick(asset) {
 }
 
 let scrollCleanup = null;
+let fillViewportPromise = null;
+let lastFillViewportAt = 0;
+let lastFillViewportKey = "";
 
 function _forceVirtualizerMeasure() {
     updateHostWidth();
@@ -1118,11 +1130,22 @@ async function maybeFillViewport() {
     if (!props.virtualize || !hasMeasuredHostWidth.value || state.loading || state.done) return;
     const element = scrollElementRef.value;
     if (!element) return;
+    const assetCount = Array.isArray(state.assets) ? state.assets.length : 0;
+    const fillKey = `${assetCount}::${columnCount.value}`;
+    const now = Date.now();
+    if (fillViewportPromise) return;
+    if (fillKey === lastFillViewportKey && now - lastFillViewportAt < 500) return;
     await nextTick();
     const scrollHeight = Number(element.scrollHeight || 0) || 0;
     const clientHeight = Number(element.clientHeight || 0) || 0;
     if (scrollHeight <= clientHeight + 40) {
-        void loader.loadNextPage();
+        lastFillViewportAt = Date.now();
+        lastFillViewportKey = fillKey;
+        fillViewportPromise = Promise.resolve(loader.loadNextPage())
+            .catch((e) => console.debug?.(e))
+            .finally(() => {
+                fillViewportPromise = null;
+            });
     }
 }
 
@@ -1308,7 +1331,7 @@ defineExpose({
         style="position: relative; min-height: 100%;"
     >
         <div
-            v-if="state.loading"
+            v-if="state.loading && !state.assets.length"
             class="mjr-grid-loading-overlay"
             style="position:absolute; inset:0; z-index:4; display:flex; align-items:flex-start; justify-content:center; padding:14px; pointer-events:none; background:rgba(20,22,28,0.55); backdrop-filter:blur(2px);"
         >

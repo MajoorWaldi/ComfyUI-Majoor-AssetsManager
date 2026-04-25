@@ -615,6 +615,11 @@ class IndexService:
             queue_len = int(self._enricher.get_queue_length())
         except Exception:
             queue_len = 0
+        try:
+            scan_active = bool(getattr(self._scanner, "_current_scan_id", None))
+        except Exception:
+            scan_active = False
         return {
             "enrichment_queue_length": queue_len,
+            "scan_active": scan_active,
         }

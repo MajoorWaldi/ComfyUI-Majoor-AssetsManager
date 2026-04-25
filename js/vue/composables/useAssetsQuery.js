@@ -59,6 +59,8 @@ export function createAssetsQueryController({
     let pendingAutoLoadPromise = null;
     let pendingAutoLoadDelayMs = 0;
     let lastKnownVisible = true;
+    const mountedAt = Date.now();
+    const BOOT_RELOAD_GRACE_MS = 8000;
 
     const isGridVisible = () => {
         try {
@@ -94,7 +96,21 @@ export function createAssetsQueryController({
         return lastKnownVisible;
     };
 
-    const hasVisibleGridCards = () => {
+    const hasGridAssets = () => {
+        try {
+            const state = gridContainer?._mjrGetGridState?.();
+            if (Array.isArray(state?.assets) && state.assets.length > 0) return true;
+        } catch (e) {
+            console.debug?.(e);
+        }
+
+        try {
+            const assets = gridContainer?._mjrGetAssets?.();
+            if (Array.isArray(assets) && assets.length > 0) return true;
+        } catch (e) {
+            console.debug?.(e);
+        }
+
         try {
             return gridContainer?.querySelector?.(".mjr-asset-card") != null;
         } catch (e) {
@@ -193,13 +209,7 @@ export function createAssetsQueryController({
             return;
         }
 
-        let hasCards = false;
-        try {
-            hasCards = gridContainer.querySelector(".mjr-asset-card") != null;
-        } catch (e) {
-            console.debug?.(e);
-        }
-        if (hasCards) return;
+        if (hasGridAssets()) return;
         if (String(getScope() || "output") !== "output") return;
         if (String(getQuery() || "*") !== "*") return;
 
@@ -241,7 +251,6 @@ export function createAssetsQueryController({
         let lastKnownIndexEnd = null;
         let lastKnownTotalAssets = null;
         let hasSeenFirstCounters = false;
-        let lastAutoReloadAt = 0;
 
         return async (counters = {}) => {
             if (!hasSeenFirstCounters) {
@@ -258,6 +267,7 @@ export function createAssetsQueryController({
             const totalAssets = Number(counters.total_assets ?? null);
             const stableQuery = String(getStableQuery() || "*").trim() || "*";
             const isDefaultBrowse = isDefaultBrowseContext(state, stableQuery);
+            const inBootReloadGrace = Date.now() - mountedAt < BOOT_RELOAD_GRACE_MS;
 
             const totalDelta =
                 Number.isFinite(totalAssets) && Number.isFinite(lastKnownTotalAssets)
@@ -277,6 +287,11 @@ export function createAssetsQueryController({
                 lastKnownIndexEnd = counters.last_index_end;
                 return;
             }
+            if (inBootReloadGrace) {
+                lastKnownScan = counters.last_scan_end;
+                lastKnownIndexEnd = counters.last_index_end;
+                return;
+            }
 
             const recentUpsertMs = Date.now() - Number(runtimeWindow?.__mjrLastAssetUpsert || 0);
             const upsertHandledRecently = recentUpsertMs < 15000;
@@ -289,7 +304,7 @@ export function createAssetsQueryController({
                 hasNewTotal &&
                 !hasNewScan &&
                 !hasNewIndexEnd &&
-                hasVisibleGridCards();
+                hasGridAssets();
 
             if (hasNewIndexEnd) lastKnownIndexEnd = counters.last_index_end;
             const needsFallbackReload =
@@ -312,36 +327,26 @@ export function createAssetsQueryController({
             }
             if (upsertHandledRecently) return;
             if (!hasNewScan && !hasNewTotal && !needsFallbackReload) return;
-            if (!syncVisibilityState()) return;
-
-            try {
-                const now = Date.now();
-                if (now - Number(lastAutoReloadAt || 0) < 15000) return;
-            } catch (e) {
-                console.debug?.(e);
-            }
-
-            try {
-                const recentInteraction =
-                    Date.now() - Number(getRecentUserInteractionAt() || 0) < 2000;
-                if (recentInteraction) return;
-            } catch (e) {
-                console.debug?.(e);
-            }
 
             lastKnownScan = counters.last_scan_end;
             lastKnownIndexEnd = counters.last_index_end;
 
             try {
-                await queuedReload();
+                runtimeWindow.__mjrGridDirty = true;
+                runtimeWindow.dispatchEvent?.(
+                    new CustomEvent("mjr-grid-dirty", {
+                        detail: {
+                            reason: hasNewScan
+                                ? "scan"
+                                : hasNewIndexEnd
+                                  ? "index"
+                                  : "total",
+                            counters,
+                        },
+                    }),
+                );
             } catch (e) {
                 console.debug?.(e);
-            }
-
-            try {
-                lastAutoReloadAt = Date.now();
-            } catch {
-                lastAutoReloadAt = 0;
             }
 
             try {

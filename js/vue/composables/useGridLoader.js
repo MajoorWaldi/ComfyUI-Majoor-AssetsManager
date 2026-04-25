@@ -841,10 +841,10 @@ export function useGridLoader({
         );
     }
 
-    function finalizeLoad({ title = "" } = {}) {
+    function finalizeLoad({ title = "", showEmptyMessage = true } = {}) {
         clearLoadingMessage();
         if (!(Array.isArray(state.assets) && state.assets.length)) {
-            if (!state.statusMessage || !state.statusError) {
+            if (showEmptyMessage && (!state.statusMessage || !state.statusError)) {
                 setStatusMessage("No assets found");
             }
         } else {
@@ -878,23 +878,14 @@ export function useGridLoader({
             Math.min(APP_CONFIG.MAX_PAGE_SIZE, APP_CONFIG.DEFAULT_PAGE_SIZE),
         );
         const loadingStartedAt = Date.now();
-        // Dynamically calculate max empty batches based on total assets
-        // For 7000+ assets: allows ~200+ empty batches before giving up
-        // For smaller sets: proportional (min 8, max 200)
-        const totalAssets = Number(state.total || 0) || 1000;
-        const MAX_EMPTY_APPEND_BATCHES = Math.min(
-            200,
-            Math.max(8, Math.ceil((totalAssets / 1000) * 30))
-        );
         state.loading = true;
         clearStatusMessage();
         try {
-            let emptyAppendBatches = 0;
-            while (!state.done) {
+            if (!state.done) {
                 if (!canLoadFromHost()) {
                     return { ok: true, skipped: true, hidden: true };
                 }
-                const currentLimit = getAdaptivePageLimit(baseLimit, emptyAppendBatches);
+                const currentLimit = getAdaptivePageLimit(baseLimit, 0);
                 const page = await fetchPage(state.query, currentLimit, state.offset, {
                     requestId: Number(state.requestId ?? 0) || 0,
                     signal: state.abortController?.signal || null,
@@ -958,17 +949,11 @@ export function useGridLoader({
                     ? Number(appendAssets(gridContainer, pageAssets) || 0) || 0
                     : 0;
                 state.offset += consumedCount;
-                const wasDone = state.done;
                 state.done =
                     consumedCount <= 0 ||
                     (Number.isFinite(Number(state.total)) &&
                         Number(state.total || 0) > 0 &&
                         state.offset >= Number(state.total || 0));
-
-                // Debug logging
-                if (emptyAppendBatches > 0 || state.done) {
-                    mjrDbg(`[Grid LoadPage] offset=${state.offset}, fetched=${fetchedCount}, consumed=${consumedCount}, added=${addedCount}, limit=${currentLimit}, done=${state.done}, visibleCount=${state.assets.length}, total=${state.total}, emptyBatches=${emptyAppendBatches}/${MAX_EMPTY_APPEND_BATCHES}`);
-                }
 
                 if (state.done || addedCount > 0) {
                     if (addedCount > 0 || state.done) {
@@ -981,19 +966,13 @@ export function useGridLoader({
                     };
                 }
 
-                // If a fetched page adds zero visible cards (dedupe/hide), keep fetching
-                // so infinite scroll doesn't stall at the current bottom.
-                // Limit is now dynamic based on total assets to handle large libraries.
-                emptyAppendBatches += 1;
-                if (emptyAppendBatches >= MAX_EMPTY_APPEND_BATCHES) {
-                    mjrDbg(`[Grid] Empty append batches limit reached: ${emptyAppendBatches}/${MAX_EMPTY_APPEND_BATCHES}`);
-                    return {
-                        ok: true,
-                        count: 0,
-                        total: state.total,
-                        skippedEmpty: true,
-                    };
-                }
+                mjrDbg(`[Grid LoadPage] fetched one page with no visible additions: offset=${state.offset}, fetched=${fetchedCount}, consumed=${consumedCount}, added=${addedCount}, limit=${currentLimit}, done=${state.done}, visibleCount=${state.assets.length}, total=${state.total}`);
+                return {
+                    ok: true,
+                    count: fetchedCount,
+                    total: state.total,
+                    skippedEmpty: true,
+                };
             }
 
             return {
@@ -1202,16 +1181,16 @@ export function useGridLoader({
             clearPrefetchTimer();
             clearPendingUpserts();
             clearStatusMessage();
-            // Disabling Fast Path: Always clear assets immediately instead of keeping stale ones
-            // if (deferVisualResetUntilNextPage) {
-            //    state.query = safeQuery;
-            //    state.offset = 0;
-            //    state.total = null;
-            //    state.done = false;
-            // } else {
-            //    resetAssets({ query: safeQuery, total: null, done: false });
-            // }
-            resetAssets({ query: safeQuery, total: null, done: false });
+            if (deferVisualResetUntilNextPage) {
+                state.query = safeQuery;
+                state.offset = 0;
+                state.total = null;
+                state.done = false;
+                resetAssetCollectionsState(state);
+            } else {
+                resetAssets({ query: safeQuery, total: null, done: false });
+                resetAssetCollectionsState(state);
+            }
             setLoadingMessage(
                 safeQuery === "*" ? "Loading assets..." : `Searching for "${safeQuery}"...`,
             );
@@ -1299,7 +1278,15 @@ export function useGridLoader({
         }
 
         if (reset) {
-            finalizeLoad({ title: safeQuery });
+            const showEmptyMessage = !(
+                result?.skipped ||
+                result?.hidden ||
+                result?.aborted ||
+                result?.stale ||
+                result?.preservedCached ||
+                result?.busy
+            );
+            finalizeLoad({ title: safeQuery, showEmptyMessage });
         }
         return {
             ok: !!result?.ok,

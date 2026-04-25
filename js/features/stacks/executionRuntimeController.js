@@ -77,7 +77,9 @@ export function createExecutionRuntimeController({
         return {
             groupingEnabled,
             useExecutionBuffer: groupingEnabled,
-            usePostExecutionScan: !groupingEnabled,
+            // Post-execution directory scans race the watcher and live file indexing,
+            // then emit scan-complete reloads while the grid is already showing assets.
+            usePostExecutionScan: false,
             allowLiveStackFinalize: groupingEnabled,
         };
     }
@@ -359,17 +361,6 @@ export function createExecutionRuntimeController({
         stackFinalizeQueue.schedule(jobId, delayMs);
     }
 
-    function schedulePostExecutionScan(delayMs = 1200) {
-        schedulePostExecutionWork(() => {
-            post(ENDPOINTS.SCAN, {
-                recursive: true,
-                incremental: true,
-                fast: true,
-                background_metadata: true,
-            }).catch((error) => reportError(error, "executionRuntime.execution_end.scan"));
-        }, delayMs);
-    }
-
     function flushBufferedGenerationIndex(jobId) {
         const policy = getExecutionRuntimePolicy();
         const promptId = String(jobId || "").trim();
@@ -566,19 +557,15 @@ export function createExecutionRuntimeController({
             clearOrphanGenerationEntries();
         }
         if (String(event?.type || "") === "execution_success") {
-            if (policy.usePostExecutionScan) {
-                schedulePostExecutionScan(executionIdleGraceMs);
-            } else {
-                const flushDelayMs = hasBufferedGenerationFiles(promptId)
-                    ? Math.min(executionIdleGraceMs, POST_EXECUTION_BUFFER_FLUSH_FAST_MS)
-                    : executionIdleGraceMs;
-                schedulePostExecutionWork(() => {
-                    if (promptId) {
-                        flushOrphanGenerationEntries(promptId);
-                    }
-                    flushBufferedGenerationIndex(promptId);
-                }, flushDelayMs);
-            }
+            const flushDelayMs = hasBufferedGenerationFiles(promptId)
+                ? Math.min(executionIdleGraceMs, POST_EXECUTION_BUFFER_FLUSH_FAST_MS)
+                : executionIdleGraceMs;
+            schedulePostExecutionWork(() => {
+                if (promptId) {
+                    flushOrphanGenerationEntries(promptId);
+                }
+                flushBufferedGenerationIndex(promptId);
+            }, flushDelayMs);
         }
     }
 

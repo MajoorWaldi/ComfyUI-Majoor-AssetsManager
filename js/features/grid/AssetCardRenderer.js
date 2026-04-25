@@ -193,6 +193,12 @@ function getSiblingContextKey(asset) {
     return `${source}|${rootId}|${subfolder}`;
 }
 
+function getFilenameCollisionKey(asset) {
+    const filename = getFilenameKey(asset?.filename);
+    if (!filename) return "";
+    return `${getSiblingContextKey(asset)}|${filename}`;
+}
+
 function getSiblingMatchKey(asset, extUpper = getExtUpper(asset?.filename || "")) {
     const kind = detectKind(asset, extUpper);
     const filename = String(asset?.filename || "").trim();
@@ -292,7 +298,7 @@ export function appendAssets(gridContainer, assets, state, deps) {
     const siblingMaps = ensureSiblingState(state);
     const filenameToAssets = new Map();
     for (const existing of state.assets || []) {
-        const key = getFilenameKey(existing?.filename);
+        const key = getFilenameCollisionKey(existing);
         if (!key) continue;
         let list = filenameToAssets.get(key);
         if (!list) {
@@ -422,7 +428,7 @@ export function appendAssets(gridContainer, assets, state, deps) {
             state.hiddenPngSiblings += 1;
             continue;
         }
-        const fnKey = getFilenameKey(filename);
+        const fnKey = getFilenameCollisionKey(asset);
         if (fnKey) {
             let bucket = filenameToAssets.get(fnKey);
             if (!bucket) {
@@ -457,7 +463,7 @@ export function appendAssets(gridContainer, assets, state, deps) {
         }
         try {
             for (const removed of assetsToRemoveFromState) {
-                const key = getFilenameKey(removed?.filename);
+                const key = getFilenameCollisionKey(removed);
                 if (!key) continue;
                 const bucket = filenameToAssets.get(key);
                 if (!bucket) continue;
