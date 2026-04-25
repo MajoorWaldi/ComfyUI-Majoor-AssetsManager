@@ -10,6 +10,41 @@ from aiohttp import web
 from mjr_am_backend.shared import Result
 
 
+def _extract_total(raw_total):
+    total_known = raw_total is not None
+    try:
+        total = int(raw_total or 0) if total_known else None
+    except Exception:
+        total = None
+        total_known = False
+    return total, total_known
+
+def _prepare_filesystem_response(
+    fs_res, exclude_assets_under_root, dedupe_result_assets_payload, input_root
+):
+    if fs_res.ok and isinstance(fs_res.data, dict):
+        filtered_assets = exclude_assets_under_root(fs_res.data.get("assets") or [], input_root)
+        fs_res.data["assets"] = filtered_assets
+        for asset in filtered_assets:
+            if isinstance(asset, dict):
+                asset["type"] = "output"
+        fs_res.data["scope"] = "output"
+        fs_res.data["mode"] = "filesystem"
+        fs_res.data = dedupe_result_assets_payload(fs_res.data)
+    return fs_res
+
+def _finalize_response(
+    out_res, exclude_assets_under_root, dedupe_result_assets_payload, input_root, sort_key
+):
+    filtered_assets = exclude_assets_under_root((out_res.data or {}).get("assets") or [], input_root)
+    out_res.data["assets"] = filtered_assets
+    for asset in filtered_assets:
+        asset["type"] = "output"
+    payload = dedupe_result_assets_payload({**out_res.data, "scope": "output", "sort": sort_key})
+    return payload
+
+
+
 async def handle_output_scope(
     *,
     query: str,
@@ -58,12 +93,7 @@ async def handle_output_scope(
         out_data = out_res.data or {}
         assets = out_data.get("assets") or []
         raw_total = out_data.get("total")
-        total_known = raw_total is not None
-        try:
-            total = int(raw_total or 0) if total_known else None
-        except Exception:
-            total = None
-            total_known = False
+        total, total_known = _extract_total(raw_total)
 
         if is_initial and out_res.ok and total_known and total == 0 and not assets:
             await kickoff_background_scan(
@@ -85,24 +115,16 @@ async def handle_output_scope(
                 index_service=svc.get("index"),
                 sort=sort_key,
             )
-            if fs_res.ok and isinstance(fs_res.data, dict):
-                filtered_assets = exclude_assets_under_root(fs_res.data.get("assets") or [], input_root)
-                fs_res.data["assets"] = filtered_assets
-                for asset in filtered_assets:
-                    if isinstance(asset, dict):
-                        asset["type"] = "output"
-                fs_res.data["scope"] = "output"
-                fs_res.data["mode"] = "filesystem"
-                fs_res.data = dedupe_result_assets_payload(fs_res.data)
+            fs_res = _prepare_filesystem_response(
+                fs_res, exclude_assets_under_root, dedupe_result_assets_payload, input_root
+            )
             return json_response(fs_res)
     except Exception:
         pass
 
     if not out_res.ok:
         return json_response(out_res)
-    filtered_assets = exclude_assets_under_root((out_res.data or {}).get("assets") or [], input_root)
-    out_res.data["assets"] = filtered_assets
-    for asset in filtered_assets:
-        asset["type"] = "output"
-    payload = dedupe_result_assets_payload({**out_res.data, "scope": "output", "sort": sort_key})
+    payload = _finalize_response(
+        out_res, exclude_assets_under_root, dedupe_result_assets_payload, input_root, sort_key
+    )
     return json_response(Result.Ok(payload))
