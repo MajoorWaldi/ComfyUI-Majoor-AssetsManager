@@ -46,7 +46,6 @@ KNOWN_FEATURE_VIOLATIONS: frozenset[str] = frozenset({
     "js/features/viewer/floatingViewerManager.js",
     "js/features/dnd/DragDrop.js",
     "js/features/viewer/workflowSidebar/NodeWidgetRenderer.js",
-    "js/features/viewer/workflowSidebar/WorkflowSidebar.js",
     "js/features/viewer/workflowSidebar/sidebarRunButton.js",
     "js/features/viewer/workflowSidebar/widgetAdapters.js",
     # waitForComfyApi — should use hostAdapter.ready()
