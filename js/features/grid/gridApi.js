@@ -173,7 +173,25 @@ export function createGridContainer(options = {}) {
 }
 
 function callGrid(container, method, ...args) {
+    const apiMethodByLegacy = {
+        _mjrCaptureAnchor: "captureAnchor",
+        _mjrDispose: "dispose",
+        _mjrHydrateFromSnapshot: "hydrateFromSnapshot",
+        _mjrLoadAssets: "reload",
+        _mjrLoadAssetsFromList: "loadAssetsFromList",
+        _mjrPrepareForScopeSwitch: "prepareForScopeSwitch",
+        _mjrRefreshGrid: "refreshGrid",
+        _mjrRemoveAssets: "removeAssets",
+        _mjrRestoreAnchor: "restoreAnchor",
+        _mjrUpsertAsset: "upsertRealtime",
+        _mjrUpsertAssetNow: "upsertRealtimeNow",
+    };
     try {
+        const apiMethod = apiMethodByLegacy[method];
+        const apiFn = apiMethod ? container?._mjrGridApi?.[apiMethod] : null;
+        if (typeof apiFn === "function") {
+            return apiFn(...args);
+        }
         const fn = container?.[method];
         if (typeof fn === "function") {
             return fn(...args);

@@ -287,7 +287,7 @@ export function createAssetsQueryController({
                 lastKnownIndexEnd = counters.last_index_end;
                 return;
             }
-            if (inBootReloadGrace) {
+            if (inBootReloadGrace && hasGridAssets()) {
                 lastKnownScan = counters.last_scan_end;
                 lastKnownIndexEnd = counters.last_index_end;
                 return;
@@ -345,6 +345,16 @@ export function createAssetsQueryController({
                         },
                     }),
                 );
+            } catch (e) {
+                console.debug?.(e);
+            }
+
+            try {
+                const recentInteractionMs =
+                    Date.now() - Math.max(0, Number(getRecentUserInteractionAt() || 0) || 0);
+                if (!hasGridAssets() && recentInteractionMs > 1500) {
+                    await queuedReload();
+                }
             } catch (e) {
                 console.debug?.(e);
             }

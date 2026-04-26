@@ -1,4 +1,4 @@
-import { safeEscapeId } from "../../features/grid/GridSelectionManager.js";
+import { findAssetCardById } from "../components/grid/gridDomBridge.js";
 
 function normalizeSelectionIds(value) {
     return Array.isArray(value) ? value.map((id) => String(id || "").trim()).filter(Boolean) : [];
@@ -72,9 +72,7 @@ export function bindGridSelectionState({
         }
 
         try {
-            const activeCard = gridContainer.querySelector(
-                `.mjr-asset-card[data-mjr-asset-id="${safeEscapeId(activeId)}"]`,
-            );
+            const activeCard = findAssetCardById(gridContainer, activeId);
             activeCard?.scrollIntoView?.({
                 block: "nearest",
                 behavior: "instant",

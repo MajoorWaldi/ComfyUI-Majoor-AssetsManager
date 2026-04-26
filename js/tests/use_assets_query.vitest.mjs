@@ -326,6 +326,57 @@ describe("useAssetsQuery", () => {
         expect(reloadGrid).toHaveBeenCalledTimes(0);
     });
 
+    it("does not auto-reload on background index updates when the grid already shows cards", async () => {
+        const { createAssetsQueryController } = await import("../vue/composables/useAssetsQuery.js");
+
+        const reloadGrid = vi.fn(async () => ({ ok: true }));
+        const controller = createAssetsQueryController({
+            gridContainer: {
+                ...createGridContainer(),
+                querySelector: vi.fn((selector) =>
+                    selector === ".mjr-asset-card" ? { dataset: { mjrAssetId: "asset-1" } } : null,
+                ),
+            },
+            gridWrapper: createGridWrapper(),
+            gridController: { reloadGrid },
+            captureAnchor: () => null,
+            restoreAnchor: async () => {},
+        });
+
+        const handleCountersUpdate = controller.createCountersUpdateHandler({
+            state: {
+                scope: "output",
+                collectionId: "",
+                kindFilter: "",
+                workflowOnly: false,
+                minRating: 0,
+                minSizeMB: 0,
+                maxSizeMB: 0,
+                minWidth: 0,
+                minHeight: 0,
+                maxWidth: 0,
+                maxHeight: 0,
+                workflowType: "",
+                dateRangeFilter: "",
+                dateExactFilter: "",
+            },
+            getRecentUserInteractionAt: () => 0,
+        });
+
+        await handleCountersUpdate({
+            last_scan_end: "scan-1",
+            last_index_end: "idx-1",
+            total_assets: 100,
+        });
+        await handleCountersUpdate({
+            last_scan_end: "scan-1",
+            last_index_end: "idx-2",
+            total_assets: 100,
+        });
+
+        expect(reloadGrid).toHaveBeenCalledTimes(0);
+    });
+
     it("does not trigger counters-based reload while the grid host is hidden", async () => {
         const { createAssetsQueryController } = await import("../vue/composables/useAssetsQuery.js");
 
