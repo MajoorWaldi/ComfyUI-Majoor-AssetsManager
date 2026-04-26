@@ -16,6 +16,7 @@ import FolderCard from "./FolderCard.vue";
 import { useGridState } from "../../composables/useGridState.js";
 import { useGridLoader } from "../../composables/useGridLoader.js";
 import { isGridHostVisible } from "../../composables/gridVisibility.js";
+import { readRenderedAssetCards } from "./gridDomBridge.js";
 
 const props = defineProps({
     scrollElement: {
@@ -48,7 +49,11 @@ const gridContainerRef = ref(null);
 const hostWidth = ref(1024); // Fallback until ResizeObserver fires
 const hasMeasuredHostWidthOnce = ref(true); // Don't block first render
 const settingsVersion = ref(0);
+const scrollVelocityRows = ref(0);
 const cardFilenameKeys = new WeakMap();
+let measureRaf = 0;
+let lastScrollSampleTop = 0;
+let lastScrollSampleAt = 0;
 
 // ─── Stack service (provide/inject for AssetCardInner Vue buttons) ────────────
 
@@ -134,14 +139,7 @@ function resolveElement(maybeRef) {
 const scrollElementRef = computed(() => resolveElement(props.scrollElement));
 
 function readRenderedCards() {
-    const container = gridContainerRef.value;
-    if (!container) return [];
-    try {
-        return Array.from(container.querySelectorAll(".mjr-asset-card"));
-    } catch (e) {
-        console.debug?.(e);
-        return [];
-    }
+    return readRenderedAssetCards(gridContainerRef.value);
 }
 
 function scrollToAssetId(assetId, { align = "auto" } = {}) {
@@ -439,11 +437,12 @@ function installGridApi(container) {
         emitSelectionChanged();
         return detail.selectedIds;
     };
-    container._mjrRemoveAssets = (assetIds, options = {}) => {
+    const removeAssetsFromGrid = (assetIds, options = {}) => {
         const result = loader.removeAssets(assetIds, options);
         emitGridStats();
         return result;
     };
+    container._mjrRemoveAssets = removeAssetsFromGrid;
     container._mjrGetRenderedCards = () => readRenderedCards();
     container._mjrScrollToAssetId = (assetId, options = {}) => {
         scrollToAssetId(assetId, options);
@@ -457,26 +456,48 @@ function installGridApi(container) {
     container._mjrGetActiveAsset = () => getActiveAsset();
     container._mjrOnKeyboardAssetChanged = (asset) => onKeyboardAssetChanged(asset);
     container._mjrOpenKeyboardDetails = () => openKeyboardDetails();
-    container._mjrLoadAssets = (...args) => loader.loadAssets(...args);
-    container._mjrLoadAssetsFromList = (...args) => loader.loadAssetsFromList(...args);
-    container._mjrPrepareForScopeSwitch = () => loader.prepareGridForScopeSwitch();
-    container._mjrRefreshGrid = () => {
+    const refreshGridApi = () => {
         if (props.applyDefaultSettingsClasses) {
             applyGridSettingsClasses(container);
             settingsVersion.value += 1;
         }
         return loader.refreshGrid();
     };
+    const disposeGridApi = () => {
+        loader.prepareGridForScopeSwitch();
+        loader.dispose();
+        state.cardElements.clear();
+        container._mjrGridApi = null;
+    };
+    container._mjrGridApi = {
+        reload: (...args) => loader.reload(...args),
+        loadAssetsFromList: (...args) => loader.loadAssetsFromList(...args),
+        appendNextPage: (...args) => loader.appendNextPage(...args),
+        refreshHead: (...args) => loader.refreshHead(...args),
+        upsertRealtime: (...args) => loader.upsertRealtime(...args),
+        upsertRealtimeNow: (...args) => loader.upsertAssetNow(...args),
+        prepareForScopeSwitch: () => loader.prepareGridForScopeSwitch(),
+        refreshGrid: refreshGridApi,
+        captureAnchor: () => loader.captureAnchor(),
+        restoreAnchor: (anchor) => loader.restoreAnchor(anchor),
+        hydrateFromSnapshot: (...args) => loader.hydrateFromSnapshot(...args),
+        removeAssets: removeAssetsFromGrid,
+        dispose: disposeGridApi,
+        getCanonicalState: () => loader.getCanonicalState(),
+        getDebugSnapshot: () => loader.getDebugSnapshot(),
+    };
+    container._mjrLoadAssets = (...args) => loader.loadAssets(...args);
+    container._mjrLoadAssetsFromList = (...args) => loader.loadAssetsFromList(...args);
+    container._mjrPrepareForScopeSwitch = () => loader.prepareGridForScopeSwitch();
+    container._mjrRefreshGrid = refreshGridApi;
     container._mjrCaptureAnchor = () => loader.captureAnchor();
     container._mjrRestoreAnchor = (anchor) => loader.restoreAnchor(anchor);
     container._mjrHydrateFromSnapshot = (...args) => loader.hydrateFromSnapshot(...args);
     container._mjrUpsertAsset = (asset) => loader.upsertAsset(asset);
     container._mjrUpsertAssetNow = (asset) => loader.upsertAssetNow(asset);
-    container._mjrDispose = () => {
-        loader.prepareGridForScopeSwitch();
-        loader.dispose();
-        state.cardElements.clear();
-    };
+    container._mjrGetCanonicalState = () => loader.getCanonicalState();
+    container._mjrGetDebugSnapshot = () => loader.getDebugSnapshot();
+    container._mjrDispose = disposeGridApi;
 }
 
 watch(
@@ -586,12 +607,32 @@ function rowItemsAt(index) {
     return assets.slice(start, start + cols);
 }
 
-// Adaptive overscan: keep ~1 full viewport of rows buffered, clamped to [3, 20].
+function updateScrollVelocity(element) {
+    try {
+        const now = typeof performance !== "undefined" && typeof performance.now === "function"
+            ? performance.now()
+            : Date.now();
+        const top = Number(element?.scrollTop || 0) || 0;
+        const dt = Math.max(16, now - Number(lastScrollSampleAt || now));
+        const dy = Math.abs(top - Number(lastScrollSampleTop || top));
+        const rowsPerFrame = (dy / Math.max(1, estimateRowHeight.value)) * (16 / dt);
+        scrollVelocityRows.value = Math.max(0, Math.min(20, rowsPerFrame));
+        lastScrollSampleTop = top;
+        lastScrollSampleAt = now;
+    } catch (e) {
+        console.debug?.(e);
+    }
+}
+
+// Adaptive overscan: keep ~1 full viewport of rows buffered, plus extra rows
+// during fast scrolls, clamped to avoid runaway render bursts.
 const adaptiveOverscan = computed(() => {
     const rowH = Math.max(1, estimateRowHeight.value);
     const clientH = scrollElementRef.value?.clientHeight || 0;
     if (clientH <= 0) return 6;
-    return Math.max(3, Math.min(20, Math.ceil(clientH / rowH)));
+    const viewportRows = Math.ceil(clientH / rowH);
+    const velocityRows = Math.ceil(scrollVelocityRows.value * 3);
+    return Math.max(3, Math.min(30, viewportRows + velocityRows));
 });
 
 const rowVirtualizer = useVirtualizer(
@@ -785,11 +826,7 @@ watch(
         if (!hasMeasuredHostWidth.value) return;
         await nextTick();
         syncAllRenderedDuplicateCards();
-        try {
-            rowVirtualizer.value.measure();
-        } catch (e) {
-            console.debug?.(e);
-        }
+        scheduleVirtualizerMeasure();
     },
 );
 
@@ -1069,6 +1106,28 @@ function _forceVirtualizerMeasure() {
     }
 }
 
+function scheduleVirtualizerMeasure() {
+    if (measureRaf) return;
+    try {
+        measureRaf = requestAnimationFrame(() => {
+            measureRaf = 0;
+            try {
+                rowVirtualizer.value?.measure?.();
+            } catch (e) {
+                console.debug?.(e);
+            }
+        });
+    } catch (e) {
+        console.debug?.(e);
+        measureRaf = 0;
+        try {
+            rowVirtualizer.value?.measure?.();
+        } catch (err) {
+            console.debug?.(err);
+        }
+    }
+}
+
 function handleKeepAliveAttached() {
     _forceVirtualizerMeasure();
     // Le layout du nouveau container n'est pas encore calculé au moment
@@ -1092,6 +1151,7 @@ function handleKeepAliveAttached() {
 function bindInfiniteScroll(element) {
     if (!element || !props.virtualize) return () => {};
     const onScroll = () => {
+        updateScrollVelocity(element);
         if (state.loading || state.done) return;
         const remaining =
             Number(element.scrollHeight || 0) -
@@ -1104,6 +1164,17 @@ function bindInfiniteScroll(element) {
         }
     };
     element.addEventListener("scroll", onScroll, { passive: true });
+    try {
+        requestAnimationFrame(() => {
+            onScroll();
+            void maybeFillViewport();
+        });
+    } catch {
+        setTimeout(() => {
+            onScroll();
+            void maybeFillViewport();
+        }, 0);
+    }
     return () => {
         try {
             element.removeEventListener("scroll", onScroll);
@@ -1126,6 +1197,18 @@ watch(
     { immediate: true },
 );
 
+function readEffectiveViewportHeight(element) {
+    const direct = Number(element?.clientHeight || 0) || 0;
+    if (direct > 0) return direct;
+    const gridHeight = Number(gridContainerRef.value?.clientHeight || 0) || 0;
+    if (gridHeight > 0) return gridHeight;
+    try {
+        return Math.max(0, Math.floor(Number(window?.innerHeight || 0) * 0.7));
+    } catch {
+        return 0;
+    }
+}
+
 async function maybeFillViewport() {
     if (!props.virtualize || !hasMeasuredHostWidth.value || state.loading || state.done) return;
     const element = scrollElementRef.value;
@@ -1137,14 +1220,19 @@ async function maybeFillViewport() {
     if (fillKey === lastFillViewportKey && now - lastFillViewportAt < 500) return;
     await nextTick();
     const scrollHeight = Number(element.scrollHeight || 0) || 0;
-    const clientHeight = Number(element.clientHeight || 0) || 0;
+    const clientHeight = readEffectiveViewportHeight(element);
     if (scrollHeight <= clientHeight + 40) {
-        lastFillViewportAt = Date.now();
-        lastFillViewportKey = fillKey;
+        const beforeCount = assetCount;
         fillViewportPromise = Promise.resolve(loader.loadNextPage())
             .catch((e) => console.debug?.(e))
             .finally(() => {
+                const afterCount = Array.isArray(state.assets) ? state.assets.length : 0;
+                lastFillViewportAt = Date.now();
+                lastFillViewportKey = afterCount === beforeCount ? fillKey : "";
                 fillViewportPromise = null;
+                setTimeout(() => {
+                    void maybeFillViewport();
+                }, 0);
             });
     }
 }
@@ -1244,6 +1332,12 @@ onBeforeUnmount(() => {
         console.debug?.(e);
     }
     try {
+        if (measureRaf) cancelAnimationFrame(measureRaf);
+    } catch (e) {
+        console.debug?.(e);
+    }
+    measureRaf = 0;
+    try {
         loader.dispose();
     } catch (e) {
         console.debug?.(e);
@@ -1295,6 +1389,15 @@ defineExpose({
     loadNextPage(...args) {
         return loader.loadNextPage(...args);
     },
+    appendNextPage(...args) {
+        return loader.appendNextPage(...args);
+    },
+    refreshHead(...args) {
+        return loader.refreshHead(...args);
+    },
+    upsertRealtime(...args) {
+        return loader.upsertRealtime(...args);
+    },
     prepareGridForScopeSwitch(...args) {
         return loader.prepareGridForScopeSwitch(...args);
     },
@@ -1306,6 +1409,12 @@ defineExpose({
     },
     upsertAsset(...args) {
         return loader.upsertAsset(...args);
+    },
+    getCanonicalState(...args) {
+        return loader.getCanonicalState(...args);
+    },
+    getDebugSnapshot(...args) {
+        return loader.getDebugSnapshot(...args);
     },
     captureAnchor(...args) {
         return loader.captureAnchor(...args);

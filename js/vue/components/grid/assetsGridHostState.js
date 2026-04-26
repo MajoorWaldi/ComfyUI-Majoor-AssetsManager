@@ -1,4 +1,5 @@
 import { getOptionalPanelStore } from "../../../stores/getOptionalPanelStore.js";
+import { findAssetCardById } from "./gridDomBridge.js";
 
 function noop() {}
 
@@ -23,18 +24,6 @@ function safeCall(fn, ...args) {
         console.debug?.(e);
         return undefined;
     }
-}
-
-function safeEscapeAttr(value) {
-    const str = String(value ?? "");
-    try {
-        if (typeof CSS !== "undefined" && typeof CSS.escape === "function") {
-            return CSS.escape(str);
-        }
-    } catch (e) {
-        console.debug?.(e);
-    }
-    return str.replace(/([!"#$%&'()*+,./:;<=>?@[\\\]^`{|}~])/g, "\\$1");
 }
 
 function readSelectionDetail(detail = {}) {
@@ -244,9 +233,7 @@ export async function restoreGridUiState({
                     if (typeof gridContainer?._mjrScrollToAssetId === "function") {
                         gridContainer._mjrScrollToAssetId(activeId);
                     } else {
-                        const activeCard = gridContainer.querySelector?.(
-                            `.mjr-asset-card[data-mjr-asset-id="${safeEscapeAttr(activeId)}"]`,
-                        );
+                        const activeCard = findAssetCardById(gridContainer, activeId);
                         activeCard?.scrollIntoView?.({
                             block: "nearest",
                             behavior: "instant",
