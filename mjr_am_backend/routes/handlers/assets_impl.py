@@ -21,19 +21,23 @@ from mjr_am_backend.features.assets import (
     handle_download_asset,
     handle_download_clean_asset,
     is_preview_download_request,
-    load_asset_filepath_by_id as _load_asset_filepath_by_id,
-    load_asset_row_by_id as _load_asset_row_by_id,
     parse_rating_value,
     prepare_asset_ids_context,
     prepare_asset_path_context,
     prepare_asset_rename_context,
     prepare_asset_route_context,
+    resolve_delete_target,
     resolve_download_path,
     resolve_rating_asset_id,
-    resolve_delete_target,
     resolve_rename_target,
     safe_download_filename,
     sanitize_tags,
+)
+from mjr_am_backend.features.assets import (
+    load_asset_filepath_by_id as _load_asset_filepath_by_id,
+)
+from mjr_am_backend.features.assets import (
+    load_asset_row_by_id as _load_asset_row_by_id,
 )
 from mjr_am_backend.features.assets.delete_service import (
     delete_file_best_effort as _delete_file_safe,
@@ -43,18 +47,20 @@ from mjr_am_backend.features.assets.filename_validator import (
 )
 from mjr_am_backend.features.assets.lookup_service import (
     folder_paths,
+)
+from mjr_am_backend.features.assets.lookup_service import (
     infer_source_and_root_id_from_path as _infer_source_and_root_id,
+)
+from mjr_am_backend.features.assets.lookup_service import (
     resolve_or_create_asset_id as _resolve_or_create_asset_id,
 )
 from mjr_am_backend.shared import Result, get_logger
 from mjr_am_backend.shared import sanitize_error_message as _safe_error_message
 
+from ..assets import route_actions as _route_actions  # noqa: E402
 from ..assets.path_guard import (
     is_resolved_path_allowed as _is_resolved_path_allowed,
 )
-
-from ..assets import route_actions as _route_actions  # noqa: E402
-
 from ..core import (
     _build_services,
     _check_rate_limit,

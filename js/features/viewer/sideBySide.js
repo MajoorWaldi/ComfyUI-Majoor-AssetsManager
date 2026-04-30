@@ -328,9 +328,11 @@ export function renderSideBySideView({
     const assignPlayableRole = (mediaEl, role) => {
         try {
             const video =
-                mediaEl?.querySelector?.(".mjr-viewer-video-src") || mediaEl?.querySelector?.("video");
+                mediaEl?.querySelector?.(".mjr-viewer-video-src") ||
+                mediaEl?.querySelector?.("video");
             const audio =
-                mediaEl?.querySelector?.(".mjr-viewer-audio-src") || mediaEl?.querySelector?.("audio");
+                mediaEl?.querySelector?.(".mjr-viewer-audio-src") ||
+                mediaEl?.querySelector?.("audio");
             if (video?.dataset) video.dataset.mjrCompareRole = role;
             if (audio?.dataset) audio.dataset.mjrCompareRole = role;
             if (audio) {

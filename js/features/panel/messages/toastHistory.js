@@ -75,7 +75,8 @@ function _normalizeEntry(input, fallbackType = "info", fallbackDuration = null) 
     const title = _normalizeText(input.title || input.summary);
     const detail = _normalizeText(input.detail);
     const message = _normalizeText(
-        input.message || _buildMessageFromParts(title, detail, _normalizeText(input.fallbackMessage)),
+        input.message ||
+            _buildMessageFromParts(title, detail, _normalizeText(input.fallbackMessage)),
     );
     if (!message) return null;
 
@@ -88,9 +89,7 @@ function _normalizeEntry(input, fallbackType = "info", fallbackDuration = null) 
             : !(Number.isFinite(durationMs) && durationMs > 0);
 
     return {
-        id:
-            _normalizeText(input.id) ||
-            createUniqueId(`th-${createdAt}-`, 4),
+        id: _normalizeText(input.id) || createUniqueId(`th-${createdAt}-`, 4),
         message,
         title,
         detail,

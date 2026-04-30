@@ -159,12 +159,7 @@ function createRatingSubmenu(asset, onAssetChanged, canRate) {
     return items;
 }
 
-function createViewerMenuItems({
-    asset,
-    event,
-    getCurrentViewUrl,
-    onAssetChanged,
-}) {
+function createViewerMenuItems({ asset, event, getCurrentViewUrl, onAssetChanged }) {
     const viewUrl =
         typeof getCurrentViewUrl === "function"
             ? getCurrentViewUrl(asset)

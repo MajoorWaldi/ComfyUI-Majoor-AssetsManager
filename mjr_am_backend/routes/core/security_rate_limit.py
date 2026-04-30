@@ -8,7 +8,6 @@ import time
 from collections import OrderedDict
 
 from aiohttp import web
-
 from mjr_am_backend.shared import get_logger
 
 logger = get_logger(__name__)

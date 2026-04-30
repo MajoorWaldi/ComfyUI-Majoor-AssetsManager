@@ -146,10 +146,14 @@ const _downloadClean = (assets) => {
             document.body.appendChild(a);
             a.click();
             setTimeout(() => {
-                try { a.remove(); } catch {}
+                try {
+                    a.remove();
+                } catch {}
             }, 1000);
         } catch (e) {
-            try { a.remove(); } catch {}
+            try {
+                a.remove();
+            } catch {}
             console.debug?.(e);
         }
     }

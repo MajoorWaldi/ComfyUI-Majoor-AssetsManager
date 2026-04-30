@@ -48,13 +48,13 @@ vi.mock("../utils/tooltipShortcuts.js", () => ({
 }));
 
 const STUB_COMPONENTS = {
-    SearchBar: { template: '<div><slot /></div>' },
-    SortPopover: { template: '<div />' },
-    FilterPopover: { template: '<div />' },
-    CollectionsPopover: { template: '<div />' },
-    PinnedFoldersPopover: { template: '<div />' },
-    CustomRootsPopover: { template: '<div />' },
-    MessagePopover: { template: '<div />' },
+    SearchBar: { template: "<div><slot /></div>" },
+    SortPopover: { template: "<div />" },
+    FilterPopover: { template: "<div />" },
+    CollectionsPopover: { template: "<div />" },
+    PinnedFoldersPopover: { template: "<div />" },
+    CustomRootsPopover: { template: "<div />" },
+    MessagePopover: { template: "<div />" },
 };
 
 async function flushMountedState() {

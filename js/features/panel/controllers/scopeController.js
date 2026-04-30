@@ -13,18 +13,22 @@ export function createScopeController({
     onBeforeReload = null,
 }) {
     let scopeSwitchSeq = 0;
-    const { panelStore, read: readState, write: writeState, controllerState: getControllerState } =
-        createPanelStateBridge(state, [
-            "scope",
-            "customRootId",
-            "currentFolderRelativePath",
-            "collectionId",
-            "collectionName",
-            "viewScope",
-            "similarResults",
-            "similarTitle",
-            "similarSourceAssetId",
-        ]);
+    const {
+        panelStore,
+        read: readState,
+        write: writeState,
+        controllerState: getControllerState,
+    } = createPanelStateBridge(state, [
+        "scope",
+        "customRootId",
+        "currentFolderRelativePath",
+        "collectionId",
+        "collectionName",
+        "viewScope",
+        "similarResults",
+        "similarTitle",
+        "similarSourceAssetId",
+    ]);
 
     const syncVirtualSimilarState = ({
         viewScope = "",
@@ -59,7 +63,9 @@ export function createScopeController({
 
     const setActiveTabStyles = () => {
         const buttons = Object.values(tabButtons || {});
-        const activeScope = String(readState("viewScope", "") || readState("scope", "output")).toLowerCase();
+        const activeScope = String(
+            readState("viewScope", "") || readState("scope", "output"),
+        ).toLowerCase();
         buttons.forEach((b) => {
             const scope = b?.dataset?.scope;
             const active = scope === activeScope;

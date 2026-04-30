@@ -57,7 +57,8 @@ export function createViewerToolbar({
 
     const leftMeta = document.createElement("div");
     leftMeta.className = "mjr-viewer-header-meta mjr-viewer-header-meta--left";
-    leftMeta.style.cssText = "display:flex; align-items:center; gap:10px; min-width:0; overflow:hidden;";
+    leftMeta.style.cssText =
+        "display:flex; align-items:center; gap:10px; min-width:0; overflow:hidden;";
 
     const titleLine = document.createElement("div");
     titleLine.className = "mjr-viewer-title-line";
@@ -76,7 +77,8 @@ export function createViewerToolbar({
 
     const badgesBar = document.createElement("div");
     badgesBar.className = "mjr-viewer-badges";
-    badgesBar.style.cssText = "display:flex; gap:6px; align-items:center; flex-wrap:nowrap; min-width:0;";
+    badgesBar.style.cssText =
+        "display:flex; gap:6px; align-items:center; flex-wrap:nowrap; min-width:0;";
 
     const rightMeta = document.createElement("div");
     rightMeta.className = "mjr-viewer-header-meta mjr-viewer-header-meta--right";
@@ -197,7 +199,8 @@ export function createViewerToolbar({
 
     const leftArea = document.createElement("div");
     leftArea.className = "mjr-viewer-header-area mjr-viewer-header-area--left";
-    leftArea.style.cssText = "display:none; align-items:center; gap:12px; min-width:0; flex:1 1 0; overflow:hidden;";
+    leftArea.style.cssText =
+        "display:none; align-items:center; gap:12px; min-width:0; flex:1 1 0; overflow:hidden;";
     leftArea.appendChild(leftMeta);
 
     const centerArea = document.createElement("div");

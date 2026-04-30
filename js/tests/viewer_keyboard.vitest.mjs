@@ -73,7 +73,11 @@ describe("viewer keyboard", () => {
         const closeViewer = vi.fn();
         const applyDistractionFreeUI = vi.fn();
         const keyboard = installViewerKeyboard({
-            overlay: { style: { display: "flex" }, requestFullscreen: vi.fn(), contains: () => true },
+            overlay: {
+                style: { display: "flex" },
+                requestFullscreen: vi.fn(),
+                contains: () => true,
+            },
             singleView: { querySelector: () => null },
             state,
             VIEWER_MODES: { SINGLE: "single" },
@@ -111,7 +115,11 @@ describe("viewer keyboard", () => {
         const { installViewerKeyboard } = await import("../features/viewer/keyboard.js");
         const closeViewer = vi.fn();
         const keyboard = installViewerKeyboard({
-            overlay: { style: { display: "flex" }, requestFullscreen: vi.fn(), contains: () => true },
+            overlay: {
+                style: { display: "flex" },
+                requestFullscreen: vi.fn(),
+                contains: () => true,
+            },
             singleView: { querySelector: () => null },
             state: {
                 mode: "single",

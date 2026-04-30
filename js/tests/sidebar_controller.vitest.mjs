@@ -63,7 +63,10 @@ class ElementStub {
         }
         if (selector.includes('[data-mjr-asset-id="')) {
             const id = selector.split('[data-mjr-asset-id="')[1]?.split('"')[0] || "";
-            return this.children.find((child) => String(child.dataset?.mjrAssetId || "") === id) || null;
+            return (
+                this.children.find((child) => String(child.dataset?.mjrAssetId || "") === id) ||
+                null
+            );
         }
         return null;
     }

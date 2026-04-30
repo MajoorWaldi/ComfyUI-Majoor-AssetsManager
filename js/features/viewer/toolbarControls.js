@@ -72,7 +72,8 @@ export function createViewerToolbarControls({
 
         const body = document.createElement("div");
         body.className = "mjr-viewer-tools-panel-body";
-        body.style.cssText = "display:flex; align-items:center; flex-wrap:nowrap; gap:6px; min-width:0;";
+        body.style.cssText =
+            "display:flex; align-items:center; flex-wrap:nowrap; gap:6px; min-width:0;";
 
         heading.appendChild(eyebrowEl);
         heading.appendChild(titleEl);
@@ -84,9 +85,17 @@ export function createViewerToolbarControls({
     };
 
     const gradePanel = createToolsPanel({ key: "grade", eyebrow: "Image", title: "Adjustments" });
-    const overlayPanel = createToolsPanel({ key: "overlay", eyebrow: "Viewer", title: "Guides & Compare" });
+    const overlayPanel = createToolsPanel({
+        key: "overlay",
+        eyebrow: "Viewer",
+        title: "Guides & Compare",
+    });
     const inspectPanel = createToolsPanel({ key: "inspect", eyebrow: "Inspect", title: "Probe" });
-    const actionPanel = createToolsPanel({ key: "actions", eyebrow: "Actions", title: "Reset & Export" });
+    const actionPanel = createToolsPanel({
+        key: "actions",
+        eyebrow: "Actions",
+        title: "Reset & Export",
+    });
     const infoPanel = createToolsPanel({ key: "info", eyebrow: "Infos", title: "Help" });
 
     const toolsActions = document.createElement("div");
@@ -631,7 +640,13 @@ export function createViewerToolbarControls({
         label: "Inspect",
         accentRgb: ACCENT.overlay,
     });
-    const inspectButtons = [probeToggle.b, loupeToggle.b, hudToggle.b, focusToggle.b, genInfoToggle.b];
+    const inspectButtons = [
+        probeToggle.b,
+        loupeToggle.b,
+        hudToggle.b,
+        focusToggle.b,
+        genInfoToggle.b,
+    ];
     inspectButtons.forEach((btn, index) => {
         if (index > 0) btn.style.marginLeft = "4px";
         ovInspectGroup.appendChild(btn);
@@ -777,7 +792,6 @@ export function createViewerToolbarControls({
     toolsDeck.appendChild(actionPanel.panel);
     toolsDeck.appendChild(infoPanel.panel);
     toolsRow.appendChild(toolsDeck);
-
 
     return {
         toolsRow,

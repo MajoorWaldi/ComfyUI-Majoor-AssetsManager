@@ -134,7 +134,9 @@ describe("settingsSecurity recommended remote LAN preset", () => {
         await Promise.resolve();
 
         expect(setRuntimeSecurityToken).toHaveBeenCalledWith("mjr_manual_token_1234567890");
-        expect(setSecuritySettings).toHaveBeenCalledWith({ api_token: "mjr_manual_token_1234567890" });
+        expect(setSecuritySettings).toHaveBeenCalledWith({
+            api_token: "mjr_manual_token_1234567890",
+        });
     });
 
     it("does not push unchanged security toggle values during initial settings hydration", async () => {

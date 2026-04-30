@@ -115,9 +115,8 @@ describe("gridController scope switch cache behavior", () => {
     });
 
     it("writes mjrCollectionId to the dataset during reload", async () => {
-        const { createGridController } = await import(
-            "../features/panel/controllers/gridController.js"
-        );
+        const { createGridController } =
+            await import("../features/panel/controllers/gridController.js");
 
         bridgeState.values.collectionId = "col-123";
         bridgeState.values.collectionName = "Test Collection";
@@ -147,9 +146,8 @@ describe("gridController scope switch cache behavior", () => {
     });
 
     it("loads collection assets when collectionId is set", async () => {
-        const { createGridController } = await import(
-            "../features/panel/controllers/gridController.js"
-        );
+        const { createGridController } =
+            await import("../features/panel/controllers/gridController.js");
 
         bridgeState.values.collectionId = "col-456";
         bridgeState.values.collectionName = "My Collection";
@@ -190,9 +188,8 @@ describe("gridController scope switch cache behavior", () => {
     });
 
     it("falls back to normal load when collection fetch fails", async () => {
-        const { createGridController } = await import(
-            "../features/panel/controllers/gridController.js"
-        );
+        const { createGridController } =
+            await import("../features/panel/controllers/gridController.js");
 
         bridgeState.values.collectionId = "col-bad";
 
@@ -221,9 +218,8 @@ describe("gridController scope switch cache behavior", () => {
     });
 
     it("switches from output to input scope and reloads normally", async () => {
-        const { createGridController } = await import(
-            "../features/panel/controllers/gridController.js"
-        );
+        const { createGridController } =
+            await import("../features/panel/controllers/gridController.js");
 
         const gridContainer = createGridContainer();
         const loadAssets = vi.fn(async () => ({ ok: true, count: 100, total: 100 }));
@@ -253,9 +249,8 @@ describe("gridController scope switch cache behavior", () => {
     });
 
     it("does not dispose the live grid when entering browser root scope", async () => {
-        const { createGridController } = await import(
-            "../features/panel/controllers/gridController.js"
-        );
+        const { createGridController } =
+            await import("../features/panel/controllers/gridController.js");
 
         Object.assign(bridgeState.values, {
             scope: "custom",

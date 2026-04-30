@@ -261,7 +261,7 @@ async def init_backfill_counters(
     scope_params: list[Any],
     batch_size: int,
     on_progress: Any | None,
-) -> Result["BackfillCounters"]:
+) -> Result[BackfillCounters]:
     counters = BackfillCounters(batch_size=batch_size)
     totals_res = await count_backfill_scope_totals(db=db, scope_sql=scope_sql, scope_params=scope_params)
     if not totals_res.ok:

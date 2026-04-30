@@ -2,12 +2,11 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 from aiohttp import web
-
-from mjr_am_backend.shared import Result
 
 
 async def handle_input_scope(

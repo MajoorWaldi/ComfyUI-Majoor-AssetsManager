@@ -25,9 +25,8 @@ describe("viewerRuntimeHosts", () => {
         };
         const node = { parentNode: null };
 
-        const { registerFloatingViewerHost, appendFloatingViewerNode } = await import(
-            "../features/viewer/viewerRuntimeHosts.js"
-        );
+        const { registerFloatingViewerHost, appendFloatingViewerNode } =
+            await import("../features/viewer/viewerRuntimeHosts.js");
 
         registerFloatingViewerHost(host);
         appendFloatingViewerNode(node);
@@ -45,9 +44,8 @@ describe("viewerRuntimeHosts", () => {
         };
         const node = { parentNode: null };
 
-        const { registerFloatingViewerHost, appendFloatingViewerNode } = await import(
-            "../features/viewer/viewerRuntimeHosts.js"
-        );
+        const { registerFloatingViewerHost, appendFloatingViewerNode } =
+            await import("../features/viewer/viewerRuntimeHosts.js");
 
         registerFloatingViewerHost(host);
         appendFloatingViewerNode(node);

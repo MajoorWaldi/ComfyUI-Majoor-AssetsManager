@@ -49,18 +49,36 @@ function maybeAutoVectorIndexAsset(detail) {
     if (!assetId) return;
     if (hasVectorEmbedding(detail)) return;
     if (shouldSkipAutoVectorIndex(assetId)) return;
-    void vectorIndexAsset(assetId).catch((e) => console.debug?.("[Majoor] auto vector index failed", e));
+    void vectorIndexAsset(assetId).catch((e) =>
+        console.debug?.("[Majoor] auto vector index failed", e),
+    );
 }
 
 function inferLiveAssetKind(detail) {
-    const explicit = String(detail?.kind || "").trim().toLowerCase();
+    const explicit = String(detail?.kind || "")
+        .trim()
+        .toLowerCase();
     if (explicit) return explicit;
     const rawName = String(
         detail?.filename || detail?.filepath || detail?.path || detail?.fullpath || "",
     ).trim();
     const ext = rawName.includes(".") ? rawName.split(".").pop()?.toLowerCase?.() || "" : "";
     if (!ext) return "";
-    if (["png", "jpg", "jpeg", "webp", "gif", "bmp", "tif", "tiff", "avif", "heic", "heif"].includes(ext)) {
+    if (
+        [
+            "png",
+            "jpg",
+            "jpeg",
+            "webp",
+            "gif",
+            "bmp",
+            "tif",
+            "tiff",
+            "avif",
+            "heic",
+            "heif",
+        ].includes(ext)
+    ) {
         return "image";
     }
     if (["mp4", "webm", "mov", "mkv", "avi", "m4v"].includes(ext)) return "video";
@@ -76,26 +94,25 @@ function buildLivePlaceholderAsset(detail, { jobId = "" } = {}) {
     const rawPath = String(
         detail?.filepath || detail?.path || detail?.fullpath || detail?.full_path || "",
     ).trim();
-    const subfolder = String(detail?.subfolder || detail?.sub_folder || detail?.subFolder || "").trim();
+    const subfolder = String(
+        detail?.subfolder || detail?.sub_folder || detail?.subFolder || "",
+    ).trim();
     const type = String(detail?.type || detail?.source || "output")
         .trim()
         .toLowerCase();
     const rootId = String(detail?.root_id || detail?.custom_root_id || "").trim();
     const kind = inferLiveAssetKind(detail);
     if (!kind || (!filename && !rawPath)) return null;
-    const normalizedName =
-        filename ||
-        rawPath.split(/[/\\]/).filter(Boolean).pop() ||
-        "";
+    const normalizedName = filename || rawPath.split(/[/\\]/).filter(Boolean).pop() || "";
     if (!normalizedName) return null;
-    const normalizedPath = rawPath || (subfolder ? `${subfolder}/${normalizedName}` : normalizedName);
-    const identity = [
-        type || "output",
-        rootId,
-        subfolder,
-        normalizedName,
-    ]
-        .map((part) => String(part || "").trim().toLowerCase())
+    const normalizedPath =
+        rawPath || (subfolder ? `${subfolder}/${normalizedName}` : normalizedName);
+    const identity = [type || "output", rootId, subfolder, normalizedName]
+        .map((part) =>
+            String(part || "")
+                .trim()
+                .toLowerCase(),
+        )
         .join("|");
     const nowSeconds = Date.now() / 1000;
     const nextJobId = String(detail?.job_id || jobId || "").trim();
@@ -112,7 +129,8 @@ function buildLivePlaceholderAsset(detail, { jobId = "" } = {}) {
         has_workflow: detail?.has_workflow ?? detail?.hasWorkflow ?? null,
         has_generation_data: detail?.has_generation_data ?? detail?.hasGenerationData ?? null,
         generation_time_ms:
-            Number.isFinite(Number(detail?.generation_time_ms)) && Number(detail?.generation_time_ms) > 0
+            Number.isFinite(Number(detail?.generation_time_ms)) &&
+            Number(detail?.generation_time_ms) > 0
                 ? Number(detail.generation_time_ms)
                 : undefined,
         source_node_id: String(detail?.source_node_id || "").trim() || undefined,
@@ -140,7 +158,9 @@ function safeEscapeAssetId(value) {
 }
 
 function resolveMaintenanceTitle(op, t) {
-    const operation = String(op || "").trim().toLowerCase();
+    const operation = String(op || "")
+        .trim()
+        .toLowerCase();
     if (operation === "delete_db") return t("btn.deleteDb", "Delete DB");
     if (operation === "reset_index") return t("btn.resetIndex", "Reset index");
     if (operation === "restore_db") return t("btn.dbRestore", "Restore DB");
@@ -148,12 +168,31 @@ function resolveMaintenanceTitle(op, t) {
 }
 
 function buildMaintenanceProgress(op, step) {
-    const operation = String(op || "").trim().toLowerCase();
-    const currentStep = String(step || "").trim().toLowerCase();
+    const operation = String(op || "")
+        .trim()
+        .toLowerCase();
+    const currentStep = String(step || "")
+        .trim()
+        .toLowerCase();
     const flows = {
-        delete_db: ["started", "stopping_workers", "resetting_db", "delete_db", "recreate_db", "restarting_scan", "done"],
+        delete_db: [
+            "started",
+            "stopping_workers",
+            "resetting_db",
+            "delete_db",
+            "recreate_db",
+            "restarting_scan",
+            "done",
+        ],
         reset_index: ["started", "stopping_workers", "resetting_db", "restarting_scan", "done"],
-        db_restore: ["started", "stopping_workers", "resetting_db", "replacing_files", "restarting_scan", "done"],
+        db_restore: [
+            "started",
+            "stopping_workers",
+            "resetting_db",
+            "replacing_files",
+            "restarting_scan",
+            "done",
+        ],
     };
     const steps = flows[operation] || flows.db_restore;
     const index = steps.indexOf(currentStep);
@@ -235,7 +274,9 @@ export async function registerRealtimeListeners({
             const detail = event?.detail || {};
             emitRuntimeStatus({
                 progress_node: detail?.node ?? null,
-                progress_value: Number.isFinite(Number(detail?.value)) ? Number(detail.value) : null,
+                progress_value: Number.isFinite(Number(detail?.value))
+                    ? Number(detail.value)
+                    : null,
                 progress_max: Number.isFinite(Number(detail?.max)) ? Number(detail.max) : null,
                 queue_remaining: Number.isFinite(Number(detail?.exec_info?.queue_remaining))
                     ? Number(detail.exec_info.queue_remaining)
@@ -252,7 +293,10 @@ export async function registerRealtimeListeners({
             const detail = event?.detail || {};
             emitRuntimeStatus({
                 active_prompt_id:
-                    detail?.prompt_id || detail?.promptId || ensureExecutionRuntime().active_prompt_id || null,
+                    detail?.prompt_id ||
+                    detail?.promptId ||
+                    ensureExecutionRuntime().active_prompt_id ||
+                    null,
                 cached_nodes: Array.isArray(detail?.nodes) ? detail.nodes.slice() : [],
             });
         } catch (error) {
@@ -340,7 +384,8 @@ export async function registerRealtimeListeners({
         }
         // Use immediate flush for fresh generation events to bypass the
         // 200 ms debounce and show the card as soon as the WS event arrives.
-        const doUpsert = immediate && typeof upsertAssetNow === "function" ? upsertAssetNow : upsertAsset;
+        const doUpsert =
+            immediate && typeof upsertAssetNow === "function" ? upsertAssetNow : upsertAsset;
         const handled = canUpsert ? !!doUpsert(grid, liveDetail) : false;
         if (handled) {
             markRecentAssetUpsert();
@@ -351,10 +396,14 @@ export async function registerRealtimeListeners({
         try {
             const grid = getActiveGridContainer();
             if (!grid) return;
-            const scope = String(grid?.dataset?.mjrScope || "output").trim().toLowerCase();
+            const scope = String(grid?.dataset?.mjrScope || "output")
+                .trim()
+                .toLowerCase();
             if (scope !== "output" && scope !== "all") return;
             const files = Array.isArray(event?.detail?.files) ? event.detail.files : [];
-            const promptId = String(event?.detail?.prompt_id || event?.detail?.promptId || "").trim();
+            const promptId = String(
+                event?.detail?.prompt_id || event?.detail?.promptId || "",
+            ).trim();
             for (const file of files) {
                 const placeholder = buildLivePlaceholderAsset(file, { jobId: promptId });
                 if (!placeholder) continue;
@@ -364,7 +413,12 @@ export async function registerRealtimeListeners({
             reportError(error, "entry.new_generation_output");
         }
     };
-    registerCleanableListener(runtime, window, EVENTS.NEW_GENERATION_OUTPUT, api._mjrNewGenerationOutputHandler);
+    registerCleanableListener(
+        runtime,
+        window,
+        EVENTS.NEW_GENERATION_OUTPUT,
+        api._mjrNewGenerationOutputHandler,
+    );
 
     api._mjrAssetAddedHandler = (event) => {
         try {
@@ -477,13 +531,22 @@ export async function registerRealtimeListeners({
             setEnrichmentState(active, queueLen);
             window.dispatchEvent(new CustomEvent(EVENTS.ENRICHMENT_STATUS, { detail }));
             if (prev && !active) {
-                comfyToast(t("toast.enrichmentComplete", "Metadata enrichment complete"), "success", 2600);
+                comfyToast(
+                    t("toast.enrichmentComplete", "Metadata enrichment complete"),
+                    "success",
+                    2600,
+                );
             }
         } catch (e) {
             console.debug?.(e);
         }
     };
-    registerCleanableListener(runtime, api, EVENTS.ENRICHMENT_STATUS, api._mjrEnrichmentStatusHandler);
+    registerCleanableListener(
+        runtime,
+        api,
+        EVENTS.ENRICHMENT_STATUS,
+        api._mjrEnrichmentStatusHandler,
+    );
 
     api._mjrDbRestoreStatusHandler = (event) => {
         try {
@@ -507,9 +570,15 @@ export async function registerRealtimeListeners({
                 replacing_files: t("toast.dbRestoreReplacing", "Replacing database files"),
                 restarting_scan: t("toast.dbRestoreRescan", "Restarting scan"),
                 done: isDelete
-                    ? t("toast.dbDeleteSuccess", "Database deleted and rebuilt. Files are being reindexed.")
+                    ? t(
+                          "toast.dbDeleteSuccess",
+                          "Database deleted and rebuilt. Files are being reindexed.",
+                      )
                     : isReset
-                      ? t("toast.resetStarted", "Index reset started. Files will be reindexed in the background.")
+                      ? t(
+                            "toast.resetStarted",
+                            "Index reset started. Files will be reindexed in the background.",
+                        )
                       : t("toast.dbRestoreSuccess", "Database backup restored"),
                 failed: String(
                     detail?.message ||
@@ -530,11 +599,17 @@ export async function registerRealtimeListeners({
                       : "info";
             const historyOpts = {
                 history: {
-                    trackId: `maintenance:${String(op || "db_restore").trim().toLowerCase() || "db_restore"}`,
+                    trackId: `maintenance:${
+                        String(op || "db_restore")
+                            .trim()
+                            .toLowerCase() || "db_restore"
+                    }`,
                     title: resolveMaintenanceTitle(op, t),
                     detail: msg,
                     status: step,
-                    operation: String(op || "db_restore").trim().toLowerCase(),
+                    operation: String(op || "db_restore")
+                        .trim()
+                        .toLowerCase(),
                     progress: buildMaintenanceProgress(op, step),
                     source: String(detail?.name || "").trim() || "maintenance",
                     forceStore: true,
@@ -549,7 +624,12 @@ export async function registerRealtimeListeners({
             console.debug?.(e);
         }
     };
-    registerCleanableListener(runtime, api, EVENTS.DB_RESTORE_STATUS, api._mjrDbRestoreStatusHandler);
+    registerCleanableListener(
+        runtime,
+        api,
+        EVENTS.DB_RESTORE_STATUS,
+        api._mjrDbRestoreStatusHandler,
+    );
 
     const assetsDeletedHandler = (event) => {
         try {

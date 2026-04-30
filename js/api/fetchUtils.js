@@ -12,7 +12,11 @@ export function delay(ms) {
 }
 
 function _methodIsWrite(method) {
-    return WRITE_METHODS.has(String(method || "").trim().toUpperCase());
+    return WRITE_METHODS.has(
+        String(method || "")
+            .trim()
+            .toUpperCase(),
+    );
 }
 
 function _normalizeUrlPath(url) {
@@ -139,7 +143,9 @@ function _buildTimedSignal(options = {}) {
 }
 
 function _buildPendingRequestKey(method, url, options = {}) {
-    const normalizedMethod = String(method || "GET").trim().toUpperCase();
+    const normalizedMethod = String(method || "GET")
+        .trim()
+        .toUpperCase();
     const normalizedUrl = String(url || "").trim();
     if (!normalizedMethod || !normalizedUrl) return "";
     const timeoutMs = _resolveFetchTimeoutMs(options);
@@ -180,7 +186,8 @@ function _injectBaseHeaders(headers, method, obsEnabled) {
     if (_methodIsWrite(method)) {
         try {
             if (headers instanceof Headers) {
-                if (!headers.has("X-Requested-With")) headers.set("X-Requested-With", "XMLHttpRequest");
+                if (!headers.has("X-Requested-With"))
+                    headers.set("X-Requested-With", "XMLHttpRequest");
             } else if (!headers["X-Requested-With"]) {
                 headers["X-Requested-With"] = "XMLHttpRequest";
             }
@@ -237,7 +244,13 @@ function _injectAuthToken(headers, authToken) {
  * @param {object} deps - { ensureWriteAuthToken, normalizeWriteAuthFailure, fetchAPI, options, retryCount }
  * @returns {Promise<object>} ApiResult
  */
-async function _handleResponse(response, url, method, authRetryDone, { ensureWriteAuthToken, normalizeWriteAuthFailure, fetchAPI, options, retryCount }) {
+async function _handleResponse(
+    response,
+    url,
+    method,
+    authRetryDone,
+    { ensureWriteAuthToken, normalizeWriteAuthFailure, fetchAPI, options, retryCount },
+) {
     const contentType = response.headers.get("content-type") || "";
 
     if (!contentType.includes("application/json")) {
@@ -280,7 +293,11 @@ async function _handleResponse(response, url, method, authRetryDone, { ensureWri
     }
 
     if (!("status" in result)) {
-        try { result.status = response.status; } catch (e) { console.debug?.(e); }
+        try {
+            result.status = response.status;
+        } catch (e) {
+            console.debug?.(e);
+        }
     }
 
     // On an AUTH_REQUIRED / 401 JSON response, try one token refresh + retry.
@@ -334,8 +351,17 @@ export function createApiFetchClient({
 
             // Bootstrap auth token for write requests only when missing.
             let authToken = readAuthToken();
-            if (!authToken && _methodIsWrite(method) && _isMajoorApiUrl(url) && !_isBootstrapTokenUrl(url)) {
-                try { await ensureWriteAuthToken(); } catch (e) { console.debug?.(e); }
+            if (
+                !authToken &&
+                _methodIsWrite(method) &&
+                _isMajoorApiUrl(url) &&
+                !_isBootstrapTokenUrl(url)
+            ) {
+                try {
+                    await ensureWriteAuthToken();
+                } catch (e) {
+                    console.debug?.(e);
+                }
                 authToken = readAuthToken();
             }
             _injectAuthToken(headers, authToken);
@@ -394,7 +420,8 @@ export function createApiFetchClient({
             };
         } finally {
             try {
-                const apiEndTime = typeof performance !== "undefined" ? performance.now() : Date.now();
+                const apiEndTime =
+                    typeof performance !== "undefined" ? performance.now() : Date.now();
                 const duration = apiEndTime - apiStartTime;
                 if (typeof trackApiCall === "function") {
                     trackApiCall(duration, !result?.ok);

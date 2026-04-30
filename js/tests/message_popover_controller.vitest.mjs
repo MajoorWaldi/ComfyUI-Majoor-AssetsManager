@@ -56,7 +56,12 @@ function createNode() {
             const stack = [...this.childNodes];
             while (stack.length) {
                 const node = stack.shift();
-                if (String(node?.className || "").split(/\s+/).includes(cls)) return node;
+                if (
+                    String(node?.className || "")
+                        .split(/\s+/)
+                        .includes(cls)
+                )
+                    return node;
                 if (Array.isArray(node?.childNodes)) stack.push(...node.childNodes);
             }
             return null;

@@ -1,8 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import {
-    getRuntimeState,
-    setRuntimeStatePatch,
-} from "../app/runtimeState.js";
+import { getRuntimeState, setRuntimeStatePatch } from "../app/runtimeState.js";
 
 describe("runtimeState prototype-pollution resistance", () => {
     beforeEach(() => {
@@ -23,7 +20,7 @@ describe("runtimeState prototype-pollution resistance", () => {
         const patch = JSON.parse('{"__proto__": {"polluted": true}}');
         setRuntimeStatePatch(patch);
 
-        expect(({}).polluted).toBeUndefined();
+        expect({}.polluted).toBeUndefined();
         expect(Object.getPrototypeOf({})).toBe(proto);
     });
 
@@ -58,9 +55,7 @@ describe("runtimeState prototype-pollution resistance", () => {
     it("uses Symbol key so state is not enumerable on globalThis", () => {
         getRuntimeState();
         const keys = Object.keys(globalThis);
-        const hasPlainKey = keys.some(
-            (k) => k.includes("runtime_state") || k.includes("majoor"),
-        );
+        const hasPlainKey = keys.some((k) => k.includes("runtime_state") || k.includes("majoor"));
         expect(hasPlainKey).toBe(false);
     });
 });

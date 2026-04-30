@@ -102,12 +102,7 @@ describe("GridSelectionManager", () => {
             },
         };
 
-        const result = reconcileSelectionIds(
-            grid,
-            ["2", "3"],
-            { activeId: "2" },
-            () => cards,
-        );
+        const result = reconcileSelectionIds(grid, ["2", "3"], { activeId: "2" }, () => cards);
 
         expect(result.pruned).toBe(2);
         expect(result.selectedIds).toEqual(["2"]);

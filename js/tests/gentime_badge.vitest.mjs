@@ -1,9 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-    genTimeColor,
-    normalizeGenerationTimeMs,
-} from "../components/Badges.js";
+import { genTimeColor, normalizeGenerationTimeMs } from "../components/Badges.js";
 
 describe("generation time badge helpers", () => {
     it("normalise correctement les valeurs en ms et sec", () => {

@@ -19,21 +19,39 @@ describe("hide siblings", () => {
 
         expect(
             shouldHideSiblingAsset(
-                { id: "v1", filename: "clip.mp4", subfolder: "gen", source: "output", kind: "video" },
+                {
+                    id: "v1",
+                    filename: "clip.mp4",
+                    subfolder: "gen",
+                    source: "output",
+                    kind: "video",
+                },
                 state,
                 enabledSettings,
             ),
         ).toMatchObject({ hidden: false });
         expect(
             shouldHideSiblingAsset(
-                { id: "a1", filename: "sound.wav", subfolder: "gen", source: "output", kind: "audio" },
+                {
+                    id: "a1",
+                    filename: "sound.wav",
+                    subfolder: "gen",
+                    source: "output",
+                    kind: "audio",
+                },
                 state,
                 enabledSettings,
             ),
         ).toMatchObject({ hidden: false });
         expect(
             shouldHideSiblingAsset(
-                { id: "m1", filename: "mesh.glb", subfolder: "gen", source: "output", kind: "model3d" },
+                {
+                    id: "m1",
+                    filename: "mesh.glb",
+                    subfolder: "gen",
+                    source: "output",
+                    kind: "model3d",
+                },
                 state,
                 enabledSettings,
             ),
@@ -41,21 +59,39 @@ describe("hide siblings", () => {
 
         expect(
             shouldHideSiblingAsset(
-                { id: "p1", filename: "clip.png", subfolder: "gen", source: "output", kind: "image" },
+                {
+                    id: "p1",
+                    filename: "clip.png",
+                    subfolder: "gen",
+                    source: "output",
+                    kind: "image",
+                },
                 state,
                 enabledSettings,
             ),
         ).toMatchObject({ hidden: true });
         expect(
             shouldHideSiblingAsset(
-                { id: "p2", filename: "sound.png", subfolder: "gen", source: "output", kind: "image" },
+                {
+                    id: "p2",
+                    filename: "sound.png",
+                    subfolder: "gen",
+                    source: "output",
+                    kind: "image",
+                },
                 state,
                 enabledSettings,
             ),
         ).toMatchObject({ hidden: true });
         expect(
             shouldHideSiblingAsset(
-                { id: "p3", filename: "mesh.glb.png", subfolder: "gen", source: "output", kind: "image" },
+                {
+                    id: "p3",
+                    filename: "mesh.glb.png",
+                    subfolder: "gen",
+                    source: "output",
+                    kind: "image",
+                },
                 state,
                 enabledSettings,
             ),
@@ -80,7 +116,13 @@ describe("hide siblings", () => {
 
         expect(
             shouldHideSiblingAsset(
-                { id: "p1", filename: "clip.png", subfolder: "gen-b", source: "output", kind: "image" },
+                {
+                    id: "p1",
+                    filename: "clip.png",
+                    subfolder: "gen-b",
+                    source: "output",
+                    kind: "image",
+                },
                 state,
                 enabledSettings,
             ),

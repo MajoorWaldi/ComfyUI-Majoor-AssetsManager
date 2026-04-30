@@ -60,7 +60,10 @@ export function registerViewerSettings(safeAddSetting, settings, notifyApplied) 
 
     safeAddSetting({
         id: `${SETTINGS_PREFIX}.Viewer.PauseDuringExecution`,
-        category: cat(t("cat.viewer"), t("setting.viewer.pauseExecution.name").replace("Majoor: ", "")),
+        category: cat(
+            t("cat.viewer"),
+            t("setting.viewer.pauseExecution.name").replace("Majoor: ", ""),
+        ),
         name: t("setting.viewer.pauseExecution.name"),
         tooltip: t("setting.viewer.pauseExecution.desc"),
         type: "boolean",
@@ -95,7 +98,10 @@ export function registerViewerSettings(safeAddSetting, settings, notifyApplied) 
 
     safeAddSetting({
         id: `${SETTINGS_PREFIX}.Viewer.MfvLiveDefault`,
-        category: cat(t("cat.viewer"), t("setting.viewer.mfvLiveDefault.name").replace("Majoor: ", "")),
+        category: cat(
+            t("cat.viewer"),
+            t("setting.viewer.mfvLiveDefault.name").replace("Majoor: ", ""),
+        ),
         name: t("setting.viewer.mfvLiveDefault.name"),
         tooltip: t("setting.viewer.mfvLiveDefault.desc"),
         type: "boolean",
@@ -132,7 +138,8 @@ export function registerViewerSettings(safeAddSetting, settings, notifyApplied) 
         id: `${SETTINGS_PREFIX}.Viewer.MfvSidebarPosition`,
         category: cat(t("cat.viewer"), "Node Parameters sidebar position"),
         name: "Node Parameters sidebar position",
-        tooltip: "Position of the Node Parameters sidebar in the Floating Viewer (right, left, or bottom).",
+        tooltip:
+            "Position of the Node Parameters sidebar in the Floating Viewer (right, left, or bottom).",
         type: "combo",
         defaultValue: settings.viewer?.mfvSidebarPosition || "right",
         options: ["right", "left", "bottom"],
@@ -148,7 +155,10 @@ export function registerViewerSettings(safeAddSetting, settings, notifyApplied) 
 
     safeAddSetting({
         id: `${SETTINGS_PREFIX}.Viewer.MfvPreviewMethod`,
-        category: cat(t("cat.viewer"), t("setting.viewer.mfvPreviewMethod.name").replace("Majoor: ", "")),
+        category: cat(
+            t("cat.viewer"),
+            t("setting.viewer.mfvPreviewMethod.name").replace("Majoor: ", ""),
+        ),
         name: t("setting.viewer.mfvPreviewMethod.name"),
         tooltip: t("setting.viewer.mfvPreviewMethod.desc"),
         type: "combo",

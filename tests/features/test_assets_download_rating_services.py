@@ -3,7 +3,6 @@ from __future__ import annotations
 from pathlib import Path
 
 from aiohttp.test_utils import make_mocked_request
-
 from mjr_am_backend.features.assets.download_service import (
     is_preview_download_request,
     resolve_download_path,

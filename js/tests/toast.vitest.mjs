@@ -168,7 +168,11 @@ describe("toast", () => {
     it("keeps persistent info toasts in history instead of filtering them out", async () => {
         const { toastModule, historyModule } = await loadToastModules();
 
-        toastModule.comfyToast({ summary: "Update", detail: "A new version is available" }, "info", 0);
+        toastModule.comfyToast(
+            { summary: "Update", detail: "A new version is available" },
+            "info",
+            0,
+        );
 
         expect(historyModule.listToastHistory()[0]).toMatchObject({
             message: "Update: A new version is available",

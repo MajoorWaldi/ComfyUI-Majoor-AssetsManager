@@ -121,18 +121,12 @@ export function applyGridSettingsClasses(container) {
         APP_CONFIG.BADGE_DUPLICATE_ALERT_COLOR,
     );
     container.style.setProperty("--mjr-card-hover-color", APP_CONFIG.UI_CARD_HOVER_COLOR);
-    container.style.setProperty(
-        "--mjr-card-selection-color",
-        APP_CONFIG.UI_CARD_SELECTION_COLOR,
-    );
+    container.style.setProperty("--mjr-card-selection-color", APP_CONFIG.UI_CARD_SELECTION_COLOR);
     container.style.setProperty("--mjr-rating-color", APP_CONFIG.UI_RATING_COLOR);
     container.style.setProperty("--mjr-tag-color", APP_CONFIG.UI_TAG_COLOR);
 }
 
-export function configureGridContainer(
-    container,
-    { applySettingsClasses = true } = {},
-) {
+export function configureGridContainer(container, { applySettingsClasses = true } = {}) {
     if (!container) return null;
 
     container.id = "mjr-assets-grid";

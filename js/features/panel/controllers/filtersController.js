@@ -142,7 +142,7 @@ export function bindFilters({
                 write(
                     "workflowType",
                     String(workflowTypeSelect.value || "")
-                    .trim()
+                        .trim()
                         .toUpperCase(),
                 );
                 try {
@@ -320,10 +320,7 @@ export function bindFilters({
             dateExactInput,
             "change",
             () => {
-                write(
-                    "dateExactFilter",
-                    dateExactInput.value ? String(dateExactInput.value) : "",
-                );
+                write("dateExactFilter", dateExactInput.value ? String(dateExactInput.value) : "");
                 if (state.dateExactFilter && state.dateRangeFilter) {
                     write("dateRangeFilter", "");
                     if (dateRangeSelect) {

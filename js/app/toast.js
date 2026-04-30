@@ -50,7 +50,10 @@ function buildToastHistoryPayload(message, type, duration, opts) {
         trackId: String(history?.trackId || "").trim(),
         status: String(history?.status || "").trim(),
         operation: String(history?.operation || "").trim(),
-        progress: history?.progress && typeof history.progress === "object" ? { ...history.progress } : null,
+        progress:
+            history?.progress && typeof history.progress === "object"
+                ? { ...history.progress }
+                : null,
         forceStore: !!history?.forceStore,
         actionLabel: String(history?.actionLabel || "").trim(),
         actionUrl: String(history?.actionUrl || "").trim(),
@@ -441,7 +444,11 @@ export function comfyToast(message, type = "info", duration, opts) {
     // Record in toast history unless caller opts out.
     if (!opts?.noHistory) {
         try {
-            addToastHistory(buildToastHistoryPayload(message, type, duration, opts), type, duration);
+            addToastHistory(
+                buildToastHistoryPayload(message, type, duration, opts),
+                type,
+                duration,
+            );
         } catch {
             /* ignore */
         }

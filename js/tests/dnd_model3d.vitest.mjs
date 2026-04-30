@@ -73,7 +73,12 @@ describe("3D drag and drop support", () => {
     });
 
     it("prefers image-oriented widgets when dropping an image asset on a LoadImage node", () => {
-        const imagePath = { name: "image", type: "combo", value: "", options: { values: ["existing.png"] } };
+        const imagePath = {
+            name: "image",
+            type: "combo",
+            value: "",
+            options: { values: ["existing.png"] },
+        };
         const outputPath = { name: "output_path", type: "text", value: "" };
         const node = {
             type: "LoadImage",

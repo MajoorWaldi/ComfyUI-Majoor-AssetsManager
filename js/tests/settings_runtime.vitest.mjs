@@ -34,7 +34,9 @@ function createElement(tagName, registry) {
         },
         remove() {
             if (this.parentElement) {
-                this.parentElement.children = this.parentElement.children.filter((child) => child !== this);
+                this.parentElement.children = this.parentElement.children.filter(
+                    (child) => child !== this,
+                );
             }
             if (this.id) registry.delete(this.id);
         },

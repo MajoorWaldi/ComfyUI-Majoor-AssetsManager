@@ -79,7 +79,6 @@ const MODEL3D_LIGHT_SCALE = Object.freeze({
     bottom: 0.2,
 });
 
-
 // ─── Utility helpers ───────────────────────────────────────────────────────
 
 function _extOf(asset) {
@@ -847,14 +846,23 @@ export function createModel3DMediaElement(asset, url, options = {}) {
                     obj.geometry?.dispose?.();
                 } catch (_) {}
                 try {
-                    const materials = Array.isArray(obj.material) ? obj.material : obj.material ? [obj.material] : [];
+                    const materials = Array.isArray(obj.material)
+                        ? obj.material
+                        : obj.material
+                          ? [obj.material]
+                          : [];
                     for (const mat of materials) {
                         try {
                             if (mat) {
                                 for (const key of Object.keys(mat)) {
                                     try {
                                         const val = mat[key];
-                                        if (val && typeof val === "object" && typeof val.dispose === "function" && val.isTexture) {
+                                        if (
+                                            val &&
+                                            typeof val === "object" &&
+                                            typeof val.dispose === "function" &&
+                                            val.isTexture
+                                        ) {
                                             val.dispose();
                                         }
                                     } catch (_) {}

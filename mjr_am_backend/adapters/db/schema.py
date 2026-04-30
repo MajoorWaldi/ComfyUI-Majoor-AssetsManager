@@ -5,7 +5,15 @@ import hashlib
 
 from ...shared import Result, get_logger, log_success
 from ...startup_logging import startup_log_info, startup_log_success
-
+from .schema_fts import (
+    _reindex_asset_metadata_fts,
+)
+from .schema_fts import (
+    repair_asset_metadata_fts as _repair_asset_metadata_fts,
+)
+from .schema_fts import (
+    repair_assets_fts as _repair_assets_fts,
+)
 from .schema_sql import (
     COLUMN_DEFINITIONS,
     CURRENT_SCHEMA_VERSION,
@@ -16,11 +24,6 @@ from .schema_sql import (
     _is_safe_identifier,
     _quoted_identifier,
     _safe_column_definition_parts,
-)
-from .schema_fts import (
-    _reindex_asset_metadata_fts,
-    repair_asset_metadata_fts as _repair_asset_metadata_fts,
-    repair_assets_fts as _repair_assets_fts,
 )
 from .schema_vec import (
     repair_vec_embeddings_layout as _repair_vec_embeddings_layout,

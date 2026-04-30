@@ -6,8 +6,8 @@ import time
 
 import pytest
 import pytest_asyncio
-from mjr_am_backend.adapters.db.sqlite_facade import Sqlite
 from mjr_am_backend.adapters.db import sqlite_recovery as recovery_mod
+from mjr_am_backend.adapters.db.sqlite_facade import Sqlite
 
 
 @pytest_asyncio.fixture

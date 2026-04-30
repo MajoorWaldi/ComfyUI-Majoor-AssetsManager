@@ -46,7 +46,9 @@ function isFloatingViewerElectronAppHost() {
         if (root?.electron || root?.ipcRenderer || root?.electronAPI) {
             return true;
         }
-        const userAgent = String(root?.navigator?.userAgent || globalThis?.navigator?.userAgent || "");
+        const userAgent = String(
+            root?.navigator?.userAgent || globalThis?.navigator?.userAgent || "",
+        );
         const hasElectronUa = /\bElectron\//i.test(userAgent);
         const isVsCodeShell = /\bCode\//i.test(userAgent);
         if (hasElectronUa && !isVsCodeShell) {
@@ -86,10 +88,7 @@ function traceFloatingViewerPopout(stage, detail = null, level = "info") {
 function mergeFloatingViewerPopoutClasses(sourceClassName, ...extraClasses) {
     return Array.from(
         new Set(
-            [String(sourceClassName || ""), ...extraClasses]
-                .join(" ")
-                .split(/\s+/)
-                .filter(Boolean),
+            [String(sourceClassName || ""), ...extraClasses].join(" ").split(/\s+/).filter(Boolean),
         ),
     ).join(" ");
 }
@@ -292,7 +291,9 @@ export function popOutFloatingViewer(viewer) {
     viewer._stopEdgeResize();
     const isElectronHost = isFloatingViewerElectronAppHost();
     const hasDocumentPiP = typeof window !== "undefined" && "documentPictureInPicture" in window;
-    const userAgent = String(window?.navigator?.userAgent || globalThis?.navigator?.userAgent || "");
+    const userAgent = String(
+        window?.navigator?.userAgent || globalThis?.navigator?.userAgent || "",
+    );
 
     const w = Math.max(el.offsetWidth || 520, 400);
     const h = Math.max(el.offsetHeight || 420, 300);
@@ -346,7 +347,9 @@ export function popOutFloatingViewer(viewer) {
                 viewer._installPopoutStyles(doc);
                 const root = createFloatingViewerPopoutRoot(doc);
                 if (!root) {
-                    viewer._activateDesktopExpandedFallback(new Error("Popup root creation failed"));
+                    viewer._activateDesktopExpandedFallback(
+                        new Error("Popup root creation failed"),
+                    );
                     return;
                 }
 
@@ -429,10 +432,8 @@ export function popOutFloatingViewer(viewer) {
 
 export function fallbackPopoutFloatingViewer(viewer, el, w, h) {
     traceFloatingViewerPopout("browser-popup-open", { width: w, height: h });
-    const left =
-        (window.screenX || window.screenLeft) + Math.round((window.outerWidth - w) / 2);
-    const top =
-        (window.screenY || window.screenTop) + Math.round((window.outerHeight - h) / 2);
+    const left = (window.screenX || window.screenLeft) + Math.round((window.outerWidth - w) / 2);
+    const top = (window.screenY || window.screenTop) + Math.round((window.outerHeight - h) / 2);
     const features = `width=${w},height=${h},left=${left},top=${top},resizable=yes,scrollbars=no,toolbar=no,menubar=no,location=no,status=no`;
     const popup = window.open("about:blank", "_mjr_viewer", features);
     if (!popup) {

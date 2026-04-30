@@ -24,6 +24,7 @@
 
 import {
     activateSidebarTabCompat,
+    getComfyApi,
     getComfyApp,
     getExtensionDialogApi,
     getExtensionManager,
@@ -35,6 +36,7 @@ import {
     registerKeybindingCompat,
     registerSidebarTabCompat,
     setComfyApp,
+    waitForComfyApi,
     waitForComfyApp,
 } from "./comfyApiBridge.js";
 
@@ -267,6 +269,37 @@ export function getRawHostApp() {
     return _app || getComfyApp() || null;
 }
 
+/**
+ * Returns the raw ComfyUI API reference.
+ *
+ * This is an escape hatch for event subscription and queue APIs that are not
+ * wrapped by the adapter yet.
+ *
+ * @param {object | null} [app=null]
+ * @returns {object | null}
+ */
+export function getRawHostApi(app = null) {
+    try {
+        return getComfyApi(app || _app || getComfyApp()) || null;
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * Waits for the raw ComfyUI API reference.
+ *
+ * @param {object} [options]
+ * @returns {Promise<object | null>}
+ */
+export async function waitForRawHostApi(options = {}) {
+    try {
+        return await waitForComfyApi(options);
+    } catch {
+        return null;
+    }
+}
+
 // ── public API ────────────────────────────────────────────────────────────────
 
 export const hostAdapter = {
@@ -284,6 +317,8 @@ export const hostAdapter = {
     registerKeybinding,
     getHostExtensionManager,
     getRawHostApp,
+    getRawHostApi,
+    waitForRawHostApi,
 };
 
 export default hostAdapter;

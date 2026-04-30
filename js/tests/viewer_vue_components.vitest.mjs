@@ -82,9 +82,8 @@ describe("viewer Vue components", () => {
             unregisterFloatingViewerHost,
         }));
 
-        const { default: FloatingViewerHost } = await import(
-            "../vue/components/viewer/FloatingViewerHost.vue"
-        );
+        const { default: FloatingViewerHost } =
+            await import("../vue/components/viewer/FloatingViewerHost.vue");
 
         const wrapper = mount(FloatingViewerHost, {
             attachTo: document.body,
@@ -107,9 +106,8 @@ describe("viewer Vue components", () => {
             unregisterViewerOverlayHost,
         }));
 
-        const { default: ViewerOverlayHost } = await import(
-            "../vue/components/viewer/ViewerOverlayHost.vue"
-        );
+        const { default: ViewerOverlayHost } =
+            await import("../vue/components/viewer/ViewerOverlayHost.vue");
 
         const wrapper = mount(ViewerOverlayHost, {
             attachTo: document.body,
@@ -124,14 +122,12 @@ describe("viewer Vue components", () => {
     });
 
     it("lets only the owning ViewerContextMenuPortal render the menu component", async () => {
-        const { viewerContextMenuState } = await import(
-            "../features/contextmenu/viewerContextMenuState.js"
-        );
+        const { viewerContextMenuState } =
+            await import("../features/contextmenu/viewerContextMenuState.js");
         resetViewerContextMenuState(viewerContextMenuState);
 
-        const { default: ViewerContextMenuPortal } = await import(
-            "../vue/components/viewer/ViewerContextMenuPortal.vue"
-        );
+        const { default: ViewerContextMenuPortal } =
+            await import("../vue/components/viewer/ViewerContextMenuPortal.vue");
 
         const first = mount(ViewerContextMenuPortal, {
             global: {
@@ -229,12 +225,10 @@ describe("viewer Vue components", () => {
     });
 
     it("renders ViewerContextMenu.vue through Teleport and closes the main menu after an action", async () => {
-        const { default: ViewerContextMenu } = await import(
-            "../vue/components/viewer/ViewerContextMenu.vue"
-        );
-        const { viewerContextMenuState } = await import(
-            "../features/contextmenu/viewerContextMenuState.js"
-        );
+        const { default: ViewerContextMenu } =
+            await import("../vue/components/viewer/ViewerContextMenu.vue");
+        const { viewerContextMenuState } =
+            await import("../features/contextmenu/viewerContextMenuState.js");
         resetViewerContextMenuState(viewerContextMenuState);
 
         const action = vi.fn();
@@ -277,12 +271,10 @@ describe("viewer Vue components", () => {
     });
 
     it("opens the ViewerContextMenu submenu on hover for submenu items", async () => {
-        const { default: ViewerContextMenu } = await import(
-            "../vue/components/viewer/ViewerContextMenu.vue"
-        );
-        const { viewerContextMenuState } = await import(
-            "../features/contextmenu/viewerContextMenuState.js"
-        );
+        const { default: ViewerContextMenu } =
+            await import("../vue/components/viewer/ViewerContextMenu.vue");
+        const { viewerContextMenuState } =
+            await import("../features/contextmenu/viewerContextMenuState.js");
         resetViewerContextMenuState(viewerContextMenuState);
 
         viewerContextMenuState.main.open = true;
@@ -320,9 +312,9 @@ describe("viewer Vue components", () => {
         await flushUi();
 
         expect(viewerContextMenuState.submenu.open).toBe(true);
-        expect(document.body.querySelector(".mjr-viewer-rating-submenu")?.textContent || "").toContain(
-            "5 stars",
-        );
+        expect(
+            document.body.querySelector(".mjr-viewer-rating-submenu")?.textContent || "",
+        ).toContain("5 stars");
 
         wrapper.unmount();
         resetViewerContextMenuState(viewerContextMenuState);

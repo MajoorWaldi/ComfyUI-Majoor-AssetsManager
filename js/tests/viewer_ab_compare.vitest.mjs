@@ -83,12 +83,10 @@ describe("viewer A/B compare", () => {
         };
 
         const baseCanvas = createSourceCanvas([
-            200, 150, 100, 255, 120, 90, 60, 255,
-            180, 140, 90, 255, 90, 70, 40, 255,
+            200, 150, 100, 255, 120, 90, 60, 255, 180, 140, 90, 255, 90, 70, 40, 255,
         ]);
         const topCanvas = createSourceCanvas([
-            50, 20, 10, 255, 20, 10, 5, 255,
-            30, 15, 10, 255, 10, 5, 5, 255,
+            50, 20, 10, 255, 20, 10, 5, 255, 30, 15, 10, 255, 10, 5, 5, 255,
         ]);
         const medias = [createMediaWithCanvas(baseCanvas), createMediaWithCanvas(topCanvas)];
         const abView = {
@@ -116,8 +114,7 @@ describe("viewer A/B compare", () => {
 
         expect(lastPutPixels).toBeTruthy();
         expect(Array.from(lastPutPixels)).toEqual([
-            150, 130, 90, 255, 100, 80, 55, 255,
-            150, 125, 80, 255, 80, 65, 35, 255,
+            150, 130, 90, 255, 100, 80, 55, 255, 150, 125, 80, 255, 80, 65, 35, 255,
         ]);
         expect(ctx.save).toHaveBeenCalledTimes(1);
         expect(ctx.restore).toHaveBeenCalledTimes(1);

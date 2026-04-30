@@ -152,7 +152,9 @@ const _pickBestPathWidget = (node, droppedExt, cfg) => {
     const widgets = node?.widgets;
     if (!Array.isArray(widgets) || !widgets.length) return null;
 
-    const ext = String(droppedExt || "").toLowerCase().replace(/^\./, "");
+    const ext = String(droppedExt || "")
+        .toLowerCase()
+        .replace(/^\./, "");
     const nodeType = String(node?.type || "").toLowerCase();
     const isKnownNode = cfg.knownNodeIncludes.some((p) => nodeType.includes(p));
 
@@ -169,7 +171,9 @@ const _pickBestPathWidget = (node, droppedExt, cfg) => {
         const stringLikeByCallback = typeof w?.callback === "function" && typeof value === "string";
         if (!stringLikeByType && !stringLikeByCallback) continue;
 
-        const name = String(w?.name || w?.label || "").toLowerCase().trim();
+        const name = String(w?.name || w?.label || "")
+            .toLowerCase()
+            .trim();
 
         let score = 0;
         if (cfg.exactNames.has(name)) score += 100;
@@ -214,7 +218,11 @@ const _pickBestPathWidget = (node, droppedExt, cfg) => {
 
     const best = candidates[0];
     if (!best || best.score < 20) return null;
-    try { best.w[cfg.scoreKey] = best.score; } catch (e) { console.debug?.(e); }
+    try {
+        best.w[cfg.scoreKey] = best.score;
+    } catch (e) {
+        console.debug?.(e);
+    }
     return best.w;
 };
 
@@ -242,7 +250,13 @@ const _IMAGE_CFG = {
 
 const _AUDIO_CFG = {
     exactNames: new Set(["audio_path", "input_audio", "source_audio", "audio"]),
-    knownNodeIncludes: ["loadaudio", "vhs_loadaudioupload", "vhs_loadaudio", "audioloader", "inputaudio"],
+    knownNodeIncludes: [
+        "loadaudio",
+        "vhs_loadaudioupload",
+        "vhs_loadaudio",
+        "audioloader",
+        "inputaudio",
+    ],
     mediaTerms: ["audio", "sound", "music"],
     extraTerms: [{ terms: ["media", "track"], score: 45 }],
     exactSingleNames: new Set(["audio"]),
@@ -253,13 +267,31 @@ const _AUDIO_CFG = {
 
 const _MODEL3D_CFG = {
     exactNames: new Set([
-        "model_path", "input_model", "source_model", "mesh_path", "input_mesh",
-        "geometry_path", "scene_path", "point_cloud_path", "splat_path",
-        "model", "mesh", "geometry",
+        "model_path",
+        "input_model",
+        "source_model",
+        "mesh_path",
+        "input_mesh",
+        "geometry_path",
+        "scene_path",
+        "point_cloud_path",
+        "splat_path",
+        "model",
+        "mesh",
+        "geometry",
     ]),
     knownNodeIncludes: [
-        "load3d", "loadmodel", "loadmesh", "loadobj", "loadgltf", "loadglb",
-        "loadstl", "loadply", "pointcloud", "meshloader", "modelloader",
+        "load3d",
+        "loadmodel",
+        "loadmesh",
+        "loadobj",
+        "loadgltf",
+        "loadglb",
+        "loadstl",
+        "loadply",
+        "pointcloud",
+        "meshloader",
+        "modelloader",
     ],
     mediaTerms: ["model", "mesh", "geometry", "scene", "object", "point", "cloud", "splat"],
     extraTerms: [{ terms: ["asset", "resource"], score: 30 }],
@@ -272,9 +304,12 @@ const _MODEL3D_CFG = {
 export const pickBestMediaPathWidget = (node, payload, droppedExt) => {
     const kind = String(payload?.kind || "").toLowerCase();
     const cfg =
-        kind === "model3d" ? _MODEL3D_CFG :
-        kind === "audio"   ? _AUDIO_CFG   :
-        kind === "image"   ? _IMAGE_CFG   :
-                             _VIDEO_CFG;
+        kind === "model3d"
+            ? _MODEL3D_CFG
+            : kind === "audio"
+              ? _AUDIO_CFG
+              : kind === "image"
+                ? _IMAGE_CFG
+                : _VIDEO_CFG;
     return _pickBestPathWidget(node, droppedExt, cfg);
 };

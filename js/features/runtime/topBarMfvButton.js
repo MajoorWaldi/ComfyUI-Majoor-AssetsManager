@@ -37,12 +37,20 @@ function _tryObserveActionbar(container) {
         return;
     }
     // Disconnect previous observer if target changed
-    try { _observer?.disconnect?.(); } catch (_) { /* noop */ }
+    try {
+        _observer?.disconnect?.();
+    } catch (_) {
+        /* noop */
+    }
     _observer = new MutationObserver(() => scheduleSync());
     _observer.observe(container, { childList: true });
     _observedTarget = container;
     // Body observer no longer needed
-    try { _bodyObserver?.disconnect?.(); } catch (_) { /* noop */ }
+    try {
+        _bodyObserver?.disconnect?.();
+    } catch (_) {
+        /* noop */
+    }
     _bodyObserver = null;
 }
 

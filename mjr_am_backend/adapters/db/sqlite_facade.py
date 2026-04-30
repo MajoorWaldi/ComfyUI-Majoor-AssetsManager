@@ -22,7 +22,6 @@ import concurrent.futures
 import contextvars
 import os
 import re
-import sqlite3
 import threading
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -33,6 +32,10 @@ import aiosqlite
 
 from ...config import DB_MAX_CONNECTIONS, DB_QUERY_TIMEOUT, DB_TIMEOUT
 from ...shared import ErrorCode, Result, get_logger
+from . import sqlite_connections as conn_runtime
+from . import sqlite_execution as exec_runtime
+from . import sqlite_lifecycle as life_runtime
+from . import sqlite_recovery as recovery_runtime
 from .connection_pool import (
     asset_lock_is_locked as pool_asset_lock_is_locked,
 )
@@ -79,6 +82,9 @@ from .connection_pool import (
     stop_asset_lock_pruner as pool_stop_asset_lock_pruner,
 )
 from .db_recovery import (
+    extract_schema_column_name as recovery_extract_schema_column_name,
+)
+from .db_recovery import (
     is_auto_reset_enabled as recovery_is_auto_reset_enabled,
 )
 from .db_recovery import (
@@ -100,9 +106,6 @@ from .db_recovery import (
     mark_malformed_event as recovery_mark_malformed_event,
 )
 from .db_recovery import (
-    extract_schema_column_name as recovery_extract_schema_column_name,
-)
-from .db_recovery import (
     populate_known_columns_from_schema as recovery_populate_known_columns_from_schema,
 )
 from .db_recovery import (
@@ -110,13 +113,6 @@ from .db_recovery import (
 )
 from .db_recovery import (
     set_recovery_state as recovery_set_recovery_state,
-)
-from . import sqlite_connections as conn_runtime
-from . import sqlite_execution as exec_runtime
-from . import sqlite_lifecycle as life_runtime
-from . import sqlite_recovery as recovery_runtime
-from .transaction_manager import (
-    get_tx_state as tx_get_tx_state,
 )
 from .transaction_manager import (
     begin_stmt_for_mode as tx_begin_stmt_for_mode,
@@ -128,7 +124,7 @@ from .transaction_manager import (
     cursor_write_result as tx_cursor_write_result,
 )
 from .transaction_manager import (
-    register_tx_token as tx_register_tx_token,
+    get_tx_state as tx_get_tx_state,
 )
 from .transaction_manager import (
     is_missing_column_error as tx_is_missing_column_error,
@@ -138,6 +134,12 @@ from .transaction_manager import (
 )
 from .transaction_manager import (
     is_write_sql as tx_is_write_sql,
+)
+from .transaction_manager import (
+    register_tx_token as tx_register_tx_token,
+)
+from .transaction_manager import (
+    repair_column_name as tx_repair_column_name,
 )
 from .transaction_manager import (
     rows_to_dicts as tx_rows_to_dicts,
@@ -150,9 +152,6 @@ from .transaction_manager import (
 )
 from .transaction_manager import (
     validate_in_base_query as tx_validate_in_base_query,
-)
-from .transaction_manager import (
-    repair_column_name as tx_repair_column_name,
 )
 
 logger = get_logger(__name__)

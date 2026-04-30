@@ -576,8 +576,7 @@ export function syncToolsUIFromState({
         setSelectHighlighted(compareModeSelect, {
             accentRgb: ACCENT.compare,
             active: showCompare && cm !== "wipe",
-            title:
-                showCompare && cm !== "wipe" ? "Compare Mode (modified)" : "A/B Compare Mode",
+            title: showCompare && cm !== "wipe" ? "Compare Mode (modified)" : "A/B Compare Mode",
         });
     } catch (e) {
         console.debug?.(e);

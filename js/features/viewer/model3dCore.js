@@ -40,13 +40,7 @@ export function storeModel3DOriginalMaterials(object) {
     return store;
 }
 
-export function applyModel3DMaterialMode(
-    THREE,
-    object,
-    mode,
-    originalMaterials,
-    tempMaterials,
-) {
+export function applyModel3DMaterialMode(THREE, object, mode, originalMaterials, tempMaterials) {
     visitModel3DMeshes(object, (child) => {
         try {
             if (mode === "original") {

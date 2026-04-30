@@ -64,7 +64,12 @@ describe("InfiniteScroll upsert", () => {
             [{ dataset: { mjrScope: "output", mjrSort: "mtime_desc" } }, "*", 0, false],
             [{ dataset: { mjrScope: "output", mjrSort: "mtime_desc" } }, "*", 100, false],
             [{ dataset: { mjrScope: "output", mjrSort: "mtime_desc" } }, "portrait", 0, true],
-            [{ dataset: { mjrScope: "output", mjrSort: "mtime_desc", mjrFilterMinRating: "3" } }, "*", 0, true],
+            [
+                { dataset: { mjrScope: "output", mjrSort: "mtime_desc", mjrFilterMinRating: "3" } },
+                "*",
+                0,
+                true,
+            ],
             [{ dataset: { mjrScope: "all", mjrSort: "mtime_desc" } }, "*", 100, true],
             [{ dataset: { mjrScope: "input", mjrSort: "mtime_desc" } }, "*", 100, true],
             [{ dataset: { mjrScope: "custom", mjrSort: "mtime_desc" } }, "*", 100, true],

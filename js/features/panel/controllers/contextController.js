@@ -460,7 +460,8 @@ export function createContextController({
             getStateValue("dateExactFilter", "") ||
             ""
         );
-        const sortActive = String(getStateValue("sort", "mtime_desc") || "mtime_desc") !== "mtime_desc";
+        const sortActive =
+            String(getStateValue("sort", "mtime_desc") || "mtime_desc") !== "mtime_desc";
         const collectionsActive = !!(getStateValue("collectionId", "") || "");
 
         try {

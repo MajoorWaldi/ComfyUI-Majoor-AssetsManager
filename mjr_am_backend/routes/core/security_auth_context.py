@@ -6,7 +6,6 @@ from contextvars import ContextVar, Token
 from typing import Any
 
 from aiohttp import web
-
 from mjr_am_backend.shared import Result
 
 _CURRENT_USER_ID: ContextVar[str] = ContextVar("mjr_current_user_id", default="")

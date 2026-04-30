@@ -3,9 +3,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 function makeStorage() {
     const store = new Map();
     return {
-        getItem(key) { return store.has(key) ? store.get(key) : null; },
-        setItem(key, value) { store.set(String(key), String(value)); },
-        removeItem(key) { store.delete(key); },
+        getItem(key) {
+            return store.has(key) ? store.get(key) : null;
+        },
+        setItem(key, value) {
+            store.set(String(key), String(value));
+        },
+        removeItem(key) {
+            store.delete(key);
+        },
     };
 }
 

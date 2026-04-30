@@ -1,8 +1,8 @@
 import types
 from pathlib import Path
 
-from mjr_am_backend.routes.assets import path_guard as g
 from mjr_am_backend.features.assets import download_service as ds
+from mjr_am_backend.routes.assets import path_guard as g
 
 
 def test_is_resolved_path_allowed_and_safe_download_filename(monkeypatch, tmp_path: Path):

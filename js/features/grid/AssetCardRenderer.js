@@ -107,13 +107,17 @@ export function selectStackRepresentative(assets) {
 
 export function preserveRepresentativeGenerationTime(primary, members) {
     if (!primary || !Array.isArray(members) || members.length === 0) return primary;
-    const current = Number(primary?.generation_time_ms ?? primary?.metadata?.generation_time_ms ?? 0) || 0;
+    const current =
+        Number(primary?.generation_time_ms ?? primary?.metadata?.generation_time_ms ?? 0) || 0;
     if (current > 0) return primary;
     const donor = members.find(
-        (asset) => (Number(asset?.generation_time_ms ?? asset?.metadata?.generation_time_ms ?? 0) || 0) > 0,
+        (asset) =>
+            (Number(asset?.generation_time_ms ?? asset?.metadata?.generation_time_ms ?? 0) || 0) >
+            0,
     );
     if (!donor) return primary;
-    const donorMs = Number(donor?.generation_time_ms ?? donor?.metadata?.generation_time_ms ?? 0) || 0;
+    const donorMs =
+        Number(donor?.generation_time_ms ?? donor?.metadata?.generation_time_ms ?? 0) || 0;
     if (donorMs <= 0) return primary;
     primary.generation_time_ms = donorMs;
     if (!primary.has_generation_data && donor?.has_generation_data) {
@@ -187,9 +191,15 @@ export function buildCollisionPaths(bucket) {
 }
 
 function getSiblingContextKey(asset) {
-    const source = String(asset?.source || asset?.type || "").trim().toLowerCase();
-    const rootId = String(asset?.root_id || asset?.custom_root_id || "").trim().toLowerCase();
-    const subfolder = String(asset?.subfolder || "").trim().toLowerCase();
+    const source = String(asset?.source || asset?.type || "")
+        .trim()
+        .toLowerCase();
+    const rootId = String(asset?.root_id || asset?.custom_root_id || "")
+        .trim()
+        .toLowerCase();
+    const subfolder = String(asset?.subfolder || "")
+        .trim()
+        .toLowerCase();
     return `${source}|${rootId}|${subfolder}`;
 }
 
@@ -343,7 +353,11 @@ export function appendAssets(gridContainer, assets, state, deps) {
                         for (const card of renderedList) {
                             const badge = card.querySelector?.(".mjr-file-badge");
                             deps.setFileBadgeCollision(badge, false);
-                            try { deps.ensureDupStackCard?.(gridContainer, card, card._mjrAsset); } catch (e) { console.debug?.(e); }
+                            try {
+                                deps.ensureDupStackCard?.(gridContainer, card, card._mjrAsset);
+                            } catch (e) {
+                                console.debug?.(e);
+                            }
                         }
                     }
                     continue;
@@ -370,7 +384,9 @@ export function appendAssets(gridContainer, assets, state, deps) {
                 }
 
                 // Merge new duplicates with existing _mjrDupMembers to survive across pages.
-                const prevMembers = Array.isArray(primary._mjrDupMembers) ? primary._mjrDupMembers : [];
+                const prevMembers = Array.isArray(primary._mjrDupMembers)
+                    ? primary._mjrDupMembers
+                    : [];
                 const prevIds = new Set(prevMembers.map((a) => String(a?.id || "")));
                 const merged = [
                     ...prevMembers,
@@ -384,7 +400,9 @@ export function appendAssets(gridContainer, assets, state, deps) {
                 // Remove secondary copies from state.assets so only the primary card shows.
                 const secondaryIds = new Set(secondaries.map((a) => String(a?.id || "")));
                 if (secondaryIds.size > 0) {
-                    state.assets = state.assets.filter((a) => !secondaryIds.has(String(a?.id || "")));
+                    state.assets = state.assets.filter(
+                        (a) => !secondaryIds.has(String(a?.id || "")),
+                    );
                 }
 
                 // Update rendered primary card: attach dup-stack button, clear red collision badge.
@@ -393,9 +411,16 @@ export function appendAssets(gridContainer, assets, state, deps) {
                     for (const card of renderedList) {
                         const cardAsset = card._mjrAsset;
                         const badge = card.querySelector?.(".mjr-file-badge");
-                        if (cardAsset === primary || String(cardAsset?.id || "") === String(primary?.id || "")) {
+                        if (
+                            cardAsset === primary ||
+                            String(cardAsset?.id || "") === String(primary?.id || "")
+                        ) {
                             deps.setFileBadgeCollision(badge, false);
-                            try { deps.ensureDupStackCard?.(gridContainer, card, primary); } catch (e) { console.debug?.(e); }
+                            try {
+                                deps.ensureDupStackCard?.(gridContainer, card, primary);
+                            } catch (e) {
+                                console.debug?.(e);
+                            }
                         }
                     }
                 }

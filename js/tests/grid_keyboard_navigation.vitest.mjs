@@ -7,7 +7,9 @@ const panelRuntimeState = vi.hoisted(() => ({
 }));
 
 vi.mock("../app/toast.js", () => ({ comfyToast: vi.fn() }));
-vi.mock("../app/i18n.js", () => ({ t: (key, fallback, params) => fallback || key || params || "" }));
+vi.mock("../app/i18n.js", () => ({
+    t: (key, fallback, params) => fallback || key || params || "",
+}));
 vi.mock("../app/dialogs.js", () => ({ comfyPrompt: vi.fn() }));
 vi.mock("../api/client.js", () => ({
     openInFolder: vi.fn(),
@@ -61,7 +63,14 @@ function createGridContainer(assetIds) {
             });
             return card;
         });
-    grid.getBoundingClientRect = () => ({ top: 0, left: 0, width: 220, height: 100, right: 220, bottom: 100 });
+    grid.getBoundingClientRect = () => ({
+        top: 0,
+        left: 0,
+        width: 220,
+        height: 100,
+        right: 220,
+        bottom: 100,
+    });
     grid._mjrSetSelection = (ids, activeId = "") => {
         grid.dataset.mjrSelectedAssetIds = JSON.stringify(ids);
         if (activeId) grid.dataset.mjrSelectedAssetId = String(activeId);
@@ -106,16 +115,26 @@ describe("GridKeyboard navigation", () => {
         const mainKeyboard = installGridKeyboard({
             gridContainer: mainGrid,
             getState: () => ({ assets: mainGrid._mjrAssets }),
-            getSelectedAssets: () => mainGrid._mjrAssets.filter((asset) => asset.id === mainGrid.dataset.mjrSelectedAssetId),
+            getSelectedAssets: () =>
+                mainGrid._mjrAssets.filter(
+                    (asset) => asset.id === mainGrid.dataset.mjrSelectedAssetId,
+                ),
             getActiveAsset: () =>
-                mainGrid._mjrAssets.find((asset) => asset.id === mainGrid.dataset.mjrSelectedAssetId) || null,
+                mainGrid._mjrAssets.find(
+                    (asset) => asset.id === mainGrid.dataset.mjrSelectedAssetId,
+                ) || null,
         });
         const feedKeyboard = installGridKeyboard({
             gridContainer: feedGrid,
             getState: () => ({ assets: feedGrid._mjrAssets }),
-            getSelectedAssets: () => feedGrid._mjrAssets.filter((asset) => asset.id === feedGrid.dataset.mjrSelectedAssetId),
+            getSelectedAssets: () =>
+                feedGrid._mjrAssets.filter(
+                    (asset) => asset.id === feedGrid.dataset.mjrSelectedAssetId,
+                ),
             getActiveAsset: () =>
-                feedGrid._mjrAssets.find((asset) => asset.id === feedGrid.dataset.mjrSelectedAssetId) || null,
+                feedGrid._mjrAssets.find(
+                    (asset) => asset.id === feedGrid.dataset.mjrSelectedAssetId,
+                ) || null,
         });
 
         mainKeyboard.bind();

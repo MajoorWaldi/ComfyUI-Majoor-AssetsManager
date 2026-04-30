@@ -131,9 +131,8 @@ describe("WorkflowSidebar live sync", () => {
     });
 
     it("rebuilds immediately when the selected canvas nodes change", async () => {
-        const { WorkflowSidebar } = await import(
-            "../features/viewer/workflowSidebar/WorkflowSidebar.js"
-        );
+        const { WorkflowSidebar } =
+            await import("../features/viewer/workflowSidebar/WorkflowSidebar.js");
 
         const nodeA = { id: 11 };
         const nodeB = { id: 22 };
@@ -154,9 +153,8 @@ describe("WorkflowSidebar live sync", () => {
     });
 
     it("keeps syncing current node values without forcing a rebuild", async () => {
-        const { WorkflowSidebar } = await import(
-            "../features/viewer/workflowSidebar/WorkflowSidebar.js"
-        );
+        const { WorkflowSidebar } =
+            await import("../features/viewer/workflowSidebar/WorkflowSidebar.js");
 
         const nodeA = { id: 33 };
         bridgeState.app.canvas.selected_nodes = { 33: nodeA };

@@ -58,9 +58,7 @@ function resolveSafeActionUrl(value) {
         const baseHref = String(globalThis?.window?.location?.href || "http://127.0.0.1/");
         const normalized = raw.replace(/\\/g, "/");
         const docsMatch = normalized.match(/(?:^|\/)(docs\/[^?#]+\.md)([?#].*)?$/i);
-        const resolvedRaw = docsMatch
-            ? `/mjr/am/${docsMatch[1]}${docsMatch[2] || ""}`
-            : raw;
+        const resolvedRaw = docsMatch ? `/mjr/am/${docsMatch[1]}${docsMatch[2] || ""}` : raw;
         const url = new URL(resolvedRaw, baseHref);
         const protocol = String(url.protocol || "").toLowerCase();
         return protocol === "http:" || protocol === "https:" ? url.href : "";
@@ -102,7 +100,9 @@ function formatHistoryDuration(entry) {
 }
 
 function formatHistoryStatus(status) {
-    const raw = String(status || "").trim().toLowerCase();
+    const raw = String(status || "")
+        .trim()
+        .toLowerCase();
     if (!raw) return "";
     return raw.replace(/[_-]+/g, " ");
 }
@@ -385,7 +385,8 @@ export function bindMessagePopoverController({
             const detailText = String(entry.detail || "").trim();
             const fallbackMessage = String(entry.message || "").trim();
             const primaryText = titleText || fallbackMessage;
-            const secondaryText = titleText && detailText ? detailText : titleText ? "" : detailText;
+            const secondaryText =
+                titleText && detailText ? detailText : titleText ? "" : detailText;
 
             const msg = document.createElement("div");
             msg.className = titleText ? "mjr-history-item-title" : "mjr-history-item-msg";
@@ -791,11 +792,7 @@ export function bindMessagePopoverController({
         },
         listenerOptions,
     );
-    messageTabBtn?.addEventListener(
-        "keydown",
-        (e) => onTabKeydown(e, "messages"),
-        listenerOptions,
-    );
+    messageTabBtn?.addEventListener("keydown", (e) => onTabKeydown(e, "messages"), listenerOptions);
 
     historyTabBtn?.addEventListener(
         "click",
@@ -806,11 +803,7 @@ export function bindMessagePopoverController({
         },
         listenerOptions,
     );
-    historyTabBtn?.addEventListener(
-        "keydown",
-        (e) => onTabKeydown(e, "history"),
-        listenerOptions,
-    );
+    historyTabBtn?.addEventListener("keydown", (e) => onTabKeydown(e, "history"), listenerOptions);
 
     shortcutsTabBtn?.addEventListener(
         "click",

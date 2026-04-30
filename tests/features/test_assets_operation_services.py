@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from contextlib import asynccontextmanager
 from pathlib import Path
+from typing import Any
 
 import pytest
-
 from mjr_am_backend.features.assets.delete_service import delete_asset_and_cleanup
 from mjr_am_backend.features.assets.models import AssetDeleteTarget, AssetRenameTarget
 from mjr_am_backend.features.assets.rename_service import rename_asset_and_sync
@@ -14,7 +14,7 @@ from mjr_am_backend.shared import Result
 class _DB:
     def __init__(self) -> None:
         self.executed: list[tuple[str, tuple]] = []
-        self.query_result = Result.Ok([])
+        self.query_result: Result[Any] = Result.Ok([])
 
     @asynccontextmanager
     async def atransaction(self, mode="immediate"):
@@ -52,10 +52,14 @@ async def test_delete_asset_and_cleanup_removes_file_and_db_rows(tmp_path: Path)
         filepath_params=(str(file_path), str(file_path)),
     )
 
+    def _delete_file(path: Path) -> Result[bool]:
+        path.unlink()
+        return Result.Ok(True)
+
     result = await delete_asset_and_cleanup(
         services={"db": db},
         target=target,
-        delete_file_safe=lambda path: Result.Ok(path.unlink() is None),
+        delete_file_safe=_delete_file,
         safe_error_message=lambda exc, default: f"{default}: {exc}",
     )
 

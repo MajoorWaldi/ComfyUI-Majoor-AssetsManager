@@ -22,7 +22,12 @@ const state = vi.hoisted(() => {
             this._mode = viewerMode;
             this._mediaA = null;
             this._mediaB = null;
-            this._pinnedSlots = typeof pinnedSlot === 'object' && pinnedSlot instanceof Set ? pinnedSlot : (pinnedSlot ? new Set([pinnedSlot]) : new Set());
+            this._pinnedSlots =
+                typeof pinnedSlot === "object" && pinnedSlot instanceof Set
+                    ? pinnedSlot
+                    : pinnedSlot
+                      ? new Set([pinnedSlot])
+                      : new Set();
             this._isPopped = viewerPopped;
             this.isVisible = false;
             this.show = vi.fn(() => {
@@ -177,7 +182,10 @@ beforeEach(() => {
     vi.resetModules();
     state.reset();
     globalThis.window = createWindowStub();
-    globalThis.requestAnimationFrame = (cb) => { cb(); return 1; };
+    globalThis.requestAnimationFrame = (cb) => {
+        cb();
+        return 1;
+    };
     globalThis.cancelAnimationFrame = vi.fn();
     globalThis.document = {
         body: {
@@ -434,8 +442,7 @@ describe("floatingViewerManager", () => {
             floatingViewerManager,
             installFloatingViewerGlobalHandlers,
             teardownFloatingViewerManager,
-        } =
-            await import("../features/viewer/floatingViewerManager.js");
+        } = await import("../features/viewer/floatingViewerManager.js");
         installFloatingViewerGlobalHandlers();
         await floatingViewerManager.open();
 
@@ -499,7 +506,9 @@ describe("floatingViewerManager", () => {
             new CustomEvent("mjr-settings-changed", { detail: { key: "viewer.mfvLiveDefault" } }),
         );
         window.dispatchEvent(
-            new CustomEvent("mjr-settings-changed", { detail: { key: "viewer.mfvPreviewDefault" } }),
+            new CustomEvent("mjr-settings-changed", {
+                detail: { key: "viewer.mfvPreviewDefault" },
+            }),
         );
 
         expect(viewer.setLiveActive).toHaveBeenLastCalledWith(false);

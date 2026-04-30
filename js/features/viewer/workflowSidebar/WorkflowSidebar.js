@@ -21,8 +21,12 @@ export class WorkflowSidebar {
         this._el = this._build();
     }
 
-    get el() { return this._el; }
-    get isVisible() { return this._visible; }
+    get el() {
+        return this._el;
+    }
+    get isVisible() {
+        return this._visible;
+    }
 
     show() {
         this._visible = true;
@@ -128,7 +132,10 @@ export class WorkflowSidebar {
         if (this._liveSyncHandle == null) return;
         const frameHost = _getFrameHost(this._el);
         try {
-            if (this._liveSyncMode === "raf" && typeof frameHost.cancelAnimationFrame === "function") {
+            if (
+                this._liveSyncMode === "raf" &&
+                typeof frameHost.cancelAnimationFrame === "function"
+            ) {
                 frameHost.cancelAnimationFrame(this._liveSyncHandle);
             } else if (typeof frameHost.clearTimeout === "function") {
                 frameHost.clearTimeout(this._liveSyncHandle);
@@ -169,8 +176,7 @@ export class WorkflowSidebar {
 
             const onPointerMove = (moveEvent) => {
                 const deltaX = moveEvent.clientX - startX;
-                const nextWidth =
-                    sidebarPos === "left" ? startWidth - deltaX : startWidth + deltaX;
+                const nextWidth = sidebarPos === "left" ? startWidth - deltaX : startWidth + deltaX;
                 const clampedWidth = Math.max(MIN_WIDTH, Math.min(maxWidth, nextWidth));
                 this._el.style.width = `${Math.round(clampedWidth)}px`;
             };

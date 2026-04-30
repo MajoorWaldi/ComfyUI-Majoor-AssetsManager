@@ -82,7 +82,8 @@ describe("StackGroupCards overlay buttons", () => {
     });
 
     it("skips imperative button creation for Vue cards (_mjrIsVue guard)", async () => {
-        const { ensureStackGroupCard, ensureDupStackCard } = await import("../features/grid/StackGroupCards.js");
+        const { ensureStackGroupCard, ensureDupStackCard } =
+            await import("../features/grid/StackGroupCards.js");
 
         const grid = document.createElement("div");
         grid.dataset.mjrGroupStacks = "1";
@@ -108,7 +109,8 @@ describe("StackGroupCards overlay buttons", () => {
     });
 
     it("still creates buttons for non-Vue cards", async () => {
-        const { ensureStackGroupCard, ensureDupStackCard } = await import("../features/grid/StackGroupCards.js");
+        const { ensureStackGroupCard, ensureDupStackCard } =
+            await import("../features/grid/StackGroupCards.js");
 
         const grid = document.createElement("div");
         grid.dataset.mjrGroupStacks = "1";

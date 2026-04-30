@@ -32,15 +32,12 @@ export function exposeDebugApis({ resolveNodeStreamModule }) {
         registerAdapter: nodeStreamApi("registerAdapter"),
         listAdapters: nodeStreamApi("listAdapters"),
         async createAdapter(config) {
-            const { createAdapter } = await import(
-                "../viewer/nodeStream/adapters/BaseAdapter.js"
-            );
+            const { createAdapter } = await import("../viewer/nodeStream/adapters/BaseAdapter.js");
             return createAdapter(config);
         },
         async getKnownNodeSets() {
-            const { getKnownNodeSets } = await import(
-                "../viewer/nodeStream/adapters/KnownNodesAdapter.js"
-            );
+            const { getKnownNodeSets } =
+                await import("../viewer/nodeStream/adapters/KnownNodesAdapter.js");
             return getKnownNodeSets();
         },
     };

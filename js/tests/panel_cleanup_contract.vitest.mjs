@@ -39,7 +39,11 @@ describe("panel cleanup contract", () => {
         it("try-catch wrapping tolerates null controller", () => {
             const ac = null;
             let threw = false;
-            try { ac?.abort?.(); } catch { threw = true; }
+            try {
+                ac?.abort?.();
+            } catch {
+                threw = true;
+            }
             expect(threw).toBe(false);
         });
     });
@@ -71,7 +75,11 @@ describe("panel cleanup contract", () => {
 
             const disposables = [hotkeys, ratingHotkeys, sidebar, popovers];
             for (const d of disposables) {
-                try { d.dispose(); } catch { /* safety */ }
+                try {
+                    d.dispose();
+                } catch {
+                    /* safety */
+                }
             }
 
             expect(hotkeys.dispose).toHaveBeenCalledOnce();
@@ -81,11 +89,19 @@ describe("panel cleanup contract", () => {
         });
 
         it("continues disposing after one controller throws", () => {
-            const broken = { dispose: vi.fn(() => { throw new Error("boom"); }) };
+            const broken = {
+                dispose: vi.fn(() => {
+                    throw new Error("boom");
+                }),
+            };
             const healthy = { dispose: vi.fn() };
 
             for (const d of [broken, healthy]) {
-                try { d.dispose(); } catch { /* safety */ }
+                try {
+                    d.dispose();
+                } catch {
+                    /* safety */
+                }
             }
 
             expect(broken.dispose).toHaveBeenCalledOnce();
@@ -95,7 +111,11 @@ describe("panel cleanup contract", () => {
         it("handles optional dispose via ?. operator", () => {
             const obj = {};
             let threw = false;
-            try { obj?.dispose?.(); } catch { threw = true; }
+            try {
+                obj?.dispose?.();
+            } catch {
+                threw = true;
+            }
             expect(threw).toBe(false);
         });
     });
@@ -135,21 +155,47 @@ describe("panel cleanup contract", () => {
         it("runs all cleanup steps even when some fail", () => {
             const log = [];
             const steps = [
-                () => { log.push("abort"); },
-                () => { log.push("timer"); throw new Error("timer fail"); },
-                () => { log.push("hotkeys"); },
-                () => { log.push("filters"); },
-                () => { log.push("sidebar"); throw new Error("sidebar fail"); },
-                () => { log.push("grid"); },
-                () => { log.push("popovers"); },
+                () => {
+                    log.push("abort");
+                },
+                () => {
+                    log.push("timer");
+                    throw new Error("timer fail");
+                },
+                () => {
+                    log.push("hotkeys");
+                },
+                () => {
+                    log.push("filters");
+                },
+                () => {
+                    log.push("sidebar");
+                    throw new Error("sidebar fail");
+                },
+                () => {
+                    log.push("grid");
+                },
+                () => {
+                    log.push("popovers");
+                },
             ];
 
             for (const step of steps) {
-                try { step(); } catch { /* safety */ }
+                try {
+                    step();
+                } catch {
+                    /* safety */
+                }
             }
 
             expect(log).toEqual([
-                "abort", "timer", "hotkeys", "filters", "sidebar", "grid", "popovers",
+                "abort",
+                "timer",
+                "hotkeys",
+                "filters",
+                "sidebar",
+                "grid",
+                "popovers",
             ]);
         });
     });

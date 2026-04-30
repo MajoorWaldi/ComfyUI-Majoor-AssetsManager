@@ -225,7 +225,8 @@ export const usePanelStore = defineStore("mjr-panel", () => {
         try {
             const updated = sanitize(JSON.parse(event.newValue));
             if (updated.scope !== undefined) scope.value = updated.scope;
-            if (updated.customRootLabel !== undefined) customRootLabel.value = updated.customRootLabel;
+            if (updated.customRootLabel !== undefined)
+                customRootLabel.value = updated.customRootLabel;
             if (updated.searchQuery !== undefined) searchQuery.value = updated.searchQuery;
             if (updated.sort !== undefined) sort.value = updated.sort;
             if (updated.sidebarOpen !== undefined) sidebarOpen.value = updated.sidebarOpen;
@@ -239,7 +240,11 @@ export const usePanelStore = defineStore("mjr-panel", () => {
         /* ignore */
     }
     onScopeDispose(() => {
-        try { window.removeEventListener("storage", _onStorage); } catch { /* ignore */ }
+        try {
+            window.removeEventListener("storage", _onStorage);
+        } catch {
+            /* ignore */
+        }
     });
 
     // ── actions ───────────────────────────────────────────────────────────────

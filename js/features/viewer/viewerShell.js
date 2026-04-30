@@ -24,12 +24,7 @@ export function createViewerOverlayRoot() {
     return overlay;
 }
 
-export function createViewerStageShell({
-    state,
-    buildAssetViewURL,
-    onNavigate,
-    onCompare,
-}) {
+export function createViewerStageShell({ state, buildAssetViewURL, onNavigate, onCompare }) {
     const contentRow = document.createElement("div");
     contentRow.className = "mjr-viewer-content-row";
     contentRow.style.cssText = `

@@ -37,10 +37,7 @@ export function createExecutionRuntimeController({
         ttlMs: EXECUTION_START_TTL_MS,
         maxSize: EXECUTION_STARTS_MAX,
     });
-    const executionIdleGraceMs = Math.max(
-        0,
-        Number(APP_CONFIG.EXECUTION_IDLE_GRACE_MS) || 6000,
-    );
+    const executionIdleGraceMs = Math.max(0, Number(APP_CONFIG.EXECUTION_IDLE_GRACE_MS) || 6000);
     const orphanGenerationEntries = new Map();
     const executionAssetBuffer = createExecutionAssetBuffer();
     const liveAssetGate = createLiveAssetGate();
@@ -52,7 +49,9 @@ export function createExecutionRuntimeController({
         try {
             if (typeof window === "undefined") return false;
             if (window.__MJR_DEBUG_JOB_TRACKING__ === true) return true;
-            return String(window.localStorage?.getItem("mjr.debug.jobTracking") || "").trim() === "1";
+            return (
+                String(window.localStorage?.getItem("mjr.debug.jobTracking") || "").trim() === "1"
+            );
         } catch (e) {
             console.debug?.(e);
             return false;
@@ -449,7 +448,9 @@ export function createExecutionRuntimeController({
         const outputFiles = dedupeFiles(extractOutputFiles(event?.detail?.output));
         if (!outputFiles.length) return;
         const promptId = event?.detail?.prompt_id || event?.detail?.promptId;
-        const sourceNodeId = String(event?.detail?.node || event?.detail?.display_node || "").trim();
+        const sourceNodeId = String(
+            event?.detail?.node || event?.detail?.display_node || "",
+        ).trim();
         const startTs = promptId ? executionStarts.get(String(promptId)) : null;
         const genTimeMs = startTs ? Math.max(0, Date.now() - startTs) : 0;
         let sourceNodeType = "";

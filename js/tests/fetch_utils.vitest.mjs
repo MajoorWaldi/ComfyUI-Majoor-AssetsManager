@@ -34,26 +34,27 @@ function makeAbortableFetch() {
      * Returns a fetch mock that rejects with AbortError when the signal fires,
      * and never resolves otherwise.  Used to test timeout behaviour with real timers.
      */
-    return vi.fn((_, { signal } = {}) =>
-        new Promise((resolve, reject) => {
-            if (signal?.aborted) {
-                const err = new Error("Aborted");
-                err.name = "AbortError";
-                reject(err);
-                return;
-            }
-            if (signal) {
-                signal.addEventListener(
-                    "abort",
-                    () => {
-                        const err = new Error("Aborted");
-                        err.name = "AbortError";
-                        reject(err);
-                    },
-                    { once: true },
-                );
-            }
-        }),
+    return vi.fn(
+        (_, { signal } = {}) =>
+            new Promise((resolve, reject) => {
+                if (signal?.aborted) {
+                    const err = new Error("Aborted");
+                    err.name = "AbortError";
+                    reject(err);
+                    return;
+                }
+                if (signal) {
+                    signal.addEventListener(
+                        "abort",
+                        () => {
+                            const err = new Error("Aborted");
+                            err.name = "AbortError";
+                            reject(err);
+                        },
+                        { once: true },
+                    );
+                }
+            }),
     );
 }
 

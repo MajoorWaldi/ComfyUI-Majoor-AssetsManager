@@ -496,8 +496,7 @@ export const applySettingsToConfig = (settings) => {
         settings.viewer?.floatingPauseDuringExecution ??
         APP_DEFAULTS.FLOATING_VIEWER_PAUSE_DURING_EXECUTION
     );
-    APP_CONFIG.MFV_LIVE_DEFAULT =
-        settings.viewer?.mfvLiveDefault ?? APP_DEFAULTS.MFV_LIVE_DEFAULT;
+    APP_CONFIG.MFV_LIVE_DEFAULT = settings.viewer?.mfvLiveDefault ?? APP_DEFAULTS.MFV_LIVE_DEFAULT;
     APP_CONFIG.MFV_PREVIEW_DEFAULT =
         settings.viewer?.mfvPreviewDefault ?? APP_DEFAULTS.MFV_PREVIEW_DEFAULT;
     {
@@ -643,7 +642,10 @@ export async function syncBackendSecuritySettings() {
         settings.security = settings.security || {};
         settings.security.safeMode = _safeBool(prefs.safe_mode, settings.security.safeMode);
         settings.security.allowWrite = _safeBool(prefs.allow_write, settings.security.allowWrite);
-        settings.security.requireAuth = _safeBool(prefs.require_auth, settings.security.requireAuth);
+        settings.security.requireAuth = _safeBool(
+            prefs.require_auth,
+            settings.security.requireAuth,
+        );
         settings.security.allowRemoteWrite = _safeBool(
             prefs.allow_remote_write,
             settings.security.allowRemoteWrite,

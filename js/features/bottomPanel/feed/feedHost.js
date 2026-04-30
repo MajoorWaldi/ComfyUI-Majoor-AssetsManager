@@ -1,5 +1,9 @@
 import { disposeGrid, loadAssetsFromList } from "../../grid/gridApi.js";
-import { loadMajoorSettings, saveMajoorSettings, applySettingsToConfig } from "../../../app/settings/settingsCore.js";
+import {
+    loadMajoorSettings,
+    saveMajoorSettings,
+    applySettingsToConfig,
+} from "../../../app/settings/settingsCore.js";
 import { EVENTS } from "../../../app/events.js";
 import { t } from "../../../app/i18n.js";
 import { floatingViewerManager } from "../../viewer/floatingViewerManager.js";
@@ -537,10 +541,12 @@ function _applyFeedSettingsClasses(grid) {
 }
 
 function _buildGrid(host, externalGridWrapper = null) {
-    const wrapper = externalGridWrapper ?? (() => {
-        const el = document.createElement("div");
-        return el;
-    })();
+    const wrapper =
+        externalGridWrapper ??
+        (() => {
+            const el = document.createElement("div");
+            return el;
+        })();
     wrapper.classList.add("mjr-am-grid-scroll");
     wrapper.style.position = "relative";
     wrapper.style.flex = "1 1 auto";
@@ -741,7 +747,9 @@ function _applyFeedMinSize(host, rawSize) {
     }
     // Notify Vue grid to recompute columnCount.
     try {
-        window.dispatchEvent(new CustomEvent("mjr-settings-changed", { detail: { key: "feed.minSize" } }));
+        window.dispatchEvent(
+            new CustomEvent("mjr-settings-changed", { detail: { key: "feed.minSize" } }),
+        );
     } catch (e) {
         console.debug?.(e);
     }
@@ -772,8 +780,7 @@ function _buildSizeControl(host) {
 
     const label = document.createElement("span");
     label.textContent = t("bottomFeed.cardSize", "Cards:");
-    label.style.cssText =
-        "font-size:11px; opacity:0.65; white-space:nowrap; flex-shrink:0;";
+    label.style.cssText = "font-size:11px; opacity:0.65; white-space:nowrap; flex-shrink:0;";
     toolbar.appendChild(label);
 
     const btnMinus = document.createElement("button");

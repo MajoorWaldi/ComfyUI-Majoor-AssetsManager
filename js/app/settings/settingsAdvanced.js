@@ -906,21 +906,29 @@ export function registerAdvancedSettings(safeAddSetting, settings, notifyApplied
                 );
                 const result = await vectorBackfill(64, {
                     onProgress: (payload) => {
-                        const status = String(payload?.status || "running").toLowerCase() || "running";
+                        const status =
+                            String(payload?.status || "running").toLowerCase() || "running";
                         const progress = payload?.progress || payload?.result || {};
                         const candidates = Number(progress?.candidates ?? progress?.processed ?? 0);
                         const indexed = Number(progress?.indexed ?? 0);
                         const skipped = Number(progress?.skipped ?? 0);
                         const errors = Number(progress?.errors ?? 0);
                         const total = Math.max(candidates, indexed + skipped + errors);
-                        const percent = total > 0 ? Math.round(((indexed + skipped + errors) / total) * 100) : null;
+                        const percent =
+                            total > 0
+                                ? Math.round(((indexed + skipped + errors) / total) * 100)
+                                : null;
                         const detail =
                             status === "queued"
                                 ? "Vector backfill queued"
                                 : `Candidates ${candidates}, indexed ${indexed}, skipped ${skipped}, errors ${errors}`;
                         recordToastHistory(
                             { summary: "Vector Backfill", detail },
-                            status === "failed" ? "error" : status === "succeeded" ? "success" : "info",
+                            status === "failed"
+                                ? "error"
+                                : status === "succeeded"
+                                  ? "success"
+                                  : "info",
                             0,
                             {
                                 history: {
@@ -971,7 +979,11 @@ export function registerAdvancedSettings(safeAddSetting, settings, notifyApplied
                                         total: Math.max(processed, indexed + skipped),
                                         percent:
                                             Math.max(processed, indexed + skipped) > 0
-                                                ? Math.round(((indexed + skipped) / Math.max(processed, indexed + skipped)) * 100)
+                                                ? Math.round(
+                                                      ((indexed + skipped) /
+                                                          Math.max(processed, indexed + skipped)) *
+                                                          100,
+                                                  )
                                                 : null,
                                         indexed,
                                         skipped,

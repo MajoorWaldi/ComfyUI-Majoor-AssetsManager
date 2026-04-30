@@ -303,9 +303,18 @@ export function installViewerKeyboard({
                 const promptText = extractPromptText(current);
                 if (promptText) {
                     consume();
-                    void navigator.clipboard?.writeText?.(promptText)
-                        .then(() => comfyToast(t("toast.promptCopied", "Prompt copied to clipboard"), "success", 1500))
-                        .catch(() => comfyToast(t("toast.copyFailed", "Copy failed"), "error", 1500));
+                    void navigator.clipboard
+                        ?.writeText?.(promptText)
+                        .then(() =>
+                            comfyToast(
+                                t("toast.promptCopied", "Prompt copied to clipboard"),
+                                "success",
+                                1500,
+                            ),
+                        )
+                        .catch(() =>
+                            comfyToast(t("toast.copyFailed", "Copy failed"), "error", 1500),
+                        );
                     return;
                 }
             } catch (ex) {

@@ -11,7 +11,7 @@ import sqlite3
 from pathlib import Path
 from typing import Any
 
-from ...shared import Result, get_logger
+from ...shared import get_logger
 from ..core import safe_error_message
 
 logger = get_logger(__name__)

@@ -609,7 +609,7 @@ describe("useGridLoader adaptive paging", () => {
         vi.resetModules();
         module = await import("../vue/composables/useGridLoader.js");
 
-                const state2 = {
+        const state2 = {
             loading: false,
             done: false,
             total: null,
@@ -828,7 +828,9 @@ describe("useGridLoader adaptive paging", () => {
 
         resolvePage({
             ok: true,
-            assets: [{ id: "output-1", filename: "output-one.png", kind: "image", source: "output" }],
+            assets: [
+                { id: "output-1", filename: "output-one.png", kind: "image", source: "output" },
+            ],
             total: 1,
             count: 1,
             limit: 100,

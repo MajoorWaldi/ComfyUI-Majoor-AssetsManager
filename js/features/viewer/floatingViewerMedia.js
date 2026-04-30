@@ -1,9 +1,6 @@
 import { APP_CONFIG } from "../../app/config.js";
 import { buildViewURL, buildAssetViewURL } from "../../api/endpoints.js";
-import {
-    createModel3DMediaElement,
-    MODEL3D_EXTS,
-} from "./model3dRenderer.js";
+import { createModel3DMediaElement, MODEL3D_EXTS } from "./model3dRenderer.js";
 import { mountUnifiedMediaControls } from "./mediaPlayer.js";
 import { mountFloatingViewerSimplePlayer } from "./floatingViewerSimplePlayer.js";
 import { readAssetFps, readAssetFrameCount } from "../../utils/mediaFps.js";
@@ -44,9 +41,7 @@ export function resolveFloatingViewerMediaUrl(fileData) {
     return "";
 }
 
-export function createFloatingViewerEmptyState(
-    msg = "No media — select assets in the grid",
-) {
+export function createFloatingViewerEmptyState(msg = "No media — select assets in the grid") {
     const div = document.createElement("div");
     div.className = "mjr-mfv-empty";
     div.textContent = msg;
@@ -92,12 +87,18 @@ export function canFloatingViewerWheelScroll(element, deltaX, deltaY) {
     if (!element) return false;
     if (Math.abs(Number(deltaY) || 0) >= Math.abs(Number(deltaX) || 0)) {
         const top = Number(element.scrollTop || 0);
-        const maxTop = Math.max(0, Number(element.scrollHeight || 0) - Number(element.clientHeight || 0));
+        const maxTop = Math.max(
+            0,
+            Number(element.scrollHeight || 0) - Number(element.clientHeight || 0),
+        );
         if (deltaY < 0 && top > 0) return true;
         if (deltaY > 0 && top < maxTop) return true;
     }
     const left = Number(element.scrollLeft || 0);
-    const maxLeft = Math.max(0, Number(element.scrollWidth || 0) - Number(element.clientWidth || 0));
+    const maxLeft = Math.max(
+        0,
+        Number(element.scrollWidth || 0) - Number(element.clientWidth || 0),
+    );
     if (deltaX < 0 && left > 0) return true;
     if (deltaX > 0 && left < maxLeft) return true;
     return false;
@@ -127,8 +128,7 @@ export function buildFloatingViewerMediaElement(fileData, { fill = false } = {})
     const mediaClass = `mjr-mfv-media mjr-mfv-media--fit-height${fill ? " mjr-mfv-media--fill" : ""}`;
     const ext = getFloatingViewerMediaExt(fileData?.filename || "");
     const isAnimatedWebp =
-        ext === ".webp" &&
-        Number(fileData?.duration ?? fileData?.metadata_raw?.duration ?? 0) > 0;
+        ext === ".webp" && Number(fileData?.duration ?? fileData?.metadata_raw?.duration ?? 0) > 0;
 
     const buildPlayableMediaHost = (mediaEl, mediaKind) => {
         const host = document.createElement("div");
@@ -162,7 +162,9 @@ export function buildFloatingViewerMediaElement(fileData, { fill = false } = {})
         audio.loop = true;
         audio.muted = true;
         try {
-            audio.addEventListener("loadedmetadata", () => attemptFloatingViewerAutoplay(audio), { once: true });
+            audio.addEventListener("loadedmetadata", () => attemptFloatingViewerAutoplay(audio), {
+                once: true,
+            });
         } catch (e) {
             console.debug?.(e);
         }

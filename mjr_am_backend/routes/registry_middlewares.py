@@ -6,7 +6,6 @@ from collections.abc import Awaitable, Callable
 from typing import Any
 
 from aiohttp import web
-
 from mjr_am_backend.shared import Result
 
 from .core import (

@@ -31,9 +31,8 @@ describe("viewer Vue host components", () => {
     });
 
     it("registers and unregisters the floating viewer host with the rendered element", async () => {
-        const { default: FloatingViewerHost } = await import(
-            "../vue/components/viewer/FloatingViewerHost.vue"
-        );
+        const { default: FloatingViewerHost } =
+            await import("../vue/components/viewer/FloatingViewerHost.vue");
 
         const wrapper = mount(FloatingViewerHost, {
             attachTo: document.body,
@@ -52,9 +51,8 @@ describe("viewer Vue host components", () => {
     });
 
     it("registers and unregisters the main viewer overlay host with the rendered element", async () => {
-        const { default: ViewerOverlayHost } = await import(
-            "../vue/components/viewer/ViewerOverlayHost.vue"
-        );
+        const { default: ViewerOverlayHost } =
+            await import("../vue/components/viewer/ViewerOverlayHost.vue");
 
         const wrapper = mount(ViewerOverlayHost, {
             attachTo: document.body,

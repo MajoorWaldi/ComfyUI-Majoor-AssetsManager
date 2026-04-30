@@ -53,7 +53,10 @@ const isModel3DPayload = (payload) => {
 };
 
 export const isManagedPayload = (payload) =>
-    isImagePayload(payload) || isVideoPayload(payload) || isAudioPayload(payload) || isModel3DPayload(payload);
+    isImagePayload(payload) ||
+    isVideoPayload(payload) ||
+    isAudioPayload(payload) ||
+    isModel3DPayload(payload);
 
 const _EXT_TO_MIME = {
     mp4: "video/mp4",
@@ -68,7 +71,10 @@ const _EXT_TO_MIME = {
 };
 
 export const getDownloadMimeForFilename = (filename) => {
-    const ext = String(filename || "").split(".").pop()?.toLowerCase();
+    const ext = String(filename || "")
+        .split(".")
+        .pop()
+        ?.toLowerCase();
     return _EXT_TO_MIME[ext] ?? "application/octet-stream";
 };
 

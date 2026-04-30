@@ -57,7 +57,8 @@ export function renderABCompareView({
     const muteSecondaryAudio = (mediaEl, role) => {
         try {
             const audio =
-                mediaEl?.querySelector?.(".mjr-viewer-audio-src") || mediaEl?.querySelector?.("audio");
+                mediaEl?.querySelector?.(".mjr-viewer-audio-src") ||
+                mediaEl?.querySelector?.("audio");
             if (!audio) return;
             const isPrimary = String(role || "").toUpperCase() === "A";
             audio.muted = !isPrimary;

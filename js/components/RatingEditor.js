@@ -164,15 +164,23 @@ export function createRatingEditor(asset, onUpdate) {
         star.style.color = i <= currentRating ? "#FFD45A" : "#555";
 
         // Hover effects (passive: pure visual update, no preventDefault).
-        star.addEventListener("mouseenter", () => {
-            hoveredStar = i;
-            updateStarColors(container, hoveredStar);
-        }, { passive: true });
+        star.addEventListener(
+            "mouseenter",
+            () => {
+                hoveredStar = i;
+                updateStarColors(container, hoveredStar);
+            },
+            { passive: true },
+        );
 
-        star.addEventListener("mouseleave", () => {
-            hoveredStar = 0;
-            updateStarColors(container, currentRating);
-        }, { passive: true });
+        star.addEventListener(
+            "mouseleave",
+            () => {
+                hoveredStar = 0;
+                updateStarColors(container, currentRating);
+            },
+            { passive: true },
+        );
 
         // Click to set rating (coalesced + abortable)
         star.addEventListener("click", (e) => {

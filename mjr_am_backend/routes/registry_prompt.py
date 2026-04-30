@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, ClassVar, Protocol, cast
+from typing import ClassVar, Protocol, cast
 
 from aiohttp import web
 

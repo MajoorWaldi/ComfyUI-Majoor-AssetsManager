@@ -176,9 +176,7 @@ export function createModel3DSettingsPanel({
         "dragover",
         "drop",
     ].forEach((evt) => {
-        panel.addEventListener(evt, (e) =>
-            stopModel3DEvent(e, { preventDefault: false }),
-        );
+        panel.addEventListener(evt, (e) => stopModel3DEvent(e, { preventDefault: false }));
     });
 
     const addSectionHeader = (title) => {
@@ -352,9 +350,7 @@ export function createModel3DAnimationBar() {
         "wheel",
         "click",
     ].forEach((evt) => {
-        bar.addEventListener(evt, (e) =>
-            stopModel3DEvent(e, { preventDefault: false }),
-        );
+        bar.addEventListener(evt, (e) => stopModel3DEvent(e, { preventDefault: false }));
     });
 
     const playBtn = document.createElement("button");

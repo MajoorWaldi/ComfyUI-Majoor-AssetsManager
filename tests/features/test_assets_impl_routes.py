@@ -5,8 +5,8 @@ from pathlib import Path
 import pytest
 from aiohttp import web
 from aiohttp.test_utils import make_mocked_request
-from mjr_am_backend.routes.handlers.asset_docs import register_asset_docs_routes
 from mjr_am_backend.routes.handlers import assets_impl as m
+from mjr_am_backend.routes.handlers.asset_docs import register_asset_docs_routes
 from mjr_am_backend.shared import Result
 
 
@@ -578,7 +578,7 @@ async def test_assets_delete_bulk_paths(monkeypatch, tmp_path: Path):
     async def _aquery_in(_sql, _col, values):
         return Result.Ok([{"id": 1, "filepath": str(files[0])}, {"id": 2, "filepath": str(files[1])}])
 
-    db.aquery_in = _aquery_in
+    monkeypatch.setattr(db, "aquery_in", _aquery_in)
     monkeypatch.setattr(m, "_read_json", _read_json_ok)
     monkeypatch.setattr(m, "_delete_file_safe", lambda _p: Result.Ok(True))
 
@@ -615,7 +615,7 @@ async def test_assets_delete_writes_audit_log(monkeypatch, tmp_path: Path):
         calls.append(kwargs)
         return True
 
-    db.aquery_in = _aquery_in
+    monkeypatch.setattr(db, "aquery_in", _aquery_in)
     monkeypatch.setattr(m, "_csrf_error", lambda _request: None)
     monkeypatch.setattr(m, "_require_services", _svc_ok)
     monkeypatch.setattr(m, "_resolve_security_prefs", _prefs)
@@ -687,7 +687,7 @@ async def test_asset_rating_resolve_or_create_path(monkeypatch, tmp_path: Path):
             return Result.Ok([{"id": 42}])
         return Result.Ok([])
 
-    db.aquery = _aquery
+    monkeypatch.setattr(db, "aquery", _aquery)
 
     async def _svc():
         return {"index": _Index(), "db": db}, None
@@ -730,7 +730,7 @@ async def test_rename_asset_success_path(monkeypatch, tmp_path: Path):
             return Result.Ok([{"id": 1, "filename": "new.png"}])
         return Result.Ok([])
 
-    db.aquery = aquery
+    monkeypatch.setattr(db, "aquery", aquery)
 
     class _Index:
         async def index_paths(self, *_args, **_kwargs):
@@ -813,7 +813,7 @@ async def test_assets_delete_partial_errors(monkeypatch, tmp_path: Path):
     async def _aquery_in(_sql, _column, _vals):
         return Result.Ok([{"id": 1, "filepath": str(f1)}, {"id": 2, "filepath": str(f2)}])
 
-    db.aquery_in = _aquery_in
+    monkeypatch.setattr(db, "aquery_in", _aquery_in)
 
     async def _svc():
         return {"db": db}, None
@@ -899,7 +899,7 @@ async def test_rename_infer_source_branch(monkeypatch, tmp_path: Path):
             return Result.Ok([{"id": 9}])
         return Result.Ok([])
 
-    db.aquery = aquery
+    monkeypatch.setattr(db, "aquery", aquery)
 
     class _Index:
         async def index_paths(self, *_args, **_kwargs):

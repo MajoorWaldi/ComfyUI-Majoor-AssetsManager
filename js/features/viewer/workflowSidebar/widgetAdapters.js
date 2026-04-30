@@ -95,7 +95,9 @@ export function writeWidgetValue(widget, newValue, node = null) {
         // Always notify root graph (triggers ComfyUI workflow tracking).
         app?.graph?.setDirtyCanvas?.(true, true);
         app?.graph?.change?.();
-    } catch (e) { console.debug?.("[MFV] writeWidgetValue", e); }
+    } catch (e) {
+        console.debug?.("[MFV] writeWidgetValue", e);
+    }
     return true;
 }
 
@@ -112,13 +114,14 @@ function _syncWidgetDomElement(widget) {
     // ComfyUI customtext: widget.inputEl is the canvas-overlay textarea.
     // For PromotedWidgetView (subgraph exposed widgets), there is no direct inputEl:
     // the real DOM textarea lives on cachedDeepestByFrame.widget.inputEl.
-    const el = widget?.inputEl
-        ?? widget?.element
-        ?? widget?.el
-        ?? widget?.cachedDeepestByFrame?.widget?.inputEl
-        ?? widget?.cachedDeepestByFrame?.widget?.element
-        ?? widget?.cachedDeepestByFrame?.widget?.el
-        ?? null;
+    const el =
+        widget?.inputEl ??
+        widget?.element ??
+        widget?.el ??
+        widget?.cachedDeepestByFrame?.widget?.inputEl ??
+        widget?.cachedDeepestByFrame?.widget?.element ??
+        widget?.cachedDeepestByFrame?.widget?.el ??
+        null;
     if (el != null && "value" in el && el.value !== strVal) {
         el.value = strVal;
     }
@@ -168,7 +171,11 @@ function _comboInput(widget, onChange, node) {
     select.className = "mjr-ws-input";
     let values = widget.options?.values ?? [];
     if (typeof values === "function") {
-        try { values = values() ?? []; } catch { values = []; }
+        try {
+            values = values() ?? [];
+        } catch {
+            values = [];
+        }
     }
     if (!Array.isArray(values)) values = [];
     for (const v of values) {

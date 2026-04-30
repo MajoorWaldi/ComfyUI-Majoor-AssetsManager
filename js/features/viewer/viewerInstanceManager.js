@@ -3,10 +3,7 @@
  * Cleans up stale overlays before mounting a new one.
  */
 
-import {
-    appendViewerOverlayNode,
-    getManagedViewerOverlayNodes,
-} from "./viewerRuntimeHosts.js";
+import { appendViewerOverlayNode, getManagedViewerOverlayNodes } from "./viewerRuntimeHosts.js";
 
 export function getViewerInstance(createViewer) {
     const all = getManagedViewerOverlayNodes();

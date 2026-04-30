@@ -35,9 +35,9 @@ export function createWindowStub(overrides = {}) {
 export function ensureWindowStub(overrides = {}) {
     const current = globalThis.window;
     if (
-        !current
-        || typeof current.addEventListener !== "function"
-        || typeof current.removeEventListener !== "function"
+        !current ||
+        typeof current.addEventListener !== "function" ||
+        typeof current.removeEventListener !== "function"
     ) {
         globalThis.window = createWindowStub(overrides);
         return globalThis.window;
@@ -53,7 +53,6 @@ vi.mock("vue", async () => {
         ...vueMockState.overrides,
     };
 });
-
 
 export function mockPartialVue(overrides = {}) {
     vueMockState.overrides = { ...overrides };

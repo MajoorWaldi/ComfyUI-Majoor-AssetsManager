@@ -385,7 +385,10 @@ export async function captureFloatingViewerView(viewer) {
     } finally {
         if (viewer._captureBtn) {
             viewer._captureBtn.disabled = false;
-            viewer._captureBtn.setAttribute("aria-label", t("tooltip.captureView", "Save view as image"));
+            viewer._captureBtn.setAttribute(
+                "aria-label",
+                t("tooltip.captureView", "Save view as image"),
+            );
         }
     }
 }

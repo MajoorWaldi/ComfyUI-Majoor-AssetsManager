@@ -60,16 +60,26 @@ function _hasMeaningfulMetadataRaw(value) {
     if (typeof value === "string") {
         const trimmed = value.trim();
         if (!trimmed || trimmed === "{}" || trimmed === "null") return false;
-        try { obj = JSON.parse(trimmed); } catch { return false; }
+        try {
+            obj = JSON.parse(trimmed);
+        } catch {
+            return false;
+        }
     }
     if (typeof obj === "object") {
         try {
             if (obj.geninfo || obj.prompt || obj.workflow) return true;
             if (obj.metadata_raw && typeof obj.metadata_raw === "object") {
-                return Boolean(obj.metadata_raw.geninfo || obj.metadata_raw.prompt || obj.metadata_raw.workflow);
+                return Boolean(
+                    obj.metadata_raw.geninfo ||
+                    obj.metadata_raw.prompt ||
+                    obj.metadata_raw.workflow,
+                );
             }
             return false;
-        } catch { return false; }
+        } catch {
+            return false;
+        }
     }
     return false;
 }
@@ -168,12 +178,17 @@ export async function showAssetInSidebar(sidebar, asset, onUpdate) {
 
         if (!_hasGenerationLikeData(current())) {
             const filename = String(current()?.filename || "").trim();
-            const type = String(current()?.type || "output").trim().toLowerCase();
+            const type = String(current()?.type || "output")
+                .trim()
+                .toLowerCase();
             const subfolder = String(current()?.subfolder || "").trim();
             const root_id = String(current()?.root_id || current()?.rootId || "").trim();
             if (filename) {
                 try {
-                    const result = await getFileMetadataScoped({ type, filename, subfolder, root_id }, opts);
+                    const result = await getFileMetadataScoped(
+                        { type, filename, subfolder, root_id },
+                        opts,
+                    );
                     if (signal?.aborted) return;
                     if (result?.ok && result.data) {
                         const md = result.data;

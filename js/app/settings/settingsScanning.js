@@ -61,7 +61,10 @@ export function registerScanningSettings(safeAddSetting, settings, notifyApplied
                 saveMajoorSettings(settings);
                 applySettingsToConfig(settings);
                 notifyApplied("executionGrouping.enabled");
-                comfyToast(error?.message || "Failed to update execution grouping setting", "error");
+                comfyToast(
+                    error?.message || "Failed to update execution grouping setting",
+                    "error",
+                );
             }
         },
     });

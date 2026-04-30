@@ -169,9 +169,7 @@ export function createSettingsSync({
             changedKey.startsWith("rtHydrate.") ||
             changedKey.startsWith("workflowMinimap.");
         const shouldRefreshSidebar =
-            isInitialSync ||
-            changedKey.startsWith("sidebar.") ||
-            changedKey.startsWith("ai.");
+            isInitialSync || changedKey.startsWith("sidebar.") || changedKey.startsWith("ai.");
         const shouldApplyWatcher = isInitialSync || changedKey.startsWith("watcher.");
 
         try {

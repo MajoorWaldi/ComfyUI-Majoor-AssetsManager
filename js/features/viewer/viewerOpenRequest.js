@@ -2,7 +2,9 @@ import { EVENTS } from "../../app/events.js";
 import { getViewerInstance } from "../../components/Viewer.js";
 
 function normalizeViewerMode(mode) {
-    const normalized = String(mode || "").trim().toLowerCase();
+    const normalized = String(mode || "")
+        .trim()
+        .toLowerCase();
     if (normalized === "ab" || normalized === "sidebyside") return normalized;
     return "";
 }

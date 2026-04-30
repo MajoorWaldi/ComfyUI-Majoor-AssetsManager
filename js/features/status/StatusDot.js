@@ -768,7 +768,13 @@ export function createStatusIndicator(options = {}) {
             { summary: "Vector Backfill", detail: `Started (${backfillScopeLabel})` },
             "info",
             0,
-            { history: { ...historyBase.history, status: "started", detail: `Started (${backfillScopeLabel})` } },
+            {
+                history: {
+                    ...historyBase.history,
+                    status: "started",
+                    detail: `Started (${backfillScopeLabel})`,
+                },
+            },
         );
 
         statusDot.style.background = "var(--mjr-status-info, #64B5F6)";
@@ -781,14 +787,19 @@ export function createStatusIndicator(options = {}) {
                     const progress = payload?.progress || payload?.result || {};
                     const candidates = Number(progress?.candidates || progress?.processed || 0);
                     const candidateTotal = Number(progress?.candidate_total || candidates || 0);
-                    const totalAssets = Number(progress?.eligible_total || progress?.total_assets || 0);
+                    const totalAssets = Number(
+                        progress?.eligible_total || progress?.total_assets || 0,
+                    );
                     const indexed = Number(progress?.indexed || 0);
                     const skipped = Number(progress?.skipped || 0);
                     const errors = Number(progress?.errors || 0);
                     if (status === "queued") {
                         setActionLog("Backfill queued…", "info");
                         recordToastHistory(
-                            { summary: "Vector Backfill", detail: `Queued (${backfillScopeLabel})` },
+                            {
+                                summary: "Vector Backfill",
+                                detail: `Queued (${backfillScopeLabel})`,
+                            },
                             "info",
                             0,
                             {
@@ -831,7 +842,8 @@ export function createStatusIndicator(options = {}) {
                                     status: "running",
                                     detail: detailText,
                                     progress: {
-                                        current: totalAssets > 0 ? indexed : indexed + skipped + errors,
+                                        current:
+                                            totalAssets > 0 ? indexed : indexed + skipped + errors,
                                         total:
                                             totalAssets > 0
                                                 ? totalAssets
@@ -839,14 +851,20 @@ export function createStatusIndicator(options = {}) {
                                         percent:
                                             totalAssets > 0
                                                 ? Math.round((indexed / totalAssets) * 100)
-                                                : Math.max(candidates, indexed + skipped + errors) > 0
+                                                : Math.max(candidates, indexed + skipped + errors) >
+                                                    0
                                                   ? Math.round(
                                                         ((indexed + skipped + errors) /
-                                                            Math.max(candidates, indexed + skipped + errors)) * 100,
+                                                            Math.max(
+                                                                candidates,
+                                                                indexed + skipped + errors,
+                                                            )) *
+                                                            100,
                                                     )
                                                   : null,
                                         eligible_total: totalAssets > 0 ? totalAssets : undefined,
-                                        candidate_total: candidateTotal > 0 ? candidateTotal : undefined,
+                                        candidate_total:
+                                            candidateTotal > 0 ? candidateTotal : undefined,
                                         indexed,
                                         skipped,
                                         errors,
@@ -890,7 +908,8 @@ export function createStatusIndicator(options = {}) {
                                     Math.max(processed, indexed + skipped + errors) > 0
                                         ? Math.round(
                                               ((indexed + skipped + errors) /
-                                                  Math.max(processed, indexed + skipped + errors)) * 100,
+                                                  Math.max(processed, indexed + skipped + errors)) *
+                                                  100,
                                           )
                                         : null,
                                 indexed,
@@ -2104,7 +2123,11 @@ function _hydrateStatusFromCache(statusDot, statusText, capabilitiesSection) {
     const cached = _readCachedStatusCounters();
     if (!cached) return false;
     try {
-        renderCapabilities(capabilitiesSection, cached.tool_availability || {}, cached.tool_paths || {});
+        renderCapabilities(
+            capabilitiesSection,
+            cached.tool_availability || {},
+            cached.tool_paths || {},
+        );
     } catch (e) {
         console.debug?.(e);
     }
@@ -2124,8 +2147,7 @@ function _hydrateStatusFromCache(statusDot, statusText, capabilitiesSection) {
 
 function _advancePollState(currentState, counters, pollStateMeta) {
     const signature = _buildStatusSignature(counters);
-    const hasChange =
-        signature && signature !== String(pollStateMeta?.lastSignature || "");
+    const hasChange = signature && signature !== String(pollStateMeta?.lastSignature || "");
     const hasActiveWork = _statusHasActiveWork(counters);
 
     let nextState = currentState || STATUS_POLL_STATE.ACTIVE;

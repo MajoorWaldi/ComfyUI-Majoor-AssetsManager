@@ -1,8 +1,4 @@
-import {
-    getComfyApi,
-    getComfyApp,
-    waitForComfyApi,
-} from "../../app/comfyApiBridge.js";
+import { getRawHostApi, getRawHostApp, waitForRawHostApi } from "../../app/hostAdapter.js";
 
 const PROGRESS_UPDATE_EVENT = "progress-update";
 const QUEUE_PROMPT_PATCH_KEY = Symbol.for("mjr.mfv.progress.queuePromptPatch");
@@ -24,7 +20,7 @@ function makeCustomEvent(type, detail) {
 }
 
 export class FloatingViewerPromptExecution {
-    constructor(id, getApp = () => getComfyApp()) {
+    constructor(id, getApp = () => getRawHostApp()) {
         this.id = String(id || "");
         this.promptApi = null;
         this.executedNodeIds = [];
@@ -89,8 +85,8 @@ export class FloatingViewerPromptExecution {
             const numericMax = Number(maxSteps);
             if (!Number.isFinite(numericStep)) return;
             if (
-                !this.currentlyExecuting.step
-                || numericStep < Number(this.currentlyExecuting.step)
+                !this.currentlyExecuting.step ||
+                numericStep < Number(this.currentlyExecuting.step)
             ) {
                 this.currentlyExecuting.pass += 1;
             }
@@ -106,9 +102,9 @@ export class FloatingViewerPromptExecution {
 
 export class FloatingViewerProgressService extends EventTarget {
     constructor({
-        getApi = (app) => getComfyApi(app),
-        getApp = () => getComfyApp(),
-        waitForApi = (options) => waitForComfyApi(options),
+        getApi = (app) => getRawHostApi(app),
+        getApp = () => getRawHostApp(),
+        waitForApi = (options) => waitForRawHostApi(options),
     } = {}) {
         super();
         this._getApi = getApi;
@@ -237,7 +233,9 @@ export class FloatingViewerProgressService extends EventTarget {
         });
 
         this._attachListener(api, "execution_start", (event) => {
-            const promptId = String(event?.detail?.prompt_id || event?.detail?.promptId || "").trim();
+            const promptId = String(
+                event?.detail?.prompt_id || event?.detail?.promptId || "",
+            ).trim();
             if (!promptId) return;
             this.currentExecution = this.getOrMakePrompt(promptId);
             this.dispatchProgressUpdate();
@@ -322,7 +320,10 @@ export class FloatingViewerProgressService extends EventTarget {
             }
         }
 
-        if (resetPatchedQueuePrompt && this._api?.queuePrompt?.[QUEUE_PROMPT_PATCH_KEY]?.service === this) {
+        if (
+            resetPatchedQueuePrompt &&
+            this._api?.queuePrompt?.[QUEUE_PROMPT_PATCH_KEY]?.service === this
+        ) {
             try {
                 const original =
                     this._api.queuePrompt[QUEUE_PROMPT_PATCH_KEY]?.originalQueuePrompt || null;
@@ -346,8 +347,7 @@ export class FloatingViewerProgressService extends EventTarget {
 const globalHost = getGlobalHost();
 
 export const floatingViewerProgressService =
-    globalHost[GLOBAL_SERVICE_KEY] ||
-    new FloatingViewerProgressService();
+    globalHost[GLOBAL_SERVICE_KEY] || new FloatingViewerProgressService();
 
 if (!globalHost[GLOBAL_SERVICE_KEY]) {
     globalHost[GLOBAL_SERVICE_KEY] = floatingViewerProgressService;
@@ -362,7 +362,9 @@ function formatProgressText(detail) {
     const prompt = detail?.prompt || null;
 
     if (prompt?.errorDetails) {
-        const exceptionType = String(prompt.errorDetails?.exception_type || "Execution error").trim();
+        const exceptionType = String(
+            prompt.errorDetails?.exception_type || "Execution error",
+        ).trim();
         const nodeId = String(prompt.errorDetails?.node_id || "").trim();
         const nodeType = String(prompt.errorDetails?.node_type || "").trim();
         return [exceptionType, nodeId, nodeType].filter(Boolean).join(" ");
@@ -410,18 +412,18 @@ export function formatFloatingViewerMediaProgressText(detail) {
     if (prompt?.errorDetails) {
         const errorDetails = prompt?.errorDetails || {};
         const nodeLabel = String(
-            prompt?.currentlyExecuting?.nodeLabel
-            || errorDetails?.node_type
-            || errorDetails?.node_id
-            || "Execution",
+            prompt?.currentlyExecuting?.nodeLabel ||
+                errorDetails?.node_type ||
+                errorDetails?.node_id ||
+                "Execution",
         ).trim();
         const rawMessage =
-            errorDetails?.exception_message
-            ?? errorDetails?.error
-            ?? errorDetails?.message
-            ?? errorDetails?.detail
-            ?? errorDetails?.reason
-            ?? "";
+            errorDetails?.exception_message ??
+            errorDetails?.error ??
+            errorDetails?.message ??
+            errorDetails?.detail ??
+            errorDetails?.reason ??
+            "";
         const normalizedMessage = Array.isArray(rawMessage)
             ? rawMessage
                   .map((item) => String(item || "").trim())
@@ -560,7 +562,10 @@ export function buildFloatingViewerProgressBar(viewer) {
         );
     }
     viewer._progressUpdateHandler = (event) => {
-        applyFloatingViewerProgressState(viewer, event?.detail || floatingViewerProgressService.getSnapshot());
+        applyFloatingViewerProgressState(
+            viewer,
+            event?.detail || floatingViewerProgressService.getSnapshot(),
+        );
     };
 
     floatingViewerProgressService.addEventListener(

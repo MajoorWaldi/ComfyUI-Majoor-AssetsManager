@@ -51,7 +51,8 @@ vi.mock("../components/sidebar/parsers/geninfoParser.js", () => ({
 
 describe("floating viewer toolbar overlay controls", () => {
     it("renders guides and mask/format controls in the toolbar", async () => {
-        const { buildFloatingViewerToolbar } = await import("../features/viewer/floatingViewerUi.js");
+        const { buildFloatingViewerToolbar } =
+            await import("../features/viewer/floatingViewerUi.js");
 
         const viewer = {
             element: document.createElement("div"),

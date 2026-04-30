@@ -52,14 +52,15 @@ export function bindGridEvents({
         const onDuplicateBadgeFocus = (e) => {
             try {
                 const detail = e?.detail || {};
-                const filenameKey = String(detail?.filenameKey || "").trim().toLowerCase();
+                const filenameKey = String(detail?.filenameKey || "")
+                    .trim()
+                    .toLowerCase();
                 if (!filenameKey || !gridContainer) return;
-                const cards = Array.from(
-                    gridContainer.querySelectorAll(".mjr-asset-card"),
-                ).filter(
+                const cards = Array.from(gridContainer.querySelectorAll(".mjr-asset-card")).filter(
                     (card) =>
-                        String(card?.dataset?.mjrFilenameKey || "").trim().toLowerCase() ===
-                        filenameKey,
+                        String(card?.dataset?.mjrFilenameKey || "")
+                            .trim()
+                            .toLowerCase() === filenameKey,
                 );
                 if (!cards.length) return;
                 const ids = cards

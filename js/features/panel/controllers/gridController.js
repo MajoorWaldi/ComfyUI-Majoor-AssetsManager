@@ -126,13 +126,20 @@ export function createGridController({
             subfolder: !isCustomBrowserMode && rawSubfolder ? rawSubfolder : null,
             kind: read("kindFilter", "") || null,
             hasWorkflow: read("workflowOnly", false) ? true : null,
-            minRating: Number(read("minRating", 0) || 0) > 0 ? Number(read("minRating", 0) || 0) : null,
-            minSizeMB: Number(read("minSizeMB", 0) || 0) > 0 ? Number(read("minSizeMB", 0) || 0) : null,
-            maxSizeMB: Number(read("maxSizeMB", 0) || 0) > 0 ? Number(read("maxSizeMB", 0) || 0) : null,
-            minWidth: Number(read("minWidth", 0) || 0) > 0 ? Number(read("minWidth", 0) || 0) : null,
-            minHeight: Number(read("minHeight", 0) || 0) > 0 ? Number(read("minHeight", 0) || 0) : null,
-            maxWidth: Number(read("maxWidth", 0) || 0) > 0 ? Number(read("maxWidth", 0) || 0) : null,
-            maxHeight: Number(read("maxHeight", 0) || 0) > 0 ? Number(read("maxHeight", 0) || 0) : null,
+            minRating:
+                Number(read("minRating", 0) || 0) > 0 ? Number(read("minRating", 0) || 0) : null,
+            minSizeMB:
+                Number(read("minSizeMB", 0) || 0) > 0 ? Number(read("minSizeMB", 0) || 0) : null,
+            maxSizeMB:
+                Number(read("maxSizeMB", 0) || 0) > 0 ? Number(read("maxSizeMB", 0) || 0) : null,
+            minWidth:
+                Number(read("minWidth", 0) || 0) > 0 ? Number(read("minWidth", 0) || 0) : null,
+            minHeight:
+                Number(read("minHeight", 0) || 0) > 0 ? Number(read("minHeight", 0) || 0) : null,
+            maxWidth:
+                Number(read("maxWidth", 0) || 0) > 0 ? Number(read("maxWidth", 0) || 0) : null,
+            maxHeight:
+                Number(read("maxHeight", 0) || 0) > 0 ? Number(read("maxHeight", 0) || 0) : null,
             workflowType:
                 String(read("workflowType", "") || "")
                     .trim()
@@ -208,7 +215,7 @@ export function createGridController({
      * Load assets using hybrid search when in semantic mode, with fallback chain:
      * hybridSearch → vectorSearch (pure semantic) → FTS.
      *
-        * Explicit activation only: semantic toggle or "ai:" prefix.
+     * Explicit activation only: semantic toggle or "ai:" prefix.
      */
     const _loadWithSemanticFallback = async (query, loadOptions = {}) => {
         let q = String(query || "").trim();
@@ -313,7 +320,9 @@ export function createGridController({
         gridContainer.dataset.mjrFilterMinRating = String(read("minRating", 0) || 0);
         gridContainer.dataset.mjrFilterMinSizeMB = String(read("minSizeMB", 0) || 0);
         gridContainer.dataset.mjrFilterMaxSizeMB = String(read("maxSizeMB", 0) || 0);
-        gridContainer.dataset.mjrFilterResolutionCompare = String(read("resolutionCompare", "gte") || "gte");
+        gridContainer.dataset.mjrFilterResolutionCompare = String(
+            read("resolutionCompare", "gte") || "gte",
+        );
         gridContainer.dataset.mjrFilterMinWidth = String(read("minWidth", 0) || 0);
         gridContainer.dataset.mjrFilterMinHeight = String(read("minHeight", 0) || 0);
         gridContainer.dataset.mjrFilterMaxWidth = String(read("maxWidth", 0) || 0);
@@ -397,7 +406,9 @@ export function createGridController({
 
         const viewScope = nextViewScope;
         if (viewScope === "similar") {
-            const bridgeList = Array.isArray(read("similarResults", [])) ? read("similarResults", []) : [];
+            const bridgeList = Array.isArray(read("similarResults", []))
+                ? read("similarResults", [])
+                : [];
             const stateList = Array.isArray(state?.similarResults) ? state.similarResults : [];
             const list = bridgeList.length > 0 ? bridgeList : stateList;
             const sourceId = String(

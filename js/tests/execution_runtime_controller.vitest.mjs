@@ -41,9 +41,12 @@ describe("createExecutionRuntimeController", () => {
             getActiveGridContainer: () => null,
         });
 
-        controller.handleExecutionStart({ detail: { prompt_id: "job-1", timestamp: Date.now() } }, {
-            setCurrentJobId: () => {},
-        });
+        controller.handleExecutionStart(
+            { detail: { prompt_id: "job-1", timestamp: Date.now() } },
+            {
+                setCurrentJobId: () => {},
+            },
+        );
 
         controller.handleExecutedEvent(
             {

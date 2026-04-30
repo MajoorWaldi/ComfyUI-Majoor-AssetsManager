@@ -421,21 +421,51 @@ function _buildRatingSubmenu(asset, canRate) {
     };
 
     return [
-        createItem(stars(5), "pi pi-star", null, async () => {
-            setRating(asset, 5, () => updateRenderedRating(5));
-        }, { disabled: !canRate }),
-        createItem(stars(4), "pi pi-star", null, async () => {
-            setRating(asset, 4, () => updateRenderedRating(4));
-        }, { disabled: !canRate }),
-        createItem(stars(3), "pi pi-star", null, async () => {
-            setRating(asset, 3, () => updateRenderedRating(3));
-        }, { disabled: !canRate }),
-        createItem(stars(2), "pi pi-star", null, async () => {
-            setRating(asset, 2, () => updateRenderedRating(2));
-        }, { disabled: !canRate }),
-        createItem(stars(1), "pi pi-star", null, async () => {
-            setRating(asset, 1, () => updateRenderedRating(1));
-        }, { disabled: !canRate }),
+        createItem(
+            stars(5),
+            "pi pi-star",
+            null,
+            async () => {
+                setRating(asset, 5, () => updateRenderedRating(5));
+            },
+            { disabled: !canRate },
+        ),
+        createItem(
+            stars(4),
+            "pi pi-star",
+            null,
+            async () => {
+                setRating(asset, 4, () => updateRenderedRating(4));
+            },
+            { disabled: !canRate },
+        ),
+        createItem(
+            stars(3),
+            "pi pi-star",
+            null,
+            async () => {
+                setRating(asset, 3, () => updateRenderedRating(3));
+            },
+            { disabled: !canRate },
+        ),
+        createItem(
+            stars(2),
+            "pi pi-star",
+            null,
+            async () => {
+                setRating(asset, 2, () => updateRenderedRating(2));
+            },
+            { disabled: !canRate },
+        ),
+        createItem(
+            stars(1),
+            "pi pi-star",
+            null,
+            async () => {
+                setRating(asset, 1, () => updateRenderedRating(1));
+            },
+            { disabled: !canRate },
+        ),
         createSeparator(),
         createItem(
             t("ctx.resetRating", "Reset rating"),
@@ -457,7 +487,10 @@ function _buildEmptyGridItems({ currentPath, gridContainer }) {
             null,
             async () => {
                 try {
-                    const name = await comfyPrompt(t("dialog.newFolderName", "New folder name"), "");
+                    const name = await comfyPrompt(
+                        t("dialog.newFolderName", "New folder name"),
+                        "",
+                    );
                     const next = String(name || "").trim();
                     if (!next) return;
                     const res = await browserFolderOp({
@@ -588,10 +621,7 @@ function _buildFolderItems({ asset, gridContainer, panelState }) {
             }),
             createItem(t("ctx.moveFolder"), "pi pi-arrow-right", null, async () => {
                 try {
-                    const destination = await comfyPrompt(
-                        t("dialog.destinationDirectoryPath"),
-                        "",
-                    );
+                    const destination = await comfyPrompt(t("dialog.destinationDirectoryPath"), "");
                     const dest = String(destination || "").trim();
                     if (!dest) return;
                     const res = await browserFolderOp({
@@ -658,12 +688,7 @@ function _buildAssetItems({
     pointerY,
     selection,
 }) {
-    const {
-        selectedAssetsNow,
-        effectiveSelectionCount,
-        isMultiSelected,
-        hasSelection,
-    } = selection;
+    const { selectedAssetsNow, effectiveSelectionCount, isMultiSelected, hasSelection } = selection;
     const items = [];
     const openInViewer = ({ assets = [], index = 0, mode = "" } = {}) =>
         requestViewerOpen({ assets, index, mode });
@@ -672,7 +697,9 @@ function _buildAssetItems({
         createItem("Open Viewer", "pi pi-image", getShortcutDisplay("OPEN_VIEWER"), () => {
             try {
                 const selectedAssets = hasSelection ? getSelectedAssets(gridContainer) : [];
-                const mediaSelectedAssets = selectedAssets.filter((entry) => !_isFolderAsset(entry));
+                const mediaSelectedAssets = selectedAssets.filter(
+                    (entry) => !_isFolderAsset(entry),
+                );
                 const selectedCount = mediaSelectedAssets.length;
                 if (selectedCount >= 2 && selectedCount <= 4) {
                     openInViewer({ assets: mediaSelectedAssets, index: 0 });
@@ -858,17 +885,11 @@ function _buildAssetItems({
             { closeOnSelect: false },
         ),
         createSeparator(),
-        createItem(
-            t("ctx.setRating", "Set rating"),
-            "pi pi-star",
-            "1-5 >",
-            null,
-            {
-                disabled: !canRate,
-                closeOnSelect: false,
-                submenu: _buildRatingSubmenu(asset, canRate),
-            },
-        ),
+        createItem(t("ctx.setRating", "Set rating"), "pi pi-star", "1-5 >", null, {
+            disabled: !canRate,
+            closeOnSelect: false,
+            submenu: _buildRatingSubmenu(asset, canRate),
+        }),
         createSeparator(),
         createItem(
             t("ctx.resetIndexFile", "Reset index (this file)"),
@@ -997,7 +1018,9 @@ function _buildAssetItems({
                         let errorCount = 0;
                         const deletedIds = [];
                         let deletedByFilepath = 0;
-                        const selectionList = selectedAssetsNow.length ? selectedAssetsNow : [asset];
+                        const selectionList = selectedAssetsNow.length
+                            ? selectedAssetsNow
+                            : [asset];
 
                         for (const selectedAsset of selectionList) {
                             const result = await deleteAsset(selectedAsset);
@@ -1105,10 +1128,7 @@ export function showTagsPopover(x, y, asset, onChanged) {
     });
 }
 
-export function bindGridContextMenu({
-    gridContainer,
-    getState = () => ({}),
-} = {}) {
+export function bindGridContextMenu({ gridContainer, getState = () => ({}) } = {}) {
     if (!gridContainer) return;
     if (
         gridContainer._mjrGridContextMenuBound &&
@@ -1153,14 +1173,14 @@ export function bindGridContextMenu({
         const items = _isFolderAsset(asset)
             ? _buildFolderItems({ asset, gridContainer, panelState })
             : _buildAssetItems({
-                asset,
-                card,
-                gridContainer,
-                panelState,
-                pointerX: event.clientX,
-                pointerY: event.clientY,
-                selection,
-            });
+                  asset,
+                  card,
+                  gridContainer,
+                  panelState,
+                  pointerX: event.clientX,
+                  pointerY: event.clientY,
+                  selection,
+              });
 
         openGridContextMenu({
             x: event.clientX,

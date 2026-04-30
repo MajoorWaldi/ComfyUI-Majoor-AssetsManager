@@ -90,9 +90,8 @@ describe("ViewerContextMenu.vue", () => {
     });
 
     it("renders the main viewer menu, runs the action, and closes it on click", async () => {
-        const { default: ViewerContextMenu } = await import(
-            "../vue/components/viewer/ViewerContextMenu.vue"
-        );
+        const { default: ViewerContextMenu } =
+            await import("../vue/components/viewer/ViewerContextMenu.vue");
         const contextMenu = await import("../features/contextmenu/viewerContextMenuState.js");
 
         resetViewerContextState(contextMenu.viewerContextMenuState, contextMenu);
@@ -117,20 +116,16 @@ describe("ViewerContextMenu.vue", () => {
         expect(action).toHaveBeenCalledTimes(1);
         expect(contextMenu.viewerContextMenuState.main.open).toBe(false);
         expect(document.body.querySelector('[aria-label="Viewer context menu"]')).toBeNull();
-
     });
 
     it("opens the submenu when a menu item with children is selected", async () => {
-        const { default: ViewerContextMenu } = await import(
-            "../vue/components/viewer/ViewerContextMenu.vue"
-        );
+        const { default: ViewerContextMenu } =
+            await import("../vue/components/viewer/ViewerContextMenu.vue");
         const contextMenu = await import("../features/contextmenu/viewerContextMenuState.js");
 
         resetViewerContextState(contextMenu.viewerContextMenuState, contextMenu);
 
-        wrappers.push(
-            mountViewerContextMenu(ViewerContextMenu),
-        );
+        wrappers.push(mountViewerContextMenu(ViewerContextMenu));
 
         contextMenu.openViewerContextMenu({
             x: 12,
@@ -155,18 +150,15 @@ describe("ViewerContextMenu.vue", () => {
     });
 
     it("updates tag state and calls the change callback through the tags popover", async () => {
-        const { default: ViewerContextMenu } = await import(
-            "../vue/components/viewer/ViewerContextMenu.vue"
-        );
+        const { default: ViewerContextMenu } =
+            await import("../vue/components/viewer/ViewerContextMenu.vue");
         const contextMenu = await import("../features/contextmenu/viewerContextMenuState.js");
 
         resetViewerContextState(contextMenu.viewerContextMenuState, contextMenu);
 
         const asset = { id: 11, tags: ["before"] };
         const onChanged = vi.fn();
-        wrappers.push(
-            mountViewerContextMenu(ViewerContextMenu),
-        );
+        wrappers.push(mountViewerContextMenu(ViewerContextMenu));
 
         contextMenu.openViewerTagsPopover({
             x: 22,

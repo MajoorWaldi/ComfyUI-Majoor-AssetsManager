@@ -63,7 +63,8 @@ describe("useAssetsQuery", () => {
     });
 
     it("coalesces queued reloads and restores the anchor after each pass", async () => {
-        const { createAssetsQueryController } = await import("../vue/composables/useAssetsQuery.js");
+        const { createAssetsQueryController } =
+            await import("../vue/composables/useAssetsQuery.js");
 
         const gridContainer = createGridContainer();
         const gridWrapper = createGridWrapper();
@@ -105,7 +106,8 @@ describe("useAssetsQuery", () => {
     });
 
     it("restores scroll, selection, and sidebar state after the initial load", async () => {
-        const { createAssetsQueryController } = await import("../vue/composables/useAssetsQuery.js");
+        const { createAssetsQueryController } =
+            await import("../vue/composables/useAssetsQuery.js");
 
         const previousRaf = globalThis.requestAnimationFrame;
         globalThis.requestAnimationFrame = (callback) => {
@@ -139,7 +141,8 @@ describe("useAssetsQuery", () => {
     });
 
     it("delegates UI restoration to an external grid host when provided", async () => {
-        const { createAssetsQueryController } = await import("../vue/composables/useAssetsQuery.js");
+        const { createAssetsQueryController } =
+            await import("../vue/composables/useAssetsQuery.js");
 
         const restoreGridUiState = vi.fn(async () => {});
         const controller = createAssetsQueryController({
@@ -156,7 +159,8 @@ describe("useAssetsQuery", () => {
     });
 
     it("auto-loads the default output grid when counters show assets exist", async () => {
-        const { createAssetsQueryController } = await import("../vue/composables/useAssetsQuery.js");
+        const { createAssetsQueryController } =
+            await import("../vue/composables/useAssetsQuery.js");
 
         vi.useFakeTimers();
         apiState.get.mockResolvedValue({
@@ -186,7 +190,8 @@ describe("useAssetsQuery", () => {
     });
 
     it("defers auto-load while the grid host is hidden and resumes when visible again", async () => {
-        const { createAssetsQueryController } = await import("../vue/composables/useAssetsQuery.js");
+        const { createAssetsQueryController } =
+            await import("../vue/composables/useAssetsQuery.js");
 
         vi.useFakeTimers();
         apiState.get.mockResolvedValue({
@@ -230,7 +235,8 @@ describe("useAssetsQuery", () => {
     });
 
     it("creates a counters update handler that triggers queued reload on new index updates", async () => {
-        const { createAssetsQueryController } = await import("../vue/composables/useAssetsQuery.js");
+        const { createAssetsQueryController } =
+            await import("../vue/composables/useAssetsQuery.js");
 
         const reloadGrid = vi.fn(async () => ({ ok: true }));
         const controller = createAssetsQueryController({
@@ -276,7 +282,8 @@ describe("useAssetsQuery", () => {
     });
 
     it("does not auto-reload on background total growth when the grid already shows cards", async () => {
-        const { createAssetsQueryController } = await import("../vue/composables/useAssetsQuery.js");
+        const { createAssetsQueryController } =
+            await import("../vue/composables/useAssetsQuery.js");
 
         const reloadGrid = vi.fn(async () => ({ ok: true }));
         const controller = createAssetsQueryController({
@@ -327,7 +334,8 @@ describe("useAssetsQuery", () => {
     });
 
     it("does not auto-reload on background index updates when the grid already shows cards", async () => {
-        const { createAssetsQueryController } = await import("../vue/composables/useAssetsQuery.js");
+        const { createAssetsQueryController } =
+            await import("../vue/composables/useAssetsQuery.js");
 
         const reloadGrid = vi.fn(async () => ({ ok: true }));
         const controller = createAssetsQueryController({
@@ -378,7 +386,8 @@ describe("useAssetsQuery", () => {
     });
 
     it("does not trigger counters-based reload while the grid host is hidden", async () => {
-        const { createAssetsQueryController } = await import("../vue/composables/useAssetsQuery.js");
+        const { createAssetsQueryController } =
+            await import("../vue/composables/useAssetsQuery.js");
 
         const gridContainer = createGridContainer();
         gridContainer.isConnected = false;
@@ -433,7 +442,8 @@ describe("useAssetsQuery", () => {
     });
 
     it("binds search input with debounce and immediate reload for empty query", async () => {
-        const { createAssetsQueryController } = await import("../vue/composables/useAssetsQuery.js");
+        const { createAssetsQueryController } =
+            await import("../vue/composables/useAssetsQuery.js");
 
         vi.useFakeTimers();
         const controller = createAssetsQueryController({

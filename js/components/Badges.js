@@ -384,9 +384,7 @@ export function createRatingBadge(rating) {
  */
 function _normalizeBadgeTags(tags) {
     if (Array.isArray(tags)) {
-        return tags
-            .map((tag) => String(tag ?? "").trim())
-            .filter(Boolean);
+        return tags.map((tag) => String(tag ?? "").trim()).filter(Boolean);
     }
     if (typeof tags === "string") {
         const raw = tags.trim();
@@ -394,9 +392,7 @@ function _normalizeBadgeTags(tags) {
         try {
             const parsed = JSON.parse(raw);
             if (Array.isArray(parsed)) {
-                return parsed
-                    .map((tag) => String(tag ?? "").trim())
-                    .filter(Boolean);
+                return parsed.map((tag) => String(tag ?? "").trim()).filter(Boolean);
             }
         } catch {}
         return raw

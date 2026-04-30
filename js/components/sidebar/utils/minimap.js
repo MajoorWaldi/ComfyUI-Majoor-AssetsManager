@@ -212,11 +212,19 @@ export function drawWorkflowMinimap(canvas, workflow, options = null) {
     const centerX =
         visibleW >= boundsW
             ? baseCenterX
-            : clampNumber(requestedView.centerX ?? baseCenterX, minX + halfVisibleW, maxX - halfVisibleW);
+            : clampNumber(
+                  requestedView.centerX ?? baseCenterX,
+                  minX + halfVisibleW,
+                  maxX - halfVisibleW,
+              );
     const centerY =
         visibleH >= boundsH
             ? baseCenterY
-            : clampNumber(requestedView.centerY ?? baseCenterY, minY + halfVisibleH, maxY - halfVisibleH);
+            : clampNumber(
+                  requestedView.centerY ?? baseCenterY,
+                  minY + halfVisibleH,
+                  maxY - halfVisibleH,
+              );
     const viewMinX = centerX - halfVisibleW;
     const viewMinY = centerY - halfVisibleH;
     const pad = MINIMAP_PADDING;

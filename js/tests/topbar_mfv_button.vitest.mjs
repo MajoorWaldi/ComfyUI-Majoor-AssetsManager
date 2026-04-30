@@ -33,9 +33,8 @@ describe("topBarMfvButton", () => {
 
         const dispatchSpy = vi.spyOn(window, "dispatchEvent");
 
-        const { mountTopBarMfvButton, teardownTopBarMfvButton } = await import(
-            "../features/runtime/topBarMfvButton.js"
-        );
+        const { mountTopBarMfvButton, teardownTopBarMfvButton } =
+            await import("../features/runtime/topBarMfvButton.js");
 
         expect(mountTopBarMfvButton()).toBe(true);
         flushTimers();
@@ -52,7 +51,9 @@ describe("topBarMfvButton", () => {
 
         button.click();
 
-        expect(dispatchSpy).toHaveBeenCalledWith(expect.objectContaining({ type: "mjr:mfv-toggle" }));
+        expect(dispatchSpy).toHaveBeenCalledWith(
+            expect.objectContaining({ type: "mjr:mfv-toggle" }),
+        );
         expect(dispatchSpy).not.toHaveBeenCalledWith(
             expect.objectContaining({ type: "mjr:mfv-live-toggle" }),
         );
@@ -72,16 +73,17 @@ describe("topBarMfvButton", () => {
         const addSpy = vi.spyOn(window, "addEventListener");
         const removeSpy = vi.spyOn(window, "removeEventListener");
 
-        const { mountTopBarMfvButton, teardownTopBarMfvButton } = await import(
-            "../features/runtime/topBarMfvButton.js"
-        );
+        const { mountTopBarMfvButton, teardownTopBarMfvButton } =
+            await import("../features/runtime/topBarMfvButton.js");
 
         mountTopBarMfvButton();
         flushTimers();
 
         const button = actionbar.querySelector("[data-mjr-topbar-mfv-button]");
         expect(button.getAttribute("aria-pressed")).toBe("false");
-        expect(document.documentElement.style.getPropertyValue("--mjr-mfv-top-offset")).toBe("84px");
+        expect(document.documentElement.style.getPropertyValue("--mjr-mfv-top-offset")).toBe(
+            "84px",
+        );
 
         window.dispatchEvent(
             new CustomEvent("mjr:mfv-visibility-changed", { detail: { visible: true } }),
@@ -94,15 +96,11 @@ describe("topBarMfvButton", () => {
         teardownTopBarMfvButton();
 
         expect(actionbar.querySelector("[data-mjr-topbar-mfv-button]")).toBeNull();
-        expect(document.documentElement.style.getPropertyValue("--mjr-mfv-top-offset")).toBe("60px");
-        expect(addSpy).toHaveBeenCalledWith(
-            "mjr:mfv-visibility-changed",
-            expect.any(Function),
+        expect(document.documentElement.style.getPropertyValue("--mjr-mfv-top-offset")).toBe(
+            "60px",
         );
-        expect(removeSpy).toHaveBeenCalledWith(
-            "mjr:mfv-visibility-changed",
-            expect.any(Function),
-        );
+        expect(addSpy).toHaveBeenCalledWith("mjr:mfv-visibility-changed", expect.any(Function));
+        expect(removeSpy).toHaveBeenCalledWith("mjr:mfv-visibility-changed", expect.any(Function));
         expect(removeSpy).toHaveBeenCalledWith("resize", expect.any(Function));
     });
 
@@ -113,9 +111,8 @@ describe("topBarMfvButton", () => {
         firstActionbar.appendChild(document.createElement("div")).className = "queue-button-group";
         document.body.appendChild(firstActionbar);
 
-        const { mountTopBarMfvButton, teardownTopBarMfvButton } = await import(
-            "../features/runtime/topBarMfvButton.js"
-        );
+        const { mountTopBarMfvButton, teardownTopBarMfvButton } =
+            await import("../features/runtime/topBarMfvButton.js");
 
         mountTopBarMfvButton();
         flushTimers();
@@ -141,7 +138,9 @@ describe("topBarMfvButton", () => {
         expect(button).toBeTruthy();
         expect(queueGroup.nextSibling).toBe(slot);
         expect(secondActionbar.lastElementChild).toBe(slot);
-        expect(document.documentElement.style.getPropertyValue("--mjr-mfv-top-offset")).toBe("108px");
+        expect(document.documentElement.style.getPropertyValue("--mjr-mfv-top-offset")).toBe(
+            "108px",
+        );
 
         teardownTopBarMfvButton();
     });
@@ -159,9 +158,8 @@ describe("topBarMfvButton", () => {
         actionbar.appendChild(left);
         document.body.appendChild(actionbar);
 
-        const { mountTopBarMfvButton, teardownTopBarMfvButton } = await import(
-            "../features/runtime/topBarMfvButton.js"
-        );
+        const { mountTopBarMfvButton, teardownTopBarMfvButton } =
+            await import("../features/runtime/topBarMfvButton.js");
 
         expect(() => {
             mountTopBarMfvButton();

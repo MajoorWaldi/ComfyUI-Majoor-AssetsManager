@@ -60,11 +60,9 @@ function buildWriteAuthSummary(prefs) {
     }
     if (requireAuth && tokenConfigured) {
         return {
-            text: t(
-                "runtime.writeAuthMissing",
-                "Write auth: missing in this browser {tokenHint}",
-                { tokenHint: sessionHint || "(server token configured)" },
-            ),
+            text: t("runtime.writeAuthMissing", "Write auth: missing in this browser {tokenHint}", {
+                tokenHint: sessionHint || "(server token configured)",
+            }),
             color: "#f1c36d",
         };
     }
@@ -161,15 +159,15 @@ async function refreshRuntimeStatusDashboard() {
             const enrichQ = Number(idx.enrichment_queue_length || 0);
             const pending = Number(w.pending_files || 0);
             metricsEl.textContent = t(
-            "runtime.metricsLine",
-            "DB active: {active} | Enrich Q: {enrichQ} | Watcher pending: {pending}",
-            { active, enrichQ, pending },
-        );
+                "runtime.metricsLine",
+                "DB active: {active} | Enrich Q: {enrichQ} | Watcher pending: {pending}",
+                { active, enrichQ, pending },
+            );
             runtimeTitle = t(
-            "runtime.metricsTitle",
-            "Runtime Metrics\nDB active connections: {active}\nEnrichment queue: {enrichQ}\nWatcher pending files: {pending}",
-            { active, enrichQ, pending },
-        );
+                "runtime.metricsTitle",
+                "Runtime Metrics\nDB active connections: {active}\nEnrichment queue: {enrichQ}\nWatcher pending files: {pending}",
+                { active, enrichQ, pending },
+            );
         }
         const authSummary = buildWriteAuthSummary(securityRes?.data?.prefs || null);
         authEl.textContent = authSummary.text;

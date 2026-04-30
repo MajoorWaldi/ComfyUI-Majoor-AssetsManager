@@ -706,17 +706,19 @@ export function mountVideoControls(video, opts = {}) {
             if (typeof ResizeObserver === "function" && hostEl) {
                 // Coalesce ResizeObserver bursts (e.g. window drag) into a single
                 // layout recalc per frame to avoid layout thrash.
-                const raf = typeof requestAnimationFrame === "function" ? requestAnimationFrame : null;
-                const caf = typeof cancelAnimationFrame === "function" ? cancelAnimationFrame : null;
+                const raf =
+                    typeof requestAnimationFrame === "function" ? requestAnimationFrame : null;
+                const caf =
+                    typeof cancelAnimationFrame === "function" ? cancelAnimationFrame : null;
                 let roFrame = 0;
                 const scheduleLayout = raf
                     ? () => {
-                        if (roFrame) return;
-                        roFrame = raf(() => {
-                            roFrame = 0;
-                            applyResponsiveLayout();
-                        });
-                    }
+                          if (roFrame) return;
+                          roFrame = raf(() => {
+                              roFrame = 0;
+                              applyResponsiveLayout();
+                          });
+                      }
                     : () => applyResponsiveLayout();
                 const ro = new ResizeObserver(scheduleLayout);
                 ro.observe(hostEl);
@@ -923,7 +925,7 @@ export function mountVideoControls(video, opts = {}) {
                 if (!Number.isFinite(t) || t < 0) return 0;
                 // Use floor rather than round so the frame counter matches the
                 // currently displayed frame instead of jumping ahead mid-frame.
-                return Math.max(0, Math.floor((t * fps) + 1e-6));
+                return Math.max(0, Math.floor(t * fps + 1e-6));
             } catch {
                 return 0;
             }
@@ -1759,8 +1761,8 @@ export function mountVideoControls(video, opts = {}) {
         const cancelPlaybackUiSync = () => {
             try {
                 if (
-                    playbackUiSync.rvfcId != null
-                    && typeof video?.cancelVideoFrameCallback === "function"
+                    playbackUiSync.rvfcId != null &&
+                    typeof video?.cancelVideoFrameCallback === "function"
                 ) {
                     video.cancelVideoFrameCallback(playbackUiSync.rvfcId);
                 }
@@ -1928,7 +1930,8 @@ export function mountVideoControls(video, opts = {}) {
             let hadAutoFullOut = false;
             try {
                 oldMax = Math.max(0, durationFrames());
-                hadAutoFullOut = oldMax > 0 && state.outFrame != null && state.outFrame >= oldMax - 1;
+                hadAutoFullOut =
+                    oldMax > 0 && state.outFrame != null && state.outFrame >= oldMax - 1;
             } catch (e) {
                 console.debug?.(e);
             }

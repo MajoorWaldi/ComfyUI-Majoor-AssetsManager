@@ -89,7 +89,10 @@ export function registerSearchSettings(safeAddSetting, settings, notifyApplied) 
                     saveMajoorSettings(settings);
                     applySettingsToConfig(settings);
                     notifyApplied("ai.vectorCaptionOnIndex");
-                    comfyToast(res?.error || "Failed to update AI caption indexing setting", "error");
+                    comfyToast(
+                        res?.error || "Failed to update AI caption indexing setting",
+                        "error",
+                    );
                     return;
                 }
                 comfyToast(
@@ -104,7 +107,10 @@ export function registerSearchSettings(safeAddSetting, settings, notifyApplied) 
                 saveMajoorSettings(settings);
                 applySettingsToConfig(settings);
                 notifyApplied("ai.vectorCaptionOnIndex");
-                comfyToast(error?.message || "Failed to update AI caption indexing setting", "error");
+                comfyToast(
+                    error?.message || "Failed to update AI caption indexing setting",
+                    "error",
+                );
             }
         },
     });

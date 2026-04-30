@@ -111,7 +111,8 @@ describe("gridController exiting similar scope", () => {
     });
 
     it("does not preserve stale similar cards when switching back to normal scope", async () => {
-        const { createGridController } = await import("../features/panel/controllers/gridController.js");
+        const { createGridController } =
+            await import("../features/panel/controllers/gridController.js");
 
         const loadAssets = vi.fn(async () => ({ ok: true, count: 175, total: 175 }));
         const loadAssetsFromList = vi.fn(async () => ({ ok: true, count: 2, total: 2 }));

@@ -1,15 +1,21 @@
 from mjr_am_backend.features.assets import service
+from mjr_am_backend.features.assets.download_service import (
+    handle_download_asset,
+    strip_tags_for_ext,
+)
 from mjr_am_backend.features.assets.lookup_service import (
     filepath_db_keys,
     filepath_where_clause,
     load_asset_filepath_by_id,
 )
-from mjr_am_backend.features.assets.download_service import handle_download_asset, strip_tags_for_ext
 from mjr_am_backend.features.assets.path_resolution_service import (
     resolve_delete_target,
     resolve_rename_target,
 )
-from mjr_am_backend.features.assets.rating_tags_service import resolve_rating_asset_id, sanitize_tags
+from mjr_am_backend.features.assets.rating_tags_service import (
+    resolve_rating_asset_id,
+    sanitize_tags,
+)
 from mjr_am_backend.features.assets.request_context_service import (
     prepare_asset_ids_context,
     prepare_asset_path_context,

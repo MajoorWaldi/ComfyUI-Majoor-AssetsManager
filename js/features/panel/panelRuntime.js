@@ -41,10 +41,7 @@ import { getHotkeysState, setHotkeysScope } from "./controllers/hotkeysState.js"
 import { bindGridContextMenu } from "../contextmenu/GridContextMenu.js";
 import { bindGridSelectionState } from "../../vue/composables/useGridSelection.js";
 import { createAssetsQueryController } from "../../vue/composables/useAssetsQuery.js";
-import {
-    clearActiveGridContainer,
-    setActiveGridContainer,
-} from "./panelRuntimeRefs.js";
+import { clearActiveGridContainer, setActiveGridContainer } from "./panelRuntimeRefs.js";
 
 import { bootstrapPanelContainer } from "./panelBootstrap.js";
 import { createSettingsSync } from "./panelSettingsSync.js";
@@ -102,22 +99,37 @@ async function _mountPanelRuntimeImpl(container, { useComfyThemeUI = true, exter
         "sidebar",
     ]) {
         if (!external?.[key]) {
-            throw new Error(
-                `[Majoor] mountAssetsManagerPanelRuntime now requires external.${key}`,
-            );
+            throw new Error(`[Majoor] mountAssetsManagerPanelRuntime now requires external.${key}`);
         }
     }
 
     // ── 3. STATE BRIDGE + READ/WRITE HELPERS ──────────────────────────────
     const panelStateBridge = createPanelStateBridge(null, [
-        "searchQuery", "scrollTop", "scope", "customRootId", "customRootLabel",
-        "currentFolderRelativePath", "sort", "lastGridCount", "lastGridTotal",
-        "activeAssetId", "selectedAssetIds", "sidebarOpen", "collectionId",
-        "collectionName", "viewScope", "similarResults", "similarTitle",
+        "searchQuery",
+        "scrollTop",
+        "scope",
+        "customRootId",
+        "customRootLabel",
+        "currentFolderRelativePath",
+        "sort",
+        "lastGridCount",
+        "lastGridTotal",
+        "activeAssetId",
+        "selectedAssetIds",
+        "sidebarOpen",
+        "collectionId",
+        "collectionName",
+        "viewScope",
+        "similarResults",
+        "similarTitle",
         "similarSourceAssetId",
     ]);
     state.viewScope =
-        String(state.viewScope || "").trim().toLowerCase() === "similar" ? "similar" : "";
+        String(state.viewScope || "")
+            .trim()
+            .toLowerCase() === "similar"
+            ? "similar"
+            : "";
     state.similarResults = Array.isArray(state.similarResults) ? state.similarResults : [];
     state.similarTitle = String(state.similarTitle || "");
     state.similarSourceAssetId = String(state.similarSourceAssetId || "");
@@ -129,8 +141,7 @@ async function _mountPanelRuntimeImpl(container, { useComfyThemeUI = true, exter
         const selected = readPanelValue("selectedAssetIds", []);
         return Array.isArray(selected) ? selected.map(String).filter(Boolean) : [];
     };
-    const readActiveAssetId = () =>
-        String(readPanelValue("activeAssetId", "") || "").trim();
+    const readActiveAssetId = () => String(readPanelValue("activeAssetId", "") || "").trim();
     const isSidebarOpen = () => !!readPanelValue("sidebarOpen", false);
 
     // ── 4. DESTRUCTURE EXTERNAL ELEMENTS ──────────────────────────────────
@@ -193,7 +204,9 @@ async function _mountPanelRuntimeImpl(container, { useComfyThemeUI = true, exter
     }
     searchInputEl.addEventListener(
         "input",
-        (e) => { panelStateBridge.write("searchQuery", e.target.value); },
+        (e) => {
+            panelStateBridge.write("searchQuery", e.target.value);
+        },
         { signal: panelLifecycleAC?.signal },
     );
 
@@ -220,7 +233,11 @@ async function _mountPanelRuntimeImpl(container, { useComfyThemeUI = true, exter
     let _scrollTimer = null;
     let _lastUserInteractionAt = 0;
     const markUserInteraction = () => {
-        try { _lastUserInteractionAt = Date.now(); } catch { _lastUserInteractionAt = 0; }
+        try {
+            _lastUserInteractionAt = Date.now();
+        } catch {
+            _lastUserInteractionAt = 0;
+        }
     };
     const hasVueGridHostState =
         typeof external?.bindGridHostState === "function" &&
@@ -233,8 +250,11 @@ async function _mountPanelRuntimeImpl(container, { useComfyThemeUI = true, exter
             if (!shouldPersistScrollFromPanel) return;
             if (_scrollTimer) clearTimeout(_scrollTimer);
             _scrollTimer = setTimeout(() => {
-                try { panelStateBridge.write("scrollTop", gridWrapper.scrollTop); }
-                catch (e) { console.debug?.(e); }
+                try {
+                    panelStateBridge.write("scrollTop", gridWrapper.scrollTop);
+                } catch (e) {
+                    console.debug?.(e);
+                }
             }, 100);
         },
         { passive: true, signal: panelLifecycleAC?.signal },
@@ -246,8 +266,12 @@ async function _mountPanelRuntimeImpl(container, { useComfyThemeUI = true, exter
     }
     setActiveGridContainer(gridContainer);
     try {
-        gridContainer.dataset.mjrScope = String(readPanelValue("scope", state.scope || "output") || "output");
-    } catch (e) { console.debug?.(e); }
+        gridContainer.dataset.mjrScope = String(
+            readPanelValue("scope", state.scope || "output") || "output",
+        );
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     const summaryBarDisposers = [];
     const registerSummaryDispose = (fn) => {
@@ -255,28 +279,45 @@ async function _mountPanelRuntimeImpl(container, { useComfyThemeUI = true, exter
     };
     gridContainer._mjrSummaryBarDispose = () => {
         for (const fn of summaryBarDisposers.splice(0)) {
-            try { fn(); } catch (e) { console.debug?.(e); }
+            try {
+                fn();
+            } catch (e) {
+                console.debug?.(e);
+            }
         }
     };
     try {
         const handler = () => {
-            try { updateSummaryBar?.({ state, gridContainer }); }
-            catch (e) { console.debug?.(e); }
+            try {
+                updateSummaryBar?.({ state, gridContainer });
+            } catch (e) {
+                console.debug?.(e);
+            }
         };
         gridContainer.addEventListener("mjr:grid-stats", handler, {
             signal: panelLifecycleAC?.signal,
         });
         registerSummaryDispose(() => {
-            try { gridContainer.removeEventListener("mjr:grid-stats", handler); }
-            catch (e) { console.debug?.(e); }
+            try {
+                gridContainer.removeEventListener("mjr:grid-stats", handler);
+            } catch (e) {
+                console.debug?.(e);
+            }
         });
-    } catch (e) { console.debug?.(e); }
-    try { bindGridScanListeners(); } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
+    try {
+        bindGridScanListeners();
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     // ── 6. GRID API FUNCTION RESOLUTION ───────────────────────────────────
     const loadAssetsFn = external.loadAssets ?? loadAssets;
     const loadAssetsFromListFn = external.loadAssetsFromList ?? loadAssetsFromList;
-    const prepareGridForScopeSwitchFn = external.prepareGridForScopeSwitch ?? prepareGridForScopeSwitch;
+    const prepareGridForScopeSwitchFn =
+        external.prepareGridForScopeSwitch ?? prepareGridForScopeSwitch;
     const disposeGridFn = external.disposeGrid ?? disposeGrid;
     const refreshGridFn = external.refreshGrid ?? refreshGrid;
     const captureAnchorFn = external.captureAnchor ?? captureAnchor;
@@ -287,7 +328,9 @@ async function _mountPanelRuntimeImpl(container, { useComfyThemeUI = true, exter
     if (typeof external?.onGridContainerReady === "function") {
         try {
             external.onGridContainerReady(gridContainer, { getState: () => state });
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     } else {
         container._mjrGridContextMenuUnbind = bindGridContextMenu({
             gridContainer,
@@ -325,7 +368,11 @@ async function _mountPanelRuntimeImpl(container, { useComfyThemeUI = true, exter
     content.appendChild(summaryBar);
     content.appendChild(browseSection);
     container.appendChild(header);
-    try { container._mjrVersionUpdateCleanup?.(); } catch (e) { console.debug?.(e); }
+    try {
+        container._mjrVersionUpdateCleanup?.();
+    } catch (e) {
+        console.debug?.(e);
+    }
     container._mjrVersionUpdateCleanup = _headerDispose || header._mjrVersionUpdateCleanup;
     container.appendChild(content);
 
@@ -354,8 +401,16 @@ async function _mountPanelRuntimeImpl(container, { useComfyThemeUI = true, exter
     let assetsQueryController = null;
 
     const notifyContextChanged = () => {
-        try { contextController?.update?.(); } catch (e) { console.debug?.(e); }
-        try { browserNav?.renderBreadcrumb?.(); } catch (e) { console.debug?.(e); }
+        try {
+            contextController?.update?.();
+        } catch (e) {
+            console.debug?.(e);
+        }
+        try {
+            browserNav?.renderBreadcrumb?.();
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
 
     // ── 12. SELECTION STATE + BROWSER NAV ────────────────────────────────
@@ -366,7 +421,10 @@ async function _mountPanelRuntimeImpl(container, { useComfyThemeUI = true, exter
             readActiveAssetId,
             writeSelectedAssetIds: (ids) => writePanelValue("selectedAssetIds", ids),
             writeActiveAssetId: (id) => writePanelValue("activeAssetId", id),
-            onSelectionChanged: () => { markUserInteraction(); notifyContextChanged(); },
+            onSelectionChanged: () => {
+                markUserInteraction();
+                notifyContextChanged();
+            },
             lifecycleSignal: panelLifecycleAC?.signal || null,
         });
     }
@@ -377,18 +435,28 @@ async function _mountPanelRuntimeImpl(container, { useComfyThemeUI = true, exter
         customSelect,
         reloadGrid: () => gridController.reloadGrid(),
         onContextChanged: () => {
-            try { contextController?.update?.(); } catch (e) { console.debug?.(e); }
+            try {
+                contextController?.update?.();
+            } catch (e) {
+                console.debug?.(e);
+            }
         },
         lifecycleSignal: panelLifecycleAC?.signal || null,
     });
     try {
         _unbindBrowserFolderNav = browserNav.bindGridFolderNavigation();
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     // ── 13. DUPLICATE ALERTS ─────────────────────────────────────────────
     const refreshDuplicateAlerts = async () => {
-        const scope = String(readPanelValue("scope", state.scope || "output") || "output").toLowerCase();
-        const customRootId = String(readPanelValue("customRootId", state.customRootId || "") || "").trim();
+        const scope = String(
+            readPanelValue("scope", state.scope || "output") || "output",
+        ).toLowerCase();
+        const customRootId = String(
+            readPanelValue("customRootId", state.customRootId || "") || "",
+        ).trim();
         if (scope === "custom" && !customRootId) {
             _duplicatesAlert = null;
             notifyContextChanged();
@@ -408,7 +476,9 @@ async function _mountPanelRuntimeImpl(container, { useComfyThemeUI = true, exter
                 firstPair: Array.isArray(data.similar_pairs) ? data.similar_pairs[0] : null,
             };
             notifyContextChanged();
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
 
     // ── 14. QUEUED RELOAD ─────────────────────────────────────────────────
@@ -417,12 +487,17 @@ async function _mountPanelRuntimeImpl(container, { useComfyThemeUI = true, exter
     const requestQueuedReload = () => {
         try {
             if (_queuedReloadTimer) clearTimeout(_queuedReloadTimer);
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         _queuedReloadTimer = setTimeout(() => {
             _queuedReloadTimer = null;
             queuedReload().catch((err) => {
-                try { console.warn("[Majoor] queuedReload failed", err); }
-                catch (e) { console.debug?.(e); }
+                try {
+                    console.warn("[Majoor] queuedReload failed", err);
+                } catch (e) {
+                    console.debug?.(e);
+                }
             });
         }, REQUEST_QUEUED_RELOAD_DEBOUNCE_MS);
     };
@@ -454,12 +529,27 @@ async function _mountPanelRuntimeImpl(container, { useComfyThemeUI = true, exter
         ENDPOINTS,
         reloadGrid: gridController.reloadGrid,
         onRootChanged: async () => {
-            try { browserNav?.resetHistory?.(); } catch (e) { console.debug?.(e); }
-            try { await applyWatcherForScope(state.scope); } catch (e) { console.debug?.(e); }
-            try { await refreshDuplicateAlerts(); } catch (e) { console.debug?.(e); }
+            try {
+                browserNav?.resetHistory?.();
+            } catch (e) {
+                console.debug?.(e);
+            }
+            try {
+                await applyWatcherForScope(state.scope);
+            } catch (e) {
+                console.debug?.(e);
+            }
+            try {
+                await refreshDuplicateAlerts();
+            } catch (e) {
+                console.debug?.(e);
+            }
         },
     });
-    const disposeCustomRootsBindings = customRootsController.bind({ customAddBtn, customRemoveBtn });
+    const disposeCustomRootsBindings = customRootsController.bind({
+        customAddBtn,
+        customRemoveBtn,
+    });
     try {
         window.addEventListener(
             "mjr:custom-roots-changed",
@@ -469,7 +559,9 @@ async function _mountPanelRuntimeImpl(container, { useComfyThemeUI = true, exter
             },
             { signal: panelLifecycleAC?.signal },
         );
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     // ── 17. RECONCILE VISIBLE SELECTION ──────────────────────────────────
     const reconcileVisibleSelection = () => {
@@ -497,7 +589,9 @@ async function _mountPanelRuntimeImpl(container, { useComfyThemeUI = true, exter
                 2600,
                 { noHistory: true },
             );
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
 
     // ── 18. SCOPE CONTROLLER ─────────────────────────────────────────────
@@ -517,7 +611,9 @@ async function _mountPanelRuntimeImpl(container, { useComfyThemeUI = true, exter
                         readPanelValue("scope", state.scope || "output") || "output",
                     );
                 }
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             notifyContextChanged();
         },
         onScopeChanged: async () => {
@@ -525,8 +621,14 @@ async function _mountPanelRuntimeImpl(container, { useComfyThemeUI = true, exter
                 await applyWatcherForScope(
                     String(readPanelValue("scope", state.scope || "output") || "output"),
                 );
-            } catch (e) { console.debug?.(e); }
-            try { await refreshDuplicateAlerts(); } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
+            try {
+                await refreshDuplicateAlerts();
+            } catch (e) {
+                console.debug?.(e);
+            }
         },
         onBeforeReload: async () => {
             // Sync key dataset fields *before* prepareGridForScopeSwitch so that
@@ -534,14 +636,23 @@ async function _mountPanelRuntimeImpl(container, { useComfyThemeUI = true, exter
             try {
                 gridContainer.dataset.mjrScope = readPanelValue("scope", "output");
                 gridContainer.dataset.mjrCustomRootId = readPanelValue("customRootId", "") || "";
-                gridContainer.dataset.mjrSubfolder = readPanelValue("currentFolderRelativePath", "") || "";
+                gridContainer.dataset.mjrSubfolder =
+                    readPanelValue("currentFolderRelativePath", "") || "";
                 gridContainer.dataset.mjrCollectionId = readPanelValue("collectionId", "") || "";
                 gridContainer.dataset.mjrViewScope = readPanelValue("viewScope", "") || "";
-            } catch (e) { console.debug?.(e); }
-            try { prepareGridForScopeSwitchFn(gridContainer); } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
+            try {
+                prepareGridForScopeSwitchFn(gridContainer);
+            } catch (e) {
+                console.debug?.(e);
+            }
             try {
                 await updateStatus(
-                    statusDot, statusText, capabilitiesSection,
+                    statusDot,
+                    statusText,
+                    capabilitiesSection,
                     {
                         scope: readPanelValue("scope", state.scope || "output"),
                         customRootId: readPanelValue("customRootId", state.customRootId || ""),
@@ -549,15 +660,24 @@ async function _mountPanelRuntimeImpl(container, { useComfyThemeUI = true, exter
                     null,
                     { signal: panelLifecycleAC?.signal || null },
                 );
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         },
     });
 
     const exitSimilarViewIfActive = async ({ reload = false } = {}) => {
         try {
-            if (String(readPanelValue("viewScope", state.viewScope || "") || "").trim().toLowerCase() !== "similar") return;
+            if (
+                String(readPanelValue("viewScope", state.viewScope || "") || "")
+                    .trim()
+                    .toLowerCase() !== "similar"
+            )
+                return;
             await scopeController?.clearSimilarScope?.({ reload });
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
 
     Object.values(tabButtons).forEach((btn) => {
@@ -594,9 +714,18 @@ async function _mountPanelRuntimeImpl(container, { useComfyThemeUI = true, exter
 
     // ── 20. POPOVER BUTTONS ───────────────────────────────────────────────
     popovers.setDismissWhitelist([
-        customPopover, filterPopover, sortPopover, collectionsPopover,
-        pinnedFoldersPopover, messagePopover,
-        customMenuBtn, filterBtn, sortBtn, collectionsBtn, pinnedFoldersBtn, messageBtn,
+        customPopover,
+        filterPopover,
+        sortPopover,
+        collectionsPopover,
+        pinnedFoldersPopover,
+        messagePopover,
+        customMenuBtn,
+        filterBtn,
+        sortBtn,
+        collectionsBtn,
+        pinnedFoldersBtn,
+        messageBtn,
     ]);
 
     customMenuBtn.addEventListener(
@@ -780,7 +909,9 @@ async function _mountPanelRuntimeImpl(container, { useComfyThemeUI = true, exter
             getExtraContext: () => ({ duplicatesAlert: _duplicatesAlert }),
             extraActions,
         });
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     // ── 25. SUMMARY BAR UPDATES ───────────────────────────────────────────
     try {
@@ -808,22 +939,41 @@ async function _mountPanelRuntimeImpl(container, { useComfyThemeUI = true, exter
                 debounceTimer = setTimeout(() => {
                     debounceTimer = null;
                     if (raf) cancelAnimationFrame(raf);
-                    raf = requestAnimationFrame(() => { raf = null; notifyContextChanged(); });
+                    raf = requestAnimationFrame(() => {
+                        raf = null;
+                        notifyContextChanged();
+                    });
                 }, 250);
             };
             const mo = new MutationObserver(() => schedule());
             mo.observe(gridContainer, { childList: true });
             gridContainer._mjrSummaryBarObserver = mo;
             registerSummaryDispose(() => {
-                try { gridContainer.removeEventListener("mjr:grid-stats", onStats); }
-                catch (e) { console.debug?.(e); }
-                try { window.removeEventListener?.("mjr-settings-changed", onStats); }
-                catch (e) { console.debug?.(e); }
-                try { if (debounceTimer) clearTimeout(debounceTimer); } catch (e) { console.debug?.(e); }
-                try { mo.disconnect(); } catch (e) { console.debug?.(e); }
+                try {
+                    gridContainer.removeEventListener("mjr:grid-stats", onStats);
+                } catch (e) {
+                    console.debug?.(e);
+                }
+                try {
+                    window.removeEventListener?.("mjr-settings-changed", onStats);
+                } catch (e) {
+                    console.debug?.(e);
+                }
+                try {
+                    if (debounceTimer) clearTimeout(debounceTimer);
+                } catch (e) {
+                    console.debug?.(e);
+                }
+                try {
+                    mo.disconnect();
+                } catch (e) {
+                    console.debug?.(e);
+                }
             });
         }
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     // ── 26. SIDEBAR CONTROLLER ────────────────────────────────────────────
     sidebarController = bindSidebarOpen({
@@ -845,8 +995,11 @@ async function _mountPanelRuntimeImpl(container, { useComfyThemeUI = true, exter
             ? (initialLoadPromise) =>
                   external.restoreGridUiState(initialLoadPromise, {
                       onRestoreSidebar: () => {
-                          try { sidebarController?.toggleDetails?.(); }
-                          catch (e) { console.debug?.(e); }
+                          try {
+                              sidebarController?.toggleDetails?.();
+                          } catch (e) {
+                              console.debug?.(e);
+                          }
                       },
                   })
             : null,
@@ -856,7 +1009,9 @@ async function _mountPanelRuntimeImpl(container, { useComfyThemeUI = true, exter
         },
         readActiveAssetId,
         isSidebarOpen,
-        toggleSidebarDetails: () => { sidebarController?.toggleDetails?.(); },
+        toggleSidebarDetails: () => {
+            sidebarController?.toggleDetails?.();
+        },
         getQuery,
         getScope: () => panelStateBridge.read("scope", state.scope),
         loadAssets: loadAssetsFn,
@@ -877,17 +1032,24 @@ async function _mountPanelRuntimeImpl(container, { useComfyThemeUI = true, exter
         onTriggerScan: (ctx) => {
             triggerScan(statusDot, statusText, capabilitiesSection, ctx || {});
         },
-        onToggleDetails: () => { sidebarController?.toggleDetails?.(); },
+        onToggleDetails: () => {
+            sidebarController?.toggleDetails?.();
+        },
         onToggleFloatingViewer: () => {
-            try { window.dispatchEvent(new Event(EVENTS.MFV_TOGGLE)); }
-            catch (e) { console.debug?.(e); }
+            try {
+                window.dispatchEvent(new Event(EVENTS.MFV_TOGGLE));
+            } catch (e) {
+                console.debug?.(e);
+            }
         },
         onFocusSearch: () => {
             try {
                 searchInputEl?.focus?.();
                 const len = searchInputEl?.value?.length || 0;
                 searchInputEl?.setSelectionRange?.(len, len);
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         },
         onClearSearch: () => {
             try {
@@ -895,7 +1057,9 @@ async function _mountPanelRuntimeImpl(container, { useComfyThemeUI = true, exter
                 writePanelValue("searchQuery", "");
                 searchInputEl.value = "";
                 searchInputEl.dispatchEvent?.(new Event("input", { bubbles: true }));
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         },
         getScanContext: () => ({
             scope: panelStateBridge.read("scope", state.scope),
@@ -906,7 +1070,11 @@ async function _mountPanelRuntimeImpl(container, { useComfyThemeUI = true, exter
 
     let disposeSearchBinding = null;
     if (container._eventCleanup) {
-        try { container._eventCleanup(); } catch (e) { console.debug?.(e); }
+        try {
+            container._eventCleanup();
+        } catch (e) {
+            console.debug?.(e);
+        }
     }
     hotkeys.bind(content);
     ratingHotkeys.bind();
@@ -916,72 +1084,166 @@ async function _mountPanelRuntimeImpl(container, { useComfyThemeUI = true, exter
         container._mjrHotkeys = hotkeys;
         container._mjrRatingHotkeys = ratingHotkeys;
         container._mjrSidebarController = sidebarController;
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     // ── 29. CLEANUP CLOSURE ───────────────────────────────────────────────
     container._eventCleanup = () => {
-        try { panelLifecycleAC?.abort?.(); } catch (e) { console.debug?.(e); }
-        try { statusSection?._mjrStatusPollDispose?.(); } catch (e) { console.debug?.(e); }
-        try { container._mjrVersionUpdateCleanup?.(); } catch (e) { console.debug?.(e); }
+        try {
+            panelLifecycleAC?.abort?.();
+        } catch (e) {
+            console.debug?.(e);
+        }
+        try {
+            statusSection?._mjrStatusPollDispose?.();
+        } catch (e) {
+            console.debug?.(e);
+        }
+        try {
+            container._mjrVersionUpdateCleanup?.();
+        } catch (e) {
+            console.debug?.(e);
+        }
         container._mjrVersionUpdateCleanup = null;
         try {
             if (_scrollTimer) clearTimeout(_scrollTimer);
             _scrollTimer = null;
-        } catch (e) { console.debug?.(e); }
-        try { hotkeys.dispose(); } catch (e) { console.debug?.(e); }
-        try { ratingHotkeys.dispose(); } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
+        try {
+            hotkeys.dispose();
+        } catch (e) {
+            console.debug?.(e);
+        }
+        try {
+            ratingHotkeys.dispose();
+        } catch (e) {
+            console.debug?.(e);
+        }
         if (getHotkeysState().scope === "grid") setHotkeysScope(null);
-        try { agendaCalendar?.dispose?.(); } catch (e) { console.debug?.(e); }
-        try { disposeFilters?.(); } catch (e) { console.debug?.(e); }
-        try { disposeSearchBinding?.(); } catch (e) { console.debug?.(e); }
+        try {
+            agendaCalendar?.dispose?.();
+        } catch (e) {
+            console.debug?.(e);
+        }
+        try {
+            disposeFilters?.();
+        } catch (e) {
+            console.debug?.(e);
+        }
+        try {
+            disposeSearchBinding?.();
+        } catch (e) {
+            console.debug?.(e);
+        }
         disposeSearchBinding = null;
-        try { sidebar?.dispose?.(); } catch (e) { console.debug?.(e); }
-        try { sidebarController?.dispose?.(); } catch (e) { console.debug?.(e); }
+        try {
+            sidebar?.dispose?.();
+        } catch (e) {
+            console.debug?.(e);
+        }
+        try {
+            sidebarController?.dispose?.();
+        } catch (e) {
+            console.debug?.(e);
+        }
         try {
             if (_dupPollTimer) clearInterval(_dupPollTimer);
             _dupPollTimer = null;
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         try {
             if (_autoLoadTimer) clearTimeout(_autoLoadTimer);
             _autoLoadTimer = null;
-        } catch (e) { console.debug?.(e); }
-        try { assetsQueryController?.dispose?.(); } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
+        try {
+            assetsQueryController?.dispose?.();
+        } catch (e) {
+            console.debug?.(e);
+        }
         assetsQueryController = null;
-        try { selectionState?.dispose?.(); } catch (e) { console.debug?.(e); }
+        try {
+            selectionState?.dispose?.();
+        } catch (e) {
+            console.debug?.(e);
+        }
         selectionState = null;
-        try { gridContainer?._mjrSummaryBarDispose?.(); } catch (e) { console.debug?.(e); }
-        try { gridContainer?._mjrSummaryBarObserver?.disconnect?.(); }
-        catch (e) { console.debug?.(e); }
-        try { gridContainer?._mjrGridContextMenuUnbind?.(); } catch (e) { console.debug?.(e); }
-        try { disposeCustomRootsBindings?.(); } catch (e) { console.debug?.(e); }
-        try { _unbindBrowserFolderNav?.(); } catch (e) { console.debug?.(e); }
-        try { disposeGridScanListeners(); } catch (e) { console.debug?.(e); }
-        try { if (gridContainer) disposeGridFn(gridContainer); }
-        catch (e) { console.debug?.(e); }
+        try {
+            gridContainer?._mjrSummaryBarDispose?.();
+        } catch (e) {
+            console.debug?.(e);
+        }
+        try {
+            gridContainer?._mjrSummaryBarObserver?.disconnect?.();
+        } catch (e) {
+            console.debug?.(e);
+        }
+        try {
+            gridContainer?._mjrGridContextMenuUnbind?.();
+        } catch (e) {
+            console.debug?.(e);
+        }
+        try {
+            disposeCustomRootsBindings?.();
+        } catch (e) {
+            console.debug?.(e);
+        }
+        try {
+            _unbindBrowserFolderNav?.();
+        } catch (e) {
+            console.debug?.(e);
+        }
+        try {
+            disposeGridScanListeners();
+        } catch (e) {
+            console.debug?.(e);
+        }
+        try {
+            if (gridContainer) disposeGridFn(gridContainer);
+        } catch (e) {
+            console.debug?.(e);
+        }
         clearActiveGridContainer(gridContainer);
         gridContainer = null;
-        try { popovers.dispose(); } catch (e) { console.debug?.(e); }
+        try {
+            popovers.dispose();
+        } catch (e) {
+            console.debug?.(e);
+        }
         try {
             if (container._mjrPopoverManager === popovers) container._mjrPopoverManager = null;
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         try {
             if (hostWrapper && hostWrapperPrevStyle) {
                 hostWrapper.style.height = hostWrapperPrevStyle.height;
                 hostWrapper.style.minHeight = hostWrapperPrevStyle.minHeight;
                 hostWrapper.style.width = hostWrapperPrevStyle.width;
             }
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
 
     // ── 30. INITIAL LOAD SEQUENCE ─────────────────────────────────────────
-    const queuedReload = async () => { await assetsQueryController?.queuedReload?.(); };
+    const queuedReload = async () => {
+        await assetsQueryController?.queuedReload?.();
+    };
     const handleCountersUpdate =
         assetsQueryController?.createCountersUpdateHandler?.({
             state,
-            getStableQuery: () =>
-                String(gridContainer?.dataset?.mjrQuery || "*").trim() || "*",
+            getStableQuery: () => String(gridContainer?.dataset?.mjrQuery || "*").trim() || "*",
             getRecentUserInteractionAt: () => Number(_lastUserInteractionAt || 0),
-        }) ?? (async () => { await queuedReload(); });
+        }) ??
+        (async () => {
+            await queuedReload();
+        });
 
     setupStatusPolling(
         statusDot,
@@ -1011,8 +1273,12 @@ async function _mountPanelRuntimeImpl(container, { useComfyThemeUI = true, exter
             void exitSimilarViewIfActive({ reload: false });
             notifyContextChanged();
         },
-        startSearchTimer: () => { startTimer("searchQuery"); },
-        reloadGrid: () => { gridController.reloadGrid(); },
+        startSearchTimer: () => {
+            startTimer("searchQuery");
+        },
+        reloadGrid: () => {
+            gridController.reloadGrid();
+        },
     });
 
     let didHydrateFromSnapshot = false;
@@ -1027,7 +1293,11 @@ async function _mountPanelRuntimeImpl(container, { useComfyThemeUI = true, exter
                     ) || "*",
                 ),
                 customRootId: readPanelValue("customRootId", state.customRootId || "") || "",
-                subfolder: readPanelValue("currentFolderRelativePath", state.currentFolderRelativePath || "") || "",
+                subfolder:
+                    readPanelValue(
+                        "currentFolderRelativePath",
+                        state.currentFolderRelativePath || "",
+                    ) || "",
                 collectionId: readPanelValue("collectionId", state.collectionId || "") || "",
                 viewScope: readPanelValue("viewScope", state.viewScope || "") || "",
                 kind: readPanelValue("kindFilter", state.kindFilter || "") || "",
@@ -1035,7 +1305,8 @@ async function _mountPanelRuntimeImpl(container, { useComfyThemeUI = true, exter
                 minRating: readPanelValue("minRating", state.minRating || "") || "",
                 minSizeMB: readPanelValue("minSizeMB", state.minSizeMB || "") || "",
                 maxSizeMB: readPanelValue("maxSizeMB", state.maxSizeMB || "") || "",
-                resolutionCompare: readPanelValue("resolutionCompare", state.resolutionCompare || "") || "",
+                resolutionCompare:
+                    readPanelValue("resolutionCompare", state.resolutionCompare || "") || "",
                 minWidth: readPanelValue("minWidth", state.minWidth || "") || "",
                 minHeight: readPanelValue("minHeight", state.minHeight || "") || "",
                 maxWidth: readPanelValue("maxWidth", state.maxWidth || "") || "",
@@ -1052,7 +1323,9 @@ async function _mountPanelRuntimeImpl(container, { useComfyThemeUI = true, exter
                     "Cached",
             },
         );
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     let hasExistingGridCards = false;
     try {
@@ -1061,13 +1334,14 @@ async function _mountPanelRuntimeImpl(container, { useComfyThemeUI = true, exter
         console.debug?.(e);
     }
 
-    const initialLoadPromise = didHydrateFromSnapshot || hasExistingGridCards
-        ? Promise.resolve({
-              ok: true,
-              hydrated: !!didHydrateFromSnapshot,
-              cached: !!hasExistingGridCards,
-          })
-        : gridController.reloadGrid();
+    const initialLoadPromise =
+        didHydrateFromSnapshot || hasExistingGridCards
+            ? Promise.resolve({
+                  ok: true,
+                  hydrated: !!didHydrateFromSnapshot,
+                  cached: !!hasExistingGridCards,
+              })
+            : gridController.reloadGrid();
 
     // When we showed cached snapshot data on first launch, schedule a silent
     // background refresh so the user always sees an up-to-date grid without
@@ -1078,10 +1352,14 @@ async function _mountPanelRuntimeImpl(container, { useComfyThemeUI = true, exter
             setTimeout(() => {
                 try {
                     if (panelLifecycleAC?.signal?.aborted) return;
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
                 gridController.reloadGrid().catch(() => {});
             }, 200);
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     }
 
     // Fire-and-forget: do not block the panel mount on the duplicate alerts
@@ -1090,21 +1368,27 @@ async function _mountPanelRuntimeImpl(container, { useComfyThemeUI = true, exter
     refreshDuplicateAlerts().catch(() => {});
     try {
         _dupPollTimer = setInterval(() => {
-            try { if (panelLifecycleAC?.signal?.aborted) return; }
-            catch (e) { console.debug?.(e); }
+            try {
+                if (panelLifecycleAC?.signal?.aborted) return;
+            } catch (e) {
+                console.debug?.(e);
+            }
             refreshDuplicateAlerts().catch(() => {});
         }, 15000);
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     assetsQueryController?.restoreUiState?.(initialLoadPromise);
 
     try {
         window.__mjrLastAssetUpsert = 0;
         window.__mjrLastAssetUpsertCount = 0;
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 
-    _autoLoadTimer =
-        assetsQueryController?.scheduleAutoLoad?.(initialLoadPromise, 300) ?? null;
+    _autoLoadTimer = assetsQueryController?.scheduleAutoLoad?.(initialLoadPromise, 300) ?? null;
 
     const renderDuration = endTimer("panelRender", "gridRender");
     trackGridRender(renderDuration);

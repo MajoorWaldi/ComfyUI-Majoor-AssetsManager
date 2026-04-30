@@ -123,8 +123,7 @@ function _yieldUntilIdleOrFirstPaint() {
                 ric(() => resolve(), { timeout: 1500 });
                 return;
             }
-            const raf = window.requestAnimationFrame
-                || ((cb) => setTimeout(cb, 16));
+            const raf = window.requestAnimationFrame || ((cb) => setTimeout(cb, 16));
             raf(() => raf(() => setTimeout(resolve, 250)));
         } catch {
             resolve();

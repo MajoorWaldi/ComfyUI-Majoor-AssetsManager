@@ -95,7 +95,9 @@ export function createRunButton() {
         const hasExecution = Boolean(prompt?.currentlyExecuting);
         // A prompt object that has finished executing (currentlyExecuting == null)
         // and has no error is effectively done — don't treat it as "queued".
-        const promptStillActive = Boolean(prompt && (prompt.currentlyExecuting || prompt.errorDetails));
+        const promptStillActive = Boolean(
+            prompt && (prompt.currentlyExecuting || prompt.errorDetails),
+        );
         const hasQueuedPrompt = queue > 0 || promptStillActive;
         const isError = Boolean(prompt?.errorDetails);
 
@@ -151,7 +153,7 @@ export function createRunButton() {
     async function stopCurrentGeneration() {
         const app = getComfyApp();
         // Prefer live app.api for the same auth-context reasons as queueCurrentPrompt.
-        const liveApi = (app?.api && typeof app.api.interrupt === "function") ? app.api : null;
+        const liveApi = app?.api && typeof app.api.interrupt === "function" ? app.api : null;
         const api = liveApi ?? getComfyApi(app);
 
         if (api && typeof api.interrupt === "function") {
@@ -238,7 +240,9 @@ export function createRunButton() {
 }
 
 export function resolveMfvPreviewMethod(value = APP_CONFIG.MFV_PREVIEW_METHOD) {
-    const normalized = String(value || "").trim().toLowerCase();
+    const normalized = String(value || "")
+        .trim()
+        .toLowerCase();
     if (MFV_PREVIEW_METHODS.has(normalized)) return normalized;
     return "taesd";
 }
@@ -333,7 +337,7 @@ async function queueCurrentPrompt() {
 
     // Resolve API references early so we can choose the path before touching
     // widget state (beforeQueued must not be called twice for the same run).
-    const liveApi = (app?.api && typeof app.api.queuePrompt === "function") ? app.api : null;
+    const liveApi = app?.api && typeof app.api.queuePrompt === "function" ? app.api : null;
     const api = liveApi ?? getComfyApi(app);
     const hasApiPath = Boolean(
         (api && typeof api.queuePrompt === "function") ||
@@ -360,9 +364,7 @@ async function queueCurrentPrompt() {
         }
     });
 
-    const promptData = typeof app.graphToPrompt === "function"
-        ? await app.graphToPrompt()
-        : null;
+    const promptData = typeof app.graphToPrompt === "function" ? await app.graphToPrompt() : null;
     if (!promptData?.output) throw new Error("graphToPrompt returned empty output");
 
     let result;

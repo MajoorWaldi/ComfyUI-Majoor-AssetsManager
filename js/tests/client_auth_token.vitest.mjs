@@ -19,9 +19,15 @@ const SETTINGS_KEY = "mjrSettings";
 function makeStorage() {
     const store = new Map();
     return {
-        getItem(key) { return store.has(key) ? store.get(key) : null; },
-        setItem(key, value) { store.set(String(key), String(value)); },
-        removeItem(key) { store.delete(String(key)); },
+        getItem(key) {
+            return store.has(key) ? store.get(key) : null;
+        },
+        setItem(key, value) {
+            store.set(String(key), String(value));
+        },
+        removeItem(key) {
+            store.delete(String(key));
+        },
         _store: store,
     };
 }
@@ -155,7 +161,9 @@ describe("ensureWriteAuthToken with force=true clears stale sessionStorage token
             if (String(url).includes("bootstrap-token")) {
                 return {
                     status: 200,
-                    headers: { get: (name) => (name === "content-type" ? "application/json" : null) },
+                    headers: {
+                        get: (name) => (name === "content-type" ? "application/json" : null),
+                    },
                     json: async () => ({ ok: true, data: {} }), // no token field
                 };
             }
@@ -181,7 +189,8 @@ describe("ensureWriteAuthToken with force=true clears stale sessionStorage token
 
 describe("invalidateAuthTokenCache", () => {
     it("forces readAuthToken to re-read from sessionStorage after invalidation", async () => {
-        const { setRuntimeSecurityToken, readAuthToken, invalidateAuthTokenCache } = await loadAuth();
+        const { setRuntimeSecurityToken, readAuthToken, invalidateAuthTokenCache } =
+            await loadAuth();
 
         setRuntimeSecurityToken("initial_token");
         expect(readAuthToken()).toBe("initial_token"); // cached

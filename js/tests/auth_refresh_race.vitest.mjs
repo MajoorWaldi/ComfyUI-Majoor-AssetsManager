@@ -16,9 +16,15 @@ const SETTINGS_KEY = "mjrSettings";
 function makeStorage() {
     const store = new Map();
     return {
-        getItem(key) { return store.has(key) ? store.get(key) : null; },
-        setItem(key, value) { store.set(String(key), String(value)); },
-        removeItem(key) { store.delete(String(key)); },
+        getItem(key) {
+            return store.has(key) ? store.get(key) : null;
+        },
+        setItem(key, value) {
+            store.set(String(key), String(value));
+        },
+        removeItem(key) {
+            store.delete(String(key));
+        },
     };
 }
 
@@ -33,7 +39,10 @@ beforeEach(() => {
         location: { origin: "http://localhost" },
     };
     globalThis.CustomEvent = class {
-        constructor(type, init) { this.type = type; this.detail = init?.detail; }
+        constructor(type, init) {
+            this.type = type;
+            this.detail = init?.detail;
+        }
     };
     globalThis.app = { extensionManager: { toast: { add: vi.fn() } } };
 });
@@ -49,7 +58,9 @@ afterEach(() => {
 describe("concurrent auth bootstrap", () => {
     it("issues only one bootstrap request when multiple writes fire simultaneously", async () => {
         let bootstrapResolve;
-        const bootstrapPromise = new Promise((resolve) => { bootstrapResolve = resolve; });
+        const bootstrapPromise = new Promise((resolve) => {
+            bootstrapResolve = resolve;
+        });
         let bootstrapCalls = 0;
 
         globalThis.fetch = vi.fn(async (url) => {
@@ -58,23 +69,25 @@ describe("concurrent auth bootstrap", () => {
                 await bootstrapPromise;
                 return {
                     status: 200,
-                    headers: { get: (n) => n === "content-type" ? "application/json" : null },
+                    headers: { get: (n) => (n === "content-type" ? "application/json" : null) },
                     json: async () => ({ ok: true, data: { token: "race_token_abc" } }),
                 };
             }
-            const sentToken = (typeof url === "string" && url.includes("asset")) ? "race_token_abc" : "";
+            const sentToken =
+                typeof url === "string" && url.includes("asset") ? "race_token_abc" : "";
             return {
                 status: sentToken ? 200 : 401,
-                headers: { get: (n) => n === "content-type" ? "application/json" : null },
-                json: async () => sentToken
-                    ? { ok: true, data: { asset_id: 1 } }
-                    : { ok: false, code: "AUTH_REQUIRED", error: "no token" },
+                headers: { get: (n) => (n === "content-type" ? "application/json" : null) },
+                json: async () =>
+                    sentToken
+                        ? { ok: true, data: { asset_id: 1 } }
+                        : { ok: false, code: "AUTH_REQUIRED", error: "no token" },
             };
         });
 
-        const { default: client } = await import("../api/client.js").then(m => ({ default: m })).catch(() =>
-            import("../api/client.js").then(m => ({ default: m }))
-        );
+        const { default: client } = await import("../api/client.js")
+            .then((m) => ({ default: m }))
+            .catch(() => import("../api/client.js").then((m) => ({ default: m })));
         const c = await import("../api/client.js");
 
         // Fire three concurrent write operations before the bootstrap resolves.
@@ -103,7 +116,7 @@ describe("concurrent auth bootstrap", () => {
             if (String(url).includes("bootstrap-token")) {
                 return {
                     status: 403,
-                    headers: { get: (n) => n === "content-type" ? "application/json" : null },
+                    headers: { get: (n) => (n === "content-type" ? "application/json" : null) },
                     json: async () => ({
                         ok: false,
                         code: "BOOTSTRAP_DISABLED",
@@ -113,7 +126,7 @@ describe("concurrent auth bootstrap", () => {
             }
             return {
                 status: 401,
-                headers: { get: (n) => n === "content-type" ? "application/json" : null },
+                headers: { get: (n) => (n === "content-type" ? "application/json" : null) },
                 json: async () => ({ ok: false, code: "AUTH_REQUIRED", error: "no token" }),
             };
         });
@@ -147,7 +160,7 @@ describe("concurrent tag writes", () => {
 
         globalThis.fetch = vi.fn(async () => ({
             status: 200,
-            headers: { get: (n) => n === "content-type" ? "application/json" : null },
+            headers: { get: (n) => (n === "content-type" ? "application/json" : null) },
             json: async () => ({ ok: true, data: { tags: [] } }),
         }));
 

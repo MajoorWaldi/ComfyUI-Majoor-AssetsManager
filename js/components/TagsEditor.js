@@ -30,7 +30,6 @@ function normalizeInputTag(raw) {
 function normalizeStoredTag(raw) {
     try {
         const s = String(raw ?? "")
-            // eslint-disable-next-line no-control-regex
             .replace(/[\x00-\x1f\x7f]/g, "")
             .trim();
         return s || null;
@@ -242,10 +241,14 @@ export function createTagsEditor(asset, onUpdate) {
                 background: ${index === selectedIndex ? "rgba(144, 202, 249, 0.2)" : "transparent"};
             `;
 
-            item.addEventListener("mouseenter", () => {
-                selectedIndex = index;
-                showSuggestions(query);
-            }, { passive: true });
+            item.addEventListener(
+                "mouseenter",
+                () => {
+                    selectedIndex = index;
+                    showSuggestions(query);
+                },
+                { passive: true },
+            );
 
             item.addEventListener("click", () => {
                 addTag(tag);
@@ -546,13 +549,21 @@ function createTagChip(tag, onRemove) {
         transition: opacity 0.2s;
     `;
 
-    removeBtn.addEventListener("mouseenter", () => {
-        removeBtn.style.opacity = "1";
-    }, { passive: true });
+    removeBtn.addEventListener(
+        "mouseenter",
+        () => {
+            removeBtn.style.opacity = "1";
+        },
+        { passive: true },
+    );
 
-    removeBtn.addEventListener("mouseleave", () => {
-        removeBtn.style.opacity = "0.7";
-    }, { passive: true });
+    removeBtn.addEventListener(
+        "mouseleave",
+        () => {
+            removeBtn.style.opacity = "0.7";
+        },
+        { passive: true },
+    );
 
     removeBtn.addEventListener("click", (e) => {
         e.stopPropagation();

@@ -29,11 +29,14 @@ export function createJobFinalizeQueue({ defaultDelayMs = 900, postJob } = {}) {
         if (!id) return;
         const existing = timers.get(id);
         if (existing) clearTimeout(existing);
-        const timer = setTimeout(() => {
-            timers.delete(id);
-            pending.add(id);
-            void drain();
-        }, Math.max(0, Number(delayMs) || 0));
+        const timer = setTimeout(
+            () => {
+                timers.delete(id);
+                pending.add(id);
+                void drain();
+            },
+            Math.max(0, Number(delayMs) || 0),
+        );
         timers.set(id, timer);
     }
 

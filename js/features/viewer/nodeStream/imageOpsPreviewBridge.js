@@ -72,9 +72,7 @@ function _computeContentRect(st, canvas) {
 }
 
 function _signatureFor(node, st, canvas, crop) {
-    const cropPart = crop
-        ? `${crop.dx},${crop.dy},${crop.w}x${crop.h}`
-        : "full";
+    const cropPart = crop ? `${crop.dx},${crop.dy},${crop.w}x${crop.h}` : "full";
     const parts = [
         String(node?.id ?? ""),
         String(st?.lastKey ?? ""),

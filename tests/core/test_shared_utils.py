@@ -11,6 +11,7 @@ from mjr_am_shared import errors as errors_mod
 from mjr_am_shared import log as log_mod
 from mjr_am_shared import result as result_mod
 from mjr_am_shared import time as time_mod
+from mjr_am_shared import version as version_mod
 
 # ─── time.py ───────────────────────────────────────────────────────────────
 
@@ -151,3 +152,71 @@ def test_sanitize_error_message_does_not_mask_mime_type() -> None:
 def test_sanitize_error_message_does_not_mask_url_fragment_path() -> None:
     msg = errors_mod.sanitize_error_message(ValueError("navigate to #/settings/general"), "bad")
     assert "#/settings/general" in msg
+
+
+def test_version_reads_pyproject_version(monkeypatch, tmp_path) -> None:
+    (tmp_path / "pyproject.toml").write_text('[project]\nversion = "9.8.7"\n', encoding="utf-8")
+    monkeypatch.setattr(version_mod, "_repo_root", lambda: tmp_path)
+
+    assert version_mod._find_pyproject_version() == "9.8.7"
+
+
+def test_version_missing_pyproject_falls_back(monkeypatch, tmp_path) -> None:
+    monkeypatch.setattr(version_mod, "_repo_root", lambda: tmp_path)
+
+    assert version_mod._find_pyproject_version() == "0.0.0"
+
+
+def test_version_branch_env_precedence(monkeypatch) -> None:
+    monkeypatch.setenv("MAJOOR_ASSETS_MANAGER_CHANNEL", "experimental-build")
+    monkeypatch.setattr(version_mod, "_resolve_branch_from_channel_marker", lambda: "main")
+    monkeypatch.setattr(version_mod, "_resolve_branch_from_git", lambda: "main")
+
+    assert version_mod._resolve_branch("1.2.3") == "nightly"
+
+
+def test_version_channel_marker_normalizes_stable(monkeypatch, tmp_path) -> None:
+    (tmp_path / ".mjr_channel").write_text("release", encoding="utf-8")
+    monkeypatch.setattr(version_mod, "_repo_root", lambda: tmp_path)
+
+    assert version_mod._resolve_branch_from_channel_marker() == "main"
+
+
+def test_version_branch_uses_git_when_no_env_or_marker(monkeypatch) -> None:
+    monkeypatch.delenv("MAJOR_ASSETS_MANAGER_BRANCH", raising=False)
+    monkeypatch.delenv("MAJOOR_ASSETS_MANAGER_BRANCH", raising=False)
+    monkeypatch.delenv("MAJOOR_ASSETS_MANAGER_CHANNEL", raising=False)
+    monkeypatch.delenv("MAJOR_ASSETS_MANAGER_CHANNEL", raising=False)
+    monkeypatch.setattr(version_mod, "_resolve_branch_from_channel_marker", lambda: "")
+    monkeypatch.setattr(version_mod, "_resolve_branch_from_git", lambda: "feature/dev-preview")
+    monkeypatch.setattr(version_mod, "_resolve_branch_from_path", lambda: "")
+
+    assert version_mod._resolve_branch("1.2.3") == "nightly"
+
+
+def test_version_info_reports_nightly_for_non_release_tag(monkeypatch) -> None:
+    monkeypatch.setattr(version_mod, "_find_pyproject_version", lambda: "1.2.3")
+    monkeypatch.setattr(version_mod, "_resolve_branch", lambda version: "main")
+
+    def fake_git(*args: str) -> str:
+        if args == ("describe", "--tags", "--exact-match"):
+            return "v9.9.9"
+        return ""
+
+    monkeypatch.setattr(version_mod, "_run_git", fake_git)
+
+    assert version_mod.get_version_info() == {"version": "nightly", "branch": "nightly"}
+
+
+def test_version_info_reports_stable_for_matching_release_tag(monkeypatch) -> None:
+    monkeypatch.setattr(version_mod, "_find_pyproject_version", lambda: "1.2.3")
+    monkeypatch.setattr(version_mod, "_resolve_branch", lambda version: "main")
+
+    def fake_git(*args: str) -> str:
+        if args == ("describe", "--tags", "--exact-match"):
+            return "v1.2.3"
+        return ""
+
+    monkeypatch.setattr(version_mod, "_run_git", fake_git)
+
+    assert version_mod.get_version_info() == {"version": "1.2.3", "branch": "main"}

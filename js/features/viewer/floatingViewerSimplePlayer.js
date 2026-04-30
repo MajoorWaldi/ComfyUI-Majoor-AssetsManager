@@ -286,7 +286,8 @@ export function mountFloatingViewerSimplePlayer(mediaEl, fileData = null, { kind
                 else mediaEl.pause?.();
             } else if (animatedImage) {
                 if (!animatedPaused) {
-                    if (!animatedSnapshot) animatedSnapshot = tryBuildStaticSnapshotFromImage(mediaEl);
+                    if (!animatedSnapshot)
+                        animatedSnapshot = tryBuildStaticSnapshotFromImage(mediaEl);
                     if (animatedSnapshot) mediaEl.src = animatedSnapshot;
                     animatedPaused = true;
                 } else {

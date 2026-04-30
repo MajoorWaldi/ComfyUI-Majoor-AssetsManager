@@ -22,7 +22,7 @@ describe("RatingTagsHydrator - Vue badge path", () => {
             createTagsBadge: vi.fn(() => ({ nodeType: 1 })),
         };
 
-        updateCardRatingTagsBadges(card, 4, "[\"alpha\",\"beta\"]", deps);
+        updateCardRatingTagsBadges(card, 4, '["alpha","beta"]', deps);
 
         expect(card._mjrAsset.rating).toBe(4);
         expect(card._mjrAsset.tags).toEqual(["alpha", "beta"]);

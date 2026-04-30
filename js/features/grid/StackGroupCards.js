@@ -215,7 +215,9 @@ export function ensureDupStackCard(gridContainer, card, asset) {
                 const activeGrid = button?._mjrGridContainer;
                 const activeAsset = button?._mjrAsset;
                 if (!activeGrid || !activeAsset) return;
-                const members = Array.isArray(activeAsset._mjrDupMembers) ? activeAsset._mjrDupMembers : [activeAsset];
+                const members = Array.isArray(activeAsset._mjrDupMembers)
+                    ? activeAsset._mjrDupMembers
+                    : [activeAsset];
                 const n = members.length;
                 activeGrid.dispatchEvent(
                     new CustomEvent(EVENTS.OPEN_STACK_GROUP, {

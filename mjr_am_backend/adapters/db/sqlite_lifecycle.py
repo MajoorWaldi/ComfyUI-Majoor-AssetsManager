@@ -17,7 +17,6 @@ from typing import Any
 import aiosqlite
 
 from ...shared import ErrorCode, Result, get_logger
-from .transaction_manager import begin_stmt_for_mode as tx_begin_stmt_for_mode
 from .transaction_manager import get_tx_state as tx_get_tx_state
 from .transaction_manager import register_tx_token as tx_register_tx_token
 from .transaction_manager import rename_or_delete as tx_rename_or_delete

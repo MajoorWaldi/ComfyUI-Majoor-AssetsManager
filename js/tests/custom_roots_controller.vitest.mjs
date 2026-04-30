@@ -111,7 +111,11 @@ describe("customRootsController", () => {
                 ],
             })),
             post: vi.fn(),
-            ENDPOINTS: { CUSTOM_ROOTS: "/roots", BROWSE_FOLDER: "/browse", CUSTOM_ROOTS_REMOVE: "/remove" },
+            ENDPOINTS: {
+                CUSTOM_ROOTS: "/roots",
+                BROWSE_FOLDER: "/browse",
+                CUSTOM_ROOTS_REMOVE: "/remove",
+            },
             reloadGrid,
             onRootChanged: vi.fn(async () => ({})),
         });

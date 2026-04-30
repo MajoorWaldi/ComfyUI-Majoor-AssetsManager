@@ -82,9 +82,8 @@ describe("SidebarWorkflowSection", () => {
     });
 
     it("shows workflow stats and persists size and label toggles", async () => {
-        const { default: SidebarWorkflowSection } = await import(
-            "../vue/components/panel/sidebar/SidebarWorkflowSection.vue"
-        );
+        const { default: SidebarWorkflowSection } =
+            await import("../vue/components/panel/sidebar/SidebarWorkflowSection.vue");
 
         const wrapper = mount(SidebarWorkflowSection, {
             props: {
@@ -110,7 +109,10 @@ describe("SidebarWorkflowSection", () => {
         expect(settingsState.workflowMinimap.size).toBe("expanded");
 
         await wrapper.find('button[title="Minimap settings"]').trigger("click");
-        await wrapper.findAll("button").find((node) => node.text().includes("Node Labels")).trigger("click");
+        await wrapper
+            .findAll("button")
+            .find((node) => node.text().includes("Node Labels"))
+            .trigger("click");
         expect(settingsState.workflowMinimap.showNodeLabels).toBe(true);
 
         const canvas = wrapper.find("canvas");
@@ -121,9 +123,8 @@ describe("SidebarWorkflowSection", () => {
     });
 
     it("navigates the main workflow on minimap drag and supports local minimap zoom", async () => {
-        const { default: SidebarWorkflowSection } = await import(
-            "../vue/components/panel/sidebar/SidebarWorkflowSection.vue"
-        );
+        const { default: SidebarWorkflowSection } =
+            await import("../vue/components/panel/sidebar/SidebarWorkflowSection.vue");
 
         const wrapper = mount(SidebarWorkflowSection, {
             props: {

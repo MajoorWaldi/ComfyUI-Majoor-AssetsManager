@@ -27,8 +27,16 @@ const KEY_A = "spec-lifecycle-a";
 const KEY_B = "spec-lifecycle-b";
 
 function cleanup() {
-    try { unmountKeepAlive(null, KEY_A); } catch { /* ignore */ }
-    try { unmountKeepAlive(null, KEY_B); } catch { /* ignore */ }
+    try {
+        unmountKeepAlive(null, KEY_A);
+    } catch {
+        /* ignore */
+    }
+    try {
+        unmountKeepAlive(null, KEY_B);
+    } catch {
+        /* ignore */
+    }
     document.body.innerHTML = "";
 }
 

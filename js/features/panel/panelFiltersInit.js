@@ -42,16 +42,16 @@ export function setupFiltersInit({
         try {
             kindSelect.value = state.kindFilter || "";
             wfCheckbox.checked = !!state.workflowOnly;
-            workflowTypeSelect.value = String(state.workflowType || "").trim().toUpperCase();
+            workflowTypeSelect.value = String(state.workflowType || "")
+                .trim()
+                .toUpperCase();
             ratingSelect.value = String(Number(state.minRating || 0) || 0);
             minSizeInput.value = Number(state.minSizeMB || 0) > 0 ? String(state.minSizeMB) : "";
             maxSizeInput.value = Number(state.maxSizeMB || 0) > 0 ? String(state.maxSizeMB) : "";
             minWidthInput.value = Number(state.minWidth || 0) > 0 ? String(state.minWidth) : "";
-            minHeightInput.value =
-                Number(state.minHeight || 0) > 0 ? String(state.minHeight) : "";
+            minHeightInput.value = Number(state.minHeight || 0) > 0 ? String(state.minHeight) : "";
             maxWidthInput.value = Number(state.maxWidth || 0) > 0 ? String(state.maxWidth) : "";
-            maxHeightInput.value =
-                Number(state.maxHeight || 0) > 0 ? String(state.maxHeight) : "";
+            maxHeightInput.value = Number(state.maxHeight || 0) > 0 ? String(state.maxHeight) : "";
             const minW = Number(state.minWidth || 0) || 0;
             const minH = Number(state.minHeight || 0) || 0;
             if (minW >= 3840 && minH >= 2160) resolutionPresetSelect.value = "uhd";

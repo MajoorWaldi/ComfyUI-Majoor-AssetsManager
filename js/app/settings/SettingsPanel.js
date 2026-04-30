@@ -154,7 +154,11 @@ function ensureMajoorSettingsContext(app, onApplied, { initRuntime = false } = {
         if (!_settingsStorageListenerBound) {
             // Remove stale listener from a previous init (hot-reload safety)
             if (_settingsStorageListenerRef && typeof window !== "undefined") {
-                try { window.removeEventListener("storage", _settingsStorageListenerRef); } catch (e) { console.debug?.(e); }
+                try {
+                    window.removeEventListener("storage", _settingsStorageListenerRef);
+                } catch (e) {
+                    console.debug?.(e);
+                }
             }
             try {
                 window.addEventListener("storage", storageListener);

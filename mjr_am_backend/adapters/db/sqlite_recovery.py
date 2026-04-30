@@ -6,7 +6,8 @@ import asyncio
 import random
 import sqlite3
 import time
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 import aiosqlite
 

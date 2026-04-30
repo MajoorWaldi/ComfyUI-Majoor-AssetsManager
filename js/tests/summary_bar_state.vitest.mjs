@@ -2,18 +2,16 @@ import { describe, expect, it, vi } from "vitest";
 
 vi.mock("../app/i18n.js", () => ({
     t: (key, fallback) =>
-        (
-            {
-                "summary.assets": "Assets",
-                "summary.selected": "Selected",
-                "summary.hidden": "Hidden",
-                "summary.duplicates": "Duplicates",
-                "summary.similar": "Similar",
-                "scope.output": "Output",
-            }[key] ||
-            fallback ||
-            key
-        ),
+        ({
+            "summary.assets": "Assets",
+            "summary.selected": "Selected",
+            "summary.hidden": "Hidden",
+            "summary.duplicates": "Duplicates",
+            "summary.similar": "Similar",
+            "scope.output": "Output",
+        })[key] ||
+        fallback ||
+        key,
 }));
 
 describe("summaryBarState", () => {

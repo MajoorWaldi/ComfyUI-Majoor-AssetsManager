@@ -42,7 +42,9 @@ function _readPersistedPanelState() {
 }
 
 function _normalizeScope(value) {
-    const s = String(value || "output").trim().toLowerCase();
+    const s = String(value || "output")
+        .trim()
+        .toLowerCase();
     if (s === "outputs") return "output";
     if (s === "inputs") return "input";
     return ALLOWED_SCOPES.has(s) ? s : "output";
@@ -58,7 +60,10 @@ function _normalizeScope(value) {
 function _readPersistedListContext() {
     const state = _readPersistedPanelState();
     const scope = _normalizeScope(state?.scope);
-    const sort = String(state?.sort || "mtime_desc").trim().toLowerCase() || "mtime_desc";
+    const sort =
+        String(state?.sort || "mtime_desc")
+            .trim()
+            .toLowerCase() || "mtime_desc";
     const customRootId = String(state?.customRootId || "").trim();
     const subfolder = String(state?.currentFolderRelativePath || "").trim();
     const collectionId = String(state?.collectionId || "").trim();
@@ -73,7 +78,9 @@ function _readPersistedListContext() {
     const maxWidth = Number(state?.maxWidth || 0) || 0;
     const maxHeight = Number(state?.maxHeight || 0) || 0;
     const workflowType = String(state?.workflowType || "").trim();
-    const dateRange = String(state?.dateRangeFilter || "").trim().toLowerCase();
+    const dateRange = String(state?.dateRangeFilter || "")
+        .trim()
+        .toLowerCase();
     const dateExact = String(state?.dateExactFilter || "").trim();
     const searchQuery = String(state?.searchQuery || "").trim();
     return {
@@ -139,12 +146,18 @@ function _bindUnloadOnce() {
         // in-flight request avoids polluting the next session's network log
         // with epoch-1 cancelled entries.
         window.addEventListener("pagehide", () => {
-            try { _earlyFetchAC?.abort?.(); } catch { /* ignore */ }
+            try {
+                _earlyFetchAC?.abort?.();
+            } catch {
+                /* ignore */
+            }
             _earlyFetchAC = null;
             _earlyFetchPromise = null;
             _earlyFetchKey = null;
         });
-    } catch { /* ignore */ }
+    } catch {
+        /* ignore */
+    }
 }
 
 /**
@@ -160,9 +173,9 @@ export function startEarlyFetch() {
     const now = Date.now();
 
     if (
-        _earlyFetchPromise
-        && _earlyFetchKey === key
-        && (now - _earlyFetchTimestamp) < EARLY_FETCH_TTL_MS
+        _earlyFetchPromise &&
+        _earlyFetchKey === key &&
+        now - _earlyFetchTimestamp < EARLY_FETCH_TTL_MS
     ) {
         return _earlyFetchPromise;
     }
@@ -171,7 +184,11 @@ export function startEarlyFetch() {
     _earlyFetchTimestamp = now;
 
     try {
-        try { _earlyFetchAC?.abort?.(); } catch { /* ignore */ }
+        try {
+            _earlyFetchAC?.abort?.();
+        } catch {
+            /* ignore */
+        }
         _earlyFetchAC = typeof AbortController !== "undefined" ? new AbortController() : null;
 
         // Skip prefetch only for contexts we cannot reliably reproduce here:
@@ -216,8 +233,9 @@ export function startEarlyFetch() {
             // it lazily on subsequent pages.
             includeTotal: false,
         });
-        _earlyFetchPromise = get(url, _earlyFetchAC ? { signal: _earlyFetchAC.signal } : {})
-            .catch(() => null);
+        _earlyFetchPromise = get(url, _earlyFetchAC ? { signal: _earlyFetchAC.signal } : {}).catch(
+            () => null,
+        );
     } catch {
         _earlyFetchPromise = null;
         _earlyFetchAC = null;
@@ -233,7 +251,7 @@ export function consumeEarlyFetch(key = null) {
     if (!_earlyFetchPromise) return null;
     if (key && _earlyFetchKey !== key) return null;
     const now = Date.now();
-    if ((now - _earlyFetchTimestamp) >= EARLY_FETCH_TTL_MS) {
+    if (now - _earlyFetchTimestamp >= EARLY_FETCH_TTL_MS) {
         _earlyFetchPromise = null;
         _earlyFetchKey = null;
         return null;
@@ -252,7 +270,7 @@ export function consumeEarlyFetch(key = null) {
  */
 export function peekEarlyFetchKey() {
     if (!_earlyFetchPromise) return null;
-    if ((Date.now() - _earlyFetchTimestamp) >= EARLY_FETCH_TTL_MS) return null;
+    if (Date.now() - _earlyFetchTimestamp >= EARLY_FETCH_TTL_MS) return null;
     return _earlyFetchKey;
 }
 
@@ -263,4 +281,6 @@ try {
     if (typeof window !== "undefined" && ENDPOINTS && ENDPOINTS.LIST) {
         startEarlyFetch();
     }
-} catch { /* ignore */ }
+} catch {
+    /* ignore */
+}

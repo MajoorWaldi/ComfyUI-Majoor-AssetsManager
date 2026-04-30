@@ -141,9 +141,8 @@ describe("sidebar run button live sync", () => {
     });
 
     it("tracks ComfyUI execution state live from the progress service", async () => {
-        const { createRunButton } = await import(
-            "../features/viewer/workflowSidebar/sidebarRunButton.js"
-        );
+        const { createRunButton } =
+            await import("../features/viewer/workflowSidebar/sidebarRunButton.js");
 
         const handle = createRunButton();
         const runBtn = handle.el.children[0];
@@ -173,9 +172,8 @@ describe("sidebar run button live sync", () => {
     });
 
     it("queues and interrupts through ComfyUI immediately, then follows live progress", async () => {
-        const { createRunButton } = await import(
-            "../features/viewer/workflowSidebar/sidebarRunButton.js"
-        );
+        const { createRunButton } =
+            await import("../features/viewer/workflowSidebar/sidebarRunButton.js");
 
         const handle = createRunButton();
         const runBtn = handle.el.children[0];

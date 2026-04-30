@@ -36,9 +36,8 @@ describe("floating viewer media player bridge", () => {
     });
 
     it("uses unified video controls for video assets", async () => {
-        const { buildFloatingViewerMediaElement } = await import(
-            "../features/viewer/floatingViewerMedia.js"
-        );
+        const { buildFloatingViewerMediaElement } =
+            await import("../features/viewer/floatingViewerMedia.js");
 
         const root = buildFloatingViewerMediaElement({
             filename: "clip.mp4",
@@ -61,9 +60,8 @@ describe("floating viewer media player bridge", () => {
     });
 
     it("uses unified video controls for audio assets", async () => {
-        const { buildFloatingViewerMediaElement } = await import(
-            "../features/viewer/floatingViewerMedia.js"
-        );
+        const { buildFloatingViewerMediaElement } =
+            await import("../features/viewer/floatingViewerMedia.js");
 
         const root = buildFloatingViewerMediaElement({
             filename: "track.mp3",

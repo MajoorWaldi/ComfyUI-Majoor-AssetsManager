@@ -111,8 +111,8 @@ def ensure_prompt_lifecycle_provider_registered() -> bool:
         if _PROMPT_LIFECYCLE_REGISTERED:
             return True
         try:
-            from comfy_execution.cache_provider import register_cache_provider
             from comfy_api.latest._caching import CacheProvider
+            from comfy_execution.cache_provider import register_cache_provider
         except Exception:
             return False
 

@@ -1,6 +1,5 @@
 """FTS (full-text search) repair and management helpers."""
 from ...shared import Result, get_logger
-
 from .schema_sql import _is_safe_identifier, _quoted_identifier
 
 logger = get_logger(__name__)

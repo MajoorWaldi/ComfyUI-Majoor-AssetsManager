@@ -1,11 +1,7 @@
 import { comfyConfirm } from "../../app/dialogs.js";
 import { comfyToast } from "../../app/toast.js";
 import { t } from "../../app/i18n.js";
-import {
-    mergeDuplicateTags,
-    deleteAssets,
-    startDuplicatesAnalysis,
-} from "../../api/client.js";
+import { mergeDuplicateTags, deleteAssets, startDuplicatesAnalysis } from "../../api/client.js";
 
 /**
  * Builds the `extraActions` object wired into the context controller.
@@ -75,10 +71,7 @@ export function buildContextMenuExtraActions({
                         ),
                     );
                     if (mergeOk) {
-                        const mergeRes = await mergeDuplicateTags(
-                            Number(keep?.id || 0),
-                            dupIds,
-                        );
+                        const mergeRes = await mergeDuplicateTags(Number(keep?.id || 0), dupIds);
                         if (mergeRes?.ok)
                             comfyToast(t("toast.tagsMerged", "Tags merged"), "success", 2200);
                         else
@@ -92,11 +85,9 @@ export function buildContextMenuExtraActions({
                     }
 
                     const delOk = await comfyConfirm(
-                        t(
-                            "dialog.deleteExactDuplicates",
-                            "Delete {count} exact duplicate(s)?",
-                            { count: dupIds.length },
-                        ),
+                        t("dialog.deleteExactDuplicates", "Delete {count} exact duplicate(s)?", {
+                            count: dupIds.length,
+                        }),
                     );
                     if (delOk) {
                         const delRes = await deleteAssets(dupIds);
@@ -123,10 +114,7 @@ export function buildContextMenuExtraActions({
             }
 
             const startOk = await comfyConfirm(
-                t(
-                    "dialog.startDuplicateAnalysis",
-                    "Start duplicate analysis in background?",
-                ),
+                t("dialog.startDuplicateAnalysis", "Start duplicate analysis in background?"),
             );
             if (!startOk) return;
             const runRes = await startDuplicatesAnalysis(500);

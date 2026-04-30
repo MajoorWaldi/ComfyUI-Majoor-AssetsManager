@@ -15,9 +15,9 @@ export function loadFloatingViewerMediaA(viewer, fileData, { autoMode = false } 
     // pan/zoom on every frame would defeat the MFV's interactive zoom.
     // Preserve it as long as the streamed node hasn't changed.
     const sameNodeStream =
-        isLive
-        && _isImageOpsLive(prev)
-        && String(prev?._nodeId || "") === String(fileData?._nodeId || "");
+        isLive &&
+        _isImageOpsLive(prev) &&
+        String(prev?._nodeId || "") === String(fileData?._nodeId || "");
     viewer._mediaA = fileData || null;
     if (!sameNodeStream) {
         viewer._resetMfvZoom();

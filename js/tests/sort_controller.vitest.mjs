@@ -6,19 +6,17 @@ import { usePanelStore } from "../stores/usePanelStore.js";
 
 vi.mock("../app/i18n.js", () => ({
     t: (key, fallback) =>
-        (
-            {
-                "sort.newest": "Newest",
-                "sort.oldest": "Oldest",
-                "sort.nameAZ": "A-Z",
-                "sort.nameZA": "Z-A",
-                "sort.ratingHigh": "Rating",
-                "sort.sizeDesc": "Size desc",
-                "sort.sizeAsc": "Size asc",
-            }[key] ||
-            fallback ||
-            ""
-        ),
+        ({
+            "sort.newest": "Newest",
+            "sort.oldest": "Oldest",
+            "sort.nameAZ": "A-Z",
+            "sort.nameZA": "Z-A",
+            "sort.ratingHigh": "Rating",
+            "sort.sizeDesc": "Size desc",
+            "sort.sizeAsc": "Size asc",
+        })[key] ||
+        fallback ||
+        "",
 }));
 
 function createElementStub() {
@@ -81,7 +79,9 @@ describe("sortController", () => {
         controller.bind();
         expect(sortBtn._icon.className).toBe("pi pi-sort-amount-down");
 
-        const nameAscButton = sortMenu.children.find((child) => child.children?.[0]?.textContent === "A-Z");
+        const nameAscButton = sortMenu.children.find(
+            (child) => child.children?.[0]?.textContent === "A-Z",
+        );
         await nameAscButton.dispatchEvent({ type: "click" });
 
         expect(panelStore.sort).toBe("name_asc");

@@ -61,7 +61,10 @@ describe("AssetCardRenderer – pure string helpers (large batches)", () => {
 
     it("getExtUpper processes 50 000 filenames under 200 ms", () => {
         const exts = ["png", "jpg", "webp", "mp4", "webm", "gif", "wav", "glb"];
-        const names = Array.from({ length: 50_000 }, (_, i) => `file_${i}.${exts[i % exts.length]}`);
+        const names = Array.from(
+            { length: 50_000 },
+            (_, i) => `file_${i}.${exts[i % exts.length]}`,
+        );
         const ms = elapsed(() => {
             for (const n of names) mod.getExtUpper(n);
         });
@@ -271,8 +274,18 @@ describe("AssetCardRenderer – shouldHideSiblingAsset (sibling state machine)",
         const assets = Array.from({ length: 500 }, (_, i) => {
             const base = `file_${i % 50}`;
             return i % 2 === 0
-                ? makeAsset({ filename: `${base}.mp4`, kind: "video", source: "output", root_id: "r3" })
-                : makeAsset({ filename: `${base}.png`, kind: "image", source: "output", root_id: "r3" });
+                ? makeAsset({
+                      filename: `${base}.mp4`,
+                      kind: "video",
+                      source: "output",
+                      root_id: "r3",
+                  })
+                : makeAsset({
+                      filename: `${base}.png`,
+                      kind: "image",
+                      source: "output",
+                      root_id: "r3",
+                  });
         });
         const ms = elapsed(() => {
             for (const asset of assets) mod.shouldHideSiblingAsset(asset, state, enabledSettings);
@@ -495,9 +508,7 @@ describe("viewer/keyboard – rapid keydown dispatch", () => {
         kb.bind();
         kb.unbind();
 
-        window.dispatchEvent(
-            new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }),
-        );
+        window.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));
         expect(deps.navigateViewerAssets).not.toHaveBeenCalled();
     });
 

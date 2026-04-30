@@ -42,9 +42,17 @@ import {
     NODE_STREAM_FEATURE_ENABLED,
     NODE_STREAM_REACTIVATION_DOC,
 } from "./features/viewer/nodeStream/nodeStreamFeatureFlag.js";
-import { loadAssets, upsertAsset, upsertAssetNow, removeAssetsFromGrid } from "./features/grid/gridApi.js";
+import {
+    loadAssets,
+    upsertAsset,
+    upsertAssetNow,
+    removeAssetsFromGrid,
+} from "./features/grid/gridApi.js";
 import { getActiveGridContainer } from "./features/panel/panelRuntimeRefs.js";
-import { pushGeneratedAsset, refreshGeneratedFeedHosts } from "./features/bottomPanel/feed/feedHost.js";
+import {
+    pushGeneratedAsset,
+    refreshGeneratedFeedHosts,
+} from "./features/bottomPanel/feed/feedHost.js";
 import { createExecutionRuntimeController } from "./features/stacks/executionRuntimeController.js";
 import { extractOutputFiles } from "./utils/extractOutputFiles.js";
 import { post } from "./api/client.js";
@@ -52,7 +60,10 @@ import { ENDPOINTS } from "./api/endpoints.js";
 import { comfyToast } from "./app/toast.js";
 import { t } from "./app/i18n.js";
 import { APP_CONFIG } from "./app/config.js";
-import { getRuntimeEnrichmentState, setRuntimeEnrichmentState } from "./stores/runtimeEnrichmentState.js";
+import {
+    getRuntimeEnrichmentState,
+    setRuntimeEnrichmentState,
+} from "./stores/runtimeEnrichmentState.js";
 import { reportError, mjrDbg } from "./utils/logging.js";
 import { app } from "../../scripts/app.js";
 import { registerRealtimeListeners } from "./features/runtime/registerRealtimeListeners.js";
@@ -176,17 +187,20 @@ function scheduleGridReloadWhenIdle(delayMs = 1200) {
     } catch (e) {
         console.debug?.(e);
     }
-    _deferredGridReloadTimer = setTimeout(() => {
-        _deferredGridReloadTimer = null;
-        if (isExecutionActive()) {
-            scheduleGridReloadWhenIdle(delayMs);
-            return;
-        }
-        const grid = getActiveGridContainer();
-        if (grid) {
-            loadAssets(grid);
-        }
-    }, Math.max(250, Number(delayMs) || 0));
+    _deferredGridReloadTimer = setTimeout(
+        () => {
+            _deferredGridReloadTimer = null;
+            if (isExecutionActive()) {
+                scheduleGridReloadWhenIdle(delayMs);
+                return;
+            }
+            const grid = getActiveGridContainer();
+            if (grid) {
+                loadAssets(grid);
+            }
+        },
+        Math.max(250, Number(delayMs) || 0),
+    );
 }
 
 /**
@@ -449,8 +463,7 @@ app.registerExtension({
         // idle so the click→cards latency drops from ~2 s (cold mount) to one
         // DOM frame (host re-attach). See entryUiRegistration.prewarmAssetsSidebar.
         try {
-            const _ric =
-                typeof window !== "undefined" ? window.requestIdleCallback : null;
+            const _ric = typeof window !== "undefined" ? window.requestIdleCallback : null;
             const _doPrewarm = () => {
                 try {
                     prewarmAssetsSidebar();
@@ -474,9 +487,8 @@ app.registerExtension({
         exposeDebugApis({
             resolveNodeStreamModule: async () => {
                 if (!nodeStreamModule) {
-                    nodeStreamModule = await import(
-                        "./features/viewer/nodeStream/NodeStreamController.js"
-                    );
+                    nodeStreamModule =
+                        await import("./features/viewer/nodeStream/NodeStreamController.js");
                 }
                 return nodeStreamModule;
             },

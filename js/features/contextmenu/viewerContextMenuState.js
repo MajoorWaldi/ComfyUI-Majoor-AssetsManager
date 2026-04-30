@@ -62,8 +62,7 @@ export function releaseViewerContextMenuPortalOwner(id) {
         ...next,
     );
     if (viewerContextMenuState.portalOwnerId === id) {
-        viewerContextMenuState.portalOwnerId =
-            viewerContextMenuState.mountedPortalIds[0] || "";
+        viewerContextMenuState.portalOwnerId = viewerContextMenuState.mountedPortalIds[0] || "";
     }
 }
 

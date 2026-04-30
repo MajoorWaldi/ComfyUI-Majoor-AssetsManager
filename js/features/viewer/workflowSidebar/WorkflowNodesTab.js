@@ -28,7 +28,9 @@ export class WorkflowNodesTab {
         this._lastSelectedId = "";
     }
 
-    get el() { return this._el; }
+    get el() {
+        return this._el;
+    }
 
     refresh() {
         this._maybeRebuildList();
@@ -212,7 +214,9 @@ function _getGraph() {
     try {
         const app = getComfyApp();
         return app?.graph ?? app?.canvas?.graph ?? null;
-    } catch { return null; }
+    } catch {
+        return null;
+    }
 }
 
 function _getSubgraphsFromNode(node) {
@@ -230,11 +234,7 @@ function _getSubgraphsFromNode(node) {
 
     // Some GROUP-style nodes expose inner nodes directly as node.nodes
     // (a different array from the parent graph's nodes).
-    if (
-        Array.isArray(node?.nodes) &&
-        node.nodes.length > 0 &&
-        node.nodes !== node?.graph?.nodes
-    ) {
+    if (Array.isArray(node?.nodes) && node.nodes.length > 0 && node.nodes !== node?.graph?.nodes) {
         candidates.push({ nodes: node.nodes });
     }
 
@@ -310,8 +310,8 @@ function _focusNode(node) {
             const h = canvasEl?.height ?? 600;
             const scale = canvas.ds.scale ?? 1;
             canvas.ds.offset = [
-                -node.pos[0] + w / (2 * scale) - ((node.size?.[0] ?? 100) / 2),
-                -node.pos[1] + h / (2 * scale) - ((node.size?.[1] ?? 80) / 2),
+                -node.pos[0] + w / (2 * scale) - (node.size?.[0] ?? 100) / 2,
+                -node.pos[1] + h / (2 * scale) - (node.size?.[1] ?? 80) / 2,
             ];
             canvas.setDirty?.(true, true);
         }
@@ -327,12 +327,17 @@ function _getSelectedNodeIds() {
         const app = getComfyApp();
         const selected = app?.canvas?.selected_nodes ?? app?.canvas?.selectedNodes ?? null;
         if (!selected) return [];
-        if (Array.isArray(selected)) return selected.map((node) => String(node?.id ?? "")).filter(Boolean);
+        if (Array.isArray(selected))
+            return selected.map((node) => String(node?.id ?? "")).filter(Boolean);
         if (selected instanceof Map) {
-            return Array.from(selected.values()).map((node) => String(node?.id ?? "")).filter(Boolean);
+            return Array.from(selected.values())
+                .map((node) => String(node?.id ?? ""))
+                .filter(Boolean);
         }
         if (typeof selected === "object") {
-            return Object.values(selected).map((node) => String(node?.id ?? "")).filter(Boolean);
+            return Object.values(selected)
+                .map((node) => String(node?.id ?? ""))
+                .filter(Boolean);
         }
     } catch (e) {
         console.debug?.("[MFV] _getSelectedNodeIds", e);

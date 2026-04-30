@@ -96,7 +96,12 @@ function _createCache() {
                 _touch(existing);
             } else {
                 if (_entries.size >= MAX_ENTRIES) _evictLRU();
-                _entries.set(key, { blobUrl: null, refcount: 0, expiresAt: Date.now() + TTL_MS, hasError: true });
+                _entries.set(key, {
+                    blobUrl: null,
+                    refcount: 0,
+                    expiresAt: Date.now() + TTL_MS,
+                    hasError: true,
+                });
                 _scheduleCleanup();
             }
         } catch (e) {
@@ -144,7 +149,12 @@ function _createCache() {
             const blob = await resp.blob();
             const blobUrl = URL.createObjectURL(blob);
             if (_entries.size >= MAX_ENTRIES) _evictLRU();
-            _entries.set(key, { blobUrl, refcount: 1, expiresAt: Date.now() + TTL_MS, hasError: false });
+            _entries.set(key, {
+                blobUrl,
+                refcount: 1,
+                expiresAt: Date.now() + TTL_MS,
+                hasError: false,
+            });
             _scheduleCleanup();
             return blobUrl;
         } catch (e) {

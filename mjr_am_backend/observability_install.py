@@ -9,8 +9,8 @@ from typing import Any
 from aiohttp import web
 
 from .config import OBS_INSTALL_GLOBAL_ASYNCIO_HANDLER
-from .shared import get_logger
 from .observability_runtime import _is_client_disconnect, request_context_middleware
+from .shared import get_logger
 
 logger = get_logger(__name__)
 

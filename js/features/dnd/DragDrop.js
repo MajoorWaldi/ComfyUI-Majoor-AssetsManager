@@ -46,9 +46,9 @@ const MAX_WORKFLOW_NODE_COUNT = 5000;
 const MAX_WORKFLOW_LINK_COUNT = 20000;
 const MAX_WORKFLOW_NODE_TYPE_LENGTH = 256;
 const MAX_WORKFLOW_WIDGET_STRING_LENGTH = 8192;
-// eslint-disable-next-line no-control-regex
+
 const _NODE_TYPE_CTRL_RE = /[\u0000-\u001f\u007f]/;
-// eslint-disable-next-line no-control-regex
+
 const _NUL_RE = /\u0000/;
 
 const _hasNodeTypeControlChars = (value) => _NODE_TYPE_CTRL_RE.test(String(value || ""));
@@ -141,7 +141,8 @@ const _applyWorkflowTabName = (app, name) => {
 const tryLoadWorkflowToCanvas = async (payload, fallbackAbsPath = null) => {
     const pl = payload && typeof payload === "object" ? payload : null;
     const rootId = pickRootId(pl);
-    const displayName = pl?.filename || (fallbackAbsPath ? String(fallbackAbsPath).split(/[\\/]/).pop() : null);
+    const displayName =
+        pl?.filename || (fallbackAbsPath ? String(fallbackAbsPath).split(/[\\/]/).pop() : null);
     const app = _resolveApp();
 
     // Check cache first

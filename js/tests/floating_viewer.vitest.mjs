@@ -475,7 +475,8 @@ describe("FloatingViewer", () => {
             _bindDocumentUiHandlers: vi.fn(),
             _updatePopoutBtnUI: vi.fn(),
             _setDesktopExpanded: FloatingViewer.prototype._setDesktopExpanded,
-            _activateDesktopExpandedFallback: FloatingViewer.prototype._activateDesktopExpandedFallback,
+            _activateDesktopExpandedFallback:
+                FloatingViewer.prototype._activateDesktopExpandedFallback,
             _tryElectronPopupFallback: FloatingViewer.prototype._tryElectronPopupFallback,
         };
 
@@ -534,9 +535,8 @@ describe("FloatingViewer", () => {
     });
 
     it("mirrors theme state into about:blank popup documents", async () => {
-        const { installFloatingViewerPopoutStyles } = await import(
-            "../features/viewer/floatingViewerPopout.js"
-        );
+        const { installFloatingViewerPopoutStyles } =
+            await import("../features/viewer/floatingViewerPopout.js");
 
         const popupHeadNodes = [];
         const htmlSetProperty = vi.fn();
@@ -625,7 +625,10 @@ describe("FloatingViewer", () => {
 
         expect(popupDoc.documentElement.className).toContain("mjr-mfv-popout-document");
         expect(popupDoc.body.className).toContain("mjr-mfv-popout-body");
-        expect(popupDoc.documentElement.setAttribute).toHaveBeenCalledWith("data-theme", "obsidian");
+        expect(popupDoc.documentElement.setAttribute).toHaveBeenCalledWith(
+            "data-theme",
+            "obsidian",
+        );
         expect(popupDoc.body.setAttribute).toHaveBeenCalledWith("data-layout", "desktop");
         expect(htmlSetProperty).toHaveBeenCalledWith("--content-bg", "#101820");
         expect(bodySetProperty).toHaveBeenCalledWith("--comfy-menu-bg", "#1a2333");

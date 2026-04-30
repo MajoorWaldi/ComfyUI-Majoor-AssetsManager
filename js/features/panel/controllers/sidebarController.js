@@ -421,7 +421,13 @@ function applySelection(gridContainer, ids, activeId = "") {
     return list;
 }
 
-function syncSelectionState({ gridContainer, state, activeId, readState = null, writeState = null } = {}) {
+function syncSelectionState({
+    gridContainer,
+    state,
+    activeId,
+    readState = null,
+    writeState = null,
+} = {}) {
     if ((!state && !writeState) || !gridContainer) return;
     try {
         let selected = [];
@@ -620,7 +626,13 @@ export function bindSidebarOpen({
             // Ensure this card is selected, but do not open the sidebar from dot clicks.
             const id = card?.dataset?.mjrAssetId || "";
             applySelection(gridContainer, id ? [id] : [], id);
-            syncSelectionState({ gridContainer, state, activeId: id, readState: read, writeState: write });
+            syncSelectionState({
+                gridContainer,
+                state,
+                activeId: id,
+                readState: read,
+                writeState: write,
+            });
 
             const updated = await rescanSingleAsset({
                 card,

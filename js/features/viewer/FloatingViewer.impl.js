@@ -91,9 +91,9 @@ import { disposeFloatingViewerProgressBar } from "./floatingViewerProgress.js";
 function _hasSimplePlayerControls(mediaEl) {
     try {
         return (
-            !!mediaEl?.classList?.contains("mjr-mfv-simple-player")
-            || !!mediaEl?.classList?.contains("mjr-mfv-player-host")
-            || !!mediaEl?.querySelector?.(".mjr-video-controls, .mjr-mfv-simple-player-controls")
+            !!mediaEl?.classList?.contains("mjr-mfv-simple-player") ||
+            !!mediaEl?.classList?.contains("mjr-mfv-player-host") ||
+            !!mediaEl?.querySelector?.(".mjr-video-controls, .mjr-mfv-simple-player-controls")
         );
     } catch (e) {
         console.debug?.(e);
@@ -108,8 +108,7 @@ let _mfvInstanceSeq = 0;
 export class FloatingViewer {
     constructor({ controller = null } = {}) {
         this._instanceId = ++_mfvInstanceSeq;
-        this._controller =
-            controller && typeof controller === "object" ? { ...controller } : null;
+        this._controller = controller && typeof controller === "object" ? { ...controller } : null;
         this.element = null;
         this.isVisible = false;
         this._contentEl = null;
@@ -468,7 +467,10 @@ export class FloatingViewer {
             ["mjr-mfv-ch-g", "0 1 0 0 0  0 1 0 0 0  0 1 0 0 0  0 0 0 1 0"],
             ["mjr-mfv-ch-b", "0 0 1 0 0  0 0 1 0 0  0 0 1 0 0  0 0 0 1 0"],
             ["mjr-mfv-ch-a", "0 0 0 1 0  0 0 0 1 0  0 0 0 1 0  0 0 0 1 0"],
-            ["mjr-mfv-ch-l", "0.2126 0.7152 0.0722 0 0  0.2126 0.7152 0.0722 0 0  0.2126 0.7152 0.0722 0 0  0 0 0 1 0"],
+            [
+                "mjr-mfv-ch-l",
+                "0.2126 0.7152 0.0722 0 0  0.2126 0.7152 0.0722 0 0  0.2126 0.7152 0.0722 0 0  0 0 0 1 0",
+            ],
         ];
         for (const [id, values] of filters) {
             const filter = document.createElementNS(svgNs, "filter");
@@ -490,8 +492,7 @@ export class FloatingViewer {
         if (!this._contentEl) return;
         const channel = String(this._channel || "rgb");
         const exposureScale = Math.pow(2, Number(this._exposureEV) || 0);
-        const channelFilter =
-            channel === "rgb" ? "" : `url(#mjr-mfv-ch-${channel})`;
+        const channelFilter = channel === "rgb" ? "" : `url(#mjr-mfv-ch-${channel})`;
         const brightnessFilter =
             Math.abs(exposureScale - 1) < 0.0001 ? "" : `brightness(${exposureScale})`;
         const filterValue = [channelFilter, brightnessFilter].filter(Boolean).join(" ").trim();
@@ -510,15 +511,15 @@ export class FloatingViewer {
             const f = String(format || "image");
             if (f === "image") {
                 const nw =
-                    Number(mediaEl?.videoWidth)
-                    || Number(mediaEl?.naturalWidth)
-                    || Number(panelRect?.width)
-                    || 1;
+                    Number(mediaEl?.videoWidth) ||
+                    Number(mediaEl?.naturalWidth) ||
+                    Number(panelRect?.width) ||
+                    1;
                 const nh =
-                    Number(mediaEl?.videoHeight)
-                    || Number(mediaEl?.naturalHeight)
-                    || Number(panelRect?.height)
-                    || 1;
+                    Number(mediaEl?.videoHeight) ||
+                    Number(mediaEl?.naturalHeight) ||
+                    Number(panelRect?.height) ||
+                    1;
                 const a = nw / nh;
                 return Number.isFinite(a) && a > 0 ? a : 1;
             }
@@ -609,12 +610,12 @@ export class FloatingViewer {
             const baseH = Number(panelRect.height) || 0;
             const aspect = this._getOverlayAspect(this._overlayFormat, mediaEl, panelRect);
             const fit = this._fitAspectInBox(baseW, baseH, aspect);
-            const centerX = (panelRect.left - hostRect.left) + baseW / 2;
-            const centerY = (panelRect.top - hostRect.top) + baseH / 2;
+            const centerX = panelRect.left - hostRect.left + baseW / 2;
+            const centerY = panelRect.top - hostRect.top + baseH / 2;
             const z = Math.max(0.1, Math.min(16, Number(this._zoom) || 1));
             const rectCss = {
-                x: centerX + fit.x * z - baseW * z / 2 + (Number(this._panX) || 0),
-                y: centerY + fit.y * z - baseH * z / 2 + (Number(this._panY) || 0),
+                x: centerX + fit.x * z - (baseW * z) / 2 + (Number(this._panX) || 0),
+                y: centerY + fit.y * z - (baseH * z) / 2 + (Number(this._panY) || 0),
                 w: fit.w * z,
                 h: fit.h * z,
             };
@@ -662,8 +663,18 @@ export class FloatingViewer {
             drawLine(rect.w / 2, 0, rect.w / 2, rect.h);
             drawLine(0, rect.h / 2, rect.w, rect.h / 2);
         } else if (this._gridMode === 3) {
-            ctx.strokeRect(rect.w * 0.1 + 0.5, rect.h * 0.1 + 0.5, rect.w * 0.8 - 1, rect.h * 0.8 - 1);
-            ctx.strokeRect(rect.w * 0.05 + 0.5, rect.h * 0.05 + 0.5, rect.w * 0.9 - 1, rect.h * 0.9 - 1);
+            ctx.strokeRect(
+                rect.w * 0.1 + 0.5,
+                rect.h * 0.1 + 0.5,
+                rect.w * 0.8 - 1,
+                rect.h * 0.8 - 1,
+            );
+            ctx.strokeRect(
+                rect.w * 0.05 + 0.5,
+                rect.h * 0.05 + 0.5,
+                rect.w * 0.9 - 1,
+                rect.h * 0.9 - 1,
+            );
         }
         ctx.restore();
     }
@@ -737,7 +748,8 @@ export class FloatingViewer {
             "wheel",
             (e) => {
                 if (e.target?.closest?.("audio")) return;
-                if (e.target?.closest?.(".mjr-video-controls, .mjr-mfv-simple-player-controls")) return;
+                if (e.target?.closest?.(".mjr-video-controls, .mjr-mfv-simple-player-controls"))
+                    return;
                 if (isModel3DInteractionTarget(e.target)) return;
                 const scrollableAncestor = _findScrollableAncestor(e.target, contentEl);
                 if (
@@ -773,7 +785,8 @@ export class FloatingViewer {
                 // Let native video controls and the AB divider handle their own events.
                 if (e.target?.closest?.("video")) return;
                 if (e.target?.closest?.("audio")) return;
-                if (e.target?.closest?.(".mjr-video-controls, .mjr-mfv-simple-player-controls")) return;
+                if (e.target?.closest?.(".mjr-video-controls, .mjr-mfv-simple-player-controls"))
+                    return;
                 if (e.target?.closest?.(".mjr-mfv-ab-divider")) return;
                 if (isModel3DInteractionTarget(e.target)) return;
                 e.preventDefault();
@@ -824,7 +837,8 @@ export class FloatingViewer {
             (e) => {
                 if (e.target?.closest?.("video")) return;
                 if (e.target?.closest?.("audio")) return;
-                if (e.target?.closest?.(".mjr-video-controls, .mjr-mfv-simple-player-controls")) return;
+                if (e.target?.closest?.(".mjr-video-controls, .mjr-mfv-simple-player-controls"))
+                    return;
                 if (isModel3DInteractionTarget(e.target)) return;
                 const isNearFit = Math.abs(this._zoom - 1) < 0.05;
                 this._setMfvZoom(isNearFit ? Math.min(4, this._zoom * 4) : 1, e.clientX, e.clientY);
@@ -1121,7 +1135,6 @@ export class FloatingViewer {
             sideA.appendChild(oa);
         }
 
-
         const sideB = document.createElement("div");
         sideB.className = "mjr-mfv-side-panel";
         if (elB) sideB.appendChild(elB);
@@ -1139,7 +1152,6 @@ export class FloatingViewer {
             ob.appendChild(fragSideB);
             sideB.appendChild(ob);
         }
-
 
         container.appendChild(sideA);
         container.appendChild(sideB);

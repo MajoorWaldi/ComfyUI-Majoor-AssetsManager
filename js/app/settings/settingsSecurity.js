@@ -80,7 +80,8 @@ export function buildRecommendedRemoteLanSecuritySettings(security) {
     const current = security && typeof security === "object" ? security : {};
     const token = String(current.apiToken || "").trim();
     return {
-        apiToken: token.length >= MIN_RECOMMENDED_TOKEN_LENGTH ? token : generateRecommendedApiToken(),
+        apiToken:
+            token.length >= MIN_RECOMMENDED_TOKEN_LENGTH ? token : generateRecommendedApiToken(),
         allowWrite: true,
         requireAuth: true,
         allowRemoteWrite: false,
@@ -151,7 +152,9 @@ export function registerSecuritySettings(safeAddSetting, settings, notifyApplied
         type: "boolean",
         defaultValue: settings.safety?.confirmDeletion !== false,
         onChange: (value) => {
-            if (shouldSkipBooleanSecurityUpdate(settings.safety?.confirmDeletion !== false, value)) {
+            if (
+                shouldSkipBooleanSecurityUpdate(settings.safety?.confirmDeletion !== false, value)
+            ) {
                 return;
             }
             settings.safety = settings.safety || {};

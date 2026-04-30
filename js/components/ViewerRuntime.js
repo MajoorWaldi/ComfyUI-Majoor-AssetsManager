@@ -58,17 +58,29 @@ let _mod_frameExport = null;
 
 function _prewarmViewerModules() {
     if (!_mod_abCompare)
-        import("../features/viewer/abCompare.js").then((m) => { _mod_abCompare = m; });
+        import("../features/viewer/abCompare.js").then((m) => {
+            _mod_abCompare = m;
+        });
     if (!_mod_sideBySide)
-        import("../features/viewer/sideBySide.js").then((m) => { _mod_sideBySide = m; });
+        import("../features/viewer/sideBySide.js").then((m) => {
+            _mod_sideBySide = m;
+        });
     if (!_mod_model3d)
-        import("../features/viewer/model3dRenderer.js").then((m) => { _mod_model3d = m; });
+        import("../features/viewer/model3dRenderer.js").then((m) => {
+            _mod_model3d = m;
+        });
     if (!_mod_scopes)
-        import("../features/viewer/scopes.js").then((m) => { _mod_scopes = m; });
+        import("../features/viewer/scopes.js").then((m) => {
+            _mod_scopes = m;
+        });
     if (!_mod_genInfo)
-        import("../features/viewer/genInfo.js").then((m) => { _mod_genInfo = m; });
+        import("../features/viewer/genInfo.js").then((m) => {
+            _mod_genInfo = m;
+        });
     if (!_mod_frameExport)
-        import("../features/viewer/frameExport.js").then((m) => { _mod_frameExport = m; });
+        import("../features/viewer/frameExport.js").then((m) => {
+            _mod_frameExport = m;
+        });
 }
 // ─────────────────────────────────────────────────────────────────────────────
 import { getViewerInstance as _getViewerInstance } from "../features/viewer/viewerInstanceManager.js";
@@ -78,10 +90,7 @@ import {
     VIEWER_INFO_PANEL_RESERVE,
     ensureViewerThemeStyles,
 } from "../features/viewer/viewerThemeStyles.js";
-import {
-    createViewerOverlayRoot,
-    createViewerStageShell,
-} from "../features/viewer/viewerShell.js";
+import { createViewerOverlayRoot, createViewerStageShell } from "../features/viewer/viewerShell.js";
 import { installViewerLightDismiss } from "../features/viewer/viewerOverlayDismiss.js";
 
 /**
@@ -254,7 +263,9 @@ function createViewer() {
                     : state.mode === VIEWER_MODES.SIDE_BY_SIDE
                       ? sideView
                       : singleView;
-            const canvases = Array.from(activeRoot?.querySelectorAll?.(".mjr-viewer-audio-viz") || []);
+            const canvases = Array.from(
+                activeRoot?.querySelectorAll?.(".mjr-viewer-audio-viz") || [],
+            );
             for (const canvas of canvases) {
                 try {
                     const proc = canvas?._mjrProc || null;
@@ -2157,49 +2168,64 @@ function createViewer() {
             const SWIPE_MAX_VERTICAL = 80; // ignore if too much vertical movement
 
             _openUnsubs.push(
-                safeAddListener(content, "touchstart", (e) => {
-                    try {
-                        if (e.touches?.length !== 1) return;
-                        const t = e.touches[0];
-                        _touchStart = { x: t.clientX, y: t.clientY, t: Date.now() };
-                    } catch (ex) {
-                        console.debug?.(ex);
-                    }
-                }, { passive: true }),
+                safeAddListener(
+                    content,
+                    "touchstart",
+                    (e) => {
+                        try {
+                            if (e.touches?.length !== 1) return;
+                            const t = e.touches[0];
+                            _touchStart = { x: t.clientX, y: t.clientY, t: Date.now() };
+                        } catch (ex) {
+                            console.debug?.(ex);
+                        }
+                    },
+                    { passive: true },
+                ),
             );
 
             _openUnsubs.push(
-                safeAddListener(content, "touchend", (e) => {
-                    try {
-                        if (!_touchStart) return;
-                        if (e.changedTouches?.length !== 1) {
+                safeAddListener(
+                    content,
+                    "touchend",
+                    (e) => {
+                        try {
+                            if (!_touchStart) return;
+                            if (e.changedTouches?.length !== 1) {
+                                _touchStart = null;
+                                return;
+                            }
+                            const t = e.changedTouches[0];
+                            const dx = t.clientX - _touchStart.x;
+                            const dy = t.clientY - _touchStart.y;
+                            const elapsed = Date.now() - _touchStart.t;
                             _touchStart = null;
-                            return;
-                        }
-                        const t = e.changedTouches[0];
-                        const dx = t.clientX - _touchStart.x;
-                        const dy = t.clientY - _touchStart.y;
-                        const elapsed = Date.now() - _touchStart.t;
-                        _touchStart = null;
 
-                        // Ignore if too slow (>600ms) or too much vertical movement
-                        if (elapsed > 600 || Math.abs(dy) > SWIPE_MAX_VERTICAL) return;
+                            // Ignore if too slow (>600ms) or too much vertical movement
+                            if (elapsed > 600 || Math.abs(dy) > SWIPE_MAX_VERTICAL) return;
 
-                        // Check swipe direction
-                        if (Math.abs(dx) >= SWIPE_THRESHOLD) {
-                            const direction = dx < 0 ? 1 : -1; // swipe left = next
-                            navigateViewerAssets(direction);
+                            // Check swipe direction
+                            if (Math.abs(dx) >= SWIPE_THRESHOLD) {
+                                const direction = dx < 0 ? 1 : -1; // swipe left = next
+                                navigateViewerAssets(direction);
+                            }
+                        } catch (ex) {
+                            console.debug?.(ex);
                         }
-                    } catch (ex) {
-                        console.debug?.(ex);
-                    }
-                }, { passive: true }),
+                    },
+                    { passive: true },
+                ),
             );
 
             _openUnsubs.push(
-                safeAddListener(content, "touchcancel", () => {
-                    _touchStart = null;
-                }, { passive: true }),
+                safeAddListener(
+                    content,
+                    "touchcancel",
+                    () => {
+                        _touchStart = null;
+                    },
+                    { passive: true },
+                ),
             );
         } catch (e) {
             console.debug?.(e);

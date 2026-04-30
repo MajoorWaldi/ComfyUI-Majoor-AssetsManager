@@ -8,7 +8,7 @@ describe("deepMerge prototype-pollution resistance", () => {
         const merged = deepMerge(base, malicious);
 
         expect(merged.polluted).toBeUndefined();
-        expect(({}).polluted).toBeUndefined();
+        expect({}.polluted).toBeUndefined();
         expect(merged.a).toBe(1);
     });
 
@@ -18,7 +18,7 @@ describe("deepMerge prototype-pollution resistance", () => {
         const merged = deepMerge(base, malicious);
 
         expect(Object.hasOwn(merged, "constructor")).toBe(false);
-        expect(({}).polluted).toBeUndefined();
+        expect({}.polluted).toBeUndefined();
     });
 
     it("rejects prototype key in the merge source", () => {
@@ -35,7 +35,7 @@ describe("deepMerge prototype-pollution resistance", () => {
         const merged = deepMerge(base, malicious);
 
         expect(merged.nested.deep).toBeUndefined();
-        expect(({}).deep).toBeUndefined();
+        expect({}.deep).toBeUndefined();
     });
 
     it("performs normal deep merge for safe keys", () => {

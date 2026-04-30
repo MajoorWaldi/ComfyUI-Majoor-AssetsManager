@@ -106,7 +106,11 @@ export function reconcileSelectionIds(
     getRenderedCards,
 ) {
     if (!gridContainer) return { selectedIds: [], pruned: 0, activeId: "" };
-    const visibleSet = new Set(Array.from(visibleAssetIds || []).map(String).filter(Boolean));
+    const visibleSet = new Set(
+        Array.from(visibleAssetIds || [])
+            .map(String)
+            .filter(Boolean),
+    );
     const current = getSelectedIdSet(gridContainer);
     const next = new Set();
     let pruned = 0;
