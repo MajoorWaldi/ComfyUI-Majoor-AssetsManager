@@ -296,7 +296,13 @@ function _decorateFeedCard(host, card, groupedAsset) {
     badge.className = "mjr-feed-group-button";
     badge.title = t("bottomFeed.groupOpen", "Show other assets from this generation");
     badge.setAttribute("aria-label", `${count} assets`);
-    badge.innerHTML = `<span class="mjr-feed-group-button-icon pi pi-clone"></span><span class="mjr-feed-group-button-count">${count}</span>`;
+    const icon = document.createElement("span");
+    icon.className = "mjr-feed-group-button-icon pi pi-clone";
+    badge.appendChild(icon);
+    const countEl = document.createElement("span");
+    countEl.className = "mjr-feed-group-button-count";
+    countEl.textContent = String(count);
+    badge.appendChild(countEl);
     badge.style.cssText = "position:absolute; top:34px; right:6px; z-index:11;";
     bindCardOverlayButton(badge);
 

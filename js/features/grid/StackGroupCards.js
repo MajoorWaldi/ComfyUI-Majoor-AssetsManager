@@ -34,6 +34,19 @@ export function bindCardOverlayButton(button) {
     return button;
 }
 
+function _setIconCount(button, iconClass, count = null, countClass = "mjr-stack-group-button-count") {
+    button.textContent = "";
+    const icon = document.createElement("span");
+    icon.className = iconClass;
+    button.appendChild(icon);
+    if (count != null) {
+        const countEl = document.createElement("span");
+        countEl.className = countClass;
+        countEl.textContent = String(count);
+        button.appendChild(countEl);
+    }
+}
+
 function _isGroupEnabled(gridContainer) {
     return String(gridContainer?.dataset?.mjrGroupStacks || "") === "1";
 }
@@ -132,7 +145,7 @@ export function ensureStackGroupCard(gridContainer, card, asset) {
                 if (count > 1) {
                     activeCard.dataset.mjrStacked = "true";
                     activeCard.dataset.mjrStackCount = String(count);
-                    button.innerHTML = `<span class="pi pi-clone"></span><span class="mjr-stack-group-button-count">${count}</span>`;
+                    _setIconCount(button, "pi pi-clone", count);
                 }
                 activeGrid.dispatchEvent(
                     new CustomEvent(EVENTS.OPEN_STACK_GROUP, {
@@ -160,10 +173,7 @@ export function ensureStackGroupCard(gridContainer, card, asset) {
         knownCount > 1
             ? `Open generation group in grid (${knownCount} assets)`
             : "Open generation group in grid";
-    button.innerHTML =
-        knownCount > 1
-            ? `<span class="pi pi-clone"></span><span class="mjr-stack-group-button-count">${knownCount}</span>`
-            : `<span class="pi pi-clone"></span>`;
+    _setIconCount(button, "pi pi-clone", knownCount > 1 ? knownCount : null);
 }
 
 export function disposeStackGroupCards(gridContainer) {
@@ -241,5 +251,5 @@ export function ensureDupStackCard(gridContainer, card, asset) {
     button._mjrAsset = asset;
     const label = `${count} duplicate${count > 1 ? "s" : ""}`;
     button.title = `${label} — click to compare all copies`;
-    button.innerHTML = `<span class="pi pi-copy"></span><span class="mjr-dup-stack-count">${count}</span>`;
+    _setIconCount(button, "pi pi-copy", count, "mjr-dup-stack-count");
 }

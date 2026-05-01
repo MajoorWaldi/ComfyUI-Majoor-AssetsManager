@@ -349,7 +349,14 @@ function _treeSignature(items) {
 
 function _setChildrenToggleLabel(btn, count, isOpen) {
     const icon = isOpen ? "pi-chevron-down" : "pi-chevron-right";
-    btn.innerHTML = `<i class="pi ${icon}" aria-hidden="true"></i><span>${count} inner node${count !== 1 ? "s" : ""}</span>`;
+    btn.textContent = "";
+    const iconEl = document.createElement("i");
+    iconEl.className = `pi ${icon}`;
+    iconEl.setAttribute("aria-hidden", "true");
+    btn.appendChild(iconEl);
+    const label = document.createElement("span");
+    label.textContent = `${count} inner node${count !== 1 ? "s" : ""}`;
+    btn.appendChild(label);
     btn.setAttribute("aria-expanded", String(isOpen));
 }
 

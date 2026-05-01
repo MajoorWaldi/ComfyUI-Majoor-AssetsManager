@@ -227,7 +227,17 @@ export class NodeWidgetRenderer {
             const badge = document.createElement("span");
             badge.className = "mjr-ws-node-kind";
             badge.title = `${this._childCount} inner node${this._childCount !== 1 ? "s" : ""}`;
-            badge.innerHTML = `<i class="pi pi-sitemap" aria-hidden="true"></i><span>Subgraph</span><span class="mjr-ws-node-kind-count">${this._childCount}</span>`;
+            const badgeIcon = document.createElement("i");
+            badgeIcon.className = "pi pi-sitemap";
+            badgeIcon.setAttribute("aria-hidden", "true");
+            badge.appendChild(badgeIcon);
+            const badgeText = document.createElement("span");
+            badgeText.textContent = "Subgraph";
+            badge.appendChild(badgeText);
+            const badgeCount = document.createElement("span");
+            badgeCount.className = "mjr-ws-node-kind-count";
+            badgeCount.textContent = String(this._childCount);
+            badge.appendChild(badgeCount);
             header.appendChild(badge);
             this._subgraphHeaderTitle = `${displayType} · Subgraph · ${this._childCount} inner node${this._childCount !== 1 ? "s" : ""}`;
             header.title = this._subgraphHeaderTitle;
@@ -346,7 +356,11 @@ export class NodeWidgetRenderer {
         this._el.classList.toggle("is-collapsed", this._collapsible && !this._expanded);
         if (this._toggleBtn) {
             const iconClass = this._expanded ? "pi pi-chevron-down" : "pi pi-chevron-right";
-            this._toggleBtn.innerHTML = `<i class="${iconClass}" aria-hidden="true"></i>`;
+            this._toggleBtn.textContent = "";
+            const icon = document.createElement("i");
+            icon.className = iconClass;
+            icon.setAttribute("aria-hidden", "true");
+            this._toggleBtn.appendChild(icon);
             this._toggleBtn.title = this._expanded ? "Collapse node" : "Expand node";
             this._toggleBtn.setAttribute("aria-expanded", String(this._expanded));
         }

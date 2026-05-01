@@ -41,6 +41,7 @@ from mjr_am_backend.tool_detect import get_tool_status
 from mjr_am_backend.utils import parse_bool
 
 from ..core import (
+    _check_rate_limit,
     _csrf_error,
     _has_configured_write_token,
     _is_loopback_request,
@@ -76,6 +77,30 @@ _VALID_PROBE_MODES = {"auto", "exiftool", "ffprobe", "both"}
 _CUSTOM_ROOT_ID_RE = re.compile(r"^[A-Za-z0-9._-]{1,128}$")
 _WRITE_TOKEN_COOKIE_NAME = "mjr_write_token"
 logger = get_logger(__name__)
+
+
+def _settings_rate_limit_response(
+    request: web.Request,
+    endpoint: str,
+    *,
+    max_requests: int,
+    window_seconds: int,
+) -> web.Response | None:
+    allowed, retry_after = _check_rate_limit(
+        request,
+        endpoint,
+        max_requests=max_requests,
+        window_seconds=window_seconds,
+    )
+    if allowed:
+        return None
+    return _json_response(
+        Result.Err(
+            "RATE_LIMITED",
+            "Rate limit exceeded. Please wait before retrying.",
+            retry_after=retry_after,
+        )
+    )
 
 
 def _extract_probe_mode(body: dict) -> tuple[str, str | None]:
@@ -1492,6 +1517,14 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
         csrf = _csrf_error(request)
         if csrf:
             return _json_response(Result.Err("CSRF", csrf))
+        limited = _settings_rate_limit_response(
+            request,
+            "settings_rotate_token",
+            max_requests=5,
+            window_seconds=60,
+        )
+        if limited is not None:
+            return limited
 
         auth = _require_write_access(request)
         if not auth.ok:
@@ -1552,6 +1585,14 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
         csrf = _csrf_error(request)
         if csrf:
             return _json_response(Result.Err("CSRF", csrf))
+        limited = _settings_rate_limit_response(
+            request,
+            "settings_bootstrap_token",
+            max_requests=20,
+            window_seconds=60,
+        )
+        if limited is not None:
+            return limited
 
         # SECURITY: Use raw socket peer IP for bootstrap — never trust XFF headers
         # for token delivery. This prevents proxy misconfiguration from leaking

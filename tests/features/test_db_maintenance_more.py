@@ -138,6 +138,35 @@ async def test_db_backup_restore_requested_name_not_found_and_missing_db(monkeyp
 
 
 @pytest.mark.asyncio
+async def test_db_backup_restore_requires_reset_index_operation(monkeypatch):
+    app = _app()
+    monkeypatch.setattr(m, "_csrf_error", lambda _request: None)
+    monkeypatch.setattr(m, "_require_write_access", lambda _request: Result.Ok({}))
+
+    async def _require_services():
+        return {"db": object()}, None
+
+    async def _resolve_security_prefs(_services):
+        return {"allow_reset_index": False}
+
+    monkeypatch.setattr(m, "_require_services", _require_services)
+    monkeypatch.setattr(m, "_resolve_security_prefs", _resolve_security_prefs)
+    monkeypatch.setattr(m, "_require_operation_enabled", lambda operation, *, prefs=None: Result.Err("FORBIDDEN", operation))
+
+    async def _read_json(_request):
+        return Result.Ok({"use_latest": True})
+
+    monkeypatch.setattr(m, "_read_json", _read_json)
+    req = make_mocked_request("POST", "/mjr/am/db/backup-restore", app=app)
+    match = await app.router.resolve(req)
+    resp = await match.handler(req)
+    body = json.loads(resp.text)
+
+    assert body.get("ok") is False
+    assert body.get("code") == "FORBIDDEN"
+
+
+@pytest.mark.asyncio
 async def test_db_backup_restore_reset_fail_and_replace_fail(monkeypatch, tmp_path: Path):
     app = _app()
     monkeypatch.setattr(m, "_csrf_error", lambda _request: None)
