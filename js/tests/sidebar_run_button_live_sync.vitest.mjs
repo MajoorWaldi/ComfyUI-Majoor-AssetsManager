@@ -129,10 +129,12 @@ describe("sidebar run button live sync", () => {
         };
 
         bridgeState.app = {
+            rootGraph: { nodes: [{ type: "KSampler" }] },
             graphToPrompt: vi.fn(async () => ({
                 output: { 1: { class_type: "KSampler" } },
                 workflow: { nodes: [{ id: 1 }] },
             })),
+            queuePrompt: vi.fn(async () => false),
         };
         bridgeState.api = {
             queuePrompt: vi.fn(async () => ({ prompt_id: "prompt-1" })),
@@ -199,6 +201,27 @@ describe("sidebar run button live sync", () => {
         expect(runBtn.disabled).toBe(false);
         expect(runBtn.classList.contains("stopping")).toBe(false);
         expect(stopBtn.disabled).toBe(true);
+
+        handle.dispose();
+    });
+
+    it("delegates API Node workflows to ComfyUI native queueing so auth tokens are preserved", async () => {
+        bridgeState.app.rootGraph = {
+            nodes: [{ type: "HappyHorseImageToVideoApi" }],
+        };
+
+        const { createRunButton } =
+            await import("../features/viewer/workflowSidebar/sidebarRunButton.js");
+
+        const handle = createRunButton();
+        const runBtn = handle.el.children[0];
+
+        runBtn.click();
+        await Promise.resolve();
+
+        expect(bridgeState.app.queuePrompt).toHaveBeenCalledWith(0);
+        expect(bridgeState.app.graphToPrompt).not.toHaveBeenCalled();
+        expect(bridgeState.api.queuePrompt).not.toHaveBeenCalled();
 
         handle.dispose();
     });

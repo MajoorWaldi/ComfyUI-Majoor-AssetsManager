@@ -314,6 +314,20 @@ function _walkAllNodes(graph, callback) {
     }
 }
 
+function _nodeLooksLikeApiNode(node) {
+    const candidates = [node?.type, node?.comfyClass, node?.class_type, node?.constructor?.type];
+    return candidates.some((value) => /Api$/i.test(String(value || "").trim()));
+}
+
+export function graphContainsApiNode(graph) {
+    let found = false;
+    _walkAllNodes(graph, (node) => {
+        if (found) return;
+        found = _nodeLooksLikeApiNode(node);
+    });
+    return found;
+}
+
 /**
  * Queue the current workflow for execution.
  *
@@ -322,9 +336,9 @@ function _walkAllNodes(graph, callback) {
  *      current auth session, same source as the native ComfyUI Queue button).
  *   2. api.queuePrompt      — broader detection via getComfyApi() (window.api, …).
  *   3. api.fetchApi         — direct HTTP via ComfyUI's authenticated fetch helper.
- *   4. app.queuePrompt(0)   — native ComfyUI app-level path; handles auth tokens,
- *      beforeQueued/afterQueued and CSRF natively; used only when no direct API
- *      path is available (no preview-method enrichment on this path).
+ *   4. app.queuePrompt(0)   — native ComfyUI app-level path; handles API Node
+ *      ComfyOrg auth tokens, beforeQueued/afterQueued and CSRF natively. Used
+ *      for API Node workflows or when no direct API path is available.
  *   5. fetch (last resort)  — raw fetch with credentials:'include' for cookie auth.
  *
  * Paths 1-3 and 5 manually mirror ComfyUI's beforeQueued/afterQueued widget cycle
@@ -344,10 +358,13 @@ async function queueCurrentPrompt() {
         (api && typeof api.fetchApi === "function"),
     );
 
+    const rootGraph = app.rootGraph ?? app.graph;
+    const mustUseNativeQueue = graphContainsApiNode(rootGraph);
+
     // Path 4: delegate entirely to app.queuePrompt which handles beforeQueued,
-    // graphToPrompt, afterQueued, and auth internally. Only taken when no direct
-    // API path is available because it cannot carry MFV preview-method enrichment.
-    if (!hasApiPath && typeof app.queuePrompt === "function") {
+    // graphToPrompt, afterQueued, and auth internally. API Node workflows need
+    // this because ComfyUI injects auth_token_comfy_org during native queueing.
+    if ((mustUseNativeQueue || !hasApiPath) && typeof app.queuePrompt === "function") {
         await app.queuePrompt(0);
         return { tracked: true };
     }
@@ -357,7 +374,6 @@ async function queueCurrentPrompt() {
     // calls widget.beforeQueued() before serialising the graph. This is what
     // triggers control_after_generate (randomize / increment / decrement) to
     // update the seed widget value before graphToPrompt reads it.
-    const rootGraph = app.rootGraph ?? app.graph;
     _walkAllNodes(rootGraph, (node) => {
         for (const w of node.widgets ?? []) {
             w.beforeQueued?.({ isPartialExecution: false });
