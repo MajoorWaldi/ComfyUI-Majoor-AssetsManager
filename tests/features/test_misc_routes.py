@@ -185,6 +185,9 @@ async def test_plugins_routes_success_and_errors(monkeypatch) -> None:
         return {"metadata": _Metadata()}, None
 
     monkeypatch.setattr(plugins_mod, "_require_services", _require_services)
+    monkeypatch.setattr(plugins_mod, "_csrf_error", lambda _request: None)
+    monkeypatch.setattr(plugins_mod, "_require_write_access", lambda _request: Result.Ok(True))
+    monkeypatch.setattr(plugins_mod, "_check_rate_limit", lambda *args, **kwargs: (True, None))
 
     app = _app_with(plugins_mod.register_plugin_routes)
 
@@ -203,6 +206,25 @@ async def test_plugins_routes_success_and_errors(monkeypatch) -> None:
     body, _status = await _call(app, "POST", "/mjr/am/plugins/reload")
     assert body["ok"] is True
     assert body["data"] == {"reloaded": 3}
+
+
+@pytest.mark.asyncio
+async def test_plugins_mutations_require_csrf(monkeypatch) -> None:
+    async def _require_services():
+        raise AssertionError("services should not be loaded when CSRF fails")
+
+    monkeypatch.setattr(plugins_mod, "_require_services", _require_services)
+    monkeypatch.setattr(plugins_mod, "_csrf_error", lambda _request: "Missing anti-CSRF header")
+    monkeypatch.setattr(plugins_mod, "_require_write_access", lambda _request: Result.Ok(True))
+    monkeypatch.setattr(plugins_mod, "_check_rate_limit", lambda *args, **kwargs: (True, None))
+
+    app = _app_with(plugins_mod.register_plugin_routes)
+
+    body, _status = await _call(app, "POST", "/mjr/am/plugins/demo/enable")
+    assert body["code"] == "CSRF"
+
+    body, _status = await _call(app, "POST", "/mjr/am/plugins/reload")
+    assert body["code"] == "CSRF"
 
 
 @pytest.mark.asyncio
@@ -305,6 +327,7 @@ async def test_stacks_write_routes_validate_and_call_service(monkeypatch) -> Non
         return body_queue.pop(0)
 
     monkeypatch.setattr(stacks_mod, "_require_services", _require_services)
+    monkeypatch.setattr(stacks_mod, "_csrf_error", lambda _request: None)
     monkeypatch.setattr(stacks_mod, "_require_write_access", lambda _request: Result.Ok(True))
     monkeypatch.setattr(stacks_mod, "_read_json", _read_json)
     monkeypatch.setattr(stacks_mod, "is_execution_grouping_enabled", lambda: True)
@@ -343,3 +366,25 @@ async def test_stacks_write_routes_validate_and_call_service(monkeypatch) -> Non
     assert ("auto_workflow", 44) in calls
     assert ("auto_job", "abc") in calls
     assert any(name == "event" for name, _payload in calls)
+
+
+@pytest.mark.asyncio
+async def test_stacks_mutations_require_csrf(monkeypatch) -> None:
+    async def _require_services():
+        raise AssertionError("services should not be loaded when CSRF fails")
+
+    monkeypatch.setattr(stacks_mod, "_require_services", _require_services)
+    monkeypatch.setattr(stacks_mod, "_csrf_error", lambda _request: "Missing anti-CSRF header")
+    monkeypatch.setattr(stacks_mod, "_require_write_access", lambda _request: Result.Ok(True))
+
+    app = _app_with(stacks_mod.register_stacks_routes)
+
+    for path in (
+        "/mjr/am/stacks/1/cover",
+        "/mjr/am/stacks/1/rename",
+        "/mjr/am/stacks/dissolve",
+        "/mjr/am/stacks/merge",
+        "/mjr/am/stacks/auto-stack",
+    ):
+        body, _status = await _call(app, "POST", path)
+        assert body["code"] == "CSRF"

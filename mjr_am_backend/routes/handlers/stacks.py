@@ -18,6 +18,7 @@ from mjr_am_backend.config import is_execution_grouping_enabled
 from mjr_am_backend.shared import Result, get_logger
 
 from ..core import (
+    _csrf_error,
     _json_response,
     _read_json,
     _require_services,
@@ -65,6 +66,13 @@ def _stacks_service(services):
     except Exception:
         pass
     return svc
+
+
+def _require_stack_mutation(request: web.Request) -> Result[bool]:
+    csrf = _csrf_error(request)
+    if csrf:
+        return Result.Err("CSRF", csrf)
+    return _require_write_access(request)
 
 
 def register_stacks_routes(routes: web.RouteTableDef) -> None:
@@ -136,7 +144,7 @@ def register_stacks_routes(routes: web.RouteTableDef) -> None:
 
     @routes.post("/mjr/am/stacks/{stack_id}/cover")
     async def set_stack_cover(request: web.Request) -> web.Response:
-        auth = _require_write_access(request)
+        auth = _require_stack_mutation(request)
         if not auth.ok:
             return _json_response(auth)
         services, error_result = await _require_services()
@@ -159,7 +167,7 @@ def register_stacks_routes(routes: web.RouteTableDef) -> None:
 
     @routes.post("/mjr/am/stacks/{stack_id}/rename")
     async def rename_stack(request: web.Request) -> web.Response:
-        auth = _require_write_access(request)
+        auth = _require_stack_mutation(request)
         if not auth.ok:
             return _json_response(auth)
         services, error_result = await _require_services()
@@ -179,7 +187,7 @@ def register_stacks_routes(routes: web.RouteTableDef) -> None:
 
     @routes.post("/mjr/am/stacks/dissolve")
     async def dissolve_stack(request: web.Request) -> web.Response:
-        auth = _require_write_access(request)
+        auth = _require_stack_mutation(request)
         if not auth.ok:
             return _json_response(auth)
         services, error_result = await _require_services()
@@ -197,7 +205,7 @@ def register_stacks_routes(routes: web.RouteTableDef) -> None:
 
     @routes.post("/mjr/am/stacks/merge")
     async def merge_stacks(request: web.Request) -> web.Response:
-        auth = _require_write_access(request)
+        auth = _require_stack_mutation(request)
         if not auth.ok:
             return _json_response(auth)
         services, error_result = await _require_services()
@@ -222,7 +230,7 @@ def register_stacks_routes(routes: web.RouteTableDef) -> None:
 
     @routes.post("/mjr/am/stacks/auto-stack")
     async def auto_stack(request: web.Request) -> web.Response:
-        auth = _require_write_access(request)
+        auth = _require_stack_mutation(request)
         if not auth.ok:
             return _json_response(auth)
         if not is_execution_grouping_enabled():
