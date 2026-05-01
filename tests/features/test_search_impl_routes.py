@@ -1,3 +1,5 @@
+# mypy: disable-error-code="attr-defined,assignment,call-overload"
+
 import asyncio
 import datetime
 import json
