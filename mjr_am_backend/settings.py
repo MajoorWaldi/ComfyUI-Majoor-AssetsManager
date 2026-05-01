@@ -55,17 +55,12 @@ _SECURITY_PREFS_INFO: Mapping[str, dict[str, bool | str]] = {
     "safe_mode": {"env": "MAJOOR_SAFE_MODE", "default": True},
     "allow_write": {"env": "MAJOOR_ALLOW_WRITE", "default": False},
     "require_auth": {"env": "MAJOOR_REQUIRE_AUTH", "default": False},
-    # Permissive default: enables first-run remote LAN bootstrap without manual
-    # toggling. An API token is still auto-generated at startup and required for
-    # writes once configured; this flag only governs the no-token fallback and
-    # whether `_bootstrap_enabled()` accepts unauthenticated remote bootstrap.
-    "allow_remote_write": {"env": "MAJOOR_ALLOW_REMOTE_WRITE", "default": True},
-    # Permissive default: lets the auto-generated API token be delivered and used
-    # over plain HTTP on a trusted LAN. Operators exposing Majoor to the public
-    # Internet should disable this in Settings -> Security.
+    # Remote write/bootstrap and HTTP token delivery are opt-in. Loopback remains
+    # convenient, while LAN/public exposure requires an explicit operator choice.
+    "allow_remote_write": {"env": "MAJOOR_ALLOW_REMOTE_WRITE", "default": False},
     "allow_insecure_token_transport": {
         "env": "MAJOOR_ALLOW_INSECURE_TOKEN_TRANSPORT",
-        "default": True,
+        "default": False,
     },
     "allow_delete": {"env": "MAJOOR_ALLOW_DELETE", "default": False},
     "allow_rename": {"env": "MAJOOR_ALLOW_RENAME", "default": False},

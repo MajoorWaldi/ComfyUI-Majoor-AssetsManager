@@ -119,8 +119,10 @@ class TestHostileFilenames:
         ('image "with" quotes.png', '"'),
         ('file\nwith\nnewlines.png', '\n'),
         ('file\rwith\rcr.png', '\r'),
-        ('semi;colon.png', None),             # semicolons are just sanitized, not necessarily removed
-        ('../traversal.png', None),           # path separator in Content-Disposition context
+        ('semi;colon.png', ';'),
+        ('../traversal.png', '/'),
+        ('..\\traversal.png', '\\'),
+        ('C:drive.png', ':'),
         ('a' * 512 + '.png', None),          # oversized
     ]
 
@@ -134,6 +136,7 @@ class TestHostileFilenames:
             )
         # Must not be empty
         assert len(result) > 0
+        assert len(result) <= 255
 
 
 # ---------------------------------------------------------------------------

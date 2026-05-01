@@ -665,6 +665,8 @@ def test_download_helpers_unit(monkeypatch, tmp_path: Path):
     resp = m.build_download_response(f, preview=True)
     assert resp is not None
     assert m.safe_download_filename('a";\r\n') == "a"
+    assert m.safe_download_filename('../x\\y:z.png') == "xyz.png"
+    assert m.safe_download_filename('";\r\n') == "download"
     assert ".avif" in m.STRIP_SUPPORTED_EXTS
 
 @pytest.mark.asyncio

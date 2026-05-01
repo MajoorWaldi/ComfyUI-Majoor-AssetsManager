@@ -147,8 +147,10 @@ def build_download_response(
 
 def safe_download_filename(name: str) -> str:
     raw = str(name or "")
-    cleaned = "".join(ch for ch in raw if ch.isprintable() and ch not in ('"', ';', '\x00'))
-    return cleaned[:255]
+    cleaned = "".join(
+        ch for ch in raw if ch.isprintable() and ch not in ('"', ';', '/', '\\', ':', '\x00')
+    ).strip(" .")
+    return (cleaned or "download")[:255]
 
 
 def strip_png_comfyui_chunks(data: bytes) -> bytes:

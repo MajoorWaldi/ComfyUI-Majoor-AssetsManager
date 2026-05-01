@@ -11,7 +11,30 @@ from __future__ import annotations
 from aiohttp import web
 from mjr_am_backend.shared import Result
 
-from ..core import _json_response, _require_services
+from ..core import (
+    _check_rate_limit,
+    _csrf_error,
+    _json_response,
+    _require_services,
+    _require_write_access,
+)
+
+
+def _require_plugin_mutation(request: web.Request, endpoint: str) -> Result[bool]:
+    csrf = _csrf_error(request)
+    if csrf:
+        return Result.Err("CSRF", csrf)
+    auth = _require_write_access(request)
+    if not auth.ok:
+        return auth
+    allowed, retry_after = _check_rate_limit(request, endpoint, max_requests=20, window_seconds=60)
+    if not allowed:
+        return Result.Err(
+            "RATE_LIMITED",
+            "Rate limit exceeded. Please wait before retrying.",
+            retry_after=retry_after,
+        )
+    return Result.Ok(True)
 
 
 def register_plugin_routes(routes: web.RouteTableDef) -> None:
@@ -33,6 +56,10 @@ def register_plugin_routes(routes: web.RouteTableDef) -> None:
 
     @routes.post("/mjr/am/plugins/{name}/enable")
     async def enable_plugin(request: web.Request):
+        auth = _require_plugin_mutation(request, "plugins_enable")
+        if not auth.ok:
+            return _json_response(auth)
+
         svc, err = await _require_services()
         if err:
             return _json_response(err)
@@ -52,6 +79,10 @@ def register_plugin_routes(routes: web.RouteTableDef) -> None:
 
     @routes.post("/mjr/am/plugins/reload")
     async def reload_plugins(request: web.Request):
+        auth = _require_plugin_mutation(request, "plugins_reload")
+        if not auth.ok:
+            return _json_response(auth)
+
         svc, err = await _require_services()
         if err:
             return _json_response(err)
