@@ -850,7 +850,9 @@ export function useGridLoader({
                 if (!canLoadFromHost()) {
                     return { ok: true, skipped: true, hidden: true };
                 }
-                repairOffsetFromLoadedAssets();
+                if (!deferVisualResetUntilNextPage) {
+                    repairOffsetFromLoadedAssets();
+                }
                 syncPagedStateFromLegacy();
                 // Capture requestId at load start so beforeApplyPage can abort
                 // if a scope switch incremented it while the fetch was in flight.
@@ -1362,12 +1364,10 @@ export function useGridLoader({
         // by the visual reset cannot start a competing load before reloadGrid()
         // hands the new request to loadAssets(reset).
         setLegacyPageState({ offset: 0, cursor: null, total: null, done: false });
-        resetAssets({ query: state.query || "*", total: null, done: false });
         clearPrefetchTimer();
         clearPendingUpserts();
         clearLoadingMessage();
         clearStatusMessage();
-        resetAssetCollectionsState(state);
         deferVisualResetUntilNextPage = true;
         // void hydrateFromSnapshot(buildCurrentSnapshotParts(), { allowReplaceExisting: true }); // Disabled: prevents old images from flashing during tab switch
         setSelection([], "");

@@ -231,10 +231,10 @@ export async function checkMajoorVersion({ force = false } = {}) {
             if (updateAvailable) {
                 comfyToast(
                     {
-                        summary: t("msg.nightlyUpdateTitle", "Majoor Assets Manager"),
+                        summary: t("msg.nightlyUpdateTitle", "Nightly update available"),
                         detail: t(
                             "msg.nightlyUpdateDetail",
-                            "A newer nightly build is available: https://github.com/MajoorWaldi/ComfyUI-Majoor-AssetsManager/releases/tag/nightly",
+                            "A newer nightly build is available. Download it here: https://github.com/MajoorWaldi/ComfyUI-Majoor-AssetsManager/releases/tag/nightly",
                         ),
                     },
                     "info",
@@ -299,10 +299,10 @@ export async function checkMajoorVersion({ force = false } = {}) {
         if (toastShownFor !== remoteVersion) {
             comfyToast(
                 {
-                    summary: t("msg.newVersionTitle", "Majoor Assets Manager"),
+                    summary: t("msg.newVersionTitle", "Majoor Assets Manager update available"),
                     detail: t(
                         "msg.newVersionDetail",
-                        "A new version is available: {latest} (Current: {current})",
+                        "Version {latest} is available. You are currently using {current}.",
                         {
                             latest: remoteVersion,
                             current: localVersion,

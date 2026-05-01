@@ -648,6 +648,9 @@ const DICTIONARY = {
         "msg.whatsNew.title.version246": "New Version 2.4.6",
         "msg.whatsNew.body.version246":
             "Version 2.4.6 released: Various bug fixes and performance & fluidity improvements. Improved concatenate support for default and custom nodes (by Forsion07). Added support helpers for Api Node and Ernie Image. Live Stream in Floating Viewer is now disabled by default. See CHANGELOG for details.",
+        "msg.whatsNew.title.gridMfvToolboxUpgrade": "What's New — Grid & MFV Upgrade",
+        "msg.whatsNew.body.gridMfvToolboxUpgrade":
+            "Grid performance and fluidity have been improved. The Majoor Floating Viewer is no longer a light viewer only: it now includes advanced features such as Node Stream, Node Parameters, and direct node editing from inside the viewer. New tools were also added to the toolbox, alongside broader code corrections and cleanup.",
         "label.changelog": "Changelog",
         "label.settingsGuide": "Settings Guide",
         "msg.tip.title.mfvLivePreviewDefaults": "Tip — Floating Viewer Auto-Open",
@@ -681,11 +684,11 @@ const DICTIONARY = {
             "Skipped {count} item(s): already present in the collection.",
         "msg.collectionAdd.skippedDuplicate": "Ignored {count} duplicate(s) in selection.",
         "msg.collectionAdd.noneAddedExisting": 'No new items added to "{name}" (all exist).',
-        "msg.nightlyUpdateTitle": "Majoor Assets Manager",
+        "msg.nightlyUpdateTitle": "Nightly update available",
         "msg.nightlyUpdateDetail":
-            "A newer nightly build is available: https://github.com/MajoorWaldi/ComfyUI-Majoor-AssetsManager/releases/tag/nightly",
-        "msg.newVersionTitle": "Majoor Assets Manager",
-        "msg.newVersionDetail": "A new version is available: {latest} (Current: {current})",
+            "A newer nightly build is available. Download it here: https://github.com/MajoorWaldi/ComfyUI-Majoor-AssetsManager/releases/tag/nightly",
+        "msg.newVersionTitle": "Majoor Assets Manager update available",
+        "msg.newVersionDetail": "Version {latest} is available. You are currently using {current}.",
         "msg.dbResetNotice": "Database reset required",
 
         // --- Viewer ---
@@ -1202,6 +1205,9 @@ const DICTIONARY = {
         "msg.whatsNew.title.version246": "Nouvelle Version 2.4.6",
         "msg.whatsNew.body.version246":
             "Version 2.4.6 publiee : divers correctifs de bugs et ameliorations de performances et fluidite. Support concatenate ameliore pour les nodes par defaut et custom (par Forsion07). Ajout des helpers pour Api Node et Ernie Image. Le Live Stream du Floating Viewer est desormais desactive par defaut. Voir CHANGELOG pour details.",
+        "msg.whatsNew.title.gridMfvToolboxUpgrade": "Quoi de neuf — upgrade Grid et MFV",
+        "msg.whatsNew.body.gridMfvToolboxUpgrade":
+            "Les performances et la fluidite de la grid ont ete ameliorees. Le Majoor Floating Viewer n'est plus seulement un viewer light : il integre maintenant des fonctions avancees comme Node Stream, Node Parameters et l'edition directe des nodes depuis le viewer. De nouveaux outils ont aussi ete ajoutes dans la toolbox, avec en plus plusieurs corrections et nettoyages de code.",
         "label.changelog": "Changelog",
         "label.settingsGuide": "Guide des param\u00e8tres",
         "msg.tip.title.mfvLivePreviewDefaults": "Conseil — Ouverture automatique du Viewer",
@@ -1238,9 +1244,12 @@ const DICTIONARY = {
             'Aucun nouvel element ajoute a "{name}" (tous deja presents).',
         "msg.dbResetNoticeDetail":
             'Note de mise a jour Majoor :\n\nPour eviter les erreurs de base de donnees avec cette version, supprimez votre index existant. Cliquez sur le bouton "Delete DB" dans le panneau Index Status pour le reinitialiser.',
-        "msg.nightlyUpdateTitle": "Majoor Assets Manager",
+        "msg.nightlyUpdateTitle": "Nouvelle nightly disponible",
         "msg.nightlyUpdateDetail":
-            "Une build nightly plus recente est disponible : https://github.com/MajoorWaldi/ComfyUI-Majoor-AssetsManager/releases/tag/nightly",
+            "Une build nightly plus recente est disponible. Télécharger : https://github.com/MajoorWaldi/ComfyUI-Majoor-AssetsManager/releases/tag/nightly",
+        "msg.newVersionTitle": "Mise à jour disponible",
+        "msg.newVersionDetail":
+            "La version {latest} est disponible. Version installée : {current}.",
         "tooltip.starGithub": "Ouvrir GitHub et mettre une etoile",
     },
 };

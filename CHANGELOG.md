@@ -2,6 +2,25 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased]
+
+### 🚀 Performance
+- **Grid Performance Improvements**: Improved grid responsiveness, scrolling stability, and asset loading behavior for large libraries.
+
+### 🎉 Major Features — Majoor Floating Viewer
+- **MFV is now an advanced viewer**: The Floating Viewer is no longer a light viewer only; it now provides a richer workflow surface for inspecting, comparing, and controlling generation assets.
+- **Node Stream**: Follow selected node previews directly inside the Floating Viewer, including supported live preview sources.
+- **Node Parameters**: Open the workflow node sidebar from the viewer and inspect node parameters without leaving the MFV.
+- **Edit Nodes from the Viewer**: Edit node widgets directly inside the Floating Viewer, including prompts and common workflow parameters.
+
+### 🧰 Toolbox
+- **New Toolbox Tools**: Added new tools to the toolbox for faster access to common asset and workflow operations.
+
+### 🔧 Code Quality & Fixes
+- **Code Corrections**: Applied code corrections and cleanup across the frontend/backend integration surface for better maintainability.
+
+---
+
 ## [2.4.6] - 2026-04-20
 
 ### 🐛 Bug Fixes & Performance
