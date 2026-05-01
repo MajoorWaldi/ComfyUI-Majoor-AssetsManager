@@ -852,11 +852,20 @@ export function useGridLoader({
                 }
                 repairOffsetFromLoadedAssets();
                 syncPagedStateFromLegacy();
+                // Capture requestId at load start so beforeApplyPage can abort
+                // if a scope switch incremented it while the fetch was in flight.
+                const _loadReqId = state.requestId;
                 const pageResult = await pagedAssets.loadUntilVisible({
                     maxEmptyPages: 6,
                     canContinue: () => canLoadFromHost(),
                     getLimit: (emptyPageIndex) => getAdaptivePageLimit(baseLimit, emptyPageIndex),
                     beforeApplyPage: (page) => {
+                        // Scope switch (or any requestId bump) happened while the
+                        // fetch was in flight — discard the page to avoid applying
+                        // stale data from the wrong offset / scope.
+                        if (state.requestId !== _loadReqId) {
+                            return { ok: false, stale: true };
+                        }
                         const pageAssets = Array.isArray(page.assets) ? page.assets : [];
                         const responseHasItems = pageAssets.length > 0;
                         // Only commit a visual reset when the new page has
@@ -1353,6 +1362,10 @@ export function useGridLoader({
         }
         state.requestId = (Number(state.requestId) || 0) + 1;
         state.loading = false;
+        // Reset pagination state so that any maybeFillViewport call triggered
+        // by the state.loading change fires from offset 0 (correct scope) rather
+        // than from a stale offset left by the previous scope.
+        setLegacyPageState({ offset: 0, cursor: null, total: null, done: false });
         clearPrefetchTimer();
         clearPendingUpserts();
         clearLoadingMessage();
