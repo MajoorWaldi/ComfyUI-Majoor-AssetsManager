@@ -55,6 +55,22 @@ def test_helper_functions_cover_smoke():
     assert m._normalize_asset_ids([1, "2", -1, 1]) == [1, 2]
 
 
+def test_cursor_helpers_build_keyset_clauses():
+    cursor = m._encode_page_cursor({"id": 42, "mtime": 123, "filename": "B.png"}, "mtime_desc")
+    clause, params = m._build_cursor_where_clause(cursor, "mtime_desc")
+    assert "a.mtime < ?" in clause
+    assert params == [123, 123, 42]
+
+    name_cursor = m._encode_page_cursor({"id": 7, "filename": "Bee.png"}, "name_asc")
+    clause, params = m._build_cursor_where_clause(name_cursor, "name_asc")
+    assert "LOWER(a.filename) > ?" in clause
+    assert params == ["bee.png", "bee.png", 7]
+
+    stale_clause, stale_params = m._build_cursor_where_clause(name_cursor, "mtime_desc")
+    assert stale_clause == ""
+    assert stale_params == []
+
+
 @pytest.mark.asyncio
 async def test_ensure_vocab_and_autocomplete_paths():
     s1 = _mk(_DB(ex=[Result.Ok({})]))

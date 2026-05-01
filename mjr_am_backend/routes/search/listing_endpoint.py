@@ -86,6 +86,7 @@ async def list_assets(
     filters = request_ctx.filters if request_ctx else {}
     include_total = request_ctx.include_total if request_ctx else True
     subfolder = request.query.get("subfolder", "")
+    cursor = (request.query.get("cursor") or "").strip()
 
     if scope == "input":
         return await _scopes.handle_input_scope(
@@ -163,6 +164,7 @@ async def list_assets(
         query=query,
         limit=limit,
         offset=offset,
+        cursor=cursor,
         sort_key=sort_key,
         filters=filters,
         include_total=include_total,

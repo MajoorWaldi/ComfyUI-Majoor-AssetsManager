@@ -10,6 +10,7 @@ export function useGridState() {
     const state = shallowReactive({
         query: "*",
         offset: 0,
+        cursor: null,
         total: null,
         loading: false,
         done: false,
@@ -72,6 +73,7 @@ export function useGridState() {
     function resetAssets({ query = "*", total = null, done = false } = {}) {
         state.query = String(query || "*") || "*";
         state.offset = 0;
+        state.cursor = null;
         state.total = total == null ? null : Number(total) || 0;
         state.done = !!done;
         state.assets = [];

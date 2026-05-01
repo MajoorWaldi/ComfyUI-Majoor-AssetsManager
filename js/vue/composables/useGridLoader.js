@@ -14,11 +14,27 @@ import {
 } from "../../features/grid/AssetCardRenderer.js";
 import { getStackAwareAssetKey, ensureDupStackCard, disposeStackGroupCards } from "../../features/grid/StackGroupCards.js";
 import {
+    gridListQueryKey,
+    isDefaultOutputBrowseQuery,
+    readGridQueryFromDataset,
+    readGridQueryText,
+    readGridSortKey,
+} from "../grid/useGridQuery.js";
+import {
+    buildGridSnapshotKey,
+    compactSnapshotAsset,
+    flushGridSnapshotsPersist,
+    getGridSnapshot,
+    hasGridSnapshot,
+    rememberGridSnapshot,
+} from "../grid/useGridSnapshotCache.js";
+import { removeAssetsFromState, syncAssetCollectionState } from "../grid/useAssetCollection.js";
+import { usePagedAssets } from "../grid/usePagedAssets.js";
+import {
     compareAssets,
     fetchPage as fetchGridPage,
     flushUpsertBatch,
     getUpsertBatchState,
-    resolvePageAdvanceCount,
     upsertAsset as queueUpsertAsset,
 } from "./useVirtualGrid.js";
 import {
@@ -27,11 +43,6 @@ import {
     readGridShownCount,
 } from "../components/grid/gridDomBridge.js";
 
-const GRID_SNAPSHOT_CACHE = new Map();
-const GRID_SNAPSHOT_CACHE_MAX = 8;
-const GRID_SNAPSHOT_STORAGE_ASSET_LIMIT = 200;
-const GRID_SNAPSHOT_STORAGE_KEY = "mjr_grid_snapshot_cache_v2";
-const GRID_SNAPSHOT_TTL_MS = 30 * 60 * 1000;
 const UPSERT_BATCH_DEBOUNCE_MS = 200;
 const UPSERT_BATCH_MAX_SIZE = 50;
 const UPSERT_BATCH_STATE = new WeakMap();
@@ -47,74 +58,8 @@ const IMMEDIATE_RESET_REASONS = new Set([
 // of the network/render work; an additional minimum delay only made the first
 // paint feel sluggish on cold opens. Keep at 0 unless flicker is reintroduced.
 const MIN_LOADING_SKELETON_MS = 0;
-const GRID_SNAPSHOT_PERSIST_DEBOUNCE_MS = 1500;
-let gridSnapshotStorageLoaded = false;
-let gridSnapshotPersistTimer = null;
-let gridSnapshotPersistPending = false;
-
-const GRID_SNAPSHOT_ASSET_FIELDS = [
-    "id",
-    "filename",
-    "name",
-    "filepath",
-    "path",
-    "fullpath",
-    "full_path",
-    "subfolder",
-    "source",
-    "type",
-    "root_id",
-    "custom_root_id",
-    "kind",
-    "ext",
-    "size",
-    "mtime",
-    "generation_time",
-    "file_creation_time",
-    "created_at",
-    "updated_at",
-    "indexed_at",
-    "width",
-    "height",
-    "duration",
-    "thumbnail_url",
-    "thumb_url",
-    "poster",
-    "url",
-    "rating",
-    "tags",
-    "has_workflow",
-    "hasWorkflow",
-    "has_generation_data",
-    "hasGenerationData",
-    "workflow_type",
-    "workflowType",
-    "generation_time_ms",
-    "positive_prompt",
-    "enhanced_caption",
-    "auto_tags",
-    "has_ai_info",
-    "has_ai_vector",
-    "has_ai_auto_tags",
-    "has_ai_enhanced_caption",
-    "job_id",
-    "stack_id",
-    "source_node_id",
-    "source_node_type",
-    "date",
-    "date_exact",
-];
-
 function waitMs(ms) {
     return new Promise((resolve) => setTimeout(resolve, Math.max(0, Number(ms) || 0)));
-}
-
-function normalizeSnapshotPart(value, fallback = "") {
-    try {
-        return String(value ?? fallback).trim();
-    } catch {
-        return String(fallback);
-    }
 }
 
 function getStableRealtimeAssetKey(asset) {
@@ -141,196 +86,6 @@ function getStableRealtimeAssetKey(asset) {
         .trim()
         .toLowerCase();
     return filepath ? `${type}|${rootId}|path|${filepath}` : "";
-}
-
-export function buildGridSnapshotKey(parts = {}) {
-    return JSON.stringify({
-        scope: normalizeSnapshotPart(parts.scope || "output", "output"),
-        query: normalizeSnapshotPart(parts.query || "*", "*"),
-        customRootId: normalizeSnapshotPart(parts.customRootId || ""),
-        subfolder: normalizeSnapshotPart(parts.subfolder || ""),
-        collectionId: normalizeSnapshotPart(parts.collectionId || ""),
-        viewScope: normalizeSnapshotPart(parts.viewScope || ""),
-        kind: normalizeSnapshotPart(parts.kind || ""),
-        workflowOnly: normalizeSnapshotPart(parts.workflowOnly ? "1" : ""),
-        minRating: normalizeSnapshotPart(parts.minRating || ""),
-        minSizeMB: normalizeSnapshotPart(parts.minSizeMB || ""),
-        maxSizeMB: normalizeSnapshotPart(parts.maxSizeMB || ""),
-        resolutionCompare: normalizeSnapshotPart(parts.resolutionCompare || ""),
-        minWidth: normalizeSnapshotPart(parts.minWidth || ""),
-        minHeight: normalizeSnapshotPart(parts.minHeight || ""),
-        maxWidth: normalizeSnapshotPart(parts.maxWidth || ""),
-        maxHeight: normalizeSnapshotPart(parts.maxHeight || ""),
-        workflowType: normalizeSnapshotPart(parts.workflowType || "").toUpperCase(),
-        dateRange: normalizeSnapshotPart(parts.dateRange || ""),
-        dateExact: normalizeSnapshotPart(parts.dateExact || ""),
-        sort: normalizeSnapshotPart(parts.sort || "mtime_desc", "mtime_desc"),
-        semanticMode: normalizeSnapshotPart(parts.semanticMode ? "1" : ""),
-    });
-}
-
-function gridSnapshotStorage() {
-    // Use localStorage so cached grid snapshots survive a full ComfyUI tab
-    // reload and the very first cold open of a new session can paint instantly
-    // from cache before the first /list response arrives. sessionStorage was
-    // wiped on every reload, defeating the whole purpose of the snapshot.
-    try {
-        return globalThis?.localStorage || null;
-    } catch {
-        return null;
-    }
-}
-
-function migrateLegacySessionSnapshots(storage) {
-    // One-shot migration: lift any pre-existing sessionStorage snapshot into
-    // localStorage so users keep their cached grid on the very first run after
-    // upgrade. Safe no-op when nothing legacy is present.
-    try {
-        const legacy = globalThis?.sessionStorage;
-        if (!legacy || !storage) return;
-        const raw = legacy.getItem?.(GRID_SNAPSHOT_STORAGE_KEY);
-        if (!raw) return;
-        if (!storage.getItem?.(GRID_SNAPSHOT_STORAGE_KEY)) {
-            storage.setItem(GRID_SNAPSHOT_STORAGE_KEY, raw);
-        }
-        legacy.removeItem(GRID_SNAPSHOT_STORAGE_KEY);
-    } catch (e) {
-        console.debug?.(e);
-    }
-}
-
-function compactSnapshotAsset(asset) {
-    if (!asset || typeof asset !== "object") return null;
-    const out = {};
-    for (const field of GRID_SNAPSHOT_ASSET_FIELDS) {
-        if (asset[field] !== undefined) out[field] = asset[field];
-    }
-    if (!out.type && out.source) out.type = out.source;
-    if (!out.source && out.type) out.source = out.type;
-    if (!out.kind) out.kind = asset.kind || "image";
-    if (Array.isArray(out.tags)) out.tags = out.tags.slice(0, 80);
-    if (Array.isArray(out.auto_tags)) out.auto_tags = out.auto_tags.slice(0, 80);
-    return out;
-}
-
-function normalizeGridSnapshot(snapshot) {
-    if (!snapshot || typeof snapshot !== "object") return null;
-    const at = Number(snapshot.at || 0) || 0;
-    if (!at || Date.now() - at > GRID_SNAPSHOT_TTL_MS) return null;
-    const assets = Array.isArray(snapshot.assets)
-        ? snapshot.assets.map(compactSnapshotAsset).filter(Boolean)
-        : [];
-    if (!assets.length) return null;
-    const totalRaw = Number(snapshot.total ?? assets.length);
-    const offsetRaw = Number(snapshot.offset ?? assets.length);
-    return {
-        assets,
-        title: normalizeSnapshotPart(snapshot.title || "Cached", "Cached"),
-        at,
-        total: Number.isFinite(totalRaw) ? Math.max(0, totalRaw) : assets.length,
-        offset: Number.isFinite(offsetRaw) ? Math.max(assets.length, offsetRaw) : assets.length,
-        done: !!snapshot.done,
-        query: normalizeSnapshotPart(snapshot.query || "*", "*"),
-    };
-}
-
-function pruneGridSnapshotCache() {
-    const now = Date.now();
-    for (const [key, snapshot] of GRID_SNAPSHOT_CACHE.entries()) {
-        const at = Number(snapshot?.at || 0) || 0;
-        if (!at || now - at > GRID_SNAPSHOT_TTL_MS) {
-            GRID_SNAPSHOT_CACHE.delete(key);
-        }
-    }
-    while (GRID_SNAPSHOT_CACHE.size > GRID_SNAPSHOT_CACHE_MAX) {
-        const oldestKey = GRID_SNAPSHOT_CACHE.keys().next().value;
-        if (!oldestKey) break;
-        GRID_SNAPSHOT_CACHE.delete(oldestKey);
-    }
-}
-
-function loadGridSnapshotsFromStorage() {
-    if (gridSnapshotStorageLoaded) return;
-    gridSnapshotStorageLoaded = true;
-    try {
-        const storage = gridSnapshotStorage();
-        migrateLegacySessionSnapshots(storage);
-        const raw = storage?.getItem?.(GRID_SNAPSHOT_STORAGE_KEY);
-        if (!raw) return;
-        const parsed = JSON.parse(raw);
-        const entries = Array.isArray(parsed?.entries) ? parsed.entries : [];
-        for (const entry of entries) {
-            if (!Array.isArray(entry) || entry.length < 2) continue;
-            const key = String(entry[0] || "");
-            const snapshot = normalizeGridSnapshot(entry[1]);
-            if (key && snapshot) GRID_SNAPSHOT_CACHE.set(key, snapshot);
-        }
-        pruneGridSnapshotCache();
-    } catch (e) {
-        console.debug?.(e);
-    }
-}
-
-function persistGridSnapshotsToStorageNow() {
-    try {
-        pruneGridSnapshotCache();
-        const storage = gridSnapshotStorage();
-        if (!storage) return;
-        const entries = Array.from(GRID_SNAPSHOT_CACHE.entries()).map(([key, snapshot]) => [
-            key,
-            {
-                ...snapshot,
-                assets: Array.isArray(snapshot?.assets)
-                    ? snapshot.assets.slice(0, GRID_SNAPSHOT_STORAGE_ASSET_LIMIT)
-                    : [],
-            },
-        ]);
-        storage.setItem(
-            GRID_SNAPSHOT_STORAGE_KEY,
-            JSON.stringify({ entries }),
-        );
-    } catch (e) {
-        console.debug?.(e);
-    }
-}
-
-// Debounced persist: snapshot writes can be expensive (multi-MB JSON.stringify
-// of up to 8 snapshots * 800 assets). Pagination + realtime upserts can call
-// rememberSnapshot() repeatedly; collapse those into a single async write to
-// keep the main thread responsive during scroll/generation bursts.
-function persistGridSnapshotsToStorage() {
-    gridSnapshotPersistPending = true;
-    if (gridSnapshotPersistTimer) return;
-    gridSnapshotPersistTimer = setTimeout(() => {
-        gridSnapshotPersistTimer = null;
-        if (!gridSnapshotPersistPending) return;
-        gridSnapshotPersistPending = false;
-        persistGridSnapshotsToStorageNow();
-    }, GRID_SNAPSHOT_PERSIST_DEBOUNCE_MS);
-}
-
-function flushGridSnapshotsPersist() {
-    if (gridSnapshotPersistTimer) {
-        clearTimeout(gridSnapshotPersistTimer);
-        gridSnapshotPersistTimer = null;
-    }
-    if (!gridSnapshotPersistPending) return;
-    gridSnapshotPersistPending = false;
-    persistGridSnapshotsToStorageNow();
-}
-
-function getGridSnapshot(key) {
-    loadGridSnapshotsFromStorage();
-    const snapshot = normalizeGridSnapshot(GRID_SNAPSHOT_CACHE.get(key));
-    if (!snapshot) {
-        GRID_SNAPSHOT_CACHE.delete(key);
-        persistGridSnapshotsToStorage();
-        return null;
-    }
-    GRID_SNAPSHOT_CACHE.delete(key);
-    GRID_SNAPSHOT_CACHE.set(key, snapshot);
-    persistGridSnapshotsToStorage();
-    return snapshot;
 }
 
 function sanitizeQuery(query) {
@@ -523,29 +278,10 @@ export function useGridLoader({
 
     function buildCurrentSnapshotParts() {
         const gridContainer = getGridContainer();
-        return {
-            scope: gridContainer?.dataset?.mjrScope || "output",
-            query: gridContainer?.dataset?.mjrQuery || state.query || "*",
-            customRootId: gridContainer?.dataset?.mjrCustomRootId || "",
-            subfolder: gridContainer?.dataset?.mjrSubfolder || "",
-            collectionId: gridContainer?.dataset?.mjrCollectionId || "",
-            viewScope: gridContainer?.dataset?.mjrViewScope || "",
-            kind: gridContainer?.dataset?.mjrFilterKind || "",
-            workflowOnly: gridContainer?.dataset?.mjrFilterWorkflowOnly === "1",
-            minRating: gridContainer?.dataset?.mjrFilterMinRating || "",
-            minSizeMB: gridContainer?.dataset?.mjrFilterMinSizeMB || "",
-            maxSizeMB: gridContainer?.dataset?.mjrFilterMaxSizeMB || "",
+        return readGridQueryFromDataset(gridContainer?.dataset || {}, {
+            q: readGridQueryText(gridContainer, state.query || "*"),
             resolutionCompare: gridContainer?.dataset?.mjrFilterResolutionCompare || "",
-            minWidth: gridContainer?.dataset?.mjrFilterMinWidth || "",
-            minHeight: gridContainer?.dataset?.mjrFilterMinHeight || "",
-            maxWidth: gridContainer?.dataset?.mjrFilterMaxWidth || "",
-            maxHeight: gridContainer?.dataset?.mjrFilterMaxHeight || "",
-            workflowType: gridContainer?.dataset?.mjrFilterWorkflowType || "",
-            dateRange: gridContainer?.dataset?.mjrFilterDateRange || "",
-            dateExact: gridContainer?.dataset?.mjrFilterDateExact || "",
-            sort: gridContainer?.dataset?.mjrSort || "mtime_desc",
-            semanticMode: gridContainer?.dataset?.mjrSemanticMode === "1",
-        };
+        });
     }
 
     function getCurrentResetContext(query = state.query || "*") {
@@ -752,8 +488,7 @@ export function useGridLoader({
                     return;
                 }
             }
-            const freshQuery =
-                String(gridContainer?.dataset?.mjrQuery || "").trim() || query;
+            const freshQuery = readGridQueryText(gridContainer, query);
             Promise.resolve()
                 .then(() =>
                     loadAssets(freshQuery, {
@@ -808,42 +543,22 @@ export function useGridLoader({
             const wasTruncated = snapshotAssets.length < assets.length;
             const rawOffset = Number(state.offset || snapshotAssets.length) || snapshotAssets.length;
             const rawTotal = Number(state.total ?? snapshotAssets.length);
-            const key = buildGridSnapshotKey({
-                scope: gridContainer.dataset?.mjrScope || "output",
-                query: gridContainer.dataset?.mjrQuery || state.query || "*",
-                customRootId: gridContainer.dataset?.mjrCustomRootId || "",
-                subfolder: gridContainer.dataset?.mjrSubfolder || "",
-                collectionId: gridContainer.dataset?.mjrCollectionId || "",
-                viewScope: gridContainer.dataset?.mjrViewScope || "",
-                kind: gridContainer.dataset?.mjrFilterKind || "",
-                workflowOnly: gridContainer.dataset?.mjrFilterWorkflowOnly === "1",
-                minRating: gridContainer.dataset?.mjrFilterMinRating || "",
-                minSizeMB: gridContainer.dataset?.mjrFilterMinSizeMB || "",
-                maxSizeMB: gridContainer.dataset?.mjrFilterMaxSizeMB || "",
+            const snapshotParts = readGridQueryFromDataset(gridContainer.dataset || {}, {
+                q: readGridQueryText(gridContainer, state.query || "*"),
                 resolutionCompare: gridContainer.dataset?.mjrFilterResolutionCompare || "",
-                minWidth: gridContainer.dataset?.mjrFilterMinWidth || "",
-                minHeight: gridContainer.dataset?.mjrFilterMinHeight || "",
-                maxWidth: gridContainer.dataset?.mjrFilterMaxWidth || "",
-                maxHeight: gridContainer.dataset?.mjrFilterMaxHeight || "",
-                workflowType: gridContainer.dataset?.mjrFilterWorkflowType || "",
-                dateRange: gridContainer.dataset?.mjrFilterDateRange || "",
-                dateExact: gridContainer.dataset?.mjrFilterDateExact || "",
-                sort: gridContainer.dataset?.mjrSort || "mtime_desc",
             });
+            const key = buildGridSnapshotKey(snapshotParts);
             if (!key) return;
-            GRID_SNAPSHOT_CACHE.delete(key);
-            GRID_SNAPSHOT_CACHE.set(key, {
+            rememberGridSnapshot(key, {
                 assets: snapshotAssets,
                 title: String(title || "").trim(),
-                query: String(state.query || gridContainer.dataset?.mjrQuery || "*").trim() || "*",
+                query: String(state.query || snapshotParts.query || "*").trim() || "*",
                 total: Number.isFinite(rawTotal) ? rawTotal : snapshotAssets.length,
                 offset: wasTruncated
                     ? snapshotAssets.length
                     : Math.max(snapshotAssets.length, rawOffset),
                 done: wasTruncated ? false : !!state.done,
-                at: Date.now(),
             });
-            persistGridSnapshotsToStorage();
         } catch (e) {
             console.debug?.(e);
         }
@@ -893,74 +608,16 @@ export function useGridLoader({
      * which is precisely what the early fetch was meant to avoid.
      */
     function buildEarlyFetchMatchKey(gridContainer, query) {
-        const ds = gridContainer?.dataset || {};
-        const scope = String(ds.mjrScope || "output").toLowerCase();
-        const sort = String(ds.mjrSort || "mtime_desc").toLowerCase();
-        const customRootId = String(ds.mjrCustomRootId || "").trim();
-        const subfolder = String(ds.mjrSubfolder || "").trim();
-        const collectionId = String(ds.mjrCollectionId || "").trim();
-        const kind = String(ds.mjrFilterKind || "").trim();
-        const workflowOnly = String(ds.mjrFilterWorkflowOnly || "") === "1";
-        const minRating = Number(ds.mjrFilterMinRating || 0) || 0;
-        const minSizeMB = Number(ds.mjrFilterMinSizeMB || 0) || 0;
-        const maxSizeMB = Number(ds.mjrFilterMaxSizeMB || 0) || 0;
-        const resolutionCompare =
-            String(ds.mjrFilterResolutionCompare || "gte") === "lte" ? "lte" : "gte";
-        const minWidth = Number(ds.mjrFilterMinWidth || 0) || 0;
-        const minHeight = Number(ds.mjrFilterMinHeight || 0) || 0;
-        const maxWidth = Number(ds.mjrFilterMaxWidth || 0) || 0;
-        const maxHeight = Number(ds.mjrFilterMaxHeight || 0) || 0;
-        const workflowType = String(ds.mjrFilterWorkflowType || "").trim();
-        const dateRange = String(ds.mjrFilterDateRange || "").trim().toLowerCase();
-        const dateExact = String(ds.mjrFilterDateExact || "").trim();
         const normalizedQuery = String(query || "*").trim() || "*";
-        return [
-            scope,
-            normalizedQuery,
-            sort,
-            customRootId,
-            subfolder,
-            collectionId,
-            kind,
-            workflowOnly ? "1" : "",
-            minRating || "",
-            minSizeMB || "",
-            maxSizeMB || "",
-            resolutionCompare,
-            minWidth || "",
-            minHeight || "",
-            maxWidth || "",
-            maxHeight || "",
-            workflowType,
-            dateRange,
-            dateExact,
-        ].join("|");
+        return gridListQueryKey(readGridQueryFromDataset(gridContainer?.dataset || {}, {
+            q: normalizedQuery,
+        }));
     }
 
     function isDefaultOutputBrowseContext(query) {
         const context = buildCurrentSnapshotParts();
         const safeQuery = sanitizeQuery(coerceQueryText(query).trim() || "*") || "*";
-        return (
-            String(context.scope || "output").toLowerCase() === "output" &&
-            safeQuery === "*" &&
-            !String(context.customRootId || "").trim() &&
-            !String(context.subfolder || "").trim() &&
-            !String(context.collectionId || "").trim() &&
-            !String(context.viewScope || "").trim() &&
-            !String(context.kind || "").trim() &&
-            !context.workflowOnly &&
-            !Number(context.minRating || 0) &&
-            !Number(context.minSizeMB || 0) &&
-            !Number(context.maxSizeMB || 0) &&
-            !Number(context.minWidth || 0) &&
-            !Number(context.minHeight || 0) &&
-            !Number(context.maxWidth || 0) &&
-            !Number(context.maxHeight || 0) &&
-            !String(context.workflowType || "").trim() &&
-            !String(context.dateRange || "").trim() &&
-            !String(context.dateExact || "").trim() &&
-            String(context.sort || "mtime_desc").toLowerCase() === "mtime_desc"
-        );
+        return isDefaultOutputBrowseQuery({ ...context, q: safeQuery });
     }
 
     function normalizePageForPagination(page, { query = "*", limit = 0, offset = 0 } = {}) {
@@ -1026,6 +683,7 @@ export function useGridLoader({
                                 count: earlyAssets.length,
                                 limit: limit,
                                 offset: 0,
+                                nextCursor: earlyResult.data?.next_cursor || earlyResult.data?.nextCursor || null,
                             }, { query, limit, offset });
                         }
                     } catch (e) {
@@ -1046,9 +704,81 @@ export function useGridLoader({
                 get,
                 getGridState: () => state,
             },
-            { requestId, signal },
+            { requestId, signal, cursor: state.cursor || null },
         );
         return normalizePageForPagination(page, { query, limit, offset });
+    }
+
+    const pagedAssets = usePagedAssets({
+        query: {
+            get value() {
+                return state.query || "*";
+            },
+            set value(value) {
+                state.query = String(value || "*") || "*";
+            },
+        },
+        collection: {
+            append(assets = []) {
+                const gridContainer = getGridContainer();
+                return gridContainer && assets.length
+                    ? Number(appendAssets(gridContainer, assets) || 0) || 0
+                    : 0;
+            },
+            reset() {},
+        },
+        fetchPage: async ({ query, limit, offset, requestId }) => {
+            const pageStartedAt = nowMs();
+            metrics.pagesRequested += 1;
+            const page = await fetchPage(query, limit, offset, {
+                requestId,
+                signal: state.abortController?.signal || null,
+            });
+            metrics.apiTimeMs += Math.max(0, nowMs() - pageStartedAt);
+            return page;
+        },
+        pageSize: APP_CONFIG.DEFAULT_PAGE_SIZE,
+    });
+
+    function syncPagedStateFromLegacy() {
+        pagedAssets.setPageState({
+            offset: state.offset,
+            cursor: state.cursor,
+            total: state.total,
+            done: state.done,
+            requestId: state.requestId,
+            loading: false,
+            error: null,
+        });
+    }
+
+    function setLegacyPageState(nextState = {}, { syncPaged = true } = {}) {
+        if (!nextState || typeof nextState !== "object") return;
+        if (Object.prototype.hasOwnProperty.call(nextState, "offset")) {
+            state.offset = Math.max(0, Number(nextState.offset || 0) || 0);
+        }
+        if (Object.prototype.hasOwnProperty.call(nextState, "cursor")) {
+            state.cursor = nextState.cursor || null;
+        }
+        if (Object.prototype.hasOwnProperty.call(nextState, "total")) {
+            state.total = nextState.total == null ? null : Math.max(0, Number(nextState.total) || 0);
+        }
+        if (Object.prototype.hasOwnProperty.call(nextState, "done")) {
+            state.done = !!nextState.done;
+        }
+        if (syncPaged) syncPagedStateFromLegacy();
+    }
+
+    function syncLegacyStateFromPaged() {
+        const pageState = pagedAssets.getPageState();
+        setLegacyPageState(pageState, { syncPaged: false });
+    }
+
+    function repairOffsetFromLoadedAssets() {
+        const loadedCount = Array.isArray(state.assets) ? state.assets.length : 0;
+        if (loadedCount <= 0 || state.done) return;
+        if (Number(state.offset || 0) >= loadedCount) return;
+        setLegacyPageState({ offset: loadedCount }, { syncPaged: true });
     }
 
     function finalizeLoad({ title = "", showEmptyMessage = true } = {}) {
@@ -1120,162 +850,85 @@ export function useGridLoader({
                 if (!canLoadFromHost()) {
                     return { ok: true, skipped: true, hidden: true };
                 }
-                const currentLimit = getAdaptivePageLimit(baseLimit, 0);
-                const pageStartedAt = nowMs();
-                metrics.pagesRequested += 1;
-                const page = await fetchPage(state.query, currentLimit, state.offset, {
-                    requestId: Number(state.requestId ?? 0) || 0,
-                    signal: state.abortController?.signal || null,
+                repairOffsetFromLoadedAssets();
+                syncPagedStateFromLegacy();
+                const pageResult = await pagedAssets.loadUntilVisible({
+                    maxEmptyPages: 6,
+                    canContinue: () => canLoadFromHost(),
+                    getLimit: (emptyPageIndex) => getAdaptivePageLimit(baseLimit, emptyPageIndex),
+                    beforeApplyPage: (page) => {
+                        const pageAssets = Array.isArray(page.assets) ? page.assets : [];
+                        const responseHasItems = pageAssets.length > 0;
+                        // Only commit a visual reset when the new page has
+                        // something to render OR when the backend reports
+                        // total=0. Transient empty pages must keep cached
+                        // cards visible during scope switches.
+                        if (!deferVisualResetUntilNextPage) return null;
+                        const responseAssertsEmpty = page.total != null && Number(page.total) === 0;
+                        if (responseHasItems || responseAssertsEmpty) {
+                            resetAssets({ query: state.query || "*", total: null, done: false });
+                            setLegacyPageState({ offset: 0, cursor: null, total: null, done: false });
+                            resetAssetCollectionsState(state);
+                            metrics.resetCount += 1;
+                            deferVisualResetUntilNextPage = false;
+                            return null;
+                        }
+                        if (Array.isArray(state.assets) && state.assets.length) {
+                            mjrDbg(
+                                "[Grid LoadPage] empty response with cached visible assets — preserving cached view",
+                                { offset: state.offset, query: state.query },
+                            );
+                            return {
+                                ok: true,
+                                count: 0,
+                                total: state.total,
+                                preservedCached: true,
+                            };
+                        }
+                        return null;
+                    },
+                    onEmptyPage: (result) => {
+                        if (result.emptyPageIndex <= 0) return;
+                        mjrDbg(`[Grid LoadPage] fetched adaptive page with no visible additions: offset=${state.offset}, fetched=${result.count}, consumed=${result.advanced}, added=${result.added}, limit=${result.limit}, done=${state.done}, visibleCount=${state.assets.length}, total=${state.total}`);
+                    },
                 });
-                metrics.apiTimeMs += Math.max(0, nowMs() - pageStartedAt);
-                if (!page.ok) {
-                    if (page.aborted || page.stale) {
-                        return page;
+                syncLegacyStateFromPaged();
+                repairOffsetFromLoadedAssets();
+
+                if (!pageResult.ok) {
+                    if (pageResult.aborted || pageResult.stale) {
+                        return pageResult;
                     }
-                    state.done = true;
+                    setLegacyPageState({ done: true });
                     setStatusMessage(
-                        formatLoadErrorMessage("Failed to load assets", page?.error || "Unknown error"),
+                        formatLoadErrorMessage("Failed to load assets", pageResult?.error || "Unknown error"),
                         { error: true },
                     );
-                    return page;
+                    return pageResult;
                 }
 
-                if (page.total != null) {
-                    state.total = Number(page.total) || 0;
-                }
+                if (pageResult.preservedCached) return pageResult;
 
-                const pageAssets = Array.isArray(page.assets) ? page.assets : [];
-                const responseHasItems = pageAssets.length > 0;
-                // Only commit a visual reset (which clears the previously
-                // cached / snapshot-hydrated cards) when the new page has
-                // something to render OR when the backend authoritatively
-                // reports total=0. A transient empty response (network race,
-                // stale offset after rapid scope switches, etc.) must NOT
-                // wipe the visible assets — that was the root cause of the
-                // "grid disappears on scope switch / return to Output" bug.
-                if (deferVisualResetUntilNextPage) {
-                    const responseAssertsEmpty =
-                        page.total != null && Number(page.total) === 0;
-                    if (responseHasItems || responseAssertsEmpty) {
-                        resetAssets({ query: state.query || "*", total: null, done: false });
-                        resetAssetCollectionsState(state);
-                        metrics.resetCount += 1;
-                        deferVisualResetUntilNextPage = false;
-                    } else if (Array.isArray(state.assets) && state.assets.length) {
-                        // Keep cached cards visible, treat as benign empty
-                        // batch and let the loop bail naturally.
-                        mjrDbg(
-                            "[Grid LoadPage] empty response with cached visible assets — preserving cached view",
-                            { offset: state.offset, query: state.query },
-                        );
-                        return {
-                            ok: true,
-                            count: 0,
-                            total: state.total,
-                            preservedCached: true,
-                        };
-                    }
-                }
-
-                const fetchedCount = Number(page.count || 0) || 0;
-                const consumedCount = resolvePageAdvanceCount({
-                    count: fetchedCount,
-                    limit: Number(page.limit || currentLimit) || currentLimit,
-                    offset: state.offset,
-                    total: page.total != null ? page.total : state.total,
-                });
-                const addedCount = responseHasItems
-                    ? Number(appendAssets(gridContainer, pageAssets) || 0) || 0
-                    : 0;
-                state.offset += consumedCount;
-                state.done =
-                    consumedCount <= 0 ||
-                    (Number.isFinite(Number(state.total)) &&
-                        Number(state.total || 0) > 0 &&
-                        state.offset >= Number(state.total || 0));
-
-                if (state.done || addedCount > 0) {
-                    if (addedCount > 0 || state.done) {
-                        rememberSnapshot(state.query || gridContainer.dataset?.mjrQuery || "*");
-                    }
+                if (state.done || pageResult.added > 0) {
+                    rememberSnapshot(state.query || readGridQueryText(gridContainer, "*"));
                     return {
                         ok: true,
-                        count: fetchedCount,
+                        count: pageResult.count,
                         total: state.total,
                     };
                 }
 
-                let emptyAppendBatches = 1;
-                while (!state.done && emptyAppendBatches < 6) {
-                    if (!canLoadFromHost()) {
-                        return { ok: true, skipped: true, hidden: true };
-                    }
-
-                    const adaptiveLimit = getAdaptivePageLimit(baseLimit, emptyAppendBatches);
-                    const adaptiveStartedAt = nowMs();
-                    metrics.pagesRequested += 1;
-                    const adaptivePage = await fetchPage(state.query, adaptiveLimit, state.offset, {
-                        requestId: Number(state.requestId ?? 0) || 0,
-                        signal: state.abortController?.signal || null,
-                    });
-                    metrics.apiTimeMs += Math.max(0, nowMs() - adaptiveStartedAt);
-                    if (!adaptivePage.ok) {
-                        if (adaptivePage.aborted || adaptivePage.stale) {
-                            return adaptivePage;
-                        }
-                        state.done = true;
-                        setStatusMessage(
-                            formatLoadErrorMessage(
-                                "Failed to load assets",
-                                adaptivePage?.error || "Unknown error",
-                            ),
-                            { error: true },
-                        );
-                        return adaptivePage;
-                    }
-
-                    if (adaptivePage.total != null) {
-                        state.total = Number(adaptivePage.total) || 0;
-                    }
-
-                    const adaptiveAssets = Array.isArray(adaptivePage.assets)
-                        ? adaptivePage.assets
-                        : [];
-                    const adaptiveFetchedCount = Number(adaptivePage.count || 0) || 0;
-                    const adaptiveConsumedCount = resolvePageAdvanceCount({
-                        count: adaptiveFetchedCount,
-                        limit: Number(adaptivePage.limit || adaptiveLimit) || adaptiveLimit,
-                        offset: state.offset,
-                        total: adaptivePage.total != null ? adaptivePage.total : state.total,
-                    });
-                    const adaptiveAddedCount = adaptiveAssets.length
-                        ? Number(appendAssets(gridContainer, adaptiveAssets) || 0) || 0
-                        : 0;
-                    state.offset += adaptiveConsumedCount;
-                    state.done =
-                        adaptiveConsumedCount <= 0 ||
-                        (Number.isFinite(Number(state.total)) &&
-                            Number(state.total || 0) > 0 &&
-                            state.offset >= Number(state.total || 0));
-
-                    if (state.done || adaptiveAddedCount > 0) {
-                        rememberSnapshot(state.query || gridContainer.dataset?.mjrQuery || "*");
-                        return {
-                            ok: true,
-                            count: adaptiveFetchedCount,
-                            total: state.total,
-                        };
-                    }
-
-                    mjrDbg(`[Grid LoadPage] fetched adaptive page with no visible additions: offset=${state.offset}, fetched=${adaptiveFetchedCount}, consumed=${adaptiveConsumedCount}, added=${adaptiveAddedCount}, limit=${adaptiveLimit}, done=${state.done}, visibleCount=${state.assets.length}, total=${state.total}`);
-                    if (adaptiveConsumedCount <= 0) break;
-                    emptyAppendBatches += 1;
+                const emptyResult = pageResult.lastResult || pageResult.firstResult || pageResult;
+                mjrDbg(`[Grid LoadPage] fetched one page with no visible additions: offset=${state.offset}, fetched=${pageResult.count}, consumed=${emptyResult.advanced}, added=${emptyResult.added}, limit=${emptyResult.limit || baseLimit}, done=${state.done}, visibleCount=${state.assets.length}, total=${state.total}`);
+                if (!state.done && APP_CONFIG.PREFETCH_NEXT_PAGE) {
+                    scheduleNextPagePrefetch(
+                        Number(state.requestId ?? 0) || 0,
+                        Math.min(APP_CONFIG.PREFETCH_NEXT_PAGE_DELAY_MS ?? 700, 250),
+                    );
                 }
-
-                mjrDbg(`[Grid LoadPage] fetched one page with no visible additions: offset=${state.offset}, fetched=${fetchedCount}, consumed=${consumedCount}, added=${addedCount}, limit=${currentLimit}, done=${state.done}, visibleCount=${state.assets.length}, total=${state.total}`);
                 return {
                     ok: true,
-                    count: fetchedCount,
+                    count: pageResult.count,
                     total: state.total,
                     skippedEmpty: true,
                 };
@@ -1419,7 +1072,7 @@ export function useGridLoader({
                 }
                 if (!page?.ok) return;
                 const pageAssets = Array.isArray(page.assets) ? page.assets : [];
-                if (page.total != null) state.total = Number(page.total) || state.total;
+                if (page.total != null) setLegacyPageState({ total: page.total });
                 if (!pageAssets.length) return;
                 let inserted = 0;
                 for (const asset of pageAssets) {
@@ -1476,7 +1129,7 @@ export function useGridLoader({
                 const snapshotParts = buildCurrentSnapshotParts();
                 snapshotParts.query = safeQuery;
                 const snapshotKey = buildGridSnapshotKey(snapshotParts);
-                if (GRID_SNAPSHOT_CACHE.has(snapshotKey)) {
+                if (hasGridSnapshot(snapshotKey)) {
                     hydratedFromSnapshot = await hydrateFromSnapshot(snapshotParts, {
                         allowReplaceExisting: true,
                     });
@@ -1532,89 +1185,21 @@ export function useGridLoader({
             clearStatusMessage();
             if (deferVisualResetUntilNextPage) {
                 state.query = safeQuery;
-                state.offset = 0;
-                state.total = null;
-                state.done = false;
+                setLegacyPageState({ offset: 0, cursor: null, total: null, done: false });
                 resetAssetCollectionsState(state);
             } else {
                 resetAssets({ query: safeQuery, total: null, done: false });
+                setLegacyPageState({ offset: 0, cursor: null, total: null, done: false });
                 resetAssetCollectionsState(state);
                 metrics.resetCount += 1;
             }
             setLoadingMessage(
                 safeQuery === "*" ? "Loading assets..." : `Searching for "${safeQuery}"...`,
             );
-
-            // Fast path: Disabled to prevent flashing of ancient localized cache
-            /*
-            if (safeQuery === "*" && deferVisualResetUntilNextPage) {
-                try {
-                    const snapshotParts = buildCurrentSnapshotParts();
-                    snapshotParts.query = "*";
-                    const snapshotKey = buildGridSnapshotKey(snapshotParts);
-                    if (state._mjrLastHydrateKey === snapshotKey &&
-                        Date.now() - Number(state._mjrLastHydrateAt || 0) < 1500) {
-                        state.offset = Math.max(
-                            Number(state.offset || 0) || 0,
-                            Number(state.assets?.length || 0) || 0,
-                        );
-                        state.loading = false;
-                        deferVisualResetUntilNextPage = false;
-                        clearLoadingMessage();
-                        const bgRequestId = state.requestId;
-                        scheduleNextPagePrefetch(
-                            bgRequestId,
-                            Math.min(APP_CONFIG.PREFETCH_NEXT_PAGE_DELAY_MS ?? 700, 250),
-                        );
-                        scheduleSnapshotHeadRefresh(200);
-                        return {
-                            ok: true,
-                            count: Number(state.offset || 0) || 0,
-                            total: Number(state.total || 0) || 0,
-                            cached: true,
-                        };
-                    }
-                    const hasSnapshot = GRID_SNAPSHOT_CACHE.has(snapshotKey);
-                    const snapshotRequestIdBefore = state.requestId;
-                    const didHydrate = hasSnapshot
-                        ? await hydrateFromSnapshot(snapshotParts, {
-                              allowReplaceExisting: true,
-                          })
-                        : false;
-                    if (state.requestId > snapshotRequestIdBefore + (didHydrate ? 1 : 0)) {
-                        console.debug?.("[Grid] loadAssets fast-path aborted due to scope switch");
-                        return { ok: false, aborted: true };
-                    }
-                    if (didHydrate) {
-                        state.offset = Math.max(
-                            Number(state.offset || 0) || 0,
-                            Number(state.assets?.length || 0) || 0,
-                        );
-                        state.done = false;
-                        state.loading = false;
-                        deferVisualResetUntilNextPage = false;
-                        clearLoadingMessage();
-                        const bgRequestId = state.requestId;
-                        scheduleNextPagePrefetch(
-                            bgRequestId,
-                            Math.min(APP_CONFIG.PREFETCH_NEXT_PAGE_DELAY_MS ?? 700, 250),
-                        );
-                        scheduleSnapshotHeadRefresh(200);
-                        return {
-                            ok: true,
-                            count: Number(state.offset || 0) || 0,
-                            total: Number(state.total || 0) || 0,
-                            cached: true,
-                        };
-                    }
-                } catch (e) {
-                    console.debug?.("[Grid] Snapshot fast-path failed, falling back", e);
-                }
-            }
-            */
         }
 
         const result = await loadNextPage();
+        repairOffsetFromLoadedAssets();
 
         // Prefetch next page after the first render settles.
         if (
@@ -1688,15 +1273,14 @@ export function useGridLoader({
             clearStatusMessage();
             if (preserveVisible) {
                 state.query = String(title || "Collection");
-                state.offset = 0;
-                state.total = list.length;
-                state.done = true;
+                setLegacyPageState({ offset: 0, cursor: null, total: list.length, done: true });
             } else {
                 resetAssets({
                     query: String(title || "Collection"),
                     total: list.length,
                     done: true,
                 });
+                setLegacyPageState({ offset: 0, cursor: null, total: list.length, done: true });
                 resetAssetCollectionsState(state);
                 metrics.resetCount += 1;
             }
@@ -1710,7 +1294,7 @@ export function useGridLoader({
         }
 
         try {
-            const sortKey = gridContainer.dataset?.mjrSort || "mtime_desc";
+            const sortKey = readGridSortKey(gridContainer, "mtime_desc");
             const sorted = list.sort((a, b) => compareAssets(a, b, sortKey));
             if (reset && preserveVisible) {
                 resetAssets({
@@ -1722,9 +1306,7 @@ export function useGridLoader({
                 metrics.resetCount += 1;
             }
             appendAssets(gridContainer, sorted);
-            state.offset = sorted.length;
-            state.total = sorted.length;
-            state.done = true;
+            setLegacyPageState({ offset: sorted.length, cursor: null, total: sorted.length, done: true });
             finalizeLoad({ title });
             rememberCurrentGridContext(getCurrentResetContext(String(title || "Collection")));
             return { ok: true, count: sorted.length, total: sorted.length };
@@ -1786,38 +1368,15 @@ export function useGridLoader({
     }
 
     function removeAssets(assetIds, { updateSelection = true } = {}) {
-        const ids = new Set(
-            (Array.isArray(assetIds) ? assetIds : [assetIds])
-                .map((raw) => {
-                    if (raw == null) return "";
-                    if (typeof raw === "object" && raw?.id != null) {
-                        return String(raw.id);
-                    }
-                    return String(raw);
-                })
-                .filter(Boolean),
-        );
-        if (!ids.size) {
+        const removedCount = removeAssetsFromState(state, assetIds, {
+            assetKey: (asset) => assetKey(asset, getGridContainer()),
+        });
+        if (!removedCount) {
             return { ok: false, removed: 0, selectedIds: state.selectedIds.slice() };
         }
 
-        let removedCount = 0;
-        state.assets = (Array.isArray(state.assets) ? state.assets : []).filter((asset) => {
-            const id = asset?.id != null ? String(asset.id) : "";
-            if (id && ids.has(id)) {
-                removedCount += 1;
-                try {
-                    state.assetIdSet.delete(id);
-                } catch (e) {
-                    console.debug?.(e);
-                }
-                return false;
-            }
-            return true;
-        });
-
         if (Number.isFinite(Number(state.total))) {
-            state.total = Math.max(0, Number(state.total || 0) - removedCount);
+            setLegacyPageState({ total: Math.max(0, Number(state.total || 0) - removedCount) });
         }
 
         if (updateSelection) {
@@ -1948,12 +1507,15 @@ export function useGridLoader({
         state.loading = false;
 
         appendAssets(gridContainer, snapshot.assets);
-        state.offset = Math.max(
-            Number(snapshot.assets.length || 0) || 0,
-            Number(snapshot.offset || snapshot.assets.length) || snapshot.assets.length,
-        );
-        state.total = Number(snapshot.total ?? snapshot.assets.length) || snapshot.assets.length;
-        state.done = !!snapshot.done;
+        setLegacyPageState({
+            offset: Math.max(
+                Number(snapshot.assets.length || 0) || 0,
+                Number(snapshot.offset || snapshot.assets.length) || snapshot.assets.length,
+            ),
+            cursor: snapshot.cursor || null,
+            total: Number(snapshot.total ?? snapshot.assets.length) || snapshot.assets.length,
+            done: !!snapshot.done,
+        });
         // Mark this hydrate so loadAssets fast-path can skip a redundant
         // re-hydrate triggered immediately after by scopeController.
         state._mjrLastHydrateKey = key;

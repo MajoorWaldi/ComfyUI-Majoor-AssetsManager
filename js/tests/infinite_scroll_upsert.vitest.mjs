@@ -88,6 +88,32 @@ describe("InfiniteScroll upsert", () => {
         }
     });
 
+    it("uses offset pagination without sending stale cursors on later pages", async () => {
+        const buildListURL = vi.fn(() => "/mjr/am/list");
+        const deps = {
+            sanitizeQuery: (value) => value,
+            buildListURL,
+            get: vi.fn(async () => ({
+                ok: true,
+                data: { assets: [], limit: 100, offset: 80 },
+            })),
+            getGridState: () => ({ requestId: 1 }),
+        };
+
+        await fetchPage(
+            { dataset: { mjrScope: "output", mjrSort: "mtime_desc" } },
+            "*",
+            100,
+            80,
+            deps,
+            { requestId: 1, cursor: "cursor-from-previous-page" },
+        );
+
+        expect(buildListURL).toHaveBeenCalledWith(
+            expect.objectContaining({ offset: 80, cursor: null }),
+        );
+    });
+
     it("refreshes seen keys when an existing asset gains a stack id", () => {
         const gridContainer = { dataset: { mjrSort: "mtime_desc" } };
         const state = {

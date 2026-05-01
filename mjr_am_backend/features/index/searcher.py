@@ -1,6 +1,8 @@
 """
 Index searcher - handles asset search and retrieval operations.
 """
+import base64
+import json
 import os
 import re
 import time
@@ -163,6 +165,74 @@ def _build_sort_sql(sort: str | None, *, table_alias: str = "a", rank_alias: str
     if rank_alias:
         return f"ORDER BY {table_alias}.mtime DESC, {rank_alias} ASC, {table_alias}.id DESC"
     return f"ORDER BY {table_alias}.mtime DESC, {table_alias}.id DESC"
+
+
+def _encode_page_cursor(asset: dict[str, Any], sort: str | None) -> str | None:
+    if not isinstance(asset, dict):
+        return None
+    sort_key = _normalize_sort_key(sort)
+    payload: dict[str, Any] = {"sort": sort_key, "id": int(asset.get("id") or 0)}
+    if payload["id"] <= 0:
+        return None
+    if sort_key in {"name_asc", "name_desc"}:
+        payload["filename"] = str(asset.get("filename") or "").lower()
+    elif sort_key == "mtime_asc":
+        payload["mtime"] = int(asset.get("mtime") or 0)
+    else:
+        payload["mtime"] = int(asset.get("mtime") or 0)
+    raw = json.dumps(payload, separators=(",", ":"), sort_keys=True).encode("utf-8")
+    return base64.urlsafe_b64encode(raw).decode("ascii").rstrip("=")
+
+
+def _decode_page_cursor(cursor: str | None, sort: str | None) -> dict[str, Any] | None:
+    text = str(cursor or "").strip()
+    if not text:
+        return None
+    try:
+        padded = text + ("=" * (-len(text) % 4))
+        payload = json.loads(base64.urlsafe_b64decode(padded.encode("ascii")).decode("utf-8"))
+    except Exception:
+        return None
+    if not isinstance(payload, dict):
+        return None
+    if payload.get("sort") != _normalize_sort_key(sort):
+        return None
+    try:
+        payload["id"] = int(payload.get("id") or 0)
+        payload["mtime"] = int(payload.get("mtime") or 0)
+    except Exception:
+        return None
+    return payload if payload["id"] > 0 else None
+
+
+def _build_cursor_where_clause(cursor: str | None, sort: str | None, *, table_alias: str = "a") -> tuple[str, list[Any]]:
+    payload = _decode_page_cursor(cursor, sort)
+    if not payload:
+        return "", []
+    key = _normalize_sort_key(sort)
+    if key == "name_asc":
+        filename = str(payload.get("filename") or "")
+        return (
+            f"AND (LOWER({table_alias}.filename) > ? OR (LOWER({table_alias}.filename) = ? AND {table_alias}.id < ?))",
+            [filename, filename, payload["id"]],
+        )
+    if key == "name_desc":
+        filename = str(payload.get("filename") or "")
+        return (
+            f"AND (LOWER({table_alias}.filename) < ? OR (LOWER({table_alias}.filename) = ? AND {table_alias}.id < ?))",
+            [filename, filename, payload["id"]],
+        )
+    if key == "mtime_asc":
+        mtime = int(payload.get("mtime") or 0)
+        return (
+            f"AND ({table_alias}.mtime > ? OR ({table_alias}.mtime = ? AND {table_alias}.id > ?))",
+            [mtime, mtime, payload["id"]],
+        )
+    mtime = int(payload.get("mtime") or 0)
+    return (
+        f"AND ({table_alias}.mtime < ? OR ({table_alias}.mtime = ? AND {table_alias}.id < ?))",
+        [mtime, mtime, payload["id"]],
+    )
 
 
 def _append_tag_filter(filters: dict[str, Any], clauses: list[str], params: list[Any]) -> None:
@@ -944,6 +1014,7 @@ class IndexSearcher:
         include_total: bool,
         total: int | None,
         sort: str | None = None,
+        next_cursor: str | None = None,
     ) -> dict[str, Any]:
         payload: dict[str, Any] = {
             "assets": assets,
@@ -954,6 +1025,9 @@ class IndexSearcher:
         }
         if sort is not None:
             payload["sort"] = _normalize_sort_key(sort)
+        if next_cursor is not None:
+            payload["next_cursor"] = next_cursor
+            payload["has_more"] = bool(next_cursor)
         return payload
 
     async def _search_global_browse_rows(
@@ -965,6 +1039,7 @@ class IndexSearcher:
         include_total: bool,
         metadata_tags_text_clause: str,
         sort: str | None = None,
+        cursor: str | None = None,
     ) -> Result[dict[str, Any]]:
         sql_parts = [
             f"""
@@ -991,9 +1066,15 @@ class IndexSearcher:
         filter_clauses, filter_params = self._filter_clauses(filters)
         sql_parts.extend(filter_clauses)
         params.extend(filter_params)
+        cursor_clause, cursor_params = _build_cursor_where_clause(cursor, sort, table_alias="a")
+        if cursor_clause:
+            sql_parts.append(cursor_clause)
+            params.extend(cursor_params)
         sql_parts.append(_build_sort_sql(sort, table_alias="a"))
         sql_parts.append("LIMIT ? OFFSET ?")
-        params.extend([limit, offset])
+        query_limit = limit + 1 if limit > 0 else limit
+        query_offset = 0 if cursor_clause else offset
+        params.extend([query_limit, query_offset])
 
         rows_res = await self._run_search_query_rows(
             " ".join(sql_parts),
@@ -1003,6 +1084,10 @@ class IndexSearcher:
         if not rows_res.ok:
             return Result.Err(rows_res.code, rows_res.error or "Search query failed")
         rows = rows_res.data or []
+        next_cursor = "" if limit > 0 else None
+        if limit > 0 and len(rows) > limit:
+            rows = rows[:limit]
+            next_cursor = _encode_page_cursor(rows[-1], sort)
 
         total: int | None = None
         if include_total:
@@ -1038,7 +1123,7 @@ class IndexSearcher:
                         del self._browse_count_cache[oldest_key]
                     except Exception:  # pragma: no cover
                         pass
-        return Result.Ok({"rows": rows, "total": total})
+        return Result.Ok({"rows": rows, "total": total, "next_cursor": next_cursor})
 
     async def _search_global_fts_rows(
         self,
@@ -1162,6 +1247,7 @@ class IndexSearcher:
         include_total: bool,
         metadata_tags_text_clause: str,
         sort: str | None,
+        cursor: str | None = None,
     ) -> Result[dict[str, Any]]:
         sql_parts = [
             f"""
@@ -1188,9 +1274,15 @@ class IndexSearcher:
         filter_clauses, filter_params = self._filter_clauses(filters, assert_safe=True)
         sql_parts.extend(filter_clauses)
         params.extend(filter_params)
+        cursor_clause, cursor_params = _build_cursor_where_clause(cursor, sort, table_alias="a")
+        if cursor_clause:
+            sql_parts.append(cursor_clause)
+            params.extend(cursor_params)
         sql_parts.append(_build_sort_sql(sort, table_alias="a"))
         sql_parts.append("LIMIT ? OFFSET ?")
-        params.extend([limit, offset])
+        query_limit = limit + 1 if limit > 0 else limit
+        query_offset = 0 if cursor_clause else offset
+        params.extend([query_limit, query_offset])
 
         rows_res = await self._run_search_query_rows(
             " ".join(sql_parts),
@@ -1200,6 +1292,10 @@ class IndexSearcher:
         if not rows_res.ok:
             return Result.Err(rows_res.code, rows_res.error or "Scoped search query failed")
         rows = rows_res.data or []
+        next_cursor = "" if limit > 0 else None
+        if limit > 0 and len(rows) > limit:
+            rows = rows[:limit]
+            next_cursor = _encode_page_cursor(rows[-1], sort)
 
         total: int | None = None
         if include_total:
@@ -1215,7 +1311,7 @@ class IndexSearcher:
                 count_params.extend(filter_params)
             count_result = await self.db.aquery(count_sql, tuple(count_params))
             total = count_result.data[0]["total"] if count_result.ok and count_result.data else 0
-        return Result.Ok({"rows": rows, "total": total})
+        return Result.Ok({"rows": rows, "total": total, "next_cursor": next_cursor})
 
     async def _search_scoped_fts_rows(
         self,
@@ -1352,6 +1448,7 @@ class IndexSearcher:
         filters: dict[str, Any] | None = None,
         include_total: bool = False,
         sort: str | None = None,
+        cursor: str | None = None,
     ) -> Result[dict[str, Any]]:
         """
         Search assets but restrict results to files whose absolute filepath is under one of the provided roots.
@@ -1380,6 +1477,7 @@ class IndexSearcher:
             include_highlight=False,
             roots=cleaned_roots,
             sort=sort,
+            cursor=cursor,
         )
 
     async def _search_assets(
@@ -1394,6 +1492,7 @@ class IndexSearcher:
         include_highlight: bool,
         roots: list[str] | None,
         sort: str | None = None,
+        cursor: str | None = None,
     ) -> Result[dict[str, Any]]:
         if filters and filters.get("group_stacks"):
             return await self._search_grouped_assets(
@@ -1416,6 +1515,7 @@ class IndexSearcher:
                 include_total=include_total,
                 metadata_tags_text_clause=metadata_tags_text_clause,
                 include_highlight=include_highlight,
+                cursor=cursor,
             )
         return await self._search_scoped_assets(
             query=query,
@@ -1427,6 +1527,7 @@ class IndexSearcher:
             metadata_tags_text_clause=metadata_tags_text_clause,
             include_highlight=include_highlight,
             sort=sort,
+            cursor=cursor,
         )
 
     async def _search_grouped_assets(
@@ -1547,6 +1648,7 @@ class IndexSearcher:
         include_total: bool,
         metadata_tags_text_clause: str,
         include_highlight: bool,
+        cursor: str | None = None,
     ) -> Result[dict[str, Any]]:
         if query.strip() == "*":
             rows_total_res = await self._search_global_browse_rows(
@@ -1555,6 +1657,7 @@ class IndexSearcher:
                 filters=filters,
                 include_total=include_total,
                 metadata_tags_text_clause=metadata_tags_text_clause,
+                cursor=cursor,
             )
         else:
             fts_query = self._sanitize_fts_query(query)
@@ -1591,6 +1694,7 @@ class IndexSearcher:
         metadata_tags_text_clause: str,
         include_highlight: bool,
         sort: str | None,
+        cursor: str | None = None,
     ) -> Result[dict[str, Any]]:
         roots_clause, roots_params = _build_roots_where_clause(roots)
         if query.strip() == "*":
@@ -1603,6 +1707,7 @@ class IndexSearcher:
                 include_total=include_total,
                 metadata_tags_text_clause=metadata_tags_text_clause,
                 sort=sort,
+                cursor=cursor,
             )
         else:
             fts_query = self._sanitize_fts_query(query)
@@ -1646,6 +1751,9 @@ class IndexSearcher:
             return Result.Err(rows_total_res.code, rows_total_res.error or failure_message)
         rows, total = self._search_rows_total(rows_total_res.data)
         assets = _hydrate_search_rows(rows, include_highlight=include_highlight)
+        next_cursor = None
+        if isinstance(rows_total_res.data, dict):
+            next_cursor = rows_total_res.data.get("next_cursor")
         payload = self._build_search_payload(
             assets=assets,
             limit=limit,
@@ -1654,6 +1762,7 @@ class IndexSearcher:
             include_total=include_total,
             total=total,
             sort=sort,
+            next_cursor=next_cursor,
         )
         return Result.Ok(payload)
 

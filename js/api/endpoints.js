@@ -230,6 +230,7 @@ export function buildListURL(params = {}) {
         dateRange = null,
         dateExact = null,
         sort = null,
+        cursor = null,
         includeTotal = true,
         groupStacks = false,
     } = params;
@@ -263,6 +264,9 @@ export function buildListURL(params = {}) {
     }
     if (sort) {
         url += `&sort=${encodeURIComponent(String(sort))}`;
+    }
+    if (cursor) {
+        url += `&cursor=${encodeURIComponent(String(cursor))}`;
     }
     if (includeTotal === false) {
         url += `&include_total=0`;

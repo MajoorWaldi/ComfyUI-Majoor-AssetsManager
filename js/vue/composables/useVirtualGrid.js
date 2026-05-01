@@ -5,6 +5,12 @@
  * across VirtualScroller.js and InfiniteScroll.js.
  */
 import { getFilenameKey, shouldHideSiblingAsset, unregisterHiddenSibling } from "../../features/grid/AssetCardRenderer.js";
+import {
+    gridQueryHasActiveFilters,
+    readGridQueryFromDataset,
+} from "../grid/useGridQuery.js";
+import { syncAssetCollectionState } from "../grid/useAssetCollection.js";
+import { resolvePageAdvance } from "../grid/usePagedAssets.js";
 
 export function isPotentialScrollContainer(el) {
     if (!el || el === window) return false;
@@ -180,28 +186,7 @@ export function maybeKeepPinnedToBottom(_state, _before) {
 }
 
 export function resolvePageAdvanceCount({ count = 0, limit = 0, offset = 0, total = null } = {}) {
-    const responseCount = Math.max(0, Number(count) || 0);
-    if (responseCount <= 0) return 0;
-
-    const requestedLimit = Math.max(0, Number(limit) || 0);
-    const currentOffset = Math.max(0, Number(offset) || 0);
-    const knownTotal = total == null ? null : Math.max(0, Number(total) || 0);
-    const remaining = knownTotal == null ? null : Math.max(0, knownTotal - currentOffset);
-
-    if (requestedLimit <= 0 || knownTotal == null) {
-        return responseCount;
-    }
-
-    if (responseCount >= requestedLimit) {
-        return requestedLimit;
-    }
-
-    const pageWindow = Math.min(requestedLimit, remaining);
-    if (pageWindow <= 0) {
-        return responseCount;
-    }
-
-    return Math.max(responseCount, pageWindow);
+    return resolvePageAdvance({ count, limit, offset, total });
 }
 
 export function startInfiniteScroll(gridContainer, state, deps) {
@@ -299,15 +284,14 @@ export function startInfiniteScroll(gridContainer, state, deps) {
 
 function _assetMatchesActiveFilters(gridContainer, asset) {
     if (!asset || typeof asset !== "object") return false;
-    const scope = String(gridContainer?.dataset?.mjrScope || "output").trim().toLowerCase();
-    const subfolder = String(gridContainer?.dataset?.mjrSubfolder || "").trim().toLowerCase();
-    const kind = String(gridContainer?.dataset?.mjrFilterKind || "").trim().toLowerCase();
-    const workflowOnly = gridContainer?.dataset?.mjrFilterWorkflowOnly === "1";
-    const minRating = Number(gridContainer?.dataset?.mjrFilterMinRating || 0) || 0;
-    const workflowType = String(gridContainer?.dataset?.mjrFilterWorkflowType || "")
-        .trim()
-        .toLowerCase();
-    const dateExact = String(gridContainer?.dataset?.mjrFilterDateExact || "").trim();
+    const query = readGridQueryFromDataset(gridContainer?.dataset || {});
+    const scope = query.scope;
+    const subfolder = query.subfolder.toLowerCase();
+    const kind = query.kind;
+    const workflowOnly = query.workflowOnly;
+    const minRating = query.minRating;
+    const workflowType = query.workflowType.toLowerCase();
+    const dateExact = query.dateExact;
     const assetSubfolder = String(asset?.subfolder || "").trim().toLowerCase();
     const assetType = String(asset?.type || asset?.source || "output")
         .trim()
@@ -339,7 +323,7 @@ export async function fetchPage(
     limit,
     offset,
     deps,
-    { requestId = 0, signal = null } = {},
+    { requestId = 0, signal = null, cursor = null } = {},
 ) {
     const coerceQueryText = (value) => {
         if (typeof value === "string") return value;
@@ -350,31 +334,27 @@ export async function fetchPage(
         return String(value || "");
     };
 
-    const scope = gridContainer?.dataset?.mjrScope || "output";
-    const customRootId = gridContainer?.dataset?.mjrCustomRootId || "";
-    const subfolder = gridContainer?.dataset?.mjrSubfolder || "";
-    const kind = gridContainer?.dataset?.mjrFilterKind || "";
-    const workflowOnly = gridContainer?.dataset?.mjrFilterWorkflowOnly === "1";
-    const minRating = Number(gridContainer?.dataset?.mjrFilterMinRating || 0) || 0;
-    const minSizeMB = Number(gridContainer?.dataset?.mjrFilterMinSizeMB || 0) || 0;
-    const maxSizeMB = Number(gridContainer?.dataset?.mjrFilterMaxSizeMB || 0) || 0;
-    const resolutionCompare =
-        String(gridContainer?.dataset?.mjrFilterResolutionCompare || "gte") === "lte"
-            ? "lte"
-            : "gte";
-    const minWidth = Number(gridContainer?.dataset?.mjrFilterMinWidth || 0) || 0;
-    const minHeight = Number(gridContainer?.dataset?.mjrFilterMinHeight || 0) || 0;
-    const maxWidth = Number(gridContainer?.dataset?.mjrFilterMaxWidth || 0) || 0;
-    const maxHeight = Number(gridContainer?.dataset?.mjrFilterMaxHeight || 0) || 0;
-    const workflowType = String(gridContainer?.dataset?.mjrFilterWorkflowType || "")
-        .trim()
-        .toUpperCase();
-    const dateRange = String(gridContainer?.dataset?.mjrFilterDateRange || "")
-        .trim()
-        .toLowerCase();
-    const dateExact = String(gridContainer?.dataset?.mjrFilterDateExact || "").trim();
-    const sortKey = gridContainer?.dataset?.mjrSort || "mtime_desc";
-    const groupStacks = String(gridContainer?.dataset?.mjrGroupStacks || "") === "1";
+    const queryState = readGridQueryFromDataset(gridContainer?.dataset || {});
+    const {
+        scope,
+        customRootId,
+        subfolder,
+        kind,
+        workflowOnly,
+        minRating,
+        minSizeMB,
+        maxSizeMB,
+        resolutionCompare,
+        minWidth,
+        minHeight,
+        maxWidth,
+        maxHeight,
+        workflowType,
+        dateRange,
+        dateExact,
+        groupStacks,
+    } = queryState;
+    const sortKey = queryState.sort || "mtime_desc";
     const requestedQueryRaw = coerceQueryText(query).trim();
     const requestedQuery = requestedQueryRaw || "*";
     const normalizedRequestedQuery = /^\[object\s+HTML.*Element\]$/i.test(requestedQuery)
@@ -383,10 +363,10 @@ export async function fetchPage(
     const safeQuery = deps.sanitizeQuery(normalizedRequestedQuery) || normalizedRequestedQuery;
     try {
         const isOutputScope = String(scope || "").toLowerCase() === "output";
-        const hasActiveFilters =
-            !!(subfolder || customRootId || kind || workflowOnly || minRating > 0 || minSizeMB > 0 ||
-            maxSizeMB > 0 || minWidth > 0 || minHeight > 0 || maxWidth > 0 || maxHeight > 0 ||
-            workflowType || dateRange || dateExact || groupStacks);
+        const hasActiveFilters = gridQueryHasActiveFilters({
+            ...queryState,
+            q: safeQuery,
+        });
         const isDefaultOutputBrowse =
             isOutputScope &&
             Number(offset ?? 0) === 0 &&
@@ -394,6 +374,7 @@ export async function fetchPage(
             !hasActiveFilters &&
             String(sortKey || "mtime_desc").toLowerCase() === "mtime_desc";
         const includeTotal = !(isOutputScope && (Number(offset ?? 0) > 0 || isDefaultOutputBrowse));
+        const cursorForRequest = Number(offset ?? 0) > 0 ? null : cursor || null;
         const url = deps.buildListURL({
             q: safeQuery,
             limit,
@@ -415,6 +396,7 @@ export async function fetchPage(
             dateRange: dateRange || null,
             dateExact: dateExact || null,
             sort: sortKey,
+            cursor: cursorForRequest,
             includeTotal,
             groupStacks,
         });
@@ -434,6 +416,8 @@ export async function fetchPage(
             const total = rawTotal == null ? null : Number(rawTotal ?? 0) || 0;
             const responseLimit = Math.max(0, Number(result.data?.limit) || 0);
             const responseOffset = Math.max(0, Number(result.data?.offset) || 0);
+            const nextCursor = result.data?.next_cursor || result.data?.nextCursor || null;
+            const hasMore = typeof result.data?.has_more === "boolean" ? result.data.has_more : null;
             return {
                 ok: true,
                 assets,
@@ -441,6 +425,8 @@ export async function fetchPage(
                 count: serverCount,
                 limit: responseLimit,
                 offset: responseOffset,
+                nextCursor,
+                hasMore,
                 sortKey,
                 safeQuery,
             };
@@ -491,7 +477,7 @@ export async function loadNextPage(gridContainer, state, deps) {
             requestId: Number(state.requestId ?? 0) || 0,
             signal: state.abortController?.signal || null,
         });
-        const dateExact = String(gridContainer?.dataset?.mjrFilterDateExact || "").trim();
+        const dateExact = readGridQueryFromDataset(gridContainer?.dataset || {}).dateExact;
         emitAgendaStatus(
             dateExact,
             page.ok && Array.isArray(page.assets) && page.assets.length > 0,
@@ -727,8 +713,7 @@ function dedupeAssetsByKey(state, deps) {
         deduped.push(asset);
     }
     state.assets = deduped;
-    state.assetIdSet = seenIds;
-    state.seenKeys = seenKeys;
+    syncAssetCollectionState(state, { assetKey: deps.assetKey });
 }
 
 /**
@@ -832,7 +817,7 @@ export function flushUpsertBatch(gridContainer, deps) {
                     state.seenKeys.has(key) ||
                     (asset.id != null && state.assetIdSet?.has?.(assetId));
                 if (!alreadySeen) {
-                    const sortKey = gridContainer.dataset.mjrSort || "mtime_desc";
+                    const sortKey = readGridQueryFromDataset(gridContainer?.dataset || {}).sort || "mtime_desc";
                     const assetToInsert = incomingIsPlaceholder
                         ? candidateAsset
                         : _clearLivePlaceholderState({ ...candidateAsset });

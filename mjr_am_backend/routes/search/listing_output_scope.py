@@ -51,6 +51,7 @@ async def handle_output_scope(
     limit: int,
     offset: int,
     sort_key: str,
+    cursor: str = "",
     filters: dict[str, Any],
     include_total: bool,
     subfolder: str,
@@ -79,15 +80,17 @@ async def handle_output_scope(
     if subfolder:
         output_filters["subfolder"] = subfolder
 
-    out_res = await svc["index"].search_scoped(
-        query,
-        roots=[output_root],
-        limit=limit,
-        offset=offset,
-        filters=output_filters,
-        include_total=include_total,
-        sort=sort_key,
-    )
+    search_kwargs = {
+        "roots": [output_root],
+        "limit": limit,
+        "offset": offset,
+        "filters": output_filters,
+        "include_total": include_total,
+        "sort": sort_key,
+    }
+    if cursor:
+        search_kwargs["cursor"] = cursor
+    out_res = await svc["index"].search_scoped(query, **search_kwargs)
     try:
         is_initial = query == "*" and offset == 0 and not (filters or None)
         out_data = out_res.data or {}
