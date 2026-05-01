@@ -119,6 +119,16 @@ export function createAssetsQueryController({
         }
     };
 
+    const hasActiveGridLoad = () => {
+        try {
+            const state = gridContainer?._mjrGetGridState?.();
+            return !!state?.loading;
+        } catch (e) {
+            console.debug?.(e);
+            return false;
+        }
+    };
+
     const queuedReload = async () => {
         if (!gridContainer || !gridController?.reloadGrid) return;
         pendingReloadCount += 1;
@@ -210,6 +220,7 @@ export function createAssetsQueryController({
         }
 
         if (hasGridAssets()) return;
+        if (hasActiveGridLoad()) return;
         if (String(getScope() || "output") !== "output") return;
         if (String(getQuery() || "*") !== "*") return;
 

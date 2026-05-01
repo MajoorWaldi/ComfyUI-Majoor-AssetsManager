@@ -7,7 +7,7 @@ const BUTTON_ATTR = "data-mjr-topbar-mfv-button";
 const SLOT_ATTR = "data-mjr-topbar-mfv-slot";
 const BUTTON_LABEL_KEY = "label.floatingViewer";
 const BUTTON_LABEL_FALLBACK = "Viewer";
-const MFV_TOOLTIP_HINT = "V, Ctrl/Cmd+V";
+const MFV_TOOLTIP_HINT = "V";
 
 let _observer = null;
 let _observedTarget = null;

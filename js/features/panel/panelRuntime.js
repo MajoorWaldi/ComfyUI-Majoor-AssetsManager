@@ -1388,8 +1388,6 @@ async function _mountPanelRuntimeImpl(container, { useComfyThemeUI = true, exter
         console.debug?.(e);
     }
 
-    _autoLoadTimer = assetsQueryController?.scheduleAutoLoad?.(initialLoadPromise, 300) ?? null;
-
     const renderDuration = endTimer("panelRender", "gridRender");
     trackGridRender(renderDuration);
 

@@ -510,14 +510,6 @@ export function fallbackPopoutFloatingViewer(viewer, el, w, h) {
         ) {
             return;
         }
-        const lower = String(e?.key || "").toLowerCase();
-        if (lower === "v" && (e?.ctrlKey || e?.metaKey) && !e?.altKey && !e?.shiftKey) {
-            e.preventDefault();
-            e.stopPropagation?.();
-            e.stopImmediatePropagation?.();
-            viewer._dispatchControllerAction("toggle", EVENTS.MFV_TOGGLE);
-            return;
-        }
         viewer._forwardKeydownToController(e);
     };
     popup.addEventListener("keydown", viewer._popoutKeydownHandler, { signal: popoutSignal });

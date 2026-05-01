@@ -77,6 +77,53 @@ describe("NodeStreamController", () => {
         mod.teardownNodeStream(app);
     });
 
+    it("resolves downstream previews when the graph is exposed through canvas.graph", async () => {
+        const onOutput = vi.fn();
+        const selectedNode = {
+            id: 1,
+            comfyClass: "CustomProcessor",
+            outputs: [{ links: [77] }],
+        };
+        const previewNode = {
+            id: 2,
+            comfyClass: "PreviewImage",
+            inputs: [{ link: 77 }],
+            imgs: [{ src: "/view?filename=downstream.png&subfolder=previews&type=output" }],
+        };
+        const graph = {
+            nodes: [selectedNode, previewNode],
+            links: { 77: [77, 1, 0, 2, 0, "IMAGE"] },
+            getNodeById(id) {
+                return [selectedNode, previewNode].find((node) => Number(node.id) === Number(id)) || null;
+            },
+        };
+        const app = {
+            canvas: {
+                graph,
+                selected_nodes: { 1: selectedNode },
+            },
+        };
+
+        const mod = await import("../features/viewer/nodeStream/NodeStreamController.js");
+        mod.initNodeStream({ app, onOutput });
+        mod.setNodeStreamActive(true);
+        await vi.advanceTimersByTimeAsync(250);
+
+        expect(onOutput).toHaveBeenCalledWith(
+            expect.objectContaining({
+                filename: "downstream.png",
+                subfolder: "previews",
+                type: "output",
+                kind: "image",
+                _nodeId: "1",
+                _previewNodeId: "2",
+                _source: "graph-downstream",
+            }),
+        );
+
+        mod.teardownNodeStream(app);
+    });
+
     it("streams the ImageOps preview canvas as a cached data URL and re-emits only on signature change", async () => {
         class MockCanvas {}
         globalThis.HTMLCanvasElement = MockCanvas;

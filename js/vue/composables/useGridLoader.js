@@ -1182,6 +1182,7 @@ export function useGridLoader({
             } catch (e) {
                 console.debug?.(e);
             }
+            state.loading = false;
             try {
                 state.abortController =
                     typeof AbortController !== "undefined" ? new AbortController() : null;
@@ -1354,18 +1355,14 @@ export function useGridLoader({
         } catch (e) {
             console.debug?.(e);
         }
-        try {
-            state.abortController =
-                typeof AbortController !== "undefined" ? new AbortController() : null;
-        } catch {
-            state.abortController = null;
-        }
+        state.abortController = null;
         state.requestId = (Number(state.requestId) || 0) + 1;
-        state.loading = false;
+        state.loading = true;
         // Reset pagination state so that any maybeFillViewport call triggered
-        // by the state.loading change fires from offset 0 (correct scope) rather
-        // than from a stale offset left by the previous scope.
+        // by the visual reset cannot start a competing load before reloadGrid()
+        // hands the new request to loadAssets(reset).
         setLegacyPageState({ offset: 0, cursor: null, total: null, done: false });
+        resetAssets({ query: state.query || "*", total: null, done: false });
         clearPrefetchTimer();
         clearPendingUpserts();
         clearLoadingMessage();

@@ -41,12 +41,42 @@ function _setNoteText(node, value) {
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const HEX_HASH_RE = /^[0-9a-f]{20,}$/i;
 
-function _getNodeDisplayType(node) {
-    const type = String(node?.type || "");
-    if (UUID_RE.test(type) || HEX_HASH_RE.test(type)) {
-        return String(node?.title || "Subgraph").trim() || "Subgraph";
+function _firstText(...values) {
+    for (const value of values) {
+        const text = String(value || "").trim();
+        if (text) return text;
     }
-    return type || `Node #${node?.id}`;
+    return "";
+}
+
+function _isOpaqueType(type) {
+    return UUID_RE.test(type) || HEX_HASH_RE.test(type);
+}
+
+function _getNodeTitle(node) {
+    return _firstText(
+        node?.title,
+        node?.properties?.title,
+        node?.properties?.name,
+        node?.properties?.label,
+        node?.name,
+    );
+}
+
+function _getNodeDisplayType(node, { isSubgraph = false } = {}) {
+    const type = String(node?.type || "").trim();
+    const title = _getNodeTitle(node);
+    if ((isSubgraph || _isOpaqueType(type)) && title) return title;
+    if (_isOpaqueType(type)) return "Subgraph";
+    return type || title || `Node #${node?.id}`;
+}
+
+function _getNodeSecondaryTitle(node, displayType, { isSubgraph = false } = {}) {
+    const type = String(node?.type || "").trim();
+    const title = _getNodeTitle(node);
+    if (isSubgraph && type && !_isOpaqueType(type) && type !== displayType) return type;
+    if (title && title !== type && title !== displayType) return title;
+    return "";
 }
 
 export class NodeWidgetRenderer {
@@ -66,12 +96,15 @@ export class NodeWidgetRenderer {
         this._collapsible = Boolean(opts.collapsible);
         this._expanded = opts.expanded !== false;
         this._depth = opts.depth ?? 0;
+        this._isSubgraph = Boolean(opts.isSubgraph);
+        this._childCount = Math.max(0, Number(opts.childCount) || 0);
         this._el = null;
         this._body = null;
         this._toggleBtn = null;
         this._inputMap = new Map();
         this._autoFits = [];
         this._noteTextarea = null;
+        this._subgraphHeaderTitle = "";
     }
 
     get el() {
@@ -137,6 +170,11 @@ export class NodeWidgetRenderer {
         const section = document.createElement("section");
         section.className = "mjr-ws-node";
         section.dataset.nodeId = String(node.id ?? "");
+        if (this._isSubgraph) {
+            section.classList.add("mjr-ws-node--subgraph");
+            section.dataset.subgraph = "true";
+            section.dataset.childCount = String(this._childCount);
+        }
         if (this._depth > 0) {
             section.dataset.depth = String(this._depth);
             section.classList.add("mjr-ws-node--nested");
@@ -169,11 +207,14 @@ export class NodeWidgetRenderer {
 
         const typeText = document.createElement("span");
         typeText.className = "mjr-ws-node-type";
-        typeText.textContent = _getNodeDisplayType(node);
+        const displayType = _getNodeDisplayType(node, { isSubgraph: this._isSubgraph });
+        typeText.textContent = displayType;
         titleWrap.appendChild(typeText);
 
-        const customTitle = String(node.title || "").trim();
-        if (customTitle && customTitle !== node.type) {
+        const customTitle = _getNodeSecondaryTitle(node, displayType, {
+            isSubgraph: this._isSubgraph,
+        });
+        if (customTitle) {
             const title = document.createElement("span");
             title.className = "mjr-ws-node-title";
             title.textContent = customTitle;
@@ -181,6 +222,16 @@ export class NodeWidgetRenderer {
         }
 
         header.appendChild(titleWrap);
+
+        if (this._isSubgraph) {
+            const badge = document.createElement("span");
+            badge.className = "mjr-ws-node-kind";
+            badge.title = `${this._childCount} inner node${this._childCount !== 1 ? "s" : ""}`;
+            badge.innerHTML = `<i class="pi pi-sitemap" aria-hidden="true"></i><span>Subgraph</span><span class="mjr-ws-node-kind-count">${this._childCount}</span>`;
+            header.appendChild(badge);
+            this._subgraphHeaderTitle = `${displayType} · Subgraph · ${this._childCount} inner node${this._childCount !== 1 ? "s" : ""}`;
+            header.title = this._subgraphHeaderTitle;
+        }
 
         const locateBtn = document.createElement("button");
         locateBtn.type = "button";
@@ -300,7 +351,10 @@ export class NodeWidgetRenderer {
             this._toggleBtn.setAttribute("aria-expanded", String(this._expanded));
         }
         if (this._header) {
-            this._header.title = this._expanded ? "Collapse node" : "Expand node";
+            const actionTitle = this._expanded ? "Collapse node" : "Expand node";
+            this._header.title = this._subgraphHeaderTitle
+                ? `${this._subgraphHeaderTitle} · ${actionTitle}`
+                : actionTitle;
         }
     }
 

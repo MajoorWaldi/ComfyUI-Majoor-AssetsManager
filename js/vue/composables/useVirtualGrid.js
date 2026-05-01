@@ -352,7 +352,6 @@ export async function fetchPage(
         workflowType,
         dateRange,
         dateExact,
-        groupStacks,
     } = queryState;
     const sortKey = queryState.sort || "mtime_desc";
     const requestedQueryRaw = coerceQueryText(query).trim();
@@ -374,6 +373,7 @@ export async function fetchPage(
             !hasActiveFilters &&
             String(sortKey || "mtime_desc").toLowerCase() === "mtime_desc";
         const includeTotal = !(isOutputScope && (Number(offset ?? 0) > 0 || isDefaultOutputBrowse));
+        const groupStacksForRequest = false;
         const cursorForRequest = Number(offset ?? 0) > 0 ? null : cursor || null;
         const url = deps.buildListURL({
             q: safeQuery,
@@ -398,7 +398,7 @@ export async function fetchPage(
             sort: sortKey,
             cursor: cursorForRequest,
             includeTotal,
-            groupStacks,
+            groupStacks: groupStacksForRequest,
         });
         const result = await deps.get(url, { timeoutMs: 120_000, ...(signal ? { signal } : {}) });
         try {

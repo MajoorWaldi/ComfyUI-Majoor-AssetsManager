@@ -162,12 +162,14 @@ export function createPanelHotkeysController({
                 return;
             }
 
-            // V and Ctrl/Cmd+V toggle the floating viewer for the current panel selection.
-            // Keep Alt+V and Ctrl/Cmd+Shift+V untouched for other app/browser behaviors.
+            // V toggles the floating viewer for the current panel selection.
+            // Keep modified V shortcuts untouched for app/browser behaviors such as paste.
             if (
                 lower === "v" &&
+                !event.ctrlKey &&
+                !event.metaKey &&
                 !event.altKey &&
-                !(event.shiftKey && (event.ctrlKey || event.metaKey))
+                !event.shiftKey
             ) {
                 if (isTypingTarget) return;
                 event.preventDefault();

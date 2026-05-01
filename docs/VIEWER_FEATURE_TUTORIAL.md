@@ -96,7 +96,7 @@ There are several ways to open the Majoor Floating Viewer:
 
 #### Method 4: Keyboard Shortcut
 
-- Press **Ctrl+V** (or **Cmd+V** on macOS) while the Assets Manager panel is hovered or focused to toggle the Floating Viewer
+- Press **V** while the Assets Manager panel is hovered or focused to toggle the Floating Viewer
 
 ### Live Stream Mode
 

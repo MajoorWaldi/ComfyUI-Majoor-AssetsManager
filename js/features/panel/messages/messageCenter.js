@@ -42,7 +42,7 @@ const BUILTIN_PANEL_MESSAGES = Object.freeze([
         categoryKey: "msg.category.information",
         level: "info",
         createdAt: Date.parse("2026-03-06T09:00:00Z"),
-        body: "Floating Viewer keyboard shortcuts added: Open/close MFV with V or Ctrl/Cmd+V, compare with C, Live Stream with L, and KSampler Preview with K. See the Shortcut Guide tab for the full list.",
+        body: "Floating Viewer keyboard shortcuts added: Open/close MFV with V, compare with C, Live Stream with L, and KSampler Preview with K. See the Shortcut Guide tab for the full list.",
         bodyKey: "msg.whatsNew.body.floatingViewerShortcuts",
     },
     {

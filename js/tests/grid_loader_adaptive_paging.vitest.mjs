@@ -626,7 +626,7 @@ describe("useGridLoader adaptive paging", () => {
         );
     });
 
-    it("hydrates a persisted grid snapshot without marking partial pages as done", async () => {
+    it("does not hydrate persisted grid snapshots while the snapshot cache is disabled", async () => {
         appendAssetsMock.mockImplementation((_grid, assets, state) => {
             state.assets = Array.isArray(assets) ? assets.map((asset) => ({ ...asset })) : [];
             return state.assets.length;
@@ -716,10 +716,10 @@ describe("useGridLoader adaptive paging", () => {
             sort: "mtime_desc",
         });
 
-        expect(restored).toBe(true);
-        expect(state2.assets.map((asset) => asset.filename)).toEqual(["one.png", "two.png"]);
-        expect(state2.offset).toBe(2);
-        expect(state2.total).toBe(50);
+        expect(restored).toBe(false);
+        expect(state2.assets).toEqual([]);
+        expect(state2.offset).toBe(0);
+        expect(state2.total).toBeNull();
         expect(state2.done).toBe(false);
     });
 
@@ -789,7 +789,7 @@ describe("useGridLoader adaptive paging", () => {
         expect(requestedOffsets.at(-1)).toBe(8200 - 100);
     });
 
-    it("can replace existing assets from a cached snapshot during a scope switch", async () => {
+    it("does not replace existing assets from snapshots while the snapshot cache is disabled", async () => {
         appendAssetsMock.mockImplementation((_grid, assets, state) => {
             state.assets = Array.isArray(assets) ? assets.map((asset) => ({ ...asset })) : [];
             return state.assets.length;
@@ -891,11 +891,11 @@ describe("useGridLoader adaptive paging", () => {
             { allowReplaceExisting: true },
         );
 
-        expect(restored).toBe(true);
-        expect(state.assets.map((asset) => asset.filename)).toEqual(["out-one.png", "out-two.png"]);
+        expect(restored).toBe(false);
+        expect(state.assets.map((asset) => asset.filename)).toEqual(["input-one.png"]);
     });
 
-    it("defers the scope-switch visual reset until the first new page arrives", async () => {
+    it("clears scope-switch assets immediately while grid caches are disabled", async () => {
         const { useGridLoader } = await import("../vue/composables/useGridLoader.js");
 
         let resolvePage;
@@ -916,7 +916,7 @@ describe("useGridLoader adaptive paging", () => {
             total: 1,
             offset: 1,
             requestId: 1,
-            abortController: null,
+            abortController: new AbortController(),
             query: "*",
             assets: [{ id: "input-1", filename: "input-one.png", kind: "image", source: "input" }],
             activeId: "",
@@ -954,11 +954,19 @@ describe("useGridLoader adaptive paging", () => {
             scrollToAssetId: vi.fn(),
         });
 
+        const previousController = state.abortController;
         loader.prepareGridForScopeSwitch();
+        expect(resetAssets).toHaveBeenCalledTimes(1);
+        expect(state.assets).toEqual([]);
+        expect(previousController.signal.aborted).toBe(true);
+        expect(state.abortController).toBeNull();
+        expect(state.loading).toBe(true);
+
         const pendingLoad = loader.loadAssets("*", { reset: true });
 
-        expect(resetAssets).not.toHaveBeenCalled();
-        expect(state.assets.map((asset) => asset.filename)).toEqual(["input-one.png"]);
+        expect(resetAssets).toHaveBeenCalledTimes(2);
+        expect(state.assets).toEqual([]);
+        expect(fetchGridPageMock.mock.calls.at(-1)?.[3]).toBe(0);
 
         resolvePage({
             ok: true,
@@ -972,7 +980,73 @@ describe("useGridLoader adaptive paging", () => {
         });
         await pendingLoad;
 
-        expect(resetAssets).toHaveBeenCalledTimes(1);
+        expect(resetAssets).toHaveBeenCalledTimes(2);
+        expect(state.assets.map((asset) => asset.filename)).toEqual(["output-one.png"]);
+    });
+
+    it("does not let an aborted viewport fill skip the scope reload", async () => {
+        const { useGridLoader } = await import("../vue/composables/useGridLoader.js");
+
+        fetchGridPageMock.mockResolvedValue({
+            ok: true,
+            assets: [{ id: "output-1", filename: "output-one.png", kind: "image", source: "output" }],
+            total: 1,
+            count: 1,
+            limit: 100,
+            offset: 0,
+        });
+        appendAssetsMock.mockImplementation((_grid, assets, state) => {
+            state.assets = Array.isArray(assets) ? assets.map((asset) => ({ ...asset })) : [];
+            return state.assets.length;
+        });
+
+        const state = {
+            loading: true,
+            done: false,
+            total: null,
+            offset: 0,
+            requestId: 5,
+            abortController: new AbortController(),
+            query: "*",
+            assets: [],
+            activeId: "",
+            statusMessage: "",
+            statusError: false,
+        };
+        const gridContainer = createVisibleElement({
+            dataset: {
+                mjrScope: "output",
+                mjrQuery: "*",
+                mjrSort: "mtime_desc",
+            },
+        });
+        const resetAssets = vi.fn(({ query = "*", total = null, done = false } = {}) => {
+            state.query = query;
+            state.total = total;
+            state.done = done;
+            state.offset = 0;
+            state.assets = [];
+        });
+
+        const loader = useGridLoader({
+            gridContainerRef: { value: gridContainer },
+            state,
+            setLoadingMessage: vi.fn(),
+            clearLoadingMessage: vi.fn(),
+            setStatusMessage: vi.fn(),
+            clearStatusMessage: vi.fn(),
+            resetAssets,
+            setSelection: vi.fn(),
+            reconcileSelection: vi.fn(),
+            readScrollElement: () => createVisibleElement(),
+            readRenderedCards: () => [],
+            scrollToAssetId: vi.fn(),
+        });
+
+        await loader.loadAssets("*", { reset: true });
+
+        expect(fetchGridPageMock).toHaveBeenCalledTimes(1);
+        expect(fetchGridPageMock.mock.calls[0]?.[3]).toBe(0);
         expect(state.assets.map((asset) => asset.filename)).toEqual(["output-one.png"]);
     });
 

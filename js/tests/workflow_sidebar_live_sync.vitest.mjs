@@ -8,6 +8,8 @@ const rendererState = vi.hoisted(() => ({
     constructed: [],
     disposed: [],
     synced: [],
+    instances: [],
+    options: [],
 }));
 
 vi.mock("../app/comfyApiBridge.js", () => ({
@@ -16,11 +18,20 @@ vi.mock("../app/comfyApiBridge.js", () => ({
 
 vi.mock("../features/viewer/workflowSidebar/NodeWidgetRenderer.js", () => ({
     NodeWidgetRenderer: class NodeWidgetRendererMock {
-        constructor(node) {
+        constructor(node, opts = {}) {
+            this._node = node;
             this.node = node;
+            this.opts = opts;
+            this._expanded = opts.expanded !== false;
             this.el = makeElement("section");
             this.el.dataset.nodeId = String(node?.id ?? "");
             rendererState.constructed.push(node?.id ?? null);
+            rendererState.instances.push(this);
+            rendererState.options.push(opts);
+        }
+
+        setExpanded(expanded) {
+            this._expanded = Boolean(expanded);
         }
 
         syncFromGraph() {
@@ -68,14 +79,31 @@ function makeElement(tagName) {
         textContent: "",
         ownerDocument: null,
         appendChild(child) {
+            child.parentElement = this;
             this.children.push(child);
+            return child;
+        },
+        insertBefore(child, before) {
+            child.parentElement = this;
+            const currentIndex = this.children.indexOf(child);
+            if (currentIndex >= 0) this.children.splice(currentIndex, 1);
+            const beforeIndex = this.children.indexOf(before);
+            if (beforeIndex >= 0) this.children.splice(beforeIndex, 0, child);
+            else this.children.push(child);
             return child;
         },
         addEventListener: vi.fn(),
         removeEventListener: vi.fn(),
         setAttribute: vi.fn(),
         remove: vi.fn(),
+        scrollIntoView: vi.fn(),
     };
+
+    Object.defineProperty(el, "firstElementChild", {
+        get() {
+            return this.children[0] || null;
+        },
+    });
 
     let innerHtmlValue = "";
     Object.defineProperty(el, "innerHTML", {
@@ -98,6 +126,8 @@ describe("WorkflowSidebar live sync", () => {
         rendererState.constructed = [];
         rendererState.disposed = [];
         rendererState.synced = [];
+        rendererState.instances = [];
+        rendererState.options = [];
 
         const doc = {
             createElement: vi.fn((tag) => {
@@ -127,29 +157,53 @@ describe("WorkflowSidebar live sync", () => {
             canvas: {
                 selected_nodes: {},
             },
+            graph: {
+                nodes: [],
+            },
         };
     });
 
-    it("rebuilds immediately when the selected canvas nodes change", async () => {
+    it("lists all workflow nodes even when no canvas node is selected", async () => {
         const { WorkflowSidebar } =
             await import("../features/viewer/workflowSidebar/WorkflowSidebar.js");
 
         const nodeA = { id: 11 };
         const nodeB = { id: 22 };
-        bridgeState.app.canvas.selected_nodes = { 11: nodeA };
+        bridgeState.app.graph.nodes = [nodeA, nodeB];
+        bridgeState.app.canvas.selected_nodes = {};
 
         const sidebar = new WorkflowSidebar();
         sidebar.show();
 
-        expect(rendererState.constructed).toEqual([11]);
-        expect(rendererState.synced).toContain(11);
+        expect(rendererState.constructed).toEqual([11, 22]);
+        expect(rendererState.synced).toEqual([11, 22]);
+    });
+
+    it("syncs selection changes without rebuilding the full node list", async () => {
+        const { WorkflowSidebar } =
+            await import("../features/viewer/workflowSidebar/WorkflowSidebar.js");
+
+        const nodeA = { id: 11 };
+        const nodeB = { id: 22 };
+        bridgeState.app.graph.nodes = [nodeA, nodeB];
+
+        const sidebar = new WorkflowSidebar();
+        sidebar.show();
 
         bridgeState.app.canvas.selected_nodes = { 22: nodeB };
         sidebar.syncFromGraph();
 
         expect(rendererState.constructed).toEqual([11, 22]);
-        expect(rendererState.disposed).toContain(11);
-        expect(rendererState.synced.at(-1)).toBe(22);
+        expect(rendererState.disposed).toEqual([]);
+        expect(rendererState.synced.slice(-2)).toEqual([11, 22]);
+        expect(rendererState.instances[0].el.classList.contains("is-selected-from-graph")).toBe(false);
+        expect(rendererState.instances[1].el.classList.contains("is-selected-from-graph")).toBe(true);
+
+        bridgeState.app.canvas.selected_nodes = {};
+        sidebar.syncFromGraph();
+
+        expect(rendererState.instances[0].el.classList.contains("is-selected-from-graph")).toBe(false);
+        expect(rendererState.instances[1].el.classList.contains("is-selected-from-graph")).toBe(false);
     });
 
     it("keeps syncing current node values without forcing a rebuild", async () => {
@@ -157,7 +211,7 @@ describe("WorkflowSidebar live sync", () => {
             await import("../features/viewer/workflowSidebar/WorkflowSidebar.js");
 
         const nodeA = { id: 33 };
-        bridgeState.app.canvas.selected_nodes = { 33: nodeA };
+        bridgeState.app.graph.nodes = [nodeA];
 
         const sidebar = new WorkflowSidebar();
         sidebar.show();
@@ -167,5 +221,43 @@ describe("WorkflowSidebar live sync", () => {
 
         expect(rendererState.constructed).toEqual([33]);
         expect(rendererState.synced).toEqual([33]);
+    });
+
+    it("keeps subgraph inner nodes attached below the selected subgraph", async () => {
+        const { WorkflowSidebar } =
+            await import("../features/viewer/workflowSidebar/WorkflowSidebar.js");
+
+        const outsideNode = { id: 10, type: "PreviewImage" };
+        const innerNode = { id: 30, type: "KSampler" };
+        const subgraphNode = {
+            id: 20,
+            title: "Face Detailer",
+            type: "12345678-1234-1234-1234-123456789abc",
+            subgraph: { nodes: [innerNode] },
+        };
+        bridgeState.app.graph.nodes = [outsideNode, subgraphNode];
+
+        const sidebar = new WorkflowSidebar();
+        sidebar.show();
+
+        const list = sidebar._nodesTab._list;
+        const subgraphRenderer = rendererState.instances[1];
+        const innerRenderer = rendererState.instances[2];
+        const subgraphItem = subgraphRenderer._mjrTreeItemEl;
+
+        expect(rendererState.constructed).toEqual([10, 20, 30]);
+        expect(rendererState.options[1]).toMatchObject({ isSubgraph: true, childCount: 1 });
+        expect(subgraphItem.children[0]).toBe(subgraphRenderer.el);
+        expect(subgraphItem._mjrChildrenEl.children[0]).toBe(innerRenderer._mjrTreeItemEl);
+        expect(subgraphItem._mjrChildrenEl.hidden).toBe(true);
+
+        bridgeState.app.canvas.selected_nodes = { 20: subgraphNode };
+        sidebar.syncFromGraph();
+
+        expect(list.children[0]).toBe(subgraphItem);
+        expect(subgraphItem.children[0]).toBe(subgraphRenderer.el);
+        expect(subgraphItem._mjrChildrenEl.hidden).toBe(false);
+        expect(subgraphItem._mjrChildrenEl.children[0]).toBe(innerRenderer._mjrTreeItemEl);
+        expect(subgraphRenderer.el.classList.contains("is-selected-from-graph")).toBe(true);
     });
 });

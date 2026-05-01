@@ -158,11 +158,14 @@ export function gridListQueryKey(query = {}) {
 
 export function gridQueryHasActiveFilters(query = {}) {
     const normalized = createGridQuery(query);
+    const viewScope = normalized.viewScope && normalized.viewScope !== normalized.scope
+        ? normalized.viewScope
+        : "";
     return !!(
         normalized.subfolder ||
         normalized.customRootId ||
         normalized.collectionId ||
-        normalized.viewScope ||
+        viewScope ||
         normalized.kind ||
         normalized.workflowOnly ||
         normalized.minRating > 0 ||
@@ -174,9 +177,7 @@ export function gridQueryHasActiveFilters(query = {}) {
         normalized.maxHeight > 0 ||
         normalized.workflowType ||
         normalized.dateRange ||
-        normalized.dateExact ||
-        normalized.semanticMode ||
-        normalized.groupStacks
+        normalized.dateExact
     );
 }
 

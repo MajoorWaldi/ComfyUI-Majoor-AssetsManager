@@ -94,7 +94,6 @@ export class WorkflowNodesTab {
     _syncCanvasSelection() {
         const selectedIds = _getSelectedNodeIds();
         const selectedId = selectedIds[0] || "";
-        if (!selectedId) return;
         // Toggle the highlight class on every render so it survives DOM
         // rebuilds (signature changes after adding/removing a node).
         let target = null;
@@ -102,6 +101,10 @@ export class WorkflowNodesTab {
             const isSelected = String(renderer._node?.id ?? "") === selectedId;
             renderer.el?.classList?.toggle("is-selected-from-graph", isSelected);
             if (isSelected) target = renderer;
+        }
+        if (!selectedId) {
+            this._lastSelectedId = "";
+            return;
         }
         if (selectedId === this._lastSelectedId) return;
         this._lastSelectedId = selectedId;
@@ -112,9 +115,11 @@ export class WorkflowNodesTab {
         // top-level nodes go to the very top of the sidebar list. Order
         // resets naturally on the next full rebuild (graph topology change).
         try {
-            const parent = target.el?.parentElement;
-            if (parent && parent.firstElementChild !== target.el) {
-                parent.insertBefore(target.el, parent.firstElementChild);
+            const itemEl = target._mjrTreeItemEl || target.el;
+            this._openTreeBranch(itemEl);
+            const parent = itemEl?.parentElement;
+            if (parent && parent.firstElementChild !== itemEl) {
+                parent.insertBefore(itemEl, parent.firstElementChild);
             }
             target.el?.scrollIntoView({ block: "start", inline: "nearest" });
         } catch (e) {
@@ -123,15 +128,15 @@ export class WorkflowNodesTab {
     }
 
     _maybeRebuildList() {
-        const selected = _getSelectedNodes();
-        const tree = selected.map((node) => ({ node, children: [] }));
+        const tree = _buildNodeTree(_getGraph());
         const q = (this._searchQuery || "").toLowerCase().trim();
         const filtered = q ? _filterTree(tree, q) : tree;
         const sig = _treeSignature(filtered);
 
-        this._syncCanvasSelection();
-
-        if (sig === this._lastNodeSig) return;
+        if (sig === this._lastNodeSig) {
+            this._syncCanvasSelection();
+            return;
+        }
         this._lastNodeSig = sig;
 
         for (const renderer of this._renderers) renderer.dispose();
@@ -146,7 +151,8 @@ export class WorkflowNodesTab {
             return;
         }
 
-        this._renderItems(filtered, this._list, 0);
+        this._renderItems(filtered, this._list, 0, null);
+        this._syncCanvasSelection();
     }
 
     /**
@@ -155,14 +161,25 @@ export class WorkflowNodesTab {
      * @param {HTMLElement} container
      * @param {number} depth
      */
-    _renderItems(items, container, depth) {
+    _renderItems(items, container, depth, parentItem) {
         for (const { node, children } of items) {
             const nodeId = String(node?.id ?? "");
+            const childCount = children.length;
+
+            const itemEl = document.createElement("div");
+            itemEl.className = "mjr-ws-tree-item";
+            itemEl.dataset.nodeId = nodeId;
+            itemEl._mjrNodeId = nodeId;
+            itemEl._mjrParentTreeItem = parentItem || null;
+            if (childCount > 0) itemEl.classList.add("mjr-ws-tree-item--subgraph");
+            if (depth > 0) itemEl.classList.add("mjr-ws-tree-item--nested");
 
             const renderer = new NodeWidgetRenderer(node, {
                 collapsible: true,
                 expanded: this._expandedNodeIds.has(nodeId),
                 depth,
+                isSubgraph: childCount > 0,
+                childCount,
                 onLocate: () => _focusNode(node),
                 onToggle: (expanded) => {
                     if (expanded) {
@@ -175,36 +192,63 @@ export class WorkflowNodesTab {
                     }
                 },
             });
+            renderer._mjrTreeItemEl = itemEl;
             this._renderers.push(renderer);
-            container.appendChild(renderer.el);
+            itemEl.appendChild(renderer.el);
 
-            if (children.length > 0) {
+            if (childCount > 0) {
                 const isOpen = this._expandedChildrenIds.has(nodeId);
 
                 const toggleBtn = document.createElement("button");
                 toggleBtn.type = "button";
                 toggleBtn.className = "mjr-ws-children-toggle";
                 if (depth > 0) toggleBtn.classList.add("mjr-ws-children-toggle--nested");
-                _setChildrenToggleLabel(toggleBtn, children.length, isOpen);
+                _setChildrenToggleLabel(toggleBtn, childCount, isOpen);
 
                 const childrenEl = document.createElement("div");
                 childrenEl.className = "mjr-ws-children";
                 childrenEl.hidden = !isOpen;
+                itemEl._mjrChildrenToggle = toggleBtn;
+                itemEl._mjrChildrenEl = childrenEl;
+                itemEl._mjrChildCount = childCount;
 
-                this._renderItems(children, childrenEl, depth + 1);
+                this._renderItems(children, childrenEl, depth + 1, itemEl);
 
                 toggleBtn.addEventListener("click", () => {
-                    const nowOpen = childrenEl.hidden;
-                    childrenEl.hidden = !nowOpen;
-                    if (nowOpen) this._expandedChildrenIds.add(nodeId);
-                    else this._expandedChildrenIds.delete(nodeId);
-                    _setChildrenToggleLabel(toggleBtn, children.length, nowOpen);
+                    this._setTreeItemChildrenOpen(itemEl, childrenEl.hidden);
                 });
 
-                container.appendChild(toggleBtn);
-                container.appendChild(childrenEl);
+                itemEl.appendChild(toggleBtn);
+                itemEl.appendChild(childrenEl);
             }
+
+            container.appendChild(itemEl);
         }
+    }
+
+    _setTreeItemChildrenOpen(itemEl, open) {
+        if (!itemEl?._mjrChildrenEl || !itemEl?._mjrChildrenToggle) return;
+        const nodeId = String(itemEl._mjrNodeId || "");
+        itemEl._mjrChildrenEl.hidden = !open;
+        if (nodeId) {
+            if (open) this._expandedChildrenIds.add(nodeId);
+            else this._expandedChildrenIds.delete(nodeId);
+        }
+        _setChildrenToggleLabel(
+            itemEl._mjrChildrenToggle,
+            Number(itemEl._mjrChildCount) || 0,
+            open,
+        );
+    }
+
+    _openTreeBranch(itemEl) {
+        let current = itemEl || null;
+        while (current) {
+            const parent = current._mjrParentTreeItem || null;
+            if (parent) this._setTreeItemChildrenOpen(parent, true);
+            current = parent;
+        }
+        this._setTreeItemChildrenOpen(itemEl, true);
     }
 }
 
@@ -230,7 +274,7 @@ function _getSubgraphsFromNode(node) {
         node?.subgraph_instance?.graph,
         node?.inner_graph,
         node?.subgraph_graph,
-    ].filter((g) => g && typeof g === "object" && Array.isArray(g.nodes));
+    ].filter((g) => g && typeof g === "object" && _getGraphNodes(g).length > 0);
 
     // Some GROUP-style nodes expose inner nodes directly as node.nodes
     // (a different array from the parent graph's nodes).
@@ -247,7 +291,7 @@ function _getSubgraphsFromNode(node) {
 function _buildNodeTree(graph, visited = new Set()) {
     if (!graph || visited.has(graph)) return [];
     visited.add(graph);
-    const nodes = Array.isArray(graph.nodes) ? graph.nodes : [];
+    const nodes = _getGraphNodes(graph);
     const result = [];
     for (const node of nodes) {
         if (!node) continue;
@@ -256,6 +300,19 @@ function _buildNodeTree(graph, visited = new Set()) {
         result.push({ node, children });
     }
     return result;
+}
+
+function _getGraphNodes(graph) {
+    if (!graph || typeof graph !== "object") return [];
+
+    if (Array.isArray(graph.nodes)) return graph.nodes.filter(Boolean);
+    if (Array.isArray(graph._nodes)) return graph._nodes.filter(Boolean);
+
+    const byId = graph._nodes_by_id ?? graph.nodes_by_id ?? null;
+    if (byId instanceof Map) return Array.from(byId.values()).filter(Boolean);
+    if (byId && typeof byId === "object") return Object.values(byId).filter(Boolean);
+
+    return [];
 }
 
 /**
@@ -281,7 +338,9 @@ function _treeSignature(items) {
     function collect(arr) {
         for (const { node, children } of arr) {
             ids.push(node.id);
+            ids.push("[");
             collect(children);
+            ids.push("]");
         }
     }
     collect(items);
@@ -341,24 +400,6 @@ function _getSelectedNodeIds() {
         }
     } catch (e) {
         console.debug?.("[MFV] _getSelectedNodeIds", e);
-    }
-    return [];
-}
-
-function _getSelectedNodes() {
-    try {
-        const app = getComfyApp();
-        const selected = app?.canvas?.selected_nodes ?? app?.canvas?.selectedNodes ?? null;
-        if (!selected) return [];
-        if (Array.isArray(selected)) return selected.filter((n) => n && typeof n === "object");
-        if (selected instanceof Map) {
-            return Array.from(selected.values()).filter((n) => n && typeof n === "object");
-        }
-        if (typeof selected === "object") {
-            return Object.values(selected).filter((n) => n && typeof n === "object");
-        }
-    } catch (e) {
-        console.debug?.("[MFV] _getSelectedNodes", e);
     }
     return [];
 }
