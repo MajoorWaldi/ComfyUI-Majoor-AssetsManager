@@ -10,7 +10,7 @@ const SHORTCUT_GUIDE_SECTIONS = Object.freeze([
             { keys: "Ctrl+F / Ctrl+K", description: "Focus search input" },
             { keys: "Ctrl+H", description: "Clear search input" },
             { keys: "D", description: "Toggle details sidebar" },
-            { keys: "V / Ctrl+V / Cmd+V", description: "Toggle Floating Viewer" },
+            { keys: "V", description: "Toggle Floating Viewer" },
         ]),
     },
     {
@@ -49,7 +49,7 @@ const SHORTCUT_GUIDE_SECTIONS = Object.freeze([
         title: "Floating Viewer",
         items: Object.freeze([
             { keys: "Esc", description: "Close Floating Viewer" },
-            { keys: "V / Ctrl+V / Cmd+V", description: "Open or close Floating Viewer" },
+            { keys: "V", description: "Open or close Floating Viewer" },
             { keys: "C", description: "Cycle compare modes: A/B, Side-by-side, Off (Simple mode)" },
             { keys: "K", description: "Toggle KSampler denoising preview" },
             { keys: "L", description: "Toggle final-output Live Stream" },

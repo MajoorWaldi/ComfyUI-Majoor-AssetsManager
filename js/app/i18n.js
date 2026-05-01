@@ -661,7 +661,7 @@ const DICTIONARY = {
             "Version 2.4.1 released: CLIP-based semantic search with AI toggle, rgthree/easy node support, shortcut guide tab, upscaler model extraction. Fixed MFV memory leaks, workflow filters, SQL placeholders. Enhanced geninfo extraction, tag handling, calendar. See CHANGELOG for details.",
         "msg.whatsNew.title.floatingViewerShortcuts": "What's New",
         "msg.whatsNew.body.floatingViewerShortcuts":
-            "Floating Viewer keyboard shortcuts added: Open/close MFV with V or Ctrl/Cmd+V, compare with C, Live Stream with L, and KSampler Preview with K. See the Shortcut Guide tab for the full list.",
+            "Floating Viewer keyboard shortcuts added: Open/close MFV with V, compare with C, Live Stream with L, and KSampler Preview with K. See the Shortcut Guide tab for the full list.",
         "msg.whatsNew.title.pinReference": "What's New",
         "msg.whatsNew.body.pinReference":
             "Floating Viewer: new Pin Reference feature. You can now pin A or B, then compare quickly with selected assets in the grid while keeping the fixed reference.",
@@ -1215,7 +1215,7 @@ const DICTIONARY = {
             "Version 2.4.1 publiee : recherche semantique CLIP avec AI toggle, support rgthree/easy node, onglet shortcut guide, extraction de modele upscaler. Correction de fuites memoire MFV, filtres workflow, SQL placeholders. Amelioration extraction geninfo, gestion tags, calendrier. Voir CHANGELOG pour details.",
         "msg.whatsNew.title.floatingViewerShortcuts": "Quoi de neuf",
         "msg.whatsNew.body.floatingViewerShortcuts":
-            "Nouveaux raccourcis clavier pour le Floating Viewer : ouvrir/fermer le MFV avec V ou Ctrl/Cmd+V, comparaison avec C, Live Stream avec L, et KSampler Preview avec K. Voir l'onglet Shortcut Guide pour la liste complete.",
+            "Nouveaux raccourcis clavier pour le Floating Viewer : ouvrir/fermer le MFV avec V, comparaison avec C, Live Stream avec L, et KSampler Preview avec K. Voir l'onglet Shortcut Guide pour la liste complete.",
         "msg.whatsNew.title.pinReference": "Quoi de neuf",
         "msg.whatsNew.body.pinReference":
             "Floating Viewer : nouvelle fonction Pin Reference. Vous pouvez maintenant epingler A ou B, puis comparer rapidement avec les assets selectionnes dans la grille tout en gardant la reference fixe.",

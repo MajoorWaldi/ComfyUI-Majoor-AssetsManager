@@ -32,7 +32,7 @@ import MessagePopover from "./MessagePopover.vue";
 let extensionMetadataPromise = null;
 
 const VERSION_BADGE_LABEL_CLASS = "mjr-am-version-badge-label";
-const MFV_TOOLTIP_HINT = "V, Ctrl/Cmd+V";
+const MFV_TOOLTIP_HINT = "V";
 
 function getExtensionMetadata() {
     if (!extensionMetadataPromise) {

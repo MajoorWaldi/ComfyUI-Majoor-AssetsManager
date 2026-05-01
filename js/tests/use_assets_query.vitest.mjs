@@ -189,6 +189,36 @@ describe("useAssetsQuery", () => {
         expect(loadAssets).toHaveBeenCalledWith(gridContainer);
     });
 
+    it("does not auto-load while the grid is already loading", async () => {
+        const { createAssetsQueryController } =
+            await import("../vue/composables/useAssetsQuery.js");
+
+        vi.useFakeTimers();
+        apiState.get.mockResolvedValue({
+            ok: true,
+            data: { total_assets: 3 },
+        });
+
+        const gridContainer = createGridContainer();
+        gridContainer._mjrGetGridState = vi.fn(() => ({ loading: true, assets: [] }));
+        const loadAssets = vi.fn(async () => ({ ok: true }));
+
+        const controller = createAssetsQueryController({
+            gridContainer,
+            gridWrapper: createGridWrapper(),
+            gridController: { reloadGrid: vi.fn() },
+            getQuery: () => "*",
+            getScope: () => "output",
+            loadAssets,
+        });
+
+        controller.scheduleAutoLoad(Promise.resolve({ ok: true }), 25);
+        await vi.advanceTimersByTimeAsync(25);
+
+        expect(apiState.get).not.toHaveBeenCalled();
+        expect(loadAssets).not.toHaveBeenCalled();
+    });
+
     it("defers auto-load while the grid host is hidden and resumes when visible again", async () => {
         const { createAssetsQueryController } =
             await import("../vue/composables/useAssetsQuery.js");

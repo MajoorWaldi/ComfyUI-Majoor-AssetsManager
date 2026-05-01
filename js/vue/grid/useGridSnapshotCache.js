@@ -1,4 +1,5 @@
 const GRID_SNAPSHOT_CACHE = new Map();
+const GRID_SNAPSHOT_CACHE_ENABLED = false;
 const GRID_SNAPSHOT_CACHE_MAX = 8;
 const GRID_SNAPSHOT_STORAGE_ASSET_LIMIT = 200;
 const GRID_SNAPSHOT_STORAGE_KEY = "mjr_grid_snapshot_cache_v2";
@@ -8,6 +9,21 @@ const GRID_SNAPSHOT_PERSIST_DEBOUNCE_MS = 1500;
 let gridSnapshotStorageLoaded = false;
 let gridSnapshotPersistTimer = null;
 let gridSnapshotPersistPending = false;
+
+function isGridSnapshotCacheEnabled() {
+    return GRID_SNAPSHOT_CACHE_ENABLED;
+}
+
+function clearStoredGridSnapshots() {
+    try {
+        GRID_SNAPSHOT_CACHE.clear();
+        const storage = gridSnapshotStorage();
+        storage?.removeItem?.(GRID_SNAPSHOT_STORAGE_KEY);
+        globalThis?.sessionStorage?.removeItem?.(GRID_SNAPSHOT_STORAGE_KEY);
+    } catch (e) {
+        console.debug?.(e);
+    }
+}
 
 const GRID_SNAPSHOT_ASSET_FIELDS = [
     "id",
@@ -139,6 +155,10 @@ function gridSnapshotStorage() {
     }
 }
 
+if (!isGridSnapshotCacheEnabled()) {
+    clearStoredGridSnapshots();
+}
+
 function migrateLegacySessionSnapshots(storage) {
     try {
         const legacy = globalThis?.sessionStorage;
@@ -170,6 +190,11 @@ function pruneGridSnapshotCache() {
 }
 
 function loadGridSnapshotsFromStorage() {
+    if (!isGridSnapshotCacheEnabled()) {
+        gridSnapshotStorageLoaded = true;
+        clearStoredGridSnapshots();
+        return;
+    }
     if (gridSnapshotStorageLoaded) return;
     gridSnapshotStorageLoaded = true;
     try {
@@ -192,6 +217,10 @@ function loadGridSnapshotsFromStorage() {
 }
 
 function persistGridSnapshotsToStorageNow() {
+    if (!isGridSnapshotCacheEnabled()) {
+        clearStoredGridSnapshots();
+        return;
+    }
     try {
         pruneGridSnapshotCache();
         const storage = gridSnapshotStorage();
@@ -212,6 +241,11 @@ function persistGridSnapshotsToStorageNow() {
 }
 
 function persistGridSnapshotsToStorage() {
+    if (!isGridSnapshotCacheEnabled()) {
+        clearStoredGridSnapshots();
+        gridSnapshotPersistPending = false;
+        return;
+    }
     gridSnapshotPersistPending = true;
     if (gridSnapshotPersistTimer) return;
     gridSnapshotPersistTimer = setTimeout(() => {
@@ -233,6 +267,7 @@ export function flushGridSnapshotsPersist() {
 }
 
 export function getGridSnapshot(key) {
+    if (!isGridSnapshotCacheEnabled()) return null;
     loadGridSnapshotsFromStorage();
     const snapshot = normalizeGridSnapshot(GRID_SNAPSHOT_CACHE.get(key));
     if (!snapshot) {
@@ -247,11 +282,13 @@ export function getGridSnapshot(key) {
 }
 
 export function hasGridSnapshot(key) {
+    if (!isGridSnapshotCacheEnabled()) return false;
     loadGridSnapshotsFromStorage();
     return !!normalizeGridSnapshot(GRID_SNAPSHOT_CACHE.get(key));
 }
 
 export function rememberGridSnapshot(key, snapshot) {
+    if (!isGridSnapshotCacheEnabled()) return false;
     if (!key || !snapshot || typeof snapshot !== "object") return false;
     const normalized = normalizeGridSnapshot({
         ...snapshot,

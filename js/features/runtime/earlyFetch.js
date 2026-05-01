@@ -18,6 +18,7 @@ import { buildListURL, ENDPOINTS } from "../../api/endpoints.js";
 import { APP_CONFIG } from "../../app/config.js";
 
 const PANEL_STATE_KEY = "mjr_panel_state";
+const EARLY_FETCH_ENABLED = false;
 const ALLOWED_SCOPES = new Set(["output", "input", "all", "custom", "collection"]);
 
 // 15 seconds — wide enough to cover slow ComfyUI startups and delayed sidebar
@@ -165,6 +166,7 @@ function _bindUnloadOnce() {
  * Returns the in-flight promise (or `null` when no window/localStorage).
  */
 export function startEarlyFetch() {
+    if (!EARLY_FETCH_ENABLED) return null;
     if (typeof window === "undefined") return null;
     _bindUnloadOnce();
 
@@ -248,6 +250,7 @@ export function startEarlyFetch() {
  * `null` keys are accepted as "give me whatever was prefetched" (legacy).
  */
 export function consumeEarlyFetch(key = null) {
+    if (!EARLY_FETCH_ENABLED) return null;
     if (!_earlyFetchPromise) return null;
     if (key && _earlyFetchKey !== key) return null;
     const now = Date.now();
@@ -269,6 +272,7 @@ export function consumeEarlyFetch(key = null) {
  * without consuming the promise.
  */
 export function peekEarlyFetchKey() {
+    if (!EARLY_FETCH_ENABLED) return null;
     if (!_earlyFetchPromise) return null;
     if (Date.now() - _earlyFetchTimestamp >= EARLY_FETCH_TTL_MS) return null;
     return _earlyFetchKey;

@@ -1006,7 +1006,9 @@ export function mountVideoControls(video, opts = {}) {
                 if (durationOk) {
                     const p = clamp01((t || 0) / d);
                     const v = Math.round(p * 1000);
-                    if (!Number.isNaN(v) && !seek.matches?.(":active")) seek.value = String(v);
+                    if (!Number.isNaN(v) && !state._seeking && !seek.matches?.(":active")) {
+                        seek.value = String(v);
+                    }
                     try {
                         playhead.style.left = `${p * 100}%`;
                     } catch (e) {
@@ -1468,6 +1470,103 @@ export function mountVideoControls(video, opts = {}) {
         );
 
         // Seeking (range slider)
+        const seekToClientX = (clientX) => {
+            try {
+                const d = Number(video?.duration);
+                if (!Number.isFinite(d) || d <= 0) return false;
+                const rect = seekWrap.getBoundingClientRect?.();
+                const width = Number(rect?.width) || 0;
+                if (!(width > 0)) return false;
+                const x = clamp((Number(clientX) || 0) - Number(rect.left || 0), 0, width);
+                const p = clamp01(x / width);
+                const nextTime = p * d;
+                video.currentTime = nextTime;
+                seek.value = String(Math.round(p * SEEK_RANGE_MAX));
+                updateTimeUI(nextTime);
+                return true;
+            } catch (e) {
+                console.debug?.(e);
+                return false;
+            }
+        };
+
+        const seekDrag = { active: false, pointerId: null, ac: null };
+
+        const endSeekDrag = (e = null) => {
+            if (!seekDrag.active) return;
+            if (e) preventStop(e);
+            seekDrag.active = false;
+            state._seeking = false;
+            try {
+                seekWrap.releasePointerCapture?.(seekDrag.pointerId);
+            } catch (err) {
+                console.debug?.(err);
+            }
+            seekDrag.pointerId = null;
+            try {
+                seekDrag.ac?.abort?.();
+            } catch (err) {
+                console.debug?.(err);
+            }
+            seekDrag.ac = null;
+            updateTimeUI();
+        };
+
+        const moveSeekDrag = (e) => {
+            if (!seekDrag.active) return;
+            preventStop(e);
+            seekToClientX(e.clientX);
+        };
+
+        const startSeekDrag = (e) => {
+            try {
+                if (e?.button != null && e.button !== 0) return;
+                if (e?.target?.closest?.(".mjr-video-seek-handle, .mjr-video-seek-mark")) return;
+            } catch (err) {
+                console.debug?.(err);
+            }
+            preventStop(e);
+            tryAutoUnmute();
+            state._seeking = true;
+            seekDrag.active = true;
+            seekDrag.pointerId = e?.pointerId ?? null;
+            seekToClientX(e?.clientX);
+            try {
+                seekWrap.setPointerCapture?.(seekDrag.pointerId);
+            } catch (err) {
+                console.debug?.(err);
+            }
+            try {
+                seekDrag.ac?.abort?.();
+            } catch (err) {
+                console.debug?.(err);
+            }
+            try {
+                const ac = new AbortController();
+                seekDrag.ac = ac;
+                window.addEventListener("pointermove", moveSeekDrag, {
+                    passive: false,
+                    capture: true,
+                    signal: ac.signal,
+                });
+                window.addEventListener("pointerup", endSeekDrag, {
+                    passive: false,
+                    capture: true,
+                    signal: ac.signal,
+                });
+                window.addEventListener("pointercancel", endSeekDrag, {
+                    passive: false,
+                    capture: true,
+                    signal: ac.signal,
+                });
+                window.addEventListener("blur", endSeekDrag, { signal: ac.signal });
+            } catch (err) {
+                console.debug?.(err);
+            }
+        };
+
+        unsubs.push(() => endSeekDrag());
+        unsubs.push(safeAddListener(seekWrap, "pointerdown", startSeekDrag, { passive: false }));
         unsubs.push(
             safeAddListener(seek, "pointerdown", () => {
                 state._seeking = true;
@@ -1475,7 +1574,12 @@ export function mountVideoControls(video, opts = {}) {
         );
         unsubs.push(
             safeAddListener(seek, "pointerup", () => {
-                state._seeking = false;
+                if (!seekDrag.active) state._seeking = false;
+            }),
+        );
+        unsubs.push(
+            safeAddListener(seek, "pointercancel", () => {
+                if (!seekDrag.active) state._seeking = false;
             }),
         );
         unsubs.push(

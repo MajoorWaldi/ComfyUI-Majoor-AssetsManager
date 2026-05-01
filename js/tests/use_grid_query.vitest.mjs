@@ -122,6 +122,27 @@ describe("useGridQuery helpers", () => {
         expect(gridQueryKey(defaultQuery)).toBe(gridQueryKey(createGridQuery({ q: "*" })));
     });
 
+    it("does not treat UI-only modes as active search filters", () => {
+        const groupedDefaultOutput = createGridQuery({
+            scope: "output",
+            q: "*",
+            sort: "mtime_desc",
+            viewScope: "output",
+            semanticMode: true,
+            groupStacks: true,
+        });
+
+        expect(gridQueryHasActiveFilters(groupedDefaultOutput)).toBe(false);
+        expect(isDefaultOutputBrowseQuery(groupedDefaultOutput)).toBe(true);
+    });
+
+    it("treats a virtual view scope as an active filter", () => {
+        const similarView = createGridQuery({ scope: "output", viewScope: "similar" });
+
+        expect(gridQueryHasActiveFilters(similarView)).toBe(true);
+        expect(isDefaultOutputBrowseQuery(similarView)).toBe(false);
+    });
+
     it("builds the list key used by early fetch without UI-only fields", () => {
         const query = createGridQuery({
             scope: "output",

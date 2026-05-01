@@ -135,17 +135,22 @@ function _getSelectedCanvasNodes() {
     return [];
 }
 
+function _getGraph() {
+    return _appRef?.graph ?? _appRef?.canvas?.graph ?? null;
+}
+
 function _getNodeById(nodeId) {
-    if (nodeId == null || !_appRef?.graph) return null;
+    const graph = _getGraph();
+    if (nodeId == null || !graph) return null;
     try {
-        return _appRef.graph.getNodeById(Number(nodeId)) || null;
+        return graph.getNodeById?.(Number(nodeId)) || null;
     } catch {
         return null;
     }
 }
 
 function _getAllGraphNodes() {
-    const graph = _appRef?.graph;
+    const graph = _getGraph();
     if (!graph) return [];
 
     if (Array.isArray(graph._nodes)) {
@@ -183,7 +188,8 @@ function _findTargetNodeIdByInputLink(linkId) {
 function _getGraphLinkRecord(linkId) {
     if (linkId == null) return null;
 
-    const graphLinks = _appRef?.graph?.links ?? _appRef?.graph?._links ?? null;
+    const graph = _getGraph();
+    const graphLinks = graph?.links ?? graph?._links ?? null;
     if (!graphLinks) return null;
 
     const numericId = Number(linkId);
@@ -437,7 +443,7 @@ function _getWatchedNode() {
 }
 
 function _emitPreviewFromWatchedNode({ force = false } = {}) {
-    if (!_active || !_outputCallback || !_appRef?.graph) return;
+    if (!_active || !_outputCallback || !_getGraph()) return;
 
     const node = _getWatchedNode();
     const nodeId = node ? String(node.id ?? "") : null;

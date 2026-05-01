@@ -88,6 +88,42 @@ describe("InfiniteScroll upsert", () => {
         }
     });
 
+    it("keeps UI-only modes out of the primary grid list request", async () => {
+        const buildListURL = vi.fn(() => "/mjr/am/list");
+        const deps = {
+            sanitizeQuery: (value) => value,
+            buildListURL,
+            get: vi.fn(async () => ({
+                ok: true,
+                data: { assets: [], total: null, limit: 100, offset: 0 },
+            })),
+            getGridState: () => ({ requestId: 1 }),
+        };
+
+        await fetchPage(
+            {
+                dataset: {
+                    mjrScope: "output",
+                    mjrSort: "mtime_desc",
+                    mjrSemanticMode: "1",
+                    mjrGroupStacks: "1",
+                },
+            },
+            "*",
+            100,
+            0,
+            deps,
+            { requestId: 1 },
+        );
+
+        expect(buildListURL).toHaveBeenCalledWith(
+            expect.objectContaining({
+                includeTotal: false,
+                groupStacks: false,
+            }),
+        );
+    });
+
     it("uses offset pagination without sending stale cursors on later pages", async () => {
         const buildListURL = vi.fn(() => "/mjr/am/list");
         const deps = {

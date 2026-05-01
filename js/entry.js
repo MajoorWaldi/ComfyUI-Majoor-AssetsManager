@@ -106,6 +106,72 @@ const EXECUTION_RUNTIME_KEY = "__MJR_EXECUTION_RUNTIME__";
 const EXTENSION_NAME = "Majoor.AssetsManager";
 let _lastExecutionBackendSync = { active: null, promptId: "" };
 let _deferredGridReloadTimer = null;
+const NODE_STREAM_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const NODE_STREAM_HASH_RE = /^[0-9a-f]{20,}$/i;
+
+function _nodeStreamFirstText(...values) {
+    for (const value of values) {
+        const text = String(value || "").trim();
+        if (text) return text;
+    }
+    return "";
+}
+
+function _isOpaqueNodeStreamType(type) {
+    const text = String(type || "").trim();
+    return NODE_STREAM_UUID_RE.test(text) || NODE_STREAM_HASH_RE.test(text);
+}
+
+function _getNodeStreamTitle(node) {
+    return _nodeStreamFirstText(
+        node?.title,
+        node?.properties?.title,
+        node?.properties?.name,
+        node?.properties?.label,
+        node?.name,
+    );
+}
+
+function _getNodeStreamGraphNodes(graph) {
+    if (!graph || typeof graph !== "object") return [];
+    if (Array.isArray(graph.nodes)) return graph.nodes.filter(Boolean);
+    if (Array.isArray(graph._nodes)) return graph._nodes.filter(Boolean);
+    const byId = graph._nodes_by_id ?? graph.nodes_by_id ?? null;
+    if (byId instanceof Map) return Array.from(byId.values()).filter(Boolean);
+    if (byId && typeof byId === "object") return Object.values(byId).filter(Boolean);
+    return [];
+}
+
+function _nodeStreamHasGraphNodes(graph) {
+    return _getNodeStreamGraphNodes(graph).length > 0;
+}
+
+function _isNodeStreamSubgraph(node) {
+    if (!node || typeof node !== "object") return false;
+    const candidates = [
+        node.subgraph,
+        node._subgraph,
+        node.subgraph?.graph,
+        node.subgraph?.lgraph,
+        node.properties?.subgraph,
+        node.subgraph_instance,
+        node.subgraph_instance?.graph,
+        node.inner_graph,
+        node.subgraph_graph,
+    ];
+    if (candidates.some(_nodeStreamHasGraphNodes)) return true;
+    if (Array.isArray(node.nodes) && node.nodes.length > 0 && node.nodes !== node.graph?.nodes) {
+        return true;
+    }
+    return _isOpaqueNodeStreamType(node.type) && Boolean(_getNodeStreamTitle(node));
+}
+
+function _getNodeStreamClassLabel(node, fallbackClassType) {
+    const type = String(node?.type || fallbackClassType || "").trim();
+    const title = _getNodeStreamTitle(node);
+    if (_isOpaqueNodeStreamType(type)) return title || "Subgraph";
+    return type || title || "Node";
+}
 
 // ── execution runtime helpers ─────────────────────────────────────────────────
 
@@ -230,12 +296,17 @@ function setupLazyModules(runtimeApp) {
                     onOutput: (fileData) => floatingViewerManager.feedNodeStream(fileData),
                     onStatus: (nodeId, classType) => {
                         try {
-                            const node = runtimeApp?.graph?.getNodeById?.(Number(nodeId));
-                            const title = node?.title || "";
+                            const graph = runtimeApp?.graph ?? runtimeApp?.canvas?.graph ?? null;
+                            const node = graph?.getNodeById?.(Number(nodeId));
+                            const isSubgraph = _isNodeStreamSubgraph(node);
+                            const title = _getNodeStreamTitle(node);
+                            const displayClass = isSubgraph
+                                ? "Subgraph"
+                                : _getNodeStreamClassLabel(node, classType);
                             floatingViewerManager.setNodeStreamSelection?.(
                                 nodeId,
-                                classType,
-                                title,
+                                displayClass,
+                                isSubgraph ? title || _getNodeStreamClassLabel(node, classType) : title,
                             );
                         } catch (err) {
                             console.debug?.("[NodeStream] onStatus failed", err);

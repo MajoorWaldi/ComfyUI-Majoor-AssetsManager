@@ -4,9 +4,7 @@ import { appendTooltipHint, setTooltipHint } from "../utils/tooltipShortcuts.js"
 
 describe("tooltipShortcuts", () => {
     it("appends shortcut hints once", () => {
-        expect(appendTooltipHint("Open Floating Viewer", "V, Ctrl/Cmd+V")).toBe(
-            "Open Floating Viewer (V, Ctrl/Cmd+V)",
-        );
+        expect(appendTooltipHint("Open Floating Viewer", "V")).toBe("Open Floating Viewer (V)");
         expect(appendTooltipHint("Close sidebar (Esc)", "Esc")).toBe("Close sidebar (Esc)");
         expect(appendTooltipHint("Mode: A/B Compare - click to switch", "C")).toBe(
             "Mode: A/B Compare - click to switch (C)",

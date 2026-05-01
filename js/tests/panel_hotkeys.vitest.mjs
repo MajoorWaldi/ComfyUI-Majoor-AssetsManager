@@ -83,7 +83,7 @@ beforeEach(() => {
 });
 
 describe("panelHotkeysController", () => {
-    it("toggles the floating viewer with Ctrl+V when the panel is active", () => {
+    it("does not toggle the floating viewer with modified V so paste remains available", () => {
         const onToggleFloatingViewer = vi.fn();
         const controller = createPanelHotkeysController({ onToggleFloatingViewer });
         const boundEl = createBoundElement();
@@ -94,10 +94,10 @@ describe("panelHotkeysController", () => {
         const event = createKeyEvent("v", null, { ctrlKey: true });
         window.dispatchEvent({ type: "keydown", ...event });
 
-        expect(onToggleFloatingViewer).toHaveBeenCalledTimes(1);
-        expect(event.preventDefault).toHaveBeenCalledTimes(1);
-        expect(event.stopPropagation).toHaveBeenCalledTimes(1);
-        expect(event.stopImmediatePropagation).toHaveBeenCalledTimes(1);
+        expect(onToggleFloatingViewer).not.toHaveBeenCalled();
+        expect(event.preventDefault).not.toHaveBeenCalled();
+        expect(event.stopPropagation).not.toHaveBeenCalled();
+        expect(event.stopImmediatePropagation).not.toHaveBeenCalled();
     });
 
     it("toggles the floating viewer with plain V when body focus is on the panel context", () => {

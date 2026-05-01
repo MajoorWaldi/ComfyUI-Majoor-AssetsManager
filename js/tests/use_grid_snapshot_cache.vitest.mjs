@@ -82,7 +82,7 @@ describe("useGridSnapshotCache", () => {
         expect(compact.tags).toHaveLength(80);
     });
 
-    it("remembers and retrieves normalized snapshots", () => {
+    it("does not remember snapshots while the snapshot cache is disabled", () => {
         const key = buildGridSnapshotKey({ scope: "output", query: "*", sort: "mtime_desc" });
 
         expect(
@@ -94,17 +94,10 @@ describe("useGridSnapshotCache", () => {
                 query: "*",
                 title: "Output",
             }),
-        ).toBe(true);
+        ).toBe(false);
 
-        expect(hasGridSnapshot(key)).toBe(true);
-        expect(getGridSnapshot(key)).toMatchObject({
-            assets: [{ id: 1, filename: "one.png", kind: "image" }],
-            total: 50,
-            offset: 1,
-            done: false,
-            query: "*",
-            title: "Output",
-        });
+        expect(hasGridSnapshot(key)).toBe(false);
+        expect(getGridSnapshot(key)).toBeNull();
     });
 
     it("rejects expired or empty snapshots", () => {

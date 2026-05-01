@@ -5215,13 +5215,36 @@ body.mjr-mfv-popout-body {
 }
 
 /* ── Node sections ────────────────────────────────────────────────────── */
+.mjr-ws-tree-item {
+    border-bottom: 1px solid var(--mjr-border, rgba(255, 255, 255, 0.12));
+}
+.mjr-ws-tree-item > .mjr-ws-node {
+    border-bottom: none;
+}
+.mjr-ws-tree-item--subgraph {
+    background: color-mix(in srgb, var(--mjr-accent, #5b8af0) 4%, transparent 96%);
+}
 .mjr-ws-node {
     border-bottom: 1px solid var(--mjr-border, rgba(255, 255, 255, 0.12));
 }
 /* Subtle highlight when this node matches the current graph selection. */
 .mjr-ws-node.is-selected-from-graph {
-    background: rgba(120, 170, 255, 0.08);
-    box-shadow: inset 2px 0 0 0 rgba(120, 170, 255, 0.55);
+    background: rgba(255, 210, 90, 0.08);
+    box-shadow: inset 2px 0 0 0 rgba(255, 210, 90, 0.75);
+}
+.mjr-ws-node.is-selected-from-graph .mjr-ws-node-header {
+    background: color-mix(in srgb, #ffd45a 18%, var(--mjr-surface-1, #2a2a2a) 82%);
+}
+.mjr-ws-node.is-selected-from-graph .mjr-ws-node-type {
+    color: #ffd45a;
+}
+.mjr-ws-node.is-selected-from-graph .mjr-ws-node-title {
+    color: rgba(255, 224, 130, 0.88);
+}
+.mjr-ws-node.is-selected-from-graph .mjr-ws-node-toggle,
+.mjr-ws-node.is-selected-from-graph .mjr-ws-locate,
+.mjr-ws-node.is-selected-from-graph .mjr-ws-node-kind {
+    color: #ffd45a;
 }
 .mjr-ws-sidebar-resizer {
     position: absolute;
@@ -5315,6 +5338,33 @@ body.mjr-mfv-popout-body {
     overflow: hidden;
     text-overflow: ellipsis;
 }
+.mjr-ws-node-kind {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    flex: 0 0 auto;
+    max-width: 110px;
+    padding: 2px 6px;
+    border: 1px solid color-mix(in srgb, var(--mjr-accent, #5b8af0) 38%, transparent 62%);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--mjr-accent, #5b8af0) 12%, transparent 88%);
+    color: color-mix(in srgb, var(--mjr-accent, #5b8af0) 78%, #ffffff 22%);
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1.2;
+    white-space: nowrap;
+}
+.mjr-ws-node-kind .pi {
+    font-size: 10px;
+}
+.mjr-ws-node-kind-count {
+    min-width: 14px;
+    padding: 0 3px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.12);
+    color: rgba(255, 255, 255, 0.82);
+    text-align: center;
+}
 .mjr-ws-node.is-collapsed .mjr-ws-node-body {
     display: none;
 }
@@ -5372,6 +5422,7 @@ body.mjr-mfv-popout-body {
 .mjr-ws-children {
     border-left: 2px solid rgba(91, 138, 240, 0.25);
     margin-left: 6px;
+    padding-left: 6px;
 }
 
 
