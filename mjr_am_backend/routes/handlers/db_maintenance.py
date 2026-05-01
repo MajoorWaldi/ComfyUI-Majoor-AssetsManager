@@ -1275,6 +1275,19 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
         if not payload_res.ok:
             return _json_response(payload_res)
         payload = payload_res.data or {}
+
+        try:
+            svc_gate, err_gate = await _require_services()
+        except Exception:
+            svc_gate, err_gate = None, None
+        if not err_gate and isinstance(svc_gate, dict):
+            prefs = await _resolve_security_prefs(svc_gate)
+            if prefs is not None:
+                op = _require_operation_enabled("reset_index", prefs=prefs)
+                if not op.ok:
+                    return _json_response(op)
+            else:
+                logger.warning("Restore DB: security prefs unavailable, skipping reset_index gate")
         requested_name = str(payload.get("name") or "").strip()
         use_latest = bool(payload.get("use_latest") or not requested_name)
 

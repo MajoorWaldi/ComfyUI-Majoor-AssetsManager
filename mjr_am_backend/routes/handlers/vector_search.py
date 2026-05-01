@@ -27,6 +27,7 @@ from ...shared import Result, get_logger
 from ..core import (
     _csrf_error,
     _json_response,
+    _read_json,
     _require_services,
     _require_write_access,
     safe_error_message,
@@ -40,6 +41,7 @@ _VECTOR_RATE_LIMIT_MAX = 30
 _VECTOR_RATE_LIMIT_WINDOW = 60
 _VECTOR_HEAVY_RATE_LIMIT_MAX = 10
 _VECTOR_HEAVY_RATE_LIMIT_WINDOW = 60
+_VECTOR_SUGGEST_BODY_MAX_BYTES = 4096
 _VECTOR_VALID_SCOPES = {"output", "input", "custom", "all"}
 
 
@@ -978,6 +980,9 @@ def register_vector_search_routes(routes: web.RouteTableDef) -> None:
         Body params (JSON):
           k: number of clusters (default: 8, range: 2-20)
         """
+        csrf = _csrf_error(request)
+        if csrf:
+            return _json_response(Result.Err("CSRF", csrf))
         allowed, retry = _check_rate_limit(
             request, "vector_suggest",
             max_requests=5,
@@ -1000,8 +1005,11 @@ def register_vector_search_routes(routes: web.RouteTableDef) -> None:
                 Result.Err("SERVICE_UNAVAILABLE", "Vector search is unavailable.")
             )
 
+        body_res = await _read_json(request, max_bytes=_VECTOR_SUGGEST_BODY_MAX_BYTES)
+        if not body_res.ok:
+            return _json_response(body_res)
+        body = body_res.data or {}
         try:
-            body = await request.json()
             k = int(body.get("k", 8))
         except Exception:
             k = 8

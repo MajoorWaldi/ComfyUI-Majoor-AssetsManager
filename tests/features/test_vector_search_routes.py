@@ -748,14 +748,16 @@ async def test_vector_suggest_collections_route_returns_clusters(monkeypatch) ->
     monkeypatch.setattr(vector_search, "is_vector_search_enabled", lambda: True)
     monkeypatch.setattr(vector_search, "_require_vector_services", lambda services: (services.get("vector_searcher"), None))
     monkeypatch.setattr(vector_search, "_check_rate_limit", lambda *_args, **_kwargs: (True, None))
+    monkeypatch.setattr(vector_search, "_csrf_error", lambda _request: None)
 
     app = _build_vector_app()
     req = make_mocked_request("POST", "/mjr/am/vector/suggest-collections", app=app)
 
-    async def _json_body():
-        return {"k": 2}
+    async def _read_json_body(_request, *, max_bytes=None):
+        assert max_bytes == vector_search._VECTOR_SUGGEST_BODY_MAX_BYTES
+        return Result.Ok({"k": 2})
 
-    req.json = _json_body  # type: ignore[assignment]
+    monkeypatch.setattr(vector_search, "_read_json", _read_json_body)
     match = await app.router.resolve(req)
     req._match_info = match
     resp = await match.handler(req)
@@ -764,3 +766,23 @@ async def test_vector_suggest_collections_route_returns_clusters(monkeypatch) ->
     assert body.get("ok") is True
     assert isinstance(body.get("data"), list)
     assert len(body.get("data") or []) >= 1
+
+
+@pytest.mark.asyncio
+async def test_vector_suggest_collections_requires_csrf(monkeypatch) -> None:
+    async def _require_services():
+        raise AssertionError("services should not be required when CSRF fails")
+
+    monkeypatch.setattr(vector_search, "_require_services", _require_services)
+    monkeypatch.setattr(vector_search, "_csrf_error", lambda _request: "Missing anti-CSRF header")
+    monkeypatch.setattr(vector_search, "_check_rate_limit", lambda *_args, **_kwargs: (True, None))
+
+    app = _build_vector_app()
+    req = make_mocked_request("POST", "/mjr/am/vector/suggest-collections", app=app)
+    match = await app.router.resolve(req)
+    req._match_info = match
+    resp = await match.handler(req)
+    body = _json_from_response(resp)
+
+    assert body.get("ok") is False
+    assert body.get("code") == "CSRF"
