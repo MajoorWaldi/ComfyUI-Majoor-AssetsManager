@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ensureWindowStub, mockPartialVue } from "./helpers/vitestEnvironment.mjs";
 
@@ -32,6 +32,8 @@ vi.mock("../app/config.js", () => ({
     APP_CONFIG: {
         DEFAULT_PAGE_SIZE: 100,
         MAX_PAGE_SIZE: 2000,
+        PREFETCH_NEXT_PAGE: true,
+        PREFETCH_NEXT_PAGE_DELAY_MS: 700,
     },
 }));
 
@@ -83,9 +85,14 @@ describe("useGridLoader adaptive paging", () => {
     beforeEach(() => {
         vi.resetModules();
         vi.clearAllMocks();
+        vi.useRealTimers();
         globalThis.sessionStorage = makeStorage();
         globalThis.localStorage = makeStorage();
         ensureWindowStub();
+    });
+
+    afterEach(() => {
+        vi.useRealTimers();
     });
 
     it("increases page size when successive pages add no visible cards", async () => {
@@ -144,6 +151,67 @@ describe("useGridLoader adaptive paging", () => {
         expect(requestedLimits).toEqual([100, 200, 400]);
         expect(requestedOffsets).toEqual([0, 100, 300]);
         expect(state.offset).toBe(700);
+    });
+
+    it("schedules another page attempt when consumed pages add no visible cards", async () => {
+        vi.useFakeTimers();
+        const { useGridLoader } = await import("../vue/composables/useGridLoader.js");
+
+        const requestedOffsets = [];
+        fetchGridPageMock.mockImplementation(async (_grid, _query, limit, offset) => {
+            requestedOffsets.push(offset);
+            return {
+                ok: true,
+                assets: Array.from({ length: limit }, (_, index) => ({
+                    id: `${offset}-${index}`,
+                })),
+                total: 8000,
+                count: limit,
+                limit,
+                offset,
+            };
+        });
+        appendAssetsMock.mockReturnValue(0);
+
+        const state = {
+            loading: false,
+            done: false,
+            total: 8000,
+            offset: 0,
+            requestId: 1,
+            abortController: null,
+            query: "*",
+            assets: [],
+            activeId: "",
+            statusMessage: "",
+            statusError: false,
+        };
+
+        const loader = useGridLoader({
+            gridContainerRef: { value: createVisibleElement({ dataset: {} }) },
+            state,
+            setLoadingMessage: vi.fn(),
+            clearLoadingMessage: vi.fn(),
+            setStatusMessage: vi.fn(),
+            clearStatusMessage: vi.fn(),
+            resetAssets: vi.fn(),
+            setSelection: vi.fn(),
+            reconcileSelection: vi.fn(),
+            readScrollElement: () => createVisibleElement(),
+            readRenderedCards: () => [],
+            scrollToAssetId: vi.fn(),
+        });
+
+        const result = await loader.loadNextPage();
+
+        expect(result).toMatchObject({ ok: true, skippedEmpty: true });
+        expect(requestedOffsets).toEqual([0, 100, 300, 700, 1500, 3100]);
+
+        await vi.advanceTimersByTimeAsync(251);
+        await Promise.resolve();
+        await Promise.resolve();
+
+        expect(requestedOffsets.length).toBeGreaterThan(6);
     });
 
     it("does not stop infinite scroll when default output browse returns a page-sized total", async () => {
@@ -653,6 +721,72 @@ describe("useGridLoader adaptive paging", () => {
         expect(state2.offset).toBe(2);
         expect(state2.total).toBe(50);
         expect(state2.done).toBe(false);
+    });
+
+    it("pages through an 8000+ asset library across repeated scroll loads", async () => {
+        const { useGridLoader } = await import("../vue/composables/useGridLoader.js");
+
+        const total = 8200;
+        const requestedOffsets = [];
+        fetchGridPageMock.mockImplementation(async (_grid, _query, limit, offset) => {
+            requestedOffsets.push(offset);
+            const end = Math.min(total, offset + limit);
+            return {
+                ok: true,
+                assets: Array.from({ length: Math.max(0, end - offset) }, (_, index) => ({
+                    id: `asset-${offset + index + 1}`,
+                })),
+                total,
+                count: end - offset,
+                limit,
+                offset,
+            };
+        });
+        appendAssetsMock.mockImplementation((_grid, assets, state) => {
+            const list = Array.isArray(assets) ? assets : [];
+            state.assets = [...(Array.isArray(state.assets) ? state.assets : []), ...list];
+            return list.length;
+        });
+
+        const state = {
+            loading: false,
+            done: false,
+            total,
+            offset: 0,
+            requestId: 1,
+            abortController: null,
+            query: "*",
+            assets: [],
+            activeId: "",
+            statusMessage: "",
+            statusError: false,
+        };
+
+        const loader = useGridLoader({
+            gridContainerRef: { value: createVisibleElement({ dataset: {} }) },
+            state,
+            setLoadingMessage: vi.fn(),
+            clearLoadingMessage: vi.fn(),
+            setStatusMessage: vi.fn(),
+            clearStatusMessage: vi.fn(),
+            resetAssets: vi.fn(),
+            setSelection: vi.fn(),
+            reconcileSelection: vi.fn(),
+            readScrollElement: () => createVisibleElement(),
+            readRenderedCards: () => [],
+            scrollToAssetId: vi.fn(),
+        });
+
+        for (let guard = 0; guard < 100 && !state.done; guard += 1) {
+            const result = await loader.loadNextPage();
+            expect(result.ok).toBe(true);
+        }
+
+        expect(state.done).toBe(true);
+        expect(state.offset).toBe(total);
+        expect(state.assets).toHaveLength(total);
+        expect(requestedOffsets.length).toBeGreaterThan(10);
+        expect(requestedOffsets.at(-1)).toBe(8200 - 100);
     });
 
     it("can replace existing assets from a cached snapshot during a scope switch", async () => {

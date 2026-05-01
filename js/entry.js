@@ -68,6 +68,7 @@ import { reportError, mjrDbg } from "./utils/logging.js";
 import { app } from "../../scripts/app.js";
 import { registerRealtimeListeners } from "./features/runtime/registerRealtimeListeners.js";
 import { exposeDebugApis } from "./features/runtime/entryDebugApi.js";
+import { installBenignConsoleNoiseFilter } from "./features/runtime/benignConsoleNoise.js";
 import {
     buildBottomPanelTabs,
     buildNativeCommands,
@@ -105,8 +106,6 @@ const EXECUTION_RUNTIME_KEY = "__MJR_EXECUTION_RUNTIME__";
 const EXTENSION_NAME = "Majoor.AssetsManager";
 let _lastExecutionBackendSync = { active: null, promptId: "" };
 let _deferredGridReloadTimer = null;
-let _autoReloadInterval = null;
-const AUTO_RELOAD_INTERVAL_MS = 8000;
 
 // ── execution runtime helpers ─────────────────────────────────────────────────
 
@@ -201,33 +200,6 @@ function scheduleGridReloadWhenIdle(delayMs = 1200) {
         },
         Math.max(250, Number(delayMs) || 0),
     );
-}
-
-/**
- * Periodic auto-reload of the grid. Fires every AUTO_RELOAD_INTERVAL_MS as
- * long as a panel grid is mounted and visible. Skips ticks during execution
- * or when a load is already in flight to avoid stomping on the user.
- */
-function startAutoReloadLoop() {
-    if (_autoReloadInterval) return;
-    _autoReloadInterval = setInterval(() => {
-        try {
-            if (isExecutionActive()) return;
-            const grid = getActiveGridContainer();
-            if (!grid) return;
-            // Visibility gate: only reload when panel actually rendered.
-            const rect = grid.getBoundingClientRect?.();
-            if (!rect || rect.width < 50 || rect.height < 50) return;
-            // Skip if a load is already in flight — the skeleton overlay
-            // signals an active load. Re-firing would abort it via the
-            // useGridLoader AbortController and we'd never finish loading.
-            const overlay = grid.querySelector?.(".mjr-grid-loading-overlay");
-            if (overlay && overlay.offsetWidth > 0) return;
-            loadAssets(grid);
-        } catch (e) {
-            console.debug?.("[MJR] auto-reload tick failed", e);
-        }
-    }, AUTO_RELOAD_INTERVAL_MS);
 }
 
 // ── lazy module initialisation ─────────────────────────────────────────────────
@@ -382,6 +354,7 @@ app.registerExtension({
             teardownTopBarMfvButton,
             reportError,
         });
+        installBenignConsoleNoiseFilter();
 
         // 2. Resolve the ComfyUI app reference (may take a few frames to be ready).
         setComfyApp(app);
@@ -426,10 +399,7 @@ app.registerExtension({
             void checkMajoorVersion();
         }, 5000);
 
-        // 9. Periodic grid auto-reload (every AUTO_RELOAD_INTERVAL_MS).
-        startAutoReloadLoop();
-
-        // 8b. Proactive early fetch — start the first assets page in the background
+        // 9. Proactive early fetch — start the first assets page in the background
         //     so the data is ready (or already in-flight) when the user opens the
         //     sidebar. Fire immediately: previous 800ms timeout was wasted latency
         //     that delayed the first paint when the user clicked the sidebar fast.

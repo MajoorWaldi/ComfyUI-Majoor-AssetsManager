@@ -45,41 +45,54 @@ const AUDIO_BARS = [
  * Load image using the session blob cache for instant re-access.
  * Falls back to direct URL if cache fails.
  */
-async function loadImageBlob(url) {
+async function loadImageBlob(url, options = {}) {
     if (!url) return null;
     try {
-        if (MediaBlobCache.hasError(url)) return url;
-        const cachedUrl = await MediaBlobCache.acquireUrl(url);
-        return cachedUrl || url;
+        if (MediaBlobCache.hasError(url)) return null;
+        const cachedUrl = await MediaBlobCache.acquireUrl(url, options);
+        return cachedUrl || null;
     } catch {
-        return url;
+        return null;
     }
+}
+
+function waitForImageBlobLoadWindow() {
+    return new Promise((resolve) => setTimeout(resolve, 120));
 }
 
 /**
  * Load video thumbnail using the session blob cache for instant re-access.
  * Falls back to direct URL if cache fails.
  */
-async function observeVideoThumb(video) {
+async function ensureVideoThumbSource(video) {
     if (!video) return;
     try {
         const src = String(video.dataset?.src || "").trim();
         if (!src || video.getAttribute("src")) return;
+        const requestId = (Number(video._mjrVideoLoadRequestId || 0) || 0) + 1;
+        video._mjrVideoLoadRequestId = requestId;
 
         // Check if already errored
         if (MediaBlobCache.hasError(src)) {
             video.src = src; // Let browser show error
+            video._mjrSourceKey = src;
             return;
         }
 
         // Try to get from blob cache (or fetch + cache)
         const cachedUrl = await MediaBlobCache.acquireUrl(src);
+        if (video._mjrVideoLoadRequestId !== requestId || !video.isConnected) {
+            if (cachedUrl) MediaBlobCache.releaseUrl(src);
+            return;
+        }
         if (cachedUrl) {
             video.src = cachedUrl;
             video._mjrCachedSrc = src; // Track original URL for release
+            video._mjrSourceKey = src;
         } else {
             // Fallback to direct URL if blob cache fails
             video.src = src;
+            video._mjrSourceKey = src;
         }
         video.load?.();
     } catch (e) {
@@ -89,16 +102,45 @@ async function observeVideoThumb(video) {
             const src = String(video.dataset?.src || "").trim();
             if (src && !video.getAttribute("src")) {
                 video.src = src;
+                video._mjrSourceKey = src;
                 video.load?.();
             }
         } catch {}
     }
 }
 
+function releaseVideoThumbSource(video) {
+    if (!video) return;
+    try {
+        video._mjrVideoLoadRequestId = (Number(video._mjrVideoLoadRequestId || 0) || 0) + 1;
+        video.pause?.();
+    } catch (e) {
+        console.debug?.(e);
+    }
+    try {
+        const sourceKey = String(video._mjrCachedSrc || "").trim();
+        if (sourceKey) MediaBlobCache.releaseUrl(sourceKey);
+        video._mjrCachedSrc = "";
+        video._mjrSourceKey = "";
+    } catch (e) {
+        console.debug?.(e);
+    }
+    try {
+        if (video.getAttribute("src")) {
+            video.removeAttribute("src");
+            video.load?.();
+        }
+    } catch (e) {
+        console.debug?.(e);
+    }
+}
+
 function bindVideoThumbHover(thumbEl, video) {
     if (!thumbEl || !video) return;
-    const onEnter = () => {
+    const onEnter = async () => {
         try {
+            await ensureVideoThumbSource(video);
+            if (!video.isConnected) return;
             video.play?.().catch?.(() => {});
         } catch (e) {
             console.debug?.(e);
@@ -131,7 +173,13 @@ function bindVideoAutoplay(video) {
             for (const entry of entries) {
                 try {
                     if (entry.isIntersecting) {
-                        video.play?.().catch?.(() => {});
+                        void ensureVideoThumbSource(video).then(() => {
+                            try {
+                                if (video.isConnected) video.play?.().catch?.(() => {});
+                            } catch (e) {
+                                console.debug?.(e);
+                            }
+                        });
                     } else {
                         video.pause?.();
                         video.currentTime = 0;
@@ -172,9 +220,12 @@ function applyVideoMode(thumbEl, video, mode) {
     if (!video) return;
     cleanupVideoBehaviors(video);
     if (mode === "hover") {
+        releaseVideoThumbSource(video);
         bindVideoThumbHover(thumbEl, video);
     } else if (mode === "always") {
         bindVideoAutoplay(video);
+    } else {
+        releaseVideoThumbSource(video);
     }
     // "off" — no bindings, video stays paused
 }
@@ -182,6 +233,7 @@ function applyVideoMode(thumbEl, video, mode) {
 function unobserveVideoThumb(video) {
     if (!video) return;
     cleanupVideoBehaviors(video);
+    releaseVideoThumbSource(video);
 }
 
 // ─── Props ───────────────────────────────────────────────────────────────────
@@ -319,17 +371,44 @@ const dotWrapperRef = ref(null);
 const imgError = ref(false);
 const model3dImgError = ref(false);
 const cachedImageSrc = ref("");
+let imageLoadRequestId = 0;
+let imageCachedSourceKey = "";
+
+function releaseCachedImageSrc() {
+    try {
+        if (imageCachedSourceKey) MediaBlobCache.releaseUrl(imageCachedSourceKey);
+    } catch (e) {
+        console.debug?.(e);
+    }
+    imageCachedSourceKey = "";
+}
 
 // ─── Image thumb lifecycle (blob cache) ───────────────────────────────────────
 
 watch(
     () => [imgRef.value, viewUrl.value],
-    async ([img, url]) => {
+    async ([img, url], _oldValue, onCleanup) => {
         if (!img || !url || imgError.value) return;
+        const requestId = (imageLoadRequestId += 1);
+        const controller = new AbortController();
+        let cancelled = false;
+        onCleanup(() => {
+            cancelled = true;
+            controller.abort();
+        });
+        releaseCachedImageSrc();
+        cachedImageSrc.value = "";
         try {
-            const cached = await loadImageBlob(url);
+            await waitForImageBlobLoadWindow();
+            if (cancelled || requestId !== imageLoadRequestId || !img.isConnected) return;
+            const cached = await loadImageBlob(url, { signal: controller.signal });
+            if (cancelled || requestId !== imageLoadRequestId || !img.isConnected) {
+                if (cached && cached !== url) MediaBlobCache.releaseUrl(url);
+                return;
+            }
             if (cached && cached !== cachedImageSrc.value) {
                 cachedImageSrc.value = cached;
+                imageCachedSourceKey = cached !== url ? url : "";
             }
         } catch {}
     },
@@ -356,7 +435,6 @@ watch(videoRef, (newEl, oldEl) => {
     }
     if (newEl && thumbRef.value) {
         try {
-            observeVideoThumb(newEl);
             applyVideoMode(thumbRef.value, newEl, videoMode.value);
         } catch {}
     }
@@ -372,6 +450,8 @@ watch(videoMode, (mode) => {
 
 onUnmounted(() => {
     window.removeEventListener("mjr-settings-changed", onSettingsChangedForVideo);
+    imageLoadRequestId += 1;
+    releaseCachedImageSrc();
     const v = videoRef.value;
     if (v) {
         try { unobserveVideoThumb(v); } catch {}
@@ -452,7 +532,8 @@ function onFileBadgeClick(event) {
                 class="mjr-thumb-media"
                 :alt="filename"
                 decoding="async"
-                :src="cachedImageSrc || viewUrl"
+                loading="lazy"
+                :src="cachedImageSrc || undefined"
                 @error="onImgError"
             />
             <div v-if="imgError" class="mjr-media-error-placeholder">
@@ -471,7 +552,7 @@ function onFileBadgeClick(event) {
                 loop
                 :autoplay="false"
                 playsinline
-                preload="metadata"
+                preload="none"
                 :draggable="false"
                 :tabindex="-1"
                 style="pointer-events: none"

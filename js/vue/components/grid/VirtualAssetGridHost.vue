@@ -1,6 +1,5 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, provide, ref, watch } from "vue";
-import { measureElement, useVirtualizer } from "@tanstack/vue-virtual";
 import { APP_CONFIG } from "../../../app/config.js";
 import { EVENTS } from "../../../app/events.js";
 import { get } from "../../../api/client.js";
@@ -10,12 +9,15 @@ import { ensureStackGroupCard, ensureDupStackCard } from "../../../features/grid
 import { setSelectedIdsDataset } from "../../../features/grid/GridSelectionManager.js";
 import { applyGridSettingsClasses, configureGridContainer } from "../../../features/grid/gridApi.js";
 import { bindAssetDragStart } from "../../../features/dnd/DragDrop.js";
-import { getFilenameKey, preserveRepresentativeGenerationTime, selectStackRepresentative } from "../../../features/grid/AssetCardRenderer.js";
+import { preserveRepresentativeGenerationTime, selectStackRepresentative } from "../../../features/grid/AssetCardRenderer.js";
 import AssetCardInner from "./AssetCardInner.vue";
 import FolderCard from "./FolderCard.vue";
 import { useGridState } from "../../composables/useGridState.js";
 import { useGridLoader } from "../../composables/useGridLoader.js";
 import { isGridHostVisible } from "../../composables/gridVisibility.js";
+import { buildStaticGridRows, useGridVirtualRows } from "../../grid/useGridVirtualRows.js";
+import { useInfiniteTrigger } from "../../grid/useInfiniteTrigger.js";
+import { buildDisplayAssets, isRenderableAsset } from "../../grid/useGridDisplayAssets.js";
 import { readRenderedAssetCards } from "./gridDomBridge.js";
 
 const props = defineProps({
@@ -191,6 +193,15 @@ const loader = useGridLoader({
     canLoadMore: isGridVisible,
 });
 
+const infiniteCanLoad = computed(() => !state.loading && !state.done && isGridVisible());
+const { sentinelRef: infiniteSentinelRef } = useInfiniteTrigger({
+    rootRef: scrollElementRef,
+    enabled: true,
+    canLoad: infiniteCanLoad,
+    loadMore: () => loader.loadNextPage(),
+    rootMargin: "900px",
+});
+
 function getAssetExt(asset) {
     const filename = String(asset?.filename || "");
     const idx = filename.lastIndexOf(".");
@@ -226,10 +237,6 @@ function isLivePlaceholderAsset(asset) {
             .toLowerCase()
             .startsWith("live:")
     );
-}
-
-function isRenderableAsset(asset) {
-    return !!asset && asset._mjrDupHidden !== true;
 }
 
 function updateSelectionDatasets() {
@@ -281,78 +288,6 @@ function emitSelectionChanged() {
 }
 
 emitSelectionChanged._lastSelectionKey = "";
-
-function buildDisplayAssets(assets) {
-    const list = Array.isArray(assets) ? assets : [];
-    const buckets = new Map();
-    const output = [];
-
-    // Single pass: classify each asset and pre-collect representatives in
-    // their original order. Non-representative duplicates are tracked in their
-    // bucket but skipped from `output`. This replaces the previous two full
-    // passes over `list`, halving work on large grids.
-    for (const asset of list) {
-        if (!asset) continue;
-        const filenameKey = getDisplayGroupKey(asset);
-        if (!filenameKey) {
-            asset._mjrNameCollision = false;
-            delete asset._mjrNameCollisionCount;
-            delete asset._mjrNameCollisionPaths;
-            asset._mjrDupStack = false;
-            asset._mjrDupMembers = null;
-            asset._mjrDupCount = 0;
-            output.push(asset);
-            continue;
-        }
-
-        let bucket = buckets.get(filenameKey);
-        if (!bucket) {
-            bucket = [];
-            buckets.set(filenameKey, bucket);
-            // First occurrence: this asset is the representative and enters
-            // the output stream now to preserve original ordering.
-            output.push(asset);
-        }
-        bucket.push(asset);
-    }
-
-    // Second (cheap) pass over representatives only: reset collision/dup flags
-    // for every bucket member, then mark the representative as a dup-stack if
-    // the bucket gathered ≥2 members.
-    for (const bucket of buckets.values()) {
-        for (const member of bucket) {
-            member._mjrNameCollision = false;
-            delete member._mjrNameCollisionCount;
-            delete member._mjrNameCollisionPaths;
-            member._mjrDupStack = false;
-            member._mjrDupMembers = null;
-            member._mjrDupCount = 0;
-        }
-        if (bucket.length >= 2) {
-            const rep = bucket[0];
-            const prevMembers = Array.isArray(rep._mjrDupMembers) ? rep._mjrDupMembers : [];
-            const memberIds = new Set(prevMembers.map((entry) => String(entry?.id || "")));
-            const mergedMembers = [
-                ...prevMembers,
-                ...bucket.filter((entry) => !memberIds.has(String(entry?.id || ""))),
-            ];
-            rep._mjrDupStack = true;
-            rep._mjrDupMembers = mergedMembers;
-            rep._mjrDupCount = mergedMembers.length;
-        }
-    }
-
-    return output;
-}
-
-function getDisplayGroupKey(asset) {
-    const filenameKey = getFilenameKey(asset?.filename);
-    if (!filenameKey) return "";
-    const source = String(asset?.source || asset?.type || "").trim().toLowerCase();
-    const rootId = String(asset?.root_id || asset?.custom_root_id || "").trim().toLowerCase();
-    const subfolder = String(asset?.subfolder || "").trim().toLowerCase();
-    return `${source}|${rootId}|${subfolder}|${filenameKey}`;
-}
 
 const displayAssets = computed(() => buildDisplayAssets(state.assets));
 
@@ -582,30 +517,9 @@ const estimateRowHeight = computed(() => {
 
 const rows = computed(() => {
     const assets = Array.isArray(renderableAssets.value) ? renderableAssets.value : [];
-    const cols = Math.max(1, columnCount.value);
     if (props.virtualize) return [];
-    const nextRows = [];
-    for (let index = 0; index < assets.length; index += cols) {
-        nextRows.push({
-            index: Math.floor(index / cols),
-            items: assets.slice(index, index + cols),
-        });
-    }
-    return nextRows;
+    return buildStaticGridRows(assets, columnCount.value);
 });
-
-const rowCount = computed(() => {
-    const assets = Array.isArray(renderableAssets.value) ? renderableAssets.value : [];
-    const cols = Math.max(1, columnCount.value);
-    return Math.ceil(assets.length / cols);
-});
-
-function rowItemsAt(index) {
-    const assets = Array.isArray(renderableAssets.value) ? renderableAssets.value : [];
-    const cols = Math.max(1, columnCount.value);
-    const start = Math.max(0, Number(index) || 0) * cols;
-    return assets.slice(start, start + cols);
-}
 
 function updateScrollVelocity(element) {
     try {
@@ -635,40 +549,26 @@ const adaptiveOverscan = computed(() => {
     return Math.max(3, Math.min(30, viewportRows + velocityRows));
 });
 
-const rowVirtualizer = useVirtualizer(
-    computed(() => ({
-        count: props.virtualize ? rowCount.value : 0,
-        getScrollElement: () => scrollElementRef.value,
-        estimateSize: () => estimateRowHeight.value,
-        overscan: adaptiveOverscan.value,
-        measureElement,
-    })),
-);
-
-const virtualRows = computed(() => {
-    if (!props.virtualize) return [];
-    return rowVirtualizer.value.getVirtualItems();
+const gridVirtualRows = useGridVirtualRows({
+    scrollRef: scrollElementRef,
+    items: renderableAssets,
+    columnCount,
+    estimateRowHeight,
+    overscan: adaptiveOverscan,
+    enabled: computed(() => props.virtualize),
 });
 
-const virtualRowsWithItems = computed(() =>
-    virtualRows.value.map((row) => ({
-        key: row.key,
-        index: row.index,
-        items: rowItemsAt(row.index),
-    })),
-);
+const rowCount = gridVirtualRows.rowCount;
+const rowVirtualizer = gridVirtualRows.virtualizer;
+const virtualRowsWithItems = gridVirtualRows.virtualRows;
+const totalSize = gridVirtualRows.totalSize;
 
 const virtualRowByIndex = computed(() => {
     const map = new Map();
-    for (const row of virtualRows.value) {
-        map.set(row.index, row);
+    for (const row of virtualRowsWithItems.value) {
+        map.set(row.index, row.virtual || row);
     }
     return map;
-});
-
-const totalSize = computed(() => {
-    if (!props.virtualize) return 0;
-    return rowVirtualizer.value.getTotalSize();
 });
 
 const showGridDetails = computed(() => {
@@ -1152,16 +1052,6 @@ function bindInfiniteScroll(element) {
     if (!element || !props.virtualize) return () => {};
     const onScroll = () => {
         updateScrollVelocity(element);
-        if (state.loading || state.done) return;
-        const remaining =
-            Number(element.scrollHeight || 0) -
-            (Number(element.scrollTop || 0) + Number(element.clientHeight || 0));
-        // Start loading the next page when the user is 4 card-rows from the bottom
-        // (was 2). This hides API latency and prevents the visible "waiting at
-        // the bottom" freeze.
-        if (remaining <= Math.max(600, estimateRowHeight.value * 4)) {
-            void loader.loadNextPage();
-        }
     };
     element.addEventListener("scroll", onScroll, { passive: true });
     try {
@@ -1514,6 +1404,7 @@ defineExpose({
                 height: `${totalSize}px`,
                 position: 'relative',
                 width: '100%',
+                gridColumn: '1 / -1',
             }"
         >
             <div
@@ -1628,6 +1519,12 @@ defineExpose({
                 </template>
             </div>
         </div>
+
+        <div
+            ref="infiniteSentinelRef"
+            aria-hidden="true"
+            style="height:1px; width:100%; pointer-events:none; grid-column:1 / -1;"
+        />
     </div>
 </template>
 

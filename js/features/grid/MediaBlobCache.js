@@ -17,6 +17,7 @@ const MAX_ENTRIES = 2000;
 // Long TTL: keep cached for entire session (cleaned on page unload anyway).
 const TTL_MS = 24 * 60 * 60 * 1000; // 24 hours (session-bound)
 const CLEANUP_INTERVAL_MS = 10 * 60 * 1000; // 10 minutes (less aggressive)
+const MAX_CONCURRENT_FETCHES = 6;
 
 /**
  * @typedef {{ blobUrl: string|null, refcount: number, expiresAt: number, hasError: boolean }} CacheEntry
@@ -26,6 +27,22 @@ function _createCache() {
     /** @type {Map<string, CacheEntry>} */
     const _entries = new Map();
     let _cleanupTimer = null;
+    let _activeFetches = 0;
+    const _fetchQueue = [];
+
+    async function _withFetchSlot(task) {
+        if (_activeFetches >= MAX_CONCURRENT_FETCHES) {
+            await new Promise((resolve) => _fetchQueue.push(resolve));
+        }
+        _activeFetches += 1;
+        try {
+            return await task();
+        } finally {
+            _activeFetches = Math.max(0, _activeFetches - 1);
+            const next = _fetchQueue.shift();
+            if (next) next();
+        }
+    }
 
     function _scheduleCleanup() {
         if (_cleanupTimer) return;
@@ -128,12 +145,15 @@ function _createCache() {
      * Acquire a blob URL for src (fetches if not cached, increments refcount).
      * Returns null if the URL has a known error or the fetch fails.
      * @param {string} src
+     * @param {{ signal?: AbortSignal|null }} [options]
      * @returns {Promise<string|null>}
      */
-    async function acquireUrl(src) {
+    async function acquireUrl(src, options = {}) {
         try {
             const key = _normalizeKey(src);
             if (!key) return null;
+            const signal = options?.signal || null;
+            if (signal?.aborted) return null;
             const existing = _entries.get(key);
             if (existing?.hasError) return null;
             if (existing?.blobUrl) {
@@ -141,7 +161,11 @@ function _createCache() {
                 _touch(existing);
                 return existing.blobUrl;
             }
-            const resp = await fetch(src, { credentials: "same-origin" });
+            const resp = await _withFetchSlot(() => {
+                if (signal?.aborted) return Promise.resolve(null);
+                return fetch(src, { credentials: "same-origin", ...(signal ? { signal } : {}) });
+            });
+            if (!resp) return null;
             if (!resp.ok) {
                 markError(src);
                 return null;
@@ -158,6 +182,7 @@ function _createCache() {
             _scheduleCleanup();
             return blobUrl;
         } catch (e) {
+            if (String(e?.name || "") === "AbortError") return null;
             console.debug?.(e);
             markError(src);
             return null;

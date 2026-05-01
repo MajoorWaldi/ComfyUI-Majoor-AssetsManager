@@ -540,6 +540,41 @@ async def test_list_output_initial_filesystem_fallback(monkeypatch, tmp_path) ->
 
 
 @pytest.mark.asyncio
+async def test_list_output_passes_cursor_to_index(monkeypatch, tmp_path) -> None:
+    seen = {}
+
+    class _Index:
+        async def search_scoped(self, *args, **kwargs):
+            seen.update(kwargs)
+            return Result.Ok({"assets": [], "total": None, "next_cursor": "", "has_more": False})
+
+    async def _svc():
+        return {"index": _Index()}, None
+
+    monkeypatch.setattr(search_impl, "_require_services", _svc)
+    monkeypatch.setattr(search_impl, "_check_rate_limit", lambda *args, **kwargs: (True, None))
+    monkeypatch.setattr(search_impl, "_touch_enrichment_pause", lambda *args, **kwargs: None)
+
+    async def _out_root(_svc):
+        return str(tmp_path)
+
+    monkeypatch.setattr(search_impl, "_runtime_output_root", _out_root)
+    monkeypatch.setattr(search_impl.folder_paths, "get_input_directory", lambda: str(tmp_path / "in"))
+
+    app = _build_search_app()
+    req = make_mocked_request(
+        "GET",
+        "/mjr/am/list?scope=output&q=*&limit=10&cursor=abc&sort=mtime_desc",
+        app=app,
+    )
+    resp = await (await app.router.resolve(req)).handler(req)
+    body = json.loads(resp.text)
+
+    assert body.get("ok") is True
+    assert seen.get("cursor") == "abc"
+
+
+@pytest.mark.asyncio
 async def test_search_endpoint_success(monkeypatch) -> None:
     class _Index:
         async def search(self, *args, **kwargs):
