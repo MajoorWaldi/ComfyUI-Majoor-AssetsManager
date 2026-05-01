@@ -651,6 +651,10 @@ const DICTIONARY = {
         "msg.whatsNew.title.gridMfvToolboxUpgrade": "What's New — Grid & MFV Upgrade",
         "msg.whatsNew.body.gridMfvToolboxUpgrade":
             "Grid performance and fluidity have been improved. The Majoor Floating Viewer is no longer a light viewer only: it now includes advanced features such as Node Stream, Node Parameters, and direct node editing from inside the viewer. New tools were also added to the toolbox, alongside broader code corrections and cleanup.",
+        "msg.tip.title.majoorImageOpsNodePack": "Do you know this node pack ?",
+        "msg.tip.body.majoorImageOpsNodePack":
+            "Discover Majoor ImageOps, a ComfyUI node pack with practical image operation nodes for your workflows.",
+        "label.openNodePack": "Open Node Pack",
         "label.changelog": "Changelog",
         "label.settingsGuide": "Settings Guide",
         "msg.tip.title.mfvLivePreviewDefaults": "Tip — Floating Viewer Auto-Open",
@@ -1208,6 +1212,10 @@ const DICTIONARY = {
         "msg.whatsNew.title.gridMfvToolboxUpgrade": "Quoi de neuf — upgrade Grid et MFV",
         "msg.whatsNew.body.gridMfvToolboxUpgrade":
             "Les performances et la fluidite de la grid ont ete ameliorees. Le Majoor Floating Viewer n'est plus seulement un viewer light : il integre maintenant des fonctions avancees comme Node Stream, Node Parameters et l'edition directe des nodes depuis le viewer. De nouveaux outils ont aussi ete ajoutes dans la toolbox, avec en plus plusieurs corrections et nettoyages de code.",
+        "msg.tip.title.majoorImageOpsNodePack": "Do you know this node pack ?",
+        "msg.tip.body.majoorImageOpsNodePack":
+            "Decouvrez Majoor ImageOps, un node pack ComfyUI avec des nodes pratiques pour les operations d'image dans vos workflows.",
+        "label.openNodePack": "Ouvrir le node pack",
         "label.changelog": "Changelog",
         "label.settingsGuide": "Guide des param\u00e8tres",
         "msg.tip.title.mfvLivePreviewDefaults": "Conseil — Ouverture automatique du Viewer",

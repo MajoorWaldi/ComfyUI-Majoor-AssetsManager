@@ -4,6 +4,10 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+---
+
+## [2.4.7] - 2026-05-01
+
 ### 🚀 Performance
 - **Grid Performance Improvements**: Improved grid responsiveness, scrolling stability, and asset loading behavior for large libraries.
 
