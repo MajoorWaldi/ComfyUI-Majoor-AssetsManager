@@ -1,4 +1,5 @@
 import json
+from typing import Any
 
 import pytest
 from aiohttp import web
@@ -13,6 +14,20 @@ def _build_vector_app() -> web.Application:
     vector_search.register_vector_search_routes(routes)
     app.add_routes(routes)
     return app
+
+
+def _json_from_response(response: web.StreamResponse) -> dict[str, Any]:
+    assert isinstance(response, web.Response)
+    text = response.text
+    assert isinstance(text, str)
+    body = json.loads(text)
+    assert isinstance(body, dict)
+    return body
+
+
+def _allow_vector_mutation(monkeypatch) -> None:
+    monkeypatch.setattr(vector_search, "_csrf_error", lambda _request: None)
+    monkeypatch.setattr(vector_search, "_require_write_access", lambda _request: Result.Ok(True))
 
 
 @pytest.mark.asyncio
@@ -32,7 +47,7 @@ async def test_vector_alignment_route_success(monkeypatch) -> None:
     match = await app.router.resolve(req)
     req._match_info = match
     resp = await match.handler(req)
-    body = json.loads(resp.text)
+    body = _json_from_response(resp)
 
     assert body.get("ok") is True
     assert (body.get("data") or {}).get("asset_id") == 42
@@ -56,7 +71,7 @@ async def test_vector_alignment_route_invalid_asset_id(monkeypatch) -> None:
     match = await app.router.resolve(req)
     req._match_info = match
     resp = await match.handler(req)
-    body = json.loads(resp.text)
+    body = _json_from_response(resp)
 
     assert body.get("ok") is False
     assert body.get("code") == "INVALID_INPUT"
@@ -75,7 +90,7 @@ async def test_vector_alignment_route_respects_rate_limit(monkeypatch) -> None:
     match = await app.router.resolve(req)
     req._match_info = match
     resp = await match.handler(req)
-    body = json.loads(resp.text)
+    body = _json_from_response(resp)
 
     assert body.get("ok") is False
 
@@ -93,7 +108,7 @@ async def test_vector_search_route_rejected_while_generation_busy(monkeypatch) -
     req = make_mocked_request("GET", "/mjr/am/vector/search?q=cat", app=app)
     match = await app.router.resolve(req)
     resp = await match.handler(req)
-    body = json.loads(resp.text)
+    body = _json_from_response(resp)
 
     assert body.get("ok") is False
     assert body.get("code") == "COMFY_BUSY"
@@ -112,7 +127,7 @@ async def test_vector_alignment_route_disabled_returns_503_payload(monkeypatch) 
     match = await app.router.resolve(req)
     req._match_info = match
     resp = await match.handler(req)
-    body = json.loads(resp.text)
+    body = _json_from_response(resp)
 
     assert body.get("ok") is False
     assert body.get("code") == "SERVICE_UNAVAILABLE"
@@ -135,7 +150,7 @@ async def test_vector_search_route_handles_searcher_exception(monkeypatch) -> No
     match = await app.router.resolve(req)
     req._match_info = match
     resp = await match.handler(req)
-    body = json.loads(resp.text)
+    body = _json_from_response(resp)
 
     assert body.get("ok") is False
     assert body.get("code") == "SERVICE_UNAVAILABLE"
@@ -159,7 +174,7 @@ async def test_vector_search_route_rejects_invalid_scope(monkeypatch) -> None:
     match = await app.router.resolve(req)
     req._match_info = match
     resp = await match.handler(req)
-    body = json.loads(resp.text)
+    body = _json_from_response(resp)
 
     assert body.get("ok") is False
     assert body.get("code") == "INVALID_INPUT"
@@ -201,7 +216,7 @@ async def test_vector_search_route_filters_hits_by_scope(monkeypatch) -> None:
     match = await app.router.resolve(req)
     req._match_info = match
     resp = await match.handler(req)
-    body = json.loads(resp.text)
+    body = _json_from_response(resp)
 
     assert body.get("ok") is True
     assert body.get("data") == [{"asset_id": 2, "score": 0.93}]
@@ -233,7 +248,7 @@ async def test_vector_stats_route_exposes_coverage_fields(monkeypatch) -> None:
     match = await app.router.resolve(req)
     req._match_info = match
     resp = await match.handler(req)
-    body = json.loads(resp.text)
+    body = _json_from_response(resp)
 
     assert body.get("ok") is True
     assert body.get("data") == {
@@ -291,7 +306,7 @@ async def test_vector_search_route_applies_asset_filters(monkeypatch) -> None:
     match = await app.router.resolve(req)
     req._match_info = match
     resp = await match.handler(req)
-    body = json.loads(resp.text)
+    body = _json_from_response(resp)
 
     assert body.get("ok") is True
     assert body.get("data") == [{"asset_id": 2, "score": 0.93}]
@@ -340,7 +355,7 @@ async def test_vector_search_route_filters_weak_score_tail(monkeypatch) -> None:
     match = await app.router.resolve(req)
     req._match_info = match
     resp = await match.handler(req)
-    body = json.loads(resp.text)
+    body = _json_from_response(resp)
 
     assert body.get("ok") is True
     assert body.get("data") == [
@@ -369,7 +384,7 @@ async def test_vector_similar_route_success(monkeypatch) -> None:
     match = await app.router.resolve(req)
     req._match_info = match
     resp = await match.handler(req)
-    body = json.loads(resp.text)
+    body = _json_from_response(resp)
 
     assert body.get("ok") is True
     assert isinstance(body.get("data"), list)
@@ -411,7 +426,7 @@ async def test_vector_similar_route_filters_hits_by_scope(monkeypatch) -> None:
     match = await app.router.resolve(req)
     req._match_info = match
     resp = await match.handler(req)
-    body = json.loads(resp.text)
+    body = _json_from_response(resp)
 
     assert body.get("ok") is True
     assert body.get("data") == [{"asset_id": 88, "score": 0.9}]
@@ -456,7 +471,7 @@ async def test_vector_similar_route_filters_by_kind_and_min_score(monkeypatch) -
     match = await app.router.resolve(req)
     req._match_info = match
     resp = await match.handler(req)
-    body = json.loads(resp.text)
+    body = _json_from_response(resp)
 
     assert body.get("ok") is True
     assert body.get("data") == [{"asset_id": 77, "score": 0.91}]
@@ -481,6 +496,7 @@ async def test_vector_enhance_prompt_alias_route_success(monkeypatch) -> None:
     monkeypatch.setattr(vector_indexer, "generate_enhanced_prompt", _fake_generate)
     monkeypatch.setattr(vector_search, "_require_services", _require_services)
     monkeypatch.setattr(vector_search, "is_vector_search_enabled", lambda: True)
+    _allow_vector_mutation(monkeypatch)
 
     app = _build_vector_app()
     req = make_mocked_request("POST", "/mjr-am/assets/enhance-prompt", app=app)
@@ -492,7 +508,7 @@ async def test_vector_enhance_prompt_alias_route_success(monkeypatch) -> None:
     match = await app.router.resolve(req)
     req._match_info = match
     resp = await match.handler(req)
-    body = json.loads(resp.text)
+    body = _json_from_response(resp)
 
     assert body.get("ok") is True
     assert body.get("data") == "caption-42"
@@ -517,6 +533,7 @@ async def test_vector_caption_alias_route_success(monkeypatch) -> None:
     monkeypatch.setattr(vector_indexer, "generate_enhanced_prompt", _fake_generate)
     monkeypatch.setattr(vector_search, "_require_services", _require_services)
     monkeypatch.setattr(vector_search, "is_vector_search_enabled", lambda: True)
+    _allow_vector_mutation(monkeypatch)
 
     app = _build_vector_app()
     req = make_mocked_request("POST", "/mjr-am/assets/caption", app=app)
@@ -528,7 +545,7 @@ async def test_vector_caption_alias_route_success(monkeypatch) -> None:
     match = await app.router.resolve(req)
     req._match_info = match
     resp = await match.handler(req)
-    body = json.loads(resp.text)
+    body = _json_from_response(resp)
 
     assert body.get("ok") is True
     assert body.get("data") == "caption-42"
@@ -553,13 +570,14 @@ async def test_vector_generate_enhanced_prompt_route_success(monkeypatch) -> Non
     monkeypatch.setattr(vector_indexer, "generate_enhanced_prompt", _fake_generate)
     monkeypatch.setattr(vector_search, "_require_services", _require_services)
     monkeypatch.setattr(vector_search, "is_vector_search_enabled", lambda: True)
+    _allow_vector_mutation(monkeypatch)
 
     app = _build_vector_app()
     req = make_mocked_request("POST", "/mjr/am/vector/enhanced-prompt/42", app=app)
     match = await app.router.resolve(req)
     req._match_info = match
     resp = await match.handler(req)
-    body = json.loads(resp.text)
+    body = _json_from_response(resp)
 
     assert body.get("ok") is True
     assert body.get("data") == "caption-42"
@@ -584,13 +602,14 @@ async def test_vector_generate_caption_route_success(monkeypatch) -> None:
     monkeypatch.setattr(vector_indexer, "generate_enhanced_prompt", _fake_generate)
     monkeypatch.setattr(vector_search, "_require_services", _require_services)
     monkeypatch.setattr(vector_search, "is_vector_search_enabled", lambda: True)
+    _allow_vector_mutation(monkeypatch)
 
     app = _build_vector_app()
     req = make_mocked_request("POST", "/mjr/am/vector/caption/42", app=app)
     match = await app.router.resolve(req)
     req._match_info = match
     resp = await match.handler(req)
-    body = json.loads(resp.text)
+    body = _json_from_response(resp)
 
     assert body.get("ok") is True
     assert body.get("data") == "caption-42"
@@ -603,17 +622,48 @@ async def test_vector_caption_route_respects_rate_limit(monkeypatch) -> None:
 
     monkeypatch.setattr(vector_search, "_require_services", _require_services)
     monkeypatch.setattr(vector_search, "_check_rate_limit", lambda *_args, **_kwargs: (False, 7))
+    _allow_vector_mutation(monkeypatch)
 
     app = _build_vector_app()
     req = make_mocked_request("POST", "/mjr/am/vector/caption/42", app=app)
     match = await app.router.resolve(req)
     req._match_info = match
     resp = await match.handler(req)
-    body = json.loads(resp.text)
+    body = _json_from_response(resp)
 
     assert body.get("ok") is False
     assert body.get("code") == "RATE_LIMITED"
     assert resp.headers.get("Retry-After") == "7"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "path",
+    [
+        "/mjr/am/vector/index/42",
+        "/mjr/am/vector/caption/42",
+        "/mjr/am/vector/enhanced-prompt/42",
+        "/mjr-am/assets/enhance-prompt",
+        "/mjr-am/assets/caption",
+    ],
+)
+async def test_vector_mutations_require_csrf(monkeypatch, path: str) -> None:
+    async def _require_services():
+        raise AssertionError("services should not be required when CSRF fails")
+
+    monkeypatch.setattr(vector_search, "_require_services", _require_services)
+    monkeypatch.setattr(vector_search, "_csrf_error", lambda _request: "Missing anti-CSRF header")
+    monkeypatch.setattr(vector_search, "_require_write_access", lambda _request: Result.Ok(True))
+
+    app = _build_vector_app()
+    req = make_mocked_request("POST", path, app=app)
+    match = await app.router.resolve(req)
+    req._match_info = match
+    resp = await match.handler(req)
+    body = _json_from_response(resp)
+
+    assert body.get("ok") is False
+    assert body.get("code") == "CSRF"
 
 
 @pytest.mark.asyncio
@@ -635,7 +685,7 @@ async def test_vector_auto_tags_route_returns_tags(monkeypatch) -> None:
     match = await app.router.resolve(req)
     req._match_info = match
     resp = await match.handler(req)
-    body = json.loads(resp.text)
+    body = _json_from_response(resp)
 
     assert body.get("ok") is True
     assert body.get("data") == ["portrait", "anime"]
@@ -658,7 +708,7 @@ async def test_vector_auto_tags_route_disabled_when_vector_off(monkeypatch) -> N
     match = await app.router.resolve(req)
     req._match_info = match
     resp = await match.handler(req)
-    body = json.loads(resp.text)
+    body = _json_from_response(resp)
 
     assert body.get("ok") is False
     assert body.get("code") == "SERVICE_UNAVAILABLE"
@@ -709,7 +759,7 @@ async def test_vector_suggest_collections_route_returns_clusters(monkeypatch) ->
     match = await app.router.resolve(req)
     req._match_info = match
     resp = await match.handler(req)
-    body = json.loads(resp.text)
+    body = _json_from_response(resp)
 
     assert body.get("ok") is True
     assert isinstance(body.get("data"), list)

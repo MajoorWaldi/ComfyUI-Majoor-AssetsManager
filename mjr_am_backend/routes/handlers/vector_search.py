@@ -24,7 +24,13 @@ from ...features.index.searcher import _build_filter_clauses
 from ...features.index.vector_runtime import ensure_vector_runtime
 from ...runtime_activity import is_generation_busy
 from ...shared import Result, get_logger
-from ..core import _json_response, _require_services, safe_error_message
+from ..core import (
+    _csrf_error,
+    _json_response,
+    _require_services,
+    _require_write_access,
+    safe_error_message,
+)
 from ..core.security import _check_rate_limit
 from ..search.query_sanitizer import parse_request_filters
 
@@ -46,6 +52,13 @@ def _vector_busy_response() -> web.Response | None:
             "ComfyUI is currently executing. Retry vector and AI actions when the queue is idle.",
         )
     )
+
+
+def _require_vector_mutation(request: web.Request) -> Result[bool]:
+    csrf = _csrf_error(request)
+    if csrf:
+        return Result.Err("CSRF", csrf)
+    return _require_write_access(request)
 
 
 def _hits_to_asset_ids(hits: list[dict[str, Any]]) -> list[int]:
@@ -503,7 +516,7 @@ async def _hydrate_vector_results(
     Takes a ``Result`` whose ``.data`` is a list of ``{"asset_id": int, "score": float}``
     and returns a ``Result`` with ``.data`` being a list of full hydrated asset dicts
     (filepath, filename, kind, tags, rating, …) plus the ``_vectorScore`` field.
-    
+
     Also preserves ``_matchType`` and ``_hybridScore`` from hybrid search results.
     """
     items = result.data or []
@@ -747,6 +760,9 @@ def register_vector_search_routes(routes: web.RouteTableDef) -> None:
     @routes.post("/mjr/am/vector/index/{asset_id}")
     async def vector_index_single(request: web.Request) -> web.Response:
         """Force re-indexing of a single asset's vector embedding."""
+        auth = _require_vector_mutation(request)
+        if not auth.ok:
+            return _json_response(auth)
         rate_limited = _vector_rate_limit_response(request, "vector_index")
         if rate_limited is not None:
             return rate_limited
@@ -801,6 +817,9 @@ def register_vector_search_routes(routes: web.RouteTableDef) -> None:
         Primary route: ``/mjr/am/vector/caption/{asset_id}``
         Legacy alias: ``/mjr/am/vector/enhanced-prompt/{asset_id}``
         """
+        auth = _require_vector_mutation(request)
+        if not auth.ok:
+            return _json_response(auth)
         rate_limited = _vector_rate_limit_response(request, "vector_caption")
         if rate_limited is not None:
             return rate_limited
@@ -840,6 +859,9 @@ def register_vector_search_routes(routes: web.RouteTableDef) -> None:
     @routes.post("/mjr-am/assets/caption")
     async def caption_alias(request: web.Request) -> web.Response:
         """Alias for /mjr/am/vector/caption/{asset_id} accepting JSON body."""
+        auth = _require_vector_mutation(request)
+        if not auth.ok:
+            return _json_response(auth)
         rate_limited = _vector_rate_limit_response(request, "vector_caption")
         if rate_limited is not None:
             return rate_limited
