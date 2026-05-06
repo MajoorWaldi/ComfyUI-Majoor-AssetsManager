@@ -21,11 +21,25 @@ def _init_sampler_values(nodes_by_id: dict[str, Any], sampler_node: dict[str, An
     return {
         "sampler_name": sampler_name,
         "scheduler": _scalar(ins.get("scheduler")),
-        "steps": _scalar(ins.get("steps")) or _scalar(ins.get("denoise_steps")),
+        "steps": _steps_value_from_inputs(nodes_by_id, ins),
         "cfg": _cfg_value_from_inputs(ins),
+        "cfg_high_noise": _scalar(ins.get("cfg_high_noise")),
+        "cfg_low_noise": _scalar(ins.get("cfg_low_noise")),
         "denoise": _scalar(ins.get("denoise")),
         "seed_val": seed_val,
     }
+
+
+def _steps_value_from_inputs(nodes_by_id: dict[str, Any], ins: dict[str, Any]) -> Any:
+    for key in ("steps", "denoise_steps"):
+        value = _scalar(ins.get(key))
+        if value is not None:
+            return value
+        if _is_link(ins.get(key)):
+            resolved = _resolve_scalar_from_link(nodes_by_id, ins.get(key))
+            if resolved is not None:
+                return resolved
+    return None
 
 
 def _sampler_name_from_inputs(sampler_node: dict[str, Any], ins: dict[str, Any]) -> Any:
@@ -78,6 +92,12 @@ def _apply_widget_sampler_values(values: dict[str, Any], sampler_node: dict[str,
 
 def _resolve_model_link_for_chain(ins: dict[str, Any], trace: dict[str, Any]) -> Any:
     model_link_for_chain = ins.get("model") if _is_link(ins.get("model")) else None
+    if model_link_for_chain is None:
+        for key in ("model_high_noise", "model_low_noise", "refiner_model", "base_model"):
+            candidate = ins.get(key)
+            if _is_link(candidate):
+                model_link_for_chain = candidate
+                break
     if model_link_for_chain is None and _is_link(trace.get("guider_model_link")):
         model_link_for_chain = trace.get("guider_model_link")
     return model_link_for_chain

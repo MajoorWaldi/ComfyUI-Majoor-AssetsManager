@@ -18,9 +18,43 @@ import {
     buildFloatingViewerProgressBar,
 } from "./floatingViewerProgress.js";
 import {
+    buildWorkflowPresentation,
+    formatModelLabel,
     normalizeGenerationMetadata,
     sanitizePromptForDisplay,
 } from "../../components/sidebar/parsers/geninfoParser.js";
+
+function summarizeNormalizedModels(norm) {
+    const models = norm?.models;
+    if (!models || typeof models !== "object") return "";
+    const ordered = [
+        ["HN", models.unet_high_noise],
+        ["LN", models.unet_low_noise],
+        ["UNet", models.unet],
+        ["Diff", models.diffusion],
+        ["Upsc", models.upscaler],
+        ["CLIP", models.clip],
+        ["VAE", models.vae],
+    ];
+    const seenNames = new Set();
+    const entries = [];
+    for (const [label, value] of ordered) {
+        const name = formatModelLabel(value?.name || value?.value || value || "");
+        if (!name || seenNames.has(name)) continue;
+        seenNames.add(name);
+        entries.push(`${label}: ${name}`);
+        if (entries.length >= 3) break;
+    }
+    return entries.join(" | ");
+}
+
+function summarizeFloatingViewerApiWorkflow(norm) {
+    const workflow = buildWorkflowPresentation(norm);
+    if (!workflow.workflowLabel) return "";
+    return workflow.workflowBadge
+        ? `${workflow.workflowLabel} • ${workflow.workflowBadge}`
+        : workflow.workflowLabel;
+}
 
 // ---------------------------------------------------------------------------
 // Toolbar icon-dropdown helper
@@ -1207,6 +1241,12 @@ export function getFloatingViewerGenFields(_viewer, fileData) {
             if (norm.seed != null) out.seed = String(norm.seed);
             if (norm.model)
                 out.model = Array.isArray(norm.model) ? norm.model.join(", ") : String(norm.model);
+            const apiWorkflowSummary = summarizeFloatingViewerApiWorkflow(norm);
+            const multiModelSummary = summarizeNormalizedModels(norm);
+            if (multiModelSummary) out.model = multiModelSummary;
+            if (apiWorkflowSummary) {
+                out.model = [apiWorkflowSummary, out.model].filter(Boolean).join(" | ");
+            }
             if (Array.isArray(norm.loras)) {
                 out.lora = norm.loras
                     .map((l) =>

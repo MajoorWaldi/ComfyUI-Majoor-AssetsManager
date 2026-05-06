@@ -42,6 +42,17 @@ def test_walk_passthrough_and_reroute():
     assert p._walk_passthrough(nodes, ["1", 0]) == "3"
 
 
+def test_walk_passthrough_resolves_binary_switch_branch():
+    nodes = {
+        "1": {"class_type": "PrimitiveBoolean", "inputs": {"value": True}},
+        "2": {"class_type": "UNETLoader", "inputs": {"unet_name": "base.safetensors"}},
+        "3": {"class_type": "LoraLoaderModelOnly", "inputs": {"lora_name": "boost.safetensors", "model": ["2", 0]}},
+        "4": {"class_type": "ComfySwitchNode", "inputs": {"switch": ["1", 0], "on_false": ["2", 0], "on_true": ["3", 0]}},
+    }
+
+    assert p._walk_passthrough(nodes, ["4", 0]) == "3"
+
+
 def test_trace_size_respects_configured_max_hops(monkeypatch):
     nodes = {
         "1": {"class_type": "KSampler", "inputs": {"latent_image": ["2", 0]}},

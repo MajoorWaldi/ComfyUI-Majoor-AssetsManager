@@ -110,6 +110,40 @@ def test_build_lora_payload_from_inputs_success():
     assert result is not None and result["name"] == "detail"
 
 
+def test_build_lora_payload_from_inputs_ignores_link_values():
+    node = {"class_type": "IAMCCS_ModelWithLoRA"}
+    ins = {"lora": ["166", 0], "model": ["85", 0]}
+
+    result = mt._build_lora_payload_from_inputs(
+        node=node, node_id="165", ins=ins, confidence="high"
+    )
+
+    assert result is None
+
+
+def test_append_numbered_lora_entries_supports_iamccs_wan_stack():
+    node = {"class_type": "IAMCCS_WanLoRAStack"}
+    loras = []
+
+    mt._append_numbered_lora_entries(
+        node=node,
+        node_id="166",
+        ins={"lora1": "WAN\\MOE\\high_noise_lora.safetensors", "strength1": 0.75, "lora2": "no", "strength2": 0.0},
+        confidence="high",
+        loras=loras,
+    )
+
+    assert loras == [
+        {
+            "name": "high_noise_lora",
+            "strength_model": 0.75,
+            "strength_clip": None,
+            "confidence": "high",
+            "source": "IAMCCS_WanLoRAStack:166:lora1",
+        }
+    ]
+
+
 # ─── _is_lora_loader_node ───────────────────────────────────────────────────
 
 def test_is_lora_loader_node_ct():
@@ -175,14 +209,14 @@ def test_chain_result():
 
 def test_handle_lora_chain_node_not_lora():
     node = {"class_type": "SaveImage", "inputs": {}}
-    result = mt._handle_lora_chain_node(node, "1", "saveimage", {}, [], "high")
+    result = mt._handle_lora_chain_node({}, node, "1", "saveimage", {}, [], "high")
     assert result is None
 
 
 def test_handle_lora_chain_node_with_model_link():
     node = {"class_type": "LoraLoader", "inputs": {"lora_name": "x.safetensors", "model": ["2", 0]}}
     ins = {"lora_name": "x.safetensors", "model": ["2", 0]}
-    result = mt._handle_lora_chain_node(node, "1", "loraloader", ins, [], "high")
+    result = mt._handle_lora_chain_node({}, node, "1", "loraloader", ins, [], "high")
     assert result is not None
     link, stop = result
     assert stop is False and link == ["2", 0]
@@ -191,7 +225,7 @@ def test_handle_lora_chain_node_with_model_link():
 def test_handle_lora_chain_node_no_model_link():
     node = {"class_type": "LoraLoader", "inputs": {"lora_name": "x.safetensors"}}
     ins = {"lora_name": "x.safetensors"}
-    result = mt._handle_lora_chain_node(node, "1", "loraloader", ins, [], "high")
+    result = mt._handle_lora_chain_node({}, node, "1", "loraloader", ins, [], "high")
     assert result is not None
     _, stop = result
     assert stop is True

@@ -178,9 +178,72 @@ def _is_switch_selector(node: dict[str, Any]) -> bool:
     return ("switch" in ct or "selector" in ct) and not _is_reroute(node)
 
 
-def _selected_switch_link(node: dict[str, Any]) -> Any | None:
+def _coerce_switch_enabled(value: Any) -> bool | None:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return bool(value)
+    if isinstance(value, str):
+        text = value.strip().lower()
+        if text in ("true", "1", "yes", "on"):
+            return True
+        if text in ("false", "0", "no", "off"):
+            return False
+    return None
+
+
+def _resolve_switch_value(nodes_by_id: dict[str, dict[str, Any]], value: Any, seen: set[str] | None = None) -> Any:
+    if not _is_link(value):
+        return value
+    resolved = _resolve_link(value)
+    if not resolved:
+        return None
+    node_id, _ = resolved
+    if seen is None:
+        seen = set()
+    if node_id in seen:
+        return None
+    seen.add(node_id)
+
+    node = nodes_by_id.get(node_id)
+    if not isinstance(node, dict):
+        return None
+    if _is_reroute(node):
+        return _resolve_switch_value(nodes_by_id, _next_reroute_link(node), seen)
+
+    ins = _inputs(node)
+    for key in ("value", "boolean", "enabled", "state", "result", "output"):
+        if key in ins and not _is_link(ins.get(key)):
+            return ins.get(key)
+
+    widgets = node.get("widgets_values")
+    if isinstance(widgets, list):
+        for raw in widgets:
+            if isinstance(raw, (bool, int, float, str)):
+                return raw
+
+    if _is_switch_selector(node) and ("on_true" in ins or "on_false" in ins):
+        enabled = _coerce_switch_enabled(_resolve_switch_value(nodes_by_id, ins.get("switch"), seen))
+        branch = ins.get("on_true") if enabled is True else ins.get("on_false") if enabled is False else None
+        if branch is not None:
+            return _resolve_switch_value(nodes_by_id, branch, seen)
+    return None
+
+
+def _selected_switch_link(nodes_by_id: dict[str, dict[str, Any]], node: dict[str, Any]) -> Any | None:
     ins = _inputs(node)
     candidate_keys: list[str] = []
+
+    if "on_true" in ins or "on_false" in ins:
+        enabled = _coerce_switch_enabled(_resolve_switch_value(nodes_by_id, ins.get("switch")))
+        if enabled is True and _is_link(ins.get("on_true")):
+            return ins.get("on_true")
+        if enabled is False and _is_link(ins.get("on_false")):
+            return ins.get("on_false")
+        for key in ("on_true", "on_false"):
+            value = ins.get(key)
+            if _is_link(value):
+                return value
 
     for key in _SWITCH_SELECT_INPUT_KEYS:
         idx = _to_int(ins.get(key))
@@ -232,7 +295,7 @@ def _walk_passthrough(nodes_by_id: dict[str, dict[str, Any]], start_link: Any, m
         if _is_reroute(node):
             next_link = _next_reroute_link(node)
         elif _is_switch_selector(node):
-            next_link = _selected_switch_link(node)
+            next_link = _selected_switch_link(nodes_by_id, node)
         else:
             return node_id
         if not _is_link(next_link):

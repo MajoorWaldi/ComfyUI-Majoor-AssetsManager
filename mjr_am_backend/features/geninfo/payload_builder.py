@@ -64,10 +64,12 @@ def _apply_lyrics_fields(out: dict[str, Any], nodes_by_id: dict[str, Any], sampl
 def _apply_model_fields(out: dict[str, Any], model_related: dict[str, Any]) -> None:
     models = model_related.get("models") or {}
     loras = model_related.get("loras") or []
+    model_groups = model_related.get("model_groups") or []
     clip = model_related.get("clip")
     vae = model_related.get("vae")
     _apply_preferred_checkpoint_field(out, models)
     _set_if_present(out, "loras", loras)
+    _set_if_present(out, "model_groups", model_groups)
     _set_if_present(out, "clip", clip)
     _set_if_present(out, "vae", vae)
     merged_models = _merge_models_payload(models, clip, vae)
@@ -82,7 +84,7 @@ def _apply_sampler_fields(out: dict[str, Any], sampler_values: dict[str, Any], c
     scheduler_field = _field_name(sampler_values.get("scheduler"), confidence, sampler_source)
     if scheduler_field:
         out["scheduler"] = scheduler_field
-    for key in ("steps", "cfg", "seed", "denoise"):
+    for key in ("steps", "cfg", "cfg_high_noise", "cfg_low_noise", "seed", "denoise"):
         value_key = "seed_val" if key == "seed" else key
         field_value = _field(
             sampler_values.get(value_key),

@@ -168,11 +168,33 @@ const parameterSections = computed(() => {
 
 function flashBackground(target, background, delay = 450) {
     if (!target) return;
+
     const previous = target.style.background;
     target.style.background = background;
     setTimeout(() => {
         target.style.background = previous || "";
     }, delay);
+}
+
+function modelGroupStyle(accentColor, emphasis = true) {
+    return {
+        background: emphasis
+            ? `linear-gradient(135deg, ${hexToRgba(accentColor, 0.16)} 0%, ${hexToRgba(accentColor, 0.08)} 100%)`
+            : "var(--comfy-menu-bg, rgba(0,0,0,0.3))",
+        border: `1px solid ${hexToRgba(accentColor, 0.42)}`,
+        boxShadow: `0 0 0 1px ${hexToRgba(accentColor, 0.14)} inset`,
+        borderRadius: "8px",
+        padding: "12px",
+        display: "flex",
+        flexDirection: "column",
+        gap: "10px",
+    };
+}
+
+function modelGroupAccent(key) {
+    if (key === "high_noise") return "#FF7043";
+    if (key === "low_noise") return "#29B6F6";
+    return "#AB47BC";
 }
 
 async function copyText(value, target = null, background = "rgba(76, 175, 80, 0.35)") {
@@ -348,13 +370,22 @@ watch(
                 color: 'var(--fg-color, #ccc)',
             }"
         >
-            <span style="opacity:0.85">Workflow Type</span>
-            <span
-                :title="`Workflow engine: ${sectionState.workflowType}`"
-                style="background:#2196F3;color:white;padding:2px 6px;border-radius:3px;font-weight:bold;font-size:10px"
-            >
-                {{ sectionState.workflowType }}
-            </span>
+            <span style="opacity:0.85">Workflow</span>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end">
+                <span
+                    :title="`Workflow engine: ${sectionState.workflowType}`"
+                    style="background:#2196F3;color:white;padding:2px 8px;border-radius:999px;font-weight:bold;font-size:10px;letter-spacing:0.2px"
+                >
+                    {{ sectionState.workflowLabel || sectionState.workflowType }}
+                </span>
+                <span
+                    v-if="sectionState.workflowBadge"
+                    :title="`API provider: ${sectionState.workflowBadge}`"
+                    style="background:rgba(255,255,255,0.08);color:var(--fg-color, #eee);padding:2px 8px;border-radius:999px;border:1px solid rgba(255,255,255,0.14);font-weight:600;font-size:10px;letter-spacing:0.2px"
+                >
+                    {{ sectionState.workflowBadge }}
+                </span>
+            </div>
         </div>
 
         <div
@@ -643,6 +674,81 @@ watch(
                     >
                         {{ field.value }}
                     </span>
+                </div>
+            </div>
+        </div>
+
+        <div
+            v-if="sectionState.modelGroups.length"
+            :style="boxStyle('#9C27B0', { emphasis: true, startAlpha: 0.18, endAlpha: 0.10 })"
+        >
+            <div
+                style="font-size:11px;font-weight:600;color:#9C27B0;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px"
+            >
+                Model Branches
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:10px">
+                <div
+                    v-for="group in sectionState.modelGroups"
+                    :key="`model-group-${group.key}`"
+                    :style="modelGroupStyle(modelGroupAccent(group.key), true)"
+                >
+                    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+                        <div
+                            :style="{
+                                fontSize: '10px',
+                                fontWeight: '800',
+                                color: modelGroupAccent(group.key),
+                                letterSpacing: '0.6px',
+                                textTransform: 'uppercase',
+                            }"
+                        >
+                            {{ group.label }}
+                        </div>
+                        <span
+                            :style="{
+                                fontSize: '9px',
+                                fontWeight: '700',
+                                color: '#fff',
+                                background: hexToRgba(modelGroupAccent(group.key), 0.22),
+                                border: `1px solid ${hexToRgba(modelGroupAccent(group.key), 0.48)}`,
+                                borderRadius: '999px',
+                                padding: '2px 8px',
+                                letterSpacing: '0.4px',
+                                textTransform: 'uppercase',
+                            }"
+                        >
+                            {{ group.loras?.length || 0 }} LoRA
+                        </span>
+                    </div>
+
+                    <div style="display:flex;flex-direction:column;gap:4px">
+                        <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.58);text-transform:uppercase;letter-spacing:0.4px">
+                            UNet
+                        </div>
+                        <div
+                            style="font-size:12px;color:var(--fg-color, rgba(255,255,255,0.96));line-height:1.45;word-break:break-word;cursor:pointer"
+                            @click="copyText(group.model, $event.currentTarget)"
+                        >
+                            {{ group.model || '-' }}
+                        </div>
+                    </div>
+
+                    <div v-if="group.loras?.length" style="display:flex;flex-direction:column;gap:6px">
+                        <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.58);text-transform:uppercase;letter-spacing:0.4px">
+                            LoRA Stack
+                        </div>
+                        <div style="display:flex;flex-direction:column;gap:5px">
+                            <div
+                                v-for="(lora, index) in group.loras"
+                                :key="`${group.key}-lora-${index}`"
+                                style="font-size:12px;color:var(--fg-color, rgba(255,255,255,0.92));line-height:1.4;word-break:break-word;padding:6px 8px;border-radius:6px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);cursor:pointer"
+                                @click="copyText(lora, $event.currentTarget)"
+                            >
+                                {{ lora }}
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

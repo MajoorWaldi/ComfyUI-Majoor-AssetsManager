@@ -616,7 +616,21 @@ def _first_non_none_scalar(source: dict[str, Any], keys: tuple[str, ...]) -> Any
 
 
 
-_SCALAR_FIELD_KEYS = ("seed", "value", "number", "int", "float", "text", "string", "prompt", "input", "text_a", "text_b")
+_SCALAR_FIELD_KEYS = (
+    "seed",
+    "value",
+    "number",
+    "int",
+    "float",
+    "Xi",
+    "Xf",
+    "text",
+    "string",
+    "prompt",
+    "input",
+    "text_a",
+    "text_b",
+)
 _CACHED_TEXT_FIELD_KEYS = ("text_0", "string_0", "STRING", "result", "output", "preview_text", "preview_markdown")
 _FALLBACK_LINK_KEYS = (
     "base_ctx",

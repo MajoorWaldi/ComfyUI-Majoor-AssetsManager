@@ -1,6 +1,7 @@
 import { buildViewURL } from "../../../../api/endpoints.js";
 import { loadMajoorSettings } from "../../../../app/settings.js";
 import {
+    buildWorkflowPresentation,
     formatLoRAItem,
     formatModelLabel,
     normalizeGenerationMetadata,
@@ -165,7 +166,16 @@ function hasDisplayableFields(obj) {
             return true;
         }
         if (obj.models || obj.model || obj.checkpoint || obj.loras) return true;
-        if (obj.sampler || obj.sampler_name || obj.steps || obj.cfg || obj.cfg_scale || obj.scheduler) return true;
+        if (
+            obj.sampler ||
+            obj.sampler_name ||
+            obj.steps ||
+            obj.cfg ||
+            obj.cfg_scale ||
+            obj.cfg_high_noise ||
+            obj.cfg_low_noise ||
+            obj.scheduler
+        ) return true;
         if (Array.isArray(obj.chained_passes) && obj.chained_passes.length > 0) return true;
         if (Array.isArray(obj.all_samplers) && obj.all_samplers.length > 0) return true;
         if (obj.seed || obj.denoise || obj.denoising || obj.clip_skip) return true;
@@ -206,6 +216,64 @@ function pickModelName(model) {
     return "";
 }
 
+function pushUniqueModelField(modelFields, seenPairs, label, value) {
+    const text = String(value || "").trim();
+    if (!text) return;
+    const key = `${label}::${text}`;
+    if (seenPairs.has(key)) return;
+    seenPairs.add(key);
+    modelFields.push({ label, value: text });
+}
+
+function pickLoraBranchKey(item) {
+    const source = String(item?.source || "").toLowerCase();
+    const name = String(item?.name || item?.lora_name || "").toLowerCase();
+    const haystack = `${source} ${name}`;
+    if (haystack.includes("high_noise") || haystack.includes("high noise")) return "high_noise";
+    if (haystack.includes("low_noise") || haystack.includes("low noise")) return "low_noise";
+    return "";
+}
+
+function buildModelGroupState(metadata) {
+    const groups = [];
+    const fromPayload = Array.isArray(metadata.model_groups) ? metadata.model_groups : [];
+    if (fromPayload.length) {
+        fromPayload.forEach((group) => {
+            if (!group || typeof group !== "object") return;
+            const modelName = pickModelName(group.model);
+            const loras = Array.isArray(group.loras)
+                ? group.loras.map((item) => formatLoRAItem(item)).filter(Boolean)
+                : [];
+            if (!modelName && !loras.length) return;
+            groups.push({
+                key: String(group.key || "").trim() || `group-${groups.length + 1}`,
+                label: String(group.label || "").trim() || `Group ${groups.length + 1}`,
+                model: modelName,
+                loras,
+            });
+        });
+        return groups;
+    }
+
+    const models = metadata.models && typeof metadata.models === "object" ? metadata.models : null;
+    const loras = Array.isArray(metadata.loras) ? metadata.loras : [];
+    if (!models) return groups;
+
+    const fallbackGroups = [
+        { key: "high_noise", label: "High Noise", model: pickModelName(models.unet_high_noise) },
+        { key: "low_noise", label: "Low Noise", model: pickModelName(models.unet_low_noise) },
+    ];
+    fallbackGroups.forEach((group) => {
+        const groupedLoras = loras
+            .filter((item) => pickLoraBranchKey(item) === group.key)
+            .map((item) => formatLoRAItem(item))
+            .filter(Boolean);
+        if (!group.model && !groupedLoras.length) return;
+        groups.push({ ...group, loras: groupedLoras });
+    });
+    return groups;
+}
+
 function createBooleanField(label, value) {
     if (value === undefined || value === null) return null;
     return { label, value: value ? "on" : "off" };
@@ -217,6 +285,8 @@ export function buildGenerationSectionState(asset) {
         kind: "empty",
         title: "Generation",
         workflowType: "",
+        workflowLabel: "",
+        workflowBadge: "",
         isTruncated: false,
         positivePrompt: "",
         negativePrompt: "",
@@ -228,6 +298,7 @@ export function buildGenerationSectionState(asset) {
         isImageAsset: isImageLikeAsset(asset),
         lyrics: "",
         modelFields: [],
+        modelGroups: [],
         pipelineTabs: [],
         samplingFields: [],
         ttsFields: [],
@@ -267,6 +338,7 @@ export function buildGenerationSectionState(asset) {
     }
 
     const metadata = normalized;
+    const workflowPresentation = buildWorkflowPresentation(metadata);
     const cleanedPrompts = normalizePromptsForDisplay(
         typeof metadata.prompt === "string" ? metadata.prompt : null,
         typeof (metadata.negative_prompt || metadata.negativePrompt) === "string"
@@ -294,20 +366,32 @@ export function buildGenerationSectionState(asset) {
             : [];
 
     const modelFields = [];
+    const seenModelPairs = new Set();
     const models = metadata.models && typeof metadata.models === "object" ? metadata.models : null;
+    const modelGroups = buildModelGroupState(metadata);
+    const groupedModelNames = new Set(
+        modelGroups.map((group) => String(group.model || "").trim()).filter(Boolean),
+    );
     const allCheckpoints =
         Array.isArray(metadata.all_checkpoints) && metadata.all_checkpoints.length > 1
             ? metadata.all_checkpoints
             : null;
     if (models) {
+        const branchNames = new Set([
+            pickModelName(models.unet_high_noise),
+            pickModelName(models.unet_low_noise),
+            ...groupedModelNames,
+        ].filter(Boolean));
         if (allCheckpoints) {
             allCheckpoints.forEach((checkpoint, index) => {
                 const name = pickModelName(checkpoint);
-                if (name) modelFields.push({ label: `Checkpoint ${index + 1}`, value: name });
+                pushUniqueModelField(modelFields, seenModelPairs, `Checkpoint ${index + 1}`, name);
             });
         } else {
             const checkpoint = pickModelName(models.checkpoint);
-            if (checkpoint) modelFields.push({ label: "Checkpoint", value: checkpoint });
+            if (checkpoint && !branchNames.has(checkpoint)) {
+                pushUniqueModelField(modelFields, seenModelPairs, "Checkpoint", checkpoint);
+            }
         }
         const fields = [
             ["UNet", pickModelName(models.unet)],
@@ -317,13 +401,16 @@ export function buildGenerationSectionState(asset) {
             ["VAE", pickModelName(models.vae)],
         ];
         fields.forEach(([label, value]) => {
-            if (value) modelFields.push({ label, value });
+            if (branchNames.has(value)) return;
+            pushUniqueModelField(modelFields, seenModelPairs, label, value);
         });
     } else if (metadata.model || metadata.checkpoint) {
-        modelFields.push({
-            label: "Model",
-            value: formatModelLabel(metadata.model || metadata.checkpoint),
-        });
+        pushUniqueModelField(
+            modelFields,
+            seenModelPairs,
+            "Model",
+            formatModelLabel(metadata.model || metadata.checkpoint),
+        );
     }
 
     if (Array.isArray(metadata.loras) && metadata.loras.length > 0) {
@@ -331,23 +418,38 @@ export function buildGenerationSectionState(asset) {
             .map((item) => formatLoRAItem(item))
             .filter(Boolean)
             .join("\n");
-        if (loraText) modelFields.push({ label: "LoRA", value: loraText });
+        if (loraText) {
+            pushUniqueModelField(
+                modelFields,
+                seenModelPairs,
+                metadata.loras.length > 1 ? "LoRAs" : "LoRA",
+                loraText,
+            );
+        }
     }
 
-    if (!models && metadata.clip) modelFields.push({ label: "CLIP", value: formatModelLabel(metadata.clip) });
-    if (!models && metadata.vae) modelFields.push({ label: "VAE", value: formatModelLabel(metadata.vae) });
-    if (!models && metadata.unet) modelFields.push({ label: "UNet", value: formatModelLabel(metadata.unet) });
+    if (!models && metadata.clip) pushUniqueModelField(modelFields, seenModelPairs, "CLIP", formatModelLabel(metadata.clip));
+    if (!models && metadata.vae) pushUniqueModelField(modelFields, seenModelPairs, "VAE", formatModelLabel(metadata.vae));
+    if (!models && metadata.unet) pushUniqueModelField(modelFields, seenModelPairs, "UNet", formatModelLabel(metadata.unet));
     if (!models && metadata.diffusion) {
-        modelFields.push({ label: "Diffusion", value: formatModelLabel(metadata.diffusion) });
+        pushUniqueModelField(modelFields, seenModelPairs, "Diffusion", formatModelLabel(metadata.diffusion));
     }
 
     const samplingFields = [];
     if (metadata.sampler || metadata.sampler_name) {
         samplingFields.push({ label: "Sampler", value: metadata.sampler || metadata.sampler_name });
     }
-    if (metadata.steps) samplingFields.push({ label: "Steps", value: metadata.steps });
+    if (metadata.steps !== undefined && metadata.steps !== null) {
+        samplingFields.push({ label: "Steps", value: metadata.steps });
+    }
     if (metadata.cfg || metadata.cfg_scale) {
         samplingFields.push({ label: "CFG Scale", value: metadata.cfg || metadata.cfg_scale });
+    }
+    if (metadata.cfg_high_noise !== undefined && metadata.cfg_high_noise !== null) {
+        samplingFields.push({ label: "CFG High Noise", value: metadata.cfg_high_noise });
+    }
+    if (metadata.cfg_low_noise !== undefined && metadata.cfg_low_noise !== null) {
+        samplingFields.push({ label: "CFG Low Noise", value: metadata.cfg_low_noise });
     }
     if (metadata.scheduler) samplingFields.push({ label: "Scheduler", value: metadata.scheduler });
 
@@ -460,7 +562,9 @@ export function buildGenerationSectionState(asset) {
         ...emptyState,
         kind: "full",
         metadata,
-        workflowType: String(metadata?.engine?.type || "").trim(),
+        workflowType: workflowPresentation.workflowType,
+        workflowLabel: workflowPresentation.workflowLabel,
+        workflowBadge: workflowPresentation.workflowBadge,
         isTruncated: Boolean(asset?.geninfo?._truncated || asset?.metadata?._truncated || asset?.prompt?._truncated),
         positivePrompt: promptTabs.length ? "" : String(cleanedPrompts.positive || "").trim(),
         negativePrompt: promptTabs.length ? "" : String(cleanedPrompts.negative || "").trim(),
@@ -469,6 +573,7 @@ export function buildGenerationSectionState(asset) {
         isImageAsset: isImageLikeAsset(asset),
         lyrics: String(metadata.lyrics || "").trim(),
         modelFields,
+        modelGroups,
         pipelineTabs,
         samplingFields,
         ttsFields,

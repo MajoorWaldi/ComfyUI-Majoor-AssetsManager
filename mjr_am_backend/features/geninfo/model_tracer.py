@@ -82,9 +82,48 @@ def _append_lora_entries(
         if payload is not None:
             loras.append(payload)
 
+    _append_numbered_lora_entries(node=node, node_id=node_id, ins=ins, confidence=confidence, loras=loras)
+
     root_payload = _build_lora_payload_from_inputs(node=node, node_id=node_id, ins=ins, confidence=confidence)
     if root_payload is not None:
         loras.append(root_payload)
+
+
+def _append_numbered_lora_entries(
+    *,
+    node: dict[str, Any],
+    node_id: str,
+    ins: dict[str, Any],
+    confidence: str,
+    loras: list[dict[str, Any]],
+) -> None:
+    for key, value in ins.items():
+        index = _numbered_lora_suffix(key)
+        if index is None or _is_link(value):
+            continue
+        name = _clean_model_id(value)
+        if not name or name.lower() in ("no", "none", "false", "off"):
+            continue
+        loras.append(
+            {
+                "name": name,
+                "strength_model": ins.get(f"strength{index}")
+                or ins.get(f"strength_model{index}")
+                or ins.get(f"weight{index}")
+                or ins.get(f"lora_strength{index}"),
+                "strength_clip": ins.get(f"strength_clip{index}") or ins.get(f"clip_strength{index}"),
+                "confidence": confidence,
+                "source": f"{_node_type(node)}:{node_id}:{key}",
+            }
+        )
+
+
+def _numbered_lora_suffix(key: Any) -> str | None:
+    token = str(key).strip().lower()
+    if not token.startswith("lora"):
+        return None
+    suffix = token[4:]
+    return suffix if suffix.isdigit() else None
 
 
 
@@ -140,7 +179,16 @@ def _build_lora_payload_from_inputs(
     ins: dict[str, Any],
     confidence: str,
 ) -> dict[str, Any] | None:
-    name = _clean_model_id(ins.get("lora_name") or ins.get("lora") or ins.get("name"))
+    raw_name = ins.get("lora_name")
+    if raw_name is None:
+        candidate_lora = ins.get("lora")
+        if not _is_link(candidate_lora):
+            raw_name = candidate_lora
+    if raw_name is None:
+        candidate_name = ins.get("name")
+        if not _is_link(candidate_name):
+            raw_name = candidate_name
+    name = _clean_model_id(raw_name)
     if not name:
         return None
     strength_model = ins.get("strength_model") or ins.get("strength") or ins.get("weight") or ins.get("lora_strength")
@@ -201,6 +249,7 @@ def _chain_result(next_link: Any | None, should_stop: bool) -> tuple[Any | None,
 
 
 def _handle_lora_chain_node(
+    nodes_by_id: dict[str, dict[str, Any]],
     node: dict[str, Any],
     node_id: str,
     ct: str,
@@ -211,10 +260,37 @@ def _handle_lora_chain_node(
     if not _is_lora_loader_node(ct, ins):
         return None
     _append_lora_entries(node, node_id, ins, confidence, loras)
+    _append_linked_lora_entries(nodes_by_id, ins.get("lora"), confidence, loras)
     next_model = ins.get("model")
     if _is_link(next_model):
         return _chain_result(next_model, False)
     return _chain_result(None, True)
+
+
+def _append_linked_lora_entries(
+    nodes_by_id: dict[str, dict[str, Any]],
+    lora_link: Any,
+    confidence: str,
+    loras: list[dict[str, Any]],
+) -> None:
+    current_link = lora_link
+    seen_ids: set[str] = set()
+    hops = 0
+    while _is_link(current_link) and hops < 40:
+        hops += 1
+        node_id = _walk_passthrough(nodes_by_id, current_link)
+        if not node_id or node_id in seen_ids:
+            break
+        seen_ids.add(node_id)
+        node = nodes_by_id.get(node_id)
+        if not isinstance(node, dict):
+            break
+        ins = _inputs(node)
+        _append_lora_entries(node, node_id, ins, confidence, loras)
+        next_link = ins.get("lora")
+        if not _is_link(next_link):
+            break
+        current_link = next_link
 
 
 
@@ -343,6 +419,7 @@ def _handle_fallback_chain_node(
 
 
 def _process_model_chain_node(
+    nodes_by_id: dict[str, dict[str, Any]],
     node: dict[str, Any],
     node_id: str,
     ct: str,
@@ -352,7 +429,7 @@ def _process_model_chain_node(
     confidence: str,
 ) -> tuple[Any | None, bool]:
     for handler in (
-        lambda: _handle_lora_chain_node(node, node_id, ct, ins, loras, confidence),
+        lambda: _handle_lora_chain_node(nodes_by_id, node, node_id, ct, ins, loras, confidence),
         lambda: _handle_modelsampling_chain_node(ct, ins),
         lambda: _handle_diffusion_loader_chain_node(node, node_id, ct, ins, models, confidence),
         lambda: _handle_generic_loader_chain_node(node, node_id, ct, ins, models, confidence),
@@ -384,6 +461,7 @@ def _trace_model_chain(
             break
 
         next_link, should_stop = _process_model_chain_node(
+            nodes_by_id,
             node,
             node_id,
             _lower(_node_type(node)),
@@ -396,7 +474,25 @@ def _trace_model_chain(
             break
         current_link = next_link
 
-    return models, loras
+    return models, _dedupe_lora_entries(loras)
+
+
+def _dedupe_lora_entries(loras: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    out: list[dict[str, Any]] = []
+    seen: set[tuple[Any, Any, Any]] = set()
+    for item in loras:
+        if not isinstance(item, dict):
+            continue
+        key = (
+            item.get("name"),
+            item.get("strength_model"),
+            item.get("strength_clip"),
+        )
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(item)
+    return out
 
 
 
@@ -555,6 +651,39 @@ def _trace_models_and_loras(
     return {}, []
 
 
+def _trace_branch_models_and_loras(
+    nodes_by_id: dict[str, Any],
+    ins: dict[str, Any],
+    confidence: str,
+) -> tuple[dict[str, dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
+    branch_models: dict[str, dict[str, Any]] = {}
+    branch_loras: list[dict[str, Any]] = []
+    branch_groups: list[dict[str, Any]] = []
+    for branch_key, branch_label, output_key, input_key in (
+        ("high_noise", "High Noise", "unet_high_noise", "model_high_noise"),
+        ("low_noise", "Low Noise", "unet_low_noise", "model_low_noise"),
+    ):
+        model_link = ins.get(input_key)
+        if not _is_link(model_link):
+            continue
+        traced_models, traced_loras = _trace_model_chain(nodes_by_id, model_link, confidence)
+        preferred = traced_models.get("checkpoint") or traced_models.get("unet") or traced_models.get("diffusion")
+        if preferred and output_key not in branch_models:
+            branch_models[output_key] = preferred
+        deduped_loras = _dedupe_lora_entries(traced_loras)
+        branch_loras.extend(deduped_loras)
+        if preferred or deduped_loras:
+            branch_groups.append(
+                {
+                    "key": branch_key,
+                    "label": branch_label,
+                    "model": preferred,
+                    "loras": deduped_loras,
+                }
+            )
+    return branch_models, _dedupe_lora_entries(branch_loras), branch_groups
+
+
 
 def _collect_model_related_fields(
     nodes_by_id: dict[str, Any],
@@ -565,6 +694,11 @@ def _collect_model_related_fields(
     model_link_for_chain: Any,
 ) -> dict[str, Any]:
     models, loras = _trace_models_and_loras(nodes_by_id, model_link_for_chain, confidence)
+    branch_models, branch_loras, branch_groups = _trace_branch_models_and_loras(nodes_by_id, ins, confidence)
+    for key, value in branch_models.items():
+        if key not in models:
+            models[key] = value
+    loras = _dedupe_lora_entries([*loras, *branch_loras])
     _ensure_upscaler_model(nodes_by_id, models)
     size = _trace_size(nodes_by_id, ins.get("latent_image"), confidence) if _is_link(ins.get("latent_image")) else None
     clip_skip = _trace_clip_skip_from_conditioning(nodes_by_id, conditioning_link, confidence)
@@ -574,6 +708,7 @@ def _collect_model_related_fields(
     return {
         "models": models,
         "loras": loras,
+        "model_groups": branch_groups,
         "size": size,
         "clip_skip": clip_skip,
         "clip": clip,
@@ -624,7 +759,7 @@ def _merge_models_payload(models: dict[str, dict[str, Any]], clip: dict[str, Any
         return None
 
     merged: dict[str, dict[str, Any]] = {}
-    for key in ("checkpoint", "unet", "diffusion", "upscaler"):
+    for key in ("checkpoint", "unet", "unet_high_noise", "unet_low_noise", "diffusion", "upscaler"):
         if models.get(key):
             merged[key] = models[key]
     if clip:
@@ -632,6 +767,3 @@ def _merge_models_payload(models: dict[str, dict[str, Any]], clip: dict[str, Any
     if vae:
         merged["vae"] = vae
     return merged or None
-
-
-

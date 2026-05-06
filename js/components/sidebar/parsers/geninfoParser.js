@@ -31,6 +31,9 @@ export function normalizeGenerationMetadata(raw) {
                 mapped.models = models;
             }
 
+            const modelGroups = Array.isArray(geninfo.model_groups) ? geninfo.model_groups : null;
+            if (modelGroups && modelGroups.length) mapped.model_groups = modelGroups;
+
             const loras = Array.isArray(geninfo.loras) ? geninfo.loras : null;
             if (loras) mapped.loras = loras;
 
@@ -43,6 +46,12 @@ export function normalizeGenerationMetadata(raw) {
             if (steps !== null && steps !== undefined) mapped.steps = steps;
             const cfg = geninfo.cfg?.value ?? geninfo.cfg ?? null;
             if (cfg !== null && cfg !== undefined) mapped.cfg = cfg;
+            const cfgHighNoise = geninfo.cfg_high_noise?.value ?? geninfo.cfg_high_noise ?? null;
+            if (cfgHighNoise !== null && cfgHighNoise !== undefined)
+                mapped.cfg_high_noise = cfgHighNoise;
+            const cfgLowNoise = geninfo.cfg_low_noise?.value ?? geninfo.cfg_low_noise ?? null;
+            if (cfgLowNoise !== null && cfgLowNoise !== undefined)
+                mapped.cfg_low_noise = cfgLowNoise;
             const seed = geninfo.seed?.value ?? geninfo.seed ?? null;
             if (seed !== null && seed !== undefined) mapped.seed = seed;
             const voice = geninfo.voice?.name ?? geninfo.voice?.value ?? geninfo.voice ?? null;
@@ -319,4 +328,65 @@ export function formatLoRAItem(lora) {
 
     if (w !== null && w !== undefined) return `${name} (${w})`;
     return name;
+}
+
+export function humanizeWorkflowType(value) {
+    const raw = String(value || "").trim().toLowerCase();
+    if (!raw) return "";
+    if (raw === "img2vid") return "Image-to-Video";
+    if (raw === "txt2vid") return "Text-to-Video";
+    if (raw === "img2img") return "Image-to-Image";
+    if (raw === "txt2img") return "Text-to-Image";
+    if (raw === "vid2vid") return "Video-to-Video";
+    if (raw === "tts") return "Text-to-Speech";
+    if (raw === "audio") return "Audio";
+    return raw
+        .split(/[_\s-]+/)
+        .filter(Boolean)
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+        .join(" ");
+}
+
+export function humanizeApiProvider(value) {
+    const raw = String(value || "").trim().toLowerCase();
+    if (!raw || raw === "api") return "";
+    const aliases = {
+        happy_horse: "Happy Horse",
+        google_gemini: "Google Gemini",
+        google_veo: "Google Veo",
+        openai: "OpenAI",
+        anthropic: "Anthropic",
+        black_forest_labs: "Black Forest Labs",
+        stability_ai: "Stability AI",
+        alibaba_wan: "Alibaba Wan",
+        kling_ai: "Kling AI",
+        luma_dream_machine: "Luma Dream Machine",
+        minimax_hailuo: "MiniMax Hailuo",
+        xai_grok: "xAI Grok",
+        ltxv_api: "LTXV API",
+        eleven_labs: "ElevenLabs",
+        bytedance_seedance: "ByteDance Seedance",
+    };
+    if (aliases[raw]) return aliases[raw];
+    return raw
+        .split(/[_\s-]+/)
+        .filter(Boolean)
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+        .join(" ");
+}
+
+export function buildWorkflowPresentation(metadata) {
+    const engine = metadata?.engine && typeof metadata.engine === "object" ? metadata.engine : null;
+    const workflowType = String(engine?.type || "").trim();
+    const samplerMode = String(engine?.sampler_mode || "").trim().toLowerCase();
+    const workflowLabelBase = humanizeWorkflowType(workflowType) || workflowType;
+    const workflowBadge = humanizeApiProvider(engine?.api_provider);
+    const workflowLabel = samplerMode === "api"
+        ? `API ${workflowLabelBase || "Workflow"}`
+        : workflowLabelBase;
+    return {
+        workflowType,
+        workflowLabel: String(workflowLabel || workflowType).trim(),
+        workflowBadge,
+    };
 }

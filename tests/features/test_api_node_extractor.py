@@ -23,6 +23,7 @@ def test_detect_api_node_known_providers():
     assert x._detect_api_node("ltxvapitext") == "ltxv_api"
     assert x._detect_api_node("elevenlabstextto") == "eleven_labs"
     assert x._detect_api_node("wan2texttovideoapi") == "alibaba_wan"
+    assert x._detect_api_node("happyhorseimagetovideoapi") == "happy_horse"
     assert x._detect_api_node("fluxkontext") == "black_forest_labs"
     assert x._detect_api_node("stabilitystableimage") == "stability_ai"
     assert x._detect_api_node("unknownnode") is None
@@ -45,6 +46,7 @@ def test_provider_from_model_name():
     assert x._provider_from_model_name("claude-3-opus") == "anthropic"
     assert x._provider_from_model_name("flux-kontext-pro") == "black_forest_labs"
     assert x._provider_from_model_name("stable-diffusion-xl") == "stability_ai"
+    assert x._provider_from_model_name("happyhorse-1.0-i2v") == "happy_horse"
     assert x._provider_from_model_name("wan-2.1") == "alibaba_wan"
     assert x._provider_from_model_name("kling-v2") == "kling_ai"
     assert x._provider_from_model_name("luma-dream-machine") == "luma_dream_machine"
@@ -100,6 +102,7 @@ def test_is_api_image_node_rejects_non_api():
 
 def test_extract_api_node_prompt_priority():
     assert x._extract_api_node_prompt({"prompt": "a cat"}) == "a cat"
+    assert x._extract_api_node_prompt({"model.prompt": "a galloping horse"}) == "a galloping horse"
     assert x._extract_api_node_prompt({"text": "a dog"}) == "a dog"
     assert x._extract_api_node_prompt({"positive_prompt": "sun"}) == "sun"
     assert x._extract_api_node_prompt({}) is None
@@ -108,8 +111,16 @@ def test_extract_api_node_prompt_priority():
 
 def test_extract_api_node_negative():
     assert x._extract_api_node_negative({"negative_prompt": "blur"}) == "blur"
+    assert x._extract_api_node_negative({"model.negative_prompt": "washed out"}) == "washed out"
     assert x._extract_api_node_negative({"negative": "ugly"}) == "ugly"
     assert x._extract_api_node_negative({}) is None
+
+
+def test_extract_api_node_prompt_resolves_linked_text():
+    nodes = {
+        "1": {"class_type": "PrimitiveStringMultiline", "inputs": {"value": "galloping chrome horse"}},
+    }
+    assert x._extract_api_node_prompt({"model.prompt": ["1", 0]}, nodes) == "galloping chrome horse"
 
 
 def test_extract_api_node_model():
@@ -285,6 +296,37 @@ def test_extract_api_node_geninfo_fallback_seedance_dotted_keys():
     assert result["seed"]["value"] == 99
 
 
+def test_extract_api_node_geninfo_fallback_happy_horse_dotted_keys():
+    nodes = {
+        "13": {
+            "class_type": "HappyHorseImageToVideoApi",
+            "inputs": {
+                "model": "happyhorse-1.0-i2v",
+                "model.prompt": "a happy horse running in a meadow",
+                "model.resolution": "720p",
+                "model.duration": 5,
+                "seed": 962403639,
+                "first_frame": ["14", 0],
+            },
+        },
+        "14": {
+            "class_type": "LoadImage",
+            "inputs": {"image": "horse.png"},
+        },
+    }
+    result = x._extract_api_node_geninfo_fallback(nodes, None)
+    assert result is not None
+    assert result["engine"]["api_provider"] == "happy_horse"
+    assert result["engine"]["type"] == "img2vid"
+    assert result["positive"]["value"] == "a happy horse running in a meadow"
+    assert result["checkpoint"]["name"] == "happyhorse-1.0-i2v"
+    assert result["resolution"]["value"] == "720p"
+    assert result["size"]["width"] == 1280
+    assert result["size"]["height"] == 720
+    assert result["duration"]["value"] == 5
+    assert result["seed"]["value"] == 962403639
+
+
 def test_extract_api_node_geninfo_fallback_with_negative_prompt():
     nodes = {
         "1": {
@@ -353,3 +395,30 @@ def test_extract_api_node_geninfo_fallback_full_integration_via_parser():
     assert isinstance(data, dict)
     assert data.get("positive", {}).get("value") == "a red fox in a snowy forest"
     assert data.get("engine", {}).get("api_provider") == "google_gemini"
+
+
+def test_parse_geninfo_from_prompt_surfaces_linked_happy_horse_prompt():
+    nodes = {
+        "1": {"class_type": "PrimitiveStringMultiline", "inputs": {"value": "cinematic happy horse across a foggy valley"}},
+        "13": {
+            "class_type": "HappyHorseImageToVideoApi",
+            "inputs": {
+                "model": "happyhorse-1.0-i2v",
+                "model.prompt": ["1", 0],
+                "model.resolution": "720P",
+                "model.duration": 5,
+                "seed": 962403639,
+                "first_frame": ["14", 0],
+            },
+        },
+        "14": {"class_type": "LoadImage", "inputs": {"image": "horse.png"}},
+        "15": {"class_type": "VHS_VideoCombine", "inputs": {"images": ["13", 0]}},
+    }
+
+    res = p.parse_geninfo_from_prompt(nodes)
+    assert res.ok
+    data = res.data
+    assert isinstance(data, dict)
+    assert data.get("engine", {}).get("api_provider") == "happy_horse"
+    assert data.get("positive", {}).get("value") == "cinematic happy horse across a foggy valley"
+    assert data.get("checkpoint", {}).get("name") == "happyhorse-1.0-i2v"

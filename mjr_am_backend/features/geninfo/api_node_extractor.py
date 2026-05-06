@@ -16,7 +16,7 @@ from __future__ import annotations
 from typing import Any
 
 from ...shared import get_logger
-from .graph_converter import _inputs, _lower, _node_type, _set_value_field
+from .graph_converter import _inputs, _is_link, _lower, _node_type, _set_value_field
 from .parser_impl import _extract_input_files
 from .sampler_tracer import _scalar
 
@@ -89,6 +89,9 @@ _API_NODE_SIGNATURES: list[tuple[str, str]] = [
     ("wanreferencevideoapi",     "alibaba_wan"),
     ("wantexttoimageapi",        "alibaba_wan"),
     ("wanimagetoimageapi",       "alibaba_wan"),
+    # ── Happy Horse ──────────────────────────────────────────────────────────
+    ("happyhorseimagetovideoapi", "happy_horse"),
+    ("happyhorse",                "happy_horse"),
     # ── Kling AI ─────────────────────────────────────────────────────────────
     ("klingomnipro",             "kling_ai"),
     ("klingimage2video",         "kling_ai"),
@@ -215,6 +218,7 @@ _MODEL_NAME_PROVIDERS: list[tuple[tuple[str, ...], str]] = [
     (("claude", "anthropic"),                     "anthropic"),
     (("flux-kontext", "flux-pro", "flux-ultra"),  "black_forest_labs"),
     (("stable-diffusion", "stability", "sdxl"),   "stability_ai"),
+    (("happyhorse", "happy-horse"),                "happy_horse"),
     (("kling",),                                  "kling_ai"),
     (("luma", "dream-machine"),                   "luma_dream_machine"),
     (("minimax", "hailuo"),                       "minimax_hailuo"),
@@ -399,19 +403,33 @@ def _populate_seedance_output(
 # Generic API node helpers
 # ---------------------------------------------------------------------------
 
-def _extract_api_node_prompt(ins: dict[str, Any]) -> str | None:
-    for key in ("prompt", "text", "positive_prompt", "positive"):
-        val = ins.get(key)
-        if isinstance(val, str) and val.strip():
-            return val.strip()
+def _resolve_api_text_value(nodes_by_id: dict[str, Any] | None, value: Any) -> str | None:
+    if isinstance(value, str) and value.strip():
+        return value.strip()
+    if not nodes_by_id or not _is_link(value):
+        return None
+    try:
+        from .prompt_tracer import _resolve_text_value
+
+        resolved = _resolve_text_value(nodes_by_id, value, set())
+    except Exception:
+        return None
+    return resolved.strip() if isinstance(resolved, str) and resolved.strip() else None
+
+
+def _extract_api_node_prompt(ins: dict[str, Any], nodes_by_id: dict[str, Any] | None = None) -> str | None:
+    for key in ("prompt", "model.prompt", "text", "positive_prompt", "positive"):
+        resolved = _resolve_api_text_value(nodes_by_id, ins.get(key))
+        if resolved:
+            return resolved
     return None
 
 
-def _extract_api_node_negative(ins: dict[str, Any]) -> str | None:
-    for key in ("negative_prompt", "negative", "negative_text"):
-        val = ins.get(key)
-        if isinstance(val, str) and val.strip():
-            return val.strip()
+def _extract_api_node_negative(ins: dict[str, Any], nodes_by_id: dict[str, Any] | None = None) -> str | None:
+    for key in ("negative_prompt", "model.negative_prompt", "negative", "negative_text"):
+        resolved = _resolve_api_text_value(nodes_by_id, ins.get(key))
+        if resolved:
+            return resolved
     return None
 
 
@@ -492,11 +510,11 @@ def _populate_api_node_output(
         return
 
     # Prompt / negative
-    prompt = _extract_api_node_prompt(ins)
+    prompt = _extract_api_node_prompt(ins, nodes_by_id)
     if prompt:
         out["positive"] = {"value": prompt, "confidence": "high", "source": source}
 
-    negative = _extract_api_node_negative(ins)
+    negative = _extract_api_node_negative(ins, nodes_by_id)
     if negative:
         out["negative"] = {"value": negative, "confidence": "high", "source": source}
 
@@ -532,7 +550,7 @@ def _populate_api_node_output(
             logger.debug("size conversion failed for node %s: %s", source, exc)
 
     # Resolution string (e.g. "1080p", "720p") — convert to size when possible
-    resolution = ins.get("resolution")
+    resolution = ins.get("model.resolution") or ins.get("resolution")
     if isinstance(resolution, str) and resolution.strip():
         out["resolution"] = {"value": resolution.strip(), "confidence": "high", "source": source}
         if "size" not in out:
@@ -541,7 +559,7 @@ def _populate_api_node_output(
                 out["size"] = {"width": wh[0], "height": wh[1], "confidence": "medium", "source": source}
 
     # Duration (seconds or frames)
-    duration = _scalar(ins.get("duration"))
+    duration = _scalar(ins.get("model.duration") or ins.get("duration"))
     if duration is not None:
         out["duration"] = {"value": duration, "confidence": "high", "source": source}
 
