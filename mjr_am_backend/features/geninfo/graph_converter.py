@@ -230,21 +230,23 @@ def _resolve_switch_value(nodes_by_id: dict[str, dict[str, Any]], value: Any, se
     return None
 
 
-def _selected_switch_link(nodes_by_id: dict[str, dict[str, Any]], node: dict[str, Any]) -> Any | None:
-    ins = _inputs(node)
+def _selected_binary_switch_link(nodes_by_id: dict[str, dict[str, Any]], ins: dict[str, Any]) -> Any | None:
+    if "on_true" not in ins and "on_false" not in ins:
+        return None
+    enabled = _coerce_switch_enabled(_resolve_switch_value(nodes_by_id, ins.get("switch")))
+    if enabled is True and _is_link(ins.get("on_true")):
+        return ins.get("on_true")
+    if enabled is False and _is_link(ins.get("on_false")):
+        return ins.get("on_false")
+    for key in ("on_true", "on_false"):
+        value = ins.get(key)
+        if _is_link(value):
+            return value
+    return None
+
+
+def _switch_candidate_keys(node: dict[str, Any], ins: dict[str, Any]) -> list[str]:
     candidate_keys: list[str] = []
-
-    if "on_true" in ins or "on_false" in ins:
-        enabled = _coerce_switch_enabled(_resolve_switch_value(nodes_by_id, ins.get("switch")))
-        if enabled is True and _is_link(ins.get("on_true")):
-            return ins.get("on_true")
-        if enabled is False and _is_link(ins.get("on_false")):
-            return ins.get("on_false")
-        for key in ("on_true", "on_false"):
-            value = ins.get(key)
-            if _is_link(value):
-                return value
-
     for key in _SWITCH_SELECT_INPUT_KEYS:
         idx = _to_int(ins.get(key))
         if idx is not None and idx > 0:
@@ -264,6 +266,16 @@ def _selected_switch_link(nodes_by_id: dict[str, dict[str, Any]], node: dict[str
     candidate_keys.extend(("image", "images", "video", "audio", "any"))
     candidate_keys.extend(_SWITCH_ANY_LINK_KEYS)
     candidate_keys.extend(("context", "base_ctx", "pipe", "pipe_to", "input", "output"))
+    return candidate_keys
+
+
+def _selected_switch_link(nodes_by_id: dict[str, dict[str, Any]], node: dict[str, Any]) -> Any | None:
+    ins = _inputs(node)
+    binary_link = _selected_binary_switch_link(nodes_by_id, ins)
+    if binary_link is not None:
+        return binary_link
+
+    candidate_keys = _switch_candidate_keys(node, ins)
 
     seen: set[str] = set()
     for key in candidate_keys:
