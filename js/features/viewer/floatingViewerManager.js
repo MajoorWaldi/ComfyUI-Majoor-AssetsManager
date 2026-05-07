@@ -296,8 +296,16 @@ function _syncCurrentGridSelection() {
 
 function _onSelectionChanged(e) {
     if (!_instance?.isVisible) return;
+    // Filter out folder cards — they have no previewable media.
+    const selectedAssets = Array.isArray(e?.detail?.selectedAssets) ? e.detail.selectedAssets : [];
+    const folderIds = new Set(
+        selectedAssets
+            .filter((a) => String(a?.kind || "").toLowerCase() === "folder")
+            .map((a) => String(a?.id || ""))
+            .filter(Boolean),
+    );
     const selectedIds = Array.isArray(e?.detail?.selectedIds)
-        ? e.detail.selectedIds.map(String).filter(Boolean)
+        ? e.detail.selectedIds.map(String).filter((id) => Boolean(id) && !folderIds.has(id))
         : [];
     if (selectedIds.length) {
         void _loadFromIds(selectedIds);

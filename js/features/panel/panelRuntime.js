@@ -434,6 +434,7 @@ async function _mountPanelRuntimeImpl(container, { useComfyThemeUI = true, exter
         folderBreadcrumb,
         customSelect,
         reloadGrid: () => gridController.reloadGrid(),
+        clearSelection: () => { try { gridContainer?._mjrSetSelection?.([], ""); } catch (e) { console.debug?.(e); } },
         onContextChanged: () => {
             try {
                 contextController?.update?.();

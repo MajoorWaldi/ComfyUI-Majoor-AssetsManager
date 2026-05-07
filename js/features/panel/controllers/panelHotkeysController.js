@@ -98,6 +98,43 @@ export function createPanelHotkeysController({
             // Check if viewer has hotkey priority
             if (getHotkeysState().scope === "viewer") return;
 
+            // V toggles the floating viewer — processed before the panel-active guard so it
+            // still fires after subfolder navigation when hover/focus state may have reset
+            // (e.g. the focused folder card was removed from the DOM after reload).
+            if (
+                event.key?.toLowerCase?.() === "v" &&
+                !event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey
+            ) {
+                const vTyping =
+                    event.target?.isContentEditable ||
+                    event.target?.closest?.("input, textarea, select, [contenteditable='true']");
+                if (!vTyping && boundEl?.isConnected) {
+                    // Block only when focus is inside an input/textarea that lives outside this panel.
+                    let blockedByOutsideInput = false;
+                    try {
+                        const ae = document.activeElement;
+                        if (ae && ae !== document.body && !boundEl.contains?.(ae)) {
+                            blockedByOutsideInput =
+                                ae.matches?.("input, textarea, select, [contenteditable='true']") ||
+                                ae.isContentEditable;
+                        }
+                    } catch (e) {
+                        console.debug?.(e);
+                    }
+                    if (!blockedByOutsideInput) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        event.stopImmediatePropagation?.();
+                        try {
+                            onToggleFloatingViewer?.();
+                        } catch (e) {
+                            console.debug?.(e);
+                        }
+                        return;
+                    }
+                }
+            }
+
             // Check if panel is active before processing hotkeys
             // This ensures hotkeys only work when the panel is hovered or focused
             if (!isPanelHotkeyContext(event)) return;
