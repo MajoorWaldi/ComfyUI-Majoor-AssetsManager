@@ -7,6 +7,7 @@ export function createBrowserNavigationController({
     folderBreadcrumb,
     customSelect,
     reloadGrid,
+    clearSelection = null,
     onContextChanged = null,
     lifecycleSignal = null,
 } = {}) {
@@ -123,6 +124,7 @@ export function createBrowserNavigationController({
         setFolderPath(next);
         resetGridScrollToTop();
         notifyContext();
+        try { clearSelection?.(); } catch (e) { console.debug?.(e); }
         await reloadGrid?.();
     };
 
@@ -131,6 +133,7 @@ export function createBrowserNavigationController({
         setFolderPath("");
         resetGridScrollToTop();
         notifyContext();
+        try { clearSelection?.(); } catch (e) { console.debug?.(e); }
         await reloadGrid?.();
     };
 
@@ -276,6 +279,7 @@ export function createBrowserNavigationController({
                 setFolderPath(target);
                 resetGridScrollToTop();
                 notifyContext();
+                try { clearSelection?.(); } catch (e) { console.debug?.(e); }
                 try {
                     await reloadGrid?.();
                 } catch (e) {
@@ -294,6 +298,7 @@ export function createBrowserNavigationController({
                 setFolderPath(next);
                 resetGridScrollToTop();
                 notifyContext();
+                try { clearSelection?.(); } catch (e) { console.debug?.(e); }
                 try {
                     await reloadGrid?.();
                 } catch (e) {
