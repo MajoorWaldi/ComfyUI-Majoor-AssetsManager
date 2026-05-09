@@ -344,6 +344,9 @@ let _nodeSelectionBound = false;
 let _origOnNodeSelected = null;
 let _origOnSelectionChange = null;
 let _origOnNodeDeselected = null;
+let _hadOwnOnNodeSelected = false;
+let _hadOwnOnSelectionChange = false;
+let _hadOwnOnNodeDeselected = false;
 let _canvasPointerupHandler = null;
 let _sidebarRefreshTimer = null;
 let _sidebarRefreshTimerKind = "";
@@ -398,9 +401,19 @@ function _bindNodeSelectionListener() {
         const canvas = app?.canvas;
         if (!canvas) return;
 
-        _origOnNodeSelected = canvas.onNodeSelected ?? null;
-        _origOnSelectionChange = canvas.onSelectionChange ?? null;
-        _origOnNodeDeselected = canvas.onNodeDeselected ?? null;
+        _hadOwnOnNodeSelected = Object.prototype.hasOwnProperty.call(canvas, "onNodeSelected");
+        _hadOwnOnSelectionChange = Object.prototype.hasOwnProperty.call(
+            canvas,
+            "onSelectionChange",
+        );
+        _hadOwnOnNodeDeselected = Object.prototype.hasOwnProperty.call(
+            canvas,
+            "onNodeDeselected",
+        );
+
+        _origOnNodeSelected = canvas.onNodeSelected;
+        _origOnSelectionChange = canvas.onSelectionChange;
+        _origOnNodeDeselected = canvas.onNodeDeselected;
 
         canvas.onNodeSelected = function (node) {
             _origOnNodeSelected?.call(this, node);
@@ -438,9 +451,12 @@ function _unbindNodeSelectionListener() {
         const app = getComfyApp();
         const canvas = app?.canvas;
         if (canvas) {
-            if (_origOnNodeSelected !== null) canvas.onNodeSelected = _origOnNodeSelected;
-            if (_origOnSelectionChange !== null) canvas.onSelectionChange = _origOnSelectionChange;
-            if (_origOnNodeDeselected !== null) canvas.onNodeDeselected = _origOnNodeDeselected;
+            if (_hadOwnOnNodeSelected) canvas.onNodeSelected = _origOnNodeSelected;
+            else delete canvas.onNodeSelected;
+            if (_hadOwnOnSelectionChange) canvas.onSelectionChange = _origOnSelectionChange;
+            else delete canvas.onSelectionChange;
+            if (_hadOwnOnNodeDeselected) canvas.onNodeDeselected = _origOnNodeDeselected;
+            else delete canvas.onNodeDeselected;
             if (_canvasPointerupHandler && canvas.canvas?.removeEventListener) {
                 canvas.canvas.removeEventListener("pointerup", _canvasPointerupHandler);
             }
@@ -451,6 +467,9 @@ function _unbindNodeSelectionListener() {
     _origOnNodeSelected = null;
     _origOnSelectionChange = null;
     _origOnNodeDeselected = null;
+    _hadOwnOnNodeSelected = false;
+    _hadOwnOnSelectionChange = false;
+    _hadOwnOnNodeDeselected = false;
     _canvasPointerupHandler = null;
     _nodeSelectionBound = false;
 }
@@ -853,6 +872,7 @@ export function teardownFloatingViewerManager({ reinstallGlobalHandlers = false 
     }
     removeFloatingViewerGlobalHandlers();
     _unbindSelectionListener();
+    _unbindNodeSelectionListener();
     _cancelFetch();
     _loadSeq += 1;
     _liveActive = _getDefaultLiveActive();

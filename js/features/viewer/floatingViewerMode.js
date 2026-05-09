@@ -18,7 +18,7 @@ export function notifyFloatingViewerModeChanged(viewer) {
 }
 
 export function cycleFloatingViewerMode(viewer) {
-    const order = [MFV_MODES.SIMPLE, MFV_MODES.AB, MFV_MODES.SIDE, MFV_MODES.GRID];
+    const order = [MFV_MODES.SIMPLE, MFV_MODES.AB, MFV_MODES.SIDE, MFV_MODES.GRID, MFV_MODES.GRAPH];
     viewer._mode = order[(order.indexOf(viewer._mode) + 1) % order.length];
     viewer._updateModeBtnUI();
     viewer._refresh();
@@ -61,6 +61,10 @@ export function updateFloatingViewerModeButtonUI(viewer) {
             icon: "pi-th-large",
             label: "Mode: Grid Compare (up to 4) - click to switch",
         },
+        [MFV_MODES.GRAPH]: {
+            icon: "pi-sitemap",
+            label: "Mode: Graph Map - click to switch",
+        },
     };
     const { icon = "pi-image", label = "" } = cfg[viewer._mode] || {};
     const tooltip = appendTooltipHint(label, MFV_MODE_HINT);
@@ -73,6 +77,7 @@ export function updateFloatingViewerModeButtonUI(viewer) {
     viewer._modeBtn.removeAttribute("aria-pressed");
     // Highlight when any comparison mode is active
     viewer._modeBtn.classList.toggle("is-on", viewer._mode !== MFV_MODES.SIMPLE);
+    viewer._modeDrop?.selectItem?.(viewer._mode);
 }
 
 export function setFloatingViewerLiveActive(viewer, active) {

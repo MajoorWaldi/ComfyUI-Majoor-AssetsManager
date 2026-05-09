@@ -103,6 +103,34 @@ async def test_viewer_resource_blocks_escape(monkeypatch, tmp_path: Path) -> Non
 
 
 @pytest.mark.asyncio
+async def test_viewer_resource_blocks_unsupported_resource_type(monkeypatch, tmp_path: Path) -> None:
+    app = _app()
+    scene_root = tmp_path / "scene"
+    models_dir = scene_root / "models"
+    docs_dir = scene_root / "docs"
+    models_dir.mkdir(parents=True)
+    docs_dir.mkdir(parents=True)
+    base_model = models_dir / "robot.gltf"
+    notes = docs_dir / "notes.txt"
+    base_model.write_text("{}", encoding="utf-8")
+    notes.write_text("private notes", encoding="utf-8")
+
+    async def _resolve(_request):
+        return (None, base_model, scene_root, None)
+
+    monkeypatch.setattr(m, "_resolve_viewer_file_context", _resolve)
+
+    req = make_mocked_request(
+        "GET",
+        "/mjr/am/viewer/resource?filename=robot.gltf&type=output&relpath=../docs/notes.txt",
+        app=app,
+    )
+    resp = await (await app.router.resolve(req)).handler(req)
+    body = _json(resp)
+    assert body.get("code") == "FORBIDDEN"
+
+
+@pytest.mark.asyncio
 async def test_viewer_resource_blocks_null_byte_in_relpath(monkeypatch, tmp_path: Path) -> None:
     """Null bytes (literal or percent-encoded) in relpath must be rejected."""
     app = _app()

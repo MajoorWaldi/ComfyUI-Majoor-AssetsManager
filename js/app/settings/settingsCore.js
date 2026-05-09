@@ -21,6 +21,7 @@ import {
     resolveGridMinSize,
 } from "./settingsUtils.js";
 import { t } from "../i18n.js";
+import { comfyAlert } from "../dialogs.js";
 
 // ─── Default settings ─────────────────────────────────────────────────────
 
@@ -284,16 +285,12 @@ export const saveMajoorSettings = (settings) => {
             const last = Number(window?._mjrSettingsSaveFailAt || 0) || 0;
             if (now - last > 30_000) {
                 window._mjrSettingsSaveFailAt = now;
-                import("../dialogs.js")
-                    .then(({ comfyAlert }) =>
-                        comfyAlert(
-                            t(
-                                "dialog.settingsSaveFailed",
-                                "Majoor: Failed to save settings (browser storage full or blocked).",
-                            ),
-                        ),
-                    )
-                    .catch(() => {});
+                comfyAlert(
+                    t(
+                        "dialog.settingsSaveFailed",
+                        "Majoor: Failed to save settings (browser storage full or blocked).",
+                    ),
+                );
             }
         } catch (e) {
             console.debug?.(e);

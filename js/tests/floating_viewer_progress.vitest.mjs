@@ -85,9 +85,62 @@ describe("floating viewer progress service", () => {
         );
 
         snapshot = service.getSnapshot();
-        expect(snapshot.prompt.executedNodeIds).toHaveLength(1);
+        expect(snapshot.prompt.executedNodeIds).toEqual(["1"]);
         expect(snapshot.prompt.currentlyExecuting.nodeId).toBe("2");
         expect(snapshot.prompt.currentlyExecuting.nodeLabel).toBe("SaveImage");
+
+        service.dispose({ resetPatchedQueuePrompt: true });
+    });
+
+    it("counts cached nodes as executed without replacing the active node", async () => {
+        const api = new FakeApi();
+        const service = new FloatingViewerProgressService({
+            getApi: () => api,
+            getApp: () => ({
+                graph: {
+                    getNodeById(id) {
+                        return { title: `Node ${id}` };
+                    },
+                },
+            }),
+        });
+
+        await service.ensureInitialized({ api });
+        await api.queuePrompt(0, {
+            output: {
+                1: { class_type: "LoadImage" },
+                2: { class_type: "VAEDecode" },
+                3: { class_type: "KSampler" },
+            },
+        });
+        api.dispatchEvent(
+            new CustomEvent("execution_start", {
+                detail: { prompt_id: "prompt-1" },
+            }),
+        );
+        api.dispatchEvent(
+            new CustomEvent("progress", {
+                detail: {
+                    prompt_id: "prompt-1",
+                    node: "3",
+                    value: 2,
+                    max: 10,
+                },
+            }),
+        );
+        api.dispatchEvent(
+            new CustomEvent("execution_cached", {
+                detail: {
+                    prompt_id: "prompt-1",
+                    nodes: ["1", "2"],
+                },
+            }),
+        );
+
+        const snapshot = service.getSnapshot();
+        expect(snapshot.prompt.executedNodeIds).toEqual(["1", "2"]);
+        expect(snapshot.prompt.currentlyExecuting.nodeId).toBe("3");
+        expect(snapshot.prompt.currentlyExecuting.nodeLabel).toBe("KSampler");
 
         service.dispose({ resetPatchedQueuePrompt: true });
     });

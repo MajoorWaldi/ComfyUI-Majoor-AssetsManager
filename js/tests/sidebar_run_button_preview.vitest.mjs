@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
     buildPromptRequestBody,
     enrichPromptDataForMfv,
+    graphContainsApiNode,
     resolveMfvPreviewMethod,
 } from "../features/viewer/workflowSidebar/sidebarRunButton.js";
 
@@ -39,5 +40,51 @@ describe("sidebarRunButton MFV preview forcing", () => {
         expect(body.client_id).toBe("client-42");
         expect(body.extra_data.extra_pnginfo.workflow).toEqual({ nodes: [{ id: 1 }] });
         expect(body.extra_data.preview_method).toBeUndefined();
+    });
+
+    it("detects API nodes in graph shapes using _nodes or nodes_by_id", () => {
+        expect(
+            graphContainsApiNode({
+                _nodes: [{ type: "HappyHorseImageToVideoApi" }],
+            }),
+        ).toBe(true);
+
+        expect(
+            graphContainsApiNode({
+                nodes_by_id: {
+                    12: { class_type: "SamplerCustom" },
+                    13: { type: "SomeCloudApi" },
+                },
+            }),
+        ).toBe(true);
+    });
+
+    it("detects API nodes inside alternate subgraph containers", () => {
+        expect(
+            graphContainsApiNode({
+                nodes: [
+                    {
+                        type: "SubgraphContainer",
+                        _subgraph: {
+                            _nodes_by_id: new Map([
+                                [1, { type: "InnerPreviewNode" }],
+                                [2, { class_type: "NestedVideoApi" }],
+                            ]),
+                        },
+                    },
+                ],
+            }),
+        ).toBe(true);
+
+        expect(
+            graphContainsApiNode({
+                nodes: [
+                    {
+                        type: "GroupNode",
+                        nodes: [{ type: "AnotherInnerApi" }],
+                    },
+                ],
+            }),
+        ).toBe(true);
     });
 });

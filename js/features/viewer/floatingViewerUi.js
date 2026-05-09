@@ -75,7 +75,8 @@ function _mkIconDrop(triggerHtml, title, items, viewer) {
     const menu = document.createElement("div");
     menu.className = "mjr-mfv-idrop-menu";
     menu.setAttribute("role", "listbox");
-    wrap.appendChild(menu);
+    const menuHost = viewer?.element || wrap;
+    menuHost.appendChild(menu);
 
     // Hidden select: existing event handlers read .value from it and bind "change"
     const hiddenSel = document.createElement("select");
@@ -112,6 +113,10 @@ function _mkIconDrop(triggerHtml, title, items, viewer) {
             ?.querySelectorAll?.(".mjr-mfv-idrop-menu.is-open")
             .forEach((m) => m.classList.remove("is-open"));
         if (!isOpen) {
+            const btnRect = trigger.getBoundingClientRect();
+            const parentRect = menuHost.getBoundingClientRect?.() || { left: 0, top: 0 };
+            menu.style.left = `${btnRect.left - parentRect.left}px`;
+            menu.style.top = `${btnRect.bottom - parentRect.top + 4}px`;
             menu.classList.add("is-open");
             trigger.setAttribute("aria-expanded", "true");
         }
@@ -188,6 +193,10 @@ export function renderFloatingViewer(viewer) {
     viewer._sidebar = new WorkflowSidebar({
         hostEl: el,
         onClose: () => viewer._updateSettingsBtnState(false),
+        onOpenGraphMap: () => viewer.setMode?.(MFV_MODES.GRAPH),
+        onCloseGraphMap: () => {
+            if (viewer._mode === MFV_MODES.GRAPH) viewer.setMode?.(MFV_MODES.SIMPLE);
+        },
     });
 
     viewer._contentWrapper.appendChild(viewer._sidebar.el);
@@ -269,11 +278,38 @@ export function buildFloatingViewerToolbar(viewer) {
     const bar = document.createElement("div");
     bar.className = "mjr-mfv-toolbar";
 
-    viewer._modeBtn = document.createElement("button");
-    viewer._modeBtn.type = "button";
-    viewer._modeBtn.className = "mjr-icon-btn";
+    const modeDrop = _mkIconDrop(
+        '<i class="pi pi-image" aria-hidden="true"></i>',
+        "Viewer mode",
+        [
+            {
+                value: MFV_MODES.SIMPLE,
+                html: '<i class="pi pi-image" aria-hidden="true"></i><span>Simple</span>',
+            },
+            {
+                value: MFV_MODES.AB,
+                html: '<i class="pi pi-clone" aria-hidden="true"></i><span>A/B Compare</span>',
+            },
+            {
+                value: MFV_MODES.SIDE,
+                html: '<i class="pi pi-table" aria-hidden="true"></i><span>Side-by-side</span>',
+            },
+            {
+                value: MFV_MODES.GRID,
+                html: '<i class="pi pi-th-large" aria-hidden="true"></i><span>Grid</span>',
+            },
+            {
+                value: MFV_MODES.GRAPH,
+                html: '<i class="pi pi-sitemap" aria-hidden="true"></i><span>Graph Map</span>',
+            },
+        ],
+        viewer,
+    );
+    viewer._modeDrop = modeDrop;
+    viewer._modeBtn = modeDrop.trigger;
+    viewer._modeSelect = modeDrop.select;
     viewer._updateModeBtnUI();
-    bar.appendChild(viewer._modeBtn);
+    bar.appendChild(modeDrop.wrap);
 
     // Pin: icon button + sort-style context menu popover (stays open for multi-toggle)
     const pinBtn = document.createElement("button");
@@ -895,7 +931,14 @@ export function rebindFloatingViewerControlHandlers(viewer) {
         { signal },
     );
 
-    viewer._modeBtn?.addEventListener("click", () => viewer._cycleMode(), { signal });
+    viewer._modeSelect?.addEventListener(
+        "change",
+        () => {
+            const nextMode = viewer._modeSelect?.value;
+            if (nextMode) viewer.setMode(nextMode);
+        },
+        { signal },
+    );
 
     viewer._pinGroup?.addEventListener(
         "click",

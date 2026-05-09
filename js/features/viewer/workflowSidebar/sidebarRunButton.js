@@ -299,17 +299,51 @@ function resolveClientId(api, app) {
     return "";
 }
 
+function _getGraphNodes(graph) {
+    if (!graph || typeof graph !== "object") return [];
+    if (Array.isArray(graph.nodes)) return graph.nodes.filter(Boolean);
+    if (Array.isArray(graph._nodes)) return graph._nodes.filter(Boolean);
+
+    const byId = graph._nodes_by_id ?? graph.nodes_by_id ?? null;
+    if (byId instanceof Map) return Array.from(byId.values()).filter(Boolean);
+    if (byId && typeof byId === "object") return Object.values(byId).filter(Boolean);
+
+    return [];
+}
+
+function _getNodeSubgraphs(node) {
+    const candidates = [
+        node?.subgraph,
+        node?._subgraph,
+        node?.subgraph?.graph,
+        node?.subgraph?.lgraph,
+        node?.properties?.subgraph,
+        node?.subgraph_instance,
+        node?.subgraph_instance?.graph,
+        node?.inner_graph,
+        node?.subgraph_graph,
+    ].filter((graph) => graph && _getGraphNodes(graph).length > 0);
+
+    if (Array.isArray(node?.nodes) && node.nodes.length > 0) {
+        candidates.push({ nodes: node.nodes });
+    }
+
+    return candidates;
+}
+
 /**
  * Walk all nodes in a ComfyUI graph recursively, including inner nodes of any
  * subgraphs, and invoke callback(node) for each. This mirrors the graph-walk
  * ComfyUI's native queuePrompt performs before/after serialising the prompt.
  */
-function _walkAllNodes(graph, callback) {
-    for (const node of graph?.nodes ?? []) {
+function _walkAllNodes(graph, callback, visited = new Set()) {
+    if (!graph || visited.has(graph)) return;
+    visited.add(graph);
+
+    for (const node of _getGraphNodes(graph)) {
         callback(node);
-        // Recurse into ComfyUI subgraph inner nodes.
-        if (node.subgraph?.nodes) {
-            _walkAllNodes(node.subgraph, callback);
+        for (const subgraph of _getNodeSubgraphs(node)) {
+            _walkAllNodes(subgraph, callback, visited);
         }
     }
 }

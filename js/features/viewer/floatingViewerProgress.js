@@ -50,6 +50,14 @@ export class FloatingViewerPromptExecution {
         return String(label || "").trim();
     }
 
+    markExecuted(nodeId) {
+        const safeNodeId = String(nodeId || "").trim();
+        if (!safeNodeId) return;
+        if (!this.executedNodeIds.includes(safeNodeId)) {
+            this.executedNodeIds.push(safeNodeId);
+        }
+    }
+
     executing(nodeId, step, maxSteps) {
         if (nodeId == null) {
             this.currentlyExecuting = null;
@@ -60,7 +68,7 @@ export class FloatingViewerPromptExecution {
 
         if (this.currentlyExecuting?.nodeId !== nextNodeId) {
             if (this.currentlyExecuting != null) {
-                this.executedNodeIds.push(nextNodeId);
+                this.markExecuted(this.currentlyExecuting.nodeId);
             }
             this.currentlyExecuting = {
                 nodeId: nextNodeId,
@@ -267,7 +275,7 @@ export class FloatingViewerProgressService extends EventTarget {
                 this.currentExecution = this.getOrMakePrompt(detail.prompt_id || detail.promptId);
             }
             for (const cached of Array.isArray(detail.nodes) ? detail.nodes : []) {
-                this.currentExecution.executing(cached);
+                this.currentExecution.markExecuted(cached);
             }
             this.dispatchProgressUpdate();
         });

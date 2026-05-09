@@ -87,6 +87,7 @@ import {
     loadFloatingViewerMediaQuad,
 } from "./floatingViewerLoader.js";
 import { disposeFloatingViewerProgressBar } from "./floatingViewerProgress.js";
+import { WorkflowGraphMapPanel } from "./workflowGraphMap/WorkflowGraphMapPanel.js";
 
 function _hasSimplePlayerControls(mediaEl) {
     try {
@@ -197,6 +198,7 @@ export class FloatingViewer {
         this._overlayMaskEnabled = false;
         this._overlayMaskOpacity = 0.65;
         this._overlayFormat = "image";
+        this._graphMapPanel = new WorkflowGraphMapPanel({ large: true });
     }
 
     _dispatchControllerAction(methodName, fallbackEventType) {
@@ -909,6 +911,7 @@ export class FloatingViewer {
 
     _refresh() {
         if (!this._contentEl) return;
+        this._sidebar?.setAsset?.(this._mediaA || null);
         // Tear down previous panzoom bindings before clearing DOM.
         this._destroyPanZoom();
         this._destroyCompareSync();
@@ -930,6 +933,9 @@ export class FloatingViewer {
             case MFV_MODES.GRID:
                 this._renderGrid();
                 break;
+            case MFV_MODES.GRAPH:
+                this._renderGraphMap();
+                break;
         }
 
         if (overlayCanvas) {
@@ -949,8 +955,17 @@ export class FloatingViewer {
 
         this._applyMediaToneControls();
         this._applyTransform();
-        this._initPanZoom(this._contentEl);
+        if (this._mode !== MFV_MODES.GRAPH) {
+            this._initPanZoom(this._contentEl);
+        }
         this._initCompareSync();
+    }
+
+    _renderGraphMap() {
+        this._contentEl.style.overflow = "hidden";
+        this._graphMapPanel.setAsset(this._mediaA || null);
+        this._contentEl.appendChild(this._graphMapPanel.el);
+        this._graphMapPanel.refresh();
     }
 
     _renderSimple() {
@@ -1387,6 +1402,12 @@ export class FloatingViewer {
         } catch (e) {
             console.debug?.(e);
         }
+        try {
+            this._graphMapPanel?.dispose?.();
+        } catch (e) {
+            console.debug?.(e);
+        }
+        this._graphMapPanel = null;
         this.element = null;
         this._contentEl = null;
         this._closeBtn = null;

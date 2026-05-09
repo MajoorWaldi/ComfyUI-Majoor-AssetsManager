@@ -23,6 +23,11 @@ export function getFloatingViewerMediaKind(fileData) {
     if (kind === "video") return "video";
     if (kind === "audio") return "audio";
     if (kind === "model3d") return "model3d";
+    const rawType = String(fileData?.type || "").toLowerCase();
+    const assetType = String(fileData?.asset_type || fileData?.media_type || rawType).toLowerCase();
+    if (assetType === "video") return "video";
+    if (assetType === "audio") return "audio";
+    if (assetType === "model3d") return "model3d";
     const ext = getFloatingViewerMediaExt(fileData?.filename || "");
     if (ext === ".gif") return "gif";
     if (VIDEO_EXTS.has(ext)) return "video";

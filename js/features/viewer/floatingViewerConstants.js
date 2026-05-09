@@ -3,6 +3,7 @@ export const MFV_MODES = Object.freeze({
     AB: "ab",
     SIDE: "side",
     GRID: "grid",
+    GRAPH: "graph",
 });
 
 export const MFV_ZOOM_MIN = 0.25;

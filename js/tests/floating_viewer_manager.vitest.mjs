@@ -192,6 +192,16 @@ beforeEach(() => {
             appendChild: vi.fn(),
         },
     };
+    globalThis.app = {
+        canvas: {
+            canvas: {
+                addEventListener: vi.fn(),
+                removeEventListener: vi.fn(),
+            },
+            setDirty: vi.fn(),
+        },
+        graph: {},
+    };
     globalThis.CustomEvent = class {
         constructor(type, init = {}) {
             this.type = type;
@@ -515,6 +525,43 @@ describe("floatingViewerManager", () => {
         expect(viewer.setPreviewActive).toHaveBeenLastCalledWith(false);
         expect(floatingViewerManager.getLiveActive()).toBe(false);
         expect(floatingViewerManager.getPreviewActive()).toBe(false);
+    });
+
+    it("removes temporary canvas selection wrappers on close when no original handlers existed", async () => {
+        const { floatingViewerManager } = await import("../features/viewer/floatingViewerManager.js");
+        const canvas = globalThis.app.canvas;
+
+        expect(Object.prototype.hasOwnProperty.call(canvas, "onNodeSelected")).toBe(false);
+        expect(Object.prototype.hasOwnProperty.call(canvas, "onSelectionChange")).toBe(false);
+        expect(Object.prototype.hasOwnProperty.call(canvas, "onNodeDeselected")).toBe(false);
+
+        await floatingViewerManager.open();
+
+        expect(typeof canvas.onNodeSelected).toBe("function");
+        expect(typeof canvas.onSelectionChange).toBe("function");
+        expect(typeof canvas.onNodeDeselected).toBe("function");
+
+        floatingViewerManager.close();
+
+        expect(Object.prototype.hasOwnProperty.call(canvas, "onNodeSelected")).toBe(false);
+        expect(Object.prototype.hasOwnProperty.call(canvas, "onSelectionChange")).toBe(false);
+        expect(Object.prototype.hasOwnProperty.call(canvas, "onNodeDeselected")).toBe(false);
+    });
+
+    it("removes temporary canvas selection wrappers during teardown", async () => {
+        const { floatingViewerManager, teardownFloatingViewerManager } = await import(
+            "../features/viewer/floatingViewerManager.js"
+        );
+        const canvas = globalThis.app.canvas;
+
+        await floatingViewerManager.open();
+        expect(typeof canvas.onNodeSelected).toBe("function");
+
+        teardownFloatingViewerManager();
+
+        expect(Object.prototype.hasOwnProperty.call(canvas, "onNodeSelected")).toBe(false);
+        expect(Object.prototype.hasOwnProperty.call(canvas, "onSelectionChange")).toBe(false);
+        expect(Object.prototype.hasOwnProperty.call(canvas, "onNodeDeselected")).toBe(false);
     });
 
     it("re-attaches an existing detached MFV node on reopen", async () => {

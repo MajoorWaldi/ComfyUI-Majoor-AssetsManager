@@ -15,6 +15,7 @@ class _DB:
     def __init__(self) -> None:
         self.executed: list[tuple[str, tuple]] = []
         self.query_result: Result[Any] = Result.Ok([])
+        self.execute_result: Result[Any] = Result.Ok(1)
 
     @asynccontextmanager
     async def atransaction(self, mode="immediate"):
@@ -23,7 +24,7 @@ class _DB:
 
     async def aexecute(self, sql, params=()):
         self.executed.append((sql, tuple(params)))
-        return Result.Ok(1)
+        return self.execute_result
 
     async def aquery(self, sql, params=()):
         self.executed.append((sql, tuple(params)))
@@ -66,6 +67,39 @@ async def test_delete_asset_and_cleanup_removes_file_and_db_rows(tmp_path: Path)
     assert result.ok is True
     assert file_path.exists() is False
     assert any("DELETE FROM assets WHERE id = ?" in sql for sql, _ in db.executed)
+    assert result.data["db_cleanup_ok"] is True
+
+
+@pytest.mark.asyncio
+async def test_delete_asset_and_cleanup_reports_db_cleanup_failure(tmp_path: Path):
+    file_path = tmp_path / "asset.png"
+    file_path.write_bytes(b"x")
+    db = _DB()
+    db.execute_result = Result.Err("DB_ERROR", "locked")
+    target = AssetDeleteTarget(
+        services={"db": db},
+        matched_asset_id=7,
+        resolved_path=file_path,
+        filepath_where="filepath IN (?) OR filepath = ? COLLATE NOCASE",
+        filepath_params=(str(file_path), str(file_path)),
+    )
+
+    def _delete_file(path: Path) -> Result[bool]:
+        path.unlink()
+        return Result.Ok(True)
+
+    result = await delete_asset_and_cleanup(
+        services={"db": db},
+        target=target,
+        delete_file_safe=_delete_file,
+        safe_error_message=lambda exc, default: f"{default}: {exc}",
+    )
+
+    assert result.ok is True
+    assert file_path.exists() is False
+    assert result.data["deleted"] == 1
+    assert result.data["db_cleanup_ok"] is False
+    assert result.data["db_errors"]
 
 
 @pytest.mark.asyncio

@@ -260,4 +260,34 @@ describe("WorkflowSidebar live sync", () => {
         expect(subgraphItem._mjrChildrenEl.children[0]).toBe(innerRenderer._mjrTreeItemEl);
         expect(subgraphRenderer.el.classList.contains("is-selected-from-graph")).toBe(true);
     });
+
+    it("throttles live sync so sidebar widgets are not refreshed on every animation frame", async () => {
+        let rafCallback = null;
+        document.defaultView.requestAnimationFrame = vi.fn((cb) => {
+            rafCallback = cb;
+            return 1;
+        });
+        window.requestAnimationFrame = document.defaultView.requestAnimationFrame;
+
+        const { WorkflowSidebar } =
+            await import("../features/viewer/workflowSidebar/WorkflowSidebar.js");
+
+        const nodeA = { id: 77 };
+        bridgeState.app.graph.nodes = [nodeA];
+
+        const sidebar = new WorkflowSidebar();
+        const syncSpy = vi.fn();
+        sidebar.syncFromGraph = syncSpy;
+        sidebar.show();
+        const baselineTs = Number(sidebar._lastLiveSyncAt) || 0;
+
+        expect(syncSpy).toHaveBeenCalledTimes(0);
+        expect(typeof rafCallback).toBe("function");
+
+        rafCallback(baselineTs + 100);
+        expect(syncSpy).toHaveBeenCalledTimes(0);
+
+        rafCallback(baselineTs + 300);
+        expect(syncSpy).toHaveBeenCalledTimes(1);
+    });
 });

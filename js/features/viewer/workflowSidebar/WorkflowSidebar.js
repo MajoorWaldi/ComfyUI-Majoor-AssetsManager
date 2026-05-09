@@ -6,18 +6,26 @@
  */
 
 import { WorkflowNodesTab } from "./WorkflowNodesTab.js";
+import { WorkflowGraphMapPanel } from "../workflowGraphMap/WorkflowGraphMapPanel.js";
 
 const LIVE_SYNC_FALLBACK_MS = 16;
+const LIVE_SYNC_INTERVAL_MS = 250;
 
 export class WorkflowSidebar {
-    constructor({ hostEl, onClose } = {}) {
+    constructor({ hostEl, onClose, onOpenGraphMap, onCloseGraphMap } = {}) {
         this._hostEl = hostEl;
         this._onClose = onClose ?? null;
+        this._onOpenGraphMap = onOpenGraphMap ?? null;
+        this._onCloseGraphMap = onCloseGraphMap ?? null;
         this._visible = false;
         this._liveSyncHandle = null;
         this._liveSyncMode = "";
+        this._lastLiveSyncAt = 0;
         this._resizeCleanup = null;
         this._nodesTab = new WorkflowNodesTab();
+        this._graphMapPanel = new WorkflowGraphMapPanel();
+        this._activeMode = "nodes";
+        this._asset = null;
         this._el = this._build();
     }
 
@@ -31,7 +39,8 @@ export class WorkflowSidebar {
     show() {
         this._visible = true;
         this._el.classList.add("open");
-        this._nodesTab.refresh();
+        this.refresh();
+        this._lastLiveSyncAt = _getFrameTimestamp(this._el);
         this._startLiveSync();
     }
 
@@ -43,7 +52,9 @@ export class WorkflowSidebar {
 
     toggle() {
         if (this._visible) {
+            const wasGraph = this._activeMode === "graph";
             this.hide();
+            if (wasGraph) this._onCloseGraphMap?.();
             this._onClose?.();
         } else {
             this.show();
@@ -52,19 +63,28 @@ export class WorkflowSidebar {
 
     refresh() {
         if (!this._visible) return;
-        this._nodesTab.refresh();
+        if (this._activeMode === "graph") this._graphMapPanel.refresh();
+        else this._nodesTab.refresh();
     }
 
     syncFromGraph() {
         if (!this._visible) return;
-        this._nodesTab.refresh();
+        if (this._activeMode === "graph") this._graphMapPanel.refresh();
+        else this._nodesTab.refresh();
+    }
+
+    setAsset(asset) {
+        this._asset = asset || null;
+        this._graphMapPanel?.setAsset?.(this._asset);
     }
 
     dispose() {
         this._stopLiveSync();
         this._disposeResize();
         this._nodesTab?.dispose?.();
+        this._graphMapPanel?.dispose?.();
         this._nodesTab = null;
+        this._graphMapPanel = null;
         this._el?.remove();
     }
 
@@ -86,11 +106,21 @@ export class WorkflowSidebar {
         closeBtn.title = "Close sidebar";
         closeBtn.innerHTML = '<i class="pi pi-times" aria-hidden="true"></i>';
         closeBtn.addEventListener("click", () => {
+            const wasGraph = this._activeMode === "graph";
             this.hide();
+            if (wasGraph) this._onCloseGraphMap?.();
             this._onClose?.();
         });
         header.appendChild(closeBtn);
         panel.appendChild(header);
+
+        const tabBar = document.createElement("div");
+        tabBar.className = "mjr-ws-tab-bar";
+        this._nodesModeBtn = this._makeModeButton("Nodes", "pi pi-sliders-h", "nodes");
+        this._graphModeBtn = this._makeModeButton("Graph Map", "pi pi-sitemap", "graph");
+        tabBar.appendChild(this._nodesModeBtn);
+        tabBar.appendChild(this._graphModeBtn);
+        panel.appendChild(tabBar);
 
         const resizer = document.createElement("div");
         resizer.className = "mjr-ws-sidebar-resizer";
@@ -100,21 +130,62 @@ export class WorkflowSidebar {
         panel.appendChild(resizer);
         this._bindResize(resizer);
 
-        this._body = this._nodesTab.el;
-        this._body.classList.add("mjr-ws-sidebar-body");
+        this._body = document.createElement("div");
+        this._body.className = "mjr-ws-sidebar-body";
         panel.appendChild(this._body);
+        this._renderActiveMode();
 
         return panel;
+    }
+
+    _makeModeButton(label, iconClass, mode) {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "mjr-ws-tab";
+        btn.dataset.mode = mode;
+        btn.innerHTML = `<i class="${iconClass}" aria-hidden="true"></i><span>${label}</span>`;
+        btn.addEventListener("click", () => this._setMode(mode));
+        return btn;
+    }
+
+    _setMode(mode) {
+        const next = mode === "graph" ? "graph" : "nodes";
+        if (this._activeMode === next && this._body?.firstElementChild) return;
+        this._activeMode = next;
+        this._renderActiveMode();
+        if (next === "graph") this._onOpenGraphMap?.();
+        else this._onCloseGraphMap?.();
+        this.refresh();
+    }
+
+    _renderActiveMode() {
+        if (!this._body) return;
+        this._nodesModeBtn?.classList?.toggle("is-active", this._activeMode === "nodes");
+        this._graphModeBtn?.classList?.toggle("is-active", this._activeMode === "graph");
+        this._nodesModeBtn?.setAttribute("aria-pressed", String(this._activeMode === "nodes"));
+        this._graphModeBtn?.setAttribute("aria-pressed", String(this._activeMode === "graph"));
+        const child = this._activeMode === "graph" ? this._graphMapPanel?.el : this._nodesTab?.el;
+        if (child && this._body.firstElementChild !== child) {
+            while (this._body.firstChild) this._body.removeChild(this._body.firstChild);
+            this._body.appendChild(child);
+        }
     }
 
     _startLiveSync() {
         if (this._liveSyncHandle != null) return;
         const frameHost = _getFrameHost(this._el);
-        const tick = () => {
+        const tick = (timestamp) => {
             this._liveSyncHandle = null;
             this._liveSyncMode = "";
             if (!this._visible) return;
-            this.syncFromGraph();
+
+            const now = Number.isFinite(Number(timestamp))
+                ? Number(timestamp)
+                : _getFrameTimestamp(this._el);
+            if (now - this._lastLiveSyncAt >= LIVE_SYNC_INTERVAL_MS) {
+                this._lastLiveSyncAt = now;
+                this.syncFromGraph();
+            }
             this._startLiveSync();
         };
 
@@ -213,4 +284,17 @@ function _getFrameHost(el) {
     if (view) return view;
     if (typeof window !== "undefined") return window;
     return globalThis;
+}
+
+function _getFrameTimestamp(el) {
+    const host = _getFrameHost(el);
+    const perfNow = host?.performance?.now;
+    if (typeof perfNow === "function") {
+        try {
+            return Number(perfNow.call(host.performance)) || Date.now();
+        } catch {
+            return Date.now();
+        }
+    }
+    return Date.now();
 }

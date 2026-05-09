@@ -31,6 +31,34 @@ from ..core import (
 
 logger = get_logger(__name__)
 
+_ALLOWED_VIEWER_RESOURCE_EXTS = {
+    # glTF sidecar data
+    ".bin",
+    ".ktx2",
+    ".basis",
+    # Texture images
+    ".png",
+    ".jpg",
+    ".jpeg",
+    ".webp",
+    ".gif",
+    ".bmp",
+    ".tif",
+    ".tiff",
+    ".avif",
+    # Materials / nested model references
+    ".mtl",
+    ".obj",
+    ".gltf",
+    ".glb",
+    ".fbx",
+    ".stl",
+    ".ply",
+    ".splat",
+    ".ksplat",
+    ".spz",
+}
+
 try:
     import folder_paths  # type: ignore
 except Exception:
@@ -132,6 +160,16 @@ def _normalize_viewer_resource_relpath(value: str) -> Path | None:
     if not safe_rel:
         return None
     return Path(safe_rel)
+
+
+def _is_allowed_viewer_resource_file(path: Path) -> bool:
+    try:
+        ext = str(path.suffix or "").lower()
+    except Exception:
+        ext = ""
+    if ext in _ALLOWED_VIEWER_RESOURCE_EXTS:
+        return True
+    return False
 
 
 async def _resolve_asset_from_id(asset_id: int) -> tuple[dict | None, Result | None]:
@@ -417,6 +455,10 @@ def register_viewer_routes(routes: web.RouteTableDef) -> None:
             )
         if not target.is_file():
             return _json_response(Result.Err("NOT_FOUND", "Resource not found"))
+        if not _is_allowed_viewer_resource_file(target):
+            return _json_response(
+                Result.Err("FORBIDDEN", "Viewer resource type is not allowed")
+            )
 
         content_type = _guess_content_type_for_file(target)
         resp = web.FileResponse(path=str(target))

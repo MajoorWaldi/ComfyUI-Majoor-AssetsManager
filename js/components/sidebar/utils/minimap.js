@@ -1,6 +1,24 @@
 const MINIMAP_PADDING = 6;
 const MINIMAP_ZOOM_MIN = 1;
 const MINIMAP_ZOOM_MAX = 8;
+const TYPE_PALETTE = [
+    ["sampler", "#8e5cff"],
+    ["ksampler", "#8e5cff"],
+    ["loader", "#4f8cff"],
+    ["load", "#4f8cff"],
+    ["clip", "#d4a634"],
+    ["vae", "#36a7c9"],
+    ["latent", "#47a56d"],
+    ["image", "#8fb04a"],
+    ["video", "#c47b3d"],
+    ["mask", "#999999"],
+    ["conditioning", "#b56bd8"],
+    ["controlnet", "#c44f76"],
+    ["lora", "#d27a45"],
+    ["save", "#4aa37c"],
+    ["preview", "#4aa37c"],
+    ["api", "#3aa6a6"],
+];
 
 const clampNumber = (value, min, max) => {
     const n = Number(value);
@@ -24,16 +42,17 @@ export function drawWorkflowMinimap(canvas, workflow, options = null) {
         ...(options && typeof options === "object" ? options : {}),
     };
 
-    const nodes = Array.isArray(workflow?.nodes) ? workflow.nodes : [];
+    const renderWorkflow = expandSubgraphsForMinimap(workflow);
+    const nodes = Array.isArray(renderWorkflow?.nodes) ? renderWorkflow.nodes : [];
     const groups =
-        (Array.isArray(workflow?.groups) && workflow.groups) ||
-        (Array.isArray(workflow?.extra?.groups) && workflow.extra.groups) ||
-        (Array.isArray(workflow?.extra?.groupNodes) && workflow.extra.groupNodes) ||
-        (Array.isArray(workflow?.extra?.group_nodes) && workflow.extra.group_nodes) ||
+        (Array.isArray(renderWorkflow?.groups) && renderWorkflow.groups) ||
+        (Array.isArray(renderWorkflow?.extra?.groups) && renderWorkflow.extra.groups) ||
+        (Array.isArray(renderWorkflow?.extra?.groupNodes) && renderWorkflow.extra.groupNodes) ||
+        (Array.isArray(renderWorkflow?.extra?.group_nodes) && renderWorkflow.extra.group_nodes) ||
         [];
     const links =
-        (Array.isArray(workflow?.links) && workflow.links) ||
-        (Array.isArray(workflow?.extra?.links) && workflow.extra.links) ||
+        (Array.isArray(renderWorkflow?.links) && renderWorkflow.links) ||
+        (Array.isArray(renderWorkflow?.extra?.links) && renderWorkflow.extra.links) ||
         [];
 
     const cw = Math.max(1, canvas.clientWidth || canvas.width || 1);
@@ -76,6 +95,70 @@ export function drawWorkflowMinimap(canvas, workflow, options = null) {
 
         // Otherwise keep as-is (named colors) with globalAlpha.
         return s;
+    };
+
+    const colorForNode = (node) => {
+        const explicit = node?.bgcolor || node?.color || null;
+        if (explicit) return explicit;
+        const text = String(
+            node?.category || node?.type || node?.comfyClass || node?.class_type || node?.title || "",
+        ).toLowerCase();
+        for (const [needle, color] of TYPE_PALETTE) {
+            if (text.includes(needle)) return color;
+        }
+        let hash = 0;
+        for (let i = 0; i < text.length; i += 1) hash = (hash * 31 + text.charCodeAt(i)) | 0;
+        const hue = Math.abs(hash) % 360;
+        return `hsl(${hue} 42% 42%)`;
+    };
+
+    const getWidgetPreviewRows = (node) => {
+        const rows = [];
+        const inputs = node?.inputs && typeof node.inputs === "object" && !Array.isArray(node.inputs)
+            ? node.inputs
+            : null;
+        if (inputs) {
+            for (const [key, value] of Object.entries(inputs)) {
+                if (Array.isArray(value) || (value && typeof value === "object")) continue;
+                rows.push([key, value]);
+                if (rows.length >= 3) return rows;
+            }
+        }
+        const values = Array.isArray(node?.widgets_values) ? node.widgets_values : [];
+        const widgets = Array.isArray(node?.widgets) ? node.widgets : [];
+        const inputSlots = Array.isArray(node?.inputs) ? node.inputs : [];
+        const widgetInputSlots = inputSlots.filter((input) =>
+            input?.widget === true ||
+            (input?.widget && typeof input.widget === "object") ||
+            (typeof input?.widget === "string" && input.widget.trim()),
+        );
+        const unlinkedWidgetLikeInputs = inputSlots.filter(
+            (input) => input?.link == null && _minimapInputTypeLooksWidgetCapable(input?.type),
+        );
+        const labelInputSlots = widgetInputSlots.length
+            ? widgetInputSlots
+            : unlinkedWidgetLikeInputs.length
+              ? unlinkedWidgetLikeInputs
+              : inputSlots;
+        const inputSlotNames = labelInputSlots.map((input) =>
+            String(
+                input?.label ||
+                    input?.localized_name ||
+                    input?.name ||
+                    input?.widget?.name ||
+                    input?.widget?.label ||
+                    "",
+            ).trim(),
+        );
+        values.forEach((value, index) => {
+            const key =
+                widgets[index]?.name ||
+                widgets[index]?.label ||
+                inputSlotNames[index] ||
+                `p${index + 1}`;
+            rows.push([key, value]);
+        });
+        return rows.slice(0, 3);
     };
 
     const rects = [];
@@ -123,13 +206,14 @@ export function drawWorkflowMinimap(canvas, workflow, options = null) {
         const mode = Number(n?.mode);
         const bypassed = mode === 2 || mode === 4;
 
-        const errExtra = workflow?.extra?.errors || workflow?.extra?.node_errors || null;
+        const errExtra = renderWorkflow?.extra?.errors || renderWorkflow?.extra?.node_errors || null;
         const errByNodeId =
             errExtra && typeof errExtra === "object" && nodeId ? errExtra[nodeId] : null;
         const errored = Boolean(
             errByNodeId || n?.error || n?.errors || n?.flags?.error || n?.properties?.error,
         );
 
+        const nodeColor = colorForNode(n);
         rects.push({
             kind: "node",
             id: nodeId,
@@ -137,10 +221,18 @@ export function drawWorkflowMinimap(canvas, workflow, options = null) {
             y,
             w,
             h,
-            fill: settings.nodeColors ? n?.bgcolor || n?.color || null : null,
-            stroke: settings.nodeColors ? n?.color || n?.bgcolor || null : null,
+            fill: settings.nodeColors ? nodeColor : null,
+            stroke: settings.nodeColors ? n?.color || nodeColor : null,
             bypassed,
             errored,
+            type: String(n?.type || n?.comfyClass || n?.class_type || "").trim(),
+            rows: getWidgetPreviewRows(n),
+            inputCount: Array.isArray(n?.inputs)
+                ? n.inputs.length
+                : n?.inputs && typeof n.inputs === "object"
+                  ? Object.keys(n.inputs).length
+                  : 0,
+            outputCount: Array.isArray(n?.outputs) ? n.outputs.length : 0,
             label: String(n?.title || n?.type || n?.comfyClass || n?.class_type || nodeId || "")
                 .replace(/\s+/g, " ")
                 .trim(),
@@ -308,6 +400,9 @@ export function drawWorkflowMinimap(canvas, workflow, options = null) {
         const fill = toRgba(r.fill, fillAlpha);
         const stroke = toRgba(r.stroke, strokeAlpha);
 
+        const radius = Math.max(2, Math.min(8, Math.floor(Math.min(w, h) * 0.08)));
+        const titleH = isNode ? Math.max(10, Math.min(22, Math.floor(h * 0.2))) : 0;
+
         // Fill
         ctx.save();
         ctx.globalAlpha = 1;
@@ -318,11 +413,30 @@ export function drawWorkflowMinimap(canvas, workflow, options = null) {
             ctx.fillStyle = fill;
             ctx.globalAlpha = fillAlpha;
         } else {
-            ctx.fillStyle = typeof fill === "string" ? fill : "rgba(255,255,255,0.20)";
+            ctx.fillStyle = typeof fill === "string" ? fill : "rgba(82,88,96,0.72)";
             ctx.globalAlpha = fillAlpha;
         }
-        ctx.fillRect(x, y, w, h);
+        if (typeof ctx.roundRect === "function") {
+            ctx.beginPath();
+            ctx.roundRect(x, y, w, h, radius);
+            ctx.fill();
+        } else {
+            ctx.fillRect(x, y, w, h);
+        }
         ctx.restore();
+
+        if (isNode) {
+            ctx.save();
+            ctx.fillStyle = toRgba(r.stroke || r.fill, bypassed ? 0.34 : 0.9);
+            if (typeof ctx.roundRect === "function") {
+                ctx.beginPath();
+                ctx.roundRect(x, y, w, titleH, [radius, radius, 0, 0]);
+                ctx.fill();
+            } else {
+                ctx.fillRect(x, y, w, titleH);
+            }
+            ctx.restore();
+        }
 
         ctx.globalAlpha = 1;
         ctx.strokeStyle = "rgba(255,255,255,0.22)";
@@ -350,7 +464,34 @@ export function drawWorkflowMinimap(canvas, workflow, options = null) {
         }
 
         ctx.lineWidth = 1;
-        ctx.strokeRect(x, y, w, h);
+        if (typeof ctx.roundRect === "function") {
+            ctx.beginPath();
+            ctx.roundRect(x, y, w, h, radius);
+            ctx.stroke();
+        } else {
+            ctx.strokeRect(x, y, w, h);
+        }
+
+        if (isNode && w >= 24 && h >= 20) {
+            const portCountIn = Math.min(6, Number(r.inputCount) || 0);
+            const portCountOut = Math.min(6, Number(r.outputCount) || 0);
+            ctx.save();
+            ctx.fillStyle = "rgba(255,255,255,0.72)";
+            for (let i = 0; i < portCountIn; i += 1) {
+                const py = y + titleH + ((h - titleH) * (i + 1)) / (portCountIn + 1);
+                ctx.beginPath();
+                ctx.arc(x, py, 2.2, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.fillStyle = "rgba(170,220,255,0.82)";
+            for (let i = 0; i < portCountOut; i += 1) {
+                const py = y + titleH + ((h - titleH) * (i + 1)) / (portCountOut + 1);
+                ctx.beginPath();
+                ctx.arc(x + w, py, 2.2, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.restore();
+        }
 
         if (isNode && errored && settings.renderErrorState) {
             try {
@@ -375,13 +516,13 @@ export function drawWorkflowMinimap(canvas, workflow, options = null) {
         }
 
         if (isNode && settings.showNodeLabels && r.label && w >= 42 && h >= 12) {
-            const fontSize = Math.max(8, Math.min(11, Math.floor(h * 0.28)));
-            const textY = y + fontSize + 2;
+            const fontSize = Math.max(8, Math.min(12, Math.floor(titleH * 0.58)));
+            const textY = y + Math.max(8, Math.floor((titleH + fontSize) / 2) - 1);
             const maxTextWidth = Math.max(20, w - 6);
             let label = r.label;
             ctx.save();
             ctx.beginPath();
-            ctx.rect(x + 1, y + 1, w - 2, h - 2);
+            ctx.rect(x + 2, y + 1, w - 4, titleH - 1);
             ctx.clip();
             ctx.font = `600 ${fontSize}px sans-serif`;
             while (label.length > 3 && ctx.measureText(`${label}...`).width > maxTextWidth) {
@@ -392,6 +533,23 @@ export function drawWorkflowMinimap(canvas, workflow, options = null) {
             ctx.shadowColor = "rgba(0,0,0,0.5)";
             ctx.shadowBlur = 2;
             ctx.fillText(finalText, x + 3, textY, maxTextWidth);
+            ctx.restore();
+        }
+
+        if (isNode && settings.showNodeLabels && Array.isArray(r.rows) && w >= 76 && h >= 46) {
+            const rowFont = Math.max(7, Math.min(10, Math.floor(h * 0.12)));
+            const rowH = Math.max(9, rowFont + 4);
+            const startY = y + titleH + 4;
+            ctx.save();
+            ctx.font = `500 ${rowFont}px sans-serif`;
+            ctx.fillStyle = "rgba(255,255,255,0.62)";
+            for (let i = 0; i < r.rows.length; i += 1) {
+                const ry = startY + i * rowH;
+                if (ry + rowH > y + h - 2) break;
+                const [key, value] = r.rows[i];
+                const text = `${String(key)}: ${String(value).replace(/\s+/g, " ").slice(0, 42)}`;
+                ctx.fillText(text, x + 5, ry + rowFont, Math.max(20, w - 10));
+            }
             ctx.restore();
         }
     };
@@ -491,6 +649,182 @@ export function drawWorkflowMinimap(canvas, workflow, options = null) {
         worldToCanvas: toCanvas,
         hitTestNode,
     };
+}
+
+function expandSubgraphsForMinimap(workflow) {
+    if (!workflow || typeof workflow !== "object") return workflow;
+    const baseNodes = Array.isArray(workflow.nodes) ? workflow.nodes.filter(Boolean) : [];
+    const defs = getSubgraphDefinitionMap(workflow);
+    if (!baseNodes.length || !defs.size) return workflow;
+
+    const nodes = [];
+    const links = Array.isArray(workflow.links) ? [...workflow.links] : [];
+    const groups = [
+        ...(Array.isArray(workflow.groups) ? workflow.groups : []),
+        ...(Array.isArray(workflow.extra?.groups) ? workflow.extra.groups : []),
+    ];
+
+    for (const node of baseNodes) {
+        nodes.push(node);
+        const subgraph = getNodeSubgraphDefinition(node, defs);
+        if (!subgraph || !Array.isArray(subgraph.nodes) || !subgraph.nodes.length) continue;
+        const fitted = fitSubgraphNodesIntoParent(node, subgraph);
+        nodes.push(...fitted.nodes);
+        links.push(...fitted.links);
+        if (fitted.group) groups.push(fitted.group);
+    }
+
+    return {
+        ...workflow,
+        nodes,
+        links,
+        groups,
+        extra: { ...(workflow.extra || {}), groups },
+    };
+}
+
+function getSubgraphDefinitionMap(workflow) {
+    const defs =
+        (Array.isArray(workflow?.definitions?.subgraphs) && workflow.definitions.subgraphs) ||
+        (Array.isArray(workflow?.subgraphs) && workflow.subgraphs) ||
+        [];
+    const map = new Map();
+    for (const def of defs) {
+        const id = def?.id ?? def?.name ?? null;
+        if (id != null) map.set(String(id), def);
+    }
+    return map;
+}
+
+function getNodeSubgraphDefinition(node, defs) {
+    const byType = defs.get(String(node?.type ?? ""));
+    if (byType) return byType;
+    const candidates = [
+        node?.subgraph,
+        node?._subgraph,
+        node?.subgraph?.graph,
+        node?.subgraph?.lgraph,
+        node?.properties?.subgraph,
+        node?.subgraph_instance,
+        node?.subgraph_instance?.graph,
+        node?.inner_graph,
+        node?.subgraph_graph,
+    ];
+    return candidates.find((candidate) => candidate && typeof candidate === "object" && Array.isArray(candidate.nodes)) || null;
+}
+
+function fitSubgraphNodesIntoParent(parent, subgraph) {
+    const parentId = String(parent?.id ?? parent?.ID ?? "");
+    const parentPos = normalizeVec2Any(parent?.pos) || [0, 0];
+    const parentSize = normalizeSize2Any(parent?.size) || [260, 180];
+    const inner = subgraph.nodes.filter(Boolean);
+    const bounds = getNodesBounds(inner);
+    const padX = Math.min(22, Math.max(8, parentSize[0] * 0.08));
+    const padTop = Math.min(34, Math.max(18, parentSize[1] * 0.18));
+    const padBottom = Math.min(18, Math.max(8, parentSize[1] * 0.08));
+    const availableW = Math.max(40, parentSize[0] - padX * 2);
+    const availableH = Math.max(34, parentSize[1] - padTop - padBottom);
+    const scale = Math.min(1, availableW / bounds.width, availableH / bounds.height);
+    const offsetX = parentPos[0] + padX + (availableW - bounds.width * scale) / 2;
+    const offsetY = parentPos[1] + padTop + (availableH - bounds.height * scale) / 2;
+
+    const nodes = inner.map((node) => {
+        const pos = normalizeVec2Any(node?.pos) || [bounds.minX, bounds.minY];
+        const size = normalizeSize2Any(node?.size) || [140, 60];
+        return {
+            ...node,
+            id: `${parentId}::${node?.id ?? node?.ID ?? ""}`,
+            pos: [offsetX + (pos[0] - bounds.minX) * scale, offsetY + (pos[1] - bounds.minY) * scale],
+            size: [Math.max(18, size[0] * scale), Math.max(14, size[1] * scale)],
+            _mjrSubgraphParentId: parentId,
+            _mjrSubgraphName: subgraph?.name || parent?.title || parent?.type || "Subgraph",
+        };
+    });
+
+    const linkMapId = (id) => `${parentId}::${id}`;
+    const links = (Array.isArray(subgraph.links) ? subgraph.links : []).map((link) => {
+        if (Array.isArray(link) && link.length >= 4) {
+            const next = [...link];
+            next[1] = linkMapId(next[1]);
+            next[3] = linkMapId(next[3]);
+            return next;
+        }
+        if (link && typeof link === "object") {
+            return {
+                ...link,
+                origin_id: link.origin_id != null ? linkMapId(link.origin_id) : link.origin_id,
+                originId: link.originId != null ? linkMapId(link.originId) : link.originId,
+                from: link.from != null ? linkMapId(link.from) : link.from,
+                target_id: link.target_id != null ? linkMapId(link.target_id) : link.target_id,
+                targetId: link.targetId != null ? linkMapId(link.targetId) : link.targetId,
+                to: link.to != null ? linkMapId(link.to) : link.to,
+            };
+        }
+        return link;
+    });
+
+    return {
+        nodes,
+        links,
+        group: {
+            title: subgraph?.name || parent?.title || "Subgraph",
+            bounding: [parentPos[0] + 4, parentPos[1] + 18, Math.max(1, parentSize[0] - 8), Math.max(1, parentSize[1] - 22)],
+            color: parent?.color || parent?.bgcolor || "#7f8ca3",
+            borderColor: "#9fb5d8",
+        },
+    };
+}
+
+function getNodesBounds(nodes) {
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+    for (const node of nodes) {
+        const pos = normalizeVec2Any(node?.pos);
+        if (!pos) continue;
+        const size = normalizeSize2Any(node?.size) || [140, 60];
+        minX = Math.min(minX, pos[0]);
+        minY = Math.min(minY, pos[1]);
+        maxX = Math.max(maxX, pos[0] + size[0]);
+        maxY = Math.max(maxY, pos[1] + size[1]);
+    }
+    if (!Number.isFinite(minX)) return { minX: 0, minY: 0, width: 1, height: 1 };
+    return { minX, minY, width: Math.max(1, maxX - minX), height: Math.max(1, maxY - minY) };
+}
+
+function normalizeVec2Any(value) {
+    if (Array.isArray(value) && value.length >= 2) return [Number(value[0]), Number(value[1])];
+    if (value && typeof value === "object") {
+        const a = value[0] ?? value["0"] ?? value.x ?? value.left ?? null;
+        const b = value[1] ?? value["1"] ?? value.y ?? value.top ?? null;
+        if (a !== null && b !== null) return [Number(a), Number(b)];
+    }
+    return null;
+}
+
+function normalizeSize2Any(value) {
+    if (Array.isArray(value) && value.length >= 2) return [Number(value[0]), Number(value[1])];
+    if (value && typeof value === "object") {
+        const w = value[0] ?? value["0"] ?? value.w ?? value.width ?? null;
+        const h = value[1] ?? value["1"] ?? value.h ?? value.height ?? null;
+        if (w !== null && h !== null) return [Number(w), Number(h)];
+    }
+    return null;
+}
+
+function _minimapInputTypeLooksWidgetCapable(type) {
+    if (Array.isArray(type)) return true;
+    const text = String(type || "").trim().toUpperCase();
+    return (
+        text === "INT" ||
+        text === "FLOAT" ||
+        text === "STRING" ||
+        text === "BOOLEAN" ||
+        text === "BOOL" ||
+        text === "COMBO" ||
+        text === "ENUM"
+    );
 }
 
 export function synthesizeWorkflowFromPromptGraph(promptGraph, options = null) {

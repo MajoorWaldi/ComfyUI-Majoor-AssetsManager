@@ -22,7 +22,7 @@ export function loadFloatingViewerMediaA(viewer, fileData, { autoMode = false } 
     if (!sameNodeStream) {
         viewer._resetMfvZoom();
     }
-    if (autoMode && viewer._mode !== MFV_MODES.SIMPLE) {
+    if (autoMode && viewer._mode !== MFV_MODES.SIMPLE && viewer._mode !== MFV_MODES.GRAPH) {
         viewer._mode = MFV_MODES.SIMPLE;
         viewer._updateModeBtnUI();
     }

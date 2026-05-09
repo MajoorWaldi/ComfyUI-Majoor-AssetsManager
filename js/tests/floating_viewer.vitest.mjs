@@ -160,6 +160,7 @@ describe("FloatingViewer", () => {
         };
         const closeBtn = { addEventListener: vi.fn() };
         const modeBtn = { addEventListener: vi.fn() };
+        const modeSelect = { addEventListener: vi.fn(), value: "ab" };
         const pinSelect = { addEventListener: vi.fn() };
         const liveBtn = { addEventListener: vi.fn() };
         const previewBtn = { addEventListener: vi.fn() };
@@ -170,6 +171,7 @@ describe("FloatingViewer", () => {
             _btnAC: oldController,
             _closeBtn: closeBtn,
             _modeBtn: modeBtn,
+            _modeSelect: modeSelect,
             _pinGroup: pinSelect,
             _pinBtns: null,
             _liveBtn: liveBtn,
@@ -197,8 +199,8 @@ describe("FloatingViewer", () => {
             expect.any(Function),
             expect.objectContaining({ signal: viewer._btnAC.signal }),
         );
-        expect(modeBtn.addEventListener).toHaveBeenCalledWith(
-            "click",
+        expect(modeSelect.addEventListener).toHaveBeenCalledWith(
+            "change",
             expect.any(Function),
             expect.objectContaining({ signal: viewer._btnAC.signal }),
         );
