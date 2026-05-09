@@ -67,7 +67,8 @@ async def test_delete_asset_and_cleanup_removes_file_and_db_rows(tmp_path: Path)
     assert result.ok is True
     assert file_path.exists() is False
     assert any("DELETE FROM assets WHERE id = ?" in sql for sql, _ in db.executed)
-    assert result.data["db_cleanup_ok"] is True
+    payload = result.unwrap()
+    assert payload["db_cleanup_ok"] is True
 
 
 @pytest.mark.asyncio
@@ -97,9 +98,10 @@ async def test_delete_asset_and_cleanup_reports_db_cleanup_failure(tmp_path: Pat
 
     assert result.ok is True
     assert file_path.exists() is False
-    assert result.data["deleted"] == 1
-    assert result.data["db_cleanup_ok"] is False
-    assert result.data["db_errors"]
+    payload = result.unwrap()
+    assert payload["deleted"] == 1
+    assert payload["db_cleanup_ok"] is False
+    assert payload["db_errors"]
 
 
 @pytest.mark.asyncio
