@@ -112,6 +112,42 @@ describe("messageCenter", () => {
         });
     });
 
+    it("includes the graph map guide announcement with a doc link", async () => {
+        const firstLoad = await loadMessageCenter();
+
+        firstLoad.ensurePanelMessagesReady();
+        const entry = firstLoad
+            .listPanelMessages()
+            .find((message) => message.id === "tip-2026-05-10-graph-map-guide");
+
+        expect(entry).toMatchObject({
+            id: "tip-2026-05-10-graph-map-guide",
+            titleKey: "msg.tip.title.graphMapGuide",
+            bodyKey: "msg.tip.body.graphMapGuide",
+            actionLabelKey: "label.graphMapGuide",
+            actionUrl: "docs/GRAPH_MAP.md",
+            level: "info",
+        });
+    });
+
+    it("includes the MFV guide announcement with a doc link", async () => {
+        const firstLoad = await loadMessageCenter();
+
+        firstLoad.ensurePanelMessagesReady();
+        const entry = firstLoad
+            .listPanelMessages()
+            .find((message) => message.id === "tip-2026-05-10-mfv-guide");
+
+        expect(entry).toMatchObject({
+            id: "tip-2026-05-10-mfv-guide",
+            titleKey: "msg.tip.title.mfvGuide",
+            bodyKey: "msg.tip.body.mfvGuide",
+            actionLabelKey: "label.mfvGuide",
+            actionUrl: "docs/MFV_GUIDE.md",
+            level: "info",
+        });
+    });
+
     it("returns the stored merged message when updating an existing entry", async () => {
         const { addPanelMessage, listPanelMessages, upsertPanelMessage } =
             await loadMessageCenter();

@@ -6,6 +6,7 @@ import {
     getNodeDisplayName,
     getNodeParamEntries,
     getNodeType,
+    getNodeTypeLabel,
     getWorkflowNodes,
     resolveAssetWorkflow,
 } from "./workflowGraphMapData.js";
@@ -27,6 +28,8 @@ export class WorkflowGraphMapPanel {
         this._large = Boolean(large);
         this._view = { zoom: 1, centerX: null, centerY: null };
         this._drag = null;
+        this._previewMedia = null;
+        this._previewKey = "";
         this._el = this._build();
     }
 
@@ -51,6 +54,7 @@ export class WorkflowGraphMapPanel {
     }
 
     dispose() {
+        this._disposePreviewMedia();
         this._resizeObserver?.disconnect?.();
         this._resizeObserver = null;
         this._el?.remove?.();
@@ -169,7 +173,7 @@ export class WorkflowGraphMapPanel {
 
         const meta = document.createElement("div");
         meta.className = "mjr-wgm-node-meta";
-        meta.textContent = `#${this._selectedNodeId} ${getNodeType(node) || "Node"}`;
+        meta.textContent = `#${this._selectedNodeId} ${getNodeTypeLabel(node) || getNodeType(node) || "Node"}`;
 
         const actions = document.createElement("div");
         actions.className = "mjr-wgm-actions";
@@ -260,17 +264,48 @@ export class WorkflowGraphMapPanel {
 
     _renderPreview() {
         if (!this._preview) return;
-        _replaceChildren(this._preview);
-        const media = buildFloatingViewerMediaElement(_normalizePreviewAsset(this._asset), { fill: true });
+        const asset = _normalizePreviewAsset(this._asset);
+        const previewKey = _getPreviewKey(asset);
+        if (this._previewMedia && previewKey && previewKey === this._previewKey) {
+            if (this._preview.firstChild !== this._previewMedia || this._preview.childNodes.length !== 1) {
+                _replaceChildren(this._preview, this._previewMedia);
+            }
+            return;
+        }
+
+        this._disposePreviewMedia();
+
+        const media = buildFloatingViewerMediaElement(asset, { fill: true });
         if (media) {
             media.classList?.add?.("mjr-wgm-preview-media");
+            this._previewMedia = media;
+            this._previewKey = previewKey;
             this._preview.appendChild(media);
             return;
         }
         const empty = document.createElement("div");
         empty.className = "mjr-wgm-preview-empty";
         empty.textContent = "No preview";
-        this._preview.appendChild(empty);
+        _replaceChildren(this._preview, empty);
+    }
+
+    _disposePreviewMedia() {
+        const media = this._previewMedia;
+        this._previewMedia = null;
+        this._previewKey = "";
+        if (!media) return;
+        try {
+            media._mjrMediaControlsHandle?.destroy?.();
+        } catch (e) {
+            console.debug?.("[MFV Graph Map] preview cleanup failed", e);
+        }
+        try {
+            const playable = media.querySelectorAll?.("video, audio") || [];
+            for (const el of playable) el.pause?.();
+        } catch (e) {
+            console.debug?.("[MFV Graph Map] preview pause failed", e);
+        }
+        media.remove?.();
     }
 
     _handleCanvasClick(event) {
@@ -370,4 +405,15 @@ function _normalizePreviewAsset(asset) {
         ...(url ? { url } : null),
         ...(inferredKind ? { kind: inferredKind, asset_type: inferredKind } : null),
     };
+}
+
+function _getPreviewKey(asset) {
+    if (!asset || typeof asset !== "object") return "";
+    return JSON.stringify({
+        url: String(asset.url || ""),
+        filename: String(asset.filename || asset.name || ""),
+        kind: String(asset.kind || asset.asset_type || asset.type || ""),
+        subfolder: String(asset.subfolder || ""),
+        id: asset.id ?? "",
+    });
 }

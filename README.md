@@ -50,6 +50,7 @@ Useful links:
 - [ComfyUI Desktop Second-Screen Popup](#comfyui-desktop-second-screen-popup)
 - [Basic Usage](#basic-usage)
 - [Majoor Floating Viewer (MFV)](#majoor-floating-viewer-mfv)
+- [Graph Map](#graph-map)
 - [Custom Nodes](#custom-nodes)
 - [Hotkeys & Shortcuts](#hotkeys--shortcuts)
 - [Advanced Features](#advanced-features)
@@ -124,6 +125,7 @@ A lightweight floating viewer panel for real-time generation comparison:
 - **Compare Modes**: Simple, A/B Compare, and Side-by-Side views
 - **Multi-Pin References (A/B/C/D)**: Pin up to 4 images with toggle buttons for simultaneous comparison
 - **Node Parameters Sidebar**: View and edit workflow node widgets (prompts, seeds, samplers) directly inside the viewer
+- **Graph Map**: Inspect the saved workflow with readable node and subgraph names, plus a copy-ready node detail panel
 - **Run Button**: Queue prompt from the viewer toolbar without switching back to the canvas
 - **Sidebar Position Setting**: Place the Node Parameters sidebar on the right, left, or bottom via Settings
 - **Real-time Preview**: Watch generations as they complete
@@ -384,6 +386,12 @@ If the Majoor nodes are **not** used, the asset manager falls back to its standa
 
 ## Majoor Floating Viewer (MFV)
 
+MFV now has a dedicated illustrated guide focused on the real workflow inside the floating viewer: compare modes, A/B/C/D pins, Live Stream, Node Stream, KSampler Preview, Node Parameters, Run / Stop, Pop-out, and the Graph Map companion view.
+
+![MFV overview](docs/images/mfv-overview.png)
+
+![MFV compare and pins](docs/images/mfv-compare-pins.png)
+
 ### Opening the Floating Viewer
 - Click the **Floating Viewer** button in the Assets Manager toolbar
 - Or use the viewer from the ComfyUI canvas context menu
@@ -403,6 +411,27 @@ If the Majoor nodes are **not** used, the asset manager falls back to its standa
 - Floating Viewer shows that node's content instantly
 - Great for comparing intermediate results
 
+### Why MFV And Graph Map Work Together
+- Use **MFV** for live review, compare, pins, streams, and quick reruns.
+- Open **Graph Map** when you need workflow context for the current asset.
+- Move from visual review to readable node and subgraph inspection without leaving the viewer workflow.
+
+See [`docs/MFV_GUIDE.md`](docs/MFV_GUIDE.md) for the dedicated MFV guide, [`docs/GRAPH_MAP.md`](docs/GRAPH_MAP.md) for the full workflow-map walkthrough, and [`docs/VIEWER_FEATURE_TUTORIAL.md`](docs/VIEWER_FEATURE_TUTORIAL.md) for the broader viewer documentation.
+
+---
+
+## Graph Map
+
+Graph Map is the workflow navigation view inside the Floating Viewer. It keeps the asset preview, the saved workflow, and the selected node details together so you can understand where a result came from without leaving the viewer.
+
+![Graph Map overview](docs/images/graph-map-overview.png)
+
+- **Readable workflow view**: node labels stay visible and named subgraphs show their real names instead of raw UUID/hash identifiers.
+- **Direct node inspection**: click a node to open copyable parameters and actions such as copy node, import node, import workflow, or transfer params.
+- **Viewer-friendly preview**: the small media preview stays in place while Graph Map refreshes, which is especially useful for video assets.
+
+For the full walkthrough and the second screenshot focused on the node detail panel, see [`docs/GRAPH_MAP.md`](docs/GRAPH_MAP.md).
+
 ### Controls
 - **Zoom**: Mouse wheel
 - **Pan**: Click and drag
@@ -410,8 +439,6 @@ If the Majoor nodes are **not** used, the asset manager falls back to its standa
 - **Resize**: Drag panel edges
 - **Close**: ESC or close button
 - **Focused Player Shortcuts**: Click once on the inline player, then use **Space** to play/pause and **Left/Right** to step frame by frame
-
-See [`docs/VIEWER_FEATURE_TUTORIAL.md`](docs/VIEWER_FEATURE_TUTORIAL.md) for complete viewer documentation.
 
 ---
 

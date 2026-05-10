@@ -1,6 +1,11 @@
 import {
     synthesizeWorkflowFromPromptGraph,
 } from "../../../components/sidebar/utils/minimap.js";
+import {
+    getWorkflowNodeDisplayName,
+    getWorkflowNodeRawType,
+    getWorkflowNodeTypeLabel,
+} from "./workflowNodeLabeling.js";
 
 const OBJECT_INFO_CACHE = new Map();
 let OBJECT_INFO_ALL_PROMISE = null;
@@ -41,7 +46,10 @@ export function resolveAssetWorkflow(asset) {
     for (const candidate of candidates) {
         const parsed = _coerceObject(candidate);
         const workflow = _normalizeWorkflow(parsed);
-        if (workflow) return workflow;
+        if (workflow) {
+            _decorateWorkflowSubgraphNames(workflow);
+            return workflow;
+        }
     }
     return null;
 }
@@ -81,19 +89,15 @@ export function findWorkflowNode(workflow, nodeId) {
 }
 
 export function getNodeDisplayName(node) {
-    return String(
-        node?.title ||
-            node?.type ||
-            node?.comfyClass ||
-            node?.class_type ||
-            node?.classType ||
-            node?.id ||
-            "Node",
-    ).trim();
+    return getWorkflowNodeDisplayName(node);
 }
 
 export function getNodeType(node) {
-    return String(node?.type || node?.class_type || node?.comfyClass || node?.classType || "").trim();
+    return getWorkflowNodeRawType(node);
+}
+
+export function getNodeTypeLabel(node) {
+    return getWorkflowNodeTypeLabel(node);
 }
 
 export function getNodeParamEntries(node) {
@@ -313,6 +317,32 @@ function _normalizeWorkflow(value) {
     }
     const synthesized = synthesizeWorkflowFromPromptGraph(value);
     return synthesized && Array.isArray(synthesized.nodes) ? synthesized : null;
+}
+
+function _decorateWorkflowSubgraphNames(workflow, visited = new WeakSet()) {
+    if (!workflow || typeof workflow !== "object") return;
+    if (visited.has(workflow)) return;
+    visited.add(workflow);
+    const definitions = _getSubgraphDefinitions(workflow);
+    for (const node of Array.isArray(workflow?.nodes) ? workflow.nodes : []) {
+        _applySubgraphDefinitionMetadata(node, definitions);
+        const subgraph = _getNodeSubgraph(workflow, node, definitions);
+        if (subgraph) _decorateWorkflowSubgraphNames(subgraph, visited);
+    }
+}
+
+function _applySubgraphDefinitionMetadata(node, definitions) {
+    if (!node || typeof node !== "object") return;
+    const rawType = getNodeType(node);
+    if (!rawType) return;
+    const definition = definitions.get(String(rawType));
+    const name = String(
+        definition?.name || definition?.title || node?.subgraph?.name || node?.subgraph_instance?.name || "",
+    ).trim();
+    if (!name) return;
+    const props = node?.properties && typeof node.properties === "object" ? node.properties : (node.properties = {});
+    if (!String(props.subgraph_name || "").trim()) props.subgraph_name = name;
+    if (!String(props.subgraph_id || "").trim()) props.subgraph_id = rawType;
 }
 
 function _getSubgraphDefinitions(workflow) {

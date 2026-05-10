@@ -17,6 +17,7 @@ Welcome to the documentation hub for **Majoor Assets Manager** for ComfyUI.
 ### Returning users
 
 - **[AI Features Guide](AI_FEATURES.md)** - AI-assisted search and enrichment features
+- **[MFV Guide](MFV_GUIDE.md)** - Dedicated Majoor Floating Viewer walkthrough
 - **[Viewer Feature Tutorial](VIEWER_FEATURE_TUTORIAL.md)** - Floating viewer and analysis tools
 - **[Changelog](../CHANGELOG.md)** - Recent releases and fixes
 - **[Architecture Map](ARCHITECTURE_MAP.md)** - Backend boundaries and refactor guide
@@ -44,7 +45,9 @@ Welcome to the documentation hub for **Majoor Assets Manager** for ComfyUI.
 | Document                                                                       | Description                                      |
 | ------------------------------------------------------------------------------ | ------------------------------------------------ |
 | **[SEARCH_FILTERING.md](SEARCH_FILTERING.md)**                                 | Full-text search, filters, and sorting           |
+| **[MFV_GUIDE.md](MFV_GUIDE.md)**                                               | Dedicated Majoor Floating Viewer guide           |
 | **[VIEWER_FEATURE_TUTORIAL.md](VIEWER_FEATURE_TUTORIAL.md)**                   | Viewer, MFV, and analysis tools                  |
+| **[GRAPH_MAP.md](GRAPH_MAP.md)**                                               | Graph Map workflow navigation and node detail    |
 | **[FLOATING_VIEWER_WORKFLOW_SIDEBAR.md](FLOATING_VIEWER_WORKFLOW_SIDEBAR.md)** | Node Parameters sidebar in Floating Viewer       |
 | **[RATINGS_TAGS_COLLECTIONS.md](RATINGS_TAGS_COLLECTIONS.md)**                 | Ratings, tags, and collections                   |
 | **[DRAG_DROP.md](DRAG_DROP.md)**                                               | Drag and drop behavior                           |

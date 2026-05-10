@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Graph Map Node Detail Demo</title>
+    <style>
+        :root {
+            color-scheme: dark;
+            --bg: #091016;
+            --panel: rgba(14, 23, 30, 0.96);
+            --panel-2: rgba(19, 31, 39, 0.98);
+            --line: rgba(144, 176, 188, 0.18);
+            --text: #eef6fb;
+            --muted: #9cb3c0;
+            --accent: #62d0a9;
+            --accent-2: #8fd9ff;
+            --warn: #ffd27a;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: grid;
+            place-items: center;
+            font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+            color: var(--text);
+            background:
+                radial-gradient(circle at top left, rgba(98, 208, 169, 0.16), transparent 34%),
+                radial-gradient(circle at bottom right, rgba(143, 217, 255, 0.14), transparent 30%),
+                linear-gradient(180deg, #0c151b 0%, #081015 100%);
+            padding: 32px;
+        }
+
+        .frame {
+            width: 1180px;
+            border-radius: 30px;
+            border: 1px solid var(--line);
+            background: linear-gradient(180deg, rgba(15, 24, 31, 0.98), rgba(9, 15, 20, 0.99));
+            box-shadow: 0 28px 90px rgba(0, 0, 0, 0.5);
+            padding: 30px;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 18px;
+            margin-bottom: 22px;
+        }
+
+        .eyebrow {
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 0.18em;
+            font-size: 13px;
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+
+        h1, p { margin: 0; }
+
+        h1 {
+            font-size: 38px;
+            font-weight: 700;
+            letter-spacing: -0.03em;
+        }
+
+        .subtitle {
+            margin-top: 10px;
+            font-size: 17px;
+            line-height: 1.5;
+            color: var(--muted);
+            max-width: 840px;
+        }
+
+        .pill {
+            padding: 10px 14px;
+            border-radius: 999px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(255, 255, 255, 0.03);
+            color: var(--muted);
+            font-size: 14px;
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+            gap: 22px;
+        }
+
+        .card {
+            border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            background: linear-gradient(180deg, var(--panel), var(--panel-2));
+        }
+
+        .mini-map {
+            padding: 20px;
+            min-height: 620px;
+        }
+
+        .mini-map h2,
+        .detail h2 {
+            margin: 0 0 6px;
+            font-size: 30px;
+            letter-spacing: -0.03em;
+        }
+
+        .meta {
+            color: var(--muted);
+            font-size: 14px;
+        }
+
+        .graph {
+            position: relative;
+            margin-top: 18px;
+            min-height: 500px;
+            border-radius: 20px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            background: linear-gradient(180deg, rgba(6, 10, 14, 0.96), rgba(4, 8, 10, 0.98));
+        }
+
+        .graph .group {
+            position: absolute;
+            border-radius: 18px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .graph .node {
+            position: absolute;
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+            overflow: hidden;
+        }
+
+        .graph .node::before {
+            content: attr(data-title);
+            display: block;
+            padding: 8px 10px;
+            font-size: 13px;
+            font-weight: 700;
+            color: rgba(255, 255, 255, 0.95);
+            background: rgba(255, 255, 255, 0.16);
+        }
+
+        .graph .node .body {
+            padding: 10px;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.88);
+            line-height: 1.45;
+        }
+
+        .node-a { left: 42px; top: 58px; width: 180px; height: 82px; background: #2b4778; }
+        .node-b { left: 58px; top: 198px; width: 182px; height: 88px; background: #77601d; }
+        .node-c { left: 272px; top: 112px; width: 244px; height: 128px; background: #3d7f75; border-color: #ffe082; box-shadow: 0 0 0 2px rgba(255, 224, 130, 0.46); }
+        .node-d { left: 566px; top: 124px; width: 190px; height: 92px; background: #55398f; }
+        .node-e { left: 292px; top: 284px; width: 202px; height: 86px; background: #7a5430; }
+        .node-f { left: 792px; top: 92px; width: 144px; height: 74px; background: #5b7a2e; }
+
+        .detail {
+            padding: 22px;
+            min-height: 620px;
+        }
+
+        .detail-header {
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            align-items: flex-start;
+            margin-bottom: 18px;
+        }
+
+        .detail-title {
+            font-size: 34px;
+            font-weight: 700;
+            letter-spacing: -0.03em;
+        }
+
+        .actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .action {
+            padding: 10px 14px;
+            border-radius: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(255, 255, 255, 0.05);
+            font-size: 13px;
+        }
+
+        .params {
+            display: grid;
+            gap: 10px;
+        }
+
+        .param {
+            display: grid;
+            grid-template-columns: 130px minmax(0, 1fr);
+            gap: 12px;
+            align-items: center;
+            padding: 13px 14px;
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            background: rgba(255, 255, 255, 0.04);
+        }
+
+        .key {
+            color: var(--warn);
+            font-weight: 600;
+            font-size: 13px;
+        }
+
+        .value {
+            min-width: 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-size: 14px;
+        }
+
+        .callout {
+            margin-top: 18px;
+            padding: 16px 18px;
+            border-radius: 18px;
+            border: 1px solid rgba(98, 208, 169, 0.18);
+            background: rgba(98, 208, 169, 0.08);
+            line-height: 1.5;
+            color: #d9f9ee;
+            font-size: 15px;
+        }
+    </style>
+</head>
+<body>
+    <main class="frame" id="node-detail-shot">
+        <div class="header">
+            <div>
+                <div class="eyebrow">Graph Map Node Detail</div>
+                <h1>Inspect the selected subgraph and copy the right parameters fast</h1>
+                <p class="subtitle">The detail panel stays paired with the highlighted node so you can copy JSON, import a node into the current graph, or reuse the most useful parameter values without leaving the viewer.</p>
+            </div>
+            <div class="pill">Selected node · Face Detailer · #34</div>
+        </div>
+        <section class="layout">
+            <article class="card mini-map">
+                <h2>Graph context</h2>
+                <div class="meta">Selection stays visible in its local workflow neighborhood.</div>
+                <div class="graph">
+                    <div class="group" style="left: 20px; top: 30px; width: 232px; height: 300px;"></div>
+                    <div class="group" style="left: 254px; top: 74px; width: 300px; height: 330px;"></div>
+                    <div class="group" style="left: 774px; top: 54px; width: 190px; height: 260px;"></div>
+                    <div class="node node-a" data-title="Load Frames"><div class="body"></div></div>
+                    <div class="node node-b" data-title="Positive Prompt"><div class="body"></div></div>
+                    <div class="node node-c" data-title="Face Detailer"><div class="body">p1: 24<br>p2: 6.5<br>p3: dpmpp_2m_sde_gpu</div></div>
+                    <div class="node node-d" data-title="KSampler"><div class="body"></div></div>
+                    <div class="node node-e" data-title="Color Match"><div class="body"></div></div>
+                    <div class="node node-f" data-title="Preview"><div class="body"></div></div>
+                </div>
+            </article>
+            <article class="card detail">
+                <div class="detail-header">
+                    <div>
+                        <div class="detail-title">Face Detailer</div>
+                        <div class="meta">#34 · Subgraph</div>
+                    </div>
+                </div>
+                <div class="actions">
+                    <div class="action">Copy node</div>
+                    <div class="action">Import node</div>
+                    <div class="action">Import workflow</div>
+                    <div class="action">Transfer params</div>
+                </div>
+                <div class="params">
+                    <div class="param"><div class="key">model</div><div class="value">Juggernaut-XL-v9.safetensors</div></div>
+                    <div class="param"><div class="key">steps</div><div class="value">24</div></div>
+                    <div class="param"><div class="key">cfg</div><div class="value">6.5</div></div>
+                    <div class="param"><div class="key">sampler</div><div class="value">dpmpp_2m_sde_gpu</div></div>
+                    <div class="param"><div class="key">strength</div><div class="value">0.35</div></div>
+                    <div class="param"><div class="key">mask_blur</div><div class="value">12</div></div>
+                    <div class="param"><div class="key">positive</div><div class="value">cinematic portrait, shallow depth of field, refined skin detail</div></div>
+                </div>
+                <div class="callout">This is the panel you use when you want the saved workflow context and the actionable node values in the same place. It is especially useful for comparing outputs while keeping the selected subgraph readable.</div>
+            </article>
+        </section>
+    </main>
+</body>
+</html>

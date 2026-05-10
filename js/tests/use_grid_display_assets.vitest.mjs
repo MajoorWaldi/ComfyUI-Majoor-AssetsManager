@@ -33,12 +33,12 @@ describe("useGridDisplayAssets", () => {
         expect(third._mjrDupStack).toBe(false);
     });
 
-    it("keeps hidden duplicate placeholders out of renderable output", () => {
+    it("ignores stale duplicate-hidden flags left on asset objects", () => {
         const visible = { id: 1, filename: "visible.png" };
         const hidden = { id: 2, filename: "hidden.png", _mjrDupHidden: true };
 
         expect(isRenderableAsset(visible)).toBe(true);
-        expect(isRenderableAsset(hidden)).toBe(false);
-        expect(getRenderableAssets([visible, hidden])).toEqual([visible]);
+        expect(isRenderableAsset(hidden)).toBe(true);
+        expect(getRenderableAssets([visible, hidden])).toEqual([visible, hidden]);
     });
 });

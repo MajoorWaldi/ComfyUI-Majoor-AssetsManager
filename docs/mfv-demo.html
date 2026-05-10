@@ -1,0 +1,940 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>MFV Demo</title>
+    <style>
+        :root {
+            color-scheme: dark;
+            --bg: #081015;
+            --panel: rgba(14, 23, 30, 0.96);
+            --panel-2: rgba(19, 30, 39, 0.98);
+            --line: rgba(143, 173, 186, 0.2);
+            --text: #eef6fb;
+            --muted: #97adbb;
+            --accent: #69d2ad;
+            --accent-2: #8dcaf8;
+            --warn: #ffd27a;
+            --danger: #ff8f86;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            padding: 30px;
+            font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+            color: var(--text);
+            background:
+                radial-gradient(circle at top left, rgba(105, 210, 173, 0.18), transparent 30%),
+                radial-gradient(circle at top right, rgba(141, 202, 248, 0.14), transparent 24%),
+                linear-gradient(180deg, #0b1319 0%, #071015 100%);
+        }
+
+        .page {
+            width: 1440px;
+            margin: 0 auto;
+            display: grid;
+            gap: 28px;
+        }
+
+        .shot {
+            position: relative;
+            overflow: hidden;
+            border-radius: 30px;
+            border: 1px solid var(--line);
+            background: linear-gradient(180deg, rgba(15, 24, 32, 0.97), rgba(9, 15, 20, 0.99));
+            box-shadow: 0 28px 90px rgba(0, 0, 0, 0.45);
+            padding: 28px;
+        }
+
+        .header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 18px;
+            margin-bottom: 24px;
+        }
+
+        .eyebrow {
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 0.18em;
+            font-size: 13px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        h1, h2, h3, p { margin: 0; }
+
+        h1 {
+            font-size: 40px;
+            line-height: 1.1;
+            letter-spacing: -0.035em;
+        }
+
+        h2 {
+            font-size: 34px;
+            line-height: 1.1;
+            letter-spacing: -0.03em;
+        }
+
+        h3 {
+            font-size: 24px;
+            line-height: 1.15;
+            letter-spacing: -0.02em;
+        }
+
+        .sub {
+            margin-top: 12px;
+            max-width: 940px;
+            font-size: 17px;
+            color: var(--muted);
+            line-height: 1.5;
+        }
+
+        .pill-row, .toolbar-pills {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .pill {
+            padding: 10px 14px;
+            border-radius: 999px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(255, 255, 255, 0.03);
+            color: var(--muted);
+            font-size: 14px;
+        }
+
+        .layout-2 {
+            display: grid;
+            grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.82fr);
+            gap: 22px;
+        }
+
+        .layout-3 {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 18px;
+        }
+
+        .layout-compare {
+            display: grid;
+            grid-template-columns: minmax(0, 1.08fr) minmax(0, 0.92fr);
+            gap: 22px;
+        }
+
+        .card {
+            border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            background: linear-gradient(180deg, var(--panel), var(--panel-2));
+        }
+
+        .card-pad {
+            padding: 18px;
+        }
+
+        .viewer-shell {
+            padding: 18px;
+        }
+
+        .viewer-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .toolbar-left, .toolbar-right {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .tool {
+            padding: 10px 12px;
+            border-radius: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text);
+            font-size: 13px;
+        }
+
+        .tool.active {
+            background: rgba(105, 210, 173, 0.13);
+            border-color: rgba(105, 210, 173, 0.28);
+            color: #d8faef;
+        }
+
+        .tool.warn {
+            background: rgba(255, 210, 122, 0.1);
+            border-color: rgba(255, 210, 122, 0.24);
+        }
+
+        .tool.danger {
+            background: rgba(255, 143, 134, 0.1);
+            border-color: rgba(255, 143, 134, 0.24);
+        }
+
+        .viewer-surface {
+            position: relative;
+            min-height: 530px;
+            overflow: hidden;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            background:
+                radial-gradient(circle at 18% 28%, rgba(255, 209, 120, 0.28), transparent 23%),
+                radial-gradient(circle at 74% 34%, rgba(105, 210, 173, 0.2), transparent 28%),
+                linear-gradient(135deg, #1d2f3c 0%, #0d1820 52%, #142430 100%);
+        }
+
+        .viewer-media-card {
+            position: absolute;
+            inset: 26px 24px 70px 24px;
+            border-radius: 24px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background:
+                radial-gradient(circle at 22% 30%, rgba(255, 208, 122, 0.36), transparent 18%),
+                radial-gradient(circle at 70% 38%, rgba(105, 210, 173, 0.24), transparent 20%),
+                linear-gradient(135deg, #233947, #111a22 55%, #1b2d39);
+        }
+
+        .viewer-chip {
+            position: absolute;
+            top: 18px;
+            left: 18px;
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: rgba(10, 16, 22, 0.72);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            font-size: 13px;
+        }
+
+        .play {
+            position: absolute;
+            inset: 0;
+            margin: auto;
+            width: 94px;
+            height: 94px;
+            border-radius: 999px;
+            background: rgba(8, 14, 18, 0.65);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: grid;
+            place-items: center;
+        }
+
+        .play::before {
+            content: "";
+            margin-left: 7px;
+            width: 0;
+            height: 0;
+            border-top: 16px solid transparent;
+            border-bottom: 16px solid transparent;
+            border-left: 26px solid white;
+        }
+
+        .bottom-bar {
+            position: absolute;
+            left: 18px;
+            right: 18px;
+            bottom: 18px;
+            display: grid;
+            gap: 10px;
+        }
+
+        .scrub {
+            height: 10px;
+            overflow: hidden;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.12);
+        }
+
+        .scrub > span {
+            display: block;
+            width: 58%;
+            height: 100%;
+            border-radius: inherit;
+            background: linear-gradient(90deg, var(--accent), var(--accent-2));
+        }
+
+        .scrub-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            color: var(--muted);
+        }
+
+        .guides {
+            position: absolute;
+            inset: 26px 24px 70px 24px;
+            pointer-events: none;
+        }
+
+        .guides::before,
+        .guides::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background-image:
+                linear-gradient(to right, rgba(255,255,255,0.12) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(255,255,255,0.12) 1px, transparent 1px);
+            background-size: 33.333% 100%, 100% 33.333%;
+            background-position: 33.333% 0, 0 33.333%;
+            background-repeat: no-repeat;
+        }
+
+        .guides::after {
+            inset: 8% 12%;
+            border: 1px solid rgba(141, 202, 248, 0.35);
+            border-radius: 14px;
+            background: none;
+        }
+
+        .guide-label {
+            position: absolute;
+            right: 16px;
+            top: 16px;
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: rgba(10, 16, 22, 0.72);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            font-size: 13px;
+        }
+
+        .side-panel {
+            display: grid;
+            gap: 18px;
+        }
+
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+        }
+
+        .stat {
+            padding: 14px;
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            background: rgba(255, 255, 255, 0.04);
+        }
+
+        .stat .k {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--muted);
+        }
+
+        .stat .v {
+            margin-top: 8px;
+            font-size: 22px;
+            font-weight: 700;
+            letter-spacing: -0.03em;
+        }
+
+        .mini-note {
+            padding: 16px 18px;
+            border-radius: 18px;
+            border: 1px solid rgba(105, 210, 173, 0.18);
+            background: rgba(105, 210, 173, 0.08);
+            color: #d8f9ee;
+            font-size: 15px;
+            line-height: 1.5;
+        }
+
+        .compare-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 18px;
+        }
+
+        .compare-card {
+            padding: 18px;
+            min-height: 340px;
+        }
+
+        .surface {
+            position: relative;
+            min-height: 220px;
+            overflow: hidden;
+            border-radius: 18px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            background: linear-gradient(135deg, #182633, #0d171f 60%, #172a36);
+            margin-top: 14px;
+        }
+
+        .surface.split::before,
+        .surface.split::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 50%;
+        }
+
+        .surface.split::before {
+            left: 0;
+            background: radial-gradient(circle at 32% 35%, rgba(255,210,122,0.35), transparent 22%), linear-gradient(135deg, #253949, #13202a);
+        }
+
+        .surface.split::after {
+            right: 0;
+            background: radial-gradient(circle at 66% 44%, rgba(105,210,173,0.25), transparent 22%), linear-gradient(135deg, #1e3140, #101922);
+        }
+
+        .surface.grid4 {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 2px;
+            background: rgba(255,255,255,0.08);
+        }
+
+        .surface.grid4 > div {
+            background: linear-gradient(135deg, #233847, #111a22 58%, #182833);
+            position: relative;
+        }
+
+        .slot-badge {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: rgba(9, 15, 19, 0.7);
+            border: 1px solid rgba(255,255,255,0.08);
+            font-size: 12px;
+        }
+
+        .pins {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 14px;
+        }
+
+        .pin {
+            padding: 9px 12px;
+            border-radius: 12px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.08);
+            font-size: 13px;
+        }
+
+        .pin.active {
+            background: rgba(255,210,122,0.12);
+            border-color: rgba(255,210,122,0.24);
+            color: #ffe6a8;
+        }
+
+        .stream-card {
+            padding: 18px;
+            min-height: 420px;
+        }
+
+        .stream-surface {
+            margin-top: 14px;
+            min-height: 220px;
+            border-radius: 18px;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.06);
+            background: linear-gradient(135deg, #1e3040, #0d171f 62%, #172733);
+            position: relative;
+        }
+
+        .stream-list {
+            display: grid;
+            gap: 10px;
+            margin-top: 14px;
+        }
+
+        .stream-item {
+            padding: 12px 14px;
+            border-radius: 14px;
+            border: 1px solid rgba(255,255,255,0.06);
+            background: rgba(255,255,255,0.04);
+            font-size: 14px;
+            line-height: 1.45;
+        }
+
+        .stream-tag {
+            display: inline-block;
+            margin-bottom: 8px;
+            padding: 6px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .steps {
+            position: absolute;
+            inset: 18px;
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 10px;
+        }
+
+        .step {
+            position: relative;
+            border-radius: 14px;
+            border: 1px solid rgba(255,255,255,0.08);
+            background: linear-gradient(135deg, #2a4150, #15222c 58%, #1b2f3b);
+            overflow: hidden;
+        }
+
+        .step::after {
+            content: attr(data-step);
+            position: absolute;
+            left: 10px;
+            bottom: 10px;
+            font-size: 12px;
+            padding: 5px 8px;
+            border-radius: 999px;
+            background: rgba(8,14,18,0.7);
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .control-layout {
+            display: grid;
+            grid-template-columns: minmax(0, 0.78fr) minmax(0, 1.22fr);
+            gap: 22px;
+        }
+
+        .params-card {
+            padding: 18px;
+            min-height: 560px;
+        }
+
+        .params-header {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            align-items: flex-start;
+            margin-bottom: 16px;
+        }
+
+        .params-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+
+        .params-grid {
+            display: grid;
+            gap: 10px;
+        }
+
+        .param {
+            display: grid;
+            grid-template-columns: 118px minmax(0, 1fr);
+            gap: 12px;
+            align-items: center;
+            padding: 12px 14px;
+            border-radius: 14px;
+            border: 1px solid rgba(255,255,255,0.06);
+            background: rgba(255,255,255,0.04);
+        }
+
+        .param .k {
+            color: var(--warn);
+            font-weight: 600;
+            font-size: 13px;
+        }
+
+        .param .v {
+            min-width: 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-size: 14px;
+        }
+
+        .dock-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .dock {
+            padding: 14px;
+            border-radius: 16px;
+            border: 1px solid rgba(255,255,255,0.06);
+            background: rgba(255,255,255,0.04);
+            text-align: center;
+        }
+
+        .window-demo {
+            position: relative;
+            min-height: 510px;
+            border-radius: 20px;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.06);
+            background: linear-gradient(180deg, #0b1217, #071015);
+        }
+
+        .window-main,
+        .window-pop {
+            position: absolute;
+            border-radius: 20px;
+            border: 1px solid rgba(255,255,255,0.08);
+            background: linear-gradient(180deg, rgba(15,24,32,0.97), rgba(9,15,20,0.99));
+            box-shadow: 0 18px 60px rgba(0,0,0,0.34);
+        }
+
+        .window-main {
+            left: 22px;
+            top: 22px;
+            width: 58%;
+            height: 82%;
+        }
+
+        .window-pop {
+            right: 22px;
+            top: 60px;
+            width: 34%;
+            height: 58%;
+        }
+
+        .window-title {
+            padding: 12px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+            color: var(--muted);
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+
+        .window-body {
+            position: absolute;
+            inset: 52px 14px 14px 14px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, #243847, #111a22 58%, #182833);
+        }
+
+        .legend {
+            display: grid;
+            gap: 10px;
+            margin-top: 18px;
+        }
+
+        .legend-item {
+            padding: 12px 14px;
+            border-radius: 14px;
+            border: 1px solid rgba(255,255,255,0.06);
+            background: rgba(255,255,255,0.04);
+            font-size: 14px;
+            line-height: 1.45;
+        }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <section class="shot" id="shot-overview">
+            <div class="header">
+                <div>
+                    <div class="eyebrow">Majoor Floating Viewer</div>
+                    <h1>A dedicated MFV guide should show the full workflow, not only one feature at a time</h1>
+                    <p class="sub">This visual walkthrough presents the floating viewer as a single working surface: compare modes, pin slots, overlay controls, streams, node tools, run/stop actions, and pop-out workflow all fit into one compact panel.</p>
+                </div>
+                <div class="pill-row">
+                    <div class="pill">Compare + pins</div>
+                    <div class="pill">Format + guides</div>
+                    <div class="pill">Live + node + KSampler streams</div>
+                    <div class="pill">Node params + run/stop + pop-out</div>
+                </div>
+            </div>
+            <div class="layout-2">
+                <article class="card viewer-shell">
+                    <div class="viewer-toolbar">
+                        <div class="toolbar-left">
+                            <div class="tool active">Simple</div>
+                            <div class="tool">A/B</div>
+                            <div class="tool">Side</div>
+                            <div class="tool">Grid</div>
+                            <div class="tool">Graph</div>
+                            <div class="tool warn">A Pin</div>
+                            <div class="tool active">B Pin</div>
+                        </div>
+                        <div class="toolbar-right">
+                            <div class="tool active">Live Stream</div>
+                            <div class="tool active">KSampler Preview</div>
+                            <div class="tool">Node Stream</div>
+                            <div class="tool">Guides</div>
+                            <div class="tool">Format</div>
+                            <div class="tool">Pop Out</div>
+                        </div>
+                    </div>
+                    <div class="viewer-surface">
+                        <div class="viewer-media-card">
+                            <div class="viewer-chip">MFV surface · output / shot_0248.mp4</div>
+                            <div class="guide-label">Format 2.39:1 · Guides on</div>
+                            <div class="play"></div>
+                            <div class="bottom-bar">
+                                <div class="scrub"><span></span></div>
+                                <div class="scrub-meta"><span>00:14 / 00:21</span><span>24 fps · Compare ready</span></div>
+                            </div>
+                        </div>
+                        <div class="guides"></div>
+                    </div>
+                </article>
+                <div class="side-panel">
+                    <article class="card card-pad">
+                        <h3>What the toolbar actually covers</h3>
+                        <div class="stat-grid" style="margin-top: 16px;">
+                            <div class="stat"><div class="k">Modes</div><div class="v">5</div></div>
+                            <div class="stat"><div class="k">Pin slots</div><div class="v">A/B/C/D</div></div>
+                            <div class="stat"><div class="k">Streams</div><div class="v">3</div></div>
+                            <div class="stat"><div class="k">Pop-out</div><div class="v">Desktop-ready</div></div>
+                        </div>
+                    </article>
+                    <article class="card card-pad">
+                        <h3>Why a dedicated guide helps</h3>
+                        <div class="mini-note" style="margin-top: 16px;">MFV is no longer just a floating preview. It is a compact workflow cockpit. A dedicated document is the cleanest place to explain how compare, pins, overlays, streams, parameters, and run controls fit together.</div>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <section class="shot" id="shot-compare-pins">
+            <div class="header">
+                <div>
+                    <div class="eyebrow">Compare And Pins</div>
+                    <h2>Compare modes and pin slots are the center of fast visual iteration</h2>
+                    <p class="sub">Use compare modes to switch context, then lock references with A/B/C/D pins so new generations can be judged against a stable baseline.</p>
+                </div>
+                <div class="toolbar-pills">
+                    <div class="pill">Simple</div>
+                    <div class="pill">A/B</div>
+                    <div class="pill">Side-by-side</div>
+                    <div class="pill">Grid compare</div>
+                </div>
+            </div>
+            <div class="layout-compare">
+                <div class="compare-grid">
+                    <article class="card compare-card">
+                        <h3>A/B compare</h3>
+                        <p class="sub" style="font-size:14px; max-width:none; margin-top:8px;">Toggle between two states to spot subtle prompt or sampler changes.</p>
+                        <div class="surface split">
+                            <div class="slot-badge">A baseline</div>
+                            <div class="slot-badge" style="left:auto; right:10px;">B candidate</div>
+                        </div>
+                        <div class="pins">
+                            <div class="pin active">A pinned</div>
+                            <div class="pin">B live</div>
+                        </div>
+                    </article>
+                    <article class="card compare-card">
+                        <h3>Side-by-side</h3>
+                        <p class="sub" style="font-size:14px; max-width:none; margin-top:8px;">Keep both assets on screen while zoom and pan stay synchronized.</p>
+                        <div class="surface split">
+                            <div class="slot-badge">Vertical split</div>
+                        </div>
+                        <div class="pins">
+                            <div class="pin active">A pinned</div>
+                            <div class="pin active">B pinned</div>
+                        </div>
+                    </article>
+                    <article class="card compare-card" style="grid-column: span 2; min-height: 390px;">
+                        <h3>Grid compare with four references</h3>
+                        <p class="sub" style="font-size:14px; max-width:none; margin-top:8px;">Pin up to four outputs and review a full sweep at once.</p>
+                        <div class="surface grid4" style="min-height: 240px;">
+                            <div><div class="slot-badge">A pinned</div></div>
+                            <div><div class="slot-badge">B pinned</div></div>
+                            <div><div class="slot-badge">C pinned</div></div>
+                            <div><div class="slot-badge">D pinned</div></div>
+                        </div>
+                        <div class="pins">
+                            <div class="pin active">A</div>
+                            <div class="pin active">B</div>
+                            <div class="pin active">C</div>
+                            <div class="pin active">D</div>
+                        </div>
+                    </article>
+                </div>
+                <article class="card card-pad">
+                    <h3>Pin behavior in practice</h3>
+                    <div class="legend">
+                        <div class="legend-item"><strong>Baseline lock</strong><br>Pin your best result in A and let Live Stream replace only the unpinned slot.</div>
+                        <div class="legend-item"><strong>Prompt sweep</strong><br>Keep A/B/C/D locked while reviewing different prompt or sampler passes in grid compare.</div>
+                        <div class="legend-item"><strong>Before / after</strong><br>Use A as the original and B as the current variation while stepping through new runs.</div>
+                    </div>
+                </article>
+            </div>
+        </section>
+
+        <section class="shot" id="shot-streams">
+            <div class="header">
+                <div>
+                    <div class="eyebrow">Streams</div>
+                    <h2>Live Stream, Node Stream, and KSampler Preview solve three different monitoring jobs</h2>
+                    <p class="sub">The key to using MFV efficiently is understanding which stream follows final outputs, which one follows selected nodes, and which one shows denoising steps during execution.</p>
+                </div>
+                <div class="toolbar-pills">
+                    <div class="pill">Final outputs</div>
+                    <div class="pill">Selected node media</div>
+                    <div class="pill">Execution preview frames</div>
+                </div>
+            </div>
+            <div class="layout-3">
+                <article class="card stream-card">
+                    <h3>Live Stream</h3>
+                    <p class="sub" style="font-size:14px; max-width:none; margin-top:8px;">Follow the newest generated asset automatically after each run finishes.</p>
+                    <div class="stream-surface">
+                        <div class="viewer-chip">Latest output · queue item 1287</div>
+                        <div class="bottom-bar"><div class="scrub"><span style="width: 76%;"></span></div><div class="scrub-meta"><span>new output visible</span><span>auto-follow on</span></div></div>
+                    </div>
+                    <div class="stream-list">
+                        <div class="stream-item"><span class="stream-tag">Best for</span><br>Watching final generations complete without touching the grid.</div>
+                        <div class="stream-item"><span class="stream-tag">Does not do</span><br>It does not follow canvas node selection. That is Node Stream.</div>
+                    </div>
+                </article>
+                <article class="card stream-card">
+                    <h3>Node Stream</h3>
+                    <p class="sub" style="font-size:14px; max-width:none; margin-top:8px;">Preview frontend media exposed by the node you click in ComfyUI.</p>
+                    <div class="stream-surface">
+                        <div class="viewer-chip">Selected node · PreviewImage #58</div>
+                        <div class="bottom-bar"><div class="scrub"><span style="width: 43%;"></span></div><div class="scrub-meta"><span>node media attached</span><span>selection follow</span></div></div>
+                    </div>
+                    <div class="stream-list">
+                        <div class="stream-item"><span class="stream-tag">Best for</span><br>Jumping to loader, preview, ImageOps, or save nodes that already expose frontend media.</div>
+                        <div class="stream-item"><span class="stream-tag">Limit</span><br>No frontend media means nothing to display, even if the backend node exists.</div>
+                    </div>
+                </article>
+                <article class="card stream-card">
+                    <h3>KSampler Preview</h3>
+                    <p class="sub" style="font-size:14px; max-width:none; margin-top:8px;">Show denoising-step frames while the workflow is still running.</p>
+                    <div class="stream-surface">
+                        <div class="steps">
+                            <div class="step" data-step="step 04"></div>
+                            <div class="step" data-step="step 11"></div>
+                            <div class="step" data-step="step 17"></div>
+                            <div class="step" data-step="step 24"></div>
+                        </div>
+                    </div>
+                    <div class="stream-list">
+                        <div class="stream-item"><span class="stream-tag">Best for</span><br>Watching execution evolve before the final file is written.</div>
+                        <div class="stream-item"><span class="stream-tag">Different from</span><br>It streams sampler preview frames, not selected-node media and not final output follow.</div>
+                    </div>
+                </article>
+            </div>
+        </section>
+
+        <section class="shot" id="shot-controls-actions">
+            <div class="header">
+                <div>
+                    <div class="eyebrow">Controls And Actions</div>
+                    <h2>Format, guides, node parameters, run, stop, and pop-out turn MFV into a compact workflow cockpit</h2>
+                    <p class="sub">The dedicated MFV doc should explain how display overlays and workflow actions live side by side: tune the viewing surface, inspect node values, queue a prompt again, stop execution, or move the viewer into a separate window.</p>
+                </div>
+                <div class="toolbar-pills">
+                    <div class="pill">Format + guides</div>
+                    <div class="pill">Node parameters</div>
+                    <div class="pill">Run / stop</div>
+                    <div class="pill">Pop-out</div>
+                </div>
+            </div>
+            <div class="control-layout">
+                <article class="card params-card">
+                    <div class="params-header">
+                        <div>
+                            <h3>Node Parameters</h3>
+                            <p class="sub" style="font-size:14px; max-width:none; margin-top:8px;">Edit the workflow node that produced the current result without leaving MFV.</p>
+                        </div>
+                        <div class="tool active">Sidebar open</div>
+                    </div>
+                    <div class="params-actions">
+                        <div class="tool active">Run</div>
+                        <div class="tool danger">Stop</div>
+                        <div class="tool">Graph Map</div>
+                        <div class="tool">Pop Out</div>
+                    </div>
+                    <div class="params-grid">
+                        <div class="param"><div class="k">positive</div><div class="v">cinematic portrait, glass reflections, moody contrast</div></div>
+                        <div class="param"><div class="k">seed</div><div class="v">472198120</div></div>
+                        <div class="param"><div class="k">steps</div><div class="v">24</div></div>
+                        <div class="param"><div class="k">cfg</div><div class="v">6.5</div></div>
+                        <div class="param"><div class="k">sampler</div><div class="v">dpmpp_2m_sde_gpu</div></div>
+                        <div class="param"><div class="k">scheduler</div><div class="v">karras</div></div>
+                    </div>
+                    <div class="dock-grid">
+                        <div class="dock"><strong>Right</strong><br><span class="sub" style="font-size:13px; margin-top:6px; display:block; max-width:none;">Default sidebar</span></div>
+                        <div class="dock"><strong>Left</strong><br><span class="sub" style="font-size:13px; margin-top:6px; display:block; max-width:none;">Canvas-friendly</span></div>
+                        <div class="dock"><strong>Bottom</strong><br><span class="sub" style="font-size:13px; margin-top:6px; display:block; max-width:none;">Wide review mode</span></div>
+                    </div>
+                </article>
+                <article class="card card-pad">
+                    <h3>Format and guides overlays</h3>
+                    <div class="window-demo" style="margin-top: 16px; min-height: 260px;">
+                        <div class="window-main" style="position:absolute; left:16px; top:16px; width:calc(100% - 32px); height:calc(100% - 32px);">
+                            <div class="window-title"><span>Viewer overlays</span><span>Format 2.39:1 · Rule of thirds · Safe area</span></div>
+                            <div class="window-body"></div>
+                            <div class="guides" style="inset:52px 14px 14px 14px;"></div>
+                        </div>
+                    </div>
+                    <div class="legend">
+                        <div class="legend-item"><strong>Format</strong><br>Use framing overlays to preview the target crop or presentation ratio.</div>
+                        <div class="legend-item"><strong>Guides</strong><br>Turn on thirds and safe-area guides when you want composition help during comparison.</div>
+                    </div>
+                    <h3 style="margin-top: 22px;">Pop-out workflow</h3>
+                    <div class="window-demo" style="margin-top: 16px;">
+                        <div class="window-main">
+                            <div class="window-title"><span>Main ComfyUI window</span><span>MFV docked</span></div>
+                            <div class="window-body"></div>
+                        </div>
+                        <div class="window-pop">
+                            <div class="window-title"><span>Second-screen pop-out</span><span>MFV detached</span></div>
+                            <div class="window-body"></div>
+                        </div>
+                    </div>
+                    <div class="mini-note" style="margin-top: 18px;">Run is for fast iteration from the viewer. Stop is for aborting the current generation. Pop-out is for moving MFV to a second screen or keeping it detached while ComfyUI stays on the main canvas.</div>
+                </article>
+            </div>
+        </section>
+    </div>
+    <script>
+        (function () {
+            var params = new URLSearchParams(window.location.search);
+            var shot = params.get("shot");
+            if (!shot) {
+                return;
+            }
+
+            var targetId = shot.indexOf("shot-") === 0 ? shot : "shot-" + shot;
+            var sections = document.querySelectorAll(".shot");
+            var hasMatch = false;
+
+            sections.forEach(function (section) {
+                if (section.id === targetId) {
+                    hasMatch = true;
+                    return;
+                }
+                section.style.display = "none";
+            });
+
+            if (!hasMatch) {
+                sections.forEach(function (section) {
+                    section.style.display = "";
+                });
+                return;
+            }
+
+            document.body.style.padding = "24px";
+            var page = document.querySelector(".page");
+            if (page) {
+                page.style.width = "1440px";
+            }
+        }());
+    </script>
+</body>
+</html>

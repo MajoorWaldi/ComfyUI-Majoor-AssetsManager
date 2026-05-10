@@ -1,0 +1,583 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Graph Map Demo</title>
+    <style>
+        :root {
+            color-scheme: dark;
+            --bg: #0b1116;
+            --panel: rgba(15, 24, 31, 0.9);
+            --panel-2: rgba(21, 33, 42, 0.92);
+            --line: rgba(135, 174, 190, 0.22);
+            --text: #eef6fb;
+            --muted: #9cb3c0;
+            --accent: #62d0a9;
+            --accent-2: #8fd9ff;
+            --warn: #ffd27a;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+            color: var(--text);
+            background:
+                radial-gradient(circle at top left, rgba(98, 208, 169, 0.18), transparent 32%),
+                radial-gradient(circle at right 10% top 20%, rgba(143, 217, 255, 0.16), transparent 28%),
+                linear-gradient(180deg, #0d151c 0%, #091015 100%);
+            padding: 32px;
+        }
+
+        .page {
+            width: 1440px;
+            margin: 0 auto;
+            display: grid;
+            gap: 28px;
+        }
+
+        .shot {
+            position: relative;
+            overflow: hidden;
+            border: 1px solid var(--line);
+            border-radius: 28px;
+            background: linear-gradient(180deg, rgba(16, 24, 32, 0.96), rgba(9, 15, 20, 0.98));
+            box-shadow: 0 22px 90px rgba(0, 0, 0, 0.45);
+        }
+
+        .hero {
+            min-height: 820px;
+            padding: 28px;
+        }
+
+        .focus {
+            min-height: 770px;
+            padding: 28px;
+        }
+
+        .chrome {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 22px;
+        }
+
+        .title-block {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .eyebrow {
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            color: var(--accent);
+        }
+
+        h1,
+        h2,
+        p {
+            margin: 0;
+        }
+
+        h1,
+        h2 {
+            font-weight: 700;
+            letter-spacing: -0.03em;
+        }
+
+        h1 {
+            font-size: 38px;
+        }
+
+        h2 {
+            font-size: 34px;
+        }
+
+        .subtitle {
+            font-size: 17px;
+            color: var(--muted);
+            max-width: 900px;
+            line-height: 1.5;
+        }
+
+        .toolbar {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 14px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.03);
+            color: var(--muted);
+            font-size: 14px;
+        }
+
+        .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 999px;
+            background: var(--accent);
+            box-shadow: 0 0 0 5px rgba(98, 208, 169, 0.16);
+        }
+
+        .hero-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1.45fr) minmax(360px, 0.7fr);
+            gap: 22px;
+        }
+
+        .focus-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.85fr);
+            gap: 22px;
+        }
+
+        .card {
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 24px;
+            background: linear-gradient(180deg, var(--panel), var(--panel-2));
+            backdrop-filter: blur(14px);
+        }
+
+        .canvas-card {
+            padding: 18px;
+        }
+
+        .canvas-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+
+        .canvas-meta {
+            font-size: 13px;
+            color: var(--muted);
+        }
+
+        .chip-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .chip {
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .chip strong {
+            color: var(--text);
+            font-weight: 600;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            border-radius: 18px;
+            background: linear-gradient(180deg, rgba(8, 13, 17, 0.9), rgba(5, 9, 12, 0.96));
+            border: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .side-stack {
+            display: grid;
+            gap: 18px;
+        }
+
+        .media-card {
+            padding: 18px;
+        }
+
+        .preview-surface {
+            position: relative;
+            min-height: 250px;
+            overflow: hidden;
+            border-radius: 18px;
+            background:
+                radial-gradient(circle at 18% 28%, rgba(255, 210, 122, 0.34), transparent 26%),
+                radial-gradient(circle at 72% 36%, rgba(98, 208, 169, 0.28), transparent 28%),
+                linear-gradient(135deg, #203645, #101a22 55%, #152733);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .preview-badge {
+            position: absolute;
+            top: 16px;
+            left: 16px;
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: rgba(10, 16, 22, 0.72);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            font-size: 13px;
+            color: var(--text);
+        }
+
+        .play-button {
+            position: absolute;
+            inset: 0;
+            margin: auto;
+            width: 88px;
+            height: 88px;
+            border-radius: 999px;
+            background: rgba(8, 14, 18, 0.66);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: grid;
+            place-items: center;
+            box-shadow: 0 18px 50px rgba(0, 0, 0, 0.34);
+        }
+
+        .play-button::before {
+            content: "";
+            width: 0;
+            height: 0;
+            border-top: 15px solid transparent;
+            border-bottom: 15px solid transparent;
+            border-left: 25px solid white;
+            margin-left: 8px;
+        }
+
+        .timeline {
+            position: absolute;
+            left: 18px;
+            right: 18px;
+            bottom: 18px;
+            display: grid;
+            gap: 10px;
+        }
+
+        .timeline-bar {
+            height: 10px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.12);
+            overflow: hidden;
+        }
+
+        .timeline-bar > span {
+            display: block;
+            width: 62%;
+            height: 100%;
+            border-radius: inherit;
+            background: linear-gradient(90deg, var(--accent), var(--accent-2));
+        }
+
+        .timeline-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            color: var(--muted);
+        }
+
+        .detail-card {
+            padding: 20px;
+        }
+
+        .detail-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 18px;
+        }
+
+        .detail-title {
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: -0.03em;
+        }
+
+        .detail-meta {
+            font-size: 14px;
+            color: var(--muted);
+            margin-top: 6px;
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 18px;
+        }
+
+        .action {
+            padding: 10px 14px;
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            font-size: 13px;
+            color: var(--text);
+        }
+
+        .param-list {
+            display: grid;
+            gap: 10px;
+        }
+
+        .param {
+            display: grid;
+            grid-template-columns: 128px minmax(0, 1fr);
+            gap: 12px;
+            align-items: center;
+            padding: 12px 14px;
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .param-key {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--warn);
+            letter-spacing: 0.01em;
+        }
+
+        .param-value {
+            min-width: 0;
+            font-size: 14px;
+            color: var(--text);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .callout {
+            margin-top: 20px;
+            padding: 16px 18px;
+            border-radius: 18px;
+            background: rgba(98, 208, 169, 0.08);
+            border: 1px solid rgba(98, 208, 169, 0.18);
+            color: #d8f6eb;
+            line-height: 1.5;
+            font-size: 15px;
+        }
+
+        .legend {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            margin-top: 18px;
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .legend span::before {
+            content: "";
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 999px;
+            margin-right: 8px;
+            vertical-align: -1px;
+            background: var(--accent-2);
+        }
+
+        .legend .subgraph::before {
+            background: var(--warn);
+        }
+
+        .legend .selection::before {
+            background: #ffe082;
+        }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <section class="shot hero" id="shot-overview">
+            <div class="chrome">
+                <div class="title-block">
+                    <div class="eyebrow">Majoor Floating Viewer</div>
+                    <h1>Graph Map keeps the workflow readable at a glance</h1>
+                    <p class="subtitle">Open Graph Map from the Floating Viewer to inspect the saved workflow, spot subgraphs by their real names, and jump straight to the node that produced the asset.</p>
+                </div>
+                <div class="toolbar"><span class="dot"></span> Graph Map mode · Labels on · Workflow-aware preview</div>
+            </div>
+            <div class="hero-grid">
+                <article class="card canvas-card">
+                    <div class="canvas-header">
+                        <div>
+                            <h2>Whole graph overview</h2>
+                            <div class="canvas-meta">Canvas pan + zoom, readable node labels, highlighted selection</div>
+                        </div>
+                        <div class="chip-row">
+                            <div class="chip"><strong>42</strong> nodes</div>
+                            <div class="chip"><strong>Selected</strong> Face Detailer</div>
+                            <div class="chip"><strong>Workflow</strong> img2video cleanup</div>
+                        </div>
+                    </div>
+                    <canvas id="graph-overview" width="1040" height="520"></canvas>
+                    <div class="legend">
+                        <span>Loader / sampler / save nodes</span>
+                        <span class="subgraph">Subgraph container with real name</span>
+                        <span class="selection">Selected node outline</span>
+                    </div>
+                </article>
+                <div class="side-stack">
+                    <article class="card media-card">
+                        <div class="canvas-header">
+                            <div>
+                                <h2>Asset preview stays visible</h2>
+                                <div class="canvas-meta">The small preview keeps the current video frame while Graph Map live-sync refreshes.</div>
+                            </div>
+                        </div>
+                        <div class="preview-surface">
+                            <div class="preview-badge">Preview · output / clip_0028.mp4</div>
+                            <div class="play-button" aria-hidden="true"></div>
+                            <div class="timeline">
+                                <div class="timeline-bar"><span></span></div>
+                                <div class="timeline-meta"><span>00:12 / 00:19</span><span>24 fps · 468 frames</span></div>
+                            </div>
+                        </div>
+                    </article>
+                    <article class="card detail-card" id="hero-node-detail">
+                        <div class="detail-header">
+                            <div>
+                                <div class="detail-title">Face Detailer</div>
+                                <div class="detail-meta">#34 · Subgraph · selected via Graph Map</div>
+                            </div>
+                        </div>
+                        <div class="actions">
+                            <div class="action">Copy node</div>
+                            <div class="action">Import node</div>
+                            <div class="action">Transfer params</div>
+                        </div>
+                        <div class="param-list">
+                            <div class="param"><div class="param-key">steps</div><div class="param-value">24</div></div>
+                            <div class="param"><div class="param-key">cfg</div><div class="param-value">6.5</div></div>
+                            <div class="param"><div class="param-key">sampler</div><div class="param-value">dpmpp_2m_sde_gpu</div></div>
+                            <div class="param"><div class="param-key">strength</div><div class="param-value">0.35</div></div>
+                        </div>
+                        <div class="callout">Graph Map now shows real subgraph names instead of raw UUID or hash identifiers, so the minimap and the node panel stay readable in complex workflows.</div>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <section class="shot focus" id="shot-focus">
+            <div class="chrome">
+                <div class="title-block">
+                    <div class="eyebrow">Selected Node</div>
+                    <h2>Inspect one node without leaving the viewer</h2>
+                    <p class="subtitle">Graph Map pairs the canvas selection with a compact action panel: copy the node JSON, import the node, transfer parameters, or grab individual values from the parameter list.</p>
+                </div>
+                <div class="toolbar"><span class="dot"></span> Node details · Copy-ready params · Import actions</div>
+            </div>
+            <div class="focus-grid">
+                <article class="card canvas-card">
+                    <div class="canvas-header">
+                        <div>
+                            <h2>Focused graph slice</h2>
+                            <div class="canvas-meta">Selected node highlighted inside the saved workflow context</div>
+                        </div>
+                        <div class="chip-row">
+                            <div class="chip"><strong>#34</strong> selected</div>
+                            <div class="chip"><strong>Subgraph</strong> cleanup pass</div>
+                        </div>
+                    </div>
+                    <canvas id="graph-focus" width="920" height="450"></canvas>
+                </article>
+                <article class="card detail-card">
+                    <div class="detail-header">
+                        <div>
+                            <div class="detail-title">Face Detailer</div>
+                            <div class="detail-meta">#34 · Subgraph</div>
+                        </div>
+                    </div>
+                    <div class="actions">
+                        <div class="action">Copy node</div>
+                        <div class="action">Import node</div>
+                        <div class="action">Import workflow</div>
+                        <div class="action">Transfer params</div>
+                    </div>
+                    <div class="param-list">
+                        <div class="param"><div class="param-key">model</div><div class="param-value">Juggernaut-XL-v9.safetensors</div></div>
+                        <div class="param"><div class="param-key">steps</div><div class="param-value">24</div></div>
+                        <div class="param"><div class="param-key">cfg</div><div class="param-value">6.5</div></div>
+                        <div class="param"><div class="param-key">sampler</div><div class="param-value">dpmpp_2m_sde_gpu</div></div>
+                        <div class="param"><div class="param-key">strength</div><div class="param-value">0.35</div></div>
+                        <div class="param"><div class="param-key">mask_blur</div><div class="param-value">12</div></div>
+                        <div class="param"><div class="param-key">positive</div><div class="param-value">cinematic portrait, shallow depth of field, refined skin detail</div></div>
+                    </div>
+                    <div class="callout">Use the Graph Map detail panel as a fast reference while comparing outputs: the selected node stays in context and the most useful parameters are immediately copyable.</div>
+                </article>
+            </div>
+        </section>
+    </div>
+
+    <script type="module">
+        import { drawWorkflowMinimap } from "../js/components/sidebar/utils/minimap.js";
+
+        const workflow = {
+            nodes: [
+                { id: 10, type: "LoadVideo", title: "Load Video", pos: [60, 180], size: [190, 88], inputs: [], outputs: [{}, {}] },
+                { id: 11, type: "VHS_LoadImageSequence", title: "Load Frames", pos: [70, 360], size: [190, 86], inputs: [], outputs: [{}] },
+                { id: 20, type: "WanVideoLoader", title: "Motion Model", pos: [340, 110], size: [210, 86], inputs: [], outputs: [{}] },
+                { id: 21, type: "CLIPTextEncode", title: "Positive Prompt", pos: [330, 260], size: [230, 108], inputs: [{}, {}], outputs: [{}] },
+                { id: 22, type: "CLIPTextEncode", title: "Negative Prompt", pos: [330, 410], size: [230, 102], inputs: [{}, {}], outputs: [{}] },
+                {
+                    id: 34,
+                    type: "12345678-1234-1234-1234-123456789abc",
+                    title: "Face Detailer",
+                    properties: { subgraph_name: "Face Detailer" },
+                    pos: [660, 190],
+                    size: [240, 144],
+                    inputs: [{}, {}, {}, {}],
+                    outputs: [{}, {}],
+                    widgets_values: [24, 6.5, "dpmpp_2m_sde_gpu"],
+                },
+                { id: 35, type: "ColorMatch", title: "Color Match", pos: [640, 392], size: [220, 92], inputs: [{}, {}], outputs: [{}] },
+                { id: 40, type: "KSampler", title: "KSampler", pos: [980, 212], size: [240, 118], inputs: [{}, {}, {}, {}, {}], outputs: [{}] },
+                { id: 50, type: "PreviewImage", title: "Preview", pos: [1260, 156], size: [180, 84], inputs: [{}], outputs: [{}] },
+                { id: 51, type: "SaveVideo", title: "Save Video", pos: [1260, 322], size: [200, 98], inputs: [{}, {}, {}], outputs: [] },
+            ],
+            links: [
+                [1, 10, 0, 34, 0],
+                [2, 11, 0, 34, 1],
+                [3, 20, 0, 40, 0],
+                [4, 21, 0, 34, 2],
+                [5, 22, 0, 34, 3],
+                [6, 34, 0, 40, 1],
+                [7, 35, 0, 40, 2],
+                [8, 40, 0, 50, 0],
+                [9, 40, 0, 51, 0],
+            ],
+            groups: [
+                { title: "Input preparation", bounding: [24, 70, 590, 480], color: "#21404d" },
+                { title: "Refinement", bounding: [604, 140, 344, 390], color: "#4a3b25" },
+                { title: "Output", bounding: [1218, 116, 282, 360], color: "#203a31" },
+            ],
+        };
+
+        function render(canvas, view) {
+            const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+            const width = canvas.clientWidth || canvas.width;
+            const height = canvas.clientHeight || canvas.height;
+            canvas.width = Math.floor(width * dpr);
+            canvas.height = Math.floor(height * dpr);
+            const ctx = canvas.getContext("2d");
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            drawWorkflowMinimap(canvas, workflow, {
+                showNodeLabels: true,
+                showViewport: false,
+                view,
+            });
+        }
+
+        const overviewCanvas = document.getElementById("graph-overview");
+        const focusCanvas = document.getElementById("graph-focus");
+        render(overviewCanvas, { hoveredNodeId: "34", zoom: 1.16, centerX: 760, centerY: 292 });
+        render(focusCanvas, { hoveredNodeId: "34", zoom: 1.72, centerX: 830, centerY: 292 });
+    </script>
+</body>
+</html>
