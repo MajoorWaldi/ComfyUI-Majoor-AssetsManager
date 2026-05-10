@@ -32,6 +32,7 @@ import { confirmDeletion } from "../../utils/deleteGuard.js";
 import { showAddToCollectionMenu } from "../collections/contextmenu/addToCollectionMenu.js";
 import { removeAssetsFromGrid } from "../grid/gridApi.js";
 import { getShortcutDisplay } from "../grid/GridKeyboard.js";
+import { floatingViewerManager } from "../viewer/floatingViewerManager.js";
 import {
     closeAllGridContextMenus,
     openGridContextMenu,
@@ -712,6 +713,17 @@ function _buildAssetItems({
                 const index = findIndexById(allAssets, asset?.id);
                 if (!allAssets.length || index < 0) return;
                 openInViewer({ assets: allAssets, index: Math.max(0, index) });
+            } catch (e) {
+                console.debug?.(e);
+            }
+        }),
+        createItem("Open Graph Map", "pi pi-sitemap", null, async () => {
+            try {
+                await floatingViewerManager.openAssets({
+                    assets: [asset],
+                    index: 0,
+                    mode: "graph",
+                });
             } catch (e) {
                 console.debug?.(e);
             }

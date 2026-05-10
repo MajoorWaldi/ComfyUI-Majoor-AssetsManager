@@ -5,6 +5,8 @@
 
 ## Overview
 
+For a dedicated Majoor Floating Viewer walkthrough with focused screenshots, see [MFV_GUIDE.md](MFV_GUIDE.md).
+
 The Majoor Assets Manager provides **two viewer experiences**:
 
 ### 1. Majoor Floating Viewer (MFV) — NEW! 🎉

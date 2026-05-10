@@ -1,6 +1,8 @@
 const MINIMAP_PADDING = 6;
 const MINIMAP_ZOOM_MIN = 1;
 const MINIMAP_ZOOM_MAX = 8;
+import { getWorkflowNodeDisplayName } from "../../../features/viewer/workflowGraphMap/workflowNodeLabeling.js";
+
 const TYPE_PALETTE = [
     ["sampler", "#8e5cff"],
     ["ksampler", "#8e5cff"],
@@ -233,9 +235,7 @@ export function drawWorkflowMinimap(canvas, workflow, options = null) {
                   ? Object.keys(n.inputs).length
                   : 0,
             outputCount: Array.isArray(n?.outputs) ? n.outputs.length : 0,
-            label: String(n?.title || n?.type || n?.comfyClass || n?.class_type || nodeId || "")
-                .replace(/\s+/g, " ")
-                .trim(),
+            label: getWorkflowNodeDisplayName(n).replace(/\s+/g, " ").trim(),
         });
         if (nodeId) nodesById.set(nodeId, rects[rects.length - 1]);
     }

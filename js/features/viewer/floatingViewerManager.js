@@ -52,7 +52,22 @@ async function _loadNodeStreamController() {
 }
 
 // Inline MFV mode constants (avoids eager import of FloatingViewer.js).
-const MFV_MODES = Object.freeze({ SIMPLE: "simple", AB: "ab", SIDE: "side", GRID: "grid" });
+const MFV_MODES = Object.freeze({
+    SIMPLE: "simple",
+    AB: "ab",
+    SIDE: "side",
+    GRID: "grid",
+    GRAPH: "graph",
+});
+
+function _normalizeRequestedMode(mode) {
+    const normalized = String(mode || "")
+        .trim()
+        .toLowerCase();
+    if (normalized === "sidebyside") return MFV_MODES.SIDE;
+    if (Object.values(MFV_MODES).includes(normalized)) return normalized;
+    return "";
+}
 
 // ── Module state ──────────────────────────────────────────────────────────────
 
@@ -477,6 +492,41 @@ function _unbindNodeSelectionListener() {
 // ── Public API ────────────────────────────────────────────────────────────────
 
 export const floatingViewerManager = {
+    /**
+     * Open the MFV with explicit assets instead of syncing from the current grid selection.
+     * Useful for context-menu actions where the right-clicked asset is the target.
+     */
+    async openAssets({ assets = [], asset = null, index = 0, mode = "" } = {}) {
+        const list = Array.isArray(assets) ? assets.filter(Boolean) : asset ? [asset] : [];
+        if (!list.length) return false;
+
+        const inst = await _getInstance();
+        const wasVisible = Boolean(inst.isVisible);
+        const safeIndex = Math.max(0, Math.min(Number(index) || 0, list.length - 1));
+        const requestedMode = _normalizeRequestedMode(mode);
+
+        if (requestedMode) inst.setMode(requestedMode);
+        inst.show();
+        _syncViewerControls(inst);
+        _bindSelectionListener();
+        _bindNodeSelectionListener();
+
+        const currentMode = inst._mode;
+        if (currentMode === MFV_MODES.GRID && list.length >= 3) {
+            inst.loadMediaQuad(list[0], list[1], list[2], list[3] || null);
+        } else if (
+            (currentMode === MFV_MODES.AB || currentMode === MFV_MODES.SIDE) &&
+            list.length >= 2
+        ) {
+            inst.loadMediaPair(list[0], list[1]);
+        } else {
+            inst.loadMediaA(list[safeIndex], { autoMode: false });
+        }
+
+        if (!wasVisible) _emitVisibilityChanged(true);
+        return true;
+    },
+
     async open() {
         const inst = await _getInstance();
         inst.show();

@@ -10,7 +10,7 @@ export function getDisplayGroupKey(asset) {
 }
 
 export function isRenderableAsset(asset) {
-    return !!asset && asset._mjrDupHidden !== true;
+    return !!asset;
 }
 
 export function buildDisplayAssets(assets) {

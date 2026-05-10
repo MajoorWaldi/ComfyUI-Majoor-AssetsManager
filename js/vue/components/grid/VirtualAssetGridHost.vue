@@ -834,12 +834,9 @@ function syncRenderedDuplicateCards(filenameKey) {
     primaryAsset._mjrDupCount = primaryAsset._mjrDupMembers.length;
     primaryAsset._mjrNameCollision = false;
 
-    for (let index = 1; index < renderedCards.length; index += 1) {
-        renderedCards[index].dataset.mjrDupHidden = "true";
-        if (renderedCards[index]._mjrAsset) {
-            renderedCards[index]._mjrAsset._mjrDupHidden = true;
-        }
-    }
+    // Vue owns duplicate collapsing through `displayAssets`/`renderableAssets`.
+    // Hiding already-mounted flex children here leaves holes in virtual rows
+    // until the asset list recomputes, and can persist with recycled rows.
 }
 
 function syncAllRenderedDuplicateCards() {
@@ -1437,7 +1434,7 @@ defineExpose({
                         role="button"
                         tabindex="0"
                         draggable="true"
-                        :style="[cardStyle(), asset._mjrDupHidden ? { display: 'none' } : null]"
+                        :style="cardStyle()"
                         :class="{
                             'is-selected': isSelected(asset),
                             'mjr-live-placeholder': isLivePlaceholderAsset(asset),
@@ -1493,7 +1490,7 @@ defineExpose({
                         role="button"
                         tabindex="0"
                         draggable="true"
-                        :style="[cardStyle(), asset._mjrDupHidden ? { display: 'none' } : null]"
+                        :style="cardStyle()"
                         :class="{
                             'is-selected': isSelected(asset),
                             'mjr-live-placeholder': isLivePlaceholderAsset(asset),

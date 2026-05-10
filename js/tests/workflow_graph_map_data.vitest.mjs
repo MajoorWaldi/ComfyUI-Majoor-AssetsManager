@@ -3,9 +3,12 @@
 import { describe, expect, it } from "vitest";
 
 import {
+    getNodeDisplayName,
     getNodeInputSlotNames,
     getNodeParamEntries,
+    getNodeTypeLabel,
     getNodeWidgetValueEntries,
+    resolveAssetWorkflow,
 } from "../features/viewer/workflowGraphMap/workflowGraphMapData.js";
 
 describe("workflow graph map data", () => {
@@ -77,5 +80,44 @@ describe("workflow graph map data", () => {
             { label: "mode", value: "fast", index: 0 },
             { label: "amount", value: 12, index: 1 },
         ]);
+    });
+
+    it("uses readable names for opaque subgraph node types", () => {
+        const workflow = resolveAssetWorkflow({
+            workflow: {
+                nodes: [
+                    {
+                        id: 20,
+                        type: "12345678-1234-1234-1234-123456789abc",
+                        properties: {},
+                    },
+                ],
+                definitions: {
+                    subgraphs: [
+                        {
+                            id: "12345678-1234-1234-1234-123456789abc",
+                            name: "Face Detailer",
+                            nodes: [],
+                        },
+                    ],
+                },
+            },
+        });
+
+        const node = workflow.nodes[0];
+        expect(node.properties.subgraph_name).toBe("Face Detailer");
+        expect(getNodeDisplayName(node)).toBe("Face Detailer");
+        expect(getNodeTypeLabel(node)).toBe("Subgraph");
+    });
+
+    it("falls back to node title when the type is an opaque hash", () => {
+        const node = {
+            id: 7,
+            type: "abcdefabcdefabcdefabcdefabcdefabcdef",
+            title: "Regional Prompt",
+        };
+
+        expect(getNodeDisplayName(node)).toBe("Regional Prompt");
+        expect(getNodeTypeLabel(node)).toBe("Subgraph");
     });
 });

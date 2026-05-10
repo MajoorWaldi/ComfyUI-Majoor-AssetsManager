@@ -4,6 +4,13 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+### 📚 Documentation
+- **Graph Map Guide**: Added a dedicated Graph Map documentation page with screenshots, workflow map usage notes, and a focused explanation of node detail actions.
+- **README Presentation**: Added Graph Map presentation content and screenshot references to the main README.
+
+### 💬 Message Center
+- **Graph Map Announcement**: Added a built-in Message Center entry linking directly to the Graph Map guide.
+
 ---
 
 ## [2.4.7] - 2026-05-01

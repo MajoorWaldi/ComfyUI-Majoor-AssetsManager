@@ -655,6 +655,14 @@ const DICTIONARY = {
         "msg.tip.body.majoorImageOpsNodePack":
             "Discover Majoor ImageOps, a ComfyUI node pack with practical image operation nodes for your workflows.",
         "label.openNodePack": "Open Node Pack",
+        "msg.tip.title.graphMapGuide": "Tip — Graph Map Guide",
+        "msg.tip.body.graphMapGuide":
+            "Graph Map now has its own documentation page with screenshots and a quick walkthrough. Open the guide to see how to read the workflow map, inspect selected nodes, and use the node detail actions.",
+        "label.graphMapGuide": "Graph Map Guide",
+        "msg.tip.title.mfvGuide": "Tip — MFV Guide",
+        "msg.tip.body.mfvGuide":
+            "MFV now has its own illustrated guide covering compare modes, A/B/C/D pins, streams, node parameters, run/stop, pop-out, and how Graph Map complements the viewer workflow.",
+        "label.mfvGuide": "MFV Guide",
         "label.changelog": "Changelog",
         "label.settingsGuide": "Settings Guide",
         "msg.tip.title.mfvLivePreviewDefaults": "Tip — Floating Viewer Auto-Open",
@@ -1216,6 +1224,14 @@ const DICTIONARY = {
         "msg.tip.body.majoorImageOpsNodePack":
             "Decouvrez Majoor ImageOps, un node pack ComfyUI avec des nodes pratiques pour les operations d'image dans vos workflows.",
         "label.openNodePack": "Ouvrir le node pack",
+        "msg.tip.title.graphMapGuide": "Conseil — Guide Graph Map",
+        "msg.tip.body.graphMapGuide":
+            "Graph Map dispose maintenant de sa propre page de documentation avec captures d'ecran et explication rapide. Ouvrez le guide pour voir comment lire la carte du workflow, inspecter les noeuds selectionnes et utiliser les actions du panneau de detail.",
+        "label.graphMapGuide": "Guide Graph Map",
+        "msg.tip.title.mfvGuide": "Conseil — Guide MFV",
+        "msg.tip.body.mfvGuide":
+            "MFV dispose maintenant de son propre guide illustre avec les modes de comparaison, les pins A/B/C/D, les streams, les Node Parameters, Run/Stop, le pop-out et la facon dont Graph Map complete naturellement le workflow du viewer.",
+        "label.mfvGuide": "Guide MFV",
         "label.changelog": "Changelog",
         "label.settingsGuide": "Guide des param\u00e8tres",
         "msg.tip.title.mfvLivePreviewDefaults": "Conseil — Ouverture automatique du Viewer",
