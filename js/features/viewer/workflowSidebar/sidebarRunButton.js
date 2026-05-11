@@ -348,6 +348,54 @@ function _walkAllNodes(graph, callback, visited = new Set()) {
     }
 }
 
+function _cloneQueuedWidgetValue(value) {
+    if (value == null || typeof value !== "object") return value;
+    try {
+        return typeof structuredClone === "function"
+            ? structuredClone(value)
+            : JSON.parse(JSON.stringify(value));
+    } catch {
+        return value;
+    }
+}
+
+function _captureQueuedWidgetSnapshots(graph) {
+    const snapshots = [];
+    _walkAllNodes(graph, (node) => {
+        for (const widget of node.widgets ?? []) {
+            snapshots.push({
+                widget,
+                value: _cloneQueuedWidgetValue(widget?.value),
+            });
+        }
+    });
+    return snapshots;
+}
+
+function _restoreQueuedWidgetSnapshots(app, snapshots) {
+    for (const entry of Array.isArray(snapshots) ? snapshots : []) {
+        const widget = entry?.widget;
+        if (!widget || typeof widget !== "object") continue;
+        const restoredValue = _cloneQueuedWidgetValue(entry?.value);
+        try {
+            widget.value = restoredValue;
+        } catch (e) {
+            console.debug?.(e);
+            continue;
+        }
+        try {
+            widget.callback?.(restoredValue);
+        } catch (e) {
+            console.debug?.(e);
+        }
+    }
+    try {
+        app?.canvas?.draw?.(true, true);
+    } catch (e) {
+        console.debug?.(e);
+    }
+}
+
 function _nodeLooksLikeApiNode(node) {
     const candidates = [node?.type, node?.comfyClass, node?.class_type, node?.constructor?.type];
     return candidates.some((value) => /Api$/i.test(String(value || "").trim()));
@@ -403,62 +451,71 @@ async function queueCurrentPrompt() {
         return { tracked: true };
     }
 
+    let widgetSnapshots = null;
+
     // Paths 1-3 and 5: mirror ComfyUI's native beforeQueued cycle.
     // ComfyUI's queuePrompt walks ALL nodes (including inner subgraph nodes) and
     // calls widget.beforeQueued() before serialising the graph. This is what
     // triggers control_after_generate (randomize / increment / decrement) to
     // update the seed widget value before graphToPrompt reads it.
-    _walkAllNodes(rootGraph, (node) => {
-        for (const w of node.widgets ?? []) {
-            w.beforeQueued?.({ isPartialExecution: false });
+    try {
+        widgetSnapshots = _captureQueuedWidgetSnapshots(rootGraph);
+        _walkAllNodes(rootGraph, (node) => {
+            for (const w of node.widgets ?? []) {
+                w.beforeQueued?.({ isPartialExecution: false });
+            }
+        });
+
+        const promptData =
+            typeof app.graphToPrompt === "function" ? await app.graphToPrompt() : null;
+        if (!promptData?.output) throw new Error("graphToPrompt returned empty output");
+
+        let result;
+
+        if (api && typeof api.queuePrompt === "function") {
+            // Prefer the live app.api reference — matches the native Queue button's
+            // auth context and avoids stale cached references after session renewal.
+            await api.queuePrompt(0, enrichPromptDataForMfv(promptData));
+            result = { tracked: true };
+        } else if (api && typeof api.fetchApi === "function") {
+            const resp = await api.fetchApi("/prompt", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(
+                    buildPromptRequestBody(promptData, {
+                        clientId: resolveClientId(api, app),
+                    }),
+                ),
+            });
+            if (!resp?.ok) throw new Error(`POST /prompt failed (${resp?.status})`);
+            result = { tracked: true };
+        } else {
+            const resp = await fetch("/prompt", {
+                method: "POST",
+                credentials: "include",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(
+                    buildPromptRequestBody(promptData, {
+                        clientId: resolveClientId(null, app),
+                    }),
+                ),
+            });
+            if (!resp.ok) throw new Error(`POST /prompt failed (${resp.status})`);
+            result = { tracked: false };
         }
-    });
 
-    const promptData = typeof app.graphToPrompt === "function" ? await app.graphToPrompt() : null;
-    if (!promptData?.output) throw new Error("graphToPrompt returned empty output");
-
-    let result;
-
-    if (api && typeof api.queuePrompt === "function") {
-        // Prefer the live app.api reference — matches the native Queue button's
-        // auth context and avoids stale cached references after session renewal.
-        await api.queuePrompt(0, enrichPromptDataForMfv(promptData));
-        result = { tracked: true };
-    } else if (api && typeof api.fetchApi === "function") {
-        const resp = await api.fetchApi("/prompt", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(
-                buildPromptRequestBody(promptData, {
-                    clientId: resolveClientId(api, app),
-                }),
-            ),
+        // Mirror ComfyUI's afterQueued cycle and redraw the canvas so that widget
+        // displays (e.g. the new seed value) reflect the post-queue state immediately.
+        _walkAllNodes(rootGraph, (node) => {
+            for (const w of node.widgets ?? []) {
+                w.afterQueued?.({ isPartialExecution: false });
+            }
         });
-        if (!resp?.ok) throw new Error(`POST /prompt failed (${resp?.status})`);
-        result = { tracked: true };
-    } else {
-        const resp = await fetch("/prompt", {
-            method: "POST",
-            credentials: "include",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(
-                buildPromptRequestBody(promptData, {
-                    clientId: resolveClientId(null, app),
-                }),
-            ),
-        });
-        if (!resp.ok) throw new Error(`POST /prompt failed (${resp.status})`);
-        result = { tracked: false };
+        app.canvas?.draw?.(true, true);
+
+        return result;
+    } catch (error) {
+        _restoreQueuedWidgetSnapshots(app, widgetSnapshots);
+        throw error;
     }
-
-    // Mirror ComfyUI's afterQueued cycle and redraw the canvas so that widget
-    // displays (e.g. the new seed value) reflect the post-queue state immediately.
-    _walkAllNodes(rootGraph, (node) => {
-        for (const w of node.widgets ?? []) {
-            w.afterQueued?.({ isPartialExecution: false });
-        }
-    });
-    app.canvas?.draw?.(true, true);
-
-    return result;
 }

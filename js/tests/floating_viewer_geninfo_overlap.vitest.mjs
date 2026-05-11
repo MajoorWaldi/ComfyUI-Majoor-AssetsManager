@@ -58,36 +58,45 @@ function makeGenInfoFragment() {
     return frag;
 }
 
-describe("floating viewer geninfo overlap protection", () => {
+describe("floating viewer geninfo sidebar", () => {
     beforeEach(() => {
         document.head.innerHTML = "";
         document.body.innerHTML = "";
         injectThemeCss();
     });
 
-    it("adds the above-player modifier when simple mode renders a video player with geninfo", async () => {
+    it("renders video geninfo in the side panel instead of over the player", async () => {
         const { FloatingViewer } = await import("../features/viewer/FloatingViewer.js");
 
         const viewer = new FloatingViewer();
         viewer._contentEl = document.createElement("div");
+        viewer._genSidebarEl = document.createElement("aside");
         document.body.appendChild(viewer._contentEl);
+        document.body.appendChild(viewer._genSidebarEl);
         viewer._mediaA = {
             filename: "clip.mp4",
             url: "http://example.com/clip.mp4",
+            generation_time_ms: 12_300,
         };
         viewer._buildGenInfoDOM = vi.fn(() => makeGenInfoFragment());
 
         viewer._renderSimple();
+        viewer._renderGenInfoSidebar();
 
         const player = viewer._contentEl.querySelector(".mjr-mfv-player-host");
         const overlay = viewer._contentEl.querySelector(".mjr-mfv-geninfo");
+        const sidebar = viewer._genSidebarEl.querySelector(".mjr-mfv-gen-sidebar-body");
 
         expect(player).toBeTruthy();
-        expect(overlay).toBeTruthy();
-        expect(overlay.classList.contains("mjr-mfv-geninfo--above-player")).toBe(true);
+        expect(overlay).toBeFalsy();
+        expect(sidebar).toBeTruthy();
+        expect(sidebar.textContent).toContain("Prompt: test");
+        expect(viewer._genSidebarEl.querySelector(".mjr-mfv-gen-time-badge")?.textContent).toContain(
+            "12.3s",
+        );
     });
 
-    it("anchors a geninfo overlay to the top when it follows a simple player", () => {
+    it("keeps legacy geninfo overlay nodes hidden by default", () => {
         const wrap = document.createElement("div");
         wrap.className = "mjr-mfv-simple-container";
         wrap.style.position = "relative";
@@ -110,7 +119,28 @@ describe("floating viewer geninfo overlap protection", () => {
 
         const styles = getComputedStyle(overlay);
 
-        expect(styles.top).toBe("8px");
-        expect(styles.bottom).toBe("auto");
+        expect(styles.display).toBe("none");
+    });
+
+    it("only shows asset A geninfo after returning to simple mode", async () => {
+        const { FloatingViewer, MFV_MODES } = await import("../features/viewer/FloatingViewer.js");
+
+        const viewer = new FloatingViewer();
+        viewer._genSidebarEl = document.createElement("aside");
+        viewer._mediaA = { filename: "a.png", metadata_raw: { prompt: "asset A prompt", seed: 1 } };
+        viewer._mediaB = { filename: "b.png", metadata_raw: { prompt: "asset B prompt", seed: 2 } };
+        document.body.appendChild(viewer._genSidebarEl);
+
+        viewer._mode = MFV_MODES.AB;
+        viewer._renderGenInfoSidebar();
+        expect(viewer._genSidebarEl.textContent).toContain("Asset A");
+        expect(viewer._genSidebarEl.textContent).toContain("Asset B");
+
+        viewer._mode = MFV_MODES.SIMPLE;
+        viewer._renderGenInfoSidebar();
+        expect(viewer._genSidebarEl.textContent).toContain("Current Asset");
+        expect(viewer._genSidebarEl.textContent).toContain("asset A prompt");
+        expect(viewer._genSidebarEl.textContent).not.toContain("Asset B");
+        expect(viewer._genSidebarEl.textContent).not.toContain("asset B prompt");
     });
 });

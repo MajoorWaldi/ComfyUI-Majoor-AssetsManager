@@ -26,6 +26,8 @@ vi.mock("../features/viewer/genInfo.js", () => ({
 vi.mock("../api/client.js", () => ({
     getAssetMetadata: vi.fn(async () => ({})),
     getFileMetadataScoped: vi.fn(async () => ({})),
+    getWatcherStatus: vi.fn(async () => ({ ok: true, running: false })),
+    toggleWatcher: vi.fn(async () => ({ ok: true, running: false })),
 }));
 
 vi.mock("../components/sidebar/parsers/geninfoParser.js", () => ({
@@ -41,6 +43,7 @@ vi.mock("../features/viewer/videoSync.js", () => ({
 describe("FloatingViewer", () => {
     beforeEach(() => {
         comfyToastMock.mockReset();
+        installFollowerVideoSyncMock.mockClear();
         globalThis.document = {
             adoptNode: vi.fn((node) => node),
             querySelectorAll: vi.fn(() => []),
@@ -681,6 +684,27 @@ describe("FloatingViewer", () => {
         FloatingViewer.prototype._initCompareSync.call(viewer);
 
         expect(abort).toHaveBeenCalledTimes(1);
+        expect(viewer._compareSyncAC).toBeNull();
+    });
+
+    it("does not sync audio elements in floating compare modes", async () => {
+        const { FloatingViewer, MFV_MODES } = await import("../features/viewer/FloatingViewer.js");
+
+        const audioA = { nodeName: "AUDIO" };
+        const audioB = { nodeName: "AUDIO" };
+        const viewer = {
+            _mode: MFV_MODES.SIDE,
+            _contentEl: {
+                querySelectorAll: vi.fn((selector) => (selector === "video" ? [] : [audioA, audioB])),
+            },
+            _compareSyncAC: null,
+            _destroyCompareSync: FloatingViewer.prototype._destroyCompareSync,
+        };
+
+        FloatingViewer.prototype._initCompareSync.call(viewer);
+
+        expect(viewer._contentEl.querySelectorAll).toHaveBeenCalledWith("video");
+        expect(installFollowerVideoSyncMock).not.toHaveBeenCalled();
         expect(viewer._compareSyncAC).toBeNull();
     });
 

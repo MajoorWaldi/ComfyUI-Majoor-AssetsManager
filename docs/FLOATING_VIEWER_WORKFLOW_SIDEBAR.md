@@ -56,7 +56,7 @@ Everything goes through the existing bridge: `js/app/comfyApiBridge.js`.
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│  Majoor Viewer Lite              [⚙] [▶ Run] [✕]   │  ← header + toolbar
+│  Majoor Floating Viewer         [⚙] [▶ Run] [✕]   │  ← header + toolbar
 ├────────────────────┬────────────────────────────────┤
 │                    │  Workflow Sidebar               │
 │   Viewer Content   │  ┌────────────────────────────┐ │

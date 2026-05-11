@@ -4673,7 +4673,7 @@ assets.refresh();</code></pre>
               <div class="panel-b">
                 <div style="color: var(--muted); font-size: 12px; margin-bottom: 10px;">Additional documentation</div>
                 <div class="section"><h1 id="hotkeys_shortcuts-majoor-assets-manager-hotkeys-keyboard-shortcuts-guide">Majoor Assets Manager - Hotkeys &amp; Keyboard Shortcuts Guide</h1>
-<p><strong>Version</strong>: 2.4.5 <strong>Last Updated</strong>: April 14, 2026</p>
+<p><strong>Version</strong>: 2.4.5 <strong>Last Updated</strong>: May 11, 2026</p>
 <h2 id="hotkeys_shortcuts-overview">Overview</h2>
 <p>This guide covers all active keyboard shortcuts for the Majoor Assets Manager, including the new <strong>Majoor Floating Viewer (MFV)</strong>.</p>
 <hr />
@@ -4803,37 +4803,18 @@ assets.refresh();</code></pre>
 <tr><td><strong>C</strong></td><td>Cycle compare modes: A/B, Side-by-side, Off (Simple mode)</td></tr>
 <tr><td><strong>K</strong></td><td>Toggle KSampler denoising preview on or off</td></tr>
 <tr><td><strong>L</strong></td><td>Toggle Live Stream final-output following on or off</td></tr>
+<tr><td><strong>N</strong></td><td>Toggle selected-node Node Stream on or off</td></tr>
 </tbody></table></div>
-<h3 id="hotkeys_shortcuts-navigation">Navigation</h3>
+<h3 id="hotkeys_shortcuts-panel-and-media-interaction">Panel And Media Interaction</h3>
 <div class="table-wrap"><table>
 <thead><tr><th>Shortcut</th><th>Action</th></tr></thead>
 <tbody>
-<tr><td><strong>Left Arrow</strong></td><td>Previous Asset</td></tr>
-<tr><td><strong>Right Arrow</strong></td><td>Next Asset</td></tr>
-<tr><td><strong>Up Arrow</strong></td><td>Zoom In</td></tr>
-<tr><td><strong>Down Arrow</strong></td><td>Zoom Out</td></tr>
-<tr><td><strong>0</strong></td><td>Reset Zoom (Fit to Screen)</td></tr>
-<tr><td><strong>1</strong></td><td>Actual Size (1:1 Pixel)</td></tr>
-<tr><td><strong>Click+Drag</strong></td><td>Pan Image (when zoomed)</td></tr>
 <tr><td><strong>Mouse Wheel</strong></td><td>Zoom In/Out</td></tr>
+<tr><td><strong>Click+Drag</strong></td><td>Pan Image (when zoomed)</td></tr>
+<tr><td><strong>Drag Header</strong></td><td>Move the floating panel</td></tr>
+<tr><td><strong>Drag Edges</strong></td><td>Resize the floating panel</td></tr>
 </tbody></table></div>
-<h3 id="hotkeys_shortcuts-node-stream">Node Stream</h3>
-<div class="table-wrap"><table>
-<thead><tr><th>Shortcut</th><th>Action</th></tr></thead>
-<tbody>
-<tr><td><strong>N</strong></td><td>Toggle selected-node preview streaming</td></tr>
-<tr><td><strong>Shift+N</strong></td><td>Follow selected node, when available</td></tr>
-</tbody></table></div>
-<h3 id="hotkeys_shortcuts-info-overlay">Info Overlay</h3>
-<div class="table-wrap"><table>
-<thead><tr><th>Shortcut</th><th>Action</th></tr></thead>
-<tbody>
-<tr><td><strong>I</strong></td><td>Toggle Gen Info Overlay</td></tr>
-<tr><td><strong>O</strong></td><td>Toggle Overlays (all)</td></tr>
-<tr><td><strong>P</strong></td><td>Show Prompt Only</td></tr>
-<tr><td><strong>S</strong></td><td>Show Settings Only</td></tr>
-</tbody></table></div>
-<blockquote>In MFV, Gen Info stays as an overlay and automatically moves above the inline player controls when those controls are visible.</blockquote>
+<p>Node Stream follows the currently selected compatible node when enabled. Grid compare and Graph Map are available from the MFV toolbar or mode menu rather than dedicated keyboard shortcuts.</p>
 <h3 id="hotkeys_shortcuts-video-controls-mfv">Video Controls (MFV)</h3>
 <div class="table-wrap"><table>
 <thead><tr><th>Shortcut</th><th>Action</th></tr></thead>
@@ -4843,14 +4824,6 @@ assets.refresh();</code></pre>
 <tr><td><strong>Right Arrow</strong></td><td>Step forward one frame</td></tr>
 </tbody></table></div>
 <blockquote>Click once on the inline player surface to give it focus before using the playback shortcuts above.</blockquote>
-<h3 id="hotkeys_shortcuts-compare-mode-mfv">Compare Mode (MFV)</h3>
-<div class="table-wrap"><table>
-<thead><tr><th>Shortcut</th><th>Action</th></tr></thead>
-<tbody>
-<tr><td><strong>Tab</strong></td><td>Swap A/B Images</td></tr>
-<tr><td><strong>\\</strong></td><td>Toggle Split View (vertical/horizontal)</td></tr>
-<tr><td><strong>Shift+S</strong></td><td>Save Comparison Snapshot</td></tr>
-</tbody></table></div>
 <hr />
 <h2 id="hotkeys_shortcuts-video-playback-hotkeys">Video Playback Hotkeys</h2>
 <p>These shortcuts apply when playing video content in the viewer.</p>
@@ -4916,7 +4889,7 @@ assets.refresh();</code></pre>
 <tbody>
 <tr><td><strong>Drag Header</strong></td><td>Move panel</td></tr>
 <tr><td><strong>Drag Edges</strong></td><td>Resize panel</td></tr>
-<tr><td><strong>Click Outside</strong></td><td>Close panel (optional)</td></tr>
+<tr><td><strong>Click Outside</strong></td><td>Close open MFV popovers</td></tr>
 <tr><td><strong>Mouse Wheel</strong></td><td>Zoom in/out</td></tr>
 <tr><td><strong>Click+Drag</strong> (zoomed)</td><td>Pan image</td></tr>
 </tbody></table></div>
@@ -4942,10 +4915,11 @@ Zebra:            Z
 Grid:             G
 1:1 Zoom:         Alt+1</code></pre>
 <h3 id="hotkeys_shortcuts-mfv-essentials">MFV Essentials</h3>
-<pre><code>Compare Mode:     M
+<pre><code>Toggle MFV:       V
+Compare Mode:     C
 Live Stream:      L
+KSampler Preview: K
 Node Stream:      N
-Gen Info:         I
 Play/Pause:       Space</code></pre>
 <hr />
 <h2 id="hotkeys_shortcuts-customization">Customization</h2>
@@ -4981,7 +4955,7 @@ Play/Pause:       Space</code></pre>
 <li>Alt text on thumbnails</li>
 </ul>
 <hr />
-<p>_Hotkeys &amp; Shortcuts Guide Version: 2.4.5_ _Last Updated: April 14, 2026_ _Compatible with Majoor Assets Manager v2.4.4+_</p></div>
+<p>_Hotkeys &amp; Shortcuts Guide Version: 2.4.5_ _Last Updated: May 11, 2026_ _Compatible with Majoor Assets Manager v2.4.4+_</p></div>
                 <a class="toplink" href="#top">Back to top</a>
                 <div style="margin-top: 10px; font-size: 12px; color: var(--muted);">
                   Source: <code>docs/HOTKEYS_SHORTCUTS.md</code>
@@ -10344,14 +10318,14 @@ python -m pytest tests/metadata/test_parser_folder_scan.py -q</code></pre></div>
 <li><strong>Queue Monitoring</strong>: Keep the latest output visible while prompts execute</li>
 </ul>
 <h3 id="viewer_feature_tutorial-compare-modes">Compare Modes</h3>
-<p>The MFV supports three comparison modes:</p>
+<p>The MFV supports a single-asset view plus three comparison workflows:</p>
 <h4 id="viewer_feature_tutorial-simple-mode-default">Simple Mode (Default)</h4>
 <ul>
 <li>Single image display</li>
 <li>Full resolution preview</li>
 <li>Standard navigation</li>
 </ul>
-<p><strong>Shortcut</strong>: Press <strong>M</strong> until Simple mode is active</p>
+<p><strong>Shortcut</strong>: Press <strong>C</strong> until Simple mode is active again</p>
 <h4 id="viewer_feature_tutorial-ab-compare-mode">A/B Compare Mode</h4>
 <ul>
 <li>Toggle between two images rapidly</li>
@@ -10360,10 +10334,10 @@ python -m pytest tests/metadata/test_parser_folder_scan.py -q</code></pre></div>
 </ul>
 <p><strong>How to Use</strong>:</p>
 <ol>
-<li>Enable A/B Compare mode (press <strong>M</strong>)</li>
+<li>Enable A/B Compare mode (press <strong>C</strong> from Simple mode)</li>
 <li>Click first asset → Set as A</li>
 <li>Click second asset → Set as B</li>
-<li>Click or press <strong>Tab</strong> to toggle between them</li>
+<li>Use <strong>C</strong> again later to move on to Side-by-Side or back to Simple mode</li>
 </ol>
 <p><strong>Use Cases</strong>:</p>
 <ul>
@@ -10379,10 +10353,10 @@ python -m pytest tests/metadata/test_parser_folder_scan.py -q</code></pre></div>
 </ul>
 <p><strong>How to Use</strong>:</p>
 <ol>
-<li>Enable Side-by-Side mode (press <strong>M</strong>)</li>
+<li>Enable Side-by-Side mode (press <strong>C</strong> until Side-by-Side is active)</li>
 <li>Select two assets</li>
 <li>Both display side by side</li>
-<li>Use <strong>\\</strong> to toggle split orientation</li>
+<li>Use the mode button or toolbar controls if you want to move into Grid compare</li>
 </ol>
 <p><strong>Use Cases</strong>:</p>
 <ul>
@@ -10531,13 +10505,6 @@ python -m pytest tests/metadata/test_parser_folder_scan.py -q</code></pre></div>
 <tr><td><strong>K</strong></td><td>Toggle KSampler denoising preview on or off</td></tr>
 <tr><td><strong>L</strong></td><td>Toggle Live Stream final-output following on or off</td></tr>
 <tr><td><strong>N</strong></td><td>Toggle Node Stream selected-node previewing</td></tr>
-</tbody></table></div>
-<h4 id="viewer_feature_tutorial-compare-mode">Compare Mode</h4>
-<div class="table-wrap"><table>
-<thead><tr><th>Shortcut</th><th>Action</th></tr></thead>
-<tbody>
-<tr><td><strong>Tab</strong></td><td>Swap A/B Images</td></tr>
-<tr><td><strong>\\</strong></td><td>Toggle Split Orientation</td></tr>
 </tbody></table></div>
 <h4 id="viewer_feature_tutorial-video-controls">Video Controls</h4>
 <div class="table-wrap"><table>

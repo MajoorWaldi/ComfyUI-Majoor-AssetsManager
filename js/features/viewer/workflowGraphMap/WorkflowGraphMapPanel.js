@@ -25,6 +25,8 @@ export class WorkflowGraphMapPanel {
         this._selectedNodeId = "";
         this._renderInfo = null;
         this._resizeObserver = null;
+        this._resizeObservedTarget = null;
+        this._resizeObserverWindow = null;
         this._large = Boolean(large);
         this._view = { zoom: 1, centerX: null, centerY: null };
         this._drag = null;
@@ -48,6 +50,7 @@ export class WorkflowGraphMapPanel {
     }
 
     refresh() {
+        this._ensureResizeObserver();
         if (!this._el?.isConnected) return;
         this._renderCanvas();
         this._renderDetails();
@@ -67,6 +70,7 @@ export class WorkflowGraphMapPanel {
 
         const mapWrap = document.createElement("div");
         mapWrap.className = "mjr-wgm-map-wrap";
+        this._mapWrap = mapWrap;
         if (this._large) {
             this._canvas = document.createElement("canvas");
             this._canvas.className = "mjr-wgm-canvas";
@@ -91,11 +95,39 @@ export class WorkflowGraphMapPanel {
         this._details.className = "mjr-wgm-details";
         root.appendChild(this._details);
 
-        if (typeof ResizeObserver === "function") {
-            this._resizeObserver = new ResizeObserver(() => this.refresh());
-            this._resizeObserver.observe(mapWrap);
-        }
+        this._ensureResizeObserver();
         return root;
+    }
+
+    _ensureResizeObserver() {
+        const target = this._mapWrap;
+        if (!target) return;
+        const win = _getElementWindow(target);
+        const ResizeObserverCtor = win?.ResizeObserver || globalThis.ResizeObserver;
+        if (typeof ResizeObserverCtor !== "function") return;
+        if (
+            this._resizeObserver &&
+            this._resizeObservedTarget === target &&
+            this._resizeObserverWindow === win
+        ) {
+            return;
+        }
+        try {
+            this._resizeObserver?.disconnect?.();
+        } catch (e) {
+            console.debug?.(e);
+        }
+        try {
+            this._resizeObserver = new ResizeObserverCtor(() => this.refresh());
+            this._resizeObserver.observe(target);
+            this._resizeObservedTarget = target;
+            this._resizeObserverWindow = win;
+        } catch (e) {
+            console.debug?.(e);
+            this._resizeObserver = null;
+            this._resizeObservedTarget = null;
+            this._resizeObserverWindow = null;
+        }
     }
 
     _renderCanvas() {
@@ -108,7 +140,8 @@ export class WorkflowGraphMapPanel {
         const rect = canvas.getBoundingClientRect();
         const width = Math.max(1, Math.floor(rect.width || canvas.clientWidth || 1));
         const height = Math.max(1, Math.floor(rect.height || canvas.clientHeight || 1));
-        const dpr = Math.max(1, Math.min(2, Number(window.devicePixelRatio) || 1));
+        const win = _getElementWindow(canvas);
+        const dpr = Math.max(1, Math.min(2, Number(win?.devicePixelRatio) || 1));
         const nextW = Math.floor(width * dpr);
         const nextH = Math.floor(height * dpr);
         if (canvas.width !== nextW || canvas.height !== nextH) {
@@ -238,7 +271,7 @@ export class WorkflowGraphMapPanel {
             try {
                 const ok = await action();
                 btn.classList.toggle("is-ok", !!ok);
-                window.setTimeout(() => btn.classList.remove("is-ok"), 700);
+                _getElementWindow(btn).setTimeout(() => btn.classList.remove("is-ok"), 700);
             } catch (e) {
                 console.debug?.("[MFV Graph Map] action failed", e);
             }
@@ -251,13 +284,13 @@ export class WorkflowGraphMapPanel {
             const ok = await copyNodeParamValue(value);
             row.classList.toggle("is-ok", !!ok);
             row.classList.toggle("is-error", !ok);
-            window.setTimeout(() => {
+            _getElementWindow(row).setTimeout(() => {
                 row.classList.remove("is-ok");
                 row.classList.remove("is-error");
             }, 750);
         } catch (e) {
             row.classList.add("is-error");
-            window.setTimeout(() => row.classList.remove("is-error"), 750);
+            _getElementWindow(row).setTimeout(() => row.classList.remove("is-error"), 750);
             console.debug?.("[MFV Graph Map] param copy failed", e);
         }
     }
@@ -357,7 +390,7 @@ export class WorkflowGraphMapPanel {
             this._canvas.removeEventListener("pointermove", onMove);
             this._canvas.removeEventListener("pointerup", onUp);
             this._canvas.removeEventListener("pointercancel", onUp);
-            window.setTimeout(() => {
+            _getElementWindow(this._canvas).setTimeout(() => {
                 this._drag = null;
             }, 0);
         };
@@ -365,6 +398,10 @@ export class WorkflowGraphMapPanel {
         this._canvas.addEventListener("pointerup", onUp);
         this._canvas.addEventListener("pointercancel", onUp);
     }
+}
+
+function _getElementWindow(el) {
+    return el?.ownerDocument?.defaultView || window;
 }
 
 function _replaceChildren(parent, ...children) {

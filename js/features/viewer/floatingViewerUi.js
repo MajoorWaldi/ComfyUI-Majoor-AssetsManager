@@ -1,4 +1,4 @@
-import { EVENTS } from "../../app/events.js";
+﻿import { EVENTS } from "../../app/events.js";
 import { APP_CONFIG } from "../../app/config.js";
 import { t } from "../../app/i18n.js";
 import { appendTooltipHint, setTooltipHint } from "../../utils/tooltipShortcuts.js";
@@ -52,7 +52,7 @@ function summarizeFloatingViewerApiWorkflow(norm) {
     const workflow = buildWorkflowPresentation(norm);
     if (!workflow.workflowLabel) return "";
     return workflow.workflowBadge
-        ? `${workflow.workflowLabel} • ${workflow.workflowBadge}`
+    ? `${workflow.workflowLabel} - ${workflow.workflowBadge}`
         : workflow.workflowLabel;
 }
 
@@ -190,6 +190,11 @@ export function renderFloatingViewer(viewer) {
     viewer._contentEl.appendChild(viewer._overlayCanvas);
     viewer._contentEl.appendChild(buildFloatingViewerMediaProgressOverlay(viewer));
 
+    viewer._genSidebarEl = document.createElement("aside");
+    viewer._genSidebarEl.className = "mjr-mfv-gen-sidebar";
+    viewer._genSidebarEl.setAttribute("aria-label", "Generation info");
+    viewer._genSidebarEl.setAttribute("hidden", "");
+
     viewer._sidebar = new WorkflowSidebar({
         hostEl: el,
         onClose: () => viewer._updateSettingsBtnState(false),
@@ -199,6 +204,7 @@ export function renderFloatingViewer(viewer) {
         },
     });
 
+    viewer._contentWrapper.appendChild(viewer._genSidebarEl);
     viewer._contentWrapper.appendChild(viewer._sidebar.el);
 
     el.appendChild(viewer._contentWrapper);
@@ -226,6 +232,7 @@ export function buildFloatingViewerHeader(viewer) {
     const title = document.createElement("span");
     title.className = "mjr-mfv-header-title";
     title.id = viewer._titleId;
+
     const titleIcon = document.createElement("span");
     titleIcon.className = "mjr-mfv-header-title-icon";
     titleIcon.textContent = "〽️";
@@ -819,8 +826,7 @@ export function buildFloatingViewerToolbar(viewer) {
     viewer._genBtn = document.createElement("button");
     viewer._genBtn.type = "button";
     viewer._genBtn.className = "mjr-icon-btn";
-    viewer._genBtn.setAttribute("aria-haspopup", "dialog");
-    viewer._genBtn.setAttribute("aria-expanded", "false");
+    viewer._genBtn.setAttribute("aria-pressed", String(Boolean(viewer._genSidebarEnabled)));
     const genBtnIcon = document.createElement("i");
     genBtnIcon.className = "pi pi-info-circle";
     genBtnIcon.setAttribute("aria-hidden", "true");
@@ -877,12 +883,6 @@ export function buildFloatingViewerToolbar(viewer) {
 
     viewer._handleDocClick = (ev) => {
         const target = ev?.target;
-        // Gen dropdown
-        if (viewer._genDropdown) {
-            if (!viewer._genBtn?.contains?.(target) && !viewer._genDropdown.contains(target)) {
-                viewer._closeGenDropdown();
-            }
-        }
         // Channel popover
         if (viewer._chPopover?.classList?.contains("is-open")) {
             if (!viewer._chBtn?.contains?.(target) && !viewer._chPopover.contains(target)) {
@@ -998,12 +998,10 @@ export function rebindFloatingViewerControlHandlers(viewer) {
         "click",
         (e) => {
             e.stopPropagation();
-            if (viewer._genDropdown?.classList?.contains("is-visible")) {
-                viewer._closeGenDropdown();
-            } else {
-                viewer._closeAllToolbarPopovers?.();
-                viewer._openGenDropdown();
-            }
+            viewer._closeAllToolbarPopovers?.();
+            viewer._genSidebarEnabled = !viewer._genSidebarEnabled;
+            viewer._updateGenBtnUI();
+            viewer._refresh();
         },
         { signal },
     );
@@ -1125,7 +1123,6 @@ export function applyFloatingViewerSidebarPosition(viewer) {
 }
 
 export function resetFloatingViewerGenDropdownForCurrentDocument(viewer) {
-    viewer._closeGenDropdown();
     try {
         viewer._genDropdown?.remove?.();
     } catch (e) {
@@ -1161,88 +1158,35 @@ export function unbindFloatingViewerDocumentUiHandlers(viewer) {
 }
 
 export function isFloatingViewerGenDropdownOpen(viewer) {
-    return !!viewer._genDropdown?.classList?.contains("is-visible");
+    void viewer;
+    return false;
 }
 
 export function openFloatingViewerGenDropdown(viewer) {
-    if (!viewer.element) return;
-    if (!viewer._genDropdown) {
-        viewer._genDropdown = viewer._buildGenDropdown();
-        viewer.element.appendChild(viewer._genDropdown);
-    }
-    viewer._bindDocumentUiHandlers();
-    const rect = viewer._genBtn.getBoundingClientRect();
-    const parentRect = viewer.element.getBoundingClientRect();
-    const left = rect.left - parentRect.left;
-    const top = rect.bottom - parentRect.top + 6;
-    viewer._genDropdown.style.left = `${left}px`;
-    viewer._genDropdown.style.top = `${top}px`;
-    viewer._genDropdown.classList.add("is-visible");
-    viewer._updateGenBtnUI();
+    void viewer;
 }
 
 export function closeFloatingViewerGenDropdown(viewer) {
-    if (!viewer._genDropdown) return;
-    viewer._genDropdown.classList.remove("is-visible");
-    viewer._updateGenBtnUI();
+    void viewer;
 }
 
 export function updateFloatingViewerGenButtonUI(viewer) {
     if (!viewer._genBtn) return;
-    const count = viewer._genInfoSelections.size;
-    const isOn = count > 0;
-    const isOpen = viewer._isGenDropdownOpen();
+    const isOn = Boolean(viewer._genSidebarEnabled);
     viewer._genBtn.classList.toggle("is-on", isOn);
-    viewer._genBtn.classList.toggle("is-open", isOpen);
-    const label = isOn
-        ? `Gen Info (${count} field${count > 1 ? "s" : ""} shown)${isOpen ? " — open" : " — click to configure"}`
-        : `Gen Info${isOpen ? " — open" : " — click to show overlay"}`;
+    viewer._genBtn.classList.toggle("is-open", isOn);
+    const label = isOn ? "Gen Info sidebar: ON" : "Gen Info sidebar: OFF";
     viewer._genBtn.title = label;
     viewer._genBtn.setAttribute("aria-label", label);
-    viewer._genBtn.setAttribute("aria-expanded", String(isOpen));
-    if (viewer._genDropdown) {
-        viewer._genBtn.setAttribute("aria-controls", viewer._genDropdownId);
-    } else {
-        viewer._genBtn.removeAttribute("aria-controls");
-    }
+    viewer._genBtn.setAttribute("aria-pressed", String(isOn));
+    viewer._genBtn.removeAttribute("aria-expanded");
+    viewer._genBtn.removeAttribute("aria-haspopup");
+    viewer._genBtn.removeAttribute("aria-controls");
 }
 
 export function buildFloatingViewerGenDropdown(viewer) {
-    const d = document.createElement("div");
-    d.className = "mjr-mfv-gen-dropdown";
-    d.id = viewer._genDropdownId;
-    d.setAttribute("role", "group");
-    d.setAttribute("aria-label", "Generation info fields");
-    const opts = [
-        ["prompt", "Prompt"],
-        ["seed", "Seed"],
-        ["model", "Model"],
-        ["lora", "LoRA"],
-        ["sampler", "Sampler"],
-        ["scheduler", "Scheduler"],
-        ["cfg", "CFG"],
-        ["step", "Step"],
-        ["genTime", "Gen Time"],
-    ];
-    for (const [key, label] of opts) {
-        const row = document.createElement("label");
-        row.className = "mjr-mfv-gen-dropdown-row";
-        const cb = document.createElement("input");
-        cb.type = "checkbox";
-        cb.checked = viewer._genInfoSelections.has(key);
-        cb.addEventListener("change", () => {
-            if (cb.checked) viewer._genInfoSelections.add(key);
-            else viewer._genInfoSelections.delete(key);
-            viewer._updateGenBtnUI();
-            viewer._refresh();
-        });
-        const span = document.createElement("span");
-        span.textContent = label;
-        row.appendChild(cb);
-        row.appendChild(span);
-        d.appendChild(row);
-    }
-    return d;
+    void viewer;
+    return null;
 }
 
 function formatFloatingViewerGenTime(totalSeconds) {

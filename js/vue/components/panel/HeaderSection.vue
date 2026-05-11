@@ -174,13 +174,11 @@ const versionBadgeStyle = computed(() => ({
 
 const mfvTitle = computed(() =>
     mfvVisible.value
-        ? t("tooltip.closeMFV", "Close Floating Viewer")
-        : t("tooltip.openMFV", "Open Floating Viewer"),
+        ? t("tooltip.closeMFV", "Close Majoor Floating Viewer")
+        : t("tooltip.openMFV", "Open Majoor Floating Viewer"),
 );
 
-const mfvIconClass = computed(() =>
-    mfvVisible.value ? "pi pi-eye-slash" : "pi pi-eye",
-);
+const mfvIconClass = computed(() => "pi pi-images");
 
 // ── version badge helpers ──────────────────────────────────────────────────────
 

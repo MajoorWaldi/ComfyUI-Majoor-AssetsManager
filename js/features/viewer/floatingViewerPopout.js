@@ -182,6 +182,17 @@ function createFloatingViewerPopoutRoot(doc) {
     return root;
 }
 
+function refreshFloatingViewerAfterDocumentMove(viewer) {
+    viewer._resetGenDropdownForCurrentDocument();
+    viewer._rebindControlHandlers();
+    viewer._bindPanelInteractions();
+    viewer._bindDocumentUiHandlers();
+    viewer._unbindLayoutObserver?.();
+    viewer._bindLayoutObserver?.();
+    viewer._refresh?.();
+    viewer._updatePopoutBtnUI();
+}
+
 export function setFloatingViewerDesktopExpanded(viewer, active) {
     if (!viewer.element) return;
     const shouldExpand = Boolean(active);
@@ -215,11 +226,7 @@ export function setFloatingViewerDesktopExpanded(viewer, active) {
         el.style.zIndex = "2147483000";
         viewer._desktopExpanded = true;
         viewer.isVisible = true;
-        viewer._resetGenDropdownForCurrentDocument();
-        viewer._rebindControlHandlers();
-        viewer._bindPanelInteractions();
-        viewer._bindDocumentUiHandlers();
-        viewer._updatePopoutBtnUI();
+        refreshFloatingViewerAfterDocumentMove(viewer);
         traceFloatingViewerPopout("electron-in-app-expanded", { isVisible: viewer.isVisible });
         return;
     }
@@ -240,11 +247,7 @@ export function setFloatingViewerDesktopExpanded(viewer, active) {
         }
     }
     viewer._desktopExpandRestore = null;
-    viewer._resetGenDropdownForCurrentDocument();
-    viewer._rebindControlHandlers();
-    viewer._bindPanelInteractions();
-    viewer._bindDocumentUiHandlers();
-    viewer._updatePopoutBtnUI();
+    refreshFloatingViewerAfterDocumentMove(viewer);
     traceFloatingViewerPopout("electron-in-app-restored", null);
 }
 
@@ -379,10 +382,7 @@ export function popOutFloatingViewer(viewer) {
                 el.classList.add("is-visible");
                 viewer.isVisible = true;
 
-                viewer._resetGenDropdownForCurrentDocument();
-                viewer._rebindControlHandlers();
-                viewer._bindDocumentUiHandlers();
-                viewer._updatePopoutBtnUI();
+                refreshFloatingViewerAfterDocumentMove(viewer);
                 traceFloatingViewerPopout("electron-pip-ready", { isPopped: viewer._isPopped });
 
                 pipWindow.addEventListener("pagehide", handlePopupClosing, {
@@ -477,10 +477,7 @@ export function fallbackPopoutFloatingViewer(viewer, el, w, h) {
         }
         el.classList.add("is-visible");
         viewer.isVisible = true;
-        viewer._resetGenDropdownForCurrentDocument();
-        viewer._rebindControlHandlers();
-        viewer._bindDocumentUiHandlers();
-        viewer._updatePopoutBtnUI();
+        refreshFloatingViewerAfterDocumentMove(viewer);
     };
 
     try {
@@ -672,15 +669,11 @@ export function popInFloatingViewer(viewer, { closePopupWindow = true } = {}) {
         console.debug?.("[MFV] pop-in adopt failed", e);
     }
     document.body.appendChild(adopted);
-    viewer._resetGenDropdownForCurrentDocument();
-    viewer._rebindControlHandlers();
-    viewer._bindPanelInteractions();
-    viewer._bindDocumentUiHandlers();
     adopted.classList.add("is-visible");
     adopted.setAttribute("aria-hidden", "false");
     viewer.isVisible = true;
 
-    viewer._updatePopoutBtnUI();
+    refreshFloatingViewerAfterDocumentMove(viewer);
 
     if (closePopupWindow) {
         try {

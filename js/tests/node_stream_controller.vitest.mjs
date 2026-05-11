@@ -186,4 +186,53 @@ describe("NodeStreamController", () => {
 
         mod.teardownNodeStream(app);
     });
+
+    it("normalizes unsupported watch mode values back to selected", async () => {
+        const app = {
+            canvas: { selected_nodes: {} },
+            graph: {
+                getNodeById() {
+                    return null;
+                },
+            },
+        };
+
+        const mod = await import("../features/viewer/nodeStream/NodeStreamController.js");
+        mod.initNodeStream({ app, onOutput: vi.fn() });
+
+        mod.setWatchMode("all");
+
+        expect(mod.getWatchMode()).toBe("selected");
+
+        mod.teardownNodeStream(app);
+    });
+
+    it("emits an empty status when the selection is cleared", async () => {
+        const onStatus = vi.fn();
+        const node = {
+            id: 42,
+            comfyClass: "PreviewImage",
+            imgs: [{ src: "/view?filename=selected.png&subfolder=&type=output" }],
+        };
+        const app = {
+            canvas: { selected_nodes: { 42: node } },
+            graph: {
+                getNodeById(id) {
+                    return Number(id) === 42 ? node : null;
+                },
+            },
+        };
+
+        const mod = await import("../features/viewer/nodeStream/NodeStreamController.js");
+        mod.initNodeStream({ app, onOutput: vi.fn(), onStatus });
+        mod.setNodeStreamActive(true);
+        await vi.advanceTimersByTimeAsync(200);
+
+        app.canvas.selected_nodes = {};
+        await vi.advanceTimersByTimeAsync(200);
+
+        expect(onStatus).toHaveBeenLastCalledWith("", "");
+
+        mod.teardownNodeStream(app);
+    });
 });

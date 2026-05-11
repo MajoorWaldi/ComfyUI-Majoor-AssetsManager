@@ -51,6 +51,9 @@ const state = vi.hoisted(() => {
             this.setLiveActive = vi.fn();
             this.setPreviewActive = vi.fn();
             this.setNodeStreamActive = vi.fn();
+            this.setNodeStreamSelection = vi.fn((selection) => {
+                this._nodeStreamSelection = selection || null;
+            });
             this.loadPreviewBlob = vi.fn();
             this.dispose = vi.fn(() => {
                 this.isVisible = false;
@@ -372,6 +375,72 @@ describe("floatingViewerManager", () => {
             { autoMode: true },
         );
         expect(seen).toEqual([true]);
+    });
+
+    it("does not overwrite both pinned compare slots from live stream", async () => {
+        state.setViewerMode(state.MFV_MODES.AB);
+        state.setPinnedSlot(new Set(["A", "B"]));
+
+        const { floatingViewerManager } =
+            await import("../features/viewer/floatingViewerManager.js");
+        await floatingViewerManager.open();
+
+        const viewer = state.getLastViewer();
+        viewer._mediaA = { id: 41, filename: "ref-a.png" };
+        viewer._mediaB = { id: 42, filename: "ref-b.png" };
+        viewer.loadMediaPair.mockClear();
+
+        await floatingViewerManager.upsertWithContent({ filename: "live-output.png", type: "output" });
+
+        expect(viewer.loadMediaPair).not.toHaveBeenCalled();
+        expect(viewer._mediaA).toEqual({ id: 41, filename: "ref-a.png" });
+        expect(viewer._mediaB).toEqual({ id: 42, filename: "ref-b.png" });
+    });
+
+    it("does not overwrite fully pinned grid slots from node stream", async () => {
+        state.setViewerMode("grid");
+        state.setPinnedSlot(new Set(["A", "B", "C", "D"]));
+
+        const { floatingViewerManager } =
+            await import("../features/viewer/floatingViewerManager.js");
+        floatingViewerManager.setNodeStreamActive(true);
+        await floatingViewerManager.open();
+
+        const viewer = state.getLastViewer();
+        viewer._mediaA = { id: 1, filename: "a.png" };
+        viewer._mediaB = { id: 2, filename: "b.png" };
+        viewer._mediaC = { id: 3, filename: "c.png" };
+        viewer._mediaD = { id: 4, filename: "d.png" };
+
+        await floatingViewerManager.feedNodeStream({ filename: "stream.png", type: "output" });
+
+        expect(viewer._mediaA).toEqual({ id: 1, filename: "a.png" });
+        expect(viewer._mediaB).toEqual({ id: 2, filename: "b.png" });
+        expect(viewer._mediaC).toEqual({ id: 3, filename: "c.png" });
+        expect(viewer._mediaD).toEqual({ id: 4, filename: "d.png" });
+    });
+
+    it("replays the pending node stream selection when MFV auto-opens from a stream", async () => {
+        const { floatingViewerManager } =
+            await import("../features/viewer/floatingViewerManager.js");
+        floatingViewerManager.setNodeStreamActive(true);
+        floatingViewerManager.setNodeStreamSelection("55", "PreviewImage", "Sampler Preview");
+
+        await floatingViewerManager.feedNodeStream({ filename: "stream.png", type: "output" });
+
+        const viewer = state.getLastViewer();
+        expect(viewer).toBeTruthy();
+        expect(viewer.isVisible).toBe(true);
+        expect(viewer.setNodeStreamSelection).toHaveBeenLastCalledWith({
+            nodeId: "55",
+            classType: "PreviewImage",
+            title: "Sampler Preview",
+        });
+        expect(viewer._nodeStreamSelection).toEqual({
+            nodeId: "55",
+            classType: "PreviewImage",
+            title: "Sampler Preview",
+        });
     });
 
     it("emits visibility and syncs preview state when preview stream auto-opens the viewer", async () => {

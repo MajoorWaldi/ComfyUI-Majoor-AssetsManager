@@ -121,19 +121,19 @@ Complete AI-powered asset discovery and organization:
 
 ### 🎉 Majoor Floating Viewer (MFV)
 A lightweight floating viewer panel for real-time generation comparison:
-- **Live Stream Mode**: Automatically follows new generations from Save/Load nodes
-- **Compare Modes**: Simple, A/B Compare, and Side-by-Side views
+- **Live Stream Mode**: Automatically follows the latest completed outputs after execution
+- **Compare Modes**: Simple, A/B Compare, Side-by-Side, and Grid views
 - **Multi-Pin References (A/B/C/D)**: Pin up to 4 images with toggle buttons for simultaneous comparison
 - **Node Parameters Sidebar**: View and edit workflow node widgets (prompts, seeds, samplers) directly inside the viewer
 - **Graph Map**: Inspect the saved workflow with readable node and subgraph names, plus a copy-ready node detail panel
 - **Run Button**: Queue prompt from the viewer toolbar without switching back to the canvas
 - **Sidebar Position Setting**: Place the Node Parameters sidebar on the right, left, or bottom via Settings
 - **Real-time Preview**: Watch generations as they complete
-- **Node Tracking**: Click on LoadImage/SaveImage nodes to preview their content
+- **Node Stream**: Follow the currently selected compatible node when it exposes frontend media
 - **Pan & Zoom**: Mouse wheel zoom and click-drag pan for detailed inspection
 - **Gen Info Overlay**: Display prompt, seed, model, and LoRA for each generation; when the inline MFV player is present, the overlay automatically shifts above the player controls
 - **Draggable Panel**: Position anywhere on screen, resizable
-- **Keyboard Shortcuts**: Quick mode switching and focused player controls, including Space for play/pause and Left/Right for frame stepping
+- **Keyboard Shortcuts**: Quick toggles with V, C, K, L, and N, plus focused player controls such as Space and Left/Right frame stepping
 
 ### 🔧 Major Improvements
 - **Cross-Platform**: Full Linux support (Ubuntu 22.04+, Fedora, Debian)
@@ -398,18 +398,19 @@ MFV now has a dedicated illustrated guide focused on the real workflow inside th
 
 ### Live Stream Mode
 - Automatically tracks new generations
-- Follows Save/Load node outputs in real-time
+- Follows the latest completed output file instead of the currently selected node
 - No manual refresh needed
 
 ### Compare Modes
-- **Simple**: Single image view
-- **A/B Compare**: Toggle between two images
-- **Side-by-Side**: View both images simultaneously
+- **Simple**: Single asset view
+- **A/B Compare**: Fast two-slot comparison
+- **Side-by-Side**: View both assets simultaneously
+- **Grid**: Review up to four pinned or selected references together
 
-### Node Tracking
-- Click on any LoadImage/SaveImage node in ComfyUI
-- Floating Viewer shows that node's content instantly
-- Great for comparing intermediate results
+### Node Stream
+- Enable Node Stream, then select a compatible node in ComfyUI
+- MFV shows the selected node's media when that node exposes a frontend preview
+- Useful for preview nodes, loader/save nodes, and compatible live-preview surfaces
 
 ### Why MFV And Graph Map Work Together
 - Use **MFV** for live review, compare, pins, streams, and quick reruns.
@@ -451,6 +452,7 @@ For the full walkthrough and the second screenshot focused on the node detail pa
 | **Ctrl+F** / **Ctrl+K** | Focus search input |
 | **Ctrl+H** | Clear search input |
 | **D** | Toggle sidebar (details) |
+| **V** | Toggle Floating Viewer |
 
 ### Grid View
 | Shortcut | Action |
@@ -474,7 +476,7 @@ For the full walkthrough and the second screenshot focused on the node detail pa
 | **F** | Toggle fullscreen |
 | **D** | Toggle info panel |
 | **Space** | Play/pause video |
-| **Left/Right** | Previous/next asset, or step frame when the focused MFV player is active |
+| **Left/Right** | Previous/next asset, or step frame when the focused player bar is active |
 | **Mouse Wheel** | Zoom in/out |
 | **I** | Toggle pixel probe |
 | **C** | Copy probed color |
@@ -482,6 +484,18 @@ For the full walkthrough and the second screenshot focused on the node detail pa
 | **Z** | Toggle zebra patterns |
 | **G** | Cycle grid overlays |
 | **Alt+1** | Toggle 1:1 pixel view |
+
+### MFV
+| Shortcut | Action |
+|----------|--------|
+| **Esc** | Close Floating Viewer |
+| **V** | Toggle Floating Viewer |
+| **C** | Cycle quick compare modes: Simple, A/B, Side-by-Side |
+| **K** | Toggle KSampler Preview |
+| **L** | Toggle Live Stream |
+| **N** | Toggle Node Stream |
+| **Space** | Play/pause the focused inline player |
+| **Left/Right** | Step frame when the focused inline player is active |
 
 See [`docs/HOTKEYS_SHORTCUTS.md`](docs/HOTKEYS_SHORTCUTS.md) and [`docs/SHORTCUTS.md`](docs/SHORTCUTS.md) for complete lists.
 

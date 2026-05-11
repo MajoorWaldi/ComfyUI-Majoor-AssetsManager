@@ -1,5 +1,5 @@
 /**
- * FloatingViewer (MFV) - Majoor Viewer Lite
+ * FloatingViewer (MFV) - Majoor Floating Viewer
  *
  * Lightweight floating panel: drag, CSS resize, 3 modes (Simple / A/B / Side-by-Side),
  * Live Stream toggle, and mouse-wheel zoom + click-drag pan.
@@ -26,17 +26,12 @@ import {
 import {
     applyFloatingViewerSidebarPosition,
     bindFloatingViewerDocumentUiHandlers,
-    buildFloatingViewerGenDropdown,
     buildFloatingViewerGenInfoDOM,
     buildFloatingViewerHeader,
     buildFloatingViewerToolbar,
-    closeFloatingViewerGenDropdown,
     getFloatingViewerGenFields,
-    isFloatingViewerGenDropdownOpen,
-    openFloatingViewerGenDropdown,
     rebindFloatingViewerControlHandlers,
     renderFloatingViewer,
-    resetFloatingViewerGenDropdownForCurrentDocument,
     unbindFloatingViewerDocumentUiHandlers,
     updateFloatingViewerGenButtonUI,
     updateFloatingViewerSettingsBtnState,
@@ -88,6 +83,7 @@ import {
 } from "./floatingViewerLoader.js";
 import { disposeFloatingViewerProgressBar } from "./floatingViewerProgress.js";
 import { WorkflowGraphMapPanel } from "./workflowGraphMap/WorkflowGraphMapPanel.js";
+import { buildGenerationSectionState } from "../../vue/components/panel/sidebar/generationSectionState.js";
 
 function _hasSimplePlayerControls(mediaEl) {
     try {
@@ -113,6 +109,7 @@ export class FloatingViewer {
         this.element = null;
         this.isVisible = false;
         this._contentEl = null;
+        this._genSidebarEl = null;
         this._closeBtn = null;
         this._modeBtn = null;
         this._pinGroup = null;
@@ -120,8 +117,19 @@ export class FloatingViewer {
         this._liveBtn = null;
         this._genBtn = null;
         this._genDropdown = null;
+        this._genSidebarEnabled = true;
         this._captureBtn = null;
-        this._genInfoSelections = new Set(["genTime"]);
+        this._genInfoSelections = new Set([
+            "prompt",
+            "seed",
+            "model",
+            "lora",
+            "sampler",
+            "scheduler",
+            "cfg",
+            "step",
+            "genTime",
+        ]);
         this._mode = MFV_MODES.SIMPLE;
         this._mediaA = null;
         this._mediaB = null;
@@ -277,7 +285,7 @@ export class FloatingViewer {
     }
 
     _resetGenDropdownForCurrentDocument() {
-        return resetFloatingViewerGenDropdownForCurrentDocument(this);
+        return undefined;
     }
 
     _bindDocumentUiHandlers() {
@@ -289,15 +297,15 @@ export class FloatingViewer {
     }
 
     _isGenDropdownOpen() {
-        return isFloatingViewerGenDropdownOpen(this);
+        return false;
     }
 
     _openGenDropdown() {
-        return openFloatingViewerGenDropdown(this);
+        return undefined;
     }
 
     _closeGenDropdown() {
-        return closeFloatingViewerGenDropdown(this);
+        return undefined;
     }
 
     _updateGenBtnUI() {
@@ -305,7 +313,7 @@ export class FloatingViewer {
     }
 
     _buildGenDropdown() {
-        return buildFloatingViewerGenDropdown(this);
+        return null;
     }
 
     _getGenFields(fileData) {
@@ -896,7 +904,7 @@ export class FloatingViewer {
         if (!this._contentEl) return;
         if (this._mode === MFV_MODES.SIMPLE) return;
         try {
-            const playables = Array.from(this._contentEl.querySelectorAll("video, audio"));
+            const playables = Array.from(this._contentEl.querySelectorAll("video"));
             if (playables.length < 2) return;
             const leader = playables[0] || null;
             const followers = playables.slice(1);
@@ -959,6 +967,279 @@ export class FloatingViewer {
             this._initPanZoom(this._contentEl);
         }
         this._initCompareSync();
+        this._renderGenInfoSidebar();
+    }
+
+    _renderGenInfoSidebar() {
+        const sidebar = this._genSidebarEl;
+        if (!sidebar) return;
+        sidebar.replaceChildren();
+
+        const slots = this._getGenInfoSidebarSlots();
+
+        if (
+            this._mode === MFV_MODES.GRAPH ||
+            !this._genSidebarEnabled ||
+            slots.length === 0
+        ) {
+            sidebar.classList.remove("open");
+            sidebar.setAttribute("hidden", "");
+            this._updateGenBtnUI?.();
+            return;
+        }
+
+        const title = document.createElement("div");
+        title.className = "mjr-mfv-gen-sidebar-title";
+        title.textContent = "Gen Info";
+        sidebar.appendChild(title);
+
+        let rendered = 0;
+        for (const slot of slots) {
+            if (_mediaKind(slot.media) === "audio") continue;
+            const richContent = this._buildGenInfoSidebarContent(slot.media);
+            if (!richContent) continue;
+            const section = document.createElement("section");
+            section.className = "mjr-mfv-gen-sidebar-section";
+            const heading = document.createElement("div");
+            heading.className = "mjr-mfv-gen-sidebar-heading";
+            heading.textContent = slots.length > 1 ? `Asset ${slot.label}` : "Current Asset";
+            const body = document.createElement("div");
+            body.className = "mjr-mfv-gen-sidebar-body";
+            body.appendChild(richContent);
+            section.appendChild(heading);
+            section.appendChild(body);
+            sidebar.appendChild(section);
+            rendered += 1;
+        }
+
+        if (!rendered) {
+            sidebar.classList.remove("open");
+            sidebar.setAttribute("hidden", "");
+            return;
+        }
+        sidebar.removeAttribute("hidden");
+        sidebar.classList.add("open");
+        this._updateGenBtnUI?.();
+    }
+
+    _getGenInfoSidebarSlots() {
+        const slotA = { media: this._mediaA, label: "A" };
+        const slotB = { media: this._mediaB, label: "B" };
+        const slotC = { media: this._mediaC, label: "C" };
+        const slotD = { media: this._mediaD, label: "D" };
+        const slots =
+            this._mode === MFV_MODES.GRID
+                ? [slotA, slotB, slotC, slotD]
+                : this._mode === MFV_MODES.AB || this._mode === MFV_MODES.SIDE
+                  ? [slotA, slotB]
+                  : [slotA];
+        return slots.filter((slot) => slot.media);
+    }
+
+    _buildGenInfoSidebarContent(asset) {
+        const genTime = this._getGenFields(asset)?.genTime || "";
+        let state = null;
+        try {
+            state = buildGenerationSectionState(asset);
+        } catch (e) {
+            console.debug?.(e);
+        }
+        if (state && state.kind !== "empty") {
+            const root = document.createDocumentFragment();
+            if (genTime) {
+                root.appendChild(this._buildGenTimeBadge(genTime));
+            }
+            if (state.workflowType) {
+                root.appendChild(
+                    this._buildGenInfoCard({
+                        title: "Workflow",
+                        accent: "#2196F3",
+                        value: [state.workflowLabel || state.workflowType, state.workflowBadge]
+                            .filter(Boolean)
+                            .join("  |  "),
+                        compact: true,
+                    }),
+                );
+            }
+            if (state.positivePrompt) {
+                root.appendChild(
+                    this._buildGenInfoCard({
+                        title: "Positive Prompt",
+                        accent: "#4CAF50",
+                        value: state.positivePrompt,
+                        multiline: true,
+                    }),
+                );
+            }
+            if (state.negativePrompt) {
+                root.appendChild(
+                    this._buildGenInfoCard({
+                        title: "Negative Prompt",
+                        accent: "#F44336",
+                        value: state.negativePrompt,
+                        multiline: true,
+                    }),
+                );
+            }
+            for (const tab of state.promptTabs || []) {
+                const value = [tab.positive, tab.negative ? `Negative:\n${tab.negative}` : ""]
+                    .filter(Boolean)
+                    .join("\n\n");
+                root.appendChild(
+                    this._buildGenInfoCard({
+                        title: tab.label || "Prompt",
+                        accent: "#4CAF50",
+                        value,
+                        multiline: true,
+                    }),
+                );
+            }
+            if (state.modelFields?.length) {
+                const card = this._buildGenInfoFieldsCard(
+                    "Model & LoRA",
+                    "#9C27B0",
+                    state.modelFields,
+                );
+                if (card) root.appendChild(card);
+            }
+            for (const group of state.modelGroups || []) {
+                const fields = [
+                    { label: "UNet", value: group.model || "-" },
+                    ...(group.loras || []).map((value, index) => ({
+                        label: index === 0 ? "LoRA" : `LoRA ${index + 1}`,
+                        value,
+                    })),
+                ];
+                const card = this._buildGenInfoFieldsCard(
+                    group.label || "Model Branch",
+                    "#AB47BC",
+                    fields,
+                );
+                if (card) root.appendChild(card);
+            }
+            if (state.pipelineTabs?.length) {
+                for (const tab of state.pipelineTabs) {
+                    const card = this._buildGenInfoFieldsCard(
+                        tab.label || "Generation Pipeline",
+                        "#FF9800",
+                        tab.fields || [],
+                    );
+                    if (card) root.appendChild(card);
+                }
+            } else if (state.samplingFields?.length) {
+                const card = this._buildGenInfoFieldsCard("Sampling", "#FF9800", state.samplingFields);
+                if (card) root.appendChild(card);
+            }
+            if (state.seed !== null && state.seed !== undefined && state.seed !== "") {
+                root.appendChild(
+                    this._buildGenInfoCard({
+                        title: "Seed",
+                        accent: "#E91E63",
+                        value: String(state.seed),
+                        seed: true,
+                    }),
+                );
+            }
+            if (state.mediaOnlyMessage) {
+                root.appendChild(
+                    this._buildGenInfoCard({
+                        title: "Generation Data",
+                        accent: "#9E9E9E",
+                        value: state.mediaOnlyMessage,
+                        multiline: true,
+                    }),
+                );
+            }
+            if (root.childNodes.length) return root;
+        }
+        const fallback = this._buildGenInfoDOM(asset);
+        if (!genTime) return fallback;
+        const root = document.createDocumentFragment();
+        root.appendChild(this._buildGenTimeBadge(genTime));
+        if (fallback) root.appendChild(fallback);
+        return root;
+    }
+
+    _buildGenTimeBadge(value) {
+        const badge = document.createElement("div");
+        badge.className = "mjr-mfv-gen-time-badge";
+        this._bindGenInfoCopy(badge, () => String(value || ""));
+        const label = document.createElement("span");
+        label.className = "mjr-mfv-gen-time-label";
+        label.textContent = "Generation Time";
+        const time = document.createElement("span");
+        time.className = "mjr-mfv-gen-time-value";
+        time.textContent = String(value || "");
+        badge.appendChild(label);
+        badge.appendChild(time);
+        return badge;
+    }
+
+    _buildGenInfoCard({ title, accent, value, multiline = false, compact = false, seed = false }) {
+        const card = document.createElement("div");
+        card.className = `mjr-mfv-gen-card${seed ? " mjr-mfv-gen-card--seed" : ""}`;
+        card.style.setProperty("--mjr-mfv-gen-accent", accent || "#2196F3");
+        this._bindGenInfoCopy(card, () => String(value ?? ""));
+        const heading = document.createElement("div");
+        heading.className = "mjr-mfv-gen-card-title";
+        heading.textContent = title || "";
+        const content = document.createElement("div");
+        content.className = `mjr-mfv-gen-card-value${multiline ? " is-multiline" : ""}${compact ? " is-compact" : ""}`;
+        content.textContent = String(value ?? "");
+        card.appendChild(heading);
+        card.appendChild(content);
+        return card;
+    }
+
+    _buildGenInfoFieldsCard(title, accent, fields) {
+        const card = this._buildGenInfoCard({ title, accent, value: "" });
+        this._bindGenInfoCopy(card, () =>
+            (fields || [])
+                .map((field) => {
+                    const label = String(field?.label || "").trim();
+                    const text = String(field?.value ?? "").trim();
+                    return label && text && text !== "-" ? `${label}: ${text}` : "";
+                })
+                .filter(Boolean)
+                .join("\n"),
+        );
+        const value = card.querySelector(".mjr-mfv-gen-card-value");
+        value.replaceChildren();
+        value.classList.add("is-fields");
+        for (const field of fields || []) {
+            const label = String(field?.label || "").trim();
+            const text = String(field?.value ?? "").trim();
+            if (!label || !text || text === "-") continue;
+            const row = document.createElement("div");
+            row.className = "mjr-mfv-gen-field";
+            const key = document.createElement("span");
+            key.className = "mjr-mfv-gen-field-label";
+            key.textContent = label;
+            const val = document.createElement("span");
+            val.className = "mjr-mfv-gen-field-value";
+            val.textContent = text;
+            row.appendChild(key);
+            row.appendChild(val);
+            value.appendChild(row);
+        }
+        return value.childNodes.length ? card : null;
+    }
+
+    _bindGenInfoCopy(el, resolveText) {
+        if (!el || typeof resolveText !== "function") return;
+        el.title = "Click to copy";
+        el.addEventListener("click", async (event) => {
+            event.stopPropagation();
+            const text = String(resolveText() || "").trim();
+            if (!text) return;
+            try {
+                await navigator.clipboard?.writeText?.(text);
+                el.classList.add("mjr-mfv-gen-copy-flash");
+                setTimeout(() => el.classList.remove("mjr-mfv-gen-copy-flash"), 450);
+            } catch (e) {
+                console.debug?.(e);
+            }
+        });
     }
 
     _renderGraphMap() {
@@ -973,7 +1254,6 @@ export class FloatingViewer {
             this._contentEl.appendChild(_makeEmptyState());
             return;
         }
-        const mediaKind = _mediaKind(this._mediaA);
         const rawMediaEl = _buildMediaEl(this._mediaA);
         const mediaEl = this._trackMediaControls?.(rawMediaEl) || rawMediaEl;
         if (!mediaEl) {
@@ -983,26 +1263,14 @@ export class FloatingViewer {
         const wrap = document.createElement("div");
         wrap.className = "mjr-mfv-simple-container";
         wrap.appendChild(mediaEl);
-        // Audio controls stay unobstructed; everything else may show gen-info.
-        // ImageOps live previews never carry geninfo so this naturally no-ops.
-        if (mediaKind !== "audio") {
-            const infoFrag = this._buildGenInfoDOM(this._mediaA);
-            if (infoFrag) {
-                const ol = document.createElement("div");
-                ol.className = "mjr-mfv-geninfo";
-                if (_hasSimplePlayerControls(mediaEl)) {
-                    ol.classList.add("mjr-mfv-geninfo--above-player");
-                }
-                ol.appendChild(infoFrag);
-                wrap.appendChild(ol);
-            }
-        }
         this._contentEl.appendChild(wrap);
     }
 
     _renderAB() {
         const rawElA = this._mediaA ? _buildMediaEl(this._mediaA, { fill: true }) : null;
-        const rawElB = this._mediaB ? _buildMediaEl(this._mediaB, { fill: true }) : null;
+        const rawElB = this._mediaB
+            ? _buildMediaEl(this._mediaB, { fill: true, controls: false })
+            : null;
         const elA = this._trackMediaControls?.(rawElA) || rawElA;
         const elB = this._trackMediaControls?.(rawElB) || rawElB;
         const kindA = this._mediaA ? _mediaKind(this._mediaA) : "";
@@ -1118,7 +1386,7 @@ export class FloatingViewer {
 
     _renderSide() {
         const rawElA = this._mediaA ? _buildMediaEl(this._mediaA) : null;
-        const rawElB = this._mediaB ? _buildMediaEl(this._mediaB) : null;
+        const rawElB = this._mediaB ? _buildMediaEl(this._mediaB, { controls: false }) : null;
         const elA = this._trackMediaControls?.(rawElA) || rawElA;
         const elB = this._trackMediaControls?.(rawElB) || rawElB;
         const kindA = this._mediaA ? _mediaKind(this._mediaA) : "";
@@ -1194,7 +1462,7 @@ export class FloatingViewer {
             cell.className = "mjr-mfv-grid-cell";
             if (media) {
                 const kind = _mediaKind(media);
-                const rawEl = _buildMediaEl(media);
+                const rawEl = _buildMediaEl(media, { controls: label === "A" });
                 const el = this._trackMediaControls?.(rawEl) || rawEl;
                 if (el) cell.appendChild(el);
                 else cell.appendChild(_makeEmptyState("—"));
@@ -1410,6 +1678,7 @@ export class FloatingViewer {
         this._graphMapPanel = null;
         this.element = null;
         this._contentEl = null;
+        this._genSidebarEl = null;
         this._closeBtn = null;
         this._modeBtn = null;
         this._pinGroup = null;

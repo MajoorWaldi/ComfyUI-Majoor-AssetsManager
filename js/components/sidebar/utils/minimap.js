@@ -847,7 +847,11 @@ export function synthesizeWorkflowFromPromptGraph(promptGraph, options = null) {
         return s ? s : null;
     };
 
-    const isLink = (v) => Array.isArray(v) && v.length === 2 && Number.isFinite(Number(v[0]));
+    const isLink = (v) =>
+        Array.isArray(v) &&
+        v.length === 2 &&
+        toStrId(v[0]) != null &&
+        Number.isFinite(Number(v[1]));
 
     for (const [idRaw, node] of entries.slice(0, settings.maxNodes)) {
         if (!node || typeof node !== "object") continue;
@@ -855,6 +859,7 @@ export function synthesizeWorkflowFromPromptGraph(promptGraph, options = null) {
         if (!id) continue;
         const classType = String(node.class_type || node.type || node.classType || "").trim();
         const inputs = node.inputs && typeof node.inputs === "object" ? node.inputs : {};
+        const syntheticInputs = {};
 
         const deps = [];
         for (const v of Object.values(inputs)) {
@@ -863,6 +868,10 @@ export function synthesizeWorkflowFromPromptGraph(promptGraph, options = null) {
             if (!src) continue;
             deps.push(src);
             edges.push([src, id]);
+        }
+        for (const [inputName, v] of Object.entries(inputs)) {
+            if (isLink(v)) continue;
+            syntheticInputs[inputName] = v;
         }
         depsById.set(id, deps);
 
@@ -903,7 +912,8 @@ export function synthesizeWorkflowFromPromptGraph(promptGraph, options = null) {
             size: [180, 80],
             bgcolor,
             color,
-            inputs: [],
+            title: String(node?._meta?.title || node?.title || "").trim() || undefined,
+            inputs: syntheticInputs,
             outputs: [],
         });
     }

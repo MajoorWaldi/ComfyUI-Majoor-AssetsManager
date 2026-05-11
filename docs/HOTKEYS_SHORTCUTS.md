@@ -1,7 +1,7 @@
 # Majoor Assets Manager - Hotkeys & Keyboard Shortcuts Guide
 
 **Version**: 2.4.5
-**Last Updated**: April 14, 2026
+**Last Updated**: May 11, 2026
 
 ## Overview
 
@@ -146,37 +146,18 @@ These shortcuts apply when the **Majoor Floating Viewer** panel is open.
 | **C**    | Cycle compare modes: A/B, Side-by-side, Off (Simple mode) |
 | **K**    | Toggle KSampler denoising preview on or off               |
 | **L**    | Toggle Live Stream final-output following on or off       |
+| **N**    | Toggle selected-node Node Stream on or off                |
 
-### Navigation
+### Panel And Media Interaction
 
 | Shortcut        | Action                     |
 | --------------- | -------------------------- |
-| **Left Arrow**  | Previous Asset             |
-| **Right Arrow** | Next Asset                 |
-| **Up Arrow**    | Zoom In                    |
-| **Down Arrow**  | Zoom Out                   |
-| **0**           | Reset Zoom (Fit to Screen) |
-| **1**           | Actual Size (1:1 Pixel)    |
-| **Click+Drag**  | Pan Image (when zoomed)    |
 | **Mouse Wheel** | Zoom In/Out                |
+| **Click+Drag**  | Pan Image (when zoomed)    |
+| **Drag Header** | Move the floating panel    |
+| **Drag Edges**  | Resize the floating panel  |
 
-### Node Stream
-
-| Shortcut    | Action                                 |
-| ----------- | -------------------------------------- |
-| **N**       | Toggle selected-node preview streaming |
-| **Shift+N** | Follow selected node, when available   |
-
-### Info Overlay
-
-| Shortcut | Action                  |
-| -------- | ----------------------- |
-| **I**    | Toggle Gen Info Overlay |
-| **O**    | Toggle Overlays (all)   |
-| **P**    | Show Prompt Only        |
-| **S**    | Show Settings Only      |
-
-> In MFV, Gen Info stays as an overlay and automatically moves above the inline player controls when those controls are visible.
+Node Stream follows the currently selected compatible node when enabled. Grid compare and Graph Map are available from the MFV toolbar or mode menu rather than dedicated keyboard shortcuts.
 
 ### Video Controls (MFV)
 
@@ -187,14 +168,6 @@ These shortcuts apply when the **Majoor Floating Viewer** panel is open.
 | **Right Arrow** | Step forward one frame            |
 
 > Click once on the inline player surface to give it focus before using the playback shortcuts above.
-
-### Compare Mode (MFV)
-
-| Shortcut    | Action                                  |
-| ----------- | --------------------------------------- |
-| **Tab**     | Swap A/B Images                         |
-| **\\**      | Toggle Split View (vertical/horizontal) |
-| **Shift+S** | Save Comparison Snapshot                |
 
 ---
 
@@ -268,7 +241,7 @@ Video audio is automatically unmuted after first user interaction (play, seek, o
 | ----------------------- | ---------------------- |
 | **Drag Header**         | Move panel             |
 | **Drag Edges**          | Resize panel           |
-| **Click Outside**       | Close panel (optional) |
+| **Click Outside**       | Close open MFV popovers |
 | **Mouse Wheel**         | Zoom in/out            |
 | **Click+Drag** (zoomed) | Pan image              |
 
@@ -306,10 +279,11 @@ Grid:             G
 ### MFV Essentials
 
 ```
-Compare Mode:     M
+Toggle MFV:       V
+Compare Mode:     C
 Live Stream:      L
+KSampler Preview: K
 Node Stream:      N
-Gen Info:         I
 Play/Pause:       Space
 ```
 
@@ -357,5 +331,5 @@ All features are accessible via keyboard:
 ---
 
 _Hotkeys & Shortcuts Guide Version: 2.4.5_
-_Last Updated: April 14, 2026_
+_Last Updated: May 11, 2026_
 _Compatible with Majoor Assets Manager v2.4.4+_

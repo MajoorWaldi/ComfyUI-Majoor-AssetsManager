@@ -101,14 +101,35 @@ export function getNodeTypeLabel(node) {
 }
 
 export function getNodeParamEntries(node) {
-    const entries = [];
+    const entries = _getNodeValueParamEntries(node);
     const properties = node?.properties && typeof node.properties === "object" ? node.properties : null;
+
+    if (Array.isArray(node?._mjrSubgraphProxyParams)) {
+        for (const entry of node._mjrSubgraphProxyParams) {
+            const key = String(entry?.label || entry?.key || "").trim();
+            if (!key || entries.some(([existingKey]) => String(existingKey) === key)) continue;
+            entries.push([key, entry?.value]);
+        }
+    }
+
+    if (properties) {
+        for (const [key, value] of Object.entries(properties)) {
+            if (_propertyKeyIsTechnical(key)) continue;
+            if (value == null || typeof value === "object") continue;
+            entries.push([key, value]);
+        }
+    }
+
+    return entries.slice(0, 160);
+}
+
+function _getNodeValueParamEntries(node) {
+    const entries = [];
     const inputs = node?.inputs && typeof node.inputs === "object" ? node.inputs : null;
 
     if (inputs && !Array.isArray(inputs)) {
         for (const [key, value] of Object.entries(inputs)) {
-            if (Array.isArray(value)) continue;
-            if (value != null && typeof value === "object") continue;
+            if (_valueLooksLikePromptLink(value)) continue;
             entries.push([key, value]);
         }
     }
@@ -118,14 +139,7 @@ export function getNodeParamEntries(node) {
         entries.push([label, value]);
     }
 
-    if (properties) {
-        for (const [key, value] of Object.entries(properties)) {
-            if (value == null || typeof value === "object") continue;
-            entries.push([key, value]);
-        }
-    }
-
-    return entries.slice(0, 80);
+    return entries;
 }
 
 export function getNodeWidgetValueEntries(node) {
@@ -139,12 +153,13 @@ export function getNodeWidgetValueEntries(node) {
     const objectInputNames = getObjectInfoWidgetInputNames(objectInfo);
     const inputSlotNames = getNodeInputSlotNames(node);
     return widgetsValues.map((value, index) => {
+        const guessedLabel = _guessWidgetLabel(node, index, value);
         const label =
             widgets[index]?.name ||
             widgets[index]?.label ||
-            inputSlotNames[index] ||
             objectInputNames[index] ||
-            _guessWidgetLabel(node, index, value) ||
+            inputSlotNames[index] ||
+            guessedLabel ||
             `param ${index + 1}`;
         return { label, value, index };
     });
@@ -156,11 +171,16 @@ export function getNodeInputSlotNames(node) {
     const unlinkedWidgetLikeInputs = inputs.filter(
         (input) => !_inputHasLink(input) && _inputTypeLooksWidgetCapable(input?.type),
     );
-    const labelSource = widgetInputs.length
-        ? widgetInputs
-        : unlinkedWidgetLikeInputs.length
-          ? unlinkedWidgetLikeInputs
-          : inputs;
+    const labelSource = [];
+    const seen = new Set();
+    const addInput = (input) => {
+        const key = `${String(input?.name || "")}\u0000${String(input?.label || "")}\u0000${String(input?.link ?? "")}`;
+        if (seen.has(key)) return;
+        seen.add(key);
+        labelSource.push(input);
+    };
+    for (const input of widgetInputs) addInput(input);
+    for (const input of unlinkedWidgetLikeInputs) addInput(input);
     return labelSource.map((input) =>
         String(
             input?.label ||
@@ -170,6 +190,36 @@ export function getNodeInputSlotNames(node) {
                 input?.widget?.label ||
                 "",
         ).trim(),
+    );
+}
+
+function _valueLooksLikePromptLink(value) {
+    return (
+        Array.isArray(value) &&
+        value.length === 2 &&
+        String(value[0] ?? "").trim() !== "" &&
+        Number.isFinite(Number(value[1]))
+    );
+}
+
+function _propertyKeyIsTechnical(key) {
+    const text = String(key ?? "").trim();
+    const normalized = _normalizeParamName(text);
+    if (!normalized) return true;
+    return (
+        normalized === "cnr_id" ||
+        normalized === "ver" ||
+        normalized === "node_name_for_s&r" ||
+        normalized === "subgraph_name" ||
+        normalized === "subgraph_id" ||
+        normalized === "enabletabs" ||
+        normalized === "tabwidth" ||
+        normalized === "tabxoffset" ||
+        normalized === "hassecondtab" ||
+        normalized === "secondtabtext" ||
+        normalized === "secondtaboffset" ||
+        normalized === "secondtabwidth" ||
+        normalized.startsWith("ue_")
     );
 }
 
@@ -259,6 +309,24 @@ function _guessWidgetLabel(node, index, value) {
     const title = getNodeDisplayName(node);
     const haystack = `${type} ${title}`.toLowerCase();
     const valueText = String(value ?? "").toLowerCase();
+    if (haystack.includes("ksamplerselect")) return "sampler_name";
+    if (haystack.includes("manualsigmas")) return "sigmas";
+    if (haystack.includes("randomnoise")) return index === 0 ? "noise_seed" : index === 1 ? "control_after_generate" : null;
+    if (haystack.includes("cfgguider")) return "cfg";
+    if (haystack.includes("loraloadermodelonly")) return index === 0 ? "lora_name" : index === 1 ? "strength_model" : null;
+    if (haystack.includes("resizeimagesbylongeredge")) return "longer_edge";
+    if (haystack.includes("vaedecodetiled")) {
+        return ["tile_size", "overlap", "temporal_size", "temporal_overlap"][index] || null;
+    }
+    if (haystack.includes("textencoderloader") || haystack.includes("text encoder loader")) {
+        if (index === 0) return "text_encoder";
+        if (index === 1) return "ckpt_name";
+        if (index === 2) return "device";
+    }
+    if (/primitive(?:int|float|string|boolean)|constant/.test(haystack) && index === 0) {
+        const titleLabel = _normalizeParamName(title);
+        return titleLabel && titleLabel !== _normalizeParamName(type) ? titleLabel : "value";
+    }
     if (haystack.includes("cliptext") || haystack.includes("prompt")) return index === 0 ? "text" : null;
     if (valueText.includes(".safetensors") || valueText.includes(".ckpt")) return "model";
     if (typeof value === "number") {
@@ -327,7 +395,10 @@ function _decorateWorkflowSubgraphNames(workflow, visited = new WeakSet()) {
     for (const node of Array.isArray(workflow?.nodes) ? workflow.nodes : []) {
         _applySubgraphDefinitionMetadata(node, definitions);
         const subgraph = _getNodeSubgraph(workflow, node, definitions);
-        if (subgraph) _decorateWorkflowSubgraphNames(subgraph, visited);
+        if (subgraph) {
+            _decorateSubgraphProxyParams(node, subgraph);
+            _decorateWorkflowSubgraphNames(subgraph, visited);
+        }
     }
 }
 
@@ -343,6 +414,96 @@ function _applySubgraphDefinitionMetadata(node, definitions) {
     const props = node?.properties && typeof node.properties === "object" ? node.properties : (node.properties = {});
     if (!String(props.subgraph_name || "").trim()) props.subgraph_name = name;
     if (!String(props.subgraph_id || "").trim()) props.subgraph_id = rawType;
+}
+
+function _decorateSubgraphProxyParams(node, subgraph) {
+    const proxyWidgets = Array.isArray(node?.properties?.proxyWidgets) ? node.properties.proxyWidgets : [];
+    if (!proxyWidgets.length || !Array.isArray(subgraph?.nodes)) return;
+    const nodeById = new Map(
+        subgraph.nodes
+            .filter(Boolean)
+            .map((innerNode) => [String(innerNode?.id ?? innerNode?.ID ?? ""), innerNode]),
+    );
+    const exposedInputNames = _getExposedSubgraphWidgetInputNames(node);
+    const inputLabelsByTarget = _buildSubgraphInputLabelsByTarget(subgraph);
+    const params = [];
+    for (let index = 0; index < proxyWidgets.length; index += 1) {
+        const proxy = proxyWidgets[index];
+        const innerId = Array.isArray(proxy) ? proxy[0] : proxy?.nodeId ?? proxy?.node_id ?? proxy?.id;
+        const widgetName = Array.isArray(proxy) ? proxy[1] : proxy?.widget ?? proxy?.name ?? proxy?.widgetName;
+        const innerNode = nodeById.get(String(innerId ?? ""));
+        if (!innerNode) continue;
+        const innerEntries = getNodeParamEntries(innerNode);
+        if (!innerEntries.length) continue;
+        const matched =
+            innerEntries.find(([key]) => _normalizeParamName(key) === _normalizeParamName(widgetName)) ||
+            innerEntries.find(([key]) => _normalizeParamName(key) === "value") ||
+            (innerEntries.length === 1 ? innerEntries[0] : null);
+        if (!matched) continue;
+        const targetKey = `${String(innerId)}:${_getProxyTargetSlot(proxy, widgetName, matched[0])}`;
+        const label =
+            inputLabelsByTarget.get(targetKey) ||
+            inputLabelsByTarget.get(String(innerId)) ||
+            _getReadableProxyLabel(innerNode, matched[0], widgetName);
+        if (exposedInputNames.size && !exposedInputNames.has(_normalizeParamName(label))) continue;
+        params.push({ label, value: matched[1], innerNodeId: innerId, widgetName });
+    }
+    if (params.length) node._mjrSubgraphProxyParams = params;
+}
+
+function _getExposedSubgraphWidgetInputNames(node) {
+    const inputs = Array.isArray(node?.inputs) ? node.inputs : [];
+    const names = new Set();
+    for (const input of inputs) {
+        if (!_inputLooksLikeWidget(input)) continue;
+        const label = String(input?.label || input?.localized_name || input?.name || "").trim();
+        if (label) names.add(_normalizeParamName(label));
+    }
+    return names;
+}
+
+function _buildSubgraphInputLabelsByTarget(subgraph) {
+    const inputs = Array.isArray(subgraph?.inputs) ? subgraph.inputs : [];
+    const links = Array.isArray(subgraph?.links) ? subgraph.links : [];
+    const map = new Map();
+    for (const link of links) {
+        const originId = Array.isArray(link) ? link[1] : link?.origin_id ?? link?.originId ?? link?.from;
+        if (String(originId) !== "-10") continue;
+        const originSlot = Number(Array.isArray(link) ? link[2] : link?.origin_slot ?? link?.originSlot ?? link?.fromSlot);
+        const targetId = Array.isArray(link) ? link[3] : link?.target_id ?? link?.targetId ?? link?.to;
+        const targetSlot = Number(Array.isArray(link) ? link[4] : link?.target_slot ?? link?.targetSlot ?? link?.toSlot);
+        const input = Number.isFinite(originSlot) ? inputs[originSlot] : null;
+        const label = String(input?.label || input?.localized_name || input?.name || "").trim();
+        if (!label || targetId == null) continue;
+        if (_normalizeParamName(label) === "value") continue;
+        map.set(String(targetId), label);
+        if (Number.isFinite(targetSlot)) map.set(`${String(targetId)}:${targetSlot}`, label);
+    }
+    return map;
+}
+
+function _getProxyTargetSlot(proxy, widgetName, matchedKey) {
+    if (proxy && typeof proxy === "object" && !Array.isArray(proxy)) {
+        const slot = proxy.target_slot ?? proxy.targetSlot ?? proxy.slot;
+        if (Number.isFinite(Number(slot))) return Number(slot);
+    }
+    void widgetName;
+    void matchedKey;
+    return 0;
+}
+
+function _getReadableProxyLabel(innerNode, matchedKey, widgetName) {
+    const title = String(getNodeDisplayName(innerNode) || "").trim();
+    const key = String(matchedKey || widgetName || "").trim();
+    if (title && key && _normalizeParamName(key) !== "value") return `${title} ${key}`;
+    return title || key || "param";
+}
+
+function _normalizeParamName(value) {
+    return String(value ?? "")
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, "_");
 }
 
 function _getSubgraphDefinitions(workflow) {

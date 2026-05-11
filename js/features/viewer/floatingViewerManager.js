@@ -84,6 +84,7 @@ function _getDefaultPreviewActive() {
 let _liveActive = _getDefaultLiveActive();
 let _previewActive = _getDefaultPreviewActive();
 let _nodeStreamActive = false;
+let _nodeStreamSelectionState = null;
 let _selectionListenerBound = false;
 let _fetchAC = null; // AbortController for the latest in-flight batch fetch
 let _loadSeq = 0; // Sequence counter to discard stale _loadFromIds responses
@@ -175,6 +176,45 @@ function _syncViewerControls(inst) {
     inst.setLiveActive(_liveActive);
     inst.setPreviewActive(_previewActive);
     inst.setNodeStreamActive?.(NODE_STREAM_FEATURE_ENABLED ? _nodeStreamActive : false);
+}
+
+function _applyNodeStreamSelection(inst) {
+    if (!inst?.setNodeStreamSelection) return;
+    inst.setNodeStreamSelection(_nodeStreamSelectionState || null);
+}
+
+function _streamAssetIntoCurrentViewerSlots(inst, fileData) {
+    if (!inst) return;
+    const mode = inst._mode;
+    const inCompare = mode === MFV_MODES.AB || mode === MFV_MODES.SIDE || mode === MFV_MODES.GRID;
+    if (!inCompare) {
+        inst.loadMediaA(fileData, { autoMode: true });
+        return;
+    }
+
+    const pins = inst.getPinnedSlots();
+    if (mode === MFV_MODES.GRID) {
+        const freeSlot = ["A", "B", "C", "D"].find((slot) => !pins.has(slot));
+        if (!freeSlot) return;
+        const slotMedia = {
+            A: inst._mediaA,
+            B: inst._mediaB,
+            C: inst._mediaC,
+            D: inst._mediaD,
+        };
+        slotMedia[freeSlot] = fileData;
+        inst.loadMediaQuad(slotMedia.A, slotMedia.B, slotMedia.C, slotMedia.D);
+        return;
+    }
+
+    const pinA = pins.has("A");
+    const pinB = pins.has("B");
+    if (pinA && pinB && inst._mediaA && inst._mediaB) return;
+    if (pinB) {
+        inst.loadMediaPair(fileData, inst._mediaB);
+        return;
+    }
+    inst.loadMediaPair(inst._mediaA, fileData);
 }
 
 /**
@@ -553,6 +593,7 @@ export const floatingViewerManager = {
             }
         }
         _unbindSelectionListener();
+            _applyNodeStreamSelection(_instance);
         _unbindNodeSelectionListener();
         _emitVisibilityChanged(false);
     },
@@ -615,30 +656,7 @@ export const floatingViewerManager = {
         _syncViewerControls(inst);
         _bindSelectionListener();
 
-        const mode = inst._mode;
-        const inCompare =
-            mode === MFV_MODES.AB || mode === MFV_MODES.SIDE || mode === MFV_MODES.GRID;
-        if (inCompare) {
-            // In compare/grid mode: route the live stream to the first non-pinned slot.
-            const pins = inst.getPinnedSlots();
-            if (mode === MFV_MODES.GRID) {
-                const slotMedia = {
-                    A: inst._mediaA,
-                    B: inst._mediaB,
-                    C: inst._mediaC,
-                    D: inst._mediaD,
-                };
-                const freeSlot = ["A", "B", "C", "D"].find((s) => !pins.has(s)) || "A";
-                slotMedia[freeSlot] = fileData;
-                inst.loadMediaQuad(slotMedia.A, slotMedia.B, slotMedia.C, slotMedia.D);
-            } else if (pins.has("B")) {
-                inst.loadMediaPair(fileData, inst._mediaB); // B pinned — stream to A
-            } else {
-                inst.loadMediaPair(inst._mediaA, fileData); // A pinned (or no pin) — stream to B
-            }
-        } else {
-            inst.loadMediaA(fileData, { autoMode: true });
-        }
+        _streamAssetIntoCurrentViewerSlots(inst, fileData);
 
         if (!wasVisible) _emitVisibilityChanged(true);
     },
@@ -708,17 +726,26 @@ export const floatingViewerManager = {
         if (!NODE_STREAM_FEATURE_ENABLED) {
             void active;
             _nodeStreamActive = false;
+            _nodeStreamSelectionState = null;
             if (_setControllerNodeStreamActive) _setControllerNodeStreamActive(false);
             _instance?.setNodeStreamActive?.(false);
             return;
         }
 
         _nodeStreamActive = Boolean(active);
+        if (!_nodeStreamActive) {
+            _nodeStreamSelectionState = null;
+        }
         // Lazy-load NodeStreamController then apply state.
         void _loadNodeStreamController().then(() => {
             if (_setControllerNodeStreamActive) _setControllerNodeStreamActive(_nodeStreamActive);
         });
         _instance?.setNodeStreamActive?.(_nodeStreamActive);
+        if (!_nodeStreamActive) {
+            _instance?.setNodeStreamSelection?.(null);
+        } else if (_instance) {
+            _applyNodeStreamSelection(_instance);
+        }
     },
 
     getNodeStreamActive() {
@@ -735,13 +762,11 @@ export const floatingViewerManager = {
      */
     setNodeStreamSelection(nodeId, classType, title) {
         if (!NODE_STREAM_FEATURE_ENABLED) return;
+        _nodeStreamSelectionState =
+            nodeId == null || nodeId === "" ? null : { nodeId, classType, title };
         const inst = _instance;
         if (!inst) return;
-        if (nodeId == null || nodeId === "") {
-            inst.setNodeStreamSelection?.(null);
-            return;
-        }
-        inst.setNodeStreamSelection?.({ nodeId, classType, title });
+        _applyNodeStreamSelection(inst);
     },
 
     /**
@@ -762,30 +787,9 @@ export const floatingViewerManager = {
             _bindSelectionListener();
         }
         _syncViewerControls(inst);
+        _applyNodeStreamSelection(inst);
 
-        const mode = inst._mode;
-        const inCompare =
-            mode === MFV_MODES.AB || mode === MFV_MODES.SIDE || mode === MFV_MODES.GRID;
-        if (inCompare) {
-            const pins = inst.getPinnedSlots();
-            if (mode === MFV_MODES.GRID) {
-                const slotMedia = {
-                    A: inst._mediaA,
-                    B: inst._mediaB,
-                    C: inst._mediaC,
-                    D: inst._mediaD,
-                };
-                const freeSlot = ["A", "B", "C", "D"].find((s) => !pins.has(s)) || "A";
-                slotMedia[freeSlot] = fileData;
-                inst.loadMediaQuad(slotMedia.A, slotMedia.B, slotMedia.C, slotMedia.D);
-            } else if (pins.has("B")) {
-                inst.loadMediaPair(fileData, inst._mediaB);
-            } else {
-                inst.loadMediaPair(inst._mediaA, fileData);
-            }
-        } else {
-            inst.loadMediaA(fileData, { autoMode: true });
-        }
+        _streamAssetIntoCurrentViewerSlots(inst, fileData);
 
         if (!wasVisible) _emitVisibilityChanged(true);
     },

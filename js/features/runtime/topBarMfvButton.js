@@ -129,8 +129,8 @@ function createLabel(text = "Viewer") {
 function updateButtonState(button) {
     if (!button) return;
     const tooltipLabel = _visible
-        ? t("tooltip.closeMFV", "Close Floating Viewer")
-        : t("tooltip.openMFV", "Open Floating Viewer");
+        ? t("tooltip.closeMFV", "Close Majoor Floating Viewer")
+        : t("tooltip.openMFV", "Open Majoor Floating Viewer");
     setTooltipHint(button, tooltipLabel, MFV_TOOLTIP_HINT, {
         ariaLabel: tooltipLabel,
     });
