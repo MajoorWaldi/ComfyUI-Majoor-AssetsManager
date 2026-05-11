@@ -8,6 +8,7 @@ const SLOT_ATTR = "data-mjr-topbar-mfv-slot";
 const BUTTON_LABEL_KEY = "label.floatingViewer";
 const BUTTON_LABEL_FALLBACK = "Viewer";
 const MFV_TOOLTIP_HINT = "V";
+const MFV_ICON = "〽️";
 
 let _observer = null;
 let _observedTarget = null;
@@ -110,9 +111,10 @@ function ensureSlotMounted(container) {
     return slot;
 }
 
-function createIcon(className = "pi pi-eye") {
-    const icon = document.createElement("i");
-    icon.className = className;
+function createIcon() {
+    const icon = document.createElement("span");
+    icon.className = "mjr-topbar-mfv-icon";
+    icon.textContent = MFV_ICON;
     icon.setAttribute("aria-hidden", "true");
     return icon;
 }
@@ -136,7 +138,7 @@ function updateButtonState(button) {
     button.classList.toggle("primary", _visible);
     button.classList.toggle("mjr-topbar-mfv-active", _visible);
     button.replaceChildren(
-        createIcon(_visible ? "pi pi-eye-slash" : "pi pi-eye"),
+        createIcon(),
         createLabel(t(BUTTON_LABEL_KEY, BUTTON_LABEL_FALLBACK)),
     );
 }
@@ -161,7 +163,7 @@ function createButton() {
     button.style.height = "32px";
     button.style.minWidth = "32px";
     button.style.padding = "0 10px";
-    button.style.gap = "6px";
+    button.style.gap = "10px";
     button.style.display = "inline-flex";
     button.style.alignItems = "center";
     button.style.justifyContent = "center";
