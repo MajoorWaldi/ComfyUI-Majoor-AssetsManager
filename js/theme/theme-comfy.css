@@ -4207,6 +4207,9 @@ body.mjr-mfv-popout-body {
 }
 
 .mjr-mfv-header-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
     font-size: 12px;
     font-weight: 600;
     opacity: 0.78;

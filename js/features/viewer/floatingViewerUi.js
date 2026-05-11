@@ -226,7 +226,15 @@ export function buildFloatingViewerHeader(viewer) {
     const title = document.createElement("span");
     title.className = "mjr-mfv-header-title";
     title.id = viewer._titleId;
-    title.textContent = "〽️ Majoor Floating Viewer";
+    const titleIcon = document.createElement("span");
+    titleIcon.className = "mjr-mfv-header-title-icon";
+    titleIcon.textContent = "〽️";
+    titleIcon.setAttribute("aria-hidden", "true");
+
+    const titleText = document.createElement("span");
+    titleText.textContent = "Majoor Floating Viewer";
+
+    title.append(titleIcon, titleText);
 
     const closeBtn = document.createElement("button");
     viewer._closeBtn = closeBtn;
