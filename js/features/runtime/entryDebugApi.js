@@ -29,12 +29,8 @@ export function exposeDebugApis({ resolveNodeStreamModule }) {
         };
 
     window.MajoorNodeStream = {
-        registerAdapter: nodeStreamApi("registerAdapter"),
+        mode: "selection-only",
         listAdapters: nodeStreamApi("listAdapters"),
-        async createAdapter(config) {
-            const { createAdapter } = await import("../viewer/nodeStream/adapters/BaseAdapter.js");
-            return createAdapter(config);
-        },
         async getKnownNodeSets() {
             const { getKnownNodeSets } =
                 await import("../viewer/nodeStream/adapters/KnownNodesAdapter.js");
@@ -42,6 +38,6 @@ export function exposeDebugApis({ resolveNodeStreamModule }) {
         },
     };
     console.debug?.(
-        "[Majoor] NodeStream API: window.MajoorNodeStream.registerAdapter(adapter), .createAdapter(config), .listAdapters()",
+        "[Majoor] NodeStream API: window.MajoorNodeStream.mode, .listAdapters(), .getKnownNodeSets()",
     );
 }

@@ -4906,6 +4906,224 @@ body.mjr-mfv-popout-body {
     min-height: 0;
 }
 
+.mjr-mfv-gen-sidebar {
+    display: none;
+    flex: 0 0 320px;
+    width: 320px;
+    min-width: 210px;
+    max-width: min(42%, 420px);
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 10px;
+    border-left: 1px solid var(--mjr-border, rgba(255, 255, 255, 0.12));
+    background: rgba(18, 18, 20, 0.96);
+    color: rgba(255, 255, 255, 0.88);
+}
+
+.mjr-mfv-gen-sidebar.open {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.mjr-mfv-content-wrapper[data-sidebar-pos="left"] .mjr-mfv-gen-sidebar {
+    border-left: 1px solid var(--mjr-border, rgba(255, 255, 255, 0.12));
+    border-right: none;
+}
+
+.mjr-mfv-content-wrapper[data-sidebar-pos="bottom"] .mjr-mfv-gen-sidebar {
+    flex: 0 0 180px;
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+    max-height: 40%;
+    border-left: none;
+    border-top: 1px solid var(--mjr-border, rgba(255, 255, 255, 0.12));
+}
+
+.mjr-mfv-gen-sidebar-title {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0;
+    color: rgba(255, 255, 255, 0.94);
+}
+
+.mjr-mfv-gen-sidebar-section {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.mjr-mfv-gen-sidebar-section:first-of-type {
+    padding-top: 0;
+    border-top: none;
+}
+
+.mjr-mfv-gen-sidebar-heading {
+    font-size: 11px;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.72);
+}
+
+.mjr-mfv-gen-sidebar-body {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    font-size: 12px;
+    line-height: 1.45;
+    word-break: break-word;
+}
+
+.mjr-mfv-gen-time-badge {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 10px;
+    border: 1px solid rgba(224, 255, 122, 0.42);
+    border-radius: 999px;
+    background: linear-gradient(135deg, rgba(224, 255, 122, 0.16), rgba(76, 175, 80, 0.10));
+    box-shadow: 0 0 0 1px rgba(224, 255, 122, 0.12) inset;
+    cursor: copy;
+    transition: background 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.mjr-mfv-gen-time-label {
+    color: rgba(255, 255, 255, 0.72);
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.mjr-mfv-gen-time-value {
+    color: #e0ff7a;
+    font-size: 13px;
+    font-weight: 800;
+    font-family: Consolas, Monaco, monospace;
+}
+
+.mjr-mfv-gen-card {
+    --mjr-mfv-gen-accent: #2196F3;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px;
+    border: 1px solid color-mix(in srgb, var(--mjr-mfv-gen-accent) 45%, transparent);
+    border-radius: 6px;
+    background:
+        linear-gradient(
+            135deg,
+            color-mix(in srgb, var(--mjr-mfv-gen-accent) 16%, transparent) 0%,
+            color-mix(in srgb, var(--mjr-mfv-gen-accent) 8%, transparent) 100%
+    );
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--mjr-mfv-gen-accent) 14%, transparent) inset;
+    cursor: copy;
+    transition: background 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.mjr-mfv-gen-card--seed {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    border-width: 2px;
+}
+
+.mjr-mfv-gen-card:hover,
+.mjr-mfv-gen-time-badge:hover {
+    border-color: color-mix(in srgb, var(--mjr-mfv-gen-accent, #e0ff7a) 70%, transparent);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--mjr-mfv-gen-accent, #e0ff7a) 24%, transparent) inset;
+}
+
+.mjr-mfv-gen-copy-flash {
+    background: rgba(76, 175, 80, 0.28) !important;
+}
+
+.mjr-mfv-gen-card-title {
+    color: var(--mjr-mfv-gen-accent);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.mjr-mfv-gen-card-value {
+    color: var(--fg-color, rgba(255, 255, 255, 0.92));
+    font-size: 12px;
+    min-width: 0;
+    word-break: break-word;
+}
+
+.mjr-mfv-gen-card-value.is-compact {
+    text-align: right;
+    font-weight: 700;
+}
+
+.mjr-mfv-gen-card-value.is-multiline {
+    white-space: pre-wrap;
+}
+
+.mjr-mfv-gen-card--seed .mjr-mfv-gen-card-value {
+    font-size: 18px;
+    font-weight: 700;
+    font-family: Consolas, Monaco, monospace;
+    letter-spacing: 1px;
+    color: #fff;
+}
+
+.mjr-mfv-gen-card-value.is-fields {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+}
+
+.mjr-mfv-gen-field {
+    display: grid;
+    grid-template-columns: minmax(78px, auto) 1fr;
+    gap: 10px;
+    align-items: start;
+    min-width: 0;
+}
+
+.mjr-mfv-gen-field-label {
+    color: var(--mjr-muted, rgba(180, 180, 180, 0.72));
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.mjr-mfv-gen-field-value {
+    color: var(--fg-color, rgba(255, 255, 255, 0.95));
+    min-width: 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.mjr-mfv-gen-sidebar-body strong {
+    font-weight: 600;
+    margin-right: 4px;
+    color: rgba(255, 255, 255, 0.95);
+}
+
+.mjr-mfv-gen-sidebar-body [data-field="prompt"] strong { color: #7ec8ff; }
+.mjr-mfv-gen-sidebar-body [data-field="seed"] strong { color: #ffd47a; }
+.mjr-mfv-gen-sidebar-body [data-field="model"] strong { color: #7dda8a; }
+.mjr-mfv-gen-sidebar-body [data-field="lora"] strong { color: #d48cff; }
+.mjr-mfv-gen-sidebar-body [data-field="sampler"] strong { color: #ff9f7a; }
+.mjr-mfv-gen-sidebar-body [data-field="scheduler"] strong { color: #ff7a9f; }
+.mjr-mfv-gen-sidebar-body [data-field="cfg"] strong { color: #7a9fff; }
+.mjr-mfv-gen-sidebar-body [data-field="step"] strong { color: #7affd4; }
+.mjr-mfv-gen-sidebar-body [data-field="genTime"] strong { color: #e0ff7a; }
+
+.mjr-mfv-gen-sidebar-body div {
+    margin-bottom: 5px;
+}
+
+.mjr-mfv-gen-sidebar-body div:last-child {
+    margin-bottom: 0;
+}
+
 .mjr-mfv-overlay-canvas {
     position: absolute;
     inset: 0;
@@ -6311,6 +6529,7 @@ body.mjr-mfv-popout-body {
 .mjr-mfv-geninfo,
 .mjr-mfv-geninfo-a,
 .mjr-mfv-geninfo-b {
+    display: none;
     position: absolute;
     left: 8px;
     right: 8px;
@@ -6502,6 +6721,7 @@ body.mjr-mfv-popout-body {
 /* Gen info overlays for grid cells C and D */
 .mjr-mfv-geninfo-c,
 .mjr-mfv-geninfo-d {
+    display: none;
     position: absolute;
     left: 8px;
     right: 8px;

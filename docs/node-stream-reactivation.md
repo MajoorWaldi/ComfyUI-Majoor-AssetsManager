@@ -21,7 +21,7 @@ If `NODE_STREAM_FEATURE_ENABLED` is set to `false`:
 - the Floating Viewer toolbar does not show the Node Stream button,
 - the `N` shortcut does nothing,
 - `floatingViewerManager` ignores Node Stream activation and payloads,
-- `entry.js` does not initialize the controller or expose `window.MajoorNodeStream`,
+- `entry.js` does not initialize the controller or expose the inspection-only `window.MajoorNodeStream` helpers,
 - `NodeStreamController` stays inert even if called directly.
 
 ## Files Involved
@@ -81,6 +81,9 @@ Use the real local stack and verify these cases from the ComfyUI canvas:
 - Trigger: user selects a node while Node Stream is active.
 - Displays: frontend-observable media such as `node.imgs`, widget `<img>`/`<video>`,
   load-widget filenames, downstream preview/save media, and ImageOps live canvases.
+- Public debug surface: `window.MajoorNodeStream.mode`, `.listAdapters()`, and
+  `.getKnownNodeSets()` are inspection helpers only; third-party adapter
+  registration is not part of the active runtime contract.
 - Limitation: cannot read backend tensors (`IMAGE`, `MASK`, `LATENT`) before node
   execution. For ImageOps, the no-queue live path is the frontend canvas, not the
   Python tensor output.

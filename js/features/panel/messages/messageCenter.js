@@ -153,7 +153,7 @@ const BUILTIN_PANEL_MESSAGES = Object.freeze([
         categoryKey: "msg.category.information",
         level: "warning",
         createdAt: Date.parse("2026-04-12T10:00:00Z"),
-        body: "Generation time (generation_time_ms) is computed at runtime and stored in the index database. After a Reset Index or Delete DB, this value is lost unless it was persisted inside the file itself. To keep generation time across resets, use the Majoor Save Image 💾 or Majoor Save Video 🎬 nodes instead of the built-in Save nodes — they embed generation_time_ms directly in PNG text chunks and MP4 container metadata, so it is re-extracted automatically on re-index.",
+        body: "Generation time (generation_time_ms) is computed at runtime and stored in the index database. After a Reset Index or Delete DB, this value is lost unless it was persisted inside the file itself. To keep generation time across resets, use the 〽️ Majoor Save Image 💾 or 〽️ Majoor Save Video 🎬 nodes instead of the built-in Save nodes — they embed generation_time_ms directly in PNG text chunks and MP4 container metadata, so it is re-extracted automatically on re-index.",
         bodyKey: "msg.tip.body.generationTimePersistence",
         actionLabel: "Custom Nodes Docs",
         actionLabelKey: "label.customNodesDocs",
@@ -168,7 +168,7 @@ const BUILTIN_PANEL_MESSAGES = Object.freeze([
         categoryKey: "msg.category.information",
         level: "info",
         createdAt: Date.parse("2026-04-12T10:05:00Z"),
-        body: "A new Viewer button now appears in the ComfyUI top action bar. Click it to toggle the Majoor Floating Viewer on or off without opening the sidebar. The button highlights when the viewer is active and updates in real time.",
+        body: "A new MFV button now appears in the ComfyUI top action bar. Click it to toggle the Majoor Floating Viewer on or off without opening the sidebar. The button uses the same stacked-images icon as the rest of the MFV entry points, highlights when the viewer is active, and updates in real time.",
         bodyKey: "msg.whatsNew.body.topbarMfvButton",
     },
     {

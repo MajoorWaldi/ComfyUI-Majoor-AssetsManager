@@ -81,7 +81,7 @@ There are several ways to open the Majoor Floating Viewer:
 #### Method 1: Toolbar Button
 
 1. Open the Assets Manager panel
-2. Click the **Floating Viewer** button in the toolbar (icon: overlapping rectangles)
+2. Click the **MFV** button in the toolbar (icon: stacked images)
 3. The MFV panel appears on screen
 
 #### Method 2: Context Menu
@@ -132,7 +132,7 @@ There are several ways to open the Majoor Floating Viewer:
 
 ### Compare Modes
 
-The MFV supports three comparison modes:
+The MFV supports a single-asset view plus three comparison workflows:
 
 #### Simple Mode (Default)
 
@@ -140,7 +140,7 @@ The MFV supports three comparison modes:
 - Full resolution preview
 - Standard navigation
 
-**Shortcut**: Press **M** until Simple mode is active
+**Shortcut**: Press **C** until Simple mode is active again
 
 #### A/B Compare Mode
 
@@ -150,10 +150,10 @@ The MFV supports three comparison modes:
 
 **How to Use**:
 
-1. Enable A/B Compare mode (press **M**)
+1. Enable A/B Compare mode (press **C** from Simple mode)
 2. Click first asset → Set as A
 3. Click second asset → Set as B
-4. Click or press **Tab** to toggle between them
+4. Use **C** again later to move on to Side-by-Side or back to Simple mode
 
 **Use Cases**:
 
@@ -169,10 +169,10 @@ The MFV supports three comparison modes:
 
 **How to Use**:
 
-1. Enable Side-by-Side mode (press **M**)
+1. Enable Side-by-Side mode (press **C** until Side-by-Side is active)
 2. Select two assets
 3. Both display side by side
-4. Use **\\** to toggle split orientation
+4. Use the mode button or toolbar controls if you want to move into Grid compare
 
 **Use Cases**:
 
@@ -332,13 +332,6 @@ You can change where the Node Parameters sidebar appears inside the Floating Vie
 | **K**    | Toggle KSampler denoising preview on or off               |
 | **L**    | Toggle Live Stream final-output following on or off       |
 | **N**    | Toggle Node Stream selected-node previewing               |
-
-#### Compare Mode
-
-| Shortcut | Action                   |
-| -------- | ------------------------ |
-| **Tab**  | Swap A/B Images          |
-| **\\**   | Toggle Split Orientation |
 
 #### Video Controls
 

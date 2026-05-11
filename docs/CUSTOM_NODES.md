@@ -6,11 +6,11 @@ Majoor Assets Manager provides two ComfyUI nodes that embed **generation timing 
 
 ---
 
-## Majoor Save Image 💾
+## 〽️ Majoor Save Image 💾
 
 **Node name**: `MajoorSaveImage`
 **Category**: Majoor
-**Display name**: Majoor Save Image 💾
+**Display name**: 〽️ Majoor Save Image 💾
 
 Drop-in replacement for ComfyUI's built-in `SaveImage` node. Saves PNG files to the standard output directory with `generation_time_ms` persisted in the PNG text chunks.
 
@@ -53,11 +53,11 @@ Returns a UI result with the list of saved images (filename, subfolder, type) fo
 
 ---
 
-## Majoor Save Video 🎬
+## 〽️ Majoor Save Video 🎬
 
 **Node name**: `MajoorSaveVideo`
 **Category**: Majoor
-**Display name**: Majoor Save Video 🎬
+**Display name**: 〽️ Majoor Save Video 🎬
 
 Saves a **VIDEO** input or a batch of **IMAGE** frames as a video file. Uses **PyAV** for MP4 encoding (same approach as ComfyUI's native `SaveVideo` node) and **Pillow** for GIF/WebP.
 

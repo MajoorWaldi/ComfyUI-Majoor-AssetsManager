@@ -79,4 +79,22 @@ describe("floating viewer media player bridge", () => {
         );
         expect(mountFloatingViewerSimplePlayerMock).not.toHaveBeenCalled();
     });
+
+    it("can render playable compare followers without duplicate controls", async () => {
+        const { buildFloatingViewerMediaElement } =
+            await import("../features/viewer/floatingViewerMedia.js");
+
+        const video = buildFloatingViewerMediaElement(
+            {
+                filename: "compare-b.mp4",
+                kind: "video",
+            },
+            { controls: false },
+        );
+
+        expect(video).toBeInstanceOf(HTMLVideoElement);
+        expect(video.classList.contains("mjr-mfv-media")).toBe(true);
+        expect(video.controls).toBe(false);
+        expect(mountUnifiedMediaControlsMock).not.toHaveBeenCalled();
+    });
 });

@@ -8,8 +8,9 @@
  * Adapters are matched in priority order (highest first).  The first adapter
  * whose `canHandle(classType, outputs)` returns true wins.
  *
- * Third-party code can register additional adapters at any time via
- * `registerAdapter()` — no existing code needs to change.
+ * The registry remains available for built-in compatibility coverage and
+ * debug inspection, but third-party adapter registration is not part of the
+ * active selection-only Node Stream public contract.
  */
 
 /** @typedef {import("./adapters/BaseAdapter.js").NodeStreamAdapter} NodeStreamAdapter */
@@ -29,7 +30,7 @@ function _ensureSorted() {
 // ── Public API ────────────────────────────────────────────────────────────────
 
 /**
- * Register a new adapter.  Duplicates (same `name`) are silently replaced.
+ * Register a new adapter for internal compatibility/debug purposes.
  * @param {NodeStreamAdapter} adapter
  */
 export function registerAdapter(adapter) {
@@ -60,7 +61,7 @@ export function unregisterAdapter(name) {
 }
 
 /**
- * Find the best adapter for a given node class type and its outputs.
+ * Find the best adapter in the compatibility registry.
  * @param {string} classType  ComfyUI node class_type (e.g. "SaveImage", "LayerColorCorrection")
  * @param {object} outputs    The outputs object from onNodeOutputsUpdated for this node
  * @returns {NodeStreamAdapter | null}

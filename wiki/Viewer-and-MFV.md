@@ -37,7 +37,7 @@ Use MFV when you need:
 
 - real-time monitoring during generation
 - faster compare workflows
-- lighter-weight node tracking and floating access
+- lighter-weight selected-node streaming and floating access
 
 ## Common Controls Worth Learning
 
@@ -47,8 +47,8 @@ Across the viewer workflows, a few controls provide most of the value quickly:
 - click-drag for pan
 - `Esc` to close
 - `Space` for video playback
-- `Ctrl+V` / `Cmd+V` to toggle MFV
-- `L` and `N` inside MFV for live stream and node tracking
+- `V` to toggle MFV
+- `C`, `K`, `L`, and `N` inside MFV for compare, preview, live stream, and selected-node streaming
 
 ## Related Docs
 

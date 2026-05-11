@@ -18,10 +18,42 @@ let _initialized = false;
 let _genOutputHandler = null;
 let _previewHandler = null;
 let _previewWithMetaHandler = null;
-let _previewWithMetaFired = false;
 let _apiRef = null;
 let _currentJobId = null;
 let _previewHookGeneration = 0;
+let _previewWithMetaLastAt = 0;
+
+const PREVIEW_META_SUPPRESSION_MS = 400;
+const IMAGE_EXTS = new Set([".png", ".jpg", ".jpeg", ".webp", ".avif", ".gif", ".bmp"]);
+const VIDEO_EXTS = new Set([".mp4", ".webm", ".mov", ".avi", ".mkv", ".m4v"]);
+const AUDIO_EXTS = new Set([".mp3", ".wav", ".flac", ".ogg", ".m4a", ".aac", ".opus"]);
+const MODEL3D_EXTS = new Set([".glb", ".gltf", ".obj", ".fbx", ".stl", ".usdz"]);
+
+function _getFileExt(filename) {
+    const safeName = String(filename || "").trim().toLowerCase();
+    const dotIndex = safeName.lastIndexOf(".");
+    return dotIndex >= 0 ? safeName.slice(dotIndex) : "";
+}
+
+function _isPreviewableGenerationFile(file) {
+    const kind = String(
+        file?.kind || file?.asset_type || file?.media_type || file?.type || "",
+    ).toLowerCase();
+    if (kind === "image" || kind === "video" || kind === "audio" || kind === "model3d") {
+        return true;
+    }
+    const ext = _getFileExt(file?.filename || file?.name || "");
+    return (
+        IMAGE_EXTS.has(ext) ||
+        VIDEO_EXTS.has(ext) ||
+        AUDIO_EXTS.has(ext) ||
+        MODEL3D_EXTS.has(ext)
+    );
+}
+
+function _hasRecentPreviewWithMeta() {
+    return Date.now() - _previewWithMetaLastAt <= PREVIEW_META_SUPPRESSION_MS;
+}
 
 async function _hookPreviewApi(app) {
     const hookGeneration = ++_previewHookGeneration;
@@ -37,7 +69,7 @@ async function _hookPreviewApi(app) {
         _apiRef = api;
 
         _previewWithMetaHandler = (e) => {
-            _previewWithMetaFired = true;
+            _previewWithMetaLastAt = Date.now();
             try {
                 const { blob, nodeId, jobId } = e.detail || {};
                 if (!blob || !(blob instanceof Blob)) return;
@@ -53,7 +85,7 @@ async function _hookPreviewApi(app) {
 
         _previewHandler = (e) => {
             try {
-                if (_previewWithMetaFired) return;
+                if (_hasRecentPreviewWithMeta()) return;
                 const blob = e.detail;
                 if (!blob || !(blob instanceof Blob)) return;
                 floatingViewerManager.feedPreviewBlob(blob);
@@ -90,7 +122,7 @@ function _detachPreviewApiListeners() {
     }
     _previewHandler = null;
     _previewWithMetaHandler = null;
-    _previewWithMetaFired = false;
+    _previewWithMetaLastAt = 0;
     _apiRef = null;
 }
 
@@ -100,17 +132,11 @@ export function setCurrentJobId(jobId) {
 
 function _pickLatest(files) {
     if (!Array.isArray(files) || !files.length) return null;
-    const images = files.filter((f) => {
-        const name = String(f?.filename || "").toLowerCase();
-        return (
-            name.endsWith(".png") ||
-            name.endsWith(".jpg") ||
-            name.endsWith(".jpeg") ||
-            name.endsWith(".webp") ||
-            name.endsWith(".avif")
-        );
-    });
-    return images[images.length - 1] ?? files[files.length - 1];
+    for (let index = files.length - 1; index >= 0; index -= 1) {
+        const file = files[index];
+        if (_isPreviewableGenerationFile(file)) return file;
+    }
+    return files[files.length - 1];
 }
 
 export function initLiveStreamTracker(app) {

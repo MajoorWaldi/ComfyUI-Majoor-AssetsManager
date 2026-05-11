@@ -27,7 +27,7 @@ if (NODE_STREAM_FEATURE_ENABLED) {
     registerAdapter(VideoAdapter);
 }
 
-/** @type {"selected" | "pinned" | "all"} */
+/** @type {"selected" | "pinned"} */
 let _watchMode = "selected";
 
 /** @type {string | null} */
@@ -277,15 +277,19 @@ function _getDownstreamNodes(node) {
     return downstreamNodes;
 }
 
+function _emitNodeStatus(node) {
+    const nodeId = node ? String(node.id ?? "") : "";
+    const classType = node ? _classTypeOf(node) || "" : "";
+    _statusCallback?.(nodeId, classType);
+}
+
 function _syncSelectedNodeState() {
     const nodes = _getSelectedCanvasNodes();
     const nextNode = nodes[0] || null;
     const nextNodeId = nextNode ? String(nextNode.id ?? "") : null;
     if (nextNodeId !== _selectedNodeId) {
         _selectedNodeId = nextNodeId;
-        if (nextNodeId) {
-            _statusCallback?.(nextNodeId, _classTypeOf(nextNode) || "");
-        }
+        _emitNodeStatus(nextNode);
     } else if (!nextNodeId) {
         _selectedNodeId = null;
     }
@@ -448,12 +452,13 @@ function _emitPreviewFromWatchedNode({ force = false } = {}) {
     const node = _getWatchedNode();
     const nodeId = node ? String(node.id ?? "") : null;
     if (!nodeId) {
+        _emitNodeStatus(null);
         _resetPreviewState();
         return;
     }
 
     if (_watchMode === "pinned") {
-        _statusCallback?.(nodeId, _classTypeOf(node) || "");
+        _emitNodeStatus(node);
     }
 
     const fileData = _resolvePreviewForNode(node);
@@ -568,12 +573,13 @@ export function setWatchMode(mode) {
         return;
     }
 
-    if (mode === "selected" || mode === "pinned" || mode === "all") {
-        _watchMode = mode;
-        _resetPreviewState();
-        if (_active) {
-            _emitPreviewFromWatchedNode({ force: true });
-        }
+    const nextMode = mode === "pinned" ? "pinned" : "selected";
+    if (_watchMode === nextMode) return;
+
+    _watchMode = nextMode;
+    _resetPreviewState();
+    if (_active) {
+        _emitPreviewFromWatchedNode({ force: true });
     }
 }
 
@@ -621,6 +627,7 @@ export function teardownNodeStream(app) {
     _active = false;
     _selectedNodeId = null;
     _pinnedNodeId = null;
+    _emitNodeStatus(null);
     _outputCallback = null;
     _statusCallback = null;
     _appRef = null;
@@ -628,4 +635,4 @@ export function teardownNodeStream(app) {
     console.debug("[NodeStream] Controller torn down");
 }
 
-export { registerAdapter, listAdapters };
+export { listAdapters };

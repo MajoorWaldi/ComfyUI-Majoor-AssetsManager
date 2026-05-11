@@ -61,7 +61,7 @@ Common shortcuts worth learning early:
 - `Ctrl+S` / `Cmd+S` to trigger an index scan
 - `Ctrl+F` or `Ctrl+K` to focus search
 - `D` to toggle the details sidebar
-- `Ctrl+V` / `Cmd+V` to toggle the floating viewer
+- `V` to toggle the floating viewer
 - `0` to `5` to apply ratings quickly on selected assets
 
 ## Related Docs

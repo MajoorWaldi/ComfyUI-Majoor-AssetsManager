@@ -126,7 +126,7 @@ export function pauseFloatingViewerMediaIn(rootEl) {
     }
 }
 
-export function buildFloatingViewerMediaElement(fileData, { fill = false } = {}) {
+export function buildFloatingViewerMediaElement(fileData, { fill = false, controls = true } = {}) {
     const url = resolveFloatingViewerMediaUrl(fileData);
     if (!url) return null;
     const kind = getFloatingViewerMediaKind(fileData);
@@ -136,6 +136,7 @@ export function buildFloatingViewerMediaElement(fileData, { fill = false } = {})
         ext === ".webp" && Number(fileData?.duration ?? fileData?.metadata_raw?.duration ?? 0) > 0;
 
     const buildPlayableMediaHost = (mediaEl, mediaKind) => {
+        if (!controls) return mediaEl;
         const host = document.createElement("div");
         host.className = `mjr-mfv-player-host${fill ? " mjr-mfv-player-host--fill" : ""}`;
         host.appendChild(mediaEl);
