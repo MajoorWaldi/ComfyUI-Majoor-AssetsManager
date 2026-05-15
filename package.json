@@ -29,7 +29,7 @@
     "happy-dom": "^20.9.0",
     "prettier": "^3.8.3",
     "vite": "^8.0.11",
-    "vitest": "^4.1.5"
+    "vitest": "^4.1.6"
   },
   "dependencies": {
     "@tanstack/vue-virtual": "^3.13.24",
