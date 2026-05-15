@@ -20,6 +20,8 @@ const SHORTCUT_GUIDE_SECTIONS = Object.freeze([
         items: Object.freeze([
             { keys: "Arrow Keys", description: "Navigate selection" },
             { keys: "Enter / Space", description: "Open viewer" },
+            { keys: "V", description: "Open selected asset in Floating Viewer" },
+            { keys: "S", description: "Download selected asset" },
             { keys: "C", description: "Compare A/B (2 selected)" },
             { keys: "G", description: "Side-by-side compare (2-4 selected)" },
             { keys: "T", description: "Edit tags" },
@@ -41,6 +43,16 @@ const SHORTCUT_GUIDE_SECTIONS = Object.freeze([
             { keys: "G", description: "Cycle grid overlays" },
             { keys: "Space", description: "Play or pause video" },
             { keys: "Left / Right", description: "Previous or next asset" },
+            { keys: "S", description: "Download original asset from context menu" },
+        ]),
+    },
+    {
+        id: "dnd",
+        titleKey: "msg.shortcuts.section.dnd",
+        title: "Drag & Drop",
+        items: Object.freeze([
+            { keys: "S+Drag to OS", description: "Export without ComfyUI metadata" },
+            { keys: "L+Drop on canvas", description: "Load selected asset(s) as media loader node(s)" },
         ]),
     },
     {

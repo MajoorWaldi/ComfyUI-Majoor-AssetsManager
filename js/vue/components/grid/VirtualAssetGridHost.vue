@@ -942,7 +942,27 @@ function handleCardClick(event, asset) {
 
 function handleCardPrimaryMouseDown(event, asset) {
     if (Number(event?.button ?? 0) !== 0) return;
-    pointerSelectionDedup.assetId = String(asset?.id || "").trim();
+    const id = String(asset?.id || "").trim();
+    if (!id) return;
+    const currentSelection = Array.isArray(state.selectedIds)
+        ? state.selectedIds.map(String).filter(Boolean)
+        : [];
+    const selected = currentSelection.includes(id);
+    if (
+        selected &&
+        currentSelection.length > 1 &&
+        !event?.ctrlKey &&
+        !event?.metaKey &&
+        !event?.shiftKey
+    ) {
+        // Preserve multi-selection while the user starts a drag from one of the
+        // selected cards. Dragstart needs the original selection to build the
+        // batch OS payload.
+        pointerSelectionDedup.assetId = id;
+        pointerSelectionDedup.at = Date.now();
+        return;
+    }
+    pointerSelectionDedup.assetId = id;
     pointerSelectionDedup.at = Date.now();
     handleCardClick(event, asset);
 }

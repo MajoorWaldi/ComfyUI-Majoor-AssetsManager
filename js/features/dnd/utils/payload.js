@@ -44,6 +44,8 @@ const _sanitizeDraggedPayload = (value) => {
     };
 };
 
+export const sanitizeDraggedPayload = _sanitizeDraggedPayload;
+
 export const getDraggedAsset = (event, mimeType) => {
     const data = event?.dataTransfer?.getData?.(mimeType);
     if (!data) return null;

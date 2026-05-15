@@ -32,7 +32,7 @@ import {
  */
 const VIEWER_SHORTCUTS = {
     COPY_PATH: "Ctrl+Shift+C",
-    DOWNLOAD: "Ctrl+S",
+    DOWNLOAD: "S",
     OPEN_IN_FOLDER: "Ctrl+Shift+E",
     ADD_TO_COLLECTION: "B",
     EDIT_TAGS: "T",

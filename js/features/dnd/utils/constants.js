@@ -1,4 +1,5 @@
 export const DND_MIME = "application/x-mjr-asset";
+export const DND_MULTI_MIME = "application/x-mjr-assets";
 export const IMAGE_EXTS = new Set([".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp", ".avif"]);
 export const VIDEO_EXTS = new Set([".mp4", ".mov", ".mkv", ".webm", ".avi"]);
 export const AUDIO_EXTS = new Set([".wav", ".mp3", ".flac", ".ogg", ".m4a", ".aac", ".opus"]);

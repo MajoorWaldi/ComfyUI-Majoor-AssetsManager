@@ -9,7 +9,9 @@ from __future__ import annotations
 import asyncio
 import os
 import re
+import shutil
 import stat
+import tempfile
 import threading
 import time
 import uuid
@@ -21,6 +23,11 @@ from typing import Any
 from aiohttp import web
 from mjr_am_backend.config import OUTPUT_ROOT_PATH
 from mjr_am_backend.custom_roots import resolve_custom_root
+from mjr_am_backend.features.assets.download_service import (
+    STRIP_SUPPORTED_EXTS,
+    strip_png_comfyui_chunks,
+    strip_tags_for_ext,
+)
 from mjr_am_backend.routes.core.paths import _is_within_root, _safe_rel_path
 from mjr_am_backend.routes.core.request_json import _read_json
 from mjr_am_backend.routes.core.response import _json_response
@@ -29,6 +36,7 @@ from mjr_am_backend.routes.core.security import (
     _csrf_error,
     _require_write_access,
 )
+from mjr_am_backend.routes.core.services import _require_services
 from mjr_am_backend.shared import Result, get_logger, sanitize_error_message
 
 try:
@@ -430,6 +438,12 @@ def register_batch_zip_routes(routes: web.RouteTableDef) -> None:
             return _json_response(Result.Err("INVALID_INPUT", "No items provided"))
         if len(items) > _MAX_ITEMS:
             return _json_response(Result.Err("INVALID_INPUT", f"Batch size exceeds limit ({_MAX_ITEMS})"))
+        strip_metadata = str(payload.get("strip_metadata") or "").strip().lower() in {
+            "1",
+            "true",
+            "yes",
+            "on",
+        } or payload.get("strip_metadata") is True
 
         try:
             _BATCH_DIR.mkdir(parents=True, exist_ok=True)
@@ -448,7 +462,7 @@ def register_batch_zip_routes(routes: web.RouteTableDef) -> None:
             return _json_response(Result.Err("INVALID_INPUT", "Invalid zip path"))
 
         ready_event = asyncio.Event()
-        filename = f"Majoor_Batch_{len(items)}.zip"
+        filename = f"Majoor_{'Clean_' if strip_metadata else ''}Batch_{len(items)}.zip"
         with _BATCH_LOCK:
             _BATCH_CACHE[token] = {
                 "path": zip_path,
@@ -457,6 +471,16 @@ def register_batch_zip_routes(routes: web.RouteTableDef) -> None:
                 "created_at": time.time(),
                 "filename": filename,
             }
+
+        exiftool = None
+        if strip_metadata:
+            try:
+                svc, _svc_err = await _require_services()
+                candidate = (svc or {}).get("exiftool") if isinstance(svc, dict) else None
+                if candidate and getattr(candidate, "_available", False):
+                    exiftool = candidate
+            except Exception as exc:
+                logger.debug("Clean batch ZIP could not initialize ExifTool: %s", exc)
 
         def _build_zip() -> int:
             with token_lock:
@@ -522,13 +546,95 @@ def register_batch_zip_routes(routes: web.RouteTableDef) -> None:
                         if cumulative_bytes + file_size > _MAX_ZIP_BYTES:
                             raise _ZipSizeLimitExceeded()
                         try:
-                            ok = _zip_add_file_open_handle(zf, target, arc, base_dir=base_dir)
+                            if strip_metadata:
+                                ok = _zip_add_clean_file_open_handle(
+                                    zf,
+                                    target,
+                                    arc,
+                                    base_dir=base_dir,
+                                    exiftool=exiftool,
+                                )
+                            else:
+                                ok = _zip_add_file_open_handle(zf, target, arc, base_dir=base_dir)
                             if ok:
                                 cumulative_bytes += file_size
                                 count += 1
                         except Exception:
                             continue
                 return count
+
+        def _zipinfo_for_path(path: Path, arcname: str) -> zipfile.ZipInfo:
+            try:
+                st = path.stat()
+                dt = time.localtime(float(getattr(st, "st_mtime", time.time())))
+                date_time = (
+                    int(dt[0]), int(dt[1]), int(dt[2]),
+                    int(dt[3]), int(dt[4]), int(dt[5]),
+                )
+            except Exception:
+                dt_now = time.localtime(time.time())
+                date_time = (
+                    int(dt_now[0]), int(dt_now[1]), int(dt_now[2]),
+                    int(dt_now[3]), int(dt_now[4]), int(dt_now[5]),
+                )
+            zi = zipfile.ZipInfo(filename=arcname, date_time=date_time)
+            zi.compress_type = zipfile.ZIP_DEFLATED
+            return zi
+
+        def _read_clean_bytes(path: Path, exiftool: Any | None) -> bytes:
+            ext = path.suffix.lower()
+            if ext not in STRIP_SUPPORTED_EXTS:
+                return path.read_bytes()
+            if ext == ".png":
+                return strip_png_comfyui_chunks(path.read_bytes())
+            if not exiftool:
+                return path.read_bytes()
+
+            tmp_dir = tempfile.mkdtemp(prefix="mjr_batch_clean_")
+            try:
+                tmp_path = Path(tmp_dir) / path.name
+                shutil.copy2(str(path), str(tmp_path))
+                stripped = False
+                tags_to_strip = strip_tags_for_ext(ext)
+                if tags_to_strip:
+                    strip_result = exiftool.write(
+                        str(tmp_path),
+                        {tag: None for tag in tags_to_strip},
+                        False,
+                    )
+                    stripped = bool(getattr(strip_result, "ok", False))
+                if not stripped:
+                    fallback_result = exiftool.write(str(tmp_path), {"all": None}, False)
+                    if not getattr(fallback_result, "ok", False):
+                        return path.read_bytes()
+                return tmp_path.read_bytes()
+            finally:
+                shutil.rmtree(tmp_dir, ignore_errors=True)
+
+        def _zip_add_clean_file_open_handle(
+            zf: zipfile.ZipFile,
+            path: Path,
+            arcname: str,
+            *,
+            base_dir: Path | None = None,
+            exiftool: Any | None = None,
+        ) -> bool:
+            try:
+                if base_dir is not None:
+                    current = path.resolve(strict=True)
+                    if not _is_within_root(current, base_dir):
+                        return False
+                data = _read_clean_bytes(path, exiftool)
+                arc = str(arcname or "").replace("\x00", "")[:_ZIP_NAME_MAX_LEN]
+                if not arc:
+                    arc = path.name[:_ZIP_NAME_MAX_LEN]
+                zi = _zipinfo_for_path(path, arc)
+                zi.file_size = len(data)
+                zf.writestr(zi, data)
+                return True
+            except Exception as exc:
+                logger.debug("Clean batch ZIP add failed for %s: %s", path, exc)
+                return False
 
         def _zip_add_file_open_handle(
             zf: zipfile.ZipFile,
@@ -682,4 +788,3 @@ def register_batch_zip_routes(routes: web.RouteTableDef) -> None:
         if not entry_res.ok:
             return _json_response(entry_res, status=404)
         return _batch_file_response(entry_res.data or {}, token)
-

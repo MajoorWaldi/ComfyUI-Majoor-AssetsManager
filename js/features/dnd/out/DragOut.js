@@ -5,7 +5,8 @@
  * outside ComfyUI (desktop, Explorer, other apps).
  *
  * Also supports multi-selection: creates a temporary ZIP on the backend and
- * drags that ZIP URL instead of individual files.
+ * drags that ZIP URL instead of individual files. S+drag requests a clean
+ * metadata-stripped ZIP/file instead of the original payload.
  */
 
 import { post } from "../../../api/client.js";
@@ -16,8 +17,6 @@ import {
 } from "../../../api/endpoints.js";
 import { getDownloadMimeForFilename } from "../utils/video.js";
 import { createSecureToken, pickRootId } from "../../../utils/ids.js";
-import { comfyConfirm } from "../../../app/dialogs.js";
-import { t } from "../../../app/i18n.js";
 import { consumeInternalDropOccurred } from "../runtimeState.js";
 
 const _abs = (url) => {
@@ -49,6 +48,31 @@ const _getSelectedAssets = (containerEl, draggedCard) => {
     const out = [];
     if (!containerEl || !draggedCard) return out;
 
+    const draggedId = draggedCard?.dataset?.mjrAssetId
+        ? String(draggedCard.dataset.mjrAssetId)
+        : "";
+
+    // Prefer the grid's canonical selection API when available. It is more
+    // reliable than reconstructing selection from currently rendered cards.
+    try {
+        const selectedAssets =
+            typeof containerEl?._mjrGetSelectedAssets === "function"
+                ? containerEl._mjrGetSelectedAssets()
+                : [];
+        if (Array.isArray(selectedAssets) && selectedAssets.length) {
+            const selected = selectedAssets.filter((asset) => asset && typeof asset === "object");
+            if (
+                selected.length &&
+                draggedId &&
+                selected.some((asset) => String(asset?.id || "") === draggedId)
+            ) {
+                return selected;
+            }
+        }
+    } catch (e) {
+        console.debug?.(e);
+    }
+
     let selectedIds = [];
     try {
         const raw = containerEl.dataset?.mjrSelectedAssetIds;
@@ -63,9 +87,6 @@ const _getSelectedAssets = (containerEl, draggedCard) => {
     // If dataset is available, use full asset list (VirtualGrid-safe).
     if (selectedIds.length) {
         try {
-            const draggedId = draggedCard?.dataset?.mjrAssetId
-                ? String(draggedCard.dataset.mjrAssetId)
-                : "";
             if (!draggedId || !selectedIds.includes(draggedId)) return out;
             const allAssets =
                 typeof containerEl?._mjrGetAssets === "function" ? containerEl._mjrGetAssets() : [];
@@ -105,22 +126,6 @@ const _getSelectedAssets = (containerEl, draggedCard) => {
     return out;
 };
 
-/** Extensions that can contain ComfyUI workflow/prompt metadata. */
-const _STRIPPABLE_EXTS = new Set([".png", ".jpg", ".jpeg", ".webp", ".avif", ".mp4", ".mov"]);
-
-/** Check if an asset likely has embedded ComfyUI metadata worth stripping. */
-const _hasComfyMetadata = (asset) => {
-    if (!asset || typeof asset !== "object") return false;
-    if (asset.has_workflow || asset.has_generation_data) return true;
-    const ext = String(asset.ext || asset.filename || "").toLowerCase();
-    const dotExt = ext.includes(".") ? ext.slice(ext.lastIndexOf(".")) : `.${ext}`;
-    return _STRIPPABLE_EXTS.has(dotExt);
-};
-
-/**
- * Trigger a clean (metadata-stripped) download for one or more assets.
- * Uses a hidden <a> click to start the browser download.
- */
 const _resolveFilepath = (asset) => {
     if (!asset || typeof asset !== "object") return "";
     // Direct filepath from backend.
@@ -129,37 +134,7 @@ const _resolveFilepath = (asset) => {
     return "";
 };
 
-const _downloadClean = (assets) => {
-    for (const asset of assets) {
-        const filepath = _resolveFilepath(asset);
-        if (!filepath) {
-            console.debug?.("[DragOut] No filepath for asset:", asset?.filename);
-            continue;
-        }
-        const url = buildCleanDownloadURL(filepath);
-        if (!url) continue;
-        const a = document.createElement("a");
-        try {
-            a.href = _abs(url);
-            a.download = asset.filename || asset.name || "download";
-            a.style.display = "none";
-            document.body.appendChild(a);
-            a.click();
-            setTimeout(() => {
-                try {
-                    a.remove();
-                } catch {}
-            }, 1000);
-        } catch (e) {
-            try {
-                a.remove();
-            } catch {}
-            console.debug?.(e);
-        }
-    }
-};
-
-export const applyDragOutToOS = ({ dt, asset, containerEl, card, viewUrl }) => {
+export const applyDragOutToOS = ({ dt, asset, containerEl, card, viewUrl, stripMetadata = false }) => {
     if (!dt || !asset) return;
 
     const selected = _getSelectedAssets(containerEl, card);
@@ -176,13 +151,19 @@ export const applyDragOutToOS = ({ dt, asset, containerEl, card, viewUrl }) => {
             if (token) {
                 // Fire-and-forget zip build. Never block dragstart.
                 try {
-                    post(ENDPOINTS.BATCH_ZIP_CREATE, { token, items }).catch(() => {});
+                    post(ENDPOINTS.BATCH_ZIP_CREATE, {
+                        token,
+                        items,
+                        strip_metadata: !!stripMetadata,
+                    }).catch(() => {});
                 } catch (e) {
                     console.debug?.(e);
                 }
 
                 const url = _abs(buildBatchZipDownloadURL(token));
-                const zipName = `Majoor_Batch_${items.length}.zip`;
+                const zipName = stripMetadata
+                    ? `Majoor_Clean_Batch_${items.length}.zip`
+                    : `Majoor_Batch_${items.length}.zip`;
                 try {
                     dt.setData("text/uri-list", url);
                     dt.setData("DownloadURL", `application/zip:${zipName}:${url}`);
@@ -199,7 +180,9 @@ export const applyDragOutToOS = ({ dt, asset, containerEl, card, viewUrl }) => {
     const filename = asset.filename || asset.name;
     if (!filename) return;
 
-    const url = _abs(viewUrl);
+    const cleanPath = stripMetadata ? _resolveFilepath(asset) : "";
+    const cleanUrl = cleanPath ? buildCleanDownloadURL(cleanPath) : "";
+    const url = _abs(cleanUrl || viewUrl);
     const mime = getDownloadMimeForFilename(filename);
     try {
         dt.setData("text/uri-list", url);
@@ -211,8 +194,9 @@ export const applyDragOutToOS = ({ dt, asset, containerEl, card, viewUrl }) => {
 };
 
 /**
- * Handle dragend: if the drop happened outside the browser (OS/Explorer),
- * offer to re-download with ComfyUI metadata stripped.
+ * Handle dragend: keep legacy cleanup behavior for internal-drop detection.
+ * Normal drag-out never opens a metadata dialog. S+drag clean export is encoded
+ * in the drag payload at dragstart, including batch ZIPs.
  *
  * @param {DragEvent} event
  * @param {object} asset - The dragged asset object
@@ -221,6 +205,8 @@ export const applyDragOutToOS = ({ dt, asset, containerEl, card, viewUrl }) => {
  */
 export const handleDragEnd = (event, { asset, containerEl, card }) => {
     if (!event || !asset) return;
+    void containerEl;
+    void card;
     try {
         // dropEffect "none" means the drop was cancelled (ESC or invalid target).
         // "copy"/"move"/"link" mean the drop was accepted somewhere.
@@ -232,32 +218,7 @@ export const handleDragEnd = (event, { asset, containerEl, card }) => {
         // The flag is set in onDrop (DragDrop.js) for internal drops.
         if (consumeInternalDropOccurred()) return;
 
-        // Determine assets involved (single or multi-selection).
-        const selected = _getSelectedAssets(containerEl, card);
-        const assets = selected.length > 1 ? selected : [asset];
-
-        // Only prompt if at least one asset has ComfyUI metadata.
-        const hasMetadata = assets.some(_hasComfyMetadata);
-        if (!hasMetadata) return;
-
-        // Async popup — don't block dragend.
-        const count = assets.length;
-        const name = asset.filename || asset.name || "file";
-        const body = t(
-            "dialog.stripMetadataBody",
-            "Would you like to download a clean copy with ComfyUI workflow and generation metadata removed?",
-        );
-        const msg =
-            count > 1
-                ? `${t("dialog.stripMetadataBatchHeader", `You dragged ${count} files outside ComfyUI.`)}\n\n${body}`
-                : `${t("dialog.stripMetadataHeader", `You dragged "${name}" outside ComfyUI.`)}\n\n${body}`;
-
-        comfyConfirm(msg, t("dialog.stripMetadataTitle", "Strip ComfyUI Metadata?"))
-            .then((confirmed) => {
-                if (!confirmed) return;
-                _downloadClean(assets);
-            })
-            .catch(() => {});
+        return;
     } catch (e) {
         console.debug?.(e);
     }

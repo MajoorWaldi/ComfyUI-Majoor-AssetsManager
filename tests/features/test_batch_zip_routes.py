@@ -1,5 +1,7 @@
 import json
 import tempfile
+import zipfile
+import zlib
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -16,6 +18,19 @@ def _app():
     bz.register_batch_zip_routes(routes)
     app.add_routes(routes)
     return app
+
+
+def _png_chunk(kind: bytes, data: bytes = b"") -> bytes:
+    return (
+        len(data).to_bytes(4, "big")
+        + kind
+        + data
+        + zlib.crc32(kind + data).to_bytes(4, "big")
+    )
+
+
+def _png_with_workflow_text() -> bytes:
+    return b"\x89PNG\r\n\x1a\n" + _png_chunk(b"tEXt", b"workflow\x00secret") + _png_chunk(b"IEND")
 
 
 def test_batch_zip_sanitize_and_cleanup_helpers(monkeypatch):
@@ -106,6 +121,47 @@ async def test_batch_zip_create_and_fetch_ready(monkeypatch, tmp_path: Path):
     match2 = await app.router.resolve(req2)
     resp2 = await match2.handler(req2)
     assert getattr(resp2, "status", 200) in {200, 206}
+
+
+@pytest.mark.asyncio
+async def test_batch_zip_create_clean_strips_png_metadata(monkeypatch, tmp_path: Path):
+    app = _app()
+    monkeypatch.setattr(bz, "_csrf_error", lambda _r: None)
+    monkeypatch.setattr(bz, "_check_rate_limit", lambda *args, **kwargs: (True, None))
+    monkeypatch.setattr(bz, "_require_write_access", lambda _r: Result.Ok({}))
+    monkeypatch.setattr(bz, "_BATCH_DIR", tmp_path)
+    monkeypatch.setattr(bz, "_BATCH_CACHE", {})
+
+    src = tmp_path / "a.png"
+    src.write_bytes(_png_with_workflow_text())
+    token = "d" * 40
+
+    async def _read_json(_request, max_bytes=None):
+        _ = max_bytes
+        return Result.Ok(
+            {
+                "token": token,
+                "strip_metadata": True,
+                "items": [{"filename": "a.png", "subfolder": "", "type": "output"}],
+            }
+        )
+
+    monkeypatch.setattr(bz, "_read_json", _read_json)
+    monkeypatch.setattr(bz, "_resolve_item_path", lambda _item: (src, tmp_path))
+
+    req = make_mocked_request("POST", "/mjr/am/batch-zip", app=app)
+    match = await app.router.resolve(req)
+    resp = await match.handler(req)
+    body = json.loads(resp.text)
+    assert body.get("ok") is True
+    assert body["data"]["filename"] == "Majoor_Clean_Batch_1.zip"
+
+    entry = bz._BATCH_CACHE[token]
+    with zipfile.ZipFile(entry["path"], "r") as zf:
+        cleaned = zf.read("a.png")
+
+    assert b"workflow\x00secret" not in cleaned
+    assert cleaned.startswith(b"\x89PNG\r\n\x1a\n")
 
 
 @pytest.mark.asyncio

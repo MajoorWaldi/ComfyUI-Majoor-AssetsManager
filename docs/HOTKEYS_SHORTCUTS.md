@@ -1,7 +1,7 @@
 # Majoor Assets Manager - Hotkeys & Keyboard Shortcuts Guide
 
-**Version**: 2.4.5
-**Last Updated**: May 11, 2026
+**Version**: 2.4.7
+**Last Updated**: May 15, 2026
 
 ## Overview
 
@@ -16,6 +16,7 @@ This guide covers all active keyboard shortcuts for the Majoor Assets Manager, i
 - [Standard Viewer Hotkeys](#standard-viewer-hotkeys)
 - [Majoor Floating Viewer (MFV) Hotkeys](#majoor-floating-viewer-mfv-hotkeys)
 - [Video Playback Hotkeys](#video-playback-hotkeys)
+- [Drag & Drop Shortcuts](#drag--drop-shortcuts)
 - [Mouse Shortcuts](#mouse-shortcuts)
 
 ---
@@ -44,6 +45,7 @@ These shortcuts apply when the asset grid has focus.
 | ------------------------------ | -------------------- |
 | **Arrow Keys** (↑↓←→)          | Navigate selection   |
 | **Enter** / **Space**          | Open Viewer          |
+| **V**                          | Open selected asset in Floating Viewer |
 | **Ctrl+A** / **Cmd+A**         | Select All           |
 | **Ctrl+D** / **Cmd+D**         | Deselect All         |
 | **Ctrl+Click** / **Cmd+Click** | Toggle Selection     |
@@ -69,6 +71,7 @@ These shortcuts apply when the asset grid has focus.
 | ---------------------------------- | ------------------------------- |
 | **F2**                             | Rename File                     |
 | **Delete**                         | Delete File (with confirmation) |
+| **S**                              | Download File                   |
 | **Ctrl+Shift+C** / **Cmd+Shift+C** | Copy File Path                  |
 | **Ctrl+Shift+E** / **Cmd+Shift+E** | Open in Explorer/Finder         |
 
@@ -86,6 +89,7 @@ These shortcuts apply when the **Standard Viewer** overlay is open (double-click
 | **F**     | Toggle Fullscreen                   |
 | **D**     | Toggle Info Panel (Generation Data) |
 | **Space** | Play/Pause Video                    |
+| **S**     | Download Original from context menu |
 
 ### Navigation
 
@@ -212,6 +216,15 @@ Video audio is automatically unmuted after first user interaction (play, seek, o
 
 ---
 
+## Drag & Drop Shortcuts
+
+| Gesture | Action |
+| ------- | ------ |
+| **S+Drag to OS** | Export without ComfyUI workflow/generation metadata |
+| **L+Drop on canvas** | Load selected asset(s) as media loader node(s) instead of importing embedded workflow |
+
+---
+
 ## Mouse Shortcuts
 
 ### Grid View
@@ -257,8 +270,10 @@ Open Viewer:      Enter / Double-click
 Rate:             0-5 keys
 Search:           Ctrl+F / Ctrl+K
 Scan:             Ctrl+S
+Download:         S
 Tags:             T
 Collection:       B
+Floating Viewer:  V
 Close Viewer:     Esc
 Zoom:             Mouse wheel
 Pan:              Click+drag
@@ -304,6 +319,7 @@ Currently, shortcuts are hardcoded. Future versions may support customization vi
 The following shortcuts may conflict with ComfyUI globals:
 
 - **Ctrl+S**: Also triggers ComfyUI workflow save
+- **S**: Download waits for key release so S+drag can still be used for clean export without triggering a download
 - **Delete**: Also deletes ComfyUI nodes
 - **Ctrl+Z**: ComfyUI undo (not overridden)
 
@@ -330,6 +346,6 @@ All features are accessible via keyboard:
 
 ---
 
-_Hotkeys & Shortcuts Guide Version: 2.4.5_
-_Last Updated: May 11, 2026_
+_Hotkeys & Shortcuts Guide Version: 2.4.7_
+_Last Updated: May 15, 2026_
 _Compatible with Majoor Assets Manager v2.4.4+_

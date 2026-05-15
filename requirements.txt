@@ -10,6 +10,9 @@ aiosqlite>=0.20.0,<1.0.0
 # Updated for security patches (CVE-2023-50447, CVE-2024-28219)
 pillow>=10.0.0,<13.0.0
 
+# Video encoding/metadata support for the Majoor Save Video node
+av>=12.0.0,<17.0.0
+
 # Pure-Python media metadata parser fallback (audio/video) when ffprobe is missing
 hachoir>=3.3.0,<4.0.0
 

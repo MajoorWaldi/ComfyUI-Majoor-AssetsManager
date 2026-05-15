@@ -24,6 +24,7 @@ Examples:
 - `aiohttp`
 - `aiosqlite`
 - `pillow`
+- `av`
 - `send2trash`
 
 ### Optional AI / Vector

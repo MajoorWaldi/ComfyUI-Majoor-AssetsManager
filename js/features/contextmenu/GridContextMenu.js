@@ -31,6 +31,8 @@ import { safeDispatchCustomEvent } from "../../utils/events.js";
 import { confirmDeletion } from "../../utils/deleteGuard.js";
 import { showAddToCollectionMenu } from "../collections/contextmenu/addToCollectionMenu.js";
 import { removeAssetsFromGrid } from "../grid/gridApi.js";
+import { getComfyApp } from "../../app/comfyApiBridge.js";
+import { pickRootId } from "../../utils/ids.js";
 import { getShortcutDisplay } from "../grid/GridKeyboard.js";
 import { floatingViewerManager } from "../viewer/floatingViewerManager.js";
 import {
@@ -40,6 +42,8 @@ import {
 } from "./gridContextMenuState.js";
 import { cancelAllRatingUpdates, scheduleRatingUpdate } from "./ratingUpdater.js";
 import { requestViewerOpen } from "../viewer/viewerOpenRequest.js";
+import { createCanvasLoaderNodes } from "../dnd/canvasLoaderNode.js";
+import { stageToInputDetailed } from "../dnd/staging/stageToInput.js";
 
 let _nextMenuItemId = 1;
 
@@ -140,6 +144,50 @@ const getAssetFilepath = (asset) => {
         return "";
     }
 };
+
+const buildDndPayloadFromAsset = (asset) => {
+    if (!asset || typeof asset !== "object") return null;
+    const filename = String(asset.filename || "").trim();
+    if (!filename) return null;
+    return {
+        filename,
+        subfolder: asset.subfolder || "",
+        type: String(asset.type || asset.source || "output").toLowerCase(),
+        root_id: pickRootId(asset) || undefined,
+        kind: String(asset.kind || "").toLowerCase(),
+    };
+};
+
+async function loadAssetsToCanvas(assets) {
+    const list = Array.isArray(assets) ? assets.filter(Boolean) : [];
+    const stagedItems = await Promise.all(
+        list.map(async (asset) => {
+            const payload = buildDndPayloadFromAsset(asset);
+            if (!payload) return null;
+            const staged = await stageToInputDetailed({
+                post,
+                endpoint: ENDPOINTS.STAGE_TO_INPUT,
+                payload,
+                index: false,
+            });
+            const relativePath = staged?.relativePath;
+            if (!relativePath) return null;
+            return {
+                payload,
+                relativePath,
+                droppedExt:
+                    String(payload.filename || "")
+                        .split(".")
+                        .pop() || "",
+            };
+        }),
+    );
+    return createCanvasLoaderNodes({
+        app: getComfyApp(),
+        items: stagedItems.filter(Boolean),
+        event: null,
+    });
+}
 
 const clearSelection = (gridContainer) => {
     if (!gridContainer) return;
@@ -715,6 +763,43 @@ function _buildAssetItems({
                 openInViewer({ assets: allAssets, index: Math.max(0, index) });
             } catch (e) {
                 console.debug?.(e);
+            }
+        }),
+        createItem(
+            "Open in Floating Viewer",
+            "pi pi-window-maximize",
+            getShortcutDisplay("OPEN_FLOATING_VIEWER"),
+            async () => {
+                try {
+                    const selectedAssets = hasSelection ? getSelectedAssets(gridContainer) : [];
+                    const mediaSelectedAssets = selectedAssets.filter(
+                        (entry) => !_isFolderAsset(entry),
+                    );
+                    if (mediaSelectedAssets.length) {
+                        await floatingViewerManager.openAssets({
+                            assets: mediaSelectedAssets,
+                            index: Math.max(
+                                0,
+                                mediaSelectedAssets.findIndex(
+                                    (entry) => String(entry?.id || "") === String(asset?.id || ""),
+                                ),
+                            ),
+                        });
+                        return;
+                    }
+                    await floatingViewerManager.openAssets({ assets: [asset], index: 0 });
+                } catch (e) {
+                    console.debug?.(e);
+                }
+            },
+        ),
+        createItem("Load Asset", "pi pi-upload", "L / L+Drop", async () => {
+            const selectedAssets = hasSelection ? getSelectedAssets(gridContainer) : [];
+            const selectedMediaAssets = selectedAssets.filter((entry) => !_isFolderAsset(entry));
+            const list = selectedMediaAssets.length ? selectedMediaAssets : [asset];
+            const created = await loadAssetsToCanvas(list);
+            if (!created) {
+                comfyToast("Failed to create a loader node for this asset.", "error");
             }
         }),
         createItem("Open Graph Map", "pi pi-sitemap", null, async () => {

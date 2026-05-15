@@ -1,7 +1,7 @@
 # Keyboard Shortcuts
 
-**Version**: 2.4.5
-**Last Updated**: April 14, 2026
+**Version**: 2.4.7
+**Last Updated**: May 15, 2026
 
 Quick reference for Majoor Assets Manager shortcuts. For full details including MFV shortcuts, see [HOTKEYS_SHORTCUTS.md](HOTKEYS_SHORTCUTS.md).
 
@@ -12,6 +12,8 @@ Quick reference for Majoor Assets Manager shortcuts. For full details including 
 | **1-5** | Set Rating |
 | **0** | Clear Rating |
 | **Enter / Space** | Open Viewer |
+| **V** | Open in Floating Viewer |
+| **S** | Download |
 | **D** | Toggle Details Sidebar |
 | **T** | Edit Tags |
 | **B / Shift+B** | Add/Remove Collection |
@@ -21,6 +23,13 @@ Quick reference for Majoor Assets Manager shortcuts. For full details including 
 | **Ctrl+Shift+C** | Copy Path |
 | **Ctrl+Shift+E** | Open in Explorer |
 | **Ctrl+F / Ctrl+K** | Focus Search |
+
+## Drag & Drop
+
+| Gesture | Action |
+|---------|--------|
+| **S+Drag to OS** | Export clean copy/ZIP without ComfyUI metadata |
+| **L+Drop on canvas** | Load selected asset(s) by creating matching media loader node(s) |
 
 ## Viewer
 
@@ -40,3 +49,4 @@ Quick reference for Majoor Assets Manager shortcuts. For full details including 
 | **G** | Grid Overlay |
 | **Alt+1** | 1:1 View |
 | **+ / -** | Zoom |
+| **S** | Download original from context menu |

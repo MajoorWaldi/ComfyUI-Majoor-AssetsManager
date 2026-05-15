@@ -1,7 +1,7 @@
 # Majoor Assets Manager - Installation Guide
 
-**Version**: 2.4.5  
-**Last Updated**: April 7, 2026
+**Version**: 2.4.7
+**Last Updated**: May 15, 2026
 
 ## Overview
 This guide provides detailed instructions for installing and configuring the Majoor Assets Manager for ComfyUI. Follow these steps to get the extension up and running with all its features.
@@ -366,7 +366,7 @@ If metadata extraction isn't working:
 
 ### Adding Custom Directories
 1. Right-click in the Assets Manager interface
-2. Select "Add Custom Root" 
+2. Select "Add Custom Root"
 3. Enter the path to your custom directory
 4. The directory will be added to the Custom scope
 
@@ -407,5 +407,5 @@ Simply click "Uninstall" in the ComfyUI Manager interface.
 3. The extension will be completely removed
 
 ---
-*Installation Guide Version: 1.1*  
+*Installation Guide Version: 1.1*
 *Last Updated: April 5, 2026*

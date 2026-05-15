@@ -26,7 +26,11 @@ import { requestViewerOpen } from "../viewer/viewerOpenRequest.js";
 import { showAddToCollectionMenu } from "../collections/contextmenu/addToCollectionMenu.js";
 import { normalizeRenameFilename, validateFilename } from "../../utils/filenames.js";
 import { getHotkeysState, isHotkeysSuspended } from "../panel/controllers/hotkeysState.js";
-import { getActiveGridContainer, setActiveGridContainer } from "../panel/panelRuntimeRefs.js";
+import {
+    clearActiveGridContainer,
+    getActiveGridContainer,
+    setActiveGridContainer,
+} from "../panel/panelRuntimeRefs.js";
 
 /**
  * Keyboard shortcut definitions
@@ -36,6 +40,7 @@ const GRID_SHORTCUTS = {
     // Viewing
     OPEN_VIEWER: { key: "Enter", description: "Open selected in viewer" },
     OPEN_VIEWER_ALT: { key: " ", description: "Open selected in viewer" },
+    OPEN_FLOATING_VIEWER: { key: "v", description: "Open selected in Floating Viewer" },
     METADATA_PANEL: { key: "d", description: "Show metadata panel (Details)" },
     COMPARE_AB: { key: "c", description: "Compare A/B (2 selected)" },
     SIDE_BY_SIDE: { key: "g", description: "Side-by-side Grid view (2-4 selected)" },
@@ -55,7 +60,7 @@ const GRID_SHORTCUTS = {
 
     // File operations
     COPY_PATH: { key: "c", ctrl: true, shift: true, description: "Copy file path" },
-    DOWNLOAD: { key: "s", ctrl: true, description: "Download file" },
+    DOWNLOAD: { key: "s", description: "Download file" },
     RENAME: { key: "F2", description: "Rename file" },
     DELETE: { key: "Delete", description: "Delete file" },
     DELETE_ALT: { key: "Backspace", description: "Delete file" },
@@ -189,8 +194,11 @@ export function installGridKeyboard({
     if (!gridContainer) return { bind: () => {}, unbind: () => {}, dispose: () => {} };
 
     let keydownHandler = null;
+    let keyupHandler = null;
+    let dragstartHandler = null;
     let activateGridHandler = null;
     let bound = false;
+    let pendingDownloadShortcut = false;
     const openInViewer = ({ assets = [], index = 0, mode = "" } = {}) => {
         requestViewerOpen({ assets, index, mode });
     };
@@ -242,6 +250,25 @@ export function installGridKeyboard({
         } catch {
             return null;
         }
+    };
+
+    const downloadAsset = (asset) => {
+        if (!asset?.filepath) return false;
+        const url = buildDownloadURL(asset.filepath);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = asset.filename || "download";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        comfyToast(
+            t("toast.downloadingFile", "Downloading {filename}...", {
+                filename: asset.filename,
+            }),
+            "info",
+            3000,
+        );
+        return true;
     };
 
     const getAllAssets = () => {
@@ -457,6 +484,14 @@ export function installGridKeyboard({
         const asset = getActive();
         const state = getState();
 
+        if (matchesShortcut(e, GRID_SHORTCUTS.DOWNLOAD)) {
+            if (asset?.filepath) {
+                consume();
+                pendingDownloadShortcut = true;
+                return;
+            }
+        }
+
         // Rating shortcuts (1-5, 0 for reset) - handled by dedicated rating controller when enabled.
         const ratingHotkeysActive = !!getHotkeysState().ratingHotkeysActive;
         if (!e.ctrlKey && !e.altKey && !e.metaKey && !e.shiftKey) {
@@ -668,28 +703,6 @@ export function installGridKeyboard({
                 } catch {
                     comfyToast(t("toast.pathCopyFailed"), "error");
                 }
-                return;
-            }
-        }
-
-        // Download (Ctrl+S)
-        if (matchesShortcut(e, GRID_SHORTCUTS.DOWNLOAD)) {
-            if (asset?.filepath) {
-                consume();
-                const url = buildDownloadURL(asset.filepath);
-                const link = document.createElement("a");
-                link.href = url;
-                link.download = asset.filename || "download";
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                comfyToast(
-                    t("toast.downloadingFile", "Downloading {filename}...", {
-                        filename: asset.filename,
-                    }),
-                    "info",
-                    3000,
-                );
                 return;
             }
         }
@@ -922,11 +935,33 @@ export function installGridKeyboard({
         }
     };
 
+    const handleKeyup = (e) => {
+        if (String(e?.key || "").toLowerCase() !== "s") return;
+        if (!pendingDownloadShortcut) return;
+        pendingDownloadShortcut = false;
+        if (isHotkeysSuspended()) return;
+        if (getHotkeysState().scope === "viewer") return;
+        const asset = getActive();
+        if (!asset?.filepath) return;
+        e.preventDefault?.();
+        e.stopPropagation?.();
+        e.stopImmediatePropagation?.();
+        downloadAsset(asset);
+    };
+
+    const handleDragStart = () => {
+        pendingDownloadShortcut = false;
+    };
+
     const bind = () => {
         if (bound) return;
         keydownHandler = handleKeydown;
+        keyupHandler = handleKeyup;
+        dragstartHandler = handleDragStart;
         activateGridHandler = () => markGridActive();
         document.addEventListener("keydown", keydownHandler, true);
+        document.addEventListener("keyup", keyupHandler, true);
+        document.addEventListener("dragstart", dragstartHandler, true);
         gridContainer.addEventListener("pointerdown", activateGridHandler, true);
         gridContainer.addEventListener("focusin", activateGridHandler, true);
         bound = true;
@@ -935,12 +970,29 @@ export function installGridKeyboard({
     const unbind = () => {
         if (!bound || !keydownHandler) return;
         document.removeEventListener("keydown", keydownHandler, true);
+        if (keyupHandler) document.removeEventListener("keyup", keyupHandler, true);
+        if (dragstartHandler) document.removeEventListener("dragstart", dragstartHandler, true);
         if (activateGridHandler) {
             gridContainer.removeEventListener("pointerdown", activateGridHandler, true);
             gridContainer.removeEventListener("focusin", activateGridHandler, true);
         }
         keydownHandler = null;
+        keyupHandler = null;
+        dragstartHandler = null;
         activateGridHandler = null;
+        pendingDownloadShortcut = false;
+        try {
+            clearActiveGridContainer(gridContainer);
+        } catch (e) {
+            console.debug?.(e);
+        }
+        try {
+            if (window.__MJR_LAST_SELECTION_GRID__ === gridContainer) {
+                delete window.__MJR_LAST_SELECTION_GRID__;
+            }
+        } catch (e) {
+            console.debug?.(e);
+        }
         bound = false;
         for (const t of _ratingDebounceTimers.values()) {
             try {

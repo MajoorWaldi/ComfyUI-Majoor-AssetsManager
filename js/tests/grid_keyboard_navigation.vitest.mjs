@@ -33,6 +33,11 @@ vi.mock("../features/panel/controllers/hotkeysState.js", () => ({
     isHotkeysSuspended: vi.fn(() => false),
 }));
 vi.mock("../features/panel/panelRuntimeRefs.js", () => ({
+    clearActiveGridContainer: vi.fn((container = null) => {
+        if (!container || panelRuntimeState.activeGrid === container) {
+            panelRuntimeState.activeGrid = null;
+        }
+    }),
     getActiveGridContainer: vi.fn(() => panelRuntimeState.activeGrid),
     setActiveGridContainer: vi.fn((container) => {
         panelRuntimeState.activeGrid = container || null;
@@ -151,5 +156,44 @@ describe("GridKeyboard navigation", () => {
 
         mainKeyboard.dispose();
         feedKeyboard.dispose();
+    });
+
+    it("downloads with S on keyup and cancels when a drag starts", async () => {
+        const { installGridKeyboard } = await import("../features/grid/GridKeyboard.js");
+
+        const grid = createGridContainer(["asset-1"]);
+        grid._mjrAssets[0].filename = "one.png";
+        grid._mjrAssets[0].filepath = "C:/out/one.png";
+        grid._mjrSetSelection(["asset-1"], "asset-1");
+
+        const clicks = [];
+        const originalCreateElement = document.createElement.bind(document);
+        vi.spyOn(document, "createElement").mockImplementation((tag) => {
+            const el = originalCreateElement(tag);
+            if (String(tag).toLowerCase() === "a") {
+                el.click = vi.fn(() => clicks.push(el.download));
+            }
+            return el;
+        });
+
+        const keyboard = installGridKeyboard({
+            gridContainer: grid,
+            getState: () => ({ assets: grid._mjrAssets }),
+            getSelectedAssets: () => grid._mjrAssets,
+            getActiveAsset: () => grid._mjrAssets[0],
+        });
+        keyboard.bind();
+
+        document.dispatchEvent(new KeyboardEvent("keydown", { key: "s", bubbles: true }));
+        expect(clicks).toEqual([]);
+        document.dispatchEvent(new Event("dragstart", { bubbles: true }));
+        document.dispatchEvent(new KeyboardEvent("keyup", { key: "s", bubbles: true }));
+        expect(clicks).toEqual([]);
+
+        document.dispatchEvent(new KeyboardEvent("keydown", { key: "s", bubbles: true }));
+        document.dispatchEvent(new KeyboardEvent("keyup", { key: "s", bubbles: true }));
+        expect(clicks).toEqual(["one.png"]);
+
+        keyboard.dispose();
     });
 });

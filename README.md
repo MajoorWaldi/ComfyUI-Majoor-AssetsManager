@@ -11,7 +11,7 @@
 [![License](https://img.shields.io/github/license/MajoorWaldi/ComfyUI-Majoor-AssetsManager?style=flat)](LICENSE)
 [![Downloads](https://img.shields.io/github/downloads/MajoorWaldi/ComfyUI-Majoor-AssetsManager/total?style=flat)](https://github.com/MajoorWaldi/ComfyUI-Majoor-AssetsManager/releases)
 [![CI](https://github.com/MajoorWaldi/ComfyUI-Majoor-AssetsManager/actions/workflows/python-tests.yml/badge.svg)](https://github.com/MajoorWaldi/ComfyUI-Majoor-AssetsManager/actions/workflows/python-tests.yml)
-[![Python Version](https://img.shields.io/badge/Python-3.10--3.12-blue)](https://www.python.org/)
+[![Python Version](https://img.shields.io/badge/Python-3.10--3.13-blue)](https://www.python.org/)
 [![ComfyUI](https://img.shields.io/badge/ComfyUI-%3E%3D0.13.0-brightgreen)](https://github.com/comfyanonymous/ComfyUI)
 [![Frontend Tests](https://img.shields.io/badge/Frontend%20Tests-Vitest-6e9f18)](https://vitest.dev/)
 [![Buy Me a White Monster Drink](https://img.shields.io/badge/Ko--fi-Buy_Me_a_White_Monster_Drink-ff5e5b?logo=ko-fi)](https://ko-fi.com/majoorwaldi)
@@ -45,9 +45,9 @@ Useful links:
 ## Table of Contents
 
 - [Main Features](#main-features)
-- [What's New in v2.4.5](#whats-new-in-v245)
+- [Latest Release](#latest-release)
 - [Installation](#installation)
-- [ComfyUI Desktop Second-Screen Popup](#comfyui-desktop-second-screen-popup)
+- [ComfyUI Desktop Popup Workaround](#comfyui-desktop-popup-workaround)
 - [Basic Usage](#basic-usage)
 - [Majoor Floating Viewer (MFV)](#majoor-floating-viewer-mfv)
 - [Graph Map](#graph-map)
@@ -94,15 +94,14 @@ Useful links:
 
 ---
 
-## What's New in v2.4.5
+## Latest Release
 
-### Latest Release Highlights
-- **Floating Viewer — Multi-Pin (A/B/C/D)**: Pin up to 4 images and compare them simultaneously
-- **Floating Viewer — Node Parameters Sidebar**: Edit prompts, seeds, and samplers directly inside the viewer; Run button for immediate re-queue
-- **Floating Viewer — Sidebar Position Setting**: Place the Node Parameters sidebar on the right, left, or bottom
-- **Documentation sync**: Main guides, API reference, testing docs, and user guide aligned with the current repository
-- **Version bump**: Published project metadata and docs now target 2.4.5 consistently
-- **Plugin docs refresh**: Plugin compatibility examples now reflect the current Majoor baseline
+### v2.4.7 Highlights
+- **Grid performance improvements**: Better responsiveness, scrolling stability, and asset loading for large libraries.
+- **Floating Viewer is now a richer workflow surface**: Inspect, compare, stream, and control generation assets from MFV.
+- **Node Stream**: Follow supported selected-node previews directly inside the Floating Viewer.
+- **Node Parameters**: Inspect and edit node widgets from the viewer without switching back to the canvas.
+- **Toolbox updates**: Faster access to common asset and workflow operations.
 
 See [CHANGELOG.md](CHANGELOG.md) for the complete release notes.
 
@@ -242,62 +241,11 @@ ffprobe -version
 
 See [`docs/INSTALLATION.md`](docs/INSTALLATION.md) for detailed instructions.
 
-### ComfyUI Desktop Second-Screen Popup
+### ComfyUI Desktop Popup Workaround
 
 If you use the official **ComfyUI Desktop / Electron** build and want the **Majoor Floating Viewer** to open in a real detachable window that can be moved to another monitor, the Desktop host must allow `window.open("about:blank")` popups.
 
-The Majoor plugin already tries to open a real popup first on Desktop. However, some Desktop builds still block that popup in the Electron host and redirect it to the OS instead. In that case, add the popup allow-list below to the Desktop app host.
-
-Typical file to patch in an extracted Desktop app:
-
-```text
-.vite/build/main.cjs
-```
-
-Find the `#shouldOpenInPopup(url2)` method and make sure it allows `about:blank`, `127.0.0.1`, and `localhost`:
-
-```js
-  #shouldOpenInPopup(url2) {
-    return url2 === "about:blank"
-      || url2.startsWith("http://127.0.0.1:")
-      || url2.startsWith("http://localhost:")
-      || url2.startsWith("https://dreamboothy.firebaseapp.com/")
-      || url2.startsWith("https://checkout.comfy.org/")
-      || url2.startsWith("https://accounts.google.com/")
-      || url2.startsWith("https://github.com/login/oauth/");
-  }
-```
-
-And ensure the window-open handler still allows popup creation for approved URLs:
-
-```js
-    this.window.webContents.setWindowOpenHandler(({ url: url2 }) => {
-      if (this.#shouldOpenInPopup(url2)) {
-        return {
-          action: "allow",
-          overrideBrowserWindowOptions: {
-            webPreferences: { preload: void 0 },
-          },
-        };
-      }
-
-      electron.shell.openExternal(url2);
-      return { action: "deny" };
-    });
-```
-
-After patching the Desktop host:
-
-1. Repack the Desktop app archive if needed.
-2. Restart ComfyUI Desktop completely.
-3. Reopen Majoor Assets Manager.
-4. Use the MFV pop-out button. It should now open a real detachable window that can be moved to another screen.
-
-Notes:
-
-- This host-side patch is only needed for Desktop builds that still block `about:blank` popups.
-- Browser-based ComfyUI does not require this Electron host patch.
-- If your Desktop build already allows these popup URLs, no extra host change is required.
+The Majoor plugin already tries to open a real popup first on Desktop. Some Desktop builds still block that popup in the Electron host and redirect it to the OS instead. If that happens, use the advanced workaround in [`docs/DESKTOP_POPUP_WORKAROUND.md`](docs/DESKTOP_POPUP_WORKAROUND.md). Browser-based ComfyUI does not require this Electron host patch.
 
 ---
 
@@ -306,6 +254,8 @@ Notes:
 Majoor Assets Manager ships two ComfyUI nodes that persist **generation timing metadata** directly inside the saved files. This allows the asset manager to index `generation_time_ms` alongside prompt/workflow data for every asset.
 
 Full reference: [`docs/CUSTOM_NODES.md`](docs/CUSTOM_NODES.md)
+
+The video node requires PyAV. It is included in the runtime dependency contract (`requirements.txt` and `pyproject.toml`) so the documented manual install commands install it automatically.
 
 ### Majoor Save Image 💾
 
@@ -412,6 +362,16 @@ MFV now has a dedicated illustrated guide focused on the real workflow inside th
 - MFV shows the selected node's media when that node exposes a frontend preview
 - Useful for preview nodes, loader/save nodes, and compatible live-preview surfaces
 
+### Disable MFV Auto-Open
+If the Floating Viewer opens automatically during renders or after clicking nodes, turn off the stream features that trigger it:
+
+1. Open **Settings** → **Majoor Assets Manager** → **Viewer**.
+2. Disable **Majoor: MFV Live Stream Enabled by Default** to stop MFV from auto-following final render outputs when a generation finishes.
+3. Disable **Majoor: MFV KSampler Preview Enabled by Default** to stop MFV from auto-opening for sampler/denoising preview frames during a render.
+4. In the Floating Viewer toolbar, turn **Node Stream** off if node clicks are making MFV follow selected-node previews.
+
+You can still open MFV manually with the toolbar button or the **V** shortcut after disabling these defaults.
+
 ### Why MFV And Graph Map Work Together
 - Use **MFV** for live review, compare, pins, streams, and quick reruns.
 - Open **Graph Map** when you need workflow context for the current asset.
@@ -459,6 +419,8 @@ For the full walkthrough and the second screenshot focused on the node detail pa
 |----------|--------|
 | **Arrow Keys** | Navigate selection |
 | **Enter** / **Space** | Open Viewer |
+| **V** | Open selected asset in Floating Viewer |
+| **S** | Download selected asset |
 | **Ctrl+A** | Select all |
 | **Ctrl+D** | Deselect all |
 | **Ctrl+Click** | Toggle selection |
@@ -476,6 +438,7 @@ For the full walkthrough and the second screenshot focused on the node detail pa
 | **F** | Toggle fullscreen |
 | **D** | Toggle info panel |
 | **Space** | Play/pause video |
+| **S** | Download original from context menu |
 | **Left/Right** | Previous/next asset, or step frame when the focused player bar is active |
 | **Mouse Wheel** | Zoom in/out |
 | **I** | Toggle pixel probe |
@@ -484,6 +447,12 @@ For the full walkthrough and the second screenshot focused on the node detail pa
 | **Z** | Toggle zebra patterns |
 | **G** | Cycle grid overlays |
 | **Alt+1** | Toggle 1:1 pixel view |
+
+### Drag & Drop
+| Gesture | Action |
+|---------|--------|
+| **S+Drag to OS** | Export clean copy/ZIP without ComfyUI metadata |
+| **L+Drop on canvas** | Load selected asset(s) by creating matching media loader node(s) |
 
 ### MFV
 | Shortcut | Action |
@@ -767,10 +736,12 @@ export MJR_AM_NO_AUTO_PIP=1
 >
 > - Auto-generates an API token at first startup (visible in
 >   Settings → Majoor → Security).
-> - Allows remote LAN clients to bootstrap that token automatically on first
->   write (`Allow Remote Full Access` is **on by default**).
-> - Accepts the API token over plain HTTP for trusted-LAN setups
->   (`Allow HTTP Token Transport` is **on by default**).
+> - Allows the browser settings UI to enable first-run LAN setup flows.
+> - Backend env-var defaults are conservative for headless use: without a
+>   persisted UI preference, no-token remote writes stay blocked unless
+>   `MAJOOR_ALLOW_REMOTE_WRITE=1` is set.
+> - Accepts the API token over plain HTTP only when the persisted setting or
+>   `MAJOOR_ALLOW_INSECURE_TOKEN_TRANSPORT=1` permits it for trusted-LAN setups.
 >
 > If you expose ComfyUI to the public Internet, open Settings → Majoor →
 > Security and either disable `Allow HTTP Token Transport` (forcing HTTPS) or
@@ -781,8 +752,9 @@ export MJR_AM_NO_AUTO_PIP=1
 For everyday LAN use you should not need to change anything. The relevant
 toggles, in order of restrictiveness:
 
-- `Allow Remote Full Access` *(default: on)* — permits remote bootstrap of the
-  API token. Disable on Internet-exposed instances.
+- `Allow Remote Full Access` — permits no-token remote write/bootstrap flows.
+  Leave this off for Internet-exposed instances. In headless/env-only setups,
+  the backend default is off unless `MAJOOR_ALLOW_REMOTE_WRITE=1` is set.
 - `Allow HTTP Token Transport` *(default: on)* — permits the API token to be
   sent over plain HTTP. Disable when serving over HTTPS only.
 - `Require Token For All Writes` *(default: off)* — when on, every write
@@ -900,6 +872,9 @@ pip install -r requirements.txt -r requirements-vector.txt
 
 # Contributor tooling (tests, lint, typing, security checks)
 pip install -r requirements-dev.txt
+
+# Frontend tooling
+npm ci
 ```
 
 Dependency roles and update rules are defined in [`docs/DEPENDENCY_POLICY.md`](docs/DEPENDENCY_POLICY.md).
@@ -990,10 +965,13 @@ python scripts/run_changed_quality_gate.py
 
 # Individual checks
 mypy --config-file mypy.ini
-python -m ruff check --fix mjr_am_backend mjr_am_shared tests scripts __init__.py
+python -m ruff check mjr_am_backend mjr_am_shared tests scripts __init__.py
 bandit -r mjr_am_backend -ll -ii -x tests
 pip-audit -r requirements.txt
 python scripts/check_cc_changed.py
+
+# Optional auto-fix
+python -m ruff check --fix mjr_am_backend mjr_am_shared tests scripts __init__.py
 ```
 
 ### Contributing
@@ -1024,7 +1002,7 @@ See [`docs/TESTING.md`](docs/TESTING.md), [`tests/README.md`](tests/README.md), 
 ## Compatibility
 
 - **ComfyUI**: ≥ 0.13.0 (recommended baseline)
-- **Python**: 3.10, 3.11, 3.12 (3.13 compatible)
+- **Python**: 3.10, 3.11, 3.12, 3.13
 - **Operating Systems**:
   - Windows 10/11
   - macOS 10.15+
@@ -1089,5 +1067,5 @@ Optional attribution request: See [`NOTICE`](NOTICE) file for details.
 
 ---
 
-*Last updated: April 5, 2026*
-*Version: 2.4.5*
+*Last updated: May 15, 2026*
+*Version: 2.4.7*

@@ -1,12 +1,12 @@
 # Majoor Assets Manager - Drag & Drop Guide
 
-**Version**: 2.4.5
-**Last Updated**: April 5, 2026
+**Version**: 2.4.7
+**Last Updated**: May 15, 2026
 
 ## Overview
 The Majoor Assets Manager provides seamless drag and drop functionality that integrates with both ComfyUI and your operating system. This guide covers all aspects of drag and drop operations within the extension.
 
-**Recent highlights**: Audio file staging support, improved multi-select ZIP creation, and better node compatibility detection.
+**Recent highlights**: Audio file staging support, improved multi-select ZIP creation, S+drag clean export, and better node compatibility detection.
 
 ## Drag to ComfyUI Canvas
 
@@ -18,15 +18,16 @@ The Majoor Assets Manager provides seamless drag and drop functionality that int
 
 ### Single Asset Drag
 - Drag any single asset to the canvas
-- The asset path is automatically injected into compatible nodes
-- Compatible nodes include LoadImage, LoadLatent, and similar input nodes
-- The asset is staged for immediate use in your workflow
+- Dropping on a compatible loader node stages the asset and injects the staged path
+- Dropping media on empty canvas imports a valid embedded workflow when present; otherwise it creates the matching loader node
+- Hold **L** while dropping on empty canvas to skip embedded workflow import and create the matching media loader node directly. With a multi-selection, one loader node is created per selected asset.
+- The staged copy is placed under the ComfyUI input directory for immediate use
 
 ### Multiple Asset Drag
 - Select multiple assets using Ctrl/Cmd+click or Shift+click
-- Drag any selected asset to the canvas
-- Multiple file paths are handled appropriately
-- Some nodes support multiple inputs, others will use the first path
+- Drag any selected asset outside the browser to create a ZIP for OS/file-manager drops
+- Hold **L** while dropping a multi-selection on empty canvas to create one matching loader node per selected asset
+- Dropping a multi-selection on an existing node still injects only the card that started the drag into that node
 
 ### Node Compatibility
 The system intelligently identifies compatible nodes:
@@ -34,22 +35,20 @@ The system intelligently identifies compatible nodes:
 #### Image Input Nodes
 - **LoadImage**: Accepts image file paths
 - **LoadImageMask**: For mask images
-- **PreviewImage**: For direct preview
-- **LoadLatent**: For latent files
 
 #### Video Input Nodes
 - **LoadVideo**: For video file paths
 - **VideoLoad**: For various video formats
 
-#### Workflow Input Nodes
-- **LoadWorkflow**: For workflow files
-- **ImportWorkflow**: For external workflow files
+#### Other Media Input Nodes
+- Audio loader nodes with audio path widgets
+- 3D/model loader nodes with model, mesh, geometry, or scene path widgets
 
 ### Staging Mechanism
-- Assets are staged temporarily when dragged to canvas
-- Paths are injected into appropriate input fields
-- No permanent changes to workflow until execution
-- Allows for experimentation without committing to changes
+- Assets are copied or hard-linked into the ComfyUI input directory before node injection
+- Paths are injected into compatible input widgets after staging completes
+- Empty-canvas image drops can create a LoadImage node using the staged path
+- Staging writes an input-side file; the workflow itself changes only when a node is created or a widget value is updated
 
 ## Drag to Operating System
 
@@ -64,6 +63,12 @@ The system intelligently identifies compatible nodes:
 2. Drag any selected asset outside the browser window
 3. A ZIP file is automatically created containing all selected assets
 4. Drop the ZIP file onto your destination
+
+### Clean Export Without ComfyUI Metadata
+- Normal drag-out preserves the original file and does not show a metadata prompt.
+- Hold **S** while starting the drag to export clean copies with ComfyUI workflow/generation metadata stripped.
+- S+drag works for one or more selected assets. For multiple selected assets, a single clean ZIP is created for the OS drop.
+- If an asset has no supported embedded metadata to strip, it is exported unchanged.
 
 ### ZIP Creation Process
 - ZIP files are created on-demand when dragging multiple items
@@ -215,7 +220,8 @@ The system recognizes different drag targets:
 #### Drag Target Not Recognized
 - Ensure target application accepts file drops
 - Check if target area is actually droppable
-- Verify file type compatibility with target
+- For ComfyUI node drops, use loader/input nodes with file-path widgets
+- Preview/output nodes are not file-path drop targets
 - Try dragging to a different application
 
 #### ZIP Creation Failure
