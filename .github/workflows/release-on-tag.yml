@@ -31,6 +31,35 @@ jobs:
       - name: Build frontend
         run: npm run build
 
+      - name: Extract release notes from CHANGELOG
+        env:
+          TAG_NAME: ${{ github.ref_name }}
+        run: |
+          python - <<'PY'
+          import os
+          import pathlib
+          import re
+          import sys
+
+          changelog_path = pathlib.Path("CHANGELOG.md")
+          version = os.environ["TAG_NAME"].strip()
+          if version.startswith("v"):
+              version = version[1:]
+
+          raw = changelog_path.read_text(encoding="utf-8")
+          pattern = re.compile(
+              rf"^## \[{re.escape(version)}\][^\n]*\n(?P<body>.*?)(?=^## \[|\Z)",
+              re.MULTILINE | re.DOTALL,
+          )
+          match = pattern.search(raw)
+          if not match:
+              print(f"Could not find CHANGELOG section for version {version}.", file=sys.stderr)
+              sys.exit(1)
+
+          notes = match.group(0).strip() + "\n"
+          pathlib.Path("release_notes.md").write_text(notes, encoding="utf-8")
+          PY
+
       - name: Create Archive
         # Réutilisation de la logique d'exclusion du ps1
         run: |
@@ -50,27 +79,8 @@ jobs:
         uses: softprops/action-gh-release@v3 # upgraded from v1; TODO: pin to commit SHA
         with:
           files: ComfyUI-Majoor-AssetsManager_release.zip
-          generate_release_notes: true
+          body_path: release_notes.md
           draft: false
           prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  # Intégration de votre workflow existant pour publier aussi sur le registre Comfy
-  publish-registry:
-    needs: create-release
-    name: Publish to Comfy Registry
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    # Condition extraite de votre fichier publish.yml original
-    if: ${{ github.repository_owner == 'MajoorWaldi' }} 
-    steps:
-      - name: Check out code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          submodules: false
-      - name: Publish Custom Node
-        uses: Comfy-Org/publish-node-action@v1 # 1.0.1
-        with:
-          personal_access_token: ${{ secrets.REGISTRY_ACCESS_TOKEN }}
