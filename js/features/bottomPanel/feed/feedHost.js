@@ -205,12 +205,76 @@ function _getHostAssets(host) {
     return Array.from(host?.assetsByKey?.values?.() || []);
 }
 
-function _storeHostAsset(host, asset) {
+function _normalizeAssetIdentityPart(value) {
+    return String(value ?? "")
+        .trim()
+        .toLowerCase();
+}
+
+function _isLivePlaceholderAsset(asset) {
+    return (
+        asset?._mjrLivePlaceholder === true ||
+        asset?.is_live_placeholder === true ||
+        String(asset?.id || "")
+            .trim()
+            .toLowerCase()
+            .startsWith("live:")
+    );
+}
+
+function _clearLivePlaceholderState(asset) {
+    if (!asset || typeof asset !== "object") return asset;
+    try {
+        delete asset._mjrLivePlaceholder;
+        delete asset._mjrLiveStatus;
+        delete asset._mjrLiveLabel;
+        delete asset.is_live_placeholder;
+    } catch (e) {
+        console.debug?.(e);
+    }
+    return asset;
+}
+
+export function getFeedAssetIdentityKey(asset) {
+    if (!asset || typeof asset !== "object") return "";
+    const type = _normalizeAssetIdentityPart(asset?.type || asset?.source || "output");
+    const rootId = _normalizeAssetIdentityPart(asset?.root_id || asset?.custom_root_id || "");
+    const subfolder = _normalizeAssetIdentityPart(asset?.subfolder || "");
+    const filename = _normalizeAssetIdentityPart(asset?.filename || "");
+    if (filename) return `${type}|${rootId}|${subfolder}|${filename}`;
+    const filepath = _normalizeAssetIdentityPart(
+        asset?.filepath || asset?.path || asset?.fullpath || asset?.full_path || "",
+    );
+    if (!filepath) return "";
+    return `${type}|${rootId}|path|${filepath}`;
+}
+
+export function mergeFeedAssetIntoMap(assetsByKey, asset) {
     const normalized = _normalizeAsset(asset);
-    if (!host || !normalized) return null;
+    if (!assetsByKey || typeof assetsByKey.set !== "function" || !normalized) return null;
+    const primaryKey = _assetKey(normalized);
+    const identity = getFeedAssetIdentityKey(normalized);
+    let existingKey = "";
+    if (identity) {
+        for (const [key, existingAsset] of assetsByKey.entries()) {
+            if (getFeedAssetIdentityKey(existingAsset) === identity) {
+                existingKey = key;
+                break;
+            }
+        }
+    }
+    const existing = existingKey ? assetsByKey.get(existingKey) : null;
+    const merged = existing ? { ...existing, ...normalized } : normalized;
+    if (!_isLivePlaceholderAsset(normalized)) _clearLivePlaceholderState(merged);
+    if (existingKey && existingKey !== primaryKey) assetsByKey.delete(existingKey);
+    assetsByKey.set(primaryKey, merged);
+    return merged;
+}
+
+function _storeHostAsset(host, asset) {
+    if (!host) return null;
     if (!host.assetsByKey) host.assetsByKey = new Map();
-    host.assetsByKey.set(_assetKey(normalized), normalized);
-    return normalized;
+    return mergeFeedAssetIntoMap(host.assetsByKey, asset);
 }
 
 function _scheduleHostRender(host) {
@@ -398,12 +462,25 @@ function _rememberPendingAsset(asset) {
     if (!normalized) return null;
     const key = _assetKey(normalized);
     if (!key) return null;
-    FEED_STATE.pendingAssets.set(key, normalized);
+    const identity = getFeedAssetIdentityKey(normalized);
+    let identityExisting = null;
+    if (identity) {
+        for (const [pendingKey, pending] of FEED_STATE.pendingAssets.entries()) {
+            if (pendingKey !== key && getFeedAssetIdentityKey(pending) === identity) {
+                identityExisting = pending;
+                FEED_STATE.pendingAssets.delete(pendingKey);
+            }
+        }
+    }
+    const existing = FEED_STATE.pendingAssets.get(key) || identityExisting || null;
+    const merged = existing ? { ...existing, ...normalized } : normalized;
+    if (!_isLivePlaceholderAsset(normalized)) _clearLivePlaceholderState(merged);
+    FEED_STATE.pendingAssets.set(key, merged);
     if (FEED_STATE.pendingAssets.size > 64) {
         const oldest = FEED_STATE.pendingAssets.keys().next().value;
         if (oldest) FEED_STATE.pendingAssets.delete(oldest);
     }
-    return normalized;
+    return merged;
 }
 
 function _getPendingAssets() {

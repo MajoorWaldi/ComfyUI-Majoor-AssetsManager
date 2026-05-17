@@ -98,7 +98,7 @@ describe("registerRealtimeListeners", () => {
         );
     });
 
-    it("upsert un asset indexe differe tout en laissant la finalisation lourde au gate", async () => {
+    it("ignore un asset indexe differe jusqu a la finalisation du gate", async () => {
         ensureBrowserShims();
         const harness = createRuntimeHarness({ defer: true });
 
@@ -132,18 +132,8 @@ describe("registerRealtimeListeners", () => {
             },
         });
 
-        expect(harness.pushGeneratedAsset).toHaveBeenCalledTimes(1);
-        expect(harness.upsertAsset).toHaveBeenCalledTimes(1);
-        expect(harness.upsertAsset).toHaveBeenCalledWith(
-            harness.grid,
-            expect.objectContaining({
-                id: 43,
-                kind: "image",
-                filename: "gen_0043.png",
-                filepath: "output/gen_0043.png",
-                type: "output",
-            }),
-        );
+        expect(harness.pushGeneratedAsset).not.toHaveBeenCalled();
+        expect(harness.upsertAsset).not.toHaveBeenCalled();
     });
 
     it("upsert apres generation puis indexation sur la grille active", async () => {
@@ -196,6 +186,45 @@ describe("registerRealtimeListeners", () => {
             expect.objectContaining(detail),
         );
         expect(Number(window.__mjrLastAssetUpsertCount || 0)).toBeGreaterThan(0);
+    });
+
+    it("alimente le feed meme sans grille active", async () => {
+        ensureBrowserShims();
+        const harness = createRuntimeHarness();
+
+        await registerRealtimeListeners({
+            api: harness.api,
+            runtime: harness.runtime,
+            executionRuntime: harness.executionRuntime,
+            appRef: {},
+            liveStreamModule: null,
+            ensureExecutionRuntime: () => ({ queue_remaining: 0, active_prompt_id: null }),
+            emitRuntimeStatus: () => {},
+            getActiveGridContainer: () => null,
+            pushGeneratedAsset: harness.pushGeneratedAsset,
+            upsertAsset: harness.upsertAsset,
+            removeAssetsFromGrid: () => {},
+            getEnrichmentState: () => ({ active: false }),
+            setEnrichmentState: () => {},
+            comfyToast: () => {},
+            t: (_k, fallback) => fallback,
+            reportError: () => {},
+            registerCleanableListener: () => {},
+        });
+
+        const detail = {
+            id: 45,
+            kind: "image",
+            filename: "gen_0045.png",
+            filepath: "output/gen_0045.png",
+            type: "output",
+        };
+
+        harness.api._mjrAssetIndexedHandler({ detail });
+
+        expect(harness.pushGeneratedAsset).toHaveBeenCalledTimes(1);
+        expect(harness.pushGeneratedAsset).toHaveBeenCalledWith(expect.objectContaining(detail));
+        expect(harness.upsertAsset).not.toHaveBeenCalled();
     });
 
     it("upsert un placeholder live instantane des la sortie executed", async () => {
