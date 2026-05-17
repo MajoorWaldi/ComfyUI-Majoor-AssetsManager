@@ -98,7 +98,7 @@ Useful links:
 
 ## Latest Release
 
-### v2.4.7 Highlights
+### v2.4.8 Highlights
 - **Grid performance improvements**: Better responsiveness, scrolling stability, and asset loading for large libraries.
 - **Floating Viewer is now a richer workflow surface**: Inspect, compare, stream, and control generation assets from MFV.
 - **Node Stream**: Follow supported selected-node previews directly inside the Floating Viewer.
@@ -1069,5 +1069,5 @@ Optional attribution request: See [`NOTICE`](NOTICE) file for details.
 
 ---
 
-*Last updated: May 15, 2026*
-*Version: 2.4.7*
+*Last updated: May 18, 2026*
+*Version: 2.4.8*

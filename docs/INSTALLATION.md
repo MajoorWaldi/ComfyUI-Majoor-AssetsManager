@@ -1,7 +1,7 @@
 # Majoor Assets Manager - Installation Guide
 
-**Version**: 2.4.7
-**Last Updated**: May 15, 2026
+**Version**: 2.4.8
+**Last Updated**: May 18, 2026
 
 ## Overview
 This guide provides detailed instructions for installing and configuring the Majoor Assets Manager for ComfyUI. Follow these steps to get the extension up and running with all its features.

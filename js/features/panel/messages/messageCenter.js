@@ -14,14 +14,14 @@ let _messages = [];
 const BUILTIN_PANEL_MESSAGES = Object.freeze([
     {
         id: "whats-new-2026-05-17-dnd-graph-map-settings",
-        title: "What's New - DnD, Graph Map & Settings",
+        title: "New Version 2.4.8 - DnD, Graph Map & Settings",
         titleKey: "msg.whatsNew.title.dndGraphMapSettings",
         emoji: "✨",
         category: "Release",
         categoryKey: "msg.category.release",
         level: "success",
         createdAt: Date.parse("2026-05-17T21:30:00Z"),
-        body: "Drag and Drop has been fixed and clarified, including canvas/node drops, staging behavior, visual feedback, and ComfyUI workflow-drop interactions. Graph Map in the Floating Viewer now lets you inspect embedded workflows without opening them on the canvas, copy nodes or attributes, and transfer node attributes to a similar selected node in the canvas. Settings access and explanations were also improved, with easier access from the panel gear icon and the Floating Viewer.",
+        body: "Version 2.4.8 released: Drag and Drop has been fixed and clarified, including canvas/node drops, staging behavior, visual feedback, and ComfyUI workflow-drop interactions. Graph Map in the Floating Viewer now lets you inspect embedded workflows without opening them on the canvas, copy nodes or attributes, and transfer node attributes to a similar selected node in the canvas. Settings access and explanations were also improved, with easier access from the panel gear icon and the Floating Viewer.",
         bodyKey: "msg.whatsNew.body.dndGraphMapSettings",
         actionLabel: "Changelog",
         actionLabelKey: "label.changelog",

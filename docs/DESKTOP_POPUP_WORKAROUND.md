@@ -1,6 +1,6 @@
 # ComfyUI Desktop Popup Workaround
 
-**Version**: 2.4.7
+**Version**: 2.4.8
 
 Use this only if you run the official **ComfyUI Desktop / Electron** build and want the **Majoor Floating Viewer** to open in a real detachable window that can be moved to another monitor.
 

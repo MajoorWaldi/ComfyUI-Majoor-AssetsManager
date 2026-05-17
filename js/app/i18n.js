@@ -645,6 +645,9 @@ const DICTIONARY = {
         "msg.shortcuts.section.mfv": "Floating Viewer",
         "msg.shortcuts.section.video": "Video Playback",
         "msg.category.release": "Release",
+        "msg.whatsNew.title.dndGraphMapSettings": "New Version 2.4.8 - DnD, Graph Map & Settings",
+        "msg.whatsNew.body.dndGraphMapSettings":
+            "Version 2.4.8 released: Drag and Drop has been fixed and clarified, including canvas/node drops, staging behavior, visual feedback, and ComfyUI workflow-drop interactions. Graph Map in the Floating Viewer now lets you inspect embedded workflows without opening them on the canvas, copy nodes or attributes, and transfer node attributes to a similar selected node in the canvas. Settings access and explanations were also improved, with easier access from the panel gear icon and the Floating Viewer.",
         "msg.whatsNew.title.version246": "New Version 2.4.6",
         "msg.whatsNew.body.version246":
             "Version 2.4.6 released: Various bug fixes and performance & fluidity improvements. Improved concatenate support for default and custom nodes (by Forsion07). Added support helpers for Api Node and Ernie Image. Live Stream in Floating Viewer is now disabled by default. See CHANGELOG for details.",
@@ -1214,6 +1217,9 @@ const DICTIONARY = {
         "msg.shortcuts.section.mfv": "Floating Viewer",
         "msg.shortcuts.section.video": "Lecture video",
         "msg.category.release": "Version",
+        "msg.whatsNew.title.dndGraphMapSettings": "Nouvelle Version 2.4.8 - DnD, Graph Map et Parametres",
+        "msg.whatsNew.body.dndGraphMapSettings":
+            "Version 2.4.8 publiee : le Drag and Drop a ete corrige et clarifie, y compris pour le depot sur canvas/noeud, le comportement de staging, le feedback visuel et les interactions avec le workflow-drop de ComfyUI. Graph Map dans le Floating Viewer permet maintenant d'inspecter les workflows embarques sans les ouvrir sur le canvas, de copier des noeuds ou leurs attributs, et de transferer les attributs d'un noeud vers un noeud similaire selectionne sur le canvas. L'acces aux parametres et leurs explications ont aussi ete ameliores, avec un acces plus simple depuis l'icone engrenage du panneau et depuis le Floating Viewer.",
         "msg.whatsNew.title.version246": "Nouvelle Version 2.4.6",
         "msg.whatsNew.body.version246":
             "Version 2.4.6 publiee : divers correctifs de bugs et ameliorations de performances et fluidite. Support concatenate ameliore pour les nodes par defaut et custom (par Forsion07). Ajout des helpers pour Api Node et Ernie Image. Le Live Stream du Floating Viewer est desormais desactive par defaut. Voir CHANGELOG pour details.",

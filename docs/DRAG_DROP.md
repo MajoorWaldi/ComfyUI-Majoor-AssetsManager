@@ -1,7 +1,7 @@
 # Majoor Assets Manager - Drag & Drop Guide
 
-**Version**: 2.4.7
-**Last Updated**: May 15, 2026
+**Version**: 2.4.8
+**Last Updated**: May 18, 2026
 
 ## Overview
 The Majoor Assets Manager provides seamless drag and drop functionality that integrates with both ComfyUI and your operating system. This guide covers all aspects of drag and drop operations within the extension.

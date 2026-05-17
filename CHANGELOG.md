@@ -4,6 +4,10 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+---
+
+## [2.4.8] - 2026-05-18
+
 ### Improvements & Code Quality
 - **Code Corrections and Improvements**: Applied frontend code corrections, interaction cleanup, and targeted maintainability improvements across the Assets Manager UI.
 - **Settings Access and Clarification**: Clarified settings behavior and improved access to settings from the panel gear icon and the Floating Viewer.
