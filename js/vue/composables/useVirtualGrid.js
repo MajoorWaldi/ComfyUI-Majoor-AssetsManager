@@ -373,7 +373,7 @@ export async function fetchPage(
             !hasActiveFilters &&
             String(sortKey || "mtime_desc").toLowerCase() === "mtime_desc";
         const includeTotal = !(isOutputScope && (Number(offset ?? 0) > 0 || isDefaultOutputBrowse));
-        const groupStacksForRequest = false;
+        const groupStacksForRequest = !!queryState.groupStacks;
         const cursorForRequest = Number(offset ?? 0) > 0 ? null : cursor || null;
         const url = deps.buildListURL({
             q: safeQuery,

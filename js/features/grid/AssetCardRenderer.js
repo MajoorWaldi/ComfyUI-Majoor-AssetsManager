@@ -272,7 +272,7 @@ export function shouldHideSiblingAsset(asset, state, loadMajoorSettings) {
     const matchKey = getSiblingMatchKey(asset, extUpper);
     if (!matchKey) return { hidden: false, hideEnabled: true, removed: [] };
 
-    if (kind === "video" || kind === "audio" || kind === "model3d") {
+    if (kind === "video" || kind === "audio" || kind === "model3d" || extUpper === "WEBP") {
         siblingMaps.nonImageSiblingKeys.add(matchKey);
         const removed = removeExistingHiddenSiblings(
             state,
@@ -483,6 +483,11 @@ export function appendAssets(gridContainer, assets, state, deps) {
     if (assetsToRemoveFromState.size > 0) {
         state.hiddenPngSiblings += assetsToRemoveFromState.size;
         state.assets = state.assets.filter((a) => !assetsToRemoveFromState.has(a));
+        for (let i = validNewAssets.length - 1; i >= 0; i--) {
+            if (!assetsToRemoveFromState.has(validNewAssets[i])) continue;
+            validNewAssets.splice(i, 1);
+            addedCount = Math.max(0, addedCount - 1);
+        }
         for (const removed of assetsToRemoveFromState) {
             unregisterHiddenSibling(state, removed, siblingMaps);
         }

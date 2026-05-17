@@ -52,15 +52,9 @@ export function buildDisplayAssets(assets) {
         }
         if (bucket.length >= 2) {
             const rep = bucket[0];
-            const prevMembers = Array.isArray(rep._mjrDupMembers) ? rep._mjrDupMembers : [];
-            const memberIds = new Set(prevMembers.map((entry) => String(entry?.id || "")));
-            const mergedMembers = [
-                ...prevMembers,
-                ...bucket.filter((entry) => !memberIds.has(String(entry?.id || ""))),
-            ];
             rep._mjrDupStack = true;
-            rep._mjrDupMembers = mergedMembers;
-            rep._mjrDupCount = mergedMembers.length;
+            rep._mjrDupMembers = bucket.slice();
+            rep._mjrDupCount = bucket.length;
         }
     }
 

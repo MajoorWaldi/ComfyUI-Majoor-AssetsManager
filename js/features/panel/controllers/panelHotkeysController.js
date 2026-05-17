@@ -53,7 +53,13 @@ export function createPanelHotkeysController({
             console.debug?.(e);
         }
         try {
-            return Boolean(boundEl?.isConnected) && document.activeElement === document.body;
+            const activeElement = document.activeElement;
+            return Boolean(
+                boundEl?.isConnected &&
+                    activeElement &&
+                    activeElement !== document.body &&
+                    boundEl.contains?.(activeElement)
+            );
         } catch (e) {
             console.debug?.(e);
             return false;
@@ -108,7 +114,7 @@ export function createPanelHotkeysController({
                 const vTyping =
                     event.target?.isContentEditable ||
                     event.target?.closest?.("input, textarea, select, [contenteditable='true']");
-                if (!vTyping && boundEl?.isConnected) {
+                if (!vTyping && boundEl?.isConnected && isPanelHotkeyContext(event)) {
                     // Block only when focus is inside an input/textarea that lives outside this panel.
                     let blockedByOutsideInput = false;
                     try {

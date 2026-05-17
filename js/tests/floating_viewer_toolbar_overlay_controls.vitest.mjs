@@ -14,6 +14,12 @@ vi.mock("../app/config.js", () => ({
     APP_CONFIG: {},
 }));
 
+const openMajoorSettingsMock = vi.fn();
+
+vi.mock("../app/openMajoorSettings.js", () => ({
+    openMajoorSettings: openMajoorSettingsMock,
+}));
+
 vi.mock("../utils/tooltipShortcuts.js", () => ({
     appendTooltipHint: vi.fn(),
     setTooltipHint: vi.fn(),
@@ -36,7 +42,14 @@ vi.mock("../features/viewer/workflowSidebar/WorkflowSidebar.js", () => ({
 }));
 
 vi.mock("../features/viewer/workflowSidebar/sidebarRunButton.js", () => ({
-    createRunButton: () => ({ el: document.createElement("div") }),
+    createRunButton: () => {
+        const el = document.createElement("div");
+        el.className = "mjr-mfv-run-controls";
+        const stop = document.createElement("button");
+        stop.className = "mjr-icon-btn mjr-mfv-stop-btn";
+        el.appendChild(stop);
+        return { el };
+    },
 }));
 
 vi.mock("../features/viewer/floatingViewerProgress.js", () => ({
@@ -83,5 +96,42 @@ describe("floating viewer toolbar overlay controls", () => {
         expect(viewer._channelSelect.value).toBe("rgb");
         // When _overlayMaskEnabled is false, format initialises to "off"
         expect(viewer._formatSelect.value).toBe("off");
+    });
+
+    it("renders a Majoor settings shortcut beside the MFV stop controls", async () => {
+        const { buildFloatingViewerToolbar, rebindFloatingViewerControlHandlers } =
+            await import("../features/viewer/floatingViewerUi.js");
+
+        const viewer = {
+            element: document.createElement("div"),
+            _channel: "rgb",
+            _exposureEV: 0,
+            _gridMode: 0,
+            _overlayFormat: "image",
+            _overlayMaskOpacity: 0.65,
+            _overlayMaskEnabled: false,
+            _updateModeBtnUI: vi.fn(),
+            _updatePinUI: vi.fn(),
+            _updateGenBtnUI: vi.fn(),
+            _bindDocumentUiHandlers: vi.fn(),
+            _redrawOverlayGuides: vi.fn(),
+            _updateSettingsBtnState: vi.fn(),
+        };
+
+        const bar = buildFloatingViewerToolbar(viewer);
+        rebindFloatingViewerControlHandlers(viewer);
+
+        const stopControls = Array.from(bar.children).find((child) =>
+            child.classList?.contains("mjr-mfv-run-controls"),
+        );
+        const settingsBtn = bar.querySelector(".mjr-mfv-majoor-settings-btn");
+
+        expect(settingsBtn).toBeTruthy();
+        expect(settingsBtn?.previousElementSibling).toBe(stopControls);
+        expect(settingsBtn?.querySelector("i")?.className).toBe("pi pi-cog");
+
+        settingsBtn.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+
+        expect(openMajoorSettingsMock).toHaveBeenCalledTimes(1);
     });
 });

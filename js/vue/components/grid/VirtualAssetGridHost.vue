@@ -108,7 +108,7 @@ provide("mjrStackService", {
                 detail: {
                     asset,
                     members,
-                    title: `Duplicates — ${members.length} copies`,
+                    title: `Duplicates - ${members.length} copies`,
                     isDupGroup: true,
                 },
             }),

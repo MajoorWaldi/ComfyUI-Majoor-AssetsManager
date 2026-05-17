@@ -88,7 +88,7 @@ describe("InfiniteScroll upsert", () => {
         }
     });
 
-    it("keeps UI-only modes out of the primary grid list request", async () => {
+    it("passes stack grouping only when the grid dataset enables it", async () => {
         const buildListURL = vi.fn(() => "/mjr/am/list");
         const deps = {
             sanitizeQuery: (value) => value,
@@ -119,6 +119,28 @@ describe("InfiniteScroll upsert", () => {
         expect(buildListURL).toHaveBeenCalledWith(
             expect.objectContaining({
                 includeTotal: false,
+                groupStacks: true,
+            }),
+        );
+
+        buildListURL.mockClear();
+        await fetchPage(
+            {
+                dataset: {
+                    mjrScope: "output",
+                    mjrSort: "mtime_desc",
+                    mjrSemanticMode: "1",
+                },
+            },
+            "*",
+            100,
+            0,
+            deps,
+            { requestId: 1 },
+        );
+
+        expect(buildListURL).toHaveBeenCalledWith(
+            expect.objectContaining({
                 groupStacks: false,
             }),
         );

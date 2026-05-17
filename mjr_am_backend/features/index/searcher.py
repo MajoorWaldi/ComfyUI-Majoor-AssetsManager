@@ -1073,7 +1073,7 @@ class IndexSearcher:
         sql_parts.append(_build_sort_sql(sort, table_alias="a"))
         sql_parts.append("LIMIT ? OFFSET ?")
         query_limit = limit + 1 if limit > 0 else limit
-        query_offset = 0 if cursor_clause else offset
+        query_offset = offset
         params.extend([query_limit, query_offset])
 
         rows_res = await self._run_search_query_rows(
@@ -1281,7 +1281,7 @@ class IndexSearcher:
         sql_parts.append(_build_sort_sql(sort, table_alias="a"))
         sql_parts.append("LIMIT ? OFFSET ?")
         query_limit = limit + 1 if limit > 0 else limit
-        query_offset = 0 if cursor_clause else offset
+        query_offset = offset
         params.extend([query_limit, query_offset])
 
         rows_res = await self._run_search_query_rows(
@@ -1505,6 +1505,7 @@ class IndexSearcher:
                 include_highlight=include_highlight,
                 roots=roots,
                 sort=sort,
+                cursor=cursor,
             )
         if roots is None:
             return await self._search_unscoped_assets(
@@ -1542,6 +1543,7 @@ class IndexSearcher:
         include_highlight: bool,
         roots: list[str] | None,
         sort: str | None = None,
+        cursor: str | None = None,
     ) -> Result[dict[str, Any]]:
         fetch_rows = self._build_grouped_fetch_rows(
             query=query,
@@ -1549,6 +1551,7 @@ class IndexSearcher:
             filters=filters,
             metadata_tags_text_clause=metadata_tags_text_clause,
             sort=sort,
+            cursor=cursor,
         )
         grouped_res = await _paginate_grouped_assets(
             fetch_rows,
@@ -1580,6 +1583,7 @@ class IndexSearcher:
         filters: dict[str, Any] | None,
         metadata_tags_text_clause: str,
         sort: str | None,
+        cursor: str | None = None,
     ):
         is_browse_all = query.strip() == "*"
         if roots is None:
@@ -1592,6 +1596,8 @@ class IndexSearcher:
                         filters=filters,
                         include_total=False,
                         metadata_tags_text_clause=metadata_tags_text_clause,
+                        sort=sort,
+                        cursor=cursor,
                     )
                 fts_query = self._sanitize_fts_query(query)
                 if not fts_query:
@@ -1620,6 +1626,7 @@ class IndexSearcher:
                     include_total=False,
                     metadata_tags_text_clause=metadata_tags_text_clause,
                     sort=sort,
+                    cursor=cursor,
                 )
             fts_query = self._sanitize_fts_query(query)
             if not fts_query:

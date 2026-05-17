@@ -38,6 +38,12 @@ vi.mock("../app/events.js", () => ({
     },
 }));
 
+const openMajoorSettingsMock = vi.fn();
+
+vi.mock("../app/openMajoorSettings.js", () => ({
+    openMajoorSettings: openMajoorSettingsMock,
+}));
+
 vi.mock("../utils/tooltipShortcuts.js", () => ({
     setTooltipHint: (el, label, hint) => {
         if (!el) return;
@@ -112,6 +118,23 @@ describe("HeaderSection MFV button", () => {
         expect(button).toBeTruthy();
         expect(icon?.className).toBe("pi pi-images");
         expect(button.classList.contains("mjr-mfv-btn-active")).toBe(true);
+        wrapper.unmount();
+    });
+
+    it("opens Majoor settings from the header gear button", async () => {
+        const mod = await import("../vue/components/panel/HeaderSection.vue");
+        const wrapper = mount(mod.default, {
+            global: { stubs: STUB_COMPONENTS },
+        });
+        await flushMountedState();
+
+        const button = wrapper.element.querySelector(".mjr-settings-shortcut-btn");
+        expect(button).toBeTruthy();
+        expect(button?.querySelector("i")?.className).toBe("pi pi-cog");
+
+        await button.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+
+        expect(openMajoorSettingsMock).toHaveBeenCalledTimes(1);
         wrapper.unmount();
     });
 });
