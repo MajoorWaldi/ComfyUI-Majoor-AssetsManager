@@ -179,7 +179,7 @@ const mfvTitle = computed(() =>
         : t("tooltip.openMFV", "Open Majoor Floating Viewer"),
 );
 
-const mfvIconClass = computed(() => "pi pi-images");
+const mfvIconClass = computed(() => "pi pi-eye");
 const majoorSettingsTitle = computed(() =>
     t("tooltip.openMajoorSettings", "Open Majoor Assets Manager settings"),
 );

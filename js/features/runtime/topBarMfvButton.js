@@ -8,7 +8,6 @@ const SLOT_ATTR = "data-mjr-topbar-mfv-slot";
 const BUTTON_LABEL_KEY = "label.floatingViewer";
 const BUTTON_LABEL_FALLBACK = "Viewer";
 const MFV_TOOLTIP_HINT = "V";
-const MFV_ICON = "〽️";
 
 let _observer = null;
 let _observedTarget = null;
@@ -112,9 +111,8 @@ function ensureSlotMounted(container) {
 }
 
 function createIcon() {
-    const icon = document.createElement("span");
-    icon.className = "mjr-topbar-mfv-icon";
-    icon.textContent = MFV_ICON;
+    const icon = document.createElement("i");
+    icon.className = "mjr-topbar-mfv-icon pi pi-eye";
     icon.setAttribute("aria-hidden", "true");
     return icon;
 }

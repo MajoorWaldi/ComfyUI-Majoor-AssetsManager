@@ -47,7 +47,7 @@ describe("topBarMfvButton", () => {
         expect(slot).toBeTruthy();
         expect(host).toBeTruthy();
         expect(button).toBeTruthy();
-        expect(icon?.textContent).toBe("〽️");
+        expect(icon?.className).toBe("mjr-topbar-mfv-icon pi pi-eye");
         expect(label?.textContent).toBe("Viewer");
         expect(queueGroup.nextSibling).toBe(slot);
         expect(slot.firstElementChild).toBe(host);
@@ -85,7 +85,9 @@ describe("topBarMfvButton", () => {
 
         const button = actionbar.querySelector("[data-mjr-topbar-mfv-button]");
         expect(button.getAttribute("aria-pressed")).toBe("false");
-        expect(button.querySelector(".mjr-topbar-mfv-icon")?.textContent).toBe("〽️");
+        expect(button.querySelector(".mjr-topbar-mfv-icon")?.className).toBe(
+            "mjr-topbar-mfv-icon pi pi-eye",
+        );
         expect(document.documentElement.style.getPropertyValue("--mjr-mfv-top-offset")).toBe(
             "84px",
         );

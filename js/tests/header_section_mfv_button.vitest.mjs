@@ -89,7 +89,7 @@ describe("HeaderSection MFV button", () => {
         const button = wrapper.element.querySelector(".mjr-am-header-tools > button.mjr-icon-btn");
         const icon = button?.querySelector("i");
         expect(button).toBeTruthy();
-        expect(icon?.className).toBe("pi pi-images");
+        expect(icon?.className).toBe("pi pi-eye");
         expect(button.getAttribute("title")).toContain("Majoor Floating Viewer");
         expect(button.classList.contains("mjr-mfv-btn-active")).toBe(false);
 
@@ -116,7 +116,7 @@ describe("HeaderSection MFV button", () => {
         const button = wrapper.element.querySelector(".mjr-am-header-tools > button.mjr-icon-btn");
         const icon = button?.querySelector("i");
         expect(button).toBeTruthy();
-        expect(icon?.className).toBe("pi pi-images");
+        expect(icon?.className).toBe("pi pi-eye");
         expect(button.classList.contains("mjr-mfv-btn-active")).toBe(true);
         wrapper.unmount();
     });

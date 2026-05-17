@@ -234,9 +234,8 @@ export function buildFloatingViewerHeader(viewer) {
     title.className = "mjr-mfv-header-title";
     title.id = viewer._titleId;
 
-    const titleIcon = document.createElement("span");
-    titleIcon.className = "mjr-mfv-header-title-icon";
-    titleIcon.textContent = "〽️";
+    const titleIcon = document.createElement("i");
+    titleIcon.className = "mjr-mfv-header-title-icon pi pi-eye";
     titleIcon.setAttribute("aria-hidden", "true");
 
     const titleText = document.createElement("span");

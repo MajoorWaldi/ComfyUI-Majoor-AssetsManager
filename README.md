@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="ressources/icon.png" alt="Majoor Assets Manager icon" width="120">
+</p>
+
 # Majoor Assets Manager for ComfyUI
 
 ## Presentation Video

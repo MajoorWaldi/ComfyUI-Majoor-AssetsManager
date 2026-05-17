@@ -1177,7 +1177,7 @@ export class FloatingViewer {
 
     _buildGenInfoCard({ title, accent, value, multiline = false, compact = false, seed = false }) {
         const card = document.createElement("div");
-        card.className = `mjr-mfv-gen-card${seed ? " mjr-mfv-gen-card--seed" : ""}`;
+        card.className = `mjr-mfv-gen-card${seed ? " mjr-mfv-gen-card--seed" : ""}${compact ? " mjr-mfv-gen-card--compact" : ""}`;
         card.style.setProperty("--mjr-mfv-gen-accent", accent || "#2196F3");
         this._bindGenInfoCopy(card, () => String(value ?? ""));
         const heading = document.createElement("div");

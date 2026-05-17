@@ -5031,6 +5031,18 @@ body.mjr-mfv-popout-body {
     border-width: 2px;
 }
 
+.mjr-mfv-gen-card--compact {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.mjr-mfv-gen-card--compact .mjr-mfv-gen-card-title,
+.mjr-mfv-gen-card--compact .mjr-mfv-gen-card-value {
+    white-space: nowrap;
+}
+
 .mjr-mfv-gen-card:hover,
 .mjr-mfv-gen-time-badge:hover {
     border-color: color-mix(in srgb, var(--mjr-mfv-gen-accent, #e0ff7a) 70%, transparent);
