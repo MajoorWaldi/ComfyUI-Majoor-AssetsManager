@@ -100,7 +100,24 @@ describe("panelHotkeysController", () => {
         expect(event.stopImmediatePropagation).not.toHaveBeenCalled();
     });
 
-    it("toggles the floating viewer with plain V when body focus is on the panel context", () => {
+    it("toggles the floating viewer with plain V when body focus is on a hovered panel", () => {
+        const onToggleFloatingViewer = vi.fn();
+        const controller = createPanelHotkeysController({ onToggleFloatingViewer });
+        const boundEl = createBoundElement();
+        boundEl.isConnected = true;
+
+        controller.bind(boundEl);
+        boundEl.emit("mouseenter");
+        document.activeElement = document.body;
+
+        const event = createKeyEvent("v");
+        window.dispatchEvent({ type: "keydown", ...event });
+
+        expect(onToggleFloatingViewer).toHaveBeenCalledTimes(1);
+        expect(event.preventDefault).toHaveBeenCalledTimes(1);
+    });
+
+    it("does not hijack plain V from the canvas/body when the panel is inactive", () => {
         const onToggleFloatingViewer = vi.fn();
         const controller = createPanelHotkeysController({ onToggleFloatingViewer });
         const boundEl = createBoundElement();
@@ -112,8 +129,10 @@ describe("panelHotkeysController", () => {
         const event = createKeyEvent("v");
         window.dispatchEvent({ type: "keydown", ...event });
 
-        expect(onToggleFloatingViewer).toHaveBeenCalledTimes(1);
-        expect(event.preventDefault).toHaveBeenCalledTimes(1);
+        expect(onToggleFloatingViewer).not.toHaveBeenCalled();
+        expect(event.preventDefault).not.toHaveBeenCalled();
+        expect(event.stopPropagation).not.toHaveBeenCalled();
+        expect(event.stopImmediatePropagation).not.toHaveBeenCalled();
     });
 
     it("does not toggle the floating viewer while typing in an input", () => {

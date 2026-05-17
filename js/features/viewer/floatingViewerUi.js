@@ -1,6 +1,7 @@
 ﻿import { EVENTS } from "../../app/events.js";
 import { APP_CONFIG } from "../../app/config.js";
 import { t } from "../../app/i18n.js";
+import { openMajoorSettings } from "../../app/openMajoorSettings.js";
 import { appendTooltipHint, setTooltipHint } from "../../utils/tooltipShortcuts.js";
 import {
     CLOSE_HINT,
@@ -881,6 +882,21 @@ export function buildFloatingViewerToolbar(viewer) {
     viewer._runHandle = createRunButton();
     bar.appendChild(viewer._runHandle.el);
 
+    viewer._majoorSettingsBtn = document.createElement("button");
+    viewer._majoorSettingsBtn.type = "button";
+    viewer._majoorSettingsBtn.className = "mjr-icon-btn mjr-mfv-majoor-settings-btn";
+    const majoorSettingsLabel = t(
+        "tooltip.openMajoorSettings",
+        "Open Majoor Assets Manager settings",
+    );
+    viewer._majoorSettingsBtn.title = majoorSettingsLabel;
+    viewer._majoorSettingsBtn.setAttribute("aria-label", majoorSettingsLabel);
+    const majoorSettingsIcon = document.createElement("i");
+    majoorSettingsIcon.className = "pi pi-cog";
+    majoorSettingsIcon.setAttribute("aria-hidden", "true");
+    viewer._majoorSettingsBtn.appendChild(majoorSettingsIcon);
+    bar.appendChild(viewer._majoorSettingsBtn);
+
     viewer._handleDocClick = (ev) => {
         const target = ev?.target;
         // Channel popover
@@ -1021,6 +1037,16 @@ export function rebindFloatingViewerControlHandlers(viewer) {
         () => {
             viewer._sidebar?.toggle();
             viewer._updateSettingsBtnState(viewer._sidebar?.isVisible ?? false);
+        },
+        { signal },
+    );
+
+    viewer._majoorSettingsBtn?.addEventListener(
+        "click",
+        (e) => {
+            e.stopPropagation();
+            viewer._closeAllToolbarPopovers?.();
+            openMajoorSettings();
         },
         { signal },
     );

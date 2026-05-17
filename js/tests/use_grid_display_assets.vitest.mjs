@@ -33,6 +33,21 @@ describe("useGridDisplayAssets", () => {
         expect(third._mjrDupStack).toBe(false);
     });
 
+    it("rebuilds duplicate members from the current asset list only", () => {
+        const first = {
+            id: 1,
+            source: "output",
+            filename: "same.png",
+            _mjrDupMembers: [{ id: 99, filename: "stale.png" }],
+        };
+        const second = { id: 2, source: "output", filename: "same.png" };
+
+        buildDisplayAssets([first, second]);
+
+        expect(first._mjrDupMembers.map((asset) => asset.id)).toEqual([1, 2]);
+        expect(first._mjrDupCount).toBe(2);
+    });
+
     it("ignores stale duplicate-hidden flags left on asset objects", () => {
         const visible = { id: 1, filename: "visible.png" };
         const hidden = { id: 2, filename: "hidden.png", _mjrDupHidden: true };

@@ -1,4 +1,5 @@
 import sqlite3
+from types import MethodType
 
 import pytest
 from mjr_am_backend.features.index import searcher as m
@@ -32,6 +33,16 @@ class _DB:
 
 def _mk(db=None, has_tags=True):
     return m.IndexSearcher(db or _DB(), has_tags)
+
+
+class _CaptureDB(_DB):
+    def __init__(self):
+        super().__init__()
+        self.calls = []
+
+    async def aquery(self, sql, params=()):
+        self.calls.append((sql, params))
+        return Result.Ok([])
 
 
 def test_helper_functions_cover_smoke():
@@ -69,6 +80,56 @@ def test_cursor_helpers_build_keyset_clauses():
     stale_clause, stale_params = m._build_cursor_where_clause(name_cursor, "mtime_desc")
     assert stale_clause == ""
     assert stale_params == []
+
+
+@pytest.mark.asyncio
+async def test_browse_cursor_keeps_offset_inside_cursor_window():
+    db = _CaptureDB()
+    searcher = _mk(db)
+    cursor = m._encode_page_cursor({"id": 42, "mtime": 123, "filename": "B.png"}, "mtime_desc")
+
+    result = await searcher._search_global_browse_rows(
+        limit=25,
+        offset=50,
+        filters={},
+        include_total=False,
+        metadata_tags_text_clause="",
+        sort="mtime_desc",
+        cursor=cursor,
+    )
+
+    assert result.ok
+    assert db.calls
+    sql, params = db.calls[0]
+    assert "a.mtime < ?" in sql
+    assert params[-2:] == (26, 50)
+
+
+@pytest.mark.asyncio
+async def test_grouped_browse_fetcher_forwards_cursor_to_raw_chunks():
+    searcher = _mk()
+    calls = []
+
+    async def _fake_global_browse_rows(self, **kwargs):
+        calls.append(kwargs)
+        return Result.Ok({"rows": []})
+
+    searcher._search_global_browse_rows = MethodType(_fake_global_browse_rows, searcher)
+    cursor = m._encode_page_cursor({"id": 42, "mtime": 123, "filename": "B.png"}, "mtime_desc")
+    fetch_rows = searcher._build_grouped_fetch_rows(
+        query="*",
+        roots=None,
+        filters={},
+        metadata_tags_text_clause="",
+        sort="mtime_desc",
+        cursor=cursor,
+    )
+
+    result = await fetch_rows(200, 400)
+
+    assert result.ok
+    assert calls[0]["cursor"] == cursor
+    assert calls[0]["offset"] == 400
 
 
 @pytest.mark.asyncio

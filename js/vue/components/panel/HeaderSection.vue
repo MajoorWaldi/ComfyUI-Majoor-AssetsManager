@@ -18,6 +18,7 @@ import { ENDPOINTS } from "../../../api/endpoints.js";
 import { t } from "../../../app/i18n.js";
 import { VERSION_UPDATE_EVENT, getStoredVersionUpdateState } from "../../../app/versionCheck.js";
 import { EVENTS } from "../../../app/events.js";
+import { openMajoorSettings } from "../../../app/openMajoorSettings.js";
 import { setTooltipHint } from "../../../utils/tooltipShortcuts.js";
 import SearchBar from "./SearchBar.vue";
 import SortPopover from "./SortPopover.vue";
@@ -179,6 +180,9 @@ const mfvTitle = computed(() =>
 );
 
 const mfvIconClass = computed(() => "pi pi-images");
+const majoorSettingsTitle = computed(() =>
+    t("tooltip.openMajoorSettings", "Open Majoor Assets Manager settings"),
+);
 
 // ── version badge helpers ──────────────────────────────────────────────────────
 
@@ -259,6 +263,10 @@ function handleVersionUpdate(event) {
 
 function handleMfvToggle() {
     window.dispatchEvent(new CustomEvent(EVENTS.MFV_TOGGLE));
+}
+
+function handleOpenMajoorSettings() {
+    openMajoorSettings();
 }
 
 function dispose() {
@@ -504,6 +512,16 @@ defineExpose({
                         </button>
                         <MessagePopover ref="messagePopoverRef" />
                     </div>
+
+                    <button
+                        type="button"
+                        class="mjr-icon-btn mjr-settings-shortcut-btn"
+                        :title="majoorSettingsTitle"
+                        :aria-label="majoorSettingsTitle"
+                        @click="handleOpenMajoorSettings"
+                    >
+                        <i class="pi pi-cog" aria-hidden="true" />
+                    </button>
                 </div>
             </div>
         </div>

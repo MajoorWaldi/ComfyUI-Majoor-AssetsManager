@@ -710,8 +710,8 @@ function onFileBadgeClick(event) {
         v-if="hasDupStack"
         type="button"
         class="mjr-dup-stack-button"
-        :aria-label="`${dupCount} duplicate${dupCount > 1 ? 's' : ''} — click to compare all copies`"
-        :title="`${dupCount} duplicate${dupCount > 1 ? 's' : ''} — click to compare all copies`"
+        :aria-label="`${dupCount} duplicate${dupCount > 1 ? 's' : ''} - click to compare all copies`"
+        :title="`${dupCount} duplicate${dupCount > 1 ? 's' : ''} - click to compare all copies`"
         @click="onDupStackClick"
         @pointerdown.stop
         @mousedown.stop.prevent

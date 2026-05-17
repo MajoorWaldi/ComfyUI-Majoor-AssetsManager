@@ -235,7 +235,7 @@ export function ensureDupStackCard(gridContainer, card, asset) {
                         detail: {
                             asset: activeAsset,
                             members,
-                            title: `Duplicates — ${n} copies`,
+                            title: `Duplicates - ${n} copies`,
                             isDupGroup: true,
                         },
                     }),
@@ -250,6 +250,6 @@ export function ensureDupStackCard(gridContainer, card, asset) {
     button._mjrGridContainer = gridContainer;
     button._mjrAsset = asset;
     const label = `${count} duplicate${count > 1 ? "s" : ""}`;
-    button.title = `${label} — click to compare all copies`;
+    button.title = `${label} - click to compare all copies`;
     _setIconCount(button, "pi pi-copy", count, "mjr-dup-stack-count");
 }
