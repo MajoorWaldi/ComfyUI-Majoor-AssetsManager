@@ -31,7 +31,7 @@ import { safeDispatchCustomEvent } from "../../utils/events.js";
 import { confirmDeletion } from "../../utils/deleteGuard.js";
 import { showAddToCollectionMenu } from "../collections/contextmenu/addToCollectionMenu.js";
 import { removeAssetsFromGrid } from "../grid/gridApi.js";
-import { getComfyApp } from "../../app/comfyApiBridge.js";
+import { getRawHostApp } from "../../app/hostAdapter.js";
 import { pickRootId } from "../../utils/ids.js";
 import { getShortcutDisplay } from "../grid/GridKeyboard.js";
 import { floatingViewerManager } from "../viewer/floatingViewerManager.js";
@@ -183,7 +183,7 @@ async function loadAssetsToCanvas(assets) {
         }),
     );
     return createCanvasLoaderNodes({
-        app: getComfyApp(),
+        app: getRawHostApp(),
         items: stagedItems.filter(Boolean),
         event: null,
     });

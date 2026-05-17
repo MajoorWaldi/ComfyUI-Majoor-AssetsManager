@@ -33,6 +33,12 @@ export function getFloatingViewerResizeDirectionFromPoint(clientX, clientY, rect
 
 export function stopFloatingViewerEdgeResize(viewer) {
     if (!viewer.element) return;
+    try {
+        viewer._resizeWindowCleanup?.();
+    } catch (e) {
+        console.debug?.(e);
+    }
+    viewer._resizeWindowCleanup = null;
     if (viewer._resizeState?.pointerId != null) {
         try {
             viewer.element.releasePointerCapture(viewer._resizeState.pointerId);
@@ -66,6 +72,17 @@ export function initFloatingViewerEdgeResize(viewer, el) {
         return viewer._getResizeDirectionFromPoint(e.clientX, e.clientY, rect);
     };
     const signal = viewer._panelAC?.signal;
+    let resizeAC = null;
+
+    const cleanupResizeWindowListeners = () => {
+        try {
+            resizeAC?.abort();
+        } catch (err) {
+            console.debug?.(err);
+        }
+        resizeAC = null;
+        viewer._resizeWindowCleanup = null;
+    };
 
     const onPointerDown = (e) => {
         if (e.button !== 0 || !viewer.element || viewer._isPopped) return;
@@ -97,6 +114,17 @@ export function initFloatingViewerEdgeResize(viewer, el) {
         viewer.element.style.cursor = viewer._resizeCursorForDirection(dir);
         try {
             viewer.element.setPointerCapture(e.pointerId);
+        } catch (err) {
+            console.debug?.(err);
+        }
+        try {
+            cleanupResizeWindowListeners();
+            resizeAC = new AbortController();
+            viewer._resizeWindowCleanup = cleanupResizeWindowListeners;
+            const win = viewer.element?.ownerDocument?.defaultView || window;
+            win.addEventListener("pointermove", onPointerMove, { signal: resizeAC.signal });
+            win.addEventListener("pointerup", onPointerEnd, { signal: resizeAC.signal });
+            win.addEventListener("pointercancel", onPointerEnd, { signal: resizeAC.signal });
         } catch (err) {
             console.debug?.(err);
         }
@@ -156,6 +184,7 @@ export function initFloatingViewerEdgeResize(viewer, el) {
         if (!viewer.element || !viewer._resizeState) return;
         if (viewer._resizeState.pointerId !== e.pointerId) return;
         const dir = resolveDir(e);
+        cleanupResizeWindowListeners();
         viewer._stopEdgeResize();
         if (dir) viewer.element.style.cursor = viewer._resizeCursorForDirection(dir);
     };
@@ -219,11 +248,18 @@ export function initFloatingViewerDrag(viewer, handle) {
             };
             const onUp = () => {
                 try {
+                    handle.releasePointerCapture?.(e.pointerId);
+                } catch (err) {
+                    console.debug?.(err);
+                }
+                try {
                     dragAC?.abort();
                 } catch {}
             };
-            handle.addEventListener("pointermove", onMove, { signal: dragSig });
-            handle.addEventListener("pointerup", onUp, { signal: dragSig });
+            const win = handle.ownerDocument?.defaultView || window;
+            win.addEventListener("pointermove", onMove, { signal: dragSig });
+            win.addEventListener("pointerup", onUp, { signal: dragSig });
+            win.addEventListener("pointercancel", onUp, { signal: dragSig });
         },
         signal ? { signal } : undefined,
     );

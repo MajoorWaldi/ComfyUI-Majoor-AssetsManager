@@ -95,13 +95,9 @@ export function registerSearchSettings(safeAddSetting, settings, notifyApplied) 
                     );
                     return;
                 }
-                comfyToast(
-                    next
-                        ? "AI captions during indexing enabled"
-                        : "AI captions during indexing disabled",
-                    "info",
-                    2600,
-                );
+                if (next) {
+                    comfyToast("AI captions during indexing enabled", "info", 2600);
+                }
             } catch (error) {
                 settings.ai.vectorCaptionOnIndex = previous;
                 saveMajoorSettings(settings);

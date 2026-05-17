@@ -387,16 +387,18 @@ export class WorkflowGraphMapPanel {
         const onUp = (upEvent) => {
             if (!this._drag || upEvent.pointerId !== this._drag.pointerId) return;
             this._canvas.releasePointerCapture?.(upEvent.pointerId);
-            this._canvas.removeEventListener("pointermove", onMove);
-            this._canvas.removeEventListener("pointerup", onUp);
-            this._canvas.removeEventListener("pointercancel", onUp);
-            _getElementWindow(this._canvas).setTimeout(() => {
+            const win = _getElementWindow(this._canvas);
+            win.removeEventListener("pointermove", onMove);
+            win.removeEventListener("pointerup", onUp);
+            win.removeEventListener("pointercancel", onUp);
+            win.setTimeout(() => {
                 this._drag = null;
             }, 0);
         };
-        this._canvas.addEventListener("pointermove", onMove);
-        this._canvas.addEventListener("pointerup", onUp);
-        this._canvas.addEventListener("pointercancel", onUp);
+        const win = _getElementWindow(this._canvas);
+        win.addEventListener("pointermove", onMove);
+        win.addEventListener("pointerup", onUp);
+        win.addEventListener("pointercancel", onUp);
     }
 }
 

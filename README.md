@@ -1,12 +1,8 @@
 <p align="center">
-  <img src="ressources/icon.png" alt="Majoor Assets Manager icon" width="120">
+  <img src="ressources/icon.png" alt="Majoor Assets Manager" width="100%">
 </p>
 
 # Majoor Assets Manager for ComfyUI
-
-## Presentation Video
-
-[![Watch the presentation video](examples/ComfyUI_Majoor_AssetsManager_Video.gif)](https://github.com/MajoorWaldi/ComfyUI-Majoor-AssetsManager/releases/download/v2.4.4/COMFYUI.ASSETS.MANAGER.mp4)
 
 [![GitHub Repo](https://img.shields.io/badge/GitHub-Repo-181717?logo=github)](https://github.com/MajoorWaldi/ComfyUI-Majoor-AssetsManager)
 [![GitHub Stars](https://img.shields.io/github/stars/MajoorWaldi/ComfyUI-Majoor-AssetsManager?style=flat)](https://github.com/MajoorWaldi/ComfyUI-Majoor-AssetsManager/stargazers)
@@ -24,7 +20,9 @@
 
 ## Samples
 
-![Majoor Assets Manager Sample](<examples/Capture d'écran 2026-02-28 210333.png>)
+![Majoor Assets Manager - Floating Viewer generation info](samples/majoor-floating-viewer-generation-info.png)
+
+![Majoor Assets Manager - Graph Map workflow inspection](samples/majoor-graph-map-workflow-inspection.png)
 
 ## Quick Start
 

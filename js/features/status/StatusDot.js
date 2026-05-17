@@ -99,6 +99,112 @@ function setStatusLines(statusText, lines, footerText = null) {
     }
 }
 
+function appendStatusProgressBars(statusText, items = []) {
+    if (!statusText) return;
+    const rows = Array.isArray(items)
+        ? items.filter((item) => item && String(item.label || "").trim())
+        : [];
+    if (!rows.length) return;
+
+    const wrap = document.createElement("div");
+    wrap.className = "mjr-status-progress-list";
+    wrap.style.cssText =
+        "margin-top:8px;display:flex;flex-direction:column;gap:5px;min-width:220px;";
+
+    for (const item of rows) {
+        const percent = Math.max(0, Math.min(100, Number(item.percent) || 0));
+        const row = document.createElement("div");
+        row.className = "mjr-status-progress-row";
+        row.style.cssText = "display:grid;grid-template-columns:minmax(72px,0.9fr) 1.8fr auto;gap:7px;align-items:center;";
+
+        const label = document.createElement("span");
+        label.className = "mjr-status-progress-label";
+        label.textContent = String(item.label || "");
+        label.style.cssText = "font-size:10px;opacity:0.72;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;";
+
+        const bar = document.createElement("div");
+        bar.className = "mjr-status-progress-bar";
+        bar.style.cssText =
+            "height:6px;border-radius:999px;background:rgba(255,255,255,0.12);overflow:hidden;";
+
+        const fill = document.createElement("div");
+        fill.className = "mjr-status-progress-fill";
+        fill.style.cssText = `height:100%;width:${percent}%;border-radius:999px;background:${item.color || "var(--mjr-status-info, #64B5F6)"};`;
+        bar.appendChild(fill);
+
+        const value = document.createElement("span");
+        value.className = "mjr-status-progress-value";
+        value.textContent = String(item.value || `${Math.round(percent)}%`);
+        value.style.cssText = "font-size:10px;opacity:0.72;white-space:nowrap;text-align:right;";
+
+        row.appendChild(label);
+        row.appendChild(bar);
+        row.appendChild(value);
+        wrap.appendChild(row);
+    }
+
+    statusText.appendChild(wrap);
+}
+
+function buildStatusProgressItems(counters, { totalAssets = 0, withWorkflows = 0, withGenerationData = 0 } = {}) {
+    const total = Math.max(0, Number(totalAssets || counters?.total_assets || 0) || 0);
+    if (total <= 0) return [];
+    const pct = (value, denominator = total) => {
+        const n = Math.max(0, Number(value || 0) || 0);
+        const d = Math.max(1, Number(denominator || 0) || 1);
+        return Math.round((n / d) * 100);
+    };
+    const images = Number(counters?.images || 0) || 0;
+    const videos = Number(counters?.videos || 0) || 0;
+    const audio = Number(counters?.audio || 0) || 0;
+    const model3d = Number(counters?.model3d || counters?.by_kind?.model3d || 0) || 0;
+    const enrichQueue = Math.max(0, Number(counters?.enrichment_queue_length || 0) || 0);
+    const enrichDenominator = Math.max(total, total + enrichQueue);
+
+    return [
+        {
+            label: "Images",
+            percent: pct(images),
+            value: `${images.toLocaleString()} / ${pct(images)}%`,
+            color: "var(--mjr-badge-image, #2196F3)",
+        },
+        {
+            label: "Videos",
+            percent: pct(videos),
+            value: `${videos.toLocaleString()} / ${pct(videos)}%`,
+            color: "var(--mjr-badge-video, #F44336)",
+        },
+        audio || model3d
+            ? {
+                  label: "Other",
+                  percent: pct(audio + model3d),
+                  value: `${(audio + model3d).toLocaleString()} / ${pct(audio + model3d)}%`,
+                  color: "var(--mjr-status-browser, #26A69A)",
+              }
+            : null,
+        {
+            label: "Workflows",
+            percent: pct(withWorkflows),
+            value: `${Number(withWorkflows || 0).toLocaleString()} / ${pct(withWorkflows)}%`,
+            color: "var(--mjr-status-success, #4CAF50)",
+        },
+        {
+            label: "Gen data",
+            percent: pct(withGenerationData),
+            value: `${Number(withGenerationData || 0).toLocaleString()} / ${pct(withGenerationData)}%`,
+            color: "var(--mjr-status-warning, #FFA726)",
+        },
+        enrichQueue
+            ? {
+                  label: "Enrich queue",
+                  percent: pct(enrichQueue, enrichDenominator),
+                  value: `${enrichQueue.toLocaleString()} pending`,
+                  color: "var(--mjr-status-info, #64B5F6)",
+              }
+            : null,
+    ].filter(Boolean);
+}
+
 function setStatusWithHint(statusText, mainText, hintText) {
     if (!statusText) return;
     statusText.replaceChildren();
@@ -1935,6 +2041,14 @@ export async function updateStatus(
                     watcherLine,
                 ],
                 t("status.lastScan", `Last scan: ${lastScanText}`, { date: lastScanText }),
+            );
+            appendStatusProgressBars(
+                statusText,
+                buildStatusProgressItems(counters, {
+                    totalAssets,
+                    withWorkflows,
+                    withGenerationData,
+                }),
             );
         }
         return counters;

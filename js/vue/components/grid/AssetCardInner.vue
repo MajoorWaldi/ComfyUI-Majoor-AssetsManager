@@ -225,7 +225,7 @@ function applyVideoMode(thumbEl, video, mode) {
     } else if (mode === "always") {
         bindVideoAutoplay(video);
     } else {
-        releaseVideoThumbSource(video);
+        void ensureVideoThumbSource(video);
     }
     // "off" — no bindings, video stays paused
 }

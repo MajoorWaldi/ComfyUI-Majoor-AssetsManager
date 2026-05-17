@@ -4,6 +4,17 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+### Improvements & Code Quality
+- **Code Corrections and Improvements**: Applied frontend code corrections, interaction cleanup, and targeted maintainability improvements across the Assets Manager UI.
+- **Settings Access and Clarification**: Clarified settings behavior and improved access to settings from the panel gear icon and the Floating Viewer.
+
+### Drag and Drop
+- **Drag and Drop Bug Fixes and Clarifications**: Fixed regressions in drag-and-drop handling, clarified canvas/node drop behavior, staging behavior, visual feedback, and interaction with ComfyUI's native workflow drop handling.
+
+### Graph Map & Floating Viewer
+- **Workflow Inspection in Floating Viewer**: The Floating Viewer can now inspect embedded workflows without opening them on the canvas.
+- **Graph Map Node Actions**: Added workflow graph inspection tools for copying nodes, copying node attributes, and transferring node attributes to a similar selected node on the ComfyUI graph canvas.
+
 ### 📚 Documentation
 - **Graph Map Guide**: Added a dedicated Graph Map documentation page with screenshots, workflow map usage notes, and a focused explanation of node detail actions.
 - **README Presentation**: Added Graph Map presentation content and screenshot references to the main README.

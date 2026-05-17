@@ -14,6 +14,10 @@ vi.mock("../app/config.js", () => ({
     APP_CONFIG: {},
 }));
 
+vi.mock("../app/openMajoorSettings.js", () => ({
+    openMajoorSettings: vi.fn(),
+}));
+
 vi.mock("../utils/tooltipShortcuts.js", () => ({
     appendTooltipHint: vi.fn(),
     setTooltipHint: vi.fn(),
