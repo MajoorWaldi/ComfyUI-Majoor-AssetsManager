@@ -422,22 +422,23 @@ export async function registerRealtimeListeners({
 
     api._mjrAssetAddedHandler = (event) => {
         try {
+            if (!event?.detail) return;
+            const liveEvent = executionRuntime.prepareLiveAssetEvent(event.detail);
+            const detail = liveEvent?.detail || event.detail;
+            if (liveEvent?.defer) return;
+            const renderable = executionRuntime.isRenderableLiveAsset(detail);
+            if (renderable) {
+                pushGeneratedAsset(detail);
+            }
+            maybeAutoVectorIndexAsset(detail);
             const grid = getActiveGridContainer();
-            if (grid && event?.detail) {
-                const liveEvent = executionRuntime.prepareLiveAssetEvent(event.detail);
-                const detail = liveEvent?.detail || event.detail;
-                const renderable = executionRuntime.isRenderableLiveAsset(detail);
-                if (renderable) {
-                    pushGeneratedAsset(detail);
-                }
-                maybeAutoVectorIndexAsset(detail);
-                const scope = grid.dataset?.mjrScope || "output";
-                if (scope !== "output" && scope !== "all") return;
-                const query = grid.dataset?.mjrQuery || "*";
-                const canDirectUpsert = String(query).trim() === "*";
-                if (canDirectUpsert && renderable) {
-                    upsertLiveAssetIntoGrid(grid, detail, { immediate: true });
-                }
+            if (!grid) return;
+            const scope = grid.dataset?.mjrScope || "output";
+            if (scope !== "output" && scope !== "all") return;
+            const query = grid.dataset?.mjrQuery || "*";
+            const canDirectUpsert = String(query).trim() === "*";
+            if (canDirectUpsert && renderable) {
+                upsertLiveAssetIntoGrid(grid, detail, { immediate: true });
             }
         } catch (error) {
             reportError(error, "entry.asset_added");
@@ -447,19 +448,20 @@ export async function registerRealtimeListeners({
 
     api._mjrAssetUpdatedHandler = (event) => {
         try {
-            const grid = getActiveGridContainer();
-            if (grid && event?.detail) {
-                const liveEvent = executionRuntime.prepareLiveAssetEvent(event.detail);
-                const detail = liveEvent?.detail || event.detail;
-                if (executionRuntime.isRenderableLiveAsset(detail)) {
-                    pushGeneratedAsset(detail);
-                }
-                // Use immediate flush for updates to assets already visible in
-                // the grid (enrichment / vector indexing results). This avoids
-                // a 200 ms debounce window during which the card shows stale
-                // metadata or temporarily disappears then reappears.
-                upsertLiveAssetIntoGrid(grid, detail, { immediate: true });
+            if (!event?.detail) return;
+            const liveEvent = executionRuntime.prepareLiveAssetEvent(event.detail);
+            const detail = liveEvent?.detail || event.detail;
+            if (liveEvent?.defer) return;
+            if (executionRuntime.isRenderableLiveAsset(detail)) {
+                pushGeneratedAsset(detail);
             }
+            const grid = getActiveGridContainer();
+            if (!grid) return;
+            // Use immediate flush for updates to assets already visible in
+            // the grid (enrichment / vector indexing results). This avoids
+            // a 200 ms debounce window during which the card shows stale
+            // metadata or temporarily disappears then reappears.
+            upsertLiveAssetIntoGrid(grid, detail, { immediate: true });
         } catch (error) {
             reportError(error, "entry.asset_updated");
         }
@@ -500,16 +502,17 @@ export async function registerRealtimeListeners({
         try {
             const detail = event?.detail || {};
             window.dispatchEvent(new CustomEvent(EVENTS.ASSET_INDEXED, { detail }));
-            const grid = getActiveGridContainer();
-            if (grid && detail) {
-                const liveEvent = executionRuntime.prepareLiveAssetEvent(detail);
-                const nextDetail = liveEvent?.detail || detail;
-                if (executionRuntime.isRenderableLiveAsset(nextDetail)) {
-                    pushGeneratedAsset(nextDetail);
-                }
-                maybeAutoVectorIndexAsset(nextDetail);
-                upsertLiveAssetIntoGrid(grid, nextDetail, { immediate: true, force: true });
+            if (!detail) return;
+            const liveEvent = executionRuntime.prepareLiveAssetEvent(detail);
+            const nextDetail = liveEvent?.detail || detail;
+            if (liveEvent?.defer) return;
+            if (executionRuntime.isRenderableLiveAsset(nextDetail)) {
+                pushGeneratedAsset(nextDetail);
             }
+            maybeAutoVectorIndexAsset(nextDetail);
+            const grid = getActiveGridContainer();
+            if (!grid) return;
+            upsertLiveAssetIntoGrid(grid, nextDetail, { immediate: true, force: true });
         } catch (e) {
             console.debug?.(e);
         }
