@@ -5,7 +5,7 @@
  * No module state — every function is stateless.
  */
 
-import { getComfyApp } from "../../../app/comfyApiBridge.js";
+import { getRawHostApp } from "../../../app/hostAdapter.js";
 
 /**
  * Create an HTML input element matching a ComfyUI widget type.
@@ -70,7 +70,7 @@ export function writeWidgetValue(widget, newValue, node = null) {
     // Called AFTER the callback so it reflects the final snapped/clamped value.
 
     try {
-        const app = getComfyApp();
+        const app = getRawHostApp();
         const canvas = app?.canvas ?? null;
         const resolvedNode = node ?? widget?.parent ?? null;
         // Save value before callback: LiteGraph number callbacks snap widget.value to

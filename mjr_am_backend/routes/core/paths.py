@@ -6,20 +6,7 @@ import os
 import threading
 from pathlib import Path
 
-try:
-    import folder_paths  # type: ignore
-except Exception:
-    class _FolderPathsStub:
-        @staticmethod
-        def get_input_directory() -> str:
-            return str((Path(__file__).resolve().parents[3] / "input").resolve())
-
-        @staticmethod
-        def get_output_directory() -> str:
-            return str((Path(__file__).resolve().parents[3] / "output").resolve())
-
-    folder_paths = _FolderPathsStub()  # type: ignore
-
+from mjr_am_backend.adapters.comfy_core import get_input_directory
 from mjr_am_backend.config import get_runtime_output_root
 from mjr_am_backend.custom_roots import list_custom_roots
 from mjr_am_backend.features.audio import AUDIO_VIEW_MIME_TYPES
@@ -49,7 +36,7 @@ def _get_allowed_directories():
     this keeps the allowed list in sync across requests.
     """
     output_root = str(get_runtime_output_root())
-    input_root = str(folder_paths.get_input_directory())
+    input_root = str(get_input_directory() or (Path(__file__).resolve().parents[3] / "input").resolve())
     global _ALLOWED_DIRECTORIES
     with _ALLOWED_DIRECTORIES_LOCK:
         if (

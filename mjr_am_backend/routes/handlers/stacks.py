@@ -30,11 +30,9 @@ logger = get_logger(__name__)
 
 def _send_stack_update_event(payload) -> None:
     try:
-        from .. import registry as registry_mod
+        from mjr_am_backend.adapters.comfy_core import send_event
 
-        prompt_server = getattr(registry_mod, "PromptServer", None)
-        if prompt_server is not None:
-            prompt_server.instance.send_sync("mjr.stacks.updated", payload)
+        send_event("mjr.stacks.updated", payload)
     except Exception:
         pass
 
@@ -108,6 +106,28 @@ def register_stacks_routes(routes: web.RouteTableDef) -> None:
         result = await svc.get_stack_by_job_id(job_id)
         if not result.ok:
             return _json_response(result, status=404)
+        return _json_response(result)
+
+    @routes.get("/mjr/am/stacks/by-node/{source_node_id}/members")
+    async def get_stack_members_by_node(request: web.Request) -> web.Response:
+        services, error_result = await _require_services()
+        if error_result is not None or not services:
+            return _json_response(error_result or Result.Err("SERVICE_UNAVAILABLE", "Backend not ready"), status=503)
+        svc = _stacks_service(services)
+
+        source_node_id = request.match_info.get("source_node_id", "")
+        job_id = str(request.query.get("job_id") or "").strip()
+        latest = str(request.query.get("latest") or "1").strip().lower() not in {"0", "false", "no"}
+        try:
+            limit = int(request.query.get("limit", "500"))
+        except (ValueError, TypeError):
+            limit = 500
+        result = await svc.get_members_by_source_node(
+            source_node_id,
+            job_id=job_id,
+            latest_job=latest,
+            limit=limit,
+        )
         return _json_response(result)
 
     @routes.get("/mjr/am/stacks/{stack_id}")

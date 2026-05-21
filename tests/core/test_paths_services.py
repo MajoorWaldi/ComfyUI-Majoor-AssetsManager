@@ -13,7 +13,7 @@ def test_paths_allowlist_and_normalize(tmp_path: Path, monkeypatch) -> None:
     inp.mkdir()
 
     monkeypatch.setattr(p, "get_runtime_output_root", lambda: str(out))
-    monkeypatch.setattr(p.folder_paths, "get_input_directory", lambda: str(inp))
+    monkeypatch.setattr(p, "get_input_directory", lambda: str(inp))
     p._ALLOWED_DIRECTORIES = None
 
     allowed = p._get_allowed_directories()

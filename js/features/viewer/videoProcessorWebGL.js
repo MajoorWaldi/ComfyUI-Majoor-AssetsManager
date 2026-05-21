@@ -8,7 +8,7 @@ void main() {
     v_uv = a_position * 0.5 + 0.5;
     // In WebGL, textures are usually flipped relative to Image/Video elements if not handled.
     // We'll flip Y in fragment shader or here.
-    v_uv.y = 1.0 - v_uv.y; 
+    v_uv.y = 1.0 - v_uv.y;
 }
 `;
 
@@ -40,7 +40,7 @@ void main() {
             isZebra = true;
             // Stripe pattern: (x + y) % 16 < 8
             // gl_FragCoord is in window pixels
-            float stripe = mod(gl_FragCoord.x + gl_FragCoord.y, 32.0); 
+            float stripe = mod(gl_FragCoord.x + gl_FragCoord.y, 32.0);
             if (stripe < 16.0) {
                  gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0); // Black
             } else {

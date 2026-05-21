@@ -2,9 +2,9 @@
  * Drag & Drop support for staging assets to input.
  */
 
-import { getComfyApp } from "../../app/comfyApiBridge.js";
 import { get, post } from "../../api/client.js";
 import { ENDPOINTS, buildCustomViewURL, buildViewURL } from "../../api/endpoints.js";
+import { getRawHostApp } from "../../app/hostAdapter.js";
 import { comfyToast } from "../../app/toast.js";
 import { pickRootId } from "../../utils/ids.js";
 
@@ -31,7 +31,7 @@ import { stageToInput, stageToInputDetailed } from "./staging/stageToInput.js";
 import { createCanvasLoaderNodes, writeMediaPathWidgetValue } from "./canvasLoaderNode.js";
 
 const _resolveApp = () => {
-    const app = getComfyApp();
+    const app = getRawHostApp();
     return app && typeof app === "object" ? app : null;
 };
 

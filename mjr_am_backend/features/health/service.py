@@ -5,6 +5,7 @@ import os
 from collections.abc import Sequence
 from pathlib import Path
 
+from ...adapters.comfy_core import get_capabilities as get_comfy_core_capabilities
 from ...adapters.db.sqlite import Sqlite
 from ...adapters.tools import ExifTool, FFProbe
 from ...config import get_tool_paths
@@ -74,6 +75,7 @@ class HealthService:
             status = {
                 "tools": tools,
                 "database": db_status,
+                "comfy_core": get_comfy_core_capabilities(),
                 "overall": overall
             }
 

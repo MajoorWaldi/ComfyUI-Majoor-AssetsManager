@@ -3,7 +3,7 @@
  * as an editable HTML section.
  */
 
-import { getComfyApp } from "../../../app/comfyApiBridge.js";
+import { getRawHostApp } from "../../../app/hostAdapter.js";
 import { createWidgetInput } from "./widgetAdapters.js";
 
 const SKIP_TYPES = new Set(["imageupload", "button", "hidden"]);
@@ -279,7 +279,7 @@ export class NodeWidgetRenderer {
                 }
                 autoFit();
                 try {
-                    const app = getComfyApp();
+                    const app = getRawHostApp();
                     const canvas = app?.canvas ?? null;
                     canvas?.setDirty?.(true, true);
                     canvas?.draw?.(true, true);
@@ -380,7 +380,7 @@ export class NodeWidgetRenderer {
         const node = this._node;
         if (!node) return;
         try {
-            const app = getComfyApp();
+            const app = getRawHostApp();
             const canvas = app?.canvas;
             if (!canvas) return;
             if (typeof canvas.centerOnNode === "function") {

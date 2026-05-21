@@ -7,6 +7,7 @@ export const EVENTS = Object.freeze({
     ASSET_TAGS_CHANGED: ASSET_TAGS_CHANGED_EVENT,
     VIEWER_INFO_REFRESHED: VIEWER_INFO_REFRESHED_EVENT,
     SCAN_COMPLETE: "mjr-scan-complete",
+    CORE_EXECUTION_ASSETS_READY: "mjr-core-execution-assets-ready",
     ENRICHMENT_STATUS: "mjr-enrichment-status",
     DB_RESTORE_STATUS: "mjr-db-restore-status",
     ASSETS_DELETED: "mjr:assets-deleted",
@@ -36,5 +37,6 @@ export const EVENTS = Object.freeze({
     OPEN_ASSETS_MANAGER: "mjr:open-assets-manager",
     OPEN_VIEWER: "mjr:open-viewer",
     OPEN_STACK_GROUP: "mjr:open-stack-group",
+    OPEN_NODE_CONTEXT: "mjr:open-node-context",
     OPEN_MESSAGE_HISTORY: "mjr:open-message-history",
 });

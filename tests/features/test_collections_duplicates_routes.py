@@ -1,6 +1,5 @@
 import json
 from pathlib import Path
-from types import SimpleNamespace
 
 import pytest
 from aiohttp import web
@@ -83,7 +82,7 @@ async def test_collections_add_filters_invalid_assets(monkeypatch) -> None:
     monkeypatch.setattr(collections_mod, "_read_json", _read_json)
 
     req = make_mocked_request("POST", "/mjr/am/collections/c1/add", app=app)
-    req._match_info = {"collection_id": "c1"}
+    req._match_info = {"collection_id": "c1"}  # type: ignore[assignment]
     match = await app.router.resolve(req)
     resp = await match.handler(req)
     payload = json.loads(resp.text)
@@ -157,7 +156,7 @@ async def test_collections_add_writes_audit_log(monkeypatch) -> None:
     monkeypatch.setattr(collections_mod, "audit_log_write", _audit_log_write)
 
     req = make_mocked_request("POST", "/mjr/am/collections/c1/add", app=app)
-    req._match_info = {"collection_id": "c1"}
+    req._match_info = {"collection_id": "c1"}  # type: ignore[assignment]
     match = await app.router.resolve(req)
     resp = await match.handler(req)
     payload = json.loads(resp.text)
@@ -201,7 +200,7 @@ async def test_collections_get_assets_enriches_index_fields(monkeypatch, tmp_pat
     monkeypatch.setattr(collections_mod, "_require_services", _require_services)
 
     req = make_mocked_request("GET", "/mjr/am/collections/c1/assets", app=app)
-    req._match_info = {"collection_id": "c1"}
+    req._match_info = {"collection_id": "c1"}  # type: ignore[assignment]
     match = await app.router.resolve(req)
     resp = await match.handler(req)
     payload = json.loads(resp.text)
@@ -229,7 +228,7 @@ async def test_collections_get_assets_tolerates_enrichment_failure(monkeypatch) 
     monkeypatch.setattr(collections_mod, "_require_services", _boom_services)
 
     req = make_mocked_request("GET", "/mjr/am/collections/c1/assets", app=app)
-    req._match_info = {"collection_id": "c1"}
+    req._match_info = {"collection_id": "c1"}  # type: ignore[assignment]
     match = await app.router.resolve(req)
     resp = await match.handler(req)
     payload = json.loads(resp.text)
@@ -245,17 +244,14 @@ def test_duplicates_roots_for_scope_variants(monkeypatch, tmp_path: Path) -> Non
     in_root.mkdir()
 
     monkeypatch.setattr(duplicates_mod, "get_runtime_output_root", lambda: str(out_root))
-    monkeypatch.setattr(
-        duplicates_mod,
-        "folder_paths",
-        SimpleNamespace(get_input_directory=lambda: str(in_root)),
-    )
+    monkeypatch.setattr(duplicates_mod, "get_input_directory", lambda: str(in_root))
     monkeypatch.setattr(duplicates_mod, "resolve_custom_root", lambda _cid: Result.Ok(str(tmp_path / "custom")))
 
     assert duplicates_mod._roots_for_scope("output").ok is True
     assert duplicates_mod._roots_for_scope("input").ok is True
     all_res = duplicates_mod._roots_for_scope("all")
     assert all_res.ok is True
+    assert all_res.data is not None
     assert len(all_res.data) == 2
     assert duplicates_mod._roots_for_scope("custom", "r1").ok is True
     assert duplicates_mod._roots_for_scope("weird").code == "INVALID_INPUT"
@@ -289,9 +285,6 @@ async def test_duplicates_analyze_uses_default_limit_on_bad_input(monkeypatch) -
 
     async def _require_services():
         return {"duplicates": _Dup()}, None
-
-    async def _read_json(_request):
-        return Result.Ok({"limit": 10})
 
     async def _read_json(_request):
         return Result.Ok({"limit": "abc"})

@@ -478,6 +478,33 @@ export async function registerRealtimeListeners({
     };
     registerCleanableListener(runtime, api, EVENTS.SCAN_COMPLETE, api._mjrScanCompleteHandler);
 
+    api._mjrCoreExecutionAssetsReadyHandler = (event) => {
+        try {
+            const detail = event?.detail || {};
+            window.dispatchEvent(new CustomEvent(EVENTS.CORE_EXECUTION_ASSETS_READY, { detail }));
+            const indexed = Number(detail?.indexed || 0);
+            if (Number.isFinite(indexed) && indexed > 0) {
+                window.dispatchEvent(
+                    new CustomEvent(EVENTS.RELOAD_GRID, {
+                        detail: {
+                            reason: "core-execution-assets-ready",
+                            prompt_id: detail?.prompt_id || detail?.promptId || "",
+                            indexed,
+                        },
+                    }),
+                );
+            }
+        } catch (e) {
+            console.debug?.(e);
+        }
+    };
+    registerCleanableListener(
+        runtime,
+        api,
+        EVENTS.CORE_EXECUTION_ASSETS_READY,
+        api._mjrCoreExecutionAssetsReadyHandler,
+    );
+
     api._mjrScanProgressHandler = (event) => {
         try {
             const detail = event?.detail || {};

@@ -65,15 +65,14 @@ def _get_index_semaphore() -> asyncio.Semaphore:
 
 def _emit_maintenance_status(step: str, level: str = "info", message: str | None = None, **extra) -> None:
     try:
-        from ..registry import PromptServer
+        from mjr_am_backend.adapters.comfy_core import send_event
+
         payload = {"step": str(step or ""), "level": str(level or "info")}
         if message:
             payload["message"] = str(message)
         if extra:
             payload.update(extra)
-        _ps = getattr(PromptServer, "instance", None)
-        if _ps is not None:
-            _ps.send_sync("mjr-db-restore-status", payload)
+        send_event("mjr-db-restore-status", payload)
     except Exception:
         pass
 

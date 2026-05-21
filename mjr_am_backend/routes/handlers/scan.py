@@ -94,20 +94,11 @@ from .scan_watcher import (
 logger = get_logger(__name__)
 
 
-def _get_prompt_server():
-    try:
-        from .. import registry as registry_mod
-
-        return getattr(registry_mod, "PromptServer", None)
-    except Exception:
-        return None
-
-
 def _send_prompt_event(event: str, payload: Any) -> None:
     try:
-        prompt_server = _get_prompt_server()
-        if prompt_server is not None:
-            prompt_server.instance.send_sync(event, payload)
+        from mjr_am_backend.adapters.comfy_core import send_event
+
+        send_event(event, payload)
     except Exception:
         pass
 

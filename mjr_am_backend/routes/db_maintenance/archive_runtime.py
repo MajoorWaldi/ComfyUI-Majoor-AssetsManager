@@ -165,16 +165,14 @@ def sqlite_backup_file(src: Path, dst: Path) -> None:
 
 def emit_restore_status(step: str, level: str = "info", message: str | None = None, **extra) -> None:
     try:
-        from ..registry import PromptServer
+        from mjr_am_backend.adapters.comfy_core import send_event
 
         payload = {"step": str(step or ""), "level": str(level or "info")}
         if message:
             payload["message"] = str(message)
         if extra:
             payload.update(extra)
-        prompt_server = getattr(PromptServer, "instance", None)
-        if prompt_server is not None:
-            prompt_server.send_sync("mjr-db-restore-status", payload)
+        send_event("mjr-db-restore-status", payload)
     except Exception:
         pass
 

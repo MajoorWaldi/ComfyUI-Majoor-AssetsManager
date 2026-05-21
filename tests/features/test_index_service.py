@@ -131,13 +131,13 @@ async def test_scan_directory_fast_background_starts_enrichment(monkeypatch) -> 
 
     emitted = {"n": 0}
 
-    class _PS:
-        class instance:
-            @staticmethod
-            def send_sync(_event, _payload):
-                emitted["n"] += 1
+    from mjr_am_backend.adapters import comfy_core
 
-    monkeypatch.setitem(__import__("sys").modules, "mjr_am_backend.routes.registry", type("M", (), {"PromptServer": _PS}))
+    def _send_event(_event, _payload):
+        emitted["n"] += 1
+        return True
+
+    monkeypatch.setattr(comfy_core, "send_event", _send_event)
     monkeypatch.setattr(isvc, "mark_directory_indexed", lambda *args, **kwargs: None)
 
     svc._scanner.scan_result = Result.Ok({"to_enrich": ["a"], "added": 1})
@@ -170,13 +170,13 @@ async def test_index_paths_and_runtime_helpers(monkeypatch) -> None:
     monkeypatch.setattr(svc, "_ensure_vector_services", lambda: None)
     emitted = []
 
-    class _PS:
-        class instance:
-            @staticmethod
-            def send_sync(event, payload):
-                emitted.append((event, payload))
+    from mjr_am_backend.adapters import comfy_core
 
-    monkeypatch.setitem(__import__("sys").modules, "mjr_am_backend.routes.registry", type("M", (), {"PromptServer": _PS}))
+    def _send_event(event, payload):
+        emitted.append((event, payload))
+        return True
+
+    monkeypatch.setattr(comfy_core, "send_event", _send_event)
     svc.get_assets_batch = AsyncMock(return_value=Result.Ok([{"id": 1, "filename": "x.png"}]))
     svc._scanner.index_paths = AsyncMock(return_value=Result.Ok({"updated": 1, "added_ids": [1]}))
 

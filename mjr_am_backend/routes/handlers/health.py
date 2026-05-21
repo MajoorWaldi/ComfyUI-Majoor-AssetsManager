@@ -9,6 +9,7 @@ from collections.abc import Mapping
 from pathlib import Path
 
 from aiohttp import web
+from mjr_am_backend.adapters.comfy_core import get_capabilities as get_comfy_core_capabilities
 
 try:
     import folder_paths  # type: ignore
@@ -390,6 +391,7 @@ def _runtime_status_payload(db: object, index: object, watcher: object) -> dict:
             "pending_files": _safe_watcher_pending_count(watcher),
         },
         "execution": get_runtime_activity_status(),
+        "comfy_core": get_comfy_core_capabilities(),
         "maintenance_active": is_db_maintenance_active(),
     }
 

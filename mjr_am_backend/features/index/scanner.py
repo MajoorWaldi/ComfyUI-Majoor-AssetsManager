@@ -641,13 +641,15 @@ class IndexScanner:
         except (TypeError, ValueError, json.JSONDecodeError):
             pass
 
-    def _emit_vector_asset_update(self, row: Any, PromptServer: Any) -> None:
+    def _emit_vector_asset_update(self, row: Any) -> None:
         if not isinstance(row, dict):
             return
         payload = dict(row)
         self._parse_row_auto_tags(payload)
         try:
-            PromptServer.instance.send_sync("mjr-asset-updated", sanitize_for_json(payload))
+            from ...adapters.comfy_core import send_event
+
+            send_event("mjr-asset-updated", sanitize_for_json(payload))
         except Exception as exc:
             logger.debug(
                 "Failed to emit vector asset update for asset_id=%s: %s",
@@ -702,13 +704,8 @@ class IndexScanner:
         if not rows.ok or not rows.data:
             return
 
-        try:
-            from ...routes.registry import PromptServer
-        except Exception:
-            return
-
         for row in rows.data:
-            self._emit_vector_asset_update(row, PromptServer)
+            self._emit_vector_asset_update(row)
 
     _persist_prepared_entries_tx = persist_prepared_entries_tx
     _process_prepared_entry_tx = process_prepared_entry_tx

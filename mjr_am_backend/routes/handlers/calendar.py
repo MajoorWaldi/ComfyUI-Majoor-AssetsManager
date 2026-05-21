@@ -7,17 +7,7 @@ import datetime
 from pathlib import Path
 
 from aiohttp import web
-
-try:
-    import folder_paths  # type: ignore
-except Exception:
-    class _FolderPathsStub:
-        @staticmethod
-        def get_input_directory() -> str:
-            return str((Path(__file__).resolve().parents[3] / "input").resolve())
-
-    folder_paths = _FolderPathsStub()  # type: ignore
-
+from mjr_am_backend.adapters.comfy_core import get_input_directory
 from mjr_am_backend.config import get_runtime_output_root
 from mjr_am_backend.custom_roots import resolve_custom_root
 from mjr_am_backend.shared import Result, sanitize_error_message
@@ -92,7 +82,8 @@ def register_calendar_routes(routes: web.RouteTableDef) -> None:
             return _json_response(Result.Err("SERVICE_UNAVAILABLE", "Index service unavailable"))
 
         output_root = str(Path(get_runtime_output_root()).resolve(strict=False))
-        input_root = str(Path(folder_paths.get_input_directory()).resolve(strict=False))
+        input_dir = get_input_directory() or str((Path(__file__).resolve().parents[3] / "input").resolve())
+        input_root = str(Path(input_dir).resolve(strict=False))
 
         roots: list[str] = []
 

@@ -9,9 +9,11 @@ degrades gracefully and every public function returns None / empty.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 from ..shared import get_logger
+from .comfy_core import get_comfy_core
 
 logger = get_logger(__name__)
 
@@ -40,24 +42,21 @@ def is_available() -> bool:
         return _core_available
 
     try:
-        import sys
-        server_mod = sys.modules.get("server")
-        if server_mod is None:
+        core = get_comfy_core()
+        if core.get_prompt_server_instance() is None:
             _core_available = False
             return False
 
         # Check the feature-flag that ComfyUI sets when --enable-assets is used.
-        try:
-            from comfy_api.feature_flags import SERVER_FEATURE_FLAGS
-            if not SERVER_FEATURE_FLAGS.get("assets"):
-                _core_available = False
-                return False
-        except Exception:
-            pass
+        flags = core.get_feature_flags()
+        if "assets" in flags and not bool(flags.get("assets")):
+            _core_available = False
+            return False
 
         # Final check: can we actually import the service layer?
-        from app.assets.services import list_assets_page  # noqa: F401
-        _core_available = True
+        _core_available = core.core_assets_enabled()
+        if not _core_available:
+            return False
         logger.info("Core assets system detected and available")
     except Exception:
         _core_available = False
@@ -95,14 +94,21 @@ async def fetch_by_path(file_path: str) -> CoreAssetInfo | None:
     if not is_available():
         return None
     try:
+        direct = await _fetch_by_path_direct(file_path)
+        if direct is not None:
+            return direct
+    except Exception as exc:
+        logger.debug("Direct core asset lookup by path failed: %s", exc)
+    try:
         from app.assets.services import list_assets_page
+        basename = Path(str(file_path)).name
         result = await list_assets_page(
             owner_id="",
-            name_contains=None,
+            name_contains=basename or None,
             include_tags=[],
             exclude_tags=[],
             metadata_filter=None,
-            limit=1,
+            limit=200,
             offset=0,
             sort="created_at",
             order="desc",
@@ -116,6 +122,27 @@ async def fetch_by_path(file_path: str) -> CoreAssetInfo | None:
     except Exception as exc:
         logger.debug("Core asset lookup by path failed: %s", exc)
     return None
+
+
+async def _fetch_by_path_direct(file_path: str) -> CoreAssetInfo | None:
+    from app.assets.database import get_session
+    from app.assets.database.queries.asset_reference import get_reference_by_file_path
+    from app.assets.services.schemas import (
+        AssetDetailResult,
+        extract_asset_data,
+        extract_reference_data,
+    )
+
+    async with get_session() as session:
+        ref = get_reference_by_file_path(session, str(file_path))
+        if ref is None:
+            return None
+        detail = AssetDetailResult(
+            ref=extract_reference_data(ref),
+            asset=extract_asset_data(ref.asset),
+            tags=[],
+        )
+        return _ref_to_info(detail)
 
 
 async def fetch_by_job_id(job_id: str) -> list[CoreAssetInfo]:

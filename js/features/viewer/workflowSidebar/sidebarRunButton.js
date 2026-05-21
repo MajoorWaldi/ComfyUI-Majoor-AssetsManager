@@ -5,8 +5,8 @@
  * Uses api.queuePrompt when available, and falls back to POST /prompt.
  */
 
-import { getComfyApp, getComfyApi } from "../../../app/comfyApiBridge.js";
 import { APP_CONFIG } from "../../../app/config.js";
+import { getRawHostApi, getRawHostApp } from "../../../app/hostAdapter.js";
 import { t } from "../../../app/i18n.js";
 import {
     ensureFloatingViewerProgressTracking,
@@ -151,10 +151,10 @@ export function createRunButton() {
     }
 
     async function stopCurrentGeneration() {
-        const app = getComfyApp();
+        const app = getRawHostApp();
         // Prefer live app.api for the same auth-context reasons as queueCurrentPrompt.
         const liveApi = app?.api && typeof app.api.interrupt === "function" ? app.api : null;
-        const api = liveApi ?? getComfyApi(app);
+        const api = liveApi ?? getRawHostApi(app);
 
         if (api && typeof api.interrupt === "function") {
             await api.interrupt();
@@ -428,13 +428,13 @@ export function graphContainsApiNode(graph) {
  * correctly on every run, including inside subgraph inner nodes.
  */
 async function queueCurrentPrompt() {
-    const app = getComfyApp();
+    const app = getRawHostApp();
     if (!app) throw new Error("ComfyUI app not available");
 
     // Resolve API references early so we can choose the path before touching
     // widget state (beforeQueued must not be called twice for the same run).
     const liveApi = app?.api && typeof app.api.queuePrompt === "function" ? app.api : null;
-    const api = liveApi ?? getComfyApi(app);
+    const api = liveApi ?? getRawHostApi(app);
     const hasApiPath = Boolean(
         (api && typeof api.queuePrompt === "function") ||
         (api && typeof api.fetchApi === "function"),

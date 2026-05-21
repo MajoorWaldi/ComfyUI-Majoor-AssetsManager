@@ -356,9 +356,9 @@ class IndexService:
 
     def _emit_scan_complete_event(self, data: Any) -> None:
         try:
-            from ...routes.registry import PromptServer
+            from ...adapters.comfy_core import send_event
 
-            PromptServer.instance.send_sync("mjr-scan-complete", data)
+            send_event("mjr-scan-complete", data)
         except Exception as exc:
             logger.debug("Failed to emit scan-complete event: %s", exc)
 
@@ -378,16 +378,13 @@ class IndexService:
         payload.pop("to_enrich", None)
 
     async def _emit_index_paths_notifications(self, data: Any, *, source: str, root_id: str | None) -> None:
-        prompt_server_cls: Any = None
         try:
-            from ...routes.registry import PromptServer as prompt_server_cls
+            from ...adapters.comfy_core import send_event
         except Exception:
-            prompt_server_cls = None
-        if prompt_server_cls is None:
             return
         try:
-            prompt_server_cls.instance.send_sync("mjr-scan-complete", data)
-            prompt_server_cls.instance.send_sync(
+            send_event("mjr-scan-complete", data)
+            send_event(
                 "mjr.scan.progress",
                 sanitize_for_json(
                     {
@@ -401,20 +398,23 @@ class IndexService:
         except Exception as exc:
             logger.debug("Failed to emit scan-complete event: %s", exc)
             return
-        await self._emit_added_assets_notifications(data, prompt_server_cls)
+        await self._emit_added_assets_notifications(data)
 
-    async def _emit_added_assets_notifications(self, data: Any, prompt_server: Any) -> None:
+    async def _emit_added_assets_notifications(self, data: Any) -> None:
         added_ids = (data or {}).get("added_ids") or []
         if not added_ids:
             return
         try:
+            from ...adapters.comfy_core import send_event
+
             batch_res = await self.get_assets_batch(list(added_ids[:BATCH_ASSET_PUSH_LIMIT]))
             if not batch_res.ok or not batch_res.data:
                 return
             for asset in batch_res.data:
                 try:
-                    prompt_server.instance.send_sync("mjr-asset-added", sanitize_for_json(dict(asset)))
-                    prompt_server.instance.send_sync("mjr.asset.indexed", sanitize_for_json(dict(asset)))
+                    payload = sanitize_for_json(dict(asset))
+                    send_event("mjr-asset-added", payload)
+                    send_event("mjr.asset.indexed", payload)
                 except Exception as exc:
                     logger.debug("Failed to push mjr-asset-added for one asset: %s", exc)
         except Exception as exc:

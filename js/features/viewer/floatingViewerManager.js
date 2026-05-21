@@ -13,13 +13,13 @@
 import { EVENTS } from "../../app/events.js";
 import { APP_CONFIG } from "../../app/config.js";
 import { getAssetsBatch } from "../../api/client.js";
+import { getRawHostApp } from "../../app/hostAdapter.js";
 import { getActiveGridContainer } from "../panel/panelRuntimeRefs.js";
 import { getSelectedIdSet } from "../grid/GridSelectionManager.js";
 import { getHotkeysState, isHotkeysSuspended } from "../panel/controllers/hotkeysState.js";
 import { reportError } from "../../utils/logging.js";
 import { NODE_STREAM_FEATURE_ENABLED } from "./nodeStream/nodeStreamFeatureFlag.js";
 import { appendFloatingViewerNode } from "./viewerRuntimeHosts.js";
-import { getComfyApp } from "../../app/comfyApiBridge.js";
 
 // Lazy-loaded modules — loaded on first use to avoid blocking startup.
 /** @type {typeof import("./FloatingViewer.js").FloatingViewer | null} */
@@ -452,7 +452,7 @@ function _clearScheduledCanvasNodeSelection() {
 function _bindNodeSelectionListener() {
     if (_nodeSelectionBound) return;
     try {
-        const app = getComfyApp();
+        const app = getRawHostApp();
         const canvas = app?.canvas;
         if (!canvas) return;
 
@@ -503,7 +503,7 @@ function _unbindNodeSelectionListener() {
     if (!_nodeSelectionBound) return;
     _clearScheduledCanvasNodeSelection();
     try {
-        const app = getComfyApp();
+        const app = getRawHostApp();
         const canvas = app?.canvas;
         if (canvas) {
             if (_hadOwnOnNodeSelected) canvas.onNodeSelected = _origOnNodeSelected;

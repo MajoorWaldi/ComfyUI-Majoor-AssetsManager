@@ -88,9 +88,10 @@ class MetadataEnricher:
             if not active and not self._status_active:
                 return
             self._status_active = active
-            from ...routes.registry import PromptServer
             payload = {"active": active, **extra}
-            PromptServer.instance.send_sync("mjr-enrichment-status", payload)
+            from ...adapters.comfy_core import send_event
+
+            send_event("mjr-enrichment-status", payload)
         except Exception:
             pass
 
@@ -368,9 +369,10 @@ class MetadataEnricher:
             )
             if res.ok and res.data:
                 payload = dict(res.data[0])
-                from ...routes.registry import PromptServer
+                from ...adapters.comfy_core import send_event
                 from ...utils import sanitize_for_json
-                PromptServer.instance.send_sync("mjr-asset-updated", sanitize_for_json(payload))
+
+                send_event("mjr-asset-updated", sanitize_for_json(payload))
         except Exception:
             pass
 

@@ -11,8 +11,8 @@
  */
 
 import { EVENTS } from "../../app/events.js";
+import { waitForRawHostApi } from "../../app/hostAdapter.js";
 import { floatingViewerManager } from "./floatingViewerManager.js";
-import { waitForComfyApi } from "../../app/comfyApiBridge.js";
 
 let _initialized = false;
 let _genOutputHandler = null;
@@ -60,7 +60,7 @@ async function _hookPreviewApi(app) {
     try {
         _detachPreviewApiListeners();
 
-        const api = await waitForComfyApi({ app, timeoutMs: 8000 });
+        const api = await waitForRawHostApi({ app, timeoutMs: 8000 });
         if (hookGeneration !== _previewHookGeneration) return;
         if (!api) {
             console.debug("[Majoor] MFV: ComfyUI API not found - preview streaming disabled");

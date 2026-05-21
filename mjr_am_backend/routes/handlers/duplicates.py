@@ -4,17 +4,7 @@ Duplicate and similarity detection endpoints.
 from pathlib import Path
 
 from aiohttp import web
-
-try:
-    import folder_paths  # type: ignore
-except Exception:
-    class _FolderPathsStub:
-        @staticmethod
-        def get_input_directory() -> str:
-            return str((Path(__file__).resolve().parents[3] / "input").resolve())
-
-    folder_paths = _FolderPathsStub()  # type: ignore
-
+from mjr_am_backend.adapters.comfy_core import get_input_directory
 from mjr_am_backend.config import get_runtime_output_root
 from mjr_am_backend.custom_roots import resolve_custom_root
 from mjr_am_backend.runtime_activity import is_generation_busy
@@ -33,14 +23,15 @@ from .db_maintenance import is_db_maintenance_active
 
 def _roots_for_scope(scope: str, custom_root_id: str = "") -> Result[list[str]]:
     s = str(scope or "output").strip().lower()
+    input_dir = get_input_directory() or str((Path(__file__).resolve().parents[3] / "input").resolve())
     if s in ("output", "outputs"):
         return Result.Ok([str(Path(get_runtime_output_root()).resolve(strict=False))])
     if s in ("input", "inputs"):
-        return Result.Ok([str(Path(folder_paths.get_input_directory()).resolve(strict=False))])
+        return Result.Ok([str(Path(input_dir).resolve(strict=False))])
     if s == "all":
         return Result.Ok([
             str(Path(get_runtime_output_root()).resolve(strict=False)),
-            str(Path(folder_paths.get_input_directory()).resolve(strict=False)),
+            str(Path(input_dir).resolve(strict=False)),
         ])
     if s == "custom":
         root = resolve_custom_root(str(custom_root_id or ""))

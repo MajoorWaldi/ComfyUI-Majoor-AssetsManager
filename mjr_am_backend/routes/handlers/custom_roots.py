@@ -11,6 +11,7 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from aiohttp import web
+from mjr_am_backend.adapters.comfy_core import get_input_directory
 from mjr_am_backend.config import OUTPUT_ROOT
 from mjr_am_backend.custom_roots import (
     add_custom_root,
@@ -57,12 +58,10 @@ logger = get_logger(__name__)
 
 
 def _resolve_scan_input_root() -> Path:
-    try:
-        import folder_paths  # type: ignore
-
-        return Path(folder_paths.get_input_directory()).resolve(strict=False)
-    except Exception:
-        return (Path(__file__).resolve().parents[3] / "input").resolve(strict=False)
+    input_dir = get_input_directory()
+    if input_dir:
+        return Path(input_dir).resolve(strict=False)
+    return (Path(__file__).resolve().parents[3] / "input").resolve(strict=False)
 
 
 def _find_matching_custom_root_id(path: Path) -> str | None:

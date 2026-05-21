@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Any, cast
 
 import pytest
 from mjr_am_backend.features.health.service import HealthService
@@ -17,6 +18,7 @@ class _DB:
     def __init__(self):
         self.has_meta = True
         self.fail_query = False
+        self.db_path: Path | None = None
 
     async def ahas_table(self, _name):
         return self.has_meta
@@ -38,16 +40,18 @@ class _DB:
 @pytest.mark.asyncio
 async def test_health_status_and_database_paths():
     db = _DB()
-    svc = HealthService(db, _Tool(True), _Tool(True))
+    svc = HealthService(cast(Any, db), cast(Any, _Tool(True)), cast(Any, _Tool(True)))
     st = await svc.status()
     assert st.ok and st.data["overall"] == "healthy"
+    assert "comfy_core" in st.data
+    assert st.data["comfy_core"]["prompt_server"] in {True, False}
 
     db.has_meta = False
     st2 = await svc.status()
     assert st2.ok and st2.data["overall"] == "unhealthy"
 
     db.has_meta = True
-    svc2 = HealthService(db, _Tool(False), _Tool(False))
+    svc2 = HealthService(cast(Any, db), cast(Any, _Tool(False)), cast(Any, _Tool(False)))
     st3 = await svc2.status()
     assert st3.ok and st3.data["overall"] == "degraded"
 
@@ -55,14 +59,16 @@ async def test_health_status_and_database_paths():
 @pytest.mark.asyncio
 async def test_health_get_counters_and_helpers(tmp_path: Path):
     db = _DB()
-    svc = HealthService(db, _Tool(True), _Tool(False))
+    svc = HealthService(cast(Any, db), cast(Any, _Tool(True)), cast(Any, _Tool(False)))
     dbp = tmp_path / "x.db"
     dbp.write_bytes(b"x")
     db.db_path = dbp
     out = await svc.get_counters(roots=[str(tmp_path)])
-    assert out.ok and out.data["total_assets"] == 3 and out.data["images"] == 2
+    assert out.ok and out.data is not None
+    assert out.data["total_assets"] == 3 and out.data["images"] == 2
     assert out.data["tool_availability"]["ffprobe"] is False
 
     db.fail_query = True
     out2 = await svc.get_counters()
-    assert out2.ok and out2.data["total_assets"] == 0
+    assert out2.ok and out2.data is not None
+    assert out2.data["total_assets"] == 0

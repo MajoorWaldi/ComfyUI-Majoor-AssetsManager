@@ -335,4 +335,57 @@ describe("registerRealtimeListeners", () => {
             promptId: "job-1",
         });
     });
+
+    it("recharge la grille quand les assets core de l execution sont prets", async () => {
+        ensureBrowserShims();
+        const harness = createRuntimeHarness();
+        const dispatched = [];
+        const previousDispatch = window.dispatchEvent;
+        window.dispatchEvent = (event) => {
+            dispatched.push(event);
+            return true;
+        };
+
+        try {
+            await registerRealtimeListeners({
+                api: harness.api,
+                runtime: harness.runtime,
+                executionRuntime: harness.executionRuntime,
+                appRef: {},
+                liveStreamModule: null,
+                ensureExecutionRuntime: () => ({ queue_remaining: 0, active_prompt_id: null }),
+                emitRuntimeStatus: () => {},
+                getActiveGridContainer: () => harness.grid,
+                pushGeneratedAsset: harness.pushGeneratedAsset,
+                upsertAsset: harness.upsertAsset,
+                removeAssetsFromGrid: () => {},
+                getEnrichmentState: () => ({ active: false }),
+                setEnrichmentState: () => {},
+                comfyToast: () => {},
+                t: (_k, fallback) => fallback,
+                reportError: () => {},
+                registerCleanableListener: () => {},
+            });
+
+            harness.api._mjrCoreExecutionAssetsReadyHandler({
+                detail: { prompt_id: "job-2", indexed: 2 },
+            });
+        } finally {
+            window.dispatchEvent = previousDispatch;
+        }
+
+        expect(dispatched.map((event) => event.type)).toContain(
+            EVENTS.CORE_EXECUTION_ASSETS_READY,
+        );
+        expect(dispatched).toContainEqual(
+            expect.objectContaining({
+                type: EVENTS.RELOAD_GRID,
+                detail: expect.objectContaining({
+                    reason: "core-execution-assets-ready",
+                    prompt_id: "job-2",
+                    indexed: 2,
+                }),
+            }),
+        );
+    });
 });

@@ -59,6 +59,32 @@ def mark_generation_finished(
         return _snapshot_locked(now)
 
 
+def schedule_post_execution_ingestion(prompt_id: str | None) -> bool:
+    """Schedule targeted indexing for files produced by a completed prompt."""
+    safe_prompt_id = str(prompt_id or "").strip()
+    if not safe_prompt_id:
+        return False
+    try:
+        from .adapters.comfy_core import schedule_task
+        from .features.runtime.post_execution import ingest_prompt_outputs_from_services
+        from .routes.core.services import _build_services
+
+        async def _run() -> None:
+            services = await _build_services()
+            await ingest_prompt_outputs_from_services(services, safe_prompt_id)
+
+        coro = _run()
+        scheduled = schedule_task(coro)
+        if not scheduled:
+            try:
+                coro.close()
+            except Exception:
+                pass
+        return scheduled
+    except Exception:
+        return False
+
+
 def is_generation_busy(*, include_cooldown: bool = True) -> bool:
     now = _now()
     with _LOCK:
@@ -136,6 +162,7 @@ def ensure_prompt_lifecycle_provider_registered() -> bool:
                 except Exception:
                     cooldown_seconds = 0.0
                 mark_generation_finished(prompt_id, cooldown_seconds=cooldown_seconds)
+                schedule_post_execution_ingestion(prompt_id)
 
         try:
             provider = _PromptLifecycleProvider()

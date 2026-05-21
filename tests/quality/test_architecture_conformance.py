@@ -43,13 +43,7 @@ JS_ROOT = REPO_ROOT / "js"
 # ---------------------------------------------------------------------------
 KNOWN_FEATURE_VIOLATIONS: frozenset[str] = frozenset({
     # getComfyApp — should use hostAdapter.getRawHostApp() or isReady()
-    "js/features/viewer/floatingViewerManager.js",
-    "js/features/dnd/DragDrop.js",
-    "js/features/viewer/workflowSidebar/NodeWidgetRenderer.js",
-    "js/features/viewer/workflowSidebar/sidebarRunButton.js",
-    "js/features/viewer/workflowSidebar/widgetAdapters.js",
     # waitForComfyApi — should use hostAdapter.ready()
-    "js/features/viewer/LiveStreamTracker.js",
 })
 
 # Files that are legitimately allowed to import comfyApiBridge directly.
@@ -70,6 +64,7 @@ ALLOWED_DIRECT_IMPORTERS: frozenset[str] = frozenset({
 
 _IMPORT_RE = re.compile(r'^(?:import|export)\b.*["\'].*comfyApiBridge', re.MULTILINE)
 _PANEL_RUNTIME_IMPORT_RE = re.compile(r'^import\b.*["\'].*panelRuntime', re.MULTILINE)
+_LEGACY_COMFY_IMPORT_RE = re.compile(r'^(?:import|export)\b.*["\'].*scripts/(?:app|api)\.js', re.MULTILINE)
 
 
 def _posix_rel(path: Path) -> str:
@@ -179,8 +174,22 @@ def test_pinia_stores_do_not_import_panel_runtime():
     )
 
 
+def test_legacy_comfy_frontend_imports_are_entrypoint_only():
+    violations = [
+        _posix_rel(f)
+        for f in _find_js_files(JS_ROOT)
+        if _posix_rel(f) != "js/entry.js"
+        and _LEGACY_COMFY_IMPORT_RE.search(f.read_text(encoding="utf-8", errors="replace"))
+    ]
+    assert not violations, (
+        "ComfyUI legacy frontend imports must stay isolated to js/entry.js.\n"
+        "Use js/app/comfyApiBridge.js or js/app/hostAdapter.js instead:\n"
+        + "\n".join(f"  {v}" for v in sorted(violations))
+    )
+
+
 # ---------------------------------------------------------------------------
-# 4. No app-layer module imports from vue/ (no circular dependency upward)
+# 5. No app-layer module imports from vue/ (no circular dependency upward)
 # ---------------------------------------------------------------------------
 
 def test_app_layer_does_not_import_from_vue():
