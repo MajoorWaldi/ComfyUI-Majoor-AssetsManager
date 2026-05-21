@@ -12,6 +12,7 @@ from .db_maintenance import register_db_maintenance_routes
 from .duplicates import register_duplicates_routes
 from .health import register_health_routes
 from .hybrid_search import register_hybrid_search_routes
+from .integration import register_integration_routes
 from .metadata import register_metadata_routes
 from .plugins import register_plugin_routes
 from .releases import register_releases_routes
@@ -37,6 +38,7 @@ __all__ = [
     "register_duplicates_routes",
     "register_health_routes",
     "register_hybrid_search_routes",
+    "register_integration_routes",
     "register_metadata_routes",
     "register_plugin_routes",
     "register_releases_routes",

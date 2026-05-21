@@ -88,4 +88,11 @@ def hydrate_asset_payload(asset: dict[str, Any]) -> dict[str, Any]:
     asset["metadata_raw"] = metadata_obj
     if isinstance(metadata_obj, dict):
         _apply_metadata_obj_fields(asset, metadata_obj)
+
+    # P1.4 — expose the ComfyUI-aligned `directory_type` field alongside the
+    # legacy `source` value. Both names map to the same output/input/custom
+    # bucket; aligning naming with core makes frontend integrations simpler.
+    source_value = asset.get("source")
+    if source_value is not None:
+        asset.setdefault("directory_type", source_value)
     return asset

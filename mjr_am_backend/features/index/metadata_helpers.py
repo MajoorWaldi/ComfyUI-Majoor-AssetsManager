@@ -1069,6 +1069,16 @@ class MetadataHelpers:
                 )
             except Exception:
                 pass
+            # Stamp the ComfyUI-core-aligned enrichment level on the assets row.
+            # Level 2 = "metadata enriched"; never downgrade from a higher value.
+            try:
+                await db.aexecute(
+                    "UPDATE assets SET enrichment_level = MAX(COALESCE(enrichment_level, 0), 2) "
+                    "WHERE id = ?",
+                    (asset_id,),
+                )
+            except Exception:
+                pass
         return result
 
     @staticmethod

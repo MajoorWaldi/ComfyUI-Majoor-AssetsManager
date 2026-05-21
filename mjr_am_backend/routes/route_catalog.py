@@ -19,6 +19,7 @@ from .handlers import (
     register_duplicates_routes,
     register_health_routes,
     register_hybrid_search_routes,
+    register_integration_routes,
     register_metadata_routes,
     register_plugin_routes,
     register_releases_routes,
@@ -115,6 +116,11 @@ OPTIONAL_ROUTE_REGISTRATIONS: tuple[RouteRegistration, ...] = (
         "audit",
         register_audit_routes,
         ("  GET /mjr/am/audit (Added)",),
+    ),
+    RouteRegistration(
+        "integration",
+        register_integration_routes,
+        ("  POST /mjr/am/integration/send-from-node (Added)",),
     ),
 )
 

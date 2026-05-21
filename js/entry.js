@@ -21,6 +21,10 @@
 // at the very top — its tiny dep set (api/client + endpoints + config) ensures
 // nothing heavy runs ahead of it. Result is consumed by useGridLoader.fetchPage.
 import "./features/runtime/earlyFetch.js";
+// Side-effect: registers the "Send to Asset Manager" right-click menu on
+// SaveImage / VHS_VideoCombine etc. Isolated from the Vue runtime so a
+// failure here cannot break the asset grid.
+import "./integration/comfy_send_to_am.js";
 import { testAPI, triggerStartupScan } from "./app/bootstrap.js";
 import { checkMajoorVersion } from "./app/versionCheck.js";
 import { ensureStyleLoaded } from "./app/style.js";

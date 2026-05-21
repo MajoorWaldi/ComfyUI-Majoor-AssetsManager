@@ -87,6 +87,7 @@ async def query_browser_rows(db: Any, filepaths: list[str]) -> list[dict] | None
                 a.job_id,
                 a.source_node_id,
                 a.source_node_type,
+                a.workflow_id,
                 COALESCE(m.rating, 0) AS rating,
                 COALESCE(m.tags, '[]') AS tags,
                 m.has_workflow AS has_workflow,
@@ -199,7 +200,7 @@ def hydrate_asset_from_row(asset: dict, by_fp: dict[str, dict]) -> None:
     rid = row.get("id")
     if rid is not None:
         asset["id"] = int(rid)
-    for key in ("job_id", "source_node_id", "source_node_type"):
+    for key in ("job_id", "source_node_id", "source_node_type", "workflow_id"):
         value = str(row.get(key) or "").strip()
         if value:
             asset[key] = value

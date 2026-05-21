@@ -1,7 +1,7 @@
 """SQL constants and identifier-safety helpers for the database schema."""
 import re
 
-CURRENT_SCHEMA_VERSION = 15
+CURRENT_SCHEMA_VERSION = 16
 # Schema version history (high-level):
 # 1: initial assets + metadata tables
 # 2-4: incremental columns and FTS/search support
@@ -16,6 +16,7 @@ CURRENT_SCHEMA_VERSION = 15
 # 13: asset_embeddings moved to separate vectors.sqlite (attached as "vec")
 # 14: audit_log table for write-operation audit trail
 # 15: asset_stacks table + job_id/stack_id on assets (execution grouping)
+# 16: enrichment_level (0-2), workflow_id, hash_algo (aligned w/ ComfyUI core assets model)
 
 
 def _db_path(db) -> str | None:
@@ -135,6 +136,14 @@ COLUMN_DEFINITIONS = {
         ("stack_id", "stack_id INTEGER"),
         ("source_node_id", "source_node_id TEXT"),
         ("source_node_type", "source_node_type TEXT"),
+        # Schema v16 — alignment with ComfyUI core asset model.
+        # enrichment_level: 0 = stub (filepath only), 1 = hashed,
+        # 2 = metadata enriched (kind/dims/duration/content_hash all populated).
+        ("enrichment_level", "enrichment_level INTEGER DEFAULT 0"),
+        ("workflow_id", "workflow_id TEXT"),
+        # Tracks which algorithm produced `content_hash` ("sha256" | "blake3").
+        # Lets us migrate to blake3 lazily while keeping legacy rows readable.
+        ("hash_algo", "hash_algo TEXT"),
     ],
     "asset_metadata": [
         ("rating", "rating INTEGER DEFAULT 0"),
@@ -215,6 +224,8 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_stacks_job_id ON asset_stacks(job_id);
 CREATE INDEX IF NOT EXISTS idx_stacks_created_at ON asset_stacks(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_assets_job_id ON assets(job_id);
 CREATE INDEX IF NOT EXISTS idx_assets_stack_id ON assets(stack_id);
+CREATE INDEX IF NOT EXISTS idx_assets_workflow_id ON assets(workflow_id);
+CREATE INDEX IF NOT EXISTS idx_assets_enrichment_level ON assets(enrichment_level);
 
 CREATE TRIGGER IF NOT EXISTS assets_fts_insert AFTER INSERT ON assets BEGIN
     INSERT INTO assets_fts(rowid, filename, subfolder)

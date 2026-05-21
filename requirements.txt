@@ -26,6 +26,11 @@ watchdog>=3.0.0,<7.0.0
 # Only required on Windows; gracefully skipped on other platforms
 pywin32>=300,<312; sys_platform == 'win32'
 
+# Fast cryptographic hashing (~5x faster than SHA-256) aligned with ComfyUI core
+# asset model (blake3: URIs). Optional — code falls back to hashlib.sha256 if
+# the import fails. Pre-built wheels exist for Win/macOS/Linux on x86_64 + arm64.
+blake3>=0.4.0,<2.0.0
+
 # Note: tkinter is required for native folder browser functionality
 # tkinter is included in standard Python distribution but may be missing in minimal installs
 

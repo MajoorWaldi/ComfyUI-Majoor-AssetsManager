@@ -460,3 +460,90 @@ def register_viewer_routes(routes: web.RouteTableDef) -> None:
         except Exception:
             pass
         return resp
+
+    @routes.get("/mjr/am/view/by-hash")
+    async def viewer_by_hash(request: web.Request):
+        """
+        Resolve an indexed asset by content hash and stream the file.
+
+        Accepts either a prefixed URI (``blake3:xxx`` / ``sha256:xxx``) or a
+        bare hex digest via the ``hash`` query param. Modeled after the
+        ComfyUI core ``filename=blake3:xxx`` view scheme so frontends can
+        reference assets by their stable identity rather than mutable paths.
+        """
+        from mjr_am_shared.hashing import parse_hash_uri
+
+        raw = str(request.query.get("hash", "")).strip()
+        if not raw:
+            return _json_response(Result.Err("INVALID_INPUT", "Missing hash"))
+
+        parsed = parse_hash_uri(raw)
+        if parsed is None:
+            # Allow bare hex digests (no prefix) — algo unknown, match on digest.
+            digest = raw.lower()
+            if not digest or any(c not in "0123456789abcdef" for c in digest):
+                return _json_response(Result.Err("INVALID_INPUT", "Invalid hash format"))
+            algo_filter: str | None = None
+        else:
+            algo_filter, digest = parsed
+
+        svc, error_result = await _require_services()
+        if error_result:
+            return _json_response(error_result)
+        if not isinstance(svc, dict) or "db" not in svc:
+            return _json_response(Result.Err("SERVICE_UNAVAILABLE", "Database unavailable"))
+
+        try:
+            if algo_filter is None:
+                row_res = await svc["db"].aquery(
+                    "SELECT id, filepath, hash_algo FROM assets WHERE content_hash = ? LIMIT 1",
+                    (digest,),
+                )
+            else:
+                # Match either rows tagged with the requested algorithm, or legacy
+                # rows that predate `hash_algo` (NULL == implicit SHA-256).
+                row_res = await svc["db"].aquery(
+                    """
+                    SELECT id, filepath, hash_algo FROM assets
+                    WHERE content_hash = ?
+                      AND (hash_algo = ? OR (hash_algo IS NULL AND ? = 'sha256'))
+                    LIMIT 1
+                    """,
+                    (digest, algo_filter, algo_filter),
+                )
+        except Exception as exc:
+            return _json_response(
+                Result.Err("QUERY_FAILED", safe_error_message(exc, "Failed to look up hash"))
+            )
+
+        if not row_res.ok or not row_res.data:
+            return _json_response(Result.Err("NOT_FOUND", "No asset matches that hash"))
+
+        row = row_res.data[0]
+        filepath = str(row.get("filepath") or "") if isinstance(row, dict) else ""
+        if not filepath:
+            return _json_response(Result.Err("NOT_FOUND", "Indexed row has no filepath"))
+
+        candidate = _normalize_path(filepath)
+        if not candidate or not (
+            _is_path_allowed(candidate, must_exist=True) or _is_path_allowed_custom(candidate)
+        ):
+            return _json_response(Result.Err("FORBIDDEN", "Asset is outside allowed roots"))
+
+        resolved, err = _strict_resolve(candidate, "asset path")
+        if err:
+            return _json_response(err)
+        if resolved is None:
+            return _json_response(Result.Err("NOT_FOUND", "Resolved path is None"))
+
+        content_type = _guess_content_type_for_file(resolved)
+        resp = web.FileResponse(path=str(resolved))
+        try:
+            resp.headers["Content-Type"] = content_type
+            # Content-addressed URIs are immutable by definition, so we can cache
+            # aggressively. Browsers honor `immutable` only for max-age responses.
+            resp.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+            resp.headers["X-Content-Type-Options"] = "nosniff"
+        except Exception:
+            pass
+        return resp

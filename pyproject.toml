@@ -38,6 +38,11 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# Optional fast content hashing (~5x faster than SHA-256). Auto-detected at runtime.
+fast-hash = [
+  "blake3>=0.4.0,<2.0.0",
+]
+
 vector = [
   "sentence-transformers>=2.2.0,<6.0.0",
   "transformers>=4.44.0,<6.0.0",
@@ -78,10 +83,17 @@ where = ["."]
 include = ["mjr_am_shared*", "mjr_am_backend*"]
 exclude = ["js*", "vendor*", "plugins*", "ressources*"]
 
+# --------------------------------------------------------------------------
+# ComfyUI-Manager v4 / Comfy Registry metadata.
+# Allows the Manager to discover the extension's web assets, custom nodes,
+# and project URLs without parsing the runtime module.
+# See: https://github.com/Comfy-Org/ComfyUI-Manager (manager-v4)
+# --------------------------------------------------------------------------
 [tool.comfy]
 PublisherId = "majoor-waldi"
 DisplayName = "ComfyUI-Majoor-AssetsManager"
 Icon = "https://raw.githubusercontent.com/MajoorWaldi/ComfyUI-Majoor-AssetsManager/main/ressources/icon.png"
+WebDirectory = "js_dist"
 includes = []
 "requires-comfyui" = ">=0.13.0"
 

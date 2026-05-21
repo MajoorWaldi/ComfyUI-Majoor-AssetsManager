@@ -126,7 +126,9 @@ function hasFileInfoData(asset) {
             target.source_node_id ||
             target.file_info?.source_node_id ||
             target.source_node_type ||
-            target.file_info?.source_node_type,
+            target.file_info?.source_node_type ||
+            target.workflow_id ||
+            target.file_info?.workflow_id,
     );
 }
 

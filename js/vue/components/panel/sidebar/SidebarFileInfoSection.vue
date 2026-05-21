@@ -103,6 +103,10 @@ const rows = computed(() => {
     if (sourceNodeType) {
         fileData.push({ label: "Node Type", value: sourceNodeType, tooltip: "ComfyUI node class that produced this file" });
     }
+    const workflowId = String(readAssetField(asset, "workflow_id") || "").trim();
+    if (workflowId) {
+        fileData.push({ label: "Workflow ID", value: workflowId, tooltip: "ComfyUI workflow identifier (from workflow.id in extra_data)" });
+    }
     return fileData;
 });
 </script>

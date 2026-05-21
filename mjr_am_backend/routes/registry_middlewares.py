@@ -19,6 +19,45 @@ from .core import (
 API_PREFIX = "/mjr/am/"
 _SENSITIVE_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
 
+# Paths under which ComfyUI serves our `WEB_DIRECTORY` (js_dist/). We force
+# revalidation on these so users always get the freshly built bundle after a
+# plugin update — mirroring the no-store fix the ComfyUI core applied to its
+# own frontend chunks (PR #12911).
+_STATIC_EXTENSION_PREFIXES = (
+    "/extensions/majoor-assetsmanager/",
+    "/extensions/ComfyUI-Majoor-AssetsManager/",
+    "/api/extensions/majoor-assetsmanager/",
+    "/api/extensions/ComfyUI-Majoor-AssetsManager/",
+)
+
+
+@web.middleware
+async def static_extension_cache_middleware(
+    request: web.Request,
+    handler: Callable[[web.Request], Awaitable[web.StreamResponse]],
+) -> web.StreamResponse:
+    """Force revalidation for the plugin's compiled JS/CSS chunks.
+
+    Without this, browsers happily cache stale chunks across upgrades and the
+    user gets a half-broken UI until a hard reload. Modeled after Comfy core's
+    middleware fix for stale frontend chunks.
+    """
+    response = await handler(request)
+    try:
+        path = request.path or ""
+    except Exception:
+        return response
+    if not any(path.startswith(prefix) for prefix in _STATIC_EXTENSION_PREFIXES):
+        return response
+    try:
+        # `no-cache` (not `no-store`) preserves ETag/304 revalidation, which is
+        # cheaper than re-downloading the whole bundle.
+        response.headers["Cache-Control"] = "no-cache, must-revalidate"
+        response.headers.setdefault("Pragma", "no-cache")
+    except Exception:
+        pass
+    return response
+
 
 @web.middleware
 async def security_headers_middleware(

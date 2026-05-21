@@ -9,6 +9,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+from mjr_am_shared.hashing import compute_file_hash as _shared_compute_file_hash
 from PIL import Image
 
 from ...adapters.db.sqlite import Sqlite
@@ -25,6 +26,20 @@ def _safe_int(value: Any, default: int = 0) -> int:
 
 
 def _compute_file_hash(path: Path) -> str:
+    # Kept as a thin wrapper so legacy call sites that only need the digest
+    # continue to work; new code prefers `_compute_file_hash_with_algo`.
+    digest, _algo = _shared_compute_file_hash(path)
+    return digest
+
+
+def _compute_file_hash_with_algo(path: Path) -> tuple[str, str]:
+    digest, algo = _shared_compute_file_hash(path)
+    return digest, algo
+
+
+# Legacy SHA-256 helper retained for tests / external callers that depend on
+# the deterministic SHA-256 output (e.g. comparing against pre-blake3 hashes).
+def _compute_file_sha256(path: Path) -> str:
     h = hashlib.sha256()
     with path.open("rb") as f:
         while True:
@@ -205,15 +220,16 @@ class DuplicatesService:
 
     async def _process_hash_update(self, item: dict[str, Any]) -> None:
         try:
-            content_hash = await asyncio.to_thread(_compute_file_hash, item["path"])
+            content_hash, hash_algo = await asyncio.to_thread(_compute_file_hash_with_algo, item["path"])
             phash = await asyncio.to_thread(_compute_phash_hex, item["path"]) if item["kind"] == "image" else None
             upd = await self.db.aexecute(
                 """
                 UPDATE assets
-                SET content_hash = ?, phash = ?, hash_state = ?
+                SET content_hash = ?, phash = ?, hash_state = ?, hash_algo = ?,
+                    enrichment_level = MAX(COALESCE(enrichment_level, 0), 1)
                 WHERE id = ?
                 """,
-                (content_hash, phash, item["current_state"], item["aid"]),
+                (content_hash, phash, item["current_state"], hash_algo, item["aid"]),
             )
             if upd.ok:
                 self._inc_status("updated")

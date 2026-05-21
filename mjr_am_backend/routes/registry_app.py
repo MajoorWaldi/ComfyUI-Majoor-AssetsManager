@@ -14,6 +14,7 @@ def _install_security_middlewares(
     auth_required_middleware: Any,
     security_headers_middleware: Any,
     api_versioning_middleware: Any,
+    static_extension_cache_middleware: Any = None,
     installed_key: web.AppKey[bool],
     logger: Any,
 ) -> None:
@@ -23,6 +24,10 @@ def _install_security_middlewares(
         app.middlewares.insert(0, auth_required_middleware)
         app.middlewares.insert(0, security_headers_middleware)
         app.middlewares.insert(0, api_versioning_middleware)
+        if static_extension_cache_middleware is not None:
+            # Outermost so it can stamp headers on responses produced by any
+            # downstream handler (including ComfyUI's own static serving).
+            app.middlewares.insert(0, static_extension_cache_middleware)
         app[installed_key] = True
         try:
             from mjr_am_backend.bootstrap_report import record_stage

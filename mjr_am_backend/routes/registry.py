@@ -52,6 +52,7 @@ from .registry_middlewares import (
     api_versioning_middleware,
     auth_required_middleware,
     security_headers_middleware,
+    static_extension_cache_middleware,
 )
 from .registry_prompt import PromptServer as PromptServer
 from .registry_prompt import _get_prompt_server
@@ -93,6 +94,7 @@ def _install_security_middlewares(app: web.Application) -> None:
         auth_required_middleware=auth_required_middleware,
         security_headers_middleware=security_headers_middleware,
         api_versioning_middleware=api_versioning_middleware,
+        static_extension_cache_middleware=static_extension_cache_middleware,
         installed_key=_APP_KEY_SECURITY_MIDDLEWARES_INSTALLED,
         logger=logger,
     )

@@ -355,6 +355,57 @@ def get_prompt_output_files(prompt_id: str) -> list[PromptOutputFile]:
     return _ADAPTER.output_files_from_history(prompt_id)
 
 
+def get_workflow_id_for_prompt(prompt_id: str) -> str | None:
+    """Best-effort extraction of the workflow id associated with a prompt.
+
+    ComfyUI's frontend stores a stable workflow identifier inside the prompt's
+    ``extra_data`` payload (``extra_pnginfo.workflow.id`` or ``workflow.id``).
+    Older clients omit it, so we return ``None`` when nothing is available.
+    """
+    safe_prompt_id = str(prompt_id or "").strip()
+    if not safe_prompt_id:
+        return None
+    try:
+        history = _ADAPTER.get_prompt_history(safe_prompt_id)
+    except Exception:
+        return None
+    entry = history.get(safe_prompt_id) if isinstance(history, dict) else None
+    if not isinstance(entry, dict):
+        return None
+
+    # ComfyUI stores the prompt graph + extra_data at entry["prompt"]; the
+    # layout is `[number, prompt_id, graph, extra_data, outputs_to_execute]`.
+    prompt_tuple = entry.get("prompt")
+    extra_data: Any = None
+    if isinstance(prompt_tuple, (list, tuple)) and len(prompt_tuple) >= 4:
+        extra_data = prompt_tuple[3]
+    elif isinstance(entry.get("extra_data"), dict):
+        extra_data = entry.get("extra_data")
+
+    if not isinstance(extra_data, dict):
+        return None
+
+    # Common locations, in order of preference.
+    candidates: list[Any] = []
+    workflow = extra_data.get("workflow")
+    if isinstance(workflow, dict):
+        candidates.append(workflow.get("id"))
+    extra_pnginfo = extra_data.get("extra_pnginfo")
+    if isinstance(extra_pnginfo, dict):
+        wf = extra_pnginfo.get("workflow")
+        if isinstance(wf, dict):
+            candidates.append(wf.get("id"))
+    candidates.append(extra_data.get("workflow_id"))
+
+    for value in candidates:
+        if value is None:
+            continue
+        text = str(value).strip()
+        if text:
+            return text
+    return None
+
+
 def get_input_directory() -> str | None:
     return _ADAPTER.get_input_directory()
 
@@ -377,6 +428,7 @@ __all__ = [
     "get_output_directory",
     "get_prompt_output_files",
     "get_prompt_output_paths",
+    "get_workflow_id_for_prompt",
     "send_event",
     "schedule_task",
 ]

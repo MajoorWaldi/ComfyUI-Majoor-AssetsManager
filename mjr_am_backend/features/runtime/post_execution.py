@@ -6,7 +6,12 @@ import os
 from pathlib import Path
 from typing import Any
 
-from ...adapters.comfy_core import PromptOutputFile, get_prompt_output_files, send_event
+from ...adapters.comfy_core import (
+    PromptOutputFile,
+    get_prompt_output_files,
+    get_workflow_id_for_prompt,
+    send_event,
+)
 from ...adapters.core_assets import fetch_by_job_id
 from ...config import get_runtime_output_root
 from ...shared import Result, get_logger
@@ -117,15 +122,21 @@ async def _assign_execution_context(
     db = getattr(index_service, "db", None)
     if db is None or not refs:
         return
+    # Looked up once per prompt — extract_workflow_id touches ComfyUI history.
+    try:
+        workflow_id = get_workflow_id_for_prompt(prompt_id)
+    except Exception:
+        workflow_id = None
     for path, ref in refs:
         try:
             await db.aexecute(
                 "UPDATE assets "
                 "SET job_id = ?, source_node_id = COALESCE(NULLIF(?, ''), source_node_id), "
                 "source_node_type = COALESCE(NULLIF(?, ''), source_node_type), "
+                "workflow_id = COALESCE(NULLIF(?, ''), workflow_id), "
                 "updated_at = CURRENT_TIMESTAMP "
                 "WHERE filepath = ?",
-                (prompt_id, ref.node_id, ref.node_type, str(path)),
+                (prompt_id, ref.node_id, ref.node_type, workflow_id or "", str(path)),
             )
         except Exception as exc:
             logger.debug("Failed to assign execution context to indexed output: %s", exc)
