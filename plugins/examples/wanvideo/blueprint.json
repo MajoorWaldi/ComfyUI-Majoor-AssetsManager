@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "name": "wanvideo_extractor",
+  "version": "1.0.0",
+  "author": "Majoor Assets Manager",
+  "description": "Extracts WanVideo custom node metadata (motion bucket, FPS, augmentation level) from PNG/WebP files.",
+  "license": "MIT",
+  "type": "metadata_extractor",
+  "entrypoint": {
+    "module": "wanvideo_extractor",
+    "class": "WanVideoExtractor"
+  },
+  "capabilities": {
+    "supported_extensions": [".png", ".webp"],
+    "priority": 100
+  },
+  "tags": ["wanvideo", "video", "image"]
+}

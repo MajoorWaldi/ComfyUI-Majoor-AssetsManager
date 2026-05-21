@@ -2,37 +2,47 @@
 
 This directory contains example metadata extractor plugins for the Majoor Assets Manager.
 
+Two plugin layouts are supported:
+
+1. **Blueprint format (recommended)** — a directory containing a declarative
+   `blueprint.yaml` (or `blueprint.json`) manifest plus the entrypoint module.
+2. **Flat module format (legacy)** — a single `*.py` file dropped into a plugin
+   directory. Still supported; new plugins should use the blueprint format.
+
+## Blueprint Layout
+
+```
+my_plugin/
+    blueprint.yaml          # or blueprint.json
+    my_extractor.py         # entrypoint module
+```
+
+Manifest fields (v1):
+
+| Field | Required | Notes |
+|-------|----------|-------|
+| `schema_version` | yes | Currently `1` |
+| `name` | yes | Lowercase slug `[a-z][a-z0-9_]+` |
+| `version` | yes | Semver, e.g. `1.2.0` |
+| `author` | yes | Free text |
+| `type` | yes | Only `metadata_extractor` for now |
+| `entrypoint.module` | yes | Filename without `.py`, inside the package |
+| `entrypoint.class` | yes | Class implementing `MetadataExtractorPlugin` |
+| `description`, `license`, `homepage`, `min_majoor_version`, `tags`, `capabilities` | no | Informational |
+
+See `examples/wanvideo/blueprint.json` and `examples/rgthree/blueprint.yaml`
+for working manifests.
+
 ## Available Examples
 
-### 1. WanVideo Extractor (`wanvideo_extractor.py`)
-Extracts WanVideo custom node metadata from PNG/WebP files.
+### 1. WanVideo Extractor (`examples/wanvideo/`)
+Extracts WanVideo custom node metadata from PNG/WebP files. Priority `100`.
 
-**Features:**
-- Reads WanVideo-specific PNG chunks
-- Extracts motion bucket ID, FPS, augmentation level
-- Falls back to standard ComfyUI metadata
+### 2. Custom Node Template (`examples/custom_node_template/`)
+Documented template for creating custom extractors. Priority `50`.
 
-**Priority:** 100 (high - runs before generic extractors)
-
-### 2. rgthree Extractor (`rgthree_extractor.py`)
-Extracts rgthree custom node metadata.
-
-**Features:**
-- Reads rgthree-specific workflow data
-- Extracts comparison image references
-- Parses context mappings
-
-**Priority:** 50 (medium)
-
-### 3. Custom Node Extractor Template (`custom_node_extractor.py`)
-Template for creating custom extractors for any custom node.
-
-**Features:**
-- Well-documented template
-- Shows all available hooks
-- Includes error handling patterns
-
-**Priority:** Configurable
+### 3. rgthree Skeleton (`examples/rgthree/`)
+Minimal blueprint demonstrating the YAML manifest variant. Priority `50`.
 
 ## Installation
 
