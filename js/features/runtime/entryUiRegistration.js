@@ -17,12 +17,12 @@
 
 import { runStartupWarmup } from "../../app/bootstrap.js";
 import {
-    activateSidebarTabCompat,
-    registerBottomPanelTabCompat,
-    registerCommandCompat,
-    registerKeybindingCompat,
-    registerSidebarTabCompat,
-} from "../../app/comfyApiBridge.js";
+    activateSidebarTabForApp,
+    registerBottomPanelTabForApp,
+    registerCommandForApp,
+    registerKeybindingForApp,
+    registerSidebarTabForApp,
+} from "../../app/hostAdapter.js";
 import { EVENTS } from "../../app/events.js";
 import { openMajoorSettings } from "../../app/openMajoorSettings.js";
 import { comfyToast } from "../../app/toast.js";
@@ -91,7 +91,7 @@ export { teardownTopBarMfvButton };
 // ── sidebar helpers ───────────────────────────────────────────────────────────
 
 export function openAssetsManagerPanel(runtimeApp, sidebarTabId) {
-    const opened = activateSidebarTabCompat(runtimeApp, sidebarTabId);
+    const opened = activateSidebarTabForApp(runtimeApp, sidebarTabId);
     if (!opened) {
         try {
             window.dispatchEvent(new Event(EVENTS.OPEN_ASSETS_MANAGER));
@@ -281,13 +281,13 @@ export function buildAboutPageBadges() {
 /** Imperatively registers commands — used as a fallback for older ComfyUI. */
 export function registerNativeCommands(runtimeApp, options) {
     for (const command of buildNativeCommands(runtimeApp, options)) {
-        registerCommandCompat(runtimeApp, command);
+        registerCommandForApp(runtimeApp, command);
     }
 }
 
 export function registerNativeKeybindings(runtimeApp) {
     for (const keybinding of buildNativeKeybindings()) {
-        registerKeybindingCompat(runtimeApp, keybinding);
+        registerKeybindingForApp(runtimeApp, keybinding);
     }
 }
 
@@ -303,7 +303,7 @@ export function registerNativeKeybindings(runtimeApp) {
  * Full teardown only happens when the extension is unregistered.
  */
 export function registerAssetsSidebar(runtimeApp, { sidebarTabId }) {
-    return registerSidebarTabCompat(runtimeApp, {
+    return registerSidebarTabForApp(runtimeApp, {
         id: sidebarTabId,
         icon: "pi pi-folder",
         title: t("manager.title"),
@@ -415,7 +415,7 @@ export function buildBottomPanelTabs() {
 }
 
 export function registerGeneratedBottomPanel(runtimeApp) {
-    return registerBottomPanelTabCompat(runtimeApp, getGeneratedFeedBottomPanelTab());
+    return registerBottomPanelTabForApp(runtimeApp, getGeneratedFeedBottomPanelTab());
 }
 
 export function teardownGeneratedFeed() {

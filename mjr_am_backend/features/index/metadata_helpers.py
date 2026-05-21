@@ -958,7 +958,7 @@ class MetadataHelpers:
         same_quality = _metadata_quality_is_equal_sql()
         replace_raw_on_equal = _metadata_raw_should_replace_on_equal_quality_sql()
 
-        return await db.aexecute(
+        result = await db.aexecute(
             f"""
             INSERT INTO asset_metadata
             (
@@ -1053,6 +1053,23 @@ class MetadataHelpers:
                 asset_id,
             ),
         )
+        if result.ok:
+            try:
+                from ...adapters.core_assets import sync_user_metadata_by_asset_id
+
+                await sync_user_metadata_by_asset_id(
+                    db,
+                    asset_id,
+                    metadata={
+                        "metadata_quality": metadata_quality,
+                        "workflow_type": workflow_type,
+                        "generation_time_ms": generation_time_ms,
+                        "positive_prompt": positive_prompt,
+                    },
+                )
+            except Exception:
+                pass
+        return result
 
     @staticmethod
     async def refresh_metadata_if_needed(

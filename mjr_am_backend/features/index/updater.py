@@ -4,6 +4,7 @@ Asset updater - handles rating and tag updates.
 import json
 from typing import Any
 
+from ...adapters.core_assets import sync_user_metadata_by_asset_id
 from ...adapters.db.sqlite import Sqlite
 from ...shared import Result
 
@@ -67,6 +68,7 @@ class AssetUpdater:
         if not result.ok:
             return Result.Err("UPDATE_FAILED", result.error or "Failed to update rating")
 
+        await sync_user_metadata_by_asset_id(self.db, asset_id, rating=rating)
         return Result.Ok({"asset_id": asset_id, "rating": rating})
 
     async def update_asset_tags(self, asset_id: int, tags: list[str]) -> Result[dict[str, Any]]:
@@ -95,6 +97,7 @@ class AssetUpdater:
         if not result.ok:
             return Result.Err("UPDATE_FAILED", result.error or "Failed to update tags")
 
+        await sync_user_metadata_by_asset_id(self.db, asset_id, tags=sanitized)
         return Result.Ok({"asset_id": asset_id, "tags": sanitized})
 
     def _sanitize_tags(self, tags: list[str]) -> list[str]:

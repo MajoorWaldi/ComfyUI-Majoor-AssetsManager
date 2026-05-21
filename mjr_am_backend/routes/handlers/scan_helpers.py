@@ -394,15 +394,9 @@ def _resolve_scan_root(directory: str) -> Result[Path]:
 
 def _resolve_input_directory() -> Path:
     try:
-        try:
-            import folder_paths  # type: ignore
-        except Exception:
-            class _FolderPathsStub:
-                @staticmethod
-                def get_input_directory() -> str:
-                    return str((Path(__file__).resolve().parents[3] / "input").resolve())
-            folder_paths = _FolderPathsStub()  # type: ignore
-        return Path(folder_paths.get_input_directory()).resolve()
+        from mjr_am_backend.adapters.comfy_core import get_input_directory
+
+        return Path(str(get_input_directory() or "")).resolve()
     except Exception:
         return (Path(__file__).parent.parent.parent.parent / "input").resolve()
 

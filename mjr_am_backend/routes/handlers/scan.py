@@ -4,20 +4,11 @@ Directory scanning and file indexing endpoints.
 import asyncio
 import time
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 from aiohttp import web
-
-try:
-    import folder_paths  # type: ignore
-except Exception:
-    class _FolderPathsStub:
-        @staticmethod
-        def get_input_directory() -> str:
-            return str((Path(__file__).resolve().parents[3] / "input").resolve())
-
-    folder_paths = _FolderPathsStub()  # type: ignore
-
+from mjr_am_backend.adapters.comfy_core import get_input_directory as _get_comfy_input_directory
 from mjr_am_backend.adapters.db.schema import purge_orphan_vec_embeddings, rebuild_fts
 from mjr_am_backend.config import (
     COLLECTIONS_DIR_PATH,
@@ -92,6 +83,11 @@ from .scan_watcher import (
 )
 
 logger = get_logger(__name__)
+folder_paths = SimpleNamespace(get_input_directory=_get_comfy_input_directory)
+
+
+def get_input_directory() -> str:
+    return str(folder_paths.get_input_directory())
 
 
 def _send_prompt_event(event: str, payload: Any) -> None:
@@ -337,7 +333,7 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
                 scan_source = "output"
                 custom_root_id = None
             elif scope in ("input", "inputs"):
-                directory = folder_paths.get_input_directory()
+                directory = get_input_directory()
                 scan_source = "input"
                 custom_root_id = None
             elif scope == "custom":
@@ -351,7 +347,7 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
                 all_scope_result = await run_all_scope_scan(
                     services=svc,
                     output_root=output_root,
-                    input_root=folder_paths.get_input_directory(),
+                    input_root=get_input_directory(),
                     recursive=payload.recursive,
                     incremental=payload.incremental,
                     fast=payload.fast,
@@ -395,7 +391,7 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
                 base_root_res = _resolve_scan_root(str(output_root))
                 allowed = base_root_res.ok and _is_within_root(normalized_dir, base_root_res.data)
             elif scan_source == "input":
-                base_root_res = _resolve_scan_root(str(folder_paths.get_input_directory()))
+                base_root_res = _resolve_scan_root(str(get_input_directory()))
                 allowed = base_root_res.ok and _is_within_root(normalized_dir, base_root_res.data)
             elif scan_source == "custom":
                 root_result = resolve_custom_root(str(custom_root_id or scan_root_id or ""))
@@ -407,7 +403,7 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
             else:
                 # No explicit scope: allow only within configured output/input or registered custom roots.
                 out_root = _resolve_scan_root(str(output_root))
-                in_root = _resolve_scan_root(str(folder_paths.get_input_directory()))
+                in_root = _resolve_scan_root(str(get_input_directory()))
                 allowed = (
                     (out_root.ok and _is_within_root(normalized_dir, out_root.data))
                     or (in_root.ok and _is_within_root(normalized_dir, in_root.data))
@@ -581,7 +577,7 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
                     except Exception:
                         out_root = None
                     try:
-                        in_root = Path(folder_paths.get_input_directory()).resolve(strict=True)
+                        in_root = Path(get_input_directory()).resolve(strict=True)
                     except Exception:
                         in_root = None
 
@@ -643,7 +639,7 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
                 continue
 
             if file_type == "input":
-                base_root = folder_paths.get_input_directory()
+                base_root = get_input_directory()
             elif file_type == "custom":
                 root_result = resolve_custom_root(str(root_id or ""))
                 if not root_result.ok:
@@ -1332,7 +1328,7 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
             scope=scope,
             custom_root_id=custom_root_id,
             output_root=output_root,
-            input_root=folder_paths.get_input_directory(),
+            input_root=get_input_directory(),
             resolve_custom_root=resolve_custom_root,
         )
         if not target_roots_res.ok:

@@ -5,21 +5,14 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Callable
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
+from ...adapters.comfy_core import get_input_directory as get_comfy_input_directory
 from ...shared import Result
 from ..index.scan_batch_utils import normalize_filepath_str
 
-try:
-    import folder_paths  # type: ignore
-except Exception:  # pragma: no cover
-
-    class _FolderPathsStub:
-        @staticmethod
-        def get_input_directory() -> str:
-            return str((Path(__file__).resolve().parents[3] / "input").resolve())
-
-    folder_paths = _FolderPathsStub()  # type: ignore
+folder_paths = SimpleNamespace(get_input_directory=get_comfy_input_directory)
 
 
 async def load_asset_filepath_by_id(services: dict[str, Any], asset_id: int) -> Result[str]:
@@ -325,7 +318,7 @@ async def resolve_or_create_asset_id(
     normalize_path: Callable[[str], Path | None],
     is_within_root: Callable[[Path, Path], bool],
     get_runtime_output_root_fn: Callable[[], str],
-    get_input_directory: Callable[[], str] | None = None,
+    get_input_directory: Callable[[], str | None] | None = None,
     list_custom_roots_fn: Callable[[], Result[Any]],
     resolve_custom_root_fn: Callable[[str], Result[Any]],
     safe_error_message: Callable[[Exception, str], str],
@@ -348,10 +341,10 @@ async def resolve_or_create_asset_id(
     source = _normalize_asset_source(file_type)
 
     if get_input_directory is None:
-        get_input_directory = folder_paths.get_input_directory
+        get_input_directory = get_comfy_input_directory
 
     out_root = Path(get_runtime_output_root_fn()).resolve(strict=False)
-    in_root = Path(get_input_directory()).resolve(strict=False)
+    in_root = Path(str(get_input_directory() or "")).resolve(strict=False)
     source, base_dir, resolved_root_id = _resolve_asset_root(
         resolved,
         source=source,
@@ -391,7 +384,7 @@ async def infer_source_and_root_id_from_path(
     *,
     is_within_root: Callable[[Path, Path], bool],
     get_runtime_output_root_fn: Callable[[], str],
-    get_input_directory: Callable[[], str] | None = None,
+    get_input_directory: Callable[[], str | None] | None = None,
     list_custom_roots_fn: Callable[[], Result[Any]],
     logger: Any,
 ) -> tuple[str, str | None]:
@@ -400,9 +393,9 @@ async def infer_source_and_root_id_from_path(
     except Exception:
         out_root = Path(get_runtime_output_root_fn()).resolve(strict=False)
     if get_input_directory is None:
-        get_input_directory = folder_paths.get_input_directory
+        get_input_directory = get_comfy_input_directory
     try:
-        in_root = Path(get_input_directory()).resolve(strict=False)
+        in_root = Path(str(get_input_directory() or "")).resolve(strict=False)
     except Exception:
         in_root = (Path(__file__).resolve().parents[3] / "input").resolve(strict=False)
 

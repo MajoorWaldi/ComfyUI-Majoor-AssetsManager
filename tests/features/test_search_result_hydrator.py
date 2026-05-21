@@ -60,11 +60,17 @@ def test_collect_hydration_paths_skips_folder_assets() -> None:
 
 
 def test_apply_hydration_rows_sets_id_rating_tags() -> None:
-    assets = [{"filepath": "/a/x.png", "kind": "image"}, {"filepath": "/a/folder", "kind": "folder"}]
+    assets: list[dict] = [
+        {"filepath": "/a/x.png", "kind": "image", "file_info": {}},
+        {"filepath": "/a/folder", "kind": "folder"},
+    ]
     rows = [
         {
             "id": "7",
             "filepath": "/a/x.png",
+            "job_id": "prompt-1",
+            "source_node_id": "7",
+            "source_node_type": "SaveImage",
             "rating": 5,
             "tags": '["tag1"]',
             "positive_prompt": "studio portrait",
@@ -77,6 +83,12 @@ def test_apply_hydration_rows_sets_id_rating_tags() -> None:
     assert assets[0]["tags"] == ["tag1"]
     assert assets[0]["positive_prompt"] == "studio portrait"
     assert assets[0]["generation_time_ms"] == 8421
+    assert assets[0]["job_id"] == "prompt-1"
+    assert assets[0]["source_node_id"] == "7"
+    assert assets[0]["source_node_type"] == "SaveImage"
+    assert assets[0]["file_info"]["job_id"] == "prompt-1"
+    assert assets[0]["file_info"]["source_node_id"] == "7"
+    assert assets[0]["file_info"]["source_node_type"] == "SaveImage"
     assert "id" not in assets[1]
 
 

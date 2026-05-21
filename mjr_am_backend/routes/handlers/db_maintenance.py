@@ -641,8 +641,9 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
                         except Exception:
                             pass
                         try:
-                            import folder_paths  # type: ignore
-                            input_path = str(Path(folder_paths.get_input_directory()).resolve())
+                            from mjr_am_backend.adapters.comfy_core import get_input_directory
+
+                            input_path = str(Path(str(get_input_directory() or "")).resolve())
                             _spawn_background_task(
                                 index_service.scan_directory(
                                     input_path,
@@ -789,8 +790,9 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
                 except Exception:
                     pass
                 try:
-                    import folder_paths  # type: ignore
-                    input_path = str(Path(folder_paths.get_input_directory()).resolve())
+                    from mjr_am_backend.adapters.comfy_core import get_input_directory
+
+                    input_path = str(Path(str(get_input_directory() or "")).resolve())
                     _spawn_background_task(
                         index_service.scan_directory(
                             input_path,
@@ -1379,8 +1381,9 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
                 except Exception:
                     pass
                 try:
-                    import folder_paths  # type: ignore
-                    input_path = str(Path(folder_paths.get_input_directory()).resolve())
+                    from mjr_am_backend.adapters.comfy_core import get_input_directory
+
+                    input_path = str(Path(str(get_input_directory() or "")).resolve())
                     _spawn_background_task(
                         index_service.scan_directory(
                             input_path,

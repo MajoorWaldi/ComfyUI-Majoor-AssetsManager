@@ -2,9 +2,11 @@
 Asset management endpoints: ratings, tags, service retry.
 """
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 from aiohttp import web
+from mjr_am_backend.adapters.comfy_core import get_input_directory as _get_comfy_input_directory
 from mjr_am_backend.config import TO_THREAD_TIMEOUT_S, get_runtime_output_root
 from mjr_am_backend.custom_roots import list_custom_roots, resolve_custom_root
 from mjr_am_backend.features.assets import (
@@ -46,9 +48,6 @@ from mjr_am_backend.features.assets.filename_validator import (
     validate_filename as _validate_filename,
 )
 from mjr_am_backend.features.assets.lookup_service import (
-    folder_paths,
-)
-from mjr_am_backend.features.assets.lookup_service import (
     infer_source_and_root_id_from_path as _infer_source_and_root_id,
 )
 from mjr_am_backend.features.assets.lookup_service import (
@@ -81,6 +80,11 @@ from ..core import (
 )
 
 logger = get_logger(__name__)
+folder_paths = SimpleNamespace(get_input_directory=_get_comfy_input_directory)
+
+
+def get_input_directory() -> str:
+    return str(folder_paths.get_input_directory())
 
 MAX_TAGS_PER_ASSET = 50
 MAX_TAG_LENGTH = 100
@@ -170,7 +174,7 @@ def _wired_resolve_or_create(**kwargs: Any) -> Any:
         normalize_path=_normalize_path,
         is_within_root=_is_within_root,
         get_runtime_output_root_fn=get_runtime_output_root,
-        get_input_directory=folder_paths.get_input_directory,
+        get_input_directory=get_input_directory,
         list_custom_roots_fn=list_custom_roots,
         resolve_custom_root_fn=resolve_custom_root,
         safe_error_message=_safe_error_message,
@@ -382,7 +386,7 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
             infer_source_and_root_id_from_path=_infer_source_and_root_id,
             is_within_root=_is_within_root,
             get_runtime_output_root=get_runtime_output_root,
-            get_input_directory=folder_paths.get_input_directory,
+            get_input_directory=get_input_directory,
             list_custom_roots=list_custom_roots,
             to_thread_timeout_s=TO_THREAD_TIMEOUT_S,
             safe_error_message=_safe_error_message,

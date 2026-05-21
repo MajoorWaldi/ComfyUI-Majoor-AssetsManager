@@ -2,8 +2,10 @@
 Metadata extraction endpoint.
 """
 import asyncio
+from types import SimpleNamespace
 
 from aiohttp import web
+from mjr_am_backend.adapters.comfy_core import get_input_directory as _get_comfy_input_directory
 from mjr_am_backend.config import TO_THREAD_TIMEOUT_S, get_runtime_output_root
 from mjr_am_backend.custom_roots import resolve_custom_root
 from mjr_am_backend.shared import Result, sanitize_error_message
@@ -18,21 +20,13 @@ from ..core import (
     _safe_rel_path,
 )
 
-try:
-    import folder_paths  # type: ignore
-except Exception:
-    from pathlib import Path
-
-    class _FolderPathsStub:
-        @staticmethod
-        def get_input_directory() -> str:
-            return str((Path(__file__).resolve().parents[3] / "input").resolve())
-
-    folder_paths = _FolderPathsStub()  # type: ignore
-
-
 _METADATA_RATE_LIMIT_MAX_REQUESTS = 10
 _METADATA_RATE_LIMIT_WINDOW_SECONDS = 60
+folder_paths = SimpleNamespace(get_input_directory=_get_comfy_input_directory)
+
+
+def get_input_directory() -> str:
+    return str(folder_paths.get_input_directory())
 
 
 def register_metadata_routes(routes: web.RouteTableDef) -> None:
@@ -91,7 +85,7 @@ def register_metadata_routes(routes: web.RouteTableDef) -> None:
 
             # Resolve base root
             if file_type == "input":
-                base_root = folder_paths.get_input_directory()
+                base_root = get_input_directory()
             elif file_type == "custom":
                 if not root_id:
                     return _json_response(Result.Err("INVALID_INPUT", "Missing custom root_id"))

@@ -31,6 +31,10 @@ function isAnimatedMedia(asset) {
     }
 }
 
+function readAssetField(asset, key) {
+    return asset?.[key] ?? asset?.file_info?.[key] ?? "";
+}
+
 const rows = computed(() => {
     const asset = props.asset || {};
     const fileData = [];
@@ -87,8 +91,17 @@ const rows = computed(() => {
     if (asset.id != null) {
         fileData.push({ label: "Asset ID", value: String(asset.id), tooltip: "Internal database asset identifier" });
     }
-    if (asset.job_id) {
-        fileData.push({ label: "Job ID", value: String(asset.job_id), tooltip: "Workflow execution job identifier (prompt_id)" });
+    const jobId = String(readAssetField(asset, "job_id") || "").trim();
+    if (jobId) {
+        fileData.push({ label: "Job ID", value: jobId, tooltip: "Workflow execution job identifier (prompt_id)" });
+    }
+    const sourceNodeId = String(readAssetField(asset, "source_node_id") || "").trim();
+    if (sourceNodeId) {
+        fileData.push({ label: "Source Node", value: sourceNodeId, tooltip: "ComfyUI node id that produced this file" });
+    }
+    const sourceNodeType = String(readAssetField(asset, "source_node_type") || "").trim();
+    if (sourceNodeType) {
+        fileData.push({ label: "Node Type", value: sourceNodeType, tooltip: "ComfyUI node class that produced this file" });
     }
     return fileData;
 });

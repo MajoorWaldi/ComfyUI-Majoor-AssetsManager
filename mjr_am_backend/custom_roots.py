@@ -374,9 +374,9 @@ def _resolve_builtin_roots() -> tuple[Path | None, Path | None]:
     except Exception:
         output_root = None
     try:
-        import folder_paths
+        from mjr_am_backend.adapters.comfy_core import get_input_directory
 
-        input_root = Path(folder_paths.get_input_directory()).resolve()
+        input_root = Path(str(get_input_directory() or "")).resolve()
     except Exception:
         input_root = None
     return output_root, input_root

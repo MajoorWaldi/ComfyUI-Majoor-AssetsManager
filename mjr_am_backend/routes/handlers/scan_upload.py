@@ -4,17 +4,7 @@ Upload handler for the /mjr/am/upload_input endpoint.
 from pathlib import Path
 
 from aiohttp import web
-
-try:
-    import folder_paths  # type: ignore
-except Exception:
-    class _FolderPathsStub:
-        @staticmethod
-        def get_input_directory() -> str:
-            return str((Path(__file__).resolve().parents[3] / "input").resolve())
-
-    folder_paths = _FolderPathsStub()  # type: ignore
-
+from mjr_am_backend.adapters.comfy_core import get_input_directory
 from mjr_am_backend.shared import Result, get_logger
 
 from ..core import (
@@ -77,7 +67,7 @@ def register_upload_routes(routes: web.RouteTableDef, *, deps: dict | None = Non
         _require_services_ = _d.get("_require_services", _require_services) if _d is not None else _require_services
         _write_multipart_file_atomic_ = _d.get("_write_multipart_file_atomic", _write_multipart_file_atomic) if _d is not None else _write_multipart_file_atomic
         _schedule_index_task_ = _d.get("_schedule_index_task", _schedule_index_task) if _d is not None else _schedule_index_task
-        _folder_paths_ = _d.get("folder_paths", folder_paths) if _d is not None else folder_paths
+        _get_input_directory_ = _d.get("get_input_directory", get_input_directory) if _d is not None else get_input_directory
         _audit_log_write_ = _d.get("audit_log_write", audit_log_write) if _d is not None else audit_log_write
 
         async def _audit_upload(result: Result, **details: object) -> None:
@@ -127,7 +117,7 @@ def register_upload_routes(routes: web.RouteTableDef, *, deps: dict | None = Non
 
             skip_index = _upload_skip_index(request)
 
-            input_dir = Path(_folder_paths_.get_input_directory()).resolve()
+            input_dir = Path(_get_input_directory_()).resolve()
 
             write_res = await _write_multipart_file_atomic_(input_dir, filename, field)
             if not write_res.ok:

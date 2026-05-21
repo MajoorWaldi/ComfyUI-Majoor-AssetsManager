@@ -121,7 +121,12 @@ function hasFileInfoData(asset) {
             timestamp ||
             (target.size && target.size > 0) ||
             target.id != null ||
-            target.job_id,
+            target.job_id ||
+            target.file_info?.job_id ||
+            target.source_node_id ||
+            target.file_info?.source_node_id ||
+            target.source_node_type ||
+            target.file_info?.source_node_type,
     );
 }
 

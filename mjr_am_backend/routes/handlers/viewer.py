@@ -12,6 +12,7 @@ from pathlib import Path
 from urllib.parse import unquote
 
 from aiohttp import web
+from mjr_am_backend.adapters.comfy_core import get_input_directory
 from mjr_am_backend.config import get_runtime_output_root
 from mjr_am_backend.custom_roots import list_custom_roots, resolve_custom_root
 from mjr_am_backend.features.viewer.info import build_viewer_media_info
@@ -59,18 +60,6 @@ _ALLOWED_VIEWER_RESOURCE_EXTS = {
     ".spz",
 }
 
-try:
-    import folder_paths  # type: ignore
-except Exception:
-
-    class _FolderPathsStub:
-        @staticmethod
-        def get_input_directory() -> str:
-            return str((Path(__file__).resolve().parents[3] / "input").resolve())
-
-    folder_paths = _FolderPathsStub()  # type: ignore
-
-
 def _runtime_output_root() -> Path | None:
     try:
         return Path(get_runtime_output_root()).resolve(strict=False)
@@ -80,7 +69,7 @@ def _runtime_output_root() -> Path | None:
 
 def _input_root() -> Path | None:
     try:
-        return Path(folder_paths.get_input_directory()).resolve(strict=False)
+        return Path(str(get_input_directory() or "")).resolve(strict=False)
     except Exception:
         return None
 
@@ -322,7 +311,7 @@ def _resolve_base_root(root_id: str, asset_type: str) -> tuple[Path | None, Resu
 
     if asset_type == "input":
         try:
-            return Path(folder_paths.get_input_directory()).resolve(strict=False), None
+            return Path(str(get_input_directory() or "")).resolve(strict=False), None
         except Exception:
             return None, Result.Err("VIEW_FAILED", "Input directory is unavailable")
 

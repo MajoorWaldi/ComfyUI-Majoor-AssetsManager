@@ -1,21 +1,11 @@
 """
 Search and list endpoints.
 """
-from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 from aiohttp import web
-
-try:
-    import folder_paths  # type: ignore
-except Exception:
-    class _FolderPathsStub:
-        @staticmethod
-        def get_input_directory() -> str:
-            return str((Path(__file__).resolve().parents[3] / "input").resolve())
-
-    folder_paths = _FolderPathsStub()  # type: ignore
-
+from mjr_am_backend.adapters.comfy_core import get_input_directory as _get_comfy_input_directory
 from mjr_am_backend.config import TO_THREAD_TIMEOUT_S
 from mjr_am_backend.custom_roots import resolve_custom_root
 from mjr_am_backend.features.index.metadata_helpers import MetadataHelpers
@@ -64,6 +54,11 @@ AUTOCOMPLETE_RATE_LIMIT_MAX_REQUESTS = 40
 AUTOCOMPLETE_RATE_LIMIT_WINDOW_SECONDS = 60
 
 logger = get_logger(__name__)
+folder_paths = SimpleNamespace(get_input_directory=_get_comfy_input_directory)
+
+
+def get_input_directory() -> str:
+    return str(folder_paths.get_input_directory())
 
 
 def _safe_error_message_for_base_exception(exc: BaseException, fallback: str) -> str:
@@ -190,7 +185,7 @@ async def list_assets(request: web.Request) -> web.Response:
         normalize_sort_key=_normalize_sort_key,
         require_services=_require_services,
         touch_enrichment_pause=_touch_enrichment_pause,
-        get_input_directory=folder_paths.get_input_directory,
+        get_input_directory=get_input_directory,
         kickoff_background_scan=_kickoff_background_scan,
         list_filesystem_assets=_list_filesystem_assets,
         dedupe_result_assets_payload=_dedupe_result_assets_payload,

@@ -179,6 +179,14 @@ export function registerSidebarTab(tabDef) {
     }
 }
 
+export function registerSidebarTabForApp(app, tabDef) {
+    try {
+        return registerSidebarTabCompat(app || _app || getComfyApp(), tabDef);
+    } catch {
+        return false;
+    }
+}
+
 /**
  * Register a bottom panel tab.
  *
@@ -193,6 +201,14 @@ export function registerBottomPanelTab(tabDef) {
     }
 }
 
+export function registerBottomPanelTabForApp(app, tabDef) {
+    try {
+        return registerBottomPanelTabCompat(app || _app || getComfyApp(), tabDef);
+    } catch {
+        return false;
+    }
+}
+
 /**
  * Programmatically activate a sidebar tab.
  *
@@ -202,6 +218,14 @@ export function registerBottomPanelTab(tabDef) {
 export function activateSidebarTab(tabId) {
     try {
         return activateSidebarTabCompat(_app || getComfyApp(), tabId);
+    } catch {
+        return false;
+    }
+}
+
+export function activateSidebarTabForApp(app, tabId) {
+    try {
+        return activateSidebarTabCompat(app || _app || getComfyApp(), tabId);
     } catch {
         return false;
     }
@@ -223,6 +247,14 @@ export function registerCommand(commandDef) {
     }
 }
 
+export function registerCommandForApp(app, commandDef) {
+    try {
+        return registerCommandCompat(app || _app || getComfyApp(), commandDef);
+    } catch {
+        return false;
+    }
+}
+
 /**
  * Register a keybinding.
  *
@@ -232,6 +264,14 @@ export function registerCommand(commandDef) {
 export function registerKeybinding(keybindingDef) {
     try {
         return registerKeybindingCompat(_app || getComfyApp(), keybindingDef);
+    } catch {
+        return false;
+    }
+}
+
+export function registerKeybindingForApp(app, keybindingDef) {
+    try {
+        return registerKeybindingCompat(app || _app || getComfyApp(), keybindingDef);
     } catch {
         return false;
     }
@@ -311,10 +351,15 @@ export const hostAdapter = {
     getSetting,
     getHostSettingsApi,
     registerSidebarTab,
+    registerSidebarTabForApp,
     registerBottomPanelTab,
+    registerBottomPanelTabForApp,
     activateSidebarTab,
+    activateSidebarTabForApp,
     registerCommand,
+    registerCommandForApp,
     registerKeybinding,
+    registerKeybindingForApp,
     getHostExtensionManager,
     getRawHostApp,
     getRawHostApi,

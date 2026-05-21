@@ -21,6 +21,7 @@ from pathlib import Path
 from typing import Any
 
 from aiohttp import web
+from mjr_am_backend.adapters.comfy_core import get_input_directory
 from mjr_am_backend.config import OUTPUT_ROOT_PATH
 from mjr_am_backend.custom_roots import resolve_custom_root
 from mjr_am_backend.features.assets.download_service import (
@@ -38,11 +39,6 @@ from mjr_am_backend.routes.core.security import (
 )
 from mjr_am_backend.routes.core.services import _require_services
 from mjr_am_backend.shared import Result, get_logger, sanitize_error_message
-
-try:
-    import folder_paths  # type: ignore
-except Exception:
-    folder_paths = None  # type: ignore
 
 logger = get_logger(__name__)
 
@@ -365,9 +361,7 @@ def _resolve_base_dir(item: dict[str, Any], typ: str) -> Path | None:
 
 def _resolve_input_base_dir() -> Path | None:
     try:
-        if folder_paths is None:
-            return None
-        return Path(str(folder_paths.get_input_directory())).resolve(strict=True)
+        return Path(str(get_input_directory())).resolve(strict=True)
     except Exception:
         return None
 

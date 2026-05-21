@@ -10,17 +10,7 @@ from pathlib import Path
 
 from aiohttp import web
 from mjr_am_backend.adapters.comfy_core import get_capabilities as get_comfy_core_capabilities
-
-try:
-    import folder_paths  # type: ignore
-except Exception:
-    class _FolderPathsStub:
-        @staticmethod
-        def get_input_directory() -> str:
-            return str((Path(__file__).resolve().parents[3] / "input").resolve())
-
-    folder_paths = _FolderPathsStub()  # type: ignore
-
+from mjr_am_backend.adapters.comfy_core import get_input_directory
 from mjr_am_backend.config import (
     EXECUTION_IDLE_GRACE_SECONDS,
     MEDIA_PROBE_BACKEND,
@@ -494,11 +484,11 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
         if scope == "output":
             roots = [out_root]
         elif scope == "input":
-            roots = [str(Path(folder_paths.get_input_directory()).resolve(strict=False))]
+            roots = [str(Path(get_input_directory()).resolve(strict=False))]
         elif scope == "all":
             roots = [
                 out_root,
-                str(Path(folder_paths.get_input_directory()).resolve(strict=False)),
+                str(Path(get_input_directory()).resolve(strict=False)),
             ]
         elif scope == "custom":
             if not _is_valid_custom_root_id(custom_root_id):
@@ -1725,7 +1715,7 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
 
         roots = {
             "output_directory": await _runtime_output_root(svc),
-            "input_directory": str(Path(folder_paths.get_input_directory()).resolve()),
+            "input_directory": str(Path(get_input_directory()).resolve()),
         }
 
         custom = list_custom_roots()

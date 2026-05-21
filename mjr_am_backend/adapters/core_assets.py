@@ -176,6 +176,88 @@ async def fetch_by_job_id(job_id: str) -> list[CoreAssetInfo]:
     return []
 
 
+def _clean_sync_tags(tags: list[str] | tuple[str, ...] | None) -> list[str]:
+    out: list[str] = []
+    seen: set[str] = set()
+    for tag in tags or []:
+        text = str(tag or "").strip()
+        if not text:
+            continue
+        key = text.casefold()
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(text)
+    return out
+
+
+async def _asset_filepath_by_id(db: Any, asset_id: int) -> str:
+    try:
+        res = await db.aquery("SELECT filepath FROM assets WHERE id = ?", (int(asset_id),))
+        if res.ok and res.data:
+            return str((res.data[0] or {}).get("filepath") or "").strip()
+    except Exception as exc:
+        logger.debug("Core asset sync filepath lookup failed for asset %s: %s", asset_id, exc)
+    return ""
+
+
+async def sync_user_metadata_by_asset_id(
+    db: Any,
+    asset_id: int,
+    *,
+    rating: int | None = None,
+    tags: list[str] | tuple[str, ...] | None = None,
+    metadata: dict[str, Any] | None = None,
+) -> bool:
+    """Best-effort write-through of Majoor metadata into Comfy core assets."""
+    if not is_available():
+        return False
+    filepath = await _asset_filepath_by_id(db, asset_id)
+    if not filepath:
+        return False
+    info = await fetch_by_path(filepath)
+    if not info:
+        return False
+    payload: dict[str, Any] = {}
+    if rating is not None:
+        payload["rating"] = max(0, min(5, int(rating or 0)))
+    if tags is not None:
+        payload["tags"] = _clean_sync_tags(tags)
+    if metadata:
+        payload["metadata"] = dict(metadata)
+    if not payload:
+        return False
+
+    try:
+        from app.assets import services as asset_services  # type: ignore
+    except Exception as exc:
+        logger.debug("Core asset services unavailable for metadata sync: %s", exc)
+        return False
+
+    for name in (
+        "update_asset_user_metadata",
+        "update_asset_metadata",
+        "update_asset",
+        "set_asset_metadata",
+    ):
+        fn = getattr(asset_services, name, None)
+        if not callable(fn):
+            continue
+        for args, kwargs in (
+            ((info.reference_id,), payload),
+            ((), {"asset_id": info.reference_id, **payload}),
+            ((), {"reference_id": info.reference_id, **payload}),
+        ):
+            try:
+                result = fn(*args, **kwargs)
+                if hasattr(result, "__await__"):
+                    await result
+                return True
+            except Exception as exc:
+                logger.debug("Core asset metadata sync via %s failed: %s", name, exc)
+    return False
+
+
 def _paths_equal(a: str, b: str) -> bool:
     """Case-insensitive, separator-normalised path comparison."""
     import os

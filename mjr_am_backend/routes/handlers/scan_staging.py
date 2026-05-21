@@ -9,17 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from aiohttp import web
-
-try:
-    import folder_paths  # type: ignore
-except Exception:
-    class _FolderPathsStub:
-        @staticmethod
-        def get_input_directory() -> str:
-            return str((Path(__file__).resolve().parents[3] / "input").resolve())
-
-    folder_paths = _FolderPathsStub()  # type: ignore
-
+from mjr_am_backend.adapters.comfy_core import get_input_directory
 from mjr_am_backend.config import TO_THREAD_TIMEOUT_S
 from mjr_am_backend.custom_roots import resolve_custom_root
 from mjr_am_backend.shared import Result, get_logger, sanitize_error_message
@@ -114,7 +104,7 @@ def register_staging_routes(routes: web.RouteTableDef, *, deps: dict | None = No
         _runtime_output_root_ = _d.get("_runtime_output_root", _runtime_output_root) if _d is not None else _runtime_output_root
         _resolve_stage_destination_ = _d.get("_resolve_stage_destination", _resolve_stage_destination) if _d is not None else _resolve_stage_destination
         _resolve_custom_root_ = _d.get("resolve_custom_root", resolve_custom_root) if _d is not None else resolve_custom_root
-        _folder_paths_ = _d.get("folder_paths", folder_paths) if _d is not None else folder_paths
+        _get_input_directory_ = _d.get("get_input_directory", get_input_directory) if _d is not None else get_input_directory
         _is_path_allowed_ = _d.get("_is_path_allowed", _is_path_allowed) if _d is not None else _is_path_allowed
         _schedule_index_task_ = _d.get("_schedule_index_task", _schedule_index_task) if _d is not None else _schedule_index_task
         _audit_log_write_ = _d.get("audit_log_write", audit_log_write) if _d is not None else audit_log_write
@@ -165,7 +155,7 @@ def register_staging_routes(routes: web.RouteTableDef, *, deps: dict | None = No
             await _audit_stage(result, requested_files=0, purpose=purpose, index=bool(index_staged))
             return _json_response(result)
 
-        input_root = Path(_folder_paths_.get_input_directory()).resolve()
+        input_root = Path(_get_input_directory_()).resolve()
         output_root = await _runtime_output_root_(svc)
         staged = []
         staged_paths = []
@@ -219,7 +209,7 @@ def register_staging_routes(routes: web.RouteTableDef, *, deps: dict | None = No
                 continue
 
             if file_type == "input":
-                base_root = _folder_paths_.get_input_directory()
+                base_root = _get_input_directory_()
             elif file_type == "custom":
                 root_result = _resolve_custom_root_(str(root_id or ""))
                 if not root_result.ok:
