@@ -17,7 +17,7 @@ import {
     renameAsset,
     updateAssetRating,
 } from "../../api/client.js";
-import { ENDPOINTS, buildDownloadURL } from "../../api/endpoints.js";
+import { ENDPOINTS, buildBatchZipDownloadURL, buildDownloadURL } from "../../api/endpoints.js";
 import { ASSET_RATING_CHANGED_EVENT } from "../../app/events.js";
 import { t } from "../../app/i18n.js";
 import { comfyConfirm, comfyPrompt } from "../../app/dialogs.js";
@@ -32,7 +32,7 @@ import { confirmDeletion } from "../../utils/deleteGuard.js";
 import { showAddToCollectionMenu } from "../collections/contextmenu/addToCollectionMenu.js";
 import { removeAssetsFromGrid } from "../grid/gridApi.js";
 import { getRawHostApp } from "../../app/hostAdapter.js";
-import { pickRootId } from "../../utils/ids.js";
+import { createSecureToken, pickRootId } from "../../utils/ids.js";
 import { getShortcutDisplay } from "../grid/GridKeyboard.js";
 import { floatingViewerManager } from "../viewer/floatingViewerManager.js";
 import {
@@ -105,6 +105,17 @@ const getSelectedAssets = (gridContainer) => {
     const assets = [];
     if (!gridContainer) return assets;
     try {
+        const selected =
+            typeof gridContainer?._mjrGetSelectedAssets === "function"
+                ? gridContainer._mjrGetSelectedAssets()
+                : [];
+        if (Array.isArray(selected) && selected.length) {
+            return selected.filter((asset) => asset && typeof asset === "object");
+        }
+    } catch (e) {
+        console.debug?.(e);
+    }
+    try {
         const raw = gridContainer.dataset?.mjrSelectedAssetIds;
         if (raw) {
             const ids = JSON.parse(raw);
@@ -157,6 +168,63 @@ const buildDndPayloadFromAsset = (asset) => {
         kind: String(asset.kind || "").toLowerCase(),
     };
 };
+
+const buildBatchZipItemFromAsset = (asset) => {
+    if (!asset || typeof asset !== "object") return null;
+    const filename = String(asset.filename || asset.name || "").trim();
+    if (!filename) return null;
+    return {
+        filename,
+        subfolder: asset.subfolder || "",
+        type: String(asset.type || asset.source || "output").toLowerCase(),
+        root_id: pickRootId(asset) || undefined,
+    };
+};
+
+function triggerDownload(url, filename = "") {
+    if (!url) return;
+    const link = document.createElement("a");
+    link.href = url;
+    if (filename) link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+async function downloadSelectedAsZip(assets) {
+    const list = Array.isArray(assets) ? assets.filter((entry) => !_isFolderAsset(entry)) : [];
+    const items = list.map(buildBatchZipItemFromAsset).filter(Boolean);
+    if (items.length < 2) {
+        comfyToast("Select at least two files to download a ZIP.", "warning", 2600);
+        return;
+    }
+
+    let token = "";
+    try {
+        token = createSecureToken("mjr_", 24);
+    } catch (error) {
+        reportError(error, "[GridContextMenu] Batch ZIP token", {
+            showToast: APP_CONFIG.DEBUG_VERBOSE_ERRORS,
+        });
+        comfyToast("Could not create a secure ZIP token.", "error");
+        return;
+    }
+
+    comfyToast(`Preparing ZIP for ${items.length} files...`, "info", 1800);
+    const res = await post(ENDPOINTS.BATCH_ZIP_CREATE, {
+        token,
+        items,
+        strip_metadata: false,
+    });
+    if (!res?.ok) {
+        comfyToast(res?.error || "Failed to create ZIP.", "error");
+        return;
+    }
+
+    const filename = res?.data?.filename || `Majoor_Batch_${items.length}.zip`;
+    triggerDownload(buildBatchZipDownloadURL(token), filename);
+    comfyToast(`Downloading ${filename}...`, "info", 3000);
+}
 
 async function loadAssetsToCanvas(assets) {
     const list = Array.isArray(assets) ? assets.filter(Boolean) : [];
@@ -914,12 +982,7 @@ function _buildAssetItems({
                 if (!asset?.filepath) return;
                 const url = buildDownloadURL(asset.filepath);
                 const filename = asset.filename || "download";
-                const link = document.createElement("a");
-                link.href = url;
-                link.download = filename;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
+                triggerDownload(url, filename);
                 comfyToast(
                     t("toast.downloadingFile", "Downloading {filename}...", { filename }),
                     "info",
@@ -927,6 +990,15 @@ function _buildAssetItems({
                 );
             },
             { disabled: !asset?.filepath },
+        ),
+        createItem(
+            `Download selected as ZIP (${selectedCount})`,
+            "pi pi-file-zip",
+            null,
+            async () => {
+                await downloadSelectedAsZip(mediaSelectedAssets);
+            },
+            { disabled: selectedCount < 2 },
         ),
         createItem(
             "Add to collection...",

@@ -20,18 +20,20 @@ export function requestViewerOpen({ assets = [], asset = null, index = 0, mode =
     if (!list.length) return false;
     const safeIndex = Math.max(0, Math.min(Number(index) || 0, list.length - 1));
     const viewerMode = normalizeViewerMode(mode);
+    const detail = {
+        assets: list,
+        index: safeIndex,
+        mode: viewerMode,
+        handled: false,
+    };
 
     try {
         window.dispatchEvent(
             new CustomEvent(EVENTS.OPEN_VIEWER, {
-                detail: {
-                    assets: list,
-                    index: safeIndex,
-                    mode: viewerMode,
-                },
+                detail,
             }),
         );
-        return true;
+        if (detail.handled === true) return true;
     } catch (e) {
         console.debug?.(e);
     }

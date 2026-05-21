@@ -38,6 +38,7 @@ _DIRS_INITIALIZED = False
 _OUTPUT_DIR_OVERRIDE_FILE_PATH = Path(__file__).resolve().parents[1] / ".mjr_output_directory_override"
 _INDEX_DIR_OVERRIDE_ENV_NAMES = ("MJR_AM_INDEX_DIRECTORY", "MAJOOR_INDEX_DIRECTORY")
 _INDEX_DIR_OVERRIDE_FILE_PATH = Path(__file__).resolve().parents[1] / ".mjr_index_directory_override"
+_INDEX_DIR_LOGGED_SELECTIONS: set[tuple[str, str]] = set()
 
 
 def _env_raw(*names: str, default: str | None = None) -> str | None:
@@ -303,6 +304,15 @@ def _normalize_index_dir_candidate(raw: str, output_root: Path) -> Path:
     return candidate.resolve(strict=False)
 
 
+def _log_selected_index_dir(strategy: str, resolved: Path) -> None:
+    key = (strategy, str(resolved))
+    if key in _INDEX_DIR_LOGGED_SELECTIONS:
+        logger.debug("Selected index directory strategy=%s path=%s", strategy, resolved)
+        return
+    _INDEX_DIR_LOGGED_SELECTIONS.add(key)
+    logger.info("Selected index directory strategy=%s path=%s", strategy, resolved)
+
+
 def _resolve_index_dir() -> Path:
     raw = str(_env_raw(*_INDEX_DIR_OVERRIDE_ENV_NAMES, default="") or "").strip()
     if not raw:
@@ -310,12 +320,12 @@ def _resolve_index_dir() -> Path:
     if raw:
         try:
             resolved = _normalize_index_dir_candidate(raw, OUTPUT_ROOT_PATH)
-            logger.info("Selected index directory strategy=override path=%s", resolved)
+            _log_selected_index_dir("override", resolved)
             return resolved
         except Exception:
             logger.warning("Invalid index directory override: %s", raw)
     resolved = (OUTPUT_ROOT_PATH / "_mjr_index").resolve(strict=False)
-    logger.info("Selected index directory strategy=default path=%s", resolved)
+    _log_selected_index_dir("default", resolved)
     return resolved
 
 

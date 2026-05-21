@@ -351,6 +351,26 @@ describe("floatingViewerManager", () => {
         expect(viewer.isVisible).toBe(false);
     });
 
+    it("clears the node stream overlay when closing", async () => {
+        const { floatingViewerManager } =
+            await import("../features/viewer/floatingViewerManager.js");
+        floatingViewerManager.setNodeStreamActive(true);
+        floatingViewerManager.setNodeStreamSelection("55", "PreviewImage", "Sampler Preview");
+        await floatingViewerManager.feedNodeStream({ filename: "stream.png", type: "output" });
+
+        const viewer = state.getLastViewer();
+        expect(viewer._nodeStreamSelection).toEqual({
+            nodeId: "55",
+            classType: "PreviewImage",
+            title: "Sampler Preview",
+        });
+
+        floatingViewerManager.close();
+
+        expect(viewer.setNodeStreamSelection).toHaveBeenLastCalledWith(null);
+        expect(viewer._nodeStreamSelection).toBeNull();
+    });
+
     it("emits visibility and syncs control states when live stream auto-opens the viewer", async () => {
         const seen = [];
         window.addEventListener("mjr:mfv-visibility-changed", (event) => {

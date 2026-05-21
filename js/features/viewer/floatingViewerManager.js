@@ -593,7 +593,7 @@ export const floatingViewerManager = {
             }
         }
         _unbindSelectionListener();
-            _applyNodeStreamSelection(_instance);
+        _instance?.setNodeStreamSelection?.(null);
         _unbindNodeSelectionListener();
         _emitVisibilityChanged(false);
     },

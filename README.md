@@ -16,7 +16,9 @@
 [![Frontend Tests](https://img.shields.io/badge/Frontend%20Tests-Vitest-6e9f18)](https://vitest.dev/)
 [![Buy Me a White Monster Drink](https://img.shields.io/badge/Ko--fi-Buy_Me_a_White_Monster_Drink-ff5e5b?logo=ko-fi)](https://ko-fi.com/majoorwaldi)
 
-**Advanced asset browser for ComfyUI** — Search, filter, preview, organize, and manage generated files directly in the UI with real-time generation tracking.
+**A media library for ComfyUI outputs, with deep workflow inspection and reuse tools.**
+
+Majoor Assets Manager helps you **browse**, **inspect**, and **reuse** ComfyUI assets without leaving the ComfyUI UI. It is built for large output folders, metadata-heavy workflows, and day-to-day review of generated images, videos, audio, and 3D assets.
 
 ## Samples
 
@@ -24,75 +26,67 @@
 
 ![Majoor Assets Manager - Graph Map workflow inspection](ressources/majoor-graph-map-workflow-inspection.png)
 
-## Quick Start
+## Quick Start: 5 Things You Can Do
 
-- **Install** from [ComfyUI Manager](https://github.com/ltdrdata/ComfyUI-Manager) (recommended), then restart ComfyUI
-- Open the **Assets Manager** tab in the ComfyUI sidebar
-- Pick a scope: **Outputs** / **Inputs** / **Custom** / **Collections**
-- Use search and filters, right-click for actions, double-click to open Viewer
-- **NEW**: Try the **Majoor Floating Viewer (MFV)** for real-time generation comparison
+1. **Browse your outputs**: open the Assets Manager sidebar tab and choose Outputs, Inputs, Custom, or Collections.
+2. **Find assets fast**: search by filename, prompt, metadata, type, rating, workflow, date, size, or resolution.
+3. **Inspect generation details**: double-click an asset to view media, prompts, workflow metadata, and generation info.
+4. **Compare and review**: open the Majoor Floating Viewer for live generations, A/B compare, side-by-side review, pins, and Graph Map workflow inspection.
+5. **Reuse assets in ComfyUI**: drag assets to loader nodes or the canvas, use Load Asset, stage files to input, export clean files, or download selected files as a ZIP.
 
-Useful links:
-- 📖 User guide: `user_guide.html`
-- 📝 Changelog: [`CHANGELOG.md`](CHANGELOG.md)
-- 📚 Documentation index: [`docs/DOCUMENTATION_INDEX.md`](docs/DOCUMENTATION_INDEX.md)
-- 🔐 Privacy / Offline guide: [`docs/PRIVACY_OFFLINE.md`](docs/PRIVACY_OFFLINE.md)
-- 🔧 API reference: [`docs/API_REFERENCE.md`](docs/API_REFERENCE.md)
-- 📦 Dependency policy: [`docs/DEPENDENCY_POLICY.md`](docs/DEPENDENCY_POLICY.md)
-- 🏛️ ADR index: [`docs/adr/README.md`](docs/adr/README.md)
-- 🤖 **AI Features Guide**: [`docs/AI_FEATURES.md`](docs/AI_FEATURES.md)
+Useful first links:
+- User guide: [`user_guide.html`](user_guide.html)
+- Documentation index: [`docs/DOCUMENTATION_INDEX.md`](docs/DOCUMENTATION_INDEX.md)
+- MFV guide: [`docs/MFV_GUIDE.md`](docs/MFV_GUIDE.md)
+- Graph Map guide: [`docs/GRAPH_MAP.md`](docs/GRAPH_MAP.md)
+- Changelog: [`CHANGELOG.md`](CHANGELOG.md)
 
 ---
 
 ## Table of Contents
 
-- [Main Features](#main-features)
+- [Browse, Inspect, Reuse](#browse-inspect-reuse)
 - [Latest Release](#latest-release)
 - [Installation](#installation)
-- [ComfyUI Desktop Popup Workaround](#comfyui-desktop-popup-workaround)
 - [Basic Usage](#basic-usage)
 - [Majoor Floating Viewer (MFV)](#majoor-floating-viewer-mfv)
 - [Graph Map](#graph-map)
 - [Custom Nodes](#custom-nodes)
 - [Hotkeys & Shortcuts](#hotkeys--shortcuts)
 - [Advanced Features](#advanced-features)
-- [AI Features (How to Use)](#ai-features-how-to-use)
-- [Privacy And Offline Use](#privacy-and-offline-use)
-- [Debug: Reset Index / Delete DB](#debug-reset-index--delete-db)
-- [Backfill Warning (Important)](#backfill-warning-important)
-- [Configuration](#configuration)
 - [Troubleshooting](#troubleshooting)
 - [Development & Testing](#development--testing)
 - [Support](#support)
 
 ---
 
-## Main Features
+## Browse, Inspect, Reuse
 
-### Asset Management
-- **Fast Grid Browsing**: Virtual scrolling for large libraries (thousands of assets)
-- **Multi-Scope Support**: Browse Outputs, Inputs, Custom directories, and Collections
-- **Drag & Drop**: To ComfyUI canvas or OS (multi-select ZIP supported)
-- **File Operations**: Rename, delete, open folder, copy path, stage to input
+### Browse
 
-### Search & Organization
-- **Full-Text Search**: SQLite FTS5 with BM25 ranking across filenames and metadata
-- **Advanced Filtering**: By type, rating, workflow, date, file size, resolution
-- **Ratings System**: 0-5 stars with Windows Explorer sync support
-- **Tags**: Custom hierarchical tags with autocomplete
-- **Collections**: Save and reopen grouped selections across scopes
+Use Assets Manager as a fast library for ComfyUI media:
+- virtual grid browsing for large output folders
+- Outputs, Inputs, Custom roots, and Collections scopes
+- full-text search and structured filters
+- ratings, tags, collections, duplicate awareness, and generation stacks
+- right-click actions for rename, delete, open folder, copy path, download, and ZIP export
 
-### Viewer & Analysis
-- **Advanced Viewer**: Image/video preview with zoom, pan, and comparison modes
-- **Enhancement Tools**: Exposure (EV), gamma correction, channel isolation
-- **Analysis Tools**: False color, zebra patterns, histogram, waveform, vectorscope
-- **Visual Overlays**: Grid overlays, pixel probe, loupe magnification
-- **Workflow Minimap**: Visual representation of generation workflow
+### Inspect
 
-### Real-Time Features
-- **Live Generation Tracking**: Automatic indexing of new outputs
-- **Majoor Floating Viewer**: Real-time preview of generations with multi-pin references and node parameter editing
-- **Event-Driven Updates**: Instant grid updates via ComfyUI events
+Open assets when you need to understand how they were made:
+- image, video, audio, and 3D preview surfaces
+- prompts, workflow metadata, generation info, and timing details
+- Majoor Floating Viewer for live review, A/B comparison, pins, and streams
+- Graph Map for readable workflow navigation and node detail inspection
+
+### Reuse
+
+Move useful assets and workflow context back into ComfyUI:
+- drag assets to compatible loader nodes or the canvas
+- use **Load Asset** to create loader nodes from selected media
+- stage files into the ComfyUI input directory
+- import or inspect embedded workflows without losing the current review flow
+- export originals, clean metadata-stripped files, or selected files as a ZIP
 
 ---
 
@@ -106,64 +100,6 @@ Useful links:
 - **Toolbox updates**: Faster access to common asset and workflow operations.
 
 See [CHANGELOG.md](CHANGELOG.md) for the complete release notes.
-
-### Key Feature Highlights
-
-### 🤖 AI Features
-Complete AI-powered asset discovery and organization:
-- **Semantic Search**: Natural language queries ("sunset over mountains")
-- **Find Similar**: Visual similarity matching
-- **AI Auto-Tags**: Automatic tagging (portrait, landscape, cyberpunk, etc.)
-- **Enhanced Captions**: Florence-2 generated descriptions
-- **Prompt Alignment**: Score image-prompt matching quality
-- **Smart Collections**: Auto-group by visual themes
-- **Models**: SigLIP2 (image/text), X-CLIP (video), Florence-2 (caption)
-- See full guide: [`docs/AI_FEATURES.md`](docs/AI_FEATURES.md)
-
-### 🎉 Majoor Floating Viewer (MFV)
-A lightweight floating viewer panel for real-time generation comparison:
-- **Live Stream Mode**: Automatically follows the latest completed outputs after execution
-- **Compare Modes**: Simple, A/B Compare, Side-by-Side, and Grid views
-- **Multi-Pin References (A/B/C/D)**: Pin up to 4 images with toggle buttons for simultaneous comparison
-- **Node Parameters Sidebar**: View and edit workflow node widgets (prompts, seeds, samplers) directly inside the viewer
-- **Graph Map**: Inspect the saved workflow with readable node and subgraph names, plus a copy-ready node detail panel
-- **Run Button**: Queue prompt from the viewer toolbar without switching back to the canvas
-- **Sidebar Position Setting**: Place the Node Parameters sidebar on the right, left, or bottom via Settings
-- **Real-time Preview**: Watch generations as they complete
-- **Node Stream**: Follow the currently selected compatible node when it exposes frontend media
-- **Pan & Zoom**: Mouse wheel zoom and click-drag pan for detailed inspection
-- **Gen Info Overlay**: Display prompt, seed, model, and LoRA for each generation; when the inline MFV player is present, the overlay automatically shifts above the player controls
-- **Draggable Panel**: Position anywhere on screen, resizable
-- **Keyboard Shortcuts**: Quick toggles with V, C, K, L, and N, plus focused player controls such as Space and Left/Right frame stepping
-
-### 🔧 Major Improvements
-- **Cross-Platform**: Full Linux support (Ubuntu 22.04+, Fedora, Debian)
-- **Code Quality**: Moved inline styles to CSS, improved error handling
-- **Performance**: Reduced redundant parsing, improved caching
-- **Test Coverage**: Added pytest (backend) and Vitest (frontend) test suites
-
-### 🐛 Bug Fixes
-- Fixed CSS file corruption, gen info display, memory leaks
-- Fixed race conditions, duplicate CSS rules, viewer lifecycle management
-- Multiple indexing and metadata parsing improvements
-
-See [`CHANGELOG.md`](CHANGELOG.md) for complete details.
-
----
-
-## Recent Platform Improvements
-
-The following improvements were delivered across the recent release cycle:
-
-### 🔧 Core Improvements
-- **Improved Assets Metadata Parsing**: Enhanced metadata extraction and parsing pipeline
-- **Grid Compare up to 4 Assets**: Extended Floating Viewer Grid Compare mode supporting up to 4 simultaneous assets
-- **Ping Pong Loop in Main Viewer**: Added ping-pong playback (forward then reverse) for videos in the main Viewer player
-- **Job ID and Stack ID in Database**: Enhanced assets management with execution grouping via `job_id` and `stack_id` fields
-- **Code Refactor for Maintainability**: Major codebase refactoring for improved long-term maintainability
-- **Various Bug Fixes**: Multiple stability and correctness improvements
-
-See [`CHANGELOG.md`](CHANGELOG.md) for the detailed release history.
 
 ---
 
@@ -474,336 +410,40 @@ See [`docs/HOTKEYS_SHORTCUTS.md`](docs/HOTKEYS_SHORTCUTS.md) and [`docs/SHORTCUT
 
 ## Advanced Features
 
-### Search & Filtering
-- **Full-Text Search**: Search filenames, prompts, models, parameters
-- **Attribute Filters**: Type `rating:5` or `ext:png` directly in search
-- **Workflow Filter**: Show only assets with workflow data
-- **Date Range**: Filter by creation/modification dates
-- **File Size**: Filter by file weight
-- **Resolution**: Filter by image dimensions
+The README focuses on the user workflow. Detailed reference material lives in the docs folder so new users do not have to read every subsystem before using the extension.
 
-### Metadata Extraction
-- **PNG/WEBP**: Embedded generation info (prompts, seeds, models)
-- **Video**: FFprobe metadata (duration, codec, resolution)
-- **Audio**: ID3 tags, duration, codec info
-- **Workflow JSON**: Node graphs, parameters, custom nodes
-- **Modern Workflows**: Flux, WanVideo, HunyuanVideo, Qwen, Marigold
+### AI And Vector Search
 
-### Ratings & Tags
-- **5-Star Rating**: With Windows Explorer sync (RatingPercent)
-- **Custom Tags**: Hierarchical tags (e.g., `style:anime:fantasy`)
-- **Bulk Operations**: Apply ratings/tags to multiple assets
-- **Sync to File**: Optional metadata sync via ExifTool
+Optional AI features add semantic search, visual similarity, auto-tags, captions, prompt alignment, and smart collection suggestions. They require additional model dependencies and a vector backfill step for best coverage.
 
-### Drag & Drop
-- **To Canvas**: Drag assets to compatible nodes (LoadImage, LoadVideo, etc.)
-- **To OS**: Drag to file explorer (single file or multi-select ZIP)
-- **Staging**: Assets staged for immediate use in workflows
+Read: [`docs/AI_FEATURES.md`](docs/AI_FEATURES.md)
 
-### Database Management
-- **Index Location**: `<output>/_mjr_index/assets.sqlite`
-- **Reset Index**: Clear and rebuild index (requires readable DB)
-- **Delete DB**: Force-delete and rebuild (works on corrupted DB)
-- **Optimize**: Run `PRAGMA optimize` and `ANALYZE`
+### Privacy And Offline Use
 
-See [`docs/DB_MAINTENANCE.md`](docs/DB_MAINTENANCE.md) for database recovery procedures.
+AI inference is designed to run locally. Internet access is mainly needed for the first model download from HuggingFace, and cached models can be used offline afterward.
 
----
+Read: [`docs/PRIVACY_OFFLINE.md`](docs/PRIVACY_OFFLINE.md)
 
-## AI Features (How to Use)
+### Configuration And Security
 
-📚 **Complete Guide**: See [`docs/AI_FEATURES.md`](docs/AI_FEATURES.md) for comprehensive documentation.
+Most users can use the default local setup. Remote access, API tokens, safe-mode write controls, index directory overrides, and environment variables are documented separately.
 
-### What AI features are available
+Read:
+- [`docs/SETTINGS_CONFIGURATION.md`](docs/SETTINGS_CONFIGURATION.md)
+- [`docs/SECURITY_ENV_VARS.md`](docs/SECURITY_ENV_VARS.md)
+- [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md)
 
-- **🔮 AI Semantic Search**: Natural-language search across your library (e.g., "sunset over mountains")
-- **🔍 Find Similar**: Pick one asset and retrieve visually similar assets
-- **🏷️ AI Auto-Tags**: Automatic tag suggestions (portrait, landscape, cyberpunk, anime, etc.)
-- **📝 Enhanced Captions**: Florence-2 generated detailed image descriptions
-- **📊 Prompt Alignment Score**: Measure how well an image matches its generation prompt
-- **📁 Smart Collections**: Auto-create themed collections from AI suggestions
-- **🔬 Discover Groups**: Cluster your library by visual similarity
+### API, Database, And Maintenance
 
-### How to use AI features
+Backend endpoint details, database recovery, index reset, and contributor architecture notes are available as advanced references.
 
-1. **Enable AI**: Open **Settings** → Keep **Enable AI semantic search** enabled (default: ON)
-2. **Build Vectors**: After indexing, click **Backfill vectors** in **Index Status**
-3. **Use Features**:
-   - **Search**: Click sparkles icon (🔮) → Type natural language queries
-   - **Find Similar**: Select asset → Right-click → Find Similar
-   - **Collections**: Open Collections → Smart Suggestions / Discover Groups
-   - **Caption**: Open asset → Sidebar → Image Description → Generate
-   - **Alignment**: Open asset → Sidebar → Prompt Alignment score
-
-### Per-Asset Quick Actions
-
-You can trigger scan and backfill vectors for **individual assets** directly from the grid:
-
-| Action | How To |
-|--------|--------|
-| **Index Asset** | Click status dot on card → "Index Asset" |
-| **Generate Vector** | Click status dot → "Generate Vector" |
-| **Generate Caption** | Hover card → Click sparkles (🔮) → Generate Caption |
-| **Compute Alignment** | Hover card → Click sparkles → Compute Alignment |
-| **Suggest Tags** | Hover card → Click sparkles → Suggest Tags |
-| **Find Similar** | Hover card → Click sparkles → Find Similar |
-
-#### Visual Status Indicators
-
-| Indicator | Meaning |
-|-----------|---------|
-| 🟢 Green dot | Asset fully indexed with vectors |
-| 🟡 Yellow dot | Asset indexed, vectors pending |
-| 🔴 Red dot | Indexing failed or vectors unavailable |
-| 🔮 Sparkles visible | AI features available |
-| ⏳ Spinning icon | Processing in progress |
-
-### AI Models
-
-| Model | Purpose | Size |
-|-------|---------|------|
-| **SigLIP2 SO400M** | Image & text embeddings | ~1.2 GB |
-| **X-CLIP Base** | Video embeddings | ~600 MB |
-| **Florence-2 Base** | Image captioning | ~800 MB |
-
-Models are downloaded automatically on first use and cached locally.
-
-### Quick Tips
-
-- ✅ Non-AI features work independently if AI is disabled
-- ✅ AI quality depends on metadata quality and vector coverage
-- ✅ First backfill can take time (5-30 min for 1000 assets)
-- ✅ GPU acceleration recommended for large libraries
+Read:
+- [`docs/API_REFERENCE.md`](docs/API_REFERENCE.md)
+- [`docs/DB_MAINTENANCE.md`](docs/DB_MAINTENANCE.md)
+- [`docs/ARCHITECTURE_MAP.md`](docs/ARCHITECTURE_MAP.md)
+- [`docs/TESTING.md`](docs/TESTING.md)
 
 ---
-
-## Privacy And Offline Use
-
-### Short version
-
-- AI inference is intended to run locally on your machine.
-- Images and prompts are not uploaded to a hosted cloud inference API for semantic search, captions, similarity, or prompt alignment.
-- Internet access is mainly needed for the initial HuggingFace model download.
-- Once required models are cached locally, AI features can work offline.
-- No usage telemetry is intentionally sent to the developer.
-
-### What uses the network
-
-- **Model download**: AI models are downloaded from HuggingFace on first use and then cached locally.
-- **Optional HuggingFace token**: used only to improve HuggingFace Hub download access and rate limits.
-- **Remote access security**: the Majoor API token protects remote write access when ComfyUI is exposed on a network.
-
-### What the tokens mean
-
-- **HuggingFace Token**: optional token for model downloads from HuggingFace Hub. It is not a cloud inference key.
-- **Majoor: API Token**: token for securing remote write operations to the local Majoor backend. It is not used to send prompts or images to an external AI service.
-
-### Important nuance
-
-The privacy claim here is specifically about where inference runs and whether your assets or prompts are uploaded for AI processing. Model loading still relies on local HuggingFace/Transformers packages and downloaded model files.
-
-See [docs/PRIVACY_OFFLINE.md](docs/PRIVACY_OFFLINE.md), [docs/AI_FEATURES.md](docs/AI_FEATURES.md), and [docs/SECURITY_ENV_VARS.md](docs/SECURITY_ENV_VARS.md) for the detailed version.
-
-### Configuration
-
-```bash
-# Enable/disable AI features (default: ON)
-export MJR_AM_ENABLE_VECTOR_SEARCH=1
-
-# Adjust auto-tag sensitivity (0.0-1.0, default: 0.06)
-export MJR_AM_VECTOR_AUTOTAG_THRESHOLD=0.06
-
-# Verbose AI logging for debugging
-export MJR_AM_AI_VERBOSE_LOGS=1
-```
-
-### Performance
-
-| Library Size | Backfill Time (CPU) | Backfill Time (GPU) |
-|--------------|---------------------|---------------------|
-| 100 assets | 2-5 min | 30-60 sec |
-| 500 assets | 10-25 min | 2-5 min |
-| 1000 assets | 20-50 min | 5-10 min |
-| 5000 assets | 2-4 hours | 25-50 min |
-
-*GPU: NVIDIA RTX 3060 or equivalent*
-
----
-
-## Debug: Reset Index / Delete DB
-
-Use this when indexing behavior is inconsistent, after major updates, or when the DB is corrupted.
-
-### Reset Index
-- Rebuilds index data and rescans files.
-- Best first step when DB is still readable.
-
-### Delete DB
-- Emergency recovery mode: force-delete DB files and rebuild from scratch.
-- Use this when DB is corrupted or reset fails.
-
-### Dialog behavior
-When you click **Reset Index** or **Delete DB**, the UI first asks whether existing AI vectors should be kept, then shows a simple confirmation dialog.
-- If you keep vectors, the reset/rebuild preserves the existing AI vector data.
-- If you do not keep vectors, the reset is full and vectors will be recalculated later if needed.
-
----
-
-## Backfill Warning (Important)
-
-Backfilling vectors can take a long time on large libraries, especially over 1000 assets.
-
-### How backfill works
-- It scans indexed assets and computes missing AI embeddings (vectors).
-- It runs as a background process, in batches.
-- You can continue using **Assets Manager** and **ComfyUI** while it runs.
-
-### Why it can be slow
-- Number of assets and media type mix (images/videos)
-- CPU/GPU availability and model load time
-- Disk speed and overall system load
-- Available system RAM (more RAM helps keep processing smoother)
-
-### What you get after backfill
-- Better semantic search coverage
-- Better **Find Similar** results
-- Better clustering/smart collection quality
-- Better prompt-alignment and AI-assisted metadata workflows
-
----
-
-## Configuration
-
-### Browser Settings (localStorage)
-- **Page Size**: Assets per request (default: 50-100)
-- **Sidebar Position**: Left or Right
-- **Hide PNG Siblings**: Hide PNGs when video previews exist
-- **Auto-Scan on Startup**: Enable/disable automatic scanning
-- **Status Poll Interval**: Background task check frequency (1-5s)
-
-### Environment Variables (Backend)
-
-#### Directory Configuration
-```bash
-# Override default output directory
-export MAJOOR_OUTPUT_DIRECTORY="/path/to/your/output"
-```
-
-#### External Tool Paths
-```bash
-# Specify tool paths if not in PATH
-export MAJOOR_EXIFTOOL_PATH="/path/to/exiftool"
-export MAJOOR_FFPROBE_PATH="/path/to/ffprobe"
-```
-
-#### Media Processing
-```bash
-# Set media probe backend (auto, exiftool, ffprobe, both)
-export MAJOOR_MEDIA_PROBE_BACKEND="auto"
-```
-
-#### Database Tuning
-```bash
-# Database operation timeout (seconds)
-export MAJOOR_DB_TIMEOUT=60.0
-
-# Maximum concurrent DB connections
-export MAJOOR_DB_MAX_CONNECTIONS=12
-
-# Query execution timeout (seconds)
-export MAJOOR_DB_QUERY_TIMEOUT=45.0
-```
-
-#### Security & Performance
-```bash
-# Allow symlinks in custom roots (default: off)
-export MJR_ALLOW_SYMLINKS=on
-
-# Trusted proxies for X-Forwarded-For
-export MAJOOR_TRUSTED_PROXIES=127.0.0.1,192.168.1.0/24
-
-# Maximum metadata JSON size (bytes, default: 2MB)
-export MAJOOR_MAX_METADATA_JSON_BYTES=4194304
-
-# Max items per collection (default: 50000)
-export MJR_COLLECTION_MAX_ITEMS=100000
-
-# Disable automatic pip installs at startup
-export MJR_AM_NO_AUTO_PIP=1
-```
-
-#### API Security
-
-> **Most users do not need to do anything.** Out of the box, Majoor:
->
-> - Auto-generates an API token at first startup (visible in
->   Settings → Majoor → Security).
-> - Allows the browser settings UI to enable first-run LAN setup flows.
-> - Backend env-var defaults are conservative for headless use: without a
->   persisted UI preference, no-token remote writes stay blocked unless
->   `MAJOOR_ALLOW_REMOTE_WRITE=1` is set.
-> - Accepts the API token over plain HTTP only when the persisted setting or
->   `MAJOOR_ALLOW_INSECURE_TOKEN_TRANSPORT=1` permits it for trusted-LAN setups.
->
-> If you expose ComfyUI to the public Internet, open Settings → Majoor →
-> Security and either disable `Allow HTTP Token Transport` (forcing HTTPS) or
-> enable the **Recommended Remote LAN Setup** preset (token-strict mode).
-
-##### Settings UI
-
-For everyday LAN use you should not need to change anything. The relevant
-toggles, in order of restrictiveness:
-
-- `Allow Remote Full Access` — permits no-token remote write/bootstrap flows.
-  Leave this off for Internet-exposed instances. In headless/env-only setups,
-  the backend default is off unless `MAJOOR_ALLOW_REMOTE_WRITE=1` is set.
-- `Allow HTTP Token Transport` *(default: on)* — permits the API token to be
-  sent over plain HTTP. Disable when serving over HTTPS only.
-- `Require Token For All Writes` *(default: off)* — when on, every write
-  (including loopback) must carry the token. Recommended for shared hosts.
-- `Recommended Remote LAN Setup` *(preset)* — enables token auth for all
-  writes, generates a token if missing, and keeps `Allow HTTP Token Transport`
-  on so LAN clients still work.
-
-##### Env var fallback (headless / containers)
-
-```bash
-# Set API token for remote access
-export MAJOOR_API_TOKEN="your-secret-token"
-
-# Force token auth even for loopback
-export MAJOOR_REQUIRE_AUTH=1
-
-# Allow remote write without token (UNSAFE on public networks)
-export MAJOOR_ALLOW_REMOTE_WRITE=1
-
-# Allow API-token delivery / bootstrap over plain HTTP (trusted LAN only)
-export MAJOOR_ALLOW_INSECURE_TOKEN_TRANSPORT=1
-
-# Enable initial bootstrap token endpoint (remote, no Comfy auth)
-export MAJOOR_ALLOW_BOOTSTRAP=1
-```
-
-Precedence: persisted UI prefs (Settings → Security) override env vars when
-both are set. Env var values are only used when no UI value has been
-configured for that key.
-
-#### Safe Mode Operations
-```bash
-# Disable Safe Mode (default: enabled)
-export MAJOOR_SAFE_MODE=0
-
-# Allow specific operations while Safe Mode enabled
-export MAJOOR_ALLOW_WRITE=1
-export MAJOOR_ALLOW_DELETE=1
-export MAJOOR_ALLOW_RENAME=1
-export MAJOOR_ALLOW_OPEN_IN_FOLDER=1
-```
-
-See [`docs/SETTINGS_CONFIGURATION.md`](docs/SETTINGS_CONFIGURATION.md) and [`docs/SECURITY_ENV_VARS.md`](docs/SECURITY_ENV_VARS.md) for complete configuration guide.
-
----
-
 ## Troubleshooting
 
 ### Extension Not Appearing

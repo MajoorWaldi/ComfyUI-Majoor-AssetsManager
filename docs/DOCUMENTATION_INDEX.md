@@ -2,101 +2,87 @@
 
 Welcome to the documentation hub for **Majoor Assets Manager** for ComfyUI.
 
-**Current Version**: 2.4.5
-**Last Updated**: April 14, 2026
+Majoor is best understood as one workflow:
 
-## Quick Start
+1. **Browse** your ComfyUI media library.
+2. **Inspect** prompts, metadata, workflows, and visual details.
+3. **Reuse** useful assets and workflow context back in ComfyUI.
 
-### New users
+**Current Version**: 2.4.8
+**Last Updated**: May 20, 2026
 
-1. **[Installation Guide](INSTALLATION.md)** - Install and set up the extension
-2. **[User Guide (HTML)](../user_guide.html)** - Visual walkthrough with screenshots
-3. **[Hotkeys & Shortcuts](HOTKEYS_SHORTCUTS.md)** - Essential keyboard shortcuts
-4. **[Basic Search](SEARCH_FILTERING.md)** - Find assets quickly
+## Start Here
 
-### Returning users
+| Goal | Read This |
+| --- | --- |
+| Install the extension | **[Installation Guide](INSTALLATION.md)** |
+| Learn the daily workflow | **[User Guide (HTML)](../user_guide.html)** |
+| Find assets quickly | **[Search & Filtering](SEARCH_FILTERING.md)** |
+| Learn shortcuts | **[Hotkeys & Shortcuts](HOTKEYS_SHORTCUTS.md)** |
+| See what changed | **[Changelog](../CHANGELOG.md)** |
 
-- **[AI Features Guide](AI_FEATURES.md)** - AI-assisted search and enrichment features
-- **[MFV Guide](MFV_GUIDE.md)** - Dedicated Majoor Floating Viewer walkthrough
-- **[Viewer Feature Tutorial](VIEWER_FEATURE_TUTORIAL.md)** - Floating viewer and analysis tools
-- **[Changelog](../CHANGELOG.md)** - Recent releases and fixes
-- **[Architecture Map](ARCHITECTURE_MAP.md)** - Backend boundaries and refactor guide
+## Browse
 
-### Privacy And Offline Use
+Use these docs for the main library experience: grid browsing, search, organization, and file actions.
 
-- **[PRIVACY_OFFLINE.md](PRIVACY_OFFLINE.md)** - Dedicated privacy, offline, and token explanation page
-- **[AI_FEATURES.md](AI_FEATURES.md)** - Local AI processing, model downloads, offline behavior, and token clarification
-- **[SECURITY_ENV_VARS.md](SECURITY_ENV_VARS.md)** - Remote access security, API token behavior, and safe defaults
-- **[SETTINGS_CONFIGURATION.md](SETTINGS_CONFIGURATION.md)** - UI security settings and token storage behavior
+| Document | Description |
+| --- | --- |
+| **[SEARCH_FILTERING.md](SEARCH_FILTERING.md)** | Full-text search, filters, sorting, and discovery |
+| **[RATINGS_TAGS_COLLECTIONS.md](RATINGS_TAGS_COLLECTIONS.md)** | Ratings, tags, collections, and organization |
+| **[DRAG_DROP.md](DRAG_DROP.md)** | Drag to canvas, staging, OS drag-out, clean export, ZIP download |
+| **[DB_MAINTENANCE.md](DB_MAINTENANCE.md)** | Index database reset, recovery, and index directory configuration |
 
-## Documentation Categories
+## Inspect
 
-### Getting Started
+Use these docs when you want to understand how an asset was made or compare outputs.
 
-| Document                                         | Description                                      |
-| ------------------------------------------------ | ------------------------------------------------ |
-| **[INSTALLATION.md](INSTALLATION.md)**           | Detailed installation and network-drive guidance |
-| **[user_guide.html](../user_guide.html)**        | Full visual user guide                           |
-| **[HOTKEYS_SHORTCUTS.md](HOTKEYS_SHORTCUTS.md)** | Keyboard shortcuts                               |
-| **[SHORTCUTS.md](SHORTCUTS.md)**                 | Extra gestures and shortcuts                     |
+| Document | Description |
+| --- | --- |
+| **[MFV_GUIDE.md](MFV_GUIDE.md)** | Majoor Floating Viewer: live review, compare modes, pins, streams |
+| **[VIEWER_FEATURE_TUTORIAL.md](VIEWER_FEATURE_TUTORIAL.md)** | Viewer tools, analysis overlays, media controls |
+| **[GRAPH_MAP.md](GRAPH_MAP.md)** | Workflow graph navigation and node detail inspection |
+| **[FLOATING_VIEWER_WORKFLOW_SIDEBAR.md](FLOATING_VIEWER_WORKFLOW_SIDEBAR.md)** | Node Parameters sidebar in the Floating Viewer |
 
-### Core Features
+## Reuse
 
-| Document                                                                       | Description                                      |
-| ------------------------------------------------------------------------------ | ------------------------------------------------ |
-| **[SEARCH_FILTERING.md](SEARCH_FILTERING.md)**                                 | Full-text search, filters, and sorting           |
-| **[MFV_GUIDE.md](MFV_GUIDE.md)**                                               | Dedicated Majoor Floating Viewer guide           |
-| **[VIEWER_FEATURE_TUTORIAL.md](VIEWER_FEATURE_TUTORIAL.md)**                   | Viewer, MFV, and analysis tools                  |
-| **[GRAPH_MAP.md](GRAPH_MAP.md)**                                               | Graph Map workflow navigation and node detail    |
-| **[FLOATING_VIEWER_WORKFLOW_SIDEBAR.md](FLOATING_VIEWER_WORKFLOW_SIDEBAR.md)** | Node Parameters sidebar in Floating Viewer       |
-| **[RATINGS_TAGS_COLLECTIONS.md](RATINGS_TAGS_COLLECTIONS.md)**                 | Ratings, tags, and collections                   |
-| **[DRAG_DROP.md](DRAG_DROP.md)**                                               | Drag and drop behavior                           |
-| **[AI_FEATURES.md](AI_FEATURES.md)**                                           | Semantic search, auto-tags, and enrichment       |
-| **[CUSTOM_NODES.md](CUSTOM_NODES.md)**                                         | MajoorSaveImage & MajoorSaveVideo node reference |
+Use these docs for moving assets and workflow information back into ComfyUI.
 
-### Plugin System
+| Document | Description |
+| --- | --- |
+| **[DRAG_DROP.md](DRAG_DROP.md)** | Load assets onto nodes or canvas, stage files to input |
+| **[CUSTOM_NODES.md](CUSTOM_NODES.md)** | Majoor Save Image and Majoor Save Video node reference |
+| **[SHORTCUTS.md](SHORTCUTS.md)** | Quick gestures such as S+Drag and L+Drop |
 
-| Document                                                                               | Description                        |
-| -------------------------------------------------------------------------------------- | ---------------------------------- |
-| **[PLUGIN_QUICK_REFERENCE.md](PLUGIN_QUICK_REFERENCE.md)**                             | Quick start for plugin development |
-| **[PLUGIN_SYSTEM_DESIGN.md](PLUGIN_SYSTEM_DESIGN.md)**                                 | Full plugin architecture design    |
-| **[PLUGIN_SYSTEM_IMPLEMENTATION_SUMMARY.md](PLUGIN_SYSTEM_IMPLEMENTATION_SUMMARY.md)** | Implementation status and details  |
+## Advanced Features
 
-### Configuration And Security
+These are powerful capabilities, but they are not required for the basic Browse / Inspect / Reuse workflow.
 
-| Document                                                   | Description                                                        |
-| ---------------------------------------------------------- | ------------------------------------------------------------------ |
-| **[PRIVACY_OFFLINE.md](PRIVACY_OFFLINE.md)**               | Dedicated privacy, offline behavior, and token clarification guide |
-| **[SETTINGS_CONFIGURATION.md](SETTINGS_CONFIGURATION.md)** | UI and runtime settings, index DB path, env vars                   |
-| **[SECURITY_ENV_VARS.md](SECURITY_ENV_VARS.md)**           | Environment variables and security model                           |
-| **[THREAT_MODEL.md](THREAT_MODEL.md)**                     | Threats, mitigations, and residual risk                            |
-| **[ARCHITECTURE_MAP.md](ARCHITECTURE_MAP.md)**             | Package responsibilities and internal boundaries                   |
+| Document | Description |
+| --- | --- |
+| **[AI_FEATURES.md](AI_FEATURES.md)** | Semantic search, visual similarity, auto-tags, captions, vector backfill |
+| **[PRIVACY_OFFLINE.md](PRIVACY_OFFLINE.md)** | Local AI behavior, model downloads, offline use, token clarification |
+| **[SETTINGS_CONFIGURATION.md](SETTINGS_CONFIGURATION.md)** | Runtime settings, UI settings, index path overrides, environment variables |
+| **[SECURITY_ENV_VARS.md](SECURITY_ENV_VARS.md)** | Remote access security, API tokens, safe defaults |
+| **[THREAT_MODEL.md](THREAT_MODEL.md)** | Threats, mitigations, and residual risk |
+| **[API_REFERENCE.md](API_REFERENCE.md)** | Backend endpoint reference |
 
-### Maintenance And Development
+## Development And Architecture
 
-| Document                                   | Description                                                      |
-| ------------------------------------------ | ---------------------------------------------------------------- |
-| **[DB_MAINTENANCE.md](DB_MAINTENANCE.md)** | Database maintenance, recovery, and configurable index directory |
-| **[TESTING.md](TESTING.md)**               | Tests, reports, and quality gate                                 |
-| **[API_REFERENCE.md](API_REFERENCE.md)**   | Backend endpoint reference                                       |
-| **[CONTRIBUTING.md](CONTRIBUTING.md)**     | Developer onboarding and contribution guidelines                 |
-| **[adr/](adr/)**                           | Architecture Decision Records                                    |
+| Document | Description |
+| --- | --- |
+| **[ARCHITECTURE_MAP.md](ARCHITECTURE_MAP.md)** | Package responsibilities and internal boundaries |
+| **[TESTING.md](TESTING.md)** | Tests, reports, and quality gate |
+| **[CONTRIBUTING.md](CONTRIBUTING.md)** | Developer onboarding and contribution guidance |
+| **[DEPENDENCY_POLICY.md](DEPENDENCY_POLICY.md)** | Runtime, optional, and contributor dependency rules |
+| **[adr/](adr/)** | Architecture Decision Records |
 
-### Frontend Architecture
+## Plugin System
 
-| Document                                                                   | Description                             |
-| -------------------------------------------------------------------------- | --------------------------------------- |
-| **[FRONTEND_IMPERATIVE_DESIGN.md](FRONTEND_IMPERATIVE_DESIGN.md)**         | Design rationale for imperative modules |
-| **[FRONTEND_LIFECYCLE_CONVENTIONS.md](FRONTEND_LIFECYCLE_CONVENTIONS.md)** | Component lifecycle conventions         |
-| **[VUE_MIGRATION_PLAN.md](VUE_MIGRATION_PLAN.md)**                         | Vue 3 migration plan (archival)         |
-| **[node-stream-reactivation.md](node-stream-reactivation.md)**             | Node Stream and MFV stream boundaries   |
-
-### Historical Documents
-
-| Document                                                                                           | Description                               |
-| -------------------------------------------------------------------------------------------------- | ----------------------------------------- |
-| **[PLAN_REFACTO_COMPLET_MAJOOR_ASSETS_MANAGER.md](PLAN_REFACTO_COMPLET_MAJOOR_ASSETS_MANAGER.md)** | V1 refactoring completion plan (archival) |
-| **[PLAN_REFACTO_V2_LONG_TERME.md](PLAN_REFACTO_V2_LONG_TERME.md)**                                 | V2 long-term refactoring plan (archival)  |
+| Document | Description |
+| --- | --- |
+| **[PLUGIN_QUICK_REFERENCE.md](PLUGIN_QUICK_REFERENCE.md)** | Quick start for plugin development |
+| **[PLUGIN_SYSTEM_DESIGN.md](PLUGIN_SYSTEM_DESIGN.md)** | Full plugin architecture design |
+| **[PLUGIN_SYSTEM_IMPLEMENTATION_SUMMARY.md](PLUGIN_SYSTEM_IMPLEMENTATION_SUMMARY.md)** | Implementation status and details |
 
 ## Quality And Verification
 
@@ -114,29 +100,4 @@ tox -e quality
 npm run test:js
 ```
 
-The quality gate enforces:
-
-- UTF-8 text files without BOM
-- `ruff` linting on changed Python files during the migration window
-- `mypy`
-- `bandit`
-- `pip-audit`
-- xenon/radon complexity checks
-- backend tests
-- frontend tests
-- `npm audit`
-
-## Security Note
-
-The backend keeps a compatibility-first local security model:
-
-- loopback writes remain allowed by default
-- remote writes are denied unless explicitly authorized
-- `MAJOOR_REQUIRE_AUTH=1` switches to strict token-auth for local writes too
-
-Current releases also support a Settings-first remote setup flow:
-
-- `Recommended Remote LAN Setup` is the preferred one-click LAN path
-- the current browser session exposes its state through the runtime `Write auth:` indicator inside Assets Manager
-
-That nuance is intentional and is the documented target behavior for current releases.
+The quality gate covers backend tests, frontend tests, linting, typing, dependency checks, and security scans.

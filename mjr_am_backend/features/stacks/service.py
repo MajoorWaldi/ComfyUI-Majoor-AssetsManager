@@ -184,9 +184,9 @@ class StacksService:
     async def get_members(self, stack_id: int) -> Result[list[dict[str, Any]]]:
         """Return all assets belonging to a stack."""
         res = await self.db.aquery(
-            "SELECT a.id, a.filename, a.filepath, a.kind, a.ext, "
+            "SELECT a.id, a.filename, a.subfolder, a.filepath, a.kind, a.ext, "
             "  a.size, a.mtime, a.width, a.height, a.duration, "
-            "  a.source, a.root_id, "
+            "  a.source, a.source AS type, a.root_id, "
             "  a.source_node_id, a.source_node_type, "
             "  COALESCE(m.rating, 0) as rating, "
             "  COALESCE(m.tags, '[]') as tags, "
@@ -204,9 +204,9 @@ class StacksService:
     async def get_members_by_job_id(self, job_id: str) -> Result[list[dict[str, Any]]]:
         """Return all assets sharing *job_id* (even if no stack row exists yet)."""
         res = await self.db.aquery(
-            "SELECT a.id, a.filename, a.filepath, a.kind, a.ext, "
+            "SELECT a.id, a.filename, a.subfolder, a.filepath, a.kind, a.ext, "
             "  a.size, a.mtime, a.width, a.height, a.duration, "
-            "  a.source, a.root_id, "
+            "  a.source, a.source AS type, a.root_id, "
             "  a.source_node_id, a.source_node_type, "
             "  COALESCE(m.rating, 0) as rating, "
             "  COALESCE(m.tags, '[]') as tags, "

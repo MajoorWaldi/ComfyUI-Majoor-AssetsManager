@@ -41,6 +41,7 @@ function _openFromEvent(event) {
         if (mode === "ab" || mode === "sidebyside") {
             _instance.setMode?.(mode);
         }
+        detail.handled = true;
     } catch (e) {
         console.debug?.(e);
     }

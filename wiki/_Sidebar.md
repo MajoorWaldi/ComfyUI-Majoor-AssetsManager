@@ -2,9 +2,22 @@
 
 - [Home](Home)
 - [Installation and Setup](Installation-and-Setup)
+
+## Browse
+
 - [Using the Assets Manager](Using-the-Assets-Manager)
 - [Search, Ratings, Tags, and Collections](Search-Ratings-Tags-and-Collections)
+
+## Inspect
+
 - [Viewer and MFV](Viewer-and-MFV)
+
+## Reuse
+
+- [Using the Assets Manager](Using-the-Assets-Manager)
+
+## Advanced
+
 - [AI Features](AI-Features)
 - [Privacy and Offline](Privacy-and-Offline)
 - [Configuration and Security](Configuration-and-Security)

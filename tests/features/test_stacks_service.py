@@ -5,8 +5,10 @@ class _DbStub:
     def __init__(self, *, query_results=None, execute_results=None):
         self.query_results = list(query_results or [])
         self.execute_results = list(execute_results or [])
+        self.queries = []
 
     async def aquery(self, _sql, _params=()):
+        self.queries.append((_sql, _params))
         if self.query_results:
             return self.query_results.pop(0)
         raise AssertionError("Unexpected aquery call")
@@ -196,6 +198,37 @@ async def test_set_cover_rejects_asset_outside_stack():
 
     assert result.ok is False
     assert result.code == "INVALID_INPUT"
+
+
+async def test_get_members_returns_grid_compatible_drag_fields():
+    db = _DbStub(
+        query_results=[
+            _ok(
+                [
+                    {
+                        "id": 5,
+                        "filename": "nested.png",
+                        "subfolder": "runs/001",
+                        "filepath": "/outputs/runs/001/nested.png",
+                        "kind": "image",
+                        "source": "output",
+                        "type": "output",
+                        "root_id": None,
+                    }
+                ]
+            ),
+        ],
+    )
+    service = StacksService(db)
+
+    result = await service.get_members(stack_id=31)
+
+    assert result.ok is True
+    assert result.data[0]["subfolder"] == "runs/001"
+    assert result.data[0]["type"] == "output"
+    sql = db.queries[0][0]
+    assert "a.subfolder" in sql
+    assert "a.source AS type" in sql
 
 
 async def test_auto_select_cover_propagates_set_cover_failure():
