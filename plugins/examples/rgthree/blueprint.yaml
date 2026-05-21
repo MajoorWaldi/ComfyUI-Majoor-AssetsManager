@@ -1,0 +1,22 @@
+# Blueprint manifest example using YAML.
+# JSON is also supported (see ../wanvideo/blueprint.json).
+schema_version: 1
+
+name: rgthree_extractor
+version: "0.1.0"
+author: "Majoor Assets Manager"
+description: "Skeleton extractor for rgthree custom-node workflows."
+license: MIT
+type: metadata_extractor
+
+entrypoint:
+  module: rgthree_extractor   # filename without .py, inside this directory
+  class: RgthreeExtractor     # class implementing MetadataExtractorPlugin
+
+capabilities:
+  supported_extensions: [".png", ".webp"]
+  priority: 50
+
+tags:
+  - rgthree
+  - skeleton

@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any
 
 from .base import MetadataExtractorPlugin
+from .blueprint import Blueprint, BlueprintError, discover_blueprints, find_manifest
 from .validator import PluginValidator
 
 logger = logging.getLogger(__name__)
@@ -55,6 +56,7 @@ class PluginLoader:
         self._loaded_modules: set[str] = set()
         self._load_errors: list[tuple[str, str]] = []
         self._plugin_info: dict[str, dict[str, Any]] = {}
+        self._blueprints: dict[str, Blueprint] = {}
 
         if auto_discover:
             self.discover_plugins()
@@ -204,14 +206,85 @@ class PluginLoader:
                 logger.error(f"Failed to load {module_file}: {e}")
                 self._load_errors.append((str(module_file), str(e)))
 
-        # Scan subdirectories as packages
+        # Scan subdirectories as packages (or blueprints if they have a manifest)
         for subdir in self._iter_plugin_packages(directory):
             try:
-                count += self._scan_package(subdir)
+                if find_manifest(subdir) is not None:
+                    count += self._scan_blueprint(subdir)
+                else:
+                    count += self._scan_package(subdir)
             except Exception as e:
                 logger.error(f"Failed to scan package {subdir}: {e}")
 
+        # Standalone blueprints: subdirectories with a manifest but no
+        # __init__.py (not Python packages) are also supported.
+        for blueprint in discover_blueprints(directory):
+            pkg_dir = blueprint.package_dir
+            if pkg_dir is None:  # pragma: no cover - defensive
+                continue
+            # Skip directories already processed above as Python packages.
+            if (pkg_dir / "__init__.py").exists():
+                continue
+            try:
+                count += self._load_blueprint(blueprint)
+            except Exception as exc:
+                logger.error(f"Failed to load blueprint {blueprint.name}: {exc}")
+                self._load_errors.append((str(blueprint.source_path), str(exc)))
+
         return count
+
+    def _scan_blueprint(self, package_dir: Path) -> int:
+        """Load a single blueprint package (manifest + entrypoint module)."""
+        manifest_path = find_manifest(package_dir)
+        if manifest_path is None:  # pragma: no cover
+            return 0
+        from .blueprint import parse_manifest
+
+        try:
+            blueprint = parse_manifest(manifest_path)
+        except BlueprintError as exc:
+            logger.warning(f"Skipping invalid blueprint manifest {manifest_path}: {exc}")
+            self._load_errors.append((str(manifest_path), str(exc)))
+            return 0
+        return self._load_blueprint(blueprint)
+
+    def _load_blueprint(self, blueprint: Blueprint) -> int:
+        """Instantiate the entrypoint class declared by a blueprint."""
+        pkg_dir = blueprint.package_dir
+        if pkg_dir is None:  # pragma: no cover
+            return 0
+
+        module_file = pkg_dir / f"{blueprint.entrypoint.module}.py"
+        if not module_file.is_file():
+            raise BlueprintError(
+                f"Blueprint {blueprint.name}: entrypoint module not found: "
+                f"{blueprint.entrypoint.module}.py"
+            )
+
+        package_name = pkg_dir.name
+        before = set(self._extractors.keys())
+        self._load_module(module_file, package_name=package_name)
+        new_names = set(self._extractors.keys()) - before
+        if blueprint.entrypoint.class_name and not any(
+            getattr(self._extractors[name].__class__, "__name__", "")
+            == blueprint.entrypoint.class_name
+            for name in new_names
+        ):
+            logger.warning(
+                "Blueprint %s declared entrypoint class %r but it was not "
+                "registered by %s",
+                blueprint.name,
+                blueprint.entrypoint.class_name,
+                module_file,
+            )
+
+        # Track blueprint metadata for listing/diagnostics.
+        self._blueprints[blueprint.name] = blueprint
+        for name in new_names:
+            info = self._plugin_info.setdefault(name, {})
+            info["blueprint"] = blueprint.to_info_dict()
+
+        return len(new_names)
 
     def _scan_package(self, package_dir: Path) -> int:
         """Scan a package directory for plugins."""
@@ -405,7 +478,13 @@ class PluginLoader:
             "plugin_dirs": [str(d) for d in self.plugin_dirs],
             "validation_mode": self.validation_mode,
             "plugin_info": self._plugin_info,
+            "blueprints": {name: bp.to_info_dict() for name, bp in self._blueprints.items()},
         }
+
+    @property
+    def blueprints(self) -> dict[str, Blueprint]:
+        """Return a shallow copy of loaded blueprints keyed by plugin name."""
+        return dict(self._blueprints)
 
     def reload(self) -> int:
         """
@@ -426,6 +505,7 @@ class PluginLoader:
         self._loaded_modules.clear()
         self._load_errors.clear()
         self._plugin_info.clear()
+        self._blueprints.clear()
 
         # Rediscover
         return self.discover_plugins()
