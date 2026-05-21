@@ -89,6 +89,27 @@ async def _migrate_db_or_error(db: Sqlite) -> Result[bool]:
     if not migrate_result.ok:
         logger.error(f"Schema migration failed: {migrate_result.error}")
         return Result.Err(migrate_result.code or "DB_ERROR", f"Failed to initialize database: {migrate_result.error}")
+
+    # Phase 3.2: apply versioned, additive migrations (v17+) on top of the
+    # legacy schema. Failures here are also fatal — we refuse to start with a
+    # half-migrated database.
+    from .adapters.db.migrations import MigrationRunner
+    from .adapters.db.migrations.registry import MIGRATIONS
+
+    runner_result = await MigrationRunner(MIGRATIONS).run(db)
+    if not runner_result.ok:
+        logger.error(f"Versioned migrations failed: {runner_result.error}")
+        return Result.Err(
+            runner_result.code or "DB_ERROR",
+            f"Failed to apply versioned migrations: {runner_result.error}",
+        )
+    for record in runner_result.data or []:
+        logger.info(
+            "Applied versioned migration v%d (%s) in %d ms",
+            record.version,
+            record.name,
+            record.duration_ms,
+        )
     return Result.Ok(True)
 
 
