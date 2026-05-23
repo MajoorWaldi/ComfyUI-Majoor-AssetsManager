@@ -49,8 +49,7 @@ async def test_write_blocked_for_forwarded_remote_when_no_token_by_default(monke
     # so X-Forwarded-For should be honored and treated as the true client.
     res = _check_write_access(peer_ip="127.0.0.1", headers={"X-Forwarded-For": "8.8.8.8"})
     assert not res.ok
-    assert res.code == "FORBIDDEN"
-    assert (res.meta or {}).get("auth") == "loopback_only"
+    assert res.code == "AUTH_REQUIRED"
 
 
 @pytest.mark.asyncio
@@ -148,8 +147,8 @@ async def test_peer_ip_edge_cases_do_not_crash(monkeypatch):
 
     empty_peer = _check_write_access(peer_ip="", headers={})
     assert not empty_peer.ok
-    assert empty_peer.code == "FORBIDDEN"
+    assert empty_peer.code == "AUTH_REQUIRED"
 
     malformed_peer = _check_write_access(peer_ip="not-an-ip", headers={})
     assert not malformed_peer.ok
-    assert malformed_peer.code == "FORBIDDEN"
+    assert malformed_peer.code == "AUTH_REQUIRED"

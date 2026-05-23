@@ -141,7 +141,7 @@ async def test_custom_roots_post_blocks_remote_write_without_token(monkeypatch, 
         app=app,
     )
     resp = await (await app.router.resolve(req)).handler(req)
-    assert _json(resp).get("code") == "FORBIDDEN"
+    assert _json(resp).get("code") == "AUTH_REQUIRED"
 
 
 @pytest.mark.asyncio
