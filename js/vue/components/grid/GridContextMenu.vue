@@ -247,10 +247,12 @@ onUnmounted(() => {
                     v-if="item.type === 'separator'"
                     class="mjr-context-menu-separator"
                 />
-                <button
+                <MButton
                     v-else
                     type="button"
                     class="mjr-context-menu-item"
+                    severity="secondary"
+                    text
                     :class="{
                         'is-disabled': item.disabled,
                         'has-submenu': Array.isArray(item.submenu) && item.submenu.length,
@@ -277,7 +279,7 @@ onUnmounted(() => {
                             &gt;
                         </span>
                     </span>
-                </button>
+                </MButton>
             </template>
         </div>
 
@@ -296,10 +298,12 @@ onUnmounted(() => {
                     v-if="item.type === 'separator'"
                     class="mjr-context-menu-separator"
                 />
-                <button
+                <MButton
                     v-else
                     type="button"
                     class="mjr-context-menu-item"
+                    severity="secondary"
+                    text
                     :class="{ 'is-disabled': item.disabled }"
                     role="menuitem"
                     :aria-disabled="item.disabled ? 'true' : 'false'"
@@ -313,7 +317,7 @@ onUnmounted(() => {
                     <span v-if="item.rightHint" class="mjr-context-menu-hint">
                         {{ item.rightHint }}
                     </span>
-                </button>
+                </MButton>
             </template>
         </div>
 

@@ -354,6 +354,7 @@ describe("floatingViewerManager", () => {
     it("clears the node stream overlay when closing", async () => {
         const { floatingViewerManager } =
             await import("../features/viewer/floatingViewerManager.js");
+        await floatingViewerManager.open();
         floatingViewerManager.setNodeStreamActive(true);
         floatingViewerManager.setNodeStreamSelection("55", "PreviewImage", "Sampler Preview");
         await floatingViewerManager.feedNodeStream({ filename: "stream.png", type: "output" });
@@ -372,6 +373,8 @@ describe("floatingViewerManager", () => {
     });
 
     it("emits visibility and syncs control states when live stream auto-opens the viewer", async () => {
+        const { APP_CONFIG } = await import("../app/config.js");
+        APP_CONFIG.MFV_LIVE_AUTO_OPEN = true;
         const seen = [];
         window.addEventListener("mjr:mfv-visibility-changed", (event) => {
             seen.push(Boolean(event?.detail?.visible));
@@ -395,6 +398,27 @@ describe("floatingViewerManager", () => {
             { autoMode: true },
         );
         expect(seen).toEqual([true]);
+
+        APP_CONFIG.MFV_LIVE_AUTO_OPEN = false;
+    });
+
+    it("does not auto-open hidden MFV for live stream when disabled", async () => {
+        const { APP_CONFIG } = await import("../app/config.js");
+        APP_CONFIG.MFV_LIVE_AUTO_OPEN = false;
+
+        const { floatingViewerManager } =
+            await import("../features/viewer/floatingViewerManager.js");
+        await floatingViewerManager.upsertWithContent({
+            filename: "live-output.png",
+            type: "output",
+        });
+
+        const viewer = state.getLastViewer();
+        expect(viewer).toBeTruthy();
+        expect(viewer.isVisible).toBe(false);
+        expect(viewer.loadMediaA).not.toHaveBeenCalled();
+
+        APP_CONFIG.MFV_LIVE_AUTO_OPEN = false;
     });
 
     it("does not overwrite both pinned compare slots from live stream", async () => {
@@ -441,6 +465,8 @@ describe("floatingViewerManager", () => {
     });
 
     it("replays the pending node stream selection when MFV auto-opens from a stream", async () => {
+        const { APP_CONFIG } = await import("../app/config.js");
+        APP_CONFIG.MFV_NODE_STREAM_AUTO_OPEN = true;
         const { floatingViewerManager } =
             await import("../features/viewer/floatingViewerManager.js");
         floatingViewerManager.setNodeStreamActive(true);
@@ -461,9 +487,30 @@ describe("floatingViewerManager", () => {
             classType: "PreviewImage",
             title: "Sampler Preview",
         });
+
+        APP_CONFIG.MFV_NODE_STREAM_AUTO_OPEN = false;
+    });
+
+    it("does not auto-open hidden MFV for node stream when disabled", async () => {
+        const { APP_CONFIG } = await import("../app/config.js");
+        APP_CONFIG.MFV_NODE_STREAM_AUTO_OPEN = false;
+
+        const { floatingViewerManager } =
+            await import("../features/viewer/floatingViewerManager.js");
+        floatingViewerManager.setNodeStreamActive(true);
+        await floatingViewerManager.feedNodeStream({ filename: "stream.png", type: "output" });
+
+        const viewer = state.getLastViewer();
+        expect(viewer).toBeTruthy();
+        expect(viewer.isVisible).toBe(false);
+        expect(viewer.loadMediaA).not.toHaveBeenCalled();
+
+        APP_CONFIG.MFV_NODE_STREAM_AUTO_OPEN = false;
     });
 
     it("emits visibility and syncs preview state when preview stream auto-opens the viewer", async () => {
+        const { APP_CONFIG } = await import("../app/config.js");
+        APP_CONFIG.MFV_PREVIEW_AUTO_OPEN = true;
         const seen = [];
         const blob = { fake: "blob" };
         window.addEventListener("mjr:mfv-visibility-changed", (event) => {
@@ -482,6 +529,26 @@ describe("floatingViewerManager", () => {
         expect(viewer.setPreviewActive).toHaveBeenLastCalledWith(true);
         expect(viewer.loadPreviewBlob).toHaveBeenCalledWith(blob);
         expect(seen).toEqual([true]);
+
+        APP_CONFIG.MFV_PREVIEW_AUTO_OPEN = false;
+    });
+
+    it("does not auto-open hidden MFV for KSampler preview when disabled", async () => {
+        const { APP_CONFIG } = await import("../app/config.js");
+        APP_CONFIG.MFV_PREVIEW_AUTO_OPEN = false;
+        const blob = { fake: "blob" };
+
+        const { floatingViewerManager } =
+            await import("../features/viewer/floatingViewerManager.js");
+        floatingViewerManager.setPreviewActive(true);
+        await floatingViewerManager.feedPreviewBlob(blob);
+
+        const viewer = state.getLastViewer();
+        expect(viewer).toBeTruthy();
+        expect(viewer.isVisible).toBe(false);
+        expect(viewer.loadPreviewBlob).not.toHaveBeenCalled();
+
+        APP_CONFIG.MFV_PREVIEW_AUTO_OPEN = false;
     });
 
     it("toggles live stream with L while the floating viewer is visible", async () => {

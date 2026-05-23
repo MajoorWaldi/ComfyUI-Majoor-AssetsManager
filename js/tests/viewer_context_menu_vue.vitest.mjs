@@ -30,6 +30,16 @@ vi.mock("../vue/components/common/TagsEditor.vue", () => ({
     }),
 }));
 
+const MButtonStub = {
+    props: {
+        severity: String,
+        text: Boolean,
+        rounded: Boolean,
+    },
+    inheritAttrs: false,
+    template: '<button v-bind="$attrs"><slot /></button>',
+};
+
 function ensureCustomEvent() {
     if (typeof globalThis.CustomEvent === "function") return;
     globalThis.CustomEvent = class CustomEvent extends Event {
@@ -62,6 +72,7 @@ function mountViewerContextMenu(component) {
         attachTo: document.body,
         global: {
             stubs: {
+                MButton: MButtonStub,
                 teleport: true,
             },
         },

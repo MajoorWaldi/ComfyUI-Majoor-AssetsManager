@@ -13,6 +13,7 @@ from .fs_walker import _EXT_TO_KIND
 from .index_batching import finalize_index_paths, index_paths_batches
 from .metadata_helpers import MetadataHelpers
 from .scan_batch_utils import empty_index_stats, new_index_stats, new_scan_stats
+from .scan_prune import prune_missing_assets_after_scan
 from .scan_streaming import run_scan_streaming_loop
 
 logger = get_logger(__name__)
@@ -79,6 +80,18 @@ async def scan_directory(
                 to_enrich=to_enrich,
                 added_ids=added_ids,
             )
+            prune_res = await prune_missing_assets_after_scan(
+                scanner,
+                directory=directory,
+                recursive=recursive,
+                source=source,
+                root_id=root_id,
+            )
+            if prune_res.ok:
+                stats["pruned"] = int(prune_res.data or 0)
+            else:
+                stats["errors"] += 1
+                logger.warning("Failed to prune stale scan rows: %s", prune_res.error)
         finally:
             stats["end_time"] = datetime.now().isoformat()
             duration = time.perf_counter() - scan_start
@@ -92,16 +105,18 @@ async def scan_directory(
                 added=stats["added"],
                 updated=stats["updated"],
                 skipped=stats["skipped"],
+                pruned=stats.get("pruned", 0),
                 errors=stats["errors"],
             )
             if duration > 0.5:
                 logger.debug(
-                    "scan_directory timing: %.3fs (scanned=%s added=%s updated=%s skipped=%s errors=%s)",
+                    "scan_directory timing: %.3fs (scanned=%s added=%s updated=%s skipped=%s pruned=%s errors=%s)",
                     duration,
                     stats.get("scanned"),
                     stats.get("added"),
                     stats.get("updated"),
                     stats.get("skipped"),
+                    stats.get("pruned", 0),
                     stats.get("errors"),
                 )
             scanner._current_scan_id = None

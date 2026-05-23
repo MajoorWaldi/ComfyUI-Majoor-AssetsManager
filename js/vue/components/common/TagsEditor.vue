@@ -113,8 +113,11 @@ const inputRef = ref(null);
 const inputValue = ref("");
 const showDropdown = ref(false);
 const selectedIndex = ref(-1);
+const selectedSuggestion = ref(null);
 const availableTags = ref([]);
 const saving = ref(false);
+
+const resolveDomElement = (value) => value?.$el || value || null;
 
 let saveInFlight = false;
 let savePending = false;
@@ -309,6 +312,7 @@ function handleInputKeydown(event) {
             inputValue.value = "";
             showDropdown.value = false;
             selectedIndex.value = -1;
+            selectedSuggestion.value = null;
         }
         return;
     }
@@ -316,6 +320,7 @@ function handleInputKeydown(event) {
     if (event.key === "Escape") {
         showDropdown.value = false;
         selectedIndex.value = -1;
+        selectedSuggestion.value = null;
         return;
     }
 
@@ -351,7 +356,14 @@ function selectSuggestion(tag) {
     inputValue.value = "";
     showDropdown.value = false;
     selectedIndex.value = -1;
-    inputRef.value?.focus();
+    selectedSuggestion.value = null;
+    resolveDomElement(inputRef.value)?.focus();
+}
+
+function handleSuggestionChange(event) {
+    const selected = event?.value ?? selectedSuggestion.value;
+    if (!selected) return;
+    selectSuggestion(selected);
 }
 
 watch(
@@ -393,21 +405,24 @@ watch(
                     role="listitem"
                 >
                     {{ tag }}
-                    <button
+                    <MButton
                         type="button"
                         class="mjr-tag-chip-remove"
+                        severity="secondary"
+                        text
+                        rounded
                         :aria-label="t('tags.remove', 'Remove tag')"
                         :disabled="disabled"
                         @click="removeTag(index)"
                     >
                         &times;
-                    </button>
+                    </MButton>
                 </div>
             </template>
         </div>
 
         <div class="mjr-tags-input-wrap">
-            <input
+            <MInputText
                 ref="inputRef"
                 v-model="inputValue"
                 type="text"
@@ -424,25 +439,26 @@ watch(
                 @blur="handleInputBlur"
             />
 
-            <div
+            <MListbox
                 v-show="showDropdown && hasSuggestions"
+                v-model="selectedSuggestion"
+                :options="filteredSuggestions"
                 class="mjr-tags-dropdown"
-                role="listbox"
+                :scroll-height="'150px'"
                 :aria-label="t('tags.suggestions', 'Tag suggestions')"
+                @change="handleSuggestionChange"
             >
-                <div
-                    v-for="(suggestion, idx) in filteredSuggestions"
-                    :key="suggestion"
-                    class="mjr-tag-suggestion"
-                    :class="{ 'is-active': idx === selectedIndex }"
-                    role="option"
-                    :aria-selected="idx === selectedIndex"
-                    @click="selectSuggestion(suggestion)"
-                    @mouseenter="selectedIndex = idx"
-                >
-                    {{ suggestion }}
-                </div>
-            </div>
+                <template #option="{ option, index }">
+                    <div
+                        class="mjr-tag-suggestion"
+                        :class="{ 'is-active': index === selectedIndex }"
+                        :aria-selected="index === selectedIndex"
+                        @mouseenter="selectedIndex = index"
+                    >
+                        {{ option }}
+                    </div>
+                </template>
+            </MListbox>
         </div>
     </div>
 </template>

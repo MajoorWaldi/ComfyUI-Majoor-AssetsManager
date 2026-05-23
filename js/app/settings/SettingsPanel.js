@@ -10,6 +10,7 @@ import { safeDispatchCustomEvent } from "../../utils/events.js";
 import { initI18n, setFollowComfyLanguage, startComfyLanguageSync } from "../i18n.js";
 import { debounce } from "../../utils/debounce.js";
 import { getWatcherStatus, toggleWatcher } from "../../api/client.js";
+import { setSettingValue } from "../comfyApiBridge.js";
 
 import {
     loadMajoorSettings,
@@ -49,8 +50,8 @@ const COLOR_SETTING_KEYS = new Set([
 let _settingsStorageListenerBound = false;
 let _settingsStorageListenerRef = null;
 let _settingsContext = null;
-let _settingsDefinitions = null;
 let _settingsRuntimeInitialized = false;
+const _syncingComfySettingIds = new Set();
 
 function normalizeSettingPayload(payload) {
     if (!payload || typeof payload !== "object") return null;
@@ -64,13 +65,48 @@ function normalizeSettingPayload(payload) {
     }
     try {
         const category = normalized.category;
-        if (!Array.isArray(category) || String(category[0] || "") !== SETTINGS_CATEGORY) {
+        if (!Array.isArray(category) || !category.length) {
             normalized.category = [SETTINGS_CATEGORY];
+        } else if (String(category[0] || "") !== SETTINGS_CATEGORY) {
+            normalized.category = [SETTINGS_CATEGORY, ...category.filter(Boolean)];
+        } else {
+            normalized.category = category.filter(Boolean);
         }
     } catch {
         normalized.category = [SETTINGS_CATEGORY];
     }
+    if (!normalized.tooltip && typeof normalized.name === "string" && normalized.name.trim()) {
+        normalized.tooltip = normalized.name.trim();
+    }
     return normalized;
+}
+
+function syncComfySettingValue(app, definition, value) {
+    const id = String(definition?.id || "").trim();
+    if (!id) return false;
+    if (_syncingComfySettingIds.has(id)) return false;
+    _syncingComfySettingIds.add(id);
+    try {
+        return setSettingValue(app, id, value);
+    } finally {
+        _syncingComfySettingIds.delete(id);
+    }
+}
+
+function wrapSettingForComfySync(app, definition) {
+    if (!definition || typeof definition !== "object") return definition;
+    const wrapped = { ...definition };
+    syncComfySettingValue(app, wrapped, wrapped.defaultValue);
+    const originalOnChange = wrapped.onChange;
+    wrapped.onChange = (value, ...args) => {
+        syncComfySettingValue(app, wrapped, value);
+        if (typeof originalOnChange === "function") {
+            return originalOnChange(value, ...args);
+        }
+        wrapped.defaultValue = value;
+        return undefined;
+    };
+    return wrapped;
 }
 
 function ensureMajoorSettingsContext(app, onApplied, { initRuntime = false } = {}) {
@@ -217,18 +253,16 @@ export const registerMajoorSettings = (app, onApplied) => {
 
 export const buildMajoorSettings = (app, onApplied) => {
     const context = ensureMajoorSettingsContext(app, onApplied, { initRuntime: false });
-    if (_settingsDefinitions) {
-        return _settingsDefinitions;
-    }
+    Object.assign(context.settings, loadMajoorSettings());
 
     const safeAddSetting = (payload) => {
         const normalized = normalizeSettingPayload(payload);
         if (normalized) {
-            _settingsDefinitions.push(normalized);
+            settingsDefinitions.push(wrapSettingForComfySync(app || context.app, normalized));
         }
     };
 
-    _settingsDefinitions = [];
+    const settingsDefinitions = [];
     registerGridSettings(safeAddSetting, context.settings, context.notifyApplied);
     registerFeedSettings(safeAddSetting, context.settings, context.notifyApplied);
     registerViewerSettings(safeAddSetting, context.settings, context.notifyApplied);
@@ -236,7 +270,7 @@ export const buildMajoorSettings = (app, onApplied) => {
     registerSecuritySettings(safeAddSetting, context.settings, context.notifyApplied);
     registerAdvancedSettings(safeAddSetting, context.settings, context.notifyApplied, app);
     registerSearchSettings(safeAddSetting, context.settings, context.notifyApplied);
-    return _settingsDefinitions;
+    return settingsDefinitions;
 };
 
 // Best-effort backend sync (watcher status) at startup.
@@ -246,9 +280,11 @@ try {
         getWatcherStatus()
             .then((res) => {
                 const enabled = !!res?.ok && !!res?.data?.enabled;
-                if (typeof enabled === "boolean" && enabled !== !!settings.watcher.enabled) {
-                    settings.watcher.enabled = enabled;
-                    saveMajoorSettings(settings);
+                const latest = loadMajoorSettings();
+                latest.watcher = latest.watcher || {};
+                if (typeof enabled === "boolean" && enabled !== !!latest.watcher.enabled) {
+                    latest.watcher.enabled = enabled;
+                    saveMajoorSettings(latest);
                     safeDispatchCustomEvent(
                         "mjr-settings-changed",
                         { key: "watcher.enabled" },

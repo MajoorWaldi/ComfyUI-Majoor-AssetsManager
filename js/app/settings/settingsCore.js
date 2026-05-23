@@ -277,7 +277,10 @@ export const saveMajoorSettings = (settings) => {
             version: SETTINGS_SCHEMA_VERSION,
             data: sanitized,
         };
-        SettingsStore.set(SETTINGS_KEY, JSON.stringify(wrapped));
+        const saved = SettingsStore.set(SETTINGS_KEY, JSON.stringify(wrapped));
+        if (!saved) {
+            throw new Error("SettingsStore rejected the write");
+        }
     } catch (error) {
         console.warn("[Majoor] settings save failed", error);
         try {
@@ -496,6 +499,9 @@ export const applySettingsToConfig = (settings) => {
     APP_CONFIG.MFV_LIVE_DEFAULT = settings.viewer?.mfvLiveDefault ?? APP_DEFAULTS.MFV_LIVE_DEFAULT;
     APP_CONFIG.MFV_PREVIEW_DEFAULT =
         settings.viewer?.mfvPreviewDefault ?? APP_DEFAULTS.MFV_PREVIEW_DEFAULT;
+    APP_CONFIG.MFV_LIVE_AUTO_OPEN = false;
+    APP_CONFIG.MFV_PREVIEW_AUTO_OPEN = false;
+    APP_CONFIG.MFV_NODE_STREAM_AUTO_OPEN = false;
     {
         const previewMethod = String(
             settings.viewer?.mfvPreviewMethod || APP_DEFAULTS.MFV_PREVIEW_METHOD,

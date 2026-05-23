@@ -18,6 +18,19 @@ import {
 import { t } from "./i18n.js";
 
 export const comfyAlert = async (message, title = "Majoor", options = {}) => {
+    const extensionDialog = getExtensionManagerDialog();
+    if (extensionDialog && typeof extensionDialog.alert === "function") {
+        try {
+            await extensionDialog.alert({
+                title: String(title || "Majoor"),
+                message: String(message || ""),
+            });
+            return;
+        } catch (e) {
+            console.debug?.(e);
+        }
+    }
+
     const extensionToast = getExtensionManagerToast();
     if (extensionToast) {
         try {

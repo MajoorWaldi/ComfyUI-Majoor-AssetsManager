@@ -17,27 +17,75 @@ import { t } from "../../../app/i18n.js";
 
 const panelStore = usePanelStore();
 
-// Filter input element refs — exposed for filtersController.bindFilters()
-const kindSelectRef = ref(null);
-const wfCheckboxRef = ref(null);
-const workflowTypeSelectRef = ref(null);
-const ratingSelectRef = ref(null);
+// Numeric/date inputs still expose DOM elements. Selects/checkboxes expose
+// value facades because PrimeVue does not render native select nodes.
 const minSizeInputRef = ref(null);
 const maxSizeInputRef = ref(null);
-const resolutionPresetSelectRef = ref(null);
 const minWidthInputRef = ref(null);
 const minHeightInputRef = ref(null);
 const maxWidthInputRef = ref(null);
 const maxHeightInputRef = ref(null);
-const dateRangeSelectRef = ref(null);
 const agendaContainerRef = ref(null);
 const dateExactInputRef = ref(null);
 
+const resolveDomElement = (value) => value?.$el || value || null;
+const getInputValue = (inputRef) => resolveDomElement(inputRef.value)?.value || "";
+const setInputValue = (inputRef, value) => {
+    const input = resolveDomElement(inputRef.value);
+    if (input) input.value = String(value ?? "");
+};
+
 const groupOpen = ref({
-    core: false,
+    core: true,
     media: false,
-    time: false,
+    time: true,
 });
+
+const fileTypeOptions = computed(() => [
+    { label: t("filter.all"), value: "" },
+    { label: t("filter.images", "Images"), value: "image" },
+    { label: t("filter.videos", "Videos"), value: "video" },
+    { label: t("filter.audio", "Audio"), value: "audio" },
+    { label: "3D", value: "model3d" },
+]);
+
+const workflowTypeOptions = computed(() => [
+    { label: t("filter.any", "Any"), value: "" },
+    { label: "T2I", value: "T2I" },
+    { label: "I2I", value: "I2I" },
+    { label: "T2V", value: "T2V" },
+    { label: "I2V", value: "I2V" },
+    { label: "V2V", value: "V2V" },
+    { label: "FLF (First/Last Frame)", value: "FLF" },
+    { label: "UPSCL", value: "UPSCL" },
+    { label: "INPT", value: "INPT" },
+    { label: "TTS (Text to Speech)", value: "TTS" },
+    { label: "A2A (Audio to Audio)", value: "A2A" },
+]);
+
+const ratingOptions = computed(() => [
+    { label: t("filter.anyRating"), value: "0" },
+    { label: "★ 1+", value: "1" },
+    { label: "★ 2+", value: "2" },
+    { label: "★ 3+", value: "3" },
+    { label: "★ 4+", value: "4" },
+    { label: "★ 5", value: "5" },
+]);
+
+const resolutionPresetOptions = computed(() => [
+    { label: t("filter.any", "Any"), value: "" },
+    { label: "HD (1280×720)", value: "hd" },
+    { label: "FHD (1920×1080)", value: "fhd" },
+    { label: "QHD (2560×1440)", value: "qhd" },
+    { label: "4K (3840×2160)", value: "uhd" },
+]);
+
+const dateRangeOptions = computed(() => [
+    { label: t("filter.anytime"), value: "" },
+    { label: t("filter.today"), value: "today" },
+    { label: t("filter.thisWeek"), value: "this_week" },
+    { label: t("filter.thisMonth"), value: "this_month" },
+]);
 
 const resolutionPresetValue = computed(() => {
     const minW = Number(panelStore.minWidth || 0) || 0;
@@ -73,34 +121,34 @@ const dispatchFiltersChanged = () => {
     }
 };
 
-const onKindChange = (event) => {
-    panelStore.kindFilter = String(event?.target?.value || "");
-    dispatchFiltersChanged();
+const applyKindValue = (value, { emit = true } = {}) => {
+    panelStore.kindFilter = String(value || "");
+    if (emit) dispatchFiltersChanged();
 };
 
-const onWorkflowOnlyChange = (event) => {
-    panelStore.workflowOnly = Boolean(event?.target?.checked);
-    dispatchFiltersChanged();
+const applyWorkflowOnlyValue = (value, { emit = true } = {}) => {
+    panelStore.workflowOnly = Boolean(value);
+    if (emit) dispatchFiltersChanged();
 };
 
-const onWorkflowTypeChange = (event) => {
-    panelStore.workflowType = String(event?.target?.value || "")
+const applyWorkflowTypeValue = (value, { emit = true } = {}) => {
+    panelStore.workflowType = String(value || "")
         .trim()
         .toUpperCase();
-    dispatchFiltersChanged();
+    if (emit) dispatchFiltersChanged();
 };
 
-const onRatingChange = (event) => {
-    panelStore.minRating = Number(event?.target?.value || 0) || 0;
-    dispatchFiltersChanged();
+const applyRatingValue = (value, { emit = true } = {}) => {
+    panelStore.minRating = Number(value || 0) || 0;
+    if (emit) dispatchFiltersChanged();
 };
 
 const onSizeChange = () => {
-    const nextMin = parseLooseNumber(minSizeInputRef.value?.value || 0);
-    let nextMax = parseLooseNumber(maxSizeInputRef.value?.value || 0);
+    const nextMin = parseLooseNumber(getInputValue(minSizeInputRef) || 0);
+    let nextMax = parseLooseNumber(getInputValue(maxSizeInputRef) || 0);
     if (nextMax > 0 && nextMin > 0 && nextMax < nextMin) {
         nextMax = nextMin;
-        if (maxSizeInputRef.value) maxSizeInputRef.value.value = String(nextMax);
+        setInputValue(maxSizeInputRef, nextMax);
     }
     panelStore.minSizeMB = nextMin > 0 ? nextMin : 0;
     panelStore.maxSizeMB = nextMax > 0 ? nextMax : 0;
@@ -108,17 +156,17 @@ const onSizeChange = () => {
 };
 
 const onResolutionChange = () => {
-    const nextMinW = Math.max(0, Math.round(parseLooseNumber(minWidthInputRef.value?.value || 0)));
-    const nextMinH = Math.max(0, Math.round(parseLooseNumber(minHeightInputRef.value?.value || 0)));
-    let nextMaxW = Math.max(0, Math.round(parseLooseNumber(maxWidthInputRef.value?.value || 0)));
-    let nextMaxH = Math.max(0, Math.round(parseLooseNumber(maxHeightInputRef.value?.value || 0)));
+    const nextMinW = Math.max(0, Math.round(parseLooseNumber(getInputValue(minWidthInputRef) || 0)));
+    const nextMinH = Math.max(0, Math.round(parseLooseNumber(getInputValue(minHeightInputRef) || 0)));
+    let nextMaxW = Math.max(0, Math.round(parseLooseNumber(getInputValue(maxWidthInputRef) || 0)));
+    let nextMaxH = Math.max(0, Math.round(parseLooseNumber(getInputValue(maxHeightInputRef) || 0)));
     if (nextMaxW > 0 && nextMinW > 0 && nextMaxW < nextMinW) {
         nextMaxW = nextMinW;
-        if (maxWidthInputRef.value) maxWidthInputRef.value.value = String(nextMaxW);
+        setInputValue(maxWidthInputRef, nextMaxW);
     }
     if (nextMaxH > 0 && nextMinH > 0 && nextMaxH < nextMinH) {
         nextMaxH = nextMinH;
-        if (maxHeightInputRef.value) maxHeightInputRef.value.value = String(nextMaxH);
+        setInputValue(maxHeightInputRef, nextMaxH);
     }
     panelStore.minWidth = nextMinW;
     panelStore.minHeight = nextMinH;
@@ -127,8 +175,8 @@ const onResolutionChange = () => {
     dispatchFiltersChanged();
 };
 
-const onResolutionPresetChange = (event) => {
-    const preset = String(event?.target?.value || "").trim();
+const applyResolutionPresetValue = (value, { emit = true } = {}) => {
+    const preset = String(value || "").trim();
     const map = {
         hd: [1280, 720],
         fhd: [1920, 1080],
@@ -140,20 +188,20 @@ const onResolutionPresetChange = (event) => {
     panelStore.minHeight = Number(h || 0);
     panelStore.maxWidth = 0;
     panelStore.maxHeight = 0;
-    if (minWidthInputRef.value) minWidthInputRef.value.value = panelStore.minWidth || "";
-    if (minHeightInputRef.value) minHeightInputRef.value.value = panelStore.minHeight || "";
-    if (maxWidthInputRef.value) maxWidthInputRef.value.value = "";
-    if (maxHeightInputRef.value) maxHeightInputRef.value.value = "";
-    dispatchFiltersChanged();
+    setInputValue(minWidthInputRef, panelStore.minWidth || "");
+    setInputValue(minHeightInputRef, panelStore.minHeight || "");
+    setInputValue(maxWidthInputRef, "");
+    setInputValue(maxHeightInputRef, "");
+    if (emit) dispatchFiltersChanged();
 };
 
-const onDateRangeChange = (event) => {
-    panelStore.dateRangeFilter = String(event?.target?.value || "");
+const applyDateRangeValue = (value, { emit = true } = {}) => {
+    panelStore.dateRangeFilter = String(value || "");
     if (panelStore.dateRangeFilter && panelStore.dateExactFilter) {
         panelStore.dateExactFilter = "";
-        if (dateExactInputRef.value) dateExactInputRef.value.value = "";
+        setInputValue(dateExactInputRef, "");
     }
-    dispatchFiltersChanged();
+    if (emit) dispatchFiltersChanged();
 };
 
 const onDateExactChange = (event) => {
@@ -172,20 +220,76 @@ const toggleGroup = (groupName) => {
 
 const isGroupOpen = (groupName) => Boolean(groupOpen.value[String(groupName || "").trim().toLowerCase()]);
 
+const createValueFacade = ({ getValue, setValue }) => ({
+    get value() {
+        return getValue();
+    },
+    set value(nextValue) {
+        setValue(nextValue, { emit: false });
+    },
+    addEventListener() {},
+    removeEventListener() {},
+    dispatchEvent() {
+        return true;
+    },
+});
+
+const createCheckedFacade = ({ getChecked, setChecked }) => ({
+    get checked() {
+        return getChecked();
+    },
+    set checked(nextChecked) {
+        setChecked(nextChecked, { emit: false });
+    },
+    addEventListener() {},
+    removeEventListener() {},
+    dispatchEvent() {
+        return true;
+    },
+});
+
+const kindSelectControl = createValueFacade({
+    getValue: () => String(panelStore.kindFilter || ""),
+    setValue: applyKindValue,
+});
+const workflowOnlyControl = createCheckedFacade({
+    getChecked: () => Boolean(panelStore.workflowOnly),
+    setChecked: applyWorkflowOnlyValue,
+});
+const workflowTypeControl = createValueFacade({
+    getValue: () =>
+        String(panelStore.workflowType || "")
+            .trim()
+            .toUpperCase(),
+    setValue: applyWorkflowTypeValue,
+});
+const ratingSelectControl = createValueFacade({
+    getValue: () => String(Number(panelStore.minRating || 0) || 0),
+    setValue: applyRatingValue,
+});
+const resolutionPresetControl = createValueFacade({
+    getValue: () => resolutionPresetValue.value,
+    setValue: applyResolutionPresetValue,
+});
+const dateRangeControl = createValueFacade({
+    getValue: () => String(panelStore.dateRangeFilter || ""),
+    setValue: applyDateRangeValue,
+});
+
 defineExpose({
-    get kindSelect()              { return kindSelectRef.value; },
-    get wfCheckbox()              { return wfCheckboxRef.value; },
-    get workflowTypeSelect()      { return workflowTypeSelectRef.value; },
-    get ratingSelect()            { return ratingSelectRef.value; },
-    get minSizeInput()            { return minSizeInputRef.value; },
-    get maxSizeInput()            { return maxSizeInputRef.value; },
-    get resolutionPresetSelect()  { return resolutionPresetSelectRef.value; },
-    get minWidthInput()           { return minWidthInputRef.value; },
-    get minHeightInput()          { return minHeightInputRef.value; },
-    get maxWidthInput()           { return maxWidthInputRef.value; },
-    get maxHeightInput()          { return maxHeightInputRef.value; },
-    get dateRangeSelect()         { return dateRangeSelectRef.value; },
-    get dateExactInput()          { return dateExactInputRef.value; },
+    get kindSelect()              { return kindSelectControl; },
+    get wfCheckbox()              { return workflowOnlyControl; },
+    get workflowTypeSelect()      { return workflowTypeControl; },
+    get ratingSelect()            { return ratingSelectControl; },
+    get minSizeInput()            { return resolveDomElement(minSizeInputRef.value); },
+    get maxSizeInput()            { return resolveDomElement(maxSizeInputRef.value); },
+    get resolutionPresetSelect()  { return resolutionPresetControl; },
+    get minWidthInput()           { return resolveDomElement(minWidthInputRef.value); },
+    get minHeightInput()          { return resolveDomElement(minHeightInputRef.value); },
+    get maxWidthInput()           { return resolveDomElement(maxWidthInputRef.value); },
+    get maxHeightInput()          { return resolveDomElement(maxHeightInputRef.value); },
+    get dateRangeSelect()         { return dateRangeControl; },
+    get dateExactInput()          { return resolveDomElement(dateExactInputRef.value); },
     get agendaContainer()         { return agendaContainerRef.value; },
 });
 </script>
@@ -200,34 +304,33 @@ defineExpose({
 
         <!-- ── Core group ─────────────────────────────────────────────────── -->
         <div class="mjr-filter-group" :class="{ 'is-open': isGroupOpen('core') }">
-            <button
+            <MButton
                 type="button"
                 class="mjr-filter-group-toggle"
+                severity="secondary"
+                text
                 :aria-expanded="String(isGroupOpen('core'))"
                 @click="toggleGroup('core')"
             >
                 <span class="mjr-filter-group-title">{{ t("group.core", "Core") }}</span>
                 <span class="mjr-filter-group-chevron" aria-hidden="true">{{ isGroupOpen("core") ? "▾" : "▸" }}</span>
-            </button>
+            </MButton>
 
             <div v-show="isGroupOpen('core')" class="mjr-filter-group-body">
 
             <!-- File type -->
             <div class="mjr-popover-row">
                 <div class="mjr-popover-label">{{ t("label.type") }}</div>
-                <select
-                    ref="kindSelectRef"
-                    class="mjr-select"
+                <MSelect
+                    class="mjr-select mjr-filter-select"
+                    panel-class="mjr-filter-select-panel"
                     :title="t('tooltip.filterByFileType', 'Filter by file type')"
-                    :value="panelStore.kindFilter"
-                    @change="onKindChange"
-                >
-                    <option value="">{{ t("filter.all") }}</option>
-                    <option value="image">{{ t("filter.images", "Images") }}</option>
-                    <option value="video">{{ t("filter.videos", "Videos") }}</option>
-                    <option value="audio">{{ t("filter.audio", "Audio") }}</option>
-                    <option value="model3d">3D</option>
-                </select>
+                    :model-value="String(panelStore.kindFilter || '')"
+                    :options="fileTypeOptions"
+                    option-label="label"
+                    option-value="value"
+                    @update:model-value="applyKindValue"
+                />
             </div>
 
             <!-- Workflow only -->
@@ -237,11 +340,11 @@ defineExpose({
                     class="mjr-popover-toggle"
                     :title="t('tooltip.filterWorkflowOnly', 'Show only assets with embedded workflow data')"
                 >
-                    <input
-                        ref="wfCheckboxRef"
-                        type="checkbox"
-                        :checked="panelStore.workflowOnly"
-                        @change="onWorkflowOnlyChange"
+                    <MCheckbox
+                        class="mjr-checkbox"
+                        :model-value="Boolean(panelStore.workflowOnly)"
+                        binary
+                        @update:model-value="applyWorkflowOnlyValue"
                     />
                     <span>{{ t("filter.onlyWithWorkflow") }}</span>
                 </label>
@@ -250,65 +353,54 @@ defineExpose({
             <!-- Workflow type -->
             <div class="mjr-popover-row">
                 <div class="mjr-popover-label">{{ t("label.workflowType", "Workflow type") }}</div>
-                <select
-                    ref="workflowTypeSelectRef"
-                    class="mjr-select"
-                    :value="panelStore.workflowType"
-                    @change="onWorkflowTypeChange"
-                >
-                    <option value="">{{ t("filter.any", "Any") }}</option>
-                    <option value="T2I">T2I</option>
-                    <option value="I2I">I2I</option>
-                    <option value="T2V">T2V</option>
-                    <option value="I2V">I2V</option>
-                    <option value="V2V">V2V</option>
-                    <option value="FLF">FLF (First/Last Frame)</option>
-                    <option value="UPSCL">UPSCL</option>
-                    <option value="INPT">INPT</option>
-                    <option value="TTS">TTS (Text to Speech)</option>
-                    <option value="A2A">A2A (Audio to Audio)</option>
-                </select>
+                <MSelect
+                    class="mjr-select mjr-filter-select"
+                    panel-class="mjr-filter-select-panel"
+                    :model-value="String(panelStore.workflowType || '').trim().toUpperCase()"
+                    :options="workflowTypeOptions"
+                    option-label="label"
+                    option-value="value"
+                    @update:model-value="applyWorkflowTypeValue"
+                />
             </div>
 
             <!-- Rating -->
             <div class="mjr-popover-row">
                 <div class="mjr-popover-label">{{ t("label.rating") }}</div>
-                <select
-                    ref="ratingSelectRef"
-                    class="mjr-select"
+                <MSelect
+                    class="mjr-select mjr-filter-select"
+                    panel-class="mjr-filter-select-panel"
                     :title="t('tooltip.filterMinRating', 'Filter by minimum rating')"
-                    :value="String(panelStore.minRating || 0)"
-                    @change="onRatingChange"
-                >
-                    <option value="0">{{ t("filter.anyRating") }}</option>
-                    <option value="1">★ 1+</option>
-                    <option value="2">★ 2+</option>
-                    <option value="3">★ 3+</option>
-                    <option value="4">★ 4+</option>
-                    <option value="5">★ 5</option>
-                </select>
+                    :model-value="String(Number(panelStore.minRating || 0) || 0)"
+                    :options="ratingOptions"
+                    option-label="label"
+                    option-value="value"
+                    @update:model-value="applyRatingValue"
+                />
             </div>
             </div>
         </div>
 
         <!-- ── Media group ─────────────────────────────────────────────────── -->
         <div class="mjr-filter-group" :class="{ 'is-open': isGroupOpen('media') }">
-            <button
+            <MButton
                 type="button"
                 class="mjr-filter-group-toggle"
+                severity="secondary"
+                text
                 :aria-expanded="String(isGroupOpen('media'))"
                 @click="toggleGroup('media')"
             >
                 <span class="mjr-filter-group-title">{{ t("group.media", "Media") }}</span>
                 <span class="mjr-filter-group-chevron" aria-hidden="true">{{ isGroupOpen("media") ? "▾" : "▸" }}</span>
-            </button>
+            </MButton>
 
             <div v-show="isGroupOpen('media')" class="mjr-filter-group-body">
 
             <!-- File size -->
             <div class="mjr-popover-row mjr-popover-row--3col">
                 <div class="mjr-popover-label">{{ t("label.fileSizeMB", "File size (MB)") }}</div>
-                <input
+                <MInputText
                     ref="minSizeInputRef"
                     type="number"
                     min="0"
@@ -318,7 +410,7 @@ defineExpose({
                     :value="panelStore.minSizeMB || ''"
                     @change="onSizeChange"
                 />
-                <input
+                <MInputText
                     ref="maxSizeInputRef"
                     type="number"
                     min="0"
@@ -333,24 +425,21 @@ defineExpose({
             <!-- Resolution preset -->
             <div class="mjr-popover-row">
                 <div class="mjr-popover-label">{{ t("label.resolutionPx", "Resolution (px)") }}</div>
-                <select
-                    ref="resolutionPresetSelectRef"
-                    class="mjr-select"
-                    :value="resolutionPresetValue"
-                    @change="onResolutionPresetChange"
-                >
-                    <option value="">{{ t("filter.any", "Any") }}</option>
-                    <option value="hd">HD (1280×720)</option>
-                    <option value="fhd">FHD (1920×1080)</option>
-                    <option value="qhd">QHD (2560×1440)</option>
-                    <option value="uhd">4K (3840×2160)</option>
-                </select>
+                <MSelect
+                    class="mjr-select mjr-filter-select"
+                    panel-class="mjr-filter-select-panel"
+                    :model-value="resolutionPresetValue"
+                    :options="resolutionPresetOptions"
+                    option-label="label"
+                    option-value="value"
+                    @update:model-value="applyResolutionPresetValue"
+                />
             </div>
 
             <!-- Min resolution -->
             <div class="mjr-popover-row mjr-popover-row--3col">
                 <div class="mjr-popover-label">{{ t("label.resolutionMinWxH", "Min WxH (px)") }}</div>
-                <input
+                <MInputText
                     ref="minWidthInputRef"
                     type="number"
                     min="0"
@@ -361,7 +450,7 @@ defineExpose({
                     :value="panelStore.minWidth || ''"
                     @change="onResolutionChange"
                 />
-                <input
+                <MInputText
                     ref="minHeightInputRef"
                     type="number"
                     min="0"
@@ -377,7 +466,7 @@ defineExpose({
             <!-- Max resolution -->
             <div class="mjr-popover-row mjr-popover-row--3col">
                 <div class="mjr-popover-label">{{ t("label.resolutionMaxWxH", "Max WxH (px)") }}</div>
-                <input
+                <MInputText
                     ref="maxWidthInputRef"
                     type="number"
                     min="0"
@@ -388,7 +477,7 @@ defineExpose({
                     :value="panelStore.maxWidth || ''"
                     @change="onResolutionChange"
                 />
-                <input
+                <MInputText
                     ref="maxHeightInputRef"
                     type="number"
                     min="0"
@@ -405,40 +494,40 @@ defineExpose({
 
         <!-- ── Time group ──────────────────────────────────────────────────── -->
         <div class="mjr-filter-group" :class="{ 'is-open': isGroupOpen('time') }">
-            <button
+            <MButton
                 type="button"
                 class="mjr-filter-group-toggle"
+                severity="secondary"
+                text
                 :aria-expanded="String(isGroupOpen('time'))"
                 @click="toggleGroup('time')"
             >
                 <span class="mjr-filter-group-title">{{ t("group.time", "Time") }}</span>
                 <span class="mjr-filter-group-chevron" aria-hidden="true">{{ isGroupOpen("time") ? "▾" : "▸" }}</span>
-            </button>
+            </MButton>
 
             <div v-show="isGroupOpen('time')" class="mjr-filter-group-body">
 
             <!-- Date range -->
             <div class="mjr-popover-row">
                 <div class="mjr-popover-label">{{ t("label.dateRange") }}</div>
-                <select
-                    ref="dateRangeSelectRef"
-                    class="mjr-select"
+                <MSelect
+                    class="mjr-select mjr-filter-select"
+                    panel-class="mjr-filter-select-panel"
                     :title="t('tooltip.filterByDateRange', 'Filter by date range')"
-                    :value="panelStore.dateRangeFilter"
-                    @change="onDateRangeChange"
-                >
-                    <option value="">{{ t("filter.anytime") }}</option>
-                    <option value="today">{{ t("filter.today") }}</option>
-                    <option value="this_week">{{ t("filter.thisWeek") }}</option>
-                    <option value="this_month">{{ t("filter.thisMonth") }}</option>
-                </select>
+                    :model-value="String(panelStore.dateRangeFilter || '')"
+                    :options="dateRangeOptions"
+                    option-label="label"
+                    option-value="value"
+                    @update:model-value="applyDateRangeValue"
+                />
             </div>
 
             <!-- Agenda date picker (hidden input + container for AgendaCalendar) -->
             <div class="mjr-popover-row">
                 <div class="mjr-popover-label">{{ t("label.agenda") }}</div>
                 <div ref="agendaContainerRef" class="mjr-agenda-container">
-                    <input
+                    <MInputText
                         ref="dateExactInputRef"
                         type="date"
                         class="mjr-input mjr-agenda-input"

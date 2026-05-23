@@ -1713,9 +1713,15 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
         if error_result:
             return _json_response(error_result)
 
+        try:
+            raw_input_dir = get_input_directory()
+            input_directory = str(Path(raw_input_dir).resolve(strict=False)) if raw_input_dir else ""
+        except Exception:
+            input_directory = ""
+
         roots = {
             "output_directory": await _runtime_output_root(svc),
-            "input_directory": str(Path(get_input_directory()).resolve()),
+            "input_directory": input_directory,
         }
 
         custom = list_custom_roots()

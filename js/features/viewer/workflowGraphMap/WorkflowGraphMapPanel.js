@@ -78,6 +78,7 @@ export class WorkflowGraphMapPanel {
             this._canvas.addEventListener?.("wheel", (event) => this._handleWheel(event), {
                 passive: false,
             });
+            this._canvas.addEventListener?.("dblclick", (event) => this._handleCanvasDblClick(event));
             this._canvas.addEventListener?.("pointerdown", (event) => this._handlePointerDown(event));
             mapWrap.appendChild(this._canvas);
         } else {
@@ -355,7 +356,60 @@ export class WorkflowGraphMapPanel {
         event.preventDefault?.();
         const direction = Number(event.deltaY) > 0 ? -1 : 1;
         const factor = direction > 0 ? 1.18 : 1 / 1.18;
-        this._view.zoom = Math.max(1, Math.min(8, Number(this._view.zoom || 1) * factor));
+        const oldZoom = Number(this._view.zoom || 1);
+        const newZoom = Math.max(1, Math.min(8, oldZoom * factor));
+        if (newZoom === oldZoom) return;
+        const view = this._renderInfo?.resolvedView;
+        if (view?.renderScale && view?.viewMinX != null && view?.viewMinY != null) {
+            const rect = this._canvas.getBoundingClientRect();
+            const mouseX = event.clientX - rect.left;
+            const mouseY = event.clientY - rect.top;
+            const { renderScale, viewMinX, viewMinY, visibleW, visibleH, pad } = view;
+            // World point under cursor before zoom change
+            const worldX = viewMinX + (mouseX - pad) / renderScale;
+            const worldY = viewMinY + (mouseY - pad) / renderScale;
+            // renderScale scales linearly with zoom; adjust center to keep world point under cursor
+            const newRenderScale = renderScale * (newZoom / oldZoom);
+            const newVisibleW = visibleW * (oldZoom / newZoom);
+            const newVisibleH = visibleH * (oldZoom / newZoom);
+            const newViewMinX = worldX - (mouseX - pad) / newRenderScale;
+            const newViewMinY = worldY - (mouseY - pad) / newRenderScale;
+            this._view.zoom = newZoom;
+            this._view.centerX = newViewMinX + newVisibleW / 2;
+            this._view.centerY = newViewMinY + newVisibleH / 2;
+        } else {
+            this._view.zoom = newZoom;
+        }
+        this.refresh();
+    }
+
+    _handleCanvasDblClick(event) {
+        if (!this._workflow) return;
+        const rect = this._canvas.getBoundingClientRect();
+        const hit = this._renderInfo?.hitTestNode?.(event.clientX - rect.left, event.clientY - rect.top);
+        if (hit?.x != null && hit?.w != null) {
+            // Zoom to fit the clicked node (or subgraph container) with context margin
+            this._zoomToWorldRect(hit.x, hit.y, hit.w, hit.h);
+        } else {
+            // Double-click on background: reset to fit-all
+            this._view = { zoom: 1, centerX: null, centerY: null };
+            this.refresh();
+        }
+    }
+
+    _zoomToWorldRect(x, y, w, h) {
+        const info = this._renderInfo;
+        if (!info?.bounds) return;
+        const { bounds } = info;
+        const boundsW = Math.max(1, bounds.maxX - bounds.minX);
+        const boundsH = Math.max(1, bounds.maxY - bounds.minY);
+        // Show the target rect at ~half the canvas (margin 2.0 = target fills 50%)
+        const margin = 2.0;
+        const zoomW = boundsW / Math.max(1, w * margin);
+        const zoomH = boundsH / Math.max(1, h * margin);
+        this._view.zoom = Math.max(1, Math.min(8, Math.min(zoomW, zoomH)));
+        this._view.centerX = x + w / 2;
+        this._view.centerY = y + h / 2;
         this.refresh();
     }
 

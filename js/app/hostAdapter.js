@@ -36,6 +36,7 @@ import {
     registerKeybindingCompat,
     registerSidebarTabCompat,
     setComfyApp,
+    setSettingValue,
     waitForComfyApi,
     waitForComfyApp,
 } from "./comfyApiBridge.js";
@@ -146,6 +147,21 @@ export function getSetting(key, defaultValue = null) {
         return value !== null && value !== undefined ? value : defaultValue;
     } catch {
         return defaultValue;
+    }
+}
+
+/**
+ * Write a ComfyUI setting value.
+ *
+ * @param {string} key
+ * @param {*} value
+ * @returns {boolean}
+ */
+export function setSetting(key, value) {
+    try {
+        return setSettingValue(_app || getComfyApp(), key, value);
+    } catch {
+        return false;
     }
 }
 
@@ -340,6 +356,102 @@ export async function waitForRawHostApi(options = {}) {
     }
 }
 
+// ── graph/canvas helpers ─────────────────────────────────────────────────────
+
+function _getMainCanvasState() {
+    const app = _app || getComfyApp() || null;
+    const graphCanvas = app?.canvas || null;
+    const ds = graphCanvas?.ds || null;
+    const canvas = graphCanvas?.canvas || graphCanvas?.el || null;
+    if (!graphCanvas || !ds || !canvas) return null;
+    const scale = Number(ds?.scale);
+    const width = Number(canvas?.width || canvas?.clientWidth || 0);
+    const height = Number(canvas?.height || canvas?.clientHeight || 0);
+    if (!Number.isFinite(scale) || scale <= 0 || !(width > 0) || !(height > 0)) return null;
+    return { app, graphCanvas, ds, scale, width, height };
+}
+
+function _setCanvasOffset(ds, x, y) {
+    if (Array.isArray(ds?.offset)) {
+        ds.offset[0] = x;
+        ds.offset[1] = y;
+        return true;
+    }
+    if (ds?.offset && typeof ds.offset === "object") {
+        ds.offset.x = x;
+        ds.offset.y = y;
+        return true;
+    }
+    return false;
+}
+
+function _markCanvasDirty(app, graphCanvas) {
+    try {
+        graphCanvas?.setDirty?.(true, true);
+    } catch (e) {
+        console.debug?.(e);
+    }
+    try {
+        app?.graph?.setDirtyCanvas?.(true, true);
+    } catch (e) {
+        console.debug?.(e);
+    }
+}
+
+/**
+ * Center the ComfyUI graph canvas on a world-space point.
+ *
+ * @param {{ x: number, y: number }} worldPoint
+ * @returns {boolean}
+ */
+export function centerGraphCanvasOnWorldPoint(worldPoint) {
+    try {
+        const state = _getMainCanvasState();
+        if (!state || !worldPoint) return false;
+        const pointX = Number(worldPoint.x);
+        const pointY = Number(worldPoint.y);
+        if (!Number.isFinite(pointX) || !Number.isFinite(pointY)) return false;
+        const dpr = Math.max(
+            1,
+            Number(globalThis?.devicePixelRatio ?? globalThis?.window?.devicePixelRatio) || 1,
+        );
+        const offsetX = -pointX + state.width * 0.5 / (state.scale * dpr);
+        const offsetY = -pointY + state.height * 0.5 / (state.scale * dpr);
+        if (!Number.isFinite(offsetX) || !Number.isFinite(offsetY)) return false;
+        if (!_setCanvasOffset(state.ds, offsetX, offsetY)) return false;
+        _markCanvasDirty(state.app, state.graphCanvas);
+        return true;
+    } catch (e) {
+        console.debug?.(e);
+        return false;
+    }
+}
+
+/**
+ * Return the current graph viewport in workflow/world coordinates.
+ *
+ * @returns {{ x0: number, y0: number, x1: number, y1: number } | null}
+ */
+export function getGraphCanvasViewportBounds() {
+    try {
+        const state = _getMainCanvasState();
+        if (!state) return null;
+        const off = state.ds?.offset;
+        const offX = Array.isArray(off) ? Number(off[0]) : Number(off?.x);
+        const offY = Array.isArray(off) ? Number(off[1]) : Number(off?.y);
+        if (!Number.isFinite(offX) || !Number.isFinite(offY)) return null;
+        return {
+            x0: -offX / state.scale,
+            y0: -offY / state.scale,
+            x1: (state.width - offX) / state.scale,
+            y1: (state.height - offY) / state.scale,
+        };
+    } catch (e) {
+        console.debug?.(e);
+        return null;
+    }
+}
+
 // ── public API ────────────────────────────────────────────────────────────────
 
 export const hostAdapter = {
@@ -349,6 +461,7 @@ export const hostAdapter = {
     showToast,
     confirm,
     getSetting,
+    setSetting,
     getHostSettingsApi,
     registerSidebarTab,
     registerSidebarTabForApp,
@@ -364,6 +477,8 @@ export const hostAdapter = {
     getRawHostApp,
     getRawHostApi,
     waitForRawHostApi,
+    centerGraphCanvasOnWorldPoint,
+    getGraphCanvasViewportBounds,
 };
 
 export default hostAdapter;

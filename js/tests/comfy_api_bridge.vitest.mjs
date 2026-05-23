@@ -67,6 +67,33 @@ describe("comfyApiBridge", () => {
         expect(registerBottomPanelTab).toHaveBeenCalledWith({ id: "mjr.feed" });
     });
 
+    it("prefers sidebarTabStore and supports workspaceStore sidebar fallback", async () => {
+        const storeToggle = vi.fn();
+        const legacyToggle = vi.fn();
+        const workspaceToggle = vi.fn();
+        const app = {
+            ui: {},
+            extensionManager: {
+                sidebarTab: { toggleSidebarTab: legacyToggle },
+                sidebarTabStore: { toggleSidebarTab: storeToggle },
+                workspaceStore: { sidebarTab: { toggleSidebarTab: workspaceToggle } },
+            },
+        };
+
+        const mod = await import("../app/comfyApiBridge.js");
+        mod.setComfyApp(app);
+
+        expect(mod.getSidebarController(app)).toBe(app.extensionManager.sidebarTabStore);
+        expect(mod.activateSidebarTabCompat(app, "majoor-assets")).toBe(true);
+        expect(storeToggle).toHaveBeenCalledWith("majoor-assets");
+        expect(legacyToggle).not.toHaveBeenCalled();
+        expect(workspaceToggle).not.toHaveBeenCalled();
+
+        delete app.extensionManager.sidebarTabStore;
+        delete app.extensionManager.sidebarTab;
+        expect(mod.getSidebarController(app)).toBe(app.extensionManager.workspaceStore.sidebarTab);
+    });
+
     it("does not toggle a sidebar tab that is already active", async () => {
         const toggleSidebarTab = vi.fn();
         const app = {
@@ -97,5 +124,50 @@ describe("comfyApiBridge", () => {
         expect(mod.registerSidebarTabCompat(app, { id: "missing" })).toBe(false);
         expect(mod.registerCommandCompat(app, { id: "mjr.test" })).toBe(false);
         expect(mod.registerBottomPanelTabCompat(app, { id: "mjr.feed" })).toBe(false);
+    });
+
+    it("accepts alert-only extension dialog APIs", async () => {
+        const dialog = { alert: vi.fn() };
+        const app = {
+            ui: {},
+            extensionManager: { dialog },
+        };
+
+        const mod = await import("../app/comfyApiBridge.js");
+        mod.setComfyApp(app);
+
+        expect(mod.getExtensionDialogApi(app)).toBe(dialog);
+    });
+
+    it("reads and writes settings through current and legacy ComfyUI settings APIs", async () => {
+        const setSettingValue = vi.fn();
+        const app = {
+            ui: {
+                settings: {
+                    getSettingValue: vi.fn((key) => (key === "Majoor.Test" ? true : undefined)),
+                    setSettingValue,
+                },
+            },
+        };
+
+        const mod = await import("../app/comfyApiBridge.js");
+
+        expect(mod.getSettingValue(app, "Majoor.Test")).toBe(true);
+        expect(mod.setSettingValue(app, "Majoor.Test", false)).toBe(true);
+        expect(setSettingValue).toHaveBeenCalledWith("Majoor.Test", false);
+    });
+
+    it("falls back to map-like settings stores when helper methods are unavailable", async () => {
+        const app = {
+            settings: {
+                settings: new Map([["Majoor.Test", "from-map"]]),
+            },
+        };
+
+        const mod = await import("../app/comfyApiBridge.js");
+
+        expect(mod.getSettingValue(app, "Majoor.Test")).toBe("from-map");
+        expect(mod.setSettingValue(app, "Majoor.Test", "next")).toBe(true);
+        expect(app.settings.settings.get("Majoor.Test")).toBe("next");
     });
 });

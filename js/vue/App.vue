@@ -46,6 +46,7 @@ onMounted(async () => {
         external.summaryBar = summaryBarSectionRef.value.summaryBar;
         external.updateSummaryBar = summaryBarSectionRef.value.updateSummaryBar;
         external.folderBreadcrumb = summaryBarSectionRef.value.folderBreadcrumb;
+        external.folderBreadcrumbController = summaryBarSectionRef.value;
     }
 
     if (assetsGridRef.value) {

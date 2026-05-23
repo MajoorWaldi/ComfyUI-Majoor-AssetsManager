@@ -12,6 +12,7 @@ const syncBackendSecuritySettings = vi.fn();
 const syncBackendVectorSearchSettings = vi.fn();
 const syncBackendExecutionGroupingSettings = vi.fn();
 const toggleWatcher = vi.fn().mockResolvedValue({ ok: true });
+let loadedSettings;
 
 vi.mock("../utils/events.js", () => ({
     safeDispatchCustomEvent,
@@ -35,11 +36,7 @@ vi.mock("../api/client.js", () => ({
 
 vi.mock("../app/settings/settingsCore.js", () => ({
     applySettingsToConfig,
-    loadMajoorSettings: () => ({
-        i18n: { followComfyLanguage: true },
-        watcher: { enabled: true },
-        grid: {},
-    }),
+    loadMajoorSettings: () => loadedSettings,
     saveMajoorSettings,
     syncBackendSecuritySettings,
     syncBackendVectorSearchSettings,
@@ -51,13 +48,13 @@ vi.mock("../app/settings/settingsRuntime.js", () => ({
 }));
 
 vi.mock("../app/settings/settingsGrid.js", () => ({
-    registerGridSettings: (addSetting) => {
+    registerGridSettings: (addSetting, settings) => {
         addSetting({
             id: "Majoor.Grid.Sample",
             name: "Majoor: Sample setting",
             category: ["Wrong Category"],
             type: "boolean",
-            defaultValue: true,
+            defaultValue: settings.grid?.sample !== false,
         });
     },
 }));
@@ -105,6 +102,11 @@ describe("SettingsPanel", () => {
     beforeEach(() => {
         vi.resetModules();
         vi.clearAllMocks();
+        loadedSettings = {
+            i18n: { followComfyLanguage: true },
+            watcher: { enabled: true },
+            grid: { sample: false },
+        };
         globalThis.window = createWindow();
     });
 
@@ -114,9 +116,48 @@ describe("SettingsPanel", () => {
 
         expect(settings).toHaveLength(1);
         expect(settings[0].name).toBe("Sample setting");
-        expect(settings[0].category).toEqual(["Majoor Assets Manager"]);
+        expect(settings[0].category).toEqual(["Majoor Assets Manager", "Wrong Category"]);
+        expect(settings[0].tooltip).toBe("Sample setting");
         expect(startRuntimeStatusDashboard).not.toHaveBeenCalled();
         expect(syncBackendSecuritySettings).not.toHaveBeenCalled();
+    });
+
+    it("synchronizes setting values with the ComfyUI settings API", async () => {
+        const setSettingValue = vi.fn();
+        const app = {
+            ui: {
+                settings: { setSettingValue },
+            },
+        };
+        const mod = await import("../app/settings/SettingsPanel.js");
+
+        const settings = mod.buildMajoorSettings(app);
+        settings[0].onChange(true);
+
+        expect(setSettingValue).toHaveBeenCalledWith("Majoor.Grid.Sample", false);
+        expect(setSettingValue).toHaveBeenCalledWith("Majoor.Grid.Sample", true);
+    });
+
+    it("rebuilds definitions from the latest persisted settings on each open", async () => {
+        loadedSettings = {
+            i18n: { followComfyLanguage: true },
+            watcher: { enabled: true },
+            grid: { sample: true },
+        };
+        const mod = await import("../app/settings/SettingsPanel.js");
+
+        const first = mod.buildMajoorSettings({ id: "app" });
+        expect(first[0].defaultValue).toBe(true);
+
+        loadedSettings = {
+            i18n: { followComfyLanguage: true },
+            watcher: { enabled: true },
+            grid: {},
+        };
+        const second = mod.buildMajoorSettings({ id: "app" });
+
+        expect(second).not.toBe(first);
+        expect(second[0].defaultValue).toBe(true);
     });
 
     it("initializes runtime side effects once during register", async () => {

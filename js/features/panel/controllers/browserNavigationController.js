@@ -5,6 +5,7 @@ export function createBrowserNavigationController({
     state,
     gridContainer,
     folderBreadcrumb,
+    folderBreadcrumbController = null,
     customSelect,
     reloadGrid,
     clearSelection = null,
@@ -124,7 +125,11 @@ export function createBrowserNavigationController({
         setFolderPath(next);
         resetGridScrollToTop();
         notifyContext();
-        try { clearSelection?.(); } catch (e) { console.debug?.(e); }
+        try {
+            clearSelection?.();
+        } catch (e) {
+            console.debug?.(e);
+        }
         await reloadGrid?.();
     };
 
@@ -133,8 +138,23 @@ export function createBrowserNavigationController({
         setFolderPath("");
         resetGridScrollToTop();
         notifyContext();
-        try { clearSelection?.(); } catch (e) { console.debug?.(e); }
+        try {
+            clearSelection?.();
+        } catch (e) {
+            console.debug?.(e);
+        }
         await reloadGrid?.();
+    };
+
+    const setVueBreadcrumb = (payload) => {
+        if (typeof folderBreadcrumbController?.setFolderBreadcrumb !== "function") return false;
+        try {
+            folderBreadcrumbController.setFolderBreadcrumb(payload);
+            return true;
+        } catch (e) {
+            console.debug?.(e);
+            return false;
+        }
     };
 
     const renderBreadcrumb = () => {
@@ -156,10 +176,93 @@ export function createBrowserNavigationController({
 
         if (!folderBrowsingActive) {
             folderBackStack.length = 0;
+            if (setVueBreadcrumb({ visible: false })) return;
             folderBreadcrumb.style.display = "none";
             folderBreadcrumb.replaceChildren();
             return;
         }
+
+        const hasSelectedRoot = !!String(read("customRootId", "") || "").trim();
+        const canBackToBrowserRoot = hasSelectedRoot && !rel;
+        const canBackByPath = !!rel;
+        const backDisabled =
+            folderBackStack.length === 0 && !canBackToBrowserRoot && !canBackByPath;
+        const upDisabled = !rel || parentFolderPath(currentFolderPath()) === currentFolderPath();
+
+        const handleBack = async () => {
+            const prev = popDistinctHistory(folderBackStack, currentFolderPath());
+            if (prev != null) {
+                await navigateFolder(prev, { pushHistory: false });
+                return;
+            }
+            const cur = currentFolderPath();
+            if (cur) {
+                const parent = parentFolderPath(cur);
+                if (parent === cur) {
+                    if (hasSelectedRoot) await resetToBrowserRoot();
+                    return;
+                }
+                await navigateFolder(parent, { pushHistory: false });
+                return;
+            }
+            if (canBackToBrowserRoot) await resetToBrowserRoot();
+        };
+
+        const handleUp = async () => {
+            const parent = parentFolderPath(currentFolderPath());
+            if (parent === currentFolderPath()) {
+                if (hasSelectedRoot) await resetToBrowserRoot();
+                return;
+            }
+            await navigateFolder(parent);
+        };
+
+        const buildItem = (label, target, isCurrent = false) => ({
+            label: String(label || ""),
+            target: String(target || ""),
+            current: !!isCurrent,
+            onClick: async () => {
+                if (label === "Computer" && String(read("customRootId", "") || "").trim()) {
+                    await resetToBrowserRoot();
+                    return;
+                }
+                await navigateFolder(target);
+            },
+        });
+
+        const breadcrumbItems = [buildItem(t("label.computer", "Computer"), "", !rel)];
+        if (selectedRootId) {
+            breadcrumbItems.push(buildItem(selectedRootLabel || selectedRootId, "", !rel));
+        }
+        if (rel) {
+            const parts = rel.split("/").filter(Boolean);
+            let acc = "";
+            for (let i = 0; i < parts.length; i++) {
+                if (!acc) acc = isWindowsDrive(parts[i]) ? `${parts[i]}/` : parts[i];
+                else acc = `${acc}/${parts[i]}`.replace(/\/{2,}/g, "/");
+                breadcrumbItems.push(buildItem(parts[i], acc, i === parts.length - 1));
+            }
+        }
+
+        if (
+            setVueBreadcrumb({
+                visible: true,
+                back: {
+                    label: t("btn.back", "Back"),
+                    disabled: backDisabled,
+                    onClick: handleBack,
+                },
+                up: {
+                    label: t("btn.up", "Up"),
+                    disabled: upDisabled,
+                    onClick: handleUp,
+                },
+                items: breadcrumbItems,
+            })
+        ) {
+            return;
+        }
+
         folderBreadcrumb.style.display = "flex";
         folderBreadcrumb.replaceChildren();
 
@@ -167,55 +270,20 @@ export function createBrowserNavigationController({
         backBtn.type = "button";
         backBtn.textContent = t("btn.back", "Back");
         backBtn.className = "mjr-btn-link";
-        const hasSelectedRoot = !!String(read("customRootId", "") || "").trim();
-        const canBackToBrowserRoot = hasSelectedRoot && !rel;
-        const canBackByPath = !!rel;
-        backBtn.disabled = folderBackStack.length === 0 && !canBackToBrowserRoot && !canBackByPath;
+        backBtn.disabled = backDisabled;
         backBtn.style.cssText =
             "background:rgba(122,162,255,0.12);border:1px solid rgba(122,162,255,0.35);border-radius:6px;padding:2px 8px;font:inherit;color:var(--mjr-accent, #7aa2ff);cursor:pointer;";
-        backBtn.addEventListener(
-            "click",
-            async () => {
-                const prev = popDistinctHistory(folderBackStack, currentFolderPath());
-                if (prev != null) {
-                    await navigateFolder(prev, { pushHistory: false });
-                    return;
-                }
-                const cur = currentFolderPath();
-                if (cur) {
-                    const parent = parentFolderPath(cur);
-                    if (parent === cur) {
-                        if (hasSelectedRoot) await resetToBrowserRoot();
-                        return;
-                    }
-                    await navigateFolder(parent, { pushHistory: false });
-                    return;
-                }
-                if (canBackToBrowserRoot) await resetToBrowserRoot();
-            },
-            { signal: lifecycleSignal || undefined },
-        );
+        backBtn.addEventListener("click", handleBack, { signal: lifecycleSignal || undefined });
         folderBreadcrumb.appendChild(backBtn);
 
         const upBtn = document.createElement("button");
         upBtn.type = "button";
         upBtn.textContent = t("btn.up", "Up");
         upBtn.className = "mjr-btn-link";
-        upBtn.disabled = !rel || parentFolderPath(currentFolderPath()) === currentFolderPath();
+        upBtn.disabled = upDisabled;
         upBtn.style.cssText =
             "background:rgba(122,162,255,0.10);border:1px solid rgba(122,162,255,0.30);border-radius:6px;padding:2px 8px;font:inherit;color:var(--mjr-accent, #7aa2ff);cursor:pointer;";
-        upBtn.addEventListener(
-            "click",
-            async () => {
-                const parent = parentFolderPath(currentFolderPath());
-                if (parent === currentFolderPath()) {
-                    if (hasSelectedRoot) await resetToBrowserRoot();
-                    return;
-                }
-                await navigateFolder(parent);
-            },
-            { signal: lifecycleSignal || undefined },
-        );
+        upBtn.addEventListener("click", handleUp, { signal: lifecycleSignal || undefined });
         folderBreadcrumb.appendChild(upBtn);
 
         const sep0 = document.createElement("span");
@@ -247,25 +315,15 @@ export function createBrowserNavigationController({
             return el;
         };
 
-        folderBreadcrumb.appendChild(mk(t("label.computer", "Computer"), "", !rel));
-        if (selectedRootId) {
-            const sepRoot = document.createElement("span");
-            sepRoot.textContent = "/";
-            sepRoot.style.opacity = "0.6";
-            folderBreadcrumb.appendChild(sepRoot);
-            folderBreadcrumb.appendChild(mk(selectedRootLabel || selectedRootId, "", !rel));
-        }
-        if (!rel) return;
-        const parts = rel.split("/").filter(Boolean);
-        let acc = "";
-        for (let i = 0; i < parts.length; i++) {
-            const sep = document.createElement("span");
-            sep.textContent = "/";
-            sep.style.opacity = "0.6";
-            folderBreadcrumb.appendChild(sep);
-            if (!acc) acc = isWindowsDrive(parts[i]) ? `${parts[i]}/` : parts[i];
-            else acc = `${acc}/${parts[i]}`.replace(/\/{2,}/g, "/");
-            folderBreadcrumb.appendChild(mk(parts[i], acc, i === parts.length - 1));
+        for (let i = 0; i < breadcrumbItems.length; i++) {
+            if (i > 0) {
+                const sep = document.createElement("span");
+                sep.textContent = "/";
+                sep.style.opacity = "0.6";
+                folderBreadcrumb.appendChild(sep);
+            }
+            const item = breadcrumbItems[i];
+            folderBreadcrumb.appendChild(mk(item.label, item.target, item.current));
         }
     };
 
@@ -279,7 +337,11 @@ export function createBrowserNavigationController({
                 setFolderPath(target);
                 resetGridScrollToTop();
                 notifyContext();
-                try { clearSelection?.(); } catch (e) { console.debug?.(e); }
+                try {
+                    clearSelection?.();
+                } catch (e) {
+                    console.debug?.(e);
+                }
                 try {
                     await reloadGrid?.();
                 } catch (e) {
@@ -298,7 +360,11 @@ export function createBrowserNavigationController({
                 setFolderPath(next);
                 resetGridScrollToTop();
                 notifyContext();
-                try { clearSelection?.(); } catch (e) { console.debug?.(e); }
+                try {
+                    clearSelection?.();
+                } catch (e) {
+                    console.debug?.(e);
+                }
                 try {
                     await reloadGrid?.();
                 } catch (e) {

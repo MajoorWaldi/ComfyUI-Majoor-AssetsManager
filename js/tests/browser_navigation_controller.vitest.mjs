@@ -57,6 +57,7 @@ describe("browserNavigationController", () => {
 
         const gridContainer = createNode();
         const folderBreadcrumb = createNode();
+        const folderBreadcrumbController = { setFolderBreadcrumb: vi.fn() };
         const customSelect = createNode();
         const reloadGrid = vi.fn(async () => ({}));
         const onContextChanged = vi.fn();
@@ -71,6 +72,7 @@ describe("browserNavigationController", () => {
             state,
             gridContainer,
             folderBreadcrumb,
+            folderBreadcrumbController,
             customSelect,
             reloadGrid,
             onContextChanged,
@@ -86,6 +88,16 @@ describe("browserNavigationController", () => {
         expect(gridContainer.dataset.mjrSubfolder).toBe("animals/cats");
         expect(reloadGrid).toHaveBeenCalledTimes(1);
         expect(onContextChanged).toHaveBeenCalledTimes(1);
+        expect(folderBreadcrumbController.setFolderBreadcrumb).toHaveBeenCalledWith(
+            expect.objectContaining({
+                visible: true,
+                items: expect.arrayContaining([
+                    expect.objectContaining({ label: "Computer" }),
+                    expect.objectContaining({ label: "animals" }),
+                    expect.objectContaining({ label: "cats", current: true }),
+                ]),
+            }),
+        );
 
         unbind();
     });

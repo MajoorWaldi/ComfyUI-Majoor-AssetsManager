@@ -70,3 +70,59 @@ async def test_scan_flow_incremental_and_remove(tmp_path: Path, monkeypatch):
             except Exception:
                 pass
         await db.aclose()
+
+
+@pytest.mark.asyncio
+async def test_scan_prunes_files_deleted_outside_majoor(tmp_path: Path, monkeypatch):
+    db_path = tmp_path / "scan.sqlite"
+    root = tmp_path / "scan_root"
+    root.mkdir()
+    file_one = root / "one.png"
+    file_two = root / "two.png"
+    file_one.write_bytes(b"x")
+    file_two.write_bytes(b"y")
+
+    monkeypatch.setattr(deps, "WATCHER_ENABLED", False)
+    services_res = await deps.build_services(str(db_path))
+    assert services_res.ok, services_res.error
+    services = services_res.data
+    assert isinstance(services, dict)
+
+    index = services["index"]
+    db = services["db"]
+    sync_worker = services.get("rating_tags_sync")
+
+    try:
+        first = await index.scan_directory(
+            directory=str(root),
+            recursive=False,
+            incremental=False,
+            source="output",
+            root_id=None,
+        )
+        assert first.ok, first.error
+
+        file_two.unlink()
+
+        second = await index.scan_directory(
+            directory=str(root),
+            recursive=False,
+            incremental=True,
+            source="output",
+            root_id=None,
+        )
+        assert second.ok, second.error
+        assert second.data.get("pruned", 0) >= 1
+
+        after = await index.search_scoped("*", roots=[str(root)], limit=50, offset=0, filters=None, include_total=True)
+        assert after.ok, after.error
+        after_names = {str(a.get("filename") or "") for a in after.data.get("assets") or []}
+        assert "one.png" in after_names
+        assert "two.png" not in after_names
+    finally:
+        if sync_worker is not None:
+            try:
+                sync_worker.stop()
+            except Exception:
+                pass
+        await db.aclose()

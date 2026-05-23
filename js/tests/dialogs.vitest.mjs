@@ -44,6 +44,23 @@ describe("dialogs", () => {
         expect(window.prompt).not.toHaveBeenCalled();
     });
 
+    it("uses extension dialog alert before toast and browser alert", async () => {
+        const alert = vi.fn(async () => undefined);
+        const addAlert = vi.fn();
+        getExtensionDialogApi.mockReturnValue({ alert });
+        getExtensionToastApi.mockReturnValue({
+            add: vi.fn(),
+            addAlert,
+        });
+
+        const mod = await import("../app/dialogs.js");
+        await mod.comfyAlert("Indexed", "Majoor");
+
+        expect(alert).toHaveBeenCalledWith({ title: "Majoor", message: "Indexed" });
+        expect(addAlert).not.toHaveBeenCalled();
+        expect(window.alert).not.toHaveBeenCalled();
+    });
+
     it("uses extension toast alert before browser alert", async () => {
         const addAlert = vi.fn();
         getExtensionToastApi.mockReturnValue({

@@ -247,9 +247,11 @@ onUnmounted(() => {
                 {{ selectionLabel }}
             </div>
 
-            <button
+            <MButton
                 type="button"
                 class="mjr-context-menu-item"
+                severity="secondary"
+                text
                 role="menuitem"
                 @click="createAndAddCollection"
             >
@@ -257,7 +259,7 @@ onUnmounted(() => {
                     <i class="pi pi-plus" />
                     <span>{{ t("dialog.createCollection", "Create collection") }}...</span>
                 </span>
-            </button>
+            </MButton>
 
             <div class="mjr-context-menu-separator" />
 
@@ -274,11 +276,13 @@ onUnmounted(() => {
                 {{ t("msg.noCollections", "No collections yet.") }}
             </div>
 
-            <button
+            <MButton
                 v-for="collection in collections"
                 :key="String(collection?.id || '')"
                 type="button"
                 class="mjr-context-menu-item"
+                severity="secondary"
+                text
                 role="menuitem"
                 @click="addToCollection(String(collection?.id || ''), String(collection?.name || collection?.id || ''))"
             >
@@ -292,7 +296,7 @@ onUnmounted(() => {
                 >
                     {{ Number(collection?.count || 0) }}
                 </span>
-            </button>
+            </MButton>
         </div>
     </Teleport>
 </template>

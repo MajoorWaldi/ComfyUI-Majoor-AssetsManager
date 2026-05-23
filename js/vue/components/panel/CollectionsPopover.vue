@@ -60,6 +60,10 @@ const activeCollectionName = computed(() => String(panelStore.collectionName || 
 const hasActiveCollection = computed(() => !!activeCollectionId.value);
 const showAiDisabledNotice = computed(() => !aiEnabled.value || vectorDisabled.value);
 const showAiSections = computed(() => aiEnabled.value && vectorAvailable.value);
+const collectionScrollerHeight = computed(() => {
+    const rows = Math.max(1, Math.min(collections.value.length, 6));
+    return `${rows * 48}px`;
+});
 
 function isOpen() {
     const el = rootRef.value;
@@ -512,20 +516,24 @@ defineExpose({
 <template>
     <div ref="rootRef" class="mjr-popover mjr-collections-popover" style="display: none;">
         <div class="mjr-menu mjr-collections-menu">
-            <button
+            <MButton
                 type="button"
                 class="mjr-menu-item"
+                severity="secondary"
+                text
                 :disabled="busyActionKey !== ''"
                 @click="handleCreateCollection"
             >
                 <span class="mjr-menu-item-label">{{ t("ctx.createCollection", "Create collection") }}</span>
                 <i class="pi pi-plus mjr-menu-item-check mjr-menu-item-check--visible" />
-            </button>
+            </MButton>
 
-            <button
+            <MButton
                 v-if="hasActiveCollection"
                 type="button"
                 class="mjr-menu-item"
+                severity="secondary"
+                text
                 :disabled="busyActionKey !== ''"
                 @click="handleExitCollection"
             >
@@ -536,7 +544,7 @@ defineExpose({
                     </span>
                     <i class="pi pi-times mjr-menu-item-check mjr-menu-item-check--visible" />
                 </span>
-            </button>
+            </MButton>
 
             <div class="mjr-menu-divider" />
 
@@ -550,37 +558,48 @@ defineExpose({
                 {{ t("msg.noCollections", "No collections yet") }}
             </div>
 
-            <div
-                v-for="item in collections"
-                :key="item.id || item.name"
-                class="mjr-collection-row"
+            <MVirtualScroller
+                v-else
+                :items="collections"
+                :item-size="48"
+                :scroll-height="collectionScrollerHeight"
+                :num-tolerated-items="4"
+                class="mjr-collections-virtual-list"
             >
-                <button
-                    type="button"
-                    class="mjr-menu-item"
-                    :class="{ 'is-active': activeCollectionId === String(item.id || '') }"
-                    :disabled="busyActionKey !== ''"
-                    @click="handleOpenCollection(item)"
-                >
-                    <span class="mjr-menu-item-label">{{ item.name || item.id }}</span>
-                    <span class="mjr-menu-item-right">
-                        <span v-if="Number(item.count || 0)" class="mjr-menu-item-hint">
-                            {{ Number(item.count || 0) }}
-                        </span>
-                        <i class="pi pi-check mjr-menu-item-check" />
-                    </span>
-                </button>
+                <template #item="{ item }">
+                    <div class="mjr-collection-row">
+                        <MButton
+                            type="button"
+                            class="mjr-menu-item"
+                            severity="secondary"
+                            text
+                            :class="{ 'is-active': activeCollectionId === String(item.id || '') }"
+                            :disabled="busyActionKey !== ''"
+                            @click="handleOpenCollection(item)"
+                        >
+                            <span class="mjr-menu-item-label">{{ item.name || item.id }}</span>
+                            <span class="mjr-menu-item-right">
+                                <span v-if="Number(item.count || 0)" class="mjr-menu-item-hint">
+                                    {{ Number(item.count || 0) }}
+                                </span>
+                                <i class="pi pi-check mjr-menu-item-check" />
+                            </span>
+                        </MButton>
 
-                <button
-                    type="button"
-                    class="mjr-menu-item mjr-delete-btn"
-                    :disabled="busyActionKey !== ''"
-                    :title="t('tooltip.deleteCollection', 'Delete collection')"
-                    @click.stop.prevent="handleDeleteCollection(item)"
-                >
-                    <i class="pi pi-trash" />
-                </button>
-            </div>
+                        <MButton
+                            type="button"
+                            class="mjr-menu-item mjr-delete-btn"
+                            severity="secondary"
+                            text
+                            :disabled="busyActionKey !== ''"
+                            :title="t('tooltip.deleteCollection', 'Delete collection')"
+                            @click.stop.prevent="handleDeleteCollection(item)"
+                        >
+                            <i class="pi pi-trash" />
+                        </MButton>
+                    </div>
+                </template>
+            </MVirtualScroller>
 
             <template v-if="!aiLoading && showAiDisabledNotice">
                 <div class="mjr-menu-divider" />
@@ -603,11 +622,13 @@ defineExpose({
                     {{ t("label.smartCollectionsHint", "Create collections from AI-detected themes") }}
                 </div>
 
-                <button
+                <MButton
                     v-for="idea in SMART_COLLECTION_IDEAS"
                     :key="idea.key"
                     type="button"
                     class="mjr-menu-item mjr-menu-item--smart"
+                    severity="secondary"
+                    text
                     :disabled="busyActionKey !== ''"
                     @click="handleSmartSuggestion(idea)"
                 >
@@ -616,7 +637,7 @@ defineExpose({
                         <span>{{ idea.label }}</span>
                     </span>
                     <i class="pi pi-plus mjr-menu-item-check mjr-menu-item-check--visible" />
-                </button>
+                </MButton>
 
                 <div class="mjr-menu-divider" />
 
@@ -627,9 +648,11 @@ defineExpose({
                     {{ t("label.discoverGroupsHint", "AI clusters assets by visual similarity") }}
                 </div>
 
-                <button
+                <MButton
                     type="button"
                     class="mjr-menu-item mjr-menu-item--cluster"
+                    severity="secondary"
+                    text
                     :disabled="clustersLoading || busyActionKey !== ''"
                     @click="analyzeLibrary"
                 >
@@ -643,7 +666,7 @@ defineExpose({
                             }}
                         </span>
                     </span>
-                </button>
+                </MButton>
 
                 <div v-if="clustersError" class="mjr-state-block is-error">
                     {{ clustersError }}
@@ -668,9 +691,10 @@ defineExpose({
                         </div>
                     </div>
 
-                    <button
+                    <MButton
                         type="button"
                         class="mjr-cluster-create-btn"
+                        severity="secondary"
                         :disabled="busyActionKey !== ''"
                         :title="t('ctx.createCollection', 'Create collection')"
                         @click="createCollectionFromCluster(cluster)"
@@ -680,7 +704,7 @@ defineExpose({
                                 ? t("label.loading", "Loading...")
                                 : t("label.create", "Create")
                         }}
-                    </button>
+                    </MButton>
                 </div>
             </template>
         </div>

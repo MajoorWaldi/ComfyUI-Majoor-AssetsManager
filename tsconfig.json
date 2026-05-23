@@ -1,0 +1,26 @@
+{
+    "compilerOptions": {
+        "allowJs": true,
+        "checkJs": true,
+        "strict": false,
+        "noEmit": true,
+        "target": "ES2024",
+        "module": "ESNext",
+        "moduleResolution": "Bundler",
+        "lib": ["ES2024", "DOM", "DOM.Iterable"],
+        "skipLibCheck": true,
+        "resolveJsonModule": true,
+        "allowSyntheticDefaultImports": true,
+        "isolatedModules": true,
+        "types": ["vitest/globals", "node"]
+    },
+    "include": [
+        "js/**/*.d.ts",
+        "js/**/*.js",
+        "js/**/*.mjs",
+        "js/**/*.vue",
+        "vite.config.mjs",
+        "vitest.config.mjs"
+    ],
+    "exclude": ["js_dist", "node_modules", "vendor", "js/vue/majoor-ui.*"]
+}

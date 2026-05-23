@@ -25,15 +25,18 @@ const filename = () => String(props.asset?.filename || "");
             style="font-size:0.9em;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0;padding-right:8px"
         >{{ asset.filename }}</div>
 
-        <button
+        <MButton
             type="button"
             class="mjr-sidebar-close"
+            severity="secondary"
+            text
+            rounded
             title="Close sidebar (Esc)"
             aria-label="Close sidebar (Esc)"
             style="background:none;border:1px solid transparent;border-radius:4px;color:var(--mjr-text,#ccc);cursor:pointer;font-size:18px;line-height:1;padding:2px 6px;flex-shrink:0;transition:background 0.15s,border-color 0.15s"
             @click="emit('close')"
             @mouseenter="($event.currentTarget.style.background='rgba(255,255,255,0.1)') && ($event.currentTarget.style.borderColor='rgba(255,255,255,0.2)')"
             @mouseleave="($event.currentTarget.style.background='none') && ($event.currentTarget.style.borderColor='transparent')"
-        >×</button>
+        >×</MButton>
     </div>
 </template>

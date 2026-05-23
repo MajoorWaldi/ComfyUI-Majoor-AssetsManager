@@ -253,11 +253,14 @@ watch(
         :tabindex="disabled ? -1 : 0"
         @keydown="handleKeydown"
     >
-        <button
+        <MButton
             v-for="i in 5"
             :key="i"
             type="button"
             class="mjr-rating-star"
+            severity="secondary"
+            text
+            rounded
             :style="{
                 color: starColor(i),
                 transform: starTransform(i),
@@ -276,7 +279,7 @@ watch(
             @mouseleave="handleStarLeave"
         >
             &#9733;
-        </button>
+        </MButton>
     </div>
 </template>
 

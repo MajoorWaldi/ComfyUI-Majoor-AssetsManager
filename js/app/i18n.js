@@ -170,6 +170,7 @@ const DICTIONARY = {
         "cat.cards": "Cards",
         "cat.badges": "Badges",
         "cat.viewer": "Viewer",
+        "cat.floatingViewer": "Floating Viewer",
         "cat.scanning": "Scanning",
         "cat.advanced": "Advanced",
         "cat.security": "Security",
@@ -1676,6 +1677,25 @@ export const startComfyLanguageSync = (app) => {
     try {
         if (typeof window !== "undefined") {
             window.__MJR_COMFY_LANG_SYNC_TIMER__ = _comfyLangSyncTimer;
+        }
+    } catch (e) {
+        console.debug?.(e);
+    }
+};
+
+/**
+ * Stop syncing language with ComfyUI settings.
+ * Clears the interval started by startComfyLanguageSync().
+ */
+export const stopComfyLanguageSync = () => {
+    try {
+        if (_comfyLangSyncTimer) {
+            clearInterval(_comfyLangSyncTimer);
+            _comfyLangSyncTimer = null;
+        }
+        if (typeof window !== "undefined" && window.__MJR_COMFY_LANG_SYNC_TIMER__) {
+            clearInterval(window.__MJR_COMFY_LANG_SYNC_TIMER__);
+            window.__MJR_COMFY_LANG_SYNC_TIMER__ = null;
         }
     } catch (e) {
         console.debug?.(e);

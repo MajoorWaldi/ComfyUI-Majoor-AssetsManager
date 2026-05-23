@@ -12,8 +12,10 @@ from typing import Any, cast
 
 from aiohttp import web
 
-from ...shared import Result
+from ...shared import Result, get_logger
 from ...utils import parse_bool
+
+_log = get_logger(__name__)
 
 
 @dataclass(slots=True)
@@ -463,8 +465,8 @@ def _cleanup_index_dir_contents(
                 shutil.rmtree(item)
             else:
                 item.unlink()
-        except Exception:
-            pass
+        except Exception as _e:
+            _log.debug("cleanup_index_dir: could not remove %s: %s", item, _e)
 
 
 async def run_reset_clear_phase(
@@ -666,8 +668,8 @@ async def _maybe_finalize_reset_clear_phase(
             collections_dir_path,
             preserve_vectors,
         )
-    except Exception:
-        pass
+    except Exception as _e:
+        _log.debug("run_reset_reindex: index dir cleanup failed: %s", _e)
 
 
 async def run_reset_reindex(

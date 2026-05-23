@@ -179,6 +179,7 @@ export function createPopoverManager(container) {
             popover.style.overflowY = "auto";
             popover.style.overscrollBehavior = "contain";
 
+            popover.style.zIndex = "10020";
             popover.style.left = `${Math.round(left)}px`;
             popover.style.top = `${Math.round(top)}px`;
         } catch (e) {
@@ -360,6 +361,64 @@ export function createPopoverManager(container) {
             } catch (e) {
                 console.debug?.(e);
             }
+        }
+        // PrimeVue portals: overlays (Select, Listbox, DatePicker…) are appended
+        // directly to <body> and thus fall outside the managed popover element.
+        // Guard: if the click target is inside a PrimeVue overlay portal that
+        // belongs to an open popover, do not dismiss.
+        try {
+            if (openPopovers.size) {
+                const pvRoot = target.closest?.("[data-pc-name]");
+                if (pvRoot && pvRoot.parentElement === document.body) {
+                    // It is a PrimeVue portal element. Check if any open popover
+                    // contains the trigger component whose id matches the portal.
+                    for (const item of openPopovers.values()) {
+                        try {
+                            if (!item?.popover) continue;
+                            // If the popover hosts a PrimeVue component whose overlay
+                            // has just been triggered, let the click go through.
+                            const triggerId = pvRoot.id?.replace(/_list$|_overlay$|_panel$/, "");
+                            if (triggerId && item.popover.querySelector(`#${CSS.escape(triggerId)}`)) return;
+                            // Fallback: any active PrimeVue component inside the popover
+                            // may have opened this portal.
+                            if (item.popover.querySelector("[data-pc-name][aria-expanded='true']")) return;
+                        } catch (e) {
+                            console.debug?.(e);
+                        }
+                    }
+                }
+                // Secondary guard: PrimeVue v4 unstyled overlays may render their
+                // portal root without a [data-pc-name] attribute (e.g. Select list panel).
+                // Walk up from the target to the direct body child; if any open popover
+                // has an expanded PrimeVue component ([aria-expanded='true']), the click
+                // is inside that component's overlay — do not dismiss.
+                try {
+                    let bodyChild = target;
+                    while (
+                        bodyChild &&
+                        bodyChild !== document.body &&
+                        bodyChild.parentNode &&
+                        bodyChild.parentNode !== document.body
+                    ) {
+                        bodyChild = bodyChild.parentNode;
+                    }
+                    if (bodyChild && bodyChild !== document.body && bodyChild.parentNode === document.body) {
+                        for (const item of openPopovers.values()) {
+                            try {
+                                if (!item?.popover) continue;
+                                if (item.popover.querySelector("[data-pc-name][aria-expanded='true']")) return;
+                                if (item.popover.querySelector("[aria-expanded='true'][role='combobox']")) return;
+                            } catch (e) {
+                                console.debug?.(e);
+                            }
+                        }
+                    }
+                } catch (e) {
+                    console.debug?.(e);
+                }
+            }
+        } catch (e) {
+            console.debug?.(e);
         }
         closeAll();
     };

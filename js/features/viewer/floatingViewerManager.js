@@ -209,7 +209,8 @@ function _streamAssetIntoCurrentViewerSlots(inst, fileData) {
 
     const pinA = pins.has("A");
     const pinB = pins.has("B");
-    if (pinA && pinB && inst._mediaA && inst._mediaB) return;
+    // Both slots pinned → no free slot, regardless of whether media has loaded yet.
+    if (pinA && pinB) return;
     if (pinB) {
         inst.loadMediaPair(fileData, inst._mediaB);
         return;
@@ -580,6 +581,10 @@ export const floatingViewerManager = {
         }
         // KEY FIX: immediately show whatever is selected in the grid.
         _syncCurrentGridSelection();
+        // Restore node stream overlay if a node was already selected before opening.
+        if (NODE_STREAM_FEATURE_ENABLED && _nodeStreamActive) {
+            _applyNodeStreamSelection(inst);
+        }
         _emitVisibilityChanged(true);
     },
 
@@ -652,6 +657,7 @@ export const floatingViewerManager = {
     async upsertWithContent(fileData) {
         const inst = await _getInstance();
         const wasVisible = Boolean(inst.isVisible);
+        if (!wasVisible && APP_CONFIG.MFV_LIVE_AUTO_OPEN === false) return;
         inst.show();
         _syncViewerControls(inst);
         _bindSelectionListener();
@@ -707,6 +713,7 @@ export const floatingViewerManager = {
         if (!_previewActive) return;
         const inst = await _getInstance();
         const wasVisible = Boolean(inst.isVisible);
+        if (!wasVisible && APP_CONFIG.MFV_PREVIEW_AUTO_OPEN === false) return;
         if (!inst.isVisible) {
             inst.show();
         }
@@ -782,6 +789,7 @@ export const floatingViewerManager = {
         if (!_nodeStreamActive) return;
         const inst = await _getInstance();
         const wasVisible = Boolean(inst.isVisible);
+        if (!wasVisible && APP_CONFIG.MFV_NODE_STREAM_AUTO_OPEN === false) return;
         if (!inst.isVisible) {
             inst.show();
             _bindSelectionListener();

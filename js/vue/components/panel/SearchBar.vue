@@ -34,6 +34,9 @@ const similarBtnRef = ref(null);
 const semanticBtnRef = ref(null);
 const dataListId = createUniqueId("mjr-search-autocomplete-", 8);
 
+const resolveDomElement = (value) => value?.$el || value || null;
+const getSearchInputEl = () => resolveDomElement(searchInputRef.value);
+
 // Local semantic mode state (synced with settings, not persisted)
 const semanticMode = ref(false);
 const semanticEnabled = ref(true);
@@ -84,8 +87,9 @@ const semanticBtnStyle = computed(() => {
 
 const syncSemanticDataset = () => {
     try {
-        if (!searchInputRef.value) return;
-        searchInputRef.value.dataset.mjrSemanticMode = semanticMode.value ? "1" : "0";
+        const input = getSearchInputEl();
+        if (!input) return;
+        input.dataset.mjrSemanticMode = semanticMode.value ? "1" : "0";
     } catch (e) {
         console.debug?.(e);
     }
@@ -93,7 +97,7 @@ const syncSemanticDataset = () => {
 
 const emitSearchChange = (payload = {}) => {
     emit("search-change", {
-        query: searchInputRef.value?.value || "",
+        query: getSearchInputEl()?.value || "",
         semantic: semanticMode.value,
         ...payload,
     });
@@ -105,7 +109,7 @@ const toggleSemanticMode = () => {
     semanticMode.value = !semanticMode.value;
     syncSemanticDataset();
     try {
-        searchInputRef.value?.dispatchEvent?.(new Event("input", { bubbles: true }));
+        getSearchInputEl()?.dispatchEvent?.(new Event("input", { bubbles: true }));
     } catch (e) {
         console.debug?.(e);
     }
@@ -123,7 +127,7 @@ const handleSearchInput = async (e) => {
 
 // Autocomplete handler
 const handleAutocomplete = debounce(async () => {
-    const val = (searchInputRef.value?.value || "").trim();
+    const val = (getSearchInputEl()?.value || "").trim();
     // Skip autocomplete in semantic mode or for attribute searches
     if (semanticMode.value || val.length < 2 || val.includes(":")) return;
 
@@ -152,8 +156,9 @@ const handleSimilarSearch = () => {
 watch(
     () => panelStore.searchQuery,
     (newVal) => {
-        if (searchInputRef.value && searchInputRef.value.value !== newVal) {
-            searchInputRef.value.value = newVal;
+        const input = getSearchInputEl();
+        if (input && input.value !== newVal) {
+            input.value = newVal;
         }
     },
 );
@@ -171,8 +176,9 @@ watch(semanticMode, () => {
 
 onMounted(() => {
     try {
-        if (searchInputRef.value) {
-            searchInputRef.value.value = panelStore.searchQuery || "";
+        const input = getSearchInputEl();
+        if (input) {
+            input.value = panelStore.searchQuery || "";
         }
     } catch (e) {
         console.debug?.(e);
@@ -186,13 +192,13 @@ defineExpose({
         return searchSectionRef.value;
     },
     get searchInputEl() {
-        return searchInputRef.value;
+        return getSearchInputEl();
     },
     get similarBtn() {
-        return similarBtnRef.value;
+        return resolveDomElement(similarBtnRef.value);
     },
     get semanticBtn() {
-        return semanticBtnRef.value;
+        return resolveDomElement(semanticBtnRef.value);
     },
     setSemanticEnabled: (enabled) => {
         semanticEnabled.value = !!enabled;
@@ -207,11 +213,11 @@ defineExpose({
             <span class="mjr-am-search-icon">
                 <i class="pi pi-search"></i>
             </span>
-            <input
+            <MInputText
                 ref="searchInputRef"
-                type="text"
                 id="mjr-search-input"
                 class="mjr-input"
+                type="text"
                 :placeholder="searchPlaceholder"
                 :title="searchTitle"
                 :list="dataListId"
@@ -221,10 +227,13 @@ defineExpose({
         </div>
         <div class="mjr-am-search-tools">
             <div class="mjr-popover-anchor">
-                <button
+                <MButton
                     ref="semanticBtnRef"
                     type="button"
                     class="mjr-icon-btn mjr-ai-control"
+                    severity="secondary"
+                    text
+                    rounded
                     :disabled="!semanticEnabled"
                     :aria-disabled="!semanticEnabled"
                     :title="
@@ -236,18 +245,21 @@ defineExpose({
                     @click="toggleSemanticMode"
                 >
                     <i class="pi pi-sparkles"></i>
-                </button>
+                </MButton>
             </div>
             <div class="mjr-popover-anchor">
-                <button
+                <MButton
                     ref="similarBtnRef"
                     type="button"
                     class="mjr-icon-btn mjr-ai-control"
+                    severity="secondary"
+                    text
+                    rounded
                     :title="t('search.findSimilar', 'Find Similar')"
                     @click="handleSimilarSearch"
                 >
                     <i class="pi pi-clone"></i>
-                </button>
+                </MButton>
             </div>
             <!-- Anchor slots for filter, sort, collections, pinned folders buttons -->
             <slot name="filter-anchor" />
@@ -257,4 +269,3 @@ defineExpose({
         </div>
     </div>
 </template>
-

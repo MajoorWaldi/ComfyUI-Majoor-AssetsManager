@@ -69,10 +69,12 @@ async function _hookPreviewApi(app) {
         _apiRef = api;
 
         _previewWithMetaHandler = (e) => {
-            _previewWithMetaLastAt = Date.now();
             try {
                 const { blob, nodeId, jobId } = e.detail || {};
+                // Validate blob before marking the suppression timestamp so that
+                // an invalid/missing blob does not silence the b_preview fallback.
                 if (!blob || !(blob instanceof Blob)) return;
+                _previewWithMetaLastAt = Date.now();
                 if (_currentJobId && jobId && jobId !== _currentJobId) return;
                 floatingViewerManager.feedPreviewBlob(blob, {
                     sourceLabel: nodeId ? `Node ${nodeId}` : null,

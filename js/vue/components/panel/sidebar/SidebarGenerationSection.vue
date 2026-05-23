@@ -421,10 +421,13 @@ watch(
                     Prompt Pipeline ({{ sectionState.promptTabs.length }} variants)
                 </div>
                 <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">
-                    <button
+                    <MButton
                         v-for="(tab, index) in sectionState.promptTabs"
                         :key="tab.label"
                         type="button"
+                        severity="secondary"
+                        text
+                        rounded
                         :style="{
                             appearance: 'none',
                             border: promptTabIndex === index ? '1px solid #4CAF50' : '1px solid var(--border-color, rgba(255,255,255,0.12))',
@@ -440,7 +443,7 @@ watch(
                         @click="promptTabIndex = index"
                     >
                         {{ tab.label }}
-                    </button>
+                    </MButton>
                 </div>
                 <div
                     v-for="(tab, index) in sectionState.promptTabs"
@@ -569,26 +572,30 @@ watch(
                     {{ sectionState.captionLabel }}
                 </span>
                 <div style="display:flex;align-items:center;gap:6px">
-                    <button
+                    <MButton
                         type="button"
                         class="mjr-ai-control"
+                        severity="secondary"
+                        text
                         :disabled="!canGenerateCaption || generatingCaption"
                         style="border:1px solid rgba(0,188,212,0.45);background:rgba(0,188,212,0.12);color:#00BCD4;border-radius:4px;font-size:10px;font-weight:600;padding:2px 8px;cursor:pointer"
                         :style="{ opacity: !canGenerateCaption ? '0.6' : '1', cursor: !canGenerateCaption ? 'default' : 'pointer' }"
                         @click.stop="regenerateCaption"
                     >
                         {{ generateCaptionLabel }}
-                    </button>
-                    <button
+                    </MButton>
+                    <MButton
                         type="button"
                         class="mjr-ai-control"
+                        severity="secondary"
+                        text
                         :disabled="!canCopyCaption"
                         style="border:1px solid rgba(0,188,212,0.45);background:rgba(0,188,212,0.12);color:#00BCD4;border-radius:4px;font-size:10px;font-weight:600;padding:2px 8px;cursor:pointer"
                         :style="{ opacity: !canCopyCaption ? '0.6' : '1', cursor: !canCopyCaption ? 'default' : 'pointer' }"
                         @click.stop="copyCaption"
                     >
                         {{ copyCaptionLabel }}
-                    </button>
+                    </MButton>
                 </div>
             </div>
 
@@ -633,10 +640,13 @@ watch(
                 Generation Pipeline
             </div>
             <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">
-                <button
+                <MButton
                     v-for="(tab, index) in sectionState.pipelineTabs"
                     :key="tab.label"
                     type="button"
+                    severity="secondary"
+                    text
+                    rounded
                     :style="{
                         appearance: 'none',
                         border: pipelineTabIndex === index ? '1px solid #FF9800' : '1px solid var(--border-color, rgba(255,255,255,0.12))',
@@ -652,7 +662,7 @@ watch(
                     @click="pipelineTabIndex = index"
                 >
                     {{ tab.label }}
-                </button>
+                </MButton>
             </div>
             <div
                 v-for="(tab, index) in sectionState.pipelineTabs"

@@ -13,6 +13,7 @@ describe("SidebarFileInfoSection", () => {
                     job_id: "prompt-1",
                     source_node_id: "7",
                     source_node_type: "SaveImage",
+                    workflow_id: "workflow-1",
                 },
             },
         });
@@ -24,6 +25,8 @@ describe("SidebarFileInfoSection", () => {
         expect(text).toContain("7");
         expect(text).toContain("Node Type");
         expect(text).toContain("SaveImage");
+        expect(text).toContain("Workflow ID");
+        expect(text).toContain("workflow-1");
         wrapper.unmount();
     });
 
@@ -35,6 +38,7 @@ describe("SidebarFileInfoSection", () => {
                         job_id: "prompt-2",
                         source_node_id: "12",
                         source_node_type: "VHS_VideoCombine",
+                        workflow_id: "workflow-2",
                     },
                 },
             },
@@ -44,6 +48,7 @@ describe("SidebarFileInfoSection", () => {
         expect(text).toContain("prompt-2");
         expect(text).toContain("12");
         expect(text).toContain("VHS_VideoCombine");
+        expect(text).toContain("workflow-2");
         wrapper.unmount();
     });
 });

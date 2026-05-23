@@ -1,7 +1,9 @@
+import { getGraphCanvasViewportBounds } from "../../../app/hostAdapter.js";
+import { getWorkflowNodeDisplayName } from "../../../features/viewer/workflowGraphMap/workflowNodeLabeling.js";
+
 const MINIMAP_PADDING = 6;
 const MINIMAP_ZOOM_MIN = 1;
 const MINIMAP_ZOOM_MAX = 8;
-import { getWorkflowNodeDisplayName } from "../../../features/viewer/workflowGraphMap/workflowNodeLabeling.js";
 
 const TYPE_PALETTE = [
     ["sampler", "#8e5cff"],
@@ -562,33 +564,10 @@ export function drawWorkflowMinimap(canvas, workflow, options = null) {
     // Viewport rectangle (ComfyUI-like): only meaningful when we can read the current canvas DS.
     if (settings.showViewport) {
         try {
-            const app = window?.app || null;
-            const canvasEl = app?.canvas?.canvas || app?.canvas?.el || null;
-            const ds = app?.canvas?.ds || null;
-            const scaleDs = Number(ds?.scale);
-            const off = ds?.offset;
-            const offX = Array.isArray(off) ? Number(off[0]) : Number(off?.x);
-            const offY = Array.isArray(off) ? Number(off[1]) : Number(off?.y);
-            const viewWpx = Number(canvasEl?.clientWidth || canvasEl?.width);
-            const viewHpx = Number(canvasEl?.clientHeight || canvasEl?.height);
-
-            if (
-                Number.isFinite(scaleDs) &&
-                scaleDs > 0 &&
-                Number.isFinite(offX) &&
-                Number.isFinite(offY) &&
-                Number.isFinite(viewWpx) &&
-                Number.isFinite(viewHpx) &&
-                viewWpx > 0 &&
-                viewHpx > 0
-            ) {
-                const vx0 = -offX / scaleDs;
-                const vy0 = -offY / scaleDs;
-                const vx1 = (viewWpx - offX) / scaleDs;
-                const vy1 = (viewHpx - offY) / scaleDs;
-
-                const p0 = toCanvas(vx0, vy0);
-                const p1 = toCanvas(vx1, vy1);
+            const viewport = getGraphCanvasViewportBounds();
+            if (viewport) {
+                const p0 = toCanvas(viewport.x0, viewport.y0);
+                const p1 = toCanvas(viewport.x1, viewport.y1);
                 const rx = Math.min(p0.x, p1.x);
                 const ry = Math.min(p0.y, p1.y);
                 const rw = Math.abs(p1.x - p0.x);

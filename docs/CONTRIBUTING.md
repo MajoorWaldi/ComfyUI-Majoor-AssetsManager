@@ -131,6 +131,7 @@ See [`docs/ARCHITECTURE_MAP.md`](docs/ARCHITECTURE_MAP.md) and [`docs/adr/`](doc
 - **Security**: Never import `ComfyUI/server.py` (see [ADR-002](docs/adr/0002-comfyui-server-import-safety.md))
 
 **Example**:
+
 ```python
 from mjr_am_shared.result import Result, Ok, Err
 
@@ -151,30 +152,29 @@ def process_asset(asset_id: str) -> Result[dict]:
 - **Naming**: camelCase for variables/functions, PascalCase for Vue components
 
 **Example**:
+
 ```vue
 <script setup>
-import { ref, computed } from 'vue'
-import { usePanelStore } from '../../stores/usePanelStore.js'
+import { ref, computed } from "vue";
+import { usePanelStore } from "../../stores/usePanelStore.js";
 
 const props = defineProps({
-  asset: { type: Object, required: true }
-})
+    asset: { type: Object, required: true },
+});
 
-const panelStore = usePanelStore()
-const isSelected = computed(() =>
-  panelStore.selectedIds.includes(props.asset.id)
-)
+const panelStore = usePanelStore();
+const isSelected = computed(() => panelStore.selectedIds.includes(props.asset.id));
 </script>
 ```
 
 ### Commits
 
 - Use [Conventional Commits](https://www.conventionalcommits.org/) format:
-  ```
-  feat: add multi-pin support in Floating Viewer
-  fix: prevent timeout leak in Card.js
-  docs: update API reference with vector endpoints
-  ```
+    ```
+    feat: add multi-pin support in Floating Viewer
+    fix: prevent timeout leak in Card.js
+    docs: update API reference with vector endpoints
+    ```
 - Keep commits focused and atomic (one logical change per commit)
 - Write clear, descriptive messages (explain "why", not "what")
 
@@ -199,6 +199,7 @@ pytest --timeout=30
 ```
 
 **Test organization**:
+
 - `tests/backend/` — Backend unit/integration tests
 - `tests/features/` — Feature-specific tests (geninfo parser, metadata extraction)
 - `tests/security/` — Security tests (rate limiting, auth)
@@ -218,17 +219,18 @@ npm run test:js:watch
 ```
 
 **Test organization**:
+
 - `js/tests/` — Vitest test files
 - Test files named `*.vitest.mjs`
 - Cover: composables, utilities, security-critical modules
 
 ### Coverage Thresholds
 
-| Metric | Python | JavaScript |
-|--------|--------|------------|
-| Lines | 68% | 30% |
-| Branches | Tracked (--cov-branch) | 20% |
-| Functions | 70% | 30% |
+| Metric    | Python                 | JavaScript |
+| --------- | ---------------------- | ---------- |
+| Lines     | 68%                    | 30%        |
+| Branches  | Tracked (--cov-branch) | 20%        |
+| Functions | 70%                    | 30%        |
 
 **Note**: These are minimum thresholds. Security-critical code should have 100% coverage.
 
@@ -250,9 +252,9 @@ npm run test:js:watch
 4. **Run quality gate**: `npm run quality` (must pass)
 5. **Update documentation** if behavior changes
 6. **Submit PR** with clear description:
-   - What changed and why
-   - How to test the changes
-   - Any breaking changes or migration steps
+    - What changed and why
+    - How to test the changes
+    - Any breaking changes or migration steps
 
 ### PR Checklist
 
@@ -267,6 +269,7 @@ npm run test:js:watch
 ### Review Process
 
 Mainters will review your PR and may:
+
 - Request changes (address feedback before merging)
 - Approve and merge
 - Ask for clarification on implementation choices
@@ -280,6 +283,18 @@ Mainters will review your PR and may:
 - **`main`**: Stable release branch (always deployable)
 - **Feature branches**: `feat/feature-name` or `fix/bug-name`
 - **Release tags**: `v2.4.5`, `v2.5.0`, etc. (semantic versioning)
+
+### Release Cadence
+
+- **Development window**: 2 weeks for feature work and compatibility updates.
+- **Freeze window**: 2 weeks for regression fixes, documentation, dependency
+  checks, and ComfyUI frontend compatibility validation.
+- **Nightly builds**: Used for early validation and should not be treated as
+  stable releases.
+- **Release candidates**: Cut from `main` after the freeze window when the
+  quality gate, frontend build, and smoke tests pass.
+- **Hotfixes**: Allowed outside the cadence for security, data loss, startup
+  failures, or ComfyUI compatibility breaks.
 
 ### Typical Workflow
 
@@ -300,6 +315,7 @@ git push origin feat/add-new-filter
 ### Pre-Push Quality Gate
 
 The pre-push hook automatically runs:
+
 ```bash
 python scripts/run_changed_quality_gate.py
 ```
@@ -313,6 +329,7 @@ This checks changed files only (faster than full quality gate).
 The quality gate enforces:
 
 ### Python Checks
+
 - ✅ UTF-8 text files without BOM
 - ✅ Ruff linting (changed files during migration window)
 - ✅ MyPy type checking
@@ -322,6 +339,7 @@ The quality gate enforces:
 - ✅ Backend tests pass
 
 ### Frontend Checks
+
 - ✅ ESLint passes
 - ✅ Prettier formatting
 - ✅ Vitest tests pass
@@ -352,6 +370,7 @@ tox -e quality
 ### When to Update Docs
 
 Update documentation when:
+
 - Adding new features or changing behavior
 - Modifying API endpoints or configuration
 - Introducing breaking changes
@@ -366,17 +385,18 @@ Update documentation when:
 
 ### Types of Documentation
 
-| Document Type | Purpose | Location |
-|--------------|---------|----------|
-| **User Guides** | How to use features | `docs/*.md` |
-| **API Reference** | Backend endpoints | `docs/API_REFERENCE.md` |
-| **Architecture** | Design decisions | `docs/adr/` |
-| **Configuration** | Settings & env vars | `docs/SETTINGS_CONFIGURATION.md` |
-| **Security** | Threat model, hardening | `docs/SECURITY_ENV_VARS.md`, `docs/THREAT_MODEL.md` |
+| Document Type     | Purpose                 | Location                                            |
+| ----------------- | ----------------------- | --------------------------------------------------- |
+| **User Guides**   | How to use features     | `docs/*.md`                                         |
+| **API Reference** | Backend endpoints       | `docs/API_REFERENCE.md`                             |
+| **Architecture**  | Design decisions        | `docs/adr/`                                         |
+| **Configuration** | Settings & env vars     | `docs/SETTINGS_CONFIGURATION.md`                    |
+| **Security**      | Threat model, hardening | `docs/SECURITY_ENV_VARS.md`, `docs/THREAT_MODEL.md` |
 
 ### Architecture Decision Records (ADRs)
 
 For significant architectural decisions:
+
 1. Create `docs/adr/NNNN-short-title.md`
 2. Follow ADR template (context, decision, consequences)
 3. Reference in `docs/adr/README.md`
@@ -402,6 +422,7 @@ See existing ADRs for examples.
 ### Common Questions
 
 **Q: How do I test changes locally?**
+
 ```bash
 # Rebuild frontend
 npm run build
@@ -411,11 +432,13 @@ npm run build
 ```
 
 **Q: Can I add a new dependency?**
+
 - **Runtime**: Must be justified and approved (keep minimal)
 - **Dev**: Easier to approve (testing, linting tools)
 - **Optional**: AI/vector deps in `requirements-vector.txt`
 
 **Q: What if the quality gate fails on CI but passes locally?**
+
 - Check Python/Node version differences
 - Ensure all files are committed (CI checks entire repo)
 - Run `npm run quality` from clean state
@@ -425,6 +448,7 @@ npm run build
 ## Recognition
 
 Contributors are recognized in:
+
 - GitHub contributors page
 - Release notes (for significant contributions)
 - This file (optional, add your name below)
@@ -432,7 +456,7 @@ Contributors are recognized in:
 ### Contributors
 
 - **MajoorWaldi** — Original creator and lead maintainer
-- *[Your name here — submit a PR to add yourself!]*
+- _[Your name here — submit a PR to add yourself!]_
 
 ---
 

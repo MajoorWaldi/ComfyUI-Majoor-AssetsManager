@@ -37,13 +37,15 @@ _OFFLINE_LOCK = threading.Lock()
 _OFFLINE_CACHE: dict[str, tuple[bool, bool, float]] = {}
 try:
     _OFFLINE_TTL = float(os.environ.get("MJR_CUSTOM_ROOT_OFFLINE_TTL", "8.0"))
-except Exception:
+except Exception as _e:
+    logger.debug("MJR_CUSTOM_ROOT_OFFLINE_TTL parse error, using default: %s", _e)
     _OFFLINE_TTL = 8.0
 if _OFFLINE_TTL < 0:
     _OFFLINE_TTL = 0.0
 try:
     _MAX_STORE_BYTES = int(os.environ.get("MJR_CUSTOM_ROOTS_MAX_BYTES", str(_DEFAULT_MAX_STORE_BYTES)))
-except Exception:
+except Exception as _e:
+    logger.debug("MJR_CUSTOM_ROOTS_MAX_BYTES parse error, using default: %s", _e)
     _MAX_STORE_BYTES = _DEFAULT_MAX_STORE_BYTES
 _MAX_STORE_BYTES = max(1024, int(_MAX_STORE_BYTES or _DEFAULT_MAX_STORE_BYTES))
 

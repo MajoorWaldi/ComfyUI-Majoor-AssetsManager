@@ -1,6 +1,8 @@
 import { EVENTS } from "../../app/events.js";
 import { recordToastHistory } from "../../app/toast.js";
 import { vectorIndexAsset } from "../../api/client.js";
+import { incrementSidebarAssetBadge } from "./sidebarAssetBadge.js";
+import { markPendingGeneratedAsset } from "./pendingGeneratedAssets.js";
 
 const AUTO_VECTOR_INDEX_DEDUPE_MS = 30_000;
 const _autoVectorIndexSeenAt = new Map();
@@ -390,6 +392,7 @@ export async function registerRealtimeListeners({
         if (handled) {
             markRecentAssetUpsert();
         }
+        return handled;
     }
 
     api._mjrNewGenerationOutputHandler = (event) => {
@@ -429,16 +432,26 @@ export async function registerRealtimeListeners({
             const renderable = executionRuntime.isRenderableLiveAsset(detail);
             if (renderable) {
                 pushGeneratedAsset(detail);
+                incrementSidebarAssetBadge(detail);
             }
             maybeAutoVectorIndexAsset(detail);
             const grid = getActiveGridContainer();
-            if (!grid) return;
+            if (!grid) {
+                if (renderable) markPendingGeneratedAsset();
+                return;
+            }
             const scope = grid.dataset?.mjrScope || "output";
-            if (scope !== "output" && scope !== "all") return;
+            if (scope !== "output" && scope !== "all") {
+                if (renderable) markPendingGeneratedAsset();
+                return;
+            }
             const query = grid.dataset?.mjrQuery || "*";
             const canDirectUpsert = String(query).trim() === "*";
             if (canDirectUpsert && renderable) {
-                upsertLiveAssetIntoGrid(grid, detail, { immediate: true });
+                const handled = upsertLiveAssetIntoGrid(grid, detail, { immediate: true });
+                if (!handled) markPendingGeneratedAsset();
+            } else if (renderable) {
+                markPendingGeneratedAsset();
             }
         } catch (error) {
             reportError(error, "entry.asset_added");

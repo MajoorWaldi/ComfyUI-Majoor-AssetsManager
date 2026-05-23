@@ -17,10 +17,15 @@ export const getComfyUi = () => {
 };
 
 export const getExtensionManagerDialog = () => {
+    const hasDialogMethod = (dlg) =>
+        !!dlg &&
+        (typeof dlg.alert === "function" ||
+            typeof dlg.confirm === "function" ||
+            typeof dlg.prompt === "function");
     try {
         const app = getComfyApp();
         const dlg = getExtensionDialogApi(app);
-        if (dlg && typeof dlg.confirm === "function" && typeof dlg.prompt === "function") {
+        if (hasDialogMethod(dlg)) {
             return dlg;
         }
     } catch (e) {
@@ -29,7 +34,7 @@ export const getExtensionManagerDialog = () => {
     try {
         const app = typeof window !== "undefined" ? window?.app : null;
         const dlg = app?.extensionManager?.dialog || null;
-        if (dlg && typeof dlg.confirm === "function" && typeof dlg.prompt === "function") {
+        if (hasDialogMethod(dlg)) {
             return dlg;
         }
     } catch (e) {

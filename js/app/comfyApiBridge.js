@@ -107,12 +107,56 @@ export function getSettingsApi(app) {
 
 export function getSettingValue(app, key) {
     const settingsApi = getSettingsApi(app);
-    if (!settingsApi || typeof settingsApi?.getSettingValue !== "function") return null;
+    if (!settingsApi) return null;
+    const candidates = ["getSettingValue", "getSetting", "get"];
+    for (const name of candidates) {
+        try {
+            if (typeof settingsApi?.[name] === "function") {
+                const value = settingsApi[name](key);
+                if (value !== undefined) return value;
+            }
+        } catch {
+            // Try the next compatibility surface.
+        }
+    }
     try {
-        return settingsApi.getSettingValue(key);
+        const values = settingsApi?.settings || settingsApi?.values || null;
+        if (values instanceof Map && values.has(key)) return values.get(key);
+        if (values && typeof values === "object" && Object.hasOwn(values, key)) return values[key];
     } catch {
         return null;
     }
+    return null;
+}
+
+export function setSettingValue(app, key, value) {
+    const settingsApi = getSettingsApi(app);
+    if (!settingsApi) return false;
+    const candidates = ["setSettingValue", "setSetting", "set", "updateSetting"];
+    for (const name of candidates) {
+        try {
+            if (typeof settingsApi?.[name] === "function") {
+                settingsApi[name](key, value);
+                return true;
+            }
+        } catch {
+            // Try the next compatibility surface.
+        }
+    }
+    try {
+        const values = settingsApi?.settings || settingsApi?.values || null;
+        if (values instanceof Map) {
+            values.set(key, value);
+            return true;
+        }
+        if (values && typeof values === "object") {
+            values[key] = value;
+            return true;
+        }
+    } catch {
+        return false;
+    }
+    return false;
 }
 
 export function getExtensionManager(app) {
@@ -120,9 +164,10 @@ export function getExtensionManager(app) {
     return runtimeApp?.extensionManager || runtimeApp?.ui?.extensionManager || null;
 }
 
-function _getSidebarController(manager) {
+export function getSidebarController(app) {
+    const manager = getExtensionManager(app);
     if (!_isObject(manager)) return null;
-    return manager?.sidebarTab || manager?.sidebarTabStore || null;
+    return manager?.sidebarTabStore || manager?.sidebarTab || manager?.workspaceStore?.sidebarTab || null;
 }
 
 function _getBottomPanelController(manager) {
@@ -141,7 +186,11 @@ export function getExtensionDialogApi(app) {
     const manager = getExtensionManager(app);
     const dialogApi = manager?.dialog || null;
     if (!dialogApi) return null;
-    if (typeof dialogApi.confirm === "function" || typeof dialogApi.prompt === "function") {
+    if (
+        typeof dialogApi.alert === "function" ||
+        typeof dialogApi.confirm === "function" ||
+        typeof dialogApi.prompt === "function"
+    ) {
         return dialogApi;
     }
     return null;
@@ -150,7 +199,7 @@ export function getExtensionDialogApi(app) {
 export function activateSidebarTabCompat(app, tabId) {
     const runtimeApp = _isObject(app) ? app : getComfyApp();
     const manager = getExtensionManager(runtimeApp);
-    const sidebarController = _getSidebarController(manager);
+    const sidebarController = getSidebarController(runtimeApp);
     const safeTabId = String(tabId || "").trim();
     if (!manager || !safeTabId) return false;
     const candidates = [
@@ -233,7 +282,7 @@ export function registerSidebarTabCompat(app, tabDef) {
     try {
         const runtimeApp = _isObject(app) ? app : getComfyApp();
         const manager = runtimeApp?.extensionManager || runtimeApp?.ui?.extensionManager || null;
-        const sidebarController = _getSidebarController(manager);
+        const sidebarController = getSidebarController(runtimeApp);
         for (const host of [manager, sidebarController]) {
             if (host && typeof host.registerSidebarTab === "function") {
                 host.registerSidebarTab(tabDef);

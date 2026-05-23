@@ -184,6 +184,7 @@ def new_scan_stats() -> dict[str, Any]:
         "added": 0,
         "updated": 0,
         "skipped": 0,
+        "pruned": 0,
         "errors": 0,
         "batch_fallbacks": 0,
         "skipped_state_changed": 0,

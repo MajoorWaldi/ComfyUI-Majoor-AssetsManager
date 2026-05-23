@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import hashlib
 from pathlib import Path
-from typing import Literal
+from typing import Literal, Protocol
 
 try:  # pragma: no cover - optional fast path
     import blake3 as _blake3  # type: ignore[import-not-found]
@@ -27,6 +27,11 @@ except Exception:  # pragma: no cover
 
 HashAlgo = Literal["sha256", "blake3"]
 _CHUNK = 1024 * 1024
+
+
+class _Hasher(Protocol):
+    def update(self, data: bytes) -> object: ...
+    def hexdigest(self) -> str: ...
 
 
 def preferred_algo() -> HashAlgo:
@@ -45,7 +50,7 @@ def compute_file_hash(path: Path | str, *, algo: HashAlgo | None = None) -> tupl
         chosen = "sha256"
 
     if chosen == "blake3":
-        hasher = _blake3.blake3()  # type: ignore[union-attr]
+        hasher: _Hasher = _blake3.blake3()  # type: ignore[union-attr]
     else:
         hasher = hashlib.sha256()
 

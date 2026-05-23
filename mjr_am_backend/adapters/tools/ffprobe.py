@@ -75,7 +75,7 @@ class FFProbe:
         for candidate_name in FFProbe._candidate_executable_names(clean):
             resolved = shutil.which(candidate_name)
             if resolved:
-                return resolved
+                return os.path.realpath(resolved)
 
         try:
             candidate_path = Path(clean)

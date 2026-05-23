@@ -89,7 +89,6 @@ input/hello.txt
 input/hello_1.txt
 
 # Restored project files to ignore
-AGENTS.md
 ROADMAP.md
 VERSION
 eslint.config.js
@@ -219,3 +218,6 @@ docs/AUDIT_GRID_REACTIVITY_APR26.md
 docs/GRID_OPTIMIZATION_CHECKLIST.md
 docs/GRID_REFACTOR_ROADMAP.md
 docs/TAGS_NORMALIZATION_REMAINING_WORK.md
+docs/PLAN_COMFY_FRONTEND_ALIGNMENT.md
+.github/agents/comfyui-dev.agent.md
+AGENTS.md

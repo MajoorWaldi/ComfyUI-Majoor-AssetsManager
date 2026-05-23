@@ -33,6 +33,8 @@ import AssetsManagerApp from "../../vue/App.vue";
 import GeneratedFeedApp from "../../vue/GeneratedFeedApp.vue";
 import { mountTopBarMfvButton, teardownTopBarMfvButton } from "./topBarMfvButton.js";
 import { startEarlyFetch, consumeEarlyFetch } from "./earlyFetch.js";
+import { configureSidebarAssetBadge, resetSidebarAssetBadge } from "./sidebarAssetBadge.js";
+import { consumePendingGeneratedAssets } from "./pendingGeneratedAssets.js";
 
 // ── keep-alive mount keys ─────────────────────────────────────────────────────
 const GLOBAL_RUNTIME_ROOT_ID = "mjr-global-runtime-root";
@@ -92,6 +94,7 @@ export { teardownTopBarMfvButton };
 
 export function openAssetsManagerPanel(runtimeApp, sidebarTabId) {
     const opened = activateSidebarTabForApp(runtimeApp, sidebarTabId);
+    resetSidebarAssetBadge();
     if (!opened) {
         try {
             window.dispatchEvent(new Event(EVENTS.OPEN_ASSETS_MANAGER));
@@ -303,6 +306,7 @@ export function registerNativeKeybindings(runtimeApp) {
  * Full teardown only happens when the extension is unregistered.
  */
 export function registerAssetsSidebar(runtimeApp, { sidebarTabId }) {
+    configureSidebarAssetBadge({ sidebarTabId });
     return registerSidebarTabForApp(runtimeApp, {
         id: sidebarTabId,
         icon: "pi pi-folder",
@@ -312,6 +316,7 @@ export function registerAssetsSidebar(runtimeApp, { sidebarTabId }) {
         type: "custom",
 
         render(el) {
+            resetSidebarAssetBadge();
             // Generation/execution must not block panel rendering or warmup.
             // Backend handlers are independent of the prompt queue, so always
             // kick off the early fetch + warmup when the sidebar mounts.
@@ -319,6 +324,22 @@ export function registerAssetsSidebar(runtimeApp, { sidebarTabId }) {
             void runStartupWarmup({ idleOnly: true }).catch(() => null);
             // Mount the Vue app once; subsequent calls reuse the live instance.
             mountKeepAlive(el, AssetsManagerApp, SIDEBAR_MOUNT_KEY);
+            setTimeout(() => {
+                const pending = consumePendingGeneratedAssets();
+                if (!pending) return;
+                try {
+                    window.dispatchEvent(
+                        new CustomEvent(EVENTS.RELOAD_GRID, {
+                            detail: {
+                                reason: "pending-generated-assets",
+                                pending,
+                            },
+                        }),
+                    );
+                } catch (e) {
+                    console.debug?.(e);
+                }
+            }, 0);
         },
 
         destroy(el) {

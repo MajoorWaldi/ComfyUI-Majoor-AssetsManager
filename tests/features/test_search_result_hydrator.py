@@ -71,6 +71,7 @@ def test_apply_hydration_rows_sets_id_rating_tags() -> None:
             "job_id": "prompt-1",
             "source_node_id": "7",
             "source_node_type": "SaveImage",
+            "workflow_id": "workflow-1",
             "rating": 5,
             "tags": '["tag1"]',
             "positive_prompt": "studio portrait",
@@ -86,9 +87,11 @@ def test_apply_hydration_rows_sets_id_rating_tags() -> None:
     assert assets[0]["job_id"] == "prompt-1"
     assert assets[0]["source_node_id"] == "7"
     assert assets[0]["source_node_type"] == "SaveImage"
+    assert assets[0]["workflow_id"] == "workflow-1"
     assert assets[0]["file_info"]["job_id"] == "prompt-1"
     assert assets[0]["file_info"]["source_node_id"] == "7"
     assert assets[0]["file_info"]["source_node_type"] == "SaveImage"
+    assert assets[0]["file_info"]["workflow_id"] == "workflow-1"
     assert "id" not in assets[1]
 
 

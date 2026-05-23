@@ -1064,7 +1064,7 @@ class IndexSearcher:
             f"""
             SELECT
                 a.id, a.filename, a.subfolder, a.filepath, a.kind,
-                a.source, a.root_id, a.job_id, a.stack_id,
+                a.source, a.root_id, a.job_id, a.stack_id, a.workflow_id,
                 a.width, a.height, a.duration, a.size, a.mtime,
                 COALESCE(m.rating, 0) as rating,
                 {_normalized_tags_json_select('a')},
@@ -1204,7 +1204,7 @@ class IndexSearcher:
             SELECT
                 {total_field}
                 a.id, a.filename, a.subfolder, a.filepath, a.kind,
-                a.source, a.root_id, a.job_id, a.stack_id,
+                a.source, a.root_id, a.job_id, a.stack_id, a.workflow_id,
                 a.width, a.height, a.duration, a.size, a.mtime,
                 COALESCE(m.rating, 0) as rating,
                 {_normalized_tags_json_select('a')},
@@ -1272,7 +1272,7 @@ class IndexSearcher:
             f"""
             SELECT
                 a.id, a.filename, a.subfolder, a.filepath, a.kind,
-                a.source, a.root_id, a.job_id, a.stack_id,
+                a.source, a.root_id, a.job_id, a.stack_id, a.workflow_id,
                 a.width, a.height, a.duration, a.size, a.mtime,
                 COALESCE(m.rating, 0) as rating,
                 {_normalized_tags_json_select('a')},
@@ -1365,7 +1365,7 @@ class IndexSearcher:
             )
             SELECT
                 a.id, a.filename, a.subfolder, a.filepath, a.kind,
-                a.source, a.root_id, a.job_id, a.stack_id,
+                a.source, a.root_id, a.job_id, a.stack_id, a.workflow_id,
                 a.width, a.height, a.duration, a.size, a.mtime,
                 COALESCE(m.rating, 0) as rating,
                 {_normalized_tags_json_select('a')},

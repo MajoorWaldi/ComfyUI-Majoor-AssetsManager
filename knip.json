@@ -1,0 +1,16 @@
+{
+    "$schema": "https://unpkg.com/knip@latest/schema.json",
+    "entry": ["js/entry.js", "vite.config.mjs", "vitest.config.mjs", "eslint.config.mjs"],
+    "project": ["js/**/*.{js,mjs,vue}", "js/tests/**/*.mjs", "*.{js,mjs}"],
+    "ignore": ["js_dist/**", "vendor/**", "node_modules/**", "js/vue/majoor-ui.*"],
+    "ignoreDependencies": [
+        "@vitejs/plugin-vue",
+        "@vitest/coverage-v8",
+        "@vue/test-utils",
+        "eslint",
+        "happy-dom",
+        "prettier",
+        "vite",
+        "vitest"
+    ]
+}

@@ -18,16 +18,6 @@ import { t } from "../../../app/i18n.js";
 
 const panelStore = usePanelStore();
 
-const sortOptions = computed(() => [
-    { key: "mtime_desc", label: t("sort.newest"), icon: "pi pi-sort-amount-down" },
-    { key: "mtime_asc",  label: t("sort.oldest"), icon: "pi pi-sort-amount-up-alt" },
-    { key: "name_asc",   label: t("sort.nameAZ"),  icon: "pi pi-sort-alpha-down" },
-    { key: "name_desc",  label: t("sort.nameZA"),  icon: "pi pi-sort-alpha-up" },
-    { key: "rating_desc",label: t("sort.ratingHigh"), icon: "pi pi-star-fill" },
-    { key: "size_desc",  label: t("sort.sizeDesc"), icon: "pi pi-sort-numeric-down-alt" },
-    { key: "size_asc",   label: t("sort.sizeAsc"),  icon: "pi pi-sort-numeric-up-alt" },
-]);
-
 const currentSort = computed(() => panelStore.sort || "mtime_desc");
 
 const handleSortChange = (key) => {
@@ -38,6 +28,22 @@ const handleSortChange = (key) => {
         console.debug?.(e);
     }
 };
+
+const sortMenuItems = computed(() =>
+    [
+        { key: "mtime_desc", label: t("sort.newest"), icon: "pi pi-sort-amount-down" },
+        { key: "mtime_asc", label: t("sort.oldest"), icon: "pi pi-sort-amount-up-alt" },
+        { key: "name_asc", label: t("sort.nameAZ"), icon: "pi pi-sort-alpha-down" },
+        { key: "name_desc", label: t("sort.nameZA"), icon: "pi pi-sort-alpha-up" },
+        { key: "rating_desc", label: t("sort.ratingHigh"), icon: "pi pi-star-fill" },
+        { key: "size_desc", label: t("sort.sizeDesc"), icon: "pi pi-sort-numeric-down-alt" },
+        { key: "size_asc", label: t("sort.sizeAsc"), icon: "pi pi-sort-numeric-up-alt" },
+    ].map((option) => ({
+        ...option,
+        class: { "is-active": currentSort.value === option.key },
+        command: () => handleSortChange(option.key),
+    })),
+);
 </script>
 
 <template>
@@ -47,21 +53,20 @@ const handleSortChange = (key) => {
         Vue only manages the menu content reactively.
     -->
     <div class="mjr-popover mjr-sort-popover" style="display: none;">
-        <div class="mjr-menu" style="display: grid; gap: 6px;">
-            <button
-                v-for="option in sortOptions"
-                :key="option.key"
-                type="button"
-                class="mjr-menu-item"
-                :class="{ 'is-active': currentSort === option.key }"
-                @click="handleSortChange(option.key)"
-            >
-                <span class="mjr-menu-item-label">{{ option.label }}</span>
-                <i
-                    :class="[option.icon, 'mjr-menu-item-check']"
-                    :style="{ opacity: currentSort === option.key ? 1 : 0 }"
-                />
-            </button>
-        </div>
+        <MMenu
+            :model="sortMenuItems"
+            class="mjr-menu mjr-prime-menu mjr-sort-menu"
+            :pt="{ list: { class: 'mjr-menu mjr-prime-menu-list' } }"
+        >
+            <template #item="{ item }">
+                <div class="mjr-menu-item" :class="{ 'is-active': currentSort === item.key }">
+                    <span class="mjr-menu-item-label">{{ item.label }}</span>
+                    <i
+                        :class="[item.icon, 'mjr-menu-item-check']"
+                        :style="{ opacity: currentSort === item.key ? 1 : 0 }"
+                    />
+                </div>
+            </template>
+        </MMenu>
     </div>
 </template>

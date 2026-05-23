@@ -113,6 +113,8 @@ const tabOutputsRef = ref(null);
 const tabCustomRef = ref(null);
 const tabSimilarRef = ref(null);
 
+const resolveDomElement = (value) => value?.$el || value || null;
+
 // ── version badge state ────────────────────────────────────────────────────────
 
 const versionBadgeText = ref(initialNightly ? "nightly" : "v?");
@@ -147,11 +149,11 @@ const hasSimilarScope = computed(() =>
 // ── tabButtons proxy (for scopeController DOM interop) ────────────────────────
 
 const tabButtons = {
-    get tabAll()    { return tabAllRef.value; },
-    get tabInputs() { return tabInputsRef.value; },
-    get tabOutputs(){ return tabOutputsRef.value; },
-    get tabCustom() { return tabCustomRef.value; },
-    get tabSimilar(){ return tabSimilarRef.value; },
+    get tabAll()    { return resolveDomElement(tabAllRef.value); },
+    get tabInputs() { return resolveDomElement(tabInputsRef.value); },
+    get tabOutputs(){ return resolveDomElement(tabOutputsRef.value); },
+    get tabCustom() { return resolveDomElement(tabCustomRef.value); },
+    get tabSimilar(){ return resolveDomElement(tabSimilarRef.value); },
 };
 
 // ── version badge computed ─────────────────────────────────────────────────────
@@ -238,7 +240,7 @@ function applyDotState(state) {
 
 function syncMfvTooltip() {
     try {
-        setTooltipHint(mfvBtnRef.value, mfvTitle.value, MFV_TOOLTIP_HINT);
+        setTooltipHint(resolveDomElement(mfvBtnRef.value), mfvTitle.value, MFV_TOOLTIP_HINT);
     } catch (e) {
         console.debug?.(e);
     }
@@ -329,12 +331,12 @@ defineExpose({
     get headerActions(){ return headerActionsRef.value; },
     get tabButtons()   { return tabButtons; },
     // Tool buttons
-    get customMenuBtn()     { return customMenuBtnRef.value; },
-    get filterBtn()         { return filterBtnRef.value; },
-    get sortBtn()           { return sortBtnRef.value; },
-    get collectionsBtn()    { return collectionsBtnRef.value; },
-    get pinnedFoldersBtn()  { return pinnedFoldersBtnRef.value; },
-    get messageBtn()        { return messageBtnRef.value; },
+    get customMenuBtn()     { return resolveDomElement(customMenuBtnRef.value); },
+    get filterBtn()         { return resolveDomElement(filterBtnRef.value); },
+    get sortBtn()           { return resolveDomElement(sortBtnRef.value); },
+    get collectionsBtn()    { return resolveDomElement(collectionsBtnRef.value); },
+    get pinnedFoldersBtn()  { return resolveDomElement(pinnedFoldersBtnRef.value); },
+    get messageBtn()        { return resolveDomElement(messageBtnRef.value); },
     // CustomRootsPopover (Vue)
     get customPopover()   { return customPopoverRef.value?.$el ?? null; },
     get customSelect()    { return customPopoverRef.value?.customSelect ?? null; },
@@ -364,6 +366,7 @@ defineExpose({
     get refreshCollectionsPopover() { return collectionsPopoverRef.value?.refresh ?? null; },
     // PinnedFoldersPopover (Vue)
     get pinnedFoldersPopover() { return pinnedFoldersPopoverRef.value?.$el ?? null; },
+    get pinnedFoldersController() { return pinnedFoldersPopoverRef.value ?? null; },
     get pinnedFoldersMenu()    { return pinnedFoldersPopoverRef.value?.pinnedFoldersMenu ?? null; },
     // MessagePopover (Vue)
     get messagePopover()      { return messagePopoverRef.value?.$el ?? null; },
@@ -426,102 +429,124 @@ defineExpose({
             <div ref="headerActionsRef" class="mjr-am-header-actions">
                 <!-- Scope tabs — class is-active is driven by usePanelStore.scope -->
                 <div class="mjr-tabs">
-                    <button
+                    <MButton
                         ref="tabAllRef"
                         type="button"
                         class="mjr-tab"
+                        severity="secondary"
+                        text
                         data-scope="all"
                         :class="{ 'is-active': activeScope === 'all' }"
                         :title="t('tooltip.tab.all')"
-                    >{{ t("tab.all") }}</button>
+                    >{{ t("tab.all") }}</MButton>
 
-                    <button
+                    <MButton
                         ref="tabInputsRef"
                         type="button"
                         class="mjr-tab"
+                        severity="secondary"
+                        text
                         data-scope="input"
                         :class="{ 'is-active': activeScope === 'input' }"
                         :title="t('tooltip.tab.input')"
-                    >{{ t("tab.input") }}</button>
+                    >{{ t("tab.input") }}</MButton>
 
-                    <button
+                    <MButton
                         ref="tabOutputsRef"
                         type="button"
                         class="mjr-tab"
+                        severity="secondary"
+                        text
                         data-scope="output"
                         :class="{ 'is-active': activeScope === 'output' }"
                         :title="t('tooltip.tab.output')"
-                    >{{ t("tab.output") }}</button>
+                    >{{ t("tab.output") }}</MButton>
 
-                    <button
+                    <MButton
                         ref="tabCustomRef"
                         type="button"
                         class="mjr-tab"
+                        severity="secondary"
+                        text
                         data-scope="custom"
                         :class="{ 'is-active': activeScope === 'custom' }"
                         :title="t('tooltip.tab.custom')"
-                    >{{ t("tab.custom") }}</button>
+                    >{{ t("tab.custom") }}</MButton>
 
-                    <button
+                    <MButton
                         ref="tabSimilarRef"
                         type="button"
                         class="mjr-tab"
+                        severity="secondary"
+                        text
                         data-scope="similar"
                         :class="{ 'is-active': activeScope === 'similar' }"
                         :style="{ display: hasSimilarScope ? '' : 'none' }"
                         :title="t('tooltip.tab.similar', 'Browse current similar findings')"
-                    >{{ t("tab.similar", "Similar") }}</button>
+                    >{{ t("tab.similar", "Similar") }}</MButton>
                 </div>
 
                 <div class="mjr-am-header-tools">
                     <div class="mjr-popover-anchor" style="display: none;">
-                        <button
+                        <MButton
                             ref="customMenuBtnRef"
                             type="button"
                             class="mjr-icon-btn"
+                            severity="secondary"
+                            text
+                            rounded
                             :title="t('tooltip.browserFolders')"
                             :aria-label="t('tooltip.browserFolders')"
                         >
                             <i class="pi pi-folder-open" aria-hidden="true" />
-                        </button>
+                        </MButton>
                         <CustomRootsPopover ref="customPopoverRef" />
                     </div>
 
-                    <button
+                    <MButton
                         ref="mfvBtnRef"
                         type="button"
                         class="mjr-icon-btn"
+                        severity="secondary"
+                        text
+                        rounded
                         :class="{ 'mjr-mfv-btn-active': mfvVisible }"
                         :title="mfvTitle"
                         :aria-label="mfvTitle"
                         @click="handleMfvToggle"
                     >
                         <i :class="mfvIconClass" aria-hidden="true" />
-                    </button>
+                    </MButton>
 
                     <div class="mjr-popover-anchor">
-                        <button
+                        <MButton
                             ref="messageBtnRef"
                             type="button"
                             class="mjr-icon-btn mjr-message-btn"
+                            severity="secondary"
+                            text
+                            rounded
                             :title="t('tooltip.openMessages', 'Messages and updates')"
                             :aria-label="t('tooltip.openMessages', 'Messages and updates')"
                         >
                             <i class="pi pi-info-circle" aria-hidden="true" />
                             <span class="mjr-message-badge" style="display: none" aria-hidden="true" />
-                        </button>
+                        </MButton>
                         <MessagePopover ref="messagePopoverRef" />
                     </div>
 
-                    <button
+                    <MButton
                         type="button"
                         class="mjr-icon-btn mjr-settings-shortcut-btn"
+                        severity="secondary"
+                        text
+                        rounded
                         :title="majoorSettingsTitle"
                         :aria-label="majoorSettingsTitle"
                         @click="handleOpenMajoorSettings"
                     >
                         <i class="pi pi-cog" aria-hidden="true" />
-                    </button>
+                    </MButton>
                 </div>
             </div>
         </div>
@@ -530,15 +555,18 @@ defineExpose({
     <SearchBar ref="searchBarRef">
         <template #filter-anchor>
             <div class="mjr-popover-anchor">
-                <button
+                <MButton
                     ref="filterBtnRef"
                     type="button"
                     class="mjr-icon-btn"
+                    severity="secondary"
+                    text
+                    rounded
                     :title="t('label.filters')"
                     :aria-label="t('label.filters')"
                 >
                     <i class="pi pi-filter" aria-hidden="true" />
-                </button>
+                </MButton>
                 <!-- Vue FilterPopover: content is reactive, visibility controlled by legacy popovers.toggle() -->
                 <FilterPopover ref="filterPopoverRef" />
             </div>
@@ -546,16 +574,19 @@ defineExpose({
 
         <template #sort-anchor>
             <div class="mjr-popover-anchor">
-                <button
+                <MButton
                     ref="sortBtnRef"
                     type="button"
                     class="mjr-icon-btn"
+                    severity="secondary"
+                    text
+                    rounded
                     :title="t('label.sort')"
                     :aria-label="t('label.sort')"
                 >
                     <!-- Icon updates reactively when sort changes in Pinia -->
                     <i :class="sortIconClass" aria-hidden="true" />
-                </button>
+                </MButton>
                 <!-- Vue SortPopover: content is reactive, visibility controlled by legacy popovers.toggle() -->
                 <SortPopover ref="sortPopoverRef" />
             </div>
@@ -563,30 +594,36 @@ defineExpose({
 
         <template #collections-anchor>
             <div class="mjr-popover-anchor">
-                <button
+                <MButton
                     ref="collectionsBtnRef"
                     type="button"
                     class="mjr-icon-btn"
+                    severity="secondary"
+                    text
+                    rounded
                     :title="t('label.collections')"
                     :aria-label="t('label.collections')"
                 >
                     <i class="pi pi-bookmark" aria-hidden="true" />
-                </button>
+                </MButton>
                 <CollectionsPopover ref="collectionsPopoverRef" />
             </div>
         </template>
 
         <template #pinned-folders-anchor>
             <div class="mjr-popover-anchor">
-                <button
+                <MButton
                     ref="pinnedFoldersBtnRef"
                     type="button"
                     class="mjr-icon-btn"
+                    severity="secondary"
+                    text
+                    rounded
                     :title="t('tooltip.pinnedFolders')"
                     :aria-label="t('tooltip.pinnedFolders')"
                 >
                     <i class="pi pi-folder" aria-hidden="true" />
-                </button>
+                </MButton>
                 <PinnedFoldersPopover ref="pinnedFoldersPopoverRef" />
             </div>
         </template>

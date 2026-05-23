@@ -20,19 +20,14 @@ import {
 import { formatDuration, formatDate, formatTime } from "../../../utils/format.js";
 import { MediaBlobCache } from "../../../features/grid/MediaBlobCache.js";
 import { APP_CONFIG } from "../../../app/config.js";
+import { builtAssetUrl } from "../../../app/assetUrls.js";
 import RatingBadge from "../common/RatingBadge.vue";
 import TagsBadge from "../common/TagsBadge.vue";
 import GenTimeBadge from "../common/GenTimeBadge.vue";
 
 // ─── Audio thumbnail URL ─────────────────────────────────────────────────────
 
-const AUDIO_THUMB_URL = (() => {
-    try {
-        return new URL("../../../assets/audio-thumbnails.png", import.meta.url).href;
-    } catch {
-        return "";
-    }
-})();
+const AUDIO_THUMB_URL = builtAssetUrl("audio-thumbnails.png");
 
 // Audio waveform bars SVG (same bars as Card.js)
 const AUDIO_BARS = [
@@ -687,10 +682,13 @@ function onFileBadgeClick(event) {
     </div>
 
     <!-- ── STACK GROUP BUTTON (execution grouping) ────────────────────────── -->
-    <button
+    <MButton
         v-if="hasStackGroup"
         type="button"
         class="mjr-stack-group-button"
+        severity="secondary"
+        text
+        rounded
         :aria-label="`Open generation group in grid (${stackCount} assets)`"
         :title="`Open generation group in grid (${stackCount} assets)`"
         @click="onStackGroupClick"
@@ -703,13 +701,16 @@ function onFileBadgeClick(event) {
     >
         <span class="pi pi-clone"></span>
         <span class="mjr-stack-group-button-count">{{ stackCount }}</span>
-    </button>
+    </MButton>
 
     <!-- ── DUPLICATE STACK BUTTON (same-filename copies) ──────────────────── -->
-    <button
+    <MButton
         v-if="hasDupStack"
         type="button"
         class="mjr-dup-stack-button"
+        severity="secondary"
+        text
+        rounded
         :aria-label="`${dupCount} duplicate${dupCount > 1 ? 's' : ''} - click to compare all copies`"
         :title="`${dupCount} duplicate${dupCount > 1 ? 's' : ''} - click to compare all copies`"
         @click="onDupStackClick"
@@ -722,5 +723,5 @@ function onFileBadgeClick(event) {
     >
         <span class="pi pi-copy"></span>
         <span class="mjr-dup-stack-count">{{ dupCount }}</span>
-    </button>
+    </MButton>
 </template>

@@ -4,6 +4,7 @@ import { drawWorkflowMinimap, synthesizeWorkflowFromPromptGraph } from "../../..
 import { loadMajoorSettings, saveMajoorSettings } from "../../../../app/settings.js";
 import { MINIMAP_LEGACY_SETTINGS_KEY } from "../../../../app/settingsStore.js";
 import { t } from "../../../../app/i18n.js";
+import { centerGraphCanvasOnWorldPoint } from "../../../../app/hostAdapter.js";
 
 const props = defineProps({
     asset: { type: Object, required: true },
@@ -29,6 +30,7 @@ const DEFAULT_VIEW = Object.freeze({
 
 const MINIMAP_ZOOM_MIN = 1;
 const MINIMAP_ZOOM_MAX = 8;
+const WORKFLOW_TREE_LIMIT = 250;
 
 const SIZE_OPTIONS = Object.freeze([
     { key: "compact", label: "Compact", height: 120 },
@@ -198,6 +200,43 @@ const rawWorkflowJson = computed(() =>
     workflow.value ? JSON.stringify(workflow.value, null, 2) : "",
 );
 
+function workflowNodeLabel(node, index) {
+    const id = node?.id ?? node?.key ?? index + 1;
+    return String(
+        node?.title ||
+            node?._meta?.title ||
+            node?.type ||
+            node?.class_type ||
+            node?.name ||
+            `Node ${id}`,
+    );
+}
+
+function workflowNodeType(node) {
+    return String(node?.type || node?.class_type || node?.name || "").trim();
+}
+
+const workflowTreeNodes = computed(() => {
+    const nodes = Array.isArray(workflow.value?.nodes) ? workflow.value.nodes : [];
+    return nodes.slice(0, WORKFLOW_TREE_LIMIT).map((node, index) => {
+        const id = node?.id ?? node?.key ?? index + 1;
+        const type = workflowNodeType(node);
+        return {
+            key: String(id),
+            label: workflowNodeLabel(node, index),
+            icon: "pi pi-circle-fill",
+            data: {
+                id,
+                type,
+            },
+        };
+    });
+});
+
+const workflowTreeOverflowCount = computed(() =>
+    Math.max(0, Number(workflowStats.value.nodes || 0) - workflowTreeNodes.value.length),
+);
+
 const workflowStats = computed(() => {
     const current = workflow.value;
     if (!current) {
@@ -268,54 +307,8 @@ function renderCanvas() {
     syncResolvedView(lastRenderInfo?.resolvedView);
 }
 
-function getMainCanvasState() {
-    const app = window?.app || null;
-    const graphCanvas = app?.canvas || null;
-    const ds = graphCanvas?.ds || null;
-    const canvas = graphCanvas?.canvas || graphCanvas?.el || null;
-    if (!graphCanvas || !ds || !canvas) return null;
-    const scale = Number(ds?.scale);
-    const width = Number(canvas?.width || canvas?.clientWidth || 0);
-    const height = Number(canvas?.height || canvas?.clientHeight || 0);
-    if (!Number.isFinite(scale) || scale <= 0 || !(width > 0) || !(height > 0)) return null;
-    return { app, graphCanvas, ds, canvas, scale, width, height };
-}
-
-function setMainCanvasOffset(ds, x, y) {
-    if (Array.isArray(ds?.offset)) {
-        ds.offset[0] = x;
-        ds.offset[1] = y;
-        return;
-    }
-    if (ds?.offset && typeof ds.offset === "object") {
-        ds.offset.x = x;
-        ds.offset.y = y;
-    }
-}
-
-function markMainCanvasDirty(app, graphCanvas) {
-    try {
-        graphCanvas?.setDirty?.(true, true);
-    } catch (e) {
-        console.debug?.(e);
-    }
-    try {
-        app?.graph?.setDirtyCanvas?.(true, true);
-    } catch (e) {
-        console.debug?.(e);
-    }
-}
-
 function centerMainCanvasOnWorld(worldPoint) {
-    if (!worldPoint) return;
-    const state = getMainCanvasState();
-    if (!state) return;
-    const dpr = Math.max(1, Number(window.devicePixelRatio) || 1);
-    const offsetX = -Number(worldPoint.x) + state.width * 0.5 / (state.scale * dpr);
-    const offsetY = -Number(worldPoint.y) + state.height * 0.5 / (state.scale * dpr);
-    if (!Number.isFinite(offsetX) || !Number.isFinite(offsetY)) return;
-    setMainCanvasOffset(state.ds, offsetX, offsetY);
-    markMainCanvasDirty(state.app, state.graphCanvas);
+    centerGraphCanvasOnWorldPoint(worldPoint);
 }
 
 function getCanvasLocalPoint(event) {
@@ -550,13 +543,57 @@ onBeforeUnmount(() => {
         </div>
 
         <div
+            v-if="workflowTreeNodes.length"
+            class="mjr-workflow-tree-wrap"
+        >
+            <div class="mjr-section-title">
+                Workflow Nodes
+            </div>
+            <MTree
+                :value="workflowTreeNodes"
+                class="mjr-workflow-tree"
+                scroll-height="180px"
+                :pt="{
+                    wrapper: { class: 'mjr-workflow-tree-scroll' },
+                    rootChildren: { class: 'mjr-workflow-tree-list' },
+                    nodeContent: { class: 'mjr-workflow-tree-node-content' },
+                    nodeToggleButton: { class: 'mjr-workflow-tree-toggle' },
+                    nodeIcon: { class: 'mjr-workflow-tree-icon' },
+                    nodeLabel: { class: 'mjr-workflow-tree-label' },
+                }"
+            >
+                <template #default="{ node }">
+                    <span class="mjr-workflow-tree-node">
+                        <span class="mjr-workflow-tree-node-name">{{ node.label }}</span>
+                        <span
+                            v-if="node.data?.type"
+                            class="mjr-workflow-tree-node-type"
+                        >
+                            {{ node.data.type }}
+                        </span>
+                        <span class="mjr-menu-item-hint">#{{ node.data?.id }}</span>
+                    </span>
+                </template>
+            </MTree>
+            <div
+                v-if="workflowTreeOverflowCount"
+                class="mjr-section-hint"
+            >
+                +{{ workflowTreeOverflowCount }} more nodes
+            </div>
+        </div>
+
+        <div
             style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:8px"
         >
             <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">
-                <button
+                <MButton
                     v-for="option in SIZE_OPTIONS"
                     :key="option.key"
                     type="button"
+                    severity="secondary"
+                    text
+                    rounded
                     :title="`${option.label} minimap`"
                     :style="{
                         appearance: 'none',
@@ -572,27 +609,32 @@ onBeforeUnmount(() => {
                     @click="setMinimapSize(option.key)"
                 >
                     {{ option.label }}
-                </button>
+                </MButton>
             </div>
-            <button
+            <MButton
                 type="button"
                 class="mjr-btn mjr-icon-btn"
+                severity="secondary"
+                text
+                rounded
                 :title="t('tooltip.minimapSettings', 'Minimap settings')"
                 style="width:28px;height:28px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--mjr-border, rgba(255,255,255,0.12));background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.9);cursor:pointer"
                 @click="showTools = !showTools"
             >
                 <i class="pi pi-sliders-h" />
-            </button>
+            </MButton>
         </div>
 
         <div
             v-if="showTools"
             style="display:grid;grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));gap:8px;align-items:stretch;margin-top:10px;margin-bottom:10px"
         >
-            <button
+            <MButton
                 v-for="option in toggleOptions"
                 :key="option.key"
                 type="button"
+                severity="secondary"
+                text
                 :style="{
                     display: 'flex',
                     alignItems: 'center',
@@ -637,7 +679,7 @@ onBeforeUnmount(() => {
                         {{ minimapSettings?.[option.key] ? 'On' : 'Off' }}
                     </div>
                 </div>
-            </button>
+            </MButton>
         </div>
 
         <div style="display:flex;gap:10px;align-items:stretch;margin-top:10px">

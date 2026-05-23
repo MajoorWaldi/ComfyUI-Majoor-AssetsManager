@@ -50,6 +50,7 @@ import { bindSimilarSearch } from "./panelSimilarSearch.js";
 import { bindPinnedFolders } from "./panelPinnedFolders.js";
 import { setupFiltersInit } from "./panelFiltersInit.js";
 import { buildContextMenuExtraActions } from "./panelContextMenuExtraActions.js";
+import { consumePendingGeneratedAssets } from "../runtime/pendingGeneratedAssets.js";
 
 /**
  * Wires controller/service orchestration against Vue-owned panel surfaces.
@@ -177,6 +178,7 @@ async function _mountPanelRuntimeImpl(container, { useComfyThemeUI = true, exter
         sortMenu,
         collectionsPopover,
         pinnedFoldersPopover,
+        pinnedFoldersController,
         pinnedFoldersMenu,
         messagePopoverTitle,
         messagePopover,
@@ -213,6 +215,7 @@ async function _mountPanelRuntimeImpl(container, { useComfyThemeUI = true, exter
     const summaryBar = external.summaryBar;
     const updateSummaryBar = external.updateSummaryBar;
     const folderBreadcrumb = external.folderBreadcrumb;
+    const folderBreadcrumbController = external.folderBreadcrumbController || null;
     const statusSection = external.statusSection;
     const statusDot = external.statusDot;
     const statusText = external.statusText;
@@ -432,9 +435,16 @@ async function _mountPanelRuntimeImpl(container, { useComfyThemeUI = true, exter
         state,
         gridContainer,
         folderBreadcrumb,
+        folderBreadcrumbController,
         customSelect,
         reloadGrid: () => gridController.reloadGrid(),
-        clearSelection: () => { try { gridContainer?._mjrSetSelection?.([], ""); } catch (e) { console.debug?.(e); } },
+        clearSelection: () => {
+            try {
+                gridContainer?._mjrSetSelection?.([], "");
+            } catch (e) {
+                console.debug?.(e);
+            }
+        },
         onContextChanged: () => {
             try {
                 contextController?.update?.();
@@ -826,6 +836,7 @@ async function _mountPanelRuntimeImpl(container, { useComfyThemeUI = true, exter
     // ── 22. PINNED FOLDERS ────────────────────────────────────────────────
     bindPinnedFolders({
         pinnedFoldersBtn,
+        pinnedFoldersController,
         pinnedFoldersMenu,
         pinnedFoldersPopover,
         popovers,
@@ -1334,15 +1345,21 @@ async function _mountPanelRuntimeImpl(container, { useComfyThemeUI = true, exter
     } catch (e) {
         console.debug?.(e);
     }
+    const pendingGeneratedAssetCount = consumePendingGeneratedAssets();
 
     const initialLoadPromise =
-        didHydrateFromSnapshot || hasExistingGridCards
+        !pendingGeneratedAssetCount && (didHydrateFromSnapshot || hasExistingGridCards)
             ? Promise.resolve({
                   ok: true,
                   hydrated: !!didHydrateFromSnapshot,
                   cached: !!hasExistingGridCards,
               })
-            : gridController.reloadGrid();
+            : gridController.reloadGrid({
+                  reason: pendingGeneratedAssetCount
+                      ? "pending-generated-assets"
+                      : "initial-load",
+                  preserveVisibleUntilReady: !pendingGeneratedAssetCount,
+              });
 
     // When we showed cached snapshot data on first launch, schedule a silent
     // background refresh so the user always sees an up-to-date grid without

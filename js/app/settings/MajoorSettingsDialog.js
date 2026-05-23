@@ -13,6 +13,7 @@ const GROUP_META = {
     Grid: { icon: "pi pi-table", label: "Grid" },
     Sidebar: { icon: "pi pi-window-maximize", label: "Sidebar" },
     Viewer: { icon: "pi pi-images", label: "Viewer" },
+    "Floating Viewer": { icon: "pi pi-window-maximize", label: "Floating Viewer" },
     "Generated Feed": { icon: "pi pi-bolt", label: "Generated Feed" },
     Search: { icon: "pi pi-search", label: "Search" },
     Scanning: { icon: "pi pi-sync", label: "Scanning" },

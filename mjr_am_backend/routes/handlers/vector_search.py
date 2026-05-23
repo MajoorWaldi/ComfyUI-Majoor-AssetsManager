@@ -991,9 +991,9 @@ def register_vector_search_routes(routes: web.RouteTableDef) -> None:
         Body params (JSON):
           k: number of clusters (default: 8, range: 2-20)
         """
-        csrf = _csrf_error(request)
-        if csrf:
-            return _json_response(Result.Err("CSRF", csrf))
+        mutation = _require_vector_mutation(request)
+        if not mutation.ok:
+            return _json_response(mutation)
         allowed, retry = _check_rate_limit(
             request, "vector_suggest",
             max_requests=5,

@@ -14,6 +14,7 @@ import { defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
+import { readFileSync } from "fs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const NODE_ENV_LITERAL = JSON.stringify("production");
@@ -31,8 +32,24 @@ function stripNodeEnvForBrowser() {
     };
 }
 
+function emitStaticRuntimeAssets() {
+    const assets = ["audio-bg.png", "audio-thumbnails.png"];
+    return {
+        name: "mjr-emit-static-runtime-assets",
+        generateBundle() {
+            for (const name of assets) {
+                this.emitFile({
+                    type: "asset",
+                    fileName: `assets/${name}`,
+                    source: readFileSync(resolve(__dirname, "js", "assets", name)),
+                });
+            }
+        },
+    };
+}
+
 export default defineConfig({
-    plugins: [vue(), stripNodeEnvForBrowser()],
+    plugins: [vue(), stripNodeEnvForBrowser(), emitStaticRuntimeAssets()],
     define: {
         "process.env.NODE_ENV": NODE_ENV_LITERAL,
     },
@@ -48,6 +65,7 @@ export default defineConfig({
 
         outDir: "js_dist",
         emptyOutDir: true,
+        assetsInlineLimit: 0,
 
         rollupOptions: {
             /**
@@ -75,10 +93,21 @@ export default defineConfig({
                 // become separate chunks so they don't bloat the initial load.
                 chunkFileNames: "chunks/[name]-[hash].js",
                 assetFileNames: "assets/[name].[ext]",
-                // Bundle Vue + Pinia together in one vendor chunk that is shared
-                // by all lazy chunks, keeping each chunk small.
-                manualChunks: {
-                    "mjr-vue-vendor": ["vue", "pinia"],
+                // Keep framework and UI-library costs visible as shared chunks.
+                // Full externalization stays deferred until ComfyUI host runtime
+                // compatibility is verified across stable + nightly.
+                manualChunks(id) {
+                    if (
+                        id.includes("node_modules/primevue/") ||
+                        id.includes("node_modules/@primevue/") ||
+                        id.includes("node_modules/@primeuix/")
+                    ) {
+                        return "mjr-primevue";
+                    }
+                    if (id.includes("node_modules/vue/") || id.includes("node_modules/pinia/")) {
+                        return "mjr-vue-vendor";
+                    }
+                    return null;
                 },
             },
         },

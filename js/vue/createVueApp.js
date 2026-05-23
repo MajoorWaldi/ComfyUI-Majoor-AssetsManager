@@ -17,6 +17,7 @@
 
 import { createApp } from "vue";
 import { createPinia } from "pinia";
+import { installMajoorPrimeVue } from "./majoorPrimeVue.js";
 
 /**
  * Creates a self-contained Vue + Pinia application.
@@ -29,6 +30,7 @@ export function createMjrApp(rootComponent, props = undefined) {
     const pinia = createPinia();
     const app = createApp(rootComponent, props);
     app.use(pinia);
+    installMajoorPrimeVue(app);
     return { app, pinia };
 }
 

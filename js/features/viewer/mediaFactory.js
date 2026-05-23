@@ -7,14 +7,9 @@ import {
     safeCall as defaultSafeCall,
 } from "../../utils/safeCall.js";
 import { APP_CONFIG } from "../../app/config.js";
+import { builtAssetUrl } from "../../app/assetUrls.js";
 
-const AUDIO_BG_URL = (() => {
-    try {
-        return new URL("../../assets/audio-bg.png", import.meta.url).href;
-    } catch {
-        return "";
-    }
-})();
+const AUDIO_BG_URL = builtAssetUrl("audio-bg.png");
 
 export function createViewerMediaFactory({
     overlay,

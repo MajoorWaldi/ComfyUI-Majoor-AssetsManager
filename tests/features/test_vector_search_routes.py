@@ -749,6 +749,7 @@ async def test_vector_suggest_collections_route_returns_clusters(monkeypatch) ->
     monkeypatch.setattr(vector_search, "_require_vector_services", lambda services: (services.get("vector_searcher"), None))
     monkeypatch.setattr(vector_search, "_check_rate_limit", lambda *_args, **_kwargs: (True, None))
     monkeypatch.setattr(vector_search, "_csrf_error", lambda _request: None)
+    monkeypatch.setattr(vector_search, "_require_write_access", lambda _request: Result.Ok(True))
 
     app = _build_vector_app()
     req = make_mocked_request("POST", "/mjr/am/vector/suggest-collections", app=app)

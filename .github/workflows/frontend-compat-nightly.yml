@@ -1,0 +1,47 @@
+name: frontend-compat-nightly
+
+on:
+    schedule:
+        - cron: "17 3 * * *"
+    workflow_dispatch:
+
+permissions:
+    contents: read
+
+jobs:
+    comfyui-frontend-latest:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout extension
+              uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+            - name: Checkout ComfyUI frontend latest
+              uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+              with:
+                  repository: Comfy-Org/ComfyUI_frontend
+                  ref: main
+                  path: _upstream/ComfyUI_frontend
+
+            - name: Setup Node.js
+              uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+              with:
+                  node-version: "22"
+                  cache: npm
+
+            - name: Install extension dependencies
+              run: npm ci --ignore-scripts
+
+            - name: Build extension bundle
+              run: npm run build
+
+            - name: Check expected frontend API surfaces
+              shell: bash
+              run: |
+                  set -euo pipefail
+                  root="_upstream/ComfyUI_frontend"
+                  test -f "$root/src/types/extensionTypes.ts"
+                  test -f "$root/src/stores/workspaceStore.ts"
+                  grep -R "sidebarTabStore" "$root/src/stores" >/dev/null
+                  grep -R "dialog" "$root/src/services" "$root/src/stores" >/dev/null
+                  grep -R "registerSidebarTab" "$root/src" >/dev/null
+                  git -C "$root" rev-parse HEAD

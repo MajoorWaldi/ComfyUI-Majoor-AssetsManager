@@ -28,6 +28,30 @@ vi.mock("../app/i18n.js", () => ({
     t: (_key, fallback) => fallback,
 }));
 
+const MButtonStub = {
+    props: {
+        severity: String,
+        text: Boolean,
+        rounded: Boolean,
+    },
+    inheritAttrs: false,
+    template: '<button v-bind="$attrs"><slot /></button>',
+};
+
+const MTreeStub = {
+    props: {
+        value: { type: Array, default: () => [] },
+    },
+    inheritAttrs: false,
+    template: `
+        <div v-bind="$attrs">
+            <div v-for="node in value" :key="String(node?.key ?? node?.label ?? '')">
+                <slot :node="node">{{ node?.label }}</slot>
+            </div>
+        </div>
+    `,
+};
+
 describe("SidebarWorkflowSection", () => {
     beforeEach(() => {
         settingsState = {
@@ -98,6 +122,12 @@ describe("SidebarWorkflowSection", () => {
                 },
             },
             attachTo: document.body,
+            global: {
+                stubs: {
+                    MButton: MButtonStub,
+                    MTree: MTreeStub,
+                },
+            },
         });
 
         expect(wrapper.text()).toContain("Nodes");
@@ -139,6 +169,12 @@ describe("SidebarWorkflowSection", () => {
                 },
             },
             attachTo: document.body,
+            global: {
+                stubs: {
+                    MButton: MButtonStub,
+                    MTree: MTreeStub,
+                },
+            },
         });
 
         const canvas = wrapper.find("canvas");

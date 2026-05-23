@@ -59,7 +59,8 @@ def _resolve_vectors_db_path(db_path: str) -> str:
     try:
         resolved_db = Path(db_path).expanduser().resolve()
         resolved_index = Path(runtime_index_db).expanduser().resolve()
-    except Exception:
+    except Exception as _e:
+        logger.debug("_resolve_vectors_db_path: path resolution fallback for %r: %s", db_path, _e)
         resolved_db = Path(db_path)
         resolved_index = Path(runtime_index_db)
 

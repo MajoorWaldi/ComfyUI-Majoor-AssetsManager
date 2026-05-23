@@ -4,7 +4,7 @@
 
 import { t } from "../i18n.js";
 import { APP_DEFAULTS } from "../config.js";
-import { saveMajoorSettings, applySettingsToConfig } from "./settingsCore.js";
+import { loadMajoorSettings, saveMajoorSettings, applySettingsToConfig } from "./settingsCore.js";
 import { getLtxavRgbFallbackSettings, setLtxavRgbFallbackSettings } from "../../api/client.js";
 import { comfyToast } from "../toast.js";
 
@@ -20,6 +20,8 @@ const SETTINGS_CATEGORY = "Majoor Assets Manager";
  */
 export function registerViewerSettings(safeAddSetting, settings, notifyApplied) {
     const cat = (section, label) => [SETTINGS_CATEGORY, section, label];
+    const viewerCat = (label) => cat(t("cat.viewer", "Viewer"), label);
+    const floatingViewerCat = (label) => cat(t("cat.floatingViewer", "Floating Viewer"), label);
 
     // ──────────────────────────────────────────────
     // Section: Viewer
@@ -27,7 +29,7 @@ export function registerViewerSettings(safeAddSetting, settings, notifyApplied) 
 
     safeAddSetting({
         id: `${SETTINGS_PREFIX}.Viewer.AllowPanAtZoom1`,
-        category: cat(t("cat.viewer"), t("setting.viewer.pan.name").replace("Majoor: ", "")),
+        category: viewerCat(t("setting.viewer.pan.name").replace("Majoor: ", "")),
         name: t("setting.viewer.pan.name"),
         tooltip: t("setting.viewer.pan.desc"),
         type: "boolean",
@@ -43,7 +45,7 @@ export function registerViewerSettings(safeAddSetting, settings, notifyApplied) 
 
     safeAddSetting({
         id: `${SETTINGS_PREFIX}.Viewer.DisableWebGL`,
-        category: cat(t("cat.viewer"), "Disable WebGL Video"),
+        category: viewerCat("Disable WebGL Video"),
         name: "Disable WebGL Video",
         tooltip:
             "Use CPU rendering (Canvas 2D) for video playback. Fixes 'black screen' issues on incompatible hardware/browsers.",
@@ -60,10 +62,7 @@ export function registerViewerSettings(safeAddSetting, settings, notifyApplied) 
 
     safeAddSetting({
         id: `${SETTINGS_PREFIX}.Viewer.PauseDuringExecution`,
-        category: cat(
-            t("cat.viewer"),
-            t("setting.viewer.pauseExecution.name").replace("Majoor: ", ""),
-        ),
+        category: viewerCat(t("setting.viewer.pauseExecution.name").replace("Majoor: ", "")),
         name: t("setting.viewer.pauseExecution.name"),
         tooltip: t("setting.viewer.pauseExecution.desc"),
         type: "boolean",
@@ -79,8 +78,7 @@ export function registerViewerSettings(safeAddSetting, settings, notifyApplied) 
 
     safeAddSetting({
         id: `${SETTINGS_PREFIX}.Viewer.FloatingPauseDuringExecution`,
-        category: cat(
-            t("cat.viewer"),
+        category: floatingViewerCat(
             t("setting.viewer.floatingPauseExecution.name").replace("Majoor: ", ""),
         ),
         name: t("setting.viewer.floatingPauseExecution.name"),
@@ -98,8 +96,7 @@ export function registerViewerSettings(safeAddSetting, settings, notifyApplied) 
 
     safeAddSetting({
         id: `${SETTINGS_PREFIX}.Viewer.MfvLiveDefault`,
-        category: cat(
-            t("cat.viewer"),
+        category: floatingViewerCat(
             t("setting.viewer.mfvLiveDefault.name").replace("Majoor: ", ""),
         ),
         name: t("setting.viewer.mfvLiveDefault.name"),
@@ -117,8 +114,7 @@ export function registerViewerSettings(safeAddSetting, settings, notifyApplied) 
 
     safeAddSetting({
         id: `${SETTINGS_PREFIX}.Viewer.MfvPreviewDefault`,
-        category: cat(
-            t("cat.viewer"),
+        category: floatingViewerCat(
             t("setting.viewer.mfvPreviewDefault.name").replace("Majoor: ", ""),
         ),
         name: t("setting.viewer.mfvPreviewDefault.name"),
@@ -136,7 +132,7 @@ export function registerViewerSettings(safeAddSetting, settings, notifyApplied) 
 
     safeAddSetting({
         id: `${SETTINGS_PREFIX}.Viewer.MfvSidebarPosition`,
-        category: cat(t("cat.viewer"), "Node Parameters sidebar position"),
+        category: floatingViewerCat("Node Parameters sidebar position"),
         name: "Node Parameters sidebar position",
         tooltip:
             "Position of the Node Parameters sidebar in the Floating Viewer (right, left, or bottom).",
@@ -155,8 +151,7 @@ export function registerViewerSettings(safeAddSetting, settings, notifyApplied) 
 
     safeAddSetting({
         id: `${SETTINGS_PREFIX}.Viewer.MfvPreviewMethod`,
-        category: cat(
-            t("cat.viewer"),
+        category: floatingViewerCat(
             t("setting.viewer.mfvPreviewMethod.name").replace("Majoor: ", ""),
         ),
         name: t("setting.viewer.mfvPreviewMethod.name"),
@@ -178,7 +173,7 @@ export function registerViewerSettings(safeAddSetting, settings, notifyApplied) 
 
     safeAddSetting({
         id: `${SETTINGS_PREFIX}.Viewer.LtxavRgbFallback`,
-        category: cat(t("cat.viewer"), "LTXAV preview fallback"),
+        category: floatingViewerCat("LTXAV preview fallback"),
         name: "Majoor: LTXAV RGB Preview Fallback (experimental)",
         tooltip:
             "Reuse LTXV RGB projection for LTXAV when native latent preview is unavailable. Experimental; quality may be approximate.",
@@ -217,11 +212,13 @@ export function registerViewerSettings(safeAddSetting, settings, notifyApplied) 
             .then((res) => {
                 if (!res?.ok) return;
                 const enabled = !!res?.data?.prefs?.enabled;
-                settings.viewer = settings.viewer || {};
-                if (!!settings.viewer.ltxavRgbFallback !== enabled) {
-                    settings.viewer.ltxavRgbFallback = enabled;
-                    saveMajoorSettings(settings);
-                    applySettingsToConfig(settings);
+                const latest = loadMajoorSettings();
+                latest.viewer = latest.viewer || {};
+                if (!!latest.viewer.ltxavRgbFallback !== enabled) {
+                    latest.viewer.ltxavRgbFallback = enabled;
+                    Object.assign(settings, latest);
+                    saveMajoorSettings(latest);
+                    applySettingsToConfig(latest);
                     notifyApplied("viewer.ltxavRgbFallback");
                 }
             })
@@ -233,7 +230,7 @@ export function registerViewerSettings(safeAddSetting, settings, notifyApplied) 
     const registerMinimapToggle = (idKey, stateKey, nameKey, descKey) => {
         safeAddSetting({
             id: `${SETTINGS_PREFIX}.WorkflowMinimap.${idKey}`,
-            category: cat(t("cat.viewer"), t(nameKey).replace("Majoor: ", "")),
+            category: viewerCat(t(nameKey).replace("Majoor: ", "")),
             name: t(nameKey),
             tooltip: t(descKey),
             type: "boolean",

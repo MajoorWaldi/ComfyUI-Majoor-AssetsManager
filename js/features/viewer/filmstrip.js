@@ -11,6 +11,7 @@
  */
 
 import { buildViewURL } from "../../api/endpoints.js";
+import { builtAssetUrl } from "../../app/assetUrls.js";
 
 const ITEM_W = 84; // px (inner, border not included)
 const ITEM_H = 56; // px
@@ -19,13 +20,7 @@ const VIDEO_PLAY_MIN_RATIO = 0.45;
 const VIDEO_PREFETCH_MARGIN = "0px 240px 0px 240px";
 const VIDEO_RELEASE_DELAY_MS = 3500;
 
-const AUDIO_THUMB_URL = (() => {
-    try {
-        return new URL("../../assets/audio-thumbnails.png", import.meta.url).href;
-    } catch {
-        return "";
-    }
-})();
+const AUDIO_THUMB_URL = builtAssetUrl("audio-thumbnails.png");
 
 function _clearReleaseTimer(video) {
     try {

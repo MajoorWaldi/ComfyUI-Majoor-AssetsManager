@@ -53,7 +53,18 @@ vi.mock("../utils/tooltipShortcuts.js", () => ({
     },
 }));
 
+const MButtonStub = {
+    props: {
+        severity: String,
+        text: Boolean,
+        rounded: Boolean,
+    },
+    inheritAttrs: false,
+    template: '<button v-bind="$attrs"><slot /></button>',
+};
+
 const STUB_COMPONENTS = {
+    MButton: MButtonStub,
     SearchBar: { template: "<div><slot /></div>" },
     SortPopover: { template: "<div />" },
     FilterPopover: { template: "<div />" },

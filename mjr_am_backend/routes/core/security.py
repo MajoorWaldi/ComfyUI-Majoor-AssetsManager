@@ -307,7 +307,7 @@ def _check_write_access_without_token(
     if _is_loopback_fallback_unknown_peer(client_ip, headers):
         return Result.Ok(True, auth="loopback_unknown_peer", client_ip=client_ip)
     return Result.Err(
-        "FORBIDDEN",
+        "AUTH_REQUIRED",
         "Write operation blocked for non-local clients. Configure an API token (recommended) in Settings -> Security, or enable 'Allow Remote Full Access' to permit remote writes without a token (or set MAJOOR_ALLOW_REMOTE_WRITE=1).",
         auth="loopback_only",
         client_ip=client_ip,

@@ -62,6 +62,16 @@ const contextMenuPortalStub = defineComponent({
     },
 });
 
+const MButtonStub = {
+    props: {
+        severity: String,
+        text: Boolean,
+        rounded: Boolean,
+    },
+    inheritAttrs: false,
+    template: '<button v-bind="$attrs"><slot /></button>',
+};
+
 describe("viewer Vue components", () => {
     beforeEach(() => {
         vi.resetModules();
@@ -248,6 +258,7 @@ describe("viewer Vue components", () => {
             attachTo: document.body,
             global: {
                 stubs: {
+                    MButton: MButtonStub,
                     TagsEditor: true,
                 },
             },
@@ -300,6 +311,7 @@ describe("viewer Vue components", () => {
             attachTo: document.body,
             global: {
                 stubs: {
+                    MButton: MButtonStub,
                     TagsEditor: true,
                 },
             },
