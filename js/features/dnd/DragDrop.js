@@ -586,14 +586,16 @@ export function createDragDropRuntimeHandlers() {
                 return;
             }
 
-            // Run staging + workflow extraction in parallel for normal drops.
+            // Run staging + workflow extraction in parallel for normal drops (only if dropped on empty canvas, not on a node).
+            const shouldTryWorkflow = !node && !forceLoaderNode;
+
             const stagePromise = stageToInputDetailed({
                 post,
                 endpoint: ENDPOINTS.STAGE_TO_INPUT,
                 payload,
                 index: false,
             });
-            const workflowPromise = tryLoadWorkflowToCanvas(payload);
+            const workflowPromise = shouldTryWorkflow ? tryLoadWorkflowToCanvas(payload) : Promise.resolve(false);
 
             const [loaded, staged] = await Promise.all([workflowPromise, stagePromise]);
 
