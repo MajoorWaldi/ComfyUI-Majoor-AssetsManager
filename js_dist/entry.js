@@ -11697,34 +11697,34 @@ function pl() {
 					l(`Failed to load file: "${n?.filename}". Staging failed.`, "error");
 					return;
 				}
-				let a = Ss({
+				let o = !a && !r, c = Ss({
 					post: j,
 					endpoint: Pe.STAGE_TO_INPUT,
 					payload: n,
 					index: !1
-				}), o = cl(n), [c, u] = await Promise.all([o, a]);
-				if (c) {
+				}), u = o ? cl(n) : Promise.resolve(!1), [d, f] = await Promise.all([u, c]);
+				if (d) {
 					pc("drop canvas loaded workflow", { file: n?.filename });
 					return;
 				}
-				let d = u?.relativePath;
-				if (!d) {
+				let p = f?.relativePath;
+				if (!p) {
 					pc("drop canvas stage failed"), l(`Failed to load file: "${n?.filename}". Staging failed.`, "error");
 					return;
 				}
-				if (pc("drop canvas staged", { value: d }), vs({
+				if (pc("drop canvas staged", { value: p }), vs({
 					app: t,
 					items: [{
 						payload: n,
-						relativePath: d,
+						relativePath: p,
 						droppedExt: s
 					}],
 					event: e
 				})) {
-					pc("drop canvas created loader", { value: d });
+					pc("drop canvas created loader", { value: p });
 					return;
 				}
-				l(`Staged to input: ${d}`, "success", 4e3);
+				l(`Staged to input: ${p}`, "success", 4e3);
 				return;
 			}
 			e.preventDefault(), e.stopImmediatePropagation?.(), e.stopPropagation(), Yo(t, us);
