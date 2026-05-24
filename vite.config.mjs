@@ -56,7 +56,7 @@ export default defineConfig({
 
     build: {
         lib: {
-            entry: resolve(__dirname, "js/entry.js"),
+            entry: resolve(__dirname, "js/entry.ts"),
             formats: ["es"],
             // Always emit as "entry.js" — no version-hash in the filename so
             // ComfyUI finds it by the stable name it was registered under.

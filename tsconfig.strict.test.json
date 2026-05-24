@@ -1,0 +1,1 @@
+{"extends":"./tsconfig.json","compilerOptions":{"strict":true,"noEmit":true},"include":["js/features/viewer/**/*.ts","js/components/**/*.ts","js/types/**/*.d.ts"],"exclude":["js_dist","node_modules","vendor","js/tests"]}

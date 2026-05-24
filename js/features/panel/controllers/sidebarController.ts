@@ -1,0 +1,1076 @@
+import { applyAssetStatusDotState, createWorkflowDot } from "../../../components/Badges.js";
+import { post, getAssetMetadata, vectorIndexAsset } from "../../../api/client.js";
+import { ENDPOINTS } from "../../../api/endpoints.js";
+import { pickRootId } from "../../../utils/ids.js";
+import { safeClosest } from "../../../utils/dom.js";
+import { comfyToast } from "../../../app/toast.js";
+import { t } from "../../../app/i18n.js";
+import { createPanelStateBridge } from "../../../stores/panelStateBridge.js";
+
+const RESCAN_FLAG = "_mjrRescanning";
+const RESCAN_TTL_MS = 1500;
+const _isPositiveIntId = (value: any) => /^\d+$/.test(String(value ?? "").trim());
+
+async function rescanSingleAsset({ card, asset, sidebar, onAssetUpdated }: Record<string, any>): Promise<any> {
+    if (!card || !asset) return;
+    if ((globalThis as any)._mjrMaintenanceActive) return;
+
+    try {
+        const now = Date.now();
+        const last = Number(card[RESCAN_FLAG] || 0) || 0;
+        if (now - last < RESCAN_TTL_MS) return;
+        card[RESCAN_FLAG] = now;
+    } catch (e) {
+        console.debug?.(e);
+    }
+
+    const dot = card.querySelector(".mjr-workflow-dot");
+    try {
+        if (dot) {
+            applyAssetStatusDotState(dot, "pending", "Pending: metadata refresh in progress", {
+                asset,
+            });
+            dot.classList.add("mjr-pulse-animation");
+            dot.style.cursor = "progress";
+            dot.title = t("tooltip.pendingRefresh", "Pending: metadata refresh in progress");
+        }
+    } catch (e) {
+        console.debug?.(e);
+    }
+
+    try {
+        comfyToast(
+            t("toast.rescanUpdatingAiIndex", "Rescanning file + updating AI index..."),
+            "info",
+            2200,
+        );
+    } catch (e) {
+        console.debug?.(e);
+    }
+
+    const fileEntry = {
+        filename: asset.filename,
+        subfolder: asset.subfolder || "",
+        type: String(asset.type || "output").toLowerCase(),
+        root_id: pickRootId(asset) || undefined,
+    };
+
+    let updated: any = null;
+    let indexOk = false;
+    let vectorAttempted = false;
+    let vectorIndexOk = false;
+    try {
+        const indexRes = await post(ENDPOINTS.INDEX_FILES, {
+            files: [fileEntry],
+            incremental: false,
+        });
+        indexOk = !!indexRes?.ok;
+        if (!indexOk && dot) {
+            applyAssetStatusDotState(dot, "error", "Error: metadata refresh failed", { asset });
+            dot.classList.remove("mjr-pulse-animation");
+            dot.style.cursor = "";
+        }
+
+        // Keep AI search index synced with manual per-asset rescan from the card dot.
+        // Best-effort: do not fail metadata refresh if vector indexing fails or is unavailable.
+        if (_isPositiveIntId(asset?.id)) {
+            vectorAttempted = true;
+            try {
+                const vectorRes = await vectorIndexAsset(asset.id);
+                vectorIndexOk = !!vectorRes?.ok;
+            } catch (e) {
+                console.debug?.(e);
+            }
+        }
+
+        if (indexOk && asset.id != null) {
+            const fresh = await getAssetMetadata(asset.id);
+            if (fresh?.ok && fresh.data) {
+                updated = { ...asset, ...fresh.data };
+            }
+        }
+    } catch {
+        try {
+            if (dot) {
+                applyAssetStatusDotState(dot, "error", "Error: metadata refresh failed", { asset });
+                dot.classList.remove("mjr-pulse-animation");
+                dot.style.cursor = "";
+            }
+        } catch (e) {
+            console.debug?.(e);
+        }
+    }
+
+    try {
+        if (updated) {
+            (card as any)._mjrAsset = updated;
+            if (typeof onAssetUpdated === "function") onAssetUpdated(updated);
+
+            try {
+                if (sidebar?.classList?.contains?.("is-open")) {
+                    const curId =
+                        sidebar?._currentAsset?.id ?? sidebar?._currentFullAsset?.id ?? null;
+                    if (curId != null && String(curId) === String(updated.id)) {
+                        sidebar._mjrNeedsRefresh = true;
+                    }
+                }
+            } catch (e) {
+                console.debug?.(e);
+            }
+        }
+    } finally {
+        try {
+            if (dot && dot.isConnected) {
+                const restored = createWorkflowDot(updated || asset);
+                if (restored) dot.replaceWith(restored);
+            }
+        } catch {
+            try {
+                if (dot) dot.style.cursor = "";
+            } catch (e) {
+                console.debug?.(e);
+            }
+        }
+    }
+
+    try {
+        if (indexOk && vectorIndexOk) {
+            comfyToast(
+                t(
+                    "toast.metadataVectorUpdated",
+                    "Metadata + AI vector index updated for this asset.",
+                ),
+                "success",
+                2200,
+            );
+        } else if (indexOk && vectorAttempted && !vectorIndexOk) {
+            comfyToast(
+                t(
+                    "toast.metadataUpdatedVectorFailed",
+                    "Metadata updated. AI vector index could not be updated.",
+                ),
+                "warning",
+                2600,
+            );
+        }
+    } catch (e) {
+        console.debug?.(e);
+    }
+
+    return updated;
+}
+function setSelectedCard(gridContainer: any, selectedCard: any) {
+    if (!gridContainer) return;
+    try {
+        const prev = gridContainer.querySelector(".mjr-asset-card.is-selected");
+        if (prev && prev !== selectedCard) {
+            prev.classList.remove("is-selected");
+            prev.setAttribute?.("aria-selected", "false");
+        }
+    } catch (e) {
+        console.debug?.(e);
+    }
+    if (selectedCard) {
+        selectedCard.classList.add("is-selected");
+        selectedCard.setAttribute?.("aria-selected", "true");
+        try {
+            const id = selectedCard.dataset?.mjrAssetId;
+            if (id) gridContainer.dataset.mjrSelectedAssetId = String(id);
+        } catch (e) {
+            console.debug?.(e);
+        }
+        try {
+            selectedCard.focus?.({ preventScroll: true });
+        } catch {
+            try {
+                selectedCard.focus?.();
+            } catch (e) {
+                console.debug?.(e);
+            }
+        }
+        try {
+            selectedCard.scrollIntoView?.({ block: "nearest", inline: "nearest" });
+        } catch (e) {
+            console.debug?.(e);
+        }
+    }
+}
+
+const escapeAttributeValue = (value: any) => {
+    if (value == null) return "";
+    try {
+        if (typeof CSS !== "undefined" && typeof CSS.escape === "function") {
+            return CSS.escape(String(value));
+        }
+    } catch (e) {
+        console.debug?.(e);
+    }
+    return String(value).replace(/([!"#$%&'()*+,./:;<=>?@[\\\]^`{|}~])/g, "\\$1");
+};
+
+function queryCardById(gridContainer: any, assetId: any) {
+    if (!gridContainer || !assetId) return null;
+    try {
+        return gridContainer.querySelector(
+            `.mjr-asset-card[data-mjr-asset-id="${escapeAttributeValue(assetId)}"]`,
+        );
+    } catch (e) {
+        console.debug?.(e);
+    }
+    try {
+        return gridContainer.querySelector(
+            `.mjr-asset-card[data-mjr-asset-id="${escapeAttributeValue(assetId)}"]`,
+        );
+    } catch (e) {
+        console.debug?.(e);
+    }
+    return null;
+}
+
+function getActiveCardElement(gridContainer: any) {
+    if (!gridContainer) return null;
+    const activeId = gridContainer.dataset?.mjrSelectedAssetId;
+    if (activeId) {
+        const card = queryCardById(gridContainer, activeId);
+        if (card) return card;
+    }
+    const selectedIds = gridContainer.dataset?.mjrSelectedAssetIds;
+    if (selectedIds) {
+        try {
+            const parsed = JSON.parse(selectedIds);
+            if (Array.isArray(parsed) && parsed.length) {
+                const card = queryCardById(gridContainer, parsed[0]);
+                if (card) return card;
+            }
+        } catch (e) {
+            console.debug?.(e);
+        }
+    }
+    return gridContainer.querySelector(".mjr-asset-card.is-selected");
+}
+
+function focusCardElement(card: any, { preventScroll = true } = {}) {
+    if (!card) return;
+    try {
+        card.focus?.({ preventScroll });
+    } catch {
+        try {
+            card.focus?.();
+        } catch (e) {
+            console.debug?.(e);
+        }
+    }
+}
+
+function focusActiveCard(gridContainer: any, { force = false } = {}) {
+    if (!gridContainer) return;
+    if (!force && !gridContainer._mjrFocusWithin) return;
+    const card = getActiveCardElement(gridContainer);
+    if (!card) return;
+    focusCardElement(card);
+    gridContainer._mjrFocusWithin = true;
+}
+
+function ensureSelectionVisible(gridContainer: any) {
+    if (!gridContainer) return;
+
+    try {
+        const selected = getActiveCardElement(gridContainer);
+        if (!selected) return;
+        const root = gridContainer.parentElement;
+        if (
+            root &&
+            typeof root.getBoundingClientRect === "function" &&
+            typeof selected.getBoundingClientRect === "function"
+        ) {
+            const rootRect = root.getBoundingClientRect();
+            const selRect = selected.getBoundingClientRect();
+            const fullyVisible = selRect.top >= rootRect.top && selRect.bottom <= rootRect.bottom;
+            if (fullyVisible) return;
+        }
+        selected.scrollIntoView?.({ block: "nearest", inline: "nearest" });
+    } catch (e) {
+        console.debug?.(e);
+    }
+}
+
+function scheduleEnsureSelectionVisible(gridContainer: any) {
+    if (gridContainer) {
+        try {
+            gridContainer._mjrAutoRevealSelectionUntil = Date.now() + 900;
+        } catch (e) {
+            console.debug?.(e);
+        }
+    }
+
+    const runOnce = () => {
+        try {
+            ensureSelectionVisible(gridContainer);
+        } catch (e) {
+            console.debug?.(e);
+        }
+        try {
+            focusActiveCard(gridContainer);
+        } catch (e) {
+            console.debug?.(e);
+        }
+    };
+    try {
+        requestAnimationFrame(() => {
+            runOnce();
+            // Second pass after layout settles (sidebar open/close).
+            setTimeout(() => {
+                runOnce();
+            }, 50);
+        });
+    } catch {
+        runOnce();
+    }
+}
+
+function setCardSelected(card: any, selected: any) {
+    if (!card) return;
+    if (selected) {
+        card.classList.add("is-selected");
+        card.setAttribute?.("aria-selected", "true");
+    } else {
+        card.classList.remove("is-selected");
+        card.setAttribute?.("aria-selected", "false");
+    }
+}
+
+function getAllCards(gridContainer: any) {
+    try {
+        if (typeof gridContainer?._mjrGetRenderedCards === "function") {
+            const cards = gridContainer._mjrGetRenderedCards();
+            if (Array.isArray(cards) && cards.length) return cards;
+        }
+    } catch {
+        return [];
+    }
+    try {
+        return Array.from(gridContainer.querySelectorAll(".mjr-asset-card"));
+    } catch {
+        return [];
+    }
+}
+
+function updateSelectedIdsDataset(gridContainer: any) {
+    if (!gridContainer) return;
+    try {
+        const ids = getAllCards(gridContainer)
+            .filter((c) => c?.classList?.contains?.("is-selected"))
+            .map((c) => c?.dataset?.mjrAssetId)
+            .filter(Boolean);
+        if (ids.length) {
+            gridContainer.dataset.mjrSelectedAssetIds = JSON.stringify(ids);
+            if (!gridContainer.dataset.mjrSelectedAssetId && ids[0]) {
+                gridContainer.dataset.mjrSelectedAssetId = String(ids[0]);
+            }
+        } else {
+            delete gridContainer.dataset.mjrSelectedAssetIds;
+            delete gridContainer.dataset.mjrSelectedAssetId;
+        }
+    } catch (e) {
+        console.debug?.(e);
+    }
+}
+
+function applySelection(gridContainer: any, ids: any, activeId = "") {
+    if (!gridContainer) return [];
+    const list = Array.from(ids || [])
+        .map(String)
+        .filter(Boolean);
+    try {
+        if (typeof gridContainer?._mjrSetSelection === "function") {
+            gridContainer._mjrSetSelection(list, activeId || list[0] || "");
+            return list;
+        }
+    } catch (e) {
+        console.debug?.(e);
+    }
+    try {
+        gridContainer.dataset.mjrSelectedAssetIds = list.length ? JSON.stringify(list) : "";
+        if (list.length)
+            gridContainer.dataset.mjrSelectedAssetId = String(activeId || list[0] || "");
+        else {
+            delete gridContainer.dataset.mjrSelectedAssetIds;
+            delete gridContainer.dataset.mjrSelectedAssetId;
+        }
+    } catch (e) {
+        console.debug?.(e);
+    }
+    try {
+        for (const card of getAllCards(gridContainer)) {
+            const id = (card as any)?.dataset?.mjrAssetId;
+            const selected = id && list.includes(String(id));
+            setCardSelected(card, !!selected);
+        }
+    } catch (e) {
+        console.debug?.(e);
+    }
+    try {
+        gridContainer.dispatchEvent?.(
+            new CustomEvent("mjr:selection-changed", {
+                detail: { selectedIds: list, activeId: activeId || list[0] || "" },
+            }),
+        );
+    } catch (e) {
+        console.debug?.(e);
+    }
+    return list;
+}
+
+function syncSelectionState({
+    gridContainer,
+    state,
+    activeId,
+    readState = null,
+    writeState = null,
+}: Record<string, any> = {}) {
+    if ((!state && !writeState) || !gridContainer) return;
+    try {
+        let selected: any[] = [];
+        if (gridContainer.dataset?.mjrSelectedAssetIds) {
+            try {
+                const parsed = JSON.parse(gridContainer.dataset.mjrSelectedAssetIds);
+                if (Array.isArray(parsed)) selected = parsed.map(String).filter(Boolean);
+            } catch (e) {
+                console.debug?.(e);
+            }
+        } else if (gridContainer.dataset?.mjrSelectedAssetId) {
+            selected = [String(gridContainer.dataset.mjrSelectedAssetId)].filter(Boolean);
+        } else {
+            selected = getAllCards(gridContainer)
+                .filter((c) => c?.classList?.contains?.("is-selected"))
+                .map((c) => c?.dataset?.mjrAssetId)
+                .filter(Boolean)
+                .map(String);
+        }
+
+        if (typeof writeState === "function") {
+            writeState("selectedAssetIds", selected);
+        } else {
+            state.selectedAssetIds = selected;
+        }
+
+        const prevActiveId =
+            typeof readState === "function"
+                ? String(readState("activeAssetId", "") || "")
+                : String(state?.activeAssetId || "");
+
+        if (activeId != null) {
+            if (typeof writeState === "function") writeState("activeAssetId", String(activeId));
+            else state.activeAssetId = String(activeId);
+        } else if (prevActiveId && selected.includes(prevActiveId)) {
+            // keep existing active
+        } else {
+            if (typeof writeState === "function") writeState("activeAssetId", selected[0] || "");
+            else state.activeAssetId = selected[0] || "";
+        }
+    } catch (e) {
+        console.debug?.(e);
+    }
+}
+
+export function bindSidebarOpen({
+    gridContainer,
+    sidebar,
+    createRatingBadge,
+    createTagsBadge,
+    showAssetInSidebar,
+    closeSidebar,
+    state,
+}: { gridContainer: any; sidebar: any; createRatingBadge: any; createTagsBadge: any; showAssetInSidebar: any; closeSidebar: any; state: any }) {
+    const { read, write } = createPanelStateBridge(state, [
+        "activeAssetId",
+        "selectedAssetIds",
+        "sidebarOpen",
+    ]);
+    if (!gridContainer) return { dispose: () => {} };
+    if (gridContainer._mjrSidebarOpenBound) {
+        return { dispose: gridContainer._mjrSidebarOpenDispose || (() => {}) };
+    }
+    gridContainer._mjrSidebarOpenBound = true;
+
+    const onGridFocusIn = (event: any) => {
+        gridContainer._mjrFocusWithin = true;
+        const card = safeClosest(event.target, ".mjr-asset-card");
+        if (card) {
+            try {
+                gridContainer._mjrLastFocusedCardId = (card as HTMLElement).dataset?.mjrAssetId || "";
+            } catch (e) {
+                console.debug?.(e);
+            }
+        }
+    };
+
+    const onGridFocusOut = (event: any) => {
+        const related = event?.relatedTarget;
+        if (related && gridContainer.contains(related)) return;
+        gridContainer._mjrFocusWithin = false;
+    };
+
+    try {
+        gridContainer.addEventListener("focusin", onGridFocusIn);
+        gridContainer.addEventListener("focusout", onGridFocusOut);
+    } catch (e) {
+        console.debug?.(e);
+    }
+
+    // Keep selection visible when the panel/grid resizes (column wrap changes can move the selected card).
+    // The VirtualGrid repositions cards after a 100ms debounce, so we need multiple passes
+    // to ensure we scroll after the grid has finished re-laying out.
+    try {
+        if (!gridContainer._mjrSelectionResizeObserver) {
+            const scrollRoot = gridContainer.parentElement;
+            let raf: any = null;
+            let timer: any = null;
+            const shouldAutoRevealSelection = () => {
+                try {
+                    return Date.now() <= Number(gridContainer?._mjrAutoRevealSelectionUntil || 0);
+                } catch {
+                    return false;
+                }
+            };
+            const schedule = () => {
+                if (raf) cancelAnimationFrame(raf);
+                if (timer) clearTimeout(timer);
+                // First pass: immediate after layout
+                raf = requestAnimationFrame(() => {
+                    raf = null;
+                    if (shouldAutoRevealSelection()) {
+                        ensureSelectionVisible(gridContainer);
+                    }
+                });
+                // Second pass: after VirtualGrid debounce (100ms) + render
+                timer = setTimeout(() => {
+                    timer = null;
+                    if (shouldAutoRevealSelection()) {
+                        ensureSelectionVisible(gridContainer);
+                    }
+                }, 160);
+            };
+
+            const ro = new ResizeObserver(() => schedule());
+            if (scrollRoot) ro.observe(scrollRoot);
+            ro.observe(gridContainer);
+            gridContainer._mjrSelectionResizeObserver = ro;
+        }
+    } catch (e) {
+        console.debug?.(e);
+    }
+
+    const applyAssetUpdateToCard = (card: any, asset: any, updatedAsset: any) => {
+        // Keep workflow/gen flags (and dot) in sync when backend self-heals metadata.
+        try {
+            const nextHasWorkflow =
+                updatedAsset?.has_workflow ?? updatedAsset?.hasWorkflow ?? asset.has_workflow;
+            const nextHasGen =
+                updatedAsset?.has_generation_data ??
+                updatedAsset?.hasGenerationData ??
+                asset.has_generation_data;
+
+            if (nextHasWorkflow !== undefined) asset.has_workflow = nextHasWorkflow;
+            if (nextHasGen !== undefined) asset.has_generation_data = nextHasGen;
+
+            const oldDot = card.querySelector(".mjr-workflow-dot");
+            const newDot = createWorkflowDot(asset);
+            if (oldDot && newDot) oldDot.replaceWith(newDot);
+        } catch (e) {
+            console.debug?.(e);
+        }
+
+        if (updatedAsset?.rating !== undefined && updatedAsset.rating !== asset.rating) {
+            asset.rating = updatedAsset.rating;
+            const thumb = card.querySelector(".mjr-thumb");
+            const oldRatingBadge = card.querySelector(".mjr-rating-badge");
+            const newBadge = createRatingBadge(updatedAsset.rating || 0);
+
+            if (oldRatingBadge && newBadge) {
+                oldRatingBadge.replaceWith(newBadge);
+            } else if (oldRatingBadge && !newBadge) {
+                oldRatingBadge.remove();
+            } else if (!oldRatingBadge && newBadge && thumb) {
+                thumb.appendChild(newBadge);
+            }
+        }
+        if (
+            updatedAsset?.tags &&
+            JSON.stringify(updatedAsset.tags) !== JSON.stringify(asset.tags)
+        ) {
+            asset.tags = updatedAsset.tags;
+            const oldTagsBadge = card.querySelector(".mjr-tags-badge");
+            if (oldTagsBadge) {
+                const newBadge = createTagsBadge(updatedAsset.tags || []);
+                oldTagsBadge.replaceWith(newBadge);
+            }
+        }
+    };
+
+    const onClick = async (e: any) => {
+        if (e.defaultPrevented) return;
+
+        const card = safeClosest(e.target, ".mjr-asset-card");
+        if (!card) return;
+
+        // Click on workflow dot triggers a forced re-index of this one file (no directory scan).
+        const dot = safeClosest(e.target, ".mjr-workflow-dot");
+        if (dot && card.contains(dot)) {
+            const asset = (card as any)._mjrAsset;
+            if (!asset) return;
+
+            e.preventDefault();
+            e.stopPropagation();
+
+            // Ensure this card is selected, but do not open the sidebar from dot clicks.
+            const id = (card as any)?.dataset?.mjrAssetId || "";
+            applySelection(gridContainer, id ? [id] : [], id);
+            syncSelectionState({
+                gridContainer,
+                state,
+                activeId: id,
+                readState: read,
+                writeState: write,
+            });
+
+            const updated = await rescanSingleAsset({
+                card,
+                asset,
+                sidebar,
+                onAssetUpdated: (u: any) => applyAssetUpdateToCard(card, asset, u),
+            });
+
+            // Refresh sidebar only if it is already open on this asset.
+            try {
+                const curId = sidebar?._currentAsset?.id ?? sidebar?._currentFullAsset?.id ?? null;
+                if (
+                    updated &&
+                    sidebar?.classList?.contains?.("is-open") &&
+                    curId != null &&
+                    String(curId) === String(updated.id)
+                ) {
+                    await showAssetInSidebar(sidebar, updated, (u: any) =>
+                        applyAssetUpdateToCard(card, asset, u),
+                    );
+                }
+            } catch (e) {
+                console.debug?.(e);
+            }
+
+            return;
+        }
+
+        const interactive = safeClosest(e.target, "a, button, input, textarea, select, label");
+        if (interactive && card.contains(interactive)) return;
+
+        const asset = (card as any)._mjrAsset;
+        if (!asset) return;
+
+        if (gridContainer?._mjrSelectionManagedByVue) {
+            const clickedId = String((card as any)?.dataset?.mjrAssetId || "").trim();
+            syncSelectionState({
+                gridContainer,
+                state,
+                activeId: clickedId,
+                readState: read,
+                writeState: write,
+            });
+            try {
+                if (sidebar?.classList?.contains?.("is-open")) {
+                    await showAssetInSidebar(sidebar, asset, (updatedAsset: any) =>
+                        applyAssetUpdateToCard(card, asset, updatedAsset),
+                    );
+                    try {
+                        write("sidebarOpen", true);
+                    } catch (e) {
+                        console.debug?.(e);
+                    }
+                }
+            } catch (e) {
+                console.debug?.(e);
+            }
+            return;
+        }
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        const isMulti = !!(e.ctrlKey || e.metaKey || e.shiftKey);
+        if (!isMulti) {
+            const alreadySelected = card.classList.contains("is-selected");
+            if (alreadySelected) {
+                applySelection(gridContainer, [], "");
+                syncSelectionState({
+                    gridContainer,
+                    state,
+                    activeId: "",
+                    readState: read,
+                    writeState: write,
+                });
+                return;
+            }
+
+            const id = (card as any)?.dataset?.mjrAssetId;
+            applySelection(gridContainer, id ? [id] : [], id || "");
+            syncSelectionState({
+                gridContainer,
+                state,
+                activeId: id || "",
+                readState: read,
+                writeState: write,
+            });
+
+            // When the sidebar is already open, clicking a different card navigates details.
+            try {
+                if (sidebar?.classList?.contains?.("is-open")) {
+                    showAssetInSidebar(sidebar, asset, (updatedAsset: any) =>
+                        applyAssetUpdateToCard(card, asset, updatedAsset),
+                    );
+                }
+            } catch (e) {
+                console.debug?.(e);
+            }
+        } else {
+            const cards = getAllCards(gridContainer);
+            const idx = cards.indexOf(card);
+
+            if (e.shiftKey) {
+                let allAssets: any[] = [];
+                try {
+                    if (typeof gridContainer?._mjrGetAssets === "function") {
+                        allAssets = gridContainer._mjrGetAssets() || [];
+                    }
+                } catch (e) {
+                    console.debug?.(e);
+                }
+                if (Array.isArray(allAssets) && allAssets.length) {
+                    const id = (card as any)?.dataset?.mjrAssetId || "";
+                    const targetIndex = allAssets.findIndex(
+                        (a) => String(a?.id || "") === String(id),
+                    );
+                    const last = Number(gridContainer._mjrLastSelectedIndex);
+                    const anchor = Number.isFinite(last) ? last : targetIndex;
+                    if (targetIndex >= 0 && anchor >= 0) {
+                        const start = Math.min(anchor, targetIndex);
+                        const end = Math.max(anchor, targetIndex);
+                        const rangeIds = allAssets
+                            .slice(start, end + 1)
+                            .map((a) => String(a?.id || ""))
+                            .filter(Boolean);
+                        applySelection(gridContainer, rangeIds, id || rangeIds[0] || "");
+                        gridContainer._mjrLastSelectedIndex = targetIndex;
+                        syncSelectionState({
+                            gridContainer,
+                            state,
+                            activeId: id || "",
+                            readState: read,
+                            writeState: write,
+                        });
+                        return;
+                    }
+                }
+            }
+
+            const clickedId = String((card as any)?.dataset?.mjrAssetId || "").trim();
+            if (idx >= 0) {
+                gridContainer._mjrLastSelectedIndex = idx;
+            }
+
+            // Build selection from dataset first (VirtualGrid-safe), then fallback to DOM.
+            const selectedSet = new Set<string>();
+            try {
+                const raw = gridContainer.dataset?.mjrSelectedAssetIds;
+                if (raw) {
+                    const parsed = JSON.parse(raw);
+                    if (Array.isArray(parsed)) {
+                        for (const id of parsed) {
+                            const sid = String(id || "").trim();
+                            if (sid) selectedSet.add(sid);
+                        }
+                    }
+                } else {
+                    const single = String(gridContainer.dataset?.mjrSelectedAssetId || "").trim();
+                    if (single) selectedSet.add(single);
+                }
+            } catch (e) {
+                console.debug?.(e);
+            }
+            if (!selectedSet.size) {
+                for (const c of cards) {
+                    const sid = String(c?.dataset?.mjrAssetId || "").trim();
+                    if (!sid) continue;
+                    if (c.classList?.contains?.("is-selected")) selectedSet.add(sid);
+                }
+            }
+
+            if (clickedId) {
+                if (selectedSet.has(clickedId)) selectedSet.delete(clickedId);
+                else selectedSet.add(clickedId);
+            }
+
+            const nextList = Array.from(selectedSet);
+            const nextActiveId = selectedSet.has(clickedId) ? clickedId : nextList[0] || "";
+            // Use canonical selection setter so both grid + window selection events are fired.
+            applySelection(gridContainer, nextList, nextActiveId);
+            syncSelectionState({
+                gridContainer,
+                state,
+                activeId: nextActiveId,
+                readState: read,
+                writeState: write,
+            });
+            return;
+        }
+        // Click only selects the asset (sidebar opens via hotkey/context menu).
+        try {
+            ensureSelectionVisible(gridContainer);
+            (card as any)?.focus?.({ preventScroll: true });
+        } catch (e) {
+            console.debug?.(e);
+        }
+    };
+
+    gridContainer.addEventListener("click", onClick);
+
+    const openDetailsForSelection = async () => {
+        const activeId = String(read("activeAssetId", "") || "");
+        let card: any = null;
+        if (activeId) {
+            try {
+                card = gridContainer.querySelector(
+                    `.mjr-asset-card[data-mjr-asset-id="${escapeAttributeValue(activeId)}"]`,
+                );
+            } catch {
+                try {
+                    card = gridContainer.querySelector(
+                        `.mjr-asset-card[data-mjr-asset-id="${escapeAttributeValue(activeId)}"]`,
+                    );
+                } catch (e) {
+                    console.debug?.(e);
+                }
+            }
+        }
+        if (!card) {
+            card = gridContainer.querySelector(".mjr-asset-card.is-selected");
+        }
+        const asset = card?._mjrAsset;
+        if (!asset) return;
+
+        // Ensure the card keeps selection and focus when the sidebar opens
+        // (needed when triggered from the global hotkey which bypasses the grid keydown handler)
+        setSelectedCard(gridContainer, card);
+        updateSelectedIdsDataset(gridContainer);
+        syncSelectionState({
+            gridContainer,
+            state,
+            activeId: (card as any)?.dataset?.mjrAssetId,
+            readState: read,
+            writeState: write,
+        });
+
+        try {
+            const isOpen = !!sidebar?.classList?.contains?.("is-open");
+            const curId = sidebar?._currentAsset?.id ?? sidebar?._currentFullAsset?.id ?? null;
+            if (
+                isOpen &&
+                curId != null &&
+                String(curId) === String(asset.id) &&
+                typeof closeSidebar === "function"
+            ) {
+                closeSidebar(sidebar);
+                // Persist sidebar closed state
+                try {
+                    write("sidebarOpen", false);
+                } catch (e) {
+                    console.debug?.(e);
+                }
+                focusActiveCard(gridContainer, { force: true });
+                scheduleEnsureSelectionVisible(gridContainer);
+                return;
+            }
+        } catch (e) {
+            console.debug?.(e);
+        }
+
+        try {
+            await showAssetInSidebar(sidebar, asset, (updatedAsset: any) =>
+                applyAssetUpdateToCard(card, asset, updatedAsset),
+            );
+            // Persist sidebar open state
+            try {
+                write("sidebarOpen", true);
+            } catch (e) {
+                console.debug?.(e);
+            }
+            scheduleEnsureSelectionVisible(gridContainer);
+            (card as any)?.focus?.({ preventScroll: true });
+        } catch (e) {
+            console.debug?.(e);
+        }
+    };
+
+    const refreshActiveAsset = async () => {
+        try {
+            const isOpen = !!sidebar?.classList?.contains?.("is-open");
+            if (!isOpen) return false;
+        } catch {
+            return false;
+        }
+
+        const activeId = String(read("activeAssetId", "") || "").trim();
+        if (!activeId) return false;
+
+        let card: any = null;
+        try {
+            card = queryCardById(gridContainer, activeId);
+        } catch (e) {
+            console.debug?.(e);
+        }
+        const asset = card?._mjrAsset;
+        if (!asset) return false;
+
+        try {
+            await showAssetInSidebar(sidebar, asset, (updatedAsset: any) =>
+                applyAssetUpdateToCard(card, asset, updatedAsset),
+            );
+            try {
+                write("sidebarOpen", true);
+            } catch (e) {
+                console.debug?.(e);
+            }
+            return true;
+        } catch (e) {
+            console.debug?.(e);
+        }
+        return false;
+    };
+
+    let selectionRefreshQueued = false;
+    const onSelectionChanged = () => {
+        try {
+            if (!sidebar?.classList?.contains?.("is-open")) return;
+        } catch {
+            return;
+        }
+        if (selectionRefreshQueued) return;
+        selectionRefreshQueued = true;
+        queueMicrotask(async () => {
+            selectionRefreshQueued = false;
+            try {
+                await refreshActiveAsset();
+            } catch (e) {
+                console.debug?.(e);
+            }
+        });
+    };
+    gridContainer.addEventListener("mjr:selection-changed", onSelectionChanged);
+
+    // Keyboard accessibility: toggle details from focused card.
+    const onKeyDown = (e: any) => {
+        if (e.defaultPrevented) return;
+        const lower = e.key?.toLowerCase?.() || "";
+        if (lower !== "d") return;
+        if (e.ctrlKey || e.metaKey || e.altKey) return;
+        const isTypingTarget =
+            e.target?.isContentEditable ||
+            e.target?.closest?.("input, textarea, select, [contenteditable='true']");
+        if (isTypingTarget) return;
+        const card = safeClosest(e.target, ".mjr-asset-card");
+        if (!card) return;
+        const asset = (card as any)._mjrAsset;
+        if (!asset) return;
+        e.preventDefault();
+        e.stopPropagation();
+        setSelectedCard(gridContainer, card);
+        updateSelectedIdsDataset(gridContainer);
+        syncSelectionState({
+            gridContainer,
+            state,
+            activeId: (card as any)?.dataset?.mjrAssetId,
+            readState: read,
+            writeState: write,
+        });
+        openDetailsForSelection();
+    };
+    gridContainer.addEventListener("keydown", onKeyDown);
+
+    // Listen for sidebar close events (e.g. from the close button in sidebar header)
+    const onSidebarClosed = () => {
+        try {
+            write("sidebarOpen", false);
+        } catch (e) {
+            console.debug?.(e);
+        }
+    };
+    sidebar?.addEventListener?.("mjr:sidebar-closed", onSidebarClosed);
+
+    try {
+        gridContainer._mjrOpenDetails = openDetailsForSelection;
+    } catch (e) {
+        console.debug?.(e);
+    }
+
+    const dispose = () => {
+        try {
+            gridContainer.removeEventListener("click", onClick);
+        } catch (e) {
+            console.debug?.(e);
+        }
+        try {
+            gridContainer.removeEventListener("focusin", onGridFocusIn);
+        } catch (e) {
+            console.debug?.(e);
+        }
+        try {
+            gridContainer.removeEventListener("focusout", onGridFocusOut);
+        } catch (e) {
+            console.debug?.(e);
+        }
+        try {
+            gridContainer.removeEventListener("keydown", onKeyDown);
+        } catch (e) {
+            console.debug?.(e);
+        }
+        try {
+            gridContainer.removeEventListener("mjr:selection-changed", onSelectionChanged);
+        } catch (e) {
+            console.debug?.(e);
+        }
+        try {
+            sidebar?.removeEventListener?.("mjr:sidebar-closed", onSidebarClosed);
+        } catch (e) {
+            console.debug?.(e);
+        }
+        try {
+            if (gridContainer._mjrOpenDetails === openDetailsForSelection) {
+                delete gridContainer._mjrOpenDetails;
+            }
+        } catch (e) {
+            console.debug?.(e);
+        }
+        try {
+            gridContainer._mjrSelectionResizeObserver?.disconnect?.();
+        } catch (e) {
+            console.debug?.(e);
+        }
+        try {
+            delete gridContainer._mjrSelectionResizeObserver;
+        } catch (e) {
+            console.debug?.(e);
+        }
+        try {
+            delete gridContainer._mjrSidebarOpenBound;
+        } catch (e) {
+            console.debug?.(e);
+        }
+        try {
+            delete gridContainer._mjrSidebarOpenDispose;
+        } catch (e) {
+            console.debug?.(e);
+        }
+    };
+
+    gridContainer._mjrSidebarOpenDispose = dispose;
+    return { dispose, toggleDetails: openDetailsForSelection, refreshActiveAsset };
+}

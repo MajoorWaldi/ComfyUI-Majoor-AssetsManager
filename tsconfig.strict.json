@@ -1,0 +1,35 @@
+{
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+        "strict": true,
+        "noEmit": true
+    },
+    "include": [
+        "js/utils/**/*.ts",
+        "js/api/**/*.ts",
+        "js/app/**/*.ts",
+        "js/stores/**/*.ts",
+        "js/integration/**/*.ts",
+        "js/features/collections/**/*.ts",
+        "js/features/filters/**/*.ts",
+        "js/features/stacks/**/*.ts",
+        "js/features/status/**/*.ts",
+        "js/features/runtime/**/*.ts",
+        "js/features/dnd/**/*.ts",
+        "js/features/grid/**/*.ts",
+        "js/features/panel/messages/toastHistory.ts",
+        "js/features/viewer/**/*.ts",
+        "js/features/contextmenu/**/*.ts",
+        "js/components/**/*.ts",
+        "js/features/bottomPanel/**/*.ts",
+        "js/features/panel/**/*.ts",
+        "js/vue/**/*.ts",
+        "js/types/**/*.d.ts"
+    ],
+    "exclude": [
+        "js_dist",
+        "node_modules",
+        "vendor",
+        "js/tests"
+    ]
+}

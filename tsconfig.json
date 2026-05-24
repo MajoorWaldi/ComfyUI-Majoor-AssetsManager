@@ -1,7 +1,7 @@
 {
     "compilerOptions": {
         "allowJs": true,
-        "checkJs": true,
+        "checkJs": false,
         "strict": false,
         "noEmit": true,
         "target": "ES2024",
@@ -16,11 +16,9 @@
     },
     "include": [
         "js/**/*.d.ts",
-        "js/**/*.js",
-        "js/**/*.mjs",
+        "js/**/*.ts",
         "js/**/*.vue",
-        "vite.config.mjs",
-        "vitest.config.mjs"
+        "vite.config.mjs"
     ],
-    "exclude": ["js_dist", "node_modules", "vendor", "js/vue/majoor-ui.*"]
+    "exclude": ["js_dist", "node_modules", "vendor", "js/tests", "js/vue/majoor-ui.*"]
 }

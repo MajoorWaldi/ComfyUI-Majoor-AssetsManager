@@ -1,0 +1,68 @@
+import { updateAssetRating } from "../../api/client.js";
+import { comfyToast } from "../../app/toast.js";
+import { reportError } from "../../utils/logging.js";
+
+const RATING_DELAY_MS = 350;
+const _pending = new Map();
+
+function _clearPending(assetId: any) {
+    const entry = _pending.get(assetId);
+    if (!entry) return;
+    try {
+        clearTimeout(entry.timer);
+    } catch (e: any) {
+        console.debug?.(e);
+    }
+    try {
+        entry.controller?.abort?.();
+    } catch (e: any) {
+        console.debug?.(e);
+    }
+    _pending.delete(assetId);
+}
+
+function cancelRatingUpdate(assetId: any) {
+    if (!assetId) return;
+    _clearPending(String(assetId));
+}
+
+export function cancelAllRatingUpdates(): void {
+    for (const assetId of Array.from(_pending.keys())) {
+        cancelRatingUpdate(assetId);
+    }
+}
+
+export function scheduleRatingUpdate(
+    assetId: any,
+    rating: any,
+    {
+        onSuccess,
+        onFailure,
+        successMessage = null,
+        errorMessage = null,
+        warnPrefix = "[RatingUpdater]",
+    }: { onSuccess?: ((r: any) => void) | null; onFailure?: ((r: any) => void) | null; successMessage?: string | null; errorMessage?: string | null; warnPrefix?: string } = {},
+): void {
+    if (!assetId) return;
+    cancelRatingUpdate(assetId);
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+        _pending.delete(String(assetId));
+        try {
+            const result = await updateAssetRating(assetId, rating, { signal: controller.signal });
+            if (!result?.ok) {
+                comfyToast(result?.error || errorMessage || "Failed to update rating", "error");
+                onFailure?.(result);
+                return;
+            }
+            if (successMessage) {
+                comfyToast(successMessage, "success", 1500);
+            }
+            onSuccess?.(result);
+        } catch (err: any) {
+            reportError(err, warnPrefix, { showToast: true });
+            onFailure?.(err);
+        }
+    }, RATING_DELAY_MS);
+    _pending.set(String(assetId), { timer, controller });
+}

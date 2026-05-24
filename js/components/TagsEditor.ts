@@ -1,0 +1,579 @@
+/**
+ * Tags Editor Component - Add/remove tags with autocomplete
+ */
+
+import { updateAssetTags, getAvailableTags } from "../api/client.js";
+import { ASSET_TAGS_CHANGED_EVENT } from "../app/events.js";
+import { comfyToast } from "../app/toast.js";
+import { t } from "../app/i18n.js";
+import { safeDispatchCustomEvent } from "../utils/events.js";
+
+const MAX_TAG_LEN = 100;
+const MAX_TAGS = 50;
+
+function normalizeInputTag(raw: any) {
+    try {
+        const s = String(raw ?? "").trim();
+        if (!s) return null;
+        if (s.length > MAX_TAG_LEN) return null;
+        for (let i = 0; i < s.length; i += 1) {
+            const code = s.charCodeAt(i);
+            if (code <= 31 || code === 127) return null;
+        }
+        if (/[;,]/.test(s)) return null;
+        return s;
+    } catch {
+        return null;
+    }
+}
+
+function normalizeStoredTag(raw: any) {
+    try {
+        const s = String(raw ?? "")
+            .replace(/[\x00-\x1f\x7f]/g, "")
+            .trim();
+        return s || null;
+    } catch {
+        return null;
+    }
+}
+
+function tagKey(raw: any) {
+    const normalized = normalizeStoredTag(raw);
+    return normalized ? normalized.toLowerCase() : "";
+}
+
+function dedupeTags(tags: any) {
+    const next = [];
+    const seen = new Set();
+    for (const raw of Array.isArray(tags) ? tags : []) {
+        const normalized = normalizeStoredTag(raw);
+        if (!normalized) continue;
+        const key = normalized.toLowerCase();
+        if (seen.has(key)) continue;
+        seen.add(key);
+        next.push(normalized);
+        if (next.length >= MAX_TAGS) break;
+    }
+    return next;
+}
+
+/**
+ * Create interactive tags editor
+ * @param {Object} asset - Asset object with id and current tags
+ * @param {Function} onUpdate - Callback when tags change
+ * @returns {HTMLElement}
+ */
+export function createTagsEditor(asset: Record<string, any>, onUpdate: (tags: string[]) => void): HTMLElement {
+    const container = document.createElement("div");
+    container.className = "mjr-tags-editor";
+    container.style.cssText = `
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        padding: 12px;
+        background: rgba(0,0,0,0.95);
+        border-radius: 6px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+        min-width: 250px;
+        max-width: 350px;
+    `;
+
+    const currentTags = dedupeTags(asset.tags);
+    asset.tags = [...currentTags];
+
+    // Current tags display
+    const tagsDisplay = document.createElement("div");
+    tagsDisplay.className = "mjr-tags-display";
+    tagsDisplay.style.cssText = `
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        min-height: 32px;
+    `;
+    try {
+        tagsDisplay.setAttribute("role", "list");
+        tagsDisplay.setAttribute("aria-label", "Tags");
+    } catch (e: any) {
+        console.debug?.(e);
+    }
+
+    const renderTags = () => {
+        tagsDisplay.innerHTML = "";
+        if (currentTags.length === 0) {
+            const placeholder = document.createElement("span");
+            placeholder.textContent = t("msg.noTagsYet", "No tags yet...");
+            placeholder.style.cssText = "color: #666; font-size: 12px; font-style: italic;";
+            tagsDisplay.appendChild(placeholder);
+            return;
+        }
+
+        currentTags.forEach((tag: any) => {
+            const tagChip = createTagChip(tag, () => {
+                const index = currentTags.indexOf(tag);
+                if (index > -1) {
+                    currentTags.splice(index, 1);
+                    renderTags();
+                    saveTags();
+                }
+            });
+            tagsDisplay.appendChild(tagChip);
+        });
+    };
+
+    renderTags();
+
+    // Input for new tags
+    const inputWrapper = document.createElement("div");
+    inputWrapper.style.cssText = "position: relative;";
+
+    const input = document.createElement("input");
+    input.type = "text";
+    input.placeholder = t("sidebar.addTag", "Add tag...");
+    input.className = "mjr-tag-input";
+    try {
+        input.setAttribute("aria-label", "Add tag");
+        input.setAttribute("aria-autocomplete", "list");
+        input.setAttribute("aria-expanded", "false");
+        input.setAttribute("aria-haspopup", "listbox");
+    } catch (e: any) {
+        console.debug?.(e);
+    }
+    input.style.cssText = `
+        width: 100%;
+        padding: 6px 8px;
+        background: rgba(255,255,255,0.1);
+        border: 1px solid rgba(255,255,255,0.2);
+        border-radius: 4px;
+        color: white;
+        font-size: 13px;
+        outline: none;
+    `;
+
+    // Autocomplete dropdown
+    const dropdown = document.createElement("div");
+    dropdown.className = "mjr-tags-dropdown";
+    try {
+        dropdown.setAttribute("role", "listbox");
+        dropdown.setAttribute("aria-label", "Tag suggestions");
+    } catch (e: any) {
+        console.debug?.(e);
+    }
+    dropdown.style.cssText = `
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        margin-top: 4px;
+        background: rgba(0,0,0,0.95);
+        border: 1px solid rgba(255,255,255,0.2);
+        border-radius: 4px;
+        max-height: 150px;
+        overflow-y: auto;
+        display: none;
+        z-index: 1000;
+    `;
+
+    let availableTags: any[] = [];
+    let selectedIndex = -1;
+
+    // Load available tags from server
+    const loadAvailableTags = async () => {
+        try {
+            const result = await getAvailableTags();
+            if (result.ok && Array.isArray(result.data)) {
+                availableTags = dedupeTags(result.data);
+            }
+        } catch (err: any) {
+            console.warn("Failed to load available tags:", err);
+        }
+    };
+    loadAvailableTags();
+
+    // Filter and show suggestions
+    const showSuggestions = (query: any) => {
+        const normalizedQuery = query.toLowerCase().trim();
+        const currentKeys = new Set(currentTags.map((tag: any) => tagKey(tag)).filter(Boolean));
+        if (!normalizedQuery) {
+            dropdown.style.display = "none";
+            try {
+                input.setAttribute("aria-expanded", "false");
+            } catch (e: any) {
+                console.debug?.(e);
+            }
+            return;
+        }
+
+        const suggestions = availableTags
+            .filter((tag: any) => {
+                const normalized = tag.toLowerCase();
+                const key = tagKey(tag);
+                return normalized.includes(normalizedQuery) && (!key || !currentKeys.has(key));
+            })
+            .slice(0, 10);
+
+        if (suggestions.length === 0) {
+            dropdown.style.display = "none";
+            try {
+                input.setAttribute("aria-expanded", "false");
+            } catch (e: any) {
+                console.debug?.(e);
+            }
+            return;
+        }
+
+        dropdown.innerHTML = "";
+        suggestions.forEach((tag, index) => {
+            const item = document.createElement("div");
+            item.className = "mjr-tag-suggestion";
+            item.textContent = tag;
+            try {
+                item.setAttribute("role", "option");
+                item.setAttribute("aria-selected", index === selectedIndex ? "true" : "false");
+            } catch (e: any) {
+                console.debug?.(e);
+            }
+            item.style.cssText = `
+                padding: 6px 8px;
+                cursor: pointer;
+                font-size: 13px;
+                color: white;
+                background: ${index === selectedIndex ? "rgba(144, 202, 249, 0.2)" : "transparent"};
+            `;
+
+            item.addEventListener(
+                "mouseenter",
+                () => {
+                    selectedIndex = index;
+                    showSuggestions(query);
+                },
+                { passive: true },
+            );
+
+            item.addEventListener("click", () => {
+                addTag(tag);
+                input.value = "";
+                dropdown.style.display = "none";
+                try {
+                    input.setAttribute("aria-expanded", "false");
+                } catch (e: any) {
+                    console.debug?.(e);
+                }
+            });
+
+            dropdown.appendChild(item);
+        });
+
+        dropdown.style.display = "block";
+        try {
+            input.setAttribute("aria-expanded", "true");
+        } catch (e: any) {
+            console.debug?.(e);
+        }
+    };
+
+    // Add tag function
+    const addTag = (tag: any) => {
+        const normalized = normalizeInputTag(tag);
+        if (!normalized) return;
+        const key = tagKey(normalized);
+        if (!key) return;
+        if (currentTags.some((existing: any) => tagKey(existing) === key)) return;
+        if (currentTags.length >= MAX_TAGS) return;
+        currentTags.push(normalized);
+        renderTags();
+        saveTags();
+    };
+
+    // Save tags to backend
+    let saveInFlight = false;
+    let savePending = false;
+    let saveAC: any = null;
+    let lastSaved = [...currentTags];
+    const retryDelay = (attemptIndex: any) => Math.min(100 * 2 ** Math.max(0, attemptIndex - 1), 2000);
+    const wait = (ms: any) => new Promise((resolve: any) => setTimeout(resolve, ms));
+    const saveTags = async () => {
+        if (saveInFlight) {
+            savePending = true;
+            try {
+                saveAC?.abort?.();
+            } catch (e: any) {
+                console.debug?.(e);
+            }
+            return;
+        }
+        saveInFlight = true;
+        let attempts = 0;
+        while (attempts < 10) {
+            if (attempts > 0) {
+                await wait(retryDelay(attempts));
+            }
+            attempts += 1;
+            const snapshot = [...currentTags];
+            const ac = typeof AbortController !== "undefined" ? new AbortController() : null;
+            saveAC = ac;
+            let result: any = null;
+            try {
+                // Supports both `asset_id` and `{filepath,type,root_id}` payloads.
+                result = await updateAssetTags(asset, snapshot, ac ? { signal: ac.signal } : {});
+            } catch (err: any) {
+                console.error("Failed to update tags:", err);
+            }
+
+            if (!result?.ok) {
+                // If aborted due to a new change, try again with the latest snapshot.
+                if (result?.code === "ABORTED" && savePending) {
+                    savePending = false;
+                    continue;
+                }
+                // Revert if backend rejected the change.
+                currentTags.splice(0, currentTags.length, ...lastSaved);
+                asset.tags = [...lastSaved];
+                renderTags();
+                saveInFlight = false;
+                saveAC = null;
+                comfyToast(result?.error || t("toast.tagsUpdateFailed"), "error");
+                return;
+            }
+
+            // If we tagged an unindexed file, the backend may have created an asset row.
+            try {
+                const newId = result?.data?.asset_id ?? null;
+                if (asset.id == null && newId != null) asset.id = newId;
+            } catch (e: any) {
+                console.debug?.(e);
+            }
+
+            const persisted = dedupeTags(
+                Array.isArray(result?.data?.tags) ? result.data.tags : snapshot,
+            );
+            lastSaved = [...persisted];
+            asset.tags = [...persisted];
+            if (!savePending) {
+                currentTags.splice(0, currentTags.length, ...persisted);
+                renderTags();
+            }
+            if (onUpdate) onUpdate([...persisted]);
+            safeDispatchCustomEvent(
+                ASSET_TAGS_CHANGED_EVENT,
+                { assetId: String(asset.id), tags: [...persisted] },
+                { warnPrefix: "[TagsEditor]" },
+            );
+            comfyToast(t("toast.tagsUpdated"), "success", 1000);
+            if (!savePending) break;
+            savePending = false;
+        }
+        if (attempts >= 10) {
+            currentTags.splice(0, currentTags.length, ...lastSaved);
+            asset.tags = [...lastSaved];
+            renderTags();
+            comfyToast(t("toast.tagsUpdateFailed"), "error");
+        }
+        saveInFlight = false;
+        saveAC = null;
+    };
+
+    // Best-effort cleanup hook for callers that remove the editor abruptly.
+    try {
+        (container as any)._mjrDestroy = () => {
+            try {
+                if (blurTimer) clearTimeout(blurTimer);
+            } catch (e: any) {
+                console.debug?.(e);
+            }
+            blurTimer = null;
+            try {
+                saveAC?.abort?.();
+            } catch (e: any) {
+                console.debug?.(e);
+            }
+            saveAC = null;
+        };
+    } catch (e: any) {
+        console.debug?.(e);
+    }
+
+    // Input event handlers
+    input.addEventListener("input", (e: any) => {
+        showSuggestions((e.target as HTMLInputElement).value);
+        selectedIndex = -1;
+    });
+
+    input.addEventListener("keydown", (e: any) => {
+        const suggestions = dropdown.querySelectorAll(".mjr-tag-suggestion");
+
+        if (e.key === "ArrowDown") {
+            e.preventDefault();
+            if (suggestions.length > 0) {
+                selectedIndex = Math.min(selectedIndex + 1, suggestions.length - 1);
+                showSuggestions(input.value);
+            }
+        } else if (e.key === "ArrowUp") {
+            e.preventDefault();
+            if (suggestions.length > 0) {
+                selectedIndex = Math.max(selectedIndex - 1, -1);
+                showSuggestions(input.value);
+            }
+        } else if (e.key === "Enter") {
+            e.preventDefault();
+            if (selectedIndex >= 0 && selectedIndex < suggestions.length) {
+                (suggestions[selectedIndex] as HTMLElement).click();
+            } else {
+                addTag(input.value);
+                input.value = "";
+                dropdown.style.display = "none";
+                try {
+                    input.setAttribute("aria-expanded", "false");
+                } catch (e: any) {
+                    console.debug?.(e);
+                }
+            }
+        } else if (e.key === "Escape") {
+            dropdown.style.display = "none";
+            selectedIndex = -1;
+            try {
+                input.setAttribute("aria-expanded", "false");
+            } catch (e: any) {
+                console.debug?.(e);
+            }
+        } else if (e.key === "," || e.key === ";") {
+            e.preventDefault();
+            addTag(input.value);
+            input.value = "";
+            dropdown.style.display = "none";
+            try {
+                input.setAttribute("aria-expanded", "false");
+            } catch (e: any) {
+                console.debug?.(e);
+            }
+        }
+    });
+
+    let blurTimer: any = null;
+    input.addEventListener("focus", () => {
+        try {
+            if (blurTimer) clearTimeout(blurTimer);
+        } catch (e: any) {
+            console.debug?.(e);
+        }
+        blurTimer = null;
+    });
+    input.addEventListener("blur", () => {
+        // Delay to allow click on dropdown
+        try {
+            if (blurTimer) clearTimeout(blurTimer);
+        } catch (e: any) {
+            console.debug?.(e);
+        }
+        blurTimer = setTimeout(() => {
+            try {
+                if (!container.isConnected) return;
+            } catch (e: any) {
+                console.debug?.(e);
+            }
+            try {
+                dropdown.style.display = "none";
+                input.setAttribute("aria-expanded", "false");
+            } catch (e: any) {
+                console.debug?.(e);
+            }
+        }, 200);
+    });
+
+    inputWrapper.appendChild(input);
+    inputWrapper.appendChild(dropdown);
+
+    // Allow external updates (e.g. hotkeys) to refresh the editor UI.
+    try {
+        (container as any)._mjrSetTags = (tags: any) => {
+            const next = dedupeTags(tags);
+            currentTags.splice(0, currentTags.length, ...next);
+            lastSaved = [...next];
+            asset.tags = [...next];
+            renderTags();
+        };
+    } catch (e: any) {
+        console.debug?.(e);
+    }
+
+    container.appendChild(tagsDisplay);
+    container.appendChild(inputWrapper);
+
+    return container;
+}
+
+/**
+ * Create a tag chip with remove button
+ */
+function createTagChip(tag: any, onRemove: any) {
+    const chip = document.createElement("span");
+    chip.className = "mjr-tag-chip";
+    chip.style.cssText = `
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 8px;
+        background: rgba(144, 202, 249, 0.2);
+        border: 1px solid rgba(144, 202, 249, 0.4);
+        border-radius: 12px;
+        font-size: 11px;
+        color: #90CAF9;
+    `;
+
+    const text = document.createElement("span");
+    text.textContent = tag;
+    try {
+        chip.setAttribute("role", "listitem");
+    } catch (e: any) {
+        console.debug?.(e);
+    }
+
+    const removeBtn = document.createElement("button");
+    removeBtn.type = "button";
+    try {
+        removeBtn.setAttribute("aria-label", `Remove tag ${String(tag || "")}`);
+    } catch (e: any) {
+        console.debug?.(e);
+    }
+    removeBtn.textContent = "Ã—";
+    removeBtn.style.cssText = `
+        background: none;
+        border: none;
+        color: #90CAF9;
+        cursor: pointer;
+        font-size: 14px;
+        padding: 0;
+        margin: 0;
+        line-height: 1;
+        opacity: 0.7;
+        transition: opacity 0.2s;
+    `;
+
+    removeBtn.addEventListener(
+        "mouseenter",
+        () => {
+            removeBtn.style.opacity = "1";
+        },
+        { passive: true },
+    );
+
+    removeBtn.addEventListener(
+        "mouseleave",
+        () => {
+            removeBtn.style.opacity = "0.7";
+        },
+        { passive: true },
+    );
+
+    removeBtn.addEventListener("click", (e: any) => {
+        e.stopPropagation();
+        if (onRemove) {
+            onRemove();
+        }
+    });
+
+    chip.appendChild(text);
+    chip.appendChild(removeBtn);
+
+    return chip;
+}

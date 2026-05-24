@@ -1,0 +1,732 @@
+import { APP_CONFIG } from "../../app/config.js";
+import { VIEWER_ZOOM } from "./constants.js";
+import { isModel3DInteractionTarget } from "./model3dRenderer.js";
+import {
+    safeAddListener as defaultSafeAddListener,
+    safeCall as defaultSafeCall,
+} from "../../utils/safeCall.js";
+
+export function createViewerPanZoom({
+    overlay,
+    content,
+    singleView,
+    abView,
+    sideView,
+    state,
+    VIEWER_MODES,
+    scheduleOverlayRedraw,
+    lifecycle,
+}: Record<string, any> = {}): Record<string, any> {
+    const safeCall = lifecycle?.safeCall || defaultSafeCall;
+    const safeAddListener = lifecycle?.safeAddListener || defaultSafeAddListener;
+
+    const unsubs = lifecycle?.unsubs || [];
+
+    const getPrimaryMedia = () => {
+        try {
+            if (state?.mode !== VIEWER_MODES?.SINGLE) return null;
+            return singleView?.querySelector?.(".mjr-viewer-media") || null;
+        } catch {
+            return null;
+        }
+    };
+
+    const getMediaNaturalSize = (mediaEl: any) => {
+        try {
+            if (!mediaEl) return { w: 0, h: 0 };
+            const hintedW = Number(mediaEl?._mjrNaturalW) || 0;
+            const hintedH = Number(mediaEl?._mjrNaturalH) || 0;
+            if (hintedW > 0 && hintedH > 0) {
+                return { w: hintedW, h: hintedH };
+            }
+            if (mediaEl.tagName === "IMG") {
+                return {
+                    w: Number(mediaEl.naturalWidth) || 0,
+                    h: Number(mediaEl.naturalHeight) || 0,
+                };
+            }
+            if (mediaEl.tagName === "VIDEO") {
+                return { w: Number(mediaEl.videoWidth) || 0, h: Number(mediaEl.videoHeight) || 0 };
+            }
+            if (mediaEl.tagName === "CANVAS") {
+                const w = Number(mediaEl._mjrNaturalW) || Number(mediaEl.width) || 0;
+                const h = Number(mediaEl._mjrNaturalH) || Number(mediaEl.height) || 0;
+                return { w, h };
+            }
+        } catch (e: any) {
+            console.debug?.(e);
+        }
+        return { w: 0, h: 0 };
+    };
+
+    const getViewportRect = () => {
+        try {
+            const rect = content?.getBoundingClientRect?.();
+            return rect && rect.width > 0 && rect.height > 0 ? rect : null;
+        } catch {
+            return null;
+        }
+    };
+
+    const updateMediaNaturalSize = () => {
+        try {
+            let root = singleView;
+            if (state?.mode === VIEWER_MODES?.AB_COMPARE) root = abView;
+            else if (state?.mode === VIEWER_MODES?.SIDE_BY_SIDE) root = sideView;
+            const el = root?.querySelector?.(".mjr-viewer-media");
+            if (!el) return;
+            const { w, h } = getMediaNaturalSize(el);
+            if (w > 0 && h > 0) {
+                state._mediaW = w;
+                state._mediaH = h;
+            }
+        } catch (e: any) {
+            console.debug?.(e);
+        }
+    };
+
+    const attachMediaLoadHandlers = (mediaEl: any, { clampPanToBounds, applyTransform }: Record<string, any> = {}) => {
+        if (!mediaEl || mediaEl._mjrMediaSizeBound) return;
+        mediaEl._mjrMediaSizeBound = true;
+        const sync = () => {
+            updateMediaNaturalSize();
+            try {
+                clampPanToBounds?.();
+            } catch (e: any) {
+                console.debug?.(e);
+            }
+            try {
+                applyTransform?.();
+            } catch (e: any) {
+                console.debug?.(e);
+            }
+        };
+        try {
+            if (mediaEl.tagName === "IMG") {
+                mediaEl.addEventListener("load", () => requestAnimationFrame(sync), { once: true });
+            } else if (mediaEl.tagName === "VIDEO") {
+                mediaEl.addEventListener("loadedmetadata", () => requestAnimationFrame(sync), {
+                    once: true,
+                });
+            }
+        } catch (e: any) {
+            console.debug?.(e);
+        }
+    };
+
+    const clampPanToBounds = () => {
+        try {
+            if (!overlay || overlay.style.display === "none") return;
+
+            const zoom = Math.max(
+                VIEWER_ZOOM.MIN,
+                Math.min(VIEWER_ZOOM.MAX, Number(state?.zoom) || 1),
+            );
+
+            const current = state?.assets?.[state?.currentIndex];
+            let aw = Number(current?.width) || 0;
+            let ah = Number(current?.height) || 0;
+            if (!(aw > 0 && ah > 0)) {
+                updateMediaNaturalSize();
+                aw = Number(state?._mediaW) || 0;
+                ah = Number(state?._mediaH) || 0;
+            }
+            if (!(aw > 0 && ah > 0)) return;
+            const aspect = aw / ah;
+            if (!Number.isFinite(aspect) || aspect <= 0) return;
+
+            const getViewportSize = () => {
+                const now = Date.now();
+                try {
+                    const cached = state?._viewportCache;
+                    if (cached && cached.mode === state?.mode && now - (cached.at || 0) < 250) {
+                        const w = Number(cached.w) || 0;
+                        const h = Number(cached.h) || 0;
+                        if (w > 0 && h > 0) return { w, h };
+                    }
+                } catch (e: any) {
+                    console.debug?.(e);
+                }
+
+                const fallbackW = Math.max(
+                    Number(content?.clientWidth) || 0,
+                    Number(overlay?.clientWidth) || 0,
+                );
+                const fallbackH = Math.max(
+                    Number(content?.clientHeight) || 0,
+                    Number(overlay?.clientHeight) || 0,
+                );
+                const clampToFallback = (w: any, h: any) => ({
+                    w: Math.max(Number(w) || 0, fallbackW),
+                    h: Math.max(Number(h) || 0, fallbackH),
+                });
+
+                let res: any = null;
+                if (state?.mode === VIEWER_MODES?.SINGLE) {
+                    res = clampToFallback(singleView?.clientWidth, singleView?.clientHeight);
+                } else if (state?.mode === VIEWER_MODES?.AB_COMPARE) {
+                    res = clampToFallback(abView?.clientWidth, abView?.clientHeight);
+                } else {
+                    const children = Array.from((sideView as any)?.children || []).filter(
+                        (el: any) => el && el.nodeType === 1,
+                    ) as HTMLElement[];
+                    if (children.length) {
+                        let minW = Infinity;
+                        let minH = Infinity;
+                        for (const child of children) {
+                            const w = Number(child.clientWidth) || 0;
+                            const h = Number(child.clientHeight) || 0;
+                            if (w > 0) minW = Math.min(minW, w);
+                            if (h > 0) minH = Math.min(minH, h);
+                        }
+                        if (Number.isFinite(minW) && Number.isFinite(minH)) {
+                            res = clampToFallback(minW, minH);
+                        }
+                    }
+                    if (!res) res = clampToFallback(sideView?.clientWidth, sideView?.clientHeight);
+                }
+
+                try {
+                    state._viewportCache = { mode: state?.mode, w: res.w, h: res.h, at: now };
+                } catch (e: any) {
+                    console.debug?.(e);
+                }
+                return res;
+            };
+
+            const { w: vw, h: vh } = getViewportSize();
+            if (!(vw > 0 && vh > 0)) {
+                if (overlay?.style?.display !== "none") {
+                    requestAnimationFrame(clampPanToBounds);
+                }
+                return;
+            }
+
+            // Calculate "contain" dimensions correctly against the viewport aspect ratio.
+            const vpAspect = vw / vh;
+            let baseW = 0;
+            let baseH = 0;
+            if (aspect > vpAspect) {
+                // Image is wider than viewport (relative to aspect): constrained by width.
+                baseW = vw;
+                baseH = vw / aspect;
+            } else {
+                // Image is taller than viewport: constrained by height.
+                baseH = vh;
+                baseW = vh * aspect;
+            }
+
+            const scaledW = baseW * zoom;
+            const scaledH = baseH * zoom;
+            const overflow = scaledW > vw + 1 || scaledH > vh + 1;
+            if (!(zoom > 1.001) && !overflow) {
+                state.panX = 0;
+                state.panY = 0;
+                return;
+            }
+
+            const overflowVH = Math.max(0, scaledW - vw);
+            const overflowVV = Math.max(0, scaledH - vh);
+            const maxPanX = (overflowVH / 2) * zoom;
+            const maxPanY = (overflowVV / 2) * zoom;
+
+            state.panX = Math.max(-maxPanX, Math.min(maxPanX, Number(state?.panX) || 0));
+            state.panY = Math.max(-maxPanY, Math.min(maxPanY, Number(state?.panY) || 0));
+        } catch (e: any) {
+            console.debug?.(e);
+        }
+    };
+
+    const mediaTransform = () => {
+        const zoom = Math.max(VIEWER_ZOOM.MIN, Math.min(VIEWER_ZOOM.MAX, Number(state?.zoom) || 1));
+        const x = Number(state?.panX) || 0;
+        const y = Number(state?.panY) || 0;
+        const nx = x / zoom;
+        const ny = y / zoom;
+        return `translate3d(${nx}px, ${ny}px, 0) scale(${zoom})`;
+    };
+
+    const updatePanCursor = () => {
+        try {
+            if (!content) return;
+            if (!overlay || overlay.style.display === "none") {
+                content.style.cursor = "";
+                return;
+            }
+            const zoom = Number(state?.zoom) || 1;
+            const mediaEl = getPrimaryMedia();
+            const { w: aw, h: ah } = getMediaNaturalSize(mediaEl) || { w: 0, h: 0 };
+            const viewport = getViewportRect();
+            const overflow =
+                viewport && aw > 0 && ah > 0
+                    ? _computeOverflowAtZoom(aw, ah, viewport.width, viewport.height, zoom)
+                    : false;
+            const zoomed = zoom > 1.01 || overflow;
+            if (!zoomed) {
+                content.style.cursor = "";
+                return;
+            }
+            content.style.cursor = "grab";
+        } catch (e: any) {
+            console.debug?.(e);
+        }
+    };
+
+    const applyTransform = () => {
+        try {
+            clampPanToBounds();
+            const t = mediaTransform();
+            const root = _getModeRoot();
+            const els = overlay?.querySelectorAll?.(".mjr-viewer-media") || [];
+            for (const el of els) {
+                try {
+                    if (el?._mjrDisableViewerTransform) continue;
+                    // Keep the media element sized to its fitted base, so rect-based tooling (probe/mask) matches.
+                    const boxEl = _getBoxElForMedia(el, root);
+                    const boxRect = boxEl?.getBoundingClientRect?.() || null;
+                    if (boxRect) {
+                        const bw = Number(boxRect.width) || 0;
+                        const bh = Number(boxRect.height) || 0;
+                        if (bw > 1 && bh > 1) {
+                            const { w: aw, h: ah } = getMediaNaturalSize(el) || { w: 0, h: 0 };
+                            if (aw > 0 && ah > 0) {
+                                const base = computeContainBaseSize(aw, ah, bw, bh);
+                                if (base.w > 1 && base.h > 1) {
+                                    el.style.width = `${Math.round(base.w)}px`;
+                                    el.style.height = `${Math.round(base.h)}px`;
+                                }
+                            }
+                        }
+                    }
+                    el.style.transform = t;
+                } catch (e: any) {
+                    console.debug?.(e);
+                }
+            }
+            try {
+                // Immediate redraw to avoid 1-frame lag (sync grid with new transform)
+                scheduleOverlayRedraw?.(true);
+            } catch (e: any) {
+                console.debug?.(e);
+            }
+        } catch (e: any) {
+            console.debug?.(e);
+        }
+    };
+
+    const setZoom = (next: any, { clientX = null, clientY = null } = {}) => {
+        try {
+            const prevZoom = Math.max(
+                VIEWER_ZOOM.MIN,
+                Math.min(VIEWER_ZOOM.MAX, Number(state?.zoom) || 1),
+            );
+            const nextZoom = Math.max(
+                VIEWER_ZOOM.MIN,
+                Math.min(VIEWER_ZOOM.MAX, Number(next) || prevZoom),
+            );
+            try {
+                state._userInteracted = true;
+            } catch (e: any) {
+                console.debug?.(e);
+            }
+
+            let newPanX = Number(state?.panX) || 0;
+            let newPanY = Number(state?.panY) || 0;
+
+            const hasPointer =
+                clientX != null &&
+                clientY != null &&
+                Number.isFinite(Number(clientX)) &&
+                Number.isFinite(Number(clientY));
+            if (hasPointer) {
+                try {
+                    const rect = content?.getBoundingClientRect?.();
+                    if (rect && rect.width > 0 && rect.height > 0) {
+                        const cx = rect.left + rect.width / 2;
+                        const cy = rect.top + rect.height / 2;
+                        const uX = (Number(clientX) || 0) - cx;
+                        const uY = (Number(clientY) || 0) - cy;
+                        const r = nextZoom / prevZoom;
+                        newPanX =
+                            Math.round(((Number(state?.panX) || 0) * r + (1 - r) * uX) * 10) / 10;
+                        newPanY =
+                            Math.round(((Number(state?.panY) || 0) * r + (1 - r) * uY) * 10) / 10;
+                    }
+                } catch (e: any) {
+                    console.debug?.(e);
+                }
+            } else if (nextZoom !== prevZoom) {
+                const r = nextZoom / prevZoom;
+                newPanX = Math.round((Number(state?.panX) || 0) * r * 10) / 10;
+                newPanY = Math.round((Number(state?.panY) || 0) * r * 10) / 10;
+            }
+
+            state.zoom = nextZoom;
+            state.panX = newPanX;
+            state.panY = newPanY;
+
+            if (Math.abs(state.zoom - 1) < 0.001) {
+                state.zoom = 1;
+                state.panX = 0;
+                state.panY = 0;
+            }
+
+            state.targetZoom = state.zoom;
+            applyTransform();
+            updatePanCursor();
+        } catch (e: any) {
+            console.debug?.(e);
+        }
+    };
+
+    // Viewer default: fit by height (Nuke-like). Prevents "tiny" images by always scaling up to viewer height.
+    // Note: may overflow horizontally for wide formats; panning at zoom=1 is allowed in that case.
+    const computeContainBaseSize = (aw: any, ah: any, vw: any, vh: any) => {
+        try {
+            const w = Number(aw) || 0;
+            const h = Number(ah) || 0;
+            const Vw = Number(vw) || 0;
+            const Vh = Number(vh) || 0;
+            if (!(w > 0 && h > 0 && Vw > 0 && Vh > 0)) return { w: 0, h: 0 };
+            const aspect = w / h;
+            if (!Number.isFinite(aspect) || aspect <= 0) {
+                return { w: 0, h: 0 };
+            }
+            return { w: Vh * aspect, h: Vh };
+        } catch {
+            return { w: 0, h: 0 };
+        }
+    };
+
+    const _getModeRoot = () => {
+        try {
+            const mode = state?.mode;
+            if (mode === VIEWER_MODES?.AB_COMPARE) return abView || content || null;
+            if (mode === VIEWER_MODES?.SIDE_BY_SIDE) return sideView || content || null;
+            return singleView || content || null;
+        } catch {
+            return content || null;
+        }
+    };
+
+    const _getBoxElForMedia = (mediaEl: any, root: any) => {
+        try {
+            if (!mediaEl) return root || null;
+            const mode = state?.mode;
+            if (mode === VIEWER_MODES?.SIDE_BY_SIDE || mode === VIEWER_MODES?.AB_COMPARE) {
+                // Prefer the direct child panel/layer of the mode root (stable, not transformed by pan/zoom).
+                let el = mediaEl;
+                while (el && el !== root && el.parentElement) {
+                    if (el.parentElement === root) return el;
+                    el = el.parentElement;
+                }
+                return root || null;
+            }
+            return root || content || null;
+        } catch {
+            return root || content || null;
+        }
+    };
+
+    const _computeOverflowAtZoom = (aw: any, ah: any, viewportW: any, viewportH: any, zoom: any) => {
+        try {
+            const base = computeContainBaseSize(aw, ah, viewportW, viewportH);
+            if (!(base.w > 0 && base.h > 0)) return false;
+            const z = Math.max(VIEWER_ZOOM.MIN, Math.min(VIEWER_ZOOM.MAX, Number(zoom) || 1));
+            const scaledW = base.w * z;
+            const scaledH = base.h * z;
+            return scaledW > (Number(viewportW) || 0) + 1 || scaledH > (Number(viewportH) || 0) + 1;
+        } catch {
+            return false;
+        }
+    };
+
+    const computeOneToOneZoom = () => {
+        try {
+            const mediaEl = getPrimaryMedia();
+            if (!mediaEl) return null;
+            const { w: aw, h: ah } = getMediaNaturalSize(mediaEl);
+            if (!(aw > 0 && ah > 0)) return null;
+            const viewport = getViewportRect();
+            if (!viewport) return null;
+            const base = computeContainBaseSize(aw, ah, viewport.width, viewport.height);
+            if (!(base.w > 0 && base.h > 0)) return null;
+            const z = aw / base.w;
+            if (!Number.isFinite(z) || z <= 0) return null;
+            return Math.max(VIEWER_ZOOM.MIN, Math.min(VIEWER_ZOOM.MAX, z));
+        } catch {
+            return null;
+        }
+    };
+
+    // Pan (middle-mouse-like click+drag) when zoomed in.
+    const pan = {
+        active: false,
+        pointerId: null,
+        startX: 0,
+        startY: 0,
+        startPanX: 0,
+        startPanY: 0,
+    };
+
+    const onPanPointerDown = (e: any) => {
+        if (!overlay || overlay.style.display === "none") return;
+        // 3D models use OrbitControls for pan/zoom â€” skip panzoom entirely
+        if (isModel3DInteractionTarget(e?.target)) return;
+        const zoom = Number(state?.zoom) || 1;
+        const allowAt1 = (() => {
+            try {
+                return Boolean(APP_CONFIG?.VIEWER_ALLOW_PAN_AT_ZOOM_1);
+            } catch {
+                return false;
+            }
+        })();
+        const allowAtCurrent = (() => {
+            try {
+                if (allowAt1) return true;
+                const mediaEl = getPrimaryMedia();
+                const { w: aw, h: ah } = getMediaNaturalSize(mediaEl) || { w: 0, h: 0 };
+                const viewport = getViewportRect();
+                if (!viewport || !(aw > 0 && ah > 0)) return zoom > 1.01;
+                return (
+                    zoom > 1.01 ||
+                    _computeOverflowAtZoom(aw, ah, viewport.width, viewport.height, zoom)
+                );
+            } catch {
+                return zoom > 1.01;
+            }
+        })();
+        if (!allowAtCurrent) {
+            try {
+                state._panHintAt = Date.now();
+                state._panHintX = e?.clientX ?? null;
+                state._panHintY = e?.clientY ?? null;
+            } catch (e: any) {
+                console.debug?.(e);
+            }
+            try {
+                if (state._panHintTimer) clearTimeout(state._panHintTimer);
+            } catch (e: any) {
+                console.debug?.(e);
+            }
+            try {
+                state._panHintTimer = setTimeout(() => {
+                    try {
+                        state._panHintAt = 0;
+                    } catch (e: any) {
+                        console.debug?.(e);
+                    }
+                    safeCall(scheduleOverlayRedraw);
+                }, 950);
+            } catch (e: any) {
+                console.debug?.(e);
+            }
+            safeCall(scheduleOverlayRedraw);
+            return;
+        }
+        const isLeft = e.button === 0;
+        const isMiddle = e.button === 1;
+        if (!isLeft && !isMiddle) return;
+        try {
+            const t = e.target;
+            if (
+                t &&
+                (t.tagName === "INPUT" ||
+                    t.tagName === "TEXTAREA" ||
+                    t.tagName === "SELECT" ||
+                    t.isContentEditable)
+            )
+                return;
+        } catch (e: any) {
+            console.debug?.(e);
+        }
+        // Do not start panning when interacting with viewer controls (player bar, buttons, seek handles, menus, slider).
+        try {
+            if (e?.target?.closest?.(".mjr-video-controls")) return;
+            if (e?.target?.closest?.(".mjr-context-menu")) return;
+            if (e?.target?.closest?.(".mjr-ab-slider")) return;
+            if (isModel3DInteractionTarget(e?.target)) return;
+        } catch (e: any) {
+            console.debug?.(e);
+        }
+        try {
+            if (!content?.contains?.(e.target)) return;
+        } catch {
+            return;
+        }
+
+        pan.active = true;
+        try {
+            state._userInteracted = true;
+        } catch (e: any) {
+            console.debug?.(e);
+        }
+        pan.pointerId = e.pointerId;
+        try {
+            state._lastPointerX = e.clientX;
+            state._lastPointerY = e.clientY;
+        } catch (e: any) {
+            console.debug?.(e);
+        }
+        pan.startX = e.clientX;
+        pan.startY = e.clientY;
+        pan.startPanX = Number(state?.panX) || 0;
+        pan.startPanY = Number(state?.panY) || 0;
+        try {
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation?.();
+        } catch (e: any) {
+            console.debug?.(e);
+        }
+        try {
+            content?.setPointerCapture?.(e.pointerId);
+        } catch (e: any) {
+            console.debug?.(e);
+        }
+        try {
+            if (content) content.style.cursor = "grabbing";
+        } catch (e: any) {
+            console.debug?.(e);
+        }
+    };
+
+    const onPanPointerMove = (e: any) => {
+        if (!pan.active) return;
+        // If the user started interacting with video controls, never treat it as a pan gesture.
+        try {
+            if (e?.target?.closest?.(".mjr-video-controls")) return;
+        } catch (e: any) {
+            console.debug?.(e);
+        }
+        try {
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation?.();
+        } catch (e: any) {
+            console.debug?.(e);
+        }
+        const dx = (Number(e.clientX) || 0) - pan.startX;
+        const dy = (Number(e.clientY) || 0) - pan.startY;
+        const zoom = Math.max(VIEWER_ZOOM.MIN, Math.min(VIEWER_ZOOM.MAX, Number(state?.zoom) || 1));
+        const panMultiplier = Math.max(1, zoom);
+        state.panX = pan.startPanX + dx * panMultiplier;
+        state.panY = pan.startPanY + dy * panMultiplier;
+        try {
+            state._lastPointerX = e.clientX;
+            state._lastPointerY = e.clientY;
+        } catch (e: any) {
+            console.debug?.(e);
+        }
+        applyTransform();
+        updatePanCursor();
+    };
+
+    const onPanPointerUp = (e: any) => {
+        if (!pan.active) return;
+        pan.active = false;
+        pan.pointerId = null;
+        try {
+            content?.releasePointerCapture?.(e.pointerId);
+        } catch (e: any) {
+            console.debug?.(e);
+        }
+        updatePanCursor();
+    };
+
+    const onDblClickReset = (e: any) => {
+        if (!overlay || overlay.style.display === "none") return;
+        try {
+            if (!content?.contains?.(e.target)) return;
+        } catch (e: any) {
+            console.debug?.(e);
+        }
+        try {
+            if (isModel3DInteractionTarget(e?.target)) return;
+        } catch (e: any) {
+            console.debug?.(e);
+        }
+        try {
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation?.();
+        } catch (e: any) {
+            console.debug?.(e);
+        }
+        const isNearFit = Math.abs((Number(state?.targetZoom) || 1) - 1) < 0.01;
+        if (isNearFit) {
+            setZoom(Math.min(8, (Number(state?.targetZoom) || 1) * 4), {
+                clientX: e.clientX,
+                clientY: e.clientY,
+            });
+        } else {
+            setZoom(1, { clientX: e.clientX, clientY: e.clientY });
+        }
+    };
+
+    try {
+        if (content && !content._mjrPanBound) {
+            unsubs.push(
+                safeAddListener(content, "pointerdown", onPanPointerDown, {
+                    passive: false,
+                    capture: true,
+                }),
+            );
+            unsubs.push(
+                safeAddListener(content, "pointermove", onPanPointerMove, {
+                    passive: false,
+                    capture: true,
+                }),
+            );
+            unsubs.push(
+                safeAddListener(content, "pointerup", onPanPointerUp, {
+                    passive: true,
+                    capture: true,
+                }),
+            );
+            unsubs.push(
+                safeAddListener(content, "pointercancel", onPanPointerUp, {
+                    passive: true,
+                    capture: true,
+                }),
+            );
+            content._mjrPanBound = true;
+        }
+    } catch (e: any) {
+        console.debug?.(e);
+    }
+
+    try {
+        if (content && !content._mjrDblClickResetBound) {
+            unsubs.push(
+                safeAddListener(content, "dblclick", onDblClickReset, {
+                    passive: false,
+                    capture: true,
+                }),
+            );
+            content._mjrDblClickResetBound = true;
+        }
+    } catch (e: any) {
+        console.debug?.(e);
+    }
+
+    return {
+        getPrimaryMedia,
+        getMediaNaturalSize,
+        getViewportRect,
+        updateMediaNaturalSize,
+        attachMediaLoadHandlers,
+        clampPanToBounds,
+        mediaTransform,
+        applyTransform,
+        setZoom,
+        computeOneToOneZoom,
+        updatePanCursor,
+        dispose: () => {
+            safeCall(() => {
+                pan.active = false;
+                pan.pointerId = null;
+            });
+        },
+    };
+}
