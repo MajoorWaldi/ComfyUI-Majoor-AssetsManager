@@ -221,3 +221,5 @@ docs/TAGS_NORMALIZATION_REMAINING_WORK.md
 docs/PLAN_COMFY_FRONTEND_ALIGNMENT.md
 .github/agents/comfyui-dev.agent.md
 AGENTS.md
+ts_errors*.txt
+test-results/

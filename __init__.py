@@ -71,11 +71,16 @@ __branch__ = _detect_branch_from_env()
 
 root = Path(__file__).resolve().parent
 if WEB_DIRECTORY is None:
-    # js_dist/ contains the Vite-built bundle (npm run build).
-    # Fall back to js/ (raw source) when the dist directory has not been built yet
-    # so development without a build step still works.
+    # ComfyUI only auto-loads browser-ready .js files from WEB_DIRECTORY.
+    # The TypeScript/Vue source under js/ must be bundled first with `npm run build`.
     _js_dist = root / "js_dist"
-    WEB_DIRECTORY = str(_js_dist if _js_dist.is_dir() else root / "js")
+    WEB_DIRECTORY = str(_js_dist)
+    if not (_js_dist / "entry.js").is_file():
+        _logger.warning(
+            "Majoor Assets Manager frontend bundle is missing at %s. "
+            "Run `npm run build` before loading the custom node.",
+            _js_dist / "entry.js",
+        )
 
 # Ensure extension-local packages (e.g. `mjr_am_backend`) are importable even when
 # ComfyUI loads this module by file path without adding custom node root to sys.path.

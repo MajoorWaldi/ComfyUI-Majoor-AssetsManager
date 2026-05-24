@@ -22,8 +22,8 @@
     "lint:dead": "knip --config knip.json || node -e \"process.exit(0)\"",
     "typecheck:js": "tsc -p tsconfig.json --noEmit || node -e \"process.exit(0)\"",
     "lint:js:fix": "eslint js/ --fix",
-    "format": "prettier --write \"js/**/*.{js,mjs,vue}\"",
-    "format:check": "prettier --check \"js/**/*.{js,mjs,vue}\""
+    "format": "prettier --write \"js/**/*.{ts,js,mjs,vue}\"",
+    "format:check": "prettier --check \"js/**/*.{ts,js,mjs,vue}\""
   },
   "devDependencies": {
     "@comfyorg/litegraph": "^0.17.2",

@@ -109,6 +109,15 @@ jobs:
       - name: Install JS dependencies
         run: npm ci --ignore-scripts
 
+      - name: Typecheck frontend
+        run: npx tsc -p tsconfig.json --noEmit --pretty false
+
+      - name: Build frontend bundle
+        run: npm run build
+
+      - name: Verify committed frontend bundle is current
+        run: git diff --exit-code -- js_dist
+
       - name: Run JS tests (vitest)
         run: npm run test:js
 
