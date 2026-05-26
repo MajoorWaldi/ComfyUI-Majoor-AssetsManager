@@ -1,7 +1,7 @@
-import { t as e } from "./rolldown-runtime-DMoxecvO.js";
-import { h as t, t as n } from "./config-DC_DVuJE.js";
-import { r } from "./events-BhwZp0qO.js";
-import { n as i } from "./state-B-apA6F8.js";
+import { t as e } from "./rolldown-runtime-Dy4uBu1J.js";
+import { h as t, t as n } from "./config-CXns6XwM.js";
+import { r } from "./events-uHehulNG.js";
+import { n as i } from "./state-DPiaUMw1.js";
 //#region ui/features/viewer/model3dCore.ts
 function a(e, t) {
 	if (!(!e || typeof t != "function")) try {
@@ -842,13 +842,13 @@ var ae = Object.freeze({
 	".splat": "splat",
 	".ksplat": "splat",
 	".spz": "splat"
-}), oe = new Set(Object.keys(ae)), se = new Set([
+}), D = new Set(Object.keys(ae)), oe = new Set([
 	"gltf",
 	"obj",
 	"fbx",
 	"stl",
 	"ply"
-]), ce = "#282828", le = "Rotate: left drag  Pan: right drag  Zoom: wheel", D = Object.freeze({
+]), se = "#282828", ce = "Rotate: left drag  Pan: right drag  Zoom: wheel", O = Object.freeze({
 	PERSPECTIVE: "perspective",
 	ORTHOGRAPHIC: "orthographic"
 });
@@ -859,7 +859,7 @@ Object.freeze({
 	WIREFRAME: "wireframe",
 	POINTCLOUD: "pointcloud"
 });
-var ue = Object.freeze({
+var le = Object.freeze({
 	original: [
 		0,
 		0,
@@ -895,7 +895,7 @@ var ue = Object.freeze({
 		0,
 		-Math.PI / 2
 	]
-}), de = 44, fe = 75, pe = 1, O = Object.freeze({
+}), ue = 75, de = 1, k = Object.freeze({
 	ambient: .5,
 	main: .8,
 	fill: .3,
@@ -903,7 +903,7 @@ var ue = Object.freeze({
 	rim: .3,
 	bottom: .2
 });
-function k(e) {
+function fe(e) {
 	try {
 		let t = String(e?.ext || "").trim().toLowerCase();
 		if (t) return t.startsWith(".") ? t : `.${t}`;
@@ -918,21 +918,21 @@ function k(e) {
 	}
 	return "";
 }
-function me(e) {
+function pe(e) {
 	let t = String(e || "").trim();
 	return t ? t.startsWith("/") || /^[a-z][\w+\-.]*:/i.test(t) : !1;
 }
+function me(e) {
+	return String(e?.loader || e?.viewer_info?.loader || "").trim().toLowerCase() || ae[fe(e)] || "";
+}
 function he(e) {
-	return String(e?.loader || e?.viewer_info?.loader || "").trim().toLowerCase() || ae[k(e)] || "";
+	return String(e?.kind || "").toLowerCase() === "model3d" ? !0 : D.has(fe(e));
 }
 function ge(e) {
-	return String(e?.kind || "").toLowerCase() === "model3d" ? !0 : oe.has(k(e));
-}
-function _e(e) {
-	return he(e) || "gltf";
+	return me(e) || "gltf";
 }
 function A() {
-	return le;
+	return ce;
 }
 function j(e) {
 	try {
@@ -953,7 +953,7 @@ function M(e) {
 		return !1;
 	}
 }
-function ve(e, t) {
+function _e(e, t) {
 	let n = t || {
 		ROTATE: 0,
 		DOLLY: 1,
@@ -1005,7 +1005,7 @@ function N(e, i, a = {}) {
 		"pointer-events:none",
 		"z-index:1"
 	].join(";"), g.appendChild(y);
-	let b = k(e).replace(".", "").toUpperCase();
+	let b = fe(e).replace(".", "").toUpperCase();
 	if (b) {
 		let e = document.createElement("div");
 		e.className = "mjr-model3d-badge", e.textContent = b, e.style.cssText = [
@@ -1036,10 +1036,10 @@ function N(e, i, a = {}) {
 	].join(";");
 	let S = document.createElement("div");
 	S.style.cssText = "display:flex;align-items:center;gap:6px;flex-wrap:wrap;pointer-events:auto;";
-	let ae = T("Reset", "Reset 3D view"), oe = T("Grid", "Toggle grid"), he = T("Persp", "Switch perspective / orthographic"), ge = T("âš™", "Settings");
-	S.append(ae, oe, he, ge), x.appendChild(S), g.appendChild(x);
+	let ae = T("Reset", "Reset 3D view"), D = T("Grid", "Toggle grid"), me = T("Persp", "Switch perspective / orthographic"), he = T("âš™", "Settings");
+	S.append(ae, D, me, he), x.appendChild(S), g.appendChild(x);
 	let A = document.createElement("div");
-	A.className = "mjr-model3d-hint", A.textContent = a.hintText || le, A.style.cssText = [
+	A.className = "mjr-model3d-hint", A.textContent = a.hintText || ce, A.style.cssText = [
 		"position:absolute",
 		"right:10px",
 		"bottom:10px",
@@ -1054,29 +1054,29 @@ function N(e, i, a = {}) {
 		"transition:bottom 0.2s"
 	].join(";"), g.appendChild(A);
 	let j = re({
-		defaultBgColor: ce,
-		defaultFov: fe,
-		defaultLightIntensity: pe,
+		defaultBgColor: se,
+		defaultFov: ue,
+		defaultLightIntensity: de,
 		hasSkeleton: !1
 	});
 	g.appendChild(j.panel);
 	let M = ie();
 	g.appendChild(M.bar);
-	let N = !1, ye = null, P = null, F = null, I = null, L = null, R = null, z = null, B = null, V = null, be = null, H = !1, U = null, xe = null, W = null, G = null, Se = null, K = null, Ce = 0, q = D.PERSPECTIVE, we = /* @__PURE__ */ new Map(), Te = /* @__PURE__ */ new Set(), J = null, Ee = !1, De = null, Oe = [], Y = pe, X = null, ke = null, Z = [], Q = [], $ = 0, Ae = 1, je = !1, Me = !1, Ne = !1, Pe = String(e?.filename || "3D model"), Fe = () => {
+	let N = !1, ve = null, P = null, F = null, I = null, L = null, R = null, z = null, B = null, V = null, ye = null, be = !1, H = null, xe = null, U = null, W = null, Se = null, G = null, K = 0, q = O.PERSPECTIVE, Ce = /* @__PURE__ */ new Map(), we = /* @__PURE__ */ new Set(), J = null, Te = !1, Ee = null, De = [], Y = de, X = null, Oe = null, Z = [], Q = [], $ = 0, ke = 1, Ae = !1, je = !1, Me = !1, Ne = String(e?.filename || "3D model"), Pe = () => {
 		try {
 			a.scheduleOverlayRedraw?.();
 		} catch (e) {
 			console.debug?.(e);
 		}
-	}, Ie = (e, t = "", n = "#4CAF50") => {
-		U = {
+	}, Fe = (e, t = "", n = "#4CAF50") => {
+		H = {
 			title: e,
 			hintText: t,
 			accent: n
 		}, y.style.display = "block", E(y, e, t, n);
+	}, Ie = () => {
+		H = null, y.style.display = "none";
 	}, Le = () => {
-		U = null, y.style.display = "none";
-	}, Re = () => {
 		try {
 			let e = g.getBoundingClientRect();
 			v._mjrNaturalW = Math.max(1, Math.round(e.width || v.width || 1)), v._mjrNaturalH = Math.max(1, Math.round(e.height || v.height || 1));
@@ -1084,34 +1084,34 @@ function N(e, i, a = {}) {
 			console.debug?.(e);
 		}
 		try {
-			U && E(y, U.title, U.hintText, U.accent);
+			H && E(y, H.title, H.hintText, H.accent);
 		} catch (e) {
 			console.debug?.(e);
 		}
-	}, ze = (e, t) => {
-		if (!z || !(Ce > 0)) return;
-		let n = Math.max(1e-4, (Number(e) || 1) / Math.max(1, Number(t) || 1)), r = Ce * n;
-		z.left = -r / 2, z.right = r / 2, z.top = Ce / 2, z.bottom = -Ce / 2, z.updateProjectionMatrix();
-	}, Be = () => {
-		if (!(!G || !B || !K)) {
-			if (q === D.ORTHOGRAPHIC) {
+	}, Re = (e, t) => {
+		if (!z || !(K > 0)) return;
+		let n = Math.max(1e-4, (Number(e) || 1) / Math.max(1, Number(t) || 1)), r = K * n;
+		z.left = -r / 2, z.right = r / 2, z.top = K / 2, z.bottom = -K / 2, z.updateProjectionMatrix();
+	}, ze = () => {
+		if (!(!W || !B || !G)) {
+			if (q === O.ORTHOGRAPHIC) {
 				let e = g.getBoundingClientRect();
-				Ce = p(z, B, K, Math.max(1e-4, (e.width || 1) / Math.max(1, e.height || 1))) || Ce, L = z;
-			} else f(P, R, B, K), L = R;
+				K = p(z, B, G, Math.max(1e-4, (e.width || 1) / Math.max(1, e.height || 1))) || K, L = z;
+			} else f(P, R, B, G), L = R;
 			try {
 				B.object = L, B.update();
 			} catch (e) {
 				console.debug?.(e);
 			}
 		}
-	}, Ve = (e, { refit: t = !0 } = {}) => {
-		q = e === D.ORTHOGRAPHIC ? D.ORTHOGRAPHIC : D.PERSPECTIVE, L = q === D.ORTHOGRAPHIC ? z : R;
+	}, Be = (e, { refit: t = !0 } = {}) => {
+		q = e === O.ORTHOGRAPHIC ? O.ORTHOGRAPHIC : O.PERSPECTIVE, L = q === O.ORTHOGRAPHIC ? z : R;
 		try {
 			B && (B.object = L);
 		} catch (e) {
 			console.debug?.(e);
 		}
-		if (t) Be();
+		if (t) ze();
 		else {
 			try {
 				L?.updateProjectionMatrix?.();
@@ -1124,50 +1124,50 @@ function N(e, i, a = {}) {
 				console.debug?.(e);
 			}
 		}
-		Xe(), Fe();
-	}, He = (e) => {
+		Ye(), Pe();
+	}, Ve = (e) => {
 		Y = Math.max(0, Math.min(10, Number(e) || 0));
 		try {
-			De && (De.intensity = O.ambient * Y);
+			Ee && (Ee.intensity = k.ambient * Y);
 		} catch (e) {
 			console.debug?.(e);
 		}
 		let t = [
-			O.main,
-			O.back,
-			O.fill,
-			O.fill,
-			O.bottom
+			k.main,
+			k.back,
+			k.fill,
+			k.fill,
+			k.bottom
 		];
-		Oe.forEach((e, n) => {
+		De.forEach((e, n) => {
 			try {
-				e && (e.intensity = (t[n] ?? O.fill) * Y);
+				e && (e.intensity = (t[n] ?? k.fill) * Y);
 			} catch (e) {
 				console.debug?.(e);
 			}
 		});
+	}, He = (e) => {
+		!Se || !P || (l(we), c(P, Se, e, Ce, we), Pe());
 	}, Ue = (e) => {
-		!Se || !P || (l(Te), c(P, Se, e, we, Te), Fe());
-	}, We = (e) => {
-		if (!G) return;
-		let t = ue[e] || [
+		if (!W) return;
+		let t = le[e] || [
 			0,
 			0,
 			0
 		];
 		try {
-			G.rotation.set(t[0], t[1], t[2]), G.updateMatrixWorld(!0);
+			W.rotation.set(t[0], t[1], t[2]), W.updateMatrixWorld(!0);
 		} catch (e) {
 			console.debug?.(e);
 		}
-		P && (K = d(P, G)), Be();
-	}, Ge = (e) => {
+		P && (G = d(P, W)), ze();
+	}, We = (e) => {
 		if (J) try {
 			J.visible = !!e;
 		} catch (e) {
 			console.debug?.(e);
 		}
-	}, Ke = () => {
+	}, Ge = () => {
 		if (!X || Z.length === 0) return;
 		let e = Q[$];
 		if (!e) return;
@@ -1177,13 +1177,13 @@ function N(e, i, a = {}) {
 		} catch (e) {
 			console.debug?.(e);
 		}
-		if (!Me && t > 0) try {
+		if (!je && t > 0) try {
 			let e = Number(M.progressSlider.max) || 1e3;
 			M.progressSlider.value = String(Math.round(n / t * e));
 		} catch (e) {
 			console.debug?.(e);
 		}
-	}, qe = (e) => {
+	}, Ke = (e) => {
 		if (!X || !Z.length) return;
 		let t = Z[e];
 		if (!t) return;
@@ -1195,29 +1195,29 @@ function N(e, i, a = {}) {
 			}
 		});
 		let n = X.clipAction(t);
-		n.timeScale = Ae, n.clampWhenFinished = !1, n.loop = P?.LoopRepeat ?? 2201, n.play(), Q[e] = n, $ = e, je = !0, M.playBtn.textContent = "â¸";
+		n.timeScale = ke, n.clampWhenFinished = !1, n.loop = P?.LoopRepeat ?? 2201, n.play(), Q[e] = n, $ = e, Ae = !0, M.playBtn.textContent = "â¸";
 		try {
 			let e = Math.max(100, Math.min(1e4, Math.round((t.duration || 1) * 100)));
 			M.progressSlider.max = String(e);
 		} catch {}
-	}, Je = () => {
-		!X || !Z.length || (je ? (X.timeScale = 0, je = !1, M.playBtn.textContent = "â–¶") : (X.timeScale = Ae, Q[$]?.isRunning?.() ? (je = !0, M.playBtn.textContent = "â¸") : qe($)));
-	}, Ye = (e, t) => {
-		!e || e.length === 0 || !P || (Z = e, X = new P.AnimationMixer(t), ke = new P.Clock(), Q = Array(e.length).fill(null), M.animSel.innerHTML = "", e.forEach((e, t) => {
+	}, qe = () => {
+		!X || !Z.length || (Ae ? (X.timeScale = 0, Ae = !1, M.playBtn.textContent = "â–¶") : (X.timeScale = ke, Q[$]?.isRunning?.() ? (Ae = !0, M.playBtn.textContent = "â¸") : Ke($)));
+	}, Je = (e, t) => {
+		!e || e.length === 0 || !P || (Z = e, X = new P.AnimationMixer(t), Oe = new P.Clock(), Q = Array(e.length).fill(null), M.animSel.innerHTML = "", e.forEach((e, t) => {
 			let n = document.createElement("option");
 			n.value = String(t), n.textContent = e.name || `Animation ${t + 1}`, M.animSel.appendChild(n);
-		}), M.animSel.style.display = e.length > 1 ? "" : "none", M.bar.style.display = "flex", A.style.bottom = `${de + 10}px`, qe(0), M.playBtn.addEventListener("click", (e) => {
-			C(e), Je();
+		}), M.animSel.style.display = e.length > 1 ? "" : "none", M.bar.style.display = "flex", A.style.bottom = "54px", Ke(0), M.playBtn.addEventListener("click", (e) => {
+			C(e), qe();
 		}), M.speedSel.addEventListener("change", () => {
-			Ae = Number(M.speedSel.value) || 1, X.timeScale = je ? Ae : 0;
+			ke = Number(M.speedSel.value) || 1, X.timeScale = Ae ? ke : 0;
 			let e = Q[$];
-			e && (e.timeScale = Ae);
+			e && (e.timeScale = ke);
 		}), M.animSel.addEventListener("change", () => {
-			qe(Number(M.animSel.value) || 0);
+			Ke(Number(M.animSel.value) || 0);
 		}), M.progressSlider.addEventListener("pointerdown", () => {
-			Me = !0;
+			je = !0;
 		}), M.progressSlider.addEventListener("pointerup", () => {
-			Me = !1;
+			je = !1;
 			let e = Q[$], t = Z[$];
 			if (e && t) {
 				let n = Number(M.progressSlider.max) || 1e3, r = Number(M.progressSlider.value) / n * t.duration;
@@ -1225,13 +1225,13 @@ function N(e, i, a = {}) {
 			}
 		}), M.progressSlider.addEventListener("input", () => {
 			let e = Q[$], t = Z[$];
-			if (e && t && Me) {
+			if (e && t && je) {
 				let n = Number(M.progressSlider.max) || 1e3, r = Number(M.progressSlider.value) / n * t.duration;
 				e.time = Math.max(0, Math.min(r, t.duration)), M.timeLbl.textContent = `${w(r)} / ${w(t.duration)}`;
 			}
 		}));
-	}, Xe = () => {
-		ne(oe, !!W?.visible), ne(he, q === D.ORTHOGRAPHIC), he.textContent = q === D.ORTHOGRAPHIC ? "Ortho" : "Persp", ne(ge, Ne);
+	}, Ye = () => {
+		ne(D, !!U?.visible), ne(me, q === O.ORTHOGRAPHIC), me.textContent = q === O.ORTHOGRAPHIC ? "Ortho" : "Persp", ne(he, Me);
 	};
 	j.bgInput.addEventListener("input", () => {
 		let e = j.bgInput.value;
@@ -1241,22 +1241,22 @@ function N(e, i, a = {}) {
 			console.debug?.(e);
 		}
 	}), j.materialSel.addEventListener("change", () => {
-		Ue(j.materialSel.value);
+		He(j.materialSel.value);
 	}), j.upSel.addEventListener("change", () => {
-		We(j.upSel.value);
+		Ue(j.upSel.value);
 	}), j.skeletonToggle && j.skeletonToggle.addEventListener("change", () => {
-		Ge(j.skeletonToggle.checked);
+		We(j.skeletonToggle.checked);
 	}), j.fovSlider.addEventListener("input", () => {
-		let e = Math.max(1, Math.min(179, Number(j.fovSlider.value) || fe));
+		let e = Math.max(1, Math.min(179, Number(j.fovSlider.value) || ue));
 		try {
 			R && (R.fov = e, R.updateProjectionMatrix());
 		} catch (e) {
 			console.debug?.(e);
 		}
 	}), j.lightSlider.addEventListener("input", () => {
-		He(Number(j.lightSlider.value));
+		Ve(Number(j.lightSlider.value));
 	});
-	let Ze = () => {
+	let Xe = () => {
 		let e = [], t = (t, n, r, i) => {
 			t.addEventListener(n, r, i), e.push(() => t.removeEventListener(n, r, i));
 		};
@@ -1273,10 +1273,10 @@ function N(e, i, a = {}) {
 				console.debug?.(e);
 			}
 		};
-	}, Qe = () => {
+	}, Ze = () => {
 		N = !0;
 		try {
-			window.removeEventListener(r.RUNTIME_STATUS, tt);
+			window.removeEventListener(r.RUNTIME_STATUS, et);
 		} catch {}
 		try {
 			g._mjr3D = null;
@@ -1294,11 +1294,11 @@ function N(e, i, a = {}) {
 		}
 		xe = null;
 		try {
-			ye?.disconnect?.();
+			ve?.disconnect?.();
 		} catch (e) {
 			console.debug?.(e);
 		}
-		ye = null;
+		ve = null;
 		try {
 			B?.dispose?.();
 		} catch (e) {
@@ -1324,7 +1324,7 @@ function N(e, i, a = {}) {
 		} catch (e) {
 			console.debug?.(e);
 		}
-		X = null, Q = [], Z = [], l(Te);
+		X = null, Q = [], Z = [], l(we);
 		try {
 			J && (I?.remove?.(J), J.dispose?.());
 		} catch (e) {
@@ -1369,52 +1369,52 @@ function N(e, i, a = {}) {
 		} catch (e) {
 			console.debug?.(e);
 		}
-		F = null, I = null, L = null, R = null, z = null, Se = null, G = null, K = null, be = null;
+		F = null, I = null, L = null, R = null, z = null, Se = null, W = null, G = null, ye = null;
 		try {
 			let e = v.getContext("webgl2") || v.getContext("webgl");
 			e && e.getExtension("WEBGL_lose_context")?.loseContext?.();
 		} catch (e) {
 			console.debug?.(e);
 		}
-	}, $e = () => {
-		H = !0;
+	}, Qe = () => {
+		be = !0;
 		try {
 			V != null && cancelAnimationFrame(V);
 		} catch (e) {
 			console.debug?.(e);
 		}
 		V = null;
-	}, et = () => {
-		if (H = !1, !(N || V != null || typeof be != "function")) try {
-			V = requestAnimationFrame(be);
+	}, $e = () => {
+		if (be = !1, !(N || V != null || typeof ye != "function")) try {
+			V = requestAnimationFrame(ye);
 		} catch (e) {
 			console.debug?.(e);
 		}
-	}, tt = (e) => {
+	}, et = (e) => {
 		if (h) {
 			if (String(e?.detail?.active_prompt_id || "").trim()) {
-				$e();
+				Qe();
 				return;
 			}
-			et();
+			$e();
 		}
 	};
 	v._mjrProc = {
 		setParams: () => {},
-		destroy: Qe,
+		destroy: Ze,
 		captureCanvas: () => v,
-		pause: $e,
-		resume: et
+		pause: Qe,
+		resume: $e
 	};
 	try {
-		h && (window.addEventListener(r.RUNTIME_STATUS, tt), String(window.__MJR_EXECUTION_RUNTIME__?.active_prompt_id || "").trim() && (H = !0));
+		h && (window.addEventListener(r.RUNTIME_STATUS, et), String(window.__MJR_EXECUTION_RUNTIME__?.active_prompt_id || "").trim() && (be = !0));
 	} catch (e) {
 		console.debug?.(e);
 	}
-	return Ie("Preparing 3D preview", Pe), Promise.resolve().then(async () => {
-		let n = _e(e);
-		if (!se.has(n)) {
-			if (Ie("3D preview unavailable", `${n.toUpperCase()} is not supported in the embedded viewer.`), A.style.display = "none", i) try {
+	return Fe("Preparing 3D preview", Ne), Promise.resolve().then(async () => {
+		let n = ge(e);
+		if (!oe.has(n)) {
+			if (Fe("3D preview unavailable", `${n.toUpperCase()} is not supported in the embedded viewer.`), A.style.display = "none", i) try {
 				let t = document.createElement("a");
 				t.href = i, t.download = String(e?.filename || "model"), t.textContent = `Download ${String(e?.filename || "file")}`, t.style.cssText = [
 					"position:absolute",
@@ -1440,7 +1440,7 @@ function N(e, i, a = {}) {
 			P = c;
 			let l = new c.LoadingManager();
 			l.setURLModifier((n) => {
-				if (!n || me(n)) return n;
+				if (!n || pe(n)) return n;
 				let r = t(e, n);
 				if (r) return r;
 				try {
@@ -1453,32 +1453,32 @@ function N(e, i, a = {}) {
 				antialias: !0,
 				alpha: !0,
 				preserveDrawingBuffer: !0
-			}), F.outputColorSpace = c.SRGBColorSpace, F.setPixelRatio(Math.min(2, window.devicePixelRatio || 1)), I = new c.Scene(), I.background = new c.Color(ce), R = new c.PerspectiveCamera(fe, 16 / 9, .01, 1e4), z = new c.OrthographicCamera(-1, 1, 1, -1, -1e4, 1e4), L = R, B = new r.OrbitControls(L, v), B.enableDamping = !0, B.dampingFactor = .08, B.rotateSpeed = .82, B.zoomSpeed = 1, B.panSpeed = .9, B.screenSpacePanning = !0, B.mouseButtons = ve(null, c.MOUSE), xe = Ze(), De = new c.AmbientLight(16777215, O.ambient * Y), I.add(De);
-			let f = new c.DirectionalLight(16777215, O.main * Y);
+			}), F.outputColorSpace = c.SRGBColorSpace, F.setPixelRatio(Math.min(2, window.devicePixelRatio || 1)), I = new c.Scene(), I.background = new c.Color(se), R = new c.PerspectiveCamera(ue, 16 / 9, .01, 1e4), z = new c.OrthographicCamera(-1, 1, 1, -1, -1e4, 1e4), L = R, B = new r.OrbitControls(L, v), B.enableDamping = !0, B.dampingFactor = .08, B.rotateSpeed = .82, B.zoomSpeed = 1, B.panSpeed = .9, B.screenSpacePanning = !0, B.mouseButtons = _e(null, c.MOUSE), xe = Xe(), Ee = new c.AmbientLight(16777215, k.ambient * Y), I.add(Ee);
+			let f = new c.DirectionalLight(16777215, k.main * Y);
 			f.position.set(0, 10, 10);
-			let p = new c.DirectionalLight(16777215, O.back * Y);
+			let p = new c.DirectionalLight(16777215, k.back * Y);
 			p.position.set(-10, 0, -10);
-			let h = new c.DirectionalLight(15266047, O.fill * Y);
+			let h = new c.DirectionalLight(15266047, k.fill * Y);
 			h.position.set(10, 5, -5);
-			let y = new c.DirectionalLight(16773352, O.fill * Y);
+			let y = new c.DirectionalLight(16773352, k.fill * Y);
 			y.position.set(-10, 5, 5);
-			let b = new c.DirectionalLight(16777215, O.bottom * Y);
-			b.position.set(0, -10, 0), Oe = [
+			let b = new c.DirectionalLight(16777215, k.bottom * Y);
+			b.position.set(0, -10, 0), De = [
 				f,
 				p,
 				h,
 				y,
 				b
-			], Oe.forEach((e) => I.add(e)), W = new c.GridHelper(20, 20, 5068128, 3094338), I.add(W);
+			], De.forEach((e) => I.add(e)), U = new c.GridHelper(20, 20, 5068128, 3094338), I.add(U);
 			let x = () => {
 				if (N || !F || !L) return;
 				let e = g.getBoundingClientRect(), t = Math.max(1, Math.round(e.width || v.clientWidth || 1)), n = Math.max(1, Math.round(e.height || v.clientHeight || 1));
-				F.setSize(t, n, !1), R && (R.aspect = t / n, R.updateProjectionMatrix()), ze(t, n), Re(), Fe();
+				F.setSize(t, n, !1), R && (R.aspect = t / n, R.updateProjectionMatrix()), Re(t, n), Le(), Pe();
 			};
-			typeof ResizeObserver < "u" && (ye = new ResizeObserver(() => x()), ye.observe(g));
+			typeof ResizeObserver < "u" && (ve = new ResizeObserver(() => x()), ve.observe(g));
 			let S = ee(r, n, l);
 			if (!S) {
-				Ie("3D loader unavailable", `${n.toUpperCase()} loader could not be created.`), A.style.display = "none";
+				Fe("3D loader unavailable", `${n.toUpperCase()} loader could not be created.`), A.style.display = "none";
 				return;
 			}
 			if (n === "obj" && r.MTLLoader) try {
@@ -1493,7 +1493,7 @@ function N(e, i, a = {}) {
 			if (N) return;
 			let T = m(c, n, w);
 			if (!T) {
-				Ie("Empty 3D scene", "The loader returned no renderable object."), A.style.display = "none";
+				Fe("Empty 3D scene", "The loader returned no renderable object."), A.style.display = "none";
 				return;
 			}
 			try {
@@ -1505,12 +1505,12 @@ function N(e, i, a = {}) {
 			} catch (e) {
 				console.debug?.("[MJR 3D] normalize skipped:", e);
 			}
-			if (Se = T, G = new c.Group(), G.add(T), I.add(G), we = s(T), Ee = o(T), Ee) {
+			if (Se = T, W = new c.Group(), W.add(T), I.add(W), Ce = s(T), Te = o(T), Te) {
 				J = new c.SkeletonHelper(T), J.visible = !1, I.add(J);
 				let e = re({
-					defaultBgColor: ce,
-					defaultFov: fe,
-					defaultLightIntensity: pe,
+					defaultBgColor: se,
+					defaultFov: ue,
+					defaultLightIntensity: de,
 					hasSkeleton: !0
 				});
 				g.replaceChild(e.panel, j.panel), Object.assign(j, e), j.bgInput.addEventListener("input", () => {
@@ -1520,30 +1520,30 @@ function N(e, i, a = {}) {
 						console.debug?.(e);
 					}
 				}), j.materialSel.addEventListener("change", () => {
-					Ue(j.materialSel.value);
+					He(j.materialSel.value);
 				}), j.upSel.addEventListener("change", () => {
-					We(j.upSel.value);
+					Ue(j.upSel.value);
 				}), j.skeletonToggle && j.skeletonToggle.addEventListener("change", () => {
-					Ge(j.skeletonToggle.checked);
+					We(j.skeletonToggle.checked);
 				}), j.fovSlider.addEventListener("input", () => {
-					let e = Math.max(1, Math.min(179, Number(j.fovSlider.value) || fe));
+					let e = Math.max(1, Math.min(179, Number(j.fovSlider.value) || ue));
 					try {
 						R && (R.fov = e, R.updateProjectionMatrix());
 					} catch (e) {
 						console.debug?.(e);
 					}
 				}), j.lightSlider.addEventListener("input", () => {
-					He(Number(j.lightSlider.value));
+					Ve(Number(j.lightSlider.value));
 				});
 			}
-			K = d(c, G), K && (W.position.y = K.box.min.y), q = D.PERSPECTIVE, Be(), x(), Le(), Xe();
+			G = d(c, W), G && (U.position.y = G.box.min.y), q = O.PERSPECTIVE, ze(), x(), Ie(), Ye();
 			let ne = u(w, n);
-			ne.length > 0 && Ye(ne, T);
+			ne.length > 0 && Je(ne, T);
 			let E = new c.Scene();
 			g._mjrAxisScene = E;
 			let ie = new c.PerspectiveCamera(50, 1, .1, 100);
 			ie.position.set(0, 0, 3.2), ie.lookAt(0, 0, 0);
-			let se = [
+			let oe = [
 				{
 					dir: [
 						1,
@@ -1568,12 +1568,12 @@ function N(e, i, a = {}) {
 					],
 					color: 5605631
 				}
-			], le = new c.SphereGeometry(.1, 12, 8), ue = new c.SphereGeometry(.08, 10, 6), de = new c.MeshBasicMaterial({ color: 13421772 });
-			E.add(new c.Mesh(ue, de));
-			for (let { dir: e, color: t } of se) {
+			], ce = new c.SphereGeometry(.1, 12, 8), le = new c.SphereGeometry(.08, 10, 6), fe = new c.MeshBasicMaterial({ color: 13421772 });
+			E.add(new c.Mesh(le, fe));
+			for (let { dir: e, color: t } of oe) {
 				let n = new c.LineBasicMaterial({ color: t }), r = [new c.Vector3(0, 0, 0), new c.Vector3(e[0], e[1], e[2])], i = new c.BufferGeometry().setFromPoints(r);
 				E.add(new c.Line(i, n));
-				let a = new c.MeshBasicMaterial({ color: t }), o = new c.Mesh(le, a);
+				let a = new c.MeshBasicMaterial({ color: t }), o = new c.Mesh(ce, a);
 				o.position.set(e[0], e[1], e[2]), E.add(o);
 			}
 			g._mjr3D = {
@@ -1586,7 +1586,7 @@ function N(e, i, a = {}) {
 				a.onReady?.({
 					canvas: v,
 					host: g,
-					object: G,
+					object: W,
 					renderer: F,
 					camera: L,
 					controls: B
@@ -1594,13 +1594,13 @@ function N(e, i, a = {}) {
 			} catch (e) {
 				console.debug?.(e);
 			}
-			Fe();
-			let k = () => {
-				if (!(N || H || !F || !I || !L)) {
+			Pe();
+			let ge = () => {
+				if (!(N || be || !F || !I || !L)) {
 					try {
-						if (B?.update?.(), X && ke) {
-							let e = ke.getDelta();
-							je && X.update(e), Ke();
+						if (B?.update?.(), X && Oe) {
+							let e = Oe.getDelta();
+							Ae && X.update(e), Ge();
 						}
 						F.setScissorTest(!1), F.setViewport(0, 0, v.width, v.height), F.render(I, L);
 						let e = Math.min(2, window.devicePixelRatio || 1), t = Math.round(96 * e);
@@ -1610,32 +1610,32 @@ function N(e, i, a = {}) {
 						try {
 							F.setClearColor(I.background || 0, 1);
 						} catch {}
-						Re();
+						Le();
 					} catch (e) {
 						console.debug?.(e);
 					}
-					H || (V = requestAnimationFrame(k));
+					be || (V = requestAnimationFrame(ge));
 				}
 			};
-			be = k;
-			let _e = (e) => C(e, { preventDefault: !0 });
+			ye = ge;
+			let M = (e) => C(e, { preventDefault: !0 });
 			ae.addEventListener("click", (e) => {
-				_e(e), Be(), Xe();
-			}), oe.addEventListener("click", (e) => {
-				_e(e), W && (W.visible = !W.visible), Xe(), Fe();
+				M(e), ze(), Ye();
+			}), D.addEventListener("click", (e) => {
+				M(e), U && (U.visible = !U.visible), Ye(), Pe();
+			}), me.addEventListener("click", (e) => {
+				M(e), Be(q === O.PERSPECTIVE ? O.ORTHOGRAPHIC : O.PERSPECTIVE);
 			}), he.addEventListener("click", (e) => {
-				_e(e), Ve(q === D.PERSPECTIVE ? D.ORTHOGRAPHIC : D.PERSPECTIVE);
-			}), ge.addEventListener("click", (e) => {
-				_e(e), Ne = !Ne, j.panel.style.display = Ne ? "block" : "none", Xe();
-			}), H || k();
+				M(e), Me = !Me, j.panel.style.display = Me ? "block" : "none", Ye();
+			}), be || ge();
 		} catch (e) {
-			console.warn("[MJR 3D] preview init failed", e), Ie("Failed to load 3D preview", String(e?.message || "Three.js initialization failed.")), A.style.display = "none";
+			console.warn("[MJR 3D] preview init failed", e), Fe("Failed to load 3D preview", String(e?.message || "Three.js initialization failed.")), A.style.display = "none";
 		}
 	}).catch((e) => {
 		if (!N) {
 			console.warn("[MJR 3D] preview init unhandled error", e);
 			try {
-				Ie("Failed to load 3D preview", String(e?.message || "Initialization failed."));
+				Fe("Failed to load 3D preview", String(e?.message || "Initialization failed."));
 			} catch {}
 			try {
 				A.style.display = "none";
@@ -1645,17 +1645,17 @@ function N(e, i, a = {}) {
 }
 //#endregion
 //#region ui/features/viewer/model3dRenderer.ts
-var ye = /* @__PURE__ */ e({
-	MODEL3D_EXTS: () => oe,
+var ve = /* @__PURE__ */ e({
+	MODEL3D_EXTS: () => D,
 	MODEL3D_EXT_TO_LOADER: () => ae,
-	PREVIEWABLE_MODEL3D_LOADERS: () => se,
-	buildModel3DMouseButtons: () => ve,
+	PREVIEWABLE_MODEL3D_LOADERS: () => oe,
+	buildModel3DMouseButtons: () => _e,
 	createModel3DMediaElement: () => N,
 	findModel3DCanvas: () => j,
 	getModel3DDefaultControlHint: () => A,
-	isModel3DAsset: () => ge,
+	isModel3DAsset: () => he,
 	isModel3DInteractionTarget: () => M,
-	resolveModel3DLoader: () => _e
+	resolveModel3DLoader: () => ge
 });
 //#endregion
-export { M as a, v as c, ge as i, oe as n, b as o, N as r, y as s, ye as t };
+export { M as a, v as c, he as i, D as n, b as o, N as r, y as s, ve as t };

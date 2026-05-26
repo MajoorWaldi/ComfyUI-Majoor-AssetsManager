@@ -1,4 +1,4 @@
-import { _ as e, i as t, r as n, v as r, y as i } from "./config-DC_DVuJE.js";
+import { _ as e, i as t, r as n, v as r, y as i } from "./config-CXns6XwM.js";
 //#region ui/app/settingsStore.ts
 var a = "mjrSettings", o = "mjrMinimapSettings", s = new Set([
 	"POST",
@@ -1792,7 +1792,7 @@ function ze() {
 	});
 }
 function Be() {
-	return R ? Promise.resolve() : (Le ||= import("./i18n.generated-RSZJNkUX.js").then(({ GENERATED_TRANSLATIONS: e }) => {
+	return R ? Promise.resolve() : (Le ||= import("./i18n.generated-DMwEk0Tb.js").then(({ GENERATED_TRANSLATIONS: e }) => {
 		Re(e);
 	}).catch((e) => {
 		console.warn("[Majoor i18n] Failed to load generated translations:", e), ze();
