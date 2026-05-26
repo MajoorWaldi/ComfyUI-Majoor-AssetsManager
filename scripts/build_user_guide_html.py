@@ -186,6 +186,51 @@ def _docs_from_index(index_md: str) -> list[Doc]:
     return docs
 
 
+def _close_lists(list_stack: list[tuple[str, int]], out: list[str], to_indent: int = -1) -> None:
+    while list_stack and (to_indent < 0 or list_stack[-1][1] >= to_indent):
+        tag, _ = list_stack.pop()
+        out.append(f"</{tag}>")
+
+
+def _flush_paragraph(
+    buf: list[str], out: list[str], *, doc_prefix: str, doc_id_by_md_name: dict[str, str]
+) -> None:
+    if not buf:
+        return
+    text = " ".join(x.strip() for x in buf).strip()
+    if text:
+        out.append(f"<p>{_inline_md_to_html(text, doc_prefix=doc_prefix, doc_id_by_md_name=doc_id_by_md_name)}</p>")
+    buf.clear()
+
+
+def _collect_table_rows(lines: list[str], i: int) -> tuple[list[list[str]], int]:
+    body_rows: list[list[str]] = []
+    while i < len(lines) and lines[i].strip() and "|" in lines[i]:
+        body_rows.append(_split_table_row(lines[i]))
+        i += 1
+    return body_rows, i
+
+
+def _sync_list_stack(
+    list_stack: list[tuple[str, int]], out: list[str], tag: str, indent: int
+) -> None:
+    if not list_stack:
+        list_stack.append((tag, indent))
+        out.append(f"<{tag}>")
+        return
+    _cur_tag, cur_indent = list_stack[-1]
+    if indent > cur_indent:
+        list_stack.append((tag, indent))
+        out.append(f"<{tag}>")
+        return
+    while list_stack and indent < list_stack[-1][1]:
+        _close_lists(list_stack, out, to_indent=list_stack[-1][1])
+    if list_stack and list_stack[-1][0] != tag:
+        _close_lists(list_stack, out, to_indent=list_stack[-1][1])
+        list_stack.append((tag, indent))
+        out.append(f"<{tag}>")
+
+
 def _md_to_html(md: str, *, doc_prefix: str, doc_id_by_md_name: dict[str, str]) -> str:
     out: list[str] = []
     lines = md.replace("\r\n", "\n").split("\n")
@@ -196,23 +241,6 @@ def _md_to_html(md: str, *, doc_prefix: str, doc_id_by_md_name: dict[str, str]) 
 
     list_stack: list[tuple[str, int]] = []  # (ul|ol, indent)
 
-    def close_lists(to_indent: int = -1) -> None:
-        while list_stack and (to_indent < 0 or list_stack[-1][1] >= to_indent):
-            tag, _ = list_stack.pop()
-            out.append(f"</{tag}>")
-
-    def open_list(tag: str, indent: int) -> None:
-        list_stack.append((tag, indent))
-        out.append(f"<{tag}>")
-
-    def flush_paragraph(buf: list[str]) -> None:
-        if not buf:
-            return
-        text = " ".join(x.strip() for x in buf).strip()
-        if text:
-            out.append(f"<p>{_inline_md_to_html(text, doc_prefix=doc_prefix, doc_id_by_md_name=doc_id_by_md_name)}</p>")
-        buf.clear()
-
     para: list[str] = []
     i = 0
     while i < len(lines):
@@ -220,8 +248,8 @@ def _md_to_html(md: str, *, doc_prefix: str, doc_id_by_md_name: dict[str, str]) 
 
         # Fenced code block
         if line.strip().startswith("```"):
-            flush_paragraph(para)
-            close_lists()
+            _flush_paragraph(para, out, doc_prefix=doc_prefix, doc_id_by_md_name=doc_id_by_md_name)
+            _close_lists(list_stack, out)
             if not in_code:
                 in_code = True
                 code_lang = line.strip().lstrip("`").strip()
@@ -242,28 +270,24 @@ def _md_to_html(md: str, *, doc_prefix: str, doc_id_by_md_name: dict[str, str]) 
             continue
 
         if not line.strip():
-            flush_paragraph(para)
-            close_lists()
+            _flush_paragraph(para, out, doc_prefix=doc_prefix, doc_id_by_md_name=doc_id_by_md_name)
+            _close_lists(list_stack, out)
             i += 1
             continue
 
         if _is_hr(line):
-            flush_paragraph(para)
-            close_lists()
+            _flush_paragraph(para, out, doc_prefix=doc_prefix, doc_id_by_md_name=doc_id_by_md_name)
+            _close_lists(list_stack, out)
             out.append("<hr />")
             i += 1
             continue
 
         # Tables
         if i + 1 < len(lines) and _looks_like_table_header(line, lines[i + 1]):
-            flush_paragraph(para)
-            close_lists()
+            _flush_paragraph(para, out, doc_prefix=doc_prefix, doc_id_by_md_name=doc_id_by_md_name)
+            _close_lists(list_stack, out)
             header_cells = _split_table_row(line)
-            i += 2  # skip separator
-            body_rows: list[list[str]] = []
-            while i < len(lines) and lines[i].strip() and "|" in lines[i]:
-                body_rows.append(_split_table_row(lines[i]))
-                i += 1
+            body_rows, i = _collect_table_rows(lines, i + 2)
             out.append('<div class="table-wrap"><table>')
             out.append(
                 "<thead><tr>"
@@ -283,8 +307,8 @@ def _md_to_html(md: str, *, doc_prefix: str, doc_id_by_md_name: dict[str, str]) 
         # Headings
         mh = re.match(r"^(#{1,6})\s+(.*)$", line)
         if mh:
-            flush_paragraph(para)
-            close_lists()
+            _flush_paragraph(para, out, doc_prefix=doc_prefix, doc_id_by_md_name=doc_id_by_md_name)
+            _close_lists(list_stack, out)
             level = len(mh.group(1))
             text = mh.group(2).strip()
             hid = f"{doc_prefix}-{_slugify(text)}"
@@ -300,32 +324,19 @@ def _md_to_html(md: str, *, doc_prefix: str, doc_id_by_md_name: dict[str, str]) 
         ml = re.match(r"^(\s*)([-*+])\s+(.*)$", line)
         mol = re.match(r"^(\s*)(\d+)\.\s+(.*)$", line)
         if ml or mol:
-            flush_paragraph(para)
+            _flush_paragraph(para, out, doc_prefix=doc_prefix, doc_id_by_md_name=doc_id_by_md_name)
             indent = len((ml.group(1) if ml else mol.group(1)).replace("\t", "    "))
             tag = "ul" if ml else "ol"
             item_text = (ml.group(3) if ml else mol.group(3)).strip()
-
-            if not list_stack:
-                open_list(tag, indent)
-            else:
-                cur_tag, cur_indent = list_stack[-1]
-                if indent > cur_indent:
-                    open_list(tag, indent)
-                else:
-                    while list_stack and indent < list_stack[-1][1]:
-                        close_lists(to_indent=list_stack[-1][1])
-                    if list_stack and list_stack[-1][0] != tag:
-                        close_lists(to_indent=list_stack[-1][1])
-                        open_list(tag, indent)
-
+            _sync_list_stack(list_stack, out, tag, indent)
             out.append(f"<li>{_inline_md_to_html(item_text, doc_prefix=doc_prefix, doc_id_by_md_name=doc_id_by_md_name)}</li>")
             i += 1
             continue
 
         # Blockquote (single line)
         if line.lstrip().startswith(">"):
-            flush_paragraph(para)
-            close_lists()
+            _flush_paragraph(para, out, doc_prefix=doc_prefix, doc_id_by_md_name=doc_id_by_md_name)
+            _close_lists(list_stack, out)
             out.append(
                 f'<blockquote>{_inline_md_to_html(line.lstrip()[1:].strip(), doc_prefix=doc_prefix, doc_id_by_md_name=doc_id_by_md_name)}</blockquote>'
             )
@@ -336,8 +347,8 @@ def _md_to_html(md: str, *, doc_prefix: str, doc_id_by_md_name: dict[str, str]) 
         para.append(line)
         i += 1
 
-    flush_paragraph(para)
-    close_lists()
+    _flush_paragraph(para, out, doc_prefix=doc_prefix, doc_id_by_md_name=doc_id_by_md_name)
+    _close_lists(list_stack, out)
     return "\n".join(out)
 
 
