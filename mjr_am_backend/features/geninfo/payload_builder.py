@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from ...shared import Result
+from .generic_extractor import extract_generic_geninfo
 from .graph_converter import _inputs, _node_type, _pick_sink_inputs, _walk_passthrough
 from .model_tracer import _collect_model_related_fields, _merge_models_payload
 from .prompt_tracer import _extract_prompt_trace
@@ -243,6 +244,17 @@ def _apply_multi_checkpoint_fields(out: dict[str, Any], nodes_by_id: dict[str, A
         out["checkpoint"] = all_collected[0]
 
 
+def _merge_generic_fields(out: dict[str, Any], nodes_by_id: dict[str, Any]) -> None:
+    generic = extract_generic_geninfo(nodes_by_id)
+    if not generic:
+        return
+    meta = generic.pop("generic_fields", None)
+    for key, value in generic.items():
+        out.setdefault(key, value)
+    if meta:
+        out["generic_fields"] = meta
+
+
 def _build_geninfo_payload(
     nodes_by_id: dict[str, Any],
     sinks: list[str],
@@ -278,6 +290,7 @@ def _build_geninfo_payload(
     _apply_multi_sink_prompt_fields(out, nodes_by_id, sinks)
     _apply_multi_sink_sampler_fields(out, nodes_by_id, sinks)
     _apply_multi_checkpoint_fields(out, nodes_by_id, sinks)
+    _merge_generic_fields(out, nodes_by_id)
     return out
 
 
@@ -321,6 +334,7 @@ def _build_no_sampler_result(nodes_by_id: dict[str, Any], workflow_meta: dict[st
     input_files = _p._extract_input_files(nodes_by_id)
     if input_files:
         out_fallback["inputs"] = input_files
+    _merge_generic_fields(out_fallback, nodes_by_id)
     if out_fallback:
         return Result.Ok(out_fallback)
     return Result.Ok(None)

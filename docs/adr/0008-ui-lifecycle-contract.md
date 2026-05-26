@@ -61,7 +61,7 @@ the sidebar tab is first opened.
    every tab switch.
 
 3. **No direct ComfyUI API calls from Vue components.**  All host capabilities
-   must be accessed via `js/app/hostAdapter.js` (ADR 0007).
+   must be accessed via `ui/app/hostAdapter.js` (ADR 0007).
 
 4. **Do not call `unmountKeepAlive()` inside a tab's `destroy()` callback.**
    This is a violation of the keep-alive contract.
@@ -100,18 +100,18 @@ event is dispatched each time the host is re-attached.
 - Vue app memory is not released during normal usage; it lives for the
   extension's lifetime.  Acceptable given the asset grid needs the state anyway.
 - Developers must remember that `destroy()` is a no-op.  The contract is
-  documented here and enforced by `tests/js/ui_registration_lifecycle.vitest.mjs`.
+  documented here and enforced by `tests/ui/ui_registration_lifecycle.vitest.mjs`.
 
 ## Verification
 
 The following test files verify this contract:
 
-- `js/tests/ui_lifecycle_contract.vitest.mjs` — `mountKeepAlive` / `unmountKeepAlive`
+- `ui/tests/ui_lifecycle_contract.vitest.mjs` — `mountKeepAlive` / `unmountKeepAlive`
   observable guarantees (null-safety, container styling, event dispatch, key isolation)
-- `js/tests/ui_registration_lifecycle.vitest.mjs` — `entryUiRegistration.js`
+- `ui/tests/ui_registration_lifecycle.vitest.mjs` — `entryUiRegistration.js`
   render/destroy no-op, teardown helpers, `mountGlobalRuntime` DOM lifecycle,
   `isMajoorTrackableNode` classifier, `consumeEarlyFetch` cache semantics
-- `js/tests/create_vue_app_keep_alive.vitest.mjs` — original keep-alive host tests
+- `ui/tests/create_vue_app_keep_alive.vitest.mjs` — original keep-alive host tests
   (container swap, full teardown, re-mount after unmount)
 
 ## Related ADRs

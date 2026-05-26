@@ -19,8 +19,10 @@ class _DB:
         self._update_ok = update_ok
         self._asset_id = asset_id
         self._lock_called = False
+        self.calls = []
 
     async def aexecute(self, sql, params):
+        self.calls.append((sql, params))
         if "INSERT" in sql:
             if not self._insert_ok:
                 return Result.Err("INSERT_FAILED", "db error")
@@ -51,6 +53,16 @@ def _make_metadata_result(ok=True):
     return Result.Err("META_ERR", "fail")
 
 
+def _make_execution_metadata_result():
+    return Result.Ok({
+        "width": 512,
+        "height": 768,
+        "job_id": "job-1",
+        "workflow_id": "workflow-1",
+        "source_node_id": "node-1",
+    })
+
+
 # ─── add_asset ───────────────────────────────────────────────────────────────
 
 @pytest.mark.asyncio
@@ -78,6 +90,35 @@ async def test_add_asset_success(monkeypatch):
     assert result.ok
     assert result.data["action"] == "added"
     assert result.data["asset_id"] == 42
+
+
+@pytest.mark.asyncio
+async def test_add_asset_persists_execution_metadata(monkeypatch):
+    async def _write_row(db, asset_id, metadata_result, *, filepath):
+        return Result.Ok(None)
+
+    monkeypatch.setattr(dbo.MetadataHelpers, "write_asset_metadata_row", _write_row)
+
+    db = _DB(insert_ok=True, asset_id=42)
+    scanner = SimpleNamespace(db=db, _log_scan_event=lambda *a, **kw: None)
+
+    result = await dbo.add_asset(
+        scanner,
+        filename="img.png",
+        subfolder="",
+        filepath="C:/x/img.png",
+        kind="image",
+        mtime=1000,
+        size=4096,
+        file_path=Path("C:/x/img.png"),
+        metadata_result=_make_execution_metadata_result(),
+        write_metadata=True,
+    )
+
+    assert result.ok
+    insert_sql, insert_params = db.calls[0]
+    assert "job_id, workflow_id, source_node_id" in insert_sql
+    assert insert_params[-3:] == ("job-1", "workflow-1", "node-1")
 
 
 @pytest.mark.asyncio
@@ -181,6 +222,33 @@ async def test_update_asset_success_with_lock(monkeypatch):
         skip_lock=False,
     )
     assert result.ok and result.data["action"] == "updated"
+
+
+@pytest.mark.asyncio
+async def test_update_asset_persists_execution_metadata(monkeypatch):
+    async def _write_row(db, asset_id, metadata_result, *, filepath):
+        return Result.Ok(None)
+
+    monkeypatch.setattr(dbo.MetadataHelpers, "write_asset_metadata_row", _write_row)
+
+    db = _DB(update_ok=True)
+    scanner = SimpleNamespace(db=db, _log_scan_event=lambda *a, **kw: None)
+
+    result = await dbo.update_asset(
+        scanner,
+        asset_id=1,
+        file_path=Path("C:/x.png"),
+        mtime=2000,
+        size=1024,
+        metadata_result=_make_execution_metadata_result(),
+        write_metadata=True,
+        skip_lock=False,
+    )
+
+    assert result.ok
+    update_sql, update_params = db.calls[0]
+    assert "job_id = COALESCE" in update_sql
+    assert update_params[-4:-1] == ("job-1", "workflow-1", "node-1")
 
 
 @pytest.mark.asyncio

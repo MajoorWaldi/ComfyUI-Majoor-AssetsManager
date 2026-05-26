@@ -690,11 +690,26 @@ def _collect_prompt_branch_from_input(
         out.append(stripped)
 
 
+def _merge_result_override(
+    result: Result[dict[str, Any] | None],
+    override: dict[str, Any] | None,
+) -> Result[dict[str, Any] | None]:
+    if override and result.ok:
+        from .override import merge_geninfo_override
+
+        return Result.Ok(merge_geninfo_override(result.data, override) or override)
+    return result
+
+
 def parse_geninfo_from_prompt(prompt_graph: Any, workflow: Any = None) -> Result[dict[str, Any] | None]:
     """
     Parse generation information from a ComfyUI prompt graph (dict of nodes).
     Returns Ok(None) when not enough information is available (do-not-lie).
     """
+    from .override import build_geninfo_override
+
+    override = build_geninfo_override({"prompt": prompt_graph, "workflow": workflow})
+
     # Extract workflow metadata (safe operation)
     workflow_meta = _extract_workflow_metadata(workflow)
 
@@ -702,10 +717,10 @@ def parse_geninfo_from_prompt(prompt_graph: Any, workflow: Any = None) -> Result
     try:
         nodes_by_id = _normalize_graph_input(prompt_graph, workflow)
     except ValueError:
-        return _geninfo_metadata_only_result(workflow_meta)
+        return _merge_result_override(_geninfo_metadata_only_result(workflow_meta), override)
 
     if not nodes_by_id:
-        return _geninfo_metadata_only_result(workflow_meta)
+        return _merge_result_override(_geninfo_metadata_only_result(workflow_meta), override)
 
     # Find sink nodes
     try:
@@ -715,7 +730,7 @@ def parse_geninfo_from_prompt(prompt_graph: Any, workflow: Any = None) -> Result
         sinks = []
 
     if not sinks:
-        return _geninfo_metadata_only_result(workflow_meta)
+        return _merge_result_override(_build_no_sampler_result(nodes_by_id, workflow_meta), override)
 
     # Prefer "real" sinks (SaveVideo over PreviewImage, etc.)
     try:
@@ -729,15 +744,15 @@ def parse_geninfo_from_prompt(prompt_graph: Any, workflow: Any = None) -> Result
         # OR I can inline the rest if it's manageable. The main issue was the huge try/except.
         # Let's delegate the rest of extraction to a helper or just protect the extraction part.
 
-        return _extract_geninfo(nodes_by_id, sinks, workflow_meta)
+        return _merge_result_override(_extract_geninfo(nodes_by_id, sinks, workflow_meta), override)
 
     except (ValueError, TypeError, KeyError, AttributeError) as e:
         logger.warning(f"GenInfo parsing failed: {e}")
-        return _geninfo_metadata_only_result(workflow_meta)
+        return _merge_result_override(_geninfo_metadata_only_result(workflow_meta), override)
     except Exception as e:
         # Unexpected error - log with full traceback for debugging
         logger.error("Unexpected error in GenInfo parsing: %s", e, exc_info=True)
-        return _geninfo_metadata_only_result(workflow_meta)
+        return _merge_result_override(_geninfo_metadata_only_result(workflow_meta), override)
 
 
 def _first_prompt_field(ins: dict[str, Any], keys: tuple[str, ...], source_prefix: str) -> tuple[str, str] | None:

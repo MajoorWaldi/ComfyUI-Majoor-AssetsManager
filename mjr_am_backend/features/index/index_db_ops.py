@@ -35,6 +35,9 @@ def _build_asset_insert_params(
     duration: Any,
     size: int,
     mtime: int,
+    job_id: Any = None,
+    workflow_id: Any = None,
+    source_node_id: Any = None,
 ) -> tuple:
     # Normalize filepath to prevent case-sensitivity duplicates on Windows
     normalized_filepath = normalize_filepath_str(filepath)
@@ -51,15 +54,37 @@ def _build_asset_insert_params(
         duration,
         size,
         mtime,
+        _clean_index_text(job_id),
+        _clean_index_text(workflow_id),
+        _clean_index_text(source_node_id),
     )
+
+
+def _clean_index_text(value: Any, max_len: int = 255) -> str | None:
+    if value is None:
+        return None
+    text = str(value).strip()
+    if not text:
+        return None
+    return text[:max_len]
+
+
+def _execution_fields_from_metadata(metadata_result: Result[dict[str, Any]]) -> tuple[str | None, str | None, str | None]:
+    if not metadata_result.ok or not isinstance(metadata_result.data, dict):
+        return None, None, None
+    meta = metadata_result.data
+    job_id = _clean_index_text(meta.get("job_id") or meta.get("prompt_id"))
+    workflow_id = _clean_index_text(meta.get("workflow_id"))
+    source_node_id = _clean_index_text(meta.get("source_node_id"))
+    return job_id, workflow_id, source_node_id
 
 
 async def _execute_asset_insert(db: Any, params: tuple) -> Result:
     insert_result = await db.aexecute(
         """
         INSERT INTO assets
-        (filename, subfolder, filepath, source, root_id, kind, ext, width, height, duration, size, mtime)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        (filename, subfolder, filepath, source, root_id, kind, ext, width, height, duration, size, mtime, job_id, workflow_id, source_node_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         params,
     )
@@ -96,7 +121,23 @@ async def add_asset(
         if not tx.ok:
             return Result.Err("INSERT_FAILED", tx.error or "Failed to begin transaction")
 
-        params = _build_asset_insert_params(filename, subfolder, filepath, source, root_id, kind, width, height, duration, size, mtime)
+        job_id, workflow_id, source_node_id = _execution_fields_from_metadata(metadata_result)
+        params = _build_asset_insert_params(
+            filename,
+            subfolder,
+            filepath,
+            source,
+            root_id,
+            kind,
+            width,
+            height,
+            duration,
+            size,
+            mtime,
+            job_id,
+            workflow_id,
+            source_node_id,
+        )
         id_result = await _execute_asset_insert(scanner.db, params)
         if not id_result.ok:
             return id_result
@@ -168,6 +209,7 @@ async def update_asset(
         width = meta.get("width")
         height = meta.get("height")
         duration = meta.get("duration")
+    job_id, workflow_id, source_node_id = _execution_fields_from_metadata(metadata_result)
 
     async def _run_update():
         tx_state = Result.Ok(True)
@@ -184,13 +226,28 @@ async def update_asset(
                     duration = COALESCE(?, duration),
                     size = ?, mtime = ?,
                     source = ?, root_id = ?,
+                    job_id = COALESCE(?, job_id),
+                    workflow_id = COALESCE(?, workflow_id),
+                    source_node_id = COALESCE(?, source_node_id),
                     content_hash = NULL,
                     phash = NULL,
                     hash_state = NULL,
                     indexed_at = CURRENT_TIMESTAMP
                 WHERE id = ?
                 """,
-                (width, height, duration, size, mtime, str(source or "output"), str(root_id) if root_id else None, asset_id),
+                (
+                    width,
+                    height,
+                    duration,
+                    size,
+                    mtime,
+                    str(source or "output"),
+                    str(root_id) if root_id else None,
+                    job_id,
+                    workflow_id,
+                    source_node_id,
+                    asset_id,
+                ),
             )
 
             if not update_result.ok:

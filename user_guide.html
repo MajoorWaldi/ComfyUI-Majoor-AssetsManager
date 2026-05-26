@@ -2194,9 +2194,9 @@ POST /mjr/am/collections/update</code></pre>
 <h2 id="architecture_map-frontend">Frontend</h2>
 <ul>
 <li><strong>Vue 3 + Pinia</strong> for all major UI surfaces (grid, sidebar, feed, context menus, settings).</li>
-<li><code>js/vue/</code> — Vue components and stores.</li>
-<li><code>js/features/</code> — feature-scoped JS modules.</li>
-<li><code>js/stores/</code> — Pinia stores.</li>
+<li><code>ui/vue/</code> — Vue components and stores.</li>
+<li><code>ui/features/</code> — feature-scoped JS modules.</li>
+<li><code>ui/stores/</code> — Pinia stores.</li>
 <li>Imperative runtime services remain for viewer, DnD, and ComfyUI integration (by design).</li>
 </ul>
 <h2 id="architecture_map-request-flow">Request Flow</h2>
@@ -2249,18 +2249,18 @@ POST /mjr/am/collections/update</code></pre>
 <p>Audit ciblé sur le pipeline de rendu de la grille d'assets : ouverture du panneau, premier chargement, switch de scope, cache snapshot, événements temps réel et pagination. Objectif : suppression des doubles chargements, des sérialisations bloquantes et des relances concurrentes pour obtenir un comportement strictement <em>live</em>.</p>
 <p>Fichiers principaux audités :</p>
 <ul>
-<li><a href="js/vue/composables/useGridLoader.js">js/vue/composables/useGridLoader.js</a></li>
-<li><a href="js/vue/composables/useVirtualGrid.js">js/vue/composables/useVirtualGrid.js</a></li>
-<li><a href="js/features/grid/gridApi.js">js/features/grid/gridApi.js</a></li>
-<li><a href="js/features/grid/StackGroupCards.js">js/features/grid/StackGroupCards.js</a></li>
-<li><a href="js/features/panel/panelRuntime.js">js/features/panel/panelRuntime.js</a></li>
-<li><a href="js/features/panel/panelGridEventBindings.js">js/features/panel/panelGridEventBindings.js</a></li>
-<li><a href="js/features/panel/panelSettingsSync.js">js/features/panel/panelSettingsSync.js</a></li>
-<li><a href="js/features/panel/controllers/scopeController.js">js/features/panel/controllers/scopeController.js</a></li>
-<li><a href="js/features/panel/controllers/gridController.js">js/features/panel/controllers/gridController.js</a></li>
-<li><a href="js/features/runtime/registerRealtimeListeners.js">js/features/runtime/registerRealtimeListeners.js</a></li>
-<li><a href="js/features/runtime/entryUiRegistration.js">js/features/runtime/entryUiRegistration.js</a></li>
-<li><a href="js/vue/components/grid/VirtualAssetGridHost.vue">js/vue/components/grid/VirtualAssetGridHost.vue</a></li>
+<li><a href="ui/vue/composables/useGridLoader.js">ui/vue/composables/useGridLoader.js</a></li>
+<li><a href="ui/vue/composables/useVirtualGrid.js">ui/vue/composables/useVirtualGrid.js</a></li>
+<li><a href="ui/features/grid/gridApi.js">ui/features/grid/gridApi.js</a></li>
+<li><a href="ui/features/grid/StackGroupCards.js">ui/features/grid/StackGroupCards.js</a></li>
+<li><a href="ui/features/panel/panelRuntime.js">ui/features/panel/panelRuntime.js</a></li>
+<li><a href="ui/features/panel/panelGridEventBindings.js">ui/features/panel/panelGridEventBindings.js</a></li>
+<li><a href="ui/features/panel/panelSettingsSync.js">ui/features/panel/panelSettingsSync.js</a></li>
+<li><a href="ui/features/panel/controllers/scopeController.js">ui/features/panel/controllers/scopeController.js</a></li>
+<li><a href="ui/features/panel/controllers/gridController.js">ui/features/panel/controllers/gridController.js</a></li>
+<li><a href="ui/features/runtime/registerRealtimeListeners.js">ui/features/runtime/registerRealtimeListeners.js</a></li>
+<li><a href="ui/features/runtime/entryUiRegistration.js">ui/features/runtime/entryUiRegistration.js</a></li>
+<li><a href="ui/vue/components/grid/VirtualAssetGridHost.vue">ui/vue/components/grid/VirtualAssetGridHost.vue</a></li>
 </ul>
 <hr />
 <h2 id="audit_grid_reactivity_apr26-1-constats">1. Constats</h2>
@@ -2275,17 +2275,17 @@ POST /mjr/am/collections/update</code></pre>
 <p>et entre dans le <em>fast-path snapshot</em> qui appelle <code>hydrateFromSnapshot()</code> une seconde fois sur la même clé.</p>
 </ol>
 <p><strong>Correctif</strong> : Le hook <code>hydrateFromSnapshot</code> marque maintenant la clé hydratée sur l'état (<code>state._mjrLastHydrateKey</code> / <code>_mjrLastHydrateAt</code>). Le fast-path de <code>loadAssets()</code> court-circuite l'appel si la dernière hydratation porte sur la même clé et date de moins de 1500 ms ; il se contente de planifier un prefetch de la page suivante.</p>
-<p><strong>Fichier</strong> : <a href="js/vue/composables/useGridLoader.js">useGridLoader.js</a></p>
+<p><strong>Fichier</strong> : <a href="ui/vue/composables/useGridLoader.js">useGridLoader.js</a></p>
 <hr />
 <h3 id="audit_grid_reactivity_apr26-12-med-persistance-sessionstorage-synchrone-à-chaque-page-corrigé">1.2 [MED] Persistance <code>sessionStorage</code> synchrone à chaque page (corrigé)</h3>
 <p><strong>Symptôme</strong> : <code>rememberSnapshot()</code> est appelé à chaque page chargée (<code>loadNextPage</code>) et à chaque réussite d'hydratation. Chaque appel chaîne <code>pruneGridSnapshotCache()</code> puis <code>JSON.stringify</code> de jusqu'à 8 snapshots × 800 assets ≈ plusieurs Mo de payload, sur le main thread, et un <code>storage.setItem</code>. Pendant un scroll soutenu sur 7000+ assets, ce coût se répète à chaque page, dégradant la fluidité de la pagination.</p>
 <p><strong>Correctif</strong> : <code>persistGridSnapshotsToStorage()</code> devient un debounce 500 ms au-dessus de <code>persistGridSnapshotsToStorageNow()</code>. <code>dispose()</code> flush explicitement avant unload pour ne perdre aucun snapshot.</p>
-<p><strong>Fichier</strong> : <a href="js/vue/composables/useGridLoader.js">useGridLoader.js</a></p>
+<p><strong>Fichier</strong> : <a href="ui/vue/composables/useGridLoader.js">useGridLoader.js</a></p>
 <hr />
 <h3 id="audit_grid_reactivity_apr26-13-med-premier-lancement-cache-affiché-sans-rafraîchissement-de-fond-corrigé">1.3 [MED] Premier lancement : cache affiché sans rafraîchissement de fond (corrigé)</h3>
 <p><strong>Symptôme</strong> : Lors d'une ouverture du panneau avec snapshot disponible (<code>didHydrateFromSnapshot == true</code>), <code>panelRuntime.js</code> court-circuite <code>reloadGrid()</code> et n'émet aucune requête API. L'utilisateur voit donc des cartes potentiellement vieilles de 30 minutes (TTL snapshot) jusqu'au prochain événement temps réel ou interaction. Le comportement attendu est <em>live</em>.</p>
 <p><strong>Correctif</strong> : <code>panelRuntime.js</code> planifie maintenant un <code>reloadGrid()</code> silencieux 200 ms après l'ouverture lorsque l'hydrate snapshot a réussi. Les cartes en cache restent visibles (preserve-visible-until-ready) jusqu'à l'arrivée de la première page fraîche.</p>
-<p><strong>Fichier</strong> : <a href="js/features/panel/panelRuntime.js">panelRuntime.js</a></p>
+<p><strong>Fichier</strong> : <a href="ui/features/panel/panelRuntime.js">panelRuntime.js</a></p>
 <hr />
 <h3 id="audit_grid_reactivity_apr26-14-low-multiples-upserts-par-asset-généré">1.4 [LOW] Multiples upserts par asset généré</h3>
 <p><strong>Constat</strong> : Pour un même asset issu d'une génération, jusqu'à trois événements temps réel arrivent en cascade :</p>
@@ -2299,7 +2299,7 @@ POST /mjr/am/collections/update</code></pre>
 <p>Chaque upsert passe par <code>upsertAssetNow()</code> qui coalesce via <code>queueMicrotask</code>, mais comme les WebSocket arrivent dans des macrotâches distinctes, on obtient typiquement 3 <code>vg.setItems(state.assets)</code> par asset.</p>
 <p><strong>Statut</strong> : Comportement actuellement acceptable. La coalescence microtâche gère les bursts simultanés (une seule génération de 5 cartes → 1 setItems). Les 3 événements espacés mettent à jour des champs successifs (placeholder → métadonnées → enrichissement). Aucune action immédiate.</p>
 <p><strong>Recommandation future</strong> : ajouter un debounce 50 ms par <code>assetId</code> côté <code>upsertLiveAssetIntoGrid</code> si une régression de fluidité est constatée.</p>
-<p><strong>Fichier</strong> : <a href="js/features/runtime/registerRealtimeListeners.js#L280-L470">registerRealtimeListeners.js</a></p>
+<p><strong>Fichier</strong> : <a href="ui/features/runtime/registerRealtimeListeners.js#L280-L470">registerRealtimeListeners.js</a></p>
 <hr />
 <h3 id="audit_grid_reactivity_apr26-15-low-min_loading_skeleton_ms-artificiellement-bloque-les-chargements-rapides">1.5 [LOW] <code>MIN_LOADING_SKELETON_MS</code> artificiellement bloque les chargements rapides</h3>
 <p><strong>Constat</strong> : <code>loadNextPage()</code> impose un <code>await waitMs(50 - elapsed)</code> quand la page revient en moins de 50 ms (cas snapshot ou cache HTTP chaud). Ajoute jusqu'à 50 ms de latence perçue.</p>
@@ -2345,7 +2345,7 @@ POST /mjr/am/collections/update</code></pre>
 <li><code>get_errors</code> sur les fichiers modifiés : aucune erreur.</li>
 <li>Aucun changement d'API publique : <code>loadAssets</code> / <code>reloadGrid</code> /</li>
 <p><code>prepareGridForScopeSwitch</code> conservent leur signature.</p>
-<li>Tests à exécuter : <code>vitest</code> sur <code>js/tests/grid_loader_*.vitest.mjs</code>.</li>
+<li>Tests à exécuter : <code>vitest</code> sur <code>ui/tests/grid_loader_*.vitest.mjs</code>.</li>
 </ul></div>
                 <a class="toplink" href="#top">Back to top</a>
                 <div style="margin-top: 10px; font-size: 12px; color: var(--muted);">
@@ -2433,14 +2433,14 @@ npm run format        # Prettier</code></pre>
 │   ├── features/                  # Business logic (search, index, AI, etc.)
 │   └── adapters/                  # External system adapters (DB, FS, tools)
 ├── mjr_am_shared/                 # Shared utilities (types, errors, logging)
-├── js/                            # Frontend source (Vue 3 + vanilla JS)
+├── ui/                            # Frontend source (Vue 3 + vanilla JS)
 │   ├── vue/                       # Vue 3 components
 │   ├── features/                  # Feature modules (viewer, grid, filters)
 │   ├── components/                # Reusable UI components
 │   ├── stores/                    # Pinia state management
 │   ├── api/                       # Backend HTTP client
 │   └── app/                       # Application bootstrap
-├── js_dist/                       # Built frontend (Vite output)
+├── dist/                       # Built frontend (Vite output)
 ├── tests/                         # Python tests (pytest)
 │   ├── backend/                   # Backend unit/integration tests
 │   ├── features/                  # Feature tests
@@ -2543,7 +2543,7 @@ npm run test:js:coverage
 npm run test:js:watch</code></pre>
 <p><strong>Test organization</strong>:</p>
 <ul>
-<li><code>js/tests/</code> — Vitest test files</li>
+<li><code>ui/tests/</code> — Vitest test files</li>
 <li>Test files named <code>*.vitest.mjs</code></li>
 <li>Cover: composables, utilities, security-critical modules</li>
 </ul>
@@ -2706,7 +2706,7 @@ tox -e quality</code></pre>
 <pre><code class="language-bash"># Rebuild frontend
 npm run build
 
-# Restart ComfyUI (extension loads from js_dist/)
+# Restart ComfyUI (extension loads from dist/)
 # Test in browser, iterate quickly</code></pre>
 <p><strong>Q: Can I add a new dependency?</strong></p>
 <ul>
@@ -3041,8 +3041,8 @@ python main.py</code></pre>
 <tbody>
 <tr><td><code>mjr_am_backend/routes/handlers/db_maintenance.py</code></td><td><code>/db/optimize</code> and <code>/db/force-delete</code> endpoints</td></tr>
 <tr><td><code>mjr_am_backend/adapters/db/sqlite.py</code></td><td>DB adapter with malformed detection and online recovery</td></tr>
-<tr><td><code>js/features/status/StatusDot.js</code></td><td>Frontend status polling, corruption detection, Reset/Delete buttons</td></tr>
-<tr><td><code>js/api/client.js</code></td><td><code>forceDeleteDb()</code> API call</td></tr>
+<tr><td><code>ui/features/status/StatusDot.js</code></td><td>Frontend status polling, corruption detection, Reset/Delete buttons</td></tr>
+<tr><td><code>ui/api/client.js</code></td><td><code>forceDeleteDb()</code> API call</td></tr>
 </tbody></table></div>
 <h2 id="db_maintenance-environment-variables">Environment Variables</h2>
 <div class="table-wrap"><table>
@@ -3544,7 +3544,7 @@ pip install -r requirements-dev.txt</code></pre></div>
 </tbody></table></div>
 <hr />
 <h2 id="floating_viewer_workflow_sidebar-2-module-architecture">2. Module Architecture</h2>
-<pre><code>js/features/viewer/
+<pre><code>ui/features/viewer/
 ├── FloatingViewer.js              ← existing (modified _buildToolbar)
 ├── floatingViewerManager.js       ← existing (added selection bindings)
 │
@@ -3559,7 +3559,7 @@ pip install -r requirements-dev.txt</code></pre></div>
         ├─► NodeWidgetRenderer  (instantiated 1× per displayed node)
         │     └─► widgetAdapters  (pure functions, no state)
         └─► sidebarRunButton    (autonomous button, calls ComfyUI API)</code></pre>
-<p>None of these files import from <code>comfyui-frontend</code> directly. Everything goes through the existing bridge: <code>js/app/comfyApiBridge.js</code>.</p>
+<p>None of these files import from <code>comfyui-frontend</code> directly. Everything goes through the existing bridge: <code>ui/app/comfyApiBridge.js</code>.</p>
 <hr />
 <h2 id="floating_viewer_workflow_sidebar-3-module-by-module">3. Module by Module</h2>
 <hr />
@@ -3886,10 +3886,10 @@ _unbindNodeSelectionListener();</code></pre>
 <hr />
 <h2 id="floating_viewer_workflow_sidebar-8-implementation-checklist">8. Implementation Checklist</h2>
 <ul>
-<li>[x] Create <code>js/features/viewer/workflowSidebar/widgetAdapters.js</code></li>
-<li>[x] Create <code>js/features/viewer/workflowSidebar/NodeWidgetRenderer.js</code></li>
-<li>[x] Create <code>js/features/viewer/workflowSidebar/WorkflowSidebar.js</code></li>
-<li>[x] Create <code>js/features/viewer/workflowSidebar/sidebarRunButton.js</code></li>
+<li>[x] Create <code>ui/features/viewer/workflowSidebar/widgetAdapters.js</code></li>
+<li>[x] Create <code>ui/features/viewer/workflowSidebar/NodeWidgetRenderer.js</code></li>
+<li>[x] Create <code>ui/features/viewer/workflowSidebar/WorkflowSidebar.js</code></li>
+<li>[x] Create <code>ui/features/viewer/workflowSidebar/sidebarRunButton.js</code></li>
 <li>[x] Modify <code>FloatingViewer.js</code> — add ⚙ + ▶ buttons in <code>_buildToolbar()</code></li>
 <li>[x] Modify <code>FloatingViewer.js</code> — instantiate <code>WorkflowSidebar</code> in <code>render()</code></li>
 <li>[x] Modify <code>floatingViewerManager.js</code> — <code>onNodeSelected</code> / <code>onSelectionChange</code> hooks</li>
@@ -3930,27 +3930,27 @@ _unbindNodeSelectionListener();</code></pre>
 <div class="table-wrap"><table>
 <thead><tr><th>Module</th><th>Reason</th></tr></thead>
 <tbody>
-<tr><td><code>js/app/bootstrap.js</code></td><td>App init sequence, ComfyUI lifecycle hooks</td></tr>
-<tr><td><code>js/app/comfyApiBridge.js</code></td><td>Bridge to ComfyUI's API (external dependency, not ours)</td></tr>
-<tr><td><code>js/app/events.js</code></td><td>Central event bus for cross-feature communication</td></tr>
-<tr><td><code>js/app/metrics.js</code></td><td>Performance telemetry (no UI surface)</td></tr>
-<tr><td><code>js/features/panel/panelRuntime.js</code></td><td>Panel lifecycle orchestration: init, teardown, events</td></tr>
-<tr><td><code>js/features/viewer/*</code></td><td>Viewer runtime: canvas, zoom, playback — too stateful and performance-sensitive for Vue reactivity</td></tr>
-<tr><td><code>js/features/dnd/*</code></td><td>Drag-and-drop runtime: low-level DOM events, interop with ComfyUI DnD</td></tr>
-<tr><td><code>js/features/runtime/*</code></td><td>ComfyUI runtime integration (generation flow, progress, queue)</td></tr>
+<tr><td><code>ui/app/bootstrap.js</code></td><td>App init sequence, ComfyUI lifecycle hooks</td></tr>
+<tr><td><code>ui/app/comfyApiBridge.js</code></td><td>Bridge to ComfyUI's API (external dependency, not ours)</td></tr>
+<tr><td><code>ui/app/events.js</code></td><td>Central event bus for cross-feature communication</td></tr>
+<tr><td><code>ui/app/metrics.js</code></td><td>Performance telemetry (no UI surface)</td></tr>
+<tr><td><code>ui/features/panel/panelRuntime.js</code></td><td>Panel lifecycle orchestration: init, teardown, events</td></tr>
+<tr><td><code>ui/features/viewer/*</code></td><td>Viewer runtime: canvas, zoom, playback — too stateful and performance-sensitive for Vue reactivity</td></tr>
+<tr><td><code>ui/features/dnd/*</code></td><td>Drag-and-drop runtime: low-level DOM events, interop with ComfyUI DnD</td></tr>
+<tr><td><code>ui/features/runtime/*</code></td><td>ComfyUI runtime integration (generation flow, progress, queue)</td></tr>
 </tbody></table></div>
 <h2 id="frontend_imperative_design-provisionally-imperative-may-migrate-later">Provisionally imperative (may migrate later)</h2>
 <div class="table-wrap"><table>
 <thead><tr><th>Module</th><th>Notes</th></tr></thead>
 <tbody>
-<tr><td><code>js/stores/panelStateBridge.js</code></td><td>Bridge between Vue panel store and legacy non-Vue consumers. Remove when all consumers are Vue.</td></tr>
-<tr><td><code>js/app/dialogs.js</code>, <code>js/app/toast.js</code></td><td>UI utilities currently used by both Vue and imperative code. Can move to Vue composables once all callers migrate.</td></tr>
+<tr><td><code>ui/stores/panelStateBridge.js</code></td><td>Bridge between Vue panel store and legacy non-Vue consumers. Remove when all consumers are Vue.</td></tr>
+<tr><td><code>ui/app/dialogs.js</code>, <code>ui/app/toast.js</code></td><td>UI utilities currently used by both Vue and imperative code. Can move to Vue composables once all callers migrate.</td></tr>
 </tbody></table></div>
 <h2 id="frontend_imperative_design-fully-vue-owned">Fully Vue-owned</h2>
-<p>All surfaces under <code>js/vue/components/</code> and <code>js/vue/composables/</code> are fully Vue-owned:</p>
+<p>All surfaces under <code>ui/vue/components/</code> and <code>ui/vue/composables/</code> are fully Vue-owned:</p>
 <ul>
 <li>Grid, sidebar, feed, settings panels, context menus</li>
-<li>All Pinia stores under <code>js/stores/</code></li>
+<li>All Pinia stores under <code>ui/stores/</code></li>
 </ul>
 <h2 id="frontend_imperative_design-decision-criteria">Decision criteria</h2>
 <p>A module should stay imperative when:</p>
@@ -3975,7 +3975,7 @@ _unbindNodeSelectionListener();</code></pre>
 <p><strong>Last updated</strong>: April 10, 2026</p>
 <h2 id="frontend_lifecycle_conventions-vue-component-lifecycle">Vue component lifecycle</h2>
 <ul>
-<li>Vue apps are created via <code>js/vue/createVueApp.js</code> with Pinia store injection.</li>
+<li>Vue apps are created via <code>ui/vue/createVueApp.js</code> with Pinia store injection.</li>
 <li>Components use <code>onMounted</code> / <code>onUnmounted</code> for DOM setup/teardown.</li>
 <li>Event listeners added in <code>onMounted</code> <strong>must</strong> be removed in <code>onUnmounted</code>.</li>
 <li>Pinia stores are the single source of truth for UI state.</li>
@@ -4264,7 +4264,7 @@ VirtualRows
 AssetCard</code></pre>
 <p>The grid should have one authority for query state, one authority for paged loading, and one authority for virtual rendering.</p>
 <h2 id="grid_refactor_roadmap-target-module-layout">Target Module Layout</h2>
-<pre><code class="language-text">js/vue/grid/
+<pre><code class="language-text">ui/vue/grid/
   useGridQuery.js          // Reads and normalizes filters, scope, sort, search
   usePagedAssets.js        // Fetch, reset, append, cursor/offset state
   useInfiniteTrigger.js    // Observes the bottom sentinel and calls loadMore
@@ -4606,7 +4606,7 @@ function appendPage(page) {
 <h2 id="grid_refactor_roadmap-phase-7-extract-snapshot-cache">Phase 7: Extract Snapshot Cache</h2>
 <p>Goal: localStorage cache becomes an optional hydration layer, not part of pagination.</p>
 <p>Create:</p>
-<pre><code class="language-text">js/vue/grid/useGridSnapshotCache.js</code></pre>
+<pre><code class="language-text">ui/vue/grid/useGridSnapshotCache.js</code></pre>
 <p>Responsibilities:</p>
 <ul>
 <li>Load snapshot by <code>queryKey</code>.</li>
@@ -10073,7 +10073,7 @@ tox -e quality</code></pre>
 </ul>
 <p>The changed-file quality gate is also runnable manually:</p>
 <pre><code class="language-bash">python scripts/run_changed_quality_gate.py</code></pre>
-<p>For frontend tests in the Node Vitest environment, prefer the shared helpers in <code>js/tests/helpers/vitestEnvironment.mjs</code>. Team rule: use partial Vue mocks by default, based on the real <code>vue</code> module, instead of full replacement mocks.</p>
+<p>For frontend tests in the Node Vitest environment, prefer the shared helpers in <code>ui/tests/helpers/vitestEnvironment.mjs</code>. Team rule: use partial Vue mocks by default, based on the real <code>vue</code> module, instead of full replacement mocks.</p>
 <h2 id="testing-batch-runners-windows">Batch runners (Windows)</h2>
 <p>From the repo root:</p>
 <ul>
@@ -10981,7 +10981,7 @@ python -m pytest tests/metadata/test_parser_folder_scan.py -q</code></pre></div>
 <h2 id="node-stream-reactivation-current-status">Current Status</h2>
 <p><code>Node Stream</code> is enabled. The single source of truth is:</p>
 <ul>
-<li><code>js/features/viewer/nodeStream/nodeStreamFeatureFlag.js</code></li>
+<li><code>ui/features/viewer/nodeStream/nodeStreamFeatureFlag.js</code></li>
 </ul>
 <p>The active implementation is selection-only: when the MFV Node Stream button is on, selecting a ComfyUI canvas node streams the best available preview into the Floating Viewer. It supports standard ComfyUI node previews, downstream preview nodes, load widgets, and ImageOps live-preview canvases exposed through <code>node.__imageops_state.canvas</code>.</p>
 <p>Node Stream is the only MFV feature that follows canvas node selection. Live Stream is reserved for final generation outputs, and KSampler Preview is reserved for denoising-step blobs from the ComfyUI API.</p>
@@ -10995,14 +10995,14 @@ python -m pytest tests/metadata/test_parser_folder_scan.py -q</code></pre></div>
 </ul>
 <h2 id="node-stream-reactivation-files-involved">Files Involved</h2>
 <ul>
-<li><code>js/features/viewer/nodeStream/nodeStreamFeatureFlag.js</code></li>
-<li><code>js/features/viewer/nodeStream/NodeStreamController.js</code></li>
-<li><code>js/features/viewer/nodeStream/imageOpsPreviewBridge.js</code></li>
-<li><code>js/features/viewer/FloatingViewer.js</code></li>
-<li><code>js/features/viewer/floatingViewerManager.js</code></li>
-<li><code>js/entry.js</code></li>
-<li><code>js/app/events.js</code></li>
-<li><code>js/tests/node_stream_controller.vitest.mjs</code></li>
+<li><code>ui/features/viewer/nodeStream/nodeStreamFeatureFlag.js</code></li>
+<li><code>ui/features/viewer/nodeStream/NodeStreamController.js</code></li>
+<li><code>ui/features/viewer/nodeStream/imageOpsPreviewBridge.js</code></li>
+<li><code>ui/features/viewer/FloatingViewer.js</code></li>
+<li><code>ui/features/viewer/floatingViewerManager.js</code></li>
+<li><code>ui/entry.ts</code></li>
+<li><code>ui/app/events.js</code></li>
+<li><code>ui/tests/node_stream_controller.vitest.mjs</code></li>
 </ul>
 <h2 id="node-stream-reactivation-smoke-tests">Smoke Tests</h2>
 <p>Use the real local stack and verify these cases from the ComfyUI canvas:</p>

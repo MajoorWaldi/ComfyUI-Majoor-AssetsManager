@@ -15,10 +15,10 @@
         "types": ["vitest/globals", "node"]
     },
     "include": [
-        "js/**/*.d.ts",
-        "js/**/*.ts",
-        "js/**/*.vue",
+        "ui/**/*.d.ts",
+        "ui/**/*.ts",
+        "ui/**/*.vue",
         "vite.config.mjs"
     ],
-    "exclude": ["js_dist", "node_modules", "vendor", "js/tests", "js/vue/majoor-ui.*"]
+    "exclude": ["dist", "node_modules", "vendor", "ui/tests", "ui/vue/majoor-ui.*"]
 }

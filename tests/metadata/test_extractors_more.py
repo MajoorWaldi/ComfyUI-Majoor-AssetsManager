@@ -243,6 +243,38 @@ def test_workflow_find_upstream_text_basic():
     assert "positive prompt text" in result
 
 
+def test_reconstruct_params_from_workflow_in_subgraph():
+    workflow = {
+        "nodes": [{"id": 10, "type": "subgraph-1", "inputs": [], "widgets_values": []}],
+        "links": [],
+        "definitions": {
+            "subgraphs": [
+                {
+                    "id": "subgraph-1",
+                    "nodes": [
+                        {"id": 1, "type": "CLIPTextEncode", "inputs": [], "widgets_values": ["inside positive"]},
+                        {
+                            "id": 2,
+                            "type": "KSampler",
+                            "inputs": [{"name": "positive", "link": 11}],
+                            "widgets_values": [123456, 24, 7.5, "euler"],
+                        },
+                    ],
+                    "links": [[11, 1, 0, 2, 0, "CONDITIONING"]],
+                }
+            ]
+        },
+    }
+
+    params = e._reconstruct_params_from_workflow(workflow)
+
+    assert params["positive_prompt"] == "inside positive"
+    assert params["seed"] == 123456
+    assert params["steps"] == 24
+    assert params["cfg"] == 7.5
+    assert params["sampler"] == "euler"
+
+
 # ─── _workflow_classify_unconnected_node ─────────────────────────────────────
 
 def test_workflow_classify_unconnected_node_no_outputs():

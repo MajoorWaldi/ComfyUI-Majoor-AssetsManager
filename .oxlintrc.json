@@ -9,5 +9,5 @@
         "es2024": true,
         "node": true
     },
-    "ignorePatterns": ["js_dist/**", "vendor/**", "node_modules/**"]
+    "ignorePatterns": ["dist/**", "vendor/**", "node_modules/**"]
 }

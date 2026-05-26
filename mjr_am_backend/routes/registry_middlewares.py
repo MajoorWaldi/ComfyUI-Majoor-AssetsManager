@@ -19,7 +19,7 @@ from .core import (
 API_PREFIX = "/mjr/am/"
 _SENSITIVE_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
 
-# Paths under which ComfyUI serves our `WEB_DIRECTORY` (js_dist/). We force
+# Paths under which ComfyUI serves our `WEB_DIRECTORY` (dist/). We force
 # revalidation on these so users always get the freshly built bundle after a
 # plugin update — mirroring the no-store fix the ComfyUI core applied to its
 # own frontend chunks (PR #12911).

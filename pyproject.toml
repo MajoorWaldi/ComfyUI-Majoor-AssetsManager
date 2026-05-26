@@ -81,7 +81,7 @@ Documentation = "https://github.com/MajoorWaldi/ComfyUI-Majoor-AssetsManager/blo
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["mjr_am_shared*", "mjr_am_backend*"]
-exclude = ["js*", "vendor*", "plugins*", "ressources*"]
+exclude = ["ui*", "dist*", "vendor*", "plugins*", "ressources*"]
 
 # --------------------------------------------------------------------------
 # ComfyUI-Manager v4 / Comfy Registry metadata.
@@ -93,8 +93,8 @@ exclude = ["js*", "vendor*", "plugins*", "ressources*"]
 PublisherId = "majoor-waldi"
 DisplayName = "ComfyUI-Majoor-AssetsManager"
 Icon = "https://raw.githubusercontent.com/MajoorWaldi/ComfyUI-Majoor-AssetsManager/main/ressources/icon.png"
-WebDirectory = "js_dist"
-includes = []
+WebDirectory = "dist"
+includes = ["dist/"]
 "requires-comfyui" = ">=0.13.0"
 
 [tool.black]

@@ -89,14 +89,14 @@ majoor-assetsmanager/
 │   ├── features/                  # Business logic (search, index, AI, etc.)
 │   └── adapters/                  # External system adapters (DB, FS, tools)
 ├── mjr_am_shared/                 # Shared utilities (types, errors, logging)
-├── js/                            # Frontend source (Vue 3 + vanilla JS)
+├── ui/                            # Frontend source (Vue 3 + vanilla JS)
 │   ├── vue/                       # Vue 3 components
 │   ├── features/                  # Feature modules (viewer, grid, filters)
 │   ├── components/                # Reusable UI components
 │   ├── stores/                    # Pinia state management
 │   ├── api/                       # Backend HTTP client
 │   └── app/                       # Application bootstrap
-├── js_dist/                       # Built frontend (Vite output)
+├── dist/                       # Built frontend (Vite output)
 ├── tests/                         # Python tests (pytest)
 │   ├── backend/                   # Backend unit/integration tests
 │   ├── features/                  # Feature tests
@@ -220,7 +220,7 @@ npm run test:js:watch
 
 **Test organization**:
 
-- `js/tests/` — Vitest test files
+- `ui/tests/` — Vitest test files
 - Test files named `*.vitest.mjs`
 - Cover: composables, utilities, security-critical modules
 
@@ -427,7 +427,7 @@ See existing ADRs for examples.
 # Rebuild frontend
 npm run build
 
-# Restart ComfyUI (extension loads from js_dist/)
+# Restart ComfyUI (extension loads from dist/)
 # Test in browser, iterate quickly
 ```
 

@@ -1,1 +1,1 @@
-{"extends":"./tsconfig.json","compilerOptions":{"strict":true,"noEmit":true},"include":["js/features/viewer/**/*.ts","js/components/**/*.ts","js/types/**/*.d.ts"],"exclude":["js_dist","node_modules","vendor","js/tests"]}
+{"extends":"./tsconfig.json","compilerOptions":{"strict":true,"noEmit":true},"include":["ui/features/viewer/**/*.ts","ui/components/**/*.ts","ui/types/**/*.d.ts"],"exclude":["dist","node_modules","vendor","ui/tests"]}

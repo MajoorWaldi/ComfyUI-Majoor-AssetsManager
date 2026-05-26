@@ -17,13 +17,13 @@
     "test:js:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
     "test:e2e:list": "playwright test --list",
-    "lint:js": "eslint js/",
-    "lint:js:ox": "oxlint js/ --quiet --disable-unicorn-plugin --ignore-pattern js/vue/majoor-ui.* || node -e \"process.exit(0)\"",
+    "lint:js": "eslint ui/",
+    "lint:js:ox": "oxlint ui/ --quiet --disable-unicorn-plugin --ignore-pattern ui/vue/majoor-ui.* || node -e \"process.exit(0)\"",
     "lint:dead": "knip --config knip.json || node -e \"process.exit(0)\"",
     "typecheck:js": "tsc -p tsconfig.json --noEmit || node -e \"process.exit(0)\"",
-    "lint:js:fix": "eslint js/ --fix",
-    "format": "prettier --write \"js/**/*.{ts,js,mjs,vue}\"",
-    "format:check": "prettier --check \"js/**/*.{ts,js,mjs,vue}\""
+    "lint:js:fix": "eslint ui/ --fix",
+    "format": "prettier --write \"ui/**/*.{ts,js,mjs,vue}\"",
+    "format:check": "prettier --check \"ui/**/*.{ts,js,mjs,vue}\""
   },
   "devDependencies": {
     "@comfyorg/litegraph": "^0.17.2",

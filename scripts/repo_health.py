@@ -18,8 +18,8 @@ Tracked metrics
 - Number of lines in mjr_am_backend/shared.py (idem)
 - Number of imports from routes_compat.py     (legacy adapter usage)
 - Number of Python files with cyclomatic complexity > threshold (via radon, optional)
-- js_dist committed status                    (must be absent from git index in dev)
-- JS bundle size                               (js_dist/entry.js, if present)
+- dist committed status                    (must be absent from git index in dev)
+- JS bundle size                               (dist/entry.js, if present)
 """
 
 from __future__ import annotations
@@ -47,7 +47,7 @@ LIMITS: dict[str, int] = {
     "utils_py_lines": 300,        # mjr_am_backend/utils.py must not grow
     "shared_py_lines": 400,       # mjr_am_backend/shared.py idem
     "routes_compat_imports": 10,  # legacy adapter usage must shrink
-    # Direct comfyApiBridge imports in js/features/ — must decrease toward
+    # Direct comfyApiBridge imports in ui/features/ — must decrease toward
     # zero as files are migrated to hostAdapter.js (ADR 0007).
     "comfybridge_violations_in_features": 10,
 }
@@ -113,19 +113,19 @@ def _py_files() -> list[Path]:
 
 
 def _js_files() -> list[Path]:
-    return list(ROOT.rglob("js/**/*.js"))
+    return list(ROOT.rglob("ui/**/*.js")) + list(ROOT.rglob("ui/**/*.ts"))
 
 
 # Files legitimately allowed to import comfyApiBridge directly.
 # Mirrors ALLOWED_DIRECT_IMPORTERS in tests/quality/test_architecture_conformance.py.
 _COMFYBRIDGE_ALLOWED: frozenset[str] = frozenset({
-    "js/app/comfyApiBridge.js",
-    "js/app/hostAdapter.js",
-    "js/entry.js",
-    "js/app/dialogs.js",
-    "js/app/toast.js",
-    "js/app/i18n.js",
-    "js/features/runtime/entryUiRegistration.js",
+    "ui/app/comfyApiBridge.js",
+    "ui/app/hostAdapter.js",
+    "ui/entry.ts",
+    "ui/app/dialogs.js",
+    "ui/app/toast.js",
+    "ui/app/i18n.js",
+    "ui/features/runtime/entryUiRegistration.js",
 })
 _COMFYBRIDGE_IMPORT_RE = re.compile(
     r'^(?:import|export)\b.*["\'].*comfyApiBridge', re.MULTILINE
@@ -133,10 +133,10 @@ _COMFYBRIDGE_IMPORT_RE = re.compile(
 
 
 def _count_comfybridge_violations_in_features() -> int:
-    """Count js/features/** files that import comfyApiBridge outside the allow-list."""
-    features_root = ROOT / "js" / "features"
+    """Count ui/features/** files that import comfyApiBridge outside the allow-list."""
+    features_root = ROOT / "ui" / "features"
     total = 0
-    for path in features_root.rglob("*.js"):
+    for path in list(features_root.rglob("*.js")) + list(features_root.rglob("*.ts")):
         rel = path.relative_to(ROOT).as_posix()
         if rel in _COMFYBRIDGE_ALLOWED:
             continue
@@ -298,40 +298,40 @@ def collect(report: HealthReport) -> None:
         note="Imports from legacy routes_compat.py — must decrease toward zero",
     )
 
-    # 7. js_dist tracked in git? (should be absent in dev branches)
-    dist_tracked = _git_tracked(ROOT / "js_dist")
+    # 7. dist tracked in git? (should be absent in dev branches)
+    dist_tracked = _git_tracked(ROOT / "dist")
     report.add(
-        name="js_dist_git_tracked",
+        name="dist_git_tracked",
         value="yes" if dist_tracked else "no",
         unit="",
-        note="js_dist/ should NOT be committed in development branches (ADR 0005)",
+        note="dist/ should NOT be committed in development branches (ADR 0005)",
     )
 
-    # 8. JS bundle size (js_dist/entry.js)
-    bundle_bytes = _bundle_size_bytes("js_dist/entry.js")
+    # 8. JS bundle size (dist/entry.js)
+    bundle_bytes = _bundle_size_bytes("dist/entry.js")
     if bundle_bytes >= 0:
         report.add(
             name="js_bundle_entry_kb",
             value=round(bundle_bytes / 1024, 1),
             unit="KB",
-            note="js_dist/entry.js size — track for bundle bloat",
+            note="dist/entry.js size — track for bundle bloat",
         )
     else:
         report.add(
             name="js_bundle_entry_kb",
             value="n/a",
             unit="KB",
-            note="js_dist/entry.js not present (run npm run build to measure)",
+            note="dist/entry.js not present (run npm run build to measure)",
         )
 
-    # 10. comfyApiBridge violations in js/features/ (ADR 0007 ratchet)
+    # 10. comfyApiBridge violations in ui/features/ (ADR 0007 ratchet)
     cb_violations = _count_comfybridge_violations_in_features()
     report.add(
         name="comfybridge_violations_in_features",
         value=cb_violations,
         unit="files",
         limit=LIMITS["comfybridge_violations_in_features"],
-        note="js/features/ files importing comfyApiBridge directly — migrate to hostAdapter.js (ADR 0007)",
+        note="ui/features/ files importing comfyApiBridge directly — migrate to hostAdapter.js (ADR 0007)",
     )
 
     # 9. Cyclomatic complexity violations (optional, needs radon)

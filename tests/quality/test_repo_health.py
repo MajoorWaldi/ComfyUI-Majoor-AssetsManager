@@ -53,7 +53,7 @@ EXPECTED_METRICS = {
     "utils_py_lines",
     "shared_py_lines",
     "routes_compat_imports",
-    "js_dist_git_tracked",
+    "dist_git_tracked",
     "comfybridge_violations_in_features",
     # optional metrics may be present (js_bundle_entry_kb, py_high_complexity_functions)
 }

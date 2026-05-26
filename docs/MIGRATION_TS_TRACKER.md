@@ -21,15 +21,15 @@
 | **TOTAL**     | **~236**      | **~236 ✅**     | **0**           |
 
 > Fichiers exclus (générés, ne pas toucher) :
-> - `js/vue/majoor-ui.umd.js`
-> - `js/app/i18n.generated.js`
-> - `js_dist/` (tout le dossier — produit par `npm run build`)
+> - `ui/vue/majoor-ui.umd.js`
+> - `ui/app/i18n.generated.js`
+> - `dist/` (tout le dossier — produit par `npm run build`)
 
 ---
 
 ## Détail par zone
 
-### ✅ `js/utils/` — 14/14 FAIT
+### ✅ `ui/utils/` — 14/14 FAIT
 
 | Fichier | TS types | Notes |
 |---------|----------|-------|
@@ -48,7 +48,7 @@
 | `tooltipShortcuts.ts` | ✅ | `HTMLElement \| null` param |
 | `ttlCache.ts` | ✅ | Interface `TTLCache<K,V>` + generic |
 
-### ✅ `js/api/` — 5/5 FAIT
+### ✅ `ui/api/` — 5/5 FAIT
 
 | Fichier | TS types | Notes |
 |---------|----------|-------|
@@ -58,13 +58,13 @@
 | `endpoints.ts` | ✅ | `AssetFilterParams`, `ListURLParams` interfaces |
 | `fetchUtils.ts` | ✅ | |
 
-### ✅ `js/integration/` — 1/1 FAIT
+### ✅ `ui/integration/` — 1/1 FAIT
 
 | Fichier | TS types | Notes |
 |---------|----------|-------|
 | `comfy_send_to_am.ts` | ✅ | |
 
-### ✅ `js/stores/` — 6/6 FAIT (sessions précédentes)
+### ✅ `ui/stores/` — 6/6 FAIT (sessions précédentes)
 
 | Fichier | TS types |
 |---------|----------|
@@ -75,13 +75,13 @@
 | `getOptionalRuntimeStore.ts` | ✅ |
 | `getOptionalPanelStore.ts` | ✅ |
 
-### ✅ `js/types/` — 1/1 FAIT
+### ✅ `ui/types/` — 1/1 FAIT
 
 | Fichier | Notes |
 |---------|-------|
 | `comfyui-frontend.d.ts` | Déclarations de types ComfyUI |
 
-### ✅ `js/app/` — 30/30 FAIT
+### ✅ `ui/app/` — 30/30 FAIT
 
 Tous les fichiers renommés `.ts` + annotations TS sur les exports publics.
 
@@ -118,7 +118,7 @@ Tous les fichiers renommés `.ts` + annotations TS sur les exports publics.
 | `settings/settingsUtils.ts` | ✅ types primitifs + generic deepMerge | **FAIT** |
 | `settings/settingsViewer.ts` | ✅ | **FAIT** |
 
-### ✅ `js/vue/` — 23/23 FAIT
+### ✅ `ui/vue/` — 23/23 FAIT
 
 | Fichier | Statut |
 |---------|--------|
@@ -146,7 +146,7 @@ Tous les fichiers renommés `.ts` + annotations TS sur les exports publics.
 | `grid/usePagedAssets.ts` | **FAIT** — renommé |
 | `majoorPrimeVue.ts` | **FAIT** — `installMajoorPrimeVue` typé |
 
-### ✅ `js/components/` — 15/15 FAIT
+### ✅ `ui/components/` — 15/15 FAIT
 
 | Fichier | Statut |
 |---------|--------|
@@ -174,7 +174,7 @@ Tous les fichiers renommés `.ts` + annotations TS sur les exports publics.
 | `sidebarRunButton.ts` | **FAIT** |
 | `NodeWidgetRenderer.ts` | **FAIT** |
 
-### ✅ `js/features/viewer/workflowGraphMap/` — 4/4 FAIT
+### ✅ `ui/features/viewer/workflowGraphMap/` — 4/4 FAIT
 
 | Fichier | Statut |
 |---------|--------|
@@ -183,7 +183,7 @@ Tous les fichiers renommés `.ts` + annotations TS sur les exports publics.
 | `workflowGraphMapData.ts` | **FAIT** — session 2026-05-26 |
 | `WorkflowGraphMapPanel.ts` | **FAIT** — renommé |
 
-### ✅ `js/features/viewer/` — 70/70 FAIT (session 2026-05-26)
+### ✅ `ui/features/viewer/` — 70/70 FAIT (session 2026-05-26)
 
 Tous les `.js` renommés en `.ts` et annotés :
 - `FloatingViewer.ts`, `FloatingViewer.impl.ts`, `LiveStreamTracker.ts`, `ViewerCanvas.ts`
@@ -199,11 +199,11 @@ Tous les `.js` renommés en `.ts` et annotés :
 - `viewerRuntimeHosts.ts`, `viewerShell.ts`, `viewerThemeStyles.ts`
 - `nodeStream/` (6 fichiers + 4 adapters)
 
-### ✅ `js/features/panel/` — 29/29 FAIT (session 2026-05-26)
+### ✅ `ui/features/panel/` — 29/29 FAIT (session 2026-05-26)
 
 Tous les `.js` renommés en `.ts` et annotés (`Record<string,unknown>` pour les params destructurés complexes).
 
-### ✅ `js/entry.ts` — FAIT (session 2026-05-26)
+### ✅ `ui/entry.ts` — FAIT (session 2026-05-26)
 
 ---
 
@@ -228,5 +228,5 @@ Tous les `.js` renommés en `.ts` et annotés (`Record<string,unknown>` pour les
 - **tsconfig** : `allowJs: true`, `checkJs: true`, `strict: false`, `moduleResolution: "Bundler"`
 - **Imports** : garder l'extension `.js` dans les imports (Bundler résout `.js` → `.ts`)
 - **Convention** : supprimer les JSDoc `@param`/`@returns` quand remplacés par annotations TS
-- **Build** : `npm run build` génère `js_dist/` — ne pas modifier `js_dist/` directement
+- **Build** : `npm run build` génère `dist/` — ne pas modifier `dist/` directement
 - **Lint** : `npm run lint:js` obligatoire après conversion, `lint:js:ox` + `typecheck:js` en audit

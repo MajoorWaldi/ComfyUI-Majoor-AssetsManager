@@ -15,6 +15,7 @@ from ...probe_router import pick_probe_backend
 from ...settings import AppSettings
 from ...shared import ErrorCode, Result, classify_file, get_logger
 from ..audio import extract_audio_metadata
+from ..geninfo.override import build_geninfo_override, merge_geninfo_override
 from ..geninfo.parser import parse_geninfo_from_prompt
 from .dimension_resolver import get_file_info as dims_get_file_info
 from .dimension_resolver import normalize_dimensions
@@ -277,6 +278,8 @@ def _should_parse_geninfo(meta: dict[str, Any]) -> bool:
         params = meta.get("parameters")
         if isinstance(params, str) and params.strip():
             return True
+        if build_geninfo_override(meta):
+            return True
     except Exception:
         return False
     return False
@@ -434,6 +437,8 @@ class MetadataService:
 
     async def _enrich_with_geninfo_async(self, combined: dict[str, Any]) -> None:
         """Helper to parse geninfo from prompt/workflow in combined metadata (Worker Thread)."""
+        override = build_geninfo_override(combined)
+
         prompt_graph = combined.get("prompt")
         workflow = combined.get("workflow")
         loop = asyncio.get_running_loop()
@@ -456,6 +461,8 @@ class MetadataService:
             combined["geninfo"] = gi if gi is not None else {}
             if not gi and registry_looks_like_media_pipeline(prompt_graph):
                 combined["geninfo_status"] = {"kind": "media_pipeline", "reason": "no_sampler"}
+        if override:
+            combined["geninfo"] = merge_geninfo_override(combined.get("geninfo"), override) or override
 
     async def _resolve_probe_mode(self, override: str | None) -> str:
         if isinstance(override, str):

@@ -539,8 +539,8 @@ def _resolve_graph_target(prompt_graph: Any, workflow: Any) -> dict[str, Any] | 
     return None
 
 
-def _build_link_source_map(links: Any) -> dict[int, tuple[int, int]]:
-    link_to_source: dict[int, tuple[int, int]] = {}
+def _build_link_source_map(links: Any) -> dict[Any, tuple[Any, int]]:
+    link_to_source: dict[Any, tuple[Any, int]] = {}
     if not isinstance(links, list):
         return link_to_source
     for link in links:
@@ -639,7 +639,7 @@ def _set_text_fallback_from_widgets(converted_inputs: dict[str, Any], widgets_li
             return
 
 
-def _convert_litegraph_node(node: dict[str, Any], link_to_source: dict[int, tuple[int, int]]) -> dict[str, Any]:
+def _convert_litegraph_node(node: dict[str, Any], link_to_source: dict[Any, tuple[Any, int]]) -> dict[str, Any]:
     converted = _init_litegraph_converted_node(node)
     raw_inputs = node.get("inputs", [])
     widgets_values = node.get("widgets_values", [])
@@ -648,6 +648,57 @@ def _convert_litegraph_node(node: dict[str, Any], link_to_source: dict[int, tupl
     _merge_widget_dict_inputs(converted_inputs, widgets_values)
     _set_text_fallback_from_widgets(converted_inputs, widgets_list, node)
     return converted
+
+
+def _subgraph_definitions_by_id(graph: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    definitions = graph.get("definitions")
+    if not isinstance(definitions, dict):
+        return {}
+    subgraphs = definitions.get("subgraphs")
+    if not isinstance(subgraphs, list):
+        return {}
+    out: dict[str, dict[str, Any]] = {}
+    for sg in subgraphs:
+        if not isinstance(sg, dict):
+            continue
+        sg_id = sg.get("id")
+        if sg_id is not None:
+            out[str(sg_id)] = sg
+    return out
+
+
+def _prefixed_subgraph_links(links: Any, prefix: str) -> list[Any]:
+    if not isinstance(links, list):
+        return []
+    out: list[Any] = []
+    for link in links:
+        if isinstance(link, list) and len(link) >= 5:
+            remapped = list(link)
+            remapped[0] = f"{prefix}link:{remapped[0]}"
+            remapped[1] = f"{prefix}{remapped[1]}"
+            remapped[3] = f"{prefix}{remapped[3]}"
+            out.append(remapped)
+        else:
+            out.append(link)
+    return out
+
+
+def _prefixed_subgraph_node(node: dict[str, Any], prefix: str) -> dict[str, Any]:
+    copied = dict(node)
+    copied["id"] = f"{prefix}{node.get('id')}"
+    inputs = copied.get("inputs")
+    if isinstance(inputs, list):
+        copied_inputs: list[Any] = []
+        for item in inputs:
+            if isinstance(item, dict):
+                next_item = dict(item)
+                if next_item.get("link") is not None:
+                    next_item["link"] = f"{prefix}link:{next_item['link']}"
+                copied_inputs.append(next_item)
+            else:
+                copied_inputs.append(item)
+        copied["inputs"] = copied_inputs
+    return copied
 
 
 def _apply_subgraph_mapping(converted: dict[str, Any], raw_type: str, mapped_name: str) -> None:
@@ -662,6 +713,7 @@ def _apply_subgraph_mapping(converted: dict[str, Any], raw_type: str, mapped_nam
 def _nodes_by_id_from_litegraph(target_graph: dict[str, Any]) -> dict[str, dict[str, Any]]:
     link_to_source = _build_link_source_map(target_graph.get("links", []))
     subgraph_name_map = _build_subgraph_name_map(target_graph)
+    subgraph_defs = _subgraph_definitions_by_id(target_graph)
     nodes_by_id: dict[str, dict[str, Any]] = {}
     for node in target_graph["nodes"]:
         if not isinstance(node, dict):
@@ -673,6 +725,22 @@ def _nodes_by_id_from_litegraph(target_graph: dict[str, Any]) -> dict[str, dict[
         if mapped_name:
             _apply_subgraph_mapping(converted, raw_type, mapped_name)
         nodes_by_id[node_id] = converted
+
+        subgraph = subgraph_defs.get(raw_type)
+        if not isinstance(subgraph, dict) or not isinstance(subgraph.get("nodes"), list):
+            continue
+        prefix = f"{node_id}:"
+        child_graph = {
+            **subgraph,
+            "links": _prefixed_subgraph_links(subgraph.get("links", []), prefix),
+            "nodes": [
+                _prefixed_subgraph_node(child, prefix)
+                for child in subgraph.get("nodes", [])
+                if isinstance(child, dict)
+            ],
+        }
+        for child_id, child_node in _nodes_by_id_from_litegraph(child_graph).items():
+            nodes_by_id[child_id] = child_node
     return nodes_by_id
 
 

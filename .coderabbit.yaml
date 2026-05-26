@@ -10,9 +10,9 @@ reviews:
     path_instructions:
         - path: "mjr_am_backend/**"
           instructions: "Focus on route security, filesystem path guards, database lifecycle safety, async blocking risks, and Result-style error handling."
-        - path: "js/**"
+        - path: "ui/**"
           instructions: "Focus on ComfyUI frontend API compatibility, Vue lifecycle cleanup, Pinia state consistency, keyboard/mouse regressions, and generated bundle drift."
-        - path: "js_dist/**"
+        - path: "dist/**"
           instructions: "Treat these files as generated build artifacts. Only flag missing or inconsistent bundle updates, not minified style or generated code structure."
         - path: "tests/**"
           instructions: "Focus on meaningful assertions, regression coverage, fixture isolation, and avoiding sleeps or order-dependent tests."

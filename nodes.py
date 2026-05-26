@@ -36,6 +36,14 @@ from PIL.PngImagePlugin import PngInfo
 
 _log = logging.getLogger("majoor_assets_manager.nodes")
 
+
+class _AnyType(str):
+    def __ne__(self, other: object) -> bool:
+        return False
+
+
+MAJOOR_ANY = _AnyType("*")
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -86,6 +94,8 @@ def _build_metadata(
     prompt: Any | None,
     extra_pnginfo: dict | None,
     generation_time_ms: int,
+    geninfo_override: Any | None = None,
+    unique_id: Any | None = None,
 ) -> PngInfo:
     metadata = PngInfo()
     if prompt is not None:
@@ -93,12 +103,750 @@ def _build_metadata(
     if extra_pnginfo is not None:
         for key in extra_pnginfo:
             metadata.add_text(key, json.dumps(extra_pnginfo[key]))
+    override_payload = _coerce_geninfo_override_payload(geninfo_override)
+    if override_payload is not None:
+        metadata.add_text("majoor_geninfo", json.dumps(override_payload))
+    for key, value in _resolve_execution_metadata(prompt, extra_pnginfo, unique_id).items():
+        metadata.add_text(key, value)
     metadata.add_text("generation_time_ms", str(generation_time_ms))
     metadata.add_text(
         "CreationTime",
         datetime.datetime.now().isoformat(" ")[:19],
     )
     return metadata
+
+
+def _runtime_active_prompt_id() -> str | None:
+    try:
+        from mjr_am_backend.runtime_activity import _LOCK, _STATE
+
+        with _LOCK:
+            return _clean_optional_text(_STATE.get("active_prompt_id"), max_len=255)
+    except Exception:
+        return None
+
+
+def _workflow_id_from_extra_pnginfo(extra_pnginfo: dict | None) -> str | None:
+    if not isinstance(extra_pnginfo, dict):
+        return None
+    candidates: list[Any] = [extra_pnginfo.get("workflow_id")]
+    workflow = extra_pnginfo.get("workflow")
+    if isinstance(workflow, dict):
+        candidates.extend((workflow.get("id"), workflow.get("workflow_id")))
+    for value in candidates:
+        text = _clean_optional_text(value, max_len=255)
+        if text:
+            return text
+    return None
+
+
+def _job_id_from_prompt(prompt: Any | None) -> str | None:
+    if isinstance(prompt, (list, tuple)) and len(prompt) >= 2:
+        text = _clean_optional_text(prompt[1], max_len=255)
+        if text:
+            return text
+    if isinstance(prompt, dict):
+        for key in ("prompt_id", "job_id"):
+            text = _clean_optional_text(prompt.get(key), max_len=255)
+            if text:
+                return text
+    return None
+
+
+def _resolve_execution_metadata(
+    prompt: Any | None,
+    extra_pnginfo: dict | None,
+    unique_id: Any | None = None,
+) -> dict[str, str]:
+    out: dict[str, str] = {}
+    job_id = _runtime_active_prompt_id() or _job_id_from_prompt(prompt)
+    workflow_id = _workflow_id_from_extra_pnginfo(extra_pnginfo)
+    source_node_id = _clean_optional_text(unique_id, max_len=255)
+    if job_id:
+        out["job_id"] = job_id
+        out["prompt_id"] = job_id
+    if workflow_id:
+        out["workflow_id"] = workflow_id
+    if source_node_id:
+        out["source_node_id"] = source_node_id
+    return out
+
+
+def _clean_optional_text(value: Any, max_len: int = 20_000) -> str | None:
+    if value is None:
+        return None
+    text = str(value).strip()
+    if not text:
+        return None
+    return text[:max_len]
+
+
+def _json_object_or_array(value: Any) -> Any | None:
+    if value is None:
+        return None
+    if isinstance(value, (dict, list)):
+        return value
+    text = _clean_optional_text(value)
+    if not text:
+        return None
+    try:
+        parsed = json.loads(text)
+    except Exception:
+        return None
+    return parsed if isinstance(parsed, (dict, list)) else None
+
+
+def _coerce_geninfo_override_payload(value: Any | None) -> dict[str, Any] | None:
+    if value is None:
+        return None
+    payload = value
+    if isinstance(value, str):
+        parsed = _json_object_or_array(value)
+        payload = parsed if isinstance(parsed, dict) else None
+    if not isinstance(payload, dict):
+        return None
+    if "majoor_geninfo" in payload and isinstance(payload.get("majoor_geninfo"), dict):
+        payload = payload["majoor_geninfo"]
+    if "MajoorOverride" in payload and isinstance(payload.get("MajoorOverride"), dict):
+        payload = payload["MajoorOverride"]
+    if not isinstance(payload, dict):
+        return None
+    out = dict(payload)
+    out.setdefault("version", 1)
+    out.setdefault("mode", "override")
+    return out
+
+
+def _assign_text(payload: dict[str, Any], key: str, value: Any) -> None:
+    text = _clean_optional_text(value)
+    if text is not None:
+        payload[key] = text
+
+
+def _assign_numeric(payload: dict[str, Any], key: str, value: Any, caster: Any, *, default: Any = None) -> None:
+    if value is None or value == default or value == "":
+        return
+    try:
+        payload[key] = caster(value)
+    except Exception:
+        return
+
+
+def _assign_json(payload: dict[str, Any], key: str, value: Any, expected_type: type) -> None:
+    parsed = _json_object_or_array(value)
+    if isinstance(parsed, expected_type):
+        payload[key] = parsed
+
+
+def _assign_custom_info(payload: dict[str, Any], value: Any) -> None:
+    parsed = _json_object_or_array(value)
+    if isinstance(parsed, list):
+        payload["custom_info"] = parsed
+        return
+    text = _clean_optional_text(value)
+    if text is not None:
+        payload["custom_info"] = [{"title": "Custom Info", "content": text}]
+
+
+def _build_geninfo_override_payload(
+    positive_prompt: str = "",
+    negative_prompt: str = "",
+    seed: int = -1,
+    steps: int = -1,
+    cfg: float = -1.0,
+    sampler: str = "",
+    scheduler: str = "",
+    model: str = "",
+    vae: str = "",
+    clip: str = "",
+    denoise: float = -1.0,
+    loras_json: str = "",
+    workflow_notes: str = "",
+    custom_info_json: str = "",
+) -> dict[str, Any]:
+    payload: dict[str, Any] = {"version": 1, "mode": "override"}
+    _assign_text(payload, "prompt", positive_prompt)
+    _assign_text(payload, "negative_prompt", negative_prompt)
+    _assign_numeric(payload, "seed", seed, int, default=-1)
+    _assign_numeric(payload, "steps", steps, int, default=-1)
+    _assign_numeric(payload, "cfg", cfg, float, default=-1.0)
+    _assign_numeric(payload, "denoise", denoise, float, default=-1.0)
+    _assign_text(payload, "sampler", sampler)
+    _assign_text(payload, "scheduler", scheduler)
+    _assign_text(payload, "model", model)
+    _assign_text(payload, "vae", vae)
+    _assign_text(payload, "clip", clip)
+    _assign_json(payload, "loras", loras_json, list)
+    _assign_text(payload, "workflow_notes", workflow_notes)
+    _assign_custom_info(payload, custom_info_json)
+    return payload
+
+
+def _geninfo_value(parsed: dict[str, Any] | None, key: str, value_key: str = "value") -> Any:
+    if not isinstance(parsed, dict):
+        return None
+    value = parsed.get(key)
+    if isinstance(value, dict):
+        return value.get(value_key) or value.get("value") or value.get("name")
+    return value
+
+
+def _first_model_name(parsed: dict[str, Any] | None) -> str:
+    if not isinstance(parsed, dict):
+        return ""
+    checkpoint = parsed.get("checkpoint")
+    if isinstance(checkpoint, dict) and checkpoint.get("name"):
+        return str(checkpoint.get("name") or "").strip()
+    models = parsed.get("models")
+    if isinstance(models, dict):
+        for key in ("checkpoint", "unet", "model", "diffusion_model", "base"):
+            item = models.get(key)
+            if isinstance(item, dict) and item.get("name"):
+                return str(item.get("name") or "").strip()
+        for item in models.values():
+            if isinstance(item, dict) and item.get("name"):
+                return str(item.get("name") or "").strip()
+    return ""
+
+
+def _loras_json_from_parsed(parsed: dict[str, Any] | None) -> str:
+    if not isinstance(parsed, dict):
+        return ""
+    loras = parsed.get("loras")
+    if not isinstance(loras, list) or not loras:
+        return ""
+    out: list[dict[str, Any]] = []
+    for item in loras:
+        if not isinstance(item, dict):
+            continue
+        name = str(item.get("name") or "").strip()
+        if not name:
+            continue
+        entry: dict[str, Any] = {"name": name}
+        strength = item.get("strength", item.get("model_strength", item.get("strength_model")))
+        if strength is not None:
+            entry["strength"] = strength
+        out.append(entry)
+    return json.dumps(out) if out else ""
+
+
+def _parsed_geninfo_to_override_payload(parsed: dict[str, Any] | None) -> dict[str, Any]:
+    return _build_geninfo_override_payload(
+        positive_prompt=str(_geninfo_value(parsed, "positive") or ""),
+        negative_prompt=str(_geninfo_value(parsed, "negative") or ""),
+        seed=int(_geninfo_value(parsed, "seed") or -1),
+        steps=int(_geninfo_value(parsed, "steps") or -1),
+        cfg=float(_geninfo_value(parsed, "cfg") or -1.0),
+        sampler=str(_geninfo_value(parsed, "sampler", "name") or ""),
+        scheduler=str(_geninfo_value(parsed, "scheduler", "name") or ""),
+        model=_first_model_name(parsed),
+        vae=str(_geninfo_value(parsed, "vae", "name") or ""),
+        clip=str(_geninfo_value(parsed, "clip", "name") or ""),
+        denoise=float(_geninfo_value(parsed, "denoise") or -1.0),
+        loras_json=_loras_json_from_parsed(parsed),
+    )
+
+
+def _workflow_node_widget_map(node: dict[str, Any]) -> dict[str, Any]:
+    values = node.get("widgets_values")
+    widgets = values if isinstance(values, list) else []
+    inputs = node.get("inputs")
+    out: dict[str, Any] = {}
+    if isinstance(inputs, list):
+        widget_index = 0
+        for inp in inputs:
+            if not isinstance(inp, dict):
+                continue
+            widget_name = inp.get("widget", {}).get("name") if isinstance(inp.get("widget"), dict) else None
+            if inp.get("link") is None and widget_index < len(widgets):
+                name = str(widget_name or inp.get("name") or "").strip()
+                if name:
+                    out[name] = widgets[widget_index]
+                widget_index += 1
+    if isinstance(values, dict):
+        out.update(values)
+    return out
+
+
+def _iter_workflow_nodes(workflow: Any, definitions: dict[str, dict[str, Any]] | None = None, seen: set[str] | None = None):
+    if not isinstance(workflow, dict):
+        return
+    defs = definitions
+    if defs is None:
+        defs = {}
+        raw_defs = workflow.get("definitions", {}).get("subgraphs") if isinstance(workflow.get("definitions"), dict) else []
+        if isinstance(raw_defs, list):
+            for sg in raw_defs:
+                if isinstance(sg, dict) and sg.get("id") is not None:
+                    defs[str(sg.get("id"))] = sg
+    active = seen or set()
+    for node in workflow.get("nodes", []) if isinstance(workflow.get("nodes"), list) else []:
+        if not isinstance(node, dict):
+            continue
+        yield node
+        node_type = str(node.get("type") or "")
+        subgraph = defs.get(node_type)
+        if subgraph and node_type not in active:
+            yield from _iter_workflow_nodes(subgraph, defs, {*active, node_type})
+
+
+def _first_named_or_string_value(values: dict[str, Any], names: tuple[str, ...]) -> str:
+    for name in names:
+        value = values.get(name)
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    for value in values.values():
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    return ""
+
+
+def _first_named_value(values: dict[str, Any], names: tuple[str, ...]) -> str:
+    for name in names:
+        value = values.get(name)
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    return ""
+
+
+def _apply_workflow_text_fallback(
+    out: dict[str, Any],
+    node_type: str,
+    values: dict[str, Any],
+    text_values: list[str],
+) -> None:
+    if "prompt" not in out and ("textencode" in node_type or "text" in node_type):
+        text = _first_named_or_string_value(values, ("text", "prompt", "positive_prompt", "string"))
+        if text and "negative" not in node_type:
+            out["prompt"] = text
+    if "negative_prompt" not in out:
+        text = _first_named_value(values, ("negative", "negative_prompt", "negative_text"))
+        if text or ("negative" in node_type and text_values):
+            out["negative_prompt"] = text or text_values[0]
+
+
+def _apply_workflow_model_fallback(
+    out: dict[str, Any],
+    node_type: str,
+    values: dict[str, Any],
+) -> None:
+    if "model" not in out and any(token in node_type for token in ("checkpoint", "unet", "model")):
+        model = _first_named_or_string_value(values, ("ckpt_name", "unet_name", "model_name", "model"))
+        if model:
+            out["model"] = model
+    if "vae" not in out and "vae" in node_type:
+        vae = _first_named_or_string_value(values, ("vae_name", "vae"))
+        if vae:
+            out["vae"] = vae
+    if "clip" not in out and "clip" in node_type:
+        clip = _first_named_or_string_value(values, ("clip_name", "clip_name1", "clip_name2", "clip"))
+        if clip:
+            out["clip"] = clip
+
+
+def _widget_value(values: dict[str, Any], widgets: list[Any], key: str, index: int, default: Any = None) -> Any:
+    return values.get(key, widgets[index] if len(widgets) > index else default)
+
+
+def _set_nonnegative_number(
+    out: dict[str, Any],
+    key: str,
+    value: Any,
+    caster: type[int] | type[float],
+) -> None:
+    if key in out or not isinstance(value, (int, float)) or value < 0:
+        return
+    out[key] = caster(value)
+
+
+def _set_nonempty_string(out: dict[str, Any], key: str, value: Any) -> None:
+    if key in out or not isinstance(value, str) or not value.strip():
+        return
+    out[key] = value.strip()
+
+
+def _apply_workflow_sampler_fallback(
+    out: dict[str, Any],
+    node_type: str,
+    values: dict[str, Any],
+    widgets: list[Any],
+) -> None:
+    if "ksampler" not in node_type and "sampler" not in node_type:
+        return
+    _set_nonnegative_number(out, "seed", _widget_value(values, widgets, "seed", 0), int)
+    _set_nonnegative_number(out, "steps", _widget_value(values, widgets, "steps", 1), int)
+    _set_nonnegative_number(out, "cfg", _widget_value(values, widgets, "cfg", 2), float)
+    _set_nonempty_string(out, "sampler", _widget_value(values, widgets, "sampler_name", 3, ""))
+    _set_nonempty_string(out, "scheduler", _widget_value(values, widgets, "scheduler", 4, ""))
+    _set_nonnegative_number(out, "denoise", _widget_value(values, widgets, "denoise", 5), float)
+
+
+def _workflow_context_fallback_payload(extra_pnginfo: dict | None) -> dict[str, Any]:
+    workflow = extra_pnginfo.get("workflow") if isinstance(extra_pnginfo, dict) else None
+    out: dict[str, Any] = {"version": 1, "mode": "override"}
+    if not isinstance(workflow, dict):
+        return out
+    for node in _iter_workflow_nodes(workflow):
+        node_type = str(node.get("type") or node.get("class_type") or "").lower()
+        if "majoorgeninfooverride" in node_type or "geninfooverride" in node_type:
+            continue
+        values = _workflow_node_widget_map(node)
+        widgets = node.get("widgets_values") if isinstance(node.get("widgets_values"), list) else []
+        text_values = [str(v).strip() for v in widgets if isinstance(v, str) and v.strip()]
+
+        _apply_workflow_text_fallback(out, node_type, values, text_values)
+        _apply_workflow_model_fallback(out, node_type, values)
+        _apply_workflow_sampler_fallback(out, node_type, values, widgets)
+    return out
+
+
+def _merge_missing_override_fields(manual: dict[str, Any], fallback: dict[str, Any]) -> dict[str, Any]:
+    merged = dict(fallback)
+    merged.update({k: v for k, v in manual.items() if k in ("version", "mode")})
+    for key, value in manual.items():
+        if key in ("version", "mode"):
+            continue
+        if value is None:
+            continue
+        if isinstance(value, str) and not value.strip():
+            continue
+        if isinstance(value, (int, float)) and value < 0:
+            continue
+        if isinstance(value, list) and not value:
+            continue
+        merged[key] = value
+    merged["version"] = 1
+    merged["mode"] = "override"
+    return merged
+
+
+def _payload_has_meaningful_value(payload: dict[str, Any], key: str) -> bool:
+    value = payload.get(key)
+    if value is None:
+        return False
+    if isinstance(value, str):
+        return bool(value.strip())
+    if isinstance(value, (int, float)):
+        return value >= 0
+    if isinstance(value, list):
+        return bool(value)
+    return True
+
+
+def _prefer_prompt_runtime_fields(payload: dict[str, Any], prompt_payload: dict[str, Any]) -> dict[str, Any]:
+    merged = dict(payload)
+    # ComfyUI mutates seed/control widgets before graphToPrompt. The prompt graph
+    # is therefore the executed truth; workflow JSON can still contain stale widget values.
+    for key in ("seed", "steps", "cfg", "denoise", "sampler", "scheduler"):
+        if _payload_has_meaningful_value(prompt_payload, key):
+            merged[key] = prompt_payload[key]
+    return merged
+
+
+def _parse_context_geninfo(prompt: Any | None, extra_pnginfo: dict | None) -> dict[str, Any] | None:
+    workflow = extra_pnginfo.get("workflow") if isinstance(extra_pnginfo, dict) else None
+    try:
+        from mjr_am_backend.features.geninfo.parser import parse_geninfo_from_prompt
+
+        result = parse_geninfo_from_prompt(prompt, workflow=workflow)
+        return result.data if result.ok and isinstance(result.data, dict) else None
+    except Exception as exc:
+        _log.debug("Majoor Gen Info Override context parse failed: %s", exc, exc_info=True)
+        return None
+
+
+def _coerce_runtime_seed(value: Any) -> int | None:
+    if isinstance(value, bool) or value is None or value == "":
+        return None
+    try:
+        seed = int(value)
+    except Exception:
+        return None
+    return seed if seed >= 0 else None
+
+
+def _runtime_seed_from_link(nodes_by_id: dict[str, Any], link_or_value: Any) -> int | None:
+    seed = _coerce_runtime_seed(link_or_value)
+    if seed is not None:
+        return seed
+    try:
+        from mjr_am_backend.features.geninfo.graph_converter import _is_link
+        from mjr_am_backend.features.geninfo.prompt_tracer import _resolve_scalar_from_link
+
+        if _is_link(link_or_value):
+            return _coerce_runtime_seed(_resolve_scalar_from_link(nodes_by_id, link_or_value))
+    except Exception:
+        return None
+    return None
+
+
+def _runtime_seed_from_node_inputs(nodes_by_id: dict[str, Any], inputs: dict[str, Any]) -> int | None:
+    for key in ("seed", "noise_seed", "rand_seed", "random_seed", "value", "int", "number"):
+        if key not in inputs:
+            continue
+        seed = _runtime_seed_from_link(nodes_by_id, inputs.get(key))
+        if seed is not None:
+            return seed
+    return None
+
+
+def _runtime_sampler_payload_from_node(
+    nodes_by_id: dict[str, Any],
+    node_id: str,
+    node: dict[str, Any],
+) -> dict[str, Any]:
+    try:
+        from mjr_am_backend.features.geninfo.graph_converter import _inputs, _lower, _node_type
+        from mjr_am_backend.features.geninfo.sampler_tracer import _is_advanced_sampler
+        from mjr_am_backend.features.geninfo.sampler_value_extractor import _extract_sampler_values
+    except Exception:
+        return {}
+
+    ins = _inputs(node)
+    if _lower(_node_type(node)).find("geninfooverride") >= 0:
+        return {}
+    try:
+        values = _extract_sampler_values(nodes_by_id, node, node_id, ins, _is_advanced_sampler(node), "high", {})
+    except Exception:
+        values = {}
+
+    out: dict[str, Any] = {"version": 1, "mode": "override"}
+    seed = _coerce_runtime_seed(values.get("seed_val"))
+    if seed is None:
+        seed = _runtime_seed_from_node_inputs(nodes_by_id, ins)
+    if seed is not None:
+        out["seed"] = seed
+    for src_key, dst_key, caster in (
+        ("steps", "steps", int),
+        ("cfg", "cfg", float),
+        ("denoise", "denoise", float),
+    ):
+        val = values.get(src_key)
+        if val is None:
+            val = ins.get(src_key)
+        try:
+            if val is not None and val != "":
+                out[dst_key] = caster(val)
+        except Exception:
+            pass
+    for src_key, dst_key in (("sampler_name", "sampler"), ("sampler", "sampler"), ("scheduler", "scheduler")):
+        val = values.get(src_key)
+        if val is None:
+            val = ins.get(src_key)
+        if isinstance(val, str) and val.strip() and dst_key not in out:
+            out[dst_key] = val.strip()
+    return out
+
+
+def _workflow_context_start_ids(nodes_by_id: dict[str, Any]) -> list[str]:
+    try:
+        from mjr_am_backend.features.geninfo.graph_converter import (
+            _inputs,
+            _lower,
+            _node_type,
+            _walk_passthrough,
+        )
+    except Exception:
+        return []
+
+    start_ids: list[str] = []
+    for node in nodes_by_id.values():
+        if not isinstance(node, dict):
+            continue
+        node_type = _lower(_node_type(node))
+        if "majoorgeninfooverride" not in node_type and "geninfooverride" not in node_type:
+            continue
+        start_id = _walk_passthrough(nodes_by_id, _inputs(node).get("workflow_context"))
+        if start_id:
+            start_ids.append(start_id)
+    return start_ids
+
+
+def _runtime_sampler_candidates(
+    nodes_by_id: dict[str, Any],
+    start_ids: list[str],
+) -> list[tuple[int, str, dict[str, Any]]]:
+    try:
+        from mjr_am_backend.features.geninfo.graph_converter import (
+            _collect_upstream_nodes,
+            _inputs,
+            _lower,
+            _node_type,
+        )
+        from mjr_am_backend.features.geninfo.sampler_tracer import _is_sampler
+    except Exception:
+        return []
+
+    candidates: list[tuple[int, str, dict[str, Any]]] = []
+    for start_id in start_ids:
+        distances = _collect_upstream_nodes(nodes_by_id, start_id)
+        if not distances and start_id in nodes_by_id:
+            distances = {start_id: 0}
+        for node_id, distance in distances.items():
+            node = nodes_by_id.get(node_id)
+            if not isinstance(node, dict):
+                continue
+            node_type = _lower(_node_type(node))
+            if "majoorgeninfooverride" in node_type or "geninfooverride" in node_type:
+                continue
+            if _is_sampler(node) or any(key in _inputs(node) for key in ("seed", "noise_seed")):
+                candidates.append((distance, str(node_id), node))
+    return candidates
+
+
+def _prompt_runtime_sampler_payload(prompt: Any | None, workflow: Any | None) -> dict[str, Any]:
+    """Read executed sampler/noise values from ComfyUI's runtime PROMPT graph.
+
+    This intentionally starts at MajoorGenInfoOverride.workflow_context when it
+    is linked, so an override node connected behind VAE Decode captures the
+    sampler branch that produced that image instead of its own seed widget.
+    """
+    out: dict[str, Any] = {"version": 1, "mode": "override"}
+    try:
+        from mjr_am_backend.features.geninfo.graph_converter import _normalize_graph_input
+        from mjr_am_backend.features.geninfo.sampler_tracer import _is_sampler
+    except Exception:
+        return out
+
+    nodes_by_id = _normalize_graph_input(prompt, workflow)
+    if not nodes_by_id:
+        return out
+
+    start_ids = _workflow_context_start_ids(nodes_by_id)
+    if not start_ids:
+        start_ids = [nid for nid, node in nodes_by_id.items() if isinstance(node, dict)]
+
+    candidates = _runtime_sampler_candidates(nodes_by_id, start_ids)
+    candidates.sort(key=lambda item: (0 if _is_sampler(item[2]) else 1, item[0]))
+    for _, node_id, node in candidates:
+        payload = _runtime_sampler_payload_from_node(nodes_by_id, node_id, node)
+        if _payload_has_meaningful_value(payload, "seed"):
+            return payload
+        for key in ("steps", "cfg", "denoise", "sampler", "scheduler"):
+            if key not in out and _payload_has_meaningful_value(payload, key):
+                out[key] = payload[key]
+    return out
+
+
+class MajoorGenInfoOverride:
+    """Build explicit Majoor geninfo metadata for Save Image/Video nodes."""
+
+    @classmethod
+    def INPUT_TYPES(cls):  # noqa: N802
+        return {
+            "required": {
+                "positive_prompt": ("STRING", {"default": "", "multiline": True}),
+                "negative_prompt": ("STRING", {"default": "", "multiline": True}),
+            },
+            "optional": {
+                "workflow_context": (
+                    MAJOOR_ANY,
+                    {
+                        "tooltip": "Optional dependency input. Connect a late workflow node, for example VAE Decode IMAGE, so this node runs with full graph context.",
+                    },
+                ),
+                "seed": ("INT", {"default": -1, "min": -1, "max": 0xffffffffffffffff, "control_after_generate": False}),
+                "steps": ("INT", {"default": -1, "min": -1}),
+                "cfg": ("FLOAT", {"default": -1.0, "min": -1.0, "step": 0.1}),
+                "sampler": ("STRING", {"default": ""}),
+                "scheduler": ("STRING", {"default": ""}),
+                "model": ("STRING", {"default": ""}),
+                "vae": ("STRING", {"default": ""}),
+                "clip": ("STRING", {"default": ""}),
+                "denoise": ("FLOAT", {"default": -1.0, "min": -1.0, "max": 1.0, "step": 0.01}),
+                "loras_json": (
+                    "STRING",
+                    {
+                        "default": "",
+                        "multiline": True,
+                        "tooltip": "JSON array: [{\"name\":\"lora.safetensors\",\"strength\":0.8}]",
+                    },
+                ),
+                "workflow_notes": ("STRING", {"default": "", "multiline": True}),
+                "custom_info_json": (
+                    "STRING",
+                    {
+                        "default": "",
+                        "multiline": True,
+                        "tooltip": "JSON array: [{\"title\":\"Notes\",\"content\":\"...\",\"color\":\"#4CAF50\"}]",
+                    },
+                ),
+            },
+            "hidden": {
+                "prompt": "PROMPT",
+                "extra_pnginfo": "EXTRA_PNGINFO",
+            },
+        }
+
+    RETURN_TYPES = ("MAJOOR_GENINFO",)
+    RETURN_NAMES = ("geninfo_override",)
+    FUNCTION = "build"
+    CATEGORY = "Majoor"
+    DESCRIPTION = "Build explicit geninfo metadata consumed by Majoor Save Image/Video."
+
+    @classmethod
+    def VALIDATE_INPUTS(cls, **kwargs):  # noqa: N802
+        return True
+
+    def build(
+        self,
+        positive_prompt: str = "",
+        negative_prompt: str = "",
+        workflow_context: Any | None = None,
+        seed: int = -1,
+        steps: int = -1,
+        cfg: float = -1.0,
+        sampler: str = "",
+        scheduler: str = "",
+        model: str = "",
+        vae: str = "",
+        clip: str = "",
+        denoise: float = -1.0,
+        loras_json: str = "",
+        workflow_notes: str = "",
+        custom_info_json: str = "",
+        prompt: Any | None = None,
+        extra_pnginfo: dict | None = None,
+    ):
+        manual = _build_geninfo_override_payload(
+            positive_prompt=positive_prompt,
+            negative_prompt=negative_prompt,
+            seed=seed,
+            steps=steps,
+            cfg=cfg,
+            sampler=sampler,
+            scheduler=scheduler,
+            model=model,
+            vae=vae,
+            clip=clip,
+            denoise=denoise,
+            loras_json=loras_json,
+            workflow_notes=workflow_notes,
+            custom_info_json=custom_info_json,
+        )
+        parsed = _parse_context_geninfo(prompt, extra_pnginfo)
+        parsed_payload = _parsed_geninfo_to_override_payload(parsed)
+        runtime_payload = _prompt_runtime_sampler_payload(
+            prompt,
+            extra_pnginfo.get("workflow") if isinstance(extra_pnginfo, dict) else None,
+        )
+        fallback = _merge_missing_override_fields(
+            _workflow_context_fallback_payload(extra_pnginfo),
+            parsed_payload,
+        )
+        fallback = _prefer_prompt_runtime_fields(fallback, parsed_payload)
+        fallback = _prefer_prompt_runtime_fields(fallback, runtime_payload)
+        if workflow_context is not None and fallback.get("seed") is not None:
+            manual.pop("seed", None)
+        payload = _merge_missing_override_fields(manual, fallback)
+        if workflow_context is not None:
+            payload = _prefer_prompt_runtime_fields(payload, fallback)
+            for key in ("prompt", "negative_prompt", "model", "vae", "clip", "loras"):
+                if _payload_has_meaningful_value(fallback, key):
+                    payload[key] = fallback[key]
+        if _payload_has_meaningful_value(runtime_payload, "seed"):
+            payload["seed"] = runtime_payload["seed"]
+        return {"ui": {"majoor_geninfo_override": [payload]}, "result": (payload,)}
 
 
 # ---------------------------------------------------------------------------
@@ -143,10 +891,15 @@ class MajoorSaveImage:
                         "tooltip": "Generation time in milliseconds. -1 = auto-detect from prompt lifecycle.",
                     },
                 ),
+                "geninfo_override": (
+                    "MAJOOR_GENINFO",
+                    {"tooltip": "Explicit geninfo override from Majoor Gen Info Override."},
+                ),
             },
             "hidden": {
                 "prompt": "PROMPT",
                 "extra_pnginfo": "EXTRA_PNGINFO",
+                "unique_id": "UNIQUE_ID",
             },
         }
 
@@ -161,8 +914,10 @@ class MajoorSaveImage:
         images: torch.Tensor,
         filename_prefix: str = "Majoor",
         generation_time_ms: int = -1,
+        geninfo_override: Any | None = None,
         prompt: Any | None = None,
         extra_pnginfo: dict | None = None,
+        unique_id: Any | None = None,
     ):
         filename_prefix += self.prefix_append
         full_output_folder, filename, counter, subfolder, filename_prefix = (
@@ -182,7 +937,7 @@ class MajoorSaveImage:
 
             metadata: PngInfo | None = None
             if not args.disable_metadata:
-                metadata = _build_metadata(prompt, extra_pnginfo, gen_time)
+                metadata = _build_metadata(prompt, extra_pnginfo, gen_time, geninfo_override, unique_id)
 
             fname = filename.replace("%batch_num%", str(batch_number))
             file = f"{fname}_{counter:05}_.png"
@@ -304,6 +1059,8 @@ def _build_container_metadata(
     prompt: Any | None,
     extra_pnginfo: dict | None,
     generation_time_ms: int,
+    geninfo_override: Any | None = None,
+    unique_id: Any | None = None,
 ) -> dict[str, str]:
     """Build the metadata dict to embed into an MP4 container."""
     meta: dict[str, str] = {}
@@ -314,6 +1071,10 @@ def _build_container_metadata(
     if extra_pnginfo is not None:
         for key in extra_pnginfo:
             meta[key] = json.dumps(extra_pnginfo[key])
+    override_payload = _coerce_geninfo_override_payload(geninfo_override)
+    if override_payload is not None:
+        meta["majoor_geninfo"] = json.dumps(override_payload)
+    meta.update(_resolve_execution_metadata(prompt, extra_pnginfo, unique_id))
     meta["generation_time_ms"] = str(generation_time_ms)
     meta["CreationTime"] = datetime.datetime.now().isoformat(" ")[:19]
     return meta
@@ -488,6 +1249,10 @@ class MajoorSaveVideo:
                     {"default": -1, "min": -1,
                      "tooltip": "Generation time in ms. -1 = auto-detect."},
                 ),
+                "geninfo_override": (
+                    "MAJOOR_GENINFO",
+                    {"tooltip": "Explicit geninfo override from Majoor Gen Info Override."},
+                ),
                 "audio": ("AUDIO", {"tooltip": "Audio to mux into the video."}),
                 "crf": (
                     "INT",
@@ -503,6 +1268,7 @@ class MajoorSaveVideo:
             "hidden": {
                 "prompt": "PROMPT",
                 "extra_pnginfo": "EXTRA_PNGINFO",
+                "unique_id": "UNIQUE_ID",
             },
         }
 
@@ -523,11 +1289,13 @@ class MajoorSaveVideo:
         frame_rate: float = 24.0,
         loop_count: int = 0,
         generation_time_ms: int = -1,
+        geninfo_override: Any | None = None,
         audio: dict | None = None,
         crf: int = 19,
         save_first_frame: bool = True,
         prompt: Any | None = None,
         extra_pnginfo: dict | None = None,
+        unique_id: Any | None = None,
     ):
         resolved = _resolve_video_inputs(video, images, audio, frame_rate)
         if resolved is None:
@@ -548,7 +1316,7 @@ class MajoorSaveVideo:
         counter = _next_counter(full_output_folder, filename)
 
         # --- PNG sidecar with full metadata ---
-        png_metadata = _build_metadata(prompt, extra_pnginfo, gen_time)
+        png_metadata = _build_metadata(prompt, extra_pnginfo, gen_time, geninfo_override, unique_id)
 
         if save_first_frame:
             sidecar_file = f"{filename}_{counter:05}.png"
@@ -567,7 +1335,7 @@ class MajoorSaveVideo:
             return {"ui": {"videos": [{"filename": out_file, "subfolder": subfolder, "type": self.type}]}}
 
         # --- MP4 via PyAV ---
-        container_meta = _build_container_metadata(prompt, extra_pnginfo, gen_time)
+        container_meta = _build_container_metadata(prompt, extra_pnginfo, gen_time, geninfo_override, unique_id)
         out_file = f"{filename}_{counter:05}_.mp4"
         out_path = os.path.join(full_output_folder, out_file)
 
@@ -580,11 +1348,13 @@ class MajoorSaveVideo:
 # ---------------------------------------------------------------------------
 
 NODE_CLASS_MAPPINGS: dict[str, type] = {
+    "MajoorGenInfoOverride": MajoorGenInfoOverride,
     "MajoorSaveImage": MajoorSaveImage,
     "MajoorSaveVideo": MajoorSaveVideo,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS: dict[str, str] = {
+    "MajoorGenInfoOverride": "〽️ Majoor Gen Info Override",
     "MajoorSaveImage": "〽️ Majoor Save Image 💾",
     "MajoorSaveVideo": "〽️ Majoor Save Video 🎬",
 }

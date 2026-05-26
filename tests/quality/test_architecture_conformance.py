@@ -7,18 +7,18 @@ regressions are caught during normal ``pytest`` runs.
 
 Rules enforced
 --------------
-1. Vue layer purity: no file in ``js/vue/`` may contain a production
+1. Vue layer purity: no file in ``ui/vue/`` may contain a production
    ``import`` of ``comfyApiBridge.js``.
    Only ``hostAdapter.js`` and ``entry.js`` are allowed to import it.
    Status: currently clean — zero violations.
 
-2. Feature-layer ratchet: the set of ``js/features/`` files that
+2. Feature-layer ratchet: the set of ``ui/features/`` files that
    directly import ``comfyApiBridge.js`` must not grow.
    The known tech-debt violations are listed in KNOWN_FEATURE_VIOLATIONS.
    The test fails if a *new* violation appears; it passes (and prints a
    hint) if the set *shrinks* (i.e. someone fixed a violation).
 
-3. Pinia stores isolation: ``js/vue/stores/`` must not import from
+3. Pinia stores isolation: ``ui/vue/stores/`` must not import from
    ``panelRuntime.js``.  Stores are pure reactive state; the imperative
    panel runtime must not leak into the store layer.
 """
@@ -31,7 +31,7 @@ from pathlib import Path
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-JS_ROOT = REPO_ROOT / "js"
+JS_ROOT = REPO_ROOT / "ui"
 
 # ---------------------------------------------------------------------------
 # All known feature-layer files that violate ADR 0007 by importing
@@ -49,13 +49,13 @@ KNOWN_FEATURE_VIOLATIONS: frozenset[str] = frozenset({
 # Files that are legitimately allowed to import comfyApiBridge directly.
 # This set is intentionally narrow — do not add new entries without an ADR.
 ALLOWED_DIRECT_IMPORTERS: frozenset[str] = frozenset({
-    "js/app/comfyApiBridge.js",        # the module itself
-    "js/app/hostAdapter.js",           # single authorised adapter layer
-    "js/entry.js",                     # extension entry point
-    "js/app/dialogs.js",               # app-layer dialog helper
-    "js/app/toast.js",                 # app-layer toast helper
-    "js/app/i18n.js",                  # app-layer i18n integration
-    "js/features/runtime/entryUiRegistration.js",  # entry-adjacent registration
+    "ui/app/comfyApiBridge.js",        # the module itself
+    "ui/app/hostAdapter.js",           # single authorised adapter layer
+    "ui/entry.ts",                     # extension entry point
+    "ui/app/dialogs.js",               # app-layer dialog helper
+    "ui/app/toast.js",                 # app-layer toast helper
+    "ui/app/i18n.js",                  # app-layer i18n integration
+    "ui/features/runtime/entryUiRegistration.js",  # entry-adjacent registration
 })
 
 # ---------------------------------------------------------------------------
@@ -71,7 +71,7 @@ def _posix_rel(path: Path) -> str:
     return path.relative_to(REPO_ROOT).as_posix()
 
 
-def _find_js_files(base: Path, *, extensions: tuple[str, ...] = (".js", ".vue", ".mjs")) -> list[Path]:
+def _find_js_files(base: Path, *, extensions: tuple[str, ...] = (".ts", ".js", ".vue", ".mjs")) -> list[Path]:
     if not base.is_dir():
         return []
     return [f for f in base.rglob("*") if f.suffix in extensions]
@@ -92,19 +92,19 @@ def _files_importing_bridge(files: list[Path]) -> list[str]:
 
 def test_vue_layer_does_not_import_comfy_api_bridge():
     """
-    No file in js/vue/ may directly import comfyApiBridge.js.
+    No file in ui/vue/ may directly import comfyApiBridge.js.
 
     Vue components, composables, and stores must access host capabilities
-    exclusively through js/app/hostAdapter.js (ADR 0007 §1).
+    exclusively through ui/app/hostAdapter.js (ADR 0007 §1).
     """
     vue_dir = JS_ROOT / "vue"
     if not vue_dir.is_dir():
-        pytest.skip("js/vue/ not found")
+        pytest.skip("ui/vue/ not found")
 
     violations = _files_importing_bridge(_find_js_files(vue_dir))
     assert not violations, (
         "ADR 0007 violation — Vue layer files must not import comfyApiBridge.js directly.\n"
-        "Use js/app/hostAdapter.js instead:\n"
+        "Use ui/app/hostAdapter.js instead:\n"
         + "\n".join(f"  {v}" for v in sorted(violations))
     )
 
@@ -123,7 +123,7 @@ def test_feature_layer_comfy_bridge_violations_do_not_grow():
     """
     features_dir = JS_ROOT / "features"
     if not features_dir.is_dir():
-        pytest.skip("js/features/ not found")
+        pytest.skip("ui/features/ not found")
 
     current_violations = set(_files_importing_bridge(_find_js_files(features_dir)))
     # Subtract the allowed entry-adjacent importer (legitimate exception)
@@ -131,8 +131,8 @@ def test_feature_layer_comfy_bridge_violations_do_not_grow():
 
     new_violations = current_violations - KNOWN_FEATURE_VIOLATIONS
     assert not new_violations, (
-        "ADR 0007 violation — new file(s) in js/features/ import comfyApiBridge.js directly.\n"
-        "Route these through js/app/hostAdapter.js or add to KNOWN_FEATURE_VIOLATIONS with a backlog ticket:\n"
+        "ADR 0007 violation — new file(s) in ui/features/ import comfyApiBridge.js directly.\n"
+        "Route these through ui/app/hostAdapter.js or add to KNOWN_FEATURE_VIOLATIONS with a backlog ticket:\n"
         + "\n".join(f"  {v}" for v in sorted(new_violations))
     )
 
@@ -152,7 +152,7 @@ def test_feature_layer_comfy_bridge_violations_do_not_grow():
 
 def test_pinia_stores_do_not_import_panel_runtime():
     """
-    Pinia stores (js/vue/stores/) must be pure reactive state.
+    Pinia stores (ui/vue/stores/) must be pure reactive state.
     They must not import from panelRuntime.js (imperative lifecycle layer).
 
     Allowed: components can import panelRuntime (App.vue is the designated
@@ -160,7 +160,7 @@ def test_pinia_stores_do_not_import_panel_runtime():
     """
     stores_dir = JS_ROOT / "stores"
     if not stores_dir.is_dir():
-        pytest.skip("js/vue/stores/ not found")
+        pytest.skip("ui/vue/stores/ not found")
 
     violations = [
         _posix_rel(f)
@@ -178,12 +178,12 @@ def test_legacy_comfy_frontend_imports_are_entrypoint_only():
     violations = [
         _posix_rel(f)
         for f in _find_js_files(JS_ROOT)
-        if _posix_rel(f) != "js/entry.js"
+        if _posix_rel(f) != "ui/entry.ts"
         and _LEGACY_COMFY_IMPORT_RE.search(f.read_text(encoding="utf-8", errors="replace"))
     ]
     assert not violations, (
-        "ComfyUI legacy frontend imports must stay isolated to js/entry.js.\n"
-        "Use js/app/comfyApiBridge.js or js/app/hostAdapter.js instead:\n"
+        "ComfyUI legacy frontend imports must stay isolated to ui/entry.ts.\n"
+        "Use ui/app/comfyApiBridge.js or ui/app/hostAdapter.js instead:\n"
         + "\n".join(f"  {v}" for v in sorted(violations))
     )
 
@@ -194,12 +194,12 @@ def test_legacy_comfy_frontend_imports_are_entrypoint_only():
 
 def test_app_layer_does_not_import_from_vue():
     """
-    js/app/ modules must not import from js/vue/ — that would create a
+    ui/app/ modules must not import from ui/vue/ — that would create a
     circular dependency (vue/App.vue → app/… → vue/…).
     """
     app_dir = JS_ROOT / "app"
     if not app_dir.is_dir():
-        pytest.skip("js/app/ not found")
+        pytest.skip("ui/app/ not found")
 
     vue_import_re = re.compile(r'^(?:import|export)\b.*["\'].*[./]vue/', re.MULTILINE)
     violations = [
@@ -208,6 +208,6 @@ def test_app_layer_does_not_import_from_vue():
         if vue_import_re.search(f.read_text(encoding="utf-8", errors="replace"))
     ]
     assert not violations, (
-        "Circular dependency — js/app/ must not import from js/vue/:\n"
+        "Circular dependency — ui/app/ must not import from ui/vue/:\n"
         + "\n".join(f"  {v}" for v in sorted(violations))
     )

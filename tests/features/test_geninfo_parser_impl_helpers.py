@@ -182,6 +182,147 @@ def test_parse_geninfo_from_prompt_guard_paths():
     assert out2.ok
 
 
+def test_no_sink_custom_graph_uses_generic_geninfo_fields():
+    nodes = {
+        "1": {
+            "class_type": "MysteryTextToImage",
+            "inputs": {
+                "prompt": "cinematic castle above a lake at sunrise",
+                "negative_prompt": "low quality, blurry",
+                "seed": 123,
+                "steps": 18,
+                "cfg_scale": 5.5,
+                "model_name": "custom_model.safetensors",
+                "sampler_name": "euler",
+                "scheduler": "normal",
+            },
+        }
+    }
+
+    res = p.parse_geninfo_from_prompt(nodes)
+
+    assert res.ok and isinstance(res.data, dict)
+    assert res.data["positive"]["value"] == "cinematic castle above a lake at sunrise"
+    assert res.data["negative"]["value"] == "low quality, blurry"
+    assert res.data["seed"]["value"] == 123
+    assert res.data["steps"]["value"] == 18
+    assert res.data["cfg"]["value"] == 5.5
+    assert res.data["checkpoint"]["name"] == "custom_model"
+    assert res.data["generic_fields"]["raw_summary"]["node_count"] == 1
+
+
+def test_parse_geninfo_uses_majoor_override_from_workflow_metadata():
+    workflow = {
+        "majoor_geninfo": {
+            "mode": "override",
+            "prompt": "forced positive prompt",
+            "negative_prompt": "forced negative prompt",
+            "seed": "12345",
+            "steps": 30,
+            "cfg": 7.0,
+            "sampler": "DPM++ 2M",
+            "scheduler": "Karras",
+            "model": "model_name.safetensors",
+            "vae": "vae_name.safetensors",
+            "clip": "clip_name.safetensors",
+            "loras": [{"name": "lora1.safetensors", "strength": 0.8}],
+            "workflow_notes": "forced notes",
+            "custom_info": [{"title": "Workflow Notes", "content": "Used high-res fix", "color": "#4CAF50"}],
+        },
+        "nodes": [],
+    }
+    prompt = {
+        "1": {"class_type": "KSampler", "inputs": {"seed": 1, "steps": 1, "cfg": 1}},
+        "2": {"class_type": "SaveImage", "inputs": {"images": ["1", 0]}},
+    }
+
+    res = p.parse_geninfo_from_prompt(prompt, workflow=workflow)
+
+    assert res.ok and isinstance(res.data, dict)
+    assert res.data["engine"]["parser_version"] == "geninfo-override-v1"
+    assert res.data["positive"]["value"] == "forced positive prompt"
+    assert res.data["negative"]["value"] == "forced negative prompt"
+    assert res.data["seed"]["value"] == 12345
+    assert res.data["checkpoint"]["name"] == "model_name"
+    assert res.data["vae"]["name"] == "vae_name"
+    assert res.data["clip"]["name"] == "clip_name"
+    assert res.data["loras"][0]["name"] == "lora1"
+    assert res.data["custom_info"][0]["color"] == "#4CAF50"
+
+
+def test_parse_geninfo_partial_override_falls_back_to_workflow_fields():
+    workflow = {
+        "majoor_geninfo": {"mode": "override", "seed": 999},
+        "nodes": [],
+    }
+    prompt = {
+        "1": {"class_type": "CheckpointLoaderSimple", "inputs": {"ckpt_name": "base.safetensors"}},
+        "2": {"class_type": "CLIPTextEncode", "inputs": {"text": "normal positive prompt", "clip": ["1", 1]}},
+        "3": {"class_type": "CLIPTextEncode", "inputs": {"text": "normal negative prompt", "clip": ["1", 1]}},
+        "4": {"class_type": "EmptyLatentImage", "inputs": {"width": 512, "height": 768}},
+        "5": {
+            "class_type": "KSampler",
+            "inputs": {
+                "model": ["1", 0],
+                "positive": ["2", 0],
+                "negative": ["3", 0],
+                "latent_image": ["4", 0],
+                "seed": 123,
+                "steps": 20,
+                "cfg": 7.5,
+                "sampler_name": "euler",
+                "scheduler": "normal",
+            },
+        },
+        "6": {"class_type": "SaveImage", "inputs": {"images": ["5", 0]}},
+    }
+
+    res = p.parse_geninfo_from_prompt(prompt, workflow=workflow)
+
+    assert res.ok and isinstance(res.data, dict)
+    assert res.data["engine"]["mode"] == "override"
+    assert res.data["positive"]["value"] == "normal positive prompt"
+    assert res.data["negative"]["value"] == "normal negative prompt"
+    assert res.data["steps"]["value"] == 20
+    assert res.data["cfg"]["value"] == 7.5
+    assert res.data["sampler"]["name"] == "euler"
+    assert res.data["checkpoint"]["name"] == "base"
+    assert res.data["seed"]["value"] == 999
+    assert res.data["seed"]["source"] == "majoor_geninfo"
+
+
+def test_generic_geninfo_does_not_override_sampler_trace_fields():
+    nodes = {
+        "1": {"class_type": "CLIPLoader", "inputs": {"clip_name": "clip.safetensors"}},
+        "2": {"class_type": "CLIPTextEncode", "inputs": {"text": "actual positive prompt", "clip": ["1", 0]}},
+        "3": {"class_type": "CLIPTextEncode", "inputs": {"text": "actual negative prompt", "clip": ["1", 0]}},
+        "4": {"class_type": "EmptyLatentImage", "inputs": {"width": 512, "height": 512}},
+        "5": {
+            "class_type": "KSampler",
+            "inputs": {
+                "prompt": "generic prompt should not win",
+                "seed": 111,
+                "steps": 20,
+                "cfg": 7,
+                "sampler_name": "euler",
+                "scheduler": "normal",
+                "model": ["1", 0],
+                "positive": ["2", 0],
+                "negative": ["3", 0],
+                "latent_image": ["4", 0],
+            },
+        },
+        "6": {"class_type": "SaveImage", "inputs": {"images": ["5", 0]}},
+    }
+
+    res = p.parse_geninfo_from_prompt(nodes)
+
+    assert res.ok and isinstance(res.data, dict)
+    assert res.data["positive"]["value"] == "actual positive prompt"
+    assert res.data["positive"]["confidence"] == "high"
+    assert res.data["generic_fields"]["source"] == "generic_graph_scan"
+
+
 def test_tts_widget_and_direct_helpers(monkeypatch):
     out = {}
     p._apply_tts_text_direct_fields(

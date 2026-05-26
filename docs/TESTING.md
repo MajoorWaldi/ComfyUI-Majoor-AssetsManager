@@ -115,7 +115,7 @@ The changed-file quality gate is also runnable manually:
 python scripts/run_changed_quality_gate.py
 ```
 
-For frontend tests in the Node Vitest environment, prefer the shared helpers in `js/tests/helpers/vitestEnvironment.mjs`. Team rule: use partial Vue mocks by default, based on the real `vue` module, instead of full replacement mocks.
+For frontend tests in the Node Vitest environment, prefer the shared helpers in `ui/tests/helpers/vitestEnvironment.mjs`. Team rule: use partial Vue mocks by default, based on the real `vue` module, instead of full replacement mocks.
 
 ## Batch runners (Windows)
 

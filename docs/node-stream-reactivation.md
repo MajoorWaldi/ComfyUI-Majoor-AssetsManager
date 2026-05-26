@@ -4,7 +4,7 @@
 
 `Node Stream` is enabled. The single source of truth is:
 
-- `js/features/viewer/nodeStream/nodeStreamFeatureFlag.js`
+- `ui/features/viewer/nodeStream/nodeStreamFeatureFlag.js`
 
 The active implementation is selection-only: when the MFV Node Stream button is
 on, selecting a ComfyUI canvas node streams the best available preview into the
@@ -26,14 +26,14 @@ If `NODE_STREAM_FEATURE_ENABLED` is set to `false`:
 
 ## Files Involved
 
-- `js/features/viewer/nodeStream/nodeStreamFeatureFlag.js`
-- `js/features/viewer/nodeStream/NodeStreamController.js`
-- `js/features/viewer/nodeStream/imageOpsPreviewBridge.js`
-- `js/features/viewer/FloatingViewer.js`
-- `js/features/viewer/floatingViewerManager.js`
-- `js/entry.js`
-- `js/app/events.js`
-- `js/tests/node_stream_controller.vitest.mjs`
+- `ui/features/viewer/nodeStream/nodeStreamFeatureFlag.js`
+- `ui/features/viewer/nodeStream/NodeStreamController.js`
+- `ui/features/viewer/nodeStream/imageOpsPreviewBridge.js`
+- `ui/features/viewer/FloatingViewer.js`
+- `ui/features/viewer/floatingViewerManager.js`
+- `ui/entry.ts`
+- `ui/app/events.js`
+- `ui/tests/node_stream_controller.vitest.mjs`
 
 ## Smoke Tests
 

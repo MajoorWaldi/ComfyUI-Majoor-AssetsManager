@@ -2,7 +2,7 @@ default_install_hook_types: [pre-commit, pre-push]
 
 minimum_pre_commit_version: "3.6.0"
 
-exclude: ^js_dist/
+exclude: ^dist/
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
@@ -34,13 +34,13 @@ repos:
         name: ESLint autofix
         entry: npm exec eslint --fix
         language: system
-        files: ^js/.*\.(ts|js|mjs)$
+        files: ^ui/.*\.(ts|js|mjs)$
 
       - id: prettier-write
         name: Prettier write
         entry: npm exec prettier --write
         language: system
-        files: ^js/.*\.(ts|js|mjs|vue)$
+        files: ^ui/.*\.(ts|js|mjs|vue)$
 
       - id: mypy
         name: Mypy (manual)

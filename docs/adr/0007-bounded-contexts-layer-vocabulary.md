@@ -35,7 +35,7 @@ Cross-context communication goes through the public contract of the target conte
 | **collections** | `mjr_am_backend/features/collections/` | Ratings, tags, collections |
 | **security** | `mjr_am_backend/routes/core/security*.py` | Auth, CSRF, rate-limit policy |
 | **plugins** | `plugins/` | Third-party extension system |
-| **ui-integration** | `js/features/runtime/` | ComfyUI host bridge, lifecycle |
+| **ui-integration** | `ui/features/runtime/` | ComfyUI host bridge, lifecycle |
 
 A context must **not** import from `routes/handlers/` of another context.
 Route handlers are thin shells that call into context services.
@@ -85,12 +85,12 @@ The same principle applies on the JS side:
 
 | Context | Directory | Scope |
 |---------|-----------|-------|
-| **host-adapter** | `js/app/comfyApiBridge.js` + `js/app/hostAdapter.js` | All ComfyUI / DOM host access |
-| **grid** | `js/features/grid/` | Asset grid rendering and events |
-| **viewer** | `js/features/viewer/` | Media viewer, floating viewer, live stream |
-| **feed** | `js/features/bottomPanel/feed/` | Generated feed |
-| **search** | `js/features/search/` | Search/filter UI |
-| **stores** | `js/stores/` | Pinia state, never import DOM/host directly |
+| **host-adapter** | `ui/app/comfyApiBridge.js` + `ui/app/hostAdapter.js` | All ComfyUI / DOM host access |
+| **grid** | `ui/features/grid/` | Asset grid rendering and events |
+| **viewer** | `ui/features/viewer/` | Media viewer, floating viewer, live stream |
+| **feed** | `ui/features/bottomPanel/feed/` | Generated feed |
+| **search** | `ui/features/search/` | Search/filter UI |
+| **stores** | `ui/stores/` | Pinia state, never import DOM/host directly |
 
 Vue components and Pinia stores **must not** import directly from `comfyApiBridge.js`
 or ComfyUI globals.  They go through the host-adapter layer.

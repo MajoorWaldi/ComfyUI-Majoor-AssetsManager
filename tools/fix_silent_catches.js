@@ -38,7 +38,7 @@ function processFile(filePath) {
 console.log('Scanning from', root);
 const jsRoot = path.join(root, 'js');
 if (!fs.existsSync(jsRoot)) {
-  console.log('No js/ directory found at', jsRoot);
+  console.log('No ui/ directory found at', jsRoot);
   process.exit(0);
 }
 walk(jsRoot);

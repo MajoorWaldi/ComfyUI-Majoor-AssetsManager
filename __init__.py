@@ -72,14 +72,14 @@ __branch__ = _detect_branch_from_env()
 root = Path(__file__).resolve().parent
 if WEB_DIRECTORY is None:
     # ComfyUI only auto-loads browser-ready .js files from WEB_DIRECTORY.
-    # The TypeScript/Vue source under js/ must be bundled first with `npm run build`.
-    _js_dist = root / "js_dist"
-    WEB_DIRECTORY = str(_js_dist)
-    if not (_js_dist / "entry.js").is_file():
+    # The TypeScript/Vue source under ui/ must be bundled first with `npm run build`.
+    _dist = root / "dist"
+    WEB_DIRECTORY = str(_dist)
+    if not (_dist / "entry.js").is_file():
         _logger.warning(
             "Majoor Assets Manager frontend bundle is missing at %s. "
             "Run `npm run build` before loading the custom node.",
-            _js_dist / "entry.js",
+            _dist / "entry.js",
         )
 
 # Ensure extension-local packages (e.g. `mjr_am_backend`) are importable even when

@@ -45,9 +45,9 @@ This map is the working reference for backend refactors. It is intentionally sho
 ## Frontend
 
 - **Vue 3 + Pinia** for all major UI surfaces (grid, sidebar, feed, context menus, settings).
-- `js/vue/` — Vue components and stores.
-- `js/features/` — feature-scoped JS modules.
-- `js/stores/` — Pinia stores.
+- `ui/vue/` — Vue components and stores.
+- `ui/features/` — feature-scoped JS modules.
+- `ui/stores/` — Pinia stores.
 - Imperative runtime services remain for viewer, DnD, and ComfyUI integration (by design).
 
 ## Request Flow

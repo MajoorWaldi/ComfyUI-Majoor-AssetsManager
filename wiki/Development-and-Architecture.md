@@ -7,7 +7,7 @@ The project is split into a Python backend and a JavaScript frontend.
 Main repository areas:
 - `mjr_am_backend/` for routes, adapters, features, and service logic
 - `mjr_am_shared/` for shared primitives such as logging, errors, and results
-- `js/` for frontend application code and UI components
+- `ui/` for frontend application code and UI components
 - `tests/` for backend tests and integration coverage
 
 ## Backend Design Notes

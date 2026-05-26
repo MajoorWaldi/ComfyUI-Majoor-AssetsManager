@@ -42,6 +42,7 @@ def test_merge_and_graph_classification_helpers(monkeypatch):
     assert r.looks_like_media_pipeline({"1": {"class_type": "KSampler"}}) is False
     assert r.should_parse_geninfo({"prompt": {"1": {}}, "workflow": None}) is True
     assert r.should_parse_geninfo({"parameters": "x"}) is True
+    assert r.should_parse_geninfo({"MajoorOverride": {"prompt": "forced prompt"}}) is True
     assert r.should_parse_geninfo(None) is False
 
 

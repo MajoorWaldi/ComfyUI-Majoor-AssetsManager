@@ -1,13 +1,13 @@
 export default [
     {
         ignores: [
-            "js_dist/**",
+            "dist/**",
             "vendor/**",
-            "js/vue/**",
+            "ui/vue/**",
         ],
     },
     {
-        files: ["js/**/*.{js,mjs}"],
+        files: ["ui/**/*.{js,mjs}"],
         languageOptions: {
             ecmaVersion: "latest",
             sourceType: "module",
@@ -39,7 +39,7 @@ export default [
         rules: {},
     },
     {
-        files: ["js/tests/**/*.{js,mjs}"],
+        files: ["ui/tests/**/*.{js,mjs}"],
         languageOptions: {
             globals: {
                 afterEach: "readonly",

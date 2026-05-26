@@ -22,6 +22,22 @@ def test_apply_dimensions_from_exif():
     assert m["width"] == 320 and m["height"] == 240
 
 
+def test_apply_common_exif_fields_extracts_execution_ids():
+    meta = {"quality": "none", "workflow": None, "prompt": None, "width": None, "height": None}
+    e._apply_common_exif_fields(
+        meta,
+        {
+            "PNG:Job_id": "job-1",
+            "PNG:Workflow_id": "workflow-1",
+            "PNG:Source_node_id": "node-1",
+        },
+    )
+    assert meta["job_id"] == "job-1"
+    assert meta["prompt_id"] == "job-1"
+    assert meta["workflow_id"] == "workflow-1"
+    assert meta["source_node_id"] == "node-1"
+
+
 def test_ffprobe_extractors_and_text_candidates():
     ff = {
         "format": {"tags": {"a": "b"}},

@@ -13,27 +13,27 @@ These modules are intentionally kept outside Vue's reactivity model:
 
 | Module | Reason |
 |--------|--------|
-| `js/app/bootstrap.js` | App init sequence, ComfyUI lifecycle hooks |
-| `js/app/comfyApiBridge.js` | Bridge to ComfyUI's API (external dependency, not ours) |
-| `js/app/events.js` | Central event bus for cross-feature communication |
-| `js/app/metrics.js` | Performance telemetry (no UI surface) |
-| `js/features/panel/panelRuntime.js` | Panel lifecycle orchestration: init, teardown, events |
-| `js/features/viewer/*` | Viewer runtime: canvas, zoom, playback — too stateful and performance-sensitive for Vue reactivity |
-| `js/features/dnd/*` | Drag-and-drop runtime: low-level DOM events, interop with ComfyUI DnD |
-| `js/features/runtime/*` | ComfyUI runtime integration (generation flow, progress, queue) |
+| `ui/app/bootstrap.js` | App init sequence, ComfyUI lifecycle hooks |
+| `ui/app/comfyApiBridge.js` | Bridge to ComfyUI's API (external dependency, not ours) |
+| `ui/app/events.js` | Central event bus for cross-feature communication |
+| `ui/app/metrics.js` | Performance telemetry (no UI surface) |
+| `ui/features/panel/panelRuntime.js` | Panel lifecycle orchestration: init, teardown, events |
+| `ui/features/viewer/*` | Viewer runtime: canvas, zoom, playback — too stateful and performance-sensitive for Vue reactivity |
+| `ui/features/dnd/*` | Drag-and-drop runtime: low-level DOM events, interop with ComfyUI DnD |
+| `ui/features/runtime/*` | ComfyUI runtime integration (generation flow, progress, queue) |
 
 ## Provisionally imperative (may migrate later)
 
 | Module | Notes |
 |--------|-------|
-| `js/stores/panelStateBridge.js` | Bridge between Vue panel store and legacy non-Vue consumers. Remove when all consumers are Vue. |
-| `js/app/dialogs.js`, `js/app/toast.js` | UI utilities currently used by both Vue and imperative code. Can move to Vue composables once all callers migrate. |
+| `ui/stores/panelStateBridge.js` | Bridge between Vue panel store and legacy non-Vue consumers. Remove when all consumers are Vue. |
+| `ui/app/dialogs.js`, `ui/app/toast.js` | UI utilities currently used by both Vue and imperative code. Can move to Vue composables once all callers migrate. |
 
 ## Fully Vue-owned
 
-All surfaces under `js/vue/components/` and `js/vue/composables/` are fully Vue-owned:
+All surfaces under `ui/vue/components/` and `ui/vue/composables/` are fully Vue-owned:
 - Grid, sidebar, feed, settings panels, context menus
-- All Pinia stores under `js/stores/`
+- All Pinia stores under `ui/stores/`
 
 ## Decision criteria
 

@@ -5,31 +5,31 @@
         "noEmit": true
     },
     "include": [
-        "js/utils/**/*.ts",
-        "js/api/**/*.ts",
-        "js/app/**/*.ts",
-        "js/stores/**/*.ts",
-        "js/integration/**/*.ts",
-        "js/features/collections/**/*.ts",
-        "js/features/filters/**/*.ts",
-        "js/features/stacks/**/*.ts",
-        "js/features/status/**/*.ts",
-        "js/features/runtime/**/*.ts",
-        "js/features/dnd/**/*.ts",
-        "js/features/grid/**/*.ts",
-        "js/features/panel/messages/toastHistory.ts",
-        "js/features/viewer/**/*.ts",
-        "js/features/contextmenu/**/*.ts",
-        "js/components/**/*.ts",
-        "js/features/bottomPanel/**/*.ts",
-        "js/features/panel/**/*.ts",
-        "js/vue/**/*.ts",
-        "js/types/**/*.d.ts"
+        "ui/utils/**/*.ts",
+        "ui/api/**/*.ts",
+        "ui/app/**/*.ts",
+        "ui/stores/**/*.ts",
+        "ui/integration/**/*.ts",
+        "ui/features/collections/**/*.ts",
+        "ui/features/filters/**/*.ts",
+        "ui/features/stacks/**/*.ts",
+        "ui/features/status/**/*.ts",
+        "ui/features/runtime/**/*.ts",
+        "ui/features/dnd/**/*.ts",
+        "ui/features/grid/**/*.ts",
+        "ui/features/panel/messages/toastHistory.ts",
+        "ui/features/viewer/**/*.ts",
+        "ui/features/contextmenu/**/*.ts",
+        "ui/components/**/*.ts",
+        "ui/features/bottomPanel/**/*.ts",
+        "ui/features/panel/**/*.ts",
+        "ui/vue/**/*.ts",
+        "ui/types/**/*.d.ts"
     ],
     "exclude": [
-        "js_dist",
+        "dist",
         "node_modules",
         "vendor",
-        "js/tests"
+        "ui/tests"
     ]
 }

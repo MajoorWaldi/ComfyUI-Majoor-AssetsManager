@@ -1,8 +1,8 @@
 /**
  * Vite build config — ComfyUI-Majoor-AssetsManager
  *
- * Outputs a single ES-module bundle (+ lazy chunks) into js_dist/.
- * WEB_DIRECTORY in __init__.py points to js_dist/ so ComfyUI serves the built files.
+ * Outputs a single ES-module bundle (+ lazy chunks) into dist/.
+ * WEB_DIRECTORY in __init__.py points to dist/ so ComfyUI serves the built files.
  *
  * ComfyUI's own scripts (../../scripts/app.js, ../../scripts/api.js …) are kept
  * as external imports so the browser resolves them at runtime — they are never
@@ -41,7 +41,7 @@ function emitStaticRuntimeAssets() {
                 this.emitFile({
                     type: "asset",
                     fileName: `assets/${name}`,
-                    source: readFileSync(resolve(__dirname, "js", "assets", name)),
+                    source: readFileSync(resolve(__dirname, "ui", "assets", name)),
                 });
             }
         },
@@ -56,14 +56,14 @@ export default defineConfig({
 
     build: {
         lib: {
-            entry: resolve(__dirname, "js/entry.ts"),
+            entry: resolve(__dirname, "ui/entry.ts"),
             formats: ["es"],
             // Always emit as "entry.js" — no version-hash in the filename so
             // ComfyUI finds it by the stable name it was registered under.
             fileName: () => "entry.js",
         },
 
-        outDir: "js_dist",
+        outDir: "dist",
         emptyOutDir: true,
         assetsInlineLimit: 0,
 

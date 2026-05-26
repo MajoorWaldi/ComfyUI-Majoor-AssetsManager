@@ -4,6 +4,7 @@ Extracts ComfyUI workflow and generation parameters from PNG, WEBP, MP4.
 """
 import os
 import re
+from copy import deepcopy
 from typing import Any
 
 from ...shared import ErrorCode, Result, get_logger
@@ -358,6 +359,82 @@ def _workflow_build_link_lookup(links: Any) -> dict[Any, tuple[Any, Any, Any, An
         if isinstance(link, list) and len(link) >= 5:
             link_lookup[link[0]] = (link[1], link[2], link[3], link[4])
     return link_lookup
+
+
+def _workflow_subgraph_definitions(workflow: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    raw = workflow.get("definitions", {}).get("subgraphs") if isinstance(workflow.get("definitions"), dict) else None
+    if not isinstance(raw, list):
+        raw = workflow.get("subgraphs")
+    definitions: dict[str, dict[str, Any]] = {}
+    if not isinstance(raw, list):
+        return definitions
+    for item in raw:
+        if not isinstance(item, dict):
+            continue
+        key = item.get("id") or item.get("name")
+        if key is not None:
+            definitions[str(key)] = item
+    return definitions
+
+
+def _workflow_remap_link(link: Any, prefix: str) -> Any:
+    if isinstance(link, list) and len(link) >= 5:
+        remapped = list(link)
+        remapped[0] = f"{prefix}link:{remapped[0]}"
+        remapped[1] = f"{prefix}{remapped[1]}"
+        remapped[3] = f"{prefix}{remapped[3]}"
+        return remapped
+    return deepcopy(link)
+
+
+def _workflow_remap_node(node: dict[str, Any], prefix: str) -> dict[str, Any]:
+    remapped = deepcopy(node)
+    if "id" in remapped:
+        remapped["id"] = f"{prefix}{remapped['id']}"
+    inputs = remapped.get("inputs")
+    if isinstance(inputs, list):
+        for item in inputs:
+            if isinstance(item, dict) and item.get("link") is not None:
+                item["link"] = f"{prefix}link:{item['link']}"
+    return remapped
+
+
+def _workflow_flatten_graph(
+    workflow: dict[str, Any],
+    *,
+    prefix: str = "",
+    root_definitions: dict[str, dict[str, Any]] | None = None,
+    seen: set[str] | None = None,
+) -> tuple[list[dict[str, Any]], list[Any]]:
+    definitions = root_definitions or _workflow_subgraph_definitions(workflow)
+    seen_defs = seen or set()
+    nodes: list[dict[str, Any]] = []
+    links: list[Any] = []
+
+    raw_nodes = workflow.get("nodes", [])
+    if isinstance(raw_nodes, list):
+        for node in raw_nodes:
+            if not isinstance(node, dict):
+                continue
+            nodes.append(_workflow_remap_node(node, prefix))
+            subgraph_id = str(node.get("type") or "")
+            subgraph = definitions.get(subgraph_id)
+            if not subgraph or subgraph_id in seen_defs:
+                continue
+            child_prefix = f"{prefix}{node.get('id', subgraph_id)}::"
+            child_nodes, child_links = _workflow_flatten_graph(
+                subgraph,
+                prefix=child_prefix,
+                root_definitions=definitions,
+                seen={*seen_defs, subgraph_id},
+            )
+            nodes.extend(child_nodes)
+            links.extend(child_links)
+
+    raw_links = workflow.get("links", [])
+    if isinstance(raw_links, list):
+        links.extend(_workflow_remap_link(link, prefix) for link in raw_links)
+    return nodes, links
 
 
 def _workflow_get_source_data(
@@ -836,9 +913,8 @@ def _reconstruct_params_from_workflow(workflow: dict[str, Any]) -> dict[str, Any
     Uses link traversal to distinguish Positive vs Negative prompts.
     """
     params: dict[str, Any] = {}
-    raw_nodes = workflow.get("nodes", [])
-    links = workflow.get("links", [])
-    if not isinstance(raw_nodes, list) or not raw_nodes:
+    raw_nodes, links = _workflow_flatten_graph(workflow)
+    if not raw_nodes:
         return params
 
     nodes = [node for node in raw_nodes if isinstance(node, dict)]
@@ -1145,10 +1221,31 @@ def _apply_rating_tags_and_generation_time(metadata: dict[str, Any], exif_data: 
     gen_ms = _extract_generation_time_ms_from_exif(exif_data)
     if gen_ms is not None:
         metadata["generation_time_ms"] = gen_ms
+    _apply_execution_ids_from_exif(metadata, exif_data)
 
     date_created = _extract_date_created(exif_data)
     if date_created:
         metadata["generation_time"] = date_created
+
+
+def _apply_execution_ids_from_exif(metadata: dict[str, Any], exif_data: dict[str, Any]) -> None:
+    field_keys = {
+        "job_id": ("PNG:Job_id", "job_id", "Job_id"),
+        "prompt_id": ("PNG:Prompt_id", "prompt_id", "Prompt_id"),
+        "workflow_id": ("PNG:Workflow_id", "workflow_id", "Workflow_id"),
+        "source_node_id": ("PNG:Source_node_id", "source_node_id", "Source_node_id"),
+    }
+    for field, keys in field_keys.items():
+        for key in keys:
+            value = exif_data.get(key)
+            if value is None:
+                continue
+            text = str(value).strip()
+            if text:
+                metadata[field] = text[:255]
+                break
+    if metadata.get("job_id") and not metadata.get("prompt_id"):
+        metadata["prompt_id"] = metadata["job_id"]
 
 
 def _extract_generation_time_ms_from_exif(exif_data: dict[str, Any] | None) -> int | None:

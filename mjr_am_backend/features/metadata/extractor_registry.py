@@ -5,6 +5,7 @@ from typing import Any
 
 from ...probe_router import pick_probe_backend
 from ...shared import Result, classify_file
+from ..geninfo.override import build_geninfo_override
 from .extractors import (
     extract_avif_metadata,
     extract_png_metadata,
@@ -167,7 +168,9 @@ def should_parse_geninfo(meta: dict[str, Any]) -> bool:
         if isinstance(meta.get("workflow"), dict) and meta.get("workflow"):
             return True
         params = meta.get("parameters")
-        return isinstance(params, str) and bool(params.strip())
+        if isinstance(params, str) and bool(params.strip()):
+            return True
+        return bool(build_geninfo_override(meta))
     except Exception:
         return False
 

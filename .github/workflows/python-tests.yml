@@ -116,7 +116,7 @@ jobs:
         run: npm run build
 
       - name: Verify committed frontend bundle is current
-        run: git diff --exit-code -- js_dist
+        run: git diff --exit-code -- dist
 
       - name: Run JS tests (vitest)
         run: npm run test:js

@@ -20,7 +20,7 @@
 ## 2. Module Architecture
 
 ```
-js/features/viewer/
+ui/features/viewer/
 ├── FloatingViewer.js              ← existing (modified _buildToolbar)
 ├── floatingViewerManager.js       ← existing (added selection bindings)
 │
@@ -42,7 +42,7 @@ FloatingViewer
 ```
 
 None of these files import from `comfyui-frontend` directly.
-Everything goes through the existing bridge: `js/app/comfyApiBridge.js`.
+Everything goes through the existing bridge: `ui/app/comfyApiBridge.js`.
 
 ---
 
@@ -453,10 +453,10 @@ _unbindNodeSelectionListener();
 
 ## 8. Implementation Checklist
 
-- [x] Create `js/features/viewer/workflowSidebar/widgetAdapters.js`
-- [x] Create `js/features/viewer/workflowSidebar/NodeWidgetRenderer.js`
-- [x] Create `js/features/viewer/workflowSidebar/WorkflowSidebar.js`
-- [x] Create `js/features/viewer/workflowSidebar/sidebarRunButton.js`
+- [x] Create `ui/features/viewer/workflowSidebar/widgetAdapters.js`
+- [x] Create `ui/features/viewer/workflowSidebar/NodeWidgetRenderer.js`
+- [x] Create `ui/features/viewer/workflowSidebar/WorkflowSidebar.js`
+- [x] Create `ui/features/viewer/workflowSidebar/sidebarRunButton.js`
 - [x] Modify `FloatingViewer.js` — add ⚙ + ▶ buttons in `_buildToolbar()`
 - [x] Modify `FloatingViewer.js` — instantiate `WorkflowSidebar` in `render()`
 - [x] Modify `floatingViewerManager.js` — `onNodeSelected` / `onSelectionChange` hooks

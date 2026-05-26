@@ -525,7 +525,7 @@ Dependency roles and update rules are defined in [`docs/DEPENDENCY_POLICY.md`](d
 ```
 ComfyUI-Majoor-AssetsManager/
 ├── __init__.py                 # Extension entry point
-├── js/                         # Frontend (Vue 3 + Pinia, vanilla JS)
+├── ui/                         # Frontend (Vue 3 + Pinia, vanilla JS)
 │   ├── entry.js               # Main entry
 │   ├── app/                   # App initialization, settings
 │   ├── components/            # UI components

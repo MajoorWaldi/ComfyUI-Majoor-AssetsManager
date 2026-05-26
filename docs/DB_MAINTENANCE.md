@@ -1,6 +1,6 @@
 # Database Maintenance
 
-**Version**: 2.4.5  
+**Version**: 2.4.5
 **Last Updated**: April 7, 2026
 
 Majoor Assets Manager stores its index in an SQLite database. By default this is at `<output>/_mjr_index/assets.sqlite`, but the index directory can be relocated to any local path — useful when your output folder is on a network share. This document covers the maintenance tools available in the UI, the recovery procedures for corruption scenarios, and how to configure the index directory.
@@ -159,8 +159,8 @@ If the Delete DB button reports that files could not be deleted (another process
 |---|---|
 | `mjr_am_backend/routes/handlers/db_maintenance.py` | `/db/optimize` and `/db/force-delete` endpoints |
 | `mjr_am_backend/adapters/db/sqlite.py` | DB adapter with malformed detection and online recovery |
-| `js/features/status/StatusDot.js` | Frontend status polling, corruption detection, Reset/Delete buttons |
-| `js/api/client.js` | `forceDeleteDb()` API call |
+| `ui/features/status/StatusDot.js` | Frontend status polling, corruption detection, Reset/Delete buttons |
+| `ui/api/client.js` | `forceDeleteDb()` API call |
 
 ## Environment Variables
 

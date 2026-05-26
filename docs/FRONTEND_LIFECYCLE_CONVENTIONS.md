@@ -4,7 +4,7 @@
 
 ## Vue component lifecycle
 
-- Vue apps are created via `js/vue/createVueApp.js` with Pinia store injection.
+- Vue apps are created via `ui/vue/createVueApp.js` with Pinia store injection.
 - Components use `onMounted` / `onUnmounted` for DOM setup/teardown.
 - Event listeners added in `onMounted` **must** be removed in `onUnmounted`.
 - Pinia stores are the single source of truth for UI state.

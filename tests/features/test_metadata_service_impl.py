@@ -88,6 +88,7 @@ def test_media_pipeline_helpers():
     assert m._has_generation_sampler(["ksampler"]) is True
     assert m._classify_media_nodes(types)[0] is True
     assert m._should_parse_geninfo({"prompt": {"1": {}}, "workflow": None}) is True
+    assert m._should_parse_geninfo({"majoor_geninfo": {"prompt": "forced prompt"}}) is True
 
 
 def test_group_and_batch_targets(monkeypatch):
@@ -157,6 +158,19 @@ async def test_enrich_with_geninfo_async(monkeypatch):
     c = {"prompt": {"1": {}}, "workflow": {"nodes": []}}
     await s._enrich_with_geninfo_async(c)
     assert c["geninfo"] == {"g": 1}
+
+    c_override = {
+        "raw": {
+            "PNG:Majoor_geninfo": '{"mode":"override","prompt":"forced","seed":"9","custom_info":[{"title":"T","content":"C","color":"#123ABC"}]}'
+        },
+        "prompt": {"1": {}},
+    }
+    await s._enrich_with_geninfo_async(c_override)
+    assert c_override["geninfo"]["engine"]["parser_version"] == "geninfo-override-v1"
+    assert c_override["geninfo"]["g"] == 1
+    assert c_override["geninfo"]["positive"]["value"] == "forced"
+    assert c_override["geninfo"]["seed"]["value"] == 9
+    assert c_override["geninfo"]["custom_info"][0]["color"] == "#123ABC"
 
     monkeypatch.setattr(m, "parse_geninfo_from_prompt", lambda *args, **kwargs: Result.Err("E", "x"))
     monkeypatch.setattr(m, "registry_build_geninfo_from_parameters", lambda combined: None)
