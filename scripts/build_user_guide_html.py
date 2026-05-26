@@ -323,11 +323,12 @@ def _md_to_html(md: str, *, doc_prefix: str, doc_id_by_md_name: dict[str, str]) 
         # Lists (basic nested)
         ml = re.match(r"^(\s*)([-*+])\s+(.*)$", line)
         mol = re.match(r"^(\s*)(\d+)\.\s+(.*)$", line)
-        if ml or mol:
+        m_list = ml or mol
+        if m_list:
             _flush_paragraph(para, out, doc_prefix=doc_prefix, doc_id_by_md_name=doc_id_by_md_name)
-            indent = len((ml.group(1) if ml else mol.group(1)).replace("\t", "    "))
+            indent = len(m_list.group(1).replace("\t", "    "))
             tag = "ul" if ml else "ol"
-            item_text = (ml.group(3) if ml else mol.group(3)).strip()
+            item_text = m_list.group(3).strip()
             _sync_list_stack(list_stack, out, tag, indent)
             out.append(f"<li>{_inline_md_to_html(item_text, doc_prefix=doc_prefix, doc_id_by_md_name=doc_id_by_md_name)}</li>")
             i += 1
