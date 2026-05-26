@@ -5,15 +5,15 @@ export default defineConfig({
   plugins: [vue()],
   test: {
     environment: "node",
-    setupFiles: ["ui/tests/vitest.setup.mjs"],
+    setupFiles: ["ui/tests/vitest.setup.ts"],
     transformMode: {
       web: [/\.vue$/],
     },
-    include: ["ui/tests/**/*.vitest.mjs"],
+    include: ["ui/tests/**/*.vitest.ts"],
     reporters: ["default"],
     coverage: {
       provider: "v8",
-      include: ["ui/**/*.js"],
+      include: ["ui/**/*.{js,ts}"],
       exclude: ["ui/tests/**", "ui/app/i18n.generated.js", "node_modules/**"],
       reporter: ["text", "text-summary", "lcov"],
       reportsDirectory: "coverage/ui",

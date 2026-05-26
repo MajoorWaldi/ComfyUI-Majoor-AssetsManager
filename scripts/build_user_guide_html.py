@@ -4,6 +4,7 @@ import argparse
 import html
 import posixpath
 import re
+import subprocess
 import sys
 import urllib.parse
 from dataclasses import dataclass
@@ -15,6 +16,20 @@ DOCS_DIR = REPO_ROOT / "docs"
 
 def _read_text(path: Path) -> str:
     return path.read_text(encoding="utf-8", errors="replace")
+
+
+def _tracked_doc_names() -> set[str] | None:
+    try:
+        result = subprocess.run(
+            ["git", "ls-files", "docs/*.md"],
+            cwd=REPO_ROOT,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+    except Exception:
+        return None
+    return {Path(line.strip()).name for line in result.stdout.splitlines() if line.strip()}
 
 
 def _slugify(text: str) -> str:
@@ -695,15 +710,26 @@ def _render_html_page(title: str, docs: list[Doc], rendered_sections: list[str])
 
 
 def build(out_path: Path) -> None:
+    tracked_docs = _tracked_doc_names()
     index_md = _read_text(DOCS_DIR / "DOCUMENTATION_INDEX.md")
     curated: list[Doc] = [
         Doc(file="DOCUMENTATION_INDEX.md", title="DOCUMENTATION_INDEX.md", desc="Documentation index (curated list)"),
     ]
-    curated.extend(_docs_from_index(index_md))
+    curated.extend(
+        d for d in _docs_from_index(index_md) if tracked_docs is None or Path(d.file).name in tracked_docs
+    )
 
     # Also include non-index docs at the end (e.g. audits) for completeness.
     indexed = {d.file for d in curated}
-    extra_md = sorted([p.name for p in DOCS_DIR.glob("*.md") if p.name not in indexed and p.name != "DOCUMENTATION_INDEX.md"])
+    extra_md = sorted(
+        [
+            p.name
+            for p in DOCS_DIR.glob("*.md")
+            if p.name not in indexed
+            and p.name != "DOCUMENTATION_INDEX.md"
+            and (tracked_docs is None or p.name in tracked_docs)
+        ]
+    )
     for name in extra_md:
         curated.append(Doc(file=name, title=name, desc="Additional documentation"))
 

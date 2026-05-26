@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { ensureWindowStub, mockPartialVue } from "./helpers/vitestEnvironment.mjs";
+import { ensureWindowStub, mockPartialVue } from "./helpers/vitestEnvironment.ts";
 
 const fetchGridPageMock = vi.hoisted(() => vi.fn());
 const appendAssetsMock = vi.hoisted(() => vi.fn());

@@ -1,0 +1,13 @@
+{
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+        "strict": false,
+        "noImplicitAny": false,
+        "noEmit": true
+    },
+    "include": [
+        "ui/tests/**/*.ts",
+        "ui/types/**/*.d.ts"
+    ],
+    "exclude": ["dist", "node_modules", "vendor"]
+}

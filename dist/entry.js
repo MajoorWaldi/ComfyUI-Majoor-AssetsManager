@@ -21158,7 +21158,7 @@ var t_ = "mjr_panel_messages_v1", n_ = "mjr_panel_messages_last_read_v1", r_ = "
 		bodyKey: "msg.development.body.vueRefactoring",
 		actionLabel: "View Progress",
 		actionLabelKey: "label.viewProgress",
-		actionUrl: "docs/VUE_MIGRATION_PLAN.md"
+		actionUrl: "docs/MIGRATION_TS_TRACKER.md"
 	},
 	{
 		id: "whats-new-2026-04-10-mfv-multi-pin-sidebar",

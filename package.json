@@ -21,6 +21,7 @@
     "lint:js:ox": "oxlint ui/ --quiet --disable-unicorn-plugin --ignore-pattern ui/vue/majoor-ui.* || node -e \"process.exit(0)\"",
     "lint:dead": "knip --config knip.json || node -e \"process.exit(0)\"",
     "typecheck:js": "tsc -p tsconfig.json --noEmit || node -e \"process.exit(0)\"",
+    "typecheck:tests": "tsc -p tsconfig.test.json --noEmit || node -e \"process.exit(0)\"",
     "lint:js:fix": "eslint ui/ --fix",
     "format": "prettier --write \"ui/**/*.{ts,js,mjs,vue}\"",
     "format:check": "prettier --check \"ui/**/*.{ts,js,mjs,vue}\""
