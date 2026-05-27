@@ -66,14 +66,19 @@ export const getNodeUnderClientXY = (app: any, clientX: any, clientY: any) => {
     return null;
 };
 
-export const applyHighlight = (app: any, node: any, markCanvasDirty: any) => {
+export const applyHighlight = (app: any, node: any, markCanvasDirty: any, variant: 'blue' | 'orange' = 'blue') => {
     const state = getHighlightState(app);
     if (!node || state.node === node) return;
     clearHighlight(app, markCanvasDirty);
     state.node = node;
     state.prev = { color: node.color, bgcolor: node.bgcolor };
-    node.bgcolor = "#3355ff";
-    node.color = "#a9c4ff";
+    if (variant === 'orange') {
+        node.bgcolor = "#ff8c00";
+        node.color = "#FFDEA9";
+    } else {
+        node.bgcolor = "#3355ff";
+        node.color = "#a9c4ff";
+    }
     markCanvasDirty(app);
 };
 

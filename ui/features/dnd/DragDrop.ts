@@ -749,8 +749,10 @@ export function createDragDropRuntimeHandlers(): Record<string, any> {
         const widget = node && !slotInfo ? pickBestMediaPathWidget(node, payload, droppedExt) : null;
         // LTXDirector/LTXDirectorGuide expose _timelineEditor but have no path widget
         const isLtxDirector = node && !slotInfo && !widget && !!node._timelineEditor;
+        const forceLoaderNode = _isLoadAssetDragRequested();
+        const DnDMetadata = (window as any).__dragAndDropMetaData;
 
-        if (node && (slotInfo || widget || isLtxDirector)) {
+        if (node && (slotInfo || widget || isLtxDirector || DnDMetadata)) {
             event.preventDefault();
             // For LTXDirector: do NOT stopPropagation  -  allow the wrapper's own dragover
             // handler to fire so it sets up the ghost segment position.
@@ -758,12 +760,18 @@ export function createDragDropRuntimeHandlers(): Record<string, any> {
                 event.stopImmediatePropagation?.();
                 event.stopPropagation();
             }
-            applyHighlight(app, node, markCanvasDirty);
+            if (DnDMetadata && !slotInfo && !forceLoaderNode && !widget) {
+                applyHighlight(app, node, markCanvasDirty, 'orange');
+            } else {
+                applyHighlight(app, node, markCanvasDirty);
+            }
             event.dataTransfer.dropEffect = "copy";
             if (slotInfo) {
                 dndLog("dragover slot", { node: node?.title, slot: slotInfo.input?.name });
             } else if (isLtxDirector) {
                 dndLog("dragover ltxdirector", { node: node?.title });
+            } else if (DnDMetadata && !widget) {
+                dndLog("dragover DnDMetadata", { node: node?.title });
             } else {
                 dndLog("dragover widget", { node: node?.title, widget: widget?.name });
             }
@@ -798,6 +806,19 @@ export function createDragDropRuntimeHandlers(): Record<string, any> {
                 .split(".")
                 .pop() || "";
         const widget = node && !slotInfo ? pickBestMediaPathWidget(node, payload, droppedExt) : null;
+
+        const DnDMetadata = (window as any).__dragAndDropMetaData;
+        if (DnDMetadata && node && !slotInfo && !forceLoaderNode /*&& !widget*/) {
+            event.preventDefault();
+            event.stopImmediatePropagation?.();
+            event.stopPropagation();
+            clearHighlight(app, markCanvasDirty);
+            const success = await DnDMetadata.importMetaDataFromPayload(node, payload, event);
+            if (success) {
+                dndLog("drop: imported workflow via importMetaDataFromPayload");
+                return;
+            }
+        }
 
         if (node && slotInfo) {
             event.preventDefault();
