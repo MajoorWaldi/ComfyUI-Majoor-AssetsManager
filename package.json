@@ -44,7 +44,7 @@
     "vitest": "^4.1.5"
   },
   "dependencies": {
-    "@tanstack/vue-virtual": "^3.13.24",
+    "@tanstack/vue-virtual": "^3.13.26",
     "pinia": "^3.0.4",
     "primevue": "^4.5.5",
     "three": "0.184.0",
