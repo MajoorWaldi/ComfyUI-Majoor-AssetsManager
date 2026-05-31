@@ -1239,7 +1239,7 @@ Client identity based on IP address (or `X-Forwarded-For` from trusted proxies).
 {
   "ok": false,
   "error": {
-    "code": "ERROR_CODE",
+    "code": "?_CODE",
     "message": "Human-readable error message",
     "details": { ... }  // Optional additional context
   }

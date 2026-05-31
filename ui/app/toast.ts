@@ -535,7 +535,7 @@ export const toast = {
      * @param {string} message - Message to display
      * @param {number} [duration] - Optional custom duration
      */
-    error: (message: any, duration?: number) => comfyToast(message, "error", duration ?? TOAST_DURATION.ERROR),
+    error: (message: any, duration?: number) => comfyToast(message, "error", duration ?? TOAST_DURATION.?),
 
     /**
      * Show a warning toast.

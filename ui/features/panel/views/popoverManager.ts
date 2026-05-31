@@ -362,7 +362,7 @@ export function createPopoverManager(container: any): Record<string, any> {
                 console.debug?.(e);
             }
         }
-        // PrimeVue portals: overlays (Select, Listbox, DatePickerâ€¦) are appended
+        // PrimeVue portals: overlays (Select, Listbox, DatePicker...) are appended
         // directly to <body> and thus fall outside the managed popover element.
         // Guard: if the click target is inside a PrimeVue overlay portal that
         // belongs to an open popover, do not dismiss.
@@ -391,7 +391,7 @@ export function createPopoverManager(container: any): Record<string, any> {
                 // portal root without a [data-pc-name] attribute (e.g. Select list panel).
                 // Walk up from the target to the direct body child; if any open popover
                 // has an expanded PrimeVue component ([aria-expanded='true']), the click
-                // is inside that component's overlay â€” do not dismiss.
+                // is inside that component's overlay  -  do not dismiss.
                 try {
                     let bodyChild = target;
                     while (

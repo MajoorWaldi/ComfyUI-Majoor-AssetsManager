@@ -104,7 +104,7 @@ export function bindSimilarSearch({
         }
     };
 
-    // â”€â”€ Similar button click â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- Similar button click -----------------------------------------------
 
     similarBtn?.addEventListener(
         "click",
@@ -183,7 +183,7 @@ export function bindSimilarSearch({
         { signal: panelLifecycleAC?.signal },
     );
 
-    // â”€â”€ Stack-group open event â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- Stack-group open event ---------------------------------------------
 
     gridContainer?.addEventListener(
         EVENTS.OPEN_STACK_GROUP,

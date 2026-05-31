@@ -2142,7 +2142,7 @@ MJR_PLUGIN_VALIDATION=strict  # strict, permissive, disabled
 MJR_PLUGIN_TIMEOUT=30  # seconds
 
 # Plugin logging
-MJR_PLUGIN_LOG_LEVEL=INFO  # DEBUG, INFO, WARNING, ERROR
+MJR_PLUGIN_LOG_LEVEL=INFO  # DEBUG, INFO, WARNING, ?
 ```
 
 ### **C. Troubleshooting**

@@ -213,14 +213,14 @@ export function createGridController({
 
     /**
      * Load assets using hybrid search when in semantic mode, with fallback chain:
-     * hybridSearch â†’ vectorSearch (pure semantic) â†’ FTS.
+     * hybridSearch -> vectorSearch (pure semantic) -> FTS.
      *
      * Explicit activation only: semantic toggle or "ai:" prefix.
      */
     const _loadWithSemanticFallback = async (query: any, loadOptions = {}) => {
         let q = String(query || "").trim();
 
-        // â”€â”€ "ai:" prefix forces semantic search â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // -- "ai:" prefix forces semantic search --------------------
         const hasAiPrefix = /^ai:\s*/i.test(q);
         if (hasAiPrefix) {
             q = q.replace(/^ai:\s*/i, "").trim();
@@ -283,7 +283,7 @@ export function createGridController({
                 if (vecRes?.ok === false) {
                     aiError = _safeErrorText(vecRes?.error || vecRes?.message, aiError);
                 }
-                // Empty vector results â†’ fall through to normal FTS search
+                // Empty vector results -> fall through to normal FTS search
             } catch (err) {
                 aiError = _safeErrorText(err, aiError);
                 console.debug?.("[Majoor] Semantic search failed, falling back to FTS", err);

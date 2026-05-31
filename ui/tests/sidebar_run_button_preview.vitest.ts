@@ -11,7 +11,7 @@ describe("sidebarRunButton MFV preview forcing", () => {
     it("normalizes configured preview methods to supported values", () => {
         expect(resolveMfvPreviewMethod("TAESD")).toBe("taesd");
         expect(resolveMfvPreviewMethod(" latent2rgb ")).toBe("latent2rgb");
-        expect(resolveMfvPreviewMethod("bogus")).toBe("taesd");
+        expect(resolveMfvPreviewMethod("bogus")).toBe("auto");
     });
 
     it("injects preview_method and workflow metadata into queue payload", () => {

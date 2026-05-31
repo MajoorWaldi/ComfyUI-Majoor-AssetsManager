@@ -104,7 +104,7 @@ export function createPanelHotkeysController({
             // Check if viewer has hotkey priority
             if (getHotkeysState().scope === "viewer") return;
 
-            // V toggles the floating viewer â€” processed before the panel-active guard so it
+            // V toggles the floating viewer  -  processed before the panel-active guard so it
             // still fires after subfolder navigation when hover/focus state may have reset
             // (e.g. the focused folder card was removed from the DOM after reload).
             if (

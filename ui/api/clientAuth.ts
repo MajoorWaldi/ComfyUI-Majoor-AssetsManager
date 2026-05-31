@@ -1,9 +1,9 @@
 /**
- * Auth token management â€“ bootstrap, persist, invalidate.
+ * Auth token management - bootstrap, persist, invalidate.
  *
  * Extracted from client.js to keep the API surface thin.
  *
- * Security boundary â€“ sessionStorage vs localStorage
+ * Security boundary - sessionStorage vs localStorage
  * ===================================================
  * Write-auth tokens are stored in **sessionStorage** on purpose:
  *   - Session-scoped: cleared when the tab closes (no long-lived secret on disk).
@@ -357,7 +357,7 @@ async function _refreshAuthTokenFromServer() {
         return { ok: true, token: false };
     } catch (error: any) {
         _rememberAuthBootstrapFailure({
-            code: "NETWORK_ERROR",
+            code: "NETWORK_?",
             error: (error as any)?.message || "Bootstrap token request failed.",
             status: 0,
         });
@@ -390,7 +390,7 @@ export async function ensureWriteAuthToken({ force = false, allowCookieRefresh =
         const failureCode = String(failure?.code || "")
             .trim()
             .toUpperCase();
-        if (!failureCode || !["NETWORK_ERROR", "INVALID_RESPONSE"].includes(failureCode)) {
+        if (!failureCode || !["NETWORK_?", "INVALID_RESPONSE"].includes(failureCode)) {
             _clearAuthToken();
         }
     }

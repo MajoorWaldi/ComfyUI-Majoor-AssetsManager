@@ -113,7 +113,7 @@ def _configure_hf_quiet_mode() -> None:
         "sentence_transformers", "sentence_transformers.SentenceTransformer",
         "sentence_transformers.util",
     ):
-        logging.getLogger(_logger_name).setLevel(logging.ERROR)
+        logging.getLogger(_logger_name).setLevel(logging.?)
 
 
 def _cuda_is_available(torch: Any) -> bool:
@@ -261,7 +261,7 @@ def _encode_quiet(model: Any, payload: Any, **kwargs: Any) -> Any:
 
     _hf_tok_logger = _stdlib_logging.getLogger("transformers.tokenization_utils_base")
     _prev_level = _hf_tok_logger.level
-    _hf_tok_logger.setLevel(_stdlib_logging.ERROR)
+    _hf_tok_logger.setLevel(_stdlib_logging.?)
     try:
         with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
             return model.encode(payload, **kwargs)

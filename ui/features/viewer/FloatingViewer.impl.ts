@@ -255,7 +255,7 @@ export class FloatingViewer {
         }
     }
 
-    // â”€â”€ Build DOM â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- Build DOM -------------------------------------------------------------
 
     render() {
         return renderFloatingViewer(this);
@@ -413,7 +413,7 @@ export class FloatingViewer {
         const idPart = sel.nodeId ? `#${sel.nodeId}` : "";
         const classPart = sel.classType || "Node";
         const titlePart = sel.title && sel.title !== sel.classType ? ` - ${sel.title}` : "";
-        this._nodeStreamOverlayEl.textContent = `${idPart} Â· ${classPart}${titlePart}`.trim();
+        this._nodeStreamOverlayEl.textContent = `${idPart}  -  ${classPart}${titlePart}`.trim();
     }
 
     loadMediaA(fileData: any, { autoMode = false } = {}) {
@@ -422,7 +422,7 @@ export class FloatingViewer {
 
     /**
      * Load two assets for compare modes.
-     * Auto-switches from SIMPLE â†’ AB on first call.
+     * Auto-switches from SIMPLE -> AB on first call.
      */
     loadMediaPair(a: any, b: any) {
         return loadFloatingViewerMediaPair(this, a, b);
@@ -436,7 +436,7 @@ export class FloatingViewer {
         return loadFloatingViewerMediaQuad(this, a, b, c, d);
     }
 
-    /** Apply current zoom+pan state to all media elements (img/video only â€” divider/overlays unaffected). */
+    /** Apply current zoom+pan state to all media elements (img/video only  -  divider/overlays unaffected). */
     _applyTransform() {
         if (!this._contentEl) return;
         const z = Math.max(MFV_ZOOM_MIN, Math.min(MFV_ZOOM_MAX, this._zoom));
@@ -452,7 +452,7 @@ export class FloatingViewer {
             el.style.transform = t;
             el.style.transformOrigin = "center";
         }
-        // Cursor feedback â€” use CSS classes
+        // Cursor feedback  -  use CSS classes
         this._contentEl.classList.remove("mjr-mfv-content--grab", "mjr-mfv-content--grabbing");
         if (z > 1.01) {
             this._contentEl.classList.add(
@@ -754,7 +754,7 @@ export class FloatingViewer {
         this._panzoomAC = new AbortController();
         const sig = { signal: this._panzoomAC.signal };
 
-        // Wheel â†’ zoom centered at cursor
+        // Wheel -> zoom centered at cursor
         contentEl.addEventListener(
             "wheel",
             (e: any) => {
@@ -781,7 +781,7 @@ export class FloatingViewer {
             { ...sig, passive: false },
         );
 
-        // Pointer drag â†’ pan (left or middle button, when zoomed in)
+        // Pointer drag -> pan (left or middle button, when zoomed in)
         let panActive = false;
         let startX = 0,
             startY = 0,
@@ -842,7 +842,7 @@ export class FloatingViewer {
         contentEl.addEventListener("pointerup", endPan, sig);
         contentEl.addEventListener("pointercancel", endPan, sig);
 
-        // Double-click â†’ zoom to 4Ã— at cursor, or reset to fit
+        // Double-click -> zoom to 4x at cursor, or reset to fit
         contentEl.addEventListener(
             "dblclick",
             (e: any) => {
@@ -916,7 +916,7 @@ export class FloatingViewer {
         }
     }
 
-    // â”€â”€ Render â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- Render ----------------------------------------------------------------
 
     _refresh() {
         if (!this._contentEl) return;
@@ -1283,7 +1283,7 @@ export class FloatingViewer {
             return;
         }
         if (!elB) {
-            // Only one asset â€” render as simple
+            // Only one asset  -  render as simple
             this._renderSimple();
             return;
         }
@@ -1296,12 +1296,12 @@ export class FloatingViewer {
         const container = document.createElement("div");
         container.className = "mjr-mfv-ab-container";
 
-        // Layer A â€” full-size backdrop
+        // Layer A  -  full-size backdrop
         const layerA = document.createElement("div");
         layerA.className = "mjr-mfv-ab-layer";
         if (elA) layerA.appendChild(elA);
 
-        // Layer B â€” clipped from the left edge to the divider
+        // Layer B  -  clipped from the left edge to the divider
         const layerB = document.createElement("div");
         layerB.className = "mjr-mfv-ab-layer mjr-mfv-ab-layer--b";
         const pct = Math.round(this._abDividerX * 100);
@@ -1337,7 +1337,7 @@ export class FloatingViewer {
                 genInfoBEl.classList.add("mjr-mfv-geninfo--above-player");
             }
             genInfoBEl.appendChild(fragB);
-            // Start at the divider â€” overrides CSS left:8px so it is never
+            // Start at the divider  -  overrides CSS left:8px so it is never
             // clipped by layerB's clip-path.
             genInfoBEl.style.left = `calc(${pct}% + 8px)`;
         }
@@ -1405,7 +1405,7 @@ export class FloatingViewer {
         const sideA = document.createElement("div");
         sideA.className = "mjr-mfv-side-panel";
         if (elA) sideA.appendChild(elA);
-        else sideA.appendChild(_makeEmptyState("â€”"));
+        else sideA.appendChild(_makeEmptyState(" - "));
         sideA.appendChild(_makeLabel("A", "left"));
 
         // Gen info overlay for left
@@ -1423,7 +1423,7 @@ export class FloatingViewer {
         const sideB = document.createElement("div");
         sideB.className = "mjr-mfv-side-panel";
         if (elB) sideB.appendChild(elB);
-        else sideB.appendChild(_makeEmptyState("â€”"));
+        else sideB.appendChild(_makeEmptyState(" - "));
         sideB.appendChild(_makeLabel("B", "right"));
 
         // Gen info overlay for right
@@ -1467,7 +1467,7 @@ export class FloatingViewer {
                 const rawEl = _buildMediaEl(media, { controls: label === "A" });
                 const el = this._trackMediaControls?.(rawEl) || rawEl;
                 if (el) cell.appendChild(el);
-                else cell.appendChild(_makeEmptyState("â€”"));
+                else cell.appendChild(_makeEmptyState(" - "));
                 cell.appendChild(
                     _makeLabel(label, label === "A" || label === "C" ? "left" : "right"),
                 );
@@ -1484,7 +1484,7 @@ export class FloatingViewer {
                     }
                 }
             } else {
-                cell.appendChild(_makeEmptyState("â€”"));
+                cell.appendChild(_makeEmptyState(" - "));
                 cell.appendChild(
                     _makeLabel(label, label === "A" || label === "C" ? "left" : "right"),
                 );
@@ -1495,7 +1495,7 @@ export class FloatingViewer {
         this._contentEl.appendChild(container);
     }
 
-    // â”€â”€ Visibility â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- Visibility ------------------------------------------------------------
 
     show() {
         if (!this.element) return;
@@ -1519,7 +1519,7 @@ export class FloatingViewer {
         this.isVisible = false;
     }
 
-    // â”€â”€ Pop-out / Pop-in (separate OS window for second monitor) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- Pop-out / Pop-in (separate OS window for second monitor) ------------
 
     _setDesktopExpanded(active: any) {
         return setFloatingViewerDesktopExpanded(this, active);

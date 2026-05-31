@@ -6,8 +6,8 @@ import { t } from "../../app/i18n.js";
  * panel's reactive reload and UI-update flows.
  *
  * Covered events:
- *   gridContainer  â€“ mjr:reload-grid, mjr:badge-duplicates-focus
- *   window         â€“ mjr:reload-grid (global), mjr:sort-changed,
+ *   gridContainer  - mjr:reload-grid, mjr:badge-duplicates-focus
+ *   window         - mjr:reload-grid (global), mjr:sort-changed,
  *                    mjr:collections-changed
  *
  * All listeners registered on `window` are removed automatically when
@@ -27,7 +27,7 @@ export function bindGridEvents({
     gridController,
     registerSummaryDispose,
 }: Record<string, any>): void {
-    // â”€â”€ gridContainer: mjr:reload-grid â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- gridContainer: mjr:reload-grid -------------------------------------
     let _reloadGridHandler: any = null;
     try {
         _reloadGridHandler = () => requestQueuedReload();
@@ -47,7 +47,7 @@ export function bindGridEvents({
         console.debug?.(e);
     }
 
-    // â”€â”€ gridContainer: mjr:badge-duplicates-focus â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- gridContainer: mjr:badge-duplicates-focus --------------------------
     try {
         const onDuplicateBadgeFocus = (e: any) => {
             try {
@@ -108,7 +108,7 @@ export function bindGridEvents({
         console.debug?.(e);
     }
 
-    // â”€â”€ window: mjr:reload-grid (global) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- window: mjr:reload-grid (global) -----------------------------------
     try {
         window.addEventListener(
             "mjr:reload-grid",
@@ -135,7 +135,7 @@ export function bindGridEvents({
         console.debug?.(e);
     }
 
-    // â”€â”€ window: mjr:sort-changed â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- window: mjr:sort-changed -------------------------------------------
     // Handles sort changes dispatched by the Vue SortPopover component.
     // gridController.reloadGrid() deduplicates concurrent requests.
     try {
@@ -160,7 +160,7 @@ export function bindGridEvents({
         console.debug?.(e);
     }
 
-    // â”€â”€ window: mjr:collections-changed â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- window: mjr:collections-changed -----------------------------------
     try {
         window.addEventListener(
             "mjr:collections-changed",

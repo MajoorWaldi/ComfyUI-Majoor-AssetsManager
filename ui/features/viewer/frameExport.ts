@@ -1,5 +1,5 @@
 /**
- * Frame export module â€” PNG download and clipboard copy.
+ * Frame export module  -  PNG download and clipboard copy.
  * No external dependencies beyond the canvas/blob browser API.
  */
 

@@ -22,7 +22,7 @@ describe("settingsViewer categories", () => {
                 mfvLiveDefault: true,
                 mfvPreviewDefault: true,
                 mfvSidebarPosition: "right",
-                mfvPreviewMethod: "taesd",
+                mfvPreviewMethod: "auto",
                 ltxavRgbFallback: false,
             },
             workflowMinimap: { enabled: true },

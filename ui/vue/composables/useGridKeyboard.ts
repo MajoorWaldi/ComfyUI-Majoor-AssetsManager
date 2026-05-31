@@ -2,7 +2,7 @@ import { onUnmounted, watch } from "vue";
 import { installGridKeyboard } from "../../features/grid/GridKeyboard.js";
 
 /**
- * useGridKeyboard â€” Vue lifecycle wrapper around the legacy GridKeyboard engine.
+ * useGridKeyboard  -  Vue lifecycle wrapper around the legacy GridKeyboard engine.
  *
  * Phase 4.4 step: the keyboard lifecycle moves under Vue even though the
  * underlying keyboard implementation is still the legacy imperative module.

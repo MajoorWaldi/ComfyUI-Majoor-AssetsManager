@@ -1,11 +1,11 @@
 /**
- * LTX Director preview bridge â€” canvas-only.
+ * LTX Director preview bridge  -  canvas-only.
  *
  * Supports two node families from ComfyUI-LTXVideo:
  *
- * - LTXVSparseTrackEditor  â€” drawing state at `node._ed.canvas`
+ * - LTXVSparseTrackEditor   -  drawing state at `node._ed.canvas`
  *   (rendered by sparse_track_editor.js, a plain rAF-driven canvas)
- * - LTXDirector / LTXDirectorGuide â€” timeline editor at
+ * - LTXDirector / LTXDirectorGuide  -  timeline editor at
  *   `node._timelineEditor.canvas` (rendered by the timeline DOM widget)
  *
  * Pattern mirrors imageOpsPreviewBridge: WeakMap caches avoid re-encoding when

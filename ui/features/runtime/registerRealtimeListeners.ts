@@ -372,9 +372,9 @@ export async function registerRealtimeListeners({
             const hwVal = detail.has_workflow ?? detail.hasWorkflow;
             const hgVal = detail.has_generation_data ?? detail.hasGenerationData;
             if (hwVal == null && hgVal == null) {
-                // Already pending â€” no change needed
+                // Already pending  -  no change needed
             } else if (hwVal == null || hgVal == null) {
-                // Partially missing â€” normalise to null so dot stays pending
+                // Partially missing  -  normalise to null so dot stays pending
                 liveDetail = {
                     ...liveDetail,
                     has_workflow: hwVal ?? null,
@@ -382,7 +382,7 @@ export async function registerRealtimeListeners({
                 };
             }
             // If both are present (0/1) the backend has already done inline
-            // metadata extraction â€” honour the real values.
+            // metadata extraction  -  honour the real values.
         }
         // Use immediate flush for fresh generation events to bypass the
         // 200 ms debounce and show the card as soon as the WS event arrives.

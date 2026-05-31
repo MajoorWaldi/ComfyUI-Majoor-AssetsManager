@@ -1,16 +1,16 @@
 /**
- * KnownNodesAdapter â€” higher-priority adapter for well-known ComfyUI nodes.
+ * KnownNodesAdapter  -  higher-priority adapter for well-known ComfyUI nodes.
  *
  * Covers output nodes from popular extensions that produce file-based preview data
  * via `onNodeOutputsUpdated`.  Processing-only nodes (ColorCorrect, Blur, etc.)
- * are handled by the canvas-based Path 2 in the controller â€” they don't need
+ * are handled by the canvas-based Path 2 in the controller  -  they don't need
  * an adapter because they don't produce file outputs.
  *
  * ## Supported repos
  *
  * - **Comfy-Org (core)**: SaveImage, PreviewImage, SaveAnimatedWEBP/PNG, SaveVideo,
  *   SaveWEBM, SaveGif (all use `images` key, videos add `animated: (True,)`)
- * - **ComfyUI-VideoHelperSuite (VHS)**: VHS_VideoCombine â†’ `gifs` key
+ * - **ComfyUI-VideoHelperSuite (VHS)**: VHS_VideoCombine -> `gifs` key
  * - **ComfyUI-KJNodes**: SaveImageWithAlpha, SaveImageKJ, PreviewAnimation,
  *   FastPreview, ImageAndMaskPreview, PreviewImageOrMask + 40+ processing nodes
  * - **ComfyUI_essentials**: ImagePreviewFromLatent (inherits SaveImage)
@@ -28,10 +28,10 @@
 
 import { createAdapter } from "./BaseAdapter.js";
 
-// â”€â”€ Known OUTPUT_NODE class_types by repo â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// -- Known OUTPUT_NODE class_types by repo -------------------------------------
 
 /**
- * Core ComfyUI (Comfy-Org) â€” all use `{"ui": {"images": [...]}}`
+ * Core ComfyUI (Comfy-Org)  -  all use `{"ui": {"images": [...]}}`
  * Videos (SaveVideo, SaveWEBM) also use `images` key + `animated: (True,)` flag
  */
 const COMFY_CORE_OUTPUT = new Set([
@@ -46,7 +46,7 @@ const COMFY_CORE_OUTPUT = new Set([
 ]);
 
 /**
- * ComfyUI-KJNodes â€” image output nodes using `{"ui": {"images": [...]}}`
+ * ComfyUI-KJNodes  -  image output nodes using `{"ui": {"images": [...]}}`
  */
 const KJNODES_OUTPUT = new Set([
     "SaveImageWithAlpha",
@@ -58,26 +58,26 @@ const KJNODES_OUTPUT = new Set([
 ]);
 
 /**
- * ComfyUI_essentials â€” inherits SaveImage pattern
+ * ComfyUI_essentials  -  inherits SaveImage pattern
  */
 const ESSENTIALS_OUTPUT = new Set(["ImagePreviewFromLatent"]);
 
 /**
- * ComfyUI_LayerStyle â€” only output node: ImageTaggerSave
+ * ComfyUI_LayerStyle  -  only output node: ImageTaggerSave
  * Uses standard `{"ui": {"images": [...]}}` format
  */
 const LAYERSTYLE_OUTPUT = new Set(["LayerUtility: ImageTaggerSave"]);
 
 /**
- * ComfyUI-VideoHelperSuite â€” uses `{"ui": {"gifs": [...]}}`
+ * ComfyUI-VideoHelperSuite  -  uses `{"ui": {"gifs": [...]}}`
  * (Handled by VideoAdapter at priority 10, documented here for reference)
  */
 const VHS_OUTPUT = new Set(["VHS_VideoCombine"]);
 
-// â”€â”€ Processing nodes (canvas Path 2) â€” documented for isKnownProcessingNode â”€â”€
+// -- Processing nodes (canvas Path 2)  -  documented for isKnownProcessingNode --
 
 /**
- * ComfyUI_LayerStyle â€” processing nodes returning IMAGE/MASK tensors.
+ * ComfyUI_LayerStyle  -  processing nodes returning IMAGE/MASK tensors.
  * Streamed via `executing` event + `node.imgs` (Path 2).
  */
 const LAYERSTYLE_PROCESSING = new Set([
@@ -170,7 +170,7 @@ const LAYERSTYLE_PROCESSING = new Set([
 ]);
 
 /**
- * ComfyUI-KJNodes â€” processing nodes returning IMAGE/MASK tensors.
+ * ComfyUI-KJNodes  -  processing nodes returning IMAGE/MASK tensors.
  * Streamed via `executing` event + `node.imgs` (Path 2).
  */
 const KJNODES_PROCESSING = new Set([
@@ -241,7 +241,7 @@ const KJNODES_PROCESSING = new Set([
 ]);
 
 /**
- * ComfyUI_essentials â€” processing nodes.
+ * ComfyUI_essentials  -  processing nodes.
  */
 const ESSENTIALS_PROCESSING = new Set([
     "ImageResize+",
@@ -259,11 +259,11 @@ const ESSENTIALS_PROCESSING = new Set([
 ]);
 
 /**
- * ComfyUI-LTXVideo (Lightricks) â€” processing nodes returning IMAGE tensors.
+ * ComfyUI-LTXVideo (Lightricks)  -  processing nodes returning IMAGE tensors.
  *
  * - LTXVDrawTracks: renders sparse motion tracks as an IMAGE (io.Image.Output).
- * - LTXVHDRDecodePostprocess: decompresses HDR-encoded frames â†’ IMAGE tuple.
- * - LTXVTiledVAEDecode: tiled VAE decode â†’ IMAGE.
+ * - LTXVHDRDecodePostprocess: decompresses HDR-encoded frames -> IMAGE tuple.
+ * - LTXVTiledVAEDecode: tiled VAE decode -> IMAGE.
  * - LTXVSparseTrackEditor: interactive spline director widget; live canvas
  *   preview is handled separately by ltxDirectorPreviewBridge.js.
  */
@@ -271,9 +271,9 @@ const LTXV_PROCESSING = new Set([
     "LTXVDrawTracks",
     "LTXVHDRDecodePostprocess",
     "LTXVTiledVAEDecode",
-    // Director widget (sparse tracks) â€” canvas at node._ed.canvas
+    // Director widget (sparse tracks)  -  canvas at node._ed.canvas
     "LTXVSparseTrackEditor",
-    // Director timeline nodes â€” canvas at node._timelineEditor.canvas
+    // Director timeline nodes  -  canvas at node._timelineEditor.canvas
     "LTXDirector",
     "LTXDirectorGuide",
 ]);
@@ -294,7 +294,7 @@ const ALL_PROCESSING = new Set([
     ...LTXV_PROCESSING,
 ]);
 
-// â”€â”€ Adapter â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// -- Adapter -------------------------------------------------------------------
 
 export const KnownNodesAdapter = createAdapter({
     name: "known-nodes",
@@ -327,7 +327,7 @@ export const KnownNodesAdapter = createAdapter({
     },
 });
 
-// â”€â”€ Export utilities â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// -- Export utilities -----------------------------------------------------------
 
 /**
  * Check if a class_type is a known processing node (canvas Path 2).

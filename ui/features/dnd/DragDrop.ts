@@ -523,7 +523,7 @@ export function createDragDropRuntimeHandlers(): Record<string, any> {
         _loadAssetDragKeyDown = false;
     };
 
-    // â”€â”€ LTX Director timeline injection â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- LTX Director timeline injection ----------------------------------------
     const _LTX_AUDIO_EXTS = new Set(["mp3", "wav", "ogg", "flac", "m4a", "aac", "opus"]);
 
     const _injectIntoLtxDirector = async (te: any, payload: any, droppedExt: any) => {
@@ -536,7 +536,7 @@ export function createDragDropRuntimeHandlers(): Record<string, any> {
                     ghost.resolvedStart !== undefined ? ghost.resolvedStart : ghost.start;
             }
         }
-        // Clear ghost state â€” we are taking over the drop
+        // Clear ghost state  -  we are taking over the drop
         te._ghostSegmentId = null;
         te._ghostTrack = null;
         te._ghostInitialTimeline = null;
@@ -562,7 +562,7 @@ export function createDragDropRuntimeHandlers(): Record<string, any> {
         const mediaFile = subfolder ? `${subfolder}/${name}` : name;
         const mediaUrl = `/view?filename=${encodeURIComponent(name)}&type=input&subfolder=${encodeURIComponent(subfolder)}`;
 
-        // â”€â”€ Audio â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // -- Audio --------------------------------------------------------------
         if (isAudio) {
             try {
                 const resp = await fetch(mediaUrl);
@@ -636,7 +636,7 @@ export function createDragDropRuntimeHandlers(): Record<string, any> {
             return;
         }
 
-        // â”€â”€ Image or Video â†’ visual segment â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // -- Image or Video -> visual segment -----------------------------------
         const frameRate = typeof te.getFrameRate === "function" ? te.getFrameRate() : 25;
         const segLength = frameRate; // 1 second default
 
@@ -669,7 +669,7 @@ export function createDragDropRuntimeHandlers(): Record<string, any> {
         te.timeline.segments.push(seg);
         te.timeline.segments.sort((a: any, b: any) => a.start - b.start);
 
-        // Async thumbnail load â€” works for images; silently skipped for video
+        // Async thumbnail load  -  works for images; silently skipped for video
         const img = new Image();
         img.onload = () => {
             seg.imgObj = img;
@@ -688,7 +688,7 @@ export function createDragDropRuntimeHandlers(): Record<string, any> {
         comfyToast(`Added to LTX Director: ${name}`, "success", 3000);
         dndLog("drop ltxdirector inject", { file: name, start, ext });
     };
-    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -------------------------------------------------------------------------
 
     const onDragOver = (event: any) => {
         const app = _resolveApp();
@@ -709,7 +709,7 @@ export function createDragDropRuntimeHandlers(): Record<string, any> {
 
         if (node && (slotInfo || widget || isLtxDirector)) {
             event.preventDefault();
-            // For LTXDirector: do NOT stopPropagation â€” allow the wrapper's own dragover
+            // For LTXDirector: do NOT stopPropagation  -  allow the wrapper's own dragover
             // handler to fire so it sets up the ghost segment position.
             if (!isLtxDirector) {
                 event.stopImmediatePropagation?.();
@@ -791,7 +791,7 @@ export function createDragDropRuntimeHandlers(): Record<string, any> {
             return;
         }
 
-        // â”€â”€ LTX Director timeline drop â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // -- LTX Director timeline drop ------------------------------------------
         if (node && !slotInfo && !widget && node._timelineEditor && !forceLoaderNode) {
             event.preventDefault();
             event.stopImmediatePropagation?.();
@@ -800,7 +800,7 @@ export function createDragDropRuntimeHandlers(): Record<string, any> {
             await _injectIntoLtxDirector(node._timelineEditor, payload, droppedExt);
             return;
         }
-        // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ---------------------------------------------------------------------
 
         if (!node || !widget) {
             clearHighlight(app, markCanvasDirty);

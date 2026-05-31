@@ -48,7 +48,7 @@ const SETTINGS_CATEGORY = "Majoor Assets Manager";
 export function registerAdvancedSettings(safeAddSetting: (def: any) => void, settings: Record<string, any>, notifyApplied: (..._args: any[]) => void, app?: any | null): void {
     const cat = (section: any, label: any) => [SETTINGS_CATEGORY, section, label];
 
-    // â”€â”€ OutputDirectory â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- OutputDirectory ---------------------------------------------------
 
     let _outputDirCommittedValue = String(settings.paths?.outputDirectory || "");
     let _outputDirSaveTimer: any = null;
@@ -149,7 +149,7 @@ export function registerAdvancedSettings(safeAddSetting: (def: any) => void, set
         console.debug?.(e);
     }
 
-    // â”€â”€ IndexDirectory â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- IndexDirectory ----------------------------------------------------
 
     let _indexDirCommittedValue = String(settings.paths?.indexDirectory || "");
     let _indexDirSaveTimer: any = null;
@@ -262,7 +262,7 @@ export function registerAdvancedSettings(safeAddSetting: (def: any) => void, set
         console.debug?.(e);
     }
 
-    // â”€â”€ Language â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- Language ----------------------------------------------------------
 
     const languages = getSupportedLanguages();
     const langOptions = languages.map((l) => l.code);
@@ -295,7 +295,7 @@ export function registerAdvancedSettings(safeAddSetting: (def: any) => void, set
         },
     });
 
-    // â”€â”€ ProbeBackend â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- ProbeBackend ------------------------------------------------------
 
     safeAddSetting({
         id: `${SETTINGS_PREFIX}.ProbeBackend.Mode`,
@@ -320,7 +320,7 @@ export function registerAdvancedSettings(safeAddSetting: (def: any) => void, set
         },
     });
 
-    // â”€â”€ MetadataFallback â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- MetadataFallback --------------------------------------------------
 
     safeAddSetting({
         id: `${SETTINGS_PREFIX}.MetadataFallback.Image`,
@@ -441,7 +441,7 @@ export function registerAdvancedSettings(safeAddSetting: (def: any) => void, set
         console.debug?.(e);
     }
 
-    // â”€â”€ Database â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- Database ----------------------------------------------------------
 
     safeAddSetting({
         id: `${SETTINGS_PREFIX}.Db.Timeout`,
@@ -503,7 +503,7 @@ export function registerAdvancedSettings(safeAddSetting: (def: any) => void, set
         },
     });
 
-    // â”€â”€ Observability â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- Observability -----------------------------------------------------
 
     safeAddSetting({
         id: `${SETTINGS_PREFIX}.Observability.Enabled`,
@@ -641,7 +641,7 @@ export function registerAdvancedSettings(safeAddSetting: (def: any) => void, set
         }
     })();
 
-    // â”€â”€ AI / Vector Search â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- AI / Vector Search ------------------------------------------------
 
     {
         const hfCategoryLabel = "HuggingFace Token";

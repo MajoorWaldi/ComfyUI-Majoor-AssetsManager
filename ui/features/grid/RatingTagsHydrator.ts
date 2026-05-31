@@ -124,7 +124,7 @@ export function updateCardRatingTagsBadges(card: any, rating: any, tags: any, de
                 const stars = [];
                 for (let i = 0; i < ratingValue; i++) {
                     const star = document.createElement("span");
-                    star.textContent = "â˜…";
+                    star.textContent = "*";
                     star.style.color = "var(--mjr-rating-color, var(--mjr-star-active, #FFD45A))";
                     star.style.marginRight = i < ratingValue - 1 ? "2px" : "0";
                     stars.push(star);

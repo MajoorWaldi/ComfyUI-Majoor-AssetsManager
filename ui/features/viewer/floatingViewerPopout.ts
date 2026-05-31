@@ -438,7 +438,7 @@ export function fallbackPopoutFloatingViewer(viewer: any, el: HTMLElement, w: nu
     const popup = window.open("about:blank", "_mjr_viewer", features);
     if (!popup) {
         traceFloatingViewerPopout("browser-popup-blocked", null, "warn");
-        console.warn("[MFV] Pop-out blocked â€” allow popups for this site.");
+        console.warn("[MFV] Pop-out blocked  -  allow popups for this site.");
         return;
     }
     traceFloatingViewerPopout("browser-popup-opened", { hasDocument: Boolean(popup?.document) });

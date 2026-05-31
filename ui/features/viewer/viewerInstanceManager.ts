@@ -1,5 +1,5 @@
 /**
- * Viewer instance manager â€” ensures a single active viewer overlay in the DOM.
+ * Viewer instance manager  -  ensures a single active viewer overlay in the DOM.
  * Cleans up stale overlays before mounting a new one.
  */
 

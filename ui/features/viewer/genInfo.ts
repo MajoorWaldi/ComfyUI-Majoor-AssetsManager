@@ -9,11 +9,11 @@ const safeCall = (fn: any, fallback: any = null): any => {
 };
 
 const GENINFO_CACHE_TTL_MS = APP_CONFIG?.VIEWER_GENINFO_TTL_MS ?? 30_000;
-const GENINFO_ERROR_TTL_MS = APP_CONFIG?.VIEWER_GENINFO_ERROR_TTL_MS ?? 8_000;
+const GENINFO_?_TTL_MS = APP_CONFIG?.VIEWER_GENINFO_?_TTL_MS ?? 8_000;
 const GENINFO_CACHE_MAX = APP_CONFIG?.VIEWER_GENINFO_MAX_ENTRIES ?? 300;
 
 const GENINFO_CACHE = new Map(); // key -> { at, data }
-const GENINFO_ERROR_CACHE = new Map(); // key -> { at, error }
+const GENINFO_?_CACHE = new Map(); // key -> { at, error }
 const GENINFO_INFLIGHT = new Map(); // key -> Promise
 
 const _pruneCache = (cache: any, ttl: any, maxEntries: any) => {
@@ -312,7 +312,7 @@ export async function ensureViewerMetadataAsset(
     }
 
     const cachedError = cacheKey
-        ? _cacheGet(GENINFO_ERROR_CACHE, cacheKey, GENINFO_ERROR_TTL_MS)
+        ? _cacheGet(GENINFO_?_CACHE, cacheKey, GENINFO_?_TTL_MS)
         : null;
     if (cachedError) {
         try {
@@ -364,7 +364,7 @@ export async function ensureViewerMetadataAsset(
                 lastError = {
                     kind: "fetch_error",
                     stage: "asset",
-                    code: res?.code || "FETCH_ERROR",
+                    code: res?.code || "FETCH_?",
                     message: res?.error || "Failed to load asset metadata",
                 };
             }
@@ -410,7 +410,7 @@ export async function ensureViewerMetadataAsset(
                         lastError = {
                             kind: "fetch_error",
                             stage: "file_scoped",
-                            code: res?.code || "FETCH_ERROR",
+                            code: res?.code || "FETCH_?",
                             message: res?.error || "Failed to extract file metadata",
                         };
                     }
@@ -432,10 +432,10 @@ export async function ensureViewerMetadataAsset(
             _cacheSet(GENINFO_CACHE, cacheKey, full, GENINFO_CACHE_TTL_MS, GENINFO_CACHE_MAX);
         } else if (lastError && cacheKey) {
             _cacheSet(
-                GENINFO_ERROR_CACHE,
+                GENINFO_?_CACHE,
                 cacheKey,
                 lastError,
-                GENINFO_ERROR_TTL_MS,
+                GENINFO_?_TTL_MS,
                 GENINFO_CACHE_MAX,
             );
         }
@@ -622,7 +622,7 @@ export function buildViewerMetadataBlocks({ title, asset, ui }: Record<string, a
         pre.style.cssText =
             "margin:0; padding: 10px 12px; max-height: 280px; overflow:auto; font-size: 11px; line-height: 1.35; color: rgba(255,255,255,0.86);";
         let txt = typeof raw === "string" ? raw : JSON.stringify(raw, null, 2);
-        if (txt.length > 40_000) txt = `${txt.slice(0, 40_000)}\nâ€¦(truncated)`;
+        if (txt.length > 40_000) txt = `${txt.slice(0, 40_000)}\n...(truncated)`;
         pre.textContent = txt;
         details.appendChild(summary);
         details.appendChild(pre);

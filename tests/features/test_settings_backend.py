@@ -125,7 +125,13 @@ async def test_security_prefs_defaults_and_set(monkeypatch):
     monkeypatch.setenv("MAJOOR_ALLOW_DELETE", "0")
 
     prefs = await s.get_security_prefs()
+    assert prefs["safe_mode"] is False
+    assert prefs["allow_write"] is True
     assert isinstance(prefs["allow_delete"], bool)
+    assert prefs["allow_delete"] is False
+    assert prefs["allow_rename"] is True
+    assert prefs["allow_open_in_folder"] is True
+    assert prefs["allow_reset_index"] is True
 
     out = await s.set_security_prefs(
         {

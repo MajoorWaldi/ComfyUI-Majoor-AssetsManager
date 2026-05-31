@@ -1275,7 +1275,7 @@ export function mountVideoControls(video: any, opts: Record<string, any> = {}) {
                             const { inF } = getEffectiveInOut();
                             const cf = currentFrame();
                             if (cf <= inF) {
-                                // Reached start â€” switch to forward
+                                // Reached start  -  switch to forward
                                 state._ppReverse = false;
                                 goToFrame(inF);
                                 const p = video.play?.();
@@ -1675,7 +1675,7 @@ export function mountVideoControls(video: any, opts: Record<string, any> = {}) {
             unsubs.push(
                 safeAddListener(loopBtn, "click", (e: any) => {
                     stop(e);
-                    // Cycle: off â†’ loop â†’ pingpong â†’ off
+                    // Cycle: off -> loop -> pingpong -> off
                     if (!state.loop && !state.pingpong) {
                         state.loop = true;
                         state.pingpong = false;

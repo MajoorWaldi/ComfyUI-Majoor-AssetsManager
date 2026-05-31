@@ -1,5 +1,5 @@
 /**
- * Dialog template factories â€” one per dialog variant.
+ * Dialog template factories  -  one per dialog variant.
  *
  * Each template depends only on the core dialog infrastructure exported from
  * `./dialogs.js` (DOM helpers, styling, ComfyUI bridge).

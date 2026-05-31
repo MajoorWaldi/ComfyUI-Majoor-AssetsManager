@@ -167,6 +167,39 @@ describe("settingsSecurity recommended remote LAN preset", () => {
         expect(syncBackendSecuritySettings).not.toHaveBeenCalled();
     });
 
+    it("uses permissive local defaults except safe mode when security settings are missing", async () => {
+        const mod = await import("../app/settings/settingsSecurity.js");
+        const defs = [];
+        const settings = {
+            safety: {},
+            security: {},
+        };
+
+        mod.registerSecuritySettings((def) => defs.push(def), settings, vi.fn());
+
+        expect(defs.find((def) => def.id === "Majoor.Safety.ConfirmDeletion")?.defaultValue).toBe(
+            true,
+        );
+        expect(defs.find((def) => def.id === "Majoor.Security.safeMode")?.defaultValue).toBe(
+            false,
+        );
+        expect(defs.find((def) => def.id === "Majoor.Security.allowWrite")?.defaultValue).toBe(
+            true,
+        );
+        expect(defs.find((def) => def.id === "Majoor.Security.allowDelete")?.defaultValue).toBe(
+            true,
+        );
+        expect(defs.find((def) => def.id === "Majoor.Security.allowRename")?.defaultValue).toBe(
+            true,
+        );
+        expect(
+            defs.find((def) => def.id === "Majoor.Security.allowOpenInFolder")?.defaultValue,
+        ).toBe(true);
+        expect(defs.find((def) => def.id === "Majoor.Security.allowResetIndex")?.defaultValue).toBe(
+            true,
+        );
+    });
+
     it("does not push an unchanged API token during initial settings hydration", async () => {
         const mod = await import("../app/settings/settingsSecurity.js");
         const defs = [];

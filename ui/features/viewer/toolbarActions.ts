@@ -289,7 +289,7 @@ export function bindToolbarEvents({
 /**
  * Synchronise all toolbar UI controls from viewer state.
  *
- * @param {object} opts â€“ references to controls and state
+ * @param {object} opts - references to controls and state
  * @returns {void}
  */
 export function syncToolsUIFromState({

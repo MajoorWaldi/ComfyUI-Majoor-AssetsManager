@@ -46,7 +46,7 @@ import { createViewerMetadataHydrator } from "../features/viewer/metadata.js";
 import { createViewerPanZoom, createViewerMediaFactory } from "../features/viewer/ViewerCanvas.js";
 import { createImagePreloader } from "../features/viewer/imagePreloader.js";
 
-// â”€â”€â”€ Lazy-loaded viewer sub-modules (separate bundle chunks) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// --- Lazy-loaded viewer sub-modules (separate bundle chunks) -----------------
 // Pre-warmed when the first viewer instance is created so the browser fetches
 // them in parallel, reducing the initial viewer chunk size by ~140 KB.
 let _mod_abCompare: any = null;
@@ -82,7 +82,7 @@ function _prewarmViewerModules() {
             _mod_frameExport = m;
         });
 }
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// -----------------------------------------------------------------------------
 import { getViewerInstance as _getViewerInstance } from "../features/viewer/viewerInstanceManager.js";
 import { createPlayerBarManager } from "../features/viewer/playerBarManager.js";
 import { getHotkeysState, setHotkeysScope } from "../features/panel/controllers/hotkeysState.js";
@@ -1112,7 +1112,7 @@ function createViewer() {
                             } catch {
                                 txt = String(raw);
                             }
-                            if (txt.length > 40_000) txt = `${txt.slice(0, 40_000)}\nâ€¦(truncated)â€¦`;
+                            if (txt.length > 40_000) txt = `${txt.slice(0, 40_000)}\n...(truncated)...`;
                             pre.textContent = txt;
                             details.appendChild(summary);
                             details.appendChild(pre);

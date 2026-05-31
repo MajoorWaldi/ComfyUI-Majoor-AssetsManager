@@ -23,7 +23,7 @@ import {
 import { t } from "../i18n.js";
 import { comfyAlert } from "../dialogs.js";
 
-// â”€â”€â”€ Default settings â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// --- Default settings -----------------------------------------------------
 
 export const DEFAULT_SETTINGS = {
     debug: {
@@ -195,7 +195,7 @@ export const DEFAULT_SETTINGS = {
     },
 };
 
-// â”€â”€â”€ Load / Save â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// --- Load / Save ----------------------------------------------------------
 
 export const loadMajoorSettings = (): Record<string, any> => {
     try {
@@ -310,7 +310,7 @@ export const saveMajoorSettings = (settings: Record<string, any>): void => {
     }
 };
 
-// â”€â”€â”€ Apply settings to runtime APP_CONFIG â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// --- Apply settings to runtime APP_CONFIG ---------------------------------
 
 export const applySettingsToConfig = (settings: Record<string, any>): void => {
     const maxPage = Number(APP_DEFAULTS.MAX_PAGE_SIZE) || 2000;
@@ -391,10 +391,10 @@ export const applySettingsToConfig = (settings: Record<string, any>): void => {
         settings.feed?.showTagsBadge ?? APP_DEFAULTS.FEED_SHOW_BADGES_TAGS
     );
 
-    // Video autoplay mode: migrate old boolean â†’ new tri-state
+    // Video autoplay mode: migrate old boolean -> new tri-state
     {
         let mode = settings.grid?.videoAutoplayMode ?? APP_DEFAULTS.GRID_VIDEO_AUTOPLAY_MODE;
-        // Backward compat: old boolean "videoHoverAutoplay" â†’ "hover"
+        // Backward compat: old boolean "videoHoverAutoplay" -> "hover"
         if (mode === undefined || mode === null) {
             mode = settings.grid?.videoHoverAutoplay === false ? "off" : "hover";
         }
@@ -632,7 +632,7 @@ export const applySettingsToConfig = (settings: Record<string, any>): void => {
     );
 };
 
-// â”€â”€â”€ Backend security sync â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// --- Backend security sync ------------------------------------------------
 
 export async function syncBackendSecuritySettings(): Promise<void> {
     try {

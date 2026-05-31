@@ -23,9 +23,9 @@ export function registerViewerSettings(safeAddSetting: (def: any) => void, setti
     const viewerCat = (label: any) => cat(t("cat.viewer", "Viewer"), label);
     const floatingViewerCat = (label: any) => cat(t("cat.floatingViewer", "Floating Viewer"), label);
 
-    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ----------------------------------------------
     // Section: Viewer
-    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ----------------------------------------------
 
     safeAddSetting({
         id: `${SETTINGS_PREFIX}.Viewer.AllowPanAtZoom1`,
@@ -157,12 +157,12 @@ export function registerViewerSettings(safeAddSetting: (def: any) => void, setti
         name: t("setting.viewer.mfvPreviewMethod.name"),
         tooltip: t("setting.viewer.mfvPreviewMethod.desc"),
         type: "combo",
-        defaultValue: settings.viewer?.mfvPreviewMethod || "taesd",
+        defaultValue: settings.viewer?.mfvPreviewMethod || APP_DEFAULTS.MFV_PREVIEW_METHOD,
         options: ["taesd", "latent2rgb", "auto", "default", "none"],
         onChange: (value: any) => {
             const method = ["taesd", "latent2rgb", "auto", "default", "none"].includes(value)
                 ? value
-                : "taesd";
+                : APP_DEFAULTS.MFV_PREVIEW_METHOD;
             settings.viewer = settings.viewer || {};
             settings.viewer.mfvPreviewMethod = method;
             saveMajoorSettings(settings);

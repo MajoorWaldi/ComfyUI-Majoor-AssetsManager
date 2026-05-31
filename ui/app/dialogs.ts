@@ -271,7 +271,7 @@ export const hideDialogNativeClose = (dialog: { element?: HTMLElement | null } |
 };
 
 // Template factories live in DialogTemplates.js.
-// Re-exported here for backward compatibility â€” all consumers can keep
+// Re-exported here for backward compatibility  -  all consumers can keep
 // importing from "./dialogs.js" without changes.
 export {
     comfyAlert,

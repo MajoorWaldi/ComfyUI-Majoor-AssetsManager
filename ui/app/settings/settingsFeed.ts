@@ -40,7 +40,7 @@ export function registerFeedSettings(safeAddSetting: (def: any) => void, setting
         },
     });
 
-    // â”€â”€ Master toggle: show info section â”€â”€
+    // -- Master toggle: show info section --
     safeAddSetting({
         id: `${SETTINGS_PREFIX}.Feed.ShowInfo`,
         category: feedCat("Show info section"),
@@ -58,7 +58,7 @@ export function registerFeedSettings(safeAddSetting: (def: any) => void, setting
         },
     });
 
-    // â”€â”€ Filename â”€â”€
+    // -- Filename --
     safeAddSetting({
         id: `${SETTINGS_PREFIX}.Feed.ShowFilename`,
         category: feedCat("Show filename"),
@@ -75,7 +75,7 @@ export function registerFeedSettings(safeAddSetting: (def: any) => void, setting
         },
     });
 
-    // â”€â”€ Dimensions â”€â”€
+    // -- Dimensions --
     safeAddSetting({
         id: `${SETTINGS_PREFIX}.Feed.ShowDimensions`,
         category: feedCat("Show dimensions"),
@@ -92,7 +92,7 @@ export function registerFeedSettings(safeAddSetting: (def: any) => void, setting
         },
     });
 
-    // â”€â”€ Date/time â”€â”€
+    // -- Date/time --
     safeAddSetting({
         id: `${SETTINGS_PREFIX}.Feed.ShowDate`,
         category: feedCat("Show date/time"),
@@ -109,7 +109,7 @@ export function registerFeedSettings(safeAddSetting: (def: any) => void, setting
         },
     });
 
-    // â”€â”€ Generation time badge â”€â”€
+    // -- Generation time badge --
     safeAddSetting({
         id: `${SETTINGS_PREFIX}.Feed.ShowGenTime`,
         category: feedCat("Show generation time"),
@@ -126,7 +126,7 @@ export function registerFeedSettings(safeAddSetting: (def: any) => void, setting
         },
     });
 
-    // â”€â”€ Workflow dot â”€â”€
+    // -- Workflow dot --
     safeAddSetting({
         id: `${SETTINGS_PREFIX}.Feed.ShowWorkflowDot`,
         category: feedCat("Show workflow dot"),
@@ -143,7 +143,7 @@ export function registerFeedSettings(safeAddSetting: (def: any) => void, setting
         },
     });
 
-    // â”€â”€ Format badge â”€â”€
+    // -- Format badge --
     safeAddSetting({
         id: `${SETTINGS_PREFIX}.Feed.ShowExtBadge`,
         category: feedCat("Show format badges"),
@@ -160,7 +160,7 @@ export function registerFeedSettings(safeAddSetting: (def: any) => void, setting
         },
     });
 
-    // â”€â”€ Rating badge â”€â”€
+    // -- Rating badge --
     safeAddSetting({
         id: `${SETTINGS_PREFIX}.Feed.ShowRatingBadge`,
         category: feedCat("Show rating badges"),
@@ -177,7 +177,7 @@ export function registerFeedSettings(safeAddSetting: (def: any) => void, setting
         },
     });
 
-    // â”€â”€ Tags badge â”€â”€
+    // -- Tags badge --
     safeAddSetting({
         id: `${SETTINGS_PREFIX}.Feed.ShowTagsBadge`,
         category: feedCat("Show tags badges"),

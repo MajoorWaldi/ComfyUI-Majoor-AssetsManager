@@ -182,7 +182,7 @@ function _deduplicatedFetch(key: any, fetcher: any) {
  * @param {boolean} obsEnabled - Whether observability is on.
  */
 function _injectBaseHeaders(headers: any, method: any, obsEnabled: any) {
-    // 1. CSRF protection â€” required on all write methods.
+    // 1. CSRF protection  -  required on all write methods.
     if (_methodIsWrite(method)) {
         try {
             if (headers instanceof Headers) {
@@ -211,7 +211,7 @@ function _injectBaseHeaders(headers: any, method: any, obsEnabled: any) {
  * Inject auth token headers in-place.
  *
  * @param {Headers|object} headers - Mutable headers object.
- * @param {string} authToken - Token value (empty string â†’ no-op).
+ * @param {string} authToken - Token value (empty string -> no-op).
  */
 function _injectAuthToken(headers: any, authToken: any) {
     if (!authToken) return;
@@ -232,9 +232,9 @@ function _injectAuthToken(headers: any, authToken: any) {
  * Parse a fetch Response and handle auth refresh if needed.
  *
  * Covers:
- *   - Non-JSON content-type â†’ INVALID_RESPONSE (with optional auth-retry on 401).
- *   - JSON parse failure â†’ INVALID_RESPONSE.
- *   - AUTH_REQUIRED / 401 JSON response â†’ one-shot auth refresh + retry.
+ *   - Non-JSON content-type -> INVALID_RESPONSE (with optional auth-retry on 401).
+ *   - JSON parse failure -> INVALID_RESPONSE.
+ *   - AUTH_REQUIRED / 401 JSON response -> one-shot auth refresh + retry.
  *   - Write-auth failure normalization.
  *
  * @param {Response} response
@@ -348,7 +348,7 @@ export function createApiFetchClient({
             const authRetryDone = !!options?._authRetryDone;
 
             // Build headers synchronously so no extra microtask tick is added
-            // before await fetch() â€” this preserves deduplication timing.
+            // before await fetch()  -  this preserves deduplication timing.
             const headers =
                 typeof Headers !== "undefined"
                     ? new Headers(options.headers || {})
@@ -412,15 +412,15 @@ export function createApiFetchClient({
                 } catch (e) {
                     console.debug?.(e);
                 }
-                // fetchAPI catches all errors internally â€” no try/catch needed here.
+                // fetchAPI catches all errors internally  -  no try/catch needed here.
                 // A wrapping try/catch would swallow the retry result and fall through
-                // to the NETWORK_ERROR return below with the *original* error instead.
+                // to the NETWORK_? return below with the *original* error instead.
                 return await fetchAPI(url, options, retryCount + 1);
             }
             return {
                 ok: false,
                 error: (error as any)?.message || String(error || "Network error"),
-                code: "NETWORK_ERROR",
+                code: "NETWORK_?",
                 data: null,
                 retries: retryCount,
             };

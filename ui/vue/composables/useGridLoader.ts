@@ -444,7 +444,7 @@ export function useGridLoader({
         // user-initiated scope/sort/filter switch during execution. If the
         // user navigates away (e.g. starts a generation on Output, switches
         // to Custom, generation finishes) the deferred reload must NOT fire
-        // â€” otherwise it would clobber the new context's grid state.
+        //  -  otherwise it would clobber the new context's grid state.
         const scheduledScopeKey = (() => {
             try {
                 // Ensure we capture to correct snapshot parts even during rapid clicks.
@@ -472,7 +472,7 @@ export function useGridLoader({
             // changed the search query while execution was in progress.
             const gridContainer = getGridContainer();
             // Bail if the grid context (scope/sort/filters) changed during
-            // execution â€” the user is now looking at a different view and a
+            // execution  -  the user is now looking at a different view and a
             // reload would corrupt it.
             if (scheduledScopeKey) {
                 let currentKey: any = null;
@@ -483,7 +483,7 @@ export function useGridLoader({
                 }
                 if (currentKey && currentKey !== scheduledScopeKey) {
                     mjrDbg(
-                        "[Grid] Deferred execution reload skipped â€” scope/filter changed during execution",
+                        "[Grid] Deferred execution reload skipped  -  scope/filter changed during execution",
                     );
                     return;
                 }
@@ -603,7 +603,7 @@ export function useGridLoader({
 
     /**
      * Build a key fingerprint that matches `_buildEarlyFetchKey` in
-     * features/runtime/earlyFetch.js. The two MUST stay in sync â€” when they
+     * features/runtime/earlyFetch.js. The two MUST stay in sync  -  when they
      * diverge the grid silently falls back to a second /list round-trip,
      * which is precisely what the early fetch was meant to avoid.
      */
@@ -828,7 +828,7 @@ export function useGridLoader({
         if (!canLoadFromHost()) {
             // When the grid is empty (initial load or post-reattach) and the host
             // isn't measured yet, schedule a single retry so the first page loads
-            // once the layout settles â€” prevents a permanent blank grid.
+            // once the layout settles  -  prevents a permanent blank grid.
             if (!state.assets.length && !state.loading && APP_CONFIG.PREFETCH_NEXT_PAGE) {
                 scheduleNextPagePrefetch(state.requestId, 400);
             }
@@ -863,7 +863,7 @@ export function useGridLoader({
                     getLimit: (emptyPageIndex: any) => getAdaptivePageLimit(baseLimit, emptyPageIndex),
                     beforeApplyPage: (page: any) => {
                         // Scope switch (or any requestId bump) happened while the
-                        // fetch was in flight â€” discard the page to avoid applying
+                        // fetch was in flight  -  discard the page to avoid applying
                         // stale data from the wrong offset / scope.
                         if (state.requestId !== _loadReqId) {
                             return { ok: false, stale: true };
@@ -886,7 +886,7 @@ export function useGridLoader({
                         }
                         if (Array.isArray(state.assets) && state.assets.length) {
                             mjrDbg(
-                                "[Grid LoadPage] empty response with cached visible assets â€” preserving cached view",
+                                "[Grid LoadPage] empty response with cached visible assets  -  preserving cached view",
                                 { offset: state.offset, query: state.query },
                             );
                             return {
@@ -1030,7 +1030,7 @@ export function useGridLoader({
         const requestId = state.requestId;
         // Capture the active grid context (scope/sort/filters) at schedule
         // time. If the user changes any filter or scope before the head
-        // refresh fires, we must abort â€” otherwise upsertAsset() would
+        // refresh fires, we must abort  -  otherwise upsertAsset() would
         // inject items that don't match the current filter into the grid.
         let scheduledKey: any = null;
         try {
@@ -1053,7 +1053,7 @@ export function useGridLoader({
                     console.debug?.(e);
                 }
                 if (currentKey && currentKey !== scheduledKey) {
-                    mjrDbg("[Grid] Snapshot head refresh skipped â€” context changed");
+                    mjrDbg("[Grid] Snapshot head refresh skipped  -  context changed");
                     return;
                 }
             }
@@ -1067,7 +1067,7 @@ export function useGridLoader({
                     signal: state.abortController?.signal || null,
                 });
                 if (Number(state.requestId) !== Number(requestId)) return;
-                // Re-check context after the await â€” the user may have
+                // Re-check context after the await  -  the user may have
                 // switched scope while the fetch was in flight.
                 if (scheduledKey) {
                     let currentKey: any = null;
@@ -1077,7 +1077,7 @@ export function useGridLoader({
                         console.debug?.(e);
                     }
                     if (currentKey && currentKey !== scheduledKey) {
-                        mjrDbg("[Grid] Snapshot head refresh discarded â€” context changed mid-fetch");
+                        mjrDbg("[Grid] Snapshot head refresh discarded  -  context changed mid-fetch");
                         return;
                     }
                 }
@@ -1132,7 +1132,7 @@ export function useGridLoader({
         if (reset && isExecutionBusy()) {
             // Try to hydrate from a cached snapshot before deferring so the
             // grid never appears empty during a generation. Only the API
-            // refresh is deferred â€” the user still sees the previously loaded
+            // refresh is deferred  -  the user still sees the previously loaded
             // assets immediately. Falls back to the original "deferred" state
             // when no snapshot is available.
             let hydratedFromSnapshot = false;
@@ -1531,7 +1531,7 @@ export function useGridLoader({
         state._mjrLastHydrateKey = key;
         state._mjrLastHydrateAt = Date.now();
         rememberCurrentGridContext({ ...parts, query: snapshot.query || parts.query || "*" });
-        // The snapshot is now on screen â€” any subsequent prefetch must
+        // The snapshot is now on screen  -  any subsequent prefetch must
         // APPEND, not reset. Clear the defer flag set by
         // prepareGridForScopeSwitch / loadAssets so loadNextPage doesn't
         // wipe visible cards on the next response.
