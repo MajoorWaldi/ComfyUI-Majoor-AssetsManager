@@ -8,10 +8,10 @@ import { mergeDuplicateTags, deleteAssets, startDuplicatesAnalysis } from "../..
  *
  * Houses all context-menu actions that require async API calls or complex
  * cross-controller coordination:
- *  - clearSimilarScope          â€” exits the similar-results view
- *  - clearTransientContext      â€” resets similar-results state
- *  - resetBrowserHistory        â€” clears folder navigation stack
- *  - onDuplicateAlertClick      â€” merge / delete duplicate assets flow
+ *  - clearSimilarScope           -  exits the similar-results view
+ *  - clearTransientContext       -  resets similar-results state
+ *  - resetBrowserHistory         -  clears folder navigation stack
+ *  - onDuplicateAlertClick       -  merge / delete duplicate assets flow
  *
  * @returns {object} extraActions
  */

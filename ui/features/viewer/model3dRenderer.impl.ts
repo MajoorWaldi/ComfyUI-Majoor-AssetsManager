@@ -79,7 +79,7 @@ const MODEL3D_LIGHT_SCALE = Object.freeze({
     bottom: 0.2,
 });
 
-// â”€â”€â”€ Utility helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// --- Utility helpers -------------------------------------------------------
 
 function _extOf(asset: any) {
     try {
@@ -116,7 +116,7 @@ function _resolveLoaderFromAsset(asset: any) {
     return (MODEL3D_EXT_TO_LOADER as Record<string, any>)[_extOf(asset)] || "";
 }
 
-// â”€â”€â”€ Settings panel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// --- Settings panel --------------------------------------------------------
 
 export function isModel3DAsset(asset: any): boolean {
     const kind = String(asset?.kind || "").toLowerCase();
@@ -160,7 +160,7 @@ export function isModel3DInteractionTarget(target: any) {
 }
 
 /**
- * Returns an OrbitControls mouseButtons config mapping Leftâ†’ROTATE, Middleâ†’DOLLY, Rightâ†’PAN.
+ * Returns an OrbitControls mouseButtons config mapping Left->ROTATE, Middle->DOLLY, Right->PAN.
  * @param {MouseEvent|null} eventLike - unused, reserved for future gesture detection
  * @param {{ROTATE:number,DOLLY:number,PAN:number}} MOUSE_ENUM - THREE.MOUSE enum
  */
@@ -170,7 +170,7 @@ export function buildModel3DMouseButtons(eventLike: any, MOUSE_ENUM: any) {
     return { LEFT: M.ROTATE, MIDDLE: M.DOLLY, RIGHT: M.PAN };
 }
 
-// â”€â”€â”€ Main element factory â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// --- Main element factory --------------------------------------------------
 
 /**
  * Creates and returns a fully self-contained 3D viewer host element.
@@ -294,7 +294,7 @@ export function createModel3DMediaElement(asset: any, url: any, options: Record<
     const resetViewBtn = _createViewportButton("Reset", "Reset 3D view");
     const gridBtn = _createViewportButton("Grid", "Toggle grid");
     const cameraModeBtn = _createViewportButton("Persp", "Switch perspective / orthographic");
-    const settingsBtn = _createViewportButton("âš™", "Settings");
+    const settingsBtn = _createViewportButton("Settings", "Settings");
     viewportTools.append(resetViewBtn, gridBtn, cameraModeBtn, settingsBtn);
     viewportToolbar.appendChild(viewportTools);
     host.appendChild(viewportToolbar);
@@ -332,7 +332,7 @@ export function createModel3DMediaElement(asset: any, url: any, options: Record<
     const animDom = _createAnimationBar();
     host.appendChild(animDom.bar);
 
-    // â”€â”€ State â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- State --------------------------------------------------------------
     let destroyed = false;
     let resizeObserver: any = null;
     let threeLib: any = null;
@@ -348,14 +348,14 @@ export function createModel3DMediaElement(asset: any, url: any, options: Record<
     let statusState: any = null;
     let interactionCleanup: any = null;
     let gridHelper: any = null;
-    let modelGroup: any = null; // Group wrapping loadedObject â€“ used for up-direction rotation
+    let modelGroup: any = null; // Group wrapping loadedObject - used for up-direction rotation
     let loadedObject: any = null;
     let objectFrame: any = null;
     let orthographicFrustumHeight = 0;
     let viewportMode: string = MODEL3D_VIEW_MODES.PERSPECTIVE;
 
     // Material modes
-    let originalMaterials = new Map(); // uuid â†’ original material
+    let originalMaterials = new Map(); // uuid -> original material
     const tempMaterials = new Set(); // disposable materials created by modes
 
     // Skeleton
@@ -390,7 +390,7 @@ export function createModel3DMediaElement(asset: any, url: any, options: Record<
         }
     };
 
-    // â”€â”€ Status helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- Status helpers ------------------------------------------------------
     const setStatus = (title: any, hintText = "", accent = "#4CAF50") => {
         statusState = { title, hintText, accent };
         statusCanvas.style.display = "block";
@@ -423,7 +423,7 @@ export function createModel3DMediaElement(asset: any, url: any, options: Record<
         }
     };
 
-    // â”€â”€ Camera helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- Camera helpers ------------------------------------------------------
     const updateOrthographicProjection = (width: any, height: any) => {
         if (!orthographicCamera || !(orthographicFrustumHeight > 0)) return;
         const aspect = Math.max(0.0001, (Number(width) || 1) / Math.max(1, Number(height) || 1));
@@ -491,7 +491,7 @@ export function createModel3DMediaElement(asset: any, url: any, options: Record<
         scheduleOverlayRedraw();
     };
 
-    // â”€â”€ Light helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- Light helpers --------------------------------------------------------
     const applyLightIntensity = (val: any) => {
         lightIntensity = Math.max(0, Math.min(10, Number(val) || 0));
         try {
@@ -517,7 +517,7 @@ export function createModel3DMediaElement(asset: any, url: any, options: Record<
         });
     };
 
-    // â”€â”€ Material mode helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- Material mode helpers ------------------------------------------------
     const applyMaterialMode = (mode: any) => {
         if (!loadedObject || !threeLib) return;
         _disposeTempMaterials(tempMaterials);
@@ -525,7 +525,7 @@ export function createModel3DMediaElement(asset: any, url: any, options: Record<
         scheduleOverlayRedraw();
     };
 
-    // â”€â”€ Up direction helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- Up direction helpers -------------------------------------------------
     const applyUpDirection = (dir: any) => {
         if (!modelGroup) return;
         const euler = (MODEL3D_UP_DIR_EULER as Record<string, any>)[dir] || [0, 0, 0];
@@ -539,7 +539,7 @@ export function createModel3DMediaElement(asset: any, url: any, options: Record<
         fitLoadedObject();
     };
 
-    // â”€â”€ Skeleton helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- Skeleton helpers -----------------------------------------------------
     const setSkeletonVisible = (visible: any) => {
         if (!skeletonHelper) return;
         try {
@@ -549,7 +549,7 @@ export function createModel3DMediaElement(asset: any, url: any, options: Record<
         }
     };
 
-    // â”€â”€ Animation helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- Animation helpers ----------------------------------------------------
     const syncAnimBar = () => {
         if (!animationMixer || animationClips.length === 0) return;
         const action = animationActions[currentAnimIdx];
@@ -592,7 +592,7 @@ export function createModel3DMediaElement(asset: any, url: any, options: Record<
         animationActions[idx] = action;
         currentAnimIdx = idx;
         isAnimPlaying = true;
-        animDom.playBtn.textContent = "â¸";
+        animDom.playBtn.textContent = "Pause";
         // Scale progress slider steps to clip duration for consistent seek granularity
         // (~10ms steps, min 100 ticks, max 10000 ticks)
         try {
@@ -606,14 +606,14 @@ export function createModel3DMediaElement(asset: any, url: any, options: Record<
         if (isAnimPlaying) {
             animationMixer.timeScale = 0;
             isAnimPlaying = false;
-            animDom.playBtn.textContent = "â–¶";
+            animDom.playBtn.textContent = "Play";
         } else {
             animationMixer.timeScale = animSpeed;
             if (!animationActions[currentAnimIdx]?.isRunning?.()) {
                 playAnimation(currentAnimIdx);
             } else {
                 isAnimPlaying = true;
-                animDom.playBtn.textContent = "â¸";
+                animDom.playBtn.textContent = "Pause";
             }
         }
     };
@@ -681,7 +681,7 @@ export function createModel3DMediaElement(asset: any, url: any, options: Record<
         });
     };
 
-    // â”€â”€ Viewport button sync â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- Viewport button sync -------------------------------------------------
     const syncViewportButtons = () => {
         _setViewportButtonActive(gridBtn, Boolean(gridHelper?.visible));
         _setViewportButtonActive(cameraModeBtn, viewportMode === MODEL3D_VIEW_MODES.ORTHOGRAPHIC);
@@ -690,7 +690,7 @@ export function createModel3DMediaElement(asset: any, url: any, options: Record<
         _setViewportButtonActive(settingsBtn, settingsPanelVisible);
     };
 
-    // â”€â”€ Settings panel wiring â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- Settings panel wiring ------------------------------------------------
     settingsDom.bgInput.addEventListener("input", () => {
         const col = settingsDom.bgInput.value;
         try {
@@ -728,7 +728,7 @@ export function createModel3DMediaElement(asset: any, url: any, options: Record<
         applyLightIntensity(Number(settingsDom.lightSlider.value));
     });
 
-    // â”€â”€ Event blocking (prevent bubbling to outer viewer/panzoom) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- Event blocking (prevent bubbling to outer viewer/panzoom) -------------
     // NOTE: panzoom.js already guards pointer/mouse events via isModel3DInteractionTarget()
     // in its capture-phase listeners (panzoom.js:460), so we only need to block wheel,
     // contextmenu, and drag events here. Pointer/mouse events must NOT be stopped on host
@@ -739,7 +739,7 @@ export function createModel3DMediaElement(asset: any, url: any, options: Record<
             el.addEventListener(name, handler, opts);
             registrations.push(() => el.removeEventListener(name, handler, opts));
         };
-        // Focus canvas on pointer down (bubble, no stop â€” OrbitControls needs these)
+        // Focus canvas on pointer down (bubble, no stop  -  OrbitControls needs these)
         bind(host, "pointerdown", () => {
             try {
                 canvas.focus?.();
@@ -766,7 +766,7 @@ export function createModel3DMediaElement(asset: any, url: any, options: Record<
         };
     };
 
-    // â”€â”€ Destroy â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- Destroy --------------------------------------------------------------
     const destroy = () => {
         destroyed = true;
         try {
@@ -964,7 +964,7 @@ export function createModel3DMediaElement(asset: any, url: any, options: Record<
     }
     setStatus("Preparing 3D preview", modelName);
 
-    // â”€â”€ Async init â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- Async init ------------------------------------------------------------
     Promise.resolve()
         .then(async () => {
             const loaderType = resolveModel3DLoader(asset);
@@ -1044,7 +1044,7 @@ export function createModel3DMediaElement(asset: any, url: any, options: Record<
                 orthographicCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, -10000, 10000);
                 activeCamera = perspectiveCamera;
 
-                // Controls â€“ attach to canvas (like ComfyUI's ControlsManager uses renderer.domElement)
+                // Controls - attach to canvas (like ComfyUI's ControlsManager uses renderer.domElement)
                 // so OrbitControls' internal pointermove/pointerup on ownerDocument are not blocked.
                 controls = new deps.OrbitControls(activeCamera, canvas);
                 controls.enableDamping = true;
@@ -1056,7 +1056,7 @@ export function createModel3DMediaElement(asset: any, url: any, options: Record<
                 controls.mouseButtons = buildModel3DMouseButtons(null, THREE.MOUSE);
                 interactionCleanup = installInteractionShell();
 
-                // â”€â”€ 6-light setup (ComfyUI-style) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                // -- 6-light setup (ComfyUI-style) -------------------------------
                 ambientLight = new THREE.AmbientLight(
                     0xffffff,
                     MODEL3D_LIGHT_SCALE.ambient * lightIntensity,
@@ -1259,7 +1259,7 @@ export function createModel3DMediaElement(asset: any, url: any, options: Record<
                 const clips = _getModelAnimations(loaded, loaderType);
                 if (clips.length > 0) setupAnimations(clips, object);
 
-                // â”€â”€ Axis gizmo (bottom-left corner) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                // -- Axis gizmo (bottom-left corner) -----------------------------
                 const axisScene = new THREE.Scene();
                 (host as any)._mjrAxisScene = axisScene;
                 const axisCamera = new THREE.PerspectiveCamera(50, 1, 0.1, 100);
@@ -1313,7 +1313,7 @@ export function createModel3DMediaElement(asset: any, url: any, options: Record<
                 }
                 scheduleOverlayRedraw();
 
-                // â”€â”€ Render loop â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                // -- Render loop --------------------------------------------------
                 const renderFrame = () => {
                     if (destroyed || runtimePaused || !renderer || !scene || !activeCamera) return;
                     try {
@@ -1329,7 +1329,7 @@ export function createModel3DMediaElement(asset: any, url: any, options: Record<
                         renderer.setViewport(0, 0, canvas.width, canvas.height);
                         renderer.render(scene, activeCamera);
 
-                        // Axis gizmo â€“ bottom-left corner
+                        // Axis gizmo - bottom-left corner
                         const px = Math.min(2, window.devicePixelRatio || 1);
                         const gizmoSize = Math.round(AXIS_SIZE * px);
                         renderer.setScissorTest(true);
@@ -1361,7 +1361,7 @@ export function createModel3DMediaElement(asset: any, url: any, options: Record<
                 };
                 renderFrameFn = renderFrame;
 
-                // â”€â”€ Viewport button events â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                // -- Viewport button events ---------------------------------------
                 const stopClick = (e: any) => _stopEvent(e, { preventDefault: true });
 
                 resetViewBtn.addEventListener("click", (e: any) => {

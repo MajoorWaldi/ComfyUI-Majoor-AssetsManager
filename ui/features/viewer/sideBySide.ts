@@ -4,7 +4,7 @@ import {
 } from "../../components/sidebar/parsers/geninfoParser.js";
 import { isModel3DAsset } from "./model3dRenderer.js";
 
-// â”€â”€ Compact grid gen-info helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// -- Compact grid gen-info helpers ---------------------------------------------
 
 function _escHtml(s: any) {
     return String(s ?? "")
@@ -72,7 +72,7 @@ function _extractGridGenInfo(asset: any) {
 }
 
 /**
- * Build a compact gen-info overlay for one cell of the 2Ã—2 / 2Ã—1 grid.
+ * Build a compact gen-info overlay for one cell of the 2x2 / 2x1 grid.
  * The overlay is absolutely positioned at the bottom of the cell and
  * is non-interactive (pointer-events:none) so clicks pass through to the media.
  */
@@ -82,7 +82,7 @@ function _buildGridCompactOverlay(asset: any, label: any) {
 
     const { prompt, seed, sampler, scheduler, cfg, step, genTime } = info;
 
-    // Build compact second line: seed Â· cfg Â· sampler Â· scheduler Â· steps Â· gentime
+    // Build compact second line: seed  -  cfg  -  sampler  -  scheduler  -  steps  -  gentime
     const detail = [
         seed ? `Seed: ${seed}` : "",
         cfg ? `CFG: ${cfg}` : "",
@@ -92,7 +92,7 @@ function _buildGridCompactOverlay(asset: any, label: any) {
         genTime ? `Gen: ${genTime}` : "",
     ]
         .filter(Boolean)
-        .join(" Â· ");
+        .join("  -  ");
 
     if (!prompt && !detail) return null;
 
@@ -120,7 +120,7 @@ function _buildGridCompactOverlay(asset: any, label: any) {
         "box-sizing:border-box",
     ].join(";");
 
-    const shortPrompt = prompt.length > 160 ? prompt.slice(0, 160) + "â€¦" : prompt;
+    const shortPrompt = prompt.length > 160 ? prompt.slice(0, 160) + "..." : prompt;
 
     // Build DOM nodes directly to eliminate XSS risk from metadata content.
     const row = document.createElement("div");
@@ -153,7 +153,7 @@ function _buildGridCompactOverlay(asset: any, label: any) {
     return overlay;
 }
 
-// â”€â”€ 3D compare controls sync â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// -- 3D compare controls sync ----------------------------------------------------
 
 /**
  * Poll until both panels have their _mjr3D exposed (async init), then wire
@@ -290,7 +290,7 @@ function _setupModel3DGridSync(sideView: any) {
     setTimeout(tryConnect, 50);
 }
 
-// â”€â”€ Main render function â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// -- Main render function -------------------------------------------------------
 
 export function renderSideBySideView({
     sideView,
@@ -399,7 +399,7 @@ export function renderSideBySideView({
                     console.debug?.(e);
                 }
             } else {
-                // Empty slot â€” show label badge so slot position is clear
+                // Empty slot  -  show label badge so slot position is clear
                 const badge = document.createElement("div");
                 badge.style.cssText =
                     "position:absolute;top:6px;left:6px;background:rgba(255,255,255,0.12);border-radius:3px;padding:1px 6px;font-size:9px;font-weight:700;color:rgba(255,255,255,0.4);letter-spacing:0.06em;";
@@ -478,7 +478,7 @@ export function renderSideBySideView({
 
     // Video sync is handled centrally by the viewer bar (Viewer.js) so we avoid double-sync here.
 
-    // â”€â”€ 3D OrbitControls sync â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- 3D OrbitControls sync -------------------------------------------------
     // When both panels contain 3D models, synchronize orbit/pan/zoom controls
     // so rotating one side mirrors the same camera state on the other.
     if (isModel3DAsset(currentAsset) && isModel3DAsset(other)) {

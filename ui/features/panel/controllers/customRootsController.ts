@@ -29,7 +29,7 @@ export function createCustomRootsController({
         // Show loading state
         const originalPlaceholder =
             customSelect.querySelector('option[value=""]')?.textContent ||
-            t("label.selectFolder", "Select folderâ€¦");
+            t("label.selectFolder", "Select folder...");
         customSelect.innerHTML = "";
 
         const loadingOption = document.createElement("option");

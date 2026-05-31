@@ -52,8 +52,8 @@ _SECURITY_API_TOKEN_KEY = "security_api_token"
 _SECURITY_API_TOKEN_HASH_KEY = "security_api_token_hash"
 _VALID_PROBE_MODES = {"auto", "exiftool", "ffprobe", "both"}
 _SECURITY_PREFS_INFO: Mapping[str, dict[str, bool | str]] = {
-    "safe_mode": {"env": "MAJOOR_SAFE_MODE", "default": True},
-    "allow_write": {"env": "MAJOOR_ALLOW_WRITE", "default": False},
+    "safe_mode": {"env": "MAJOOR_SAFE_MODE", "default": False},
+    "allow_write": {"env": "MAJOOR_ALLOW_WRITE", "default": True},
     "require_auth": {"env": "MAJOOR_REQUIRE_AUTH", "default": False},
     # Remote write/bootstrap and HTTP token delivery are opt-in. Loopback remains
     # convenient, while LAN/public exposure requires an explicit operator choice.
@@ -62,10 +62,10 @@ _SECURITY_PREFS_INFO: Mapping[str, dict[str, bool | str]] = {
         "env": "MAJOOR_ALLOW_INSECURE_TOKEN_TRANSPORT",
         "default": False,
     },
-    "allow_delete": {"env": "MAJOOR_ALLOW_DELETE", "default": False},
-    "allow_rename": {"env": "MAJOOR_ALLOW_RENAME", "default": False},
-    "allow_open_in_folder": {"env": "MAJOOR_ALLOW_OPEN_IN_FOLDER", "default": False},
-    "allow_reset_index": {"env": "MAJOOR_ALLOW_RESET_INDEX", "default": False},
+    "allow_delete": {"env": "MAJOOR_ALLOW_DELETE", "default": True},
+    "allow_rename": {"env": "MAJOOR_ALLOW_RENAME", "default": True},
+    "allow_open_in_folder": {"env": "MAJOOR_ALLOW_OPEN_IN_FOLDER", "default": True},
+    "allow_reset_index": {"env": "MAJOOR_ALLOW_RESET_INDEX", "default": True},
 }
 
 _SETTINGS_CACHE_TTL_S = 10.0

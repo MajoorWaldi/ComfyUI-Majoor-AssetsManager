@@ -229,7 +229,7 @@ export async function captureFloatingViewerView(viewer: any): Promise<void> {
 
     if (viewer._captureBtn) {
         viewer._captureBtn.disabled = true;
-        viewer._captureBtn.setAttribute("aria-label", t("tooltip.capturingView", "Capturingâ€¦"));
+        viewer._captureBtn.setAttribute("aria-label", t("tooltip.capturingView", "Capturing..."));
     }
 
     const w = viewer._contentEl.clientWidth || 480;

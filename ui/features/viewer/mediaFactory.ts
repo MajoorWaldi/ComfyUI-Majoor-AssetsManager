@@ -194,7 +194,7 @@ export function createViewerMediaFactory({
             const rawObj = raw && typeof raw === "object" ? raw : null;
             const ff = rawObj?.raw_ffprobe || {};
             const vs = ff?.video_stream || {};
-            // Priority: raw.fps â†’ raw.frame_rate (gen_info) â†’ asset.fps â†’ ffprobe streams
+            // Priority: raw.fps -> raw.frame_rate (gen_info) -> asset.fps -> ffprobe streams
             return _parseFps(
                 rawObj?.fps ??
                     rawObj?.frame_rate ??

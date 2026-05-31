@@ -535,7 +535,7 @@ function createTagChip(tag: any, onRemove: any) {
     } catch (e: any) {
         console.debug?.(e);
     }
-    removeBtn.textContent = "Ã—";
+    removeBtn.textContent = "x";
     removeBtn.style.cssText = `
         background: none;
         border: none;

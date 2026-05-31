@@ -36,7 +36,7 @@ export function createSettingsSync({
 }: Record<string, any>): Record<string, any> {
     let _sidebarPosition = "";
 
-    // â”€â”€ AI UI state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- AI UI state --------------------------------------------------------
 
     const isAiEnabled = () => {
         try {
@@ -67,7 +67,7 @@ export function createSettingsSync({
         }
     };
 
-    // â”€â”€ Sidebar position â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- Sidebar position ---------------------------------------------------
 
     const applySidebarPosition = (nextPosition: any) => {
         const pos = String(nextPosition || "right").toLowerCase() === "left" ? "left" : "right";
@@ -127,7 +127,7 @@ export function createSettingsSync({
         }
     };
 
-    // â”€â”€ Watcher â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- Watcher ------------------------------------------------------------
 
     const applyWatcherForScope = async (nextScope: any) => {
         const scope = String(nextScope || state.scope || "output").toLowerCase();
@@ -155,7 +155,7 @@ export function createSettingsSync({
         }
     };
 
-    // â”€â”€ Settings-changed handler â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- Settings-changed handler -------------------------------------------
 
     const onSettingsChanged = (_e: any) => {
         const changedKey = String(_e?.detail?.key || "").trim();
@@ -196,7 +196,7 @@ export function createSettingsSync({
                 const currentGrid = getActiveGridContainer() || null;
                 // Siblings toggle requires a full data reload: PNG siblings are filtered
                 // during appendAssets (state.assets), so refreshGrid alone can't add them
-                // back or remove them â€” a re-fetch is needed.
+                // back or remove them  -  a re-fetch is needed.
                 if (!isInitialSync && changedKey.startsWith("siblings.")) {
                     try {
                         currentGrid?.dispatchEvent(new CustomEvent("mjr:reload-grid"));
@@ -232,7 +232,7 @@ export function createSettingsSync({
         console.debug?.(e);
     }
 
-    // Register live-update listener â€” removed automatically when AC aborts.
+    // Register live-update listener  -  removed automatically when AC aborts.
     try {
         window.addEventListener?.("mjr-settings-changed", onSettingsChanged, {
             signal: panelLifecycleAC?.signal,

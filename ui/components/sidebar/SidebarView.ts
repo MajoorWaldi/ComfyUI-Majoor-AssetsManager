@@ -52,7 +52,7 @@ function _applySidebarOpenState(sidebar: any, open: any) {
     }
 }
 
-// â”€â”€â”€ metadata helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// --- metadata helpers ---------------------------------------------------------
 
 function _hasMeaningfulMetadataRaw(value: any) {
     if (value == null) return false;
@@ -92,7 +92,7 @@ function _hasGenerationLikeData(obj: any) {
 /**
  * Show asset in inline sidebar.
  *
- * Phase 5: DOM building is now owned by Vue (SidebarSection.vue â†’
+ * Phase 5: DOM building is now owned by Vue (SidebarSection.vue ->
  * AssetSidebarContent.vue). This function only:
  *  1. Applies CSS open-state to the sidebar element (imperative, unchanged).
  *  2. Calls setActiveAsset(asset, onUpdate) to trigger Vue re-render.
@@ -117,7 +117,7 @@ export async function showAssetInSidebar(sidebar: any, asset: any, onUpdate: any
     sidebar._currentFetchAbortController?.abort?.();
     sidebar._currentFetchAbortController = null;
 
-    // Open sidebar CSS (still imperative â€” Vue owns content, not layout).
+    // Open sidebar CSS (still imperative  -  Vue owns content, not layout).
     sidebar.classList.add("is-open");
     _applySidebarOpenState(sidebar, true);
 
@@ -129,7 +129,7 @@ export async function showAssetInSidebar(sidebar: any, asset: any, onUpdate: any
     // Trigger Vue re-render with the base asset.
     setActiveAsset(asset, onUpdate);
 
-    // â”€â”€ Async metadata enrichment â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- Async metadata enrichment ---------------------------------------------
     const buildFetchOptions = () => {
         sidebar._currentFetchAbortController?.abort?.();
         const controller = typeof AbortController !== "undefined" ? new AbortController() : null;

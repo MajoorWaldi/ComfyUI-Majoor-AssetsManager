@@ -154,7 +154,7 @@ export function createRatingEditor(asset: Record<string, any>, onUpdate?: (...ar
         const star = document.createElement("button");
         star.type = "button";
         star.className = "mjr-rating-star";
-        star.textContent = "â˜…";
+        star.textContent = "*";
         star.dataset.rating = String(i);
         try {
             star.setAttribute("aria-label", `Set rating ${i}`);

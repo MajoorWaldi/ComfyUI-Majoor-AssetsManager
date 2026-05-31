@@ -424,7 +424,7 @@ export async function getCollectionAssets(collectionId: any) {
     return get(`/mjr/am/collections/${encodeURIComponent(id)}/assets`);
 }
 
-// Ã¢â€â‚¬Ã¢â€â‚¬ Vector / Semantic Search Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+// Vector / Semantic Search
 
 /**
  * Semantic search by natural-language query via SigLIP2 embeddings.
@@ -599,7 +599,7 @@ export async function vectorBackfill(batchSize = 64, options: Record<string, any
             return {
                 ok: false,
                 error: String(data?.error || "Vector backfill failed"),
-                code: String(data?.code || "DB_ERROR"),
+                code: String(data?.code || "DB_?"),
                 data,
                 status: 500,
             };
@@ -638,7 +638,7 @@ export async function vectorBackfill(batchSize = 64, options: Record<string, any
         return {
             ok: false,
             error: String(finalData?.error || "Vector backfill failed"),
-            code: String(finalData?.code || "DB_ERROR"),
+            code: String(finalData?.code || "DB_?"),
             data: finalData,
             status: 500,
         };
@@ -654,7 +654,7 @@ export async function vectorBackfill(batchSize = 64, options: Record<string, any
 }
 
 /**
- * Retrieve AI-suggested (auto-tag) tags for an asset Ã¢â‚¬â€ separate from user tags.
+ * Retrieve AI-suggested (auto-tag) tags for an asset - separate from user tags.
  * @param {number|string} assetId
  * @returns {Promise<ApiResult<string[]>>}
  */

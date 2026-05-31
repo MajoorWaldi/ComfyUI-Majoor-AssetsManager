@@ -177,7 +177,7 @@ export function bindPinnedFolders({
             unpinBtn.type = "button";
             unpinBtn.className = "mjr-menu-item mjr-pinned-folder-unpin";
             unpinBtn.title = t("ctx.unpinFolder", "Unpin folder");
-            unpinBtn.textContent = "Ã—";
+            unpinBtn.textContent = "x";
             unpinBtn.addEventListener("click", (event) => unpinFolder(root, event), {
                 signal: panelLifecycleAC?.signal,
             });

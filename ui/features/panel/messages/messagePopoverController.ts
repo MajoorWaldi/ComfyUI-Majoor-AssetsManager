@@ -81,13 +81,13 @@ function resolveMessageEmoji(entry: any) {
 function getHistoryTypeIcon(type: any) {
     switch (String(type || "").toLowerCase()) {
         case "success":
-            return "âœ…";
+            return "OK";
         case "warning":
-            return "âš ï¸";
+            return "WARN";
         case "error":
-            return "âŒ";
+            return "?";
         default:
-            return "ðŸ’¡";
+            return "Tip";
     }
 }
 

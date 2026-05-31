@@ -83,7 +83,7 @@ interface MajoorExtensionManager {
 
 interface MajoorComfyApi {
     fetchApi?(route: string, options?: RequestInit): Promise<Response>;
-    apiURL?(route: string): string;
+    apiURL(route: string): string;
     settings?: unknown;
 }
 

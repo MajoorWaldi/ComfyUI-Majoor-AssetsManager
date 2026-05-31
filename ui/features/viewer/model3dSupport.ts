@@ -355,7 +355,7 @@ export function createModel3DAnimationBar() {
 
     const playBtn = document.createElement("button");
     playBtn.type = "button";
-    playBtn.textContent = "â–¶";
+    playBtn.textContent = "Play";
     playBtn.title = "Play / Pause";
     playBtn.style.cssText = [
         "width:28px",
@@ -390,7 +390,7 @@ export function createModel3DAnimationBar() {
     for (const spd of MODEL3D_ANIMATION_SPEEDS) {
         const opt = document.createElement("option");
         opt.value = String(spd);
-        opt.textContent = `${spd}Ã—`;
+        opt.textContent = `${spd}x`;
         if (spd === 1.0) opt.selected = true;
         speedSel.appendChild(opt);
     }

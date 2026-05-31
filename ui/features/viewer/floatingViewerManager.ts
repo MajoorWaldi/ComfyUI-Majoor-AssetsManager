@@ -1,5 +1,5 @@
 /**
- * floatingViewerManager â€” singleton controller for the Majoor Floating Viewer (MFV).
+ * floatingViewerManager  -  singleton controller for the Majoor Floating Viewer (MFV).
  *
  * Responsibilities:
  *  - Instantiate/reuse the FloatingViewer DOM element (lazy).
@@ -21,7 +21,7 @@ import { reportError } from "../../utils/logging.js";
 import { NODE_STREAM_FEATURE_ENABLED } from "./nodeStream/nodeStreamFeatureFlag.js";
 import { appendFloatingViewerNode } from "./viewerRuntimeHosts.js";
 
-// Lazy-loaded modules â€” loaded on first use to avoid blocking startup.
+// Lazy-loaded modules  -  loaded on first use to avoid blocking startup.
 /** @type {typeof import("./FloatingViewer.js").FloatingViewer | null} */
 let _FloatingViewerClass: any = null;
 let _floatingViewerLoadPromise: any = null;
@@ -69,7 +69,7 @@ function _normalizeRequestedMode(mode: any) {
     return "";
 }
 
-// â”€â”€ Module state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// -- Module state --------------------------------------------------------------
 
 /** @type {FloatingViewer | null} */
 let _instance: any = null;
@@ -96,7 +96,7 @@ function _syncToggleDefaultsFromConfig() {
     _instance?.setPreviewActive(_previewActive);
 }
 
-// â”€â”€ Internal helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// -- Internal helpers ----------------------------------------------------------
 
 async function _getInstance() {
     if (!_instance) {
@@ -209,7 +209,7 @@ function _streamAssetIntoCurrentViewerSlots(inst: any, fileData: any) {
 
     const pinA = pins.has("A");
     const pinB = pins.has("B");
-    // Both slots pinned â†’ no free slot, regardless of whether media has loaded yet.
+    // Both slots pinned -> no free slot, regardless of whether media has loaded yet.
     if (pinA && pinB) return;
     if (pinB) {
         inst.loadMediaPair(fileData, inst._mediaB);
@@ -278,7 +278,7 @@ async function _loadFromIds(selectedIds: any) {
 
         const result = await getAssetsBatch(ids, ac ? { signal: ac.signal } : {});
         if (ac?.signal.aborted) return;
-        if (_loadSeq !== seq) return; // stale â€” a newer _loadFromIds call was made
+        if (_loadSeq !== seq) return; // stale  -  a newer _loadFromIds call was made
         if (!result?.ok || !Array.isArray(result.data) || !result.data.length) return;
         if (!_instance) return; // disposed while fetching
 
@@ -312,7 +312,7 @@ async function _loadFromIds(selectedIds: any) {
 
         // AB / Side / Simple modes
         if (pins.has("A") && pins.has("B") && _instance._mediaA && _instance._mediaB) {
-            // Both pinned â€” nothing to replace
+            // Both pinned  -  nothing to replace
             return;
         } else if (pins.has("A") && _instance._mediaA) {
             _instance.loadMediaPair(_instance._mediaA, assets[0]);
@@ -348,11 +348,11 @@ function _syncCurrentGridSelection() {
     }
 }
 
-// â”€â”€ Selection listener (active while MFV is visible) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// -- Selection listener (active while MFV is visible) -------------------------
 
 function _onSelectionChanged(e: any) {
     if (!_instance?.isVisible) return;
-    // Filter out folder cards â€” they have no previewable media.
+    // Filter out folder cards  -  they have no previewable media.
     const selectedAssets = Array.isArray(e?.detail?.selectedAssets) ? e.detail.selectedAssets : [];
     const folderIds = new Set(
         selectedAssets
@@ -394,7 +394,7 @@ function _unbindSelectionListener() {
     _cancelFetch();
 }
 
-// â”€â”€ Node selection hooks (canvas â†’ sidebar sync) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// -- Node selection hooks (canvas -> sidebar sync) -----------------------------
 
 let _nodeSelectionBound = false;
 let _origOnNodeSelected: any = null;
@@ -412,7 +412,7 @@ function _onCanvasNodeSelection() {
     if (_instance?.isVisible) _instance.refreshSidebar?.();
 }
 
-// Debounced version for DOM-level fallback â€” avoids double-refresh when
+// Debounced version for DOM-level fallback  -  avoids double-refresh when
 // LiteGraph callbacks already fired for the same interaction.
 function _scheduleCanvasNodeSelection() {
     _clearScheduledCanvasNodeSelection();
@@ -479,7 +479,7 @@ function _bindNodeSelectionListener() {
             _origOnSelectionChange?.call(this, selectedNodes);
             _onCanvasNodeSelection();
         };
-        // Needed for deselect-all (click on empty canvas) â€” LiteGraph calls
+        // Needed for deselect-all (click on empty canvas)  -  LiteGraph calls
         // onNodeDeselected for each previously-selected node when clearing.
         canvas.onNodeDeselected = function (node: any) {
             _origOnNodeDeselected?.call(this, node);
@@ -530,7 +530,7 @@ function _unbindNodeSelectionListener() {
     _nodeSelectionBound = false;
 }
 
-// â”€â”€ Public API â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// -- Public API ----------------------------------------------------------------
 
 export const floatingViewerManager = {
     /**
@@ -633,7 +633,7 @@ export const floatingViewerManager = {
             return;
         }
 
-        // Cycle: AB â†’ Side â†’ Grid â†’ Simple â†’ AB
+        // Cycle: AB -> Side -> Grid -> Simple -> AB
         const cycle = {
             [MFV_MODES.AB]: MFV_MODES.SIDE,
             [MFV_MODES.SIDE]: MFV_MODES.SIMPLE,
@@ -693,7 +693,7 @@ export const floatingViewerManager = {
         }
     },
 
-    // â”€â”€ Preview stream (KSampler denoising steps) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- Preview stream (KSampler denoising steps) -------------------------
 
     setPreviewActive(active: any) {
         _previewActive = Boolean(active);
@@ -722,7 +722,7 @@ export const floatingViewerManager = {
         if (!wasVisible) _emitVisibilityChanged(true);
     },
 
-    // â”€â”€ Node Stream (intermediate node outputs) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- Node Stream (intermediate node outputs) ---------------------------
 
     toggleNodeStream() {
         if (!NODE_STREAM_FEATURE_ENABLED) return;
@@ -803,7 +803,7 @@ export const floatingViewerManager = {
     },
 };
 
-// â”€â”€ Global event wiring (NM-3: named references so teardown can remove them) â”€â”€
+// -- Global event wiring (NM-3: named references so teardown can remove them) --
 // Using named handler functions prevents duplicate listeners from accumulating
 // on hot-reload. entry.js calls teardownFloatingViewerManager() in its cleanup
 // path before re-registering, mirroring the pattern used for API handlers.

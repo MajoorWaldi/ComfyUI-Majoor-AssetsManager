@@ -1,5 +1,5 @@
 /**
- * useGridContextMenu.js â€” Vue lifecycle wrapper for bindGridContextMenu.
+ * useGridContextMenu.js  -  Vue lifecycle wrapper for bindGridContextMenu.
  *
  * Ties context-menu setup/teardown to the Vue component lifecycle so the
  * imperative unbind function is always called on unmount, even during
@@ -9,7 +9,7 @@
  *   const gridContainerRef = ref(null);
  *   useGridContextMenu(gridContainerRef, () => state);
  *
- * Phase 6.2 â€” strangler-fig lifecycle wrapper.
+ * Phase 6.2  -  strangler-fig lifecycle wrapper.
  */
 
 import { watch, onUnmounted } from "vue";

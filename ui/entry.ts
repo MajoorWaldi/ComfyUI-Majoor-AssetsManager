@@ -1,24 +1,24 @@
 /**
- * Entry Point â€” Majoor Assets Manager
+ * Entry Point  -  Majoor Assets Manager
  *
  * Registers the ComfyUI extension and wires up the Vue-based UI.
  *
  * Vue migration summary
- * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
- * â€¢ Sidebar and bottom-panel tabs mount isolated Vue 3 + Pinia applications
+ * ---------------------
+ * "¢ Sidebar and bottom-panel tabs mount isolated Vue 3 + Pinia applications
  *   (see ui/vue/App.vue and ui/vue/GeneratedFeedApp.vue).
- * â€¢ Keep-alive is handled by mountKeepAlive() in createVueApp.js â€” no more
+ * "¢ Keep-alive is handled by mountKeepAlive() in createVueApp.js  -  no more
  *   _mjrKeepAliveMounted DOM flags.
- * â€¢ Commands are declared on the extension object (declarative API) so ComfyUI
+ * "¢ Commands are declared on the extension object (declarative API) so ComfyUI
  *   surfaces them in the palette and shortcut editor automatically.
- * â€¢ Toast notifications route through app.extensionManager.toast (ComfyUI's
- *   PrimeVue toast) with a DOM fallback â€” no changes needed in toast.js as it
+ * "¢ Toast notifications route through app.extensionManager.toast (ComfyUI's
+ *   PrimeVue toast) with a DOM fallback  -  no changes needed in toast.js as it
  *   already prefers the native API.
  */
 
 // Side-effect import: starts the very first /list request immediately when this
 // module is parsed (well before ComfyUI invokes our `setup()` step 8b). Keep it
-// at the very top â€” its tiny dep set (api/client + endpoints + config) ensures
+// at the very top  -  its tiny dep set (api/client + endpoints + config) ensures
 // nothing heavy runs ahead of it. Result is consumed by useGridLoader.fetchPage.
 import "./features/runtime/earlyFetch.js";
 // Side-effect: registers the "Send to Asset Manager" right-click menu on
@@ -103,14 +103,14 @@ import {
     removeRuntimeWindowHandlers,
 } from "./features/runtime/entryRuntimeLifecycle.js";
 
-// â”€â”€ lazy module handles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// -- lazy module handles -------------------------------------------------------
 
 /** @type {import("./features/viewer/LiveStreamTracker.js") | null} */
 let liveStreamModule = null;
 /** @type {import("./features/viewer/nodeStream/NodeStreamController.js") | null} */
 let nodeStreamModule = null;
 
-// â”€â”€ constants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// -- constants -----------------------------------------------------------------
 
 const SIDEBAR_TAB_ID = "majoor-assets";
 const EXECUTION_RUNTIME_KEY = "__MJR_EXECUTION_RUNTIME__";
@@ -184,7 +184,7 @@ function _getNodeStreamClassLabel(node, fallbackClassType) {
     return type || title || "Node";
 }
 
-// â”€â”€ execution runtime helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// -- execution runtime helpers -------------------------------------------------
 
 function ensureExecutionRuntime() {
     try {
@@ -279,7 +279,7 @@ function scheduleGridReloadWhenIdle(delayMs = 1200) {
     );
 }
 
-// â”€â”€ lazy module initialisation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// -- lazy module initialisation -------------------------------------------------
 
 function setupLazyModules(runtimeApp) {
     void import("./features/viewer/LiveStreamTracker.js")
@@ -331,7 +331,7 @@ function setupLazyModules(runtimeApp) {
         .catch((e) => console.warn("[MJR setup] NodeStream load failed:", e));
 }
 
-// â”€â”€ API listener setup â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// -- API listener setup --------------------------------------------------------
 
 async function setupApiListeners(runtimeApp, executionRuntime) {
     const api =
@@ -379,7 +379,7 @@ async function setupApiListeners(runtimeApp, executionRuntime) {
     });
 }
 
-// â”€â”€ execution runtime controller â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// -- execution runtime controller ----------------------------------------------
 
 const executionRuntime = createExecutionRuntimeController({
     post,
@@ -392,20 +392,20 @@ const executionRuntime = createExecutionRuntimeController({
     getActiveGridContainer,
 });
 
-// â”€â”€ extension registration â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// -- extension registration -----------------------------------------------------
 // Keep registration unconditional. ComfyUI reload needs setup() to run again,
 // and installEntryRuntimeController() already tears down the previous runtime.
 app.registerExtension({
     name: EXTENSION_NAME,
 
     /**
-     * Declarative settings â€” registered with ComfyUI's settings panel.
+     * Declarative settings  -  registered with ComfyUI's settings panel.
      * Replaces the imperative registerMajoorSettings() call for the settings UI.
      */
     settings: buildMajoorSettings(app),
 
     /**
-     * Declarative commands â€” ComfyUI surfaces these in the command palette
+     * Declarative commands  -  ComfyUI surfaces these in the command palette
      * and the shortcut editor without additional imperative calls.
      */
     commands: buildNativeCommands(app, {
@@ -417,13 +417,13 @@ app.registerExtension({
     aboutPageBadges: buildAboutPageBadges(),
 
     /**
-     * Declarative bottom-panel tabs â€” processed by ComfyUI's extension service.
+     * Declarative bottom-panel tabs  -  processed by ComfyUI's extension service.
      * Each tab's render/destroy callbacks mount/unmount the Vue app via
      * mountKeepAlive() so state survives panel collapse/expand cycles.
      */
     bottomPanelTabs: buildBottomPanelTabs(),
 
-    // â”€â”€ lifecycle â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- lifecycle --------------------------------------------------------------
 
     async setup() {
         // 1. Runtime lifecycle controller (handles extension cleanup on reload).
@@ -457,12 +457,12 @@ app.registerExtension({
         ensureStyleLoaded({ enabled: true });
         mountGlobalRuntime();
 
-        // 4. Global runtime â€” viewer + DnD stay mounted from the always-on Vue runtime.
+        // 4. Global runtime  -  viewer + DnD stay mounted from the always-on Vue runtime.
 
         // 5. Lazy viewer modules (non-blocking).
         setupLazyModules(runtimeApp);
 
-        // 6. Settings runtime init (applies settings to APP_CONFIG, starts watcher syncâ€¦).
+        // 6. Settings runtime init (applies settings to APP_CONFIG, starts watcher sync...).
         registerMajoorSettings(runtimeApp, () => {
             const grid = getActiveGridContainer();
             if (!grid) return;
@@ -486,7 +486,7 @@ app.registerExtension({
             void checkMajoorVersion();
         }, 5000);
 
-        // 9. Proactive early fetch â€” start the first assets page in the background
+        // 9. Proactive early fetch  -  start the first assets page in the background
         //     so the data is ready (or already in-flight) when the user opens the
         //     sidebar. Fire immediately: previous 800ms timeout was wasted latency
         //     that delayed the first paint when the user clicked the sidebar fast.
@@ -517,7 +517,7 @@ app.registerExtension({
         }
 
         // 10b. Prewarm the sidebar Vue app on a detached host during browser
-        // idle so the clickâ†’cards latency drops from ~2 s (cold mount) to one
+        // idle so the click->cards latency drops from ~2 s (cold mount) to one
         // DOM frame (host re-attach). See entryUiRegistration.prewarmAssetsSidebar.
         try {
             const _ric = typeof window !== "undefined" ? window.requestIdleCallback : null;
@@ -552,10 +552,10 @@ app.registerExtension({
         });
     },
 
-    // â”€â”€ hooks â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- hooks ------------------------------------------------------------------
 
     /**
-     * ComfyUI v1.42+ â€” fires when individual node outputs are updated during
+     * ComfyUI v1.42+  -  fires when individual node outputs are updated during
      * a workflow execution.  Feeds the execution-stack runtime so the bottom
      * feed panel receives live assets.
      */

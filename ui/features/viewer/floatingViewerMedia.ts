@@ -46,7 +46,7 @@ export function resolveFloatingViewerMediaUrl(fileData: any): string {
     return "";
 }
 
-export function createFloatingViewerEmptyState(msg: string = "No media â€” select assets in the grid"): HTMLElement {
+export function createFloatingViewerEmptyState(msg: string = "No media  -  select assets in the grid"): HTMLElement {
     const div = document.createElement("div");
     div.className = "mjr-mfv-empty";
     div.textContent = msg;

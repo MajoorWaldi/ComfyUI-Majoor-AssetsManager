@@ -73,12 +73,12 @@ async function _mountPanelRuntimeImpl(container: any, { useComfyThemeUI = true, 
 
     const panelLifecycleAC = typeof AbortController !== "undefined" ? new AbortController() : null;
 
-    // â”€â”€ 1. BOOTSTRAP â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- 1. BOOTSTRAP ------------------------------------------------------
     const { popovers, hostWrapper, hostWrapperPrevStyle } = bootstrapPanelContainer(container, {
         useComfyThemeUI,
     });
 
-    // â”€â”€ 2. VALIDATE STATE + EXTERNAL ELEMENTS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- 2. VALIDATE STATE + EXTERNAL ELEMENTS -----------------------------
     const state = getOptionalPanelStore();
     if (!state) {
         throw new Error(
@@ -104,7 +104,7 @@ async function _mountPanelRuntimeImpl(container: any, { useComfyThemeUI = true, 
         }
     }
 
-    // â”€â”€ 3. STATE BRIDGE + READ/WRITE HELPERS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- 3. STATE BRIDGE + READ/WRITE HELPERS ------------------------------
     const panelStateBridge = createPanelStateBridge(null, [
         "searchQuery",
         "scrollTop",
@@ -145,7 +145,7 @@ async function _mountPanelRuntimeImpl(container: any, { useComfyThemeUI = true, 
     const readActiveAssetId = () => String(readPanelValue("activeAssetId", "") || "").trim();
     const isSidebarOpen = () => !!readPanelValue("sidebarOpen", false);
 
-    // â”€â”€ 4. DESTRUCTURE EXTERNAL ELEMENTS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- 4. DESTRUCTURE EXTERNAL ELEMENTS ----------------------------------
     const {
         header,
         tabButtons,
@@ -232,7 +232,7 @@ async function _mountPanelRuntimeImpl(container: any, { useComfyThemeUI = true, 
 
     container.tabIndex = -1;
 
-    // â”€â”€ 5. SCROLL PERSISTENCE + GRID CONTAINER SETUP â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- 5. SCROLL PERSISTENCE + GRID CONTAINER SETUP ----------------------
     let _scrollTimer: any = null;
     let _lastUserInteractionAt = 0;
     const markUserInteraction = () => {
@@ -316,7 +316,7 @@ async function _mountPanelRuntimeImpl(container: any, { useComfyThemeUI = true, 
         console.debug?.(e);
     }
 
-    // â”€â”€ 6. GRID API FUNCTION RESOLUTION â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- 6. GRID API FUNCTION RESOLUTION -----------------------------------
     const loadAssetsFn = external.loadAssets ?? loadAssets;
     const loadAssetsFromListFn = external.loadAssetsFromList ?? loadAssetsFromList;
     const prepareGridForScopeSwitchFn =
@@ -327,7 +327,7 @@ async function _mountPanelRuntimeImpl(container: any, { useComfyThemeUI = true, 
     const restoreAnchorFn = external.restoreAnchor ?? restoreAnchor;
     const hydrateGridFromSnapshotFn = external.hydrateGridFromSnapshot ?? hydrateGridFromSnapshot;
 
-    // â”€â”€ 7. GRID CONTEXT MENU â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- 7. GRID CONTEXT MENU ----------------------------------------------
     if (typeof external?.onGridContainerReady === "function") {
         try {
             external.onGridContainerReady(gridContainer, { getState: () => state });
@@ -341,7 +341,7 @@ async function _mountPanelRuntimeImpl(container: any, { useComfyThemeUI = true, 
         });
     }
 
-    // â”€â”€ 8. SETTINGS SYNC â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- 8. SETTINGS SYNC --------------------------------------------------
     const similarEnabledTitle = t("search.findSimilar", "Find Similar");
     const similarDisabledTitle = t(
         "search.similarDisabled",
@@ -364,7 +364,7 @@ async function _mountPanelRuntimeImpl(container: any, { useComfyThemeUI = true, 
         panelLifecycleAC,
     });
 
-    // â”€â”€ 9. DOM ASSEMBLY â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- 9. DOM ASSEMBLY ---------------------------------------------------
     content.appendChild(statusSection);
     content.appendChild(searchSection);
     content.appendChild(folderBreadcrumb);
@@ -379,7 +379,7 @@ async function _mountPanelRuntimeImpl(container: any, { useComfyThemeUI = true, 
     container._mjrVersionUpdateCleanup = _headerDispose || header._mjrVersionUpdateCleanup;
     container.appendChild(content);
 
-    // â”€â”€ 10. GRID CONTROLLER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- 10. GRID CONTROLLER -----------------------------------------------
     const getQuery = () => normalizeQuery(searchInputEl);
     const gridController = createGridController({
         gridContainer,
@@ -392,7 +392,7 @@ async function _mountPanelRuntimeImpl(container: any, { useComfyThemeUI = true, 
         state,
     });
 
-    // â”€â”€ 11. SHARED CONTROLLER VARIABLES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- 11. SHARED CONTROLLER VARIABLES ----------------------------------
     let scopeController: any = null;
     let contextController: any = null;
     let _duplicatesAlert: any = null;
@@ -416,7 +416,7 @@ async function _mountPanelRuntimeImpl(container: any, { useComfyThemeUI = true, 
         }
     };
 
-    // â”€â”€ 12. SELECTION STATE + BROWSER NAV â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- 12. SELECTION STATE + BROWSER NAV --------------------------------
     if (!hasVueGridHostState) {
         selectionState = bindGridSelectionState({
             gridContainer,
@@ -460,7 +460,7 @@ async function _mountPanelRuntimeImpl(container: any, { useComfyThemeUI = true, 
         console.debug?.(e);
     }
 
-    // â”€â”€ 13. DUPLICATE ALERTS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- 13. DUPLICATE ALERTS ---------------------------------------------
     const refreshDuplicateAlerts = async () => {
         const scope = String(
             readPanelValue("scope", state.scope || "output") || "output",
@@ -492,7 +492,7 @@ async function _mountPanelRuntimeImpl(container: any, { useComfyThemeUI = true, 
         }
     };
 
-    // â”€â”€ 14. QUEUED RELOAD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- 14. QUEUED RELOAD -------------------------------------------------
     const REQUEST_QUEUED_RELOAD_DEBOUNCE_MS = 120;
     let _queuedReloadTimer: any = null;
     const requestQueuedReload = () => {
@@ -513,7 +513,7 @@ async function _mountPanelRuntimeImpl(container: any, { useComfyThemeUI = true, 
         }, REQUEST_QUEUED_RELOAD_DEBOUNCE_MS);
     };
 
-    // â”€â”€ 15. GRID EVENT BINDINGS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- 15. GRID EVENT BINDINGS -------------------------------------------
     bindGridEvents({
         gridContainer,
         panelLifecycleAC,
@@ -527,7 +527,7 @@ async function _mountPanelRuntimeImpl(container: any, { useComfyThemeUI = true, 
         registerSummaryDispose,
     });
 
-    // â”€â”€ 16. CUSTOM ROOTS CONTROLLER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- 16. CUSTOM ROOTS CONTROLLER ---------------------------------------
     const customRootsController = createCustomRootsController({
         state,
         customSelect,
@@ -574,7 +574,7 @@ async function _mountPanelRuntimeImpl(container: any, { useComfyThemeUI = true, 
         console.debug?.(e);
     }
 
-    // â”€â”€ 17. RECONCILE VISIBLE SELECTION â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- 17. RECONCILE VISIBLE SELECTION ----------------------------------
     const reconcileVisibleSelection = () => {
         try {
             const getAssets = gridContainer?._mjrGetAssets;
@@ -605,7 +605,7 @@ async function _mountPanelRuntimeImpl(container: any, { useComfyThemeUI = true, 
         }
     };
 
-    // â”€â”€ 18. SCOPE CONTROLLER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- 18. SCOPE CONTROLLER ---------------------------------------------
     scopeController = createScopeController({
         state,
         tabButtons,
@@ -697,7 +697,7 @@ async function _mountPanelRuntimeImpl(container: any, { useComfyThemeUI = true, 
         });
     });
 
-    // â”€â”€ 19. MESSAGE POPOVER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- 19. MESSAGE POPOVER -----------------------------------------------
     bindMessagePopoverController({
         messageBtn,
         messagePopover,
@@ -723,7 +723,7 @@ async function _mountPanelRuntimeImpl(container: any, { useComfyThemeUI = true, 
         },
     });
 
-    // â”€â”€ 20. POPOVER BUTTONS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- 20. POPOVER BUTTONS -----------------------------------------------
     popovers.setDismissWhitelist([
         customPopover,
         filterPopover,
@@ -811,7 +811,7 @@ async function _mountPanelRuntimeImpl(container: any, { useComfyThemeUI = true, 
         );
     }
 
-    // â”€â”€ 21. SIMILAR SEARCH â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- 21. SIMILAR SEARCH ------------------------------------------------
     bindSimilarSearch({
         similarBtn,
         gridContainer,
@@ -833,7 +833,7 @@ async function _mountPanelRuntimeImpl(container: any, { useComfyThemeUI = true, 
         },
     });
 
-    // â”€â”€ 22. PINNED FOLDERS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- 22. PINNED FOLDERS ------------------------------------------------
     bindPinnedFolders({
         pinnedFoldersBtn,
         pinnedFoldersController,
@@ -859,7 +859,7 @@ async function _mountPanelRuntimeImpl(container: any, { useComfyThemeUI = true, 
         panelLifecycleAC,
     });
 
-    // â”€â”€ 23. FILTER INIT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- 23. FILTER INIT ---------------------------------------------------
     const { agendaCalendar, disposeFilters } = setupFiltersInit({
         state,
         hasVueHeaderSection,
@@ -884,7 +884,7 @@ async function _mountPanelRuntimeImpl(container: any, { useComfyThemeUI = true, 
         panelLifecycleAC,
     });
 
-    // â”€â”€ 24. CONTEXT CONTROLLER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- 24. CONTEXT CONTROLLER --------------------------------------------
     const extraActions = buildContextMenuExtraActions({
         state,
         scopeController,
@@ -925,7 +925,7 @@ async function _mountPanelRuntimeImpl(container: any, { useComfyThemeUI = true, 
         console.debug?.(e);
     }
 
-    // â”€â”€ 25. SUMMARY BAR UPDATES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- 25. SUMMARY BAR UPDATES -------------------------------------------
     try {
         notifyContextChanged();
         if (hasVueGridHostState) {
@@ -987,7 +987,7 @@ async function _mountPanelRuntimeImpl(container: any, { useComfyThemeUI = true, 
         console.debug?.(e);
     }
 
-    // â”€â”€ 26. SIDEBAR CONTROLLER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- 26. SIDEBAR CONTROLLER --------------------------------------------
     sidebarController = bindSidebarOpen({
         gridContainer,
         sidebar,
@@ -998,7 +998,7 @@ async function _mountPanelRuntimeImpl(container: any, { useComfyThemeUI = true, 
         state,
     });
 
-    // â”€â”€ 27. ASSETS QUERY CONTROLLER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- 27. ASSETS QUERY CONTROLLER ---------------------------------------
     const assetsQueryOptions = {
         gridController,
         captureAnchor: captureAnchorFn,
@@ -1039,7 +1039,7 @@ async function _mountPanelRuntimeImpl(container: any, { useComfyThemeUI = true, 
         });
     }
 
-    // â”€â”€ 28. HOTKEYS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- 28. HOTKEYS -------------------------------------------------------
     const hotkeys = createPanelHotkeysController({
         onTriggerScan: (ctx: any) => {
             triggerScan(statusDot, statusText, capabilitiesSection, ctx || {});
@@ -1100,7 +1100,7 @@ async function _mountPanelRuntimeImpl(container: any, { useComfyThemeUI = true, 
         console.debug?.(e);
     }
 
-    // â”€â”€ 29. CLEANUP CLOSURE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- 29. CLEANUP CLOSURE -----------------------------------------------
     container._eventCleanup = () => {
         try {
             panelLifecycleAC?.abort?.();
@@ -1243,7 +1243,7 @@ async function _mountPanelRuntimeImpl(container: any, { useComfyThemeUI = true, 
         }
     };
 
-    // â”€â”€ 30. INITIAL LOAD SEQUENCE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- 30. INITIAL LOAD SEQUENCE -----------------------------------------
     const queuedReload = async () => {
         await assetsQueryController?.queuedReload?.();
     };

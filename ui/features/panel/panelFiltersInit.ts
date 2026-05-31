@@ -35,7 +35,7 @@ export function setupFiltersInit({
     notifyContextChanged,
     panelLifecycleAC,
 }: Record<string, any>) {
-    // â”€â”€ Restore persisted filter values into DOM inputs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- Restore persisted filter values into DOM inputs --------------------
 
     let agendaCalendar: any = null;
     try {
@@ -75,7 +75,7 @@ export function setupFiltersInit({
         console.debug?.(e);
     }
 
-    // â”€â”€ Wire filter-change bindings â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- Wire filter-change bindings ----------------------------------------
 
     let disposeFilters = () => {};
 

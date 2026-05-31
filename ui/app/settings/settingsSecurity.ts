@@ -15,6 +15,14 @@ import {
 const SETTINGS_PREFIX = "Majoor";
 const SETTINGS_CATEGORY = "Majoor Assets Manager";
 const MIN_RECOMMENDED_TOKEN_LENGTH = 16;
+const SECURITY_TOGGLE_DEFAULTS: Record<string, boolean> = {
+    safeMode: false,
+    allowWrite: true,
+    allowDelete: true,
+    allowRename: true,
+    allowOpenInFolder: true,
+    allowResetIndex: true,
+};
 
 function normalizeSecurityBoolean(value: any) {
     return !!value;
@@ -100,7 +108,7 @@ function buildBackendSecurityPayload(security: any) {
         allow_delete: _safeBool(sec.allowDelete, true),
         allow_rename: _safeBool(sec.allowRename, true),
         allow_open_in_folder: _safeBool(sec.allowOpenInFolder, true),
-        allow_reset_index: _safeBool(sec.allowResetIndex, false),
+        allow_reset_index: _safeBool(sec.allowResetIndex, true),
         ...(String(sec.apiToken || "").trim()
             ? { api_token: String(sec.apiToken || "").trim() }
             : {}),
@@ -139,9 +147,9 @@ function tokenFieldPlaceholder(settings: any) {
 export function registerSecuritySettings(safeAddSetting: (def: any) => void, settings: Record<string, any>, notifyApplied: (..._args: any[]) => void): void {
     const cat = (section: any, label: any) => [SETTINGS_CATEGORY, section, label];
 
-    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ----------------------------------------------
     // Section: Security
-    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ----------------------------------------------
 
     safeAddSetting({
         id: `${SETTINGS_PREFIX}.Safety.ConfirmDeletion`,
@@ -172,7 +180,7 @@ export function registerSecuritySettings(safeAddSetting: (def: any) => void, set
             name: t(nameKey),
             tooltip: t(descKey),
             type: "boolean",
-            defaultValue: !!settings.security?.[key],
+            defaultValue: _safeBool(settings.security?.[key], SECURITY_TOGGLE_DEFAULTS[key] ?? false),
             onChange: (value: any) => {
                 if (shouldSkipBooleanSecurityUpdate(settings.security?.[key], value)) {
                     return;
@@ -208,9 +216,9 @@ export function registerSecuritySettings(safeAddSetting: (def: any) => void, set
     registerSecurityToggle("allowOpenInFolder", "setting.sec.open.name", "setting.sec.open.desc");
     registerSecurityToggle("allowResetIndex", "setting.sec.reset.name", "setting.sec.reset.desc");
 
-    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ----------------------------------------------
     // Section: Remote
-    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ----------------------------------------------
 
     safeAddSetting({
         id: `${SETTINGS_PREFIX}.Security.RemoteLanPreset`,

@@ -76,7 +76,7 @@ function ensureGridSettingsStyles() {
         .mjr-grid.mjr-show-details .mjr-card-info { display: block !important; }
 
         .mjr-card-meta-row > span + span::before {
-            content: " â€¢ ";
+            content: " "¢ ";
             opacity: 0.5;
             margin: 0 4px;
         }

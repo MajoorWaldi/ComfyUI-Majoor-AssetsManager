@@ -1,11 +1,11 @@
 /**
  * Shared utility helpers for Majoor settings.
- * Pure functions â€“ no side effects, no imports beyond APP_DEFAULTS.
+ * Pure functions - no side effects, no imports beyond APP_DEFAULTS.
  */
 
 import { APP_DEFAULTS } from "../config.js";
 
-// â”€â”€â”€ Primitive coercers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// --- Primitive coercers ----------------------------------------------------
 
 export const _safeBool = (value: any, fallback: boolean): boolean => {
     if (typeof value === "boolean") return value;
@@ -27,7 +27,7 @@ export const _safeOneOf = (value: any, allowed: readonly string[], fallback: str
     return allowed.includes(candidate) ? candidate : fallback;
 };
 
-// â”€â”€â”€ Deep merge (prototype-pollution safe) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// --- Deep merge (prototype-pollution safe) --------------------------------
 
 const _isUnsafeMergeKey = (key: string): boolean =>
     key === "__proto__" || key === "prototype" || key === "constructor";
@@ -49,7 +49,7 @@ export const deepMerge = <T extends Record<string, any>>(base: T, next: Partial<
     return output as T;
 };
 
-// â”€â”€â”€ Grid size presets â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// --- Grid size presets ----------------------------------------------------
 
 export const GRID_SIZE_PRESETS = Object.freeze({
     small: 80,

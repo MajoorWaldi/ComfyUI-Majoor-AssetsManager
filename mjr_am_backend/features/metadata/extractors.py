@@ -203,7 +203,7 @@ def _parse_size_pair(raw: Any) -> tuple[int | None, int | None]:
     if raw is None:
         return (None, None)
     try:
-        txt = str(raw).strip().lower().replace("px", "").replace("Ã—", "x")
+        txt = str(raw).strip().lower().replace("px", "").replace("x", "x")
         txt = txt.replace(",", " ").replace(";", " ")
         if "x" in txt:
             left, right = [s.strip() for s in txt.split("x", 1)]

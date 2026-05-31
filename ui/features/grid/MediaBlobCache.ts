@@ -1,5 +1,5 @@
 /**
- * MediaBlobCache â€” Error-tracking and blob URL cache for media assets.
+ * MediaBlobCache  -  Error-tracking and blob URL cache for media assets.
  *
  * Primary value:
  *  - hasError()   prevents retry storms when a thumbnail fails to load.

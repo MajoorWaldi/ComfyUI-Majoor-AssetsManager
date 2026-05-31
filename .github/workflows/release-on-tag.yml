@@ -48,7 +48,7 @@ jobs:
 
           raw = changelog_path.read_text(encoding="utf-8")
           pattern = re.compile(
-              rf"^## \[{re.escape(version)}\][^\n]*\n(?P<body>.*?)(?=^## \[|\Z)",
+              rf"^## \[{re.escape(version)}\][^\n]*\n(ERRORP<body>.*ERROR)(ERROR=^## \[|\Z)",
               re.MULTILINE | re.DOTALL,
           )
           match = pattern.search(raw)

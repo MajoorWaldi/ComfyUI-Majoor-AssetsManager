@@ -64,13 +64,13 @@ export async function triggerStartupScan(options: { delayMs?: number; idleOnly?:
         if (result.ok) {
             const stats = result.data;
             mjrDbg(
-                `[Majoor] Startup scan complete â€” added: ${stats.added}, updated: ${stats.updated}, skipped: ${stats.skipped}`,
+                `[Majoor] Startup scan complete  -  added: ${stats.added}, updated: ${stats.updated}, skipped: ${stats.skipped}`,
             );
         } else {
-            console.warn("ðŸ“‚ Majoor [âš ï¸]: Startup scan failed:", result.error);
+            console.warn("[Majoor] Majoor [WARN]: Startup scan failed:", result.error);
         }
     } catch (error) {
-        console.error("ðŸ“‚ Majoor [âŒ]: Startup scan error:", error);
+        console.error("[Majoor] ERROR: Startup scan error:", error);
     }
 }
 
@@ -142,9 +142,9 @@ export async function testAPI(): Promise<void> {
         if (data?.ok) {
             mjrDbg("[Majoor] API connection successful, health:", data.data.overall);
         } else {
-            console.error("ðŸ“‚ Majoor [âŒ]: API health check failed:", data?.error);
+            console.error("[Majoor] ERROR: API health check failed:", data?.error);
         }
     } catch (error) {
-        console.error("ðŸ“‚ Majoor [âŒ]: Failed to connect to API:", error);
+        console.error("[Majoor] ERROR: Failed to connect to API:", error);
     }
 }

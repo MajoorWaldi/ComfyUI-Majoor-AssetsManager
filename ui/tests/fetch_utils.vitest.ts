@@ -202,7 +202,7 @@ describe("fetchAPI retry on network error", () => {
         expect(result.ok).toBe(true);
     });
 
-    it("returns NETWORK_ERROR with retries count after exhausting all retries", async () => {
+    it("returns NETWORK_? with retries count after exhausting all retries", async () => {
         globalThis.fetch = vi.fn(async () => {
             throw new TypeError("Failed to fetch");
         });
@@ -214,7 +214,7 @@ describe("fetchAPI retry on network error", () => {
         const result = await fetchAPI("/mjr/am/retry-exhaust");
 
         expect(result.ok).toBe(false);
-        expect(result.code).toBe("NETWORK_ERROR");
+        expect(result.code).toBe("NETWORK_?");
         // 1 original + 3 retries = 4 total calls
         expect(globalThis.fetch).toHaveBeenCalledTimes(4);
         expect(result.retries).toBe(3);
@@ -328,7 +328,7 @@ describe("post()", () => {
         expect(readHeader(opts.headers, "Content-Type")).toBe("application/json");
     });
 
-    it("returns NETWORK_ERROR when fetch throws on a POST", async () => {
+    it("returns NETWORK_? when fetch throws on a POST", async () => {
         globalThis.fetch = vi.fn(async () => {
             throw new TypeError("Failed to fetch");
         });
@@ -340,6 +340,6 @@ describe("post()", () => {
         const result = await post("/mjr/am/asset/tags", { tags: [] });
 
         expect(result.ok).toBe(false);
-        expect(result.code).toBe("NETWORK_ERROR");
+        expect(result.code).toBe("NETWORK_?");
     });
 });

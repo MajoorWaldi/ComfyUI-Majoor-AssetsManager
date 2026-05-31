@@ -458,7 +458,7 @@ export function renderABCompareView({
                         return doAbsDiff();
                     }
 
-                    // Default: difference = |A-B| boosted 4Ã— for subtle-change visibility
+                    // Default: difference = |A-B| boosted 4x for subtle-change visibility
                     const ok = doComposite("difference");
                     if (!ok) return false;
 

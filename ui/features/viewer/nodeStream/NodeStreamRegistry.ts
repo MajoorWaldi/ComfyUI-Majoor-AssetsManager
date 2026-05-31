@@ -1,5 +1,5 @@
 /**
- * NodeStreamRegistry â€” adapter registry for the Node Stream system.
+ * NodeStreamRegistry  -  adapter registry for the Node Stream system.
  *
  * Each adapter declares which ComfyUI node class_types it can handle and how
  * to extract viewable media from the node's output.  The registry resolves the
@@ -18,7 +18,7 @@
 /** @type {NodeStreamAdapter[]} sorted by priority descending */
 const _adapters: any[] = [];
 
-/** Dirty flag â€” set when an adapter is added/removed so the sorted list is rebuilt. */
+/** Dirty flag  -  set when an adapter is added/removed so the sorted list is rebuilt. */
 let _dirty = false;
 
 function _ensureSorted() {
@@ -27,7 +27,7 @@ function _ensureSorted() {
     _dirty = false;
 }
 
-// â”€â”€ Public API â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// -- Public API ----------------------------------------------------------------
 
 /**
  * Register a new adapter for internal compatibility/debug purposes.

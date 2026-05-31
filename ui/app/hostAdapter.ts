@@ -1,5 +1,5 @@
 /**
- * Host Adapter Layer â€” Majoor Assets Manager
+ * Host Adapter Layer  -  Majoor Assets Manager
  *
  * This is the SINGLE contracted boundary between Majoor application code
  * (Vue components, Pinia stores, feature modules) and the ComfyUI host
@@ -42,11 +42,11 @@ import {
     waitForComfyApp,
 } from "./comfyApiBridge.js";
 
-// â”€â”€ internal state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// -- internal state ------------------------------------------------------------
 
 let _app: any = null;
 
-// â”€â”€ lifecycle â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// -- lifecycle -----------------------------------------------------------------
 
 /**
  * Initialise the adapter with the ComfyUI app object.
@@ -83,7 +83,7 @@ export async function ready(timeoutMs = 5000): Promise<any> {
     }
 }
 
-// â”€â”€ notifications â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// -- notifications -------------------------------------------------------------
 
 /**
  * Show a toast notification via ComfyUI extension manager toast.
@@ -103,11 +103,11 @@ export function showToast(opts: { severity?: string; summary?: string; detail?: 
             });
         }
     } catch {
-        // host not available â€” silent
+        // host not available  -  silent
     }
 }
 
-// â”€â”€ dialogs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// -- dialogs -------------------------------------------------------------------
 
 /**
  * Show a confirmation dialog.
@@ -132,7 +132,7 @@ export async function confirm(opts: { message: string; header?: string } | null 
     return false;
 }
 
-// â”€â”€ settings â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// -- settings ------------------------------------------------------------------
 
 /**
  * Read a ComfyUI setting value.
@@ -179,7 +179,7 @@ export function getHostSettingsApi(): any {
     }
 }
 
-// â”€â”€ sidebar & panel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// -- sidebar & panel -----------------------------------------------------------
 
 /**
  * Register a sidebar tab with the ComfyUI extension manager.
@@ -247,7 +247,7 @@ export function activateSidebarTabForApp(app: any, tabId: string): boolean {
     }
 }
 
-// â”€â”€ commands & keybindings â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// -- commands & keybindings ----------------------------------------------------
 
 /**
  * Register a command with the ComfyUI command palette.
@@ -293,7 +293,7 @@ export function registerKeybindingForApp(app: any, keybindingDef: any): boolean 
     }
 }
 
-// â”€â”€ extension manager (escape hatch) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// -- extension manager (escape hatch) -----------------------------------------
 
 /**
  * Returns the ComfyUI extension manager object.
@@ -311,7 +311,7 @@ export function getHostExtensionManager(): any {
     }
 }
 
-// â”€â”€ raw app reference (escape hatch) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// -- raw app reference (escape hatch) -----------------------------------------
 
 /**
  * Returns the raw ComfyUI app reference.
@@ -356,7 +356,7 @@ export async function waitForRawHostApi(options: { timeoutMs?: number; warnOnTim
     }
 }
 
-// â”€â”€ graph/canvas helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// -- graph/canvas helpers -----------------------------------------------------
 
 function _getMainCanvasState() {
     const app = _app || getComfyApp() || null;
@@ -452,7 +452,7 @@ export function getGraphCanvasViewportBounds() {
     }
 }
 
-// â”€â”€ public API â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// -- public API ----------------------------------------------------------------
 
 export const hostAdapter = {
     init,

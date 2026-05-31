@@ -533,7 +533,7 @@ async function _loadHistory(host: any) {
         for (const asset of _getPendingAssets()) {
             _storeHostAsset(host, asset);
         }
-        // Pending assets are now absorbed into host.assetsByKey â€” clear the global buffer
+        // Pending assets are now absorbed into host.assetsByKey  -  clear the global buffer
         // so future hosts don't replay the same entries (would cause duplicates).
         FEED_STATE.pendingAssets.clear();
 
@@ -869,7 +869,7 @@ function _buildSizeControl(host: any) {
     const btnMinus = document.createElement("button");
     btnMinus.type = "button";
     btnMinus.className = "mjr-feed-size-btn";
-    btnMinus.textContent = "âˆ’";
+    btnMinus.textContent = "-";
     btnMinus.title = t("bottomFeed.cardSizeDecrease", "Decrease card size");
     btnMinus.style.cssText =
         "width:20px; height:20px; padding:0; border:1px solid var(--mjr-border,#555); border-radius:4px; background:var(--mjr-surface,#2a2a2a); color:inherit; cursor:pointer; font-size:14px; line-height:1; flex-shrink:0; display:flex; align-items:center; justify-content:center;";
@@ -939,7 +939,7 @@ function _makeHost(container: any, external = {}) {
     host.popoverManager = createPopoverManager(root);
 
     // Bind the same context menu as the main grid.
-    // The feed is output-only so scope is always "output" â€” no browser/custom-root
+    // The feed is output-only so scope is always "output"  -  no browser/custom-root
     // items will appear. Delete, rename, rate, tag, find-similar all work normally.
     host._disposeContextMenu = bindGridContextMenu({
         gridContainer: host.grid,

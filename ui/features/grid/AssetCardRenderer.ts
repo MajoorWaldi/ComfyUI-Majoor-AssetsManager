@@ -363,7 +363,7 @@ export function appendAssets(gridContainer: any, assets: any[], state: any, deps
                     continue;
                 }
 
-                // â”€â”€ count >= 2: group into a duplicate stack â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                // -- count >= 2: group into a duplicate stack ------------------------------
                 // Select the best representative: prefer video_with_audio > video > image.
                 const primary = preserveRepresentativeGenerationTime(
                     selectStackRepresentative(visibleBucket),

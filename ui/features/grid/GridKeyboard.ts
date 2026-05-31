@@ -93,10 +93,10 @@ function formatShortcut(shortcut: any) {
     // Format special keys
     if (key === " ") key = "Space";
     if (key === "Delete") key = "Del";
-    if (key === "ArrowUp") key = "â†‘";
-    if (key === "ArrowDown") key = "â†“";
-    if (key === "ArrowLeft") key = "â†";
-    if (key === "ArrowRight") key = "â†’";
+    if (key === "ArrowUp") key = "<-‘";
+    if (key === "ArrowDown") key = "<-“";
+    if (key === "ArrowLeft") key = "<-";
+    if (key === "ArrowRight") key = "->";
 
     parts.push(key.length === 1 ? key.toUpperCase() : key);
     return parts.join("+");

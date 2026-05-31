@@ -1,5 +1,5 @@
 /**
- * Vue application factory â€” Majoor Assets Manager
+ * Vue application factory  -  Majoor Assets Manager
  *
  * Creates an isolated Vue 3 + Pinia application instance for each mounting
  * point (sidebar panel, bottom panel, etc.).  Each call returns a fresh app
@@ -34,7 +34,7 @@ export function createMjrApp(rootComponent: any, props: Record<string, any> | un
     return { app, pinia };
 }
 
-// Map<mountKey, { app, host, container }> â€” keep a single app/host pair alive
+// Map<mountKey, { app, host, container }>  -  keep a single app/host pair alive
 // across ComfyUI render() calls even when the framework swaps the outer
 // container element between tab activations.
 const _registry = new Map();

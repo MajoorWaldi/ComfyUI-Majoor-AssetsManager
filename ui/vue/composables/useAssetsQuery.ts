@@ -150,7 +150,7 @@ export function createAssetsQueryController({
                         const anchorScrollTop = Number(anchor?.scrollTop || 0) || 0;
                         // Only skip restore if user actively scrolled DOWN past the original
                         // position during the reload. A drop in scrollTop (currentScrollTop <
-                        // anchorScrollTop) means the reload itself reset the scroll â€” we must
+                        // anchorScrollTop) means the reload itself reset the scroll  -  we must
                         // restore in that case to avoid losing the user's position.
                         const userScrolledPastAnchor = currentScrollTop > anchorScrollTop + 8;
                         if (userScrolledPastAnchor) {

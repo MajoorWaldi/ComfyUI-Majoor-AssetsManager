@@ -471,7 +471,7 @@ export function createViewerPanZoom({
 
     const onPanPointerDown = (e: any) => {
         if (!overlay || overlay.style.display === "none") return;
-        // 3D models use OrbitControls for pan/zoom â€” skip panzoom entirely
+        // 3D models use OrbitControls for pan/zoom  -  skip panzoom entirely
         if (isModel3DInteractionTarget(e?.target)) return;
         const zoom = Number(state?.zoom) || 1;
         const allowAt1 = (() => {

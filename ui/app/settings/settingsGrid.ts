@@ -41,9 +41,9 @@ export function registerGridSettings(safeAddSetting: (def: any) => void, setting
         saveMajoorSettings(settings);
     }
 
-    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ----------------------------------------------
     // Section: Cards
-    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ----------------------------------------------
 
     safeAddSetting({
         id: `${SETTINGS_PREFIX}.Cards.ThumbSize`,
@@ -177,7 +177,7 @@ export function registerGridSettings(safeAddSetting: (def: any) => void, setting
         name: "Show generation time",
         tooltip: "Display seconds taken to generate the asset (if available)",
         type: "boolean",
-        defaultValue: !!settings.grid?.showGenTime,
+        defaultValue: !!(settings.grid?.showGenTime ?? APP_DEFAULTS.GRID_SHOW_DETAILS_GENTIME),
         onChange: (value: any) => {
             settings.grid.showGenTime = !!value;
             saveMajoorSettings(settings);
@@ -218,9 +218,9 @@ export function registerGridSettings(safeAddSetting: (def: any) => void, setting
         },
     });
 
-    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ----------------------------------------------
     // Section: Badges
-    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ----------------------------------------------
 
     safeAddSetting({
         id: `${SETTINGS_PREFIX}.Grid.ShowExtBadge`,
@@ -405,9 +405,9 @@ export function registerGridSettings(safeAddSetting: (def: any) => void, setting
         },
     });
 
-    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ----------------------------------------------
     // Section: Grid
-    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ----------------------------------------------
 
     safeAddSetting({
         id: `${SETTINGS_PREFIX}.Grid.PageSize`,

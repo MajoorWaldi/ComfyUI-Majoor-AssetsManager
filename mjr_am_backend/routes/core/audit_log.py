@@ -63,7 +63,7 @@ def _audit_result_label(result: Any) -> str:
     code = str(getattr(result, "code", "") or "").strip()
     if code:
         return code
-    return "OK" if bool(getattr(result, "ok", False)) else "ERROR"
+    return "OK" if bool(getattr(result, "ok", False)) else "?"
 
 
 async def _maybe_purge_audit_log(db: Any, *, now: float) -> None:

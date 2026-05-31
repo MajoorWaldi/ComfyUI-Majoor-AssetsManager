@@ -1,5 +1,5 @@
 /**
- * Player bar manager â€” mounts and tears down the unified media controls bar
+ * Player bar manager  -  mounts and tears down the unified media controls bar
  * for video/audio assets, including follower video sync and scopes refresh.
  */
 

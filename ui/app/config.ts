@@ -29,7 +29,7 @@ export const APP_DEFAULTS = Object.freeze({
     GRID_SHOW_DETAILS_FILENAME: true,
     GRID_SHOW_DETAILS_DATE: true,
     GRID_SHOW_DETAILS_DIMENSIONS: true,
-    GRID_SHOW_DETAILS_GENTIME: false,
+    GRID_SHOW_DETAILS_GENTIME: true,
     GRID_SHOW_HOVER_INFO: true,
     GRID_SHOW_WORKFLOW_DOT: true,
     GRID_VIDEO_AUTOPLAY_MODE: "hover", // "off" | "hover" | "always"
@@ -39,7 +39,7 @@ export const APP_DEFAULTS = Object.freeze({
     FEED_SHOW_FILENAME: false,
     FEED_SHOW_DIMENSIONS: true,
     FEED_SHOW_DATE: true,
-    FEED_SHOW_GENTIME: false,
+    FEED_SHOW_GENTIME: true,
     FEED_SHOW_WORKFLOW_DOT: false,
     FEED_SHOW_BADGES_EXTENSION: true,
     FEED_SHOW_BADGES_RATING: true,
@@ -92,7 +92,7 @@ export const APP_DEFAULTS = Object.freeze({
     MFV_LIVE_AUTO_OPEN: false,
     MFV_PREVIEW_AUTO_OPEN: false,
     MFV_NODE_STREAM_AUTO_OPEN: false,
-    MFV_PREVIEW_METHOD: "taesd",
+    MFV_PREVIEW_METHOD: "auto",
 
     // Rating/tags hydration (grid)
     RT_HYDRATE_CONCURRENCY: 2,

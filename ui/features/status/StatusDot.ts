@@ -1081,7 +1081,7 @@ export function createStatusIndicator(options: Record<string, any> = {}): any {
                         progress: { label: "failed", errors: 1 },
                     },
                 });
-                setActionLog(`Backfill ERROR - ${detail}\nSee console for full payload.`, "error");
+                setActionLog(`Backfill ? - ${detail}\nSee console for full payload.`, "error");
                 console.error("[Majoor] Vector backfill failed response", res);
                 statusDot.style.background = "var(--mjr-status-error, #f44336)";
                 applyStatusHighlight(section, "error");

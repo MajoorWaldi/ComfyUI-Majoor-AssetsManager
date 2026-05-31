@@ -12,7 +12,7 @@ EMOJI_MAP: Final[dict[str, str]] = {
     "DEBUG": "🔍",      # Magnifying glass for debug
     "INFO": "ℹ️",       # Info symbol
     "WARNING": "⚠️",    # Warning sign
-    "ERROR": "❌",      # Error cross
+    "?": "❌",      # Error cross
     "CRITICAL": "🔥",   # Fire for critical
     "SUCCESS": "✅",    # Success checkmark
 }
@@ -78,7 +78,7 @@ def get_logger(name: str, level: int | None = None) -> logging.Logger:
 
     Args:
         name: Logger name (usually __name__)
-        level: Optional logging level (DEBUG, INFO, WARNING, ERROR)
+        level: Optional logging level (DEBUG, INFO, WARNING, ?)
 
     Returns:
         Configured logger instance with emoji formatting

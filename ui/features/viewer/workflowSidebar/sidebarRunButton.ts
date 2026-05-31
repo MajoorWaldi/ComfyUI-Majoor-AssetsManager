@@ -105,7 +105,7 @@ export function createRunButton(): { el: HTMLDivElement; dispose: () => void } {
         const prompt = snapshot?.prompt || null;
         const hasExecution = Boolean(prompt?.currentlyExecuting);
         // A prompt object that has finished executing (currentlyExecuting == null)
-        // and has no error is effectively done â€” don't treat it as "queued".
+        // and has no error is effectively done  -  don't treat it as "queued".
         const promptStillActive = Boolean(
             prompt && (prompt.currentlyExecuting || prompt.errorDetails),
         );
@@ -255,7 +255,7 @@ export function resolveMfvPreviewMethod(value: any = APP_CONFIG.MFV_PREVIEW_METH
         .trim()
         .toLowerCase();
     if (MFV_PREVIEW_METHODS.has(normalized)) return normalized;
-    return "taesd";
+    return APP_CONFIG.MFV_PREVIEW_METHOD || "auto";
 }
 
 export function enrichPromptDataForMfv(
@@ -400,14 +400,14 @@ export function graphContainsApiNode(graph: any): boolean {
  * Queue the current workflow for execution.
  *
  * Tries, in order:
- *   1. app.api.queuePrompt  â€” live reference on the app object (always has the
+ *   1. app.api.queuePrompt   -  live reference on the app object (always has the
  *      current auth session, same source as the native ComfyUI Queue button).
- *   2. api.queuePrompt      â€” broader detection via getComfyApi() (window.api, â€¦).
- *   3. api.fetchApi         â€” direct HTTP via ComfyUI's authenticated fetch helper.
- *   4. app.queuePrompt(0)   â€” native ComfyUI app-level path; handles API Node
+ *   2. api.queuePrompt       -  broader detection via getComfyApi() (window.api, ...).
+ *   3. api.fetchApi          -  direct HTTP via ComfyUI's authenticated fetch helper.
+ *   4. app.queuePrompt(0)    -  native ComfyUI app-level path; handles API Node
  *      ComfyOrg auth tokens, beforeQueued/afterQueued and CSRF natively. Used
  *      for API Node workflows or when no direct API path is available.
- *   5. fetch (last resort)  â€” raw fetch with credentials:'include' for cookie auth.
+ *   5. fetch (last resort)   -  raw fetch with credentials:'include' for cookie auth.
  *
  * Paths 1-3 and 5 manually mirror ComfyUI's beforeQueued/afterQueued widget cycle
  * so that control_after_generate (randomize / increment / decrement) is applied
@@ -459,7 +459,7 @@ async function queueCurrentPrompt(): Promise<QueueResult> {
         let result;
 
         if (api && typeof api.queuePrompt === "function") {
-            // Prefer the live app.api reference â€” matches the native Queue button's
+            // Prefer the live app.api reference  -  matches the native Queue button's
             // auth context and avoids stale cached references after session renewal.
             await api.queuePrompt(0, enrichPromptDataForMfv(promptData));
             result = { tracked: true };

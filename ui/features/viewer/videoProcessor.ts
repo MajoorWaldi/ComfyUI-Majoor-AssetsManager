@@ -427,7 +427,7 @@ export function createVideoProcessor({
         if (proc._destroyed) return;
         if (proc._runtimePaused) return;
         // Cancel any previously-registered frame loops before starting new ones.
-        // Without this, every pauseâ†’play cycle (including seeks that temporarily
+        // Without this, every pause->play cycle (including seeks that temporarily
         // pause the video) accumulates an extra rVFC/RAF callback.  After N cycles
         // N callbacks fire every frame, each enqueuing a redundant scheduleRender().
         try {
