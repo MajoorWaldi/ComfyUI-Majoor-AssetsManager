@@ -78,7 +78,7 @@ def get_logger(name: str, level: int | None = None) -> logging.Logger:
 
     Args:
         name: Logger name (usually __name__)
-        level: Optional logging level (DEBUG, INFO, WARNING, ?)
+        level: Optional logging level (DEBUG, INFO, WARNING, ERROR)
 
     Returns:
         Configured logger instance with emoji formatting

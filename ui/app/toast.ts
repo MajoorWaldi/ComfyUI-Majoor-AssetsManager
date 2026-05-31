@@ -528,14 +528,14 @@ export const toast = {
      * @param {number} [duration] - Optional custom duration
      */
     success: (message: any, duration?: number) =>
-        comfyToast(message, "success", duration - TOAST_DURATION.SUCCESS),
+        comfyToast(message, "success", duration ?? TOAST_DURATION.SUCCESS),
 
     /**
      * Show an error toast.
      * @param {string} message - Message to display
      * @param {number} [duration] - Optional custom duration
      */
-    error: (message: any, duration?: number) => comfyToast(message, "error", duration ?? TOAST_DURATION.?),
+    error: (message: any, duration?: number) => comfyToast(message, "error", duration ?? TOAST_DURATION.ERROR),
 
     /**
      * Show a warning toast.
@@ -543,7 +543,7 @@ export const toast = {
      * @param {number} [duration] - Optional custom duration
      */
     warning: (message: any, duration?: number) =>
-        comfyToast(message, "warning", duration - TOAST_DURATION.WARNING),
+        comfyToast(message, "warning", duration ?? TOAST_DURATION.WARNING),
 
     /**
      * Show an info toast.

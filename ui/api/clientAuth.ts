@@ -357,7 +357,7 @@ async function _refreshAuthTokenFromServer() {
         return { ok: true, token: false };
     } catch (error: any) {
         _rememberAuthBootstrapFailure({
-            code: "NETWORK_?",
+            code: "NETWORK_ERROR",
             error: (error as any)?.message || "Bootstrap token request failed.",
             status: 0,
         });
@@ -390,7 +390,7 @@ export async function ensureWriteAuthToken({ force = false, allowCookieRefresh =
         const failureCode = String(failure?.code || "")
             .trim()
             .toUpperCase();
-        if (!failureCode || !["NETWORK_?", "INVALID_RESPONSE"].includes(failureCode)) {
+        if (!failureCode || !["NETWORK_ERROR", "INVALID_RESPONSE"].includes(failureCode)) {
             _clearAuthToken();
         }
     }

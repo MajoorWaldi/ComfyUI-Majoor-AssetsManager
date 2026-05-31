@@ -599,7 +599,7 @@ export async function vectorBackfill(batchSize = 64, options: Record<string, any
             return {
                 ok: false,
                 error: String(data?.error || "Vector backfill failed"),
-                code: String(data?.code || "DB_?"),
+                code: String(data?.code || "DB_ERROR"),
                 data,
                 status: 500,
             };
@@ -638,7 +638,7 @@ export async function vectorBackfill(batchSize = 64, options: Record<string, any
         return {
             ok: false,
             error: String(finalData?.error || "Vector backfill failed"),
-            code: String(finalData?.code || "DB_?"),
+            code: String(finalData?.code || "DB_ERROR"),
             data: finalData,
             status: 500,
         };

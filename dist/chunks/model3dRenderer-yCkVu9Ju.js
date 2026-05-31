@@ -1,5 +1,5 @@
 import { t as e } from "./rolldown-runtime-Dy4uBu1J.js";
-import { h as t, t as n } from "./config-CXns6XwM.js";
+import { h as t, t as n } from "./config-tNjYsdMA.js";
 import { r } from "./events-uHehulNG.js";
 import { n as i } from "./state-DPiaUMw1.js";
 //#region ui/features/viewer/model3dCore.ts
@@ -768,7 +768,7 @@ function ie() {
 		e.addEventListener(t, (e) => C(e, { preventDefault: !1 }));
 	});
 	let t = document.createElement("button");
-	t.type = "button", t.textContent = "â–¶", t.title = "Play / Pause", t.style.cssText = [
+	t.type = "button", t.textContent = "Play", t.title = "Play / Pause", t.style.cssText = [
 		"width:28px",
 		"height:28px",
 		"border-radius:50%",
@@ -798,7 +798,7 @@ function ie() {
 	].join(";");
 	for (let e of x) {
 		let t = document.createElement("option");
-		t.value = String(e), t.textContent = `${e}Ã—`, e === 1 && (t.selected = !0), n.appendChild(t);
+		t.value = String(e), t.textContent = `${e}x`, e === 1 && (t.selected = !0), n.appendChild(t);
 	}
 	let r = document.createElement("select");
 	r.title = "Animation clip", r.style.cssText = [
@@ -1036,7 +1036,7 @@ function N(e, i, a = {}) {
 	].join(";");
 	let S = document.createElement("div");
 	S.style.cssText = "display:flex;align-items:center;gap:6px;flex-wrap:wrap;pointer-events:auto;";
-	let ae = T("Reset", "Reset 3D view"), D = T("Grid", "Toggle grid"), me = T("Persp", "Switch perspective / orthographic"), he = T("âš™", "Settings");
+	let ae = T("Reset", "Reset 3D view"), D = T("Grid", "Toggle grid"), me = T("Persp", "Switch perspective / orthographic"), he = T("Settings", "Settings");
 	S.append(ae, D, me, he), x.appendChild(S), g.appendChild(x);
 	let A = document.createElement("div");
 	A.className = "mjr-model3d-hint", A.textContent = a.hintText || ce, A.style.cssText = [
@@ -1195,13 +1195,13 @@ function N(e, i, a = {}) {
 			}
 		});
 		let n = X.clipAction(t);
-		n.timeScale = ke, n.clampWhenFinished = !1, n.loop = P?.LoopRepeat ?? 2201, n.play(), Q[e] = n, $ = e, Ae = !0, M.playBtn.textContent = "â¸";
+		n.timeScale = ke, n.clampWhenFinished = !1, n.loop = P?.LoopRepeat ?? 2201, n.play(), Q[e] = n, $ = e, Ae = !0, M.playBtn.textContent = "Pause";
 		try {
 			let e = Math.max(100, Math.min(1e4, Math.round((t.duration || 1) * 100)));
 			M.progressSlider.max = String(e);
 		} catch {}
 	}, qe = () => {
-		!X || !Z.length || (Ae ? (X.timeScale = 0, Ae = !1, M.playBtn.textContent = "â–¶") : (X.timeScale = ke, Q[$]?.isRunning?.() ? (Ae = !0, M.playBtn.textContent = "â¸") : Ke($)));
+		!X || !Z.length || (Ae ? (X.timeScale = 0, Ae = !1, M.playBtn.textContent = "Play") : (X.timeScale = ke, Q[$]?.isRunning?.() ? (Ae = !0, M.playBtn.textContent = "Pause") : Ke($)));
 	}, Je = (e, t) => {
 		!e || e.length === 0 || !P || (Z = e, X = new P.AnimationMixer(t), Oe = new P.Clock(), Q = Array(e.length).fill(null), M.animSel.innerHTML = "", e.forEach((e, t) => {
 			let n = document.createElement("option");

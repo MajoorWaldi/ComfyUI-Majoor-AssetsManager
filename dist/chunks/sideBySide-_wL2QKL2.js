@@ -1,4 +1,4 @@
-import { i as e } from "./model3dRenderer-BOpPhoT_.js";
+import { i as e } from "./model3dRenderer-yCkVu9Ju.js";
 import { i as t, o as n } from "./geninfoParser-s-OHjo5D.js";
 //#region ui/features/viewer/sideBySide.ts
 function r(e) {
@@ -39,7 +39,7 @@ function i(e, t) {
 		s ? `Sched: ${s}` : "",
 		l ? `Steps: ${l}` : "",
 		u ? `Gen: ${u}` : ""
-	].filter(Boolean).join(" Â· ");
+	].filter(Boolean).join("  -  ");
 	if (!i && !d) return null;
 	let f = document.createElement("div");
 	f.style.cssText = [
@@ -64,7 +64,7 @@ function i(e, t) {
 		"z-index:2",
 		"box-sizing:border-box"
 	].join(";");
-	let p = i.length > 160 ? i.slice(0, 160) + "â€¦" : i, m = document.createElement("div");
+	let p = i.length > 160 ? i.slice(0, 160) + "..." : i, m = document.createElement("div");
 	m.style.cssText = `display:flex;align-items:baseline;gap:5px;flex-wrap:wrap;margin-bottom:${d ? "3" : "0"}px;`;
 	let h = document.createElement("span");
 	if (h.style.cssText = "background:rgba(255,255,255,0.2);border-radius:3px;padding:0 4px;font-weight:700;font-size:9px;letter-spacing:0.06em;flex-shrink:0;", h.textContent = t, m.appendChild(h), i) {

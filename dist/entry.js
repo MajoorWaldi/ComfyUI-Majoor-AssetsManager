@@ -1,14 +1,14 @@
-import { $ as e, A as t, At as n, Bt as r, C as i, Ct as a, D as o, Dt as s, E as c, Et as l, G as u, Gt as d, Ht as f, J as p, Jt as m, K as h, Kt as g, Mt as _, Ot as v, Q as y, S as b, St as x, T as S, V as C, Vt as w, W as T, X as E, Xt as D, Y as O, Yt as k, Z as A, _ as j, _t as M, a as N, b as P, c as ee, d as te, et as ne, f as re, g as ie, h as ae, ht as F, jt as oe, k as se, kt as ce, m as le, mt as ue, o as de, p as fe, pt as pe, q as me, s as he, t as ge, u as _e, v as ve, vt as ye, w as be, wt as xe, xt as Se, y as Ce, zt as I } from "./chunks/hostAdapter-Fz6J-dy6.js";
-import { _ as we, a as Te, c as Ee, d as De, f as Oe, g as ke, l as Ae, m as je, o as Me, p as Ne, r as Pe, s as Fe, t as L, u as Ie, v as Le, y as Re } from "./chunks/config-CXns6XwM.js";
-import { _ as ze, a as Be, c as Ve, d as He, f as Ue, g as We, h as Ge, i as Ke, l as qe, m as Je, n as R, o as Ye, p as Xe, r as Ze, s as Qe, t as $e, u as et, v as tt, y as nt } from "./chunks/floatingViewerManager-Desp9i0F.js";
-import { A as rt, B as it, C as at, D as ot, E as st, F as ct, G as lt, H as ut, I as dt, J as ft, K as pt, L as mt, M as ht, N as gt, O as _t, P as vt, R as yt, S as z, T as bt, U as xt, V as St, W as Ct, _ as wt, b as Tt, d as Et, f as Dt, h as Ot, j as kt, k as At, l as jt, m as Mt, p as Nt, q as Pt, s as Ft, t as It, u as Lt, v as Rt, w as zt, x as Bt, y as Vt, z as Ht } from "./chunks/SidebarWorkflowSection-VFjnXMPn.js";
+import { $ as e, A as t, At as n, Bt as r, C as i, Ct as a, D as o, Dt as s, E as c, Et as l, G as u, Gt as d, Ht as f, J as p, Jt as m, K as h, Kt as g, Mt as _, Ot as v, Q as y, S as b, St as x, T as S, V as C, Vt as w, W as T, X as E, Xt as D, Y as O, Yt as k, Z as A, _ as j, _t as M, a as N, b as P, c as ee, d as te, et as ne, f as re, g as ie, h as ae, ht as F, jt as oe, k as se, kt as ce, m as le, mt as ue, o as de, p as fe, pt as pe, q as me, s as he, t as ge, u as _e, v as ve, vt as ye, w as be, wt as xe, xt as Se, y as Ce, zt as I } from "./chunks/hostAdapter-B-MGUyvy.js";
+import { _ as we, a as Te, c as Ee, d as De, f as Oe, g as ke, l as Ae, m as je, o as Me, p as Ne, r as Pe, s as Fe, t as L, u as Ie, v as Le, y as Re } from "./chunks/config-tNjYsdMA.js";
+import { _ as ze, a as Be, c as Ve, d as He, f as Ue, g as We, h as Ge, i as Ke, l as qe, m as Je, n as R, o as Ye, p as Xe, r as Ze, s as Qe, t as $e, u as et, v as tt, y as nt } from "./chunks/floatingViewerManager-BRIkkWNU.js";
+import { A as rt, B as it, C as at, D as ot, E as st, F as ct, G as lt, H as ut, I as dt, J as ft, K as pt, L as mt, M as ht, N as gt, O as _t, P as vt, R as yt, S as z, T as bt, U as xt, V as St, W as Ct, _ as wt, b as Tt, d as Et, f as Dt, h as Ot, j as kt, k as At, l as jt, m as Mt, p as Nt, q as Pt, s as Ft, t as It, u as Lt, v as Rt, w as zt, x as Bt, y as Vt, z as Ht } from "./chunks/SidebarWorkflowSection-Ck-nApHt.js";
 import { i as Ut, n as Wt, r as B, t as Gt } from "./chunks/events-uHehulNG.js";
 import { a as Kt, i as qt, n as Jt, t as Yt } from "./chunks/graphTraversal-HdtD9lDa.js";
-import { a as Xt, c as Zt, d as Qt, f as $t, l as en, m as tn, o as nn, p as rn, r as an, s as on, t as sn, u as cn, v as ln } from "./chunks/openMajoorSettings-z5kYaTT-.js";
+import { a as Xt, c as Zt, d as Qt, f as $t, l as en, m as tn, o as nn, p as rn, r as an, s as on, t as sn, u as cn, v as ln } from "./chunks/openMajoorSettings-CNvlfVZJ.js";
 import { $ as un, A as dn, B as fn, C as pn, D as V, E as mn, F as H, H as U, I as hn, L as gn, M as _n, N as vn, O as yn, P as bn, Q as xn, R as Sn, S as W, T as G, U as Cn, V as wn, X as Tn, Y as En, Z as K, _ as Dn, at as On, b as kn, it as An, j as jn, nt as Mn, ot as q, rt as J, v as Nn, w as Y, x as X, y as Pn, z as Fn } from "./chunks/mjr-primevue-DeVPqKdl.js";
 import { n as In, r as Ln } from "./chunks/mjr-vue-vendor--o0qJuos.js";
 import { n as Rn, r as zn } from "./chunks/state-DPiaUMw1.js";
-import { a as Bn, c as Vn, i as Hn, o as Un, r as Wn, s as Gn } from "./chunks/model3dRenderer-BOpPhoT_.js";
+import { a as Bn, c as Vn, i as Hn, o as Un, r as Wn, s as Gn } from "./chunks/model3dRenderer-yCkVu9Ju.js";
 import { app as Kn } from "../../scripts/app.js";
 function qn(e = null) {
 	return null;
@@ -170,10 +170,10 @@ async function or(e = {}) {
 		});
 		if (e.ok) {
 			let t = e.data;
-			tt(`[Majoor] Startup scan complete â€” added: ${t.added}, updated: ${t.updated}, skipped: ${t.skipped}`);
-		} else console.warn("ðŸ“‚ Majoor [âš\xA0ï¸]: Startup scan failed:", e.error);
+			tt(`[Majoor] Startup scan complete  -  added: ${t.added}, updated: ${t.updated}, skipped: ${t.skipped}`);
+		} else console.warn("[Majoor] Majoor [WARN]: Startup scan failed:", e.error);
 	} catch (e) {
-		console.error("ðŸ“‚ Majoor [âŒ]: Startup scan error:", e);
+		console.error("[Majoor] ERROR: Startup scan error:", e);
 	}
 }
 async function sr() {
@@ -215,9 +215,9 @@ async function ur() {
 	try {
 		tt("[Majoor] Testing API connection...");
 		let e = await _e(Pe.HEALTH);
-		e?.ok ? tt("[Majoor] API connection successful, health:", e.data.overall) : console.error("ðŸ“‚ Majoor [âŒ]: API health check failed:", e?.error);
+		e?.ok ? tt("[Majoor] API connection successful, health:", e.data.overall) : console.error("[Majoor] ERROR: API health check failed:", e?.error);
 	} catch (e) {
-		console.error("ðŸ“‚ Majoor [âŒ]: Failed to connect to API:", e);
+		console.error("[Majoor] ERROR: Failed to connect to API:", e);
 	}
 }
 //#endregion
@@ -458,7 +458,7 @@ function Nr() {
 	let e = "mjr-grid-settings-styles";
 	if (document.getElementById(e)) return;
 	let t = document.createElement("style");
-	t.id = e, t.textContent = "\n        .mjr-grid .mjr-asset-card,\n        .mjr-grid .mjr-card {\n            display: flex;\n            flex-direction: column;\n        }\n        .mjr-grid .mjr-thumb {\n            flex: 1;\n            min-height: 0;\n            position: relative;\n            overflow: hidden;\n        }\n        .mjr-grid .mjr-thumb-media {\n            width: 100%;\n            height: 100%;\n            object-fit: cover;\n            display: block;\n        }\n\n        .mjr-grid .mjr-asset-card:hover {\n            background-color: var(--mjr-card-hover-color) !important;\n        }\n\n        .mjr-grid .mjr-asset-card.is-selected {\n            outline: 2px solid var(--mjr-card-selection-color) !important;\n            box-shadow: 0 0 0 2px var(--mjr-card-selection-color) !important;\n        }\n\n        .mjr-grid .mjr-card-filename { display: none; }\n        .mjr-grid.mjr-show-filename .mjr-card-filename { display: block; }\n\n        .mjr-grid .mjr-card-dot-wrapper { display: none; }\n        .mjr-grid.mjr-show-dot .mjr-card-dot-wrapper { display: inline-flex; }\n        .mjr-grid .mjr-asset-status-dot {\n            transition: color 0.3s ease, opacity 0.3s ease;\n        }\n        .mjr-grid .mjr-asset-status-dot.mjr-pulse-animation {\n            animation: mjr-pulse 1.5s infinite;\n        }\n        @keyframes mjr-pulse {\n            0% { opacity: 1; }\n            50% { opacity: 0.4; }\n            100% { opacity: 1; }\n        }\n\n        .mjr-grid .mjr-meta-res { display: none; }\n        .mjr-grid.mjr-show-dimensions .mjr-meta-res { display: inline; }\n\n        .mjr-grid .mjr-meta-duration { display: none; }\n        .mjr-grid.mjr-show-dimensions .mjr-meta-duration { display: inline; }\n\n        .mjr-grid .mjr-meta-date { display: none; }\n        .mjr-grid.mjr-show-date .mjr-meta-date { display: inline; }\n\n        .mjr-grid .mjr-meta-gentime { display: none; }\n        .mjr-grid.mjr-show-gentime .mjr-meta-gentime { display: inline; }\n\n        .mjr-grid .mjr-badge-ext { display: none !important; }\n        .mjr-grid.mjr-show-badges-ext .mjr-badge-ext { display: flex !important; }\n\n        .mjr-grid .mjr-badge-rating { display: none !important; }\n        .mjr-grid.mjr-show-badges-rating .mjr-badge-rating { display: flex !important; }\n\n        .mjr-grid .mjr-badge-tags { display: none !important; }\n        .mjr-grid.mjr-show-badges-tags .mjr-badge-tags { display: flex !important; }\n\n        .mjr-grid .mjr-card-info { display: none !important; }\n        .mjr-grid.mjr-show-details .mjr-card-info { display: block !important; }\n\n        .mjr-card-meta-row > span + span::before {\n            content: \" â€¢ \";\n            opacity: 0.5;\n            margin: 0 4px;\n        }\n        .mjr-card-meta-row > span[style*=\"display: none\"] + span::before {\n            display: none;\n        }\n    ", document.head.appendChild(t);
+	t.id = e, t.textContent = "\n        .mjr-grid .mjr-asset-card,\n        .mjr-grid .mjr-card {\n            display: flex;\n            flex-direction: column;\n        }\n        .mjr-grid .mjr-thumb {\n            flex: 1;\n            min-height: 0;\n            position: relative;\n            overflow: hidden;\n        }\n        .mjr-grid .mjr-thumb-media {\n            width: 100%;\n            height: 100%;\n            object-fit: cover;\n            display: block;\n        }\n\n        .mjr-grid .mjr-asset-card:hover {\n            background-color: var(--mjr-card-hover-color) !important;\n        }\n\n        .mjr-grid .mjr-asset-card.is-selected {\n            outline: 2px solid var(--mjr-card-selection-color) !important;\n            box-shadow: 0 0 0 2px var(--mjr-card-selection-color) !important;\n        }\n\n        .mjr-grid .mjr-card-filename { display: none; }\n        .mjr-grid.mjr-show-filename .mjr-card-filename { display: block; }\n\n        .mjr-grid .mjr-card-dot-wrapper { display: none; }\n        .mjr-grid.mjr-show-dot .mjr-card-dot-wrapper { display: inline-flex; }\n        .mjr-grid .mjr-asset-status-dot {\n            transition: color 0.3s ease, opacity 0.3s ease;\n        }\n        .mjr-grid .mjr-asset-status-dot.mjr-pulse-animation {\n            animation: mjr-pulse 1.5s infinite;\n        }\n        @keyframes mjr-pulse {\n            0% { opacity: 1; }\n            50% { opacity: 0.4; }\n            100% { opacity: 1; }\n        }\n\n        .mjr-grid .mjr-meta-res { display: none; }\n        .mjr-grid.mjr-show-dimensions .mjr-meta-res { display: inline; }\n\n        .mjr-grid .mjr-meta-duration { display: none; }\n        .mjr-grid.mjr-show-dimensions .mjr-meta-duration { display: inline; }\n\n        .mjr-grid .mjr-meta-date { display: none; }\n        .mjr-grid.mjr-show-date .mjr-meta-date { display: inline; }\n\n        .mjr-grid .mjr-meta-gentime { display: none; }\n        .mjr-grid.mjr-show-gentime .mjr-meta-gentime { display: inline; }\n\n        .mjr-grid .mjr-badge-ext { display: none !important; }\n        .mjr-grid.mjr-show-badges-ext .mjr-badge-ext { display: flex !important; }\n\n        .mjr-grid .mjr-badge-rating { display: none !important; }\n        .mjr-grid.mjr-show-badges-rating .mjr-badge-rating { display: flex !important; }\n\n        .mjr-grid .mjr-badge-tags { display: none !important; }\n        .mjr-grid.mjr-show-badges-tags .mjr-badge-tags { display: flex !important; }\n\n        .mjr-grid .mjr-card-info { display: none !important; }\n        .mjr-grid.mjr-show-details .mjr-card-info { display: block !important; }\n\n        .mjr-card-meta-row > span + span::before {\n            content: \" \"¢ \";\n            opacity: 0.5;\n            margin: 0 4px;\n        }\n        .mjr-card-meta-row > span[style*=\"display: none\"] + span::before {\n            display: none;\n        }\n    ", document.head.appendChild(t);
 }
 function Pr(e) {
 	if (!e) return;
@@ -6913,13 +6913,13 @@ var Ha = null, Ua = null, Wa = null, Ga = null, Ka = null, qa = null;
 function Ja() {
 	Ha || import("./chunks/abCompare-BXOoRlmV.js").then((e) => {
 		Ha = e;
-	}), Ua || import("./chunks/sideBySide-fnSJMLPv.js").then((e) => {
+	}), Ua || import("./chunks/sideBySide-_wL2QKL2.js").then((e) => {
 		Ua = e;
-	}), Wa || import("./chunks/model3dRenderer-BOpPhoT_.js").then((e) => e.t).then((e) => {
+	}), Wa || import("./chunks/model3dRenderer-yCkVu9Ju.js").then((e) => e.t).then((e) => {
 		Wa = e;
 	}), Ga || import("./chunks/scopes-X1iFrTle.js").then((e) => {
 		Ga = e;
-	}), Ka || import("./chunks/genInfo-CZdTrT-h.js").then((e) => e.n).then((e) => {
+	}), Ka || import("./chunks/genInfo-BKkZWV_3.js").then((e) => e.n).then((e) => {
 		Ka = e;
 	}), qa || import("./chunks/frameExport-tksSZ7sb.js").then((e) => {
 		qa = e;
@@ -7628,7 +7628,7 @@ function Ya() {
 							} catch {
 								a = String(e);
 							}
-							a.length > 4e4 && (a = `${a.slice(0, 4e4)}\nâ€¦(truncated)â€¦`), r.textContent = a, t.appendChild(n), t.appendChild(r), i.appendChild(t);
+							a.length > 4e4 && (a = `${a.slice(0, 4e4)}\n...(truncated)...`), r.textContent = a, t.appendChild(n), t.appendChild(r), i.appendChild(t);
 						}
 					} catch (e) {
 						console.debug?.(e);
@@ -9096,7 +9096,7 @@ function ro(e) {
 	let t = [];
 	e.ctrl && t.push("Ctrl"), e.shift && t.push("Shift"), e.alt && t.push("Alt");
 	let n = e.key;
-	return n === " " && (n = "Space"), n === "Delete" && (n = "Del"), n === "ArrowUp" && (n = "â†‘"), n === "ArrowDown" && (n = "â†“"), n === "ArrowLeft" && (n = "â†"), n === "ArrowRight" && (n = "â†’"), t.push(n.length === 1 ? n.toUpperCase() : n), t.join("+");
+	return n === " " && (n = "Space"), n === "Delete" && (n = "Del"), n === "ArrowUp" && (n = "<-‘"), n === "ArrowDown" && (n = "<-“"), n === "ArrowLeft" && (n = "<-"), n === "ArrowRight" && (n = "->"), t.push(n.length === 1 ? n.toUpperCase() : n), t.join("+");
 }
 function io(e, t) {
 	if (!t || !e) return !1;
@@ -14065,7 +14065,7 @@ function Kd({ gridContainerRef: e, state: t, setLoadingMessage: n, clearLoadingM
 					console.debug?.(e);
 				}
 				if (e && e !== n) {
-					tt("[Grid] Deferred execution reload skipped â€” scope/filter changed during execution");
+					tt("[Grid] Deferred execution reload skipped  -  scope/filter changed during execution");
 					return;
 				}
 			}
@@ -14334,7 +14334,7 @@ function Kd({ gridContainerRef: e, state: t, setLoadingMessage: n, clearLoadingM
 							cursor: null,
 							total: null,
 							done: !1
-						}), Gd(t), g.resetCount += 1, p = !1, null) : Array.isArray(t.assets) && t.assets.length ? (tt("[Grid LoadPage] empty response with cached visible assets â€” preserving cached view", {
+						}), Gd(t), g.resetCount += 1, p = !1, null) : Array.isArray(t.assets) && t.assets.length ? (tt("[Grid LoadPage] empty response with cached visible assets  -  preserving cached view", {
 							offset: t.offset,
 							query: t.query
 						}), {
@@ -14431,7 +14431,7 @@ function Kd({ gridContainerRef: e, state: t, setLoadingMessage: n, clearLoadingM
 					console.debug?.(e);
 				}
 				if (e && e !== r) {
-					tt("[Grid] Snapshot head refresh skipped â€” context changed");
+					tt("[Grid] Snapshot head refresh skipped  -  context changed");
 					return;
 				}
 			}
@@ -14450,7 +14450,7 @@ function Kd({ gridContainerRef: e, state: t, setLoadingMessage: n, clearLoadingM
 						console.debug?.(e);
 					}
 					if (e && e !== r) {
-						tt("[Grid] Snapshot head refresh discarded â€” context changed mid-fetch");
+						tt("[Grid] Snapshot head refresh discarded  -  context changed mid-fetch");
 						return;
 					}
 				}
@@ -16503,7 +16503,7 @@ var xf = {
 			}, null, 512)
 		], 512));
 	}
-}, [["__scopeId", "data-v-ddf2bbab"]]), Af = 240, jf = 120, Mf = 80;
+}, [["__scopeId", "data-v-b51c578d"]]), Af = 240, jf = 120, Mf = 80;
 function Nf(e) {
 	let t = document.createElement("button");
 	t.type = "button", t.className = "mjr-asset-card mjr-card mjr-feed-group-member-card", t.style.cssText = "display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-end;min-height:110px;padding:8px;border:1px solid var(--mjr-border,#444);border-radius:8px;background:var(--mjr-surface,#202020);color:inherit;text-align:left;overflow:hidden;";
@@ -17029,7 +17029,7 @@ function yp(e) {
 	let r = document.createElement("span");
 	r.textContent = I("bottomFeed.cardSize", "Cards:"), r.style.cssText = "font-size:11px; opacity:0.65; white-space:nowrap; flex-shrink:0;", n.appendChild(r);
 	let i = document.createElement("button");
-	i.type = "button", i.className = "mjr-feed-size-btn", i.textContent = "âˆ’", i.title = I("bottomFeed.cardSizeDecrease", "Decrease card size"), i.style.cssText = "width:20px; height:20px; padding:0; border:1px solid var(--mjr-border,#555); border-radius:4px; background:var(--mjr-surface,#2a2a2a); color:inherit; cursor:pointer; font-size:14px; line-height:1; flex-shrink:0; display:flex; align-items:center; justify-content:center;", n.appendChild(i);
+	i.type = "button", i.className = "mjr-feed-size-btn", i.textContent = "-", i.title = I("bottomFeed.cardSizeDecrease", "Decrease card size"), i.style.cssText = "width:20px; height:20px; padding:0; border:1px solid var(--mjr-border,#555); border-radius:4px; background:var(--mjr-surface,#2a2a2a); color:inherit; cursor:pointer; font-size:14px; line-height:1; flex-shrink:0; display:flex; align-items:center; justify-content:center;", n.appendChild(i);
 	let a = document.createElement("input");
 	a.type = "range", a.className = "mjr-feed-size-slider", a.min = String(hp), a.max = String(gp), a.step = String(_p), a.value = String(t), a.title = I("bottomFeed.cardSizeSlider", "Card size"), a.style.cssText = "flex:1 1 auto; min-width:40px; max-width:180px; height:4px; cursor:pointer; accent-color:var(--mjr-accent,#64b5f6);", n.appendChild(a);
 	let o = document.createElement("button");
@@ -20028,7 +20028,7 @@ function sg(t = {}) {
 						label: "failed",
 						errors: 1
 					}
-				} }), T(`Backfill ERROR - ${o}\nSee console for full payload.`, "error"), console.error("[Majoor] Vector backfill failed response", t), a.style.background = "var(--mjr-status-error, #f44336)", eg(r, "error");
+				} }), T(`Backfill ? - ${o}\nSee console for full payload.`, "error"), console.error("[Majoor] Vector backfill failed response", t), a.style.background = "var(--mjr-status-error, #f44336)", eg(r, "error");
 			}
 		} catch (e) {
 			let t = String(e?.message || e || "Backfill failed");
@@ -21042,7 +21042,7 @@ var t_ = "mjr_panel_messages_v1", n_ = "mjr_panel_messages_last_read_v1", r_ = "
 		id: "whats-new-2026-05-17-dnd-graph-map-settings",
 		title: "New Version 2.4.8 - DnD, Graph Map & Settings",
 		titleKey: "msg.whatsNew.title.dndGraphMapSettings",
-		emoji: "âœ¨",
+		emoji: "✨",
 		category: "Release",
 		categoryKey: "msg.category.release",
 		level: "success",
@@ -21130,7 +21130,7 @@ var t_ = "mjr_panel_messages_v1", n_ = "mjr_panel_messages_last_read_v1", r_ = "
 		categoryKey: "msg.category.information",
 		level: "info",
 		createdAt: Date.parse("2026-04-07T10:00:00Z"),
-		body: "You can override the Generation Output Directory used by Majoor for generated files via Settings â†’ Majoor Assets Manager â€º Advanced. Leave it empty to keep the current backend default, or set MJR_AM_OUTPUT_DIRECTORY / MAJOOR_OUTPUT_DIRECTORY before launching ComfyUI.",
+		body: "You can override the Generation Output Directory used by Majoor for generated files via Settings -> Majoor Assets Manager > Advanced. Leave it empty to keep the current backend default, or set MJR_AM_OUTPUT_DIRECTORY / MAJOOR_OUTPUT_DIRECTORY before launching ComfyUI.",
 		bodyKey: "msg.tip.body.outputFolderOverride",
 		actionLabel: "Installation Guide",
 		actionUrl: "docs/INSTALLATION.md"
@@ -21142,7 +21142,7 @@ var t_ = "mjr_panel_messages_v1", n_ = "mjr_panel_messages_last_read_v1", r_ = "
 		categoryKey: "msg.category.information",
 		level: "info",
 		createdAt: Date.parse("2026-04-07T10:05:00Z"),
-		body: "You can override the Index Database Directory used by Majoor for its SQLite database via Settings â†’ Majoor Assets Manager â€º Advanced. This is useful when your assets stay on a NAS or slow drive and you want the index on a local SSD. Restart ComfyUI after changing it, or set MJR_AM_INDEX_DIRECTORY / MAJOOR_INDEX_DIRECTORY before launch.",
+		body: "You can override the Index Database Directory used by Majoor for its SQLite database via Settings -> Majoor Assets Manager > Advanced. This is useful when your assets stay on a NAS or slow drive and you want the index on a local SSD. Restart ComfyUI after changing it, or set MJR_AM_INDEX_DIRECTORY / MAJOOR_INDEX_DIRECTORY before launch.",
 		actionLabel: "DB Maintenance Guide",
 		actionUrl: "docs/DB_MAINTENANCE.md"
 	},
@@ -21162,13 +21162,13 @@ var t_ = "mjr_panel_messages_v1", n_ = "mjr_panel_messages_last_read_v1", r_ = "
 	},
 	{
 		id: "whats-new-2026-04-10-mfv-multi-pin-sidebar",
-		title: "What's New â€” Floating Viewer",
+		title: "What's New  -  Floating Viewer",
 		titleKey: "msg.whatsNew.title.mfvMultiPinSidebar",
 		category: "Information",
 		categoryKey: "msg.category.information",
 		level: "info",
 		createdAt: Date.parse("2026-04-10T09:00:00Z"),
-		body: "Floating Viewer upgraded: Multi-Pin references (A/B/C/D toggle buttons) let you pin up to 4 images and compare them side-by-side. A new Node Parameters sidebar shows the widgets of the workflow node that produced the current image â€” edit prompts, seeds, and samplers directly inside the viewer. Expandable text areas, Run button, and toolbar layout improvements.",
+		body: "Floating Viewer upgraded: Multi-Pin references (A/B/C/D toggle buttons) let you pin up to 4 images and compare them side-by-side. A new Node Parameters sidebar shows the widgets of the workflow node that produced the current image  -  edit prompts, seeds, and samplers directly inside the viewer. Expandable text areas, Run button, and toolbar layout improvements.",
 		bodyKey: "msg.whatsNew.body.mfvMultiPinSidebar",
 		actionLabel: "Viewer Tutorial",
 		actionLabelKey: "label.viewerTutorial",
@@ -21176,25 +21176,25 @@ var t_ = "mjr_panel_messages_v1", n_ = "mjr_panel_messages_last_read_v1", r_ = "
 	},
 	{
 		id: "whats-new-2026-04-10-mfv-sidebar-position-setting",
-		title: "What's New â€” Sidebar Position Setting",
+		title: "What's New  -  Sidebar Position Setting",
 		titleKey: "msg.whatsNew.title.mfvSidebarPositionSetting",
 		category: "Information",
 		categoryKey: "msg.category.information",
 		level: "info",
 		createdAt: Date.parse("2026-04-10T09:05:00Z"),
-		body: "New setting: Node Parameters sidebar position. Go to Settings â†’ Majoor Assets Manager â€º Viewer and choose where to place the Node Parameters sidebar â€” right (default), left, or bottom. The change applies immediately without page reload.",
+		body: "New setting: Node Parameters sidebar position. Go to Settings -> Majoor Assets Manager > Viewer and choose where to place the Node Parameters sidebar  -  right (default), left, or bottom. The change applies immediately without page reload.",
 		bodyKey: "msg.whatsNew.body.mfvSidebarPositionSetting"
 	},
 	{
 		id: "tip-2026-04-12-generation-time-persistence",
-		title: "Tip â€” Generation Time After Reset",
+		title: "Tip  -  Generation Time After Reset",
 		titleKey: "msg.tip.title.generationTimePersistence",
-		emoji: "â±ï¸",
+		emoji: "⏱️",
 		category: "Information",
 		categoryKey: "msg.category.information",
 		level: "warning",
 		createdAt: Date.parse("2026-04-12T10:00:00Z"),
-		body: "Generation time (generation_time_ms) is computed at runtime and stored in the index database. After a Reset Index or Delete DB, this value is lost unless it was persisted inside the file itself. To keep generation time across resets, use the ã€½ï¸ Majoor Save Image ðŸ’¾ or ã€½ï¸ Majoor Save Video ðŸŽ¬ nodes instead of the built-in Save nodes â€” they embed generation_time_ms directly in PNG text chunks and MP4 container metadata, so it is re-extracted automatically on re-index.",
+		body: "Generation time (generation_time_ms) is computed at runtime and stored in the index database. After a Reset Index or Delete DB, this value is lost unless it was persisted inside the file itself. To keep generation time across resets, use the Majoor Save Image or Majoor Save Video nodes instead of the built-in Save nodes  -  they embed generation_time_ms directly in PNG text chunks and MP4 container metadata, so it is re-extracted automatically on re-index.",
 		bodyKey: "msg.tip.body.generationTimePersistence",
 		actionLabel: "Custom Nodes Docs",
 		actionLabelKey: "label.customNodesDocs",
@@ -21202,9 +21202,9 @@ var t_ = "mjr_panel_messages_v1", n_ = "mjr_panel_messages_last_read_v1", r_ = "
 	},
 	{
 		id: "whats-new-2026-04-12-topbar-mfv-button",
-		title: "What's New â€” Floating Viewer Topbar Button",
+		title: "What's New  -  Floating Viewer Topbar Button",
 		titleKey: "msg.whatsNew.title.topbarMfvButton",
-		emoji: "ðŸ‘ï¸",
+		emoji: "👁️",
 		category: "Information",
 		categoryKey: "msg.category.information",
 		level: "info",
@@ -21216,7 +21216,7 @@ var t_ = "mjr_panel_messages_v1", n_ = "mjr_panel_messages_last_read_v1", r_ = "
 		id: "whats-new-2026-04-20-version-2-4-6",
 		title: "New Version 2.4.6",
 		titleKey: "msg.whatsNew.title.version246",
-		emoji: "ðŸš€",
+		emoji: "🚀",
 		category: "Release",
 		categoryKey: "msg.category.release",
 		level: "success",
@@ -21229,9 +21229,9 @@ var t_ = "mjr_panel_messages_v1", n_ = "mjr_panel_messages_last_read_v1", r_ = "
 	},
 	{
 		id: "whats-new-2026-05-01-grid-mfv-toolbox",
-		title: "What's New â€” Grid & MFV Upgrade",
+		title: "What's New  -  Grid & MFV Upgrade",
 		titleKey: "msg.whatsNew.title.gridMfvToolboxUpgrade",
-		emoji: "ðŸš€",
+		emoji: "🚀",
 		category: "Information",
 		categoryKey: "msg.category.information",
 		level: "info",
@@ -21246,7 +21246,7 @@ var t_ = "mjr_panel_messages_v1", n_ = "mjr_panel_messages_last_read_v1", r_ = "
 		id: "tip-2026-05-01-majoor-imageops-node-pack",
 		title: "Do you know this node pack ?",
 		titleKey: "msg.tip.title.majoorImageOpsNodePack",
-		emoji: "ðŸ˜‰",
+		emoji: "😉",
 		category: "Information",
 		categoryKey: "msg.category.information",
 		level: "info",
@@ -21259,9 +21259,9 @@ var t_ = "mjr_panel_messages_v1", n_ = "mjr_panel_messages_last_read_v1", r_ = "
 	},
 	{
 		id: "tip-2026-05-10-graph-map-guide",
-		title: "Tip â€” Graph Map Guide",
+		title: "Tip  -  Graph Map Guide",
 		titleKey: "msg.tip.title.graphMapGuide",
-		emoji: "ðŸ—ºï¸",
+		emoji: "🗺️",
 		category: "Information",
 		categoryKey: "msg.category.information",
 		level: "info",
@@ -21274,9 +21274,9 @@ var t_ = "mjr_panel_messages_v1", n_ = "mjr_panel_messages_last_read_v1", r_ = "
 	},
 	{
 		id: "tip-2026-05-10-mfv-guide",
-		title: "Tip â€” MFV Guide",
+		title: "Tip  -  MFV Guide",
 		titleKey: "msg.tip.title.mfvGuide",
-		emoji: "ðŸªŸ",
+		emoji: "🪟",
 		category: "Information",
 		categoryKey: "msg.category.information",
 		level: "info",
@@ -21289,14 +21289,14 @@ var t_ = "mjr_panel_messages_v1", n_ = "mjr_panel_messages_last_read_v1", r_ = "
 	},
 	{
 		id: "tip-2026-04-20-mfv-live-stream-preview-defaults",
-		title: "Tip â€” Floating Viewer Auto-Open",
+		title: "Tip  -  Floating Viewer Auto-Open",
 		titleKey: "msg.tip.title.mfvLivePreviewDefaults",
-		emoji: "ðŸ’¡",
+		emoji: "💡",
 		category: "Information",
 		categoryKey: "msg.category.information",
 		level: "info",
 		createdAt: Date.parse("2026-04-20T10:00:00Z"),
-		body: "Live Stream (green button in the viewer) and KSampler Preview can be activated by default via Settings â†’ Majoor Assets Manager â€º Viewer. Live Stream follows final generation outputs after execution. KSampler Preview streams denoising frames during execution. Selected-node previews are handled by Node Stream.",
+		body: "Live Stream (green button in the viewer) and KSampler Preview can be activated by default via Settings -> Majoor Assets Manager > Viewer. Live Stream follows final generation outputs after execution. KSampler Preview streams denoising frames during execution. Selected-node previews are handled by Node Stream.",
 		bodyKey: "msg.tip.body.mfvLivePreviewDefaults",
 		actionLabel: "Settings Guide",
 		actionLabelKey: "label.settingsGuide",
@@ -21694,10 +21694,10 @@ function V_(e) {
 }
 function H_(e) {
 	switch (String(e || "").toLowerCase()) {
-		case "success": return "âœ…";
-		case "warning": return "âš\xA0ï¸";
-		case "error": return "âŒ";
-		default: return "ðŸ’¡";
+		case "success": return "OK";
+		case "warning": return "WARN";
+		case "error": return "?";
+		default: return "Tip";
 	}
 }
 function U_(e) {
@@ -22996,7 +22996,7 @@ function iv({ state: e, customSelect: t, customRemoveBtn: n, comfyConfirm: r, co
 	]), m = (e) => {
 		p("customRootLabel", String(e || ""));
 	}, h = async (e = null) => {
-		let r = t.querySelector("option[value=\"\"]")?.textContent || I("label.selectFolder", "Select folderâ€¦");
+		let r = t.querySelector("option[value=\"\"]")?.textContent || I("label.selectFolder", "Select folder...");
 		t.innerHTML = "";
 		let i = document.createElement("option");
 		i.value = "", i.textContent = I("msg.loading"), i.disabled = !0, t.appendChild(i), t.disabled = !0;
@@ -24848,7 +24848,7 @@ function Fv({ pinnedFoldersBtn: e, pinnedFoldersController: t = null, pinnedFold
 				let r = document.createElement("button");
 				r.type = "button", r.className = "mjr-menu-item mjr-pinned-folder-open", r.textContent = t.label, r.addEventListener("click", () => y(t), { signal: g?.signal });
 				let i = document.createElement("button");
-				i.type = "button", i.className = "mjr-menu-item mjr-pinned-folder-unpin", i.title = I("ctx.unpinFolder", "Unpin folder"), i.textContent = "Ã—", i.addEventListener("click", (e) => b(t, e), { signal: g?.signal }), e.appendChild(r), e.appendChild(i), n.appendChild(e);
+				i.type = "button", i.className = "mjr-menu-item mjr-pinned-folder-unpin", i.title = I("ctx.unpinFolder", "Unpin folder"), i.textContent = "x", i.addEventListener("click", (e) => b(t, e), { signal: g?.signal }), e.appendChild(r), e.appendChild(i), n.appendChild(e);
 			}
 		}
 	};
@@ -29924,7 +29924,7 @@ var zx = { class: "mjr-sidebar-preview" }, Bx = ["src"], Vx = ["src"], Hx = ["sr
 			])), 64))], 44, Zx);
 		};
 	}
-}, [["__scopeId", "data-v-d6a0ab11"]]), $x = {
+}, [["__scopeId", "data-v-12a8123a"]]), $x = {
 	class: "mjr-sidebar-content",
 	style: {
 		flex: "1",
@@ -31277,7 +31277,7 @@ function cw(e = 1200) {
 	}, Math.max(250, Number(e) || 0));
 }
 function lw(e) {
-	import("./chunks/LiveStreamTracker-BAWD7NsL.js").then((t) => {
+	import("./chunks/LiveStreamTracker-DUjvkYat.js").then((t) => {
 		HC = t;
 		try {
 			t.initLiveStreamTracker(e);

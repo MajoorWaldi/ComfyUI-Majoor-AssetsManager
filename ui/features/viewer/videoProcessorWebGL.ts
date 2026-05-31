@@ -148,7 +148,7 @@ export function createWebGLVideoProcessor(opts: Record<string, any>): any {
     const checkGLError = (label = "") => {
         if (!gl) return;
         const error = gl.getError();
-        if (error !== gl.NO_?) {
+        if (error !== gl.NO_ERROR) {
             console.error(`WebGL Error [${label}]: ${error}`);
         }
     };

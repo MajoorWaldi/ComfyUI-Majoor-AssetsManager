@@ -1,12 +1,12 @@
-import { Et as e, a as t, d as n, i as r, m as i, zt as a } from "./hostAdapter-Fz6J-dy6.js";
-import { a as o, m as s, t as c } from "./config-CXns6XwM.js";
-import { a as l, c as u, i as d, n as f, o as p, r as m, v as h, y as g } from "./SidebarWorkflowSection-VFjnXMPn.js";
+import { Et as e, a as t, d as n, i as r, m as i, zt as a } from "./hostAdapter-B-MGUyvy.js";
+import { a as o, m as s, t as c } from "./config-tNjYsdMA.js";
+import { a as l, c as u, i as d, n as f, o as p, r as m, v as h, y as g } from "./SidebarWorkflowSection-Ck-nApHt.js";
 import { r as _ } from "./events-uHehulNG.js";
 import { a as v, i as y, o as b, s as x } from "./graphTraversal-HdtD9lDa.js";
-import { _ as S, c as C, f as w, g as T, h as E, i as D, l as O, n as k, r as A, s as j, t as ee, v as M, y as N } from "./openMajoorSettings-z5kYaTT-.js";
-import { a as P, n as F, r as te } from "./model3dRenderer-BOpPhoT_.js";
+import { _ as S, c as C, f as w, g as T, h as E, i as D, l as O, n as k, r as A, s as j, t as ee, v as M, y as N } from "./openMajoorSettings-CNvlfVZJ.js";
+import { a as P, n as F, r as te } from "./model3dRenderer-yCkVu9Ju.js";
 import { i as ne, o as I, r as re, t as ie } from "./geninfoParser-s-OHjo5D.js";
-import { t as L } from "./genInfo-CZdTrT-h.js";
+import { t as L } from "./genInfo-BKkZWV_3.js";
 //#region ui/features/viewer/floatingViewerConstants.ts
 var R = Object.freeze({
 	SIMPLE: "simple",
@@ -264,7 +264,7 @@ function H(e) {
 function be(e) {
 	return e ? e.url ? String(e.url) : e.filename && e.id == null ? s(e.filename, e.subfolder || "", e.type || "output") : e.filename && o(e) || "" : "";
 }
-function U(e = "No media â€” select assets in the grid") {
+function U(e = "No media  -  select assets in the grid") {
 	let t = document.createElement("div");
 	return t.className = "mjr-mfv-empty", t.textContent = e, t;
 }
@@ -1725,7 +1725,7 @@ function Qt() {
 }
 function $t(e = c.MFV_PREVIEW_METHOD) {
 	let t = String(e || "").trim().toLowerCase();
-	return Yt.has(t) ? t : "taesd";
+	return Yt.has(t) ? t : c.MFV_PREVIEW_METHOD || "auto";
 }
 function en(e, t = c.MFV_PREVIEW_METHOD) {
 	let n = $t(t), r = {
@@ -2791,7 +2791,7 @@ function $n(e, t, n, r) {
 	});
 	let i = `width=${n},height=${r},left=${(window.screenX || window.screenLeft) + Math.round((window.outerWidth - n) / 2)},top=${(window.screenY || window.screenTop) + Math.round((window.outerHeight - r) / 2)},resizable=yes,scrollbars=no,toolbar=no,menubar=no,location=no,status=no`, a = window.open("about:blank", "_mjr_viewer", i);
 	if (!a) {
-		$("browser-popup-blocked", null, "warn"), console.warn("[MFV] Pop-out blocked â€” allow popups for this site.");
+		$("browser-popup-blocked", null, "warn"), console.warn("[MFV] Pop-out blocked  -  allow popups for this site.");
 		return;
 	}
 	$("browser-popup-opened", { hasDocument: !!a?.document }), e._popoutWindow = a, e._isPopped = !0, e._popoutRestoreGuard = !1;
@@ -3186,7 +3186,7 @@ function mr(e, t, n, r, i, a, o) {
 }
 async function hr(e) {
 	if (!e._contentEl) return;
-	e._captureBtn && (e._captureBtn.disabled = !0, e._captureBtn.setAttribute("aria-label", a("tooltip.capturingView", "Capturingâ€¦")));
+	e._captureBtn && (e._captureBtn.disabled = !0, e._captureBtn.setAttribute("aria-label", a("tooltip.capturingView", "Capturing...")));
 	let t = e._contentEl.clientWidth || 480, n = e._contentEl.clientHeight || 360, r = n;
 	if (e._mode === R.SIMPLE && e._mediaA && e._genInfoSelections.size) {
 		let i = document.createElement("canvas");
@@ -3491,7 +3491,7 @@ var Sr = 0, Cr = class {
 		}
 		this._nodeStreamOverlayEl.parentNode !== e && e.appendChild(this._nodeStreamOverlayEl);
 		let n = t.nodeId ? `#${t.nodeId}` : "", r = t.classType || "Node", i = t.title && t.title !== t.classType ? ` - ${t.title}` : "";
-		this._nodeStreamOverlayEl.textContent = `${n} Â· ${r}${i}`.trim();
+		this._nodeStreamOverlayEl.textContent = `${n}  -  ${r}${i}`.trim();
 	}
 	loadMediaA(e, { autoMode: t = !1 } = {}) {
 		return vr(this, e, { autoMode: t });
@@ -4029,14 +4029,14 @@ var Sr = 0, Cr = class {
 		let o = document.createElement("div");
 		o.className = "mjr-mfv-side-container";
 		let s = document.createElement("div");
-		s.className = "mjr-mfv-side-panel", n ? s.appendChild(n) : s.appendChild(U("â€”")), s.appendChild(W("A", "left"));
+		s.className = "mjr-mfv-side-panel", n ? s.appendChild(n) : s.appendChild(U(" - ")), s.appendChild(W("A", "left"));
 		let c = i === "audio" ? null : this._buildGenInfoDOM(this._mediaA);
 		if (c) {
 			let e = document.createElement("div");
 			e.className = "mjr-mfv-geninfo-a", xr(n) && e.classList.add("mjr-mfv-geninfo--above-player"), e.appendChild(c), s.appendChild(e);
 		}
 		let l = document.createElement("div");
-		l.className = "mjr-mfv-side-panel", r ? l.appendChild(r) : l.appendChild(U("â€”")), l.appendChild(W("B", "right"));
+		l.className = "mjr-mfv-side-panel", r ? l.appendChild(r) : l.appendChild(U(" - ")), l.appendChild(W("B", "right"));
 		let u = a === "audio" ? null : this._buildGenInfoDOM(this._mediaB);
 		if (u) {
 			let e = document.createElement("div");
@@ -4073,14 +4073,14 @@ var Sr = 0, Cr = class {
 			let e = document.createElement("div");
 			if (e.className = "mjr-mfv-grid-cell", n) {
 				let t = H(n), i = G(n, { controls: r === "A" }), a = this._trackMediaControls?.(i) || i;
-				if (a ? e.appendChild(a) : e.appendChild(U("â€”")), e.appendChild(W(r, r === "A" || r === "C" ? "left" : "right")), t !== "audio") {
+				if (a ? e.appendChild(a) : e.appendChild(U(" - ")), e.appendChild(W(r, r === "A" || r === "C" ? "left" : "right")), t !== "audio") {
 					let t = this._buildGenInfoDOM(n);
 					if (t) {
 						let n = document.createElement("div");
 						n.className = `mjr-mfv-geninfo-${r.toLowerCase()}`, xr(a) && n.classList.add("mjr-mfv-geninfo--above-player"), n.appendChild(t), e.appendChild(n);
 					}
 				}
-			} else e.appendChild(U("â€”")), e.appendChild(W(r, r === "A" || r === "C" ? "left" : "right"));
+			} else e.appendChild(U(" - ")), e.appendChild(W(r, r === "A" || r === "C" ? "left" : "right"));
 			t.appendChild(e);
 		}
 		this._contentEl.appendChild(t);

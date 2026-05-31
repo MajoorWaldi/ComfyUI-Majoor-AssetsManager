@@ -1,4 +1,4 @@
-import { _ as e, i as t, r as n, v as r, y as i } from "./config-CXns6XwM.js";
+import { _ as e, i as t, r as n, v as r, y as i } from "./config-tNjYsdMA.js";
 //#region ui/app/settingsStore.ts
 var a = "mjrSettings", o = "mjrMinimapSettings", s = new Set([
 	"POST",

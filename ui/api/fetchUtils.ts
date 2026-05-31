@@ -414,13 +414,13 @@ export function createApiFetchClient({
                 }
                 // fetchAPI catches all errors internally  -  no try/catch needed here.
                 // A wrapping try/catch would swallow the retry result and fall through
-                // to the NETWORK_? return below with the *original* error instead.
+                // to the NETWORK_ERROR return below with the *original* error instead.
                 return await fetchAPI(url, options, retryCount + 1);
             }
             return {
                 ok: false,
                 error: (error as any)?.message || String(error || "Network error"),
-                code: "NETWORK_?",
+                code: "NETWORK_ERROR",
                 data: null,
                 retries: retryCount,
             };
