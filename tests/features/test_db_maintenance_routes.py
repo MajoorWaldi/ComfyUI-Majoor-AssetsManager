@@ -2,6 +2,7 @@ import asyncio
 import json
 import os
 from pathlib import Path
+from typing import Any, cast
 
 import pytest
 from aiohttp import web
@@ -38,7 +39,11 @@ def _json_post_request(
     *,
     declared_content_length: int | None = None,
 ):
-    payload = StreamReader(_StreamProtocol(), limit=2**16, loop=asyncio.get_running_loop())
+    payload = StreamReader(
+        cast(Any, _StreamProtocol()),
+        limit=2**16,
+        loop=asyncio.get_running_loop(),
+    )
     payload.feed_data(body)
     payload.feed_eof()
     headers = {
