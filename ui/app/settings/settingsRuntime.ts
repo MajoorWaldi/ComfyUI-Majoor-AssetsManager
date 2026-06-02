@@ -7,9 +7,43 @@
 import { getRuntimeStatus } from "../../api/client.js";
 import { getSecuritySettings } from "../../api/client.js";
 import { t } from "../i18n.js";
+import { DEFAULT_SETTINGS, loadMajoorSettings } from "./settingsCore.js";
 
 const RUNTIME_DASHBOARD_ID = "mjr-runtime-status-dashboard";
 const RUNTIME_TOKEN_KEY = "__mjr_write_token";
+const RUNTIME_AUTO_HIDE_MS = 30_000;
+
+function getRuntimeDashboardMode() {
+    try {
+        const settings = loadMajoorSettings();
+        const mode = String(
+            settings?.observability?.runtimeDashboardMode ||
+                DEFAULT_SETTINGS.observability.runtimeDashboardMode,
+        );
+        return ["autoHide30", "always", "hidden"].includes(mode) ? mode : "autoHide30";
+    } catch {
+        return "autoHide30";
+    }
+}
+
+function removeRuntimeStatusDashboard() {
+    try {
+        document.getElementById(RUNTIME_DASHBOARD_ID)?.remove?.();
+    } catch (e) {
+        console.debug?.(e);
+    }
+}
+
+function clearRuntimeDashboardHideTimer() {
+    try {
+        if (window.__MJR_RUNTIME_STATUS_HIDE_TIMEOUT__) {
+            clearTimeout(window.__MJR_RUNTIME_STATUS_HIDE_TIMEOUT__);
+            window.__MJR_RUNTIME_STATUS_HIDE_TIMEOUT__ = null;
+        }
+    } catch (e) {
+        console.debug?.(e);
+    }
+}
 
 function readRuntimeWriteToken() {
     try {
@@ -88,6 +122,12 @@ function buildWriteAuthSummary(prefs: any) {
 
 function ensureRuntimeStatusDashboard() {
     try {
+        const mode = getRuntimeDashboardMode();
+        if (mode === "hidden" || window.__MJR_RUNTIME_STATUS_HIDDEN__) {
+            removeRuntimeStatusDashboard();
+            return null;
+        }
+
         const host = document.querySelector(".mjr-assets-manager.mjr-am-container");
         const existing = document.getElementById(RUNTIME_DASHBOARD_ID);
         if (!host) {
@@ -185,6 +225,37 @@ async function refreshRuntimeStatusDashboard() {
 
 export function startRuntimeStatusDashboard(): void {
     try {
+        const mode = getRuntimeDashboardMode();
+        if (mode === "hidden") {
+            window.__MJR_RUNTIME_STATUS_HIDDEN__ = true;
+            clearRuntimeDashboardHideTimer();
+            removeRuntimeStatusDashboard();
+            return;
+        }
+        if (!window.__MJR_RUNTIME_STATUS_SETTINGS_LISTENER__) {
+            window.__MJR_RUNTIME_STATUS_SETTINGS_LISTENER__ = (event: any) => {
+                if (event?.detail?.key !== "observability.runtimeDashboardMode") return;
+                const nextMode = getRuntimeDashboardMode();
+                window.__MJR_RUNTIME_STATUS_HIDDEN__ = nextMode === "hidden";
+                clearRuntimeDashboardHideTimer();
+                removeRuntimeStatusDashboard();
+                if (nextMode !== "hidden") {
+                    startRuntimeStatusDashboard();
+                }
+            };
+            window.addEventListener?.(
+                "mjr-settings-changed",
+                window.__MJR_RUNTIME_STATUS_SETTINGS_LISTENER__,
+            );
+        }
+        window.__MJR_RUNTIME_STATUS_HIDDEN__ = false;
+        clearRuntimeDashboardHideTimer();
+        if (mode === "autoHide30") {
+            window.__MJR_RUNTIME_STATUS_HIDE_TIMEOUT__ = setTimeout(() => {
+                window.__MJR_RUNTIME_STATUS_HIDDEN__ = true;
+                removeRuntimeStatusDashboard();
+            }, RUNTIME_AUTO_HIDE_MS);
+        }
         refreshRuntimeStatusDashboard().catch(() => {});
         if (window.__MJR_RUNTIME_STATUS_INFLIGHT__ == null) {
             window.__MJR_RUNTIME_STATUS_INFLIGHT__ = false;

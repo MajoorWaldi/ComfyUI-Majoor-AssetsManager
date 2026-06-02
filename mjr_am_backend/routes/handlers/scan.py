@@ -8,7 +8,12 @@ from types import SimpleNamespace
 from typing import Any
 
 from aiohttp import web
-from mjr_am_backend.adapters.comfy_core import get_input_directory as _get_comfy_input_directory
+from mjr_am_backend.adapters.comfy_core import (
+    get_input_directory as _get_comfy_input_directory,
+)
+from mjr_am_backend.adapters.comfy_core import (
+    get_temp_directory as _get_comfy_temp_directory,
+)
 from mjr_am_backend.adapters.db.schema import purge_orphan_vec_embeddings, rebuild_fts
 from mjr_am_backend.config import (
     COLLECTIONS_DIR_PATH,
@@ -90,11 +95,15 @@ def get_input_directory() -> str:
     return str(folder_paths.get_input_directory())
 
 
+def get_temp_directory() -> str | None:
+    return _get_comfy_temp_directory()
+
+
 def _send_prompt_event(event: str, payload: Any) -> None:
     try:
-        from mjr_am_backend.adapters.comfy_core import send_event
+        from mjr_am_backend.adapters.comfy_events import emit_event
 
-        send_event(event, payload)
+        emit_event(event, payload)
     except Exception:
         pass
 

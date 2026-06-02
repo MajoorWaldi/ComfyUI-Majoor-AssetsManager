@@ -80,10 +80,16 @@ async def test_index_files_generation_allowed_during_vector_backfill(monkeypatch
     monkeypatch.setattr(scan_mod, "_require_services", _require_services)
     monkeypatch.setattr(scan_mod, "is_db_maintenance_active", lambda: True)
     monkeypatch.setattr(scan_mod, "is_vector_backfill_active", lambda: True)
+
+    def _request_priority_window(*args, **kwargs) -> float:
+        _ = (args, kwargs)
+        called["priority"] += 1
+        return 12.0
+
     monkeypatch.setattr(
         scan_mod,
         "request_vector_backfill_priority_window",
-        lambda *args, **kwargs: called.__setitem__("priority", called["priority"] + 1) or 12.0,
+        _request_priority_window,
     )
     monkeypatch.setattr(scan_mod, "_csrf_error", lambda _request: None)
     monkeypatch.setattr(scan_mod, "_require_write_access", lambda _request: Result.Ok({}))
@@ -334,7 +340,7 @@ async def test_upload_input_invalid_first_field(monkeypatch) -> None:
 
     app = _app()
     req = make_mocked_request("POST", "/mjr/am/upload_input", app=app)
-    req.multipart = _multipart
+    req.multipart = _multipart  # type: ignore[method-assign]
 
     monkeypatch.setattr(scan_mod, "_csrf_error", lambda _request: None)
     monkeypatch.setattr(scan_mod, "_require_write_access", lambda _request: Result.Ok({}))
@@ -360,7 +366,7 @@ async def test_upload_input_write_failure_bubbles(monkeypatch) -> None:
 
     app = _app()
     req = make_mocked_request("POST", "/mjr/am/upload_input", app=app)
-    req.multipart = _multipart
+    req.multipart = _multipart  # type: ignore[method-assign]
 
     monkeypatch.setattr(scan_mod, "_csrf_error", lambda _request: None)
     monkeypatch.setattr(scan_mod, "_require_write_access", lambda _request: Result.Ok({}))
@@ -990,6 +996,102 @@ async def test_stage_to_input_copy_success_and_index_scheduled(monkeypatch, tmp_
 
 
 @pytest.mark.asyncio
+async def test_stage_to_input_recovers_native_subfolder_that_includes_output_root(monkeypatch, tmp_path: Path) -> None:
+    parent = tmp_path / "ComfyUI"
+    out_root = parent / "output"
+    in_root = parent / "input"
+    out_root.mkdir(parents=True)
+    in_root.mkdir()
+    src = out_root / "ComfyUI_00690_.png"
+    src.write_bytes(b"abc")
+
+    async def _runtime_output_root(_svc):
+        return str(out_root)
+
+    async def _require_services():
+        return {"index": object()}, None
+
+    async def _read_json(_request):
+        return Result.Ok(
+            {
+                "files": [
+                    {
+                        "filename": "ComfyUI_00690_.png",
+                        "subfolder": "ComfyUI/output",
+                        "type": "output",
+                    }
+                ],
+                "index": False,
+            }
+        )
+
+    monkeypatch.setattr(scan_mod, "_runtime_output_root", _runtime_output_root)
+    monkeypatch.setattr(scan_mod, "_require_services", _require_services)
+    monkeypatch.setattr(scan_mod, "_csrf_error", lambda _request: None)
+    monkeypatch.setattr(scan_mod, "_require_write_access", lambda _request: Result.Ok({}))
+    monkeypatch.setattr(scan_mod, "_read_json", _read_json)
+    monkeypatch.setattr(scan_mod, "_is_path_allowed", lambda _p: True)
+    monkeypatch.setattr(scan_mod, "folder_paths", SimpleNamespace(get_input_directory=lambda: str(in_root)))
+
+    app = _app()
+    req = make_mocked_request("POST", "/mjr/am/stage-to-input", app=app)
+    match = await app.router.resolve(req)
+    resp = await match.handler(req)
+    payload = json.loads(resp.text)
+    staged = payload.get("data", {}).get("staged", [])
+    assert payload.get("ok") is True
+    assert staged[0]["name"] == "ComfyUI_00690_.png"
+    assert staged[0]["subfolder"] == str(Path("mjr_staged") / "ComfyUI" / "output")
+
+
+@pytest.mark.asyncio
+async def test_stage_to_input_supports_temp_source(monkeypatch, tmp_path: Path) -> None:
+    parent = tmp_path / "ComfyUI"
+    out_root = parent / "output"
+    temp_root = parent / "temp"
+    in_root = parent / "input"
+    out_root.mkdir(parents=True)
+    temp_root.mkdir()
+    in_root.mkdir()
+    src = temp_root / "previews" / "preview.png"
+    src.parent.mkdir()
+    src.write_bytes(b"abc")
+
+    async def _runtime_output_root(_svc):
+        return str(out_root)
+
+    async def _require_services():
+        return {"index": object()}, None
+
+    async def _read_json(_request):
+        return Result.Ok(
+            {
+                "files": [{"filename": "preview.png", "subfolder": "previews", "type": "temp"}],
+                "index": False,
+            }
+        )
+
+    monkeypatch.setattr(scan_mod, "_runtime_output_root", _runtime_output_root)
+    monkeypatch.setattr(scan_mod, "_require_services", _require_services)
+    monkeypatch.setattr(scan_mod, "_csrf_error", lambda _request: None)
+    monkeypatch.setattr(scan_mod, "_require_write_access", lambda _request: Result.Ok({}))
+    monkeypatch.setattr(scan_mod, "_read_json", _read_json)
+    monkeypatch.setattr(scan_mod, "_is_path_allowed", lambda _p: False)
+    monkeypatch.setattr(scan_mod, "get_temp_directory", lambda: str(temp_root))
+    monkeypatch.setattr(scan_mod, "folder_paths", SimpleNamespace(get_input_directory=lambda: str(in_root)))
+
+    app = _app()
+    req = make_mocked_request("POST", "/mjr/am/stage-to-input", app=app)
+    match = await app.router.resolve(req)
+    resp = await match.handler(req)
+    payload = json.loads(resp.text)
+    staged = payload.get("data", {}).get("staged", [])
+    assert payload.get("ok") is True
+    assert staged[0]["name"] == "preview.png"
+    assert staged[0]["subfolder"] == str(Path("mjr_staged") / "previews")
+
+
+@pytest.mark.asyncio
 async def test_stage_to_input_timeout(monkeypatch, tmp_path: Path) -> None:
     out_root = tmp_path / "out"
     in_root = tmp_path / "in"
@@ -1136,7 +1238,7 @@ async def test_upload_input_success_node_drop_skips_index(monkeypatch, tmp_path:
 
     app = _app()
     req = make_mocked_request("POST", "/mjr/am/upload_input?purpose=node_drop", app=app)
-    req.multipart = _multipart
+    req.multipart = _multipart  # type: ignore[method-assign]
 
     monkeypatch.setattr(scan_mod, "_csrf_error", lambda _request: None)
     monkeypatch.setattr(scan_mod, "_require_write_access", lambda _request: Result.Ok({}))
@@ -2096,7 +2198,7 @@ async def test_upload_input_no_filename_and_exception(monkeypatch) -> None:
 
     app = _app()
     req = make_mocked_request("POST", "/mjr/am/upload_input", app=app)
-    req.multipart = _multipart
+    req.multipart = _multipart  # type: ignore[method-assign]
 
     monkeypatch.setattr(scan_mod, "_csrf_error", lambda _request: None)
     monkeypatch.setattr(scan_mod, "_require_write_access", lambda _request: Result.Ok({}))
@@ -2110,7 +2212,7 @@ async def test_upload_input_no_filename_and_exception(monkeypatch) -> None:
         raise RuntimeError("x")
 
     req2 = make_mocked_request("POST", "/mjr/am/upload_input", app=app)
-    req2.multipart = _boom_multipart
+    req2.multipart = _boom_multipart  # type: ignore[method-assign]
     match2 = await app.router.resolve(req2)
     resp2 = await match2.handler(req2)
     payload2 = json.loads(resp2.text)
@@ -2221,7 +2323,7 @@ async def test_upload_input_success_with_index_schedule_and_services_error(monke
 
     app = _app()
     req = make_mocked_request("POST", "/mjr/am/upload_input", app=app)
-    req.multipart = _multipart
+    req.multipart = _multipart  # type: ignore[method-assign]
     monkeypatch.setattr(scan_mod, "_csrf_error", lambda _request: None)
     monkeypatch.setattr(scan_mod, "_require_write_access", lambda _request: Result.Ok({}))
     monkeypatch.setattr(scan_mod, "_write_multipart_file_atomic", _write_ok)
@@ -2240,7 +2342,7 @@ async def test_upload_input_success_with_index_schedule_and_services_error(monke
         raise RuntimeError("x")
 
     req2 = make_mocked_request("POST", "/mjr/am/upload_input", app=app)
-    req2.multipart = _multipart
+    req2.multipart = _multipart  # type: ignore[method-assign]
     monkeypatch.setattr(scan_mod, "_require_services", _require_services_boom)
     match2 = await app.router.resolve(req2)
     resp2 = await match2.handler(req2)

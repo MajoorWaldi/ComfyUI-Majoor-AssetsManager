@@ -66,7 +66,11 @@ describe("useGridSnapshotCache", () => {
         const compact = compactSnapshotAsset({
             id: 1,
             filename: "one.png",
+            display_name: "One display.png",
             source: "output",
+            preview_url: "/preview/one.png",
+            thumbnail_url: "/thumb/one.png",
+            file_info: { filename: "one.png", subfolder: "renders", type: "output" },
             tags: Array.from({ length: 100 }, (_, index) => `tag-${index}`),
             ignored: "nope",
         });
@@ -74,9 +78,13 @@ describe("useGridSnapshotCache", () => {
         expect(compact).toMatchObject({
             id: 1,
             filename: "one.png",
+            display_name: "One display.png",
             source: "output",
             type: "output",
             kind: "image",
+            preview_url: "/preview/one.png",
+            thumbnail_url: "/thumb/one.png",
+            file_info: { filename: "one.png", subfolder: "renders", type: "output" },
         });
         expect(compact.ignored).toBeUndefined();
         expect(compact.tags).toHaveLength(80);

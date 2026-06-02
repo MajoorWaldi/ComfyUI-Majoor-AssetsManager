@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from aiohttp import web
-from mjr_am_backend.adapters.comfy_core import get_input_directory
+from mjr_am_backend.adapters.comfy_core import get_input_directory, get_temp_directory
 from mjr_am_backend.config import TO_THREAD_TIMEOUT_S
 from mjr_am_backend.custom_roots import resolve_custom_root
 from mjr_am_backend.shared import Result, get_logger, sanitize_error_message
@@ -105,6 +105,7 @@ def register_staging_routes(routes: web.RouteTableDef, *, deps: dict | None = No
         _resolve_stage_destination_ = _d.get("_resolve_stage_destination", _resolve_stage_destination) if _d is not None else _resolve_stage_destination
         _resolve_custom_root_ = _d.get("resolve_custom_root", resolve_custom_root) if _d is not None else resolve_custom_root
         _get_input_directory_ = _d.get("get_input_directory", get_input_directory) if _d is not None else get_input_directory
+        _get_temp_directory_ = _d.get("get_temp_directory", get_temp_directory) if _d is not None else get_temp_directory
         _is_path_allowed_ = _d.get("_is_path_allowed", _is_path_allowed) if _d is not None else _is_path_allowed
         _schedule_index_task_ = _d.get("_schedule_index_task", _schedule_index_task) if _d is not None else _schedule_index_task
         _audit_log_write_ = _d.get("audit_log_write", audit_log_write) if _d is not None else audit_log_write
@@ -191,6 +192,38 @@ def register_staging_routes(routes: web.RouteTableDef, *, deps: dict | None = No
                 return None
             return p
 
+        def _fallback_native_source(base_dir: str, subfolder: Any, filename: str) -> Path | None:
+            """
+            Recover from stale native subfolder payloads like "ComfyUI/output".
+
+            ComfyUI /view identifies files relative to the selected bucket root.
+            If a client accidentally includes the bucket directory itself in
+            subfolder, retry relative to the last matching root-name segment.
+            """
+            if not subfolder:
+                return None
+            try:
+                base_path = Path(base_dir).resolve()
+                root_name = base_path.name.lower()
+                parts = [
+                    part
+                    for part in Path(str(subfolder).replace("\\", "/")).parts
+                    if part not in ("", ".")
+                ]
+                match_index = -1
+                for idx, part in enumerate(parts):
+                    if str(part).lower() == root_name:
+                        match_index = idx
+                if match_index < 0:
+                    return None
+                rel_parts = parts[match_index + 1:]
+                fallback = base_path.joinpath(*rel_parts, filename).resolve()
+                if not _is_within_root(fallback, base_path):
+                    return None
+                return fallback
+            except Exception:
+                return None
+
         for item in files:
             if not isinstance(item, dict):
                 continue
@@ -210,6 +243,11 @@ def register_staging_routes(routes: web.RouteTableDef, *, deps: dict | None = No
 
             if file_type == "input":
                 base_root = _get_input_directory_()
+            elif file_type == "temp":
+                base_root = _get_temp_directory_()
+                if not base_root:
+                    errors.append({"file": raw_filename, "error": "Temp directory unavailable"})
+                    continue
             elif file_type == "custom":
                 root_result = _resolve_custom_root_(str(root_id or ""))
                 if not root_result.ok:
@@ -223,12 +261,21 @@ def register_staging_routes(routes: web.RouteTableDef, *, deps: dict | None = No
             candidate = Path(base_dir) / subfolder / filename if subfolder else Path(base_dir) / filename
             normalized = _normalize_path(str(candidate))
             if not normalized or not normalized.exists():
-                errors.append({"file": raw_filename, "error": "Source file not found"})
-                continue
+                if file_type in ("input", "output", "temp"):
+                    fallback = _fallback_native_source(base_dir, subfolder, filename)
+                    if fallback is not None:
+                        normalized = _normalize_path(str(fallback))
+                if not normalized or not normalized.exists():
+                    errors.append({"file": raw_filename, "error": "Source file not found"})
+                    continue
 
             if file_type == "custom":
                 if not _is_within_root(normalized, Path(base_dir)):
                     errors.append({"file": raw_filename, "error": "Source file outside custom root"})
+                    continue
+            elif file_type == "temp":
+                if not _is_within_root(normalized, Path(base_dir)):
+                    errors.append({"file": raw_filename, "error": "Source file outside temp root"})
                     continue
             else:
                 if not _is_path_allowed_(normalized):

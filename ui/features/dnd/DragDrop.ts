@@ -7,6 +7,7 @@ import { ENDPOINTS, buildCustomViewURL, buildViewURL } from "../../api/endpoints
 import { getRawHostApp } from "../../app/hostAdapter.js";
 import { comfyToast } from "../../app/toast.js";
 import { pickRootId } from "../../utils/ids.js";
+import { toPosixPath } from "../../utils/path.js";
 
 import { COMFY_ASSET_INFO_MIME, DND_MIME, DND_MULTI_MIME } from "./utils/constants.js";
 import { dndLog } from "./utils/log.js";
@@ -64,14 +65,55 @@ const _payloadKey = (payload: any) =>
         String(pickRootId(payload) || ""),
     ].join("\n");
 
+const _deriveNativeLocationFromPath = (asset: any, filename: string) => {
+    const explicitType = String(asset?.type || asset?.file_info?.type || "").toLowerCase();
+    if (explicitType === "custom") return null;
+    const rawPath = toPosixPath(
+        String(
+            asset?.filepath ||
+                asset?.path ||
+                asset?.fullpath ||
+                asset?.full_path ||
+                asset?.file_info?.filepath ||
+                asset?.file_info?.path ||
+                "",
+        ),
+    ).trim();
+    if (!rawPath || !filename) return null;
+
+    const lowerPath = rawPath.toLowerCase();
+    const lowerFilename = filename.toLowerCase();
+    const buckets = [
+        { marker: "/output/", type: "output" },
+        { marker: "/input/", type: "input" },
+        { marker: "/temp/", type: "temp" },
+    ];
+    for (const bucket of buckets) {
+        const markerIndex = lowerPath.lastIndexOf(bucket.marker);
+        if (markerIndex < 0) continue;
+        const relative = rawPath.slice(markerIndex + bucket.marker.length);
+        const relativeLower = relative.toLowerCase();
+        if (relativeLower !== lowerFilename && !relativeLower.endsWith(`/${lowerFilename}`)) {
+            continue;
+        }
+        const slashIndex = relative.lastIndexOf("/");
+        return {
+            type: bucket.type,
+            subfolder: slashIndex > 0 ? relative.slice(0, slashIndex) : "",
+        };
+    }
+    return null;
+};
+
 const _assetToPayload = (asset: any) => {
     if (!asset || typeof asset !== "object") return null;
     const filename = String(asset.filename || "").trim();
     if (!filename) return null;
+    const nativeLocation = _deriveNativeLocationFromPath(asset, filename);
     return {
         filename,
-        subfolder: asset.subfolder || "",
-        type: String(asset.type || "output").toLowerCase(),
+        subfolder: nativeLocation?.subfolder ?? asset.subfolder ?? "",
+        type: nativeLocation?.type ?? String(asset.type || "output").toLowerCase(),
         root_id: pickRootId(asset) || undefined,
         kind: String(asset.kind || "").toLowerCase(),
     };
@@ -419,10 +461,11 @@ export function createAssetDragStartHandler(containerEl: HTMLElement): (event: D
         const asset = (card as any)._mjrAsset;
         if (!asset || typeof asset !== "object") return;
         const kind = String(asset?.kind || "").toLowerCase();
-        const type = String(asset?.type || "output").toLowerCase();
+        const nativeLocation = _deriveNativeLocationFromPath(asset, String(asset.filename || ""));
+        const type = nativeLocation?.type ?? String(asset?.type || "output").toLowerCase();
         const payload = {
             filename: asset.filename,
-            subfolder: asset.subfolder || "",
+            subfolder: nativeLocation?.subfolder ?? asset.subfolder ?? "",
             type,
             root_id: pickRootId(asset) || undefined,
             kind,

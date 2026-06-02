@@ -243,9 +243,9 @@ function w(e) {
 			filename: ""
 		}, n = c(e);
 		if (!n) return t;
-		let r = n.toLowerCase().indexOf("/output/"), i = n.toLowerCase().indexOf("/input/"), a = -1;
-		if (r >= 0 ? (t.type = "output", a = r + 8) : i >= 0 && (t.type = "input", a = i + 7), a >= 0) {
-			let e = n.slice(a), r = e.lastIndexOf("/");
+		let r = n.toLowerCase(), i = r.indexOf("/output/"), a = r.indexOf("/input/"), o = r.indexOf("/temp/"), s = -1;
+		if (i >= 0 ? (t.type = "output", s = i + 8) : a >= 0 ? (t.type = "input", s = a + 7) : o >= 0 && (t.type = "temp", s = o + 6), s >= 0) {
+			let e = n.slice(s), r = e.lastIndexOf("/");
 			r >= 0 ? (t.subfolder = e.slice(0, r), t.filename = e.slice(r + 1)) : t.filename = e;
 		} else t.filename = l(n).filename;
 		return t;
@@ -256,8 +256,8 @@ function w(e) {
 	}
 	if (!i && o.filename && (i = o.filename), !a && o.subfolder && (a = o.subfolder), !i) return "";
 	let d = String(e?.type || e?.file_info?.type || "").toLowerCase().trim();
-	d !== "input" && d !== "output" && d !== "custom" && (d = ""), !d && o.type && (d = o.type), !d && r && (r.includes("/input/") ? d = "input" : r.includes("/output/") && (d = "output")), d ||= "output";
-	let f = r.includes("/output/") || r.includes("/input/"), m = u(a) || a.startsWith("/");
+	d !== "input" && d !== "output" && d !== "temp" && d !== "custom" && (d = ""), !d && o.type && (d = o.type), !d && r && (r.includes("/input/") ? d = "input" : r.includes("/output/") ? d = "output" : r.includes("/temp/") && (d = "temp")), d ||= "output";
+	let f = r.includes("/output/") || r.includes("/input/") || r.includes("/temp/"), m = u(a) || a.startsWith("/");
 	if (r && d !== "custom" && (m || !f)) return n(T(r, { inline: !0 }));
 	if (d === "custom") {
 		let t = String(s(e) || "").trim();
@@ -266,7 +266,7 @@ function w(e) {
 		let c = o.type || "output";
 		return n(h(i, a, c));
 	}
-	return r.includes("/output/") && (d = "output"), r.includes("/input/") && (d = "input"), n(h(i, a, d));
+	return r.includes("/output/") && (d = "output"), r.includes("/input/") && (d = "input"), r.includes("/temp/") && (d = "temp"), n(h(i, a, d));
 }
 function T(e, t = {}) {
 	if (!e) return "";
@@ -366,4 +366,4 @@ var D = Object.freeze({
 	DEBUG_VERBOSE_ERRORS: !1
 }), O = { ...D };
 //#endregion
-export { i as _, w as a, _ as c, g as d, x as f, r as g, S as h, m as i, C as l, h as m, D as n, v as o, b as p, p as r, E as s, O as t, T as u, o as v, s as y };
+export { r as _, w as a, s as b, _ as c, g as d, x as f, c as g, S as h, m as i, C as l, h as m, D as n, v as o, b as p, p as r, E as s, O as t, T as u, i as v, o as y };

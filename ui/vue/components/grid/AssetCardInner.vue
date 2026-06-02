@@ -20,7 +20,6 @@ import {
 import { formatDuration, formatDate, formatTime } from "../../../utils/format.js";
 import { MediaBlobCache } from "../../../features/grid/MediaBlobCache.js";
 import { APP_CONFIG } from "../../../app/config.js";
-import { builtAssetUrl } from "../../../app/assetUrls.js";
 import RatingBadge from "../common/RatingBadge.vue";
 import TagsBadge from "../common/TagsBadge.vue";
 import GenTimeBadge from "../common/GenTimeBadge.vue";
@@ -212,7 +211,7 @@ function applyVideoMode(thumbEl, video, mode) {
     if (!video) return;
     cleanupVideoBehaviors(video);
     if (mode === "hover") {
-        releaseVideoThumbSource(video);
+        void ensureVideoThumbSource(video);
         bindVideoThumbHover(thumbEl, video);
     } else if (mode === "always") {
         bindVideoAutoplay(video);
@@ -244,18 +243,37 @@ const isAudio = computed(() => kind.value === "audio");
 const isModel3D = computed(() => kind.value === "model3d");
 
 const viewUrl = computed(() => buildAssetViewURL(props.asset) || "");
-const posterUrl = computed(() =>
+const explicitThumbnailUrl = computed(() =>
     String(props.asset.thumbnail_url || props.asset.thumb_url || props.asset.poster || "").trim(),
+);
+const explicitPreviewUrl = computed(() =>
+    String(props.asset.preview_url || props.asset.previewUrl || props.asset.url || "").trim(),
+);
+const imageUrl = computed(() => explicitThumbnailUrl.value || explicitPreviewUrl.value || viewUrl.value);
+const videoUrl = computed(() => explicitPreviewUrl.value || viewUrl.value);
+const posterUrl = computed(() =>
+    explicitThumbnailUrl.value,
 );
 
 const filename = computed(() => String(props.asset.filename || ""));
+const rawDisplayName = computed(() =>
+    String(props.asset.display_name || props.asset.displayName || props.asset.name || filename.value || "").trim(),
+);
 const ext = computed(() => {
     const f = filename.value;
     return f.includes(".") ? f.split(".").pop().toUpperCase() : "";
 });
 const displayName = computed(() => {
-    const f = filename.value;
+    const f = rawDisplayName.value || filename.value;
     return f.includes(".") ? f.slice(0, f.lastIndexOf(".")) : f;
+});
+const cardTitle = computed(() => {
+    const parts = [filename.value || rawDisplayName.value];
+    const subfolder = String(props.asset.subfolder || props.asset.file_info?.subfolder || "").trim();
+    const type = String(props.asset.type || props.asset.source || props.asset.file_info?.type || "").trim();
+    if (subfolder) parts.push(`Subfolder: ${subfolder}`);
+    if (type) parts.push(`Type: ${type}`);
+    return parts.filter(Boolean).join("\n");
 });
 
 const rating = computed(() => Number(props.asset.rating) || 0);
@@ -303,6 +321,31 @@ const timestamp = computed(
 );
 const dateStr = computed(() => (timestamp.value ? formatDate(timestamp.value) : ""));
 const timeStr = computed(() => (timestamp.value ? formatTime(timestamp.value) : ""));
+const metaItems = computed(() =>
+    [
+        resolution.value
+            ? { key: "resolution", className: "mjr-meta-res", title: `Resolution: ${resolution.value}`, text: resolution.value }
+            : null,
+        durationStr.value
+            ? { key: "duration", className: "mjr-meta-duration", title: `Duration: ${durationStr.value}`, text: durationStr.value }
+            : null,
+        dateStr.value
+            ? { key: "date", className: "mjr-meta-date", title: `Date: ${dateStr.value}`, text: dateStr.value }
+            : null,
+        timeStr.value
+            ? { key: "time", className: "mjr-meta-date mjr-meta-time-val", title: `Time: ${timeStr.value}`, text: timeStr.value }
+            : null,
+        genTimeValid.value
+            ? {
+                  key: "gentime",
+                  className: "mjr-meta-gentime",
+                  title: genTimeFmt.value.title,
+                  text: genTimeFmt.value.text,
+                  style: { color: genTimeColorVal.value, fontWeight: "500" },
+              }
+            : null,
+    ].filter(Boolean),
+);
 
 // File badge collision state
 const hasCollision = computed(() => !!props.asset._mjrNameCollision && !props.asset._mjrDupStack);
@@ -378,7 +421,7 @@ function releaseCachedImageSrc() {
 // ─── Image thumb lifecycle (blob cache) ───────────────────────────────────────
 
 watch(
-    () => [imgRef.value, viewUrl.value],
+    () => [imgRef.value, imageUrl.value],
     async ([img, url], _oldValue, onCleanup) => {
         if (!img || !url || imgError.value) return;
         const requestId = (imageLoadRequestId += 1);
@@ -482,7 +525,7 @@ watchEffect(() => {
 
 function onImgError(event) {
     imgError.value = true;
-    try { MediaBlobCache.markError(viewUrl.value); } catch {}
+    try { MediaBlobCache.markError(imageUrl.value); } catch {}
 }
 
 function onFileBadgeClick(event) {
@@ -525,7 +568,7 @@ function onFileBadgeClick(event) {
                 :alt="filename"
                 decoding="async"
                 loading="lazy"
-                :src="cachedImageSrc || undefined"
+                :src="cachedImageSrc || imageUrl || undefined"
                 @error="onImgError"
             />
             <div v-if="imgError" class="mjr-media-error-placeholder">
@@ -538,7 +581,7 @@ function onFileBadgeClick(event) {
             <video
                 ref="videoRef"
                 class="mjr-thumb-media"
-                :data-src="viewUrl"
+                :data-src="videoUrl"
                 :poster="posterUrl || undefined"
                 muted
                 loop
@@ -584,7 +627,16 @@ function onFileBadgeClick(event) {
 
         <!-- Model 3D -->
         <template v-else-if="isModel3D">
+            <img
+                v-if="posterUrl && !model3dImgError"
+                class="mjr-thumb-media"
+                :src="posterUrl"
+                :draggable="false"
+                :alt="filename"
+                @error="model3dImgError = true"
+            />
             <div
+                v-else
                 class="mjr-model3d-thumb-icon"
                 style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,0.7)"
             >
@@ -642,7 +694,7 @@ function onFileBadgeClick(event) {
     <div class="mjr-card-info mjr-card-meta" style="position:relative;padding:6px 8px;min-width:0">
         <div
             class="mjr-card-filename"
-            :title="filename"
+            :title="cardTitle"
             style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:4px;padding-right:12px"
         >{{ displayName }}</div>
 
@@ -650,24 +702,19 @@ function onFileBadgeClick(event) {
             class="mjr-card-meta-row"
             style="font-size:0.85em;opacity:0.7;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:16px"
         >
-            <span v-if="resolution" class="mjr-meta-res" :title="`Resolution: ${resolution}`">
-                {{ resolution }}
-            </span>
-            <span v-if="durationStr" class="mjr-meta-duration" :title="`Duration: ${durationStr}`">
-                {{ durationStr }}
-            </span>
-            <span v-if="dateStr" class="mjr-meta-date" :title="`Date: ${dateStr}`">
-                {{ dateStr }}
-            </span>
-            <span v-if="timeStr" class="mjr-meta-date mjr-meta-time-val" :title="`Time: ${timeStr}`">
-                {{ timeStr }}
-            </span>
-            <span
-                v-if="genTimeValid"
-                class="mjr-meta-gentime"
-                :style="{ color: genTimeColorVal, fontWeight: '500' }"
-                :title="genTimeFmt.title"
-            >{{ genTimeFmt.text }}</span>
+            <template v-for="(item, index) in metaItems" :key="item.key">
+                <span
+                    v-if="index > 0"
+                    class="mjr-meta-separator"
+                    aria-hidden="true"
+                    style="opacity:0.55;margin:0 3px"
+                >/</span>
+                <span
+                    :class="item.className"
+                    :style="item.style || null"
+                    :title="item.title"
+                >{{ item.text }}</span>
+            </template>
         </div>
 
         <!-- Workflow dot (imperatively created by createWorkflowDot) -->

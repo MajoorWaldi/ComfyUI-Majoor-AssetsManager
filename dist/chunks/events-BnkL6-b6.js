@@ -30,6 +30,7 @@ var e = "mjr:asset-rating-changed", t = "mjr:asset-tags-changed", n = "mjr:viewe
 	SCAN_PROGRESS: "mjr.scan.progress",
 	RUNTIME_STATUS: "mjr.runtime.status",
 	WATCHER_STATUS: "mjr.watcher.status",
+	STRUCTURED_EVENT: "mjr.event",
 	OPEN_ASSETS_MANAGER: "mjr:open-assets-manager",
 	OPEN_VIEWER: "mjr:open-viewer",
 	OPEN_STACK_GROUP: "mjr:open-stack-group",

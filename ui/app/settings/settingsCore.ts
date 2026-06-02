@@ -107,6 +107,7 @@ export const DEFAULT_SETTINGS = {
     },
     observability: {
         enabled: false,
+        runtimeDashboardMode: "autoHide30",
         verboseErrors: false,
         verboseRouteRegistrationLogs: false,
         verboseStartupLogs: false,
