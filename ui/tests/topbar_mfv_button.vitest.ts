@@ -183,4 +183,32 @@ describe("topBarMfvButton", () => {
 
         teardownTopBarMfvButton();
     });
+
+    it("mounts inside a ComfyUI button group when the newer topbar shape is present", async () => {
+        const actionbar = document.createElement("div");
+        actionbar.setAttribute("data-testid", "topbar");
+        actionbar.getBoundingClientRect = () => ({ bottom: 70 });
+
+        const buttonGroup = document.createElement("div");
+        buttonGroup.className = "comfyui-button-group";
+        actionbar.appendChild(buttonGroup);
+        document.body.appendChild(actionbar);
+
+        const { mountTopBarMfvButton, teardownTopBarMfvButton } =
+            await import("../features/runtime/topBarMfvButton.js");
+
+        mountTopBarMfvButton();
+        flushTimers();
+
+        const slot = actionbar.querySelector("[data-mjr-topbar-mfv-slot]");
+        const button = actionbar.querySelector("[data-mjr-topbar-mfv-button]");
+        expect(slot).toBeTruthy();
+        expect(button).toBeTruthy();
+        expect(slot.parentElement).toBe(buttonGroup);
+        expect(buttonGroup.lastElementChild).toBe(slot);
+        expect(button.getAttribute("data-command-id")).toBe("mjr.toggleFloatingViewer");
+        expect(button.classList.contains("p-button")).toBe(true);
+
+        teardownTopBarMfvButton();
+    });
 });

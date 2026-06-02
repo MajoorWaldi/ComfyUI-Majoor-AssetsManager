@@ -34,6 +34,17 @@ import { SETTINGS_KEY } from "../settingsStore.js";
 const SETTINGS_CATEGORY = "Majoor Assets Manager";
 const SETTINGS_NAME_PREFIX_RE = /^\s*Majoor:\s*/i;
 
+const SETTINGS_NATIVE_SECTIONS = Object.freeze({
+    ASSETS_PANEL: "Assets Panel",
+    GENERATED_FEED: "Generated Feed",
+    VIEWER: "Viewer & Floating Viewer",
+    INDEXING: "Indexing & Watcher",
+    SEARCH_AI: "Search & AI",
+    GENERAL: "General",
+    ADVANCED: "Advanced",
+    SECURITY: "Security",
+});
+
 const COLOR_SETTING_KEYS = new Set([
     "grid.starColor",
     "grid.badgeImageColor",
@@ -46,6 +57,63 @@ const COLOR_SETTING_KEYS = new Set([
     "ui.ratingColor",
     "ui.tagColor",
 ]);
+
+function settingSectionForId(id: any): string {
+    const safeId = String(id || "").trim();
+    if (!safeId) return SETTINGS_NATIVE_SECTIONS.GENERAL;
+    if (/^Majoor\.(Safety|Security)\./.test(safeId)) {
+        return SETTINGS_NATIVE_SECTIONS.SECURITY;
+    }
+    if (
+        /^Majoor\.(Paths|ProbeBackend|MetadataFallback|Db|Observability)\./.test(safeId) ||
+        safeId === "Majoor.EnvVars.Reference" ||
+        safeId === "Majoor.AI.HuggingFaceTokenVisible" ||
+        safeId === "Majoor.AI.HuggingFaceToken" ||
+        safeId === "Majoor.AI.VerboseLogs" ||
+        safeId === "Majoor.AI.VectorStats" ||
+        safeId === "Majoor.AI.VectorBackfillAction"
+    ) {
+        return SETTINGS_NATIVE_SECTIONS.ADVANCED;
+    }
+    if (/^Majoor\.(Viewer|WorkflowMinimap)\./.test(safeId)) {
+        return SETTINGS_NATIVE_SECTIONS.VIEWER;
+    }
+    if (/^Majoor\.Feed\./.test(safeId)) {
+        return SETTINGS_NATIVE_SECTIONS.GENERATED_FEED;
+    }
+    if (/^Majoor\.(AutoScan|Scan|Watcher|ExecutionGrouping|RatingTagsSync)\./.test(safeId)) {
+        return SETTINGS_NATIVE_SECTIONS.INDEXING;
+    }
+    if (safeId === "Majoor.RtHydrate.Concurrency") {
+        return SETTINGS_NATIVE_SECTIONS.ADVANCED;
+    }
+    if (
+        safeId === "Majoor.AI.VectorSearchEnabled" ||
+        safeId === "Majoor.AI.VectorCaptionOnIndex" ||
+        /^Majoor\.Search\./.test(safeId)
+    ) {
+        return SETTINGS_NATIVE_SECTIONS.SEARCH_AI;
+    }
+    if (
+        /^Majoor\.(Grid|Cards|Badges|Sidebar|InfiniteScroll|General)\./.test(safeId)
+    ) {
+        return SETTINGS_NATIVE_SECTIONS.ASSETS_PANEL;
+    }
+    if (safeId === "Majoor.Language") {
+        return SETTINGS_NATIVE_SECTIONS.GENERAL;
+    }
+    return SETTINGS_NATIVE_SECTIONS.GENERAL;
+}
+
+function normalizeComfyCategory(payload: any): string[] {
+    const raw = Array.isArray(payload?.category) ? payload.category.filter(Boolean) : [];
+    const section = settingSectionForId(payload?.id);
+    const priorSection = String(raw[1] || raw[0] || "").trim();
+    const priorLabel = String(raw[2] || "").trim();
+    const name = String(payload?.name || "").replace(SETTINGS_NAME_PREFIX_RE, "").trim();
+    const label = priorLabel || priorSection || name || section;
+    return [SETTINGS_CATEGORY, section, label];
+}
 
 let _settingsStorageListenerBound = false;
 let _settingsStorageListenerRef: any = null;
@@ -64,16 +132,9 @@ function normalizeSettingPayload(payload: any) {
         console.debug?.(e);
     }
     try {
-        const category = normalized.category;
-        if (!Array.isArray(category) || !category.length) {
-            normalized.category = [SETTINGS_CATEGORY];
-        } else if (String(category[0] || "") !== SETTINGS_CATEGORY) {
-            normalized.category = [SETTINGS_CATEGORY, ...category.filter(Boolean)];
-        } else {
-            normalized.category = category.filter(Boolean);
-        }
+        normalized.category = normalizeComfyCategory(normalized);
     } catch {
-        normalized.category = [SETTINGS_CATEGORY];
+        normalized.category = [SETTINGS_CATEGORY, SETTINGS_NATIVE_SECTIONS.GENERAL];
     }
     if (!normalized.tooltip && typeof normalized.name === "string" && normalized.name.trim()) {
         normalized.tooltip = normalized.name.trim();

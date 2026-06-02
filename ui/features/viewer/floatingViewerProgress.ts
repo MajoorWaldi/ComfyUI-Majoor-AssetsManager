@@ -407,7 +407,7 @@ function formatProgressText(detail: any) {
 
         const nodeLabel = String(current.nodeLabel || "").trim();
         if (nodeLabel || stepsLabel) {
-            progressText += ` - ${nodeLabel || "???"}${stepsLabel ? ` (${stepsLabel})` : ""}`;
+            progressText += ` - ${nodeLabel || "Unknown node"}${stepsLabel ? ` (${stepsLabel})` : ""}`;
         }
         return progressText;
     }

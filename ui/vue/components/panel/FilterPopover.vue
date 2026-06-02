@@ -303,7 +303,7 @@ defineExpose({
     <div class="mjr-popover mjr-filter-popover" style="display: none;">
 
         <!-- ── Core group ─────────────────────────────────────────────────── -->
-        <div class="mjr-filter-group" :class="{ 'is-open': isGroupOpen('core') }">
+        <div class="mjr-filter-group mjr-filter-group--core" :class="{ 'is-open': isGroupOpen('core') }">
             <MButton
                 type="button"
                 class="mjr-filter-group-toggle"
@@ -382,7 +382,7 @@ defineExpose({
         </div>
 
         <!-- ── Media group ─────────────────────────────────────────────────── -->
-        <div class="mjr-filter-group" :class="{ 'is-open': isGroupOpen('media') }">
+        <div class="mjr-filter-group mjr-filter-group--media" :class="{ 'is-open': isGroupOpen('media') }">
             <MButton
                 type="button"
                 class="mjr-filter-group-toggle"
@@ -493,7 +493,7 @@ defineExpose({
         </div>
 
         <!-- ── Time group ──────────────────────────────────────────────────── -->
-        <div class="mjr-filter-group" :class="{ 'is-open': isGroupOpen('time') }">
+        <div class="mjr-filter-group mjr-filter-group--time" :class="{ 'is-open': isGroupOpen('time') }">
             <MButton
                 type="button"
                 class="mjr-filter-group-toggle"
@@ -587,17 +587,46 @@ defineExpose({
     text-align: left;
 }
 
+.mjr-filter-group {
+    --mjr-filter-group-accent: var(--mjr-accent, #7aa2ff);
+}
+
+.mjr-filter-group--core {
+    --mjr-filter-group-accent: #56a8ff;
+}
+
+.mjr-filter-group--media {
+    --mjr-filter-group-accent: #35d08b;
+}
+
+.mjr-filter-group--time {
+    --mjr-filter-group-accent: #f0b84f;
+}
+
 .mjr-filter-group-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: color-mix(in srgb, var(--mjr-filter-group-accent) 62%, var(--content-fg, #ddd));
     font-size: 11px;
     font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
 }
 
+.mjr-filter-group-title::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    flex: 0 0 6px;
+    border-radius: 999px;
+    background: var(--mjr-filter-group-accent);
+}
+
 .mjr-filter-group-chevron {
     font-size: 12px;
     line-height: 1;
-    color: var(--mjr-muted, var(--descrip-text, rgba(255, 255, 255, 0.65)));
+    color: color-mix(in srgb, var(--mjr-filter-group-accent) 78%, var(--mjr-muted, rgba(255, 255, 255, 0.65)));
 }
 
 .mjr-filter-group-body {

@@ -8,9 +8,13 @@ import {
     getNodeParamEntries,
     getNodeTypeLabel,
     getNodeWidgetValueEntries,
+    getWorkflowNodes,
     resolveAssetWorkflow,
 } from "../features/viewer/workflowGraphMap/workflowGraphMapData.js";
-import { synthesizeWorkflowFromPromptGraph } from "../components/sidebar/utils/minimap.js";
+import {
+    expandSubgraphsForMinimap,
+    synthesizeWorkflowFromPromptGraph,
+} from "../components/sidebar/utils/minimap.js";
 
 describe("workflow graph map data", () => {
     it("maps widgets_values to Comfy widget inputs without connected socket offset", () => {
@@ -214,6 +218,48 @@ describe("workflow graph map data", () => {
         expect(getNodeTypeLabel(node)).toBe("Subgraph");
     });
 
+    it("resolves official workflow template wrappers", () => {
+        const workflow = resolveAssetWorkflow({
+            template: {
+                nodes: [
+                    {
+                        id: 11,
+                        type: "CLIPTextEncode",
+                        title: "Positive Prompt",
+                        inputs: [{ name: "text", type: "STRING", widget: { name: "text" } }],
+                        widgets_values: ["cinematic template prompt"],
+                    },
+                ],
+                links: [],
+            },
+        });
+
+        expect(workflow.nodes).toHaveLength(1);
+        expect(getNodeParamEntries(workflow.nodes[0])).toEqual([["text", "cinematic template prompt"]]);
+    });
+
+    it("uses rootGraph subgraph definitions for saved Comfy workflows", () => {
+        const workflow = resolveAssetWorkflow({
+            workflow: {
+                nodes: [{ id: 30, type: "root-sg", properties: {} }],
+                rootGraph: {
+                    subgraphs: [
+                        {
+                            id: "root-sg",
+                            name: "Root Graph Detailer",
+                            nodes: [{ id: 1, type: "InnerDetailer", title: "Inner Detailer" }],
+                            links: [],
+                        },
+                    ],
+                },
+            },
+        });
+
+        expect(workflow.nodes[0].properties.subgraph_name).toBe("Root Graph Detailer");
+        expect(getWorkflowNodes(workflow).map((node: any) => String(node.id))).toEqual(["30", "1"]);
+        expect(getNodeDisplayName(workflow.nodes[0])).toBe("Root Graph Detailer");
+    });
+
     it("exposes subgraph proxy widget values on the parent node", () => {
         const workflow = resolveAssetWorkflow({
             workflow: {
@@ -290,5 +336,54 @@ describe("workflow graph map data", () => {
 
         expect(getNodeDisplayName(node)).toBe("Regional Prompt");
         expect(getNodeTypeLabel(node)).toBe("Subgraph");
+    });
+
+    it("expands runtime and serialized subgraphs with graph-qualified node ids", () => {
+        const workflow = {
+            nodes: [
+                { id: 1, type: "ImageInput", pos: [0, 0], size: [140, 60] },
+                {
+                    id: 2,
+                    type: "sg-runtime",
+                    pos: [220, 0],
+                    size: [220, 140],
+                    subgraph: {
+                        id: "runtime-subgraph",
+                        name: "Runtime Detailer",
+                        nodes: [
+                            { id: 1, type: "InnerRuntime", pos: [0, 0], size: [120, 50] },
+                        ],
+                        links: [],
+                    },
+                },
+                { id: 3, type: "sg-serialized", pos: [500, 0], size: [220, 140] },
+            ],
+            links: [[1, 1, 0, 2, 0, "IMAGE"]],
+            rootGraph: {
+                subgraphs: [
+                    {
+                        id: "sg-serialized",
+                        name: "Serialized Detailer",
+                        nodes: [
+                            { id: 1, type: "InnerSerialized", pos: [0, 0], size: [120, 50] },
+                        ],
+                        links: [[10, 1, 0, 1, 0, "IMAGE"]],
+                    },
+                ],
+            },
+        };
+
+        const expanded = expandSubgraphsForMinimap(workflow);
+        const ids = expanded.nodes.map((node) => String(node.id));
+
+        expect(ids).toContain("1");
+        expect(ids).toContain("2::1");
+        expect(ids).toContain("3::1");
+        expect(expanded.links).toEqual(
+            expect.arrayContaining([
+                expect.arrayContaining([1, 1, 0, 2, 0, "IMAGE"]),
+                expect.arrayContaining([10, "3::1", 0, "3::1", 0, "IMAGE"]),
+            ]),
+        );
     });
 });

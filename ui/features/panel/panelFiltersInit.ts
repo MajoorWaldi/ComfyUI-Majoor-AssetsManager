@@ -34,6 +34,8 @@ export function setupFiltersInit({
     exitSimilarViewIfActive,
     notifyContextChanged,
     panelLifecycleAC,
+    popovers = null,
+    filterPopover = null,
 }: Record<string, any>) {
     // -- Restore persisted filter values into DOM inputs --------------------
 
@@ -84,6 +86,11 @@ export function setupFiltersInit({
         const onVueFiltersChanged = () => {
             try {
                 if (panelLifecycleAC?.signal?.aborted) return;
+            } catch (e) {
+                console.debug?.(e);
+            }
+            try {
+                popovers?.close?.(filterPopover);
             } catch (e) {
                 console.debug?.(e);
             }

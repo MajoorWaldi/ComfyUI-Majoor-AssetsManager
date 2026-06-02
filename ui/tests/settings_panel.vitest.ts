@@ -116,7 +116,11 @@ describe("SettingsPanel", () => {
 
         expect(settings).toHaveLength(1);
         expect(settings[0].name).toBe("Sample setting");
-        expect(settings[0].category).toEqual(["Majoor Assets Manager", "Wrong Category"]);
+        expect(settings[0].category).toEqual([
+            "Majoor Assets Manager",
+            "Assets Panel",
+            "Wrong Category",
+        ]);
         expect(settings[0].tooltip).toBe("Sample setting");
         expect(startRuntimeStatusDashboard).not.toHaveBeenCalled();
         expect(syncBackendSecuritySettings).not.toHaveBeenCalled();
@@ -175,5 +179,95 @@ describe("SettingsPanel", () => {
         expect(syncBackendSecuritySettings).toHaveBeenCalledTimes(1);
         expect(syncBackendVectorSearchSettings).toHaveBeenCalledTimes(1);
         expect(toggleWatcher).toHaveBeenCalledTimes(1);
+    });
+
+    it("separates native ComfyUI settings into clear Majoor sections without changing ids", async () => {
+        vi.doMock("../app/settings/settingsGrid.js", () => ({
+            registerGridSettings: (addSetting) => {
+                addSetting({
+                    id: "Majoor.Grid.PageSize",
+                    name: "Majoor: Page size",
+                    category: ["Majoor Assets Manager", "Grid", "Page size"],
+                    type: "number",
+                    defaultValue: 200,
+                });
+            },
+        }));
+        vi.doMock("../app/settings/settingsViewer.js", () => ({
+            registerViewerSettings: (addSetting) => {
+                addSetting({
+                    id: "Majoor.Viewer.MfvLiveDefault",
+                    name: "Majoor: Live stream by default",
+                    category: ["Majoor Assets Manager", "Floating Viewer", "Live stream"],
+                    type: "boolean",
+                    defaultValue: true,
+                });
+            },
+        }));
+        vi.doMock("../app/settings/settingsSecurity.js", () => ({
+            registerSecuritySettings: (addSetting) => {
+                addSetting({
+                    id: "Majoor.Security.AllowDelete",
+                    name: "Majoor: Allow delete",
+                    category: ["Majoor Assets Manager", "Security", "Allow delete"],
+                    type: "boolean",
+                    defaultValue: false,
+                });
+            },
+        }));
+        vi.doMock("../app/settings/settingsAdvanced.js", () => ({
+            registerAdvancedSettings: (addSetting) => {
+                addSetting({
+                    id: "Majoor.Db.Timeout",
+                    name: "Majoor: DB timeout",
+                    category: ["Majoor Assets Manager", "Advanced", "Database"],
+                    type: "number",
+                    defaultValue: 30,
+                });
+            },
+        }));
+        vi.doMock("../app/settings/settingsSearch.js", () => ({
+            registerSearchSettings: (addSetting) => {
+                addSetting({
+                    id: "Majoor.AI.VectorSearchEnabled",
+                    name: "Majoor: Semantic search",
+                    category: ["Majoor Assets Manager", "Search", "AI"],
+                    type: "boolean",
+                    defaultValue: true,
+                });
+            },
+        }));
+
+        const mod = await import("../app/settings/SettingsPanel.js");
+        const definitions = mod.buildMajoorSettings({ id: "app" });
+        const categoryById = new Map(
+            definitions.map((definition) => [definition.id, definition.category]),
+        );
+
+        expect(categoryById.get("Majoor.Grid.PageSize")).toEqual([
+            "Majoor Assets Manager",
+            "Assets Panel",
+            "Page size",
+        ]);
+        expect(categoryById.get("Majoor.Viewer.MfvLiveDefault")).toEqual([
+            "Majoor Assets Manager",
+            "Viewer & Floating Viewer",
+            "Live stream",
+        ]);
+        expect(categoryById.get("Majoor.Security.AllowDelete")).toEqual([
+            "Majoor Assets Manager",
+            "Security",
+            "Allow delete",
+        ]);
+        expect(categoryById.get("Majoor.Db.Timeout")).toEqual([
+            "Majoor Assets Manager",
+            "Advanced",
+            "Database",
+        ]);
+        expect(categoryById.get("Majoor.AI.VectorSearchEnabled")).toEqual([
+            "Majoor Assets Manager",
+            "Search & AI",
+            "AI",
+        ]);
     });
 });

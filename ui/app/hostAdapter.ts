@@ -24,6 +24,7 @@
 
 import type { MajoorComfyApp, MajoorComfyApi, MajoorExtensionManager } from "../types/comfyui-frontend.js";
 import {
+    activateBottomPanelTabCompat,
     activateSidebarTabCompat,
     getComfyApi,
     getComfyApp,
@@ -242,6 +243,14 @@ export function activateSidebarTab(tabId: string): boolean {
 export function activateSidebarTabForApp(app: any, tabId: string): boolean {
     try {
         return activateSidebarTabCompat(app || _app || getComfyApp(), tabId);
+    } catch {
+        return false;
+    }
+}
+
+export function activateBottomPanelTabForApp(app: any, tabId: string): boolean {
+    try {
+        return activateBottomPanelTabCompat(app || _app || getComfyApp(), tabId);
     } catch {
         return false;
     }

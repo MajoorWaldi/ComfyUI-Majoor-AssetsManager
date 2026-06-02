@@ -861,15 +861,15 @@
 }
 
 .mjr-filter-group {
-    border: 1px solid color-mix(in srgb, var(--mjr-border) 85%, transparent);
-    background: color-mix(in srgb, var(--mjr-surface-2) 70%, transparent);
-    border-radius: var(--mjr-r-md);
-    padding: 10px;
-    margin-bottom: 10px;
+    padding: 10px 0 8px;
+    margin-bottom: 4px;
+    border-bottom: 1px solid var(--mjr-border, rgba(255, 255, 255, 0.12));
 }
 
 .mjr-filter-group:last-child {
     margin-bottom: 0;
+    border-bottom: none;
+    padding-bottom: 2px;
 }
 
 .mjr-filter-group-title {

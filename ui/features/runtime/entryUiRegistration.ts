@@ -17,6 +17,7 @@
 
 import { runStartupWarmup } from "../../app/bootstrap.js";
 import {
+    activateBottomPanelTabForApp,
     activateSidebarTabForApp,
     registerBottomPanelTabForApp,
     registerCommandForApp,
@@ -41,6 +42,7 @@ const GLOBAL_RUNTIME_ROOT_ID = "mjr-global-runtime-root";
 const GLOBAL_RUNTIME_MOUNT_KEY = "_mjrGlobalRuntimeVueApp";
 const SIDEBAR_MOUNT_KEY = "_mjrSidebarVueApp";
 const FEED_MOUNT_KEY = "_mjrFeedVueApp";
+const GENERATED_FEED_TAB_ID = "majoor-generated-feed";
 let _lastSelectionToolboxNode: any = null;
 
 // Re-exported from the dedicated lightweight module so existing imports
@@ -113,6 +115,18 @@ export function triggerRefreshGrid(): void {
     } catch (e) {
         console.debug?.(e);
     }
+}
+
+function openGeneratedFeedPanel(runtimeApp: any): boolean {
+    const opened = activateBottomPanelTabForApp(runtimeApp, GENERATED_FEED_TAB_ID);
+    if (!opened) {
+        try {
+            refreshGeneratedFeedHosts();
+        } catch (e) {
+            console.debug?.(e);
+        }
+    }
+    return opened;
 }
 
 // -- commands (declarative array for ComfyUI extension API) --------------------
@@ -209,6 +223,15 @@ export function buildNativeCommands(runtimeApp: any, { sidebarTabId, triggerStar
             },
         },
         {
+            id: "mjr.openGeneratedFeed",
+            label: t("command.openGeneratedFeed", "Open generated feed"),
+            tooltip: t("tooltip.openGeneratedFeed", "Open the Majoor generated feed panel"),
+            title: t("tooltip.openGeneratedFeed", "Open the Majoor generated feed panel"),
+            description: t("tooltip.openGeneratedFeed", "Open the Majoor generated feed panel"),
+            icon: "pi pi-list",
+            function: () => openGeneratedFeedPanel(runtimeApp),
+        },
+        {
             id: "mjr.openSettings",
             label: t("command.openSettings", "Open Majoor settings"),
             icon: "pi pi-cog",
@@ -255,10 +278,55 @@ export function buildNativeMenuCommands(): unknown[] {
             commands: [
                 "mjr.openAssetsManager",
                 "mjr.openFloatingViewer",
+                "mjr.openGeneratedFeed",
                 "mjr.refreshAssetsGrid",
                 "mjr.scanAssets",
                 "mjr.openSettings",
             ],
+        },
+    ];
+}
+
+export function getMajoorCanvasMenuItems(runtimeApp: any, { sidebarTabId, triggerStartupScan }: { sidebarTabId: string; triggerStartupScan: () => void }): unknown[] {
+    return [
+        null,
+        {
+            content: "Majoor Assets Manager",
+            submenu: {
+                options: [
+                    {
+                        content: t("tooltip.openAssetsManager", "Open Majoor Assets Manager"),
+                        callback: () => openAssetsManagerPanel(runtimeApp, sidebarTabId),
+                    },
+                    {
+                        content: t("command.openFloatingViewer", "Open floating viewer"),
+                        callback: () => {
+                            try {
+                                window.dispatchEvent(new Event(EVENTS.MFV_OPEN));
+                            } catch (e) {
+                                console.debug?.(e);
+                            }
+                        },
+                    },
+                    {
+                        content: t("command.openGeneratedFeed", "Open generated feed"),
+                        callback: () => openGeneratedFeedPanel(runtimeApp),
+                    },
+                    null,
+                    {
+                        content: t("command.refreshAssetsGrid", "Refresh assets grid"),
+                        callback: () => triggerRefreshGrid(),
+                    },
+                    {
+                        content: t("command.scanAssets", "Scan assets"),
+                        callback: () => triggerStartupScan(),
+                    },
+                    {
+                        content: t("command.openSettings", "Open Majoor settings"),
+                        callback: () => openMajoorSettings(runtimeApp),
+                    },
+                ],
+            },
         },
     ];
 }
@@ -415,7 +483,7 @@ export function prewarmAssetsSidebar(): boolean {
  */
 export function getGeneratedFeedBottomPanelTab() {
     return {
-        id: "majoor-generated-feed",
+        id: GENERATED_FEED_TAB_ID,
         title: t("bottomFeed.title", "Generated Feed"),
         icon: "pi pi-images",
         type: "custom",

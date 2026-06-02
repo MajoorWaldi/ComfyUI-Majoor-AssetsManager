@@ -1,6 +1,7 @@
 import {
     synthesizeWorkflowFromPromptGraph,
 } from "../../../components/sidebar/utils/minimap.js";
+import { fetchComfyApi } from "../../../app/comfyApiBridge.js";
 import {
     getWorkflowNodeDisplayName,
     getWorkflowNodeRawType,
@@ -23,7 +24,7 @@ export async function ensureWorkflowObjectInfo(workflow: any): Promise<unknown> 
     if (!missing.length) return;
     try {
         if (!OBJECT_INFO_ALL_PROMISE) {
-            OBJECT_INFO_ALL_PROMISE = fetch("/object_info")
+            OBJECT_INFO_ALL_PROMISE = fetchComfyApi("/object_info")
                 .then((res: any) => (res?.ok ? res.json() : null))
                 .then((data: any) => {
                     if (data && typeof data === "object") {
@@ -345,14 +346,35 @@ function _collectWorkflowCandidates(asset: any) {
         asset?.workflow,
         asset?.Workflow,
         asset?.comfy_workflow,
+        asset?.workflow_json,
+        asset?.template,
+        asset?.Template,
+        asset?.comfy_template,
+        asset?.subgraph,
+        asset?.Subgraph,
+        asset?.comfy_subgraph,
         raw?.workflow,
         raw?.Workflow,
         raw?.comfy_workflow,
+        raw?.workflow_json,
+        raw?.template,
+        raw?.Template,
+        raw?.comfy_template,
+        raw?.subgraph,
+        raw?.Subgraph,
+        raw?.comfy_subgraph,
         raw?.comfyui,
         raw?.ComfyUI,
         meta?.workflow,
         meta?.Workflow,
         meta?.comfy_workflow,
+        meta?.workflow_json,
+        meta?.template,
+        meta?.Template,
+        meta?.comfy_template,
+        meta?.subgraph,
+        meta?.Subgraph,
+        meta?.comfy_subgraph,
         asset?.prompt,
         raw?.prompt,
         raw?.Prompt,
@@ -377,14 +399,23 @@ function _coerceObject(value: any) {
 function _normalizeWorkflow(value: any) {
     if (!value || typeof value !== "object") return null;
     if (Array.isArray(value.nodes)) return value;
-    if (value.workflow && typeof value.workflow === "object" && Array.isArray(value.workflow.nodes)) {
-        return value.workflow;
+    const graphLike = _getFirstGraphLikeObject(value);
+    if (graphLike) {
+        return graphLike;
     }
     if (value.prompt && typeof value.prompt === "object") {
         return synthesizeWorkflowFromPromptGraph(value.prompt);
     }
     const synthesized = synthesizeWorkflowFromPromptGraph(value);
     return synthesized && Array.isArray(synthesized.nodes) ? synthesized : null;
+}
+
+function _getFirstGraphLikeObject(value: any) {
+    for (const key of ["workflow", "Workflow", "template", "Template", "subgraph", "Subgraph", "graph", "lgraph"]) {
+        const candidate = value?.[key];
+        if (candidate && typeof candidate === "object" && Array.isArray(candidate.nodes)) return candidate;
+    }
+    return null;
 }
 
 function _decorateWorkflowSubgraphNames(workflow: any, visited = new WeakSet()) {
@@ -404,16 +435,16 @@ function _decorateWorkflowSubgraphNames(workflow: any, visited = new WeakSet()) 
 
 function _applySubgraphDefinitionMetadata(node: any, definitions: any) {
     if (!node || typeof node !== "object") return;
-    const rawType = getNodeType(node);
-    if (!rawType) return;
-    const definition = definitions.get(String(rawType));
+    const definitionKey = _getNodeSubgraphDefinitionKeys(node).find((key) => definitions.has(String(key)));
+    if (!definitionKey) return;
+    const definition = definitions.get(String(definitionKey));
     const name = String(
         definition?.name || definition?.title || node?.subgraph?.name || node?.subgraph_instance?.name || "",
     ).trim();
     if (!name) return;
     const props = node?.properties && typeof node.properties === "object" ? node.properties : (node.properties = {});
     if (!String(props.subgraph_name || "").trim()) props.subgraph_name = name;
-    if (!String(props.subgraph_id || "").trim()) props.subgraph_id = rawType;
+    if (!String(props.subgraph_id || "").trim()) props.subgraph_id = definitionKey;
 }
 
 function _decorateSubgraphProxyParams(node: any, subgraph: any) {
@@ -507,16 +538,46 @@ function _normalizeParamName(value: any) {
 }
 
 function _getSubgraphDefinitions(workflow: any) {
-    const defs =
-        (Array.isArray(workflow?.definitions?.subgraphs) && workflow.definitions.subgraphs) ||
-        (Array.isArray(workflow?.subgraphs) && workflow.subgraphs) ||
-        [];
+    const defs = [
+        ...(Array.isArray(workflow?.definitions?.subgraphs) ? workflow.definitions.subgraphs : []),
+        ...(Array.isArray(workflow?.subgraphs) ? workflow.subgraphs : []),
+        ...(Array.isArray(workflow?.rootGraph?.subgraphs) ? workflow.rootGraph.subgraphs : []),
+    ];
     const map = new Map();
     for (const def of defs) {
-        const id = def?.id ?? def?.name ?? null;
-        if (id != null) map.set(String(id), def);
+        for (const id of _getSubgraphDefinitionKeys(def)) {
+            if (id != null) map.set(String(id), def);
+        }
     }
     return map;
+}
+
+function _getSubgraphDefinitionKeys(def: any) {
+    const props = def?.properties && typeof def.properties === "object" ? def.properties : {};
+    return [
+        def?.id,
+        def?.name,
+        def?.title,
+        def?.type,
+        def?.uuid,
+        def?.workflowId,
+        def?.workflow_id,
+        props.subgraph_id,
+        props.subgraphId,
+    ].filter((id) => id != null && String(id).trim());
+}
+
+function _getNodeSubgraphDefinitionKeys(node: any) {
+    const props = node?.properties && typeof node.properties === "object" ? node.properties : {};
+    return [
+        node?.type,
+        node?.class_type,
+        node?.subgraph_id,
+        node?.subgraphId,
+        props.subgraph_id,
+        props.subgraphId,
+        props.subgraph_name,
+    ].filter((id) => id != null && String(id).trim());
 }
 
 function _getNodeSubgraph(workflow: any, node: any, definitions = _getSubgraphDefinitions(workflow)) {
@@ -530,7 +591,7 @@ function _getNodeSubgraph(workflow: any, node: any, definitions = _getSubgraphDe
         node?.subgraph_instance?.graph,
         node?.inner_graph,
         node?.subgraph_graph,
-        definitions.get(String(node?.type ?? "")),
+        ..._getNodeSubgraphDefinitionKeys(node).map((key) => definitions.get(String(key))),
     ];
     for (const candidate of candidates) {
         if (candidate && typeof candidate === "object" && Array.isArray(candidate.nodes)) return candidate;

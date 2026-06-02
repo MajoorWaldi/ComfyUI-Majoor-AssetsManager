@@ -8,6 +8,18 @@ const SLOT_ATTR = "data-mjr-topbar-mfv-slot";
 const BUTTON_LABEL_KEY = "label.floatingViewer";
 const BUTTON_LABEL_FALLBACK = "Viewer";
 const MFV_TOOLTIP_HINT = "V";
+const ACTIONBAR_SELECTORS = [
+    ".actionbar-container",
+    "[data-testid='actionbar-container']",
+    "[data-testid='topbar']",
+    ".comfyui-topbar",
+    ".topbar",
+];
+const BUTTON_GROUP_SELECTORS = [
+    ".queue-button-group",
+    ".comfyui-button-group",
+    "[role='toolbar']",
+];
 
 let _observer: any = null;
 let _observedTarget: any = null;
@@ -56,7 +68,11 @@ function _tryObserveActionbar(container: any) {
 
 function getActionbarContainer() {
     if (typeof document === "undefined") return null;
-    return document.querySelector(".actionbar-container");
+    for (const selector of ACTIONBAR_SELECTORS) {
+        const el = document.querySelector(selector);
+        if (el) return el;
+    }
+    return null;
 }
 
 function updateViewerTopOffset(container = getActionbarContainer()) {
@@ -76,7 +92,17 @@ function updateViewerTopOffset(container = getActionbarContainer()) {
 
 function getAnchor(container: any) {
     if (!container) return null;
-    return container.querySelector(".queue-button-group") || null;
+    for (const selector of BUTTON_GROUP_SELECTORS) {
+        const el = container.querySelector(selector);
+        if (el) return el;
+    }
+    return null;
+}
+
+function getTopbarButtonParent(container: any, anchor: any) {
+    if (!container) return null;
+    if (anchor?.classList?.contains?.("comfyui-button-group")) return anchor;
+    return anchor?.parentElement || container;
 }
 
 function ensureSlotMounted(container: any) {
@@ -93,15 +119,15 @@ function ensureSlotMounted(container: any) {
     }
 
     const anchor = getAnchor(container);
-    const parent = anchor?.parentElement || container;
+    const parent = getTopbarButtonParent(container, anchor);
 
     if (slot.parentElement !== parent) {
-        if (anchor && parent) {
+        if (anchor && parent && parent !== anchor) {
             parent.insertBefore(slot, anchor.nextSibling);
         } else {
             parent.appendChild(slot);
         }
-    } else if (anchor && parent && slot.previousSibling !== anchor) {
+    } else if (anchor && parent && parent !== anchor && slot.previousSibling !== anchor) {
         parent.insertBefore(slot, anchor.nextSibling);
     } else if (!anchor && slot !== parent.lastElementChild) {
         parent.appendChild(slot);
@@ -154,14 +180,15 @@ function createButton() {
     const button = document.createElement("button");
     button.type = "button";
     button.setAttribute(BUTTON_ATTR, "1");
-    button.className = "comfyui-button mjr-topbar-mfv-button";
+    button.setAttribute("data-command-id", "mjr.toggleFloatingViewer");
+    button.className = "comfyui-button p-button p-component mjr-topbar-mfv-button";
     button.style.position = "relative";
     button.style.zIndex = "10030";
     button.style.width = "auto";
     button.style.height = "32px";
     button.style.minWidth = "32px";
-    button.style.padding = "0 10px";
-    button.style.gap = "10px";
+    button.style.padding = "0 8px";
+    button.style.gap = "8px";
     button.style.display = "inline-flex";
     button.style.alignItems = "center";
     button.style.justifyContent = "center";

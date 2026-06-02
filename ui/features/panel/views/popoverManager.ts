@@ -431,6 +431,7 @@ export function createPopoverManager(container: any): Record<string, any> {
         }
         documentListenerController = new AbortController();
         document.addEventListener("mousedown", onDocMouseDown, {
+            capture: true,
             signal: documentListenerController.signal,
         });
     };

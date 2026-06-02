@@ -76,6 +76,18 @@ export function getComfyApi(app?: any): any {
     return null;
 }
 
+export async function fetchComfyApi(
+    url: string,
+    options: RequestInit | null = null,
+    app?: any,
+): Promise<Response> {
+    const api = getComfyApi(app);
+    if (api && typeof api.fetchApi === "function") {
+        return api.fetchApi(url, options || undefined);
+    }
+    return fetch(url, { credentials: "include", ...(options || {}) });
+}
+
 export function getComfyApp(): any {
     if (_looksLikeComfyApp(_comfyAppRef)) return _comfyAppRef;
     try {
@@ -304,6 +316,40 @@ export function registerBottomPanelTabCompat(app: any, tabDef: any): boolean {
             if (host && typeof host.registerBottomPanelTab === "function") {
                 host.registerBottomPanelTab(tabDef);
                 return true;
+            }
+        }
+    } catch (e) {
+        console.debug?.(e);
+    }
+    return false;
+}
+
+export function activateBottomPanelTabCompat(app: any, tabId: any): boolean {
+    try {
+        const runtimeApp = _isObject(app) ? app : getComfyApp();
+        const manager = getExtensionManager(runtimeApp);
+        const bottomPanelController = _getBottomPanelController(manager);
+        const safeTabId = String(tabId || "").trim();
+        if (!safeTabId) return false;
+        const candidates = [
+            "activateBottomPanelTab",
+            "openBottomPanelTab",
+            "selectBottomPanelTab",
+            "setActiveBottomPanelTab",
+            "showBottomPanelTab",
+            "toggleBottomPanelTab",
+        ];
+        for (const host of [manager, bottomPanelController]) {
+            if (!host) continue;
+            const activeId = String(
+                host?.activeBottomPanelTabId || host?.activeTabId || host?.activeTab?.id || "",
+            ).trim();
+            if (activeId === safeTabId) return true;
+            for (const name of candidates) {
+                if (typeof host?.[name] === "function") {
+                    host[name](safeTabId);
+                    return true;
+                }
             }
         }
     } catch (e) {

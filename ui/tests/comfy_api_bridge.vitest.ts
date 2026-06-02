@@ -42,6 +42,7 @@ describe("comfyApiBridge", () => {
         const toggleSidebarTab = vi.fn();
         const registerSidebarTab = vi.fn();
         const registerBottomPanelTab = vi.fn();
+        const activateBottomPanelTab = vi.fn();
         const app = {
             ui: {},
             extensionManager: {
@@ -52,6 +53,7 @@ describe("comfyApiBridge", () => {
                 },
                 bottomPanel: {
                     registerBottomPanelTab,
+                    activateBottomPanelTab,
                 },
             },
         };
@@ -65,6 +67,8 @@ describe("comfyApiBridge", () => {
         expect(registerSidebarTab).toHaveBeenCalledWith({ id: "majoor-assets" });
         expect(mod.registerBottomPanelTabCompat(app, { id: "mjr.feed" })).toBe(true);
         expect(registerBottomPanelTab).toHaveBeenCalledWith({ id: "mjr.feed" });
+        expect(mod.activateBottomPanelTabCompat(app, "mjr.feed")).toBe(true);
+        expect(activateBottomPanelTab).toHaveBeenCalledWith("mjr.feed");
     });
 
     it("prefers sidebarTabStore and supports workspaceStore sidebar fallback", async () => {
@@ -169,5 +173,29 @@ describe("comfyApiBridge", () => {
         expect(mod.getSettingValue(app, "Majoor.Test")).toBe("from-map");
         expect(mod.setSettingValue(app, "Majoor.Test", "next")).toBe(true);
         expect(app.settings.settings.get("Majoor.Test")).toBe("next");
+    });
+
+    it("prefers ComfyUI api.fetchApi for HTTP calls and falls back to same-origin fetch", async () => {
+        const fetchApi = vi.fn(() => Promise.resolve({ ok: true, source: "comfy" }));
+        const fallbackFetch = vi.fn(() => Promise.resolve({ ok: true, source: "fallback" }));
+        globalThis.fetch = fallbackFetch;
+
+        const mod = await import("../app/comfyApiBridge.js");
+        mod.setComfyApi({ fetchApi });
+
+        await expect(mod.fetchComfyApi("/object_info")).resolves.toMatchObject({
+            source: "comfy",
+        });
+        expect(fetchApi).toHaveBeenCalledWith("/object_info", undefined);
+        expect(fallbackFetch).not.toHaveBeenCalled();
+
+        vi.resetModules();
+        const modWithoutApi = await import("../app/comfyApiBridge.js");
+        await expect(modWithoutApi.fetchComfyApi("/object_info")).resolves.toMatchObject({
+            source: "fallback",
+        });
+        expect(fallbackFetch).toHaveBeenCalledWith("/object_info", {
+            credentials: "include",
+        });
     });
 });

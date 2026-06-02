@@ -50,7 +50,10 @@ const _getCanvasCenterPos = (app: any) => {
     const rectHeight = rect ? Number(rect.height || rect.bottom - rect.top) : 0;
     const width = Number(rectWidth || canvasEl?.width || 800);
     const height = Number(rectHeight || canvasEl?.height || 600);
-    return [Math.max(0, width / 2), Math.max(0, height / 2)];
+    if (!rect) return [Math.max(0, width / 2), Math.max(0, height / 2)];
+    const left = rect ? Number(rect.left) || 0 : 0;
+    const top = rect ? Number(rect.top) || 0 : 0;
+    return _getCanvasPosFromClient(app, left + Math.max(0, width / 2), top + Math.max(0, height / 2));
 };
 
 const _getCanvasPosFromClient = (app: any, clientX: any, clientY: any) => {
@@ -71,6 +74,9 @@ const _getCanvasPosFromClient = (app: any, clientX: any, clientY: any) => {
 };
 
 export const getDropCanvasPos = (app: any, event: any = null) => {
+    if (Number.isFinite(Number(event?.clientX)) && Number.isFinite(Number(event?.clientY))) {
+        return _getCanvasPosFromClient(app, event.clientX, event.clientY);
+    }
     try {
         const pos = app?.canvas?.convertEventToCanvasOffset?.(event);
         if (Array.isArray(pos)) return [Number(pos[0]) || 0, Number(pos[1]) || 0];

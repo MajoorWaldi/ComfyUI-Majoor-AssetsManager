@@ -45,6 +45,7 @@ vi.mock("../vue/createVueApp.js", () => ({
 }));
 
 vi.mock("../app/comfyApiBridge.js", () => ({
+    activateBottomPanelTabCompat: vi.fn(() => true),
     activateSidebarTabCompat: vi.fn(() => false),
     registerSidebarTabCompat: mockRegisterSidebarTabCompat,
     registerBottomPanelTabCompat: mockRegisterBottomPanelTabCompat,
@@ -115,6 +116,7 @@ import {
     buildNativeCommands,
     buildNativeKeybindings,
     buildNativeMenuCommands,
+    getMajoorCanvasMenuItems,
     getMajoorSelectionToolboxCommands,
     isMajoorTrackableNode,
     mountGlobalRuntime,
@@ -313,6 +315,7 @@ describe("native ComfyUI frontend registration payloads", () => {
             "mjr.toggleFloatingViewer",
             "mjr.refreshAssetsGrid",
             "mjr.openFloatingViewer",
+            "mjr.openGeneratedFeed",
             "mjr.openSettings",
             "mjr.openNodeContext",
         ]);
@@ -329,6 +332,7 @@ describe("native ComfyUI frontend registration payloads", () => {
             "mjr.openNodeContext",
             "mjr.openAssetsManager",
             "mjr.openFloatingViewer",
+            "mjr.openGeneratedFeed",
         ]) {
             const command = byId.get(id);
             expect(command.tooltip).toBeTruthy();
@@ -367,6 +371,26 @@ describe("native ComfyUI frontend registration payloads", () => {
         expect(menuCommands).toHaveLength(1);
         expect(menuCommands[0].path).toEqual(["Extensions", "Majoor Assets Manager"]);
         expect(menuCommands[0].commands).toContain("mjr.openSettings");
+        expect(menuCommands[0].commands).toContain("mjr.openGeneratedFeed");
+    });
+
+    it("builds official ComfyUI canvas context menu items with a declarative submenu", () => {
+        const triggerStartupScan = vi.fn();
+        const items = getMajoorCanvasMenuItems(
+            {},
+            { sidebarTabId: "majoor-assets", triggerStartupScan },
+        );
+
+        expect(items[0]).toBeNull();
+        expect(items[1].content).toBe("Majoor Assets Manager");
+        expect(items[1].submenu.options.map((item) => item?.content).filter(Boolean)).toEqual([
+            "Open Majoor Assets Manager",
+            "Open floating viewer",
+            "Open generated feed",
+            "Refresh assets grid",
+            "Scan assets",
+            "Open Majoor settings",
+        ]);
     });
 
     it("builds About page badges with version and docs metadata", () => {

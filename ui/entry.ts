@@ -5,14 +5,14 @@
  *
  * Vue migration summary
  * ---------------------
- * "¢ Sidebar and bottom-panel tabs mount isolated Vue 3 + Pinia applications
+ * - Sidebar and bottom-panel tabs mount isolated Vue 3 + Pinia applications
  *   (see ui/vue/App.vue and ui/vue/GeneratedFeedApp.vue).
- * "¢ Keep-alive is handled by mountKeepAlive() in createVueApp.js  -  no more
+ * - Keep-alive is handled by mountKeepAlive() in createVueApp.js - no more
  *   _mjrKeepAliveMounted DOM flags.
- * "¢ Commands are declared on the extension object (declarative API) so ComfyUI
+ * - Commands are declared on the extension object (declarative API) so ComfyUI
  *   surfaces them in the palette and shortcut editor automatically.
- * "¢ Toast notifications route through app.extensionManager.toast (ComfyUI's
- *   PrimeVue toast) with a DOM fallback  -  no changes needed in toast.js as it
+ * - Toast notifications route through app.extensionManager.toast (ComfyUI's
+ *   PrimeVue toast) with a DOM fallback - no changes needed in toast.js as it
  *   already prefers the native API.
  */
 
@@ -82,6 +82,7 @@ import {
     buildNativeKeybindings,
     buildNativeMenuCommands,
     getMajoorNodeMenuItems,
+    getMajoorCanvasMenuItems,
     getMajoorSelectionToolboxCommands,
     mountGlobalRuntime,
     prewarmAssetsSidebar,
@@ -570,6 +571,15 @@ app.registerExtension({
     /** Context-menu items injected into ComfyUI node right-click menus. */
     getNodeMenuItems(node) {
         return getMajoorNodeMenuItems(node, app, { sidebarTabId: SIDEBAR_TAB_ID });
+    },
+
+    /** Context-menu items injected into ComfyUI canvas right-click menus. */
+    getCanvasMenuItems(canvas) {
+        void canvas;
+        return getMajoorCanvasMenuItems(app, {
+            sidebarTabId: SIDEBAR_TAB_ID,
+            triggerStartupScan,
+        });
     },
 
     /** ComfyUI v1.10.9+ selection toolbox buttons for trackable canvas nodes. */

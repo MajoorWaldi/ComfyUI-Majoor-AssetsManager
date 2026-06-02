@@ -481,6 +481,16 @@ export async function registerRealtimeListeners({
     };
     registerCleanableListener(runtime, api, "mjr-asset-updated", api._mjrAssetUpdatedHandler);
 
+    api._mjrStructuredEventHandler = (event: any) => {
+        try {
+            const detail = event?.detail || {};
+            window.dispatchEvent(new CustomEvent(EVENTS.STRUCTURED_EVENT, { detail }));
+        } catch (e) {
+            console.debug?.(e);
+        }
+    };
+    registerCleanableListener(runtime, api, EVENTS.STRUCTURED_EVENT, api._mjrStructuredEventHandler);
+
     api._mjrScanCompleteHandler = (event: any) => {
         try {
             const detail = event?.detail || {};

@@ -882,6 +882,8 @@ async function _mountPanelRuntimeImpl(container: any, { useComfyThemeUI = true, 
         exitSimilarViewIfActive,
         notifyContextChanged,
         panelLifecycleAC,
+        popovers,
+        filterPopover,
     });
 
     // -- 24. CONTEXT CONTROLLER --------------------------------------------

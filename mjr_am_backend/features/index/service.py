@@ -359,9 +359,9 @@ class IndexService:
 
     def _emit_scan_complete_event(self, data: Any) -> None:
         try:
-            from ...adapters.comfy_core import send_event
+            from ...adapters.comfy_events import emit_event
 
-            send_event("mjr-scan-complete", data)
+            emit_event("mjr-scan-complete", data)
         except Exception as exc:
             logger.debug("Failed to emit scan-complete event: %s", exc)
 
@@ -374,7 +374,7 @@ class IndexService:
             await asyncio.wait_for(self._enricher.start_enrichment(to_enrich), timeout=300)
         except asyncio.TimeoutError:
             logger.warning(
-                "start_enrichment timed out after 300 s ??? enrichment skipped for this scan batch"
+                "start_enrichment timed out after 300 s; enrichment skipped for this scan batch"
             )
         except Exception as exc:
             logger.debug("Background enrichment start skipped: %s", exc)
@@ -382,12 +382,12 @@ class IndexService:
 
     async def _emit_index_paths_notifications(self, data: Any, *, source: str, root_id: str | None) -> None:
         try:
-            from ...adapters.comfy_core import send_event
+            from ...adapters.comfy_events import emit_event
         except Exception:
             return
         try:
-            send_event("mjr-scan-complete", data)
-            send_event(
+            emit_event("mjr-scan-complete", data)
+            emit_event(
                 "mjr.scan.progress",
                 sanitize_for_json(
                     {
@@ -408,7 +408,7 @@ class IndexService:
         if not added_ids:
             return
         try:
-            from ...adapters.comfy_core import send_event
+            from ...adapters.comfy_events import emit_event
 
             batch_res = await self.get_assets_batch(list(added_ids[:BATCH_ASSET_PUSH_LIMIT]))
             if not batch_res.ok or not batch_res.data:
@@ -416,8 +416,8 @@ class IndexService:
             for asset in batch_res.data:
                 try:
                     payload = sanitize_for_json(dict(asset))
-                    send_event("mjr-asset-added", payload)
-                    send_event("mjr.asset.indexed", payload)
+                    emit_event("mjr-asset-added", payload)
+                    emit_event("mjr.asset.indexed", payload)
                 except Exception as exc:
                     logger.debug("Failed to push mjr-asset-added for one asset: %s", exc)
         except Exception as exc:

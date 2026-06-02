@@ -4,6 +4,8 @@ import { getWorkflowNodeDisplayName } from "../../../features/viewer/workflowGra
 const MINIMAP_PADDING = 6;
 const MINIMAP_ZOOM_MIN = 1;
 const MINIMAP_ZOOM_MAX = 8;
+const DETAIL_RENDER_MIN_NODE_WIDTH = 74;
+const DETAIL_RENDER_MIN_NODE_HEIGHT = 42;
 
 const TYPE_PALETTE = [
     ["sampler", "#8e5cff"],
@@ -28,6 +30,29 @@ const clampNumber = (value: any, min: any, max: any) => {
     const n = Number(value);
     if (!Number.isFinite(n)) return min;
     return Math.max(min, Math.min(max, n));
+};
+
+const _slotColor = (type: any, output = false) => {
+    const text = String(type || "").toUpperCase();
+    if (text.includes("IMAGE")) return "rgba(145,198,99,0.9)";
+    if (text.includes("LATENT")) return "rgba(89,178,118,0.9)";
+    if (text.includes("MODEL")) return "rgba(112,155,255,0.9)";
+    if (text.includes("CONDITIONING")) return "rgba(191,123,226,0.9)";
+    if (text.includes("CLIP")) return "rgba(220,178,77,0.9)";
+    if (text.includes("VAE")) return "rgba(72,184,214,0.9)";
+    if (text.includes("MASK")) return "rgba(190,190,190,0.88)";
+    if (text.includes("STRING") || text.includes("TEXT")) return "rgba(230,230,230,0.86)";
+    if (text.includes("INT") || text.includes("FLOAT") || text.includes("NUMBER")) return "rgba(130,210,220,0.88)";
+    return output ? "rgba(170,220,255,0.82)" : "rgba(255,255,255,0.72)";
+};
+
+const _truncateCanvasText = (ctx: CanvasRenderingContext2D, text: any, maxWidth: any) => {
+    const source = String(text || "").replace(/\s+/g, " ").trim();
+    const limit = Math.max(1, Number(maxWidth) || 1);
+    if (!source || ctx.measureText(source).width <= limit) return source;
+    let out = source;
+    while (out.length > 3 && ctx.measureText(`${out}...`).width > limit) out = out.slice(0, -1);
+    return out.length > 3 ? `${out}...` : source.slice(0, 3);
 };
 
 export function drawWorkflowMinimap(canvas: HTMLCanvasElement, workflow: any, options: Record<string, any> | null = null): any {
@@ -218,6 +243,8 @@ export function drawWorkflowMinimap(canvas: HTMLCanvasElement, workflow: any, op
         );
 
         const nodeColor = colorForNode(n);
+        const inputs = Array.isArray(n?.inputs) ? n.inputs : [];
+        const outputs = Array.isArray(n?.outputs) ? n.outputs : [];
         rects.push({
             kind: "node",
             id: nodeId,
@@ -231,12 +258,10 @@ export function drawWorkflowMinimap(canvas: HTMLCanvasElement, workflow: any, op
             errored,
             type: String(n?.type || n?.comfyClass || n?.class_type || "").trim(),
             rows: getWidgetPreviewRows(n),
-            inputCount: Array.isArray(n?.inputs)
-                ? n.inputs.length
-                : n?.inputs && typeof n.inputs === "object"
-                  ? Object.keys(n.inputs).length
-                  : 0,
-            outputCount: Array.isArray(n?.outputs) ? n.outputs.length : 0,
+            inputs,
+            outputs,
+            inputCount: inputs.length || (n?.inputs && typeof n.inputs === "object" ? Object.keys(n.inputs).length : 0),
+            outputCount: outputs.length,
             label: getWorkflowNodeDisplayName(n).replace(/\s+/g, " ").trim(),
         });
         if (nodeId) nodesById.set(nodeId, rects[rects.length - 1]);
@@ -344,38 +369,83 @@ export function drawWorkflowMinimap(canvas: HTMLCanvasElement, workflow: any, op
         y: clampNumber(viewMinY + (Number(y) - pad) / renderScale, minY, maxY),
     });
 
+    const nodeCanvasBounds = (r: any) => ({
+        x: pad + (r.x - viewMinX) * renderScale,
+        y: pad + (r.y - viewMinY) * renderScale,
+        w: Math.max(1, r.w * renderScale),
+        h: Math.max(1, r.h * renderScale),
+    });
+
+    const nodeTitleHeight = (height: any) => Math.max(10, Math.min(24, Math.floor(Number(height) * 0.2)));
+
+    const getSlotY = (nodeRect: any, slotIndex: any, side: any) => {
+        const bounds = nodeCanvasBounds(nodeRect);
+        const titleH = nodeTitleHeight(bounds.h);
+        const slots = side === "output" ? nodeRect.outputs : nodeRect.inputs;
+        const count = Math.max(1, Array.isArray(slots) ? slots.length : Number(nodeRect[`${side}Count`]) || 0);
+        const index = clampNumber(slotIndex, 0, Math.max(0, count - 1));
+        return bounds.y + titleH + ((bounds.h - titleH) * (index + 1)) / (count + 1);
+    };
+
+    const getLinkParts = (link: any) => {
+        if (Array.isArray(link) && link.length >= 5) {
+            return {
+                originId: link[1],
+                originSlot: Number(link[2]) || 0,
+                targetId: link[3],
+                targetSlot: Number(link[4]) || 0,
+                type: link[5],
+            };
+        }
+        if (link && typeof link === "object") {
+            return {
+                originId: link.origin_id ?? link.originId ?? link.from ?? null,
+                originSlot: Number(link.origin_slot ?? link.originSlot ?? link.fromSlot ?? 0) || 0,
+                targetId: link.target_id ?? link.targetId ?? link.to ?? null,
+                targetSlot: Number(link.target_slot ?? link.targetSlot ?? link.toSlot ?? 0) || 0,
+                type: link.type,
+            };
+        }
+        return null;
+    };
+
+    const linkColorForType = (type: any) => {
+        const text = String(type || "").toUpperCase();
+        if (text.includes("IMAGE")) return "rgba(145,198,99,0.38)";
+        if (text.includes("LATENT")) return "rgba(89,178,118,0.38)";
+        if (text.includes("MODEL")) return "rgba(112,155,255,0.38)";
+        if (text.includes("CONDITIONING")) return "rgba(191,123,226,0.38)";
+        if (text.includes("CLIP")) return "rgba(220,178,77,0.38)";
+        if (text.includes("VAE")) return "rgba(72,184,214,0.38)";
+        if (text.includes("MASK")) return "rgba(190,190,190,0.36)";
+        return "rgba(255,255,255,0.2)";
+    };
+
     const drawLinks = () => {
         if (!settings.showLinks) return;
         if (!links || links.length === 0) return;
 
         ctx.save();
         ctx.globalAlpha = 1;
-        ctx.strokeStyle = "rgba(255,255,255,0.18)";
         ctx.lineWidth = 1;
 
         for (const l of links) {
-            let originId: any = null;
-            let targetId: any = null;
-
-            if (Array.isArray(l) && l.length >= 4) {
-                // LiteGraph format: [id, origin_id, origin_slot, target_id, target_slot, type]
-                originId = l[1];
-                targetId = l[3];
-            } else if (l && typeof l === "object") {
-                originId = l.origin_id ?? l.originId ?? l.from ?? null;
-                targetId = l.target_id ?? l.targetId ?? l.to ?? null;
-            }
+            const parts = getLinkParts(l);
+            const originId = parts?.originId;
+            const targetId = parts?.targetId;
 
             if (originId === null || targetId === null) continue;
             const a = nodesById.get(String(originId));
             const b = nodesById.get(String(targetId));
             if (!a || !b) continue;
 
-            // Use right/left ports for a more ComfyUI-like look.
-            const aP = toCanvas(a.x + a.w, a.y + a.h / 2);
-            const bP = toCanvas(b.x, b.y + b.h / 2);
+            const aBounds = nodeCanvasBounds(a);
+            const bBounds = nodeCanvasBounds(b);
+            const aP = { x: aBounds.x + aBounds.w, y: getSlotY(a, parts?.originSlot ?? 0, "output") };
+            const bP = { x: bBounds.x, y: getSlotY(b, parts?.targetSlot ?? 0, "input") };
             const dx = Math.max(12, Math.min(80, Math.abs(bP.x - aP.x) * 0.35));
 
+            ctx.strokeStyle = linkColorForType(parts?.type);
             ctx.beginPath();
             ctx.moveTo(aP.x, aP.y);
             ctx.bezierCurveTo(aP.x + dx, aP.y, bP.x - dx, bP.y, bP.x, bP.y);
@@ -385,10 +455,7 @@ export function drawWorkflowMinimap(canvas: HTMLCanvasElement, workflow: any, op
     };
 
     const drawRect = (r: any) => {
-        const x = pad + (r.x - viewMinX) * renderScale;
-        const y = pad + (r.y - viewMinY) * renderScale;
-        const w = Math.max(1, r.w * renderScale);
-        const h = Math.max(1, r.h * renderScale);
+        const { x, y, w, h } = nodeCanvasBounds(r);
 
         const isNode = r.kind === "node";
         const isGroup = r.kind === "group";
@@ -402,8 +469,9 @@ export function drawWorkflowMinimap(canvas: HTMLCanvasElement, workflow: any, op
         const fill = toRgba(r.fill, fillAlpha);
         const stroke = toRgba(r.stroke, strokeAlpha);
 
-        const radius = Math.max(2, Math.min(8, Math.floor(Math.min(w, h) * 0.08)));
-        const titleH = isNode ? Math.max(10, Math.min(22, Math.floor(h * 0.2))) : 0;
+        const detailed = isNode && settings.showNodeLabels && w >= DETAIL_RENDER_MIN_NODE_WIDTH && h >= DETAIL_RENDER_MIN_NODE_HEIGHT;
+        const radius = Math.max(2, Math.min(detailed ? 7 : 8, Math.floor(Math.min(w, h) * 0.08)));
+        const titleH = isNode ? nodeTitleHeight(h) : 0;
 
         // Fill
         ctx.save();
@@ -475,22 +543,26 @@ export function drawWorkflowMinimap(canvas: HTMLCanvasElement, workflow: any, op
         }
 
         if (isNode && w >= 24 && h >= 20) {
-            const portCountIn = Math.min(6, Number(r.inputCount) || 0);
-            const portCountOut = Math.min(6, Number(r.outputCount) || 0);
+            const portCountIn = Math.min(detailed ? 16 : 6, Number(r.inputCount) || 0);
+            const portCountOut = Math.min(detailed ? 16 : 6, Number(r.outputCount) || 0);
             ctx.save();
-            ctx.fillStyle = "rgba(255,255,255,0.72)";
+            ctx.strokeStyle = "rgba(0,0,0,0.48)";
+            ctx.lineWidth = 1;
             for (let i = 0; i < portCountIn; i += 1) {
-                const py = y + titleH + ((h - titleH) * (i + 1)) / (portCountIn + 1);
+                const py = getSlotY(r, i, "input");
+                ctx.fillStyle = _slotColor(r.inputs?.[i]?.type, false);
                 ctx.beginPath();
-                ctx.arc(x, py, 2.2, 0, Math.PI * 2);
+                ctx.arc(x, py, detailed ? 3 : 2.2, 0, Math.PI * 2);
                 ctx.fill();
+                ctx.stroke();
             }
-            ctx.fillStyle = "rgba(170,220,255,0.82)";
             for (let i = 0; i < portCountOut; i += 1) {
-                const py = y + titleH + ((h - titleH) * (i + 1)) / (portCountOut + 1);
+                const py = getSlotY(r, i, "output");
+                ctx.fillStyle = _slotColor(r.outputs?.[i]?.type, true);
                 ctx.beginPath();
-                ctx.arc(x + w, py, 2.2, 0, Math.PI * 2);
+                ctx.arc(x + w, py, detailed ? 3 : 2.2, 0, Math.PI * 2);
                 ctx.fill();
+                ctx.stroke();
             }
             ctx.restore();
         }
@@ -551,6 +623,28 @@ export function drawWorkflowMinimap(canvas: HTMLCanvasElement, workflow: any, op
                 const [key, value] = r.rows[i];
                 const text = `${String(key)}: ${String(value).replace(/\s+/g, " ").slice(0, 42)}`;
                 ctx.fillText(text, x + 5, ry + rowFont, Math.max(20, w - 10));
+            }
+            ctx.restore();
+        }
+
+        if (detailed && w >= 110) {
+            const slotFont = Math.max(7, Math.min(9, Math.floor(h * 0.09)));
+            ctx.save();
+            ctx.font = `500 ${slotFont}px sans-serif`;
+            ctx.fillStyle = "rgba(255,255,255,0.5)";
+            const maxSlotText = Math.max(24, w * 0.34);
+            for (let i = 0; i < Math.min(8, r.inputs?.length || 0); i += 1) {
+                const input = r.inputs[i];
+                const label = String(input?.label || input?.localized_name || input?.name || "").trim();
+                if (!label) continue;
+                ctx.fillText(_truncateCanvasText(ctx, label, maxSlotText), x + 7, getSlotY(r, i, "input") + slotFont * 0.35, maxSlotText);
+            }
+            for (let i = 0; i < Math.min(8, r.outputs?.length || 0); i += 1) {
+                const output = r.outputs[i];
+                const label = String(output?.label || output?.localized_name || output?.name || "").trim();
+                if (!label) continue;
+                const text = _truncateCanvasText(ctx, label, maxSlotText);
+                ctx.fillText(text, x + w - 7 - Math.min(maxSlotText, ctx.measureText(text).width), getSlotY(r, i, "output") + slotFont * 0.35, maxSlotText);
             }
             ctx.restore();
         }
@@ -630,11 +724,11 @@ export function drawWorkflowMinimap(canvas: HTMLCanvasElement, workflow: any, op
     };
 }
 
-function expandSubgraphsForMinimap(workflow: any) {
+export function expandSubgraphsForMinimap(workflow: any) {
     if (!workflow || typeof workflow !== "object") return workflow;
     const baseNodes = Array.isArray(workflow.nodes) ? workflow.nodes.filter(Boolean) : [];
     const defs = getSubgraphDefinitionMap(workflow);
-    if (!baseNodes.length || !defs.size) return workflow;
+    if (!baseNodes.length) return workflow;
 
     const nodes = [];
     const links = Array.isArray(workflow.links) ? [...workflow.links] : [];
@@ -647,7 +741,8 @@ function expandSubgraphsForMinimap(workflow: any) {
         nodes.push(node);
         const subgraph = getNodeSubgraphDefinition(node, defs);
         if (!subgraph || !Array.isArray(subgraph.nodes) || !subgraph.nodes.length) continue;
-        const fitted = fitSubgraphNodesIntoParent(node, subgraph);
+        const expandedSubgraph = expandSubgraphsForMinimap(subgraph);
+        const fitted = fitSubgraphNodesIntoParent(node, expandedSubgraph);
         nodes.push(...fitted.nodes);
         links.push(...fitted.links);
         if (fitted.group) groups.push(fitted.group);
@@ -663,21 +758,36 @@ function expandSubgraphsForMinimap(workflow: any) {
 }
 
 function getSubgraphDefinitionMap(workflow: any) {
-    const defs =
-        (Array.isArray(workflow?.definitions?.subgraphs) && workflow.definitions.subgraphs) ||
-        (Array.isArray(workflow?.subgraphs) && workflow.subgraphs) ||
-        [];
+    const defs = [
+        ...(Array.isArray(workflow?.definitions?.subgraphs) ? workflow.definitions.subgraphs : []),
+        ...(Array.isArray(workflow?.subgraphs) ? workflow.subgraphs : []),
+        ...(Array.isArray(workflow?.rootGraph?.subgraphs) ? workflow.rootGraph.subgraphs : []),
+    ];
     const map = new Map();
     for (const def of defs) {
-        const id = def?.id ?? def?.name ?? null;
-        if (id != null) map.set(String(id), def);
+        for (const id of getSubgraphDefinitionIds(def)) {
+            if (id != null) map.set(String(id), def);
+        }
     }
     return map;
 }
 
 function getNodeSubgraphDefinition(node: any, defs: any) {
-    const byType = defs.get(String(node?.type ?? ""));
-    if (byType) return byType;
+    const definitionIds = [
+        node?.type,
+        node?.comfyClass,
+        node?.class_type,
+        node?.properties?.subgraph_id,
+        node?.properties?.subgraphId,
+        node?.subgraph?.id,
+        node?._subgraph?.id,
+        node?.subgraph_instance?.id,
+    ];
+    for (const id of definitionIds) {
+        if (id == null) continue;
+        const byId = defs.get(String(id));
+        if (byId) return byId;
+    }
     const candidates = [
         node?.subgraph,
         node?._subgraph,
@@ -690,6 +800,19 @@ function getNodeSubgraphDefinition(node: any, defs: any) {
         node?.subgraph_graph,
     ];
     return candidates.find((candidate: any) => candidate && typeof candidate === "object" && Array.isArray(candidate.nodes)) || null;
+}
+
+function getSubgraphDefinitionIds(def: any) {
+    return [
+        def?.id,
+        def?.name,
+        def?.type,
+        def?.uuid,
+        def?.workflowId,
+        def?.workflow_id,
+        def?.properties?.subgraph_id,
+        def?.properties?.subgraphId,
+    ].filter((id: any) => id != null && String(id).trim());
 }
 
 function fitSubgraphNodesIntoParent(parent: any, subgraph: any) {

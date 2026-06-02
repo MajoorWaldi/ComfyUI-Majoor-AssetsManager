@@ -18,6 +18,9 @@ export function removeApiHandlers(api: any, reportError: (e: any, ctx?: string) 
         if (api._mjrAssetUpdatedHandler) {
             api.removeEventListener("mjr-asset-updated", api._mjrAssetUpdatedHandler);
         }
+        if (api._mjrStructuredEventHandler) {
+            api.removeEventListener(EVENTS.STRUCTURED_EVENT, api._mjrStructuredEventHandler);
+        }
         if (api._mjrScanCompleteHandler) {
             api.removeEventListener(EVENTS.SCAN_COMPLETE, api._mjrScanCompleteHandler);
         }
