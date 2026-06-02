@@ -144,6 +144,97 @@ describe("canvas drag/drop loader creation", () => {
         expect(data.get("text/uri-list")).toBe("/view");
     });
 
+    it("derives native output subfolder from filepath when the asset subfolder is stale", async () => {
+        const { createAssetDragStartHandler } = await import("../features/dnd/DragDrop.js");
+        const data = new Map();
+        const dataTransfer = {
+            setData: vi.fn((type, value) => data.set(type, value)),
+            items: { add: vi.fn((value, type) => data.set(type, value)) },
+            setDragImage: vi.fn(),
+        };
+        const card = {
+            _mjrAsset: {
+                id: "asset-2",
+                filename: "ComfyUI_00690_.png",
+                subfolder: "parent/output",
+                filepath: "D:/ComfyUI/output/ComfyUI_00690_.png",
+                type: "output",
+                kind: "image",
+            },
+            closest: () => card,
+            querySelector: () => null,
+            addEventListener: vi.fn(),
+        };
+        const container = { _mjrGetSelectedAssets: () => [] };
+
+        createAssetDragStartHandler(container)(makeDragStartEvent(card, dataTransfer));
+
+        expect(JSON.parse(data.get("application/x-mjr-asset"))).toMatchObject({
+            filename: "ComfyUI_00690_.png",
+            subfolder: "",
+            type: "output",
+            kind: "image",
+        });
+        expect(JSON.parse(data.get("application/x-comfy-asset-info"))).toMatchObject({
+            filename: "ComfyUI_00690_.png",
+            subfolder: "",
+            type: "output",
+            user_metadata: {
+                filename: "ComfyUI_00690_.png",
+                subfolder: "",
+                type: "output",
+            },
+        });
+    });
+
+    it("keeps ComfyUI temp assets as temp when deriving native drag fallbacks", async () => {
+        const { createAssetDragStartHandler } = await import("../features/dnd/DragDrop.js");
+        const { sanitizeDraggedPayload } = await import("../features/dnd/utils/payload.js");
+        const data = new Map();
+        const dataTransfer = {
+            setData: vi.fn((type, value) => data.set(type, value)),
+            items: { add: vi.fn((value, type) => data.set(type, value)) },
+            setDragImage: vi.fn(),
+        };
+        const card = {
+            _mjrAsset: {
+                id: "asset-3",
+                filename: "preview.png",
+                subfolder: "stale/output",
+                filepath: "D:/ComfyUI/temp/previews/preview.png",
+                type: "output",
+                kind: "image",
+            },
+            closest: () => card,
+            querySelector: () => null,
+            addEventListener: vi.fn(),
+        };
+        const container = { _mjrGetSelectedAssets: () => [] };
+
+        createAssetDragStartHandler(container)(makeDragStartEvent(card, dataTransfer));
+
+        expect(sanitizeDraggedPayload({ filename: "preview.png", type: "temp" })).toMatchObject({
+            filename: "preview.png",
+            type: "temp",
+        });
+        expect(JSON.parse(data.get("application/x-mjr-asset"))).toMatchObject({
+            filename: "preview.png",
+            subfolder: "previews",
+            type: "temp",
+            kind: "image",
+        });
+        expect(JSON.parse(data.get("application/x-comfy-asset-info"))).toMatchObject({
+            filename: "preview.png",
+            subfolder: "previews",
+            type: "temp",
+            user_metadata: {
+                filename: "preview.png",
+                subfolder: "previews",
+                type: "temp",
+            },
+        });
+    });
+
     it("L+drop on empty canvas creates a loader node and skips workflow import", async () => {
         const createdNode = {
             type: "LoadImage",
@@ -191,6 +282,36 @@ describe("canvas drag/drop loader creation", () => {
         expect(app.loadGraphData).not.toHaveBeenCalled();
         expect(app.graph.add).toHaveBeenCalledWith(createdNode);
         expect(createdNode.widgets[0].value).toBe("assets/one.png");
+    });
+
+    it("creates context-menu loader nodes at the visible canvas center when no pointer event is available", async () => {
+        const createdNode = {
+            type: "LoadImage",
+            widgets: [{ name: "image", type: "combo", value: "", options: { values: [] } }],
+        };
+        vi.stubGlobal("LiteGraph", {
+            createNode: vi.fn((type) => (type === "LoadImage" ? createdNode : null)),
+        });
+
+        const { createCanvasLoaderNodes } = await import("../features/dnd/canvasLoaderNode.js");
+        const { getComfyApp } = await import("../app/comfyApiBridge.js");
+        const app = getComfyApp();
+        app.canvas.ds = { scale: 2, offset: [100, 50] };
+
+        const created = createCanvasLoaderNodes({
+            app,
+            items: [
+                {
+                    payload: { filename: "one.png", type: "output", kind: "image" },
+                    relativePath: "assets/one.png",
+                    droppedExt: "png",
+                },
+            ],
+            event: null,
+        });
+
+        expect(created).toBe(1);
+        expect(createdNode.pos).toEqual([100, 100]);
     });
 
     it("L+drop creates loader nodes for the current multi-selection", async () => {

@@ -107,3 +107,16 @@ def test_comfy_core_adapter_reads_input_output_directories(monkeypatch, tmp_path
 
     assert adapter.get_input_directory() == str(inp)
     assert adapter.get_output_directory() == str(out)
+
+
+def test_comfy_core_adapter_reads_temp_directory(monkeypatch, tmp_path):
+    temp = tmp_path / "temp"
+    monkeypatch.setitem(
+        sys.modules,
+        "folder_paths",
+        SimpleNamespace(get_directory_by_type=lambda item_type: str(temp) if item_type == "temp" else None),
+    )
+
+    adapter = ComfyCoreAdapter()
+
+    assert adapter.get_temp_directory() == str(temp)

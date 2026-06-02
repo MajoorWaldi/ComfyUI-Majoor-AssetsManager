@@ -161,6 +161,23 @@ class ComfyCoreAdapter:
             logger.debug("Failed to resolve ComfyUI output directory", exc_info=True)
         return None
 
+    def get_temp_directory(self) -> str | None:
+        """Return ComfyUI temp directory when folder_paths is available."""
+        value = self.get_directory_by_type("temp")
+        if value:
+            return value
+        try:
+            import folder_paths  # type: ignore
+
+            getter = getattr(folder_paths, "get_temp_directory", None)
+            if callable(getter):
+                value = getter()
+                if value:
+                    return str(value)
+        except Exception:
+            logger.debug("Failed to resolve ComfyUI temp directory", exc_info=True)
+        return None
+
     def output_file_paths_from_history(self, prompt_id: str) -> list[str]:
         """Extract absolute output/temp file paths from a ComfyUI history entry."""
         return [item.path for item in self.output_files_from_history(prompt_id)]
@@ -414,6 +431,10 @@ def get_output_directory() -> str | None:
     return _ADAPTER.get_output_directory()
 
 
+def get_temp_directory() -> str | None:
+    return _ADAPTER.get_temp_directory()
+
+
 def schedule_task(coro: Any) -> bool:
     return _ADAPTER.schedule_task(coro)
 
@@ -426,6 +447,7 @@ __all__ = [
     "get_comfy_core",
     "get_input_directory",
     "get_output_directory",
+    "get_temp_directory",
     "get_prompt_output_files",
     "get_prompt_output_paths",
     "get_workflow_id_for_prompt",

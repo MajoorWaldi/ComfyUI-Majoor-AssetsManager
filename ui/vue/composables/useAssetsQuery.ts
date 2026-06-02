@@ -59,6 +59,7 @@ export function createAssetsQueryController({
     let pendingAutoLoadPromise: any = null;
     let pendingAutoLoadDelayMs = 0;
     let lastKnownVisible = true;
+    let gridDirtyReason = "";
     const mountedAt = Date.now();
     const BOOT_RELOAD_GRACE_MS = 8000;
 
@@ -82,6 +83,11 @@ export function createAssetsQueryController({
                 autoLoadTimer = null;
             }
             return lastKnownVisible;
+        }
+        if (resumeQueuedReload && gridDirtyReason && !isReloading) {
+            const reason = gridDirtyReason;
+            gridDirtyReason = "";
+            void queuedReload({ reason }).catch((e) => console.debug?.(e));
         }
         if (pendingAutoLoadPromise && !autoLoadTimer) {
             const promise = pendingAutoLoadPromise;
@@ -129,7 +135,7 @@ export function createAssetsQueryController({
         }
     };
 
-    const queuedReload = async () => {
+    const queuedReload = async (_options: Record<string, any> = {}) => {
         if (!gridContainer || !gridController?.reloadGrid) return;
         pendingReloadCount += 1;
         if (!syncVisibilityState(null, { resumeQueuedReload: false })) return;
@@ -166,6 +172,42 @@ export function createAssetsQueryController({
             isReloading = false;
         }
     };
+
+    const markGridDirty = (reason = "external") => {
+        gridDirtyReason = String(reason || "external");
+        try {
+            const runtimeWindow = (globalThis?.window ?? globalThis) as any;
+            runtimeWindow.__mjrGridDirty = true;
+        } catch (e) {
+            console.debug?.(e);
+        }
+        if (syncVisibilityState(null, { resumeQueuedReload: false }) && !isReloading) {
+            const nextReason = gridDirtyReason;
+            gridDirtyReason = "";
+            void queuedReload({ reason: nextReason }).catch((e) => console.debug?.(e));
+        }
+    };
+
+    const onGlobalGridDirty = (event: any) => {
+        if (event?.detail?.source === "assets-query-controller") return;
+        markGridDirty(event?.detail?.reason || "external");
+    };
+
+    const onGlobalReloadGrid = (event: any) => {
+        markGridDirty(event?.detail?.reason || "manual");
+    };
+
+    try {
+        const runtimeWindow = (globalThis?.window ?? globalThis) as any;
+        runtimeWindow?.addEventListener?.("mjr-grid-dirty", onGlobalGridDirty, {
+            signal: lifecycleSignal || undefined,
+        });
+        runtimeWindow?.addEventListener?.("mjr:reload-grid", onGlobalReloadGrid, {
+            signal: lifecycleSignal || undefined,
+        });
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     const restoreUiState = async (initialLoadPromise: any) => {
         if (typeof restoreGridUiState === "function") {
@@ -298,7 +340,7 @@ export function createAssetsQueryController({
                 lastKnownIndexEnd = counters.last_index_end;
                 return;
             }
-            if (inBootReloadGrace && hasGridAssets()) {
+            if (inBootReloadGrace && hasGridAssets() && !hasNewIndexEnd && !hasNewTotal) {
                 lastKnownScan = counters.last_scan_end;
                 lastKnownIndexEnd = counters.last_index_end;
                 return;
@@ -311,12 +353,6 @@ export function createAssetsQueryController({
                 totalDelta > 0 &&
                 recentUpsertCount > 0 &&
                 totalDelta <= recentUpsertCount + 8;
-            const totalOnlyBackgroundGrowth =
-                hasNewTotal &&
-                !hasNewScan &&
-                !hasNewIndexEnd &&
-                hasGridAssets();
-
             if (hasNewIndexEnd) lastKnownIndexEnd = counters.last_index_end;
             const needsFallbackReload =
                 hasNewIndexEnd && !hasNewScan && !hasNewTotal && !upsertHandledRecently;
@@ -331,27 +367,24 @@ export function createAssetsQueryController({
                 }
                 return;
             }
-            if (totalOnlyBackgroundGrowth) {
-                lastKnownScan = counters.last_scan_end;
-                lastKnownIndexEnd = counters.last_index_end;
-                return;
-            }
             if (upsertHandledRecently) return;
             if (!hasNewScan && !hasNewTotal && !needsFallbackReload) return;
 
             lastKnownScan = counters.last_scan_end;
             lastKnownIndexEnd = counters.last_index_end;
+            const reloadReason = hasNewScan
+                ? "scan"
+                : hasNewIndexEnd
+                  ? "index"
+                  : "total";
 
             try {
                 runtimeWindow.__mjrGridDirty = true;
                 runtimeWindow.dispatchEvent?.(
                     new CustomEvent("mjr-grid-dirty", {
                         detail: {
-                            reason: hasNewScan
-                                ? "scan"
-                                : hasNewIndexEnd
-                                  ? "index"
-                                  : "total",
+                            source: "assets-query-controller",
+                            reason: reloadReason,
                             counters,
                         },
                     }),
@@ -363,8 +396,10 @@ export function createAssetsQueryController({
             try {
                 const recentInteractionMs =
                     Date.now() - Math.max(0, Number(getRecentUserInteractionAt() || 0) || 0);
-                if (!hasGridAssets() && recentInteractionMs > 1500) {
-                    await queuedReload();
+                if (recentInteractionMs > 1500) {
+                    markGridDirty(reloadReason);
+                } else {
+                    gridDirtyReason = reloadReason;
                 }
             } catch (e) {
                 console.debug?.(e);
@@ -473,10 +508,18 @@ export function createAssetsQueryController({
         scheduleAutoLoad,
         createCountersUpdateHandler,
         bindSearchInput,
+        markGridDirty,
         setVisibility(visible = null) {
             return syncVisibilityState(visible);
         },
         dispose() {
+            try {
+                const runtimeWindow = (globalThis?.window ?? globalThis) as any;
+                runtimeWindow?.removeEventListener?.("mjr-grid-dirty", onGlobalGridDirty);
+                runtimeWindow?.removeEventListener?.("mjr:reload-grid", onGlobalReloadGrid);
+            } catch (e) {
+                console.debug?.(e);
+            }
             if (autoLoadTimer) {
                 clearTimeout(autoLoadTimer);
                 autoLoadTimer = null;

@@ -57,6 +57,19 @@ function createDocument() {
     };
 }
 
+function createLocalStorage(initial = {}) {
+    const store = new Map(Object.entries(initial));
+    return {
+        getItem: vi.fn((key) => store.get(String(key)) ?? null),
+        setItem: vi.fn((key, value) => store.set(String(key), String(value))),
+        removeItem: vi.fn((key) => store.delete(String(key))),
+        key: vi.fn((index) => Array.from(store.keys())[index] ?? null),
+        get length() {
+            return store.size;
+        },
+    };
+}
+
 describe("settingsRuntime", () => {
     beforeEach(() => {
         vi.resetModules();
@@ -67,6 +80,11 @@ describe("settingsRuntime", () => {
             __MJR_RUNTIME_STATUS_INTERVAL__: null,
             __MJR_RUNTIME_STATUS_INFLIGHT__: null,
             __MJR_RUNTIME_STATUS_MISS_COUNT__: null,
+            __MJR_RUNTIME_STATUS_HIDE_TIMEOUT__: null,
+            __MJR_RUNTIME_STATUS_HIDDEN__: null,
+            __MJR_RUNTIME_STATUS_SETTINGS_LISTENER__: null,
+            localStorage: createLocalStorage(),
+            addEventListener: vi.fn(),
         };
         globalThis.sessionStorage = {
             getItem: vi.fn(() => "token_1234567890abcd"),
@@ -109,5 +127,26 @@ describe("settingsRuntime", () => {
         );
         expect(dashboard.__mjrAuthLine.textContent).toBe("Write auth: active ...abcd");
         expect(dashboard.__mjrAuthLine.style.color).toBe("#7ee0a0");
+    });
+
+    it("does not render the dashboard when the setting is hidden", async () => {
+        globalThis.window.localStorage = createLocalStorage({
+            mjrSettings: JSON.stringify({
+                version: 1,
+                data: {
+                    observability: {
+                        runtimeDashboardMode: "hidden",
+                    },
+                },
+            }),
+        });
+
+        const mod = await import("../app/settings/settingsRuntime.js");
+        mod.startRuntimeStatusDashboard();
+        await Promise.resolve();
+
+        expect(globalThis.document.getElementById("mjr-runtime-status-dashboard")).toBeNull();
+        expect(getRuntimeStatus).not.toHaveBeenCalled();
+        expect(getSecuritySettings).not.toHaveBeenCalled();
     });
 });

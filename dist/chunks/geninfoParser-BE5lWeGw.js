@@ -30,55 +30,133 @@ function t(e) {
 }
 function n(e) {
 	if (!e || typeof e != "object") return null;
-	let n = {}, r = (e.prompt && typeof e.prompt == "object" ? e.prompt : null) || (t(e) ? e : null);
-	if (r) {
-		let e = [];
-		for (let [, t] of Object.entries(r)) {
-			if (!t || typeof t != "object") continue;
-			let r = t.inputs;
-			if (!r || typeof r != "object") continue;
-			let i = String(t?.class_type || t?.type || "").toLowerCase(), a = String(t?.title || t?._meta?.title || "").toLowerCase(), o = (e, t) => {
-				if (n[e] || typeof t != "string") return;
-				let r = t.trim();
-				r && (/^[\d\s.,+-]+$/.test(r) || (n[e] = r));
-			};
-			if ((i.includes("cliptextencode") || i.includes("clip_text_encode") || a.includes("clip text encode")) && typeof r.text == "string") {
-				let e = a.includes("negative");
-				a.includes("positive") || a.includes("(prompt)") || a.includes("prompt"), o(e ? "negative_prompt" : "prompt", r.text);
-			}
-			if (o("negative_prompt", r.negative_prompt), o("negative_prompt", r.negative), !n.prompt && typeof r.text == "string") {
-				let e = r.text.trim();
-				(i.includes("prompt") || i.includes("encode") || i.includes("positive") || i.includes("negative") || a.includes("prompt") || a.includes("positive") || a.includes("negative")) && e.length >= 12 && /[a-zA-Z]/.test(e) && o("prompt", e);
-			}
-			r.seed !== void 0 && n.seed === void 0 && (n.seed = r.seed), r.steps !== void 0 && n.steps === void 0 && (n.steps = r.steps), r.cfg !== void 0 && n.cfg === void 0 && (n.cfg = r.cfg), r.sampler_name && !n.sampler && (n.sampler = r.sampler_name), r.scheduler && !n.scheduler && (n.scheduler = r.scheduler), r.denoise !== void 0 && n.denoise === void 0 && (n.denoise = r.denoise), r.width !== void 0 && n.width === void 0 && (n.width = r.width), r.height !== void 0 && n.height === void 0 && (n.height = r.height);
-			let s = (e, t) => {
-				if (n[e] || typeof t != "string") return;
-				let r = t.trim();
-				r && (n[e] = r);
-			}, c = [
-				r.ckpt_name,
-				r.checkpoint,
-				r.checkpoint_name,
-				r.model_name,
-				r.model
-			];
-			for (let e of c) n.model || s("model", e);
-			if (s("vae", r.vae_name || r.vae), s("clip", r.clip_name || r.clip), s("unet", r.unet_name || r.unet), s("diffusion", r.diffusion_name || r.diffusion_model || r.diffusion), i.includes("lora") || i.includes("loraloader")) {
-				let t = r.lora_name || r.lora || r.name || null, n = r.strength_model ?? r.strength ?? r.weight ?? r.lora_strength ?? null;
-				t && e.push({
-					name: t,
-					weight: n
-				});
-			}
+	let t = {}, n = [];
+	for (let i of r(e)) {
+		if (!i || typeof i != "object") continue;
+		let e = s(i);
+		if (!e || typeof e != "object") continue;
+		let r = String(i?.class_type || i?.type || "").toLowerCase(), a = String(i?.title || i?._meta?.title || "").toLowerCase(), o = (e, n) => {
+			if (t[e] || typeof n != "string") return;
+			let r = n.trim();
+			r && (/^[\d\s.,+-]+$/.test(r) || (t[e] = r));
+		};
+		if ((r.includes("cliptextencode") || r.includes("clip_text_encode") || a.includes("clip text encode")) && typeof e.text == "string") {
+			let t = a.includes("negative");
+			a.includes("positive") || a.includes("(prompt)") || a.includes("prompt"), o(t ? "negative_prompt" : "prompt", e.text);
 		}
-		e.length && (n.loras = e);
+		if (o("negative_prompt", e.negative_prompt), o("negative_prompt", e.negative), !t.prompt && typeof e.text == "string") {
+			let t = e.text.trim();
+			(r.includes("prompt") || r.includes("encode") || r.includes("positive") || r.includes("negative") || a.includes("prompt") || a.includes("positive") || a.includes("negative")) && t.length >= 12 && /[a-zA-Z]/.test(t) && o("prompt", t);
+		}
+		e.seed !== void 0 && t.seed === void 0 && (t.seed = e.seed), e.steps !== void 0 && t.steps === void 0 && (t.steps = e.steps), e.cfg !== void 0 && t.cfg === void 0 && (t.cfg = e.cfg), e.sampler_name && !t.sampler && (t.sampler = e.sampler_name), e.scheduler && !t.scheduler && (t.scheduler = e.scheduler), e.denoise !== void 0 && t.denoise === void 0 && (t.denoise = e.denoise), e.width !== void 0 && t.width === void 0 && (t.width = e.width), e.height !== void 0 && t.height === void 0 && (t.height = e.height);
+		let c = (e, n) => {
+			if (t[e] || typeof n != "string") return;
+			let r = n.trim();
+			r && (t[e] = r);
+		}, l = [
+			e.ckpt_name,
+			e.checkpoint,
+			e.checkpoint_name,
+			e.model_name,
+			e.model
+		];
+		for (let e of l) t.model || c("model", e);
+		if (c("vae", e.vae_name || e.vae), c("clip", e.clip_name || e.clip), c("unet", e.unet_name || e.unet), c("diffusion", e.diffusion_name || e.diffusion_model || e.diffusion), r.includes("lora") || r.includes("loraloader")) {
+			let t = e.lora_name || e.lora || e.name || null, r = e.strength_model ?? e.strength ?? e.weight ?? e.lora_strength ?? null;
+			t && n.push({
+				name: t,
+				weight: r
+			});
+		}
 	}
-	return Object.keys(n).length > 0 ? n : null;
+	return n.length && (t.loras = n), Object.keys(t).length > 0 ? t : null;
+}
+function r(e, n = /* @__PURE__ */ new WeakSet()) {
+	if (!e || typeof e != "object" || n.has(e)) return [];
+	n.add(e);
+	let s = [], c = (e.prompt && typeof e.prompt == "object" ? e.prompt : null) || (t(e) ? e : null);
+	c && s.push(...Object.values(c));
+	for (let t of i(e)) {
+		let e = Array.isArray(t?.nodes) ? t.nodes.filter(Boolean) : [];
+		s.push(...e);
+		for (let t of e) for (let e of o(t)) s.push(...r(e, n));
+		for (let e of a(t)) s.push(...r(e, n));
+	}
+	return s;
+}
+function i(e) {
+	if (!e || typeof e != "object") return [];
+	let t = [], n = (e) => {
+		e && typeof e == "object" && Array.isArray(e.nodes) && t.push(e);
+	};
+	n(e);
+	for (let t of [
+		"workflow",
+		"Workflow",
+		"template",
+		"Template",
+		"subgraph",
+		"Subgraph",
+		"graph",
+		"lgraph"
+	]) n(e?.[t]);
+	return t;
+}
+function a(e) {
+	return [
+		...Array.isArray(e?.definitions?.subgraphs) ? e.definitions.subgraphs : [],
+		...Array.isArray(e?.subgraphs) ? e.subgraphs : [],
+		...Array.isArray(e?.rootGraph?.subgraphs) ? e.rootGraph.subgraphs : []
+	].filter((e) => e && typeof e == "object" && Array.isArray(e.nodes));
+}
+function o(e) {
+	return [
+		e?.subgraph,
+		e?._subgraph,
+		e?.subgraph?.graph,
+		e?.subgraph?.lgraph,
+		e?.properties?.subgraph,
+		e?.subgraph_instance,
+		e?.subgraph_instance?.graph,
+		e?.inner_graph,
+		e?.subgraph_graph
+	].filter((e) => e && typeof e == "object" && Array.isArray(e.nodes));
+}
+function s(e) {
+	let t = e?.inputs;
+	if (t && typeof t == "object" && !Array.isArray(t)) return t;
+	let n = e?.widgets_values, r = {};
+	if (n && typeof n == "object" && !Array.isArray(n)) {
+		for (let [e, t] of Object.entries(n)) r[e] = t;
+		return r;
+	}
+	if (!Array.isArray(t) || !Array.isArray(n)) return null;
+	let i = t.filter(c);
+	for (let e = 0; e < n.length; e += 1) {
+		let a = i[e] || t[e] || null, o = String(a?.label || a?.localized_name || a?.name || a?.widget?.name || a?.widget?.label || "").trim();
+		r[o || `param_${e + 1}`] = n[e];
+	}
+	return r;
+}
+function c(e) {
+	if (!e || typeof e != "object") return !1;
+	if (e.widget === !0 || e.widget && typeof e.widget == "object" || typeof e.widget == "string" && e.widget.trim()) return !0;
+	if (e.link != null) return !1;
+	let t = String(e.type || "").trim().toUpperCase();
+	return [
+		"INT",
+		"FLOAT",
+		"STRING",
+		"BOOLEAN",
+		"BOOL",
+		"COMBO",
+		"ENUM"
+	].includes(t);
 }
 //#endregion
 //#region ui/components/sidebar/parsers/geninfoParser.ts
-var r = /^(?:[a-z]:[\\/]|[\\/]{1,2}|\.{1,2}[\\/]|~[\\/]).+?[\\/][^\\/\n]+\.(?:png|jpe?g|webp|gif|bmp|tiff?|avif|heic|heif|apng|hdr|svg|mp4|webm|mov|mkv|avi|m4v|mp3|wav|flac|ogg|glb|gltf|obj|fbx|ply|stl|ckpt|safetensors|pt|pth|bin|gguf|json|ya?ml)$/i, i = /^(?!.*[,;])(?!.*\b(?:cinematic|portrait|landscape|lighting|style|detailed|masterpiece|photo|render)\b).*(?:[\\/][^\\/\n]+){2,}\.(?:png|jpe?g|webp|gif|bmp|tiff?|avif|heic|heif|apng|hdr|svg|mp4|webm|mov|mkv|avi|m4v|mp3|wav|flac|ogg|glb|gltf|obj|fbx|ply|stl|ckpt|safetensors|pt|pth|bin|gguf|json|ya?ml)$/i;
-function a(r) {
+var l = /^(?:[a-z]:[\\/]|[\\/]{1,2}|\.{1,2}[\\/]|~[\\/]).+?[\\/][^\\/\n]+\.(?:png|jpe?g|webp|gif|bmp|tiff?|avif|heic|heif|apng|hdr|svg|mp4|webm|mov|mkv|avi|m4v|mp3|wav|flac|ogg|glb|gltf|obj|fbx|ply|stl|ckpt|safetensors|pt|pth|bin|gguf|json|ya?ml)$/i, u = /^(?!.*[,;])(?!.*\b(?:cinematic|portrait|landscape|lighting|style|detailed|masterpiece|photo|render)\b).*(?:[\\/][^\\/\n]+){2,}\.(?:png|jpe?g|webp|gif|bmp|tiff?|avif|heic|heif|apng|hdr|svg|mp4|webm|mov|mkv|avi|m4v|mp3|wav|flac|ogg|glb|gltf|obj|fbx|ply|stl|ckpt|safetensors|pt|pth|bin|gguf|json|ya?ml)$/i;
+function d(r) {
 	if (!r) return null;
 	if (typeof r == "object") {
 		let i = r.geninfo || r.GenInfo || r.generation || null;
@@ -209,7 +287,7 @@ function a(r) {
 		let n = e(t);
 		if (n) return n;
 		if (t.startsWith("{") && t.endsWith("}") || t.startsWith("[") && t.endsWith("]")) try {
-			return a(JSON.parse(t));
+			return d(JSON.parse(t));
 		} catch {
 			return null;
 		}
@@ -217,21 +295,21 @@ function a(r) {
 	}
 	return null;
 }
-function o(e) {
+function f(e) {
 	let t = typeof e == "string" ? e.trim() : "";
-	return !t || t.includes("\n") ? !1 : r.test(t) || i.test(t);
+	return !t || t.includes("\n") ? !1 : l.test(t) || u.test(t);
 }
-function s(e) {
+function p(e) {
 	let t = typeof e == "string" ? e.trim() : "";
-	return t ? o(t) ? "" : t : "";
+	return t ? f(t) ? "" : t : "";
 }
-function c(e, t) {
-	let n = s(e), r = s(t);
+function m(e, t) {
+	let n = p(e), r = p(t);
 	if (n) {
 		let e = /(?:^|\n)\s*Negative prompt:\s*/i;
 		if (e.test(n)) {
-			let t = n.split(e), i = (t[0] || "").trim(), a = t.slice(1).join("Negative prompt:").trim(), o = a.search(/\n\s*Steps:\s*\d+/i), c = (o >= 0 ? a.slice(0, o) : a).trim();
-			i && (n = s(i)), !r && c && (r = s(c));
+			let t = n.split(e), i = (t[0] || "").trim(), a = t.slice(1).join("Negative prompt:").trim(), o = a.search(/\n\s*Steps:\s*\d+/i), s = (o >= 0 ? a.slice(0, o) : a).trim();
+			i && (n = p(i)), !r && s && (r = p(s));
 		}
 	}
 	return n && r && n.trim() === r.trim() && (r = ""), {
@@ -239,15 +317,15 @@ function c(e, t) {
 		negative: r
 	};
 }
-function l(e) {
+function h(e) {
 	if (!e) return "";
 	let t = String(e).trim().replace(/\\/g, "/");
 	return (t.split("/").pop() || t).replace(/\.(safetensors|ckpt|pt|pth|bin|gguf|json)$/i, "");
 }
-function u(e) {
+function g(e) {
 	if (!e) return "";
-	if (typeof e == "string") return l(e);
-	let t = l(e.name || e.lora_name || "");
+	if (typeof e == "string") return h(e);
+	let t = h(e.name || e.lora_name || "");
 	if (!t) return "";
 	let n = e.weight ?? e.strength ?? null, r = e.strength_model ?? null, i = e.strength_clip ?? null;
 	if (r !== null || i !== null) {
@@ -256,11 +334,11 @@ function u(e) {
 	}
 	return n == null ? t : `${t} (${n})`;
 }
-function d(e) {
+function _(e) {
 	let t = String(e || "").trim().toLowerCase();
 	return t ? t === "img2vid" ? "Image-to-Video" : t === "txt2vid" ? "Text-to-Video" : t === "img2img" ? "Image-to-Image" : t === "txt2img" ? "Text-to-Image" : t === "vid2vid" ? "Video-to-Video" : t === "tts" ? "Text-to-Speech" : t === "audio" ? "Audio" : t.split(/[_\s-]+/).filter(Boolean).map((e) => e.charAt(0).toUpperCase() + e.slice(1)).join(" ") : "";
 }
-function f(e) {
+function v(e) {
 	let t = String(e || "").trim().toLowerCase();
 	if (!t || t === "api") return "";
 	let n = {
@@ -282,8 +360,8 @@ function f(e) {
 	};
 	return n[t] ? n[t] : t.split(/[_\s-]+/).filter(Boolean).map((e) => e.charAt(0).toUpperCase() + e.slice(1)).join(" ");
 }
-function p(e) {
-	let t = e?.engine && typeof e.engine == "object" ? e.engine : null, n = String(t?.type || "").trim(), r = String(t?.sampler_mode || "").trim().toLowerCase(), i = d(n) || n, a = f(t?.api_provider), o = r === "api" ? `API ${i || "Workflow"}` : i;
+function y(e) {
+	let t = e?.engine && typeof e.engine == "object" ? e.engine : null, n = String(t?.type || "").trim(), r = String(t?.sampler_mode || "").trim().toLowerCase(), i = _(n) || n, a = v(t?.api_provider), o = r === "api" ? `API ${i || "Workflow"}` : i;
 	return {
 		workflowType: n,
 		workflowLabel: String(o || n).trim(),
@@ -291,4 +369,4 @@ function p(e) {
 	};
 }
 //#endregion
-export { c as a, a as i, u as n, s as o, l as r, p as t };
+export { m as a, d as i, g as n, p as o, h as r, y as t };

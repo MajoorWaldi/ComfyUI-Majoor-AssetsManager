@@ -522,6 +522,30 @@ export function registerAdvancedSettings(safeAddSetting: (def: any) => void, set
     });
 
     safeAddSetting({
+        id: `${SETTINGS_PREFIX}.Observability.RuntimeDashboardMode`,
+        category: cat(t("cat.advanced"), "Runtime metrics badge"),
+        name: "Majoor: Runtime metrics badge",
+        tooltip:
+            "Controls the small DB/enrichment/watcher metrics badge in the Assets Manager panel.",
+        type: "combo",
+        defaultValue:
+            settings.observability?.runtimeDashboardMode ||
+            DEFAULT_SETTINGS.observability.runtimeDashboardMode,
+        options: ["autoHide30", "always", "hidden"],
+        onChange: (value: any) => {
+            const mode = _safeOneOf(
+                value,
+                ["autoHide30", "always", "hidden"],
+                DEFAULT_SETTINGS.observability.runtimeDashboardMode,
+            );
+            settings.observability = settings.observability || {};
+            settings.observability.runtimeDashboardMode = mode;
+            saveMajoorSettings(settings);
+            notifyApplied("observability.runtimeDashboardMode");
+        },
+    });
+
+    safeAddSetting({
         id: `${SETTINGS_PREFIX}.Observability.VerboseErrors`,
         category: cat(t("cat.advanced"), "Verbose error logging"),
         name: "Verbose error logging",

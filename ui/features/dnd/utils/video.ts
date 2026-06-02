@@ -22,7 +22,7 @@ const isVideoFilename = (filename: any) => {
 
 const isVideoPayload = (payload: any) => {
     if (!payload) return false;
-    if (payload.kind === "video") return true;
+    if (String(payload.kind || "").toLowerCase() === "video") return true;
     return isVideoFilename(payload.filename);
 };
 

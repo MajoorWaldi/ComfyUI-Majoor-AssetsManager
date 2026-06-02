@@ -105,6 +105,40 @@ describe("useAssetsQuery", () => {
         expect(restoreAnchor).toHaveBeenCalledTimes(2);
     });
 
+    it("keeps dirty reloads pending while hidden and runs them on visibility restore", async () => {
+        const { createAssetsQueryController } =
+            await import("../vue/composables/useAssetsQuery.js");
+
+        const gridContainer = createGridContainer();
+        gridContainer.isConnected = false;
+        gridContainer.getClientRects = vi.fn(() => []);
+        const gridWrapper = createGridWrapper();
+        gridWrapper.isConnected = false;
+        gridWrapper.getClientRects = vi.fn(() => []);
+        const reloadGrid = vi.fn(async () => ({ ok: true }));
+        const controller = createAssetsQueryController({
+            gridContainer,
+            gridWrapper,
+            gridController: { reloadGrid },
+            captureAnchor: () => null,
+            restoreAnchor: async () => {},
+        });
+
+        controller.markGridDirty("scan");
+        await Promise.resolve();
+        expect(reloadGrid).toHaveBeenCalledTimes(0);
+
+        gridContainer.isConnected = true;
+        gridContainer.getClientRects = vi.fn(() => [{ width: 320, height: 240 }]);
+        gridWrapper.isConnected = true;
+        gridWrapper.getClientRects = vi.fn(() => [{ width: 320, height: 240 }]);
+        controller.setVisibility(true);
+        await Promise.resolve();
+        await Promise.resolve();
+
+        expect(reloadGrid).toHaveBeenCalledTimes(1);
+    });
+
     it("restores scroll, selection, and sidebar state after the initial load", async () => {
         const { createAssetsQueryController } =
             await import("../vue/composables/useAssetsQuery.js");
@@ -311,7 +345,7 @@ describe("useAssetsQuery", () => {
         expect(reloadGrid).toHaveBeenCalledTimes(1);
     });
 
-    it("does not auto-reload on background total growth when the grid already shows cards", async () => {
+    it("reloads on background total growth when the grid already shows cards", async () => {
         const { createAssetsQueryController } =
             await import("../vue/composables/useAssetsQuery.js");
 
@@ -360,10 +394,10 @@ describe("useAssetsQuery", () => {
             total_assets: 140,
         });
 
-        expect(reloadGrid).toHaveBeenCalledTimes(0);
+        expect(reloadGrid).toHaveBeenCalledTimes(1);
     });
 
-    it("does not auto-reload on background index updates when the grid already shows cards", async () => {
+    it("reloads on background index updates when the grid already shows cards", async () => {
         const { createAssetsQueryController } =
             await import("../vue/composables/useAssetsQuery.js");
 
@@ -412,10 +446,10 @@ describe("useAssetsQuery", () => {
             total_assets: 100,
         });
 
-        expect(reloadGrid).toHaveBeenCalledTimes(0);
+        expect(reloadGrid).toHaveBeenCalledTimes(1);
     });
 
-    it("does not trigger counters-based reload while the grid host is hidden", async () => {
+    it("defers counters-based reload while the grid host is hidden and resumes when visible", async () => {
         const { createAssetsQueryController } =
             await import("../vue/composables/useAssetsQuery.js");
 
@@ -469,6 +503,17 @@ describe("useAssetsQuery", () => {
         });
 
         expect(reloadGrid).toHaveBeenCalledTimes(0);
+
+        gridContainer.isConnected = true;
+        gridContainer.getClientRects = vi.fn(() => [{ width: 320, height: 240 }]);
+        gridWrapper.isConnected = true;
+        gridWrapper.getClientRects = vi.fn(() => [{ width: 320, height: 240 }]);
+
+        controller.setVisibility(true);
+        await Promise.resolve();
+        await Promise.resolve();
+
+        expect(reloadGrid).toHaveBeenCalledTimes(1);
     });
 
     it("binds search input with debounce and immediate reload for empty query", async () => {

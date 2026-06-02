@@ -12,6 +12,9 @@ export const buildPayloadViewURL = (payload: any, { buildCustomViewURL, buildVie
     if (type === "input") {
         return buildViewURL(payload?.filename || "", payload?.subfolder || "", "input");
     }
+    if (type === "temp") {
+        return buildViewURL(payload?.filename || "", payload?.subfolder || "", "temp");
+    }
     return buildViewURL(payload?.filename || "", payload?.subfolder || "", "output");
 };
 
@@ -30,7 +33,7 @@ const _sanitizeDraggedPayload = (value: any) => {
         .join("/")
         .replace(/^\/+/, "");
     const rawType = String(value.type || "output").toLowerCase();
-    const type = rawType === "input" || rawType === "custom" ? rawType : "output";
+    const type = rawType === "input" || rawType === "temp" || rawType === "custom" ? rawType : "output";
 
     const rootId = value.root_id == null ? undefined : String(value.root_id).trim();
     const kind = value.kind == null ? undefined : String(value.kind).toLowerCase();

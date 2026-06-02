@@ -468,8 +468,10 @@ export function buildAssetViewURL(asset: Record<string, any> | null | undefined)
         const out = { type: "", subfolder: "", filename: "" };
         const normalized = toPosixPath(p);
         if (!normalized) return out;
-        const idxOut = normalized.toLowerCase().indexOf("/output/");
-        const idxIn = normalized.toLowerCase().indexOf("/input/");
+        const lower = normalized.toLowerCase();
+        const idxOut = lower.indexOf("/output/");
+        const idxIn = lower.indexOf("/input/");
+        const idxTemp = lower.indexOf("/temp/");
         let baseIdx = -1;
         if (idxOut >= 0) {
             out.type = "output";
@@ -477,6 +479,9 @@ export function buildAssetViewURL(asset: Record<string, any> | null | undefined)
         } else if (idxIn >= 0) {
             out.type = "input";
             baseIdx = idxIn + "/input/".length;
+        } else if (idxTemp >= 0) {
+            out.type = "temp";
+            baseIdx = idxTemp + "/temp/".length;
         }
         if (baseIdx >= 0) {
             const rel = normalized.slice(baseIdx);
@@ -509,15 +514,17 @@ export function buildAssetViewURL(asset: Record<string, any> | null | undefined)
     let type = String(asset?.type || asset?.file_info?.type || "")
         .toLowerCase()
         .trim();
-    if (type !== "input" && type !== "output" && type !== "custom") type = "";
+    if (type !== "input" && type !== "output" && type !== "temp" && type !== "custom") type = "";
     if (!type && fromPath.type) type = fromPath.type;
     if (!type && rawPath) {
         if (rawPath.includes("/input/")) type = "input";
         else if (rawPath.includes("/output/")) type = "output";
+        else if (rawPath.includes("/temp/")) type = "temp";
     }
     if (!type) type = "output";
 
-    const hasNativeBucket = rawPath.includes("/output/") || rawPath.includes("/input/");
+    const hasNativeBucket =
+        rawPath.includes("/output/") || rawPath.includes("/input/") || rawPath.includes("/temp/");
     const subfolderLooksAbsolute = hasWindowsDrivePrefix(subfolder) || subfolder.startsWith("/");
     // Fallback: non-native output/input roots (or broken absolute subfolder values)
     // cannot be served by ComfyUI `/view`, so use backend filepath streaming URL.
@@ -540,6 +547,7 @@ export function buildAssetViewURL(asset: Record<string, any> | null | undefined)
     // Prefer path-based type when explicit type conflicts with obvious filepath bucket.
     if (rawPath.includes("/output/")) type = "output";
     if (rawPath.includes("/input/")) type = "input";
+    if (rawPath.includes("/temp/")) type = "temp";
     return withMtime(buildViewURL(filename, subfolder, type));
 }
 
