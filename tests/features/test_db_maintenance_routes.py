@@ -26,7 +26,8 @@ class _StreamProtocol:
     def pause_reading(self):
         self._reading_paused = True
 
-    def resume_reading(self):
+    def resume_reading(self, *args, **kwargs):
+        # aiohttp may call resume_reading(resume_parser=...) depending on version.
         self._reading_paused = False
 
 

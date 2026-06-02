@@ -36,6 +36,7 @@ import { mountTopBarMfvButton, teardownTopBarMfvButton } from "./topBarMfvButton
 import { startEarlyFetch, consumeEarlyFetch } from "./earlyFetch.js";
 import { configureSidebarAssetBadge, resetSidebarAssetBadge } from "./sidebarAssetBadge.js";
 import { consumePendingGeneratedAssets } from "./pendingGeneratedAssets.js";
+import { refreshGeneratedFeedHosts } from "../bottomPanel/feed/feedHost.js";
 
 // -- keep-alive mount keys -----------------------------------------------------
 const GLOBAL_RUNTIME_ROOT_ID = "mjr-global-runtime-root";
