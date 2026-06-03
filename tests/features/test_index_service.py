@@ -129,12 +129,12 @@ def test_rename_helper_functions(tmp_path: Path) -> None:
 async def test_scan_directory_fast_background_starts_enrichment(monkeypatch) -> None:
     svc = _build_service(monkeypatch)
 
-    emitted = {"n": 0}
+    emitted = []
 
     from mjr_am_backend.adapters import comfy_core
 
-    def _send_event(_event, _payload):
-        emitted["n"] += 1
+    def _send_event(event, payload):
+        emitted.append((event, payload))
         return True
 
     monkeypatch.setattr(comfy_core, "send_event", _send_event)
@@ -143,7 +143,7 @@ async def test_scan_directory_fast_background_starts_enrichment(monkeypatch) -> 
     svc._scanner.scan_result = Result.Ok({"to_enrich": ["a"], "added": 1})
     res = await svc.scan_directory(".", fast=True, background_metadata=True)
     assert res.ok
-    assert emitted["n"] == 1
+    assert any(event == "mjr-scan-complete" for event, _payload in emitted)
 
 
 @pytest.mark.asyncio

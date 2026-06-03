@@ -12,7 +12,7 @@ from typing import Any
 
 from mjr_am_backend.utils import sanitize_for_json
 
-from .comfy_core import send_event
+from . import comfy_core
 
 STRUCTURED_EVENT_NAME = "mjr.event"
 
@@ -48,10 +48,16 @@ def emit_event(event: str, payload: Any, *, category: str | None = None, sid: st
     if not safe_event:
         return False
     data = sanitize_for_json(payload if isinstance(payload, dict) else {"value": payload})
-    sent = send_event(safe_event, data, sid)
+    sent = _send_event(safe_event, data, sid)
     envelope = build_event_payload(safe_event, data, category=category)
-    send_event(STRUCTURED_EVENT_NAME, envelope, sid)
+    _send_event(STRUCTURED_EVENT_NAME, envelope, sid)
     return sent
+
+
+def _send_event(event: str, payload: Any, sid: str | None) -> bool:
+    if sid is None:
+        return comfy_core.send_event(event, payload)
+    return comfy_core.send_event(event, payload, sid)
 
 
 def _category_for_event(event: str) -> str:
