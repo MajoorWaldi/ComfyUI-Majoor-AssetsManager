@@ -1,6 +1,6 @@
 import { t as e } from "./rolldown-runtime-Dy4uBu1J.js";
 import { l as t, t as n } from "./config-Cxv7acF8.js";
-import { C as r, c as i, l as a, m as o, s, t as c } from "./SidebarWorkflowSection-na0bq_pe.js";
+import { C as r, c as i, l as a, m as o, s, t as c } from "./SidebarWorkflowSection-Dw9T8b4-.js";
 import { C as l, F as u, S as d, T as f, at as p, ot as m, rt as h, w as g, x as _ } from "./mjr-primevue-DeVPqKdl.js";
 //#region ui/vue/components/viewer/ViewerMetadataBlock.vue
 var v = { style: {

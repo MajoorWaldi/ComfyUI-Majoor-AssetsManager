@@ -1,12 +1,12 @@
 import { _t as e, a as t, n } from "./client-DZE_lzdb.js";
 import { D as r, E as i, M as a, O as o, S as s, T as c, _ as l, g as u, j as d, k as f, l as p, nt as m, p as h, q as g, t as _, v } from "./config-Cxv7acF8.js";
 import { a as y, i as b, o as x, s as S } from "./graphTraversal-CjIZsRsP.js";
-import { a as C, b as w, c as T, i as E, n as D, o as O, r as k, y as A } from "./SidebarWorkflowSection-na0bq_pe.js";
+import { a as C, b as w, c as T, i as E, n as D, o as O, r as k, y as A } from "./SidebarWorkflowSection-Dw9T8b4-.js";
 import { r as j } from "./events-BnkL6-b6.js";
-import { _ as M, c as N, f as ee, g as P, h as F, i as te, l as ne, n as re, r as ie, s as ae, t as oe, v as se, y as I } from "./openMajoorSettings-BeNfIQfY.js";
+import { _ as M, c as N, f as ee, g as P, h as F, i as te, l as ne, n as re, r as ie, s as ae, t as oe, v as se, y as I } from "./openMajoorSettings-BbE45fW7.js";
 import { a as L, n as ce, r as le } from "./model3dRenderer-BtzSm2ZA.js";
 import { i as ue, o as R, r as de, t as fe } from "./geninfoParser-5vKgjqjD.js";
-import { t as pe } from "./genInfo-oNZ5Okna.js";
+import { t as pe } from "./genInfo-D6I8KzRI.js";
 //#region ui/features/viewer/floatingViewerConstants.ts
 var z = Object.freeze({
 	SIMPLE: "simple",
@@ -705,7 +705,7 @@ var Qe = class {
 };
 function $e() {
 	try {
-		return y();
+		return s();
 	} catch {
 		return null;
 	}
@@ -1367,13 +1367,13 @@ var an = class {
 	}
 	_makeModeButton(e, t) {
 		let n = document.createElement("button");
-		return n.type = "button", n.className = "mjr-wgm-mode", n.textContent = String(e), n.addEventListener("click", () => this._setSubgraphDisplayMode(t)), this._modeButtons.set(t, n), n;
+		return n.type = "button", n.className = "mjr-wgm-mode", n.textContent = String(e), n.addEventListener?.("click", () => this._setSubgraphDisplayMode(t)), this._modeButtons.set(t, n), n;
 	}
 	_setSubgraphDisplayMode(e) {
 		e !== "expand" && e !== "host" || this._subgraphDisplayMode !== e && (this._subgraphDisplayMode = e, e === "host" && String(this._selectedNodeId || "").includes("::") && (this._selectedNodeId = ""), this._syncModeButtons(), this.refresh());
 	}
 	_syncModeButtons() {
-		for (let [e, t] of this._modeButtons.entries()) t.classList.toggle("is-active", e === this._subgraphDisplayMode);
+		for (let [e, t] of this._modeButtons.entries()) t.classList?.toggle?.("is-active", e === this._subgraphDisplayMode);
 	}
 	_buildNodeVisual(e) {
 		let t = document.createElement("section");

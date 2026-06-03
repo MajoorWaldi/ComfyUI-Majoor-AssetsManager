@@ -9,8 +9,8 @@
  * value sync runs every frame without touching the DOM structure.
  */
 
-import { focusHostCanvasNode, getSelectedHostCanvasNodeIds } from "../../../app/hostAdapter.js";
-import { getGraphNodes, getHostRootGraph, getNodeSubgraphs } from "../../../app/graphTraversal.js";
+import { focusHostCanvasNode, getHostGraph, getSelectedHostCanvasNodeIds } from "../../../app/hostAdapter.js";
+import { getGraphNodes, getNodeSubgraphs } from "../../../app/graphTraversal.js";
 import { NodeWidgetRenderer } from "./NodeWidgetRenderer.js";
 
 type LooseRecord = Record<string, any>;
@@ -281,7 +281,7 @@ export class WorkflowNodesTab {
 
 function _getGraph() {
     try {
-        return getHostRootGraph();
+        return getHostGraph();
     } catch {
         return null;
     }

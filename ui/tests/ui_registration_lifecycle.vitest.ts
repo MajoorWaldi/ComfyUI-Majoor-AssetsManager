@@ -66,6 +66,8 @@ vi.mock("../api/client.js", () => ({
     post: vi.fn(),
     patch: vi.fn(),
     del: vi.fn(),
+    getWatcherStatus: vi.fn(() => Promise.resolve(null)),
+    toggleWatcher: vi.fn(() => Promise.resolve(null)),
 }));
 
 vi.mock("../api/endpoints.js", () => ({
@@ -76,18 +78,27 @@ vi.mock("../app/bootstrap.js", () => ({
     runStartupWarmup: vi.fn(() => Promise.resolve()),
 }));
 
-vi.mock("../app/config.js", () => ({
-    APP_CONFIG: { DEFAULT_PAGE_SIZE: 200 },
-}));
+vi.mock("../app/config.js", async (importOriginal) => {
+    const actual = await importOriginal();
+    return {
+        ...actual,
+        APP_CONFIG: { ...actual.APP_CONFIG, DEFAULT_PAGE_SIZE: 200 },
+    };
+});
 
-vi.mock("../app/events.js", () => ({
-    EVENTS: {
-        OPEN_ASSETS_MANAGER: "mjr:open-assets-manager",
-        RELOAD_GRID: "mjr:reload-grid",
-        MFV_TOGGLE: "mjr:mfv-toggle",
-        OPEN_NODE_CONTEXT: "mjr:open-node-context",
-    },
-}));
+vi.mock("../app/events.js", async (importOriginal) => {
+    const actual = await importOriginal();
+    return {
+        ...actual,
+        EVENTS: {
+            ...actual.EVENTS,
+            OPEN_ASSETS_MANAGER: "mjr:open-assets-manager",
+            RELOAD_GRID: "mjr:reload-grid",
+            MFV_TOGGLE: "mjr:mfv-toggle",
+            OPEN_NODE_CONTEXT: "mjr:open-node-context",
+        },
+    };
+});
 
 vi.mock("../app/toast.js", () => ({
     comfyToast: vi.fn(),

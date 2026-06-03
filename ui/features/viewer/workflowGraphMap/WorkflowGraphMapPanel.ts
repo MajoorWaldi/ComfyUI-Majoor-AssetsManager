@@ -252,7 +252,7 @@ export class WorkflowGraphMapPanel {
         button.type = "button";
         button.className = "mjr-wgm-mode";
         button.textContent = String(label);
-        button.addEventListener("click", () => this._setSubgraphDisplayMode(mode));
+        button.addEventListener?.("click", () => this._setSubgraphDisplayMode(mode));
         this._modeButtons.set(mode, button);
         return button;
     }
@@ -270,7 +270,7 @@ export class WorkflowGraphMapPanel {
 
     _syncModeButtons() {
         for (const [mode, button] of this._modeButtons.entries()) {
-            button.classList.toggle("is-active", mode === this._subgraphDisplayMode);
+            button.classList?.toggle?.("is-active", mode === this._subgraphDisplayMode);
         }
     }
 

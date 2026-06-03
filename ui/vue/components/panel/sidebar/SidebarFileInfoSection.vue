@@ -208,7 +208,7 @@ const rows = computed(() => {
                 <div :title="row.tooltip || ''" style="font-size: 12px; opacity: 0.68; min-width: 92px">
                     {{ row.label }}
                 </div>
-                <button
+                <MButton
                     v-if="row.action === 'sameWorkflow'"
                     type="button"
                     :title="t('tooltip.filterWorkflowId', 'Filter assets generated from the same embedded workflow id')"
@@ -216,7 +216,7 @@ const rows = computed(() => {
                     @click="applySameWorkflowFilter(row.value)"
                 >
                     {{ row.value }}
-                </button>
+                </MButton>
                 <div
                     v-else
                     :style="row.valueStyle || 'font-size: 12px; text-align: right; word-break: break-word'"

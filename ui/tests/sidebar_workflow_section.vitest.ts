@@ -135,7 +135,10 @@ describe("SidebarWorkflowSection", () => {
         expect(wrapper.text()).toContain("Groups");
         expect(wrapper.text()).toContain("Embedded");
 
-        await wrapper.find('button[title="Expanded minimap"]').trigger("click");
+        await wrapper
+            .findAll("button")
+            .find((node) => node.text().includes("Expanded"))
+            .trigger("click");
         expect(settingsState.workflowMinimap.size).toBe("expanded");
 
         await wrapper.find('button[title="Minimap settings"]').trigger("click");
