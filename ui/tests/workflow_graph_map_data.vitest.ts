@@ -84,7 +84,7 @@ describe("workflow graph map data", () => {
                 { name: "width", type: "INT", link: 23, widget: { name: "width" } },
                 { name: "height", type: "INT", link: 24, widget: { name: "height" } },
                 { name: "length", type: "INT", link: 25, widget: { name: "length" } },
-                { name: "batch_size", type: "INT" },
+                { name: "batch_size", type: "INT", widget: { name: "batch_size" } },
             ],
             widgets_values: [832, 480, 81, 1],
         };
@@ -95,6 +95,122 @@ describe("workflow graph map data", () => {
             ["height", 480],
             ["length", 81],
             ["batch_size", 1],
+        ]);
+    });
+
+    it("does not infer unmarked socket inputs as widgets for core sampler nodes", () => {
+        const node = {
+            id: 3,
+            type: "KSampler",
+            inputs: [
+                { name: "model", type: "MODEL", link: 1 },
+                { name: "positive", type: "CONDITIONING", link: 2 },
+                { name: "negative", type: "CONDITIONING", link: 3 },
+                { name: "latent_image", type: "LATENT", link: 4 },
+                { name: "seed", type: "INT" },
+                { name: "steps", type: "INT" },
+                { name: "cfg", type: "FLOAT" },
+                { name: "sampler_name", type: "COMBO" },
+                { name: "scheduler", type: "COMBO" },
+                { name: "denoise", type: "FLOAT" },
+            ],
+            widgets_values: [1088132929177955, "randomize", 20, 8, "euler", "simple", 1],
+        };
+
+        expect(getNodeInputSlotNames(node)).toEqual([]);
+        expect(getNodeWidgetValueEntries(node)).toEqual([
+            { label: "seed", value: 1088132929177955, index: 0 },
+            { label: "control_after_generate", value: "randomize", index: 1 },
+            { label: "steps", value: 20, index: 2 },
+            { label: "cfg", value: 8, index: 3 },
+            { label: "sampler_name", value: "euler", index: 4 },
+            { label: "scheduler", value: "simple", index: 5 },
+            { label: "denoise", value: 1, index: 6 },
+        ]);
+        expect(getNodeParamEntries(node)).toEqual([
+            ["seed", 1088132929177955],
+            ["control_after_generate", "randomize"],
+            ["steps", 20],
+            ["cfg", 8],
+            ["sampler_name", "euler"],
+            ["scheduler", "simple"],
+            ["denoise", 1],
+        ]);
+    });
+
+    it("uses prompt inputs for subgraph sampler parameters when widgets_values are ambiguous", () => {
+        const workflow = resolveAssetWorkflow({
+            workflow: {
+                nodes: [
+                    {
+                        id: 95,
+                        type: "c20beb1e-2a45-4872-913e-21018c09c578",
+                        properties: {
+                            proxyWidgets: [
+                                ["3", "seed"],
+                                ["3", "steps"],
+                            ],
+                        },
+                    },
+                ],
+                definitions: {
+                    subgraphs: [
+                        {
+                            id: "c20beb1e-2a45-4872-913e-21018c09c578",
+                            nodes: [
+                                {
+                                    id: 3,
+                                    type: "KSampler",
+                                    inputs: [
+                                        { name: "model", type: "MODEL", link: 13 },
+                                        { name: "positive", type: "CONDITIONING", link: 30 },
+                                        { name: "negative", type: "CONDITIONING", link: 33 },
+                                        { name: "latent_image", type: "LATENT", link: 427 },
+                                        { name: "seed", type: "INT", link: 71, widget: { name: "seed" } },
+                                        { name: "steps", type: "INT", link: 72, widget: { name: "steps" } },
+                                    ],
+                                    widgets_values: [
+                                        1088132929177955,
+                                        "randomize",
+                                        8,
+                                        1,
+                                        "res_multistep",
+                                        "simple",
+                                        1,
+                                    ],
+                                },
+                            ],
+                        },
+                    ],
+                },
+            },
+            prompt: {
+                "95:3": {
+                    class_type: "KSampler",
+                    inputs: {
+                        seed: 1088132929177955,
+                        steps: 8,
+                        cfg: 1,
+                        sampler_name: "res_multistep",
+                        scheduler: "simple",
+                        denoise: 1,
+                        model: ["95:11", 0],
+                        positive: ["95:27", 0],
+                        negative: ["95:33", 0],
+                        latent_image: ["95:242", 0],
+                    },
+                },
+            },
+        });
+        const sampler = findWorkflowNode(workflow, "95::3");
+
+        expect(getNodeParamEntries(sampler)).toEqual([
+            ["seed", 1088132929177955],
+            ["steps", 8],
+            ["cfg", 1],
+            ["sampler_name", "res_multistep"],
+            ["scheduler", "simple"],
+            ["denoise", 1],
         ]);
     });
 

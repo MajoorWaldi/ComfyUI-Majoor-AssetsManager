@@ -633,10 +633,21 @@ function _isExpandedTextWidgetLabel(label: any) {
 
 function _normalizePorts(ports: any) {
     if (!Array.isArray(ports)) return [];
-    return ports.filter(Boolean).map((port: any) => ({
-        name: String(port?.name || port?.label || "").trim(),
-        type: String(port?.type || port?.slot_type || port?.data_type || "").trim(),
-    }));
+    return ports
+        .filter((port: any) => port && !_portLooksLikeWidget(port))
+        .map((port: any) => ({
+            name: String(port?.name || port?.label || "").trim(),
+            type: String(port?.type || port?.slot_type || port?.data_type || "").trim(),
+        }));
+}
+
+function _portLooksLikeWidget(port: any) {
+    if (!port || typeof port !== "object") return false;
+    if (port.widget === true) return true;
+    if (port.widget && typeof port.widget === "object") return true;
+    if (typeof port.widget === "string" && port.widget.trim()) return true;
+    if (port.widget_index != null || port.widgetIndex != null) return true;
+    return false;
 }
 
 function _formatPortInfo(item: any) {
@@ -658,6 +669,12 @@ function _normalizePortToken(value: any) {
 }
 
 function _normalizeWidgetEntries(node: any): Array<{ label: any; key?: any; value: any }> {
+    const fromParams = getNodeParamEntries(node);
+    const entries = Array.isArray(fromParams)
+        ? fromParams.map(([label, value]: any) => ({ label, value }))
+        : [];
+    if (entries.length) return entries.slice(0, 160);
+
     const fromWidgets = getNodeWidgetValueEntries(node);
     if (Array.isArray(fromWidgets) && fromWidgets.length) {
         return fromWidgets.map((entry: any) => ({
@@ -666,11 +683,7 @@ function _normalizeWidgetEntries(node: any): Array<{ label: any; key?: any; valu
             value: entry?.value,
         }));
     }
-    const fromParams = getNodeParamEntries(node);
-    const entries = Array.isArray(fromParams)
-        ? fromParams.map(([label, value]: any) => ({ label, value }))
-        : [];
-    return entries.slice(0, 160);
+    return [];
 }
 
 function _getNodeVisualCategory(node: any) {

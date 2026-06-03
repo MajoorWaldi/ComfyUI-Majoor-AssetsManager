@@ -44,10 +44,12 @@ export async function ensureWorkflowObjectInfo(workflow: any): Promise<unknown> 
 
 export function resolveAssetWorkflow(asset: any): any {
     const candidates = _collectWorkflowCandidates(asset);
+    const promptGraph = _resolveAssetPromptGraph(asset);
     for (const candidate of candidates) {
         const parsed = _coerceObject(candidate);
         const workflow = _normalizeWorkflow(parsed);
         if (workflow) {
+            _decorateWorkflowPromptInputs(workflow, promptGraph);
             _decorateWorkflowSubgraphNames(workflow);
             return workflow;
         }
@@ -133,11 +135,21 @@ export function getNodeParamEntries(node: any) {
 
 function _getNodeValueParamEntries(node: any) {
     const entries = [];
+    const promptInputs =
+        node?._mjrPromptInputs && typeof node._mjrPromptInputs === "object" ? node._mjrPromptInputs : null;
     const inputs = node?.inputs && typeof node.inputs === "object" ? node.inputs : null;
+
+    if (promptInputs && !Array.isArray(promptInputs)) {
+        for (const [key, value] of Object.entries(promptInputs)) {
+            if (_valueLooksLikePromptLink(value)) continue;
+            entries.push([key, value]);
+        }
+    }
 
     if (inputs && !Array.isArray(inputs)) {
         for (const [key, value] of Object.entries(inputs)) {
             if (_valueLooksLikePromptLink(value)) continue;
+            if (entries.some(([existingKey]) => String(existingKey) === String(key))) continue;
             entries.push([key, value]);
         }
     }
@@ -163,10 +175,10 @@ export function getNodeWidgetValueEntries(node: any) {
     return widgetsValues.map((value, index) => {
         const guessedLabel = _guessWidgetLabel(node, index, value);
         const label =
-            objectInputNames[index] ||
             inputSlotNames[index] ||
             widgets[index]?.name ||
             widgets[index]?.label ||
+            objectInputNames[index] ||
             guessedLabel ||
             `param ${index + 1}`;
         return { label, value, index };
@@ -203,9 +215,6 @@ function _looksArrayLikeWidgetsValues(widgetsValuesRaw: any) {
 export function getNodeInputSlotNames(node: any) {
     const inputs = Array.isArray(node?.inputs) ? node.inputs : [];
     const widgetInputs = inputs.filter(_inputLooksLikeWidget);
-    const unlinkedWidgetLikeInputs = inputs.filter(
-        (input: any) => !_inputHasLink(input) && _inputTypeLooksWidgetCapable(input?.type),
-    );
     const labelSource: any[] = [];
     const seen = new Set();
     const addInput = (input: any) => {
@@ -215,7 +224,6 @@ export function getNodeInputSlotNames(node: any) {
         labelSource.push(input);
     };
     for (const input of widgetInputs) addInput(input);
-    for (const input of unlinkedWidgetLikeInputs) addInput(input);
     return labelSource.map((input: any) =>
         String(
             input?.label ||
@@ -303,6 +311,7 @@ function _inputLooksLikeWidget(input: any) {
     if (input.widget === true) return true;
     if (input.widget && typeof input.widget === "object") return true;
     if (typeof input.widget === "string" && input.widget.trim()) return true;
+    if (input.widget_index != null || input.widgetIndex != null) return true;
     return false;
 }
 
@@ -345,6 +354,17 @@ function _guessWidgetLabel(node: any, index: any, value: any) {
     const haystack = `${type} ${title}`.toLowerCase();
     const valueText = String(value ?? "").toLowerCase();
     if (haystack.includes("ksamplerselect")) return "sampler_name";
+    if (haystack.includes("ksampler")) {
+        return [
+            "seed",
+            "control_after_generate",
+            "steps",
+            "cfg",
+            "sampler_name",
+            "scheduler",
+            "denoise",
+        ][index] || null;
+    }
     if (haystack.includes("manualsigmas")) return "sigmas";
     if (haystack.includes("randomnoise")) return index === 0 ? "noise_seed" : index === 1 ? "control_after_generate" : null;
     if (haystack.includes("cfgguider")) return "cfg";
@@ -417,6 +437,24 @@ function _collectWorkflowCandidates(asset: any) {
     ].filter((value: any) => value != null);
 }
 
+function _resolveAssetPromptGraph(asset: any) {
+    const raw = _coerceObject(asset?.metadata_raw);
+    const meta = _coerceObject(asset?.metadata);
+    const candidates = [
+        asset?.prompt,
+        asset?.Prompt,
+        raw?.prompt,
+        raw?.Prompt,
+        meta?.prompt,
+        meta?.Prompt,
+    ];
+    for (const candidate of candidates) {
+        const parsed = _coerceObject(candidate);
+        if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) return parsed;
+    }
+    return null;
+}
+
 function _coerceObject(value: any) {
     if (!value) return null;
     if (typeof value === "object") return value;
@@ -465,6 +503,61 @@ function _decorateWorkflowSubgraphNames(workflow: any, visited = new WeakSet()) 
             _decorateWorkflowSubgraphNames(subgraph, visited);
         }
     }
+}
+
+function _decorateWorkflowPromptInputs(workflow: any, promptGraph: any) {
+    if (!workflow || typeof workflow !== "object" || !promptGraph || typeof promptGraph !== "object") return;
+    const promptNodes = _getPromptNodeEntries(promptGraph);
+    if (!promptNodes.length) return;
+    _decorateWorkflowPromptInputsInGraph(workflow, promptNodes, new WeakSet());
+}
+
+function _decorateWorkflowPromptInputsInGraph(workflow: any, promptNodes: any[], visited: WeakSet<object>) {
+    if (!workflow || typeof workflow !== "object" || visited.has(workflow)) return;
+    visited.add(workflow);
+    const definitions = _getSubgraphDefinitions(workflow);
+    for (const node of Array.isArray(workflow?.nodes) ? workflow.nodes : []) {
+        const match = _findPromptNodeMatch(node, promptNodes);
+        if (match?.inputs && typeof match.inputs === "object" && !Array.isArray(match.inputs)) {
+            node._mjrPromptInputs = match.inputs;
+        }
+        const subgraph = _getNodeSubgraph(workflow, node, definitions);
+        if (subgraph) _decorateWorkflowPromptInputsInGraph(subgraph, promptNodes, visited);
+    }
+}
+
+function _getPromptNodeEntries(promptGraph: any) {
+    if (!promptGraph || typeof promptGraph !== "object" || Array.isArray(promptGraph)) return [];
+    const entries = [];
+    for (const [id, value] of Object.entries(promptGraph)) {
+        if (!value || typeof value !== "object" || Array.isArray(value)) continue;
+        const classType = String((value as any).class_type || (value as any).type || "").trim();
+        const inputs = (value as any).inputs;
+        if (!classType || !inputs || typeof inputs !== "object" || Array.isArray(inputs)) continue;
+        const leafId = String(id).split(":").pop() || String(id);
+        entries.push({ id: String(id), leafId, classType, inputs });
+    }
+    return entries;
+}
+
+function _findPromptNodeMatch(node: any, promptNodes: any[]) {
+    const nodeId = String(node?.id ?? node?.ID ?? "").trim();
+    const nodeType = _normalizeNodeTypeForPromptMatch(getNodeType(node));
+    if (!nodeId || !nodeType) return null;
+    const exact = promptNodes.find(
+        (entry) => entry.id === nodeId && _normalizeNodeTypeForPromptMatch(entry.classType) === nodeType,
+    );
+    if (exact) return exact;
+    const matches = promptNodes.filter(
+        (entry) => entry.leafId === nodeId && _normalizeNodeTypeForPromptMatch(entry.classType) === nodeType,
+    );
+    return matches.length === 1 ? matches[0] : null;
+}
+
+function _normalizeNodeTypeForPromptMatch(value: any) {
+    return String(value || "")
+        .trim()
+        .toLowerCase();
 }
 
 function _applySubgraphDefinitionMetadata(node: any, definitions: any) {
