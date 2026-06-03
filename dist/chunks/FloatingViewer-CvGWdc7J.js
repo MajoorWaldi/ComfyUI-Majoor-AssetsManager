@@ -1234,7 +1234,7 @@ function Yt(e, t) {
 //#endregion
 //#region ui/features/viewer/workflowGraphMap/workflowGraphMapActions.ts
 async function Xt(e) {
-	return e ? te(JSON.stringify(e, null, 2)) : !1;
+	return e ? te(JSON.stringify(an(e), null, 2)) : !1;
 }
 async function Zt(e) {
 	return te(Qt(e));
@@ -1264,7 +1264,7 @@ function en(e) {
 	if (!a) return !1;
 	try {
 		let t = typeof structuredClone == "function" ? structuredClone(e) : JSON.parse(JSON.stringify(e));
-		return delete t.id, Array.isArray(t.pos) && (t.pos = [Number(t.pos[0] || 0) + 32, Number(t.pos[1] || 0) + 32]), typeof a.configure == "function" ? a.configure(t) : Object.assign(a, t), h(a);
+		return on(t, e), delete t.id, Array.isArray(t.pos) && (t.pos = [Number(t.pos[0] || 0) + 32, Number(t.pos[1] || 0) + 32]), typeof a.configure == "function" ? a.configure(t) : Object.assign(a, t), h(a);
 	} catch (e) {
 		return console.debug?.("[MFV Graph Map] import node failed", e), !1;
 	}
@@ -1276,7 +1276,7 @@ function tn(e) {
 		count: 0,
 		reason: "no-target"
 	};
-	let n = _t(e), r = Array.isArray(t.widgets) ? t.widgets : [];
+	let n = rn(e), r = Array.isArray(t.widgets) ? t.widgets : [];
 	if (!n.length || !r.length) return {
 		ok: !1,
 		count: 0,
@@ -1284,22 +1284,22 @@ function tn(e) {
 	};
 	let i = /* @__PURE__ */ new Map();
 	r.forEach((e, t) => {
-		for (let n of rn(e)) i.has(n) || i.set(n, {
+		for (let n of cn(e)) i.has(n) || i.set(n, {
 			widget: e,
 			index: t
 		});
 	});
-	let o = on(G(e)), s = on(t?.type || t?.comfyClass || t?.class_type), c = !!(o && s && o === s), l = /* @__PURE__ */ new Set(), u = 0;
+	let o = un(G(e)), s = un(t?.type || t?.comfyClass || t?.class_type), c = !!(o && s && o === s), l = /* @__PURE__ */ new Set(), u = 0;
 	for (let e of n) {
-		let n = an(e.label), a = n ? i.get(n) : null;
-		if ((!a || l.has(a.index)) && c) {
+		let n = ln(e.label), a = n ? i.get(n) : null;
+		if ((!a || l.has(a.index)) && c && Number.isInteger(e.index)) {
 			let t = r[e.index];
 			t && (a = {
 				widget: t,
 				index: e.index
 			});
 		}
-		!a || l.has(a.index) || ie(a.widget, sn(e.value), t) && (l.add(a.index), u += 1);
+		!a || l.has(a.index) || ie(a.widget, X(e.value), t) && (l.add(a.index), u += 1);
 	}
 	return a(), {
 		ok: u > 0,
@@ -1312,20 +1312,56 @@ function nn() {
 	return v() || null;
 }
 function rn(e) {
+	let t = ht(e);
+	return Array.isArray(t) && t.length ? t.map(([e, t]) => ({
+		label: e,
+		value: t
+	})) : _t(e);
+}
+function an(e) {
+	let t = typeof structuredClone == "function" ? structuredClone(e) : JSON.parse(JSON.stringify(e));
+	return on(t, e), t;
+}
+function on(e, t) {
+	let n = t?._mjrPromptInputs && typeof t._mjrPromptInputs == "object" ? t._mjrPromptInputs : null;
+	if (n) {
+		let r = sn(t, n);
+		r && (e.widgets_values = r);
+	}
+	delete e._mjrPromptInputs, delete e._mjrSubgraphProxyParams;
+}
+function sn(e, t) {
+	let n = un(G(e)), r = _t(e), i = new Map(r.map((e) => [ln(e.label), e.value]));
+	if (n.includes("ksamplerselect")) return t.sampler_name == null ? null : [X(t.sampler_name)];
+	if (n.includes("ksampler")) {
+		let e = t.control_after_generate ?? i.get("control_after_generate") ?? r[1]?.value;
+		return [
+			X(t.seed),
+			X(e),
+			X(t.steps),
+			X(t.cfg),
+			X(t.sampler_name),
+			X(t.scheduler),
+			X(t.denoise)
+		];
+	}
+	return null;
+}
+function cn(e) {
 	return [
 		e?.name,
 		e?.label,
 		e?.options?.name,
 		e?.options?.label
-	].map(an).filter(Boolean);
+	].map(ln).filter(Boolean);
 }
-function an(e) {
+function ln(e) {
 	return String(e ?? "").trim().toLowerCase().replace(/\s+/g, "_");
 }
-function on(e) {
+function un(e) {
 	return String(e ?? "").trim().toLowerCase();
 }
-function sn(e) {
+function X(e) {
 	if (typeof e != "object" || !e) return e;
 	try {
 		return typeof structuredClone == "function" ? structuredClone(e) : JSON.parse(JSON.stringify(e));
@@ -1335,7 +1371,7 @@ function sn(e) {
 }
 //#endregion
 //#region ui/features/viewer/workflowGraphMap/WorkflowGraphMapPanel.ts
-var cn = class {
+var dn = class {
 	constructor({ large: e = !1 } = {}) {
 		this._asset = null, this._workflow = null, this._selectedNodeId = "", this._renderInfo = null, this._resizeObserver = null, this._resizeObservedTarget = null, this._resizeObserverWindow = null, this._large = !!e, this._view = {
 			zoom: 1,
@@ -1368,7 +1404,7 @@ var cn = class {
 	_ensureResizeObserver() {
 		let e = this._mapWrap;
 		if (!e) return;
-		let t = X(e), n = t?.ResizeObserver || globalThis.ResizeObserver;
+		let t = Z(e), n = t?.ResizeObserver || globalThis.ResizeObserver;
 		if (typeof n == "function" && !(this._resizeObserver && this._resizeObservedTarget === e && this._resizeObserverWindow === t)) {
 			try {
 				this._resizeObserver?.disconnect?.();
@@ -1389,7 +1425,7 @@ var cn = class {
 		}
 		let e = this._canvas;
 		if (!e) return;
-		let t = e.getBoundingClientRect(), n = Math.max(1, Math.floor(t.width || e.clientWidth || 1)), r = Math.max(1, Math.floor(t.height || e.clientHeight || 1)), i = X(e), a = Math.max(1, Math.min(2, Number(i?.devicePixelRatio) || 1)), o = Math.floor(n * a), s = Math.floor(r * a);
+		let t = e.getBoundingClientRect(), n = Math.max(1, Math.floor(t.width || e.clientWidth || 1)), r = Math.max(1, Math.floor(t.height || e.clientHeight || 1)), i = Z(e), a = Math.max(1, Math.min(2, Number(i?.devicePixelRatio) || 1)), o = Math.floor(n * a), s = Math.floor(r * a);
 		(e.width !== o || e.height !== s) && (e.width = o, e.height = s);
 		let c = e.getContext?.("2d");
 		if (c && c.setTransform(a, 0, 0, a, 0, 0), !this._workflow) {
@@ -1411,14 +1447,14 @@ var cn = class {
 	_renderDetails() {
 		let e = this._subgraphDisplayMode !== "host", t = dt(this._workflow, { includeSubgraphs: e }).length;
 		if (!this._workflow) {
-			this._status.textContent = this._large ? "No workflow graph in selected image" : "Selected asset - no workflow graph", Z(this._details);
+			this._status.textContent = this._large ? "No workflow graph in selected image" : "Selected asset - no workflow graph", fn(this._details);
 			return;
 		}
 		this._status.textContent = this._large ? this._selectedNodeId ? `${t} nodes (${this._subgraphDisplayMode}) - selected #${this._selectedNodeId}` : `${t} nodes (${this._subgraphDisplayMode}) - select a node` : `${t} nodes - graph opened in viewer`;
 		let n = ft(this._workflow, this._selectedNodeId, { includeSubgraphs: e });
 		if (!n) {
 			let e = document.createElement("div");
-			e.className = "mjr-ws-sidebar-empty", e.textContent = this._large ? "Click a node in the graph map" : "Use the large Graph Map in the viewer to select nodes", Z(this._details, e);
+			e.className = "mjr-ws-sidebar-empty", e.textContent = this._large ? "Click a node in the graph map" : "Use the large Graph Map in the viewer to select nodes", fn(this._details, e);
 			return;
 		}
 		let r = document.createElement("div");
@@ -1428,7 +1464,7 @@ var cn = class {
 		let a = document.createElement("div");
 		a.className = "mjr-wgm-actions", a.appendChild(this._makeAction("Copy node", "pi pi-copy", () => Xt(n))), a.appendChild(this._makeAction("Import node", "pi pi-plus-circle", () => en(n))), a.appendChild(this._makeAction("Import workflow", "pi pi-download", () => $t(this._workflow))), a.appendChild(this._makeAction("Transfer params to selected canvas node", "pi pi-arrow-right-arrow-left", () => tn(n)?.ok));
 		let o = this._buildNodeVisual(n);
-		Z(this._details, r, i, o, a);
+		fn(this._details, r, i, o, a);
 	}
 	_makeModeButton(e, t) {
 		let n = document.createElement("button");
@@ -1442,7 +1478,7 @@ var cn = class {
 	}
 	_buildNodeVisual(e) {
 		let t = document.createElement("section");
-		t.className = "mjr-wgm-node-visual", t.classList.add(`is-${vn(e)}`);
+		t.className = "mjr-wgm-node-visual", t.classList.add(`is-${Sn(e)}`);
 		let n = document.createElement("div");
 		n.className = "mjr-wgm-node-visual-header";
 		let r = document.createElement("span");
@@ -1457,7 +1493,7 @@ var cn = class {
 		c.className = "mjr-wgm-node-widgets";
 		let l = document.createElement("div");
 		l.className = "mjr-wgm-node-widgets-title", l.textContent = "Widgets", c.appendChild(l);
-		let u = _n(e);
+		let u = xn(e);
 		if (u.length) {
 			for (let e of u.slice(0, 12)) {
 				let t = document.createElement("div");
@@ -1468,8 +1504,8 @@ var cn = class {
 				r.className = "mjr-wgm-node-widget-key", r.textContent = n;
 				let i = document.createElement("span");
 				i.className = "mjr-wgm-node-widget-value";
-				let a = un(e?.value);
-				i.textContent = a, dn(e?.value, a) && t.classList.add("is-multiline"), fn(n) && t.classList.add("is-text-field"), t.append(r, i), t.addEventListener("click", () => this._copyParam(t, e?.value)), t.addEventListener("keydown", (n) => {
+				let a = mn(e?.value);
+				i.textContent = a, hn(e?.value, a) && t.classList.add("is-multiline"), gn(n) && t.classList.add("is-text-field"), t.append(r, i), t.addEventListener("click", () => this._copyParam(t, e?.value)), t.addEventListener("keydown", (n) => {
 					n.key !== "Enter" && n.key !== " " || (n.preventDefault?.(), this._copyParam(t, e?.value));
 				}), c.appendChild(t);
 			}
@@ -1490,7 +1526,7 @@ var cn = class {
 		i.className = "mjr-wgm-node-ports-title", i.textContent = String(e), r.appendChild(i);
 		let a = document.createElement("div");
 		a.className = "mjr-wgm-node-ports-list";
-		let o = pn(t).slice(0, 8);
+		let o = _n(t).slice(0, 8);
 		if (o.length) for (let e of o) {
 			let t = document.createElement("div");
 			t.className = "mjr-wgm-node-port";
@@ -1498,7 +1534,7 @@ var cn = class {
 			r.className = `mjr-wgm-node-port-dot is-${n}`;
 			let i = document.createElement("span");
 			i.className = "mjr-wgm-node-port-name";
-			let o = hn(e);
+			let o = yn(e);
 			if (i.textContent = o.label, t.append(r, i), o.type) {
 				let e = document.createElement("span");
 				e.className = "mjr-wgm-node-port-type", e.textContent = o.type, t.appendChild(e);
@@ -1516,7 +1552,7 @@ var cn = class {
 		return r.type = "button", r.className = "mjr-wgm-action", r.title = e, r.innerHTML = `<i class="${t}" aria-hidden="true"></i><span>${e}</span>`, r.addEventListener("click", async () => {
 			try {
 				let e = await n();
-				r.classList.toggle("is-ok", !!e), X(r).setTimeout(() => r.classList.remove("is-ok"), 700);
+				r.classList.toggle("is-ok", !!e), Z(r).setTimeout(() => r.classList.remove("is-ok"), 700);
 			} catch (e) {
 				console.debug?.("[MFV Graph Map] action failed", e);
 			}
@@ -1525,18 +1561,18 @@ var cn = class {
 	async _copyParam(e, t) {
 		try {
 			let n = await Zt(t);
-			e.classList.toggle("is-ok", !!n), e.classList.toggle("is-error", !n), X(e).setTimeout(() => {
+			e.classList.toggle("is-ok", !!n), e.classList.toggle("is-error", !n), Z(e).setTimeout(() => {
 				e.classList.remove("is-ok"), e.classList.remove("is-error");
 			}, 750);
 		} catch (t) {
-			e.classList.add("is-error"), X(e).setTimeout(() => e.classList.remove("is-error"), 750), console.debug?.("[MFV Graph Map] param copy failed", t);
+			e.classList.add("is-error"), Z(e).setTimeout(() => e.classList.remove("is-error"), 750), console.debug?.("[MFV Graph Map] param copy failed", t);
 		}
 	}
 	_renderPreview() {
 		if (!this._preview) return;
-		let e = yn(this._asset), t = bn(e);
+		let e = Cn(this._asset), t = wn(e);
 		if (this._previewMedia && t && t === this._previewKey) {
-			(this._preview.firstChild !== this._previewMedia || this._preview.childNodes.length !== 1) && Z(this._preview, this._previewMedia);
+			(this._preview.firstChild !== this._previewMedia || this._preview.childNodes.length !== 1) && fn(this._preview, this._previewMedia);
 			return;
 		}
 		this._disposePreviewMedia();
@@ -1546,7 +1582,7 @@ var cn = class {
 			return;
 		}
 		let r = document.createElement("div");
-		r.className = "mjr-wgm-preview-empty", r.textContent = "No preview", Z(this._preview, r);
+		r.className = "mjr-wgm-preview-empty", r.textContent = "No preview", fn(this._preview, r);
 	}
 	_disposePreviewMedia() {
 		let e = this._previewMedia;
@@ -1617,24 +1653,24 @@ var cn = class {
 		}, r = (e) => {
 			if (!this._drag || e.pointerId !== this._drag.pointerId) return;
 			this._canvas.releasePointerCapture?.(e.pointerId);
-			let t = X(this._canvas);
+			let t = Z(this._canvas);
 			t.removeEventListener("pointermove", n), t.removeEventListener("pointerup", r), t.removeEventListener("pointercancel", r), t.setTimeout(() => {
 				this._drag = null;
 			}, 0);
-		}, i = X(this._canvas);
+		}, i = Z(this._canvas);
 		i.addEventListener("pointermove", n), i.addEventListener("pointerup", r), i.addEventListener("pointercancel", r);
 	}
 };
-function X(e) {
+function Z(e) {
 	return e?.ownerDocument?.defaultView || window;
 }
-function Z(e, ...t) {
+function fn(e, ...t) {
 	if (e) {
 		for (; e.firstChild;) e.removeChild(e.firstChild);
 		for (let n of t) e.appendChild(n);
 	}
 }
-function ln(e) {
+function pn(e) {
 	if (e == null) return "";
 	if (typeof e == "string") return e.replace(/\s+/g, " ").trim();
 	if (typeof e == "number" || typeof e == "boolean") return String(e);
@@ -1644,38 +1680,38 @@ function ln(e) {
 		return String(e);
 	}
 }
-function un(e) {
-	return e == null ? "" : typeof e == "string" ? e.replace(/\r\n?/g, "\n").trim() : ln(e);
+function mn(e) {
+	return e == null ? "" : typeof e == "string" ? e.replace(/\r\n?/g, "\n").trim() : pn(e);
 }
-function dn(e, t) {
+function hn(e, t) {
 	if (typeof e != "string") return !1;
 	let n = String(t || "");
 	return n.includes("\n") || n.length > 120;
 }
-function fn(e) {
+function gn(e) {
 	let t = String(e || "").toLowerCase().replace(/[^a-z0-9]/g, "");
 	return t ? t === "text" || t === "prompt" || t === "positive" || t === "negative" || t === "string" || t === "caption" : !1;
 }
-function pn(e) {
-	return Array.isArray(e) ? e.filter((e) => e && !mn(e)).map((e) => ({
+function _n(e) {
+	return Array.isArray(e) ? e.filter((e) => e && !vn(e)).map((e) => ({
 		name: String(e?.name || e?.label || "").trim(),
 		type: String(e?.type || e?.slot_type || e?.data_type || "").trim()
 	})) : [];
 }
-function mn(e) {
+function vn(e) {
 	return !e || typeof e != "object" ? !1 : !!(e.widget === !0 || e.widget && typeof e.widget == "object" || typeof e.widget == "string" && e.widget.trim() || e.widget_index != null || e.widgetIndex != null);
 }
-function hn(e) {
-	let t = String(e?.name || e?.label || e?.type || "port").trim() || "port", n = String(e?.type || "").trim(), r = gn(t), i = gn(n);
+function yn(e) {
+	let t = String(e?.name || e?.label || e?.type || "port").trim() || "port", n = String(e?.type || "").trim(), r = bn(t), i = bn(n);
 	return {
 		label: t,
 		type: i && i !== r ? n : ""
 	};
 }
-function gn(e) {
+function bn(e) {
 	return String(e || "").toLowerCase().replace(/[^a-z0-9]/g, "");
 }
-function _n(e) {
+function xn(e) {
 	let t = ht(e), n = Array.isArray(t) ? t.map(([e, t]) => ({
 		label: e,
 		value: t
@@ -1688,11 +1724,11 @@ function _n(e) {
 		value: e?.value
 	})) : [];
 }
-function vn(e) {
+function Sn(e) {
 	let t = `${String(G(e) || "").toLowerCase()} ${String(mt(e) || "").toLowerCase()}`;
 	return t.trim() ? /ksampler|sampler|scheduler|cfg|steps|noise|seed/.test(t) ? "sampler" : /checkpoint|clip|vae|unet|lora|model|loader/.test(t) ? "model" : /text|prompt|token|encode|decoder|caption|florence/.test(t) ? "text" : /latent|image|mask|video|audio|preview|save|load|upscale/.test(t) ? "media" : /controlnet|conditioning|guidance|adapter|ipadapter/.test(t) ? "control" : /math|logic|switch|merge|concat|combine|route|branch|reroute/.test(t) ? "logic" : "generic" : "generic";
 }
-function yn(e) {
+function Cn(e) {
 	if (!e || typeof e != "object") return e;
 	let t = (Array.isArray(e.previewCandidates) ? e.previewCandidates : []).find((e) => String(e || "").trim()) || e.url || "", n = String(e.type || "").toLowerCase(), r = String(e.kind || "").toLowerCase(), i = String(e.filename || e.name || ""), a = r || (e.isVideo || n === "video" || /\.(mp4|mov|webm|mkv|avi)$/i.test(i) ? "video" : e.isAudio || n === "audio" || /\.(mp3|wav|flac|ogg|m4a|aac|opus|wma)$/i.test(i) ? "audio" : e.isModel3d || n === "model3d" ? "model3d" : "");
 	return {
@@ -1704,7 +1740,7 @@ function yn(e) {
 		} : null
 	};
 }
-function bn(e) {
+function wn(e) {
 	return !e || typeof e != "object" ? "" : JSON.stringify({
 		url: String(e.url || ""),
 		filename: String(e.filename || e.name || ""),
@@ -1715,7 +1751,7 @@ function bn(e) {
 }
 //#endregion
 //#region ui/features/viewer/workflowSidebar/WorkflowSidebar.ts
-var xn = 16, Sn = 250, Cn = class {
+var Tn = 16, En = 250, Dn = class {
 	_hostEl;
 	_onClose;
 	_onOpenGraphMap;
@@ -1734,7 +1770,7 @@ var xn = 16, Sn = 250, Cn = class {
 	_nodesModeBtn;
 	_graphModeBtn;
 	constructor({ hostEl: e, onClose: t, onOpenGraphMap: n, onCloseGraphMap: r } = {}) {
-		this._hostEl = e, this._onClose = t ?? null, this._onOpenGraphMap = n ?? null, this._onCloseGraphMap = r ?? null, this._visible = !1, this._liveSyncHandle = null, this._liveSyncMode = "", this._lastLiveSyncAt = 0, this._resizeCleanup = null, this._nodesTab = new Qe(), this._graphMapPanel = new cn(), this._activeMode = "nodes", this._asset = null, this._body = null, this._nodesModeBtn = null, this._graphModeBtn = null, this._el = this._build();
+		this._hostEl = e, this._onClose = t ?? null, this._onOpenGraphMap = n ?? null, this._onCloseGraphMap = r ?? null, this._visible = !1, this._liveSyncHandle = null, this._liveSyncMode = "", this._lastLiveSyncAt = 0, this._resizeCleanup = null, this._nodesTab = new Qe(), this._graphMapPanel = new dn(), this._activeMode = "nodes", this._asset = null, this._body = null, this._nodesModeBtn = null, this._graphModeBtn = null, this._el = this._build();
 	}
 	get el() {
 		return this._el;
@@ -1743,7 +1779,7 @@ var xn = 16, Sn = 250, Cn = class {
 		return this._visible;
 	}
 	show() {
-		this._visible = !0, this._el.classList.add("open"), this.refresh(), this._lastLiveSyncAt = Tn(this._el), this._startLiveSync();
+		this._visible = !0, this._el.classList.add("open"), this.refresh(), this._lastLiveSyncAt = kn(this._el), this._startLiveSync();
 	}
 	hide() {
 		this._visible = !1, this._el.classList.remove("open"), this._stopLiveSync();
@@ -1802,20 +1838,20 @@ var xn = 16, Sn = 250, Cn = class {
 	}
 	_startLiveSync() {
 		if (this._liveSyncHandle != null) return;
-		let e = wn(this._el), t = (e) => {
+		let e = On(this._el), t = (e) => {
 			if (this._liveSyncHandle = null, this._liveSyncMode = "", !this._visible) return;
-			let t = Number.isFinite(Number(e)) ? Number(e) : Tn(this._el);
-			t - this._lastLiveSyncAt >= Sn && (this._lastLiveSyncAt = t, this.syncFromGraph()), this._startLiveSync();
+			let t = Number.isFinite(Number(e)) ? Number(e) : kn(this._el);
+			t - this._lastLiveSyncAt >= En && (this._lastLiveSyncAt = t, this.syncFromGraph()), this._startLiveSync();
 		};
 		if (typeof e.requestAnimationFrame == "function") {
 			this._liveSyncMode = "raf", this._liveSyncHandle = e.requestAnimationFrame(t);
 			return;
 		}
-		this._liveSyncMode = "timeout", this._liveSyncHandle = e.setTimeout(t, xn);
+		this._liveSyncMode = "timeout", this._liveSyncHandle = e.setTimeout(t, Tn);
 	}
 	_stopLiveSync() {
 		if (this._liveSyncHandle == null) return;
-		let e = wn(this._el);
+		let e = On(this._el);
 		try {
 			this._liveSyncMode === "raf" && typeof e.cancelAnimationFrame == "function" ? e.cancelAnimationFrame(this._liveSyncHandle) : typeof e.clearTimeout == "function" && e.clearTimeout(this._liveSyncHandle);
 		} catch (e) {
@@ -1851,11 +1887,11 @@ var xn = 16, Sn = 250, Cn = class {
 		this._resizeCleanup = null;
 	}
 };
-function wn(e) {
+function On(e) {
 	return e?.ownerDocument?.defaultView || (typeof window < "u" ? window : globalThis);
 }
-function Tn(e) {
-	let t = wn(e), n = t?.performance?.now;
+function kn(e) {
+	let t = On(e), n = t?.performance?.now;
 	if (typeof n == "function") try {
 		return Number(n.call(t.performance)) || Date.now();
 	} catch {
@@ -1870,19 +1906,19 @@ var Q = Object.freeze({
 	RUNNING: "running",
 	STOPPING: "stopping",
 	ERROR: "error"
-}), En = new Set([
+}), An = new Set([
 	"default",
 	"auto",
 	"latent2rgb",
 	"taesd",
 	"none"
-]), Dn = "progress-update", On = (e, t = "") => p(e, t, void 0);
-function kn() {
+]), jn = "progress-update", Mn = (e, t = "") => p(e, t, void 0);
+function Nn() {
 	let e = document.createElement("div");
 	e.className = "mjr-mfv-run-controls";
 	let t = document.createElement("button");
 	t.type = "button", t.className = "mjr-icon-btn mjr-mfv-run-btn";
-	let n = On("tooltip.queuePrompt", "Queue Prompt (Run)");
+	let n = Mn("tooltip.queuePrompt", "Queue Prompt (Run)");
 	t.title = n, t.setAttribute("aria-label", n);
 	let r = document.createElement("i");
 	r.className = "pi pi-play", r.setAttribute("aria-hidden", "true"), t.appendChild(r);
@@ -1898,7 +1934,7 @@ function kn() {
 		s = e, t.classList.toggle("running", s === Q.RUNNING), t.classList.toggle("stopping", s === Q.STOPPING), t.classList.toggle("error", s === Q.ERROR), t.disabled = s === Q.RUNNING || s === Q.STOPPING, i.disabled = !n || s === Q.STOPPING, i.classList.toggle("active", n && s !== Q.STOPPING), i.classList.toggle("stopping", s === Q.STOPPING), s === Q.RUNNING || s === Q.STOPPING ? r.className = "pi pi-spin pi-spinner" : r.className = "pi pi-play";
 	}
 	function m() {
-		let e = On("tooltip.queueStop", "Stop Generation");
+		let e = Mn("tooltip.queueStop", "Stop Generation");
 		i.title = e, i.setAttribute("aria-label", e);
 	}
 	function h(e = I.getSnapshot(), { authoritative: t = !1 } = {}) {
@@ -1935,7 +1971,7 @@ function kn() {
 		if (!(s === Q.RUNNING || s === Q.STOPPING)) {
 			l = !0, u = !1, h();
 			try {
-				(await Fn())?.tracked || (l = !1), h();
+				(await zn())?.tracked || (l = !1), h();
 			} catch (e) {
 				console.error?.("[MFV Run]", e), g();
 			}
@@ -1955,21 +1991,21 @@ function kn() {
 	let b = (e) => {
 		h(e?.detail || I.getSnapshot(), { authoritative: !0 });
 	};
-	return I.addEventListener(Dn, b), se({ timeoutMs: 4e3 }).catch((e) => {
+	return I.addEventListener(jn, b), se({ timeoutMs: 4e3 }).catch((e) => {
 		console.debug?.(e);
 	}), h(), {
 		el: e,
 		dispose() {
-			f(), t.removeEventListener("click", v), i.removeEventListener("click", y), I.removeEventListener(Dn, b);
+			f(), t.removeEventListener("click", v), i.removeEventListener("click", y), I.removeEventListener(jn, b);
 		}
 	};
 }
-function An(e = _.MFV_PREVIEW_METHOD) {
+function Pn(e = _.MFV_PREVIEW_METHOD) {
 	let t = String(e || "").trim().toLowerCase();
-	return En.has(t) ? t : _.MFV_PREVIEW_METHOD || "auto";
+	return An.has(t) ? t : _.MFV_PREVIEW_METHOD || "auto";
 }
-function jn(e, t = _.MFV_PREVIEW_METHOD) {
-	let n = An(t), r = {
+function Fn(e, t = _.MFV_PREVIEW_METHOD) {
+	let n = Pn(t), r = {
 		...e?.extra_data || {},
 		extra_pnginfo: { ...e?.extra_data?.extra_pnginfo || {} }
 	};
@@ -1978,14 +2014,14 @@ function jn(e, t = _.MFV_PREVIEW_METHOD) {
 		extra_data: r
 	};
 }
-function Mn(e, { previewMethod: t = _.MFV_PREVIEW_METHOD, clientId: n = null } = {}) {
-	let r = jn(e, t), i = {
+function In(e, { previewMethod: t = _.MFV_PREVIEW_METHOD, clientId: n = null } = {}) {
+	let r = Fn(e, t), i = {
 		prompt: r?.output,
 		extra_data: r?.extra_data || {}
 	}, a = String(n || "").trim();
 	return a && (i.client_id = a), i;
 }
-function Nn(e) {
+function Ln(e) {
 	let t = e?.constructor;
 	return [
 		e?.type,
@@ -1994,32 +2030,32 @@ function Nn(e) {
 		t?.type
 	].some((e) => /Api$/i.test(String(e || "").trim()));
 }
-function Pn(e) {
+function Rn(e) {
 	let t = !1;
 	return S(e, ({ node: e }) => {
-		t ||= Nn(e);
+		t ||= Ln(e);
 	}), t;
 }
-async function Fn() {
+async function zn() {
 	let e = c();
 	if (!e) throw Error("ComfyUI app not available");
 	return { tracked: await d({
 		app: e,
-		forceNativeQueue: Pn(y(e)),
+		forceNativeQueue: Rn(y(e)),
 		resolvePromptData(e) {
 			return typeof e?.graphToPrompt == "function" ? e.graphToPrompt() : null;
 		},
 		enrichPromptData(e) {
-			return jn(e);
+			return Fn(e);
 		},
 		buildPromptRequestBody(e, t) {
-			return Mn(e, { clientId: t.clientId });
+			return In(e, { clientId: t.clientId });
 		}
 	}) };
 }
 //#endregion
 //#region ui/features/viewer/floatingViewerUi.ts
-function In(e) {
+function Bn(e) {
 	let t = e?.models;
 	if (!t || typeof t != "object") return "";
 	let n = [
@@ -2037,11 +2073,11 @@ function In(e) {
 	}
 	return i.join(" | ");
 }
-function Ln(e) {
+function Vn(e) {
 	let t = fe(e);
 	return t.workflowLabel ? t.workflowBadge ? `${t.workflowLabel} • ${t.workflowBadge}` : t.workflowLabel : "";
 }
-function Rn(e, t, n, r) {
+function Hn(e, t, n, r) {
 	let i = document.createElement("div");
 	i.className = "mjr-mfv-idrop";
 	let a = document.createElement("button");
@@ -2089,21 +2125,21 @@ function Rn(e, t, n, r) {
 		}
 	};
 }
-var zn = {
+var Un = {
 	rgb: "#e0e0e0",
 	r: "#ff5555",
 	g: "#44dd66",
 	b: "#5599ff",
 	a: "#ffffff",
 	l: "#bbbbbb"
-}, Bn = {
+}, Wn = {
 	rgb: "RGB",
 	r: "R",
 	g: "G",
 	b: "B",
 	a: "A",
 	l: "L"
-}, Vn = {
+}, Gn = {
 	rgb: "500",
 	r: "700",
 	g: "700",
@@ -2111,9 +2147,9 @@ var zn = {
 	a: "700",
 	l: "400"
 };
-function Hn(e) {
+function Kn(e) {
 	let t = document.createElement("div");
-	return t.className = "mjr-mfv", t.setAttribute("role", "dialog"), t.setAttribute("aria-modal", "false"), t.setAttribute("aria-hidden", "true"), e.element = t, t.appendChild(e._buildHeader()), t.setAttribute("aria-labelledby", e._titleId), t.appendChild(e._buildToolbar()), t.appendChild(P(e)), e._contentWrapper = document.createElement("div"), e._contentWrapper.className = "mjr-mfv-content-wrapper", e._applySidebarPosition(), e._contentEl = document.createElement("div"), e._contentEl.className = "mjr-mfv-content", e._contentWrapper.appendChild(e._contentEl), e._overlayCanvas = document.createElement("canvas"), e._overlayCanvas.className = "mjr-mfv-overlay-canvas", e._contentEl.appendChild(e._overlayCanvas), e._contentEl.appendChild(F(e)), e._genSidebarEl = document.createElement("aside"), e._genSidebarEl.className = "mjr-mfv-gen-sidebar", e._genSidebarEl.setAttribute("aria-label", "Generation info"), e._genSidebarEl.setAttribute("hidden", ""), e._sidebar = new Cn({
+	return t.className = "mjr-mfv", t.setAttribute("role", "dialog"), t.setAttribute("aria-modal", "false"), t.setAttribute("aria-hidden", "true"), e.element = t, t.appendChild(e._buildHeader()), t.setAttribute("aria-labelledby", e._titleId), t.appendChild(e._buildToolbar()), t.appendChild(P(e)), e._contentWrapper = document.createElement("div"), e._contentWrapper.className = "mjr-mfv-content-wrapper", e._applySidebarPosition(), e._contentEl = document.createElement("div"), e._contentEl.className = "mjr-mfv-content", e._contentWrapper.appendChild(e._contentEl), e._overlayCanvas = document.createElement("canvas"), e._overlayCanvas.className = "mjr-mfv-overlay-canvas", e._contentEl.appendChild(e._overlayCanvas), e._contentEl.appendChild(F(e)), e._genSidebarEl = document.createElement("aside"), e._genSidebarEl.className = "mjr-mfv-gen-sidebar", e._genSidebarEl.setAttribute("aria-label", "Generation info"), e._genSidebarEl.setAttribute("hidden", ""), e._sidebar = new Dn({
 		hostEl: t,
 		onClose: () => e._updateSettingsBtnState(!1),
 		onOpenGraphMap: () => e.setMode?.(z.GRAPH),
@@ -2124,7 +2160,7 @@ function Hn(e) {
 		t?.detail?.key === "viewer.mfvSidebarPosition" && e._applySidebarPosition();
 	}, window.addEventListener("mjr-settings-changed", e._onSidebarPosChanged), e._refresh(), t;
 }
-function Un(e) {
+function qn(e) {
 	let t = document.createElement("div");
 	t.className = "mjr-mfv-header";
 	let n = document.createElement("span");
@@ -2138,7 +2174,7 @@ function Un(e) {
 	let o = document.createElement("i");
 	return o.className = "pi pi-times", o.setAttribute("aria-hidden", "true"), a.appendChild(o), t.appendChild(n), t.appendChild(a), t;
 }
-function Wn(e) {
+function Jn(e) {
 	let t = (e, { min: t, max: n, step: r, value: i } = {}) => {
 		let a = document.createElement("div");
 		a.className = "mjr-mfv-toolbar-range";
@@ -2152,7 +2188,7 @@ function Wn(e) {
 		};
 	}, n = document.createElement("div");
 	n.className = "mjr-mfv-toolbar";
-	let r = Rn("<i class=\"pi pi-image\" aria-hidden=\"true\"></i>", p("viewer.mode", "Viewer mode"), [
+	let r = Hn("<i class=\"pi pi-image\" aria-hidden=\"true\"></i>", p("viewer.mode", "Viewer mode"), [
 		{
 			value: z.SIMPLE,
 			html: `<i class="pi pi-image" aria-hidden="true"></i><span>${p("viewer.mode.simple", "Simple")}</span>`
@@ -2267,7 +2303,7 @@ function Wn(e) {
 	let x = (e) => {
 		if (!e || e === "rgb") y.replaceChildren(b);
 		else {
-			let t = zn[e] || "#e0e0e0", n = Vn[e] || "500", r = Bn[e] || e.toUpperCase(), i = document.createElement("span");
+			let t = Un[e] || "#e0e0e0", n = Gn[e] || "500", r = Wn[e] || e.toUpperCase(), i = document.createElement("span");
 			i.className = "mjr-mfv-ch-label", i.style.color = t, i.style.fontWeight = n, i.textContent = r, y.replaceChildren(i);
 		}
 	}, S = document.createElement("div");
@@ -2443,7 +2479,7 @@ function Wn(e) {
 	let ce = p("tooltip.nodeParams", "Node Parameters");
 	e._settingsBtn.title = ce, e._settingsBtn.setAttribute("aria-label", ce), e._settingsBtn.setAttribute("aria-pressed", "false");
 	let le = document.createElement("i");
-	le.className = "pi pi-sliders-h", le.setAttribute("aria-hidden", "true"), e._settingsBtn.appendChild(le), n.appendChild(e._settingsBtn), e._runHandle = kn(), n.appendChild(e._runHandle.el), e._majoorSettingsBtn = document.createElement("button"), e._majoorSettingsBtn.type = "button", e._majoorSettingsBtn.className = "mjr-icon-btn mjr-mfv-majoor-settings-btn";
+	le.className = "pi pi-sliders-h", le.setAttribute("aria-hidden", "true"), e._settingsBtn.appendChild(le), n.appendChild(e._settingsBtn), e._runHandle = Nn(), n.appendChild(e._runHandle.el), e._majoorSettingsBtn = document.createElement("button"), e._majoorSettingsBtn.type = "button", e._majoorSettingsBtn.className = "mjr-icon-btn mjr-mfv-majoor-settings-btn";
 	let ue = p("tooltip.openMajoorSettings", "Open Majoor Assets Manager settings");
 	e._majoorSettingsBtn.title = ue, e._majoorSettingsBtn.setAttribute("aria-label", ue);
 	let R = document.createElement("i");
@@ -2452,7 +2488,7 @@ function Wn(e) {
 		e._chPopover?.classList?.contains("is-open") && !e._chBtn?.contains?.(n) && !e._chPopover.contains(n) && e._closeChPopover?.(), e._guidePopover?.classList?.contains("is-open") && !e._guideBtn?.contains?.(n) && !e._guidePopover.contains(n) && e._closeGuidePopover?.(), e._pinPopover?.classList?.contains("is-open") && !e._pinBtn?.contains?.(n) && !e._pinPopover.contains(n) && e._closePinPopover?.(), e._formatPopover?.classList?.contains("is-open") && !e._formatToggle?.contains?.(n) && !e._formatPopover.contains(n) && e._closeFormatPopover?.(), n?.closest?.(".mjr-mfv-idrop") || e.element?.querySelectorAll?.(".mjr-mfv-idrop-menu.is-open").forEach((e) => e.classList.remove("is-open"));
 	}, e._bindDocumentUiHandlers(), n;
 }
-function Gn(e) {
+function Yn(e) {
 	try {
 		e._btnAC?.abort();
 	} catch (e) {
@@ -2501,15 +2537,15 @@ function Gn(e) {
 		e._overlayMaskOpacity = Math.round(Math.max(0, Math.min(.9, Number.isFinite(t) ? t : .65)) * 100) / 100, e._maskOpacityCtl.out.textContent = e._overlayMaskOpacity.toFixed(2), e._redrawOverlayGuides?.();
 	}, { signal: t });
 }
-function Kn(e, t) {
+function Xn(e, t) {
 	e._settingsBtn && (e._settingsBtn.classList.toggle("active", !!t), e._settingsBtn.setAttribute("aria-pressed", String(!!t)));
 }
-function qn(e) {
+function Zn(e) {
 	if (!e._contentWrapper) return;
 	let t = _.MFV_SIDEBAR_POSITION || "right";
 	e._contentWrapper.setAttribute("data-sidebar-pos", t), e._sidebar?.el && e._contentEl && (t === "left" ? e._contentWrapper.insertBefore(e._sidebar.el, e._contentEl) : e._contentWrapper.appendChild(e._sidebar.el));
 }
-function Jn(e) {
+function Qn(e) {
 	if (!e._handleDocClick) return;
 	let t = e.element?.ownerDocument || document;
 	if (e._docClickHost !== t) {
@@ -2522,7 +2558,7 @@ function Jn(e) {
 		e._docAC = new AbortController(), t.addEventListener("click", e._handleDocClick, { signal: e._docAC.signal }), e._docClickHost = t;
 	}
 }
-function Yn(e) {
+function $n(e) {
 	try {
 		e._docAC?.abort();
 	} catch (e) {
@@ -2530,18 +2566,18 @@ function Yn(e) {
 	}
 	e._docAC = new AbortController(), e._docClickHost = null;
 }
-function Xn(e) {
+function er(e) {
 	if (!e._genBtn) return;
 	let t = !!e._genSidebarEnabled;
 	e._genBtn.classList.toggle("is-on", t), e._genBtn.classList.toggle("is-open", t);
 	let n = t ? "Gen Info sidebar: ON" : "Gen Info sidebar: OFF";
 	e._genBtn.title = n, e._genBtn.setAttribute("aria-label", n), e._genBtn.setAttribute("aria-pressed", String(t)), e._genBtn.removeAttribute("aria-expanded"), e._genBtn.removeAttribute("aria-haspopup"), e._genBtn.removeAttribute("aria-controls");
 }
-function Zn(e) {
+function tr(e) {
 	let t = Number(e);
 	return !Number.isFinite(t) || t <= 0 ? "" : t >= 60 ? `${(t / 60).toFixed(1)}m` : `${t.toFixed(1)}s`;
 }
-function Qn(e) {
+function nr(e) {
 	let t = String(e || "").trim().toLowerCase();
 	if (!t) return 0;
 	if (t.endsWith("m")) {
@@ -2555,7 +2591,7 @@ function Qn(e) {
 	let n = Number.parseFloat(t);
 	return Number.isFinite(n) ? n : 0;
 }
-function $n(e, t) {
+function rr(e, t) {
 	if (!t) return {};
 	try {
 		let e = t.geninfo ? { geninfo: t.geninfo } : t.metadata || t.metadata_raw || t, n = ue(e) || null, r = {
@@ -2571,10 +2607,10 @@ function $n(e, t) {
 		};
 		if (n && typeof n == "object") {
 			n.prompt && (r.prompt = R(String(n.prompt))), n.seed != null && (r.seed = String(n.seed)), n.model && (r.model = Array.isArray(n.model) ? n.model.join(", ") : String(n.model));
-			let i = Ln(n), a = In(n);
+			let i = Vn(n), a = Bn(n);
 			a && (r.model = a), i && (r.model = [i, r.model].filter(Boolean).join(" | ")), Array.isArray(n.loras) && (r.lora = n.loras.map((e) => typeof e == "string" ? e : e?.name || e?.lora_name || e?.model_name || "").filter(Boolean).join(", ")), n.sampler && (r.sampler = String(n.sampler)), n.scheduler && (r.scheduler = String(n.scheduler)), n.cfg != null && (r.cfg = String(n.cfg)), n.steps != null && (r.step = String(n.steps)), !r.prompt && e?.prompt && (r.prompt = R(String(e.prompt || "")));
 			let o = t.generation_time_ms ?? t.metadata_raw?.generation_time_ms ?? e?.generation_time_ms ?? e?.geninfo?.generation_time_ms ?? 0;
-			return o && Number.isFinite(Number(o)) && o > 0 && o < 864e5 && (r.genTime = Zn(Number(o) / 1e3)), r;
+			return o && Number.isFinite(Number(o)) && o > 0 && o < 864e5 && (r.genTime = tr(Number(o) / 1e3)), r;
 		}
 	} catch (e) {
 		console.debug?.("[MFV] geninfo normalize failed", e);
@@ -2590,9 +2626,9 @@ function $n(e, t) {
 		step: n?.steps == null ? "" : String(n.steps),
 		genTime: ""
 	}, i = t.generation_time_ms ?? t.metadata_raw?.generation_time_ms ?? n?.generation_time_ms ?? 0;
-	return i && Number.isFinite(Number(i)) && i > 0 && i < 864e5 && (r.genTime = Zn(Number(i) / 1e3)), r;
+	return i && Number.isFinite(Number(i)) && i > 0 && i < 864e5 && (r.genTime = tr(Number(i) / 1e3)), r;
 }
-function er(e, t) {
+function ir(e, t) {
 	let n = e._getGenFields(t);
 	if (!n) return null;
 	let r = document.createDocumentFragment();
@@ -2617,7 +2653,7 @@ function er(e, t) {
 		let s = document.createElement("strong");
 		if (s.textContent = `${a}: `, o.appendChild(s), t === "prompt") o.appendChild(document.createTextNode(i));
 		else if (t === "genTime") {
-			let e = Qn(i), t = "#4CAF50";
+			let e = nr(i), t = "#4CAF50";
 			e >= 60 ? t = "#FF9800" : e >= 30 ? t = "#FFC107" : e >= 10 && (t = "#8BC34A");
 			let n = document.createElement("span");
 			n.style.color = t, n.style.fontWeight = "600", n.textContent = i, o.appendChild(n);
@@ -2628,14 +2664,14 @@ function er(e, t) {
 }
 //#endregion
 //#region ui/features/viewer/floatingViewerMode.ts
-function tr(e) {
+function ar(e) {
 	try {
 		e._controller?.onModeChanged?.(e._mode);
 	} catch (e) {
 		console.debug?.(e);
 	}
 }
-function nr(e) {
+function or(e) {
 	let t = [
 		z.SIMPLE,
 		z.AB,
@@ -2645,13 +2681,13 @@ function nr(e) {
 	];
 	e._mode = t[(t.indexOf(e._mode) + 1) % t.length], e._updateModeBtnUI(), e._refresh(), e._notifyModeChanged();
 }
-function rr(e, t) {
+function sr(e, t) {
 	Object.values(z).includes(t) && (e._mode = t, e._updateModeBtnUI(), e._refresh(), e._notifyModeChanged());
 }
-function ir(e) {
+function cr(e) {
 	return e._pinnedSlots;
 }
-function ar(e) {
+function lr(e) {
 	if (e._pinBtns) {
 		for (let t of [
 			"A",
@@ -2667,7 +2703,7 @@ function ar(e) {
 		e._pinBtn?.classList.toggle("is-on", (e._pinnedSlots?.size ?? 0) > 0);
 	}
 }
-function or(e) {
+function ur(e) {
 	if (!e._modeBtn) return;
 	let { icon: t = "pi-image", label: n = "" } = {
 		[z.SIMPLE]: {
@@ -2693,7 +2729,7 @@ function or(e) {
 	}[e._mode] || {}, r = N(n, "C"), i = document.createElement("i");
 	i.className = `pi ${t}`, i.setAttribute("aria-hidden", "true"), e._modeBtn.replaceChildren(i), e._modeBtn.title = r, e._modeBtn.setAttribute("aria-label", r), e._modeBtn.removeAttribute("aria-pressed"), e._modeBtn.classList.toggle("is-on", e._mode !== z.SIMPLE), e._modeDrop?.selectItem?.(e._mode);
 }
-function sr(e, t) {
+function dr(e, t) {
 	if (!e._liveBtn) return;
 	let n = !!t;
 	e._liveBtn.classList.toggle("mjr-live-active", n);
@@ -2702,7 +2738,7 @@ function sr(e, t) {
 	let i = document.createElement("i");
 	i.className = n ? "pi pi-circle-fill" : "pi pi-circle", i.setAttribute("aria-hidden", "true"), e._liveBtn.replaceChildren(i), e._liveBtn.title = r;
 }
-function cr(e, t) {
+function fr(e, t) {
 	if (e._previewActive = !!t, !e._previewBtn) return;
 	e._previewBtn.classList.toggle("mjr-preview-active", e._previewActive);
 	let n = N(e._previewActive ? p("tooltip.previewStreamOn", "KSampler Preview: ON - streams sampler denoising frames during execution") : p("tooltip.previewStreamOff", "KSampler Preview: OFF - click to stream sampler denoising frames"), "K");
@@ -2710,7 +2746,7 @@ function cr(e, t) {
 	let r = document.createElement("i");
 	r.className = e._previewActive ? "pi pi-eye" : "pi pi-eye-slash", r.setAttribute("aria-hidden", "true"), e._previewBtn.replaceChildren(r), e._previewBtn.title = n, e._previewActive || e._revokePreviewBlob();
 }
-function lr(e, t, n = {}) {
+function pr(e, t, n = {}) {
 	if (!t || !(t instanceof Blob)) return;
 	e._revokePreviewBlob();
 	let r = URL.createObjectURL(t);
@@ -2736,7 +2772,7 @@ function lr(e, t, n = {}) {
 	} else e._mediaA = i, e._resetMfvZoom(), e._mode !== z.SIMPLE && (e._mode = z.SIMPLE, e._updateModeBtnUI());
 	++e._refreshGen, e._refresh();
 }
-function ur(e) {
+function mr(e) {
 	if (e._previewBlobUrl) {
 		try {
 			URL.revokeObjectURL(e._previewBlobUrl);
@@ -2744,7 +2780,7 @@ function ur(e) {
 		e._previewBlobUrl = null;
 	}
 }
-function dr(e, t) {
+function hr(e, t) {
 	if (e._nodeStreamActive = !!t, e._nodeStreamActive || e.setNodeStreamSelection?.(null), !e._nodeStreamBtn) return;
 	e._nodeStreamBtn.classList.toggle("mjr-nodestream-active", e._nodeStreamActive);
 	let n = N(e._nodeStreamActive ? p("tooltip.nodeStreamOn", "Node Stream: ON - follows the selected node preview when frontend media exists") : p("tooltip.nodeStreamOff", "Node Stream: OFF - click to follow selected node previews, including ImageOps live canvases"), "N");
@@ -2754,8 +2790,8 @@ function dr(e, t) {
 }
 //#endregion
 //#region ui/features/viewer/floatingViewerPopout.ts
-var fr = /* @__PURE__ */ "--border-color.--border-default.--button-hover-surface.--button-surface.--comfy-accent.--comfy-font.--comfy-input-bg.--comfy-menu-bg.--comfy-menu-secondary-bg.--comfy-status-error.--comfy-status-success.--comfy-status-warning.--content-bg.--content-fg.--descrip-text.--destructive-background.--font-inter.--input-text.--interface-menu-surface.--interface-panel-hover-surface.--interface-panel-selected-surface.--interface-panel-surface.--modal-card-background.--muted-foreground.--primary-background.--primary-background-hover.--radius-lg.--radius-md.--radius-sm.--success-background.--warning-background".split(".");
-function pr() {
+var gr = /* @__PURE__ */ "--border-color.--border-default.--button-hover-surface.--button-surface.--comfy-accent.--comfy-font.--comfy-input-bg.--comfy-menu-bg.--comfy-menu-secondary-bg.--comfy-status-error.--comfy-status-success.--comfy-status-warning.--content-bg.--content-fg.--descrip-text.--destructive-background.--font-inter.--input-text.--interface-menu-surface.--interface-panel-hover-surface.--interface-panel-selected-surface.--interface-panel-surface.--modal-card-background.--muted-foreground.--primary-background.--primary-background-hover.--radius-lg.--radius-md.--radius-sm.--success-background.--warning-background".split(".");
+function _r() {
 	try {
 		let e = typeof window < "u" ? window : globalThis, t = e?.process?.versions?.electron;
 		if (typeof t == "string" && t.trim() || e?.electron || e?.ipcRenderer || e?.electronAPI) return !0;
@@ -2784,10 +2820,10 @@ function $(e, t = null, n = "info") {
 		console.debug?.(e);
 	}
 }
-function mr(e, ...t) {
+function vr(e, ...t) {
 	return Array.from(new Set([String(e || ""), ...t].join(" ").split(/\s+/).filter(Boolean))).join(" ");
 }
-function hr(e, t) {
+function yr(e, t) {
 	if (!(!e || !t)) for (let n of Array.from(e.attributes || [])) {
 		let e = String(n?.name || "");
 		if (!(!e || e === "class" || e === "style")) try {
@@ -2797,7 +2833,7 @@ function hr(e, t) {
 		}
 	}
 }
-function gr(e, t) {
+function br(e, t) {
 	if (!e || !t?.style) return;
 	let n = typeof window < "u" && window?.getComputedStyle || globalThis?.getComputedStyle;
 	if (typeof n != "function") return;
@@ -2808,7 +2844,7 @@ function gr(e, t) {
 		console.debug?.(e);
 	}
 	if (r) {
-		for (let e of fr) try {
+		for (let e of gr) try {
 			let n = String(r.getPropertyValue?.(e) || "").trim();
 			n && t.style.setProperty(e, n);
 		} catch (e) {
@@ -2822,12 +2858,12 @@ function gr(e, t) {
 		}
 	}
 }
-function _r(e) {
+function xr(e) {
 	if (!e?.documentElement || !e?.body || !document?.documentElement) return;
 	let t = document.documentElement, n = document.body, r = e.documentElement, i = e.body;
-	r.className = mr(t.className, "mjr-mfv-popout-document"), i.className = mr(n?.className, "mjr-mfv-popout-body"), hr(t, r), hr(n, i), gr(t, r), gr(n, i), t?.lang && (r.lang = t.lang), t?.dir && (r.dir = t.dir);
+	r.className = vr(t.className, "mjr-mfv-popout-document"), i.className = vr(n?.className, "mjr-mfv-popout-body"), yr(t, r), yr(n, i), br(t, r), br(n, i), t?.lang && (r.lang = t.lang), t?.dir && (r.dir = t.dir);
 }
-function vr(e) {
+function Sr(e) {
 	if (!e?.body) return null;
 	try {
 		(e.getElementById?.("mjr-mfv-popout-root"))?.remove?.();
@@ -2837,10 +2873,10 @@ function vr(e) {
 	let t = e.createElement("div");
 	return t.id = "mjr-mfv-popout-root", t.className = "mjr-mfv-popout-root", e.body.appendChild(t), t;
 }
-function yr(e) {
+function Cr(e) {
 	e._resetGenDropdownForCurrentDocument(), e._rebindControlHandlers(), e._bindPanelInteractions(), e._bindDocumentUiHandlers(), e._unbindLayoutObserver?.(), e._bindLayoutObserver?.(), e._refresh?.(), e._updatePopoutBtnUI();
 }
-function br(e, t) {
+function wr(e, t) {
 	if (!e.element) return;
 	let n = !!t;
 	if (e._desktopExpanded === n) return;
@@ -2850,13 +2886,13 @@ function br(e, t) {
 			parent: r.parentNode || null,
 			nextSibling: r.nextSibling || null,
 			styleAttr: r.getAttribute("style")
-		}, r.parentNode !== document.body && document.body.appendChild(r), r.classList.add("mjr-mfv--desktop-expanded", "is-visible"), r.setAttribute("aria-hidden", "false"), r.style.position = "fixed", r.style.top = "12px", r.style.left = "12px", r.style.right = "12px", r.style.bottom = "12px", r.style.width = "auto", r.style.height = "auto", r.style.maxWidth = "none", r.style.maxHeight = "none", r.style.minWidth = "320px", r.style.minHeight = "240px", r.style.resize = "none", r.style.margin = "0", r.style.zIndex = "2147483000", e._desktopExpanded = !0, e.isVisible = !0, yr(e), $("electron-in-app-expanded", { isVisible: e.isVisible });
+		}, r.parentNode !== document.body && document.body.appendChild(r), r.classList.add("mjr-mfv--desktop-expanded", "is-visible"), r.setAttribute("aria-hidden", "false"), r.style.position = "fixed", r.style.top = "12px", r.style.left = "12px", r.style.right = "12px", r.style.bottom = "12px", r.style.width = "auto", r.style.height = "auto", r.style.maxWidth = "none", r.style.maxHeight = "none", r.style.minWidth = "320px", r.style.minHeight = "240px", r.style.resize = "none", r.style.margin = "0", r.style.zIndex = "2147483000", e._desktopExpanded = !0, e.isVisible = !0, Cr(e), $("electron-in-app-expanded", { isVisible: e.isVisible });
 		return;
 	}
 	let i = e._desktopExpandRestore;
-	e._desktopExpanded = !1, r.classList.remove("mjr-mfv--desktop-expanded"), i?.styleAttr == null || i.styleAttr === "" ? r.removeAttribute("style") : r.setAttribute("style", i.styleAttr), i?.parent && i.parent.isConnected && (i.nextSibling && i.nextSibling.parentNode === i.parent ? i.parent.insertBefore(r, i.nextSibling) : i.parent.appendChild(r)), e._desktopExpandRestore = null, yr(e), $("electron-in-app-restored", null);
+	e._desktopExpanded = !1, r.classList.remove("mjr-mfv--desktop-expanded"), i?.styleAttr == null || i.styleAttr === "" ? r.removeAttribute("style") : r.setAttribute("style", i.styleAttr), i?.parent && i.parent.isConnected && (i.nextSibling && i.nextSibling.parentNode === i.parent ? i.parent.insertBefore(r, i.nextSibling) : i.parent.appendChild(r)), e._desktopExpandRestore = null, Cr(e), $("electron-in-app-restored", null);
 }
-function xr(t, n) {
+function Tr(t, n) {
 	t._desktopPopoutUnsupported = !0, $("electron-in-app-fallback", { message: n?.message || String(n || "unknown error") }, "warn"), t._setDesktopExpanded(!0);
 	try {
 		e(p("toast.popoutElectronInAppFallback", "Desktop PiP is unavailable here. Viewer expanded inside the app instead."), "warning", 4500);
@@ -2864,14 +2900,14 @@ function xr(t, n) {
 		console.debug?.(e);
 	}
 }
-function Sr(e, t, n, r, i) {
+function Er(e, t, n, r, i) {
 	return $("electron-popup-fallback-attempt", { reason: i?.message || String(i || "unknown") }, "warn"), e._fallbackPopout(t, n, r), e._popoutWindow ? (e._desktopPopoutUnsupported = !1, $("electron-popup-fallback-opened", null), !0) : !1;
 }
-function Cr(e) {
+function Dr(e) {
 	if (e._isPopped || !e.element) return;
 	let t = e.element;
 	e._stopEdgeResize();
-	let n = pr(), r = typeof window < "u" && "documentPictureInPicture" in window, i = String(window?.navigator?.userAgent || globalThis?.navigator?.userAgent || ""), a = Math.max(t.offsetWidth || 520, 400), o = Math.max(t.offsetHeight || 420, 300);
+	let n = _r(), r = typeof window < "u" && "documentPictureInPicture" in window, i = String(window?.navigator?.userAgent || globalThis?.navigator?.userAgent || ""), a = Math.max(t.offsetWidth || 520, 400), o = Math.max(t.offsetHeight || 420, 300);
 	if ($("start", {
 		isElectronHost: n,
 		hasDocumentPiP: r,
@@ -2906,7 +2942,7 @@ function Cr(e) {
 				e._popoutCloseHandler = i;
 				let a = n.document;
 				a.title = "Majoor Viewer", e._installPopoutStyles(a);
-				let o = vr(a);
+				let o = Sr(a);
 				if (!o) {
 					e._activateDesktopExpandedFallback(/* @__PURE__ */ Error("Popup root creation failed"));
 					return;
@@ -2924,7 +2960,7 @@ function Cr(e) {
 					e._activateDesktopExpandedFallback(t);
 					return;
 				}
-				t.classList.add("is-visible"), e.isVisible = !0, yr(e), $("electron-pip-ready", { isPopped: e._isPopped }), n.addEventListener("pagehide", i, { signal: r }), e._startPopoutCloseWatch(), e._popoutKeydownHandler = (t) => {
+				t.classList.add("is-visible"), e.isVisible = !0, Cr(e), $("electron-pip-ready", { isPopped: e._isPopped }), n.addEventListener("pagehide", i, { signal: r }), e._startPopoutCloseWatch(), e._popoutKeydownHandler = (t) => {
 					let n = String(t?.target?.tagName || "").toLowerCase();
 					t?.defaultPrevented || t?.target?.isContentEditable || n === "input" || n === "textarea" || n === "select" || e._forwardKeydownToController(t);
 				}, n.addEventListener("keydown", e._popoutKeydownHandler, { signal: r });
@@ -2943,7 +2979,7 @@ function Cr(e) {
 		}), e._fallbackPopout(t, a, o);
 	}
 }
-function wr(e, t, n, r) {
+function Or(e, t, n, r) {
 	$("browser-popup-open", {
 		width: n,
 		height: r
@@ -2971,7 +3007,7 @@ function wr(e, t, n, r) {
 		}
 		if (!n) return;
 		n.title = "Majoor Viewer", e._installPopoutStyles(n);
-		let r = vr(n);
+		let r = Sr(n);
 		if (r) {
 			try {
 				r.appendChild(n.adoptNode(t));
@@ -2979,7 +3015,7 @@ function wr(e, t, n, r) {
 				console.warn("[MFV] adoptNode failed", e);
 				return;
 			}
-			t.classList.add("is-visible"), e.isVisible = !0, yr(e);
+			t.classList.add("is-visible"), e.isVisible = !0, Cr(e);
 		}
 	};
 	try {
@@ -2997,7 +3033,7 @@ function wr(e, t, n, r) {
 		t?.defaultPrevented || t?.target?.isContentEditable || n === "input" || n === "textarea" || n === "select" || e._forwardKeydownToController(t);
 	}, a.addEventListener("keydown", e._popoutKeydownHandler, { signal: o });
 }
-function Tr(e) {
+function kr(e) {
 	if (e._popoutCloseTimer != null) {
 		try {
 			window.clearInterval(e._popoutCloseTimer);
@@ -3007,7 +3043,7 @@ function Tr(e) {
 		e._popoutCloseTimer = null;
 	}
 }
-function Er(e) {
+function Ar(e) {
 	e._clearPopoutCloseWatch(), e._popoutCloseTimer = window.setInterval(() => {
 		if (!e._isPopped) {
 			e._clearPopoutCloseWatch();
@@ -3017,7 +3053,7 @@ function Er(e) {
 		(!t || t.closed) && (e._clearPopoutCloseWatch(), e._schedulePopInFromPopupClose());
 	}, 250);
 }
-function Dr(e) {
+function jr(e) {
 	!e._isPopped || e._popoutRestoreGuard || (e._popoutRestoreGuard = !0, window.setTimeout(() => {
 		try {
 			e.popIn({ closePopupWindow: !1 });
@@ -3026,14 +3062,14 @@ function Dr(e) {
 		}
 	}, 0));
 }
-function Or(e, t) {
+function Mr(e, t) {
 	if (!t?.head) return;
 	try {
 		for (let e of t.head.querySelectorAll("[data-mjr-popout-cloned-style='1']")) e.remove();
 	} catch (e) {
 		console.debug?.(e);
 	}
-	_r(t);
+	xr(t);
 	try {
 		let e = document.documentElement.style.cssText;
 		if (e) {
@@ -3057,7 +3093,7 @@ function Or(e, t) {
 	let n = t.createElement("style");
 	n.setAttribute("data-mjr-popout-cloned-style", "1"), n.textContent = "\n        html.mjr-mfv-popout-document {\n            min-height: 100%;\n            background:\n                radial-gradient(\n                    1200px 420px at 50% 0%,\n                    color-mix(in srgb, var(--primary-background, var(--comfy-accent, #5fb3ff)) 10%, transparent),\n                    transparent 62%\n                ),\n                linear-gradient(\n                    180deg,\n                    color-mix(in srgb, var(--interface-panel-surface, var(--content-bg, #16191f)) 82%, #000 18%),\n                    color-mix(in srgb, var(--interface-menu-surface, var(--comfy-menu-bg, #1f2227)) 84%, #000 16%)\n                ) !important;\n        }\n        body.mjr-mfv-popout-body {\n            margin: 0 !important;\n            display: flex !important;\n            min-height: 100vh !important;\n            overflow: hidden !important;\n            background: transparent !important;\n        }\n        #mjr-mfv-popout-root,\n        .mjr-mfv-popout-root {\n            flex: 1 !important;\n            min-width: 0 !important;\n            min-height: 0 !important;\n            display: flex !important;\n            isolation: isolate;\n        }\n        body.mjr-mfv-popout-body .mjr-mfv {\n            position: static !important;\n            width: 100% !important;\n            height: 100% !important;\n            min-width: 0 !important;\n            min-height: 0 !important;\n            resize: none !important;\n            border-radius: 0 !important;\n            display: flex !important;\n            opacity: 1 !important;\n            visibility: visible !important;\n            pointer-events: auto !important;\n            transform: none !important;\n            max-width: none !important;\n            max-height: none !important;\n            overflow: hidden !important;\n        }\n    ", t.head.appendChild(n);
 }
-function kr(e, { closePopupWindow: t = !0 } = {}) {
+function Nr(e, { closePopupWindow: t = !0 } = {}) {
 	if (e._desktopExpanded) {
 		e._setDesktopExpanded(!1);
 		return;
@@ -3077,14 +3113,14 @@ function kr(e, { closePopupWindow: t = !0 } = {}) {
 	} catch (e) {
 		console.debug?.("[MFV] pop-in adopt failed", e);
 	}
-	if (document.body.appendChild(r), r.classList.add("is-visible"), r.setAttribute("aria-hidden", "false"), e.isVisible = !0, yr(e), t) try {
+	if (document.body.appendChild(r), r.classList.add("is-visible"), r.setAttribute("aria-hidden", "false"), e.isVisible = !0, Cr(e), t) try {
 		n?.close();
 	} catch (e) {
 		console.debug?.(e);
 	}
 	e._popoutWindow = null;
 }
-function Ar(e) {
+function Pr(e) {
 	if (!e._popoutBtn) return;
 	let t = e._isPopped || e._desktopExpanded;
 	e.element && e.element.classList.toggle("mjr-mfv--popped", t), e._popoutBtn.classList.toggle("mjr-popin-active", t);
@@ -3093,7 +3129,7 @@ function Ar(e) {
 }
 //#endregion
 //#region ui/features/viewer/floatingViewerPanel.ts
-function jr(e) {
+function Fr(e) {
 	return {
 		n: "ns-resize",
 		s: "ns-resize",
@@ -3105,12 +3141,12 @@ function jr(e) {
 		sw: "nesw-resize"
 	}[e] || "";
 }
-function Mr(e, t, n) {
+function Ir(e, t, n) {
 	if (!n) return "";
 	let r = e <= n.left + 8, i = e >= n.right - 8, a = t <= n.top + 8, o = t >= n.bottom - 8;
 	return a && r ? "nw" : a && i ? "ne" : o && r ? "sw" : o && i ? "se" : a ? "n" : o ? "s" : r ? "w" : i ? "e" : "";
 }
-function Nr(e) {
+function Lr(e) {
 	if (e.element) {
 		try {
 			e._resizeWindowCleanup?.();
@@ -3125,7 +3161,7 @@ function Nr(e) {
 		e._resizeState = null, e.element.classList.remove("mjr-mfv--resizing"), e.element.style.cursor = "";
 	}
 }
-function Pr(e) {
+function Rr(e) {
 	if (e.element) {
 		e._stopEdgeResize();
 		try {
@@ -3136,7 +3172,7 @@ function Pr(e) {
 		e._panelAC = new AbortController(), e._initEdgeResize(e.element), e._initDrag(e.element.querySelector(".mjr-mfv-header"));
 	}
 }
-function Fr(e, t) {
+function zr(e, t) {
 	if (!t) return;
 	let n = (t) => {
 		if (!e.element || e._isPopped) return "";
@@ -3202,7 +3238,7 @@ function Fr(e, t) {
 		!e._resizeState && e.element && (e.element.style.cursor = "");
 	}, { signal: r });
 }
-function Ir(e, t) {
+function Br(e, t) {
 	if (!t) return;
 	let n = e._panelAC?.signal, r = null;
 	t.addEventListener("pointerdown", (n) => {
@@ -3230,7 +3266,7 @@ function Ir(e, t) {
 }
 //#endregion
 //#region ui/features/viewer/floatingViewerCapture.ts
-async function Lr(e, t, n, r, i, a, o, s) {
+async function Vr(e, t, n, r, i, a, o, s) {
 	if (!n) return;
 	let c = B(n), l = null;
 	if (c === "video" && (l = s instanceof HTMLVideoElement ? s : e._contentEl?.querySelector("video") || null), !l && c === "model3d") {
@@ -3251,7 +3287,7 @@ async function Lr(e, t, n, r, i, a, o, s) {
 	let f = Math.min(a / u, o / d);
 	t.drawImage(l, r + (a - u * f) / 2, i + (o - d * f) / 2, u * f, d * f);
 }
-function Rr(e, t, n, r) {
+function Hr(e, t, n, r) {
 	if (!t || !n || !e._genInfoSelections.size) return 0;
 	let i = e._getGenFields(n), a = [
 		"prompt",
@@ -3283,7 +3319,7 @@ function Rr(e, t, n, r) {
 	}
 	return s > 0 ? s * 16 + 16 : 0;
 }
-function zr(e, t, n, r, i, a, o) {
+function Ur(e, t, n, r, i, a, o) {
 	if (!n || !e._genInfoSelections.size) return;
 	let s = e._getGenFields(n), c = {
 		prompt: "#7ec8ff",
@@ -3343,7 +3379,7 @@ function zr(e, t, n, r, i, a, o) {
 	for (let { label: e, labelW: n, lines: r, color: i } of f) for (let a = 0; a < r.length; a++) a === 0 ? (t.font = "bold 11px system-ui, sans-serif", t.fillStyle = i, t.fillText(e, m + 8, g), t.font = "11px system-ui, sans-serif", t.fillStyle = "rgba(255,255,255,0.88)", t.fillText(r[a], m + 8 + n, g)) : (t.font = "11px system-ui, sans-serif", t.fillStyle = "rgba(255,255,255,0.88)", t.fillText(r[a], m + 8 + n, g)), g += 16;
 	t.restore();
 }
-async function Br(e) {
+async function Wr(e) {
 	if (!e._contentEl) return;
 	e._captureBtn && (e._captureBtn.disabled = !0, e._captureBtn.setAttribute("aria-label", p("tooltip.capturingView", "Capturing...")));
 	let t = e._contentEl.clientWidth || 480, n = e._contentEl.clientHeight || 360, r = n;
@@ -3428,12 +3464,12 @@ async function Br(e) {
 }
 //#endregion
 //#region ui/features/viewer/floatingViewerLoader.ts
-var Vr = "imageops-live-preview";
-function Hr(e) {
-	return String(e?._source || "") === Vr;
+var Gr = "imageops-live-preview";
+function Kr(e) {
+	return String(e?._source || "") === Gr;
 }
-function Ur(e, r, { autoMode: i = !1 } = {}) {
-	let a = e._mediaA || null, o = Hr(r), s = o && Hr(a) && String(a?._nodeId || "") === String(r?._nodeId || "");
+function qr(e, r, { autoMode: i = !1 } = {}) {
+	let a = e._mediaA || null, o = Kr(r), s = o && Kr(a) && String(a?._nodeId || "") === String(r?._nodeId || "");
 	if (e._mediaA = r || null, s || e._resetMfvZoom(), i && e._mode !== z.SIMPLE && e._mode !== z.GRAPH && (e._mode = z.SIMPLE, e._updateModeBtnUI()), e._mediaA && !o && typeof pe == "function") {
 		let r = ++e._refreshGen;
 		(async () => {
@@ -3450,7 +3486,7 @@ function Ur(e, r, { autoMode: i = !1 } = {}) {
 		})();
 	} else e._refresh();
 }
-function Wr(e, r, i) {
+function Jr(e, r, i) {
 	e._mediaA = r || null, e._mediaB = i || null, e._resetMfvZoom(), e._mode === z.SIMPLE && (e._mode = z.AB, e._updateModeBtnUI());
 	let a = ++e._refreshGen, o = async (e) => {
 		if (!e) return e;
@@ -3468,7 +3504,7 @@ function Wr(e, r, i) {
 		e._refreshGen === a && (e._mediaA = t || null, e._mediaB = n || null, e._refresh());
 	})();
 }
-function Gr(e, r, i, a, o) {
+function Yr(e, r, i, a, o) {
 	e._mediaA = r || null, e._mediaB = i || null, e._mediaC = a || null, e._mediaD = o || null, e._resetMfvZoom(), e._mode !== z.GRID && (e._mode = z.GRID, e._updateModeBtnUI());
 	let s = ++e._refreshGen, c = async (e) => {
 		if (!e) return e;
@@ -3493,16 +3529,16 @@ function Gr(e, r, i, a, o) {
 }
 //#endregion
 //#region ui/features/viewer/FloatingViewer.impl.ts
-function Kr(e) {
+function Xr(e) {
 	try {
 		return !!e?.classList?.contains("mjr-mfv-simple-player") || !!e?.classList?.contains("mjr-mfv-player-host") || !!e?.querySelector?.(".mjr-video-controls, .mjr-mfv-simple-player-controls");
 	} catch (e) {
 		return console.debug?.(e), !1;
 	}
 }
-var qr = 0, Jr = class {
+var Zr = 0, Qr = class {
 	constructor({ controller: e = null } = {}) {
-		this._instanceId = ++qr, this._controller = e && typeof e == "object" ? { ...e } : null, this.element = null, this.isVisible = !1, this._contentEl = null, this._genSidebarEl = null, this._closeBtn = null, this._modeBtn = null, this._pinGroup = null, this._pinBtns = null, this._liveBtn = null, this._genBtn = null, this._genDropdown = null, this._genSidebarEnabled = !0, this._captureBtn = null, this._genInfoSelections = new Set([
+		this._instanceId = ++Zr, this._controller = e && typeof e == "object" ? { ...e } : null, this.element = null, this.isVisible = !1, this._contentEl = null, this._genSidebarEl = null, this._closeBtn = null, this._modeBtn = null, this._pinGroup = null, this._pinBtns = null, this._liveBtn = null, this._genBtn = null, this._genDropdown = null, this._genSidebarEnabled = !0, this._captureBtn = null, this._genInfoSelections = new Set([
 			"prompt",
 			"seed",
 			"model",
@@ -3512,7 +3548,7 @@ var qr = 0, Jr = class {
 			"cfg",
 			"step",
 			"genTime"
-		]), this._mode = z.SIMPLE, this._mediaA = null, this._mediaB = null, this._mediaC = null, this._mediaD = null, this._pinnedSlots = /* @__PURE__ */ new Set(), this._abDividerX = .5, this._zoom = 1, this._panX = 0, this._panY = 0, this._panzoomAC = null, this._dragging = !1, this._compareSyncAC = null, this._btnAC = null, this._refreshGen = 0, this._popoutWindow = null, this._popoutBtn = null, this._isPopped = !1, this._desktopExpanded = !1, this._desktopExpandRestore = null, this._desktopPopoutUnsupported = !1, this._popoutCloseHandler = null, this._popoutKeydownHandler = null, this._popoutCloseTimer = null, this._popoutRestoreGuard = !1, this._previewBtn = null, this._previewBlobUrl = null, this._previewActive = !1, this._nodeStreamBtn = null, this._nodeStreamActive = !1, this._nodeStreamSelection = null, this._nodeStreamOverlayEl = null, this._docAC = new AbortController(), this._popoutAC = null, this._panelAC = new AbortController(), this._resizeState = null, this._titleId = `mjr-mfv-title-${this._instanceId}`, this._genDropdownId = `mjr-mfv-gen-dropdown-${this._instanceId}`, this._progressEl = null, this._progressNodesEl = null, this._progressStepsEl = null, this._progressTextEl = null, this._mediaProgressEl = null, this._mediaProgressTextEl = null, this._progressUpdateHandler = null, this._progressCurrentNodeId = null, this._docClickHost = null, this._handleDocClick = null, this._mediaControlHandles = [], this._layoutObserver = null, this._channel = "rgb", this._exposureEV = 0, this._gridMode = 0, this._overlayMaskEnabled = !1, this._overlayMaskOpacity = .65, this._overlayFormat = "image", this._graphMapPanel = new cn({ large: !0 });
+		]), this._mode = z.SIMPLE, this._mediaA = null, this._mediaB = null, this._mediaC = null, this._mediaD = null, this._pinnedSlots = /* @__PURE__ */ new Set(), this._abDividerX = .5, this._zoom = 1, this._panX = 0, this._panY = 0, this._panzoomAC = null, this._dragging = !1, this._compareSyncAC = null, this._btnAC = null, this._refreshGen = 0, this._popoutWindow = null, this._popoutBtn = null, this._isPopped = !1, this._desktopExpanded = !1, this._desktopExpandRestore = null, this._desktopPopoutUnsupported = !1, this._popoutCloseHandler = null, this._popoutKeydownHandler = null, this._popoutCloseTimer = null, this._popoutRestoreGuard = !1, this._previewBtn = null, this._previewBlobUrl = null, this._previewActive = !1, this._nodeStreamBtn = null, this._nodeStreamActive = !1, this._nodeStreamSelection = null, this._nodeStreamOverlayEl = null, this._docAC = new AbortController(), this._popoutAC = null, this._panelAC = new AbortController(), this._resizeState = null, this._titleId = `mjr-mfv-title-${this._instanceId}`, this._genDropdownId = `mjr-mfv-gen-dropdown-${this._instanceId}`, this._progressEl = null, this._progressNodesEl = null, this._progressStepsEl = null, this._progressTextEl = null, this._mediaProgressEl = null, this._mediaProgressTextEl = null, this._progressUpdateHandler = null, this._progressCurrentNodeId = null, this._docClickHost = null, this._handleDocClick = null, this._mediaControlHandles = [], this._layoutObserver = null, this._channel = "rgb", this._exposureEV = 0, this._gridMode = 0, this._overlayMaskEnabled = !1, this._overlayMaskOpacity = .65, this._overlayFormat = "image", this._graphMapPanel = new dn({ large: !0 });
 	}
 	_dispatchControllerAction(e, t) {
 		try {
@@ -3552,32 +3588,32 @@ var qr = 0, Jr = class {
 		}
 	}
 	render() {
-		return Hn(this);
+		return Kn(this);
 	}
 	_buildHeader() {
-		return Un(this);
+		return qn(this);
 	}
 	_buildToolbar() {
-		return Wn(this);
+		return Jn(this);
 	}
 	_rebindControlHandlers() {
-		return Gn(this);
+		return Yn(this);
 	}
 	_updateSettingsBtnState(e) {
-		return Kn(this, e);
+		return Xn(this, e);
 	}
 	_applySidebarPosition() {
-		return qn(this);
+		return Zn(this);
 	}
 	refreshSidebar() {
 		this._sidebar?.refresh();
 	}
 	_resetGenDropdownForCurrentDocument() {}
 	_bindDocumentUiHandlers() {
-		return Jn(this);
+		return Qn(this);
 	}
 	_unbindDocumentUiHandlers() {
-		return Yn(this);
+		return $n(this);
 	}
 	_isGenDropdownOpen() {
 		return !1;
@@ -3585,49 +3621,49 @@ var qr = 0, Jr = class {
 	_openGenDropdown() {}
 	_closeGenDropdown() {}
 	_updateGenBtnUI() {
-		return Xn(this);
+		return er(this);
 	}
 	_buildGenDropdown() {
 		return null;
 	}
 	_getGenFields(e) {
-		return $n(this, e);
-	}
-	_buildGenInfoDOM(e) {
-		return er(this, e);
-	}
-	_notifyModeChanged() {
-		return tr(this);
-	}
-	_cycleMode() {
-		return nr(this);
-	}
-	setMode(e) {
 		return rr(this, e);
 	}
-	getPinnedSlots() {
-		return ir(this);
+	_buildGenInfoDOM(e) {
+		return ir(this, e);
 	}
-	_updatePinUI() {
+	_notifyModeChanged() {
 		return ar(this);
 	}
-	_updateModeBtnUI() {
+	_cycleMode() {
 		return or(this);
 	}
-	setLiveActive(e) {
+	setMode(e) {
 		return sr(this, e);
 	}
-	setPreviewActive(e) {
-		return cr(this, e);
+	getPinnedSlots() {
+		return cr(this);
 	}
-	loadPreviewBlob(e, t = {}) {
-		return lr(this, e, t);
+	_updatePinUI() {
+		return lr(this);
 	}
-	_revokePreviewBlob() {
+	_updateModeBtnUI() {
 		return ur(this);
 	}
-	setNodeStreamActive(e) {
+	setLiveActive(e) {
 		return dr(this, e);
+	}
+	setPreviewActive(e) {
+		return fr(this, e);
+	}
+	loadPreviewBlob(e, t = {}) {
+		return pr(this, e, t);
+	}
+	_revokePreviewBlob() {
+		return mr(this);
+	}
+	setNodeStreamActive(e) {
+		return hr(this, e);
 	}
 	setNodeStreamSelection(e) {
 		e && (e.nodeId != null || e.classType) ? this._nodeStreamSelection = {
@@ -3653,13 +3689,13 @@ var qr = 0, Jr = class {
 		this._nodeStreamOverlayEl.textContent = `${n}  -  ${r}${i}`.trim();
 	}
 	loadMediaA(e, { autoMode: t = !1 } = {}) {
-		return Ur(this, e, { autoMode: t });
+		return qr(this, e, { autoMode: t });
 	}
 	loadMediaPair(e, t) {
-		return Wr(this, e, t);
+		return Jr(this, e, t);
 	}
 	loadMediaQuad(e, t, n, r) {
-		return Gr(this, e, t, n, r);
+		return Yr(this, e, t, n, r);
 	}
 	_applyTransform() {
 		if (!this._contentEl) return;
@@ -4156,9 +4192,9 @@ var qr = 0, Jr = class {
 		let u = document.createElement("div");
 		u.className = "mjr-mfv-ab-divider", u.style.left = `${l}%`;
 		let d = this._buildGenInfoDOM(this._mediaA), f = null;
-		d && (f = document.createElement("div"), f.className = "mjr-mfv-geninfo-a", Kr(n) && f.classList.add("mjr-mfv-geninfo--above-player"), f.appendChild(d), f.style.right = `calc(${100 - l}% + 8px)`);
+		d && (f = document.createElement("div"), f.className = "mjr-mfv-geninfo-a", Xr(n) && f.classList.add("mjr-mfv-geninfo--above-player"), f.appendChild(d), f.style.right = `calc(${100 - l}% + 8px)`);
 		let p = this._buildGenInfoDOM(this._mediaB), m = null;
-		p && (m = document.createElement("div"), m.className = "mjr-mfv-geninfo-b", Kr(r) && m.classList.add("mjr-mfv-geninfo--above-player"), m.appendChild(p), m.style.left = `calc(${l}% + 8px)`);
+		p && (m = document.createElement("div"), m.className = "mjr-mfv-geninfo-b", Xr(r) && m.classList.add("mjr-mfv-geninfo--above-player"), m.appendChild(p), m.style.left = `calc(${l}% + 8px)`);
 		let h = null;
 		u.addEventListener("pointerdown", (e) => {
 			e.preventDefault(), u.setPointerCapture(e.pointerId);
@@ -4192,14 +4228,14 @@ var qr = 0, Jr = class {
 		let c = i === "audio" ? null : this._buildGenInfoDOM(this._mediaA);
 		if (c) {
 			let e = document.createElement("div");
-			e.className = "mjr-mfv-geninfo-a", Kr(n) && e.classList.add("mjr-mfv-geninfo--above-player"), e.appendChild(c), s.appendChild(e);
+			e.className = "mjr-mfv-geninfo-a", Xr(n) && e.classList.add("mjr-mfv-geninfo--above-player"), e.appendChild(c), s.appendChild(e);
 		}
 		let l = document.createElement("div");
 		l.className = "mjr-mfv-side-panel", r ? l.appendChild(r) : l.appendChild(V(" - ")), l.appendChild(H("B", "right"));
 		let u = a === "audio" ? null : this._buildGenInfoDOM(this._mediaB);
 		if (u) {
 			let e = document.createElement("div");
-			e.className = "mjr-mfv-geninfo-b", Kr(r) && e.classList.add("mjr-mfv-geninfo--above-player"), e.appendChild(u), l.appendChild(e);
+			e.className = "mjr-mfv-geninfo-b", Xr(r) && e.classList.add("mjr-mfv-geninfo--above-player"), e.appendChild(u), l.appendChild(e);
 		}
 		o.appendChild(s), o.appendChild(l), this._contentEl.appendChild(o);
 	}
@@ -4236,7 +4272,7 @@ var qr = 0, Jr = class {
 					let t = this._buildGenInfoDOM(n);
 					if (t) {
 						let n = document.createElement("div");
-						n.className = `mjr-mfv-geninfo-${r.toLowerCase()}`, Kr(a) && n.classList.add("mjr-mfv-geninfo--above-player"), n.appendChild(t), e.appendChild(n);
+						n.className = `mjr-mfv-geninfo-${r.toLowerCase()}`, Xr(a) && n.classList.add("mjr-mfv-geninfo--above-player"), n.appendChild(t), e.appendChild(n);
 					}
 				}
 			} else e.appendChild(V(" - ")), e.appendChild(H(r, r === "A" || r === "C" ? "left" : "right"));
@@ -4251,70 +4287,70 @@ var qr = 0, Jr = class {
 		this.element && (this._destroyPanZoom(), this._destroyCompareSync(), this._stopEdgeResize(), this._closeGenDropdown(), Ie(this.element), this.element.classList.remove("is-visible"), this.element.setAttribute("aria-hidden", "true"), this.isVisible = !1);
 	}
 	_setDesktopExpanded(e) {
-		return br(this, e);
+		return wr(this, e);
 	}
 	_activateDesktopExpandedFallback(e) {
-		return xr(this, e);
+		return Tr(this, e);
 	}
 	_tryElectronPopupFallback(e, t, n, r) {
-		return Sr(this, e, t, n, r);
+		return Er(this, e, t, n, r);
 	}
 	popOut() {
-		return Cr(this);
-	}
-	_fallbackPopout(e, t, n) {
-		return wr(this, e, t, n);
-	}
-	_clearPopoutCloseWatch() {
-		return Tr(this);
-	}
-	_startPopoutCloseWatch() {
-		return Er(this);
-	}
-	_schedulePopInFromPopupClose() {
 		return Dr(this);
 	}
+	_fallbackPopout(e, t, n) {
+		return Or(this, e, t, n);
+	}
+	_clearPopoutCloseWatch() {
+		return kr(this);
+	}
+	_startPopoutCloseWatch() {
+		return Ar(this);
+	}
+	_schedulePopInFromPopupClose() {
+		return jr(this);
+	}
 	_installPopoutStyles(e) {
-		return Or(this, e);
+		return Mr(this, e);
 	}
 	popIn(e) {
-		return kr(this, e);
+		return Nr(this, e);
 	}
 	_updatePopoutBtnUI() {
-		return Ar(this);
+		return Pr(this);
 	}
 	get isPopped() {
 		return this._isPopped || this._desktopExpanded;
 	}
 	_resizeCursorForDirection(e) {
-		return jr(e);
+		return Fr(e);
 	}
 	_getResizeDirectionFromPoint(e, t, n) {
-		return Mr(e, t, n);
+		return Ir(e, t, n);
 	}
 	_stopEdgeResize() {
-		return Nr(this);
+		return Lr(this);
 	}
 	_bindPanelInteractions() {
-		return Pr(this);
+		return Rr(this);
 	}
 	_initEdgeResize(e) {
-		return Fr(this, e);
+		return zr(this, e);
 	}
 	_initDrag(e) {
-		return Ir(this, e);
+		return Br(this, e);
 	}
 	async _drawMediaFit(e, t, n, r, i, a, o) {
-		return Lr(this, e, t, n, r, i, a, o);
+		return Vr(this, e, t, n, r, i, a, o);
 	}
 	_estimateGenInfoOverlayHeight(e, t, n) {
-		return Rr(this, e, t, n);
+		return Hr(this, e, t, n);
 	}
 	_drawGenInfoOverlay(e, t, n, r, i, a) {
-		return zr(this, e, t, n, r, i, a);
+		return Ur(this, e, t, n, r, i, a);
 	}
 	async _captureView() {
-		return Br(this);
+		return Wr(this);
 	}
 	dispose() {
 		M(this), this._destroyPanZoom(), this._destroyCompareSync(), this._destroyMediaControls(), this._unbindLayoutObserver(), this._stopEdgeResize(), this._clearPopoutCloseWatch();
@@ -4374,4 +4410,4 @@ var qr = 0, Jr = class {
 	}
 };
 //#endregion
-export { Jr as FloatingViewer };
+export { Qr as FloatingViewer };

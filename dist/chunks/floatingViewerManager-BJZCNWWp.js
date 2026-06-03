@@ -219,7 +219,7 @@ function ye() {
 //#region ui/features/viewer/floatingViewerManager.ts
 var S = null, be = null;
 async function xe() {
-	return S || (be ||= import("./FloatingViewer-iLhVlgRh.js").then((e) => (S = e.FloatingViewer, S)), be);
+	return S || (be ||= import("./FloatingViewer-CvGWdc7J.js").then((e) => (S = e.FloatingViewer, S)), be);
 }
 var C = null, Se = null;
 async function Ce() {

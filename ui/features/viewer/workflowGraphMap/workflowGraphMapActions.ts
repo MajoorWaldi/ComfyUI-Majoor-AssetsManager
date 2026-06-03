@@ -9,6 +9,7 @@ import { copyTextToClipboard } from "../../../utils/dom.js";
 import { writeWidgetValue } from "../workflowSidebar/widgetAdapters.js";
 import {
     getNodeType,
+    getNodeParamEntries,
     getNodeWidgetValueEntries,
 } from "./workflowGraphMapData.js";
 
@@ -24,7 +25,7 @@ interface TransferResult {
 
 export async function copyNodeJson(node: any): Promise<boolean> {
     if (!node) return false;
-    const text = JSON.stringify(node, null, 2);
+    const text = JSON.stringify(_prepareNodeForExternalUse(node), null, 2);
     return copyTextToClipboard(text);
 }
 
@@ -71,6 +72,7 @@ export function importNodeToCurrentGraph(node: LooseRecord | null | undefined): 
             typeof structuredClone === "function"
                 ? structuredClone(node)
                 : JSON.parse(JSON.stringify(node));
+        _normalizeExternalNodeClone(clone, node);
         delete clone.id;
         if (Array.isArray(clone.pos)) {
             clone.pos = [Number(clone.pos[0] || 0) + 32, Number(clone.pos[1] || 0) + 32];
@@ -93,7 +95,7 @@ export function transferNodeParamsToSelectedCanvasNode(
     const targetNode = getSingleSelectedCanvasNode();
     if (!sourceNode || !targetNode) return { ok: false, count: 0, reason: "no-target" };
 
-    const sourceEntries = getNodeWidgetValueEntries(sourceNode);
+    const sourceEntries = _getTransferParamEntries(sourceNode);
     const targetWidgets = Array.isArray(targetNode.widgets) ? targetNode.widgets : [];
     if (!sourceEntries.length || !targetWidgets.length) {
         return { ok: false, count: 0, reason: "no-widgets" };
@@ -115,7 +117,7 @@ export function transferNodeParamsToSelectedCanvasNode(
     for (const entry of sourceEntries) {
         const key = _normalizeName(entry.label);
         let target = key ? targetByName.get(key) : null;
-        if ((!target || usedTargets.has(target.index)) && allowPositionFallback) {
+        if ((!target || usedTargets.has(target.index)) && allowPositionFallback && Number.isInteger(entry.index)) {
             const positional = targetWidgets[entry.index];
             if (positional) target = { widget: positional, index: entry.index };
         }
@@ -138,6 +140,60 @@ export function transferNodeParamsToSelectedCanvasNode(
 
 export function getSingleSelectedCanvasNode(): LooseRecord | null {
     return (getFirstSelectedHostCanvasNode() as LooseRecord | null) || null;
+}
+
+function _getTransferParamEntries(sourceNode: LooseRecord): Array<{ label: any; value: any; index?: number }> {
+    const paramEntries = getNodeParamEntries(sourceNode);
+    if (Array.isArray(paramEntries) && paramEntries.length) {
+        return paramEntries.map(([label, value]) => ({ label, value }));
+    }
+    return getNodeWidgetValueEntries(sourceNode);
+}
+
+function _prepareNodeForExternalUse(node: LooseRecord): LooseRecord {
+    const clone =
+        typeof structuredClone === "function"
+            ? structuredClone(node)
+            : JSON.parse(JSON.stringify(node));
+    _normalizeExternalNodeClone(clone, node);
+    return clone;
+}
+
+function _normalizeExternalNodeClone(clone: LooseRecord, sourceNode: LooseRecord) {
+    const promptInputs =
+        sourceNode?._mjrPromptInputs && typeof sourceNode._mjrPromptInputs === "object"
+            ? sourceNode._mjrPromptInputs
+            : null;
+    if (promptInputs) {
+        const normalizedWidgets = _buildKnownWidgetValuesFromPrompt(sourceNode, promptInputs);
+        if (normalizedWidgets) clone.widgets_values = normalizedWidgets;
+    }
+    delete clone._mjrPromptInputs;
+    delete clone._mjrSubgraphProxyParams;
+}
+
+function _buildKnownWidgetValuesFromPrompt(sourceNode: LooseRecord, promptInputs: LooseRecord): any[] | null {
+    const type = _normalizeType(getNodeType(sourceNode));
+    const current = getNodeWidgetValueEntries(sourceNode);
+    const currentByLabel = new Map(current.map((entry) => [_normalizeName(entry.label), entry.value]));
+    if (type.includes("ksamplerselect")) {
+        if (promptInputs.sampler_name == null) return null;
+        return [_cloneValue(promptInputs.sampler_name)];
+    }
+    if (type.includes("ksampler")) {
+        const controlAfterGenerate =
+            promptInputs.control_after_generate ?? currentByLabel.get("control_after_generate") ?? current[1]?.value;
+        return [
+            _cloneValue(promptInputs.seed),
+            _cloneValue(controlAfterGenerate),
+            _cloneValue(promptInputs.steps),
+            _cloneValue(promptInputs.cfg),
+            _cloneValue(promptInputs.sampler_name),
+            _cloneValue(promptInputs.scheduler),
+            _cloneValue(promptInputs.denoise),
+        ];
+    }
+    return null;
 }
 
 function _widgetKeys(widget: WidgetRecord): string[] {
