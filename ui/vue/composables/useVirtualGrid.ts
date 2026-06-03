@@ -291,6 +291,7 @@ function _assetMatchesActiveFilters(gridContainer: any, asset: any) {
     const workflowOnly = query.workflowOnly;
     const minRating = query.minRating;
     const workflowType = query.workflowType.toLowerCase();
+    const workflowId = String(query.workflowId || "").trim();
     const dateExact = query.dateExact;
     const assetSubfolder = String(asset?.subfolder || "").trim().toLowerCase();
     const assetType = String(asset?.type || asset?.source || "output")
@@ -300,6 +301,13 @@ function _assetMatchesActiveFilters(gridContainer: any, asset: any) {
     const assetWorkflowType = String(asset?.workflow_type || asset?.workflowType || "")
         .trim()
         .toLowerCase();
+    const assetWorkflowId = String(
+        asset?.workflow_id ||
+            asset?.workflowId ||
+            asset?.metadata?.workflow_id ||
+            asset?.metadata?.workflow?.id ||
+            "",
+    ).trim();
     const assetDate = String(asset?.date_exact || asset?.date || "").trim();
     const hasWorkflow = asset?.has_workflow ?? asset?.hasWorkflow ?? null;
 
@@ -312,6 +320,7 @@ function _assetMatchesActiveFilters(gridContainer: any, asset: any) {
     if (workflowOnly && hasWorkflow !== null && !hasWorkflow) return false;
     if (minRating > 0 && (Number(asset?.rating || 0) || 0) < minRating) return false;
     if (workflowType && assetWorkflowType !== workflowType) return false;
+    if (workflowId && assetWorkflowId && assetWorkflowId !== workflowId) return false;
     if (dateExact && assetDate && assetDate !== dateExact) return false;
 
     return true;
@@ -350,6 +359,7 @@ export async function fetchPage(
         maxWidth,
         maxHeight,
         workflowType,
+        workflowId,
         dateRange,
         dateExact,
     } = queryState;
@@ -393,6 +403,7 @@ export async function fetchPage(
             maxWidth: maxWidth > 0 ? maxWidth : null,
             maxHeight: maxHeight > 0 ? maxHeight : null,
             workflowType: workflowType || null,
+            workflowId: workflowId || null,
             dateRange: dateRange || null,
             dateExact: dateExact || null,
             sort: sortKey,

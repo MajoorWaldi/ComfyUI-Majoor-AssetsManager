@@ -1,5 +1,5 @@
 //#region ui/app/graphTraversal.ts
-function e(e) {
+function e(e = null) {
 	return e?.rootGraph ?? e?.graph?.rootGraph ?? e?.graph ?? e?.canvas?.graph ?? null;
 }
 function t(e) {

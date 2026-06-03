@@ -13,7 +13,7 @@
 import { EVENTS } from "../../app/events.js";
 import { APP_CONFIG } from "../../app/config.js";
 import { getAssetsBatch } from "../../api/client.js";
-import { getRawHostApp } from "../../app/hostAdapter.js";
+import { observeHostCanvasSelection } from "../../app/hostAdapter.js";
 import { getActiveGridContainer } from "../panel/panelRuntimeRefs.js";
 import { getSelectedIdSet } from "../grid/GridSelectionManager.js";
 import { getHotkeysState, isHotkeysSuspended } from "../panel/controllers/hotkeysState.js";
@@ -397,13 +397,7 @@ function _unbindSelectionListener() {
 // -- Node selection hooks (canvas -> sidebar sync) -----------------------------
 
 let _nodeSelectionBound = false;
-let _origOnNodeSelected: any = null;
-let _origOnSelectionChange: any = null;
-let _origOnNodeDeselected: any = null;
-let _hadOwnOnNodeSelected = false;
-let _hadOwnOnSelectionChange = false;
-let _hadOwnOnNodeDeselected = false;
-let _canvasPointerupHandler: any = null;
+let _disposeNodeSelectionBinding: any = null;
 let _sidebarRefreshTimer: any = null;
 let _sidebarRefreshTimerKind = "";
 
@@ -453,48 +447,10 @@ function _clearScheduledCanvasNodeSelection() {
 function _bindNodeSelectionListener() {
     if (_nodeSelectionBound) return;
     try {
-        const app = getRawHostApp();
-        const canvas = app?.canvas;
-        if (!canvas) return;
-
-        _hadOwnOnNodeSelected = Object.prototype.hasOwnProperty.call(canvas, "onNodeSelected");
-        _hadOwnOnSelectionChange = Object.prototype.hasOwnProperty.call(
-            canvas,
-            "onSelectionChange",
-        );
-        _hadOwnOnNodeDeselected = Object.prototype.hasOwnProperty.call(
-            canvas,
-            "onNodeDeselected",
-        );
-
-        _origOnNodeSelected = canvas.onNodeSelected;
-        _origOnSelectionChange = canvas.onSelectionChange;
-        _origOnNodeDeselected = canvas.onNodeDeselected;
-
-        canvas.onNodeSelected = function (node: any) {
-            _origOnNodeSelected?.call(this, node);
-            _onCanvasNodeSelection();
-        };
-        canvas.onSelectionChange = function (selectedNodes: any) {
-            _origOnSelectionChange?.call(this, selectedNodes);
-            _onCanvasNodeSelection();
-        };
-        // Needed for deselect-all (click on empty canvas)  -  LiteGraph calls
-        // onNodeDeselected for each previously-selected node when clearing.
-        canvas.onNodeDeselected = function (node: any) {
-            _origOnNodeDeselected?.call(this, node);
-            _onCanvasNodeSelection();
-        };
-
-        // DOM-level fallback: catches cases that bypass LiteGraph callbacks
-        // (e.g. keyboard-only selection, custom ComfyUI selection code).
-        const canvasDomEl = canvas.canvas;
-        if (canvasDomEl?.addEventListener) {
-            _canvasPointerupHandler = _scheduleCanvasNodeSelection;
-            canvasDomEl.addEventListener("pointerup", _canvasPointerupHandler);
-        }
-
-        _nodeSelectionBound = true;
+        _disposeNodeSelectionBinding = observeHostCanvasSelection(_scheduleCanvasNodeSelection, {
+            includePointerFallback: true,
+        });
+        _nodeSelectionBound = typeof _disposeNodeSelectionBinding === "function";
     } catch (e: any) {
         console.debug?.("[MFV] _bindNodeSelectionListener error", e);
     }
@@ -504,29 +460,11 @@ function _unbindNodeSelectionListener() {
     if (!_nodeSelectionBound) return;
     _clearScheduledCanvasNodeSelection();
     try {
-        const app = getRawHostApp();
-        const canvas = app?.canvas;
-        if (canvas) {
-            if (_hadOwnOnNodeSelected) canvas.onNodeSelected = _origOnNodeSelected;
-            else delete canvas.onNodeSelected;
-            if (_hadOwnOnSelectionChange) canvas.onSelectionChange = _origOnSelectionChange;
-            else delete canvas.onSelectionChange;
-            if (_hadOwnOnNodeDeselected) canvas.onNodeDeselected = _origOnNodeDeselected;
-            else delete canvas.onNodeDeselected;
-            if (_canvasPointerupHandler && canvas.canvas?.removeEventListener) {
-                canvas.canvas.removeEventListener("pointerup", _canvasPointerupHandler);
-            }
-        }
+        _disposeNodeSelectionBinding?.();
     } catch (e: any) {
         console.debug?.("[MFV] _unbindNodeSelectionListener error", e);
     }
-    _origOnNodeSelected = null;
-    _origOnSelectionChange = null;
-    _origOnNodeDeselected = null;
-    _hadOwnOnNodeSelected = false;
-    _hadOwnOnSelectionChange = false;
-    _hadOwnOnNodeDeselected = false;
-    _canvasPointerupHandler = null;
+    _disposeNodeSelectionBinding = null;
     _nodeSelectionBound = false;
 }
 

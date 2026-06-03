@@ -1,4 +1,4 @@
-import { getComfyApp } from "../comfyApiBridge.js";
+import { getRawHostApp } from "../hostAdapter.js";
 import { t } from "../i18n.js";
 import { buildMajoorSettings } from "./SettingsPanel.js";
 
@@ -428,7 +428,7 @@ export function closeMajoorSettingsDialog(): void {
     dialogState.root.hidden = true;
 }
 
-export function openMajoorSettingsDialog(app: any | null = getComfyApp()): any {
+export function openMajoorSettingsDialog(app: any | null = getRawHostApp()): any {
     if (typeof document === "undefined") return false;
     if (!dialogState?.root?.isConnected) {
         dialogState = buildDialog();

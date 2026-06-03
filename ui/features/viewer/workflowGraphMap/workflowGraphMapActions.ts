@@ -1,4 +1,10 @@
-import { getRawHostApp } from "../../../app/hostAdapter.js";
+import {
+    addNodeToHostGraph,
+    getFirstSelectedHostCanvasNode,
+    getHostGraph,
+    importWorkflowIntoHostCanvas,
+    refreshHostCanvasGraph,
+} from "../../../app/hostAdapter.js";
 import { copyTextToClipboard } from "../../../utils/dom.js";
 import { writeWidgetValue } from "../workflowSidebar/widgetAdapters.js";
 import {
@@ -38,28 +44,11 @@ export function formatParamClipboardValue(value: any): string {
 }
 
 export function importWorkflowToCanvas(workflow: any): boolean {
-    const app = getRawHostApp();
-    if (!workflow || typeof workflow !== "object") return false;
-    if (typeof app?.loadGraphData === "function") {
-        app.loadGraphData(workflow);
-        return true;
-    }
-    if (typeof app?.canvas?.graph?.configure === "function") {
-        app.canvas.graph.configure(workflow);
-        app.canvas.graph.setDirtyCanvas?.(true, true);
-        return true;
-    }
-    if (typeof app?.graph?.configure === "function") {
-        app.graph.configure(workflow);
-        app.graph.setDirtyCanvas?.(true, true);
-        return true;
-    }
-    return false;
+    return importWorkflowIntoHostCanvas(workflow);
 }
 
 export function importNodeToCurrentGraph(node: LooseRecord | null | undefined): boolean {
-    const app = getRawHostApp();
-    const graph = app?.graph ?? app?.canvas?.graph ?? null;
+    const graph = getHostGraph();
     if (!node || !graph || typeof graph.add !== "function") return false;
 
     const nodeType = String(node?.type || node?.class_type || node?.comfyClass || "").trim();
@@ -91,10 +80,7 @@ export function importNodeToCurrentGraph(node: LooseRecord | null | undefined): 
         } else {
             Object.assign(created, clone);
         }
-        graph.add(created);
-        graph.setDirtyCanvas?.(true, true);
-        app?.canvas?.setDirty?.(true, true);
-        return true;
+        return addNodeToHostGraph(created);
     } catch (e: any) {
         console.debug?.("[MFV Graph Map] import node failed", e);
         return false;
@@ -104,8 +90,7 @@ export function importNodeToCurrentGraph(node: LooseRecord | null | undefined): 
 export function transferNodeParamsToSelectedCanvasNode(
     sourceNode: LooseRecord | null | undefined,
 ): TransferResult {
-    const app = getRawHostApp();
-    const targetNode = getSingleSelectedCanvasNode(app);
+    const targetNode = getSingleSelectedCanvasNode();
     if (!sourceNode || !targetNode) return { ok: false, count: 0, reason: "no-target" };
 
     const sourceEntries = getNodeWidgetValueEntries(sourceNode);
@@ -141,10 +126,7 @@ export function transferNodeParamsToSelectedCanvasNode(
         }
     }
 
-    app?.canvas?.setDirty?.(true, true);
-    app?.canvas?.draw?.(true, true);
-    app?.graph?.setDirtyCanvas?.(true, true);
-    app?.graph?.change?.();
+    refreshHostCanvasGraph();
 
     return {
         ok: count > 0,
@@ -154,13 +136,8 @@ export function transferNodeParamsToSelectedCanvasNode(
     };
 }
 
-export function getSingleSelectedCanvasNode(app: any = getRawHostApp()): LooseRecord | null {
-    const selected = app?.canvas?.selected_nodes ?? app?.canvas?.selectedNodes ?? null;
-    if (!selected) return null;
-    if (Array.isArray(selected)) return selected.filter(Boolean)[0] || null;
-    if (selected instanceof Map) return Array.from(selected.values()).filter(Boolean)[0] || null;
-    if (typeof selected === "object") return Object.values(selected).filter(Boolean)[0] || null;
-    return null;
+export function getSingleSelectedCanvasNode(): LooseRecord | null {
+    return (getFirstSelectedHostCanvasNode() as LooseRecord | null) || null;
 }
 
 function _widgetKeys(widget: WidgetRecord): string[] {

@@ -30,6 +30,7 @@ export function createGridController({
         "maxWidth",
         "maxHeight",
         "workflowType",
+        "workflowId",
         "dateRangeFilter",
         "dateExactFilter",
         "sort",
@@ -144,6 +145,7 @@ export function createGridController({
                 String(read("workflowType", "") || "")
                     .trim()
                     .toUpperCase() || null,
+            workflowId: String(read("workflowId", "") || "").trim() || null,
             dateRange:
                 String(read("dateRangeFilter", "") || "")
                     .trim()
@@ -328,6 +330,7 @@ export function createGridController({
         gridContainer.dataset.mjrFilterMaxWidth = String(read("maxWidth", 0) || 0);
         gridContainer.dataset.mjrFilterMaxHeight = String(read("maxHeight", 0) || 0);
         gridContainer.dataset.mjrFilterWorkflowType = String(read("workflowType", "") || "");
+        gridContainer.dataset.mjrFilterWorkflowId = String(read("workflowId", "") || "");
         gridContainer.dataset.mjrFilterDateRange = read("dateRangeFilter", "") || "";
         gridContainer.dataset.mjrFilterDateExact = read("dateExactFilter", "") || "";
         gridContainer.dataset.mjrSort = read("sort", "mtime_desc") || "mtime_desc";

@@ -1,5 +1,6 @@
 <script setup>
 import { computed } from "vue";
+import { t } from "../../../app/i18n.js";
 import { APP_CONFIG } from "../../../app/config.js";
 import SidebarFileInfoSection from "../panel/sidebar/SidebarFileInfoSection.vue";
 import SidebarGenerationSection from "../panel/sidebar/SidebarGenerationSection.vue";
@@ -170,7 +171,9 @@ const errorContent = computed(() => {
         status.value?.message || status.value?.error || "Failed to load generation data.",
     );
     const code = String(status.value?.code || status.value?.stage || "").trim();
-    return code ? `${msg}\n\nCode: ${code}\nClick to retry.` : `${msg}\n\nClick to retry.`;
+    return code
+        ? t("viewer.metadataErrorWithCode", "{message}\n\nCode: {code}\nClick to retry.", { message: msg, code })
+        : t("viewer.metadataErrorRetry", "{message}\n\nClick to retry.", { message: msg });
 });
 </script>
 
@@ -187,8 +190,8 @@ const errorContent = computed(() => {
             v-if="props.loading"
             style="padding:10px 12px;border-radius:10px;border:1px solid rgba(33,150,243,0.35);background:rgba(33,150,243,0.08);color:rgba(255,255,255,0.86);white-space:pre-wrap"
         >
-            <div style="font-size:12px;font-weight:700;margin-bottom:6px">Loading</div>
-            <div style="font-size:12px;opacity:0.88">Loading generation data...</div>
+            <div style="font-size:12px;font-weight:700;margin-bottom:6px">{{ t("status.loading", "Loading") }}</div>
+            <div style="font-size:12px;opacity:0.88">{{ t("viewer.loadingGenerationData", "Loading generation data...") }}</div>
         </div>
 
         <div
@@ -197,7 +200,7 @@ const errorContent = computed(() => {
             :style="{ cursor: props.onRetry ? 'pointer' : 'default' }"
             @click="handleRetry"
         >
-            <div style="font-size:12px;font-weight:700;margin-bottom:6px">Error Loading Metadata</div>
+            <div style="font-size:12px;font-weight:700;margin-bottom:6px">{{ t("viewer.errorLoadingMetadata", "Error Loading Metadata") }}</div>
             <div style="font-size:12px;opacity:0.9">{{ errorContent }}</div>
         </div>
 
@@ -218,7 +221,7 @@ const errorContent = computed(() => {
             v-if="showEmptyState"
             style="padding:10px 12px;border-radius:10px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.72)"
         >
-            No generation data found for this file.
+            {{ t("viewer.noGenerationDataFile", "No generation data found for this file.") }}
         </div>
 
         <details
@@ -228,7 +231,7 @@ const errorContent = computed(() => {
             <summary
                 style="cursor:pointer;padding:10px 12px;color:rgba(255,255,255,0.78);user-select:none"
             >
-                Raw metadata
+                {{ t("msg.rawMetadata", "Raw metadata") }}
             </summary>
             <pre
                 style="margin:0;padding:10px 12px;max-height:280px;overflow:auto;font-size:11px;line-height:1.35;color:rgba(255,255,255,0.86)"

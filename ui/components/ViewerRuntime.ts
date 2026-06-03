@@ -12,6 +12,7 @@ import {
     getFileMetadataScoped,
 } from "../api/client.js";
 import { ASSET_RATING_CHANGED_EVENT, ASSET_TAGS_CHANGED_EVENT } from "../app/events.js";
+import { t } from "../app/i18n.js";
 import {
     bindViewerContextMenu,
     unbindViewerContextMenu,
@@ -1089,7 +1090,7 @@ function createViewer() {
                     const empty = document.createElement("div");
                     empty.style.cssText =
                         "padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.72);";
-                    empty.textContent = "No generation data found for this file.";
+                    empty.textContent = t("viewer.noGenerationDataFile", "No generation data found for this file.");
                     block.appendChild(empty);
 
                     try {
@@ -1099,7 +1100,7 @@ function createViewer() {
                             details.style.cssText =
                                 "border: 1px solid rgba(255,255,255,0.10); border-radius: 10px; background: rgba(255,255,255,0.04); overflow: hidden;";
                             const summary = document.createElement("summary");
-                            summary.textContent = "Raw metadata";
+                            summary.textContent = t("msg.rawMetadata", "Raw metadata");
                             summary.style.cssText =
                                 "cursor: pointer; padding: 10px 12px; color: rgba(255,255,255,0.78); user-select: none;";
                             const pre = document.createElement("pre");

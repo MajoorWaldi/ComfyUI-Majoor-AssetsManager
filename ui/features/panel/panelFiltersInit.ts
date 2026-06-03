@@ -18,6 +18,7 @@ export function setupFiltersInit({
     kindSelect,
     wfCheckbox,
     workflowTypeSelect,
+    workflowIdInput,
     ratingSelect,
     minSizeInput,
     maxSizeInput,
@@ -47,6 +48,7 @@ export function setupFiltersInit({
             workflowTypeSelect.value = String(state.workflowType || "")
                 .trim()
                 .toUpperCase();
+            if (workflowIdInput) workflowIdInput.value = String(state.workflowId || "").trim();
             ratingSelect.value = String(Number(state.minRating || 0) || 0);
             minSizeInput.value = Number(state.minSizeMB || 0) > 0 ? String(state.minSizeMB) : "";
             maxSizeInput.value = Number(state.maxSizeMB || 0) > 0 ? String(state.maxSizeMB) : "";
@@ -89,11 +91,6 @@ export function setupFiltersInit({
             } catch (e) {
                 console.debug?.(e);
             }
-            try {
-                popovers?.close?.(filterPopover);
-            } catch (e) {
-                console.debug?.(e);
-            }
             void exitSimilarViewIfActive({ reload: false });
             try {
                 agendaCalendar?.refresh?.();
@@ -131,6 +128,7 @@ export function setupFiltersInit({
             kindSelect,
             wfCheckbox,
             workflowTypeSelect,
+            workflowIdInput,
             ratingSelect,
             minSizeInput,
             maxSizeInput,

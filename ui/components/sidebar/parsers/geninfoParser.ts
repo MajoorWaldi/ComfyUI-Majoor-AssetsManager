@@ -221,8 +221,17 @@ export function normalizeGenerationMetadata(raw: any): Record<string, any> | nul
                 }
             }
             if (overrideFields.size) mapped.override_fields = Array.from(overrideFields);
+            enrichSamplerStagesFromNativeWorkflow(mapped, raw);
 
             if (Object.keys(mapped).length) return mapped;
+        }
+
+        const parsedFromWorkflow = parseComfyUIWorkflow(raw);
+        if (parsedFromWorkflow) return parsedFromWorkflow;
+
+        if (looksLikeComfyPromptGraph(raw)) {
+            const parsed = parseComfyUIWorkflow({ prompt: raw });
+            if (parsed) return parsed;
         }
 
         const flatKeys = [
@@ -240,14 +249,6 @@ export function normalizeGenerationMetadata(raw: any): Record<string, any> | nul
         ];
         const hasFlatKey = flatKeys.some((k: any) => Object.prototype.hasOwnProperty.call(raw, k));
         if (hasFlatKey) return raw;
-
-        const parsedFromWorkflow = parseComfyUIWorkflow(raw);
-        if (parsedFromWorkflow) return parsedFromWorkflow;
-
-        if (looksLikeComfyPromptGraph(raw)) {
-            const parsed = parseComfyUIWorkflow({ prompt: raw });
-            if (parsed) return parsed;
-        }
 
         const maybeParams =
             raw["parameters"] ||
@@ -292,6 +293,33 @@ export function normalizeGenerationMetadata(raw: any): Record<string, any> | nul
     }
 
     return null;
+}
+
+function enrichSamplerStagesFromNativeWorkflow(mapped: Record<string, any>, raw: any) {
+    const nativeWorkflow =
+        raw?.workflow ||
+        raw?.Workflow ||
+        raw?.comfy_workflow ||
+        raw?.comfy ||
+        raw?.comfyui ||
+        raw?.ComfyUI ||
+        null;
+    if (!nativeWorkflow || typeof nativeWorkflow !== "object") return;
+    const parsed = parseComfyUIWorkflow(nativeWorkflow);
+    const nativeSamplers = Array.isArray(parsed?.all_samplers) ? parsed.all_samplers : [];
+    if (!nativeSamplers.length) return;
+    for (const key of ["all_samplers", "chained_passes"]) {
+        const current = Array.isArray(mapped[key]) ? mapped[key] : [];
+        if (!current.length) continue;
+        mapped[key] = current.map((item: any, index: number) => {
+            const stage = nativeSamplers[index]?.pass_stage;
+            if (!stage || item?.pass_stage) return item;
+            return { ...item, pass_stage: stage };
+        });
+    }
+    if (!Array.isArray(mapped.all_samplers) && nativeSamplers.length > 1) {
+        mapped.all_samplers = nativeSamplers;
+    }
 }
 
 export function looksLikeFilePathPrompt(value: any): boolean {

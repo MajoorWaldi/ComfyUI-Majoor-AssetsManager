@@ -9,6 +9,8 @@ import {
     sanitizePromptForDisplay,
 } from "../../../../components/sidebar/parsers/geninfoParser.js";
 
+import { t } from "../../../../app/i18n.js";
+
 type LooseRecord = Record<string, any>;
 type Field = { label: string; value: any; override?: boolean };
 
@@ -131,12 +133,32 @@ export function formatPipelineValue(value: any): string {
 }
 
 export function resolvePassName(passData: LooseRecord | null | undefined, index: number): string {
+    const stage = String(passData?.pass_stage || passData?.stage || passData?.kind || "")
+        .trim()
+        .toLowerCase();
+    if (stage === "txt2img" || stage === "text_to_image" || stage === "text-to-image") {
+        return t("sidebar.generation.stageTextToImage", "Text-to-Image");
+    }
+    if (stage === "img2img" || stage === "image_to_image" || stage === "image-to-image") {
+        return t("sidebar.generation.stageImageToImage", "Image-to-Image");
+    }
+    if (stage === "inpaint" || stage === "inpainting") {
+        return t("sidebar.generation.stageInpaint", "Inpaint");
+    }
+    if (stage === "upscale" || stage === "upscaling") {
+        return t("sidebar.generation.stageUpscale", "Upscale");
+    }
+    if (stage === "refine" || stage === "refiner") {
+        return t("sidebar.generation.stageRefine", "Refine");
+    }
     const explicitName = String(passData?.pass_name || "").trim();
-    if (explicitName) return explicitName;
+    if (explicitName && explicitName.toLowerCase() !== "base") return explicitName;
     const denoise = Number(passData?.denoise);
-    if (index === 0 || denoise === 1) return "Base";
-    if (Number.isFinite(denoise) && denoise < 1) return "Refine / Upscale";
-    return `Pass ${index + 1}`;
+    if (index === 0 || denoise === 1) return t("sidebar.generation.stageBase", "Base");
+    if (Number.isFinite(denoise) && denoise < 1) {
+        return t("sidebar.generation.stageRefineUpscale", "Refine / Upscale");
+    }
+    return t("sidebar.generation.stagePassN", "Pass {n}", { n: index + 1 });
 }
 
 function getMetadataSource(asset: LooseRecord | null | undefined): any {
@@ -272,8 +294,8 @@ function buildModelGroupState(metadata: LooseRecord): any[] {
     if (!models) return groups;
 
     const fallbackGroups = [
-        { key: "high_noise", label: "High Noise", model: pickModelName(models.unet_high_noise) },
-        { key: "low_noise", label: "Low Noise", model: pickModelName(models.unet_low_noise) },
+        { key: "high_noise", label: t("sidebar.generation.highNoise", "High Noise"), model: pickModelName(models.unet_high_noise) },
+        { key: "low_noise", label: t("sidebar.generation.lowNoise", "Low Noise"), model: pickModelName(models.unet_low_noise) },
     ];
     fallbackGroups.forEach((group) => {
         const groupedLoras = loras
@@ -288,7 +310,7 @@ function buildModelGroupState(metadata: LooseRecord): any[] {
 
 function createBooleanField(label: string, value: any): Field | null {
     if (value === undefined || value === null) return null;
-    return { label, value: value ? "on" : "off" };
+    return { label, value: value ? t("state.on", "on") : t("state.off", "off") };
 }
 
 function hasMeaningfulValue(value: any): boolean {
@@ -312,7 +334,7 @@ function normalizeCustomInfoBlocks(value: any): any[] {
     return value
         .filter((item) => item && typeof item === "object")
         .map((item, index) => ({
-            title: String(item.title || `Custom Info ${index + 1}`).trim(),
+            title: String(item.title || t("sidebar.generation.customInfoN", "Custom Info {n}", { n: index + 1 })).trim(),
             content: String(item.content ?? item.value ?? "").trim(),
             color: /^#[0-9a-fA-F]{6}$/.test(String(item.color || "").trim())
                 ? String(item.color).trim()
@@ -325,7 +347,7 @@ export function buildGenerationSectionState(asset: LooseRecord | null | undefine
     const normalized = normalizeGenerationMetadata(getMetadataSource(asset));
     const emptyState = {
         kind: "empty",
-        title: "Generation",
+        title: t("sidebar.generation.title", "Generation"),
         workflowType: "",
         workflowLabel: "",
         workflowBadge: "",
@@ -337,8 +359,8 @@ export function buildGenerationSectionState(asset: LooseRecord | null | undefine
         promptTabs: [],
         mediaOnlyMessage: "",
         showAlignment: false,
-        captionLabel: "Image Description",
-        emptyCaptionText: "No image description yet.",
+        captionLabel: t("sidebar.generation.imageDescription", "Image Description"),
+        emptyCaptionText: t("sidebar.generation.noImageDescription", "No image description yet."),
         isImageAsset: isImageLikeAsset(asset),
         lyrics: "",
         modelFields: [],
@@ -370,7 +392,7 @@ export function buildGenerationSectionState(asset: LooseRecord | null | undefine
                 ...emptyState,
                 kind: "media-only",
                 mediaOnlyMessage:
-                    "This file looks like a media-only pipeline (e.g. LoadVideo/VideoCombine) and does not contain generation parameters.",
+                    t("sidebar.generation.mediaOnlyPipeline", "This file looks like a media-only pipeline (e.g. LoadVideo/VideoCombine) and does not contain generation parameters."),
             };
         }
 
@@ -413,7 +435,7 @@ export function buildGenerationSectionState(asset: LooseRecord | null | undefine
                               : "",
                       );
                       return {
-                          label: `Prompt ${index + 1}`,
+                          label: t("sidebar.generation.promptN", "Prompt {n}", { n: index + 1 }),
                           positive: sanitizePromptForDisplay(prompts.positive),
                           negative: sanitizePromptForDisplay(prompts.negative),
                       };
@@ -441,18 +463,18 @@ export function buildGenerationSectionState(asset: LooseRecord | null | undefine
         if (allCheckpoints) {
             allCheckpoints.forEach((checkpoint, index) => {
                 const name = pickModelName(checkpoint);
-                pushUniqueModelField(modelFields, seenModelPairs, `Checkpoint ${index + 1}`, name);
+                pushUniqueModelField(modelFields, seenModelPairs, t("sidebar.generation.checkpointN", "Checkpoint {n}", { n: index + 1 }), name);
             });
         } else {
             const checkpoint = pickModelName(models.checkpoint);
             if (checkpoint && !branchNames.has(checkpoint)) {
-                pushUniqueModelField(modelFields, seenModelPairs, "Checkpoint", checkpoint);
+                pushUniqueModelField(modelFields, seenModelPairs, t("sidebar.generation.checkpoint", "Checkpoint"), checkpoint);
             }
         }
         const fields = [
             ["UNet", pickModelName(models.unet)],
             ["Diffusion", pickModelName(models.diffusion)],
-            ["Upscaler", pickModelName(models.upscaler)],
+            [t("sidebar.generation.upscaler", "Upscaler"), pickModelName(models.upscaler)],
             ["CLIP", pickModelName(models.clip)],
             ["VAE", pickModelName(models.vae)],
         ];
@@ -464,7 +486,7 @@ export function buildGenerationSectionState(asset: LooseRecord | null | undefine
         pushUniqueModelField(
             modelFields,
             seenModelPairs,
-            "Model",
+            t("sidebar.generation.model", "Model"),
             formatModelLabel(metadata.model || metadata.checkpoint),
         );
     }
@@ -478,7 +500,7 @@ export function buildGenerationSectionState(asset: LooseRecord | null | undefine
             pushUniqueModelField(
                 modelFields,
                 seenModelPairs,
-                metadata.loras.length > 1 ? "LoRAs" : "LoRA",
+                metadata.loras.length > 1 ? t("sidebar.generation.loras", "LoRAs") : "LoRA",
                 loraText,
             );
         }
@@ -502,27 +524,27 @@ export function buildGenerationSectionState(asset: LooseRecord | null | undefine
 
     const samplingFields: Field[] = [];
     if (hasMeaningfulValue(metadata.seed)) {
-        samplingFields.push({ label: "Seed", value: metadata.seed, override: isOverrideField(overriddenFields, "seed") });
+        samplingFields.push({ label: t("sidebar.generation.seed", "Seed"), value: metadata.seed, override: isOverrideField(overriddenFields, "seed") });
     }
     if (metadata.sampler || metadata.sampler_name) {
-        samplingFields.push({ label: "Sampler", value: metadata.sampler || metadata.sampler_name, override: isOverrideField(overriddenFields, "sampler", "sampler_name") });
+        samplingFields.push({ label: t("sidebar.generation.sampler", "Sampler"), value: metadata.sampler || metadata.sampler_name, override: isOverrideField(overriddenFields, "sampler", "sampler_name") });
     }
     if (hasMeaningfulValue(metadata.steps)) {
-        samplingFields.push({ label: "Steps", value: metadata.steps, override: isOverrideField(overriddenFields, "steps") });
+        samplingFields.push({ label: t("sidebar.generation.steps", "Steps"), value: metadata.steps, override: isOverrideField(overriddenFields, "steps") });
     }
     const cfgValue = hasMeaningfulValue(metadata.cfg) ? metadata.cfg : metadata.cfg_scale;
     if (hasMeaningfulValue(cfgValue)) {
-        samplingFields.push({ label: "CFG Scale", value: cfgValue, override: isOverrideField(overriddenFields, "cfg", "cfg_scale") });
+        samplingFields.push({ label: t("sidebar.generation.cfgScale", "CFG Scale"), value: cfgValue, override: isOverrideField(overriddenFields, "cfg", "cfg_scale") });
     }
     if (metadata.cfg_high_noise !== undefined && metadata.cfg_high_noise !== null) {
-        samplingFields.push({ label: "CFG High Noise", value: metadata.cfg_high_noise });
+        samplingFields.push({ label: t("sidebar.generation.cfgHighNoise", "CFG High Noise"), value: metadata.cfg_high_noise });
     }
     if (metadata.cfg_low_noise !== undefined && metadata.cfg_low_noise !== null) {
-        samplingFields.push({ label: "CFG Low Noise", value: metadata.cfg_low_noise });
+        samplingFields.push({ label: t("sidebar.generation.cfgLowNoise", "CFG Low Noise"), value: metadata.cfg_low_noise });
     }
-    if (metadata.scheduler) samplingFields.push({ label: "Scheduler", value: metadata.scheduler, override: isOverrideField(overriddenFields, "scheduler") });
+    if (metadata.scheduler) samplingFields.push({ label: t("sidebar.generation.scheduler", "Scheduler"), value: metadata.scheduler, override: isOverrideField(overriddenFields, "scheduler") });
     const denoiseValue = hasMeaningfulValue(metadata.denoise) ? metadata.denoise : metadata.denoising;
-    if (hasMeaningfulValue(denoiseValue)) samplingFields.push({ label: "Denoise", value: denoiseValue, override: isOverrideField(overriddenFields, "denoise", "denoising") });
+    if (hasMeaningfulValue(denoiseValue)) samplingFields.push({ label: t("sidebar.generation.denoise", "Denoise"), value: denoiseValue, override: isOverrideField(overriddenFields, "denoise", "denoising") });
 
     let pipelineTabs: any[] = [];
     if (Array.isArray(metadata.chained_passes) && metadata.chained_passes.length > 1) {
@@ -531,12 +553,13 @@ export function buildGenerationSectionState(asset: LooseRecord | null | undefine
             .map((passItem, index) => ({
                 label: resolvePassName(passItem, index),
                 fields: [
-                    { label: "Sampler", value: formatPipelineValue(passItem?.sampler_name || passItem?.sampler) },
-                    { label: "Scheduler", value: formatPipelineValue(passItem?.scheduler) },
-                    { label: "Steps", value: formatPipelineValue(passItem?.steps) },
+                    { label: t("sidebar.generation.model", "Model"), value: formatPipelineValue(passItem?.model) },
+                    { label: t("sidebar.generation.sampler", "Sampler"), value: formatPipelineValue(passItem?.sampler_name || passItem?.sampler) },
+                    { label: t("sidebar.generation.scheduler", "Scheduler"), value: formatPipelineValue(passItem?.scheduler) },
+                    { label: t("sidebar.generation.steps", "Steps"), value: formatPipelineValue(passItem?.steps) },
                     { label: "CFG", value: formatPipelineValue(passItem?.cfg) },
-                    { label: "Denoise", value: formatPipelineValue(passItem?.denoise) },
-                    { label: "Seed", value: formatPipelineValue(passItem?.seed_val || passItem?.seed) },
+                    { label: t("sidebar.generation.denoise", "Denoise"), value: formatPipelineValue(passItem?.denoise) },
+                    { label: t("sidebar.generation.seed", "Seed"), value: formatPipelineValue(passItem?.seed_val || passItem?.seed) },
                 ],
             }));
     } else if (Array.isArray(metadata.all_samplers) && metadata.all_samplers.length > 1) {
@@ -545,58 +568,59 @@ export function buildGenerationSectionState(asset: LooseRecord | null | undefine
             .map((passItem, index) => ({
                 label: resolvePassName(passItem, index),
                 fields: [
-                    { label: "Sampler", value: formatPipelineValue(passItem?.sampler_name || passItem?.sampler) },
-                    { label: "Scheduler", value: formatPipelineValue(passItem?.scheduler) },
-                    { label: "Steps", value: formatPipelineValue(passItem?.steps) },
+                    { label: t("sidebar.generation.model", "Model"), value: formatPipelineValue(passItem?.model) },
+                    { label: t("sidebar.generation.sampler", "Sampler"), value: formatPipelineValue(passItem?.sampler_name || passItem?.sampler) },
+                    { label: t("sidebar.generation.scheduler", "Scheduler"), value: formatPipelineValue(passItem?.scheduler) },
+                    { label: t("sidebar.generation.steps", "Steps"), value: formatPipelineValue(passItem?.steps) },
                     { label: "CFG", value: formatPipelineValue(passItem?.cfg) },
-                    { label: "Denoise", value: formatPipelineValue(passItem?.denoise) },
-                    { label: "Seed", value: formatPipelineValue(passItem?.seed_val || passItem?.seed) },
+                    { label: t("sidebar.generation.denoise", "Denoise"), value: formatPipelineValue(passItem?.denoise) },
+                    { label: t("sidebar.generation.seed", "Seed"), value: formatPipelineValue(passItem?.seed_val || passItem?.seed) },
                 ],
             }));
     }
 
     const ttsFields: Field[] = [];
-    if (metadata.voice) ttsFields.push({ label: "Narrator Voice", value: metadata.voice });
-    if (metadata.language) ttsFields.push({ label: "Language", value: metadata.language });
+    if (metadata.voice) ttsFields.push({ label: t("sidebar.generation.narratorVoice", "Narrator Voice"), value: metadata.voice });
+    if (metadata.language) ttsFields.push({ label: t("sidebar.generation.language", "Language"), value: metadata.language });
     if (metadata.top_k !== undefined && metadata.top_k !== null) ttsFields.push({ label: "Top-k", value: metadata.top_k });
     if (metadata.top_p !== undefined && metadata.top_p !== null) ttsFields.push({ label: "Top-p", value: metadata.top_p });
-    if (metadata.temperature !== undefined && metadata.temperature !== null) ttsFields.push({ label: "Temperature", value: metadata.temperature });
+    if (metadata.temperature !== undefined && metadata.temperature !== null) ttsFields.push({ label: t("sidebar.generation.temperature", "Temperature"), value: metadata.temperature });
     if (metadata.repetition_penalty !== undefined && metadata.repetition_penalty !== null) {
-        ttsFields.push({ label: "Repetition Penalty", value: metadata.repetition_penalty });
+        ttsFields.push({ label: t("sidebar.generation.repetitionPenalty", "Repetition Penalty"), value: metadata.repetition_penalty });
     }
     if (metadata.max_new_tokens !== undefined && metadata.max_new_tokens !== null) {
-        ttsFields.push({ label: "Max New Tokens", value: metadata.max_new_tokens });
+        ttsFields.push({ label: t("sidebar.generation.maxNewTokens", "Max New Tokens"), value: metadata.max_new_tokens });
     }
 
     const ttsEngineFields: Field[] = [];
-    if (metadata.device) ttsEngineFields.push({ label: "Device", value: metadata.device });
-    if (metadata.voice_preset) ttsEngineFields.push({ label: "Voice Preset", value: metadata.voice_preset });
-    if (metadata.dtype) ttsEngineFields.push({ label: "Dtype", value: metadata.dtype });
-    if (metadata.attn_implementation) ttsEngineFields.push({ label: "Attention", value: metadata.attn_implementation });
-    if (metadata.compile_mode) ttsEngineFields.push({ label: "Compile Mode", value: metadata.compile_mode });
+    if (metadata.device) ttsEngineFields.push({ label: t("sidebar.generation.device", "Device"), value: metadata.device });
+    if (metadata.voice_preset) ttsEngineFields.push({ label: t("sidebar.generation.voicePreset", "Voice Preset"), value: metadata.voice_preset });
+    if (metadata.dtype) ttsEngineFields.push({ label: t("sidebar.generation.dtype", "Dtype"), value: metadata.dtype });
+    if (metadata.attn_implementation) ttsEngineFields.push({ label: t("sidebar.generation.attention", "Attention"), value: metadata.attn_implementation });
+    if (metadata.compile_mode) ttsEngineFields.push({ label: t("sidebar.generation.compileMode", "Compile Mode"), value: metadata.compile_mode });
     [
-        createBooleanField("Torch Compile", metadata.use_torch_compile),
-        createBooleanField("CUDA Graphs", metadata.use_cuda_graphs),
-        createBooleanField("X-Vector Only", metadata.x_vector_only_mode),
+        createBooleanField(t("sidebar.generation.torchCompile", "Torch Compile"), metadata.use_torch_compile),
+        createBooleanField(t("sidebar.generation.cudaGraphs", "CUDA Graphs"), metadata.use_cuda_graphs),
+        createBooleanField(t("sidebar.generation.xVectorOnly", "X-Vector Only"), metadata.x_vector_only_mode),
     ]
         .filter(Boolean)
         .forEach((field) => ttsEngineFields.push(field as Field));
 
     const ttsRuntimeFields: Field[] = [];
     [
-        createBooleanField("Chunking", metadata.enable_chunking),
+        createBooleanField(t("sidebar.generation.chunking", "Chunking"), metadata.enable_chunking),
         metadata.max_chars_per_chunk !== undefined && metadata.max_chars_per_chunk !== null
-            ? { label: "Max Chars/Chunk", value: metadata.max_chars_per_chunk }
+            ? { label: t("sidebar.generation.maxCharsChunk", "Max Chars/Chunk"), value: metadata.max_chars_per_chunk }
             : null,
         metadata.chunk_combination_method
-            ? { label: "Chunk Method", value: metadata.chunk_combination_method }
+            ? { label: t("sidebar.generation.chunkMethod", "Chunk Method"), value: metadata.chunk_combination_method }
             : null,
         metadata.silence_between_chunks_ms !== undefined && metadata.silence_between_chunks_ms !== null
-            ? { label: "Silence Between Chunks (ms)", value: metadata.silence_between_chunks_ms }
+            ? { label: t("sidebar.generation.silenceBetweenChunks", "Silence Between Chunks (ms)"), value: metadata.silence_between_chunks_ms }
             : null,
-        createBooleanField("Audio Cache", metadata.enable_audio_cache),
+        createBooleanField(t("sidebar.generation.audioCache", "Audio Cache"), metadata.enable_audio_cache),
         metadata.batch_size !== undefined && metadata.batch_size !== null
-            ? { label: "Batch Size", value: metadata.batch_size }
+            ? { label: t("sidebar.generation.batchSize", "Batch Size"), value: metadata.batch_size }
             : null,
     ]
         .filter(Boolean)
@@ -604,18 +628,18 @@ export function buildGenerationSectionState(asset: LooseRecord | null | undefine
 
     const audioFields: Field[] = [];
     if (metadata.lyrics_strength !== undefined && metadata.lyrics_strength !== null) {
-        audioFields.push({ label: "Lyrics Strength", value: metadata.lyrics_strength });
+        audioFields.push({ label: t("sidebar.generation.lyricsStrength", "Lyrics Strength"), value: metadata.lyrics_strength });
     }
 
     const imageFields: Field[] = [];
     if (hasMeaningfulValue(denoiseValue) && !samplingFields.some((field) => field.label === "Denoise")) {
-        imageFields.push({ label: "Denoise", value: denoiseValue });
+        imageFields.push({ label: t("sidebar.generation.denoise", "Denoise"), value: denoiseValue });
     }
-    if (hasMeaningfulValue(metadata.clip_skip)) imageFields.push({ label: "Clip Skip", value: metadata.clip_skip });
+    if (hasMeaningfulValue(metadata.clip_skip)) imageFields.push({ label: t("sidebar.generation.clipSkip", "Clip Skip"), value: metadata.clip_skip });
 
     const notesFields: Field[] = [];
     const notes = String(metadata.workflow_notes || metadata.notes || "").trim();
-    if (notes) notesFields.push({ label: "Workflow Notes", value: notes, override: isOverrideField(overriddenFields, "workflow_notes", "notes") });
+    if (notes) notesFields.push({ label: t("sidebar.generation.workflowNotes", "Workflow Notes"), value: notes, override: isOverrideField(overriddenFields, "workflow_notes", "notes") });
     const customInfoBlocks = normalizeCustomInfoBlocks(metadata.custom_info);
 
     const inputFiles = Array.isArray(metadata.inputs)

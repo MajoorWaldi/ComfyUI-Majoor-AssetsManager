@@ -27,6 +27,7 @@ const maxWidthInputRef = ref(null);
 const maxHeightInputRef = ref(null);
 const agendaContainerRef = ref(null);
 const dateExactInputRef = ref(null);
+const workflowIdInputRef = ref(null);
 
 const resolveDomElement = (value) => value?.$el || value || null;
 const getInputValue = (inputRef) => resolveDomElement(inputRef.value)?.value || "";
@@ -138,6 +139,11 @@ const applyWorkflowTypeValue = (value, { emit = true } = {}) => {
     if (emit) dispatchFiltersChanged();
 };
 
+const applyWorkflowIdValue = (value, { emit = true } = {}) => {
+    panelStore.workflowId = String(value || "").trim();
+    if (emit) dispatchFiltersChanged();
+};
+
 const applyRatingValue = (value, { emit = true } = {}) => {
     panelStore.minRating = Number(value || 0) || 0;
     if (emit) dispatchFiltersChanged();
@@ -206,6 +212,9 @@ const applyDateRangeValue = (value, { emit = true } = {}) => {
 
 const onDateExactChange = (event) => {
     panelStore.dateExactFilter = String(event?.target?.value || "").trim();
+    if (panelStore.dateExactFilter && panelStore.dateRangeFilter) {
+        panelStore.dateRangeFilter = "";
+    }
     dispatchFiltersChanged();
 };
 
@@ -263,6 +272,10 @@ const workflowTypeControl = createValueFacade({
             .toUpperCase(),
     setValue: applyWorkflowTypeValue,
 });
+const workflowIdControl = createValueFacade({
+    getValue: () => String(panelStore.workflowId || "").trim(),
+    setValue: applyWorkflowIdValue,
+});
 const ratingSelectControl = createValueFacade({
     getValue: () => String(Number(panelStore.minRating || 0) || 0),
     setValue: applyRatingValue,
@@ -276,10 +289,61 @@ const dateRangeControl = createValueFacade({
     setValue: applyDateRangeValue,
 });
 
+const activeFiltersCount = computed(() => {
+    let count = 0;
+    if (String(panelStore.kindFilter || "").trim()) count += 1;
+    if (Boolean(panelStore.workflowOnly)) count += 1;
+    if (String(panelStore.workflowType || "").trim()) count += 1;
+    if (String(panelStore.workflowId || "").trim()) count += 1;
+    if ((Number(panelStore.minRating || 0) || 0) > 0) count += 1;
+    if ((Number(panelStore.minSizeMB || 0) || 0) > 0 || (Number(panelStore.maxSizeMB || 0) || 0) > 0) {
+        count += 1;
+    }
+    if (
+        (Number(panelStore.minWidth || 0) || 0) > 0 ||
+        (Number(panelStore.minHeight || 0) || 0) > 0 ||
+        (Number(panelStore.maxWidth || 0) || 0) > 0 ||
+        (Number(panelStore.maxHeight || 0) || 0) > 0
+    ) {
+        count += 1;
+    }
+    if (String(panelStore.dateRangeFilter || "").trim()) count += 1;
+    if (String(panelStore.dateExactFilter || "").trim()) count += 1;
+    return count;
+});
+
+const clearAllFilters = () => {
+    panelStore.kindFilter = "";
+    panelStore.workflowOnly = false;
+    panelStore.workflowType = "";
+    panelStore.workflowId = "";
+    panelStore.minRating = 0;
+    panelStore.minSizeMB = 0;
+    panelStore.maxSizeMB = 0;
+    panelStore.minWidth = 0;
+    panelStore.minHeight = 0;
+    panelStore.maxWidth = 0;
+    panelStore.maxHeight = 0;
+    panelStore.dateRangeFilter = "";
+    panelStore.dateExactFilter = "";
+
+    setInputValue(minSizeInputRef, "");
+    setInputValue(maxSizeInputRef, "");
+    setInputValue(minWidthInputRef, "");
+    setInputValue(minHeightInputRef, "");
+    setInputValue(maxWidthInputRef, "");
+    setInputValue(maxHeightInputRef, "");
+    setInputValue(dateExactInputRef, "");
+    setInputValue(workflowIdInputRef, "");
+
+    dispatchFiltersChanged();
+};
+
 defineExpose({
     get kindSelect()              { return kindSelectControl; },
     get wfCheckbox()              { return workflowOnlyControl; },
     get workflowTypeSelect()      { return workflowTypeControl; },
+    get workflowIdInput()         { return workflowIdControl; },
     get ratingSelect()            { return ratingSelectControl; },
     get minSizeInput()            { return resolveDomElement(minSizeInputRef.value); },
     get maxSizeInput()            { return resolveDomElement(maxSizeInputRef.value); },
@@ -302,6 +366,26 @@ defineExpose({
     -->
     <div class="mjr-popover mjr-filter-popover" style="display: none;">
 
+        <div class="mjr-filter-head">
+            <div class="mjr-filter-head-left">
+                <div class="mjr-filter-kicker">{{ t("label.filters", "Filters") }}</div>
+                <div class="mjr-filter-subtitle">{{ t("label.refineResults", "Refine your results") }}</div>
+            </div>
+            <div class="mjr-filter-head-actions">
+                <span class="mjr-filter-active-count">{{ activeFiltersCount }}</span>
+                <MButton
+                    type="button"
+                    class="mjr-filter-clear-all"
+                    severity="secondary"
+                    text
+                    :disabled="activeFiltersCount === 0"
+                    @click="clearAllFilters"
+                >
+                    {{ t("action.clearAll", "Clear all") }}
+                </MButton>
+            </div>
+        </div>
+
         <!-- ── Core group ─────────────────────────────────────────────────── -->
         <div class="mjr-filter-group mjr-filter-group--core" :class="{ 'is-open': isGroupOpen('core') }">
             <MButton
@@ -317,6 +401,7 @@ defineExpose({
             </MButton>
 
             <div v-show="isGroupOpen('core')" class="mjr-filter-group-body">
+            <div class="mjr-filter-card">
 
             <!-- File type -->
             <div class="mjr-popover-row">
@@ -349,6 +434,9 @@ defineExpose({
                     <span>{{ t("filter.onlyWithWorkflow") }}</span>
                 </label>
             </div>
+                </div>
+
+            <div class="mjr-filter-card">
 
             <!-- Workflow type -->
             <div class="mjr-popover-row">
@@ -361,6 +449,20 @@ defineExpose({
                     option-label="label"
                     option-value="value"
                     @update:model-value="applyWorkflowTypeValue"
+                />
+            </div>
+
+            <!-- Workflow ID -->
+            <div class="mjr-popover-row">
+                <div class="mjr-popover-label">{{ t("label.sameWorkflow", "Generated with Same Workflow") }}</div>
+                <MInputText
+                    ref="workflowIdInputRef"
+                    class="mjr-input"
+                    :title="t('tooltip.filterWorkflowId', 'Filter assets generated from the same embedded workflow id')"
+                    :placeholder="t('placeholder.workflowId', 'Workflow ID')"
+                    :model-value="String(panelStore.workflowId || '')"
+                    @update:model-value="applyWorkflowIdValue"
+                    @change="applyWorkflowIdValue($event?.target?.value)"
                 />
             </div>
 
@@ -377,6 +479,7 @@ defineExpose({
                     option-value="value"
                     @update:model-value="applyRatingValue"
                 />
+            </div>
             </div>
             </div>
         </div>
@@ -396,6 +499,7 @@ defineExpose({
             </MButton>
 
             <div v-show="isGroupOpen('media')" class="mjr-filter-group-body">
+            <div class="mjr-filter-card">
 
             <!-- File size -->
             <div class="mjr-popover-row mjr-popover-row--3col">
@@ -490,6 +594,7 @@ defineExpose({
                 />
             </div>
             </div>
+            </div>
         </div>
 
         <!-- ── Time group ──────────────────────────────────────────────────── -->
@@ -507,6 +612,7 @@ defineExpose({
             </MButton>
 
             <div v-show="isGroupOpen('time')" class="mjr-filter-group-body">
+            <div class="mjr-filter-card mjr-filter-card--agenda">
 
             <!-- Date range -->
             <div class="mjr-popover-row">
@@ -539,28 +645,95 @@ defineExpose({
                 </div>
             </div>
             </div>
+            </div>
         </div>
 
     </div>
 </template>
 
 <style scoped>
+.mjr-filter-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+    margin: 0 0 10px;
+    padding: 4px 2px 10px;
+    border-bottom: 1px solid color-mix(in srgb, var(--mjr-border) 85%, transparent);
+}
+
+.mjr-filter-head-left {
+    min-width: 0;
+}
+
+.mjr-filter-kicker {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: color-mix(in srgb, var(--mjr-accent, #5fb3ff) 65%, var(--content-fg, #ddd));
+}
+
+.mjr-filter-subtitle {
+    margin-top: 2px;
+    font-size: 11px;
+    color: color-mix(in srgb, var(--content-fg, #ddd) 62%, var(--mjr-muted, rgba(255, 255, 255, 0.65)));
+}
+
+.mjr-filter-head-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    flex: 0 0 auto;
+}
+
+.mjr-filter-active-count {
+    min-width: 22px;
+    height: 22px;
+    padding: 0 6px;
+    border-radius: 999px;
+    border: 1px solid color-mix(in srgb, var(--mjr-accent, #5fb3ff) 55%, var(--mjr-border));
+    background: color-mix(in srgb, var(--mjr-accent, #5fb3ff) 18%, var(--mjr-surface-2));
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--content-fg, #fff);
+}
+
+.mjr-filter-clear-all {
+    height: 24px;
+    padding: 0 8px;
+    border-radius: 999px;
+    border: 1px solid color-mix(in srgb, var(--mjr-border) 75%, transparent);
+    font-size: 11px;
+    font-weight: 700;
+}
+
 .mjr-popover-row {
     display: grid;
-    grid-template-columns: 110px 1fr;
+    grid-template-columns: 1fr;
     gap: 8px;
-    align-items: center;
-    margin-bottom: 8px;
+    align-items: start;
+    margin-bottom: 10px;
 }
 
 .mjr-popover-row--3col {
-    grid-template-columns: 110px 1fr 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 8px;
+}
+
+.mjr-popover-row--3col .mjr-popover-label {
+    grid-column: 1 / -1;
 }
 
 .mjr-popover-label {
     font-size: 12px;
-    color: var(--mjr-muted, var(--descrip-text, rgba(255, 255, 255, 0.65)));
-    white-space: nowrap;
+    font-weight: 600;
+    color: color-mix(in srgb, var(--content-fg, #ddd) 70%, var(--mjr-muted, rgba(255, 255, 255, 0.65)));
+    white-space: normal;
 }
 
 .mjr-popover-toggle {
@@ -570,6 +743,10 @@ defineExpose({
     cursor: pointer;
     font-size: 12px;
     color: var(--fg-color, #e6edf7);
+    padding: 6px 8px;
+    border-radius: 8px;
+    border: 1px solid color-mix(in srgb, var(--mjr-border) 80%, transparent);
+    background: color-mix(in srgb, var(--mjr-surface-2) 66%, transparent);
 }
 
 .mjr-filter-group-toggle {
@@ -585,6 +762,8 @@ defineExpose({
     color: inherit;
     cursor: pointer;
     text-align: left;
+    border-radius: 8px;
+    padding: 2px 4px;
 }
 
 .mjr-filter-group {
@@ -630,7 +809,31 @@ defineExpose({
 }
 
 .mjr-filter-group-body {
-    padding-top: 2px;
+    padding-top: 4px;
+}
+
+.mjr-filter-card {
+    border: 1px solid color-mix(in srgb, var(--mjr-border) 88%, transparent);
+    border-radius: 10px;
+    padding: 10px;
+    background: linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--mjr-surface-2) 86%, transparent),
+        color-mix(in srgb, var(--mjr-surface-1) 88%, transparent)
+    );
+    margin-bottom: 8px;
+}
+
+.mjr-filter-card:last-child {
+    margin-bottom: 0;
+}
+
+.mjr-filter-card--agenda {
+    background: linear-gradient(
+        180deg,
+        color-mix(in srgb, #f0b84f 9%, var(--mjr-surface-2)),
+        color-mix(in srgb, var(--mjr-surface-1) 92%, transparent)
+    );
 }
 
 .mjr-filter-group:not(.is-open) {
@@ -639,5 +842,16 @@ defineExpose({
 
 .mjr-filter-group:not(.is-open) .mjr-filter-group-toggle {
     margin-bottom: 0;
+}
+
+@media (max-width: 440px) {
+    .mjr-filter-head {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .mjr-filter-head-actions {
+        justify-content: space-between;
+    }
 }
 </style>

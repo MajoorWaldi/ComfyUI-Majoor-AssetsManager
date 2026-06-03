@@ -20,6 +20,7 @@ export interface AssetFilterParams {
     maxWidth?: number | null;
     maxHeight?: number | null;
     workflowType?: string | null;
+    workflowId?: string | null;
     dateRange?: string | null;
     dateExact?: string | null;
 }
@@ -174,6 +175,7 @@ export function appendAssetFilterQueryParams(url: string, filters: AssetFilterPa
         maxWidth = null,
         maxHeight = null,
         workflowType = null,
+        workflowId = null,
         dateRange = null,
         dateExact = null,
     } = filters || {};
@@ -210,6 +212,9 @@ export function appendAssetFilterQueryParams(url: string, filters: AssetFilterPa
     }
     if (workflowType) {
         _append(`workflow_type=${encodeURIComponent(String(workflowType))}`);
+    }
+    if (workflowId) {
+        _append(`workflow_id=${encodeURIComponent(String(workflowId))}`);
     }
     if (dateRange) {
         _append(`date_range=${encodeURIComponent(String(dateRange))}`);
@@ -256,6 +261,7 @@ export function buildListURL(params: ListURLParams = {}): string {
         maxWidth = null,
         maxHeight = null,
         workflowType = null,
+        workflowId = null,
         dateRange = null,
         dateExact = null,
         sort = null,
@@ -285,6 +291,7 @@ export function buildListURL(params: ListURLParams = {}): string {
         maxWidth,
         maxHeight,
         workflowType,
+        workflowId,
         dateRange,
         dateExact,
     });
@@ -438,6 +445,7 @@ export function buildDateHistogramURL(params: AssetFilterParams & { scope?: stri
         maxWidth: params.maxWidth ?? null,
         maxHeight: params.maxHeight ?? null,
         workflowType: params.workflowType ?? null,
+        workflowId: params.workflowId ?? null,
         dateRange: params.dateRange ?? null,
         dateExact: params.dateExact ?? null,
     });

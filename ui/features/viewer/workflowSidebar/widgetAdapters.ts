@@ -5,7 +5,7 @@
  * No module state — every function is stateless.
  */
 
-import { getRawHostApp } from "../../../app/hostAdapter.js";
+import { getHostCanvas, notifyHostNodeGraphChanged } from "../../../app/hostAdapter.js";
 
 type LooseRecord = Record<string, any>;
 type WidgetRecord = LooseRecord;
@@ -83,8 +83,7 @@ export function writeWidgetValue(
     // Called AFTER the callback so it reflects the final snapped/clamped value.
 
     try {
-        const app = getRawHostApp();
-        const canvas = app?.canvas ?? null;
+        const canvas = getHostCanvas();
         const resolvedNode = node ?? widget?.parent ?? null;
         // Save value before callback: LiteGraph number callbacks snap widget.value to
         // multiples of step2 (e.g. 1025 → 1024 for step2=16). We restore afterwards so
@@ -97,17 +96,7 @@ export function writeWidgetValue(
             widget.value = savedValue;
         }
         _syncWidgetDomElement(widget);
-        canvas?.setDirty?.(true, true);
-        canvas?.draw?.(true, true);
-        // Notify the node's own graph (may be an inner subgraph graph, different from root).
-        const nodeGraph = resolvedNode?.graph ?? null;
-        if (nodeGraph && nodeGraph !== app?.graph) {
-            nodeGraph.setDirtyCanvas?.(true, true);
-            nodeGraph.change?.();
-        }
-        // Always notify root graph (triggers ComfyUI workflow tracking).
-        app?.graph?.setDirtyCanvas?.(true, true);
-        app?.graph?.change?.();
+        notifyHostNodeGraphChanged(resolvedNode);
     } catch (e: any) {
         console.debug?.("[MFV] writeWidgetValue", e);
     }

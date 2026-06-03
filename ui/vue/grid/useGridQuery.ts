@@ -43,6 +43,7 @@ export function createGridQuery(input: Record<string, any> = {}) {
         maxWidth: numberValue(input.maxWidth, 0),
         maxHeight: numberValue(input.maxHeight, 0),
         workflowType: stringValue(input.workflowType).toUpperCase(),
+        workflowId: stringValue(input.workflowId),
         dateRange: stringValue(input.dateRange).toLowerCase(),
         dateExact: stringValue(input.dateExact),
         sort: stringValue(input.sort, "mtime_desc").toLowerCase(),
@@ -76,6 +77,7 @@ export function readGridQueryFromDataset(dataset: Record<string, any> = {}, over
         maxWidth: dataset.mjrFilterMaxWidth,
         maxHeight: dataset.mjrFilterMaxHeight,
         workflowType: dataset.mjrFilterWorkflowType,
+        workflowId: dataset.mjrFilterWorkflowId,
         dateRange: dataset.mjrFilterDateRange,
         dateExact: dataset.mjrFilterDateExact,
         sort: dataset.mjrSort,
@@ -124,6 +126,7 @@ export function gridQueryKey(query: Record<string, any> = {}): string {
         normalized.maxWidth || "",
         normalized.maxHeight || "",
         normalized.workflowType,
+        normalized.workflowId,
         normalized.dateRange,
         normalized.dateExact,
         normalized.semanticMode === undefined ? "" : normalized.semanticMode ? "1" : "0",
@@ -151,6 +154,7 @@ export function gridListQueryKey(query: Record<string, any> = {}): string {
         normalized.maxWidth || "",
         normalized.maxHeight || "",
         normalized.workflowType,
+        normalized.workflowId,
         normalized.dateRange,
         normalized.dateExact,
     ].join("|");
@@ -176,6 +180,7 @@ export function gridQueryHasActiveFilters(query: Record<string, any> = {}): bool
         normalized.maxWidth > 0 ||
         normalized.maxHeight > 0 ||
         normalized.workflowType ||
+        normalized.workflowId ||
         normalized.dateRange ||
         normalized.dateExact
     );

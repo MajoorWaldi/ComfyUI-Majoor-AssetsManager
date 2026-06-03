@@ -3,7 +3,7 @@ type LooseRecord = Record<string, any>;
 export type GraphVisit = { graph: LooseRecord; label: string };
 export type GraphNodeVisit = { node: LooseRecord; graph: LooseRecord; label: string };
 
-export function getHostRootGraph(app: any): LooseRecord | null {
+export function getHostRootGraph(app: any = null): LooseRecord | null {
     return app?.rootGraph ?? app?.graph?.rootGraph ?? app?.graph ?? app?.canvas?.graph ?? null;
 }
 

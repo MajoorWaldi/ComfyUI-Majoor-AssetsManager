@@ -259,6 +259,13 @@ def _apply_workflow_type_filter(query: "Mapping[str, Any]", filters: "dict[str, 
             filters["workflow_type"] = workflow_type
 
 
+def _apply_workflow_id_filter(query: "Mapping[str, Any]", filters: "dict[str, Any]") -> None:
+    if "workflow_id" in query:
+        workflow_id = str(query["workflow_id"] or "").strip()
+        if workflow_id:
+            filters["workflow_id"] = workflow_id[:255]
+
+
 def parse_request_filters(
     query: Mapping[str, Any],
     inline_filters: dict[str, Any] | None = None,
@@ -279,6 +286,7 @@ def parse_request_filters(
             return err
 
     _apply_workflow_type_filter(query, filters)
+    _apply_workflow_id_filter(query, filters)
     _apply_bool_flags(query, filters)
 
     date_err = _apply_date_filters(query, filters)

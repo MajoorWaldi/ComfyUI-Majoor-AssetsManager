@@ -1,6 +1,7 @@
 import { buildViewerResourceURL } from "../../api/endpoints.js";
 import { APP_CONFIG } from "../../app/config.js";
 import { EVENTS } from "../../app/events.js";
+import { t } from "../../app/i18n.js";
 import {
     applyModel3DMaterialMode as _applyMaterialMode,
     buildRenderableModel3DObject as _buildRenderableObject,
@@ -44,7 +45,7 @@ export const MODEL3D_EXTS = new Set(Object.keys(MODEL3D_EXT_TO_LOADER));
 export const PREVIEWABLE_MODEL3D_LOADERS = new Set(["gltf", "obj", "fbx", "stl", "ply"]);
 
 const MODEL3D_VIEWER_DEFAULT_BG = "#282828";
-const MODEL3D_DEFAULT_CONTROL_HINT = "Rotate: left drag  Pan: right drag  Zoom: wheel";
+const MODEL3D_DEFAULT_CONTROL_HINT = t("model3d.controlHint", "Rotate: left drag  Pan: right drag  Zoom: wheel");
 const MODEL3D_VIEW_MODES = Object.freeze({
     PERSPECTIVE: "perspective",
     ORTHOGRAPHIC: "orthographic",
@@ -291,10 +292,10 @@ export function createModel3DMediaElement(asset: any, url: any, options: Record<
     const viewportTools = document.createElement("div");
     viewportTools.style.cssText =
         "display:flex;align-items:center;gap:6px;flex-wrap:wrap;pointer-events:auto;";
-    const resetViewBtn = _createViewportButton("Reset", "Reset 3D view");
-    const gridBtn = _createViewportButton("Grid", "Toggle grid");
-    const cameraModeBtn = _createViewportButton("Persp", "Switch perspective / orthographic");
-    const settingsBtn = _createViewportButton("Settings", "Settings");
+    const resetViewBtn = _createViewportButton(t("model3d.reset", "Reset"), t("model3d.resetView", "Reset 3D view"));
+    const gridBtn = _createViewportButton(t("model3d.grid", "Grid"), t("model3d.toggleGrid", "Toggle grid"));
+    const cameraModeBtn = _createViewportButton(t("model3d.persp", "Persp"), t("model3d.switchCamera", "Switch perspective / orthographic"));
+    const settingsBtn = _createViewportButton(t("model3d.settings", "Settings"), t("model3d.settings", "Settings"));
     viewportTools.append(resetViewBtn, gridBtn, cameraModeBtn, settingsBtn);
     viewportToolbar.appendChild(viewportTools);
     host.appendChild(viewportToolbar);
@@ -592,7 +593,7 @@ export function createModel3DMediaElement(asset: any, url: any, options: Record<
         animationActions[idx] = action;
         currentAnimIdx = idx;
         isAnimPlaying = true;
-        animDom.playBtn.textContent = "Pause";
+        animDom.playBtn.textContent = t("model3d.pause", "Pause");
         // Scale progress slider steps to clip duration for consistent seek granularity
         // (~10ms steps, min 100 ticks, max 10000 ticks)
         try {
@@ -606,14 +607,14 @@ export function createModel3DMediaElement(asset: any, url: any, options: Record<
         if (isAnimPlaying) {
             animationMixer.timeScale = 0;
             isAnimPlaying = false;
-            animDom.playBtn.textContent = "Play";
+            animDom.playBtn.textContent = t("model3d.play", "Play");
         } else {
             animationMixer.timeScale = animSpeed;
             if (!animationActions[currentAnimIdx]?.isRunning?.()) {
                 playAnimation(currentAnimIdx);
             } else {
                 isAnimPlaying = true;
-                animDom.playBtn.textContent = "Pause";
+                animDom.playBtn.textContent = t("model3d.pause", "Pause");
             }
         }
     };
@@ -686,7 +687,7 @@ export function createModel3DMediaElement(asset: any, url: any, options: Record<
         _setViewportButtonActive(gridBtn, Boolean(gridHelper?.visible));
         _setViewportButtonActive(cameraModeBtn, viewportMode === MODEL3D_VIEW_MODES.ORTHOGRAPHIC);
         cameraModeBtn.textContent =
-            viewportMode === MODEL3D_VIEW_MODES.ORTHOGRAPHIC ? "Ortho" : "Persp";
+            viewportMode === MODEL3D_VIEW_MODES.ORTHOGRAPHIC ? t("model3d.ortho", "Ortho") : t("model3d.persp", "Persp");
         _setViewportButtonActive(settingsBtn, settingsPanelVisible);
     };
 
@@ -980,7 +981,7 @@ export function createModel3DMediaElement(asset: any, url: any, options: Record<
                         const dl = document.createElement("a");
                         dl.href = url;
                         dl.download = String(asset?.filename || "model");
-                        dl.textContent = `Download ${String(asset?.filename || "file")}`;
+                        dl.textContent = t("model3d.downloadFile", "Download {file}", { file: String(asset?.filename || "file") });
                         dl.style.cssText = [
                             "position:absolute",
                             "bottom:18px",

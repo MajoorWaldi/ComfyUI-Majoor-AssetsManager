@@ -37,6 +37,7 @@ interface PanelState {
     maxWidth: number;
     maxHeight: number;
     workflowType: string;
+    workflowId: string;
     sort: string;
     searchQuery: string;
     scrollTop: number;
@@ -124,6 +125,7 @@ function sanitize(raw: any): StoredPanelState {
         maxWidth: clampInt(row.maxWidth),
         maxHeight: clampInt(row.maxHeight),
         workflowType: toStr(row.workflowType),
+        workflowId: toStr(row.workflowId || row.workflow_id),
         sort: toStr(row.sort || "mtime_desc"),
         searchQuery: toStr(row.searchQuery),
         scrollTop: clampInt(row.scrollTop),
@@ -189,6 +191,7 @@ export const usePanelStore = defineStore("mjr-panel", () => {
     const maxWidth = ref(saved.maxWidth || 0);
     const maxHeight = ref(saved.maxHeight || 0);
     const workflowType = ref(saved.workflowType || "");
+    const workflowId = ref(saved.workflowId || "");
     const sort = ref(saved.sort || "mtime_desc");
     const searchQuery = ref(saved.searchQuery || "");
     const scrollTop = ref(saved.scrollTop || 0);
@@ -230,6 +233,7 @@ export const usePanelStore = defineStore("mjr-panel", () => {
                 maxWidth: maxWidth.value,
                 maxHeight: maxHeight.value,
                 workflowType: workflowType.value,
+                workflowId: workflowId.value,
                 sort: sort.value,
                 searchQuery: searchQuery.value,
                 scrollTop: scrollTop.value,
@@ -261,6 +265,7 @@ export const usePanelStore = defineStore("mjr-panel", () => {
             maxWidth,
             maxHeight,
             workflowType,
+            workflowId,
             sort,
             searchQuery,
             scrollTop,
@@ -315,6 +320,7 @@ export const usePanelStore = defineStore("mjr-panel", () => {
         maxWidth.value = 0;
         maxHeight.value = 0;
         workflowType.value = "";
+        workflowId.value = "";
         searchQuery.value = "";
     }
 
@@ -397,6 +403,7 @@ export const usePanelStore = defineStore("mjr-panel", () => {
         maxWidth,
         maxHeight,
         workflowType,
+        workflowId,
         sort,
         searchQuery,
         scrollTop,

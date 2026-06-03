@@ -1,5 +1,6 @@
 import { getRawHostApp } from "../../app/hostAdapter.js";
 import { collectGraphVisits, findGraphNodeById, getGraphNodes } from "../../app/graphTraversal.js";
+import { t } from "../../app/i18n.js";
 import { writeWidgetValue } from "../viewer/workflowSidebar/widgetAdapters.js";
 
 type LooseRecord = Record<string, any>;
@@ -7,8 +8,8 @@ type Candidate = { field: string; label: string; value: any; source: string };
 
 const EXTENSION_ID = "Majoor.GenInfoOverridePicker";
 const TARGET_NODE = "MajoorGenInfoOverride";
-const AUTO_FILL_BUTTON = "Auto fill from workflow";
-const PICK_BUTTON_PREFIX = "Pick";
+const AUTO_FILL_BUTTON = t("genInfoOverride.autoFillFromWorkflow", "Auto fill from workflow");
+const PICK_BUTTON_PREFIX = t("genInfoOverride.pick", "Pick");
 const FIELD_ALIASES: Record<string, string[]> = {
     positive_prompt: ["positive_prompt", "prompt", "text"],
     negative_prompt: ["negative_prompt", "negative", "negative_text"],
@@ -280,14 +281,10 @@ function registerExecutedVisualSync(runtimeApp: any): void {
     executedListenerRegistered = true;
     api.addEventListener("executed", (event: any) => {
         const nodeId = event?.detail?.node ?? event?.detail?.display_node;
-        const payload = extractExecutedOverridePayload(event);
-        if (!nodeId || !payload) return;
+        if (!nodeId) return;
         const node = findGraphNodeById(runtimeApp, nodeId);
         if (!node || String(node?.comfyClass || node?.type || "") !== TARGET_NODE) return;
-        const count = applyPayloadToWidgets(node, payload);
-        if (!count) return;
-        runtimeApp?.graph?.setDirtyCanvas?.(true, true);
-        runtimeApp?.graph?.change?.();
+        syncNodeFromExecutedMessage(node, event?.detail?.output, runtimeApp);
     });
 }
 
@@ -306,10 +303,14 @@ function showPicker(node: LooseRecord, runtimeApp: any, targetField: string | nu
     overlay.style.cssText = "position:fixed;inset:0;z-index:1000000;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center";
     const panel = document.createElement("div");
     panel.style.cssText = "width:min(720px,92vw);max-height:80vh;overflow:auto;background:#202020;color:#eee;border:1px solid #555;border-radius:8px;padding:12px;box-shadow:0 16px 48px rgba(0,0,0,.55);font:12px sans-serif";
-    const title = targetField ? `Pick ${targetField.replace(/_/g, " ")}` : "Pick Gen Info from workflow";
-    panel.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><strong></strong><button data-close style="background:#333;color:#eee;border:1px solid #555;border-radius:4px;padding:4px 8px;cursor:pointer">Close</button></div>`;
+    const title = targetField
+        ? t("genInfoOverride.pickField", "Pick {field}", { field: targetField.replace(/_/g, " ") })
+        : t("genInfoOverride.pickFromWorkflow", "Pick Gen Info from workflow");
+    panel.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><strong></strong><button data-close style="background:#333;color:#eee;border:1px solid #555;border-radius:4px;padding:4px 8px;cursor:pointer"></button></div>`;
     const strong = panel.querySelector("strong");
     if (strong) strong.textContent = title;
+    const closeButton = panel.querySelector("[data-close]");
+    if (closeButton) closeButton.textContent = t("dialog.close", "Close");
     for (const candidate of candidates) {
         const row = document.createElement("button");
         row.type = "button";
@@ -331,6 +332,27 @@ function showPicker(node: LooseRecord, runtimeApp: any, targetField: string | nu
     document.body.appendChild(overlay);
 }
 
+function getNodeMenuItems(node: any, runtimeApp: any) {
+    if (String(node?.comfyClass || node?.type || "") !== TARGET_NODE) return [];
+    const items = [
+        {
+            content: t("genInfoOverride.pickFromWorkflow", "Pick Gen Info from workflow"),
+            callback: () => showPicker(node, runtimeApp),
+        },
+    ];
+    for (const item of PICK_FIELDS) {
+        items.push({
+            content: `Pick ${item.label}`,
+            callback: () => showPicker(node, runtimeApp, item.field),
+        });
+    }
+    items.push({
+        content: AUTO_FILL_BUTTON,
+        callback: () => autoFillFromWorkflow(node, runtimeApp),
+    });
+    return items;
+}
+
 export function registerGenInfoOverridePicker(appRef: any = null): void {
     if (registered) return;
     const runtimeApp = appRef || getRawHostApp();
@@ -345,38 +367,8 @@ export function registerGenInfoOverridePicker(appRef: any = null): void {
         async nodeCreated(node: any) {
             ensurePickerWidgets(node, runtimeApp);
         },
-        async beforeRegisterNodeDef(nodeType: any, nodeData: any) {
-            if (String(nodeData?.name || "") !== TARGET_NODE) return;
-            const prevCreated = nodeType.prototype.onNodeCreated;
-            nodeType.prototype.onNodeCreated = function () {
-                const result = prevCreated?.apply?.(this, arguments as any);
-                ensurePickerWidgets(this, runtimeApp);
-                return result;
-            };
-            const prevExecuted = nodeType.prototype.onExecuted;
-            nodeType.prototype.onExecuted = function (message: any) {
-                const result = prevExecuted?.apply?.(this, arguments as any);
-                syncNodeFromExecutedMessage(this, message, runtimeApp);
-                return result;
-            };
-            const prev = nodeType.prototype.getExtraMenuOptions;
-            nodeType.prototype.getExtraMenuOptions = function (_canvas: any, options: any[]) {
-                prev?.apply?.(this, arguments as any);
-                options.push({
-                    content: "Pick Gen Info from workflow",
-                    callback: () => showPicker(this, runtimeApp),
-                });
-                for (const item of PICK_FIELDS) {
-                    options.push({
-                        content: `Pick ${item.label}`,
-                        callback: () => showPicker(this, runtimeApp, item.field),
-                    });
-                }
-                options.push({
-                    content: AUTO_FILL_BUTTON,
-                    callback: () => autoFillFromWorkflow(this, runtimeApp),
-                });
-            };
+        getNodeMenuItems(node: any) {
+            return getNodeMenuItems(node, runtimeApp);
         },
     });
     setTimeout(() => {

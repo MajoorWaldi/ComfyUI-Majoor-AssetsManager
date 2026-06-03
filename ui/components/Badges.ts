@@ -4,6 +4,7 @@
 import { resolveAssetStatusDotColor } from "../features/status/AssetStatusDotTheme.js";
 import { getRuntimeEnrichmentState } from "../stores/runtimeEnrichmentState.js";
 import { detectKind } from "../features/grid/AssetCardRenderer.js";
+import { t } from "../app/i18n.js";
 
 /**
  * Create file type badge (overlaid on thumbnail)
@@ -17,13 +18,13 @@ function _buildCollisionTitle({ ext = "", filename = "", count = 0, paths = [] }
         : [];
     if (n < 2) return `${safeExt} file`;
     const lines = [`${safeExt}+ name collision in current view (${n})`];
-    if (safeName) lines.push(`Name: ${safeName}`);
+    if (safeName) lines.push(t("badge.collisionName", "Name: {name}", { name: safeName }));
     if (list.length) {
-        lines.push("Paths:");
+        lines.push(t("badge.collisionPaths", "Paths:"));
         for (const p of list.slice(0, 4)) lines.push(`- ${p}`);
         if (list.length > 4) lines.push(`- ... +${list.length - 4} more`);
     }
-    lines.push("Click to select collisions in current view");
+    lines.push(t("badge.collisionSelect", "Click to select collisions in current view"));
     return lines.join("\n");
 }
 
@@ -241,23 +242,23 @@ export function createWorkflowDot(asset: Record<string, any> | null | undefined)
     const enrichmentQueue = enrichment.queueLength;
     const enrichmentActive = enrichment.active || enrichmentQueue > 0;
 
-    let title = "Pending: parsing metadata\u2026";
+    let title = t("badge.workflow.pendingParsing", "Pending: parsing metadata...");
 
     const anyTrue = hasWorkflow === true || hasGen === true;
     const anyFalse = hasWorkflow === false || hasGen === false;
     const anyUnknown = hasWorkflow === null || hasGen === null;
 
     if (hasWorkflow === true && hasGen === true) {
-        title = "Complete: workflow + generation data detected";
+        title = t("badge.workflow.complete", "Complete: workflow + generation data detected");
     } else if (anyTrue) {
         title =
             hasWorkflow === true
-                ? "Partial: workflow only (generation data missing)"
-                : "Partial: generation data only (workflow missing)";
+                ? t("badge.workflow.partialWorkflowOnly", "Partial: workflow only (generation data missing)")
+                : t("badge.workflow.partialGenerationOnly", "Partial: generation data only (workflow missing)");
     } else if (anyFalse && !anyTrue && !anyUnknown) {
-        title = "None: no workflow or generation data found";
+        title = t("badge.workflow.none", "None: no workflow or generation data found");
     } else if (anyUnknown) {
-        title = "Pending: metadata not parsed yet";
+        title = t("badge.workflow.pendingNotParsed", "Pending: metadata not parsed yet");
     }
 
     let status = anyUnknown
@@ -271,16 +272,16 @@ export function createWorkflowDot(asset: Record<string, any> | null | undefined)
         status = "pending";
         title =
             enrichmentQueue > 0
-                ? `Pending: database metadata enrichment in progress (${enrichmentQueue} queued)`
-                : "Pending: database metadata enrichment in progress";
+                ? t("badge.workflow.enrichmentQueued", "Pending: database metadata enrichment in progress ({count} queued)", { count: enrichmentQueue })
+                : t("badge.workflow.enrichment", "Pending: database metadata enrichment in progress");
     }
     applyAssetStatusDotState(dot, status, title, { asset });
     const ai = detectAiInfo(asset);
     if (ai.hasAiInfo) {
         const aiBits = [];
-        if (ai.hasVectorIndexed) aiBits.push("vector indexed");
-        if (ai.hasAutoTags) aiBits.push("AI tag suggestions");
-        if (ai.hasEnhancedPrompt) aiBits.push("enhanced prompt");
+        if (ai.hasVectorIndexed) aiBits.push(t("badge.ai.vectorIndexed", "vector indexed"));
+        if (ai.hasAutoTags) aiBits.push(t("badge.ai.tagSuggestions", "AI tag suggestions"));
+        if (ai.hasEnhancedPrompt) aiBits.push(t("badge.ai.enhancedPrompt", "enhanced prompt"));
 
         dot.textContent = "";
         const icon = document.createElement("i");
@@ -295,7 +296,10 @@ export function createWorkflowDot(asset: Record<string, any> | null | undefined)
         } catch (e: any) {
             console.debug?.(e);
         }
-        dot.title = `${title}\nAI: ${aiBits.length ? aiBits.join(", ") : "indexed"}\nClick to rescan this file`;
+        dot.title = t("badge.workflow.aiTooltip", "{title}\nAI: {ai}\nClick to rescan this file", {
+            title,
+            ai: aiBits.length ? aiBits.join(", ") : t("badge.ai.indexed", "indexed"),
+        });
     } else {
         try {
             dot.dataset.mjrAi = "0";
@@ -303,7 +307,7 @@ export function createWorkflowDot(asset: Record<string, any> | null | undefined)
             console.debug?.(e);
         }
         dot.textContent = "\u25CF";
-        dot.title = `${title}\nClick to rescan this file`;
+        dot.title = t("badge.workflow.tooltip", "{title}\nClick to rescan this file", { title });
     }
 
     return dot;
@@ -348,7 +352,10 @@ export function createRatingBadge(rating: number | null | undefined): HTMLElemen
 
     const badge = document.createElement("div");
     badge.className = "mjr-rating-badge";
-    badge.title = `Rating: ${ratingValue} star${ratingValue > 1 ? "s" : ""}`;
+    badge.title = t("badge.rating", "Rating: {rating} star{plural}", {
+        rating: ratingValue,
+        plural: ratingValue > 1 ? "s" : "",
+    });
     badge.style.cssText = `
         position: absolute;
         top: 6px;
@@ -426,13 +433,16 @@ export function formatGenTime(ms: any) {
         const mins = (totalSecs / 60).toFixed(1);
         return {
             text: `${mins}m`,
-            title: `Generation time: ${mins} minutes (${totalSecs.toFixed(1)}s)`,
+            title: t("badge.generationTimeMinutes", "Generation time: {minutes} minutes ({seconds}s)", {
+                minutes: mins,
+                seconds: totalSecs.toFixed(1),
+            }),
         };
     }
     const secs = totalSecs.toFixed(1);
     return {
         text: `${secs}s`,
-        title: `Generation time: ${secs} seconds`,
+        title: t("badge.generationTimeSeconds", "Generation time: {seconds} seconds", { seconds: secs }),
     };
 }
 
@@ -510,7 +520,7 @@ export function createTagsBadge(tags: string[] | null | undefined): HTMLElement 
     }
 
     badge.textContent = normalizedTags.join(", ");
-    badge.title = `Tags: ${normalizedTags.join(", ")}`;
+    badge.title = t("badge.tags", "Tags: {tags}", { tags: normalizedTags.join(", ") });
     badge.style.cssText = `
         position: absolute;
         bottom: 6px;

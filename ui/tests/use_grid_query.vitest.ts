@@ -173,6 +173,7 @@ describe("useGridQuery helpers", () => {
             "",
             "",
             "",
+            "",
         ].join("|"));
         expect(gridQueryKey(query)).not.toBe(gridListQueryKey(query));
     });

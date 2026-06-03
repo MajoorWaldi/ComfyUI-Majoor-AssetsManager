@@ -85,6 +85,7 @@ export function createContextPillsView(): Record<string, any> {
             (Number(state?.maxWidth || 0) || 0) > 0 ||
             (Number(state?.maxHeight || 0) || 0) > 0 ||
             _safeText(state?.workflowType || "").trim() ||
+            _safeText(state?.workflowId || "").trim() ||
             _safeText(state?.dateRangeFilter || "").trim() ||
             _safeText(state?.dateExactFilter || "").trim()
         );
@@ -187,6 +188,16 @@ export function createContextPillsView(): Record<string, any> {
                     label: t("label.workflowType"),
                     value: _safeText(state?.workflowType || "").trim(),
                     onClear: () => safeActions?.clearWorkflowType?.(),
+                }),
+            );
+        }
+        if (_safeText(state?.workflowId || "").trim()) {
+            const workflowId = _safeText(state?.workflowId || "").trim();
+            root.appendChild(
+                _createPill({
+                    label: t("label.sameWorkflow", "Generated with Same Workflow"),
+                    value: workflowId.length > 18 ? `${workflowId.slice(0, 8)}...${workflowId.slice(-6)}` : workflowId,
+                    onClear: () => safeActions?.clearWorkflowId?.(),
                 }),
             );
         }

@@ -28,6 +28,13 @@ vi.mock("../app/i18n.js", () => ({
     t: (key, fallback) => fallback || key,
 }));
 
+vi.mock("../features/filters/calendar/AgendaCalendar.js", () => ({
+    createAgendaCalendar: vi.fn(() => ({
+        refresh: vi.fn(),
+        dispose: vi.fn(),
+    })),
+}));
+
 const MButtonStub = {
     props: {
         severity: String,
@@ -279,6 +286,72 @@ describe("PrimeVue-backed panel controls", () => {
         expect(panelStore.dateRangeFilter).toBe("today");
 
         wrapper.unmount();
+    });
+
+    it("clears the active date range when an exact date is selected", async () => {
+        panelStore.dateRangeFilter = "today";
+
+        const mod = await import("../vue/components/panel/FilterPopover.vue");
+        const wrapper = mount(mod.default, {
+            global: { stubs: GLOBAL_STUBS },
+        });
+
+        wrapper.vm.dateExactInput.value = "2026-06-03";
+        wrapper.vm.dateExactInput.dispatchEvent(new Event("change", { bubbles: true }));
+
+        expect(panelStore.dateExactFilter).toBe("2026-06-03");
+        expect(panelStore.dateRangeFilter).toBe("");
+        expect(wrapper.vm.dateRangeSelect.value).toBe("");
+
+        wrapper.unmount();
+    });
+
+    it("keeps the Vue filter popover open while filter edits debounce a reload", async () => {
+        vi.useFakeTimers();
+        const { setupFiltersInit } = await import("../features/panel/panelFiltersInit.js");
+        const popovers = { close: vi.fn() };
+        const reloadGrid = vi.fn(async () => {});
+        const panelLifecycleAC = new AbortController();
+        const input = () => document.createElement("input");
+        const select = () => document.createElement("select");
+        const agendaContainer = document.createElement("div");
+
+        const { disposeFilters } = setupFiltersInit({
+            state: panelStore,
+            hasVueHeaderSection: true,
+            kindSelect: select(),
+            wfCheckbox: input(),
+            workflowTypeSelect: select(),
+            ratingSelect: select(),
+            minSizeInput: input(),
+            maxSizeInput: input(),
+            resolutionPresetSelect: select(),
+            minWidthInput: input(),
+            minHeightInput: input(),
+            maxWidthInput: input(),
+            maxHeightInput: input(),
+            dateRangeSelect: select(),
+            dateExactInput: input(),
+            agendaContainer,
+            gridController: { reloadGrid },
+            reconcileVisibleSelection: vi.fn(),
+            exitSimilarViewIfActive: vi.fn(async () => {}),
+            notifyContextChanged: vi.fn(),
+            panelLifecycleAC,
+            popovers,
+            filterPopover: document.createElement("div"),
+        });
+
+        window.dispatchEvent(new CustomEvent("mjr:filters-changed"));
+
+        expect(popovers.close).not.toHaveBeenCalled();
+
+        await vi.advanceTimersByTimeAsync(260);
+        expect(reloadGrid).toHaveBeenCalledOnce();
+
+        disposeFilters();
+        panelLifecycleAC.abort();
+        vi.useRealTimers();
     });
 
     it("exposes CustomRootsPopover PrimeVue actions as real DOM buttons", async () => {

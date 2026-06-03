@@ -18,8 +18,8 @@ const props = defineProps({
 const promptTabIndex = ref(0);
 const pipelineTabIndex = ref(0);
 const captionText = ref("");
-const copyCaptionLabel = ref("Copy");
-const generateCaptionLabel = ref("Generate");
+const copyCaptionLabel = ref(t("action.copy", "Copy"));
+const generateCaptionLabel = ref(t("action.generate", "Generate"));
 const generatingCaption = ref(false);
 const alignmentState = ref(createDefaultAlignmentState());
 
@@ -29,13 +29,13 @@ function createDefaultAlignmentState() {
     return {
         scoreText: "...",
         scoreColor: "#888",
-        qualityText: "Loading",
+        qualityText: t("status.loading", "Loading"),
         qualityColor: "#888",
         qualityBackground: "rgba(127,127,127,0.3)",
         fillWidth: "0%",
         fillColor: "#666",
         aiStatusVisible: false,
-        aiStatusText: "AI features are disabled (enable vector search env var).",
+        aiStatusText: t("sidebar.generation.aiDisabledEnv", "AI features are disabled (enable vector search env var)."),
     };
 }
 
@@ -121,7 +121,7 @@ const parameterSections = computed(() => {
     if (sectionState.value.modelFields.length) {
         sections.push({
             key: "model",
-            title: "Model & LoRA",
+            title: t("sidebar.generation.modelLora", "Model & LoRA"),
             accent: "#9C27B0",
             emphasis: true,
             fields: sectionState.value.modelFields,
@@ -130,7 +130,7 @@ const parameterSections = computed(() => {
     if (!sectionState.value.pipelineTabs.length && sectionState.value.samplingFields.length) {
         sections.push({
             key: "sampling",
-            title: "Sampling",
+            title: t("sidebar.generation.sampling", "Sampling"),
             accent: "#FF9800",
             emphasis: true,
             fields: sectionState.value.samplingFields,
@@ -166,7 +166,7 @@ const parameterSections = computed(() => {
     if (sectionState.value.audioFields.length) {
         sections.push({
             key: "audio",
-            title: "Audio",
+            title: t("sidebar.generation.audio", "Audio"),
             accent: "#00BCD4",
             emphasis: false,
             fields: sectionState.value.audioFields,
@@ -175,7 +175,7 @@ const parameterSections = computed(() => {
     if (sectionState.value.imageFields.length) {
         sections.push({
             key: "image",
-            title: "Image",
+            title: t("sidebar.generation.image", "Image"),
             accent: "#2196F3",
             emphasis: false,
             fields: sectionState.value.imageFields,
@@ -230,13 +230,13 @@ function updateAlignmentDisabledState() {
     alignmentState.value = {
         scoreText: "AI OFF",
         scoreColor: "#9E9E9E",
-        qualityText: "Disabled",
+        qualityText: t("status.disabled", "Disabled"),
         qualityColor: "#BDBDBD",
         qualityBackground: "rgba(158,158,158,0.25)",
         fillWidth: "0%",
         fillColor: "#777",
         aiStatusVisible: true,
-        aiStatusText: "AI features are disabled in settings.",
+        aiStatusText: t("sidebar.generation.aiDisabledSettings", "AI features are disabled in settings."),
     };
 }
 
@@ -275,7 +275,7 @@ async function refreshAlignment() {
             alignmentState.value = {
                 scoreText: "N/A",
                 scoreColor: "#888",
-                qualityText: "N/A",
+            qualityText: t("status.na", "N/A"),
                 qualityColor: "#888",
                 qualityBackground: "rgba(127,127,127,0.3)",
                 fillWidth: "0%",
@@ -305,7 +305,7 @@ async function refreshAlignment() {
         alignmentState.value = {
             scoreText: "-",
             scoreColor: "#888",
-            qualityText: "Unavailable",
+            qualityText: t("status.unavailable", "Unavailable"),
             qualityColor: "#888",
             qualityBackground: "rgba(127,127,127,0.3)",
             fillWidth: "0%",
@@ -319,7 +319,7 @@ async function refreshAlignment() {
 async function regenerateCaption() {
     if (!canGenerateCaption.value || generatingCaption.value) return;
     generatingCaption.value = true;
-    generateCaptionLabel.value = "Generating...";
+    generateCaptionLabel.value = t("status.generating", "Generating...");
     try {
         const response = await vectorGenerateCaption(props.asset.id);
         if (response?.ok) {
@@ -329,7 +329,7 @@ async function regenerateCaption() {
         console.debug?.(e);
     } finally {
         generatingCaption.value = false;
-        generateCaptionLabel.value = "Generate";
+        generateCaptionLabel.value = t("action.generate", "Generate");
     }
 }
 
@@ -337,9 +337,9 @@ async function copyCaption() {
     if (!canCopyCaption.value) return;
     try {
         await navigator.clipboard.writeText(displayedCaption.value);
-        copyCaptionLabel.value = "Copied!";
+        copyCaptionLabel.value = t("viewer.copySuccessShort", "Copied!");
         setTimeout(() => {
-            copyCaptionLabel.value = "Copy";
+            copyCaptionLabel.value = t("action.copy", "Copy");
         }, 900);
     } catch (e) {
         console.debug?.(e);
@@ -352,8 +352,8 @@ watch(
         promptTabIndex.value = 0;
         pipelineTabIndex.value = 0;
         captionText.value = String(props.asset?.enhanced_caption || "").trim();
-        copyCaptionLabel.value = "Copy";
-        generateCaptionLabel.value = "Generate";
+        copyCaptionLabel.value = t("action.copy", "Copy");
+        generateCaptionLabel.value = t("action.generate", "Generate");
     },
     { immediate: true },
 );
@@ -388,17 +388,17 @@ watch(
                 color: 'var(--fg-color, #ccc)',
             }"
         >
-            <span style="opacity:0.85">Workflow</span>
+            <span style="opacity:0.85">{{ t("viewer.workflow", "Workflow") }}</span>
             <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end">
                 <span
-                    :title="`Workflow engine: ${sectionState.workflowType}`"
+                    :title="t('sidebar.generation.workflowEngine', 'Workflow engine: {value}', { value: sectionState.workflowType })"
                     style="background:#2196F3;color:white;padding:2px 8px;border-radius:999px;font-weight:bold;font-size:10px;letter-spacing:0.2px"
                 >
                     {{ sectionState.workflowLabel || sectionState.workflowType }}
                 </span>
                 <span
                     v-if="sectionState.workflowBadge"
-                    :title="`API provider: ${sectionState.workflowBadge}`"
+                    :title="t('sidebar.generation.apiProvider', 'API provider: {value}', { value: sectionState.workflowBadge })"
                     style="background:rgba(255,255,255,0.08);color:var(--fg-color, #eee);padding:2px 8px;border-radius:999px;border:1px solid rgba(255,255,255,0.14);font-weight:600;font-size:10px;letter-spacing:0.2px"
                 >
                     {{ sectionState.workflowBadge }}
@@ -412,7 +412,7 @@ watch(
         >
             <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
                 <span style="font-size:11px;font-weight:700;color:#00BCD4;text-transform:uppercase;letter-spacing:0.6px">
-                    Override
+                    {{ t("sidebar.generation.override", "Override") }}
                 </span>
                 <span style="font-size:11px;color:var(--fg-color, rgba(255,255,255,0.9));font-weight:600">
                     {{ sectionState.overrideLabel }}
@@ -425,10 +425,10 @@ watch(
             :style="boxStyle('#FF9800', { emphasis: true, startAlpha: 0.12, endAlpha: 0.08 })"
         >
             <div style="font-size:11px;font-weight:600;color:#FF9800;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">
-                Metadata Truncated
+                {{ t("sidebar.generation.metadataTruncated", "Metadata Truncated") }}
             </div>
             <div style="font-size:12px;color:var(--fg-color, rgba(255,255,255,0.9));line-height:1.5;white-space:pre-wrap;word-break:break-word">
-                Generation data is incomplete because it exceeded the size limit.
+                {{ t("sidebar.generation.metadataTruncatedBody", "Generation data is incomplete because it exceeded the size limit.") }}
             </div>
         </div>
 
@@ -437,7 +437,7 @@ watch(
             :style="boxStyle('#9E9E9E', { emphasis: true, startAlpha: 0.10, endAlpha: 0.06 })"
         >
             <div style="font-size:11px;font-weight:600;color:#9E9E9E;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">
-                Generation Data
+                {{ t("sidebar.generation.generationData", "Generation Data") }}
             </div>
             <div style="font-size:12px;color:var(--fg-color, rgba(255,255,255,0.9));line-height:1.5;white-space:pre-wrap;word-break:break-word">
                 {{ sectionState.mediaOnlyMessage }}
@@ -450,7 +450,7 @@ watch(
                 :style="boxStyle('#4CAF50', { emphasis: true, startAlpha: 0.16, endAlpha: 0.10 })"
             >
                 <div style="font-size:11px;font-weight:600;color:#4CAF50;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px">
-                    Prompt Pipeline ({{ sectionState.promptTabs.length }} variants)
+                    {{ t("sidebar.generation.promptPipeline", "Prompt Pipeline ({count} variants)", { count: sectionState.promptTabs.length }) }}
                 </div>
                 <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">
                     <MButton
@@ -484,7 +484,7 @@ watch(
                     style="display:flex;flex-direction:column;gap:8px;border:1px solid rgba(76, 175, 80, 0.35);border-radius:6px;background:linear-gradient(135deg, rgba(76, 175, 80, 0.12) 0%, rgba(33, 150, 243, 0.08) 100%);box-shadow:0 0 0 1px rgba(76, 175, 80, 0.12) inset;padding:10px"
                 >
                     <div style="font-size:10px;font-weight:700;color:#4CAF50;letter-spacing:0.4px">
-                        POSITIVE
+                        {{ t("sidebar.generation.positive", "POSITIVE") }}
                     </div>
                     <div
                         style="font-size:12px;color:var(--fg-color, #ddd);white-space:pre-wrap;line-height:1.35;cursor:pointer"
@@ -494,7 +494,7 @@ watch(
                     </div>
                     <template v-if="tab.negative">
                         <div style="font-size:10px;font-weight:700;color:#F44336;letter-spacing:0.4px;margin-top:4px">
-                            NEGATIVE
+                            {{ t("sidebar.generation.negative", "NEGATIVE") }}
                         </div>
                         <div
                             style="font-size:12px;color:var(--fg-color, #ddd);white-space:pre-wrap;line-height:1.35;cursor:pointer"
@@ -511,17 +511,17 @@ watch(
                 :style="boxStyle('#4CAF50', { emphasis: true, startAlpha: 0.16, endAlpha: 0.10 })"
             >
                 <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;font-weight:600;color:#4CAF50;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">
-                    <span>Positive Prompt</span>
+                    <span>{{ t("sidebar.generation.positivePrompt", "Positive Prompt") }}</span>
                     <span
                         v-if="sectionState.positivePromptOverride"
                         :style="overridePillStyle()"
-                        title="This field was forced by Majoor Gen Info Override"
+                        :title="t('sidebar.generation.overrideTooltip', 'This field was forced by Majoor Gen Info Override')"
                     >
-                        override
+                        {{ t("sidebar.generation.override", "override") }}
                     </span>
                 </div>
                 <div
-                    title="Click to copy"
+                    :title="t('action.clickToCopy', 'Click to copy')"
                     style="font-size:12px;color:var(--fg-color, rgba(255,255,255,0.9));line-height:1.5;white-space:pre-wrap;word-break:break-word;cursor:pointer"
                     @click="copyText(sectionState.positivePrompt, $event.currentTarget)"
                 >
@@ -534,17 +534,17 @@ watch(
                 :style="boxStyle('#F44336', { emphasis: true, startAlpha: 0.16, endAlpha: 0.10 })"
             >
                 <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;font-weight:600;color:#F44336;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">
-                    <span>Negative Prompt</span>
+                    <span>{{ t("sidebar.generation.negativePrompt", "Negative Prompt") }}</span>
                     <span
                         v-if="sectionState.negativePromptOverride"
                         :style="overridePillStyle()"
-                        title="This field was forced by Majoor Gen Info Override"
+                        :title="t('sidebar.generation.overrideTooltip', 'This field was forced by Majoor Gen Info Override')"
                     >
-                        override
+                        {{ t("sidebar.generation.override", "override") }}
                     </span>
                 </div>
                 <div
-                    title="Click to copy"
+                    :title="t('action.clickToCopy', 'Click to copy')"
                     style="font-size:12px;color:var(--fg-color, rgba(255,255,255,0.9));line-height:1.5;white-space:pre-wrap;word-break:break-word;cursor:pointer"
                     @click="copyText(sectionState.negativePrompt, $event.currentTarget)"
                 >
@@ -560,8 +560,8 @@ watch(
         >
             <template v-if="sectionState.showAlignment">
                 <div style="font-size:11px;font-weight:600;color:#00BCD4;text-transform:uppercase;letter-spacing:0.5px;display:flex;align-items:center;justify-content:space-between">
-                    <span title="How closely the generated image matches the prompt (SigLIP2 score)">
-                        Prompt Alignment
+                    <span :title="t('sidebar.generation.promptAlignmentTooltip', 'How closely the generated image matches the prompt (SigLIP2 score)')">
+                        {{ t("sidebar.generation.promptAlignment", "Prompt Alignment") }}
                     </span>
                 </div>
 
@@ -614,7 +614,7 @@ watch(
             </template>
 
             <div style="font-size:10px;font-weight:600;color:rgba(0, 188, 212, 0.75);text-transform:uppercase;letter-spacing:0.5px;margin-top:8px;display:flex;align-items:center;justify-content:space-between;gap:8px">
-                <span title="AI caption generated by Florence-2">
+                <span :title="t('sidebar.generation.aiCaptionTooltip', 'AI caption generated by Florence-2')">
                     {{ sectionState.captionLabel }}
                 </span>
                 <div style="display:flex;align-items:center;gap:6px">
@@ -646,7 +646,7 @@ watch(
             </div>
 
             <div
-                :title="aiEnabled ? 'Click to copy caption' : 'AI caption controls are disabled'"
+                :title="aiEnabled ? t('sidebar.generation.copyCaptionTooltip', 'Click to copy caption') : t('sidebar.generation.aiCaptionDisabled', 'AI caption controls are disabled')"
                 :style="{
                     marginTop: '4px',
                     padding: '8px',
@@ -671,7 +671,7 @@ watch(
             :style="boxStyle('#00BCD4', { emphasis: false })"
         >
             <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;font-weight:600;color:#00BCD4;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">
-                <span>Lyrics</span>
+                <span>{{ t("sidebar.generation.lyrics", "Lyrics") }}</span>
             </div>
             <div style="font-size:12px;color:var(--fg-color, rgba(255,255,255,0.9));line-height:1.5;white-space:pre-wrap;word-break:break-word">
                 {{ sectionState.lyrics }}
@@ -683,7 +683,7 @@ watch(
             :style="boxStyle('#FF9800', { emphasis: true, startAlpha: 0.16, endAlpha: 0.10 })"
         >
             <div style="font-size:11px;font-weight:600;color:#FF9800;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px">
-                Generation Pipeline
+                {{ t("sidebar.generation.pipeline", "Generation Pipeline") }}
             </div>
             <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">
                 <MButton
@@ -741,7 +741,7 @@ watch(
             <div
                 style="font-size:11px;font-weight:600;color:#9C27B0;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px"
             >
-                Model Branches
+                {{ t("sidebar.generation.modelBranches", "Model Branches") }}
             </div>
             <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:10px">
                 <div
@@ -792,7 +792,7 @@ watch(
 
                     <div v-if="group.loras?.length" style="display:flex;flex-direction:column;gap:6px">
                         <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.58);text-transform:uppercase;letter-spacing:0.4px">
-                            LoRA Stack
+                            {{ t("sidebar.generation.loraStack", "LoRA Stack") }}
                         </div>
                         <div style="display:flex;flex-direction:column;gap:5px">
                             <div
@@ -839,9 +839,9 @@ watch(
                         <span
                             v-if="field.override"
                             :style="overridePillStyle()"
-                            title="This field was forced by Majoor Gen Info Override"
+                            :title="t('sidebar.generation.overrideTooltip', 'This field was forced by Majoor Gen Info Override')"
                         >
-                            override
+                            {{ t("sidebar.generation.override", "override") }}
                         </span>
                     </div>
                     <div
@@ -860,7 +860,7 @@ watch(
             :style="boxStyle('#4CAF50', { emphasis: false })"
         >
             <div style="font-size:11px;font-weight:600;color:#4CAF50;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px">
-                Notes
+                {{ t("sidebar.generation.notes", "Notes") }}
             </div>
             <template
                 v-for="field in sectionState.notesFields"
@@ -907,10 +907,10 @@ watch(
             :style="boxStyle('#26A69A', { emphasis: false })"
         >
             <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;font-weight:600;color:#26A69A;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">
-                <span>TTS Instruction</span>
+                <span>{{ t("sidebar.generation.ttsInstruction", "TTS Instruction") }}</span>
             </div>
             <div
-                title="Click to copy"
+                :title="t('action.clickToCopy', 'Click to copy')"
                 style="font-size:12px;color:var(--fg-color, rgba(255,255,255,0.9));line-height:1.5;white-space:pre-wrap;word-break:break-word;cursor:pointer"
                 @click="copyText(sectionState.ttsInstruction, $event.currentTarget)"
             >
@@ -923,10 +923,10 @@ watch(
             :style="seedBoxStyle()"
         >
             <div style="font-size:11px;font-weight:700;color:#E91E63;text-transform:uppercase;letter-spacing:1px">
-                SEED
+                {{ t("sidebar.generation.seed", "SEED") }}
             </div>
             <div
-                :title="`Click to copy seed: ${sectionState.seed}`"
+                :title="t('sidebar.generation.copySeedTooltip', 'Click to copy seed: {seed}', { seed: sectionState.seed })"
                 style="font-size:18px;font-weight:700;color:#fff;font-family:'Consolas', 'Monaco', monospace;letter-spacing:1px;cursor:pointer;padding:4px 8px;border-radius:4px;transition:background 0.2s"
                 @click="copyText(sectionState.seed, $event.currentTarget, 'rgba(76, 175, 80, 0.4)')"
             >
@@ -942,7 +942,7 @@ watch(
                 :title="t('tooltip.generationInputs', 'Input files used in generation')"
                 style="font-size:11px;font-weight:600;color:#4CAF50;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px"
             >
-                Source Files
+                {{ t("sidebar.generation.sourceFiles", "Source Files") }}
             </div>
             <div style="display:flex;gap:8px;flex-wrap:wrap">
                 <GenerationInputThumb

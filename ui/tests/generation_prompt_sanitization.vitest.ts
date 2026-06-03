@@ -117,8 +117,8 @@ describe("generation prompt sanitization", () => {
         ]);
         expect(state.modelFields).toEqual(
             expect.arrayContaining([
-                { label: "CLIP", value: "umt5_xxl_fp8_e4m3fn_scaled" },
-                { label: "VAE", value: "wan_2.1_vae" },
+                expect.objectContaining({ label: "CLIP", value: "umt5_xxl_fp8_e4m3fn_scaled" }),
+                expect.objectContaining({ label: "VAE", value: "wan_2.1_vae" }),
             ]),
         );
         expect(state.modelFields.find((item) => item.label === "UNet High Noise")).toBeFalsy();
@@ -126,9 +126,9 @@ describe("generation prompt sanitization", () => {
         expect(state.modelFields.find((item) => item.label === "UNet")).toBeFalsy();
         expect(state.samplingFields).toEqual(
             expect.arrayContaining([
-                { label: "Steps", value: 8 },
-                { label: "CFG High Noise", value: 1 },
-                { label: "CFG Low Noise", value: 1 },
+                expect.objectContaining({ label: "Steps", value: 8 }),
+                expect.objectContaining({ label: "CFG High Noise", value: 1 }),
+                expect.objectContaining({ label: "CFG Low Noise", value: 1 }),
             ]),
         );
         expect(state.modelFields.find((item) => item.label === "LoRAs")?.value).toContain(
@@ -156,5 +156,149 @@ describe("generation prompt sanitization", () => {
             "wan2.2_i2v_low_noise_14B_fp8_scaled",
         );
         expect(normalized.model_groups[0].label).toBe("High Noise");
+    });
+
+    it("labels ComfyUI native sampler passes from upstream latent nodes", () => {
+        const state = buildGenerationSectionState({
+            id: 101,
+            kind: "image",
+            metadata: {
+                prompt: {
+                    "3": {
+                        class_type: "KSampler",
+                        inputs: {
+                            seed: 1,
+                            steps: 8,
+                            cfg: 1,
+                            sampler_name: "lcm",
+                            scheduler: "simple",
+                            denoise: 1,
+                            latent_image: ["5", 0],
+                        },
+                    },
+                    "5": {
+                        class_type: "EmptyLatentImage",
+                        inputs: { width: 512, height: 512, batch_size: 1 },
+                    },
+                    "9": {
+                        class_type: "LatentUpscale",
+                        inputs: { samples: ["3", 0], width: 1024, height: 1024 },
+                    },
+                    "10": {
+                        class_type: "KSampler",
+                        inputs: {
+                            seed: 2,
+                            steps: 4,
+                            cfg: 1,
+                            sampler_name: "lcm",
+                            scheduler: "simple",
+                            denoise: 0.35,
+                            latent_image: ["9", 0],
+                        },
+                    },
+                },
+            },
+        });
+
+        expect(state.pipelineTabs.map((tab) => tab.label)).toEqual([
+            "Text-to-Image",
+            "Upscale",
+        ]);
+    });
+
+    it("extracts sampler custom stages and models from linked ComfyUI nodes", () => {
+        const state = buildGenerationSectionState({
+            id: 102,
+            kind: "image",
+            metadata: {
+                prompt: {
+                    "244": { class_type: "LoadImage", inputs: { image: "source.png" } },
+                    "95:29": { class_type: "VAELoader", inputs: { vae_name: "FLUX/ae.safetensors" } },
+                    "95:28": {
+                        class_type: "UNETLoader",
+                        inputs: { unet_name: "Z-IMAGE/TURBO/z_image_turbo_bf16.safetensors" },
+                    },
+                    "95:13": {
+                        class_type: "EmptySD3LatentImage",
+                        inputs: { width: 1024, height: 1024 },
+                    },
+                    "95:242": {
+                        class_type: "VAEEncode",
+                        inputs: { pixels: ["244", 0], vae: ["95:29", 0] },
+                    },
+                    "95:243": {
+                        class_type: "ComfySwitchNode",
+                        inputs: { switch: true, on_false: ["95:13", 0], on_true: ["95:242", 0] },
+                    },
+                    "95:11": {
+                        class_type: "ModelSamplingAuraFlow",
+                        inputs: { model: ["95:28", 0] },
+                    },
+                    "95:3": {
+                        class_type: "KSampler",
+                        inputs: {
+                            seed: 100,
+                            steps: 8,
+                            cfg: 1,
+                            sampler_name: "res_multistep",
+                            scheduler: "simple",
+                            denoise: 1,
+                            model: ["95:11", 0],
+                            latent_image: ["95:243", 0],
+                        },
+                    },
+                    "94:82": {
+                        class_type: "UNETLoader",
+                        inputs: { unet_name: "pid_flux1_1024_to_4096_4step_bf16.safetensors" },
+                    },
+                    "94:76": { class_type: "KSamplerSelect", inputs: { sampler_name: "lcm" } },
+                    "94:77": {
+                        class_type: "BasicScheduler",
+                        inputs: { scheduler: "simple", steps: 4, denoise: 1, model: ["94:82", 0] },
+                    },
+                    "94:84": {
+                        class_type: "EmptyChromaRadianceLatentImage",
+                        inputs: { width: 4096, height: 4096 },
+                    },
+                    "94:86": {
+                        class_type: "PiDConditioning",
+                        inputs: { latent: ["95:3", 0] },
+                    },
+                    "94:75": {
+                        class_type: "SamplerCustom",
+                        inputs: {
+                            noise_seed: 3,
+                            cfg: 1,
+                            model: ["94:82", 0],
+                            positive: ["94:86", 0],
+                            sampler: ["94:76", 0],
+                            sigmas: ["94:77", 0],
+                            latent_image: ["94:84", 0],
+                        },
+                    },
+                },
+            },
+        });
+
+        expect(state.pipelineTabs.map((tab) => tab.label)).toEqual(["Image-to-Image", "Upscale"]);
+        expect(state.pipelineTabs[0].fields).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    label: "Model",
+                    value: "Z-IMAGE/TURBO/z_image_turbo_bf16.safetensors",
+                }),
+                expect.objectContaining({ label: "Sampler", value: "res_multistep" }),
+            ]),
+        );
+        expect(state.pipelineTabs[1].fields).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    label: "Model",
+                    value: "pid_flux1_1024_to_4096_4step_bf16.safetensors",
+                }),
+                expect.objectContaining({ label: "Sampler", value: "lcm" }),
+                expect.objectContaining({ label: "Steps", value: "4" }),
+            ]),
+        );
     });
 });

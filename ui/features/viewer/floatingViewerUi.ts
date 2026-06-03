@@ -295,27 +295,27 @@ export function buildFloatingViewerToolbar(viewer: any): HTMLElement {
 
     const modeDrop = _mkIconDrop(
         '<i class="pi pi-image" aria-hidden="true"></i>',
-        "Viewer mode",
+        t("viewer.mode", "Viewer mode"),
         [
             {
                 value: MFV_MODES.SIMPLE,
-                html: '<i class="pi pi-image" aria-hidden="true"></i><span>Simple</span>',
+                html: `<i class="pi pi-image" aria-hidden="true"></i><span>${t("viewer.mode.simple", "Simple")}</span>`,
             },
             {
                 value: MFV_MODES.AB,
-                html: '<i class="pi pi-clone" aria-hidden="true"></i><span>A/B Compare</span>',
+                html: `<i class="pi pi-clone" aria-hidden="true"></i><span>${t("viewer.mode.abCompare", "A/B Compare")}</span>`,
             },
             {
                 value: MFV_MODES.SIDE,
-                html: '<i class="pi pi-table" aria-hidden="true"></i><span>Side-by-side</span>',
+                html: `<i class="pi pi-table" aria-hidden="true"></i><span>${t("viewer.mode.sideBySide", "Side-by-side")}</span>`,
             },
             {
                 value: MFV_MODES.GRID,
-                html: '<i class="pi pi-th-large" aria-hidden="true"></i><span>Grid</span>',
+                html: `<i class="pi pi-th-large" aria-hidden="true"></i><span>${t("viewer.mode.grid", "Grid")}</span>`,
             },
             {
                 value: MFV_MODES.GRAPH,
-                html: '<i class="pi pi-sitemap" aria-hidden="true"></i><span>Graph Map</span>',
+                html: `<i class="pi pi-sitemap" aria-hidden="true"></i><span>${t("workflowSidebar.graphMap", "Graph Map")}</span>`,
             },
         ],
         viewer,
@@ -330,7 +330,7 @@ export function buildFloatingViewerToolbar(viewer: any): HTMLElement {
     const pinBtn = document.createElement("button");
     pinBtn.type = "button";
     pinBtn.className = "mjr-icon-btn mjr-mfv-pin-trigger";
-    pinBtn.title = "Pin slots A/B/C/D";
+    pinBtn.title = t("viewer.pinSlots", "Pin slots A/B/C/D");
     pinBtn.setAttribute("aria-haspopup", "dialog");
     pinBtn.setAttribute("aria-expanded", "false");
     pinBtn.innerHTML = '<i class="pi pi-map-marker" aria-hidden="true"></i>';

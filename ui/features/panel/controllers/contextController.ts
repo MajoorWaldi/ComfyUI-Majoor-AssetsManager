@@ -30,6 +30,7 @@ export function createContextController({
     kindSelect,
     wfCheckbox,
     workflowTypeSelect,
+    workflowIdInput,
     ratingSelect,
     minSizeInput,
     maxSizeInput,
@@ -67,6 +68,7 @@ export function createContextController({
         "maxHeight",
         "resolutionCompare",
         "workflowType",
+        "workflowId",
         "dateRangeFilter",
         "dateExactFilter",
         "sort",
@@ -281,6 +283,19 @@ export function createContextController({
                 console.debug?.(e);
             }
         },
+        clearWorkflowId: async () => {
+            try {
+                setStateValue("workflowId", "");
+                _safeSetValue(workflowIdInput, "");
+            } catch (e) {
+                console.debug?.(e);
+            }
+            try {
+                await reloadGrid?.();
+            } catch (e) {
+                console.debug?.(e);
+            }
+        },
         clearSize: async () => {
             try {
                 setStateValue("minSizeMB", 0);
@@ -377,6 +392,7 @@ export function createContextController({
                 setStateValue("maxHeight", 0);
                 setStateValue("resolutionCompare", "gte");
                 setStateValue("workflowType", "");
+                setStateValue("workflowId", "");
                 setStateValue("dateRangeFilter", "");
                 setStateValue("dateExactFilter", "");
                 setStateValue("sort", "mtime_desc");
@@ -404,6 +420,7 @@ export function createContextController({
                 _safeSetValue(kindSelect, "");
                 _safeSetChecked(wfCheckbox, false);
                 _safeSetValue(workflowTypeSelect, "");
+                _safeSetValue(workflowIdInput, "");
                 _safeSetValue(ratingSelect, "0");
                 _safeSetValue(minSizeInput, "");
                 _safeSetValue(maxSizeInput, "");
@@ -455,6 +472,7 @@ export function createContextController({
             (Number(getStateValue("maxWidth", 0) || 0) || 0) > 0 ||
             (Number(getStateValue("maxHeight", 0) || 0) || 0) > 0 ||
             String(getStateValue("workflowType", "") || "").trim().length > 0 ||
+            String(getStateValue("workflowId", "") || "").trim().length > 0 ||
             getStateValue("dateRangeFilter", "") ||
             "" ||
             getStateValue("dateExactFilter", "") ||

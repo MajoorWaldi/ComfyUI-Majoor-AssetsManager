@@ -7,7 +7,7 @@
 
 import { APP_CONFIG } from "../../../app/config.js";
 import { getHostRootGraph, walkGraphNodes } from "../../../app/graphTraversal.js";
-import { getRawHostApi, getRawHostApp } from "../../../app/hostAdapter.js";
+import { getRawHostApp, interruptHostExecution, queueHostPrompt, refreshHostCanvasGraph } from "../../../app/hostAdapter.js";
 import { t } from "../../../app/i18n.js";
 import {
     ensureFloatingViewerProgressTracking,
@@ -162,25 +162,8 @@ export function createRunButton(): { el: HTMLDivElement; dispose: () => void } {
     }
 
     async function stopCurrentGeneration(): Promise<QueueResult> {
-        const app = getRawHostApp();
-        // Prefer live app.api for the same auth-context reasons as queueCurrentPrompt.
-        const liveApi = app?.api && typeof app.api.interrupt === "function" ? app.api : null;
-        const api = liveApi ?? getRawHostApi(app);
-
-        if (api && typeof api.interrupt === "function") {
-            await api.interrupt();
-            return { tracked: true };
-        }
-
-        if (api && typeof api.fetchApi === "function") {
-            const resp = await api.fetchApi("/interrupt", { method: "POST" });
-            if (!resp?.ok) throw new Error(`POST /interrupt failed (${resp?.status})`);
-            return { tracked: true };
-        }
-
-        const resp = await fetch("/interrupt", { method: "POST", credentials: "include" });
-        if (!resp.ok) throw new Error(`POST /interrupt failed (${resp.status})`);
-        return { tracked: false };
+        const tracked = await interruptHostExecution(getRawHostApp());
+        return { tracked };
     }
 
     async function handleClick(): Promise<void> {
@@ -300,87 +283,6 @@ export function buildPromptRequestBody(
     return body;
 }
 
-function resolveClientId(api: LooseRecord | null | undefined, app: LooseRecord | null | undefined): string {
-    const candidates = [
-        api?.clientId,
-        api?.clientID,
-        api?.client_id,
-        app?.clientId,
-        app?.clientID,
-        app?.client_id,
-    ];
-    for (const value of candidates) {
-        const safe = String(value || "").trim();
-        if (safe) return safe;
-    }
-    return "";
-}
-
-/**
- * Walk all nodes in a ComfyUI graph recursively, including inner nodes of any
- * subgraphs, and invoke callback(node) for each. This mirrors the graph-walk
- * ComfyUI's native queuePrompt performs before/after serialising the prompt.
- */
-function _walkAllNodes(
-    graph: any,
-    callback: (node: LooseRecord) => void,
-): void {
-    walkGraphNodes(graph, ({ node }) => {
-        callback(node);
-    });
-}
-
-function _cloneQueuedWidgetValue<T>(value: T): T {
-    if (value == null || typeof value !== "object") return value;
-    try {
-        return typeof structuredClone === "function"
-            ? structuredClone(value)
-            : JSON.parse(JSON.stringify(value));
-    } catch {
-        return value;
-    }
-}
-
-function _captureQueuedWidgetSnapshots(graph: any): WidgetSnapshot[] {
-    const snapshots: WidgetSnapshot[] = [];
-    _walkAllNodes(graph, (node: any) => {
-        for (const widget of node.widgets ?? []) {
-            snapshots.push({
-                widget,
-                value: _cloneQueuedWidgetValue(widget?.value),
-            });
-        }
-    });
-    return snapshots;
-}
-
-function _restoreQueuedWidgetSnapshots(
-    app: LooseRecord | null | undefined,
-    snapshots: WidgetSnapshot[] | null,
-): void {
-    for (const entry of Array.isArray(snapshots) ? snapshots : []) {
-        const widget = entry?.widget;
-        if (!widget || typeof widget !== "object") continue;
-        const restoredValue = _cloneQueuedWidgetValue(entry?.value);
-        try {
-            widget.value = restoredValue;
-        } catch (e: any) {
-            console.debug?.(e);
-            continue;
-        }
-        try {
-            widget.callback?.(restoredValue);
-        } catch (e: any) {
-            console.debug?.(e);
-        }
-    }
-    try {
-        app?.canvas?.draw?.(true, true);
-    } catch (e: any) {
-        console.debug?.(e);
-    }
-}
-
 function _nodeLooksLikeApiNode(node: LooseRecord): boolean {
     const nodeCtor = node?.constructor as LooseRecord | undefined;
     const candidates = [node?.type, node?.comfyClass, node?.class_type, nodeCtor?.type];
@@ -389,7 +291,7 @@ function _nodeLooksLikeApiNode(node: LooseRecord): boolean {
 
 export function graphContainsApiNode(graph: any): boolean {
     let found = false;
-    _walkAllNodes(graph, (node: any) => {
+    walkGraphNodes(graph, ({ node }) => {
         if (found) return;
         found = _nodeLooksLikeApiNode(node);
     });
@@ -417,91 +319,23 @@ async function queueCurrentPrompt(): Promise<QueueResult> {
     const app = getRawHostApp();
     if (!app) throw new Error("ComfyUI app not available");
 
-    // Resolve API references early so we can choose the path before touching
-    // widget state (beforeQueued must not be called twice for the same run).
-    const liveApi = app?.api && typeof app.api.queuePrompt === "function" ? app.api : null;
-    const api = liveApi ?? getRawHostApi(app);
-    const hasApiPath = Boolean(
-        (api && typeof api.queuePrompt === "function") ||
-        (api && typeof api.fetchApi === "function"),
-    );
-
     const rootGraph = getHostRootGraph(app);
     const mustUseNativeQueue = graphContainsApiNode(rootGraph);
 
-    // Path 4: delegate entirely to app.queuePrompt which handles beforeQueued,
-    // graphToPrompt, afterQueued, and auth internally. API Node workflows need
-    // this because ComfyUI injects auth_token_comfy_org during native queueing.
-    if ((mustUseNativeQueue || !hasApiPath) && typeof app.queuePrompt === "function") {
-        await app.queuePrompt(0);
-        return { tracked: true };
-    }
-
-    let widgetSnapshots: WidgetSnapshot[] | null = null;
-
-    // Paths 1-3 and 5: mirror ComfyUI's native beforeQueued cycle.
-    // ComfyUI's queuePrompt walks ALL nodes (including inner subgraph nodes) and
-    // calls widget.beforeQueued() before serialising the graph. This is what
-    // triggers control_after_generate (randomize / increment / decrement) to
-    // update the seed widget value before graphToPrompt reads it.
-    try {
-        widgetSnapshots = _captureQueuedWidgetSnapshots(rootGraph);
-        _walkAllNodes(rootGraph, (node: any) => {
-            for (const w of node.widgets ?? []) {
-                w.beforeQueued?.({ isPartialExecution: false });
-            }
-        });
-
-        const promptData =
-            typeof app.graphToPrompt === "function" ? await app.graphToPrompt() : null;
-        if (!promptData?.output) throw new Error("graphToPrompt returned empty output");
-
-        let result;
-
-        if (api && typeof api.queuePrompt === "function") {
-            // Prefer the live app.api reference  -  matches the native Queue button's
-            // auth context and avoids stale cached references after session renewal.
-            await api.queuePrompt(0, enrichPromptDataForMfv(promptData));
-            result = { tracked: true };
-        } else if (api && typeof api.fetchApi === "function") {
-            const resp = await api.fetchApi("/prompt", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(
-                    buildPromptRequestBody(promptData, {
-                        clientId: resolveClientId(api, app),
-                    }),
-                ),
-            });
-            if (!resp?.ok) throw new Error(`POST /prompt failed (${resp?.status})`);
-            result = { tracked: true };
-        } else {
-            const resp = await fetch("/prompt", {
-                method: "POST",
-                credentials: "include",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(
-                    buildPromptRequestBody(promptData, {
-                        clientId: resolveClientId(null, app),
-                    }),
-                ),
-            });
-            if (!resp.ok) throw new Error(`POST /prompt failed (${resp.status})`);
-            result = { tracked: false };
-        }
-
-        // Mirror ComfyUI's afterQueued cycle and redraw the canvas so that widget
-        // displays (e.g. the new seed value) reflect the post-queue state immediately.
-        _walkAllNodes(rootGraph, (node: any) => {
-            for (const w of node.widgets ?? []) {
-                w.afterQueued?.({ isPartialExecution: false });
-            }
-        });
-        app.canvas?.draw?.(true, true);
-
-        return result;
-    } catch (error: any) {
-        _restoreQueuedWidgetSnapshots(app, widgetSnapshots);
-        throw error;
-    }
+    const tracked = await queueHostPrompt({
+        app,
+        forceNativeQueue: mustUseNativeQueue,
+        resolvePromptData(runtimeApp: any) {
+            return typeof runtimeApp?.graphToPrompt === "function"
+                ? runtimeApp.graphToPrompt()
+                : null;
+        },
+        enrichPromptData(promptData: any) {
+            return enrichPromptDataForMfv(promptData);
+        },
+        buildPromptRequestBody(promptData: any, context: { clientId: string }) {
+            return buildPromptRequestBody(promptData, { clientId: context.clientId });
+        },
+    });
+    return { tracked };
 }

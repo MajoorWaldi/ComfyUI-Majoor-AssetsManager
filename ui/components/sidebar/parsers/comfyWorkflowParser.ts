@@ -19,6 +19,8 @@ export function parseComfyUIWorkflow(workflow: any): Record<string, any> | null 
 
     const metadata: Record<string, any> = {};
     const loras = [];
+    const promptGraph = getPromptGraph(workflow);
+    const samplerPasses: any[] = [];
 
     for (const node of collectComfyWorkflowNodes(workflow)) {
         if (!node || typeof node !== "object") continue;
@@ -86,6 +88,21 @@ export function parseComfyUIWorkflow(workflow: any): Record<string, any> | null 
         if (inputs.scheduler && !metadata.scheduler) metadata.scheduler = inputs.scheduler;
         if (inputs.denoise !== undefined && metadata.denoise === undefined)
             metadata.denoise = inputs.denoise;
+        if (isSamplerClass(classType)) {
+            const passStage = classifySamplerPass(node, promptGraph);
+            const linkedSettings = resolveSamplerLinkedSettings(node, promptGraph);
+            const linkedModel = resolveLinkedModelName(node?.inputs?.model, promptGraph);
+            samplerPasses.push({
+                sampler_name: inputs.sampler_name || linkedSettings.sampler_name || inputs.sampler,
+                scheduler: inputs.scheduler || linkedSettings.scheduler,
+                steps: inputs.steps ?? linkedSettings.steps,
+                cfg: inputs.cfg,
+                denoise: inputs.denoise ?? linkedSettings.denoise,
+                seed: inputs.seed ?? inputs.noise_seed,
+                model: linkedModel,
+                pass_stage: passStage,
+            });
+        }
 
         if (inputs.width !== undefined && metadata.width === undefined)
             metadata.width = inputs.width;
@@ -135,7 +152,135 @@ export function parseComfyUIWorkflow(workflow: any): Record<string, any> | null 
     }
 
     if (loras.length) metadata.loras = loras;
+    if (samplerPasses.length > 1) metadata.all_samplers = samplerPasses;
     return Object.keys(metadata).length > 0 ? metadata : null;
+}
+
+function getPromptGraph(workflow: any): Record<string, any> | null {
+    if (!workflow || typeof workflow !== "object") return null;
+    const candidate = workflow.prompt && typeof workflow.prompt === "object" ? workflow.prompt : workflow;
+    return looksLikeComfyPromptGraph(candidate) ? candidate : null;
+}
+
+function isSamplerClass(classType: string): boolean {
+    if (classType.includes("ksamplerselect") || classType.includes("samplerselect")) return false;
+    return (
+        classType.includes("ksampler") ||
+        classType.includes("samplercustom") ||
+        classType.includes("sampler_custom")
+    );
+}
+
+function classifySamplerPass(node: any, promptGraph: Record<string, any> | null): string {
+    if (!promptGraph) return "";
+    const linkedModel = resolveLinkedModelName(node?.inputs?.model, promptGraph).toLowerCase();
+    if (/\b(upscale|upscaler|_to_\d{3,5}|to[_-]?\d{3,5})\b/i.test(linkedModel)) {
+        return "upscale";
+    }
+    const allInputs = collectUpstreamClassTypes(node, promptGraph);
+    const allHaystack = allInputs.join(" ");
+    if (/\b(pidconditioning|upscale|latentupscale|imageupscalewithmodel)\b/i.test(allHaystack)) {
+        return "upscale";
+    }
+    const upstream = collectUpstreamClassTypes(node, promptGraph, "latent_image");
+    const haystack = upstream.join(" ");
+    if (/\b(inpaint|vaeencodeforinpaint|setlatentnoise mask|masktoimage)\b/i.test(haystack)) {
+        return "inpaint";
+    }
+    if (/\b(upscale|latentupscale|imageupscalewithmodel|ultimate|supir|esrgan|realesrgan)\b/i.test(haystack)) {
+        return "upscale";
+    }
+    if (/\b(vaeencode|loadimage|imagebatch|imagetolatent)\b/i.test(haystack)) {
+        return "img2img";
+    }
+    if (/\b(emptylatentimage|emptysd3latentimage|emptychromaradiancelatentimage|empty latent)\b/i.test(haystack)) {
+        return "txt2img";
+    }
+    return "";
+}
+
+function collectUpstreamClassTypes(
+    node: any,
+    promptGraph: Record<string, any>,
+    inputName?: string,
+): string[] {
+    const startValues = inputName ? [node?.inputs?.[inputName]] : Object.values(node?.inputs || {});
+    const out: string[] = [];
+    const visited = new Set<string>();
+    const visit = (current: any) => {
+        const id = String(current?._mjrPromptId || current?.id || "");
+        if (id && visited.has(id)) return;
+        if (id) visited.add(id);
+        const classType = String(current?.class_type || current?.type || current?._meta?.title || "");
+        if (classType) out.push(classType.toLowerCase());
+        const inputs = current?.inputs && typeof current.inputs === "object" ? current.inputs : {};
+        for (const value of Object.values(inputs)) {
+            const linked = getLinkedNode(value, promptGraph);
+            if (linked) visit(linked);
+        }
+    };
+    for (const value of startValues) {
+        const start = getLinkedNode(value, promptGraph);
+        if (start) visit(start);
+    }
+    return out;
+}
+
+function resolveSamplerLinkedSettings(node: any, promptGraph: Record<string, any> | null) {
+    const out: Record<string, any> = {};
+    if (!promptGraph) return out;
+    const samplerNode = getLinkedNode(node?.inputs?.sampler, promptGraph);
+    const samplerInputs = samplerNode?.inputs || {};
+    if (samplerInputs.sampler_name) out.sampler_name = samplerInputs.sampler_name;
+    const sigmasNode = getLinkedNode(node?.inputs?.sigmas, promptGraph);
+    const sigmasInputs = sigmasNode?.inputs || {};
+    if (sigmasInputs.scheduler) out.scheduler = sigmasInputs.scheduler;
+    if (sigmasInputs.steps !== undefined) out.steps = sigmasInputs.steps;
+    if (sigmasInputs.denoise !== undefined) out.denoise = sigmasInputs.denoise;
+    return out;
+}
+
+function resolveLinkedModelName(value: any, promptGraph: Record<string, any> | null): string {
+    if (!promptGraph) return "";
+    const visited = new Set<string>();
+    const visit = (linkValue: any): string => {
+        const current = getLinkedNode(linkValue, promptGraph);
+        if (!current) return "";
+        const id = String(current?._mjrPromptId || current?.id || "");
+        if (id && visited.has(id)) return "";
+        if (id) visited.add(id);
+        const inputs = current?.inputs || {};
+        const direct =
+            inputs.unet_name ||
+            inputs.ckpt_name ||
+            inputs.model_name ||
+            inputs.model ||
+            inputs.checkpoint ||
+            inputs.checkpoint_name ||
+            "";
+        if (typeof direct === "string" && direct.trim()) return direct.trim();
+        for (const upstream of Object.values(inputs)) {
+            const found = visit(upstream);
+            if (found) return found;
+        }
+        return "";
+    };
+    return visit(value);
+}
+
+function getLinkedNode(value: any, promptGraph: Record<string, any>): any | null {
+    if (!Array.isArray(value) || value.length < 1) return null;
+    const nodeId = String(value[0]);
+    const node = promptGraph[nodeId];
+    if (!node || typeof node !== "object") return null;
+    if (!node._mjrPromptId) {
+        try {
+            Object.defineProperty(node, "_mjrPromptId", { value: nodeId, enumerable: false });
+        } catch {
+            // Non-extensible metadata objects are rare; traversal can continue without stable ids.
+        }
+    }
+    return node;
 }
 
 function collectComfyWorkflowNodes(workflow: any, visited = new WeakSet()): any[] {

@@ -26,6 +26,7 @@ import type { MajoorComfyApp, MajoorComfyApi, MajoorExtensionManager } from "../
 import {
     activateBottomPanelTabCompat,
     activateSidebarTabCompat,
+    fetchComfyApi,
     getComfyApi,
     getComfyApp,
     getExtensionDialogApi,
@@ -42,10 +43,19 @@ import {
     waitForComfyApi,
     waitForComfyApp,
 } from "./comfyApiBridge.js";
+import { findGraphNodeById, getHostRootGraph, walkGraphNodes } from "./graphTraversal.js";
 
 // -- internal state ------------------------------------------------------------
 
 let _app: any = null;
+const HOST_QUEUE_PROMPT_BINDING_KEY = Symbol.for("mjr.host.queuePromptBinding");
+const HOST_CANVAS_SELECTION_EVENT_TYPES = [
+    "selectionchange",
+    "selection-change",
+    "node-selected",
+    "node-deselected",
+    "node-selection-change",
+];
 
 // -- lifecycle -----------------------------------------------------------------
 
@@ -108,6 +118,17 @@ export function showToast(opts: { severity?: string; summary?: string; detail?: 
     }
 }
 
+/**
+ * Returns the raw ComfyUI toast API when available.
+ */
+export function getHostToastApi(app: any = null): any {
+    try {
+        return getExtensionToastApi(app || _app || getComfyApp()) || null;
+    } catch {
+        return null;
+    }
+}
+
 // -- dialogs -------------------------------------------------------------------
 
 /**
@@ -133,6 +154,17 @@ export async function confirm(opts: { message: string; header?: string } | null 
     return false;
 }
 
+/**
+ * Returns the raw ComfyUI dialog API when available.
+ */
+export function getHostDialogApi(app: any = null): any {
+    try {
+        return getExtensionDialogApi(app || _app || getComfyApp()) || null;
+    } catch {
+        return null;
+    }
+}
+
 // -- settings ------------------------------------------------------------------
 
 /**
@@ -151,6 +183,15 @@ export function getSetting(key: string, defaultValue: any = null): any {
     }
 }
 
+export function getSettingForApp(app: any, key: string, defaultValue: any = null): any {
+    try {
+        const value = getSettingValue(app || _app || getComfyApp(), key);
+        return value !== null && value !== undefined ? value : defaultValue;
+    } catch {
+        return defaultValue;
+    }
+}
+
 /**
  * Write a ComfyUI setting value.
  *
@@ -161,6 +202,14 @@ export function getSetting(key: string, defaultValue: any = null): any {
 export function setSetting(key: string, value: any): boolean {
     try {
         return setSettingValue(_app || getComfyApp(), key, value);
+    } catch {
+        return false;
+    }
+}
+
+export function setSettingForApp(app: any, key: string, value: any): boolean {
+    try {
+        return setSettingValue(app || _app || getComfyApp(), key, value);
     } catch {
         return false;
     }
@@ -365,6 +414,549 @@ export async function waitForRawHostApi(options: { timeoutMs?: number; warnOnTim
     }
 }
 
+/**
+ * Send an HTTP request through ComfyUI's API layer when available.
+ * Falls back to the bridge compatibility logic when the host is still warming up.
+ *
+ * @param {string} url
+ * @param {RequestInit | null} [options=null]
+ * @param {object | null} [app=null]
+ * @returns {Promise<Response>}
+ */
+export async function fetchHostApi(url: string, options: RequestInit | null = null, app: any = null): Promise<Response> {
+    try {
+        return await fetchComfyApi(url, options, app || _app || getComfyApp());
+    } catch {
+        return fetch(url, { credentials: "include", ...(options || {}) });
+    }
+}
+
+function _safeAddEventListener(target: any, type: string, handler: EventListener): (() => void) | null {
+    if (!target || typeof target.addEventListener !== "function") return null;
+    try {
+        target.addEventListener(type, handler);
+    } catch {
+        return null;
+    }
+    return () => {
+        try {
+            target.removeEventListener?.(type, handler);
+        } catch (e) {
+            console.debug?.(e);
+        }
+    };
+}
+
+export function observeHostCanvasSelection(
+    onSelectionChange: (() => void) | null | undefined,
+    options: { app?: any; includePointerFallback?: boolean } = {},
+): (() => void) | null {
+    if (typeof onSelectionChange !== "function") return null;
+    const app = options.app || _app || getComfyApp();
+    const canvas = app?.canvas;
+    if (!canvas) return null;
+
+    const cleanups: Array<() => void> = [];
+    let callbackBound = false;
+    const eventTargets = [canvas, app, app?.graph].filter(
+        (target, index, all) => target && all.indexOf(target) === index,
+    );
+
+    const scheduleSelectionChange = () => {
+        try {
+            onSelectionChange();
+        } catch (e) {
+            console.debug?.(e);
+        }
+    };
+
+    for (const target of eventTargets) {
+        for (const type of HOST_CANVAS_SELECTION_EVENT_TYPES) {
+            const cleanup = _safeAddEventListener(target, type, scheduleSelectionChange);
+            if (cleanup) {
+                cleanups.push(cleanup);
+                callbackBound = true;
+            }
+        }
+    }
+
+    if (!callbackBound) {
+        const hadOwnOnNodeSelected = Object.prototype.hasOwnProperty.call(canvas, "onNodeSelected");
+        const hadOwnOnSelectionChange = Object.prototype.hasOwnProperty.call(
+            canvas,
+            "onSelectionChange",
+        );
+        const hadOwnOnNodeDeselected = Object.prototype.hasOwnProperty.call(
+            canvas,
+            "onNodeDeselected",
+        );
+        const originalOnNodeSelected = canvas.onNodeSelected;
+        const originalOnSelectionChange = canvas.onSelectionChange;
+        const originalOnNodeDeselected = canvas.onNodeDeselected;
+
+        canvas.onNodeSelected = function (node: any) {
+            originalOnNodeSelected?.call(this, node);
+            scheduleSelectionChange();
+        };
+        canvas.onSelectionChange = function (selectedNodes: any) {
+            originalOnSelectionChange?.call(this, selectedNodes);
+            scheduleSelectionChange();
+        };
+        canvas.onNodeDeselected = function (node: any) {
+            originalOnNodeDeselected?.call(this, node);
+            scheduleSelectionChange();
+        };
+
+        cleanups.push(() => {
+            try {
+                if (hadOwnOnNodeSelected) canvas.onNodeSelected = originalOnNodeSelected;
+                else delete canvas.onNodeSelected;
+                if (hadOwnOnSelectionChange) canvas.onSelectionChange = originalOnSelectionChange;
+                else delete canvas.onSelectionChange;
+                if (hadOwnOnNodeDeselected) canvas.onNodeDeselected = originalOnNodeDeselected;
+                else delete canvas.onNodeDeselected;
+            } catch (e) {
+                console.debug?.(e);
+            }
+        });
+    }
+
+    if (options.includePointerFallback !== false && canvas.canvas?.addEventListener) {
+        const cleanup = _safeAddEventListener(canvas.canvas, "pointerup", scheduleSelectionChange);
+        if (cleanup) cleanups.push(cleanup);
+    }
+
+    let disposed = false;
+    return () => {
+        if (disposed) return;
+        disposed = true;
+        for (const cleanup of cleanups.splice(0).reverse()) {
+            cleanup();
+        }
+    };
+}
+
+export function wrapHostQueuePrompt(
+    options: {
+        api?: any;
+        app?: any;
+        owner?: any;
+        createWrapper?: ((originalQueuePrompt: any, api: any) => any) | null;
+    } = {},
+): {
+    api: any;
+    owner: any;
+    originalQueuePrompt: any;
+    wrappedQueuePrompt: any;
+    restore: () => boolean;
+} | null {
+    const api = options.api || getRawHostApi(options.app || _app || getComfyApp());
+    const owner = options.owner || null;
+    const createWrapper =
+        typeof options.createWrapper === "function" ? options.createWrapper : null;
+    if (!api || typeof api.queuePrompt !== "function" || !createWrapper) return null;
+
+    const existingBinding = api.queuePrompt?.[HOST_QUEUE_PROMPT_BINDING_KEY] || null;
+    if (existingBinding?.owner === owner) {
+        return existingBinding;
+    }
+    if (existingBinding?.owner && existingBinding.owner !== owner) {
+        return null;
+    }
+
+    const originalQueuePrompt = api.queuePrompt;
+    const wrappedQueuePrompt = createWrapper(originalQueuePrompt, api);
+    if (typeof wrappedQueuePrompt !== "function") return null;
+
+    const binding = {
+        api,
+        owner,
+        originalQueuePrompt,
+        wrappedQueuePrompt,
+        restore: () => {
+            try {
+                const activeBinding = api.queuePrompt?.[HOST_QUEUE_PROMPT_BINDING_KEY] || null;
+                if (activeBinding?.owner !== owner) return false;
+                api.queuePrompt = originalQueuePrompt;
+                return true;
+            } catch (e) {
+                console.debug?.(e);
+                return false;
+            }
+        },
+    };
+
+    Object.defineProperty(wrappedQueuePrompt, HOST_QUEUE_PROMPT_BINDING_KEY, {
+        configurable: true,
+        value: binding,
+    });
+
+    api.queuePrompt = wrappedQueuePrompt;
+    return binding;
+}
+
+export async function interruptHostExecution(app: any = null): Promise<boolean> {
+    const runtimeApp = app || _app || getComfyApp();
+    const liveApi = runtimeApp?.api && typeof runtimeApp.api.interrupt === "function" ? runtimeApp.api : null;
+    const api = liveApi || getRawHostApi(runtimeApp);
+    if (api && typeof api.interrupt === "function") {
+        await api.interrupt();
+        return true;
+    }
+    if (api && typeof api.fetchApi === "function") {
+        const resp = await api.fetchApi("/interrupt", { method: "POST" });
+        if (!resp?.ok) throw new Error(`POST /interrupt failed (${resp?.status})`);
+        return true;
+    }
+    const resp = await fetch("/interrupt", { method: "POST", credentials: "include" });
+    if (!resp.ok) throw new Error(`POST /interrupt failed (${resp.status})`);
+    return false;
+}
+
+function _getHostCanvas(app: any = null): any {
+    const runtimeApp = app || _app || getComfyApp();
+    return runtimeApp?.canvas || null;
+}
+
+export function getHostCanvas(app: any = null): any {
+    return _getHostCanvas(app);
+}
+
+function _getHostGraph(app: any = null): any {
+    const runtimeApp = app || _app || getComfyApp();
+    return runtimeApp?.graph || runtimeApp?.canvas?.graph || null;
+}
+
+export function getHostGraph(app: any = null): any {
+    return _getHostGraph(app);
+}
+
+function _cloneHostQueuedWidgetValue<T>(value: T): T {
+    if (value == null || typeof value !== "object") return value;
+    try {
+        return typeof structuredClone === "function"
+            ? structuredClone(value)
+            : JSON.parse(JSON.stringify(value));
+    } catch {
+        return value;
+    }
+}
+
+function _walkHostGraphNodes(graph: any, callback: (node: any) => void) {
+    walkGraphNodes(graph, ({ node }) => callback(node));
+}
+
+function _captureHostQueuedWidgetSnapshots(graph: any): Array<{ widget: any; value: any }> {
+    const snapshots: Array<{ widget: any; value: any }> = [];
+    _walkHostGraphNodes(graph, (node: any) => {
+        for (const widget of node?.widgets ?? []) {
+            snapshots.push({ widget, value: _cloneHostQueuedWidgetValue(widget?.value) });
+        }
+    });
+    return snapshots;
+}
+
+function _restoreHostQueuedWidgetSnapshots(
+    app: any,
+    snapshots: Array<{ widget: any; value: any }> | null,
+) {
+    for (const entry of Array.isArray(snapshots) ? snapshots : []) {
+        const widget = entry?.widget;
+        if (!widget || typeof widget !== "object") continue;
+        const restoredValue = _cloneHostQueuedWidgetValue(entry?.value);
+        try {
+            widget.value = restoredValue;
+        } catch (e) {
+            console.debug?.(e);
+            continue;
+        }
+        try {
+            widget.callback?.(restoredValue);
+        } catch (e) {
+            console.debug?.(e);
+        }
+    }
+    refreshHostCanvasGraph(app, { change: false });
+}
+
+function _resolveHostClientId(api: any, app: any): string {
+    const candidates = [
+        api?.clientId,
+        api?.clientID,
+        api?.client_id,
+        app?.clientId,
+        app?.clientID,
+        app?.client_id,
+    ];
+    for (const value of candidates) {
+        const safe = String(value || "").trim();
+        if (safe) return safe;
+    }
+    return "";
+}
+
+function _readSelectedCanvasCollection(app: any = null): any {
+    const canvas = _getHostCanvas(app);
+    return canvas?.selected_nodes ?? canvas?.selectedNodes ?? null;
+}
+
+export function getSelectedHostCanvasNodes(app: any = null): any[] {
+    const selected = _readSelectedCanvasCollection(app);
+    if (!selected) return [];
+    if (Array.isArray(selected)) return selected.filter(Boolean);
+    if (selected instanceof Map) return Array.from(selected.values()).filter(Boolean);
+    if (typeof selected === "object") return Object.values(selected).filter(Boolean);
+    return [];
+}
+
+export function getSelectedHostCanvasNodeIds(app: any = null): string[] {
+    return getSelectedHostCanvasNodes(app)
+        .map((node: any) => String(node?.id ?? "").trim())
+        .filter(Boolean);
+}
+
+export function getFirstSelectedHostCanvasNode(app: any = null): any {
+    return getSelectedHostCanvasNodes(app)[0] || null;
+}
+
+export function refreshHostCanvasGraph(app: any = null, options: { draw?: boolean; change?: boolean } = {}): boolean {
+    try {
+        const runtimeApp = app || _app || getComfyApp();
+        const canvas = _getHostCanvas(runtimeApp);
+        const graph = _getHostGraph(runtimeApp);
+        canvas?.setDirty?.(true, true);
+        if (options.draw !== false) {
+            canvas?.draw?.(true, true);
+        }
+        graph?.setDirtyCanvas?.(true, true);
+        if (options.change !== false) {
+            graph?.change?.();
+        }
+        return Boolean(canvas || graph);
+    } catch (e) {
+        console.debug?.(e);
+        return false;
+    }
+}
+
+export function notifyHostNodeGraphChanged(
+    node: any,
+    app: any = null,
+    options: { draw?: boolean; change?: boolean } = {},
+): boolean {
+    try {
+        const runtimeApp = app || _app || getComfyApp();
+        const rootGraph = _getHostGraph(runtimeApp);
+        const nodeGraph = node?.graph ?? null;
+        if (nodeGraph && nodeGraph !== rootGraph) {
+            nodeGraph.setDirtyCanvas?.(true, true);
+            if (options.change !== false) {
+                nodeGraph.change?.();
+            }
+        }
+        return refreshHostCanvasGraph(runtimeApp, options);
+    } catch (e) {
+        console.debug?.(e);
+        return false;
+    }
+}
+
+export function addNodeToHostGraph(node: any, app: any = null): boolean {
+    if (!node) return false;
+    try {
+        const runtimeApp = app || _app || getComfyApp();
+        const graph = _getHostGraph(runtimeApp);
+        if (!graph || typeof graph.add !== "function") return false;
+        graph.add(node);
+        notifyHostNodeGraphChanged(node, runtimeApp);
+        return true;
+    } catch (e) {
+        console.debug?.(e);
+        return false;
+    }
+}
+
+export function importWorkflowIntoHostCanvas(workflow: any, app: any = null): boolean {
+    const runtimeApp = app || _app || getComfyApp();
+    if (!workflow || typeof workflow !== "object") return false;
+    try {
+        if (typeof runtimeApp?.loadGraphData === "function") {
+            runtimeApp.loadGraphData(workflow);
+            return true;
+        }
+        const graph = _getHostGraph(runtimeApp);
+        if (typeof graph?.configure === "function") {
+            graph.configure(workflow);
+            refreshHostCanvasGraph(runtimeApp, { draw: false, change: false });
+            return true;
+        }
+    } catch (e) {
+        console.debug?.(e);
+    }
+    return false;
+}
+
+export async function queueHostPrompt(
+    options: {
+        app?: any;
+        forceNativeQueue?: boolean;
+        resolvePromptData?: ((app: any) => any | Promise<any>) | null;
+        enrichPromptData?: ((promptData: any) => any) | null;
+        buildPromptRequestBody?: ((promptData: any, context: { clientId: string }) => any) | null;
+    } = {},
+): Promise<boolean> {
+    const app = options.app || _app || getComfyApp();
+    if (!app) throw new Error("ComfyUI app not available");
+
+    const api = getRawHostApi(app);
+    const hasApiPath = Boolean(
+        (api && typeof api.queuePrompt === "function") ||
+            (api && typeof api.fetchApi === "function"),
+    );
+
+    if ((options.forceNativeQueue || !hasApiPath) && typeof app.queuePrompt === "function") {
+        await app.queuePrompt(0);
+        return true;
+    }
+
+    const rootGraph = getHostRootGraph(app);
+    let widgetSnapshots: Array<{ widget: any; value: any }> | null = null;
+    try {
+        widgetSnapshots = _captureHostQueuedWidgetSnapshots(rootGraph);
+        _walkHostGraphNodes(rootGraph, (node: any) => {
+            for (const widget of node?.widgets ?? []) {
+                widget.beforeQueued?.({ isPartialExecution: false });
+            }
+        });
+
+        const resolver =
+            typeof options.resolvePromptData === "function"
+                ? options.resolvePromptData
+                : (runtimeApp: any) => runtimeApp?.graphToPrompt?.();
+        const promptData = await resolver(app);
+        if (!promptData?.output) throw new Error("graphToPrompt returned empty output");
+
+        const enriched =
+            typeof options.enrichPromptData === "function"
+                ? options.enrichPromptData(promptData)
+                : promptData;
+
+        if (api && typeof api.queuePrompt === "function") {
+            await api.queuePrompt(0, enriched);
+            _walkHostGraphNodes(rootGraph, (node: any) => {
+                for (const widget of node?.widgets ?? []) {
+                    widget.afterQueued?.({ isPartialExecution: false });
+                }
+            });
+            refreshHostCanvasGraph(app, { change: false });
+            return true;
+        }
+
+        const bodyBuilder =
+            typeof options.buildPromptRequestBody === "function"
+                ? options.buildPromptRequestBody
+                : (pd: any, context: { clientId: string }) => {
+                      const body: Record<string, any> = {
+                          prompt: pd?.output,
+                          extra_data: pd?.extra_data || {},
+                      };
+                      if (context.clientId) body.client_id = context.clientId;
+                      return body;
+                  };
+        const body = bodyBuilder(promptData, { clientId: _resolveHostClientId(api, app) });
+
+        if (api && typeof api.fetchApi === "function") {
+            const resp = await api.fetchApi("/prompt", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(body),
+            });
+            if (!resp?.ok) throw new Error(`POST /prompt failed (${resp?.status})`);
+            _walkHostGraphNodes(rootGraph, (node: any) => {
+                for (const widget of node?.widgets ?? []) {
+                    widget.afterQueued?.({ isPartialExecution: false });
+                }
+            });
+            refreshHostCanvasGraph(app, { change: false });
+            return true;
+        }
+
+        const resp = await fetch("/prompt", {
+            method: "POST",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+        });
+        if (!resp.ok) throw new Error(`POST /prompt failed (${resp.status})`);
+        _walkHostGraphNodes(rootGraph, (node: any) => {
+            for (const widget of node?.widgets ?? []) {
+                widget.afterQueued?.({ isPartialExecution: false });
+            }
+        });
+        refreshHostCanvasGraph(app, { change: false });
+        return false;
+    } catch (error) {
+        _restoreHostQueuedWidgetSnapshots(app, widgetSnapshots);
+        throw error;
+    }
+}
+
+export function focusHostCanvasNode(
+    node: any,
+    options: { app?: any; select?: boolean; focusCanvas?: boolean } = {},
+): boolean {
+    if (!node) return false;
+    try {
+        const runtimeApp = options.app || _app || getComfyApp();
+        const canvas = _getHostCanvas(runtimeApp);
+        if (!canvas) return false;
+        if (options.select !== false) {
+            canvas.selectNode?.(node, false);
+        }
+        if (typeof canvas.centerOnNode === "function") {
+            canvas.centerOnNode(node);
+        } else if (node.pos && canvas.ds) {
+            const canvasEl = canvas.canvas || canvas.element || null;
+            const width = Number(canvasEl?.width || canvasEl?.clientWidth || 800) || 800;
+            const height = Number(canvasEl?.height || canvasEl?.clientHeight || 600) || 600;
+            const scale = Number(canvas.ds?.scale || 1) || 1;
+            const nodeWidth = Number(node?.size?.[0] || 100) || 100;
+            const nodeHeight = Number(node?.size?.[1] || 80) || 80;
+            const offsetX = -Number(node.pos[0] || 0) + width / (2 * scale) - nodeWidth / 2;
+            const offsetY = -Number(node.pos[1] || 0) + height / (2 * scale) - nodeHeight / 2;
+            if (Array.isArray(canvas.ds.offset)) {
+                canvas.ds.offset[0] = offsetX;
+                canvas.ds.offset[1] = offsetY;
+            } else if (canvas.ds.offset && typeof canvas.ds.offset === "object") {
+                canvas.ds.offset.x = offsetX;
+                canvas.ds.offset.y = offsetY;
+            }
+            canvas.setDirty?.(true, true);
+        }
+        if (options.focusCanvas !== false) {
+            canvas.canvas?.focus?.();
+        }
+        return true;
+    } catch (e) {
+        console.debug?.(e);
+        return false;
+    }
+}
+
+export function centerHostCanvasNodeById(nodeId: any, app: any = null): boolean {
+    const safeNodeId = String(nodeId || "").trim();
+    if (!safeNodeId) return false;
+    try {
+        const runtimeApp = app || _app || getComfyApp();
+        const node = findGraphNodeById(getHostRootGraph(runtimeApp), safeNodeId);
+        if (!node) return false;
+        return focusHostCanvasNode(node, { app: runtimeApp, select: false, focusCanvas: false });
+    } catch (e) {
+        console.debug?.(e);
+        return false;
+    }
+}
+
 // -- graph/canvas helpers -----------------------------------------------------
 
 function _getMainCanvasState() {
@@ -468,9 +1060,13 @@ export const hostAdapter = {
     isReady,
     ready,
     showToast,
+    getHostToastApi,
     confirm,
+    getHostDialogApi,
     getSetting,
+    getSettingForApp,
     setSetting,
+    setSettingForApp,
     getHostSettingsApi,
     registerSidebarTab,
     registerSidebarTabForApp,
@@ -486,6 +1082,22 @@ export const hostAdapter = {
     getRawHostApp,
     getRawHostApi,
     waitForRawHostApi,
+    fetchHostApi,
+    queueHostPrompt,
+    observeHostCanvasSelection,
+    wrapHostQueuePrompt,
+    interruptHostExecution,
+    getSelectedHostCanvasNodes,
+    getSelectedHostCanvasNodeIds,
+    getFirstSelectedHostCanvasNode,
+    getHostCanvas,
+    getHostGraph,
+    refreshHostCanvasGraph,
+    notifyHostNodeGraphChanged,
+    importWorkflowIntoHostCanvas,
+    addNodeToHostGraph,
+    focusHostCanvasNode,
+    centerHostCanvasNodeById,
     centerGraphCanvasOnWorldPoint,
     getGraphCanvasViewportBounds,
 };

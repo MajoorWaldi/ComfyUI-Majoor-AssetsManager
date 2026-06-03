@@ -322,6 +322,7 @@ export function useGridLoader({
             "maxWidth",
             "maxHeight",
             "workflowType",
+            "workflowId",
             "dateRange",
             "dateExact",
             "semanticMode",

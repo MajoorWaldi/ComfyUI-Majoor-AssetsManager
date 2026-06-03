@@ -1189,7 +1189,12 @@ def _apply_workflow_prompt_quality(
     prompt: dict[str, Any] | None,
 ) -> None:
     if looks_like_comfyui_workflow(workflow):
+        if not isinstance(workflow, dict):
+            return
         metadata["workflow"] = workflow
+        workflow_id = str(workflow.get("id") or "").strip()
+        if workflow_id and not metadata.get("workflow_id"):
+            metadata["workflow_id"] = workflow_id[:255]
         _bump_quality(metadata, "full")
     if looks_like_comfyui_prompt_graph(prompt):
         metadata["prompt"] = prompt

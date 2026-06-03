@@ -1,7 +1,7 @@
-import { getComfyApp } from "./comfyApiBridge.js";
+import { getRawHostApp } from "./hostAdapter.js";
 import { openMajoorSettingsDialog } from "./settings/MajoorSettingsDialog.js";
 
-export function openMajoorSettings(app: any = getComfyApp()): any {
+export function openMajoorSettings(app: any = getRawHostApp()): any {
     return openMajoorSettingsDialog(app);
 }
 

@@ -3,7 +3,7 @@
  * as an editable HTML section.
  */
 
-import { getRawHostApp } from "../../../app/hostAdapter.js";
+import { focusHostCanvasNode, notifyHostNodeGraphChanged } from "../../../app/hostAdapter.js";
 import { createWidgetInput } from "./widgetAdapters.js";
 
 type LooseRecord = Record<string, any>;
@@ -319,16 +319,7 @@ export class NodeWidgetRenderer {
                 }
                 autoFit();
                 try {
-                    const app = getRawHostApp();
-                    const canvas = app?.canvas ?? null;
-                    canvas?.setDirty?.(true, true);
-                    canvas?.draw?.(true, true);
-                    const nodeGraph = node?.graph ?? null;
-                    if (nodeGraph && nodeGraph !== app?.graph) {
-                        nodeGraph.setDirtyCanvas?.(true, true);
-                        nodeGraph.change?.();
-                    }
-                    app?.graph?.change?.();
+                    notifyHostNodeGraphChanged(node);
                 } catch (_: any) {}
             });
             (textarea as AutoFitElement<HTMLTextAreaElement>)._mjrAutoFit = autoFit;
@@ -423,18 +414,7 @@ export class NodeWidgetRenderer {
         const node = this._node;
         if (!node) return;
         try {
-            const app = getRawHostApp();
-            const canvas = app?.canvas;
-            if (!canvas) return;
-            if (typeof canvas.centerOnNode === "function") {
-                canvas.centerOnNode(node);
-            } else if (canvas.ds && node.pos) {
-                const cw = canvas.canvas?.width || canvas.element?.width || 800;
-                const ch = canvas.canvas?.height || canvas.element?.height || 600;
-                canvas.ds.offset[0] = -node.pos[0] - (node.size?.[0] || 0) / 2 + cw / 2;
-                canvas.ds.offset[1] = -node.pos[1] - (node.size?.[1] || 0) / 2 + ch / 2;
-                canvas.setDirty?.(true, true);
-            }
+            focusHostCanvasNode(node, { select: false, focusCanvas: false });
         } catch (e: any) {
             console.debug?.("[MFV sidebar] locateNode error", e);
         }

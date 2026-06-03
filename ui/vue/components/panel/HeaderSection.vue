@@ -347,6 +347,7 @@ defineExpose({
     get kindSelect()             { return filterPopoverRef.value?.kindSelect ?? null; },
     get wfCheckbox()             { return filterPopoverRef.value?.wfCheckbox ?? null; },
     get workflowTypeSelect()     { return filterPopoverRef.value?.workflowTypeSelect ?? null; },
+    get workflowIdInput()        { return filterPopoverRef.value?.workflowIdInput ?? null; },
     get ratingSelect()           { return filterPopoverRef.value?.ratingSelect ?? null; },
     get minSizeInput()           { return filterPopoverRef.value?.minSizeInput ?? null; },
     get maxSizeInput()           { return filterPopoverRef.value?.maxSizeInput ?? null; },

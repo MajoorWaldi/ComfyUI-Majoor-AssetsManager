@@ -1,9 +1,9 @@
 import { t as e } from "./rolldown-runtime-Dy4uBu1J.js";
-import { h as t, t as n } from "./config-dvcltBqE.js";
-import { r } from "./events-BnkL6-b6.js";
-import { n as i } from "./state-DPiaUMw1.js";
+import { l as t, rt as n, t as r } from "./config-Cxv7acF8.js";
+import { r as i } from "./events-BnkL6-b6.js";
+import { n as a } from "./state-DPiaUMw1.js";
 //#region ui/features/viewer/model3dCore.ts
-function a(e, t) {
+function o(e, t) {
 	if (!(!e || typeof t != "function")) try {
 		e.traverse?.((e) => {
 			(e?.isMesh || e?.isPoints || e?.isLine) && t(e);
@@ -12,7 +12,7 @@ function a(e, t) {
 		console.debug?.(e);
 	}
 }
-function o(e) {
+function s(e) {
 	let t = !1;
 	try {
 		e.traverse?.((e) => {
@@ -23,14 +23,14 @@ function o(e) {
 	}
 	return t;
 }
-function s(e) {
+function c(e) {
 	let t = /* @__PURE__ */ new Map();
-	return a(e, (e) => {
+	return o(e, (e) => {
 		t.set(e.uuid, e.material);
 	}), t;
 }
-function c(e, t, n, r, i) {
-	a(t, (t) => {
+function l(e, t, n, r, i) {
+	o(t, (t) => {
 		try {
 			if (n === "original") {
 				let e = r?.get(t.uuid);
@@ -61,7 +61,7 @@ function c(e, t, n, r, i) {
 		}
 	});
 }
-function l(e) {
+function u(e) {
 	if (e) {
 		for (let t of e) try {
 			t?.dispose?.();
@@ -71,7 +71,7 @@ function l(e) {
 		e.clear();
 	}
 }
-function u(e, t) {
+function d(e, t) {
 	try {
 		if (t === "gltf" || t === "fbx") return Array.isArray(e?.animations) ? e.animations : [];
 	} catch (e) {
@@ -79,7 +79,7 @@ function u(e, t) {
 	}
 	return [];
 }
-function d(e, t) {
+function f(e, t) {
 	let n = new e.Box3().setFromObject(t);
 	if (n.isEmpty()) return null;
 	let r = n.getSize(new e.Vector3()), i = n.getCenter(new e.Vector3()), a = Math.max(r.x, r.y, r.z, .01);
@@ -91,12 +91,12 @@ function d(e, t) {
 		radius: Math.max(a * .72, .5)
 	};
 }
-function f(e, t, n, r) {
+function p(e, t, n, r) {
 	if (!r || !t || !n) return;
 	let i = t.fov * (Math.PI / 180), a = r.maxDim / (2 * Math.tan(i / 2)) * 1.55, o = new e.Vector3(1, .8, 1).normalize();
 	t.position.copy(r.center).addScaledVector(o, a), t.near = Math.max(.01, a / 250), t.far = Math.max(1e3, a * 60), t.updateProjectionMatrix(), n.target.copy(r.center), n.minDistance = Math.max(.01, a / 25), n.maxDistance = Math.max(10, a * 12), n.minZoom = .25, n.maxZoom = 12, n.update();
 }
-function p(e, t, n, r) {
+function m(e, t, n, r) {
 	if (!n || !e || !t) return null;
 	let i = Math.max(1e-4, Number(r) || 1), a = Math.max(n.maxDim * 1.9, 2), o = a * i;
 	return e.left = -o / 2, e.right = o / 2, e.top = a / 2, e.bottom = -a / 2, e.near = -Math.max(1e3, n.maxDim * 40), e.far = Math.max(1e3, n.maxDim * 40), e.zoom = 1, e.position.copy(n.center).add({
@@ -105,7 +105,7 @@ function p(e, t, n, r) {
 		z: n.radius * 2.1
 	}), e.updateProjectionMatrix(), t.target.copy(n.center), t.minZoom = .25, t.maxZoom = 12, t.minDistance = 0, t.maxDistance = Math.max(10, n.maxDim * 12), t.update(), a;
 }
-function m(e, t, n) {
+function h(e, t, n) {
 	if (!n) return null;
 	if (t === "gltf") return n.scene || null;
 	if (t === "obj" || t === "fbx") return n;
@@ -133,8 +133,8 @@ function m(e, t, n) {
 }
 //#endregion
 //#region ui/features/viewer/model3dLoaders.ts
-var h = "/mjr/am/vendor/three", g = null;
-function ee(e, t, n) {
+var g = "/mjr/am/vendor/three", _ = null;
+function v(e, t, n) {
 	switch (t) {
 		case "gltf": return new e.GLTFLoader(n);
 		case "obj": return new e.OBJLoader(n);
@@ -144,7 +144,7 @@ function ee(e, t, n) {
 		default: return null;
 	}
 }
-function _(e, t, n) {
+function ee(e, t, n) {
 	return new Promise((t, r) => {
 		if (!e || !n) {
 			r(/* @__PURE__ */ Error("Missing loader or URL"));
@@ -158,38 +158,38 @@ function _(e, t, n) {
 	});
 }
 function te() {
-	return g || (g = Promise.all([
+	return _ || (_ = Promise.all([
 		import(
 			/* @vite-ignore */
-			`${h}/three.module.js`
+			`${g}/three.module.js`
 ),
 		import(
 			/* @vite-ignore */
-			`${h}/addons/controls/OrbitControls.js`
+			`${g}/addons/controls/OrbitControls.js`
 ),
 		import(
 			/* @vite-ignore */
-			`${h}/addons/loaders/GLTFLoader.js`
+			`${g}/addons/loaders/GLTFLoader.js`
 ),
 		import(
 			/* @vite-ignore */
-			`${h}/addons/loaders/FBXLoader.js`
+			`${g}/addons/loaders/FBXLoader.js`
 ),
 		import(
 			/* @vite-ignore */
-			`${h}/addons/loaders/OBJLoader.js`
+			`${g}/addons/loaders/OBJLoader.js`
 ),
 		import(
 			/* @vite-ignore */
-			`${h}/addons/loaders/MTLLoader.js`
+			`${g}/addons/loaders/MTLLoader.js`
 ),
 		import(
 			/* @vite-ignore */
-			`${h}/addons/loaders/STLLoader.js`
+			`${g}/addons/loaders/STLLoader.js`
 ),
 		import(
 			/* @vite-ignore */
-			`${h}/addons/loaders/PLYLoader.js`
+			`${g}/addons/loaders/PLYLoader.js`
 )
 	]).then(([e, t, n, r, i, a, o, s]) => ({
 		THREE: e,
@@ -200,11 +200,11 @@ function te() {
 		MTLLoader: a.MTLLoader,
 		STLLoader: o.STLLoader,
 		PLYLoader: s.PLYLoader
-	})), g);
+	})), _);
 }
 //#endregion
 //#region ui/features/viewer/processorUtils.ts
-function v(e, t, n) {
+function y(e, t, n) {
 	try {
 		let r = Number(e) || 0, i = (Number(t) || 0) * (Number(n) || 0);
 		return !(i > 0) || !(r > 0) || i <= r ? 1 : Math.max(.05, Math.min(1, Math.sqrt(r / i)));
@@ -214,7 +214,7 @@ function v(e, t, n) {
 }
 //#endregion
 //#region ui/features/viewer/imageProcessor.ts
-function y(e, t, n) {
+function b(e, t, n) {
 	if (!e) return;
 	try {
 		e.width > 1 && e.height > 1 || (e.width = 960, e.height = 540);
@@ -255,7 +255,7 @@ function y(e, t, n) {
 		}
 	}
 }
-function b({ canvas: e, url: t, getGradeParams: n, isDefaultGrade: r, _tonemap: a, maxProcPixels: o, onReady: s } = {}) {
+function x({ canvas: e, url: t, getGradeParams: n, isDefaultGrade: r, _tonemap: i, maxProcPixels: o, onReady: s } = {}) {
 	let c = new Image();
 	try {
 		c.decoding = "async";
@@ -295,7 +295,7 @@ function b({ canvas: e, url: t, getGradeParams: n, isDefaultGrade: r, _tonemap: 
 				if (e?.isConnected) {
 					f._connectRAF = null, f._connectTries = 0;
 					let e = f._pendingParams;
-					f._pendingParams = null, e && _(e);
+					f._pendingParams = null, e && v(e);
 					return;
 				}
 			} catch (e) {
@@ -315,7 +315,7 @@ function b({ canvas: e, url: t, getGradeParams: n, isDefaultGrade: r, _tonemap: 
 				}
 			}
 		}
-	}, m = (e, t) => v(o, e, t), h = () => {
+	}, m = (e, t) => y(o, e, t), h = () => {
 		if (f.srcData) return f.srcData;
 		if (!d || !f.ready) return null;
 		try {
@@ -353,11 +353,11 @@ function b({ canvas: e, url: t, getGradeParams: n, isDefaultGrade: r, _tonemap: 
 		} catch {
 			return null;
 		}
-	}, ee = (t, a) => {
+	}, _ = (t, i) => {
 		if (!l || f._destroyed) return;
 		if (!e?.isConnected) {
 			try {
-				f._pendingParams = a || f.lastParams || n?.() || null;
+				f._pendingParams = i || f.lastParams || n?.() || null;
 			} catch (e) {
 				console.debug?.(e);
 			}
@@ -370,7 +370,7 @@ function b({ canvas: e, url: t, getGradeParams: n, isDefaultGrade: r, _tonemap: 
 		let s = u.width, c = u.height;
 		if (!(s > 0 && c > 0)) return;
 		try {
-			let t = a || n?.() || {};
+			let t = i || n?.() || {};
 			if (typeof r == "function" && r(t)) {
 				l.clearRect(0, 0, e.width, e.height), l.drawImage(u, 0, 0);
 				return;
@@ -389,27 +389,27 @@ function b({ canvas: e, url: t, getGradeParams: n, isDefaultGrade: r, _tonemap: 
 			}
 		}
 		if (!d) return;
-		let m = a || n?.() || {}, g = Number(m.exposureEV) || 0, ee = 1 / Math.max(.1, Math.min(3, Number(m.gamma) || 1)), _ = String(m.channel || "rgb"), te = String(m.analysisMode || "none"), v = i(m.zebraThreshold ?? .95), y = 2 ** g, b = new Float32Array(256);
-		for (let e = 0; e < 256; e++) b[e] = (e / 255) ** ee;
+		let m = i || n?.() || {}, g = Number(m.exposureEV) || 0, _ = 1 / Math.max(.1, Math.min(3, Number(m.gamma) || 1)), v = String(m.channel || "rgb"), ee = String(m.analysisMode || "none"), te = a(m.zebraThreshold ?? .95), y = 2 ** g, b = new Float32Array(256);
+		for (let e = 0; e < 256; e++) b[e] = (e / 255) ** _;
 		let x = d.data, S = o.data, C = s * c * 4, w = 0, T = () => {
 			if (f._destroyed || !e?.isConnected || t !== f.jobId) return;
 			let n = Math.min(C, w + 22e4);
 			for (; w < n; w += 4) {
-				let e = (S[w] ?? 0) / 255, t = (S[w + 1] ?? 0) / 255, n = (S[w + 2] ?? 0) / 255, r = (S[w + 3] ?? 255) / 255, a = e * y, o = t * y, c = n * y, l = .2126 * a + .7152 * o + .0722 * c;
-				if (te === "zebra") if (i(l) >= v) {
+				let e = (S[w] ?? 0) / 255, t = (S[w + 1] ?? 0) / 255, n = (S[w + 2] ?? 0) / 255, r = (S[w + 3] ?? 255) / 255, i = e * y, o = t * y, c = n * y, l = .2126 * i + .7152 * o + .0722 * c;
+				if (ee === "zebra") if (a(l) >= te) {
 					let e = (Math.floor(w / 4) % s + Math.floor(w / 4 / s) & 7) < 3;
-					a = +!!e, o = +!!e, c = +!!e;
-				} else a = b[i(a) * 255 + .5 | 0], o = b[i(o) * 255 + .5 | 0], c = b[i(c) * 255 + .5 | 0];
-				else a = b[i(a) * 255 + .5 | 0], o = b[i(o) * 255 + .5 | 0], c = b[i(c) * 255 + .5 | 0];
-				if (_ === "r") o = a, c = a;
-				else if (_ === "g") a = o, c = o;
-				else if (_ === "b") a = c, o = c;
-				else if (_ === "a") a = r, o = r, c = r;
-				else if (_ === "l") {
-					let e = b[i(l) * 255 + .5 | 0];
-					a = e, o = e, c = e;
+					i = +!!e, o = +!!e, c = +!!e;
+				} else i = b[a(i) * 255 + .5 | 0], o = b[a(o) * 255 + .5 | 0], c = b[a(c) * 255 + .5 | 0];
+				else i = b[a(i) * 255 + .5 | 0], o = b[a(o) * 255 + .5 | 0], c = b[a(c) * 255 + .5 | 0];
+				if (v === "r") o = i, c = i;
+				else if (v === "g") i = o, c = o;
+				else if (v === "b") i = c, o = c;
+				else if (v === "a") i = r, o = r, c = r;
+				else if (v === "l") {
+					let e = b[a(l) * 255 + .5 | 0];
+					i = e, o = e, c = e;
 				}
-				x[w] = Math.round(i(a) * 255), x[w + 1] = Math.round(i(o) * 255), x[w + 2] = Math.round(i(c) * 255), x[w + 3] = 255;
+				x[w] = Math.round(a(i) * 255), x[w + 1] = Math.round(a(o) * 255), x[w + 2] = Math.round(a(c) * 255), x[w + 3] = 255;
 			}
 			if (w < C) {
 				try {
@@ -430,7 +430,7 @@ function b({ canvas: e, url: t, getGradeParams: n, isDefaultGrade: r, _tonemap: 
 		} catch (e) {
 			console.debug?.(e);
 		}
-	}, _ = (t) => {
+	}, v = (t) => {
 		if (f._destroyed) return;
 		if (f.lastParams = t || f.lastParams || n?.() || null, !e?.isConnected) {
 			try {
@@ -444,11 +444,11 @@ function b({ canvas: e, url: t, getGradeParams: n, isDefaultGrade: r, _tonemap: 
 		f.jobId++;
 		let r = f.jobId;
 		try {
-			ee(r, f.lastParams);
+			_(r, f.lastParams);
 		} catch (e) {
 			console.debug?.(e);
 		}
-	}, te = () => {
+	}, ee = () => {
 		if (!f._destroyed) try {
 			if (f.naturalW = Number(c.naturalWidth) || 0, f.naturalH = Number(c.naturalHeight) || 0, !(f.naturalW > 0 && f.naturalH > 0)) return;
 			f.scale = m(f.naturalW, f.naturalH);
@@ -459,7 +459,7 @@ function b({ canvas: e, url: t, getGradeParams: n, isDefaultGrade: r, _tonemap: 
 			} catch (e) {
 				console.debug?.(e);
 			}
-			f.ready = !0, f.srcData = null, h(), _(f.lastParams || n?.());
+			f.ready = !0, f.srcData = null, h(), v(f.lastParams || n?.());
 		} finally {
 			try {
 				s?.({
@@ -471,16 +471,16 @@ function b({ canvas: e, url: t, getGradeParams: n, isDefaultGrade: r, _tonemap: 
 				console.debug?.(e);
 			}
 		}
-	}, b = () => {
+	}, te = () => {
 		f.ready = !1;
 		try {
-			y(e, "Failed to load image");
+			b(e, "Failed to load image");
 		} catch (e) {
 			console.debug?.(e);
 		}
 	};
 	try {
-		c.onload = te, c.onerror = b;
+		c.onload = ee, c.onerror = te;
 	} catch (e) {
 		console.debug?.(e);
 	}
@@ -490,7 +490,7 @@ function b({ canvas: e, url: t, getGradeParams: n, isDefaultGrade: r, _tonemap: 
 		console.debug?.(e);
 	}
 	return {
-		setParams: _,
+		setParams: v,
 		sampleAtOriginal: g,
 		getInfo: () => ({ ...f }),
 		destroy: () => {
@@ -537,14 +537,14 @@ function b({ canvas: e, url: t, getGradeParams: n, isDefaultGrade: r, _tonemap: 
 }
 //#endregion
 //#region ui/features/viewer/model3dSupport.ts
-var x = [
+var S = [
 	.25,
 	.5,
 	1,
 	1.5,
 	2
-], S = 44;
-function C(e, { preventDefault: t = !1, immediate: n = !1 } = {}) {
+], C = 44;
+function w(e, { preventDefault: t = !1, immediate: n = !1 } = {}) {
 	if (e) {
 		try {
 			t && e.preventDefault?.();
@@ -558,13 +558,13 @@ function C(e, { preventDefault: t = !1, immediate: n = !1 } = {}) {
 		}
 	}
 }
-function w(e) {
+function T(e) {
 	let t = Math.max(0, Number(e) || 0), n = Math.floor(t / 60), r = Math.floor(t % 60);
 	return n > 0 ? `${n}:${String(r).padStart(2, "0")}` : `${Math.floor(t)}s`;
 }
-function T(e, t) {
-	let n = document.createElement("button");
-	return n.type = "button", n.textContent = String(e || ""), n.title = String(t || e || ""), n.setAttribute("aria-label", String(t || e || "3D viewport action")), n.style.cssText = [
+function E(e, n) {
+	let r = document.createElement("button");
+	return r.type = "button", r.textContent = String(e || ""), r.title = String(n || e || ""), r.setAttribute("aria-label", String(n || e || t("model3d.viewportAction", "3D viewport action"))), r.style.cssText = [
 		"height:28px",
 		"padding:0 10px",
 		"border-radius:999px",
@@ -579,14 +579,14 @@ function T(e, t) {
 		"align-items:center",
 		"justify-content:center",
 		"box-shadow:0 4px 18px rgba(0,0,0,0.24)"
-	].join(";"), n;
+	].join(";"), r;
 }
-function ne(e, t) {
+function D(e, t) {
 	if (!e) return;
 	let n = !!t;
 	e.dataset.active = n ? "1" : "0", e.style.background = n ? "rgba(76,175,80,0.18)" : "rgba(13,15,20,0.78)", e.style.borderColor = n ? "rgba(76,175,80,0.42)" : "rgba(255,255,255,0.16)", e.style.color = n ? "rgba(230,255,235,0.96)" : "rgba(255,255,255,0.92)";
 }
-function E(e, t, n = "", r = "#4CAF50") {
+function O(e, n, r = "", i = "#4CAF50") {
 	if (!e) return;
 	try {
 		let t = Math.max(480, Number(e.width) || 960), n = Math.max(270, Number(e.height) || 540);
@@ -594,30 +594,30 @@ function E(e, t, n = "", r = "#4CAF50") {
 	} catch (e) {
 		console.debug?.(e);
 	}
-	let i = (() => {
+	let a = (() => {
 		try {
 			return e.getContext("2d");
 		} catch {
 			return null;
 		}
 	})();
-	if (!i) return;
-	let a = Number(e.width) || 960, o = Number(e.height) || 540, s = a / 2, c = o / 2;
+	if (!a) return;
+	let o = Number(e.width) || 960, s = Number(e.height) || 540, c = o / 2, l = s / 2;
 	try {
-		let e = i.createLinearGradient(0, 0, a, o);
-		e.addColorStop(0, "#0f1419"), e.addColorStop(1, "#11181f"), i.fillStyle = e, i.fillRect(0, 0, a, o), i.save(), i.translate(s, c - 32), i.strokeStyle = r, i.lineWidth = 3, i.globalAlpha = .95, i.beginPath(), i.moveTo(0, -44), i.lineTo(42, -22), i.lineTo(42, 22), i.lineTo(0, 44), i.lineTo(-42, 22), i.lineTo(-42, -22), i.closePath(), i.stroke(), i.beginPath(), i.moveTo(0, -44), i.lineTo(0, 0), i.lineTo(42, 22), i.moveTo(0, 0), i.lineTo(-42, 22), i.moveTo(-42, -22), i.lineTo(0, 0), i.moveTo(42, -22), i.lineTo(0, 0), i.stroke(), i.restore(), i.fillStyle = "rgba(255,255,255,0.94)", i.font = "600 18px system-ui, sans-serif", i.textAlign = "center", i.textBaseline = "middle", i.fillText(String(t || "3D preview"), s, c + 44), n && (i.fillStyle = "rgba(255,255,255,0.62)", i.font = "13px system-ui, sans-serif", i.fillText(String(n), s, c + 72));
-	} catch (r) {
-		console.debug?.(r);
+		let e = a.createLinearGradient(0, 0, o, s);
+		e.addColorStop(0, "#0f1419"), e.addColorStop(1, "#11181f"), a.fillStyle = e, a.fillRect(0, 0, o, s), a.save(), a.translate(c, l - 32), a.strokeStyle = i, a.lineWidth = 3, a.globalAlpha = .95, a.beginPath(), a.moveTo(0, -44), a.lineTo(42, -22), a.lineTo(42, 22), a.lineTo(0, 44), a.lineTo(-42, 22), a.lineTo(-42, -22), a.closePath(), a.stroke(), a.beginPath(), a.moveTo(0, -44), a.lineTo(0, 0), a.lineTo(42, 22), a.moveTo(0, 0), a.lineTo(-42, 22), a.moveTo(-42, -22), a.lineTo(0, 0), a.moveTo(42, -22), a.lineTo(0, 0), a.stroke(), a.restore(), a.fillStyle = "rgba(255,255,255,0.94)", a.font = "600 18px system-ui, sans-serif", a.textAlign = "center", a.textBaseline = "middle", a.fillText(String(n || t("model3d.preview", "3D preview")), c, l + 44), r && (a.fillStyle = "rgba(255,255,255,0.62)", a.font = "13px system-ui, sans-serif", a.fillText(String(r), c, l + 72));
+	} catch (i) {
+		console.debug?.(i);
 		try {
-			y(e, t, n || "3D viewer unavailable");
+			b(e, n, r || t("model3d.unavailable", "3D viewer unavailable"));
 		} catch (e) {
 			console.debug?.(e);
 		}
 	}
 }
-function re({ defaultBgColor: e, defaultFov: t, defaultLightIntensity: n, hasSkeleton: r } = {}) {
-	let i = document.createElement("div");
-	i.className = "mjr-model3d-settings", i.style.cssText = [
+function ne({ defaultBgColor: e, defaultFov: n, defaultLightIntensity: r, hasSkeleton: i } = {}) {
+	let a = document.createElement("div");
+	a.className = "mjr-model3d-settings", a.style.cssText = [
 		"position:absolute",
 		"right:0",
 		"top:44px",
@@ -650,9 +650,9 @@ function re({ defaultBgColor: e, defaultFov: t, defaultLightIntensity: n, hasSke
 		"dragover",
 		"drop"
 	].forEach((e) => {
-		i.addEventListener(e, (e) => C(e, { preventDefault: !1 }));
+		a.addEventListener(e, (e) => w(e, { preventDefault: !1 }));
 	});
-	let a = (e) => {
+	let o = (e) => {
 		let t = document.createElement("div");
 		t.style.cssText = [
 			"font:700 10px system-ui,sans-serif",
@@ -660,15 +660,15 @@ function re({ defaultBgColor: e, defaultFov: t, defaultLightIntensity: n, hasSke
 			"color:rgba(255,255,255,0.40)",
 			"text-transform:uppercase",
 			"margin:10px 0 6px 0"
-		].join(";"), t.textContent = e, i.appendChild(t);
+		].join(";"), t.textContent = e, a.appendChild(t);
 		let n = document.createElement("div");
-		n.style.cssText = "height:1px;background:rgba(255,255,255,0.07);margin-bottom:8px;", i.appendChild(n);
-	}, o = (e, t) => {
+		n.style.cssText = "height:1px;background:rgba(255,255,255,0.07);margin-bottom:8px;", a.appendChild(n);
+	}, s = (e, t) => {
 		let n = document.createElement("div");
 		n.style.cssText = "display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;gap:6px;";
 		let r = document.createElement("span");
-		return r.style.cssText = "font:500 11px system-ui,sans-serif;color:rgba(255,255,255,0.65);white-space:nowrap;flex-shrink:0;", r.textContent = e, n.appendChild(r), n.appendChild(t), i.appendChild(n), n;
-	}, s = (e, t) => {
+		return r.style.cssText = "font:500 11px system-ui,sans-serif;color:rgba(255,255,255,0.65);white-space:nowrap;flex-shrink:0;", r.textContent = e, n.appendChild(r), n.appendChild(t), a.appendChild(n), n;
+	}, c = (e, t) => {
 		let n = document.createElement("select");
 		n.style.cssText = [
 			"background:rgba(25,30,42,0.95)",
@@ -686,7 +686,7 @@ function re({ defaultBgColor: e, defaultFov: t, defaultLightIntensity: n, hasSke
 			e.value = r, e.textContent = i, r === t && (e.selected = !0), n.appendChild(e);
 		}
 		return n;
-	}, c = (e, t, n, r) => {
+	}, l = (e, t, n, r) => {
 		let i = document.createElement("div");
 		i.style.cssText = "display:flex;align-items:center;gap:5px;flex:1;";
 		let a = document.createElement("input");
@@ -700,18 +700,18 @@ function re({ defaultBgColor: e, defaultFov: t, defaultLightIntensity: n, hasSke
 			valLbl: o
 		};
 	};
-	a("Scene");
-	let l = document.createElement("input");
-	l.type = "color", l.value = e || "#282828", l.style.cssText = "width:34px;height:24px;cursor:pointer;border:1px solid rgba(255,255,255,0.18);border-radius:4px;padding:1px;background:none;flex-shrink:0;", o("Background", l), a("Model");
-	let u = s([
+	o("Scene");
+	let u = document.createElement("input");
+	u.type = "color", u.value = e || "#282828", u.style.cssText = "width:34px;height:24px;cursor:pointer;border:1px solid rgba(255,255,255,0.18);border-radius:4px;padding:1px;background:none;flex-shrink:0;", s(t("model3d.background", "Background"), u), o("Model");
+	let d = c([
 		["original", "Original"],
 		["normal", "Normal map"],
 		["depth", "Depth"],
 		["wireframe", "Wireframe"],
 		["pointcloud", "Point cloud"]
 	], "original");
-	o("Material", u);
-	let d = s([
+	s(t("model3d.material", "Material"), d);
+	let f = c([
 		["original", "Original"],
 		["+y", "+Y (default)"],
 		["-y", "-Y"],
@@ -720,33 +720,33 @@ function re({ defaultBgColor: e, defaultFov: t, defaultLightIntensity: n, hasSke
 		["+x", "+X"],
 		["-x", "-X"]
 	], "original");
-	o("Up", d);
-	let f = null, p = null;
-	r && (p = document.createElement("input"), p.type = "checkbox", p.checked = !1, p.style.cssText = "cursor:pointer;accent-color:#4CAF50;flex-shrink:0;", f = o("Skeleton", p)), a("Camera");
-	let m = c(15, 120, 1, t ?? 75);
-	o("FOV", m.wrap), a("Lights");
-	let h = c(0, 5, .1, n ?? 1);
-	return o("Intensity", h.wrap), {
-		panel: i,
-		bgInput: l,
-		materialSel: u,
-		upSel: d,
-		skeletonToggle: p,
-		skeletonRow: f,
-		fovSlider: m.slider,
-		fovValLbl: m.valLbl,
-		lightSlider: h.slider,
-		lightValLbl: h.valLbl
+	s("Up", f);
+	let p = null, m = null;
+	i && (m = document.createElement("input"), m.type = "checkbox", m.checked = !1, m.style.cssText = "cursor:pointer;accent-color:#4CAF50;flex-shrink:0;", p = s(t("model3d.skeleton", "Skeleton"), m)), o("Camera");
+	let h = l(15, 120, 1, n ?? 75);
+	s("FOV", h.wrap), o(t("model3d.lights", "Lights"));
+	let g = l(0, 5, .1, r ?? 1);
+	return s(t("model3d.intensity", "Intensity"), g.wrap), {
+		panel: a,
+		bgInput: u,
+		materialSel: d,
+		upSel: f,
+		skeletonToggle: m,
+		skeletonRow: p,
+		fovSlider: h.slider,
+		fovValLbl: h.valLbl,
+		lightSlider: g.slider,
+		lightValLbl: g.valLbl
 	};
 }
-function ie() {
+function re() {
 	let e = document.createElement("div");
 	e.className = "mjr-model3d-anim-bar", e.style.cssText = [
 		"position:absolute",
 		"bottom:0",
 		"left:0",
 		"right:0",
-		`height:${S}px`,
+		`height:${C}px`,
 		"display:none",
 		"align-items:center",
 		"gap:7px",
@@ -765,10 +765,10 @@ function ie() {
 		"wheel",
 		"click"
 	].forEach((t) => {
-		e.addEventListener(t, (e) => C(e, { preventDefault: !1 }));
+		e.addEventListener(t, (e) => w(e, { preventDefault: !1 }));
 	});
-	let t = document.createElement("button");
-	t.type = "button", t.textContent = "Play", t.title = "Play / Pause", t.style.cssText = [
+	let n = document.createElement("button");
+	n.type = "button", n.textContent = t("model3d.play", "Play"), n.title = t("model3d.playPause", "Play / Pause"), n.style.cssText = [
 		"width:28px",
 		"height:28px",
 		"border-radius:50%",
@@ -784,8 +784,8 @@ function ie() {
 		"align-items:center",
 		"justify-content:center"
 	].join(";");
-	let n = document.createElement("select");
-	n.title = "Playback speed", n.style.cssText = [
+	let r = document.createElement("select");
+	r.title = t("model3d.playbackSpeed", "Playback speed"), r.style.cssText = [
 		"background:rgba(20,24,34,0.9)",
 		"color:rgba(255,255,255,0.8)",
 		"border:1px solid rgba(255,255,255,0.14)",
@@ -796,12 +796,12 @@ function ie() {
 		"width:52px",
 		"flex-shrink:0"
 	].join(";");
-	for (let e of x) {
+	for (let e of S) {
 		let t = document.createElement("option");
-		t.value = String(e), t.textContent = `${e}x`, e === 1 && (t.selected = !0), n.appendChild(t);
+		t.value = String(e), t.textContent = `${e}x`, e === 1 && (t.selected = !0), r.appendChild(t);
 	}
-	let r = document.createElement("select");
-	r.title = "Animation clip", r.style.cssText = [
+	let i = document.createElement("select");
+	i.title = "Animation clip", i.style.cssText = [
 		"background:rgba(20,24,34,0.9)",
 		"color:rgba(255,255,255,0.8)",
 		"border:1px solid rgba(255,255,255,0.14)",
@@ -813,26 +813,26 @@ function ie() {
 		"flex-shrink:1",
 		"min-width:0"
 	].join(";");
-	let i = document.createElement("input");
-	i.type = "range", i.min = "0", i.max = "1000", i.value = "0", i.style.cssText = "flex:1;min-width:50px;cursor:pointer;accent-color:#4CAF50;height:3px;";
-	let a = document.createElement("span");
-	return a.style.cssText = [
+	let a = document.createElement("input");
+	a.type = "range", a.min = "0", a.max = "1000", a.value = "0", a.style.cssText = "flex:1;min-width:50px;cursor:pointer;accent-color:#4CAF50;height:3px;";
+	let o = document.createElement("span");
+	return o.style.cssText = [
 		"font:500 11px system-ui,sans-serif",
 		"color:rgba(255,255,255,0.45)",
 		"white-space:nowrap",
 		"flex-shrink:0"
-	].join(";"), a.textContent = "0s / 0s", e.appendChild(t), e.appendChild(n), e.appendChild(r), e.appendChild(i), e.appendChild(a), {
+	].join(";"), o.textContent = "0s / 0s", e.appendChild(n), e.appendChild(r), e.appendChild(i), e.appendChild(a), e.appendChild(o), {
 		bar: e,
-		playBtn: t,
-		speedSel: n,
-		animSel: r,
-		progressSlider: i,
-		timeLbl: a
+		playBtn: n,
+		speedSel: r,
+		animSel: i,
+		progressSlider: a,
+		timeLbl: o
 	};
 }
 //#endregion
 //#region ui/features/viewer/model3dRenderer.impl.ts
-var ae = Object.freeze({
+var ie = Object.freeze({
 	".gltf": "gltf",
 	".glb": "gltf",
 	".obj": "obj",
@@ -842,13 +842,13 @@ var ae = Object.freeze({
 	".splat": "splat",
 	".ksplat": "splat",
 	".spz": "splat"
-}), D = new Set(Object.keys(ae)), oe = new Set([
+}), k = new Set(Object.keys(ie)), ae = new Set([
 	"gltf",
 	"obj",
 	"fbx",
 	"stl",
 	"ply"
-]), se = "#282828", ce = "Rotate: left drag  Pan: right drag  Zoom: wheel", O = Object.freeze({
+]), oe = "#282828", se = t("model3d.controlHint", "Rotate: left drag  Pan: right drag  Zoom: wheel"), A = Object.freeze({
 	PERSPECTIVE: "perspective",
 	ORTHOGRAPHIC: "orthographic"
 });
@@ -859,7 +859,7 @@ Object.freeze({
 	WIREFRAME: "wireframe",
 	POINTCLOUD: "pointcloud"
 });
-var le = Object.freeze({
+var ce = Object.freeze({
 	original: [
 		0,
 		0,
@@ -895,7 +895,7 @@ var le = Object.freeze({
 		0,
 		-Math.PI / 2
 	]
-}), ue = 75, de = 1, k = Object.freeze({
+}), le = 75, ue = 1, j = Object.freeze({
 	ambient: .5,
 	main: .8,
 	fill: .3,
@@ -903,7 +903,7 @@ var le = Object.freeze({
 	rim: .3,
 	bottom: .2
 });
-function fe(e) {
+function de(e) {
 	try {
 		let t = String(e?.ext || "").trim().toLowerCase();
 		if (t) return t.startsWith(".") ? t : `.${t}`;
@@ -918,23 +918,23 @@ function fe(e) {
 	}
 	return "";
 }
-function pe(e) {
+function fe(e) {
 	let t = String(e || "").trim();
 	return t ? t.startsWith("/") || /^[a-z][\w+\-.]*:/i.test(t) : !1;
 }
+function pe(e) {
+	return String(e?.loader || e?.viewer_info?.loader || "").trim().toLowerCase() || ie[de(e)] || "";
+}
 function me(e) {
-	return String(e?.loader || e?.viewer_info?.loader || "").trim().toLowerCase() || ae[fe(e)] || "";
+	return String(e?.kind || "").toLowerCase() === "model3d" ? !0 : k.has(de(e));
 }
 function he(e) {
-	return String(e?.kind || "").toLowerCase() === "model3d" ? !0 : D.has(fe(e));
+	return pe(e) || "gltf";
 }
-function ge(e) {
-	return me(e) || "gltf";
+function M() {
+	return se;
 }
-function A() {
-	return ce;
-}
-function j(e) {
+function N(e) {
 	try {
 		if (e?.classList?.contains?.("mjr-model3d-render-canvas")) return e;
 	} catch (e) {
@@ -946,14 +946,14 @@ function j(e) {
 		return null;
 	}
 }
-function M(e) {
+function P(e) {
 	try {
 		return !!e?.closest?.(".mjr-model3d-host, .mjr-viewer-model3d-host, .mjr-mfv-model3d-host");
 	} catch {
 		return !1;
 	}
 }
-function _e(e, t) {
+function ge(e, t) {
 	let n = t || {
 		ROTATE: 0,
 		DOLLY: 1,
@@ -965,9 +965,9 @@ function _e(e, t) {
 		RIGHT: n.PAN
 	};
 }
-function N(e, i, a = {}) {
-	let h = a?.pauseDuringExecution == null ? !!n?.VIEWER_PAUSE_DURING_EXECUTION : !!a.pauseDuringExecution, g = document.createElement("div");
-	g.className = a.hostClassName || "mjr-model3d-host mjr-viewer-model3d-host", g.style.cssText = a.hostStyle || [
+function F(e, a, o = {}) {
+	let g = o?.pauseDuringExecution == null ? !!r?.VIEWER_PAUSE_DURING_EXECUTION : !!o.pauseDuringExecution, _ = document.createElement("div");
+	_.className = o.hostClassName || "mjr-model3d-host mjr-viewer-model3d-host", _.style.cssText = o.hostStyle || [
 		"width:100%",
 		"height:100%",
 		"display:flex",
@@ -978,9 +978,9 @@ function N(e, i, a = {}) {
 		"border-radius:12px",
 		"background:radial-gradient(circle at top, rgba(76,175,80,0.10), rgba(0,0,0,0) 42%), linear-gradient(180deg, rgba(40,40,40,0.98), rgba(19,22,28,0.99))",
 		"box-shadow:inset 0 0 0 1px rgba(255,255,255,0.06)"
-	].join(";"), g.setAttribute("data-capture-wheel", "true"), g.tabIndex = -1;
-	let v = document.createElement("canvas");
-	v.className = a.canvasClassName || "mjr-viewer-media mjr-model3d-render-canvas", v.style.cssText = a.canvasStyle || [
+	].join(";"), _.setAttribute("data-capture-wheel", "true"), _.tabIndex = -1;
+	let y = document.createElement("canvas");
+	y.className = o.canvasClassName || "mjr-viewer-media mjr-model3d-render-canvas", y.style.cssText = o.canvasStyle || [
 		"display:block",
 		"width:100%",
 		"height:100%",
@@ -988,15 +988,15 @@ function N(e, i, a = {}) {
 		"max-height:100%",
 		"outline:none",
 		"touch-action:none"
-	].join(";"), v.tabIndex = 0, v._mjrDisableViewerTransform = a.disableViewerTransform !== !1;
+	].join(";"), y.tabIndex = 0, y._mjrDisableViewerTransform = o.disableViewerTransform !== !1;
 	try {
-		e?.id != null && (v.dataset.mjrAssetId = String(e.id));
+		e?.id != null && (y.dataset.mjrAssetId = String(e.id));
 	} catch (e) {
 		console.debug?.(e);
 	}
-	g.appendChild(v);
-	let y = document.createElement("canvas");
-	y.className = "mjr-model3d-status", y.style.cssText = [
+	_.appendChild(y);
+	let b = document.createElement("canvas");
+	b.className = "mjr-model3d-status", b.style.cssText = [
 		"position:absolute",
 		"inset:0",
 		"display:block",
@@ -1004,11 +1004,11 @@ function N(e, i, a = {}) {
 		"height:100%",
 		"pointer-events:none",
 		"z-index:1"
-	].join(";"), g.appendChild(y);
-	let b = fe(e).replace(".", "").toUpperCase();
-	if (b) {
+	].join(";"), _.appendChild(b);
+	let x = de(e).replace(".", "").toUpperCase();
+	if (x) {
 		let e = document.createElement("div");
-		e.className = "mjr-model3d-badge", e.textContent = b, e.style.cssText = [
+		e.className = "mjr-model3d-badge", e.textContent = x, e.style.cssText = [
 			"position:absolute",
 			"top:10px",
 			"left:10px",
@@ -1020,10 +1020,10 @@ function N(e, i, a = {}) {
 			"background:rgba(76,175,80,0.9)",
 			"pointer-events:none",
 			"z-index:2"
-		].join(";"), g.appendChild(e);
+		].join(";"), _.appendChild(e);
 	}
-	let x = document.createElement("div");
-	x.className = "mjr-model3d-toolbar", x.style.cssText = [
+	let S = document.createElement("div");
+	S.className = "mjr-model3d-toolbar", S.style.cssText = [
 		"position:absolute",
 		"top:10px",
 		"right:10px",
@@ -1034,12 +1034,12 @@ function N(e, i, a = {}) {
 		"pointer-events:none",
 		"z-index:5"
 	].join(";");
-	let S = document.createElement("div");
-	S.style.cssText = "display:flex;align-items:center;gap:6px;flex-wrap:wrap;pointer-events:auto;";
-	let ae = T("Reset", "Reset 3D view"), D = T("Grid", "Toggle grid"), me = T("Persp", "Switch perspective / orthographic"), he = T("Settings", "Settings");
-	S.append(ae, D, me, he), x.appendChild(S), g.appendChild(x);
-	let A = document.createElement("div");
-	A.className = "mjr-model3d-hint", A.textContent = a.hintText || ce, A.style.cssText = [
+	let C = document.createElement("div");
+	C.style.cssText = "display:flex;align-items:center;gap:6px;flex-wrap:wrap;pointer-events:auto;";
+	let ie = E(t("model3d.reset", "Reset"), t("model3d.resetView", "Reset 3D view")), k = E(t("model3d.grid", "Grid"), t("model3d.toggleGrid", "Toggle grid")), pe = E(t("model3d.persp", "Persp"), t("model3d.switchCamera", "Switch perspective / orthographic")), me = E(t("model3d.settings", "Settings"), t("model3d.settings", "Settings"));
+	C.append(ie, k, pe, me), S.appendChild(C), _.appendChild(S);
+	let M = document.createElement("div");
+	M.className = "mjr-model3d-hint", M.textContent = o.hintText || se, M.style.cssText = [
 		"position:absolute",
 		"right:10px",
 		"bottom:10px",
@@ -1052,141 +1052,141 @@ function N(e, i, a = {}) {
 		"pointer-events:none",
 		"z-index:2",
 		"transition:bottom 0.2s"
-	].join(";"), g.appendChild(A);
-	let j = re({
-		defaultBgColor: se,
-		defaultFov: ue,
-		defaultLightIntensity: de,
+	].join(";"), _.appendChild(M);
+	let N = ne({
+		defaultBgColor: oe,
+		defaultFov: le,
+		defaultLightIntensity: ue,
 		hasSkeleton: !1
 	});
-	g.appendChild(j.panel);
-	let M = ie();
-	g.appendChild(M.bar);
-	let N = !1, ve = null, P = null, F = null, I = null, L = null, R = null, z = null, B = null, V = null, ye = null, be = !1, H = null, xe = null, U = null, W = null, Se = null, G = null, K = 0, q = O.PERSPECTIVE, Ce = /* @__PURE__ */ new Map(), we = /* @__PURE__ */ new Set(), J = null, Te = !1, Ee = null, De = [], Y = de, X = null, Oe = null, Z = [], Q = [], $ = 0, ke = 1, Ae = !1, je = !1, Me = !1, Ne = String(e?.filename || "3D model"), Pe = () => {
+	_.appendChild(N.panel);
+	let P = re();
+	_.appendChild(P.bar);
+	let F = !1, _e = null, I = null, L = null, R = null, z = null, B = null, V = null, H = null, U = null, ve = null, ye = !1, be = null, xe = null, W = null, G = null, Se = null, K = null, Ce = 0, q = A.PERSPECTIVE, we = /* @__PURE__ */ new Map(), Te = /* @__PURE__ */ new Set(), J = null, Ee = !1, De = null, Oe = [], Y = ue, X = null, ke = null, Z = [], Q = [], $ = 0, Ae = 1, je = !1, Me = !1, Ne = !1, Pe = String(e?.filename || "3D model"), Fe = () => {
 		try {
-			a.scheduleOverlayRedraw?.();
+			o.scheduleOverlayRedraw?.();
 		} catch (e) {
 			console.debug?.(e);
 		}
-	}, Fe = (e, t = "", n = "#4CAF50") => {
-		H = {
+	}, Ie = (e, t = "", n = "#4CAF50") => {
+		be = {
 			title: e,
 			hintText: t,
 			accent: n
-		}, y.style.display = "block", E(y, e, t, n);
-	}, Ie = () => {
-		H = null, y.style.display = "none";
+		}, b.style.display = "block", O(b, e, t, n);
 	}, Le = () => {
+		be = null, b.style.display = "none";
+	}, Re = () => {
 		try {
-			let e = g.getBoundingClientRect();
-			v._mjrNaturalW = Math.max(1, Math.round(e.width || v.width || 1)), v._mjrNaturalH = Math.max(1, Math.round(e.height || v.height || 1));
+			let e = _.getBoundingClientRect();
+			y._mjrNaturalW = Math.max(1, Math.round(e.width || y.width || 1)), y._mjrNaturalH = Math.max(1, Math.round(e.height || y.height || 1));
 		} catch (e) {
 			console.debug?.(e);
 		}
 		try {
-			H && E(y, H.title, H.hintText, H.accent);
+			be && O(b, be.title, be.hintText, be.accent);
 		} catch (e) {
 			console.debug?.(e);
 		}
-	}, Re = (e, t) => {
-		if (!z || !(K > 0)) return;
-		let n = Math.max(1e-4, (Number(e) || 1) / Math.max(1, Number(t) || 1)), r = K * n;
-		z.left = -r / 2, z.right = r / 2, z.top = K / 2, z.bottom = -K / 2, z.updateProjectionMatrix();
-	}, ze = () => {
-		if (!(!W || !B || !G)) {
-			if (q === O.ORTHOGRAPHIC) {
-				let e = g.getBoundingClientRect();
-				K = p(z, B, G, Math.max(1e-4, (e.width || 1) / Math.max(1, e.height || 1))) || K, L = z;
-			} else f(P, R, B, G), L = R;
+	}, ze = (e, t) => {
+		if (!V || !(Ce > 0)) return;
+		let n = Math.max(1e-4, (Number(e) || 1) / Math.max(1, Number(t) || 1)), r = Ce * n;
+		V.left = -r / 2, V.right = r / 2, V.top = Ce / 2, V.bottom = -Ce / 2, V.updateProjectionMatrix();
+	}, Be = () => {
+		if (!(!G || !H || !K)) {
+			if (q === A.ORTHOGRAPHIC) {
+				let e = _.getBoundingClientRect();
+				Ce = m(V, H, K, Math.max(1e-4, (e.width || 1) / Math.max(1, e.height || 1))) || Ce, z = V;
+			} else p(I, B, H, K), z = B;
 			try {
-				B.object = L, B.update();
+				H.object = z, H.update();
 			} catch (e) {
 				console.debug?.(e);
 			}
 		}
-	}, Be = (e, { refit: t = !0 } = {}) => {
-		q = e === O.ORTHOGRAPHIC ? O.ORTHOGRAPHIC : O.PERSPECTIVE, L = q === O.ORTHOGRAPHIC ? z : R;
+	}, Ve = (e, { refit: t = !0 } = {}) => {
+		q = e === A.ORTHOGRAPHIC ? A.ORTHOGRAPHIC : A.PERSPECTIVE, z = q === A.ORTHOGRAPHIC ? V : B;
 		try {
-			B && (B.object = L);
+			H && (H.object = z);
 		} catch (e) {
 			console.debug?.(e);
 		}
-		if (t) ze();
+		if (t) Be();
 		else {
 			try {
-				L?.updateProjectionMatrix?.();
+				z?.updateProjectionMatrix?.();
 			} catch (e) {
 				console.debug?.(e);
 			}
 			try {
-				B?.update?.();
+				H?.update?.();
 			} catch (e) {
 				console.debug?.(e);
 			}
 		}
-		Ye(), Pe();
-	}, Ve = (e) => {
+		Xe(), Fe();
+	}, He = (e) => {
 		Y = Math.max(0, Math.min(10, Number(e) || 0));
 		try {
-			Ee && (Ee.intensity = k.ambient * Y);
+			De && (De.intensity = j.ambient * Y);
 		} catch (e) {
 			console.debug?.(e);
 		}
 		let t = [
-			k.main,
-			k.back,
-			k.fill,
-			k.fill,
-			k.bottom
+			j.main,
+			j.back,
+			j.fill,
+			j.fill,
+			j.bottom
 		];
-		De.forEach((e, n) => {
+		Oe.forEach((e, n) => {
 			try {
-				e && (e.intensity = (t[n] ?? k.fill) * Y);
+				e && (e.intensity = (t[n] ?? j.fill) * Y);
 			} catch (e) {
 				console.debug?.(e);
 			}
 		});
-	}, He = (e) => {
-		!Se || !P || (l(we), c(P, Se, e, Ce, we), Pe());
 	}, Ue = (e) => {
-		if (!W) return;
-		let t = le[e] || [
+		!Se || !I || (u(Te), l(I, Se, e, we, Te), Fe());
+	}, We = (e) => {
+		if (!G) return;
+		let t = ce[e] || [
 			0,
 			0,
 			0
 		];
 		try {
-			W.rotation.set(t[0], t[1], t[2]), W.updateMatrixWorld(!0);
+			G.rotation.set(t[0], t[1], t[2]), G.updateMatrixWorld(!0);
 		} catch (e) {
 			console.debug?.(e);
 		}
-		P && (G = d(P, W)), ze();
-	}, We = (e) => {
+		I && (K = f(I, G)), Be();
+	}, Ge = (e) => {
 		if (J) try {
 			J.visible = !!e;
 		} catch (e) {
 			console.debug?.(e);
 		}
-	}, Ge = () => {
+	}, Ke = () => {
 		if (!X || Z.length === 0) return;
 		let e = Q[$];
 		if (!e) return;
 		let t = Z[$]?.duration || 0, n = e.time || 0;
 		try {
-			M.timeLbl.textContent = `${w(n)} / ${w(t)}`;
+			P.timeLbl.textContent = `${T(n)} / ${T(t)}`;
 		} catch (e) {
 			console.debug?.(e);
 		}
-		if (!je && t > 0) try {
-			let e = Number(M.progressSlider.max) || 1e3;
-			M.progressSlider.value = String(Math.round(n / t * e));
+		if (!Me && t > 0) try {
+			let e = Number(P.progressSlider.max) || 1e3;
+			P.progressSlider.value = String(Math.round(n / t * e));
 		} catch (e) {
 			console.debug?.(e);
 		}
-	}, Ke = (e) => {
+	}, qe = (e) => {
 		if (!X || !Z.length) return;
-		let t = Z[e];
-		if (!t) return;
+		let n = Z[e];
+		if (!n) return;
 		Q.forEach((e) => {
 			try {
 				e?.stop();
@@ -1194,99 +1194,99 @@ function N(e, i, a = {}) {
 				console.debug?.(e);
 			}
 		});
-		let n = X.clipAction(t);
-		n.timeScale = ke, n.clampWhenFinished = !1, n.loop = P?.LoopRepeat ?? 2201, n.play(), Q[e] = n, $ = e, Ae = !0, M.playBtn.textContent = "Pause";
+		let r = X.clipAction(n);
+		r.timeScale = Ae, r.clampWhenFinished = !1, r.loop = I?.LoopRepeat ?? 2201, r.play(), Q[e] = r, $ = e, je = !0, P.playBtn.textContent = t("model3d.pause", "Pause");
 		try {
-			let e = Math.max(100, Math.min(1e4, Math.round((t.duration || 1) * 100)));
-			M.progressSlider.max = String(e);
+			let e = Math.max(100, Math.min(1e4, Math.round((n.duration || 1) * 100)));
+			P.progressSlider.max = String(e);
 		} catch {}
-	}, qe = () => {
-		!X || !Z.length || (Ae ? (X.timeScale = 0, Ae = !1, M.playBtn.textContent = "Play") : (X.timeScale = ke, Q[$]?.isRunning?.() ? (Ae = !0, M.playBtn.textContent = "Pause") : Ke($)));
-	}, Je = (e, t) => {
-		!e || e.length === 0 || !P || (Z = e, X = new P.AnimationMixer(t), Oe = new P.Clock(), Q = Array(e.length).fill(null), M.animSel.innerHTML = "", e.forEach((e, t) => {
+	}, Je = () => {
+		!X || !Z.length || (je ? (X.timeScale = 0, je = !1, P.playBtn.textContent = t("model3d.play", "Play")) : (X.timeScale = Ae, Q[$]?.isRunning?.() ? (je = !0, P.playBtn.textContent = t("model3d.pause", "Pause")) : qe($)));
+	}, Ye = (e, t) => {
+		!e || e.length === 0 || !I || (Z = e, X = new I.AnimationMixer(t), ke = new I.Clock(), Q = Array(e.length).fill(null), P.animSel.innerHTML = "", e.forEach((e, t) => {
 			let n = document.createElement("option");
-			n.value = String(t), n.textContent = e.name || `Animation ${t + 1}`, M.animSel.appendChild(n);
-		}), M.animSel.style.display = e.length > 1 ? "" : "none", M.bar.style.display = "flex", A.style.bottom = "54px", Ke(0), M.playBtn.addEventListener("click", (e) => {
-			C(e), qe();
-		}), M.speedSel.addEventListener("change", () => {
-			ke = Number(M.speedSel.value) || 1, X.timeScale = Ae ? ke : 0;
+			n.value = String(t), n.textContent = e.name || `Animation ${t + 1}`, P.animSel.appendChild(n);
+		}), P.animSel.style.display = e.length > 1 ? "" : "none", P.bar.style.display = "flex", M.style.bottom = "54px", qe(0), P.playBtn.addEventListener("click", (e) => {
+			w(e), Je();
+		}), P.speedSel.addEventListener("change", () => {
+			Ae = Number(P.speedSel.value) || 1, X.timeScale = je ? Ae : 0;
 			let e = Q[$];
-			e && (e.timeScale = ke);
-		}), M.animSel.addEventListener("change", () => {
-			Ke(Number(M.animSel.value) || 0);
-		}), M.progressSlider.addEventListener("pointerdown", () => {
-			je = !0;
-		}), M.progressSlider.addEventListener("pointerup", () => {
-			je = !1;
+			e && (e.timeScale = Ae);
+		}), P.animSel.addEventListener("change", () => {
+			qe(Number(P.animSel.value) || 0);
+		}), P.progressSlider.addEventListener("pointerdown", () => {
+			Me = !0;
+		}), P.progressSlider.addEventListener("pointerup", () => {
+			Me = !1;
 			let e = Q[$], t = Z[$];
 			if (e && t) {
-				let n = Number(M.progressSlider.max) || 1e3, r = Number(M.progressSlider.value) / n * t.duration;
+				let n = Number(P.progressSlider.max) || 1e3, r = Number(P.progressSlider.value) / n * t.duration;
 				e.time = Math.max(0, Math.min(r, t.duration));
 			}
-		}), M.progressSlider.addEventListener("input", () => {
+		}), P.progressSlider.addEventListener("input", () => {
 			let e = Q[$], t = Z[$];
-			if (e && t && je) {
-				let n = Number(M.progressSlider.max) || 1e3, r = Number(M.progressSlider.value) / n * t.duration;
-				e.time = Math.max(0, Math.min(r, t.duration)), M.timeLbl.textContent = `${w(r)} / ${w(t.duration)}`;
+			if (e && t && Me) {
+				let n = Number(P.progressSlider.max) || 1e3, r = Number(P.progressSlider.value) / n * t.duration;
+				e.time = Math.max(0, Math.min(r, t.duration)), P.timeLbl.textContent = `${T(r)} / ${T(t.duration)}`;
 			}
 		}));
-	}, Ye = () => {
-		ne(D, !!U?.visible), ne(me, q === O.ORTHOGRAPHIC), me.textContent = q === O.ORTHOGRAPHIC ? "Ortho" : "Persp", ne(he, Me);
+	}, Xe = () => {
+		D(k, !!W?.visible), D(pe, q === A.ORTHOGRAPHIC), pe.textContent = q === A.ORTHOGRAPHIC ? t("model3d.ortho", "Ortho") : t("model3d.persp", "Persp"), D(me, Ne);
 	};
-	j.bgInput.addEventListener("input", () => {
-		let e = j.bgInput.value;
+	N.bgInput.addEventListener("input", () => {
+		let e = N.bgInput.value;
 		try {
-			I && (I.background = new (P?.Color || Object)(e));
+			R && (R.background = new (I?.Color || Object)(e));
 		} catch (e) {
 			console.debug?.(e);
 		}
-	}), j.materialSel.addEventListener("change", () => {
-		He(j.materialSel.value);
-	}), j.upSel.addEventListener("change", () => {
-		Ue(j.upSel.value);
-	}), j.skeletonToggle && j.skeletonToggle.addEventListener("change", () => {
-		We(j.skeletonToggle.checked);
-	}), j.fovSlider.addEventListener("input", () => {
-		let e = Math.max(1, Math.min(179, Number(j.fovSlider.value) || ue));
+	}), N.materialSel.addEventListener("change", () => {
+		Ue(N.materialSel.value);
+	}), N.upSel.addEventListener("change", () => {
+		We(N.upSel.value);
+	}), N.skeletonToggle && N.skeletonToggle.addEventListener("change", () => {
+		Ge(N.skeletonToggle.checked);
+	}), N.fovSlider.addEventListener("input", () => {
+		let e = Math.max(1, Math.min(179, Number(N.fovSlider.value) || le));
 		try {
-			R && (R.fov = e, R.updateProjectionMatrix());
+			B && (B.fov = e, B.updateProjectionMatrix());
 		} catch (e) {
 			console.debug?.(e);
 		}
-	}), j.lightSlider.addEventListener("input", () => {
-		Ve(Number(j.lightSlider.value));
+	}), N.lightSlider.addEventListener("input", () => {
+		He(Number(N.lightSlider.value));
 	});
-	let Xe = () => {
+	let Ze = () => {
 		let e = [], t = (t, n, r, i) => {
 			t.addEventListener(n, r, i), e.push(() => t.removeEventListener(n, r, i));
 		};
-		return t(g, "pointerdown", () => {
+		return t(_, "pointerdown", () => {
 			try {
-				v.focus?.();
+				y.focus?.();
 			} catch (e) {
 				console.debug?.(e);
 			}
-		}), t(g, "wheel", (e) => C(e)), t(g, "contextmenu", (e) => C(e, { preventDefault: !0 })), t(g, "dragstart", (e) => C(e, { preventDefault: !0 })), t(g, "dragover", (e) => C(e, { preventDefault: !0 })), t(g, "dragleave", (e) => C(e)), t(g, "drop", (e) => C(e, { preventDefault: !0 })), () => {
+		}), t(_, "wheel", (e) => w(e)), t(_, "contextmenu", (e) => w(e, { preventDefault: !0 })), t(_, "dragstart", (e) => w(e, { preventDefault: !0 })), t(_, "dragover", (e) => w(e, { preventDefault: !0 })), t(_, "dragleave", (e) => w(e)), t(_, "drop", (e) => w(e, { preventDefault: !0 })), () => {
 			for (let t of e) try {
 				t();
 			} catch (e) {
 				console.debug?.(e);
 			}
 		};
-	}, Ze = () => {
-		N = !0;
+	}, Qe = () => {
+		F = !0;
 		try {
-			window.removeEventListener(r.RUNTIME_STATUS, et);
+			window.removeEventListener(i.RUNTIME_STATUS, tt);
 		} catch {}
 		try {
-			g._mjr3D = null;
+			_._mjr3D = null;
 		} catch {}
 		try {
-			V != null && cancelAnimationFrame(V);
+			U != null && cancelAnimationFrame(U);
 		} catch (e) {
 			console.debug?.(e);
 		}
-		V = null;
+		U = null;
 		try {
 			xe?.();
 		} catch (e) {
@@ -1294,17 +1294,17 @@ function N(e, i, a = {}) {
 		}
 		xe = null;
 		try {
-			ve?.disconnect?.();
+			_e?.disconnect?.();
 		} catch (e) {
 			console.debug?.(e);
 		}
-		ve = null;
+		_e = null;
 		try {
-			B?.dispose?.();
+			H?.dispose?.();
 		} catch (e) {
 			console.debug?.(e);
 		}
-		B = null;
+		H = null;
 		try {
 			X?.stopAllAction?.(), X?.uncacheRoot?.(X.getRoot?.());
 		} catch (e) {
@@ -1324,15 +1324,15 @@ function N(e, i, a = {}) {
 		} catch (e) {
 			console.debug?.(e);
 		}
-		X = null, Q = [], Z = [], l(we);
+		X = null, Q = [], Z = [], u(Te);
 		try {
-			J && (I?.remove?.(J), J.dispose?.());
+			J && (R?.remove?.(J), J.dispose?.());
 		} catch (e) {
 			console.debug?.(e);
 		}
 		J = null;
 		try {
-			I?.traverse?.((e) => {
+			R?.traverse?.((e) => {
 				try {
 					e.geometry?.dispose?.();
 				} catch {}
@@ -1353,7 +1353,7 @@ function N(e, i, a = {}) {
 			console.debug?.(e);
 		}
 		try {
-			g._mjrAxisScene &&= (g._mjrAxisScene.traverse?.((e) => {
+			_._mjrAxisScene &&= (_._mjrAxisScene.traverse?.((e) => {
 				try {
 					e.geometry?.dispose?.();
 				} catch {}
@@ -1365,58 +1365,58 @@ function N(e, i, a = {}) {
 			console.debug?.(e);
 		}
 		try {
-			F?.dispose?.();
+			L?.dispose?.();
 		} catch (e) {
 			console.debug?.(e);
 		}
-		F = null, I = null, L = null, R = null, z = null, Se = null, W = null, G = null, ye = null;
+		L = null, R = null, z = null, B = null, V = null, Se = null, G = null, K = null, ve = null;
 		try {
-			let e = v.getContext("webgl2") || v.getContext("webgl");
+			let e = y.getContext("webgl2") || y.getContext("webgl");
 			e && e.getExtension("WEBGL_lose_context")?.loseContext?.();
 		} catch (e) {
 			console.debug?.(e);
 		}
-	}, Qe = () => {
-		be = !0;
-		try {
-			V != null && cancelAnimationFrame(V);
-		} catch (e) {
-			console.debug?.(e);
-		}
-		V = null;
 	}, $e = () => {
-		if (be = !1, !(N || V != null || typeof ye != "function")) try {
-			V = requestAnimationFrame(ye);
+		ye = !0;
+		try {
+			U != null && cancelAnimationFrame(U);
 		} catch (e) {
 			console.debug?.(e);
 		}
-	}, et = (e) => {
-		if (h) {
+		U = null;
+	}, et = () => {
+		if (ye = !1, !(F || U != null || typeof ve != "function")) try {
+			U = requestAnimationFrame(ve);
+		} catch (e) {
+			console.debug?.(e);
+		}
+	}, tt = (e) => {
+		if (g) {
 			if (String(e?.detail?.active_prompt_id || "").trim()) {
-				Qe();
+				$e();
 				return;
 			}
-			$e();
+			et();
 		}
 	};
-	v._mjrProc = {
+	y._mjrProc = {
 		setParams: () => {},
-		destroy: Ze,
-		captureCanvas: () => v,
-		pause: Qe,
-		resume: $e
+		destroy: Qe,
+		captureCanvas: () => y,
+		pause: $e,
+		resume: et
 	};
 	try {
-		h && (window.addEventListener(r.RUNTIME_STATUS, et), String(window.__MJR_EXECUTION_RUNTIME__?.active_prompt_id || "").trim() && (be = !0));
+		g && (window.addEventListener(i.RUNTIME_STATUS, tt), String(window.__MJR_EXECUTION_RUNTIME__?.active_prompt_id || "").trim() && (ye = !0));
 	} catch (e) {
 		console.debug?.(e);
 	}
-	return Fe("Preparing 3D preview", Ne), Promise.resolve().then(async () => {
-		let n = ge(e);
-		if (!oe.has(n)) {
-			if (Fe("3D preview unavailable", `${n.toUpperCase()} is not supported in the embedded viewer.`), A.style.display = "none", i) try {
-				let t = document.createElement("a");
-				t.href = i, t.download = String(e?.filename || "model"), t.textContent = `Download ${String(e?.filename || "file")}`, t.style.cssText = [
+	return Ie("Preparing 3D preview", Pe), Promise.resolve().then(async () => {
+		let r = he(e);
+		if (!ae.has(r)) {
+			if (Ie("3D preview unavailable", `${r.toUpperCase()} is not supported in the embedded viewer.`), M.style.display = "none", a) try {
+				let n = document.createElement("a");
+				n.href = a, n.download = String(e?.filename || "model"), n.textContent = t("model3d.downloadFile", "Download {file}", { file: String(e?.filename || "file") }), n.style.cssText = [
 					"position:absolute",
 					"bottom:18px",
 					"left:50%",
@@ -1429,121 +1429,121 @@ function N(e, i, a = {}) {
 					"text-decoration:none",
 					"pointer-events:auto",
 					"z-index:3"
-				].join(";"), g.appendChild(t);
+				].join(";"), _.appendChild(n);
 			} catch {}
 			return;
 		}
 		try {
-			let r = await te();
-			if (N) return;
-			let c = r.THREE;
-			P = c;
-			let l = new c.LoadingManager();
-			l.setURLModifier((n) => {
-				if (!n || pe(n)) return n;
-				let r = t(e, n);
+			let t = await te();
+			if (F) return;
+			let i = t.THREE;
+			I = i;
+			let l = new i.LoadingManager();
+			l.setURLModifier((t) => {
+				if (!t || fe(t)) return t;
+				let r = n(e, t);
 				if (r) return r;
 				try {
-					return new URL(n, i).href;
+					return new URL(t, a).href;
 				} catch {
-					return n;
+					return t;
 				}
-			}), F = new c.WebGLRenderer({
-				canvas: v,
+			}), L = new i.WebGLRenderer({
+				canvas: y,
 				antialias: !0,
 				alpha: !0,
 				preserveDrawingBuffer: !0
-			}), F.outputColorSpace = c.SRGBColorSpace, F.setPixelRatio(Math.min(2, window.devicePixelRatio || 1)), I = new c.Scene(), I.background = new c.Color(se), R = new c.PerspectiveCamera(ue, 16 / 9, .01, 1e4), z = new c.OrthographicCamera(-1, 1, 1, -1, -1e4, 1e4), L = R, B = new r.OrbitControls(L, v), B.enableDamping = !0, B.dampingFactor = .08, B.rotateSpeed = .82, B.zoomSpeed = 1, B.panSpeed = .9, B.screenSpacePanning = !0, B.mouseButtons = _e(null, c.MOUSE), xe = Xe(), Ee = new c.AmbientLight(16777215, k.ambient * Y), I.add(Ee);
-			let f = new c.DirectionalLight(16777215, k.main * Y);
-			f.position.set(0, 10, 10);
-			let p = new c.DirectionalLight(16777215, k.back * Y);
+			}), L.outputColorSpace = i.SRGBColorSpace, L.setPixelRatio(Math.min(2, window.devicePixelRatio || 1)), R = new i.Scene(), R.background = new i.Color(oe), B = new i.PerspectiveCamera(le, 16 / 9, .01, 1e4), V = new i.OrthographicCamera(-1, 1, 1, -1, -1e4, 1e4), z = B, H = new t.OrbitControls(z, y), H.enableDamping = !0, H.dampingFactor = .08, H.rotateSpeed = .82, H.zoomSpeed = 1, H.panSpeed = .9, H.screenSpacePanning = !0, H.mouseButtons = ge(null, i.MOUSE), xe = Ze(), De = new i.AmbientLight(16777215, j.ambient * Y), R.add(De);
+			let u = new i.DirectionalLight(16777215, j.main * Y);
+			u.position.set(0, 10, 10);
+			let p = new i.DirectionalLight(16777215, j.back * Y);
 			p.position.set(-10, 0, -10);
-			let h = new c.DirectionalLight(15266047, k.fill * Y);
-			h.position.set(10, 5, -5);
-			let y = new c.DirectionalLight(16773352, k.fill * Y);
-			y.position.set(-10, 5, 5);
-			let b = new c.DirectionalLight(16777215, k.bottom * Y);
-			b.position.set(0, -10, 0), De = [
-				f,
+			let m = new i.DirectionalLight(15266047, j.fill * Y);
+			m.position.set(10, 5, -5);
+			let g = new i.DirectionalLight(16773352, j.fill * Y);
+			g.position.set(-10, 5, 5);
+			let b = new i.DirectionalLight(16777215, j.bottom * Y);
+			b.position.set(0, -10, 0), Oe = [
+				u,
 				p,
-				h,
-				y,
+				m,
+				g,
 				b
-			], De.forEach((e) => I.add(e)), U = new c.GridHelper(20, 20, 5068128, 3094338), I.add(U);
+			], Oe.forEach((e) => R.add(e)), W = new i.GridHelper(20, 20, 5068128, 3094338), R.add(W);
 			let x = () => {
-				if (N || !F || !L) return;
-				let e = g.getBoundingClientRect(), t = Math.max(1, Math.round(e.width || v.clientWidth || 1)), n = Math.max(1, Math.round(e.height || v.clientHeight || 1));
-				F.setSize(t, n, !1), R && (R.aspect = t / n, R.updateProjectionMatrix()), Re(t, n), Le(), Pe();
+				if (F || !L || !z) return;
+				let e = _.getBoundingClientRect(), t = Math.max(1, Math.round(e.width || y.clientWidth || 1)), n = Math.max(1, Math.round(e.height || y.clientHeight || 1));
+				L.setSize(t, n, !1), B && (B.aspect = t / n, B.updateProjectionMatrix()), ze(t, n), Re(), Fe();
 			};
-			typeof ResizeObserver < "u" && (ve = new ResizeObserver(() => x()), ve.observe(g));
-			let S = ee(r, n, l);
+			typeof ResizeObserver < "u" && (_e = new ResizeObserver(() => x()), _e.observe(_));
+			let S = v(t, r, l);
 			if (!S) {
-				Fe("3D loader unavailable", `${n.toUpperCase()} loader could not be created.`), A.style.display = "none";
+				Ie("3D loader unavailable", `${r.toUpperCase()} loader could not be created.`), M.style.display = "none";
 				return;
 			}
-			if (n === "obj" && r.MTLLoader) try {
-				let e = i.replace(/\.obj(\?.*)?$/i, (e, t) => `.mtl${t || ""}`), t = new r.MTLLoader(l), n = await new Promise((n) => {
-					t.load(e, n, void 0, () => n(null));
+			if (r === "obj" && t.MTLLoader) try {
+				let e = a.replace(/\.obj(\?.*)?$/i, (e, t) => `.mtl${t || ""}`), n = new t.MTLLoader(l), r = await new Promise((t) => {
+					n.load(e, t, void 0, () => t(null));
 				});
-				n && !N && (n.preload(), S.setMaterials(n));
+				r && !F && (r.preload(), S.setMaterials(r));
 			} catch (e) {
 				console.debug?.("[MJR 3D] MTL load skipped:", e?.message);
 			}
-			let w = await _(S, n, i);
-			if (N) return;
-			let T = m(c, n, w);
+			let C = await ee(S, r, a);
+			if (F) return;
+			let T = h(i, r, C);
 			if (!T) {
-				Fe("Empty 3D scene", "The loader returned no renderable object."), A.style.display = "none";
+				Ie("Empty 3D scene", "The loader returned no renderable object."), M.style.display = "none";
 				return;
 			}
 			try {
-				let e = new c.Box3().setFromObject(T);
+				let e = new i.Box3().setFromObject(T);
 				if (!e.isEmpty()) {
-					let t = e.getSize(new c.Vector3()), n = e.getCenter(new c.Vector3()), r = 5 / Math.max(t.x, t.y, t.z, .001);
+					let t = e.getSize(new i.Vector3()), n = e.getCenter(new i.Vector3()), r = 5 / Math.max(t.x, t.y, t.z, .001);
 					T.scale.multiplyScalar(r), e.setFromObject(T), e.getCenter(n), T.position.set(-n.x, -e.min.y, -n.z);
 				}
 			} catch (e) {
 				console.debug?.("[MJR 3D] normalize skipped:", e);
 			}
-			if (Se = T, W = new c.Group(), W.add(T), I.add(W), Ce = s(T), Te = o(T), Te) {
-				J = new c.SkeletonHelper(T), J.visible = !1, I.add(J);
-				let e = re({
-					defaultBgColor: se,
-					defaultFov: ue,
-					defaultLightIntensity: de,
+			if (Se = T, G = new i.Group(), G.add(T), R.add(G), we = c(T), Ee = s(T), Ee) {
+				J = new i.SkeletonHelper(T), J.visible = !1, R.add(J);
+				let e = ne({
+					defaultBgColor: oe,
+					defaultFov: le,
+					defaultLightIntensity: ue,
 					hasSkeleton: !0
 				});
-				g.replaceChild(e.panel, j.panel), Object.assign(j, e), j.bgInput.addEventListener("input", () => {
+				_.replaceChild(e.panel, N.panel), Object.assign(N, e), N.bgInput.addEventListener("input", () => {
 					try {
-						I && (I.background = new c.Color(j.bgInput.value));
+						R && (R.background = new i.Color(N.bgInput.value));
 					} catch (e) {
 						console.debug?.(e);
 					}
-				}), j.materialSel.addEventListener("change", () => {
-					He(j.materialSel.value);
-				}), j.upSel.addEventListener("change", () => {
-					Ue(j.upSel.value);
-				}), j.skeletonToggle && j.skeletonToggle.addEventListener("change", () => {
-					We(j.skeletonToggle.checked);
-				}), j.fovSlider.addEventListener("input", () => {
-					let e = Math.max(1, Math.min(179, Number(j.fovSlider.value) || ue));
+				}), N.materialSel.addEventListener("change", () => {
+					Ue(N.materialSel.value);
+				}), N.upSel.addEventListener("change", () => {
+					We(N.upSel.value);
+				}), N.skeletonToggle && N.skeletonToggle.addEventListener("change", () => {
+					Ge(N.skeletonToggle.checked);
+				}), N.fovSlider.addEventListener("input", () => {
+					let e = Math.max(1, Math.min(179, Number(N.fovSlider.value) || le));
 					try {
-						R && (R.fov = e, R.updateProjectionMatrix());
+						B && (B.fov = e, B.updateProjectionMatrix());
 					} catch (e) {
 						console.debug?.(e);
 					}
-				}), j.lightSlider.addEventListener("input", () => {
-					Ve(Number(j.lightSlider.value));
+				}), N.lightSlider.addEventListener("input", () => {
+					He(Number(N.lightSlider.value));
 				});
 			}
-			G = d(c, W), G && (U.position.y = G.box.min.y), q = O.PERSPECTIVE, ze(), x(), Ie(), Ye();
-			let ne = u(w, n);
-			ne.length > 0 && Je(ne, T);
-			let E = new c.Scene();
-			g._mjrAxisScene = E;
-			let ie = new c.PerspectiveCamera(50, 1, .1, 100);
-			ie.position.set(0, 0, 3.2), ie.lookAt(0, 0, 0);
-			let oe = [
+			K = f(i, G), K && (W.position.y = K.box.min.y), q = A.PERSPECTIVE, Be(), x(), Le(), Xe();
+			let E = d(C, r);
+			E.length > 0 && Ye(E, T);
+			let D = new i.Scene();
+			_._mjrAxisScene = D;
+			let O = new i.PerspectiveCamera(50, 1, .1, 100);
+			O.position.set(0, 0, 3.2), O.lookAt(0, 0, 0);
+			let re = [
 				{
 					dir: [
 						1,
@@ -1568,94 +1568,94 @@ function N(e, i, a = {}) {
 					],
 					color: 5605631
 				}
-			], ce = new c.SphereGeometry(.1, 12, 8), le = new c.SphereGeometry(.08, 10, 6), fe = new c.MeshBasicMaterial({ color: 13421772 });
-			E.add(new c.Mesh(le, fe));
-			for (let { dir: e, color: t } of oe) {
-				let n = new c.LineBasicMaterial({ color: t }), r = [new c.Vector3(0, 0, 0), new c.Vector3(e[0], e[1], e[2])], i = new c.BufferGeometry().setFromPoints(r);
-				E.add(new c.Line(i, n));
-				let a = new c.MeshBasicMaterial({ color: t }), o = new c.Mesh(ce, a);
-				o.position.set(e[0], e[1], e[2]), E.add(o);
+			], ae = new i.SphereGeometry(.1, 12, 8), se = new i.SphereGeometry(.08, 10, 6), ce = new i.MeshBasicMaterial({ color: 13421772 });
+			D.add(new i.Mesh(se, ce));
+			for (let { dir: e, color: t } of re) {
+				let n = new i.LineBasicMaterial({ color: t }), r = [new i.Vector3(0, 0, 0), new i.Vector3(e[0], e[1], e[2])], a = new i.BufferGeometry().setFromPoints(r);
+				D.add(new i.Line(a, n));
+				let o = new i.MeshBasicMaterial({ color: t }), s = new i.Mesh(ae, o);
+				s.position.set(e[0], e[1], e[2]), D.add(s);
 			}
-			g._mjr3D = {
-				controls: B,
+			_._mjr3D = {
+				controls: H,
 				get camera() {
-					return L;
+					return z;
 				}
 			};
 			try {
-				a.onReady?.({
-					canvas: v,
-					host: g,
-					object: W,
-					renderer: F,
-					camera: L,
-					controls: B
+				o.onReady?.({
+					canvas: y,
+					host: _,
+					object: G,
+					renderer: L,
+					camera: z,
+					controls: H
 				});
 			} catch (e) {
 				console.debug?.(e);
 			}
-			Pe();
-			let ge = () => {
-				if (!(N || be || !F || !I || !L)) {
+			Fe();
+			let de = () => {
+				if (!(F || ye || !L || !R || !z)) {
 					try {
-						if (B?.update?.(), X && Oe) {
-							let e = Oe.getDelta();
-							Ae && X.update(e), Ge();
+						if (H?.update?.(), X && ke) {
+							let e = ke.getDelta();
+							je && X.update(e), Ke();
 						}
-						F.setScissorTest(!1), F.setViewport(0, 0, v.width, v.height), F.render(I, L);
+						L.setScissorTest(!1), L.setViewport(0, 0, y.width, y.height), L.render(R, z);
 						let e = Math.min(2, window.devicePixelRatio || 1), t = Math.round(96 * e);
-						F.setScissorTest(!0), F.setScissor(0, 0, t, t), F.setViewport(0, 0, t, t), F.setClearColor(0, 0), F.clear(!0, !0, !1);
-						let n = L.quaternion;
-						ie.position.set(0, 0, 3.2).applyQuaternion(n), ie.quaternion.copy(n), F.render(E, ie), F.setScissorTest(!1);
+						L.setScissorTest(!0), L.setScissor(0, 0, t, t), L.setViewport(0, 0, t, t), L.setClearColor(0, 0), L.clear(!0, !0, !1);
+						let n = z.quaternion;
+						O.position.set(0, 0, 3.2).applyQuaternion(n), O.quaternion.copy(n), L.render(D, O), L.setScissorTest(!1);
 						try {
-							F.setClearColor(I.background || 0, 1);
+							L.setClearColor(R.background || 0, 1);
 						} catch {}
-						Le();
+						Re();
 					} catch (e) {
 						console.debug?.(e);
 					}
-					be || (V = requestAnimationFrame(ge));
+					ye || (U = requestAnimationFrame(de));
 				}
 			};
-			ye = ge;
-			let M = (e) => C(e, { preventDefault: !0 });
-			ae.addEventListener("click", (e) => {
-				M(e), ze(), Ye();
-			}), D.addEventListener("click", (e) => {
-				M(e), U && (U.visible = !U.visible), Ye(), Pe();
+			ve = de;
+			let he = (e) => w(e, { preventDefault: !0 });
+			ie.addEventListener("click", (e) => {
+				he(e), Be(), Xe();
+			}), k.addEventListener("click", (e) => {
+				he(e), W && (W.visible = !W.visible), Xe(), Fe();
+			}), pe.addEventListener("click", (e) => {
+				he(e), Ve(q === A.PERSPECTIVE ? A.ORTHOGRAPHIC : A.PERSPECTIVE);
 			}), me.addEventListener("click", (e) => {
-				M(e), Be(q === O.PERSPECTIVE ? O.ORTHOGRAPHIC : O.PERSPECTIVE);
-			}), he.addEventListener("click", (e) => {
-				M(e), Me = !Me, j.panel.style.display = Me ? "block" : "none", Ye();
-			}), be || ge();
+				he(e), Ne = !Ne, N.panel.style.display = Ne ? "block" : "none", Xe();
+			}), ye || de();
 		} catch (e) {
-			console.warn("[MJR 3D] preview init failed", e), Fe("Failed to load 3D preview", String(e?.message || "Three.js initialization failed.")), A.style.display = "none";
+			console.warn("[MJR 3D] preview init failed", e), Ie("Failed to load 3D preview", String(e?.message || "Three.js initialization failed.")), M.style.display = "none";
 		}
 	}).catch((e) => {
-		if (!N) {
+		if (!F) {
 			console.warn("[MJR 3D] preview init unhandled error", e);
 			try {
-				Fe("Failed to load 3D preview", String(e?.message || "Initialization failed."));
+				Ie("Failed to load 3D preview", String(e?.message || "Initialization failed."));
 			} catch {}
 			try {
-				A.style.display = "none";
+				M.style.display = "none";
 			} catch {}
 		}
-	}), g;
+	}), _;
 }
 //#endregion
 //#region ui/features/viewer/model3dRenderer.ts
-var ve = /* @__PURE__ */ e({
-	MODEL3D_EXTS: () => D,
-	MODEL3D_EXT_TO_LOADER: () => ae,
-	PREVIEWABLE_MODEL3D_LOADERS: () => oe,
-	buildModel3DMouseButtons: () => _e,
-	createModel3DMediaElement: () => N,
-	findModel3DCanvas: () => j,
-	getModel3DDefaultControlHint: () => A,
-	isModel3DAsset: () => he,
-	isModel3DInteractionTarget: () => M,
-	resolveModel3DLoader: () => ge
+var _e = /* @__PURE__ */ e({
+	MODEL3D_EXTS: () => k,
+	MODEL3D_EXT_TO_LOADER: () => ie,
+	PREVIEWABLE_MODEL3D_LOADERS: () => ae,
+	buildModel3DMouseButtons: () => ge,
+	createModel3DMediaElement: () => F,
+	findModel3DCanvas: () => N,
+	getModel3DDefaultControlHint: () => M,
+	isModel3DAsset: () => me,
+	isModel3DInteractionTarget: () => P,
+	resolveModel3DLoader: () => he
 });
 //#endregion
-export { M as a, v as c, he as i, D as n, b as o, N as r, y as s, ve as t };
+export { P as a, y as c, me as i, k as n, x as o, F as r, b as s, _e as t };

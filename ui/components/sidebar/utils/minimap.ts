@@ -68,10 +68,11 @@ export function drawWorkflowMinimap(canvas: HTMLCanvasElement, workflow: any, op
         renderErrorState: true,
         showViewport: true,
         showNodeLabels: false,
+        expandSubgraphs: true,
         ...(options && typeof options === "object" ? options : {}),
     };
 
-    const renderWorkflow = expandSubgraphsForMinimap(workflow);
+    const renderWorkflow = settings.expandSubgraphs === false ? workflow : expandSubgraphsForMinimap(workflow);
     const nodes = Array.isArray(renderWorkflow?.nodes) ? renderWorkflow.nodes : [];
     const groups =
         (Array.isArray(renderWorkflow?.groups) && renderWorkflow.groups) ||

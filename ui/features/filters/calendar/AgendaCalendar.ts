@@ -171,12 +171,12 @@ export function createAgendaCalendar({
     const clearBtn = document.createElement("button");
     clearBtn.type = "button";
     clearBtn.className = "mjr-btn mjr-agenda-clear";
-    clearBtn.textContent = "Clear";
+    clearBtn.textContent = t("action.clear", "Clear");
 
     const refreshBtn = document.createElement("button");
     refreshBtn.type = "button";
     refreshBtn.className = "mjr-btn mjr-agenda-refresh";
-    refreshBtn.textContent = "Refresh";
+    refreshBtn.textContent = t("action.refresh", "Refresh");
 
     footer.appendChild(clearBtn);
     footer.appendChild(refreshBtn);
@@ -202,7 +202,15 @@ export function createAgendaCalendar({
 
         grid.innerHTML = "";
 
-        const weekdays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+        const weekdays = [
+            t("weekday.monShort", "Mon"),
+            t("weekday.tueShort", "Tue"),
+            t("weekday.wedShort", "Wed"),
+            t("weekday.thuShort", "Thu"),
+            t("weekday.friShort", "Fri"),
+            t("weekday.satShort", "Sat"),
+            t("weekday.sunShort", "Sun"),
+        ];
         for (const w of weekdays) {
             const el = document.createElement("div");
             el.className = "mjr-agenda-weekday";
@@ -236,11 +244,16 @@ export function createAgendaCalendar({
 
             if (count > 0) {
                 cell.classList.add("mjr-agenda-day--has-assets");
-                cell.title = `${count} asset${count === 1 ? "" : "s"}`;
+                const countLabel = t(
+                    count === 1 ? "tooltip.assetsDaySingular" : "tooltip.assetsDayPlural",
+                    count === 1 ? "{count} asset" : "{count} assets",
+                    { count },
+                );
+                cell.title = countLabel;
                 const badge = document.createElement("span");
                 badge.className = "mjr-agenda-day-badge";
                 badge.textContent = count > 99 ? "99+" : String(count);
-                badge.setAttribute("aria-label", `${count} asset${count === 1 ? "" : "s"}`);
+                badge.setAttribute("aria-label", countLabel);
                 cell.appendChild(badge);
             } else {
                 cell.title = t("tooltip.noAssetsDay", "No assets on this day");

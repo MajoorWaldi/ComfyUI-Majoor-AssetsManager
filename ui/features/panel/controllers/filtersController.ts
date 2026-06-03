@@ -13,6 +13,7 @@ export function bindFilters({
     kindSelect,
     wfCheckbox,
     workflowTypeSelect,
+    workflowIdInput,
     ratingSelect,
     minSizeInput,
     maxSizeInput,
@@ -33,6 +34,7 @@ export function bindFilters({
         "workflowOnly",
         "minRating",
         "workflowType",
+        "workflowId",
         "minSizeMB",
         "maxSizeMB",
         "minWidth",
@@ -145,6 +147,22 @@ export function bindFilters({
                         .trim()
                         .toUpperCase(),
                 );
+                try {
+                    onFiltersChanged?.();
+                } catch (e) {
+                    console.debug?.(e);
+                }
+                scheduleReload();
+            },
+            lifecycleSignal ? { signal: lifecycleSignal } : undefined,
+        );
+    }
+    if (workflowIdInput) {
+        addManagedListener(
+            workflowIdInput,
+            "change",
+            () => {
+                write("workflowId", String(workflowIdInput.value || "").trim());
                 try {
                     onFiltersChanged?.();
                 } catch (e) {

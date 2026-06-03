@@ -9,7 +9,7 @@
  * value sync runs every frame without touching the DOM structure.
  */
 
-import { getRawHostApp } from "../../../app/hostAdapter.js";
+import { focusHostCanvasNode, getSelectedHostCanvasNodeIds } from "../../../app/hostAdapter.js";
 import { getGraphNodes, getHostRootGraph, getNodeSubgraphs } from "../../../app/graphTraversal.js";
 import { NodeWidgetRenderer } from "./NodeWidgetRenderer.js";
 
@@ -22,8 +22,6 @@ type WorkflowTreeItemElement = HTMLDivElement & {
     _mjrChildrenEl?: HTMLDivElement;
     _mjrChildCount?: number;
 };
-
-const getComfyApp = () => getRawHostApp();
 
 export class WorkflowNodesTab {
     [key: string]: any;
@@ -283,8 +281,7 @@ export class WorkflowNodesTab {
 
 function _getGraph() {
     try {
-        const app = getComfyApp();
-        return getHostRootGraph(app);
+        return getHostRootGraph();
     } catch {
         return null;
     }
@@ -358,27 +355,7 @@ function _setChildrenToggleLabel(btn: any, count: any, isOpen: any) {
 
 function _focusNode(node: any) {
     try {
-        const app = getComfyApp();
-        const canvas = app?.canvas;
-        if (!canvas) return;
-
-        canvas.selectNode?.(node, false);
-
-        if (typeof canvas.centerOnNode === "function") {
-            canvas.centerOnNode(node);
-        } else if (node.pos && canvas.ds) {
-            const canvasEl = canvas.canvas;
-            const w = canvasEl?.width ?? 800;
-            const h = canvasEl?.height ?? 600;
-            const scale = canvas.ds.scale ?? 1;
-            canvas.ds.offset = [
-                -node.pos[0] + w / (2 * scale) - (node.size?.[0] ?? 100) / 2,
-                -node.pos[1] + h / (2 * scale) - (node.size?.[1] ?? 80) / 2,
-            ];
-            canvas.setDirty?.(true, true);
-        }
-
-        canvas.canvas?.focus?.();
+        focusHostCanvasNode(node);
     } catch (e: any) {
         console.debug?.("[MFV] _focusNode", e);
     }
@@ -386,21 +363,7 @@ function _focusNode(node: any) {
 
 function _getSelectedNodeIds() {
     try {
-        const app = getComfyApp();
-        const selected = app?.canvas?.selected_nodes ?? app?.canvas?.selectedNodes ?? null;
-        if (!selected) return [];
-        if (Array.isArray(selected))
-            return selected.map((node: any) => String(node?.id ?? "")).filter(Boolean);
-        if (selected instanceof Map) {
-            return Array.from(selected.values())
-                .map((node: any) => String((node as LooseRecord | null)?.id ?? ""))
-                .filter(Boolean);
-        }
-        if (typeof selected === "object") {
-            return Object.values(selected)
-                .map((node: any) => String((node as LooseRecord | null)?.id ?? ""))
-                .filter(Boolean);
-        }
+        return getSelectedHostCanvasNodeIds();
     } catch (e: any) {
         console.debug?.("[MFV] _getSelectedNodeIds", e);
     }

@@ -33,9 +33,9 @@ const MINIMAP_ZOOM_MAX = 8;
 const WORKFLOW_TREE_LIMIT = 250;
 
 const SIZE_OPTIONS = Object.freeze([
-    { key: "compact", label: "Compact", height: 120 },
-    { key: "comfortable", label: "Comfort", height: 160 },
-    { key: "expanded", label: "Expanded", height: 220 },
+    { key: "compact", labelKey: "workflowSidebar.sizeCompact", fallback: "Compact", height: 120 },
+    { key: "comfortable", labelKey: "workflowSidebar.sizeComfort", fallback: "Comfort", height: 160 },
+    { key: "expanded", labelKey: "workflowSidebar.sizeExpanded", fallback: "Expanded", height: 220 },
 ]);
 
 const canvasRef = ref(null);
@@ -262,7 +262,9 @@ const workflowStats = computed(() => {
         nodes,
         links,
         groups,
-        source: current?.extra?.synthetic ? "Synthetic" : "Embedded",
+        source: current?.extra?.synthetic
+            ? t("workflowSidebar.sourceSynthetic", "Synthetic")
+            : t("workflowSidebar.sourceEmbedded", "Embedded"),
     };
 });
 
@@ -274,17 +276,17 @@ const currentSizeOption = computed(() => {
 const canvasHeight = computed(() => `${currentSizeOption.value.height}px`);
 
 const toggleOptions = computed(() => [
-    { key: "showNodeLabels", label: "Node Labels", iconClass: "pi pi-tag" },
-    { key: "nodeColors", label: "Node Colors", iconClass: "pi pi-palette" },
-    { key: "showLinks", label: "Show Links", iconClass: "pi pi-share-alt" },
-    { key: "showGroups", label: "Show Frames/Groups", iconClass: "pi pi-th-large" },
-    { key: "renderBypassState", label: "Render Bypass State", iconClass: "pi pi-ban" },
+    { key: "showNodeLabels", label: t("workflowSidebar.nodeLabels", "Node Labels"), iconClass: "pi pi-tag" },
+    { key: "nodeColors", label: t("workflowSidebar.nodeColors", "Node Colors"), iconClass: "pi pi-palette" },
+    { key: "showLinks", label: t("workflowSidebar.showLinks", "Show Links"), iconClass: "pi pi-share-alt" },
+    { key: "showGroups", label: t("workflowSidebar.showFramesGroups", "Show Frames/Groups"), iconClass: "pi pi-th-large" },
+    { key: "renderBypassState", label: t("workflowSidebar.renderBypassState", "Render Bypass State"), iconClass: "pi pi-ban" },
     {
         key: "renderErrorState",
-        label: "Render Error State",
+        label: t("workflowSidebar.renderErrorState", "Render Error State"),
         iconClass: "pi pi-exclamation-triangle",
     },
-    { key: "showViewport", label: "Show Viewport", iconClass: "pi pi-window-maximize" },
+    { key: "showViewport", label: t("workflowSidebar.showViewport", "Show Viewport"), iconClass: "pi pi-window-maximize" },
 ]);
 
 function renderCanvas() {
@@ -508,7 +510,7 @@ onBeforeUnmount(() => {
         <div
             style="font-size:13px;font-weight:600;color:var(--fg-color, #eaeaea);margin-bottom:12px;text-transform:uppercase;letter-spacing:0.5px"
         >
-            ComfyUI Workflow
+            {{ t("workflowSidebar.comfyWorkflow", "ComfyUI Workflow") }}
         </div>
 
         <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px">
@@ -529,15 +531,15 @@ onBeforeUnmount(() => {
             style="display:grid;grid-template-columns:repeat(3, minmax(0, 1fr));gap:8px;margin-bottom:12px"
         >
             <div style="padding:8px 10px;border-radius:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.10)">
-                <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.55);text-transform:uppercase;letter-spacing:0.4px">Nodes</div>
+                <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.55);text-transform:uppercase;letter-spacing:0.4px">{{ t("workflowSidebar.nodes", "Nodes") }}</div>
                 <div style="font-size:18px;font-weight:700;color:rgba(255,255,255,0.94);margin-top:2px">{{ workflowStats.nodes }}</div>
             </div>
             <div style="padding:8px 10px;border-radius:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.10)">
-                <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.55);text-transform:uppercase;letter-spacing:0.4px">Links</div>
+                <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.55);text-transform:uppercase;letter-spacing:0.4px">{{ t("workflowSidebar.links", "Links") }}</div>
                 <div style="font-size:18px;font-weight:700;color:rgba(255,255,255,0.94);margin-top:2px">{{ workflowStats.links }}</div>
             </div>
             <div style="padding:8px 10px;border-radius:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.10)">
-                <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.55);text-transform:uppercase;letter-spacing:0.4px">Groups</div>
+                <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.55);text-transform:uppercase;letter-spacing:0.4px">{{ t("workflowSidebar.groups", "Groups") }}</div>
                 <div style="font-size:18px;font-weight:700;color:rgba(255,255,255,0.94);margin-top:2px">{{ workflowStats.groups }}</div>
             </div>
         </div>
@@ -547,7 +549,7 @@ onBeforeUnmount(() => {
             class="mjr-workflow-tree-wrap"
         >
             <div class="mjr-section-title">
-                Workflow Nodes
+                {{ t("workflowSidebar.workflowNodes", "Workflow Nodes") }}
             </div>
             <MTree
                 :value="workflowTreeNodes"
@@ -579,7 +581,7 @@ onBeforeUnmount(() => {
                 v-if="workflowTreeOverflowCount"
                 class="mjr-section-hint"
             >
-                +{{ workflowTreeOverflowCount }} more nodes
+                {{ t("workflowSidebar.moreNodes", "+{count} more nodes", { count: workflowTreeOverflowCount }) }}
             </div>
         </div>
 
@@ -594,7 +596,7 @@ onBeforeUnmount(() => {
                     severity="secondary"
                     text
                     rounded
-                    :title="`${option.label} minimap`"
+                    :title="t('workflowSidebar.minimapSizeTitle', '{label} minimap', { label: t(option.labelKey, option.fallback) })"
                     :style="{
                         appearance: 'none',
                         border: minimapSettings.size === option.key ? '1px solid rgba(33,150,243,0.55)' : '1px solid rgba(255,255,255,0.12)',
@@ -608,7 +610,7 @@ onBeforeUnmount(() => {
                     }"
                     @click="setMinimapSize(option.key)"
                 >
-                    {{ option.label }}
+                    {{ t(option.labelKey, option.fallback) }}
                 </MButton>
             </div>
             <MButton
@@ -676,7 +678,7 @@ onBeforeUnmount(() => {
                         {{ option.label }}
                     </div>
                     <div style="font-size:11px;color:rgba(255,255,255,0.58)">
-                        {{ minimapSettings?.[option.key] ? 'On' : 'Off' }}
+                        {{ minimapSettings?.[option.key] ? t("state.on", "on") : t("state.off", "off") }}
                     </div>
                 </div>
             </MButton>
@@ -707,8 +709,8 @@ onBeforeUnmount(() => {
         </div>
 
         <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:8px;font-size:11px;color:rgba(255,255,255,0.58)">
-            <span>{{ hoveredNodeLabel || 'Click/drag to navigate · wheel to zoom' }}</span>
-            <span>{{ Math.round((minimapView.zoom || 1) * 100) }}% · {{ currentSizeOption.label }}</span>
+            <span>{{ hoveredNodeLabel || t("workflowSidebar.minimapHint", "Click/drag to navigate - wheel to zoom") }}</span>
+            <span>{{ Math.round((minimapView.zoom || 1) * 100) }}% - {{ t(currentSizeOption.labelKey, currentSizeOption.fallback) }}</span>
         </div>
 
         <details
@@ -719,7 +721,7 @@ onBeforeUnmount(() => {
             <summary
                 style="cursor:pointer;color:var(--mjr-muted, rgba(255,255,255,0.65));font-size:12px;user-select:none"
             >
-                Show raw JSON
+                {{ t("workflowSidebar.showRawJson", "Show raw JSON") }}
             </summary>
             <pre
                 style="background:rgba(0,0,0,0.5);padding:10px;border-radius:6px;font-size:11px;overflow:auto;max-height:180px;margin:10px 0 0 0;color:#90CAF9;font-family:'Consolas', 'Monaco', monospace"

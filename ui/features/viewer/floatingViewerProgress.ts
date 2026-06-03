@@ -1,8 +1,13 @@
-import { getRawHostApi, getRawHostApp, waitForRawHostApi } from "../../app/hostAdapter.js";
+import {
+    centerHostCanvasNodeById,
+    getRawHostApi,
+    getRawHostApp,
+    waitForRawHostApi,
+    wrapHostQueuePrompt,
+} from "../../app/hostAdapter.js";
 import { findGraphNodeById, getHostRootGraph } from "../../app/graphTraversal.js";
 
 const PROGRESS_UPDATE_EVENT = "progress-update";
-const QUEUE_PROMPT_PATCH_KEY = Symbol.for("mjr.mfv.progress.queuePromptPatch");
 const GLOBAL_SERVICE_KEY = "__MJR_MFV_PROGRESS_SERVICE__";
 
 function getGlobalHost() {
@@ -128,6 +133,7 @@ export class FloatingViewerProgressService extends EventTarget {
         this._api = null;
         this._listenerEntries = [];
         this._initPromise = null;
+        this._queuePromptBinding = null;
     }
 
     getSnapshot() {
@@ -189,52 +195,41 @@ export class FloatingViewerProgressService extends EventTarget {
     }
 
     _patchQueuePrompt(api: any) {
-        if (!api || typeof api.queuePrompt !== "function") return;
-        const existing = api.queuePrompt?.[QUEUE_PROMPT_PATCH_KEY];
-        if (existing?.service === this) return;
-        if (existing?.service && existing.service !== this) return;
-
-        const originalQueuePrompt = api.queuePrompt;
         const service = this;
+        this._queuePromptBinding = wrapHostQueuePrompt({
+            api,
+            owner: this,
+            createWrapper(originalQueuePrompt: any) {
+                return async function (this: any, number: any, prompt: any, ...args: any[]) {
+                    let response;
+                    try {
+                        response = await originalQueuePrompt.apply(this, [number, prompt, ...args]);
+                    } catch (error: any) {
+                        const promptExecution = service.getOrMakePrompt("error");
+                        promptExecution.error({ exception_type: "Unknown." });
+                        service.currentExecution = promptExecution;
+                        service.dispatchProgressUpdate();
+                        throw error;
+                    }
 
-        const wrappedQueuePrompt = async function (this: any, number: any, prompt: any, ...args: any[]) {
-            let response;
-            try {
-                response = await originalQueuePrompt.apply(this, [number, prompt, ...args]);
-            } catch (error: any) {
-                const promptExecution = service.getOrMakePrompt("error");
-                promptExecution.error({ exception_type: "Unknown." });
-                service.currentExecution = promptExecution;
-                service.dispatchProgressUpdate();
-                throw error;
-            }
-
-            const promptId = String(response?.prompt_id || response?.promptId || "").trim();
-            if (promptId) {
-                const promptExecution = service.getOrMakePrompt(promptId);
-                promptExecution.setPrompt(prompt);
-                if (!service.currentExecution) {
-                    service.currentExecution = promptExecution;
-                }
-                service.dispatchEvent(
-                    makeCustomEvent("queue-prompt", {
-                        prompt: promptExecution,
-                    }),
-                );
-                service.dispatchProgressUpdate();
-            }
-            return response;
-        };
-
-        Object.defineProperty(wrappedQueuePrompt, QUEUE_PROMPT_PATCH_KEY, {
-            configurable: true,
-            value: {
-                service,
-                originalQueuePrompt,
+                    const promptId = String(response?.prompt_id || response?.promptId || "").trim();
+                    if (promptId) {
+                        const promptExecution = service.getOrMakePrompt(promptId);
+                        promptExecution.setPrompt(prompt);
+                        if (!service.currentExecution) {
+                            service.currentExecution = promptExecution;
+                        }
+                        service.dispatchEvent(
+                            makeCustomEvent("queue-prompt", {
+                                prompt: promptExecution,
+                            }),
+                        );
+                        service.dispatchProgressUpdate();
+                    }
+                    return response;
+                };
             },
         });
-
-        api.queuePrompt = wrappedQueuePrompt;
     }
 
     _attachApiListeners(api: any) {
@@ -332,21 +327,15 @@ export class FloatingViewerProgressService extends EventTarget {
             }
         }
 
-        if (
-            resetPatchedQueuePrompt &&
-            this._api?.queuePrompt?.[QUEUE_PROMPT_PATCH_KEY]?.service === this
-        ) {
+        if (resetPatchedQueuePrompt && this._queuePromptBinding?.owner === this) {
             try {
-                const original =
-                    this._api.queuePrompt[QUEUE_PROMPT_PATCH_KEY]?.originalQueuePrompt || null;
-                if (typeof original === "function") {
-                    this._api.queuePrompt = original;
-                }
+                this._queuePromptBinding.restore?.();
             } catch (e: any) {
                 console.debug?.(e);
             }
         }
 
+        this._queuePromptBinding = null;
         this._api = null;
         if (!keepState) {
             this.promptsMap.clear();
@@ -517,12 +506,7 @@ function centerFloatingViewerProgressNode(viewer: any, nodeId: any) {
     const safeNodeId = String(nodeId || "").trim();
     if (!safeNodeId) return false;
     try {
-        const app = getRawHostApp();
-        const canvas = app?.canvas || null;
-        const node = findGraphNodeById(getHostRootGraph(app), safeNodeId);
-        if (!node || typeof canvas?.centerOnNode !== "function") return false;
-        canvas.centerOnNode(node);
-        return true;
+        return centerHostCanvasNodeById(safeNodeId, getRawHostApp());
     } catch (e: any) {
         console.debug?.(e);
         return false;

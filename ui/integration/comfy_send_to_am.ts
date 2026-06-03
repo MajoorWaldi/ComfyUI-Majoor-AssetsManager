@@ -12,7 +12,12 @@
  * a failure here cannot break the asset grid.
  */
 
-import { getComfyApp, getComfyApi } from "../app/comfyApiBridge.js";
+import {
+    activateSidebarTabForApp,
+    getRawHostApi,
+    getRawHostApp,
+    showToast,
+} from "../app/hostAdapter.js";
 
 const EXTENSION_ID = "MajoorAssetsManager.SendTo";
 const MENU_LABEL = "Send to Asset Manager";
@@ -30,6 +35,11 @@ const TARGET_NODE_TYPES = new Set([
     "SaveAnimatedPNG",
     "SaveAudio",
 ]);
+
+function isTargetNode(node: any) {
+    const name = String(node?.comfyClass || node?.type || "").trim();
+    return TARGET_NODE_TYPES.has(name);
+}
 
 /**
  * Resolve the most recent output filenames produced by this node from its
@@ -90,19 +100,24 @@ function collectOutputDescriptors(node: any) {
 }
 
 async function sendDescriptorsToAssetManager(descriptors: any) {
-    const app = getComfyApp();
-    const api = getComfyApi(app);
+    const app = getRawHostApp();
+    const api = getRawHostApi(app);
     if (!descriptors.length) {
-        try {
-            app?.extensionManager?.toast?.add?.({
-                severity: "warn",
-                summary: "Majoor Assets Manager",
-                detail: "No output to send (run the node first).",
-                life: 3500,
-            });
-        } catch {
-            /* ignore */
-        }
+        showToast({
+            severity: "warn",
+            summary: "Majoor Assets Manager",
+            detail: "No output to send (run the node first).",
+            life: 3500,
+        });
+        return;
+    }
+    if (!api || typeof api.fetchApi !== "function") {
+        showToast({
+            severity: "error",
+            summary: "Majoor Assets Manager",
+            detail: "ComfyUI API unavailable.",
+            life: 4000,
+        });
         return;
     }
     try {
@@ -117,19 +132,15 @@ async function sendDescriptorsToAssetManager(descriptors: any) {
         // Even when the backend endpoint isn't wired yet (404), opening the
         // sidebar tab gives the user the asset grid where freshly indexed
         // files appear within a couple seconds.
-        try {
-            app?.extensionManager?.sidebarTab?.toggleSidebarTab?.("majoor-assets");
-        } catch {
-            /* sidebar API not available */
-        }
-        app?.extensionManager?.toast?.add?.({
+        activateSidebarTabForApp(app, "majoor-assets");
+        showToast({
             severity: "success",
             summary: "Majoor Assets Manager",
             detail: `Sent ${descriptors.length} item(s) to the asset grid.`,
             life: 2500,
         });
     } catch (err: any) {
-        app?.extensionManager?.toast?.add?.({
+        showToast({
             severity: "error",
             summary: "Majoor Assets Manager",
             detail: `Failed to send: ${err?.message || err}`,
@@ -139,7 +150,7 @@ async function sendDescriptorsToAssetManager(descriptors: any) {
 }
 
 function registerSendToMenu() {
-    const app = getComfyApp();
+    const app = getRawHostApp();
     if (!app || typeof app.registerExtension !== "function") {
         // ComfyUI not ready yet — retry shortly. The main bundle is loaded
         // before app.js is exposed on globalThis in some Vite builds.
@@ -148,33 +159,22 @@ function registerSendToMenu() {
     }
     app.registerExtension({
         name: EXTENSION_ID,
-        async beforeRegisterNodeDef(nodeType: any, nodeData: any) {
+        getNodeMenuItems(node: any) {
             try {
-                const name = String(nodeData?.name || "");
-                if (!TARGET_NODE_TYPES.has(name)) {
-                    return;
+                if (!isTargetNode(node)) {
+                    return [];
                 }
-                const prevGetMenu = nodeType.prototype.getExtraMenuOptions;
-                nodeType.prototype.getExtraMenuOptions = function (canvas: any, options: any) {
-                    // Preserve any options injected by other extensions.
-                    if (typeof prevGetMenu === "function") {
-                        try {
-                            prevGetMenu.apply(this, arguments);
-                        } catch {
-                            /* upstream menu hook should never break ours */
-                        }
-                    }
-                    const self = this;
-                    options.push({
+                return [
+                    {
                         content: MENU_LABEL,
                         callback: () => {
-                            const descriptors = collectOutputDescriptors(self);
+                            const descriptors = collectOutputDescriptors(node);
                             void sendDescriptorsToAssetManager(descriptors);
                         },
-                    });
-                };
+                    },
+                ];
             } catch {
-                /* extension must not crash node registration */
+                return [];
             }
         },
     });

@@ -3,6 +3,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+    findWorkflowNode,
     getNodeDisplayName,
     getNodeInputSlotNames,
     getNodeParamEntries,
@@ -385,5 +386,49 @@ describe("workflow graph map data", () => {
                 expect.arrayContaining([10, "3::1", 0, "3::1", 0, "IMAGE"]),
             ]),
         );
+    });
+
+    it("supports root-only mode for node listing and lookup", () => {
+        const workflow = {
+            nodes: [
+                {
+                    id: 2,
+                    type: "sg-runtime",
+                    subgraph: {
+                        id: "runtime-subgraph",
+                        nodes: [{ id: 1, type: "InnerRuntime" }],
+                        links: [],
+                    },
+                },
+            ],
+            links: [],
+        };
+
+        expect(getWorkflowNodes(workflow, { includeSubgraphs: false }).map((node: any) => String(node.id))).toEqual(["2"]);
+        expect(getWorkflowNodes(workflow, { includeSubgraphs: true }).map((node: any) => String(node.id))).toEqual(["2", "1"]);
+        expect(findWorkflowNode(workflow, "2::1", { includeSubgraphs: false })).toBeNull();
+        expect(findWorkflowNode(workflow, "2::1", { includeSubgraphs: true })?.type).toBe("InnerRuntime");
+    });
+
+    it("treats array-like widgets_values safely and prefers input slot labels", () => {
+        const node = {
+            id: 12,
+            type: "Sampler",
+            inputs: [
+                { name: "seed", type: "INT", widget: { name: "seed" } },
+                { name: "steps", type: "INT", widget: { name: "steps" } },
+            ],
+            widgets: [{ name: "swapped_steps" }, { name: "swapped_seed" }],
+            widgets_values: {
+                0: 123,
+                1: 28,
+                length: 2,
+            },
+        };
+
+        expect(getNodeWidgetValueEntries(node)).toEqual([
+            { label: "seed", value: 123, index: 0 },
+            { label: "steps", value: 28, index: 1 },
+        ]);
     });
 });

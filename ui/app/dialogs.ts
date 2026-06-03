@@ -6,11 +6,11 @@
  */
 
 import type { MajoorComfyApp, MajoorExtensionDialog, MajoorExtensionToast } from "../types/comfyui-frontend.js";
-import { getComfyApp, getExtensionDialogApi, getExtensionToastApi } from "./comfyApiBridge.js";
+import { getHostDialogApi, getHostToastApi, getRawHostApp } from "./hostAdapter.js";
 
 export const getComfyUi = (): MajoorComfyApp['ui'] | null => {
     try {
-        const app = getComfyApp();
+        const app = getRawHostApp();
         return app?.ui || null;
     } catch {
         return null;
@@ -24,17 +24,7 @@ export const getExtensionManagerDialog = (): MajoorExtensionDialog | null => {
             typeof dlg.confirm === "function" ||
             typeof dlg.prompt === "function");
     try {
-        const app = getComfyApp();
-        const dlg = getExtensionDialogApi(app);
-        if (hasDialogMethod(dlg)) {
-            return dlg;
-        }
-    } catch (e) {
-        console.debug?.(e);
-    }
-    try {
-        const app = typeof window !== "undefined" ? window?.app : null;
-        const dlg = app?.extensionManager?.dialog || null;
+        const dlg = getHostDialogApi();
         if (hasDialogMethod(dlg)) {
             return dlg;
         }
@@ -46,17 +36,7 @@ export const getExtensionManagerDialog = (): MajoorExtensionDialog | null => {
 
 export const getExtensionManagerToast = (): MajoorExtensionToast | null => {
     try {
-        const app = getComfyApp();
-        const toast = getExtensionToastApi(app);
-        if (toast && typeof toast.add === "function") {
-            return toast;
-        }
-    } catch (e) {
-        console.debug?.(e);
-    }
-    try {
-        const app = typeof window !== "undefined" ? window?.app : null;
-        const toast = app?.extensionManager?.toast || null;
+        const toast = getHostToastApi();
         if (toast && typeof toast.add === "function") {
             return toast;
         }

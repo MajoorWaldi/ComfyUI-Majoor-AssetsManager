@@ -29,6 +29,7 @@ function isDefaultBrowseContext(state: Record<string, any> = {}, stableQuery = "
         !(Number(state.maxWidth || 0) > 0) &&
         !(Number(state.maxHeight || 0) > 0) &&
         !String(state.workflowType || "").trim() &&
+        !String(state.workflowId || "").trim() &&
         !state.dateRangeFilter &&
         !state.dateExactFilter
     );

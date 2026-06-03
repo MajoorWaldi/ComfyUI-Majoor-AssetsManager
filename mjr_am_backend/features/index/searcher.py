@@ -281,6 +281,7 @@ def _build_filter_clauses(filters: dict[str, Any] | None, alias: str = "a") -> t
     _append_subfolder_filter(filters, alias, clauses, params)
     _append_numeric_range_filters(filters, alias, clauses, params)
     _append_tag_filter(filters, clauses, params)
+    _append_workflow_id_filter(filters, alias, clauses, params)
     _append_workflow_type_filter(filters, clauses, params)
     _append_has_workflow_filter(filters, clauses)
     _append_mtime_filters(filters, alias, clauses, params)
@@ -421,6 +422,28 @@ def _append_workflow_type_filter(filters: dict[str, Any], clauses: list[str], pa
         f")) IN ({placeholders})"
     )
     params.extend(variants)
+
+
+def _append_workflow_id_filter(
+    filters: dict[str, Any],
+    alias: str,
+    clauses: list[str],
+    params: list[Any],
+) -> None:
+    workflow_id = str(filters.get("workflow_id") or "").strip()
+    if not workflow_id:
+        return
+    workflow_id = workflow_id[:255]
+    workflow_id_expr = _safe_metadata_json_extract("$.workflow_id")
+    workflow_obj_id_expr = _safe_metadata_json_extract("$.workflow.id")
+    clauses.append(
+        "AND ("
+        f"TRIM(COALESCE({alias}.workflow_id, '')) = ? "
+        f"OR {workflow_id_expr} = ? "
+        f"OR {workflow_obj_id_expr} = ?"
+        ")"
+    )
+    params.extend([workflow_id, workflow_id, workflow_id])
 
 
 def _workflow_type_variants(raw: str) -> list[str]:

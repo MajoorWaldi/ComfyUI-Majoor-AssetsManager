@@ -10,7 +10,7 @@ import { safeDispatchCustomEvent } from "../../utils/events.js";
 import { initI18n, setFollowComfyLanguage, startComfyLanguageSync } from "../i18n.js";
 import { debounce } from "../../utils/debounce.js";
 import { getWatcherStatus, toggleWatcher } from "../../api/client.js";
-import { setSettingValue } from "../comfyApiBridge.js";
+import { setSettingForApp } from "../hostAdapter.js";
 
 import {
     loadMajoorSettings,
@@ -148,7 +148,7 @@ function syncComfySettingValue(app: any, definition: any, value: any) {
     if (_syncingComfySettingIds.has(id)) return false;
     _syncingComfySettingIds.add(id);
     try {
-        return setSettingValue(app, id, value);
+        return setSettingForApp(app, id, value);
     } finally {
         _syncingComfySettingIds.delete(id);
     }

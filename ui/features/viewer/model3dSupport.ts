@@ -1,4 +1,5 @@
 import { drawMediaError } from "./imageProcessor.js";
+import { t } from "../../app/i18n.js";
 
 const MODEL3D_ANIMATION_SPEEDS = [0.25, 0.5, 1.0, 1.5, 2.0];
 const MODEL3D_ANIM_BAR_HEIGHT_PX = 44;
@@ -30,7 +31,7 @@ export function createModel3DViewportButton(label: string, title: string): HTMLB
     button.type = "button";
     button.textContent = String(label || "");
     button.title = String(title || label || "");
-    button.setAttribute("aria-label", String(title || label || "3D viewport action"));
+    button.setAttribute("aria-label", String(title || label || t("model3d.viewportAction", "3D viewport action")));
     button.style.cssText = [
         "height:28px",
         "padding:0 10px",
@@ -117,7 +118,7 @@ export function drawModel3DMessage(canvas: HTMLCanvasElement, title: string, hin
         ctx.font = "600 18px system-ui, sans-serif";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-        ctx.fillText(String(title || "3D preview"), cx, cy + 44);
+        ctx.fillText(String(title || t("model3d.preview", "3D preview")), cx, cy + 44);
         if (hint) {
             ctx.fillStyle = "rgba(255,255,255,0.62)";
             ctx.font = "13px system-ui, sans-serif";
@@ -126,7 +127,7 @@ export function drawModel3DMessage(canvas: HTMLCanvasElement, title: string, hin
     } catch (e: any) {
         console.debug?.(e);
         try {
-            drawMediaError(canvas, title, hint || "3D viewer unavailable");
+            drawMediaError(canvas, title, hint || t("model3d.unavailable", "3D viewer unavailable"));
         } catch (err: any) {
             console.debug?.(err);
         }
@@ -260,7 +261,7 @@ export function createModel3DSettingsPanel({
     bgInput.value = defaultBgColor || "#282828";
     bgInput.style.cssText =
         "width:34px;height:24px;cursor:pointer;border:1px solid rgba(255,255,255,0.18);border-radius:4px;padding:1px;background:none;flex-shrink:0;";
-    addRow("Background", bgInput);
+    addRow(t("model3d.background", "Background"), bgInput);
 
     addSectionHeader("Model");
     const materialSel = makeSelect(
@@ -273,7 +274,7 @@ export function createModel3DSettingsPanel({
         ],
         "original",
     );
-    addRow("Material", materialSel);
+    addRow(t("model3d.material", "Material"), materialSel);
 
     const upSel = makeSelect(
         [
@@ -296,16 +297,16 @@ export function createModel3DSettingsPanel({
         skeletonToggle.type = "checkbox";
         skeletonToggle.checked = false;
         skeletonToggle.style.cssText = "cursor:pointer;accent-color:#4CAF50;flex-shrink:0;";
-        skeletonRow = addRow("Skeleton", skeletonToggle);
+        skeletonRow = addRow(t("model3d.skeleton", "Skeleton"), skeletonToggle);
     }
 
     addSectionHeader("Camera");
     const fovData = makeSlider(15, 120, 1, defaultFov ?? 75);
     addRow("FOV", fovData.wrap);
 
-    addSectionHeader("Lights");
+    addSectionHeader(t("model3d.lights", "Lights"));
     const lightData = makeSlider(0, 5, 0.1, defaultLightIntensity ?? 1.0);
-    addRow("Intensity", lightData.wrap);
+    addRow(t("model3d.intensity", "Intensity"), lightData.wrap);
 
     return {
         panel,
@@ -355,8 +356,8 @@ export function createModel3DAnimationBar() {
 
     const playBtn = document.createElement("button");
     playBtn.type = "button";
-    playBtn.textContent = "Play";
-    playBtn.title = "Play / Pause";
+    playBtn.textContent = t("model3d.play", "Play");
+    playBtn.title = t("model3d.playPause", "Play / Pause");
     playBtn.style.cssText = [
         "width:28px",
         "height:28px",
@@ -375,7 +376,7 @@ export function createModel3DAnimationBar() {
     ].join(";");
 
     const speedSel = document.createElement("select");
-    speedSel.title = "Playback speed";
+    speedSel.title = t("model3d.playbackSpeed", "Playback speed");
     speedSel.style.cssText = [
         "background:rgba(20,24,34,0.9)",
         "color:rgba(255,255,255,0.8)",

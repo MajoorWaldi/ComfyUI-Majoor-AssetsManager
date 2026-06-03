@@ -1,7 +1,7 @@
 import {
     synthesizeWorkflowFromPromptGraph,
 } from "../../../components/sidebar/utils/minimap.js";
-import { fetchComfyApi } from "../../../app/comfyApiBridge.js";
+import { fetchHostApi } from "../../../app/hostAdapter.js";
 import {
     getWorkflowNodeDisplayName,
     getWorkflowNodeRawType,
@@ -24,7 +24,7 @@ export async function ensureWorkflowObjectInfo(workflow: any): Promise<unknown> 
     if (!missing.length) return;
     try {
         if (!OBJECT_INFO_ALL_PROMISE) {
-            OBJECT_INFO_ALL_PROMISE = fetchComfyApi("/object_info")
+            OBJECT_INFO_ALL_PROMISE = fetchHostApi("/object_info")
                 .then((res: any) => (res?.ok ? res.json() : null))
                 .then((data: any) => {
                     if (data && typeof data === "object") {
@@ -55,26 +55,33 @@ export function resolveAssetWorkflow(asset: any): any {
     return null;
 }
 
-export function getWorkflowNodes(workflow: any): unknown[] {
+export function getWorkflowNodes(workflow: any, options: any = null): unknown[] {
+    const includeSubgraphs = options?.includeSubgraphs !== false;
     const nodes = Array.isArray(workflow?.nodes) ? workflow.nodes.filter(Boolean) : [];
+    if (!includeSubgraphs) return nodes;
     const out = [...nodes];
     const definitions = _getSubgraphDefinitions(workflow);
     for (const node of nodes) {
         const subgraph = _getNodeSubgraph(workflow, node, definitions);
-        if (subgraph) out.push(...getWorkflowNodes(subgraph));
+        if (!subgraph) continue;
+        out.push(...getWorkflowNodes(subgraph, options));
     }
     return out;
 }
 
-export function findWorkflowNode(workflow: any, nodeId: any): any {
+export function findWorkflowNode(workflow: any, nodeId: any, options: any = null): any {
+    const includeSubgraphs = options?.includeSubgraphs !== false;
     const wanted = String(nodeId ?? "");
     if (!wanted) return null;
+    if (!includeSubgraphs) {
+        return (
+            (Array.isArray(workflow?.nodes) ? workflow.nodes : []).find(
+                (node: any) => String(node?.id ?? node?.ID ?? "") === wanted,
+            ) || null
+        );
+    }
     if (wanted.includes("::")) {
-        const [parentId, ...rest] = wanted.split("::");
-        const childId = rest.join("::");
-        const parent = findWorkflowNode(workflow, parentId);
-        const subgraph = parent ? _getNodeSubgraph(workflow, parent, _getSubgraphDefinitions(workflow)) : null;
-        return subgraph ? findWorkflowNode(subgraph, childId) : null;
+        return _findWorkflowNodeByPath(workflow, wanted.split("::").filter(Boolean));
     }
     const direct =
         (Array.isArray(workflow?.nodes) ? workflow.nodes : []).find(
@@ -145,10 +152,10 @@ function _getNodeValueParamEntries(node: any) {
 
 export function getNodeWidgetValueEntries(node: any) {
     const widgetsValuesRaw = node?.widgets_values;
-    if (widgetsValuesRaw && typeof widgetsValuesRaw === "object" && !Array.isArray(widgetsValuesRaw)) {
+    if (_isPlainObjectWidgetsMap(widgetsValuesRaw)) {
         return Object.entries(widgetsValuesRaw).map(([label, value], index) => ({ label, value, index }));
     }
-    const widgetsValues = Array.isArray(widgetsValuesRaw) ? widgetsValuesRaw : [];
+    const widgetsValues = _coerceWidgetValuesArray(widgetsValuesRaw);
     const widgets = Array.isArray(node?.widgets) ? node.widgets : [];
     const objectInfo = getNodeObjectInfo(node);
     const objectInputNames = getObjectInfoWidgetInputNames(objectInfo);
@@ -156,14 +163,41 @@ export function getNodeWidgetValueEntries(node: any) {
     return widgetsValues.map((value, index) => {
         const guessedLabel = _guessWidgetLabel(node, index, value);
         const label =
-            widgets[index]?.name ||
-            widgets[index]?.label ||
             objectInputNames[index] ||
             inputSlotNames[index] ||
+            widgets[index]?.name ||
+            widgets[index]?.label ||
             guessedLabel ||
             `param ${index + 1}`;
         return { label, value, index };
     });
+}
+
+function _isPlainObjectWidgetsMap(widgetsValuesRaw: any) {
+    return Boolean(
+        widgetsValuesRaw &&
+            typeof widgetsValuesRaw === "object" &&
+            !Array.isArray(widgetsValuesRaw) &&
+            !_looksArrayLikeWidgetsValues(widgetsValuesRaw),
+    );
+}
+
+function _coerceWidgetValuesArray(widgetsValuesRaw: any) {
+    if (Array.isArray(widgetsValuesRaw)) return widgetsValuesRaw;
+    if (!_looksArrayLikeWidgetsValues(widgetsValuesRaw)) return [];
+    const length = Math.max(0, Math.floor(Number(widgetsValuesRaw.length) || 0));
+    const out = [];
+    for (let index = 0; index < length; index += 1) {
+        out.push(widgetsValuesRaw[index]);
+    }
+    return out;
+}
+
+function _looksArrayLikeWidgetsValues(widgetsValuesRaw: any) {
+    if (!widgetsValuesRaw || typeof widgetsValuesRaw !== "object" || Array.isArray(widgetsValuesRaw)) return false;
+    const length = Number(widgetsValuesRaw.length);
+    if (!Number.isFinite(length) || length < 0) return false;
+    return true;
 }
 
 export function getNodeInputSlotNames(node: any) {
@@ -598,4 +632,23 @@ function _getNodeSubgraph(workflow: any, node: any, definitions = _getSubgraphDe
     }
     if (Array.isArray(node?.nodes)) return { nodes: node.nodes };
     return null;
+}
+
+function _findWorkflowNodeByPath(workflow: any, idPath: any[]) {
+    let cursorGraph = workflow;
+    let resolvedNode = null;
+    for (let index = 0; index < idPath.length; index += 1) {
+        const idPart = String(idPath[index] ?? "").trim();
+        if (!idPart) return null;
+        resolvedNode =
+            (Array.isArray(cursorGraph?.nodes) ? cursorGraph.nodes : []).find(
+                (node: any) => String(node?.id ?? node?.ID ?? "") === idPart,
+            ) || null;
+        if (!resolvedNode) return null;
+        if (index >= idPath.length - 1) break;
+        const subgraph = _getNodeSubgraph(cursorGraph, resolvedNode, _getSubgraphDefinitions(cursorGraph));
+        if (!subgraph) return null;
+        cursorGraph = subgraph;
+    }
+    return resolvedNode;
 }

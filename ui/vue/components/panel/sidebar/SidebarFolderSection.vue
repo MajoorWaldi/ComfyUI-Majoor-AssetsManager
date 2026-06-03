@@ -1,5 +1,6 @@
 <script setup>
 import { computed } from "vue";
+import { t } from "../../../../app/i18n.js";
 import { formatDate, formatTime } from "../../../../utils/format.js";
 
 const props = defineProps({
@@ -31,20 +32,24 @@ const rows = computed(() => {
     const ctime = Number(data.ctime ?? 0);
     const truncated = !!data.truncated;
     const result = [
-        { label: "Name", value: name || "-" },
-        { label: "Path", value: path || "-" },
-        { label: "Folders", value: Number.isFinite(folders) ? String(folders) : "-" },
-        { label: "Files", value: Number.isFinite(files) ? String(files) : "-" },
-        { label: "Size", value: formatBytes(size) },
+        { label: t("sidebar.folder.name", "Name"), value: name || "-" },
+        { label: t("sidebar.folder.path", "Path"), value: path || "-" },
+        { label: t("sidebar.folder.folders", "Folders"), value: Number.isFinite(folders) ? String(folders) : "-" },
+        { label: t("sidebar.folder.files", "Files"), value: Number.isFinite(files) ? String(files) : "-" },
+        { label: t("sidebar.size", "Size"), value: formatBytes(size) },
     ];
     if (ctime > 0) {
-        result.push({ label: "Created", value: `${formatDate(ctime) || "-"} ${formatTime(ctime) || ""}`.trim() });
+        result.push({ label: t("sidebar.folder.created", "Created"), value: `${formatDate(ctime) || "-"} ${formatTime(ctime) || ""}`.trim() });
     }
     if (mtime > 0) {
-        result.push({ label: "Modified", value: `${formatDate(mtime) || "-"} ${formatTime(mtime) || ""}`.trim() });
+        result.push({ label: t("sidebar.folder.modified", "Modified"), value: `${formatDate(mtime) || "-"} ${formatTime(mtime) || ""}`.trim() });
     }
     if (truncated) {
-        result.push({ label: "Note", value: "Scan was truncated for performance", valueStyle: "color:#FFB74D;font-weight:600;" });
+        result.push({
+            label: t("sidebar.folder.note", "Note"),
+            value: t("sidebar.folder.scanTruncated", "Scan was truncated for performance"),
+            valueStyle: "color:#FFB74D;font-weight:600;",
+        });
     }
     return result;
 });
@@ -70,7 +75,7 @@ const rows = computed(() => {
                 letter-spacing: 0.4px;
             "
         >
-            Folder Details
+            {{ t("sidebar.folder.details", "Folder Details") }}
         </div>
         <div style="display: flex; flex-direction: column; gap: 6px">
             <div

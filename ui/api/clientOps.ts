@@ -429,7 +429,7 @@ export async function getCollectionAssets(collectionId: any) {
 /**
  * Semantic search by natural-language query via SigLIP2 embeddings.
  * @param {string} query
- * @param {number|{topK?:number, scope?:string, customRootId?:string, subfolder?:string, kind?:string, hasWorkflow?:boolean, minRating?:number, minSizeMB?:number, maxSizeMB?:number, minWidth?:number, minHeight?:number, maxWidth?:number, maxHeight?:number, workflowType?:string, dateRange?:string, dateExact?:string}} [topKOrOptions=20]
+ * @param {number|{topK?:number, scope?:string, customRootId?:string, subfolder?:string, kind?:string, hasWorkflow?:boolean, minRating?:number, minSizeMB?:number, maxSizeMB?:number, minWidth?:number, minHeight?:number, maxWidth?:number, maxHeight?:number, workflowType?:string, workflowId?:string, dateRange?:string, dateExact?:string}} [topKOrOptions=20]
  * @returns {Promise<ApiResult<{asset_id:number, score:number}[]>>}
  */
 export async function vectorSearch(query: any, topKOrOptions: number | Record<string, any> = 20) {
@@ -457,6 +457,7 @@ export async function vectorSearch(query: any, topKOrOptions: number | Record<st
         maxWidth: opts?.maxWidth ?? null,
         maxHeight: opts?.maxHeight ?? null,
         workflowType: opts?.workflowType ?? null,
+        workflowId: opts?.workflowId ?? null,
         dateRange: opts?.dateRange ?? null,
         dateExact: opts?.dateExact ?? null,
     });
@@ -710,6 +711,7 @@ export async function hybridSearch(
         maxWidth = null,
         maxHeight = null,
         workflowType = null,
+        workflowId = null,
         dateRange = null,
         dateExact = null,
     } = {},
@@ -730,6 +732,7 @@ export async function hybridSearch(
         maxWidth,
         maxHeight,
         workflowType,
+        workflowId,
         dateRange,
         dateExact,
     });

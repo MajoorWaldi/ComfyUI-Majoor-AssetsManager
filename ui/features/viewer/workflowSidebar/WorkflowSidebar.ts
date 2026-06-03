@@ -7,6 +7,7 @@
 
 import { WorkflowNodesTab } from "./WorkflowNodesTab.js";
 import { WorkflowGraphMapPanel } from "../workflowGraphMap/WorkflowGraphMapPanel.js";
+import { t } from "../../../app/i18n.js";
 
 const LIVE_SYNC_FALLBACK_MS = 16;
 const LIVE_SYNC_INTERVAL_MS = 250;
@@ -128,13 +129,13 @@ export class WorkflowSidebar {
 
         const title = document.createElement("span");
         title.className = "mjr-ws-sidebar-title";
-        title.textContent = "Nodes";
+        title.textContent = t("workflowSidebar.nodes", "Nodes");
         header.appendChild(title);
 
         const closeBtn = document.createElement("button");
         closeBtn.type = "button";
         closeBtn.className = "mjr-icon-btn";
-        closeBtn.title = "Close sidebar";
+        closeBtn.title = t("workflowSidebar.close", "Close sidebar");
         closeBtn.innerHTML = '<i class="pi pi-times" aria-hidden="true"></i>';
         closeBtn.addEventListener("click", () => {
             const wasGraph = this._activeMode === "graph";
@@ -147,8 +148,8 @@ export class WorkflowSidebar {
 
         const tabBar = document.createElement("div");
         tabBar.className = "mjr-ws-tab-bar";
-        this._nodesModeBtn = this._makeModeButton("Nodes", "pi pi-sliders-h", "nodes");
-        this._graphModeBtn = this._makeModeButton("Graph Map", "pi pi-sitemap", "graph");
+        this._nodesModeBtn = this._makeModeButton(t("workflowSidebar.nodes", "Nodes"), "pi pi-sliders-h", "nodes");
+        this._graphModeBtn = this._makeModeButton(t("workflowSidebar.graphMap", "Graph Map"), "pi pi-sitemap", "graph");
         tabBar.appendChild(this._nodesModeBtn);
         tabBar.appendChild(this._graphModeBtn);
         panel.appendChild(tabBar);

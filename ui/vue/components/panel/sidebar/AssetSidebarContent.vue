@@ -8,6 +8,7 @@
 import { computed } from "vue";
 import { closeSidebar } from "../../../../components/sidebar/SidebarView.js";
 import { loadMajoorSettings } from "../../../../app/settings.js";
+import { t } from "../../../../app/i18n.js";
 import SidebarHeaderSection from "./SidebarHeaderSection.vue";
 import SidebarPreviewSection from "./SidebarPreviewSection.vue";
 import SidebarFileInfoSection from "./SidebarFileInfoSection.vue";
@@ -72,14 +73,14 @@ function handleClose() {
                 style="display:flex;flex-direction:column;gap:10px"
             >
                 <div style="display:flex;align-items:center;gap:8px">
-                    <span style="font-size:0.8em;opacity:0.6;min-width:44px">Rating</span>
+                    <span style="font-size:0.8em;opacity:0.6;min-width:44px">{{ t("sidebar.rating", "Rating") }}</span>
                     <RatingEditor
                         :asset="asset"
                         :model-value="rating"
                     />
                 </div>
                 <div style="display:flex;flex-direction:column;gap:4px">
-                    <span style="font-size:0.8em;opacity:0.6">Tags</span>
+                    <span style="font-size:0.8em;opacity:0.6">{{ t("sidebar.tags", "Tags") }}</span>
                     <TagsEditor
                         :asset="asset"
                         :model-value="tags"

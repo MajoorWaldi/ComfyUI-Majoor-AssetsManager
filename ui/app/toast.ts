@@ -6,7 +6,7 @@
  *
  * Priority integration with ComfyUI extensionManager.toast API (ComfyUI v1.3+).
  */
-import { getComfyApp, getExtensionToastApi } from "./comfyApiBridge.js";
+import { getHostToastApi } from "./hostAdapter.js";
 import { t } from "./i18n.js";
 import { addToastHistory } from "../features/panel/messages/toastHistory.js";
 
@@ -454,11 +454,10 @@ export function comfyToast(message: any, type = "info", duration?: number | null
 
     // Treat as persistent only when caller explicitly passes 0 or a non-finite value.
     const persistent = !(Number.isFinite(Number(duration)) && Number(duration) > 0);
-    const app = getComfyApp();
 
     // 1. Try ComfyUI extensionManager toast (ComfyUI v1.3+ standard)
     try {
-        const toastApi = getExtensionToastApi(app);
+        const toastApi = getHostToastApi();
         if (toastApi && typeof toastApi.add === "function") {
             let severity = type;
             if (severity === "warning") severity = "warn"; // PrimeVue uses "warn" not "warning"
@@ -491,9 +490,10 @@ export function comfyToast(message: any, type = "info", duration?: number | null
     }
 
     // 2. Try generic ComfyUI app.ui.toast (Older or alternative implementations)
-    if (app?.ui?.toast) {
+    const legacyApp = (globalThis as any)?.app || (typeof window !== "undefined" ? (window as any)?.app : null);
+    if (legacyApp?.ui?.toast) {
         try {
-            return app.ui.toast(message, type);
+            return legacyApp.ui.toast(message, type);
         } catch (e) {
             console.debug("Native app.ui.toast failed", e);
         }
