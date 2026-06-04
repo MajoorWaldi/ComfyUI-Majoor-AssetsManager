@@ -279,7 +279,7 @@ export class NodeWidgetRenderer {
             badgeCount.textContent = String(this._childCount);
             badge.appendChild(badgeCount);
             header.appendChild(badge);
-            this._subgraphHeaderTitle = `${displayType} · Subgraph · ${this._childCount} inner node${this._childCount !== 1 ? "s" : ""}`;
+            this._subgraphHeaderTitle = `${displayType} | Subgraph | ${this._childCount} inner node${this._childCount !== 1 ? "s" : ""}`;
             header.title = this._subgraphHeaderTitle;
         }
 
@@ -401,7 +401,7 @@ export class NodeWidgetRenderer {
         if (this._header) {
             const actionTitle = this._expanded ? "Collapse node" : "Expand node";
             this._header.title = this._subgraphHeaderTitle
-                ? `${this._subgraphHeaderTitle} · ${actionTitle}`
+                ? `${this._subgraphHeaderTitle} | ${actionTitle}`
                 : actionTitle;
         }
     }

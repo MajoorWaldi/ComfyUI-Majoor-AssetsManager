@@ -74,7 +74,7 @@ const displayTags = computed(() => {
     border-radius: 4px;
     background: rgba(0, 0, 0, 0.8);
     font-size: 9px;
-    /* Reserve room for the gentime badge (≈ 50px) at the bottom-right */
+    /* Reserve room for the gentime badge (about 50px) at the bottom-right */
     max-width: calc(100% - 56px);
     overflow: hidden;
     text-overflow: ellipsis;

@@ -1,5 +1,5 @@
 /**
- * Majoor Assets Manager — Comfy-like theme layer
+ * Majoor Assets Manager - Comfy-like theme layer
  *
  * RULES:
  * - Do NOT hardcode a custom palette; use existing ComfyUI CSS variables via var(...).
@@ -26,7 +26,7 @@
     color: var(--fg-color, var(--content-fg, var(--input-text, #ddd)));
 
     /*
-     * Surfaces — priority: ComfyUI v1.42 design-system token → legacy token → hard fallback
+     * Surfaces - priority: ComfyUI v1.42 design-system token -> legacy token -> hard fallback
      * New tokens: --interface-panel-surface, --interface-menu-surface, --interface-panel-hover-surface,
      *             --modal-card-background, --button-surface, --button-hover-surface,
      *             --interface-panel-selected-surface, --primary-background, --muted-foreground,
@@ -44,7 +44,7 @@
     --mjr-btn-hover: var(--button-hover-surface, var(--mjr-surface-2));
     --mjr-selected-surface: var(--interface-panel-selected-surface, rgba(95, 179, 255, 0.15));
 
-    /* Radii — use ComfyUI design-system radius tokens when available */
+    /* Radii - use ComfyUI design-system radius tokens when available */
     --mjr-r-sm: var(--radius-sm, 8px);
     --mjr-r-md: var(--radius-md, 10px);
     --mjr-r-lg: var(--radius-lg, 12px);
@@ -54,7 +54,7 @@
     --mjr-pad-md: 12px;
     --mjr-pad-lg: 16px;
 
-    /* Semantic Status Colors — prefer ComfyUI v1.42 semantic tokens */
+    /* Semantic Status Colors - prefer ComfyUI v1.42 semantic tokens */
     --mjr-status-success: var(--success-background, var(--comfy-status-success, #4caf50));
     --mjr-status-warning: var(--warning-background, var(--comfy-status-warning, #ffa726));
     --mjr-status-error: var(--destructive-background, var(--comfy-status-error, #f44336));
@@ -203,7 +203,7 @@
     box-shadow: 0 0 0 1px color-mix(in srgb, var(--mjr-accent) 35%, transparent);
 }
 
-/* Floating Viewer button — teal glow when viewer is open */
+/* Floating Viewer button - teal glow when viewer is open */
 .mjr-assets-manager .mjr-icon-btn.mjr-mfv-btn-active {
     color: #4dd9c0;
     border-color: rgba(77, 217, 192, 0.55);
@@ -604,7 +604,7 @@
     text-decoration: underline;
 }
 
-/* Toast History tab — unread indicator dot */
+/* Toast History tab - unread indicator dot */
 .mjr-tab-unread-dot {
     display: inline-block;
     width: 6px;
@@ -2226,13 +2226,13 @@
     transition: opacity 120ms ease;
 }
 
-/* ─── Hover info overlay (positive prompt + gen time) ───────────────────────
+/* --- Hover info overlay (positive prompt + gen time) -----------------------
    Slides up from the bottom of .mjr-thumb on card hover.
-   pointer-events: none  → never blocks video mouseenter / play-on-hover.
-   z-index: 2           → sits above the thumbnail image, below the play icon.
+   pointer-events: none  -> never blocks video mouseenter / play-on-hover.
+   z-index: 2           -> sits above the thumbnail image, below the play icon.
    Controlled by the .mjr-show-hover-info class on the grid container, which
    is toggled via the "Show prompt on hover" setting.
-   ─────────────────────────────────────────────────────────────────────────── */
+   --------------------------------------------------------------------------- */
 .mjr-assets-manager .mjr-card-hover-info {
     position: absolute;
     bottom: 0;
@@ -4501,11 +4501,11 @@
     display: none;
 }
 
-/* ══════════════════════════════════════════════════════════════════════════
-   Majoor Floating Viewer (MFV) — portaled to document.body
+/* --------------------------------------------------------------------------
+   Majoor Floating Viewer (MFV) - portaled to document.body
    Redeclares CSS variables so the panel works outside .mjr-assets-manager
    (same pattern as .mjr-popover)
-   ══════════════════════════════════════════════════════════════════════════ */
+   -------------------------------------------------------------------------- */
 
 .mjr-mfv {
     --mjr-surface-0: var(--content-bg, #1e1e1e);
@@ -4579,7 +4579,7 @@ body.mjr-mfv-popout-body {
     isolation: isolate;
 }
 
-/* ── Header (drag handle) ─────────────────────────────────────────────── */
+/* -- Header (drag handle) ----------------------------------------------- */
 .mjr-mfv-header {
     display: flex;
     align-items: center;
@@ -4609,7 +4609,7 @@ body.mjr-mfv-popout-body {
     letter-spacing: 0.28px;
 }
 
-/* ── Toolbar ─────────────────────────────────────────────────────────── */
+/* -- Toolbar ----------------------------------------------------------- */
 .mjr-mfv-toolbar {
     display: flex;
     align-items: center;
@@ -4738,7 +4738,7 @@ body.mjr-mfv-popout-body {
     box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--mjr-accent) 24%, transparent);
 }
 
-/* ── Pin group: now a dropdown menu (display:none by default, flex when .is-open) ── */
+/* -- Pin group: now a dropdown menu (display:none by default, flex when .is-open) -- */
 .mjr-mfv-pin-group {
     display: none;
     flex-direction: column;
@@ -4787,7 +4787,7 @@ body.mjr-mfv-popout-body {
     color: #eef7ff;
 }
 
-/* ── Icon Dropdown component (.mjr-mfv-idrop) ─────────────────────────── */
+/* -- Icon Dropdown component (.mjr-mfv-idrop) --------------------------- */
 .mjr-mfv-idrop {
     position: relative;
     display: inline-flex;
@@ -4848,7 +4848,7 @@ body.mjr-mfv-popout-body {
     line-height: 1;
 }
 
-/* Toolbar icon-button popovers (channel, guides, pin, format — sort-style context menus) */
+/* Toolbar icon-button popovers (channel, guides, pin, format - sort-style context menus) */
 .mjr-mfv-ch-popover,
 .mjr-mfv-guides-popover,
 .mjr-mfv-pin-popover,
@@ -4869,7 +4869,7 @@ body.mjr-mfv-popout-body {
 .mjr-mfv-format-popover.is-open {
     display: block;
 }
-/* Toolbar icon images — ch icon is black (inverted), guides icon is native white */
+/* Toolbar icon images - ch icon is black (inverted), guides icon is native white */
 .mjr-mfv-ch-icon {
     width: 18px;
     height: 18px;
@@ -4970,7 +4970,7 @@ body.mjr-mfv-popout-body {
     opacity: 0.9;
 }
 
-/* Universal active highlight — any aria-pressed="true" button gets accent glow.
+/* Universal active highlight - any aria-pressed="true" button gets accent glow.
    Placed before the colored active classes so they can override with their own color. */
 .mjr-mfv .mjr-icon-btn[aria-pressed="true"] {
     border-color: rgba(95, 179, 255, 0.55);
@@ -5256,7 +5256,7 @@ body.mjr-mfv-popout-body {
     color: #eef7ff;
 }
 
-/* ── Content wrapper (horizontal flex: content + sidebar) ────────────── */
+/* -- Content wrapper (horizontal flex: content + sidebar) -------------- */
 .mjr-mfv-content-wrapper {
     display: flex;
     flex: 1;
@@ -5264,7 +5264,7 @@ body.mjr-mfv-popout-body {
     overflow: hidden;
 }
 
-/* ── Sidebar position variants ──────────────────────────────────────── */
+/* -- Sidebar position variants ---------------------------------------- */
 .mjr-mfv-content-wrapper[data-sidebar-pos="left"] {
     flex-direction: row;
 }
@@ -5292,7 +5292,7 @@ body.mjr-mfv-popout-body {
     max-height: 65%;
 }
 
-/* ── Content area ────────────────────────────────────────────────────── */
+/* -- Content area ------------------------------------------------------ */
 .mjr-mfv-content {
     flex: 1;
     overflow: hidden;
@@ -5593,7 +5593,7 @@ body.mjr-mfv-popout-body {
     color: rgba(255, 255, 255, 0.9);
 }
 
-/* EV slider active state (value ≠ 0) */
+/* EV slider active state (value != 0) */
 .mjr-mfv-toolbar-range.is-active input[type="range"] {
     accent-color: #f5c842;
 }
@@ -5645,7 +5645,7 @@ body.mjr-mfv-popout-body {
     line-height: 1.2;
 }
 
-/* ── Workflow Sidebar ────────────────────────────────────────────────── */
+/* -- Workflow Sidebar -------------------------------------------------- */
 .mjr-ws-sidebar {
     position: relative;
     display: flex;
@@ -5696,7 +5696,7 @@ body.mjr-mfv-popout-body {
     line-height: 1.5;
 }
 
-/* ── Tab bar ──────────────────────────────────────────────────────────── */
+/* -- Tab bar ------------------------------------------------------------ */
 .mjr-ws-tab-bar {
     display: flex;
     flex-shrink: 0;
@@ -5735,7 +5735,7 @@ body.mjr-mfv-popout-body {
     color: #639bff;
 }
 
-/* ── Nodes tab ────────────────────────────────────────────────────────── */
+/* -- Nodes tab ---------------------------------------------------------- */
 .mjr-ws-nodes-tab {
     display: flex;
     flex-direction: column;
@@ -6396,7 +6396,7 @@ body.mjr-mfv-popout-body {
     background: rgba(99, 155, 255, 0.15);
 }
 
-/* ── Node sections ────────────────────────────────────────────────────── */
+/* -- Node sections ------------------------------------------------------ */
 .mjr-ws-tree-item {
     border-bottom: 1px solid var(--mjr-border, rgba(255, 255, 255, 0.12));
 }
@@ -6576,7 +6576,7 @@ body.mjr-mfv-popout-body {
     padding: 4px 0;
 }
 
-/* ── Nested nodes (inside subgraphs) ─────────────────────────────────── */
+/* -- Nested nodes (inside subgraphs) ----------------------------------- */
 .mjr-ws-node--nested {
     border-left: 2px solid rgba(91, 138, 240, 0.35);
 }
@@ -6596,7 +6596,7 @@ body.mjr-mfv-popout-body {
     );
 }
 
-/* ── Subgraph children group ──────────────────────────────────────────── */
+/* -- Subgraph children group -------------------------------------------- */
 .mjr-ws-children-toggle {
     display: flex;
     align-items: center;
@@ -6728,7 +6728,7 @@ body.mjr-mfv-popout-body {
     align-items: center;
 }
 
-/* ── Locate button inside node header ─────────────────────────────────── */
+/* -- Locate button inside node header ----------------------------------- */
 .mjr-ws-locate {
     width: 24px !important;
     height: 24px !important;
@@ -6740,7 +6740,7 @@ body.mjr-mfv-popout-body {
     opacity: 1;
 }
 
-/* ── Run button state ─────────────────────────────────────────────────── */
+/* -- Run button state --------------------------------------------------- */
 .mjr-mfv-run-controls {
     display: inline-flex;
     align-items: center;
@@ -6769,7 +6769,7 @@ body.mjr-mfv-popout-body {
     color: var(--mjr-status-warning, #ffa726);
 }
 
-/* ── Floating Viewer simple video player ─────────────────────────────── */
+/* -- Floating Viewer simple video player ------------------------------- */
 .mjr-mfv-simple-player {
     position: relative;
     width: 100%;
@@ -7103,7 +7103,7 @@ body.mjr-mfv-popout-body {
     }
 }
 
-/* ── Settings button active state ─────────────────────────────────────── */
+/* -- Settings button active state --------------------------------------- */
 .mjr-mfv-settings-btn.active {
     border-color: color-mix(
         in srgb,
@@ -7120,7 +7120,7 @@ body.mjr-mfv-popout-body {
     color: var(--mjr-accent, #5fb3ff);
 }
 
-/* ── Close button (red) ──────────────────────────────────────────────── */
+/* -- Close button (red) ------------------------------------------------ */
 .mjr-mfv .mjr-mfv-close-btn {
     color: #e85050;
 }
@@ -7129,7 +7129,7 @@ body.mjr-mfv-popout-body {
     background-color: rgba(232, 80, 80, 0.15);
 }
 
-/* ── Empty state ─────────────────────────────────────────────────────── */
+/* -- Empty state ------------------------------------------------------- */
 .mjr-mfv-empty {
     width: 100%;
     height: 100%;
@@ -7143,7 +7143,7 @@ body.mjr-mfv-popout-body {
     padding: 12px;
 }
 
-/* ── Compare labels ──────────────────────────────────────────────────── */
+/* -- Compare labels ---------------------------------------------------- */
 .mjr-mfv-label {
     position: absolute;
     top: 8px;
@@ -7165,7 +7165,7 @@ body.mjr-mfv-popout-body {
     right: 8px;
 }
 
-/* ── AB divider ──────────────────────────────────────────────────────── */
+/* -- AB divider -------------------------------------------------------- */
 .mjr-mfv-ab-divider {
     position: absolute;
     top: 0;
@@ -7196,9 +7196,9 @@ body.mjr-mfv-popout-body {
     background: var(--mjr-accent, #5fb3ff);
 }
 
-/* ══════════════════════════════════════════════════════════════════════════
+/* --------------------------------------------------------------------------
    MFV Geometry & Layout Classes (replaces inline styles in FloatingViewer.js)
-   ══════════════════════════════════════════════════════════════════════════ */
+   -------------------------------------------------------------------------- */
 
 /* Main MFV container geometry */
 .mjr-mfv {
@@ -7323,7 +7323,7 @@ body.mjr-mfv-popout-body {
     /* Inherits from .mjr-mfv-media or .mjr-mfv-media--fill */
 }
 
-/* Node Stream — currently-streamed node badge (top-left of content area,
+/* Node Stream - currently-streamed node badge (top-left of content area,
    following the same overlay pattern as .mjr-mfv-geninfo). */
 .mjr-mfv-node-overlay {
     position: absolute;
@@ -7347,7 +7347,7 @@ body.mjr-mfv-popout-body {
     overflow: hidden;
     text-overflow: ellipsis;
 }
-/* Gen info overlay — all modes share base layout */
+/* Gen info overlay - all modes share base layout */
 .mjr-mfv-geninfo,
 .mjr-mfv-geninfo-a,
 .mjr-mfv-geninfo-b {
@@ -7407,7 +7407,7 @@ body.mjr-mfv-popout-body {
 .mjr-mfv-geninfo-b strong {
     font-weight: 600;
     margin-right: 4px;
-    color: rgba(255, 255, 255, 0.95); /* default — overridden per field below */
+    color: rgba(255, 255, 255, 0.95); /* default - overridden per field below */
 }
 
 /* Per-field label colors */
@@ -7415,55 +7415,55 @@ body.mjr-mfv-popout-body {
 .mjr-mfv-geninfo-a [data-field="prompt"] strong,
 .mjr-mfv-geninfo-b [data-field="prompt"] strong {
     color: #7ec8ff;
-} /* blue   — Prompt */
+} /* blue   - Prompt */
 
 .mjr-mfv-geninfo [data-field="seed"] strong,
 .mjr-mfv-geninfo-a [data-field="seed"] strong,
 .mjr-mfv-geninfo-b [data-field="seed"] strong {
     color: #ffd47a;
-} /* amber  — Seed   */
+} /* amber  - Seed   */
 
 .mjr-mfv-geninfo [data-field="model"] strong,
 .mjr-mfv-geninfo-a [data-field="model"] strong,
 .mjr-mfv-geninfo-b [data-field="model"] strong {
     color: #7dda8a;
-} /* green  — Model  */
+} /* green  - Model  */
 
 .mjr-mfv-geninfo [data-field="lora"] strong,
 .mjr-mfv-geninfo-a [data-field="lora"] strong,
 .mjr-mfv-geninfo-b [data-field="lora"] strong {
     color: #d48cff;
-} /* violet — LoRA   */
+} /* violet - LoRA   */
 
 .mjr-mfv-geninfo [data-field="sampler"] strong,
 .mjr-mfv-geninfo-a [data-field="sampler"] strong,
 .mjr-mfv-geninfo-b [data-field="sampler"] strong {
     color: #ff9f7a;
-} /* orange — Sampler */
+} /* orange - Sampler */
 
 .mjr-mfv-geninfo [data-field="scheduler"] strong,
 .mjr-mfv-geninfo-a [data-field="scheduler"] strong,
 .mjr-mfv-geninfo-b [data-field="scheduler"] strong {
     color: #ff7a9f;
-} /* pink   — Scheduler */
+} /* pink   - Scheduler */
 
 .mjr-mfv-geninfo [data-field="cfg"] strong,
 .mjr-mfv-geninfo-a [data-field="cfg"] strong,
 .mjr-mfv-geninfo-b [data-field="cfg"] strong {
     color: #7a9fff;
-} /* indigo — CFG */
+} /* indigo - CFG */
 
 .mjr-mfv-geninfo [data-field="step"] strong,
 .mjr-mfv-geninfo-a [data-field="step"] strong,
 .mjr-mfv-geninfo-b [data-field="step"] strong {
     color: #7affd4;
-} /* teal   — Step */
+} /* teal   - Step */
 
 .mjr-mfv-geninfo [data-field="genTime"] strong,
 .mjr-mfv-geninfo-a [data-field="genTime"] strong,
 .mjr-mfv-geninfo-b [data-field="genTime"] strong {
     color: #e0ff7a;
-} /* lime   — Gen Time */
+} /* lime   - Gen Time */
 
 .mjr-mfv-geninfo div,
 .mjr-mfv-geninfo-a div,
@@ -7533,7 +7533,7 @@ body.mjr-mfv-popout-body {
     background: #0d0d0d;
 }
 
-/* Grid compare (2×2) container */
+/* Grid compare (2-2) container */
 .mjr-mfv-grid-container {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -7624,7 +7624,7 @@ body.mjr-mfv-popout-body {
     color: #7affd4;
 }
 
-/* Gen info active state — button glows when at least one field is selected */
+/* Gen info active state - button glows when at least one field is selected */
 .mjr-mfv .mjr-icon-btn.is-on {
     border-color: rgba(var(--mjr-group-accent, 95, 179, 255), 0.55);
     color: var(--mjr-accent, #5fb3ff);
@@ -7876,7 +7876,7 @@ body.mjr-mfv-popout-body {
     transform-origin: top left;
 }
 
-/* ── Feed card info: default hidden, toggled via mjr-feed-show-* classes on .mjr-grid ── */
+/* -- Feed card info: default hidden, toggled via mjr-feed-show-* classes on .mjr-grid -- */
 .mjr-bottom-feed .mjr-card-info {
     display: none !important;
     padding: 4px 6px !important;
@@ -7952,7 +7952,7 @@ body.mjr-mfv-popout-body {
     display: flex !important;
 }
 
-/* Feed meta row styling — flex layout so visible items stay separated */
+/* Feed meta row styling - flex layout so visible items stay separated */
 .mjr-bottom-feed .mjr-card-meta-row {
     display: flex !important;
     flex-wrap: nowrap !important;
@@ -7999,7 +7999,7 @@ body.mjr-mfv-popout-body {
     -webkit-backdrop-filter: blur(6px);
 }
 
-/* ── Audio / 3D placeholder thumbnails in the feed ───────────────────────── */
+/* -- Audio / 3D placeholder thumbnails in the feed ------------------------- */
 
 /* Audio cards show the waveform sprite; give it a distinct background so it
    doesn't look like a broken image placeholder in the feed. */
@@ -8011,7 +8011,7 @@ body.mjr-mfv-popout-body {
     background: color-mix(in srgb, var(--mjr-surface-0) 60%, #1a1f2b 40%) !important;
 }
 
-/* 3D model cards use an icon placeholder — add a subtle gradient so they read
+/* 3D model cards use an icon placeholder - add a subtle gradient so they read
    as intentional rather than missing. */
 .mjr-bottom-feed .mjr-asset-card[data-mjr-kind="model3d"] .mjr-thumb,
 .mjr-bottom-feed .mjr-asset-card[data-mjr-ext="glb"] .mjr-thumb,
@@ -8021,7 +8021,7 @@ body.mjr-mfv-popout-body {
     background: color-mix(in srgb, var(--mjr-surface-0) 50%, #0d1117 50%) !important;
 }
 
-/* ── Feed group button ────────────────────────────────────────────────────── */
+/* -- Feed group button ------------------------------------------------------ */
 
 .mjr-bottom-feed .mjr-feed-group-button {
     position: absolute;
@@ -8067,7 +8067,7 @@ body.mjr-mfv-popout-body {
     line-height: 1;
 }
 
-/* ── Feed group popover ───────────────────────────────────────────────────── */
+/* -- Feed group popover ----------------------------------------------------- */
 
 .mjr-feed-group-popover {
     background: var(--comfy-menu-bg, #222);
@@ -8171,7 +8171,7 @@ body.mjr-mfv-popout-body {
     line-height: 1;
 }
 
-/* ── Duplicate stack button ──────────────────────────────────────────────── */
+/* -- Duplicate stack button ------------------------------------------------ */
 /* Shows on the primary card when same-filename duplicates exist.             */
 /* Positioned at bottom-right to not overlap the stack-group button (top-right). */
 .mjr-assets-manager .mjr-dup-stack-button {
@@ -8236,7 +8236,7 @@ body.mjr-mfv-popout-body {
     transform: none !important;
 }
 
-/* ── Visual stacking effect — layered cards behind the main card ──────────── */
+/* -- Visual stacking effect - layered cards behind the main card ------------ */
 /* Creates pseudo-element "cards" offset behind the primary card to visually    */
 /* communicate that this card represents a group of multiple images.            */
 .mjr-assets-manager .mjr-asset-card[data-mjr-stacked="true"] {
@@ -8327,7 +8327,7 @@ body.mjr-mfv-popout-body {
     }
 }
 
-/* ─── Skeleton loaders ──────────────────────────────────────────────────────── */
+/* --- Skeleton loaders -------------------------------------------------------- */
 
 .mjr-card-skeleton {
     background: var(--mjr-surface-1, #2a2a2a);
@@ -8369,7 +8369,7 @@ body.mjr-mfv-popout-body {
     }
 }
 
-/* ─── Responsive summary bar ────────────────────────────────────────────────── */
+/* --- Responsive summary bar -------------------------------------------------- */
 
 /*
  * Enable container queries on the summary bar so children can respond to its

@@ -1,13 +1,13 @@
 <script setup>
 /**
- * AssetCardInner.vue — Fragment component rendered inside an imperatively-created
+ * AssetCardInner.vue - Fragment component rendered inside an imperatively-created
  * `.mjr-asset-card` shell.  Replaces createAssetCard()/createThumbnail() from Card.js.
  *
  * The outer `.mjr-asset-card` element is created by GridView_impl.js (createVueCard)
  * so the VirtualGrid / GridSelectionManager / keyboard / context-menu code can still
  * locate cards via querySelector('.mjr-asset-card') and read card._mjrAsset.
  *
- * Phase 4.2 — full inner card replacement.
+ * Phase 4.2 - full inner card replacement.
  */
 import { computed, inject, ref, watch, watchEffect, onMounted, onUnmounted } from "vue";
 import { buildAssetViewURL } from "../../../api/endpoints.js";
@@ -218,7 +218,7 @@ function applyVideoMode(thumbEl, video, mode) {
     } else {
         void ensureVideoThumbSource(video);
     }
-    // "off" — no bindings, video stays paused
+    // "off" - no bindings, video stays paused
 }
 
 function unobserveVideoThumb(video) {
@@ -227,14 +227,14 @@ function unobserveVideoThumb(video) {
     releaseVideoThumbSource(video);
 }
 
-// ─── Props ───────────────────────────────────────────────────────────────────
+// --- Props -------------------------------------------------------------------
 
 const props = defineProps({
     /** shallowReactive asset object from createVueCard() in GridView_impl.js */
     asset: { type: Object, required: true },
 });
 
-// ─── Computed from asset ─────────────────────────────────────────────────────
+// --- Computed from asset -----------------------------------------------------
 
 const kind = computed(() => String(props.asset.kind || "image").toLowerCase());
 const isImage = computed(() => kind.value === "image");
@@ -360,7 +360,7 @@ const fileBadgeBg = computed(() => {
     return map[kind.value] || "var(--mjr-badge-image, #888)";
 });
 
-// ─── Stack / dup-stack (Vue-reactive buttons, replacing imperative DOM) ──────
+// --- Stack / dup-stack (Vue-reactive buttons, replacing imperative DOM) ------
 
 const stackService = inject("mjrStackService", null);
 
@@ -397,7 +397,7 @@ function onDupStackClick(event) {
     }
 }
 
-// ─── Template refs ───────────────────────────────────────────────────────────
+// --- Template refs -----------------------------------------------------------
 
 const thumbRef = ref(null);
 const videoRef = ref(null);
@@ -418,7 +418,7 @@ function releaseCachedImageSrc() {
     imageCachedSourceKey = "";
 }
 
-// ─── Image thumb lifecycle (blob cache) ───────────────────────────────────────
+// --- Image thumb lifecycle (blob cache) ---------------------------------------
 
 watch(
     () => [imgRef.value, imageUrl.value],
@@ -450,7 +450,7 @@ watch(
     { immediate: true }
 );
 
-// ─── Video autoplay mode (reactive to settings changes) ──────────────────────
+// --- Video autoplay mode (reactive to settings changes) ----------------------
 
 const videoMode = ref(APP_CONFIG.GRID_VIDEO_AUTOPLAY_MODE || "hover");
 
@@ -462,7 +462,7 @@ onMounted(() => {
     window.addEventListener("mjr-settings-changed", onSettingsChangedForVideo);
 });
 
-// ─── Video thumb lifecycle (observe/unobserve) ────────────────────────────────
+// --- Video thumb lifecycle (observe/unobserve) --------------------------------
 
 watch(videoRef, (newEl, oldEl) => {
     if (oldEl) {
@@ -493,7 +493,7 @@ onUnmounted(() => {
     }
 });
 
-// ─── Workflow dot (imperative — createWorkflowDot has complex enrichment logic) ──
+// --- Workflow dot (imperative - createWorkflowDot has complex enrichment logic) --
 
 watchEffect(() => {
     const wrapper = dotWrapperRef.value;
@@ -521,7 +521,7 @@ watchEffect(() => {
     } catch {}
 });
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+// --- Helpers -----------------------------------------------------------------
 
 function onImgError(event) {
     imgError.value = true;
@@ -551,7 +551,7 @@ function onFileBadgeClick(event) {
 </script>
 
 <template>
-    <!-- ── THUMBNAIL ──────────────────────────────────────────────────────── -->
+    <!-- -- THUMBNAIL -------------------------------------------------------- -->
     <div class="mjr-thumb" ref="thumbRef">
         <div
             v-if="isLivePlaceholder"
@@ -657,7 +657,7 @@ function onFileBadgeClick(event) {
                 pointerEvents: hasCollision ? 'auto' : 'none',
                 cursor: hasCollision ? 'pointer' : 'default',
             }"
-            :title="hasCollision ? `${ext} — duplicate filename (${asset._mjrNameCollisionCount || 2} files)` : `${ext} file`"
+            :title="hasCollision ? `${ext} - duplicate filename (${asset._mjrNameCollisionCount || 2} files)` : `${ext} file`"
             @click="onFileBadgeClick"
         >{{ ext }}{{ hasCollision ? "+" : "" }}</div>
 
@@ -686,11 +686,11 @@ function onFileBadgeClick(event) {
             class="mjr-card-hover-info"
         >
             <div v-if="positivePrompt" class="mjr-hover-prompt">{{ positivePrompt }}</div>
-            <div v-if="genTimeValid" class="mjr-hover-gentime">⏱ {{ genTimeFmt.text }}</div>
+            <div v-if="genTimeValid" class="mjr-hover-gentime">Time {{ genTimeFmt.text }}</div>
         </div>
     </div>
 
-    <!-- ── META ──────────────────────────────────────────────────────────── -->
+    <!-- -- META ------------------------------------------------------------ -->
     <div class="mjr-card-info mjr-card-meta" style="position:relative;padding:6px 8px;min-width:0">
         <div
             class="mjr-card-filename"
@@ -725,7 +725,7 @@ function onFileBadgeClick(event) {
         />
     </div>
 
-    <!-- ── STACK GROUP BUTTON (execution grouping) ────────────────────────── -->
+    <!-- -- STACK GROUP BUTTON (execution grouping) -------------------------- -->
     <MButton
         v-if="hasStackGroup"
         type="button"
@@ -747,7 +747,7 @@ function onFileBadgeClick(event) {
         <span class="mjr-stack-group-button-count">{{ stackCount }}</span>
     </MButton>
 
-    <!-- ── DUPLICATE STACK BUTTON (same-filename copies) ──────────────────── -->
+    <!-- -- DUPLICATE STACK BUTTON (same-filename copies) -------------------- -->
     <MButton
         v-if="hasDupStack"
         type="button"

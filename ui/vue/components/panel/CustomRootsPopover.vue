@@ -15,7 +15,7 @@ import { t } from "../../../app/i18n.js";
 
 const customRootOptions = ref([
     {
-        label: t("label.selectFolder", "Select folder…"),
+        label: t("label.selectFolder", "Select folder..."),
         value: "",
         disabled: false,
     },

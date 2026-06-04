@@ -53,7 +53,7 @@ function summarizeFloatingViewerApiWorkflow(norm: any) {
     const workflow = buildWorkflowPresentation(norm);
     if (!workflow.workflowLabel) return "";
     return workflow.workflowBadge
-        ? `${workflow.workflowLabel} • ${workflow.workflowBadge}`
+        ? `${workflow.workflowLabel} | ${workflow.workflowBadge}`
         : workflow.workflowLabel;
 }
 

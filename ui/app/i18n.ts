@@ -674,24 +674,24 @@ const DICTIONARY: Record<string, Record<string, string>> = {
         "msg.whatsNew.title.version246": "New Version 2.4.6",
         "msg.whatsNew.body.version246":
             "Version 2.4.6 released: Various bug fixes and performance & fluidity improvements. Improved concatenate support for default and custom nodes (by Forsion07). Added support helpers for Api Node and Ernie Image. Live Stream in Floating Viewer is now disabled by default. See CHANGELOG for details.",
-        "msg.whatsNew.title.gridMfvToolboxUpgrade": "What's New — Grid & MFV Upgrade",
+        "msg.whatsNew.title.gridMfvToolboxUpgrade": "What's New - Grid & MFV Upgrade",
         "msg.whatsNew.body.gridMfvToolboxUpgrade":
             "Grid performance and fluidity have been improved. The Majoor Floating Viewer is no longer a light viewer only: it now includes advanced features such as Node Stream, Node Parameters, and direct node editing from inside the viewer. New tools were also added to the toolbox, alongside broader code corrections and cleanup.",
         "msg.tip.title.majoorImageOpsNodePack": "Do you know this node pack ?",
         "msg.tip.body.majoorImageOpsNodePack":
             "Discover Majoor ImageOps, a ComfyUI node pack with practical image operation nodes for your workflows.",
         "label.openNodePack": "Open Node Pack",
-        "msg.tip.title.graphMapGuide": "Tip — Graph Map Guide",
+        "msg.tip.title.graphMapGuide": "Tip - Graph Map Guide",
         "msg.tip.body.graphMapGuide":
             "Graph Map now has its own documentation page with screenshots and a quick walkthrough. Open the guide to see how to read the workflow map, inspect selected nodes, and use the node detail actions.",
         "label.graphMapGuide": "Graph Map Guide",
-        "msg.tip.title.mfvGuide": "Tip — MFV Guide",
+        "msg.tip.title.mfvGuide": "Tip - MFV Guide",
         "msg.tip.body.mfvGuide":
             "MFV now has its own illustrated guide covering compare modes, A/B/C/D pins, streams, node parameters, run/stop, pop-out, and how Graph Map complements the viewer workflow.",
         "label.mfvGuide": "MFV Guide",
         "label.changelog": "Changelog",
         "label.settingsGuide": "Settings Guide",
-        "msg.tip.title.mfvLivePreviewDefaults": "Tip — Floating Viewer Auto-Open",
+        "msg.tip.title.mfvLivePreviewDefaults": "Tip - Floating Viewer Auto-Open",
         "msg.tip.body.mfvLivePreviewDefaults":
             "Live Stream (green button in the viewer) and KSampler Preview can be activated by default via Settings \u2192 Majoor Assets Manager \u203a Viewer. Live Stream follows final generation outputs after execution. KSampler Preview streams denoising frames during execution. Selected-node previews are handled by Node Stream.",
         "msg.whatsNew.title.version243": "New Version 2.4.3",
@@ -1092,7 +1092,7 @@ const DICTIONARY: Record<string, Record<string, string>> = {
         "toast.resetStarted": "Index reset started. Files will be reindexed in the background.",
         "toast.resetFailed": "Failed to reset index",
         "toast.resetFailedCorrupt":
-            'Reset failed – database is corrupted. Use the "Delete DB" button to force-delete and rebuild.',
+            'Reset failed - database is corrupted. Use the "Delete DB" button to force-delete and rebuild.',
         "toast.dbDeleteTriggered": "Deleting database and rebuilding...",
         "toast.dbDeleteSuccess": "Database deleted and rebuilt. Files are being reindexed.",
         "toast.dbDeleteFailed": "Failed to delete database",
@@ -1684,24 +1684,24 @@ const DICTIONARY: Record<string, Record<string, string>> = {
         "msg.whatsNew.title.version246": "Nouvelle Version 2.4.6",
         "msg.whatsNew.body.version246":
             "Version 2.4.6 publiee : divers correctifs de bugs et ameliorations de performances et fluidite. Support concatenate ameliore pour les nodes par defaut et custom (par Forsion07). Ajout des helpers pour Api Node et Ernie Image. Le Live Stream du Floating Viewer est desormais desactive par defaut. Voir CHANGELOG pour details.",
-        "msg.whatsNew.title.gridMfvToolboxUpgrade": "Quoi de neuf — upgrade Grid et MFV",
+        "msg.whatsNew.title.gridMfvToolboxUpgrade": "Quoi de neuf - upgrade Grid et MFV",
         "msg.whatsNew.body.gridMfvToolboxUpgrade":
             "Les performances et la fluidite de la grid ont ete ameliorees. Le Majoor Floating Viewer n'est plus seulement un viewer light : il integre maintenant des fonctions avancees comme Node Stream, Node Parameters et l'edition directe des nodes depuis le viewer. De nouveaux outils ont aussi ete ajoutes dans la toolbox, avec en plus plusieurs corrections et nettoyages de code.",
         "msg.tip.title.majoorImageOpsNodePack": "Do you know this node pack ?",
         "msg.tip.body.majoorImageOpsNodePack":
             "Decouvrez Majoor ImageOps, un node pack ComfyUI avec des nodes pratiques pour les operations d'image dans vos workflows.",
         "label.openNodePack": "Ouvrir le node pack",
-        "msg.tip.title.graphMapGuide": "Conseil — Guide Graph Map",
+        "msg.tip.title.graphMapGuide": "Conseil - Guide Graph Map",
         "msg.tip.body.graphMapGuide":
             "Graph Map dispose maintenant de sa propre page de documentation avec captures d'ecran et explication rapide. Ouvrez le guide pour voir comment lire la carte du workflow, inspecter les noeuds selectionnes et utiliser les actions du panneau de detail.",
         "label.graphMapGuide": "Guide Graph Map",
-        "msg.tip.title.mfvGuide": "Conseil — Guide MFV",
+        "msg.tip.title.mfvGuide": "Conseil - Guide MFV",
         "msg.tip.body.mfvGuide":
             "MFV dispose maintenant de son propre guide illustre avec les modes de comparaison, les pins A/B/C/D, les streams, les Node Parameters, Run/Stop, le pop-out et la facon dont Graph Map complete naturellement le workflow du viewer.",
         "label.mfvGuide": "Guide MFV",
         "label.changelog": "Changelog",
         "label.settingsGuide": "Guide des param\u00e8tres",
-        "msg.tip.title.mfvLivePreviewDefaults": "Conseil — Ouverture automatique du Viewer",
+        "msg.tip.title.mfvLivePreviewDefaults": "Conseil - Ouverture automatique du Viewer",
         "msg.tip.body.mfvLivePreviewDefaults":
             "Le Live Stream (bouton vert dans le viewer) et la pr\u00e9visualisation KSampler peuvent \u00eatre activ\u00e9s par d\u00e9faut via Param\u00e8tres \u2192 Majoor Assets Manager \u203a Viewer. Lorsque le Live Stream est actif, cliquer sur un node Load Image ou la fin d'une g\u00e9n\u00e9ration ouvrira automatiquement le Floating Viewer et affichera le r\u00e9sultat. La pr\u00e9visualisation KSampler diffuse les \u00e9tapes de d\u00e9bruitage en direct. Les deux options peuvent \u00eatre d\u00e9finies comme \u00e9tat par d\u00e9faut pour que le viewer soit toujours pr\u00eat.",
         "msg.whatsNew.title.version243": "Nouvelle Version 2.4.3",

@@ -27,7 +27,7 @@ const metaText = computed(() => {
     if (size) parts.push(size);
     const date = formatShortDate(props.asset?.mtime);
     if (date) parts.push(date);
-    return parts.join(" • ");
+    return parts.join(" | ");
 });
 
 function cleanupVideoControls() {
