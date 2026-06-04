@@ -72,10 +72,10 @@ function resolveMessageEmoji(entry: any) {
     if (explicit) return explicit;
 
     const level = normalizeMessageLevel(entry?.level);
-    if (level === "success") return "\u2705";
-    if (level === "warning") return "\u26A0\uFE0F";
-    if (level === "error") return "\u274C";
-    return "\uD83D\uDCA1";
+    if (level === "success") return "OK";
+    if (level === "warning") return "WARN";
+    if (level === "error") return "ERR";
+    return "INFO";
 }
 
 function getHistoryTypeIcon(type: any) {
@@ -85,7 +85,7 @@ function getHistoryTypeIcon(type: any) {
         case "warning":
             return "WARN";
         case "error":
-            return "?";
+            return "ERR";
         default:
             return "Tip";
     }

@@ -75,10 +75,10 @@ const ratingOptions = computed(() => [
 
 const resolutionPresetOptions = computed(() => [
     { label: t("filter.any", "Any"), value: "" },
-    { label: "HD (1280×720)", value: "hd" },
-    { label: "FHD (1920×1080)", value: "fhd" },
-    { label: "QHD (2560×1440)", value: "qhd" },
-    { label: "4K (3840×2160)", value: "uhd" },
+    { label: "HD (1280x720)", value: "hd" },
+    { label: "FHD (1920x1080)", value: "fhd" },
+    { label: "QHD (2560x1440)", value: "qhd" },
+    { label: "4K (3840x2160)", value: "uhd" },
 ]);
 
 const dateRangeOptions = computed(() => [

@@ -676,7 +676,7 @@ export function createViewerToolbarControls({
 
     const model3dHint = document.createElement("div");
     model3dHint.className = "mjr-viewer-tools-group mjr-viewer-tools-group--3d";
-    model3dHint.textContent = "LMB rotate \u00b7 RMB pan \u00b7 Scroll zoom";
+    model3dHint.textContent = "LMB rotate | RMB pan | Scroll zoom";
     model3dHint.style.cssText = [
         "display:none",
         "align-items:center",

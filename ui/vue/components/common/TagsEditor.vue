@@ -415,7 +415,7 @@ watch(
                         :disabled="disabled"
                         @click="removeTag(index)"
                     >
-                        &times;
+                        x
                     </MButton>
                 </div>
             </template>

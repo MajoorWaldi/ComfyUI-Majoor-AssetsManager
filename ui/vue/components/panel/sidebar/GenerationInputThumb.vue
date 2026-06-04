@@ -115,7 +115,7 @@ function handleVideoOut(event) {
             title="Video file"
             style="position:absolute;color:white;opacity:0.7;font-size:16px;pointer-events:none"
         >
-            &#9654;
+            Play
         </div>
     </div>
 </template>

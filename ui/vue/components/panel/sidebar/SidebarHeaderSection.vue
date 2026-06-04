@@ -37,6 +37,6 @@ const filename = () => String(props.asset?.filename || "");
             @click="emit('close')"
             @mouseenter="($event.currentTarget.style.background='rgba(255,255,255,0.1)') && ($event.currentTarget.style.borderColor='rgba(255,255,255,0.2)')"
             @mouseleave="($event.currentTarget.style.background='none') && ($event.currentTarget.style.borderColor='transparent')"
-        >×</MButton>
+        >x</MButton>
     </div>
 </template>

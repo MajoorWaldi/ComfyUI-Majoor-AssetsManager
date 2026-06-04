@@ -6,8 +6,8 @@
  * cropping out the letterbox/guide area so the displayed content fills the
  * viewer (no square scope, no dashed guides outside the image).
  *
- * Crop math: ImageOps draws the source `previewSourceWidth × previewSourceHeight`
- * into a square `canvasSize × canvasSize` via a centered contain-fit. We
+ * Crop math: ImageOps draws the source `previewSourceWidth x previewSourceHeight`
+ * into a square `canvasSize x canvasSize` via a centered contain-fit. We
  * recompute the same fit and copy that sub-rect into a temp canvas before
  * encoding. When the user has panned/zoomed inside ImageOps, the content
  * overflows that rect — we fall back to streaming the full canvas in that
