@@ -252,7 +252,10 @@ const MAX_WORKFLOW_BYTES = 5 * 1024 * 1024;
 const MAX_WORKFLOW_NODE_COUNT = 5000;
 const MAX_WORKFLOW_LINK_COUNT = 20000;
 const MAX_WORKFLOW_NODE_TYPE_LENGTH = 256;
-const MAX_WORKFLOW_WIDGET_STRING_LENGTH = 8192;
+// NOTE: No per-widget-string length limit — the total workflow size (MAX_WORKFLOW_BYTES)
+// is the right boundary. Nodes like iToolsPromptRecord store large prompts in
+// widgets_values and must not be rejected here (issue #128).
+const MAX_WORKFLOW_WIDGET_STRING_LENGTH = 500_000; // safety ceiling per-value (500 KB)
 
 const _NODE_TYPE_CTRL_RE = /[\u0000-\u001f\u007f]/;
 

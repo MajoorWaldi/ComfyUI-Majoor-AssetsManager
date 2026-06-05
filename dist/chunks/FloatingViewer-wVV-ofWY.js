@@ -1,12 +1,12 @@
-import { _t as e, a as t, n } from "./client-DZE_lzdb.js";
-import { D as r, E as i, M as a, O as o, S as s, T as c, _ as l, g as u, j as d, k as f, l as p, nt as m, p as h, q as g, t as _, v } from "./config-Cxv7acF8.js";
+import { _t as e, a as t, n } from "./client-B7TJ043B.js";
+import { D as r, E as i, M as a, O as o, S as s, T as c, _ as l, g as u, j as d, k as f, l as p, nt as m, p as h, q as g, t as _, v } from "./config-CCHYUNeO.js";
 import { a as y, i as b, o as x, s as S } from "./graphTraversal-CjIZsRsP.js";
-import { a as C, b as w, c as T, i as E, n as D, o as O, r as k, y as A } from "./SidebarWorkflowSection-Dw9T8b4-.js";
+import { a as C, c as w, i as T, n as E, o as D, r as O, v as k, y as A } from "./SidebarWorkflowSection-D_lSnu-5.js";
 import { r as j } from "./events-BnkL6-b6.js";
-import { _ as M, c as N, f as ee, g as P, h as F, i as te, l as ne, n as re, r as ie, s as ae, t as oe, v as se, y as I } from "./openMajoorSettings-BbE45fW7.js";
-import { a as L, n as ce, r as le } from "./model3dRenderer-BtzSm2ZA.js";
+import { _ as M, c as N, f as ee, g as P, h as F, i as te, l as ne, n as re, r as ie, s as ae, t as oe, v as se, y as I } from "./openMajoorSettings-DudANwXf.js";
+import { a as L, n as ce, r as le } from "./model3dRenderer-DmFrDyEC.js";
 import { i as ue, o as R, r as de, t as fe } from "./geninfoParser-5vKgjqjD.js";
-import { t as pe } from "./genInfo-D6I8KzRI.js";
+import { t as pe } from "./genInfo-CjxJ5O4X.js";
 //#region ui/features/viewer/floatingViewerConstants.ts
 var z = Object.freeze({
 	SIMPLE: "simple",
@@ -77,7 +77,7 @@ function De(e) {
 function Oe(e, t = null, { kind: n = "" } = {}) {
 	if (!e || e._mjrSimplePlayerMounted) return e?.parentElement || null;
 	e._mjrSimplePlayerMounted = !0;
-	let r = A(t) || ge, i = Ce(e), a = we(n, e), o = Te(n, e), s = Ee(n), c = document.createElement("div");
+	let r = k(t) || ge, i = Ce(e), a = we(n, e), o = Te(n, e), s = Ee(n), c = document.createElement("div");
 	c.className = "mjr-mfv-simple-player", c.tabIndex = 0, c.setAttribute("role", "group"), c.setAttribute("aria-label", "Media player"), o && c.classList.add("is-audio"), s && c.classList.add("is-animated-image");
 	let l = document.createElement("div");
 	l.className = "mjr-mfv-simple-player-controls";
@@ -137,7 +137,7 @@ function Oe(e, t = null, { kind: n = "" } = {}) {
 	}, O = () => {
 		let e = Math.max(0, Math.min(100, Number(u.value) / 1e3 * 100));
 		u.style.setProperty("--mjr-seek-pct", `${e}%`);
-	}, k = () => {
+	}, A = () => {
 		if (!i) {
 			v.textContent = s ? "Animated" : "Preview", u.value = "0", O();
 			return;
@@ -167,7 +167,7 @@ function Oe(e, t = null, { kind: n = "" } = {}) {
 			} catch (e) {
 				console.debug?.(e);
 			}
-			Se(e, be(e, r) + t, r), T(), D(), k();
+			Se(e, be(e, r) + t, r), T(), D(), A();
 		}
 	}, ee = (t) => {
 		if (j(t), e instanceof HTMLMediaElement) {
@@ -189,7 +189,7 @@ function Oe(e, t = null, { kind: n = "" } = {}) {
 		} catch (e) {
 			console.debug?.(e);
 		}
-		D(), k();
+		D(), A();
 	}, F = (e) => j(e);
 	return f.addEventListener("click", M), m.addEventListener("click", (e) => N(-1, e)), g.addEventListener("click", (e) => N(1, e)), b.addEventListener("click", ee), u.addEventListener("input", P), l.addEventListener("pointerdown", F), l.addEventListener("click", F), l.addEventListener("dblclick", F), c.addEventListener("pointerdown", (e) => {
 		try {
@@ -216,12 +216,12 @@ function Oe(e, t = null, { kind: n = "" } = {}) {
 			}
 		}
 	}), e instanceof HTMLMediaElement && (e.addEventListener("play", T, { passive: !0 }), e.addEventListener("pause", T, { passive: !0 }), e.addEventListener("timeupdate", () => {
-		D(), k();
+		D(), A();
 	}, { passive: !0 }), e.addEventListener("seeked", () => {
-		D(), k();
+		D(), A();
 	}, { passive: !0 }), e.addEventListener("loadedmetadata", () => {
-		D(), k();
-	}, { passive: !0 })), ve(e), T(), E(), D(), k(), c;
+		D(), A();
+	}, { passive: !0 })), ve(e), T(), E(), D(), A(), c;
 }
 //#endregion
 //#region ui/features/viewer/floatingViewerMedia.ts
@@ -326,8 +326,8 @@ function U(e, { fill: t = !1, controls: n = !0 } = {}) {
 			variant: "viewer",
 			hostEl: a,
 			mediaKind: i,
-			initialFps: A(e) || void 0,
-			initialFrameCount: w(e, A(e)) || void 0
+			initialFps: k(e) || void 0,
+			initialFrameCount: A(e, k(e)) || void 0
 		});
 		try {
 			o && (a._mjrMediaControlsHandle = o);
@@ -500,7 +500,7 @@ var Xe = class {
 			let r = document.createElement("span");
 			r.textContent = "Subgraph", e.appendChild(r);
 			let i = document.createElement("span");
-			i.className = "mjr-ws-node-kind-count", i.textContent = String(this._childCount), e.appendChild(i), n.appendChild(e), this._subgraphHeaderTitle = `${a} · Subgraph · ${this._childCount} inner node${this._childCount === 1 ? "" : "s"}`, n.title = this._subgraphHeaderTitle;
+			i.className = "mjr-ws-node-kind-count", i.textContent = String(this._childCount), e.appendChild(i), n.appendChild(e), this._subgraphHeaderTitle = `${a} | Subgraph | ${this._childCount} inner node${this._childCount === 1 ? "" : "s"}`, n.title = this._subgraphHeaderTitle;
 		}
 		let s = document.createElement("button");
 		s.type = "button", s.className = "mjr-icon-btn mjr-ws-locate", s.title = "Locate on canvas", s.innerHTML = "<i class=\"pi pi-map-marker\" aria-hidden=\"true\"></i>", s.addEventListener("click", (e) => {
@@ -554,7 +554,7 @@ var Xe = class {
 			}
 			if (this._header) {
 				let e = this._expanded ? "Collapse node" : "Expand node";
-				this._header.title = this._subgraphHeaderTitle ? `${this._subgraphHeaderTitle} · ${e}` : e;
+				this._header.title = this._subgraphHeaderTitle ? `${this._subgraphHeaderTitle} | ${e}` : e;
 			}
 		}
 	}
@@ -812,13 +812,13 @@ function ft(e, t, n = null) {
 	return null;
 }
 function pt(e) {
-	return E(e);
+	return T(e);
 }
 function G(e) {
 	return C(e);
 }
 function mt(e) {
-	return O(e);
+	return D(e);
 }
 function ht(e) {
 	let t = gt(e), n = e?.properties && typeof e.properties == "object" ? e.properties : null;
@@ -1031,8 +1031,8 @@ function Nt(e) {
 	if (Array.isArray(e.nodes)) return e;
 	let t = Pt(e);
 	if (t) return t;
-	if (e.prompt && typeof e.prompt == "object") return k(e.prompt);
-	let n = k(e);
+	if (e.prompt && typeof e.prompt == "object") return O(e.prompt);
+	let n = O(e);
 	return n && Array.isArray(n.nodes) ? n : null;
 }
 function Pt(e) {
@@ -1432,7 +1432,7 @@ var dn = class {
 			c?.clearRect?.(0, 0, n, r), this._renderInfo = null;
 			return;
 		}
-		this._renderInfo = D(e, this._workflow, {
+		this._renderInfo = E(e, this._workflow, {
 			showNodeLabels: !0,
 			showViewport: !1,
 			expandSubgraphs: this._subgraphDisplayMode !== "host",
@@ -2075,7 +2075,7 @@ function Bn(e) {
 }
 function Vn(e) {
 	let t = fe(e);
-	return t.workflowLabel ? t.workflowBadge ? `${t.workflowLabel} • ${t.workflowBadge}` : t.workflowLabel : "";
+	return t.workflowLabel ? t.workflowBadge ? `${t.workflowLabel} | ${t.workflowBadge}` : t.workflowLabel : "";
 }
 function Hn(e, t, n, r) {
 	let i = document.createElement("div");
@@ -4026,7 +4026,7 @@ var Zr = 0, Qr = class {
 	_buildGenInfoSidebarContent(e) {
 		let t = this._getGenFields(e)?.genTime || "", n = null;
 		try {
-			n = T(e);
+			n = w(e);
 		} catch (e) {
 			console.debug?.(e);
 		}

@@ -1,4 +1,4 @@
-import { C as e, G as t, K as n, ct as r, l as i, ot as a, st as o } from "./config-Cxv7acF8.js";
+import { C as e, G as t, K as n, ct as r, l as i, ot as a, st as o } from "./config-CCHYUNeO.js";
 //#region ui/app/settingsStore.ts
 var s = "mjrSettings", c = "mjrMinimapSettings", l = new Set([
 	"POST",
