@@ -1,5 +1,5 @@
-import { _t as e, r as t } from "./client-B7TJ043B.js";
-import { A as n, t as r } from "./config-CCHYUNeO.js";
+import { _t as e, r as t } from "./client-DTWulbWC.js";
+import { j as n, t as r } from "./config-eqarUfKd.js";
 import { r as i } from "./events-BnkL6-b6.js";
 //#region ui/utils/logging.ts
 function a(e, ...t) {
@@ -219,7 +219,7 @@ function ye() {
 //#region ui/features/viewer/floatingViewerManager.ts
 var S = null, be = null;
 async function xe() {
-	return S || (be ||= import("./FloatingViewer-wVV-ofWY.js").then((e) => (S = e.FloatingViewer, S)), be);
+	return S || (be ||= import("./FloatingViewer-DADBol7-.js").then((e) => (S = e.FloatingViewer, S)), be);
 }
 var C = null, Se = null;
 async function Ce() {

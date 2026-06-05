@@ -1,6 +1,6 @@
-import { R as e, T as t, b as n, h as r, k as i, l as a, t as o, w as s, z as c } from "./config-CCHYUNeO.js";
+import { A as e, B as t, T as n, b as r, h as i, l as a, t as o, w as s, z as c } from "./config-eqarUfKd.js";
 import { a as l, n as u } from "./graphTraversal-CjIZsRsP.js";
-import { B as d, S as f, b as p, g as m, x as h } from "./SidebarWorkflowSection-D_lSnu-5.js";
+import { B as d, S as f, b as p, g as m, x as h } from "./SidebarWorkflowSection-Caxdr0um.js";
 import { n as g, t as _ } from "./state-DPiaUMw1.js";
 //#region ui/features/viewer/floatingViewerProgress.ts
 var v = "progress-update", y = "__MJR_MFV_PROGRESS_SERVICE__";
@@ -13,8 +13,8 @@ function x(e, t) {
 	return n.detail = t, n;
 }
 var S = class {
-	constructor(e, n = () => t()) {
-		this.id = String(e || ""), this.promptApi = null, this.executedNodeIds = [], this.totalNodes = 0, this.currentlyExecuting = null, this.errorDetails = null, this._getApp = typeof n == "function" ? n : () => null;
+	constructor(e, t = () => n()) {
+		this.id = String(e || ""), this.promptApi = null, this.executedNodeIds = [], this.totalNodes = 0, this.currentlyExecuting = null, this.errorDetails = null, this._getApp = typeof t == "function" ? t : () => null;
 	}
 	setPrompt(e) {
 		let t = e && typeof e == "object" ? e.output : null;
@@ -62,8 +62,8 @@ var S = class {
 		this.errorDetails = e || null;
 	}
 }, ee = class extends EventTarget {
-	constructor({ getApi: n = (e) => s(e), getApp: r = () => t(), waitForApi: i = (t) => e(t) } = {}) {
-		super(), this._getApi = n, this._getApp = r, this._waitForApi = i, this.promptsMap = /* @__PURE__ */ new Map(), this.currentExecution = null, this.lastQueueRemaining = 0, this._api = null, this._listenerEntries = [], this._initPromise = null, this._queuePromptBinding = null;
+	constructor({ getApi: e = (e) => s(e), getApp: t = () => n(), waitForApi: r = (e) => c(e) } = {}) {
+		super(), this._getApi = e, this._getApp = t, this._waitForApi = r, this.promptsMap = /* @__PURE__ */ new Map(), this.currentExecution = null, this.lastQueueRemaining = 0, this._api = null, this._listenerEntries = [], this._initPromise = null, this._queuePromptBinding = null;
 	}
 	getSnapshot() {
 		return {
@@ -107,27 +107,27 @@ var S = class {
 		}), this._api = e, this._patchQueuePrompt(e), this._attachApiListeners(e));
 	}
 	_patchQueuePrompt(e) {
-		let t = this;
-		this._queuePromptBinding = c({
+		let n = this;
+		this._queuePromptBinding = t({
 			api: e,
 			owner: this,
 			createWrapper(e) {
-				return async function(n, r, ...i) {
+				return async function(t, r, ...i) {
 					let a;
 					try {
 						a = await e.apply(this, [
-							n,
+							t,
 							r,
 							...i
 						]);
 					} catch (e) {
-						let n = t.getOrMakePrompt("error");
-						throw n.error({ exception_type: "Unknown." }), t.currentExecution = n, t.dispatchProgressUpdate(), e;
+						let t = n.getOrMakePrompt("error");
+						throw t.error({ exception_type: "Unknown." }), n.currentExecution = t, n.dispatchProgressUpdate(), e;
 					}
 					let o = String(a?.prompt_id || a?.promptId || "").trim();
 					if (o) {
-						let e = t.getOrMakePrompt(o);
-						e.setPrompt(r), t.currentExecution ||= e, t.dispatchEvent(x("queue-prompt", { prompt: e })), t.dispatchProgressUpdate();
+						let e = n.getOrMakePrompt(o);
+						e.setPrompt(r), n.currentExecution ||= e, n.dispatchEvent(x("queue-prompt", { prompt: e })), n.dispatchProgressUpdate();
 					}
 					return a;
 				};
@@ -244,11 +244,11 @@ function E(e, t) {
 		e._mediaProgressTextEl.textContent = n, e._mediaProgressEl.title = n || "", e._mediaProgressEl.classList.toggle("is-error", o), e._mediaProgressEl.classList.toggle("is-visible", !!n);
 	}
 }
-function re(e, n) {
-	let i = String(n || "").trim();
-	if (!i) return !1;
+function re(e, t) {
+	let r = String(t || "").trim();
+	if (!r) return !1;
 	try {
-		return r(i, t());
+		return i(r, n());
 	} catch (e) {
 		return console.debug?.(e), !1;
 	}
@@ -1912,18 +1912,18 @@ function ke(e, t, n = null) {
 		default: return P(e);
 	}
 }
-function k(e, t, r = null) {
-	if (!e) return !1;
-	let a = String(e.type || "").toLowerCase();
+function k(t, n, i = null) {
+	if (!t) return !1;
+	let a = String(t.type || "").toLowerCase();
 	if (a === "number" || a === "int" || a === "float") {
-		let n = Number(t);
-		if (Number.isNaN(n)) return !1;
-		let r = e.options ?? {}, i = r.min ?? -Infinity, o = r.max ?? Infinity, s = Math.min(o, Math.max(i, n));
-		(a === "int" || r.precision === 0 || r.round === 1) && (s = Math.round(s)), e.value = s;
-	} else a === "toggle" || a === "boolean" ? e.value = !!t : e.value = t;
+		let e = Number(n);
+		if (Number.isNaN(e)) return !1;
+		let r = t.options ?? {}, i = r.min ?? -Infinity, o = r.max ?? Infinity, s = Math.min(o, Math.max(i, e));
+		(a === "int" || r.precision === 0 || r.round === 1) && (s = Math.round(s)), t.value = s;
+	} else a === "toggle" || a === "boolean" ? t.value = !!n : t.value = n;
 	try {
-		let t = n(), o = r ?? e?.parent ?? null, s = e.value;
-		e.callback?.(e.value, t, o, null, e), (a === "number" || a === "int" || a === "float") && (e.value = s), A(e), i(o);
+		let n = r(), o = i ?? t?.parent ?? null, s = t.value;
+		t.callback?.(t.value, n, o, null, t), (a === "number" || a === "int" || a === "float") && (t.value = s), A(t), e(o);
 	} catch (e) {
 		console.debug?.("[MFV] writeWidgetValue", e);
 	}
@@ -2360,15 +2360,15 @@ function Ie() {
 function Le() {
 	I?.root && (I.root.hidden = !0);
 }
-function U(e = t()) {
+function U(e = n()) {
 	if (typeof document > "u") return !1;
 	I?.root?.isConnected || (I = Ie());
-	let n = d(e), r = () => H(I.body, n, String(I.search.value || "").trim().toLowerCase());
+	let t = d(e), r = () => H(I.body, t, String(I.search.value || "").trim().toLowerCase());
 	return I.search.oninput = r, I.search.value = "", r(), I.root.hidden = !1, setTimeout(() => I?.search?.focus?.(), 0), !0;
 }
 //#endregion
 //#region ui/app/openMajoorSettings.ts
-function Re(e = t()) {
+function Re(e = n()) {
 	return U(e);
 }
 try {

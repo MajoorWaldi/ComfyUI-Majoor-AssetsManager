@@ -35,6 +35,11 @@ vi.mock("../api/client.js", () => ({
 }));
 
 vi.mock("../app/settings/settingsCore.js", () => ({
+    DEFAULT_SETTINGS: {
+        i18n: { followComfyLanguage: true },
+        watcher: { enabled: true },
+        grid: { sample: true },
+    },
     applySettingsToConfig,
     loadMajoorSettings: () => loadedSettings,
     saveMajoorSettings,
@@ -114,14 +119,15 @@ describe("SettingsPanel", () => {
         const mod = await import("../app/settings/SettingsPanel.js");
         const settings = mod.buildMajoorSettings({ id: "app" });
 
-        expect(settings).toHaveLength(1);
-        expect(settings[0].name).toBe("Sample setting");
-        expect(settings[0].category).toEqual([
+        expect(settings).toHaveLength(2);
+        expect(settings[0].id).toBe("Majoor.General.ResetAllSettings");
+        expect(settings[1].name).toBe("Sample setting");
+        expect(settings[1].category).toEqual([
             "Majoor Assets Manager",
             "Assets Panel",
             "Wrong Category",
         ]);
-        expect(settings[0].tooltip).toBe("Sample setting");
+        expect(settings[1].tooltip).toBe("Sample setting");
         expect(startRuntimeStatusDashboard).not.toHaveBeenCalled();
         expect(syncBackendSecuritySettings).not.toHaveBeenCalled();
     });
@@ -136,7 +142,7 @@ describe("SettingsPanel", () => {
         const mod = await import("../app/settings/SettingsPanel.js");
 
         const settings = mod.buildMajoorSettings(app);
-        settings[0].onChange(true);
+        settings[1].onChange(true);
 
         expect(setSettingValue).toHaveBeenCalledWith("Majoor.Grid.Sample", false);
         expect(setSettingValue).toHaveBeenCalledWith("Majoor.Grid.Sample", true);
@@ -151,7 +157,7 @@ describe("SettingsPanel", () => {
         const mod = await import("../app/settings/SettingsPanel.js");
 
         const first = mod.buildMajoorSettings({ id: "app" });
-        expect(first[0].defaultValue).toBe(true);
+        expect(first[1].defaultValue).toBe(true);
 
         loadedSettings = {
             i18n: { followComfyLanguage: true },
@@ -161,7 +167,7 @@ describe("SettingsPanel", () => {
         const second = mod.buildMajoorSettings({ id: "app" });
 
         expect(second).not.toBe(first);
-        expect(second[0].defaultValue).toBe(true);
+        expect(second[1].defaultValue).toBe(true);
     });
 
     it("initializes runtime side effects once during register", async () => {

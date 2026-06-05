@@ -1,5 +1,5 @@
 import { t as e } from "./rolldown-runtime-Dy4uBu1J.js";
-import { l as t, rt as n, t as r } from "./config-CCHYUNeO.js";
+import { it as t, l as n, t as r } from "./config-eqarUfKd.js";
 import { r as i } from "./events-BnkL6-b6.js";
 import { n as a } from "./state-DPiaUMw1.js";
 //#region ui/features/viewer/model3dCore.ts
@@ -562,9 +562,9 @@ function T(e) {
 	let t = Math.max(0, Number(e) || 0), n = Math.floor(t / 60), r = Math.floor(t % 60);
 	return n > 0 ? `${n}:${String(r).padStart(2, "0")}` : `${Math.floor(t)}s`;
 }
-function E(e, n) {
+function E(e, t) {
 	let r = document.createElement("button");
-	return r.type = "button", r.textContent = String(e || ""), r.title = String(n || e || ""), r.setAttribute("aria-label", String(n || e || t("model3d.viewportAction", "3D viewport action"))), r.style.cssText = [
+	return r.type = "button", r.textContent = String(e || ""), r.title = String(t || e || ""), r.setAttribute("aria-label", String(t || e || n("model3d.viewportAction", "3D viewport action"))), r.style.cssText = [
 		"height:28px",
 		"padding:0 10px",
 		"border-radius:999px",
@@ -586,7 +586,7 @@ function D(e, t) {
 	let n = !!t;
 	e.dataset.active = n ? "1" : "0", e.style.background = n ? "rgba(76,175,80,0.18)" : "rgba(13,15,20,0.78)", e.style.borderColor = n ? "rgba(76,175,80,0.42)" : "rgba(255,255,255,0.16)", e.style.color = n ? "rgba(230,255,235,0.96)" : "rgba(255,255,255,0.92)";
 }
-function O(e, n, r = "", i = "#4CAF50") {
+function O(e, t, r = "", i = "#4CAF50") {
 	if (!e) return;
 	try {
 		let t = Math.max(480, Number(e.width) || 960), n = Math.max(270, Number(e.height) || 540);
@@ -605,17 +605,17 @@ function O(e, n, r = "", i = "#4CAF50") {
 	let o = Number(e.width) || 960, s = Number(e.height) || 540, c = o / 2, l = s / 2;
 	try {
 		let e = a.createLinearGradient(0, 0, o, s);
-		e.addColorStop(0, "#0f1419"), e.addColorStop(1, "#11181f"), a.fillStyle = e, a.fillRect(0, 0, o, s), a.save(), a.translate(c, l - 32), a.strokeStyle = i, a.lineWidth = 3, a.globalAlpha = .95, a.beginPath(), a.moveTo(0, -44), a.lineTo(42, -22), a.lineTo(42, 22), a.lineTo(0, 44), a.lineTo(-42, 22), a.lineTo(-42, -22), a.closePath(), a.stroke(), a.beginPath(), a.moveTo(0, -44), a.lineTo(0, 0), a.lineTo(42, 22), a.moveTo(0, 0), a.lineTo(-42, 22), a.moveTo(-42, -22), a.lineTo(0, 0), a.moveTo(42, -22), a.lineTo(0, 0), a.stroke(), a.restore(), a.fillStyle = "rgba(255,255,255,0.94)", a.font = "600 18px system-ui, sans-serif", a.textAlign = "center", a.textBaseline = "middle", a.fillText(String(n || t("model3d.preview", "3D preview")), c, l + 44), r && (a.fillStyle = "rgba(255,255,255,0.62)", a.font = "13px system-ui, sans-serif", a.fillText(String(r), c, l + 72));
+		e.addColorStop(0, "#0f1419"), e.addColorStop(1, "#11181f"), a.fillStyle = e, a.fillRect(0, 0, o, s), a.save(), a.translate(c, l - 32), a.strokeStyle = i, a.lineWidth = 3, a.globalAlpha = .95, a.beginPath(), a.moveTo(0, -44), a.lineTo(42, -22), a.lineTo(42, 22), a.lineTo(0, 44), a.lineTo(-42, 22), a.lineTo(-42, -22), a.closePath(), a.stroke(), a.beginPath(), a.moveTo(0, -44), a.lineTo(0, 0), a.lineTo(42, 22), a.moveTo(0, 0), a.lineTo(-42, 22), a.moveTo(-42, -22), a.lineTo(0, 0), a.moveTo(42, -22), a.lineTo(0, 0), a.stroke(), a.restore(), a.fillStyle = "rgba(255,255,255,0.94)", a.font = "600 18px system-ui, sans-serif", a.textAlign = "center", a.textBaseline = "middle", a.fillText(String(t || n("model3d.preview", "3D preview")), c, l + 44), r && (a.fillStyle = "rgba(255,255,255,0.62)", a.font = "13px system-ui, sans-serif", a.fillText(String(r), c, l + 72));
 	} catch (i) {
 		console.debug?.(i);
 		try {
-			b(e, n, r || t("model3d.unavailable", "3D viewer unavailable"));
+			b(e, t, r || n("model3d.unavailable", "3D viewer unavailable"));
 		} catch (e) {
 			console.debug?.(e);
 		}
 	}
 }
-function ne({ defaultBgColor: e, defaultFov: n, defaultLightIntensity: r, hasSkeleton: i } = {}) {
+function ne({ defaultBgColor: e, defaultFov: t, defaultLightIntensity: r, hasSkeleton: i } = {}) {
 	let a = document.createElement("div");
 	a.className = "mjr-model3d-settings", a.style.cssText = [
 		"position:absolute",
@@ -702,7 +702,7 @@ function ne({ defaultBgColor: e, defaultFov: n, defaultLightIntensity: r, hasSke
 	};
 	o("Scene");
 	let u = document.createElement("input");
-	u.type = "color", u.value = e || "#282828", u.style.cssText = "width:34px;height:24px;cursor:pointer;border:1px solid rgba(255,255,255,0.18);border-radius:4px;padding:1px;background:none;flex-shrink:0;", s(t("model3d.background", "Background"), u), o("Model");
+	u.type = "color", u.value = e || "#282828", u.style.cssText = "width:34px;height:24px;cursor:pointer;border:1px solid rgba(255,255,255,0.18);border-radius:4px;padding:1px;background:none;flex-shrink:0;", s(n("model3d.background", "Background"), u), o("Model");
 	let d = c([
 		["original", "Original"],
 		["normal", "Normal map"],
@@ -710,7 +710,7 @@ function ne({ defaultBgColor: e, defaultFov: n, defaultLightIntensity: r, hasSke
 		["wireframe", "Wireframe"],
 		["pointcloud", "Point cloud"]
 	], "original");
-	s(t("model3d.material", "Material"), d);
+	s(n("model3d.material", "Material"), d);
 	let f = c([
 		["original", "Original"],
 		["+y", "+Y (default)"],
@@ -722,11 +722,11 @@ function ne({ defaultBgColor: e, defaultFov: n, defaultLightIntensity: r, hasSke
 	], "original");
 	s("Up", f);
 	let p = null, m = null;
-	i && (m = document.createElement("input"), m.type = "checkbox", m.checked = !1, m.style.cssText = "cursor:pointer;accent-color:#4CAF50;flex-shrink:0;", p = s(t("model3d.skeleton", "Skeleton"), m)), o("Camera");
-	let h = l(15, 120, 1, n ?? 75);
-	s("FOV", h.wrap), o(t("model3d.lights", "Lights"));
+	i && (m = document.createElement("input"), m.type = "checkbox", m.checked = !1, m.style.cssText = "cursor:pointer;accent-color:#4CAF50;flex-shrink:0;", p = s(n("model3d.skeleton", "Skeleton"), m)), o("Camera");
+	let h = l(15, 120, 1, t ?? 75);
+	s("FOV", h.wrap), o(n("model3d.lights", "Lights"));
 	let g = l(0, 5, .1, r ?? 1);
-	return s(t("model3d.intensity", "Intensity"), g.wrap), {
+	return s(n("model3d.intensity", "Intensity"), g.wrap), {
 		panel: a,
 		bgInput: u,
 		materialSel: d,
@@ -767,8 +767,8 @@ function re() {
 	].forEach((t) => {
 		e.addEventListener(t, (e) => w(e, { preventDefault: !1 }));
 	});
-	let n = document.createElement("button");
-	n.type = "button", n.textContent = t("model3d.play", "Play"), n.title = t("model3d.playPause", "Play / Pause"), n.style.cssText = [
+	let t = document.createElement("button");
+	t.type = "button", t.textContent = n("model3d.play", "Play"), t.title = n("model3d.playPause", "Play / Pause"), t.style.cssText = [
 		"width:28px",
 		"height:28px",
 		"border-radius:50%",
@@ -785,7 +785,7 @@ function re() {
 		"justify-content:center"
 	].join(";");
 	let r = document.createElement("select");
-	r.title = t("model3d.playbackSpeed", "Playback speed"), r.style.cssText = [
+	r.title = n("model3d.playbackSpeed", "Playback speed"), r.style.cssText = [
 		"background:rgba(20,24,34,0.9)",
 		"color:rgba(255,255,255,0.8)",
 		"border:1px solid rgba(255,255,255,0.14)",
@@ -821,9 +821,9 @@ function re() {
 		"color:rgba(255,255,255,0.45)",
 		"white-space:nowrap",
 		"flex-shrink:0"
-	].join(";"), o.textContent = "0s / 0s", e.appendChild(n), e.appendChild(r), e.appendChild(i), e.appendChild(a), e.appendChild(o), {
+	].join(";"), o.textContent = "0s / 0s", e.appendChild(t), e.appendChild(r), e.appendChild(i), e.appendChild(a), e.appendChild(o), {
 		bar: e,
-		playBtn: n,
+		playBtn: t,
 		speedSel: r,
 		animSel: i,
 		progressSlider: a,
@@ -848,7 +848,7 @@ var ie = Object.freeze({
 	"fbx",
 	"stl",
 	"ply"
-]), oe = "#282828", se = t("model3d.controlHint", "Rotate: left drag  Pan: right drag  Zoom: wheel"), A = Object.freeze({
+]), oe = "#282828", se = n("model3d.controlHint", "Rotate: left drag  Pan: right drag  Zoom: wheel"), A = Object.freeze({
 	PERSPECTIVE: "perspective",
 	ORTHOGRAPHIC: "orthographic"
 });
@@ -1036,7 +1036,7 @@ function F(e, a, o = {}) {
 	].join(";");
 	let C = document.createElement("div");
 	C.style.cssText = "display:flex;align-items:center;gap:6px;flex-wrap:wrap;pointer-events:auto;";
-	let ie = E(t("model3d.reset", "Reset"), t("model3d.resetView", "Reset 3D view")), k = E(t("model3d.grid", "Grid"), t("model3d.toggleGrid", "Toggle grid")), pe = E(t("model3d.persp", "Persp"), t("model3d.switchCamera", "Switch perspective / orthographic")), me = E(t("model3d.settings", "Settings"), t("model3d.settings", "Settings"));
+	let ie = E(n("model3d.reset", "Reset"), n("model3d.resetView", "Reset 3D view")), k = E(n("model3d.grid", "Grid"), n("model3d.toggleGrid", "Toggle grid")), pe = E(n("model3d.persp", "Persp"), n("model3d.switchCamera", "Switch perspective / orthographic")), me = E(n("model3d.settings", "Settings"), n("model3d.settings", "Settings"));
 	C.append(ie, k, pe, me), S.appendChild(C), _.appendChild(S);
 	let M = document.createElement("div");
 	M.className = "mjr-model3d-hint", M.textContent = o.hintText || se, M.style.cssText = [
@@ -1185,8 +1185,8 @@ function F(e, a, o = {}) {
 		}
 	}, qe = (e) => {
 		if (!X || !Z.length) return;
-		let n = Z[e];
-		if (!n) return;
+		let t = Z[e];
+		if (!t) return;
 		Q.forEach((e) => {
 			try {
 				e?.stop();
@@ -1194,14 +1194,14 @@ function F(e, a, o = {}) {
 				console.debug?.(e);
 			}
 		});
-		let r = X.clipAction(n);
-		r.timeScale = Ae, r.clampWhenFinished = !1, r.loop = I?.LoopRepeat ?? 2201, r.play(), Q[e] = r, $ = e, je = !0, P.playBtn.textContent = t("model3d.pause", "Pause");
+		let r = X.clipAction(t);
+		r.timeScale = Ae, r.clampWhenFinished = !1, r.loop = I?.LoopRepeat ?? 2201, r.play(), Q[e] = r, $ = e, je = !0, P.playBtn.textContent = n("model3d.pause", "Pause");
 		try {
-			let e = Math.max(100, Math.min(1e4, Math.round((n.duration || 1) * 100)));
+			let e = Math.max(100, Math.min(1e4, Math.round((t.duration || 1) * 100)));
 			P.progressSlider.max = String(e);
 		} catch {}
 	}, Je = () => {
-		!X || !Z.length || (je ? (X.timeScale = 0, je = !1, P.playBtn.textContent = t("model3d.play", "Play")) : (X.timeScale = Ae, Q[$]?.isRunning?.() ? (je = !0, P.playBtn.textContent = t("model3d.pause", "Pause")) : qe($)));
+		!X || !Z.length || (je ? (X.timeScale = 0, je = !1, P.playBtn.textContent = n("model3d.play", "Play")) : (X.timeScale = Ae, Q[$]?.isRunning?.() ? (je = !0, P.playBtn.textContent = n("model3d.pause", "Pause")) : qe($)));
 	}, Ye = (e, t) => {
 		!e || e.length === 0 || !I || (Z = e, X = new I.AnimationMixer(t), ke = new I.Clock(), Q = Array(e.length).fill(null), P.animSel.innerHTML = "", e.forEach((e, t) => {
 			let n = document.createElement("option");
@@ -1231,7 +1231,7 @@ function F(e, a, o = {}) {
 			}
 		}));
 	}, Xe = () => {
-		D(k, !!W?.visible), D(pe, q === A.ORTHOGRAPHIC), pe.textContent = q === A.ORTHOGRAPHIC ? t("model3d.ortho", "Ortho") : t("model3d.persp", "Persp"), D(me, Ne);
+		D(k, !!W?.visible), D(pe, q === A.ORTHOGRAPHIC), pe.textContent = q === A.ORTHOGRAPHIC ? n("model3d.ortho", "Ortho") : n("model3d.persp", "Persp"), D(me, Ne);
 	};
 	N.bgInput.addEventListener("input", () => {
 		let e = N.bgInput.value;
@@ -1415,8 +1415,8 @@ function F(e, a, o = {}) {
 		let r = he(e);
 		if (!ae.has(r)) {
 			if (Ie("3D preview unavailable", `${r.toUpperCase()} is not supported in the embedded viewer.`), M.style.display = "none", a) try {
-				let n = document.createElement("a");
-				n.href = a, n.download = String(e?.filename || "model"), n.textContent = t("model3d.downloadFile", "Download {file}", { file: String(e?.filename || "file") }), n.style.cssText = [
+				let t = document.createElement("a");
+				t.href = a, t.download = String(e?.filename || "model"), t.textContent = n("model3d.downloadFile", "Download {file}", { file: String(e?.filename || "file") }), t.style.cssText = [
 					"position:absolute",
 					"bottom:18px",
 					"left:50%",
@@ -1429,31 +1429,31 @@ function F(e, a, o = {}) {
 					"text-decoration:none",
 					"pointer-events:auto",
 					"z-index:3"
-				].join(";"), _.appendChild(n);
+				].join(";"), _.appendChild(t);
 			} catch {}
 			return;
 		}
 		try {
-			let t = await te();
+			let n = await te();
 			if (F) return;
-			let i = t.THREE;
+			let i = n.THREE;
 			I = i;
 			let l = new i.LoadingManager();
-			l.setURLModifier((t) => {
-				if (!t || fe(t)) return t;
-				let r = n(e, t);
+			l.setURLModifier((n) => {
+				if (!n || fe(n)) return n;
+				let r = t(e, n);
 				if (r) return r;
 				try {
-					return new URL(t, a).href;
+					return new URL(n, a).href;
 				} catch {
-					return t;
+					return n;
 				}
 			}), L = new i.WebGLRenderer({
 				canvas: y,
 				antialias: !0,
 				alpha: !0,
 				preserveDrawingBuffer: !0
-			}), L.outputColorSpace = i.SRGBColorSpace, L.setPixelRatio(Math.min(2, window.devicePixelRatio || 1)), R = new i.Scene(), R.background = new i.Color(oe), B = new i.PerspectiveCamera(le, 16 / 9, .01, 1e4), V = new i.OrthographicCamera(-1, 1, 1, -1, -1e4, 1e4), z = B, H = new t.OrbitControls(z, y), H.enableDamping = !0, H.dampingFactor = .08, H.rotateSpeed = .82, H.zoomSpeed = 1, H.panSpeed = .9, H.screenSpacePanning = !0, H.mouseButtons = ge(null, i.MOUSE), xe = Ze(), De = new i.AmbientLight(16777215, j.ambient * Y), R.add(De);
+			}), L.outputColorSpace = i.SRGBColorSpace, L.setPixelRatio(Math.min(2, window.devicePixelRatio || 1)), R = new i.Scene(), R.background = new i.Color(oe), B = new i.PerspectiveCamera(le, 16 / 9, .01, 1e4), V = new i.OrthographicCamera(-1, 1, 1, -1, -1e4, 1e4), z = B, H = new n.OrbitControls(z, y), H.enableDamping = !0, H.dampingFactor = .08, H.rotateSpeed = .82, H.zoomSpeed = 1, H.panSpeed = .9, H.screenSpacePanning = !0, H.mouseButtons = ge(null, i.MOUSE), xe = Ze(), De = new i.AmbientLight(16777215, j.ambient * Y), R.add(De);
 			let u = new i.DirectionalLight(16777215, j.main * Y);
 			u.position.set(0, 10, 10);
 			let p = new i.DirectionalLight(16777215, j.back * Y);
@@ -1476,14 +1476,14 @@ function F(e, a, o = {}) {
 				L.setSize(t, n, !1), B && (B.aspect = t / n, B.updateProjectionMatrix()), ze(t, n), Re(), Fe();
 			};
 			typeof ResizeObserver < "u" && (_e = new ResizeObserver(() => x()), _e.observe(_));
-			let S = v(t, r, l);
+			let S = v(n, r, l);
 			if (!S) {
 				Ie("3D loader unavailable", `${r.toUpperCase()} loader could not be created.`), M.style.display = "none";
 				return;
 			}
-			if (r === "obj" && t.MTLLoader) try {
-				let e = a.replace(/\.obj(\?.*)?$/i, (e, t) => `.mtl${t || ""}`), n = new t.MTLLoader(l), r = await new Promise((t) => {
-					n.load(e, t, void 0, () => t(null));
+			if (r === "obj" && n.MTLLoader) try {
+				let e = a.replace(/\.obj(\?.*)?$/i, (e, t) => `.mtl${t || ""}`), t = new n.MTLLoader(l), r = await new Promise((n) => {
+					t.load(e, n, void 0, () => n(null));
 				});
 				r && !F && (r.preload(), S.setMaterials(r));
 			} catch (e) {
