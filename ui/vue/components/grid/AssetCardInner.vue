@@ -287,8 +287,10 @@ const cardTitle = computed(() => {
     const parts = [filename.value || rawDisplayName.value];
     const subfolder = String(props.asset.subfolder || props.asset.file_info?.subfolder || "").trim();
     const type = String(props.asset.type || props.asset.source || props.asset.file_info?.type || "").trim();
+    const notes = String(props.asset.notes || "").trim();
     if (subfolder) parts.push(`Subfolder: ${subfolder}`);
     if (type) parts.push(`Type: ${type}`);
+    if (notes) parts.push(`Notes: ${notes}`);
     return parts.filter(Boolean).join("\n");
 });
 

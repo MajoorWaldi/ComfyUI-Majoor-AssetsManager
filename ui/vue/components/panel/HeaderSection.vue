@@ -103,6 +103,7 @@ const pinnedFoldersBtnRef = ref(null);
 const mfvBtnRef = ref(null);
 const messageBtnRef = ref(null);
 const saveWorkflowBtnRef = ref(null);
+const importWorkflowInputRef = ref(null);
 const searchBarRef = ref(null);
 const sortPopoverRef         = ref(null);  // <SortPopover>
 const filterPopoverRef       = ref(null);  // <FilterPopover>
@@ -216,6 +217,76 @@ async function onSaveCurrentWorkflow() {
         window.dispatchEvent(new CustomEvent("mjr:reload-grid", { detail: { reason: "workflow-save" } }));
     } catch (e) {
         console.debug?.(e);
+    }
+}
+
+function triggerImportWorkflow() {
+    const input = importWorkflowInputRef.value;
+    if (!input) return;
+    try {
+        input.value = "";
+        input.click();
+    } catch (e) {
+        console.debug?.(e);
+    }
+}
+
+function readWorkflowImportFile(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+            try {
+                const parsed = JSON.parse(String(reader.result || ""));
+                resolve(parsed);
+            } catch (error) {
+                reject(error);
+            }
+        };
+        reader.onerror = () => reject(reader.error || new Error("Failed to read workflow file"));
+        reader.readAsText(file, "utf-8");
+    });
+}
+
+async function onImportWorkflowFiles(event) {
+    const files = Array.from(event?.target?.files || []).filter((file) =>
+        String(file?.name || "").toLowerCase().endsWith(".json"),
+    );
+    if (!files.length) return;
+
+    let imported = 0;
+    for (const file of files) {
+        try {
+            const workflow = await readWorkflowImportFile(file);
+            if (!workflow || typeof workflow !== "object") {
+                comfyToast(t("toast.workflowImportInvalid", "Invalid workflow JSON."), "error");
+                continue;
+            }
+            const name = String(file.name || "workflow.json").replace(/\.json$/i, "").trim() || "workflow";
+            const result = await saveWorkflow({ workflow, name }, { timeoutMs: 30_000 });
+            if (!result?.ok) {
+                comfyToast(result?.error || t("toast.workflowSaveFailed", "Failed to save workflow."), "error");
+                continue;
+            }
+            imported += 1;
+        } catch (error) {
+            console.debug?.(error);
+            comfyToast(t("toast.workflowImportInvalid", "Invalid workflow JSON."), "error");
+        }
+    }
+
+    if (imported > 0) {
+        comfyToast(
+            imported === 1
+                ? t("toast.workflowImported", "Workflow imported")
+                : t("toast.workflowsImported", "{count} workflows imported", { count: imported }),
+            "success",
+            1800,
+        );
+        try {
+            window.dispatchEvent(new CustomEvent("mjr:reload-grid", { detail: { reason: "workflow-import" } }));
+        } catch (e) {
+            console.debug?.(e);
+        }
     }
 }
 
@@ -548,6 +619,27 @@ defineExpose({
                     >
                         <i class="pi pi-save" aria-hidden="true" />
                     </MButton>
+                    <MButton
+                        v-if="activeScope === 'workflow'"
+                        type="button"
+                        class="mjr-icon-btn mjr-import-workflow-btn"
+                        severity="secondary"
+                        text
+                        rounded
+                        :title="t('tooltip.importWorkflow', 'Import workflow')"
+                        :aria-label="t('tooltip.importWorkflow', 'Import workflow')"
+                        @click="triggerImportWorkflow"
+                    >
+                        <i class="pi pi-upload" aria-hidden="true" />
+                    </MButton>
+                    <input
+                        ref="importWorkflowInputRef"
+                        type="file"
+                        accept=".json,application/json"
+                        multiple
+                        style="display:none"
+                        @change="onImportWorkflowFiles"
+                    />
 
                     <div class="mjr-popover-anchor" style="display: none;">
                         <MButton

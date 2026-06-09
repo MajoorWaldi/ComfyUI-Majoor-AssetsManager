@@ -1,6 +1,6 @@
 import { t as e } from "./rolldown-runtime-Dy4uBu1J.js";
-import { l as t, t as n } from "./config-CvC3JxWV.js";
-import { S as r, c as i, l as a, p as o, s, t as c } from "./SidebarWorkflowSection-BCe9uc4V.js";
+import { a as t, p as n } from "./events-DhWnn1NH.js";
+import { E as r, c as i, l as a, p as o, s, t as c } from "./SidebarWorkflowSection-C3G8iJNA.js";
 import { C as l, D as u, E as d, L as f, T as p, at as m, ct as h, st as g, w as _ } from "./mjr-primevue-CJ2E0Gsv.js";
 //#region ui/vue/components/viewer/ViewerMetadataBlock.vue
 var v = { style: {
@@ -168,17 +168,17 @@ var v = { style: {
 		function I() {
 			typeof r.onRetry == "function" && r.onRetry();
 		}
-		let L = l(() => o(r.asset)), R = l(() => i(r.asset)), z = l(() => R.value.kind !== "empty"), B = l(() => P(r.asset)), V = l(() => n.WORKFLOW_MINIMAP_ENABLED !== !1 && N(r.asset)), H = l(() => L.value && typeof L.value == "object" && L.value.kind === "fetch_error"), U = l(() => F(r.asset?.metadata_raw)), W = l(() => !r.loading && !H.value && !B.value && !z.value && !V.value), G = l(() => {
+		let L = l(() => o(r.asset)), R = l(() => i(r.asset)), z = l(() => R.value.kind !== "empty"), B = l(() => P(r.asset)), V = l(() => t.WORKFLOW_MINIMAP_ENABLED !== !1 && N(r.asset)), H = l(() => L.value && typeof L.value == "object" && L.value.kind === "fetch_error"), U = l(() => F(r.asset?.metadata_raw)), W = l(() => !r.loading && !H.value && !B.value && !z.value && !V.value), G = l(() => {
 			if (!H.value) return "";
-			let e = String(L.value?.message || L.value?.error || "Failed to load generation data."), n = String(L.value?.code || L.value?.stage || "").trim();
-			return n ? t("viewer.metadataErrorWithCode", "{message}\n\nCode: {code}\nClick to retry.", {
+			let e = String(L.value?.message || L.value?.error || "Failed to load generation data."), t = String(L.value?.code || L.value?.stage || "").trim();
+			return t ? n("viewer.metadataErrorWithCode", "{message}\n\nCode: {code}\nClick to retry.", {
 				message: e,
-				code: n
-			}) : t("viewer.metadataErrorRetry", "{message}\n\nClick to retry.", { message: e });
+				code: t
+			}) : n("viewer.metadataErrorRetry", "{message}\n\nClick to retry.", { message: e });
 		});
-		return (e, n) => (f(), u("div", v, [
+		return (e, t) => (f(), u("div", v, [
 			r.title ? (f(), u("div", y, h(r.title), 1)) : d("", !0),
-			r.loading ? (f(), u("div", b, [_("div", x, h(m(t)("status.loading", "Loading")), 1), _("div", S, h(m(t)("viewer.loadingGenerationData", "Loading generation data...")), 1)])) : d("", !0),
+			r.loading ? (f(), u("div", b, [_("div", x, h(m(n)("status.loading", "Loading")), 1), _("div", S, h(m(n)("viewer.loadingGenerationData", "Loading generation data...")), 1)])) : d("", !0),
 			H.value ? (f(), u("div", {
 				key: 2,
 				style: g([{
@@ -190,7 +190,7 @@ var v = { style: {
 					"white-space": "pre-wrap"
 				}, { cursor: r.onRetry ? "pointer" : "default" }]),
 				onClick: I
-			}, [_("div", C, h(m(t)("viewer.errorLoadingMetadata", "Error Loading Metadata")), 1), _("div", w, h(G.value), 1)], 4)) : d("", !0),
+			}, [_("div", C, h(m(n)("viewer.errorLoadingMetadata", "Error Loading Metadata")), 1), _("div", w, h(G.value), 1)], 4)) : d("", !0),
 			B.value ? (f(), p(a, {
 				key: 3,
 				asset: r.asset
@@ -203,8 +203,8 @@ var v = { style: {
 				key: 5,
 				asset: r.asset
 			}, null, 8, ["asset"])) : d("", !0),
-			W.value ? (f(), u("div", T, h(m(t)("viewer.noGenerationDataFile", "No generation data found for this file.")), 1)) : d("", !0),
-			U.value ? (f(), u("details", E, [_("summary", D, h(m(t)("msg.rawMetadata", "Raw metadata")), 1), _("pre", O, h(U.value), 1)])) : d("", !0)
+			W.value ? (f(), u("div", T, h(m(n)("viewer.noGenerationDataFile", "No generation data found for this file.")), 1)) : d("", !0),
+			U.value ? (f(), u("details", E, [_("summary", D, h(m(n)("msg.rawMetadata", "Raw metadata")), 1), _("pre", O, h(U.value), 1)])) : d("", !0)
 		]));
 	}
 }, A = /* @__PURE__ */ e({
@@ -213,7 +213,7 @@ var v = { style: {
 }), j = (e, t = null) => {
 	let n = r(e);
 	return n === void 0 ? t : n;
-}, M = n?.VIEWER_GENINFO_TTL_MS ?? 3e4, N = n?.VIEWER_GENINFO_ERROR_TTL_MS ?? 8e3, P = n?.VIEWER_GENINFO_MAX_ENTRIES ?? 300, F = /* @__PURE__ */ new Map(), I = /* @__PURE__ */ new Map(), L = /* @__PURE__ */ new Map(), R = (e, t, n) => {
+}, M = t?.VIEWER_GENINFO_TTL_MS ?? 3e4, N = t?.VIEWER_GENINFO_ERROR_TTL_MS ?? 8e3, P = t?.VIEWER_GENINFO_MAX_ENTRIES ?? 300, F = /* @__PURE__ */ new Map(), I = /* @__PURE__ */ new Map(), L = /* @__PURE__ */ new Map(), R = (e, t, n) => {
 	try {
 		let r = Date.now();
 		for (let [n, i] of e.entries()) {

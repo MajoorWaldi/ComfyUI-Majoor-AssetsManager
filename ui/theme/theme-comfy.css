@@ -2472,6 +2472,55 @@
     box-shadow: 0 18px 60px rgba(0, 0, 0, 0.48);
 }
 
+.mjr-workflow-info-dialog {
+    width: min(560px, 96vw);
+}
+
+.mjr-workflow-info-form {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    padding: 14px 18px 4px;
+}
+
+.mjr-workflow-info-form label {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+}
+
+.mjr-workflow-info-form label.is-wide {
+    grid-column: 1 / -1;
+}
+
+.mjr-workflow-info-form span {
+    color: rgba(255,255,255,0.64);
+    font-size: 11px;
+    font-weight: 750;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+
+.mjr-workflow-info-form input,
+.mjr-workflow-info-form select,
+.mjr-workflow-info-form textarea {
+    width: 100%;
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 8px;
+    background: rgba(0,0,0,0.26);
+    color: rgba(255,255,255,0.92);
+    font: inherit;
+    font-size: 13px;
+    padding: 9px 10px;
+    outline: none;
+}
+
+.mjr-workflow-info-form textarea {
+    resize: vertical;
+    min-height: 96px;
+}
+
 .mjr-workflow-picker-header,
 .mjr-workflow-picker-footer {
     display: flex;

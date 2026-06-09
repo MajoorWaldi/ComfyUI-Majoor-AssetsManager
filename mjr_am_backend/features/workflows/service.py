@@ -259,6 +259,15 @@ CREATE TABLE IF NOT EXISTS workflows (
     model_family TEXT DEFAULT '',
     provider TEXT DEFAULT '',
     runs_on TEXT DEFAULT '',
+    detected_task TEXT DEFAULT '',
+    detected_model_family TEXT DEFAULT '',
+    detected_provider TEXT DEFAULT '',
+    detected_runs_on TEXT DEFAULT '',
+    user_task TEXT DEFAULT '',
+    user_model_family TEXT DEFAULT '',
+    user_provider TEXT DEFAULT '',
+    user_runs_on TEXT DEFAULT '',
+    notes TEXT DEFAULT '',
     detection_confidence REAL NOT NULL DEFAULT 0,
     detection_source TEXT DEFAULT '',
     detection_signals_json TEXT DEFAULT '{}',
@@ -301,6 +310,15 @@ def _ensure_workflow_library_schema(conn: sqlite3.Connection) -> None:
         "detection_confidence": "ALTER TABLE workflows ADD COLUMN detection_confidence REAL NOT NULL DEFAULT 0",
         "detection_source": "ALTER TABLE workflows ADD COLUMN detection_source TEXT DEFAULT ''",
         "detection_signals_json": "ALTER TABLE workflows ADD COLUMN detection_signals_json TEXT DEFAULT '{}'",
+        "detected_task": "ALTER TABLE workflows ADD COLUMN detected_task TEXT DEFAULT ''",
+        "detected_model_family": "ALTER TABLE workflows ADD COLUMN detected_model_family TEXT DEFAULT ''",
+        "detected_provider": "ALTER TABLE workflows ADD COLUMN detected_provider TEXT DEFAULT ''",
+        "detected_runs_on": "ALTER TABLE workflows ADD COLUMN detected_runs_on TEXT DEFAULT ''",
+        "user_task": "ALTER TABLE workflows ADD COLUMN user_task TEXT DEFAULT ''",
+        "user_model_family": "ALTER TABLE workflows ADD COLUMN user_model_family TEXT DEFAULT ''",
+        "user_provider": "ALTER TABLE workflows ADD COLUMN user_provider TEXT DEFAULT ''",
+        "user_runs_on": "ALTER TABLE workflows ADD COLUMN user_runs_on TEXT DEFAULT ''",
+        "notes": "ALTER TABLE workflows ADD COLUMN notes TEXT DEFAULT ''",
     }.items():
         if column not in existing:
             conn.execute(ddl)
@@ -315,7 +333,11 @@ def _read_workflow_library_meta(path: Path) -> dict[str, Any]:
         with sqlite3.connect(str(db_path)) as conn:
             _ensure_workflow_library_schema(conn)
             row = conn.execute(
-                "SELECT favorite, usage_count, last_loaded_at, tags_json FROM workflows WHERE filepath = ?",
+                """
+                SELECT favorite, usage_count, last_loaded_at, tags_json,
+                       user_task, user_model_family, user_provider, user_runs_on, notes
+                FROM workflows WHERE filepath = ?
+                """,
                 (filepath,),
             ).fetchone()
         if not row:
@@ -329,6 +351,11 @@ def _read_workflow_library_meta(path: Path) -> dict[str, Any]:
             "usage_count": max(0, _to_int(row[1], 0)),
             "last_loaded_at": max(0, _to_int(row[2], 0)),
             "tags": _as_str_list(tags),
+            "user_task": str(row[4] or ""),
+            "user_model_family": str(row[5] or ""),
+            "user_provider": str(row[6] or ""),
+            "user_runs_on": str(row[7] or ""),
+            "notes": str(row[8] or ""),
         }
     except Exception:
         logger.debug("Workflow library metadata read failed", exc_info=True)
@@ -336,29 +363,39 @@ def _read_workflow_library_meta(path: Path) -> dict[str, Any]:
 
 
 def _workflow_library_card_values(card: dict[str, Any], now: int) -> tuple[Any, ...]:
+    def text(key: str) -> str:
+        return str(card.get(key) or "")
+
+    def number(key: str) -> int:
+        return int(card.get(key) or 0)
+
     return (
         str(card.get("filepath") or "").strip(),
         str(card.get("display_name") or card.get("filename") or "Workflow"),
-        str(card.get("description") or ""),
-        str(card.get("workflow_id") or ""),
-        str(card.get("workflow_hash") or ""),
-        str(card.get("subfolder") or ""),
-        str(card.get("task") or ""),
-        str(card.get("model_family") or ""),
-        str(card.get("provider") or ""),
-        str(card.get("runs_on") or ""),
+        text("description"),
+        text("workflow_id"),
+        text("workflow_hash"),
+        text("subfolder"),
+        text("task"),
+        text("model_family"),
+        text("provider"),
+        text("runs_on"),
+        text("detected_task"),
+        text("detected_model_family"),
+        text("detected_provider"),
+        text("detected_runs_on"),
         float(card.get("detection_confidence") or 0),
-        str(card.get("detection_source") or ""),
+        text("detection_source"),
         json.dumps(card.get("detection_signals") or {}, ensure_ascii=False),
-        str(card.get("thumbnail_path") or ""),
-        str(card.get("animated_thumbnail_path") or ""),
-        int(card.get("node_count") or 0),
-        int(card.get("link_count") or 0),
-        int(card.get("subgraph_count") or 0),
+        text("thumbnail_path"),
+        text("animated_thumbnail_path"),
+        number("node_count"),
+        number("link_count"),
+        number("subgraph_count"),
         json.dumps(_as_str_list(card.get("missing_nodes")), ensure_ascii=False),
         json.dumps(_as_str_list(card.get("missing_models")), ensure_ascii=False),
-        int(card.get("mtime") or 0),
-        int(card.get("size") or 0),
+        number("mtime"),
+        number("size"),
         now,
     )
 
@@ -386,6 +423,11 @@ def _apply_workflow_library_updates(
         "usage_count": max(0, _to_int(updates.get("usage_count"), 0)) if "usage_count" in updates else None,
         "last_loaded_at": max(0, _to_int(updates.get("last_loaded_at"), 0)) if "last_loaded_at" in updates else None,
         "tags_json": json.dumps(_as_str_list(updates.get("tags")), ensure_ascii=False) if "tags" in updates else None,
+        "user_task": str(updates.get("task") or "").strip() if "task" in updates else None,
+        "user_model_family": str(updates.get("model_family") or "").strip() if "model_family" in updates else None,
+        "user_provider": str(updates.get("provider") or "").strip() if "provider" in updates else None,
+        "user_runs_on": str(updates.get("runs_on") or "").strip().lower() if "runs_on" in updates else None,
+        "notes": str(updates.get("notes") or "").strip() if "notes" in updates else None,
     }
     for column, value in allowed.items():
         if value is not None:
@@ -423,11 +465,13 @@ def _upsert_workflow_library_card(card: dict[str, Any], *, updates: dict[str, An
                 """
                 INSERT OR IGNORE INTO workflows (
                     filepath, name, description, workflow_id, workflow_hash, source, category,
-                    task, model_family, provider, runs_on, detection_confidence, detection_source,
+                    task, model_family, provider, runs_on,
+                    detected_task, detected_model_family, detected_provider, detected_runs_on,
+                    detection_confidence, detection_source,
                     detection_signals_json, thumbnail_path, animated_thumbnail_path,
                     node_count, link_count, subgraph_count, missing_nodes_json, missing_models_json,
                     tags_json, favorite, usage_count, last_loaded_at, mtime, size, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, 'workflow', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '[]', 0, 0, NULL, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, 'workflow', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '[]', 0, 0, NULL, ?, ?, ?, ?)
                 """,
                 _workflow_library_insert_values(card, now),
             )
@@ -435,7 +479,9 @@ def _upsert_workflow_library_card(card: dict[str, Any], *, updates: dict[str, An
                 """
                 UPDATE workflows SET
                     name = ?, description = ?, workflow_id = ?, workflow_hash = ?, category = ?,
-                    task = ?, model_family = ?, provider = ?, runs_on = ?, detection_confidence = ?,
+                    task = ?, model_family = ?, provider = ?, runs_on = ?,
+                    detected_task = ?, detected_model_family = ?, detected_provider = ?, detected_runs_on = ?,
+                    detection_confidence = ?,
                     detection_source = ?, detection_signals_json = ?, thumbnail_path = ?,
                     animated_thumbnail_path = ?, node_count = ?, link_count = ?, subgraph_count = ?,
                     missing_nodes_json = ?, missing_models_json = ?, mtime = ?, size = ?, updated_at = ?
@@ -1145,6 +1191,33 @@ def set_workflow_tags(path: Path, *, tags: Any = ()) -> Result[dict[str, Any]]:
     )
 
 
+def set_workflow_info(path: Path, *, info: dict[str, Any] | None = None) -> Result[dict[str, Any]]:
+    if not is_managed_workflow_json_path(path):
+        return Result.Err("FORBIDDEN", "Workflow path is not allowed")
+    try:
+        resolved = path.resolve(strict=True)
+    except FileNotFoundError:
+        return Result.Err("NOT_FOUND", "Workflow not found")
+    workflow = _safe_read_workflow_json(resolved)
+    if workflow is None:
+        return Result.Err("INVALID_WORKFLOW", "Workflow JSON is missing or invalid")
+    card = _workflow_to_card(resolved, managed_workflow_root(create=False) or resolved.parent)
+    if card is None:
+        return Result.Err("INVALID_WORKFLOW", "Workflow JSON is missing or invalid")
+    updates = {
+        "task": (info or {}).get("task", ""),
+        "model_family": (info or {}).get("model_family", ""),
+        "provider": (info or {}).get("provider", ""),
+        "runs_on": (info or {}).get("runs_on", ""),
+        "notes": (info or {}).get("notes", ""),
+    }
+    write = _upsert_workflow_library_card(card, updates=updates)
+    if not write.ok:
+        return Result.Err(write.code or "WORKFLOW_DB_FAILED", write.error or "Failed to update workflow info")
+    next_card = _workflow_to_card(resolved, managed_workflow_root(create=False) or resolved.parent) or card
+    return Result.Ok({"updated": True, "filepath": str(resolved), "workflow": next_card})
+
+
 def list_workflow_thumbnail_candidates(path: Path, *, limit: int = 12) -> Result[list[dict[str, Any]]]:
     if not is_managed_workflow_json_path(path):
         return Result.Err("FORBIDDEN", "Workflow path is not allowed")
@@ -1322,6 +1395,45 @@ def _workflow_hash(path: Path) -> str:
         return hashlib.sha256(str(path).encode("utf-8", errors="ignore")).hexdigest()
 
 
+def _workflow_detection_fields(workflow: dict[str, Any], path: Path, parsed: Any, library_meta: dict[str, Any]) -> dict[str, Any]:
+    text = workflow_node_text(parsed.nodes)
+    classified = classify_workflow(
+        text,
+        parsed.nodes,
+        metadata=workflow if isinstance(workflow, dict) else {},
+        file_hint=f"{path.name} {path.parent.name}",
+    )
+    detected = {
+        "detected_task": classified.task,
+        "detected_model_family": classified.model_family,
+        "detected_provider": classified.provider,
+        "detected_runs_on": classified.runs_on,
+    }
+    return {
+        **detected,
+        "task": str(library_meta.get("user_task") or "").strip() or detected["detected_task"],
+        "model_family": str(library_meta.get("user_model_family") or "").strip() or detected["detected_model_family"],
+        "provider": str(library_meta.get("user_provider") or "").strip() or detected["detected_provider"],
+        "runs_on": str(library_meta.get("user_runs_on") or "").strip().lower() or detected["detected_runs_on"],
+        "user_task": str(library_meta.get("user_task") or ""),
+        "user_model_family": str(library_meta.get("user_model_family") or ""),
+        "user_provider": str(library_meta.get("user_provider") or ""),
+        "user_runs_on": str(library_meta.get("user_runs_on") or ""),
+        "notes": str(library_meta.get("notes") or ""),
+        "detection_confidence": classified.confidence,
+        "detection_source": classified.source,
+        "detection_signals": classified.signals or {},
+    }
+
+
+def _workflow_subfolder(path: Path, root: Path) -> str:
+    try:
+        subfolder = str(path.parent.relative_to(root)).replace("\\", "/")
+        return "" if subfolder == "." else subfolder
+    except Exception:
+        return ""
+
+
 def _workflow_to_card(path: Path, root: Path) -> dict[str, Any] | None:
     workflow = _safe_read_workflow_json(path)
     if workflow is None:
@@ -1331,15 +1443,8 @@ def _workflow_to_card(path: Path, root: Path) -> dict[str, Any] | None:
     except Exception:
         return None
     parsed = parse_workflow(workflow)
-    text = workflow_node_text(parsed.nodes)
-    classified = classify_workflow(text, parsed.nodes)
     wf_hash = _workflow_hash(path)
-    try:
-        subfolder = str(path.parent.relative_to(root)).replace("\\", "/")
-        if subfolder == ".":
-            subfolder = ""
-    except Exception:
-        subfolder = ""
+    subfolder = _workflow_subfolder(path, root)
     display_name = str(workflow.get("name") or workflow.get("title") or path.stem).strip()
     description = str(workflow.get("description") or "").strip()
     thumbnail_path = _find_thumbnail(path)
@@ -1351,12 +1456,7 @@ def _workflow_to_card(path: Path, root: Path) -> dict[str, Any] | None:
     last_loaded_at = _to_int(library_meta.get("last_loaded_at"), _to_int(workflow.get("last_loaded_at"), 0))
     tags = _as_str_list(library_meta.get("tags")) or _workflow_tags(workflow)
     favorite = _to_bool(library_meta.get("favorite"), _to_bool(workflow.get("favorite"), False))
-
-    task = str(workflow.get("task") or "").strip() or classified.task
-    model_family = str(workflow.get("model_family") or "").strip() or classified.model_family
-    provider = str(workflow.get("provider") or "").strip() or classified.provider
-    runs_on = str(workflow.get("runs_on") or "").strip().lower() or classified.runs_on
-    detection_signals = classified.signals or {}
+    detection = _workflow_detection_fields(workflow, path, parsed, library_meta)
     return {
         "id": f"workflow:{wf_hash[:16]}",
         "asset_id": f"workflow:{wf_hash[:16]}",
@@ -1374,14 +1474,12 @@ def _workflow_to_card(path: Path, root: Path) -> dict[str, Any] | None:
         "mtime": int(stat.st_mtime or 0),
         "workflow_hash": wf_hash,
         "workflow_id": str(workflow.get("id") or wf_hash[:16]),
-        "task": task,
-        "workflow_task": task,
-        "model_family": model_family,
-        "provider": provider,
-        "runs_on": runs_on,
-        "detection_confidence": classified.confidence,
-        "detection_source": classified.source,
-        "detection_signals": detection_signals,
+        "task": detection["task"],
+        "workflow_task": detection["task"],
+        "model_family": detection["model_family"],
+        "provider": detection["provider"],
+        "runs_on": detection["runs_on"],
+        **detection,
         "node_count": parsed.node_count + parsed.subgraph_node_count,
         "link_count": parsed.link_count,
         "subgraph_count": parsed.subgraph_count,

@@ -18,8 +18,8 @@ class WorkflowParseStats:
 
 
 @dataclass(frozen=True)
-class WorkflowClassification:
-    """Normalized workflow classification labels for filtering and sorting."""
+class WorkflowDetectionResult:
+    """Structured workflow detection result for library metadata."""
 
     task: str
     model_family: str
@@ -28,3 +28,6 @@ class WorkflowClassification:
     confidence: float = 0.0
     source: str = "text"
     signals: dict[str, Any] | None = None
+
+
+WorkflowClassification = WorkflowDetectionResult

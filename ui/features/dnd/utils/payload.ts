@@ -37,6 +37,7 @@ const _sanitizeDraggedPayload = (value: any) => {
 
     const rootId = value.root_id == null ? undefined : String(value.root_id).trim();
     const kind = value.kind == null ? undefined : String(value.kind).toLowerCase();
+    const filepath = value.filepath == null ? undefined : String(value.filepath).replace(/\x00/g, "").trim();
 
     return {
         filename,
@@ -44,6 +45,7 @@ const _sanitizeDraggedPayload = (value: any) => {
         type,
         root_id: rootId || undefined,
         kind: kind || undefined,
+        filepath: kind === "workflow" && filepath ? filepath : undefined,
     };
 };
 

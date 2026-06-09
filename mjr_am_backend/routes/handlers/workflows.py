@@ -16,6 +16,7 @@ from mjr_am_backend.features.workflows import (
     read_workflow_content,
     save_workflow,
     set_workflow_favorite,
+    set_workflow_info,
     set_workflow_tags,
     set_workflow_thumbnail,
     workflow_graph_map_svg,
@@ -260,6 +261,27 @@ def register_workflow_routes(routes: web.RouteTableDef) -> None:
             target=filepath,
             result=result,
             details={"tag_count": len(body.get("tags") or [])},
+        )
+        return _json_response(result)
+
+    @routes.post("/mjr/am/workflows/info")
+    async def workflow_info(request: web.Request):
+        rate = _check_workflow_write_rate_limit(request, "workflow_info")
+        if not rate.ok:
+            return _json_response(rate)
+        body_res = await _guard_write_json(request)
+        if not body_res.ok:
+            return _json_response(body_res)
+        body = body_res.data or {}
+        filepath = str(body.get("filepath") or "").strip()
+        if not filepath:
+            return _json_response(Result.Err("INVALID_INPUT", "Missing filepath"))
+        result = set_workflow_info(Path(filepath), info=body)
+        await _audit_workflow_write(
+            request,
+            operation="workflow.info",
+            target=filepath,
+            result=result,
         )
         return _json_response(result)
 

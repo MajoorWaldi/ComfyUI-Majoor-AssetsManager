@@ -162,6 +162,7 @@ export const ENDPOINTS = {
     WORKFLOWS_DELETE: "/mjr/am/workflows/delete",
     WORKFLOWS_MARK_LOADED: "/mjr/am/workflows/mark-loaded",
     WORKFLOWS_FAVORITE: "/mjr/am/workflows/favorite",
+    WORKFLOWS_INFO: "/mjr/am/workflows/info",
     WORKFLOWS_THUMBNAIL_CANDIDATES: "/mjr/am/workflows/thumbnail-candidates",
     WORKFLOWS_MODEL_FAMILIES: "/mjr/am/workflows/model-families",
     WORKFLOWS_TAGS: "/mjr/am/workflows/tags",
