@@ -17,6 +17,7 @@ import {
     _safeBool,
     _safeNum,
     deepMerge,
+    detectGridSizePreset,
     resolveFeedGridMinSize,
     resolveGridMinSize,
 } from "./settingsUtils.js";
@@ -34,7 +35,7 @@ export const DEFAULT_SETTINGS = {
     grid: {
         pageSize: APP_DEFAULTS.DEFAULT_PAGE_SIZE,
         minSize: APP_DEFAULTS.GRID_MIN_SIZE,
-        minSizePreset: "medium",
+        minSizePreset: detectGridSizePreset(APP_DEFAULTS.GRID_MIN_SIZE),
         gap: APP_DEFAULTS.GRID_GAP,
         showExtBadge: APP_DEFAULTS.GRID_SHOW_BADGES_EXTENSION,
         showRatingBadge: APP_DEFAULTS.GRID_SHOW_BADGES_RATING,
@@ -167,7 +168,7 @@ export const DEFAULT_SETTINGS = {
         enabled: APP_DEFAULTS.EXECUTION_GROUPING_ENABLED,
     },
     workflowMinimap: {
-        enabled: false,
+        enabled: APP_DEFAULTS.WORKFLOW_MINIMAP_ENABLED,
         nodeColors: true,
         showLinks: true,
         showGroups: true,
@@ -562,7 +563,9 @@ export const applySettingsToConfig = (settings: Record<string, any>): void => {
         ),
     );
 
-    APP_CONFIG.WORKFLOW_MINIMAP_ENABLED = !!(settings.workflowMinimap?.enabled ?? false);
+    APP_CONFIG.WORKFLOW_MINIMAP_ENABLED = !!(
+        settings.workflowMinimap?.enabled ?? APP_DEFAULTS.WORKFLOW_MINIMAP_ENABLED
+    );
 
     APP_CONFIG.RT_HYDRATE_CONCURRENCY = Math.max(
         1,

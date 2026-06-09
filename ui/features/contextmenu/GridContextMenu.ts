@@ -56,6 +56,7 @@ import { requestViewerOpen } from "../viewer/viewerOpenRequest.js";
 import { createCanvasLoaderNodes } from "../dnd/canvasLoaderNode.js";
 import { stageToInputDetailed } from "../dnd/staging/stageToInput.js";
 import { openWorkflowAssetPicker, openWorkflowPicker } from "../workflows/workflowPickerState.js";
+import { openWorkflowInfoDialog } from "../workflows/workflowInfoState.js";
 
 let _nextMenuItemId = 1;
 
@@ -682,6 +683,55 @@ async function _setWorkflowThumbnailFromLinkedAsset(asset: any) {
     _requestWorkflowGridReload("workflow-thumbnail");
 }
 
+async function _exportWorkflowAsset(asset: any) {
+    const filepath = String(asset?.filepath || "").trim();
+    if (!filepath) {
+        comfyToast(t("toast.workflowMissingPath", "Workflow file path is missing."), "error");
+        return;
+    }
+    const result = await getWorkflowContent(filepath, { timeoutMs: 30_000 });
+    if (!result?.ok) {
+        comfyToast(result?.error || t("toast.workflowLoadFailed", "Failed to load workflow."), "error");
+        return;
+    }
+    const workflow = result?.data?.workflow || result?.workflow || null;
+    if (!workflow || typeof workflow !== "object") {
+        comfyToast(t("toast.workflowLoadFailed", "Failed to load workflow."), "error");
+        return;
+    }
+    const filename = String(asset?.filename || asset?.display_name || "workflow.json")
+        .replace(/[\\/:*?"<>|]+/g, "_")
+        .replace(/\.json$/i, "") || "workflow";
+    const blob = new Blob([`${JSON.stringify(workflow, null, 2)}\n`], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    try {
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `${filename}.json`;
+        link.rel = "noopener";
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        comfyToast(t("toast.workflowExported", "Workflow exported"), "success", 1800);
+    } finally {
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
+    }
+}
+
+async function _showWorkflowInExplorer(asset: any) {
+    const filepath = String(asset?.filepath || "").trim();
+    if (!filepath) {
+        comfyToast(t("toast.workflowMissingPath", "Workflow file path is missing."), "error");
+        return;
+    }
+    const result = await openInFolder({ filepath });
+    if (!result?.ok) {
+        comfyToast(result?.error || t("toast.openFolderFailed", "Failed to open folder."), "error");
+        return;
+    }
+    comfyToast(t("toast.openedInFolder", "Opened in folder"), "success", 1600);
+}
+
 
 async function _assignAssetAsWorkflowThumbnail(asset: any) {
     const sourceFilepath = getAssetFilepath(asset);
@@ -1102,6 +1152,24 @@ function _buildAssetItems({
                 "pi pi-image",
                 null,
                 () => _setWorkflowThumbnailFromLinkedAsset(asset),
+            ),
+            createItem(
+                t("ctx.editWorkflowInfo", "Edit infos"),
+                "pi pi-info-circle",
+                null,
+                () => openWorkflowInfoDialog(asset),
+            ),
+            createItem(
+                t("ctx.exportWorkflow", "Export workflow"),
+                "pi pi-download",
+                null,
+                () => _exportWorkflowAsset(asset),
+            ),
+            createItem(
+                t("ctx.showInExplorer", "Show in Explorer"),
+                "pi pi-folder-open",
+                null,
+                () => _showWorkflowInExplorer(asset),
             ),
             createItem(
                 t("ctx.deleteWorkflow", "Delete workflow"),

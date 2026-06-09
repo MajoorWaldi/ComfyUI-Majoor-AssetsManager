@@ -2,7 +2,7 @@
  * Drag & Drop support for staging assets to input.
  */
 
-import { get, post } from "../../api/client.js";
+import { get, getWorkflowContent, post } from "../../api/client.js";
 import { ENDPOINTS, buildCustomViewURL, buildViewURL } from "../../api/endpoints.js";
 import { getRawHostApp } from "../../app/hostAdapter.js";
 import { comfyToast } from "../../app/toast.js";
@@ -116,6 +116,7 @@ const _assetToPayload = (asset: any) => {
         type: nativeLocation?.type ?? String(asset.type || "output").toLowerCase(),
         root_id: pickRootId(asset) || undefined,
         kind: String(asset.kind || "").toLowerCase(),
+        filepath: String(asset.filepath || asset.path || asset?.file_info?.filepath || "").trim() || undefined,
     };
 };
 
@@ -385,7 +386,10 @@ const tryLoadWorkflowToCanvas = async (payload: any, fallbackAbsPath: any = null
         let url: any = null;
         let workflow: any = null;
 
-        if (pl?.filename) {
+        if (String(pl?.kind || "").toLowerCase() === "workflow" && pl?.filepath) {
+            const res = await getWorkflowContent(String(pl.filepath), { timeoutMs: 30_000 });
+            workflow = res?.ok ? res?.data?.workflow || res?.workflow || null : null;
+        } else if (pl?.filename) {
             // First: try the fast endpoint (no self-heal, direct SQL)
             const quickUrl =
                 `${ENDPOINTS.WORKFLOW_QUICK}?type=${encodeURIComponent(pl.type || "output")}` +
@@ -472,6 +476,7 @@ export function createAssetDragStartHandler(containerEl: HTMLElement): (event: D
             type,
             root_id: pickRootId(asset) || undefined,
             kind,
+            filepath: String(asset.filepath || asset.path || asset?.file_info?.filepath || "").trim() || undefined,
         };
 
         try {
@@ -484,7 +489,7 @@ export function createAssetDragStartHandler(containerEl: HTMLElement): (event: D
             _setDataTransferData(dt, "text/plain", String(asset.filename || ""));
             // Apply OS drag-out (DownloadURL + batch ZIP) for all asset kinds.
             // applyDragOutToOS handles single-file and multi-selection ZIP internally.
-            const viewUrl = buildURL(payload);
+            const viewUrl = kind === "workflow" ? "" : buildURL(payload);
             _setComfyNativeDragFallbacks({ dt, asset, payload, viewUrl });
             applyDragOutToOS({ dt, asset, containerEl, card, viewUrl, stripMetadata });
         } catch (e: any) {
@@ -862,6 +867,16 @@ export function createDragDropRuntimeHandlers(): Record<string, any> {
                     return;
                 }
                 comfyToast(`Failed to load file: "${payload?.filename}". Staging failed.`, "error");
+                return;
+            }
+
+            if (String(payload?.kind || "").toLowerCase() === "workflow") {
+                const loaded = await tryLoadWorkflowToCanvas(payload);
+                if (loaded) {
+                    dndLog("drop canvas loaded workflow", { file: payload?.filename });
+                    return;
+                }
+                comfyToast(`Failed to load workflow: "${payload?.filename}".`, "error");
                 return;
             }
 

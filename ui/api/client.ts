@@ -403,6 +403,20 @@ export async function setWorkflowFavorite(
     return post(ENDPOINTS.WORKFLOWS_FAVORITE, { filepath, favorite: !!favorite }, options);
 }
 
+export async function setWorkflowInfo(
+    {
+        filepath = "",
+        task = "",
+        model_family = "",
+        provider = "",
+        runs_on = "",
+        notes = "",
+    }: Record<string, any> = {},
+    options: Record<string, any> = {},
+) {
+    return post(ENDPOINTS.WORKFLOWS_INFO, { filepath, task, model_family, provider, runs_on, notes }, options);
+}
+
 export async function listWorkflowThumbnailCandidates(
     { filepath = "", limit = 12 }: Record<string, any> = {},
     options: Record<string, any> = {},

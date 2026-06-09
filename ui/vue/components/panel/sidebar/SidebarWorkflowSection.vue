@@ -1,12 +1,14 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { drawWorkflowMinimap, synthesizeWorkflowFromPromptGraph } from "../../../../components/sidebar/utils/minimap.js";
-import { getWorkflowContent, moveWorkflow } from "../../../../api/client.js";
+import { getWorkflowContent, listWorkflowThumbnailCandidates, moveWorkflow, setWorkflowThumbnail } from "../../../../api/client.js";
 import { loadMajoorSettings, saveMajoorSettings } from "../../../../app/settings.js";
 import { MINIMAP_LEGACY_SETTINGS_KEY } from "../../../../app/settingsStore.js";
 import { t } from "../../../../app/i18n.js";
 import { comfyToast } from "../../../../app/toast.js";
 import { centerGraphCanvasOnWorldPoint } from "../../../../app/hostAdapter.js";
+import { floatingViewerManager } from "../../../../features/viewer/floatingViewerManager.js";
+import { openWorkflowAssetPicker } from "../../../../features/workflows/workflowPickerState.js";
 
 const props = defineProps({
     asset: { type: Object, required: true },
@@ -205,6 +207,64 @@ const workflowFilepath = computed(() =>
     String(props.asset?.filepath || props.asset?.path || props.asset?.file_info?.filepath || "").trim(),
 );
 
+const workflowTitle = computed(() =>
+    String(props.asset?.display_name || props.asset?.name || props.asset?.filename || props.asset?.title || "Workflow").trim(),
+);
+
+const taskLabel = computed(() => String(props.asset?.task || props.asset?.workflow_task || "").trim());
+const modelFamilyLabel = computed(() => String(props.asset?.model_family || props.asset?.workflow_model_family || "").trim());
+const providerLabel = computed(() => String(props.asset?.provider || props.asset?.workflow_provider || "").trim());
+const runsOnLabel = computed(() => String(props.asset?.runs_on || props.asset?.runsOn || "").trim().toLowerCase());
+const runtimeLabel = computed(() => {
+    const runsOn = runsOnLabel.value;
+    const provider = providerLabel.value;
+    if (runsOn === "api" && provider) return `API · ${provider}`;
+    if (runsOn) return provider && provider.toLowerCase() !== runsOn ? `${runsOn} · ${provider}` : runsOn;
+    return provider;
+});
+const notesLabel = computed(() => String(props.asset?.notes || "").trim());
+const detectedSummary = computed(() =>
+    [
+        props.asset?.detected_task ? `detected: ${props.asset.detected_task}` : "",
+        props.asset?.detected_model_family ? props.asset.detected_model_family : "",
+        props.asset?.detected_provider ? props.asset.detected_provider : "",
+    ].filter(Boolean).join(" · "),
+);
+const missingNodes = computed(() => normalizeStringList(props.asset?.missing_nodes || props.asset?.missingNodes));
+const missingModels = computed(() => normalizeStringList(props.asset?.missing_models || props.asset?.missingModels));
+const usageLabel = computed(() => {
+    const count = Number(props.asset?.usage_count || props.asset?.usageCount || 0);
+    if (!Number.isFinite(count) || count <= 0) return "";
+    return `${Math.floor(count)} use${count === 1 ? "" : "s"}`;
+});
+const modifiedLabel = computed(() => formatUnixDate(props.asset?.mtime || props.asset?.modified_at || props.asset?.updated_at));
+
+function normalizeStringList(value) {
+    if (Array.isArray(value)) return value.map((item) => String(item || "").trim()).filter(Boolean);
+    if (typeof value === "string") {
+        const text = value.trim();
+        if (!text) return [];
+        try {
+            const parsed = JSON.parse(text);
+            if (Array.isArray(parsed)) return normalizeStringList(parsed);
+        } catch {
+            return text.split(/[,\n]/).map((item) => item.trim()).filter(Boolean);
+        }
+    }
+    return [];
+}
+
+function formatUnixDate(value) {
+    const n = Number(value);
+    if (!Number.isFinite(n) || n <= 0) return "";
+    const ms = n > 10_000_000_000 ? n : n * 1000;
+    try {
+        return new Date(ms).toLocaleString();
+    } catch {
+        return "";
+    }
+}
+
 async function ensureWorkflowPayload() {
     if (workflow.value) return;
     const filepath = workflowFilepath.value;
@@ -285,6 +345,67 @@ async function saveWorkflowCategory() {
         comfyToast(t("toast.workflowMoveFailed", "Failed to move workflow."), "error");
     } finally {
         savingCategory.value = false;
+    }
+}
+
+async function setWorkflowThumbnailFromLinkedAsset() {
+    const filepath = workflowFilepath.value;
+    if (!filepath) {
+        comfyToast(t("toast.workflowMissingPath", "Workflow file path is missing."), "error");
+        return;
+    }
+
+    const candidatesRes = await listWorkflowThumbnailCandidates({ filepath, limit: 12 }, { timeoutMs: 15_000 });
+    if (!candidatesRes?.ok) {
+        comfyToast(candidatesRes?.error || t("toast.workflowLoadFailed", "Failed to load workflow."), "error");
+        return;
+    }
+
+    const candidates = Array.isArray(candidatesRes.data) ? candidatesRes.data : [];
+    if (!candidates.length) {
+        comfyToast(
+            t("toast.workflowThumbnailNoCandidates", "No linked outputs are available for this workflow yet."),
+            "warning",
+            2600,
+        );
+        return;
+    }
+
+    const selectedCandidate = await openWorkflowAssetPicker({
+        title: t("ctx.setWorkflowThumbnail", "Set workflow thumbnail"),
+        workflow: props.asset,
+        items: candidates,
+    });
+    if (!selectedCandidate?.filepath) return;
+
+    const result = await setWorkflowThumbnail(
+        { filepath, source_filepath: selectedCandidate.filepath },
+        { timeoutMs: 30_000 },
+    );
+    if (!result?.ok) {
+        comfyToast(result?.error || t("toast.workflowSaveFailed", "Failed to save workflow."), "error");
+        return;
+    }
+
+    comfyToast(t("toast.workflowUpdated", "Workflow updated"), "success", 1800);
+    window?.dispatchEvent?.(new CustomEvent("mjr:reload-grid", { detail: { reason: "workflow-thumbnail-sidebar" } }));
+}
+
+async function inspectWorkflow() {
+    await ensureWorkflowPayload();
+    if (!workflow.value) {
+        comfyToast(t("toast.workflowLoadFailed", "Failed to load workflow."), "error");
+        return;
+    }
+    try {
+        await floatingViewerManager.openAssets({
+            assets: [{ ...props.asset, workflow: workflow.value, Workflow: workflow.value }],
+            index: 0,
+            mode: "graph",
+        });
+    } catch (e) {
+        console.debug?.(e);
+        comfyToast(t("toast.workflowLoadFailed", "Failed to load workflow."), "error");
     }
 }
 
@@ -598,6 +719,19 @@ onBeforeUnmount(() => {
             ComfyUI Workflow
         </div>
 
+        <div style="margin-bottom:12px">
+            <div style="font-size:16px;font-weight:800;color:rgba(255,255,255,0.94);line-height:1.25;overflow:hidden;text-overflow:ellipsis">
+                {{ workflowTitle }}
+            </div>
+            <div
+                v-if="workflowFilepath"
+                style="font-size:11px;color:rgba(255,255,255,0.48);margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
+                :title="workflowFilepath"
+            >
+                {{ workflowFilepath }}
+            </div>
+        </div>
+
         <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px">
             <div
                 style="padding:4px 9px;border-radius:999px;background:rgba(33,150,243,0.14);border:1px solid rgba(33,150,243,0.30);font-size:11px;font-weight:700;color:#90CAF9;text-transform:uppercase;letter-spacing:0.4px"
@@ -610,6 +744,126 @@ onBeforeUnmount(() => {
             >
                 {{ workflowStats.source }}
             </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(2, minmax(0, 1fr));gap:8px;margin-bottom:12px">
+            <div
+                v-if="taskLabel"
+                style="padding:8px 10px;border-radius:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.10)"
+            >
+                <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.55);text-transform:uppercase;letter-spacing:0.4px">Task</div>
+                <div style="font-size:13px;font-weight:750;color:rgba(255,255,255,0.92);margin-top:3px">{{ taskLabel }}</div>
+            </div>
+            <div
+                v-if="modelFamilyLabel"
+                style="padding:8px 10px;border-radius:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.10)"
+            >
+                <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.55);text-transform:uppercase;letter-spacing:0.4px">Model</div>
+                <div style="font-size:13px;font-weight:750;color:rgba(255,255,255,0.92);margin-top:3px">{{ modelFamilyLabel }}</div>
+            </div>
+            <div
+                v-if="runtimeLabel"
+                style="padding:8px 10px;border-radius:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.10)"
+            >
+                <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.55);text-transform:uppercase;letter-spacing:0.4px">Runs on</div>
+                <div style="font-size:13px;font-weight:750;color:rgba(255,255,255,0.92);margin-top:3px">{{ runtimeLabel }}</div>
+            </div>
+            <div
+                v-if="usageLabel || modifiedLabel"
+                style="padding:8px 10px;border-radius:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.10)"
+            >
+                <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.55);text-transform:uppercase;letter-spacing:0.4px">Library</div>
+                <div style="font-size:12px;font-weight:650;color:rgba(255,255,255,0.84);margin-top:3px">{{ usageLabel || modifiedLabel }}</div>
+                <div
+                    v-if="usageLabel && modifiedLabel"
+                    style="font-size:11px;color:rgba(255,255,255,0.54);margin-top:2px"
+                >
+                    {{ modifiedLabel }}
+                </div>
+            </div>
+        </div>
+
+        <div
+            v-if="missingNodes.length || missingModels.length"
+            style="margin-bottom:12px;padding:10px;border-radius:10px;background:rgba(244,67,54,0.08);border:1px solid rgba(244,67,54,0.25)"
+        >
+            <div style="font-size:10px;font-weight:800;color:#ef9a9a;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px">Missing dependencies</div>
+            <div
+                v-if="missingNodes.length"
+                :style="{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: '5px',
+                    marginBottom: missingModels.length ? '7px' : '0',
+                }"
+            >
+                <span
+                    v-for="item in missingNodes"
+                    :key="`node-${item}`"
+                    style="padding:3px 7px;border-radius:999px;background:rgba(244,67,54,0.16);font-size:10px;font-weight:700;color:#ffcdd2"
+                >
+                    {{ item }}
+                </span>
+            </div>
+            <div
+                v-if="missingModels.length"
+                style="display:flex;flex-wrap:wrap;gap:5px"
+            >
+                <span
+                    v-for="item in missingModels"
+                    :key="`model-${item}`"
+                    style="padding:3px 7px;border-radius:999px;background:rgba(255,152,0,0.16);font-size:10px;font-weight:700;color:#ffe0b2"
+                >
+                    {{ item }}
+                </span>
+            </div>
+        </div>
+
+        <div
+            v-if="notesLabel || detectedSummary"
+            style="margin-bottom:12px;padding:10px;border-radius:10px;background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.10)"
+        >
+            <div
+                v-if="notesLabel"
+                style="font-size:12px;line-height:1.45;color:rgba(255,255,255,0.82);white-space:pre-wrap"
+            >
+                {{ notesLabel }}
+            </div>
+            <div
+                v-if="detectedSummary"
+                :style="{
+                    fontSize: '11px',
+                    color: 'rgba(255,255,255,0.48)',
+                    marginTop: notesLabel ? '7px' : '0',
+                }"
+            >
+                {{ detectedSummary }}
+            </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(2, minmax(0, 1fr));gap:8px;margin-bottom:12px">
+            <MButton
+                type="button"
+                severity="secondary"
+                text
+                rounded
+                style="height:34px;border-radius:9px;border:1px solid rgba(255,255,255,0.12);background:rgba(33,150,243,0.14);color:rgba(255,255,255,0.92);font-size:12px;font-weight:750;display:inline-flex;align-items:center;justify-content:center;gap:7px"
+                @click="setWorkflowThumbnailFromLinkedAsset"
+            >
+                <i class="pi pi-image" />
+                <span>{{ t("ctx.setWorkflowThumbnail", "Set workflow thumbnail") }}</span>
+            </MButton>
+            <MButton
+                type="button"
+                severity="secondary"
+                text
+                rounded
+                style="height:34px;border-radius:9px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.92);font-size:12px;font-weight:750;display:inline-flex;align-items:center;justify-content:center;gap:7px"
+                @click="inspectWorkflow"
+            >
+                <i class="pi pi-search" />
+                <span>{{ t("ctx.inspect", "Inspect") }}</span>
+            </MButton>
         </div>
 
         <div
