@@ -335,10 +335,15 @@ def register_workflow_routes(routes: web.RouteTableDef) -> None:
         if not filepath:
             return _json_response(Result.Err("INVALID_INPUT", "Missing filepath"))
         candidate = Path(filepath)
+        if candidate.is_absolute():
+            return _json_response(Result.Err("FORBIDDEN", "Absolute paths are not allowed"))
         if not is_workflow_thumbnail_path(candidate):
             return _json_response(Result.Err("FORBIDDEN", "Thumbnail path is not allowed"))
         try:
             resolved = candidate.resolve(strict=True)
+            safe_root = Path.cwd().resolve()
+            if not resolved.is_relative_to(safe_root):
+                return _json_response(Result.Err("FORBIDDEN", "Thumbnail path is not allowed"))
             resp = web.FileResponse(path=str(resolved))
             resp.headers["Content-Type"] = _guess_content_type_for_file(resolved)
             resp.headers["Cache-Control"] = "no-cache"
