@@ -9833,7 +9833,9 @@ var Zo = "application/x-mjr-asset", Qo = "application/x-mjr-assets", $o = "appli
 	"float",
 	"boolean",
 	"toggle",
-	"checkbox"
+	"checkbox",
+	"button",
+	"hidden"
 ]), js = [
 	"output",
 	"save",

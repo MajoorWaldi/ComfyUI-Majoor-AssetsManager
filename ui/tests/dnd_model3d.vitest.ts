@@ -90,4 +90,34 @@ describe("3D drag and drop support", () => {
         expect(picked).toBe(imagePath);
         expect(imagePath.__mjrImagePickScore).toBeGreaterThan(0);
     });
+
+    it("rejects button and hidden callback widgets when picking a path target", () => {
+        const buttonWidget = {
+            name: "image",
+            type: "button",
+            value: "",
+            callback: () => {},
+        };
+        const hiddenWidget = {
+            name: "input_path",
+            type: "hidden",
+            value: "secret.png",
+            callback: () => {},
+        };
+        const imagePath = {
+            name: "image_path",
+            type: "text",
+            value: "",
+        };
+        const node = {
+            type: "CustomImageNode",
+            widgets: [buttonWidget, hiddenWidget, imagePath],
+        };
+
+        const picked = pickBestMediaPathWidget(node, { kind: "image" }, "png");
+
+        expect(picked).toBe(imagePath);
+        expect(buttonWidget.__mjrImagePickScore).toBeUndefined();
+        expect(hiddenWidget.__mjrImagePickScore).toBeUndefined();
+    });
 });
