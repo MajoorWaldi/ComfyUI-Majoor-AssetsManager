@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from pathlib import Path
 
 from aiohttp import web
@@ -314,7 +315,11 @@ def register_workflow_routes(routes: web.RouteTableDef) -> None:
         source_filepath = str(body.get("source_filepath") or body.get("thumbnail_path") or "").strip()
         if not filepath:
             return _json_response(Result.Err("INVALID_INPUT", "Missing filepath"))
-        result = set_workflow_thumbnail(Path(filepath), source_filepath=source_filepath)
+        # set_workflow_thumbnail may run ffmpeg (up to 45s) and copy files;
+        # run it in a worker thread so the event loop is never blocked.
+        result = await asyncio.to_thread(
+            set_workflow_thumbnail, Path(filepath), source_filepath=source_filepath
+        )
         await _audit_workflow_write(
             request,
             operation="workflow.thumbnail",

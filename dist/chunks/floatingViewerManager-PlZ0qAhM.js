@@ -1863,7 +1863,7 @@ function Nr() {
 //#region ui/features/viewer/floatingViewerManager.ts
 var Pr = null, Fr = null;
 async function Ir() {
-	return Pr || (Fr ||= import("./FloatingViewer-C2JkTmIN.js").then((e) => (Pr = e.FloatingViewer, Pr)), Fr);
+	return Pr || (Fr ||= import("./FloatingViewer-JujDPzMu.js").then((e) => (Pr = e.FloatingViewer, Pr)), Fr);
 }
 var R = null, Lr = null;
 async function Rr() {

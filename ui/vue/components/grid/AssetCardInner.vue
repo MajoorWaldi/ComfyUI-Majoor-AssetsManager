@@ -24,13 +24,31 @@ import RatingBadge from "../common/RatingBadge.vue";
 import TagsBadge from "../common/TagsBadge.vue";
 import GenTimeBadge from "../common/GenTimeBadge.vue";
 
+function hashString(value) {
+    let hash = 2166136261;
+    const text = String(value || "");
+    for (let i = 0; i < text.length; i += 1) {
+        hash ^= text.charCodeAt(i);
+        hash = Math.imul(hash, 16777619);
+    }
+    return hash >>> 0;
+}
 
-// Audio waveform bars SVG (same bars as Card.js)
-const AUDIO_BARS = [
-    [2, 10, 3, 12], [8, 4, 3, 24], [14, 8, 3, 16], [20, 2, 3, 28],
-    [26, 6, 3, 20], [32, 1, 3, 30], [38, 5, 3, 22], [44, 3, 3, 26],
-    [50, 9, 3, 14], [56, 6, 3, 20],
-];
+function makeAudioWaveformBars(seedText, count = 34) {
+    let seed = hashString(seedText) || 1;
+    const bars = [];
+    for (let i = 0; i < count; i += 1) {
+        seed = Math.imul(seed ^ (seed >>> 15), 2246822519) >>> 0;
+        const wave = Math.sin((i / Math.max(1, count - 1)) * Math.PI);
+        const random = (seed % 1000) / 1000;
+        const height = Math.round(18 + wave * 54 + random * 26);
+        bars.push({
+            height: Math.max(14, Math.min(92, height)),
+            opacity: (0.48 + random * 0.42).toFixed(2),
+        });
+    }
+    return bars;
+}
 
 /**
  * Load image using the session blob cache for instant re-access.
@@ -282,6 +300,14 @@ const ext = computed(() => {
 const displayName = computed(() => {
     const f = rawDisplayName.value || filename.value;
     return f.includes(".") ? f.slice(0, f.lastIndexOf(".")) : f;
+});
+const audioWaveformBars = computed(() =>
+    makeAudioWaveformBars(`${props.asset.id || ""}:${filename.value}:${props.asset.duration || ""}`),
+);
+const audioThumbTitle = computed(() => displayName.value || filename.value || "Audio");
+const audioThumbSubtitle = computed(() => {
+    const parts = [durationStr.value, ext.value].filter(Boolean);
+    return parts.join(" / ") || "Audio";
 });
 const cardTitle = computed(() => {
     const parts = [filename.value || rawDisplayName.value];
@@ -711,24 +737,22 @@ function emitWorkflowAction(action, event) {
                 :draggable="false"
                 alt=""
             />
-            <div
-                class="mjr-audio-waveform-overlay"
-                style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;color:white"
-            >
-                <svg
-                    viewBox="0 0 64 32"
-                    preserveAspectRatio="xMidYMid meet"
-                    fill="currentColor"
-                    opacity="0.35"
-                    style="width:60%;max-width:120px;height:auto;filter:drop-shadow(0 2px 6px rgba(0,0,0,0.5))"
-                >
-                    <rect
-                        v-for="([x, y, w, h], i) in AUDIO_BARS"
+            <div class="mjr-audio-thumb" :class="{ 'has-poster': posterUrl }">
+                <div class="mjr-audio-thumb-head">
+                    <span class="mjr-audio-thumb-icon"><i class="pi pi-volume-up" /></span>
+                    <span class="mjr-audio-thumb-kind">{{ ext || "AUDIO" }}</span>
+                </div>
+                <div class="mjr-audio-thumb-waveform" aria-hidden="true">
+                    <span
+                        v-for="(bar, i) in audioWaveformBars"
                         :key="i"
-                        :x="x" :y="y" :width="w" :height="h"
-                        rx="1.5"
+                        :style="{ height: `${bar.height}%`, opacity: bar.opacity }"
                     />
-                </svg>
+                </div>
+                <div class="mjr-audio-thumb-meta">
+                    <span class="mjr-audio-thumb-title">{{ audioThumbTitle }}</span>
+                    <span class="mjr-audio-thumb-subtitle">{{ audioThumbSubtitle }}</span>
+                </div>
             </div>
         </template>
 

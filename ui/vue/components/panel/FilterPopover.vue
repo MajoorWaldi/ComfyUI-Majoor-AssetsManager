@@ -3,7 +3,7 @@
  * FilterPopover.vue — Reactive filter menu, content-only.
  *
  * Follows the same pattern as SortPopover.vue:
- *   - Root element has class "mjr-popover mjr-filter-popover" with style="display:none".
+ *   - Root element has class "mjr-popover mjr-filter-popover mjr-popover--hidden".
  *     Legacy popoverManager (popovers.toggle/close) controls visibility.
  *   - Vue owns the form content rendered from usePanelStore filter state.
  *   - defineExpose() provides real DOM refs so filtersController.bindFilters()
@@ -439,7 +439,7 @@ defineExpose({
         The legacy popoverManager controls style.display on this element.
         Vue only manages the filter form content reactively.
     -->
-    <div class="mjr-popover mjr-filter-popover" style="display: none;">
+    <div class="mjr-popover mjr-filter-popover mjr-popover--hidden">
 
         <div class="mjr-filter-head">
             <div class="mjr-filter-head-left">
@@ -751,7 +751,6 @@ defineExpose({
                         type="date"
                         class="mjr-input mjr-agenda-input"
                         :class="agendaInputClass"
-                        style="display: none;"
                         :value="panelStore.dateExactFilter"
                         @change="onDateExactChange"
                     />
@@ -763,214 +762,3 @@ defineExpose({
 
     </div>
 </template>
-
-<style scoped>
-.mjr-filter-head {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 10px;
-    margin: 0 0 10px;
-    padding: 4px 2px 10px;
-    border-bottom: 1px solid color-mix(in srgb, var(--mjr-border) 85%, transparent);
-}
-
-.mjr-filter-head-left {
-    min-width: 0;
-}
-
-.mjr-filter-kicker {
-    font-size: 11px;
-    font-weight: 800;
-    letter-spacing: 0.09em;
-    text-transform: uppercase;
-    color: color-mix(in srgb, var(--mjr-accent, #5fb3ff) 65%, var(--content-fg, #ddd));
-}
-
-.mjr-filter-subtitle {
-    margin-top: 2px;
-    font-size: 11px;
-    color: color-mix(in srgb, var(--content-fg, #ddd) 62%, var(--mjr-muted, rgba(255, 255, 255, 0.65)));
-}
-
-.mjr-filter-head-actions {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    flex: 0 0 auto;
-}
-
-.mjr-filter-stack {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.mjr-filter-active-count {
-    min-width: 22px;
-    height: 22px;
-    padding: 0 6px;
-    border-radius: 999px;
-    border: 1px solid color-mix(in srgb, var(--mjr-accent, #5fb3ff) 55%, var(--mjr-border));
-    background: color-mix(in srgb, var(--mjr-accent, #5fb3ff) 18%, var(--mjr-surface-2));
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 11px;
-    font-weight: 700;
-    line-height: 1;
-    color: var(--content-fg, #fff);
-}
-
-.mjr-filter-clear-all {
-    height: 24px;
-    padding: 0 8px;
-    border-radius: 999px;
-    border: 1px solid color-mix(in srgb, var(--mjr-border) 75%, transparent);
-    font-size: 11px;
-    font-weight: 700;
-}
-
-.mjr-popover-row {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 8px;
-    align-items: start;
-    margin-bottom: 10px;
-}
-
-.mjr-popover-row--3col {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    gap: 8px;
-}
-
-.mjr-popover-row--3col .mjr-popover-label {
-    grid-column: 1 / -1;
-}
-
-.mjr-popover-label {
-    font-size: 12px;
-    font-weight: 600;
-    color: color-mix(in srgb, var(--content-fg, #ddd) 70%, var(--mjr-muted, rgba(255, 255, 255, 0.65)));
-    white-space: normal;
-}
-
-.mjr-popover-toggle {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    cursor: pointer;
-    font-size: 12px;
-    color: var(--fg-color, #e6edf7);
-    padding: 6px 8px;
-    border-radius: 8px;
-    border: 1px solid color-mix(in srgb, var(--mjr-border) 80%, transparent);
-    background: color-mix(in srgb, var(--mjr-surface-2) 66%, transparent);
-}
-
-.mjr-filter-group-toggle {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    padding: 0;
-    margin: 0 0 10px;
-    border: 0;
-    background: transparent;
-    color: inherit;
-    cursor: pointer;
-    text-align: left;
-    border-radius: 8px;
-    padding: 2px 4px;
-}
-
-.mjr-filter-group {
-    --mjr-filter-group-accent: var(--mjr-accent, #7aa2ff);
-}
-
-.mjr-filter-group--core {
-    --mjr-filter-group-accent: #56a8ff;
-}
-
-.mjr-filter-group--media {
-    --mjr-filter-group-accent: #35d08b;
-}
-
-.mjr-filter-group--time {
-    --mjr-filter-group-accent: #f0b84f;
-}
-
-.mjr-filter-group-title {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    color: color-mix(in srgb, var(--mjr-filter-group-accent) 62%, var(--content-fg, #ddd));
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-}
-
-.mjr-filter-group-title::before {
-    content: "";
-    width: 6px;
-    height: 6px;
-    flex: 0 0 6px;
-    border-radius: 999px;
-    background: var(--mjr-filter-group-accent);
-}
-
-.mjr-filter-group-chevron {
-    font-size: 12px;
-    line-height: 1;
-    color: color-mix(in srgb, var(--mjr-filter-group-accent) 78%, var(--mjr-muted, rgba(255, 255, 255, 0.65)));
-}
-
-.mjr-filter-group-body {
-    padding-top: 4px;
-}
-
-.mjr-filter-card {
-    border: 1px solid color-mix(in srgb, var(--mjr-border) 88%, transparent);
-    border-radius: 10px;
-    padding: 10px;
-    background: linear-gradient(
-        180deg,
-        color-mix(in srgb, var(--mjr-surface-2) 86%, transparent),
-        color-mix(in srgb, var(--mjr-surface-1) 88%, transparent)
-    );
-    margin-bottom: 8px;
-}
-
-.mjr-filter-card:last-child {
-    margin-bottom: 0;
-}
-
-.mjr-filter-card--agenda {
-    background: linear-gradient(
-        180deg,
-        color-mix(in srgb, #f0b84f 9%, var(--mjr-surface-2)),
-        color-mix(in srgb, var(--mjr-surface-1) 92%, transparent)
-    );
-}
-
-.mjr-filter-group:not(.is-open) {
-    padding-bottom: 8px;
-}
-
-.mjr-filter-group:not(.is-open) .mjr-filter-group-toggle {
-    margin-bottom: 0;
-}
-
-@media (max-width: 440px) {
-    .mjr-filter-head {
-        flex-direction: column;
-        align-items: stretch;
-    }
-
-    .mjr-filter-head-actions {
-        justify-content: space-between;
-    }
-}
-</style>

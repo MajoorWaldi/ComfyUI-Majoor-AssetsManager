@@ -70,7 +70,7 @@ defineExpose({
 </script>
 
 <template>
-    <div class="mjr-popover mjr-pinned-folders-popover" style="display: none;">
+    <div class="mjr-popover mjr-pinned-folders-popover mjr-popover--hidden">
         <div ref="menuRef" class="mjr-menu mjr-pinned-folders-menu" role="menu">
             <div v-if="loading" class="mjr-muted mjr-pinned-folders-empty">
                 {{ loadingLabel }}
@@ -108,76 +108,3 @@ defineExpose({
         </div>
     </div>
 </template>
-
-<style scoped>
-.mjr-pinned-folders-menu {
-    display: grid;
-    gap: 6px;
-}
-
-.mjr-pinned-folders-empty {
-    padding: 10px 12px;
-    opacity: 0.75;
-}
-
-.mjr-pinned-folder-row {
-    display: flex;
-    align-items: stretch;
-    width: 100%;
-}
-
-.mjr-pinned-folder-open {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    width: 100%;
-    gap: 10px;
-    padding: 9px 10px;
-    border-radius: 9px;
-    border: 1px solid rgba(120, 190, 255, 0.18);
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.01));
-    transition: border-color 120ms ease, background 120ms ease;
-}
-
-.mjr-pinned-folder-open:hover,
-.mjr-pinned-folder-open:focus-visible {
-    border-color: rgba(145, 205, 255, 0.4);
-    background: linear-gradient(135deg, rgba(80, 140, 255, 0.18), rgba(32, 100, 200, 0.14));
-}
-
-.mjr-pinned-folder-label {
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    font-weight: 600;
-    color: var(--fg-color, #e6edf7);
-}
-
-.mjr-pinned-folder-path {
-    flex: 0 1 auto;
-    min-width: 0;
-    max-width: 220px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    opacity: 0.68;
-    font-size: 11px;
-}
-
-.mjr-pinned-folder-unpin {
-    width: 42px;
-    justify-content: center;
-    padding: 0;
-    border: 1px solid rgba(255, 95, 95, 0.35);
-    border-radius: 9px;
-    margin-left: 6px;
-    background: linear-gradient(135deg, rgba(255, 70, 70, 0.16), rgba(160, 20, 20, 0.12));
-}
-
-.mjr-pinned-folder-unpin .pi {
-    opacity: 0.88;
-    color: rgba(255, 130, 130, 0.96);
-}
-</style>

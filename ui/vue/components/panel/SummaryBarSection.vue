@@ -237,14 +237,6 @@ defineExpose({ summaryBar, updateSummaryBar, folderBreadcrumb, setFolderBreadcru
                 severity="secondary"
                 text
                 :title="duplicateText"
-                style="
-                    padding: 2px 8px;
-                    border: 1px solid var(--border-color, #555);
-                    background: var(--comfy-menu-bg, #222);
-                    color: var(--input-text, #eee);
-                    border-radius: 999px;
-                    cursor: pointer;
-                "
                 @click="handleDuplicateAlertClick"
             >
                 {{ duplicateText }}
@@ -253,91 +245,3 @@ defineExpose({ summaryBar, updateSummaryBar, folderBreadcrumb, setFolderBreadcru
         </div>
     </div>
 </template>
-
-<style scoped>
-.mjr-folder-breadcrumb {
-    --mjr-breadcrumb-accent: #56a8ff;
-    --mjr-breadcrumb-current: #35d08b;
-    display: none;
-    align-items: center;
-    gap: 4px;
-    padding: 3px 6px;
-    margin: 1px 0 3px;
-    font-size: 11px;
-    opacity: 0.78;
-    overflow: auto;
-    white-space: nowrap;
-    border-radius: 8px;
-    border: 1px solid color-mix(in srgb, var(--mjr-breadcrumb-accent) 22%, transparent);
-    background: color-mix(
-        in srgb,
-        var(--mjr-breadcrumb-accent) 9%,
-        transparent
-    );
-}
-
-.mjr-folder-breadcrumb.is-visible {
-    display: flex;
-}
-
-.mjr-folder-breadcrumb-action {
-    padding: 2px 8px;
-    border: 1px solid color-mix(in srgb, var(--mjr-breadcrumb-accent) 42%, transparent);
-    border-radius: 6px;
-    background: color-mix(in srgb, var(--mjr-breadcrumb-accent) 16%, transparent);
-    color: color-mix(in srgb, var(--mjr-breadcrumb-accent) 78%, #ffffff);
-    font: inherit;
-}
-
-.mjr-folder-breadcrumb-action:not(:disabled):hover {
-    border-color: color-mix(in srgb, var(--mjr-breadcrumb-accent) 62%, transparent);
-    background: color-mix(in srgb, var(--mjr-breadcrumb-accent) 24%, transparent);
-}
-
-.mjr-folder-breadcrumb-segment {
-    max-width: 220px;
-    min-width: 0;
-    padding: 1px 5px;
-    border: 1px solid transparent;
-    border-radius: 5px;
-    background: color-mix(in srgb, var(--mjr-breadcrumb-accent) 8%, transparent);
-    color: color-mix(in srgb, var(--mjr-breadcrumb-accent) 76%, #ffffff);
-    font: inherit;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.mjr-folder-breadcrumb-segment:not(:disabled):hover {
-    border-color: color-mix(in srgb, var(--mjr-breadcrumb-accent) 38%, transparent);
-    background: color-mix(in srgb, var(--mjr-breadcrumb-accent) 16%, transparent);
-}
-
-.mjr-folder-breadcrumb-segment.is-current,
-.mjr-folder-breadcrumb-segment:disabled {
-    border-color: color-mix(in srgb, var(--mjr-breadcrumb-current) 38%, transparent);
-    background: color-mix(in srgb, var(--mjr-breadcrumb-current) 14%, transparent);
-    color: color-mix(in srgb, var(--mjr-breadcrumb-current) 74%, #ffffff);
-    cursor: default;
-}
-
-.mjr-folder-breadcrumb-separator {
-    color: color-mix(in srgb, var(--mjr-breadcrumb-accent) 58%, var(--mjr-muted, rgba(255, 255, 255, 0.62)));
-    opacity: 0.9;
-}
-
-.mjr-media-shortcuts {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    flex-wrap: wrap;
-}
-
-.mjr-media-shortcut-btn {
-    width: 24px;
-    height: 24px;
-}
-
-.mjr-media-shortcut-btn .pi {
-    font-size: 11px;
-}
-</style>

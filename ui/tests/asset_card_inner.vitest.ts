@@ -86,6 +86,35 @@ describe("AssetCardInner media display", () => {
         expect(video.attributes("poster")).toBe("/api/assets/clip-poster");
     });
 
+    it("renders audio cards with generated cover artwork", () => {
+        const wrapper = mount(AssetCardInner, {
+            props: {
+                asset: {
+                    id: "audio-1",
+                    filename: "videoplayback.m4a",
+                    display_name: "Videoplayback.m4a",
+                    kind: "audio",
+                    type: "output",
+                    duration: 379,
+                },
+            },
+            global: {
+                stubs: {
+                    MButton: true,
+                    RatingBadge: true,
+                    TagsBadge: true,
+                    GenTimeBadge: true,
+                },
+            },
+        });
+
+        expect(wrapper.find(".mjr-audio-thumb").exists()).toBe(true);
+        expect(wrapper.find(".mjr-audio-thumb-title").text()).toBe("Videoplayback");
+        expect(wrapper.find(".mjr-audio-thumb-subtitle").text()).toContain("M4A");
+        expect(wrapper.findAll(".mjr-audio-thumb-waveform span").length).toBeGreaterThan(20);
+        expect(wrapper.find(".mjr-audio-waveform-overlay").exists()).toBe(false);
+    });
+
     it("loads the paused video source in hover mode so thumbnails are not black before hover", async () => {
         const wrapper = mount(AssetCardInner, {
             attachTo: document.body,
