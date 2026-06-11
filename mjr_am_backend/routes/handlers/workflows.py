@@ -340,8 +340,7 @@ def register_workflow_routes(routes: web.RouteTableDef) -> None:
             request,
             operation="workflow.thumbnail",
             target=filepath,
-            resolved = (safe_root / candidate).resolve(strict=True)
-            resolved = (safe_root / candidate).resolve(strict=True)
+            result=result,
         )
         return _json_response(result)
 
