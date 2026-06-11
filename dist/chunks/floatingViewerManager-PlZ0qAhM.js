@@ -709,7 +709,7 @@ var Re = 2e3, ze = 15e3, Be = 8e3, Ve = "__mjr_write_token", E = "token", He = n
 });
 function We() {
 	try {
-		return String(sessionStorage?.getItem?.(Ve) || "").trim();
+		return "";
 	} catch {
 		return "";
 	}
@@ -717,7 +717,7 @@ function We() {
 function Ge(e) {
 	let t = String(e || "").trim();
 	try {
-		return t ? sessionStorage?.setItem?.(Ve, t) : sessionStorage?.removeItem?.(Ve), !0;
+		return !!t || !t;
 	} catch {
 		return !1;
 	}
