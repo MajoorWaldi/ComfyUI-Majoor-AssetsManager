@@ -122,6 +122,7 @@ function V(e, t) {
 	e instanceof Map && t instanceof Map ? t.forEach((t, n) => e.set(n, t)) : e instanceof Set && t instanceof Set && t.forEach(e.add, e);
 	for (let n in t) {
 		if (!t.hasOwnProperty(n)) continue;
+		if (n === "__proto__" || n === "constructor" || n === "prototype") continue;
 		let i = t[n], a = e[n];
 		b(a) && b(i) && e.hasOwnProperty(n) && !l(i) && !r(i) ? e[n] = V(a, i) : e[n] = i;
 	}
