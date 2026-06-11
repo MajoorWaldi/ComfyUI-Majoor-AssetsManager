@@ -416,6 +416,8 @@ export const usePanelStore = defineStore("mjr-panel", () => {
         maxHeight,
         workflowType,
         workflowId,
+        workflowModelFilter,
+        workflowRunsOnFilter,
         sort,
         searchQuery,
         scrollTop,
