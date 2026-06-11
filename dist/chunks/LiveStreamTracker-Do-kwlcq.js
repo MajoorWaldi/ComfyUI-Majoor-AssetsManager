@@ -1,6 +1,5 @@
-import { R as e } from "./config-Cxv7acF8.js";
-import { t } from "./floatingViewerManager-BJZCNWWp.js";
-import { r as n } from "./events-BnkL6-b6.js";
+import { t as e } from "./floatingViewerManager-PlZ0qAhM.js";
+import { K as t, r as n } from "./events-DhWnn1NH.js";
 //#region ui/features/viewer/LiveStreamTracker.ts
 var r = !1, i = null, a = null, o = null, s = null, c = null, l = 0, u = 0, d = 400, f = new Set([
 	".png",
@@ -50,7 +49,7 @@ async function y(n) {
 	let r = ++l;
 	try {
 		b();
-		let i = await e({
+		let i = await t({
 			app: n,
 			timeoutMs: 8e3
 		});
@@ -59,20 +58,20 @@ async function y(n) {
 			console.debug("[Majoor] MFV: ComfyUI API not found - preview streaming disabled");
 			return;
 		}
-		s = i, o = (e) => {
+		s = i, o = (t) => {
 			try {
-				let { blob: n, nodeId: r, jobId: i } = e.detail || {};
+				let { blob: n, nodeId: r, jobId: i } = t.detail || {};
 				if (!n || !(n instanceof Blob) || (u = Date.now(), c && i && i !== c)) return;
-				t.feedPreviewBlob(n, { sourceLabel: r ? `Node ${r}` : null });
+				e.feedPreviewBlob(n, { sourceLabel: r ? `Node ${r}` : null });
 			} catch (e) {
 				console.debug?.("[MFV] b_preview_with_metadata error", e);
 			}
-		}, i.addEventListener("b_preview_with_metadata", o), a = (e) => {
+		}, i.addEventListener("b_preview_with_metadata", o), a = (t) => {
 			try {
 				if (v()) return;
-				let n = e.detail;
+				let n = t.detail;
 				if (!n || !(n instanceof Blob)) return;
-				t.feedPreviewBlob(n);
+				e.feedPreviewBlob(n);
 			} catch (e) {
 				console.debug?.("[MFV] preview blob error", e);
 			}
@@ -107,17 +106,17 @@ function S(e) {
 	}
 	return e[e.length - 1];
 }
-function C(e) {
-	i || (r = !0, i = (e) => {
+function C(t) {
+	i || (r = !0, i = (t) => {
 		try {
-			if (!t.getLiveActive()) return;
-			let n = S(e.detail?.files);
+			if (!e.getLiveActive()) return;
+			let n = S(t.detail?.files);
 			if (!n) return;
-			t.upsertWithContent(n);
+			e.upsertWithContent(n);
 		} catch (e) {
 			console.debug?.("[MFV] generation output error", e);
 		}
-	}, typeof window < "u" && window.addEventListener(n.NEW_GENERATION_OUTPUT, i), y(e), console.debug("[Majoor] LiveStreamTracker initialized"));
+	}, typeof window < "u" && window.addEventListener(n.NEW_GENERATION_OUTPUT, i), y(t), console.debug("[Majoor] LiveStreamTracker initialized"));
 }
 function w(e) {
 	i &&= (typeof window < "u" && window.removeEventListener(n.NEW_GENERATION_OUTPUT, i), null), l += 1, b(), c = null, r = !1, console.debug("[Majoor] LiveStreamTracker torn down");

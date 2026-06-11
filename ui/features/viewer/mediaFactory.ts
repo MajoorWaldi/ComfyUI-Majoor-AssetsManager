@@ -296,39 +296,32 @@ export function createViewerMediaFactory({
 
     const _createAudioElement = (asset: any, url: any, { compare = false } = {}) => {
         const wrap = document.createElement("div");
-        wrap.style.cssText = `
-            width: 100%;
-            height: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-direction: column;
-            gap: 12px;
-            color: rgba(255,255,255,0.85);
-            padding: 14px;
-            background: radial-gradient(circle at 50% 50%, rgba(95, 179, 255, 0.12), rgba(10, 13, 18, 0.98));
-        `;
+        wrap.className = "mjr-viewer-audio-shell";
 
         if (!compare) {
-            const label = document.createElement("div");
-            label.textContent = String(asset?.filename || "Audio");
-            label.style.cssText =
-                "font-size: 12px; opacity: 0.9; max-width: 90%; text-align: center; overflow: hidden; text-overflow: ellipsis;";
-            wrap.appendChild(label);
+            const header = document.createElement("div");
+            header.className = "mjr-viewer-audio-header";
+            const icon = document.createElement("span");
+            icon.className = "mjr-viewer-audio-icon";
+            icon.innerHTML = '<i class="pi pi-volume-up" aria-hidden="true"></i>';
+            const text = document.createElement("div");
+            text.className = "mjr-viewer-audio-title-wrap";
+            const title = document.createElement("div");
+            title.className = "mjr-viewer-audio-title";
+            title.textContent = String(asset?.display_name || asset?.displayName || asset?.filename || "Audio");
+            const meta = document.createElement("div");
+            meta.className = "mjr-viewer-audio-meta";
+            const ext = String(asset?.filename || "").split(".").pop() || "audio";
+            meta.textContent = String(ext || "audio").toUpperCase();
+            text.appendChild(title);
+            text.appendChild(meta);
+            header.appendChild(icon);
+            header.appendChild(text);
+            wrap.appendChild(header);
         }
 
         const viz = document.createElement("canvas");
         viz.className = "mjr-viewer-audio-viz";
-        viz.style.cssText = `
-            width: min(1920px, 96%);
-            aspect-ratio: 16 / 9;
-            height: auto;
-            max-height: min(1080px, 68vh);
-            min-height: 260px;
-            border: none;
-            border-radius: 10px;
-            background: transparent;
-        `;
 
         const audio = document.createElement("audio");
         audio.className = "mjr-viewer-audio-src";
@@ -336,7 +329,6 @@ export function createViewerMediaFactory({
         audio.controls = false;
         audio.autoplay = true;
         audio.preload = "metadata";
-        audio.style.cssText = "width: min(680px, 90%);";
 
         try {
             const vizProc = createAudioVisualizer({

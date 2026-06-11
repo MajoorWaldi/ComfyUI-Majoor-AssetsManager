@@ -1,0 +1,53 @@
+"""Workflow library feature facade."""
+
+from .classifier import classify_workflow
+from .models import WorkflowClassification, WorkflowParseStats
+from .parser import parse_workflow, workflow_node_text
+from .service import (
+    delete_workflow,
+    duplicate_workflow,
+    is_workflow_json_path,
+    is_workflow_thumbnail_path,
+    list_workflow_model_families,
+    list_workflow_thumbnail_candidates,
+    list_workflows,
+    managed_workflow_root,
+    mark_workflow_loaded,
+    move_or_rename_workflow,
+    read_workflow_content,
+    save_workflow,
+    set_workflow_favorite,
+    set_workflow_info,
+    set_workflow_tags,
+    set_workflow_thumbnail,
+    workflow_graph_map_svg,
+    workflow_graph_map_thumbnail_url,
+    workflow_roots,
+)
+
+__all__ = [
+    "delete_workflow",
+    "duplicate_workflow",
+    "is_workflow_json_path",
+    "is_workflow_thumbnail_path",
+    "list_workflows",
+    "list_workflow_model_families",
+    "list_workflow_thumbnail_candidates",
+    "mark_workflow_loaded",
+    "set_workflow_favorite",
+    "set_workflow_info",
+    "set_workflow_tags",
+    "set_workflow_thumbnail",
+    "workflow_graph_map_svg",
+    "workflow_graph_map_thumbnail_url",
+    "managed_workflow_root",
+    "move_or_rename_workflow",
+    "read_workflow_content",
+    "save_workflow",
+    "workflow_roots",
+    "parse_workflow",
+    "workflow_node_text",
+    "classify_workflow",
+    "WorkflowParseStats",
+    "WorkflowClassification",
+]

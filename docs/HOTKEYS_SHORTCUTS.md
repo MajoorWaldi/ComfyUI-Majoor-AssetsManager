@@ -33,6 +33,17 @@ These shortcuts work globally in the Assets Manager panel.
 | **D**                   | Toggle Sidebar (Details) | Grid / Panel           |
 | **V**                   | Toggle Floating Viewer   | Grid / Panel           |
 
+### Quick Filter Controls
+
+These controls are available as direct icon buttons in the panel summary area:
+
+| Control | Action |
+| ------- | ------ |
+| **Image icon button** | Toggle Image-only quick filter |
+| **Video icon button** | Toggle Video-only quick filter |
+| **Audio icon button** | Toggle Audio-only quick filter |
+| **3D icon button** | Toggle 3D-only quick filter |
+
 ---
 
 ## Grid View Hotkeys
@@ -48,6 +59,8 @@ These shortcuts apply when the asset grid has focus.
 | **V**                          | Open selected asset in Floating Viewer |
 | **Ctrl+A** / **Cmd+A**         | Select All           |
 | **Ctrl+D** / **Cmd+D**         | Deselect All         |
+| **Ctrl+Shift+C** / **Cmd+Shift+C** | Copy selected asset path |
+| **Ctrl+Shift+E** / **Cmd+Shift+E** | Open selected asset in Explorer/Finder |
 | **Ctrl+Click** / **Cmd+Click** | Toggle Selection     |
 | **Shift+Click**                | Range Selection      |
 | **Home**                       | Go to first asset    |

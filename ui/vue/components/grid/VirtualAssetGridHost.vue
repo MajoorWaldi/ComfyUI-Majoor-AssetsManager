@@ -2,9 +2,18 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, provide, ref, watch } from "vue";
 import { APP_CONFIG } from "../../../app/config.js";
 import { EVENTS } from "../../../app/events.js";
-import { get } from "../../../api/client.js";
+import { get, getWorkflowContent, markWorkflowLoaded, setWorkflowFavorite } from "../../../api/client.js";
 import { buildStackMembersURL } from "../../../api/endpoints.js";
+import {
+    getRawHostApp,
+    importWorkflowPreferHostTab,
+    isHostWorkflowDirty,
+} from "../../../app/hostAdapter.js";
+import { t } from "../../../app/i18n.js";
+import { comfyToast } from "../../../app/toast.js";
+import { comfyConfirm } from "../../../app/dialogs.js";
 import { requestViewerOpen } from "../../../features/viewer/viewerOpenRequest.js";
+import { floatingViewerManager } from "../../../features/viewer/floatingViewerManager.js";
 import { ensureStackGroupCard, ensureDupStackCard } from "../../../features/grid/StackGroupCards.js";
 import { setSelectedIdsDataset } from "../../../features/grid/GridSelectionManager.js";
 import { applyGridSettingsClasses, configureGridContainer } from "../../../features/grid/gridApi.js";
@@ -222,6 +231,106 @@ function isFolderAsset(asset) {
     return String(asset?.kind || "").toLowerCase() === "folder";
 }
 
+function isWorkflowAssetType(asset) {
+    return String(asset?.kind || "").toLowerCase() === "workflow";
+}
+
+function isWorkflowScopeActive() {
+    return String(gridScope.value || "").trim().toLowerCase() === "workflow";
+}
+
+function normalizeWorkflowGroupBy(value) {
+    const mode = String(value || "none").trim().toLowerCase();
+    if (["task", "model", "category"].includes(mode)) return mode;
+    return "none";
+}
+
+function workflowGroupAccent(label) {
+    const text = String(label || "");
+    let hash = 0;
+    for (let i = 0; i < text.length; i += 1) {
+        hash = (hash << 5) - hash + text.charCodeAt(i);
+        hash |= 0;
+    }
+    const hue = Math.abs(hash) % 360;
+    return `hsl(${hue}deg 68% 60%)`;
+}
+
+function getWorkflowGroupLabel(asset, mode) {
+    if (!asset || typeof asset !== "object") return "Ungrouped";
+    if (mode === "task") {
+        const label = String(asset?.task || asset?.workflow_task || "").trim();
+        return label || "Task: Unknown";
+    }
+    if (mode === "model") {
+        const label = String(
+            asset?.model_family ||
+                asset?.workflow_model_family ||
+                asset?.workflow_model ||
+                asset?.model ||
+                "",
+        ).trim();
+        return label || "Model: Unknown";
+    }
+    if (mode === "category") {
+        const label = String(asset?.category || asset?.subfolder || asset?.workflow_category || "").trim();
+        return label || "Category: Uncategorized";
+    }
+    return "Ungrouped";
+}
+
+function sortWorkflowAssetsForGrouping(list, mode) {
+    return (Array.isArray(list) ? list : []).slice().sort((a, b) => {
+        const ga = getWorkflowGroupLabel(a, mode).toLowerCase();
+        const gb = getWorkflowGroupLabel(b, mode).toLowerCase();
+        if (ga < gb) return -1;
+        if (ga > gb) return 1;
+        const am = Number(a?.mtime || a?.created_at || 0) || 0;
+        const bm = Number(b?.mtime || b?.created_at || 0) || 0;
+        return bm - am;
+    });
+}
+
+function buildWorkflowGroupedRows(assets, cols, mode) {
+    const list = sortWorkflowAssetsForGrouping(assets, mode);
+    const rows = [];
+    if (!list.length) return rows;
+
+    const groups = new Map();
+    for (const asset of list) {
+        const label = isWorkflowAssetType(asset)
+            ? getWorkflowGroupLabel(asset, mode)
+            : "Other";
+        if (!groups.has(label)) groups.set(label, []);
+        groups.get(label).push(asset);
+    }
+
+    const groupLabels = Array.from(groups.keys());
+    for (const label of groupLabels) {
+        const members = groups.get(label) || [];
+        rows.push({
+            kind: "header",
+            title: label,
+            groupKey: label,
+            groupCount: members.length,
+            accent: workflowGroupAccent(label),
+            items: [],
+        });
+        for (let index = 0; index < members.length; index += cols) {
+            rows.push({
+                kind: "assets",
+                title: "",
+                groupKey: label,
+                groupCount: members.length,
+                accent: workflowGroupAccent(label),
+                items: members.slice(index, index + cols),
+            });
+        }
+    }
+
+    return rows;
+}
+
 function isAssetStacked(asset) {
     const gc = gridContainerRef.value;
     if (!gc || String(gc.dataset?.mjrGroupStacks || "") !== "1") return false;
@@ -294,6 +403,95 @@ const displayAssets = computed(() => buildDisplayAssets(state.assets));
 const renderableAssets = computed(() => {
     const assets = Array.isArray(displayAssets.value) ? displayAssets.value : [];
     return assets.filter((asset) => isRenderableAsset(asset));
+});
+
+const collapsedWorkflowGroups = ref(new Set());
+
+// Reactive mirror of the grid container's `data-mjr-scope` dataset value.
+// DOM dataset mutations are NOT reactive in Vue, so a MutationObserver keeps
+// this ref in sync. Without it, the grouping mode computed below would cache a
+// stale scope and leak workflow grouping into other scopes (output/input/...).
+const gridScope = ref("");
+
+const workflowGroupingMode = computed(() => {
+    settingsVersion.value;
+    const mode = normalizeWorkflowGroupBy(APP_CONFIG.WORKFLOW_GRID_GROUP_BY);
+    if (mode === "none") return "none";
+    // Default-deny: only group when the scope is explicitly "workflow".
+    if (gridScope.value !== "workflow") return "none";
+    return mode;
+});
+
+const groupedWorkflowRows = computed(() => {
+    const assets = Array.isArray(renderableAssets.value) ? renderableAssets.value : [];
+    if (!assets.length) return [];
+    const mode = workflowGroupingMode.value;
+    if (mode === "none") return [];
+    return buildWorkflowGroupedRows(assets, columnCount.value, mode);
+});
+
+watch(
+    () => `${workflowGroupingMode.value}::${groupedWorkflowRows.value.map((row) => `${row.kind}:${row.groupKey}`).join("|")}`,
+    () => {
+        if (workflowGroupingMode.value === "none") {
+            collapsedWorkflowGroups.value = new Set();
+            return;
+        }
+        const next = new Set();
+        const previous = collapsedWorkflowGroups.value;
+        for (const row of groupedWorkflowRows.value) {
+            if (row?.kind !== "header") continue;
+            const key = String(row.groupKey || "");
+            if (!key) continue;
+            if (previous.has(key)) next.add(key);
+        }
+        collapsedWorkflowGroups.value = next;
+    },
+    { immediate: true },
+);
+
+function isWorkflowGroupCollapsed(groupKey) {
+    const key = String(groupKey || "");
+    if (!key) return false;
+    return collapsedWorkflowGroups.value.has(key);
+}
+
+function toggleWorkflowGroup(groupKey) {
+    const key = String(groupKey || "");
+    if (!key) return;
+    const next = new Set(collapsedWorkflowGroups.value);
+    if (next.has(key)) next.delete(key);
+    else next.add(key);
+    collapsedWorkflowGroups.value = next;
+}
+
+function workflowGroupHeaderClass(row) {
+    const key = String(row?.groupKey || row?.title || "");
+    let hash = 0;
+    for (let i = 0; i < key.length; i += 1) {
+        hash = ((hash << 5) - hash + key.charCodeAt(i)) | 0;
+    }
+    const paletteIndex = Math.abs(hash) % 8;
+    return `mjr-grid-group-separator--accent-${paletteIndex}`;
+}
+
+const displayRows = computed(() => {
+    const assets = Array.isArray(renderableAssets.value) ? renderableAssets.value : [];
+    if (!assets.length) return [];
+    const mode = workflowGroupingMode.value;
+    if (mode === "none") return buildStaticGridRows(assets, columnCount.value);
+    const baseRows = Array.isArray(groupedWorkflowRows.value) ? groupedWorkflowRows.value : [];
+    const out = [];
+    for (const row of baseRows) {
+        if (row?.kind === "header") {
+            out.push(row);
+            continue;
+        }
+        const groupKey = String(row?.groupKey || "");
+        if (isWorkflowGroupCollapsed(groupKey)) continue;
+        out.push(row);
+    }
+    return out;
 });
 
 function emitGridStats() {
@@ -477,6 +675,9 @@ function getActiveGridMinSize() {
             Number(APP_CONFIG.FEED_GRID_MIN_SIZE || fallbackMinSize) || fallbackMinSize,
         );
     }
+    if (isWorkflowScopeActive()) {
+        return Math.max(180, fallbackMinSize);
+    }
     return Math.max(80, fallbackMinSize);
 }
 
@@ -512,13 +713,15 @@ const estimateRowHeight = computed(() => {
     const showDetails = !!APP_CONFIG.GRID_SHOW_DETAILS;
     const thumbHeight = itemWidth.value;
     const metaHeight = showDetails ? 82 : 0;
+    if (workflowGroupingMode.value !== "none") {
+        return Math.max(48, thumbHeight + metaHeight + gapPx.value);
+    }
     return thumbHeight + metaHeight + gapPx.value;
 });
 
 const rows = computed(() => {
-    const assets = Array.isArray(renderableAssets.value) ? renderableAssets.value : [];
     if (props.virtualize) return [];
-    return buildStaticGridRows(assets, columnCount.value);
+    return Array.isArray(displayRows.value) ? displayRows.value : [];
 });
 
 function updateScrollVelocity(element) {
@@ -552,6 +755,7 @@ const adaptiveOverscan = computed(() => {
 const gridVirtualRows = useGridVirtualRows({
     scrollRef: scrollElementRef,
     items: renderableAssets,
+    rows: displayRows,
     columnCount,
     estimateRowHeight,
     overscan: adaptiveOverscan,
@@ -672,8 +876,16 @@ function updateHostWidth() {
 }
 
 let resizeObserver = null;
+let scopeObserver = null;
 let disposeAssetDragStart = null;
 let settingsListenerBound = false;
+
+function readGridScope() {
+    const raw = String(gridContainerRef.value?.dataset?.mjrScope || "")
+        .trim()
+        .toLowerCase();
+    if (gridScope.value !== raw) gridScope.value = raw;
+}
 
 function scheduleInitialHostMeasurements() {
     _forceVirtualizerMeasure();
@@ -696,6 +908,33 @@ function scheduleInitialHostMeasurements() {
 onMounted(() => {
     scheduleInitialHostMeasurements();
 });
+
+watch(
+    gridContainerRef,
+    (element) => {
+        try {
+            scopeObserver?.disconnect?.();
+        } catch (e) {
+            console.debug?.(e);
+        }
+        scopeObserver = null;
+        if (!element) return;
+        readGridScope();
+        try {
+            scopeObserver = new MutationObserver(() => {
+                readGridScope();
+            });
+            scopeObserver.observe(element, {
+                attributes: true,
+                attributeFilter: ["data-mjr-scope"],
+            });
+        } catch (e) {
+            console.debug?.(e);
+            scopeObserver = null;
+        }
+    },
+    { immediate: true },
+);
 
 watch(
     scrollElementRef,
@@ -938,6 +1177,13 @@ function handleCardClick(event, asset) {
     } catch (e) {
         console.debug?.(e);
     }
+    if (
+        isWorkflowScopeActive() &&
+        isWorkflowAssetType(asset) &&
+        floatingViewerManager.isGraphModeVisible?.()
+    ) {
+        void openWorkflowGraphInViewer(asset);
+    }
 }
 
 function handleCardPrimaryMouseDown(event, asset) {
@@ -978,6 +1224,159 @@ function openAssetViewer(asset) {
     requestViewerOpen({ assets: mediaAssets, index: mediaIndex });
 }
 
+function openWorkflowCardMenu(asset, sourceEvent = null) {
+    const id = String(asset?.id || "").trim();
+    if (!id) return;
+    const card = state.cardElements.get(id);
+    if (!(card instanceof HTMLElement)) return;
+    try {
+        const rect = card.getBoundingClientRect();
+        const clientX = Number(sourceEvent?.clientX || sourceEvent?.pageX || rect.right - 8) || 0;
+        const clientY = Number(sourceEvent?.clientY || sourceEvent?.pageY || rect.top + 10) || 0;
+        const ctxEvent = new MouseEvent("contextmenu", {
+            bubbles: true,
+            cancelable: true,
+            button: 2,
+            clientX,
+            clientY,
+        });
+        card.dispatchEvent(ctxEvent);
+    } catch (e) {
+        console.debug?.(e);
+    }
+}
+
+async function openWorkflowGraphInViewer(asset, { select = false } = {}) {
+    try {
+        const id = String(asset?.id || "").trim();
+        if (select && id) setSelection([id], id);
+        const filepath = String(asset?.filepath || asset?.path || asset?.full_path || "").trim();
+        let inspectAsset = asset;
+        if (filepath) {
+            try {
+                const result = await getWorkflowContent(filepath, { timeoutMs: 25_000 });
+                const workflow = result?.data?.workflow || result?.workflow || null;
+                const prompt = result?.data?.prompt || result?.prompt || null;
+                if (workflow || prompt) {
+                    inspectAsset = {
+                        ...asset,
+                        workflow: workflow || asset?.workflow,
+                        prompt: prompt || asset?.prompt,
+                        metadata_raw: {
+                            ...(asset?.metadata_raw && typeof asset.metadata_raw === "object"
+                                ? asset.metadata_raw
+                                : {}),
+                            ...(workflow ? { workflow } : {}),
+                            ...(prompt ? { prompt } : {}),
+                        },
+                    };
+                }
+            } catch (e) {
+                console.debug?.(e);
+            }
+        }
+        await floatingViewerManager.openAssets({
+            assets: [inspectAsset],
+            index: 0,
+            mode: "graph",
+        });
+    } catch (e) {
+        console.debug?.(e);
+        openKeyboardDetails();
+    }
+}
+
+async function handleWorkflowCardAction(payload, asset) {
+    const type = String(payload?.type || "").trim().toLowerCase();
+    if (!type || String(asset?.kind || "").toLowerCase() !== "workflow") return;
+    if (type === "load") {
+        await loadWorkflowAsset(asset);
+        return;
+    }
+    if (type === "inspect") {
+        await openWorkflowGraphInViewer(asset, { select: true });
+        return;
+    }
+    if (type === "favorite") {
+        const previous = Boolean(asset.favorite);
+        const next = !previous;
+        try {
+            asset.favorite = next;
+            const filepath = String(asset?.filepath || asset?.path || asset?.full_path || "").trim();
+            if (!filepath) {
+                throw new Error("Missing workflow filepath");
+            }
+            const favoriteRes = await setWorkflowFavorite(
+                { filepath, favorite: next },
+                { timeoutMs: 12_000 },
+            );
+            if (!favoriteRes?.ok) {
+                throw new Error(String(favoriteRes?.error || "Failed to save workflow favorite"));
+            }
+            gridContainerRef.value?.dispatchEvent?.(
+                new CustomEvent("mjr:workflow-favorite-changed", {
+                    bubbles: true,
+                    detail: {
+                        asset,
+                        favorite: next,
+                    },
+                }),
+            );
+        } catch (e) {
+            console.debug?.(e);
+            asset.favorite = previous;
+            comfyToast(
+                t("toast.workflowFavoriteFailed", "Failed to update workflow favorite."),
+                "error",
+            );
+        }
+        return;
+    }
+    if (type === "menu") {
+        openWorkflowCardMenu(asset, payload?.event || null);
+    }
+}
+
+async function loadWorkflowAsset(asset) {
+    const filepath = String(asset?.filepath || asset?.path || asset?.full_path || "").trim();
+    if (!filepath) {
+        comfyToast(t("toast.workflowMissingPath", "Workflow file path is missing."), "error");
+        return;
+    }
+    const hostApp = getRawHostApp();
+    const dirtyState = isHostWorkflowDirty(hostApp);
+    if (dirtyState === true) {
+        const ok = await comfyConfirm(
+            t(
+                "dialog.workflowLoadReplaceDirty",
+                "Current canvas has unsaved changes. Replace it with this workflow?",
+            ),
+            t("tab.workflow", "Workflow"),
+        );
+        if (!ok) return;
+    }
+    const result = await getWorkflowContent(filepath, { timeoutMs: 30_000 });
+    const workflow = result?.data?.workflow || result?.workflow || null;
+    if (!result?.ok || !workflow || typeof workflow !== "object") {
+        comfyToast(result?.error || t("toast.workflowLoadFailed", "Failed to load workflow."), "error");
+        return;
+    }
+    const importResult = importWorkflowPreferHostTab(workflow, hostApp);
+    if (!importResult.ok) {
+        comfyToast(
+            t("toast.workflowImportUnavailable", "ComfyUI workflow import is unavailable in this frontend."),
+            "error",
+        );
+        return;
+    }
+    try {
+        await markWorkflowLoaded({ filepath }, { timeoutMs: 10_000 });
+    } catch (e) {
+        console.debug?.(e);
+    }
+    comfyToast(t("toast.workflowLoaded", "Workflow loaded"), "success", 1800);
+}
+
 function handleCardDblclick(asset) {
     try {
         if (typeof props.onCardDblclick === "function") {
@@ -1003,6 +1402,11 @@ function handleCardDblclick(asset) {
         } catch (e) {
             console.debug?.(e);
         }
+        return;
+    }
+
+    if (String(asset?.kind || "").toLowerCase() === "workflow") {
+        void loadWorkflowAsset(asset);
         return;
     }
 
@@ -1234,6 +1638,11 @@ onBeforeUnmount(() => {
         console.debug?.(e);
     }
     try {
+        scopeObserver?.disconnect?.();
+    } catch (e) {
+        console.debug?.(e);
+    }
+    try {
         scrollCleanup?.();
     } catch (e) {
         console.debug?.(e);
@@ -1431,7 +1840,24 @@ defineExpose({
                 :data-index="virtualRow.index"
                 :style="virtualRowStyle(virtualRow.index)"
             >
-                <template v-if="virtualRow.items.length">
+                <template v-if="virtualRow.kind === 'header'">
+                    <button
+                        type="button"
+                        :class="['mjr-grid-group-separator', workflowGroupHeaderClass(virtualRow)]"
+                        :aria-expanded="isWorkflowGroupCollapsed(virtualRow.groupKey) ? 'false' : 'true'"
+                        :title="`${isWorkflowGroupCollapsed(virtualRow.groupKey) ? 'Open' : 'Close'} group`"
+                        @click="toggleWorkflowGroup(virtualRow.groupKey)"
+                    >
+                        <span class="mjr-grid-group-separator-chevron" aria-hidden="true">
+                            <i
+                                class="pi"
+                                :class="isWorkflowGroupCollapsed(virtualRow.groupKey) ? 'pi-chevron-down' : 'pi-chevron-up'"
+                            />
+                        </span>
+                        <span class="mjr-grid-group-separator-title">{{ virtualRow.title }}</span>
+                    </button>
+                </template>
+                <template v-else-if="virtualRow.items.length">
                 <template
                     v-for="asset in virtualRow.items"
                     :key="String(asset.id)"
@@ -1475,7 +1901,10 @@ defineExpose({
                         @click="handleCardClick($event, asset)"
                         @dblclick.stop="handleCardDblclick(asset)"
                     >
-                        <AssetCardInner :asset="asset" />
+                        <AssetCardInner
+                            :asset="asset"
+                            @workflow-action="handleWorkflowCardAction($event, asset)"
+                        />
                     </div>
                 </template>
                 </template>
@@ -1485,10 +1914,28 @@ defineExpose({
         <div v-else style="display:flex; flex-direction:column; width:100%;">
             <div
                 v-for="row in rows"
-                :key="row.index"
+                :key="`${row.kind || 'assets'}-${row.groupKey || ''}-${row.index ?? ''}`"
                 :style="staticRowStyle()"
             >
+                <template v-if="row.kind === 'header'">
+                    <button
+                        type="button"
+                        :class="['mjr-grid-group-separator', workflowGroupHeaderClass(row)]"
+                        :aria-expanded="isWorkflowGroupCollapsed(row.groupKey) ? 'false' : 'true'"
+                        :title="`${isWorkflowGroupCollapsed(row.groupKey) ? 'Open' : 'Close'} group`"
+                        @click="toggleWorkflowGroup(row.groupKey)"
+                    >
+                        <span class="mjr-grid-group-separator-chevron" aria-hidden="true">
+                            <i
+                                class="pi"
+                                :class="isWorkflowGroupCollapsed(row.groupKey) ? 'pi-chevron-down' : 'pi-chevron-up'"
+                            />
+                        </span>
+                        <span class="mjr-grid-group-separator-title">{{ row.title }}</span>
+                    </button>
+                </template>
                 <template
+                    v-else
                     v-for="asset in row.items"
                     :key="String(asset.id)"
                 >
@@ -1531,7 +1978,10 @@ defineExpose({
                         @click="handleCardClick($event, asset)"
                         @dblclick.stop="handleCardDblclick(asset)"
                     >
-                        <AssetCardInner :asset="asset" />
+                        <AssetCardInner
+                            :asset="asset"
+                            @workflow-action="handleWorkflowCardAction($event, asset)"
+                        />
                     </div>
                 </template>
             </div>
@@ -1544,66 +1994,3 @@ defineExpose({
         />
     </div>
 </template>
-
-<style scoped>
-.mjr-grid-skeleton-layout {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
-    gap: 12px;
-}
-
-.mjr-grid-skeleton-card {
-    border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.22);
-    background: rgba(192, 198, 206, 0.2);
-    overflow: hidden;
-    min-height: 146px;
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.24);
-}
-
-.mjr-grid-skeleton-thumb {
-    aspect-ratio: 1 / 1;
-    width: 100%;
-    background: linear-gradient(
-        90deg,
-        rgba(156, 162, 171, 0.52) 0%,
-        rgba(220, 225, 232, 0.72) 45%,
-        rgba(156, 162, 171, 0.52) 100%
-    );
-    background-size: 240% 100%;
-    animation: mjr-grid-skeleton-shimmer 1.2s linear infinite;
-}
-
-.mjr-grid-skeleton-line {
-    height: 10px;
-    margin: 8px 10px;
-    border-radius: 8px;
-    background: linear-gradient(
-        90deg,
-        rgba(164, 170, 179, 0.48) 0%,
-        rgba(214, 219, 226, 0.7) 45%,
-        rgba(164, 170, 179, 0.48) 100%
-    );
-    background-size: 240% 100%;
-    animation: mjr-grid-skeleton-shimmer 1.2s linear infinite;
-}
-
-.mjr-grid-skeleton-line--title {
-    width: 72%;
-}
-
-.mjr-grid-skeleton-line--meta {
-    width: 48%;
-    margin-top: 2px;
-    margin-bottom: 10px;
-}
-
-@keyframes mjr-grid-skeleton-shimmer {
-    0% {
-        background-position: 100% 0;
-    }
-    100% {
-        background-position: -100% 0;
-    }
-}
-</style>

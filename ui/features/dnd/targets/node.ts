@@ -126,7 +126,16 @@ export const ensureComboHasValue = (widget: any, value: any) => {
 };
 
 // Widget types that can never hold a file path
-const _REJECT_TYPES = new Set(["number", "int", "float", "boolean", "toggle", "checkbox"]);
+const _REJECT_TYPES = new Set([
+    "number",
+    "int",
+    "float",
+    "boolean",
+    "toggle",
+    "checkbox",
+    "button",
+    "hidden",
+]);
 // Terms that indicate an output/save widget (strong negative signal)
 const _OUTPUTY_TERMS = ["output", "save", "export", "folder", "dir"];
 // Generic path-like widget name terms

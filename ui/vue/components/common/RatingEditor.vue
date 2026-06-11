@@ -282,19 +282,3 @@ watch(
         </MButton>
     </div>
 </template>
-
-<style scoped>
-.mjr-rating-star {
-    outline: none;
-}
-
-.mjr-rating-star:hover:not(:disabled) {
-    transform: scale(1.2);
-}
-
-.mjr-rating-star:focus-visible {
-    outline: 2px solid var(--focus-outline-color, #4dabf7);
-    outline-offset: 2px;
-    border-radius: 2px;
-}
-</style>

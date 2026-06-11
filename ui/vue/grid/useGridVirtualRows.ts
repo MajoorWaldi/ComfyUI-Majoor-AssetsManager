@@ -29,6 +29,7 @@ export function getGridRowItems(items: unknown[] = [], rowIndex = 0, columnCount
 export function useGridVirtualRows({
     scrollRef,
     items,
+    rows,
     columnCount,
     estimateRowHeight,
     overscan = 8,
@@ -37,6 +38,8 @@ export function useGridVirtualRows({
 }: Record<string, any> = {}) {
     const rowCount = computed(() => {
         if (!unref(enabled)) return 0;
+        const sourceRows = unref(rows);
+        if (Array.isArray(sourceRows)) return sourceRows.length;
         const list = unref(items) || [];
         const cols = Math.max(1, readNumber(columnCount, 1));
         return Math.ceil((Array.isArray(list) ? list.length : 0) / cols);
@@ -53,6 +56,21 @@ export function useGridVirtualRows({
     );
 
     const virtualRows = computed(() => {
+        const sourceRows = unref(rows);
+        if (Array.isArray(sourceRows)) {
+            return virtualizer.value.getVirtualItems().map((row) => {
+                const source = sourceRows[row.index] || {};
+                return {
+                    key: row.key,
+                    index: row.index,
+                    virtual: row,
+                    items: Array.isArray(source?.items) ? source.items : [],
+                    kind: String(source?.kind || "assets"),
+                    title: String(source?.title || ""),
+                    groupKey: String(source?.groupKey || ""),
+                };
+            });
+        }
         const list = unref(items) || [];
         const cols = Math.max(1, readNumber(columnCount, 1));
         return virtualizer.value.getVirtualItems().map((row) => ({
@@ -60,6 +78,9 @@ export function useGridVirtualRows({
             index: row.index,
             virtual: row,
             items: getGridRowItems(list, row.index, cols),
+            kind: "assets",
+            title: "",
+            groupKey: "",
         }));
     });
 

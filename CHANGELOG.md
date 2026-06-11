@@ -4,6 +4,21 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+### ✨ Improved
+- **Graph Map UI and Parsing**: Improved Graph Map node UI and widget parsing for clearer node inspection and more reliable node details. See [docs/GRAPH_MAP.md](docs/GRAPH_MAP.md).
+- **GenInfo Metadata Parsing**: Improved metadata parsing for GenInfo display accuracy and consistency. See [docs/VIEWER_FEATURE_TUTORIAL.md](docs/VIEWER_FEATURE_TUTORIAL.md) and [docs/MFV_GUIDE.md](docs/MFV_GUIDE.md).
+- **Quick Media Filters**: Added direct filter shortcut buttons to quickly display Images, Videos, Audio, or 3D assets. See [docs/SEARCH_FILTERING.md](docs/SEARCH_FILTERING.md).
+- **Drag and Drop Features**: Improved drag-and-drop behavior, node compatibility handling, and clean export workflow. See [docs/DRAG_DROP.md](docs/DRAG_DROP.md).
+
+### 🎉 New Features
+- **Majoor GenInfo Override Node**: Added a new `Majoor GenInfo Override` node to inject custom/manual GenInfo data through Majoor Save nodes. See [docs/CUSTOM_NODES.md](docs/CUSTOM_NODES.md).
+
+### 🔧 Refactoring, Code Quality & Fixes
+- **Frontend TypeScript Refactor**: Continued major UI code refactoring to TypeScript to align with ComfyUI frontend evolution. See [docs/MIGRATION_TS_TRACKER.md](docs/MIGRATION_TS_TRACKER.md).
+- **Easier AI Settings Access**: Improved access to AI settings via a dedicated button in the Assets Manager panel and in the Floating Viewer. See [docs/SETTINGS_CONFIGURATION.md](docs/SETTINGS_CONFIGURATION.md).
+- **ComfyUI Frontend Integration**: Improved Majoor Assets Manager integration with the ComfyUI frontend for smoother interoperability and UI consistency. See [docs/FRONTEND_LIFECYCLE_CONVENTIONS.md](docs/FRONTEND_LIFECYCLE_CONVENTIONS.md).
+- **Code Improvements and Bug Fixes**: General code improvements and multiple bug fixes across UI and integration layers.
+
 ---
 
 ## [2.4.8] - 2026-05-18

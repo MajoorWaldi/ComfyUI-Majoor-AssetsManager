@@ -352,6 +352,7 @@ function _syncCurrentGridSelection() {
 
 function _onSelectionChanged(e: any) {
     if (!_instance?.isVisible) return;
+    if (_instance._mode === MFV_MODES.GRAPH) return;
     // Filter out folder cards  -  they have no previewable media.
     const selectedAssets = Array.isArray(e?.detail?.selectedAssets) ? e.detail.selectedAssets : [];
     const folderIds = new Set(
@@ -471,6 +472,10 @@ function _unbindNodeSelectionListener() {
 // -- Public API ----------------------------------------------------------------
 
 export const floatingViewerManager = {
+    isGraphModeVisible() {
+        return Boolean(_instance?.isVisible && _instance?._mode === MFV_MODES.GRAPH);
+    },
+
     /**
      * Open the MFV with explicit assets instead of syncing from the current grid selection.
      * Useful for context-menu actions where the right-clicked asset is the target.

@@ -35,6 +35,13 @@ vi.mock("../features/filters/calendar/AgendaCalendar.js", () => ({
     })),
 }));
 
+vi.mock("../api/client.js", () => ({
+    listWorkflowModelFamilies: vi.fn(async () => ({
+        ok: true,
+        data: { model_families: [{ label: "Flux", value: "Flux" }, { label: "Wan", value: "Wan" }] },
+    })),
+}));
+
 const MButtonStub = {
     props: {
         severity: String,
@@ -284,6 +291,25 @@ describe("PrimeVue-backed panel controls", () => {
         expect(panelStore.minWidth).toBe(1920);
         expect(panelStore.minHeight).toBe(1080);
         expect(panelStore.dateRangeFilter).toBe("today");
+
+        wrapper.unmount();
+    });
+
+    it("populates the model-family menu from indexed workflows", async () => {
+        const mod = await import("../vue/components/panel/FilterPopover.vue");
+        const wrapper = mount(mod.default, {
+            global: { stubs: GLOBAL_STUBS },
+        });
+
+        await nextTick();
+        await Promise.resolve();
+        await nextTick();
+
+        expect(wrapper.vm.workflowModelFamilyOptions).toBeDefined();
+        const selectElements = wrapper.findAll("select");
+        const familySelect = selectElements.find((item) => item.text().includes("Flux"));
+        expect(familySelect?.text()).toContain("Flux");
+        expect(familySelect?.text()).toContain("Wan");
 
         wrapper.unmount();
     });

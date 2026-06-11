@@ -21,6 +21,8 @@ export interface AssetFilterParams {
     maxHeight?: number | null;
     workflowType?: string | null;
     workflowId?: string | null;
+    workflowModel?: string | null;
+    runsOn?: string | null;
     dateRange?: string | null;
     dateExact?: string | null;
 }
@@ -151,6 +153,20 @@ export const ENDPOINTS = {
 
     // Library audit
     AUDIT: "/mjr/am/audit",
+
+    // Workflow library
+    WORKFLOWS_CONTENT: "/mjr/am/workflows/content",
+    WORKFLOWS_SAVE: "/mjr/am/workflows/save",
+    WORKFLOWS_DUPLICATE: "/mjr/am/workflows/duplicate",
+    WORKFLOWS_MOVE: "/mjr/am/workflows/move",
+    WORKFLOWS_DELETE: "/mjr/am/workflows/delete",
+    WORKFLOWS_MARK_LOADED: "/mjr/am/workflows/mark-loaded",
+    WORKFLOWS_FAVORITE: "/mjr/am/workflows/favorite",
+    WORKFLOWS_INFO: "/mjr/am/workflows/info",
+    WORKFLOWS_THUMBNAIL_CANDIDATES: "/mjr/am/workflows/thumbnail-candidates",
+    WORKFLOWS_MODEL_FAMILIES: "/mjr/am/workflows/model-families",
+    WORKFLOWS_TAGS: "/mjr/am/workflows/tags",
+    WORKFLOWS_THUMBNAIL_SET: "/mjr/am/workflows/thumbnail/set",
 };
 
 export function appendAssetFilterQueryParams(url: string, filters: AssetFilterParams = {}): string {
@@ -176,6 +192,8 @@ export function appendAssetFilterQueryParams(url: string, filters: AssetFilterPa
         maxHeight = null,
         workflowType = null,
         workflowId = null,
+        workflowModel = null,
+        runsOn = null,
         dateRange = null,
         dateExact = null,
     } = filters || {};
@@ -215,6 +233,12 @@ export function appendAssetFilterQueryParams(url: string, filters: AssetFilterPa
     }
     if (workflowId) {
         _append(`workflow_id=${encodeURIComponent(String(workflowId))}`);
+    }
+    if (workflowModel) {
+        _append(`workflow_model=${encodeURIComponent(String(workflowModel))}`);
+    }
+    if (runsOn) {
+        _append(`runs_on=${encodeURIComponent(String(runsOn))}`);
     }
     if (dateRange) {
         _append(`date_range=${encodeURIComponent(String(dateRange))}`);
@@ -262,6 +286,8 @@ export function buildListURL(params: ListURLParams = {}): string {
         maxHeight = null,
         workflowType = null,
         workflowId = null,
+        workflowModel = null,
+        runsOn = null,
         dateRange = null,
         dateExact = null,
         sort = null,
@@ -292,6 +318,8 @@ export function buildListURL(params: ListURLParams = {}): string {
         maxHeight,
         workflowType,
         workflowId,
+        workflowModel,
+        runsOn,
         dateRange,
         dateExact,
     });
@@ -446,6 +474,8 @@ export function buildDateHistogramURL(params: AssetFilterParams & { scope?: stri
         maxHeight: params.maxHeight ?? null,
         workflowType: params.workflowType ?? null,
         workflowId: params.workflowId ?? null,
+        workflowModel: params.workflowModel ?? null,
+        runsOn: params.runsOn ?? null,
         dateRange: params.dateRange ?? null,
         dateExact: params.dateExact ?? null,
     });
@@ -568,6 +598,12 @@ export function buildDownloadURL(filepath: any, options: Record<string, any> = {
     let url = `${ENDPOINTS.DOWNLOAD}?filepath=${encodeURIComponent(filepath)}`;
     if (inline) url += "&preview=1";
     return url;
+}
+
+export function buildWorkflowContentURL(filepath: any): string {
+    const fp = String(filepath || "").trim();
+    if (!fp) return "";
+    return `${ENDPOINTS.WORKFLOWS_CONTENT}?filepath=${encodeURIComponent(fp)}`;
 }
 
 /**

@@ -251,6 +251,11 @@ function applyStatusHighlight(section: any, tone = "neutral", options: Record<st
             border: "rgba(0,150,136,0.58)",
             glow: "rgba(0,150,136,0.18)",
         },
+        workflow: {
+            bg: "linear-gradient(135deg, rgba(186,104,200,0.20) 0%, rgba(244,143,177,0.14) 100%)",
+            border: "rgba(216,127,186,0.62)",
+            glow: "rgba(198,120,194,0.22)",
+        },
     };
     const style = (map as Record<string, any>)[tone] || map.neutral;
     const prevTone = String(section.dataset?.mjrStatusTone || "neutral");
@@ -271,6 +276,7 @@ function applyStatusHighlight(section: any, tone = "neutral", options: Record<st
                 warning: t("status.toast.warning", "Index status: attention needed"),
                 error: t("status.toast.error", "Index status: error"),
                 browser: t("status.toast.browser", "Index status: browser scope"),
+                workflow: t("status.toast.workflow", "Index status: workflow scope"),
             };
             const level =
                 tone === "error"
@@ -294,6 +300,7 @@ function formatWatcherScopeLabel(scope: any) {
     if (s === "all") return t("scope.allFull", "All (Inputs + Outputs)");
     if (s === "input" || s === "inputs") return t("scope.input", "Inputs");
     if (s === "custom") return t("scope.custom", "Browser");
+    if (s === "workflow") return t("scope.workflow", "Workflow");
     return t("scope.output", "Outputs");
 }
 
@@ -1500,6 +1507,8 @@ export async function triggerScan(
               ? t("scope.input", "Inputs")
               : desiredScope === "custom"
                 ? t("scope.custom", "Custom")
+                : desiredScope === "workflow"
+                  ? t("scope.workflow", "Workflow")
                 : t("scope.output", "Outputs");
 
     let detail = "";
@@ -1737,6 +1746,8 @@ function buildIndexHealthLine(counters: any, desiredScope: any) {
               ? t("scope.input", "Inputs")
               : desiredScope === "custom"
                 ? t("scope.custom", "Custom")
+                : desiredScope === "workflow"
+                  ? t("scope.workflow", "Workflow")
                 : t("scope.output", "Outputs");
 
     if (!Number.isFinite(totalAssets) || totalAssets <= 0) {
@@ -1782,14 +1793,15 @@ export async function updateStatus(
     }
 
     const desiredScope = String(scanTarget?.scope || "output").toLowerCase();
+    const requestedScope = desiredScope === "workflow" ? "all" : desiredScope;
     const desiredCustomRootId =
         scanTarget?.customRootId || scanTarget?.custom_root_id || scanTarget?.root_id || null;
     const isCustomBrowserMode = desiredScope === "custom" && !desiredCustomRootId;
     const url = isCustomBrowserMode
         ? `${ENDPOINTS.HEALTH_COUNTERS}?scope=all`
-        : desiredScope === "custom"
+        : requestedScope === "custom"
           ? `${ENDPOINTS.HEALTH_COUNTERS}?scope=custom&custom_root_id=${encodeURIComponent(String(desiredCustomRootId || ""))}`
-          : `${ENDPOINTS.HEALTH_COUNTERS}?scope=${encodeURIComponent(desiredScope || "output")}`;
+          : `${ENDPOINTS.HEALTH_COUNTERS}?scope=${encodeURIComponent(requestedScope || "output")}`;
     const lightweight = !!options?.lightweight;
     const scanAuxBackoffActive =
         !force &&
@@ -1856,6 +1868,7 @@ export async function updateStatus(
         const totalAssets = counters.total_assets || 0;
         const withWorkflows = counters.with_workflows - 0;
         const withGenerationData = counters.with_generation_data - 0;
+        const workflowCount = Math.max(0, Number(withWorkflows || 0) || 0);
         const lastScanRaw = counters.last_scan_end;
         const lastScanText = lastScanRaw ? new Date(lastScanRaw).toLocaleString() : "N/A";
         const toolAvailability = counters.tool_availability || {};
@@ -1911,7 +1924,13 @@ export async function updateStatus(
         } else if (vectorDegraded) {
             healthTone = "warning";
         }
-        const displayTone = isCustomBrowserMode && healthTone !== "error" ? "browser" : healthTone;
+                const isWorkflowScope = desiredScope === "workflow";
+                const displayTone =
+                        isCustomBrowserMode && healthTone !== "error"
+                                ? "browser"
+                                : isWorkflowScope && healthTone !== "error"
+                                    ? "workflow"
+                                    : healthTone;
         let watcherInfo = counters.watcher;
         try {
             if (!watcherInfo || typeof watcherInfo.enabled !== "boolean") {
@@ -1927,7 +1946,11 @@ export async function updateStatus(
         } catch (e) {
             console.debug?.(e);
         }
-        const watcherLine = isCustomBrowserMode
+        const watcherLine = isWorkflowScope
+            ? t("status.watcher.disabledScoped", "Watcher: disabled ({scope})", {
+                  scope: t("scope.workflow", "Workflow"),
+              })
+            : isCustomBrowserMode
             ? t("status.watcher.disabledScoped", "Watcher: disabled ({scope})", {
                   scope: t("scope.customBrowser", "Browser"),
               })
@@ -1948,6 +1971,8 @@ export async function updateStatus(
                   ? t("scope.input", "Inputs")
                   : desiredScope === "custom"
                     ? t("scope.customBrowser", "Browser")
+                    : desiredScope === "workflow"
+                      ? t("scope.workflow", "Workflow")
                     : t("scope.output", "Outputs");
 
         if (healthTone === "error") {
@@ -1978,6 +2003,34 @@ export async function updateStatus(
                 ]
                     .filter(Boolean)
                     .join("  |  "),
+            );
+            return counters;
+        }
+
+        if (isWorkflowScope) {
+            statusDot.style.background = "#d481c3";
+            applyStatusHighlight(section, displayTone);
+            setStatusLines(
+                statusText,
+                [
+                    t(
+                        "status.workflowsIndexed",
+                        `${workflowCount.toLocaleString()} workflows indexed (${scopeLabel})`,
+                        { count: workflowCount.toLocaleString(), scope: scopeLabel },
+                    ),
+                    t(
+                        "status.assetsCountReference",
+                        `Asset records in DB: ${totalAssets.toLocaleString()}`,
+                        { count: totalAssets.toLocaleString() },
+                    ),
+                    enrichmentLine,
+                    vectorLine,
+                    dbHealthLine,
+                    indexHealthLine,
+                    dbSizeLine,
+                    watcherLine,
+                ],
+                t("status.lastScan", `Last scan: ${lastScanText}`, { date: lastScanText }),
             );
             return counters;
         }

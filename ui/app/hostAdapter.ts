@@ -796,6 +796,90 @@ export function importWorkflowIntoHostCanvas(workflow: any, app: any = null): bo
     return false;
 }
 
+/**
+ * Import a workflow through the stable graph loading path.
+ * New-tab APIs vary across ComfyUI frontend builds, so this avoids guessing
+ * private tab methods that may not switch the active graph synchronously.
+ */
+export function importWorkflowPreferHostTab(
+    workflow: any,
+    app: any = null,
+): { ok: boolean; mode: "new-tab" | "replace" | "none" } {
+    const runtimeApp = app || _app || getComfyApp();
+    if (!workflow || typeof workflow !== "object") return { ok: false, mode: "none" };
+    try {
+        if (importWorkflowIntoHostCanvas(workflow, runtimeApp)) {
+            return { ok: true, mode: "replace" };
+        }
+    } catch (e) {
+        console.debug?.(e);
+    }
+    return { ok: false, mode: "none" };
+}
+
+export function serializeCurrentHostWorkflow(app: any = null): any {
+    try {
+        const runtimeApp = app || _app || getComfyApp();
+        if (typeof runtimeApp?.graphToPrompt === "function") {
+            const data = runtimeApp.graphToPrompt();
+            if (data?.workflow && typeof data.workflow === "object") return data.workflow;
+        }
+        const graph = _getHostGraph(runtimeApp);
+        if (typeof graph?.serialize === "function") {
+            const workflow = graph.serialize();
+            if (workflow && typeof workflow === "object") return workflow;
+        }
+        const rootGraph = runtimeApp?.rootGraph || runtimeApp?.graph?.rootGraph || null;
+        if (typeof rootGraph?.serialize === "function") {
+            const workflow = rootGraph.serialize();
+            if (workflow && typeof workflow === "object") return workflow;
+        }
+    } catch (e) {
+        console.debug?.(e);
+    }
+    return null;
+}
+
+/**
+ * Best-effort host dirty-state probe.
+ * Returns:
+ *   - true / false when a reliable host signal is available
+ *   - null when no compatible signal can be detected
+ */
+export function isHostWorkflowDirty(app: any = null): boolean | null {
+    try {
+        const runtimeApp = app || _app || getComfyApp();
+        if (!runtimeApp) return null;
+
+        const candidates = [
+            runtimeApp?.isDirty,
+            runtimeApp?.dirty,
+            runtimeApp?.graph?.isDirty,
+            runtimeApp?.graph?.dirty,
+            runtimeApp?.graph?.is_modified,
+            runtimeApp?.graph?.modified,
+            runtimeApp?.graph?.has_changed,
+            runtimeApp?.graph?.changed,
+        ];
+        for (const candidate of candidates) {
+            if (typeof candidate === "boolean") return candidate;
+            if (typeof candidate === "number") return candidate !== 0;
+            if (typeof candidate === "function") {
+                try {
+                    const value = candidate.call(runtimeApp?.graph || runtimeApp);
+                    if (typeof value === "boolean") return value;
+                    if (typeof value === "number") return value !== 0;
+                } catch (e) {
+                    console.debug?.(e);
+                }
+            }
+        }
+    } catch (e) {
+        console.debug?.(e);
+    }
+    return null;
+}
+
 export async function queueHostPrompt(
     options: {
         app?: any;
@@ -1095,6 +1179,9 @@ export const hostAdapter = {
     refreshHostCanvasGraph,
     notifyHostNodeGraphChanged,
     importWorkflowIntoHostCanvas,
+    importWorkflowPreferHostTab,
+    isHostWorkflowDirty,
+    serializeCurrentHostWorkflow,
     addNodeToHostGraph,
     focusHostCanvasNode,
     centerHostCanvasNodeById,

@@ -1,10 +1,14 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { drawWorkflowMinimap, synthesizeWorkflowFromPromptGraph } from "../../../../components/sidebar/utils/minimap.js";
+import { getWorkflowContent, listWorkflowThumbnailCandidates, moveWorkflow, setWorkflowThumbnail } from "../../../../api/client.js";
 import { loadMajoorSettings, saveMajoorSettings } from "../../../../app/settings.js";
 import { MINIMAP_LEGACY_SETTINGS_KEY } from "../../../../app/settingsStore.js";
 import { t } from "../../../../app/i18n.js";
+import { comfyToast } from "../../../../app/toast.js";
 import { centerGraphCanvasOnWorldPoint } from "../../../../app/hostAdapter.js";
+import { floatingViewerManager } from "../../../../features/viewer/floatingViewerManager.js";
+import { openWorkflowAssetPicker } from "../../../../features/workflows/workflowPickerState.js";
 
 const props = defineProps({
     asset: { type: Object, required: true },
@@ -39,6 +43,10 @@ const SIZE_OPTIONS = Object.freeze([
 ]);
 
 const canvasRef = ref(null);
+const categoryDraft = ref("");
+const savingCategory = ref(false);
+const loadingWorkflowPayload = ref(false);
+const lazyWorkflowPayload = ref(null);
 const showTools = ref(false);
 const rawJsonOpen = ref(false);
 const minimapSettings = ref(loadWorkflowMinimapSettings());
@@ -189,15 +197,110 @@ function persistWorkflowMinimapSettings(nextSettings) {
 }
 
 const workflow = computed(() => {
-    const rawWorkflow = coerceWorkflow(props.asset);
-    const promptGraph = coercePromptGraph(props.asset);
+    const rawWorkflow = coerceWorkflow(props.asset) || coerceWorkflow(lazyWorkflowPayload.value);
+    const promptGraph = coercePromptGraph(props.asset) || coercePromptGraph(lazyWorkflowPayload.value);
     if (!rawWorkflow && !promptGraph) return null;
     return rawWorkflow || synthesizeWorkflowFromPromptGraph(promptGraph);
 });
 
+const workflowFilepath = computed(() =>
+    String(props.asset?.filepath || props.asset?.path || props.asset?.file_info?.filepath || "").trim(),
+);
+
+const workflowTitle = computed(() =>
+    String(props.asset?.display_name || props.asset?.name || props.asset?.filename || props.asset?.title || "Workflow").trim(),
+);
+
+const taskLabel = computed(() => String(props.asset?.task || props.asset?.workflow_task || "").trim());
+const modelFamilyLabel = computed(() => String(props.asset?.model_family || props.asset?.workflow_model_family || "").trim());
+const providerLabel = computed(() => String(props.asset?.provider || props.asset?.workflow_provider || "").trim());
+const runsOnLabel = computed(() => String(props.asset?.runs_on || props.asset?.runsOn || "").trim().toLowerCase());
+const runtimeLabel = computed(() => {
+    const runsOn = runsOnLabel.value;
+    const provider = providerLabel.value;
+    if (runsOn === "api" && provider) return `API · ${provider}`;
+    if (runsOn) return provider && provider.toLowerCase() !== runsOn ? `${runsOn} · ${provider}` : runsOn;
+    return provider;
+});
+const notesLabel = computed(() => String(props.asset?.notes || "").trim());
+const detectedSummary = computed(() =>
+    [
+        props.asset?.detected_task ? `detected: ${props.asset.detected_task}` : "",
+        props.asset?.detected_model_family ? props.asset.detected_model_family : "",
+        props.asset?.detected_provider ? props.asset.detected_provider : "",
+    ].filter(Boolean).join(" · "),
+);
+const missingNodes = computed(() => normalizeStringList(props.asset?.missing_nodes || props.asset?.missingNodes));
+const missingModels = computed(() => normalizeStringList(props.asset?.missing_models || props.asset?.missingModels));
+const usageLabel = computed(() => {
+    const count = Number(props.asset?.usage_count || props.asset?.usageCount || 0);
+    if (!Number.isFinite(count) || count <= 0) return "";
+    return `${Math.floor(count)} use${count === 1 ? "" : "s"}`;
+});
+const modifiedLabel = computed(() => formatUnixDate(props.asset?.mtime || props.asset?.modified_at || props.asset?.updated_at));
+
+function normalizeStringList(value) {
+    if (Array.isArray(value)) return value.map((item) => String(item || "").trim()).filter(Boolean);
+    if (typeof value === "string") {
+        const text = value.trim();
+        if (!text) return [];
+        try {
+            const parsed = JSON.parse(text);
+            if (Array.isArray(parsed)) return normalizeStringList(parsed);
+        } catch {
+            return text.split(/[,\n]/).map((item) => item.trim()).filter(Boolean);
+        }
+    }
+    return [];
+}
+
+function formatUnixDate(value) {
+    const n = Number(value);
+    if (!Number.isFinite(n) || n <= 0) return "";
+    const ms = n > 10_000_000_000 ? n : n * 1000;
+    try {
+        return new Date(ms).toLocaleString();
+    } catch {
+        return "";
+    }
+}
+
+async function ensureWorkflowPayload() {
+    if (workflow.value) return;
+    const filepath = workflowFilepath.value;
+    if (!filepath) return;
+    if (loadingWorkflowPayload.value) return;
+
+    loadingWorkflowPayload.value = true;
+    try {
+        const result = await getWorkflowContent(filepath, { timeoutMs: 25_000 });
+        if (!result?.ok) return;
+        const workflowFromApi = result?.data?.workflow || result?.workflow || null;
+        const promptFromApi = result?.data?.prompt || result?.prompt || null;
+        if (!workflowFromApi && !promptFromApi) return;
+        lazyWorkflowPayload.value = {
+            workflow: workflowFromApi,
+            prompt: promptFromApi,
+        };
+    } catch (e) {
+        console.debug?.(e);
+    } finally {
+        loadingWorkflowPayload.value = false;
+    }
+}
+
 const statusLabel = computed(() => (props.asset?.has_generation_data ? "Complete" : "Partial"));
 const rawWorkflowJson = computed(() =>
     workflow.value ? JSON.stringify(workflow.value, null, 2) : "",
+);
+
+const currentCategory = computed(() => {
+    const raw = String(props.asset?.category || props.asset?.subfolder || props.asset?.folder || "").trim();
+    return raw.replace(/^\/+|\/+$/g, "");
+});
+
+const categorySegments = computed(() =>
+    currentCategory.value ? currentCategory.value.split(/[\\/]+/).filter(Boolean) : [],
 );
 
 function workflowNodeLabel(node, index) {
@@ -214,6 +317,96 @@ function workflowNodeLabel(node, index) {
 
 function workflowNodeType(node) {
     return String(node?.type || node?.class_type || node?.name || "").trim();
+}
+
+function syncCategoryDraft() {
+    categoryDraft.value = currentCategory.value;
+}
+
+async function saveWorkflowCategory() {
+    const filepath = String(props.asset?.filepath || props.asset?.path || props.asset?.file_info?.filepath || "").trim();
+    if (!filepath) {
+        comfyToast(t("toast.workflowMissingPath", "Workflow file path is missing."), "error");
+        return;
+    }
+    const nextCategory = String(categoryDraft.value || "").trim();
+    if (nextCategory === currentCategory.value) return;
+
+    savingCategory.value = true;
+    try {
+        const result = await moveWorkflow({ filepath, category: nextCategory }, { timeoutMs: 30_000 });
+        if (!result?.ok) {
+            comfyToast(result?.error || t("toast.workflowMoveFailed", "Failed to move workflow."), "error");
+            return;
+        }
+        categoryDraft.value = String(result?.data?.workflow?.category || nextCategory || "").trim();
+        comfyToast(t("toast.workflowCategoryUpdated", "Workflow category updated"), "success", 1800);
+    } catch (error) {
+        comfyToast(t("toast.workflowMoveFailed", "Failed to move workflow."), "error");
+    } finally {
+        savingCategory.value = false;
+    }
+}
+
+async function setWorkflowThumbnailFromLinkedAsset() {
+    const filepath = workflowFilepath.value;
+    if (!filepath) {
+        comfyToast(t("toast.workflowMissingPath", "Workflow file path is missing."), "error");
+        return;
+    }
+
+    const candidatesRes = await listWorkflowThumbnailCandidates({ filepath, limit: 12 }, { timeoutMs: 15_000 });
+    if (!candidatesRes?.ok) {
+        comfyToast(candidatesRes?.error || t("toast.workflowLoadFailed", "Failed to load workflow."), "error");
+        return;
+    }
+
+    const candidates = Array.isArray(candidatesRes.data) ? candidatesRes.data : [];
+    if (!candidates.length) {
+        comfyToast(
+            t("toast.workflowThumbnailNoCandidates", "No linked outputs are available for this workflow yet."),
+            "warning",
+            2600,
+        );
+        return;
+    }
+
+    const selectedCandidate = await openWorkflowAssetPicker({
+        title: t("ctx.setWorkflowThumbnail", "Set workflow thumbnail"),
+        workflow: props.asset,
+        items: candidates,
+    });
+    if (!selectedCandidate?.filepath) return;
+
+    const result = await setWorkflowThumbnail(
+        { filepath, source_filepath: selectedCandidate.filepath },
+        { timeoutMs: 30_000 },
+    );
+    if (!result?.ok) {
+        comfyToast(result?.error || t("toast.workflowSaveFailed", "Failed to save workflow."), "error");
+        return;
+    }
+
+    comfyToast(t("toast.workflowUpdated", "Workflow updated"), "success", 1800);
+    window?.dispatchEvent?.(new CustomEvent("mjr:reload-grid", { detail: { reason: "workflow-thumbnail-sidebar" } }));
+}
+
+async function inspectWorkflow() {
+    await ensureWorkflowPayload();
+    if (!workflow.value) {
+        comfyToast(t("toast.workflowLoadFailed", "Failed to load workflow."), "error");
+        return;
+    }
+    try {
+        await floatingViewerManager.openAssets({
+            assets: [{ ...props.asset, workflow: workflow.value, Workflow: workflow.value }],
+            index: 0,
+            mode: "graph",
+        });
+    } catch (e) {
+        console.debug?.(e);
+        comfyToast(t("toast.workflowLoadFailed", "Failed to load workflow."), "error");
+    }
 }
 
 const workflowTreeNodes = computed(() => {
@@ -472,6 +665,8 @@ onMounted(() => {
         resizeObserver = new ResizeObserver(() => renderCanvas());
         resizeObserver.observe(canvasRef.value);
     }
+    syncCategoryDraft();
+    ensureWorkflowPayload();
     renderCanvas();
 });
 
@@ -479,6 +674,19 @@ watch(workflow, () => {
     resetMinimapView();
     renderCanvas();
 }, { flush: "post" });
+
+watch(
+    workflowFilepath,
+    () => {
+        lazyWorkflowPayload.value = null;
+        ensureWorkflowPayload();
+    },
+    { immediate: true },
+);
+
+watch(currentCategory, () => {
+    syncCategoryDraft();
+});
 
 watch(minimapSettings, () => {
     renderCanvas();
@@ -511,6 +719,19 @@ onBeforeUnmount(() => {
             ComfyUI Workflow
         </div>
 
+        <div style="margin-bottom:12px">
+            <div style="font-size:16px;font-weight:800;color:rgba(255,255,255,0.94);line-height:1.25;overflow:hidden;text-overflow:ellipsis">
+                {{ workflowTitle }}
+            </div>
+            <div
+                v-if="workflowFilepath"
+                style="font-size:11px;color:rgba(255,255,255,0.48);margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
+                :title="workflowFilepath"
+            >
+                {{ workflowFilepath }}
+            </div>
+        </div>
+
         <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px">
             <div
                 style="padding:4px 9px;border-radius:999px;background:rgba(33,150,243,0.14);border:1px solid rgba(33,150,243,0.30);font-size:11px;font-weight:700;color:#90CAF9;text-transform:uppercase;letter-spacing:0.4px"
@@ -523,6 +744,126 @@ onBeforeUnmount(() => {
             >
                 {{ workflowStats.source }}
             </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(2, minmax(0, 1fr));gap:8px;margin-bottom:12px">
+            <div
+                v-if="taskLabel"
+                style="padding:8px 10px;border-radius:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.10)"
+            >
+                <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.55);text-transform:uppercase;letter-spacing:0.4px">Task</div>
+                <div style="font-size:13px;font-weight:750;color:rgba(255,255,255,0.92);margin-top:3px">{{ taskLabel }}</div>
+            </div>
+            <div
+                v-if="modelFamilyLabel"
+                style="padding:8px 10px;border-radius:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.10)"
+            >
+                <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.55);text-transform:uppercase;letter-spacing:0.4px">Model</div>
+                <div style="font-size:13px;font-weight:750;color:rgba(255,255,255,0.92);margin-top:3px">{{ modelFamilyLabel }}</div>
+            </div>
+            <div
+                v-if="runtimeLabel"
+                style="padding:8px 10px;border-radius:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.10)"
+            >
+                <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.55);text-transform:uppercase;letter-spacing:0.4px">Runs on</div>
+                <div style="font-size:13px;font-weight:750;color:rgba(255,255,255,0.92);margin-top:3px">{{ runtimeLabel }}</div>
+            </div>
+            <div
+                v-if="usageLabel || modifiedLabel"
+                style="padding:8px 10px;border-radius:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.10)"
+            >
+                <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.55);text-transform:uppercase;letter-spacing:0.4px">Library</div>
+                <div style="font-size:12px;font-weight:650;color:rgba(255,255,255,0.84);margin-top:3px">{{ usageLabel || modifiedLabel }}</div>
+                <div
+                    v-if="usageLabel && modifiedLabel"
+                    style="font-size:11px;color:rgba(255,255,255,0.54);margin-top:2px"
+                >
+                    {{ modifiedLabel }}
+                </div>
+            </div>
+        </div>
+
+        <div
+            v-if="missingNodes.length || missingModels.length"
+            style="margin-bottom:12px;padding:10px;border-radius:10px;background:rgba(244,67,54,0.08);border:1px solid rgba(244,67,54,0.25)"
+        >
+            <div style="font-size:10px;font-weight:800;color:#ef9a9a;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px">Missing dependencies</div>
+            <div
+                v-if="missingNodes.length"
+                :style="{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: '5px',
+                    marginBottom: missingModels.length ? '7px' : '0',
+                }"
+            >
+                <span
+                    v-for="item in missingNodes"
+                    :key="`node-${item}`"
+                    style="padding:3px 7px;border-radius:999px;background:rgba(244,67,54,0.16);font-size:10px;font-weight:700;color:#ffcdd2"
+                >
+                    {{ item }}
+                </span>
+            </div>
+            <div
+                v-if="missingModels.length"
+                style="display:flex;flex-wrap:wrap;gap:5px"
+            >
+                <span
+                    v-for="item in missingModels"
+                    :key="`model-${item}`"
+                    style="padding:3px 7px;border-radius:999px;background:rgba(255,152,0,0.16);font-size:10px;font-weight:700;color:#ffe0b2"
+                >
+                    {{ item }}
+                </span>
+            </div>
+        </div>
+
+        <div
+            v-if="notesLabel || detectedSummary"
+            style="margin-bottom:12px;padding:10px;border-radius:10px;background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.10)"
+        >
+            <div
+                v-if="notesLabel"
+                style="font-size:12px;line-height:1.45;color:rgba(255,255,255,0.82);white-space:pre-wrap"
+            >
+                {{ notesLabel }}
+            </div>
+            <div
+                v-if="detectedSummary"
+                :style="{
+                    fontSize: '11px',
+                    color: 'rgba(255,255,255,0.48)',
+                    marginTop: notesLabel ? '7px' : '0',
+                }"
+            >
+                {{ detectedSummary }}
+            </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(2, minmax(0, 1fr));gap:8px;margin-bottom:12px">
+            <MButton
+                type="button"
+                severity="secondary"
+                text
+                rounded
+                style="height:34px;border-radius:9px;border:1px solid rgba(255,255,255,0.12);background:rgba(33,150,243,0.14);color:rgba(255,255,255,0.92);font-size:12px;font-weight:750;display:inline-flex;align-items:center;justify-content:center;gap:7px"
+                @click="setWorkflowThumbnailFromLinkedAsset"
+            >
+                <i class="pi pi-image" />
+                <span>{{ t("ctx.setWorkflowThumbnail", "Set workflow thumbnail") }}</span>
+            </MButton>
+            <MButton
+                type="button"
+                severity="secondary"
+                text
+                rounded
+                style="height:34px;border-radius:9px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.92);font-size:12px;font-weight:750;display:inline-flex;align-items:center;justify-content:center;gap:7px"
+                @click="inspectWorkflow"
+            >
+                <i class="pi pi-search" />
+                <span>{{ t("ctx.inspect", "Inspect") }}</span>
+            </MButton>
         </div>
 
         <div
@@ -539,6 +880,58 @@ onBeforeUnmount(() => {
             <div style="padding:8px 10px;border-radius:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.10)">
                 <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.55);text-transform:uppercase;letter-spacing:0.4px">Groups</div>
                 <div style="font-size:18px;font-weight:700;color:rgba(255,255,255,0.94);margin-top:2px">{{ workflowStats.groups }}</div>
+            </div>
+        </div>
+
+        <div style="margin-bottom:12px;padding:10px;border-radius:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.10)">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px">
+                <div>
+                    <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.55);text-transform:uppercase;letter-spacing:0.4px">Category</div>
+                    <div style="font-size:12px;color:rgba(255,255,255,0.8);margin-top:2px">
+                        {{ currentCategory || 'Root' }}
+                    </div>
+                </div>
+                <div
+                    v-if="categorySegments.length"
+                    style="display:flex;flex-wrap:wrap;gap:4px;justify-content:flex-end"
+                >
+                    <span
+                        v-for="segment in categorySegments"
+                        :key="segment"
+                        style="padding:3px 7px;border-radius:999px;background:rgba(33,150,243,0.12);border:1px solid rgba(33,150,243,0.22);font-size:10px;font-weight:700;color:#90CAF9;text-transform:uppercase;letter-spacing:0.3px"
+                    >
+                        {{ segment }}
+                    </span>
+                </div>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center">
+                <input
+                    v-model="categoryDraft"
+                    type="text"
+                    :placeholder="t('dialog.workflowCategory', 'Workflow category')"
+                    style="flex:1;min-width:0;padding:9px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.12);background:rgba(0,0,0,0.22);color:rgba(255,255,255,0.92);font-size:12px"
+                />
+                <MButton
+                    type="button"
+                    severity="secondary"
+                    text
+                    rounded
+                    :disabled="savingCategory"
+                    :style="{
+                        padding: '8px 12px',
+                        borderRadius: '8px',
+                        border: '1px solid rgba(255,255,255,0.12)',
+                        background: savingCategory ? 'rgba(255,255,255,0.06)' : 'rgba(33,150,243,0.16)',
+                        color: 'rgba(255,255,255,0.92)',
+                        cursor: savingCategory ? 'wait' : 'pointer',
+                        fontSize: '12px',
+                        fontWeight: '700',
+                        whiteSpace: 'nowrap',
+                    }"
+                    @click="saveWorkflowCategory"
+                >
+                    {{ savingCategory ? 'Saving...' : 'Move' }}
+                </MButton>
             </div>
         </div>
 

@@ -5,6 +5,15 @@ import { mount } from "@vue/test-utils";
 
 const drawWorkflowMinimap = vi.fn();
 const synthesizeWorkflowFromPromptGraph = vi.fn(() => null);
+const moveWorkflow = vi.fn(async () => ({
+    ok: true,
+    data: {
+        workflow: {
+            category: "art/flux",
+        },
+    },
+}));
+const comfyToast = vi.fn();
 
 let settingsState;
 
@@ -26,6 +35,14 @@ vi.mock("../app/settingsStore.js", () => ({
 
 vi.mock("../app/i18n.js", () => ({
     t: (_key, fallback) => fallback,
+}));
+
+vi.mock("../api/client.js", () => ({
+    moveWorkflow,
+}));
+
+vi.mock("../app/toast.js", () => ({
+    comfyToast,
 }));
 
 const MButtonStub = {
@@ -90,6 +107,16 @@ describe("SidebarWorkflowSection", () => {
             disconnect() {}
         };
         globalThis.PointerEvent = globalThis.PointerEvent || MouseEvent;
+        moveWorkflow.mockReset();
+        moveWorkflow.mockImplementation(async () => ({
+            ok: true,
+            data: {
+                workflow: {
+                    category: "art/flux",
+                },
+            },
+        }));
+        comfyToast.mockReset();
         window.app = {
             canvas: {
                 canvas: { width: 1000, height: 800, clientWidth: 1000, clientHeight: 800 },
@@ -209,6 +236,48 @@ describe("SidebarWorkflowSection", () => {
 
         const lastCall = drawWorkflowMinimap.mock.calls.at(-1);
         expect(Number(lastCall?.[2]?.view?.zoom)).toBeGreaterThan(1);
+
+        wrapper.unmount();
+    });
+
+    it("edits the workflow category inline", async () => {
+        const { default: SidebarWorkflowSection } =
+            await import("../vue/components/panel/sidebar/SidebarWorkflowSection.vue");
+
+        const wrapper = mount(SidebarWorkflowSection, {
+            props: {
+                asset: {
+                    filepath: "F:/workflows/demo.json",
+                    category: "drafts",
+                    has_generation_data: true,
+                    workflow: {
+                        nodes: [{ id: 1, pos: [0, 0], size: [180, 80], type: "KSampler" }],
+                        links: [],
+                        groups: [],
+                        extra: {},
+                    },
+                },
+            },
+            attachTo: document.body,
+            global: {
+                stubs: {
+                    MButton: MButtonStub,
+                    MTree: MTreeStub,
+                },
+            },
+        });
+
+        expect(wrapper.text()).toContain("drafts");
+
+        const input = wrapper.find('input[placeholder="Workflow category"]');
+        await input.setValue("art/flux");
+        await wrapper.findAll("button").find((node) => node.text() === "Move").trigger("click");
+
+        expect(moveWorkflow).toHaveBeenCalledWith(
+            { filepath: "F:/workflows/demo.json", category: "art/flux" },
+            { timeoutMs: 30000 },
+        );
+        expect(comfyToast).toHaveBeenCalled();
 
         wrapper.unmount();
     });

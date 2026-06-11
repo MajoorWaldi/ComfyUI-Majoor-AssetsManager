@@ -50,7 +50,7 @@ Use these docs for moving assets and workflow information back into ComfyUI.
 | Document | Description |
 | --- | --- |
 | **[DRAG_DROP.md](DRAG_DROP.md)** | Load assets onto nodes or canvas, stage files to input |
-| **[CUSTOM_NODES.md](CUSTOM_NODES.md)** | Majoor Save Image and Majoor Save Video node reference |
+| **[CUSTOM_NODES.md](CUSTOM_NODES.md)** | Majoor Save Image, Majoor Save Video, and Majoor GenInfo Override node reference |
 | **[SHORTCUTS.md](SHORTCUTS.md)** | Quick gestures such as S+Drag and L+Drop |
 
 ## Advanced Features

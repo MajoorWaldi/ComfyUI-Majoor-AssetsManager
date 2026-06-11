@@ -56,7 +56,8 @@ export const isManagedPayload = (payload: any) =>
     isImagePayload(payload) ||
     isVideoPayload(payload) ||
     isAudioPayload(payload) ||
-    isModel3DPayload(payload);
+    isModel3DPayload(payload) ||
+    String(payload?.kind || "").toLowerCase() === "workflow";
 
 const _EXT_TO_MIME = {
     mp4: "video/mp4",

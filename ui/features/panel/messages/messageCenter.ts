@@ -13,6 +13,19 @@ let _loaded = false;
 let _messages: any[] = [];
 const BUILTIN_PANEL_MESSAGES = Object.freeze([
     {
+        id: "whats-new-2026-06-08-global-release-update",
+        title: "What's New - Global Update",
+        emoji: "Info",
+        category: "Release",
+        categoryKey: "msg.category.release",
+        level: "success",
+        createdAt: Date.parse("2026-06-08T10:00:00Z"),
+        body: "Global update: Graph Map node UI and widget parsing were improved, GenInfo metadata parsing is more reliable, drag-and-drop behavior was refined, and quick media filter buttons now let you instantly toggle Images, Videos, Audio, and 3D. A new Majoor GenInfo Override node was added for custom/manual GenInfo injection through Majoor Save nodes. Frontend refactoring to TypeScript continues to align with ComfyUI, alongside broader integration improvements, easier AI settings access from panel/MFV, and multiple bug fixes.",
+        actionLabel: "Changelog",
+        actionLabelKey: "label.changelog",
+        actionUrl: "CHANGELOG.md",
+    },
+    {
         id: "whats-new-2026-05-17-dnd-graph-map-settings",
         title: "New Version 2.4.8 - DnD, Graph Map & Settings",
         titleKey: "msg.whatsNew.title.dndGraphMapSettings",
