@@ -92,6 +92,22 @@ async def _audit_workflow_write(
         logger.debug("Workflow audit write failed", exc_info=True)
 
 
+def _resolve_path_under_root(user_path: Path, safe_root: Path) -> Result[Path]:
+    if user_path.is_absolute():
+        return Result.Err("FORBIDDEN", "Absolute paths are not allowed")
+    try:
+        root_resolved = safe_root.resolve()
+        resolved = (root_resolved / user_path).resolve(strict=True)
+    except FileNotFoundError:
+        return Result.Err("NOT_FOUND", "Thumbnail not found")
+    except Exception:
+        return Result.Err("FORBIDDEN", "Thumbnail path is not allowed")
+
+    if not resolved.is_relative_to(root_resolved):
+        return Result.Err("FORBIDDEN", "Thumbnail path is not allowed")
+    return Result.Ok(resolved)
+
+
 def register_workflow_routes(routes: web.RouteTableDef) -> None:
     @routes.get("/mjr/am/workflows/content")
     async def workflow_content(request: web.Request):
@@ -335,22 +351,18 @@ def register_workflow_routes(routes: web.RouteTableDef) -> None:
         if not filepath:
             return _json_response(Result.Err("INVALID_INPUT", "Missing filepath"))
         candidate = Path(filepath)
-        if candidate.is_absolute():
-            return _json_response(Result.Err("FORBIDDEN", "Absolute paths are not allowed"))
         if not is_workflow_thumbnail_path(candidate):
             return _json_response(Result.Err("FORBIDDEN", "Thumbnail path is not allowed"))
+        safe_path_res = _resolve_path_under_root(candidate, Path.cwd())
+        if not safe_path_res.ok:
+            return _json_response(safe_path_res)
+        resolved = safe_path_res.data
         try:
-            resolved = candidate.resolve(strict=True)
-            safe_root = Path.cwd().resolve()
-            if not resolved.is_relative_to(safe_root):
-                return _json_response(Result.Err("FORBIDDEN", "Thumbnail path is not allowed"))
             resp = web.FileResponse(path=str(resolved))
             resp.headers["Content-Type"] = _guess_content_type_for_file(resolved)
             resp.headers["Cache-Control"] = "no-cache"
             resp.headers["X-Content-Type-Options"] = "nosniff"
             return resp
-        except FileNotFoundError:
-            return _json_response(Result.Err("NOT_FOUND", "Thumbnail not found"))
         except Exception:
             return _json_response(Result.Err("VIEW_FAILED", "Failed to serve thumbnail"))
 
