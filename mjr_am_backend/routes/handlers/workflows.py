@@ -129,20 +129,22 @@ async def _audit_workflow_write(
         logger.debug("Workflow audit write failed", exc_info=True)
 
 
-def _resolve_path_under_root(user_path: Path, safe_root: Path) -> Result[Path]:
-    if user_path.is_absolute():
-        return Result.Err("FORBIDDEN", "Absolute paths are not allowed")
+def _resolve_path_under_roots(user_path: Path, safe_roots: list[Path]) -> Result[Path]:
     try:
-        root_resolved = safe_root.resolve()
-        resolved = (root_resolved / user_path).resolve(strict=True)
+        resolved = user_path.resolve(strict=True)
     except FileNotFoundError:
         return Result.Err("NOT_FOUND", "Thumbnail not found")
     except Exception:
         return Result.Err("FORBIDDEN", "Thumbnail path is not allowed")
 
-    if not resolved.is_relative_to(root_resolved):
-        return Result.Err("FORBIDDEN", "Thumbnail path is not allowed")
-    return Result.Ok(resolved)
+    for root in safe_roots:
+        try:
+            root_resolved = root.resolve(strict=False)
+        except Exception:
+            continue
+        if resolved == root_resolved or resolved.is_relative_to(root_resolved):
+            return Result.Ok(resolved)
+    return Result.Err("FORBIDDEN", "Thumbnail path is not allowed")
 
 
 def register_workflow_routes(routes: web.RouteTableDef) -> None:
@@ -414,7 +416,7 @@ def register_workflow_routes(routes: web.RouteTableDef) -> None:
         candidate = Path(filepath)
         if not is_workflow_thumbnail_path(candidate):
             return _json_response(Result.Err("FORBIDDEN", "Thumbnail path is not allowed"))
-        safe_path_res = _resolve_path_under_root(candidate, Path.cwd())
+        safe_path_res = _resolve_path_under_roots(candidate, workflow_roots())
         if not safe_path_res.ok:
             return _json_response(safe_path_res)
         resolved = safe_path_res.data

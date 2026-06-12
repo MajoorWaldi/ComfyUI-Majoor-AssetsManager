@@ -455,20 +455,47 @@ def _apply_workflow_library_updates(
 ) -> None:
     if not updates:
         return
-    allowed = {
-        "favorite": int(bool(updates.get("favorite"))) if "favorite" in updates else None,
-        "usage_count": max(0, _to_int(updates.get("usage_count"), 0)) if "usage_count" in updates else None,
-        "last_loaded_at": max(0, _to_int(updates.get("last_loaded_at"), 0)) if "last_loaded_at" in updates else None,
-        "tags_json": json.dumps(_as_str_list(updates.get("tags")), ensure_ascii=False) if "tags" in updates else None,
-        "user_task": str(updates.get("task") or "").strip() if "task" in updates else None,
-        "user_model_family": str(updates.get("model_family") or "").strip() if "model_family" in updates else None,
-        "user_provider": str(updates.get("provider") or "").strip() if "provider" in updates else None,
-        "user_runs_on": str(updates.get("runs_on") or "").strip().lower() if "runs_on" in updates else None,
-        "notes": str(updates.get("notes") or "").strip() if "notes" in updates else None,
-    }
-    for column, value in allowed.items():
+    allowed = (
+        (
+            "UPDATE workflows SET favorite = ?, updated_at = ? WHERE filepath = ?",
+            int(bool(updates.get("favorite"))) if "favorite" in updates else None,
+        ),
+        (
+            "UPDATE workflows SET usage_count = ?, updated_at = ? WHERE filepath = ?",
+            max(0, _to_int(updates.get("usage_count"), 0)) if "usage_count" in updates else None,
+        ),
+        (
+            "UPDATE workflows SET last_loaded_at = ?, updated_at = ? WHERE filepath = ?",
+            max(0, _to_int(updates.get("last_loaded_at"), 0)) if "last_loaded_at" in updates else None,
+        ),
+        (
+            "UPDATE workflows SET tags_json = ?, updated_at = ? WHERE filepath = ?",
+            json.dumps(_as_str_list(updates.get("tags")), ensure_ascii=False) if "tags" in updates else None,
+        ),
+        (
+            "UPDATE workflows SET user_task = ?, updated_at = ? WHERE filepath = ?",
+            str(updates.get("task") or "").strip() if "task" in updates else None,
+        ),
+        (
+            "UPDATE workflows SET user_model_family = ?, updated_at = ? WHERE filepath = ?",
+            str(updates.get("model_family") or "").strip() if "model_family" in updates else None,
+        ),
+        (
+            "UPDATE workflows SET user_provider = ?, updated_at = ? WHERE filepath = ?",
+            str(updates.get("provider") or "").strip() if "provider" in updates else None,
+        ),
+        (
+            "UPDATE workflows SET user_runs_on = ?, updated_at = ? WHERE filepath = ?",
+            str(updates.get("runs_on") or "").strip().lower() if "runs_on" in updates else None,
+        ),
+        (
+            "UPDATE workflows SET notes = ?, updated_at = ? WHERE filepath = ?",
+            str(updates.get("notes") or "").strip() if "notes" in updates else None,
+        ),
+    )
+    for statement, value in allowed:
         if value is not None:
-            conn.execute(f"UPDATE workflows SET {column} = ?, updated_at = ? WHERE filepath = ?", (value, now, filepath))
+            conn.execute(statement, (value, now, filepath))
 
 
 def _workflow_library_row_meta(row: tuple[Any, ...] | None) -> Result[dict[str, Any]]:
