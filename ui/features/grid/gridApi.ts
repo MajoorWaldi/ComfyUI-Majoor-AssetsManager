@@ -13,7 +13,9 @@ function ensureGridSettingsStyles() {
             flex-direction: column;
         }
         .mjr-grid .mjr-thumb {
-            flex: 1;
+            flex: 0 0 auto;
+            width: 100%;
+            aspect-ratio: 1 / 1;
             min-height: 0;
             position: relative;
             overflow: hidden;

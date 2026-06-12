@@ -2567,6 +2567,7 @@
 }
 
 .mjr-assets-manager .mjr-thumb {
+    flex: 0 0 auto;
     width: 100%;
     aspect-ratio: 1 / 1;
     background: color-mix(in srgb, var(--mjr-surface-0) 80%, transparent);
