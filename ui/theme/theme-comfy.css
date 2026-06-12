@@ -2130,7 +2130,9 @@
         0 0 20px color-mix(in srgb, var(--mjr-card-selection-color) 40%, transparent),
         0 10px 28px rgba(0, 0, 0, 0.28);
     border-radius: var(--mjr-r-lg);
-    transform: scale(0.92) !important;
+    /* scale(0.97) instead of 0.92: subtle inset feel without the aggressive
+       shrink that caused a visible blink on rapid selection changes. */
+    transform: scale(0.97) !important;
     z-index: 10;
     outline: 2px solid var(--mjr-card-selection-color);
 }
@@ -2142,7 +2144,7 @@
         0 0 20px color-mix(in srgb, var(--mjr-accent) 40%, transparent),
         0 10px 28px rgba(0, 0, 0, 0.28);
     border-radius: var(--mjr-r-lg);
-    transform: scale(0.92) !important;
+    transform: scale(0.97) !important;
     z-index: 10;
 }
 
@@ -2263,7 +2265,10 @@
     border: 1px solid rgba(255, 255, 255, 0.22);
     background: rgba(192, 198, 206, 0.2);
     overflow: hidden;
-    min-height: 146px;
+    /* min-height removed: Vue skeletonCardStyle sets an explicit height derived
+       from estimateRowHeight. A conflicting min-height caused skeleton cards to
+       be taller than the actual cards they replace, causing a layout jump when
+       assets first load. */
     box-shadow: 0 6px 18px rgba(0, 0, 0, 0.24);
 }
 
@@ -3402,6 +3407,21 @@
         transition: opacity 0ms;
         transform: none;
     }
+}
+
+/* --- Card details panel show/hide via grid container class ----------------
+   .mjr-show-details is toggled by applyGridSettingsClasses() when the
+   "Show metadata panel" setting changes.  Default = OFF → panel hidden.
+   Hiding here keeps actual row height = estimateRowHeight(metaHeight=0),
+   preventing the virtualizer from repositioning all rows on measure
+   (which was the root cause of the "reload impression" blink).
+   Match the bottom-feed pattern at .mjr-bottom-feed .mjr-card-info.
+   --------------------------------------------------------------------------- */
+.mjr-assets-manager .mjr-grid .mjr-card-info {
+    display: none;
+}
+.mjr-assets-manager .mjr-grid.mjr-show-details .mjr-card-info {
+    display: block;
 }
 
 .mjr-assets-manager .mjr-card-meta {
