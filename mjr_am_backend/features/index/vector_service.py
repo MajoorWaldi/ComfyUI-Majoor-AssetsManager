@@ -489,13 +489,13 @@ def _load_siglip_components(service: Any, hf_logging: Any, AutoModel: Any, AutoP
     try:
         service._patch_global_siglip_config_hidden_size()
         if verbose:
-            service._siglip_processor = AutoProcessor.from_pretrained(service._model_name, use_fast=False)  # nosec B615
-            service._siglip_model = AutoModel.from_pretrained(service._model_name)  # nosec B615
+            service._siglip_processor = AutoProcessor.from_pretrained(service._model_name, use_fast=False)
+            service._siglip_model = AutoModel.from_pretrained(service._model_name)
         else:
             with warnings.catch_warnings(), _suppress_stdout_only():
                 warnings.filterwarnings("ignore", message=r".*huggingface_hub.*cache-system uses symlinks.*")
-                service._siglip_processor = AutoProcessor.from_pretrained(service._model_name, use_fast=False)  # nosec B615
-                service._siglip_model = AutoModel.from_pretrained(service._model_name)  # nosec B615
+                service._siglip_processor = AutoProcessor.from_pretrained(service._model_name, use_fast=False)
+                service._siglip_model = AutoModel.from_pretrained(service._model_name)
 
         service._siglip_model = _move_model_to_device(service._siglip_model, service._device)
         try:
@@ -516,7 +516,7 @@ def _load_florence_processor(prompt_model_name: str, AutoProcessor: Any, *, use_
     kwargs: dict[str, Any] = {"trust_remote_code": True}
     if use_fast is not None:
         kwargs["use_fast"] = use_fast
-    return AutoProcessor.from_pretrained(prompt_model_name, **kwargs)  # nosec B615
+    return AutoProcessor.from_pretrained(prompt_model_name, **kwargs)
 
 
 _FLORENCE_GENERATION_COMPAT_DEFAULTS: dict[str, Any] = {
@@ -591,7 +591,7 @@ def _patch_florence_sdpa_support() -> None:
 def _load_florence_model_with_compat(prompt_model_name: str, AutoModelForCausalLM: Any) -> Any:
     _patch_florence_generation_config_compat()
     try:
-        model = AutoModelForCausalLM.from_pretrained(  # nosec B615
+        model = AutoModelForCausalLM.from_pretrained(
             prompt_model_name,
             trust_remote_code=True,
             attn_implementation="eager",
@@ -606,7 +606,7 @@ def _load_florence_model_with_compat(prompt_model_name: str, AutoModelForCausalL
             _patch_florence_generation_config_compat()
         else:
             raise
-        model = AutoModelForCausalLM.from_pretrained(  # nosec B615
+        model = AutoModelForCausalLM.from_pretrained(
             prompt_model_name,
             trust_remote_code=True,
             attn_implementation="eager",

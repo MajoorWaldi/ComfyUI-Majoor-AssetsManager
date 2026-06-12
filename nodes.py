@@ -31,6 +31,7 @@ import folder_paths  # type: ignore[import-untyped]
 import numpy as np
 import torch
 from comfy.cli_args import args  # type: ignore[import-untyped]
+from mjr_am_backend.video_ui import build_video_ui as _build_video_ui
 from PIL import Image
 from PIL.PngImagePlugin import PngInfo
 
@@ -1053,20 +1054,6 @@ def _save_animated(
         save_kwargs["lossless"] = False
     frames[0].save(out_path, format=fmt.upper(), **save_kwargs)
     return out_file
-
-
-def _build_video_ui(
-    video_file: str,
-    subfolder: str,
-    output_type: str,
-    preview_file: str | None = None,
-) -> dict[str, Any]:
-    """Return ComfyUI's native animated preview payload for saved videos."""
-    video_entry = {"filename": video_file, "subfolder": subfolder, "type": output_type}
-    ui: dict[str, Any] = {"images": [video_entry], "animated": (True,), "videos": [video_entry]}
-    if preview_file:
-        ui["preview_images"] = [{"filename": preview_file, "subfolder": subfolder, "type": output_type}]
-    return {"ui": ui}
 
 
 def _build_container_metadata(
