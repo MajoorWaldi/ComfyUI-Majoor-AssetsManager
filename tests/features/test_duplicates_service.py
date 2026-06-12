@@ -47,7 +47,8 @@ async def test_duplicates_alerts_and_merge_tags():
     assert alerts.data["exact_groups"] and alerts.data["similar_pairs"]
 
     merged = await svc.merge_tags_for_group(1, [2, 3, 0])
-    assert merged.ok and "a" in merged.data["tags"] and "b" in merged.data["tags"]
+    assert merged.ok and merged.data is not None
+    assert "a" in merged.data["tags"] and "b" in merged.data["tags"]  # type: ignore[index]
 
 
 @pytest.mark.asyncio
@@ -80,9 +81,10 @@ async def test_duplicates_background_analysis(monkeypatch, tmp_path: Path):
     await asyncio.sleep(0.05)
     st = await svc.get_status()
     assert st.ok
-    assert st.data["processed"] == 1
-    assert st.data["updated"] == 1
-    assert st.data["errors"] == 0
+    assert st.data is not None
+    assert st.data["processed"] == 1  # type: ignore[index]
+    assert st.data["updated"] == 1  # type: ignore[index]
+    assert st.data["errors"] == 0  # type: ignore[index]
     assert db.executed
 
 
