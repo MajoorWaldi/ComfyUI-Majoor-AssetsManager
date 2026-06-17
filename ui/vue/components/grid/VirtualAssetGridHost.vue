@@ -12,8 +12,6 @@ import {
 import { t } from "../../../app/i18n.js";
 import { comfyToast } from "../../../app/toast.js";
 import { comfyConfirm } from "../../../app/dialogs.js";
-import { requestViewerOpen } from "../../../features/viewer/viewerOpenRequest.js";
-import { floatingViewerManager } from "../../../features/viewer/floatingViewerManager.js";
 import { ensureStackGroupCard, ensureDupStackCard } from "../../../features/grid/StackGroupCards.js";
 import { setSelectedIdsDataset } from "../../../features/grid/GridSelectionManager.js";
 import { applyGridSettingsClasses, configureGridContainer } from "../../../features/grid/gridApi.js";
@@ -63,10 +61,29 @@ const settingsVersion = ref(0);
 const scrollVelocityRows = ref(0);
 const cardFilenameKeys = new WeakMap();
 let measureRaf = 0;
+let scrollVelocityRaf = 0;
+let scrollVelocityResetTimer = 0;
 let lastScrollSampleTop = 0;
 let lastScrollSampleAt = 0;
 const pendingStackMemberLoads = new Map();
 const STACK_GROUP_FETCH_LIMIT = 501;
+let viewerOpenRequestModulePromise = null;
+let floatingViewerManagerModulePromise = null;
+
+function loadViewerOpenRequestModule() {
+    if (!viewerOpenRequestModulePromise) {
+        viewerOpenRequestModulePromise = import("../../../features/viewer/viewerOpenRequest.js");
+    }
+    return viewerOpenRequestModulePromise;
+}
+
+function loadFloatingViewerManagerModule() {
+    if (!floatingViewerManagerModulePromise) {
+        floatingViewerManagerModulePromise = import("../../../features/viewer/floatingViewerManager.js");
+    }
+    return floatingViewerManagerModulePromise;
+}
+
 
 // ─── Stack service (provide/inject for AssetCardInner Vue buttons) ────────────
 
@@ -736,20 +753,54 @@ const rows = computed(() => {
 });
 
 function updateScrollVelocity(element) {
+    if (scrollVelocityRaf) return;
     try {
-        const now = typeof performance !== "undefined" && typeof performance.now === "function"
-            ? performance.now()
-            : Date.now();
-        const top = Number(element?.scrollTop || 0) || 0;
-        const dt = Math.max(16, now - Number(lastScrollSampleAt || now));
-        const dy = Math.abs(top - Number(lastScrollSampleTop || top));
-        const rowsPerFrame = (dy / Math.max(1, estimateRowHeight.value)) * (16 / dt);
-        scrollVelocityRows.value = Math.max(0, Math.min(20, rowsPerFrame));
-        lastScrollSampleTop = top;
-        lastScrollSampleAt = now;
+        scrollVelocityRaf = requestAnimationFrame(() => {
+            scrollVelocityRaf = 0;
+            try {
+                const now = typeof performance !== "undefined" && typeof performance.now === "function"
+                    ? performance.now()
+                    : Date.now();
+                const top = Number(element?.scrollTop || 0) || 0;
+                const dt = Math.max(16, now - Number(lastScrollSampleAt || now));
+                const dy = Math.abs(top - Number(lastScrollSampleTop || top));
+                const rowsPerFrame = (dy / Math.max(1, estimateRowHeight.value)) * (16 / dt);
+                scrollVelocityRows.value = Math.max(0, Math.min(20, rowsPerFrame));
+                lastScrollSampleTop = top;
+                lastScrollSampleAt = now;
+                if (scrollVelocityResetTimer) clearTimeout(scrollVelocityResetTimer);
+                scrollVelocityResetTimer = setTimeout(() => {
+                    scrollVelocityResetTimer = 0;
+                    scrollVelocityRows.value = 0;
+                }, 140);
+            } catch (e) {
+                console.debug?.(e);
+            }
+        });
     } catch (e) {
         console.debug?.(e);
+        scrollVelocityRaf = 0;
     }
+}
+
+function cancelScrollVelocityTracking() {
+    if (scrollVelocityRaf) {
+        try {
+            cancelAnimationFrame(scrollVelocityRaf);
+        } catch (e) {
+            console.debug?.(e);
+        }
+        scrollVelocityRaf = 0;
+    }
+    if (scrollVelocityResetTimer) {
+        try {
+            clearTimeout(scrollVelocityResetTimer);
+        } catch (e) {
+            console.debug?.(e);
+        }
+        scrollVelocityResetTimer = 0;
+    }
+    scrollVelocityRows.value = 0;
 }
 
 // Adaptive overscan: keep ~1 full viewport of rows buffered, plus extra rows
@@ -1180,12 +1231,15 @@ function handleCardClick(event, asset) {
     } catch (e) {
         console.debug?.(e);
     }
-    if (
-        isWorkflowScopeActive() &&
-        isWorkflowAssetType(asset) &&
-        floatingViewerManager.isGraphModeVisible?.()
-    ) {
-        void openWorkflowGraphInViewer(asset);
+    if (isWorkflowScopeActive() && isWorkflowAssetType(asset)) {
+        void loadFloatingViewerManagerModule()
+            .then((mod) => {
+                if (mod?.floatingViewerManager?.isGraphModeVisible?.()) {
+                    return openWorkflowGraphInViewer(asset);
+                }
+                return null;
+            })
+            .catch((e) => console.debug?.(e));
     }
 }
 
@@ -1216,7 +1270,7 @@ function handleCardPrimaryMouseDown(event, asset) {
     handleCardClick(event, asset);
 }
 
-function openAssetViewer(asset) {
+async function openAssetViewer(asset) {
     const mediaAssets = (Array.isArray(state.assets) ? state.assets : []).filter(
         (entry) => !isFolderAsset(entry),
     );
@@ -1224,6 +1278,7 @@ function openAssetViewer(asset) {
         (entry) => String(entry?.id || "") === String(asset?.id || ""),
     );
     if (!mediaAssets.length || mediaIndex < 0) return;
+    const { requestViewerOpen } = await loadViewerOpenRequestModule();
     requestViewerOpen({ assets: mediaAssets, index: mediaIndex });
 }
 
@@ -1278,6 +1333,7 @@ async function openWorkflowGraphInViewer(asset, { select = false } = {}) {
                 console.debug?.(e);
             }
         }
+        const { floatingViewerManager } = await loadFloatingViewerManagerModule();
         await floatingViewerManager.openAssets({
             assets: [inspectAsset],
             index: 0,
@@ -1413,7 +1469,7 @@ function handleCardDblclick(asset) {
         return;
     }
 
-    openAssetViewer(asset);
+    void openAssetViewer(asset);
 }
 
 let scrollCleanup = null;
@@ -1495,6 +1551,7 @@ function bindInfiniteScroll(element) {
         } catch (e) {
             console.debug?.(e);
         }
+        cancelScrollVelocityTracking();
     };
 }
 
@@ -1656,6 +1713,7 @@ onBeforeUnmount(() => {
         console.debug?.(e);
     }
     measureRaf = 0;
+    cancelScrollVelocityTracking();
     try {
         loader.dispose();
     } catch (e) {

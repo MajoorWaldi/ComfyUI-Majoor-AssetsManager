@@ -168,6 +168,23 @@ function getAdaptivePageLimit(baseLimit: any, emptyAppendBatches: any) {
     return Math.max(1, Math.min(APP_CONFIG.MAX_PAGE_SIZE, safeBaseLimit * multiplier));
 }
 
+function isConstrainedBrowserRuntime() {
+    try {
+        const nav: any = typeof navigator !== "undefined" ? navigator : null;
+        const deviceMemory = Number(nav?.deviceMemory || 0) || 0;
+        if (deviceMemory > 0 && deviceMemory <= 4) return true;
+        if (nav?.connection?.saveData === true) return true;
+    } catch (e) {
+        console.debug?.(e);
+    }
+    return false;
+}
+
+function shouldPrefetchNextPage() {
+    if (!APP_CONFIG.PREFETCH_NEXT_PAGE) return false;
+    return !isConstrainedBrowserRuntime();
+}
+
 function resetAssetCollectionsState(state: any, options: Record<string, any> = {}) {
     const assets = Array.isArray(state.assets) ? state.assets : [];
     if (options.rebuildFromVisible && assets.length) {
@@ -429,7 +446,7 @@ export function useGridLoader({
     }
 
     function scheduleNextPagePrefetch(requestId: any, delayMs = APP_CONFIG.PREFETCH_NEXT_PAGE_DELAY_MS) {
-        if (!APP_CONFIG.PREFETCH_NEXT_PAGE) {
+        if (!shouldPrefetchNextPage()) {
             return;
         }
         clearPrefetchTimer();
@@ -836,7 +853,7 @@ export function useGridLoader({
             // When the grid is empty (initial load or post-reattach) and the host
             // isn't measured yet, schedule a single retry so the first page loads
             // once the layout settles  -  prevents a permanent blank grid.
-            if (!state.assets.length && !state.loading && APP_CONFIG.PREFETCH_NEXT_PAGE) {
+            if (!state.assets.length && !state.loading && shouldPrefetchNextPage()) {
                 scheduleNextPagePrefetch(state.requestId, 400);
             }
             return { ok: true, skipped: true, hidden: true };
@@ -938,7 +955,7 @@ export function useGridLoader({
 
                 const emptyResult = pageResult.lastResult || pageResult.firstResult || pageResult;
                 mjrDbg(`[Grid LoadPage] fetched one page with no visible additions: offset=${state.offset}, fetched=${pageResult.count}, consumed=${emptyResult.advanced}, added=${emptyResult.added}, limit=${emptyResult.limit || baseLimit}, done=${state.done}, visibleCount=${state.assets.length}, total=${state.total}`);
-                if (!state.done && APP_CONFIG.PREFETCH_NEXT_PAGE) {
+                if (!state.done && shouldPrefetchNextPage()) {
                     scheduleNextPagePrefetch(
                         Number(state.requestId ?? 0) || 0,
                         Math.min(APP_CONFIG.PREFETCH_NEXT_PAGE_DELAY_MS ?? 700, 250),
@@ -1226,7 +1243,7 @@ export function useGridLoader({
 
         // Prefetch next page after the first render settles.
         if (
-            APP_CONFIG.PREFETCH_NEXT_PAGE &&
+            shouldPrefetchNextPage() &&
             result?.ok &&
             !result?.skipped &&
             !state.done &&

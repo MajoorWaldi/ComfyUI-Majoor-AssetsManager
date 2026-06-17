@@ -1,5 +1,5 @@
-import { t as e } from "./floatingViewerManager-j7Bfp7qr.js";
-import { q as t, r as n } from "./events-iWiZ-Zty.js";
+import { q as e, r as t } from "./events-iWiZ-Zty.js";
+import { t as n } from "./floatingViewerManager-D-EzvRCt.js";
 //#region ui/features/viewer/LiveStreamTracker.ts
 var r = !1, i = null, a = null, o = null, s = null, c = null, l = 0, u = 0, d = 400, f = new Set([
 	".png",
@@ -45,12 +45,12 @@ function _(e) {
 function v() {
 	return Date.now() - u <= d;
 }
-async function y(n) {
+async function y(t) {
 	let r = ++l;
 	try {
 		b();
-		let i = await t({
-			app: n,
+		let i = await e({
+			app: t,
 			timeoutMs: 8e3
 		});
 		if (r !== l) return;
@@ -58,20 +58,20 @@ async function y(n) {
 			console.debug("[Majoor] MFV: ComfyUI API not found - preview streaming disabled");
 			return;
 		}
-		s = i, o = (t) => {
+		s = i, o = (e) => {
 			try {
-				let { blob: n, nodeId: r, jobId: i } = t.detail || {};
-				if (!n || !(n instanceof Blob) || (u = Date.now(), c && i && i !== c)) return;
-				e.feedPreviewBlob(n, { sourceLabel: r ? `Node ${r}` : null });
+				let { blob: t, nodeId: r, jobId: i } = e.detail || {};
+				if (!t || !(t instanceof Blob) || (u = Date.now(), c && i && i !== c)) return;
+				n.feedPreviewBlob(t, { sourceLabel: r ? `Node ${r}` : null });
 			} catch (e) {
 				console.debug?.("[MFV] b_preview_with_metadata error", e);
 			}
-		}, i.addEventListener("b_preview_with_metadata", o), a = (t) => {
+		}, i.addEventListener("b_preview_with_metadata", o), a = (e) => {
 			try {
 				if (v()) return;
-				let n = t.detail;
-				if (!n || !(n instanceof Blob)) return;
-				e.feedPreviewBlob(n);
+				let t = e.detail;
+				if (!t || !(t instanceof Blob)) return;
+				n.feedPreviewBlob(t);
 			} catch (e) {
 				console.debug?.("[MFV] preview blob error", e);
 			}
@@ -106,20 +106,20 @@ function S(e) {
 	}
 	return e[e.length - 1];
 }
-function C(t) {
-	i || (r = !0, i = (t) => {
+function C(e) {
+	i || (r = !0, i = (e) => {
 		try {
-			if (!e.getLiveActive()) return;
-			let n = S(t.detail?.files);
-			if (!n) return;
-			e.upsertWithContent(n);
+			if (!n.getLiveActive()) return;
+			let t = S(e.detail?.files);
+			if (!t) return;
+			n.upsertWithContent(t);
 		} catch (e) {
 			console.debug?.("[MFV] generation output error", e);
 		}
-	}, typeof window < "u" && window.addEventListener(n.NEW_GENERATION_OUTPUT, i), y(t), console.debug("[Majoor] LiveStreamTracker initialized"));
+	}, typeof window < "u" && window.addEventListener(t.NEW_GENERATION_OUTPUT, i), y(e), console.debug("[Majoor] LiveStreamTracker initialized"));
 }
 function w(e) {
-	i &&= (typeof window < "u" && window.removeEventListener(n.NEW_GENERATION_OUTPUT, i), null), l += 1, b(), c = null, r = !1, console.debug("[Majoor] LiveStreamTracker torn down");
+	i &&= (typeof window < "u" && window.removeEventListener(t.NEW_GENERATION_OUTPUT, i), null), l += 1, b(), c = null, r = !1, console.debug("[Majoor] LiveStreamTracker torn down");
 }
 function T() {
 	return r;

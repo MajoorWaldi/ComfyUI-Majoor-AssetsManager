@@ -19,6 +19,8 @@ const ACTIVE_TTL_MS = 5 * 60 * 1000;
 const RELEASED_TTL_MS = 30 * 1000;
 const CLEANUP_INTERVAL_MS = 15 * 1000;
 const MAX_CONCURRENT_FETCHES = 6;
+const CONSTRAINED_MAX_ENTRIES = 192;
+const CONSTRAINED_MAX_CONCURRENT_FETCHES = 3;
 
 /**
  * @typedef {{ blobUrl: string|null, refcount: number, expiresAt: number, hasError: boolean }} CacheEntry
@@ -31,8 +33,28 @@ function _createCache() {
     let _activeFetches = 0;
     const _fetchQueue: any[] = [];
 
+    function _isConstrainedRuntime() {
+        try {
+            const nav: any = typeof navigator !== "undefined" ? navigator : null;
+            const deviceMemory = Number(nav?.deviceMemory || 0) || 0;
+            if (deviceMemory > 0 && deviceMemory <= 4) return true;
+            if (nav?.connection?.saveData === true) return true;
+        } catch (e: any) {
+            console.debug?.(e);
+        }
+        return false;
+    }
+
+    function _maxEntries() {
+        return _isConstrainedRuntime() ? CONSTRAINED_MAX_ENTRIES : MAX_ENTRIES;
+    }
+
+    function _maxConcurrentFetches() {
+        return _isConstrainedRuntime() ? CONSTRAINED_MAX_CONCURRENT_FETCHES : MAX_CONCURRENT_FETCHES;
+    }
+
     async function _withFetchSlot(task: any) {
-        if (_activeFetches >= MAX_CONCURRENT_FETCHES) {
+        if (_activeFetches >= _maxConcurrentFetches()) {
             await new Promise((resolve) => _fetchQueue.push(resolve));
         }
         _activeFetches += 1;
@@ -93,7 +115,7 @@ function _createCache() {
     }
 
     function _trimToLimit() {
-        while (_entries.size > MAX_ENTRIES) {
+        while (_entries.size > _maxEntries()) {
             const before = _entries.size;
             _evictLRU();
             if (_entries.size === before) break;
@@ -121,7 +143,7 @@ function _createCache() {
                 existing.hasError = true;
                 _touch(existing);
             } else {
-                if (_entries.size >= MAX_ENTRIES) _evictLRU();
+                if (_entries.size >= _maxEntries()) _evictLRU();
                 _entries.set(key, {
                     blobUrl: null,
                     refcount: 0,
@@ -182,7 +204,7 @@ function _createCache() {
             }
             const blob = await resp.blob();
             const blobUrl = URL.createObjectURL(blob);
-            if (_entries.size >= MAX_ENTRIES) _evictLRU();
+            if (_entries.size >= _maxEntries()) _evictLRU();
             _entries.set(key, {
                 blobUrl,
                 refcount: 1,

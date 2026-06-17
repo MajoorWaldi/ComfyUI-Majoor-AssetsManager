@@ -1,11 +1,13 @@
-import { C as e, E as t, Zt as n } from "./floatingViewerManager-j7Bfp7qr.js";
+import { Ut as e, h as t, v as n } from "./viewerRuntimeHosts-C-9ryYS-.js";
 import { A as r, B as i, C as a, D as o, F as s, L as c, N as l, S as u, _ as d, a as f, b as p, dt as m, j as h, nt as g, p as _, r as v, x as y, z as b } from "./events-iWiZ-Zty.js";
 import { a as x, i as S, o as C, s as w } from "./graphTraversal-CjIZsRsP.js";
-import { C as T, S as ee, a as E, c as D, i as O, n as k, o as A, r as j } from "./SidebarWorkflowSection-DslJPuWf.js";
-import { _ as M, c as N, f as P, g as F, h as te, i as I, l as L, n as R, r as z, s as ne, t as re, v as ie, y as B } from "./openMajoorSettings-RSPUcFb0.js";
-import { a as ae, n as oe, r as se } from "./model3dRenderer-Bg7vvKLE.js";
-import { i as ce, o as le, r as ue, t as de } from "./geninfoParser-5vKgjqjD.js";
-import { t as fe } from "./genInfo-DnJ1v6nY.js";
+import { a as T, i as ee } from "./mediaFps-dibNFbk4.js";
+import { a as E, c as D, i as O, n as k, o as te, r as A } from "./SidebarWorkflowSection-CQks5fGJ.js";
+import { a as j, c as M, i as N, n as P, o as ne, r as F, s as re, t as ie } from "./openMajoorSettings-uHUBBILV.js";
+import { i as I, n as L, r as R } from "./VideoControls-CDu3ByYX.js";
+import { i as ae, o as z, r as oe, t as se } from "./geninfoParser-5vKgjqjD.js";
+import { l as B, o as ce, p as le, r as ue, s as de } from "./mediaPlayer-ufU72_SR.js";
+import { t as fe } from "./genInfo-DQSKLzvg.js";
 //#region ui/features/viewer/floatingViewerConstants.ts
 var V = Object.freeze({
 	SIMPLE: "simple",
@@ -133,12 +135,12 @@ function De(e, t = null, { kind: n = "" } = {}) {
 		if (!a || !(e instanceof HTMLVideoElement)) return;
 		let t = ye(e, r), n = be(e, r);
 		y.textContent = n > 0 ? `F: ${t}/${n}` : `F: ${t}`;
-	}, A = () => {
+	}, te = () => {
 		let e = Math.max(0, Math.min(100, Number(u.value) / 1e3 * 100));
 		u.style.setProperty("--mjr-seek-pct", `${e}%`);
-	}, j = () => {
+	}, A = () => {
 		if (!i) {
-			v.textContent = s ? "Animated" : "Preview", u.value = "0", A();
+			v.textContent = s ? "Animated" : "Preview", u.value = "0", te();
 			return;
 		}
 		let t = Number(e.currentTime || 0), n = Number(e.duration || 0);
@@ -146,10 +148,11 @@ function De(e, t = null, { kind: n = "" } = {}) {
 			let e = Math.max(0, Math.min(1, t / n));
 			u.value = String(Math.round(e * 1e3)), v.textContent = `${ge(t)} / ${ge(n)}`;
 		} else u.value = "0", v.textContent = `${ge(t)} / 0:00`;
-		A();
-	}, M = () => {
+		te();
+	}, j = () => {
 		try {
-			E != null && typeof e?.cancelVideoFrameCallback == "function" && e.cancelVideoFrameCallback(E);
+			let t = e;
+			E != null && typeof t?.cancelVideoFrameCallback == "function" && t.cancelVideoFrameCallback(E);
 		} catch (e) {
 			console.debug?.(e);
 		}
@@ -160,53 +163,54 @@ function De(e, t = null, { kind: n = "" } = {}) {
 			console.debug?.(e);
 		}
 		T = null;
-	}, N = () => {
+	}, M = () => {
 		T = null, E = null;
 		try {
-			k(), j();
+			k(), A();
 		} catch (e) {
 			console.debug?.(e);
 		}
 		if (!(!i || e?.paused)) {
 			try {
-				if (typeof e?.requestVideoFrameCallback == "function") {
-					E = e.requestVideoFrameCallback(N);
+				let t = e;
+				if (typeof t?.requestVideoFrameCallback == "function") {
+					E = t.requestVideoFrameCallback(M);
 					return;
 				}
 			} catch (e) {
 				console.debug?.(e);
 			}
 			try {
-				typeof requestAnimationFrame == "function" && (T = requestAnimationFrame(N));
+				typeof requestAnimationFrame == "function" && (T = requestAnimationFrame(M));
 			} catch (e) {
 				console.debug?.(e);
 			}
 		}
-	}, P = () => {
-		M(), !(!i || e?.paused) && N();
-	}, F = (e) => {
+	}, N = () => {
+		j(), !(!i || e?.paused) && M();
+	}, P = (e) => {
 		try {
 			e?.stopPropagation?.();
 		} catch {}
-	}, te = (t) => {
-		F(t);
+	}, ne = (t) => {
+		P(t);
 		try {
 			i ? e.paused ? _e(e) : e.pause?.() : s && (C ? (e.src = S ? `${S}${S.includes("?") ? "&" : "?"}mjr_anim=${Date.now()}` : e.src, C = !1) : (w ||= Ee(e), w && (e.src = w), C = !0));
 		} catch (e) {
 			console.debug?.(e);
 		}
 		D();
-	}, I = (t, n) => {
-		if (F(n), !(!a || !(e instanceof HTMLVideoElement))) {
+	}, F = (t, n) => {
+		if (P(n), !(!a || !(e instanceof HTMLVideoElement))) {
 			try {
 				e.pause?.();
 			} catch (e) {
 				console.debug?.(e);
 			}
-			xe(e, ye(e, r) + t, r), D(), k(), j();
+			xe(e, ye(e, r) + t, r), D(), k(), A();
 		}
-	}, L = (t) => {
-		if (F(t), e instanceof HTMLMediaElement) {
+	}, re = (t) => {
+		if (P(t), e instanceof HTMLMediaElement) {
 			try {
 				e.muted = !e.muted;
 			} catch (e) {
@@ -214,9 +218,9 @@ function De(e, t = null, { kind: n = "" } = {}) {
 			}
 			O();
 		}
-	}, R = (t) => {
-		if (F(t), !i) return;
-		A();
+	}, ie = (t) => {
+		if (P(t), !i) return;
+		te();
 		let n = Number(e.duration || 0);
 		if (!Number.isFinite(n) || n <= 0) return;
 		let r = Math.max(0, Math.min(1, Number(u.value) / 1e3));
@@ -225,52 +229,52 @@ function De(e, t = null, { kind: n = "" } = {}) {
 		} catch (e) {
 			console.debug?.(e);
 		}
-		k(), j();
-	}, z = (e) => F(e), ne = (e) => {
+		k(), A();
+	}, I = (e) => P(e), L = (e) => {
 		try {
 			if (e?.target?.closest?.("button, input, textarea, select")) return;
 			c.focus?.({ preventScroll: !0 });
 		} catch (e) {
 			console.debug?.(e);
 		}
-	}, re = (e) => {
+	}, R = (e) => {
 		let t = String(e?.key || "");
 		if (!(!t || e?.altKey || e?.ctrlKey || e?.metaKey)) {
 			if (t === " " || t === "Spacebar") {
-				e.preventDefault?.(), te(e);
+				e.preventDefault?.(), ne(e);
 				return;
 			}
 			if (t === "ArrowLeft") {
 				if (!a) return;
-				e.preventDefault?.(), I(-1, e);
+				e.preventDefault?.(), F(-1, e);
 				return;
 			}
 			if (t === "ArrowRight") {
 				if (!a) return;
-				e.preventDefault?.(), I(1, e);
+				e.preventDefault?.(), F(1, e);
 			}
 		}
 	};
 	try {
-		c._mjrSimplePlayerHandleKeydown = re;
+		c._mjrSimplePlayerHandleKeydown = R;
 	} catch (e) {
 		console.debug?.(e);
 	}
-	f.addEventListener("click", te), m.addEventListener("click", (e) => I(-1, e)), g.addEventListener("click", (e) => I(1, e)), b.addEventListener("click", L), u.addEventListener("input", R), l.addEventListener("pointerdown", z), l.addEventListener("click", z), l.addEventListener("dblclick", z), c.addEventListener("pointerdown", ne), c.addEventListener("keydown", re), e instanceof HTMLMediaElement && (e.addEventListener("play", () => {
-		D(), P();
+	f.addEventListener("click", ne), m.addEventListener("click", (e) => F(-1, e)), g.addEventListener("click", (e) => F(1, e)), b.addEventListener("click", re), u.addEventListener("input", ie), l.addEventListener("pointerdown", I), l.addEventListener("click", I), l.addEventListener("dblclick", I), c.addEventListener("pointerdown", L), c.addEventListener("keydown", R), e instanceof HTMLMediaElement && (e.addEventListener("play", () => {
+		D(), N();
 	}, { passive: !0 }), e.addEventListener("pause", () => {
-		M(), D(), k(), j();
+		j(), D(), k(), A();
 	}, { passive: !0 }), e.addEventListener("ended", () => {
-		M(), D(), k(), j();
+		j(), D(), k(), A();
 	}, { passive: !0 }), e.addEventListener("timeupdate", () => {
-		k(), j();
+		k(), A();
 	}, { passive: !0 }), e.addEventListener("seeked", () => {
-		k(), j();
+		k(), A();
 	}, { passive: !0 }), e.addEventListener("loadedmetadata", () => {
-		k(), j();
-	}, { passive: !0 })), _e(e), D(), O(), k(), j(), P();
+		k(), A();
+	}, { passive: !0 })), _e(e), D(), O(), k(), A(), N();
 	try {
-		c._mjrSimplePlayerDestroy = M, c._mjrMediaControlsHandle = { destroy: M };
+		c._mjrSimplePlayerDestroy = j, c._mjrMediaControlsHandle = { destroy: j };
 	} catch (e) {
 		console.debug?.(e);
 	}
@@ -312,7 +316,7 @@ function H(e) {
 	if (r === "audio") return "audio";
 	if (r === "model3d") return "model3d";
 	let i = Ae(e?.filename || "");
-	return i === ".gif" ? "gif" : Oe.has(i) ? "video" : ke.has(i) ? "audio" : oe.has(i) ? "model3d" : "image";
+	return i === ".gif" ? "gif" : Oe.has(i) ? "video" : ke.has(i) ? "audio" : ce.has(i) ? "model3d" : "image";
 }
 function je(e) {
 	return e ? e.url ? String(e.url) : e.filename && e.id == null ? m(e.filename, e.subfolder || "", e.type || "output") : e.filename && g(e) || "" : "";
@@ -375,7 +379,7 @@ function G(e, { fill: t = !1, controls: n = !0 } = {}) {
 		if (!n) return r;
 		let a = document.createElement("div");
 		a.className = `mjr-mfv-player-host${t ? " mjr-mfv-player-host--fill" : ""}`, a.appendChild(r);
-		let o = P(r, {
+		let o = ue(r, {
 			variant: "viewer",
 			hostEl: a,
 			mediaKind: i,
@@ -403,7 +407,7 @@ function G(e, { fill: t = !1, controls: n = !0 } = {}) {
 		let e = document.createElement("video");
 		return e.className = a, e.src = r, e.controls = !1, e.loop = !0, e.muted = !0, e.autoplay = !0, e.playsInline = !0, s(e, "video");
 	}
-	if (i === "model3d") return se(e, r, {
+	if (i === "model3d") return de(e, r, {
 		hostClassName: `mjr-model3d-host mjr-mfv-model3d-host${t ? " mjr-mfv-model3d-host--fill" : ""}`,
 		canvasClassName: `mjr-mfv-media mjr-model3d-render-canvas${t ? " mjr-mfv-media--fill" : ""}`,
 		hintText: "Rotate: left drag  Pan: right drag  Zoom: wheel or middle drag",
@@ -586,7 +590,7 @@ var Xe = class {
 			a.className = "mjr-ws-widget-label", a.textContent = t.name || "";
 			let o = document.createElement("div");
 			o.className = "mjr-ws-widget-input";
-			let s = R(t, () => {}, e);
+			let s = P(t, () => {}, e);
 			o.appendChild(s), this._inputMap.set(t.name, s);
 			let c = s._mjrAutoFit ?? s.querySelector?.("textarea")?._mjrAutoFit;
 			c && this._autoFits.push(c), i.appendChild(a), i.appendChild(o), l.appendChild(i);
@@ -871,7 +875,7 @@ function K(e) {
 	return E(e);
 }
 function mt(e) {
-	return A(e);
+	return te(e);
 }
 function ht(e) {
 	let t = gt(e), n = e?.properties && typeof e.properties == "object" ? e.properties : null;
@@ -1084,8 +1088,8 @@ function Nt(e) {
 	if (Array.isArray(e.nodes)) return e;
 	let t = Pt(e);
 	if (t) return t;
-	if (e.prompt && typeof e.prompt == "object") return j(e.prompt);
-	let n = j(e);
+	if (e.prompt && typeof e.prompt == "object") return A(e.prompt);
+	let n = A(e);
 	return n && Array.isArray(n.nodes) ? n : null;
 }
 function Pt(e) {
@@ -1352,7 +1356,7 @@ function nn(e) {
 				index: e.index
 			});
 		}
-		!i || l.has(i.index) || z(i.widget, X(e.value), t) && (l.add(i.index), u += 1);
+		!i || l.has(i.index) || F(i.widget, X(e.value), t) && (l.add(i.index), u += 1);
 	}
 	return i(), {
 		ok: u > 0,
@@ -1990,7 +1994,7 @@ function Pn() {
 		let e = Nn("tooltip.queueStop", "Stop Generation");
 		a.title = e, a.setAttribute("aria-label", e);
 	}
-	function h(e = B.getSnapshot(), { authoritative: t = !1 } = {}) {
+	function h(e = M.getSnapshot(), { authoritative: t = !1 } = {}) {
 		let n = Math.max(0, Number(e?.queue) || 0), r = e?.prompt || null, i = !!r?.currentlyExecuting, a = !!(r && (r.currentlyExecuting || r.errorDetails)), o = n > 0 || a, s = !!r?.errorDetails;
 		t && n === 0 && !r && (l = !1, u = !1);
 		let c = l || u || i || n > 0;
@@ -2042,14 +2046,14 @@ function Pn() {
 	}
 	m(), a.disabled = !0, t.addEventListener("click", v), a.addEventListener("click", y);
 	let b = (e) => {
-		h(e?.detail || B.getSnapshot(), { authoritative: !0 });
+		h(e?.detail || M.getSnapshot(), { authoritative: !0 });
 	};
-	return B.addEventListener(Mn, b), ie({ timeoutMs: 4e3 }).catch((e) => {
+	return M.addEventListener(Mn, b), re({ timeoutMs: 4e3 }).catch((e) => {
 		console.debug?.(e);
 	}), h(), {
 		el: e,
 		dispose() {
-			f(), t.removeEventListener("click", v), a.removeEventListener("click", y), B.removeEventListener(Mn, b);
+			f(), t.removeEventListener("click", v), a.removeEventListener("click", y), M.removeEventListener(Mn, b);
 		}
 	};
 }
@@ -2121,13 +2125,13 @@ function Vn(e) {
 		["VAE", t.vae]
 	], r = /* @__PURE__ */ new Set(), i = [];
 	for (let [e, t] of n) {
-		let n = ue(t?.name || t?.value || t || "");
+		let n = oe(t?.name || t?.value || t || "");
 		if (!(!n || r.has(n)) && (r.add(n), i.push(`${e}: ${n}`), i.length >= 3)) break;
 	}
 	return i.join(" | ");
 }
 function Hn(e) {
-	let t = de(e);
+	let t = se(e);
 	return t.workflowLabel ? [t.workflowLabel, t.workflowBadge].filter(Boolean).join(" | ") : "";
 }
 function Un(e, t, n, r) {
@@ -2202,7 +2206,7 @@ var Wn = {
 };
 function qn(e) {
 	let t = document.createElement("div");
-	return t.className = "mjr-mfv", t.setAttribute("role", "dialog"), t.setAttribute("aria-modal", "false"), t.setAttribute("aria-hidden", "true"), e.element = t, t.appendChild(e._buildHeader()), t.setAttribute("aria-labelledby", e._titleId), t.appendChild(e._buildToolbar()), t.appendChild(F(e)), e._contentWrapper = document.createElement("div"), e._contentWrapper.className = "mjr-mfv-content-wrapper", e._applySidebarPosition(), e._contentEl = document.createElement("div"), e._contentEl.className = "mjr-mfv-content", e._contentWrapper.appendChild(e._contentEl), e._overlayCanvas = document.createElement("canvas"), e._overlayCanvas.className = "mjr-mfv-overlay-canvas", e._contentEl.appendChild(e._overlayCanvas), e._contentEl.appendChild(te(e)), e._genSidebarEl = document.createElement("aside"), e._genSidebarEl.className = "mjr-mfv-gen-sidebar", e._genSidebarEl.setAttribute("aria-label", "Generation info"), e._genSidebarEl.setAttribute("hidden", ""), e._sidebar = new On({
+	return t.className = "mjr-mfv", t.setAttribute("role", "dialog"), t.setAttribute("aria-modal", "false"), t.setAttribute("aria-hidden", "true"), e.element = t, t.appendChild(e._buildHeader()), t.setAttribute("aria-labelledby", e._titleId), t.appendChild(e._buildToolbar()), t.appendChild(j(e)), e._contentWrapper = document.createElement("div"), e._contentWrapper.className = "mjr-mfv-content-wrapper", e._applySidebarPosition(), e._contentEl = document.createElement("div"), e._contentEl.className = "mjr-mfv-content", e._contentWrapper.appendChild(e._contentEl), e._overlayCanvas = document.createElement("canvas"), e._overlayCanvas.className = "mjr-mfv-overlay-canvas", e._contentEl.appendChild(e._overlayCanvas), e._contentEl.appendChild(N(e)), e._genSidebarEl = document.createElement("aside"), e._genSidebarEl.className = "mjr-mfv-gen-sidebar", e._genSidebarEl.setAttribute("aria-label", "Generation info"), e._genSidebarEl.setAttribute("hidden", ""), e._sidebar = new On({
 		hostEl: t,
 		onClose: () => e._updateSettingsBtnState(!1),
 		onOpenGraphMap: () => e.setMode?.(V.GRAPH),
@@ -2223,7 +2227,7 @@ function Jn(e) {
 	let i = document.createElement("span");
 	i.textContent = "Majoor Floating Viewer", n.append(r, i);
 	let a = document.createElement("button");
-	e._closeBtn = a, a.type = "button", a.className = "mjr-icon-btn mjr-mfv-close-btn", L(a, _("tooltip.closeViewer", "Close viewer"), "Esc");
+	e._closeBtn = a, a.type = "button", a.className = "mjr-icon-btn mjr-mfv-close-btn", R(a, _("tooltip.closeViewer", "Close viewer"), "Esc");
 	let o = document.createElement("i");
 	return o.className = "pi pi-times", o.setAttribute("aria-hidden", "true"), a.appendChild(o), t.appendChild(n), t.appendChild(a), t;
 }
@@ -2446,7 +2450,7 @@ function Yn(e) {
 	O.className = "mjr-menu", O.style.cssText = "display:grid;gap:4px;", D.appendChild(O);
 	let k = document.createElement("select");
 	k.style.cssText = "position:absolute;opacity:0;pointer-events:none;width:0;height:0;overflow:hidden;", D.appendChild(k);
-	let A = [
+	let te = [
 		{
 			value: "off",
 			label: "Off"
@@ -2475,8 +2479,8 @@ function Yn(e) {
 			value: "2.39",
 			label: "2.39"
 		}
-	], j = [], M = e._overlayMaskEnabled ? String(e._overlayFormat || "image") : "off";
-	for (let e of A) {
+	], A = [], j = e._overlayMaskEnabled ? String(e._overlayFormat || "image") : "off";
+	for (let e of te) {
 		let t = document.createElement("option");
 		t.value = e.value, k.appendChild(t);
 		let n = document.createElement("button");
@@ -2484,57 +2488,57 @@ function Yn(e) {
 		let r = document.createElement("span");
 		r.className = "mjr-menu-item-label", r.textContent = e.label;
 		let i = document.createElement("i");
-		i.className = "pi pi-check mjr-menu-item-check", i.style.opacity = e.value === M ? "1" : "0", n.appendChild(r), n.appendChild(i), O.appendChild(n), j.push(n), e.value === M && n.classList.add("is-active");
+		i.className = "pi pi-check mjr-menu-item-check", i.style.opacity = e.value === j ? "1" : "0", n.appendChild(r), n.appendChild(i), O.appendChild(n), A.push(n), e.value === j && n.classList.add("is-active");
 	}
-	k.value = M;
+	k.value = j;
+	let M = document.createElement("div");
+	M.className = "mjr-mfv-format-sep", D.appendChild(M);
 	let N = document.createElement("div");
-	N.className = "mjr-mfv-format-sep", D.appendChild(N);
-	let P = document.createElement("div");
-	P.className = "mjr-mfv-format-slider-row", D.appendChild(P);
-	let F = document.createElement("span");
-	F.className = "mjr-mfv-format-slider-label", F.textContent = "Opacity", P.appendChild(F), e._maskOpacityCtl = t("Mask opacity", {
+	N.className = "mjr-mfv-format-slider-row", D.appendChild(N);
+	let P = document.createElement("span");
+	P.className = "mjr-mfv-format-slider-label", P.textContent = "Opacity", N.appendChild(P), e._maskOpacityCtl = t("Mask opacity", {
 		min: 0,
 		max: .9,
 		step: .01,
 		value: Number(e._overlayMaskOpacity ?? .65)
-	}), P.appendChild(e._maskOpacityCtl.input), P.appendChild(e._maskOpacityCtl.out), e._formatSelect = k, e._formatPopover = D;
-	let te = () => {
+	}), N.appendChild(e._maskOpacityCtl.input), N.appendChild(e._maskOpacityCtl.out), e._formatSelect = k, e._formatPopover = D;
+	let ne = () => {
 		let t = e._formatToggle.getBoundingClientRect(), n = e.element.getBoundingClientRect();
 		D.style.left = `${t.left - n.left}px`, D.style.top = `${t.bottom - n.top + 4}px`, D.classList.add("is-open"), e._formatToggle.setAttribute("aria-expanded", "true");
 	};
 	e._closeFormatPopover = () => {
 		D.classList.remove("is-open"), e._formatToggle.setAttribute("aria-expanded", "false");
 	}, e._formatToggle.addEventListener("click", (t) => {
-		t.stopPropagation(), D.classList.contains("is-open") ? e._closeFormatPopover() : (e._closeAllToolbarPopovers?.(), te());
+		t.stopPropagation(), D.classList.contains("is-open") ? e._closeFormatPopover() : (e._closeAllToolbarPopovers?.(), ne());
 	}), O.addEventListener("click", (t) => {
 		let n = t.target.closest(".mjr-menu-item");
 		if (!n) return;
 		let r = n.dataset.value;
-		k.value = r ?? "", k.dispatchEvent(new Event("change", { bubbles: !0 })), j.forEach((e) => {
+		k.value = r ?? "", k.dispatchEvent(new Event("change", { bubbles: !0 })), A.forEach((e) => {
 			let t = e.dataset.value === r;
 			e.classList.toggle("is-active", t), e.querySelector(".mjr-menu-item-check").style.opacity = t ? "1" : "0";
 		}), e._closeFormatPopover();
 	});
-	let I = document.createElement("div");
-	I.className = "mjr-mfv-toolbar-sep", I.setAttribute("aria-hidden", "true"), n.appendChild(I), e._liveBtn = document.createElement("button"), e._liveBtn.type = "button", e._liveBtn.className = "mjr-icon-btn", e._liveBtn.innerHTML = "<i class=\"pi pi-circle\" aria-hidden=\"true\"></i>", e._liveBtn.setAttribute("aria-pressed", "false"), L(e._liveBtn, _("tooltip.liveStreamOff", "Live Stream: OFF - click to follow final generation outputs"), "L"), n.appendChild(e._liveBtn), e._previewBtn = document.createElement("button"), e._previewBtn.type = "button", e._previewBtn.className = "mjr-icon-btn", e._previewBtn.innerHTML = "<i class=\"pi pi-eye\" aria-hidden=\"true\"></i>", e._previewBtn.setAttribute("aria-pressed", "false"), L(e._previewBtn, _("tooltip.previewStreamOff", "KSampler Preview: OFF - click to stream sampler denoising frames"), "K"), n.appendChild(e._previewBtn), e._nodeStreamBtn = document.createElement("button"), e._nodeStreamBtn.type = "button", e._nodeStreamBtn.className = "mjr-icon-btn", e._nodeStreamBtn.innerHTML = "<i class=\"pi pi-sitemap\" aria-hidden=\"true\"></i>", e._nodeStreamBtn.setAttribute("aria-pressed", "false"), L(e._nodeStreamBtn, _("tooltip.nodeStreamOff", "Node Stream: OFF - click to follow selected node previews, including ImageOps live canvases"), "N"), n.appendChild(e._nodeStreamBtn), e._genBtn = document.createElement("button"), e._genBtn.type = "button", e._genBtn.className = "mjr-icon-btn", e._genBtn.setAttribute("aria-pressed", String(!!e._genSidebarEnabled));
-	let R = document.createElement("i");
-	R.className = "pi pi-info-circle", R.setAttribute("aria-hidden", "true"), e._genBtn.appendChild(R), n.appendChild(e._genBtn), e._updateGenBtnUI(), e._popoutBtn = document.createElement("button"), e._popoutBtn.type = "button", e._popoutBtn.className = "mjr-icon-btn";
-	let z = _("tooltip.popOutViewer", "Pop out viewer to separate window");
-	e._popoutBtn.title = z, e._popoutBtn.setAttribute("aria-label", z), e._popoutBtn.setAttribute("aria-pressed", "false");
-	let ne = document.createElement("i");
-	ne.className = "pi pi-external-link", ne.setAttribute("aria-hidden", "true"), e._popoutBtn.appendChild(ne), n.appendChild(e._popoutBtn), e._captureBtn = document.createElement("button"), e._captureBtn.type = "button", e._captureBtn.className = "mjr-icon-btn";
-	let re = _("tooltip.captureView", "Save view as image");
-	e._captureBtn.title = re, e._captureBtn.setAttribute("aria-label", re);
-	let ie = document.createElement("i");
-	ie.className = "pi pi-download", ie.setAttribute("aria-hidden", "true"), e._captureBtn.appendChild(ie), n.appendChild(e._captureBtn);
-	let B = document.createElement("div");
-	B.className = "mjr-mfv-toolbar-sep", B.style.marginLeft = "auto", B.setAttribute("aria-hidden", "true"), n.appendChild(B), e._settingsBtn = document.createElement("button"), e._settingsBtn.type = "button", e._settingsBtn.className = "mjr-icon-btn mjr-mfv-settings-btn";
-	let ae = _("tooltip.nodeParams", "Node Parameters");
-	e._settingsBtn.title = ae, e._settingsBtn.setAttribute("aria-label", ae), e._settingsBtn.setAttribute("aria-pressed", "false");
-	let oe = document.createElement("i");
-	oe.className = "pi pi-sliders-h", oe.setAttribute("aria-hidden", "true"), e._settingsBtn.appendChild(oe), n.appendChild(e._settingsBtn), e._runHandle = Pn(), n.appendChild(e._runHandle.el), e._majoorSettingsBtn = document.createElement("button"), e._majoorSettingsBtn.type = "button", e._majoorSettingsBtn.className = "mjr-icon-btn mjr-mfv-majoor-settings-btn";
-	let se = _("tooltip.openMajoorSettings", "Open Majoor Assets Manager settings");
-	e._majoorSettingsBtn.title = se, e._majoorSettingsBtn.setAttribute("aria-label", se);
+	let F = document.createElement("div");
+	F.className = "mjr-mfv-toolbar-sep", F.setAttribute("aria-hidden", "true"), n.appendChild(F), e._liveBtn = document.createElement("button"), e._liveBtn.type = "button", e._liveBtn.className = "mjr-icon-btn", e._liveBtn.innerHTML = "<i class=\"pi pi-circle\" aria-hidden=\"true\"></i>", e._liveBtn.setAttribute("aria-pressed", "false"), R(e._liveBtn, _("tooltip.liveStreamOff", "Live Stream: OFF - click to follow final generation outputs"), "L"), n.appendChild(e._liveBtn), e._previewBtn = document.createElement("button"), e._previewBtn.type = "button", e._previewBtn.className = "mjr-icon-btn", e._previewBtn.innerHTML = "<i class=\"pi pi-eye\" aria-hidden=\"true\"></i>", e._previewBtn.setAttribute("aria-pressed", "false"), R(e._previewBtn, _("tooltip.previewStreamOff", "KSampler Preview: OFF - click to stream sampler denoising frames"), "K"), n.appendChild(e._previewBtn), e._nodeStreamBtn = document.createElement("button"), e._nodeStreamBtn.type = "button", e._nodeStreamBtn.className = "mjr-icon-btn", e._nodeStreamBtn.innerHTML = "<i class=\"pi pi-sitemap\" aria-hidden=\"true\"></i>", e._nodeStreamBtn.setAttribute("aria-pressed", "false"), R(e._nodeStreamBtn, _("tooltip.nodeStreamOff", "Node Stream: OFF - click to follow selected node previews, including ImageOps live canvases"), "N"), n.appendChild(e._nodeStreamBtn), e._genBtn = document.createElement("button"), e._genBtn.type = "button", e._genBtn.className = "mjr-icon-btn", e._genBtn.setAttribute("aria-pressed", String(!!e._genSidebarEnabled));
+	let re = document.createElement("i");
+	re.className = "pi pi-info-circle", re.setAttribute("aria-hidden", "true"), e._genBtn.appendChild(re), n.appendChild(e._genBtn), e._updateGenBtnUI(), e._popoutBtn = document.createElement("button"), e._popoutBtn.type = "button", e._popoutBtn.className = "mjr-icon-btn";
+	let ie = _("tooltip.popOutViewer", "Pop out viewer to separate window");
+	e._popoutBtn.title = ie, e._popoutBtn.setAttribute("aria-label", ie), e._popoutBtn.setAttribute("aria-pressed", "false");
+	let I = document.createElement("i");
+	I.className = "pi pi-external-link", I.setAttribute("aria-hidden", "true"), e._popoutBtn.appendChild(I), n.appendChild(e._popoutBtn), e._captureBtn = document.createElement("button"), e._captureBtn.type = "button", e._captureBtn.className = "mjr-icon-btn";
+	let L = _("tooltip.captureView", "Save view as image");
+	e._captureBtn.title = L, e._captureBtn.setAttribute("aria-label", L);
+	let ae = document.createElement("i");
+	ae.className = "pi pi-download", ae.setAttribute("aria-hidden", "true"), e._captureBtn.appendChild(ae), n.appendChild(e._captureBtn);
+	let z = document.createElement("div");
+	z.className = "mjr-mfv-toolbar-sep", z.style.marginLeft = "auto", z.setAttribute("aria-hidden", "true"), n.appendChild(z), e._settingsBtn = document.createElement("button"), e._settingsBtn.type = "button", e._settingsBtn.className = "mjr-icon-btn mjr-mfv-settings-btn";
+	let oe = _("tooltip.nodeParams", "Node Parameters");
+	e._settingsBtn.title = oe, e._settingsBtn.setAttribute("aria-label", oe), e._settingsBtn.setAttribute("aria-pressed", "false");
+	let se = document.createElement("i");
+	se.className = "pi pi-sliders-h", se.setAttribute("aria-hidden", "true"), e._settingsBtn.appendChild(se), n.appendChild(e._settingsBtn), e._runHandle = Pn(), n.appendChild(e._runHandle.el), e._majoorSettingsBtn = document.createElement("button"), e._majoorSettingsBtn.type = "button", e._majoorSettingsBtn.className = "mjr-icon-btn mjr-mfv-majoor-settings-btn";
+	let B = _("tooltip.openMajoorSettings", "Open Majoor Assets Manager settings");
+	e._majoorSettingsBtn.title = B, e._majoorSettingsBtn.setAttribute("aria-label", B);
 	let ce = document.createElement("i");
 	return ce.className = "pi pi-cog", ce.setAttribute("aria-hidden", "true"), e._majoorSettingsBtn.appendChild(ce), n.appendChild(e._majoorSettingsBtn), e._handleDocClick = (t) => {
 		let n = t?.target;
@@ -2572,7 +2576,7 @@ function Xn(e) {
 	}, { signal: t }), e._captureBtn?.addEventListener("click", () => e._captureView(), { signal: t }), e._settingsBtn?.addEventListener("click", () => {
 		e._sidebar?.toggle(), e._updateSettingsBtnState(e._sidebar?.isVisible ?? !1);
 	}, { signal: t }), e._majoorSettingsBtn?.addEventListener("click", (t) => {
-		t.stopPropagation(), e._closeAllToolbarPopovers?.(), re();
+		t.stopPropagation(), e._closeAllToolbarPopovers?.(), ie();
 	}, { signal: t }), e._guidesSelect?.addEventListener("change", () => {
 		e._gridMode = Number(e._guidesSelect.value) || 0, e._guideBtn?.classList.toggle("is-on", e._gridMode !== 0), e._redrawOverlayGuides?.();
 	}, { signal: t }), e._channelSelect?.addEventListener("change", () => {
@@ -2647,7 +2651,7 @@ function rr(e) {
 function ir(e, t) {
 	if (!t) return {};
 	try {
-		let e = t.geninfo ? { geninfo: t.geninfo } : t.metadata || t.metadata_raw || t, n = ce(e) || null, r = {
+		let e = t.geninfo ? { geninfo: t.geninfo } : t.metadata || t.metadata_raw || t, n = ae(e) || null, r = {
 			prompt: "",
 			seed: "",
 			model: "",
@@ -2659,9 +2663,9 @@ function ir(e, t) {
 			genTime: ""
 		};
 		if (n && typeof n == "object") {
-			n.prompt && (r.prompt = le(String(n.prompt))), n.seed != null && (r.seed = String(n.seed)), n.model && (r.model = Array.isArray(n.model) ? n.model.join(", ") : String(n.model));
+			n.prompt && (r.prompt = z(String(n.prompt))), n.seed != null && (r.seed = String(n.seed)), n.model && (r.model = Array.isArray(n.model) ? n.model.join(", ") : String(n.model));
 			let i = Hn(n), a = Vn(n);
-			a && (r.model = a), i && (r.model = [i, r.model].filter(Boolean).join(" | ")), Array.isArray(n.loras) && (r.lora = n.loras.map((e) => typeof e == "string" ? e : e?.name || e?.lora_name || e?.model_name || "").filter(Boolean).join(", ")), n.sampler && (r.sampler = String(n.sampler)), n.scheduler && (r.scheduler = String(n.scheduler)), n.cfg != null && (r.cfg = String(n.cfg)), n.steps != null && (r.step = String(n.steps)), !r.prompt && e?.prompt && (r.prompt = le(String(e.prompt || "")));
+			a && (r.model = a), i && (r.model = [i, r.model].filter(Boolean).join(" | ")), Array.isArray(n.loras) && (r.lora = n.loras.map((e) => typeof e == "string" ? e : e?.name || e?.lora_name || e?.model_name || "").filter(Boolean).join(", ")), n.sampler && (r.sampler = String(n.sampler)), n.scheduler && (r.scheduler = String(n.scheduler)), n.cfg != null && (r.cfg = String(n.cfg)), n.steps != null && (r.step = String(n.steps)), !r.prompt && e?.prompt && (r.prompt = z(String(e.prompt || "")));
 			let o = t.generation_time_ms ?? t.metadata_raw?.generation_time_ms ?? e?.generation_time_ms ?? e?.geninfo?.generation_time_ms ?? 0;
 			return o && Number.isFinite(Number(o)) && o > 0 && o < 864e5 && (r.genTime = nr(Number(o) / 1e3)), r;
 		}
@@ -2669,7 +2673,7 @@ function ir(e, t) {
 		console.debug?.("[MFV] geninfo normalize failed", e);
 	}
 	let n = t?.metadata || t?.metadata_raw || t || {}, r = {
-		prompt: le(String(n?.prompt || n?.positive || "")),
+		prompt: z(String(n?.prompt || n?.positive || "")),
 		seed: n?.seed == null ? "" : String(n.seed),
 		model: n?.checkpoint || n?.ckpt_name || n?.model || "",
 		lora: Array.isArray(n?.loras) ? n.loras.join(", ") : n?.lora || "",
@@ -2779,14 +2783,14 @@ function dr(e) {
 			icon: "pi-sitemap",
 			label: "Mode: Graph Map - click to switch"
 		}
-	}[e._mode] || {}, r = N(n, "C"), i = document.createElement("i");
+	}[e._mode] || {}, r = L(n, "C"), i = document.createElement("i");
 	i.className = `pi ${t}`, i.setAttribute("aria-hidden", "true"), e._modeBtn.replaceChildren(i), e._modeBtn.title = r, e._modeBtn.setAttribute("aria-label", r), e._modeBtn.removeAttribute("aria-pressed"), e._modeBtn.classList.toggle("is-on", e._mode !== V.SIMPLE), e._modeDrop?.selectItem?.(e._mode);
 }
 function fr(e, t) {
 	if (!e._liveBtn) return;
 	let n = !!t;
 	e._liveBtn.classList.toggle("mjr-live-active", n);
-	let r = N(n ? _("tooltip.liveStreamOn", "Live Stream: ON - follows final generation outputs after execution") : _("tooltip.liveStreamOff", "Live Stream: OFF - click to follow final generation outputs"), "L");
+	let r = L(n ? _("tooltip.liveStreamOn", "Live Stream: ON - follows final generation outputs after execution") : _("tooltip.liveStreamOff", "Live Stream: OFF - click to follow final generation outputs"), "L");
 	e._liveBtn.setAttribute("aria-pressed", String(n)), e._liveBtn.setAttribute("aria-label", r);
 	let i = document.createElement("i");
 	i.className = n ? "pi pi-circle-fill" : "pi pi-circle", i.setAttribute("aria-hidden", "true"), e._liveBtn.replaceChildren(i), e._liveBtn.title = r;
@@ -2794,7 +2798,7 @@ function fr(e, t) {
 function pr(e, t) {
 	if (e._previewActive = !!t, !e._previewBtn) return;
 	e._previewBtn.classList.toggle("mjr-preview-active", e._previewActive);
-	let n = N(e._previewActive ? _("tooltip.previewStreamOn", "KSampler Preview: ON - streams sampler denoising frames during execution") : _("tooltip.previewStreamOff", "KSampler Preview: OFF - click to stream sampler denoising frames"), "K");
+	let n = L(e._previewActive ? _("tooltip.previewStreamOn", "KSampler Preview: ON - streams sampler denoising frames during execution") : _("tooltip.previewStreamOff", "KSampler Preview: OFF - click to stream sampler denoising frames"), "K");
 	e._previewBtn.setAttribute("aria-pressed", String(e._previewActive)), e._previewBtn.setAttribute("aria-label", n);
 	let r = document.createElement("i");
 	r.className = e._previewActive ? "pi pi-eye" : "pi pi-eye-slash", r.setAttribute("aria-hidden", "true"), e._previewBtn.replaceChildren(r), e._previewBtn.title = n, e._previewActive || e._revokePreviewBlob();
@@ -2836,7 +2840,7 @@ function hr(e) {
 function gr(e, t) {
 	if (e._nodeStreamActive = !!t, e._nodeStreamActive || e.setNodeStreamSelection?.(null), !e._nodeStreamBtn) return;
 	e._nodeStreamBtn.classList.toggle("mjr-nodestream-active", e._nodeStreamActive);
-	let n = N(e._nodeStreamActive ? _("tooltip.nodeStreamOn", "Node Stream: ON - follows the selected node preview when frontend media exists") : _("tooltip.nodeStreamOff", "Node Stream: OFF - click to follow selected node previews, including ImageOps live canvases"), "N");
+	let n = L(e._nodeStreamActive ? _("tooltip.nodeStreamOn", "Node Stream: ON - follows the selected node preview when frontend media exists") : _("tooltip.nodeStreamOff", "Node Stream: OFF - click to follow selected node previews, including ImageOps live canvases"), "N");
 	e._nodeStreamBtn.setAttribute("aria-pressed", String(e._nodeStreamActive)), e._nodeStreamBtn.setAttribute("aria-label", n);
 	let r = document.createElement("i");
 	r.className = "pi pi-sitemap", r.setAttribute("aria-hidden", "true"), e._nodeStreamBtn.replaceChildren(r), e._nodeStreamBtn.title = n;
@@ -2945,10 +2949,10 @@ function Tr(e, t) {
 	let i = e._desktopExpandRestore;
 	e._desktopExpanded = !1, r.classList.remove("mjr-mfv--desktop-expanded"), i?.styleAttr == null || i.styleAttr === "" ? r.removeAttribute("style") : r.setAttribute("style", i.styleAttr), i?.parent && i.parent.isConnected && (i.nextSibling && i.nextSibling.parentNode === i.parent ? i.parent.insertBefore(r, i.nextSibling) : i.parent.appendChild(r)), e._desktopExpandRestore = null, wr(e), $("electron-in-app-restored", null);
 }
-function Er(e, t) {
-	e._desktopPopoutUnsupported = !0, $("electron-in-app-fallback", { message: t?.message || String(t || "unknown error") }, "warn"), e._setDesktopExpanded(!0);
+function Er(t, n) {
+	t._desktopPopoutUnsupported = !0, $("electron-in-app-fallback", { message: n?.message || String(n || "unknown error") }, "warn"), t._setDesktopExpanded(!0);
 	try {
-		n(_("toast.popoutElectronInAppFallback", "Desktop PiP is unavailable here. Viewer expanded inside the app instead."), "warning", 4500);
+		e(_("toast.popoutElectronInAppFallback", "Desktop PiP is unavailable here. Viewer expanded inside the app instead."), "warning", 4500);
 	} catch (e) {
 		console.debug?.(e);
 	}
@@ -3521,63 +3525,63 @@ var Kr = "imageops-live-preview";
 function qr(e) {
 	return String(e?._source || "") === Kr;
 }
-function Jr(n, r, { autoMode: i = !1 } = {}) {
-	let a = n._mediaA || null, o = qr(r), s = o && qr(a) && String(a?._nodeId || "") === String(r?._nodeId || "");
-	if (n._mediaA = r || null, s || n._resetMfvZoom(), i && n._mode !== V.SIMPLE && n._mode !== V.GRAPH && (n._mode = V.SIMPLE, n._updateModeBtnUI()), n._mediaA && !o && typeof fe == "function") {
-		let r = ++n._refreshGen;
+function Jr(e, r, { autoMode: i = !1 } = {}) {
+	let a = e._mediaA || null, o = qr(r), s = o && qr(a) && String(a?._nodeId || "") === String(r?._nodeId || "");
+	if (e._mediaA = r || null, s || e._resetMfvZoom(), i && e._mode !== V.SIMPLE && e._mode !== V.GRAPH && (e._mode = V.SIMPLE, e._updateModeBtnUI()), e._mediaA && !o && typeof fe == "function") {
+		let r = ++e._refreshGen;
 		(async () => {
 			try {
-				let i = await fe(n._mediaA, {
-					getAssetMetadata: e,
-					getFileMetadataScoped: t
+				let i = await fe(e._mediaA, {
+					getAssetMetadata: t,
+					getFileMetadataScoped: n
 				});
-				if (n._refreshGen !== r) return;
-				i && typeof i == "object" && (n._mediaA = i, n._refresh());
+				if (e._refreshGen !== r) return;
+				i && typeof i == "object" && (e._mediaA = i, e._refresh());
 			} catch (e) {
 				console.debug?.("[MFV] metadata enrich error", e);
 			}
 		})();
-	} else n._refresh();
+	} else e._refresh();
 }
-function Yr(n, r, i) {
-	n._mediaA = r || null, n._mediaB = i || null, n._resetMfvZoom(), n._mode === V.SIMPLE && (n._mode = V.AB, n._updateModeBtnUI());
-	let a = ++n._refreshGen, o = async (n) => {
-		if (!n) return n;
+function Yr(e, r, i) {
+	e._mediaA = r || null, e._mediaB = i || null, e._resetMfvZoom(), e._mode === V.SIMPLE && (e._mode = V.AB, e._updateModeBtnUI());
+	let a = ++e._refreshGen, o = async (e) => {
+		if (!e) return e;
 		try {
-			return await fe(n, {
-				getAssetMetadata: e,
-				getFileMetadataScoped: t
-			}) || n;
+			return await fe(e, {
+				getAssetMetadata: t,
+				getFileMetadataScoped: n
+			}) || e;
 		} catch {
-			return n;
+			return e;
 		}
 	};
 	(async () => {
-		let [e, t] = await Promise.all([o(n._mediaA), o(n._mediaB)]);
-		n._refreshGen === a && (n._mediaA = e || null, n._mediaB = t || null, n._refresh());
+		let [t, n] = await Promise.all([o(e._mediaA), o(e._mediaB)]);
+		e._refreshGen === a && (e._mediaA = t || null, e._mediaB = n || null, e._refresh());
 	})();
 }
-function Xr(n, r, i, a, o) {
-	n._mediaA = r || null, n._mediaB = i || null, n._mediaC = a || null, n._mediaD = o || null, n._resetMfvZoom(), n._mode !== V.GRID && (n._mode = V.GRID, n._updateModeBtnUI());
-	let s = ++n._refreshGen, c = async (n) => {
-		if (!n) return n;
+function Xr(e, r, i, a, o) {
+	e._mediaA = r || null, e._mediaB = i || null, e._mediaC = a || null, e._mediaD = o || null, e._resetMfvZoom(), e._mode !== V.GRID && (e._mode = V.GRID, e._updateModeBtnUI());
+	let s = ++e._refreshGen, c = async (e) => {
+		if (!e) return e;
 		try {
-			return await fe(n, {
-				getAssetMetadata: e,
-				getFileMetadataScoped: t
-			}) || n;
+			return await fe(e, {
+				getAssetMetadata: t,
+				getFileMetadataScoped: n
+			}) || e;
 		} catch {
-			return n;
+			return e;
 		}
 	};
 	(async () => {
-		let [e, t, r, i] = await Promise.all([
-			c(n._mediaA),
-			c(n._mediaB),
-			c(n._mediaC),
-			c(n._mediaD)
+		let [t, n, r, i] = await Promise.all([
+			c(e._mediaA),
+			c(e._mediaB),
+			c(e._mediaC),
+			c(e._mediaD)
 		]);
-		n._refreshGen === s && (n._mediaA = e || null, n._mediaB = t || null, n._mediaC = r || null, n._mediaD = i || null, n._refresh());
+		e._refreshGen === s && (e._mediaA = t || null, e._mediaB = n || null, e._mediaC = r || null, e._mediaD = i || null, e._refresh());
 	})();
 }
 //#endregion
@@ -3917,7 +3921,7 @@ var Qr = 0, $r = class {
 		this._panzoomAC = new AbortController();
 		let t = { signal: this._panzoomAC.signal };
 		e.addEventListener("wheel", (t) => {
-			if (t.target?.closest?.("audio") || t.target?.closest?.(".mjr-video-controls, .mjr-mfv-simple-player-controls") || ae(t.target)) return;
+			if (t.target?.closest?.("audio") || t.target?.closest?.(".mjr-video-controls, .mjr-mfv-simple-player-controls") || B(t.target)) return;
 			let n = Ne(t.target, e);
 			if (n && Pe(n, Number(t.deltaX || 0), Number(t.deltaY || 0))) return;
 			t.preventDefault();
@@ -3929,7 +3933,7 @@ var Qr = 0, $r = class {
 		});
 		let n = !1, r = 0, i = 0, a = 0, o = 0;
 		e.addEventListener("pointerdown", (t) => {
-			if (!(t.button !== 0 && t.button !== 1) && !(this._zoom <= 1.01) && !t.target?.closest?.("video") && !t.target?.closest?.("audio") && !t.target?.closest?.(".mjr-video-controls, .mjr-mfv-simple-player-controls") && !t.target?.closest?.(".mjr-mfv-ab-divider") && !ae(t.target)) {
+			if (!(t.button !== 0 && t.button !== 1) && !(this._zoom <= 1.01) && !t.target?.closest?.("video") && !t.target?.closest?.("audio") && !t.target?.closest?.(".mjr-video-controls, .mjr-mfv-simple-player-controls") && !t.target?.closest?.(".mjr-mfv-ab-divider") && !B(t.target)) {
 				t.preventDefault(), n = !0, this._dragging = !0, r = t.clientX, i = t.clientY, a = this._panX, o = this._panY;
 				try {
 					e.setPointerCapture(t.pointerId);
@@ -3953,7 +3957,7 @@ var Qr = 0, $r = class {
 			}
 		};
 		e.addEventListener("pointerup", s, t), e.addEventListener("pointercancel", s, t), e.addEventListener("dblclick", (e) => {
-			if (e.target?.closest?.("video") || e.target?.closest?.("audio") || e.target?.closest?.(".mjr-video-controls, .mjr-mfv-simple-player-controls") || ae(e.target)) return;
+			if (e.target?.closest?.("video") || e.target?.closest?.("audio") || e.target?.closest?.(".mjr-video-controls, .mjr-mfv-simple-player-controls") || B(e.target)) return;
 			let t = Math.abs(this._zoom - 1) < .05;
 			this._setMfvZoom(t ? Math.min(4, this._zoom * 4) : 1, e.clientX, e.clientY);
 		}, t);
@@ -3998,7 +4002,7 @@ var Qr = 0, $r = class {
 			if (e.length < 2) return;
 			let t = e[0] || null, n = e.slice(1);
 			if (!t || !n.length) return;
-			this._compareSyncAC = ne(t, n, { threshold: .08 });
+			this._compareSyncAC = le(t, n, { threshold: .08 });
 		} catch (e) {
 			console.debug?.(e);
 		}
@@ -4406,7 +4410,7 @@ var Qr = 0, $r = class {
 		return Gr(this);
 	}
 	dispose() {
-		M(this), this._destroyPanZoom(), this._destroyCompareSync(), this._destroyMediaControls(), this._unbindLayoutObserver(), this._stopEdgeResize(), this._clearPopoutCloseWatch();
+		ne(this), this._destroyPanZoom(), this._destroyCompareSync(), this._destroyMediaControls(), this._unbindLayoutObserver(), this._stopEdgeResize(), this._clearPopoutCloseWatch();
 		try {
 			this._panelAC?.abort(), this._panelAC = null;
 		} catch (e) {

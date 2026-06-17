@@ -2,6 +2,11 @@ import { readAssetFps } from "../../utils/mediaFps.js";
 
 const DEFAULT_FPS = 30;
 
+type VideoFrameCallbackMedia = HTMLMediaElement & {
+    requestVideoFrameCallback?: (callback: () => void) => number;
+    cancelVideoFrameCallback?: (handle: number) => void;
+};
+
 function formatDuration(seconds: any) {
     const s = Number(seconds);
     if (!Number.isFinite(s) || s < 0) return "0:00";
@@ -274,8 +279,9 @@ export function mountFloatingViewerSimplePlayer(mediaEl: any, fileData: any = nu
 
     const cancelPlaybackUiSync = () => {
         try {
-            if (syncRvfcId != null && typeof mediaEl?.cancelVideoFrameCallback === "function") {
-                mediaEl.cancelVideoFrameCallback(syncRvfcId);
+            const rvfcMedia = mediaEl as VideoFrameCallbackMedia | null;
+            if (syncRvfcId != null && typeof rvfcMedia?.cancelVideoFrameCallback === "function") {
+                rvfcMedia.cancelVideoFrameCallback(syncRvfcId);
             }
         } catch (err: any) {
             console.debug?.(err);
@@ -302,8 +308,9 @@ export function mountFloatingViewerSimplePlayer(mediaEl: any, fileData: any = nu
         }
         if (!timelineSupported || mediaEl?.paused) return;
         try {
-            if (typeof mediaEl?.requestVideoFrameCallback === "function") {
-                syncRvfcId = mediaEl.requestVideoFrameCallback(tickPlaybackUiSync);
+            const rvfcMedia = mediaEl as VideoFrameCallbackMedia | null;
+            if (typeof rvfcMedia?.requestVideoFrameCallback === "function") {
+                syncRvfcId = rvfcMedia.requestVideoFrameCallback(tickPlaybackUiSync);
                 return;
             }
         } catch (err: any) {

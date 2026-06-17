@@ -37,10 +37,6 @@ import {
     waitForComfyApp,
 } from "./app/comfyApiBridge.js";
 import { EVENTS } from "./app/events.js";
-import {
-    teardownFloatingViewerManager,
-    floatingViewerManager,
-} from "./features/viewer/floatingViewerManager.js";
 import { ensureFloatingViewerProgressTracking } from "./features/viewer/floatingViewerProgress.js";
 import {
     NODE_STREAM_FEATURE_ENABLED,
@@ -110,6 +106,22 @@ import {
 let liveStreamModule = null;
 /** @type {import("./features/viewer/nodeStream/NodeStreamController.js") | null} */
 let nodeStreamModule = null;
+/** @type {Promise<import("./features/viewer/floatingViewerManager.js")> | null} */
+let floatingViewerManagerModulePromise = null;
+
+function loadFloatingViewerManagerModule() {
+    if (!floatingViewerManagerModulePromise) {
+        floatingViewerManagerModulePromise = import("./features/viewer/floatingViewerManager.js");
+    }
+    return floatingViewerManagerModulePromise;
+}
+
+function teardownLoadedFloatingViewerManager() {
+    if (!floatingViewerManagerModulePromise) return;
+    void floatingViewerManagerModulePromise
+        .then((mod) => mod?.teardownFloatingViewerManager?.())
+        .catch((e) => console.debug?.("[Majoor] MFV teardown skipped", e));
+}
 
 // -- constants -----------------------------------------------------------------
 
@@ -305,7 +317,11 @@ function setupLazyModules(runtimeApp) {
             try {
                 mod.initNodeStream({
                     app: runtimeApp,
-                    onOutput: (fileData) => floatingViewerManager.feedNodeStream(fileData),
+                    onOutput: (fileData) => {
+                        void loadFloatingViewerManagerModule()
+                            .then((mfv) => mfv?.floatingViewerManager?.feedNodeStream?.(fileData))
+                            .catch((e) => console.debug?.("[NodeStream] MFV output failed", e));
+                    },
                     onStatus: (nodeId, classType) => {
                         try {
                             const graph = runtimeApp?.graph ?? runtimeApp?.canvas?.graph ?? null;
@@ -315,11 +331,15 @@ function setupLazyModules(runtimeApp) {
                             const displayClass = isSubgraph
                                 ? "Subgraph"
                                 : _getNodeStreamClassLabel(node, classType);
-                            floatingViewerManager.setNodeStreamSelection?.(
-                                nodeId,
-                                displayClass,
-                                isSubgraph ? title || _getNodeStreamClassLabel(node, classType) : title,
-                            );
+                            void loadFloatingViewerManagerModule()
+                                .then((mfv) => {
+                                    mfv?.floatingViewerManager?.setNodeStreamSelection?.(
+                                        nodeId,
+                                        displayClass,
+                                        isSubgraph ? title || _getNodeStreamClassLabel(node, classType) : title,
+                                    );
+                                })
+                                .catch((err) => console.debug?.("[NodeStream] MFV status failed", err));
                         } catch (err) {
                             console.debug?.("[NodeStream] onStatus failed", err);
                         }
@@ -433,7 +453,7 @@ app.registerExtension({
             teardownLiveStreamTracker: (runtimeApp) =>
                 liveStreamModule?.teardownLiveStreamTracker(runtimeApp),
             teardownNodeStream: (runtimeApp) => nodeStreamModule?.teardownNodeStream(runtimeApp),
-            teardownFloatingViewerManager,
+            teardownFloatingViewerManager: teardownLoadedFloatingViewerManager,
             teardownGeneratedFeed,
             teardownAssetsSidebar,
             teardownGlobalRuntime,

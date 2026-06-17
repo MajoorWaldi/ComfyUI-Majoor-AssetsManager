@@ -1,7 +1,8 @@
 import { t as e } from "./rolldown-runtime-Dy4uBu1J.js";
 import { a as t, p as n } from "./events-iWiZ-Zty.js";
-import { E as r, c as i, l as a, p as o, s, t as c } from "./SidebarWorkflowSection-DslJPuWf.js";
-import { C as l, D as u, E as d, L as f, T as p, at as m, ct as h, st as g, w as _ } from "./mjr-primevue-CJ2E0Gsv.js";
+import { c as r } from "./mediaFps-dibNFbk4.js";
+import { c as i, l as a, p as o, s, t as c } from "./SidebarWorkflowSection-CQks5fGJ.js";
+import { C as l, D as u, E as d, R as f, T as p, ct as m, lt as h, ot as g, w as _ } from "./mjr-primevue-DaF1IwbI.js";
 //#region ui/vue/components/viewer/ViewerMetadataBlock.vue
 var v = { style: {
 	display: "flex",
@@ -178,10 +179,10 @@ var v = { style: {
 		});
 		return (e, t) => (f(), u("div", v, [
 			r.title ? (f(), u("div", y, h(r.title), 1)) : d("", !0),
-			r.loading ? (f(), u("div", b, [_("div", x, h(m(n)("status.loading", "Loading")), 1), _("div", S, h(m(n)("viewer.loadingGenerationData", "Loading generation data...")), 1)])) : d("", !0),
+			r.loading ? (f(), u("div", b, [_("div", x, h(g(n)("status.loading", "Loading")), 1), _("div", S, h(g(n)("viewer.loadingGenerationData", "Loading generation data...")), 1)])) : d("", !0),
 			H.value ? (f(), u("div", {
 				key: 2,
-				style: g([{
+				style: m([{
 					padding: "10px 12px",
 					"border-radius": "10px",
 					border: "1px solid rgba(244,67,54,0.35)",
@@ -190,7 +191,7 @@ var v = { style: {
 					"white-space": "pre-wrap"
 				}, { cursor: r.onRetry ? "pointer" : "default" }]),
 				onClick: I
-			}, [_("div", C, h(m(n)("viewer.errorLoadingMetadata", "Error Loading Metadata")), 1), _("div", w, h(G.value), 1)], 4)) : d("", !0),
+			}, [_("div", C, h(g(n)("viewer.errorLoadingMetadata", "Error Loading Metadata")), 1), _("div", w, h(G.value), 1)], 4)) : d("", !0),
 			B.value ? (f(), p(a, {
 				key: 3,
 				asset: r.asset
@@ -203,8 +204,8 @@ var v = { style: {
 				key: 5,
 				asset: r.asset
 			}, null, 8, ["asset"])) : d("", !0),
-			W.value ? (f(), u("div", T, h(m(n)("viewer.noGenerationDataFile", "No generation data found for this file.")), 1)) : d("", !0),
-			U.value ? (f(), u("details", E, [_("summary", D, h(m(n)("msg.rawMetadata", "Raw metadata")), 1), _("pre", O, h(U.value), 1)])) : d("", !0)
+			W.value ? (f(), u("div", T, h(g(n)("viewer.noGenerationDataFile", "No generation data found for this file.")), 1)) : d("", !0),
+			U.value ? (f(), u("details", E, [_("summary", D, h(g(n)("msg.rawMetadata", "Raw metadata")), 1), _("pre", O, h(U.value), 1)])) : d("", !0)
 		]));
 	}
 }, A = /* @__PURE__ */ e({

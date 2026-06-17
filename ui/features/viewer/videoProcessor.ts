@@ -645,8 +645,24 @@ export function createVideoProcessor({
         );
         unsubs.push(safeAddListener?.(videoEl, "play", onPlay, { passive: true }) || (() => {}));
         unsubs.push(
-            safeAddListener?.(videoEl, "timeupdate", scheduleRender, { passive: true }) ||
-                (() => {}),
+            safeAddListener?.(
+                videoEl,
+                "timeupdate",
+                () => {
+                    try {
+                        if (
+                            !videoEl?.paused &&
+                            typeof videoEl?.requestVideoFrameCallback === "function"
+                        ) {
+                            return;
+                        }
+                    } catch (e: any) {
+                        console.debug?.(e);
+                    }
+                    scheduleRender();
+                },
+                { passive: true },
+            ) || (() => {}),
         );
         unsubs.push(safeAddListener?.(videoEl, "error", onError, { passive: true }) || (() => {}));
         if (shouldPauseDuringExecution) {

@@ -45,20 +45,34 @@ import {
 } from "../../app/hostAdapter.js";
 import { createSecureToken, pickRootId } from "../../utils/ids.js";
 import { getShortcutDisplay } from "../grid/GridKeyboard.js";
-import { floatingViewerManager } from "../viewer/floatingViewerManager.js";
 import {
     closeAllGridContextMenus,
     openGridContextMenu,
     openGridTagsPopover,
 } from "./gridContextMenuState.js";
 import { cancelAllRatingUpdates, scheduleRatingUpdate } from "./ratingUpdater.js";
-import { requestViewerOpen } from "../viewer/viewerOpenRequest.js";
 import { createCanvasLoaderNodes } from "../dnd/canvasLoaderNode.js";
 import { stageToInputDetailed } from "../dnd/staging/stageToInput.js";
 import { openWorkflowAssetPicker, openWorkflowPicker } from "../workflows/workflowPickerState.js";
 import { openWorkflowInfoDialog } from "../workflows/workflowInfoState.js";
 
 let _nextMenuItemId = 1;
+let viewerOpenRequestModulePromise: Promise<typeof import("../viewer/viewerOpenRequest.js")> | null = null;
+let floatingViewerManagerModulePromise: Promise<typeof import("../viewer/floatingViewerManager.js")> | null = null;
+
+function loadViewerOpenRequestModule() {
+    if (!viewerOpenRequestModulePromise) {
+        viewerOpenRequestModulePromise = import("../viewer/viewerOpenRequest.js");
+    }
+    return viewerOpenRequestModulePromise;
+}
+
+function loadFloatingViewerManagerModule() {
+    if (!floatingViewerManagerModulePromise) {
+        floatingViewerManagerModulePromise = import("../viewer/floatingViewerManager.js");
+    }
+    return floatingViewerManagerModulePromise;
+}
 
 function createItem(
     label: any,
@@ -1119,7 +1133,9 @@ function _buildAssetItems({
     const items: any[] = [];
     const inWorkflowScope = _isWorkflowScope(panelState);
     const openInViewer = ({ assets = [] as any[], index = 0, mode = "" } = {}) =>
-        requestViewerOpen({ assets, index, mode });
+        loadViewerOpenRequestModule()
+            .then((mod) => mod.requestViewerOpen({ assets, index, mode }))
+            .catch((e) => console.debug?.(e));
 
     if (_isWorkflowAsset(asset)) {
         items.push(
@@ -1185,6 +1201,7 @@ function _buildAssetItems({
                 createItem("Open Graph Map", "pi pi-sitemap", null, async () => {
                     try {
                         const graphAsset = await enrichWorkflowGraphAsset(asset);
+                        const { floatingViewerManager } = await loadFloatingViewerManagerModule();
                         await floatingViewerManager.openAssets({
                             assets: [graphAsset],
                             index: 0,
@@ -1230,6 +1247,7 @@ function _buildAssetItems({
             getShortcutDisplay("OPEN_FLOATING_VIEWER"),
             async () => {
                 try {
+                    const { floatingViewerManager } = await loadFloatingViewerManagerModule();
                     const selectedAssets = hasSelection ? getSelectedAssets(gridContainer) : [];
                     const mediaSelectedAssets = selectedAssets.filter(
                         (entry) => !_isFolderAsset(entry),
@@ -1264,6 +1282,7 @@ function _buildAssetItems({
         createItem("Open Graph Map", "pi pi-sitemap", null, async () => {
             try {
                 const graphAsset = await enrichWorkflowGraphAsset(asset);
+                const { floatingViewerManager } = await loadFloatingViewerManagerModule();
                 await floatingViewerManager.openAssets({
                     assets: [graphAsset],
                     index: 0,

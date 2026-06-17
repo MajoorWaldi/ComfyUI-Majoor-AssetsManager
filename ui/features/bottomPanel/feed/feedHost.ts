@@ -6,10 +6,8 @@ import {
 } from "../../../app/settings/settingsCore.js";
 import { EVENTS } from "../../../app/events.js";
 import { t } from "../../../app/i18n.js";
-import { floatingViewerManager } from "../../viewer/floatingViewerManager.js";
 import { setSelectionIds, getSelectedIdSet } from "../../grid/GridSelectionManager.js";
 import { createRatingBadge } from "../../../components/Badges.js";
-import { requestViewerOpen } from "../../viewer/viewerOpenRequest.js";
 import { get } from "../../../api/client.js";
 import { buildListURL } from "../../../api/endpoints.js";
 import { createPopoverManager } from "../../panel/views/popoverManager.js";
@@ -24,6 +22,22 @@ import VirtualAssetGridHost from "../../../vue/components/grid/VirtualAssetGridH
 const FEED_FETCH_LIMIT = 240;
 const FEED_PAGE_SIZE = 120;
 const FEED_PUSH_RENDER_DEBOUNCE_MS = 80;
+let viewerOpenRequestModulePromise: Promise<typeof import("../../viewer/viewerOpenRequest.js")> | null = null;
+let floatingViewerManagerModulePromise: Promise<typeof import("../../viewer/floatingViewerManager.js")> | null = null;
+
+function loadViewerOpenRequestModule() {
+    if (!viewerOpenRequestModulePromise) {
+        viewerOpenRequestModulePromise = import("../../viewer/viewerOpenRequest.js");
+    }
+    return viewerOpenRequestModulePromise;
+}
+
+function loadFloatingViewerManagerModule() {
+    if (!floatingViewerManagerModulePromise) {
+        floatingViewerManagerModulePromise = import("../../viewer/floatingViewerManager.js");
+    }
+    return floatingViewerManagerModulePromise;
+}
 
 function _createFeedMemberCard(asset: any) {
     const card = document.createElement("button");
@@ -302,7 +316,9 @@ function _openGroupViewer(host: any, groupedAsset: any, startIndex = 0) {
         }
         _applyFeedSelection(host.grid, [activeId], activeId);
     }
-    requestViewerOpen({ assets, index: safeIndex });
+    void loadViewerOpenRequestModule()
+        .then((mod) => mod.requestViewerOpen({ assets, index: safeIndex }))
+        .catch((e) => console.debug?.(e));
 }
 
 function _buildGroupPopover(host: any, groupedAsset: any) {
@@ -705,9 +721,12 @@ function _buildGrid(host: any, externalGridWrapper = null) {
             event.stopPropagation?.();
             markActive();
             try {
-                void floatingViewerManager
-                    .open()
-                    .then(() => floatingViewerManager.toggleCompareAB());
+                void loadFloatingViewerManagerModule()
+                    .then(async ({ floatingViewerManager }) => {
+                        await floatingViewerManager.open();
+                        floatingViewerManager.toggleCompareAB();
+                    })
+                    .catch((err) => console.debug?.(err));
             } catch (e) {
                 console.debug?.(e);
             }
