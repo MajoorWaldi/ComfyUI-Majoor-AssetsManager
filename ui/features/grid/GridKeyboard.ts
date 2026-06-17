@@ -22,7 +22,6 @@ import {
 import { buildDownloadURL } from "../../api/endpoints.js";
 import { ASSET_RATING_CHANGED_EVENT } from "../../app/events.js";
 import { safeDispatchCustomEvent } from "../../utils/events.js";
-import { requestViewerOpen } from "../viewer/viewerOpenRequest.js";
 import { showAddToCollectionMenu } from "../collections/contextmenu/addToCollectionMenu.js";
 import { normalizeRenameFilename, validateFilename } from "../../utils/filenames.js";
 import { getHotkeysState, isHotkeysSuspended } from "../panel/controllers/hotkeysState.js";
@@ -76,6 +75,15 @@ const GRID_SHORTCUTS = {
     NAV_LEFT: { key: "ArrowLeft", description: "Navigate left" },
     NAV_RIGHT: { key: "ArrowRight", description: "Navigate right" },
 };
+
+let viewerOpenRequestModulePromise: Promise<typeof import("../viewer/viewerOpenRequest.js")> | null = null;
+
+function loadViewerOpenRequestModule() {
+    if (!viewerOpenRequestModulePromise) {
+        viewerOpenRequestModulePromise = import("../viewer/viewerOpenRequest.js");
+    }
+    return viewerOpenRequestModulePromise;
+}
 
 /**
  * Format shortcut for display in context menu
@@ -200,7 +208,9 @@ export function installGridKeyboard({
     let bound = false;
     let pendingDownloadShortcut = false;
     const openInViewer = ({ assets = [] as any[], index = 0, mode = "" } = {}) => {
-        requestViewerOpen({ assets, index, mode });
+        void loadViewerOpenRequestModule()
+            .then((mod) => mod.requestViewerOpen({ assets, index, mode }))
+            .catch((e) => console.debug?.(e));
     };
 
     const markGridActive = () => {

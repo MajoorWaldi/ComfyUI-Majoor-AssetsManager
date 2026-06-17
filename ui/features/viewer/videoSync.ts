@@ -14,7 +14,11 @@ const _debug = () => {
  *
  * Must never throw. Returns an AbortController to remove listeners.
  */
-export function installFollowerVideoSync(leader: any, followers: any[], { threshold = 0.15 }: { threshold?: number } = {}): AbortController | void {
+export function installFollowerVideoSync(
+    leader: any,
+    followers: any[],
+    { threshold = 0.15, correctionCooldownMs = 250 }: { threshold?: number; correctionCooldownMs?: number } = {},
+): AbortController | void {
     const ac = new AbortController();
     try {
         if (!leader) return ac;
@@ -29,6 +33,7 @@ export function installFollowerVideoSync(leader: any, followers: any[], { thresh
             rafId: null,
             rvfcId: null,
         };
+        let lastPlaybackCorrectionAt = 0;
 
         const cancelPlaybackSync = () => {
             try {
@@ -69,22 +74,40 @@ export function installFollowerVideoSync(leader: any, followers: any[], { thresh
             }
         };
 
-        const syncTimeFrom = (source: any) => {
+        const nowMs = () => {
+            try {
+                return typeof performance !== "undefined" && typeof performance.now === "function"
+                    ? performance.now()
+                    : Date.now();
+            } catch {
+                return Date.now();
+            }
+        };
+
+        const syncTimeFrom = (source: any, { force = false } = {}) => {
             if (syncing) return;
             try {
                 const t = Number(source?.currentTime) || 0;
+                const sourcePlaying = source?.paused === false;
+                const now = nowMs();
+                const cooldown = Math.max(0, Number(correctionCooldownMs) || 0);
+                const allowPlaybackSeek =
+                    force || !sourcePlaying || !lastPlaybackCorrectionAt || now - lastPlaybackCorrectionAt >= cooldown;
+                let corrected = false;
                 for (const f of videos) {
                     if (!f || f === source) continue;
                     try {
-                        if (Math.abs((Number(f.currentTime) || 0) - t) > threshold) {
+                        if (Math.abs((Number(f.currentTime) || 0) - t) > threshold && allowPlaybackSeek) {
                             syncing = true;
                             f.currentTime = t;
                             syncing = false;
+                            corrected = true;
                         }
                     } catch {
                         syncing = false;
                     }
                 }
+                if (sourcePlaying && corrected) lastPlaybackCorrectionAt = now;
             } catch {
                 syncing = false;
             }
@@ -126,7 +149,7 @@ export function installFollowerVideoSync(leader: any, followers: any[], { thresh
             console.debug?.(e);
         }
 
-        const syncTimeToLeader = () => syncTimeFrom(leader);
+        const syncTimeToLeader = (options = {}) => syncTimeFrom(leader, options);
 
         const syncPlayState = (playing: any, source = leader) => {
             if (syncing) return;
@@ -219,13 +242,13 @@ export function installFollowerVideoSync(leader: any, followers: any[], { thresh
             signal: ac.signal,
             passive: true,
         });
-        leader.addEventListener("timeupdate", syncTimeToLeader, {
+        leader.addEventListener("timeupdate", () => syncTimeToLeader(), {
             signal: ac.signal,
             passive: true,
         });
-        leader.addEventListener("seeking", syncTimeToLeader, { signal: ac.signal, passive: true });
-        leader.addEventListener("seeked", syncTimeToLeader, { signal: ac.signal, passive: true });
-        leader.addEventListener("ended", syncTimeToLeader, { signal: ac.signal, passive: true });
+        leader.addEventListener("seeking", () => syncTimeToLeader({ force: true }), { signal: ac.signal, passive: true });
+        leader.addEventListener("seeked", () => syncTimeToLeader({ force: true }), { signal: ac.signal, passive: true });
+        leader.addEventListener("ended", () => syncTimeToLeader({ force: true }), { signal: ac.signal, passive: true });
         leader.addEventListener("volumechange", syncVolume, { signal: ac.signal, passive: true });
         leader.addEventListener("ratechange", syncRate, { signal: ac.signal, passive: true });
 
@@ -237,7 +260,7 @@ export function installFollowerVideoSync(leader: any, followers: any[], { thresh
                         startPlaybackSync(leader);
                         return;
                     }
-                    syncTimeFrom(media);
+                    syncTimeFrom(media, { force: true });
                     syncRate(media);
                     syncPlayState(true, media);
                     startPlaybackSync(media);
@@ -261,11 +284,11 @@ export function installFollowerVideoSync(leader: any, followers: any[], { thresh
                         passive: true,
                     },
                 );
-                media.addEventListener("seeking", () => syncTimeFrom(media), {
+                media.addEventListener("seeking", () => syncTimeFrom(media, { force: true }), {
                     signal: ac.signal,
                     passive: true,
                 });
-                media.addEventListener("seeked", () => syncTimeFrom(media), {
+                media.addEventListener("seeked", () => syncTimeFrom(media, { force: true }), {
                     signal: ac.signal,
                     passive: true,
                 });
@@ -315,7 +338,7 @@ export function installFollowerVideoSync(leader: any, followers: any[], { thresh
         try {
             for (const f of list) {
                 try {
-                    f.addEventListener("loadedmetadata", syncTimeToLeader, {
+                    f.addEventListener("loadedmetadata", () => syncTimeToLeader({ force: true }), {
                         signal: ac.signal,
                         passive: true,
                         once: true,

@@ -301,6 +301,7 @@ const displayName = computed(() => {
     const f = rawDisplayName.value || filename.value;
     return f.includes(".") ? f.slice(0, f.lastIndexOf(".")) : f;
 });
+const notes = computed(() => String(props.asset.notes || "").trim());
 const audioWaveformBars = computed(() =>
     makeAudioWaveformBars(`${props.asset.id || ""}:${filename.value}:${props.asset.duration || ""}`),
 );
@@ -313,10 +314,9 @@ const cardTitle = computed(() => {
     const parts = [filename.value || rawDisplayName.value];
     const subfolder = String(props.asset.subfolder || props.asset.file_info?.subfolder || "").trim();
     const type = String(props.asset.type || props.asset.source || props.asset.file_info?.type || "").trim();
-    const notes = String(props.asset.notes || "").trim();
     if (subfolder) parts.push(`Subfolder: ${subfolder}`);
     if (type) parts.push(`Type: ${type}`);
-    if (notes) parts.push(`Notes: ${notes}`);
+    if (notes.value) parts.push(`Notes: ${notes.value}`);
     return parts.filter(Boolean).join("\n");
 });
 
@@ -868,10 +868,11 @@ function emitWorkflowAction(action, event) {
 
         <!-- Hover info overlay -->
         <div
-            v-if="positivePrompt || genTimeValid"
+            v-if="positivePrompt || (isWorkflow && notes) || genTimeValid"
             class="mjr-card-hover-info"
         >
             <div v-if="positivePrompt" class="mjr-hover-prompt">{{ positivePrompt }}</div>
+            <div v-if="isWorkflow && notes" class="mjr-hover-prompt mjr-hover-workflow-notes">{{ notes }}</div>
             <div v-if="genTimeValid" class="mjr-hover-gentime">Time {{ genTimeFmt.text }}</div>
         </div>
     </div>

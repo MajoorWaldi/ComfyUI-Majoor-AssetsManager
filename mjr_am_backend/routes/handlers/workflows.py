@@ -7,6 +7,7 @@ import os
 import shutil
 import subprocess
 import sys
+from email.utils import formatdate
 from pathlib import Path
 
 from aiohttp import web
@@ -44,6 +45,60 @@ from ..core import (
 
 _WORKFLOW_WRITE_RATE_LIMIT_MAX_REQUESTS = 30
 _WORKFLOW_WRITE_RATE_LIMIT_WINDOW_SECONDS = 60
+_WORKFLOW_THUMBNAIL_CACHE_CONTROL = "private, max-age=300"
+
+
+def _weak_file_etag(path: Path) -> str:
+    try:
+        stat = path.stat()
+        return f'W/"{int(stat.st_mtime_ns):x}-{int(stat.st_size):x}"'
+    except Exception:
+        return 'W/"0-0"'
+
+
+def _http_date_from_mtime(path: Path) -> str:
+    try:
+        return formatdate(path.stat().st_mtime, usegmt=True)
+    except Exception:
+        return formatdate(None, usegmt=True)
+
+
+def _request_etag_matches(request: web.Request, etag: str) -> bool:
+    try:
+        raw = str(request.headers.get("If-None-Match") or "")
+        if not raw:
+            return False
+        values = {part.strip() for part in raw.split(",")}
+        return "*" in values or etag in values
+    except Exception:
+        return False
+
+
+def _request_mtime_matches(request: web.Request, path: Path) -> bool:
+    try:
+        ims = request.if_modified_since
+        if ims is None:
+            return False
+        stat = path.stat()
+        return int(stat.st_mtime) <= int(ims.timestamp())
+    except Exception:
+        return False
+
+
+def _cached_not_modified_response(etag: str, last_modified: str) -> web.Response:
+    resp = web.Response(status=304)
+    resp.headers["ETag"] = etag
+    resp.headers["Last-Modified"] = last_modified
+    resp.headers["Cache-Control"] = _WORKFLOW_THUMBNAIL_CACHE_CONTROL
+    resp.headers["X-Content-Type-Options"] = "nosniff"
+    return resp
+
+
+def _set_cache_headers(resp: web.StreamResponse, *, etag: str, last_modified: str) -> None:
+    resp.headers["ETag"] = etag
+    resp.headers["Last-Modified"] = last_modified
+    resp.headers["Cache-Control"] = _WORKFLOW_THUMBNAIL_CACHE_CONTROL
+    resp.headers["X-Content-Type-Options"] = "nosniff"
 logger = get_logger(__name__)
 
 
@@ -423,10 +478,13 @@ def register_workflow_routes(routes: web.RouteTableDef) -> None:
         if resolved is None:
             return _json_response(Result.Err("NOT_FOUND", "Thumbnail not found"))
         try:
+            etag = _weak_file_etag(resolved)
+            last_modified = _http_date_from_mtime(resolved)
+            if _request_etag_matches(request, etag) or _request_mtime_matches(request, resolved):
+                return _cached_not_modified_response(etag, last_modified)
             resp = web.FileResponse(path=str(resolved))
             resp.headers["Content-Type"] = _guess_content_type_for_file(resolved)
-            resp.headers["Cache-Control"] = "no-cache"
-            resp.headers["X-Content-Type-Options"] = "nosniff"
+            _set_cache_headers(resp, etag=etag, last_modified=last_modified)
             return resp
         except Exception:
             return _json_response(Result.Err("VIEW_FAILED", "Failed to serve thumbnail"))
@@ -442,8 +500,12 @@ def register_workflow_routes(routes: web.RouteTableDef) -> None:
         workflow = dict(content.data or {}).get("workflow")
         if not isinstance(workflow, dict):
             return _json_response(Result.Err("INVALID_WORKFLOW", "Workflow JSON is missing or invalid"))
+        source_path = Path(filepath)
+        etag = _weak_file_etag(source_path)
+        last_modified = _http_date_from_mtime(source_path)
+        if _request_etag_matches(request, etag) or _request_mtime_matches(request, source_path):
+            return _cached_not_modified_response(etag, last_modified)
         svg = workflow_graph_map_svg(workflow)
         resp = web.Response(text=svg, content_type="image/svg+xml")
-        resp.headers["Cache-Control"] = "no-cache"
-        resp.headers["X-Content-Type-Options"] = "nosniff"
+        _set_cache_headers(resp, etag=etag, last_modified=last_modified)
         return resp

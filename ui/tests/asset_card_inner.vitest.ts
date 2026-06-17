@@ -249,6 +249,37 @@ describe("AssetCardInner media display", () => {
         expect(wrapper.text()).toContain("Missing:");
     });
 
+    it("shows workflow notes in the hover overlay", () => {
+        const wrapper = mount(AssetCardInner, {
+            props: {
+                asset: {
+                    id: "wf-notes",
+                    filename: "noted_workflow.json",
+                    kind: "workflow",
+                    task: "I2I",
+                    notes: "Use this workflow for sharp product edits.",
+                },
+            },
+            global: {
+                stubs: {
+                    MButton: true,
+                    RatingBadge: true,
+                    TagsBadge: true,
+                    GenTimeBadge: true,
+                },
+            },
+        });
+
+        const hover = wrapper.find(".mjr-card-hover-info");
+        expect(hover.exists()).toBe(true);
+        expect(hover.find(".mjr-hover-workflow-notes").text()).toBe(
+            "Use this workflow for sharp product edits.",
+        );
+        expect(wrapper.find(".mjr-card-filename").attributes("title")).toContain(
+            "Notes: Use this workflow for sharp product edits.",
+        );
+    });
+
     it("shows workflow fallback shell when no thumbnail is available", () => {
         const wrapper = mount(AssetCardInner, {
             props: {

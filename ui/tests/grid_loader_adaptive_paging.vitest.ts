@@ -108,6 +108,9 @@ describe("useGridLoader adaptive paging", () => {
 
     afterEach(() => {
         vi.useRealTimers();
+        try {
+            delete (globalThis.navigator as any).deviceMemory;
+        } catch {}
     });
 
     it("increases page size when successive pages add no visible cards", async () => {
@@ -227,6 +230,71 @@ describe("useGridLoader adaptive paging", () => {
         await Promise.resolve();
 
         expect(requestedOffsets.length).toBeGreaterThan(6);
+    });
+
+    it("skips delayed prefetch on constrained browser runtimes", async () => {
+        vi.useFakeTimers();
+        Object.defineProperty(globalThis.navigator, "deviceMemory", {
+            configurable: true,
+            value: 4,
+        });
+        const { useGridLoader } = await import("../vue/composables/useGridLoader.js");
+
+        const requestedOffsets = [];
+        fetchGridPageMock.mockImplementation(async (_grid, _query, limit, offset) => {
+            requestedOffsets.push(offset);
+            return {
+                ok: true,
+                assets: Array.from({ length: limit }, (_, index) => ({
+                    id: `${offset}-${index}`,
+                })),
+                total: 8000,
+                count: limit,
+                limit,
+                offset,
+            };
+        });
+        appendAssetsMock.mockReturnValue(0);
+
+        const state = {
+            loading: false,
+            done: false,
+            total: 8000,
+            offset: 0,
+            requestId: 1,
+            abortController: null,
+            query: "*",
+            assets: [],
+            activeId: "",
+            statusMessage: "",
+            statusError: false,
+        };
+
+        const loader = useGridLoader({
+            gridContainerRef: { value: createVisibleElement({ dataset: {} }) },
+            state,
+            setLoadingMessage: vi.fn(),
+            clearLoadingMessage: vi.fn(),
+            setStatusMessage: vi.fn(),
+            clearStatusMessage: vi.fn(),
+            resetAssets: vi.fn(),
+            setSelection: vi.fn(),
+            reconcileSelection: vi.fn(),
+            readScrollElement: () => createVisibleElement(),
+            readRenderedCards: () => [],
+            scrollToAssetId: vi.fn(),
+        });
+
+        const result = await loader.loadNextPage();
+
+        expect(result).toMatchObject({ ok: true, skippedEmpty: true });
+        expect(requestedOffsets).toEqual([0, 100, 300, 700, 1500, 3100]);
+
+        await vi.advanceTimersByTimeAsync(1000);
+        await Promise.resolve();
+        await Promise.resolve();
+
+        expect(requestedOffsets).toHaveLength(6);
     });
 
     it("does not stop infinite scroll when default output browse returns a page-sized total", async () => {

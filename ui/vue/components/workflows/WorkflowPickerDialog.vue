@@ -6,9 +6,13 @@ import { workflowPickerState, closeWorkflowPicker } from "../../../features/work
 
 const query = ref("");
 const loading = ref(false);
+const loadingMore = ref(false);
 const error = ref("");
 const workflows = ref([]);
 const selectedPath = ref("");
+const workflowOffset = ref(0);
+const hasMoreWorkflows = ref(false);
+const WORKFLOW_PAGE_LIMIT = 120;
 let requestId = 0;
 
 const sourceAsset = computed(() => workflowPickerState.sourceAsset || null);
@@ -98,9 +102,15 @@ function workflowThumb(workflow) {
     ).trim();
 }
 
-async function refreshWorkflows() {
+async function loadWorkflowPage({ reset = false } = {}) {
     const id = ++requestId;
-    loading.value = true;
+    if (reset) {
+        workflowOffset.value = 0;
+        hasMoreWorkflows.value = false;
+    }
+    const offset = reset ? 0 : workflowOffset.value;
+    if (reset) loading.value = true;
+    else loadingMore.value = true;
     error.value = "";
     try {
         if (isAssetMode.value) {
@@ -112,11 +122,14 @@ async function refreshWorkflows() {
             }
             return;
         }
-        const res = await listWorkflows({ q: "*", limit: 300, sort: "mtime" }, { timeoutMs: 20_000 });
+        const res = await listWorkflows(
+            { q: "*", limit: WORKFLOW_PAGE_LIMIT, offset, sort: "mtime" },
+            { timeoutMs: 20_000 },
+        );
         if (id !== requestId) return;
         if (!res?.ok) {
             error.value = String(res?.error || "Failed to load workflows");
-            workflows.value = [];
+            if (reset) workflows.value = [];
             return;
         }
         const list = Array.isArray(res?.data?.assets)
@@ -124,7 +137,10 @@ async function refreshWorkflows() {
             : Array.isArray(res?.data)
                 ? res.data
                 : [];
-        workflows.value = list.filter((workflow) => String(workflow?.filepath || "").trim());
+        const nextItems = list.filter((workflow) => String(workflow?.filepath || "").trim());
+        workflows.value = reset ? nextItems : [...workflows.value, ...nextItems];
+        workflowOffset.value = offset + nextItems.length;
+        hasMoreWorkflows.value = nextItems.length >= WORKFLOW_PAGE_LIMIT;
         if (!selectedPath.value && workflows.value[0]?.filepath) {
             selectedPath.value = String(workflows.value[0].filepath);
         }
@@ -134,8 +150,20 @@ async function refreshWorkflows() {
             workflows.value = [];
         }
     } finally {
-        if (id === requestId) loading.value = false;
+        if (id === requestId) {
+            loading.value = false;
+            loadingMore.value = false;
+        }
     }
+}
+
+async function refreshWorkflows() {
+    return loadWorkflowPage({ reset: true });
+}
+
+async function loadMoreWorkflows() {
+    if (loading.value || loadingMore.value || !hasMoreWorkflows.value) return;
+    return loadWorkflowPage({ reset: false });
 }
 
 function applySelection() {
@@ -164,6 +192,8 @@ watch(
             return;
         }
         selectedPath.value = "";
+        workflowOffset.value = 0;
+        hasMoreWorkflows.value = false;
         query.value = "";
         taskFilter.value = "";
         modelFilter.value = "";
@@ -266,6 +296,22 @@ onBeforeUnmount(() => {
                                 <strong>{{ workflowTitle(workflow) }}</strong>
                                 <span>{{ workflowMeta(workflow) }}</span>
                                 <small>{{ workflow.filename }}</small>
+                            </div>
+                        </button>
+                        <button
+                            v-if="!isAssetMode && hasMoreWorkflows"
+                            type="button"
+                            class="mjr-workflow-picker-card mjr-workflow-picker-load-more"
+                            :disabled="loadingMore"
+                            @click="loadMoreWorkflows"
+                        >
+                            <div class="mjr-workflow-picker-thumb">
+                                <i class="pi pi-angle-down" />
+                            </div>
+                            <div class="mjr-workflow-picker-card-info">
+                                <strong>{{ loadingMore ? t("status.loading", "Loading...") : t("action.loadMore", "Load more") }}</strong>
+                                <span>{{ t("tab.workflow", "Workflow") }}</span>
+                                <small>{{ workflowOffset }} loaded</small>
                             </div>
                         </button>
                     </template>
