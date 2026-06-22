@@ -1,10 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const getMock = vi.fn();
+const getWorkflowContentMock = vi.fn();
 const postMock = vi.fn();
 
 vi.mock("../api/client.js", () => ({
     get: getMock,
+    getWorkflowContent: getWorkflowContentMock,
     post: postMock,
 }));
 
@@ -21,6 +23,7 @@ vi.mock("../api/endpoints.js", () => ({
 describe("canvas drag/drop loader creation", () => {
     beforeEach(async () => {
         getMock.mockReset();
+        getWorkflowContentMock.mockReset();
         postMock.mockReset();
         postMock.mockImplementation((_url, body) => {
             const filename = body?.files?.[0]?.filename || "one.png";
@@ -38,6 +41,15 @@ describe("canvas drag/drop loader creation", () => {
             });
         });
         getMock.mockResolvedValue({ ok: true, workflow: { nodes: [], links: [] } });
+        getWorkflowContentMock.mockResolvedValue({
+            ok: true,
+            data: {
+                workflow: {
+                    nodes: [{ id: 1, type: "CheckpointLoaderSimple" }],
+                    links: [],
+                },
+            },
+        });
 
         const { setComfyApp } = await import("../app/comfyApiBridge.js");
         setComfyApp(makeApp());
@@ -282,6 +294,50 @@ describe("canvas drag/drop loader creation", () => {
         expect(app.loadGraphData).not.toHaveBeenCalled();
         expect(app.graph.add).toHaveBeenCalledWith(createdNode);
         expect(createdNode.widgets[0].value).toBe("assets/one.png");
+    });
+
+    it("loads a dragged workflow JSON card on empty canvas without staging it", async () => {
+        const { createAssetDragStartHandler, createDragDropRuntimeHandlers } = await import("../features/dnd/DragDrop.js");
+        const { getComfyApp } = await import("../app/comfyApiBridge.js");
+        const data = new Map();
+        const dataTransfer = {
+            setData: vi.fn((type, value) => data.set(type, value)),
+            items: { add: vi.fn((value, type) => data.set(type, value)) },
+            setDragImage: vi.fn(),
+        };
+        const card = {
+            _mjrAsset: {
+                id: "workflow-1",
+                filename: "portrait_workflow.json",
+                filepath: "D:/ComfyUI/user/default/workflows/portrait_workflow.json",
+                type: "workflow",
+                kind: "workflow",
+            },
+            closest: () => card,
+            querySelector: () => null,
+            addEventListener: vi.fn(),
+        };
+
+        createAssetDragStartHandler({ _mjrGetSelectedAssets: () => [] })(makeDragStartEvent(card, dataTransfer));
+        const payload = JSON.parse(data.get("application/x-mjr-asset"));
+        const handlers = createDragDropRuntimeHandlers();
+        await handlers.onDrop(makeDropEvent(payload));
+
+        const app = getComfyApp();
+        expect(payload).toMatchObject({
+            filename: "portrait_workflow.json",
+            kind: "workflow",
+            filepath: "D:/ComfyUI/user/default/workflows/portrait_workflow.json",
+        });
+        expect(getWorkflowContentMock).toHaveBeenCalledWith(
+            "D:/ComfyUI/user/default/workflows/portrait_workflow.json",
+            { timeoutMs: 30_000 },
+        );
+        expect(postMock).not.toHaveBeenCalled();
+        expect(app.loadGraphData).toHaveBeenCalledWith({
+            nodes: [{ id: 1, type: "CheckpointLoaderSimple" }],
+            links: [],
+        });
     });
 
     it("creates context-menu loader nodes at the visible canvas center when no pointer event is available", async () => {

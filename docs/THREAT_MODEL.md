@@ -27,6 +27,7 @@ This model covers the Majoor Assets Manager backend routes under `/mjr/am/*` and
 
 **Mitigations:**
 - Normalize paths and reject invalid/unsafe paths (`_safe_rel_path`, `_is_within_root`, allow-lists).
+- Exception: `/mjr/am/open-in-folder` may reveal any existing local path in the OS file manager when the action is enabled. It does not provide file content reads, writes, deletes, downloads, or indexing access.
 - Custom roots are resolved and validated (root-id → canonical directory).
 - Avoid exposing arbitrary “open file” primitives; use explicit allow-listed actions.
 

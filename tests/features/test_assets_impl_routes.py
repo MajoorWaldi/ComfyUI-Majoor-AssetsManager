@@ -363,7 +363,7 @@ async def test_open_in_folder_main_branches(monkeypatch, tmp_path: Path):
     monkeypatch.setattr(m, "_require_write_access", lambda _request: Result.Ok({}))
     monkeypatch.setattr(m, "_check_rate_limit", lambda *_args, **_kwargs: (True, None))
     monkeypatch.setattr(m, "_read_json", _read_json)
-    monkeypatch.setattr(m, "_is_resolved_path_allowed", lambda _p: True)
+    monkeypatch.setattr(m, "_is_resolved_path_allowed", lambda _p: False)
     import shutil as _shutil_mod
     monkeypatch.setattr(_shutil_mod, "which", lambda _cmd: None)
 
@@ -371,6 +371,7 @@ async def test_open_in_folder_main_branches(monkeypatch, tmp_path: Path):
     resp1 = await (await app.router.resolve(req1)).handler(req1)
     payload = _json(resp1)
     assert payload.get("code") in {"DEGRADED", "OK", None}
+    assert payload.get("code") != "FORBIDDEN"
 
 
 @pytest.mark.asyncio

@@ -5,7 +5,7 @@
 import { APP_DEFAULTS } from "../config.js";
 import { t } from "../i18n.js";
 import { comfyToast } from "../toast.js";
-import { setVectorSearchSettings } from "../../api/client.js";
+import { setVectorSearchSettings, unloadVectorModels } from "../../api/client.js";
 import { saveMajoorSettings, applySettingsToConfig } from "./settingsCore.js";
 
 const SETTINGS_PREFIX = "Majoor";
@@ -111,6 +111,150 @@ export function registerSearchSettings(safeAddSetting: (def: any) => void, setti
         },
     });
 
+    safeAddSetting({
+        id: `${SETTINGS_PREFIX}.AI.VectorIndexOnScan`,
+        category: cat(t("cat.search", "Search"), "AI"),
+        name: t("setting.ai.vector.indexOnScan.name", "Index vectors during scans"),
+        tooltip: t(
+            "setting.ai.vector.indexOnScan.desc",
+            "Compute SigLIP/X-CLIP embeddings while assets are scanned. Disable to avoid surprise VRAM use; run vector backfill manually when needed.",
+        ),
+        type: "boolean",
+        defaultValue: !!(settings.ai?.vectorIndexOnScan ?? false),
+        onChange: async (value: any) => {
+            settings.ai = settings.ai || {};
+            const previous = !!(settings.ai.vectorIndexOnScan ?? false);
+            const next = !!value;
+            settings.ai.vectorIndexOnScan = next;
+            saveMajoorSettings(settings);
+            applySettingsToConfig(settings);
+            notifyApplied("ai.vectorIndexOnScan");
+            try {
+                const res = await setVectorSearchSettings({ index_on_scan: next });
+                if (!res?.ok) {
+                    settings.ai.vectorIndexOnScan = previous;
+                    saveMajoorSettings(settings);
+                    applySettingsToConfig(settings);
+                    notifyApplied("ai.vectorIndexOnScan");
+                    comfyToast(res?.error || "Failed to update vector scan indexing", "error");
+                    return;
+                }
+                comfyToast(next ? "Vector indexing during scans enabled" : "Vector indexing during scans disabled", "info", 2400);
+            } catch (error: any) {
+                settings.ai.vectorIndexOnScan = previous;
+                saveMajoorSettings(settings);
+                applySettingsToConfig(settings);
+                notifyApplied("ai.vectorIndexOnScan");
+                comfyToast(error?.message || "Failed to update vector scan indexing", "error");
+            }
+        },
+    });
+
+    safeAddSetting({
+        id: `${SETTINGS_PREFIX}.AI.VectorConcurrency`,
+        category: cat(t("cat.search", "Search"), "AI"),
+        name: t("setting.ai.vector.concurrency.name", "Vector indexing concurrency"),
+        tooltip: t(
+            "setting.ai.vector.concurrency.desc",
+            "Maximum concurrent vector embedding workers. Use 1 to minimize transient VRAM spikes.",
+        ),
+        type: "number",
+        defaultValue: Number(settings.ai?.vectorConcurrency || 1),
+        attrs: { min: 1, max: 16, step: 1 },
+        onChange: async (value: any) => {
+            settings.ai = settings.ai || {};
+            const previous = Number(settings.ai.vectorConcurrency || 1);
+            const next = Math.max(1, Math.min(16, Math.floor(Number(value) || 1)));
+            settings.ai.vectorConcurrency = next;
+            saveMajoorSettings(settings);
+            applySettingsToConfig(settings);
+            notifyApplied("ai.vectorConcurrency");
+            try {
+                const res = await setVectorSearchSettings({ concurrency: next });
+                if (!res?.ok) {
+                    settings.ai.vectorConcurrency = previous;
+                    saveMajoorSettings(settings);
+                    applySettingsToConfig(settings);
+                    notifyApplied("ai.vectorConcurrency");
+                    comfyToast(res?.error || "Failed to update vector concurrency", "error");
+                }
+            } catch (error: any) {
+                settings.ai.vectorConcurrency = previous;
+                saveMajoorSettings(settings);
+                applySettingsToConfig(settings);
+                notifyApplied("ai.vectorConcurrency");
+                comfyToast(error?.message || "Failed to update vector concurrency", "error");
+            }
+        },
+    });
+
+    safeAddSetting({
+        id: `${SETTINGS_PREFIX}.AI.VectorUnloadAfterUse`,
+        category: cat(t("cat.search", "Search"), "AI"),
+        name: t("setting.ai.vector.unloadAfterUse.name", "Unload AI models after use"),
+        tooltip: t(
+            "setting.ai.vector.unloadAfterUse.desc",
+            "Unload Majoor SigLIP/X-CLIP/Florence models after heavy AI actions and call torch CUDA cache cleanup. This frees VRAM but makes the next AI action slower.",
+        ),
+        type: "boolean",
+        defaultValue: !!(settings.ai?.vectorUnloadAfterUse ?? false),
+        onChange: async (value: any) => {
+            settings.ai = settings.ai || {};
+            const previous = !!(settings.ai.vectorUnloadAfterUse ?? false);
+            const next = !!value;
+            settings.ai.vectorUnloadAfterUse = next;
+            saveMajoorSettings(settings);
+            applySettingsToConfig(settings);
+            notifyApplied("ai.vectorUnloadAfterUse");
+            try {
+                const res = await setVectorSearchSettings({ unload_after_use: next });
+                if (!res?.ok) {
+                    settings.ai.vectorUnloadAfterUse = previous;
+                    saveMajoorSettings(settings);
+                    applySettingsToConfig(settings);
+                    notifyApplied("ai.vectorUnloadAfterUse");
+                    comfyToast(res?.error || "Failed to update model unload setting", "error");
+                    return;
+                }
+                comfyToast(next ? "AI model unload after use enabled" : "AI model unload after use disabled", "info", 2400);
+            } catch (error: any) {
+                settings.ai.vectorUnloadAfterUse = previous;
+                saveMajoorSettings(settings);
+                applySettingsToConfig(settings);
+                notifyApplied("ai.vectorUnloadAfterUse");
+                comfyToast(error?.message || "Failed to update model unload setting", "error");
+            }
+        },
+    });
+
+    safeAddSetting({
+        id: `${SETTINGS_PREFIX}.AI.VectorUnloadNow`,
+        category: cat(t("cat.search", "Search"), "AI"),
+        name: t("setting.ai.vector.unloadNow.name", "Memory purge now"),
+        tooltip: t(
+            "setting.ai.vector.unloadNow.desc",
+            "Immediately unload Majoor AI vector/caption models, ask ComfyUI to unload loaded models, and clear torch CUDA cache when idle.",
+        ),
+        type: "combo",
+        options: ["Idle", "Unload now"],
+        defaultValue: "Idle",
+        onChange: async (value: any) => {
+            if (String(value || "") !== "Unload now") return;
+            try {
+                const res = await unloadVectorModels();
+                comfyToast(
+                    res?.ok
+                        ? "Majoor AI model cache unloaded"
+                        : res?.error || "Failed to unload Majoor AI model cache",
+                    res?.ok ? "info" : "error",
+                    2600,
+                );
+            } catch (error: any) {
+                comfyToast(error?.message || "Failed to unload Majoor AI model cache", "error");
+            }
+        },
+    });
+
     // ------------------------
     // Search UI setting
     // ------------------------
@@ -164,7 +308,10 @@ export function registerSearchSettings(safeAddSetting: (def: any) => void, setti
             "MJR_WATCHER_FLUSH_MAX_FILES - Max files per flush batch (default: 256)",
             "MJR_WATCHER_PENDING_MAX - Max pending watcher queue (default: 5000)",
             "MJR_AM_ENABLE_VECTOR_SEARCH - Enable AI vector/semantic search: 1|0 (default: 1)",
+            "MJR_AM_VECTOR_INDEX_ON_SCAN - Compute vectors during scans: 1|0 (default: 0)",
             "MJR_AM_VECTOR_CAPTION_ON_INDEX - Generate Florence captions during vector indexing: 1|0 (default: 0)",
+            "MJR_VECTOR_CONCURRENCY - Concurrent vector workers (default: 2, use 1 for lower VRAM spikes)",
+            "MJR_AM_VECTOR_UNLOAD_AFTER_USE - Unload Majoor AI models after heavy vector actions: 1|0 (default: 0)",
             "MAJOOR_SEARCH_MAX_LIMIT - Max search results (default: 500)",
             "MAJOOR_BG_SCAN_ON_LIST - Scan on directory list: 0|1 (default: 0)",
         ].join("\n"),

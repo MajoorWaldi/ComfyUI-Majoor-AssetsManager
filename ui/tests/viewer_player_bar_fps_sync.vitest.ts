@@ -194,4 +194,55 @@ describe("playerBarManager FPS sync", () => {
         expect(mediaEl.muted).toBe(false);
         expect(mediaEl.play).toHaveBeenCalledTimes(1);
     });
+
+    it("does not let runtime FPS estimates replace an existing native FPS", async () => {
+        let fpsHandler = null;
+        globalThis.window = {
+            addEventListener: vi.fn((_type, handler) => {
+                fpsHandler = handler;
+            }),
+            removeEventListener: vi.fn(),
+        };
+        state.nativeFps = 25;
+        const mounted = {
+            destroy: vi.fn(),
+            setMediaInfo: vi.fn(),
+        };
+        mountUnifiedMediaControls = vi.fn(() => mounted);
+
+        const manager = createPlayerBarManager({
+            state,
+            APP_CONFIG: { VIEWER_SCOPES_FPS: 8 },
+            VIEWER_MODES: { SINGLE: "single" },
+            overlay,
+            navBar,
+            playerBarHost,
+            singleView: null,
+            abView: null,
+            sideView: null,
+            metadataHydrator: { getCached: vi.fn(() => null) },
+            isPlayableViewerKind: () => true,
+            collectPlayableMediaElements: () => [mediaEl],
+            pickPrimaryPlayableMedia: () => mediaEl,
+            mountUnifiedMediaControls,
+            installFollowerVideoSync: vi.fn(() => ({ abort: vi.fn() })),
+            getViewerInfo: vi.fn(async () => ({ ok: true, data: {} })),
+            scheduleOverlayRedraw: vi.fn(),
+            viewerInfoCacheGet: vi.fn(() => null),
+            viewerInfoCacheSet: vi.fn(),
+        });
+
+        await manager.syncPlayerBar();
+        fpsHandler?.(
+            new CustomEvent("mjr:viewer-fps-detected", {
+                detail: { assetId: "1001", fps: 17.321, source: "rvfc" },
+            }),
+        );
+
+        expect(state.nativeFps).toBe(12.5);
+        expect(mounted.setMediaInfo).toHaveBeenLastCalledWith({
+            fps: 17.321,
+            fpsSource: "rvfc",
+        });
+    });
 });

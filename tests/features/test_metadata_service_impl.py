@@ -78,6 +78,26 @@ def test_top_level_param_helpers():
     assert "positive" in d and "size" in d and "checkpoint" in d
 
 
+def test_workflow_detection_metadata_from_embedded_workflow():
+    svc = _svc()
+    combined = {
+        "workflow": {
+            "nodes": [
+                {"id": 1, "type": "LoadImage", "widgets_values": ["input.png"]},
+                {"id": 2, "type": "WanVideoSampler"},
+                {"id": 3, "type": "VHS_VideoCombine"},
+            ]
+        }
+    }
+
+    svc._apply_workflow_detection_metadata(combined, combined["workflow"])
+
+    assert combined["workflow_type"] == "I2V"
+    assert combined["workflow_detection"]["task"] == "I2V"
+    assert combined["workflow_detection"]["model_family"] == "Wan"
+    assert combined["workflow_detection"]["source"] == "graph"
+
+
 def test_media_pipeline_helpers():
     g = {"1": {"class_type": "LoadVideo"}, "2": {"class_type": "VHS_VideoCombine"}}
     assert m._looks_like_media_pipeline(g) is True

@@ -6,6 +6,7 @@ import { setComfyApp } from "../app/comfyApiBridge.js";
 import { findWorkflowNode, resolveAssetWorkflow } from "../features/viewer/workflowGraphMap/workflowGraphMapData.js";
 import {
     copyNodeJson,
+    importNodeToCurrentGraph,
     transferNodeParamsToSelectedCanvasNode,
 } from "../features/viewer/workflowGraphMap/workflowGraphMapActions.js";
 
@@ -141,6 +142,51 @@ describe("workflow graph map actions", () => {
         ]);
         expect(copied._mjrPromptInputs).toBeUndefined();
         expect(copied._mjrSubgraphProxyParams).toBeUndefined();
+    });
+
+    it("imports a workflow node through the host adapter node factory", () => {
+        const created = {
+            type: "KSampler",
+            configure: vi.fn(function configure(payload) {
+                Object.assign(this, payload);
+            }),
+        };
+        const graph = {
+            add: vi.fn(),
+            setDirtyCanvas: vi.fn(),
+            change: vi.fn(),
+        };
+        const app = setComfyApp({
+            LiteGraph: {
+                createNode: vi.fn((type) => (type === "KSampler" ? created : null)),
+            },
+            canvas: {
+                selected_nodes: {},
+                setDirty: vi.fn(),
+                draw: vi.fn(),
+            },
+            graph,
+        });
+
+        expect(
+            importNodeToCurrentGraph({
+                id: 12,
+                type: "KSampler",
+                pos: [10, 20],
+                widgets_values: [1, "fixed"],
+            }),
+        ).toBe(true);
+
+        expect(app.LiteGraph.createNode).toHaveBeenCalledWith("KSampler");
+        expect(created.configure).toHaveBeenCalledWith(
+            expect.objectContaining({
+                type: "KSampler",
+                pos: [42, 52],
+                widgets_values: [1, "fixed"],
+            }),
+        );
+        expect(created.id).toBeUndefined();
+        expect(graph.add).toHaveBeenCalledWith(created);
     });
 });
 

@@ -47,6 +47,18 @@ function createKeyboardEvent(key) {
     };
 }
 
+function createPlayerbarInputEvent(key) {
+    const playerbar = { className: "mjr-viewer-playerbar" };
+    return {
+        ...createKeyboardEvent(key),
+        target: {
+            tagName: "INPUT",
+            isContentEditable: false,
+            closest: (selector) => (selector === ".mjr-viewer-playerbar" ? playerbar : null),
+        },
+    };
+}
+
 describe("viewer keyboard", () => {
     beforeEach(() => {
         const windowMock = createWindowMock();
@@ -153,5 +165,49 @@ describe("viewer keyboard", () => {
         keyboard.unbind();
         window.dispatch("keydown", createKeyboardEvent("Escape"));
         expect(closeViewer).toHaveBeenCalledTimes(1);
+    });
+
+    it("keeps video player shortcuts active when a playerbar input has focus", async () => {
+        const { installViewerKeyboard } = await import("../features/viewer/keyboard.js");
+        const stepFrames = vi.fn();
+        const togglePlay = vi.fn();
+        const keyboard = installViewerKeyboard({
+            overlay: {
+                style: { display: "flex" },
+                requestFullscreen: vi.fn(),
+                contains: () => true,
+            },
+            singleView: { querySelector: () => ({}) },
+            state: {
+                mode: "single",
+                assets: [{ id: 1, kind: "video" }],
+                currentIndex: 0,
+                distractionFree: false,
+            },
+            VIEWER_MODES: { SINGLE: "single" },
+            closeViewer: vi.fn(),
+            lifecycle: { unsubs: [] },
+            syncToolsUIFromState: vi.fn(),
+            applyDistractionFreeUI: vi.fn(),
+            renderGenInfoPanel: vi.fn(),
+            setZoom: vi.fn(),
+            scheduleOverlayRedraw: vi.fn(),
+            scheduleApplyGrade: vi.fn(),
+            navigateViewerAssets: vi.fn(),
+            renderBadges: vi.fn(),
+            updateAssetRating: vi.fn(),
+            safeDispatchCustomEvent: vi.fn(),
+            ASSET_RATING_CHANGED_EVENT: "rating",
+            probeTooltip: { style: {} },
+            loupeWrap: { style: {} },
+            getVideoControls: () => ({ stepFrames, togglePlay }),
+        });
+
+        keyboard.bind();
+        window.dispatch("keydown", createPlayerbarInputEvent("ArrowRight"));
+        window.dispatch("keydown", createPlayerbarInputEvent(" "));
+
+        expect(stepFrames).toHaveBeenCalledWith(1);
+        expect(togglePlay).toHaveBeenCalledTimes(1);
     });
 });

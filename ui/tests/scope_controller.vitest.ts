@@ -39,6 +39,7 @@ describe("scopeController similar scope", () => {
             tabInputs: makeButton("input"),
             tabOutputs: makeButton("output"),
             tabCustom: makeButton("custom"),
+            tabWorkflow: makeButton("workflow"),
             tabSimilar: makeButton("similar"),
         };
         const state = {
@@ -101,5 +102,46 @@ describe("scopeController similar scope", () => {
         expect(panelStore.similarTitle).toBe("");
         expect(panelStore.similarSourceAssetId).toBe("");
         expect(reconcileSelection).toHaveBeenCalledTimes(1);
+    });
+
+    it("switches to workflow scope and clears stale custom root context", async () => {
+        setActivePinia(createPinia());
+        const panelStore = usePanelStore();
+        panelStore.scope = "custom";
+        panelStore.customRootId = "legacy-root";
+        panelStore.currentFolderRelativePath = "old/folder";
+
+        const tabButtons = {
+            tabAll: makeButton("all"),
+            tabInputs: makeButton("input"),
+            tabOutputs: makeButton("output"),
+            tabCustom: makeButton("custom"),
+            tabWorkflow: makeButton("workflow"),
+            tabSimilar: makeButton("similar"),
+        };
+
+        const controller = createScopeController({
+            state: {
+                scope: "custom",
+                customRootId: "legacy-root",
+                currentFolderRelativePath: "old/folder",
+            },
+            tabButtons,
+            customMenuBtn: { style: { display: "" } },
+            customPopover: { style: { display: "" } },
+            popovers: { close: vi.fn() },
+            reloadGrid: vi.fn(async () => {}),
+            reconcileSelection: vi.fn(),
+            onChanged: vi.fn(),
+            onScopeChanged: vi.fn(),
+            onBeforeReload: vi.fn(),
+        });
+
+        await controller.setScope("workflow");
+
+        expect(panelStore.scope).toBe("workflow");
+        expect(panelStore.customRootId).toBe("");
+        expect(panelStore.currentFolderRelativePath).toBe("");
+        expect(tabButtons.tabWorkflow.classList.has("is-active")).toBe(true);
     });
 });

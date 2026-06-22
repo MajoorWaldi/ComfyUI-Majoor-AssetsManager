@@ -55,6 +55,8 @@ describe("useGridSnapshotCache", () => {
                 maxHeight: "",
                 workflowType: "",
                 workflowId: "",
+                workflowModel: "",
+                workflowRunsOn: "",
                 dateRange: "",
                 dateExact: "",
                 sort: "mtime_desc",

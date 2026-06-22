@@ -22,6 +22,9 @@ export function createScopeController({
         "scope",
         "customRootId",
         "currentFolderRelativePath",
+        "workflowType",
+        "workflowId",
+        "sort",
         "collectionId",
         "collectionName",
         "viewScope",
@@ -110,6 +113,7 @@ export function createScopeController({
             "inputs",
             "all",
             "custom",
+            "workflow",
             "similar",
         ]);
         const normalized = String(scope || "").toLowerCase();

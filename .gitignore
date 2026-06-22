@@ -223,3 +223,9 @@ AGENTS.md
 ts_errors*.txt
 test-results/
 docs/COMFY_INTEGRATION_IMPLEMENTATION_CHECKLIST.md
+.codex_audit/diff_grid_components_vs_2.4.8.patch
+.codex_audit/diff_grid_composables_vs_2.4.8.patch
+.codex_audit/diff_grid_features_vs_2.4.8.patch
+.codex_audit/diff_grid_helpers_vs_2.4.8.patch
+.codex_audit/diff_panel_components_vs_2.4.8.patch
+.codex_audit/diff_panel_features_vs_2.4.8.patch

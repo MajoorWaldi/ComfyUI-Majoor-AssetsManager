@@ -113,6 +113,24 @@ def _phash_value(row: dict[str, Any]) -> str:
     return str((row or {}).get("phash") or "")
 
 
+def _parse_positive_int(value: Any) -> int:
+    try:
+        candidate = int(value or 0)
+    except Exception:
+        return 0
+    return candidate if candidate > 0 else 0
+
+
+def _escape_sql_like(value: str) -> str:
+    return value.replace("~", "~~").replace("%", "~%").replace("_", "~_")
+
+
+def _path_prefixes(root: str) -> tuple[str, str, str]:
+    resolved = str(Path(str(root)).resolve(strict=False)).rstrip("\\/")
+    escaped = _escape_sql_like(resolved)
+    return resolved, f"{escaped}/%", f"{escaped}\\%"
+
+
 class DuplicatesService:
     def __init__(self, db: Sqlite):
         self.db = db
@@ -173,7 +191,7 @@ class DuplicatesService:
     async def _fetch_analysis_rows(self, limit: int):
         return await self.db.aquery(
             """
-            SELECT id, filepath, kind, size, mtime, content_hash, phash, hash_state
+            SELECT id, filepath, filename, kind, size, mtime, content_hash, phash, hash_state
             FROM assets
             ORDER BY indexed_at DESC, id DESC
             LIMIT ?
@@ -250,8 +268,11 @@ class DuplicatesService:
             return "", params
         clauses: list[str] = []
         for root in roots:
-            clauses.append("a.filepath LIKE ?")
-            params.append(str(Path(str(root)).resolve(strict=False)) + "%")
+            exact, slash_prefix, backslash_prefix = _path_prefixes(str(root))
+            clauses.append(
+                "(a.filepath = ? OR a.filepath LIKE ? ESCAPE '~' OR a.filepath LIKE ? ESCAPE '~')"
+            )
+            params.extend([exact, slash_prefix, backslash_prefix])
         return f"WHERE ({' OR '.join(clauses)})", params
 
     @staticmethod
@@ -441,7 +462,13 @@ class DuplicatesService:
             max(0, min(32, int(phash_distance or 6))),
         )
 
-    async def _query_exact_groups(self, where: str, params: list[Any], *, max_groups: int) -> Result[list[dict[str, Any]]]:
+    async def _query_exact_groups(
+        self,
+        where: str,
+        params: list[Any],
+        *,
+        max_groups: int,
+    ) -> Result[list[dict[str, Any]]]:
         dup_rows = await self.db.aquery(self._exact_duplicates_query(where), tuple(params))
         if not dup_rows.ok:
             return Result.Err("DB_ERROR", dup_rows.error or "Duplicate query failed")
@@ -490,7 +517,7 @@ class DuplicatesService:
     def _normalize_merge_ids(self, keep_asset_id: int, merge_asset_ids: list[int]) -> list[int]:
         out: list[int] = []
         for value in merge_asset_ids or []:
-            candidate = int(value or 0)
+            candidate = _parse_positive_int(value)
             if candidate > 0 and candidate != keep_asset_id:
                 out.append(candidate)
         return out

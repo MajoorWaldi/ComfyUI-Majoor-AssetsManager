@@ -15,6 +15,7 @@ from typing import Any
 from aiohttp import web
 from mjr_am_backend.config import INDEX_DB_PATH, get_runtime_output_root, is_vector_search_enabled
 from mjr_am_backend.custom_roots import resolve_custom_root
+from mjr_am_backend.features.index.vector_runtime import maybe_unload_vector_runtime_after_use
 from mjr_am_backend.runtime_activity import is_generation_busy
 from mjr_am_backend.shared import FileKind, Result, get_logger
 
@@ -155,6 +156,7 @@ async def _run_vector_backfill_job(
             pass
         set_db_maintenance_active(False)
         backfill_jobs.clear_active_job_id(backfill_id)
+        await maybe_unload_vector_runtime_after_use(svc, logger=logger)
         _vector_backfill_prune_history()
 
 
@@ -837,6 +839,7 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
             )
             return _json_response(result)
         finally:
+            await maybe_unload_vector_runtime_after_use(svc if isinstance(svc, dict) else {}, logger=logger)
             try:
                 await _restart_watcher_if_needed(svc if isinstance(svc, dict) else None, watcher_was_running)
             except Exception:
@@ -934,6 +937,7 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
             )
             return _json_response(result)
         finally:
+            await maybe_unload_vector_runtime_after_use(svc if isinstance(svc, dict) else {}, logger=logger)
             try:
                 await _restart_watcher_if_needed(svc if isinstance(svc, dict) else None, watcher_was_running)
             except Exception:

@@ -10,9 +10,10 @@ import { safeDispatchCustomEvent } from "../../utils/events.js";
 import { initI18n, setFollowComfyLanguage, startComfyLanguageSync } from "../i18n.js";
 import { debounce } from "../../utils/debounce.js";
 import { getWatcherStatus, toggleWatcher } from "../../api/client.js";
-import { setSettingForApp } from "../hostAdapter.js";
+import { getSettingForApp, setSettingForApp } from "../hostAdapter.js";
 
 import {
+    DEFAULT_SETTINGS,
     loadMajoorSettings,
     saveMajoorSettings,
     applySettingsToConfig,
@@ -58,20 +59,23 @@ const COLOR_SETTING_KEYS = new Set([
     "ui.tagColor",
 ]);
 
+const GLOBAL_RESET_SETTING_ID = "Majoor.General.ResetAllSettings";
+const RESET_BUTTON_CLASS = "mjr-settings-reset-btn";
+let _settingsResetObserver: MutationObserver | null = null;
+let _settingsResetBindings: any = null;
+
 function settingSectionForId(id: any): string {
     const safeId = String(id || "").trim();
     if (!safeId) return SETTINGS_NATIVE_SECTIONS.GENERAL;
+    if (safeId === GLOBAL_RESET_SETTING_ID || safeId === "Majoor.Language") {
+        return SETTINGS_NATIVE_SECTIONS.GENERAL;
+    }
     if (/^Majoor\.(Safety|Security)\./.test(safeId)) {
         return SETTINGS_NATIVE_SECTIONS.SECURITY;
     }
     if (
-        /^Majoor\.(Paths|ProbeBackend|MetadataFallback|Db|Observability)\./.test(safeId) ||
-        safeId === "Majoor.EnvVars.Reference" ||
-        safeId === "Majoor.AI.HuggingFaceTokenVisible" ||
-        safeId === "Majoor.AI.HuggingFaceToken" ||
-        safeId === "Majoor.AI.VerboseLogs" ||
-        safeId === "Majoor.AI.VectorStats" ||
-        safeId === "Majoor.AI.VectorBackfillAction"
+        /^Majoor\.(Paths|Db|ProbeBackend|MetadataFallback|Observability)\./.test(safeId) ||
+        safeId === "Majoor.EnvVars.Reference"
     ) {
         return SETTINGS_NATIVE_SECTIONS.ADVANCED;
     }
@@ -85,11 +89,10 @@ function settingSectionForId(id: any): string {
         return SETTINGS_NATIVE_SECTIONS.INDEXING;
     }
     if (safeId === "Majoor.RtHydrate.Concurrency") {
-        return SETTINGS_NATIVE_SECTIONS.ADVANCED;
+        return SETTINGS_NATIVE_SECTIONS.INDEXING;
     }
     if (
-        safeId === "Majoor.AI.VectorSearchEnabled" ||
-        safeId === "Majoor.AI.VectorCaptionOnIndex" ||
+        /^Majoor\.AI\.(HuggingFaceTokenVisible|HuggingFaceToken|VerboseLogs|VectorStats|VectorBackfillAction|VectorSearchEnabled|VectorCaptionOnIndex|VectorIndexOnScan|VectorConcurrency|VectorUnloadAfterUse|VectorUnloadNow)$/.test(safeId) ||
         /^Majoor\.Search\./.test(safeId)
     ) {
         return SETTINGS_NATIVE_SECTIONS.SEARCH_AI;
@@ -168,6 +171,151 @@ function wrapSettingForComfySync(app: any, definition: any) {
         return undefined;
     };
     return wrapped;
+}
+
+function cloneSettings(settings: any): Record<string, any> {
+    try {
+        return JSON.parse(JSON.stringify(settings || {}));
+    } catch {
+        return { ...DEFAULT_SETTINGS };
+    }
+}
+
+function buildSettingsDefinitionsFromSnapshot(
+    settingsSnapshot: Record<string, any>,
+    app: any,
+    notifyApplied: (...args: any[]) => void,
+    { wrapForComfy = true } = {},
+) {
+    const definitions: any[] = [];
+    const addSetting = (payload: any) => {
+        const normalized = normalizeSettingPayload(payload);
+        if (normalized) {
+            definitions.push(wrapForComfy ? wrapSettingForComfySync(app, normalized) : normalized);
+        }
+    };
+    registerGridSettings(addSetting, settingsSnapshot, notifyApplied);
+    registerFeedSettings(addSetting, settingsSnapshot, notifyApplied);
+    registerViewerSettings(addSetting, settingsSnapshot, notifyApplied);
+    registerScanningSettings(addSetting, settingsSnapshot, notifyApplied);
+    registerSecuritySettings(addSetting, settingsSnapshot, notifyApplied);
+    registerAdvancedSettings(addSetting, settingsSnapshot, notifyApplied, app);
+    registerSearchSettings(addSetting, settingsSnapshot, notifyApplied);
+    return definitions;
+}
+
+function sameSettingValue(a: any, b: any): boolean {
+    if (a === b) return true;
+    try {
+        return JSON.stringify(a) === JSON.stringify(b);
+    } catch {
+        return false;
+    }
+}
+
+function findSettingInputContainer(row: Element | null): HTMLElement | null {
+    if (!row) return null;
+    return (
+        row.querySelector<HTMLElement>(".form-input") ||
+        row.querySelector<HTMLElement>(".p-inputgroup") ||
+        row.querySelector<HTMLElement>(".setting-input") ||
+        row.querySelector<HTMLElement>("[class*='input']")
+    );
+}
+
+function createResetButton(label: string, title: string): HTMLButtonElement {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = RESET_BUTTON_CLASS;
+    button.textContent = label;
+    button.title = title;
+    button.style.marginLeft = "8px";
+    button.style.minWidth = label.length > 2 ? "auto" : "24px";
+    button.style.height = "24px";
+    button.style.padding = label.length > 2 ? "0 10px" : "0";
+    button.style.borderRadius = "6px";
+    button.style.border = "1px solid var(--border-color, #555)";
+    button.style.background = "var(--comfy-input-bg, #2b2b2b)";
+    button.style.color = "var(--input-text, inherit)";
+    button.style.cursor = "pointer";
+    button.style.fontSize = "12px";
+    button.style.lineHeight = "22px";
+    button.style.flexShrink = "0";
+    return button;
+}
+
+function applySettingDefault(definition: any, defaultValue: any, app: any): void {
+    const id = String(definition?.id || "").trim();
+    if (!id) return;
+    syncComfySettingValue(app, definition, defaultValue);
+    if (typeof definition?.onChange === "function") {
+        definition.onChange(defaultValue);
+    }
+}
+
+function updateResetButtonState(button: HTMLButtonElement, definition: any, defaultValue: any, app: any): void {
+    const currentValue = getSettingForApp(app, definition.id, definition.defaultValue);
+    const changed = !sameSettingValue(currentValue, defaultValue);
+    button.disabled = !changed;
+    button.style.opacity = changed ? "1" : "0.45";
+}
+
+function injectSettingsResetButtons() {
+    if (typeof document === "undefined" || !_settingsResetBindings) return;
+    const { app, definitions, defaultValues } = _settingsResetBindings;
+
+    const globalRow = document.querySelector(`[data-setting-id="${GLOBAL_RESET_SETTING_ID}"]`);
+    const globalContainer = findSettingInputContainer(globalRow);
+    if (globalRow && globalContainer && !globalRow.getAttribute("data-mjr-reset-injected")) {
+        globalRow.setAttribute("data-mjr-reset-injected", "true");
+        globalContainer.innerHTML = "";
+        const resetAllButton = createResetButton("Reset all settings", "Reset all Majoor settings to defaults");
+        resetAllButton.onclick = (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            for (const definition of definitions) {
+                if (definition.id === GLOBAL_RESET_SETTING_ID) continue;
+                if (!defaultValues.has(definition.id)) continue;
+                applySettingDefault(definition, defaultValues.get(definition.id), app);
+            }
+            injectSettingsResetButtons();
+        };
+        globalContainer.appendChild(resetAllButton);
+    }
+
+    for (const definition of definitions) {
+        if (!definition?.id || definition.id === GLOBAL_RESET_SETTING_ID) continue;
+        if (!defaultValues.has(definition.id)) continue;
+        const row = document.querySelector(`[data-setting-id="${definition.id}"]`);
+        if (!row || row.getAttribute("data-mjr-reset-injected")) continue;
+        const inputContainer = findSettingInputContainer(row);
+        if (!inputContainer) continue;
+        row.setAttribute("data-mjr-reset-injected", "true");
+        const resetButton = createResetButton("Reset", "Reset this setting to default");
+        updateResetButtonState(resetButton, definition, defaultValues.get(definition.id), app);
+        resetButton.onclick = (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            const defaultValue = defaultValues.get(definition.id);
+            applySettingDefault(definition, defaultValue, app);
+            updateResetButtonState(resetButton, definition, defaultValue, app);
+        };
+        inputContainer.appendChild(resetButton);
+    }
+}
+
+function ensureSettingsResetObserver(app: any, definitions: any[], defaultDefinitions: any[]) {
+    if (typeof document === "undefined" || typeof MutationObserver === "undefined") return;
+    const defaultValues = new Map(
+        defaultDefinitions
+            .filter((definition) => definition?.id && definition.id !== GLOBAL_RESET_SETTING_ID)
+            .map((definition) => [definition.id, definition.defaultValue]),
+    );
+    _settingsResetBindings = { app, definitions, defaultValues };
+    injectSettingsResetButtons();
+    if (_settingsResetObserver) return;
+    _settingsResetObserver = new MutationObserver(() => injectSettingsResetButtons());
+    _settingsResetObserver.observe(document.body, { childList: true, subtree: true });
 }
 
 function ensureMajoorSettingsContext(app: any, onApplied: any, { initRuntime = false } = {}) {
@@ -316,21 +464,29 @@ export const buildMajoorSettings = (app: any | null | undefined, onApplied?: () 
     const context = ensureMajoorSettingsContext(app, onApplied, { initRuntime: false });
     Object.assign(context.settings, loadMajoorSettings());
 
-    const safeAddSetting = (payload: any) => {
-        const normalized = normalizeSettingPayload(payload);
-        if (normalized) {
-            settingsDefinitions.push(wrapSettingForComfySync(app || context.app, normalized));
-        }
-    };
-
-    const settingsDefinitions: any[] = [];
-    registerGridSettings(safeAddSetting, context.settings, context.notifyApplied);
-    registerFeedSettings(safeAddSetting, context.settings, context.notifyApplied);
-    registerViewerSettings(safeAddSetting, context.settings, context.notifyApplied);
-    registerScanningSettings(safeAddSetting, context.settings, context.notifyApplied);
-    registerSecuritySettings(safeAddSetting, context.settings, context.notifyApplied);
-    registerAdvancedSettings(safeAddSetting, context.settings, context.notifyApplied, app);
-    registerSearchSettings(safeAddSetting, context.settings, context.notifyApplied);
+    const runtimeApp = app || context.app;
+    const settingsDefinitions = buildSettingsDefinitionsFromSnapshot(
+        context.settings,
+        runtimeApp,
+        context.notifyApplied,
+    );
+    const defaultDefinitions = buildSettingsDefinitionsFromSnapshot(
+        cloneSettings(DEFAULT_SETTINGS),
+        runtimeApp,
+        () => {},
+        { wrapForComfy: false },
+    );
+    settingsDefinitions.unshift(
+        wrapSettingForComfySync(runtimeApp, {
+            id: GLOBAL_RESET_SETTING_ID,
+            category: [SETTINGS_CATEGORY, SETTINGS_NATIVE_SECTIONS.GENERAL, "Reset"],
+            name: "Reset all settings to defaults",
+            tooltip: "Reset every Majoor Assets Manager setting to its default value.",
+            type: "text",
+            defaultValue: "",
+        }),
+    );
+    ensureSettingsResetObserver(runtimeApp, settingsDefinitions, defaultDefinitions);
     return settingsDefinitions;
 };
 

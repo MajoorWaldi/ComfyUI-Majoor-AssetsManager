@@ -336,8 +336,9 @@ export function createPlayerBarManager({
                     const applyFromViewerInfo = (info: any) => {
                         try {
                             if (!info || typeof info !== "object") return;
-                            const fps = parseFps(info?.fps ?? info?.fps_raw ?? info?.frame_rate);
+                            const fps = parseFps(info?.fps_raw ?? info?.fps ?? info?.frame_rate);
                             const frameCount = parseFrameCount(info?.frame_count);
+                            if (fps != null) state.nativeFps = fps;
                             if (fps != null || frameCount != null)
                                 mounted?.setMediaInfo?.({ fps, frameCount });
                         } catch (e: any) {
@@ -401,8 +402,11 @@ export function createPlayerBarManager({
                                 if (state._activeVideoEl !== mediaEl) return;
                                 const fps = Number(detail?.fps);
                                 if (!Number.isFinite(fps) || fps <= 0) return;
-                                state.nativeFps = fps;
-                                mounted?.setMediaInfo?.({ fps });
+                                const source = String(detail?.source || "");
+                                if (source !== "rvfc" || !(Number(state.nativeFps) > 0)) {
+                                    state.nativeFps = fps;
+                                }
+                                mounted?.setMediaInfo?.({ fps, fpsSource: source });
                             } catch (e: any) {
                                 console.debug?.(e);
                             }

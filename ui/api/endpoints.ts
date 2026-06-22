@@ -21,6 +21,8 @@ export interface AssetFilterParams {
     maxHeight?: number | null;
     workflowType?: string | null;
     workflowId?: string | null;
+    workflowModel?: string | null;
+    runsOn?: string | null;
     dateRange?: string | null;
     dateExact?: string | null;
 }
@@ -71,8 +73,10 @@ export const ENDPOINTS = {
     TOOLS_STATUS: "/mjr/am/tools/status",
     SETTINGS_OUTPUT_DIRECTORY: "/mjr/am/settings/output-directory",
     SETTINGS_INDEX_DIRECTORY: "/mjr/am/settings/index-directory",
+    SETTINGS_WORKFLOW_ROOTS: "/mjr/am/settings/workflow-roots",
     SETTINGS_METADATA_FALLBACK: "/mjr/am/settings/metadata-fallback",
     SETTINGS_VECTOR_SEARCH: "/mjr/am/settings/vector-search",
+    SETTINGS_VECTOR_SEARCH_UNLOAD: "/mjr/am/settings/vector-search/unload",
     SETTINGS_EXECUTION_GROUPING: "/mjr/am/settings/execution-grouping",
     SETTINGS_HUGGINGFACE: "/mjr/am/settings/huggingface",
     SETTINGS_AI_LOGGING: "/mjr/am/settings/ai-logging",
@@ -151,6 +155,21 @@ export const ENDPOINTS = {
 
     // Library audit
     AUDIT: "/mjr/am/audit",
+
+    // Workflow library
+    WORKFLOWS_CONTENT: "/mjr/am/workflows/content",
+    WORKFLOWS_SAVE: "/mjr/am/workflows/save",
+    WORKFLOWS_DUPLICATE: "/mjr/am/workflows/duplicate",
+    WORKFLOWS_MOVE: "/mjr/am/workflows/move",
+    WORKFLOWS_DELETE: "/mjr/am/workflows/delete",
+    WORKFLOWS_MARK_LOADED: "/mjr/am/workflows/mark-loaded",
+    WORKFLOWS_FAVORITE: "/mjr/am/workflows/favorite",
+    WORKFLOWS_INFO: "/mjr/am/workflows/info",
+    WORKFLOWS_THUMBNAIL_CANDIDATES: "/mjr/am/workflows/thumbnail-candidates",
+    WORKFLOWS_MODEL_FAMILIES: "/mjr/am/workflows/model-families",
+    WORKFLOWS_TAGS: "/mjr/am/workflows/tags",
+    WORKFLOWS_THUMBNAIL_SET: "/mjr/am/workflows/thumbnail/set",
+    WORKFLOWS_OPEN_ROOT: "/mjr/am/workflows/open-root",
 };
 
 export function appendAssetFilterQueryParams(url: string, filters: AssetFilterParams = {}): string {
@@ -176,6 +195,8 @@ export function appendAssetFilterQueryParams(url: string, filters: AssetFilterPa
         maxHeight = null,
         workflowType = null,
         workflowId = null,
+        workflowModel = null,
+        runsOn = null,
         dateRange = null,
         dateExact = null,
     } = filters || {};
@@ -215,6 +236,12 @@ export function appendAssetFilterQueryParams(url: string, filters: AssetFilterPa
     }
     if (workflowId) {
         _append(`workflow_id=${encodeURIComponent(String(workflowId))}`);
+    }
+    if (workflowModel) {
+        _append(`workflow_model=${encodeURIComponent(String(workflowModel))}`);
+    }
+    if (runsOn) {
+        _append(`runs_on=${encodeURIComponent(String(runsOn))}`);
     }
     if (dateRange) {
         _append(`date_range=${encodeURIComponent(String(dateRange))}`);
@@ -262,6 +289,8 @@ export function buildListURL(params: ListURLParams = {}): string {
         maxHeight = null,
         workflowType = null,
         workflowId = null,
+        workflowModel = null,
+        runsOn = null,
         dateRange = null,
         dateExact = null,
         sort = null,
@@ -292,6 +321,8 @@ export function buildListURL(params: ListURLParams = {}): string {
         maxHeight,
         workflowType,
         workflowId,
+        workflowModel,
+        runsOn,
         dateRange,
         dateExact,
     });
@@ -338,8 +369,13 @@ export function buildStackURL(stackId: any): string {
     return `${ENDPOINTS.STACKS}/${encodeURIComponent(String(stackId || ""))}`;
 }
 
-export function buildStackMembersURL(stackId: any): string {
-    return `${buildStackURL(stackId)}/members`;
+export function buildStackMembersURL(stackId: any, options: { limit?: number } = {}): string {
+    let url = `${buildStackURL(stackId)}/members`;
+    const limit = Number(options?.limit || 0);
+    if (Number.isFinite(limit) && limit > 0) {
+        url += `?limit=${encodeURIComponent(String(Math.floor(limit)))}`;
+    }
+    return url;
 }
 
 export function buildStackByJobURL(jobId: any): string {
@@ -446,6 +482,8 @@ export function buildDateHistogramURL(params: AssetFilterParams & { scope?: stri
         maxHeight: params.maxHeight ?? null,
         workflowType: params.workflowType ?? null,
         workflowId: params.workflowId ?? null,
+        workflowModel: params.workflowModel ?? null,
+        runsOn: params.runsOn ?? null,
         dateRange: params.dateRange ?? null,
         dateExact: params.dateExact ?? null,
     });
@@ -568,6 +606,12 @@ export function buildDownloadURL(filepath: any, options: Record<string, any> = {
     let url = `${ENDPOINTS.DOWNLOAD}?filepath=${encodeURIComponent(filepath)}`;
     if (inline) url += "&preview=1";
     return url;
+}
+
+export function buildWorkflowContentURL(filepath: any): string {
+    const fp = String(filepath || "").trim();
+    if (!fp) return "";
+    return `${ENDPOINTS.WORKFLOWS_CONTENT}?filepath=${encodeURIComponent(fp)}`;
 }
 
 /**

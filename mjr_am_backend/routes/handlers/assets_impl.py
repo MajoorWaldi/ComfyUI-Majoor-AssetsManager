@@ -296,7 +296,6 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
             prepare_asset_path_context=prepare_asset_path_context,
             resolve_body_filepath=_resolve_body_filepath,
             load_asset_filepath_by_id=_load_asset_filepath_by_id,
-            is_resolved_path_allowed=_is_resolved_path_allowed,
             normalize_path=lambda raw: _normalize_path(str(raw)),
             read_json=_read_json,
             require_services=_require_services,

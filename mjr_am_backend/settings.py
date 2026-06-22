@@ -25,9 +25,12 @@ from .config import (
     _OUTPUT_DIR_OVERRIDE_FILE_PATH,
     MEDIA_PROBE_BACKEND,
     OUTPUT_ROOT,
+    VECTOR_CONCURRENCY,
     is_execution_grouping_enabled,
     is_vector_caption_on_index_enabled,
+    is_vector_index_on_scan_enabled,
     is_vector_search_enabled,
+    is_vector_unload_after_use_enabled,
 )
 from .shared import Result, get_logger
 from .startup_logging import startup_log_info
@@ -37,10 +40,14 @@ logger = get_logger(__name__)
 
 _PROBE_BACKEND_KEY = "media_probe_backend"
 _OUTPUT_DIRECTORY_KEY = "output_directory_override"
+_WORKFLOW_ROOTS_KEY = "workflow_roots"
 _METADATA_FALLBACK_IMAGE_KEY = "metadata_fallback_image"
 _METADATA_FALLBACK_MEDIA_KEY = "metadata_fallback_media"
 _VECTOR_SEARCH_ENABLED_KEY = "vector_search_enabled"
 _VECTOR_CAPTION_ON_INDEX_KEY = "vector_caption_on_index"
+_VECTOR_INDEX_ON_SCAN_KEY = "vector_index_on_scan"
+_VECTOR_CONCURRENCY_KEY = "vector_concurrency"
+_VECTOR_UNLOAD_AFTER_USE_KEY = "vector_unload_after_use"
 _EXECUTION_GROUPING_ENABLED_KEY = "execution_grouping_enabled"
 _HUGGINGFACE_TOKEN_KEY = "huggingface_token"
 _AI_VERBOSE_LOGS_KEY = "ai_verbose_logs"
@@ -158,6 +165,9 @@ class AppSettings:
         self._default_metadata_fallback_media = True
         self._default_vector_search_enabled = bool(is_vector_search_enabled())
         self._default_vector_caption_on_index = bool(is_vector_caption_on_index_enabled())
+        self._default_vector_index_on_scan = bool(is_vector_index_on_scan_enabled())
+        self._default_vector_concurrency = max(1, int(VECTOR_CONCURRENCY or 1))
+        self._default_vector_unload_after_use = bool(is_vector_unload_after_use_enabled())
         self._default_execution_grouping_enabled = bool(is_execution_grouping_enabled())
         self._default_ai_verbose_logs = self._env_ai_verbose_logs_enabled()
         self._default_route_verbose_logs = self._env_route_verbose_logs_enabled()
@@ -916,6 +926,50 @@ class AppSettings:
             self._cache.put(_VECTOR_CAPTION_ON_INDEX_KEY, "1" if enabled else "0", version=current_version)
             return enabled
 
+    async def get_vector_index_on_scan_enabled(self) -> bool:
+        """Return persisted automatic vector-index-on-scan preference."""
+        async with self._lock:
+            current_version = await self._get_settings_version()
+            cached = self._cache.get(_VECTOR_INDEX_ON_SCAN_KEY, version=current_version)
+            if cached is not None:
+                return parse_bool(cached, self._default_vector_index_on_scan)
+            raw = await self._read_setting(_VECTOR_INDEX_ON_SCAN_KEY)
+            enabled = (
+                parse_bool(raw, self._default_vector_index_on_scan)
+                if raw is not None
+                else self._default_vector_index_on_scan
+            )
+            self._cache.put(_VECTOR_INDEX_ON_SCAN_KEY, "1" if enabled else "0", version=current_version)
+            return enabled
+
+    async def get_vector_unload_after_use_enabled(self) -> bool:
+        """Return persisted vector model unload-after-use preference."""
+        async with self._lock:
+            current_version = await self._get_settings_version()
+            cached = self._cache.get(_VECTOR_UNLOAD_AFTER_USE_KEY, version=current_version)
+            if cached is not None:
+                return parse_bool(cached, self._default_vector_unload_after_use)
+            raw = await self._read_setting(_VECTOR_UNLOAD_AFTER_USE_KEY)
+            enabled = (
+                parse_bool(raw, self._default_vector_unload_after_use)
+                if raw is not None
+                else self._default_vector_unload_after_use
+            )
+            self._cache.put(_VECTOR_UNLOAD_AFTER_USE_KEY, "1" if enabled else "0", version=current_version)
+            return enabled
+
+    async def get_vector_concurrency(self) -> int:
+        """Return persisted vector indexing concurrency."""
+        async with self._lock:
+            current_version = await self._get_settings_version()
+            cached = self._cache.get(_VECTOR_CONCURRENCY_KEY, version=current_version)
+            if cached is not None:
+                return self._normalize_vector_concurrency(cached)
+            raw = await self._read_setting(_VECTOR_CONCURRENCY_KEY)
+            value = self._normalize_vector_concurrency(raw)
+            self._cache.put(_VECTOR_CONCURRENCY_KEY, str(value), version=current_version)
+            return value
+
     def _cached_vector_search_pref(self, current_version: int) -> bool | None:
         cached = self._cache.get(_VECTOR_SEARCH_ENABLED_KEY, version=current_version)
         if cached is None:
@@ -962,6 +1016,51 @@ class AppSettings:
                     pass
             current_version = int(bump.data or await self._get_settings_version() or 0)
             self._cache.put(_VECTOR_CAPTION_ON_INDEX_KEY, "1" if normalized else "0", version=current_version)
+            return Result.Ok(normalized)
+
+    async def set_vector_index_on_scan_enabled(self, enabled: Any) -> Result[bool]:
+        """Persist automatic vector-index-on-scan preference and apply runtime env vars."""
+        normalized = parse_bool(enabled, self._default_vector_index_on_scan)
+        async with self._lock:
+            res = await self._write_setting(_VECTOR_INDEX_ON_SCAN_KEY, "1" if normalized else "0")
+            if not res.ok:
+                return Result.Err("DB_ERROR", res.error or "Failed to persist vector_index_on_scan")
+            self._set_vector_index_on_scan_env_vars(normalized)
+            bump = await self._bump_settings_version_locked()
+            if not bump.ok:
+                logger.warning("Failed to bump settings version: %s", bump.error)
+            current_version = int(bump.data or await self._get_settings_version() or 0)
+            self._cache.put(_VECTOR_INDEX_ON_SCAN_KEY, "1" if normalized else "0", version=current_version)
+            return Result.Ok(normalized)
+
+    async def set_vector_unload_after_use_enabled(self, enabled: Any) -> Result[bool]:
+        """Persist vector model unload-after-use preference and apply runtime env vars."""
+        normalized = parse_bool(enabled, self._default_vector_unload_after_use)
+        async with self._lock:
+            res = await self._write_setting(_VECTOR_UNLOAD_AFTER_USE_KEY, "1" if normalized else "0")
+            if not res.ok:
+                return Result.Err("DB_ERROR", res.error or "Failed to persist vector_unload_after_use")
+            self._set_vector_unload_after_use_env_vars(normalized)
+            bump = await self._bump_settings_version_locked()
+            if not bump.ok:
+                logger.warning("Failed to bump settings version: %s", bump.error)
+            current_version = int(bump.data or await self._get_settings_version() or 0)
+            self._cache.put(_VECTOR_UNLOAD_AFTER_USE_KEY, "1" if normalized else "0", version=current_version)
+            return Result.Ok(normalized)
+
+    async def set_vector_concurrency(self, value: Any) -> Result[int]:
+        """Persist vector indexing concurrency and apply runtime env vars."""
+        normalized = self._normalize_vector_concurrency(value)
+        async with self._lock:
+            res = await self._write_setting(_VECTOR_CONCURRENCY_KEY, str(normalized))
+            if not res.ok:
+                return Result.Err("DB_ERROR", res.error or "Failed to persist vector_concurrency")
+            self._set_vector_concurrency_env_vars(normalized)
+            bump = await self._bump_settings_version_locked()
+            if not bump.ok:
+                logger.warning("Failed to bump settings version: %s", bump.error)
+            current_version = int(bump.data or await self._get_settings_version() or 0)
+            self._cache.put(_VECTOR_CONCURRENCY_KEY, str(normalized), version=current_version)
             return Result.Ok(normalized)
 
     async def get_execution_grouping_enabled(self) -> bool:
@@ -1252,6 +1351,37 @@ class AppSettings:
         except Exception:
             return
 
+    def _set_vector_index_on_scan_env_vars(self, enabled: bool) -> None:
+        value = "1" if enabled else "0"
+        try:
+            os.environ["MJR_AM_VECTOR_INDEX_ON_SCAN"] = value
+            os.environ["MAJOOR_VECTOR_INDEX_ON_SCAN"] = value
+        except Exception:
+            return
+
+    def _set_vector_unload_after_use_env_vars(self, enabled: bool) -> None:
+        value = "1" if enabled else "0"
+        try:
+            os.environ["MJR_AM_VECTOR_UNLOAD_AFTER_USE"] = value
+            os.environ["MAJOOR_VECTOR_UNLOAD_AFTER_USE"] = value
+        except Exception:
+            return
+
+    def _set_vector_concurrency_env_vars(self, value: int) -> None:
+        normalized = str(self._normalize_vector_concurrency(value))
+        try:
+            os.environ["MJR_VECTOR_CONCURRENCY"] = normalized
+            os.environ["MJR_AM_VECTOR_CONCURRENCY"] = normalized
+        except Exception:
+            return
+
+    def _normalize_vector_concurrency(self, value: Any) -> int:
+        try:
+            parsed = int(value)
+        except (TypeError, ValueError):
+            parsed = int(self._default_vector_concurrency or 1)
+        return max(1, min(16, parsed))
+
     def _set_ai_verbose_logs_env_vars(self, enabled: bool) -> None:
         value = "1" if enabled else "0"
         try:
@@ -1334,6 +1464,95 @@ class AppSettings:
                 return str(Path(raw).expanduser().resolve())
             except Exception:
                 return raw
+
+    async def get_workflow_roots(self) -> list[str]:
+        """Return persisted workflow roots, or an empty list when unset."""
+        async with self._lock:
+            raw = await self._read_setting(_WORKFLOW_ROOTS_KEY)
+            return self._normalize_workflow_roots(raw)
+
+    async def set_workflow_roots(self, roots: Any) -> Result[list[str]]:
+        """Persist workflow library roots and apply runtime env vars."""
+        normalized = self._normalize_workflow_roots(roots)
+        async with self._lock:
+            if not normalized:
+                result = await self._delete_setting(_WORKFLOW_ROOTS_KEY)
+                if not result.ok:
+                    return Result.Err("DB_ERROR", result.error or "Failed to clear workflow roots")
+                self._clear_workflow_roots_env_vars()
+                await self._warn_if_bump_fails("Failed to bump settings version")
+                return Result.Ok([])
+            serialized = "\n".join(normalized)
+            result = await self._write_setting(_WORKFLOW_ROOTS_KEY, serialized)
+            if not result.ok:
+                return Result.Err("DB_ERROR", result.error or "Failed to persist workflow roots")
+            self._set_workflow_roots_env_vars(normalized)
+            await self._warn_if_bump_fails("Failed to bump settings version")
+            return Result.Ok(normalized)
+
+    def _normalize_workflow_roots(self, roots: Any) -> list[str]:
+        if roots is None:
+            values: list[str] = []
+        elif isinstance(roots, (list, tuple, set)):
+            values = [str(item or "") for item in roots]
+        else:
+            raw = str(roots or "")
+            values = []
+            for line in raw.replace(";", "\n").splitlines():
+                values.extend(part for part in line.split(os.pathsep) if part)
+        out: list[str] = []
+        seen: set[str] = set()
+        for value in values:
+            text = str(value or "").strip()
+            if not text:
+                continue
+            try:
+                from pathlib import Path
+
+                path = Path(text).expanduser().resolve(strict=False)
+            except Exception:
+                continue
+            key = str(path).lower()
+            if key in seen:
+                continue
+            seen.add(key)
+            out.append(str(path))
+        return out
+
+    def _set_workflow_roots_env_vars(self, roots: list[str]) -> None:
+        joined = os.pathsep.join(str(root) for root in roots if str(root or "").strip())
+        try:
+            if joined:
+                os.environ["MJR_AM_WORKFLOW_DIRECTORIES"] = joined
+                os.environ["MAJOOR_WORKFLOW_DIRECTORIES"] = joined
+            else:
+                self._clear_workflow_roots_env_vars()
+        except Exception:
+            return
+
+    def _clear_workflow_roots_env_vars(self) -> None:
+        try:
+            os.environ.pop("MJR_AM_WORKFLOW_DIRECTORIES", None)
+            os.environ.pop("MAJOOR_WORKFLOW_DIRECTORIES", None)
+        except Exception:
+            return
+
+    async def apply_workflow_roots_on_startup(self) -> None:
+        """Restore persisted workflow roots into environment on startup."""
+        try:
+            async with self._lock:
+                raw = await self._read_setting(_WORKFLOW_ROOTS_KEY)
+                roots = self._normalize_workflow_roots(raw)
+                if not roots:
+                    return
+                self._set_workflow_roots_env_vars(roots)
+                startup_log_info(
+                    logger,
+                    "Restored workflow roots on startup: %s",
+                    os.pathsep.join(roots),
+                )
+        except Exception as exc:
+            logger.warning("Failed to restore workflow roots on startup: %s", exc)
 
     async def set_output_directory(self, path: str) -> Result[str]:
         """Persist output directory override and bump settings version."""
@@ -1502,11 +1721,46 @@ class AppSettings:
                     "1" if caption_enabled else "0",
                     version=int(await self._get_settings_version() or 0),
                 )
+                index_raw = await self._read_setting(_VECTOR_INDEX_ON_SCAN_KEY)
+                index_enabled = (
+                    parse_bool(index_raw, self._default_vector_index_on_scan)
+                    if index_raw is not None
+                    else self._default_vector_index_on_scan
+                )
+                self._set_vector_index_on_scan_env_vars(index_enabled)
+                self._cache.put(
+                    _VECTOR_INDEX_ON_SCAN_KEY,
+                    "1" if index_enabled else "0",
+                    version=int(await self._get_settings_version() or 0),
+                )
+                concurrency_raw = await self._read_setting(_VECTOR_CONCURRENCY_KEY)
+                concurrency = self._normalize_vector_concurrency(concurrency_raw)
+                self._set_vector_concurrency_env_vars(concurrency)
+                self._cache.put(
+                    _VECTOR_CONCURRENCY_KEY,
+                    str(concurrency),
+                    version=int(await self._get_settings_version() or 0),
+                )
+                unload_raw = await self._read_setting(_VECTOR_UNLOAD_AFTER_USE_KEY)
+                unload_enabled = (
+                    parse_bool(unload_raw, self._default_vector_unload_after_use)
+                    if unload_raw is not None
+                    else self._default_vector_unload_after_use
+                )
+                self._set_vector_unload_after_use_env_vars(unload_enabled)
+                self._cache.put(
+                    _VECTOR_UNLOAD_AFTER_USE_KEY,
+                    "1" if unload_enabled else "0",
+                    version=int(await self._get_settings_version() or 0),
+                )
                 startup_log_info(
                     logger,
-                    "Restored vector search settings on startup: search=%s caption_on_index=%s",
+                    "Restored vector search settings on startup: search=%s caption_on_index=%s index_on_scan=%s concurrency=%s unload_after_use=%s",
                     "enabled" if enabled else "disabled",
                     "enabled" if caption_enabled else "disabled",
+                    "enabled" if index_enabled else "disabled",
+                    concurrency,
+                    "enabled" if unload_enabled else "disabled",
                 )
         except Exception as exc:
             logger.warning("Failed to restore vector search settings on startup: %s", exc)

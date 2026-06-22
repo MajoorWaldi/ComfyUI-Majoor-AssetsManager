@@ -645,6 +645,15 @@ def is_vector_index_on_scan_enabled() -> bool:
     )
 
 
+def is_vector_unload_after_use_enabled() -> bool:
+    """Return whether Majoor AI models should be unloaded after heavy vector actions."""
+    return _env_bool(
+        False,
+        "MJR_AM_VECTOR_UNLOAD_AFTER_USE",
+        "MAJOOR_VECTOR_UNLOAD_AFTER_USE",
+    )
+
+
 def is_vector_caption_on_index_enabled() -> bool:
     """Return whether automatic vector indexing may run Florence captioning."""
     return _env_bool(
@@ -779,3 +788,6 @@ VECTOR_VIDEO_KEYFRAME_INTERVAL = _env_float(
 
 # Batch size when computing embeddings during a full scan.
 VECTOR_BATCH_SIZE = _env_int(32, "MJR_AM_VECTOR_BATCH_SIZE", min_value=1, max_value=256)
+
+# Concurrent vector indexing workers. Lower values reduce transient VRAM spikes.
+VECTOR_CONCURRENCY = _env_int(2, "MJR_VECTOR_CONCURRENCY", "MJR_AM_VECTOR_CONCURRENCY", min_value=1, max_value=16)

@@ -430,6 +430,42 @@ export function registerGridSettings(safeAddSetting: (def: any) => void, setting
     });
 
     safeAddSetting({
+        id: `${SETTINGS_PREFIX}.Grid.WorkflowGroupBy`,
+        category: cat(t("cat.grid"), "Workflow grouping"),
+        name: "Workflow grid grouping",
+        tooltip:
+            "In Workflow scope, insert titled separators and group cards by Task, Model, or Category.",
+        type: "combo",
+        defaultValue: (() => {
+            const mode = String(settings.grid?.workflowGroupBy || APP_DEFAULTS.WORKFLOW_GRID_GROUP_BY)
+                .trim()
+                .toLowerCase();
+            const labels = {
+                none: "None",
+                task: "Task",
+                model: "Model",
+                category: "Category",
+            };
+            return (labels as Record<string, string>)[mode] || labels.none;
+        })(),
+        options: ["None", "Task", "Model", "Category"],
+        onChange: (value: any) => {
+            const modeMap = {
+                None: "none",
+                Task: "task",
+                Model: "model",
+                Category: "category",
+            };
+            const mode = (modeMap as Record<string, string>)[String(value || "")] || "none";
+            settings.grid = settings.grid || {};
+            settings.grid.workflowGroupBy = mode;
+            saveMajoorSettings(settings);
+            applySettingsToConfig(settings);
+            notifyApplied("grid.workflowGroupBy");
+        },
+    });
+
+    safeAddSetting({
         id: `${SETTINGS_PREFIX}.InfiniteScroll.Enabled`,
         category: cat(t("cat.grid"), t("setting.nav.infinite.name").replace("Majoor: ", "")),
         name: t("setting.nav.infinite.name"),
@@ -473,6 +509,25 @@ export function registerGridSettings(safeAddSetting: (def: any) => void, setting
             settings.sidebar.showPreviewThumb = !!value;
             saveMajoorSettings(settings);
             notifyApplied("sidebar.showPreviewThumb");
+        },
+    });
+
+    safeAddSetting({
+        id: `${SETTINGS_PREFIX}.Sidebar.AssetBadgeEnabled`,
+        category: cat(t("cat.grid"), "Sidebar asset notification badge"),
+        name: "Show new asset badge on sidebar icon",
+        tooltip:
+            "Display a small counter on the Majoor sidebar icon only when a new asset is indexed by Assets Manager.",
+        type: "boolean",
+        defaultValue: !!(
+            settings.sidebar?.assetBadgeEnabled ?? APP_DEFAULTS.SIDEBAR_ASSET_BADGE_ENABLED
+        ),
+        onChange: (value: any) => {
+            settings.sidebar = settings.sidebar || {};
+            settings.sidebar.assetBadgeEnabled = !!value;
+            saveMajoorSettings(settings);
+            applySettingsToConfig(settings);
+            notifyApplied("sidebar.assetBadgeEnabled");
         },
     });
 

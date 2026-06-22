@@ -634,6 +634,14 @@ POST /mjr/am/open-in-folder
 }
 ```
 
+or:
+
+```json
+{
+  "filepath": "/absolute/path/to/file.png"
+}
+```
+
 **Response**:
 ```json
 {
@@ -646,7 +654,7 @@ POST /mjr/am/open-in-folder
 }
 ```
 
-**Note**: Requires `MAJOOR_ALLOW_OPEN_IN_FOLDER=1` if Safe Mode is enabled.
+**Note**: Requires `MAJOOR_ALLOW_OPEN_IN_FOLDER=1` if Safe Mode is enabled. This route only asks the OS file manager to reveal an existing local file; it does not read, write, delete, or download file contents. Because of that, `filepath` targets are not restricted to indexed or configured asset roots for this action.
 
 ---
 
@@ -1177,6 +1185,63 @@ GET /mjr/am/duplicates/alerts
 
 ---
 
+### Workflow Library
+
+The Workflow tab uses the standard list endpoint with `scope=workflow` plus dedicated workflow routes for JSON content, organization, metadata, and thumbnails.
+
+```http
+GET /mjr/am/list?scope=workflow&q=*&limit=100&offset=0&sort=workflow_default
+```
+
+**Purpose**: List saved workflow JSON files as grid cards.
+
+**Response fields include**:
+- `assets`: workflow cards
+- `total`: total matched workflows
+- `roots`: scanned workflow roots
+- `scope`: `workflow`
+
+```http
+GET /mjr/am/workflows/content?filepath=C%3A%5Cpath%5Cworkflow.json
+```
+
+**Purpose**: Read workflow JSON and prompt metadata for loading or Graph Map inspection.
+
+```http
+POST /mjr/am/workflows/save
+POST /mjr/am/workflows/duplicate
+POST /mjr/am/workflows/move
+POST /mjr/am/workflows/delete
+POST /mjr/am/workflows/mark-loaded
+POST /mjr/am/workflows/favorite
+POST /mjr/am/workflows/tags
+POST /mjr/am/workflows/info
+```
+
+**Purpose**: Manage workflow files and workflow library metadata. State-changing workflow routes require the normal Majoor write guards, CSRF/auth checks, audit logging, and workflow write rate limiting.
+
+```http
+GET /mjr/am/workflows/thumbnail-candidates?filepath=...&limit=12
+POST /mjr/am/workflows/thumbnail/set
+GET /mjr/am/workflows/thumbnail?filepath=...
+GET /mjr/am/workflows/graph-map-thumbnail?filepath=...
+GET /mjr/am/workflows/model-families
+POST /mjr/am/workflows/open-root
+```
+
+**Purpose**: Support workflow thumbnails, generated Graph Map previews, workflow model-family filtering, and opening the saved workflow root in the OS file manager.
+
+```http
+GET /mjr/am/settings/workflow-roots
+POST /mjr/am/settings/workflow-roots
+```
+
+**Purpose**: Read and save the Workflow tab root folders. The POST body accepts `workflow_roots` as a string or list of strings.
+
+See [WORKFLOWS.md](WORKFLOWS.md) for the user-facing Workflow tab behavior.
+
+---
+
 ### Releases Information
 ```http
 GET /mjr/am/releases
@@ -1219,7 +1284,7 @@ When ComfyUI auth is enabled:
 When Safe Mode is enabled (default):
 - Delete operations require `MAJOOR_ALLOW_DELETE=1`
 - Rename operations require `MAJOOR_ALLOW_RENAME=1`
-- Open in folder requires `MAJOOR_ALLOW_OPEN_IN_FOLDER=1`
+- Open in folder requires `MAJOOR_ALLOW_OPEN_IN_FOLDER=1`; it may reveal any existing local path supplied to the route, but it does not grant file read/write access
 
 ### Rate Limiting
 Expensive endpoints are rate-limited:

@@ -1,5 +1,6 @@
 import {
     addNodeToHostGraph,
+    createHostNode,
     getFirstSelectedHostCanvasNode,
     getHostGraph,
     importWorkflowIntoHostCanvas,
@@ -53,14 +54,10 @@ export function importNodeToCurrentGraph(node: LooseRecord | null | undefined): 
     if (!node || !graph || typeof graph.add !== "function") return false;
 
     const nodeType = String(node?.type || node?.class_type || node?.comfyClass || "").trim();
-    const root = globalThis as typeof globalThis & { LiteGraph?: any; window?: { LiteGraph?: any } };
-    const LiteGraph = root?.LiteGraph || root?.window?.LiteGraph || null;
     let created: LooseRecord | null = null;
 
     try {
-        if (LiteGraph && typeof LiteGraph.createNode === "function" && nodeType) {
-            created = LiteGraph.createNode(nodeType);
-        }
+        created = createHostNode(nodeType) as LooseRecord | null;
     } catch (e: any) {
         console.debug?.("[MFV Graph Map] createNode failed", e);
     }

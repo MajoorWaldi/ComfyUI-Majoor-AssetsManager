@@ -360,6 +360,8 @@ export async function fetchPage(
         maxHeight,
         workflowType,
         workflowId,
+        workflowModel,
+        workflowRunsOn,
         dateRange,
         dateExact,
     } = queryState;
@@ -404,6 +406,8 @@ export async function fetchPage(
             maxHeight: maxHeight > 0 ? maxHeight : null,
             workflowType: workflowType || null,
             workflowId: workflowId || null,
+            workflowModel: workflowModel || null,
+            runsOn: workflowRunsOn || null,
             dateRange: dateRange || null,
             dateExact: dateExact || null,
             sort: sortKey,

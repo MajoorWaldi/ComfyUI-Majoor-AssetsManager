@@ -14,7 +14,7 @@ import { defineStore } from "pinia";
 import { ref, watch, onScopeDispose } from "vue";
 import { get as apiGet } from "../api/client.js";
 
-type PanelScope = "output" | "input" | "all" | "custom";
+type PanelScope = "output" | "input" | "all" | "custom" | "workflow";
 type ResolutionCompare = "gte" | "lte";
 
 interface PanelState {
@@ -38,6 +38,8 @@ interface PanelState {
     maxHeight: number;
     workflowType: string;
     workflowId: string;
+    workflowModelFilter: string;
+    workflowRunsOnFilter: string;
     sort: string;
     searchQuery: string;
     scrollTop: number;
@@ -68,7 +70,7 @@ interface CustomRootRow {
 }
 
 const STORAGE_KEY = "mjr_panel_state";
-const ALLOWED_SCOPES = new Set<PanelScope>(["output", "input", "all", "custom"]);
+const ALLOWED_SCOPES = new Set<PanelScope>(["output", "input", "all", "custom", "workflow"]);
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
@@ -126,6 +128,8 @@ function sanitize(raw: any): StoredPanelState {
         maxHeight: clampInt(row.maxHeight),
         workflowType: toStr(row.workflowType),
         workflowId: toStr(row.workflowId || row.workflow_id),
+        workflowModelFilter: toStr(row.workflowModelFilter || row.workflowModel || row.workflow_model),
+        workflowRunsOnFilter: toStr(row.workflowRunsOnFilter || row.workflowRunsOn || row.runs_on),
         sort: toStr(row.sort || "mtime_desc"),
         searchQuery: toStr(row.searchQuery),
         scrollTop: clampInt(row.scrollTop),
@@ -192,6 +196,8 @@ export const usePanelStore = defineStore("mjr-panel", () => {
     const maxHeight = ref(saved.maxHeight || 0);
     const workflowType = ref(saved.workflowType || "");
     const workflowId = ref(saved.workflowId || "");
+    const workflowModelFilter = ref(saved.workflowModelFilter || "");
+    const workflowRunsOnFilter = ref(saved.workflowRunsOnFilter || "");
     const sort = ref(saved.sort || "mtime_desc");
     const searchQuery = ref(saved.searchQuery || "");
     const scrollTop = ref(saved.scrollTop || 0);
@@ -234,6 +240,8 @@ export const usePanelStore = defineStore("mjr-panel", () => {
                 maxHeight: maxHeight.value,
                 workflowType: workflowType.value,
                 workflowId: workflowId.value,
+                workflowModelFilter: workflowModelFilter.value,
+                workflowRunsOnFilter: workflowRunsOnFilter.value,
                 sort: sort.value,
                 searchQuery: searchQuery.value,
                 scrollTop: scrollTop.value,
@@ -266,6 +274,8 @@ export const usePanelStore = defineStore("mjr-panel", () => {
             maxHeight,
             workflowType,
             workflowId,
+            workflowModelFilter,
+            workflowRunsOnFilter,
             sort,
             searchQuery,
             scrollTop,
@@ -321,6 +331,8 @@ export const usePanelStore = defineStore("mjr-panel", () => {
         maxHeight.value = 0;
         workflowType.value = "";
         workflowId.value = "";
+        workflowModelFilter.value = "";
+        workflowRunsOnFilter.value = "";
         searchQuery.value = "";
     }
 
@@ -404,6 +416,8 @@ export const usePanelStore = defineStore("mjr-panel", () => {
         maxHeight,
         workflowType,
         workflowId,
+        workflowModelFilter,
+        workflowRunsOnFilter,
         sort,
         searchQuery,
         scrollTop,

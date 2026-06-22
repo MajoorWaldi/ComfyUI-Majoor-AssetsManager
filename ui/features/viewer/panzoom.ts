@@ -272,7 +272,7 @@ export function createViewerPanZoom({
         }
     };
 
-    const applyTransform = () => {
+    const applyTransform = ({ skipFit = false } = {}) => {
         try {
             clampPanToBounds();
             const t = mediaTransform();
@@ -281,19 +281,21 @@ export function createViewerPanZoom({
             for (const el of els) {
                 try {
                     if (el?._mjrDisableViewerTransform) continue;
-                    // Keep the media element sized to its fitted base, so rect-based tooling (probe/mask) matches.
-                    const boxEl = _getBoxElForMedia(el, root);
-                    const boxRect = boxEl?.getBoundingClientRect?.() || null;
-                    if (boxRect) {
-                        const bw = Number(boxRect.width) || 0;
-                        const bh = Number(boxRect.height) || 0;
-                        if (bw > 1 && bh > 1) {
-                            const { w: aw, h: ah } = getMediaNaturalSize(el) || { w: 0, h: 0 };
-                            if (aw > 0 && ah > 0) {
-                                const base = computeContainBaseSize(aw, ah, bw, bh);
-                                if (base.w > 1 && base.h > 1) {
-                                    el.style.width = `${Math.round(base.w)}px`;
-                                    el.style.height = `${Math.round(base.h)}px`;
+                    if (!skipFit) {
+                        // Keep the media element sized to its fitted base, so rect-based tooling (probe/mask) matches.
+                        const boxEl = _getBoxElForMedia(el, root);
+                        const boxRect = boxEl?.getBoundingClientRect?.() || null;
+                        if (boxRect) {
+                            const bw = Number(boxRect.width) || 0;
+                            const bh = Number(boxRect.height) || 0;
+                            if (bw > 1 && bh > 1) {
+                                const { w: aw, h: ah } = getMediaNaturalSize(el) || { w: 0, h: 0 };
+                                if (aw > 0 && ah > 0) {
+                                    const base = computeContainBaseSize(aw, ah, bw, bh);
+                                    if (base.w > 1 && base.h > 1) {
+                                        el.style.width = `${Math.round(base.w)}px`;
+                                        el.style.height = `${Math.round(base.h)}px`;
+                                    }
                                 }
                             }
                         }
@@ -304,8 +306,7 @@ export function createViewerPanZoom({
                 }
             }
             try {
-                // Immediate redraw to avoid 1-frame lag (sync grid with new transform)
-                scheduleOverlayRedraw?.(true);
+                scheduleOverlayRedraw?.();
             } catch (e: any) {
                 console.debug?.(e);
             }
@@ -372,7 +373,7 @@ export function createViewerPanZoom({
             }
 
             state.targetZoom = state.zoom;
-            applyTransform();
+            applyTransform({ skipFit: true });
             updatePanCursor();
         } catch (e: any) {
             console.debug?.(e);
@@ -467,6 +468,16 @@ export function createViewerPanZoom({
         startY: 0,
         startPanX: 0,
         startPanY: 0,
+        raf: 0,
+    };
+
+    const schedulePanTransform = () => {
+        if (pan.raf) return;
+        pan.raf = requestAnimationFrame(() => {
+            pan.raf = 0;
+            applyTransform({ skipFit: true });
+            updatePanCursor();
+        });
     };
 
     const onPanPointerDown = (e: any) => {
@@ -618,14 +629,20 @@ export function createViewerPanZoom({
         } catch (e: any) {
             console.debug?.(e);
         }
-        applyTransform();
-        updatePanCursor();
+        schedulePanTransform();
     };
 
     const onPanPointerUp = (e: any) => {
         if (!pan.active) return;
         pan.active = false;
         pan.pointerId = null;
+        try {
+            if (pan.raf) cancelAnimationFrame(pan.raf);
+        } catch (e: any) {
+            console.debug?.(e);
+        }
+        pan.raf = 0;
+        applyTransform({ skipFit: false });
         try {
             content?.releasePointerCapture?.(e.pointerId);
         } catch (e: any) {
@@ -726,6 +743,8 @@ export function createViewerPanZoom({
             safeCall(() => {
                 pan.active = false;
                 pan.pointerId = null;
+                if (pan.raf) cancelAnimationFrame(pan.raf);
+                pan.raf = 0;
             });
         },
     };

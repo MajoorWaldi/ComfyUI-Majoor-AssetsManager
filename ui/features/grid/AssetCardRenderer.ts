@@ -235,6 +235,69 @@ function ensureSiblingState(state: any) {
     return { nonImageSiblingKeys, stemMap, assetIdSet, seenKeys };
 }
 
+export function rebuildAssetRendererState(
+    state: any,
+    assets: any[] = [],
+    { assetKey = null, preserveHiddenCount = false }: any = {},
+): void {
+    const previousHiddenCount = Number(state?.hiddenPngSiblings || 0) || 0;
+    state.seenKeys = new Set();
+    state.assetIdSet = new Set();
+    state.filenameCounts = new Map();
+    state.nonImageSiblingKeys = new Set();
+    state.stemMap = new Map();
+    state.renderedFilenameMap = new Map();
+    state.hiddenPngSiblings = preserveHiddenCount ? previousHiddenCount : 0;
+    if (typeof assetKey === "function") state.assetKeyFn = assetKey;
+
+    const siblingMaps = ensureSiblingState(state);
+    for (const asset of Array.isArray(assets) ? assets : []) {
+        if (!asset || typeof asset !== "object") continue;
+        try {
+            const id = asset?.id != null ? String(asset.id) : "";
+            if (id) siblingMaps.assetIdSet.add(id);
+        } catch (e: any) {
+            console.debug?.(e);
+        }
+        try {
+            const key = typeof assetKey === "function"
+                ? assetKey(asset)
+                : state?.assetKeyFn?.(asset);
+            if (key) siblingMaps.seenKeys.add(key);
+        } catch (e: any) {
+            console.debug?.(e);
+        }
+        try {
+            const filenameKey = getFilenameCollisionKey(asset);
+            if (filenameKey) {
+                state.filenameCounts.set(
+                    filenameKey,
+                    (Number(state.filenameCounts.get(filenameKey) || 0) || 0) + 1,
+                );
+            }
+        } catch (e: any) {
+            console.debug?.(e);
+        }
+        try {
+            const extUpper = getExtUpper(asset?.filename || "");
+            const matchKey = getSiblingMatchKey(asset, extUpper);
+            if (!matchKey) continue;
+            let list = siblingMaps.stemMap.get(matchKey);
+            if (!list) {
+                list = [];
+                siblingMaps.stemMap.set(matchKey, list);
+            }
+            list.push(asset);
+            const kind = detectKind(asset, extUpper);
+            if (kind === "video" || kind === "audio" || kind === "model3d" || extUpper === "WEBP") {
+                siblingMaps.nonImageSiblingKeys.add(matchKey);
+            }
+        } catch (e: any) {
+            console.debug?.(e);
+        }
+    }
+}
+
 export function unregisterHiddenSibling(state: any, removed: any, siblingMaps: any): void {
     try {
         if (removed?.id != null) siblingMaps.assetIdSet.delete(String(removed.id));

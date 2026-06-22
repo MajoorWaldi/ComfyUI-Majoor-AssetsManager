@@ -12,6 +12,7 @@ from typing import Any
 
 from ...config import is_vector_search_enabled
 from ...runtime_activity import is_generation_busy
+from ...shared import Result
 
 
 def _get_vector_runtime_lock(services: dict[str, Any]) -> asyncio.Lock:
@@ -46,6 +47,107 @@ def _store_runtime(services: dict[str, Any], runtime: tuple[Any, Any]) -> tuple[
     services["vector_service"] = vector_service
     services["vector_searcher"] = vector_searcher
     return vector_service, vector_searcher
+
+
+def _purge_comfy_model_memory() -> dict[str, Any]:
+    released: dict[str, Any] = {
+        "attempted": False,
+        "unload_all_models": False,
+        "soft_empty_cache": False,
+    }
+    try:
+        import comfy.model_management as model_management  # type: ignore
+    except Exception as exc:
+        released["error"] = f"ComfyUI model management unavailable: {exc}"
+        return released
+
+    released["attempted"] = True
+    try:
+        unload_all = getattr(model_management, "unload_all_models", None)
+        if callable(unload_all):
+            unload_all()
+            released["unload_all_models"] = True
+    except Exception as exc:
+        released["unload_error"] = str(exc)
+
+    try:
+        soft_empty_cache = getattr(model_management, "soft_empty_cache", None)
+        if callable(soft_empty_cache):
+            try:
+                soft_empty_cache(force=True)
+            except TypeError:
+                soft_empty_cache()
+            released["soft_empty_cache"] = True
+    except Exception as exc:
+        released["cache_error"] = str(exc)
+
+    return released
+
+
+def unload_vector_runtime_models(
+    services: dict[str, Any] | None,
+    *,
+    purge_comfy_models: bool = False,
+) -> Result[dict[str, Any]]:
+    """Unload Majoor vector/AI models and optionally ask ComfyUI to purge loaded models."""
+    if is_generation_busy(include_cooldown=False):
+        return Result.Err(
+            "COMFY_BUSY",
+            "ComfyUI is currently executing. Retry unloading Majoor AI models when the queue is idle.",
+        )
+    released: dict[str, Any] = {
+        "vector_service": False,
+        "searcher_invalidated": False,
+        "comfy_models": False,
+    }
+    try:
+        from .vector_service import unload_global_model_cache
+
+        if isinstance(services, dict):
+            vector_service = services.get("vector_service")
+            unload = getattr(vector_service, "unload_models", None)
+            if callable(unload):
+                released["vector_service"] = True
+                released["models"] = unload()
+            else:
+                released["models"] = unload_global_model_cache()
+
+            searcher = services.get("vector_searcher")
+            invalidate = getattr(searcher, "invalidate", None)
+            if callable(invalidate):
+                invalidate()
+                released["searcher_invalidated"] = True
+        else:
+            released["models"] = unload_global_model_cache()
+        if purge_comfy_models:
+            comfy_release = _purge_comfy_model_memory()
+            released["comfy_model_management"] = comfy_release
+            released["comfy_models"] = bool(
+                comfy_release.get("unload_all_models") or comfy_release.get("soft_empty_cache")
+            )
+        return Result.Ok(released)
+    except Exception as exc:
+        return Result.Err("SERVICE_UNAVAILABLE", f"Failed to unload Majoor AI models: {exc}")
+
+
+async def maybe_unload_vector_runtime_after_use(
+    services: dict[str, Any] | None,
+    *,
+    logger: Any = None,
+) -> Result[dict[str, Any]] | None:
+    try:
+        from ...config import is_vector_unload_after_use_enabled
+
+        if not is_vector_unload_after_use_enabled():
+            return None
+        result = unload_vector_runtime_models(services)
+        if logger is not None and result.ok:
+            logger.debug("Majoor AI vector models unloaded after use: %s", result.data)
+        return result
+    except Exception as exc:
+        if logger is not None:
+            logger.debug("Majoor AI vector unload-after-use skipped: %s", exc)
+        return None
 
 
 async def ensure_vector_runtime(

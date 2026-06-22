@@ -1,6 +1,6 @@
 # Majoor Assets Manager - Security Model & Environment Variables Guide
 
-**Version**: 2.4.5  
+**Version**: 2.4.5
 **Last Updated**: April 7, 2026
 
 ## Overview
@@ -104,20 +104,22 @@ Runtime behavior:
 ### Safe Mode (default enabled)
 Safe Mode adds an explicit opt-in layer for operations that modify files or user metadata.
 
-- `MAJOOR_SAFE_MODE` (default: enabled)  
+- `MAJOOR_SAFE_MODE` (default: enabled)
   - Set `MAJOOR_SAFE_MODE=0` to disable Safe Mode.
-- `MAJOOR_ALLOW_WRITE=1`  
+- `MAJOOR_ALLOW_WRITE=1`
   - Allows rating/tags writes while Safe Mode is enabled.
-- `MAJOOR_ALLOW_DELETE=1`  
+- `MAJOOR_ALLOW_DELETE=1`
   - Enables asset deletion (disabled by default).
-- `MAJOOR_ALLOW_RENAME=1`  
+- `MAJOOR_ALLOW_RENAME=1`
   - Enables asset rename (disabled by default).
-- `MAJOOR_ALLOW_OPEN_IN_FOLDER=1`  
+- `MAJOOR_ALLOW_OPEN_IN_FOLDER=1`
   - Enables `/mjr/am/open-in-folder` (disabled by default).
+  - This route may reveal any existing local file path in the OS file manager. It does not read, write, delete, download, or index that file.
 
 ### Access Control
 - File access limited to ComfyUI's allowed directories
-- No direct access to system files outside allowed paths
+- No direct read/write access to system files outside allowed paths
+- Exception: `/mjr/am/open-in-folder` can reveal an existing path in the OS file manager when explicitly enabled, because it is an OS launch action rather than file content access.
 - Permission inheritance from ComfyUI's file system access
 - No elevation of privileges possible
 
@@ -170,7 +172,7 @@ All file operations validate root containment:
 
 #### Allowed Roots
 - ComfyUI output directory
-- ComfyUI input directory  
+- ComfyUI input directory
 - Custom roots defined by user
 - Collections directory
 
@@ -512,5 +514,5 @@ When performing security testing:
 8. Review and improve procedures
 
 ---
-*Security Model & Environment Variables Guide Version: 1.0*  
+*Security Model & Environment Variables Guide Version: 1.0*
 *Last Updated: April 5, 2026*

@@ -24,6 +24,7 @@ from .vector_search import register_vector_search_routes
 from .vendor import register_vendor_routes
 from .version import register_version_routes
 from .viewer import register_viewer_routes
+from .workflows import register_workflow_routes
 
 __all__ = [
     "register_api_v2_asset_routes",
@@ -50,4 +51,5 @@ __all__ = [
     "register_vendor_routes",
     "register_version_routes",
     "register_viewer_routes",
+    "register_workflow_routes",
 ]

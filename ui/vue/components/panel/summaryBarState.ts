@@ -42,6 +42,7 @@ const safeText = (value: any): string => {
 const titleScope = (scope: any): string => {
     const normalized = String(scope || "").toLowerCase();
     if (normalized === "similar") return tx("scope.similar", "Similar");
+    if (normalized === "workflow") return tx("scope.workflow", "Workflow");
     if (normalized === "input" || normalized === "inputs") return tx("scope.input");
     if (normalized === "custom") return tx("scope.customBrowser");
     if (normalized === "all") return tx("tab.all");

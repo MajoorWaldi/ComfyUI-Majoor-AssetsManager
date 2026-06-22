@@ -17,6 +17,7 @@ from ...shared import ErrorCode, Result, classify_file, get_logger
 from ..audio import extract_audio_metadata
 from ..geninfo.override import build_geninfo_override, merge_geninfo_override
 from ..geninfo.parser import parse_geninfo_from_prompt
+from ..workflows import classify_workflow, parse_workflow, workflow_node_text
 from .dimension_resolver import get_file_info as dims_get_file_info
 from .dimension_resolver import normalize_dimensions
 from .extractor_registry import (
@@ -443,6 +444,7 @@ class MetadataService:
         workflow = combined.get("workflow")
         loop = asyncio.get_running_loop()
         geninfo_res = None
+        self._apply_workflow_detection_metadata(combined, workflow)
 
         try:
             # Offload heavy parsing to thread pool to prevent blocking the event loop
@@ -463,6 +465,28 @@ class MetadataService:
                 combined["geninfo_status"] = {"kind": "media_pipeline", "reason": "no_sampler"}
         if override:
             combined["geninfo"] = merge_geninfo_override(combined.get("geninfo"), override) or override
+
+    def _apply_workflow_detection_metadata(self, combined: dict[str, Any], workflow: Any) -> None:
+        if not isinstance(workflow, dict) or "workflow_detection" in combined:
+            return
+        try:
+            parsed = parse_workflow(workflow)
+            text = workflow_node_text(parsed.nodes)
+            classified = classify_workflow(text, parsed.nodes)
+            combined["workflow_detection"] = {
+                "task": classified.task,
+                "workflow_type": classified.task,
+                "model_family": classified.model_family,
+                "provider": classified.provider,
+                "runs_on": classified.runs_on,
+                "confidence": classified.confidence,
+                "source": classified.source,
+                "signals": classified.signals or {},
+            }
+            if not str(combined.get("workflow_type") or "").strip():
+                combined["workflow_type"] = classified.task
+        except Exception:
+            logger.debug("Workflow detection metadata skipped", exc_info=True)
 
     async def _resolve_probe_mode(self, override: str | None) -> str:
         if isinstance(override, str):

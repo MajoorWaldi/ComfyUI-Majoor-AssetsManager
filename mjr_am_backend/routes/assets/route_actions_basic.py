@@ -131,7 +131,6 @@ async def handle_open_in_folder(
     prepare_asset_path_context: PrepareAssetPathContext,
     resolve_body_filepath: Callable[[dict[str, Any] | None], Path | None],
     load_asset_filepath_by_id: Callable[[dict[str, Any], int], Awaitable[Result[str]]],
-    is_resolved_path_allowed: Callable[[Path], bool],
     normalize_path: Callable[[str], Path | None],
     read_json: Callable[[web.Request], Awaitable[Any]],
     require_services: Callable[[], Awaitable[tuple[dict[str, Any], Result[Any] | None]]],
@@ -171,8 +170,6 @@ async def handle_open_in_folder(
         resolved = candidate.resolve(strict=True)
     except Exception:
         return json_response(Result.Err("NOT_FOUND", "File does not exist"))
-    if not is_resolved_path_allowed(resolved):
-        return json_response(Result.Err("FORBIDDEN", "Path is not within allowed roots"))
 
     def _execute_command(command: list[str]) -> None:
         if not shutil.which(command[0]):

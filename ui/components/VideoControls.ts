@@ -6,6 +6,18 @@ import { normalizeVideoFps } from "../utils/mediaFps.js";
 const MAX_MINOR_TICKS = 400;
 const SEEK_RANGE_MAX = 1000;
 const STEP_FLASH_MS = 220;
+const FPS_OVERRIDE_EPSILON = 0.001;
+
+function chooseNiceTimeStep(seconds: any, targetTicks: any) {
+    const duration = Number(seconds);
+    const target = Math.max(1, Number(targetTicks) || 1);
+    if (!Number.isFinite(duration) || duration <= 0) return 1;
+    const raw = duration / target;
+    const pow = 10 ** Math.floor(Math.log10(Math.max(raw, 0.001)));
+    const normalized = raw / pow;
+    const nice = normalized <= 1 ? 1 : normalized <= 2 ? 2 : normalized <= 5 ? 5 : 10;
+    return Math.max(0.001, nice * pow);
+}
 
 function setAbortableTimeout(signal: any, ms: any, fn: any) {
     try {
@@ -132,6 +144,12 @@ function _resolveInitialFps(opts: any) {
     } catch {
         return null;
     }
+}
+
+function _isSameFps(a: unknown, b: unknown) {
+    const na = Number(a);
+    const nb = Number(b);
+    return Number.isFinite(na) && Number.isFinite(nb) && Math.abs(na - nb) <= FPS_OVERRIDE_EPSILON;
 }
 
 function _mountPreviewControls(video: any, hostEl: any) {
@@ -270,7 +288,8 @@ export function mountVideoControls(video: any, opts: Record<string, any> = {}) {
         const mediaKind = String(opts?.mediaKind || "video").toLowerCase();
         const isAudioMedia = mediaKind === "audio";
         const isViewerBar = variant === "viewerbar";
-        const advanced = variant !== "preview" && !isAudioMedia;
+        const showTimelineRuler = variant !== "preview";
+        const advanced = showTimelineRuler;
         // Volume slider is toggled from the sound icon to keep the bar compact.
         const showVolumeSlider = true;
         const initialFps = _resolveInitialFps(opts);
@@ -302,6 +321,7 @@ export function mountVideoControls(video: any, opts: Record<string, any> = {}) {
         const controls = document.createElement("div");
         controls.className = `mjr-video-controls mjr-video-controls--${variant}`;
         if (isViewerBar) controls.classList.add("mjr-video-controls--modern");
+        if (isAudioMedia) controls.classList.add("mjr-video-controls--audio");
         controls.dataset.mjrLayout = "regular";
         controls.setAttribute("role", "group");
         controls.setAttribute(
@@ -391,11 +411,13 @@ export function mountVideoControls(video: any, opts: Record<string, any> = {}) {
         seekWrap.appendChild(seek);
         if (seekZones) seekWrap.appendChild(seekZones);
         seekWrap.appendChild(seekOverlay);
-        // Marks are separate from the non-interactive overlay so they can be dragged directly.
-        seekWrap.appendChild(inMark);
-        seekWrap.appendChild(outMark);
-        seekWrap.appendChild(inHandle);
-        seekWrap.appendChild(outHandle);
+        if (advanced) {
+            // Marks are separate from the non-interactive overlay so they can be dragged directly.
+            seekWrap.appendChild(inMark);
+            seekWrap.appendChild(outMark);
+            seekWrap.appendChild(inHandle);
+            seekWrap.appendChild(outHandle);
+        }
 
         const timeLabel = document.createElement("span");
         timeLabel.className = "mjr-video-time";
@@ -566,10 +588,12 @@ export function mountVideoControls(video: any, opts: Record<string, any> = {}) {
         if (advanced) {
             // Requested: keep current frame next to the FPS controls in the bottom row.
             leftAdjustGroup.appendChild(setInBtn);
-            leftAdjustGroup.appendChild(document.createTextNode(t("video.step", "Step")));
-            leftAdjustGroup.appendChild(stepInput);
-            leftAdjustGroup.appendChild(document.createTextNode(t("video.fps", "FPS")));
-            leftAdjustGroup.appendChild(fpsInput);
+            if (!isAudioMedia) {
+                leftAdjustGroup.appendChild(document.createTextNode(t("video.step", "Step")));
+                leftAdjustGroup.appendChild(stepInput);
+                leftAdjustGroup.appendChild(document.createTextNode(t("video.fps", "FPS")));
+                leftAdjustGroup.appendChild(fpsInput);
+            }
             leftAdjustGroup.appendChild(frameLabel);
         }
 
@@ -592,15 +616,11 @@ export function mountVideoControls(video: any, opts: Record<string, any> = {}) {
         const bottomRight = document.createElement("div");
         bottomRight.className = "mjr-video-bottom mjr-video-bottom--right";
 
-        if (!isAudioMedia) {
-            transport.appendChild(toInBtn);
-            transport.appendChild(prevFrameBtn);
-        }
+        transport.appendChild(toInBtn);
+        if (!isAudioMedia) transport.appendChild(prevFrameBtn);
         transport.appendChild(playBtn);
-        if (!isAudioMedia) {
-            transport.appendChild(nextFrameBtn);
-            transport.appendChild(toOutBtn);
-        }
+        if (!isAudioMedia) transport.appendChild(nextFrameBtn);
+        transport.appendChild(toOutBtn);
 
         if (advanced) bottomLeft.appendChild(leftAdjustGroup);
         if (advanced) bottomRight.appendChild(rightAdjustGroup);
@@ -788,6 +808,38 @@ export function mountVideoControls(video: any, opts: Record<string, any> = {}) {
             _ppRafId: null,
             _userInteracted: false,
         };
+        state.nativeFps = initialFps ? normalizeVideoFps(initialFps, 30) : null;
+        state.fps = state.nativeFps || normalizeVideoFps(fpsInput.value, 30);
+
+        const isFpsOverridden = () => {
+            const nativeFps = Number(state.nativeFps);
+            const fps = Number(state.fps);
+            return Number.isFinite(nativeFps) && nativeFps > 0 && !_isSameFps(fps, nativeFps);
+        };
+
+        const updateFpsInputState = (updateValue = false) => {
+            try {
+                if (!fpsInput || isAudioMedia) return;
+                const nativeFps = Number(state.nativeFps);
+                const overridden = isFpsOverridden();
+                const baseTitle = t("video.fpsStepping", "FPS (used for frame stepping)");
+                fpsInput.classList.toggle("is-overridden", overridden);
+                if (Number.isFinite(nativeFps) && nativeFps > 0) {
+                    fpsInput.dataset.defaultFps = String(nativeFps);
+                    fpsInput.title = `${baseTitle} - Source FPS: ${nativeFps}`;
+                    if (overridden) fpsInput.title += " - Modified";
+                } else {
+                    delete fpsInput.dataset.defaultFps;
+                    fpsInput.title = baseTitle;
+                }
+                if (updateValue && !fpsInput.matches?.(":focus")) {
+                    fpsInput.value = String(normalizeVideoFps(state.fps, state.nativeFps || 30));
+                }
+            } catch (e: any) {
+                console.debug?.(e);
+            }
+        };
+        updateFpsInputState(true);
 
         // Auto-unmute once the user interacts with the video controls.
         // This bypasses autoplay restrictions: most browsers allow unmuted playback after a user gesture.
@@ -963,6 +1015,27 @@ export function mountVideoControls(video: any, opts: Record<string, any> = {}) {
             }
         };
 
+        const getSeekRangeMax = () => {
+            try {
+                if (!advanced || isAudioMedia) return SEEK_RANGE_MAX;
+                const frames = durationFrames();
+                if (Number.isFinite(frames) && frames > SEEK_RANGE_MAX) {
+                    return Math.max(SEEK_RANGE_MAX, Math.floor(frames));
+                }
+            } catch (e: any) {
+                console.debug?.(e);
+            }
+            return SEEK_RANGE_MAX;
+        };
+
+        const syncSeekRangeMax = () => {
+            try {
+                seek.max = String(getSeekRangeMax());
+            } catch (e: any) {
+                console.debug?.(e);
+            }
+        };
+
         const setPlayLabel = () => {
             try {
                 const isPlaying = !video?.paused || state._ppReverse;
@@ -1002,7 +1075,8 @@ export function mountVideoControls(video: any, opts: Record<string, any> = {}) {
 
                 if (durationOk) {
                     const p = clamp01((t || 0) / d);
-                    const v = Math.round(p * 1000);
+                    syncSeekRangeMax();
+                    const v = Math.round(p * getSeekRangeMax());
                     if (!Number.isNaN(v) && !state._seeking && !seek.matches?.(":active")) {
                         seek.value = String(v);
                     }
@@ -1020,17 +1094,18 @@ export function mountVideoControls(video: any, opts: Record<string, any> = {}) {
                     }
                 }
 
-                if (advanced) {
-                    const maxF = durationFrames();
-                    const cf = currentFrame(t);
-                    frameLabel.textContent = `F: ${cf} / ${maxF}`;
+                const maxF = advanced ? durationFrames() : 0;
+                const cf = advanced ? currentFrame(t) : 0;
+                if (showTimelineRuler) {
+                    if (advanced) frameLabel.textContent = isAudioMedia
+                        ? `T: ${formatTime(t)} / ${formatTime(d)}`
+                        : `F: ${cf} / ${maxF}`;
                     try {
-                        // Show current frame value on the ruler, anchored to the playhead.
                         const durOk = Number.isFinite(d) && d > 0;
                         if (durOk) {
                             const p = clamp01((t || 0) / d);
                             playheadLabel.style.left = `${p * 100}%`;
-                            playheadLabel.textContent = String(cf);
+                            playheadLabel.textContent = isAudioMedia ? formatTime(t) : String(cf);
                             playheadLabel.style.display = "";
                         } else {
                             playheadLabel.style.display = "none";
@@ -1038,6 +1113,9 @@ export function mountVideoControls(video: any, opts: Record<string, any> = {}) {
                     } catch (e: any) {
                         console.debug?.(e);
                     }
+                }
+
+                if (advanced) {
                     if (!inInput.matches?.(":focus")) inInput.value = String(state.inFrame ?? 0);
                     if (!outInput.matches?.(":focus"))
                         outInput.value = String(state.outFrame ?? maxF);
@@ -1048,7 +1126,9 @@ export function mountVideoControls(video: any, opts: Record<string, any> = {}) {
                         const fullRange = inF <= 0 && outF >= mx;
                         const count = Math.max(0, Math.floor(outF) - Math.floor(inF) + 1);
                         if (!fullRange && mx > 0) {
-                            rangeCountLabel.textContent = `R: ${count}f`;
+                            rangeCountLabel.textContent = isAudioMedia
+                                ? `R: ${formatTime(count / normalizeVideoFps(state.fps, 30))}`
+                                : `R: ${count}f`;
                             rangeCountLabel.style.display = "";
                         } else {
                             rangeCountLabel.style.display = "none";
@@ -1062,8 +1142,63 @@ export function mountVideoControls(video: any, opts: Record<string, any> = {}) {
             }
         };
 
+        const updateAudioTimelineRuler = () => {
+            if (!showTimelineRuler || !isAudioMedia) return;
+            try {
+                const duration = Number(video?.duration);
+                if (!Number.isFinite(duration) || duration <= 0) {
+                    tickBar.style.backgroundImage = "";
+                    labelsBar.replaceChildren();
+                    try {
+                        labelsBar.dataset.mjrLabelKey = "";
+                    } catch (e: any) {
+                        console.debug?.(e);
+                    }
+                    return;
+                }
+
+                const minorSeconds = chooseNiceTimeStep(duration, 80);
+                const majorSeconds = chooseNiceTimeStep(duration, 8);
+                const minorPct = (minorSeconds / duration) * 100;
+                const majorPct = (majorSeconds / duration) * 100;
+
+                if (Number.isFinite(minorPct) && minorPct > 0.02) {
+                    const minor = `repeating-linear-gradient(to right, rgba(255,255,255,0.16) 0, rgba(255,255,255,0.16) 1px, transparent 1px, transparent ${minorPct}%)`;
+                    const major = `repeating-linear-gradient(to right, rgba(255,255,255,0.3) 0, rgba(255,255,255,0.3) 1px, transparent 1px, transparent ${majorPct}%)`;
+                    tickBar.style.backgroundImage = `${major}, ${minor}`;
+                } else {
+                    tickBar.style.backgroundImage = "";
+                }
+
+                const key = `audio|${Math.round(duration * 1000)}|${Math.round(majorSeconds * 1000)}`;
+                if (labelsBar?.dataset?.mjrLabelKey === key) return;
+                labelsBar.dataset.mjrLabelKey = key;
+                labelsBar.replaceChildren();
+
+                const makeLabel = (seconds: any) => {
+                    const s = document.createElement("span");
+                    s.className = "mjr-video-seek-label";
+                    const value = Math.max(0, Math.min(duration, Number(seconds) || 0));
+                    s.style.left = `${clamp01(value / duration) * 100}%`;
+                    s.textContent = formatTime(value);
+                    return s;
+                };
+
+                labelsBar.appendChild(makeLabel(0));
+                for (let seconds = majorSeconds; seconds < duration; seconds += majorSeconds) {
+                    labelsBar.appendChild(makeLabel(seconds));
+                }
+                labelsBar.appendChild(makeLabel(duration));
+            } catch (e: any) {
+                console.debug?.(e);
+            }
+        };
+
         const updateSeekRangeStyle = () => {
-            if (!advanced) return;
+            if (!advanced) {
+                updateAudioTimelineRuler();
+                return;
+            }
             try {
                 const { inF, outF, maxF } = getEffectiveInOut();
                 if (!Number.isFinite(maxF) || maxF <= 0) return;
@@ -1115,6 +1250,11 @@ export function mountVideoControls(video: any, opts: Record<string, any> = {}) {
                     outHandle.style.left = `${outPct}%`;
                 } catch (e: any) {
                     console.debug?.(e);
+                }
+
+                if (isAudioMedia) {
+                    updateAudioTimelineRuler();
+                    return;
                 }
 
                 // Nuke-like tick ruler. Clamp tick density so we don't create thousands of ticks for long clips.
@@ -1478,7 +1618,8 @@ export function mountVideoControls(video: any, opts: Record<string, any> = {}) {
                 const p = clamp01(x / width);
                 const nextTime = p * d;
                 video.currentTime = nextTime;
-                seek.value = String(Math.round(p * SEEK_RANGE_MAX));
+                syncSeekRangeMax();
+                seek.value = String(Math.round(p * getSeekRangeMax()));
                 updateTimeUI(nextTime);
                 return true;
             } catch (e: any) {
@@ -1587,7 +1728,7 @@ export function mountVideoControls(video: any, opts: Record<string, any> = {}) {
                     const d = Number(video?.duration);
                     if (!Number.isFinite(d) || d <= 0) return;
                     const v = Number(seek.value);
-                    const p = clamp01((Number.isFinite(v) ? v : 0) / 1000);
+                    const p = clamp01((Number.isFinite(v) ? v : 0) / getSeekRangeMax());
                     video.currentTime = p * d;
                 } catch (e: any) {
                     console.debug?.(e);
@@ -1664,6 +1805,7 @@ export function mountVideoControls(video: any, opts: Record<string, any> = {}) {
                     try {
                         state.fps = normalizeVideoFps(fpsInput.value, 30);
                         fpsInput.value = String(state.fps);
+                        updateFpsInputState(false);
                         normalizeRange();
                     } catch (e: any) {
                         console.debug?.(e);
@@ -1973,16 +2115,13 @@ export function mountVideoControls(video: any, opts: Record<string, any> = {}) {
                 { passive: true },
             ),
         );
-        if (advanced) {
-            unsubs.push(
-                safeAddListener(video, "mjr:frameStep", () => {
-                    safeCall(flashFrameStep);
-                }),
-            );
-        }
-        if (advanced) {
+        if (showTimelineRuler) {
             unsubs.push(
                 safeAddListener(video, "loadedmetadata", () => {
+                    if (!advanced) {
+                        updateSeekRangeStyle();
+                        return;
+                    }
                     try {
                         const maxF = durationFrames();
                         if (maxF > 0 && state.inFrame == null && state.outFrame == null) {
@@ -2000,13 +2139,21 @@ export function mountVideoControls(video: any, opts: Record<string, any> = {}) {
                 safeAddListener(video, "durationchange", () => safeCall(updateSeekRangeStyle)),
             );
         }
+        if (advanced) {
+            unsubs.push(
+                safeAddListener(video, "mjr:frameStep", () => {
+                    safeCall(flashFrameStep);
+                }),
+            );
+        }
         for (const ev of ["volumechange"]) {
             unsubs.push(safeAddListener(video, ev, () => safeCall(updateVolumeUI)));
         }
 
         // Initial sync
         try {
-            state.fps = normalizeVideoFps(fpsInput.value, 30);
+            state.fps = normalizeVideoFps(fpsInput.value, state.nativeFps || 30);
+            updateFpsInputState(true);
             state.step = Math.max(1, Math.floor(Number(stepInput.value) || 1));
             normalizeRange();
             applyLoopOnceUI();
@@ -2040,9 +2187,13 @@ export function mountVideoControls(video: any, opts: Record<string, any> = {}) {
             try {
                 const fps = Number(info?.fps);
                 if (Number.isFinite(fps) && fps > 0) {
-                    state.fps = normalizeVideoFps(fps, state.fps || 30);
+                    const fpsSource = String(info?.fpsSource || info?.source || "");
+                    if (fpsSource === "rvfc" && Number(state.nativeFps) > 0) return;
+                    const wasOverridden = isFpsOverridden();
+                    state.nativeFps = normalizeVideoFps(fps, state.nativeFps || 30);
+                    if (!wasOverridden) state.fps = state.nativeFps;
                     try {
-                        if (!fpsInput?.matches?.(":focus")) fpsInput.value = String(state.fps);
+                        updateFpsInputState(true);
                     } catch (e: any) {
                         console.debug?.(e);
                     }

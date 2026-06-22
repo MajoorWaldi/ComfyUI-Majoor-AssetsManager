@@ -57,6 +57,7 @@ class PluginLoader:
         self._load_errors: list[tuple[str, str]] = []
         self._plugin_info: dict[str, dict[str, Any]] = {}
         self._blueprints: dict[str, Blueprint] = {}
+        self._cleanup_tasks: set[Any] = set()
 
         if auto_discover:
             self.discover_plugins()
@@ -395,13 +396,22 @@ class PluginLoader:
             # Call cleanup hook.  We intentionally call the synchronous
             # fallback when no running loop is available.  When the loop IS
             # running (the common case during hot-reload) we schedule the
-            # cleanup as a proper awaited task via ensure_future so it
-            # actually completes before dereferencing the extractor.
+            # cleanup as a task and keep a strong reference until it
+            # completes, so it is neither garbage-collected mid-flight nor
+            # left as an unretrieved-exception orphan.
             import asyncio
             try:
                 loop = asyncio.get_running_loop()
-                # Schedule and let it complete within the current event loop.
-                asyncio.ensure_future(extractor.cleanup(), loop=loop)
+                task = loop.create_task(extractor.cleanup())
+                self._cleanup_tasks.add(task)
+
+                def _on_cleanup_done(t: Any, _name: str = name) -> None:
+                    self._cleanup_tasks.discard(t)
+                    exc = t.exception() if not t.cancelled() else None
+                    if exc is not None:
+                        logger.error(f"Async cleanup failed for {_name}: {exc}")
+
+                task.add_done_callback(_on_cleanup_done)
             except RuntimeError:
                 # No running loop — run synchronously in a throwaway loop.
                 try:

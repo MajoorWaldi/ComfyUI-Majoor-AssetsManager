@@ -27,6 +27,12 @@ const props = defineProps({
 const emit = defineEmits(["close"]);
 
 const isFolder = computed(() => String(props.asset?.kind || "").toLowerCase() === "folder");
+const isWorkflow = computed(() => {
+    const kind = String(props.asset?.kind || "").toLowerCase();
+    const source = String(props.asset?.source || props.asset?.scope || "").toLowerCase();
+    const filepath = String(props.asset?.filepath || props.asset?.path || "").toLowerCase();
+    return kind === "workflow" || source === "workflow" || filepath.endsWith(".json");
+});
 const rating = computed(() => Number(props.asset?.rating) || 0);
 const tags = computed(() => props.asset?.tags || []);
 const showPreviewThumb = computed(() => {
@@ -63,33 +69,35 @@ function handleClose() {
         </template>
 
         <template v-else>
-            <SidebarPreviewSection
-                :asset="asset"
-                :show-preview-thumb="showPreviewThumb"
-            />
+            <template v-if="!isWorkflow">
+                <SidebarPreviewSection
+                    :asset="asset"
+                    :show-preview-thumb="showPreviewThumb"
+                />
 
-            <div
-                class="mjr-sidebar-rating-tags"
-                style="display:flex;flex-direction:column;gap:10px"
-            >
-                <div style="display:flex;align-items:center;gap:8px">
-                    <span style="font-size:0.8em;opacity:0.6;min-width:44px">{{ t("sidebar.rating", "Rating") }}</span>
-                    <RatingEditor
-                        :asset="asset"
-                        :model-value="rating"
-                    />
+                <div
+                    class="mjr-sidebar-rating-tags"
+                    style="display:flex;flex-direction:column;gap:10px"
+                >
+                    <div style="display:flex;align-items:center;gap:8px">
+                        <span style="font-size:0.8em;opacity:0.6;min-width:44px">{{ t("sidebar.rating", "Rating") }}</span>
+                        <RatingEditor
+                            :asset="asset"
+                            :model-value="rating"
+                        />
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:4px">
+                        <span style="font-size:0.8em;opacity:0.6">{{ t("sidebar.tags", "Tags") }}</span>
+                        <TagsEditor
+                            :asset="asset"
+                            :model-value="tags"
+                        />
+                    </div>
                 </div>
-                <div style="display:flex;flex-direction:column;gap:4px">
-                    <span style="font-size:0.8em;opacity:0.6">{{ t("sidebar.tags", "Tags") }}</span>
-                    <TagsEditor
-                        :asset="asset"
-                        :model-value="tags"
-                    />
-                </div>
-            </div>
 
-            <SidebarFileInfoSection :asset="asset" />
-            <SidebarGenerationSection :asset="asset" />
+                <SidebarFileInfoSection :asset="asset" />
+                <SidebarGenerationSection :asset="asset" />
+            </template>
             <SidebarWorkflowSection :asset="asset" />
         </template>
     </div>
