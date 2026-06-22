@@ -31,6 +31,8 @@ export function createContextController({
     wfCheckbox,
     workflowTypeSelect,
     workflowIdInput,
+    workflowModelInput,
+    workflowRunsOnSelect,
     ratingSelect,
     minSizeInput,
     maxSizeInput,
@@ -69,6 +71,8 @@ export function createContextController({
         "resolutionCompare",
         "workflowType",
         "workflowId",
+        "workflowModelFilter",
+        "workflowRunsOnFilter",
         "dateRangeFilter",
         "dateExactFilter",
         "sort",
@@ -296,6 +300,32 @@ export function createContextController({
                 console.debug?.(e);
             }
         },
+        clearWorkflowModel: async () => {
+            try {
+                setStateValue("workflowModelFilter", "");
+                _safeSetValue(workflowModelInput, "");
+            } catch (e) {
+                console.debug?.(e);
+            }
+            try {
+                await reloadGrid?.();
+            } catch (e) {
+                console.debug?.(e);
+            }
+        },
+        clearWorkflowRunsOn: async () => {
+            try {
+                setStateValue("workflowRunsOnFilter", "");
+                _safeSetValue(workflowRunsOnSelect, "");
+            } catch (e) {
+                console.debug?.(e);
+            }
+            try {
+                await reloadGrid?.();
+            } catch (e) {
+                console.debug?.(e);
+            }
+        },
         clearSize: async () => {
             try {
                 setStateValue("minSizeMB", 0);
@@ -393,6 +423,8 @@ export function createContextController({
                 setStateValue("resolutionCompare", "gte");
                 setStateValue("workflowType", "");
                 setStateValue("workflowId", "");
+                setStateValue("workflowModelFilter", "");
+                setStateValue("workflowRunsOnFilter", "");
                 setStateValue("dateRangeFilter", "");
                 setStateValue("dateExactFilter", "");
                 setStateValue("sort", "mtime_desc");
@@ -421,6 +453,8 @@ export function createContextController({
                 _safeSetChecked(wfCheckbox, false);
                 _safeSetValue(workflowTypeSelect, "");
                 _safeSetValue(workflowIdInput, "");
+                _safeSetValue(workflowModelInput, "");
+                _safeSetValue(workflowRunsOnSelect, "");
                 _safeSetValue(ratingSelect, "0");
                 _safeSetValue(minSizeInput, "");
                 _safeSetValue(maxSizeInput, "");
@@ -473,6 +507,8 @@ export function createContextController({
             (Number(getStateValue("maxHeight", 0) || 0) || 0) > 0 ||
             String(getStateValue("workflowType", "") || "").trim().length > 0 ||
             String(getStateValue("workflowId", "") || "").trim().length > 0 ||
+            String(getStateValue("workflowModelFilter", "") || "").trim().length > 0 ||
+            String(getStateValue("workflowRunsOnFilter", "") || "").trim().length > 0 ||
             getStateValue("dateRangeFilter", "") ||
             "" ||
             getStateValue("dateExactFilter", "") ||

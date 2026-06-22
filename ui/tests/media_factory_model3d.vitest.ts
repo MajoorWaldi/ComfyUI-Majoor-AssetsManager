@@ -66,6 +66,31 @@ describe("createViewerMediaFactory 3D", () => {
         expect(createModel3DMediaElement.mock.calls[0][0]).toBe(asset);
     });
 
+    it("wraps audio assets in the enhanced audio preview shell", async () => {
+        const { createViewerMediaFactory } = await import("../features/viewer/mediaFactory.js");
+        const { createAudioVisualizer } = await import("../features/viewer/audioVisualizer.js");
+        const factory = createViewerMediaFactory({
+            overlay: { querySelectorAll: () => [] },
+            state: { audioVisualizerMode: "simple" },
+            mediaTransform: () => "",
+        });
+
+        const el = factory.createMediaElement(
+            { id: 8, kind: "audio", filename: "track.wav" },
+            "/view?filename=track.wav&type=output",
+        );
+
+        expect(el.className).toBe("mjr-viewer-audio-shell");
+        expect(document.createElement).toHaveBeenCalledWith("canvas");
+        expect(document.createElement).toHaveBeenCalledWith("audio");
+        expect(createAudioVisualizer).toHaveBeenCalledWith(
+            expect.objectContaining({
+                mode: "simple",
+                pauseDuringExecution: true,
+            }),
+        );
+    });
+
     it("skips disabled transforms for 3D canvases", async () => {
         const elA = { style: {}, _mjrDisableViewerTransform: false };
         const elB = { style: {}, _mjrDisableViewerTransform: true };

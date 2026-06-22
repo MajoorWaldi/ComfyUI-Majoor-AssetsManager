@@ -19,7 +19,7 @@ export const APP_DEFAULTS = Object.freeze({
     VIEWER_SCOPES_FPS: 8,
 
     // Grid
-    GRID_MIN_SIZE: 120,
+    GRID_MIN_SIZE: 150,
     FEED_GRID_MIN_SIZE: 120,
     GRID_GAP: 10,
     GRID_SHOW_BADGES_EXTENSION: true,
@@ -32,6 +32,7 @@ export const APP_DEFAULTS = Object.freeze({
     GRID_SHOW_DETAILS_GENTIME: true,
     GRID_SHOW_HOVER_INFO: true,
     GRID_SHOW_WORKFLOW_DOT: true,
+    WORKFLOW_GRID_GROUP_BY: "model", // "none" | "task" | "model" | "category"
     GRID_VIDEO_AUTOPLAY_MODE: "hover", // "off" | "hover" | "always"
 
     // Bottom feed card display
@@ -121,6 +122,7 @@ export const APP_DEFAULTS = Object.freeze({
     // UI safety knobs
     DELETE_CONFIRMATION: true,
     DEBUG_VERBOSE_ERRORS: false,
+    SIDEBAR_ASSET_BADGE_ENABLED: true,
 });
 
 // Widen literal types to their base types and strip readonly to allow runtime mutation.

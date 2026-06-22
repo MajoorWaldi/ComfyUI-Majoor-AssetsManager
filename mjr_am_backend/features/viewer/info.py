@@ -90,11 +90,14 @@ def _extract_video_fields(info: dict[str, Any], metadata_raw: Any) -> None:
 
 
 def _extract_fps_raw(metadata_raw: Any, video_stream: dict[str, Any]) -> Any:
+    stream_fps = video_stream.get("avg_frame_rate") or video_stream.get("r_frame_rate")
+    if stream_fps is not None:
+        return stream_fps
     if isinstance(metadata_raw, dict):
-        fps_raw = metadata_raw.get("fps")
+        fps_raw = metadata_raw.get("fps_raw") or metadata_raw.get("fps") or metadata_raw.get("frame_rate")
         if fps_raw is not None:
             return fps_raw
-    return video_stream.get("avg_frame_rate") or video_stream.get("r_frame_rate")
+    return None
 
 
 def _extract_frame_count(video_stream: dict[str, Any], info: dict[str, Any], fps: float | None) -> int | None:

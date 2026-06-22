@@ -21,7 +21,10 @@ from ...config import (
     is_vector_search_enabled,
 )
 from ...features.index.searcher import _build_filter_clauses
-from ...features.index.vector_runtime import ensure_vector_runtime
+from ...features.index.vector_runtime import (
+    ensure_vector_runtime,
+    maybe_unload_vector_runtime_after_use,
+)
 from ...runtime_activity import is_generation_busy
 from ...shared import Result, get_logger
 from ..core import (
@@ -658,6 +661,8 @@ def register_vector_search_routes(routes: web.RouteTableDef) -> None:
         except Exception as exc:
             logger.warning("Vector text search failed: %s", exc)
             return _json_response(Result.Err("SERVICE_UNAVAILABLE", safe_error_message(exc, "Vector text search failed")))
+        finally:
+            await maybe_unload_vector_runtime_after_use(services_dict, logger=logger)
 
     # ── Find Similar ───────────────────────────────────────────────────
 
@@ -732,6 +737,8 @@ def register_vector_search_routes(routes: web.RouteTableDef) -> None:
         except Exception as exc:
             logger.warning("Find similar failed: %s", exc)
             return _json_response(Result.Err("SERVICE_UNAVAILABLE", safe_error_message(exc, "Find similar failed")))
+        finally:
+            await maybe_unload_vector_runtime_after_use(services_dict, logger=logger)
 
     # ── Prompt-alignment score ─────────────────────────────────────────
 
@@ -813,14 +820,17 @@ def register_vector_search_routes(routes: web.RouteTableDef) -> None:
 
         from ...features.index.vector_indexer import index_asset_vector
 
-        result = await index_asset_vector(db, vs, asset_id, filepath, kind)
+        try:
+            result = await index_asset_vector(db, vs, asset_id, filepath, kind)
 
-        # Invalidate in-memory Faiss index
-        searcher = services_dict.get("vector_searcher")
-        if searcher:
-            searcher.invalidate()
+            # Invalidate in-memory Faiss index
+            searcher = services_dict.get("vector_searcher")
+            if searcher:
+                searcher.invalidate()
 
-        return _json_response(result)
+            return _json_response(result)
+        finally:
+            await maybe_unload_vector_runtime_after_use(services_dict, logger=logger)
 
     @routes.post("/mjr/am/vector/caption/{asset_id}")
     @routes.post("/mjr/am/vector/enhanced-prompt/{asset_id}")
@@ -866,6 +876,8 @@ def register_vector_search_routes(routes: web.RouteTableDef) -> None:
         except Exception as exc:
             logger.warning("Caption generation failed: %s", exc)
             return _json_response(Result.Err("SERVICE_UNAVAILABLE", safe_error_message(exc, "Caption generation failed")))
+        finally:
+            await maybe_unload_vector_runtime_after_use(services_dict, logger=logger)
 
     # Legacy alias requested by user (dash-separated path variant).
     @routes.post("/mjr-am/assets/enhance-prompt")
@@ -911,6 +923,8 @@ def register_vector_search_routes(routes: web.RouteTableDef) -> None:
         except Exception as exc:
             logger.warning("Caption generation failed (alias): %s", exc)
             return _json_response(Result.Err("SERVICE_UNAVAILABLE", safe_error_message(exc, "Caption generation failed")))
+        finally:
+            await maybe_unload_vector_runtime_after_use(services_dict, logger=logger)
 
     # ── Vector stats ───────────────────────────────────────────────────
 

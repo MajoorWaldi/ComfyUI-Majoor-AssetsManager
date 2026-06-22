@@ -111,6 +111,8 @@ export function buildGridSnapshotKey(parts: Record<string, any> = {}): string {
         maxHeight: normalizeSnapshotPart(parts.maxHeight || ""),
         workflowType: normalizeSnapshotPart(parts.workflowType || "").toUpperCase(),
         workflowId: normalizeSnapshotPart(parts.workflowId || ""),
+        workflowModel: normalizeSnapshotPart(parts.workflowModel || ""),
+        workflowRunsOn: normalizeSnapshotPart(parts.workflowRunsOn || "").toLowerCase(),
         dateRange: normalizeSnapshotPart(parts.dateRange || ""),
         dateExact: normalizeSnapshotPart(parts.dateExact || ""),
         sort: normalizeSnapshotPart(parts.sort || "mtime_desc", "mtime_desc"),

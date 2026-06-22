@@ -159,7 +159,13 @@ def register_stacks_routes(routes: web.RouteTableDef) -> None:
         except (KeyError, ValueError):
             return _json_response(Result.Err("INVALID_INPUT", "Invalid stack_id"), status=400)
 
-        result = await svc.get_members(stack_id)
+        try:
+            raw_limit = str(request.query.get("limit", "") or "").strip()
+            limit = int(raw_limit) if raw_limit else None
+        except ValueError:
+            return _json_response(Result.Err("INVALID_INPUT", "Invalid limit"), status=400)
+
+        result = await svc.get_members(stack_id, limit=limit)
         return _json_response(result)
 
     @routes.post("/mjr/am/stacks/{stack_id}/cover")

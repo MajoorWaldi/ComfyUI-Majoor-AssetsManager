@@ -211,4 +211,86 @@ describe("topBarMfvButton", () => {
 
         teardownTopBarMfvButton();
     });
+
+    it("pins next to the Manager button inside newer ComfyUI button groups", async () => {
+        const actionbar = document.createElement("div");
+        actionbar.setAttribute("data-testid", "topbar");
+        actionbar.getBoundingClientRect = () => ({ bottom: 70 });
+
+        const buttonGroup = document.createElement("div");
+        buttonGroup.className = "comfyui-button-group";
+        const managerButton = document.createElement("button");
+        managerButton.type = "button";
+        managerButton.setAttribute("aria-label", "Manager");
+        managerButton.textContent = "Manager";
+        const runButton = document.createElement("button");
+        runButton.type = "button";
+        runButton.setAttribute("aria-label", "Run");
+        runButton.textContent = "Run";
+        const otherButton = document.createElement("button");
+        otherButton.type = "button";
+        otherButton.textContent = "Settings";
+        buttonGroup.appendChild(managerButton);
+        buttonGroup.appendChild(runButton);
+        buttonGroup.appendChild(otherButton);
+        actionbar.appendChild(buttonGroup);
+        document.body.appendChild(actionbar);
+
+        const { mountTopBarMfvButton, teardownTopBarMfvButton } =
+            await import("../features/runtime/topBarMfvButton.js");
+
+        mountTopBarMfvButton();
+        flushTimers();
+
+        const slot = actionbar.querySelector("[data-mjr-topbar-mfv-slot]");
+        expect(slot).toBeTruthy();
+        expect(managerButton.nextSibling).toBe(slot);
+        expect(slot.nextSibling).toBe(runButton);
+
+        teardownTopBarMfvButton();
+    });
+
+    it("re-mounts next to Manager when ComfyUI replaces nested topbar group children", async () => {
+        const actionbar = document.createElement("div");
+        actionbar.setAttribute("data-testid", "topbar");
+        actionbar.getBoundingClientRect = () => ({ bottom: 70 });
+
+        const buttonGroup = document.createElement("div");
+        buttonGroup.className = "comfyui-button-group";
+        const managerButton = document.createElement("button");
+        managerButton.type = "button";
+        managerButton.setAttribute("aria-label", "Manager");
+        managerButton.textContent = "Manager";
+        buttonGroup.appendChild(managerButton);
+        actionbar.appendChild(buttonGroup);
+        document.body.appendChild(actionbar);
+
+        const { mountTopBarMfvButton, teardownTopBarMfvButton } =
+            await import("../features/runtime/topBarMfvButton.js");
+
+        mountTopBarMfvButton();
+        flushTimers();
+        expect(buttonGroup.querySelector("[data-mjr-topbar-mfv-slot]")).toBeTruthy();
+
+        const rerenderedManagerButton = document.createElement("button");
+        rerenderedManagerButton.type = "button";
+        rerenderedManagerButton.setAttribute("data-command-id", "mjr.openAssetsManager");
+        rerenderedManagerButton.textContent = "Manager";
+        const rerenderedRunButton = document.createElement("button");
+        rerenderedRunButton.type = "button";
+        rerenderedRunButton.setAttribute("aria-label", "Queue Prompt");
+        rerenderedRunButton.textContent = "Run";
+        buttonGroup.replaceChildren(rerenderedManagerButton, rerenderedRunButton);
+        await Promise.resolve();
+        flushTimers();
+
+        const slot = actionbar.querySelector("[data-mjr-topbar-mfv-slot]");
+        const button = actionbar.querySelector("[data-mjr-topbar-mfv-button]");
+        expect(slot).toBeTruthy();
+        expect(button).toBeTruthy();
+        expect(rerenderedManagerButton.nextSibling).toBe(slot);
+        expect(slot.nextSibling).toBe(rerenderedRunButton);
+
+        teardownTopBarMfvButton();
+    });
 });

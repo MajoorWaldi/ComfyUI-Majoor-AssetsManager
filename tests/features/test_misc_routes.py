@@ -252,8 +252,8 @@ async def test_stacks_read_routes_and_invalid_ids(monkeypatch) -> None:
         async def get_stack(self, stack_id):
             return Result.Ok({"id": stack_id})
 
-        async def get_members(self, stack_id):
-            return Result.Ok([{"stack_id": stack_id}])
+        async def get_members(self, stack_id, limit=None):
+            return Result.Ok([{"stack_id": stack_id, "limit": limit}])
 
     services = {"_stacks_service": _Stacks()}
 
@@ -277,7 +277,13 @@ async def test_stacks_read_routes_and_invalid_ids(monkeypatch) -> None:
     assert body["code"] == "INVALID_INPUT"
 
     body, _status = await _call(app, "GET", "/mjr/am/stacks/12/members")
-    assert body["data"] == [{"stack_id": 12}]
+    assert body["data"] == [{"stack_id": 12, "limit": None}]
+
+    body, _status = await _call(app, "GET", "/mjr/am/stacks/12/members?limit=501")
+    assert body["data"] == [{"stack_id": 12, "limit": 501}]
+
+    body, _status = await _call(app, "GET", "/mjr/am/stacks/12/members?limit=bad")
+    assert body["code"] == "INVALID_INPUT"
 
 
 @pytest.mark.asyncio

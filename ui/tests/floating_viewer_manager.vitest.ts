@@ -58,11 +58,25 @@ const state = vi.hoisted(() => {
             this.dispose = vi.fn(() => {
                 this.isVisible = false;
             });
+            this._simplePlayerKeydown = vi.fn((event) => {
+                event.preventDefault?.();
+                event.stopPropagation?.();
+                event.stopImmediatePropagation?.();
+            });
+            this._simplePlayer = {
+                _mjrSimplePlayerHandleKeydown: this._simplePlayerKeydown,
+            };
+            this.element = {
+                isConnected: true,
+                contains: (target) => target === this._simplePlayer || target?._insideMfv === true,
+                querySelector: (selector) =>
+                    selector === ".mjr-mfv-simple-player" ? this._simplePlayer : null,
+            };
             lastViewer = this;
         }
 
         render() {
-            return { nodeName: "DIV" };
+            return this.element;
         }
 
         get isPopped() {
@@ -649,6 +663,36 @@ describe("floatingViewerManager", () => {
 
         expect(viewer.setPreviewActive).toHaveBeenLastCalledWith(false);
         expect(floatingViewerManager.getPreviewActive()).toBe(false);
+        expect(event.preventDefault).toHaveBeenCalledTimes(1);
+    });
+
+    it("forwards player shortcuts to the active MFV simple player from child controls", async () => {
+        const { floatingViewerManager, installFloatingViewerGlobalHandlers } =
+            await import("../features/viewer/floatingViewerManager.js");
+        installFloatingViewerGlobalHandlers();
+        await floatingViewerManager.open();
+
+        const viewer = state.getLastViewer();
+        const target = {
+            _insideMfv: true,
+            isContentEditable: false,
+            closest: (selector) => (selector === "input, textarea, select, [contenteditable='true']" ? target : null),
+        };
+        const event = {
+            type: "keydown",
+            key: "ArrowRight",
+            target,
+            ctrlKey: false,
+            metaKey: false,
+            altKey: false,
+            shiftKey: false,
+            preventDefault: vi.fn(),
+            stopPropagation: vi.fn(),
+            stopImmediatePropagation: vi.fn(),
+        };
+        window.dispatchEvent(event);
+
+        expect(viewer._simplePlayerKeydown).toHaveBeenCalledWith(event);
         expect(event.preventDefault).toHaveBeenCalledTimes(1);
     });
 

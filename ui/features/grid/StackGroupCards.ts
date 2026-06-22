@@ -2,6 +2,8 @@ import { get } from "../../api/client.js";
 import { buildStackMembersURL } from "../../api/endpoints.js";
 import { EVENTS } from "../../app/events.js";
 
+const STACK_GROUP_FETCH_LIMIT = 501;
+
 export function bindCardOverlayButton(button: any): any {
     if (!button || button.dataset?.mjrOverlayButtonBound === "1") return button;
 
@@ -60,7 +62,7 @@ function _getGroupKey(asset: any) {
 async function _fetchGroupMembers(asset: any) {
     const stackId = String(asset?.stack_id || "").trim();
     if (stackId) {
-        const res = await get(buildStackMembersURL(stackId), { timeoutMs: 30_000 });
+        const res = await get(buildStackMembersURL(stackId, { limit: STACK_GROUP_FETCH_LIMIT }), { timeoutMs: 30_000 });
         if (res?.ok && Array.isArray(res?.data)) return res.data;
         throw new Error(String(res?.error || "Failed to load stack members"));
     }
@@ -125,8 +127,11 @@ export function ensureStackGroupCard(gridContainer: any, card: any, asset: any):
         button.addEventListener("click", async (event: any) => {
             event.preventDefault();
             event.stopPropagation();
+            if (button.dataset?.mjrStackOpening === "1") return;
 
             try {
+                button.dataset.mjrStackOpening = "1";
+                button.disabled = true;
                 const activeGrid = button?._mjrGridContainer;
                 const activeCard = button?._mjrCard;
                 const activeAsset = button?._mjrAsset;
@@ -160,6 +165,13 @@ export function ensureStackGroupCard(gridContainer: any, card: any, asset: any):
                 );
             } catch (err: any) {
                 console.debug?.(err);
+            } finally {
+                try {
+                    delete button.dataset.mjrStackOpening;
+                    button.disabled = false;
+                } catch (e: any) {
+                    console.debug?.(e);
+                }
             }
         });
         card.appendChild(button);
@@ -221,7 +233,10 @@ export function ensureDupStackCard(gridContainer: any, card: any, asset: any): v
         button.addEventListener("click", (event: any) => {
             event.preventDefault();
             event.stopPropagation();
+            if (button.dataset?.mjrStackOpening === "1") return;
             try {
+                button.dataset.mjrStackOpening = "1";
+                button.disabled = true;
                 const activeGrid = button?._mjrGridContainer;
                 const activeAsset = button?._mjrAsset;
                 if (!activeGrid || !activeAsset) return;
@@ -242,6 +257,13 @@ export function ensureDupStackCard(gridContainer: any, card: any, asset: any): v
                 );
             } catch (err: any) {
                 console.debug?.(err);
+            } finally {
+                try {
+                    delete button.dataset.mjrStackOpening;
+                    button.disabled = false;
+                } catch (e: any) {
+                    console.debug?.(e);
+                }
             }
         });
         card.appendChild(button);

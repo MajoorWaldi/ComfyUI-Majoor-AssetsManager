@@ -198,6 +198,22 @@ describe("hostAdapter contract", () => {
         expect(graph.add).toHaveBeenCalledWith(newNode);
     });
 
+    it("creates host nodes through the adapter LiteGraph boundary", async () => {
+        const mod = await import("../app/hostAdapter.js");
+
+        const created = { type: "LoadImage" };
+        const app = {
+            LiteGraph: {
+                createNode: vi.fn((type: string) => (type === "LoadImage" ? created : null)),
+            },
+        };
+        mod.init(app);
+
+        expect(mod.createHostNode("LoadImage", app)).toBe(created);
+        expect(app.LiteGraph.createNode).toHaveBeenCalledWith("LoadImage");
+        expect(mod.createHostNode("", app)).toBeNull();
+    });
+
     it("queues prompt through api.queuePrompt path with widget cycle", async () => {
         const mod = await import("../app/hostAdapter.js");
 
@@ -256,5 +272,104 @@ describe("hostAdapter contract", () => {
 
         expect(mod.centerHostCanvasNodeById(42, app)).toBe(true);
         expect(centered).toHaveBeenCalledTimes(1);
+    });
+
+    it("uses replace mode instead of speculative stable-like tab APIs", async () => {
+        const mod = await import("../app/hostAdapter.js");
+
+        const workflow = { nodes: [{ id: 1 }] };
+        const app = {
+            newWorkflow: vi.fn(),
+            loadGraphData: vi.fn(),
+        };
+        mod.init(app);
+
+        const result = mod.importWorkflowPreferHostTab(workflow, app);
+
+        expect(result).toEqual({ ok: true, mode: "replace" });
+        expect(app.newWorkflow).not.toHaveBeenCalled();
+        expect(app.loadGraphData).toHaveBeenCalledWith(workflow);
+    });
+
+    it("uses replace mode instead of speculative nightly-like tab APIs", async () => {
+        const mod = await import("../app/hostAdapter.js");
+
+        const workflow = { nodes: [{ id: 2 }] };
+        const openWorkflowInNewTab = vi.fn();
+        const app = {
+            ui: {
+                extensionManager: {
+                    workspaceStore: {
+                        openWorkflowInNewTab,
+                    },
+                },
+            },
+            loadGraphData: vi.fn(),
+        };
+        mod.init(app);
+
+        const result = mod.importWorkflowPreferHostTab(workflow, app);
+
+        expect(result).toEqual({ ok: true, mode: "replace" });
+        expect(openWorkflowInNewTab).not.toHaveBeenCalled();
+        expect(app.loadGraphData).toHaveBeenCalledWith(workflow);
+    });
+
+    it("falls back to replace mode when no tab API is available", async () => {
+        const mod = await import("../app/hostAdapter.js");
+
+        const workflow = { nodes: [{ id: 3 }] };
+        const app = {
+            loadGraphData: vi.fn(),
+        };
+        mod.init(app);
+
+        const result = mod.importWorkflowPreferHostTab(workflow, app);
+
+        expect(result).toEqual({ ok: true, mode: "replace" });
+        expect(app.loadGraphData).toHaveBeenCalledWith(workflow);
+    });
+
+    it("serializes current workflow from graphToPrompt workflow payload", async () => {
+        const mod = await import("../app/hostAdapter.js");
+
+        const workflow = { last_node_id: 17, nodes: [{ id: 17 }] };
+        const app = {
+            graphToPrompt: vi.fn(() => ({ workflow })),
+        };
+        mod.init(app);
+
+        expect(mod.serializeCurrentHostWorkflow(app)).toEqual(workflow);
+    });
+
+    it("falls back to graph.serialize when graphToPrompt workflow is unavailable", async () => {
+        const mod = await import("../app/hostAdapter.js");
+
+        const workflow = { last_node_id: 9, nodes: [{ id: 9 }] };
+        const app = {
+            graphToPrompt: vi.fn(() => ({ output: {} })),
+            graph: {
+                serialize: vi.fn(() => workflow),
+            },
+        };
+        mod.init(app);
+
+        expect(mod.serializeCurrentHostWorkflow(app)).toEqual(workflow);
+    });
+
+    it("reads host dirty state from stable and nightly signal shapes", async () => {
+        const mod = await import("../app/hostAdapter.js");
+
+        const stableApp = { isDirty: true };
+        mod.init(stableApp);
+        expect(mod.isHostWorkflowDirty(stableApp)).toBe(true);
+
+        const nightlyApp = {
+            graph: {
+                modified: () => 1,
+            },
+        };
+        mod.init(nightlyApp);
+        expect(mod.isHostWorkflowDirty(nightlyApp)).toBe(true);
     });
 });

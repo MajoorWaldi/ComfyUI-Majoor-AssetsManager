@@ -8,7 +8,10 @@ vi.mock("../api/client.js", () => ({
 }));
 
 vi.mock("../api/endpoints.js", () => ({
-    buildStackMembersURL: vi.fn((stackId) => `/mjr/am/stacks/${stackId}`),
+    buildStackMembersURL: vi.fn((stackId, options = {}) => {
+        const limit = Number(options?.limit || 0);
+        return `/mjr/am/stacks/${stackId}${limit > 0 ? `?limit=${limit}` : ""}`;
+    }),
 }));
 
 describe("StackGroupCards overlay buttons", () => {
@@ -70,7 +73,7 @@ describe("StackGroupCards overlay buttons", () => {
         button.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
         await new Promise((resolve) => setTimeout(resolve, 0));
 
-        expect(getMock).toHaveBeenCalledWith("/mjr/am/stacks/stack-1", { timeoutMs: 30_000 });
+        expect(getMock).toHaveBeenCalledWith("/mjr/am/stacks/stack-1?limit=501", { timeoutMs: 30_000 });
         expect(openStackGroup).toHaveBeenCalledTimes(1);
         expect(card.dataset.mjrStacked).toBe("true");
         expect(card.dataset.mjrStackCount).toBe("2");
@@ -79,6 +82,55 @@ describe("StackGroupCards overlay buttons", () => {
         const [{ detail }] = openStackGroup.mock.calls[0];
         expect(detail.stackId).toBe("stack-1");
         expect(detail.members.map((entry) => entry.id)).toEqual(["asset-2", "asset-1"]);
+    });
+
+    it("ignores repeated stack clicks while members are loading", async () => {
+        const { ensureStackGroupCard } = await import("../features/grid/StackGroupCards.js");
+        const { EVENTS } = await import("../app/events.js");
+
+        let resolveFetch;
+        getMock.mockReturnValue(
+            new Promise((resolve) => {
+                resolveFetch = resolve;
+            }),
+        );
+
+        const grid = document.createElement("div");
+        grid.dataset.mjrGroupStacks = "1";
+        const card = document.createElement("div");
+        card.className = "mjr-asset-card";
+        grid.appendChild(card);
+        const asset = {
+            id: "asset-1",
+            filename: "image.png",
+            stack_id: "stack-1",
+            stack_asset_count: 2,
+            mtime: 100,
+        };
+        const openStackGroup = vi.fn();
+        grid.addEventListener(EVENTS.OPEN_STACK_GROUP, openStackGroup);
+
+        ensureStackGroupCard(grid, card, asset);
+        const button = card.querySelector(".mjr-stack-group-button");
+
+        button.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+        button.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+
+        expect(getMock).toHaveBeenCalledTimes(1);
+        expect(button.disabled).toBe(true);
+
+        resolveFetch({
+            ok: true,
+            data: [
+                asset,
+                { id: "asset-2", filename: "image-2.png", stack_id: "stack-1", mtime: 200 },
+            ],
+        });
+        await Promise.resolve();
+        await Promise.resolve();
+
+        expect(openStackGroup).toHaveBeenCalledTimes(1);
+        expect(button.disabled).toBe(false);
     });
 
     it("skips imperative button creation for Vue cards (_mjrIsVue guard)", async () => {

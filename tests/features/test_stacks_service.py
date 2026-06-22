@@ -231,6 +231,18 @@ async def test_get_members_returns_grid_compatible_drag_fields():
     assert "a.source AS type" in sql
 
 
+async def test_get_members_supports_limit():
+    db = _DbStub(query_results=[_ok([])])
+    service = StacksService(db)
+
+    result = await service.get_members(stack_id=31, limit=501)
+
+    assert result.ok is True
+    sql, params = db.queries[0]
+    assert "LIMIT ?" in sql
+    assert params == (31, 501)
+
+
 async def test_get_members_by_source_node_uses_latest_job_context():
     db = _DbStub(
         query_results=[

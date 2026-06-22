@@ -615,6 +615,19 @@ class IndexScanner:
                 )
         except Exception as exc:
             logger.debug("Scanner vector indexing failed for new images: %s", exc)
+        finally:
+            try:
+                from .vector_runtime import maybe_unload_vector_runtime_after_use
+
+                await maybe_unload_vector_runtime_after_use(
+                    {
+                        "vector_service": self._vector_service,
+                        "vector_searcher": self._vector_searcher,
+                    },
+                    logger=logger,
+                )
+            except Exception:
+                pass
 
     def _normalize_asset_ids(self, asset_ids: list[int]) -> list[int]:
         normalized: list[int] = []

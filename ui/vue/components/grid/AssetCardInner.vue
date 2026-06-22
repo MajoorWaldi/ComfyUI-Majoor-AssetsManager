@@ -9,7 +9,7 @@
  *
  * Phase 4.2 - full inner card replacement.
  */
-import { computed, inject, ref, watch, watchEffect, onMounted, onUnmounted } from "vue";
+import { computed, inject, ref, watch, watchEffect, onMounted, onBeforeUnmount, onUnmounted } from "vue";
 import { buildAssetViewURL } from "../../../api/endpoints.js";
 import {
     genTimeColor,
@@ -24,13 +24,31 @@ import RatingBadge from "../common/RatingBadge.vue";
 import TagsBadge from "../common/TagsBadge.vue";
 import GenTimeBadge from "../common/GenTimeBadge.vue";
 
+function hashString(value) {
+    let hash = 2166136261;
+    const text = String(value || "");
+    for (let i = 0; i < text.length; i += 1) {
+        hash ^= text.charCodeAt(i);
+        hash = Math.imul(hash, 16777619);
+    }
+    return hash >>> 0;
+}
 
-// Audio waveform bars SVG (same bars as Card.js)
-const AUDIO_BARS = [
-    [2, 10, 3, 12], [8, 4, 3, 24], [14, 8, 3, 16], [20, 2, 3, 28],
-    [26, 6, 3, 20], [32, 1, 3, 30], [38, 5, 3, 22], [44, 3, 3, 26],
-    [50, 9, 3, 14], [56, 6, 3, 20],
-];
+function makeAudioWaveformBars(seedText, count = 34) {
+    let seed = hashString(seedText) || 1;
+    const bars = [];
+    for (let i = 0; i < count; i += 1) {
+        seed = Math.imul(seed ^ (seed >>> 15), 2246822519) >>> 0;
+        const wave = Math.sin((i / Math.max(1, count - 1)) * Math.PI);
+        const random = (seed % 1000) / 1000;
+        const height = Math.round(18 + wave * 54 + random * 26);
+        bars.push({
+            height: Math.max(14, Math.min(92, height)),
+            opacity: (0.48 + random * 0.42).toFixed(2),
+        });
+    }
+    return bars;
+}
 
 /**
  * Load image using the session blob cache for instant re-access.
@@ -233,10 +251,12 @@ const props = defineProps({
     /** shallowReactive asset object from createVueCard() in GridView_impl.js */
     asset: { type: Object, required: true },
 });
+const emit = defineEmits(["workflow-action"]);
 
 // --- Computed from asset -----------------------------------------------------
 
 const kind = computed(() => String(props.asset.kind || "image").toLowerCase());
+const isWorkflow = computed(() => kind.value === "workflow");
 const isImage = computed(() => kind.value === "image");
 const isVideo = computed(() => kind.value === "video");
 const isAudio = computed(() => kind.value === "audio");
@@ -244,12 +264,26 @@ const isModel3D = computed(() => kind.value === "model3d");
 
 const viewUrl = computed(() => buildAssetViewURL(props.asset) || "");
 const explicitThumbnailUrl = computed(() =>
-    String(props.asset.thumbnail_url || props.asset.thumb_url || props.asset.poster || "").trim(),
+    String(
+        props.asset.thumbnail_url ||
+        props.asset.graph_map_thumbnail_url ||
+        props.asset.thumb_url ||
+        props.asset.poster ||
+        "",
+    ).trim(),
+);
+const hasPrimaryWorkflowThumbnail = computed(() =>
+    Boolean(String(props.asset.thumbnail_url || props.asset.thumb_url || props.asset.poster || "").trim()),
+);
+const hasGraphMapWorkflowThumbnail = computed(() =>
+    isWorkflow.value &&
+    !hasPrimaryWorkflowThumbnail.value &&
+    Boolean(String(props.asset.graph_map_thumbnail_url || "").trim()),
 );
 const explicitPreviewUrl = computed(() =>
     String(props.asset.preview_url || props.asset.previewUrl || props.asset.url || "").trim(),
 );
-const imageUrl = computed(() => explicitThumbnailUrl.value || explicitPreviewUrl.value || viewUrl.value);
+const imageUrl = computed(() => viewUrl.value);
 const videoUrl = computed(() => explicitPreviewUrl.value || viewUrl.value);
 const posterUrl = computed(() =>
     explicitThumbnailUrl.value,
@@ -267,12 +301,22 @@ const displayName = computed(() => {
     const f = rawDisplayName.value || filename.value;
     return f.includes(".") ? f.slice(0, f.lastIndexOf(".")) : f;
 });
+const notes = computed(() => String(props.asset.notes || "").trim());
+const audioWaveformBars = computed(() =>
+    makeAudioWaveformBars(`${props.asset.id || ""}:${filename.value}:${props.asset.duration || ""}`),
+);
+const audioThumbTitle = computed(() => displayName.value || filename.value || "Audio");
+const audioThumbSubtitle = computed(() => {
+    const parts = [durationStr.value, ext.value].filter(Boolean);
+    return parts.join(" / ") || "Audio";
+});
 const cardTitle = computed(() => {
     const parts = [filename.value || rawDisplayName.value];
     const subfolder = String(props.asset.subfolder || props.asset.file_info?.subfolder || "").trim();
     const type = String(props.asset.type || props.asset.source || props.asset.file_info?.type || "").trim();
     if (subfolder) parts.push(`Subfolder: ${subfolder}`);
     if (type) parts.push(`Type: ${type}`);
+    if (notes.value) parts.push(`Notes: ${notes.value}`);
     return parts.filter(Boolean).join("\n");
 });
 
@@ -311,6 +355,36 @@ const resolution = computed(() => {
 const durationStr = computed(() =>
     props.asset.duration ? formatDuration(props.asset.duration) : "",
 );
+const workflowTask = computed(() =>
+    String(props.asset.task || props.asset.workflow_task || "").trim(),
+);
+const workflowModel = computed(() =>
+    String(props.asset.model_family || props.asset.modelFamily || "").trim(),
+);
+const workflowRunsOn = computed(() =>
+    String(props.asset.runs_on || props.asset.runsOn || "").trim(),
+);
+const workflowNodeCount = computed(() => Number(props.asset.node_count || props.asset.nodeCount || 0) || 0);
+const workflowFavorite = computed(() => Boolean(props.asset.favorite));
+const workflowSubgraphCount = computed(() =>
+    Number(props.asset.subgraph_count || props.asset.subgraphCount || 0) || 0,
+);
+const workflowMissingNodesCount = computed(() =>
+    Number(props.asset.missing_nodes_count || props.asset.missingNodesCount || 0) || 0,
+);
+const workflowMissingModelsCount = computed(() =>
+    Number(props.asset.missing_models_count || props.asset.missingModelsCount || 0) || 0,
+);
+const workflowHasMissingDeps = computed(
+    () => workflowMissingNodesCount.value > 0 || workflowMissingModelsCount.value > 0,
+);
+const workflowMissingLabel = computed(() => {
+    if (!workflowHasMissingDeps.value) return "";
+    const parts = [];
+    if (workflowMissingNodesCount.value > 0) parts.push(`${workflowMissingNodesCount.value} node`);
+    if (workflowMissingModelsCount.value > 0) parts.push(`${workflowMissingModelsCount.value} model`);
+    return `Missing: ${parts.join(" / ")}`;
+});
 
 const timestamp = computed(
     () =>
@@ -376,24 +450,35 @@ const stackCount = computed(() =>
 
 const hasDupStack = computed(() => !!props.asset._mjrDupStack && Number(props.asset._mjrDupCount || 0) >= 2);
 const dupCount = computed(() => Number(props.asset._mjrDupCount || 0) || 0);
+const showDupStackButton = computed(() => hasDupStack.value && !hasStackGroup.value);
+const stackOpening = ref(false);
+const dupOpening = ref(false);
 
 async function onStackGroupClick(event) {
     event.preventDefault();
     event.stopPropagation();
+    if (stackOpening.value) return;
+    stackOpening.value = true;
     try {
         await stackService?.openStackGroup?.(props.asset);
     } catch (err) {
         console.debug?.(err);
+    } finally {
+        stackOpening.value = false;
     }
 }
 
 function onDupStackClick(event) {
     event.preventDefault();
     event.stopPropagation();
+    if (dupOpening.value) return;
+    dupOpening.value = true;
     try {
         stackService?.openDupGroup?.(props.asset);
     } catch (err) {
         console.debug?.(err);
+    } finally {
+        dupOpening.value = false;
     }
 }
 
@@ -408,6 +493,8 @@ const model3dImgError = ref(false);
 const cachedImageSrc = ref("");
 let imageLoadRequestId = 0;
 let imageCachedSourceKey = "";
+let imageErrorSourceKey = "";
+let model3dErrorSourceKey = "";
 
 function releaseCachedImageSrc() {
     try {
@@ -421,7 +508,29 @@ function releaseCachedImageSrc() {
 // --- Image thumb lifecycle (blob cache) ---------------------------------------
 
 watch(
-    () => [imgRef.value, imageUrl.value],
+    () => (isWorkflow.value ? explicitThumbnailUrl.value : isImage.value ? imageUrl.value : ""),
+    (source) => {
+        const key = String(source || "").trim();
+        if (!key || key === imageErrorSourceKey) return;
+        imgError.value = false;
+        imageErrorSourceKey = "";
+    },
+    { immediate: true },
+);
+
+watch(
+    () => (isModel3D.value ? posterUrl.value : ""),
+    (source) => {
+        const key = String(source || "").trim();
+        if (!key || key === model3dErrorSourceKey) return;
+        model3dImgError.value = false;
+        model3dErrorSourceKey = "";
+    },
+    { immediate: true },
+);
+
+watch(
+    () => [isImage.value ? imgRef.value : null, isImage.value ? imageUrl.value : ""],
     async ([img, url], _oldValue, onCleanup) => {
         if (!img || !url || imgError.value) return;
         const requestId = (imageLoadRequestId += 1);
@@ -431,9 +540,10 @@ watch(
             cancelled = true;
             controller.abort();
         });
-        releaseCachedImageSrc();
-        cachedImageSrc.value = "";
         try {
+            const currentSourceKey = imageCachedSourceKey || String(img.dataset?.mjrSourceKey || "");
+            if (cachedImageSrc.value && currentSourceKey === url) return;
+            img.dataset.mjrSourceKey = url;
             await waitForImageBlobLoadWindow();
             if (cancelled || requestId !== imageLoadRequestId || !img.isConnected) return;
             const cached = await loadImageBlob(url, { signal: controller.signal });
@@ -442,8 +552,15 @@ watch(
                 return;
             }
             if (cached && cached !== cachedImageSrc.value) {
+                const previousSourceKey = imageCachedSourceKey;
                 cachedImageSrc.value = cached;
                 imageCachedSourceKey = cached !== url ? url : "";
+                if (previousSourceKey && previousSourceKey !== imageCachedSourceKey) {
+                    MediaBlobCache.releaseUrl(previousSourceKey);
+                }
+            } else if (!cached && imageCachedSourceKey && imageCachedSourceKey !== url) {
+                releaseCachedImageSrc();
+                cachedImageSrc.value = "";
             }
         } catch {}
     },
@@ -483,7 +600,7 @@ watch(videoMode, (mode) => {
     }
 });
 
-onUnmounted(() => {
+onBeforeUnmount(() => {
     window.removeEventListener("mjr-settings-changed", onSettingsChangedForVideo);
     imageLoadRequestId += 1;
     releaseCachedImageSrc();
@@ -491,6 +608,10 @@ onUnmounted(() => {
     if (v) {
         try { unobserveVideoThumb(v); } catch {}
     }
+});
+
+onUnmounted(() => {
+    window.removeEventListener("mjr-settings-changed", onSettingsChangedForVideo);
 });
 
 // --- Workflow dot (imperative - createWorkflowDot has complex enrichment logic) --
@@ -525,7 +646,16 @@ watchEffect(() => {
 
 function onImgError(event) {
     imgError.value = true;
-    try { MediaBlobCache.markError(imageUrl.value); } catch {}
+    try {
+        const failedUrl = isWorkflow.value ? explicitThumbnailUrl.value : imageUrl.value;
+        imageErrorSourceKey = String(failedUrl || "").trim();
+        MediaBlobCache.markError(failedUrl);
+    } catch {}
+}
+
+function onModel3dImgError() {
+    model3dImgError.value = true;
+    model3dErrorSourceKey = String(posterUrl.value || "").trim();
 }
 
 function onFileBadgeClick(event) {
@@ -548,19 +678,77 @@ function onFileBadgeClick(event) {
         }),
     );
 }
+
+function emitWorkflowAction(action, event) {
+    try {
+        event?.preventDefault?.();
+        event?.stopPropagation?.();
+    } catch (e) {
+        console.debug?.(e);
+    }
+    emit("workflow-action", {
+        type: String(action || "").trim().toLowerCase(),
+        event,
+        asset: props.asset,
+    });
+}
 </script>
 
 <template>
     <!-- -- THUMBNAIL -------------------------------------------------------- -->
-    <div class="mjr-thumb" ref="thumbRef">
+    <div class="mjr-thumb" :class="{ 'mjr-thumb-workflow': isWorkflow }" ref="thumbRef">
         <div
             v-if="isLivePlaceholder"
             class="mjr-live-placeholder-wash"
             aria-hidden="true"
         />
 
+        <!-- Workflow -->
+        <template v-if="isWorkflow">
+            <div class="mjr-workflow-card-actions" @click.stop @dblclick.stop>
+                <button
+                    type="button"
+                    class="mjr-workflow-action-btn"
+                    :class="{ 'is-active': workflowFavorite }"
+                    :title="workflowFavorite ? 'Remove favorite' : 'Add favorite'"
+                    :aria-label="workflowFavorite ? 'Remove favorite' : 'Add favorite'"
+                    @click="emitWorkflowAction('favorite', $event)"
+                ><i :class="workflowFavorite ? 'pi pi-star-fill' : 'pi pi-star'" /></button>
+            </div>
+            <img
+                v-if="explicitThumbnailUrl && !imgError"
+                :class="[
+                    'mjr-thumb-media',
+                    {
+                        'mjr-workflow-graph-map-preview': hasGraphMapWorkflowThumbnail,
+                    },
+                ]"
+                :alt="filename"
+                decoding="async"
+                loading="lazy"
+                :src="explicitThumbnailUrl"
+                @error="onImgError"
+            />
+            <div
+                class="mjr-workflow-thumb"
+                :class="{
+                    'has-thumbnail': explicitThumbnailUrl && !imgError,
+                    'has-graph-map': hasGraphMapWorkflowThumbnail && !imgError,
+                }"
+            >
+                <i class="pi pi-sitemap" />
+                <div class="mjr-workflow-thumb-title">{{ workflowTask || "Workflow" }}</div>
+                <div class="mjr-workflow-thumb-meta">
+                    <span v-if="workflowModel">{{ workflowModel }}</span>
+                    <span v-if="workflowRunsOn">{{ workflowRunsOn }}</span>
+                    <span v-if="workflowNodeCount">{{ workflowNodeCount }} nodes</span>
+                    <span v-if="workflowHasMissingDeps" class="mjr-workflow-missing-chip">{{ workflowMissingLabel }}</span>
+                </div>
+            </div>
+        </template>
+
         <!-- Image -->
-        <template v-if="isImage">
+        <template v-else-if="isImage">
             <img
                 v-if="!imgError"
                 ref="imgRef"
@@ -604,24 +792,22 @@ function onFileBadgeClick(event) {
                 :draggable="false"
                 alt=""
             />
-            <div
-                class="mjr-audio-waveform-overlay"
-                style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;color:white"
-            >
-                <svg
-                    viewBox="0 0 64 32"
-                    preserveAspectRatio="xMidYMid meet"
-                    fill="currentColor"
-                    opacity="0.35"
-                    style="width:60%;max-width:120px;height:auto;filter:drop-shadow(0 2px 6px rgba(0,0,0,0.5))"
-                >
-                    <rect
-                        v-for="([x, y, w, h], i) in AUDIO_BARS"
+            <div class="mjr-audio-thumb" :class="{ 'has-poster': posterUrl }">
+                <div class="mjr-audio-thumb-head">
+                    <span class="mjr-audio-thumb-icon"><i class="pi pi-volume-up" /></span>
+                    <span class="mjr-audio-thumb-kind">{{ ext || "AUDIO" }}</span>
+                </div>
+                <div class="mjr-audio-thumb-waveform" aria-hidden="true">
+                    <span
+                        v-for="(bar, i) in audioWaveformBars"
                         :key="i"
-                        :x="x" :y="y" :width="w" :height="h"
-                        rx="1.5"
+                        :style="{ height: `${bar.height}%`, opacity: bar.opacity }"
                     />
-                </svg>
+                </div>
+                <div class="mjr-audio-thumb-meta">
+                    <span class="mjr-audio-thumb-title">{{ audioThumbTitle }}</span>
+                    <span class="mjr-audio-thumb-subtitle">{{ audioThumbSubtitle }}</span>
+                </div>
             </div>
         </template>
 
@@ -633,7 +819,7 @@ function onFileBadgeClick(event) {
                 :src="posterUrl"
                 :draggable="false"
                 :alt="filename"
-                @error="model3dImgError = true"
+                @error="onModel3dImgError"
             />
             <div
                 v-else
@@ -682,16 +868,21 @@ function onFileBadgeClick(event) {
 
         <!-- Hover info overlay -->
         <div
-            v-if="positivePrompt || genTimeValid"
+            v-if="positivePrompt || (isWorkflow && notes) || genTimeValid"
             class="mjr-card-hover-info"
         >
             <div v-if="positivePrompt" class="mjr-hover-prompt">{{ positivePrompt }}</div>
+            <div v-if="isWorkflow && notes" class="mjr-hover-prompt mjr-hover-workflow-notes">{{ notes }}</div>
             <div v-if="genTimeValid" class="mjr-hover-gentime">Time {{ genTimeFmt.text }}</div>
         </div>
     </div>
 
     <!-- -- META ------------------------------------------------------------ -->
-    <div class="mjr-card-info mjr-card-meta" style="position:relative;padding:6px 8px;min-width:0">
+    <div
+        class="mjr-card-info mjr-card-meta"
+        :data-mjr-kind="isWorkflow ? 'workflow' : undefined"
+        style="position:relative;padding:6px 8px;min-width:0"
+    >
         <div
             class="mjr-card-filename"
             :title="cardTitle"
@@ -702,6 +893,19 @@ function onFileBadgeClick(event) {
             class="mjr-card-meta-row"
             style="font-size:0.85em;opacity:0.7;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:16px"
         >
+            <template v-if="isWorkflow">
+                <span v-if="workflowTask" class="mjr-meta-workflow-task" :title="`Task: ${workflowTask}`">{{ workflowTask }}</span>
+                <span
+                    v-if="workflowSubgraphCount"
+                    class="mjr-meta-workflow-subgraphs"
+                    :title="`${workflowSubgraphCount} subgraph${workflowSubgraphCount > 1 ? 's' : ''}`"
+                >{{ workflowSubgraphCount }} sub</span>
+                <span
+                    v-if="workflowHasMissingDeps"
+                    class="mjr-meta-workflow-missing"
+                    :title="workflowMissingLabel"
+                >{{ workflowMissingLabel }}</span>
+            </template>
             <template v-for="(item, index) in metaItems" :key="item.key">
                 <span
                     v-if="index > 0"
@@ -733,6 +937,8 @@ function onFileBadgeClick(event) {
         severity="secondary"
         text
         rounded
+        :disabled="stackOpening"
+        :aria-busy="stackOpening ? 'true' : 'false'"
         :aria-label="`Open generation group in grid (${stackCount} assets)`"
         :title="`Open generation group in grid (${stackCount} assets)`"
         @click="onStackGroupClick"
@@ -749,12 +955,14 @@ function onFileBadgeClick(event) {
 
     <!-- -- DUPLICATE STACK BUTTON (same-filename copies) -------------------- -->
     <MButton
-        v-if="hasDupStack"
+        v-if="showDupStackButton"
         type="button"
         class="mjr-dup-stack-button"
         severity="secondary"
         text
         rounded
+        :disabled="dupOpening"
+        :aria-busy="dupOpening ? 'true' : 'false'"
         :aria-label="`${dupCount} duplicate${dupCount > 1 ? 's' : ''} - click to compare all copies`"
         :title="`${dupCount} duplicate${dupCount > 1 ? 's' : ''} - click to compare all copies`"
         @click="onDupStackClick"

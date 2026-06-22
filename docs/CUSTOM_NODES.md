@@ -155,6 +155,30 @@ Connect an INT value to `generation_time_ms` (any value ≥ 0) to override autom
 
 ---
 
+## 〽️ Majoor GenInfo Override 🧩
+
+**Node name**: `MajoorGenInfoOverride`
+**Category**: Majoor
+**Display name**: 〽️ Majoor GenInfo Override 🧩
+
+Adds custom/manual GenInfo fields that can be consumed by Majoor Save nodes so the final saved asset includes your override data in embedded metadata.
+
+### Typical Use Case
+
+Use this node when you want to:
+
+- override detected values shown in GenInfo,
+- inject custom fields for downstream indexing/search,
+- attach additional manual context before saving with Majoor Save Image or Majoor Save Video.
+
+### Integration Notes
+
+- Place the node upstream of your Majoor Save node path.
+- Save nodes serialize the merged metadata into file metadata (PNG text chunks or MP4 tags where applicable).
+- Indexed assets then expose those values in Majoor Assets Manager GenInfo and metadata search flows.
+
+---
+
 ## Extraction Pipeline
 
 When assets are indexed by Majoor Assets Manager, `generation_time_ms` is extracted through the following chain:

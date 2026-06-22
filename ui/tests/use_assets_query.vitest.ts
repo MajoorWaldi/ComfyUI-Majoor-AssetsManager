@@ -345,7 +345,7 @@ describe("useAssetsQuery", () => {
         expect(reloadGrid).toHaveBeenCalledTimes(1);
     });
 
-    it("reloads on background total growth when the grid already shows cards", async () => {
+    it("does not reload on background total growth when the grid already shows cards", async () => {
         const { createAssetsQueryController } =
             await import("../vue/composables/useAssetsQuery.js");
 
@@ -394,10 +394,10 @@ describe("useAssetsQuery", () => {
             total_assets: 140,
         });
 
-        expect(reloadGrid).toHaveBeenCalledTimes(1);
+        expect(reloadGrid).toHaveBeenCalledTimes(0);
     });
 
-    it("reloads on background index updates when the grid already shows cards", async () => {
+    it("does not reload on background index updates when the grid already shows cards", async () => {
         const { createAssetsQueryController } =
             await import("../vue/composables/useAssetsQuery.js");
 
@@ -446,7 +446,7 @@ describe("useAssetsQuery", () => {
             total_assets: 100,
         });
 
-        expect(reloadGrid).toHaveBeenCalledTimes(1);
+        expect(reloadGrid).toHaveBeenCalledTimes(0);
     });
 
     it("defers counters-based reload while the grid host is hidden and resumes when visible", async () => {

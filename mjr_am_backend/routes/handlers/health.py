@@ -261,6 +261,42 @@ def _extract_vector_caption_on_index_payload(body: dict) -> object | None:
     return None
 
 
+def _extract_vector_index_on_scan_payload(body: dict) -> object | None:
+    for key in ("index_on_scan", "indexOnScan"):
+        if key in body:
+            return body.get(key)
+    prefs = body.get("prefs") if isinstance(body.get("prefs"), dict) else {}
+    if isinstance(prefs, dict):
+        for key in ("index_on_scan", "indexOnScan"):
+            if key in prefs:
+                return prefs.get(key)
+    return None
+
+
+def _extract_vector_unload_after_use_payload(body: dict) -> object | None:
+    for key in ("unload_after_use", "unloadAfterUse"):
+        if key in body:
+            return body.get(key)
+    prefs = body.get("prefs") if isinstance(body.get("prefs"), dict) else {}
+    if isinstance(prefs, dict):
+        for key in ("unload_after_use", "unloadAfterUse"):
+            if key in prefs:
+                return prefs.get(key)
+    return None
+
+
+def _extract_vector_concurrency_payload(body: dict) -> object | None:
+    for key in ("concurrency", "vector_concurrency", "vectorConcurrency"):
+        if key in body:
+            return body.get(key)
+    prefs = body.get("prefs") if isinstance(body.get("prefs"), dict) else {}
+    if isinstance(prefs, dict):
+        for key in ("concurrency", "vector_concurrency", "vectorConcurrency"):
+            if key in prefs:
+                return prefs.get(key)
+    return None
+
+
 def _str_token_from_body(source: dict, *keys: str) -> str | None:
     for key in keys:
         if key in source:
@@ -982,12 +1018,18 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
 
         enabled = await settings_service.get_vector_search_enabled()
         caption_on_index = await settings_service.get_vector_caption_on_index_enabled()
+        index_on_scan = await settings_service.get_vector_index_on_scan_enabled()
+        concurrency = await settings_service.get_vector_concurrency()
+        unload_after_use = await settings_service.get_vector_unload_after_use_enabled()
         return _json_response(
             Result.Ok(
                 {
                     "prefs": {
                         "enabled": bool(enabled),
                         "caption_on_index": bool(caption_on_index),
+                        "index_on_scan": bool(index_on_scan),
+                        "concurrency": int(concurrency),
+                        "unload_after_use": bool(unload_after_use),
                     }
                 }
             )
@@ -1017,11 +1059,27 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
 
         enabled = _extract_vector_search_payload(body)
         caption_on_index = _extract_vector_caption_on_index_payload(body)
-        if enabled is None and caption_on_index is None:
+        index_on_scan = _extract_vector_index_on_scan_payload(body)
+        concurrency = _extract_vector_concurrency_payload(body)
+        unload_after_use = _extract_vector_unload_after_use_payload(body)
+        if (
+            enabled is None
+            and caption_on_index is None
+            and index_on_scan is None
+            and concurrency is None
+            and unload_after_use is None
+        ):
             return _json_response(Result.Err("INVALID_INPUT", "Missing vector-search settings value"))
 
         if enabled is not None:
             result = await settings_service.set_vector_search_enabled(enabled)
+            if result.ok and not bool(result.data):
+                try:
+                    from ...features.index.vector_runtime import unload_vector_runtime_models
+
+                    unload_vector_runtime_models(svc)
+                except Exception:
+                    pass
         else:
             result = Result.Ok(await settings_service.get_vector_search_enabled())
         caption_result = (
@@ -1029,8 +1087,29 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
             if caption_on_index is not None
             else Result.Ok(await settings_service.get_vector_caption_on_index_enabled())
         )
+        index_result = (
+            await settings_service.set_vector_index_on_scan_enabled(index_on_scan)
+            if index_on_scan is not None
+            else Result.Ok(await settings_service.get_vector_index_on_scan_enabled())
+        )
+        concurrency_result = (
+            await settings_service.set_vector_concurrency(concurrency)
+            if concurrency is not None
+            else Result.Ok(await settings_service.get_vector_concurrency())
+        )
+        unload_after_use_result = (
+            await settings_service.set_vector_unload_after_use_enabled(unload_after_use)
+            if unload_after_use is not None
+            else Result.Ok(await settings_service.get_vector_unload_after_use_enabled())
+        )
         if result.ok and not caption_result.ok:
             result = caption_result
+        if result.ok and not index_result.ok:
+            result = index_result
+        if result.ok and not concurrency_result.ok:
+            result = concurrency_result
+        if result.ok and not unload_after_use_result.ok:
+            result = unload_after_use_result
         if not result.ok:
             await _audit_settings_write(
                 svc,
@@ -1040,6 +1119,9 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
                 result,
                 enabled=enabled,
                 caption_on_index=caption_on_index,
+                index_on_scan=index_on_scan,
+                concurrency=concurrency,
+                unload_after_use=unload_after_use,
             )
             return _json_response(result)
         response_result = Result.Ok(
@@ -1047,6 +1129,9 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
                 "prefs": {
                     "enabled": bool(result.data),
                     "caption_on_index": bool(caption_result.data),
+                    "index_on_scan": bool(index_result.data),
+                    "concurrency": int(concurrency_result.data),
+                    "unload_after_use": bool(unload_after_use_result.data),
                 }
             }
         )
@@ -1058,8 +1143,35 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
             response_result,
             enabled=enabled,
             caption_on_index=caption_on_index,
+            index_on_scan=index_on_scan,
+            concurrency=concurrency,
+            unload_after_use=unload_after_use,
         )
         return _json_response(response_result)
+
+    @routes.post("/mjr/am/settings/vector-search/unload")
+    async def unload_vector_models(request):
+        csrf = _csrf_error(request)
+        if csrf:
+            return _json_response(Result.Err(ErrorCode.CSRF, csrf))
+        auth = _require_write_access(request)
+        if not auth.ok:
+            return _json_response(auth)
+
+        svc, error_result = await _require_services()
+        if error_result:
+            return _json_response(error_result)
+        from ...features.index.vector_runtime import unload_vector_runtime_models
+
+        result = unload_vector_runtime_models(svc, purge_comfy_models=True)
+        await _audit_settings_write(
+            svc,
+            request,
+            "settings_vector_unload",
+            "settings:vector_unload",
+            result,
+        )
+        return _json_response(result)
 
     @routes.get("/mjr/am/settings/execution-grouping")
     async def get_execution_grouping_settings(request):
@@ -1425,6 +1537,79 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
             "settings:ltxav_rgb_fallback",
             response_result,
             enabled=enabled,
+        )
+        return _json_response(response_result)
+
+    @routes.get("/mjr/am/settings/workflow-roots")
+    async def get_workflow_roots_setting(request):
+        user_auth = _require_authenticated_user(request)
+        if not user_auth.ok:
+            return _json_response(
+                Result.Err(user_auth.code or "AUTH_REQUIRED", user_auth.error or "Authentication required"),
+                status=401,
+            )
+        svc, error_result = await _require_services()
+        if error_result:
+            return _json_response(error_result)
+        settings_service = svc.get("settings") if isinstance(svc, dict) else None
+        if not settings_service:
+            return _json_response(Result.Err("SERVICE_UNAVAILABLE", "Settings service unavailable"))
+        roots = await settings_service.get_workflow_roots()
+        return _json_response(Result.Ok({"workflow_roots": roots, "workflow_roots_text": "\n".join(roots)}))
+
+    @routes.post("/mjr/am/settings/workflow-roots")
+    async def update_workflow_roots_setting(request):
+        csrf = _csrf_error(request)
+        if csrf:
+            return _json_response(Result.Err("CSRF", csrf))
+        auth = _require_write_access(request)
+        if not auth.ok:
+            return _json_response(auth)
+        svc, error_result = await _require_services()
+        if error_result:
+            return _json_response(error_result)
+        settings_service = svc.get("settings") if isinstance(svc, dict) else None
+        if not settings_service:
+            return _json_response(Result.Err("SERVICE_UNAVAILABLE", "Settings service unavailable"))
+        body_res = await _read_json(request)
+        if not body_res.ok:
+            return _json_response(body_res)
+        body = body_res.data or {}
+        raw_value = body.get("workflow_roots")
+        if raw_value is None:
+            raw_value = body.get("workflow_roots_text")
+        roots_raw = raw_value if isinstance(raw_value, list) else str(raw_value or "")
+        try:
+            normalized_roots = settings_service._normalize_workflow_roots(roots_raw)
+        except Exception:
+            normalized_roots = []
+        for root in normalized_roots:
+            path = Path(root)
+            if path.exists() and not path.is_dir():
+                return _json_response(Result.Err("INVALID_INPUT", "workflow root must be a directory, not a file"))
+            if not path.exists():
+                try:
+                    path.mkdir(parents=True, exist_ok=True)
+                except Exception:
+                    return _json_response(Result.Err("INVALID_INPUT", f"Cannot create workflow root: {path}"))
+        previous = await settings_service.get_workflow_roots()
+        result = await settings_service.set_workflow_roots(normalized_roots)
+        if not result.ok:
+            return _json_response(result)
+        response_result = Result.Ok(
+            {
+                "workflow_roots": result.data or [],
+                "workflow_roots_text": "\n".join(result.data or []),
+            }
+        )
+        await _audit_settings_write(
+            svc,
+            request,
+            "settings_workflow_roots",
+            "settings:workflow_roots",
+            response_result,
+            previous=previous,
+            current=result.data or [],
         )
         return _json_response(response_result)
 

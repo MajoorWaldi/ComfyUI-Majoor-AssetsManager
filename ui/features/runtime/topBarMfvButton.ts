@@ -20,6 +20,14 @@ const BUTTON_GROUP_SELECTORS = [
     ".comfyui-button-group",
     "[role='toolbar']",
 ];
+const MANAGER_BUTTON_SELECTORS = [
+    "[data-testid*='manager' i]",
+    "[aria-label*='manager' i]",
+    "[title*='manager' i]",
+    "[data-command-id*='manager' i]",
+    "[data-command-id*='mjr.openAssetsManager' i]",
+    "button",
+];
 
 let _observer: any = null;
 let _observedTarget: any = null;
@@ -55,7 +63,7 @@ function _tryObserveActionbar(container: any) {
         /* noop */
     }
     _observer = new MutationObserver(() => scheduleSync());
-    _observer.observe(container, { childList: true });
+    _observer.observe(container, { childList: true, subtree: true });
     _observedTarget = container;
     // Body observer no longer needed
     try {
@@ -92,9 +100,47 @@ function updateViewerTopOffset(container = getActionbarContainer()) {
 
 function getAnchor(container: any) {
     if (!container) return null;
+    const managerButton = getManagerButtonAnchor(container);
+    if (managerButton) return managerButton;
     for (const selector of BUTTON_GROUP_SELECTORS) {
         const el = container.querySelector(selector);
         if (el) return el;
+    }
+    return null;
+}
+
+function isManagerLikeButton(el: any) {
+    try {
+        const text = String(el?.textContent || "").trim().toLowerCase();
+        const label = String(
+            el?.getAttribute?.("aria-label") ||
+                el?.getAttribute?.("title") ||
+                el?.getAttribute?.("data-testid") ||
+                el?.getAttribute?.("data-command-id") ||
+                "",
+        ).toLowerCase();
+        return (
+            text === "manager" ||
+            text.includes("assets manager") ||
+            text.includes("majoor assets manager") ||
+            label.includes("manager") ||
+            label.includes("mjr.openassetsmanager")
+        );
+    } catch {
+        return false;
+    }
+}
+
+function getManagerButtonAnchor(container: any) {
+    if (!container?.querySelectorAll) return null;
+    for (const selector of MANAGER_BUTTON_SELECTORS) {
+        try {
+            const candidates = Array.from(container.querySelectorAll(selector));
+            const found = candidates.find((el: any) => isManagerLikeButton(el));
+            if (found) return found;
+        } catch (e) {
+            console.debug?.(e);
+        }
     }
     return null;
 }
@@ -124,7 +170,7 @@ function ensureSlotMounted(container: any) {
     if (slot.parentElement !== parent) {
         if (anchor && parent && parent !== anchor) {
             parent.insertBefore(slot, anchor.nextSibling);
-        } else {
+        } else if (parent) {
             parent.appendChild(slot);
         }
     } else if (anchor && parent && parent !== anchor && slot.previousSibling !== anchor) {

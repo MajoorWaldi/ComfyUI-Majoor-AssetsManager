@@ -64,35 +64,3 @@ const displayTags = computed(() => {
         {{ displayTags }}
     </div>
 </template>
-
-<style scoped>
-.mjr-tags-badge {
-    position: absolute;
-    bottom: 6px;
-    left: 6px;
-    padding: 3px 6px;
-    border-radius: 4px;
-    background: rgba(0, 0, 0, 0.8);
-    font-size: 9px;
-    /* Reserve room for the gentime badge (about 50px) at the bottom-right */
-    max-width: calc(100% - 56px);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    pointer-events: none;
-    z-index: 10;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-    animation: mjr-fade-in 0.2s ease-out;
-}
-
-@keyframes mjr-fade-in {
-    from {
-        opacity: 0;
-        transform: scale(0.95);
-    }
-    to {
-        opacity: 1;
-        transform: scale(1);
-    }
-}
-</style>

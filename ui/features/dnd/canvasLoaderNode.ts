@@ -2,6 +2,7 @@ import { AUDIO_EXTS, IMAGE_EXTS, MODEL3D_EXTS, VIDEO_EXTS } from "./utils/consta
 import { pickBestMediaPathWidget } from "./targets/node.js";
 import { ensureComboHasValue } from "./targets/node.js";
 import { markCanvasDirty } from "./targets/canvas.js";
+import { createHostNode } from "../../app/hostAdapter.js";
 
 const _getPayloadExt = (payload: any) => {
     const filename = String(payload?.filename || "");
@@ -95,13 +96,12 @@ export const createCanvasLoaderNode = ({
     position = null,
  }: any) => {
     const graph = app?.graph ?? app?.canvas?.graph ?? null;
-    const LiteGraph = (globalThis as any)?.LiteGraph || (globalThis as any)?.window?.LiteGraph || null;
-    if (!graph || typeof graph.add !== "function" || !LiteGraph?.createNode) return false;
+    if (!graph || typeof graph.add !== "function") return false;
 
     let created: any = null;
     for (const nodeType of _getLoaderNodeCandidates(payload)) {
         try {
-            created = LiteGraph.createNode(nodeType);
+            created = createHostNode(nodeType, app);
             if (created) break;
         } catch (e: any) {
             console.debug?.(e);
@@ -150,13 +150,12 @@ export const createLoaderAndConnect = ({
     event = null,
  }: any) => {
     const graph = app?.graph ?? app?.canvas?.graph ?? null;
-    const LiteGraph = (globalThis as any)?.LiteGraph || (globalThis as any)?.window?.LiteGraph || null;
-    if (!graph || typeof graph.add !== "function" || !LiteGraph?.createNode || !targetNode) return false;
+    if (!graph || typeof graph.add !== "function" || !targetNode) return false;
 
     let loaderNode: any = null;
     for (const nodeType of _getLoaderNodeCandidates(payload)) {
         try {
-            loaderNode = LiteGraph.createNode(nodeType);
+            loaderNode = createHostNode(nodeType, app);
             if (loaderNode) break;
         } catch (e: any) {
             console.debug?.(e);

@@ -377,6 +377,33 @@ async def test_update_output_directory_real_csrf_and_auth_guards(monkeypatch) ->
     body_missing_auth = json.loads(resp_missing_auth.text)
     assert body_missing_auth.get("code") == "AUTH_REQUIRED"
 
+
+@pytest.mark.asyncio
+async def test_update_workflow_roots_setting_success(monkeypatch, tmp_path) -> None:
+    settings = _Settings()
+    workflow_root = tmp_path / "saved-workflows"
+
+    async def _svc():
+        return {"settings": settings}, None
+
+    async def _read_json(_request):
+        return Result.Ok({"workflow_roots": str(workflow_root)})
+
+    monkeypatch.setattr(health_mod, "_require_services", _svc)
+    monkeypatch.setattr(health_mod, "_csrf_error", lambda _req: None)
+    monkeypatch.setattr(health_mod, "_require_write_access", lambda _req: Result.Ok({}))
+    monkeypatch.setattr(health_mod, "_read_json", _read_json)
+
+    app = _build_health_app()
+    req = make_mocked_request("POST", "/mjr/am/settings/workflow-roots", app=app)
+    resp = await (await app.router.resolve(req)).handler(req)
+    body = json.loads(resp.text)
+
+    assert body.get("ok") is True
+    roots = body.get("data", {}).get("workflow_roots") or []
+    assert roots == [str(workflow_root.resolve())]
+    assert workflow_root.is_dir()
+
 class _Settings:
     def __init__(self):
         self.output = ""
@@ -387,6 +414,10 @@ class _Settings:
         self.ai_verbose_logs = False
         self.vector_search_enabled = True
         self.vector_caption_on_index = False
+        self.vector_index_on_scan = False
+        self.vector_concurrency = 1
+        self.vector_unload_after_use = False
+        self.workflow_roots = []
 
     async def get_output_directory(self):
         return self.output
@@ -394,6 +425,20 @@ class _Settings:
     async def set_output_directory(self, value):
         self.output = value
         return Result.Ok(value)
+
+    def _normalize_workflow_roots(self, roots):
+        if isinstance(roots, list):
+            values = roots
+        else:
+            values = [part for part in str(roots or "").replace(";", "\n").splitlines() if part]
+        return [str(Path(value).expanduser().resolve(strict=False)) for value in values if str(value or "").strip()]
+
+    async def get_workflow_roots(self):
+        return list(self.workflow_roots)
+
+    async def set_workflow_roots(self, roots):
+        self.workflow_roots = self._normalize_workflow_roots(roots)
+        return Result.Ok(list(self.workflow_roots))
 
     async def get_probe_backend(self):
         return self.probe
@@ -425,6 +470,27 @@ class _Settings:
     async def set_vector_caption_on_index_enabled(self, enabled):
         self.vector_caption_on_index = bool(enabled)
         return Result.Ok(self.vector_caption_on_index)
+
+    async def get_vector_index_on_scan_enabled(self):
+        return bool(self.vector_index_on_scan)
+
+    async def set_vector_index_on_scan_enabled(self, enabled):
+        self.vector_index_on_scan = bool(enabled)
+        return Result.Ok(self.vector_index_on_scan)
+
+    async def get_vector_concurrency(self):
+        return int(self.vector_concurrency)
+
+    async def set_vector_concurrency(self, value):
+        self.vector_concurrency = max(1, int(value or 1))
+        return Result.Ok(self.vector_concurrency)
+
+    async def get_vector_unload_after_use_enabled(self):
+        return bool(self.vector_unload_after_use)
+
+    async def set_vector_unload_after_use_enabled(self, enabled):
+        self.vector_unload_after_use = bool(enabled)
+        return Result.Ok(self.vector_unload_after_use)
 
     async def get_security_prefs(self, include_secret=False):
         _ = include_secret

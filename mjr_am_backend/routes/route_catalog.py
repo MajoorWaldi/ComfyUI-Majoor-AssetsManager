@@ -31,6 +31,7 @@ from .handlers import (
     register_vendor_routes,
     register_version_routes,
     register_viewer_routes,
+    register_workflow_routes,
 )
 
 RouteRegisterFn = Callable[[Any], None]
@@ -60,6 +61,7 @@ CORE_ROUTE_REGISTRATIONS: tuple[RouteRegistration, ...] = (
     RouteRegistration("batch zip", register_batch_zip_routes),
     RouteRegistration("calendar", register_calendar_routes),
     RouteRegistration("viewer", register_viewer_routes),
+    RouteRegistration("workflows", register_workflow_routes),
     RouteRegistration("stacks", register_stacks_routes),
     RouteRegistration("vendor", register_vendor_routes),
     RouteRegistration("db maintenance", register_db_maintenance_routes),

@@ -24,6 +24,15 @@ Quick reference for Majoor Assets Manager shortcuts. For full details including 
 | **Ctrl+Shift+E** | Open in Explorer |
 | **Ctrl+F / Ctrl+K** | Focus Search |
 
+## Quick Filter Buttons
+
+| Control | Action |
+|---------|--------|
+| **Image icon button** | Toggle Image-only quick filter |
+| **Video icon button** | Toggle Video-only quick filter |
+| **Audio icon button** | Toggle Audio-only quick filter |
+| **3D icon button** | Toggle 3D-only quick filter |
+
 ## Drag & Drop
 
 | Gesture | Action |
@@ -44,6 +53,8 @@ Quick reference for Majoor Assets Manager shortcuts. For full details including 
 | **O** | Set Out Point (video) |
 | **Home** | Go to In Point (video) |
 | **End** | Go to Out Point (video) |
+| **[ / ]** | Decrease/Increase playback speed |
+| **\\** | Reset playback speed to 1x |
 | **L** | Loupe |
 | **Z** | Zebra |
 | **G** | Grid Overlay |

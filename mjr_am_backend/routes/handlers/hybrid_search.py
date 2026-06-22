@@ -22,6 +22,7 @@ from aiohttp import web
 
 from ...config import VECTOR_TEXT_SEARCH_MIN_SCORE, VECTOR_TEXT_SEARCH_RELATIVE_RATIO
 from ...features.index.searcher import _build_filter_clauses
+from ...features.index.vector_runtime import maybe_unload_vector_runtime_after_use
 from ...shared import Result, get_logger
 from ..core import _json_response, _require_services
 from ..core.security import _check_rate_limit
@@ -413,23 +414,26 @@ def register_hybrid_search_routes(routes: web.RouteTableDef) -> None:
             except Exception:
                 return []
 
-        fts_results, sem_results = await asyncio.gather(fts_coro, _sem_search())
+        try:
+            fts_results, sem_results = await asyncio.gather(fts_coro, _sem_search())
 
-        # Merge results
-        if sem_results:
-            merged = _reciprocal_rank_fusion(fts_results, sem_results)
-        else:
-            # FTS-only: assign decreasing RRF-equivalent scores
-            merged = [
-                {
-                    "asset_id": r["asset_id"],
-                    "_hybridScore": round(1.0 / (60 + i + 1), 5),
-                    "_matchType": "fts",
-                }
-                for i, r in enumerate(fts_results)
-            ]
+            # Merge results
+            if sem_results:
+                merged = _reciprocal_rank_fusion(fts_results, sem_results)
+            else:
+                # FTS-only: assign decreasing RRF-equivalent scores
+                merged = [
+                    {
+                        "asset_id": r["asset_id"],
+                        "_hybridScore": round(1.0 / (60 + i + 1), 5),
+                        "_matchType": "fts",
+                    }
+                    for i, r in enumerate(fts_results)
+                ]
 
-        merged = merged[:top_k]
+            merged = merged[:top_k]
 
-        hydrated = await _hydrate_vector_results(services_dict, Result.Ok(merged))
-        return _json_response(hydrated)
+            hydrated = await _hydrate_vector_results(services_dict, Result.Ok(merged))
+            return _json_response(hydrated)
+        finally:
+            await maybe_unload_vector_runtime_after_use(services_dict, logger=logger)

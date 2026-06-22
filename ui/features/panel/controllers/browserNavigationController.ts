@@ -269,34 +269,31 @@ export function createBrowserNavigationController({
         const backBtn = document.createElement("button");
         backBtn.type = "button";
         backBtn.textContent = t("btn.back", "Back");
-        backBtn.className = "mjr-btn-link";
+        backBtn.className = "mjr-btn-link mjr-folder-breadcrumb-action";
         backBtn.disabled = backDisabled;
-        backBtn.style.cssText =
-            "background:rgba(122,162,255,0.12);border:1px solid rgba(122,162,255,0.35);border-radius:6px;padding:2px 8px;font:inherit;color:var(--mjr-accent, #7aa2ff);cursor:pointer;";
         backBtn.addEventListener("click", handleBack, { signal: lifecycleSignal || undefined });
         folderBreadcrumb.appendChild(backBtn);
 
         const upBtn = document.createElement("button");
         upBtn.type = "button";
         upBtn.textContent = t("btn.up", "Up");
-        upBtn.className = "mjr-btn-link";
+        upBtn.className = "mjr-btn-link mjr-folder-breadcrumb-action";
         upBtn.disabled = upDisabled;
-        upBtn.style.cssText =
-            "background:rgba(122,162,255,0.10);border:1px solid rgba(122,162,255,0.30);border-radius:6px;padding:2px 8px;font:inherit;color:var(--mjr-accent, #7aa2ff);cursor:pointer;";
         upBtn.addEventListener("click", handleUp, { signal: lifecycleSignal || undefined });
         folderBreadcrumb.appendChild(upBtn);
 
         const sep0 = document.createElement("span");
         sep0.textContent = "|";
-        sep0.style.opacity = "0.5";
+        sep0.className = "mjr-folder-breadcrumb-separator";
         folderBreadcrumb.appendChild(sep0);
 
         const mk = (label: any, target: any, isCurrent = false) => {
             const el = document.createElement("button");
             el.type = "button";
             el.textContent = label;
-            el.className = "mjr-btn-link";
-            el.style.cssText = `background:none;border:none;padding:0;color:${isCurrent ? "var(--mjr-text, inherit)" : "var(--mjr-accent, #7aa2ff)"};cursor:${isCurrent ? "default" : "pointer"};font:inherit;`;
+            el.className = isCurrent
+                ? "mjr-btn-link mjr-folder-breadcrumb-segment is-current"
+                : "mjr-btn-link mjr-folder-breadcrumb-segment";
             if (!isCurrent) {
                 el.addEventListener(
                     "click",
@@ -319,7 +316,7 @@ export function createBrowserNavigationController({
             if (i > 0) {
                 const sep = document.createElement("span");
                 sep.textContent = "/";
-                sep.style.opacity = "0.6";
+                sep.className = "mjr-folder-breadcrumb-separator";
                 folderBreadcrumb.appendChild(sep);
             }
             const item = breadcrumbItems[i];

@@ -1,7 +1,12 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { EVENTS } from "../app/events.js";
+import { APP_CONFIG } from "../app/config.js";
 import { registerRealtimeListeners } from "../features/runtime/registerRealtimeListeners.js";
+import {
+    getSidebarAssetBadgeCount,
+    resetSidebarAssetBadge,
+} from "../features/runtime/sidebarAssetBadge.js";
 
 function ensureBrowserShims() {
     if (typeof globalThis.CustomEvent === "undefined") {
@@ -56,6 +61,11 @@ function createRuntimeHarness({ defer = false, renderable = true } = {}) {
 }
 
 describe("registerRealtimeListeners", () => {
+    beforeEach(() => {
+        APP_CONFIG.SIDEBAR_ASSET_BADGE_ENABLED = true;
+        resetSidebarAssetBadge();
+    });
+
     it("upsert un asset indexe pour couvrir le flux post-generation", async () => {
         ensureBrowserShims();
         const harness = createRuntimeHarness();
@@ -176,6 +186,7 @@ describe("registerRealtimeListeners", () => {
         harness.api._mjrAssetAddedHandler({ detail });
         expect(harness.pushGeneratedAsset).toHaveBeenCalledTimes(1);
         expect(harness.upsertAsset).toHaveBeenCalledTimes(0);
+        expect(getSidebarAssetBadgeCount()).toBe(0);
 
         // Phase indexation: l'asset final est upsert dans la grille active.
         harness.api._mjrAssetIndexedHandler({ detail });
@@ -186,6 +197,7 @@ describe("registerRealtimeListeners", () => {
             expect.objectContaining(detail),
         );
         expect(Number(window.__mjrLastAssetUpsertCount || 0)).toBeGreaterThan(0);
+        expect(getSidebarAssetBadgeCount()).toBe(1);
     });
 
     it("alimente le feed meme sans grille active", async () => {

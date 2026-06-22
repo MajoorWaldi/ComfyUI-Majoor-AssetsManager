@@ -20,6 +20,7 @@ const _labelScope = (scope: any) => {
     const s = String(scope || "").toLowerCase();
     if (s === "similar") return t("scope.similar", "Similar");
     if (s === "custom") return t("scope.customBrowser");
+    if (s === "workflow") return t("scope.workflow", "Workflow");
     if (s === "all") return t("tab.all");
     if (s === "input" || s === "inputs") return t("scope.input");
     return t("scope.output");
@@ -86,6 +87,8 @@ export function createContextPillsView(): Record<string, any> {
             (Number(state?.maxHeight || 0) || 0) > 0 ||
             _safeText(state?.workflowType || "").trim() ||
             _safeText(state?.workflowId || "").trim() ||
+            _safeText(state?.workflowModelFilter || "").trim() ||
+            _safeText(state?.workflowRunsOnFilter || "").trim() ||
             _safeText(state?.dateRangeFilter || "").trim() ||
             _safeText(state?.dateExactFilter || "").trim()
         );
@@ -198,6 +201,24 @@ export function createContextPillsView(): Record<string, any> {
                     label: t("label.sameWorkflow", "Generated with Same Workflow"),
                     value: workflowId.length > 18 ? `${workflowId.slice(0, 8)}...${workflowId.slice(-6)}` : workflowId,
                     onClear: () => safeActions?.clearWorkflowId?.(),
+                }),
+            );
+        }
+        if (_safeText(state?.workflowModelFilter || "").trim()) {
+            root.appendChild(
+                _createPill({
+                    label: t("label.workflowModelFamily", "Model family"),
+                    value: _safeText(state?.workflowModelFilter || "").trim(),
+                    onClear: () => safeActions?.clearWorkflowModel?.(),
+                }),
+            );
+        }
+        if (_safeText(state?.workflowRunsOnFilter || "").trim()) {
+            root.appendChild(
+                _createPill({
+                    label: t("label.workflowRunsOn", "Runs on"),
+                    value: _safeText(state?.workflowRunsOnFilter || "").trim(),
+                    onClear: () => safeActions?.clearWorkflowRunsOn?.(),
                 }),
             );
         }

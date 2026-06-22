@@ -34,6 +34,11 @@ from comfy.cli_args import args  # type: ignore[import-untyped]
 from PIL import Image
 from PIL.PngImagePlugin import PngInfo
 
+try:
+    from .mjr_am_backend.video_ui import build_video_ui as _build_video_ui
+except ImportError:
+    from mjr_am_backend.video_ui import build_video_ui as _build_video_ui
+
 _log = logging.getLogger("majoor_assets_manager.nodes")
 
 
@@ -1318,6 +1323,7 @@ class MajoorSaveVideo:
         # --- PNG sidecar with full metadata ---
         png_metadata = _build_metadata(prompt, extra_pnginfo, gen_time, geninfo_override, unique_id)
 
+        sidecar_file: str | None = None
         if save_first_frame:
             sidecar_file = f"{filename}_{counter:05}.png"
             Image.fromarray(_tensor_to_bytes(resolved_images[0])).save(
@@ -1332,7 +1338,7 @@ class MajoorSaveVideo:
                 resolved_images, format, resolved_fps, loop_count,
                 full_output_folder, filename, counter,
             )
-            return {"ui": {"videos": [{"filename": out_file, "subfolder": subfolder, "type": self.type}]}}
+            return _build_video_ui(out_file, subfolder, self.type, out_file)
 
         # --- MP4 via PyAV ---
         container_meta = _build_container_metadata(prompt, extra_pnginfo, gen_time, geninfo_override, unique_id)
@@ -1341,7 +1347,7 @@ class MajoorSaveVideo:
 
         _encode_mp4(out_path, resolved_images, resolved_fps, crf, container_meta, resolved_audio, num_frames)
 
-        return {"ui": {"videos": [{"filename": out_file, "subfolder": subfolder, "type": self.type}]}}
+        return _build_video_ui(out_file, subfolder, self.type, sidecar_file)
 
 # ---------------------------------------------------------------------------
 # Registration helpers

@@ -14,8 +14,10 @@ describe("normalizeVideoFps", () => {
 
     it("uses the same fps source of truth as file info", () => {
         const asset = {
-            fps: null,
+            fps: 8,
             metadata_raw: {
+                fps: 12,
+                frame_rate: 16,
                 raw_ffprobe: {
                     video_stream: {
                         avg_frame_rate: "30000/1001",
@@ -26,5 +28,14 @@ describe("normalizeVideoFps", () => {
 
         expect(readAssetFps(asset)).toBeCloseTo(29.97002997, 6);
         expect(formatFps(readAssetFps(asset))).toBe("29.97 fps");
+    });
+
+    it("falls back to legacy fps fields when ffprobe fps is unavailable", () => {
+        expect(readAssetFps({ metadata_raw: { fps_raw: "24000/1001" } })).toBeCloseTo(
+            23.97602397,
+            6,
+        );
+        expect(readAssetFps({ metadata_raw: { frame_rate: "15" }, fps: 8 })).toBe(15);
+        expect(readAssetFps({ fps: 8 })).toBe(8);
     });
 });

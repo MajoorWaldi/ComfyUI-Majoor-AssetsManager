@@ -20,6 +20,31 @@ const VIDEO_PLAY_MIN_RATIO = 0.45;
 const VIDEO_PREFETCH_MARGIN = "0px 240px 0px 240px";
 const VIDEO_RELEASE_DELAY_MS = 3500;
 
+function _hashString(value: any) {
+    let hash = 2166136261;
+    const text = String(value || "");
+    for (let i = 0; i < text.length; i += 1) {
+        hash ^= text.charCodeAt(i);
+        hash = Math.imul(hash, 16777619);
+    }
+    return hash >>> 0;
+}
+
+function _appendAudioWaveform(container: any, seedText: any, count = 18) {
+    const waveform = document.createElement("div");
+    waveform.className = "mjr-filmstrip-audio-waveform";
+    let seed = _hashString(seedText) || 1;
+    for (let i = 0; i < count; i += 1) {
+        seed = Math.imul(seed ^ (seed >>> 15), 2246822519) >>> 0;
+        const random = (seed % 1000) / 1000;
+        const wave = Math.sin((i / Math.max(1, count - 1)) * Math.PI);
+        const bar = document.createElement("span");
+        bar.style.height = `${Math.max(16, Math.min(92, Math.round(20 + wave * 52 + random * 22)))}%`;
+        bar.style.opacity = String(0.45 + random * 0.45);
+        waveform.appendChild(bar);
+    }
+    container.appendChild(waveform);
+}
 
 function _clearReleaseTimer(video: any) {
     try {
@@ -296,6 +321,7 @@ export function createFilmstrip({ state, buildAssetViewURL, onNavigate, onCompar
         const item = document.createElement("div");
         item.className = "mjr-filmstrip-item";
         item.dataset.fidx = String(index);
+        (item as any)._mjrAsset = asset;
         item.style.cssText = `
             position: relative;
             width: ${ITEM_W}px;
@@ -519,15 +545,12 @@ export function createFilmstrip({ state, buildAssetViewURL, onNavigate, onCompar
 
     function _showAudioIcon(container: any) {
         const icon = document.createElement("div");
-        icon.style.cssText = `
-            position: absolute; inset: 0;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 10px; font-weight: 700;
-            color: rgba(255,255,255,0.45);
-            pointer-events: none;
-            letter-spacing: 0.04em;
-        `;
-        icon.textContent = "AUDIO";
+        icon.className = "mjr-filmstrip-audio-thumb";
+        const label = document.createElement("span");
+        label.className = "mjr-filmstrip-audio-label";
+        label.textContent = "AUDIO";
+        _appendAudioWaveform(icon, container?._mjrAsset?.filename || container?.dataset?.mjrId || "audio");
+        icon.appendChild(label);
         try {
             container.appendChild(icon);
         } catch (e: any) {

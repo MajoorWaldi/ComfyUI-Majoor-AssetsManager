@@ -14,6 +14,8 @@ import {
 } from "../../../features/contextmenu/gridContextMenuState.js";
 import AddToCollectionMenu from "./AddToCollectionMenu.vue";
 import GridContextMenu from "../grid/GridContextMenu.vue";
+import WorkflowInfoDialog from "../workflows/WorkflowInfoDialog.vue";
+import WorkflowPickerDialog from "../workflows/WorkflowPickerDialog.vue";
 
 const portalId = ref("");
 
@@ -33,5 +35,7 @@ onUnmounted(() => {
     <template v-if="isOwner">
         <GridContextMenu />
         <AddToCollectionMenu />
+        <WorkflowPickerDialog />
+        <WorkflowInfoDialog />
     </template>
 </template>

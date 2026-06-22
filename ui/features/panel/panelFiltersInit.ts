@@ -19,6 +19,8 @@ export function setupFiltersInit({
     wfCheckbox,
     workflowTypeSelect,
     workflowIdInput,
+    workflowModelInput,
+    workflowRunsOnSelect,
     ratingSelect,
     minSizeInput,
     maxSizeInput,
@@ -49,6 +51,12 @@ export function setupFiltersInit({
                 .trim()
                 .toUpperCase();
             if (workflowIdInput) workflowIdInput.value = String(state.workflowId || "").trim();
+            if (workflowModelInput)
+                workflowModelInput.value = String(state.workflowModelFilter || "").trim();
+            if (workflowRunsOnSelect)
+                workflowRunsOnSelect.value = String(state.workflowRunsOnFilter || "")
+                    .trim()
+                    .toLowerCase();
             ratingSelect.value = String(Number(state.minRating || 0) || 0);
             minSizeInput.value = Number(state.minSizeMB || 0) > 0 ? String(state.minSizeMB) : "";
             maxSizeInput.value = Number(state.maxSizeMB || 0) > 0 ? String(state.maxSizeMB) : "";
@@ -129,6 +137,8 @@ export function setupFiltersInit({
             wfCheckbox,
             workflowTypeSelect,
             workflowIdInput,
+            workflowModelInput,
+            workflowRunsOnSelect,
             ratingSelect,
             minSizeInput,
             maxSizeInput,

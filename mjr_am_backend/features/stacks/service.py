@@ -181,8 +181,13 @@ class StacksService:
             return Result.Err(str(assign_res.code or "DB_ERROR"), assign_res.error or "Failed to assign asset")
         return Result.Ok(stack_id)
 
-    async def get_members(self, stack_id: int) -> Result[list[dict[str, Any]]]:
+    async def get_members(self, stack_id: int, limit: int | None = None) -> Result[list[dict[str, Any]]]:
         """Return all assets belonging to a stack."""
+        limit_value = int(limit or 0)
+        if limit_value < 0:
+            return Result.Err("INVALID_INPUT", "limit must be >= 0")
+        limit_sql = " LIMIT ?" if limit_value > 0 else ""
+        params: tuple[Any, ...] = (stack_id, limit_value) if limit_value > 0 else (stack_id,)
         res = await self.db.aquery(
             "SELECT a.id, a.filename, a.subfolder, a.filepath, a.kind, a.ext, "
             "  a.size, a.mtime, a.width, a.height, a.duration, "
@@ -197,8 +202,8 @@ class StacksService:
             "FROM assets a "
             "LEFT JOIN asset_metadata m ON a.id = m.asset_id "
             "WHERE a.stack_id = ? "
-            "ORDER BY a.mtime ASC",
-            (stack_id,),
+            f"ORDER BY a.mtime ASC{limit_sql}",
+            params,
         )
         if not res.ok:
             return Result.Err("DB_ERROR", res.error or "Failed to get stack members")

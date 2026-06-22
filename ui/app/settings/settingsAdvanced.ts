@@ -9,8 +9,10 @@ import {
     setMetadataFallbackSettings,
     getIndexDirectorySetting,
     getOutputDirectorySetting,
+    getWorkflowRootsSetting,
     setIndexDirectorySetting,
     setOutputDirectorySetting,
+    setWorkflowRootsSetting,
     vectorStats,
     vectorBackfill,
     getHuggingFaceSettings,
@@ -255,6 +257,110 @@ export function registerAdvancedSettings(safeAddSetting: (def: any) => void, set
                     _indexDirCommittedValue = serverValue;
                     saveMajoorSettings(settings);
                     notifyApplied("paths.indexDirectory");
+                }
+            })
+            .catch(() => {});
+    } catch (e) {
+        console.debug?.(e);
+    }
+
+    // -- WorkflowRoots -----------------------------------------------------
+
+    let _workflowRootsCommittedValue = String(settings.paths?.workflowRoots || "");
+    let _workflowRootsSaveTimer: any = null;
+    let _workflowRootsSaveSeq = 0;
+    let _workflowRootsSaveAbort: any = null;
+
+    safeAddSetting({
+        id: `${SETTINGS_PREFIX}.Paths.WorkflowRoots`,
+        category: cat(t("cat.advanced"), "Paths / Workflows"),
+        name: "Majoor: Workflow Roots",
+        tooltip:
+            "Folders scanned by the Workflow tab. Use one folder per line, or separate folders with semicolons. Leave empty to use ComfyUI defaults and MJR_AM_WORKFLOW_DIRECTORY.",
+        type: "text",
+        defaultValue: String(settings.paths?.workflowRoots || ""),
+        attrs: {
+            placeholder: "D:\\\\ComfyUI\\\\user\\\\default\\\\workflows",
+        },
+        onChange: async (value: any) => {
+            const next = String(value || "").trim();
+            settings.paths = settings.paths || {};
+            settings.paths.workflowRoots = next;
+            saveMajoorSettings(settings);
+
+            try {
+                if (_workflowRootsSaveTimer) {
+                    clearTimeout(_workflowRootsSaveTimer);
+                    _workflowRootsSaveTimer = null;
+                }
+            } catch (e) {
+                console.debug?.(e);
+            }
+
+            _workflowRootsSaveTimer = setTimeout(async () => {
+                _workflowRootsSaveTimer = null;
+                const seq = ++_workflowRootsSaveSeq;
+                try {
+                    _workflowRootsSaveAbort?.abort?.();
+                } catch (e) {
+                    console.debug?.(e);
+                }
+                _workflowRootsSaveAbort =
+                    typeof AbortController !== "undefined" ? new AbortController() : null;
+                try {
+                    const res = await setWorkflowRootsSetting(
+                        next,
+                        _workflowRootsSaveAbort ? { signal: _workflowRootsSaveAbort.signal } : {},
+                    );
+                    if (seq !== _workflowRootsSaveSeq) return;
+                    if (!res?.ok) {
+                        throw new Error(
+                            res?.error ||
+                                t("toast.failedSetWorkflowRoots", "Failed to set workflow roots"),
+                        );
+                    }
+                    const serverValue = String(
+                        res?.data?.workflow_roots_text || next,
+                    ).trim();
+                    settings.paths.workflowRoots = serverValue;
+                    _workflowRootsCommittedValue = serverValue;
+                    saveMajoorSettings(settings);
+                    notifyApplied("paths.workflowRoots");
+                    comfyToast(
+                        t("toast.workflowRootsSaved", "Workflow roots saved"),
+                        "success",
+                        1800,
+                    );
+                } catch (error: any) {
+                    if (seq !== _workflowRootsSaveSeq) return;
+                    const aborted =
+                        String(error?.name || "") === "AbortError" ||
+                        String(error?.code || "") === "ABORTED";
+                    if (aborted) return;
+                    settings.paths.workflowRoots = _workflowRootsCommittedValue;
+                    saveMajoorSettings(settings);
+                    notifyApplied("paths.workflowRoots");
+                    comfyToast(
+                        error?.message ||
+                            t("toast.failedSetWorkflowRoots", "Failed to set workflow roots"),
+                        "error",
+                    );
+                }
+            }, 700);
+        },
+    });
+
+    try {
+        getWorkflowRootsSetting()
+            .then((res) => {
+                if (!res?.ok) return;
+                const serverValue = String(res?.data?.workflow_roots_text || "").trim();
+                settings.paths = settings.paths || {};
+                if (settings.paths.workflowRoots !== serverValue) {
+                    settings.paths.workflowRoots = serverValue;
+                    _workflowRootsCommittedValue = serverValue;
+                    saveMajoorSettings(settings);
+                    notifyApplied("paths.workflowRoots");
                 }
             })
             .catch(() => {});

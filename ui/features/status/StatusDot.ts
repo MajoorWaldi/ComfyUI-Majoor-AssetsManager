@@ -13,6 +13,7 @@ import {
     saveDbBackup,
     restoreDbBackup,
     vectorBackfill,
+    unloadVectorModels,
 } from "../../api/client.js";
 import { ENDPOINTS } from "../../api/endpoints.js";
 import { APP_CONFIG } from "../../app/config.js";
@@ -251,6 +252,11 @@ function applyStatusHighlight(section: any, tone = "neutral", options: Record<st
             border: "rgba(0,150,136,0.58)",
             glow: "rgba(0,150,136,0.18)",
         },
+        workflow: {
+            bg: "linear-gradient(135deg, rgba(186,104,200,0.20) 0%, rgba(244,143,177,0.14) 100%)",
+            border: "rgba(216,127,186,0.62)",
+            glow: "rgba(198,120,194,0.22)",
+        },
     };
     const style = (map as Record<string, any>)[tone] || map.neutral;
     const prevTone = String(section.dataset?.mjrStatusTone || "neutral");
@@ -271,6 +277,7 @@ function applyStatusHighlight(section: any, tone = "neutral", options: Record<st
                 warning: t("status.toast.warning", "Index status: attention needed"),
                 error: t("status.toast.error", "Index status: error"),
                 browser: t("status.toast.browser", "Index status: browser scope"),
+                workflow: t("status.toast.workflow", "Index status: workflow scope"),
             };
             const level =
                 tone === "error"
@@ -294,6 +301,7 @@ function formatWatcherScopeLabel(scope: any) {
     if (s === "all") return t("scope.allFull", "All (Inputs + Outputs)");
     if (s === "input" || s === "inputs") return t("scope.input", "Inputs");
     if (s === "custom") return t("scope.custom", "Browser");
+    if (s === "workflow") return t("scope.workflow", "Workflow");
     return t("scope.output", "Outputs");
 }
 
@@ -672,7 +680,7 @@ export function createStatusIndicator(options: Record<string, any> = {}): any {
 
     const actionsRow = document.createElement("div");
     actionsRow.style.cssText =
-        "margin-top: 10px; display: flex; justify-content: flex-end; gap: 8px;";
+        "margin-top: 10px; display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap;";
 
     const actionLog = document.createElement("div");
     actionLog.style.cssText =
@@ -705,6 +713,8 @@ export function createStatusIndicator(options: Record<string, any> = {}): any {
         actionLog.style.color = "inherit";
         actionLog.style.opacity = "0.9";
     };
+
+    let memoryPurgeBtn: HTMLButtonElement;
 
     const resetBtn = document.createElement("button");
     resetBtn.type = "button";
@@ -752,6 +762,7 @@ export function createStatusIndicator(options: Record<string, any> = {}): any {
 
         const originalText = resetBtn.textContent;
         resetBtn.disabled = true;
+        memoryPurgeBtn.disabled = true;
         resetBtn.textContent = t("btn.resetting");
 
         // Status indicator feedback
@@ -792,6 +803,7 @@ export function createStatusIndicator(options: Record<string, any> = {}): any {
         } finally {
             setMaintenanceActive(false);
             resetBtn.disabled = false;
+            memoryPurgeBtn.disabled = false;
             resetBtn.textContent = originalText;
             emitGlobalGridReload("index-reset");
             try {
@@ -868,6 +880,7 @@ export function createStatusIndicator(options: Record<string, any> = {}): any {
         const originalResetText = resetBtn.textContent;
         backfillBtn.disabled = true;
         resetBtn.disabled = true;
+        memoryPurgeBtn.disabled = true;
         backfillBtn.textContent = "Backfilling...";
         setActionLog(`Backfill started (${backfillScopeLabel})...`, "info");
         recordToastHistory(
@@ -1104,6 +1117,7 @@ export function createStatusIndicator(options: Record<string, any> = {}): any {
             setMaintenanceActive(false);
             backfillBtn.disabled = false;
             resetBtn.disabled = false;
+            memoryPurgeBtn.disabled = false;
             backfillBtn.textContent = originalBackfillText;
             resetBtn.textContent = originalResetText;
             emitGlobalGridReload("vector-backfill");
@@ -1118,7 +1132,89 @@ export function createStatusIndicator(options: Record<string, any> = {}): any {
         }
     };
 
+    memoryPurgeBtn = document.createElement("button");
+    memoryPurgeBtn.type = "button";
+    memoryPurgeBtn.textContent = t("btn.memoryPurge", "Memory purge");
+    memoryPurgeBtn.title = t(
+        "tooltip.memoryPurge",
+        "Unload Majoor AI models, ask ComfyUI to unload loaded models, and clear torch cache when idle.",
+    );
+    memoryPurgeBtn.style.cssText = `
+        padding: 5px 12px;
+        font-size: 11px;
+        border-radius: 6px;
+        border: 1px solid rgba(156, 204, 101, 0.45);
+        background: transparent;
+        color: inherit;
+        cursor: pointer;
+        transition: border 0.2s, background 0.2s;
+    `;
+    memoryPurgeBtn.onmouseenter = () => {
+        memoryPurgeBtn.style.borderColor = "rgba(156, 204, 101, 0.85)";
+        memoryPurgeBtn.style.background = "rgba(156, 204, 101, 0.12)";
+    };
+    memoryPurgeBtn.onmouseleave = () => {
+        memoryPurgeBtn.style.borderColor = "rgba(156, 204, 101, 0.45)";
+        memoryPurgeBtn.style.background = "transparent";
+    };
+    memoryPurgeBtn.onclick = async (event) => {
+        event.stopPropagation();
+        const originalText = memoryPurgeBtn.textContent;
+        memoryPurgeBtn.disabled = true;
+        backfillBtn.disabled = true;
+        resetBtn.disabled = true;
+        memoryPurgeBtn.textContent = t("btn.memoryPurging", "Purging...");
+        setActionLog(t("status.memoryPurgeStarted", "Memory purge started..."), "info");
+        statusDot.style.background = "var(--mjr-status-info, #64B5F6)";
+        applyStatusHighlight(section, "info");
+        try {
+            const res = await unloadVectorModels();
+            if (res?.ok) {
+                const comfyPurged = !!res?.data?.comfy_models;
+                const msg = comfyPurged
+                    ? t(
+                          "toast.memoryPurgeComplete",
+                          "Memory purge complete. Majoor AI and ComfyUI model caches were released.",
+                      )
+                    : t(
+                          "toast.memoryPurgeCompleteMajoorOnly",
+                          "Memory purge complete. Majoor AI caches were released.",
+                      );
+                comfyToast(msg, "success", 3200);
+                setActionLog(msg, "success");
+                statusDot.style.background = "var(--mjr-status-success, #4CAF50)";
+                applyStatusHighlight(section, "success");
+            } else {
+                const err = String(res?.error || "Memory purge failed");
+                comfyToast(err, "error", 4500);
+                setActionLog(err, "error");
+                statusDot.style.background = "var(--mjr-status-error, #f44336)";
+                applyStatusHighlight(section, "error");
+            }
+        } catch (error: any) {
+            const err = String(error?.message || error || "Memory purge failed");
+            comfyToast(err, "error", 4500);
+            setActionLog(err, "error");
+            statusDot.style.background = "var(--mjr-status-error, #f44336)";
+            applyStatusHighlight(section, "error");
+        } finally {
+            memoryPurgeBtn.disabled = false;
+            backfillBtn.disabled = false;
+            resetBtn.disabled = false;
+            memoryPurgeBtn.textContent = originalText;
+            try {
+                const target = getScanContext ? getScanContext() : null;
+                await updateStatus(statusDot, statusText, capabilities, target, null, {
+                    force: true,
+                });
+            } catch (e) {
+                console.debug?.(e);
+            }
+        }
+    };
+
     actionsRow.appendChild(backfillBtn);
+    actionsRow.appendChild(memoryPurgeBtn);
     actionsRow.appendChild(resetBtn);
     body.appendChild(actionLog);
 
@@ -1168,6 +1264,7 @@ export function createStatusIndicator(options: Record<string, any> = {}): any {
             ? t("btn.resetting", "Resetting...")
             : t("btn.deletingDb");
         resetBtn.disabled = true;
+        memoryPurgeBtn.disabled = true;
 
         statusDot.style.background = "var(--mjr-status-info, #64B5F6)";
         applyStatusHighlight(section, "info");
@@ -1203,6 +1300,7 @@ export function createStatusIndicator(options: Record<string, any> = {}): any {
             deleteDbBtn.disabled = false;
             deleteDbBtn.textContent = originalText;
             resetBtn.disabled = false;
+            memoryPurgeBtn.disabled = false;
             emitGlobalGridReload(
                 preserveVectors ? "index-reset-preserve-vectors" : "db-force-delete",
             );
@@ -1500,6 +1598,8 @@ export async function triggerScan(
               ? t("scope.input", "Inputs")
               : desiredScope === "custom"
                 ? t("scope.custom", "Custom")
+                : desiredScope === "workflow"
+                  ? t("scope.workflow", "Workflow")
                 : t("scope.output", "Outputs");
 
     let detail = "";
@@ -1737,6 +1837,8 @@ function buildIndexHealthLine(counters: any, desiredScope: any) {
               ? t("scope.input", "Inputs")
               : desiredScope === "custom"
                 ? t("scope.custom", "Custom")
+                : desiredScope === "workflow"
+                  ? t("scope.workflow", "Workflow")
                 : t("scope.output", "Outputs");
 
     if (!Number.isFinite(totalAssets) || totalAssets <= 0) {
@@ -1782,14 +1884,15 @@ export async function updateStatus(
     }
 
     const desiredScope = String(scanTarget?.scope || "output").toLowerCase();
+    const requestedScope = desiredScope === "workflow" ? "all" : desiredScope;
     const desiredCustomRootId =
         scanTarget?.customRootId || scanTarget?.custom_root_id || scanTarget?.root_id || null;
     const isCustomBrowserMode = desiredScope === "custom" && !desiredCustomRootId;
     const url = isCustomBrowserMode
         ? `${ENDPOINTS.HEALTH_COUNTERS}?scope=all`
-        : desiredScope === "custom"
+        : requestedScope === "custom"
           ? `${ENDPOINTS.HEALTH_COUNTERS}?scope=custom&custom_root_id=${encodeURIComponent(String(desiredCustomRootId || ""))}`
-          : `${ENDPOINTS.HEALTH_COUNTERS}?scope=${encodeURIComponent(desiredScope || "output")}`;
+          : `${ENDPOINTS.HEALTH_COUNTERS}?scope=${encodeURIComponent(requestedScope || "output")}`;
     const lightweight = !!options?.lightweight;
     const scanAuxBackoffActive =
         !force &&
@@ -1856,6 +1959,7 @@ export async function updateStatus(
         const totalAssets = counters.total_assets || 0;
         const withWorkflows = counters.with_workflows - 0;
         const withGenerationData = counters.with_generation_data - 0;
+        const workflowCount = Math.max(0, Number(withWorkflows || 0) || 0);
         const lastScanRaw = counters.last_scan_end;
         const lastScanText = lastScanRaw ? new Date(lastScanRaw).toLocaleString() : "N/A";
         const toolAvailability = counters.tool_availability || {};
@@ -1911,7 +2015,13 @@ export async function updateStatus(
         } else if (vectorDegraded) {
             healthTone = "warning";
         }
-        const displayTone = isCustomBrowserMode && healthTone !== "error" ? "browser" : healthTone;
+                const isWorkflowScope = desiredScope === "workflow";
+                const displayTone =
+                        isCustomBrowserMode && healthTone !== "error"
+                                ? "browser"
+                                : isWorkflowScope && healthTone !== "error"
+                                    ? "workflow"
+                                    : healthTone;
         let watcherInfo = counters.watcher;
         try {
             if (!watcherInfo || typeof watcherInfo.enabled !== "boolean") {
@@ -1927,7 +2037,11 @@ export async function updateStatus(
         } catch (e) {
             console.debug?.(e);
         }
-        const watcherLine = isCustomBrowserMode
+        const watcherLine = isWorkflowScope
+            ? t("status.watcher.disabledScoped", "Watcher: disabled ({scope})", {
+                  scope: t("scope.workflow", "Workflow"),
+              })
+            : isCustomBrowserMode
             ? t("status.watcher.disabledScoped", "Watcher: disabled ({scope})", {
                   scope: t("scope.customBrowser", "Browser"),
               })
@@ -1948,6 +2062,8 @@ export async function updateStatus(
                   ? t("scope.input", "Inputs")
                   : desiredScope === "custom"
                     ? t("scope.customBrowser", "Browser")
+                    : desiredScope === "workflow"
+                      ? t("scope.workflow", "Workflow")
                     : t("scope.output", "Outputs");
 
         if (healthTone === "error") {
@@ -1978,6 +2094,34 @@ export async function updateStatus(
                 ]
                     .filter(Boolean)
                     .join("  |  "),
+            );
+            return counters;
+        }
+
+        if (isWorkflowScope) {
+            statusDot.style.background = "#d481c3";
+            applyStatusHighlight(section, displayTone);
+            setStatusLines(
+                statusText,
+                [
+                    t(
+                        "status.workflowsIndexed",
+                        `${workflowCount.toLocaleString()} workflows indexed (${scopeLabel})`,
+                        { count: workflowCount.toLocaleString(), scope: scopeLabel },
+                    ),
+                    t(
+                        "status.assetsCountReference",
+                        `Asset records in DB: ${totalAssets.toLocaleString()}`,
+                        { count: totalAssets.toLocaleString() },
+                    ),
+                    enrichmentLine,
+                    vectorLine,
+                    dbHealthLine,
+                    indexHealthLine,
+                    dbSizeLine,
+                    watcherLine,
+                ],
+                t("status.lastScan", `Last scan: ${lastScanText}`, { date: lastScanText }),
             );
             return counters;
         }

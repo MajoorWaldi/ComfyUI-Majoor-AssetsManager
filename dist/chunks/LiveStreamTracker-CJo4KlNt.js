@@ -1,6 +1,5 @@
-import { R as e } from "./config-Cxv7acF8.js";
-import { t } from "./floatingViewerManager-BJZCNWWp.js";
-import { r as n } from "./events-BnkL6-b6.js";
+import { q as e, r as t } from "./events-iWiZ-Zty.js";
+import { t as n } from "./floatingViewerManager-D-EzvRCt.js";
 //#region ui/features/viewer/LiveStreamTracker.ts
 var r = !1, i = null, a = null, o = null, s = null, c = null, l = 0, u = 0, d = 400, f = new Set([
 	".png",
@@ -46,12 +45,12 @@ function _(e) {
 function v() {
 	return Date.now() - u <= d;
 }
-async function y(n) {
+async function y(t) {
 	let r = ++l;
 	try {
 		b();
 		let i = await e({
-			app: n,
+			app: t,
 			timeoutMs: 8e3
 		});
 		if (r !== l) return;
@@ -61,18 +60,18 @@ async function y(n) {
 		}
 		s = i, o = (e) => {
 			try {
-				let { blob: n, nodeId: r, jobId: i } = e.detail || {};
-				if (!n || !(n instanceof Blob) || (u = Date.now(), c && i && i !== c)) return;
-				t.feedPreviewBlob(n, { sourceLabel: r ? `Node ${r}` : null });
+				let { blob: t, nodeId: r, jobId: i } = e.detail || {};
+				if (!t || !(t instanceof Blob) || (u = Date.now(), c && i && i !== c)) return;
+				n.feedPreviewBlob(t, { sourceLabel: r ? `Node ${r}` : null });
 			} catch (e) {
 				console.debug?.("[MFV] b_preview_with_metadata error", e);
 			}
 		}, i.addEventListener("b_preview_with_metadata", o), a = (e) => {
 			try {
 				if (v()) return;
-				let n = e.detail;
-				if (!n || !(n instanceof Blob)) return;
-				t.feedPreviewBlob(n);
+				let t = e.detail;
+				if (!t || !(t instanceof Blob)) return;
+				n.feedPreviewBlob(t);
 			} catch (e) {
 				console.debug?.("[MFV] preview blob error", e);
 			}
@@ -110,17 +109,17 @@ function S(e) {
 function C(e) {
 	i || (r = !0, i = (e) => {
 		try {
-			if (!t.getLiveActive()) return;
-			let n = S(e.detail?.files);
-			if (!n) return;
-			t.upsertWithContent(n);
+			if (!n.getLiveActive()) return;
+			let t = S(e.detail?.files);
+			if (!t) return;
+			n.upsertWithContent(t);
 		} catch (e) {
 			console.debug?.("[MFV] generation output error", e);
 		}
-	}, typeof window < "u" && window.addEventListener(n.NEW_GENERATION_OUTPUT, i), y(e), console.debug("[Majoor] LiveStreamTracker initialized"));
+	}, typeof window < "u" && window.addEventListener(t.NEW_GENERATION_OUTPUT, i), y(e), console.debug("[Majoor] LiveStreamTracker initialized"));
 }
 function w(e) {
-	i &&= (typeof window < "u" && window.removeEventListener(n.NEW_GENERATION_OUTPUT, i), null), l += 1, b(), c = null, r = !1, console.debug("[Majoor] LiveStreamTracker torn down");
+	i &&= (typeof window < "u" && window.removeEventListener(t.NEW_GENERATION_OUTPUT, i), null), l += 1, b(), c = null, r = !1, console.debug("[Majoor] LiveStreamTracker torn down");
 }
 function T() {
 	return r;

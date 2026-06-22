@@ -18,6 +18,10 @@ async def apply_startup_settings(
             "apply_output_directory_override_on_startup",
         ),
         (
+            "Workflow roots restore failed: %s",
+            "apply_workflow_roots_on_startup",
+        ),
+        (
             "Vector search setting restore failed: %s",
             "apply_vector_search_override_on_startup",
         ),

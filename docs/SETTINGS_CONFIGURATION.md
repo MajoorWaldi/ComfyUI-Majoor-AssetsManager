@@ -168,6 +168,21 @@ Use that line as the quickest confirmation that the current browser session can 
 
 ## File System Settings
 
+### Workflow Roots
+
+- **UI location**: Settings -> Majoor Assets Manager -> Advanced -> Paths / Workflows
+- **Purpose**: Sets the folders scanned by the Workflow tab and the first folder used when saving/importing workflow JSON files from the tab.
+- **Multiple folders**: Use one folder per line, or separate folders with semicolons.
+- **Quick picker**: In the Workflow tab, use the folder button beside **Save current workflow** to pick and save the workflow root directly.
+- **Default behavior**: Leave empty to use ComfyUI workflow defaults and the legacy `MJR_AM_WORKFLOW_DIRECTORY` environment variable.
+
+Environment variables:
+
+```bash
+MJR_AM_WORKFLOW_DIRECTORIES=/path/to/workflows:/path/to/other/workflows
+MJR_AM_WORKFLOW_DIRECTORY=/path/to/workflows
+```
+
 ### Index Directory
 
 - **Purpose**: Override where the SQLite index database and related index files are stored.
@@ -215,6 +230,19 @@ Use that line as the quickest confirmation that the current browser session can 
 - First model bootstrap may require internet access to download model files from HuggingFace.
 - After download and cache, AI features can run offline.
 - Non-AI Majoor features do not require HuggingFace model downloads.
+
+### AI / VRAM Controls
+
+Settings -> Majoor Assets Manager -> Search -> AI exposes the runtime controls for Majoor's local AI models:
+
+- **Enable AI semantic search** maps to `MJR_AM_ENABLE_VECTOR_SEARCH`.
+- **Index vectors during scans** maps to `MJR_AM_VECTOR_INDEX_ON_SCAN`.
+- **Generate AI captions during indexing** maps to `MJR_AM_VECTOR_CAPTION_ON_INDEX`.
+- **Vector indexing concurrency** maps to `MJR_VECTOR_CONCURRENCY`.
+- **Unload AI models after use** maps to `MJR_AM_VECTOR_UNLOAD_AFTER_USE`.
+- **Memory purge now** and **Memory purge** call `/mjr/am/settings/vector-search/unload`.
+
+For low-VRAM ComfyUI systems, disable semantic search and automatic vector work, keep concurrency at `1`, and unload Majoor AI models after use. The manual purge action releases Majoor SigLIP/X-CLIP/Florence references, asks ComfyUI to unload loaded models, and clears torch CUDA cache when the queue is idle.
 
 ### Environment Variables (Backend)
 
@@ -291,6 +319,32 @@ Use that line as the quickest confirmation that the current browser session can 
     - Range: 1024 to 104857600 (100MB)
     - Impact: Limits memory usage for metadata storage
     - Example: `MAJOOR_MAX_METADATA_JSON_BYTES=4194304`
+
+- **MJR_AM_ENABLE_VECTOR_SEARCH**: Enable AI semantic/vector features
+    - Default: `1`
+    - Impact: When enabled, semantic search, find-similar, prompt alignment, AI tags, and captions can load local AI models
+    - Low-VRAM recommendation: `0`
+
+- **MJR_AM_VECTOR_INDEX_ON_SCAN**: Compute vector embeddings during scans
+    - Default: `0`
+    - Impact: Can load SigLIP/X-CLIP during scan workflows
+    - Low-VRAM recommendation: `0`
+
+- **MJR_AM_VECTOR_CAPTION_ON_INDEX**: Generate Florence captions during vector indexing/backfill
+    - Default: `0`
+    - Impact: Florence is heavier and can use significant VRAM/CPU
+    - Low-VRAM recommendation: `0`
+
+- **MJR_VECTOR_CONCURRENCY** / **MJR_AM_VECTOR_CONCURRENCY**: Concurrent vector embedding workers
+    - Default: `2`
+    - Range: `1` to `16`
+    - Impact: Higher values can improve throughput but increase transient VRAM spikes
+    - Low-VRAM recommendation: `1`
+
+- **MJR_AM_VECTOR_UNLOAD_AFTER_USE**: Unload Majoor AI models after heavy vector actions
+    - Default: `0`
+    - Impact: Frees VRAM after semantic search/backfill/caption/index actions, but the next AI action reloads models and is slower
+    - Low-VRAM recommendation: `1`
 
 #### Collection Management
 

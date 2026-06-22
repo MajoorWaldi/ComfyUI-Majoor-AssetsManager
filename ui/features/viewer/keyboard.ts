@@ -142,6 +142,39 @@ export function installViewerKeyboard({
             }
         };
 
+        const isSingle = state?.mode === VIEWER_MODES?.SINGLE;
+        const current = state?.assets?.[state?.currentIndex];
+
+        const isPlayerbarTarget = () => {
+            try {
+                return Boolean(e?.target?.closest?.(".mjr-viewer-playerbar"));
+            } catch {
+                return false;
+            }
+        };
+
+        const isPlayerShortcutKey = () => {
+            const key = String(e?.key || "");
+            return (
+                key === " " ||
+                key === "Spacebar" ||
+                key === "ArrowLeft" ||
+                key === "ArrowRight" ||
+                key === "Home" ||
+                key === "End" ||
+                key === "[" ||
+                key === "{" ||
+                key === "]" ||
+                key === "}" ||
+                key === "\\" ||
+                key === "|" ||
+                key === "i" ||
+                key === "I" ||
+                key === "o" ||
+                key === "O"
+            );
+        };
+
         // Check if hotkeys are suspended (e.g. when dialogs/popovers are open)
         if (isHotkeysSuspended()) return;
 
@@ -155,24 +188,25 @@ export function installViewerKeyboard({
         try {
             const t = e?.target;
             if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) {
-                if (e.key === "f" || e.key === "F") {
-                    consume();
-                    toggleFullscreen();
+                if (isSingle && current?.kind === "video" && isPlayerbarTarget() && isPlayerShortcutKey()) {
+                    // Let player shortcuts keep working from the timeline/rate controls.
+                } else {
+                    if (e.key === "f" || e.key === "F") {
+                        consume();
+                        toggleFullscreen();
+                        return;
+                    }
+
+                    if (e.key === "Escape") {
+                        consume();
+                        safeCall(closeViewer);
+                    }
                     return;
                 }
-
-                if (e.key === "Escape") {
-                    consume();
-                    safeCall(closeViewer);
-                }
-                return;
             }
         } catch (e: any) {
             console.debug?.(e);
         }
-
-        const isSingle = state?.mode === VIEWER_MODES?.SINGLE;
-        const current = state?.assets?.[state?.currentIndex];
 
         const setRatingFromKey = async (key: any) => {
             if (!isSingle) return false;

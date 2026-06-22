@@ -27,11 +27,12 @@ export function readAssetFps(asset: unknown): number | null {
         const ff = (raw.raw_ffprobe as Record<string, unknown>) || {};
         const vs = (ff.video_stream as Record<string, unknown>) || {};
         return (
-            parseFpsValue(a.fps) ??
+            parseFpsValue(vs.avg_frame_rate) ??
+            parseFpsValue(vs.r_frame_rate) ??
+            parseFpsValue(raw.fps_raw) ??
             parseFpsValue(raw.fps) ??
             parseFpsValue(raw.frame_rate) ??
-            parseFpsValue(vs.avg_frame_rate) ??
-            parseFpsValue(vs.r_frame_rate)
+            parseFpsValue(a.fps)
         );
     } catch {
         return null;

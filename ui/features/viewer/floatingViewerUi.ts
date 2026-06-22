@@ -52,9 +52,7 @@ function summarizeNormalizedModels(norm: any) {
 function summarizeFloatingViewerApiWorkflow(norm: any) {
     const workflow = buildWorkflowPresentation(norm);
     if (!workflow.workflowLabel) return "";
-    return workflow.workflowBadge
-        ? `${workflow.workflowLabel} | ${workflow.workflowBadge}`
-        : workflow.workflowLabel;
+    return [workflow.workflowLabel, workflow.workflowBadge].filter(Boolean).join(" | ");
 }
 
 // ---------------------------------------------------------------------------

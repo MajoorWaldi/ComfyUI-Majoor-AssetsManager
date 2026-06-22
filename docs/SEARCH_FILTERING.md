@@ -6,7 +6,7 @@
 ## Overview
 The Majoor Assets Manager provides powerful search and filtering capabilities to help you quickly find and organize your assets. This guide explains all the search and filtering features available in the extension.
 
-**Recent highlights**: Enhanced workflow type filters, file size filtering, resolution filtering, and inline attribute filters.
+**Recent highlights**: Enhanced workflow type filters, file size filtering, resolution filtering, inline attribute filters, and the dedicated Workflow tab library. See [WORKFLOWS.md](WORKFLOWS.md) for saved workflow browsing and reuse.
 
 ## Full-Text Search
 

@@ -64,6 +64,6 @@ describe("floating viewer gen fields api summary", () => {
 
         expect(fields.prompt).toBe("girl on a steampunk ship");
         expect(fields.seed).toBe("123");
-        expect(fields.model).toBe("API Image-to-Video • Happy Horse | happyhorse-1.0-i2v");
+        expect(fields.model).toBe("API Image-to-Video | Happy Horse | happyhorse-1.0-i2v");
     });
 });

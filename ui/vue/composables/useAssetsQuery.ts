@@ -354,6 +354,11 @@ export function createAssetsQueryController({
                 totalDelta > 0 &&
                 recentUpsertCount > 0 &&
                 totalDelta <= recentUpsertCount + 8;
+            const totalOnlyBackgroundGrowth =
+                hasNewTotal &&
+                !hasNewScan &&
+                !hasNewIndexEnd &&
+                hasGridAssets();
             if (hasNewIndexEnd) lastKnownIndexEnd = counters.last_index_end;
             const needsFallbackReload =
                 hasNewIndexEnd && !hasNewScan && !hasNewTotal && !upsertHandledRecently;
@@ -366,6 +371,11 @@ export function createAssetsQueryController({
                 } catch (e) {
                     console.debug?.(e);
                 }
+                return;
+            }
+            if (totalOnlyBackgroundGrowth) {
+                lastKnownScan = counters.last_scan_end;
+                lastKnownIndexEnd = counters.last_index_end;
                 return;
             }
             if (upsertHandledRecently) return;
@@ -397,10 +407,12 @@ export function createAssetsQueryController({
             try {
                 const recentInteractionMs =
                     Date.now() - Math.max(0, Number(getRecentUserInteractionAt() || 0) || 0);
-                if (recentInteractionMs > 1500) {
-                    markGridDirty(reloadReason);
-                } else {
-                    gridDirtyReason = reloadReason;
+                if (!hasGridAssets()) {
+                    if (recentInteractionMs > 1500) {
+                        markGridDirty(reloadReason);
+                    } else {
+                        gridDirtyReason = reloadReason;
+                    }
                 }
             } catch (e) {
                 console.debug?.(e);

@@ -11,13 +11,16 @@
  */
 
 const CACHE_KEY = "__MJR_MEDIA_BLOB_CACHE__";
-// Session cache: keep thumbs in memory for faster re-access during the session.
-// On modern systems with 16GB+ RAM, 2000 thumbs at ~50KB avg = ~100MB max.
-const MAX_ENTRIES = 2000;
-// Long TTL: keep cached for entire session (cleaned on page unload anyway).
-const TTL_MS = 24 * 60 * 60 * 1000; // 24 hours (session-bound)
-const CLEANUP_INTERVAL_MS = 10 * 60 * 1000; // 10 minutes (less aggressive)
+// Keep the cache small and short-lived. Browser-decoded thumbnails and video
+// frames can occupy GPU memory even when the JS blob is small, so off-screen
+// assets must age out quickly during scroll/filter churn.
+const MAX_ENTRIES = 384;
+const ACTIVE_TTL_MS = 5 * 60 * 1000;
+const RELEASED_TTL_MS = 30 * 1000;
+const CLEANUP_INTERVAL_MS = 15 * 1000;
 const MAX_CONCURRENT_FETCHES = 6;
+const CONSTRAINED_MAX_ENTRIES = 192;
+const CONSTRAINED_MAX_CONCURRENT_FETCHES = 3;
 
 /**
  * @typedef {{ blobUrl: string|null, refcount: number, expiresAt: number, hasError: boolean }} CacheEntry
@@ -30,8 +33,28 @@ function _createCache() {
     let _activeFetches = 0;
     const _fetchQueue: any[] = [];
 
+    function _isConstrainedRuntime() {
+        try {
+            const nav: any = typeof navigator !== "undefined" ? navigator : null;
+            const deviceMemory = Number(nav?.deviceMemory || 0) || 0;
+            if (deviceMemory > 0 && deviceMemory <= 4) return true;
+            if (nav?.connection?.saveData === true) return true;
+        } catch (e: any) {
+            console.debug?.(e);
+        }
+        return false;
+    }
+
+    function _maxEntries() {
+        return _isConstrainedRuntime() ? CONSTRAINED_MAX_ENTRIES : MAX_ENTRIES;
+    }
+
+    function _maxConcurrentFetches() {
+        return _isConstrainedRuntime() ? CONSTRAINED_MAX_CONCURRENT_FETCHES : MAX_CONCURRENT_FETCHES;
+    }
+
     async function _withFetchSlot(task: any) {
-        if (_activeFetches >= MAX_CONCURRENT_FETCHES) {
+        if (_activeFetches >= _maxConcurrentFetches()) {
             await new Promise((resolve) => _fetchQueue.push(resolve));
         }
         _activeFetches += 1;
@@ -53,7 +76,7 @@ function _createCache() {
         try {
             const now = Date.now();
             for (const [url, entry] of _entries) {
-                if (entry.refcount <= 0 && now > entry.expiresAt) {
+                if (entry.refcount <= 0 && now >= entry.expiresAt) {
                     _revokeEntry(entry);
                     _entries.delete(url);
                 }
@@ -87,8 +110,16 @@ function _createCache() {
         }
     }
 
-    function _touch(entry: any) {
-        entry.expiresAt = Date.now() + TTL_MS;
+    function _touch(entry: any, ttlMs = ACTIVE_TTL_MS) {
+        entry.expiresAt = Date.now() + ttlMs;
+    }
+
+    function _trimToLimit() {
+        while (_entries.size > _maxEntries()) {
+            const before = _entries.size;
+            _evictLRU();
+            if (_entries.size === before) break;
+        }
     }
 
     function _normalizeKey(src: any) {
@@ -112,13 +143,14 @@ function _createCache() {
                 existing.hasError = true;
                 _touch(existing);
             } else {
-                if (_entries.size >= MAX_ENTRIES) _evictLRU();
+                if (_entries.size >= _maxEntries()) _evictLRU();
                 _entries.set(key, {
                     blobUrl: null,
                     refcount: 0,
-                    expiresAt: Date.now() + TTL_MS,
+                    expiresAt: Date.now() + RELEASED_TTL_MS,
                     hasError: true,
                 });
+                _trimToLimit();
                 _scheduleCleanup();
             }
         } catch (e: any) {
@@ -172,13 +204,14 @@ function _createCache() {
             }
             const blob = await resp.blob();
             const blobUrl = URL.createObjectURL(blob);
-            if (_entries.size >= MAX_ENTRIES) _evictLRU();
+            if (_entries.size >= _maxEntries()) _evictLRU();
             _entries.set(key, {
                 blobUrl,
                 refcount: 1,
-                expiresAt: Date.now() + TTL_MS,
+                expiresAt: Date.now() + ACTIVE_TTL_MS,
                 hasError: false,
             });
+            _trimToLimit();
             _scheduleCleanup();
             return blobUrl;
         } catch (e: any) {
@@ -190,8 +223,8 @@ function _createCache() {
     }
 
     /**
-     * Decrement refcount for src. The blob URL is revoked only when refcount
-     * reaches 0 AND the TTL expires (via the periodic cleanup).
+     * Decrement refcount for src. Once unused, keep it briefly for scroll-back
+     * reuse, then let cleanup revoke the blob URL.
      * @param {string} src
      */
     function releaseUrl(src: any) {
@@ -199,7 +232,12 @@ function _createCache() {
             const key = _normalizeKey(src);
             if (!key) return;
             const entry = _entries.get(key);
-            if (entry) entry.refcount = Math.max(0, entry.refcount - 1);
+            if (entry) {
+                entry.refcount = Math.max(0, entry.refcount - 1);
+                if (entry.refcount <= 0) _touch(entry, RELEASED_TTL_MS);
+            }
+            _runCleanup();
+            _trimToLimit();
         } catch (e: any) {
             console.debug?.(e);
         }

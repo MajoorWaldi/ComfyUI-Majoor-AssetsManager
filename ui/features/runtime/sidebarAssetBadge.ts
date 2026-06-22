@@ -1,3 +1,5 @@
+import { APP_CONFIG } from "../../app/config.js";
+
 const BADGE_CLASS = "mjr-sidebar-asset-badge";
 const BADGED_CLASS = "mjr-sidebar-tab-has-badge";
 const STYLE_ID = "mjr-sidebar-asset-badge-style";
@@ -5,6 +7,7 @@ const MAX_DISPLAY_COUNT = 99;
 
 let _count = 0;
 let _sidebarTabId = "majoor-assets";
+let _settingsListenerBound = false;
 const _seenAssetIds = new Set();
 
 function ensureBadgeStyles() {
@@ -94,7 +97,7 @@ function updateBadge() {
     const tab = findSidebarTabElement();
     if (!tab) return false;
     let badge = tab.querySelector(`:scope > .${BADGE_CLASS}`);
-    if (_count <= 0) {
+    if (!isSidebarAssetBadgeEnabled() || _count <= 0) {
         badge?.remove();
         tab.classList.remove(BADGED_CLASS);
         return true;
@@ -119,23 +122,60 @@ function scheduleBadgeUpdate() {
     setTimeout(() => updateBadge(), 1000);
 }
 
+function isSidebarAssetBadgeEnabled() {
+    return APP_CONFIG.SIDEBAR_ASSET_BADGE_ENABLED !== false;
+}
+
+function buildAssetSeenKey(asset: any = null) {
+    const id = String(asset?.id || asset?.asset_id || "").trim();
+    if (id) return `id:${id}`;
+    const type = String(asset?.type || asset?.source || "output").trim().toLowerCase();
+    const rootId = String(asset?.root_id || asset?.custom_root_id || "").trim().toLowerCase();
+    const subfolder = String(asset?.subfolder || asset?.sub_folder || asset?.subFolder || "")
+        .trim()
+        .toLowerCase();
+    const filename = String(asset?.filename || "").trim().toLowerCase();
+    const filepath = String(asset?.filepath || asset?.path || asset?.fullpath || asset?.full_path || "")
+        .trim()
+        .toLowerCase();
+    const fileKey = filename || filepath;
+    if (!fileKey) return "";
+    return `file:${type}|${rootId}|${subfolder}|${fileKey}`;
+}
+
+function rememberAssetKey(key: string) {
+    if (!key) return true;
+    if (_seenAssetIds.has(key)) return false;
+    _seenAssetIds.add(key);
+    if (_seenAssetIds.size > 1000) {
+        const keep = Array.from(_seenAssetIds).slice(-500);
+        _seenAssetIds.clear();
+        for (const id of keep) _seenAssetIds.add(id);
+    }
+    return true;
+}
+
 export function configureSidebarAssetBadge({ sidebarTabId }: { sidebarTabId?: string } = {}): void {
     const nextId = String(sidebarTabId || "").trim();
     if (nextId) _sidebarTabId = nextId;
+    if (!_settingsListenerBound && typeof window !== "undefined") {
+        _settingsListenerBound = true;
+        window.addEventListener?.("mjr-settings-changed", (event: any) => {
+            if (event?.detail?.key !== "sidebar.assetBadgeEnabled") return;
+            if (!isSidebarAssetBadgeEnabled()) {
+                _count = 0;
+                _seenAssetIds.clear();
+            }
+            scheduleBadgeUpdate();
+        });
+    }
     scheduleBadgeUpdate();
 }
 
 export function incrementSidebarAssetBadge(asset: any = null): void {
-    const assetId = String(asset?.id || asset?.asset_id || "").trim();
-    if (assetId) {
-        if (_seenAssetIds.has(assetId)) return;
-        _seenAssetIds.add(assetId);
-        if (_seenAssetIds.size > 1000) {
-            const keep = Array.from(_seenAssetIds).slice(-500);
-            _seenAssetIds.clear();
-            for (const id of keep) _seenAssetIds.add(id);
-        }
-    }
+    if (!isSidebarAssetBadgeEnabled()) return;
+    const seenKey = buildAssetSeenKey(asset);
+    if (!rememberAssetKey(seenKey)) return;
     _count += 1;
     scheduleBadgeUpdate();
 }

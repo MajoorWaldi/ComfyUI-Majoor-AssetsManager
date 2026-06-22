@@ -59,8 +59,19 @@ function installVisibilityObservers() {
     }
 
     const cleanups = [];
+    let visibilityRaf = 0;
     const notifyVisibility = () => {
-        syncAssetsQueryVisibility();
+        if (visibilityRaf) return;
+        try {
+            visibilityRaf = requestAnimationFrame(() => {
+                visibilityRaf = 0;
+                syncAssetsQueryVisibility();
+            });
+        } catch (e) {
+            console.debug?.(e);
+            visibilityRaf = 0;
+            syncAssetsQueryVisibility();
+        }
     };
 
     try {
@@ -112,6 +123,14 @@ function installVisibilityObservers() {
     }
 
     disposeVisibilityObservers = () => {
+        if (visibilityRaf) {
+            try {
+                cancelAnimationFrame(visibilityRaf);
+            } catch (e) {
+                console.debug?.(e);
+            }
+            visibilityRaf = 0;
+        }
         while (cleanups.length) {
             const cleanup = cleanups.pop();
             try {

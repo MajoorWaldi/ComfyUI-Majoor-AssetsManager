@@ -67,7 +67,9 @@ describe("sidebarAssetBadge", () => {
     });
 
     it("increments, deduplicates by asset id, and resets the sidebar badge", async () => {
+        const { APP_CONFIG } = await import("../app/config.js");
         const mod = await import("../features/runtime/sidebarAssetBadge.js");
+        APP_CONFIG.SIDEBAR_ASSET_BADGE_ENABLED = true;
 
         mod.configureSidebarAssetBadge({ sidebarTabId: "majoor-assets" });
         mod.incrementSidebarAssetBadge({ id: 1 });
@@ -81,5 +83,37 @@ describe("sidebarAssetBadge", () => {
 
         expect(mod.getSidebarAssetBadgeCount()).toBe(0);
         expect(globalThis.document._tab.querySelector(":scope > .mjr-sidebar-asset-badge")).toBeNull();
+    });
+
+    it("does not show the badge when the sidebar asset badge setting is disabled", async () => {
+        const { APP_CONFIG } = await import("../app/config.js");
+        const mod = await import("../features/runtime/sidebarAssetBadge.js");
+        APP_CONFIG.SIDEBAR_ASSET_BADGE_ENABLED = false;
+
+        mod.configureSidebarAssetBadge({ sidebarTabId: "majoor-assets" });
+        mod.incrementSidebarAssetBadge({ id: 1 });
+
+        expect(mod.getSidebarAssetBadgeCount()).toBe(0);
+        expect(globalThis.document._tab.querySelector(":scope > .mjr-sidebar-asset-badge")).toBeNull();
+    });
+
+    it("deduplicates indexed asset events by file identity when no asset id is available", async () => {
+        const { APP_CONFIG } = await import("../app/config.js");
+        const mod = await import("../features/runtime/sidebarAssetBadge.js");
+        APP_CONFIG.SIDEBAR_ASSET_BADGE_ENABLED = true;
+
+        mod.configureSidebarAssetBadge({ sidebarTabId: "majoor-assets" });
+        mod.incrementSidebarAssetBadge({
+            filename: "same.png",
+            subfolder: "renders",
+            type: "output",
+        });
+        mod.incrementSidebarAssetBadge({
+            filename: "same.png",
+            subfolder: "renders",
+            type: "output",
+        });
+
+        expect(mod.getSidebarAssetBadgeCount()).toBe(1);
     });
 });

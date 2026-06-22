@@ -13,6 +13,19 @@ Examples include:
 
 These features depend on optional models and packages and are not required for the base extension.
 
+## VRAM Controls
+
+For ComfyUI systems where generation VRAM is more important than Majoor AI discovery:
+
+- turn off **Enable AI semantic search**
+- keep **Index vectors during scans** off
+- keep **Generate AI captions during indexing** off
+- set **Vector indexing concurrency** to `1`
+- enable **Unload AI models after use**
+- use **Memory purge** in Index Status when you want to immediately release Majoor SigLIP/X-CLIP/Florence caches and ask ComfyUI to unload loaded models
+
+Automatic unload-after-use targets Majoor AI models and torch CUDA cache. The manual Memory purge action also asks ComfyUI to unload loaded models when the queue is idle.
+
 ## Privacy Model For AI Features
 
 The current documentation clarifies an important point: AI inference is intended to run locally on the user's machine.

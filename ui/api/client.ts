@@ -3,7 +3,7 @@
  */
 
 import { SETTINGS_KEY } from "../app/settingsStore.js";
-import { ENDPOINTS } from "./endpoints.js";
+import { buildWorkflowContentURL, ENDPOINTS } from "./endpoints.js";
 import { createApiFetchClient } from "./fetchUtils.js";
 import { normalizeAssetId, pickRootId } from "../utils/ids.js";
 import { createTTLCache } from "../utils/ttlCache.js";
@@ -255,17 +255,22 @@ export async function updateAssetTags(assetId: any, tags: any, options: Record<s
     const asset = assetId && typeof assetId === "object" ? assetId : null;
     const resolvedId = asset ? asset.id : assetId;
     const normalizedId = normalizeAssetId(resolvedId);
+    const isWorkflowAsset = String(asset?.kind || asset?.type || "").trim().toLowerCase() === "workflow";
+    const workflowFilepath = String(asset?.filepath || asset?.path || asset?.file_info?.filepath || "").trim();
     const payload: Record<string, any> = {
         tags: Array.isArray(tags) ? tags : [],
     };
-    if (normalizedId) {
+    if (isWorkflowAsset && workflowFilepath) {
+        payload.filepath = workflowFilepath;
+    } else if (normalizedId) {
         payload.asset_id = normalizedId;
     } else if (asset) {
         payload.filepath = asset.filepath || asset.path || asset?.file_info?.filepath || "";
         payload.type = asset.type || "output";
         payload.root_id = pickRootId(asset);
     }
-    const result = await fetchAPI("/mjr/am/asset/tags", {
+    const endpoint = isWorkflowAsset && workflowFilepath ? ENDPOINTS.WORKFLOWS_TAGS : "/mjr/am/asset/tags";
+    const result = await fetchAPI(endpoint, {
         ...options,
         method: "POST",
         headers: {
@@ -336,6 +341,116 @@ export async function getAssetsBatch(assetIds: any, options: Record<string, any>
     }
     if (!cleaned.length) return { ok: true, data: [], error: null, code: "OK" };
     return post("/mjr/am/assets/batch", { asset_ids: cleaned }, options);
+}
+
+export async function getWorkflowContent(filepath: any, options: Record<string, any> = {}) {
+    const url = buildWorkflowContentURL(filepath);
+    if (!url) {
+        return { ok: false, data: null, error: "Missing workflow filepath", code: "INVALID_INPUT" };
+    }
+    return get(url, options);
+}
+
+export async function saveWorkflow(
+    {
+        workflow = null,
+        name = "",
+        category = "",
+        overwrite = false,
+        filepath = "",
+    }: Record<string, any> = {},
+    options: Record<string, any> = {},
+) {
+    return post(
+        ENDPOINTS.WORKFLOWS_SAVE,
+        { workflow, name, category, overwrite, filepath },
+        options,
+    );
+}
+
+export async function duplicateWorkflow(
+    { filepath = "", name = "" }: Record<string, any> = {},
+    options: Record<string, any> = {},
+) {
+    return post(ENDPOINTS.WORKFLOWS_DUPLICATE, { filepath, name }, options);
+}
+
+export async function moveWorkflow(
+    { filepath = "", name = "", category = "" }: Record<string, any> = {},
+    options: Record<string, any> = {},
+) {
+    return post(ENDPOINTS.WORKFLOWS_MOVE, { filepath, name, category }, options);
+}
+
+export async function deleteWorkflow(
+    { filepath = "" }: Record<string, any> = {},
+    options: Record<string, any> = {},
+) {
+    return post(ENDPOINTS.WORKFLOWS_DELETE, { filepath }, options);
+}
+
+export async function markWorkflowLoaded(
+    { filepath = "" }: Record<string, any> = {},
+    options: Record<string, any> = {},
+) {
+    return post(ENDPOINTS.WORKFLOWS_MARK_LOADED, { filepath }, options);
+}
+
+export async function setWorkflowFavorite(
+    { filepath = "", favorite = false }: Record<string, any> = {},
+    options: Record<string, any> = {},
+) {
+    return post(ENDPOINTS.WORKFLOWS_FAVORITE, { filepath, favorite: !!favorite }, options);
+}
+
+export async function setWorkflowInfo(
+    {
+        filepath = "",
+        task = "",
+        model_family = "",
+        provider = "",
+        runs_on = "",
+        notes = "",
+    }: Record<string, any> = {},
+    options: Record<string, any> = {},
+) {
+    return post(ENDPOINTS.WORKFLOWS_INFO, { filepath, task, model_family, provider, runs_on, notes }, options);
+}
+
+export async function listWorkflowThumbnailCandidates(
+    { filepath = "", limit = 12 }: Record<string, any> = {},
+    options: Record<string, any> = {},
+) {
+    const safeLimit = Math.max(1, Math.min(50, Number(limit) || 12));
+    const url = `${ENDPOINTS.WORKFLOWS_THUMBNAIL_CANDIDATES}?filepath=${encodeURIComponent(
+        String(filepath || "").trim(),
+    )}&limit=${encodeURIComponent(String(safeLimit))}`;
+    return get(url, options);
+}
+
+export async function listWorkflowModelFamilies(options: Record<string, any> = {}) {
+    return get(ENDPOINTS.WORKFLOWS_MODEL_FAMILIES, options);
+}
+
+export async function listWorkflows(
+    { q = "*", limit = 100, offset = 0, sort = "mtime" }: Record<string, any> = {},
+    options: Record<string, any> = {},
+) {
+    const safeLimit = Math.max(1, Math.min(500, Number(limit) || 100));
+    const safeOffset = Math.max(0, Number(offset) || 0);
+    const url = `${ENDPOINTS.LIST}?scope=workflow&q=${encodeURIComponent(
+        String(q || "*"),
+    )}&limit=${encodeURIComponent(String(safeLimit))}&offset=${encodeURIComponent(
+        String(safeOffset),
+    )}&sort=${encodeURIComponent(String(sort || "mtime"))}`;
+    return get(url, options);
+}
+
+export async function setWorkflowThumbnail(
+    { filepath = "", source_filepath = "" }: Record<string, any> = {},
+    options: Record<string, any> = {},
+) {
+    return post(ENDPOINTS.WORKFLOWS_THUMBNAIL_SET, { filepath, source_filepath }, options);
 }
 
 export async function hydrateAssetRatingTags(assetId: any) {

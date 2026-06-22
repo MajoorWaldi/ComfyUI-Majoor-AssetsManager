@@ -155,6 +155,32 @@ async def list_assets(
             search_merge_trim_ratio=search_merge_trim_ratio,
         )
 
+    if scope == "workflow":
+        workflow_filters = dict(filters or {})
+        if "workflow_type" in workflow_filters and "workflow_task" not in workflow_filters:
+            workflow_filters["workflow_task"] = workflow_filters.get("workflow_type")
+        for query_key in (
+            "workflow_task",
+            "workflow_model",
+            "workflow_provider",
+            "runs_on",
+            "missing",
+            "favorite",
+            "tag",
+        ):
+            raw_value = str(request.query.get(query_key) or "").strip()
+            if raw_value:
+                workflow_filters[query_key] = raw_value
+        return await _scopes.handle_workflow_scope(
+            query=query,
+            limit=limit,
+            offset=offset,
+            sort_key=sort_key,
+            filters=workflow_filters,
+            subfolder=subfolder,
+            json_response=json_response,
+        )
+
     if scope not in ("output", "outputs"):
         from mjr_am_backend.shared import Result
 

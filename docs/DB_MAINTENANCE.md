@@ -80,10 +80,12 @@ The index directory holds:
 
 ## Buttons in the Status Panel
 
-Open the Assets Manager panel and expand the **Index Status** section. Two action buttons appear at the bottom:
+Open the Assets Manager panel and expand the **Index Status** section. Maintenance action buttons appear at the bottom:
 
 | Button | Purpose |
 |---|---|
+| **Backfill vectors** | Computes missing AI vector embeddings for existing assets. |
+| **Memory purge** | Unloads Majoor AI models, asks ComfyUI to unload loaded models, and clears torch cache when the queue is idle. |
 | **Reset index** | Clears cached data inside the existing database and triggers a background rescan. Requires the database to be readable. |
 | **Delete DB** | Force-deletes the database files from disk (bypassing all DB-dependent checks) and rebuilds from scratch. Works even when the database is corrupted. |
 

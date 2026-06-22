@@ -3,7 +3,7 @@
  * FilterPopover.vue — Reactive filter menu, content-only.
  *
  * Follows the same pattern as SortPopover.vue:
- *   - Root element has class "mjr-popover mjr-filter-popover" with style="display:none".
+ *   - Root element has class "mjr-popover mjr-filter-popover mjr-popover--hidden".
  *     Legacy popoverManager (popovers.toggle/close) controls visibility.
  *   - Vue owns the form content rendered from usePanelStore filter state.
  *   - defineExpose() provides real DOM refs so filtersController.bindFilters()
@@ -11,7 +11,8 @@
  *
  * Phase 2.5: replaces createFilterPopoverView() in HeaderSection.vue.
  */
-import { computed, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
+import { listWorkflowModelFamilies } from "../../../api/client.js";
 import { usePanelStore } from "../../../stores/usePanelStore.js";
 import { t } from "../../../app/i18n.js";
 
@@ -28,6 +29,8 @@ const maxHeightInputRef = ref(null);
 const agendaContainerRef = ref(null);
 const dateExactInputRef = ref(null);
 const workflowIdInputRef = ref(null);
+const workflowModelInputRef = ref(null);
+const workflowModelFamilyOptions = ref([{ label: t("filter.any", "Any"), value: "" }]);
 
 const resolveDomElement = (value) => value?.$el || value || null;
 const getInputValue = (inputRef) => resolveDomElement(inputRef.value)?.value || "";
@@ -63,6 +66,28 @@ const workflowTypeOptions = computed(() => [
     { label: "TTS (Text to Speech)", value: "TTS" },
     { label: "A2A (Audio to Audio)", value: "A2A" },
 ]);
+
+const workflowRunsOnOptions = computed(() => [
+    { label: t("filter.any", "Any"), value: "" },
+    { label: "Local", value: "local" },
+    { label: "API", value: "api" },
+    { label: "Cloud", value: "cloud" },
+    { label: "Unknown", value: "unknown" },
+]);
+
+const workflowModelFamilyMenuOptions = computed(() => {
+    const baseOptions = Array.isArray(workflowModelFamilyOptions.value)
+        ? workflowModelFamilyOptions.value.slice()
+        : [{ label: t("filter.any", "Any"), value: "" }];
+    if (!baseOptions.length || String(baseOptions[0]?.value || "") !== "") {
+        baseOptions.unshift({ label: t("filter.any", "Any"), value: "" });
+    }
+    const current = String(panelStore.workflowModelFilter || "").trim();
+    if (current && !baseOptions.some((option) => String(option?.value || "") === current)) {
+        baseOptions.splice(1, 0, { label: current, value: current });
+    }
+    return baseOptions;
+});
 
 const ratingOptions = computed(() => [
     { label: t("filter.anyRating"), value: "0" },
@@ -122,6 +147,28 @@ const dispatchFiltersChanged = () => {
     }
 };
 
+const refreshWorkflowModelFamilies = async () => {
+    try {
+        const result = await listWorkflowModelFamilies();
+        if (!result?.ok) return;
+        const families = Array.isArray(result.data?.model_families) ? result.data.model_families : [];
+        const options = families
+            .map((item) => ({
+                label: String(item?.label || item?.value || "").trim(),
+                value: String(item?.value || item?.label || "").trim(),
+            }))
+            .filter((item) => item.value)
+            .slice(0, 200);
+        workflowModelFamilyOptions.value = [{ label: t("filter.any", "Any"), value: "" }, ...options];
+    } catch (e) {
+        console.debug?.(e);
+    }
+};
+
+onMounted(() => {
+    void refreshWorkflowModelFamilies();
+});
+
 const applyKindValue = (value, { emit = true } = {}) => {
     panelStore.kindFilter = String(value || "");
     if (emit) dispatchFiltersChanged();
@@ -141,6 +188,18 @@ const applyWorkflowTypeValue = (value, { emit = true } = {}) => {
 
 const applyWorkflowIdValue = (value, { emit = true } = {}) => {
     panelStore.workflowId = String(value || "").trim();
+    if (emit) dispatchFiltersChanged();
+};
+
+const applyWorkflowModelValue = (value, { emit = true } = {}) => {
+    panelStore.workflowModelFilter = String(value || "").trim();
+    if (emit) dispatchFiltersChanged();
+};
+
+const applyWorkflowRunsOnValue = (value, { emit = true } = {}) => {
+    panelStore.workflowRunsOnFilter = String(value || "")
+        .trim()
+        .toLowerCase();
     if (emit) dispatchFiltersChanged();
 };
 
@@ -276,6 +335,14 @@ const workflowIdControl = createValueFacade({
     getValue: () => String(panelStore.workflowId || "").trim(),
     setValue: applyWorkflowIdValue,
 });
+const workflowModelControl = createValueFacade({
+    getValue: () => String(panelStore.workflowModelFilter || "").trim(),
+    setValue: applyWorkflowModelValue,
+});
+const workflowRunsOnControl = createValueFacade({
+    getValue: () => String(panelStore.workflowRunsOnFilter || "").trim().toLowerCase(),
+    setValue: applyWorkflowRunsOnValue,
+});
 const ratingSelectControl = createValueFacade({
     getValue: () => String(Number(panelStore.minRating || 0) || 0),
     setValue: applyRatingValue,
@@ -295,6 +362,8 @@ const activeFiltersCount = computed(() => {
     if (Boolean(panelStore.workflowOnly)) count += 1;
     if (String(panelStore.workflowType || "").trim()) count += 1;
     if (String(panelStore.workflowId || "").trim()) count += 1;
+    if (String(panelStore.workflowModelFilter || "").trim()) count += 1;
+    if (String(panelStore.workflowRunsOnFilter || "").trim()) count += 1;
     if ((Number(panelStore.minRating || 0) || 0) > 0) count += 1;
     if ((Number(panelStore.minSizeMB || 0) || 0) > 0 || (Number(panelStore.maxSizeMB || 0) || 0) > 0) {
         count += 1;
@@ -317,6 +386,8 @@ const clearAllFilters = () => {
     panelStore.workflowOnly = false;
     panelStore.workflowType = "";
     panelStore.workflowId = "";
+    panelStore.workflowModelFilter = "";
+    panelStore.workflowRunsOnFilter = "";
     panelStore.minRating = 0;
     panelStore.minSizeMB = 0;
     panelStore.maxSizeMB = 0;
@@ -335,6 +406,7 @@ const clearAllFilters = () => {
     setInputValue(maxHeightInputRef, "");
     setInputValue(dateExactInputRef, "");
     setInputValue(workflowIdInputRef, "");
+    setInputValue(workflowModelInputRef, "");
 
     dispatchFiltersChanged();
 };
@@ -344,6 +416,9 @@ defineExpose({
     get wfCheckbox()              { return workflowOnlyControl; },
     get workflowTypeSelect()      { return workflowTypeControl; },
     get workflowIdInput()         { return workflowIdControl; },
+    get workflowModelInput()      { return workflowModelControl; },
+    get workflowModelFamilyOptions() { return workflowModelFamilyMenuOptions.value; },
+    get workflowRunsOnSelect()    { return workflowRunsOnControl; },
     get ratingSelect()            { return ratingSelectControl; },
     get minSizeInput()            { return resolveDomElement(minSizeInputRef.value); },
     get maxSizeInput()            { return resolveDomElement(maxSizeInputRef.value); },
@@ -364,7 +439,7 @@ defineExpose({
         The legacy popoverManager controls style.display on this element.
         Vue only manages the filter form content reactively.
     -->
-    <div class="mjr-popover mjr-filter-popover" style="display: none;">
+    <div class="mjr-popover mjr-filter-popover mjr-popover--hidden">
 
         <div class="mjr-filter-head">
             <div class="mjr-filter-head-left">
@@ -463,6 +538,44 @@ defineExpose({
                     :model-value="String(panelStore.workflowId || '')"
                     @update:model-value="applyWorkflowIdValue"
                     @change="applyWorkflowIdValue($event?.target?.value)"
+                />
+            </div>
+
+            <!-- Workflow model family -->
+            <div class="mjr-popover-row">
+                <div class="mjr-popover-label">{{ t("label.workflowModelFamily", "Model family") }}</div>
+                <div class="mjr-filter-stack">
+                    <MSelect
+                        class="mjr-select mjr-filter-select"
+                        panel-class="mjr-filter-select-panel"
+                        :model-value="String(panelStore.workflowModelFilter || '')"
+                        :options="workflowModelFamilyMenuOptions"
+                        option-label="label"
+                        option-value="value"
+                        @update:model-value="applyWorkflowModelValue"
+                    />
+                    <MInputText
+                        ref="workflowModelInputRef"
+                        class="mjr-input"
+                        :placeholder="t('placeholder.workflowModelFamily', 'Flux, Wan, SDXL...')"
+                        :model-value="String(panelStore.workflowModelFilter || '')"
+                        @update:model-value="applyWorkflowModelValue"
+                        @change="applyWorkflowModelValue($event?.target?.value)"
+                    />
+                </div>
+            </div>
+
+            <!-- Workflow runs on -->
+            <div class="mjr-popover-row">
+                <div class="mjr-popover-label">{{ t("label.workflowRunsOn", "Runs on") }}</div>
+                <MSelect
+                    class="mjr-select mjr-filter-select"
+                    panel-class="mjr-filter-select-panel"
+                    :model-value="String(panelStore.workflowRunsOnFilter || '').trim().toLowerCase()"
+                    :options="workflowRunsOnOptions"
+                    option-label="label"
+                    option-value="value"
+                    @update:model-value="applyWorkflowRunsOnValue"
                 />
             </div>
 
@@ -638,7 +751,6 @@ defineExpose({
                         type="date"
                         class="mjr-input mjr-agenda-input"
                         :class="agendaInputClass"
-                        style="display: none;"
                         :value="panelStore.dateExactFilter"
                         @change="onDateExactChange"
                     />
@@ -650,208 +762,3 @@ defineExpose({
 
     </div>
 </template>
-
-<style scoped>
-.mjr-filter-head {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 10px;
-    margin: 0 0 10px;
-    padding: 4px 2px 10px;
-    border-bottom: 1px solid color-mix(in srgb, var(--mjr-border) 85%, transparent);
-}
-
-.mjr-filter-head-left {
-    min-width: 0;
-}
-
-.mjr-filter-kicker {
-    font-size: 11px;
-    font-weight: 800;
-    letter-spacing: 0.09em;
-    text-transform: uppercase;
-    color: color-mix(in srgb, var(--mjr-accent, #5fb3ff) 65%, var(--content-fg, #ddd));
-}
-
-.mjr-filter-subtitle {
-    margin-top: 2px;
-    font-size: 11px;
-    color: color-mix(in srgb, var(--content-fg, #ddd) 62%, var(--mjr-muted, rgba(255, 255, 255, 0.65)));
-}
-
-.mjr-filter-head-actions {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    flex: 0 0 auto;
-}
-
-.mjr-filter-active-count {
-    min-width: 22px;
-    height: 22px;
-    padding: 0 6px;
-    border-radius: 999px;
-    border: 1px solid color-mix(in srgb, var(--mjr-accent, #5fb3ff) 55%, var(--mjr-border));
-    background: color-mix(in srgb, var(--mjr-accent, #5fb3ff) 18%, var(--mjr-surface-2));
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 11px;
-    font-weight: 700;
-    line-height: 1;
-    color: var(--content-fg, #fff);
-}
-
-.mjr-filter-clear-all {
-    height: 24px;
-    padding: 0 8px;
-    border-radius: 999px;
-    border: 1px solid color-mix(in srgb, var(--mjr-border) 75%, transparent);
-    font-size: 11px;
-    font-weight: 700;
-}
-
-.mjr-popover-row {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 8px;
-    align-items: start;
-    margin-bottom: 10px;
-}
-
-.mjr-popover-row--3col {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    gap: 8px;
-}
-
-.mjr-popover-row--3col .mjr-popover-label {
-    grid-column: 1 / -1;
-}
-
-.mjr-popover-label {
-    font-size: 12px;
-    font-weight: 600;
-    color: color-mix(in srgb, var(--content-fg, #ddd) 70%, var(--mjr-muted, rgba(255, 255, 255, 0.65)));
-    white-space: normal;
-}
-
-.mjr-popover-toggle {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    cursor: pointer;
-    font-size: 12px;
-    color: var(--fg-color, #e6edf7);
-    padding: 6px 8px;
-    border-radius: 8px;
-    border: 1px solid color-mix(in srgb, var(--mjr-border) 80%, transparent);
-    background: color-mix(in srgb, var(--mjr-surface-2) 66%, transparent);
-}
-
-.mjr-filter-group-toggle {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    padding: 0;
-    margin: 0 0 10px;
-    border: 0;
-    background: transparent;
-    color: inherit;
-    cursor: pointer;
-    text-align: left;
-    border-radius: 8px;
-    padding: 2px 4px;
-}
-
-.mjr-filter-group {
-    --mjr-filter-group-accent: var(--mjr-accent, #7aa2ff);
-}
-
-.mjr-filter-group--core {
-    --mjr-filter-group-accent: #56a8ff;
-}
-
-.mjr-filter-group--media {
-    --mjr-filter-group-accent: #35d08b;
-}
-
-.mjr-filter-group--time {
-    --mjr-filter-group-accent: #f0b84f;
-}
-
-.mjr-filter-group-title {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    color: color-mix(in srgb, var(--mjr-filter-group-accent) 62%, var(--content-fg, #ddd));
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-}
-
-.mjr-filter-group-title::before {
-    content: "";
-    width: 6px;
-    height: 6px;
-    flex: 0 0 6px;
-    border-radius: 999px;
-    background: var(--mjr-filter-group-accent);
-}
-
-.mjr-filter-group-chevron {
-    font-size: 12px;
-    line-height: 1;
-    color: color-mix(in srgb, var(--mjr-filter-group-accent) 78%, var(--mjr-muted, rgba(255, 255, 255, 0.65)));
-}
-
-.mjr-filter-group-body {
-    padding-top: 4px;
-}
-
-.mjr-filter-card {
-    border: 1px solid color-mix(in srgb, var(--mjr-border) 88%, transparent);
-    border-radius: 10px;
-    padding: 10px;
-    background: linear-gradient(
-        180deg,
-        color-mix(in srgb, var(--mjr-surface-2) 86%, transparent),
-        color-mix(in srgb, var(--mjr-surface-1) 88%, transparent)
-    );
-    margin-bottom: 8px;
-}
-
-.mjr-filter-card:last-child {
-    margin-bottom: 0;
-}
-
-.mjr-filter-card--agenda {
-    background: linear-gradient(
-        180deg,
-        color-mix(in srgb, #f0b84f 9%, var(--mjr-surface-2)),
-        color-mix(in srgb, var(--mjr-surface-1) 92%, transparent)
-    );
-}
-
-.mjr-filter-group:not(.is-open) {
-    padding-bottom: 8px;
-}
-
-.mjr-filter-group:not(.is-open) .mjr-filter-group-toggle {
-    margin-bottom: 0;
-}
-
-@media (max-width: 440px) {
-    .mjr-filter-head {
-        flex-direction: column;
-        align-items: stretch;
-    }
-
-    .mjr-filter-head-actions {
-        justify-content: space-between;
-    }
-}
-</style>

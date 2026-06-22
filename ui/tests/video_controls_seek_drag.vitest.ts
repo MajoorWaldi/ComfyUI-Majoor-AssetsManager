@@ -99,4 +99,56 @@ describe("video controls seek drag", () => {
 
         mounted.destroy();
     });
+
+    it("uses frame-count seek precision when metadata exceeds the legacy 1000-step range", async () => {
+        const window = new Window();
+        globalThis.window = window;
+        globalThis.document = window.document;
+        Object.defineProperty(globalThis, "navigator", {
+            configurable: true,
+            value: window.navigator,
+        });
+
+        let currentTime = 0;
+        const { mountVideoControls } = await import("../components/VideoControls.js");
+
+        const host = document.createElement("div");
+        const video = document.createElement("video");
+        host.appendChild(video);
+        document.body.appendChild(host);
+
+        Object.defineProperty(video, "currentTime", {
+            configurable: true,
+            get: () => currentTime,
+            set: (value) => {
+                currentTime = Number(value) || 0;
+            },
+        });
+        Object.defineProperty(video, "duration", {
+            configurable: true,
+            get: () => 60,
+        });
+
+        const mounted = mountVideoControls(video, {
+            variant: "viewerbar",
+            mediaKind: "video",
+            hostEl: host,
+            initialFps: 30,
+            initialFrameCount: 1800,
+        });
+
+        const seek = mounted.controlsEl.querySelector(".mjr-video-range--seek");
+        currentTime = 30;
+        video.dispatchEvent(new window.Event("timeupdate"));
+
+        expect(seek.max).toBe("1800");
+        expect(seek.value).toBe("900");
+
+        seek.value = "901";
+        seek.dispatchEvent(new window.Event("input", { bubbles: true, cancelable: true }));
+
+        expect(currentTime).toBeCloseTo((901 / 1800) * 60, 5);
+
+        mounted.destroy();
+    });
 });

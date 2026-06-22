@@ -592,6 +592,10 @@ CREATE TABLE asset_embeddings (
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `MJR_AM_ENABLE_VECTOR_SEARCH` | `1` | Enable/disable AI features |
+| `MJR_AM_VECTOR_INDEX_ON_SCAN` | `0` | Compute vector embeddings automatically during scans |
+| `MJR_AM_VECTOR_CAPTION_ON_INDEX` | `0` | Generate Florence captions during vector indexing/backfill |
+| `MJR_VECTOR_CONCURRENCY` | `2` | Concurrent vector embedding workers; use `1` to reduce transient VRAM spikes |
+| `MJR_AM_VECTOR_UNLOAD_AFTER_USE` | `0` | Unload Majoor AI models after heavy vector actions and clear torch CUDA cache |
 | `MJR_AM_VECTOR_MODEL` | `google/siglip-so400m-patch14-384` | Image/text model |
 | `MJR_AM_VECTOR_VIDEO_MODEL` | `microsoft/xclip-base-patch32` | Video model |
 | `MJR_AM_PROMPT_MODEL` | `microsoft/Florence-2-base` | Caption model |
@@ -651,6 +655,28 @@ export MJR_AM_VECTOR_BATCH_SIZE=8
 export MJR_AM_VECTOR_MODEL="google/siglip-base-patch16-224"
 ```
 
+#### Low-VRAM ComfyUI Setup
+
+Use these when ComfyUI generation models need priority over Majoor AI features:
+
+```bash
+export MJR_AM_ENABLE_VECTOR_SEARCH=0
+export MJR_AM_VECTOR_INDEX_ON_SCAN=0
+export MJR_AM_VECTOR_CAPTION_ON_INDEX=0
+export MJR_VECTOR_CONCURRENCY=1
+export MJR_AM_VECTOR_UNLOAD_AFTER_USE=1
+```
+
+The same controls are available in Settings -> Search -> AI:
+
+- **Enable AI semantic search**
+- **Index vectors during scans**
+- **Generate AI captions during indexing**
+- **Vector indexing concurrency**
+- **Unload AI models after use**
+- **Memory purge now**
+- **Memory purge** in Index Status
+
 ---
 
 ## Performance Considerations
@@ -707,11 +733,16 @@ export MJR_AM_VECTOR_MODEL="google/siglip-base-patch16-224"
    export CUDA_VISIBLE_DEVICES=""
    ```
 
-4. **Limit index size** for large libraries:
+4. **Unload Majoor AI models after heavy actions**:
+   - Enable **Unload AI models after use** in Settings -> Search -> AI.
+   - Or click **Memory purge** in Index Status to immediately drop Majoor SigLIP/X-CLIP/Florence references, ask ComfyUI to unload loaded generation models, and call torch CUDA cache cleanup.
+   - The purge is skipped while ComfyUI is actively executing.
+
+5. **Limit index size** for large libraries:
    - Vector searcher caps at 100,000 assets
    - Most recent assets prioritized
 
-5. **Schedule backfill** during off-hours:
+6. **Schedule backfill** during off-hours:
    - Run overnight for large libraries
    - System remains usable during backfill
 
@@ -753,6 +784,10 @@ export HF_ENDPOINT=https://hf-mirror.com
 
 **Solutions**:
 - Reduce batch size: `MJR_AM_VECTOR_BATCH_SIZE=8`
+- Set vector concurrency to one worker: `MJR_VECTOR_CONCURRENCY=1`
+- Disable automatic vector indexing during scans: `MJR_AM_VECTOR_INDEX_ON_SCAN=0`
+- Disable Florence captions during vector indexing: `MJR_AM_VECTOR_CAPTION_ON_INDEX=0`
+- Enable model cleanup after AI actions: `MJR_AM_VECTOR_UNLOAD_AFTER_USE=1`
 - Close other applications
 - Use CPU-only mode to free GPU RAM
 - Restart ComfyUI to clear memory
@@ -971,6 +1006,14 @@ POST /mjr/am/vector/index/{asset_id}
 ```
 
 Force re-computation of embedding for a single asset.
+
+### Unload Majoor AI Models
+
+```http
+POST /mjr/am/settings/vector-search/unload
+```
+
+Drops Majoor vector/caption model references, invalidates the in-memory vector searcher, asks ComfyUI to unload loaded models when available, and calls torch CUDA cache cleanup. The endpoint is write-protected and returns `COMFY_BUSY` while ComfyUI is actively executing.
 
 ---
 

@@ -258,7 +258,7 @@ defineExpose({
                     :title="t('search.findSimilar', 'Find Similar')"
                     @click="handleSimilarSearch"
                 >
-                    <i class="pi pi-clone"></i>
+                    <i class="pi pi-search"></i>
                 </MButton>
             </div>
             <!-- Anchor slots for filter, sort, collections, pinned folders buttons -->

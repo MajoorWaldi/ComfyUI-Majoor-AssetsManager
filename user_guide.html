@@ -1634,6 +1634,10 @@ POST /mjr/am/settings/metadata-fallback</code></pre>
 <pre><code class="language-json">{
   "asset_id": "asset_123"
 }</code></pre>
+<p>or:</p>
+<pre><code class="language-json">{
+  "filepath": "/absolute/path/to/file.png"
+}</code></pre>
 <p><strong>Response</strong>:</p>
 <pre><code class="language-json">{
   "ok": true,
@@ -1643,7 +1647,7 @@ POST /mjr/am/settings/metadata-fallback</code></pre>
     "opened": true
   }
 }</code></pre>
-<p><strong>Note</strong>: Requires <code>MAJOOR_ALLOW_OPEN_IN_FOLDER=1</code> if Safe Mode is enabled.</p>
+<p><strong>Note</strong>: Requires <code>MAJOOR_ALLOW_OPEN_IN_FOLDER=1</code> if Safe Mode is enabled. This route only asks the OS file manager to reveal an existing local file; it does not read, write, delete, or download file contents. Because of that, <code>filepath</code> targets are not restricted to indexed or configured asset roots for this action.</p>
 <hr />
 <h3 id="api_reference-stage-to-input">Stage to Input</h3>
 <pre><code class="language-http">POST /mjr/am/stage-to-input</code></pre>
@@ -2029,7 +2033,7 @@ POST /mjr/am/collections/update</code></pre>
 <ul>
 <li>Delete operations require <code>MAJOOR_ALLOW_DELETE=1</code></li>
 <li>Rename operations require <code>MAJOOR_ALLOW_RENAME=1</code></li>
-<li>Open in folder requires <code>MAJOOR_ALLOW_OPEN_IN_FOLDER=1</code></li>
+<li>Open in folder requires <code>MAJOOR_ALLOW_OPEN_IN_FOLDER=1</code>; it may reveal any existing local path supplied to the route, but it does not grant file read/write access</li>
 </ul>
 <h3 id="api_reference-rate-limiting">Rate Limiting</h3>
 <p>Expensive endpoints are rate-limited:</p>
@@ -8667,12 +8671,14 @@ python main.py --listen 0.0.0.0 --port 8188</code></pre>
 <li><code>MAJOOR_ALLOW_OPEN_IN_FOLDER=1</code></li>
 <ul>
 <li>Enables <code>/mjr/am/open-in-folder</code> (disabled by default).</li>
+<li>This route may reveal any existing local file path in the OS file manager. It does not read, write, delete, download, or index that file.</li>
 </ul>
 </ul>
 <h3 id="security_env_vars-access-control">Access Control</h3>
 <ul>
 <li>File access limited to ComfyUI's allowed directories</li>
-<li>No direct access to system files outside allowed paths</li>
+<li>No direct read/write access to system files outside allowed paths</li>
+<li>Exception: <code>/mjr/am/open-in-folder</code> can reveal an existing path in the OS file manager when explicitly enabled, because it is an OS launch action rather than file content access.</li>
 <li>Permission inheritance from ComfyUI's file system access</li>
 <li>No elevation of privileges possible</li>
 </ul>
@@ -9781,6 +9787,7 @@ python -m pytest tests/metadata/test_parser_folder_scan.py -q</code></pre></div>
 <p><strong>Mitigations:</strong></p>
 <ul>
 <li>Normalize paths and reject invalid/unsafe paths (<code>_safe_rel_path</code>, <code>_is_within_root</code>, allow-lists).</li>
+<li>Exception: <code>/mjr/am/open-in-folder</code> may reveal any existing local path in the OS file manager when the action is enabled. It does not provide file content reads, writes, deletes, downloads, or indexing access.</li>
 <li>Custom roots are resolved and validated (root-id → canonical directory).</li>
 <li>Avoid exposing arbitrary “open file” primitives; use explicit allow-listed actions.</li>
 </ul>

@@ -432,7 +432,6 @@ export async function registerRealtimeListeners({
             const renderable = executionRuntime.isRenderableLiveAsset(detail);
             if (renderable) {
                 pushGeneratedAsset(detail);
-                incrementSidebarAssetBadge(detail);
             }
             maybeAutoVectorIndexAsset(detail);
             const grid = getActiveGridContainer();
@@ -558,6 +557,7 @@ export async function registerRealtimeListeners({
             if (liveEvent?.defer) return;
             if (executionRuntime.isRenderableLiveAsset(nextDetail)) {
                 pushGeneratedAsset(nextDetail);
+                incrementSidebarAssetBadge(nextDetail);
             }
             maybeAutoVectorIndexAsset(nextDetail);
             const grid = getActiveGridContainer();

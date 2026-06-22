@@ -14,6 +14,7 @@ from mjr_am_backend.settings import (
     _SECURITY_API_TOKEN_KEY,
     _SETTINGS_VERSION_KEY,
     _VECTOR_CAPTION_ON_INDEX_KEY,
+    _WORKFLOW_ROOTS_KEY,
     AppSettings,
 )
 from mjr_am_backend.shared import Result
@@ -418,6 +419,28 @@ async def test_output_directory_db_errors(tmp_path: Path):
     db.fail_delete = True
     out2 = await s.set_output_directory("")
     assert out2.code == "DB_ERROR"
+
+
+@pytest.mark.asyncio
+async def test_workflow_roots_set_get_clear(tmp_path: Path, monkeypatch):
+    db = _DB()
+    s = AppSettings(db)
+    root_a = tmp_path / "wf-a"
+    root_b = tmp_path / "wf-b"
+
+    out = await s.set_workflow_roots([str(root_a), str(root_b)])
+
+    assert out.ok
+    assert out.data == [str(root_a.resolve()), str(root_b.resolve())]
+    assert db.store[_WORKFLOW_ROOTS_KEY] == "\n".join(out.data)
+    assert await s.get_workflow_roots() == out.data
+    assert os.environ["MJR_AM_WORKFLOW_DIRECTORIES"] == os.pathsep.join(out.data)
+
+    clear = await s.set_workflow_roots("")
+    assert clear.ok
+    assert await s.get_workflow_roots() == []
+    assert _WORKFLOW_ROOTS_KEY not in db.store
+    assert "MJR_AM_WORKFLOW_DIRECTORIES" not in os.environ
 
 
 @pytest.mark.asyncio
