@@ -49,9 +49,9 @@ describe("topBarMfvButton", () => {
         expect(button).toBeTruthy();
         expect(icon?.className).toBe("mjr-topbar-mfv-icon pi pi-eye");
         expect(label?.textContent).toBe("Viewer");
-        expect(queueGroup.nextSibling).toBe(slot);
+        expect(slot.parentElement).toBe(queueGroup);
         expect(slot.firstElementChild).toBe(host);
-        expect(actionbar.lastElementChild).toBe(slot);
+        expect(queueGroup.lastElementChild).toBe(slot);
 
         button.click();
 
@@ -136,15 +136,15 @@ describe("topBarMfvButton", () => {
         secondActionbar.appendChild(queueGroup);
         document.body.appendChild(secondActionbar);
 
-        window.dispatchEvent(new Event("resize"));
+        await Promise.resolve();
         flushTimers();
 
         const slot = secondActionbar.querySelector("[data-mjr-topbar-mfv-slot]");
         const button = secondActionbar.querySelector("[data-mjr-topbar-mfv-button]");
         expect(slot).toBeTruthy();
         expect(button).toBeTruthy();
-        expect(queueGroup.nextSibling).toBe(slot);
-        expect(secondActionbar.lastElementChild).toBe(slot);
+        expect(slot.parentElement).toBe(queueGroup);
+        expect(queueGroup.lastElementChild).toBe(slot);
         expect(document.documentElement.style.getPropertyValue("--mjr-mfv-top-offset")).toBe(
             "108px",
         );
@@ -177,9 +177,8 @@ describe("topBarMfvButton", () => {
         const button = actionbar.querySelector("[data-mjr-topbar-mfv-button]");
         expect(slot).toBeTruthy();
         expect(button).toBeTruthy();
-        expect(slot.parentElement).toBe(left);
-        expect(left.lastElementChild).toBe(slot);
-        expect(slot.previousSibling).toBe(queueGroup);
+        expect(slot.parentElement).toBe(queueGroup);
+        expect(queueGroup.lastElementChild).toBe(slot);
 
         teardownTopBarMfvButton();
     });
@@ -212,7 +211,7 @@ describe("topBarMfvButton", () => {
         teardownTopBarMfvButton();
     });
 
-    it("pins next to the Manager button inside newer ComfyUI button groups", async () => {
+    it("mounts as a dedicated ComfyUI button group item without anchoring to Manager", async () => {
         const actionbar = document.createElement("div");
         actionbar.setAttribute("data-testid", "topbar");
         actionbar.getBoundingClientRect = () => ({ bottom: 70 });
@@ -244,13 +243,13 @@ describe("topBarMfvButton", () => {
 
         const slot = actionbar.querySelector("[data-mjr-topbar-mfv-slot]");
         expect(slot).toBeTruthy();
-        expect(managerButton.nextSibling).toBe(slot);
-        expect(slot.nextSibling).toBe(runButton);
+        expect(buttonGroup.lastElementChild).toBe(slot);
+        expect(managerButton.nextSibling).toBe(runButton);
 
         teardownTopBarMfvButton();
     });
 
-    it("re-mounts next to Manager when ComfyUI replaces nested topbar group children", async () => {
+    it("re-mounts as a stable group item when ComfyUI replaces nested topbar group children", async () => {
         const actionbar = document.createElement("div");
         actionbar.setAttribute("data-testid", "topbar");
         actionbar.getBoundingClientRect = () => ({ bottom: 70 });
@@ -288,9 +287,55 @@ describe("topBarMfvButton", () => {
         const button = actionbar.querySelector("[data-mjr-topbar-mfv-button]");
         expect(slot).toBeTruthy();
         expect(button).toBeTruthy();
-        expect(rerenderedManagerButton.nextSibling).toBe(slot);
-        expect(slot.nextSibling).toBe(rerenderedRunButton);
+        expect(buttonGroup.lastElementChild).toBe(slot);
+        expect(rerenderedManagerButton.nextSibling).toBe(rerenderedRunButton);
 
         teardownTopBarMfvButton();
+    });
+
+    it("ignores broad topbar fallbacks that do not contain ComfyUI action controls", async () => {
+        const unrelatedTopbar = document.createElement("div");
+        unrelatedTopbar.className = "topbar";
+        document.body.appendChild(unrelatedTopbar);
+
+        const actionbar = document.createElement("div");
+        actionbar.className = "topbar";
+        actionbar.getBoundingClientRect = () => ({ bottom: 74 });
+        const buttonGroup = document.createElement("div");
+        buttonGroup.className = "comfyui-button-group";
+        actionbar.appendChild(buttonGroup);
+        document.body.appendChild(actionbar);
+
+        const { mountTopBarMfvButton, teardownTopBarMfvButton } =
+            await import("../features/runtime/topBarMfvButton.js");
+
+        mountTopBarMfvButton();
+        flushTimers();
+
+        expect(unrelatedTopbar.querySelector("[data-mjr-topbar-mfv-slot]")).toBeNull();
+        expect(actionbar.querySelector("[data-mjr-topbar-mfv-slot]")).toBeTruthy();
+
+        teardownTopBarMfvButton();
+    });
+
+    it("removes all stale topbar slots on teardown", async () => {
+        const actionbar = document.createElement("div");
+        actionbar.className = "actionbar-container";
+        document.body.appendChild(actionbar);
+        const staleSlot = document.createElement("div");
+        staleSlot.setAttribute("data-mjr-topbar-mfv-slot", "1");
+        document.body.appendChild(staleSlot);
+
+        const { mountTopBarMfvButton, teardownTopBarMfvButton } =
+            await import("../features/runtime/topBarMfvButton.js");
+
+        mountTopBarMfvButton();
+        flushTimers();
+        expect(document.querySelectorAll("[data-mjr-topbar-mfv-slot]")).toHaveLength(2);
+
+        teardownTopBarMfvButton();
+
+        expect(document.querySelectorAll("[data-mjr-topbar-mfv-slot]")).toHaveLength(0);
+        expect(document.querySelectorAll("[data-mjr-topbar-mfv-host]")).toHaveLength(0);
     });
 });

@@ -23638,53 +23638,60 @@ var Vb = { class: "mjr-sidebar-preview" }, Hb = ["src"], Ub = ["src"], Wb = ["sr
 	".actionbar-container",
 	"[data-testid='actionbar-container']",
 	"[data-testid='topbar']",
-	".comfyui-topbar",
-	".topbar"
+	".comfyui-topbar"
 ], bS = [
 	".queue-button-group",
 	".comfyui-button-group",
 	"[role='toolbar']"
-], xS = [
-	"[data-testid*='manager' i]",
-	"[aria-label*='manager' i]",
-	"[title*='manager' i]",
-	"[data-command-id*='manager' i]",
-	"[data-command-id*='mjr.openAssetsManager' i]",
-	"button"
-], SS = null, CS = null, wS = null, TS = null, ES = null, DS = !1, OS = null, kS = !1, AS = !1;
+], xS = [".topbar"], SS = null, CS = null, wS = null, TS = null, ES = null, DS = !1, OS = null, kS = !1, AS = !1;
 function jS(e) {
 	if (!(SS && CS === e)) {
 		if (!e) {
-			!wS && typeof MutationObserver < "u" && (wS = new MutationObserver(() => {
-				MS() && (wS?.disconnect?.(), wS = null, qS());
-			}), wS.observe(document.body, {
-				childList: !0,
-				subtree: !0
-			}));
+			MS();
 			return;
 		}
 		try {
 			SS?.disconnect?.();
 		} catch {}
-		SS = new MutationObserver(() => qS()), SS.observe(e, {
+		SS = new MutationObserver(() => JS()), SS.observe(e, {
 			childList: !0,
 			subtree: !0
-		}), CS = e;
-		try {
-			wS?.disconnect?.();
-		} catch {}
-		wS = null;
+		}), CS = e, MS();
 	}
 }
 function MS() {
+	wS || typeof MutationObserver > "u" || !document.body || (wS = new MutationObserver(() => JS()), wS.observe(document.body, {
+		childList: !0,
+		subtree: !0
+	}));
+}
+function NS(e) {
+	return !!(e?.isConnected || e && document.body?.contains?.(e));
+}
+function PS(e) {
+	if (!e?.querySelector) return null;
+	for (let t of bS) {
+		let n = e.querySelector(t);
+		if (n) return n;
+	}
+	return null;
+}
+function FS(e, { allowFallback: t = !1 } = {}) {
+	return e ? t ? !!PS(e) : !0 : !1;
+}
+function IS() {
 	if (typeof document > "u") return null;
 	for (let e of yS) {
 		let t = document.querySelector(e);
+		if (FS(t)) return t;
+	}
+	for (let e of xS) {
+		let t = Array.from(document.querySelectorAll(e)).find((e) => FS(e, { allowFallback: !0 }));
 		if (t) return t;
 	}
 	return null;
 }
-function NS(e = MS()) {
+function LS(e = IS()) {
 	if (typeof document > "u") return;
 	let t = document.documentElement?.style;
 	if (!t) return;
@@ -23695,98 +23702,80 @@ function NS(e = MS()) {
 	let n = e.getBoundingClientRect(), r = Math.max(60, Math.ceil(n.bottom + 12));
 	t.setProperty("--mjr-mfv-top-offset", `${r}px`);
 }
-function PS(e) {
-	if (!e) return null;
-	let t = IS(e);
-	if (t) return t;
-	for (let t of bS) {
-		let n = e.querySelector(t);
-		if (n) return n;
-	}
-	return null;
-}
-function FS(e) {
-	try {
-		let t = String(e?.textContent || "").trim().toLowerCase(), n = String(e?.getAttribute?.("aria-label") || e?.getAttribute?.("title") || e?.getAttribute?.("data-testid") || e?.getAttribute?.("data-command-id") || "").toLowerCase();
-		return t === "manager" || t.includes("assets manager") || t.includes("majoor assets manager") || n.includes("manager") || n.includes("mjr.openassetsmanager");
-	} catch {
-		return !1;
-	}
-}
-function IS(e) {
-	if (!e?.querySelectorAll) return null;
-	for (let t of xS) try {
-		let n = Array.from(e.querySelectorAll(t)).find((e) => FS(e));
-		if (n) return n;
-	} catch (e) {
-		console.debug?.(e);
-	}
-	return null;
-}
-function LS(e, t) {
-	return e ? t?.classList?.contains?.("comfyui-button-group") ? t : t?.parentElement || e : null;
-}
 function RS(e) {
+	return e ? PS(e) || e : null;
+}
+function zS(e) {
 	if (!e) return null;
 	let t = e.querySelector(`[${hS}]`);
 	t || (t = document.createElement("div"), t.setAttribute(hS, "1"), t.className = "flex h-full items-center pointer-events-auto", t.style.position = "relative", t.style.zIndex = "10030", t.style.padding = "0 4px");
-	let n = PS(e), r = LS(e, n);
-	return t.parentElement === r ? n && r && r !== n && t.previousSibling !== n ? r.insertBefore(t, n.nextSibling) : !n && t !== r.lastElementChild && r.appendChild(t) : n && r && r !== n ? r.insertBefore(t, n.nextSibling) : r && r.appendChild(t), t;
+	let n = RS(e);
+	return t.parentElement === n ? n && t !== n.lastElementChild && n.appendChild(t) : n && n.appendChild(t), t;
 }
-function zS() {
+function BS() {
 	let e = document.createElement("i");
 	return e.className = "mjr-topbar-mfv-icon pi pi-eye", e.setAttribute("aria-hidden", "true"), e;
 }
-function BS(e = "Viewer") {
+function VS(e = "Viewer") {
 	let t = document.createElement("span");
 	return t.className = "mjr-topbar-mfv-label", t.textContent = e, t;
 }
-function VS(e) {
+function HS(e) {
 	if (!e) return;
 	let t = kS ? R("tooltip.closeMFV", "Close Majoor Floating Viewer") : R("tooltip.openMFV", "Open Majoor Floating Viewer");
-	Yn(e, t, vS, { ariaLabel: t }), e.setAttribute("aria-pressed", kS ? "true" : "false"), e.classList.toggle("primary", kS), e.classList.toggle("mjr-topbar-mfv-active", kS), e.replaceChildren(zS(), BS(R(gS, _S)));
+	Yn(e, t, vS, { ariaLabel: t }), e.setAttribute("aria-pressed", kS ? "true" : "false"), e.classList.toggle("primary", kS), e.classList.toggle("mjr-topbar-mfv-active", kS), e.replaceChildren(BS(), VS(R(gS, _S)));
 }
-function HS() {
+function US() {
 	try {
 		window.dispatchEvent(new Event(z.MFV_TOGGLE));
 	} catch (e) {
 		console.debug?.("[Majoor] top bar MFV launch failed", e);
 	}
-	qS();
-}
-function US() {
-	let e = document.createElement("button");
-	return e.type = "button", e.setAttribute(mS, "1"), e.setAttribute("data-command-id", "mjr.toggleFloatingViewer"), e.className = "comfyui-button p-button p-component mjr-topbar-mfv-button", e.style.position = "relative", e.style.zIndex = "10030", e.style.width = "auto", e.style.height = "32px", e.style.minWidth = "32px", e.style.padding = "0 8px", e.style.gap = "8px", e.style.display = "inline-flex", e.style.alignItems = "center", e.style.justifyContent = "center", e.style.whiteSpace = "nowrap", e.addEventListener("click", HS), VS(e), e;
+	JS();
 }
 function WS() {
-	let e = document.createElement("div");
-	return e.setAttribute(pS, "1"), e.className = "mjr-topbar-mfv-button-host", e.style.position = "relative", e.appendChild(US()), e;
+	let e = document.createElement("button");
+	return e.type = "button", e.setAttribute(mS, "1"), e.setAttribute("data-command-id", "mjr.toggleFloatingViewer"), e.className = "comfyui-button p-button p-component mjr-topbar-mfv-button", e.style.position = "relative", e.style.zIndex = "10030", e.style.width = "auto", e.style.height = "32px", e.style.minWidth = "32px", e.style.padding = "0 8px", e.style.gap = "8px", e.style.display = "inline-flex", e.style.alignItems = "center", e.style.justifyContent = "center", e.style.whiteSpace = "nowrap", e.addEventListener("click", US), HS(e), e;
 }
 function GS() {
-	if (typeof document > "u" || AS) return;
-	let e = !!document.querySelector(".mjr-mfv.is-visible");
-	kS !== e && (kS = e);
+	let e = document.createElement("div");
+	return e.setAttribute(pS, "1"), e.className = "mjr-topbar-mfv-button-host", e.style.position = "relative", e.appendChild(WS()), e;
 }
 function KS() {
-	let e = MS();
-	if (!e) return NS(null), null;
-	jS(e), GS();
-	let t = RS(e);
-	if (!t) return NS(e), null;
-	let n = t.querySelector(`[${pS}]`);
-	return n ||= WS(), n.parentElement !== t && t.replaceChildren(n), NS(e), VS(n.querySelector(`[${mS}]`)), t;
+	if (typeof document > "u") return;
+	let e = document.querySelector(".mjr-mfv");
+	if (AS && !e) return;
+	let t = !!e?.classList?.contains?.("is-visible");
+	kS !== t && (kS = t);
 }
 function qS() {
-	DS || (DS = !0, OS = window.setTimeout(() => {
-		DS = !1, OS = null, KS();
-	}, 32));
+	let e = IS();
+	if (!e) return LS(null), jS(null), null;
+	if (CS && !NS(CS)) {
+		try {
+			SS?.disconnect?.();
+		} catch (e) {
+			console.debug?.(e);
+		}
+		SS = null, CS = null;
+	}
+	jS(e), KS();
+	let t = zS(e);
+	if (!t) return LS(e), null;
+	let n = t.querySelector(`[${pS}]`);
+	return n ||= GS(), n.parentElement !== t && t.replaceChildren(n), LS(e), HS(n.querySelector(`[${mS}]`)), t;
 }
 function JS() {
-	return typeof window > "u" || typeof document > "u" || !document.body ? !1 : (qS(), TS || (TS = (e) => {
-		kS = !!e?.detail?.visible, AS = !0, qS();
-	}, window.addEventListener(z.MFV_VISIBILITY_CHANGED, TS)), ES || (ES = () => qS(), window.addEventListener("resize", ES)), jS(MS()), !0);
+	DS || (DS = !0, OS = window.setTimeout(() => {
+		DS = !1, OS = null, qS();
+	}, 32));
 }
 function YS() {
+	return typeof window > "u" || typeof document > "u" || !document.body ? !1 : (JS(), TS || (TS = (e) => {
+		kS = !!e?.detail?.visible, AS = !0, JS();
+	}, window.addEventListener(z.MFV_VISIBILITY_CHANGED, TS)), ES || (ES = () => JS(), window.addEventListener("resize", ES)), jS(IS()), !0);
+}
+function XS() {
 	try {
 		SS?.disconnect?.();
 	} catch (e) {
@@ -23806,38 +23795,38 @@ function YS() {
 	}
 	OS = null, TS && typeof window < "u" && window.removeEventListener(z.MFV_VISIBILITY_CHANGED, TS), TS = null, ES && typeof window < "u" && window.removeEventListener("resize", ES), ES = null, DS = !1, kS = !1, AS = !1;
 	try {
-		document.documentElement?.style?.setProperty("--mjr-mfv-top-offset", "60px"), document.querySelector(`[${pS}]`)?.remove?.(), document.querySelector(`[${hS}]`)?.remove?.();
+		document.documentElement?.style?.setProperty("--mjr-mfv-top-offset", "60px"), document.querySelectorAll(`[${pS}]`).forEach((e) => e.remove?.()), document.querySelectorAll(`[${hS}]`).forEach((e) => e.remove?.());
 	} catch (e) {
 		console.debug?.(e);
 	}
 }
 //#endregion
 //#region ui/features/runtime/entryUiRegistration.ts
-var XS = "mjr-global-runtime-root", ZS = "_mjrGlobalRuntimeVueApp", QS = "_mjrSidebarVueApp", $S = "_mjrFeedVueApp", eC = "majoor-generated-feed", tC = null;
-function nC() {
-	if (typeof document > "u" || !document?.body) return null;
-	let e = document.getElementById(XS);
-	return e || (e = document.createElement("div"), e.id = XS, e.setAttribute("role", "presentation"), e.style.cssText = "position:fixed;inset:0;overflow:visible;pointer-events:none;z-index:10020;", document.body.appendChild(e), e);
-}
+var ZS = "mjr-global-runtime-root", QS = "_mjrGlobalRuntimeVueApp", $S = "_mjrSidebarVueApp", eC = "_mjrFeedVueApp", tC = "majoor-generated-feed", nC = null;
 function rC() {
+	if (typeof document > "u" || !document?.body) return null;
+	let e = document.getElementById(ZS);
+	return e || (e = document.createElement("div"), e.id = ZS, e.setAttribute("role", "presentation"), e.style.cssText = "position:fixed;inset:0;overflow:visible;pointer-events:none;z-index:10020;", document.body.appendChild(e), e);
+}
+function iC() {
 	try {
-		let e = nC();
+		let e = rC();
 		if (!e) return !1;
-		let t = !!Wt(e, am, ZS);
-		return JS(), t;
+		let t = !!Wt(e, am, QS);
+		return YS(), t;
 	} catch {
 		return !1;
 	}
 }
-function iC() {
+function aC() {
 	try {
-		YS();
-		let e = document.getElementById(XS);
+		XS();
+		let e = document.getElementById(ZS);
 		if (!e) return;
-		Ht(e, ZS), e.remove?.();
+		Ht(e, QS), e.remove?.();
 	} catch {}
 }
-function aC(e, t) {
+function oC(e, t) {
 	let n = Je(e, t);
 	if (cp(), !n) try {
 		window.dispatchEvent(new Event(z.OPEN_ASSETS_MANAGER));
@@ -23846,15 +23835,15 @@ function aC(e, t) {
 	}
 	return n;
 }
-function oC() {
+function sC() {
 	try {
 		window.dispatchEvent(new CustomEvent(z.RELOAD_GRID, { detail: { reason: "command" } }));
 	} catch (e) {
 		console.debug?.(e);
 	}
 }
-function sC(e) {
-	let t = Xe(e, eC);
+function cC(e) {
+	let t = Xe(e, tC);
 	if (!t) try {
 		nf();
 	} catch (e) {
@@ -23862,10 +23851,10 @@ function sC(e) {
 	}
 	return t;
 }
-function cC(e) {
-	return DC(e).find(EC) || null;
-}
 function lC(e) {
+	return OC(e).find(DC) || null;
+}
+function uC(e) {
 	let t = String(e?.id ?? e?.nodeId ?? e?.node_id ?? "").trim();
 	if (!t) return null;
 	let n = String(e?.comfyClass || e?.type || e?.constructor?.type || "").trim();
@@ -23877,10 +23866,10 @@ function lC(e) {
 		title: String(e?.title || e?.properties?.title || e?.properties?.name || n || "").trim()
 	};
 }
-function uC(e, t) {
-	let n = lC(tC);
+function dC(e, t) {
+	let n = uC(nC);
 	if (!n) return D(R("toast.nodeContextMissing", "Select an output node first."), "info", 2200), !1;
-	aC(e, t);
+	oC(e, t);
 	try {
 		typeof window < "u" && (window.MajoorAssetsManager = window.MajoorAssetsManager || {}, window.MajoorAssetsManager.pendingNodeContext = n, window.dispatchEvent(new CustomEvent(z.OPEN_NODE_CONTEXT, { detail: n })));
 	} catch (e) {
@@ -23888,7 +23877,7 @@ function uC(e, t) {
 	}
 	return !0;
 }
-function dC(e, { sidebarTabId: t, triggerStartupScan: n }) {
+function fC(e, { sidebarTabId: t, triggerStartupScan: n }) {
 	return [
 		{
 			id: "mjr.openAssetsManager",
@@ -23897,7 +23886,7 @@ function dC(e, { sidebarTabId: t, triggerStartupScan: n }) {
 			title: R("tooltip.openAssetsManager", "Open Majoor Assets Manager"),
 			description: R("tooltip.openAssetsManager", "Open Majoor Assets Manager"),
 			icon: "pi pi-folder-open",
-			function: () => aC(e, t)
+			function: () => oC(e, t)
 		},
 		{
 			id: "mjr.scanAssets",
@@ -23921,7 +23910,7 @@ function dC(e, { sidebarTabId: t, triggerStartupScan: n }) {
 			id: "mjr.refreshAssetsGrid",
 			label: R("command.refreshAssetsGrid", "Refresh assets grid"),
 			icon: "pi pi-sync",
-			function: () => oC()
+			function: () => sC()
 		},
 		{
 			id: "mjr.openFloatingViewer",
@@ -23945,7 +23934,7 @@ function dC(e, { sidebarTabId: t, triggerStartupScan: n }) {
 			title: R("tooltip.openGeneratedFeed", "Open the Majoor generated feed panel"),
 			description: R("tooltip.openGeneratedFeed", "Open the Majoor generated feed panel"),
 			icon: "pi pi-list",
-			function: () => sC(e)
+			function: () => cC(e)
 		},
 		{
 			id: "mjr.openSettings",
@@ -23960,11 +23949,11 @@ function dC(e, { sidebarTabId: t, triggerStartupScan: n }) {
 			title: R("tooltip.openNodeContext", "Show the latest indexed assets produced by this node"),
 			description: R("tooltip.openNodeContext", "Show the latest indexed assets produced by this node"),
 			icon: "pi pi-sitemap",
-			function: () => uC(e, t)
+			function: () => dC(e, t)
 		}
 	];
 }
-function fC() {
+function pC() {
 	return [{
 		combo: {
 			alt: !0,
@@ -23981,7 +23970,7 @@ function fC() {
 		commandId: "mjr.toggleFloatingViewer"
 	}];
 }
-function pC() {
+function mC() {
 	return [{
 		path: ["Extensions", "Majoor Assets Manager"],
 		commands: [
@@ -23994,13 +23983,13 @@ function pC() {
 		]
 	}];
 }
-function mC(e, { sidebarTabId: t, triggerStartupScan: n }) {
+function hC(e, { sidebarTabId: t, triggerStartupScan: n }) {
 	return [null, {
 		content: "Majoor Assets Manager",
 		submenu: { options: [
 			{
 				content: R("tooltip.openAssetsManager", "Open Majoor Assets Manager"),
-				callback: () => aC(e, t)
+				callback: () => oC(e, t)
 			},
 			{
 				content: R("command.openFloatingViewer", "Open floating viewer"),
@@ -24014,12 +24003,12 @@ function mC(e, { sidebarTabId: t, triggerStartupScan: n }) {
 			},
 			{
 				content: R("command.openGeneratedFeed", "Open generated feed"),
-				callback: () => sC(e)
+				callback: () => cC(e)
 			},
 			null,
 			{
 				content: R("command.refreshAssetsGrid", "Refresh assets grid"),
-				callback: () => oC()
+				callback: () => sC()
 			},
 			{
 				content: R("command.scanAssets", "Scan assets"),
@@ -24032,7 +24021,7 @@ function mC(e, { sidebarTabId: t, triggerStartupScan: n }) {
 		] }
 	}];
 }
-function hC() {
+function gC() {
 	return [
 		{
 			label: "Majoor Assets Manager",
@@ -24049,13 +24038,13 @@ function hC() {
 		}
 	];
 }
-function gC(e, t) {
-	for (let n of dC(e, t)) Re(e, n);
+function _C(e, t) {
+	for (let n of fC(e, t)) Re(e, n);
 }
-function _C(e) {
-	for (let t of fC()) Me(e, t);
+function vC(e) {
+	for (let t of pC()) Me(e, t);
 }
-function vC(e, { sidebarTabId: t }) {
+function yC(e, { sidebarTabId: t }) {
 	return op({ sidebarTabId: t }), Le(e, {
 		id: t,
 		icon: "pi pi-folder",
@@ -24064,7 +24053,7 @@ function vC(e, { sidebarTabId: t }) {
 		tooltip: R("tooltip.sidebarTab"),
 		type: "custom",
 		render(e) {
-			cp(), hr({ idleOnly: !0 }).catch(() => null), Wt(e, dS, QS), setTimeout(() => {
+			cp(), hr({ idleOnly: !0 }).catch(() => null), Wt(e, dS, $S), setTimeout(() => {
 				let e = dp();
 				if (e) try {
 					window.dispatchEvent(new CustomEvent(z.RELOAD_GRID, { detail: {
@@ -24079,75 +24068,75 @@ function vC(e, { sidebarTabId: t }) {
 		destroy(e) {}
 	});
 }
-function yC() {
-	try {
-		Ht(null, QS);
-	} catch {}
-}
-var bC = !1, xC = "mjr-sidebar-prewarm-host";
-function SC() {
-	if (bC || typeof document > "u" || !document?.body) return !1;
-	bC = !0;
-	try {
-		let e = document.getElementById(xC);
-		return e || (e = document.createElement("div"), e.id = xC, e.style.cssText = "position:fixed;left:-99999px;top:0;width:360px;height:600px;overflow:hidden;visibility:hidden;pointer-events:none;contain:strict;", e.setAttribute("aria-hidden", "true"), document.body.appendChild(e)), Wt(e, dS, QS), !0;
-	} catch (e) {
-		return console.debug?.(e), bC = !1, !1;
-	}
-}
-function CC() {
-	return {
-		id: eC,
-		title: R("bottomFeed.title", "Generated Feed"),
-		icon: "pi pi-images",
-		type: "custom",
-		render(e) {
-			Wt(e, fS, $S);
-		},
-		destroy(e) {}
-	};
-}
-function wC() {
-	return [CC()];
-}
-function TC() {
+function bC() {
 	try {
 		Ht(null, $S);
 	} catch {}
 }
-function EC(e) {
+var xC = !1, SC = "mjr-sidebar-prewarm-host";
+function CC() {
+	if (xC || typeof document > "u" || !document?.body) return !1;
+	xC = !0;
+	try {
+		let e = document.getElementById(SC);
+		return e || (e = document.createElement("div"), e.id = SC, e.style.cssText = "position:fixed;left:-99999px;top:0;width:360px;height:600px;overflow:hidden;visibility:hidden;pointer-events:none;contain:strict;", e.setAttribute("aria-hidden", "true"), document.body.appendChild(e)), Wt(e, dS, $S), !0;
+	} catch (e) {
+		return console.debug?.(e), xC = !1, !1;
+	}
+}
+function wC() {
+	return {
+		id: tC,
+		title: R("bottomFeed.title", "Generated Feed"),
+		icon: "pi pi-images",
+		type: "custom",
+		render(e) {
+			Wt(e, fS, eC);
+		},
+		destroy(e) {}
+	};
+}
+function TC() {
+	return [wC()];
+}
+function EC() {
+	try {
+		Ht(null, eC);
+	} catch {}
+}
+function DC(e) {
 	let t = String(e?.comfyClass || e?.type || e?.constructor?.type || "").trim();
 	return t ? /save|load|preview/i.test(t) : !1;
 }
-function DC(e) {
+function OC(e) {
 	return e ? Array.isArray(e) ? e.filter(Boolean) : e instanceof Set ? Array.from(e).filter(Boolean) : e instanceof Map ? Array.from(e.values()).filter(Boolean) : Array.isArray(e?.items) ? e.items.filter(Boolean) : Array.isArray(e?.nodes) ? e.nodes.filter(Boolean) : [e] : [];
 }
-function OC(e) {
-	return tC = cC(e), tC ? [
+function kC(e) {
+	return nC = lC(e), nC ? [
 		"mjr.openNodeContext",
 		"mjr.openAssetsManager",
 		"mjr.openFloatingViewer"
 	] : [];
 }
-function kC(e, t) {
+function AC(e, t) {
 	return {
 		content: e,
 		callback: t
 	};
 }
-function AC(e, t, { sidebarTabId: n }) {
-	return EC(e) ? [
-		kC("View in Assets Manager", () => aC(t, n)),
-		kC("Open in Floating Viewer", () => {
+function jC(e, t, { sidebarTabId: n }) {
+	return DC(e) ? [
+		AC("View in Assets Manager", () => oC(t, n)),
+		AC("Open in Floating Viewer", () => {
 			try {
 				window.dispatchEvent(new Event(z.MFV_OPEN));
 			} catch (e) {
 				console.debug?.(e);
 			}
 		}),
-		kC("Index Output", () => {
+		AC("Index Output", () => {
 			try {
-				oC(), D(R("toast.rescanningFile", "Rescanning file..."), "info", 1800);
+				sC(), D(R("toast.rescanningFile", "Rescanning file..."), "info", 1800);
 			} catch (e) {
 				console.debug?.(e);
 			}
@@ -24156,15 +24145,15 @@ function AC(e, t, { sidebarTabId: n }) {
 }
 //#endregion
 //#region ui/features/runtime/entryRuntimeLifecycle.ts
-var jC = "__MJR_ENTRY_RUNTIME__";
-function MC(e, t) {
+var MC = "__MJR_ENTRY_RUNTIME__";
+function NC(e, t) {
 	if (e) try {
 		e._mjrAssetUpdateReloadTimer &&= (clearTimeout(e._mjrAssetUpdateReloadTimer), null), e._mjrExecutedHandler && e.removeEventListener("executed", e._mjrExecutedHandler), e._mjrAssetAddedHandler && e.removeEventListener("mjr-asset-added", e._mjrAssetAddedHandler), e._mjrAssetUpdatedHandler && e.removeEventListener("mjr-asset-updated", e._mjrAssetUpdatedHandler), e._mjrStructuredEventHandler && e.removeEventListener(z.STRUCTURED_EVENT, e._mjrStructuredEventHandler), e._mjrScanCompleteHandler && e.removeEventListener(z.SCAN_COMPLETE, e._mjrScanCompleteHandler), e._mjrScanProgressHandler && e.removeEventListener(z.SCAN_PROGRESS, e._mjrScanProgressHandler), e._mjrAssetIndexingHandler && e.removeEventListener(z.ASSET_INDEXING, e._mjrAssetIndexingHandler), e._mjrAssetIndexedHandler && e.removeEventListener(z.ASSET_INDEXED, e._mjrAssetIndexedHandler), e._mjrExecutionStartHandler && e.removeEventListener("execution_start", e._mjrExecutionStartHandler), e._mjrExecutionEndHandler && (e.removeEventListener("execution_success", e._mjrExecutionEndHandler), e.removeEventListener("execution_error", e._mjrExecutionEndHandler), e.removeEventListener("execution_interrupted", e._mjrExecutionEndHandler)), e._mjrStacksUpdatedHandler && e.removeEventListener("mjr.stacks.updated", e._mjrStacksUpdatedHandler), e._mjrEnrichmentStatusHandler && e.removeEventListener(z.ENRICHMENT_STATUS, e._mjrEnrichmentStatusHandler), e._mjrDbRestoreStatusHandler && e.removeEventListener(z.DB_RESTORE_STATUS, e._mjrDbRestoreStatusHandler), e._mjrRuntimeStatusHandler && (e.removeEventListener("progress", e._mjrRuntimeStatusHandler), e.removeEventListener("status", e._mjrRuntimeStatusHandler), e.removeEventListener(z.RUNTIME_STATUS, e._mjrRuntimeStatusHandler), e.removeEventListener("execution_cached", e._mjrExecutionCachedHandler));
 	} catch (e) {
 		t?.(e, "entry.removeApiHandlers");
 	}
 }
-function NC(e, t) {
+function PC(e, t) {
 	try {
 		let t = e?.assetsDeletedHandler;
 		t && typeof window < "u" && window.removeEventListener(z.ASSETS_DELETED, t);
@@ -24172,7 +24161,7 @@ function NC(e, t) {
 		t?.(e, "entry.removeRuntimeWindowHandlers");
 	}
 }
-function PC(e, { reportError: t } = {}) {
+function FC(e, { reportError: t } = {}) {
 	if (!(!e || typeof e != "object")) {
 		try {
 			let t = Array.isArray(e._listenerCleanupFns) ? e._listenerCleanupFns : [];
@@ -24197,13 +24186,13 @@ function PC(e, { reportError: t } = {}) {
 			console.warn("[MJR teardown]", e);
 		}
 		try {
-			MC(e.api || null, t), NC(e, t);
+			NC(e.api || null, t), PC(e, t);
 		} catch (e) {
 			console.warn("[MJR teardown]", e);
 		}
 	}
 }
-function FC(e, t, n, r, i = void 0) {
+function IC(e, t, n, r, i = void 0) {
 	if (!e || !t?.addEventListener || typeof r != "function") return null;
 	let a = i && typeof i == "object" ? { ...i } : i;
 	if (typeof AbortController < "u") try {
@@ -24223,11 +24212,11 @@ function FC(e, t, n, r, i = void 0) {
 		}
 	}), null;
 }
-function IC({ cleanupEntryRuntimeFn: e = PC, teardownLiveStreamTracker: t, teardownNodeStream: n, teardownFloatingViewerManager: r, teardownGeneratedFeed: i, teardownAssetsSidebar: a, teardownGlobalRuntime: o, teardownTopBarMfvButton: s, reportError: c }) {
+function LC({ cleanupEntryRuntimeFn: e = FC, teardownLiveStreamTracker: t, teardownNodeStream: n, teardownFloatingViewerManager: r, teardownGeneratedFeed: i, teardownAssetsSidebar: a, teardownGlobalRuntime: o, teardownTopBarMfvButton: s, reportError: c }) {
 	try {
 		if (typeof window < "u") {
 			try {
-				let t = window[jC];
+				let t = window[MC];
 				e(t, { reportError: c });
 			} catch (e) {
 				console.warn("[MJR teardown]", e);
@@ -24267,7 +24256,7 @@ function IC({ cleanupEntryRuntimeFn: e = PC, teardownLiveStreamTracker: t, teard
 			} catch (e) {
 				console.warn("[MJR teardown]", e);
 			}
-			window[jC] = {
+			window[MC] = {
 				api: null,
 				assetsDeletedHandler: null,
 				_cleanupControllers: [],
@@ -24280,42 +24269,42 @@ function IC({ cleanupEntryRuntimeFn: e = PC, teardownLiveStreamTracker: t, teard
 }
 //#endregion
 //#region ui/entry.ts
-var LC = null, RC = null, zC = null;
-function BC() {
-	return zC ||= import("./chunks/floatingViewerManager-C2DFj5aE.js").then((e) => e.n), zC;
-}
+var RC = null, zC = null, BC = null;
 function VC() {
-	zC && zC.then((e) => e?.teardownFloatingViewerManager?.()).catch((e) => console.debug?.("[Majoor] MFV teardown skipped", e));
+	return BC ||= import("./chunks/floatingViewerManager-C2DFj5aE.js").then((e) => e.n), BC;
 }
-var HC = "majoor-assets", UC = "__MJR_EXECUTION_RUNTIME__", WC = "Majoor.AssetsManager", GC = {
+function HC() {
+	BC && BC.then((e) => e?.teardownFloatingViewerManager?.()).catch((e) => console.debug?.("[Majoor] MFV teardown skipped", e));
+}
+var UC = "majoor-assets", WC = "__MJR_EXECUTION_RUNTIME__", GC = "Majoor.AssetsManager", KC = {
 	active: null,
 	promptId: ""
-}, KC = null, qC = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i, JC = /^[0-9a-f]{20,}$/i;
-function YC(...e) {
+}, qC = null, JC = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i, YC = /^[0-9a-f]{20,}$/i;
+function XC(...e) {
 	for (let t of e) {
 		let e = String(t || "").trim();
 		if (e) return e;
 	}
 	return "";
 }
-function XC(e) {
-	let t = String(e || "").trim();
-	return qC.test(t) || JC.test(t);
-}
 function ZC(e) {
-	return YC(e?.title, e?.properties?.title, e?.properties?.name, e?.properties?.label, e?.name);
+	let t = String(e || "").trim();
+	return JC.test(t) || YC.test(t);
 }
 function QC(e) {
+	return XC(e?.title, e?.properties?.title, e?.properties?.name, e?.properties?.label, e?.name);
+}
+function $C(e) {
 	if (!e || typeof e != "object") return [];
 	if (Array.isArray(e.nodes)) return e.nodes.filter(Boolean);
 	if (Array.isArray(e._nodes)) return e._nodes.filter(Boolean);
 	let t = e._nodes_by_id ?? e.nodes_by_id ?? null;
 	return t instanceof Map ? Array.from(t.values()).filter(Boolean) : t && typeof t == "object" ? Object.values(t).filter(Boolean) : [];
 }
-function $C(e) {
-	return QC(e).length > 0;
-}
 function ew(e) {
+	return $C(e).length > 0;
+}
+function tw(e) {
 	return !e || typeof e != "object" ? !1 : [
 		e.subgraph,
 		e._subgraph,
@@ -24326,13 +24315,13 @@ function ew(e) {
 		e.subgraph_instance?.graph,
 		e.inner_graph,
 		e.subgraph_graph
-	].some($C) || Array.isArray(e.nodes) && e.nodes.length > 0 && e.nodes !== e.graph?.nodes ? !0 : XC(e.type) && !!ZC(e);
+	].some(ew) || Array.isArray(e.nodes) && e.nodes.length > 0 && e.nodes !== e.graph?.nodes ? !0 : ZC(e.type) && !!QC(e);
 }
-function tw(e, t) {
-	let n = String(e?.type || t || "").trim(), r = ZC(e);
-	return XC(n) ? r || "Subgraph" : n || r || "Node";
+function nw(e, t) {
+	let n = String(e?.type || t || "").trim(), r = QC(e);
+	return ZC(n) ? r || "Subgraph" : n || r || "Node";
 }
-function nw() {
+function rw() {
 	try {
 		return typeof window > "u" ? {
 			active_prompt_id: null,
@@ -24341,30 +24330,30 @@ function nw() {
 			progress_value: null,
 			progress_max: null,
 			cached_nodes: []
-		} : ((!window[UC] || typeof window[UC] != "object") && (window[UC] = {
+		} : ((!window[WC] || typeof window[WC] != "object") && (window[WC] = {
 			active_prompt_id: null,
 			queue_remaining: null,
 			progress_node: null,
 			progress_value: null,
 			progress_max: null,
 			cached_nodes: []
-		}), window[UC]);
+		}), window[WC]);
 	} catch (e) {
 		return console.debug?.(e), {};
 	}
 }
-function rw(e = {}) {
+function iw(e = {}) {
 	try {
-		let t = nw();
+		let t = rw();
 		Object.assign(t, e || {}), window.dispatchEvent(new CustomEvent(z.RUNTIME_STATUS, { detail: { ...t } }));
 	} catch (e) {
 		console.debug?.(e);
 	}
 }
-async function iw({ active: e, promptId: t = "" } = {}) {
+async function aw({ active: e, promptId: t = "" } = {}) {
 	let n = !!e, r = String(t || "").trim();
-	if (!(GC.active === n && GC.promptId === r)) {
-		GC = {
+	if (!(KC.active === n && KC.promptId === r)) {
+		KC = {
 			active: n,
 			promptId: r
 		};
@@ -24379,49 +24368,49 @@ async function iw({ active: e, promptId: t = "" } = {}) {
 		}
 	}
 }
-function aw() {
+function ow() {
 	try {
-		return !!String(nw()?.active_prompt_id || "").trim();
+		return !!String(rw()?.active_prompt_id || "").trim();
 	} catch (e) {
 		return console.debug?.(e), !1;
 	}
 }
-function ow(e = 1200) {
+function sw(e = 1200) {
 	try {
-		KC && clearTimeout(KC);
+		qC && clearTimeout(qC);
 	} catch (e) {
 		console.debug?.(e);
 	}
-	KC = setTimeout(() => {
-		if (KC = null, aw()) {
-			ow(e);
+	qC = setTimeout(() => {
+		if (qC = null, ow()) {
+			sw(e);
 			return;
 		}
 		let t = an();
 		t && Gr(t);
 	}, Math.max(250, Number(e) || 0));
 }
-function sw(e) {
+function cw(e) {
 	import("./chunks/LiveStreamTracker-BJuVOILm.js").then((t) => {
-		LC = t;
+		RC = t;
 		try {
 			t.initLiveStreamTracker(e);
 		} catch (e) {
 			console.warn("[MJR setup] initLiveStreamTracker failed:", e);
 		}
 	}).catch((e) => console.warn("[MJR setup] LiveStreamTracker load failed:", e)), import("./chunks/NodeStreamController-EQygLyLg.js").then((t) => {
-		RC = t;
+		zC = t;
 		try {
 			t.initNodeStream({
 				app: e,
 				onOutput: (e) => {
-					BC().then((t) => t?.floatingViewerManager?.feedNodeStream?.(e)).catch((e) => console.debug?.("[NodeStream] MFV output failed", e));
+					VC().then((t) => t?.floatingViewerManager?.feedNodeStream?.(e)).catch((e) => console.debug?.("[NodeStream] MFV output failed", e));
 				},
 				onStatus: (t, n) => {
 					try {
-						let r = (e?.graph ?? e?.canvas?.graph ?? null)?.getNodeById?.(Number(t)), i = ew(r), a = ZC(r), o = i ? "Subgraph" : tw(r, n);
-						BC().then((e) => {
-							e?.floatingViewerManager?.setNodeStreamSelection?.(t, o, i ? a || tw(r, n) : a);
+						let r = (e?.graph ?? e?.canvas?.graph ?? null)?.getNodeById?.(Number(t)), i = tw(r), a = QC(r), o = i ? "Subgraph" : nw(r, n);
+						VC().then((e) => {
+							e?.floatingViewerManager?.setNodeStreamSelection?.(t, o, i ? a || nw(r, n) : a);
 						}).catch((e) => console.debug?.("[NodeStream] MFV status failed", e));
 					} catch (e) {
 						console.debug?.("[NodeStream] onStatus failed", e);
@@ -24433,7 +24422,7 @@ function sw(e) {
 		}
 	}).catch((e) => console.warn("[MJR setup] NodeStream load failed:", e));
 }
-async function cw(e, t) {
+async function lw(e, t) {
 	let n = await Ie({
 		app: e,
 		timeoutMs: 4e3
@@ -24452,14 +24441,14 @@ async function cw(e, t) {
 	} catch (e) {
 		console.debug?.(e);
 	}
-	MC(r?.api || null, N), n !== r?.api && MC(n, N), NC(r, N), await wp({
+	NC(r?.api || null, N), n !== r?.api && NC(n, N), PC(r, N), await wp({
 		api: n,
 		runtime: r,
 		executionRuntime: t,
 		appRef: Qn,
-		liveStreamModule: LC,
-		ensureExecutionRuntime: nw,
-		emitRuntimeStatus: rw,
+		liveStreamModule: RC,
+		ensureExecutionRuntime: rw,
+		emitRuntimeStatus: iw,
 		getActiveGridContainer: an,
 		pushGeneratedAsset: vf,
 		upsertAsset: $r,
@@ -24470,41 +24459,41 @@ async function cw(e, t) {
 		comfyToast: D,
 		t: R,
 		reportError: N,
-		registerCleanableListener: FC,
-		syncExecutionBackendState: iw
+		registerCleanableListener: IC,
+		syncExecutionBackendState: aw
 	});
 }
-var lw = Bf({
+var uw = Bf({
 	post: a,
 	ENDPOINTS: I,
 	reportError: N,
 	extractOutputFiles: Vf,
-	ensureExecutionRuntime: nw,
-	emitRuntimeStatus: rw,
+	ensureExecutionRuntime: rw,
+	emitRuntimeStatus: iw,
 	refreshGeneratedFeedHosts: nf,
 	getActiveGridContainer: an
 });
 Qn.registerExtension({
-	name: WC,
+	name: GC,
 	settings: Rt(Qn),
-	commands: dC(Qn, {
-		sidebarTabId: HC,
+	commands: fC(Qn, {
+		sidebarTabId: UC,
 		triggerStartupScan: pr
 	}),
-	keybindings: fC(),
-	menuCommands: pC(),
-	aboutPageBadges: hC(),
-	bottomPanelTabs: wC(),
+	keybindings: pC(),
+	menuCommands: mC(),
+	aboutPageBadges: gC(),
+	bottomPanelTabs: TC(),
 	async setup() {
-		IC({
-			cleanupEntryRuntimeFn: PC,
-			teardownLiveStreamTracker: (e) => LC?.teardownLiveStreamTracker(e),
-			teardownNodeStream: (e) => RC?.teardownNodeStream(e),
-			teardownFloatingViewerManager: VC,
-			teardownGeneratedFeed: TC,
-			teardownAssetsSidebar: yC,
-			teardownGlobalRuntime: iC,
-			teardownTopBarMfvButton: YS,
+		LC({
+			cleanupEntryRuntimeFn: FC,
+			teardownLiveStreamTracker: (e) => RC?.teardownLiveStreamTracker(e),
+			teardownNodeStream: (e) => zC?.teardownNodeStream(e),
+			teardownFloatingViewerManager: HC,
+			teardownGeneratedFeed: EC,
+			teardownAssetsSidebar: bC,
+			teardownGlobalRuntime: aC,
+			teardownTopBarMfvButton: XS,
 			reportError: N
 		}), Op(), He(Qn);
 		let e = await Ae({ timeoutMs: 12e3 }) || Qn;
@@ -24514,25 +24503,25 @@ Qn.registerExtension({
 		} catch (e) {
 			console.debug?.(e);
 		}
-		_r(), zr({ enabled: !0 }), rC(), sw(e), Zt(e, () => {
+		_r(), zr({ enabled: !0 }), iC(), cw(e), Zt(e, () => {
 			let e = an();
 			if (e) {
-				if (F.DEFER_GRID_FETCH_DURING_EXECUTION && aw()) {
-					ow();
+				if (F.DEFER_GRID_FETCH_DURING_EXECUTION && ow()) {
+					sw();
 					return;
 				}
 				Gr(e);
 			}
-		}), gC(e, {
-			sidebarTabId: HC,
+		}), _C(e, {
+			sidebarTabId: UC,
 			triggerStartupScan: pr
-		}), _C(e), setTimeout(() => {
+		}), vC(e), setTimeout(() => {
 			Lr();
-		}, 5e3), cw(e, lw).catch((e) => N(e, "entry.api_setup")), vC(e, { sidebarTabId: HC }) ? Se("[Majoor] Sidebar tab registered (Vue)") : console.warn("Majoor Assets Manager: extensionManager.registerSidebarTab is unavailable");
+		}, 5e3), lw(e, uw).catch((e) => N(e, "entry.api_setup")), yC(e, { sidebarTabId: UC }) ? Se("[Majoor] Sidebar tab registered (Vue)") : console.warn("Majoor Assets Manager: extensionManager.registerSidebarTab is unavailable");
 		try {
 			let e = typeof window < "u" ? window.requestIdleCallback : null, t = () => {
 				try {
-					SC();
+					CC();
 				} catch (e) {
 					console.debug?.(e);
 				}
@@ -24541,26 +24530,26 @@ Qn.registerExtension({
 		} catch (e) {
 			console.debug?.(e);
 		}
-		Tp({ resolveNodeStreamModule: async () => (RC ||= await import("./chunks/NodeStreamController-EQygLyLg.js"), RC) });
+		Tp({ resolveNodeStreamModule: async () => (zC ||= await import("./chunks/NodeStreamController-EQygLyLg.js"), zC) });
 	},
 	onNodeOutputsUpdated(e) {
 		try {
-			lw.handleNodeOutputsUpdated(e);
+			uw.handleNodeOutputsUpdated(e);
 		} catch (e) {
 			console.debug?.("[Majoor] onNodeOutputsUpdated error", e);
 		}
 	},
 	getNodeMenuItems(e) {
-		return AC(e, Qn, { sidebarTabId: HC });
+		return jC(e, Qn, { sidebarTabId: UC });
 	},
 	getCanvasMenuItems(e) {
-		return mC(Qn, {
-			sidebarTabId: HC,
+		return hC(Qn, {
+			sidebarTabId: UC,
 			triggerStartupScan: pr
 		});
 	},
 	getSelectionToolboxCommands(e) {
-		return OC(e);
+		return kC(e);
 	}
 });
 //#endregion

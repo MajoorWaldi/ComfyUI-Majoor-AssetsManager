@@ -13,21 +13,13 @@ const ACTIONBAR_SELECTORS = [
     "[data-testid='actionbar-container']",
     "[data-testid='topbar']",
     ".comfyui-topbar",
-    ".topbar",
 ];
 const BUTTON_GROUP_SELECTORS = [
     ".queue-button-group",
     ".comfyui-button-group",
     "[role='toolbar']",
 ];
-const MANAGER_BUTTON_SELECTORS = [
-    "[data-testid*='manager' i]",
-    "[aria-label*='manager' i]",
-    "[title*='manager' i]",
-    "[data-command-id*='manager' i]",
-    "[data-command-id*='mjr.openAssetsManager' i]",
-    "button",
-];
+const FALLBACK_ACTIONBAR_SELECTORS = [".topbar"];
 
 let _observer: any = null;
 let _observedTarget: any = null;
@@ -42,18 +34,7 @@ let _hasVisibilitySignal = false;
 function _tryObserveActionbar(container: any) {
     if (_observer && _observedTarget === container) return;
     if (!container) {
-        // Actionbar not in DOM yet — observe body shallowly to detect it
-        if (!_bodyObserver && typeof MutationObserver !== "undefined") {
-            _bodyObserver = new MutationObserver(() => {
-                const c = getActionbarContainer();
-                if (c) {
-                    _bodyObserver?.disconnect?.();
-                    _bodyObserver = null;
-                    scheduleSync();
-                }
-            });
-            _bodyObserver.observe(document.body, { childList: true, subtree: true });
-        }
+        _observeBodyForActionbar();
         return;
     }
     // Disconnect previous observer if target changed
@@ -65,19 +46,45 @@ function _tryObserveActionbar(container: any) {
     _observer = new MutationObserver(() => scheduleSync());
     _observer.observe(container, { childList: true, subtree: true });
     _observedTarget = container;
-    // Body observer no longer needed
-    try {
-        _bodyObserver?.disconnect?.();
-    } catch (_) {
-        /* noop */
+    _observeBodyForActionbar();
+}
+
+function _observeBodyForActionbar() {
+    if (_bodyObserver || typeof MutationObserver === "undefined" || !document.body) return;
+    _bodyObserver = new MutationObserver(() => scheduleSync());
+    _bodyObserver.observe(document.body, { childList: true, subtree: true });
+}
+
+function _isConnected(el: any) {
+    return Boolean(el?.isConnected || (el && document.body?.contains?.(el)));
+}
+
+function getButtonGroup(container: any) {
+    if (!container?.querySelector) return null;
+    for (const selector of BUTTON_GROUP_SELECTORS) {
+        const el = container.querySelector(selector);
+        if (el) return el;
     }
-    _bodyObserver = null;
+    return null;
+}
+
+function isValidActionbarCandidate(el: any, { allowFallback = false } = {}) {
+    if (!el) return false;
+    if (!allowFallback) return true;
+    return Boolean(getButtonGroup(el));
 }
 
 function getActionbarContainer() {
     if (typeof document === "undefined") return null;
     for (const selector of ACTIONBAR_SELECTORS) {
         const el = document.querySelector(selector);
+        if (isValidActionbarCandidate(el)) return el;
+    }
+    for (const selector of FALLBACK_ACTIONBAR_SELECTORS) {
+        const candidates = Array.from(document.querySelectorAll(selector));
+        const el = candidates.find((candidate) =>
+            isValidActionbarCandidate(candidate, { allowFallback: true }),
+        );
         if (el) return el;
     }
     return null;
@@ -98,57 +105,9 @@ function updateViewerTopOffset(container = getActionbarContainer()) {
     rootStyle.setProperty("--mjr-mfv-top-offset", `${safeTop}px`);
 }
 
-function getAnchor(container: any) {
+function getTopbarButtonParent(container: any) {
     if (!container) return null;
-    const managerButton = getManagerButtonAnchor(container);
-    if (managerButton) return managerButton;
-    for (const selector of BUTTON_GROUP_SELECTORS) {
-        const el = container.querySelector(selector);
-        if (el) return el;
-    }
-    return null;
-}
-
-function isManagerLikeButton(el: any) {
-    try {
-        const text = String(el?.textContent || "").trim().toLowerCase();
-        const label = String(
-            el?.getAttribute?.("aria-label") ||
-                el?.getAttribute?.("title") ||
-                el?.getAttribute?.("data-testid") ||
-                el?.getAttribute?.("data-command-id") ||
-                "",
-        ).toLowerCase();
-        return (
-            text === "manager" ||
-            text.includes("assets manager") ||
-            text.includes("majoor assets manager") ||
-            label.includes("manager") ||
-            label.includes("mjr.openassetsmanager")
-        );
-    } catch {
-        return false;
-    }
-}
-
-function getManagerButtonAnchor(container: any) {
-    if (!container?.querySelectorAll) return null;
-    for (const selector of MANAGER_BUTTON_SELECTORS) {
-        try {
-            const candidates = Array.from(container.querySelectorAll(selector));
-            const found = candidates.find((el: any) => isManagerLikeButton(el));
-            if (found) return found;
-        } catch (e) {
-            console.debug?.(e);
-        }
-    }
-    return null;
-}
-
-function getTopbarButtonParent(container: any, anchor: any) {
-    if (!container) return null;
-    if (anchor?.classList?.contains?.("comfyui-button-group")) return anchor;
-    return anchor?.parentElement || container;
+    return getButtonGroup(container) || container;
 }
 
 function ensureSlotMounted(container: any) {
@@ -164,18 +123,13 @@ function ensureSlotMounted(container: any) {
         slot.style.padding = "0 4px";
     }
 
-    const anchor = getAnchor(container);
-    const parent = getTopbarButtonParent(container, anchor);
+    const parent = getTopbarButtonParent(container);
 
     if (slot.parentElement !== parent) {
-        if (anchor && parent && parent !== anchor) {
-            parent.insertBefore(slot, anchor.nextSibling);
-        } else if (parent) {
+        if (parent) {
             parent.appendChild(slot);
         }
-    } else if (anchor && parent && parent !== anchor && slot.previousSibling !== anchor) {
-        parent.insertBefore(slot, anchor.nextSibling);
-    } else if (!anchor && slot !== parent.lastElementChild) {
+    } else if (parent && slot !== parent.lastElementChild) {
         parent.appendChild(slot);
     }
 
@@ -256,8 +210,9 @@ function createButtonHost() {
 
 function _syncVisibleFromDom() {
     if (typeof document === "undefined") return;
-    if (_hasVisibilitySignal) return;
-    const viewerOpen = !!document.querySelector(".mjr-mfv.is-visible");
+    const viewerNode = document.querySelector(".mjr-mfv");
+    if (_hasVisibilitySignal && !viewerNode) return;
+    const viewerOpen = !!viewerNode?.classList?.contains?.("is-visible");
     if (_visible !== viewerOpen) {
         _visible = viewerOpen;
     }
@@ -267,7 +222,18 @@ function ensureButtonMounted() {
     const container = getActionbarContainer();
     if (!container) {
         updateViewerTopOffset(null);
+        _tryObserveActionbar(null);
         return null;
+    }
+
+    if (_observedTarget && !_isConnected(_observedTarget)) {
+        try {
+            _observer?.disconnect?.();
+        } catch (e) {
+            console.debug?.(e);
+        }
+        _observer = null;
+        _observedTarget = null;
     }
 
     _tryObserveActionbar(container);
@@ -369,8 +335,8 @@ export function teardownTopBarMfvButton(): void {
 
     try {
         document.documentElement?.style?.setProperty("--mjr-mfv-top-offset", "60px");
-        document.querySelector(`[${BUTTON_HOST_ATTR}]`)?.remove?.();
-        document.querySelector(`[${SLOT_ATTR}]`)?.remove?.();
+        document.querySelectorAll(`[${BUTTON_HOST_ATTR}]`).forEach((el: any) => el.remove?.());
+        document.querySelectorAll(`[${SLOT_ATTR}]`).forEach((el: any) => el.remove?.());
     } catch (e) {
         console.debug?.(e);
     }
