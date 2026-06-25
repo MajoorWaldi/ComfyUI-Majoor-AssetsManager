@@ -1,13 +1,13 @@
 import { Ut as e, h as t, v as n } from "./viewerRuntimeHosts-C-9ryYS-.js";
 import { A as r, B as i, C as a, D as o, F as s, L as c, N as l, S as u, _ as d, a as f, b as p, dt as m, j as h, nt as g, p as _, r as v, x as y, z as b } from "./events-iWiZ-Zty.js";
 import { a as x, i as S, o as C, s as w } from "./graphTraversal-CjIZsRsP.js";
-import { a as T, i as ee } from "./mediaFps-DR-DlMve.js";
-import { a as E, c as D, i as O, n as k, o as te, r as A } from "./SidebarWorkflowSection-DOefrh7f.js";
-import { a as j, c as M, i as N, n as P, o as ne, r as F, s as re, t as ie } from "./openMajoorSettings-CjbK4UkN.js";
-import { i as I, n as L, r as R } from "./VideoControls-CksAyBEm.js";
+import { a as T, i as ee } from "./mediaFps-dibNFbk4.js";
+import { a as E, c as D, i as O, n as k, o as te, r as A } from "./SidebarWorkflowSection-CQks5fGJ.js";
+import { a as j, c as M, i as N, n as P, o as ne, r as F, s as re, t as ie } from "./openMajoorSettings-uHUBBILV.js";
+import { i as I, n as L, r as R } from "./VideoControls-CDu3ByYX.js";
 import { i as ae, o as z, r as oe, t as se } from "./geninfoParser-5vKgjqjD.js";
-import { l as B, o as ce, p as le, r as ue, s as de } from "./mediaPlayer-CU1Depwr.js";
-import { t as fe } from "./genInfo-Br_1AfMX.js";
+import { l as B, o as ce, p as le, r as ue, s as de } from "./mediaPlayer-ufU72_SR.js";
+import { t as fe } from "./genInfo-DQSKLzvg.js";
 //#region ui/features/viewer/floatingViewerConstants.ts
 var V = Object.freeze({
 	SIMPLE: "simple",

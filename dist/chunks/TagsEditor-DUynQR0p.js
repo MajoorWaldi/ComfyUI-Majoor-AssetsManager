@@ -1,12 +1,12 @@
 import { N as e, Ut as t, _ as n } from "./viewerRuntimeHosts-C-9ryYS-.js";
 import { _t as r, n as i, p as a } from "./events-iWiZ-Zty.js";
-import { A as o } from "./mediaFps-DR-DlMve.js";
-import { B as s, C as c, D as l, F as u, G as d, H as f, I as ee, K as p, O as m, P as te, R as h, U as g, et as _, k as v, lt as y, ot as b, st as x, w as S, x as ne, y as C } from "./mjr-primevue-BP853pmn.js";
+import { A as o } from "./mediaFps-dibNFbk4.js";
+import { B as s, C as c, D as l, F as ee, G as u, H as d, I as te, K as ne, O as f, R as p, U as m, et as h, k as g, lt as _, ot as v, st as y, w as b, x, y as S } from "./mjr-primevue-DaF1IwbI.js";
 //#region ui/vue/components/common/TagsEditor.vue
-var w = ["aria-busy"], T = ["aria-label"], E = {
+var C = ["aria-busy"], re = ["aria-label"], w = {
 	key: 0,
 	class: "mjr-tags-empty"
-}, re = { class: "mjr-tags-input-wrap" }, ie = ["aria-selected", "onMouseenter"], ae = 100, D = 200, O = {
+}, T = { class: "mjr-tags-input-wrap" }, ie = ["aria-selected", "onMouseenter"], E = 100, D = 200, O = {
 	__name: "TagsEditor",
 	props: {
 		asset: {
@@ -23,11 +23,11 @@ var w = ["aria-busy"], T = ["aria-label"], E = {
 		}
 	},
 	emits: ["update:modelValue", "tags-change"],
-	setup(O, { emit: oe }) {
-		function se(e) {
+	setup(O, { emit: ae }) {
+		function oe(e) {
 			try {
 				let t = String(e ?? "").trim();
-				if (!t || t.length > ae) return null;
+				if (!t || t.length > E) return null;
 				for (let e = 0; e < t.length; e += 1) {
 					let n = t.charCodeAt(e);
 					if (n <= 31 || n === 127) return null;
@@ -72,12 +72,12 @@ var w = ["aria-busy"], T = ["aria-label"], E = {
 			}
 			return [];
 		}
-		function ce(e, t) {
+		function se(e, t) {
 			if (!Array.isArray(e) || !Array.isArray(t) || e.length !== t.length) return !1;
 			for (let n = 0; n < e.length; n += 1) if (e[n] !== t[n]) return !1;
 			return !0;
 		}
-		let N = O, P = oe, F = M(N.asset?.tags ?? N.modelValue ?? []), I = _([...F]), L = _(null), R = _(""), z = _(!1), B = _(-1), V = _(null), H = _([]), U = _(!1), W = (e) => e?.$el || e || null, G = !1, K = !1, q = null, J = [...F], le = (e) => Math.min(100 * 2 ** Math.max(0, e - 1), 2e3), ue = (e) => new Promise((t) => setTimeout(t, e)), de = () => setTimeout(() => z.value = !1, 200), Y = c(() => {
+		let N = O, P = ae, F = M(N.asset?.tags ?? N.modelValue ?? []), I = h([...F]), L = h(null), R = h(""), z = h(!1), B = h(-1), V = h(null), H = h([]), U = h(!1), W = (e) => e?.$el || e || null, G = !1, K = !1, q = null, J = [...F], ce = (e) => Math.min(100 * 2 ** Math.max(0, e - 1), 2e3), le = (e) => new Promise((t) => setTimeout(t, e)), ue = () => setTimeout(() => z.value = !1, 200), Y = c(() => {
 			let e = R.value.toLowerCase().trim();
 			if (!e) return [];
 			let t = new Set(I.value.map((e) => A(e)).filter(Boolean));
@@ -89,9 +89,9 @@ var w = ["aria-busy"], T = ["aria-label"], E = {
 		function Z(e) {
 			if (G) return;
 			let t = M(e);
-			J = [...t], ce(t, I.value) || (I.value = [...t]);
+			J = [...t], se(t, I.value) || (I.value = [...t]);
 		}
-		function fe(e) {
+		function de(e) {
 			let t = [...e], n = N.asset?.id == null ? "" : String(N.asset.id);
 			P("update:modelValue", t), P("tags-change", {
 				assetId: N.asset?.id,
@@ -115,7 +115,7 @@ var w = ["aria-busy"], T = ["aria-label"], E = {
 			G = !0, U.value = !0;
 			let n = 0;
 			for (; n < 10;) {
-				n > 0 && await ue(le(n)), n += 1;
+				n > 0 && await le(ce(n)), n += 1;
 				let i = M(I.value), o = typeof AbortController < "u" ? new AbortController() : null;
 				q = o;
 				let s = null;
@@ -149,7 +149,7 @@ var w = ["aria-busy"], T = ["aria-label"], E = {
 				} catch (e) {
 					console.debug?.(e);
 				}
-				if (K || (I.value = [...c]), fe(c), t(a("toast.tagsUpdated", "Tags updated"), "success", 1e3), !K) break;
+				if (K || (I.value = [...c]), de(c), t(a("toast.tagsUpdated", "Tags updated"), "success", 1e3), !K) break;
 				K = !1;
 			}
 			if (n >= 10) {
@@ -164,19 +164,14 @@ var w = ["aria-busy"], T = ["aria-label"], E = {
 			}
 			G = !1, q = null, U.value = !1;
 		}
-		ee(async () => {
-			try {
-				await te(), W(L.value)?.focus();
-			} catch (e) {
-				console.debug?.(e);
-			}
+		te(async () => {
 			try {
 				let e = await n();
 				e?.ok && Array.isArray(e?.data) && (H.value = j(e.data));
 			} catch (e) {
 				console.warn("Failed to load available tags:", e);
 			}
-		}), u(() => {
+		}), ee(() => {
 			try {
 				q?.abort?.();
 			} catch (e) {
@@ -185,7 +180,7 @@ var w = ["aria-busy"], T = ["aria-label"], E = {
 		});
 		function $(e) {
 			if (N.disabled) return;
-			let n = se(e);
+			let n = oe(e);
 			if (!n) return;
 			let r = A(n);
 			if (r && !I.value.some((e) => A(e) === r)) {
@@ -196,15 +191,15 @@ var w = ["aria-busy"], T = ["aria-label"], E = {
 				I.value = [...I.value, n], Q();
 			}
 		}
-		function pe(e) {
+		function fe(e) {
 			if (N.disabled || e < 0 || e >= I.value.length) return;
 			let t = [...I.value];
 			t.splice(e, 1), I.value = t, Q();
 		}
-		function me(e) {
+		function pe(e) {
 			if (e.key === "Enter" || e.key === ",") {
 				e.preventDefault();
-				let t = (z.value && X.value && B.value >= 0 ? Y.value[B.value] : null) || R.value.trim();
+				let t = R.value.trim();
 				t && ($(t), R.value = "", z.value = !1, B.value = -1, V.value = null);
 				return;
 			}
@@ -226,63 +221,63 @@ var w = ["aria-busy"], T = ["aria-label"], E = {
 				t && (R.value = t);
 			}
 		}
-		function he(e) {
+		function me(e) {
 			$(e), R.value = "", z.value = !1, B.value = -1, V.value = null, W(L.value)?.focus();
 		}
-		function ge(e) {
+		function he(e) {
 			let t = e?.value ?? V.value;
-			t && he(t);
+			t && me(t);
 		}
-		return g(() => N.modelValue, (e) => {
+		return m(() => N.modelValue, (e) => {
 			Z(e);
-		}), g(() => N.asset?.tags, (e) => {
+		}), m(() => N.asset?.tags, (e) => {
 			Z(e);
 		}), (e, t) => {
-			let n = f("MButton"), r = f("MInputText"), i = f("MListbox");
-			return h(), l("div", {
-				class: x(["mjr-tags-editor", { "is-disabled": O.disabled }]),
+			let n = d("MButton"), r = d("MInputText"), i = d("MListbox");
+			return p(), l("div", {
+				class: y(["mjr-tags-editor", { "is-disabled": O.disabled }]),
 				"aria-busy": U.value
-			}, [S("div", {
+			}, [b("div", {
 				class: "mjr-tags-display",
 				role: "list",
-				"aria-label": b(a)("tags.label", "Tags")
-			}, [I.value.length === 0 ? (h(), l("span", E, y(b(a)("msg.noTagsYet", "No tags yet...")), 1)) : (h(!0), l(ne, { key: 1 }, s(I.value, (e, r) => (h(), l("div", {
+				"aria-label": v(a)("tags.label", "Tags")
+			}, [I.value.length === 0 ? (p(), l("span", w, _(v(a)("msg.noTagsYet", "No tags yet...")), 1)) : (p(!0), l(x, { key: 1 }, s(I.value, (e, r) => (p(), l("div", {
 				key: e,
 				class: "mjr-tag-chip",
 				role: "listitem"
-			}, [m(y(e) + " ", 1), v(n, {
+			}, [f(_(e) + " ", 1), g(n, {
 				type: "button",
 				class: "mjr-tag-chip-remove",
 				severity: "secondary",
 				text: "",
 				rounded: "",
-				"aria-label": b(a)("tags.remove", "Remove tag"),
+				"aria-label": v(a)("tags.remove", "Remove tag"),
 				disabled: O.disabled,
-				onClick: (e) => pe(r)
+				onClick: (e) => fe(r)
 			}, {
-				default: d(() => [...t[4] ||= [m(" x ", -1)]]),
+				default: u(() => [...t[4] ||= [f(" x ", -1)]]),
 				_: 1
 			}, 8, [
 				"aria-label",
 				"disabled",
 				"onClick"
-			])]))), 128))], 8, T), S("div", re, [v(r, {
+			])]))), 128))], 8, re), b("div", T, [g(r, {
 				ref_key: "inputRef",
 				ref: L,
 				modelValue: R.value,
 				"onUpdate:modelValue": t[0] ||= (e) => R.value = e,
 				type: "text",
 				class: "mjr-tag-input",
-				placeholder: b(a)("sidebar.addTag", "Add tag..."),
+				placeholder: v(a)("sidebar.addTag", "Add tag..."),
 				disabled: O.disabled,
-				"aria-label": b(a)("tags.addLabel", "Add tag"),
+				"aria-label": v(a)("tags.addLabel", "Add tag"),
 				"aria-autocomplete": X.value ? "list" : "none",
 				"aria-expanded": z.value,
 				"aria-haspopup": X.value ? "listbox" : void 0,
 				onFocus: t[1] ||= (e) => z.value = R.value.length > 0,
 				onInput: t[2] ||= (e) => z.value = R.value.length > 0,
-				onKeydown: me,
-				onBlur: de
+				onKeydown: pe,
+				onBlur: ue
 			}, null, 8, [
 				"modelValue",
 				"placeholder",
@@ -291,26 +286,26 @@ var w = ["aria-busy"], T = ["aria-label"], E = {
 				"aria-autocomplete",
 				"aria-expanded",
 				"aria-haspopup"
-			]), p(v(i, {
+			]), ne(g(i, {
 				modelValue: V.value,
 				"onUpdate:modelValue": t[3] ||= (e) => V.value = e,
 				options: Y.value,
 				class: "mjr-tags-dropdown",
 				"scroll-height": "150px",
-				"aria-label": b(a)("tags.suggestions", "Tag suggestions"),
-				onChange: ge
+				"aria-label": v(a)("tags.suggestions", "Tag suggestions"),
+				onChange: he
 			}, {
-				option: d(({ option: e, index: t }) => [S("div", {
-					class: x(["mjr-tag-suggestion", { "is-active": t === B.value }]),
+				option: u(({ option: e, index: t }) => [b("div", {
+					class: y(["mjr-tag-suggestion", { "is-active": t === B.value }]),
 					"aria-selected": t === B.value,
 					onMouseenter: (e) => B.value = t
-				}, y(e), 43, ie)]),
+				}, _(e), 43, ie)]),
 				_: 1
 			}, 8, [
 				"modelValue",
 				"options",
 				"aria-label"
-			]), [[C, z.value && X.value]])])], 10, w);
+			]), [[S, z.value && X.value]])])], 10, C);
 		};
 	}
 };
