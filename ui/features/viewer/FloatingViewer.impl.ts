@@ -139,6 +139,11 @@ export class FloatingViewer {
         this._pinnedSlots = new Set();
         this._abDividerX = 0.5; // 0..1
 
+        // Persisted media playback state - intentionally NOT reset on navigation so
+        // mute/speed survive moving between assets with the arrow keys.
+        this._mfvMuted = false;
+        this._mfvPlaybackRate = 1;
+
         // Pan/zoom state
         this._zoom = 1;
         this._panX = 0;
@@ -914,6 +919,35 @@ export class FloatingViewer {
         return rootEl;
     }
 
+    // Keep mute/speed in sync as the user changes them on the primary media
+    // element, so the next navigated-to asset can be built with the same values.
+    _bindMfvPersistence(rootEl: any) {
+        try {
+            const mediaEl = rootEl?.matches?.("video, audio")
+                ? rootEl
+                : rootEl?.querySelector?.("video, audio");
+            if (!mediaEl) return rootEl;
+            mediaEl.addEventListener("volumechange", () => {
+                try {
+                    this._mfvMuted = !!mediaEl.muted;
+                } catch (e: any) {
+                    console.debug?.(e);
+                }
+            });
+            mediaEl.addEventListener("ratechange", () => {
+                try {
+                    const rate = Number(mediaEl.playbackRate);
+                    if (Number.isFinite(rate) && rate > 0) this._mfvPlaybackRate = rate;
+                } catch (e: any) {
+                    console.debug?.(e);
+                }
+            });
+        } catch (e: any) {
+            console.debug?.(e);
+        }
+        return rootEl;
+    }
+
     _initCompareSync() {
         this._destroyCompareSync();
         if (!this._contentEl) return;
@@ -1270,8 +1304,12 @@ export class FloatingViewer {
             this._contentEl.appendChild(_makeEmptyState());
             return;
         }
-        const rawMediaEl = _buildMediaEl(this._mediaA);
+        const rawMediaEl = _buildMediaEl(this._mediaA, {
+            initialMuted: this._mfvMuted,
+            initialPlaybackRate: this._mfvPlaybackRate,
+        });
         const mediaEl = this._trackMediaControls?.(rawMediaEl) || rawMediaEl;
+        this._bindMfvPersistence?.(mediaEl);
         if (!mediaEl) {
             this._contentEl.appendChild(_makeEmptyState("Could not load media"));
             return;
@@ -1283,12 +1321,19 @@ export class FloatingViewer {
     }
 
     _renderAB() {
-        const rawElA = this._mediaA ? _buildMediaEl(this._mediaA, { fill: true }) : null;
+        const rawElA = this._mediaA
+            ? _buildMediaEl(this._mediaA, {
+                  fill: true,
+                  initialMuted: this._mfvMuted,
+                  initialPlaybackRate: this._mfvPlaybackRate,
+              })
+            : null;
         const rawElB = this._mediaB
-            ? _buildMediaEl(this._mediaB, { fill: true, controls: false })
+            ? _buildMediaEl(this._mediaB, { fill: true, controls: false, initialMuted: true })
             : null;
         const elA = this._trackMediaControls?.(rawElA) || rawElA;
         const elB = this._trackMediaControls?.(rawElB) || rawElB;
+        this._bindMfvPersistence?.(elA);
         const kindA = this._mediaA ? _mediaKind(this._mediaA) : "";
         const kindB = this._mediaB ? _mediaKind(this._mediaB) : "";
 
@@ -1401,10 +1446,18 @@ export class FloatingViewer {
     }
 
     _renderSide() {
-        const rawElA = this._mediaA ? _buildMediaEl(this._mediaA) : null;
-        const rawElB = this._mediaB ? _buildMediaEl(this._mediaB, { controls: false }) : null;
+        const rawElA = this._mediaA
+            ? _buildMediaEl(this._mediaA, {
+                  initialMuted: this._mfvMuted,
+                  initialPlaybackRate: this._mfvPlaybackRate,
+              })
+            : null;
+        const rawElB = this._mediaB
+            ? _buildMediaEl(this._mediaB, { controls: false, initialMuted: true })
+            : null;
         const elA = this._trackMediaControls?.(rawElA) || rawElA;
         const elB = this._trackMediaControls?.(rawElB) || rawElB;
+        this._bindMfvPersistence?.(elA);
         const kindA = this._mediaA ? _mediaKind(this._mediaA) : "";
         const kindB = this._mediaB ? _mediaKind(this._mediaB) : "";
 
@@ -1478,8 +1531,14 @@ export class FloatingViewer {
             cell.className = "mjr-mfv-grid-cell";
             if (media) {
                 const kind = _mediaKind(media);
-                const rawEl = _buildMediaEl(media, { controls: label === "A" });
+                const isPrimary = label === "A";
+                const rawEl = _buildMediaEl(media, {
+                    controls: isPrimary,
+                    initialMuted: isPrimary ? this._mfvMuted : true,
+                    initialPlaybackRate: isPrimary ? this._mfvPlaybackRate : 1,
+                });
                 const el = this._trackMediaControls?.(rawEl) || rawEl;
+                if (isPrimary) this._bindMfvPersistence?.(el);
                 if (el) cell.appendChild(el);
                 else cell.appendChild(_makeEmptyState(" - "));
                 cell.appendChild(

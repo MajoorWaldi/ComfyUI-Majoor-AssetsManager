@@ -3,6 +3,7 @@ import { ASSET_RATING_CHANGED_EVENT } from "../../../app/events.js";
 import { comfyToast } from "../../../app/toast.js";
 import { t } from "../../../app/i18n.js";
 import { getHotkeysState, isHotkeysSuspended, setRatingHotkeysActive } from "./hotkeysState.js";
+import { getSelectedIdSet } from "../../grid/GridSelectionManager.js";
 
 const EVENT_NAME = ASSET_RATING_CHANGED_EVENT;
 
@@ -18,23 +19,38 @@ function _safeCssEscapeAttr(value: any) {
     return str.replace(/([!"#$%&'()*+,./:;<=>?@[\\\]^`{|}~])/g, "\\$1");
 }
 
-function getSelectedCards(gridContainer: any, fallbackEventTarget: any = null) {
+function getSelectedAssetIds(gridContainer: any, fallbackEventTarget: any = null): string[] {
     if (!gridContainer) return [];
+    // Read from the selection dataset rather than querying `.is-selected` DOM cards -
+    // the grid is virtualized, so the active asset's card may not be rendered at all
+    // (e.g. scrolled out of view while the floating viewer is open) even though it's selected.
     try {
-        const selected = Array.from(gridContainer.querySelectorAll(".mjr-asset-card.is-selected"));
-        if (selected.length) return selected;
+        const ids = Array.from(getSelectedIdSet(gridContainer));
+        if (ids.length) return ids;
     } catch (e) {
         console.debug?.(e);
     }
 
     try {
         const card = fallbackEventTarget?.closest?.(".mjr-asset-card");
-        if (card && gridContainer.contains(card)) return [card];
+        const id = card?._mjrAsset?.id ?? card?.dataset?.mjrAssetId;
+        if (card && gridContainer.contains(card) && id != null) return [String(id)];
     } catch (e) {
         console.debug?.(e);
     }
 
     return [];
+}
+
+function findRenderedCard(gridContainer: any, assetId: any) {
+    try {
+        return gridContainer?.querySelector?.(
+            `.mjr-asset-card[data-mjr-asset-id="${_safeCssEscapeAttr(assetId)}"]`,
+        );
+    } catch (e) {
+        console.debug?.(e);
+        return null;
+    }
 }
 
 function updateCardRatingBadge(card: any, createRatingBadge: any, rating: any) {
@@ -86,9 +102,7 @@ export function createRatingHotkeysController({ gridContainer, createRatingBadge
     let onKeyDown: any = null;
     let onRatingEvent: any = null;
 
-    const applyRatingToCard = async (card: any, rating: any) => {
-        const asset = card?._mjrAsset;
-        const assetId = asset?.id;
+    const applyRatingToAsset = async (assetId: any, rating: any) => {
         if (assetId == null) return;
 
         try {
@@ -103,7 +117,15 @@ export function createRatingHotkeysController({ gridContainer, createRatingBadge
             return;
         }
 
-        updateCardRatingBadge(card, createRatingBadge, rating);
+        // Broadcasting here also drives the badge refresh via the onRatingEvent listener
+        // below, which finds the card (if currently rendered) and updates it.
+        try {
+            window.dispatchEvent(
+                new CustomEvent(EVENT_NAME, { detail: { assetId: String(assetId), rating } }),
+            );
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
 
     const bind = () => {
@@ -128,24 +150,25 @@ export function createRatingHotkeysController({ gridContainer, createRatingBadge
             if (viewerOverlay && (viewerOverlay as HTMLElement).style.display !== "none") return;
 
             // Check if the event target is within our grid container or if the grid container itself has focus/hover
-            // This ensures rating hotkeys only work when interacting with the assets manager
+            // This ensures rating hotkeys only work when interacting with the assets manager.
+            // The floating viewer lives outside the grid DOM (it's a separate overlay), so also
+            // allow targets inside it - e.g. focus lands on its mute/speed controls after use.
             const isTargetInGrid = gridContainer.contains(e.target) || gridContainer === e.target;
-            if (!isTargetInGrid) return; // Only handle rating keys when interacting with our grid
+            const isTargetInFloatingViewer = !!e.target?.closest?.(".mjr-mfv");
+            if (!isTargetInGrid && !isTargetInFloatingViewer) return; // Only handle rating keys when interacting with our grid
 
             const rating = k === "0" ? 0 : Number(k);
             if (!Number.isFinite(rating)) return;
 
-            const cards = getSelectedCards(gridContainer, e.target);
-            if (!cards.length) return;
+            const assetIds = getSelectedAssetIds(gridContainer, e.target);
+            if (!assetIds.length) return;
 
             // Only prevent default and stop propagation if we're actually handling the key
-            if (cards.length > 0) {
-                e.preventDefault();
-                e.stopPropagation();
-                e.stopImmediatePropagation?.();
-            }
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation?.();
 
-            await runWithConcurrencyLimit(cards, (card: any) => applyRatingToCard(card, rating), 5);
+            await runWithConcurrencyLimit(assetIds, (id: any) => applyRatingToAsset(id, rating), 5);
         };
 
         onRatingEvent = (ev: any) => {
@@ -153,14 +176,8 @@ export function createRatingHotkeysController({ gridContainer, createRatingBadge
             const assetId = detail.assetId ?? detail.id ?? null;
             const rating = Number(detail.rating);
             if (!assetId || !Number.isFinite(rating)) return;
-            try {
-                const card = gridContainer.querySelector(
-                    `.mjr-asset-card[data-mjr-asset-id="${_safeCssEscapeAttr(assetId)}"]`,
-                );
-                if (card) updateCardRatingBadge(card, createRatingBadge, rating);
-            } catch (e) {
-                console.debug?.(e);
-            }
+            const card = findRenderedCard(gridContainer, assetId);
+            if (card) updateCardRatingBadge(card, createRatingBadge, rating);
         };
 
         try {

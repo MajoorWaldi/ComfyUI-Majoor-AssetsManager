@@ -70,6 +70,28 @@ export function attemptFloatingViewerAutoplay(mediaEl: any): void {
     }
 }
 
+// Browsers generally block unmuted autoplay. When the caller wants sound on by
+// default, try playing unmuted first and fall back to muted playback if the
+// browser rejects it, so the media still autoplays either way.
+export function attemptFloatingViewerAutoplayWithSound(mediaEl: any): void {
+    if (!mediaEl || typeof mediaEl.play !== "function") return;
+    try {
+        const p = mediaEl.play();
+        if (p && typeof p.catch === "function") {
+            p.catch(() => {
+                try {
+                    mediaEl.muted = true;
+                    attemptFloatingViewerAutoplay(mediaEl);
+                } catch (e: any) {
+                    console.debug?.(e);
+                }
+            });
+        }
+    } catch (e: any) {
+        console.debug?.(e);
+    }
+}
+
 export function findFloatingViewerScrollableAncestor(target: any, boundary: any) {
     let node = target && target.nodeType === 1 ? target : target?.parentElement || null;
     while (node && node !== boundary) {
@@ -126,7 +148,10 @@ export function pauseFloatingViewerMediaIn(rootEl: any) {
     }
 }
 
-export function buildFloatingViewerMediaElement(fileData: any, { fill = false, controls = true } = {}) {
+export function buildFloatingViewerMediaElement(
+    fileData: any,
+    { fill = false, controls = true, initialMuted = false, initialPlaybackRate = 1 } = {},
+) {
     const url = resolveFloatingViewerMediaUrl(fileData);
     if (!url) return null;
     const kind = getFloatingViewerMediaKind(fileData);
@@ -166,6 +191,7 @@ export function buildFloatingViewerMediaElement(fileData: any, { fill = false, c
             mediaKind,
             initialFps: readAssetFps(fileData) || undefined,
             initialFrameCount: readAssetFrameCount(fileData, readAssetFps(fileData)) || undefined,
+            initialPlaybackRate,
         });
 
         try {
@@ -185,15 +211,17 @@ export function buildFloatingViewerMediaElement(fileData: any, { fill = false, c
         audio.autoplay = true;
         audio.preload = "metadata";
         audio.loop = true;
-        audio.muted = true;
+        audio.muted = initialMuted;
+        audio.playbackRate = initialPlaybackRate;
+        const autoplay = initialMuted
+            ? () => attemptFloatingViewerAutoplay(audio)
+            : () => attemptFloatingViewerAutoplayWithSound(audio);
         try {
-            audio.addEventListener("loadedmetadata", () => attemptFloatingViewerAutoplay(audio), {
-                once: true,
-            });
+            audio.addEventListener("loadedmetadata", autoplay, { once: true });
         } catch (e: any) {
             console.debug?.(e);
         }
-        attemptFloatingViewerAutoplay(audio);
+        autoplay();
         return buildPlayableMediaHost(audio, "audio");
     }
 
@@ -203,9 +231,15 @@ export function buildFloatingViewerMediaElement(fileData: any, { fill = false, c
         v.src = url;
         v.controls = false;
         v.loop = true;
-        v.muted = true;
+        v.muted = initialMuted;
+        v.playbackRate = initialPlaybackRate;
         v.autoplay = true;
         v.playsInline = true;
+        if (initialMuted) {
+            attemptFloatingViewerAutoplay(v);
+        } else {
+            attemptFloatingViewerAutoplayWithSound(v);
+        }
         return buildPlayableMediaHost(v, "video");
     }
 

@@ -6264,7 +6264,7 @@ function Ut() {
 		zt = e;
 	}), Bt || import("./scopes-X1iFrTle.js").then((e) => {
 		Bt = e;
-	}), Vt || import("./genInfo-BngXh04n.js").then((e) => e.n).then((e) => {
+	}), Vt || import("./genInfo-Bo5JBjO5.js").then((e) => e.n).then((e) => {
 		Vt = e;
 	}), Ht || import("./frameExport-tksSZ7sb.js").then((e) => {
 		Ht = e;
