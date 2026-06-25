@@ -1,7 +1,7 @@
 import { M as e, Wt as t, d as n } from "./viewerRuntimeHosts-6HaE-P9G.js";
 import { a as r, p as i, vt as a } from "./events-Bz2Vm8U5.js";
-import { O as o } from "./mediaFps-CdGbfYY3.js";
-import { tt as s } from "./mjr-primevue-n1rsQYJg.js";
+import { O as o } from "./mediaFps-C2sBBKsu.js";
+import { tt as s } from "./mjr-primevue-BOCpq3qH.js";
 //#region ui/utils/filenames.ts
 var c = new Set([
 	"CON",

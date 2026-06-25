@@ -145,6 +145,13 @@ export function createWebGLVideoProcessor(opts: Record<string, any>): any {
         return ctx;
     }
 
+    // Acquire eagerly (rather than lazily on first render) so failure to get a
+    // context - e.g. the browser's live-WebGL-context limit was already hit by
+    // other open videos/viewers - can be detected immediately and the caller
+    // can fall back to the 2D canvas path instead of silently never painting.
+    gl = acquireContext();
+    if (!gl) return null;
+
     const checkGLError = (label = "") => {
         if (!gl) return;
         const error = gl.getError();

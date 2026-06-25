@@ -40,11 +40,14 @@ export function createVideoProcessor({
         }
     }
 
+    // alpha: true so the canvas stays transparent until a frame actually paints,
+    // instead of flashing/sticking opaque black if rendering stalls (e.g. the WebGL
+    // fallback path kicking in under context pressure from rapid open/close cycles).
     const ctx = glProc
         ? null
         : (() => {
               try {
-                  return canvas.getContext("2d", { willReadFrequently: true, alpha: false });
+                  return canvas.getContext("2d", { willReadFrequently: true, alpha: true });
               } catch {
                   return null;
               }

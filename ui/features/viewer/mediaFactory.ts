@@ -451,7 +451,7 @@ export function createViewerMediaFactory({
                     canvas,
                     videoEl: video,
                     disableWebGL: disableWebGL || !!APP_CONFIG.VIEWER_DISABLE_WEBGL_VIDEO,
-                    pauseDuringExecution: true,
+                    pauseDuringExecution: APP_CONFIG.VIEWER_PAUSE_DURING_EXECUTION,
                     getGradeParams,
                     isDefaultGrade,
                     tonemap,
@@ -694,7 +694,7 @@ export function createViewerMediaFactory({
                 (canvas as any)._mjrProc = createVideoProcessor({
                     canvas,
                     videoEl: video,
-                    pauseDuringExecution: true,
+                    pauseDuringExecution: APP_CONFIG.VIEWER_PAUSE_DURING_EXECUTION,
                     getGradeParams,
                     isDefaultGrade,
                     tonemap,

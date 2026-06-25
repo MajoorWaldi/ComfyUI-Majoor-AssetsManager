@@ -1,11 +1,11 @@
 import { M as e, R as t, Wt as n, b as r, c as i, d as a, ft as o, g as s, h as c, n as l, o as u, r as d, s as f, ut as p, v as m } from "./viewerRuntimeHosts-6HaE-P9G.js";
 import { a as h, dt as g, i as _, m as v, n as y, nt as b, p as x, r as S, st as C, t as w } from "./events-Bz2Vm8U5.js";
-import { A as T, a as E, c as D, d as O, f as k, i as A, k as j, o as M, r as N, s as P, u as ee } from "./mediaFps-CdGbfYY3.js";
-import { tt as F } from "./mjr-primevue-n1rsQYJg.js";
-import { c as I, n as L, o as te, r as ne, s as R, t as z } from "./ratingUpdater-BCEEfDrb.js";
-import { a as B, n as re } from "./VideoControls-DqoiN-7o.js";
+import { A as T, a as E, c as D, d as O, f as k, i as A, k as j, o as M, r as N, s as P, u as ee } from "./mediaFps-C2sBBKsu.js";
+import { tt as F } from "./mjr-primevue-BOCpq3qH.js";
+import { c as I, n as L, o as te, r as ne, s as R, t as z } from "./ratingUpdater-CFdSecKG.js";
+import { a as B, n as re } from "./VideoControls-CAViAk-h.js";
 import { n as V, r as ie } from "./state-DPiaUMw1.js";
-import { c as H, d as U, f as ae, i as oe, l as W, n as se, p as ce, r as le, s as ue, t as de, u as G } from "./mediaPlayer-qwdNOiGr.js";
+import { c as H, d as U, f as ae, i as oe, l as W, n as se, p as ce, r as le, s as ue, t as de, u as G } from "./mediaPlayer-DGdjGuCN.js";
 //#region ui/features/contextmenu/viewerContextMenuState.ts
 function fe() {
 	return {
@@ -3549,6 +3549,7 @@ function at(e) {
 		}
 		return e && (o = e.getParameter(e.MAX_TEXTURE_SIZE) || 4096), e;
 	}
+	if (i = l(), !i) return null;
 	let u = (e = "") => {
 		if (!i) return;
 		let t = i.getError();
@@ -3686,7 +3687,7 @@ function ot({ canvas: e, videoEl: t, disableWebGL: n, pauseDuringExecution: r = 
 		try {
 			return e.getContext("2d", {
 				willReadFrequently: !0,
-				alpha: !1
+				alpha: !0
 			});
 		} catch {
 			return null;
@@ -4768,7 +4769,7 @@ function ft({ overlay: e, state: t, mediaTransform: n, updateMediaNaturalSize: r
 					canvas: u,
 					videoEl: y,
 					disableWebGL: f || !!h.VIEWER_DISABLE_WEBGL_VIDEO,
-					pauseDuringExecution: !0,
+					pauseDuringExecution: h.VIEWER_PAUSE_DURING_EXECUTION,
 					getGradeParams: s,
 					isDefaultGrade: c,
 					tonemap: l,
@@ -4937,17 +4938,17 @@ function ft({ overlay: e, state: t, mediaTransform: n, updateMediaNaturalSize: r
                 transform: ${n?.() || ""};
                 transform-origin: center center;
             `;
-			let h = document.createElement("video");
-			h.className = "mjr-viewer-video-src", h.src = f, h.controls = !1, h.loop = !0, h.muted = !0, h.playsInline = !0, h.autoplay = !0, h.preload = "auto";
+			let g = document.createElement("video");
+			g.className = "mjr-viewer-video-src", g.src = f, g.controls = !1, g.loop = !0, g.muted = !0, g.playsInline = !0, g.autoplay = !0, g.preload = "auto";
 			try {
-				"decode" in HTMLVideoElement.prototype && (h.decoding = "async");
+				"decode" in HTMLVideoElement.prototype && (g.decoding = "async");
 			} catch {}
-			h.style.cssText = "position:absolute; width:1px; height:1px; opacity:0; pointer-events:none;", T(h, e);
+			g.style.cssText = "position:absolute; width:1px; height:1px; opacity:0; pointer-events:none;", T(g, e);
 			try {
 				m._mjrProc = ot({
 					canvas: m,
-					videoEl: h,
-					pauseDuringExecution: !0,
+					videoEl: g,
+					pauseDuringExecution: h.VIEWER_PAUSE_DURING_EXECUTION,
 					getGradeParams: s,
 					isDefaultGrade: c,
 					tonemap: l,
@@ -4977,17 +4978,17 @@ function ft({ overlay: e, state: t, mediaTransform: n, updateMediaNaturalSize: r
 			} catch (e) {
 				console.debug?.(e);
 			}
-			return u.appendChild(m), u.appendChild(h), u;
+			return u.appendChild(m), u.appendChild(g), u;
 		}
 		if (b(e)) return x(e, f);
-		let h = document.createElement("canvas");
-		h.className = "mjr-viewer-media";
+		let g = document.createElement("canvas");
+		g.className = "mjr-viewer-media";
 		try {
-			e?.id != null && h?.dataset && (h.dataset.mjrAssetId = String(e.id));
+			e?.id != null && g?.dataset && (g.dataset.mjrAssetId = String(e.id));
 		} catch (e) {
 			console.debug?.(e);
 		}
-		S(h, e), h.style.cssText = `
+		S(g, e), g.style.cssText = `
             max-width: 100%;
             max-height: 100%;
             display: block;
@@ -4995,8 +4996,8 @@ function ft({ overlay: e, state: t, mediaTransform: n, updateMediaNaturalSize: r
             transform-origin: center center;
         `;
 		try {
-			h._mjrProc = G({
-				canvas: h,
+			g._mjrProc = G({
+				canvas: g,
 				url: f,
 				getGradeParams: s,
 				isDefaultGrade: c,
@@ -5020,11 +5021,11 @@ function ft({ overlay: e, state: t, mediaTransform: n, updateMediaNaturalSize: r
 						console.debug?.(e);
 					}
 				}
-			}), h._mjrProc?.setParams?.(s?.());
+			}), g._mjrProc?.setParams?.(s?.());
 		} catch (e) {
 			console.debug?.(e);
 		}
-		return h;
+		return g;
 	}
 	return {
 		createMediaElement: O,
@@ -6258,13 +6259,13 @@ var Lt = null, Rt = null, zt = null, Bt = null, Vt = null, Ht = null;
 function Ut() {
 	Lt || import("./abCompare-BXOoRlmV.js").then((e) => {
 		Lt = e;
-	}), Rt || import("./sideBySide-DLHi52s8.js").then((e) => {
+	}), Rt || import("./sideBySide-CbPZbJDV.js").then((e) => {
 		Rt = e;
-	}), zt || import("./mediaPlayer-qwdNOiGr.js").then((e) => e.a).then((e) => {
+	}), zt || import("./mediaPlayer-DGdjGuCN.js").then((e) => e.a).then((e) => {
 		zt = e;
 	}), Bt || import("./scopes-X1iFrTle.js").then((e) => {
 		Bt = e;
-	}), Vt || import("./genInfo-gvStWNv1.js").then((e) => e.n).then((e) => {
+	}), Vt || import("./genInfo-DWukqlLe.js").then((e) => e.n).then((e) => {
 		Vt = e;
 	}), Ht || import("./frameExport-tksSZ7sb.js").then((e) => {
 		Ht = e;
