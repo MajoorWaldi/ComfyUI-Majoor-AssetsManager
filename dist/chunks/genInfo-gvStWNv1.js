@@ -1,8 +1,8 @@
 import { t as e } from "./rolldown-runtime-Dy4uBu1J.js";
-import { m as t, o as n } from "./events-DE87d50y.js";
-import { c as r } from "./mediaFps-CPzBm2U7.js";
-import { c as i, l as a, p as o, s, t as c } from "./SidebarWorkflowSection-aCM3MYrw.js";
-import { B as l, D as u, E as d, O as f, T as p, ct as m, dt as h, k as g, ut as _ } from "./mjr-primevue-BABDj8Il.js";
+import { a as t, p as n } from "./events-Bz2Vm8U5.js";
+import { c as r } from "./mediaFps-CdGbfYY3.js";
+import { c as i, l as a, p as o, s, t as c } from "./SidebarWorkflowSection-_nICipAq.js";
+import { B as l, D as u, E as d, O as f, T as p, ct as m, dt as h, k as g, ut as _ } from "./mjr-primevue-n1rsQYJg.js";
 //#region ui/vue/components/viewer/ViewerMetadataBlock.vue
 var v = { style: {
 	display: "flex",
@@ -169,17 +169,17 @@ var v = { style: {
 		function I() {
 			typeof r.onRetry == "function" && r.onRetry();
 		}
-		let L = p(() => o(r.asset)), R = p(() => i(r.asset)), z = p(() => R.value.kind !== "empty"), B = p(() => P(r.asset)), V = p(() => n.WORKFLOW_MINIMAP_ENABLED !== !1 && N(r.asset)), H = p(() => L.value && typeof L.value == "object" && L.value.kind === "fetch_error"), U = p(() => F(r.asset?.metadata_raw)), W = p(() => !r.loading && !H.value && !B.value && !z.value && !V.value), G = p(() => {
+		let L = p(() => o(r.asset)), R = p(() => i(r.asset)), z = p(() => R.value.kind !== "empty"), B = p(() => P(r.asset)), V = p(() => t.WORKFLOW_MINIMAP_ENABLED !== !1 && N(r.asset)), H = p(() => L.value && typeof L.value == "object" && L.value.kind === "fetch_error"), U = p(() => F(r.asset?.metadata_raw)), W = p(() => !r.loading && !H.value && !B.value && !z.value && !V.value), G = p(() => {
 			if (!H.value) return "";
-			let e = String(L.value?.message || L.value?.error || "Failed to load generation data."), n = String(L.value?.code || L.value?.stage || "").trim();
-			return n ? t("viewer.metadataErrorWithCode", "{message}\n\nCode: {code}\nClick to retry.", {
+			let e = String(L.value?.message || L.value?.error || "Failed to load generation data."), t = String(L.value?.code || L.value?.stage || "").trim();
+			return t ? n("viewer.metadataErrorWithCode", "{message}\n\nCode: {code}\nClick to retry.", {
 				message: e,
-				code: n
-			}) : t("viewer.metadataErrorRetry", "{message}\n\nClick to retry.", { message: e });
+				code: t
+			}) : n("viewer.metadataErrorRetry", "{message}\n\nClick to retry.", { message: e });
 		});
-		return (e, n) => (l(), g("div", v, [
+		return (e, t) => (l(), g("div", v, [
 			r.title ? (l(), g("div", y, h(r.title), 1)) : f("", !0),
-			r.loading ? (l(), g("div", b, [d("div", x, h(m(t)("status.loading", "Loading")), 1), d("div", S, h(m(t)("viewer.loadingGenerationData", "Loading generation data...")), 1)])) : f("", !0),
+			r.loading ? (l(), g("div", b, [d("div", x, h(m(n)("status.loading", "Loading")), 1), d("div", S, h(m(n)("viewer.loadingGenerationData", "Loading generation data...")), 1)])) : f("", !0),
 			H.value ? (l(), g("div", {
 				key: 2,
 				style: _([{
@@ -191,7 +191,7 @@ var v = { style: {
 					"white-space": "pre-wrap"
 				}, { cursor: r.onRetry ? "pointer" : "default" }]),
 				onClick: I
-			}, [d("div", C, h(m(t)("viewer.errorLoadingMetadata", "Error Loading Metadata")), 1), d("div", w, h(G.value), 1)], 4)) : f("", !0),
+			}, [d("div", C, h(m(n)("viewer.errorLoadingMetadata", "Error Loading Metadata")), 1), d("div", w, h(G.value), 1)], 4)) : f("", !0),
 			B.value ? (l(), u(a, {
 				key: 3,
 				asset: r.asset
@@ -204,8 +204,8 @@ var v = { style: {
 				key: 5,
 				asset: r.asset
 			}, null, 8, ["asset"])) : f("", !0),
-			W.value ? (l(), g("div", T, h(m(t)("viewer.noGenerationDataFile", "No generation data found for this file.")), 1)) : f("", !0),
-			U.value ? (l(), g("details", E, [d("summary", D, h(m(t)("msg.rawMetadata", "Raw metadata")), 1), d("pre", O, h(U.value), 1)])) : f("", !0)
+			W.value ? (l(), g("div", T, h(m(n)("viewer.noGenerationDataFile", "No generation data found for this file.")), 1)) : f("", !0),
+			U.value ? (l(), g("details", E, [d("summary", D, h(m(n)("msg.rawMetadata", "Raw metadata")), 1), d("pre", O, h(U.value), 1)])) : f("", !0)
 		]));
 	}
 }, A = /* @__PURE__ */ e({
@@ -214,7 +214,7 @@ var v = { style: {
 }), j = (e, t = null) => {
 	let n = r(e);
 	return n === void 0 ? t : n;
-}, M = n?.VIEWER_GENINFO_TTL_MS ?? 3e4, N = n?.VIEWER_GENINFO_ERROR_TTL_MS ?? 8e3, P = n?.VIEWER_GENINFO_MAX_ENTRIES ?? 300, F = /* @__PURE__ */ new Map(), I = /* @__PURE__ */ new Map(), L = /* @__PURE__ */ new Map(), R = (e, t, n) => {
+}, M = t?.VIEWER_GENINFO_TTL_MS ?? 3e4, N = t?.VIEWER_GENINFO_ERROR_TTL_MS ?? 8e3, P = t?.VIEWER_GENINFO_MAX_ENTRIES ?? 300, F = /* @__PURE__ */ new Map(), I = /* @__PURE__ */ new Map(), L = /* @__PURE__ */ new Map(), R = (e, t, n) => {
 	try {
 		let r = Date.now();
 		for (let [n, i] of e.entries()) {

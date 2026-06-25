@@ -1,6 +1,6 @@
-import { D as e, j as t, k as n, m as r, o as i } from "./events-DE87d50y.js";
-import { T as a, nt as o } from "./mjr-primevue-BABDj8Il.js";
-import { n as s, r as c } from "./mjr-vue-vendor-eVn0EK5H.js";
+import { A as e, E as t, O as n, a as r, p as i } from "./events-Bz2Vm8U5.js";
+import { T as a, nt as o } from "./mjr-primevue-n1rsQYJg.js";
+import { n as s, r as c } from "./mjr-vue-vendor-D2GeV7Qd.js";
 //#region ui/utils/events.ts
 function l(e, t, { target: n = null, warnPrefix: r = "[Majoor]" } = {}) {
 	let i = n || (typeof window < "u" ? window : null);
@@ -19,9 +19,9 @@ function l(e, t, { target: n = null, warnPrefix: r = "[Majoor]" } = {}) {
 //#endregion
 //#region ui/app/DialogTemplates.ts
 var u = async (e, t = "Majoor", n = {}) => {
-	let i = m();
-	if (i && typeof i.alert == "function") try {
-		await i.alert({
+	let r = m();
+	if (r && typeof r.alert == "function") try {
+		await r.alert({
 			title: String(t || "Majoor"),
 			message: String(e || "")
 		});
@@ -66,8 +66,8 @@ var u = async (e, t = "Majoor", n = {}) => {
 		return;
 	}
 	return new Promise((n) => {
-		let i = new o();
-		S(i);
+		let r = new o();
+		S(r);
 		let a = b("div", { style: {
 			display: "flex",
 			flexDirection: "column",
@@ -101,10 +101,10 @@ var u = async (e, t = "Majoor", n = {}) => {
 				justifyContent: "flex-end",
 				gap: "10px"
 			} }, [b("button", {
-				textContent: r("dialog.confirm", "Confirm"),
+				textContent: i("dialog.confirm", "Confirm"),
 				onclick: () => {
 					try {
-						i.close();
+						r.close();
 					} catch (e) {
 						console.debug?.(e);
 					}
@@ -122,7 +122,7 @@ var u = async (e, t = "Majoor", n = {}) => {
 			})])
 		]);
 		try {
-			i.show(a), setTimeout(() => C(i), 0);
+			r.show(a), setTimeout(() => C(r), 0);
 		} catch {
 			try {
 				window.alert(e);
@@ -135,22 +135,22 @@ var u = async (e, t = "Majoor", n = {}) => {
 }, d = async (e, t = "Majoor") => {
 	let n = m();
 	if (n) try {
-		let i = {
-			title: String(t || r("dialog.confirm", "Confirm")),
+		let r = {
+			title: String(t || i("dialog.confirm", "Confirm")),
 			message: String(e || "")
 		};
-		return !!(typeof n.confirm == "function" && await n.confirm(i));
+		return !!(typeof n.confirm == "function" && await n.confirm(r));
 	} catch (e) {
 		console.debug?.(e);
 	}
-	let i = x();
-	if (!i) try {
+	let r = x();
+	if (!r) try {
 		return window.confirm(e);
 	} catch {
 		return !1;
 	}
 	return new Promise((n) => {
-		let a = new i();
+		let a = new r();
 		S(a);
 		let o = (e) => {
 			try {
@@ -192,7 +192,7 @@ var u = async (e, t = "Majoor", n = {}) => {
 				justifyContent: "flex-end",
 				gap: "10px"
 			} }, [b("button", {
-				textContent: r("dialog.cancel", "Cancel"),
+				textContent: i("dialog.cancel", "Cancel"),
 				onclick: () => o(!1),
 				style: {
 					padding: "10px 16px",
@@ -204,7 +204,7 @@ var u = async (e, t = "Majoor", n = {}) => {
 					cursor: "pointer"
 				}
 			}), b("button", {
-				textContent: r("dialog.confirm", "Confirm"),
+				textContent: i("dialog.confirm", "Confirm"),
 				onclick: () => o(!0),
 				style: {
 					padding: "10px 16px",
@@ -228,13 +228,13 @@ var u = async (e, t = "Majoor", n = {}) => {
 		}
 	});
 }, f = async (e, t = "", n = "Majoor") => {
-	let i = m();
-	if (i) try {
+	let r = m();
+	if (r) try {
 		let a = {
-			title: String(n || r("dialog.prompt", "Prompt")),
+			title: String(n || i("dialog.prompt", "Prompt")),
 			message: String(e || ""),
 			defaultValue: String(t ?? "")
-		}, o = typeof i.prompt == "function" ? await i.prompt(a) : null;
+		}, o = typeof r.prompt == "function" ? await r.prompt(a) : null;
 		return o == null ? null : String(o);
 	} catch (e) {
 		console.debug?.(e);
@@ -245,7 +245,7 @@ var u = async (e, t = "Majoor", n = {}) => {
 	} catch {
 		return null;
 	}
-	return new Promise((i) => {
+	return new Promise((r) => {
 		let o = new a();
 		S(o);
 		let s = (e) => {
@@ -254,7 +254,7 @@ var u = async (e, t = "Majoor", n = {}) => {
 			} catch (e) {
 				console.debug?.(e);
 			}
-			i(e ?? null);
+			r(e ?? null);
 		}, c = b("input", {
 			type: "text",
 			value: String(t ?? ""),
@@ -300,7 +300,7 @@ var u = async (e, t = "Majoor", n = {}) => {
 				justifyContent: "flex-end",
 				gap: "10px"
 			} }, [b("button", {
-				textContent: r("dialog.cancel", "Cancel"),
+				textContent: i("dialog.cancel", "Cancel"),
 				onclick: () => s(null),
 				style: {
 					padding: "8px 12px",
@@ -311,7 +311,7 @@ var u = async (e, t = "Majoor", n = {}) => {
 					cursor: "pointer"
 				}
 			}), b("button", {
-				textContent: r("dialog.ok", "OK"),
+				textContent: i("dialog.ok", "OK"),
 				onclick: () => s(c.value),
 				style: {
 					padding: "8px 12px",
@@ -333,23 +333,23 @@ var u = async (e, t = "Majoor", n = {}) => {
 			}, 0);
 		} catch {
 			try {
-				i(window.prompt(e, t));
+				r(window.prompt(e, t));
 			} catch {
-				i(null);
+				r(null);
 			}
 		}
 	});
 }, p = () => {
 	try {
-		return t()?.ui || null;
+		return e()?.ui || null;
 	} catch {
 		return null;
 	}
 }, m = () => {
-	let t = (e) => !!e && (typeof e.alert == "function" || typeof e.confirm == "function" || typeof e.prompt == "function");
+	let e = (e) => !!e && (typeof e.alert == "function" || typeof e.confirm == "function" || typeof e.prompt == "function");
 	try {
-		let n = e();
-		if (t(n)) return n;
+		let n = t();
+		if (e(n)) return n;
 	} catch (e) {
 		console.debug?.(e);
 	}
@@ -1198,7 +1198,7 @@ function Ce(e) {
 var X = () => {};
 function Z(e) {
 	try {
-		return !!i?.[e];
+		return !!r?.[e];
 	} catch {
 		return !1;
 	}

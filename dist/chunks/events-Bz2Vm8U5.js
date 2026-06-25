@@ -3154,11 +3154,10 @@ var It = (e) => {
 	DELETE_CONFIRMATION: !0,
 	DEBUG_VERBOSE_ERRORS: !1,
 	SIDEBAR_ASSET_BADGE_ENABLED: !0
-}), Ut = { ...Ht }, Wt = "mjr:asset-rating-changed", Gt = "mjr:asset-tags-changed", Kt = "mjr:viewer-info-refreshed", qt = "mjr:viewer-active-asset-changed", Jt = Object.freeze({
+}), Ut = { ...Ht }, Wt = "mjr:asset-rating-changed", Gt = "mjr:asset-tags-changed", Kt = "mjr:viewer-info-refreshed", qt = Object.freeze({
 	ASSET_RATING_CHANGED: Wt,
 	ASSET_TAGS_CHANGED: Gt,
 	VIEWER_INFO_REFRESHED: Kt,
-	VIEWER_ACTIVE_ASSET_CHANGED: qt,
 	SCAN_COMPLETE: "mjr-scan-complete",
 	CORE_EXECUTION_ASSETS_READY: "mjr-core-execution-assets-ready",
 	ENRICHMENT_STATUS: "mjr-enrichment-status",
@@ -3194,4 +3193,4 @@ var It = (e) => {
 	OPEN_MESSAGE_HISTORY: "mjr:open-message-history"
 });
 //#endregion
-export { De as $, N as A, dt as B, ft as C, Me as D, qe as E, ct as F, lt as G, Re as H, Ke as I, Ve as J, Pe as K, ut as L, tt as M, Ne as N, Je as O, st as P, le as Q, rt as R, He as S, vt as T, ze as U, L as V, Fe as W, k as X, Ge as Y, ue as Z, Ie as _, s as _t, Kt as a, se as at, pt as b, zt as c, S as ct, Lt as d, ne as dt, Ee as et, $ as f, v as ft, Le as g, o as gt, U as h, d as ht, qt as i, ee as it, Be as j, je as k, Bt as l, y as lt, Vt as m, oe as mt, Gt as n, _ as nt, Ut as o, b as ot, Rt as p, ie as pt, Ae as q, Jt as r, x as rt, Ht as s, ae as st, Wt as t, g as tt, It as u, re as ut, it as v, l as vt, nt as w, ot as x, _t as y, u as yt, We as z };
+export { Ee as $, Be as A, L as B, nt as C, Je as D, Me as E, Ke as F, Pe as G, ze as H, ut as I, Ge as J, Ae as K, rt as L, Ne as M, st as N, je as O, ct as P, De as Q, We as R, ft as S, qe as T, Fe as U, Re as V, lt as W, ue as X, k as Y, le as Z, it as _, l as _t, Ut as a, b as at, ot as b, Bt as c, y as ct, $ as d, v as dt, g as et, Rt as f, ie as ft, Ie as g, s as gt, Le as h, o as ht, Kt as i, se as it, tt as j, N as k, It as l, re as lt, U as m, d as mt, Gt as n, x as nt, Ht as o, ae as ot, Vt as p, oe as pt, Ve as q, qt as r, ee as rt, zt as s, S as st, Wt as t, _ as tt, Lt as u, ne as ut, _t as v, u as vt, vt as w, He as x, pt as y, dt as z };
