@@ -1,9 +1,9 @@
 import { a as e, i as t } from "./viewerRuntimeHosts-CIpB5USD.js";
 import { r as n } from "./events-N36HM6KP.js";
-import { i as r, r as i } from "./floatingViewerManager-BSPxKA3H.js";
-import { B as a, C as o, D as s, E as c, G as l, H as u, I as d, O as f, R as p, T as m, W as h, ct as g, dt as _, j as v, k as y, lt as b, nt as x, q as S, ut as C, w, z as T } from "./mjr-primevue-n1rsQYJg.js";
-import { t as E } from "./TagsEditor-CwRCCul-.js";
-import { a as D, c as O, i as k, n as A, o as ee, r as j, s as M, t as N } from "./Viewer-BM3j6JpR.js";
+import { i as r, r as i } from "./floatingViewerManager-BianigoM.js";
+import { B as a, C as o, D as s, E as c, G as l, H as u, I as d, O as f, R as p, T as m, W as h, ct as g, dt as _, j as v, k as y, lt as b, nt as x, q as S, ut as C, w, z as T } from "./mjr-primevue-BABDj8Il.js";
+import { t as E } from "./TagsEditor-Bg5Sp346.js";
+import { a as D, c as O, i as k, n as A, o as ee, r as j, s as M, t as N } from "./Viewer-DVgwaSje.js";
 //#region ui/vue/components/viewer/FloatingViewerHost.vue
 var P = {
 	__name: "FloatingViewerHost",

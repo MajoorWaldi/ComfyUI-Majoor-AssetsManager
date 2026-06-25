@@ -524,7 +524,7 @@ export function mountVideoControls(video: any, opts: Record<string, any> = {}) {
         speedSelect.title = t("video.playbackSpeed", "Playback speed");
         speedSelect.setAttribute("aria-label", t("video.playbackSpeed", "Playback speed"));
         speedSelect.style.width = "74px";
-        const SPEED_OPTIONS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2];
+        const SPEED_OPTIONS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 3, 5, 10];
         for (const rate of SPEED_OPTIONS) {
             const opt = document.createElement("option");
             opt.value = String(rate);
@@ -802,7 +802,7 @@ export function mountVideoControls(video: any, opts: Record<string, any> = {}) {
             loop: advanced,
             pingpong: false,
             once: false,
-            playbackRate: Math.max(0.25, Math.min(2, Number(opts?.initialPlaybackRate) || 1)),
+            playbackRate: Math.max(0.25, Math.min(10, Number(opts?.initialPlaybackRate) || 1)),
             _seeking: false,
             _ppReverse: false,
             _ppRafId: null,
@@ -907,7 +907,7 @@ export function mountVideoControls(video: any, opts: Record<string, any> = {}) {
             try {
                 const n = Number(nextRate);
                 if (!Number.isFinite(n) || n <= 0) return state.playbackRate;
-                const rate = Math.max(0.25, Math.min(2, Math.round(n * 100) / 100));
+                const rate = Math.max(0.25, Math.min(10, Math.round(n * 100) / 100));
                 state.playbackRate = rate;
                 try {
                     video.playbackRate = rate;
@@ -1928,6 +1928,13 @@ export function mountVideoControls(video: any, opts: Record<string, any> = {}) {
                 stop(e);
                 try {
                     setPlaybackRate(Number(speedSelect.value) || 1);
+                } catch (e: any) {
+                    console.debug?.(e);
+                }
+                try {
+                    // Release focus so Left/Right keep navigating between assets
+                    // instead of being swallowed by the focused <select>.
+                    speedSelect.blur?.();
                 } catch (e: any) {
                     console.debug?.(e);
                 }
