@@ -98,7 +98,7 @@ var re = /* @__PURE__ */ e({
 	teardownFloatingViewerManager: () => $
 }), g = null, ie = null;
 async function ae() {
-	return g || (ie ||= import("./FloatingViewer-pbZMqltw.js").then((e) => (g = e.FloatingViewer, g)), ie);
+	return g || (ie ||= import("./FloatingViewer-DvqcRC_-.js").then((e) => (g = e.FloatingViewer, g)), ie);
 }
 var _ = null, oe = null;
 async function se() {
