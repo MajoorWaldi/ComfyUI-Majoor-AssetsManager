@@ -3,7 +3,7 @@ import { r as n } from "./events-iWiZ-Zty.js";
 import { i as r, r as i } from "./floatingViewerManager-eCmg8OTF.js";
 import { B as a, C as o, D as s, E as c, G as l, H as u, I as d, L as f, P as p, R as m, S as h, T as g, U as _, ct as v, et as y, k as b, lt as x, ot as S, st as C, w, x as T } from "./mjr-primevue-BP853pmn.js";
 import { t as E } from "./TagsEditor-WNqtBVY4.js";
-import { a as D, c as O, i as k, n as A, o as j, r as M, s as N, t as P } from "./Viewer-D3sg7LUx.js";
+import { a as D, c as O, i as k, n as A, o as j, r as M, s as N, t as P } from "./Viewer-Ce0uoLSH.js";
 //#region ui/vue/components/viewer/FloatingViewerHost.vue
 var F = {
 	__name: "FloatingViewerHost",

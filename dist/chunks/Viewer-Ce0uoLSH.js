@@ -1871,7 +1871,7 @@ function Je({ overlay: e, _content: t, singleView: r, state: i, VIEWER_MODES: a,
 					g(), M();
 					return;
 				}
-				t.key === "Escape" && (g(), D(m));
+				t.key === "Escape" && (g(), K.tags.open ? be() : D(m));
 				return;
 			}
 		} catch (e) {
@@ -2133,7 +2133,7 @@ function Je({ overlay: e, _content: t, singleView: r, state: i, VIEWER_MODES: a,
 				}
 				break;
 			case "Escape":
-				g(), D(m);
+				g(), K.tags.open ? be() : D(m);
 				break;
 			case "ArrowLeft":
 				if (v && t.target?.closest?.(".mjr-viewer-playerbar")) {

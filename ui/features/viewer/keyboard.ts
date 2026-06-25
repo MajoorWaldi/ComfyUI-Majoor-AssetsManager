@@ -4,7 +4,11 @@ import { t } from "../../app/i18n.js";
 import { isHotkeysSuspended } from "../panel/controllers/hotkeysState.js";
 import { ASSET_TAGS_CHANGED_EVENT } from "../../app/events.js";
 import { safeDispatchCustomEvent } from "../../utils/events.js";
-import { openViewerTagsPopover } from "../contextmenu/viewerContextMenuState.js";
+import {
+    openViewerTagsPopover,
+    closeViewerTagsPopover,
+    viewerContextMenuState,
+} from "../contextmenu/viewerContextMenuState.js";
 
 /**
  * Extract prompt text from asset metadata for clipboard copy.
@@ -202,7 +206,11 @@ export function installViewerKeyboard({
 
                     if (e.key === "Escape") {
                         consume();
-                        safeCall(closeViewer);
+                        if (viewerContextMenuState.tags.open) {
+                            closeViewerTagsPopover();
+                        } else {
+                            safeCall(closeViewer);
+                        }
                     }
                     return;
                 }
@@ -612,7 +620,11 @@ export function installViewerKeyboard({
             }
             case "Escape":
                 consume();
-                safeCall(closeViewer);
+                if (viewerContextMenuState.tags.open) {
+                    closeViewerTagsPopover();
+                } else {
+                    safeCall(closeViewer);
+                }
                 break;
             case "ArrowLeft":
                 if (isSingle && e.target?.closest?.(".mjr-viewer-playerbar")) {

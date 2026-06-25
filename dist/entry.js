@@ -983,7 +983,7 @@ var ri = {
 	}
 }, ii = null;
 function ai() {
-	return ii ||= import("./chunks/viewerOpenRequest-BA_epa3d.js"), ii;
+	return ii ||= import("./chunks/viewerOpenRequest-CvVr6tt0.js"), ii;
 }
 function oi(e) {
 	if (!e) return "";
@@ -2146,7 +2146,7 @@ function Pa() {
 //#region ui/features/contextmenu/GridContextMenu.ts
 var Fa = 1, Ia = null, La = null;
 function Ra() {
-	return Ia ||= import("./chunks/viewerOpenRequest-BA_epa3d.js"), Ia;
+	return Ia ||= import("./chunks/viewerOpenRequest-CvVr6tt0.js"), Ia;
 }
 function za() {
 	return La ||= import("./chunks/floatingViewerManager-eCmg8OTF.js").then((e) => e.n), La;
@@ -8061,7 +8061,7 @@ var dd = {
 		G(!0);
 		let a = G(0), o = G(0), s = /* @__PURE__ */ new WeakMap(), c = 0, l = 0, u = 0, d = 0, f = 0, p = /* @__PURE__ */ new Map(), m = null, h = null;
 		function g() {
-			return m ||= import("./chunks/viewerOpenRequest-BA_epa3d.js"), m;
+			return m ||= import("./chunks/viewerOpenRequest-CvVr6tt0.js"), m;
 		}
 		function _() {
 			return h ||= import("./chunks/floatingViewerManager-eCmg8OTF.js").then((e) => e.n), h;
@@ -9348,7 +9348,7 @@ var dd = {
 	}
 }, Ed = 240, Dd = 120, Od = 80, kd = null, Ad = null;
 function jd() {
-	return kd ||= import("./chunks/viewerOpenRequest-BA_epa3d.js"), kd;
+	return kd ||= import("./chunks/viewerOpenRequest-CvVr6tt0.js"), kd;
 }
 function Md() {
 	return Ad ||= import("./chunks/floatingViewerManager-eCmg8OTF.js").then((e) => e.n), Ad;
@@ -11595,7 +11595,7 @@ function cm() {
 var lm = {
 	__name: "GlobalRuntime",
 	setup(e) {
-		let t = un(() => import("./chunks/ViewerPortal-DFfdSuNV.js")), n = G(!1), r = [
+		let t = un(() => import("./chunks/ViewerPortal-BY2HBRLy.js")), n = G(!1), r = [
 			z.OPEN_VIEWER,
 			z.MFV_OPEN,
 			z.MFV_TOGGLE,
