@@ -11,7 +11,11 @@ import {
     getViewerInfo,
     getFileMetadataScoped,
 } from "../api/client.js";
-import { ASSET_RATING_CHANGED_EVENT, ASSET_TAGS_CHANGED_EVENT } from "../app/events.js";
+import {
+    ASSET_RATING_CHANGED_EVENT,
+    ASSET_TAGS_CHANGED_EVENT,
+    VIEWER_ACTIVE_ASSET_CHANGED_EVENT,
+} from "../app/events.js";
 import { t } from "../app/i18n.js";
 import {
     bindViewerContextMenu,
@@ -2315,6 +2319,18 @@ function createViewer() {
     }
 
     function closeViewer() {
+        try {
+            const current = state.assets?.[state.currentIndex];
+            if (current?.id) {
+                safeDispatchCustomEvent(
+                    VIEWER_ACTIVE_ASSET_CHANGED_EVENT,
+                    { assetId: String(current.id) },
+                    { warnPrefix: "[ViewerRuntime]" },
+                );
+            }
+        } catch (e: any) {
+            console.debug?.(e);
+        }
         try {
             state.distractionFree = false;
             applyDistractionFreeUI();

@@ -1,6 +1,6 @@
-import { A as e, J as t, L as n, T as r, k as i, p as a, q as o, y as s } from "./events-Bz2Vm8U5.js";
+import { A as e, E as t, J as n, R as r, Y as i, b as a, j as o, m as s } from "./events-DE87d50y.js";
 import { a as c, n as l } from "./graphTraversal-CjIZsRsP.js";
-import { b as u } from "./SidebarWorkflowSection-_nICipAq.js";
+import { b as u } from "./SidebarWorkflowSection-aCM3MYrw.js";
 //#region ui/features/viewer/floatingViewerProgress.ts
 var d = "progress-update", f = "__MJR_MFV_PROGRESS_SERVICE__";
 function p() {
@@ -12,8 +12,8 @@ function m(e, t) {
 	return n.detail = t, n;
 }
 var h = class {
-	constructor(t, n = () => e()) {
-		this.id = String(t || ""), this.promptApi = null, this.executedNodeIds = [], this.totalNodes = 0, this.currentlyExecuting = null, this.errorDetails = null, this._getApp = typeof n == "function" ? n : () => null;
+	constructor(e, t = () => o()) {
+		this.id = String(e || ""), this.promptApi = null, this.executedNodeIds = [], this.totalNodes = 0, this.currentlyExecuting = null, this.errorDetails = null, this._getApp = typeof t == "function" ? t : () => null;
 	}
 	setPrompt(e) {
 		let t = e && typeof e == "object" ? e.output : null;
@@ -61,8 +61,8 @@ var h = class {
 		this.errorDetails = e || null;
 	}
 }, g = class extends EventTarget {
-	constructor({ getApi: t = (e) => i(e), getApp: n = () => e(), waitForApi: r = (e) => o(e) } = {}) {
-		super(), this._getApi = t, this._getApp = n, this._waitForApi = r, this.promptsMap = /* @__PURE__ */ new Map(), this.currentExecution = null, this.lastQueueRemaining = 0, this._api = null, this._listenerEntries = [], this._initPromise = null, this._queuePromptBinding = null;
+	constructor({ getApi: t = (t) => e(t), getApp: r = () => o(), waitForApi: i = (e) => n(e) } = {}) {
+		super(), this._getApi = t, this._getApp = r, this._waitForApi = i, this.promptsMap = /* @__PURE__ */ new Map(), this.currentExecution = null, this.lastQueueRemaining = 0, this._api = null, this._listenerEntries = [], this._initPromise = null, this._queuePromptBinding = null;
 	}
 	getSnapshot() {
 		return {
@@ -106,27 +106,27 @@ var h = class {
 		}), this._api = e, this._patchQueuePrompt(e), this._attachApiListeners(e));
 	}
 	_patchQueuePrompt(e) {
-		let n = this;
-		this._queuePromptBinding = t({
+		let t = this;
+		this._queuePromptBinding = i({
 			api: e,
 			owner: this,
 			createWrapper(e) {
-				return async function(t, r, ...i) {
+				return async function(n, r, ...i) {
 					let a;
 					try {
 						a = await e.apply(this, [
-							t,
+							n,
 							r,
 							...i
 						]);
 					} catch (e) {
-						let t = n.getOrMakePrompt("error");
-						throw t.error({ exception_type: "Unknown." }), n.currentExecution = t, n.dispatchProgressUpdate(), e;
+						let n = t.getOrMakePrompt("error");
+						throw n.error({ exception_type: "Unknown." }), t.currentExecution = n, t.dispatchProgressUpdate(), e;
 					}
 					let o = String(a?.prompt_id || a?.promptId || "").trim();
 					if (o) {
-						let e = n.getOrMakePrompt(o);
-						e.setPrompt(r), n.currentExecution ||= e, n.dispatchEvent(m("queue-prompt", { prompt: e })), n.dispatchProgressUpdate();
+						let e = t.getOrMakePrompt(o);
+						e.setPrompt(r), t.currentExecution ||= e, t.dispatchEvent(m("queue-prompt", { prompt: e })), t.dispatchProgressUpdate();
 					}
 					return a;
 				};
@@ -243,11 +243,11 @@ function S(e, t) {
 		e._mediaProgressTextEl.textContent = n, e._mediaProgressEl.title = n || "", e._mediaProgressEl.classList.toggle("is-error", o), e._mediaProgressEl.classList.toggle("is-visible", !!n);
 	}
 }
-function C(t, n) {
-	let r = String(n || "").trim();
-	if (!r) return !1;
+function C(e, t) {
+	let n = String(t || "").trim();
+	if (!n) return !1;
 	try {
-		return s(r, e());
+		return a(n, o());
 	} catch (e) {
 		return console.debug?.(e), !1;
 	}
@@ -300,18 +300,18 @@ function D(e, t, n = null) {
 		default: return P(e);
 	}
 }
-function O(e, t, i = null) {
+function O(e, n, i = null) {
 	if (!e) return !1;
 	let a = String(e.type || "").toLowerCase();
 	if (a === "number" || a === "int" || a === "float") {
-		let n = Number(t);
-		if (Number.isNaN(n)) return !1;
-		let r = e.options ?? {}, i = r.min ?? -Infinity, o = r.max ?? Infinity, s = Math.min(o, Math.max(i, n));
+		let t = Number(n);
+		if (Number.isNaN(t)) return !1;
+		let r = e.options ?? {}, i = r.min ?? -Infinity, o = r.max ?? Infinity, s = Math.min(o, Math.max(i, t));
 		(a === "int" || r.precision === 0 || r.round === 1) && (s = Math.round(s)), e.value = s;
-	} else a === "toggle" || a === "boolean" ? e.value = !!t : e.value = t;
+	} else a === "toggle" || a === "boolean" ? e.value = !!n : e.value = n;
 	try {
-		let t = r(), o = i ?? e?.parent ?? null, s = e.value;
-		e.callback?.(e.value, t, o, null, e), (a === "number" || a === "int" || a === "float") && (e.value = s), k(e), n(o);
+		let n = t(), o = i ?? e?.parent ?? null, s = e.value;
+		e.callback?.(e.value, n, o, null, e), (a === "number" || a === "int" || a === "float") && (e.value = s), k(e), r(o);
 	} catch (e) {
 		console.debug?.("[MFV] writeWidgetValue", e);
 	}
@@ -731,33 +731,33 @@ function J() {
 	let n = document.createElement("div");
 	n.className = "mjr-settings-head";
 	let r = document.createElement("div");
-	r.className = "mjr-settings-title", r.textContent = a("settings.majoor.title", "Majoor Assets Manager Settings");
+	r.className = "mjr-settings-title", r.textContent = s("settings.majoor.title", "Majoor Assets Manager Settings");
 	let i = document.createElement("button");
-	i.type = "button", i.className = "mjr-settings-close", i.textContent = "X", i.setAttribute("aria-label", a("btn.close", "Close")), i.addEventListener("click", Y), n.append(r, i);
-	let o = document.createElement("div");
-	o.className = "mjr-settings-tools";
-	let s = document.createElement("input");
-	s.type = "search", s.className = "mjr-settings-search", s.placeholder = a("placeholder.searchSettings", "Search settings"), o.appendChild(s);
+	i.type = "button", i.className = "mjr-settings-close", i.textContent = "X", i.setAttribute("aria-label", s("btn.close", "Close")), i.addEventListener("click", Y), n.append(r, i);
+	let a = document.createElement("div");
+	a.className = "mjr-settings-tools";
+	let o = document.createElement("input");
+	o.type = "search", o.className = "mjr-settings-search", o.placeholder = s("placeholder.searchSettings", "Search settings"), a.appendChild(o);
 	let c = document.createElement("div");
-	return c.className = "mjr-settings-body", t.append(n, o, c), e.appendChild(t), document.body.appendChild(e), {
+	return c.className = "mjr-settings-body", t.append(n, a, c), e.appendChild(t), document.body.appendChild(e), {
 		body: c,
 		root: e,
-		search: s
+		search: o
 	};
 }
 function Y() {
 	L?.root && (L.root.hidden = !0);
 }
-function X(t = e()) {
+function X(e = o()) {
 	if (typeof document > "u") return !1;
 	L?.root?.isConnected || (L = J());
-	let n = u(t), r = () => q(L.body, n, String(L.search.value || "").trim().toLowerCase());
-	return L.search.oninput = r, L.search.value = "", r(), L.root.hidden = !1, setTimeout(() => L?.search?.focus?.(), 0), !0;
+	let t = u(e), n = () => q(L.body, t, String(L.search.value || "").trim().toLowerCase());
+	return L.search.oninput = n, L.search.value = "", n(), L.root.hidden = !1, setTimeout(() => L?.search?.focus?.(), 0), !0;
 }
 //#endregion
 //#region ui/app/openMajoorSettings.ts
-function Z(t = e()) {
-	return X(t);
+function Z(e = o()) {
+	return X(e);
 }
 try {
 	typeof window < "u" && (window.MajoorAssetsManager = window.MajoorAssetsManager || {}, window.MajoorAssetsManager.openSettings = Z);

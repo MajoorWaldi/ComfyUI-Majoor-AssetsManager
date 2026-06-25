@@ -1,11 +1,13 @@
 export const ASSET_RATING_CHANGED_EVENT = "mjr:asset-rating-changed";
 export const ASSET_TAGS_CHANGED_EVENT = "mjr:asset-tags-changed";
 export const VIEWER_INFO_REFRESHED_EVENT = "mjr:viewer-info-refreshed";
+export const VIEWER_ACTIVE_ASSET_CHANGED_EVENT = "mjr:viewer-active-asset-changed";
 
 export const EVENTS = Object.freeze({
     ASSET_RATING_CHANGED: ASSET_RATING_CHANGED_EVENT,
     ASSET_TAGS_CHANGED: ASSET_TAGS_CHANGED_EVENT,
     VIEWER_INFO_REFRESHED: VIEWER_INFO_REFRESHED_EVENT,
+    VIEWER_ACTIVE_ASSET_CHANGED: VIEWER_ACTIVE_ASSET_CHANGED_EVENT,
     SCAN_COMPLETE: "mjr-scan-complete",
     CORE_EXECUTION_ASSETS_READY: "mjr-core-execution-assets-ready",
     ENRICHMENT_STATUS: "mjr-enrichment-status",
