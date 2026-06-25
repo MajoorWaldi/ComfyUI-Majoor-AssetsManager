@@ -567,6 +567,21 @@ function openKeyboardDetails() {
     }
 }
 
+function onAssetTagsChanged(event) {
+    const detail = event?.detail || {};
+    const assetId = String(detail.assetId ?? detail.id ?? "").trim();
+    if (!assetId) return;
+    const list = Array.isArray(state.assets) ? state.assets : [];
+    const idx = list.findIndex((entry) => String(entry?.id || "") === assetId);
+    if (idx === -1) return;
+    const nextTags = Array.isArray(detail.tags) ? [...detail.tags] : [];
+    // Replace the array (and the changed entry) so the shallowReactive grid state
+    // detects the update — mutating asset.tags in place is invisible to it.
+    const next = list.slice();
+    next[idx] = { ...next[idx], tags: nextTags };
+    state.assets = next;
+}
+
 function installGridApi(container) {
     if (!container) return;
     container._mjrSelectionManagedByVue = true;
@@ -961,6 +976,7 @@ function scheduleInitialHostMeasurements() {
 
 onMounted(() => {
     scheduleInitialHostMeasurements();
+    window.addEventListener(EVENTS.ASSET_TAGS_CHANGED, onAssetTagsChanged);
 });
 
 watch(
@@ -1679,6 +1695,11 @@ watch(
 );
 
 onBeforeUnmount(() => {
+    try {
+        window.removeEventListener(EVENTS.ASSET_TAGS_CHANGED, onAssetTagsChanged);
+    } catch (e) {
+        console.debug?.(e);
+    }
     try {
         gridContainerRef.value?._mjrPrimaryPointerSelectionUnbind?.();
     } catch (e) {

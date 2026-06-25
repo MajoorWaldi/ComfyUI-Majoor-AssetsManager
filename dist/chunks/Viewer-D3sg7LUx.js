@@ -1,11 +1,11 @@
 import { M as e, R as t, Ut as n, b as r, c as i, d as a, ft as o, g as s, h as c, n as l, o as u, r as d, s as f, ut as p, v as m } from "./viewerRuntimeHosts-C-9ryYS-.js";
 import { a as h, dt as g, i as _, m as v, n as y, nt as b, p as x, r as S, st as C, t as w } from "./events-iWiZ-Zty.js";
-import { A as T, a as E, c as D, d as O, f as k, i as A, k as j, o as M, r as N, s as P, u as ee } from "./mediaFps-dibNFbk4.js";
-import { $ as F } from "./mjr-primevue-DaF1IwbI.js";
-import { c as I, n as L, o as te, r as ne, s as R, t as z } from "./ratingUpdater-Ci14Gbgc.js";
-import { a as B, n as re } from "./VideoControls-CDu3ByYX.js";
+import { A as T, a as E, c as D, d as O, f as k, i as A, k as j, o as M, r as N, s as P, u as F } from "./mediaFps-DR-DlMve.js";
+import { $ as ee } from "./mjr-primevue-BP853pmn.js";
+import { c as I, n as L, o as te, r as ne, s as R, t as z } from "./ratingUpdater-COkEO6yI.js";
+import { a as B, n as re } from "./VideoControls-CksAyBEm.js";
 import { n as V, r as ie } from "./state-DPiaUMw1.js";
-import { c as H, d as U, f as ae, i as oe, l as W, n as se, p as ce, r as le, s as ue, t as de, u as G } from "./mediaPlayer-ufU72_SR.js";
+import { c as H, d as U, f as ae, i as oe, l as W, n as se, p as ce, r as le, s as ue, t as de, u as G } from "./mediaPlayer-CU1Depwr.js";
 //#region ui/features/contextmenu/viewerContextMenuState.ts
 function fe() {
 	return {
@@ -16,7 +16,7 @@ function fe() {
 		title: ""
 	};
 }
-var K = F({
+var K = ee({
 	portalOwnerId: "",
 	mountedPortalIds: [],
 	main: fe(),
@@ -791,10 +791,10 @@ function He({ VIEWER_MODES: e, state: t, onToolsChanged: n, onCompareModeChanged
 	}, P = C("Zebra", "Zebra Highlights (Z)", {
 		iconClass: "pi-bars",
 		accentRgb: O.zebra
-	}), ee = C("Scopes", "Scopes overlay", {
+	}), F = C("Scopes", "Scopes overlay", {
 		iconClass: "pi-chart-bar",
 		accentRgb: O.analysis
-	}), F = b("Scopes", [
+	}), ee = b("Scopes", [
 		{
 			value: "off",
 			label: "Off"
@@ -812,7 +812,7 @@ function He({ VIEWER_MODES: e, state: t, onToolsChanged: n, onCompareModeChanged
 			label: "Both"
 		}
 	]);
-	F.title = x("tooltip.scopesHistogram", "Show histogram/waveform scopes");
+	ee.title = x("tooltip.scopesHistogram", "Show histogram/waveform scopes");
 	let I = C("Grid", "Grid (G)", {
 		iconClass: "pi-th-large",
 		accentRgb: O.overlay
@@ -1029,7 +1029,7 @@ function He({ VIEWER_MODES: e, state: t, onToolsChanged: n, onCompareModeChanged
 		label: "Analysis",
 		accentRgb: O.analysis
 	});
-	q.appendChild(P.b), q.appendChild(ee.b), q.appendChild(F), f.body.appendChild(q);
+	q.appendChild(P.b), q.appendChild(F.b), q.appendChild(ee), f.body.appendChild(q);
 	let J = y({
 		key: "overlay-guides",
 		label: "Guides",
@@ -1121,8 +1121,8 @@ function He({ VIEWER_MODES: e, state: t, onToolsChanged: n, onCompareModeChanged
 		exposureCtl: T,
 		gammaCtl: E,
 		zebraToggle: P,
-		scopesToggle: ee,
-		scopesSelect: F,
+		scopesToggle: F,
+		scopesSelect: ee,
 		gridToggle: I,
 		gridModeSelect: L,
 		maskToggle: te,
@@ -1151,7 +1151,7 @@ function He({ VIEWER_MODES: e, state: t, onToolsChanged: n, onCompareModeChanged
 }
 //#endregion
 //#region ui/features/viewer/toolbarActions.ts
-function Ue({ unsubs: e, state: t, VIEWER_MODES: n, onMode: r, onClose: i, onToolsChanged: a, onCompareModeChanged: o, onAudioVizModeChanged: s, onExportFrame: c, onCopyFrame: l, singleBtn: u, abBtn: d, sideBtn: f, closeBtn: p, channelsSelect: m, compareModeSelect: h, audioVizModeSelect: g, exposureCtl: _, gammaCtl: v, zebraToggle: y, scopesToggle: b, scopesSelect: x, gridToggle: S, gridModeSelect: C, maskToggle: w, formatSelect: T, maskOpacityCtl: E, probeToggle: O, loupeToggle: k, hudToggle: A, focusToggle: j, genInfoToggle: M, resetGradeBtn: N, exportBtn: ee, copyBtn: F, resetExposure: I, resetGamma: L, resetViewerTools: te, expGroup: ne, gamGroup: R }) {
+function Ue({ unsubs: e, state: t, VIEWER_MODES: n, onMode: r, onClose: i, onToolsChanged: a, onCompareModeChanged: o, onAudioVizModeChanged: s, onExportFrame: c, onCopyFrame: l, singleBtn: u, abBtn: d, sideBtn: f, closeBtn: p, channelsSelect: m, compareModeSelect: h, audioVizModeSelect: g, exposureCtl: _, gammaCtl: v, zebraToggle: y, scopesToggle: b, scopesSelect: x, gridToggle: S, gridModeSelect: C, maskToggle: w, formatSelect: T, maskOpacityCtl: E, probeToggle: O, loupeToggle: k, hudToggle: A, focusToggle: j, genInfoToggle: M, resetGradeBtn: N, exportBtn: F, copyBtn: ee, resetExposure: I, resetGamma: L, resetViewerTools: te, expGroup: ne, gamGroup: R }) {
 	e.push(P(u, "click", () => r?.(n.SINGLE))), e.push(P(d, "click", () => r?.(n.AB_COMPARE))), e.push(P(f, "click", () => r?.(n.SIDE_BY_SIDE))), e.push(P(p, "click", () => i?.())), e.push(P(m, "change", () => {
 		try {
 			t.channel = String(m.value || "rgb");
@@ -1274,13 +1274,13 @@ function Ue({ unsubs: e, state: t, VIEWER_MODES: n, onMode: r, onClose: i, onToo
 		D(a);
 	})), e.push(P(N, "click", () => {
 		te();
-	})), e.push(P(ee, "click", () => {
+	})), e.push(P(F, "click", () => {
 		try {
 			c?.();
 		} catch (e) {
 			console.debug?.(e);
 		}
-	})), e.push(P(F, "click", () => {
+	})), e.push(P(ee, "click", () => {
 		try {
 			l?.();
 		} catch (e) {
@@ -1288,7 +1288,7 @@ function Ue({ unsubs: e, state: t, VIEWER_MODES: n, onMode: r, onClose: i, onToo
 		}
 	}));
 }
-function We({ state: e, VIEWER_MODES: t, getCanAB: n, header: r, toolsRow: i, chGroup: a, expGroup: o, gamGroup: s, anaGroup: c, gradePanel: l, overlayPanel: u, inspectPanel: d, infoPanel: f, actionPanel: p, ovGuidesGroup: m, ovInspectGroup: h, model3dHint: g, helpWrap: _, channelsSelect: v, compareModeSelect: y, audioVizModeSelect: b, exposureCtl: x, gammaCtl: S, zebraToggle: C, scopesToggle: w, scopesSelect: T, gridToggle: E, gridModeSelect: D, maskToggle: O, formatSelect: k, maskOpacityCtl: A, probeToggle: j, loupeToggle: M, hudToggle: N, focusToggle: P, genInfoToggle: ee, exportBtn: F, copyBtn: I, resetGradeBtn: L, cmpGroup: te, audGroup: ne, ACCENT: R, setSelectHighlighted: z, setChannelSelectStyle: B, setValueHighlighted: re, setGroupHighlighted: V }) {
+function We({ state: e, VIEWER_MODES: t, getCanAB: n, header: r, toolsRow: i, chGroup: a, expGroup: o, gamGroup: s, anaGroup: c, gradePanel: l, overlayPanel: u, inspectPanel: d, infoPanel: f, actionPanel: p, ovGuidesGroup: m, ovInspectGroup: h, model3dHint: g, helpWrap: _, channelsSelect: v, compareModeSelect: y, audioVizModeSelect: b, exposureCtl: x, gammaCtl: S, zebraToggle: C, scopesToggle: w, scopesSelect: T, gridToggle: E, gridModeSelect: D, maskToggle: O, formatSelect: k, maskOpacityCtl: A, probeToggle: j, loupeToggle: M, hudToggle: N, focusToggle: P, genInfoToggle: F, exportBtn: ee, copyBtn: I, resetGradeBtn: L, cmpGroup: te, audGroup: ne, ACCENT: R, setSelectHighlighted: z, setChannelSelectStyle: B, setValueHighlighted: re, setGroupHighlighted: V }) {
 	let ie = e?.assets?.[e?.currentIndex] || null, H = String(ie?.kind || "").toLowerCase() === "model3d";
 	try {
 		let e = H ? "none" : "";
@@ -1377,7 +1377,7 @@ function We({ state: e, VIEWER_MODES: t, getCanAB: n, header: r, toolsRow: i, ch
 	}
 	try {
 		let e = String(ie?.kind || ""), t = e === "video" || e === "model3d";
-		F.style.display = t ? "" : "none", I.style.display = t ? "" : "none";
+		ee.style.display = t ? "" : "none", I.style.display = t ? "" : "none";
 		let n = !!(globalThis?.ClipboardItem && navigator?.clipboard?.write);
 		I.style.display = t && n ? "" : "none";
 	} catch (e) {
@@ -1414,7 +1414,7 @@ function We({ state: e, VIEWER_MODES: t, getCanAB: n, header: r, toolsRow: i, ch
 		console.debug?.(e);
 	}
 	try {
-		ee.setActive(!!e.genInfoOpen);
+		F.setActive(!!e.genInfoOpen);
 	} catch (e) {
 		console.debug?.(e);
 	}
@@ -1492,7 +1492,7 @@ function We({ state: e, VIEWER_MODES: t, getCanAB: n, header: r, toolsRow: i, ch
 		console.debug?.(e);
 	}
 	try {
-		let t = !!e.genInfoOpen, n = ee?.b;
+		let t = !!e.genInfoOpen, n = F?.b;
 		n && t && (n.style.borderColor = `rgba(${R.geninfo},0.55)`, n.style.background = `rgba(${R.geninfo},0.14)`);
 	} catch (e) {
 		console.debug?.(e);
@@ -1590,12 +1590,12 @@ function Ke({ VIEWER_MODES: e, state: t, lifecycle: n, onClose: r, _onZoomIn: i,
 	} catch (e) {
 		console.debug?.(e);
 	}
-	let ee = document.createElement("div");
-	ee.className = "mjr-viewer-header-area mjr-viewer-header-area--left", ee.style.cssText = "display:none; align-items:center; gap:12px; min-width:0; flex:1 1 0; overflow:hidden;", ee.appendChild(y);
 	let F = document.createElement("div");
-	F.className = "mjr-viewer-header-area mjr-viewer-header-area--center", F.style.cssText = "display:flex; align-items:center; justify-content:center; gap:12px; flex:1 1 auto; min-width:0;", S.appendChild(O), F.appendChild(S);
+	F.className = "mjr-viewer-header-area mjr-viewer-header-area--left", F.style.cssText = "display:none; align-items:center; gap:12px; min-width:0; flex:1 1 0; overflow:hidden;", F.appendChild(y);
+	let ee = document.createElement("div");
+	ee.className = "mjr-viewer-header-area mjr-viewer-header-area--center", ee.style.cssText = "display:flex; align-items:center; justify-content:center; gap:12px; flex:1 1 auto; min-width:0;", S.appendChild(O), ee.appendChild(S);
 	let I = document.createElement("div");
-	I.className = "mjr-viewer-header-area mjr-viewer-header-area--right", I.style.cssText = "display:none; align-items:center; justify-content:flex-end; gap:12px; min-width:0; flex:1 1 0; overflow:hidden;", I.appendChild(T), v.appendChild(ee), v.appendChild(F), v.appendChild(I);
+	I.className = "mjr-viewer-header-area mjr-viewer-header-area--right", I.style.cssText = "display:none; align-items:center; justify-content:flex-end; gap:12px; min-width:0; flex:1 1 0; overflow:hidden;", I.appendChild(T), v.appendChild(F), v.appendChild(ee), v.appendChild(I);
 	try {
 		M.style.position = "absolute", M.style.top = "8px", M.style.left = "", M.style.right = "8px", M.style.transform = "", M.style.zIndex = "10002", M.style.width = "34px", M.style.height = "34px", M.style.padding = "0", M.style.display = "inline-flex", M.style.alignItems = "center", M.style.justifyContent = "center", M.style.borderRadius = "8px";
 	} catch (e) {
@@ -1763,9 +1763,9 @@ function Ke({ VIEWER_MODES: e, state: t, lifecycle: n, onClose: r, _onZoomIn: i,
 		badgesBarEl: w,
 		filenameRightEl: E,
 		badgesBarRightEl: D,
-		leftAreaEl: ee,
+		leftAreaEl: F,
 		leftMetaEl: y,
-		centerAreaEl: F,
+		centerAreaEl: ee,
 		rightMetaEl: T,
 		rightAreaEl: I,
 		titleLineEl: b,
@@ -1807,21 +1807,21 @@ function qe(e) {
 	}
 	return null;
 }
-function Je({ overlay: e, _content: t, singleView: r, state: i, VIEWER_MODES: a, computeOneToOneZoom: o, setZoom: s, scheduleOverlayRedraw: c, scheduleApplyGrade: l, syncToolsUIFromState: u, applyDistractionFreeUI: d, navigateViewerAssets: p, closeViewer: m, renderBadges: h, updateAssetRating: g, safeDispatchCustomEvent: _, ASSET_RATING_CHANGED_EVENT: v, probeTooltip: y, loupeWrap: b, getVideoControls: S, lifecycle: C, renderGenInfoPanel: w } = {}) {
-	let T = C?.unsubs || [], E = null, O = null, k = () => {
+function Je({ overlay: e, _content: t, singleView: r, state: i, VIEWER_MODES: a, computeOneToOneZoom: o, setZoom: s, scheduleOverlayRedraw: c, scheduleApplyGrade: l, syncToolsUIFromState: u, applyDistractionFreeUI: d, navigateViewerAssets: p, closeViewer: m, renderBadges: h, updateAssetRating: g, safeDispatchCustomEvent: _, ASSET_RATING_CHANGED_EVENT: v, probeTooltip: b, loupeWrap: S, getVideoControls: C, lifecycle: w, renderGenInfoPanel: T } = {}) {
+	let E = w?.unsubs || [], O = null, k = null, A = () => {
 		try {
-			E && clearTimeout(E);
+			O && clearTimeout(O);
 		} catch (e) {
 			console.debug?.(e);
 		}
-		E = null, O = null;
-	}, A = (e, t) => {
-		k(), O = {
+		O = null, k = null;
+	}, j = (e, t) => {
+		A(), k = {
 			assetId: e,
 			rating: t
-		}, E = setTimeout(async () => {
-			let e = O;
-			if (E = null, O = null, e?.assetId) try {
+		}, O = setTimeout(async () => {
+			let e = k;
+			if (O = null, k = null, e?.assetId) try {
 				let t = await g?.(e.assetId, e.rating);
 				if (!t?.ok) {
 					n(t?.error || x("toast.ratingUpdateFailed"), "error");
@@ -1835,26 +1835,26 @@ function Je({ overlay: e, _content: t, singleView: r, state: i, VIEWER_MODES: a,
 				n(x("toast.ratingUpdateError"), "error");
 			}
 		}, 300);
-	}, j = () => {
+	}, M = () => {
 		try {
 			document.fullscreenElement ? document?.exitFullscreen?.() : e?.requestFullscreen?.();
 		} catch (e) {
 			console.debug?.(e);
 		}
-	}, M = (t) => {
+	}, N = (t) => {
 		let g = () => {
 			try {
 				t.preventDefault(), t.stopPropagation(), t.stopImmediatePropagation?.();
 			} catch (e) {
 				console.debug?.(e);
 			}
-		}, _ = i?.mode === a?.SINGLE, v = i?.assets?.[i?.currentIndex], C = () => {
+		}, v = i?.mode === a?.SINGLE, w = i?.assets?.[i?.currentIndex], E = () => {
 			try {
 				return !!t?.target?.closest?.(".mjr-viewer-playerbar");
 			} catch {
 				return !1;
 			}
-		}, T = () => {
+		}, O = () => {
 			let e = String(t?.key || "");
 			return e === " " || e === "Spacebar" || e === "ArrowLeft" || e === "ArrowRight" || e === "Home" || e === "End" || e === "[" || e === "{" || e === "]" || e === "}" || e === "\\" || e === "|" || e === "i" || e === "I" || e === "o" || e === "O";
 		};
@@ -1866,9 +1866,9 @@ function Je({ overlay: e, _content: t, singleView: r, state: i, VIEWER_MODES: a,
 		}
 		try {
 			let e = t?.target;
-			if (e && (e.tagName === "INPUT" || e.tagName === "TEXTAREA" || e.isContentEditable) && !(_ && v?.kind === "video" && C() && T())) {
+			if (e && (e.tagName === "INPUT" || e.tagName === "TEXTAREA" || e.isContentEditable) && !(v && w?.kind === "video" && E() && O())) {
 				if (t.key === "f" || t.key === "F") {
-					g(), j();
+					g(), M();
 					return;
 				}
 				t.key === "Escape" && (g(), D(m));
@@ -1877,25 +1877,25 @@ function Je({ overlay: e, _content: t, singleView: r, state: i, VIEWER_MODES: a,
 		} catch (e) {
 			console.debug?.(e);
 		}
-		let E = async (e) => {
-			if (!_ || !v?.id || e !== "0" && e !== "1" && e !== "2" && e !== "3" && e !== "4" && e !== "5") return !1;
+		let k = async (e) => {
+			if (!v || !w?.id || e !== "0" && e !== "1" && e !== "2" && e !== "3" && e !== "4" && e !== "5") return !1;
 			let t = e === "0" ? 0 : Number(e);
 			if (!Number.isFinite(t)) return !1;
 			try {
-				return v.rating = t, D(h), A(v.id, t), !0;
+				return w.rating = t, D(h), j(w.id, t), !0;
 			} catch {
 				return !0;
 			}
-		}, O = () => {
+		}, A = () => {
 			try {
-				return S?.() || null;
+				return C?.() || null;
 			} catch {
 				return null;
 			}
-		}, k = async (e) => {
-			if (!_ || v?.kind !== "video") return !1;
+		}, N = async (e) => {
+			if (!v || w?.kind !== "video") return !1;
 			try {
-				let t = O();
+				let t = A();
 				if (t?.stepFrames) return t.stepFrames(e), !0;
 			} catch (e) {
 				console.debug?.(e);
@@ -1923,9 +1923,9 @@ function Je({ overlay: e, _content: t, singleView: r, state: i, VIEWER_MODES: a,
 			} catch {
 				return !0;
 			}
-		}, M = (e, { absolute: t = !1 } = {}) => {
+		}, P = (e, { absolute: t = !1 } = {}) => {
 			try {
-				let r = O();
+				let r = A();
 				if (!r) return !1;
 				if (t) {
 					let t = r.setPlaybackRate?.(e);
@@ -1938,7 +1938,7 @@ function Je({ overlay: e, _content: t, singleView: r, state: i, VIEWER_MODES: a,
 			}
 		};
 		if ((t.ctrlKey || t.metaKey) && (t.key === "c" || t.key === "C")) try {
-			let e = qe(v);
+			let e = qe(w);
 			if (e) {
 				g(), navigator.clipboard?.writeText?.(e).then(() => n(x("toast.promptCopied", "Prompt copied to clipboard"), "success", 1500)).catch(() => n(x("toast.copyFailed", "Copy failed"), "error", 1500));
 				return;
@@ -1946,8 +1946,8 @@ function Je({ overlay: e, _content: t, singleView: r, state: i, VIEWER_MODES: a,
 		} catch (e) {
 			console.debug?.(e);
 		}
-		if (_ && !t.altKey && !t.ctrlKey && !t.metaKey && (t.key === "0" || t.key === "1" || t.key === "2" || t.key === "3" || t.key === "4" || t.key === "5")) {
-			g(), E(t.key);
+		if (v && !t.altKey && !t.ctrlKey && !t.metaKey && (t.key === "0" || t.key === "1" || t.key === "2" || t.key === "3" || t.key === "4" || t.key === "5")) {
+			g(), k(t.key);
 			return;
 		}
 		switch (t.key) {
@@ -1979,7 +1979,7 @@ function Je({ overlay: e, _content: t, singleView: r, state: i, VIEWER_MODES: a,
 				break;
 			case "f":
 			case "F":
-				g(), j();
+				g(), M();
 				break;
 			case "d":
 			case "D":
@@ -1989,7 +1989,23 @@ function Je({ overlay: e, _content: t, singleView: r, state: i, VIEWER_MODES: a,
 				} catch (e) {
 					console.debug?.(e);
 				}
-				D(u), D(w);
+				D(u), D(T);
+				break;
+			case "t":
+			case "T":
+				if (!w?.id) break;
+				g(), ye({
+					x: Number(i?._lastPointerX) || Math.round((e?.clientWidth || 0) / 2),
+					y: Number(i?._lastPointerY) || Math.round((e?.clientHeight || 0) / 2),
+					asset: w,
+					onChanged: ((...e) => {
+						let t = e[0];
+						w.tags = t, _(y, {
+							assetId: String(w.id),
+							tags: t
+						}, { warnPrefix: "[ViewerKeyboard]" }), D(h);
+					})
+				});
 				break;
 			case "z":
 			case "Z":
@@ -2003,7 +2019,7 @@ function Je({ overlay: e, _content: t, singleView: r, state: i, VIEWER_MODES: a,
 				break;
 			case "i":
 			case "I":
-				if (_ && v?.kind === "video" && O()?.setInPoint?.()) {
+				if (v && w?.kind === "video" && A()?.setInPoint?.()) {
 					g(), n(x("toast.inPointSet", "In point set"), "info", 1200);
 					break;
 				}
@@ -2014,7 +2030,7 @@ function Je({ overlay: e, _content: t, singleView: r, state: i, VIEWER_MODES: a,
 					console.debug?.(e);
 				}
 				try {
-					i.probeEnabled || (y.style.display = "none");
+					i.probeEnabled || (b.style.display = "none");
 				} catch (e) {
 					console.debug?.(e);
 				}
@@ -2022,19 +2038,19 @@ function Je({ overlay: e, _content: t, singleView: r, state: i, VIEWER_MODES: a,
 				break;
 			case "o":
 			case "O":
-				if (_ && v?.kind === "video" && O()?.setOutPoint?.()) {
+				if (v && w?.kind === "video" && A()?.setOutPoint?.()) {
 					g(), n(x("toast.outPointSet", "Out point set"), "info", 1200);
 					break;
 				}
 				break;
 			case "Home":
-				if (_ && v?.kind === "video" && O()?.goToIn?.()) {
+				if (v && w?.kind === "video" && A()?.goToIn?.()) {
 					g();
 					break;
 				}
 				break;
 			case "End":
-				if (_ && v?.kind === "video" && O()?.goToOut?.()) {
+				if (v && w?.kind === "video" && A()?.goToOut?.()) {
 					g();
 					break;
 				}
@@ -2048,7 +2064,7 @@ function Je({ overlay: e, _content: t, singleView: r, state: i, VIEWER_MODES: a,
 					console.debug?.(e);
 				}
 				try {
-					i.loupeEnabled || (b.style.display = "none");
+					i.loupeEnabled || (S.style.display = "none");
 				} catch (e) {
 					console.debug?.(e);
 				}
@@ -2062,7 +2078,7 @@ function Je({ overlay: e, _content: t, singleView: r, state: i, VIEWER_MODES: a,
 				} catch (e) {
 					console.debug?.(e);
 				}
-				D(u), D(d), D(w);
+				D(u), D(d), D(T);
 				break;
 			case "c":
 			case "C": {
@@ -2083,12 +2099,12 @@ function Je({ overlay: e, _content: t, singleView: r, state: i, VIEWER_MODES: a,
 			}
 			case " ":
 			case "Spacebar":
-				if (_ && v?.kind === "video") {
+				if (v && w?.kind === "video") {
 					let e = r?.querySelector?.("video");
 					if (e) {
 						g();
 						try {
-							let e = O();
+							let e = A();
 							if (e?.togglePlay) {
 								e.togglePlay();
 								break;
@@ -2120,30 +2136,30 @@ function Je({ overlay: e, _content: t, singleView: r, state: i, VIEWER_MODES: a,
 				g(), D(m);
 				break;
 			case "ArrowLeft":
-				if (_ && t.target?.closest?.(".mjr-viewer-playerbar")) {
-					g(), k(-1);
+				if (v && t.target?.closest?.(".mjr-viewer-playerbar")) {
+					g(), N(-1);
 					break;
 				}
 				g(), D(() => p?.(-1));
 				break;
 			case "ArrowRight":
-				if (_ && t.target?.closest?.(".mjr-viewer-playerbar")) {
-					g(), k(1);
+				if (v && t.target?.closest?.(".mjr-viewer-playerbar")) {
+					g(), N(1);
 					break;
 				}
 				g(), D(() => p?.(1));
 				break;
 			case "[":
 			case "{":
-				g(), M(-.25) || n(x("toast.playbackVideoOnly"), "warning", 1400);
+				g(), P(-.25) || n(x("toast.playbackVideoOnly"), "warning", 1400);
 				break;
 			case "]":
 			case "}":
-				g(), M(.25) || n(x("toast.playbackVideoOnly"), "warning", 1400);
+				g(), P(.25) || n(x("toast.playbackVideoOnly"), "warning", 1400);
 				break;
 			case "\\":
 			case "|":
-				g(), M(1, { absolute: !0 }) || n(x("toast.playbackVideoOnly"), "warning", 1400);
+				g(), P(1, { absolute: !0 }) || n(x("toast.playbackVideoOnly"), "warning", 1400);
 				break;
 			case "+":
 			case "=":
@@ -2170,26 +2186,26 @@ function Je({ overlay: e, _content: t, singleView: r, state: i, VIEWER_MODES: a,
 				}
 				break;
 		}
-	}, N = null, ee = () => {
+	}, F = null, ee = () => {
 		try {
-			if (N) return;
-			N = P(window, "keydown", M, !0);
+			if (F) return;
+			F = P(window, "keydown", N, !0);
 		} catch (e) {
 			console.debug?.(e);
 		}
-	}, F = () => {
+	}, I = () => {
 		try {
-			D(N);
+			D(F);
 		} catch (e) {
 			console.debug?.(e);
 		}
-		N = null;
+		F = null;
 	};
-	return T.push(() => k()), T.push(() => F()), {
+	return E.push(() => A()), E.push(() => I()), {
 		bind: ee,
-		unbind: F,
+		unbind: I,
 		dispose: () => {
-			k(), F();
+			A(), I();
 		}
 	};
 }
@@ -3422,7 +3438,7 @@ function $e({ overlay: e, content: t, singleView: n, abView: r, sideView: i, sta
 			}
 			b();
 		}
-	}, ee = (n) => {
+	}, F = (n) => {
 		if (!(!e || e.style.display === "none")) {
 			try {
 				if (!t?.contains?.(n.target)) return;
@@ -3466,7 +3482,7 @@ function $e({ overlay: e, content: t, singleView: n, abView: r, sideView: i, sta
 		console.debug?.(e);
 	}
 	try {
-		t && !t._mjrDblClickResetBound && (d.push(u(t, "dblclick", ee, {
+		t && !t._mjrDblClickResetBound && (d.push(u(t, "dblclick", F, {
 			passive: !1,
 			capture: !0
 		})), t._mjrDblClickResetBound = !0);
@@ -3985,7 +4001,7 @@ function ot({ canvas: e, videoEl: t, disableWebGL: n, pauseDuringExecution: r = 
 			return;
 		}
 		j(), A();
-	}, ee = (e, t) => {
+	}, F = (e, t) => {
 		try {
 			if (b.ready || w(), !b.ready) return null;
 			T();
@@ -4017,7 +4033,7 @@ function ot({ canvas: e, videoEl: t, disableWebGL: n, pauseDuringExecution: r = 
 		} catch {
 			return null;
 		}
-	}, F = () => {
+	}, ee = () => {
 		w(), A();
 		try {
 			d?.({
@@ -4038,7 +4054,7 @@ function ot({ canvas: e, videoEl: t, disableWebGL: n, pauseDuringExecution: r = 
 		}
 	};
 	try {
-		x.push(l?.(t, "loadedmetadata", F, { once: !0 }) || (() => {})), x.push(l?.(t, "seeked", A, { passive: !0 }) || (() => {})), x.push(l?.(t, "pause", A, { passive: !0 }) || (() => {})), x.push(l?.(t, "play", () => {
+		x.push(l?.(t, "loadedmetadata", ee, { once: !0 }) || (() => {})), x.push(l?.(t, "seeked", A, { passive: !0 }) || (() => {})), x.push(l?.(t, "pause", A, { passive: !0 }) || (() => {})), x.push(l?.(t, "play", () => {
 			b._runtimePaused || j();
 		}, { passive: !0 }) || (() => {})), x.push(l?.(t, "timeupdate", () => {
 			try {
@@ -4065,7 +4081,7 @@ function ot({ canvas: e, videoEl: t, disableWebGL: n, pauseDuringExecution: r = 
 	}
 	return {
 		setParams: M,
-		sampleAtOriginal: ee,
+		sampleAtOriginal: F,
 		getInfo: () => ({
 			...b,
 			renderer: p ? "webgl" : "2d"
@@ -6205,13 +6221,13 @@ var Lt = null, Rt = null, zt = null, Bt = null, Vt = null, Ht = null;
 function Ut() {
 	Lt || import("./abCompare-BXOoRlmV.js").then((e) => {
 		Lt = e;
-	}), Rt || import("./sideBySide-DuDyVD_o.js").then((e) => {
+	}), Rt || import("./sideBySide-DK-iqmP4.js").then((e) => {
 		Rt = e;
-	}), zt || import("./mediaPlayer-ufU72_SR.js").then((e) => e.a).then((e) => {
+	}), zt || import("./mediaPlayer-CU1Depwr.js").then((e) => e.a).then((e) => {
 		zt = e;
 	}), Bt || import("./scopes-X1iFrTle.js").then((e) => {
 		Bt = e;
-	}), Vt || import("./genInfo-DQSKLzvg.js").then((e) => e.n).then((e) => {
+	}), Vt || import("./genInfo-Br_1AfMX.js").then((e) => e.n).then((e) => {
 		Vt = e;
 	}), Ht || import("./frameExport-tksSZ7sb.js").then((e) => {
 		Ht = e;
@@ -6329,7 +6345,7 @@ function Wt() {
 			return document.createElement("div");
 		}
 	}
-	function F(e, t) {
+	function ee(e, t) {
 		try {
 			return f?.createCompareMediaElement?.(e, t) || document.createElement("div");
 		} catch {
@@ -7030,7 +7046,7 @@ function Wt() {
 			n.className = "mjr-viewer-asset-pill", n.style.cssText = "\n                display: inline-flex;\n                align-items: center;\n                gap: 8px;\n                padding: 2px 8px;\n                border-radius: 999px;\n                border: 1px solid rgba(255,255,255,0.14);\n                background: rgba(255,255,255,0.08);\n                font-size: 12px;\n                max-width: 360px;\n                overflow: hidden;\n            ";
 			let r = document.createElement("span");
 			r.textContent = String(e.filename || ""), r.style.cssText = "max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; opacity:0.95;";
-			let i = ee(e.filename, e.kind, !!e?._mjrNameCollision);
+			let i = F(e.filename, e.kind, !!e?._mjrNameCollision);
 			try {
 				i.style.position = "static", i.style.top = "", i.style.left = "", i.style.padding = "2px 6px", i.style.fontSize = "10px", i.style.borderRadius = "6px", i.style.pointerEvents = "none";
 			} catch (e) {
@@ -7234,7 +7250,7 @@ function Wt() {
 			currentAsset: e,
 			viewUrl: t,
 			buildAssetViewURL: b,
-			createCompareMediaElement: F,
+			createCompareMediaElement: ee,
 			destroyMediaProcessorsIn: Re
 		}) : o.mode === $.SIDE_BY_SIDE && mt() && Rt?.renderSideBySideView?.({
 			sideView: X,

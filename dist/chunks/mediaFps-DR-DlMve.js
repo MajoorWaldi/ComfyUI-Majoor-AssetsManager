@@ -1,6 +1,6 @@
 import { A as e, E as t, O as n, a as r, p as i } from "./events-iWiZ-Zty.js";
-import { C as a, et as o } from "./mjr-primevue-DaF1IwbI.js";
-import { n as s, r as c } from "./mjr-vue-vendor-DoNL_65D.js";
+import { C as a, et as o } from "./mjr-primevue-BP853pmn.js";
+import { n as s, r as c } from "./mjr-vue-vendor-3Uvh8NZZ.js";
 //#region ui/utils/events.ts
 function l(e, t, { target: n = null, warnPrefix: r = "[Majoor]" } = {}) {
 	let i = n || (typeof window < "u" ? window : null);

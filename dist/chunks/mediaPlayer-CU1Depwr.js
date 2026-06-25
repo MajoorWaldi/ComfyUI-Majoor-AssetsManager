@@ -1,6 +1,6 @@
 import { t as e } from "./rolldown-runtime-Dy4uBu1J.js";
 import { a as t, ft as n, p as r, r as i } from "./events-iWiZ-Zty.js";
-import { t as a } from "./VideoControls-CDu3ByYX.js";
+import { t as a } from "./VideoControls-CksAyBEm.js";
 import { n as o } from "./state-DPiaUMw1.js";
 //#region ui/features/viewer/videoSync.ts
 var s = () => {

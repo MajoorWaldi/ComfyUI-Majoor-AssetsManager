@@ -1,5 +1,5 @@
 import { q as e, r as t } from "./events-iWiZ-Zty.js";
-import { t as n } from "./floatingViewerManager-D-EzvRCt.js";
+import { t as n } from "./floatingViewerManager-eCmg8OTF.js";
 //#region ui/features/viewer/LiveStreamTracker.ts
 var r = !1, i = null, a = null, o = null, s = null, c = null, l = 0, u = 0, d = 400, f = new Set([
 	".png",

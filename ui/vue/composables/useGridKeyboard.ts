@@ -1,5 +1,6 @@
 import { onUnmounted, watch } from "vue";
 import { installGridKeyboard } from "../../features/grid/GridKeyboard.js";
+import { showTagsPopover } from "../../features/contextmenu/GridContextMenu.js";
 
 /**
  * useGridKeyboard  -  Vue lifecycle wrapper around the legacy GridKeyboard engine.
@@ -23,6 +24,23 @@ export function bindLegacyGridKeyboard(container: HTMLElement | null | undefined
             },
             onOpenDetails: () => {
                 c._mjrOpenKeyboardDetails?.();
+            },
+            onOpenTagsEditor: (asset: any) => {
+                const activeCard =
+                    container.querySelector?.(
+                        `.mjr-asset-card[data-mjr-asset-id="${CSS?.escape ? CSS.escape(String(asset?.id || "")) : asset?.id || ""}"]`,
+                    ) || null;
+                let rect: any = null;
+                try {
+                    rect = activeCard?.getBoundingClientRect?.() || container.getBoundingClientRect();
+                } catch (e) {
+                    console.debug?.("[useGridKeyboard] rect lookup failed", e);
+                }
+                const x = Math.round((rect?.left || 0) + Math.min((rect?.width || 0) * 0.5, 160));
+                const y = Math.round((rect?.top || 0) + Math.min((rect?.height || 0) * 0.5, 120));
+                showTagsPopover(x, y, asset, () => {
+                    c._mjrOnKeyboardAssetChanged?.(asset);
+                });
             },
         });
         keyboard.bind();
