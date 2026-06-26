@@ -44,6 +44,12 @@ export function createPlayerBarManager({
         }
         state._videoSyncAbort = null;
         try {
+            state._videoRateAbort?.abort?.();
+        } catch (e: any) {
+            console.debug?.(e);
+        }
+        state._videoRateAbort = null;
+        try {
             state._videoMetaAbort?.abort?.();
         } catch (e: any) {
             console.debug?.(e);
@@ -200,6 +206,31 @@ export function createPlayerBarManager({
             state._videoControlsDestroy = mounted?.destroy || null;
             state._activeVideoEl = mediaEl;
             state._activeVideoAssetId = currentAssetId;
+            try {
+                state._videoRateAbort?.abort?.();
+            } catch (e: any) {
+                console.debug?.(e);
+            }
+            try {
+                const rateAc = new AbortController();
+                state._videoRateAbort = rateAc;
+                // Keep the viewer's persisted rate (carried into the next video) in sync
+                // regardless of how it was changed (speed select, keyboard, native controls).
+                mediaEl.addEventListener(
+                    "ratechange",
+                    () => {
+                        try {
+                            const rate = Number(mediaEl.playbackRate);
+                            if (Number.isFinite(rate) && rate > 0) state.playbackRate = rate;
+                        } catch (e: any) {
+                            console.debug?.(e);
+                        }
+                    },
+                    { signal: rateAc.signal, passive: true },
+                );
+            } catch (e: any) {
+                console.debug?.(e);
+            }
             try {
                 state.nativeFps = Number(initialFps) > 0 ? Number(initialFps) : null;
             } catch (e: any) {
