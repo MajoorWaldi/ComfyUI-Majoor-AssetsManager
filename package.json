@@ -47,7 +47,7 @@
     "@tanstack/vue-virtual": "^3.13.26",
     "pinia": "^3.0.4",
     "primevue": "^4.5.5",
-    "three": "0.184.0",
+    "three": "0.185.0",
     "vue": "^3.5.35"
   }
 }
