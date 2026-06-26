@@ -5,7 +5,7 @@
  * Phase 4.1: Replaces createTagsEditor() from TagsEditor.js.
  * Emits tags-change event when tags are updated.
  */
-import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { getAvailableTags, updateAssetTags } from "../../../api/client.js";
 import { ASSET_TAGS_CHANGED_EVENT } from "../../../app/events.js";
 import { t } from "../../../app/i18n.js";
@@ -260,6 +260,13 @@ async function saveTags() {
 
 onMounted(async () => {
     try {
+        await nextTick();
+        resolveDomElement(inputRef.value)?.focus();
+    } catch (e) {
+        console.debug?.(e);
+    }
+
+    try {
         const result = await getAvailableTags();
         if (result?.ok && Array.isArray(result?.data)) {
             availableTags.value = dedupeTags(result.data);
@@ -306,7 +313,11 @@ function removeTag(index) {
 function handleInputKeydown(event) {
     if (event.key === "Enter" || event.key === ",") {
         event.preventDefault();
-        const tag = inputValue.value.trim();
+        const highlighted =
+            showDropdown.value && hasSuggestions.value && selectedIndex.value >= 0
+                ? filteredSuggestions.value[selectedIndex.value]
+                : null;
+        const tag = highlighted || inputValue.value.trim();
         if (tag) {
             addTag(tag);
             inputValue.value = "";

@@ -2,6 +2,13 @@ import { safeAddListener, safeCall } from "./lifecycle.js";
 import { comfyToast } from "../../app/toast.js";
 import { t } from "../../app/i18n.js";
 import { isHotkeysSuspended } from "../panel/controllers/hotkeysState.js";
+import { ASSET_TAGS_CHANGED_EVENT } from "../../app/events.js";
+import { safeDispatchCustomEvent } from "../../utils/events.js";
+import {
+    openViewerTagsPopover,
+    closeViewerTagsPopover,
+    viewerContextMenuState,
+} from "../contextmenu/viewerContextMenuState.js";
 
 /**
  * Extract prompt text from asset metadata for clipboard copy.
@@ -199,7 +206,11 @@ export function installViewerKeyboard({
 
                     if (e.key === "Escape") {
                         consume();
-                        safeCall(closeViewer);
+                        if (viewerContextMenuState.tags.open) {
+                            closeViewerTagsPopover();
+                        } else {
+                            safeCall(closeViewer);
+                        }
                     }
                     return;
                 }
@@ -424,6 +435,27 @@ export function installViewerKeyboard({
                 safeCall(renderGenInfoPanel);
                 break;
             }
+            case "t":
+            case "T": {
+                if (!current?.id) break;
+                consume();
+                openViewerTagsPopover({
+                    x: Number(state?._lastPointerX) || Math.round((overlay?.clientWidth || 0) / 2),
+                    y: Number(state?._lastPointerY) || Math.round((overlay?.clientHeight || 0) / 2),
+                    asset: current,
+                    onChanged: ((...args: any[]) => {
+                        const tags = args[0];
+                        current.tags = tags;
+                        safeDispatchCustomEvent(
+                            ASSET_TAGS_CHANGED_EVENT,
+                            { assetId: String(current.id), tags },
+                            { warnPrefix: "[ViewerKeyboard]" },
+                        );
+                        safeCall(renderBadges);
+                    }) as () => void,
+                });
+                break;
+            }
             case "z":
             case "Z": {
                 consume();
@@ -588,7 +620,11 @@ export function installViewerKeyboard({
             }
             case "Escape":
                 consume();
-                safeCall(closeViewer);
+                if (viewerContextMenuState.tags.open) {
+                    closeViewerTagsPopover();
+                } else {
+                    safeCall(closeViewer);
+                }
                 break;
             case "ArrowLeft":
                 if (isSingle && e.target?.closest?.(".mjr-viewer-playerbar")) {
