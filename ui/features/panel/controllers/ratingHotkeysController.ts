@@ -155,7 +155,9 @@ export function createRatingHotkeysController({ gridContainer, createRatingBadge
             // allow targets inside it - e.g. focus lands on its mute/speed controls after use.
             const isTargetInGrid = gridContainer.contains(e.target) || gridContainer === e.target;
             const isTargetInFloatingViewer = !!e.target?.closest?.(".mjr-mfv");
-            if (!isTargetInGrid && !isTargetInFloatingViewer) return; // Only handle rating keys when interacting with our grid
+            // Also allow when the floating viewer is visible but focus is on body/canvas (non-focusable content)
+            const isFloatingViewerVisible = !!document.querySelector(".mjr-mfv.is-visible");
+            if (!isTargetInGrid && !isTargetInFloatingViewer && !isFloatingViewerVisible) return;
 
             const rating = k === "0" ? 0 : Number(k);
             if (!Number.isFinite(rating)) return;
