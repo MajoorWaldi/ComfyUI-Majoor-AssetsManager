@@ -1,5 +1,7 @@
+import { PersistentAssetCache } from "../../features/grid/PersistentAssetCache.js";
+
 const GRID_SNAPSHOT_CACHE = new Map();
-const GRID_SNAPSHOT_CACHE_ENABLED = false;
+const GRID_SNAPSHOT_CACHE_ENABLED = true;
 const GRID_SNAPSHOT_CACHE_MAX = 8;
 const GRID_SNAPSHOT_STORAGE_ASSET_LIMIT = 200;
 const GRID_SNAPSHOT_STORAGE_KEY = "mjr_grid_snapshot_cache_v2";
@@ -289,6 +291,16 @@ export function getGridSnapshot(key: any) {
     return snapshot;
 }
 
+export async function getPersistentGridSnapshot(key: any) {
+    const memory = getGridSnapshot(key);
+    if (memory) return memory;
+    const persisted = await PersistentAssetCache.get(String(key || ""));
+    const normalized = normalizeGridSnapshot(persisted);
+    if (!normalized) return null;
+    GRID_SNAPSHOT_CACHE.set(String(key || ""), normalized);
+    return normalized;
+}
+
 export function hasGridSnapshot(key: string): boolean {
     if (!isGridSnapshotCacheEnabled()) return false;
     loadGridSnapshotsFromStorage();
@@ -306,6 +318,9 @@ export function rememberGridSnapshot(key: any, snapshot: any) {
     GRID_SNAPSHOT_CACHE.delete(key);
     GRID_SNAPSHOT_CACHE.set(key, normalized);
     persistGridSnapshotsToStorage();
+    PersistentAssetCache.put(String(key || ""), normalized).catch((e: any) => {
+        console.debug?.(e);
+    });
     return true;
 }
 

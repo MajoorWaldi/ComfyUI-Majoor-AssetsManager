@@ -1,7 +1,7 @@
 import { t as e } from "./rolldown-runtime-Dy4uBu1J.js";
-import { m as t, o as n } from "./events-CRutpS6F.js";
-import { c as r } from "./mediaFps-DdY7KJFU.js";
-import { c as i, l as a, p as o, s, t as c } from "./SidebarWorkflowSection-ooSqMVea.js";
+import { m as t, o as n } from "./events-BpkKbGZs.js";
+import { c as r } from "./mediaFps-CbdE2lHO.js";
+import { c as i, h as a, l as o, s, t as c } from "./SidebarWorkflowSection-BkH7KoSY.js";
 import { B as l, D as u, E as d, O as f, T as p, ct as m, dt as h, k as g, ut as _ } from "./mjr-primevue-n1rsQYJg.js";
 //#region ui/vue/components/viewer/ViewerMetadataBlock.vue
 var v = { style: {
@@ -93,7 +93,7 @@ var v = { style: {
 	},
 	setup(e) {
 		let r = e;
-		function o(e) {
+		function a(e) {
 			try {
 				if (!e || typeof e != "object") return null;
 				let t = e?.metadata_raw;
@@ -169,7 +169,7 @@ var v = { style: {
 		function I() {
 			typeof r.onRetry == "function" && r.onRetry();
 		}
-		let L = p(() => o(r.asset)), R = p(() => i(r.asset)), z = p(() => R.value.kind !== "empty"), B = p(() => P(r.asset)), V = p(() => n.WORKFLOW_MINIMAP_ENABLED !== !1 && N(r.asset)), H = p(() => L.value && typeof L.value == "object" && L.value.kind === "fetch_error"), U = p(() => F(r.asset?.metadata_raw)), W = p(() => !r.loading && !H.value && !B.value && !z.value && !V.value), G = p(() => {
+		let L = p(() => a(r.asset)), R = p(() => i(r.asset)), z = p(() => R.value.kind !== "empty"), B = p(() => P(r.asset)), V = p(() => n.WORKFLOW_MINIMAP_ENABLED !== !1 && N(r.asset)), H = p(() => L.value && typeof L.value == "object" && L.value.kind === "fetch_error"), U = p(() => F(r.asset?.metadata_raw)), W = p(() => !r.loading && !H.value && !B.value && !z.value && !V.value), G = p(() => {
 			if (!H.value) return "";
 			let e = String(L.value?.message || L.value?.error || "Failed to load generation data."), n = String(L.value?.code || L.value?.stage || "").trim();
 			return n ? t("viewer.metadataErrorWithCode", "{message}\n\nCode: {code}\nClick to retry.", {
@@ -192,7 +192,7 @@ var v = { style: {
 				}, { cursor: r.onRetry ? "pointer" : "default" }]),
 				onClick: I
 			}, [d("div", C, h(m(t)("viewer.errorLoadingMetadata", "Error Loading Metadata")), 1), d("div", w, h(G.value), 1)], 4)) : f("", !0),
-			B.value ? (l(), u(a, {
+			B.value ? (l(), u(o, {
 				key: 3,
 				asset: r.asset
 			}, null, 8, ["asset"])) : f("", !0),
@@ -524,7 +524,7 @@ async function X(e, { getAssetMetadata: t, getFileMetadataScoped: n, metadataCac
 function Z({ title: e, asset: t, ui: n } = {}) {
 	let r = document.createElement("div");
 	try {
-		let { app: i } = o(k, {
+		let { app: i } = a(k, {
 			title: e,
 			asset: t,
 			loading: !!n?.loading,
@@ -545,15 +545,15 @@ function Z({ title: e, asset: t, ui: n } = {}) {
 		let t = document.createElement("div");
 		t.textContent = e, t.style.cssText = "font-size: 12px; font-weight: 600; letter-spacing: 0.02em; color: rgba(255,255,255,0.86);", i.appendChild(t);
 	}
-	let a = t?.metadata_raw;
-	if (a != null) {
+	let o = t?.metadata_raw;
+	if (o != null) {
 		let e = document.createElement("details");
 		e.style.cssText = "border: 1px solid rgba(255,255,255,0.10); border-radius: 10px; background: rgba(255,255,255,0.04); overflow: hidden;";
 		let t = document.createElement("summary");
 		t.textContent = "Raw metadata", t.style.cssText = "cursor: pointer; padding: 10px 12px; color: rgba(255,255,255,0.78); user-select: none;";
 		let n = document.createElement("pre");
 		n.style.cssText = "margin:0; padding: 10px 12px; max-height: 280px; overflow:auto; font-size: 11px; line-height: 1.35; color: rgba(255,255,255,0.86);";
-		let r = typeof a == "string" ? a : JSON.stringify(a, null, 2);
+		let r = typeof o == "string" ? o : JSON.stringify(o, null, 2);
 		r.length > 4e4 && (r = `${r.slice(0, 4e4)}\n...(truncated)`), n.textContent = r, e.appendChild(t), e.appendChild(n), i.appendChild(e);
 	}
 	return i;

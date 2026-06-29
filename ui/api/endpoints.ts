@@ -38,6 +38,7 @@ export interface ListURLParams extends AssetFilterParams {
     cursor?: string | null;
     includeTotal?: boolean;
     groupStacks?: boolean;
+    metadataMode?: string | null;
 }
 
 export const ENDPOINTS = {
@@ -66,6 +67,9 @@ export const ENDPOINTS = {
 
     // Metadata
     METADATA: "/mjr/am/metadata",
+    METADATA_CATALOG: "/mjr/am/metadata/catalog",
+    METADATA_KEYS: "/mjr/am/metadata/keys",
+    METADATA_PARSER_VERSION: "/mjr/am/metadata/parser-version",
     WORKFLOW_QUICK: "/mjr/am/workflow-quick",
     RETRY_SERVICES: "/mjr/am/retry-services",
     STAGE_TO_INPUT: "/mjr/am/stage-to-input",
@@ -93,6 +97,7 @@ export const ENDPOINTS = {
     // Viewer helpers (Majoor)
     VIEWER_INFO: "/mjr/am/viewer/info",
     VIEWER_RESOURCE: "/mjr/am/viewer/resource",
+    THUMBNAIL: "/mjr/am/thumbnail",
 
     // File upload
     UPLOAD_INPUT: "/mjr/am/upload_input",
@@ -266,6 +271,13 @@ export function buildViewURL(filename: any, subfolder: string | null = null, typ
     return url;
 }
 
+export function buildThumbnailURL(asset: any, size = 384): string {
+    const filepath = String(asset?.filepath || asset?.path || asset?.file_path || "").trim();
+    if (!filepath) return "";
+    const requestedSize = Math.max(64, Math.min(1024, Math.floor(Number(size) || 384)));
+    return `${ENDPOINTS.THUMBNAIL}?filepath=${encodeURIComponent(filepath)}&size=${encodeURIComponent(String(requestedSize))}`;
+}
+
 /**
  * Build list URL with scope support.
  */
@@ -297,6 +309,7 @@ export function buildListURL(params: ListURLParams = {}): string {
         cursor = null,
         includeTotal = true,
         groupStacks = false,
+        metadataMode = null,
     } = params;
 
     let url = `${ENDPOINTS.LIST}?q=${encodeURIComponent(q)}&limit=${limit}&offset=${offset}&scope=${encodeURIComponent(scope)}`;
@@ -340,6 +353,9 @@ export function buildListURL(params: ListURLParams = {}): string {
     }
     if (groupStacks) {
         url += "&group_stacks=1";
+    }
+    if (metadataMode) {
+        url += `&metadata_mode=${encodeURIComponent(String(metadataMode).toUpperCase())}`;
     }
     return url;
 }

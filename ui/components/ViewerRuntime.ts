@@ -50,6 +50,7 @@ import { createViewerLoupe } from "../features/viewer/loupe.js";
 import { createViewerMetadataHydrator } from "../features/viewer/metadata.js";
 import { createViewerPanZoom, createViewerMediaFactory } from "../features/viewer/ViewerCanvas.js";
 import { createImagePreloader } from "../features/viewer/imagePreloader.js";
+import { buildMetadataComparePanel } from "../features/viewer/metadataCompare.js";
 
 // --- Lazy-loaded viewer sub-modules (separate bundle chunks) -----------------
 // Pre-warmed when the first viewer instance is created so the browser fetches
@@ -1156,6 +1157,16 @@ function createViewer() {
                 }
                 if (rightExtra) {
                     addBlockTo(genInfoBody, "Asset D", rightExtra.asset, rightExtra.loading);
+                }
+                if (!isGrid && left?.asset && right?.asset && !left.loading && !right.loading) {
+                    try {
+                        const comparePanel = buildMetadataComparePanel(left.asset, right.asset);
+                        if (comparePanel) {
+                            genInfoBody.insertBefore(comparePanel, genInfoBody.firstChild || null);
+                        }
+                    } catch (e: any) {
+                        console.debug?.(e);
+                    }
                 }
             } else {
                 // Single mode

@@ -15,6 +15,16 @@ vi.mock("../features/panel/controllers/hotkeysState.js", () => ({
     isHotkeysSuspended: () => false,
 }));
 
+vi.mock("../features/contextmenu/viewerContextMenuState.js", () => ({
+    openViewerTagsPopover: vi.fn(),
+    closeViewerTagsPopover: vi.fn(),
+    viewerContextMenuState: {
+        tags: { open: false },
+        main: { open: false },
+        submenu: { open: false },
+    },
+}));
+
 function createWindowMock() {
     const listeners = new Map();
     return {

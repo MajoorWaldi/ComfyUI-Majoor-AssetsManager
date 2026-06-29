@@ -79,26 +79,34 @@ export function parseComfyUIWorkflow(workflow: any): Record<string, any> | null 
             }
         }
 
-        if (inputs.seed !== undefined && metadata.seed === undefined)
-            metadata.seed = inputs.seed;
-        if (inputs.steps !== undefined && metadata.steps === undefined)
-            metadata.steps = inputs.steps;
-        if (inputs.cfg !== undefined && metadata.cfg === undefined) metadata.cfg = inputs.cfg;
+        const resolvedSeed = resolveLinkedScalar(inputs.seed, promptGraph);
+        const resolvedSteps = resolveLinkedScalar(inputs.steps, promptGraph);
+        const resolvedCfg = resolveLinkedScalar(inputs.cfg, promptGraph);
+        const resolvedDenoise = resolveLinkedScalar(inputs.denoise, promptGraph);
+        if (resolvedSeed !== undefined && metadata.seed === undefined)
+            metadata.seed = resolvedSeed;
+        if (resolvedSteps !== undefined && metadata.steps === undefined)
+            metadata.steps = resolvedSteps;
+        if (resolvedCfg !== undefined && metadata.cfg === undefined) metadata.cfg = resolvedCfg;
         if (inputs.sampler_name && !metadata.sampler) metadata.sampler = inputs.sampler_name;
         if (inputs.scheduler && !metadata.scheduler) metadata.scheduler = inputs.scheduler;
-        if (inputs.denoise !== undefined && metadata.denoise === undefined)
-            metadata.denoise = inputs.denoise;
+        if (resolvedDenoise !== undefined && metadata.denoise === undefined)
+            metadata.denoise = resolvedDenoise;
         if (isSamplerClass(classType)) {
             const passStage = classifySamplerPass(node, promptGraph);
             const linkedSettings = resolveSamplerLinkedSettings(node, promptGraph);
-            const linkedModel = resolveLinkedModelName(node?.inputs?.model, promptGraph);
+            const linkedModel =
+                resolveLinkedModelName(node?.inputs?.model, promptGraph) ||
+                resolveLinkedModelName(linkedSettings.model_link, promptGraph);
             samplerPasses.push({
                 sampler_name: inputs.sampler_name || linkedSettings.sampler_name || inputs.sampler,
                 scheduler: inputs.scheduler || linkedSettings.scheduler,
-                steps: inputs.steps ?? linkedSettings.steps,
-                cfg: inputs.cfg,
-                denoise: inputs.denoise ?? linkedSettings.denoise,
-                seed: inputs.seed ?? inputs.noise_seed,
+                steps: resolveLinkedScalar(inputs.steps, promptGraph) ?? linkedSettings.steps,
+                cfg: resolveLinkedScalar(inputs.cfg, promptGraph) ?? linkedSettings.cfg,
+                denoise: resolveLinkedScalar(inputs.denoise, promptGraph) ?? linkedSettings.denoise,
+                seed: resolveLinkedScalar(inputs.seed ?? inputs.noise_seed, promptGraph) ?? linkedSettings.seed,
+                start_at_step: resolveLinkedScalar(inputs.start_at_step, promptGraph),
+                end_at_step: resolveLinkedScalar(inputs.end_at_step, promptGraph),
                 model: linkedModel,
                 pass_stage: passStage,
             });
@@ -126,13 +134,21 @@ export function parseComfyUIWorkflow(workflow: any): Record<string, any> | null 
             inputs.model,
         ];
         for (const v of modelKeyCandidates) {
-            if (!metadata.model) {
+            if (!metadata.model && !classType.includes("upscale")) {
                 setModel("model", v);
             }
         }
+        if (classType.includes("upscale")) setModel("upscaler", inputs.model_name || inputs.upscale_model || inputs.model);
         setModel("vae", inputs.vae_name || inputs.vae);
         setModel("clip", inputs.clip_name || inputs.clip);
-        setModel("unet", inputs.unet_name || inputs.unet);
+        const unetName = inputs.unet_name || inputs.unet;
+        if (typeof unetName === "string" && unetName.trim()) {
+            const models = metadata.models && typeof metadata.models === "object" ? metadata.models : {};
+            if (/high[_\s-]?noise/i.test(unetName)) models.unet_high_noise = { name: unetName.trim() };
+            else if (/low[_\s-]?noise/i.test(unetName)) models.unet_low_noise = { name: unetName.trim() };
+            else setModel("unet", unetName);
+            if (Object.keys(models).length) metadata.models = models;
+        }
         setModel(
             "diffusion",
             inputs.diffusion_name || inputs.diffusion_model || inputs.diffusion,
@@ -147,18 +163,71 @@ export function parseComfyUIWorkflow(workflow: any): Record<string, any> | null 
                 inputs.weight ??
                 inputs.lora_strength ??
                 null;
-            if (name) loras.push({ name, weight: w });
+            if (name) {
+                const item: Record<string, any> = { name };
+                if (inputs.strength_model !== undefined) item.strength_model = inputs.strength_model;
+                else item.weight = w;
+                loras.push(item);
+            }
         }
     }
 
-    if (loras.length) metadata.loras = loras;
-    if (samplerPasses.length > 1) metadata.all_samplers = samplerPasses;
+    const uniqueLoras = dedupeGenerationItems(loras);
+    const uniqueSamplerPasses = dedupeGenerationItems(samplerPasses, samplerPassKey);
+    if (uniqueLoras.length) metadata.loras = uniqueLoras;
+    if (uniqueSamplerPasses.length > 1) metadata.all_samplers = uniqueSamplerPasses;
     return Object.keys(metadata).length > 0 ? metadata : null;
+}
+
+function stableGenerationKey(item: any): string {
+    if (!item || typeof item !== "object") return JSON.stringify(item);
+    const out: Record<string, any> = {};
+    for (const key of Object.keys(item).sort()) {
+        const value = item[key];
+        if (value === undefined || value === null || value === "") continue;
+        out[key] = value;
+    }
+    return JSON.stringify(out);
+}
+
+function samplerPassKey(item: any): string {
+    if (!item || typeof item !== "object") return stableGenerationKey(item);
+    const parts = [
+        item.sampler_name || item.sampler || "",
+        item.scheduler || "",
+        item.steps ?? "",
+        item.cfg ?? "",
+        item.denoise ?? "",
+        item.seed ?? "",
+        item.start_at_step ?? "",
+        item.end_at_step ?? "",
+    ];
+    return parts.map((part) => String(part)).join("::");
+}
+
+function dedupeGenerationItems<T>(items: T[], keyFn: (item: T) => string = stableGenerationKey): T[] {
+    const seen = new Set<string>();
+    const out: T[] = [];
+    for (const item of items) {
+        const key = keyFn(item);
+        if (seen.has(key)) continue;
+        seen.add(key);
+        out.push(item);
+    }
+    return out;
 }
 
 function getPromptGraph(workflow: any): Record<string, any> | null {
     if (!workflow || typeof workflow !== "object") return null;
-    const candidate = workflow.prompt && typeof workflow.prompt === "object" ? workflow.prompt : workflow;
+    let prompt = workflow.prompt;
+    if (typeof prompt === "string" && prompt.trim()) {
+        try {
+            prompt = JSON.parse(prompt);
+        } catch {
+            prompt = null;
+        }
+    }
+    const candidate = prompt && typeof prompt === "object" ? prompt : workflow;
     return looksLikeComfyPromptGraph(candidate) ? candidate : null;
 }
 
@@ -174,12 +243,16 @@ function isSamplerClass(classType: string): boolean {
 function classifySamplerPass(node: any, promptGraph: Record<string, any> | null): string {
     if (!promptGraph) return "";
     const linkedModel = resolveLinkedModelName(node?.inputs?.model, promptGraph).toLowerCase();
+    if (hasHighNoiseRole(linkedModel)) return "high";
+    if (hasLowNoiseRole(linkedModel)) return "low";
     if (/\b(upscale|upscaler|_to_\d{3,5}|to[_-]?\d{3,5})\b/i.test(linkedModel)) {
         return "upscale";
     }
     const allInputs = collectUpstreamClassTypes(node, promptGraph);
     const allHaystack = allInputs.join(" ");
-    if (/\b(pidconditioning|upscale|latentupscale|imageupscalewithmodel)\b/i.test(allHaystack)) {
+    if (hasHighNoiseRole(allHaystack)) return "high";
+    if (hasLowNoiseRole(allHaystack)) return "low";
+    if (/\b(pidconditioning|imageupscalewithmodel|ultimate|supir|esrgan|realesrgan)\b/i.test(allHaystack)) {
         return "upscale";
     }
     const upstream = collectUpstreamClassTypes(node, promptGraph, "latent_image");
@@ -187,7 +260,11 @@ function classifySamplerPass(node: any, promptGraph: Record<string, any> | null)
     if (/\b(inpaint|vaeencodeforinpaint|setlatentnoise mask|masktoimage)\b/i.test(haystack)) {
         return "inpaint";
     }
-    if (/\b(upscale|latentupscale|imageupscalewithmodel|ultimate|supir|esrgan|realesrgan)\b/i.test(haystack)) {
+    if (
+        /\b(latentupscale|latentupsampler|imageupscalewithmodel|ultimate|supir|esrgan|realesrgan)\b/i.test(haystack) &&
+        !hasHighNoiseRole(allHaystack) &&
+        !hasLowNoiseRole(allHaystack)
+    ) {
         return "upscale";
     }
     if (/\b(vaeencode|loadimage|imagebatch|imagetolatent)\b/i.test(haystack)) {
@@ -197,6 +274,14 @@ function classifySamplerPass(node: any, promptGraph: Record<string, any> | null)
         return "txt2img";
     }
     return "";
+}
+
+function hasHighNoiseRole(value: any): boolean {
+    return /(?:^|[^a-z0-9])high[_\s-]?noise(?:[^a-z0-9]|$)/i.test(String(value || ""));
+}
+
+function hasLowNoiseRole(value: any): boolean {
+    return /(?:^|[^a-z0-9])low[_\s-]?noise(?:[^a-z0-9]|$)/i.test(String(value || ""));
 }
 
 function collectUpstreamClassTypes(
@@ -229,15 +314,53 @@ function collectUpstreamClassTypes(
 function resolveSamplerLinkedSettings(node: any, promptGraph: Record<string, any> | null) {
     const out: Record<string, any> = {};
     if (!promptGraph) return out;
+    const noiseNode = getLinkedNode(node?.inputs?.noise, promptGraph);
+    const noiseInputs = noiseNode?.inputs || {};
+    if (noiseInputs.noise_seed !== undefined) out.seed = noiseInputs.noise_seed;
+    if (noiseInputs.seed !== undefined) out.seed = noiseInputs.seed;
+    const guiderNode = getLinkedNode(node?.inputs?.guider, promptGraph);
+    const guiderInputs = guiderNode?.inputs || {};
+    if (guiderInputs.cfg !== undefined) out.cfg = guiderInputs.cfg;
+    if (guiderInputs.model !== undefined) out.model_link = guiderInputs.model;
     const samplerNode = getLinkedNode(node?.inputs?.sampler, promptGraph);
     const samplerInputs = samplerNode?.inputs || {};
     if (samplerInputs.sampler_name) out.sampler_name = samplerInputs.sampler_name;
     const sigmasNode = getLinkedNode(node?.inputs?.sigmas, promptGraph);
     const sigmasInputs = sigmasNode?.inputs || {};
     if (sigmasInputs.scheduler) out.scheduler = sigmasInputs.scheduler;
-    if (sigmasInputs.steps !== undefined) out.steps = sigmasInputs.steps;
-    if (sigmasInputs.denoise !== undefined) out.denoise = sigmasInputs.denoise;
+    if (sigmasInputs.steps !== undefined) out.steps = resolveLinkedScalar(sigmasInputs.steps, promptGraph);
+    if (sigmasInputs.denoise !== undefined) out.denoise = resolveLinkedScalar(sigmasInputs.denoise, promptGraph);
+    if (out.steps === undefined && typeof sigmasInputs.sigmas === "string") {
+        const count = sigmasInputs.sigmas
+            .split(",")
+            .map((part: string) => part.trim())
+            .filter(Boolean).length;
+        if (count > 1) out.steps = Math.max(1, count - 1);
+    }
     return out;
+}
+
+function resolveLinkedScalar(value: any, promptGraph: Record<string, any> | null, visited = new Set<string>()): any {
+    if (value === undefined || value === null) return value;
+    if (!Array.isArray(value)) return value;
+    if (!promptGraph) return undefined;
+    const node = getLinkedNode(value, promptGraph);
+    if (!node) return undefined;
+    const id = String(node?._mjrPromptId || node?.id || value[0] || "");
+    if (id && visited.has(id)) return undefined;
+    if (id) visited.add(id);
+    const inputs = node?.inputs && typeof node.inputs === "object" ? node.inputs : {};
+    const classType = String(node?.class_type || node?.type || "").toLowerCase();
+    if (classType.includes("switch")) {
+        const switchValue = resolveLinkedScalar(inputs.switch, promptGraph, visited);
+        const branch = switchValue ? inputs.on_true : inputs.on_false;
+        return resolveLinkedScalar(branch, promptGraph, visited);
+    }
+    if (Object.prototype.hasOwnProperty.call(inputs, "value")) return inputs.value;
+    for (const key of ["number", "int", "float", "seed", "steps", "cfg"]) {
+        if (Object.prototype.hasOwnProperty.call(inputs, key)) return inputs[key];
+    }
+    return undefined;
 }
 
 function resolveLinkedModelName(value: any, promptGraph: Record<string, any> | null): string {
@@ -250,6 +373,12 @@ function resolveLinkedModelName(value: any, promptGraph: Record<string, any> | n
         if (id && visited.has(id)) return "";
         if (id) visited.add(id);
         const inputs = current?.inputs || {};
+        const classType = String(current?.class_type || current?.type || "").toLowerCase();
+        if (classType.includes("switch")) {
+            const switchValue = resolveLinkedScalar(inputs.switch, promptGraph);
+            const found = visit(switchValue ? inputs.on_true : inputs.on_false);
+            if (found) return found;
+        }
         const direct =
             inputs.unet_name ||
             inputs.ckpt_name ||
@@ -289,7 +418,15 @@ function collectComfyWorkflowNodes(workflow: any, visited = new WeakSet()): any[
     visited.add(workflow);
 
     const out: any[] = [];
-    const promptGraph = workflow.prompt && typeof workflow.prompt === "object" ? workflow.prompt : null;
+    let promptValue = workflow.prompt;
+    if (typeof promptValue === "string" && promptValue.trim()) {
+        try {
+            promptValue = JSON.parse(promptValue);
+        } catch {
+            promptValue = null;
+        }
+    }
+    const promptGraph = promptValue && typeof promptValue === "object" ? promptValue : null;
     const graph = promptGraph || (looksLikeComfyPromptGraph(workflow) ? workflow : null);
     if (graph) out.push(...Object.values(graph));
 

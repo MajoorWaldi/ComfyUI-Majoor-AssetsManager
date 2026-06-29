@@ -74,6 +74,7 @@ from .retry_coordinator import (
 from .retry_coordinator import (
     log_metadata_issue as retry_log_metadata_issue,
 )
+from .section_catalog import PARSER_FAMILY_VERSION
 
 logger = get_logger(__name__)
 _METADATA_TRANSIENT_RETRY_ATTEMPTS = 3
@@ -438,6 +439,7 @@ class MetadataService:
 
     async def _enrich_with_geninfo_async(self, combined: dict[str, Any]) -> None:
         """Helper to parse geninfo from prompt/workflow in combined metadata (Worker Thread)."""
+        combined.setdefault("metadata_parser_version", PARSER_FAMILY_VERSION)
         override = build_geninfo_override(combined)
 
         prompt_graph = combined.get("prompt")
@@ -1038,6 +1040,7 @@ class MetadataService:
         combined: dict[str, Any],
         metadata_result: Result[dict[str, Any]],
     ) -> Result[dict[str, Any]]:
+        combined.setdefault("metadata_parser_version", PARSER_FAMILY_VERSION)
         if registry_should_parse_geninfo(combined):
             await self._enrich_with_geninfo_async(combined)
         elif "geninfo" not in combined:

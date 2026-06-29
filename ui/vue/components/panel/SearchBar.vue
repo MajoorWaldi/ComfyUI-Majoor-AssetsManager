@@ -12,6 +12,8 @@
 import { ref, computed, watch, onMounted } from "vue";
 import { usePanelStore } from "../../../stores/usePanelStore.js";
 import { get } from "../../../api/client.js";
+import { ENDPOINTS } from "../../../api/endpoints.js";
+import { metadataSearchAliases, normalizeMetadataSearchPrefix } from "../../../features/metadata/metadataSectionCatalog.js";
 import { debounce } from "../../../utils/debounce.js";
 import { t } from "../../../app/i18n.js";
 import { appendTooltipHint } from "../../../utils/tooltipShortcuts.js";
@@ -40,6 +42,9 @@ const getSearchInputEl = () => resolveDomElement(searchInputRef.value);
 // Local semantic mode state (synced with settings, not persisted)
 const semanticMode = ref(false);
 const semanticEnabled = ref(true);
+const metadataMode = ref(String(panelStore.metadataSearchMode || "AND").toUpperCase() === "OR" ? "OR" : "AND");
+let metadataKeysCache = null;
+let metadataKeysPromise = null;
 
 // Computed placeholder based on semantic mode
 const searchPlaceholder = computed(() => {
@@ -85,11 +90,18 @@ const semanticBtnStyle = computed(() => {
     };
 });
 
+const metadataModeTitle = computed(() =>
+    metadataMode.value === "OR"
+        ? t("search.metadataModeOr", "Metadata prefix terms match any tag (OR)")
+        : t("search.metadataModeAnd", "Metadata prefix terms must all match (AND)"),
+);
+
 const syncSemanticDataset = () => {
     try {
         const input = getSearchInputEl();
         if (!input) return;
         input.dataset.mjrSemanticMode = semanticMode.value ? "1" : "0";
+        input.dataset.mjrMetadataMode = metadataMode.value;
     } catch (e) {
         console.debug?.(e);
     }
@@ -99,6 +111,7 @@ const emitSearchChange = (payload = {}) => {
     emit("search-change", {
         query: getSearchInputEl()?.value || "",
         semantic: semanticMode.value,
+        metadataMode: metadataMode.value,
         ...payload,
     });
 };
@@ -120,22 +133,93 @@ const toggleSemanticMode = () => {
 const handleSearchInput = async (e) => {
     const value = e.target.value || "";
     panelStore.searchQuery = value;
+    panelStore.metadataSearchMode = metadataMode.value;
     syncSemanticDataset();
     emitSearchChange({ query: value });
     await handleAutocomplete();
 };
 
+const toggleMetadataMode = () => {
+    metadataMode.value = metadataMode.value === "OR" ? "AND" : "OR";
+    panelStore.metadataSearchMode = metadataMode.value;
+    syncSemanticDataset();
+    emitSearchChange({ metadataMode: metadataMode.value });
+    try {
+        getSearchInputEl()?.dispatchEvent?.(new Event("input", { bubbles: true }));
+    } catch (e) {
+        console.debug?.(e);
+    }
+};
+
+const getLastSearchToken = (value) => {
+    const parts = String(value || "").split(/\s+/);
+    return parts[parts.length - 1] || "";
+};
+
+async function loadMetadataKeys() {
+    if (metadataKeysCache) return metadataKeysCache;
+    if (!metadataKeysPromise) {
+        metadataKeysPromise = get(ENDPOINTS.METADATA_KEYS, { limit: 600 }).then((res) => {
+            const data = res?.data || {};
+            metadataKeysCache = data;
+            return data;
+        });
+    }
+    return metadataKeysPromise;
+}
+
+function replaceLastSearchToken(value, replacement) {
+    const text = String(value || "");
+    const match = text.match(/^(.*?)(\S*)$/);
+    const prefix = match ? match[1] : "";
+    return `${prefix}${replacement}`.trimStart();
+}
+
+function buildMetadataSuggestions(value, metadataKeys) {
+    const token = getLastSearchToken(value);
+    const normalizedToken = token.replace(/^-/, "");
+    const aliases = metadataSearchAliases();
+    if (!normalizedToken.includes(":")) {
+        const lower = normalizedToken.toLowerCase();
+        return Object.keys(aliases)
+            .filter((alias) => alias.startsWith(lower))
+            .slice(0, 12)
+            .map((alias) => replaceLastSearchToken(value, `${token.startsWith("-") ? "-" : ""}${alias}:`));
+    }
+    const [rawPrefix, rawNeedle = ""] = normalizedToken.split(/:(.*)/s);
+    const prefix = normalizeMetadataSearchPrefix(rawPrefix);
+    if (!prefix) return [];
+    const needle = rawNeedle.toLowerCase();
+    const keys = Array.isArray(metadataKeys?.keys) ? metadataKeys.keys : [];
+    const workflowNodes = metadataKeys?.workflow_nodes || {};
+    const source = [
+        ...keys,
+        ...Object.keys(workflowNodes).flatMap((node) =>
+            (workflowNodes[node] || []).map((field) => `workflow_nodes.${node}.${field}`),
+        ),
+    ];
+    return source
+        .filter((item) => String(item || "").toLowerCase().includes(needle))
+        .slice(0, 16)
+        .map((item) => replaceLastSearchToken(value, `${token.startsWith("-") ? "-" : ""}${rawPrefix}:${item}`));
+}
+
 // Autocomplete handler
 const handleAutocomplete = debounce(async () => {
     const val = (getSearchInputEl()?.value || "").trim();
-    // Skip autocomplete in semantic mode or for attribute searches
-    if (semanticMode.value || val.length < 2 || val.includes(":")) return;
+    if (semanticMode.value || val.length < 1) return;
 
     try {
-        const res = await get("/mjr/am/autocomplete", { q: val, limit: 10 });
-        if (res && res.ok && Array.isArray(res.data)) {
+        const suggestions = [];
+        const metadataKeys = await loadMetadataKeys();
+        suggestions.push(...buildMetadataSuggestions(val, metadataKeys));
+        if (!val.includes(":") && val.length >= 2) {
+            const res = await get("/mjr/am/autocomplete", { q: val, limit: 10 });
+            if (res && res.ok && Array.isArray(res.data)) suggestions.push(...res.data);
+        }
+        if (dataListRef.value) {
             dataListRef.value.innerHTML = "";
-            res.data.forEach((term) => {
+            [...new Set(suggestions)].slice(0, 18).forEach((term) => {
                 const opt = document.createElement("option");
                 opt.value = term;
                 dataListRef.value.appendChild(opt);
@@ -173,6 +257,15 @@ watch(semanticEnabled, (enabled) => {
 watch(semanticMode, () => {
     syncSemanticDataset();
 });
+
+watch(
+    () => panelStore.metadataSearchMode,
+    (newVal) => {
+        const next = String(newVal || "AND").toUpperCase() === "OR" ? "OR" : "AND";
+        if (metadataMode.value !== next) metadataMode.value = next;
+        syncSemanticDataset();
+    },
+);
 
 onMounted(() => {
     try {
@@ -226,6 +319,20 @@ defineExpose({
             <datalist ref="dataListRef" :id="dataListId" />
         </div>
         <div class="mjr-am-search-tools">
+            <div class="mjr-popover-anchor">
+                <MButton
+                    type="button"
+                    class="mjr-icon-btn mjr-ai-control"
+                    severity="secondary"
+                    text
+                    rounded
+                    :title="metadataModeTitle"
+                    :aria-label="metadataModeTitle"
+                    @click="toggleMetadataMode"
+                >
+                    <span style="font-size:10px;font-weight:700;letter-spacing:0">{{ metadataMode }}</span>
+                </MButton>
+            </div>
             <div class="mjr-popover-anchor">
                 <MButton
                     ref="semanticBtnRef"

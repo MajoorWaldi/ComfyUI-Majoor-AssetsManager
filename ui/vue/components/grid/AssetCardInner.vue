@@ -10,7 +10,7 @@
  * Phase 4.2 - full inner card replacement.
  */
 import { computed, inject, ref, watch, watchEffect, onMounted, onBeforeUnmount, onUnmounted } from "vue";
-import { buildAssetViewURL } from "../../../api/endpoints.js";
+import { buildAssetViewURL, buildThumbnailURL } from "../../../api/endpoints.js";
 import {
     genTimeColor,
     createWorkflowDot,
@@ -285,8 +285,12 @@ const explicitPreviewUrl = computed(() =>
 );
 const imageUrl = computed(() => viewUrl.value);
 const videoUrl = computed(() => explicitPreviewUrl.value || viewUrl.value);
+const generatedThumbnailUrl = computed(() => {
+    if (!isVideo.value && !isWorkflow.value) return "";
+    return buildThumbnailURL(props.asset, 384);
+});
 const posterUrl = computed(() =>
-    explicitThumbnailUrl.value,
+    explicitThumbnailUrl.value || generatedThumbnailUrl.value,
 );
 
 const filename = computed(() => String(props.asset.filename || ""));
@@ -716,7 +720,7 @@ function emitWorkflowAction(action, event) {
                 ><i :class="workflowFavorite ? 'pi pi-star-fill' : 'pi pi-star'" /></button>
             </div>
             <img
-                v-if="explicitThumbnailUrl && !imgError"
+                v-if="posterUrl && !imgError"
                 :class="[
                     'mjr-thumb-media',
                     {
@@ -726,13 +730,13 @@ function emitWorkflowAction(action, event) {
                 :alt="filename"
                 decoding="async"
                 loading="lazy"
-                :src="explicitThumbnailUrl"
+                :src="posterUrl"
                 @error="onImgError"
             />
             <div
                 class="mjr-workflow-thumb"
                 :class="{
-                    'has-thumbnail': explicitThumbnailUrl && !imgError,
+                    'has-thumbnail': posterUrl && !imgError,
                     'has-graph-map': hasGraphMapWorkflowThumbnail && !imgError,
                 }"
             >

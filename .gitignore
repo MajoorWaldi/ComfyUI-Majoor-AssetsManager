@@ -168,6 +168,7 @@ reports_vulture_backend.txt
 # Local temp files
 *.bak
 *.orig
+.majoor_thumbs/
 
 # Accidental files that must never reappear in git
 

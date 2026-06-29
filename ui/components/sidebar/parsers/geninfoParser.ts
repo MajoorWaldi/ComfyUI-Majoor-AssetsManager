@@ -6,6 +6,23 @@ const FILEPATH_PROMPT_RE =
 const FILEPATH_SEGMENTED_PROMPT_RE =
     /^(?!.*[,;])(?!.*\b(?:cinematic|portrait|landscape|lighting|style|detailed|masterpiece|photo|render)\b).*(?:[\\/][^\\/\n]+){2,}\.(?:png|jpe?g|webp|gif|bmp|tiff?|avif|heic|heif|apng|hdr|svg|mp4|webm|mov|mkv|avi|m4v|mp3|wav|flac|ogg|glb|gltf|obj|fbx|ply|stl|ckpt|safetensors|pt|pth|bin|gguf|json|ya?ml)$/i;
 
+const WORKFLOW_TAG_KEYS = new Set([
+    "workflow",
+    "quicktime:workflow",
+    "keys:workflow",
+    "comfyui:workflow",
+    "comfy_workflow",
+    "comfyuiworkflow",
+]);
+const PROMPT_TAG_KEYS = new Set([
+    "prompt",
+    "quicktime:prompt",
+    "keys:prompt",
+    "comfyui:prompt",
+    "comfy_prompt",
+    "comfyuiprompt",
+]);
+
 export function normalizeGenerationMetadata(raw: any): Record<string, any> | null {
     if (!raw) return null;
 
@@ -221,6 +238,7 @@ export function normalizeGenerationMetadata(raw: any): Record<string, any> | nul
                 }
             }
             if (overrideFields.size) mapped.override_fields = Array.from(overrideFields);
+            mergeMissingGenerationField(mapped, extractEmbeddedComfyMetadata(raw));
             enrichSamplerStagesFromNativeWorkflow(mapped, raw);
 
             if (Object.keys(mapped).length) return mapped;
@@ -233,6 +251,9 @@ export function normalizeGenerationMetadata(raw: any): Record<string, any> | nul
             const parsed = parseComfyUIWorkflow({ prompt: raw });
             if (parsed) return parsed;
         }
+
+        const parsedFromEmbeddedTags = extractEmbeddedComfyMetadata(raw);
+        if (parsedFromEmbeddedTags) return parsedFromEmbeddedTags;
 
         const flatKeys = [
             "prompt",
@@ -293,6 +314,142 @@ export function normalizeGenerationMetadata(raw: any): Record<string, any> | nul
     }
 
     return null;
+}
+
+function normalizeTagKey(key: any): string {
+    return String(key || "")
+        .trim()
+        .replace(/\\/g, "/")
+        .toLowerCase();
+}
+
+function maybeParseJsonContainer(value: any): any {
+    if (!value) return null;
+    if (typeof value === "object") return value;
+    if (typeof value !== "string") return null;
+    const text = value.trim();
+    if (!text || !(text.startsWith("{") || text.startsWith("["))) return null;
+    try {
+        return JSON.parse(text);
+    } catch {
+        return null;
+    }
+}
+
+function collectEmbeddedTagContainers(raw: any): any[] {
+    if (!raw || typeof raw !== "object") return [];
+    const containers: any[] = [];
+    const push = (candidate: any) => {
+        if (candidate && typeof candidate === "object" && !containers.includes(candidate)) {
+            containers.push(candidate);
+        }
+    };
+
+    push(raw);
+    push(raw.metadata_raw);
+    push(raw.metadata);
+    push(raw.raw);
+    push(raw.exif);
+    push(raw.metadata_raw?.exif);
+    push(raw.metadata?.exif);
+    push(raw.format?.tags);
+    push(raw.ffprobe?.format?.tags);
+    push(raw.raw_ffprobe?.format?.tags);
+    push(raw.metadata_raw?.raw_ffprobe?.format?.tags);
+    push(raw.metadata_raw?.ffprobe?.format?.tags);
+    push(raw.metadata?.raw_ffprobe?.format?.tags);
+    push(raw.metadata?.ffprobe?.format?.tags);
+
+    const streamGroups = [
+        raw.streams,
+        raw.ffprobe?.streams,
+        raw.raw_ffprobe?.streams,
+        raw.metadata_raw?.raw_ffprobe?.streams,
+        raw.metadata_raw?.ffprobe?.streams,
+        raw.metadata?.raw_ffprobe?.streams,
+        raw.metadata?.ffprobe?.streams,
+    ];
+    for (const streams of streamGroups) {
+        if (!Array.isArray(streams)) continue;
+        for (const stream of streams) push(stream?.tags);
+    }
+
+    return containers;
+}
+
+function pickEmbeddedComfyValue(container: any, keys: Set<string>): any {
+    if (!container || typeof container !== "object") return null;
+    for (const [key, value] of Object.entries(container)) {
+        if (keys.has(normalizeTagKey(key))) return value;
+    }
+    return null;
+}
+
+function mergeMissingGenerationField(target: Record<string, any>, source: Record<string, any> | null) {
+    if (!source || typeof source !== "object") return;
+    for (const [key, value] of Object.entries(source)) {
+        if (value === undefined || value === null || value === "") continue;
+        if (Array.isArray(value) && Array.isArray(target[key])) {
+            target[key] = mergeGenerationArrays(target[key], value);
+            continue;
+        }
+        if (
+            value &&
+            typeof value === "object" &&
+            !Array.isArray(value) &&
+            target[key] &&
+            typeof target[key] === "object" &&
+            !Array.isArray(target[key])
+        ) {
+            target[key] = { ...value, ...target[key] };
+            continue;
+        }
+        if (target[key] === undefined || target[key] === null || target[key] === "") {
+            target[key] = value;
+        }
+    }
+}
+
+function generationItemKey(value: any): string {
+    if (!value || typeof value !== "object") return JSON.stringify(value);
+    const name = value.name || value.lora_name || value.model || value.sampler_name || value.sampler || "";
+    const role = value.key || value.pass_stage || value.source || "";
+    if (name || role) return `${String(role).toLowerCase()}::${String(name).toLowerCase()}`;
+    return JSON.stringify(value);
+}
+
+function mergeGenerationArrays(target: any[], source: any[]): any[] {
+    const out = [...target];
+    const seen = new Set(out.map((item) => generationItemKey(item)));
+    for (const item of source) {
+        const key = generationItemKey(item);
+        if (seen.has(key)) continue;
+        seen.add(key);
+        out.push(item);
+    }
+    return out;
+}
+
+export function extractEmbeddedComfyMetadata(raw: any): Record<string, any> | null {
+    let workflow: any = null;
+    let prompt: any = null;
+
+    for (const container of collectEmbeddedTagContainers(raw)) {
+        if (!workflow) workflow = maybeParseJsonContainer(pickEmbeddedComfyValue(container, WORKFLOW_TAG_KEYS));
+        if (!prompt) prompt = maybeParseJsonContainer(pickEmbeddedComfyValue(container, PROMPT_TAG_KEYS));
+        if (workflow && prompt) break;
+    }
+
+    const merged: Record<string, any> = {};
+    if (workflow || prompt) {
+        mergeMissingGenerationField(merged, parseComfyUIWorkflow({ workflow, prompt }));
+        mergeMissingGenerationField(merged, parseComfyUIWorkflow(workflow));
+        if (prompt && looksLikeComfyPromptGraph(prompt)) {
+            mergeMissingGenerationField(merged, parseComfyUIWorkflow({ prompt }));
+        }
+    }
+
+    return Object.keys(merged).length ? merged : null;
 }
 
 function enrichSamplerStagesFromNativeWorkflow(mapped: Record<string, any>, raw: any) {
@@ -371,6 +528,13 @@ export function formatModelLabel(value: any): string {
     return base.replace(/\.(safetensors|ckpt|pt|pth|bin|gguf|json)$/i, "");
 }
 
+function formatWeight(value: any): string {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return String(value ?? "").trim();
+    if (Math.abs(n - Math.round(n)) < 1e-9) return String(Math.round(n));
+    return n.toFixed(2).replace(/0+$/g, "").replace(/\.$/, "");
+}
+
 export function formatLoRAItem(lora: any) {
     if (!lora) return "";
     if (typeof lora === "string") return formatModelLabel(lora);
@@ -384,12 +548,12 @@ export function formatLoRAItem(lora: any) {
 
     if (sm !== null || sc !== null) {
         const parts = [];
-        if (sm !== null && sm !== undefined) parts.push(`m=${sm}`);
-        if (sc !== null && sc !== undefined) parts.push(`c=${sc}`);
+        if (sm !== null && sm !== undefined) parts.push(`m=${formatWeight(sm)}`);
+        if (sc !== null && sc !== undefined) parts.push(`c=${formatWeight(sc)}`);
         return parts.length ? `${name} (${parts.join(", ")})` : name;
     }
 
-    if (w !== null && w !== undefined) return `${name} (${w})`;
+    if (w !== null && w !== undefined) return `${name} (${formatWeight(w)})`;
     return name;
 }
 

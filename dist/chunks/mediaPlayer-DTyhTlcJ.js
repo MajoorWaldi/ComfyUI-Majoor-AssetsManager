@@ -1,11 +1,11 @@
 import { t as e } from "./rolldown-runtime-Dy4uBu1J.js";
-import { m as t, o as n, pt as r, r as i } from "./events-CRutpS6F.js";
-import { t as a } from "./VideoControls-CpO4V4Qf.js";
+import { m as t, mt as n, o as r, r as i } from "./events-BpkKbGZs.js";
+import { t as a } from "./VideoControls-Dy5An_lN.js";
 import { n as o } from "./state-DPiaUMw1.js";
 //#region ui/features/viewer/videoSync.ts
 var s = () => {
 	try {
-		return !!n?.DEBUG_VIEWER;
+		return !!r?.DEBUG_VIEWER;
 	} catch {
 		return !1;
 	}
@@ -1221,7 +1221,7 @@ function _e(e, t) {
 	};
 }
 function L(e, a, o = {}) {
-	let s = o?.pauseDuringExecution == null ? !!n?.VIEWER_PAUSE_DURING_EXECUTION : !!o.pauseDuringExecution, c = document.createElement("div");
+	let s = o?.pauseDuringExecution == null ? !!r?.VIEWER_PAUSE_DURING_EXECUTION : !!o.pauseDuringExecution, c = document.createElement("div");
 	c.className = o.hostClassName || "mjr-model3d-host mjr-viewer-model3d-host", c.style.cssText = o.hostStyle || [
 		"width:100%",
 		"height:100%",
@@ -1667,9 +1667,9 @@ function L(e, a, o = {}) {
 		console.debug?.(e);
 	}
 	return Ie("Preparing 3D preview", Pe), Promise.resolve().then(async () => {
-		let n = he(e);
-		if (!se.has(n)) {
-			if (Ie("3D preview unavailable", `${n.toUpperCase()} is not supported in the embedded viewer.`), A.style.display = "none", a) try {
+		let r = he(e);
+		if (!se.has(r)) {
+			if (Ie("3D preview unavailable", `${r.toUpperCase()} is not supported in the embedded viewer.`), A.style.display = "none", a) try {
 				let n = document.createElement("a");
 				n.href = a, n.download = String(e?.filename || "model"), n.textContent = t("model3d.downloadFile", "Download {file}", { file: String(e?.filename || "file") }), n.style.cssText = [
 					"position:absolute",
@@ -1696,8 +1696,8 @@ function L(e, a, o = {}) {
 			let s = new i.LoadingManager();
 			s.setURLModifier((t) => {
 				if (!t || me(t)) return t;
-				let n = r(e, t);
-				if (n) return n;
+				let r = n(e, t);
+				if (r) return r;
 				try {
 					return new URL(t, a).href;
 				} catch {
@@ -1731,12 +1731,12 @@ function L(e, a, o = {}) {
 				L.setSize(t, n, !1), B && (B.aspect = t / n, B.updateProjectionMatrix()), ze(t, n), Re(), Fe();
 			};
 			typeof ResizeObserver < "u" && (ge = new ResizeObserver(() => b()), ge.observe(c));
-			let S = ee(t, n, s);
+			let S = ee(t, r, s);
 			if (!S) {
-				Ie("3D loader unavailable", `${n.toUpperCase()} loader could not be created.`), A.style.display = "none";
+				Ie("3D loader unavailable", `${r.toUpperCase()} loader could not be created.`), A.style.display = "none";
 				return;
 			}
-			if (n === "obj" && t.MTLLoader) try {
+			if (r === "obj" && t.MTLLoader) try {
 				let e = a.replace(/\.obj(\?.*)?$/i, (e, t) => `.mtl${t || ""}`), n = new t.MTLLoader(s), r = await new Promise((t) => {
 					n.load(e, t, void 0, () => t(null));
 				});
@@ -1744,9 +1744,9 @@ function L(e, a, o = {}) {
 			} catch (e) {
 				console.debug?.("[MJR 3D] MTL load skipped:", e?.message);
 			}
-			let C = await x(S, n, a);
+			let C = await x(S, r, a);
 			if (F) return;
-			let E = v(i, n, C);
+			let E = v(i, r, C);
 			if (!E) {
 				Ie("Empty 3D scene", "The loader returned no renderable object."), A.style.display = "none";
 				return;
@@ -1792,7 +1792,7 @@ function L(e, a, o = {}) {
 				});
 			}
 			K = h(i, G), K && (W.position.y = K.box.min.y), q = j.PERSPECTIVE, Be(), b(), Le(), Xe();
-			let ie = m(C, n);
+			let ie = m(C, r);
 			ie.length > 0 && Ye(ie, E);
 			let D = new i.Scene();
 			c._mjrAxisScene = D;

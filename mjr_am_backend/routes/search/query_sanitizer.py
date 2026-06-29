@@ -5,6 +5,7 @@ import re
 from collections.abc import Mapping
 from typing import Any
 
+from ...features.search.prefix_query import merge_prefixed_query
 from ...shared import Result
 
 MAX_RATING = 5
@@ -126,9 +127,10 @@ def consume_filter_token(token: str, filters: dict) -> bool:
 def parse_inline_filters(raw_query):
     if not raw_query:
         return "", {}
+    raw_query, prefixed_filters = merge_prefixed_query(str(raw_query), {})
     tokens = str(raw_query).strip().split()
     cleaned = []
-    filters: dict[str, object] = {}
+    filters: dict[str, object] = dict(prefixed_filters or {})
     for token in tokens:
         consumed = consume_filter_token(token, filters)
         if not consumed:
@@ -266,6 +268,12 @@ def _apply_workflow_id_filter(query: "Mapping[str, Any]", filters: "dict[str, An
             filters["workflow_id"] = workflow_id[:255]
 
 
+def _apply_metadata_mode(query: "Mapping[str, Any]", filters: "dict[str, Any]") -> None:
+    mode = str(query.get("metadata_mode") or "").strip().upper()
+    if mode in {"AND", "OR"} and filters.get("metadata_terms"):
+        filters["metadata_terms_mode"] = mode
+
+
 def parse_request_filters(
     query: Mapping[str, Any],
     inline_filters: dict[str, Any] | None = None,
@@ -288,6 +296,7 @@ def parse_request_filters(
     _apply_workflow_type_filter(query, filters)
     _apply_workflow_id_filter(query, filters)
     _apply_bool_flags(query, filters)
+    _apply_metadata_mode(query, filters)
 
     date_err = _apply_date_filters(query, filters)
     if date_err is not None:

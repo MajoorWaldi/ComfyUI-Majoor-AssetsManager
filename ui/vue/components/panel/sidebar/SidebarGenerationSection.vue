@@ -2,6 +2,7 @@
 import { computed, ref, watch } from "vue";
 import { vectorGenerateCaption, vectorGetAlignment } from "../../../../api/client.js";
 import { t } from "../../../../app/i18n.js";
+import { metadataSectionByKey } from "../../../../features/metadata/metadataSectionCatalog.js";
 import GenerationInputThumb from "./GenerationInputThumb.vue";
 import {
     buildGenerationSectionState,
@@ -116,21 +117,26 @@ const canCopyCaption = computed(
         displayedCaption.value !== sectionState.value.emptyCaptionText,
 );
 
+const modelBranches = computed(() => sectionState.value.branchCards.filter((item) => item.modelFields.length || item.loras.length));
+const samplingBranches = computed(() => sectionState.value.branchCards.filter((item) => item.samplingFields.length));
+const loraBranches = computed(() => sectionState.value.branchCards.filter((item) => item.loras.length));
+
 const parameterSections = computed(() => {
     const sections = [];
-    if (sectionState.value.modelFields.length) {
+    const catalogTitle = (key, fallback) => metadataSectionByKey(key)?.title || fallback;
+    if (!modelBranches.value.length && sectionState.value.modelFields.length) {
         sections.push({
             key: "model",
-            title: t("sidebar.generation.modelLora", "Model & LoRA"),
+            title: catalogTitle("model", t("sidebar.generation.modelLora", "Model & LoRA")),
             accent: "#9C27B0",
             emphasis: true,
             fields: sectionState.value.modelFields,
         });
     }
-    if (!sectionState.value.pipelineTabs.length && sectionState.value.samplingFields.length) {
+    if (!samplingBranches.value.length && sectionState.value.samplingFields.length) {
         sections.push({
             key: "sampling",
-            title: t("sidebar.generation.sampling", "Sampling"),
+            title: catalogTitle("sampler", t("sidebar.generation.sampling", "Sampling")),
             accent: "#FF9800",
             emphasis: true,
             fields: sectionState.value.samplingFields,
@@ -554,6 +560,47 @@ watch(
         </template>
 
         <div
+            v-if="modelBranches.length"
+            :style="boxStyle('#9C27B0', { emphasis: true, startAlpha: 0.18, endAlpha: 0.10 })"
+        >
+            <div style="font-size:11px;font-weight:600;color:#9C27B0;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px">
+                {{ t("sidebar.generation.models", "Models") }}
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(190px, 1fr));gap:10px">
+                <div
+                    v-for="branch in modelBranches"
+                    :key="`models-top-${branch.key}`"
+                    :style="modelGroupStyle(branch.accent, true)"
+                >
+                    <div :style="{ fontSize: '10px', fontWeight: '800', color: branch.accent, letterSpacing: '0.6px', textTransform: 'uppercase' }">
+                        {{ branch.label }}
+                    </div>
+                    <div
+                        v-for="field in branch.modelFields"
+                        :key="`model-top-${branch.key}-${field.label}`"
+                        style="display:flex;flex-direction:column;gap:3px;min-width:0"
+                    >
+                        <span style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.58);text-transform:uppercase;letter-spacing:0.4px">{{ field.label }}</span>
+                        <span style="font-size:12px;color:var(--fg-color, rgba(255,255,255,0.96));line-height:1.35;word-break:break-word;cursor:pointer" @click="copyText(field.value, $event.currentTarget)">
+                            {{ field.value || '-' }}
+                        </span>
+                    </div>
+                    <div v-if="branch.loras.length" style="display:flex;flex-direction:column;gap:5px">
+                        <span style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.58);text-transform:uppercase;letter-spacing:0.4px">LoRA</span>
+                        <span
+                            v-for="(lora, index) in branch.loras"
+                            :key="`model-top-${branch.key}-lora-${index}`"
+                            style="font-size:12px;color:var(--fg-color, rgba(255,255,255,0.92));line-height:1.35;word-break:break-word;padding:6px 8px;border-radius:6px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);cursor:pointer"
+                            @click="copyText(lora, $event.currentTarget)"
+                        >
+                            {{ lora }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div
             v-if="isCaptionSectionVisible"
             style="background:linear-gradient(135deg, rgba(0, 188, 212, 0.14) 0%, rgba(33, 150, 243, 0.10) 100%);border:1px solid rgba(0, 188, 212, 0.40);border-radius:6px;padding:12px;display:flex;flex-direction:column;gap:10px"
             :class="{ 'mjr-ai-disabled-block': !aiEnabled }"
@@ -678,70 +725,102 @@ watch(
             </div>
         </div>
 
-        <div
-            v-if="sectionState.pipelineTabs.length"
-            :style="boxStyle('#FF9800', { emphasis: true, startAlpha: 0.16, endAlpha: 0.10 })"
-        >
-            <div style="font-size:11px;font-weight:600;color:#FF9800;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px">
-                {{ t("sidebar.generation.pipeline", "Generation Pipeline") }}
-            </div>
-            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">
-                <MButton
-                    v-for="(tab, index) in sectionState.pipelineTabs"
-                    :key="tab.label"
-                    type="button"
-                    severity="secondary"
-                    text
-                    rounded
-                    :style="{
-                        appearance: 'none',
-                        border: pipelineTabIndex === index ? '1px solid #FF9800' : '1px solid var(--border-color, rgba(255,255,255,0.12))',
-                        borderRadius: '999px',
-                        background: pipelineTabIndex === index ? '#FF980033' : 'rgba(127,127,127,0.12)',
-                        color: pipelineTabIndex === index ? '#FF9800' : 'var(--fg-color, #ddd)',
-                        fontSize: '11px',
-                        padding: '4px 10px',
-                        cursor: 'pointer',
-                        fontWeight: pipelineTabIndex === index ? '700' : '500',
-                        boxShadow: pipelineTabIndex === index ? '0 0 0 1px #FF980055 inset' : 'none',
-                    }"
-                    @click="pipelineTabIndex = index"
-                >
-                    {{ tab.label }}
-                </MButton>
-            </div>
+        <template v-if="sectionState.branchCards.length">
             <div
-                v-for="(tab, index) in sectionState.pipelineTabs"
-                v-show="pipelineTabIndex === index"
-                :key="`${tab.label}-pipeline`"
-                style="display:grid;grid-template-columns:repeat(auto-fit, minmax(150px, 1fr));gap:8px;padding:8px;border:1px solid rgba(255, 152, 0, 0.35);border-radius:6px;background:linear-gradient(135deg, rgba(255, 152, 0, 0.12) 0%, rgba(255, 193, 7, 0.08) 100%);box-shadow:0 0 0 1px rgba(255, 152, 0, 0.12) inset"
+                v-if="false && modelBranches.length"
+                :style="boxStyle('#9C27B0', { emphasis: true, startAlpha: 0.18, endAlpha: 0.10 })"
             >
-                <div
-                    v-for="field in tab.fields"
-                    :key="`${tab.label}-${field.label}`"
-                    style="display:flex;flex-direction:column;gap:2px;min-width:0"
-                >
-                    <span style="font-size:10px;font-weight:600;color:rgba(255,255,255,0.6);text-transform:uppercase;letter-spacing:0.4px">
-                        {{ field.label }}
-                    </span>
-                    <span
-                        style="font-size:12px;color:var(--fg-color, #ddd);word-break:break-word;padding:1px 3px;border-radius:3px;transition:background 0.2s ease;cursor:copy"
-                        @click="copyText(field.value, $event.currentTarget)"
+                <div style="font-size:11px;font-weight:600;color:#9C27B0;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px">
+                    {{ t("sidebar.generation.models", "Models") }}
+                </div>
+                <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(190px, 1fr));gap:10px">
+                    <div
+                        v-for="branch in modelBranches"
+                        :key="`models-${branch.key}`"
+                        :style="modelGroupStyle(branch.accent, true)"
                     >
-                        {{ field.value }}
-                    </span>
+                        <div :style="{ fontSize: '10px', fontWeight: '800', color: branch.accent, letterSpacing: '0.6px', textTransform: 'uppercase' }">
+                            {{ branch.label }}
+                        </div>
+                        <div
+                            v-for="field in branch.modelFields"
+                            :key="`model-${branch.key}-${field.label}`"
+                            style="display:flex;flex-direction:column;gap:3px;min-width:0"
+                        >
+                            <span style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.58);text-transform:uppercase;letter-spacing:0.4px">{{ field.label }}</span>
+                            <span style="font-size:12px;color:var(--fg-color, rgba(255,255,255,0.96));line-height:1.35;word-break:break-word;cursor:pointer" @click="copyText(field.value, $event.currentTarget)">
+                                {{ field.value || '-' }}
+                            </span>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
+
+            <div
+                v-if="samplingBranches.length"
+                :style="boxStyle('#FF9800', { emphasis: true, startAlpha: 0.16, endAlpha: 0.10 })"
+            >
+                <div style="font-size:11px;font-weight:600;color:#FF9800;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px">
+                    {{ t("sidebar.generation.sampling", "Sampling") }}
+                </div>
+                <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));gap:8px">
+                    <div
+                        v-for="branch in samplingBranches"
+                        :key="`sampling-${branch.key}`"
+                        :style="modelGroupStyle(branch.accent, true)"
+                    >
+                        <div :style="{ fontSize: '10px', fontWeight: '800', color: branch.accent, letterSpacing: '0.6px', textTransform: 'uppercase' }">
+                            {{ branch.label }}
+                        </div>
+                        <div
+                            v-for="field in branch.samplingFields"
+                            :key="`sampling-row-${branch.key}-${field.label}`"
+                            style="display:grid;grid-template-columns:minmax(48px,0.8fr) minmax(0,1fr);gap:8px;font-size:11px;color:rgba(255,255,255,0.72);align-items:start"
+                        >
+                            <span>{{ field.label }}</span>
+                            <span style="color:var(--fg-color, #ddd);word-break:break-word;text-align:right;cursor:pointer" @click="copyText(field.value, $event.currentTarget)">{{ field.value }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div
+                v-if="false && loraBranches.length"
+                :style="boxStyle('#BA68C8', { emphasis: true, startAlpha: 0.16, endAlpha: 0.10 })"
+            >
+                <div style="font-size:11px;font-weight:600;color:#BA68C8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px">
+                    {{ t("sidebar.generation.loras", "LoRAs") }}
+                </div>
+                <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(190px, 1fr));gap:10px">
+                    <div
+                        v-for="branch in loraBranches"
+                        :key="`loras-${branch.key}`"
+                        :style="modelGroupStyle(branch.accent, true)"
+                    >
+                        <div :style="{ fontSize: '10px', fontWeight: '800', color: branch.accent, letterSpacing: '0.6px', textTransform: 'uppercase' }">
+                            {{ branch.label }}
+                        </div>
+                        <div style="display:flex;flex-direction:column;gap:5px">
+                            <div
+                                v-for="(lora, index) in branch.loras"
+                                :key="`${branch.key}-lora-${index}`"
+                                style="font-size:12px;color:var(--fg-color, rgba(255,255,255,0.92));line-height:1.35;word-break:break-word;padding:6px 8px;border-radius:6px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);cursor:pointer"
+                                @click="copyText(lora, $event.currentTarget)"
+                            >
+                                {{ lora }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </template>
 
         <div
-            v-if="sectionState.modelGroups.length"
+            v-else-if="sectionState.modelGroups.length"
             :style="boxStyle('#9C27B0', { emphasis: true, startAlpha: 0.18, endAlpha: 0.10 })"
         >
-            <div
-                style="font-size:11px;font-weight:600;color:#9C27B0;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px"
-            >
-                {{ t("sidebar.generation.modelBranches", "Model Branches") }}
+            <div style="font-size:11px;font-weight:600;color:#9C27B0;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px">
+                {{ t("sidebar.generation.models", "Models") }}
             </div>
             <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:10px">
                 <div
@@ -877,28 +956,36 @@ watch(
         </div>
 
         <div
-            v-for="block in sectionState.customInfoBlocks"
-            :key="`${block.title}-${block.content}`"
-            :style="boxStyle(block.color, { emphasis: false })"
+            v-if="sectionState.moduleBlocks.length"
+            :style="boxStyle('#26C6DA', { emphasis: true, startAlpha: 0.14, endAlpha: 0.08 })"
         >
-            <div
-                :style="{
-                    fontSize: '11px',
-                    fontWeight: '600',
-                    color: block.color,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px',
-                    marginBottom: '8px',
-                }"
-            >
-                {{ block.title }}
+            <div style="font-size:11px;font-weight:600;color:#26C6DA;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px">
+                {{ t("sidebar.generation.modules", "Modules") }}
             </div>
-            <div
-                :title="`${block.title}: ${block.content}`"
-                style="font-size:12px;color:var(--fg-color, rgba(255,255,255,0.9));line-height:1.5;white-space:pre-wrap;word-break:break-word;cursor:pointer"
-                @click="copyText(block.content, $event.currentTarget)"
-            >
-                {{ block.content }}
+            <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(190px, 1fr));gap:10px">
+                <div
+                    v-for="module in sectionState.moduleBlocks"
+                    :key="`module-${module.key}-${module.title}`"
+                    :style="modelGroupStyle(module.accent, false)"
+                >
+                    <div :style="{ fontSize: '10px', fontWeight: '800', color: module.accent, letterSpacing: '0.6px', textTransform: 'uppercase' }">
+                        {{ module.title }}
+                    </div>
+                    <div
+                        v-for="field in module.fields"
+                        :key="`module-${module.key}-${field.label}`"
+                        style="display:flex;flex-direction:column;gap:3px;min-width:0"
+                    >
+                        <span style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.58);text-transform:uppercase;letter-spacing:0.4px">{{ field.label }}</span>
+                        <span
+                            :title="`${field.label}: ${field.value}`"
+                            style="font-size:12px;color:var(--fg-color, rgba(255,255,255,0.9));line-height:1.35;white-space:pre-wrap;word-break:break-word;cursor:pointer"
+                            @click="copyText(field.value, $event.currentTarget)"
+                        >
+                            {{ field.value }}
+                        </span>
+                    </div>
+                </div>
             </div>
         </div>
 

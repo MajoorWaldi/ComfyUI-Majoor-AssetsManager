@@ -13,6 +13,14 @@ import { t } from "../../../../app/i18n.js";
 
 type LooseRecord = Record<string, any>;
 type Field = { label: string; value: any; override?: boolean };
+type BranchCard = {
+    key: string;
+    label: string;
+    accent: string;
+    modelFields: Field[];
+    samplingFields: Field[];
+    loras: string[];
+};
 
 const IMAGE_EXTENSIONS = new Set([
     "png",
@@ -177,6 +185,7 @@ function getMetadataSources(asset: LooseRecord | null | undefined): any[] {
         sources.push(asset.prompt);
     }
     if (asset?.exif) sources.push(asset.exif);
+    if (asset && typeof asset === "object") sources.push(asset);
     return sources;
 }
 
@@ -338,6 +347,293 @@ function hasMeaningfulValue(value: any): boolean {
     return value !== undefined && value !== null && String(value).trim() !== "";
 }
 
+function branchAccent(key: any): string {
+    const normalized = String(key || "").toLowerCase();
+    if (normalized.includes("high")) return "#52ffe8";
+    if (normalized.includes("low")) return "#42A5F5";
+    if (normalized.includes("refine")) return "#AB47BC";
+    if (normalized.includes("upscale")) return "#66BB6A";
+    if (normalized.includes("interpolation") || normalized.includes("video")) return "#dace26";
+    return "#9C27B0";
+}
+
+function branchKeyFromLabel(label: any): string {
+    return String(label || "")
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "_")
+        .replace(/^_+|_+$/g, "");
+}
+
+function normalizeBranchLabel(key: any, fallback: any): string {
+    const raw = String(fallback || key || "").trim();
+    const normalized = String(key || raw).toLowerCase();
+    const passMatch = normalized.match(/^pass_(\d+)$/);
+    if (passMatch) return t("sidebar.generation.stagePassN", "Pass {n}", { n: Number(passMatch[1]) });
+    if (normalized.includes("high")) return "High";
+    if (normalized.includes("low")) return "Low";
+    if (normalized.includes("refine")) return "Refiner";
+    if (normalized.includes("upscale")) return "Upscale";
+    if (normalized.includes("text_to_image") || normalized.includes("image_to_image") || normalized === "base") return "Base";
+    return raw || "Branch";
+}
+
+function findField(fields: Field[], names: string[]): Field | null {
+    const wanted = new Set(names.map((name) => String(name).toLowerCase()));
+    return fields.find((field) => wanted.has(String(field.label || "").toLowerCase())) || null;
+}
+
+function fieldIfValue(label: string, value: any): Field | null {
+    return hasMeaningfulValue(value) ? { label, value } : null;
+}
+
+function branchKeyFromModel(value: any): string {
+    const text = String(value || "").toLowerCase();
+    if (text.includes("high_noise") || text.includes("high-noise") || text.includes("high noise")) return "high";
+    if (text.includes("low_noise") || text.includes("low-noise") || text.includes("low noise")) return "low";
+    return "";
+}
+
+function isDisplayScalar(value: any): boolean {
+    if (Array.isArray(value)) return false;
+    if (value && typeof value === "object") return false;
+    return hasMeaningfulValue(value) && String(value).trim() !== "-";
+}
+
+function displayScalar(value: any): string {
+    if (typeof value === "number") {
+        if (Math.abs(value - Math.round(value)) < 1e-9) return String(Math.round(value));
+        return value.toFixed(2).replace(/0+$/g, "").replace(/\.$/, "");
+    }
+    return String(value ?? "").trim();
+}
+
+function positiveSeedValue(value: any): any {
+    if (!hasMeaningfulValue(value)) return null;
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric) || numeric <= 0) return null;
+    return value;
+}
+
+function pickSidebarSeed(metadata: LooseRecord, pipelineTabs: any[]): any {
+    const direct = positiveSeedValue(metadata.seed);
+    if (direct !== null) return direct;
+    const samplerGroups = [
+        Array.isArray(metadata.chained_passes) ? metadata.chained_passes : [],
+        Array.isArray(metadata.all_samplers) ? metadata.all_samplers : [],
+    ];
+    for (const group of samplerGroups) {
+        for (const passItem of group) {
+            const seed = positiveSeedValue(passItem?.seed_val ?? passItem?.seed);
+            if (seed !== null) return seed;
+        }
+    }
+    for (const tab of pipelineTabs || []) {
+        const seedField = findField(tab.fields || [], ["Seed"]);
+        const seed = positiveSeedValue(seedField?.value);
+        if (seed !== null) return seed;
+    }
+    return null;
+}
+
+function pushUniqueField(target: Field[], field: Field | null): void {
+    if (!field || !isDisplayScalar(field.value)) return;
+    const normalized = `${String(field.label || "").toLowerCase()}::${displayScalar(field.value)}`;
+    if (target.some((item) => `${String(item.label || "").toLowerCase()}::${displayScalar(item.value)}` === normalized)) return;
+    target.push({ ...field, value: displayScalar(field.value) });
+}
+
+function buildBranchCards(metadata: LooseRecord, modelGroups: any[], samplingFields: Field[], pipelineTabs: any[]): BranchCard[] {
+    const cards = new Map<string, BranchCard>();
+    const ensureCard = (key: string, label: string): BranchCard => {
+        let normalizedKey = branchKeyFromLabel(key || label || "branch") || "branch";
+        if (normalizedKey.includes("high")) normalizedKey = "high";
+        if (normalizedKey.includes("low")) normalizedKey = "low";
+        const existing = cards.get(normalizedKey);
+        if (existing) return existing;
+        const card = {
+            key: normalizedKey,
+            label: normalizeBranchLabel(normalizedKey, label),
+            accent: branchAccent(normalizedKey),
+            modelFields: [],
+            samplingFields: [],
+            loras: [],
+        };
+        cards.set(normalizedKey, card);
+        return card;
+    };
+    const pushModelField = (card: BranchCard, label: string, value: any) => {
+        const text = String(value || "").trim();
+        if (!text) return;
+        const duplicate = card.modelFields.some(
+            (field) =>
+                String(field.label || "").toLowerCase() === String(label || "").toLowerCase() &&
+                formatModelLabel(field.value) === formatModelLabel(text),
+        );
+        if (!duplicate) card.modelFields.push({ label, value: text });
+    };
+    const pushLora = (card: BranchCard, value: any) => {
+        const text = String(value || "").trim();
+        if (text && !card.loras.includes(text)) card.loras.push(text);
+    };
+
+    for (const group of modelGroups || []) {
+        const card = ensureCard(group.key, group.label);
+        if (group.model) pushModelField(card, "UNet", group.model);
+        for (const lora of group.loras || []) pushLora(card, lora);
+    }
+
+    const models = metadata.models && typeof metadata.models === "object" ? metadata.models : null;
+    if (models) {
+        const unetModel = pickModelName(models.unet);
+        const unetRole = branchKeyFromModel(unetModel);
+        const baseModel = pickModelName(models.checkpoint || (!unetRole ? models.unet : null) || metadata.model || metadata.checkpoint);
+        const highModel = pickModelName(models.unet_high_noise) || (unetRole === "high" ? unetModel : "");
+        const lowModel = pickModelName(models.unet_low_noise) || (unetRole === "low" ? unetModel : "");
+        const sharedClip = pickModelName(models.clip);
+        const sharedVae = pickModelName(models.vae);
+        const ungroupedLoras = Array.isArray(metadata.loras)
+            ? metadata.loras.map((item) => formatLoRAItem(item)).filter(Boolean)
+            : [];
+        const hasRoleBranches = Boolean(highModel || lowModel);
+        const base = !hasRoleBranches && (baseModel || sharedClip || sharedVae || ungroupedLoras.length)
+            ? ensureCard("base", "Base")
+            : null;
+        const shared = hasRoleBranches && (sharedClip || sharedVae)
+            ? ensureCard("shared", "Shared")
+            : null;
+        const high = highModel ? ensureCard("high", "High") : null;
+        const low = lowModel ? ensureCard("low", "Low") : null;
+        if (base) {
+            if (baseModel) pushModelField(base, metadata.model || metadata.checkpoint || models.checkpoint ? "Model" : "UNet", baseModel);
+            if (sharedClip) pushModelField(base, "CLIP", sharedClip);
+            if (sharedVae) pushModelField(base, "VAE", sharedVae);
+            for (const lora of ungroupedLoras) pushLora(base, lora);
+        }
+        if (shared) {
+            if (sharedClip) pushModelField(shared, "CLIP", sharedClip);
+            if (sharedVae) pushModelField(shared, "VAE", sharedVae);
+        }
+        if (high) pushModelField(high, "UNet", highModel);
+        if (low) pushModelField(low, "UNet", lowModel);
+    }
+
+    const high = cards.get("high") || cards.get("high_noise");
+    const low = cards.get("low") || cards.get("low_noise");
+    const commonSampling = [
+        findField(samplingFields, ["Sampler"]),
+        findField(samplingFields, ["Scheduler"]),
+        findField(samplingFields, ["Steps"]),
+        findField(samplingFields, ["Seed"]),
+    ].filter(Boolean) as Field[];
+    const cfgHigh = fieldIfValue("CFG", metadata.cfg_high_noise);
+    const cfgLow = fieldIfValue("CFG", metadata.cfg_low_noise);
+    if (high) [...commonSampling, ...(cfgHigh ? [cfgHigh] : [])].forEach((field) => pushUniqueField(high.samplingFields, field));
+    if (low) [...commonSampling, ...(cfgLow ? [cfgLow] : [])].forEach((field) => pushUniqueField(low.samplingFields, field));
+
+    const hasUpscalePass = (pipelineTabs || []).some((tab) => branchKeyFromLabel(tab.label).includes("upscale"));
+    const genericTwoPassVideo = (pipelineTabs || []).length === 2 &&
+        (pipelineTabs || []).every((tab) => ["base", "pass_2"].includes(branchKeyFromLabel(tab.label)));
+    for (const [index, tab] of (pipelineTabs || []).entries()) {
+        let key = branchKeyFromLabel(tab.label);
+        if (!key) continue;
+        const duplicatePassCount = (pipelineTabs || []).filter((item) => branchKeyFromLabel(item.label) === branchKeyFromLabel(tab.label)).length;
+        const rawStageKey = branchKeyFromLabel(tab.stage);
+        const duplicateStageCount = rawStageKey
+            ? (pipelineTabs || []).filter((item) => branchKeyFromLabel(item.stage) === rawStageKey).length
+            : 0;
+        const model = findField(tab.fields || [], ["Model"]);
+        const modelBranchKey = branchKeyFromModel(model?.value);
+        if (["high", "low"].includes(key)) {
+            // Keep explicit model-traced sampler role.
+        } else if (modelBranchKey) key = modelBranchKey;
+        else if (duplicateStageCount > 1) key = `pass_${index + 1}`;
+        else if (duplicatePassCount > 1) key = `pass_${index + 1}`;
+        else if (genericTwoPassVideo) key = index === 0 ? "high" : "low";
+        else if (key === "base" && high && low) key = "high";
+        else if (["text_to_image", "image_to_image"].includes(key)) key = hasUpscalePass ? "low" : "base";
+        if (key.includes("upscale") && hasUpscalePass) key = "high";
+        const card = ensureCard(key, tab.label);
+        const generatedPassCard = /^pass_\d+$/i.test(key);
+        if (!generatedPassCard && model && String(model.value || "") !== "-") {
+            const nextModel = formatModelLabel(model.value);
+            const duplicateModel = card.modelFields.some((field) => formatModelLabel(field.value) === nextModel);
+            if (!duplicateModel) card.modelFields.push(model);
+        }
+        for (const field of (tab.fields || []) as Field[]) {
+            if (!["Sampler", "Scheduler", "Steps", "CFG", "Denoise", "Seed", "Start", "End"].includes(String(field.label || ""))) continue;
+            pushUniqueField(card.samplingFields, field);
+        }
+    }
+
+    return Array.from(cards.values()).filter(
+        (card) => card.modelFields.length || card.samplingFields.length || card.loras.length,
+    );
+}
+
+function buildModuleBlocks(metadata: LooseRecord, pipelineTabs: any[], customInfoBlocks: any[], workflowType: string): any[] {
+    const modules: any[] = [];
+    const addModule = (key: string, title: string, accent: string, fields: Field[]) => {
+        const visible = fields.filter((field) => field && hasMeaningfulValue(field.value) && String(field.value) !== "-");
+        if (!visible.length) return;
+        modules.push({ key, title, accent, fields: visible });
+    };
+
+    for (const tab of pipelineTabs || []) {
+        const key = branchKeyFromLabel(tab.label);
+        const hasUpscaleModel = (tab.fields || []).some((field: Field) => {
+            const label = String(field?.label || "").toLowerCase();
+            const value = String(field?.value || "").toLowerCase();
+            return (
+                label.includes("upscaler") ||
+                value.includes("upscale") ||
+                value.includes("upscaler") ||
+                /(?:^|[_\s-])to[_\s-]?\d{3,5}(?:[_\s.-]|$)/i.test(value)
+            );
+        });
+        if (key.includes("upscale") && (metadata.upscaler || hasUpscaleModel)) {
+            addModule("upscale", "Upscale", "#66BB6A", tab.fields || []);
+        }
+        if (key.includes("interpolation") || key.includes("rife") || key.includes("film")) {
+            addModule("interpolation", "Interpolation", "#26C6DA", tab.fields || []);
+        }
+    }
+
+    addModule("audio", "MMAudio", "#26A69A", [
+        fieldIfValue("Voice", metadata.voice),
+        fieldIfValue("Language", metadata.language),
+        fieldIfValue("Temperature", metadata.temperature),
+        fieldIfValue("Lyrics Strength", metadata.lyrics_strength),
+    ].filter(Boolean) as Field[]);
+
+    addModule("interpolation", "Interpolation", "#26C6DA", [
+        fieldIfValue("Engine", metadata.interpolation_engine || metadata.frame_interpolation || metadata.interpolator),
+        fieldIfValue("Source FPS", metadata.source_fps || metadata.input_fps),
+        fieldIfValue("Final FPS", metadata.final_fps || metadata.output_fps || metadata.fps),
+    ].filter(Boolean) as Field[]);
+
+    for (const block of customInfoBlocks || []) {
+        modules.push({
+            key: branchKeyFromLabel(block.title) || `module_${modules.length}`,
+            title: block.title,
+            accent: block.color || "#2196F3",
+            fields: [{ label: "Info", value: block.content }],
+        });
+    }
+
+    if (workflowType && !modules.some((module) => String(module.title).toLowerCase() === String(workflowType).toLowerCase())) {
+        addModule("workflow_engine", workflowType, "#2196F3", [fieldIfValue("Engine", workflowType)].filter(Boolean) as Field[]);
+    }
+
+    const seen = new Set<string>();
+    return modules.filter((module) => {
+        const key = `${module.key}:${module.title}:${JSON.stringify(module.fields)}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+    });
+}
+
 function overrideFieldSet(metadata: LooseRecord): Set<string> {
     return new Set(
         Array.isArray(metadata.override_fields)
@@ -386,6 +682,7 @@ export function buildGenerationSectionState(asset: LooseRecord | null | undefine
         lyrics: "",
         modelFields: [],
         modelGroups: [],
+        branchCards: [],
         pipelineTabs: [],
         samplingFields: [],
         ttsFields: [],
@@ -400,6 +697,7 @@ export function buildGenerationSectionState(asset: LooseRecord | null | undefine
         overrideLabel: "",
         notesFields: [],
         customInfoBlocks: [],
+        moduleBlocks: [],
     };
 
     if (
@@ -533,6 +831,9 @@ export function buildGenerationSectionState(asset: LooseRecord | null | undefine
     if (!models && metadata.diffusion) {
         pushUniqueModelField(modelFields, seenModelPairs, "Diffusion", formatModelLabel(metadata.diffusion));
     }
+    if (!models && metadata.upscaler) {
+        pushUniqueModelField(modelFields, seenModelPairs, t("sidebar.generation.upscaler", "Upscaler"), formatModelLabel(metadata.upscaler));
+    }
     if (models && metadata.clip) pushUniqueModelField(modelFields, seenModelPairs, "CLIP", formatModelLabel(metadata.clip));
     if (models && metadata.vae) pushUniqueModelField(modelFields, seenModelPairs, "VAE", formatModelLabel(metadata.vae));
     for (const field of modelFields) {
@@ -573,6 +874,7 @@ export function buildGenerationSectionState(asset: LooseRecord | null | undefine
             .filter((passItem) => passItem && typeof passItem === "object")
             .map((passItem, index) => ({
                 label: resolvePassName(passItem, index),
+                stage: String(passItem?.pass_stage || "").trim(),
                 fields: [
                     { label: t("sidebar.generation.model", "Model"), value: formatPipelineValue(passItem?.model) },
                     { label: t("sidebar.generation.sampler", "Sampler"), value: formatPipelineValue(passItem?.sampler_name || passItem?.sampler) },
@@ -580,6 +882,8 @@ export function buildGenerationSectionState(asset: LooseRecord | null | undefine
                     { label: t("sidebar.generation.steps", "Steps"), value: formatPipelineValue(passItem?.steps) },
                     { label: "CFG", value: formatPipelineValue(passItem?.cfg) },
                     { label: t("sidebar.generation.denoise", "Denoise"), value: formatPipelineValue(passItem?.denoise) },
+                    { label: "Start", value: formatPipelineValue(passItem?.start_at_step) },
+                    { label: "End", value: formatPipelineValue(passItem?.end_at_step) },
                     { label: t("sidebar.generation.seed", "Seed"), value: formatPipelineValue(passItem?.seed_val || passItem?.seed) },
                 ],
             }));
@@ -588,6 +892,7 @@ export function buildGenerationSectionState(asset: LooseRecord | null | undefine
             .filter((passItem) => passItem && typeof passItem === "object")
             .map((passItem, index) => ({
                 label: resolvePassName(passItem, index),
+                stage: String(passItem?.pass_stage || "").trim(),
                 fields: [
                     { label: t("sidebar.generation.model", "Model"), value: formatPipelineValue(passItem?.model) },
                     { label: t("sidebar.generation.sampler", "Sampler"), value: formatPipelineValue(passItem?.sampler_name || passItem?.sampler) },
@@ -595,6 +900,8 @@ export function buildGenerationSectionState(asset: LooseRecord | null | undefine
                     { label: t("sidebar.generation.steps", "Steps"), value: formatPipelineValue(passItem?.steps) },
                     { label: "CFG", value: formatPipelineValue(passItem?.cfg) },
                     { label: t("sidebar.generation.denoise", "Denoise"), value: formatPipelineValue(passItem?.denoise) },
+                    { label: "Start", value: formatPipelineValue(passItem?.start_at_step) },
+                    { label: "End", value: formatPipelineValue(passItem?.end_at_step) },
                     { label: t("sidebar.generation.seed", "Seed"), value: formatPipelineValue(passItem?.seed_val || passItem?.seed) },
                 ],
             }));
@@ -662,6 +969,9 @@ export function buildGenerationSectionState(asset: LooseRecord | null | undefine
     const notes = String(metadata.workflow_notes || metadata.notes || "").trim();
     if (notes) notesFields.push({ label: t("sidebar.generation.workflowNotes", "Workflow Notes"), value: notes, override: isOverrideField(overriddenFields, "workflow_notes", "notes") });
     const customInfoBlocks = normalizeCustomInfoBlocks(metadata.custom_info);
+    const branchCards = buildBranchCards(metadata, modelGroups, samplingFields, pipelineTabs);
+    const moduleBlocks = buildModuleBlocks(metadata, pipelineTabs, customInfoBlocks, workflowPresentation.workflowType);
+    const sidebarSeed = pickSidebarSeed(metadata, pipelineTabs);
 
     const inputFiles = Array.isArray(metadata.inputs)
         ? metadata.inputs
@@ -697,6 +1007,7 @@ export function buildGenerationSectionState(asset: LooseRecord | null | undefine
         lyrics: String(metadata.lyrics || "").trim(),
         modelFields,
         modelGroups,
+        branchCards,
         pipelineTabs,
         samplingFields,
         ttsFields,
@@ -704,12 +1015,13 @@ export function buildGenerationSectionState(asset: LooseRecord | null | undefine
         ttsInstruction: String(metadata.instruct || "").trim(),
         ttsRuntimeFields,
         audioFields,
-        seed: metadata.seed ?? null,
+        seed: sidebarSeed,
         imageFields,
         inputFiles,
         isOverride,
         overrideLabel: isOverride ? "Gen Info Override" : "",
         notesFields,
         customInfoBlocks,
+        moduleBlocks,
     };
 }

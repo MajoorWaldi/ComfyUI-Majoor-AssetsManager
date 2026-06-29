@@ -284,6 +284,7 @@ def _build_filter_clauses(filters: dict[str, Any] | None, alias: str = "a") -> t
     _append_workflow_id_filter(filters, alias, clauses, params)
     _append_workflow_type_filter(filters, clauses, params)
     _append_has_workflow_filter(filters, clauses)
+    _append_metadata_terms_filter(filters, clauses, params)
     _append_mtime_filters(filters, alias, clauses, params)
     _append_exclude_root_filter(filters, alias, clauses, params)
     return clauses, params
@@ -372,6 +373,52 @@ def _safe_metadata_json_extract(path: str, max_len: int | None = None) -> str:
         "ELSE NULL "
         "END"
     )
+
+
+def _metadata_term_paths(field: str) -> list[str]:
+    try:
+        from mjr_am_backend.features.metadata.section_catalog import paths_for_search_field
+
+        return paths_for_search_field(field)
+    except Exception:
+        return []
+
+
+def _metadata_text_expr_for_field(field: str) -> str:
+    paths = _metadata_term_paths(field)
+    if not paths:
+        return "COALESCE(m.metadata_text, '')"
+    pieces = ["COALESCE(m.metadata_text, '')"]
+    for path in paths[:12]:
+        pieces.append(f"COALESCE(CAST({_safe_metadata_json_extract(path)} AS TEXT), '')")
+    return " || ' ' || ".join(pieces)
+
+
+def _append_metadata_terms_filter(filters: dict[str, Any], clauses: list[str], params: list[Any]) -> None:
+    terms = filters.get("metadata_terms")
+    if not isinstance(terms, list) or not terms:
+        return
+    mode = str(filters.get("metadata_terms_mode") or "AND").strip().upper()
+    joiner = " OR " if mode == "OR" else " AND "
+    term_clauses: list[str] = []
+    term_params: list[Any] = []
+    for term in terms[:16]:
+        if not isinstance(term, dict):
+            continue
+        value = str(term.get("value") or "").strip()[:160]
+        field = str(term.get("field") or "").strip().lower()
+        if not value:
+            continue
+        expr = _metadata_text_expr_for_field(field)
+        clause = f"LOWER({expr}) LIKE ?"
+        if bool(term.get("exclude")):
+            clause = f"NOT ({clause})"
+        term_clauses.append(f"({clause})")
+        term_params.append(f"%{value.lower()}%")
+    if not term_clauses:
+        return
+    clauses.append(f"AND ({joiner.join(term_clauses)})")
+    params.extend(term_params)
 
 
 def _safe_positive_prompt_extract(max_len: int = 250) -> str:

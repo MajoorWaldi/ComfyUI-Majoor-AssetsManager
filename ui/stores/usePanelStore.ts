@@ -42,6 +42,7 @@ interface PanelState {
     workflowRunsOnFilter: string;
     sort: string;
     searchQuery: string;
+    metadataSearchMode: string;
     scrollTop: number;
     activeAssetId: string;
     selectedAssetIds: string[];
@@ -132,6 +133,7 @@ function sanitize(raw: any): StoredPanelState {
         workflowRunsOnFilter: toStr(row.workflowRunsOnFilter || row.workflowRunsOn || row.runs_on),
         sort: toStr(row.sort || "mtime_desc"),
         searchQuery: toStr(row.searchQuery),
+        metadataSearchMode: String(row.metadataSearchMode || "AND").toUpperCase() === "OR" ? "OR" : "AND",
         scrollTop: clampInt(row.scrollTop),
         activeAssetId: toStr(row.activeAssetId),
         selectedAssetIds: Array.isArray(row.selectedAssetIds)
@@ -200,6 +202,7 @@ export const usePanelStore = defineStore("mjr-panel", () => {
     const workflowRunsOnFilter = ref(saved.workflowRunsOnFilter || "");
     const sort = ref(saved.sort || "mtime_desc");
     const searchQuery = ref(saved.searchQuery || "");
+    const metadataSearchMode = ref(saved.metadataSearchMode || "AND");
     const scrollTop = ref(saved.scrollTop || 0);
     const activeAssetId = ref(saved.activeAssetId || "");
     const selectedAssetIds = ref(saved.selectedAssetIds || []);
@@ -244,6 +247,7 @@ export const usePanelStore = defineStore("mjr-panel", () => {
                 workflowRunsOnFilter: workflowRunsOnFilter.value,
                 sort: sort.value,
                 searchQuery: searchQuery.value,
+                metadataSearchMode: metadataSearchMode.value,
                 scrollTop: scrollTop.value,
                 activeAssetId: activeAssetId.value,
                 selectedAssetIds: selectedAssetIds.value,
@@ -278,6 +282,7 @@ export const usePanelStore = defineStore("mjr-panel", () => {
             workflowRunsOnFilter,
             sort,
             searchQuery,
+            metadataSearchMode,
             scrollTop,
             activeAssetId,
             selectedAssetIds,
@@ -296,6 +301,8 @@ export const usePanelStore = defineStore("mjr-panel", () => {
             if (updated.customRootLabel !== undefined)
                 customRootLabel.value = updated.customRootLabel;
             if (updated.searchQuery !== undefined) searchQuery.value = updated.searchQuery;
+            if (updated.metadataSearchMode !== undefined)
+                metadataSearchMode.value = updated.metadataSearchMode;
             if (updated.sort !== undefined) sort.value = updated.sort;
             if (updated.sidebarOpen !== undefined) sidebarOpen.value = updated.sidebarOpen;
         } catch {
@@ -419,7 +426,8 @@ export const usePanelStore = defineStore("mjr-panel", () => {
         workflowModelFilter,
         workflowRunsOnFilter,
         sort,
-        searchQuery,
+            searchQuery,
+            metadataSearchMode,
         scrollTop,
         activeAssetId,
         selectedAssetIds,

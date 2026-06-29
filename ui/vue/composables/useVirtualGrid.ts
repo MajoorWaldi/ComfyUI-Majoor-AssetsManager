@@ -364,6 +364,7 @@ export async function fetchPage(
         workflowRunsOn,
         dateRange,
         dateExact,
+        metadataSearchMode,
     } = queryState;
     const sortKey = queryState.sort || "mtime_desc";
     const requestedQueryRaw = coerceQueryText(query).trim();
@@ -414,6 +415,7 @@ export async function fetchPage(
             cursor: cursorForRequest,
             includeTotal,
             groupStacks: groupStacksForRequest,
+            metadataMode: metadataSearchMode || null,
         });
         const result = await deps.get(url, { timeoutMs: 120_000, ...(signal ? { signal } : {}) });
         try {

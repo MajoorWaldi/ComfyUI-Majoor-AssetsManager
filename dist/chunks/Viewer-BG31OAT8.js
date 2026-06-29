@@ -1,11 +1,11 @@
-import { M as e, R as t, Wt as n, b as r, c as i, d as a, ft as o, g as s, h as c, n as l, o as u, r as d, s as f, ut as p, v as m } from "./viewerRuntimeHosts-r4nt8vZO.js";
-import { a as h, ct as g, ft as _, h as v, i as y, m as b, n as x, o as S, r as C, rt as w, t as T } from "./events-CRutpS6F.js";
-import { A as E, a as D, c as O, d as k, f as A, i as j, k as M, o as N, r as P, s as F, u as ee } from "./mediaFps-DdY7KJFU.js";
+import { M as e, R as t, Wt as n, b as r, c as i, d as a, ft as o, g as s, h as c, n as l, o as u, r as d, s as f, ut as p, v as m } from "./viewerRuntimeHosts-B9wQ_Nxj.js";
+import { a as h, ct as g, h as _, i as v, m as y, n as b, o as x, pt as S, r as C, rt as w, t as T } from "./events-BpkKbGZs.js";
+import { A as E, a as D, c as O, d as k, f as A, i as j, k as M, o as N, r as P, s as F, u as ee } from "./mediaFps-CbdE2lHO.js";
 import { tt as I } from "./mjr-primevue-n1rsQYJg.js";
-import { c as te, n as L, o as ne, r as R, s as z, t as re } from "./ratingUpdater-Dq8QBuvE.js";
-import { a as B, n as ie } from "./VideoControls-CpO4V4Qf.js";
+import { c as te, n as L, o as ne, r as R, s as z, t as re } from "./ratingUpdater-DD4Am3mA.js";
+import { a as B, n as ie } from "./VideoControls-Dy5An_lN.js";
 import { n as V, r as ae } from "./state-DPiaUMw1.js";
-import { c as oe, d as H, f as se, i as ce, l as le, n as ue, p as de, r as fe, s as U, t as pe, u as me } from "./mediaPlayer-BN4qQ_h2.js";
+import { c as oe, d as H, f as se, i as ce, l as le, n as ue, p as de, r as fe, s as U, t as pe, u as me } from "./mediaPlayer-DTyhTlcJ.js";
 //#region ui/features/contextmenu/viewerContextMenuState.ts
 function he() {
 	return {
@@ -172,38 +172,38 @@ function Me(e, t, n) {
 	].map((r) => Z(`${r} Stars`, "pi pi-star", null, async () => {
 		Ae(e, r, t);
 	}, { disabled: !n }));
-	return r.push(Oe()), r.push(Z(b("ctx.resetRating", "Reset rating"), "pi pi-star", "0", async () => {
+	return r.push(Oe()), r.push(Z(y("ctx.resetRating", "Reset rating"), "pi pi-star", "0", async () => {
 		Ae(e, 0, t);
 	}, { disabled: !n })), r;
 }
 function Ne({ asset: e, event: i, getCurrentViewUrl: s, onAssetChanged: c }) {
 	let l = typeof s == "function" ? s(e) : w(e), u = !!(e?.id || e?.filepath);
 	return [
-		Z(b("ctx.openInNewTab", "Open in New Tab"), "pi pi-external-link", null, async () => {
+		Z(y("ctx.openInNewTab", "Open in New Tab"), "pi pi-external-link", null, async () => {
 			ke(l) && window.open(l, "_blank", "noopener,noreferrer");
 		}),
-		Z(b("ctx.copyPath", "Copy path"), "pi pi-copy", Ce.COPY_PATH, async () => {
+		Z(y("ctx.copyPath", "Copy path"), "pi pi-copy", Ce.COPY_PATH, async () => {
 			let t = e?.filepath ? String(e.filepath) : "";
 			if (!t) {
-				n(b("toast.noFilePath"), "error");
+				n(y("toast.noFilePath"), "error");
 				return;
 			}
 			try {
-				await navigator.clipboard.writeText(t), n(b("toast.pathCopied"), "success", 2e3);
+				await navigator.clipboard.writeText(t), n(y("toast.pathCopied"), "success", 2e3);
 			} catch (e) {
-				console.error("[ViewerContextMenu] Copy failed:", e), n(b("toast.pathCopyFailed"), "error");
+				console.error("[ViewerContextMenu] Copy failed:", e), n(y("toast.pathCopyFailed"), "error");
 			}
 		}),
-		Z(b("ctx.downloadOriginal", "Download Original"), "pi pi-download", Ce.DOWNLOAD, async () => {
+		Z(y("ctx.downloadOriginal", "Download Original"), "pi pi-download", Ce.DOWNLOAD, async () => {
 			if (!e || !e.filepath) return;
 			let t = g(e.filepath), r = document.createElement("a");
-			r.href = t, r.download = e.filename, document.body.appendChild(r), r.click(), document.body.removeChild(r), n(b("toast.downloadingFile", "Downloading {filename}...", { filename: e.filename }), "info", 3e3);
+			r.href = t, r.download = e.filename, document.body.appendChild(r), r.click(), document.body.removeChild(r), n(y("toast.downloadingFile", "Downloading {filename}...", { filename: e.filename }), "info", 3e3);
 		}, { disabled: !e?.filepath }),
-		Z(b("ctx.openInFolder", "Open in folder"), "pi pi-folder-open", Ce.OPEN_IN_FOLDER, async () => {
+		Z(y("ctx.openInFolder", "Open in folder"), "pi pi-folder-open", Ce.OPEN_IN_FOLDER, async () => {
 			let t = await p(e);
-			t?.ok ? n(b("toast.openedInFolder"), "info", 2e3) : n(t?.error || b("toast.openFolderFailed"), "error");
+			t?.ok ? n(y("toast.openedInFolder"), "info", 2e3) : n(t?.error || y("toast.openFolderFailed"), "error");
 		}, { disabled: !(e?.id || e?.filepath) }),
-		Z(b("ctx.addToCollection", "Add to collection"), "pi pi-bookmark", Ce.ADD_TO_COLLECTION, async () => {
+		Z(y("ctx.addToCollection", "Add to collection"), "pi pi-bookmark", Ce.ADD_TO_COLLECTION, async () => {
 			try {
 				await R({
 					x: i?.clientX,
@@ -215,14 +215,14 @@ function Ne({ asset: e, event: i, getCurrentViewUrl: s, onAssetChanged: c }) {
 			}
 		}),
 		Oe(),
-		Z(b("ctx.editTags", "Edit tags"), "pi pi-tags", Ce.EDIT_TAGS, async () => {
+		Z(y("ctx.editTags", "Edit tags"), "pi pi-tags", Ce.EDIT_TAGS, async () => {
 			be({
 				x: (Number(i?.clientX) || 0) + 6,
 				y: (Number(i?.clientY) || 0) + 6,
 				asset: e,
 				onChanged: ((...t) => {
 					let n = t[0];
-					e.tags = n, E(x, {
+					e.tags = n, E(b, {
 						assetId: String(e.id),
 						tags: n
 					}, { warnPrefix: "[ViewerContextMenu]" });
@@ -235,16 +235,16 @@ function Ne({ asset: e, event: i, getCurrentViewUrl: s, onAssetChanged: c }) {
 			});
 		}, { closeOnSelect: !1 }),
 		Oe(),
-		Z(b("ctx.setRating", "Set rating"), "pi pi-star", `${Ce.RATING_SUBMENU} >`, null, {
+		Z(y("ctx.setRating", "Set rating"), "pi pi-star", `${Ce.RATING_SUBMENU} >`, null, {
 			disabled: !u,
 			closeOnSelect: !1,
 			submenu: Me(e, c, u)
 		}),
-		Z(b("ctx.refreshMetadata", "Refresh metadata"), "pi pi-sync", "R", async () => {
+		Z(y("ctx.refreshMetadata", "Refresh metadata"), "pi pi-sync", "R", async () => {
 			if (e?.id) try {
 				let t = await r(e.id, { refresh: !0 });
 				if (!t?.ok || !t?.data) {
-					n(t?.error || b("toast.metadataRefreshFailed", "Failed to refresh metadata."), "error");
+					n(t?.error || y("toast.metadataRefreshFailed", "Failed to refresh metadata."), "error");
 					return;
 				}
 				let i = t.data;
@@ -257,15 +257,15 @@ function Ne({ asset: e, event: i, getCurrentViewUrl: s, onAssetChanged: c }) {
 					console.debug?.(e);
 				}
 				let a = [], o = je(i?.size_bytes);
-				o && a.push(o), i?.mime && a.push(i.mime), n(b("toast.metadataRefreshed", "Metadata refreshed{suffix}", { suffix: a.length ? ` (${a.join(", ")})` : "" }), "success", 3e3);
+				o && a.push(o), i?.mime && a.push(i.mime), n(y("toast.metadataRefreshed", "Metadata refreshed{suffix}", { suffix: a.length ? ` (${a.join(", ")})` : "" }), "success", 3e3);
 			} catch (e) {
 				a(e, "[ViewerContextMenu] Metadata refresh", { showToast: !0 });
 			}
 		}, { disabled: !e?.id }),
 		Oe(),
-		Z(b("ctx.rename", "Rename"), "pi pi-pencil", Ce.RENAME, async () => {
+		Z(y("ctx.rename", "Rename"), "pi pi-pencil", Ce.RENAME, async () => {
 			if (!(e?.id || e?.filepath)) return;
-			let t = e.filename || "", r = z(await M(b("dialog.rename.title", "Rename file"), t), t);
+			let t = e.filename || "", r = z(await M(y("dialog.rename.title", "Rename file"), t), t);
 			if (!r || r === t) return;
 			let i = te(r);
 			if (!i.valid) {
@@ -276,24 +276,24 @@ function Ne({ asset: e, event: i, getCurrentViewUrl: s, onAssetChanged: c }) {
 				let t = await o(e, r);
 				if (t?.ok) {
 					let i = t?.data?.asset;
-					i && typeof i == "object" ? Object.assign(e, i) : (e.filename = r, e.filepath = e.filepath.replace(/[^\\/]+$/, r), e.path &&= String(e.path).replace(/[^\\/]+$/, r), e.file_info && typeof e.file_info == "object" && (e.file_info.filename = r, e.file_info.filepath && (e.file_info.filepath = String(e.file_info.filepath).replace(/[^\\/]+$/, r)), e.file_info.path && (e.file_info.path = String(e.file_info.path).replace(/[^\\/]+$/, r)))), n(b("toast.fileRenamedSuccess"), "success");
+					i && typeof i == "object" ? Object.assign(e, i) : (e.filename = r, e.filepath = e.filepath.replace(/[^\\/]+$/, r), e.path &&= String(e.path).replace(/[^\\/]+$/, r), e.file_info && typeof e.file_info == "object" && (e.file_info.filename = r, e.file_info.filepath && (e.file_info.filepath = String(e.file_info.filepath).replace(/[^\\/]+$/, r)), e.file_info.path && (e.file_info.path = String(e.file_info.path).replace(/[^\\/]+$/, r)))), n(y("toast.fileRenamedSuccess"), "success");
 					try {
 						window.dispatchEvent(new CustomEvent("mjr:reload-grid", { detail: { reason: "viewer-rename" } }));
 					} catch (e) {
 						console.debug?.(e);
 					}
 					c?.();
-				} else n(t?.error || b("toast.fileRenameFailed"), "error");
+				} else n(t?.error || y("toast.fileRenameFailed"), "error");
 			} catch (e) {
-				n(b("toast.errorRenaming", "Error renaming file: {error}", { error: e?.message || String(e || "") }), "error");
+				n(y("toast.errorRenaming", "Error renaming file: {error}", { error: e?.message || String(e || "") }), "error");
 			}
 		}, { disabled: !(e?.id || e?.filepath) }),
-		Z(b("ctx.delete", "Delete"), "pi pi-trash", Ce.DELETE, async () => {
+		Z(y("ctx.delete", "Delete"), "pi pi-trash", Ce.DELETE, async () => {
 			if ((e?.id || e?.filepath) && await ne(1, e?.filename)) try {
 				let r = await t(e);
-				r?.ok ? (n(b("toast.fileDeletedSuccess"), "success"), c?.()) : n(r?.error || b("toast.fileDeleteFailed"), "error");
+				r?.ok ? (n(y("toast.fileDeletedSuccess"), "success"), c?.()) : n(r?.error || y("toast.fileDeleteFailed"), "error");
 			} catch (e) {
-				n(b("toast.errorDeleting", "Error deleting file: {error}", { error: e?.message || String(e || "") }), "error");
+				n(y("toast.errorDeleting", "Error deleting file: {error}", { error: e?.message || String(e || "") }), "error");
 			}
 		}, { disabled: !(e?.id || e?.filepath) })
 	];
@@ -357,7 +357,7 @@ function Fe(e) {
 var Ie = "mjr_viewer_prefs_v1";
 function Le() {
 	try {
-		let e = v.get(Ie);
+		let e = _.get(Ie);
 		if (!e) return {};
 		let t = JSON.parse(e);
 		return t && typeof t == "object" ? t : {};
@@ -377,7 +377,7 @@ function Re(e) {
 			audioVisualizerMode: String(e.audioVisualizerMode || "artistic"),
 			abWipePercent: Number.isFinite(Number(e._abWipePercent)) ? Number(e._abWipePercent) : 50
 		};
-		v.set(Ie, JSON.stringify(t));
+		_.set(Ie, JSON.stringify(t));
 	} catch (e) {
 		console.debug?.(e);
 	}
@@ -610,7 +610,7 @@ function Ue({ VIEWER_MODES: e, state: t, onToolsChanged: n, onCompareModeChanged
 	_.className = "mjr-viewer-tools-actions", _.style.cssText = "display:flex; align-items:center; justify-content:flex-start; gap:6px; flex-wrap:wrap; min-width:0;";
 	let v = document.createElement("div");
 	v.className = "mjr-viewer-tools-meta", v.style.cssText = "display:flex; align-items:center; justify-content:flex-start; gap:6px; flex-wrap:nowrap; min-width:0;";
-	let y = ({ key: e, label: t, accentRgb: n } = {}) => {
+	let b = ({ key: e, label: t, accentRgb: n } = {}) => {
 		let r = document.createElement("div");
 		if (r.className = "mjr-viewer-tools-group", e && (r.dataset.group = String(e)), n && r.style.setProperty("--mjr-group-accent", String(n)), r.style.cssText = "display:flex; align-items:center; gap:6px; padding:2px 6px; border-radius:8px; border:1px solid rgba(196,202,210,0.14); background:rgba(10,12,16,0.22);", t) {
 			let e = document.createElement("span");
@@ -691,7 +691,7 @@ function Ue({ VIEWER_MODES: e, state: t, onToolsChanged: n, onCompareModeChanged
 			label: "Luma"
 		}
 	]);
-	w.title = b("tooltip.colorChannels", "View color channels or luminance");
+	w.title = y("tooltip.colorChannels", "View color channels or luminance");
 	let T = S("Exposure (EV)", {
 		min: -10,
 		max: 10,
@@ -812,7 +812,7 @@ function Ue({ VIEWER_MODES: e, state: t, onToolsChanged: n, onCompareModeChanged
 			label: "Both"
 		}
 	]);
-	ee.title = b("tooltip.scopesHistogram", "Show histogram/waveform scopes");
+	ee.title = y("tooltip.scopesHistogram", "Show histogram/waveform scopes");
 	let I = C("Grid", "Grid (G)", {
 		iconClass: "pi-th-large",
 		accentRgb: D.overlay
@@ -838,7 +838,7 @@ function Ue({ VIEWER_MODES: e, state: t, onToolsChanged: n, onCompareModeChanged
 			label: "Golden"
 		}
 	]);
-	te.title = ie(b("tooltip.gridOverlay", "Grid overlay (rule of thirds, center)"), "G");
+	te.title = ie(y("tooltip.gridOverlay", "Grid overlay (rule of thirds, center)"), "G");
 	let L = C("Mask", "Format mask (dim outside)", {
 		iconClass: "pi-stop",
 		accentRgb: D.overlay
@@ -868,7 +868,7 @@ function Ue({ VIEWER_MODES: e, state: t, onToolsChanged: n, onCompareModeChanged
 			label: "9:16"
 		}
 	]);
-	ne.title = b("tooltip.aspectRatioMask", "Aspect ratio overlay mask");
+	ne.title = y("tooltip.aspectRatioMask", "Aspect ratio overlay mask");
 	let R = S("Mask Opacity", {
 		min: 0,
 		max: .9,
@@ -923,7 +923,7 @@ function Ue({ VIEWER_MODES: e, state: t, onToolsChanged: n, onCompareModeChanged
 			label: "Screen"
 		}
 	]);
-	oe.title = b("tooltip.compareBlendMode", "Compare blend mode");
+	oe.title = y("tooltip.compareBlendMode", "Compare blend mode");
 	let H = x("Audio Visualizer", [{
 		value: "simple",
 		label: "Simple"
@@ -931,11 +931,11 @@ function Ue({ VIEWER_MODES: e, state: t, onToolsChanged: n, onCompareModeChanged
 		value: "artistic",
 		label: "Artistic"
 	}]);
-	H.title = b("tooltip.audioVisualizer", "Audio visualizer mode");
-	let se = Ve("Reset", b("tooltip.resetPlayerControls", "Reset all viewer controls"));
+	H.title = y("tooltip.audioVisualizer", "Audio visualizer mode");
+	let se = Ve("Reset", y("tooltip.resetPlayerControls", "Reset all viewer controls"));
 	se.style.height = "26px", se.style.fontSize = "11px", se.style.padding = "0 8px", se.classList?.add?.("mjr-viewer-tool-btn", "mjr-viewer-tool-btn--reset"), se.classList?.add?.("mjr-viewer-tools-action", "mjr-viewer-tools-action--primary"), se.style.marginLeft = "auto";
 	let ce = document.createElement("button");
-	ce.type = "button", ce.title = b("tooltip.exportFrame", "Save current frame as PNG"), ce.setAttribute("aria-label", b("tooltip.exportFrame", "Save frame as PNG")), ce.className = "mjr-viewer-tool-btn mjr-viewer-tool-btn--reset", ce.style.cssText = "height:24px; padding:0 8px; display:inline-flex; align-items:center; justify-content:center;";
+	ce.type = "button", ce.title = y("tooltip.exportFrame", "Save current frame as PNG"), ce.setAttribute("aria-label", y("tooltip.exportFrame", "Save frame as PNG")), ce.className = "mjr-viewer-tool-btn mjr-viewer-tool-btn--reset", ce.style.cssText = "height:24px; padding:0 8px; display:inline-flex; align-items:center; justify-content:center;";
 	let le = document.createElement("span");
 	le.className = "pi pi-download", le.setAttribute("aria-hidden", "true"), le.style.fontSize = "14px", ce.appendChild(le), ce.classList?.add?.("mjr-viewer-tools-action");
 	try {
@@ -944,7 +944,7 @@ function Ue({ VIEWER_MODES: e, state: t, onToolsChanged: n, onCompareModeChanged
 		console.debug?.(e);
 	}
 	let ue = document.createElement("button");
-	ue.type = "button", ue.title = b("tooltip.copyFrame", "Copy current frame to clipboard"), ue.setAttribute("aria-label", b("tooltip.copyFrame", "Copy frame to clipboard")), ue.className = "mjr-viewer-tool-btn mjr-viewer-tool-btn--reset", ue.style.cssText = "height:24px; padding:0 8px; display:inline-flex; align-items:center; justify-content:center;";
+	ue.type = "button", ue.title = y("tooltip.copyFrame", "Copy current frame to clipboard"), ue.setAttribute("aria-label", y("tooltip.copyFrame", "Copy frame to clipboard")), ue.className = "mjr-viewer-tool-btn mjr-viewer-tool-btn--reset", ue.style.cssText = "height:24px; padding:0 8px; display:inline-flex; align-items:center; justify-content:center;";
 	let de = document.createElement("span");
 	de.className = "pi pi-copy", de.setAttribute("aria-hidden", "true"), de.style.fontSize = "14px", ue.appendChild(de), ue.classList?.add?.("mjr-viewer-tools-action");
 	try {
@@ -952,19 +952,19 @@ function Ue({ VIEWER_MODES: e, state: t, onToolsChanged: n, onCompareModeChanged
 	} catch (e) {
 		console.debug?.(e);
 	}
-	let fe = y({
+	let fe = b({
 		key: "channel",
 		label: "Channel",
 		accentRgb: D.channel
 	});
 	fe.appendChild(w), f.body.appendChild(fe);
-	let U = y({
+	let U = b({
 		key: "exposure",
 		label: "EV",
 		accentRgb: D.exposure
 	});
 	U.appendChild(T.wrap), f.body.appendChild(U);
-	let pe = y({
+	let pe = b({
 		key: "gamma",
 		label: "Gamma",
 		accentRgb: D.gamma
@@ -1004,39 +1004,39 @@ function Ue({ VIEWER_MODES: e, state: t, onToolsChanged: n, onCompareModeChanged
 	};
 	try {
 		let e = U.querySelector?.(".mjr-viewer-tools-group-label");
-		e && (e.title = b("tooltip.resetExposure", "Reset EV to 0"), e.style.cursor = "pointer", e.style.userSelect = "none");
+		e && (e.title = y("tooltip.resetExposure", "Reset EV to 0"), e.style.cursor = "pointer", e.style.userSelect = "none");
 	} catch (e) {
 		console.debug?.(e);
 	}
 	try {
-		T.out.title = b("tooltip.resetExposure", "Reset EV to 0"), T.out.style.cursor = "pointer", T.out.style.userSelect = "none";
+		T.out.title = y("tooltip.resetExposure", "Reset EV to 0"), T.out.style.cursor = "pointer", T.out.style.userSelect = "none";
 	} catch (e) {
 		console.debug?.(e);
 	}
 	try {
 		let e = pe.querySelector?.(".mjr-viewer-tools-group-label");
-		e && (e.title = b("tooltip.resetGamma", "Reset Gamma to 1.00"), e.style.cursor = "pointer", e.style.userSelect = "none");
+		e && (e.title = y("tooltip.resetGamma", "Reset Gamma to 1.00"), e.style.cursor = "pointer", e.style.userSelect = "none");
 	} catch (e) {
 		console.debug?.(e);
 	}
 	try {
-		E.out.title = b("tooltip.resetGamma", "Reset Gamma to 1.00"), E.out.style.cursor = "pointer", E.out.style.userSelect = "none";
+		E.out.title = y("tooltip.resetGamma", "Reset Gamma to 1.00"), E.out.style.cursor = "pointer", E.out.style.userSelect = "none";
 	} catch (e) {
 		console.debug?.(e);
 	}
-	let ge = y({
+	let ge = b({
 		key: "analysis",
 		label: "Analysis",
 		accentRgb: D.analysis
 	});
 	ge.appendChild(P.b), ge.appendChild(F.b), ge.appendChild(ee), f.body.appendChild(ge);
-	let G = y({
+	let G = b({
 		key: "overlay-guides",
 		label: "Guides",
 		accentRgb: D.overlay
 	});
 	G.appendChild(I.b), G.appendChild(te), G.appendChild(L.b), G.appendChild(ne), G.appendChild(R.wrap), p.body.appendChild(G);
-	let K = y({
+	let K = b({
 		key: "overlay-inspect",
 		label: "Inspect",
 		accentRgb: D.overlay
@@ -1050,13 +1050,13 @@ function Ue({ VIEWER_MODES: e, state: t, onToolsChanged: n, onCompareModeChanged
 	].forEach((e, t) => {
 		t > 0 && (e.style.marginLeft = "4px"), K.appendChild(e);
 	}), m.body.appendChild(K);
-	let q = y({
+	let q = b({
 		key: "compare",
 		label: "Compare",
 		accentRgb: D.compare
 	});
 	q.style.borderRadius = "8px", q.style.padding = "4px 6px", q.style.border = "1px solid transparent", q.style.transition = "background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease", q.appendChild(oe), p.body.appendChild(q);
-	let J = y({
+	let J = b({
 		key: "audio-viz",
 		label: "Audio Viz",
 		accentRgb: D.audioviz
@@ -1078,7 +1078,7 @@ function Ue({ VIEWER_MODES: e, state: t, onToolsChanged: n, onCompareModeChanged
 	let Y = document.createElement("div");
 	Y.style.cssText = "position: relative; display:inline-flex; align-items:center;", Y.className = "mjr-viewer-tools-action", Y.style.marginLeft = "4px";
 	let X = document.createElement("button");
-	X.type = "button", X.title = b("tooltip.viewerShortcuts", "Viewer shortcuts"), X.setAttribute("aria-label", b("tooltip.viewerShortcuts", "Viewer shortcuts")), X.style.cssText = "\n        height: 24px;\n        padding: 0 8px;\n        border-radius: 6px;\n        border: 1px solid rgba(255,255,255,0.14);\n        background: rgba(255,255,255,0.08);\n        color: rgba(255,255,255,0.92);\n        cursor: pointer;\n        display: inline-flex;\n        align-items: center;\n        justify-content: center;\n    ";
+	X.type = "button", X.title = y("tooltip.viewerShortcuts", "Viewer shortcuts"), X.setAttribute("aria-label", y("tooltip.viewerShortcuts", "Viewer shortcuts")), X.style.cssText = "\n        height: 24px;\n        padding: 0 8px;\n        border-radius: 6px;\n        border: 1px solid rgba(255,255,255,0.14);\n        background: rgba(255,255,255,0.08);\n        color: rgba(255,255,255,0.92);\n        cursor: pointer;\n        display: inline-flex;\n        align-items: center;\n        justify-content: center;\n    ";
 	let ve = document.createElement("span");
 	ve.className = "pi pi-question-circle", ve.setAttribute("aria-hidden", "true"), ve.style.fontSize = "14px", X.appendChild(ve);
 	let ye = document.createElement("div");
@@ -1518,8 +1518,8 @@ function qe({ VIEWER_MODES: e, state: t, lifecycle: n, onClose: r, _onZoomIn: i,
 	_.className = "mjr-viewer-header", _.style.cssText = "\n        display: flex;\n        flex-direction: column;\n        gap: 6px;\n        padding: 8px 16px;\n        background: linear-gradient(170deg, rgba(24, 27, 33, 0.96), rgba(17, 19, 25, 0.97));\n        border-bottom: 0.8px solid rgba(196, 202, 210, 0.2);\n        color: white;\n        box-sizing: border-box;\n    ";
 	let v = document.createElement("div");
 	v.className = "mjr-viewer-header-top", v.style.cssText = "\n        display: flex;\n        align-items: center;\n        justify-content: center;\n        gap: 12px;\n        position: relative;\n        padding-right: 84px;\n        padding-left: 12px;\n        min-width: 0;\n        box-sizing: border-box;\n    ";
-	let y = document.createElement("div");
-	y.className = "mjr-viewer-header-meta mjr-viewer-header-meta--left", y.style.cssText = "display:flex; align-items:center; gap:10px; min-width:0; overflow:hidden;";
+	let b = document.createElement("div");
+	b.className = "mjr-viewer-header-meta mjr-viewer-header-meta--left", b.style.cssText = "display:flex; align-items:center; gap:10px; min-width:0; overflow:hidden;";
 	let x = document.createElement("div");
 	x.className = "mjr-viewer-title-line", x.style.cssText = "display:flex; align-items:center; justify-content:center; gap:8px; min-width:0; flex-wrap:nowrap; overflow:hidden;";
 	let S = document.createElement("div");
@@ -1537,11 +1537,11 @@ function qe({ VIEWER_MODES: e, state: t, lifecycle: n, onClose: r, _onZoomIn: i,
 	let O = document.createElement("div");
 	O.className = "mjr-viewer-mode-buttons", O.style.cssText = "display: flex; gap: 4px;";
 	let k = He("Single", e.SINGLE);
-	k.title = b("tooltip.singleViewMode", "Single view mode (one image)");
+	k.title = y("tooltip.singleViewMode", "Single view mode (one image)");
 	let A = He("A/B", e.AB_COMPARE);
-	A.title = b("tooltip.compareOverlayMode", "A/B compare mode (overlay)");
+	A.title = y("tooltip.compareOverlayMode", "A/B compare mode (overlay)");
 	let j = He("Side", e.SIDE_BY_SIDE);
-	j.title = b("tooltip.compareSideBySide", "Side-by-side comparison mode"), O.appendChild(k), O.appendChild(A), O.appendChild(j);
+	j.title = y("tooltip.compareSideBySide", "Side-by-side comparison mode"), O.appendChild(k), O.appendChild(A), O.appendChild(j);
 	let M = Ve("X", "Close (Esc)");
 	M.style.fontSize = "18px";
 	try {
@@ -1591,7 +1591,7 @@ function qe({ VIEWER_MODES: e, state: t, lifecycle: n, onClose: r, _onZoomIn: i,
 		console.debug?.(e);
 	}
 	let P = document.createElement("div");
-	P.className = "mjr-viewer-header-area mjr-viewer-header-area--left", P.style.cssText = "display:none; align-items:center; gap:12px; min-width:0; flex:1 1 0; overflow:hidden;", P.appendChild(y);
+	P.className = "mjr-viewer-header-area mjr-viewer-header-area--left", P.style.cssText = "display:none; align-items:center; gap:12px; min-width:0; flex:1 1 0; overflow:hidden;", P.appendChild(b);
 	let ee = document.createElement("div");
 	ee.className = "mjr-viewer-header-area mjr-viewer-header-area--center", ee.style.cssText = "display:flex; align-items:center; justify-content:center; gap:12px; flex:1 1 auto; min-width:0;", S.appendChild(O), ee.appendChild(S);
 	let I = document.createElement("div");
@@ -1764,7 +1764,7 @@ function qe({ VIEWER_MODES: e, state: t, lifecycle: n, onClose: r, _onZoomIn: i,
 		filenameRightEl: E,
 		badgesBarRightEl: D,
 		leftAreaEl: P,
-		leftMetaEl: y,
+		leftMetaEl: b,
 		centerAreaEl: ee,
 		rightMetaEl: T,
 		rightAreaEl: I,
@@ -1807,7 +1807,7 @@ function Je(e) {
 	}
 	return null;
 }
-function Ye({ overlay: e, _content: t, singleView: r, state: i, VIEWER_MODES: a, computeOneToOneZoom: o, setZoom: s, scheduleOverlayRedraw: c, scheduleApplyGrade: l, syncToolsUIFromState: u, applyDistractionFreeUI: d, navigateViewerAssets: p, closeViewer: m, renderBadges: h, updateAssetRating: g, safeDispatchCustomEvent: _, ASSET_RATING_CHANGED_EVENT: v, probeTooltip: y, loupeWrap: S, getVideoControls: C, lifecycle: w, renderGenInfoPanel: T } = {}) {
+function Ye({ overlay: e, _content: t, singleView: r, state: i, VIEWER_MODES: a, computeOneToOneZoom: o, setZoom: s, scheduleOverlayRedraw: c, scheduleApplyGrade: l, syncToolsUIFromState: u, applyDistractionFreeUI: d, navigateViewerAssets: p, closeViewer: m, renderBadges: h, updateAssetRating: g, safeDispatchCustomEvent: _, ASSET_RATING_CHANGED_EVENT: v, probeTooltip: x, loupeWrap: S, getVideoControls: C, lifecycle: w, renderGenInfoPanel: T } = {}) {
 	let E = w?.unsubs || [], D = null, k = null, A = () => {
 		try {
 			D && clearTimeout(D);
@@ -1824,15 +1824,15 @@ function Ye({ overlay: e, _content: t, singleView: r, state: i, VIEWER_MODES: a,
 			if (D = null, k = null, e?.assetId) try {
 				let t = await g?.(e.assetId, e.rating);
 				if (!t?.ok) {
-					n(t?.error || b("toast.ratingUpdateFailed"), "error");
+					n(t?.error || y("toast.ratingUpdateFailed"), "error");
 					return;
 				}
-				n(b("toast.ratingSetN", { n: e.rating }), "success", 1500), _?.(v, {
+				n(y("toast.ratingSetN", { n: e.rating }), "success", 1500), _?.(v, {
 					assetId: String(e.assetId),
 					rating: e.rating
 				}, { warnPrefix: "[Viewer]" });
 			} catch {
-				n(b("toast.ratingUpdateError"), "error");
+				n(y("toast.ratingUpdateError"), "error");
 			}
 		}, 300);
 	}, M = () => {
@@ -1929,10 +1929,10 @@ function Ye({ overlay: e, _content: t, singleView: r, state: i, VIEWER_MODES: a,
 				if (!r) return !1;
 				if (t) {
 					let t = r.setPlaybackRate?.(e);
-					return Number.isFinite(Number(t)) ? (i.playbackRate = Number(t), n(b("toast.playbackRate", "Playback {rate}x", { rate: Number(t).toFixed(2) }), "info", 1200), !0) : !1;
+					return Number.isFinite(Number(t)) ? (i.playbackRate = Number(t), n(y("toast.playbackRate", "Playback {rate}x", { rate: Number(t).toFixed(2) }), "info", 1200), !0) : !1;
 				}
 				let a = r.adjustPlaybackRate?.(e);
-				return Number.isFinite(Number(a)) ? (i.playbackRate = Number(a), n(b("toast.playbackRate", "Playback {rate}x", { rate: Number(a).toFixed(2) }), "info", 1200), !0) : !1;
+				return Number.isFinite(Number(a)) ? (i.playbackRate = Number(a), n(y("toast.playbackRate", "Playback {rate}x", { rate: Number(a).toFixed(2) }), "info", 1200), !0) : !1;
 			} catch {
 				return !1;
 			}
@@ -1940,7 +1940,7 @@ function Ye({ overlay: e, _content: t, singleView: r, state: i, VIEWER_MODES: a,
 		if ((t.ctrlKey || t.metaKey) && (t.key === "c" || t.key === "C")) try {
 			let e = Je(w);
 			if (e) {
-				g(), navigator.clipboard?.writeText?.(e).then(() => n(b("toast.promptCopied", "Prompt copied to clipboard"), "success", 1500)).catch(() => n(b("toast.copyFailed", "Copy failed"), "error", 1500));
+				g(), navigator.clipboard?.writeText?.(e).then(() => n(y("toast.promptCopied", "Prompt copied to clipboard"), "success", 1500)).catch(() => n(y("toast.copyFailed", "Copy failed"), "error", 1500));
 				return;
 			}
 		} catch (e) {
@@ -2000,7 +2000,7 @@ function Ye({ overlay: e, _content: t, singleView: r, state: i, VIEWER_MODES: a,
 					asset: w,
 					onChanged: ((...e) => {
 						let t = e[0];
-						w.tags = t, _(x, {
+						w.tags = t, _(b, {
 							assetId: String(w.id),
 							tags: t
 						}, { warnPrefix: "[ViewerKeyboard]" }), O(h);
@@ -2020,7 +2020,7 @@ function Ye({ overlay: e, _content: t, singleView: r, state: i, VIEWER_MODES: a,
 			case "i":
 			case "I":
 				if (v && w?.kind === "video" && A()?.setInPoint?.()) {
-					g(), n(b("toast.inPointSet", "In point set"), "info", 1200);
+					g(), n(y("toast.inPointSet", "In point set"), "info", 1200);
 					break;
 				}
 				g();
@@ -2030,7 +2030,7 @@ function Ye({ overlay: e, _content: t, singleView: r, state: i, VIEWER_MODES: a,
 					console.debug?.(e);
 				}
 				try {
-					i.probeEnabled || (y.style.display = "none");
+					i.probeEnabled || (x.style.display = "none");
 				} catch (e) {
 					console.debug?.(e);
 				}
@@ -2039,7 +2039,7 @@ function Ye({ overlay: e, _content: t, singleView: r, state: i, VIEWER_MODES: a,
 			case "o":
 			case "O":
 				if (v && w?.kind === "video" && A()?.setOutPoint?.()) {
-					g(), n(b("toast.outPointSet", "Out point set"), "info", 1200);
+					g(), n(y("toast.outPointSet", "Out point set"), "info", 1200);
 					break;
 				}
 				break;
@@ -2151,15 +2151,15 @@ function Ye({ overlay: e, _content: t, singleView: r, state: i, VIEWER_MODES: a,
 				break;
 			case "[":
 			case "{":
-				g(), P(-.25) || n(b("toast.playbackVideoOnly"), "warning", 1400);
+				g(), P(-.25) || n(y("toast.playbackVideoOnly"), "warning", 1400);
 				break;
 			case "]":
 			case "}":
-				g(), P(.25) || n(b("toast.playbackVideoOnly"), "warning", 1400);
+				g(), P(.25) || n(y("toast.playbackVideoOnly"), "warning", 1400);
 				break;
 			case "\\":
 			case "|":
-				g(), P(1, { absolute: !0 }) || n(b("toast.playbackVideoOnly"), "warning", 1400);
+				g(), P(1, { absolute: !0 }) || n(y("toast.playbackVideoOnly"), "warning", 1400);
 				break;
 			case "+":
 			case "=":
@@ -3203,7 +3203,7 @@ function et({ overlay: e, content: t, singleView: n, abView: r, sideView: i, sta
 		} catch (e) {
 			console.debug?.(e);
 		}
-	}, x = (e, { clientX: n = null, clientY: r = null } = {}) => {
+	}, S = (e, { clientX: n = null, clientY: r = null } = {}) => {
 		try {
 			let i = Math.max(Q.MIN, Math.min(Q.MAX, Number(a?.zoom) || 1)), o = Math.max(Q.MIN, Math.min(Q.MAX, Number(e) || i));
 			try {
@@ -3313,7 +3313,7 @@ function et({ overlay: e, content: t, singleView: n, abView: r, sideView: i, sta
 		if (!e || e.style.display === "none" || le(n?.target)) return;
 		let r = Number(a?.zoom) || 1, i = (() => {
 			try {
-				return !!S?.VIEWER_ALLOW_PAN_AT_ZOOM_1;
+				return !!x?.VIEWER_ALLOW_PAN_AT_ZOOM_1;
 			} catch {
 				return !1;
 			}
@@ -3455,10 +3455,10 @@ function et({ overlay: e, content: t, singleView: n, abView: r, sideView: i, sta
 			} catch (e) {
 				console.debug?.(e);
 			}
-			Math.abs((Number(a?.targetZoom) || 1) - 1) < .01 ? x(Math.min(8, (Number(a?.targetZoom) || 1) * 4), {
+			Math.abs((Number(a?.targetZoom) || 1) - 1) < .01 ? S(Math.min(8, (Number(a?.targetZoom) || 1) * 4), {
 				clientX: n.clientX,
 				clientY: n.clientY
-			}) : x(1, {
+			}) : S(1, {
 				clientX: n.clientX,
 				clientY: n.clientY
 			});
@@ -3498,7 +3498,7 @@ function et({ overlay: e, content: t, singleView: n, abView: r, sideView: i, sta
 		clampPanToBounds: _,
 		mediaTransform: v,
 		applyTransform: b,
-		setZoom: x,
+		setZoom: S,
 		computeOneToOneZoom: D,
 		updatePanCursor: y,
 		dispose: () => {
@@ -3687,7 +3687,7 @@ function ot(e) {
 //#endregion
 //#region ui/features/viewer/videoProcessor.ts
 function st({ canvas: e, videoEl: t, disableWebGL: n, pauseDuringExecution: r = null, getGradeParams: i, isDefaultGrade: a, _tonemap: o, maxProcPixelsVideo: s, throttleFps: c, safeAddListener: l, safeCall: u, onReady: d } = {}) {
-	let f = r == null ? !!S?.VIEWER_PAUSE_DURING_EXECUTION : !!r, p = null;
+	let f = r == null ? !!x?.VIEWER_PAUSE_DURING_EXECUTION : !!r, p = null;
 	if (!n && at()) try {
 		p = ot({
 			canvas: e,
@@ -3746,11 +3746,11 @@ function st({ canvas: e, videoEl: t, disableWebGL: n, pauseDuringExecution: r = 
 		_lastFrameTime: -1,
 		_lastHeavySig: "",
 		_runtimePaused: !1
-	}, b = [], x = (e, t) => se(s, e, t), w = () => {
+	}, b = [], S = (e, t) => se(s, e, t), w = () => {
 		try {
 			let n = Number(t?.videoWidth) || 0, r = Number(t?.videoHeight) || 0;
 			if (!(n > 0 && r > 0)) return !1;
-			y.naturalW = n, y.naturalH = r, y.scale = x(n, r);
+			y.naturalW = n, y.naturalH = r, y.scale = S(n, r);
 			let i = Math.max(1, Math.round(n * y.scale)), a = Math.max(1, Math.round(r * y.scale));
 			return h.width !== i && (h.width = i), h.height !== a && (h.height = a), p || (e.width !== i && (e.width = i), e.height !== a && (e.height = a)), e._mjrNaturalW = n, e._mjrNaturalH = r, e._mjrPixelScale = y.scale, y.ready = !0, !0;
 		} catch {
@@ -4210,7 +4210,7 @@ function lt(e) {
 		console.debug?.(e);
 	}
 	try {
-		let e = String(S?.VIEWER_AUDIO_VISUALIZER_MODE || "simple").toLowerCase();
+		let e = String(x?.VIEWER_AUDIO_VISUALIZER_MODE || "simple").toLowerCase();
 		if (e === "artistic") return "artistic";
 		if (e === "webgl3d" || e === "webgl") return "simple";
 	} catch (e) {
@@ -4365,7 +4365,7 @@ function dt(e, { pseudo3d: t = !1 } = {}) {
 }
 function ft({ canvas: e, audioEl: t, mode: n, pauseDuringExecution: r = null } = {}) {
 	if (!e || !t) return { destroy() {} };
-	let i = r == null ? !!S?.VIEWER_PAUSE_DURING_EXECUTION : !!r, a = null, o = !1, s = null, c = null, l = null, u = null, d = null, f = null, p = 0, m = !1, h = 1e3 / ct(S?.VIEWER_AUDIO_VIS_FPS ?? 24, 8, 60), g = lt(n), _ = () => {
+	let i = r == null ? !!x?.VIEWER_PAUSE_DURING_EXECUTION : !!r, a = null, o = !1, s = null, c = null, l = null, u = null, d = null, f = null, p = 0, m = !1, h = 1e3 / ct(x?.VIEWER_AUDIO_VIS_FPS ?? 24, 8, 60), g = lt(n), _ = () => {
 		try {
 			let t = ct(window.devicePixelRatio || 1, 1, 2), n = Math.max(32, Math.floor((e.clientWidth || 640) * t)), r = Math.max(24, Math.floor((e.clientHeight || 140) * t));
 			e.width !== n && (e.width = n), e.height !== r && (e.height = r);
@@ -4386,7 +4386,7 @@ function ft({ canvas: e, audioEl: t, mode: n, pauseDuringExecution: r = null } =
 			console.debug?.(e);
 		}
 		try {
-			g === "artistic" && !S?.VIEWER_DISABLE_WEBGL_AUDIO && (f = dt(e, { pseudo3d: !0 }));
+			g === "artistic" && !x?.VIEWER_DISABLE_WEBGL_AUDIO && (f = dt(e, { pseudo3d: !0 }));
 		} catch (e) {
 			console.debug?.(e);
 		}
@@ -4421,7 +4421,7 @@ function ft({ canvas: e, audioEl: t, mode: n, pauseDuringExecution: r = null } =
 				}
 			}
 		}
-	}, x = async () => {
+	}, S = async () => {
 		try {
 			if (m || (y(), !s)) return;
 			if (s.state === "suspended") try {
@@ -4441,14 +4441,14 @@ function ft({ canvas: e, audioEl: t, mode: n, pauseDuringExecution: r = null } =
 		}
 		a = null;
 	}, T = () => {
-		x();
+		S();
 	}, E = () => w(), D = () => w(), O = () => _(), k = (e) => {
 		if (i) {
 			if (m = !!String(e?.detail?.active_prompt_id || "").trim(), m) {
 				w();
 				return;
 			}
-			t?.paused || x();
+			t?.paused || S();
 		}
 	};
 	try {
@@ -4575,7 +4575,7 @@ function pt({ overlay: e, state: t, mediaTransform: n, updateMediaNaturalSize: r
 				} catch (e) {
 					console.debug?.(e);
 				}
-				x(t, e), t.style.cssText = `
+				S(t, e), t.style.cssText = `
                     max-width: 100%;
                     max-height: 100%;
                     display: block;
@@ -4597,7 +4597,7 @@ function pt({ overlay: e, state: t, mediaTransform: n, updateMediaNaturalSize: r
 			console.debug?.(e);
 		}
 		return c;
-	}, x = (e, t) => {
+	}, S = (e, t) => {
 		try {
 			if (!e || !(e instanceof HTMLCanvasElement)) return;
 			let n = Number(t?.width) || 0, r = Number(t?.height) || 0;
@@ -4743,7 +4743,7 @@ function pt({ overlay: e, state: t, mediaTransform: n, updateMediaNaturalSize: r
 			} catch (e) {
 				console.debug?.(e);
 			}
-			x(t, e), t.style.cssText = `
+			S(t, e), t.style.cssText = `
                 max-width: 100%;
                 max-height: 100%;
                 display: block;
@@ -4766,7 +4766,7 @@ function pt({ overlay: e, state: t, mediaTransform: n, updateMediaNaturalSize: r
 			} catch (e) {
 				console.debug?.(e);
 			}
-			x(u, e), u.style.cssText = `
+			S(u, e), u.style.cssText = `
                 max-width: 100%;
                 max-height: 100%;
                 object-fit: contain;
@@ -4784,8 +4784,8 @@ function pt({ overlay: e, state: t, mediaTransform: n, updateMediaNaturalSize: r
 				u._mjrProc = st({
 					canvas: u,
 					videoEl: v,
-					disableWebGL: f || !!S.VIEWER_DISABLE_WEBGL_VIDEO,
-					pauseDuringExecution: S.VIEWER_PAUSE_DURING_EXECUTION,
+					disableWebGL: f || !!x.VIEWER_DISABLE_WEBGL_VIDEO,
+					pauseDuringExecution: x.VIEWER_PAUSE_DURING_EXECUTION,
 					getGradeParams: s,
 					isDefaultGrade: c,
 					tonemap: l,
@@ -4847,7 +4847,7 @@ function pt({ overlay: e, state: t, mediaTransform: n, updateMediaNaturalSize: r
 		} catch (e) {
 			console.debug?.(e);
 		}
-		x(C, e), C.style.cssText = `
+		S(C, e), C.style.cssText = `
             max-width: 100%;
             max-height: 100%;
             object-fit: contain;
@@ -4921,7 +4921,7 @@ function pt({ overlay: e, state: t, mediaTransform: n, updateMediaNaturalSize: r
 			} catch (e) {
 				console.debug?.(e);
 			}
-			x(t, e), t.style.cssText = `
+			S(t, e), t.style.cssText = `
                 max-width: 100%;
                 max-height: 100%;
                 display: block;
@@ -4946,7 +4946,7 @@ function pt({ overlay: e, state: t, mediaTransform: n, updateMediaNaturalSize: r
 			} catch (e) {
 				console.debug?.(e);
 			}
-			x(m, e), m.style.cssText = `
+			S(m, e), m.style.cssText = `
                 max-width: 100%;
                 max-height: 100%;
                 object-fit: contain;
@@ -4964,7 +4964,7 @@ function pt({ overlay: e, state: t, mediaTransform: n, updateMediaNaturalSize: r
 				m._mjrProc = st({
 					canvas: m,
 					videoEl: h,
-					pauseDuringExecution: S.VIEWER_PAUSE_DURING_EXECUTION,
+					pauseDuringExecution: x.VIEWER_PAUSE_DURING_EXECUTION,
 					getGradeParams: s,
 					isDefaultGrade: c,
 					tonemap: l,
@@ -5004,7 +5004,7 @@ function pt({ overlay: e, state: t, mediaTransform: n, updateMediaNaturalSize: r
 		} catch (e) {
 			console.debug?.(e);
 		}
-		x(h, e), h.style.cssText = `
+		S(h, e), h.style.cssText = `
             max-width: 100%;
             max-height: 100%;
             display: block;
@@ -5146,8 +5146,149 @@ function mt({ buildAssetViewURL: e, IMAGE_PRELOAD_EXTENSIONS: t, state: n }) {
 	};
 }
 //#endregion
+//#region ui/features/metadata/genInfoCompare.ts
+function ht(e, t) {
+	for (let n of t) {
+		let t = n.split("."), r = e;
+		for (let e of t) {
+			if (r == null) break;
+			r = r?.[e];
+		}
+		if (r != null && String(r).trim?.() !== "") return r;
+	}
+	return "";
+}
+function gt(e) {
+	if (e == null) return "";
+	if (typeof e == "string") return e.trim();
+	if (typeof e == "number" || typeof e == "boolean") return String(e);
+	try {
+		return JSON.stringify(e);
+	} catch {
+		return String(e);
+	}
+}
+var _t = [
+	{
+		key: "positive",
+		label: "Positive Prompt",
+		paths: [
+			"geninfo.positive.value",
+			"positive_prompt",
+			"prompt"
+		]
+	},
+	{
+		key: "negative",
+		label: "Negative Prompt",
+		paths: ["geninfo.negative.value", "negative_prompt"]
+	},
+	{
+		key: "model",
+		label: "Model",
+		paths: [
+			"geninfo.checkpoint.name",
+			"model",
+			"checkpoint"
+		]
+	},
+	{
+		key: "lora",
+		label: "LoRA",
+		paths: [
+			"geninfo.loras",
+			"loras",
+			"lora"
+		]
+	},
+	{
+		key: "sampler",
+		label: "Sampler",
+		paths: ["geninfo.sampler.name", "sampler"]
+	},
+	{
+		key: "scheduler",
+		label: "Scheduler",
+		paths: ["geninfo.scheduler.name", "scheduler"]
+	},
+	{
+		key: "steps",
+		label: "Steps",
+		paths: ["geninfo.steps.value", "steps"]
+	},
+	{
+		key: "cfg",
+		label: "CFG",
+		paths: ["geninfo.cfg.value", "cfg"]
+	},
+	{
+		key: "denoise",
+		label: "Denoise",
+		paths: ["geninfo.denoise.value", "denoise"]
+	},
+	{
+		key: "seed",
+		label: "Seed",
+		paths: ["geninfo.seed.value", "seed"]
+	},
+	{
+		key: "workflow_nodes",
+		label: "Workflow Nodes",
+		paths: ["geninfo.workflow_nodes", "workflow.nodes"]
+	}
+];
+function vt(e, t) {
+	return _t.map((n) => {
+		let r = gt(ht(e, n.paths)), i = gt(ht(t, n.paths));
+		return {
+			key: n.key,
+			label: n.label,
+			left: r,
+			right: i,
+			changed: r !== i
+		};
+	}).filter((e) => e.left || e.right);
+}
+//#endregion
+//#region ui/features/viewer/metadataCompare.ts
+function yt(e) {
+	return String(e ?? "").trim() || "-";
+}
+function bt(e, t) {
+	let n = document.createElement("div");
+	return n.textContent = yt(e), n.style.cssText = [
+		"min-width:0",
+		"white-space:pre-wrap",
+		"overflow-wrap:anywhere",
+		"font-size:11px",
+		"line-height:1.35",
+		"color:rgba(255,255,255,0.84)",
+		t ? "background:rgba(255,193,7,0.10)" : "background:rgba(255,255,255,0.035)",
+		"border:1px solid rgba(255,255,255,0.08)",
+		"border-radius:6px",
+		"padding:6px 7px"
+	].join(";"), n;
+}
+function xt(e, t) {
+	let n = vt(e, t).filter((e) => yt(e?.left) !== "-" || yt(e?.right) !== "-");
+	if (!n.length) return null;
+	let r = document.createElement("div");
+	r.style.cssText = "display:flex;flex-direction:column;gap:8px;margin:0 0 14px 0;padding:10px;border:1px solid rgba(144,220,220,0.22);border-radius:10px;background:rgba(90,220,220,0.06);";
+	let i = document.createElement("div");
+	i.textContent = y("viewer.metadataCompare", "Metadata compare"), i.style.cssText = "font-size:12px;font-weight:700;color:rgba(255,255,255,0.9);letter-spacing:0.02em", r.appendChild(i);
+	for (let e of n.slice(0, 24)) {
+		let t = document.createElement("div");
+		t.style.cssText = "display:grid;grid-template-columns:minmax(74px,0.42fr) 1fr 1fr;gap:6px;align-items:start";
+		let n = document.createElement("div");
+		n.textContent = String(e?.label || e?.key || "").trim(), n.style.cssText = "font-size:11px;font-weight:650;color:rgba(255,255,255,0.70);padding-top:6px;overflow-wrap:anywhere", t.appendChild(n);
+		let i = !!e?.changed;
+		t.appendChild(bt(e?.left, i)), t.appendChild(bt(e?.right, i)), r.appendChild(t);
+	}
+	return r;
+}
+//#endregion
 //#region ui/features/viewer/viewerInstanceManager.ts
-function ht(e) {
+function St(e) {
 	let t = d();
 	if (t.length) {
 		let e = t[t.length - 1];
@@ -5175,7 +5316,7 @@ function ht(e) {
 }
 //#endregion
 //#region ui/features/viewer/playerBarManager.ts
-function gt({ state: e, APP_CONFIG: t, VIEWER_MODES: n, overlay: r, navBar: i, playerBarHost: a, singleView: o, abView: s, sideView: c, metadataHydrator: l, isPlayableViewerKind: u, collectPlayableMediaElements: d, pickPrimaryPlayableMedia: f, mountUnifiedMediaControls: p, installFollowerVideoSync: m, getViewerInfo: h, scheduleOverlayRedraw: g, viewerInfoCacheGet: _, viewerInfoCacheSet: v }) {
+function Ct({ state: e, APP_CONFIG: t, VIEWER_MODES: n, overlay: r, navBar: i, playerBarHost: a, singleView: o, abView: s, sideView: c, metadataHydrator: l, isPlayableViewerKind: u, collectPlayableMediaElements: d, pickPrimaryPlayableMedia: f, mountUnifiedMediaControls: p, installFollowerVideoSync: m, getViewerInfo: h, scheduleOverlayRedraw: g, viewerInfoCacheGet: _, viewerInfoCacheSet: v }) {
 	function y() {
 		try {
 			e._videoControlsDestroy && e._videoControlsDestroy();
@@ -5540,12 +5681,12 @@ function gt({ state: e, APP_CONFIG: t, VIEWER_MODES: n, overlay: r, navBar: i, p
 }
 //#endregion
 //#region ui/features/viewer/viewerThemeStyles.ts
-var _t = "min(400px, 42vw)", vt = `calc(${_t} + 24px)`, yt = "mjr-viewer-modern-theme";
-function bt() {
+var wt = "min(400px, 42vw)", Tt = `calc(${wt} + 24px)`, Et = "mjr-viewer-modern-theme";
+function Dt() {
 	try {
-		if (document.getElementById(yt)) return;
+		if (document.getElementById(Et)) return;
 		let e = document.createElement("style");
-		e.id = yt, e.textContent = `
+		e.id = Et, e.textContent = `
             .mjr-viewer-overlay {
                 --mjr-viewer-surface: rgba(14, 18, 24, 0.78);
                 --mjr-viewer-surface-strong: rgba(10, 13, 18, 0.9);
@@ -5648,7 +5789,7 @@ function bt() {
             }
 
             .mjr-viewer-geninfo {
-                width: ${_t} !important;
+                width: ${wt} !important;
                 top: 16px !important;
                 bottom: 16px !important;
                 border-radius: 20px;
@@ -5747,16 +5888,16 @@ function bt() {
 }
 //#endregion
 //#region ui/features/viewer/filmstrip.ts
-var xt = 84, St = 56, Ct = 74, wt = .45, Tt = "0px 240px 0px 240px", Et = 3500;
-function Dt(e) {
+var Ot = 84, kt = 56, At = 74, jt = .45, Mt = "0px 240px 0px 240px", Nt = 3500;
+function Pt(e) {
 	let t = 2166136261, n = String(e || "");
 	for (let e = 0; e < n.length; e += 1) t ^= n.charCodeAt(e), t = Math.imul(t, 16777619);
 	return t >>> 0;
 }
-function Ot(e, t, n = 18) {
+function Ft(e, t, n = 18) {
 	let r = document.createElement("div");
 	r.className = "mjr-filmstrip-audio-waveform";
-	let i = Dt(t) || 1;
+	let i = Pt(t) || 1;
 	for (let e = 0; e < n; e += 1) {
 		i = Math.imul(i ^ i >>> 15, 2246822519) >>> 0;
 		let t = i % 1e3 / 1e3, a = Math.sin(e / Math.max(1, n - 1) * Math.PI), o = document.createElement("span");
@@ -5764,14 +5905,14 @@ function Ot(e, t, n = 18) {
 	}
 	e.appendChild(r);
 }
-function kt(e) {
+function It(e) {
 	try {
 		e?._mjrFilmstripReleaseTimer && (clearTimeout(e._mjrFilmstripReleaseTimer), e._mjrFilmstripReleaseTimer = null);
 	} catch (e) {
 		console.debug?.(e);
 	}
 }
-function At(e) {
+function Lt(e) {
 	if (!e) return;
 	let t = String(e.dataset.lazySrc || "").trim();
 	if (t) try {
@@ -5780,7 +5921,7 @@ function At(e) {
 		console.debug?.(e);
 	}
 }
-function jt(e) {
+function Rt(e) {
 	if (e) try {
 		let t = e.play?.();
 		t && typeof t.catch == "function" && t.catch(() => {});
@@ -5788,16 +5929,16 @@ function jt(e) {
 		console.debug?.(e);
 	}
 }
-function Mt(e) {
+function zt(e) {
 	if (e) try {
 		e.pause?.();
 	} catch (e) {
 		console.debug?.(e);
 	}
 }
-function Nt(e, { releaseSrc: t = !0 } = {}) {
+function Bt(e, { releaseSrc: t = !0 } = {}) {
 	if (e) {
-		kt(e), Mt(e);
+		It(e), zt(e);
 		try {
 			e._mjrFilmstripInView = !1;
 		} catch (e) {
@@ -5810,11 +5951,11 @@ function Nt(e, { releaseSrc: t = !0 } = {}) {
 		}
 	}
 }
-function Pt({ state: e, buildAssetViewURL: t, onNavigate: n, onCompare: r }) {
+function Vt({ state: e, buildAssetViewURL: t, onNavigate: n, onCompare: r }) {
 	let i = document.createElement("div");
 	i.className = "mjr-filmstrip", i.style.cssText = `
         width: 100%;
-        height: ${Ct}px;
+        height: ${At}px;
         overflow-x: auto;
         overflow-y: hidden;
         background: linear-gradient(180deg, rgba(16, 20, 27, 0.82), rgba(10, 13, 18, 0.92));
@@ -5842,20 +5983,20 @@ function Pt({ state: e, buildAssetViewURL: t, onNavigate: n, onCompare: r }) {
 					} catch (e) {
 						console.debug?.(e);
 					}
-					if (i && (kt(e), At(e)), i && r.intersectionRatio >= wt && t && n ? jt(e) : Mt(e), !i) {
-						kt(e);
+					if (i && (It(e), Lt(e)), i && r.intersectionRatio >= jt && t && n ? Rt(e) : zt(e), !i) {
+						It(e);
 						try {
 							e._mjrFilmstripReleaseTimer = setTimeout(() => {
 								try {
 									if (!e.isConnected) {
-										Nt(e, { releaseSrc: !0 });
+										Bt(e, { releaseSrc: !0 });
 										return;
 									}
-									e._mjrFilmstripInView || Nt(e, { releaseSrc: !0 });
+									e._mjrFilmstripInView || Bt(e, { releaseSrc: !0 });
 								} catch (e) {
 									console.debug?.(e);
 								}
-							}, Et);
+							}, Nt);
 						} catch (e) {
 							console.debug?.(e);
 						}
@@ -5863,8 +6004,8 @@ function Pt({ state: e, buildAssetViewURL: t, onNavigate: n, onCompare: r }) {
 				}
 			}, {
 				root: i,
-				rootMargin: Tt,
-				threshold: [0, wt]
+				rootMargin: Mt,
+				threshold: [0, jt]
 			});
 		} catch {
 			return null;
@@ -5884,11 +6025,11 @@ function Pt({ state: e, buildAssetViewURL: t, onNavigate: n, onCompare: r }) {
 			}
 		}
 	}, p = ({ releaseSrc: e = !1 } = {}) => {
-		for (let t of Array.from(c)) Nt(t, { releaseSrc: e });
+		for (let t of Array.from(c)) Bt(t, { releaseSrc: e });
 	}, m = () => {
 		for (let e of Array.from(c)) try {
 			if (!e?._mjrFilmstripInView || !e?.isConnected) continue;
-			At(e), jt(e);
+			Lt(e), Rt(e);
 		} catch (e) {
 			console.debug?.(e);
 		}
@@ -5905,7 +6046,7 @@ function Pt({ state: e, buildAssetViewURL: t, onNavigate: n, onCompare: r }) {
 		} catch {
 			return !1;
 		}
-	}, v = (e, t = 1.08) => {
+	}, _ = (e, t = 1.08) => {
 		if (!(!e || g())) {
 			try {
 				e._mjrFilmstripBounce?.cancel?.();
@@ -5934,12 +6075,12 @@ function Pt({ state: e, buildAssetViewURL: t, onNavigate: n, onCompare: r }) {
 				console.debug?.(e);
 			}
 		}
-	}, y = (e, n) => {
+	}, v = (e, n) => {
 		let r = document.createElement("div");
 		r.className = "mjr-filmstrip-item", r.dataset.fidx = String(n), r._mjrAsset = e, r.style.cssText = `
             position: relative;
-            width: ${xt}px;
-            height: ${St}px;
+            width: ${Ot}px;
+            height: ${kt}px;
             border-radius: 14px;
             overflow: hidden;
             cursor: pointer;
@@ -5962,7 +6103,7 @@ function Pt({ state: e, buildAssetViewURL: t, onNavigate: n, onCompare: r }) {
 			}
 			return e.addEventListener("loadeddata", () => {
 				try {
-					e._mjrFilmstripInView && i.style.display !== "none" && !document.hidden && jt(e);
+					e._mjrFilmstripInView && i.style.display !== "none" && !document.hidden && Rt(e);
 				} catch (e) {
 					console.debug?.(e);
 				}
@@ -5972,7 +6113,7 @@ function Pt({ state: e, buildAssetViewURL: t, onNavigate: n, onCompare: r }) {
 				} catch (e) {
 					console.debug?.(e);
 				}
-				Nt(e, { releaseSrc: !0 }), b(r);
+				Bt(e, { releaseSrc: !0 }), y(r);
 			}, { once: !0 }), r.appendChild(e), C(r), f(e), r;
 		}
 		if (a === "audio") {
@@ -5985,9 +6126,9 @@ function Pt({ state: e, buildAssetViewURL: t, onNavigate: n, onCompare: r }) {
 					} catch (e) {
 						console.debug?.(e);
 					}
-					x(r);
+					b(r);
 				}, { once: !0 }), r.appendChild(n);
-			} else x(r);
+			} else b(r);
 			return E(r), r;
 		}
 		if (a === "model3d") {
@@ -6000,7 +6141,7 @@ function Pt({ state: e, buildAssetViewURL: t, onNavigate: n, onCompare: r }) {
 						...e,
 						filename: r,
 						kind: "image"
-					}) : _(r, i || null, a);
+					}) : S(r, i || null, a);
 				} catch {
 					return "";
 				}
@@ -6028,9 +6169,9 @@ function Pt({ state: e, buildAssetViewURL: t, onNavigate: n, onCompare: r }) {
 				}
 			}, { once: !0 }), r.appendChild(e), r;
 		}
-		return S(r), r;
+		return x(r), r;
 	};
-	function b(e) {
+	function y(e) {
 		let t = document.createElement("div");
 		t.style.cssText = "\n            position: absolute; inset: 0;\n            display: flex; align-items: center; justify-content: center;\n            font-size: 10px; font-weight: 700;\n            color: rgba(255,255,255,0.55);\n            pointer-events: none;\n            letter-spacing: 0.04em;\n        ", t.textContent = "VIDEO";
 		try {
@@ -6039,18 +6180,18 @@ function Pt({ state: e, buildAssetViewURL: t, onNavigate: n, onCompare: r }) {
 			console.debug?.(e);
 		}
 	}
-	function x(e) {
+	function b(e) {
 		let t = document.createElement("div");
 		t.className = "mjr-filmstrip-audio-thumb";
 		let n = document.createElement("span");
-		n.className = "mjr-filmstrip-audio-label", n.textContent = "AUDIO", Ot(t, e?._mjrAsset?.filename || e?.dataset?.mjrId || "audio"), t.appendChild(n);
+		n.className = "mjr-filmstrip-audio-label", n.textContent = "AUDIO", Ft(t, e?._mjrAsset?.filename || e?.dataset?.mjrId || "audio"), t.appendChild(n);
 		try {
 			e.appendChild(t);
 		} catch (e) {
 			console.debug?.(e);
 		}
 	}
-	function S(e) {
+	function x(e) {
 		let t = document.createElement("div");
 		t.style.cssText = "\n            position: absolute; inset: 0;\n            display: flex; align-items: center; justify-content: center;\n            font-size: 18px; color: rgba(255,255,255,0.25);\n            pointer-events: none;\n        ", t.textContent = "?";
 		try {
@@ -6089,7 +6230,7 @@ function Pt({ state: e, buildAssetViewURL: t, onNavigate: n, onCompare: r }) {
 		}
 		i.style.display = "";
 		for (let e = 0; e < t.length; e++) {
-			let n = y(t[e], e);
+			let n = v(t[e], e);
 			a.appendChild(n), o.push(n);
 		}
 		k(!1);
@@ -6105,7 +6246,7 @@ function Pt({ state: e, buildAssetViewURL: t, onNavigate: n, onCompare: r }) {
 		let n = Number(e.currentIndex) || 0, a = -1;
 		r && e.compareAsset != null && (a = (Array.isArray(e.assets) ? e.assets : []).indexOf(e.compareAsset));
 		for (let e = 0; e < o.length; e++) e === n ? (o[e].style.borderColor = "rgba(255, 255, 255, 0.98)", o[e].style.opacity = "1", o[e].style.transform = "scale(1.08)", o[e].style.filter = "saturate(1.12) brightness(1.08)", o[e].style.boxShadow = "0 0 0 1px rgba(255,255,255,0.45), 0 0 18px rgba(160,220,255,0.38), 0 8px 16px rgba(0,0,0,0.38)") : e === a ? (o[e].style.borderColor = "rgba(120, 186, 255, 0.98)", o[e].style.opacity = "0.96", o[e].style.transform = "scale(1.04)", o[e].style.filter = "saturate(1.07) brightness(1.03)", o[e].style.boxShadow = "0 0 0 1px rgba(120,186,255,0.38), 0 0 14px rgba(120,186,255,0.32), 0 6px 14px rgba(0,0,0,0.32)") : (o[e].style.borderColor = "transparent", o[e].style.opacity = "0.5", o[e].style.transform = "scale(1)", o[e].style.filter = "none", o[e].style.boxShadow = "none");
-		n !== l && o[n] && v(o[n], 1.08), a >= 0 && a !== u && o[a] && v(o[a], 1.04), l = n, u = a;
+		n !== l && o[n] && _(o[n], 1.08), a >= 0 && a !== u && o[a] && _(o[a], 1.04), l = n, u = a;
 		let s = o[n];
 		if (s) try {
 			s.scrollIntoView({
@@ -6153,11 +6294,11 @@ function Pt({ state: e, buildAssetViewURL: t, onNavigate: n, onCompare: r }) {
 }
 //#endregion
 //#region ui/features/viewer/viewerShell.ts
-function Ft() {
+function Ht() {
 	let e = document.createElement("div");
 	return e.className = "mjr-viewer-overlay mjr-assets-manager", e.style.cssText = "\n        position: fixed;\n        top: 0;\n        left: 0;\n        right: 0;\n        bottom: 0;\n        background: linear-gradient(180deg, rgba(6, 8, 12, 0.94), rgba(5, 7, 10, 0.985));\n        z-index: 10000;\n        pointer-events: auto;\n        display: none;\n        flex-direction: column;\n        box-sizing: border-box;\n        overflow: hidden;\n    ", e.tabIndex = -1, e.setAttribute("role", "dialog"), e;
 }
-function It({ state: e, buildAssetViewURL: t, onNavigate: n, onCompare: r }) {
+function Ut({ state: e, buildAssetViewURL: t, onNavigate: n, onCompare: r }) {
 	let i = document.createElement("div");
 	i.className = "mjr-viewer-content-row", i.style.cssText = "\n        flex: 1;\n        display: flex;\n        min-height: 0;\n        overflow: hidden;\n        min-width: 0;\n    ";
 	let a = document.createElement("div");
@@ -6184,7 +6325,7 @@ function It({ state: e, buildAssetViewURL: t, onNavigate: n, onCompare: r }) {
         top: 16px;
         right: 16px;
         bottom: 16px;
-        width: ${_t};
+        width: ${wt};
         display: none;
         flex-direction: column;
         overflow: hidden;
@@ -6206,7 +6347,7 @@ function It({ state: e, buildAssetViewURL: t, onNavigate: n, onCompare: r }) {
         top: 16px;
         left: 16px;
         bottom: 16px;
-        width: ${_t};
+        width: ${wt};
         display: none;
         flex-direction: column;
         overflow: hidden;
@@ -6256,7 +6397,7 @@ function It({ state: e, buildAssetViewURL: t, onNavigate: n, onCompare: r }) {
 		nextBtn: T,
 		navBar: E,
 		playerBarHost: D,
-		filmstrip: Pt({
+		filmstrip: Vt({
 			state: e,
 			buildAssetViewURL: t,
 			onNavigate: n,
@@ -6266,7 +6407,7 @@ function It({ state: e, buildAssetViewURL: t, onNavigate: n, onCompare: r }) {
 }
 //#endregion
 //#region ui/features/viewer/viewerOverlayDismiss.ts
-function Lt({ overlay: e, requestClose: t }) {
+function Wt({ overlay: e, requestClose: t }) {
 	try {
 		let n = null;
 		e.addEventListener("pointerdown", (e) => {
@@ -6298,20 +6439,20 @@ function Lt({ overlay: e, requestClose: t }) {
 }
 //#endregion
 //#region ui/components/ViewerRuntime.ts
-var Rt = null, zt = null, Bt = null, Vt = null, Ht = null, Ut = null;
-function Wt() {
-	Rt || import("./abCompare-BXOoRlmV.js").then((e) => {
-		Rt = e;
-	}), zt || import("./sideBySide-1Gx2e_hD.js").then((e) => {
-		zt = e;
-	}), Bt || import("./mediaPlayer-BN4qQ_h2.js").then((e) => e.a).then((e) => {
-		Bt = e;
-	}), Vt || import("./scopes-X1iFrTle.js").then((e) => {
-		Vt = e;
-	}), Ht || import("./genInfo-D6g113Qj.js").then((e) => e.n).then((e) => {
-		Ht = e;
-	}), Ut || import("./frameExport-tksSZ7sb.js").then((e) => {
-		Ut = e;
+var Gt = null, Kt = null, qt = null, Jt = null, Yt = null, Xt = null;
+function Zt() {
+	Gt || import("./abCompare-BXOoRlmV.js").then((e) => {
+		Gt = e;
+	}), Kt || import("./sideBySide-B8Woithp.js").then((e) => {
+		Kt = e;
+	}), qt || import("./mediaPlayer-DTyhTlcJ.js").then((e) => e.a).then((e) => {
+		qt = e;
+	}), Jt || import("./scopes-X1iFrTle.js").then((e) => {
+		Jt = e;
+	}), Yt || import("./genInfo-CPsL2cZc.js").then((e) => e.n).then((e) => {
+		Yt = e;
+	}), Xt || import("./frameExport-tksSZ7sb.js").then((e) => {
+		Xt = e;
 	});
 }
 var $ = {
@@ -6319,9 +6460,9 @@ var $ = {
 	AB_COMPARE: "ab",
 	SIDE_BY_SIDE: "sidebyside"
 };
-function Gt() {
-	Wt(), bt();
-	let t = Ft(), n = Be(t), a = n.unsubs || [], o = ae();
+function Qt() {
+	Zt(), Dt();
+	let t = Ht(), n = Be(t), a = n.unsubs || [], o = ae();
 	o.mode = $.SINGLE;
 	try {
 		let e = Le();
@@ -6371,7 +6512,7 @@ function Gt() {
 			console.debug?.(e);
 		}
 	}
-	function v() {
+	function S() {
 		try {
 			d?.updatePanCursor?.();
 		} catch (e) {
@@ -6449,7 +6590,7 @@ function Gt() {
 		}
 		return e;
 	}
-	let L = null, ne = () => tn(), R = document.createElement("div");
+	let L = null, ne = () => nn(), R = document.createElement("div");
 	R.className = "mjr-viewer-header", R.style.cssText = "\n        display: flex;\n        flex-direction: column;\n        gap: 8px;\n        padding: 12px 20px;\n        background: var(--mjr-surface-0, rgba(0, 0, 0, 0.8));\n        border-bottom: 1px solid rgba(255, 255, 255, 0.1);\n        color: white;\n        box-sizing: border-box;\n    ";
 	let z = document.createElement("span");
 	z.className = "mjr-viewer-filename", z.style.cssText = "font-size: 14px; font-weight: 500; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;";
@@ -6487,7 +6628,7 @@ function Gt() {
 			onMode: (e) => {
 				try {
 					if (e === $.AB_COMPARE && !ft() || e === $.SIDE_BY_SIDE && !ht()) return;
-					o.mode = e, yt();
+					o.mode = e, _t();
 					try {
 						L?.syncToolsUIFromState?.();
 					} catch (e) {
@@ -6556,7 +6697,7 @@ function Gt() {
 			},
 			onCompareModeChanged: () => {
 				try {
-					o.mode === $.AB_COMPARE && (xt(), Dt());
+					o.mode === $.AB_COMPARE && (vt(), Ot());
 				} catch (e) {
 					console.debug?.(e);
 				}
@@ -6579,7 +6720,7 @@ function Gt() {
 				try {
 					let e = o.assets[o.currentIndex];
 					if (String(e?.kind || "") !== "audio") return;
-					te() || (xt(), Dt());
+					te() || (vt(), Ot());
 				} catch (e) {
 					console.debug?.(e);
 				}
@@ -6596,7 +6737,7 @@ function Gt() {
 					console.debug?.(e);
 				}
 				try {
-					_t();
+					gt();
 				} catch (e) {
 					console.debug?.(e);
 				}
@@ -6624,7 +6765,7 @@ function Gt() {
 					console.debug?.(e);
 				}
 				try {
-					Gt?.();
+					It?.();
 				} catch (e) {
 					console.debug?.(e);
 				}
@@ -6638,12 +6779,12 @@ function Gt() {
 	} catch (e) {
 		console.debug?.(e);
 	}
-	let { contentRow: ge, content: G, singleView: K, abView: q, sideView: J, overlayLayer: _e, gridCanvas: Y, probeTooltip: X, loupeWrap: ve, loupeCanvas: ye, genInfoOverlay: be, genInfoTitle: xe, genInfoBody: Se, genInfoOverlayLeft: Ce, genInfoTitleLeft: we, genInfoBodyLeft: Te, footer: Ee, prevBtn: De, indexInfo: Z, nextBtn: Oe, navBar: ke, playerBarHost: Ae, filmstrip: je } = It({
+	let { contentRow: ge, content: G, singleView: K, abView: q, sideView: J, overlayLayer: _e, gridCanvas: Y, probeTooltip: X, loupeWrap: ve, loupeCanvas: ye, genInfoOverlay: be, genInfoTitle: xe, genInfoBody: Se, genInfoOverlayLeft: Ce, genInfoTitleLeft: we, genInfoBodyLeft: Te, footer: Ee, prevBtn: De, indexInfo: Z, nextBtn: Oe, navBar: ke, playerBarHost: Ae, filmstrip: je } = Ut({
 		state: o,
 		buildAssetViewURL: w,
 		onNavigate: (e) => {
 			try {
-				o.compareAsset != null && (o.compareAsset = null, o.mode = $.SINGLE), o.currentIndex = e, yt();
+				o.compareAsset != null && (o.compareAsset = null, o.mode = $.SINGLE), o.currentIndex = e, _t();
 			} catch (e) {
 				console.debug?.(e);
 			}
@@ -6653,10 +6794,10 @@ function Gt() {
 				let t = Array.isArray(o.assets) ? o.assets : [], n = t[e];
 				if (!n || n === t[o.currentIndex]) return;
 				if (n === o.compareAsset) {
-					o.compareAsset = null, o.mode = $.SINGLE, yt();
+					o.compareAsset = null, o.mode = $.SINGLE, _t();
 					return;
 				}
-				t.length === 2 ? (o.compareAsset = t[1 - o.currentIndex], o.mode = Ne() ? $.SIDE_BY_SIDE : $.AB_COMPARE) : (o.compareAsset = n, o.mode = ht() ? $.SIDE_BY_SIDE : $.AB_COMPARE), yt();
+				t.length === 2 ? (o.compareAsset = t[1 - o.currentIndex], o.mode = Ne() ? $.SIDE_BY_SIDE : $.AB_COMPARE) : (o.compareAsset = n, o.mode = ht() ? $.SIDE_BY_SIDE : $.AB_COMPARE), _t();
 			} catch (e) {
 				console.debug?.(e);
 			}
@@ -6676,20 +6817,20 @@ function Gt() {
 	function Ne() {
 		try {
 			let e = o.assets?.[o.currentIndex] || null;
-			return (Bt?.isModel3DAsset?.(e) ?? !1) || (Bt?.isModel3DAsset?.(Me()) ?? !1);
+			return (qt?.isModel3DAsset?.(e) ?? !1) || (qt?.isModel3DAsset?.(Me()) ?? !1);
 		} catch (e) {
 			console.debug?.(e);
 		}
 		return !1;
 	}
-	t.appendChild(je.el), t.appendChild(Ee), t.appendChild(be), t.appendChild(Ce), Lt({
+	t.appendChild(je.el), t.appendChild(Ee), t.appendChild(be), t.appendChild(Ce), Wt({
 		overlay: t,
 		requestClose: () => ne()
 	});
 	let Ie = $e({
 		state: o,
 		VIEWER_MODES: $,
-		APP_CONFIG: S,
+		APP_CONFIG: x,
 		getAssetMetadata: c,
 		getAssetsBatch: s
 	}), Ve = 300 * 1e3, He = /* @__PURE__ */ new Map(), Ue = () => {
@@ -6849,7 +6990,7 @@ function Gt() {
 						let i = K;
 						o?.mode === $.AB_COMPARE ? i = q : o?.mode === $.SIDE_BY_SIDE && (i = J);
 						let a = i?.querySelector?.("canvas.mjr-viewer-media") || t?.querySelector?.("canvas.mjr-viewer-media");
-						a && a instanceof HTMLCanvasElement && Vt?.drawScopesLight?.(r, {
+						a && a instanceof HTMLCanvasElement && Jt?.drawScopesLight?.(r, {
 							w: n.w,
 							h: n.h
 						}, a, {
@@ -6905,7 +7046,7 @@ function Gt() {
 		}
 	}, ot = async (e, { signal: t } = {}) => {
 		try {
-			return await Ht?.ensureViewerMetadataAsset?.(e, {
+			return await Yt?.ensureViewerMetadataAsset?.(e, {
 				getAssetMetadata: c,
 				getFileMetadataScoped: m,
 				metadataCache: Ie,
@@ -6934,7 +7075,7 @@ function Gt() {
 	}, ct = async () => {
 		let e = ft(), n = ht(), r = o.mode, i = !!o?.genInfoOpen && !o?.distractionFree, a = i && (r === $.AB_COMPARE && e || r === $.SIDE_BY_SIDE && n), s = a && r === $.SIDE_BY_SIDE && !o?.compareAsset && (o?.assets?.length ?? 0) > 2;
 		try {
-			if (be.style.display = i ? "flex" : "none", Ce.style.display = a ? "flex" : "none", t.style.paddingRight = i ? vt : "0px", t.style.paddingLeft = a ? vt : "0px", !i) {
+			if (be.style.display = i ? "flex" : "none", Ce.style.display = a ? "flex" : "none", t.style.paddingRight = i ? Tt : "0px", t.style.paddingLeft = a ? Tt : "0px", !i) {
 				at();
 				try {
 					it(Se);
@@ -6971,21 +7112,21 @@ function Gt() {
 			} catch (e) {
 				console.debug?.(e);
 			}
-			let s = () => {
+			let c = () => {
 				try {
 					o?.genInfoOpen || (o.genInfoOpen = !0), ct();
 				} catch (e) {
 					console.debug?.(e);
 				}
-			}, c = (e, t, n, r) => {
+			}, l = (e, t, n, r) => {
 				if (e) try {
 					try {
-						let i = Ht?.buildViewerMetadataBlocks?.({
+						let i = Yt?.buildViewerMetadataBlocks?.({
 							title: t,
 							asset: n,
 							ui: {
 								loading: !!r,
-								onRetry: s
+								onRetry: c
 							}
 						});
 						if (i) {
@@ -7001,14 +7142,14 @@ function Gt() {
 						e.textContent = t, e.style.cssText = "font-size: 12px; font-weight: 600; letter-spacing: 0.02em; color: rgba(255,255,255,0.86);", i.appendChild(e);
 					}
 					let a = document.createElement("div");
-					a.style.cssText = "padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.72);", a.textContent = b("viewer.noGenerationDataFile", "No generation data found for this file."), i.appendChild(a);
+					a.style.cssText = "padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.72);", a.textContent = y("viewer.noGenerationDataFile", "No generation data found for this file."), i.appendChild(a);
 					try {
 						let e = n?.metadata_raw;
 						if (e != null) {
 							let t = document.createElement("details");
 							t.style.cssText = "border: 1px solid rgba(255,255,255,0.10); border-radius: 10px; background: rgba(255,255,255,0.04); overflow: hidden;";
 							let n = document.createElement("summary");
-							n.textContent = b("msg.rawMetadata", "Raw metadata"), n.style.cssText = "cursor: pointer; padding: 10px 12px; color: rgba(255,255,255,0.78); user-select: none;";
+							n.textContent = y("msg.rawMetadata", "Raw metadata"), n.style.cssText = "cursor: pointer; padding: 10px 12px; color: rgba(255,255,255,0.78); user-select: none;";
 							let r = document.createElement("pre");
 							r.style.cssText = "margin:0; padding: 10px 12px; max-height: 280px; overflow:auto; font-size: 11px; line-height: 1.35; color: rgba(255,255,255,0.86);";
 							let a = "";
@@ -7027,7 +7168,14 @@ function Gt() {
 					console.debug?.(e);
 				}
 			};
-			a ? (e && (we.textContent = e.title || "Asset A", c(Te, t ? "Asset A" : "", e.asset, e.loading)), t && c(Te, "Asset C", t.asset, t.loading), n && (xe.textContent = n.title || "Asset B", c(Se, r ? "Asset B" : "", n.asset, n.loading)), r && c(Se, "Asset D", r.asset, r.loading)) : i && (xe.textContent = i.title || "Generation Info", c(Se, "", i.asset, i.loading));
+			if (a) {
+				if (e && (we.textContent = e.title || "Asset A", l(Te, t ? "Asset A" : "", e.asset, e.loading)), t && l(Te, "Asset C", t.asset, t.loading), n && (xe.textContent = n.title || "Asset B", l(Se, r ? "Asset B" : "", n.asset, n.loading)), r && l(Se, "Asset D", r.asset, r.loading), !s && e?.asset && n?.asset && !e.loading && !n.loading) try {
+					let t = xt(e.asset, n.asset);
+					t && Se.insertBefore(t, Se.firstChild || null);
+				} catch (e) {
+					console.debug?.(e);
+				}
+			} else i && (xe.textContent = i.title || "Generation Info", l(Se, "", i.asset, i.loading));
 		};
 		try {
 			let e = o?.assets?.[o?.currentIndex] || null;
@@ -7101,7 +7249,7 @@ function Gt() {
 	}, lt = null;
 	function ut(e) {
 		try {
-			return !lt && Ut && (lt = Ut.createFrameExporter({
+			return !lt && Xt && (lt = Xt.createFrameExporter({
 				state: o,
 				VIEWER_MODES: $,
 				singleView: K,
@@ -7184,7 +7332,7 @@ function Gt() {
 		let e = o.assets.length;
 		return e >= 2 && e <= 4 || e >= 1 && o.compareAsset != null;
 	}
-	function _t() {
+	function gt() {
 		let e = !!o?.distractionFree;
 		try {
 			R.style.display = e ? "none" : "";
@@ -7207,7 +7355,7 @@ function Gt() {
 			console.debug?.(e);
 		}
 	}
-	function yt() {
+	function _t() {
 		o.zoom = 1, o.panX = 0, o.panY = 0, o.targetZoom = 1;
 		try {
 			o.mode !== $.AB_COMPARE && o.mode !== $.SIDE_BY_SIDE && o.compareAsset != null && (o.compareAsset = null);
@@ -7257,19 +7405,19 @@ function Gt() {
 		} catch (e) {
 			console.debug?.(e);
 		}
-		xt(), St(o.assets, o.currentIndex), Dt();
+		vt(), yt(o.assets, o.currentIndex), Ot();
 		try {
 			L?.syncToolsUIFromState?.();
 		} catch (e) {
 			console.debug?.(e);
 		}
 		try {
-			_t();
+			gt();
 		} catch (e) {
 			console.debug?.(e);
 		}
 		try {
-			Gt?.();
+			It?.();
 		} catch (e) {
 			console.debug?.(e);
 		}
@@ -7297,7 +7445,7 @@ function Gt() {
 			console.debug?.(e);
 		}
 	}
-	function xt() {
+	function vt() {
 		let e = o.assets[o.currentIndex];
 		if (!e) return;
 		let t = w(e);
@@ -7325,7 +7473,7 @@ function Gt() {
 			K.innerHTML = "", o._mediaW = 0, o._mediaH = 0;
 			let n = P(e, t);
 			K.appendChild(n);
-		} else o.mode === $.AB_COMPARE ? ft() && Rt?.renderABCompareView?.({
+		} else o.mode === $.AB_COMPARE ? ft() && Gt?.renderABCompareView?.({
 			abView: q,
 			state: o,
 			currentAsset: e,
@@ -7333,7 +7481,7 @@ function Gt() {
 			buildAssetViewURL: w,
 			createCompareMediaElement: I,
 			destroyMediaProcessorsIn: ze
-		}) : o.mode === $.SIDE_BY_SIDE && ht() && zt?.renderSideBySideView?.({
+		}) : o.mode === $.SIDE_BY_SIDE && ht() && Kt?.renderSideBySideView?.({
 			sideView: J,
 			state: o,
 			currentAsset: e,
@@ -7342,15 +7490,15 @@ function Gt() {
 			createMediaElement: P,
 			destroyMediaProcessorsIn: ze
 		});
-		g(), v();
+		g(), S();
 	}
-	let { preloadAdjacentAssets: St, preloadImageForAsset: Ct, trackPreloadRef: wt } = mt({
+	let { preloadAdjacentAssets: yt, preloadImageForAsset: bt, trackPreloadRef: St } = mt({
 		buildAssetViewURL: w,
 		IMAGE_PRELOAD_EXTENSIONS: l,
 		state: o
-	}), { destroyPlayerBar: Tt, syncPlayerBar: Et } = gt({
+	}), { destroyPlayerBar: wt, syncPlayerBar: Et } = Ct({
 		state: o,
-		APP_CONFIG: S,
+		APP_CONFIG: x,
 		VIEWER_MODES: $,
 		overlay: t,
 		navBar: ke,
@@ -7368,14 +7516,14 @@ function Gt() {
 		scheduleOverlayRedraw: tt,
 		viewerInfoCacheGet: We,
 		viewerInfoCacheSet: Ge
-	}), Dt = () => Et(), Ot = S.VIEWER_MAX_PROC_PIXELS ?? 12e6, kt = () => ({
+	}), Ot = () => Et(), kt = x.VIEWER_MAX_PROC_PIXELS ?? 12e6, At = () => ({
 		exposureEV: Number(o.exposureEV) || 0,
 		gamma: Math.max(.1, Math.min(3, Number(o.gamma) || 1)),
 		channel: o.channel || "rgb",
 		analysisMode: o.analysisMode || "none",
 		zebraThreshold: Math.max(0, Math.min(1, Number(o.zebraThreshold) || .95))
-	}), At = () => {
-		let e = kt();
+	}), jt = () => {
+		let e = At();
 		try {
 			let n = t.querySelectorAll(".mjr-viewer-media");
 			for (let t of n) try {
@@ -7392,7 +7540,7 @@ function Gt() {
 		} catch (e) {
 			console.debug?.(e);
 		}
-	}, jt = (e) => {
+	}, Mt = (e) => {
 		try {
 			if (!e) return !0;
 			let t = Number(e.exposureEV) || 0, n = Number(e.gamma) || 1, r = String(e.channel || "rgb"), i = String(e.analysisMode || "none");
@@ -7400,7 +7548,7 @@ function Gt() {
 		} catch {
 			return !0;
 		}
-	}, Mt = S.VIEWER_MAX_PROC_PIXELS_VIDEO ?? 3e6, Nt = S.VIEWER_VIDEO_GRADE_THROTTLE_FPS ?? 15;
+	}, Nt = x.VIEWER_MAX_PROC_PIXELS_VIDEO ?? 3e6, Pt = x.VIEWER_VIDEO_GRADE_THROTTLE_FPS ?? 15;
 	try {
 		f = pt({
 			overlay: t,
@@ -7410,13 +7558,13 @@ function Gt() {
 			clampPanToBounds: h,
 			applyTransform: g,
 			scheduleOverlayRedraw: tt,
-			getGradeParams: kt,
-			isDefaultGrade: jt,
+			getGradeParams: At,
+			isDefaultGrade: Mt,
 			tonemap: null,
-			maxProcPixels: Ot,
-			maxProcPixelsVideo: Mt,
-			disableWebGL: !!S.VIEWER_DISABLE_WEBGL_VIDEO,
-			videoGradeThrottleFps: Nt,
+			maxProcPixels: kt,
+			maxProcPixelsVideo: Nt,
+			disableWebGL: !!x.VIEWER_DISABLE_WEBGL_VIDEO,
+			videoGradeThrottleFps: Pt,
 			safeAddListener: F,
 			safeCall: O
 		});
@@ -7424,17 +7572,17 @@ function Gt() {
 		f = null;
 	}
 	a.push(F(De, "click", () => {
-		o.currentIndex > 0 && (o.currentIndex--, yt());
+		o.currentIndex > 0 && (o.currentIndex--, _t());
 	})), a.push(F(Oe, "click", () => {
-		o.currentIndex < o.assets.length - 1 && (o.currentIndex++, yt());
+		o.currentIndex < o.assets.length - 1 && (o.currentIndex++, _t());
 	}));
-	let Pt = null, Gt = () => {
+	let Ft = null, It = () => {
 		try {
-			if (Pt != null) return;
-			Pt = requestAnimationFrame(() => {
-				Pt = null;
+			if (Ft != null) return;
+			Ft = requestAnimationFrame(() => {
+				Ft = null;
 				try {
-					At();
+					jt();
 				} catch (e) {
 					console.debug?.(e);
 				}
@@ -7442,17 +7590,17 @@ function Gt() {
 		} catch (e) {
 			console.debug?.(e);
 		}
-	}, Kt = () => {
+	}, Lt = () => {
 		try {
 			L?.syncToolsUIFromState?.();
 		} catch (e) {
 			console.debug?.(e);
 		}
-	}, qt = (e) => {
+	}, Rt = (e) => {
 		if (!Array.isArray(o.assets) || o.assets.length === 0) return !1;
 		let t = o.currentIndex + e;
-		return t < 0 || t >= o.assets.length ? !1 : (o.currentIndex = t, yt(), !0);
-	}, Jt = (e) => {
+		return t < 0 || t >= o.assets.length ? !1 : (o.currentIndex = t, _t(), !0);
+	}, zt = (e) => {
 		if (t.style.display === "none") return;
 		try {
 			let t = e.target;
@@ -7466,7 +7614,7 @@ function Gt() {
 			console.debug?.(e);
 		}
 		try {
-			if (Bt?.isModel3DInteractionTarget?.(e?.target)) return;
+			if (qt?.isModel3DInteractionTarget?.(e?.target)) return;
 		} catch (e) {
 			console.debug?.(e);
 		}
@@ -7476,13 +7624,13 @@ function Gt() {
 			console.debug?.(e);
 		}
 		let n = Number(e.deltaX) || 0, r = Number(e.deltaY) || 0;
-		if (e.shiftKey && r && qt(r > 0 ? 1 : -1) || Math.abs(n) > Math.abs(r) && Math.abs(n) > 30 && qt(n > 0 ? 1 : -1) || !r) return;
+		if (e.shiftKey && r && Rt(r > 0 ? 1 : -1) || Math.abs(n) > Math.abs(r) && Math.abs(n) > 30 && Rt(n > 0 ? 1 : -1) || !r) return;
 		let i = Math.exp(-r * .0015);
 		_((Number(o.zoom) || 1) * i, {
 			clientX: e.clientX,
 			clientY: e.clientY
 		});
-	}, Yt = (e, t, n, { offsetX: r = 16, offsetY: i = 16 } = {}) => {
+	}, Bt = (e, t, n, { offsetX: r = 16, offsetY: i = 16 } = {}) => {
 		try {
 			let a = j();
 			if (!a) return;
@@ -7491,7 +7639,7 @@ function Gt() {
 		} catch (e) {
 			console.debug?.(e);
 		}
-	}, Xt = Ze({
+	}, Vt = Ze({
 		overlay: t,
 		content: G,
 		state: o,
@@ -7499,7 +7647,7 @@ function Gt() {
 		getPrimaryMedia: C,
 		getMediaNaturalSize: D,
 		getViewportRect: j,
-		positionOverlayBox: Yt,
+		positionOverlayBox: Bt,
 		probeTooltip: X,
 		loupeWrap: ve,
 		onLoupeRedraw: Qe({
@@ -7507,7 +7655,7 @@ function Gt() {
 			loupeCanvas: ye,
 			loupeWrap: ve,
 			getMediaNaturalSize: D,
-			positionOverlayBox: Yt
+			positionOverlayBox: Bt
 		}).redraw,
 		lifecycle: n
 	});
@@ -7542,7 +7690,7 @@ function Gt() {
 	} catch (e) {
 		console.debug?.(e);
 	}
-	let Zt = Ye({
+	let Qt = Ye({
 		overlay: t,
 		content: G,
 		singleView: K,
@@ -7551,11 +7699,11 @@ function Gt() {
 		computeOneToOneZoom: M,
 		setZoom: _,
 		scheduleOverlayRedraw: tt,
-		scheduleApplyGrade: Gt,
-		syncToolsUIFromState: Kt,
-		applyDistractionFreeUI: _t,
-		navigateViewerAssets: qt,
-		closeViewer: tn,
+		scheduleApplyGrade: It,
+		syncToolsUIFromState: Lt,
+		applyDistractionFreeUI: gt,
+		navigateViewerAssets: Rt,
+		closeViewer: nn,
 		renderBadges: dt,
 		updateAssetRating: e,
 		safeDispatchCustomEvent: E,
@@ -7571,34 +7719,34 @@ function Gt() {
 			}
 		},
 		lifecycle: n
-	}), Qt = [], $t = () => {
+	}), $t = [], en = () => {
 		try {
-			for (let e of Qt) O(e);
+			for (let e of $t) O(e);
 		} catch (e) {
 			console.debug?.(e);
 		}
-		Qt = [];
+		$t = [];
 		try {
-			Zt?.unbind?.();
+			Qt?.unbind?.();
 		} catch (e) {
 			console.debug?.(e);
 		}
-	}, en = () => {
-		$t();
+	}, tn = () => {
+		en();
 		try {
-			Qt.push(F(t, "click", (e) => {
+			$t.push(F(t, "click", (e) => {
 				try {
 					if (e.target !== t) return;
 				} catch (e) {
 					console.debug?.(e);
 				}
-				tn();
+				nn();
 			}));
 		} catch (e) {
 			console.debug?.(e);
 		}
 		try {
-			Qt.push(F(G, "wheel", Jt, {
+			$t.push(F(G, "wheel", zt, {
 				passive: !1,
 				capture: !0
 			}));
@@ -7607,7 +7755,7 @@ function Gt() {
 		}
 		try {
 			let e = null;
-			Qt.push(F(G, "touchstart", (t) => {
+			$t.push(F(G, "touchstart", (t) => {
 				try {
 					if (t.touches?.length !== 1) return;
 					let n = t.touches[0];
@@ -7619,7 +7767,7 @@ function Gt() {
 				} catch (e) {
 					console.debug?.(e);
 				}
-			}, { passive: !0 })), Qt.push(F(G, "touchend", (t) => {
+			}, { passive: !0 })), $t.push(F(G, "touchend", (t) => {
 				try {
 					if (!e) return;
 					if (t.changedTouches?.length !== 1) {
@@ -7628,18 +7776,18 @@ function Gt() {
 					}
 					let n = t.changedTouches[0], r = n.clientX - e.x, i = n.clientY - e.y, a = Date.now() - e.t;
 					if (e = null, a > 600 || Math.abs(i) > 80) return;
-					Math.abs(r) >= 60 && qt(r < 0 ? 1 : -1);
+					Math.abs(r) >= 60 && Rt(r < 0 ? 1 : -1);
 				} catch (e) {
 					console.debug?.(e);
 				}
-			}, { passive: !0 })), Qt.push(F(G, "touchcancel", () => {
+			}, { passive: !0 })), $t.push(F(G, "touchcancel", () => {
 				e = null;
 			}, { passive: !0 }));
 		} catch (e) {
 			console.debug?.(e);
 		}
 		try {
-			Qt.push(F(G, "mousemove", (e) => {
+			$t.push(F(G, "mousemove", (e) => {
 				try {
 					o._lastPointerX = e.clientX, o._lastPointerY = e.clientY;
 				} catch (e) {
@@ -7653,7 +7801,7 @@ function Gt() {
 			console.debug?.(e);
 		}
 		try {
-			Zt?.bind?.();
+			Qt?.bind?.();
 		} catch (e) {
 			console.debug?.(e);
 		}
@@ -7673,7 +7821,7 @@ function Gt() {
 			} catch (e) {
 				console.debug?.(e);
 			}
-		}, { passive: !0 })), a.push(F(window, x, (e) => {
+		}, { passive: !0 })), a.push(F(window, b, (e) => {
 			try {
 				let t = e?.detail?.assetId, n = e?.detail?.tags;
 				if (t == null) return;
@@ -7691,15 +7839,15 @@ function Gt() {
 	} catch (e) {
 		console.debug?.(e);
 	}
-	function tn() {
+	function nn() {
 		try {
 			let e = o.assets?.[o.currentIndex];
-			e?.id && E(y, { assetId: String(e.id) }, { warnPrefix: "[ViewerRuntime]" });
+			e?.id && E(v, { assetId: String(e.id) }, { warnPrefix: "[ViewerRuntime]" });
 		} catch (e) {
 			console.debug?.(e);
 		}
 		try {
-			o.distractionFree = !1, _t();
+			o.distractionFree = !1, gt();
 		} catch (e) {
 			console.debug?.(e);
 		}
@@ -7709,7 +7857,7 @@ function Gt() {
 			console.debug?.(e);
 		}
 		try {
-			Tt();
+			wt();
 		} catch (e) {
 			console.debug?.(e);
 		}
@@ -7847,7 +7995,7 @@ function Gt() {
 		} catch (e) {
 			console.debug?.(e);
 		}
-		t.style.display = "none", t.style.pointerEvents = "none", $t();
+		t.style.display = "none", t.style.pointerEvents = "none", en();
 		try {
 			document.body.style.overflow = o._prevBodyOverflow ?? "";
 		} catch {
@@ -7861,9 +8009,9 @@ function Gt() {
 		let e = o?._prevHotkeyScope;
 		i(e || "panel"), o._prevHotkeyScope = null;
 	}
-	let nn = {
+	let rn = {
 		open(e, n = 0, r = null) {
-			en(), o.assets = Array.isArray(e) ? e : [e], o.currentIndex = Math.max(0, Math.min(n, o.assets.length - 1)), o.distractionFree = !1;
+			tn(), o.assets = Array.isArray(e) ? e : [e], o.currentIndex = Math.max(0, Math.min(n, o.assets.length - 1)), o.distractionFree = !1;
 			try {
 				je.rebuild();
 			} catch (e) {
@@ -7898,31 +8046,31 @@ function Gt() {
 			} catch {
 				o._prevBodyOverflow = "";
 			}
-			document.body.style.overflow = "hidden", o._prevHotkeyScope = u().scope || null, i("viewer"), yt();
+			document.body.style.overflow = "hidden", o._prevHotkeyScope = u().scope || null, i("viewer"), _t();
 			try {
-				Kt();
+				Lt();
 			} catch (e) {
 				console.debug?.(e);
 			}
 			try {
-				Gt();
+				It();
 			} catch (e) {
 				console.debug?.(e);
 			}
 			tt();
 		},
 		close() {
-			tn();
+			nn();
 		},
 		setMode(e) {
-			Object.values($).includes(e) && (o.mode = e, yt());
+			Object.values($).includes(e) && (o.mode = e, _t());
 		},
 		setCompareAsset(e) {
-			o.compareAsset = e, yt();
+			o.compareAsset = e, _t();
 		},
 		dispose() {
 			try {
-				tn();
+				nn();
 			} catch (e) {
 				console.debug?.(e);
 			}
@@ -7952,17 +8100,17 @@ function Gt() {
 				console.debug?.(e);
 			}
 			try {
-				Pt != null && cancelAnimationFrame(Pt);
+				Ft != null && cancelAnimationFrame(Ft);
 			} catch (e) {
 				console.debug?.(e);
 			}
 			try {
-				Xt?.dispose?.();
+				Vt?.dispose?.();
 			} catch (e) {
 				console.debug?.(e);
 			}
 			try {
-				Zt?.dispose?.();
+				Qt?.dispose?.();
 			} catch (e) {
 				console.debug?.(e);
 			}
@@ -8014,11 +8162,11 @@ function Gt() {
 		}
 	};
 	try {
-		ne = () => nn.close();
+		ne = () => rn.close();
 	} catch (e) {
 		console.debug?.(e);
 	}
-	t._mjrViewerAPI = nn;
+	t._mjrViewerAPI = rn;
 	try {
 		Pe({
 			overlayEl: t,
@@ -8037,8 +8185,8 @@ function Gt() {
 	}
 	return t;
 }
-function Kt() {
-	return ht(Gt);
+function $t() {
+	return St(Qt);
 }
 //#endregion
-export { _e as a, W as c, ye as i, q as n, ve as o, Se as r, J as s, Kt as t };
+export { _e as a, W as c, ye as i, q as n, ve as o, Se as r, J as s, $t as t };
