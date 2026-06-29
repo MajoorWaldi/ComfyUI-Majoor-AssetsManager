@@ -1,5 +1,5 @@
 import { i as e, o as t } from "./geninfoParser-5vKgjqjD.js";
-import { c as n } from "./mediaPlayer-BmvbeL5K.js";
+import { c as n } from "./mediaPlayer-BN4qQ_h2.js";
 //#region ui/features/viewer/sideBySide.ts
 function r(n) {
 	if (!n) return null;

@@ -125,6 +125,116 @@ def test_parse_geninfo_prefers_sink_with_real_sampler_branch():
     assert result.data["sampler"]["name"] == "euler"
 
 
+def test_parse_geninfo_traces_final_generated_prompt_through_preview_switch():
+    prompt_graph = {
+        "1": {"class_type": "SaveImage", "inputs": {"images": ["2", 0]}},
+        "2": {"class_type": "VAEDecode", "inputs": {"samples": ["3", 0], "vae": ["9", 0]}},
+        "3": {
+            "class_type": "KSampler",
+            "inputs": {
+                "seed": 11,
+                "steps": 8,
+                "cfg": 1.0,
+                "sampler_name": "euler",
+                "scheduler": "simple",
+                "denoise": 1.0,
+                "model": ["8", 0],
+                "positive": ["4", 0],
+                "negative": ["10", 0],
+                "latent_image": ["11", 0],
+            },
+        },
+        "4": {"class_type": "CLIPTextEncode", "inputs": {"text": ["5", 0], "clip": ["7", 0]}},
+        "5": {
+            "class_type": "ComfySwitchNode",
+            "inputs": {"switch": ["12", 0], "on_false": ["6", 0], "on_true": ["13", 0]},
+        },
+        "6": {
+            "class_type": "PreviewAny",
+            "inputs": {
+                "source": ["14", 0],
+                "text_0": "final enhanced prompt with surreal glass and ink doodles",
+            },
+        },
+        "7": {"class_type": "CLIPLoader", "inputs": {"clip_name": "clip.safetensors"}},
+        "8": {"class_type": "UNETLoader", "inputs": {"unet_name": "model.safetensors"}},
+        "9": {"class_type": "VAELoader", "inputs": {"vae_name": "vae.safetensors"}},
+        "10": {"class_type": "ConditioningZeroOut", "inputs": {"conditioning": ["4", 0]}},
+        "11": {"class_type": "EmptyLatentImage", "inputs": {"width": 1024, "height": 1024}},
+        "12": {"class_type": "PrimitiveBoolean", "inputs": {"value": False}},
+        "13": {
+            "class_type": "StringConcatenate",
+            "inputs": {"string_a": ["6", 0], "string_b": "trigger", "delimiter": ", "},
+        },
+        "14": {
+            "class_type": "TextGenerate",
+            "inputs": {"prompt": ["15", 0], "max_length": 512},
+        },
+        "15": {
+            "class_type": "PrimitiveStringMultiline",
+            "inputs": {"value": "original short user prompt"},
+        },
+    }
+
+    result = p.parse_geninfo_from_prompt(prompt_graph)
+
+    assert result.ok, result.error
+    assert result.data is not None
+    assert result.data["positive"]["value"] == "final enhanced prompt with surreal glass and ink doodles"
+    assert result.data["positive"]["source"] == "CLIPTextEncode:4"
+
+
+def test_parse_geninfo_generator_fallback_uses_user_input_not_system_template():
+    prompt_graph = {
+        "1": {"class_type": "SaveImage", "inputs": {"images": ["2", 0]}},
+        "2": {"class_type": "VAEDecode", "inputs": {"samples": ["3", 0], "vae": ["9", 0]}},
+        "3": {
+            "class_type": "KSampler",
+            "inputs": {
+                "seed": 11,
+                "steps": 8,
+                "cfg": 1.0,
+                "sampler_name": "euler",
+                "scheduler": "simple",
+                "model": ["8", 0],
+                "positive": ["4", 0],
+                "negative": ["10", 0],
+                "latent_image": ["11", 0],
+            },
+        },
+        "4": {"class_type": "CLIPTextEncode", "inputs": {"text": ["5", 0], "clip": ["7", 0]}},
+        "5": {"class_type": "PreviewAny", "inputs": {"source": ["6", 0]}},
+        "6": {"class_type": "TextGenerate", "inputs": {"prompt": ["12", 0], "max_length": 512}},
+        "7": {"class_type": "CLIPLoader", "inputs": {"clip_name": "clip.safetensors"}},
+        "8": {"class_type": "UNETLoader", "inputs": {"unet_name": "model.safetensors"}},
+        "9": {"class_type": "VAELoader", "inputs": {"vae_name": "vae.safetensors"}},
+        "10": {"class_type": "ConditioningZeroOut", "inputs": {"conditioning": ["4", 0]}},
+        "11": {"class_type": "EmptyLatentImage", "inputs": {"width": 1024, "height": 1024}},
+        "12": {
+            "class_type": "StringConcatenate",
+            "inputs": {
+                "string_a": ["13", 0],
+                "string_b": ["14", 0],
+                "delimiter": "",
+            },
+        },
+        "13": {
+            "class_type": "PrimitiveStringMultiline",
+            "inputs": {"value": "You are an expert prompt engineer.\n\nUser's Input:\n\n"},
+        },
+        "14": {
+            "class_type": "PrimitiveStringMultiline",
+            "inputs": {"value": "original detailed martini glass illustration prompt"},
+        },
+    }
+
+    result = p.parse_geninfo_from_prompt(prompt_graph)
+
+    assert result.ok, result.error
+    assert result.data is not None
+    assert result.data["positive"]["value"] == "original detailed martini glass illustration prompt"
+
+
 # ─── _is_named_sampler_type ────────────────────────────────────────────────
 
 def test_is_named_sampler_ksampler_select():

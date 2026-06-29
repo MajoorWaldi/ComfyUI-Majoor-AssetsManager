@@ -1,6 +1,6 @@
 import { t as e } from "./rolldown-runtime-Dy4uBu1J.js";
-import { d as t, g as n, o as r, s as i, t as a } from "./viewerRuntimeHosts-D8Py3e4K.js";
-import { R as o, a as s, r as c } from "./events-CUv54v8J.js";
+import { d as t, g as n, o as r, s as i, t as a } from "./viewerRuntimeHosts-r4nt8vZO.js";
+import { o, r as s, z as c } from "./events-CRutpS6F.js";
 //#region ui/features/panel/panelRuntimeRefs.ts
 var l = null;
 function u(e) {
@@ -21,12 +21,12 @@ function f(e) {
 function ee(e = null) {
 	(!e || l === e) && (l = null);
 }
-function p() {
+function te() {
 	return u(l) ? l : (l = null, d());
 }
 //#endregion
 //#region ui/features/grid/GridSelectionManager.ts
-function m(e) {
+function p(e) {
 	let t = /* @__PURE__ */ new Set();
 	if (!e) return t;
 	try {
@@ -47,7 +47,7 @@ function m(e) {
 	}
 	return t;
 }
-function h(e, t, n = "") {
+function m(e, t, n = "") {
 	let r = Array.from(t || []), i = n ? String(n) : r[0] ? String(r[0]) : "";
 	try {
 		r.length ? (e.dataset.mjrSelectedAssetIds = JSON.stringify(r), i ? e.dataset.mjrSelectedAssetId = String(i) : delete e.dataset.mjrSelectedAssetId) : (delete e.dataset.mjrSelectedAssetIds, delete e.dataset.mjrSelectedAssetId);
@@ -56,7 +56,7 @@ function h(e, t, n = "") {
 	}
 	return r;
 }
-function te(e, t, n) {
+function ne(e, t, n) {
 	if (!e) return;
 	let r = t instanceof Set ? t : new Set(Array.from(t || []).map(String));
 	try {
@@ -69,10 +69,10 @@ function te(e, t, n) {
 		console.debug?.(e);
 	}
 }
-function ne(e, t, { activeId: n = "" } = {}, r) {
+function re(e, t, { activeId: n = "" } = {}, r) {
 	if (!e) return [];
-	let i = new Set(Array.from(t || []).map(String).filter(Boolean)), a = h(e, i, n);
-	te(e, i, r);
+	let i = new Set(Array.from(t || []).map(String).filter(Boolean)), a = m(e, i, n);
+	ne(e, i, r);
 	let o = {
 		selectedIds: a,
 		activeId: n || a[0] || ""
@@ -91,14 +91,14 @@ function ne(e, t, { activeId: n = "" } = {}, r) {
 }
 //#endregion
 //#region ui/features/viewer/floatingViewerManager.ts
-var re = /* @__PURE__ */ e({
+var ie = /* @__PURE__ */ e({
 	floatingViewerManager: () => J,
 	installFloatingViewerGlobalHandlers: () => Q,
 	removeFloatingViewerGlobalHandlers: () => we,
 	teardownFloatingViewerManager: () => $
-}), g = null, ie = null;
+}), h = null, g = null;
 async function ae() {
-	return g || (ie ||= import("./FloatingViewer-C0L5eXgE.js").then((e) => (g = e.FloatingViewer, g)), ie);
+	return h || (g ||= import("./FloatingViewer-6E6dhJO_.js").then((e) => (h = e.FloatingViewer, h)), g);
 }
 var _ = null, oe = null;
 async function se() {
@@ -119,10 +119,10 @@ function ce(e) {
 }
 var y = null;
 function b() {
-	return s.MFV_LIVE_DEFAULT !== !1;
+	return o.MFV_LIVE_DEFAULT !== !1;
 }
 function x() {
-	return s.MFV_PREVIEW_DEFAULT !== !1;
+	return o.MFV_PREVIEW_DEFAULT !== !1;
 }
 var S = b(), C = x(), w = !1, T = null, E = !1, D = null, O = 0;
 function le() {
@@ -167,7 +167,7 @@ function j() {
 	} catch (e) {
 		console.debug?.(e);
 	}
-	return p();
+	return te();
 }
 function ue() {
 	if (y) {
@@ -180,7 +180,7 @@ function ue() {
 	}
 }
 function M(e) {
-	typeof window > "u" || window.dispatchEvent(new CustomEvent(c.MFV_VISIBILITY_CHANGED, { detail: { visible: !!e } }));
+	typeof window > "u" || window.dispatchEvent(new CustomEvent(s.MFV_VISIBILITY_CHANGED, { detail: { visible: !!e } }));
 }
 function N(e) {
 	e && (e.setLiveActive(S), e.setPreviewActive(C), e.setNodeStreamActive?.(w));
@@ -281,7 +281,7 @@ function I() {
 	try {
 		let e = j();
 		if (!e) return;
-		let t = m(e);
+		let t = p(e);
 		if (!t.size) return;
 		F(Array.from(t));
 	} catch (e) {
@@ -298,7 +298,7 @@ function L(e) {
 	try {
 		let e = j();
 		if (!e) return;
-		let t = Array.from(m(e)).map(String).filter(Boolean);
+		let t = Array.from(p(e)).map(String).filter(Boolean);
 		if (!t.length) return;
 		F(t);
 	} catch (e) {
@@ -306,10 +306,10 @@ function L(e) {
 	}
 }
 function R() {
-	E || typeof window > "u" || (window.addEventListener(c.SELECTION_CHANGED, L), E = !0);
+	E || typeof window > "u" || (window.addEventListener(s.SELECTION_CHANGED, L), E = !0);
 }
 function z() {
-	typeof window < "u" && window.removeEventListener(c.SELECTION_CHANGED, L), E = !1, A();
+	typeof window < "u" && window.removeEventListener(s.SELECTION_CHANGED, L), E = !1, A();
 }
 var B = !1, V = null, H = null, U = "";
 function W() {
@@ -340,7 +340,7 @@ function G() {
 }
 function K() {
 	if (!B) try {
-		V = o(pe, { includePointerFallback: !0 }), B = typeof V == "function";
+		V = c(pe, { includePointerFallback: !0 }), B = typeof V == "function";
 	} catch (e) {
 		console.debug?.("[MFV] _bindNodeSelectionListener error", e);
 	}
@@ -405,7 +405,7 @@ var J = {
 	},
 	async upsertWithContent(e) {
 		let t = await k(), n = !!t.isVisible;
-		!n && s.MFV_LIVE_AUTO_OPEN === !1 || (t.show(), N(t), R(), de(t, e), n || M(!0));
+		!n && o.MFV_LIVE_AUTO_OPEN === !1 || (t.show(), N(t), R(), de(t, e), n || M(!0));
 	},
 	setLiveActive(e) {
 		S = !!e, y?.setLiveActive(S);
@@ -426,7 +426,7 @@ var J = {
 	async feedPreviewBlob(e, t = {}) {
 		if (!C) return;
 		let n = await k(), r = !!n.isVisible;
-		!r && s.MFV_PREVIEW_AUTO_OPEN === !1 || (n.isVisible || n.show(), N(n), n.loadPreviewBlob(e, ...Object.keys(t).length ? [t] : []), r || M(!0));
+		!r && o.MFV_PREVIEW_AUTO_OPEN === !1 || (n.isVisible || n.show(), N(n), n.loadPreviewBlob(e, ...Object.keys(t).length ? [t] : []), r || M(!0));
 	},
 	toggleNodeStream() {
 		J.setNodeStreamActive(!w);
@@ -451,9 +451,9 @@ var J = {
 	async feedNodeStream(e) {
 		if (!w) return;
 		let t = await k(), n = !!t.isVisible;
-		!n && s.MFV_NODE_STREAM_AUTO_OPEN === !1 || (t.isVisible || (t.show(), R()), N(t), P(t), de(t, e), n || M(!0));
+		!n && o.MFV_NODE_STREAM_AUTO_OPEN === !1 || (t.isVisible || (t.show(), R()), N(t), P(t), de(t, e), n || M(!0));
 	}
-}, Y = !1, me = () => J.open(), he = () => J.close(), ge = () => J.toggle(), X = () => J.toggleLive(), _e = () => J.togglePreview(), ve = () => J.toggleNodeStream(), ye = () => J.popOut(), be = () => {
+}, Y = !1, me = () => J.open(), he = () => J.close(), X = () => J.toggle(), ge = () => J.toggleLive(), _e = () => J.togglePreview(), ve = () => J.toggleNodeStream(), ye = () => J.popOut(), be = () => {
 	try {
 		y?.isPopped && y.popIn();
 	} catch {}
@@ -513,14 +513,14 @@ var Z = (e) => {
 	}
 };
 function Q() {
-	Y || typeof window > "u" || !window?.addEventListener || (window.addEventListener(c.MFV_OPEN, me), window.addEventListener(c.MFV_CLOSE, he), window.addEventListener(c.MFV_TOGGLE, ge), window.addEventListener(c.MFV_LIVE_TOGGLE, X), window.addEventListener(c.MFV_PREVIEW_TOGGLE, _e), window.addEventListener(c.MFV_NODESTREAM_TOGGLE, ve), window.addEventListener(c.MFV_POPOUT, ye), window.addEventListener(c.SETTINGS_CHANGED, xe), window.addEventListener("keydown", Z, !0), window.addEventListener("beforeunload", be), Y = !0);
+	Y || typeof window > "u" || !window?.addEventListener || (window.addEventListener(s.MFV_OPEN, me), window.addEventListener(s.MFV_CLOSE, he), window.addEventListener(s.MFV_TOGGLE, X), window.addEventListener(s.MFV_LIVE_TOGGLE, ge), window.addEventListener(s.MFV_PREVIEW_TOGGLE, _e), window.addEventListener(s.MFV_NODESTREAM_TOGGLE, ve), window.addEventListener(s.MFV_POPOUT, ye), window.addEventListener(s.SETTINGS_CHANGED, xe), window.addEventListener("keydown", Z, !0), window.addEventListener("beforeunload", be), Y = !0);
 }
 function we() {
 	if (typeof window > "u" || !window?.removeEventListener) {
 		Y = !1;
 		return;
 	}
-	window.removeEventListener(c.MFV_OPEN, me), window.removeEventListener(c.MFV_CLOSE, he), window.removeEventListener(c.MFV_TOGGLE, ge), window.removeEventListener(c.MFV_LIVE_TOGGLE, X), window.removeEventListener(c.MFV_PREVIEW_TOGGLE, _e), window.removeEventListener(c.MFV_NODESTREAM_TOGGLE, ve), window.removeEventListener(c.MFV_POPOUT, ye), window.removeEventListener(c.SETTINGS_CHANGED, xe), window.removeEventListener("keydown", Z, !0), window.removeEventListener("beforeunload", be), Y = !1;
+	window.removeEventListener(s.MFV_OPEN, me), window.removeEventListener(s.MFV_CLOSE, he), window.removeEventListener(s.MFV_TOGGLE, X), window.removeEventListener(s.MFV_LIVE_TOGGLE, ge), window.removeEventListener(s.MFV_PREVIEW_TOGGLE, _e), window.removeEventListener(s.MFV_NODESTREAM_TOGGLE, ve), window.removeEventListener(s.MFV_POPOUT, ye), window.removeEventListener(s.SETTINGS_CHANGED, xe), window.removeEventListener("keydown", Z, !0), window.removeEventListener("beforeunload", be), Y = !1;
 }
 function $({ reinstallGlobalHandlers: e = !1 } = {}) {
 	let t = !!y?.isVisible;
@@ -538,4 +538,4 @@ function $({ reinstallGlobalHandlers: e = !1 } = {}) {
 	ue(), t && M(!1), e && Q();
 }
 //#endregion
-export { m as a, ee as c, $ as i, p as l, re as n, h as o, Q as r, ne as s, J as t, f as u };
+export { p as a, ee as c, $ as i, te as l, ie as n, m as o, Q as r, re as s, J as t, f as u };

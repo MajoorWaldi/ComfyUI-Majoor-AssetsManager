@@ -218,19 +218,43 @@ def _resolve_text_generate_node(
     input is typically a system-prompt template processed through a chain of
     StringReplace nodes that substitute ``{prompt}``, ``{width}``, ``{height}``.
 
-    We trace the StringReplace chain upstream to extract the *original* user
-    prompt (the ``replace`` value whose ``find`` matches ``{prompt}``), rather
-    than the LLM-enhanced output.
+    Some workflows persist the generated text back onto the node or a downstream
+    preview/display node. Prefer that final text when available, then fall back
+    to the configured input prompt.
     """
+    cached_output = _first_cached_prompt_text(ins)
+    if cached_output:
+        return cached_output
     prompt_val = ins.get("prompt")
     if isinstance(prompt_val, str) and prompt_val.strip():
-        return prompt_val.strip()
+        prompt_text = prompt_val.strip()
+        return _extract_user_prompt_from_generator_template(prompt_text) or prompt_text
     if not _is_link(prompt_val):
         return None
     user_prompt = _trace_user_prompt_in_replace_chain(nodes_by_id, prompt_val, memo)
     if user_prompt:
         return user_prompt
-    return _resolve_text_value(nodes_by_id, prompt_val, memo)
+    resolved = _resolve_text_value(nodes_by_id, prompt_val, memo)
+    if resolved:
+        return _extract_user_prompt_from_generator_template(resolved) or resolved
+    return None
+
+
+def _extract_user_prompt_from_generator_template(value: str) -> str | None:
+    """
+    Prompt-enhancer inputs often concatenate a long system instruction with a
+    trailing "User's Input:" section. If no generated output is persisted, keep
+    the user prompt rather than indexing the instruction template as the prompt.
+    """
+    markers = ("User's Input:", "User Input:", "User prompt:", "Input prompt:", "Prompt:")
+    for marker in markers:
+        marker_index = value.lower().rfind(marker.lower())
+        if marker_index < 0:
+            continue
+        candidate = value[marker_index + len(marker):].strip()
+        if _looks_like_prompt_string(candidate):
+            return candidate
+    return None
 
 
 def _trace_user_prompt_in_replace_chain(
@@ -628,6 +652,7 @@ _SCALAR_FIELD_KEYS = (
     "string",
     "prompt",
     "input",
+    "source",
     "text_a",
     "text_b",
 )

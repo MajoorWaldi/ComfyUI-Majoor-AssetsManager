@@ -62,6 +62,49 @@ describe("generation prompt sanitization", () => {
         expect(state.workflowBadge).toBe("Happy Horse");
     });
 
+    it("keeps prompt from metadata_raw when top-level geninfo is partial", () => {
+        const state = buildGenerationSectionState({
+            id: 13008,
+            kind: "image",
+            filename: "Krea2_turbo_00001_.png",
+            geninfo: {
+                models: {
+                    unet: { name: "krea2_turbo_fp8_scaled" },
+                    clip: { name: "qwen3vl_4b_fp8_scaled" },
+                    vae: { name: "qwen_image_vae" },
+                },
+                seed: { value: 397747871968973 },
+                sampler: { name: "euler" },
+                steps: { value: 8 },
+            },
+            metadata_raw: {
+                geninfo: {
+                    positive: {
+                        value: "A high-resolution, surreal digital illustration showing a hand holding a martini glass.",
+                    },
+                    models: {
+                        unet: { name: "krea2_turbo_fp8_scaled" },
+                        clip: { name: "qwen3vl_4b_fp8_scaled" },
+                        vae: { name: "qwen_image_vae" },
+                    },
+                    seed: { value: 397747871968973 },
+                    sampler: { name: "euler" },
+                    steps: { value: 8 },
+                },
+            },
+        });
+
+        expect(state.kind).toBe("full");
+        expect(state.positivePrompt).toBe(
+            "A high-resolution, surreal digital illustration showing a hand holding a martini glass.",
+        );
+        expect(state.modelFields).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({ label: "UNet", value: "krea2_turbo_fp8_scaled" }),
+            ]),
+        );
+    });
+
     it("keeps explicit WAN high/low noise models distinct in generation state", () => {
         const state = buildGenerationSectionState({
             id: 99,

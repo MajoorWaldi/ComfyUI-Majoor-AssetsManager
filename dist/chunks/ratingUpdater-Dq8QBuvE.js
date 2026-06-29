@@ -1,6 +1,6 @@
-import { M as e, Wt as t, d as n } from "./viewerRuntimeHosts-D8Py3e4K.js";
-import { a as r, p as i, vt as a } from "./events-CUv54v8J.js";
-import { O as o } from "./mediaFps-B9sGaRV1.js";
+import { M as e, Wt as t, d as n } from "./viewerRuntimeHosts-r4nt8vZO.js";
+import { m as r, o as i, yt as a } from "./events-CRutpS6F.js";
+import { O as o } from "./mediaFps-DdY7KJFU.js";
 import { tt as s } from "./mjr-primevue-n1rsQYJg.js";
 //#region ui/utils/filenames.ts
 var c = new Set([
@@ -104,7 +104,7 @@ function p(e, t) {
 //#endregion
 //#region ui/utils/deleteGuard.ts
 async function m(e, t) {
-	return r.DELETE_CONFIRMATION ? !!await o(e > 1 ? i("dialog.deleteSelectedFiles", "Delete {count} selected files?", { count: e }) : i("dialog.deleteSingleFile", "Delete \"{label}\"?", { label: String(t || i("label.thisFile", "this file")) }), i("dialog.confirmDeleteTitle", "Majoor: Confirm delete")) : !0;
+	return i.DELETE_CONFIRMATION ? !!await o(e > 1 ? r("dialog.deleteSelectedFiles", "Delete {count} selected files?", { count: e }) : r("dialog.deleteSingleFile", "Delete \"{label}\"?", { label: String(t || r("label.thisFile", "this file")) }), r("dialog.confirmDeleteTitle", "Majoor: Confirm delete")) : !0;
 }
 //#endregion
 //#region ui/features/collections/contextmenu/addToCollectionMenuState.ts
@@ -141,10 +141,10 @@ function y(e) {
 		kind: e.kind || ""
 	} : null;
 }
-async function b({ x: e, y: n, assets: r }) {
-	let a = Array.isArray(r) ? r.map(y).filter(Boolean) : [];
+async function b({ x: e, y: n, assets: i }) {
+	let a = Array.isArray(i) ? i.map(y).filter(Boolean) : [];
 	if (!a.length) {
-		t(i("toast.noValidAssetsSelected", "No valid assets selected."), "warning");
+		t(r("toast.noValidAssetsSelected", "No valid assets selected."), "warning");
 		return;
 	}
 	_({

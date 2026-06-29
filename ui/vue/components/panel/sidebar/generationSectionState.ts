@@ -161,22 +161,43 @@ export function resolvePassName(passData: LooseRecord | null | undefined, index:
     return t("sidebar.generation.stagePassN", "Pass {n}", { n: index + 1 });
 }
 
-function getMetadataSource(asset: LooseRecord | null | undefined): any {
+function getMetadataSources(asset: LooseRecord | null | undefined): any[] {
+    const sources: any[] = [];
+    if (asset?.metadata_raw) sources.push(asset.metadata_raw);
     if (asset?.geninfo && typeof asset.geninfo === "object") {
-        return { geninfo: asset.geninfo };
+        sources.push({ geninfo: asset.geninfo });
     }
     if (
         asset?.metadata &&
         (typeof asset.metadata === "object" || typeof asset.metadata === "string")
     ) {
-        return asset.metadata;
+        sources.push(asset.metadata);
     }
     if (asset?.prompt && (typeof asset.prompt === "object" || typeof asset.prompt === "string")) {
-        return asset.prompt;
+        sources.push(asset.prompt);
     }
-    if (asset?.metadata_raw) return asset.metadata_raw;
-    if (asset?.exif) return asset.exif;
-    return null;
+    if (asset?.exif) sources.push(asset.exif);
+    return sources;
+}
+
+function mergeMissingGenerationMetadata(target: LooseRecord, source: LooseRecord) {
+    for (const [key, value] of Object.entries(source)) {
+        if (value === undefined || value === null || value === "") continue;
+        if (target[key] === undefined || target[key] === null || target[key] === "") {
+            target[key] = value;
+        }
+    }
+}
+
+function normalizeAssetGenerationMetadata(asset: LooseRecord | null | undefined): LooseRecord | null {
+    const sources = getMetadataSources(asset);
+    const merged: LooseRecord = {};
+    for (const source of sources) {
+        const normalized = normalizeGenerationMetadata(source);
+        if (!normalized || typeof normalized !== "object") continue;
+        mergeMissingGenerationMetadata(merged, normalized);
+    }
+    return Object.keys(merged).length ? merged : null;
 }
 
 function hasDisplayableFields(obj: any): boolean {
@@ -344,7 +365,7 @@ function normalizeCustomInfoBlocks(value: any): any[] {
 }
 
 export function buildGenerationSectionState(asset: LooseRecord | null | undefined) {
-    const normalized = normalizeGenerationMetadata(getMetadataSource(asset));
+    const normalized = normalizeAssetGenerationMetadata(asset);
     const emptyState = {
         kind: "empty",
         title: t("sidebar.generation.title", "Generation"),

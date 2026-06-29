@@ -1,5 +1,5 @@
-import { p as e } from "./events-CUv54v8J.js";
-import { c as t, n, o as r, s as i } from "./mediaFps-B9sGaRV1.js";
+import { m as e } from "./events-CRutpS6F.js";
+import { c as t, n, o as r, s as i } from "./mediaFps-DdY7KJFU.js";
 import { n as a, t as o } from "./state-DPiaUMw1.js";
 //#region ui/utils/dom.ts
 function s(e, t) {
@@ -338,7 +338,10 @@ function pe(s, c = {}) {
 			1,
 			1.25,
 			1.5,
-			2
+			2,
+			3,
+			5,
+			10
 		]) {
 			let t = document.createElement("option");
 			t.value = String(e), t.textContent = `${e}x`, M.appendChild(t);
@@ -470,7 +473,7 @@ function pe(s, c = {}) {
 			loop: d,
 			pingpong: !1,
 			once: !1,
-			playbackRate: Math.max(.25, Math.min(2, Number(c?.initialPlaybackRate) || 1)),
+			playbackRate: Math.max(.25, Math.min(10, Number(c?.initialPlaybackRate) || 1)),
 			_seeking: !1,
 			_ppReverse: !1,
 			_ppRafId: null,
@@ -542,7 +545,7 @@ function pe(s, c = {}) {
 			try {
 				let t = Number(e);
 				if (!Number.isFinite(t) || t <= 0) return H.playbackRate;
-				let n = Math.max(.25, Math.min(2, Math.round(t * 100) / 100));
+				let n = Math.max(.25, Math.min(10, Math.round(t * 100) / 100));
 				H.playbackRate = n;
 				try {
 					s.playbackRate = n;
@@ -1152,6 +1155,11 @@ function pe(s, c = {}) {
 			z(e);
 			try {
 				Je(Number(M.value) || 1);
+			} catch (e) {
+				console.debug?.(e);
+			}
+			try {
+				M.blur?.();
 			} catch (e) {
 				console.debug?.(e);
 			}
