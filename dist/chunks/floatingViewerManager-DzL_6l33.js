@@ -1,6 +1,6 @@
 import { t as e } from "./rolldown-runtime-Dy4uBu1J.js";
-import { d as t, g as n, o as r, s as i, t as a } from "./viewerRuntimeHosts-B9wQ_Nxj.js";
-import { o, r as s, z as c } from "./events-BpkKbGZs.js";
+import { _ as t, d as n, o as r, s as i, t as a } from "./viewerRuntimeHosts-BbCWOXEG.js";
+import { o, r as s, z as c } from "./events-CrhYyn_G.js";
 //#region ui/features/panel/panelRuntimeRefs.ts
 var l = null;
 function u(e) {
@@ -98,11 +98,11 @@ var ie = /* @__PURE__ */ e({
 	teardownFloatingViewerManager: () => $
 }), h = null, g = null;
 async function ae() {
-	return h || (g ||= import("./FloatingViewer-mV836Kgg.js").then((e) => (h = e.FloatingViewer, h)), g);
+	return h || (g ||= import("./FloatingViewer-_kUiGhan.js").then((e) => (h = e.FloatingViewer, h)), g);
 }
 var _ = null, oe = null;
 async function se() {
-	if (!_) return oe ||= import("./NodeStreamController-EQygLyLg.js").then((e) => {
+	if (!_) return oe ||= import("./NodeStreamController-CbLyQi9e.js").then((e) => {
 		_ = e.setNodeStreamActive;
 	}), oe;
 }
@@ -240,15 +240,15 @@ async function F(e) {
 	let r = ++O, i = typeof AbortController < "u" ? new AbortController() : null;
 	D = i;
 	try {
-		let t = y.getPinnedSlots(), a = t.size > 0, o = y._mode, s = o === v.GRID, c = o === v.AB || o === v.SIDE, l = s ? 4 : 2, u = e.slice(0, l);
+		let n = y.getPinnedSlots(), a = n.size > 0, o = y._mode, s = o === v.GRID, c = o === v.AB || o === v.SIDE, l = s ? 4 : 2, u = e.slice(0, l);
 		if (a && (c || s)) {
-			let e = l - t.size;
+			let e = l - n.size;
 			u = u.slice(0, Math.max(1, e));
 		} else if (u.length === 1 && c) {
 			let e = fe(u[0]);
 			e && (u = [u[0], e]);
 		}
-		let d = await n(u, i ? { signal: i.signal } : {});
+		let d = await t(u, i ? { signal: i.signal } : {});
 		if (i?.signal.aborted || O !== r || !d?.ok || !Array.isArray(d.data) || !d.data.length || !y) return;
 		let f = d.data;
 		if (s) {
@@ -258,21 +258,21 @@ async function F(e) {
 					B: y._mediaB,
 					C: y._mediaC,
 					D: y._mediaD
-				}, n = [
+				}, t = [
 					"A",
 					"B",
 					"C",
 					"D"
-				].filter((e) => !t.has(e)), r = 0;
-				for (let t of n) r < f.length && (e[t] = f[r++]);
+				].filter((e) => !n.has(e)), r = 0;
+				for (let n of t) r < f.length && (e[n] = f[r++]);
 				y.loadMediaQuad(e.A, e.B, e.C, e.D);
 			} else f.length >= 3 ? y.loadMediaQuad(f[0], f[1], f[2], f[3] || null) : f.length >= 2 ? y.loadMediaPair(f[0], f[1]) : y.loadMediaA(f[0], { autoMode: !0 });
 			return;
 		}
-		if (t.has("A") && t.has("B") && y._mediaA && y._mediaB) return;
-		t.has("A") && y._mediaA ? y.loadMediaPair(y._mediaA, f[0]) : t.has("B") && y._mediaB ? y.loadMediaPair(f[0], y._mediaB) : u.length >= 2 && f.length >= 2 ? y.loadMediaPair(f[0], f[1]) : y.loadMediaA(f[0], { autoMode: !0 });
+		if (n.has("A") && n.has("B") && y._mediaA && y._mediaB) return;
+		n.has("A") && y._mediaA ? y.loadMediaPair(y._mediaA, f[0]) : n.has("B") && y._mediaB ? y.loadMediaPair(f[0], y._mediaB) : u.length >= 2 && f.length >= 2 ? y.loadMediaPair(f[0], f[1]) : y.loadMediaA(f[0], { autoMode: !0 });
 	} catch (e) {
-		e?.name !== "AbortError" && t(e, "floatingViewerManager._loadFromIds");
+		e?.name !== "AbortError" && n(e, "floatingViewerManager._loadFromIds");
 	} finally {
 		D === i && (D = null);
 	}

@@ -61,11 +61,15 @@ function c(n) {
 	return l;
 }
 function l(e, n) {
-	for (let r of c(e)) for (let e of t(r.graph)) n({
-		node: e,
-		graph: r.graph,
-		label: r.label
-	});
+	for (let r of c(e)) for (let [e, i] of t(r.graph).entries()) {
+		let t = String(i?.id ?? i?.ID ?? e).trim() || String(e);
+		n({
+			node: i,
+			graph: r.graph,
+			label: r.label,
+			qualifiedId: `${r.label}::${t}`
+		});
+	}
 }
 function u(e, t) {
 	let n = String(t ?? "");

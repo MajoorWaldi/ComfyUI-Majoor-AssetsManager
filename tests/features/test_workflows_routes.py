@@ -40,6 +40,47 @@ async def test_workflow_content_rejects_invalid_path(monkeypatch, tmp_path):
 
 
 @pytest.mark.asyncio
+async def test_workflow_validate_returns_diagnostics(monkeypatch, tmp_path):
+    workflow_dir = tmp_path / "workflows"
+    workflow_dir.mkdir()
+    workflow_path = workflow_dir / "validate.json"
+    workflow_path.write_text(
+        json.dumps(
+            {
+                "name": "Validate",
+                "nodes": [
+                    {"id": 1, "type": "CheckpointLoaderSimple", "widgets_values": ["model.safetensors"]},
+                    {"id": 2, "type": "RemoteRunApi"},
+                    {"id": 3, "type": "GroupNode", "subgraph": {"nodes": [{"id": 1, "type": "KSampler"}]}},
+                ],
+                "links": [],
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("MJR_AM_WORKFLOW_DIRECTORY", str(workflow_dir))
+
+    app = _build_app()
+    req = make_mocked_request(
+        "GET",
+        f"/mjr/am/workflows/validate?filepath={workflow_path.as_posix()}",
+        app=app,
+    )
+    match = await app.router.resolve(req)
+    resp = await match.handler(req)
+    body = json.loads(resp.text)
+
+    assert body.get("ok") is True
+    data = body.get("data", {})
+    assert data["valid"] is True
+    assert data["node_count"] == 4
+    assert data["subgraph_count"] == 1
+    assert "RemoteRunApi" in data["api_nodes"]
+    assert "model.safetensors" in data["required_models"]
+    assert any(item.endswith("::1") for item in data["qualified_node_ids"])
+
+
+@pytest.mark.asyncio
 async def test_workflow_save_rejects_bad_json(monkeypatch):
     monkeypatch.setattr(workflows_routes, "_csrf_error", lambda request: None)
     monkeypatch.setattr(workflows_routes, "_require_write_access", lambda request: Result.Ok(True))

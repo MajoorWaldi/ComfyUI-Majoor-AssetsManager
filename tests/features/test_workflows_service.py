@@ -3,8 +3,10 @@ import sqlite3
 
 from mjr_am_backend.features.workflows import (
     delete_workflow,
+    diff_workflow_versions,
     duplicate_workflow,
     list_workflow_thumbnail_candidates,
+    list_workflow_versions,
     list_workflows,
     mark_workflow_loaded,
     move_or_rename_workflow,
@@ -13,6 +15,7 @@ from mjr_am_backend.features.workflows import (
     set_workflow_favorite,
     set_workflow_tags,
     set_workflow_thumbnail,
+    validate_workflow,
 )
 from mjr_am_backend.features.workflows import service as workflows_service
 from mjr_am_backend.shared import Result
@@ -696,3 +699,61 @@ def test_list_workflow_model_families_returns_indexed_families(monkeypatch, tmp_
     assert result.ok
     values = [row["value"] for row in result.data["model_families"]]
     assert values == ["Flux", "Wan"]
+
+
+def test_validate_workflow_detects_missing_runtime_dependencies(monkeypatch, tmp_path):
+    workflow_dir = tmp_path / "workflows"
+    workflow_dir.mkdir()
+    workflow_path = workflow_dir / "deps.json"
+    workflow_path.write_text(
+        json.dumps(
+            {
+                "name": "Deps",
+                "nodes": [
+                    {"id": 1, "type": "CheckpointLoaderSimple", "widgets_values": ["missing.safetensors"]},
+                    {"id": 2, "type": "MissingNode"},
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("MJR_AM_WORKFLOW_DIRECTORY", str(workflow_dir))
+    monkeypatch.setattr(workflows_service, "get_available_node_types", lambda: {"CheckpointLoaderSimple"})
+    monkeypatch.setattr(workflows_service, "get_model_filenames", lambda: {"existing.safetensors"})
+
+    result = validate_workflow(workflow_path)
+
+    assert result.ok
+    assert result.data["missing_nodes"] == ["MissingNode"]
+    assert result.data["missing_models"] == ["missing.safetensors"]
+    assert result.data["dependency_checks"]["nodes"] == "runtime"
+    assert result.data["dependency_checks"]["models"] == "folder_paths"
+
+
+def test_workflow_versions_and_diff_track_overwrite(monkeypatch, tmp_path):
+    workflow_dir = tmp_path / "workflows"
+    index_db = tmp_path / "index.sqlite"
+    monkeypatch.setenv("MJR_AM_WORKFLOW_DIRECTORY", str(workflow_dir))
+    monkeypatch.setattr(workflows_service, "get_runtime_index_db_path", lambda: index_db)
+
+    saved = save_workflow(
+        workflow={"name": "Versioned", "nodes": [{"id": 1, "type": "KSampler", "widgets_values": [1]}]},
+        name="versioned",
+    )
+    assert saved.ok
+    workflow_path = workflow_dir / "versioned.json"
+
+    updated = save_workflow(
+        workflow={"name": "Versioned", "nodes": [{"id": 1, "type": "KSampler", "widgets_values": [2]}]},
+        filepath=str(workflow_path),
+        overwrite=True,
+    )
+    assert updated.ok
+
+    versions = list_workflow_versions(workflow_path)
+    assert versions.ok
+    assert versions.data["count"] == 1
+
+    diff = diff_workflow_versions(workflow_path)
+    assert diff.ok
+    assert any("widgets_values" in item for item in diff.data["changed"])

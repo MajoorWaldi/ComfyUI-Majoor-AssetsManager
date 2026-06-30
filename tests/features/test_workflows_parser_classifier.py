@@ -25,6 +25,8 @@ def test_parse_workflow_includes_nested_subgraph_nodes():
     assert stats.subgraph_node_count == 2
     assert any(node.get("id") == 10 for node in stats.nodes)
     assert any(node.get("id") == 11 for node in stats.nodes)
+    assert "root::1" in (stats.qualified_node_ids or [])
+    assert any(item.endswith("::10") for item in (stats.qualified_node_ids or []))
 
 
 def test_workflow_node_text_collects_widget_and_input_text():

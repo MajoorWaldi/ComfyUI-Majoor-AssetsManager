@@ -178,6 +178,9 @@ export function normalizeGenerationMetadata(raw: any): Record<string, any> | nul
             if (Array.isArray(inputs)) {
                 mapped.inputs = inputs;
             }
+            if (geninfo.ltx_director && typeof geninfo.ltx_director === "object") {
+                mapped.ltx_director = geninfo.ltx_director;
+            }
             const lyrics = geninfo.lyrics?.value ?? geninfo.lyrics ?? null;
             if (typeof lyrics === "string" && lyrics.trim()) mapped.lyrics = lyrics;
             const lyricsStrength =

@@ -197,6 +197,28 @@ def test_workflow_collect_node_text_no_text():
     assert found == []
 
 
+def test_workflow_collect_node_text_skips_non_prompt_string_widgets():
+    found = []
+    e._workflow_collect_node_text({"type": "FluxResolutionNode", "widgets_values": ["1:1", "1.0"]}, "positive", found)
+    assert found == []
+
+
+def test_workflow_get_ideogram4_prompt_builder_text_uses_main_description():
+    node = {
+        "type": "Ideogram4PromptBuilderKJ",
+        "widgets_values": [
+            768,
+            1376,
+            "main positive description for an ideogram workflow",
+            "photo",
+            "DSLR photography",
+            "yx",
+        ],
+    }
+    assert e._workflow_get_node_text(node, "positive") == "main positive description for an ideogram workflow"
+    assert e._workflow_get_node_text(node, "negative") is None
+
+
 # ─── _workflow_push_upstream_inputs ─────────────────────────────────────────
 
 def test_workflow_push_upstream_inputs_empty_inputs():
@@ -227,6 +249,15 @@ def test_workflow_push_upstream_inputs_context_blocked():
     stack = []
     # context="positive" → negative input blocked
     e._workflow_push_upstream_inputs(node_map, link_lookup, node, "positive", 0, stack)
+    assert stack == []
+
+
+def test_workflow_push_upstream_inputs_negative_conditioning_zeroout_stops_trace():
+    node_map = {5: {"id": 5, "type": "CLIPTextEncode"}}
+    link_lookup = {10: (5, 0, 1, "conditioning", "COND")}
+    node = {"type": "ConditioningZeroOut", "inputs": [{"name": "conditioning", "link": 10}]}
+    stack = []
+    e._workflow_push_upstream_inputs(node_map, link_lookup, node, "negative", 0, stack)
     assert stack == []
 
 
@@ -276,6 +307,83 @@ def test_reconstruct_params_from_workflow_in_subgraph():
 
 
 # ─── _workflow_classify_unconnected_node ─────────────────────────────────────
+
+def test_reconstruct_params_from_ideogram4_builder_ignores_resolution_and_zeroed_negative():
+    workflow = {
+        "nodes": [
+            {
+                "id": 1,
+                "type": "Ideogram4PromptBuilderKJ",
+                "inputs": [
+                    {"name": "width", "link": 50},
+                    {"name": "height", "link": 51},
+                ],
+                "outputs": [{"name": "prompt", "links": [10]}],
+                "widgets_values": [
+                    768,
+                    1376,
+                    "A refined portrait with warm sunset lighting and cosmetic advertising styling.",
+                    "photo",
+                    "DSLR photography",
+                    "yx",
+                ],
+            },
+            {
+                "id": 2,
+                "type": "CLIPTextEncode",
+                "inputs": [{"name": "text", "link": 10}],
+                "outputs": [{"name": "CONDITIONING", "links": [11, 12]}],
+                "widgets_values": [],
+            },
+            {
+                "id": 3,
+                "type": "ConditioningZeroOut",
+                "inputs": [{"name": "conditioning", "link": 12}],
+                "outputs": [{"name": "CONDITIONING", "links": [13]}],
+                "widgets_values": [],
+            },
+            {
+                "id": 4,
+                "type": "DualModelGuider",
+                "inputs": [
+                    {"name": "positive", "link": 11},
+                    {"name": "negative", "link": 13},
+                ],
+                "outputs": [{"name": "GUIDER", "links": [14]}],
+                "widgets_values": [7],
+            },
+            {
+                "id": 5,
+                "type": "SamplerCustomAdvanced",
+                "inputs": [{"name": "guider", "link": 14}],
+                "widgets_values": [],
+            },
+            {
+                "id": 6,
+                "type": "FluxResolutionNode",
+                "outputs": [{"name": "width", "links": [50]}, {"name": "height", "links": [51]}],
+                "widgets_values": ["1:1", "1.0"],
+            },
+        ],
+        "links": [
+            [10, 1, 0, 2, 0, "STRING"],
+            [11, 2, 0, 4, 0, "CONDITIONING"],
+            [12, 2, 0, 3, 0, "CONDITIONING"],
+            [13, 3, 0, 4, 1, "CONDITIONING"],
+            [14, 4, 0, 5, 0, "GUIDER"],
+            [50, 6, 0, 1, 0, "INT"],
+            [51, 6, 1, 1, 1, "INT"],
+        ],
+    }
+
+    params = e._reconstruct_params_from_workflow(workflow)
+
+    assert params["positive_prompt"] == "A refined portrait with warm sunset lighting and cosmetic advertising styling."
+    assert "negative_prompt" not in params
+    assert "1.0" not in params["parameters"]
+    assert "1:1" not in params["parameters"]
+    assert "yx" not in params["parameters"]
+
 
 def test_workflow_classify_unconnected_node_no_outputs():
     node = {"id": 1, "outputs": []}

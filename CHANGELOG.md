@@ -4,6 +4,20 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+### New Features
+- **LTX Director and Ideogram 4 workflow metadata**: Added generation info support for LTX Director and Ideogram 4 workflows, including dedicated prompt extraction and sidebar display.
+- **Viewer playback speeds**: Added 3x, 5x, and 10x playback speeds.
+
+### Improved
+- **Asset sidebar UI**: Polished the asset sidebar generation info layout and workflow metadata presentation.
+- **Video viewer rendering**: Improved video viewer rendering behavior.
+
+### Fixed
+- **Tags shortcuts**: Fixed tags shortcut behavior.
+- **Viewer playback state**: Fixed playback speed persistence and arrow-key navigation.
+- **Floating Viewer controls**: Fixed Floating Viewer mute/speed persistence and rating hotkeys. Thanks @Aivanis.
+- **Generation prompt tracing**: Fixed a generation prompt tracing bug.
+
 ---
 
 ## [2.4.9] - 2026-06-25

@@ -34,21 +34,37 @@ def _iter_nested_subgraphs(nodes: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return nested
 
 
+def _graph_label(graph: dict[str, Any], fallback: str) -> str:
+    value = str(
+        graph.get("id")
+        or graph.get("name")
+        or graph.get("title")
+        or graph.get("type")
+        or fallback
+    ).strip()
+    return value or fallback
+
+
+def _node_id(node: dict[str, Any], fallback: int) -> str:
+    return str(node.get("id") or node.get("ID") or fallback).strip() or str(fallback)
+
+
 def parse_workflow(workflow: dict[str, Any]) -> WorkflowParseStats:
     root_nodes = _iter_graph_nodes(workflow)
+    qualified_node_ids = [f"root::{_node_id(node, index)}" for index, node in enumerate(root_nodes)]
 
     definitions = workflow.get("definitions") if isinstance(workflow.get("definitions"), dict) else {}
     raw_subgraphs = definitions.get("subgraphs") if isinstance(definitions, dict) else None
     definition_subgraphs = [g for g in (raw_subgraphs or []) if isinstance(g, dict)] if isinstance(raw_subgraphs, list) else []
 
     # Include both serialized definition subgraphs and nested runtime subgraph objects.
-    pending = list(definition_subgraphs)
+    pending = [(graph, f"definitions/{_graph_label(graph, str(index))}") for index, graph in enumerate(definition_subgraphs)]
     all_subgraphs: list[dict[str, Any]] = []
     all_nodes = list(root_nodes)
     seen: set[int] = set()
 
     while pending:
-        graph = pending.pop(0)
+        graph, graph_path = pending.pop(0)
         graph_id = id(graph)
         if graph_id in seen:
             continue
@@ -57,11 +73,22 @@ def parse_workflow(workflow: dict[str, Any]) -> WorkflowParseStats:
 
         nodes = _iter_graph_nodes(graph)
         all_nodes.extend(nodes)
-        pending.extend(_iter_nested_subgraphs(nodes))
+        qualified_node_ids.extend(
+            f"{graph_path}::{_node_id(node, index)}" for index, node in enumerate(nodes)
+        )
+        pending.extend(
+            (subgraph, f"{graph_path}/{_graph_label(subgraph, str(index))}")
+            for index, subgraph in enumerate(_iter_nested_subgraphs(nodes))
+        )
 
-    pending.extend(_iter_nested_subgraphs(root_nodes))
+    root_nested = [
+        (subgraph, f"root/{_node_id(node, index)}")
+        for index, node in enumerate(root_nodes)
+        if isinstance((subgraph := node.get("subgraph")), dict)
+    ]
+    pending.extend(root_nested)
     while pending:
-        graph = pending.pop(0)
+        graph, graph_path = pending.pop(0)
         graph_id = id(graph)
         if graph_id in seen:
             continue
@@ -70,7 +97,13 @@ def parse_workflow(workflow: dict[str, Any]) -> WorkflowParseStats:
 
         nodes = _iter_graph_nodes(graph)
         all_nodes.extend(nodes)
-        pending.extend(_iter_nested_subgraphs(nodes))
+        qualified_node_ids.extend(
+            f"{graph_path}::{_node_id(node, index)}" for index, node in enumerate(nodes)
+        )
+        pending.extend(
+            (subgraph, f"{graph_path}/{_graph_label(subgraph, str(index))}")
+            for index, subgraph in enumerate(_iter_nested_subgraphs(nodes))
+        )
 
     links = workflow.get("links")
     return WorkflowParseStats(
@@ -79,6 +112,7 @@ def parse_workflow(workflow: dict[str, Any]) -> WorkflowParseStats:
         link_count=len(links) if isinstance(links, list) else 0,
         subgraph_count=len(all_subgraphs),
         subgraph_node_count=max(0, len(all_nodes) - len(root_nodes)),
+        qualified_node_ids=qualified_node_ids,
     )
 
 

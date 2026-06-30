@@ -190,6 +190,37 @@ const _hasUsefulGenOrWorkflowPayload = (asset: any) => {
     }
 };
 
+const _looksLikePathOnlyPrompt = (value: any) => {
+    const text = typeof value === "string" ? value.trim() : "";
+    if (!text || text.includes("\n")) return false;
+    if (/^[A-Za-z]:[\\/]/.test(text)) return true;
+    const normalized = text.replace(/\\/g, "/");
+    return /(?:^|\/)[^/\n]+\.(?:png|jpe?g|webp|gif|bmp|tiff?|avif|heic|heif|apng|hdr|svg|mp4|webm|mov|mkv|avi|m4v|mp3|wav|flac|ogg)$/i.test(normalized);
+};
+
+const _hasDisplayableGenerationPayload = (asset: any) => {
+    try {
+        if (!asset || typeof asset !== "object") return false;
+        if (asset.geninfo && typeof asset.geninfo === "object" && Object.keys(asset.geninfo).length) return true;
+        if (asset.metadata_raw && typeof asset.metadata_raw === "object") {
+            const raw = asset.metadata_raw;
+            if (raw.geninfo || raw.GenInfo || raw.generation || raw.parameters) return true;
+            if (typeof raw.prompt === "string" && raw.prompt.trim() && !_looksLikePathOnlyPrompt(raw.prompt)) return true;
+            if (raw.prompt && typeof raw.prompt === "object") return true;
+            const tags = raw.raw_ffprobe?.format?.tags || raw.ffprobe?.format?.tags || null;
+            if (tags && typeof tags === "object") {
+                const prompt = tags.prompt || tags["comfyui:prompt"] || tags.comfy_prompt;
+                if (prompt && !_looksLikePathOnlyPrompt(prompt)) return true;
+            }
+        }
+        if (asset.prompt && typeof asset.prompt === "object") return true;
+        if (typeof asset.prompt === "string" && asset.prompt.trim() && !_looksLikePathOnlyPrompt(asset.prompt)) return true;
+        return false;
+    } catch {
+        return false;
+    }
+};
+
 const getFilePath = (asset: any) => {
     const candidate =
         asset?.filepath ||
@@ -287,7 +318,10 @@ const mergeFileMetadata = (asset: any, fileMeta: any) => {
                 const keys = ["geninfo_status", "workflow", "prompt", "geninfo"];
                 for (const k of keys) {
                     if (rawObj[k] == null && md[k] != null) rawObj[k] = md[k];
+                    else if (k === "prompt" && _looksLikePathOnlyPrompt(rawObj[k]) && md[k] != null) rawObj[k] = md[k];
                 }
+                if (md.raw_ffprobe && rawObj.raw_ffprobe == null) rawObj.raw_ffprobe = md.raw_ffprobe;
+                if (md.ffprobe && rawObj.ffprobe == null) rawObj.ffprobe = md.ffprobe;
                 asset.metadata_raw = rawObj;
             }
         }
@@ -351,7 +385,7 @@ export async function ensureViewerMetadataAsset(
         let lastError: any = null;
         if (
             id != null &&
-            (!_hasUsefulGenOrWorkflowPayload(full) || (flagsSuggestMore && !alreadyHasCore))
+            (!_hasDisplayableGenerationPayload(full) || (flagsSuggestMore && !alreadyHasCore))
         ) {
             const res = await safeCall(
                 () => getAssetMetadata?.(id, signal ? { signal } : {}),
@@ -370,7 +404,7 @@ export async function ensureViewerMetadataAsset(
             }
         }
 
-        if (!_hasUsefulGenOrWorkflowPayload(full)) {
+        if (!_hasDisplayableGenerationPayload(full)) {
             // Preferred: scoped file reference (works for custom roots and `/view`).
             try {
                 const type =
@@ -428,7 +462,7 @@ export async function ensureViewerMetadataAsset(
                 setGenInfoStatus(full, lastError);
             }
         }
-        if (_hasUsefulGenOrWorkflowPayload(full) && cacheKey) {
+        if (_hasDisplayableGenerationPayload(full) && cacheKey) {
             _cacheSet(GENINFO_CACHE, cacheKey, full, GENINFO_CACHE_TTL_MS, GENINFO_CACHE_MAX);
         } else if (lastError && cacheKey) {
             _cacheSet(

@@ -13,6 +13,42 @@ import { t } from "../../../../app/i18n.js";
 
 type LooseRecord = Record<string, any>;
 type Field = { label: string; value: any; override?: boolean };
+type LtxDirectorSegment = {
+    key: string;
+    label: string;
+    prompt: string;
+    inLabel: string;
+    outLabel: string;
+    filename: string;
+    filepath: string;
+    type: string;
+    isVideo: boolean;
+    isAudio: boolean;
+    previewCandidates: string[];
+};
+type LtxDirectorState = {
+    title: string;
+    globalPrompt: string;
+    fields: Field[];
+    segments: LtxDirectorSegment[];
+};
+type IdeogramElement = {
+    key: string;
+    label: string;
+    description: string;
+    text: string;
+    bbox: string;
+    palette: string[];
+};
+type IdeogramState = {
+    title: string;
+    json: string;
+    highLevelDescription: string;
+    background: string;
+    fields: Field[];
+    elements: IdeogramElement[];
+    colorPalette: string[];
+};
 type BranchCard = {
     key: string;
     label: string;
@@ -172,6 +208,10 @@ export function resolvePassName(passData: LooseRecord | null | undefined, index:
 function getMetadataSources(asset: LooseRecord | null | undefined): any[] {
     const sources: any[] = [];
     if (asset?.metadata_raw) sources.push(asset.metadata_raw);
+    if (asset?.workflow) sources.push(asset.workflow);
+    if (asset?.metadata_raw?.workflow) sources.push(asset.metadata_raw.workflow);
+    if (asset?.metadata_raw?.raw_ffprobe?.format?.tags) sources.push(asset.metadata_raw.raw_ffprobe.format.tags);
+    if (asset?.metadata_raw?.ffprobe?.format?.tags) sources.push(asset.metadata_raw.ffprobe.format.tags);
     if (asset?.geninfo && typeof asset.geninfo === "object") {
         sources.push({ geninfo: asset.geninfo });
     }
@@ -225,6 +265,8 @@ function hasDisplayableFields(obj: any): boolean {
             return true;
         }
         if (obj.models || obj.model || obj.checkpoint || obj.loras) return true;
+        if (obj.ltx_director && typeof obj.ltx_director === "object") return true;
+        if (obj.ideogram && typeof obj.ideogram === "object") return true;
         if (
             obj.sampler ||
             obj.sampler_name ||
@@ -660,6 +702,135 @@ function normalizeCustomInfoBlocks(value: any): any[] {
         .filter((item) => item.content);
 }
 
+function normalizeLtxDirectorState(value: any): LtxDirectorState | null {
+    if (!value || typeof value !== "object") return null;
+    const fields: Field[] = [];
+    const pushField = (label: string, fieldValue: any) => {
+        if (!hasMeaningfulValue(fieldValue)) return;
+        fields.push({ label, value: displayScalar(fieldValue) });
+    };
+    pushField("FPS", value.frame_rate);
+    pushField("Frames", value.duration_frames);
+    pushField("Duration", value.duration_seconds);
+    if (hasMeaningfulValue(value.width) || hasMeaningfulValue(value.height)) {
+        fields.push({ label: "Size", value: `${value.width || "?"} x ${value.height || "?"}` });
+    }
+
+    const segments = Array.isArray(value.segments)
+        ? value.segments
+              .map((segment: any, index: number): LtxDirectorSegment | null => {
+                  if (!segment || typeof segment !== "object") return null;
+                  const prompt = sanitizePromptForDisplay(segment.prompt || segment.text || "");
+                  const filename = String(segment.filename || segment.imageFile || segment.videoFile || segment.audioFile || "").trim();
+                  const filepath = String(segment.filepath || segment.path || filename).trim();
+                  const inLabel = String(segment.in || segment.in_label || segment.start || segment.start_frame || "").trim();
+                  const outLabel = String(segment.out || segment.out_label || segment.end || segment.end_frame || "").trim();
+                  if (!prompt && !filename && !inLabel && !outLabel) return null;
+                  const mediaType = String(segment.type || "").trim().toLowerCase();
+                  const isVideo = mediaType === "video" || /\.(mp4|mov|webm|mkv|avi|m4v)$/i.test(filename);
+                  const isAudio = mediaType === "audio" || /\.(mp3|wav|flac|ogg|m4a|aac|opus)$/i.test(filename);
+                  return {
+                      key: String(segment.id || `segment-${index + 1}`),
+                      label: `Segment ${index + 1}`,
+                      prompt,
+                      inLabel,
+                      outLabel,
+                      filename,
+                      filepath,
+                      type: String(segment.type || "").trim(),
+                      isVideo,
+                      isAudio,
+                      previewCandidates: filename
+                          ? inputPreviewCandidates({
+                                filename,
+                                filepath,
+                                folder_type: String(segment.folder_type || segment.folderType || "input").trim(),
+                                subfolder: String(segment.subfolder || "").trim(),
+                            })
+                          : [],
+                  };
+              })
+              .filter(Boolean) as LtxDirectorSegment[]
+        : [];
+
+    const globalPrompt = sanitizePromptForDisplay(value.global_prompt || value.globalPrompt || "");
+    if (!globalPrompt && !segments.length && !fields.length) return null;
+    return {
+        title: String(value.title || "LTX Director").trim(),
+        globalPrompt,
+        fields,
+        segments,
+    };
+}
+
+function normalizeIdeogramState(value: any): IdeogramState | null {
+    if (!value || typeof value !== "object") return null;
+    const payload = value.payload && typeof value.payload === "object" ? value.payload : value;
+    const rawJson = typeof value.json === "string" && value.json.trim()
+        ? value.json.trim()
+        : JSON.stringify(payload, null, 2);
+    const highLevelDescription = sanitizePromptForDisplay(
+        value.high_level_description || value.highLevelDescription || payload.high_level_description || "",
+    );
+    const background = sanitizePromptForDisplay(value.background || payload.background || "");
+    const fields: Field[] = [];
+    const push = (label: string, fieldValue: any) => {
+        if (!hasMeaningfulValue(fieldValue)) return;
+        fields.push({ label, value: displayScalar(fieldValue) });
+    };
+    push("Style", payload.style);
+    push("Photo Style", payload.photo_style || payload["style.photo"]);
+    push("Medium", payload.medium);
+    push("Lighting", payload.lighting);
+    push("Aesthetics", payload.aesthetics);
+    push("BG Brightness", payload.bg_brightness);
+    if (hasMeaningfulValue(payload.width) || hasMeaningfulValue(payload.height)) {
+        fields.push({ label: "Size", value: `${payload.width || "?"} x ${payload.height || "?"}` });
+    }
+
+    const elementsSource = Array.isArray(value.elements)
+        ? value.elements
+        : Array.isArray(payload.elements)
+            ? payload.elements
+            : [];
+    const elements = elementsSource
+        .map((item: any, index: number): IdeogramElement | null => {
+            if (!item || typeof item !== "object") return null;
+            const bbox = [item.x, item.y, item.w, item.h]
+                .map((part) => Number(part))
+                .map((part) => Number.isFinite(part) ? part.toFixed(3).replace(/0+$/g, "").replace(/\.$/, "") : "")
+                .join(", ");
+            const palette = Array.isArray(item.palette) ? item.palette.map((color: any) => String(color || "").trim()).filter(Boolean) : [];
+            const description = String(item.desc || item.description || "").trim();
+            const text = String(item.text || "").trim();
+            if (!description && !text && !bbox && !palette.length) return null;
+            return {
+                key: String(item.id || `ideogram-element-${index + 1}`),
+                label: `Element ${index + 1}`,
+                description,
+                text,
+                bbox,
+                palette,
+            };
+        })
+        .filter(Boolean) as IdeogramElement[];
+    const colorPalette = Array.isArray(value.color_palette)
+        ? value.color_palette
+        : Array.isArray(payload.color_palette)
+            ? payload.color_palette
+            : [];
+    if (!rawJson && !highLevelDescription && !background && !elements.length) return null;
+    return {
+        title: String(value.title || "Ideogram 4").trim(),
+        json: rawJson,
+        highLevelDescription,
+        background,
+        fields,
+        elements,
+        colorPalette: colorPalette.map((color: any) => String(color || "").trim()).filter(Boolean),
+    };
+}
+
 export function buildGenerationSectionState(asset: LooseRecord | null | undefined) {
     const normalized = normalizeAssetGenerationMetadata(asset);
     const emptyState = {
@@ -698,6 +869,8 @@ export function buildGenerationSectionState(asset: LooseRecord | null | undefine
         notesFields: [],
         customInfoBlocks: [],
         moduleBlocks: [],
+        ltxDirector: null as LtxDirectorState | null,
+        ideogram: null as IdeogramState | null,
     };
 
     if (
@@ -727,6 +900,8 @@ export function buildGenerationSectionState(asset: LooseRecord | null | undefine
     }
 
     const metadata = normalized;
+    const ltxDirector = normalizeLtxDirectorState(metadata.ltx_director);
+    const ideogram = normalizeIdeogramState(metadata.ideogram);
     const overriddenFields = overrideFieldSet(metadata);
     const engine = metadata.engine && typeof metadata.engine === "object" ? metadata.engine : null;
     const isOverride = Boolean(
@@ -884,7 +1059,7 @@ export function buildGenerationSectionState(asset: LooseRecord | null | undefine
                     { label: t("sidebar.generation.denoise", "Denoise"), value: formatPipelineValue(passItem?.denoise) },
                     { label: "Start", value: formatPipelineValue(passItem?.start_at_step) },
                     { label: "End", value: formatPipelineValue(passItem?.end_at_step) },
-                    { label: t("sidebar.generation.seed", "Seed"), value: formatPipelineValue(passItem?.seed_val || passItem?.seed) },
+                    { label: t("sidebar.generation.seed", "Seed"), value: formatPipelineValue(passItem?.seed_val ?? passItem?.seed) },
                 ],
             }));
     } else if (Array.isArray(metadata.all_samplers) && metadata.all_samplers.length > 1) {
@@ -902,7 +1077,7 @@ export function buildGenerationSectionState(asset: LooseRecord | null | undefine
                     { label: t("sidebar.generation.denoise", "Denoise"), value: formatPipelineValue(passItem?.denoise) },
                     { label: "Start", value: formatPipelineValue(passItem?.start_at_step) },
                     { label: "End", value: formatPipelineValue(passItem?.end_at_step) },
-                    { label: t("sidebar.generation.seed", "Seed"), value: formatPipelineValue(passItem?.seed_val || passItem?.seed) },
+                    { label: t("sidebar.generation.seed", "Seed"), value: formatPipelineValue(passItem?.seed_val ?? passItem?.seed) },
                 ],
             }));
     }
@@ -997,7 +1172,7 @@ export function buildGenerationSectionState(asset: LooseRecord | null | undefine
         workflowLabel: workflowPresentation.workflowLabel,
         workflowBadge: workflowPresentation.workflowBadge,
         isTruncated: Boolean(asset?.geninfo?._truncated || asset?.metadata?._truncated || asset?.prompt?._truncated),
-        positivePrompt: promptTabs.length ? "" : String(cleanedPrompts.positive || "").trim(),
+        positivePrompt: promptTabs.length || ideogram ? "" : String(cleanedPrompts.positive || "").trim(),
         negativePrompt: promptTabs.length ? "" : String(cleanedPrompts.negative || "").trim(),
         positivePromptOverride: isOverrideField(overriddenFields, "prompt", "positive", "positive_prompt"),
         negativePromptOverride: isOverrideField(overriddenFields, "negative_prompt", "negative", "negativePrompt"),
@@ -1023,5 +1198,7 @@ export function buildGenerationSectionState(asset: LooseRecord | null | undefine
         notesFields,
         customInfoBlocks,
         moduleBlocks,
+        ltxDirector,
+        ideogram,
     };
 }

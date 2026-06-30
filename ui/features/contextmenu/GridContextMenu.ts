@@ -53,6 +53,7 @@ import {
 import { cancelAllRatingUpdates, scheduleRatingUpdate } from "./ratingUpdater.js";
 import { createCanvasLoaderNodes } from "../dnd/canvasLoaderNode.js";
 import { stageToInputDetailed } from "../dnd/staging/stageToInput.js";
+import { resolveAssetWorkflow } from "../viewer/workflowGraphMap/workflowGraphMapData.js";
 import { openWorkflowAssetPicker, openWorkflowPicker } from "../workflows/workflowPickerState.js";
 import { openWorkflowInfoDialog } from "../workflows/workflowInfoState.js";
 
@@ -555,6 +556,61 @@ function _isWorkflowThumbnailSourceAsset(asset: any) {
     if (kind === "image" || kind === "video") return true;
     const ext = String(filepath.split(".").pop() || "").toLowerCase();
     return ["png", "jpg", "jpeg", "webp", "gif", "mp4", "webm", "mov", "mkv", "avi", "m4v"].includes(ext);
+}
+
+async function _resolveHydratedAssetWorkflow(asset: any) {
+    if (!asset || _isFolderAsset(asset)) return null;
+    const directWorkflow = resolveAssetWorkflow(asset);
+    if (directWorkflow) return directWorkflow;
+
+    const assetId = asset?.id;
+    if (assetId == null || assetId === "") return null;
+
+    try {
+        const result = await getAssetMetadata(assetId, { timeoutMs: 30_000 });
+        const freshAsset = result?.data;
+        if (result?.ok && freshAsset && typeof freshAsset === "object") {
+            Object.assign(asset, freshAsset);
+            return resolveAssetWorkflow(asset);
+        }
+    } catch (e: any) {
+        console.debug?.(e);
+    }
+    return null;
+}
+
+async function _openAssetWorkflowAsNewTab(asset: any) {
+    const workflow = await _resolveHydratedAssetWorkflow(asset);
+    if (!workflow || typeof workflow !== "object") {
+        comfyToast(
+            t(
+                "toast.assetWorkflowMissing",
+                "No embedded ComfyUI workflow was found for this asset.",
+            ),
+            "warn",
+            2600,
+        );
+        return;
+    }
+
+    const hostApp = getRawHostApp();
+    const importResult = importWorkflowPreferHostTab(workflow, hostApp);
+    if (!importResult.ok) {
+        comfyToast(
+            t(
+                "toast.workflowImportUnavailable",
+                "ComfyUI workflow import is unavailable in this frontend.",
+            ),
+            "error",
+        );
+        return;
+    }
+
+    const message =
+        importResult.mode === "new-tab"
+            ? t("toast.workflowLoadedNewTab", "Workflow loaded in a new ComfyUI tab.")
+            : t("toast.workflowLoaded", "Workflow loaded");
+    comfyToast(message, "success", 1800);
 }
 
 async function _loadWorkflowAsset(asset: any) {
@@ -1232,6 +1288,9 @@ function _buildAssetItems({
     }
 
     items.push(
+        createItem("Open As New Tab", "pi pi-external-link", null, () =>
+            _openAssetWorkflowAsNewTab(asset),
+        ),
         createItem("Open Viewer", "pi pi-image", getShortcutDisplay("OPEN_VIEWER"), () => {
             try {
                 const selectedAssets = hasSelection ? getSelectedAssets(gridContainer) : [];

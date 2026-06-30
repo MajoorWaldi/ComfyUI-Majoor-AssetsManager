@@ -814,6 +814,23 @@ export function importWorkflowIntoHostCanvas(workflow: any, app: any = null): bo
     const runtimeApp = app || _app || getComfyApp();
     if (!workflow || typeof workflow !== "object") return false;
     try {
+        const importCandidates = [
+            runtimeApp?.importWorkflow,
+            runtimeApp?.loadWorkflow,
+            runtimeApp?.workflowManager?.importWorkflow,
+            runtimeApp?.workflowManager?.loadWorkflow,
+            runtimeApp?.extensionManager?.workflow?.importWorkflow,
+        ];
+        for (const candidate of importCandidates) {
+            if (typeof candidate !== "function") continue;
+            try {
+                candidate.call(runtimeApp?.workflowManager || runtimeApp?.extensionManager?.workflow || runtimeApp, workflow);
+                refreshHostCanvasGraph(runtimeApp, { draw: false, change: false });
+                return true;
+            } catch (e) {
+                console.debug?.(e);
+            }
+        }
         if (typeof runtimeApp?.loadGraphData === "function") {
             runtimeApp.loadGraphData(workflow);
             return true;

@@ -62,6 +62,10 @@ function handleVideoOut(event) {
         console.debug?.(e);
     }
 }
+
+function isAudioFile() {
+    return !!props.inputFile?.isAudio;
+}
 </script>
 
 <template>
@@ -96,6 +100,15 @@ function handleVideoOut(event) {
             @mouseover="handleVideoOver"
             @mouseout="handleVideoOut"
         />
+        <div
+            v-else-if="isAudioFile()"
+            style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;background:linear-gradient(135deg, rgba(0,188,212,0.28), rgba(156,39,176,0.20));color:white;padding:6px;text-align:center"
+        >
+            <div style="font-size:18px;line-height:1">♪</div>
+            <div style="font-size:8px;font-weight:700;max-width:54px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+                {{ inputFile.filename }}
+            </div>
+        </div>
         <img
             v-else
             :src="currentSource()"

@@ -1,6 +1,6 @@
-import { M as e, Wt as t, d as n } from "./viewerRuntimeHosts-B9wQ_Nxj.js";
-import { bt as r, m as i, o as a } from "./events-BpkKbGZs.js";
-import { O as o } from "./mediaFps-CbdE2lHO.js";
+import { P as e, d as t, qt as n } from "./viewerRuntimeHosts-BbCWOXEG.js";
+import { Ct as r, m as i, o as a } from "./events-CrhYyn_G.js";
+import { O as o } from "./mediaFps-Td0vBA3X.js";
 import { tt as s } from "./mjr-primevue-n1rsQYJg.js";
 //#region ui/utils/filenames.ts
 var c = new Set([
@@ -141,15 +141,15 @@ function y(e) {
 		kind: e.kind || ""
 	} : null;
 }
-async function b({ x: e, y: n, assets: r }) {
+async function b({ x: e, y: t, assets: r }) {
 	let a = Array.isArray(r) ? r.map(y).filter(Boolean) : [];
 	if (!a.length) {
-		t(i("toast.noValidAssetsSelected", "No valid assets selected."), "warning");
+		n(i("toast.noValidAssetsSelected", "No valid assets selected."), "warning");
 		return;
 	}
 	_({
 		x: Number(e) || 0,
-		y: Number(n) || 0,
+		y: Number(t) || 0,
 		assets: a
 	});
 }
@@ -184,14 +184,14 @@ function E(r, i, { onSuccess: a, onFailure: o, successMessage: s = null, errorMe
 	let u = new AbortController(), d = setTimeout(async () => {
 		S.delete(String(r));
 		try {
-			let n = await e(r, i, { signal: u.signal });
-			if (!n?.ok) {
-				t(n?.error || c || "Failed to update rating", "error"), o?.(n);
+			let t = await e(r, i, { signal: u.signal });
+			if (!t?.ok) {
+				n(t?.error || c || "Failed to update rating", "error"), o?.(t);
 				return;
 			}
-			s && t(s, "success", 1500), a?.(n);
+			s && n(s, "success", 1500), a?.(t);
 		} catch (e) {
-			n(e, l, { showToast: !0 }), o?.(e);
+			t(e, l, { showToast: !0 }), o?.(e);
 		}
 	}, x);
 	S.set(String(r), {

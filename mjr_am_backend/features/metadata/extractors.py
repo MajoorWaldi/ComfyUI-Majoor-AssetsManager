@@ -464,6 +464,12 @@ def _workflow_get_source_data(
 
 
 def _workflow_get_node_text(node: dict[str, Any], context: str | None = None) -> str | None:
+    node_type = str(node.get("type") or node.get("class_type") or "").lower()
+    if "ideogram4promptbuilderkj" in node_type:
+        if context == "negative":
+            return None
+        return _workflow_get_ideogram4_prompt_builder_text(node)
+
     widgets = node.get("widgets_values")
     if not isinstance(widgets, list) or not widgets:
         return None
@@ -476,6 +482,31 @@ def _workflow_get_node_text(node: dict[str, Any], context: str | None = None) ->
     if context == "negative":
         return str_widgets[-1]
     return str_widgets[0]
+
+
+def _workflow_get_ideogram4_prompt_builder_text(node: dict[str, Any]) -> str | None:
+    inputs = node.get("inputs")
+    if isinstance(inputs, dict):
+        text = str(inputs.get("high_level_description") or "").strip()
+        if text:
+            return text
+
+    widgets = node.get("widgets_values")
+    if not isinstance(widgets, list):
+        return None
+    # KJ's builder stores width/height first, then the main prompt. Later
+    # string widgets are style, JSON boxes, coord mode, etc. and are not the
+    # positive prompt.
+    for value in widgets:
+        if not isinstance(value, str):
+            continue
+        text = value.strip()
+        if len(text) < 20:
+            continue
+        if text.startswith("[") or text.startswith("{"):
+            continue
+        return text
+    return None
 
 
 def _workflow_find_upstream_text(
@@ -520,6 +551,8 @@ def _workflow_collect_node_text(node: dict[str, Any], context: str | None, found
     node_type = str(node.get("type", "")).lower()
     if "loader" in node_type or "checkpoint" in node_type or "loadimage" in node_type:
         return
+    if not _workflow_is_text_prompt_node(node_type):
+        return
     text = _workflow_get_node_text(node, context)
     if text:
         found_texts.append(text)
@@ -533,6 +566,9 @@ def _workflow_push_upstream_inputs(
     depth: int,
     stack: list[tuple[dict[str, Any], int]],
 ) -> None:
+    node_type = str(node.get("type", "")).lower()
+    if context == "negative" and "conditioningzeroout" in node_type:
+        return
     inputs = node.get("inputs", [])
     if not isinstance(inputs, list) or not inputs:
         return

@@ -1,5 +1,5 @@
-import { m as e } from "./events-BpkKbGZs.js";
-import { c as t, n, o as r, s as i } from "./mediaFps-CbdE2lHO.js";
+import { m as e } from "./events-CrhYyn_G.js";
+import { c as t, n, o as r, s as i } from "./mediaFps-Td0vBA3X.js";
 import { n as a, t as o } from "./state-DPiaUMw1.js";
 //#region ui/utils/dom.ts
 function s(e, t) {

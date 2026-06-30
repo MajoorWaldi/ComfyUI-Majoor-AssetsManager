@@ -1235,4 +1235,182 @@ describe("generation prompt sanitization", () => {
         expect(highCard?.modelFields.some((field) => ["CLIP", "VAE"].includes(field.label))).toBe(false);
         expect(lowCard?.modelFields.some((field) => ["CLIP", "VAE"].includes(field.label))).toBe(false);
     });
+
+    it("builds LTX Director prompt boxes with global prompt and segment in/out values", () => {
+        const timeline = {
+            global_prompt: "golden glitter portrait, cinematic sunset light",
+            segments: [
+                {
+                    id: "shot-a",
+                    start: 0,
+                    length: 50,
+                    prompt: "camera turns to the other side of the model face",
+                    type: "image",
+                    imageFile: "Krea2_turbo_00020_.png",
+                },
+                {
+                    id: "shot-b",
+                    start: 50,
+                    end: 100,
+                    prompt: "the light starts shifting across her skin",
+                    type: "image",
+                    imageFile: "Krea2_turbo_00021_.png",
+                },
+            ],
+        };
+        const promptGraph = {
+            "131": {
+                class_type: "LTXDirector",
+                inputs: {
+                    model: ["35", 0],
+                    clip: ["12", 0],
+                    frame_rate: 25,
+                    custom_width: 768,
+                    custom_height: 1344,
+                    duration_frames: 100,
+                    timeline_data: JSON.stringify(timeline),
+                },
+            },
+            "35": { class_type: "UNETLoader", inputs: { unet_name: "ltx-2.3-22b-distilled.safetensors" } },
+            "12": { class_type: "DualCLIPLoader", inputs: { clip_name1: "gemma_3_12B_it.safetensors" } },
+            "17": { class_type: "CFGGuider", inputs: { cfg: 1, model: ["131", 0] } },
+            "19": {
+                class_type: "SamplerCustomAdvanced",
+                inputs: {
+                    noise: ["30", 0],
+                    guider: ["17", 0],
+                    sampler: ["20", 0],
+                    sigmas: ["21", 0],
+                    latent_image: ["18", 0],
+                },
+            },
+            "20": { class_type: "KSamplerSelect", inputs: { sampler_name: "euler" } },
+            "21": { class_type: "BasicScheduler", inputs: { scheduler: "linear_quadratic", steps: 4, denoise: 0.42 } },
+            "30": { class_type: "RandomNoise", inputs: { noise_seed: 0 } },
+        };
+
+        const state = buildGenerationSectionState({
+            id: 10645,
+            kind: "video",
+            metadata_raw: {
+                prompt: "D:/____COMFY_OUTPUTS/video/LTX_Director_00005_.mp4",
+                raw_ffprobe: {
+                    format: {
+                        tags: {
+                            prompt: JSON.stringify(promptGraph),
+                        },
+                    },
+                },
+            },
+        });
+
+        expect(state.kind).toBe("full");
+        expect(state.ltxDirector?.globalPrompt).toBe("golden glitter portrait, cinematic sunset light");
+        expect(state.ltxDirector?.fields).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({ label: "FPS", value: "25" }),
+                expect.objectContaining({ label: "Size", value: "768 x 1344" }),
+            ]),
+        );
+        expect(state.ltxDirector?.segments).toEqual([
+            expect.objectContaining({
+                label: "Segment 1",
+                prompt: "camera turns to the other side of the model face",
+                inLabel: "0s",
+                outLabel: "2s",
+                filename: "Krea2_turbo_00020_.png",
+                isVideo: false,
+                isAudio: false,
+                previewCandidates: expect.arrayContaining([
+                    expect.stringContaining("Krea2_turbo_00020_.png"),
+                ]),
+            }),
+            expect.objectContaining({
+                label: "Segment 2",
+                prompt: "the light starts shifting across her skin",
+                inLabel: "2s",
+                outLabel: "4s",
+                filename: "Krea2_turbo_00021_.png",
+            }),
+        ]);
+        expect(state.modelFields).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({ label: "UNet", value: "ltx-2.3-22b-distilled" }),
+                expect.objectContaining({ label: "CLIP", value: "gemma_3_12B_it" }),
+            ]),
+        );
+        expect(state.samplingFields).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({ label: "Seed", value: 0 }),
+                expect.objectContaining({ label: "Sampler", value: "euler" }),
+            ]),
+        );
+    });
+
+    it("builds Ideogram 4 prompt builder state from the JSON text encoder input", () => {
+        const promptGraph = {
+            "167": {
+                class_type: "CLIPTextEncode",
+                inputs: { text: ["185", 0], clip: ["168", 0] },
+                _meta: { title: "CLIP Text Encode (Positive Prompt)" },
+            },
+            "185": {
+                class_type: "Ideogram4PromptBuilderKJ",
+                inputs: {
+                    width: 768,
+                    height: 1376,
+                    high_level_description: "luxury skincare campaign with a graceful silhouette",
+                    background: "warm sunset gradient background",
+                    style: "photo",
+                    "style.photo": "DSLR photography",
+                    aesthetics: "premium beauty mood",
+                    lighting: "sunrise, sunset, warm",
+                    medium: "photography",
+                    elements_data: JSON.stringify([
+                        {
+                            x: 0.29,
+                            y: 0.33,
+                            w: 0.13,
+                            h: 0.12,
+                            type: "obj",
+                            text: "",
+                            desc: "scientific graphic around the cheek",
+                            palette: ["#ffbf66"],
+                        },
+                    ]),
+                    bg_brightness: 25,
+                    coord_mode: "normalized",
+                    bbox_order: "yx",
+                },
+                _meta: { title: "Ideogram 4 Prompt Builder KJ" },
+            },
+        };
+
+        const state = buildGenerationSectionState({
+            id: 1,
+            kind: "image",
+            metadata_raw: { prompt: JSON.stringify(promptGraph) },
+        });
+
+        expect(state.kind).toBe("full");
+        expect(state.positivePrompt).toBe("");
+        expect(state.ideogram?.highLevelDescription).toBe("luxury skincare campaign with a graceful silhouette");
+        expect(state.ideogram?.background).toBe("warm sunset gradient background");
+        expect(state.ideogram?.json).toContain('"high_level_description": "luxury skincare campaign with a graceful silhouette"');
+        expect(state.ideogram?.json).toContain('"elements"');
+        expect(state.ideogram?.elements).toEqual([
+            expect.objectContaining({
+                label: "Element 1",
+                description: "scientific graphic around the cheek",
+                bbox: "0.29, 0.33, 0.13, 0.12",
+                palette: ["#ffbf66"],
+            }),
+        ]);
+        expect(state.ideogram?.fields).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({ label: "Style", value: "photo" }),
+                expect.objectContaining({ label: "Size", value: "768 x 1376" }),
+            ]),
+        );
+    });
 });

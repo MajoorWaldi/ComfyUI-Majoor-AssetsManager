@@ -3,7 +3,13 @@
  */
 
 import { SETTINGS_KEY } from "../app/settingsStore.js";
-import { buildWorkflowContentURL, ENDPOINTS } from "./endpoints.js";
+import {
+    buildWorkflowContentURL,
+    buildWorkflowDiffURL,
+    buildWorkflowValidateURL,
+    buildWorkflowVersionsURL,
+    ENDPOINTS,
+} from "./endpoints.js";
 import { createApiFetchClient } from "./fetchUtils.js";
 import { normalizeAssetId, pickRootId } from "../utils/ids.js";
 import { createTTLCache } from "../utils/ttlCache.js";
@@ -346,6 +352,30 @@ export async function getAssetsBatch(assetIds: any, options: Record<string, any>
 
 export async function getWorkflowContent(filepath: any, options: Record<string, any> = {}) {
     const url = buildWorkflowContentURL(filepath);
+    if (!url) {
+        return { ok: false, data: null, error: "Missing workflow filepath", code: "INVALID_INPUT" };
+    }
+    return get(url, options);
+}
+
+export async function validateWorkflow(filepath: any, options: Record<string, any> = {}) {
+    const url = buildWorkflowValidateURL(filepath);
+    if (!url) {
+        return { ok: false, data: null, error: "Missing workflow filepath", code: "INVALID_INPUT" };
+    }
+    return get(url, options);
+}
+
+export async function listWorkflowVersions(filepath: any, options: Record<string, any> = {}) {
+    const url = buildWorkflowVersionsURL(filepath);
+    if (!url) {
+        return { ok: false, data: null, error: "Missing workflow filepath", code: "INVALID_INPUT" };
+    }
+    return get(url, options);
+}
+
+export async function diffWorkflow(filepath: any, version_filepath: any = "", options: Record<string, any> = {}) {
+    const url = buildWorkflowDiffURL(filepath, version_filepath);
     if (!url) {
         return { ok: false, data: null, error: "Missing workflow filepath", code: "INVALID_INPUT" };
     }

@@ -16,7 +16,11 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import quote
 
-from mjr_am_backend.adapters.comfy_core import get_output_directory
+from mjr_am_backend.adapters.comfy_core import (
+    get_available_node_types,
+    get_model_filenames,
+    get_output_directory,
+)
 from mjr_am_backend.config import FFPROBE_BIN, OUTPUT_ROOT, get_runtime_index_db_path
 from mjr_am_shared import Result, get_logger
 
@@ -34,7 +38,9 @@ STATIC_THUMBNAIL_SOURCE_EXTS = {".jpg", ".jpeg", ".png", ".webp", ".gif"}
 VIDEO_THUMBNAIL_SOURCE_EXTS = {".mp4", ".webm", ".mov", ".mkv", ".avi", ".m4v"}
 WORKFLOW_VIDEO_THUMBNAIL_SECONDS = 5
 WORKFLOW_MANAGED_DIRNAME = "workflows"
+WORKFLOW_HISTORY_DIRNAME = ".history"
 SAFE_NAME_RE = re.compile(r"[^A-Za-z0-9._-]+")
+WORKFLOW_INDEX_VERSION = 4
 
 
 def _env_path(raw: Any = "") -> Path | None:
@@ -338,6 +344,9 @@ def _workflow_library_db_path() -> Path:
 
 def _ensure_workflow_library_schema(conn: sqlite3.Connection) -> None:
     conn.executescript(_WORKFLOW_LIBRARY_SCHEMA)
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS workflow_index_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)"
+    )
     existing = {
         str(row[1])
         for row in conn.execute("PRAGMA table_info(workflows)").fetchall()
@@ -359,6 +368,23 @@ def _ensure_workflow_library_schema(conn: sqlite3.Connection) -> None:
     }.items():
         if column not in existing:
             conn.execute(ddl)
+
+
+def _workflow_index_needs_full_refresh(conn: sqlite3.Connection) -> bool:
+    try:
+        row = conn.execute(
+            "SELECT value FROM workflow_index_meta WHERE key = 'version'"
+        ).fetchone()
+        return str(row[0] if row else "") != str(WORKFLOW_INDEX_VERSION)
+    except Exception:
+        return True
+
+
+def _mark_workflow_index_version(conn: sqlite3.Connection) -> None:
+    conn.execute(
+        "INSERT OR REPLACE INTO workflow_index_meta(key, value) VALUES ('version', ?)",
+        (str(WORKFLOW_INDEX_VERSION),),
+    )
 
 
 def _read_workflow_library_meta(path: Path) -> dict[str, Any]:
@@ -438,7 +464,16 @@ def _workflow_library_card_values(card: dict[str, Any], now: int) -> tuple[Any, 
 
 
 def _workflow_library_insert_values(card: dict[str, Any], now: int) -> tuple[Any, ...]:
-    return (*_workflow_library_card_values(card, now), now)
+    values = _workflow_library_card_values(card, now)
+    return (
+        *values[:24],
+        json.dumps(_as_str_list(card.get("tags")), ensure_ascii=False),
+        int(bool(card.get("favorite"))),
+        max(0, _to_int(card.get("usage_count"), 0)),
+        max(0, _to_int(card.get("last_loaded_at"), 0)) or None,
+        *values[24:],
+        now,
+    )
 
 
 def _workflow_library_update_values(card: dict[str, Any], now: int, filepath: str) -> tuple[Any, ...]:
@@ -535,7 +570,7 @@ def _upsert_workflow_library_card(card: dict[str, Any], *, updates: dict[str, An
                     detection_signals_json, thumbnail_path, animated_thumbnail_path,
                     node_count, link_count, subgraph_count, missing_nodes_json, missing_models_json,
                     tags_json, favorite, usage_count, last_loaded_at, mtime, size, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, 'workflow', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '[]', 0, 0, NULL, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, 'workflow', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 _workflow_library_insert_values(card, now),
             )
@@ -554,6 +589,7 @@ def _upsert_workflow_library_card(card: dict[str, Any], *, updates: dict[str, An
                 _workflow_library_update_values(card, now, filepath),
             )
             _apply_workflow_library_updates(conn, filepath=filepath, updates=updates, now=now)
+            _mark_workflow_index_version(conn)
             row = conn.execute(
                 "SELECT favorite, usage_count, last_loaded_at, tags_json FROM workflows WHERE filepath = ?",
                 (filepath,),
@@ -1020,6 +1056,338 @@ def read_workflow_content(path: Path) -> Result[dict[str, Any]]:
     )
 
 
+MODEL_REF_EXTS = (".safetensors", ".ckpt", ".pt", ".pth", ".gguf", ".onnx", ".bin")
+
+
+def _workflow_node_type(node: dict[str, Any]) -> str:
+    return str(node.get("type") or node.get("class_type") or node.get("comfyClass") or "").strip()
+
+
+def _workflow_value_model_refs(value: Any) -> list[str]:
+    refs: list[str] = []
+    if isinstance(value, str):
+        text = value.strip()
+        lower = text.lower()
+        if text and any(ext in lower for ext in MODEL_REF_EXTS):
+            refs.append(text)
+    elif isinstance(value, list):
+        for item in value[:32]:
+            refs.extend(_workflow_value_model_refs(item))
+    elif isinstance(value, dict):
+        for item in list(value.values())[:64]:
+            refs.extend(_workflow_value_model_refs(item))
+    return refs
+
+
+def _workflow_required_models(nodes: list[dict[str, Any]]) -> list[str]:
+    out: list[str] = []
+    seen: set[str] = set()
+    for node in nodes:
+        for key in ("widgets_values", "inputs", "properties"):
+            for ref in _workflow_value_model_refs(node.get(key)):
+                normalized = ref.strip()
+                if normalized and normalized.lower() not in seen:
+                    seen.add(normalized.lower())
+                    out.append(normalized)
+    return out
+
+
+def _workflow_missing_nodes(required_nodes: list[str]) -> tuple[list[str], bool]:
+    available = get_available_node_types()
+    if not available:
+        return [], False
+    available_lower = {item.lower() for item in available}
+    missing = [node for node in required_nodes if node.lower() not in available_lower]
+    return missing, True
+
+
+def _workflow_missing_models(required_models: list[str]) -> tuple[list[str], bool]:
+    available = get_model_filenames()
+    if not available:
+        return [], False
+    available_lower = {item.lower().replace("\\", "/") for item in available}
+    missing: list[str] = []
+    for model in required_models:
+        normalized = model.lower().replace("\\", "/")
+        basename = Path(model).name.lower()
+        if normalized not in available_lower and basename not in available_lower:
+            missing.append(model)
+    return missing, True
+
+
+def _workflow_manager_registry_json_candidates(manager_root: Path) -> list[Path]:
+    try:
+        return [
+            item
+            for item in manager_root.rglob("*.json")
+            if item.is_file()
+            and item.stat().st_size <= 10 * 1024 * 1024
+            and any(token in item.name.lower() for token in ("node", "custom", "extension", "registry"))
+        ][:40]
+    except Exception:
+        return []
+
+
+def _workflow_manager_registry_source(candidate: Path, text: str) -> str:
+    source = candidate.name
+    try:
+        data = json.loads(text)
+    except Exception:
+        return source
+    if not isinstance(data, dict):
+        return source
+    source = str(data.get("title") or data.get("name") or data.get("nickname") or source)
+    repo = data.get("reference") or data.get("url") or data.get("files")
+    if isinstance(repo, str) and repo.strip():
+        return f"{source} ({repo.strip()})"
+    return source
+
+
+def _workflow_manager_registry_matches(
+    candidate: Path,
+    wanted: dict[str, str],
+) -> tuple[list[str], str] | None:
+    try:
+        text = candidate.read_text(encoding="utf-8", errors="ignore")
+    except Exception:
+        return None
+    lower = text.lower()
+    matched = [original for needle, original in wanted.items() if needle in lower]
+    if not matched:
+        return None
+    return matched, _workflow_manager_registry_source(candidate, text)
+
+
+def _workflow_manager_registry_hints(missing_nodes: list[str]) -> tuple[dict[str, list[str]], bool]:
+    if not missing_nodes:
+        return {}, False
+    comfy_root = _detect_comfy_root()
+    if comfy_root is None:
+        return {}, False
+    manager_root = comfy_root / "custom_nodes" / "ComfyUI-Manager"
+    if not manager_root.is_dir():
+        return {}, False
+    wanted = {node.lower(): node for node in missing_nodes}
+    hints: dict[str, list[str]] = {node: [] for node in missing_nodes}
+    scanned = False
+    candidates = _workflow_manager_registry_json_candidates(manager_root)
+    for candidate in candidates:
+        match = _workflow_manager_registry_matches(candidate, wanted)
+        if not match:
+            continue
+        scanned = True
+        matched, source = match
+        for node in matched:
+            if source not in hints[node]:
+                hints[node].append(source)
+    return {node: values[:5] for node, values in hints.items() if values}, scanned or bool(candidates)
+
+
+def _workflow_format(workflow: dict[str, Any]) -> str:
+    if isinstance(workflow.get("nodes"), list):
+        return "workflow-json"
+    prompt = workflow.get("prompt")
+    if isinstance(prompt, dict):
+        return "prompt-graph-wrapper"
+    if isinstance(workflow.get("prompt"), str):
+        return "prompt-graph-wrapper"
+    if all(isinstance(value, dict) and isinstance(value.get("inputs"), dict) for value in list(workflow.values())[:5]):
+        return "prompt-graph"
+    return "unknown"
+
+
+def validate_workflow_content(workflow: dict[str, Any]) -> Result[dict[str, Any]]:
+    if not isinstance(workflow, dict):
+        return Result.Err("INVALID_WORKFLOW", "Workflow JSON must be an object")
+    parsed = parse_workflow(workflow)
+    required_nodes = sorted(
+        {
+            node_type
+            for node_type in (_workflow_node_type(node) for node in parsed.nodes)
+            if node_type
+        },
+        key=str.lower,
+    )
+    required_models = _workflow_required_models(parsed.nodes)
+    detected_missing_nodes, node_check_available = _workflow_missing_nodes(required_nodes)
+    detected_missing_models, model_check_available = _workflow_missing_models(required_models)
+    missing_nodes = detected_missing_nodes if node_check_available else _as_str_list(workflow.get("missing_nodes"))
+    missing_models = detected_missing_models if model_check_available else _as_str_list(workflow.get("missing_models"))
+    manager_hints, manager_check_available = _workflow_manager_registry_hints(missing_nodes)
+    api_nodes = [node_type for node_type in required_nodes if node_type.lower().endswith("api")]
+    warnings: list[str] = []
+    if _workflow_format(workflow) == "unknown":
+        warnings.append("Workflow shape is not a standard ComfyUI workflow JSON.")
+    if parsed.subgraph_count and parsed.qualified_node_ids:
+        warnings.append("Subgraph node ids are graph-local; use qualified_node_ids for exact lookups.")
+    return Result.Ok(
+        {
+            "valid": True,
+            "format": _workflow_format(workflow),
+            "node_count": parsed.node_count + parsed.subgraph_node_count,
+            "root_node_count": parsed.node_count,
+            "link_count": parsed.link_count,
+            "subgraph_count": parsed.subgraph_count,
+            "subgraph_node_count": parsed.subgraph_node_count,
+            "qualified_node_ids": parsed.qualified_node_ids or [],
+            "required_nodes": required_nodes,
+            "required_models": required_models,
+            "missing_nodes": missing_nodes,
+            "missing_models": missing_models,
+            "manager_registry_hints": manager_hints,
+            "dependency_checks": {
+                "nodes": "runtime" if node_check_available else "unavailable",
+                "models": "folder_paths" if model_check_available else "unavailable",
+                "manager_registry": "scanned" if manager_check_available else "unavailable",
+            },
+            "api_nodes": api_nodes,
+            "warnings": warnings,
+        }
+    )
+
+
+def validate_workflow(path: Path) -> Result[dict[str, Any]]:
+    content = read_workflow_content(path)
+    if not content.ok:
+        return Result.Err(content.code or "INVALID_WORKFLOW", content.error or "Failed to read workflow")
+    data = content.data or {}
+    workflow = data.get("workflow")
+    if not isinstance(workflow, dict):
+        return Result.Err("INVALID_WORKFLOW", "Workflow JSON is missing or invalid")
+    validated = validate_workflow_content(workflow)
+    if not validated.ok:
+        return validated
+    result = dict(validated.data or {})
+    result.update(
+        {
+            "filepath": data.get("filepath"),
+            "filename": data.get("filename"),
+            "mtime": data.get("mtime"),
+            "size": data.get("size"),
+        }
+    )
+    return Result.Ok(result)
+
+
+def _workflow_history_dir(path: Path) -> Path:
+    return path.parent / WORKFLOW_HISTORY_DIRNAME / path.stem
+
+
+def _snapshot_workflow_version(path: Path, *, reason: str) -> Result[dict[str, Any]]:
+    try:
+        resolved = path.resolve(strict=True)
+    except FileNotFoundError:
+        return Result.Ok({"snapshotted": False, "reason": "missing"})
+    if not is_managed_workflow_json_path(resolved):
+        return Result.Ok({"snapshotted": False, "reason": "not-managed"})
+    workflow = _safe_read_workflow_json(resolved)
+    if workflow is None:
+        return Result.Ok({"snapshotted": False, "reason": "invalid"})
+    try:
+        history_dir = _workflow_history_dir(resolved)
+        history_dir.mkdir(parents=True, exist_ok=True)
+        stamp = time.strftime("%Y%m%d-%H%M%S", time.localtime())
+        safe_reason = _sanitize_name(reason, "change")
+        target = history_dir / f"{stamp}-{safe_reason}.json"
+        if target.exists():
+            target = history_dir / f"{stamp}-{safe_reason}-{int(time.time() * 1000) % 1000}.json"
+        write = _atomic_write_json(target, workflow)
+        if not write.ok:
+            return Result.Err(write.code or "WORKFLOW_HISTORY_FAILED", write.error or "Failed to snapshot workflow")
+        return Result.Ok({"snapshotted": True, "filepath": str(target), "reason": reason})
+    except Exception as exc:
+        return Result.Err("WORKFLOW_HISTORY_FAILED", f"Failed to snapshot workflow: {exc.__class__.__name__}")
+
+
+def list_workflow_versions(path: Path) -> Result[dict[str, Any]]:
+    if not is_managed_workflow_json_path(path):
+        return Result.Err("FORBIDDEN", "Workflow path is not allowed")
+    try:
+        resolved = path.resolve(strict=True)
+    except FileNotFoundError:
+        return Result.Err("NOT_FOUND", "Workflow not found")
+    history_dir = _workflow_history_dir(resolved)
+    versions: list[dict[str, Any]] = []
+    if history_dir.is_dir():
+        for candidate in sorted(history_dir.glob("*.json"), key=lambda item: item.stat().st_mtime, reverse=True):
+            try:
+                stat = candidate.stat()
+            except Exception:
+                continue
+            versions.append(
+                {
+                    "filepath": str(candidate),
+                    "filename": candidate.name,
+                    "mtime": int(stat.st_mtime or 0),
+                    "size": int(stat.st_size or 0),
+                }
+            )
+    return Result.Ok({"filepath": str(resolved), "versions": versions, "count": len(versions)})
+
+
+def _flatten_json(value: Any, prefix: str = "") -> dict[str, Any]:
+    if isinstance(value, dict):
+        out: dict[str, Any] = {}
+        for key, item in value.items():
+            child = f"{prefix}.{key}" if prefix else str(key)
+            out.update(_flatten_json(item, child))
+        return out
+    if isinstance(value, list):
+        out = {}
+        for index, item in enumerate(value):
+            child = f"{prefix}[{index}]"
+            out.update(_flatten_json(item, child))
+        return out
+    return {prefix: value}
+
+
+def diff_workflow_versions(path: Path, *, version_filepath: Any = "") -> Result[dict[str, Any]]:
+    if not is_managed_workflow_json_path(path):
+        return Result.Err("FORBIDDEN", "Workflow path is not allowed")
+    try:
+        current_path = path.resolve(strict=True)
+    except FileNotFoundError:
+        return Result.Err("NOT_FOUND", "Workflow not found")
+    versions = list_workflow_versions(current_path)
+    if not versions.ok:
+        return versions
+    requested = str(version_filepath or "").strip()
+    if requested:
+        try:
+            version_path = Path(requested).resolve(strict=True)
+        except FileNotFoundError:
+            return Result.Err("NOT_FOUND", "Workflow version not found")
+        history_root = _workflow_history_dir(current_path).resolve(strict=False)
+        if version_path != history_root and history_root not in version_path.parents:
+            return Result.Err("FORBIDDEN", "Workflow version path is not allowed")
+    else:
+        items = (versions.data or {}).get("versions") or []
+        if not items:
+            return Result.Ok({"filepath": str(current_path), "version": "", "added": [], "removed": [], "changed": [], "total": 0})
+        version_path = Path(str(items[0].get("filepath") or ""))
+    current = _safe_read_workflow_json(current_path)
+    previous = _safe_read_workflow_json(version_path)
+    if current is None or previous is None:
+        return Result.Err("INVALID_WORKFLOW", "Workflow JSON is missing or invalid")
+    current_flat = _flatten_json(current)
+    previous_flat = _flatten_json(previous)
+    current_keys = set(current_flat)
+    previous_keys = set(previous_flat)
+    added = sorted(current_keys - previous_keys)[:500]
+    removed = sorted(previous_keys - current_keys)[:500]
+    changed = sorted(key for key in current_keys & previous_keys if current_flat[key] != previous_flat[key])[:500]
+    return Result.Ok(
+        {
+            "filepath": str(current_path),
+            "version": str(version_path),
+            "added": added,
+            "removed": removed,
+            "changed": changed,
+            "total": len(added) + len(removed) + len(changed),
+        }
+    )
+
+
 def _workflow_save_info_updates(card: dict[str, Any], *, info: dict[str, Any] | None = None) -> dict[str, str]:
     source = info or {}
     updates: dict[str, str] = {}
@@ -1058,6 +1426,9 @@ def save_workflow(
             return Result.Err("NOT_FOUND", "Workflow not found")
         if not overwrite:
             return Result.Err("WORKFLOW_EXISTS", "Workflow already exists")
+        snapshot = _snapshot_workflow_version(target, reason="overwrite")
+        if not snapshot.ok:
+            return Result.Err(snapshot.code or "WORKFLOW_HISTORY_FAILED", snapshot.error or "Failed to snapshot workflow")
     else:
         target_res = _resolve_managed_target(name or workflow.get("name") or workflow.get("title"), category)
         if not target_res.ok:
@@ -1112,6 +1483,45 @@ def _category_for_path(path: Path) -> str:
         return ""
 
 
+def _move_workflow_thumbnail_siblings(source: Path, target: Path) -> None:
+    for ext in set(THUMBNAIL_EXTS + ANIMATED_EXTS):
+        thumb = source.with_suffix(ext)
+        if thumb.exists():
+            shutil.move(str(thumb), str(target.with_suffix(ext)))
+
+
+def _move_workflow_history_dir(source: Path, target: Path) -> None:
+    source_history = _workflow_history_dir(source)
+    target_history = _workflow_history_dir(target)
+    if not source_history.exists() or source_history.resolve(strict=False) == target_history.resolve(strict=False):
+        return
+    target_history.parent.mkdir(parents=True, exist_ok=True)
+    if not target_history.exists():
+        shutil.move(str(source_history), str(target_history))
+        return
+    for item in source_history.glob("*.json"):
+        shutil.move(str(item), str(target_history / item.name))
+    try:
+        source_history.rmdir()
+    except Exception:
+        pass
+
+
+def _update_workflow_library_filepath(source: Path, target: Path) -> None:
+    try:
+        db_path = _workflow_library_db_path()
+        if not db_path.exists():
+            return
+        with sqlite3.connect(str(db_path)) as conn:
+            _ensure_workflow_library_schema(conn)
+            conn.execute(
+                "UPDATE workflows SET filepath = ?, updated_at = ? WHERE filepath = ?",
+                (str(target), int(time.time()), str(source)),
+            )
+    except Exception:
+        logger.debug("Workflow library filepath update failed after move", exc_info=True)
+
+
 def move_or_rename_workflow(path: Path, *, name: Any = "", category: Any = "") -> Result[dict[str, Any]]:
     if not is_managed_workflow_json_path(path):
         return Result.Err("FORBIDDEN", "Workflow path is not allowed")
@@ -1135,6 +1545,9 @@ def move_or_rename_workflow(path: Path, *, name: Any = "", category: Any = "") -
         if card is None:
             return Result.Err("INVALID_WORKFLOW", "Workflow JSON is missing or invalid")
         return Result.Ok({"moved": False, "workflow": card, "filepath": str(source)})
+    snapshot = _snapshot_workflow_version(source, reason="move")
+    if not snapshot.ok:
+        return Result.Err(snapshot.code or "WORKFLOW_HISTORY_FAILED", snapshot.error or "Failed to snapshot workflow")
     target_res = _resolve_managed_target(target_name, target_category)
     if not target_res.ok:
         return Result.Err(target_res.code or "WORKFLOW_MOVE_FAILED", target_res.error or "Invalid workflow target")
@@ -1144,23 +1557,11 @@ def move_or_rename_workflow(path: Path, *, name: Any = "", category: Any = "") -
     target = target_data
     try:
         shutil.move(str(source), str(target))
-        for ext in set(THUMBNAIL_EXTS + ANIMATED_EXTS):
-            thumb = source.with_suffix(ext)
-            if thumb.exists():
-                shutil.move(str(thumb), str(target.with_suffix(ext)))
+        _move_workflow_thumbnail_siblings(source, target)
+        _move_workflow_history_dir(source, target)
     except Exception as exc:
         return Result.Err("WORKFLOW_MOVE_FAILED", f"Failed to move workflow: {exc.__class__.__name__}")
-    try:
-        db_path = _workflow_library_db_path()
-        if db_path.exists():
-            with sqlite3.connect(str(db_path)) as conn:
-                _ensure_workflow_library_schema(conn)
-                conn.execute(
-                    "UPDATE workflows SET filepath = ?, updated_at = ? WHERE filepath = ?",
-                    (str(target), int(time.time()), str(source)),
-                )
-    except Exception:
-        logger.debug("Workflow library filepath update failed after move", exc_info=True)
+    _update_workflow_library_filepath(source, target)
     root = managed_workflow_root(create=False) or target.parent
     return Result.Ok({"moved": True, "workflow": _workflow_to_card(target, root), "filepath": str(target)})
 
@@ -1173,6 +1574,9 @@ def delete_workflow(path: Path) -> Result[dict[str, Any]]:
     except FileNotFoundError:
         return Result.Err("NOT_FOUND", "Workflow not found")
     deleted = 0
+    snapshot = _snapshot_workflow_version(resolved, reason="delete")
+    if not snapshot.ok:
+        return Result.Err(snapshot.code or "WORKFLOW_HISTORY_FAILED", snapshot.error or "Failed to snapshot workflow")
     try:
         resolved.unlink()
         deleted += 1
@@ -1527,7 +1931,7 @@ def _workflow_subfolder(path: Path, root: Path) -> str:
         return ""
 
 
-def _workflow_to_card(path: Path, root: Path) -> dict[str, Any] | None:
+def _workflow_to_card(path: Path, root: Path, *, use_library_meta: bool = True) -> dict[str, Any] | None:
     workflow = _safe_read_workflow_json(path)
     if workflow is None:
         return None
@@ -1544,7 +1948,7 @@ def _workflow_to_card(path: Path, root: Path) -> dict[str, Any] | None:
     animated_thumbnail_path = _find_thumbnail(path, animated=True)
     missing_nodes = _as_str_list(workflow.get("missing_nodes"))
     missing_models = _as_str_list(workflow.get("missing_models"))
-    library_meta = _read_workflow_library_meta(path)
+    library_meta = _read_workflow_library_meta(path) if use_library_meta else {}
     usage_count = _to_int(library_meta.get("usage_count"), _to_int(workflow.get("usage_count"), 0))
     last_loaded_at = _to_int(library_meta.get("last_loaded_at"), _to_int(workflow.get("last_loaded_at"), 0))
     tags = _as_str_list(library_meta.get("tags")) or _workflow_tags(workflow)
@@ -1663,15 +2067,319 @@ def _sort_cards(cards: list[dict[str, Any]], sort_key: str) -> list[dict[str, An
     return sorted(cards, key=lambda c: int(c.get("mtime") or 0), reverse=True)
 
 
-def list_workflows(
+def _workflow_root_for_path(path: Path, roots: list[Path]) -> Path:
+    try:
+        resolved = path.resolve(strict=False)
+        for root in roots:
+            root_resolved = root.resolve(strict=False)
+            if resolved == root_resolved or root_resolved in resolved.parents:
+                return root_resolved
+    except Exception:
+        pass
+    return path.parent
+
+
+def _workflow_db_existing_by_path(conn: sqlite3.Connection) -> dict[str, tuple[int, int]]:
+    try:
+        rows = conn.execute("SELECT filepath, COALESCE(mtime, 0), COALESCE(size, 0) FROM workflows").fetchall()
+    except Exception:
+        return {}
+    return {
+        str(row[0] or ""): (_to_int(row[1], 0), _to_int(row[2], 0))
+        for row in rows
+        if str(row[0] or "").strip()
+    }
+
+
+def _workflow_row_needs_legacy_hydration(conn: sqlite3.Connection, filepath: str) -> bool:
+    try:
+        row = conn.execute(
+            """
+            SELECT favorite, usage_count, last_loaded_at, tags_json
+            FROM workflows WHERE filepath = ?
+            """,
+            (filepath,),
+        ).fetchone()
+        if not row:
+            return False
+        row_empty = (
+            not bool(row[0])
+            and _to_int(row[1], 0) <= 0
+            and _to_int(row[2], 0) <= 0
+            and not _json_list(row[3])
+        )
+        if row_empty:
+            return True
+        workflow = _safe_read_workflow_json(Path(filepath))
+        if not isinstance(workflow, dict):
+            return False
+        file_favorite = _to_bool(workflow.get("favorite"), False)
+        file_usage = _to_int(workflow.get("usage_count"), 0)
+        file_last_loaded = _to_int(workflow.get("last_loaded_at"), 0)
+        file_tags = _workflow_tags(workflow)
+        return (
+            (file_favorite and not bool(row[0]))
+            or (file_usage > _to_int(row[1], 0))
+            or (file_last_loaded > _to_int(row[2], 0))
+            or (bool(file_tags) and not set(file_tags).issubset(set(_json_list(row[3]))))
+        )
+    except Exception:
+        return False
+
+
+def _refresh_workflow_index_path(
+    conn: sqlite3.Connection,
+    path: Path,
+    root: Path,
+    existing: dict[str, tuple[int, int]],
     *,
-    query: str = "*",
-    limit: int = 200,
-    offset: int = 0,
-    sort: str = "mtime_desc",
-    subfolder: str = "",
+    force_full_refresh: bool,
+) -> tuple[str | None, bool]:
+    try:
+        resolved = path.resolve(strict=True)
+        stat = resolved.stat()
+    except Exception:
+        return None, False
+    filepath = str(resolved)
+    current_sig = (int(stat.st_mtime or 0), int(stat.st_size or 0))
+    needs_legacy_hydration = _workflow_row_needs_legacy_hydration(conn, filepath)
+    if not force_full_refresh and existing.get(filepath) == current_sig and not needs_legacy_hydration:
+        return filepath, False
+    card = _workflow_to_card(
+        resolved,
+        root,
+        use_library_meta=not (force_full_refresh or needs_legacy_hydration),
+    )
+    if card is None:
+        return filepath, False
+    updates = None
+    if force_full_refresh or needs_legacy_hydration:
+        updates = {
+            "favorite": bool(card.get("favorite")),
+            "usage_count": max(0, _to_int(card.get("usage_count"), 0)),
+            "last_loaded_at": max(0, _to_int(card.get("last_loaded_at"), 0)),
+            "tags": _as_str_list(card.get("tags")),
+        }
+    write = _upsert_workflow_library_card(card, updates=updates)
+    return filepath, bool(write.ok)
+
+
+def _scan_workflow_index_roots(
+    conn: sqlite3.Connection,
+    scan_roots: list[Path],
+    existing: dict[str, tuple[int, int]],
+    *,
+    force_full_refresh: bool,
+) -> tuple[set[str], int, int]:
+    seen: set[str] = set()
+    indexed = 0
+    updated = 0
+    for root in scan_roots:
+        try:
+            paths = root.rglob("*.json")
+        except Exception:
+            continue
+        for path in paths:
+            if indexed >= MAX_WORKFLOW_FILES:
+                break
+            filepath, did_update = _refresh_workflow_index_path(
+                conn,
+                path,
+                root,
+                existing,
+                force_full_refresh=force_full_refresh,
+            )
+            if filepath:
+                seen.add(filepath)
+                indexed += 1
+            if did_update:
+                updated += 1
+        if indexed >= MAX_WORKFLOW_FILES:
+            break
+    return seen, indexed, updated
+
+
+def _workflow_path_in_roots(path: Path, root_strings: list[str]) -> bool:
+    candidate = str(path.resolve(strict=False)).lower()
+    return any(candidate == root or candidate.startswith(root.rstrip("\\/") + os.sep.lower()) for root in root_strings)
+
+
+def _remove_stale_workflow_index_rows(
+    conn: sqlite3.Connection,
+    existing: dict[str, tuple[int, int]],
+    seen: set[str],
+    scan_roots: list[Path],
+) -> int:
+    removed = 0
+    root_strings = [str(root.resolve(strict=False)).lower() for root in scan_roots]
+    for filepath in list(existing):
+        try:
+            if _workflow_path_in_roots(Path(filepath), root_strings) and filepath not in seen:
+                conn.execute("DELETE FROM workflows WHERE filepath = ?", (filepath,))
+                removed += 1
+        except Exception:
+            continue
+    return removed
+
+
+def refresh_workflow_library_index(*, roots: list[Path] | None = None) -> Result[dict[str, Any]]:
+    """Synchronize the workflow DB with files, reparsing only changed JSON."""
+    scan_roots = roots if roots is not None else workflow_roots()
+    if not scan_roots:
+        return Result.Ok({"indexed": 0, "updated": 0, "removed": 0, "roots": []})
+    try:
+        db_path = _workflow_library_db_path()
+        db_path.parent.mkdir(parents=True, exist_ok=True)
+        with sqlite3.connect(str(db_path)) as conn:
+            _ensure_workflow_library_schema(conn)
+            force_full_refresh = _workflow_index_needs_full_refresh(conn)
+            existing = _workflow_db_existing_by_path(conn)
+            seen, indexed, updated = _scan_workflow_index_roots(
+                conn,
+                scan_roots,
+                existing,
+                force_full_refresh=force_full_refresh,
+            )
+            removed = _remove_stale_workflow_index_rows(conn, existing, seen, scan_roots)
+            _mark_workflow_index_version(conn)
+        return Result.Ok({"indexed": indexed, "updated": updated, "removed": removed, "roots": [str(root) for root in scan_roots]})
+    except Exception as exc:
+        logger.debug("Workflow library index refresh failed", exc_info=True)
+        return Result.Err("WORKFLOW_INDEX_FAILED", f"Failed to refresh workflow index: {exc.__class__.__name__}")
+
+
+def _json_list(value: Any) -> list[str]:
+    try:
+        parsed = json.loads(str(value or "[]"))
+    except Exception:
+        parsed = []
+    return _as_str_list(parsed)
+
+
+def _json_dict(value: Any) -> dict[str, Any]:
+    try:
+        parsed = json.loads(str(value or "{}"))
+        return parsed if isinstance(parsed, dict) else {}
+    except Exception:
+        return {}
+
+
+def _workflow_card_detection_fields(row: sqlite3.Row) -> dict[str, Any]:
+    return {
+        "task": str(row["task"] or ""),
+        "workflow_task": str(row["task"] or ""),
+        "model_family": str(row["model_family"] or ""),
+        "provider": str(row["provider"] or ""),
+        "runs_on": str(row["runs_on"] or ""),
+        "detected_task": str(row["detected_task"] or ""),
+        "detected_model_family": str(row["detected_model_family"] or ""),
+        "detected_provider": str(row["detected_provider"] or ""),
+        "detected_runs_on": str(row["detected_runs_on"] or ""),
+        "user_task": str(row["user_task"] or ""),
+        "user_model_family": str(row["user_model_family"] or ""),
+        "user_provider": str(row["user_provider"] or ""),
+        "user_runs_on": str(row["user_runs_on"] or ""),
+        "notes": str(row["notes"] or ""),
+        "detection_confidence": float(row["detection_confidence"] or 0),
+        "detection_source": str(row["detection_source"] or ""),
+        "detection_signals": _json_dict(row["detection_signals_json"]),
+    }
+
+
+def _workflow_card_media_fields(filepath: str, thumbnail_path: str, animated_thumbnail_path: str) -> dict[str, Any]:
+    return {
+        "thumbnail_path": thumbnail_path,
+        "animated_thumbnail_path": animated_thumbnail_path,
+        "thumbnail_url": _thumbnail_url(thumbnail_path),
+        "animated_thumbnail_url": _thumbnail_url(animated_thumbnail_path),
+        "graph_map_thumbnail_url": _workflow_graph_map_thumbnail_url(filepath) if not thumbnail_path and not animated_thumbnail_path else "",
+    }
+
+
+def _workflow_card_validation_fields(row: sqlite3.Row) -> dict[str, Any]:
+    missing_nodes = _json_list(row["missing_nodes_json"])
+    missing_models = _json_list(row["missing_models_json"])
+    return {
+        "node_count": _to_int(row["node_count"], 0),
+        "link_count": _to_int(row["link_count"], 0),
+        "subgraph_count": _to_int(row["subgraph_count"], 0),
+        "missing_nodes": missing_nodes,
+        "missing_models": missing_models,
+        "missing_nodes_count": len(missing_nodes),
+        "missing_models_count": len(missing_models),
+    }
+
+
+def _workflow_card_from_db_row(row: sqlite3.Row, roots: list[Path]) -> dict[str, Any]:
+    filepath = str(row["filepath"] or "")
+    path = Path(filepath)
+    root = _workflow_root_for_path(path, roots)
+    thumbnail_path = str(row["thumbnail_path"] or "")
+    animated_thumbnail_path = str(row["animated_thumbnail_path"] or "")
+    workflow_hash = str(row["workflow_hash"] or "")
+    workflow_id = str(row["workflow_id"] or workflow_hash[:16])
+    card = {
+        "id": f"workflow:{workflow_hash[:16]}",
+        "asset_id": f"workflow:{workflow_hash[:16]}",
+        "kind": "workflow",
+        "source": "workflow",
+        "type": "workflow",
+        "filename": path.name,
+        "display_name": str(row["name"] or path.stem),
+        "description": str(row["description"] or ""),
+        "filepath": filepath,
+        "subfolder": str(row["category"] or _workflow_subfolder(path, root)),
+        "root_path": str(root),
+        "ext": "JSON",
+        "size": _to_int(row["size"], 0),
+        "mtime": _to_int(row["mtime"], 0),
+        "workflow_hash": workflow_hash,
+        "workflow_id": workflow_id,
+        "favorite": bool(row["favorite"]),
+        "usage_count": max(0, _to_int(row["usage_count"], 0)),
+        "last_loaded_at": max(0, _to_int(row["last_loaded_at"], 0)),
+        "tags": _json_list(row["tags_json"]),
+    }
+    card.update(_workflow_card_detection_fields(row))
+    card.update(_workflow_card_validation_fields(row))
+    card.update(_workflow_card_media_fields(filepath, thumbnail_path, animated_thumbnail_path))
+    return card
+
+
+def _list_workflow_cards_from_index(roots: list[Path]) -> Result[list[dict[str, Any]]]:
+    try:
+        db_path = _workflow_library_db_path()
+        if not db_path.exists():
+            return Result.Ok([])
+        with sqlite3.connect(str(db_path)) as conn:
+            conn.row_factory = sqlite3.Row
+            _ensure_workflow_library_schema(conn)
+            rows = conn.execute("SELECT * FROM workflows WHERE source = 'workflow'").fetchall()
+        root_resolved = [root.resolve(strict=False) for root in roots]
+        cards = []
+        for row in rows:
+            try:
+                path = Path(str(row["filepath"] or "")).resolve(strict=False)
+                if root_resolved and not any(path == root or path.is_relative_to(root) for root in root_resolved):
+                    continue
+            except Exception:
+                continue
+            cards.append(_workflow_card_from_db_row(row, root_resolved))
+        return Result.Ok(cards)
+    except Exception as exc:
+        logger.debug("Workflow library index read failed", exc_info=True)
+        return Result.Err("WORKFLOW_LIST_FAILED", f"Failed to read workflow index: {exc.__class__.__name__}")
+
+
+def _list_workflows_from_filesystem(
+    *,
+    roots: list[Path],
+    query: str,
+    limit: int,
+    offset: int,
+    sort: str,
+    subfolder: str,
 ) -> Result[dict[str, Any]]:
-    roots = workflow_roots()
     cards: list[dict[str, Any]] = []
     safe_subfolder = str(subfolder or "").strip().replace("\\", "/")
     try:
@@ -1695,6 +2403,65 @@ def list_workflows(
     except Exception as exc:
         logger.debug("Workflow listing failed", exc_info=True)
         return Result.Err("WORKFLOW_LIST_FAILED", f"Failed to list workflows: {exc.__class__.__name__}")
+
+    _apply_linked_preview_fallback(cards)
+    sorted_cards = _sort_cards(cards, sort)
+    safe_offset = max(0, int(offset or 0))
+    safe_limit = max(1, int(limit or 200))
+    page = sorted_cards[safe_offset : safe_offset + safe_limit]
+    return Result.Ok(
+        {
+            "assets": page,
+            "count": len(page),
+            "total": len(sorted_cards),
+            "limit": safe_limit,
+            "offset": safe_offset,
+            "scope": "workflow",
+            "mode": "workflow",
+            "roots": [str(root) for root in roots],
+            "sort": sort,
+        }
+    )
+
+
+def list_workflows(
+    *,
+    query: str = "*",
+    limit: int = 200,
+    offset: int = 0,
+    sort: str = "mtime_desc",
+    subfolder: str = "",
+) -> Result[dict[str, Any]]:
+    roots = workflow_roots()
+    refresh = refresh_workflow_library_index(roots=roots)
+    if not refresh.ok:
+        return _list_workflows_from_filesystem(
+            roots=roots,
+            query=query,
+            limit=limit,
+            offset=offset,
+            sort=sort,
+            subfolder=subfolder,
+        )
+
+    indexed_cards = _list_workflow_cards_from_index(roots)
+    if not indexed_cards.ok:
+        return _list_workflows_from_filesystem(
+            roots=roots,
+            query=query,
+            limit=limit,
+            offset=offset,
+            sort=sort,
+            subfolder=subfolder,
+        )
+
+    safe_subfolder = str(subfolder or "").strip().replace("\\", "/")
+    cards = [
+        card
+        for card in (indexed_cards.data or [])
+        if (not safe_subfolder or str(card.get("subfolder") or "").replace("\\", "/") == safe_subfolder)
+        and _matches_query(card, query)
+    ][:MAX_WORKFLOW_FILES]
 
     _apply_linked_preview_fallback(cards)
 

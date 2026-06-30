@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { buildWorkflowContentURL } from "../api/endpoints.js";
+import { buildWorkflowContentURL, buildWorkflowDiffURL, buildWorkflowValidateURL, buildWorkflowVersionsURL } from "../api/endpoints.js";
 
 function makeStorage() {
     const store = new Map();
@@ -47,6 +47,19 @@ describe("workflow api client", () => {
         expect(url).toContain("demo%20workflow.json");
     });
 
+    it("builds a workflow validate URL with escaped filepath", () => {
+        const url = buildWorkflowValidateURL("C:/ComfyUI/user/default/workflows/demo workflow.json");
+        expect(url).toContain("/mjr/am/workflows/validate?filepath=");
+        expect(url).toContain("demo%20workflow.json");
+    });
+
+    it("builds workflow versions and diff URLs", () => {
+        expect(buildWorkflowVersionsURL("C:/tmp/wf.json")).toContain("/mjr/am/workflows/versions?filepath=");
+        const diffUrl = buildWorkflowDiffURL("C:/tmp/wf.json", "C:/tmp/.history/wf/old.json");
+        expect(diffUrl).toContain("/mjr/am/workflows/diff?filepath=");
+        expect(diffUrl).toContain("version_filepath=");
+    });
+
     it("maps missing filepath to INVALID_INPUT without fetch", async () => {
         const client = await import("../api/client.js");
         const result = await client.getWorkflowContent("");
@@ -71,6 +84,40 @@ describe("workflow api client", () => {
             String(url).includes("/mjr/am/workflows/mark-loaded"),
         );
         expect(markLoadedCall).toBeTruthy();
+    });
+
+    it("fetches workflow validation diagnostics", async () => {
+        globalThis.fetch = vi.fn(async () => ({
+            status: 200,
+            headers: { get: (name) => (name === "content-type" ? "application/json" : null) },
+            json: async () => ({ ok: true, data: { valid: true, required_nodes: [] } }),
+        }));
+
+        const client = await import("../api/client.js");
+        const result = await client.validateWorkflow("C:/tmp/wf.json");
+
+        expect(result.ok).toBe(true);
+        const validateCall = globalThis.fetch.mock.calls.find(([url]) =>
+            String(url).includes("/mjr/am/workflows/validate"),
+        );
+        expect(validateCall).toBeTruthy();
+    });
+
+    it("fetches workflow versions and diff", async () => {
+        globalThis.fetch = vi.fn(async () => ({
+            status: 200,
+            headers: { get: (name) => (name === "content-type" ? "application/json" : null) },
+            json: async () => ({ ok: true, data: { versions: [], changed: [] } }),
+        }));
+
+        const client = await import("../api/client.js");
+        const versions = await client.listWorkflowVersions("C:/tmp/wf.json");
+        const diff = await client.diffWorkflow("C:/tmp/wf.json");
+
+        expect(versions.ok).toBe(true);
+        expect(diff.ok).toBe(true);
+        expect(globalThis.fetch.mock.calls.some(([url]) => String(url).includes("/mjr/am/workflows/versions"))).toBe(true);
+        expect(globalThis.fetch.mock.calls.some(([url]) => String(url).includes("/mjr/am/workflows/diff"))).toBe(true);
     });
 
     it("posts favorite to the dedicated endpoint", async () => {

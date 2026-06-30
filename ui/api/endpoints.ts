@@ -163,6 +163,9 @@ export const ENDPOINTS = {
 
     // Workflow library
     WORKFLOWS_CONTENT: "/mjr/am/workflows/content",
+    WORKFLOWS_VALIDATE: "/mjr/am/workflows/validate",
+    WORKFLOWS_VERSIONS: "/mjr/am/workflows/versions",
+    WORKFLOWS_DIFF: "/mjr/am/workflows/diff",
     WORKFLOWS_SAVE: "/mjr/am/workflows/save",
     WORKFLOWS_DUPLICATE: "/mjr/am/workflows/duplicate",
     WORKFLOWS_MOVE: "/mjr/am/workflows/move",
@@ -628,6 +631,27 @@ export function buildWorkflowContentURL(filepath: any): string {
     const fp = String(filepath || "").trim();
     if (!fp) return "";
     return `${ENDPOINTS.WORKFLOWS_CONTENT}?filepath=${encodeURIComponent(fp)}`;
+}
+
+export function buildWorkflowValidateURL(filepath: any): string {
+    const fp = String(filepath || "").trim();
+    if (!fp) return "";
+    return `${ENDPOINTS.WORKFLOWS_VALIDATE}?filepath=${encodeURIComponent(fp)}`;
+}
+
+export function buildWorkflowVersionsURL(filepath: any): string {
+    const fp = String(filepath || "").trim();
+    if (!fp) return "";
+    return `${ENDPOINTS.WORKFLOWS_VERSIONS}?filepath=${encodeURIComponent(fp)}`;
+}
+
+export function buildWorkflowDiffURL(filepath: any, version_filepath: any = ""): string {
+    const fp = String(filepath || "").trim();
+    if (!fp) return "";
+    let url = `${ENDPOINTS.WORKFLOWS_DIFF}?filepath=${encodeURIComponent(fp)}`;
+    const version = String(version_filepath || "").trim();
+    if (version) url += `&version_filepath=${encodeURIComponent(version)}`;
+    return url;
 }
 
 /**

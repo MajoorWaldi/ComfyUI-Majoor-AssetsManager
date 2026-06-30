@@ -466,7 +466,235 @@ watch(
 
         <template v-if="sectionState.kind === 'full'">
             <div
-                v-if="sectionState.promptTabs.length"
+                v-if="sectionState.ltxDirector"
+                :style="boxStyle('#26C6DA', { emphasis: true, startAlpha: 0.15, endAlpha: 0.08 })"
+            >
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px">
+                    <div style="font-size:11px;font-weight:800;color:#26C6DA;text-transform:uppercase;letter-spacing:0.5px">
+                        {{ sectionState.ltxDirector.title || "LTX Director" }}
+                    </div>
+                    <span style="font-size:10px;font-weight:700;color:#26C6DA;background:rgba(38,198,218,0.14);border:1px solid rgba(38,198,218,0.32);border-radius:999px;padding:2px 8px">
+                        Director
+                    </span>
+                </div>
+
+                <div
+                    v-if="sectionState.ltxDirector.fields.length"
+                    style="display:grid;grid-template-columns:repeat(auto-fit,minmax(92px,1fr));gap:8px;margin-bottom:10px"
+                >
+                    <div
+                        v-for="field in sectionState.ltxDirector.fields"
+                        :key="`ltx-field-${field.label}`"
+                        style="border:1px solid rgba(255,255,255,0.10);border-radius:6px;background:rgba(255,255,255,0.045);padding:7px 8px;min-width:0"
+                    >
+                        <div style="font-size:9px;font-weight:800;color:rgba(255,255,255,0.55);text-transform:uppercase;letter-spacing:0.4px">
+                            {{ field.label }}
+                        </div>
+                        <div style="font-size:12px;color:var(--fg-color,#eee);font-weight:650;word-break:break-word">
+                            {{ field.value }}
+                        </div>
+                    </div>
+                </div>
+
+                <div
+                    v-if="sectionState.ltxDirector.globalPrompt"
+                    style="border:1px solid rgba(76,175,80,0.36);border-radius:6px;background:rgba(76,175,80,0.10);padding:10px;margin-bottom:10px"
+                >
+                    <div style="font-size:10px;font-weight:800;color:#66BB6A;text-transform:uppercase;letter-spacing:0.45px;margin-bottom:6px">
+                        Global Prompt
+                    </div>
+                    <div
+                        :title="t('action.clickToCopy', 'Click to copy')"
+                        style="font-size:12px;color:var(--fg-color,#eee);line-height:1.45;white-space:pre-wrap;word-break:break-word;cursor:pointer"
+                        @click="copyText(sectionState.ltxDirector.globalPrompt, $event.currentTarget)"
+                    >
+                        {{ sectionState.ltxDirector.globalPrompt }}
+                    </div>
+                </div>
+
+                <div
+                    v-if="sectionState.ltxDirector.segments.length"
+                    style="display:flex;flex-direction:column;gap:8px"
+                >
+                    <div
+                        v-for="segment in sectionState.ltxDirector.segments"
+                        :key="segment.key"
+                        style="border:1px solid rgba(38,198,218,0.30);border-radius:6px;background:rgba(38,198,218,0.075);padding:10px"
+                    >
+                        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:7px">
+                            <div style="font-size:10px;font-weight:800;color:#26C6DA;text-transform:uppercase;letter-spacing:0.45px">
+                                {{ segment.label }}
+                            </div>
+                            <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;justify-content:flex-end">
+                                <span
+                                    v-if="segment.inLabel"
+                                    style="font-size:10px;color:#A7FFEB;background:rgba(0,150,136,0.16);border:1px solid rgba(0,150,136,0.30);border-radius:4px;padding:2px 6px;font-weight:700"
+                                >
+                                    in {{ segment.inLabel }}
+                                </span>
+                                <span
+                                    v-if="segment.outLabel"
+                                    style="font-size:10px;color:#FFE082;background:rgba(255,193,7,0.14);border:1px solid rgba(255,193,7,0.30);border-radius:4px;padding:2px 6px;font-weight:700"
+                                >
+                                    out {{ segment.outLabel }}
+                                </span>
+                            </div>
+                        </div>
+                        <div style="display:flex;gap:10px;align-items:flex-start;min-width:0">
+                            <GenerationInputThumb
+                                v-if="segment.filename"
+                                :input-file="{
+                                    filename: segment.filename,
+                                    filepath: segment.filepath || segment.filename,
+                                    role: segment.type || 'segment',
+                                    roleLabel: segment.type || 'segment',
+                                    isVideo: segment.isVideo,
+                                    isAudio: segment.isAudio,
+                                    previewCandidates: segment.previewCandidates,
+                                }"
+                            />
+                            <div style="min-width:0;flex:1">
+                                <div
+                                    v-if="segment.prompt"
+                                    :title="t('action.clickToCopy', 'Click to copy')"
+                                    style="font-size:12px;color:var(--fg-color,#eee);line-height:1.45;white-space:pre-wrap;word-break:break-word;cursor:pointer"
+                                    @click="copyText(segment.prompt, $event.currentTarget)"
+                                >
+                                    {{ segment.prompt }}
+                                </div>
+                                <div
+                                    v-if="segment.filename || segment.type"
+                                    style="font-size:10px;color:rgba(255,255,255,0.58);margin-top:7px;display:flex;gap:6px;flex-wrap:wrap"
+                                >
+                                    <span v-if="segment.type">{{ segment.type }}</span>
+                                    <span v-if="segment.filename">{{ segment.filename }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div
+                v-if="sectionState.ideogram"
+                :style="boxStyle('#FFB300', { emphasis: true, startAlpha: 0.15, endAlpha: 0.08 })"
+            >
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px">
+                    <div style="font-size:11px;font-weight:800;color:#FFB300;text-transform:uppercase;letter-spacing:0.5px">
+                        {{ sectionState.ideogram.title || "Ideogram 4" }}
+                    </div>
+                    <span style="font-size:10px;font-weight:700;color:#FFCA28;background:rgba(255,179,0,0.14);border:1px solid rgba(255,179,0,0.32);border-radius:999px;padding:2px 8px">
+                        Prompt JSON
+                    </span>
+                </div>
+
+                <div
+                    v-if="sectionState.ideogram.fields.length"
+                    style="display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:8px;margin-bottom:10px"
+                >
+                    <div
+                        v-for="field in sectionState.ideogram.fields"
+                        :key="`ideogram-field-${field.label}`"
+                        style="border:1px solid rgba(255,255,255,0.10);border-radius:6px;background:rgba(255,255,255,0.045);padding:7px 8px;min-width:0"
+                    >
+                        <div style="font-size:9px;font-weight:800;color:rgba(255,255,255,0.55);text-transform:uppercase;letter-spacing:0.4px">
+                            {{ field.label }}
+                        </div>
+                        <div style="font-size:12px;color:var(--fg-color,#eee);font-weight:650;word-break:break-word">
+                            {{ field.value }}
+                        </div>
+                    </div>
+                </div>
+
+                <div
+                    v-if="sectionState.ideogram.highLevelDescription"
+                    style="border:1px solid rgba(76,175,80,0.34);border-radius:6px;background:rgba(76,175,80,0.09);padding:10px;margin-bottom:10px"
+                >
+                    <div style="font-size:10px;font-weight:800;color:#81C784;text-transform:uppercase;letter-spacing:0.45px;margin-bottom:6px">
+                        High Level Description
+                    </div>
+                    <div
+                        :title="t('action.clickToCopy', 'Click to copy')"
+                        style="font-size:12px;color:var(--fg-color,#eee);line-height:1.45;white-space:pre-wrap;word-break:break-word;cursor:pointer"
+                        @click="copyText(sectionState.ideogram.highLevelDescription, $event.currentTarget)"
+                    >
+                        {{ sectionState.ideogram.highLevelDescription }}
+                    </div>
+                </div>
+
+                <div
+                    v-if="sectionState.ideogram.background"
+                    style="border:1px solid rgba(33,150,243,0.32);border-radius:6px;background:rgba(33,150,243,0.08);padding:10px;margin-bottom:10px"
+                >
+                    <div style="font-size:10px;font-weight:800;color:#64B5F6;text-transform:uppercase;letter-spacing:0.45px;margin-bottom:6px">
+                        Background
+                    </div>
+                    <div
+                        :title="t('action.clickToCopy', 'Click to copy')"
+                        style="font-size:12px;color:var(--fg-color,#eee);line-height:1.45;white-space:pre-wrap;word-break:break-word;cursor:pointer"
+                        @click="copyText(sectionState.ideogram.background, $event.currentTarget)"
+                    >
+                        {{ sectionState.ideogram.background }}
+                    </div>
+                </div>
+
+                <div
+                    v-if="sectionState.ideogram.elements.length"
+                    style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px"
+                >
+                    <div
+                        v-for="element in sectionState.ideogram.elements"
+                        :key="element.key"
+                        style="border:1px solid rgba(255,179,0,0.30);border-radius:6px;background:rgba(255,179,0,0.075);padding:10px"
+                    >
+                        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:7px">
+                            <div style="font-size:10px;font-weight:800;color:#FFCA28;text-transform:uppercase;letter-spacing:0.45px">
+                                {{ element.label }}
+                            </div>
+                            <span
+                                v-if="element.bbox"
+                                style="font-size:10px;color:#FFE082;background:rgba(255,193,7,0.14);border:1px solid rgba(255,193,7,0.30);border-radius:4px;padding:2px 6px;font-weight:700"
+                            >
+                                bbox {{ element.bbox }}
+                            </span>
+                        </div>
+                        <div
+                            v-if="element.description"
+                            :title="t('action.clickToCopy', 'Click to copy')"
+                            style="font-size:12px;color:var(--fg-color,#eee);line-height:1.45;white-space:pre-wrap;word-break:break-word;cursor:pointer"
+                            @click="copyText(element.description, $event.currentTarget)"
+                        >
+                            {{ element.description }}
+                        </div>
+                        <div
+                            v-if="element.palette.length"
+                            style="display:flex;flex-wrap:wrap;gap:5px;margin-top:8px"
+                        >
+                            <span
+                                v-for="color in element.palette"
+                                :key="`${element.key}-${color}`"
+                                :title="color"
+                                :style="{ width: '18px', height: '18px', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.28)', background: color }"
+                                @click="copyText(color, $event.currentTarget)"
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                <details style="border:1px solid rgba(255,179,0,0.30);border-radius:6px;background:rgba(0,0,0,0.16);overflow:hidden">
+                    <summary style="cursor:pointer;padding:8px 10px;font-size:10px;font-weight:800;color:#FFCA28;text-transform:uppercase;letter-spacing:0.45px">
+                        JSON sent to text encoder
+                    </summary>
+                    <pre
+                        :title="t('action.clickToCopy', 'Click to copy')"
+                        style="margin:0;padding:10px;max-height:260px;overflow:auto;font-size:11px;line-height:1.35;color:rgba(255,255,255,0.9);white-space:pre-wrap;word-break:break-word;cursor:pointer"
+                        @click="copyText(sectionState.ideogram.json, $event.currentTarget)"
+                    >{{ sectionState.ideogram.json }}</pre>
+                </details>
+            </div>
+
+            <div
+                v-if="!sectionState.ltxDirector && !sectionState.ideogram && sectionState.promptTabs.length"
                 :style="boxStyle('#4CAF50', { emphasis: true, startAlpha: 0.16, endAlpha: 0.10 })"
             >
                 <div style="font-size:11px;font-weight:600;color:#4CAF50;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px">
@@ -527,7 +755,7 @@ watch(
             </div>
 
             <div
-                v-else-if="sectionState.positivePrompt"
+                v-else-if="!sectionState.ltxDirector && !sectionState.ideogram && sectionState.positivePrompt"
                 :style="boxStyle('#4CAF50', { emphasis: true, startAlpha: 0.16, endAlpha: 0.10 })"
             >
                 <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;font-weight:600;color:#4CAF50;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">
@@ -550,7 +778,7 @@ watch(
             </div>
 
             <div
-                v-if="!sectionState.promptTabs.length && sectionState.negativePrompt"
+                v-if="!sectionState.ltxDirector && !sectionState.ideogram && !sectionState.promptTabs.length && sectionState.negativePrompt"
                 :style="boxStyle('#F44336', { emphasis: true, startAlpha: 0.16, endAlpha: 0.10 })"
             >
                 <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;font-weight:600;color:#F44336;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">

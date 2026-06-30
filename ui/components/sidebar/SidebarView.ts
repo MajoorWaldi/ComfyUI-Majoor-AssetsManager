@@ -68,12 +68,13 @@ function _hasMeaningfulMetadataRaw(value: any) {
     }
     if (typeof obj === "object") {
         try {
-            if (obj.geninfo || obj.prompt || obj.workflow) return true;
+            if (obj.geninfo || obj.prompt || obj.positive_prompt || obj.parameters) return true;
             if (obj.metadata_raw && typeof obj.metadata_raw === "object") {
                 return Boolean(
                     obj.metadata_raw.geninfo ||
                     obj.metadata_raw.prompt ||
-                    obj.metadata_raw.workflow,
+                    obj.metadata_raw.positive_prompt ||
+                    obj.metadata_raw.parameters,
                 );
             }
             return false;
@@ -166,7 +167,7 @@ export async function showAssetInSidebar(sidebar: any, asset: any, onUpdate: any
 
         const current = () => sidebar._currentFullAsset ?? asset;
         try {
-            if (asset.id && !_hasGenerationLikeData(current()) && !current().exif) {
+            if (asset.id && !_hasGenerationLikeData(current())) {
                 const result = await getAssetMetadata(asset.id, opts);
                 if (signal?.aborted) return;
                 if (result?.ok && result.data) applyUpdate(result.data);

@@ -21,8 +21,9 @@ export function parseComfyUIWorkflow(workflow: any): Record<string, any> | null 
     const loras = [];
     const promptGraph = getPromptGraph(workflow);
     const samplerPasses: any[] = [];
+    const nodes = collectComfyWorkflowNodes(workflow);
 
-    for (const node of collectComfyWorkflowNodes(workflow)) {
+    for (const node of nodes) {
         if (!node || typeof node !== "object") continue;
         const inputs = getNodeInputValues(node);
         if (!inputs || typeof inputs !== "object") continue;
@@ -176,7 +177,215 @@ export function parseComfyUIWorkflow(workflow: any): Record<string, any> | null 
     const uniqueSamplerPasses = dedupeGenerationItems(samplerPasses, samplerPassKey);
     if (uniqueLoras.length) metadata.loras = uniqueLoras;
     if (uniqueSamplerPasses.length > 1) metadata.all_samplers = uniqueSamplerPasses;
+    if (metadata.seed === undefined) {
+        const samplerSeed = uniqueSamplerPasses.find((item) => item?.seed !== undefined && item?.seed !== null)?.seed;
+        if (samplerSeed !== undefined && samplerSeed !== null) metadata.seed = samplerSeed;
+    }
+    mergeLtxDirectorMetadata(metadata, nodes, promptGraph);
+    mergeIdeogramMetadata(metadata, nodes);
     return Object.keys(metadata).length > 0 ? metadata : null;
+}
+
+function mergeIdeogramMetadata(metadata: Record<string, any>, nodes: any[]) {
+    if (metadata.ideogram) return;
+    const builder = nodes.find((node) => {
+        const type = String(node?.class_type || node?.type || node?.comfyClass || "").toLowerCase();
+        return type.includes("ideogram4promptbuilderkj") || type.includes("ideogram4promptbuilder");
+    });
+    if (!builder) return;
+    const inputs = getNodeInputValues(builder) || {};
+    const elements = parseMaybeJson(firstPresent(inputs.elements_data, inputs.elements, inputs.bboxes));
+    const palette = parseMaybeJson(firstPresent(inputs.style_palette_data, inputs.palette, inputs.color_palette));
+    const payload = pruneEmptyObject({
+        width: firstPresent(inputs.width, inputs.custom_width),
+        height: firstPresent(inputs.height, inputs.custom_height),
+        high_level_description: inputs.high_level_description,
+        background: inputs.background,
+        style: inputs.style,
+        photo_style: inputs["style.photo"] || inputs.photo_style,
+        aesthetics: inputs.aesthetics,
+        lighting: inputs.lighting,
+        medium: inputs.medium,
+        bg_brightness: inputs.bg_brightness,
+        coord_mode: inputs.coord_mode,
+        bbox_order: inputs.bbox_order,
+        color_palette: palette,
+        elements,
+    });
+    if (!Object.keys(payload).length) return;
+    const rawJson = JSON.stringify(payload, null, 2);
+    metadata.ideogram = pruneEmptyObject({
+        title: String(builder?._meta?.title || builder?.title || "Ideogram 4").trim(),
+        json: rawJson,
+        payload,
+        high_level_description: payload.high_level_description,
+        background: payload.background,
+        elements: Array.isArray(elements) ? elements : [],
+        color_palette: Array.isArray(palette) ? palette : [],
+    });
+    metadata.prompt = rawJson;
+    metadata.workflow_type = metadata.workflow_type || "ideogram";
+}
+
+function parseMaybeJson(value: any): any {
+    if (value && typeof value === "object") return value;
+    if (typeof value !== "string" || !value.trim()) return value;
+    try {
+        return JSON.parse(value);
+    } catch {
+        return value;
+    }
+}
+
+function mergeLtxDirectorMetadata(metadata: Record<string, any>, nodes: any[], promptGraph: Record<string, any> | null) {
+    if (metadata.ltx_director) return;
+    const director = nodes.find((node) => {
+        const type = String(node?.class_type || node?.type || node?.comfyClass || "").toLowerCase();
+        return type === "ltxdirector" || type === "ltxdirectorguide";
+    });
+    if (!director) return;
+
+    const inputs = getNodeInputValues(director) || {};
+    const props = director?.properties && typeof director.properties === "object" ? director.properties : {};
+    const timeline = parseTimelineData(firstPresent(inputs.timeline_data, props.timeline_data));
+    const fpsValue = firstPresent(inputs.frame_rate, props.frame_rate, timeline.frame_rate, 0);
+    const fps = Number(fpsValue);
+    const frameRate = Number.isFinite(fps) && fps > 0 ? fps : null;
+    const segments = normalizeLtxSegments(timeline.segments, frameRate);
+    const globalPrompt = String(firstPresent(timeline.global_prompt, inputs.global_prompt, props.global_prompt, "") || "").trim();
+    const models = collectLtxModels(nodes, director, promptGraph);
+    const width = firstPresent(inputs.custom_width, props.custom_width, inputs.width);
+    const height = firstPresent(inputs.custom_height, props.custom_height, inputs.height);
+
+    metadata.ltx_director = pruneEmptyObject({
+        title: String(director?._meta?.title || director?.title || "LTX Director").trim(),
+        global_prompt: globalPrompt,
+        frame_rate: fpsValue,
+        duration_frames: firstPresent(inputs.duration_frames, props.duration_frames),
+        duration_seconds: firstPresent(inputs.duration_seconds, props.duration_seconds),
+        width,
+        height,
+        segments,
+        models,
+    });
+
+    const prompts = [globalPrompt, ...segments.map((segment) => segment.prompt)].filter((value) => String(value || "").trim());
+    if (!metadata.prompt && prompts.length) metadata.prompt = prompts.join("\n");
+    if (!metadata.models && Object.keys(models).length) metadata.models = models;
+    if (!metadata.width && width) metadata.width = width;
+    if (!metadata.height && height) metadata.height = height;
+}
+
+function firstPresent(...values: any[]) {
+    return values.find((value) => value !== undefined && value !== null && value !== "");
+}
+
+function parseTimelineData(value: any): Record<string, any> {
+    if (value && typeof value === "object") return value;
+    if (typeof value !== "string" || !value.trim()) return {};
+    try {
+        const parsed = JSON.parse(value);
+        return parsed && typeof parsed === "object" ? parsed : {};
+    } catch {
+        return {};
+    }
+}
+
+function normalizeLtxSegments(value: any, frameRate: number | null): any[] {
+    if (!Array.isArray(value)) return [];
+    return value
+        .map((segment, index) => normalizeLtxSegment(segment, index, frameRate))
+        .filter((segment) => segment.prompt || segment.filename || segment.in !== "" || segment.out !== "");
+}
+
+function normalizeLtxSegment(segment: any, index: number, frameRate: number | null): Record<string, any> {
+    const start = firstPresent(segment?.start, segment?.startFrame, segment?.in, segment?.from, segment?.start_frame);
+    const explicitEnd = firstPresent(segment?.end, segment?.endFrame, segment?.out, segment?.to, segment?.end_frame);
+    const length = firstPresent(segment?.length, segment?.duration, segment?.frames, segment?.duration_frames);
+    const end = explicitEnd !== undefined ? explicitEnd : addNumeric(start, length);
+    const prompt = String(firstPresent(segment?.prompt, segment?.text, segment?.caption, "") || "").trim();
+    const filename = String(firstPresent(segment?.imageFile, segment?.videoFile, segment?.audioFile, segment?.filename, segment?.file, segment?.path, "") || "").trim();
+    return pruneEmptyObject({
+        index: index + 1,
+        id: segment?.id,
+        prompt,
+        in: displaySegmentBoundary(start, frameRate),
+        out: displaySegmentBoundary(end, frameRate),
+        in_frame: start,
+        out_frame: end,
+        filename,
+        type: segment?.type,
+    });
+}
+
+function addNumeric(a: any, b: any): any {
+    const left = Number(a);
+    const right = Number(b);
+    if (!Number.isFinite(left) || !Number.isFinite(right)) return undefined;
+    return left + right;
+}
+
+function displaySegmentBoundary(value: any, frameRate: number | null): string {
+    if (value === undefined || value === null || value === "") return "";
+    const frame = Number(value);
+    if (!Number.isFinite(frame) || !frameRate) return String(value);
+    return formatSeconds(frame / frameRate);
+}
+
+function formatSeconds(value: number): string {
+    if (!Number.isFinite(value)) return "";
+    const total = Math.max(0, value);
+    if (total < 60) {
+        const rounded = total < 10 && Math.abs(total - Math.round(total)) > 0.05
+            ? Math.round(total * 10) / 10
+            : Math.round(total);
+        return `${rounded}s`;
+    }
+    const minutes = Math.floor(total / 60);
+    const seconds = Math.round(total % 60);
+    if (seconds === 0) return `${minutes}m`;
+    return `${minutes}m ${seconds}s`;
+}
+
+function collectLtxModels(nodes: any[], director: any, promptGraph: Record<string, any> | null): Record<string, any> {
+    const models: Record<string, any> = {};
+    const setModel = (key: string, value: any) => {
+        if (models[key]) return;
+        if (typeof value !== "string") return;
+        const text = value.trim();
+        if (text) models[key] = text;
+    };
+    const directorInputs = getNodeInputValues(director) || {};
+    setModel("unet", resolveLinkedModelName(directorInputs.model, promptGraph));
+    setModel("clip", resolveLinkedModelName(directorInputs.clip, promptGraph));
+    setModel("audio_vae", resolveLinkedModelName(directorInputs.audio_vae, promptGraph));
+    setModel("video_vae", resolveLinkedModelName(directorInputs.video_vae, promptGraph));
+
+    for (const node of nodes) {
+        const inputs = getNodeInputValues(node) || {};
+        const type = String(node?.class_type || node?.type || "").toLowerCase();
+        if (type.includes("unet")) setModel("unet", inputs.unet_name || inputs.model_name);
+        if (type.includes("latentupscale")) setModel("upscaler", inputs.model_name || inputs.upscale_model);
+        if (type.includes("clip")) setModel("clip", inputs.clip_name || inputs.clip_name1);
+        if (type.includes("vae")) {
+            const name = inputs.vae_name || inputs.model_name;
+            if (/audio/i.test(String(name || "")) || type.includes("audio")) setModel("audio_vae", name);
+            else if (/tae|tiny/i.test(String(name || ""))) setModel("tiny_vae", name);
+            else setModel("video_vae", name);
+        }
+    }
+    return models;
+}
+
+function pruneEmptyObject(value: Record<string, any>): Record<string, any> {
+    const out: Record<string, any> = {};
+    for (const [key, item] of Object.entries(value || {})) {
+        if (item === undefined || item === null || item === "") continue;
+        if (Array.isArray(item) && item.length === 0) continue;
+        if (item && typeof item === "object" && !Array.isArray(item) && Object.keys(item).length === 0) continue;
+        out[key] = item;
+    }
+    return out;
 }
 
 function stableGenerationKey(item: any): string {

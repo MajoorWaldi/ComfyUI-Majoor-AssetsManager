@@ -1,7 +1,15 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { drawWorkflowMinimap, synthesizeWorkflowFromPromptGraph } from "../../../../components/sidebar/utils/minimap.js";
-import { getWorkflowContent, listWorkflowThumbnailCandidates, moveWorkflow, setWorkflowThumbnail } from "../../../../api/client.js";
+import {
+    diffWorkflow,
+    getWorkflowContent,
+    listWorkflowThumbnailCandidates,
+    listWorkflowVersions,
+    moveWorkflow,
+    setWorkflowThumbnail,
+    validateWorkflow,
+} from "../../../../api/client.js";
 import { loadMajoorSettings, saveMajoorSettings } from "../../../../app/settings.js";
 import { MINIMAP_LEGACY_SETTINGS_KEY } from "../../../../app/settingsStore.js";
 import { t } from "../../../../app/i18n.js";
@@ -47,6 +55,10 @@ const categoryDraft = ref("");
 const savingCategory = ref(false);
 const loadingWorkflowPayload = ref(false);
 const lazyWorkflowPayload = ref(null);
+const validationLoading = ref(false);
+const workflowValidation = ref(null);
+const workflowVersions = ref([]);
+const workflowDiff = ref(null);
 const showTools = ref(false);
 const rawJsonOpen = ref(false);
 const minimapSettings = ref(loadWorkflowMinimapSettings());
@@ -232,12 +244,64 @@ const detectedSummary = computed(() =>
 );
 const missingNodes = computed(() => normalizeStringList(props.asset?.missing_nodes || props.asset?.missingNodes));
 const missingModels = computed(() => normalizeStringList(props.asset?.missing_models || props.asset?.missingModels));
+const workflowTags = computed(() => normalizeStringList(props.asset?.tags || props.asset?.workflow_tags || props.asset?.tags_json));
+const visibleWorkflowTags = computed(() => workflowTags.value.slice(0, 3));
+const hiddenWorkflowTagCount = computed(() => Math.max(0, workflowTags.value.length - visibleWorkflowTags.value.length));
+const validationMissingNodes = computed(() => normalizeStringList(workflowValidation.value?.missing_nodes));
+const validationMissingModels = computed(() => normalizeStringList(workflowValidation.value?.missing_models));
+const validationWarnings = computed(() => normalizeStringList(workflowValidation.value?.warnings));
+const validationSummary = computed(() => {
+    const data = workflowValidation.value;
+    if (!data) return "";
+    const nodes = Number(data.node_count || 0);
+    const subgraphs = Number(data.subgraph_count || 0);
+    const required = Array.isArray(data.required_nodes) ? data.required_nodes.length : 0;
+    return `${nodes} nodes | ${subgraphs} subgraphs | ${required} node types`;
+});
+const latestVersionLabel = computed(() => {
+    const item = workflowVersions.value?.[0];
+    if (!item) return "";
+    return String(item.filename || "").replace(/\.json$/i, "");
+});
+const diffSummary = computed(() => {
+    const diff = workflowDiff.value;
+    if (!diff) return "";
+    return `${Number(diff.changed?.length || 0)} changed | ${Number(diff.added?.length || 0)} added | ${Number(diff.removed?.length || 0)} removed`;
+});
 const usageLabel = computed(() => {
     const count = Number(props.asset?.usage_count || props.asset?.usageCount || 0);
     if (!Number.isFinite(count) || count <= 0) return "";
     return `${Math.floor(count)} use${count === 1 ? "" : "s"}`;
 });
+const lastLoadedLabel = computed(() => formatUnixDate(props.asset?.last_loaded_at || props.asset?.lastLoadedAt));
 const modifiedLabel = computed(() => formatUnixDate(props.asset?.mtime || props.asset?.modified_at || props.asset?.updated_at));
+const workflowBadges = computed(() => {
+    const badges = [];
+    if (props.asset?.favorite) {
+        badges.push({ key: "favorite", label: "Favorite", icon: "pi pi-star-fill", tone: "favorite" });
+    }
+    if (usageLabel.value) {
+        badges.push({ key: "usage", label: usageLabel.value, icon: "pi pi-play-circle", tone: "usage" });
+    }
+    if (lastLoadedLabel.value) {
+        badges.push({ key: "last-loaded", label: `Loaded ${lastLoadedLabel.value}`, icon: "pi pi-clock", tone: "loaded" });
+    }
+    for (const tag of visibleWorkflowTags.value) {
+        badges.push({ key: `tag-${tag}`, label: tag, icon: "pi pi-tag", tone: "tag" });
+    }
+    if (hiddenWorkflowTagCount.value) {
+        badges.push({ key: "tags-more", label: `+${hiddenWorkflowTagCount.value} tags`, icon: "pi pi-tags", tone: "tag" });
+    }
+    return badges;
+});
+
+function workflowBadgeStyle(tone) {
+    const base = "display:inline-flex;align-items:center;gap:5px;max-width:100%;padding:4px 8px;border-radius:999px;font-size:10px;font-weight:750;line-height:1.1;overflow:hidden";
+    if (tone === "favorite") return `${base};background:rgba(255,193,7,0.15);border:1px solid rgba(255,193,7,0.34);color:#ffe082`;
+    if (tone === "usage") return `${base};background:rgba(33,150,243,0.14);border:1px solid rgba(33,150,243,0.30);color:#90caf9`;
+    if (tone === "loaded") return `${base};background:rgba(76,175,80,0.13);border:1px solid rgba(76,175,80,0.28);color:#a5d6a7`;
+    return `${base};background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.14);color:rgba(255,255,255,0.82)`;
+}
 
 function normalizeStringList(value) {
     if (Array.isArray(value)) return value.map((item) => String(item || "").trim()).filter(Boolean);
@@ -408,6 +472,40 @@ async function inspectWorkflow() {
     } catch (e) {
         console.debug?.(e);
         comfyToast(t("toast.workflowLoadFailed", "Failed to load workflow."), "error");
+    }
+}
+
+async function runWorkflowDiagnostics() {
+    const filepath = workflowFilepath.value;
+    if (!filepath) {
+        comfyToast(t("toast.workflowMissingPath", "Workflow file path is missing."), "error");
+        return;
+    }
+    validationLoading.value = true;
+    workflowValidation.value = null;
+    workflowVersions.value = [];
+    workflowDiff.value = null;
+    try {
+        const [validationRes, versionsRes] = await Promise.all([
+            validateWorkflow(filepath, { timeoutMs: 20_000 }),
+            listWorkflowVersions(filepath, { timeoutMs: 15_000 }),
+        ]);
+        if (!validationRes?.ok) {
+            comfyToast(validationRes?.error || t("toast.workflowLoadFailed", "Failed to load workflow."), "error");
+            return;
+        }
+        workflowValidation.value = validationRes.data || {};
+        workflowVersions.value = Array.isArray(versionsRes?.data?.versions) ? versionsRes.data.versions : [];
+        const latest = workflowVersions.value[0];
+        if (latest?.filepath) {
+            const diffRes = await diffWorkflow(filepath, latest.filepath, { timeoutMs: 15_000 });
+            if (diffRes?.ok) workflowDiff.value = diffRes.data || null;
+        }
+    } catch (e) {
+        console.debug?.(e);
+        comfyToast(t("toast.workflowLoadFailed", "Failed to load workflow."), "error");
+    } finally {
+        validationLoading.value = false;
     }
 }
 
@@ -732,6 +830,24 @@ onBeforeUnmount(() => {
             >
                 {{ workflowFilepath }}
             </div>
+            <div
+                v-if="workflowBadges.length"
+                style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;min-width:0"
+                aria-label="Workflow metadata badges"
+            >
+                <span
+                    v-for="badge in workflowBadges"
+                    :key="badge.key"
+                    :style="workflowBadgeStyle(badge.tone)"
+                    :title="badge.label"
+                >
+                    <i
+                        :class="badge.icon"
+                        style="font-size:10px;flex:0 0 auto"
+                    />
+                    <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ badge.label }}</span>
+                </span>
+            </div>
         </div>
 
         <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px">
@@ -843,7 +959,7 @@ onBeforeUnmount(() => {
             </div>
         </div>
 
-        <div style="display:grid;grid-template-columns:repeat(2, minmax(0, 1fr));gap:8px;margin-bottom:12px">
+        <div style="display:grid;grid-template-columns:repeat(3, minmax(0, 1fr));gap:8px;margin-bottom:12px">
             <MButton
                 type="button"
                 severity="secondary"
@@ -866,6 +982,75 @@ onBeforeUnmount(() => {
                 <i class="pi pi-search" />
                 <span>{{ t("ctx.inspect", "Inspect") }}</span>
             </MButton>
+            <MButton
+                type="button"
+                severity="secondary"
+                text
+                rounded
+                :disabled="validationLoading"
+                style="height:34px;border-radius:9px;border:1px solid rgba(255,255,255,0.12);background:rgba(76,175,80,0.12);color:rgba(255,255,255,0.92);font-size:12px;font-weight:750;display:inline-flex;align-items:center;justify-content:center;gap:7px"
+                @click="runWorkflowDiagnostics"
+            >
+                <i :class="validationLoading ? 'pi pi-spin pi-spinner' : 'pi pi-check-circle'" />
+                <span>{{ validationLoading ? 'Checking' : 'Validate' }}</span>
+            </MButton>
+        </div>
+
+        <div
+            v-if="workflowValidation"
+            style="margin-bottom:12px;padding:10px;border-radius:10px;background:rgba(76,175,80,0.07);border:1px solid rgba(76,175,80,0.22)"
+        >
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:7px">
+                <div style="font-size:10px;font-weight:800;color:#a5d6a7;text-transform:uppercase;letter-spacing:0.4px">Workflow diagnostics</div>
+                <div style="font-size:11px;color:rgba(255,255,255,0.62)">{{ validationSummary }}</div>
+            </div>
+            <div
+                v-if="validationMissingNodes.length || validationMissingModels.length"
+                style="display:flex;flex-direction:column;gap:6px"
+            >
+                <div
+                    v-if="validationMissingNodes.length"
+                    style="display:flex;flex-wrap:wrap;gap:5px"
+                >
+                    <span
+                        v-for="item in validationMissingNodes"
+                        :key="`diag-node-${item}`"
+                        style="padding:3px 7px;border-radius:999px;background:rgba(244,67,54,0.16);font-size:10px;font-weight:700;color:#ffcdd2"
+                    >
+                        Missing node: {{ item }}
+                    </span>
+                </div>
+                <div
+                    v-if="validationMissingModels.length"
+                    style="display:flex;flex-wrap:wrap;gap:5px"
+                >
+                    <span
+                        v-for="item in validationMissingModels"
+                        :key="`diag-model-${item}`"
+                        style="padding:3px 7px;border-radius:999px;background:rgba(255,152,0,0.16);font-size:10px;font-weight:700;color:#ffe0b2"
+                    >
+                        Missing model: {{ item }}
+                    </span>
+                </div>
+            </div>
+            <div
+                v-else
+                style="font-size:12px;color:rgba(255,255,255,0.78)"
+            >
+                No missing dependencies detected by the current ComfyUI runtime.
+            </div>
+            <div
+                v-if="validationWarnings.length"
+                style="margin-top:7px;font-size:11px;color:rgba(255,255,255,0.58)"
+            >
+                {{ validationWarnings.join(' | ') }}
+            </div>
+            <div
+                v-if="latestVersionLabel || diffSummary"
+                style="margin-top:8px;font-size:11px;color:rgba(255,255,255,0.62)"
+            >
+                Latest version: {{ latestVersionLabel || 'none' }}<span v-if="diffSummary"> | Diff: {{ diffSummary }}</span>
+            </div>
         </div>
 
         <div

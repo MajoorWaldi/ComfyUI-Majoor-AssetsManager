@@ -1,7 +1,7 @@
 type LooseRecord = Record<string, any>;
 
 export type GraphVisit = { graph: LooseRecord; label: string };
-export type GraphNodeVisit = { node: LooseRecord; graph: LooseRecord; label: string };
+export type GraphNodeVisit = { node: LooseRecord; graph: LooseRecord; label: string; qualifiedId: string };
 
 export function getHostRootGraph(app: any = null): LooseRecord | null {
     return app?.rootGraph ?? app?.graph?.rootGraph ?? app?.graph ?? app?.canvas?.graph ?? null;
@@ -102,8 +102,14 @@ export function collectGraphVisits(appOrGraph: any): GraphVisit[] {
 
 export function walkGraphNodes(appOrGraph: any, callback: (visit: GraphNodeVisit) => void): void {
     for (const visit of collectGraphVisits(appOrGraph)) {
-        for (const node of getGraphNodes(visit.graph)) {
-            callback({ node, graph: visit.graph, label: visit.label });
+        for (const [index, node] of getGraphNodes(visit.graph).entries()) {
+            const nodeId = String(node?.id ?? node?.ID ?? index).trim() || String(index);
+            callback({
+                node,
+                graph: visit.graph,
+                label: visit.label,
+                qualifiedId: `${visit.label}::${nodeId}`,
+            });
         }
     }
 }
@@ -114,6 +120,16 @@ export function findGraphNodeById(appOrGraph: any, nodeId: any): LooseRecord | n
     let found: LooseRecord | null = null;
     walkGraphNodes(appOrGraph, ({ node }) => {
         if (!found && String(node?.id ?? "") === wanted) found = node;
+    });
+    return found;
+}
+
+export function findGraphNodeByQualifiedId(appOrGraph: any, qualifiedId: any): LooseRecord | null {
+    const wanted = String(qualifiedId ?? "");
+    if (!wanted) return null;
+    let found: LooseRecord | null = null;
+    walkGraphNodes(appOrGraph, (visit) => {
+        if (!found && visit.qualifiedId === wanted) found = visit.node;
     });
     return found;
 }

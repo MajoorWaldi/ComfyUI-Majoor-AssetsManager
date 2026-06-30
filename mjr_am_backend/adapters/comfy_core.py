@@ -178,6 +178,59 @@ class ComfyCoreAdapter:
             logger.debug("Failed to resolve ComfyUI temp directory", exc_info=True)
         return None
 
+    def get_available_node_types(self) -> set[str]:
+        """Return ComfyUI node class names currently registered in the backend."""
+        try:
+            import nodes  # type: ignore
+
+            mapping = getattr(nodes, "NODE_CLASS_MAPPINGS", None)
+            if isinstance(mapping, dict):
+                return {str(key).strip() for key in mapping.keys() if str(key).strip()}
+        except Exception:
+            logger.debug("Failed to read ComfyUI NODE_CLASS_MAPPINGS", exc_info=True)
+        return set()
+
+    def get_model_filenames(self) -> set[str]:
+        """Return known model filenames from ComfyUI folder_paths."""
+        try:
+            import folder_paths  # type: ignore
+
+            getter = getattr(folder_paths, "get_filename_list", None)
+            if not callable(getter):
+                return set()
+            names: set[str] = set()
+            categories = (
+                "checkpoints",
+                "clip",
+                "clip_vision",
+                "configs",
+                "controlnet",
+                "diffusion_models",
+                "embeddings",
+                "gligen",
+                "hypernetworks",
+                "loras",
+                "photomaker",
+                "style_models",
+                "unet",
+                "upscale_models",
+                "vae",
+                "vae_approx",
+            )
+            for category in categories:
+                try:
+                    for value in getter(category) or []:
+                        text = str(value or "").replace("\\", "/").strip()
+                        if text:
+                            names.add(text)
+                            names.add(Path(text).name)
+                except Exception:
+                    continue
+            return names
+        except Exception:
+            logger.debug("Failed to read ComfyUI model filenames", exc_info=True)
+        return set()
+
     def output_file_paths_from_history(self, prompt_id: str) -> list[str]:
         """Extract absolute output/temp file paths from a ComfyUI history entry."""
         return [item.path for item in self.output_files_from_history(prompt_id)]
@@ -435,6 +488,14 @@ def get_temp_directory() -> str | None:
     return _ADAPTER.get_temp_directory()
 
 
+def get_available_node_types() -> set[str]:
+    return _ADAPTER.get_available_node_types()
+
+
+def get_model_filenames() -> set[str]:
+    return _ADAPTER.get_model_filenames()
+
+
 def schedule_task(coro: Any) -> bool:
     return _ADAPTER.schedule_task(coro)
 
@@ -448,6 +509,8 @@ __all__ = [
     "get_input_directory",
     "get_output_directory",
     "get_temp_directory",
+    "get_available_node_types",
+    "get_model_filenames",
     "get_prompt_output_files",
     "get_prompt_output_paths",
     "get_workflow_id_for_prompt",

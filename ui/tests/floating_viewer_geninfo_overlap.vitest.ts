@@ -143,4 +143,42 @@ describe("floating viewer geninfo sidebar", () => {
         expect(viewer._genSidebarEl.textContent).not.toContain("Asset B");
         expect(viewer._genSidebarEl.textContent).not.toContain("asset B prompt");
     });
+
+    it("hydrates MFV metadata when the current prompt is only a file path", async () => {
+        const { ensureViewerMetadataAsset } = await import("../features/viewer/genInfo.js");
+        const getAssetMetadata = vi.fn(() =>
+            Promise.resolve({
+                ok: true,
+                data: {
+                    metadata_raw: {
+                        geninfo: {
+                            positive: { value: "real LTX prompt" },
+                            seed: { value: 0 },
+                        },
+                    },
+                },
+            }),
+        );
+
+        const asset = {
+            id: 10650,
+            filename: "ltx_director_00010_.mp4",
+            type: "video",
+            prompt: "D:/____COMFY_OUTPUTS/video/ltx_director_00010_.mp4",
+            metadata_raw: {
+                prompt: "D:/____COMFY_OUTPUTS/video/ltx_director_00010_.mp4",
+                workflow: { nodes: [] },
+            },
+        };
+
+        const hydrated = await ensureViewerMetadataAsset(asset, {
+            getAssetMetadata,
+            getFileMetadataScoped: vi.fn(),
+            metadataCache: null,
+        });
+
+        expect(getAssetMetadata).toHaveBeenCalledWith(10650, {});
+        expect(hydrated.metadata_raw.geninfo.positive.value).toBe("real LTX prompt");
+        expect(hydrated.metadata_raw.geninfo.seed.value).toBe(0);
+    });
 });

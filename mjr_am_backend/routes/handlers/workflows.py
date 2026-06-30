@@ -13,10 +13,12 @@ from pathlib import Path
 from aiohttp import web
 from mjr_am_backend.features.workflows import (
     delete_workflow,
+    diff_workflow_versions,
     duplicate_workflow,
     is_workflow_thumbnail_path,
     list_workflow_model_families,
     list_workflow_thumbnail_candidates,
+    list_workflow_versions,
     managed_workflow_root,
     mark_workflow_loaded,
     move_or_rename_workflow,
@@ -26,6 +28,7 @@ from mjr_am_backend.features.workflows import (
     set_workflow_info,
     set_workflow_tags,
     set_workflow_thumbnail,
+    validate_workflow,
     workflow_graph_map_svg,
     workflow_roots,
 )
@@ -209,6 +212,28 @@ def register_workflow_routes(routes: web.RouteTableDef) -> None:
         if not filepath:
             return _json_response(Result.Err("INVALID_INPUT", "Missing filepath"))
         return _json_response(read_workflow_content(Path(filepath)))
+
+    @routes.get("/mjr/am/workflows/validate")
+    async def workflow_validate(request: web.Request):
+        filepath = str(request.query.get("filepath") or "").strip()
+        if not filepath:
+            return _json_response(Result.Err("INVALID_INPUT", "Missing filepath"))
+        return _json_response(validate_workflow(Path(filepath)))
+
+    @routes.get("/mjr/am/workflows/versions")
+    async def workflow_versions(request: web.Request):
+        filepath = str(request.query.get("filepath") or "").strip()
+        if not filepath:
+            return _json_response(Result.Err("INVALID_INPUT", "Missing filepath"))
+        return _json_response(list_workflow_versions(Path(filepath)))
+
+    @routes.get("/mjr/am/workflows/diff")
+    async def workflow_diff(request: web.Request):
+        filepath = str(request.query.get("filepath") or "").strip()
+        if not filepath:
+            return _json_response(Result.Err("INVALID_INPUT", "Missing filepath"))
+        version_filepath = str(request.query.get("version_filepath") or "").strip()
+        return _json_response(diff_workflow_versions(Path(filepath), version_filepath=version_filepath))
 
     @routes.post("/mjr/am/workflows/save")
     async def workflow_save(request: web.Request):

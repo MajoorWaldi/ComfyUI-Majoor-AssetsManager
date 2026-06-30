@@ -15,6 +15,7 @@ class WorkflowParseStats:
     link_count: int
     subgraph_count: int
     subgraph_node_count: int
+    qualified_node_ids: list[str] | None = None
 
 
 @dataclass(frozen=True)

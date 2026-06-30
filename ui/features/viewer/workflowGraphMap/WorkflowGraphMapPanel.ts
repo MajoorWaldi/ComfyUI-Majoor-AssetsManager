@@ -224,6 +224,8 @@ export class WorkflowGraphMapPanel {
         meta.className = "mjr-wgm-node-meta";
         meta.textContent = `#${this._selectedNodeId} ${getNodeTypeLabel(node) || getNodeType(node) || "Node"}`;
 
+        const breadcrumb = this._buildBreadcrumb(node);
+
         const actions = document.createElement("div");
         actions.className = "mjr-wgm-actions";
         actions.appendChild(this._makeAction("Copy node", "pi pi-copy", () => copyNodeJson(node)));
@@ -244,7 +246,7 @@ export class WorkflowGraphMapPanel {
 
         const visual = this._buildNodeVisual(node);
 
-        _replaceChildren(this._details, title, meta, visual, actions);
+        _replaceChildren(this._details, title, meta, breadcrumb, visual, actions);
     }
 
     _makeModeButton(label: any, mode: "expand" | "host") {
@@ -255,6 +257,31 @@ export class WorkflowGraphMapPanel {
         button.addEventListener?.("click", () => this._setSubgraphDisplayMode(mode));
         this._modeButtons.set(mode, button);
         return button;
+    }
+
+    _buildBreadcrumb(node: any) {
+        const wrap = document.createElement("div");
+        wrap.className = "mjr-wgm-breadcrumb";
+        const parts = ["Workflow"];
+        const subgraphName = String(node?._mjrSubgraphName || "").trim();
+        const selected = String(this._selectedNodeId || "");
+        if (subgraphName || selected.includes("::")) {
+            parts.push(subgraphName || String(selected.split("::")[0] || "Subgraph"));
+        }
+        parts.push(getNodeDisplayName(node));
+        for (let index = 0; index < parts.length; index += 1) {
+            if (index > 0) {
+                const sep = document.createElement("span");
+                sep.className = "mjr-wgm-breadcrumb-sep";
+                sep.textContent = "/";
+                wrap.appendChild(sep);
+            }
+            const item = document.createElement("span");
+            item.className = "mjr-wgm-breadcrumb-item";
+            item.textContent = parts[index];
+            wrap.appendChild(item);
+        }
+        return wrap;
     }
 
     _setSubgraphDisplayMode(mode: "expand" | "host") {

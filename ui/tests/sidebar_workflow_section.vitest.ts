@@ -39,7 +39,13 @@ vi.mock("../app/i18n.js", () => ({
 }));
 
 vi.mock("../api/client.js", () => ({
+    diffWorkflow: vi.fn(),
+    getWorkflowContent: vi.fn(),
+    listWorkflowThumbnailCandidates: vi.fn(),
+    listWorkflowVersions: vi.fn(),
     moveWorkflow,
+    setWorkflowThumbnail: vi.fn(),
+    validateWorkflow: vi.fn(),
 }));
 
 vi.mock("../app/toast.js", () => ({
@@ -320,6 +326,49 @@ describe("SidebarWorkflowSection", () => {
 
         const input = wrapper.find('input[placeholder="Workflow category"]');
         expect(input.element.value).toBe("PROJECTS/PERSONAL/02_OUT/VIDEOS/260513/Atopi");
+
+        wrapper.unmount();
+    });
+
+    it("shows workflow metadata badges for hydrated legacy fields", async () => {
+        const { default: SidebarWorkflowSection } =
+            await import("../vue/components/panel/sidebar/SidebarWorkflowSection.vue");
+
+        const wrapper = mount(SidebarWorkflowSection, {
+            props: {
+                asset: {
+                    filepath: "F:/workflows/demo.json",
+                    filename: "demo.json",
+                    favorite: true,
+                    usage_count: 4,
+                    last_loaded_at: 1_700_000_000,
+                    tags: ["portrait", "flux", "review", "client"],
+                    has_generation_data: true,
+                    workflow: {
+                        nodes: [{ id: 1, pos: [0, 0], size: [180, 80], type: "KSampler" }],
+                        links: [],
+                        groups: [],
+                        extra: {},
+                    },
+                },
+            },
+            attachTo: document.body,
+            global: {
+                stubs: {
+                    MButton: MButtonStub,
+                    MTree: MTreeStub,
+                },
+            },
+        });
+
+        const text = wrapper.text();
+        expect(text).toContain("Favorite");
+        expect(text).toContain("4 uses");
+        expect(text).toContain("Loaded");
+        expect(text).toContain("portrait");
+        expect(text).toContain("flux");
+        expect(text).toContain("review");
+        expect(text).toContain("+1 tags");
 
         wrapper.unmount();
     });
