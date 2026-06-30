@@ -6449,7 +6449,7 @@ function Zt() {
 		qt = e;
 	}), Jt || import("./scopes-X1iFrTle.js").then((e) => {
 		Jt = e;
-	}), Yt || import("./genInfo-CPsL2cZc.js").then((e) => e.n).then((e) => {
+	}), Yt || import("./genInfo-B6Ymnifm.js").then((e) => e.n).then((e) => {
 		Yt = e;
 	}), Xt || import("./frameExport-tksSZ7sb.js").then((e) => {
 		Xt = e;

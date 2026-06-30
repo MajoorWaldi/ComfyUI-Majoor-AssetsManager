@@ -1287,8 +1287,11 @@
 }
 
 .mjr-assets-manager .mjr-am-browse {
+    display: flex;
+    align-items: stretch;
     flex: 1;
     min-height: 0;
+    min-width: 0;
     overflow: hidden;
     border-top: 1px solid color-mix(in srgb, var(--mjr-border) 75%, transparent);
     padding-top: 4px;
@@ -1296,6 +1299,8 @@
 
 /* Scrollbars (match ComfyUI feel) */
 .mjr-assets-manager .mjr-am-grid-scroll {
+    flex: 1 1 auto;
+    min-width: 0;
     min-height: 0;
     height: 100%;
     overflow: auto;
@@ -3714,6 +3719,9 @@
 
 /* Sidebar (can be left or right) */
 .mjr-sidebar {
+    position: relative;
+    z-index: 3;
+    flex: 0 0 auto;
     transition: all 0.3s ease;
 }
 

@@ -2,6 +2,7 @@
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { mount } from "@vue/test-utils";
+import { nextTick } from "vue";
 
 const drawWorkflowMinimap = vi.fn();
 const synthesizeWorkflowFromPromptGraph = vi.fn(() => null);
@@ -278,6 +279,47 @@ describe("SidebarWorkflowSection", () => {
             { timeoutMs: 30000 },
         );
         expect(comfyToast).toHaveBeenCalled();
+
+        wrapper.unmount();
+    });
+
+    it("shows a compact workflow category label for deep paths", async () => {
+        const { default: SidebarWorkflowSection } =
+            await import("../vue/components/panel/sidebar/SidebarWorkflowSection.vue");
+
+        const wrapper = mount(SidebarWorkflowSection, {
+            props: {
+                asset: {
+                    filepath: "F:/workflows/demo.json",
+                    category: "PROJECTS/PERSONAL/02_OUT/VIDEOS/260513/Atopi",
+                    has_generation_data: true,
+                    workflow: {
+                        nodes: [{ id: 1, pos: [0, 0], size: [180, 80], type: "KSampler" }],
+                        links: [],
+                        groups: [],
+                        extra: {},
+                    },
+                },
+            },
+            attachTo: document.body,
+            global: {
+                stubs: {
+                    MButton: MButtonStub,
+                    MTree: MTreeStub,
+                },
+            },
+        });
+        await nextTick();
+
+        const categoryBlock = wrapper
+            .findAll("div")
+            .find((node) => node.text().includes("Category") && node.text().includes("Atopi"));
+
+        expect(categoryBlock?.text()).toContain("Atopi");
+        expect(categoryBlock?.text()).not.toContain("PROJECTS");
+
+        const input = wrapper.find('input[placeholder="Workflow category"]');
+        expect(input.element.value).toBe("PROJECTS/PERSONAL/02_OUT/VIDEOS/260513/Atopi");
 
         wrapper.unmount();
     });

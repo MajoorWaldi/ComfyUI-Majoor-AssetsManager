@@ -302,6 +302,8 @@ const currentCategory = computed(() => {
 const categorySegments = computed(() =>
     currentCategory.value ? currentCategory.value.split(/[\\/]+/).filter(Boolean) : [],
 );
+const categoryDisplayName = computed(() => categorySegments.value.at(-1) || currentCategory.value || "Root");
+const categoryDisplaySegments = computed(() => categorySegments.value.slice(-1));
 
 function workflowNodeLabel(node, index) {
     const id = node?.id ?? node?.key ?? index + 1;
@@ -884,21 +886,25 @@ onBeforeUnmount(() => {
         </div>
 
         <div style="margin-bottom:12px;padding:10px;border-radius:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.10)">
-            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px">
-                <div>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px;min-width:0">
+                <div style="min-width:0;flex:1 1 auto">
                     <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.55);text-transform:uppercase;letter-spacing:0.4px">Category</div>
-                    <div style="font-size:12px;color:rgba(255,255,255,0.8);margin-top:2px">
-                        {{ currentCategory || 'Root' }}
+                    <div
+                        :title="currentCategory || 'Root'"
+                        style="font-size:12px;color:rgba(255,255,255,0.8);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%"
+                    >
+                        {{ categoryDisplayName }}
                     </div>
                 </div>
                 <div
-                    v-if="categorySegments.length"
-                    style="display:flex;flex-wrap:wrap;gap:4px;justify-content:flex-end"
+                    v-if="categoryDisplaySegments.length"
+                    :title="currentCategory"
+                    style="display:flex;flex-wrap:wrap;gap:4px;justify-content:flex-end;min-width:0;max-width:45%"
                 >
                     <span
-                        v-for="segment in categorySegments"
+                        v-for="segment in categoryDisplaySegments"
                         :key="segment"
-                        style="padding:3px 7px;border-radius:999px;background:rgba(33,150,243,0.12);border:1px solid rgba(33,150,243,0.22);font-size:10px;font-weight:700;color:#90CAF9;text-transform:uppercase;letter-spacing:0.3px"
+                        style="padding:3px 7px;border-radius:999px;background:rgba(33,150,243,0.12);border:1px solid rgba(33,150,243,0.22);font-size:10px;font-weight:700;color:#90CAF9;text-transform:uppercase;letter-spacing:0.3px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
                     >
                         {{ segment }}
                     </span>

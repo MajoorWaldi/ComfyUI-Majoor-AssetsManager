@@ -71,7 +71,11 @@ export function createSettingsSync({
 
     const applySidebarPosition = (nextPosition: any) => {
         const pos = String(nextPosition || "right").toLowerCase() === "left" ? "left" : "right";
-        if (_sidebarPosition === pos) return;
+        const isAlreadyOrdered =
+            pos === "left"
+                ? sidebar?.nextElementSibling === gridWrapper
+                : gridWrapper?.nextElementSibling === sidebar;
+        if (_sidebarPosition === pos && isAlreadyOrdered) return;
         _sidebarPosition = pos;
 
         let scrollTop = 0;

@@ -35,6 +35,7 @@ const dataListRef = ref(null);
 const similarBtnRef = ref(null);
 const semanticBtnRef = ref(null);
 const dataListId = createUniqueId("mjr-search-autocomplete-", 8);
+const METADATA_SEARCH_MODE = "AND";
 
 const resolveDomElement = (value) => value?.$el || value || null;
 const getSearchInputEl = () => resolveDomElement(searchInputRef.value);
@@ -42,7 +43,7 @@ const getSearchInputEl = () => resolveDomElement(searchInputRef.value);
 // Local semantic mode state (synced with settings, not persisted)
 const semanticMode = ref(false);
 const semanticEnabled = ref(true);
-const metadataMode = ref(String(panelStore.metadataSearchMode || "AND").toUpperCase() === "OR" ? "OR" : "AND");
+const metadataMode = ref(METADATA_SEARCH_MODE);
 let metadataKeysCache = null;
 let metadataKeysPromise = null;
 
@@ -90,12 +91,6 @@ const semanticBtnStyle = computed(() => {
     };
 });
 
-const metadataModeTitle = computed(() =>
-    metadataMode.value === "OR"
-        ? t("search.metadataModeOr", "Metadata prefix terms match any tag (OR)")
-        : t("search.metadataModeAnd", "Metadata prefix terms must all match (AND)"),
-);
-
 const syncSemanticDataset = () => {
     try {
         const input = getSearchInputEl();
@@ -133,22 +128,10 @@ const toggleSemanticMode = () => {
 const handleSearchInput = async (e) => {
     const value = e.target.value || "";
     panelStore.searchQuery = value;
-    panelStore.metadataSearchMode = metadataMode.value;
+    panelStore.metadataSearchMode = METADATA_SEARCH_MODE;
     syncSemanticDataset();
     emitSearchChange({ query: value });
     await handleAutocomplete();
-};
-
-const toggleMetadataMode = () => {
-    metadataMode.value = metadataMode.value === "OR" ? "AND" : "OR";
-    panelStore.metadataSearchMode = metadataMode.value;
-    syncSemanticDataset();
-    emitSearchChange({ metadataMode: metadataMode.value });
-    try {
-        getSearchInputEl()?.dispatchEvent?.(new Event("input", { bubbles: true }));
-    } catch (e) {
-        console.debug?.(e);
-    }
 };
 
 const getLastSearchToken = (value) => {
@@ -261,8 +244,10 @@ watch(semanticMode, () => {
 watch(
     () => panelStore.metadataSearchMode,
     (newVal) => {
-        const next = String(newVal || "AND").toUpperCase() === "OR" ? "OR" : "AND";
-        if (metadataMode.value !== next) metadataMode.value = next;
+        if (String(newVal || "").toUpperCase() !== METADATA_SEARCH_MODE) {
+            panelStore.metadataSearchMode = METADATA_SEARCH_MODE;
+        }
+        if (metadataMode.value !== METADATA_SEARCH_MODE) metadataMode.value = METADATA_SEARCH_MODE;
         syncSemanticDataset();
     },
 );
@@ -273,6 +258,7 @@ onMounted(() => {
         if (input) {
             input.value = panelStore.searchQuery || "";
         }
+        panelStore.metadataSearchMode = METADATA_SEARCH_MODE;
     } catch (e) {
         console.debug?.(e);
     }
@@ -319,20 +305,6 @@ defineExpose({
             <datalist ref="dataListRef" :id="dataListId" />
         </div>
         <div class="mjr-am-search-tools">
-            <div class="mjr-popover-anchor">
-                <MButton
-                    type="button"
-                    class="mjr-icon-btn mjr-ai-control"
-                    severity="secondary"
-                    text
-                    rounded
-                    :title="metadataModeTitle"
-                    :aria-label="metadataModeTitle"
-                    @click="toggleMetadataMode"
-                >
-                    <span style="font-size:10px;font-weight:700;letter-spacing:0">{{ metadataMode }}</span>
-                </MButton>
-            </div>
             <div class="mjr-popover-anchor">
                 <MButton
                     ref="semanticBtnRef"

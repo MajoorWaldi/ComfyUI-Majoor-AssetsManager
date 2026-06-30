@@ -84,6 +84,7 @@ function handleClose() {
                         <RatingEditor
                             :asset="asset"
                             :model-value="rating"
+                            :size="60"
                         />
                     </div>
                     <div style="display:flex;flex-direction:column;gap:4px">

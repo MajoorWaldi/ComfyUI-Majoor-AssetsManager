@@ -215,6 +215,20 @@ function modelGroupStyle(accentColor, emphasis = true) {
     };
 }
 
+function modelBranchAccent(branch) {
+    return "#CE6DE0";
+}
+
+function samplingBranchAccent(branch) {
+    const key = String(branch?.key || "").toLowerCase();
+    if (key.includes("high")) return "#FFC107";
+    if (key.includes("low")) return "#FFB300";
+    if (key.includes("base")) return "#FF9800";
+    if (key.includes("upscale") || key.includes("refine")) return "#FFCA28";
+    if (key.includes("pass")) return "#FDD835";
+    return "#FF9800";
+}
+
 function modelGroupAccent(key) {
     if (key === "high_noise") return "#FF7043";
     if (key === "low_noise") return "#29B6F6";
@@ -560,47 +574,6 @@ watch(
         </template>
 
         <div
-            v-if="modelBranches.length"
-            :style="boxStyle('#9C27B0', { emphasis: true, startAlpha: 0.18, endAlpha: 0.10 })"
-        >
-            <div style="font-size:11px;font-weight:600;color:#9C27B0;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px">
-                {{ t("sidebar.generation.models", "Models") }}
-            </div>
-            <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(190px, 1fr));gap:10px">
-                <div
-                    v-for="branch in modelBranches"
-                    :key="`models-top-${branch.key}`"
-                    :style="modelGroupStyle(branch.accent, true)"
-                >
-                    <div :style="{ fontSize: '10px', fontWeight: '800', color: branch.accent, letterSpacing: '0.6px', textTransform: 'uppercase' }">
-                        {{ branch.label }}
-                    </div>
-                    <div
-                        v-for="field in branch.modelFields"
-                        :key="`model-top-${branch.key}-${field.label}`"
-                        style="display:flex;flex-direction:column;gap:3px;min-width:0"
-                    >
-                        <span style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.58);text-transform:uppercase;letter-spacing:0.4px">{{ field.label }}</span>
-                        <span style="font-size:12px;color:var(--fg-color, rgba(255,255,255,0.96));line-height:1.35;word-break:break-word;cursor:pointer" @click="copyText(field.value, $event.currentTarget)">
-                            {{ field.value || '-' }}
-                        </span>
-                    </div>
-                    <div v-if="branch.loras.length" style="display:flex;flex-direction:column;gap:5px">
-                        <span style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.58);text-transform:uppercase;letter-spacing:0.4px">LoRA</span>
-                        <span
-                            v-for="(lora, index) in branch.loras"
-                            :key="`model-top-${branch.key}-lora-${index}`"
-                            style="font-size:12px;color:var(--fg-color, rgba(255,255,255,0.92));line-height:1.35;word-break:break-word;padding:6px 8px;border-radius:6px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);cursor:pointer"
-                            @click="copyText(lora, $event.currentTarget)"
-                        >
-                            {{ lora }}
-                        </span>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div
             v-if="isCaptionSectionVisible"
             style="background:linear-gradient(135deg, rgba(0, 188, 212, 0.14) 0%, rgba(33, 150, 243, 0.10) 100%);border:1px solid rgba(0, 188, 212, 0.40);border-radius:6px;padding:12px;display:flex;flex-direction:column;gap:10px"
             :class="{ 'mjr-ai-disabled-block': !aiEnabled }"
@@ -714,6 +687,47 @@ watch(
         </div>
 
         <div
+            v-if="modelBranches.length"
+            :style="boxStyle('#9C27B0', { emphasis: true, startAlpha: 0.18, endAlpha: 0.10 })"
+        >
+            <div style="font-size:11px;font-weight:600;color:#9C27B0;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px">
+                {{ t("sidebar.generation.models", "Models") }}
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(190px, 1fr));gap:10px">
+                <div
+                    v-for="branch in modelBranches"
+                    :key="`models-top-${branch.key}`"
+                    :style="modelGroupStyle(modelBranchAccent(branch), true)"
+                >
+                    <div :style="{ fontSize: '10px', fontWeight: '800', color: modelBranchAccent(branch), letterSpacing: '0.6px', textTransform: 'uppercase' }">
+                        {{ branch.label }}
+                    </div>
+                    <div
+                        v-for="field in branch.modelFields"
+                        :key="`model-top-${branch.key}-${field.label}`"
+                        style="display:flex;flex-direction:column;gap:3px;min-width:0"
+                    >
+                        <span style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.58);text-transform:uppercase;letter-spacing:0.4px">{{ field.label }}</span>
+                        <span style="font-size:12px;color:var(--fg-color, rgba(255,255,255,0.96));line-height:1.35;word-break:break-word;cursor:pointer" @click="copyText(field.value, $event.currentTarget)">
+                            {{ field.value || '-' }}
+                        </span>
+                    </div>
+                    <div v-if="branch.loras.length" style="display:flex;flex-direction:column;gap:5px">
+                        <span style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.58);text-transform:uppercase;letter-spacing:0.4px">LoRA</span>
+                        <span
+                            v-for="(lora, index) in branch.loras"
+                            :key="`model-top-${branch.key}-lora-${index}`"
+                            style="font-size:12px;color:var(--fg-color, rgba(255,255,255,0.92));line-height:1.35;word-break:break-word;padding:6px 8px;border-radius:6px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);cursor:pointer"
+                            @click="copyText(lora, $event.currentTarget)"
+                        >
+                            {{ lora }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div
             v-if="sectionState.lyrics"
             :style="boxStyle('#00BCD4', { emphasis: false })"
         >
@@ -767,9 +781,9 @@ watch(
                     <div
                         v-for="branch in samplingBranches"
                         :key="`sampling-${branch.key}`"
-                        :style="modelGroupStyle(branch.accent, true)"
+                        :style="modelGroupStyle(samplingBranchAccent(branch), true)"
                     >
-                        <div :style="{ fontSize: '10px', fontWeight: '800', color: branch.accent, letterSpacing: '0.6px', textTransform: 'uppercase' }">
+                        <div :style="{ fontSize: '10px', fontWeight: '800', color: samplingBranchAccent(branch), letterSpacing: '0.6px', textTransform: 'uppercase' }">
                             {{ branch.label }}
                         </div>
                         <div

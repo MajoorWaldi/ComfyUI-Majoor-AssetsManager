@@ -30,6 +30,10 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
+    size: {
+        type: [Number, String],
+        default: 16,
+    },
 });
 
 const emit = defineEmits(["update:modelValue", "rating-change"]);
@@ -50,6 +54,13 @@ const displayRating = computed(() =>
 const starColor = (starValue) => (starValue <= displayRating.value ? "#FFD45A" : "#555");
 
 const starTransform = (starValue) => (starValue <= displayRating.value ? "scale(1.1)" : "scale(1)");
+
+const starSize = computed(() => {
+    const raw = props.size;
+    if (typeof raw === "number") return `${Math.max(8, raw)}px`;
+    const text = String(raw || "").trim();
+    return text || "16px";
+});
 
 const retryDelay = (attemptIndex) => Math.min(100 * 2 ** Math.max(0, attemptIndex - 1), 2000);
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -264,7 +275,7 @@ watch(
             :style="{
                 color: starColor(i),
                 transform: starTransform(i),
-                fontSize: '16px',
+                fontSize: starSize,
                 background: 'none',
                 border: 'none',
                 cursor: disabled ? 'default' : 'pointer',
