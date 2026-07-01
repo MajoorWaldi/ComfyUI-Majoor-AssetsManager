@@ -48,6 +48,7 @@ export function createGridQuery(input: Record<string, any> = {}) {
         workflowRunsOn: stringValue(input.workflowRunsOn).toLowerCase(),
         dateRange: stringValue(input.dateRange).toLowerCase(),
         dateExact: stringValue(input.dateExact),
+        metadataSearchMode: stringValue(input.metadataSearchMode).toUpperCase() === "OR" ? "OR" : "AND",
         sort: stringValue(input.sort, "mtime_desc").toLowerCase(),
         semanticMode:
             input.semanticMode === undefined || input.semanticMode === null
@@ -84,6 +85,7 @@ export function readGridQueryFromDataset(dataset: Record<string, any> = {}, over
         workflowRunsOn: dataset.mjrFilterWorkflowRunsOn,
         dateRange: dataset.mjrFilterDateRange,
         dateExact: dataset.mjrFilterDateExact,
+        metadataSearchMode: dataset.mjrMetadataMode,
         sort: dataset.mjrSort,
         semanticMode: dataset.mjrSemanticMode,
         groupStacks: dataset.mjrGroupStacks,
