@@ -9,6 +9,8 @@ from typing import Any
 from aiohttp import web
 from mjr_am_backend.shared import Result
 
+from .route_helpers import has_meaningful_filters
+
 
 def _extract_total(raw_total):
     total_known = raw_total is not None
@@ -92,7 +94,7 @@ async def handle_output_scope(
         search_kwargs["cursor"] = cursor
     out_res = await svc["index"].search_scoped(query, **search_kwargs)
     try:
-        is_initial = query == "*" and offset == 0 and not (filters or None)
+        is_initial = query == "*" and offset == 0 and not has_meaningful_filters(filters)
         out_data = out_res.data or {}
         assets = out_data.get("assets") or []
         raw_total = out_data.get("total")

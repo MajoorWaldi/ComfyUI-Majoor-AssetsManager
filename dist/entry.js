@@ -5387,6 +5387,7 @@ function xl(e = {}) {
 		workflowRunsOn: vl(e.workflowRunsOn).toLowerCase(),
 		dateRange: vl(e.dateRange).toLowerCase(),
 		dateExact: vl(e.dateExact),
+		metadataSearchMode: vl(e.metadataSearchMode),
 		sort: vl(e.sort, "mtime_desc").toLowerCase(),
 		semanticMode: e.semanticMode === void 0 || e.semanticMode === null ? void 0 : bl(e.semanticMode),
 		groupStacks: e.groupStacks === void 0 || e.groupStacks === null ? void 0 : bl(e.groupStacks)
@@ -5416,6 +5417,7 @@ function Sl(e = {}, t = {}) {
 		workflowRunsOn: e.mjrFilterWorkflowRunsOn,
 		dateRange: e.mjrFilterDateRange,
 		dateExact: e.mjrFilterDateExact,
+		metadataSearchMode: e.mjrMetadataMode,
 		sort: e.mjrSort,
 		semanticMode: e.mjrSemanticMode,
 		groupStacks: e.mjrGroupStacks,

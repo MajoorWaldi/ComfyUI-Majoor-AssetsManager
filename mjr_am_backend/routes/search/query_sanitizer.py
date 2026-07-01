@@ -13,6 +13,7 @@ MAX_TAG_LENGTH = 50
 MAX_TAG_TOKENS = 10
 VALID_KIND_FILTERS = {"image", "video", "audio", "model3d"}
 VALID_SORT_KEYS = {"mtime_desc", "mtime_asc", "name_asc", "name_desc", "rating_desc", "size_desc", "size_asc", "none"}
+INLINE_FILTER_KEYS = {"ext", "extension", "kind", "rating", "tag", "tags"}
 
 
 def reference_as_utc(reference=None):
@@ -85,10 +86,11 @@ def consume_kind(value: str, filters: dict) -> bool:
 
 
 def consume_rating(value: str, filters: dict) -> bool:
-    match = re.match(r"^(\d+)", value)
-    if not match:
+    try:
+        rating = int(str(value or "").strip())
+    except Exception:
         return False
-    filters["min_rating"] = max(0, min(MAX_RATING, int(match.group(1))))
+    filters["min_rating"] = max(0, min(MAX_RATING, rating))
     return True
 
 
@@ -126,15 +128,22 @@ def consume_filter_token(token: str, filters: dict) -> bool:
 
 def parse_inline_filters(raw_query):
     if not raw_query:
-        return "", {}
-    raw_query, prefixed_filters = merge_prefixed_query(str(raw_query), {})
+        return "", {"min_rating": None}
     tokens = str(raw_query).strip().split()
-    cleaned = []
-    filters: dict[str, object] = dict(prefixed_filters or {})
+    filters: dict[str, object] = {"min_rating": None}
+    metadata_tokens = []
+    inline_passthrough = []
     for token in tokens:
         consumed = consume_filter_token(token, filters)
         if not consumed:
-            cleaned.append(token)
+            key = token.partition(":")[0].lstrip("-").strip().lower() if ":" in token else ""
+            if key in INLINE_FILTER_KEYS:
+                inline_passthrough.append(token)
+            else:
+                metadata_tokens.append(token)
+    query, prefixed_filters = merge_prefixed_query(" ".join(metadata_tokens), {})
+    filters.update(prefixed_filters or {})
+    cleaned = [part for part in (query, " ".join(inline_passthrough).strip()) if part]
     return " ".join(cleaned).strip(), filters
 
 

@@ -53,14 +53,24 @@ def extract_workflow_from_metadata_raw(metadata_raw: object, has_workflow: objec
 
 
 def browser_mode_needs_post_filters(filters: dict[str, Any] | None) -> bool:
+    return has_meaningful_filters(filters)
+
+
+def has_meaningful_filters(filters: dict[str, Any] | None) -> bool:
     if not filters:
         return False
+    min_rating = filters.get("min_rating")
+    try:
+        has_min_rating = min_rating is not None and int(min_rating or 0) > 0
+    except Exception:
+        has_min_rating = False
+    if has_min_rating:
+        return True
     return any(
         key in filters
         for key in (
             "extensions",
             "tags",
-            "min_rating",
             "has_workflow",
             "workflow_type",
             "mtime_start",
@@ -96,4 +106,3 @@ def postfilter_browser_assets(
         limit=limit,
         offset=offset,
     )
-

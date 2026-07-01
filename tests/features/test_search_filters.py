@@ -25,7 +25,7 @@ def test_parse_inline_query_filters_handles_kind_and_clamps_rating():
 def test_parse_inline_query_filters_leaves_unhandled_tokens():
     query, filters = search_mod._parse_inline_query_filters("foo:bar rating:two ext:")
     assert query == "foo:bar rating:two ext:"
-    assert not filters
+    assert filters == {"min_rating": None}
 
 
 def test_date_bounds_range_uses_utc_reference():

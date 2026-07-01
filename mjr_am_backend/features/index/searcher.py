@@ -343,7 +343,7 @@ def _append_numeric_range_filters(filters: dict[str, Any], alias: str, clauses: 
         ("max_width", f"AND COALESCE({alias}.width, 0) <= ?"),
         ("max_height", f"AND COALESCE({alias}.height, 0) <= ?"),
     ]
-    if "min_rating" in filters:
+    if filters.get("min_rating") is not None:
         clauses.append("AND COALESCE(m.rating, 0) >= ?")
         params.append(filters["min_rating"])
     for key, clause in int_specs:
