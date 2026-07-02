@@ -159,6 +159,13 @@ export function inputPreviewCandidates(inputAsset: LooseRecord | null | undefine
     return candidates;
 }
 
+function normalizeInputFilepath(inputAsset: LooseRecord | null | undefined): string {
+    const filepath = String(inputAsset?.filepath || "").trim();
+    const filename = String(inputAsset?.filename || "").trim();
+    if (!filepath || filepath === filename) return "";
+    return filepath;
+}
+
 export function isSafeOpenUrl(url: any): boolean {
     const value = String(url || "").trim();
     if (!value) return false;
@@ -1154,12 +1161,23 @@ export function buildGenerationSectionState(asset: LooseRecord | null | undefine
               .map((inputAsset, index) => ({
                   id: `${inputAsset.filename}-${index}`,
                   filename: String(inputAsset.filename || "").trim(),
-                  filepath: String(inputAsset.filepath || inputAsset.filename || "").trim(),
+                  subfolder: String(inputAsset.subfolder || "").trim(),
+                  type: String(inputAsset.folder_type || "input")
+                      .trim()
+                      .toLowerCase(),
+                  root_id: String(inputAsset.root_id || inputAsset.rootId || "").trim(),
+                  kind: String(inputAsset.kind || inputAsset.media_kind || inputAsset.type || "")
+                      .trim()
+                      .toLowerCase(),
+                  filepath: normalizeInputFilepath(inputAsset),
                   role: String(inputAsset.role || "").trim(),
                   roleLabel: String(inputAsset.role || "").trim().replace(/_/g, " "),
                   isVideo:
                       String(inputAsset.type || "").toLowerCase() === "video" ||
                       /\.(mp4|mov|webm)$/i.test(String(inputAsset.filename || "")),
+                  isAudio:
+                      String(inputAsset.type || "").toLowerCase() === "audio" ||
+                      /\.(wav|mp3|flac|ogg|m4a|aac|opus)$/i.test(String(inputAsset.filename || "")),
                   previewCandidates: inputPreviewCandidates(inputAsset),
               }))
         : [];

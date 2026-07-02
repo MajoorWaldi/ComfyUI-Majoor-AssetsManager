@@ -1275,6 +1275,8 @@ def _apply_execution_ids_from_exif(metadata: dict[str, Any], exif_data: dict[str
         "prompt_id": ("PNG:Prompt_id", "prompt_id", "Prompt_id"),
         "workflow_id": ("PNG:Workflow_id", "workflow_id", "Workflow_id"),
         "source_node_id": ("PNG:Source_node_id", "source_node_id", "Source_node_id"),
+        "source_node_type": ("PNG:Source_node_type", "source_node_type", "Source_node_type"),
+        "asset_id": ("PNG:Asset_id", "asset_id", "Asset_id"),
     }
     for field, keys in field_keys.items():
         for key in keys:

@@ -104,6 +104,7 @@ const collectionsBtnRef = ref(null);
 const pinnedFoldersBtnRef = ref(null);
 const mfvBtnRef = ref(null);
 const messageBtnRef = ref(null);
+const settingsBtnRef = ref(null);
 const saveWorkflowBtnRef = ref(null);
 const pickWorkflowRootBtnRef = ref(null);
 const importWorkflowInputRef = ref(null);
@@ -517,6 +518,7 @@ defineExpose({
     get collectionsBtn()    { return resolveDomElement(collectionsBtnRef.value); },
     get pinnedFoldersBtn()  { return resolveDomElement(pinnedFoldersBtnRef.value); },
     get messageBtn()        { return resolveDomElement(messageBtnRef.value); },
+    get settingsBtn()       { return resolveDomElement(settingsBtnRef.value); },
     // CustomRootsPopover (Vue)
     get customPopover()   { return customPopoverRef.value?.$el ?? null; },
     get customSelect()    { return customPopoverRef.value?.customSelect ?? null; },
@@ -568,6 +570,11 @@ defineExpose({
     get searchSection() { return searchBarRef.value?.searchSection ?? null; },
     get searchInputEl() { return searchBarRef.value?.searchInputEl ?? null; },
     get similarBtn()    { return searchBarRef.value?.similarBtn ?? null; },
+    get similarPopover() { return searchBarRef.value?.similarPopover ?? null; },
+    get similarFindBtn() { return searchBarRef.value?.similarFindBtn ?? null; },
+    get similarDuplicatesBtn() { return searchBarRef.value?.similarDuplicatesBtn ?? null; },
+    get similarSameNodeBtn() { return searchBarRef.value?.similarSameNodeBtn ?? null; },
+    get similarSameWorkflowBtn() { return searchBarRef.value?.similarSameWorkflowBtn ?? null; },
     setSemanticEnabled(enabled) { searchBarRef.value?.setSemanticEnabled?.(enabled); },
     _headerDispose: dispose,
 });
@@ -780,6 +787,7 @@ defineExpose({
                     </div>
 
                     <MButton
+                        ref="settingsBtnRef"
                         type="button"
                         class="mjr-icon-btn mjr-settings-shortcut-btn"
                         severity="secondary"

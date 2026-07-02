@@ -30,12 +30,16 @@ def test_apply_common_exif_fields_extracts_execution_ids():
             "PNG:Job_id": "job-1",
             "PNG:Workflow_id": "workflow-1",
             "PNG:Source_node_id": "node-1",
+            "PNG:Source_node_type": "MajoorSaveImage",
+            "PNG:Asset_id": "asset-1",
         },
     )
     assert meta["job_id"] == "job-1"
     assert meta["prompt_id"] == "job-1"
     assert meta["workflow_id"] == "workflow-1"
     assert meta["source_node_id"] == "node-1"
+    assert meta["source_node_type"] == "MajoorSaveImage"
+    assert meta["asset_id"] == "asset-1"
 
 
 def test_ffprobe_extractors_and_text_candidates():
@@ -271,8 +275,26 @@ def test_extract_png_metadata_uses_png_text_chunks_when_exif_missing(monkeypatch
 
 def test_video_helpers_collect_candidates():
     m = {"quality": "none"}
-    e._apply_video_ffprobe_fields(m, {"video_stream": {"width": 5, "height": 6, "r_frame_rate": "24/1"}, "format": {"duration": "9"}})
+    e._apply_video_ffprobe_fields(
+        m,
+        {
+            "video_stream": {"width": 5, "height": 6, "r_frame_rate": "24/1"},
+            "format": {
+                "duration": "9",
+                "tags": {
+                    "job_id": "job-video",
+                    "source_node_id": "12",
+                    "source_node_type": "MajoorSaveVideo",
+                    "asset_id": "asset-video",
+                },
+            },
+        },
+    )
     assert m["fps"] == "24/1"
+    assert m["job_id"] == "job-video"
+    assert m["source_node_id"] == "12"
+    assert m["source_node_type"] == "MajoorSaveVideo"
+    assert m["asset_id"] == "asset-video"
 
     cands = e._collect_video_text_candidates({"a": "x"}, {"b": "y"}, [{"c": "z"}])
     keys = [k for k, _ in cands]

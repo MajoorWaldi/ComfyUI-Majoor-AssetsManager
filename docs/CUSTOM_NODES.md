@@ -38,6 +38,11 @@ Each saved PNG contains the following text chunks:
 | `prompt` | Full prompt graph as JSON |
 | `workflow` | Full workflow as JSON (via `extra_pnginfo`) |
 | `generation_time_ms` | Elapsed time since prompt start, in milliseconds |
+| `job_id` / `prompt_id` | Current ComfyUI prompt/job id when available |
+| `workflow_id` | Workflow id from `extra_pnginfo.workflow.id` / `workflow_id` when available |
+| `source_node_id` | ComfyUI id of the Majoor Save node that wrote the file |
+| `source_node_type` | Node type/class of the Majoor Save node that wrote the file |
+| `asset_id` | Best-effort upstream/core asset id only when ComfyUI context provides one; the Majoor DB asset id is assigned after indexing |
 | `CreationTime` | ISO 8601 timestamp (`YYYY-MM-DD HH:MM:SS`) |
 
 ### Output
@@ -102,6 +107,11 @@ Metadata is embedded directly in the MP4 container using PyAV with `movflags=use
 | `prompt` | Full prompt graph as JSON |
 | `workflow` | Full workflow as JSON |
 | `generation_time_ms` | Elapsed time since prompt start, in milliseconds |
+| `job_id` / `prompt_id` | Current ComfyUI prompt/job id when available |
+| `workflow_id` | Workflow id from `extra_pnginfo.workflow.id` / `workflow_id` when available |
+| `source_node_id` | ComfyUI id of the Majoor Save node that wrote the file |
+| `source_node_type` | Node type/class of the Majoor Save node that wrote the file |
+| `asset_id` | Best-effort upstream/core asset id only when ComfyUI context provides one; the Majoor DB asset id is assigned after indexing |
 | `CreationTime` | ISO 8601 timestamp |
 
 These tags are readable by FFProbe (`ffprobe -show_format_tags`) and ExifTool.

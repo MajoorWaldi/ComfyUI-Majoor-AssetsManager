@@ -72,6 +72,7 @@ function createNode() {
 
 describe("messagePopoverController", () => {
     beforeEach(() => {
+        vi.useRealTimers();
         const eventTarget = new EventTarget();
         eventTarget.location = { href: "http://127.0.0.1:8188/" };
         globalThis.window = eventTarget;
@@ -237,5 +238,89 @@ describe("messagePopoverController", () => {
         expect(content.childNodes[3].childNodes[0].textContent).toContain("3/120");
         expect(content.childNodes[3].childNodes[1].childNodes[0].style.width).toBe("3%");
         expect(content.childNodes[4].textContent).toBe("Open docs");
+    });
+
+    it("auto-closes history when an automatically opened tracked job completes", async () => {
+        vi.useFakeTimers();
+        const historyModule = await import("../features/panel/messages/toastHistory.js");
+        historyModule.clearToastHistory();
+        historyModule.addToastHistory({
+            message: "Vector backfill running",
+            title: "Vector Backfill",
+            detail: "Running",
+            type: "info",
+            trackId: "vector-backfill:test",
+            operation: "vector_backfill",
+            status: "running",
+            persistent: true,
+            forceStore: true,
+        });
+
+        const { EVENTS } = await import("../app/events.js");
+        const { bindMessagePopoverController } =
+            await import("../features/panel/messages/messagePopoverController.js");
+
+        const badge = { style: {}, textContent: "" };
+        const messageBtn = {
+            classList: createClassList(),
+            setAttribute() {},
+            querySelector(selector) {
+                return selector === ".mjr-message-badge" ? badge : null;
+            },
+            addEventListener() {},
+        };
+        const title = createNode();
+        const messagePopover = createNode();
+        const messageList = createNode();
+        const historyPanel = createNode();
+        const messageTabBtn = createNode();
+        const historyTabBtn = createNode();
+        const shortcutsTabBtn = createNode();
+        const markReadBtn = createNode();
+        const popovers = {
+            toggle: vi.fn((popover) => {
+                popover.style.display = "block";
+            }),
+            close: vi.fn((popover) => {
+                popover.style.display = "none";
+            }),
+        };
+
+        bindMessagePopoverController({
+            messageBtn,
+            messagePopover,
+            title,
+            messageList,
+            historyPanel,
+            messageTabBtn,
+            historyTabBtn,
+            shortcutsTabBtn,
+            markReadBtn,
+            popovers,
+        });
+
+        window.dispatchEvent(new CustomEvent(EVENTS.OPEN_MESSAGE_HISTORY));
+
+        expect(messagePopover.style.display).toBe("block");
+        expect(title.textContent).toBe("History");
+
+        historyModule.addToastHistory({
+            message: "Vector backfill complete",
+            title: "Vector Backfill",
+            detail: "Done",
+            type: "success",
+            trackId: "vector-backfill:test",
+            operation: "vector_backfill",
+            status: "succeeded",
+            durationMs: 3000,
+            forceStore: true,
+        });
+
+        expect(messagePopover.style.display).toBe("block");
+        await vi.advanceTimersByTimeAsync(2200);
+
+        expect(popovers.close).toHaveBeenCalledWith(messagePopover);
+        expect(messagePopover.style.display).toBe("none");
+        vi.useRealTimers();
     });
 });

@@ -7,16 +7,24 @@ All notable changes to this project are documented in this file.
 ### New Features
 - **LTX Director and Ideogram 4 workflow metadata**: Added generation info support for LTX Director and Ideogram 4 workflows, including dedicated prompt extraction and sidebar display.
 - **Viewer playback speeds**: Added 3x, 5x, and 10x playback speeds.
+- **Generation source file actions**: Added a context menu for source files in the generation sidebar, with viewer, floating viewer, folder, and asset-loading actions.
+- **Find Similar action menu**: Replaced the direct Find Similar button with a popover menu for Find Similar, Find Duplicate, Generated with same save node, and Generated from same workflow.
 
 ### Improved
 - **Asset sidebar UI**: Polished the asset sidebar generation info layout and workflow metadata presentation.
 - **Video viewer rendering**: Improved video viewer rendering behavior.
+- **Toolbar active states**: Popover and settings buttons now highlight consistently while their menu/dialog is open, including Messages and updates, Find Similar, Filter, Sort, Collections, Pinned folders, and Settings.
+- **Message history UX**: Automatically closes the Messages and updates history panel after an auto-opened tracked process completes, while preserving manually opened history panels.
+- **Majoor Save metadata persistence**: Persisted Asset ID, Job ID, Source Node, Node Type, and Workflow ID in saved asset metadata alongside generation time.
 
 ### Fixed
 - **Tags shortcuts**: Fixed tags shortcut behavior.
 - **Viewer playback state**: Fixed playback speed persistence and arrow-key navigation.
 - **Floating Viewer controls**: Fixed Floating Viewer mute/speed persistence and rating hotkeys. Thanks @Aivanis.
 - **Generation prompt tracing**: Fixed a generation prompt tracing bug.
+- **Generation source file viewer loading**: Fixed source file preview/viewer loading paths that could show "Failed to load image".
+- **Filter popover dismissal**: Fixed the Filter popover not closing when clicking outside.
+- **Viewer generation info stability**: Fixed intermittent Generation Info rendering in the viewer.
 
 ---
 

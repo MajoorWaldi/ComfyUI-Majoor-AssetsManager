@@ -17,6 +17,7 @@ import SidebarWorkflowSection from "./SidebarWorkflowSection.vue";
 import SidebarFolderSection from "./SidebarFolderSection.vue";
 import RatingEditor from "../../common/RatingEditor.vue";
 import TagsEditor from "../../common/TagsEditor.vue";
+import ContextMenuPortal from "../../common/ContextMenuPortal.vue";
 
 const props = defineProps({
     asset: { type: Object, required: true },
@@ -102,4 +103,5 @@ function handleClose() {
             <SidebarWorkflowSection :asset="asset" />
         </template>
     </div>
+    <ContextMenuPortal />
 </template>

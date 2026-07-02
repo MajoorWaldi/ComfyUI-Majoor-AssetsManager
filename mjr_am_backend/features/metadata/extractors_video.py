@@ -26,7 +26,7 @@ def apply_video_ffprobe_fields(metadata: dict[str, Any], ffprobe_data: dict[str,
                     metadata["generation_time_ms"] = ms
             except (TypeError, ValueError):
                 pass
-        for field in ("job_id", "prompt_id", "workflow_id", "source_node_id"):
+        for field in ("job_id", "prompt_id", "workflow_id", "source_node_id", "source_node_type", "asset_id"):
             value = tags.get(field)
             if value is not None and str(value).strip():
                 metadata[field] = str(value).strip()[:255]

@@ -1,5 +1,14 @@
 <script setup>
 import { ref } from "vue";
+import { ENDPOINTS } from "../../../../api/endpoints.js";
+import { openInFolder, post } from "../../../../api/client.js";
+import { t } from "../../../../app/i18n.js";
+import { comfyToast } from "../../../../app/toast.js";
+import { getRawHostApp } from "../../../../app/hostAdapter.js";
+import { openGridContextMenu } from "../../../../features/contextmenu/gridContextMenuState.js";
+import { createCanvasLoaderNodes } from "../../../../features/dnd/canvasLoaderNode.js";
+import { stageToInputDetailed } from "../../../../features/dnd/staging/stageToInput.js";
+import { requestViewerOpen } from "../../../../features/viewer/viewerOpenRequest.js";
 import { isSafeOpenUrl } from "./generationSectionState.js";
 
 const props = defineProps({
@@ -8,6 +17,15 @@ const props = defineProps({
 
 const currentSrcIndex = ref(0);
 const flashOutline = ref(false);
+
+let floatingViewerManagerModulePromise = null;
+
+function loadFloatingViewerManagerModule() {
+    if (!floatingViewerManagerModulePromise) {
+        floatingViewerManagerModulePromise = import("../../../../features/viewer/floatingViewerManager.js");
+    }
+    return floatingViewerManagerModulePromise;
+}
 
 function currentSource() {
     const candidates = Array.isArray(props.inputFile?.previewCandidates)
@@ -42,6 +60,65 @@ async function copyPath(event) {
 
 function openPreview(event) {
     event?.stopPropagation?.();
+    openInMainViewer();
+}
+
+function asAsset() {
+    const input = props.inputFile || {};
+    const filepath = String(input.filepath || "").trim();
+    return {
+        filename: input.filename || "",
+        name: input.filename || "",
+        filepath,
+        path: filepath,
+        subfolder: input.subfolder || "",
+        type: input.type || "input",
+        source: input.type || "input",
+        kind: inferKind(input),
+        root_id: input.root_id || "",
+        preview_url: currentSource(),
+    };
+}
+
+function inferKind(input = props.inputFile || {}) {
+    const explicit = String(input.kind || "").trim().toLowerCase();
+    if (explicit === "image" || explicit === "video" || explicit === "audio" || explicit === "model3d") return explicit;
+    if (input.isVideo) return "video";
+    if (input.isAudio) return "audio";
+    const filename = String(input.filename || "").toLowerCase();
+    if (/\.(mp4|mov|webm|mkv|avi|m4v)$/i.test(filename)) return "video";
+    if (/\.(wav|mp3|flac|ogg|m4a|aac|opus)$/i.test(filename)) return "audio";
+    if (/\.(glb|gltf|obj|stl|ply|fbx)$/i.test(filename)) return "model3d";
+    return "image";
+}
+
+function createMenuItem(label, iconClass, action, { disabled = false } = {}) {
+    return {
+        id: `mjr-generation-source-${String(label).toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
+        type: "item",
+        label,
+        iconClass,
+        rightHint: "",
+        tone: String(label).toLowerCase().includes("floating") ? "floating-viewer" : "",
+        disabled,
+        action,
+    };
+}
+
+function createSeparator() {
+    return {
+        id: "mjr-generation-source-separator",
+        type: "separator",
+    };
+}
+
+function canOpenPreview() {
+    return isSafeOpenUrl(currentSource()) || !!props.inputFile?.filename || !!props.inputFile?.filepath;
+}
+
+function openInMainViewer() {
+    const asset = asAsset();
+    if (requestViewerOpen({ asset, index: 0 })) return;
     const src = currentSource();
     if (!isSafeOpenUrl(src)) return;
     try {
@@ -49,6 +126,99 @@ function openPreview(event) {
     } catch (e) {
         console.debug?.(e);
     }
+}
+
+async function openInFloatingViewer() {
+    try {
+        const { floatingViewerManager } = await loadFloatingViewerManagerModule();
+        await floatingViewerManager.openAssets({ assets: [asAsset()], index: 0 });
+    } catch (e) {
+        console.debug?.(e);
+        comfyToast(t("toast.viewerOpenFailed", "Failed to open viewer."), "error");
+    }
+}
+
+async function openSourceFolder() {
+    const result = await openInFolder(asAsset());
+    if (!result?.ok) {
+        comfyToast(result?.error || t("toast.openFolderFailed", "Failed to open folder."), "error");
+        return;
+    }
+    comfyToast(t("toast.openedInFolder", "Opened in folder"), "info", 1600);
+}
+
+async function loadAssetToCanvas() {
+    const asset = asAsset();
+    const payload = {
+        filename: asset.filename,
+        subfolder: asset.subfolder,
+        type: asset.type || "input",
+        root_id: asset.root_id || undefined,
+        kind: asset.kind,
+    };
+    const staged = await stageToInputDetailed({
+        post,
+        endpoint: ENDPOINTS.STAGE_TO_INPUT,
+        payload,
+        index: false,
+    });
+    if (!staged?.relativePath) {
+        comfyToast(t("toast.loadAssetFailed", "Failed to load asset."), "error");
+        return;
+    }
+    const count = createCanvasLoaderNodes({
+        app: getRawHostApp(),
+        items: [
+            {
+                payload,
+                relativePath: staged.relativePath,
+                droppedExt: String(payload.filename || "").split(".").pop() || "",
+            },
+        ],
+        event: null,
+    });
+    if (!count) {
+        comfyToast(t("toast.loadAssetFailed", "Failed to load asset."), "error");
+        return;
+    }
+    const kindLabel = asset.kind ? asset.kind.charAt(0).toUpperCase() + asset.kind.slice(1) : "Asset";
+    comfyToast(t("toast.assetLoadedToCanvas", "{kind} loader added to canvas.", { kind: kindLabel }), "success", 1800);
+}
+
+function handleContextMenu(event) {
+    event?.preventDefault?.();
+    event?.stopPropagation?.();
+    const kind = inferKind();
+    const loadLabel =
+        kind === "video"
+            ? t("ctx.loadVideo", "Load video")
+            : kind === "audio"
+                ? t("ctx.loadAudio", "Load audio")
+                : kind === "model3d"
+                    ? t("ctx.loadModel3d", "Load 3D model")
+                    : t("ctx.loadImage", "Load image");
+    openGridContextMenu({
+        x: event?.clientX || 0,
+        y: event?.clientY || 0,
+        items: [
+            createMenuItem(t("ctx.openInViewer", "Open in viewer"), "pi pi-eye", openInMainViewer, {
+                disabled: !canOpenPreview(),
+            }),
+            createMenuItem(t("ctx.openInFloatingViewer", "Open in Floating Viewer"), "pi pi-window-maximize", openInFloatingViewer, {
+                disabled: !canOpenPreview(),
+            }),
+            createMenuItem(t("ctx.openInFolder", "Open in folder"), "pi pi-folder-open", openSourceFolder, {
+                disabled: !props.inputFile?.filepath,
+            }),
+            createSeparator(),
+            createMenuItem(loadLabel, "pi pi-plus-circle", loadAssetToCanvas, {
+                disabled: !props.inputFile?.filename,
+            }),
+            createMenuItem(t("ctx.copyPath", "Copy path"), "pi pi-copy", copyPath, {
+                disabled: !(props.inputFile?.filepath || props.inputFile?.filename),
+            }),
+        ],
+    });
 }
 
 function handleVideoOver(event) {
@@ -87,6 +257,7 @@ function isAudioFile() {
         }"
         @click="copyPath"
         @dblclick="openPreview"
+        @contextmenu="handleContextMenu"
     >
         <video
             v-if="inputFile.isVideo"

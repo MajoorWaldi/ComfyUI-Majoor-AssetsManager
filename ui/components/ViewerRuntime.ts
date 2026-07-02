@@ -988,11 +988,37 @@ function createViewer() {
         }
     };
 
+    const getGenInfoAssetKey = (asset: any) => {
+        try {
+            if (!asset || typeof asset !== "object") return "";
+            if (asset.id != null) return `id:${asset.id}`;
+            const filepath = String(asset.filepath || asset.path || asset?.file_info?.filepath || "").trim();
+            if (filepath) return `fp:${filepath}`;
+            const type = String(asset.source || asset.type || "output").trim().toLowerCase();
+            const subfolder = String(asset.subfolder || asset?.file_info?.subfolder || "").trim();
+            const filename = String(asset.filename || asset.name || asset?.file_info?.filename || "").trim();
+            return filename ? `file:${type}:${subfolder}:${filename}` : "";
+        } catch {
+            return "";
+        }
+    };
+
+    const hasGenInfoBodyContent = () => {
+        try {
+            return Boolean(
+                genInfoBody?.childNodes?.length || genInfoBodyLeft?.childNodes?.length,
+            );
+        } catch {
+            return false;
+        }
+    };
+
     const renderGenInfoPanel = async () => {
         const canABMode = canAB();
         const canSideMode = canSide();
         const mode = state.mode;
         const open = Boolean(state?.genInfoOpen) && !state?.distractionFree;
+        const current = state?.assets?.[state?.currentIndex] || null;
 
         // Determine if we should show split panels
         const isDual =
@@ -1016,6 +1042,11 @@ function createViewer() {
             if (!open) {
                 stopGenInfoFetch();
                 try {
+                    state._genInfoRenderSignature = "";
+                } catch (e: any) {
+                    console.debug?.(e);
+                }
+                try {
                     clearGenInfoBody(genInfoBody);
                 } catch (e: any) {
                     console.debug?.(e);
@@ -1031,6 +1062,36 @@ function createViewer() {
             return;
         }
 
+        let signature = "";
+        try {
+            const assets = Array.isArray(state?.assets) ? state.assets : [];
+            const compared = state?.compareAsset ? getGenInfoAssetKey(state.compareAsset) : "";
+            const visibleKeys = assets.slice(0, 4).map(getGenInfoAssetKey).join("|");
+            signature = [
+                "open",
+                mode,
+                Number(state?.currentIndex) || 0,
+                getGenInfoAssetKey(current),
+                compared,
+                visibleKeys,
+                isDual ? "dual" : "single",
+                isGrid ? "grid" : "",
+            ].join("::");
+            const activeSignal = state?._genInfoAbort?.signal;
+            if (
+                signature &&
+                state?._genInfoRenderSignature === signature &&
+                activeSignal &&
+                !activeSignal.aborted &&
+                hasGenInfoBodyContent()
+            ) {
+                return;
+            }
+            state._genInfoRenderSignature = signature;
+        } catch (e: any) {
+            console.debug?.(e);
+        }
+
         stopGenInfoFetch();
         const reqId = (Number(state?._genInfoReqId) || 0) + 1;
         try {
@@ -1043,19 +1104,23 @@ function createViewer() {
 
         const renderNow = ({ left = null, leftExtra = null, right = null, rightExtra = null, single = null }: Record<string, any> = {}) => {
             try {
+                if (state._genInfoReqId !== reqId) return;
                 clearGenInfoBody(genInfoBody);
             } catch (e: any) {
                 console.debug?.(e);
             }
             try {
+                if (state._genInfoReqId !== reqId) return;
                 clearGenInfoBody(genInfoBodyLeft);
             } catch (e: any) {
                 console.debug?.(e);
             }
+            if (state._genInfoReqId !== reqId) return;
 
             const onRetry = () => {
                 try {
                     if (!state?.genInfoOpen) state.genInfoOpen = true;
+                    state._genInfoRenderSignature = "";
                     void renderGenInfoPanel();
                 } catch (e: any) {
                     console.debug?.(e);
@@ -1179,7 +1244,6 @@ function createViewer() {
 
         // Resolve assets and perform initial render
         try {
-            const current = state?.assets?.[state?.currentIndex] || null;
             if (!current) {
                 renderNow({});
                 return;

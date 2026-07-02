@@ -4,6 +4,7 @@ import { buildMajoorSettings } from "./SettingsPanel.js";
 
 const DIALOG_ID = "mjr-settings-dialog";
 const STYLE_ID = "mjr-settings-dialog-style";
+export const MAJOOR_SETTINGS_DIALOG_EVENT = "mjr:settings-dialog-visibility";
 
 let dialogState: any = null;
 
@@ -426,6 +427,11 @@ function buildDialog() {
 export function closeMajoorSettingsDialog(): void {
     if (!dialogState?.root) return;
     dialogState.root.hidden = true;
+    try {
+        window.dispatchEvent(new CustomEvent(MAJOOR_SETTINGS_DIALOG_EVENT, { detail: { open: false } }));
+    } catch (e) {
+        console.debug?.(e);
+    }
 }
 
 export function openMajoorSettingsDialog(app: any | null = getRawHostApp()): any {
@@ -444,6 +450,11 @@ export function openMajoorSettingsDialog(app: any | null = getRawHostApp()): any
     dialogState.search.value = "";
     render();
     dialogState.root.hidden = false;
+    try {
+        window.dispatchEvent(new CustomEvent(MAJOOR_SETTINGS_DIALOG_EVENT, { detail: { open: true } }));
+    } catch (e) {
+        console.debug?.(e);
+    }
     setTimeout(() => dialogState?.search?.focus?.(), 0);
     return true;
 }

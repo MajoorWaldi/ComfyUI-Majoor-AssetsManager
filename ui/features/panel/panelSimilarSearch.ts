@@ -1,5 +1,5 @@
 import { EVENTS } from "../../app/events.js";
-import { get, vectorFindSimilar } from "../../api/client.js";
+import { get, getAssetMetadata, vectorFindSimilar } from "../../api/client.js";
 import { buildNodeContextMembersURL } from "../../api/endpoints.js";
 import { comfyToast } from "../../app/toast.js";
 import { t } from "../../app/i18n.js";
@@ -36,6 +36,10 @@ function buildGroupSourceId(detail: Record<string, any> = {}) {
     return assetId ? `group:${assetId}` : "group";
 }
 
+function readAssetField(asset: any, key: string): string {
+    return String(asset?.[key] ?? asset?.file_info?.[key] ?? "").trim();
+}
+
 /**
  * Binds the "Find Similar" button and the stack-group open event.
  *
@@ -47,6 +51,11 @@ function buildGroupSourceId(detail: Record<string, any> = {}) {
  */
 export function bindSimilarSearch({
     similarBtn,
+    similarPopover,
+    similarFindBtn,
+    similarDuplicatesBtn,
+    similarSameNodeBtn,
+    similarSameWorkflowBtn,
     gridContainer,
     state,
     panelLifecycleAC,
@@ -58,7 +67,60 @@ export function bindSimilarSearch({
     writePanelValue,
     scopeController,
     closePopovers,
+    closePeerPopovers,
+    popovers,
+    workflowIdInput,
+    reloadGrid,
+    getDuplicatesAlert,
 }: Record<string, any>): void {
+    const selectedAssetId = () =>
+        String(readActiveAssetId() || readSelectedAssetIds()[0] || "").trim();
+
+    const selectedNumericAssetId = () => {
+        const selectedId = Number(selectedAssetId());
+        return Number.isFinite(selectedId) && selectedId > 0 ? selectedId : 0;
+    };
+
+    const getActiveAssetFromGrid = () => {
+        const activeId = selectedAssetId();
+        if (!activeId) return null;
+        try {
+            const getAssets = gridContainer?._mjrGetAssets;
+            const list = typeof getAssets === "function" ? getAssets() : [];
+            return Array.isArray(list)
+                ? list.find((asset) => String(asset?.id || "") === activeId) || null
+                : null;
+        } catch (err) {
+            console.debug?.(err);
+            return null;
+        }
+    };
+
+    const getActiveAsset = async () => {
+        const fromGrid = getActiveAssetFromGrid();
+        if (fromGrid) return fromGrid;
+        const id = selectedNumericAssetId();
+        if (!id) return null;
+        return fetchActiveAssetMetadata(id);
+    };
+
+    const fetchActiveAssetMetadata = async (id = selectedNumericAssetId()) => {
+        if (!id) return null;
+        try {
+            const res = await getAssetMetadata(id, { timeoutMs: 30_000 });
+            return res?.ok ? res.data || null : null;
+        } catch (err) {
+            console.debug?.(err);
+            return null;
+        }
+    };
+
+    const hydrateActiveAssetWhenMissing = async (asset: any, keys: string[]) => {
+        if (asset && keys.some((key) => readAssetField(asset, key))) return asset;
+        const fresh = await fetchActiveAssetMetadata();
+        return fresh || asset;
+    };
+
     const openNodeContext = async (detail: Record<string, any> = {}) => {
         const sourceNodeId = String(detail?.sourceNodeId || detail?.source_node_id || "").trim();
         if (!sourceNodeId) return;
@@ -127,84 +189,203 @@ export function bindSimilarSearch({
         }
     };
 
-    // -- Similar button click -----------------------------------------------
+    const runFindSimilar = async () => {
+        if (!isAiEnabled()) {
+            comfyToast(similarDisabledTitle, "info", 2200);
+            return;
+        }
 
-    similarBtn?.addEventListener(
-        "click",
-        async (e: any) => {
-            e.stopPropagation();
-            if (!isAiEnabled()) {
-                comfyToast(similarDisabledTitle, "info", 2200);
-                return;
-            }
+        try {
+            closePopovers();
+        } catch (err) {
+            console.debug?.(err);
+        }
 
-            try {
-                closePopovers();
-            } catch (err) {
-                console.debug?.(err);
-            }
+        const selectedId = selectedNumericAssetId();
+        if (!selectedId) {
+            comfyToast(
+                t(
+                    "search.selectAssetForSimilar",
+                    "Select an asset first to find similar images/videos.",
+                ),
+                "info",
+                2500,
+            );
+            return;
+        }
 
-            const selectedIdRaw = String(
-                readActiveAssetId() || readSelectedAssetIds()[0] || "",
-            ).trim();
-            const selectedId = Number(selectedIdRaw);
-            if (!Number.isFinite(selectedId) || selectedId <= 0) {
+        const prevTitle = similarBtn.title;
+        similarBtn.disabled = true;
+        similarBtn.title = t("search.findingSimilar", "Finding similar assets...");
+        try {
+            const res = await vectorFindSimilar(selectedId, {
+                topK: 100,
+                scope: state.scope || "output",
+                customRootId: state.customRootId || "",
+            });
+            if (!res?.ok) {
                 comfyToast(
-                    t(
-                        "search.selectAssetForSimilar",
-                        "Select an asset first to find similar images/videos.",
+                    String(
+                        res?.error ||
+                            t("search.findSimilarFailed", "Failed to find similar assets"),
                     ),
-                    "info",
-                    2500,
-                );
-                return;
-            }
-
-            const prevTitle = similarBtn.title;
-            similarBtn.disabled = true;
-            similarBtn.title = t("search.findingSimilar", "Finding similar assets...");
-            try {
-                const res = await vectorFindSimilar(selectedId, {
-                    topK: 100,
-                    scope: state.scope || "output",
-                    customRootId: state.customRootId || "",
-                });
-                if (!res?.ok) {
-                    comfyToast(
-                        String(
-                            res?.error ||
-                                t("search.findSimilarFailed", "Failed to find similar assets"),
-                        ),
-                        "error",
-                        3000,
-                    );
-                    return;
-                }
-                const list = Array.isArray(res?.data) ? res.data : [];
-                writePanelValue("similarResults", list);
-                writePanelValue("similarSourceAssetId", String(selectedId));
-                writePanelValue(
-                    "similarTitle",
-                    t("search.similarResults", "Similar to asset #{id} ({n} results)", {
-                        id: selectedId,
-                        n: list.length,
-                    }),
-                );
-                await scopeController?.setScope?.("similar");
-            } catch (err) {
-                console.debug?.(err);
-                comfyToast(
-                    t("search.findSimilarFailed", "Failed to find similar assets"),
                     "error",
                     3000,
                 );
-            } finally {
-                similarBtn.disabled = false;
-                similarBtn.title = prevTitle;
+                return;
             }
+            const list = Array.isArray(res?.data) ? res.data : [];
+            writePanelValue("similarResults", list);
+            writePanelValue("similarSourceAssetId", String(selectedId));
+            writePanelValue(
+                "similarTitle",
+                t("search.similarResults", "Similar to asset #{id} ({n} results)", {
+                    id: selectedId,
+                    n: list.length,
+                }),
+            );
+            await scopeController?.setScope?.("similar");
+        } catch (err) {
+            console.debug?.(err);
+            comfyToast(
+                t("search.findSimilarFailed", "Failed to find similar assets"),
+                "error",
+                3000,
+            );
+        } finally {
+            similarBtn.disabled = false;
+            similarBtn.title = prevTitle;
+        }
+    };
+
+    const runFindDuplicates = async () => {
+        try {
+            closePopovers?.();
+        } catch (err) {
+            console.debug?.(err);
+        }
+        const activeAsset = await getActiveAsset();
+        const activeId = String(activeAsset?.id || selectedAssetId() || "").trim();
+        const members = Array.isArray(activeAsset?._mjrDupMembers)
+            ? activeAsset._mjrDupMembers
+            : [];
+        if (members.length >= 2) {
+            writePanelValue("similarResults", members);
+            writePanelValue("similarSourceAssetId", activeId ? `duplicates:${activeId}` : "duplicates");
+            writePanelValue(
+                "similarTitle",
+                t("search.duplicateResults", "Duplicates ({n} assets)", { n: members.length }),
+            );
+            await scopeController?.setScope?.("similar");
+            return;
+        }
+
+        const alert = getDuplicatesAlert?.() || {};
+        const group = alert?.firstGroup;
+        if (group && Array.isArray(group.assets) && group.assets.length >= 2) {
+            writePanelValue("similarResults", group.assets);
+            writePanelValue("similarSourceAssetId", "duplicates");
+            writePanelValue(
+                "similarTitle",
+                t("search.duplicateResults", "Duplicates ({n} assets)", { n: group.assets.length }),
+            );
+            await scopeController?.setScope?.("similar");
+            return;
+        }
+
+        comfyToast(
+            t(
+                "search.noKnownDuplicates",
+                "No duplicate group is available yet. Run duplicate analysis from the duplicate alert first.",
+            ),
+            "info",
+            3200,
+        );
+    };
+
+    const runSameSaveNode = async () => {
+        const asset = await hydrateActiveAssetWhenMissing(await getActiveAsset(), [
+            "source_node_id",
+            "source_node_type",
+        ]);
+        const sourceNodeId = readAssetField(asset, "source_node_id");
+        if (!sourceNodeId) {
+            comfyToast(
+                t("search.noSourceNode", "Selected asset has no persisted source node id."),
+                "info",
+                2600,
+            );
+            return;
+        }
+        await openNodeContext({
+            sourceNodeId,
+            sourceNodeType: readAssetField(asset, "source_node_type"),
+            jobId: readAssetField(asset, "job_id"),
+            title: readAssetField(asset, "source_node_type") || sourceNodeId,
+        });
+    };
+
+    const runSameWorkflow = async () => {
+        try {
+            closePopovers?.();
+        } catch (err) {
+            console.debug?.(err);
+        }
+        const asset = await hydrateActiveAssetWhenMissing(await getActiveAsset(), ["workflow_id"]);
+        const workflowId = readAssetField(asset, "workflow_id");
+        if (!workflowId) {
+            comfyToast(
+                t("search.noWorkflowId", "Selected asset has no persisted workflow id."),
+                "info",
+                2600,
+            );
+            return;
+        }
+        writePanelValue("workflowId", workflowId);
+        try {
+            if (workflowIdInput) workflowIdInput.value = workflowId;
+        } catch (err) {
+            console.debug?.(err);
+        }
+        try {
+            await scopeController?.setScope?.(state.scope || "output");
+        } catch (err) {
+            console.debug?.(err);
+        }
+        await reloadGrid?.();
+    };
+
+    // -- Similar menu button + actions --------------------------------------
+
+    similarBtn?.addEventListener(
+        "click",
+        (e: any) => {
+            e.stopPropagation();
+            try {
+                closePeerPopovers?.();
+            } catch (err) {
+                console.debug?.(err);
+            }
+            popovers?.toggle?.(similarPopover, similarBtn);
         },
         { signal: panelLifecycleAC?.signal },
     );
+
+    const bindAction = (button: any, handler: any) => {
+        button?.addEventListener(
+            "click",
+            (event: any) => {
+                event.stopPropagation();
+                void handler();
+            },
+            { signal: panelLifecycleAC?.signal },
+        );
+    };
+
+    bindAction(similarFindBtn, runFindSimilar);
+    bindAction(similarDuplicatesBtn, runFindDuplicates);
+    bindAction(similarSameNodeBtn, runSameSaveNode);
+    bindAction(similarSameWorkflowBtn, runSameWorkflow);
 
     // -- Stack-group open event ---------------------------------------------
 

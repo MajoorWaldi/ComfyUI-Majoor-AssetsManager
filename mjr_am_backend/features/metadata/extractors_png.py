@@ -32,6 +32,8 @@ def read_png_text_chunks(file_path: str) -> dict[str, Any]:
         "prompt_id",
         "workflow_id",
         "source_node_id",
+        "source_node_type",
+        "asset_id",
     ):
         value = info.get(key)
         if isinstance(value, str) and value.strip():

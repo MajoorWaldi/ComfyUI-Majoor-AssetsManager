@@ -51,6 +51,7 @@ import { bindPinnedFolders } from "./panelPinnedFolders.js";
 import { setupFiltersInit } from "./panelFiltersInit.js";
 import { buildContextMenuExtraActions } from "./panelContextMenuExtraActions.js";
 import { consumePendingGeneratedAssets } from "../runtime/pendingGeneratedAssets.js";
+import { MAJOOR_SETTINGS_DIALOG_EVENT } from "../../app/settings/MajoorSettingsDialog.js";
 
 /**
  * Wires controller/service orchestration against Vue-owned panel surfaces.
@@ -155,6 +156,7 @@ async function _mountPanelRuntimeImpl(container: any, { useComfyThemeUI = true, 
         collectionsBtn,
         pinnedFoldersBtn,
         messageBtn,
+        settingsBtn,
         customPopover,
         customSelect,
         customAddBtn,
@@ -198,6 +200,11 @@ async function _mountPanelRuntimeImpl(container: any, { useComfyThemeUI = true, 
         searchSection,
         searchInputEl,
         similarBtn,
+        similarPopover,
+        similarFindBtn,
+        similarDuplicatesBtn,
+        similarSameNodeBtn,
+        similarSameWorkflowBtn,
         setSemanticEnabled,
         _headerDispose,
     } = external.headerSection;
@@ -405,6 +412,35 @@ async function _mountPanelRuntimeImpl(container: any, { useComfyThemeUI = true, 
     let _unbindBrowserFolderNav: any = null;
     let selectionState: any = null;
     let assetsQueryController: any = null;
+    let settingsDialogOpen = false;
+
+    const isPopoverOpen = (popover: any) =>
+        !!popover && String(popover?.style?.display || "").toLowerCase() === "block";
+
+    const syncOpenPopoverButtonStates = () => {
+        const pairs = [
+            [filterBtn, filterPopover],
+            [sortBtn, sortPopover],
+            [collectionsBtn, collectionsPopover],
+            [pinnedFoldersBtn, pinnedFoldersPopover],
+            [messageBtn, messagePopover],
+            [similarBtn, similarPopover],
+        ];
+        for (const [button, popover] of pairs) {
+            try {
+                button?.classList?.toggle?.("mjr-popover-open", isPopoverOpen(popover));
+                button?.setAttribute?.("aria-expanded", isPopoverOpen(popover) ? "true" : "false");
+            } catch (e) {
+                console.debug?.(e);
+            }
+        }
+        try {
+            settingsBtn?.classList?.toggle?.("mjr-popover-open", settingsDialogOpen);
+            settingsBtn?.setAttribute?.("aria-expanded", settingsDialogOpen ? "true" : "false");
+        } catch (e) {
+            console.debug?.(e);
+        }
+    };
 
     const notifyContextChanged = () => {
         try {
@@ -417,6 +453,7 @@ async function _mountPanelRuntimeImpl(container: any, { useComfyThemeUI = true, 
         } catch (e) {
             console.debug?.(e);
         }
+        syncOpenPopoverButtonStates();
     };
 
     // -- 12. SELECTION STATE + BROWSER NAV --------------------------------
@@ -734,13 +771,29 @@ async function _mountPanelRuntimeImpl(container: any, { useComfyThemeUI = true, 
         collectionsPopover,
         pinnedFoldersPopover,
         messagePopover,
+        similarPopover,
         customMenuBtn,
         filterBtn,
         sortBtn,
         collectionsBtn,
         pinnedFoldersBtn,
         messageBtn,
+        similarBtn,
     ]);
+    popovers.setOnVisibilityChanged?.(() => syncOpenPopoverButtonStates());
+    try {
+        window.addEventListener(
+            MAJOOR_SETTINGS_DIALOG_EVENT,
+            (event: any) => {
+                settingsDialogOpen = Boolean(event?.detail?.open);
+                syncOpenPopoverButtonStates();
+            },
+            { signal: panelLifecycleAC?.signal },
+        );
+    } catch (e) {
+        console.debug?.(e);
+    }
+    syncOpenPopoverButtonStates();
 
     customMenuBtn.addEventListener(
         "click",
@@ -750,6 +803,7 @@ async function _mountPanelRuntimeImpl(container: any, { useComfyThemeUI = true, 
             popovers.close(sortPopover);
             popovers.close(collectionsPopover);
             popovers.close(messagePopover);
+            popovers.close(similarPopover);
             popovers.toggle(customPopover, customMenuBtn);
         },
         { signal: panelLifecycleAC?.signal },
@@ -762,6 +816,7 @@ async function _mountPanelRuntimeImpl(container: any, { useComfyThemeUI = true, 
             popovers.close(sortPopover);
             popovers.close(collectionsPopover);
             popovers.close(messagePopover);
+            popovers.close(similarPopover);
             popovers.toggle(filterPopover, filterBtn);
         },
         { signal: panelLifecycleAC?.signal },
@@ -774,6 +829,7 @@ async function _mountPanelRuntimeImpl(container: any, { useComfyThemeUI = true, 
             popovers.close(filterPopover);
             popovers.close(sortPopover);
             popovers.close(messagePopover);
+            popovers.close(similarPopover);
             popovers.toggle(collectionsPopover, collectionsBtn);
         },
         { signal: panelLifecycleAC?.signal },
@@ -797,6 +853,7 @@ async function _mountPanelRuntimeImpl(container: any, { useComfyThemeUI = true, 
                 popovers.close(filterPopover);
                 popovers.close(collectionsPopover);
                 popovers.close(messagePopover);
+                popovers.close(similarPopover);
             },
         });
     } else {
@@ -808,6 +865,7 @@ async function _mountPanelRuntimeImpl(container: any, { useComfyThemeUI = true, 
                 popovers.close(filterPopover);
                 popovers.close(collectionsPopover);
                 popovers.close(messagePopover);
+                popovers.close(similarPopover);
                 popovers.toggle(sortPopover, sortBtn);
             },
             { signal: panelLifecycleAC?.signal },
@@ -817,6 +875,11 @@ async function _mountPanelRuntimeImpl(container: any, { useComfyThemeUI = true, 
     // -- 21. SIMILAR SEARCH ------------------------------------------------
     bindSimilarSearch({
         similarBtn,
+        similarPopover,
+        similarFindBtn,
+        similarDuplicatesBtn,
+        similarSameNodeBtn,
+        similarSameWorkflowBtn,
         gridContainer,
         state,
         panelLifecycleAC,
@@ -833,7 +896,20 @@ async function _mountPanelRuntimeImpl(container: any, { useComfyThemeUI = true, 
             popovers.close(sortPopover);
             popovers.close(collectionsPopover);
             popovers.close(messagePopover);
+            popovers.close(similarPopover);
         },
+        closePeerPopovers: () => {
+            popovers.close(customPopover);
+            popovers.close(filterPopover);
+            popovers.close(sortPopover);
+            popovers.close(collectionsPopover);
+            popovers.close(messagePopover);
+            popovers.close(pinnedFoldersPopover);
+        },
+        popovers,
+        workflowIdInput,
+        reloadGrid: () => gridController.reloadGrid(),
+        getDuplicatesAlert: () => _duplicatesAlert,
     });
 
     // -- 22. PINNED FOLDERS ------------------------------------------------
@@ -849,6 +925,7 @@ async function _mountPanelRuntimeImpl(container: any, { useComfyThemeUI = true, 
             popovers.close(sortPopover);
             popovers.close(collectionsPopover);
             popovers.close(messagePopover);
+            popovers.close(similarPopover);
         },
         state,
         gridContainer,

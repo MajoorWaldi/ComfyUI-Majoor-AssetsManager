@@ -1,6 +1,6 @@
 import { A as e, E as t, J as n, R as r, S as i, Y as a, b as o, j as s, m as c } from "./events-CrhYyn_G.js";
 import { a as l, n as u } from "./graphTraversal-Sruu0ipL.js";
-import { S as d, b as f, v as p, x as ee, y as te } from "./SidebarWorkflowSection-Ck029fwe.js";
+import { J as d, b as f, v as p, x as ee, y as te } from "./SidebarWorkflowSection-B3RkBmQ0.js";
 //#region ui/features/viewer/floatingViewerProgress.ts
 var m = "progress-update", h = "__MJR_MFV_PROGRESS_SERVICE__";
 function ne() {
@@ -297,19 +297,19 @@ async function le(e) {
 	} catch {}
 }
 function ue(e) {
-	let t = ye(e), n = be(e);
+	let t = be(e), n = xe(e);
 	for (let e of t) {
-		let t = xe(R(e));
-		if (t) return Ce(t, n), z(t), t;
+		let t = Se(L(e));
+		if (t) return we(t, n), R(t), t;
 	}
 	return null;
 }
 function T(e, t = null) {
 	let n = t?.includeSubgraphs !== !1, r = Array.isArray(e?.nodes) ? e.nodes.filter(Boolean) : [];
 	if (!n) return r;
-	let i = [...r], a = U(e);
+	let i = [...r], a = H(e);
 	for (let n of r) {
-		let r = G(e, n, a);
+		let r = W(e, n, a);
 		r && i.push(...T(r, t));
 	}
 	return i;
@@ -318,11 +318,11 @@ function E(e, t, n = null) {
 	let r = n?.includeSubgraphs !== !1, i = String(t ?? "");
 	if (!i) return null;
 	if (!r) return (Array.isArray(e?.nodes) ? e.nodes : []).find((e) => String(e?.id ?? e?.ID ?? "") === i) || null;
-	if (i.includes("::")) return Ne(e, i.split("::").filter(Boolean));
+	if (i.includes("::")) return Pe(e, i.split("::").filter(Boolean));
 	let a = (Array.isArray(e?.nodes) ? e.nodes : []).find((e) => String(e?.id ?? e?.ID ?? "") === i) || null;
 	if (a) return a;
 	for (let t of Array.isArray(e?.nodes) ? e.nodes : []) {
-		let n = G(e, t, U(e)), r = n ? E(n, i) : null;
+		let n = W(e, t, H(e)), r = n ? E(n, i) : null;
 		if (r) return r;
 	}
 	return null;
@@ -359,9 +359,9 @@ function A(e) {
 		value: t,
 		index: n
 	}));
-	let n = me(t), r = Array.isArray(e?.widgets) ? e.widgets : [], i = F(N(e)), a = he(e);
+	let n = me(t), r = Array.isArray(e?.widgets) ? e.widgets : [], i = P(_e(e)), a = he(e);
 	return n.map((t, n) => {
-		let o = ve(e, n, t);
+		let o = ye(e, n, t);
 		return {
 			label: a[n] || r[n]?.name || r[n]?.label || i[n] || o || `param ${n + 1}`,
 			value: t,
@@ -385,7 +385,7 @@ function j(e) {
 	return !(!Number.isFinite(t) || t < 0);
 }
 function he(e) {
-	let t = (Array.isArray(e?.inputs) ? e.inputs : []).filter(I), n = [], r = /* @__PURE__ */ new Set(), i = (e) => {
+	let t = (Array.isArray(e?.inputs) ? e.inputs : []).filter(F), n = [], r = /* @__PURE__ */ new Set(), i = (e) => {
 		let t = `${String(e?.name || "")}\u0000${String(e?.label || "")}\u0000${String(e?.link ?? "")}`;
 		r.has(t) || (r.add(t), n.push(e));
 	};
@@ -396,42 +396,42 @@ function M(e) {
 	return Array.isArray(e) && e.length === 2 && String(e[0] ?? "").trim() !== "" && Number.isFinite(Number(e[1]));
 }
 function ge(e) {
-	let t = H(String(e ?? "").trim());
+	let t = V(String(e ?? "").trim());
 	return t ? t === "cnr_id" || t === "ver" || t === "node_name_for_s&r" || t === "subgraph_name" || t === "subgraph_id" || t === "enabletabs" || t === "tabwidth" || t === "tabxoffset" || t === "hassecondtab" || t === "secondtabtext" || t === "secondtaboffset" || t === "secondtabwidth" || t.startsWith("ue_") : !0;
 }
-function N(e) {
+function _e(e) {
 	let t = O(e);
 	return t && C.get(t) || null;
 }
-function P(e) {
+function N(e) {
 	let t = e?.input_order;
 	if (t && typeof t == "object") return [...Array.isArray(t.required) ? t.required : [], ...Array.isArray(t.optional) ? t.optional : []].filter(Boolean);
 	let n = e?.input;
 	return n && typeof n == "object" ? ["required", "optional"].flatMap((e) => n[e] && typeof n[e] == "object" ? Object.keys(n[e]) : []).filter(Boolean) : [];
 }
-function F(e) {
+function P(e) {
 	let t = e?.input;
-	if (!t || typeof t != "object") return P(e);
+	if (!t || typeof t != "object") return N(e);
 	let n = [];
 	for (let e of ["required", "optional"]) {
 		let r = t[e];
-		if (!(!r || typeof r != "object")) for (let [e, t] of Object.entries(r)) L(t) && n.push(e);
+		if (!(!r || typeof r != "object")) for (let [e, t] of Object.entries(r)) I(t) && n.push(e);
 	}
-	return n.length ? n : P(e);
+	return n.length ? n : N(e);
 }
-function I(e) {
+function F(e) {
 	return !e || typeof e != "object" ? !1 : !!(e.widget === !0 || e.widget && typeof e.widget == "object" || typeof e.widget == "string" && e.widget.trim() || e.widget_index != null || e.widgetIndex != null);
 }
-function L(e) {
+function I(e) {
 	let t = Array.isArray(e) ? e : [], n = t[0], r = t[1] && typeof t[1] == "object" && !Array.isArray(t[1]) ? t[1] : null;
-	return r?.forceInput === !0 || r?.rawLink === !0 ? !1 : r?.widgetType && String(r.widgetType).trim() ? !0 : _e(n);
+	return r?.forceInput === !0 || r?.rawLink === !0 ? !1 : r?.widgetType && String(r.widgetType).trim() ? !0 : ve(n);
 }
-function _e(e) {
+function ve(e) {
 	if (Array.isArray(e)) return !0;
 	let t = String(e || "").trim().toUpperCase();
 	return t ? t === "INT" || t === "FLOAT" || t === "STRING" || t === "BOOLEAN" || t === "BOOL" || t === "COMBO" || t === "ENUM" : !1;
 }
-function ve(e, t, n) {
+function ye(e, t, n) {
 	let r = O(e), i = D(e), a = `${r} ${i}`.toLowerCase(), o = String(n ?? "").toLowerCase();
 	if (a.includes("ksamplerselect")) return "sampler_name";
 	if (a.includes("ksampler")) return [
@@ -460,8 +460,8 @@ function ve(e, t, n) {
 		if (t === 2) return "device";
 	}
 	if (/primitive(?:int|float|string|boolean)|constant/.test(a) && t === 0) {
-		let e = H(i);
-		return e && e !== H(r) ? e : "value";
+		let e = V(i);
+		return e && e !== V(r) ? e : "value";
 	}
 	if (a.includes("cliptext") || a.includes("prompt")) return t === 0 ? "text" : null;
 	if (o.includes(".safetensors") || o.includes(".ckpt")) return "model";
@@ -473,8 +473,8 @@ function ve(e, t, n) {
 	}
 	return null;
 }
-function ye(e) {
-	let t = R(e?.metadata_raw), n = R(e?.metadata);
+function be(e) {
+	let t = L(e?.metadata_raw), n = L(e?.metadata);
 	return [
 		e?.workflow,
 		e?.Workflow,
@@ -515,8 +515,8 @@ function ye(e) {
 		n?.Prompt
 	].filter((e) => e != null);
 }
-function be(e) {
-	let t = R(e?.metadata_raw), n = R(e?.metadata), r = [
+function xe(e) {
+	let t = L(e?.metadata_raw), n = L(e?.metadata), r = [
 		e?.prompt,
 		e?.Prompt,
 		t?.prompt,
@@ -525,12 +525,12 @@ function be(e) {
 		n?.Prompt
 	];
 	for (let e of r) {
-		let t = R(e);
+		let t = L(e);
 		if (t && typeof t == "object" && !Array.isArray(t)) return t;
 	}
 	return null;
 }
-function R(e) {
+function L(e) {
 	if (!e) return null;
 	if (typeof e == "object") return e;
 	if (typeof e != "string") return null;
@@ -542,16 +542,16 @@ function R(e) {
 		return null;
 	}
 }
-function xe(e) {
+function Se(e) {
 	if (!e || typeof e != "object") return null;
 	if (Array.isArray(e.nodes)) return e;
-	let t = Se(e);
+	let t = Ce(e);
 	if (t) return t;
 	if (e.prompt && typeof e.prompt == "object") return p(e.prompt);
 	let n = p(e);
 	return n && Array.isArray(n.nodes) ? n : null;
 }
-function Se(e) {
+function Ce(e) {
 	for (let t of [
 		"workflow",
 		"Workflow",
@@ -567,33 +567,33 @@ function Se(e) {
 	}
 	return null;
 }
-function z(e, t = /* @__PURE__ */ new WeakSet()) {
+function R(e, t = /* @__PURE__ */ new WeakSet()) {
 	if (!e || typeof e != "object" || t.has(e)) return;
 	t.add(e);
-	let n = U(e);
+	let n = H(e);
 	for (let r of Array.isArray(e?.nodes) ? e.nodes : []) {
-		Ee(r, n);
-		let i = G(e, r, n);
-		i && (De(r, i), z(i, t));
+		De(r, n);
+		let i = W(e, r, n);
+		i && (Oe(r, i), R(i, t));
 	}
 }
-function Ce(e, t) {
+function we(e, t) {
 	if (!e || typeof e != "object" || !t || typeof t != "object") return;
-	let n = we(t);
-	n.length && B(e, n, /* @__PURE__ */ new WeakSet());
+	let n = Te(t);
+	n.length && z(e, n, /* @__PURE__ */ new WeakSet());
 }
-function B(e, t, n) {
+function z(e, t, n) {
 	if (!e || typeof e != "object" || n.has(e)) return;
 	n.add(e);
-	let r = U(e);
+	let r = H(e);
 	for (let i of Array.isArray(e?.nodes) ? e.nodes : []) {
-		let a = Te(i, t);
+		let a = Ee(i, t);
 		a?.inputs && typeof a.inputs == "object" && !Array.isArray(a.inputs) && (i._mjrPromptInputs = a.inputs);
-		let o = G(e, i, r);
-		o && B(o, t, n);
+		let o = W(e, i, r);
+		o && z(o, t, n);
 	}
 }
-function we(e) {
+function Te(e) {
 	if (!e || typeof e != "object" || Array.isArray(e)) return [];
 	let t = [];
 	for (let [n, r] of Object.entries(e)) {
@@ -610,39 +610,39 @@ function we(e) {
 	}
 	return t;
 }
-function Te(e, t) {
-	let n = String(e?.id ?? e?.ID ?? "").trim(), r = V(O(e));
+function Ee(e, t) {
+	let n = String(e?.id ?? e?.ID ?? "").trim(), r = B(O(e));
 	if (!n || !r) return null;
-	let i = t.find((e) => e.id === n && V(e.classType) === r);
+	let i = t.find((e) => e.id === n && B(e.classType) === r);
 	if (i) return i;
-	let a = t.filter((e) => e.leafId === n && V(e.classType) === r);
+	let a = t.filter((e) => e.leafId === n && B(e.classType) === r);
 	return a.length === 1 ? a[0] : null;
 }
-function V(e) {
+function B(e) {
 	return String(e || "").trim().toLowerCase();
 }
-function Ee(e, t) {
+function De(e, t) {
 	if (!e || typeof e != "object") return;
-	let n = W(e).find((e) => t.has(String(e)));
+	let n = U(e).find((e) => t.has(String(e)));
 	if (!n) return;
 	let r = t.get(String(n)), i = String(r?.name || r?.title || e?.subgraph?.name || e?.subgraph_instance?.name || "").trim();
 	if (!i) return;
 	let a = e?.properties && typeof e.properties == "object" ? e.properties : e.properties = {};
 	String(a.subgraph_name || "").trim() || (a.subgraph_name = i), String(a.subgraph_id || "").trim() || (a.subgraph_id = n);
 }
-function De(e, t) {
+function Oe(e, t) {
 	let n = Array.isArray(e?.properties?.proxyWidgets) ? e.properties.proxyWidgets : [];
 	if (!n.length || !Array.isArray(t?.nodes)) return;
-	let r = new Map(t.nodes.filter(Boolean).map((e) => [String(e?.id ?? e?.ID ?? ""), e])), i = Oe(e), a = ke(t), o = [];
+	let r = new Map(t.nodes.filter(Boolean).map((e) => [String(e?.id ?? e?.ID ?? ""), e])), i = ke(e), a = Ae(t), o = [];
 	for (let e = 0; e < n.length; e += 1) {
 		let t = n[e], s = Array.isArray(t) ? t[0] : t?.nodeId ?? t?.node_id ?? t?.id, c = Array.isArray(t) ? t[1] : t?.widget ?? t?.name ?? t?.widgetName, l = r.get(String(s ?? ""));
 		if (!l) continue;
 		let u = k(l);
 		if (!u.length) continue;
-		let d = u.find(([e]) => H(e) === H(c)) || u.find(([e]) => H(e) === "value") || (u.length === 1 ? u[0] : null);
+		let d = u.find(([e]) => V(e) === V(c)) || u.find(([e]) => V(e) === "value") || (u.length === 1 ? u[0] : null);
 		if (!d) continue;
-		let f = `${String(s)}:${Ae(t, c, d[0])}`, p = a.get(f) || a.get(String(s)) || je(l, d[0], c);
-		i.size && !i.has(H(p)) || o.push({
+		let f = `${String(s)}:${je(t, c, d[0])}`, p = a.get(f) || a.get(String(s)) || Me(l, d[0], c);
+		i.size && !i.has(V(p)) || o.push({
 			label: p,
 			value: d[1],
 			innerNodeId: s,
@@ -651,49 +651,49 @@ function De(e, t) {
 	}
 	o.length && (e._mjrSubgraphProxyParams = o);
 }
-function Oe(e) {
+function ke(e) {
 	let t = Array.isArray(e?.inputs) ? e.inputs : [], n = /* @__PURE__ */ new Set();
 	for (let e of t) {
-		if (!I(e)) continue;
+		if (!F(e)) continue;
 		let t = String(e?.label || e?.localized_name || e?.name || "").trim();
-		t && n.add(H(t));
+		t && n.add(V(t));
 	}
 	return n;
 }
-function ke(e) {
+function Ae(e) {
 	let t = Array.isArray(e?.inputs) ? e.inputs : [], n = Array.isArray(e?.links) ? e.links : [], r = /* @__PURE__ */ new Map();
 	for (let e of n) {
 		let n = Array.isArray(e) ? e[1] : e?.origin_id ?? e?.originId ?? e?.from;
 		if (String(n) !== "-10") continue;
 		let i = Number(Array.isArray(e) ? e[2] : e?.origin_slot ?? e?.originSlot ?? e?.fromSlot), a = Array.isArray(e) ? e[3] : e?.target_id ?? e?.targetId ?? e?.to, o = Number(Array.isArray(e) ? e[4] : e?.target_slot ?? e?.targetSlot ?? e?.toSlot), s = Number.isFinite(i) ? t[i] : null, c = String(s?.label || s?.localized_name || s?.name || "").trim();
-		!c || a == null || H(c) !== "value" && (r.set(String(a), c), Number.isFinite(o) && r.set(`${String(a)}:${o}`, c));
+		!c || a == null || V(c) !== "value" && (r.set(String(a), c), Number.isFinite(o) && r.set(`${String(a)}:${o}`, c));
 	}
 	return r;
 }
-function Ae(e, t, n) {
+function je(e, t, n) {
 	if (e && typeof e == "object" && !Array.isArray(e)) {
 		let t = e.target_slot ?? e.targetSlot ?? e.slot;
 		if (Number.isFinite(Number(t))) return Number(t);
 	}
 	return 0;
 }
-function je(e, t, n) {
+function Me(e, t, n) {
 	let r = String(D(e) || "").trim(), i = String(t || n || "").trim();
-	return r && i && H(i) !== "value" ? `${r} ${i}` : r || i || "param";
+	return r && i && V(i) !== "value" ? `${r} ${i}` : r || i || "param";
 }
-function H(e) {
+function V(e) {
 	return String(e ?? "").trim().toLowerCase().replace(/\s+/g, "_");
 }
-function U(e) {
+function H(e) {
 	let t = [
 		...Array.isArray(e?.definitions?.subgraphs) ? e.definitions.subgraphs : [],
 		...Array.isArray(e?.subgraphs) ? e.subgraphs : [],
 		...Array.isArray(e?.rootGraph?.subgraphs) ? e.rootGraph.subgraphs : []
 	], n = /* @__PURE__ */ new Map();
-	for (let e of t) for (let t of Me(e)) t != null && n.set(String(t), e);
+	for (let e of t) for (let t of Ne(e)) t != null && n.set(String(t), e);
 	return n;
 }
-function Me(e) {
+function Ne(e) {
 	let t = e?.properties && typeof e.properties == "object" ? e.properties : {};
 	return [
 		e?.id,
@@ -707,7 +707,7 @@ function Me(e) {
 		t.subgraphId
 	].filter((e) => e != null && String(e).trim());
 }
-function W(e) {
+function U(e) {
 	let t = e?.properties && typeof e.properties == "object" ? e.properties : {};
 	return [
 		e?.type,
@@ -719,7 +719,7 @@ function W(e) {
 		t.subgraph_name
 	].filter((e) => e != null && String(e).trim());
 }
-function G(e, t, n = U(e)) {
+function W(e, t, n = H(e)) {
 	let r = [
 		t?.subgraph,
 		t?._subgraph,
@@ -730,18 +730,18 @@ function G(e, t, n = U(e)) {
 		t?.subgraph_instance?.graph,
 		t?.inner_graph,
 		t?.subgraph_graph,
-		...W(t).map((e) => n.get(String(e)))
+		...U(t).map((e) => n.get(String(e)))
 	];
 	for (let e of r) if (e && typeof e == "object" && Array.isArray(e.nodes)) return e;
 	return Array.isArray(t?.nodes) ? { nodes: t.nodes } : null;
 }
-function Ne(e, t) {
+function Pe(e, t) {
 	let n = e, r = null;
 	for (let e = 0; e < t.length; e += 1) {
 		let i = String(t[e] ?? "").trim();
 		if (!i || (r = (Array.isArray(n?.nodes) ? n.nodes : []).find((e) => String(e?.id ?? e?.ID ?? "") === i) || null, !r)) return null;
 		if (e >= t.length - 1) break;
-		let a = G(n, r, U(n));
+		let a = W(n, r, H(n));
 		if (!a) return null;
 		n = a;
 	}
@@ -749,21 +749,21 @@ function Ne(e, t) {
 }
 //#endregion
 //#region ui/features/viewer/workflowSidebar/widgetAdapters.ts
-function Pe(e, t, n = null) {
+function Fe(e, t, n = null) {
 	switch (String(e?.type || "").toLowerCase()) {
 		case "number":
 		case "int":
-		case "float": return Ie(e, t, n);
-		case "combo": return Le(e, t, n);
+		case "float": return Le(e, t, n);
+		case "combo": return Re(e, t, n);
 		case "text":
 		case "string":
-		case "customtext": return Re(e, t, n);
+		case "customtext": return ze(e, t, n);
 		case "toggle":
-		case "boolean": return ze(e, t, n);
-		default: return Be(e);
+		case "boolean": return Be(e, t, n);
+		default: return Ve(e);
 	}
 }
-function K(e, n, i = null) {
+function G(e, n, i = null) {
 	if (!e) return !1;
 	let a = String(e.type || "").toLowerCase();
 	if (a === "number" || a === "int" || a === "float") {
@@ -774,17 +774,17 @@ function K(e, n, i = null) {
 	} else a === "toggle" || a === "boolean" ? e.value = !!n : e.value = n;
 	try {
 		let n = t(), o = i ?? e?.parent ?? null, s = e.value;
-		e.callback?.(e.value, n, o, null, e), (a === "number" || a === "int" || a === "float") && (e.value = s), Fe(e), r(o);
+		e.callback?.(e.value, n, o, null, e), (a === "number" || a === "int" || a === "float") && (e.value = s), Ie(e), r(o);
 	} catch (e) {
 		console.debug?.("[MFV] writeWidgetValue", e);
 	}
 	return !0;
 }
-function Fe(e) {
+function Ie(e) {
 	let t = String(e.value ?? ""), n = e?.inputEl ?? e?.element ?? e?.el ?? e?.cachedDeepestByFrame?.widget?.inputEl ?? e?.cachedDeepestByFrame?.widget?.element ?? e?.cachedDeepestByFrame?.widget?.el ?? null;
 	n != null && "value" in n && n.value !== t && (n.value = t);
 }
-function Ie(e, t, n = null) {
+function Le(e, t, n = null) {
 	let r = document.createElement("input");
 	r.type = "number", r.className = "mjr-ws-input", r.value = e.value ?? "";
 	let i = e.options ?? {}, a = String(e?.type || "").toLowerCase() === "int" || i.precision === 0 || i.round === 1;
@@ -795,12 +795,12 @@ function Ie(e, t, n = null) {
 	}
 	return r.addEventListener("input", () => {
 		let i = r.value;
-		i === "" || i === "-" || i === "." || i.endsWith(".") || (K(e, i, n), t?.(e.value));
+		i === "" || i === "-" || i === "." || i.endsWith(".") || (G(e, i, n), t?.(e.value));
 	}), r.addEventListener("change", () => {
-		K(e, r.value, n) && (r.value = String(e.value), t?.(e.value));
+		G(e, r.value, n) && (r.value = String(e.value), t?.(e.value));
 	}), r;
 }
-function Le(e, t, n = null) {
+function Re(e, t, n = null) {
 	let r = document.createElement("select");
 	r.className = "mjr-ws-input";
 	let i = e.options?.values ?? [];
@@ -815,10 +815,10 @@ function Le(e, t, n = null) {
 		n.value = i, n.textContent = i, i === String(e.value) && (n.selected = !0), r.appendChild(n);
 	}
 	return r.addEventListener("change", () => {
-		K(e, r.value, n) && t?.(e.value);
+		G(e, r.value, n) && t?.(e.value);
 	}), r;
 }
-function Re(e, t, n = null) {
+function ze(e, t, n = null) {
 	let r = document.createElement("div");
 	r.className = "mjr-ws-text-wrapper";
 	let i = document.createElement("textarea");
@@ -827,26 +827,26 @@ function Re(e, t, n = null) {
 		i.style.height = "auto", i.style.height = i.scrollHeight + "px";
 	};
 	return i.addEventListener("change", () => {
-		K(e, i.value, n) && t?.(e.value);
+		G(e, i.value, n) && t?.(e.value);
 	}), i.addEventListener("input", () => {
-		K(e, i.value, n), t?.(e.value), a();
+		G(e, i.value, n), t?.(e.value), a();
 	}), r.appendChild(i), r._mjrAutoFit = a, i._mjrAutoFit = a, requestAnimationFrame(a), r;
 }
-function ze(e, t, n = null) {
+function Be(e, t, n = null) {
 	let r = document.createElement("label");
 	r.className = "mjr-ws-toggle-label";
 	let i = document.createElement("input");
 	return i.type = "checkbox", i.className = "mjr-ws-checkbox", i.checked = !!e.value, i.addEventListener("change", () => {
-		K(e, i.checked, n) && t?.(e.value);
+		G(e, i.checked, n) && t?.(e.value);
 	}), r.appendChild(i), r;
 }
-function Be(e) {
+function Ve(e) {
 	let t = document.createElement("input");
 	return t.type = "text", t.className = "mjr-ws-input mjr-ws-readonly", t.value = e.value == null ? "" : String(e.value), t.readOnly = !0, t.tabIndex = -1, t;
 }
 //#endregion
 //#region ui/app/settings/MajoorSettingsDialog.ts
-var q = "mjr-settings-dialog", J = "mjr-settings-dialog-style", Y = null, Ve = {
+var K = "mjr-settings-dialog", q = "mjr-settings-dialog-style", J = "mjr:settings-dialog-visibility", Y = null, He = {
 	Cards: {
 		icon: "pi pi-th-large",
 		label: "Cards"
@@ -900,11 +900,11 @@ var q = "mjr-settings-dialog", J = "mjr-settings-dialog-style", Y = null, Ve = {
 		label: "General"
 	}
 };
-function He() {
-	if (typeof document > "u" || document.getElementById(J)) return;
+function Ue() {
+	if (typeof document > "u" || document.getElementById(q)) return;
 	let e = document.createElement("style");
-	e.id = J, e.textContent = `
-#${q} {
+	e.id = q, e.textContent = `
+#${K} {
     position: fixed;
     inset: 0;
     z-index: 10080;
@@ -914,8 +914,8 @@ function He() {
     color: var(--fg-color, #ddd);
     font: 13px/1.4 system-ui, -apple-system, Segoe UI, sans-serif;
 }
-#${q}[hidden] { display: none; }
-#${q} .mjr-settings-panel {
+#${K}[hidden] { display: none; }
+#${K} .mjr-settings-panel {
     width: min(860px, calc(100vw - 32px));
     max-height: min(780px, calc(100vh - 32px));
     display: grid;
@@ -926,21 +926,21 @@ function He() {
     box-shadow: 0 18px 60px rgba(0, 0, 0, 0.45);
     overflow: hidden;
 }
-#${q} .mjr-settings-head,
-#${q} .mjr-settings-tools {
+#${K} .mjr-settings-head,
+#${K} .mjr-settings-tools {
     display: flex;
     align-items: center;
     gap: 8px;
     padding: 10px 12px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.10);
 }
-#${q} .mjr-settings-title {
+#${K} .mjr-settings-title {
     font-weight: 700;
     font-size: 14px;
     flex: 1;
 }
-#${q} .mjr-settings-close,
-#${q} .mjr-settings-reset {
+#${K} .mjr-settings-close,
+#${K} .mjr-settings-reset {
     border: 1px solid rgba(255, 255, 255, 0.14);
     background: rgba(255, 255, 255, 0.06);
     color: inherit;
@@ -949,11 +949,11 @@ function He() {
     padding: 0 10px;
     cursor: pointer;
 }
-#${q} .mjr-settings-close {
+#${K} .mjr-settings-close {
     width: 30px;
     padding: 0;
 }
-#${q} .mjr-settings-search {
+#${K} .mjr-settings-search {
     flex: 1;
     min-width: 160px;
     height: 30px;
@@ -963,21 +963,21 @@ function He() {
     color: inherit;
     padding: 0 10px;
 }
-#${q} .mjr-settings-body {
+#${K} .mjr-settings-body {
     overflow: auto;
     padding: 12px;
 }
-#${q} .mjr-settings-stack {
+#${K} .mjr-settings-stack {
     display: grid;
     gap: 10px;
 }
-#${q} .mjr-settings-group {
+#${K} .mjr-settings-group {
     border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 8px;
     background: rgba(255, 255, 255, 0.035);
     overflow: hidden;
 }
-#${q} .mjr-settings-group summary {
+#${K} .mjr-settings-group summary {
     min-height: 42px;
     display: grid;
     grid-template-columns: 28px 1fr auto 18px;
@@ -988,10 +988,10 @@ function He() {
     user-select: none;
     background: rgba(255, 255, 255, 0.045);
 }
-#${q} .mjr-settings-group summary::-webkit-details-marker {
+#${K} .mjr-settings-group summary::-webkit-details-marker {
     display: none;
 }
-#${q} .mjr-settings-group-icon {
+#${K} .mjr-settings-group-icon {
     width: 28px;
     height: 28px;
     display: grid;
@@ -1000,27 +1000,27 @@ function He() {
     background: rgba(255, 255, 255, 0.07);
     color: var(--input-text, #fff);
 }
-#${q} .mjr-settings-group-title {
+#${K} .mjr-settings-group-title {
     color: var(--input-text, #fff);
     font-weight: 700;
 }
-#${q} .mjr-settings-group-meta {
+#${K} .mjr-settings-group-meta {
     opacity: 0.68;
     font-size: 12px;
 }
-#${q} .mjr-settings-chevron {
+#${K} .mjr-settings-chevron {
     transition: transform 0.16s ease;
 }
-#${q} details[open] > summary .mjr-settings-chevron {
+#${K} details[open] > summary .mjr-settings-chevron {
     transform: rotate(90deg);
 }
-#${q} .mjr-settings-group-body {
+#${K} .mjr-settings-group-body {
     padding: 4px 11px 11px;
 }
-#${q} .mjr-settings-subgroup {
+#${K} .mjr-settings-subgroup {
     margin-top: 8px;
 }
-#${q} .mjr-settings-subgroup-title {
+#${K} .mjr-settings-subgroup-title {
     display: flex;
     align-items: center;
     gap: 8px;
@@ -1031,13 +1031,13 @@ function He() {
     text-transform: uppercase;
     opacity: 0.86;
 }
-#${q} .mjr-settings-subgroup-title::after {
+#${K} .mjr-settings-subgroup-title::after {
     content: "";
     height: 1px;
     flex: 1;
     background: rgba(255, 255, 255, 0.10);
 }
-#${q} .mjr-settings-row {
+#${K} .mjr-settings-row {
     display: grid;
     grid-template-columns: minmax(220px, 1fr) minmax(180px, 280px);
     align-items: center;
@@ -1045,17 +1045,17 @@ function He() {
     padding: 9px 0;
     border-top: 1px solid rgba(255, 255, 255, 0.07);
 }
-#${q} .mjr-settings-name {
+#${K} .mjr-settings-name {
     font-weight: 600;
     color: var(--p-primary-color, var(--comfy-accent, #8ab4f8));
 }
-#${q} .mjr-settings-tip {
+#${K} .mjr-settings-tip {
     margin-top: 2px;
     opacity: 0.72;
     font-size: 12px;
 }
-#${q} input,
-#${q} select {
+#${K} input,
+#${K} select {
     min-height: 30px;
     border-radius: 6px;
     border: 1px solid rgba(255, 255, 255, 0.16);
@@ -1063,41 +1063,41 @@ function He() {
     color: inherit;
     padding: 0 8px;
 }
-#${q} input[type="checkbox"] {
+#${K} input[type="checkbox"] {
     justify-self: end;
     width: 18px;
     min-height: 18px;
 }
-#${q} input[type="color"] {
+#${K} input[type="color"] {
     padding: 2px;
     width: 56px;
     justify-self: end;
 }
 @media (max-width: 620px) {
-    #${q} .mjr-settings-row {
+    #${K} .mjr-settings-row {
         grid-template-columns: 1fr;
         gap: 8px;
     }
 }
 `, document.head.appendChild(e);
 }
-function Ue(e) {
+function We(e) {
 	return String(e || "").replace(/^\s*Majoor:\s*/i, "").trim();
 }
-function We(e) {
+function Ge(e) {
 	let t = Array.isArray(e?.category) ? e.category : [];
 	return String(t[1] || "General").trim() || "General";
 }
-function X(e) {
+function Ke(e) {
 	return (Array.isArray(e?.category) ? e.category : []).slice(2).filter(Boolean).join(" / ") || "General";
 }
-function Ge(e) {
-	return Ve[e] || {
+function qe(e) {
+	return He[e] || {
 		icon: "pi pi-sliders-h",
 		label: e || "General"
 	};
 }
-function Ke(e, t) {
+function X(e, t) {
 	return t ? [
 		e?.id,
 		e?.name,
@@ -1118,7 +1118,7 @@ function Z(e, t) {
 		}
 	}
 }
-function qe(e) {
+function Je(e) {
 	let t = String(e?.type || "text").toLowerCase(), n = e?.defaultValue, r;
 	if (t === "boolean") return r = document.createElement("input"), r.type = "checkbox", r.checked = !!n, r.addEventListener("change", () => Z(e, r.checked)), r;
 	if (t === "combo") {
@@ -1136,20 +1136,20 @@ function qe(e) {
 		Z(e, t === "number" ? Number(r.value) : r.value);
 	}), r;
 }
-function Je(e, t, n = "") {
+function Ye(e, t, n = "") {
 	e.replaceChildren();
 	let r = document.createElement("div");
 	r.className = "mjr-settings-stack", e.appendChild(r);
 	let i = /* @__PURE__ */ new Map();
 	for (let e of t || []) {
-		if (!Ke(e, n)) continue;
-		let t = We(e), r = X(e);
+		if (!X(e, n)) continue;
+		let t = Ge(e), r = Ke(e);
 		i.has(t) || i.set(t, /* @__PURE__ */ new Map());
 		let a = i.get(t);
 		a.has(r) || a.set(r, []), a.get(r).push(e);
 	}
 	for (let [e, t] of i.entries()) {
-		let i = Array.from(t.values()).flat(), a = Ge(e), o = document.createElement("details");
+		let i = Array.from(t.values()).flat(), a = qe(e), o = document.createElement("details");
 		o.className = "mjr-settings-group", o.open = !!n;
 		let s = document.createElement("summary"), c = document.createElement("span");
 		c.className = "mjr-settings-group-icon";
@@ -1172,21 +1172,21 @@ function Je(e, t, n = "") {
 				let n = document.createElement("label");
 				n.className = "mjr-settings-row";
 				let r = document.createElement("div"), i = document.createElement("div");
-				if (i.className = "mjr-settings-name", i.textContent = Ue(e?.name) || e?.id || "Setting", r.appendChild(i), e?.tooltip) {
+				if (i.className = "mjr-settings-name", i.textContent = We(e?.name) || e?.id || "Setting", r.appendChild(i), e?.tooltip) {
 					let t = document.createElement("div");
 					t.className = "mjr-settings-tip", t.textContent = String(e.tooltip), r.appendChild(t);
 				}
-				n.appendChild(r), n.appendChild(qe(e)), t.appendChild(n);
+				n.appendChild(r), n.appendChild(Je(e)), t.appendChild(n);
 			}
 			p.appendChild(t);
 		}
 		o.appendChild(p), r.appendChild(o);
 	}
 }
-function Ye() {
-	He();
+function Xe() {
+	Ue();
 	let e = document.createElement("div");
-	e.id = q, e.hidden = !0, e.addEventListener("click", (t) => {
+	e.id = K, e.hidden = !0, e.addEventListener("click", (t) => {
 		t.target === e && Q();
 	});
 	let t = document.createElement("div");
@@ -1209,18 +1209,31 @@ function Ye() {
 	};
 }
 function Q() {
-	Y?.root && (Y.root.hidden = !0);
+	if (Y?.root) {
+		Y.root.hidden = !0;
+		try {
+			window.dispatchEvent(new CustomEvent(J, { detail: { open: !1 } }));
+		} catch (e) {
+			console.debug?.(e);
+		}
+	}
 }
-function Xe(e = s()) {
+function Ze(e = s()) {
 	if (typeof document > "u") return !1;
-	Y?.root?.isConnected || (Y = Ye());
-	let t = d(e), n = () => Je(Y.body, t, String(Y.search.value || "").trim().toLowerCase());
-	return Y.search.oninput = n, Y.search.value = "", n(), Y.root.hidden = !1, setTimeout(() => Y?.search?.focus?.(), 0), !0;
+	Y?.root?.isConnected || (Y = Xe());
+	let t = d(e), n = () => Ye(Y.body, t, String(Y.search.value || "").trim().toLowerCase());
+	Y.search.oninput = n, Y.search.value = "", n(), Y.root.hidden = !1;
+	try {
+		window.dispatchEvent(new CustomEvent(J, { detail: { open: !0 } }));
+	} catch (e) {
+		console.debug?.(e);
+	}
+	return setTimeout(() => Y?.search?.focus?.(), 0), !0;
 }
 //#endregion
 //#region ui/app/openMajoorSettings.ts
 function $(e = s()) {
-	return Xe(e);
+	return Ze(e);
 }
 try {
 	typeof window < "u" && (window.MajoorAssetsManager = window.MajoorAssetsManager || {}, window.MajoorAssetsManager.openSettings = $);
@@ -1228,4 +1241,4 @@ try {
 	console.debug?.(e);
 }
 //#endregion
-export { y as _, E as a, O as c, T as d, ue as f, b as g, S as h, le as i, de as l, se as m, Pe as n, D as o, ce as p, K as r, k as s, $ as t, A as u };
+export { b as _, le as a, k as c, A as d, T as f, S as g, se as h, G as i, O as l, ce as m, J as n, E as o, ue as p, Fe as r, D as s, $ as t, de as u, y as v };

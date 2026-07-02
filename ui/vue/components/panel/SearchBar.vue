@@ -18,21 +18,18 @@ import { debounce } from "../../../utils/debounce.js";
 import { t } from "../../../app/i18n.js";
 import { appendTooltipHint } from "../../../utils/tooltipShortcuts.js";
 import { createUniqueId } from "../../../utils/ids.js";
+import SimilarSearchPopover from "./SimilarSearchPopover.vue";
 
 const SEARCH_TOOLTIP_HINT = "Ctrl/Cmd+F, Ctrl/Cmd+K, Ctrl/Cmd+H";
 
-const props = defineProps({
-    /** Callback when similar search is triggered */
-    onSimilarSearch: { type: Function, default: null },
-});
-
-const emit = defineEmits(["similar", "search-change"]);
+const emit = defineEmits(["search-change"]);
 
 const panelStore = usePanelStore();
 const searchSectionRef = ref(null);
 const searchInputRef = ref(null);
 const dataListRef = ref(null);
 const similarBtnRef = ref(null);
+const similarPopoverRef = ref(null);
 const semanticBtnRef = ref(null);
 const dataListId = createUniqueId("mjr-search-autocomplete-", 8);
 const METADATA_SEARCH_MODE = "AND";
@@ -213,12 +210,6 @@ const handleAutocomplete = debounce(async () => {
     }
 }, 300);
 
-// Handle similar search
-const handleSimilarSearch = () => {
-    emit("similar");
-    props.onSimilarSearch?.();
-};
-
 // Watch for external changes to search query
 watch(
     () => panelStore.searchQuery,
@@ -275,6 +266,21 @@ defineExpose({
     },
     get similarBtn() {
         return resolveDomElement(similarBtnRef.value);
+    },
+    get similarPopover() {
+        return similarPopoverRef.value?.$el ?? null;
+    },
+    get similarFindBtn() {
+        return similarPopoverRef.value?.findSimilarBtn ?? null;
+    },
+    get similarDuplicatesBtn() {
+        return similarPopoverRef.value?.findDuplicatesBtn ?? null;
+    },
+    get similarSameNodeBtn() {
+        return similarPopoverRef.value?.sameNodeBtn ?? null;
+    },
+    get similarSameWorkflowBtn() {
+        return similarPopoverRef.value?.sameWorkflowBtn ?? null;
     },
     get semanticBtn() {
         return resolveDomElement(semanticBtnRef.value);
@@ -335,10 +341,10 @@ defineExpose({
                     text
                     rounded
                     :title="t('search.findSimilar', 'Find Similar')"
-                    @click="handleSimilarSearch"
                 >
                     <i class="pi pi-search"></i>
                 </MButton>
+                <SimilarSearchPopover ref="similarPopoverRef" />
             </div>
             <!-- Anchor slots for filter, sort, collections, pinned folders buttons -->
             <slot name="filter-anchor" />

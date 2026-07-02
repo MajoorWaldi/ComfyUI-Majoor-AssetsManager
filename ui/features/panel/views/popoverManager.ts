@@ -13,6 +13,41 @@ export function isManagedPopoverTarget(target: any, openPopovers: Map<unknown, u
     return false;
 }
 
+function isLikelyPrimeVueOverlayPortalRoot(el: any): boolean {
+    if (!el || el === document?.body) return false;
+    try {
+        if (typeof el.matches === "function") {
+            if (
+                el.matches(
+                    [
+                        "[data-pc-name]",
+                        "[role='listbox']",
+                        "[role='dialog']",
+                        "[role='menu']",
+                        "[role='tree']",
+                        "[role='grid']",
+                    ].join(","),
+                )
+            ) {
+                return true;
+            }
+        }
+    } catch (e) {
+        console.debug?.(e);
+    }
+
+    const signature = [
+        String(el.id || ""),
+        String(el.className || ""),
+        String(el.getAttribute?.("data-pc-section") || ""),
+    ]
+        .join(" ")
+        .toLowerCase();
+    return /\b(p-|p_)?(select|listbox|multiselect|datepicker|calendar|overlay|panel|menu|dialog|tooltip|popover)\b/.test(
+        signature,
+    );
+}
+
 export function createPopoverManager(container: any): Record<string, any> {
     const openPopovers = new Map();
     let resizeObserver: any = null;
@@ -24,6 +59,7 @@ export function createPopoverManager(container: any): Record<string, any> {
     let repositionController: AbortController | null = new AbortController();
     let documentListenerController: AbortController | null = new AbortController();
     let disposed = false;
+    let onVisibilityChanged: any = null;
 
     const POPOVER_GAP_PX = 8;
     const POPOVER_PAD_PX = 8;
@@ -303,6 +339,11 @@ export function createPopoverManager(container: any): Record<string, any> {
         }
         openPopovers.delete(popover);
         maybeRemoveRepositionListeners();
+        try {
+            onVisibilityChanged?.({ type: "close", popover, openPopovers });
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
 
     const open = (popover: any, anchor: any) => {
@@ -311,6 +352,11 @@ export function createPopoverManager(container: any): Record<string, any> {
         ensureRepositionListeners();
         positionPopover(popover, anchor);
         scheduleReposition();
+        try {
+            onVisibilityChanged?.({ type: "open", popover, anchor, openPopovers });
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
 
     const toggle = (popover: any, anchor: any) => {
@@ -337,6 +383,10 @@ export function createPopoverManager(container: any): Record<string, any> {
 
     const setDismissWhitelist = (elements: any) => {
         dismissWhitelist = Array.isArray(elements) ? elements.filter(Boolean) : [];
+    };
+
+    const setOnVisibilityChanged = (callback: any) => {
+        onVisibilityChanged = typeof callback === "function" ? callback : null;
     };
 
     const onDocMouseDown = (event: any) => {
@@ -402,7 +452,12 @@ export function createPopoverManager(container: any): Record<string, any> {
                     ) {
                         bodyChild = bodyChild.parentNode;
                     }
-                    if (bodyChild && bodyChild !== document.body && bodyChild.parentNode === document.body) {
+                    if (
+                        bodyChild &&
+                        bodyChild !== document.body &&
+                        bodyChild.parentNode === document.body &&
+                        isLikelyPrimeVueOverlayPortalRoot(bodyChild)
+                    ) {
                         for (const item of openPopovers.values()) {
                             try {
                                 if (!item?.popover) continue;
@@ -471,6 +526,7 @@ export function createPopoverManager(container: any): Record<string, any> {
         closeAll,
         scheduleReposition,
         setDismissWhitelist,
+        setOnVisibilityChanged,
         dispose,
     };
 }

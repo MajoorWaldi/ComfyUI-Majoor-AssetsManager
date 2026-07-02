@@ -197,7 +197,8 @@
     transform: translateY(-1px);
 }
 
-.mjr-assets-manager .mjr-icon-btn.mjr-context-active {
+.mjr-assets-manager .mjr-icon-btn.mjr-context-active,
+.mjr-assets-manager .mjr-icon-btn.mjr-popover-open {
     border-color: color-mix(in srgb, var(--mjr-accent) 85%, var(--mjr-border));
     background: color-mix(in srgb, var(--mjr-surface-2) 55%, var(--mjr-accent) 12%);
     box-shadow: 0 0 0 1px color-mix(in srgb, var(--mjr-accent) 35%, transparent);

@@ -18,6 +18,9 @@ import {
 import { createShortcutGuidePanel } from "./shortcutGuide.js";
 
 const ALLOWED_MESSAGE_LEVELS = new Set(["info", "success", "warning", "error"]);
+const AUTO_CLOSE_HISTORY_DELAY_MS = 2200;
+const RUNNING_HISTORY_STATUSES = new Set(["started", "queued", "running", "pending", "in_progress"]);
+const TERMINAL_HISTORY_STATUSES = new Set(["succeeded", "success", "complete", "completed", "done", "failed", "error", "cancelled", "canceled"]);
 
 function formatMessageDate(ts: any) {
     const stamp = Number(ts);
@@ -140,6 +143,18 @@ function getHistoryProgressPercent(entry: any) {
     return null;
 }
 
+function historyEntryTrackKey(entry: any) {
+    const explicit = String(entry?.trackId || "").trim();
+    if (explicit) return explicit;
+    return [
+        String(entry?.operation || "").trim(),
+        String(entry?.source || "").trim(),
+        String(entry?.title || "").trim(),
+    ]
+        .filter(Boolean)
+        .join(":");
+}
+
 function setTabState({
     activeTab = "messages",
     title = null,
@@ -218,6 +233,43 @@ export function bindMessagePopoverController({
 } = {} as Record<string, any>) {
     ensurePanelMessagesReady();
     let activeTab = "messages";
+    let historyAutoOpened = false;
+    let autoCloseTimer: any = null;
+    const autoTrackedHistoryKeys = new Set();
+
+    const clearAutoCloseTimer = () => {
+        if (!autoCloseTimer) return;
+        try {
+            clearTimeout(autoCloseTimer);
+        } catch (e) {
+            console.debug?.(e);
+        }
+        autoCloseTimer = null;
+    };
+
+    const closeAutoOpenedHistoryIfComplete = () => {
+        if (!historyAutoOpened || activeTab !== "history") return;
+        if (messagePopover?.style?.display !== "block") return;
+        const entries = listToastHistory();
+        for (const entry of entries) {
+            const key = historyEntryTrackKey(entry);
+            if (!key || !autoTrackedHistoryKeys.has(key)) continue;
+            const status = String(entry?.status || "").trim().toLowerCase();
+            if (!TERMINAL_HISTORY_STATUSES.has(status)) continue;
+            clearAutoCloseTimer();
+            autoCloseTimer = setTimeout(() => {
+                autoCloseTimer = null;
+                if (!historyAutoOpened || activeTab !== "history") return;
+                if (messagePopover?.style?.display !== "block") return;
+                popovers?.close?.(messagePopover);
+                historyAutoOpened = false;
+                autoTrackedHistoryKeys.clear();
+                syncExpandedState();
+                updateMessageButtonState();
+            }, AUTO_CLOSE_HISTORY_DELAY_MS);
+            return;
+        }
+    };
 
     const syncExpandedState = () => {
         const isOpen = messagePopover?.style?.display === "block";
@@ -557,6 +609,16 @@ export function bindMessagePopoverController({
                 if (messagePopover?.style?.display === "block" && activeTab === "history") {
                     renderHistoryPanel();
                 }
+                if (historyAutoOpened) {
+                    for (const entry of listToastHistory()) {
+                        const status = String(entry?.status || "").trim().toLowerCase();
+                        const key = historyEntryTrackKey(entry);
+                        if (key && RUNNING_HISTORY_STATUSES.has(status)) {
+                            autoTrackedHistoryKeys.add(key);
+                        }
+                    }
+                    closeAutoOpenedHistoryIfComplete();
+                }
             },
             listenerOptions,
         );
@@ -686,6 +748,17 @@ export function bindMessagePopoverController({
             popovers.toggle(messagePopover, messageBtn);
         }
         showHistoryTab();
+        historyAutoOpened = true;
+        clearAutoCloseTimer();
+        autoTrackedHistoryKeys.clear();
+        for (const entry of listToastHistory()) {
+            const status = String(entry?.status || "").trim().toLowerCase();
+            const key = historyEntryTrackKey(entry);
+            if (key && RUNNING_HISTORY_STATUSES.has(status)) {
+                autoTrackedHistoryKeys.add(key);
+            }
+        }
+        closeAutoOpenedHistoryIfComplete();
         syncExpandedState();
         updateMessageButtonState();
     };
@@ -753,6 +826,9 @@ export function bindMessagePopoverController({
         (e: any) => {
             if (!messagePopover || !popovers || !messageBtn) return;
             e.stopPropagation();
+            historyAutoOpened = false;
+            autoTrackedHistoryKeys.clear();
+            clearAutoCloseTimer();
             activeTab = "messages";
             renderMessagesPopover();
             renderShortcutsPanel();
@@ -799,6 +875,9 @@ export function bindMessagePopoverController({
         (e: any) => {
             e.preventDefault();
             e.stopPropagation();
+            historyAutoOpened = false;
+            autoTrackedHistoryKeys.clear();
+            clearAutoCloseTimer();
             showHistoryTab();
         },
         listenerOptions,
@@ -843,6 +922,9 @@ export function bindMessagePopoverController({
         close: () => {
             if (!messagePopover || !popovers) return;
             popovers.close(messagePopover);
+            historyAutoOpened = false;
+            autoTrackedHistoryKeys.clear();
+            clearAutoCloseTimer();
             syncExpandedState();
         },
     };

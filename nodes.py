@@ -145,6 +145,24 @@ def _workflow_id_from_extra_pnginfo(extra_pnginfo: dict | None) -> str | None:
     return None
 
 
+def _asset_id_from_context(prompt: Any | None, extra_pnginfo: dict | None) -> str | None:
+    candidates: list[Any] = []
+    if isinstance(extra_pnginfo, dict):
+        candidates.extend(
+            (
+                extra_pnginfo.get("asset_id"),
+                extra_pnginfo.get("assetId"),
+            )
+        )
+    if isinstance(prompt, dict):
+        candidates.extend((prompt.get("asset_id"), prompt.get("assetId")))
+    for value in candidates:
+        text = _clean_optional_text(value, max_len=255)
+        if text:
+            return text
+    return None
+
+
 def _job_id_from_prompt(prompt: Any | None) -> str | None:
     if isinstance(prompt, (list, tuple)) and len(prompt) >= 2:
         text = _clean_optional_text(prompt[1], max_len=255)
@@ -158,15 +176,55 @@ def _job_id_from_prompt(prompt: Any | None) -> str | None:
     return None
 
 
+def _node_type_from_prompt(prompt: Any | None, unique_id: Any | None) -> str | None:
+    node_id = _clean_optional_text(unique_id, max_len=255)
+    if not node_id or not isinstance(prompt, dict):
+        return None
+    node = prompt.get(node_id)
+    if isinstance(node, dict):
+        for key in ("class_type", "type", "node_type"):
+            text = _clean_optional_text(node.get(key), max_len=255)
+            if text:
+                return text
+    return None
+
+
+def _node_type_from_extra_pnginfo(extra_pnginfo: dict | None, unique_id: Any | None) -> str | None:
+    node_id = _clean_optional_text(unique_id, max_len=255)
+    if not node_id or not isinstance(extra_pnginfo, dict):
+        return None
+    workflow = extra_pnginfo.get("workflow")
+    if not isinstance(workflow, dict):
+        return None
+    for node in _iter_workflow_nodes(workflow):
+        if not isinstance(node, dict):
+            continue
+        current_id = _clean_optional_text(node.get("id"), max_len=255)
+        if current_id != node_id:
+            continue
+        for key in ("type", "class_type", "node_type"):
+            text = _clean_optional_text(node.get(key), max_len=255)
+            if text:
+                return text
+    return None
+
+
 def _resolve_execution_metadata(
     prompt: Any | None,
     extra_pnginfo: dict | None,
     unique_id: Any | None = None,
 ) -> dict[str, str]:
     out: dict[str, str] = {}
+    asset_id = _asset_id_from_context(prompt, extra_pnginfo)
     job_id = _runtime_active_prompt_id() or _job_id_from_prompt(prompt)
     workflow_id = _workflow_id_from_extra_pnginfo(extra_pnginfo)
     source_node_id = _clean_optional_text(unique_id, max_len=255)
+    source_node_type = _node_type_from_prompt(prompt, unique_id) or _node_type_from_extra_pnginfo(
+        extra_pnginfo,
+        unique_id,
+    )
+    if asset_id:
+        out["asset_id"] = asset_id
     if job_id:
         out["job_id"] = job_id
         out["prompt_id"] = job_id
@@ -174,6 +232,8 @@ def _resolve_execution_metadata(
         out["workflow_id"] = workflow_id
     if source_node_id:
         out["source_node_id"] = source_node_id
+    if source_node_type:
+        out["source_node_type"] = source_node_type
     return out
 
 

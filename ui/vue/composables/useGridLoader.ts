@@ -555,8 +555,25 @@ export function useGridLoader({
         }
     }
 
+    function canUseSnapshotCache() {
+        try {
+            const settings = loadMajoorSettings?.() || {};
+            const grid = (settings as Record<string, any>).grid || {};
+            return !!(
+                grid.snapshotCacheEnabled === true ||
+                grid.enableSnapshotCache === true ||
+                (settings as Record<string, any>).snapshotCacheEnabled === true ||
+                (settings as Record<string, any>).enableSnapshotCache === true
+            );
+        } catch (e) {
+            console.debug?.(e);
+            return false;
+        }
+    }
+
     function rememberSnapshot(title = "") {
         try {
+            if (!canUseSnapshotCache()) return;
             const gridContainer = getGridContainer();
             const assets = Array.isArray(state.assets) ? state.assets : [];
             if (!gridContainer || !assets.length) return;
@@ -1164,7 +1181,7 @@ export function useGridLoader({
                 const snapshotParts = buildCurrentSnapshotParts();
                 (snapshotParts as Record<string, any>).query = safeQuery;
                 const snapshotKey = buildGridSnapshotKey(snapshotParts);
-                if (hasGridSnapshot(snapshotKey)) {
+                if (canUseSnapshotCache() && hasGridSnapshot(snapshotKey)) {
                     hydratedFromSnapshot = await hydrateFromSnapshot(snapshotParts, {
                         allowReplaceExisting: true,
                     });
@@ -1510,6 +1527,7 @@ export function useGridLoader({
     async function hydrateFromSnapshot(parts: Record<string, any> = {}, options: Record<string, any> = {}) {
         const gridContainer = getGridContainer();
         if (!gridContainer) return false;
+        if (!canUseSnapshotCache()) return false;
         const key = buildGridSnapshotKey(parts);
         const snapshot = getGridSnapshot(key);
         if (!snapshot || !Array.isArray(snapshot.assets) || !snapshot.assets.length) {
