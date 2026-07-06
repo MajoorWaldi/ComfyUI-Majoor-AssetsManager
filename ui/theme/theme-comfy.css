@@ -6568,6 +6568,7 @@ body.mjr-mfv-popout-body {
     flex: 1;
     min-height: 0;
     overflow: hidden;
+    container-type: inline-size;
 }
 
 /* -- Sidebar position variants ---------------------------------------- */
@@ -6633,11 +6634,11 @@ body.mjr-mfv-popout-body {
 }
 
 .mjr-mfv-content-wrapper[data-sidebar-pos="bottom"] .mjr-mfv-gen-sidebar {
-    flex: 0 0 180px;
+    flex: 0 0 clamp(190px, 32%, 280px);
     width: 100%;
     max-width: none;
     min-width: 0;
-    max-height: 40%;
+    max-height: 46%;
     border-left: none;
     border-top: 1px solid var(--mjr-border, rgba(255, 255, 255, 0.12));
 }
@@ -6677,6 +6678,45 @@ body.mjr-mfv-popout-body {
     word-break: break-word;
 }
 
+.mjr-mfv-content-wrapper[data-sidebar-pos="bottom"] .mjr-mfv-gen-sidebar.open {
+    gap: 6px;
+}
+
+.mjr-mfv-content-wrapper[data-sidebar-pos="bottom"] .mjr-mfv-gen-sidebar-title {
+    flex: 0 0 auto;
+}
+
+.mjr-mfv-content-wrapper[data-sidebar-pos="bottom"] .mjr-mfv-gen-sidebar-section {
+    flex: 0 0 auto;
+    min-height: auto;
+    padding-top: 4px;
+}
+
+.mjr-mfv-content-wrapper[data-sidebar-pos="bottom"] .mjr-mfv-gen-sidebar-heading {
+    display: none;
+}
+
+.mjr-mfv-content-wrapper[data-sidebar-pos="bottom"] .mjr-mfv-gen-sidebar-body {
+    display: block;
+    columns: 3 170px;
+    column-gap: 10px;
+    column-fill: balance;
+    min-height: auto;
+    overflow-x: hidden;
+    overflow-y: visible;
+    padding-right: 2px;
+    scrollbar-width: thin;
+}
+
+.mjr-mfv-content-wrapper[data-sidebar-pos="bottom"] .mjr-mfv-gen-sidebar-body > * {
+    display: flex;
+    break-inside: avoid;
+    page-break-inside: avoid;
+    min-width: 0;
+    min-height: 0;
+    margin-block: 0 10px;
+}
+
 .mjr-mfv-gen-time-badge {
     display: flex;
     align-items: center;
@@ -6692,6 +6732,13 @@ body.mjr-mfv-popout-body {
         background 0.16s ease,
         border-color 0.16s ease,
         box-shadow 0.16s ease;
+}
+
+.mjr-mfv-content-wrapper[data-sidebar-pos="bottom"] .mjr-mfv-gen-time-badge {
+    align-items: stretch;
+    flex-direction: column;
+    justify-content: space-between;
+    border-radius: 6px;
 }
 
 .mjr-mfv-gen-time-label {
@@ -6730,6 +6777,33 @@ body.mjr-mfv-popout-body {
         box-shadow 0.16s ease;
 }
 
+.mjr-mfv-content-wrapper[data-sidebar-pos="bottom"] .mjr-mfv-gen-card {
+    min-height: 0;
+    padding: 10px;
+}
+
+.mjr-mfv-content-wrapper[data-sidebar-pos="bottom"] .mjr-mfv-gen-card--positive-prompt,
+.mjr-mfv-content-wrapper[data-sidebar-pos="bottom"] .mjr-mfv-gen-card--negative-prompt,
+.mjr-mfv-content-wrapper[data-sidebar-pos="bottom"] .mjr-mfv-gen-card--prompt {
+    min-height: 110px;
+}
+
+.mjr-mfv-content-wrapper[data-sidebar-pos="bottom"] .mjr-mfv-gen-card--workflow {
+    min-height: 58px;
+}
+
+.mjr-mfv-content-wrapper[data-sidebar-pos="bottom"] .mjr-mfv-gen-card--model-and-lora,
+.mjr-mfv-content-wrapper[data-sidebar-pos="bottom"] .mjr-mfv-gen-card--models,
+.mjr-mfv-content-wrapper[data-sidebar-pos="bottom"] .mjr-mfv-gen-card--sampling,
+.mjr-mfv-content-wrapper[data-sidebar-pos="bottom"] .mjr-mfv-gen-card--generation-pipeline,
+.mjr-mfv-content-wrapper[data-sidebar-pos="bottom"] .mjr-mfv-gen-card--text-to-image,
+.mjr-mfv-content-wrapper[data-sidebar-pos="bottom"] .mjr-mfv-gen-card--image-to-image,
+.mjr-mfv-content-wrapper[data-sidebar-pos="bottom"] .mjr-mfv-gen-card--inpaint,
+.mjr-mfv-content-wrapper[data-sidebar-pos="bottom"] .mjr-mfv-gen-card--upscale,
+.mjr-mfv-content-wrapper[data-sidebar-pos="bottom"] .mjr-mfv-gen-card--refine {
+    min-height: 86px;
+}
+
 .mjr-mfv-gen-card--seed {
     flex-direction: row;
     align-items: center;
@@ -6742,6 +6816,12 @@ body.mjr-mfv-popout-body {
     align-items: center;
     justify-content: space-between;
     gap: 12px;
+}
+
+.mjr-mfv-content-wrapper[data-sidebar-pos="bottom"] .mjr-mfv-gen-card--compact {
+    align-items: stretch;
+    flex-direction: column;
+    justify-content: space-between;
 }
 
 .mjr-mfv-gen-card--compact .mjr-mfv-gen-card-title,
@@ -6775,9 +6855,20 @@ body.mjr-mfv-popout-body {
     word-break: break-word;
 }
 
+.mjr-mfv-content-wrapper[data-sidebar-pos="bottom"] .mjr-mfv-gen-card-value {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 5;
+    -webkit-box-orient: vertical;
+}
+
 .mjr-mfv-gen-card-value.is-compact {
     text-align: right;
     font-weight: 700;
+}
+
+.mjr-mfv-content-wrapper[data-sidebar-pos="bottom"] .mjr-mfv-gen-card-value.is-compact {
+    text-align: left;
 }
 
 .mjr-mfv-gen-card-value.is-multiline {
@@ -6798,12 +6889,52 @@ body.mjr-mfv-popout-body {
     gap: 8px;
 }
 
+.mjr-mfv-content-wrapper[data-sidebar-pos="bottom"] .mjr-mfv-gen-card-value.is-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    -webkit-line-clamp: unset;
+}
+
+.mjr-mfv-gen-card-value.is-branch-groups {
+    gap: 10px;
+}
+
+.mjr-mfv-gen-branch-group {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    min-width: 0;
+    padding: 8px;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.045);
+}
+
+.mjr-mfv-gen-branch-title {
+    color: var(--mjr-mfv-gen-accent);
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+}
+
 .mjr-mfv-gen-field {
     display: grid;
     grid-template-columns: minmax(78px, auto) 1fr;
     gap: 10px;
     align-items: start;
     min-width: 0;
+}
+
+.mjr-mfv-content-wrapper[data-sidebar-pos="bottom"] .mjr-mfv-gen-field {
+    grid-template-columns: minmax(54px, auto) minmax(0, 1fr);
+}
+
+.mjr-mfv-content-wrapper[data-sidebar-pos="bottom"] .mjr-mfv-gen-field-value {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .mjr-mfv-gen-field-label {
@@ -6857,8 +6988,29 @@ body.mjr-mfv-popout-body {
     margin-bottom: 5px;
 }
 
+.mjr-mfv-content-wrapper[data-sidebar-pos="bottom"] .mjr-mfv-gen-sidebar-body div {
+    margin-bottom: 0;
+}
+
+.mjr-mfv-content-wrapper[data-sidebar-pos="bottom"] .mjr-mfv-gen-sidebar-body > div,
+.mjr-mfv-content-wrapper[data-sidebar-pos="bottom"] .mjr-mfv-gen-sidebar-body > section {
+    margin-block: 0 10px;
+}
+
 .mjr-mfv-gen-sidebar-body div:last-child {
     margin-bottom: 0;
+}
+
+@container (max-width: 760px) {
+    .mjr-mfv-content-wrapper[data-sidebar-pos="bottom"] .mjr-mfv-gen-sidebar-body {
+        columns: auto;
+        column-count: 1;
+        column-width: auto;
+    }
+
+    .mjr-mfv-content-wrapper[data-sidebar-pos="bottom"] .mjr-mfv-gen-sidebar-body > * {
+        width: 100%;
+    }
 }
 
 .mjr-mfv-overlay-canvas {

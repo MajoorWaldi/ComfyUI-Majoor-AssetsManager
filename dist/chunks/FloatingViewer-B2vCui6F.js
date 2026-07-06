@@ -1,12 +1,12 @@
 import { g as e, qt as t, y as n } from "./viewerRuntimeHosts-BbCWOXEG.js";
 import { B as r, C as i, I as a, M as o, O as s, P as c, R as l, V as u, j as d, m as f, o as p, pt as m, r as h, rt as g, v as _, w as v, x as y } from "./events-CrhYyn_G.js";
 import { a as b, i as x, o as S, s as C } from "./graphTraversal-Sruu0ipL.js";
-import { _ as w, g as T, m as E, n as D, p as ee, r as O, w as k } from "./Viewer-DfmX4kpz.js";
-import { _ as A, r as j } from "./SidebarWorkflowSection-B3RkBmQ0.js";
-import { _ as M, a as N, c as P, d as F, f as I, g as L, h as te, i as ne, l as R, m as z, o as B, p as re, r as V, s as ie, t as ae, u as H, v as U } from "./openMajoorSettings-BufOdgre.js";
+import { _ as w, g as T, m as E, n as D, p as ee, r as O, w as k } from "./Viewer-tAiiyC7n.js";
+import { _ as A, r as j } from "./SidebarWorkflowSection-Df2o8W0e.js";
+import { _ as M, a as N, c as P, d as F, f as I, g as L, h as te, i as ne, l as R, m as z, o as B, p as re, r as V, s as ie, t as ae, u as H, v as U } from "./openMajoorSettings-H8_1z3QY.js";
 import { a as oe, n as se, r as ce } from "./model3dRenderer-B4V7IcZn.js";
 import { i as le, o as ue, r as de, t as fe } from "./geninfoParser-DT2lH88v.js";
-import { t as pe } from "./genInfo-DDZbfP_X.js";
+import { t as pe } from "./genInfo-Ctven8JZ.js";
 //#region ui/features/viewer/floatingViewerConstants.ts
 var W = Object.freeze({
 	SIMPLE: "simple",
@@ -3725,11 +3725,16 @@ var lr = 0, ur = class {
 					multiline: !0
 				}));
 			}
-			if (n.modelFields?.length) {
+			n.ideogram && this._appendIdeogramGenInfoCards(e, n.ideogram);
+			let r = (n.branchCards || []).filter((e) => e?.modelFields?.length || e?.loras?.length), i = (n.branchCards || []).filter((e) => e?.samplingFields?.length);
+			if (r.length) {
+				let t = this._buildGenInfoBranchGroupsCard("Models", "#9C27B0", r, "model");
+				t && e.appendChild(t);
+			} else if (n.modelFields?.length) {
 				let t = this._buildGenInfoFieldsCard("Model & LoRA", "#9C27B0", n.modelFields);
 				t && e.appendChild(t);
 			}
-			for (let t of n.modelGroups || []) {
+			if (!r.length) for (let t of n.modelGroups || []) {
 				let n = [{
 					label: "UNet",
 					value: t.model || "-"
@@ -3739,13 +3744,21 @@ var lr = 0, ur = class {
 				}))], r = this._buildGenInfoFieldsCard(t.label || "Model Branch", "#AB47BC", n);
 				r && e.appendChild(r);
 			}
-			if (n.pipelineTabs?.length) for (let t of n.pipelineTabs) {
+			if (i.length) {
+				let t = this._buildGenInfoBranchGroupsCard("Sampling", "#FF9800", i, "sampling");
+				t && e.appendChild(t);
+			} else if (n.pipelineTabs?.length) for (let t of n.pipelineTabs) {
 				let n = this._buildGenInfoFieldsCard(t.label || "Generation Pipeline", "#FF9800", t.fields || []);
 				n && e.appendChild(n);
 			}
 			else if (n.samplingFields?.length) {
 				let t = this._buildGenInfoFieldsCard("Sampling", "#FF9800", n.samplingFields);
 				t && e.appendChild(t);
+			}
+			for (let t of n.moduleBlocks || []) {
+				if (String(t?.key || "").toLowerCase() === "workflow_engine") continue;
+				let n = this._buildGenInfoFieldsCard(t.title || "Generation Module", t.accent || "#2196F3", t.fields || []);
+				n && e.appendChild(n);
 			}
 			if (n.seed !== null && n.seed !== void 0 && n.seed !== "" && e.appendChild(this._buildGenInfoCard({
 				title: "Seed",
@@ -3774,11 +3787,13 @@ var lr = 0, ur = class {
 	}
 	_buildGenInfoCard({ title: e, accent: t, value: n, multiline: r = !1, compact: i = !1, seed: a = !1 }) {
 		let o = document.createElement("div");
-		o.className = `mjr-mfv-gen-card${a ? " mjr-mfv-gen-card--seed" : ""}${i ? " mjr-mfv-gen-card--compact" : ""}`, o.style.setProperty("--mjr-mfv-gen-accent", t || "#2196F3"), this._bindGenInfoCopy(o, () => String(n ?? ""));
-		let s = document.createElement("div");
-		s.className = "mjr-mfv-gen-card-title", s.textContent = e || "";
+		o.className = `mjr-mfv-gen-card${a ? " mjr-mfv-gen-card--seed" : ""}${i ? " mjr-mfv-gen-card--compact" : ""}`;
+		let s = String(e || "").toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+		s && o.classList.add(`mjr-mfv-gen-card--${s}`), o.style.setProperty("--mjr-mfv-gen-accent", t || "#2196F3"), this._bindGenInfoCopy(o, () => String(n ?? ""));
 		let c = document.createElement("div");
-		return c.className = `mjr-mfv-gen-card-value${r ? " is-multiline" : ""}${i ? " is-compact" : ""}`, c.textContent = String(n ?? ""), o.appendChild(s), o.appendChild(c), o;
+		c.className = "mjr-mfv-gen-card-title", c.textContent = e || "";
+		let l = document.createElement("div");
+		return l.className = `mjr-mfv-gen-card-value${r ? " is-multiline" : ""}${i ? " is-compact" : ""}`, l.textContent = String(n ?? ""), o.appendChild(c), o.appendChild(l), o;
 	}
 	_buildGenInfoFieldsCard(e, t, n) {
 		let r = this._buildGenInfoCard({
@@ -3804,6 +3819,92 @@ var lr = 0, ur = class {
 			o.className = "mjr-mfv-gen-field-value", o.textContent = n, r.appendChild(a), r.appendChild(o), i.appendChild(r);
 		}
 		return i.childNodes.length ? r : null;
+	}
+	_appendIdeogramGenInfoCards(e, t) {
+		if (!(!e || !t)) {
+			t.highLevelDescription && e.appendChild(this._buildGenInfoCard({
+				title: "High Level Description",
+				accent: "#4CAF50",
+				value: t.highLevelDescription,
+				multiline: !0
+			})), t.background && e.appendChild(this._buildGenInfoCard({
+				title: "Background",
+				accent: "#2196F3",
+				value: t.background,
+				multiline: !0
+			}));
+			for (let n of t.elements || []) {
+				let t = [
+					n?.description,
+					n?.text ? `Text: ${n.text}` : "",
+					n?.bbox ? `bbox ${n.bbox}` : ""
+				].filter(Boolean).join("\n");
+				t && e.appendChild(this._buildGenInfoCard({
+					title: n.label || "Element",
+					accent: "#FFB300",
+					value: t,
+					multiline: !0
+				}));
+			}
+			t.json && e.appendChild(this._buildGenInfoCard({
+				title: "JSON sent to text encoder",
+				accent: "#FFB300",
+				value: t.json,
+				multiline: !0
+			}));
+		}
+	}
+	_buildGenInfoBranchGroupsCard(e, t, n, r) {
+		let i = this._buildGenInfoCard({
+			title: e,
+			accent: t,
+			value: ""
+		});
+		this._bindGenInfoCopy(i, () => (n || []).map((e) => {
+			let t = [String(e?.label || "").trim()], n = r === "sampling" ? e?.samplingFields || [] : e?.modelFields || [];
+			for (let e of n) {
+				let n = String(e?.label || "").trim(), r = String(e?.value ?? "").trim();
+				n && r && r !== "-" && t.push(`${n}: ${r}`);
+			}
+			if (r !== "sampling") for (let n of e?.loras || []) {
+				let e = String(n ?? "").trim();
+				e && t.push(`LoRA: ${e}`);
+			}
+			return t.filter(Boolean).join("\n");
+		}).filter(Boolean).join("\n\n"));
+		let a = i.querySelector(".mjr-mfv-gen-card-value");
+		if (!a) return null;
+		a.replaceChildren(), a.classList.add("is-fields", "is-branch-groups");
+		for (let t of n || []) {
+			let n = document.createElement("div");
+			n.className = "mjr-mfv-gen-branch-group";
+			let i = document.createElement("div");
+			i.className = "mjr-mfv-gen-branch-title", i.textContent = String(t?.label || "").trim() || e || "", n.appendChild(i);
+			let o = r === "sampling" ? t?.samplingFields || [] : t?.modelFields || [];
+			for (let e of o) {
+				let t = this._buildGenInfoFieldRow(e);
+				t && n.appendChild(t);
+			}
+			if (r !== "sampling") for (let e of t?.loras || []) {
+				let t = this._buildGenInfoFieldRow({
+					label: "LoRA",
+					value: e
+				});
+				t && n.appendChild(t);
+			}
+			n.childNodes.length > 1 && a.appendChild(n);
+		}
+		return a.childNodes.length ? i : null;
+	}
+	_buildGenInfoFieldRow(e) {
+		let t = String(e?.label || "").trim(), n = String(e?.value ?? "").trim();
+		if (!t || !n || n === "-") return null;
+		let r = document.createElement("div");
+		r.className = "mjr-mfv-gen-field";
+		let i = document.createElement("span");
+		i.className = "mjr-mfv-gen-field-label", i.textContent = t;
+		let a = document.createElement("span");
+		return a.className = "mjr-mfv-gen-field-value", a.textContent = n, r.appendChild(i), r.appendChild(a), r;
 	}
 	_bindGenInfoCopy(e, t) {
 		!e || typeof t != "function" || (e.title = "Click to copy", e.addEventListener("click", async (n) => {

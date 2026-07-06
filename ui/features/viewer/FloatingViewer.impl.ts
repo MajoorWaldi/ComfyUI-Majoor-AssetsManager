@@ -1143,7 +1143,24 @@ export class FloatingViewer {
                     }),
                 );
             }
-            if (state.modelFields?.length) {
+            if (state.ideogram) {
+                this._appendIdeogramGenInfoCards(root, state.ideogram);
+            }
+            const modelBranches = (state.branchCards || []).filter(
+                (item: any) => item?.modelFields?.length || item?.loras?.length,
+            );
+            const samplingBranches = (state.branchCards || []).filter(
+                (item: any) => item?.samplingFields?.length,
+            );
+            if (modelBranches.length) {
+                const card = this._buildGenInfoBranchGroupsCard(
+                    "Models",
+                    "#9C27B0",
+                    modelBranches,
+                    "model",
+                );
+                if (card) root.appendChild(card);
+            } else if (state.modelFields?.length) {
                 const card = this._buildGenInfoFieldsCard(
                     "Model & LoRA",
                     "#9C27B0",
@@ -1151,7 +1168,7 @@ export class FloatingViewer {
                 );
                 if (card) root.appendChild(card);
             }
-            for (const group of state.modelGroups || []) {
+            if (!modelBranches.length) for (const group of state.modelGroups || []) {
                 const fields = [
                     { label: "UNet", value: group.model || "-" },
                     ...(group.loras || []).map((value: any, index: any) => ({
@@ -1166,7 +1183,15 @@ export class FloatingViewer {
                 );
                 if (card) root.appendChild(card);
             }
-            if (state.pipelineTabs?.length) {
+            if (samplingBranches.length) {
+                const card = this._buildGenInfoBranchGroupsCard(
+                    "Sampling",
+                    "#FF9800",
+                    samplingBranches,
+                    "sampling",
+                );
+                if (card) root.appendChild(card);
+            } else if (state.pipelineTabs?.length) {
                 for (const tab of state.pipelineTabs) {
                     const card = this._buildGenInfoFieldsCard(
                         tab.label || "Generation Pipeline",
@@ -1177,6 +1202,16 @@ export class FloatingViewer {
                 }
             } else if (state.samplingFields?.length) {
                 const card = this._buildGenInfoFieldsCard("Sampling", "#FF9800", state.samplingFields);
+                if (card) root.appendChild(card);
+            }
+            for (const module of state.moduleBlocks || []) {
+                const key = String(module?.key || "").toLowerCase();
+                if (key === "workflow_engine") continue;
+                const card = this._buildGenInfoFieldsCard(
+                    module.title || "Generation Module",
+                    module.accent || "#2196F3",
+                    module.fields || [],
+                );
                 if (card) root.appendChild(card);
             }
             if (state.seed !== null && state.seed !== undefined && state.seed !== "") {
@@ -1227,6 +1262,12 @@ export class FloatingViewer {
     _buildGenInfoCard({ title, accent, value, multiline = false, compact = false, seed = false }: { title: any; accent: any; value: any; multiline?: any; compact?: any; seed?: any }) {
         const card = document.createElement("div");
         card.className = `mjr-mfv-gen-card${seed ? " mjr-mfv-gen-card--seed" : ""}${compact ? " mjr-mfv-gen-card--compact" : ""}`;
+        const titleKey = String(title || "")
+            .toLowerCase()
+            .replace(/&/g, "and")
+            .replace(/[^a-z0-9]+/g, "-")
+            .replace(/^-+|-+$/g, "");
+        if (titleKey) card.classList.add(`mjr-mfv-gen-card--${titleKey}`);
         card.style.setProperty("--mjr-mfv-gen-accent", accent || "#2196F3");
         this._bindGenInfoCopy(card, () => String(value ?? ""));
         const heading = document.createElement("div");
@@ -1273,6 +1314,127 @@ export class FloatingViewer {
             value.appendChild(row);
         }
         return value.childNodes.length ? card : null;
+    }
+
+    _appendIdeogramGenInfoCards(root: any, ideogram: any) {
+        if (!root || !ideogram) return;
+        if (ideogram.highLevelDescription) {
+            root.appendChild(
+                this._buildGenInfoCard({
+                    title: "High Level Description",
+                    accent: "#4CAF50",
+                    value: ideogram.highLevelDescription,
+                    multiline: true,
+                }),
+            );
+        }
+        if (ideogram.background) {
+            root.appendChild(
+                this._buildGenInfoCard({
+                    title: "Background",
+                    accent: "#2196F3",
+                    value: ideogram.background,
+                    multiline: true,
+                }),
+            );
+        }
+        for (const element of ideogram.elements || []) {
+            const value = [
+                element?.description,
+                element?.text ? `Text: ${element.text}` : "",
+                element?.bbox ? `bbox ${element.bbox}` : "",
+            ]
+                .filter(Boolean)
+                .join("\n");
+            if (!value) continue;
+            root.appendChild(
+                this._buildGenInfoCard({
+                    title: element.label || "Element",
+                    accent: "#FFB300",
+                    value,
+                    multiline: true,
+                }),
+            );
+        }
+        if (ideogram.json) {
+            root.appendChild(
+                this._buildGenInfoCard({
+                    title: "JSON sent to text encoder",
+                    accent: "#FFB300",
+                    value: ideogram.json,
+                    multiline: true,
+                }),
+            );
+        }
+    }
+
+    _buildGenInfoBranchGroupsCard(title: any, accent: any, branches: any, kind: any) {
+        const card = this._buildGenInfoCard({ title, accent, value: "" });
+        this._bindGenInfoCopy(card, () =>
+            (branches || [])
+                .map((branch: any) => {
+                    const lines = [String(branch?.label || "").trim()];
+                    const fields =
+                        kind === "sampling" ? branch?.samplingFields || [] : branch?.modelFields || [];
+                    for (const field of fields) {
+                        const label = String(field?.label || "").trim();
+                        const text = String(field?.value ?? "").trim();
+                        if (label && text && text !== "-") lines.push(`${label}: ${text}`);
+                    }
+                    if (kind !== "sampling") {
+                        for (const lora of branch?.loras || []) {
+                            const text = String(lora ?? "").trim();
+                            if (text) lines.push(`LoRA: ${text}`);
+                        }
+                    }
+                    return lines.filter(Boolean).join("\n");
+                })
+                .filter(Boolean)
+                .join("\n\n"),
+        );
+        const value = card.querySelector(".mjr-mfv-gen-card-value") as any;
+        if (!value) return null;
+        value.replaceChildren();
+        value.classList.add("is-fields", "is-branch-groups");
+        for (const branch of branches || []) {
+            const group = document.createElement("div");
+            group.className = "mjr-mfv-gen-branch-group";
+            const heading = document.createElement("div");
+            heading.className = "mjr-mfv-gen-branch-title";
+            heading.textContent = String(branch?.label || "").trim() || title || "";
+            group.appendChild(heading);
+            const fields =
+                kind === "sampling" ? branch?.samplingFields || [] : branch?.modelFields || [];
+            for (const field of fields) {
+                const row = this._buildGenInfoFieldRow(field);
+                if (row) group.appendChild(row);
+            }
+            if (kind !== "sampling") {
+                for (const lora of branch?.loras || []) {
+                    const row = this._buildGenInfoFieldRow({ label: "LoRA", value: lora });
+                    if (row) group.appendChild(row);
+                }
+            }
+            if (group.childNodes.length > 1) value.appendChild(group);
+        }
+        return value.childNodes.length ? card : null;
+    }
+
+    _buildGenInfoFieldRow(field: any) {
+        const label = String(field?.label || "").trim();
+        const text = String(field?.value ?? "").trim();
+        if (!label || !text || text === "-") return null;
+        const row = document.createElement("div");
+        row.className = "mjr-mfv-gen-field";
+        const key = document.createElement("span");
+        key.className = "mjr-mfv-gen-field-label";
+        key.textContent = label;
+        const val = document.createElement("span");
+        val.className = "mjr-mfv-gen-field-value";
+        val.textContent = text;
+        row.appendChild(key);
+        row.appendChild(val);
+        return row;
     }
 
     _bindGenInfoCopy(el: any, resolveText: any) {

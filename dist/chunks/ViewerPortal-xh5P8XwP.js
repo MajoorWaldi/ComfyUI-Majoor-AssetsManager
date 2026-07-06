@@ -1,9 +1,9 @@
 import { a as e, i as t } from "./viewerRuntimeHosts-BbCWOXEG.js";
 import { r as n } from "./events-CrhYyn_G.js";
-import { a as r, c as i, i as a, l as o, o as s, s as c, t as l, u } from "./Viewer-DfmX4kpz.js";
-import { i as d, r as f } from "./floatingViewerManager-B7JkIVZy.js";
+import { a as r, c as i, i as a, l as o, o as s, s as c, t as l, u } from "./Viewer-tAiiyC7n.js";
+import { i as d, r as f } from "./floatingViewerManager-BeNIS5UQ.js";
 import { B as p, C as m, D as h, E as g, G as _, H as v, I as y, O as b, R as x, T as S, W as C, ct as w, dt as T, j as E, k as D, lt as O, nt as k, q as A, ut as j, w as M, z as N } from "./mjr-primevue-n1rsQYJg.js";
-import { t as P } from "./TagsEditor-Ci2N2W1P.js";
+import { t as P } from "./TagsEditor-ChWqv-FS.js";
 //#region ui/vue/components/viewer/FloatingViewerHost.vue
 var F = {
 	__name: "FloatingViewerHost",

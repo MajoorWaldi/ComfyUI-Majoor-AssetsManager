@@ -144,6 +144,80 @@ describe("floating viewer geninfo sidebar", () => {
         expect(viewer._genSidebarEl.textContent).not.toContain("asset B prompt");
     });
 
+    it("marks bottom geninfo cards for the compact wrapped layout", async () => {
+        const { FloatingViewer } = await import("../features/viewer/FloatingViewer.js");
+
+        const viewer = new FloatingViewer();
+        const wrapper = document.createElement("div");
+        wrapper.className = "mjr-mfv-content-wrapper";
+        wrapper.setAttribute("data-sidebar-pos", "bottom");
+        viewer._contentWrapper = wrapper;
+        viewer._genSidebarEl = document.createElement("aside");
+        wrapper.appendChild(viewer._genSidebarEl);
+        document.body.appendChild(wrapper);
+        viewer._mediaA = {
+            filename: "image.png",
+            generation_time_ms: 2600,
+            metadata_raw: {
+                prompt: "bee wearing a white space suit",
+                model: "emie-image-turbo-nf4p4",
+                clip: "minicfual-3.3b",
+                vae: "flux2.vae",
+                sampler: "euler",
+                steps: 8,
+                cfg: 1,
+                scheduler: "simple",
+            },
+        };
+
+        viewer._renderGenInfoSidebar();
+
+        expect(viewer._genSidebarEl.classList.contains("open")).toBe(true);
+        expect(viewer._genSidebarEl.querySelector(".mjr-mfv-gen-time-badge")).toBeTruthy();
+        expect(viewer._genSidebarEl.querySelector(".mjr-mfv-gen-card--positive-prompt")).toBeTruthy();
+        expect(viewer._genSidebarEl.querySelector(".mjr-mfv-gen-card--model-and-lora")).toBeTruthy();
+        expect(viewer._genSidebarEl.querySelector(".mjr-mfv-gen-card--sampling")).toBeTruthy();
+        const body = viewer._genSidebarEl.querySelector(".mjr-mfv-gen-sidebar-body");
+        expect(getComputedStyle(body).overflowX).toBe("hidden");
+        expect(getComputedStyle(body).overflowY).toBe("visible");
+        expect(getComputedStyle(body).display).toBe("block");
+    });
+
+    it("renders ideogram excerpt blocks like the grid panel generation details", async () => {
+        const { FloatingViewer } = await import("../features/viewer/FloatingViewer.js");
+
+        const viewer = new FloatingViewer();
+        viewer._genSidebarEl = document.createElement("aside");
+        document.body.appendChild(viewer._genSidebarEl);
+        viewer._mediaA = {
+            filename: "ideogram.png",
+            metadata_raw: {
+                workflow: "i2i",
+                ideogram: {
+                    high_level_description: "A refined campaign image about skin aging.",
+                    background: "warm sunset gradient background",
+                    elements: [
+                        {
+                            description: "A graceful woman in side profile.",
+                            x: 0.49,
+                            y: 0.391,
+                            w: 0.274,
+                            h: 0.497,
+                        },
+                    ],
+                    payload: { prompt: "json prompt" },
+                },
+            },
+        };
+
+        viewer._renderGenInfoSidebar();
+
+        expect(viewer._genSidebarEl.querySelector(".mjr-mfv-gen-card--high-level-description")).toBeTruthy();
+        expect(viewer._genSidebarEl.querySelector(".mjr-mfv-gen-card--background")).toBeTruthy();
+        expect(viewer._genSidebarEl.querySelector(".mjr-mfv-gen-card--element-1")).toBeTruthy();
+        expect(viewer._genSidebarEl.querySelector(".mjr-mfv-gen-card--json-sent-to-text-encoder")).toBeTruthy();
+    });
+
     it("hydrates MFV metadata when the current prompt is only a file path", async () => {
         const { ensureViewerMetadataAsset } = await import("../features/viewer/genInfo.js");
         const getAssetMetadata = vi.fn(() =>
