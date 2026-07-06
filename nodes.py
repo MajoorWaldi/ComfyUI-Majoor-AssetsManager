@@ -29,10 +29,14 @@ from typing import Any
 import av  # type: ignore[import-untyped]
 import folder_paths  # type: ignore[import-untyped]
 import numpy as np
-import torch
 from comfy.cli_args import args  # type: ignore[import-untyped]
 from PIL import Image
 from PIL.PngImagePlugin import PngInfo
+
+try:
+    import torch  # type: ignore[import-untyped]
+except ModuleNotFoundError:
+    torch = None  # type: ignore[assignment]
 
 try:
     from .mjr_am_backend.video_ui import build_video_ui as _build_video_ui
@@ -77,8 +81,15 @@ def _get_generation_time_ms() -> int:
 
 def _tensor_to_bytes(t: torch.Tensor) -> np.ndarray:
     """Convert a CHW/HWC float [0-1] tensor to uint8 HWC numpy array."""
+    _require_torch()
     arr = 255.0 * t.cpu().numpy()
     return np.clip(arr, 0, 255).astype(np.uint8)
+
+
+def _require_torch() -> Any:
+    if torch is None:
+        raise RuntimeError("torch is required for Majoor image/video node execution")
+    return torch
 
 
 def _next_counter(directory: str, prefix: str) -> int:
@@ -1037,6 +1048,7 @@ def _resolve_video_inputs(
     frame_rate: float,
 ) -> tuple[torch.Tensor, float, dict | None] | None:
     """Return (images, fps, audio) or None when nothing to encode."""
+    torch_mod = _require_torch()
 
     def _coerce_audio_input(candidate: Any | None) -> dict | None:
         if candidate is None:
@@ -1087,7 +1099,9 @@ def _resolve_video_inputs(
     else:
         return None
 
-    if resolved_images is None or (isinstance(resolved_images, torch.Tensor) and resolved_images.size(0) == 0):
+    if resolved_images is None or (
+        isinstance(resolved_images, torch_mod.Tensor) and resolved_images.size(0) == 0
+    ):
         return None
     return resolved_images, resolved_fps, resolved_audio
 
@@ -1188,7 +1202,8 @@ def _prepare_audio(
         return None, 44100
 
     def _normalize_waveform_channels_samples(waveform: Any) -> torch.Tensor | None:
-        if not torch.is_tensor(waveform):
+        torch_mod = _require_torch()
+        if not torch_mod.is_tensor(waveform):
             return None
 
         w = waveform
