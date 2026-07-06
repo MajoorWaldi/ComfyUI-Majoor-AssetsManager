@@ -6,6 +6,9 @@ aiohttp>=3.8.0,<4.0.0
 # Async SQLite (non-blocking DB adapter)
 aiosqlite>=0.20.0,<1.0.0
 
+# Array handling for custom node image/mask tensor conversion
+numpy>=1.24,<3.0.0
+
 # Image processing and thumbnails
 # Updated for security patches (CVE-2023-50447, CVE-2024-28219)
 pillow>=10.0.0,<13.0.0

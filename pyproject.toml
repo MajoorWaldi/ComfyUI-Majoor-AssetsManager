@@ -27,6 +27,7 @@ authors = [
 dependencies = [
   "aiohttp>=3.8.0,<4.0.0",
   "aiosqlite>=0.20.0,<1.0.0",
+  "numpy>=1.24,<3.0.0",
   "pillow>=10.0.0,<13.0.0",
   "av>=12.0.0,<18.0.0",
   "hachoir>=3.3.0,<4.0.0",
