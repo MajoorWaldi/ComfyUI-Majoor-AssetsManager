@@ -53,7 +53,7 @@ vector = [
   "timm>=0.9.0,<2.0.0",
   "einops>=0.7.0,<1.0.0",
   "sentencepiece>=0.1.99,<1.0.0",
-  "opencv-python-headless>=4.8.0,<5.0.0",
+  "opencv-python-headless>=4.8.0,<6.0.0",
   "faiss-cpu>=1.7.0,<2.0.0",
   "scikit-learn>=1.3.0,<2.0.0",
 ]
