@@ -94,6 +94,11 @@ def _srgb_icc_profile() -> bytes:
     return ImageCms.ImageCmsProfile(profile).tobytes()
 
 
+def _srgb_save_kwargs() -> dict[str, Any]:
+    """Return reusable Pillow color-management options."""
+    return {"icc_profile": _srgb_icc_profile()}
+
+
 def _require_torch() -> Any:
     if torch is None:
         raise RuntimeError("torch is required for Majoor image/video node execution")
