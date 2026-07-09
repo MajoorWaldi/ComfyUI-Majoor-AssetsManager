@@ -104,6 +104,14 @@ export async function setLtxavRgbFallbackSettings(enabled = false) {
     return post(ENDPOINTS.SETTINGS_LTXAV_RGB_FALLBACK, { enabled: !!enabled });
 }
 
+export async function getJxlSettings() {
+    return get(ENDPOINTS.SETTINGS_JXL);
+}
+
+export async function setJxlSettings(enabled = false) {
+    return post(ENDPOINTS.SETTINGS_JXL, { enabled: !!enabled });
+}
+
 export async function getOutputDirectorySetting() {
     return get(ENDPOINTS.SETTINGS_OUTPUT_DIRECTORY);
 }
@@ -164,9 +172,10 @@ export async function openInFolder(assetOrId: any) {
         const fp = String(
             assetOrId.filepath || assetOrId.path || assetOrId?.file_info?.filepath || "",
         ).trim();
-        if (assetOrId.id != null)
-            return post("/mjr/am/open-in-folder", { asset_id: normalizeAssetId(assetOrId.id) });
-        return post("/mjr/am/open-in-folder", { filepath: fp });
+        // Browser/custom-root assets can have synthetic or stale IDs. Their explicit
+        // absolute path is the authoritative value for this path-based operation.
+        if (fp) return post("/mjr/am/open-in-folder", { filepath: fp });
+        return post("/mjr/am/open-in-folder", { asset_id: normalizeAssetId(assetOrId.id) });
     }
     return post("/mjr/am/open-in-folder", { asset_id: normalizeAssetId(assetOrId) });
 }

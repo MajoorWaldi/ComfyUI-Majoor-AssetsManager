@@ -12,7 +12,7 @@
 [![Downloads](https://img.shields.io/github/downloads/MajoorWaldi/ComfyUI-Majoor-AssetsManager/total?style=flat)](https://github.com/MajoorWaldi/ComfyUI-Majoor-AssetsManager/releases)
 [![CI](https://github.com/MajoorWaldi/ComfyUI-Majoor-AssetsManager/actions/workflows/python-tests.yml/badge.svg)](https://github.com/MajoorWaldi/ComfyUI-Majoor-AssetsManager/actions/workflows/python-tests.yml)
 [![Python Version](https://img.shields.io/badge/Python-3.10--3.13-blue)](https://www.python.org/)
-[![ComfyUI](https://img.shields.io/badge/ComfyUI-%3E%3D0.13.0-brightgreen)](https://github.com/comfyanonymous/ComfyUI)
+[![ComfyUI](https://img.shields.io/badge/ComfyUI-%3E%3D0.13.0-brightgreen)](https://github.com/Comfy-Org/ComfyUI)
 [![Frontend Tests](https://img.shields.io/badge/Frontend%20Tests-Vitest-6e9f18)](https://vitest.dev/)
 [![Buy Me a White Monster Drink](https://img.shields.io/badge/Ko--fi-Buy_Me_a_White_Monster_Drink-ff5e5b?logo=ko-fi)](https://ko-fi.com/majoorwaldi)
 
@@ -95,14 +95,15 @@ Move useful assets and workflow context back into ComfyUI:
 
 ## Latest Release
 
-### v2.4.9 Highlights
-- **Graph Map UI and parsing**: Clearer node inspection with more reliable widget and node details.
-- **Workflow tab library**: Save, import, load, inspect, categorize, tag, and thumbnail ComfyUI workflow JSON files.
-- **Configurable workflow roots**: Choose Workflow tab roots from Settings or directly from the Workflow tab toolbar.
-- **Majoor GenInfo Override node**: Inject custom/manual GenInfo data through Majoor Save nodes.
-- **Quick media filters**: Jump directly to Images, Videos, Audio, or 3D assets.
-- **Drag-and-drop refinements**: Better node compatibility handling and clean export workflow.
-- **Frontend and integration cleanup**: Continued TypeScript refactor, easier AI settings access, and ComfyUI frontend compatibility improvements.
+### v2.5.0 Highlights
+- **Experimental JPEG XL support**: Optionally index, preview, view, and drag `.jxl` images.
+- **Native ComfyUI subgraphs**: Graph Map recursively expands nested subgraphs, including shared root-level definitions.
+- **Richer technical metadata**: Inspect bit depth, pixel format, encoder, and color-space information.
+- **Runtime metadata ingestion**: Preserve prompt, workflow, GenInfo, job, and source-node context after execution.
+- **Viewer and source-file actions**: Use additional playback speeds and open generation source files in the viewer, Floating Viewer, folder, or asset loader.
+- **Find Similar menu**: Find similar or duplicate assets and outputs from the same save node or workflow.
+- **Output fidelity**: Majoor Save images include an sRGB ICC profile and MP4 outputs are explicitly tagged as BT.709.
+- **Stability fixes**: Improved tags shortcuts, playback state, Floating Viewer controls, source-file loading, popover dismissal, and subgraph parsing.
 
 See [CHANGELOG.md](CHANGELOG.md) for the complete release notes.
 
@@ -184,6 +185,16 @@ ffprobe -version
 
 See [`docs/INSTALLATION.md`](docs/INSTALLATION.md) for detailed instructions.
 
+### Experimental JPEG XL Support
+
+JPEG XL indexing is disabled by default because decoder availability varies between Pillow and FFmpeg builds.
+
+1. Open **Settings → Majoor Assets Manager → Scanning**.
+2. Enable **JPEG XL (JXL) support (Experimental)**.
+3. Run a new scan to index existing `.jxl` files.
+
+Majoor can then index, preview, view, and drag JPEG XL assets. Thumbnail generation still requires JPEG XL support in the installed Pillow or FFmpeg build. The equivalent environment variable is `MAJOOR_ENABLE_JXL=1`.
+
 ### ComfyUI Desktop Popup Workaround
 
 If you use the official **ComfyUI Desktop / Electron** build and want the **Majoor Floating Viewer** to open in a real detachable window that can be moved to another monitor, the Desktop host must allow `window.open("about:blank")` popups.
@@ -194,11 +205,17 @@ The Majoor plugin already tries to open a real popup first on Desktop. Some Desk
 
 ## Custom Nodes
 
-Majoor Assets Manager ships two ComfyUI nodes that persist **generation timing metadata** directly inside the saved files. This allows the asset manager to index `generation_time_ms` alongside prompt/workflow data for every asset.
+Majoor Assets Manager ships three ComfyUI nodes. Majoor Save Image and Majoor Save Video persist **generation timing metadata** directly inside saved files, allowing the asset manager to index `generation_time_ms` alongside prompt/workflow data. Majoor GenInfo Override supplies explicit generation metadata to either save node.
 
 Full reference: [`docs/CUSTOM_NODES.md`](docs/CUSTOM_NODES.md)
 
 The video node requires PyAV. It is included in the runtime dependency contract (`requirements.txt` and `pyproject.toml`) so the documented manual install commands install it automatically.
+
+### Majoor GenInfo Override 🧩
+
+Builds an explicit `MAJOOR_GENINFO` payload for Majoor Save Image or Majoor Save Video. Use it when automatic graph tracing cannot reliably identify prompts, seeds, sampler settings, models, LoRAs, or custom workflow notes.
+
+Connect its `geninfo_override` output to the matching input on a Majoor Save node. The optional `workflow_context` input can be connected to a late workflow node so the override executes with complete graph context.
 
 ### Majoor Save Image 💾
 
@@ -331,6 +348,7 @@ Graph Map is the workflow navigation view inside the Floating Viewer. It keeps t
 ![Graph Map overview](docs/images/graph-map-overview.png)
 
 - **Readable workflow view**: node labels stay visible and named subgraphs show their real names instead of raw UUID/hash identifiers.
+- **Native nested subgraphs**: recursively expands ComfyUI subgraphs and resolves definitions shared by the root workflow.
 - **Direct node inspection**: click a node to open copyable parameters and actions such as copy node, import node, import workflow, or transfer params.
 - **Viewer-friendly preview**: the small media preview stays in place while Graph Map refreshes, which is especially useful for video assets.
 
@@ -540,14 +558,16 @@ Dependency roles and update rules are defined in [`docs/DEPENDENCY_POLICY.md`](d
 ```
 ComfyUI-Majoor-AssetsManager/
 ├── __init__.py                 # Extension entry point
-├── ui/                         # Frontend (Vue 3 + Pinia, vanilla JS)
-│   ├── entry.js               # Main entry
+├── nodes.py                    # ComfyUI custom nodes
+├── ui/                         # Frontend source (Vue 3, Pinia, TypeScript)
 │   ├── app/                   # App initialization, settings
 │   ├── components/            # UI components
 │   ├── features/              # Feature modules
 │   ├── stores/                # Pinia stores
 │   ├── api/                   # API client
-│   └── vue/                   # Vue.js source modules
+│   └── vue/                   # Vue components and source modules
+├── dist/                       # Generated frontend bundle served by ComfyUI
+├── vite.config.mjs            # Frontend build entry and bundle configuration
 ├── mjr_am_backend/            # Backend (Python)
 │   ├── routes/                # API routes, route_catalog.py (declarative)
 │   ├── routes/core/           # Shared HTTP helpers (security, path, JSON)
@@ -588,11 +608,22 @@ pytest tests/ --cov=mjr_am_backend --cov-report=html
 
 #### Frontend Tests (Vitest)
 ```bash
-# Run JavaScript tests
+# Exact JavaScript test command used by CI
 npm run test:js
+
+# Exact frontend typecheck used by CI
+npx tsc -p tsconfig.json --noEmit --pretty false
+
+# Build and verify the generated dist bundle
+npm run build
 
 # Watch mode
 npm run test:js:watch
+```
+
+#### Exact Backend CI Test
+```bash
+python -m pytest -q --timeout=300 --cov=mjr_am_backend --cov=mjr_am_shared --cov-branch --cov-fail-under=60 --cov-report=xml --cov-report=term-missing:skip-covered
 ```
 
 #### Windows Batch Runners
@@ -604,7 +635,7 @@ run_tests.bat
 tests/run_tests_all.bat
 ```
 
-Test reports: `tests/__reports__/index.html`
+The Windows report runner generates `tests/__reports__/index.html`; the file is not present until that runner completes.
 
 ### Code Quality
 ```bash
@@ -660,11 +691,13 @@ See [`docs/TESTING.md`](docs/TESTING.md), [`tests/README.md`](tests/README.md), 
 
 - **ComfyUI**: ≥ 0.13.0 (recommended baseline)
 - **Python**: 3.10, 3.11, 3.12, 3.13
-- **Operating Systems**:
+- **Supported Operating Systems**:
   - Windows 10/11
   - macOS 10.15+
   - Linux (Ubuntu 22.04+, Fedora, Debian)
 - **Browsers**: Modern browsers with ES2020+ support
+
+The automated CI matrix currently validates Python 3.10-3.13 and the frontend on Ubuntu. Windows and macOS support is maintained through portable code paths and contributor/user testing rather than dedicated hosted CI jobs.
 
 ---
 
@@ -724,5 +757,5 @@ Optional attribution request: See [`NOTICE`](NOTICE) file for details.
 
 ---
 
-*Last updated: May 18, 2026*
-*Version: 2.4.9*
+*Last updated: July 9, 2026*
+*Version: 2.5.0*

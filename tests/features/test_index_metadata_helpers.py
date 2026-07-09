@@ -139,6 +139,48 @@ def test_generation_time_parser_accepts_units_and_nested_variants():
     assert positive_prompt == "portrait"
 
 
+def test_denormalized_prompt_prefers_geninfo_positive_over_file_path_fallbacks():
+    _, _, positive_prompt = mh._denormalized_metadata_fields(
+        Result.Ok(
+            {
+                "prompt": r"C:\ComfyUI\output\image_00001.png",
+                "parameters": r"C:\ComfyUI\output\image_00001.png",
+                "positive_prompt": "stale prompt",
+                "geninfo": {"positive": {"value": "cinematic portrait"}},
+            }
+        )
+    )
+
+    assert positive_prompt == "cinematic portrait"
+
+
+def test_denormalized_ltx_director_prompt_uses_timeline_global_prompt():
+    prompt_graph = {
+        "131": {
+            "class_type": "LTXDirector",
+            "inputs": {
+                "timeline_data": json.dumps(
+                    {
+                        "global_prompt": "golden portrait, cinematic sunset light",
+                        "segments": [{"prompt": "camera turns"}],
+                    }
+                )
+            },
+        },
+        "132": {"class_type": "SaveVideo", "inputs": {"video": ["131", 0]}},
+    }
+    _, _, positive_prompt = mh._denormalized_metadata_fields(
+        Result.Ok(
+            {
+                "prompt": r"d:\____comfy_outputs\video\ltx_director_00009_.mp4",
+                "raw_ffprobe": {"format": {"tags": {"prompt": json.dumps(prompt_graph)}}},
+            }
+        )
+    )
+
+    assert positive_prompt == "golden portrait, cinematic sunset light"
+
+
 def test_prepare_and_error_payload_helpers():
     has_wf, has_gen, quality, raw = mh.MetadataHelpers.prepare_metadata_fields(Result.Ok({"quality": "partial", "parameters": "x"}))
     assert has_wf is True and has_gen is True and quality == "partial" and raw

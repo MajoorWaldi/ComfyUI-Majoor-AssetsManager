@@ -2,13 +2,16 @@
 
 All notable changes to this project are documented in this file.
 
-## [Unreleased]
+## [2.5.0] - 2026-07-09
 
 ### New Features
 - **LTX Director and Ideogram 4 workflow metadata**: Added generation info support for LTX Director and Ideogram 4 workflows, including dedicated prompt extraction and sidebar display.
 - **Viewer playback speeds**: Added 3x, 5x, and 10x playback speeds.
 - **Generation source file actions**: Added a context menu for source files in the generation sidebar, with viewer, floating viewer, folder, and asset-loading actions.
 - **Find Similar action menu**: Replaced the direct Find Similar button with a popover menu for Find Similar, Find Duplicate, Generated with same save node, and Generated from same workflow.
+- **Experimental JPEG XL support**: Added optional `.jxl` indexing, previews, drag-and-drop, viewer support, MIME handling, and a persistent setting. JPEG XL support remains disabled by default.
+- **Native subgraph support in Graph Map**: Added recursive expansion of nested ComfyUI subgraphs, including subgraphs that reference root-level definitions.
+- **Extended file technical metadata**: Added bit depth, pixel format, encoder, and color-space information to the asset sidebar.
 
 ### Improved
 - **Asset sidebar UI**: Polished the asset sidebar generation info layout and workflow metadata presentation.
@@ -16,6 +19,14 @@ All notable changes to this project are documented in this file.
 - **Toolbar active states**: Popover and settings buttons now highlight consistently while their menu/dialog is open, including Messages and updates, Find Similar, Filter, Sort, Collections, Pinned folders, and Settings.
 - **Message history UX**: Automatically closes the Messages and updates history panel after an auto-opened tracked process completes, while preserving manually opened history panels.
 - **Majoor Save metadata persistence**: Persisted Asset ID, Job ID, Source Node, Node Type, and Workflow ID in saved asset metadata alongside generation time.
+- **Runtime metadata ingestion**: Outputs now receive prompt, workflow, GenInfo, job, and source-node metadata directly from ComfyUI history after execution.
+- **Rodin 3D output grouping**: Rodin GLB packages and previews now inherit execution context and can be stacked by job.
+- **Output color management**: Majoor Save images now include an sRGB ICC profile, while MP4 output is explicitly tagged as BT.709.
+- **Generation prompt selection**: GenInfo prompts now take precedence over stale paths or denormalized prompt values.
+- **LTX Director prompt extraction**: Global prompts are now extracted from timeline metadata.
+- **Workflow thumbnail matching**: Matching now relies on workflow hashes instead of potentially ambiguous workflow IDs.
+- **Top-bar Viewer integration**: Improved MFV button placement and compatibility checks for supported ComfyUI top-bar structures.
+- **Graph Map navigation**: Added deeper zoom support for inspecting dense nested subgraphs.
 
 ### Fixed
 - **Tags shortcuts**: Fixed tags shortcut behavior.
@@ -25,6 +36,10 @@ All notable changes to this project are documented in this file.
 - **Generation source file viewer loading**: Fixed source file preview/viewer loading paths that could show "Failed to load image".
 - **Filter popover dismissal**: Fixed the Filter popover not closing when clicking outside.
 - **Viewer generation info stability**: Fixed intermittent Generation Info rendering in the viewer.
+- **Open in folder action**: Fixed requests so they work with either a filepath or an asset ID.
+- **Floating Viewer loading**: Fixed loader initialization and retry behavior covered by new regression tests.
+- **Subgraph workflow parsing**: Prevented prompt nodes from being mixed with serialized subgraph UI nodes.
+- **Generation information display**: Requested metadata rows now remain visible when their value is unavailable.
 
 ---
 

@@ -8,6 +8,8 @@ import {
     getWatcherSettings,
     updateWatcherSettings,
     setExecutionGroupingSettings,
+    getJxlSettings,
+    setJxlSettings,
 } from "../../api/client.js";
 import { comfyToast } from "../toast.js";
 import { t } from "../i18n.js";
@@ -100,6 +102,43 @@ export function registerScanningSettings(safeAddSetting: (def: any) => void, set
             notifyApplied("scan.fastMode");
         },
     });
+
+    safeAddSetting({
+        id: `${SETTINGS_PREFIX}.Scan.JpegXL`,
+        category: cat(t("cat.scanning"), "Image formats"),
+        name: "JPEG XL (JXL) support (Experimental)",
+        tooltip:
+            "Index and preview .jxl images. Preview generation requires JPEG XL support in Pillow or FFmpeg. Run a new scan after enabling.",
+        type: "boolean",
+        defaultValue: !!settings.scan?.jxlEnabled,
+        onChange: async (value: any) => {
+            const previous = !!settings.scan?.jxlEnabled;
+            const enabled = !!value;
+            settings.scan = settings.scan || {};
+            settings.scan.jxlEnabled = enabled;
+            saveMajoorSettings(settings);
+            notifyApplied("scan.jxlEnabled");
+            try {
+                const res = await setJxlSettings(enabled);
+                if (!res?.ok) throw new Error(res?.error || "Failed to update JPEG XL support");
+            } catch (error: any) {
+                settings.scan.jxlEnabled = previous;
+                saveMajoorSettings(settings);
+                notifyApplied("scan.jxlEnabled");
+                comfyToast(error?.message || "Failed to update JPEG XL support", "error");
+            }
+        },
+    });
+
+    getJxlSettings()
+        .then((res) => {
+            if (!res?.ok) return;
+            settings.scan = settings.scan || {};
+            settings.scan.jxlEnabled = !!res?.data?.prefs?.enabled;
+            saveMajoorSettings(settings);
+            notifyApplied("scan.jxlEnabled");
+        })
+        .catch(() => {});
 
     safeAddSetting({
         id: `${SETTINGS_PREFIX}.RtHydrate.Concurrency`,

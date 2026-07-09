@@ -54,6 +54,7 @@ _AI_VERBOSE_LOGS_KEY = "ai_verbose_logs"
 _ROUTE_VERBOSE_LOGS_KEY = "route_verbose_logs"
 _STARTUP_VERBOSE_LOGS_KEY = "startup_verbose_logs"
 _LTXAV_RGB_FALLBACK_ENABLED_KEY = "ltxav_rgb_fallback_enabled"
+_JXL_ENABLED_KEY = "jxl_enabled"
 _SETTINGS_VERSION_KEY = "__settings_version"
 _SECURITY_API_TOKEN_KEY = "security_api_token"
 _SECURITY_API_TOKEN_HASH_KEY = "security_api_token_hash"
@@ -173,6 +174,7 @@ class AppSettings:
         self._default_route_verbose_logs = self._env_route_verbose_logs_enabled()
         self._default_startup_verbose_logs = self._env_startup_verbose_logs_enabled()
         self._default_ltxav_rgb_fallback_enabled = self._env_ltxav_rgb_fallback_enabled()
+        self._default_jxl_enabled = self._env_jxl_enabled()
         self._runtime_api_token: str = ""
         self._runtime_api_token_hash: str = ""
 
@@ -389,6 +391,10 @@ class AppSettings:
         except Exception:
             raw = ""
         return parse_bool(raw, False)
+
+    @staticmethod
+    def _env_jxl_enabled() -> bool:
+        return parse_bool(os.environ.get("MAJOOR_ENABLE_JXL", ""), False)
 
     @staticmethod
     def _set_huggingface_token_env(token: str) -> None:
@@ -1334,6 +1340,31 @@ class AppSettings:
             )
             return Result.Ok(normalized)
 
+    async def get_jxl_enabled(self) -> bool:
+        """Return the persisted experimental JPEG XL preference."""
+        async with self._lock:
+            current_version = await self._get_settings_version()
+            cached = self._cache.get(_JXL_ENABLED_KEY, version=current_version)
+            if cached is not None:
+                return parse_bool(cached, self._default_jxl_enabled)
+            raw = await self._read_setting(_JXL_ENABLED_KEY)
+            enabled = parse_bool(raw, self._default_jxl_enabled) if raw is not None else self._default_jxl_enabled
+            self._cache.put(_JXL_ENABLED_KEY, "1" if enabled else "0", version=current_version)
+            return enabled
+
+    async def set_jxl_enabled(self, enabled: Any) -> Result[bool]:
+        """Persist JPEG XL support and apply it to runtime scan filters."""
+        normalized = parse_bool(enabled, self._default_jxl_enabled)
+        async with self._lock:
+            res = await self._write_setting(_JXL_ENABLED_KEY, "1" if normalized else "0")
+            if not res.ok:
+                return Result.Err("DB_ERROR", res.error or "Failed to persist jxl_enabled")
+            self._set_jxl_env_var(normalized)
+            bump = await self._bump_settings_version_locked()
+            current_version = int(bump.data or await self._get_settings_version() or 0)
+            self._cache.put(_JXL_ENABLED_KEY, "1" if normalized else "0", version=current_version)
+            return Result.Ok(normalized)
+
     def _set_vector_search_env_vars(self, enabled: bool) -> None:
         value = "1" if enabled else "0"
         try:
@@ -1419,6 +1450,10 @@ class AppSettings:
             os.environ["MAJOOR_ENABLE_LTXAV_RGB_FALLBACK"] = value
         except Exception:
             return
+
+    @staticmethod
+    def _set_jxl_env_var(enabled: bool) -> None:
+        os.environ["MAJOOR_ENABLE_JXL"] = "1" if enabled else "0"
 
     def _normalize_metadata_fallback_write_payload(
         self,
@@ -1885,3 +1920,18 @@ class AppSettings:
                 )
         except Exception as exc:
             logger.warning("Failed to restore LTXAV RGB fallback setting on startup: %s", exc)
+
+    async def apply_jxl_on_startup(self) -> None:
+        """Restore experimental JPEG XL support before scans start."""
+        try:
+            async with self._lock:
+                raw = await self._read_setting(_JXL_ENABLED_KEY)
+                enabled = parse_bool(raw, self._default_jxl_enabled) if raw is not None else self._default_jxl_enabled
+                self._set_jxl_env_var(enabled)
+                self._cache.put(
+                    _JXL_ENABLED_KEY,
+                    "1" if enabled else "0",
+                    version=int(await self._get_settings_version() or 0),
+                )
+        except Exception as exc:
+            logger.warning("Failed to restore JPEG XL setting on startup: %s", exc)

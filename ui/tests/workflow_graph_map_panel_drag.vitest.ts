@@ -45,4 +45,35 @@ describe("WorkflowGraphMapPanel drag", () => {
         expect(win.removeEventListener).toHaveBeenCalledWith("pointermove", expect.any(Function));
         expect(panel._drag).toBeNull();
     });
+
+    it("allows deep wheel zoom for inspecting dense nested subgraphs", () => {
+        const panel = new WorkflowGraphMapPanel({ large: true });
+        panel._workflow = { nodes: [{ id: 1, pos: [0, 0], size: [100, 80] }], links: [] };
+        panel._view = { zoom: 8, centerX: 100, centerY: 100 };
+        panel._renderInfo = {
+            resolvedView: {
+                renderScale: 2,
+                viewMinX: 0,
+                viewMinY: 0,
+                visibleW: 200,
+                visibleH: 120,
+                pad: 6,
+            },
+        };
+        panel._canvas = {
+            getBoundingClientRect: () => ({ left: 0, top: 0 }),
+        };
+        panel.refresh = vi.fn();
+
+        panel._handleWheel({
+            deltaY: -1,
+            clientX: 50,
+            clientY: 40,
+            preventDefault: vi.fn(),
+        });
+
+        expect(panel._view.zoom).toBeGreaterThan(8);
+        expect(panel._view.zoom).toBeLessThanOrEqual(64);
+        expect(panel.refresh).toHaveBeenCalledTimes(1);
+    });
 });

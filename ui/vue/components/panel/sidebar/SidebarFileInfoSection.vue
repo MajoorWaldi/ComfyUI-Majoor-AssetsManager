@@ -9,26 +9,52 @@ const props = defineProps({
 });
 
 function formatFileSize(bytes) {
-    if (!bytes || bytes <= 0) return "0 B";
+    const byteCount = Number(bytes);
+    if (!Number.isFinite(byteCount) || byteCount < 0) return "N/A";
+    if (byteCount === 0) return "0 bytes";
     const units = ["B", "KB", "MB", "GB"];
     let unitIndex = 0;
-    let size = bytes;
+    let size = byteCount;
     while (size >= 1024 && unitIndex < units.length - 1) {
         size /= 1024;
         unitIndex += 1;
     }
-    return `${size.toFixed(unitIndex > 0 ? 1 : 0)} ${units[unitIndex]}`;
+    if (unitIndex === 0) return `${Math.round(size)} bytes`;
+    return `${size.toFixed(1)} ${units[unitIndex]}`;
 }
 
-function isAnimatedMedia(asset) {
+function readRawMetadata(asset) {
+    const raw = asset?.metadata_raw;
+    if (raw && typeof raw === "object") return raw;
+    if (typeof raw !== "string" || !raw.trim()) return {};
     try {
-        const kind = String(asset?.kind || "").toLowerCase();
-        if (kind === "video") return true;
-        const name = String(asset?.filename || asset?.filepath || asset?.path || "").toLowerCase();
-        return /\.(gif|webp|webm)$/.test(name);
+        const parsed = JSON.parse(raw);
+        return parsed && typeof parsed === "object" ? parsed : {};
     } catch {
-        return false;
+        return {};
     }
+}
+
+function firstValue(...values) {
+    return values.find((value) => value !== undefined && value !== null && value !== "");
+}
+
+function formatBitDepth(stream, raw) {
+    const bits = firstValue(
+        stream.bits_per_raw_sample,
+        stream.bits_per_sample,
+        raw.bits_per_channel,
+        raw.bitsperchannel,
+        raw.bit_depth,
+    );
+    const pixelFormat = String(firstValue(stream.pix_fmt, raw.pixel_format, raw.pix_fmt) || "");
+    const explicitFormatBits = Number(pixelFormat.match(/(?:p|gray|gbrp)(\d+)(?:le|be)?$/i)?.[1]);
+    const numericBits = Number(bits) || (explicitFormatBits >= 8 ? explicitFormatBits : 0);
+    const sampleFormat = String(firstValue(stream.sample_fmt, raw.sample_format) || "").toLowerCase();
+    const isFloat = sampleFormat.includes("flt") || sampleFormat.includes("dbl") || /(?:16|32)f\b/i.test(pixelFormat);
+    if (numericBits > 0) return `${numericBits}-bit ${isFloat ? "float" : "fixed"}`;
+    if (pixelFormat) return `8-bit ${isFloat ? "float" : "fixed"}`;
+    return isFloat ? "float" : "N/A";
 }
 
 function readAssetField(asset, key) {
@@ -49,6 +75,12 @@ function readAssetField(asset, key) {
 
 const rows = computed(() => {
     const asset = props.asset || {};
+    const raw = readRawMetadata(asset);
+    const ffprobe = raw?.raw_ffprobe && typeof raw.raw_ffprobe === "object" ? raw.raw_ffprobe : {};
+    const videoStream = ffprobe?.video_stream && typeof ffprobe.video_stream === "object"
+        ? ffprobe.video_stream
+        : {};
+    const format = ffprobe?.format && typeof ffprobe.format === "object" ? ffprobe.format : {};
     const fileData = [];
     if (asset.width && asset.height) {
         fileData.push({
@@ -64,20 +96,45 @@ const rows = computed(() => {
             tooltip: "Video duration",
         });
     }
-    if (isAnimatedMedia(asset)) {
-        const fps = readAssetFps(asset);
-        if (fps != null) {
-            fileData.push({ label: "FPS", value: formatFps(fps), tooltip: "Native frame rate" });
-        }
-        const frameCount = readAssetFrameCount(asset, fps);
-        if (frameCount != null) {
-            fileData.push({
-                label: "Length",
-                value: `${Math.max(0, Math.floor(frameCount))} frames`,
-                tooltip: "Total frame count",
-            });
-        }
-    }
+    const fps = readAssetFps(asset);
+    if (fps != null) fileData.push({ label: "FPS", value: formatFps(fps), tooltip: "Native frame rate" });
+    const frameCount = readAssetFrameCount(asset, fps);
+    fileData.push({
+        label: "Frames",
+        value: frameCount != null ? String(Math.max(0, Math.floor(frameCount))) : "N/A",
+        tooltip: "Total frame count",
+    });
+    fileData.push({ label: "Bits / Channel", value: formatBitDepth(videoStream, raw), tooltip: "Channel precision and numeric representation" });
+    fileData.push({
+        label: "Pixel Aspect",
+        value: String(firstValue(videoStream.sample_aspect_ratio, raw.pixel_aspect_ratio) || "N/A"),
+        tooltip: "Pixel sample aspect ratio",
+    });
+    fileData.push({
+        label: "Codec ID",
+        value: String(firstValue(videoStream.codec_tag_string, videoStream.codec_tag, raw.codec_id) || "N/A"),
+        tooltip: "Container codec identifier",
+    });
+    fileData.push({
+        label: "Codec Name",
+        value: String(firstValue(videoStream.codec_long_name, videoStream.codec_name, raw.codec_name) || "N/A"),
+        tooltip: "Video codec name",
+    });
+    fileData.push({
+        label: "Encoder",
+        value: String(firstValue(videoStream.tags?.encoder, format.tags?.encoder, raw.encoder) || "N/A"),
+        tooltip: "Encoder recorded in file metadata",
+    });
+    fileData.push({
+        label: "Pixel Format",
+        value: String(firstValue(videoStream.pix_fmt, raw.pixel_format, raw.pix_fmt) || "N/A"),
+        tooltip: "Stored pixel format",
+    });
+    fileData.push({
+        label: "Color Space",
+        value: String(firstValue(videoStream.color_space, raw.color_space, raw.colorspace) || "N/A"),
+        tooltip: "Encoded color space",
+    });
     const genTimeMs = normalizeGenerationTimeMs(
         asset.generation_time_ms ?? asset.metadata?.generation_time_ms ?? 0,
     );
@@ -97,9 +154,11 @@ const rows = computed(() => {
         if (dateStr) fileData.push({ label: "Date", value: dateStr, tooltip: "File creation/generation date" });
         if (timeStr) fileData.push({ label: "Time", value: timeStr, tooltip: "File creation/generation time" });
     }
-    if (asset.size && asset.size > 0) {
-        fileData.push({ label: "File Size", value: formatFileSize(asset.size), tooltip: "File size on disk" });
-    }
+    fileData.push({
+        label: "File Size",
+        value: formatFileSize(firstValue(asset.size_bytes, asset.size, asset.file_info?.size_bytes, asset.file_info?.size)),
+        tooltip: "File size on disk",
+    });
     if (asset.id != null) {
         fileData.push({ label: "Asset ID", value: String(asset.id), tooltip: "Internal database asset identifier" });
     }

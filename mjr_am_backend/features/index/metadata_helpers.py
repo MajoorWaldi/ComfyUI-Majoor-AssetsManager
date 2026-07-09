@@ -279,15 +279,54 @@ def _compact_named_value(value: Any, *, max_chars: int) -> str | None:
     return _compact_text_value(value, max_chars=max_chars)
 
 
+def _ltx_director_global_prompt(meta: dict[str, Any], *, text_budget: int) -> str | None:
+    ltx = meta.get("ltx_director")
+    if isinstance(ltx, dict):
+        direct = _compact_text_value(ltx.get("global_prompt") or ltx.get("globalPrompt"), max_chars=text_budget)
+        if direct:
+            return direct
+
+    candidates: list[Any] = [meta.get("prompt")]
+    raw_ffprobe = meta.get("raw_ffprobe")
+    if isinstance(raw_ffprobe, dict):
+        format_info = raw_ffprobe.get("format")
+        tags = format_info.get("tags") if isinstance(format_info, dict) else None
+        if isinstance(tags, dict):
+            candidates.append(tags.get("prompt"))
+
+    for candidate in candidates:
+        graph = try_parse_json_text(candidate) if isinstance(candidate, str) else candidate
+        if not isinstance(graph, dict) or not looks_like_comfyui_prompt_graph(graph):
+            continue
+        for node in graph.values():
+            if not isinstance(node, dict):
+                continue
+            node_type = str(node.get("class_type") or node.get("type") or "").strip().lower()
+            if node_type not in {"ltxdirector", "ltxdirectorguide"}:
+                continue
+            inputs = node.get("inputs") if isinstance(node.get("inputs"), dict) else {}
+            timeline = inputs.get("timeline_data")
+            timeline = try_parse_json_text(timeline) if isinstance(timeline, str) else timeline
+            if isinstance(timeline, dict):
+                prompt = _compact_text_value(timeline.get("global_prompt"), max_chars=text_budget)
+                if prompt:
+                    return prompt
+            prompt = _compact_text_value(inputs.get("global_prompt"), max_chars=text_budget)
+            if prompt:
+                return prompt
+    return None
+
+
 def _best_effort_prompt_text(meta: dict[str, Any], *, text_budget: int) -> str | None:
+    ltx_global_prompt = _ltx_director_global_prompt(meta, text_budget=text_budget)
+    if ltx_global_prompt:
+        return ltx_global_prompt
     for key_path in (
-        "prompt",
-        "parameters",
-        "geninfo.prompt",
         "geninfo.positive.value",
         "geninfo.positive.text",
         "geninfo.positive_prompt",
         "positive_prompt",
+        "geninfo.prompt",
         "sd_prompt",
         "generation.prompt",
         "workflow.prompt",
@@ -295,6 +334,8 @@ def _best_effort_prompt_text(meta: dict[str, Any], *, text_budget: int) -> str |
         "comfyui.positive",
         "dream.prompt",
         "invokeai.positive_conditioning",
+        "prompt",
+        "parameters",
     ):
         compact = _compact_text_value(_resolve_key_path(meta, key_path), max_chars=text_budget)
         if compact:

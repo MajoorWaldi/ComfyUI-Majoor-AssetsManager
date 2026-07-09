@@ -152,6 +152,7 @@ function createViewer() {
         "bmp",
         "tiff",
         "avif",
+        "jxl",
         "heic",
         "hdr",
         "svg",

@@ -1,6 +1,19 @@
 from mjr_am_backend.features.index.search_hydration import hydrate_asset_payload
 
 
+def test_hydration_prefers_geninfo_positive_over_stale_positive_prompt():
+    asset = {
+        "metadata_raw": {
+            "positive_prompt": r"C:\ComfyUI\output\image_00001.png",
+            "geninfo": {"positive": {"value": "cinematic portrait"}},
+        }
+    }
+
+    hydrated = hydrate_asset_payload(asset)
+
+    assert hydrated["positive_prompt"] == "cinematic portrait"
+
+
 def test_hydrate_asset_payload_restores_generation_time_from_metadata_raw():
     asset = hydrate_asset_payload(
         {

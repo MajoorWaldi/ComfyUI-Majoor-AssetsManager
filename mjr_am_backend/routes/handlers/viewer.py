@@ -47,6 +47,7 @@ _ALLOWED_VIEWER_RESOURCE_EXTS = {
     ".tif",
     ".tiff",
     ".avif",
+    ".jxl",
     # Materials / nested model references
     ".mtl",
     ".obj",

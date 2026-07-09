@@ -3,7 +3,7 @@ import { getWorkflowNodeDisplayName } from "../../../features/viewer/workflowGra
 
 const MINIMAP_PADDING = 6;
 const MINIMAP_ZOOM_MIN = 1;
-const MINIMAP_ZOOM_MAX = 8;
+const MINIMAP_ZOOM_MAX = 64;
 const DETAIL_RENDER_MIN_NODE_WIDTH = 74;
 const DETAIL_RENDER_MIN_NODE_HEIGHT = 42;
 
@@ -725,10 +725,10 @@ export function drawWorkflowMinimap(canvas: HTMLCanvasElement, workflow: any, op
     };
 }
 
-export function expandSubgraphsForMinimap(workflow: any) {
+export function expandSubgraphsForMinimap(workflow: any, inheritedDefs: Map<string, any> | null = null) {
     if (!workflow || typeof workflow !== "object") return workflow;
     const baseNodes = Array.isArray(workflow.nodes) ? workflow.nodes.filter(Boolean) : [];
-    const defs = getSubgraphDefinitionMap(workflow);
+    const defs = getSubgraphDefinitionMap(workflow, inheritedDefs);
     if (!baseNodes.length) return workflow;
 
     const nodes = [];
@@ -742,7 +742,7 @@ export function expandSubgraphsForMinimap(workflow: any) {
         nodes.push(node);
         const subgraph = getNodeSubgraphDefinition(node, defs);
         if (!subgraph || !Array.isArray(subgraph.nodes) || !subgraph.nodes.length) continue;
-        const expandedSubgraph = expandSubgraphsForMinimap(subgraph);
+        const expandedSubgraph = expandSubgraphsForMinimap(subgraph, defs);
         const fitted = fitSubgraphNodesIntoParent(node, expandedSubgraph);
         nodes.push(...fitted.nodes);
         links.push(...fitted.links);
@@ -758,13 +758,13 @@ export function expandSubgraphsForMinimap(workflow: any) {
     };
 }
 
-function getSubgraphDefinitionMap(workflow: any) {
+function getSubgraphDefinitionMap(workflow: any, inheritedDefs: Map<string, any> | null = null) {
     const defs = [
         ...(Array.isArray(workflow?.definitions?.subgraphs) ? workflow.definitions.subgraphs : []),
         ...(Array.isArray(workflow?.subgraphs) ? workflow.subgraphs : []),
         ...(Array.isArray(workflow?.rootGraph?.subgraphs) ? workflow.rootGraph.subgraphs : []),
     ];
-    const map = new Map();
+    const map = new Map(inheritedDefs || []);
     for (const def of defs) {
         for (const id of getSubgraphDefinitionIds(def)) {
             if (id != null) map.set(String(id), def);

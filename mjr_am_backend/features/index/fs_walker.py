@@ -93,6 +93,12 @@ except Exception:
     _EXT_TO_KIND = {}
 
 
+def _is_enabled_extension(ext: str) -> bool:
+    if ext == ".jxl":
+        return str(os.getenv("MAJOOR_ENABLE_JXL", "")).strip().lower() in {"1", "true", "yes", "on"}
+    return True
+
+
 # ---------------------------------------------------------------------------
 # FileSystemWalker class
 # ---------------------------------------------------------------------------
@@ -179,7 +185,7 @@ class FileSystemWalker:
         except Exception:
             ext = ""
         if ext and _EXT_TO_KIND:
-            return _EXT_TO_KIND.get(ext, "unknown") != "unknown"
+            return _is_enabled_extension(ext) and _EXT_TO_KIND.get(ext, "unknown") != "unknown"
         return classify_file(str(path)) != "unknown"
 
     @staticmethod
@@ -201,7 +207,7 @@ class FileSystemWalker:
                 return None
             kind: FileKind | None
             if ext and _EXT_TO_KIND:
-                kind = _EXT_TO_KIND.get(ext)
+                kind = _EXT_TO_KIND.get(ext) if _is_enabled_extension(ext) else None
                 if kind is None or kind == "unknown":
                     return None
             else:

@@ -476,6 +476,46 @@ def get_workflow_id_for_prompt(prompt_id: str) -> str | None:
     return None
 
 
+def get_prompt_metadata_for_prompt(prompt_id: str) -> dict[str, Any]:
+    """Return prompt graph and workflow payload stored in ComfyUI history."""
+    safe_prompt_id = str(prompt_id or "").strip()
+    if not safe_prompt_id:
+        return {}
+    try:
+        history = _ADAPTER.get_prompt_history(safe_prompt_id)
+    except Exception:
+        return {}
+    entry = history.get(safe_prompt_id) if isinstance(history, dict) else None
+    if not isinstance(entry, dict):
+        return {}
+
+    prompt_tuple = entry.get("prompt")
+    prompt_graph = _ADAPTER._prompt_graph_from_history_entry(entry)
+    extra_data: Any = None
+    if isinstance(prompt_tuple, (list, tuple)) and len(prompt_tuple) >= 4:
+        extra_data = prompt_tuple[3]
+    elif isinstance(entry.get("extra_data"), dict):
+        extra_data = entry.get("extra_data")
+
+    workflow = None
+    if isinstance(extra_data, dict):
+        direct_workflow = extra_data.get("workflow")
+        if isinstance(direct_workflow, dict):
+            workflow = direct_workflow
+        extra_pnginfo = extra_data.get("extra_pnginfo")
+        if workflow is None and isinstance(extra_pnginfo, dict):
+            png_workflow = extra_pnginfo.get("workflow")
+            if isinstance(png_workflow, dict):
+                workflow = png_workflow
+
+    out: dict[str, Any] = {}
+    if prompt_graph:
+        out["prompt"] = prompt_graph
+    if workflow:
+        out["workflow"] = workflow
+    return out
+
+
 def get_input_directory() -> str | None:
     return _ADAPTER.get_input_directory()
 
@@ -513,6 +553,7 @@ __all__ = [
     "get_model_filenames",
     "get_prompt_output_files",
     "get_prompt_output_paths",
+    "get_prompt_metadata_for_prompt",
     "get_workflow_id_for_prompt",
     "send_event",
     "schedule_task",

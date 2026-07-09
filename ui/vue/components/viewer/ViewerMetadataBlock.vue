@@ -121,6 +121,8 @@ function hasFileInfoData(asset) {
             (target.duration && target.duration > 0) ||
             timestamp ||
             (target.size && target.size > 0) ||
+            (target.size_bytes && target.size_bytes >= 0) ||
+            target.metadata_raw?.raw_ffprobe ||
             target.id != null ||
             target.job_id ||
             target.file_info?.job_id ||

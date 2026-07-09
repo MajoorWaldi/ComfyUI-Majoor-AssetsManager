@@ -19,6 +19,8 @@ import {
     transferNodeParamsToSelectedCanvasNode,
 } from "./workflowGraphMapActions.js";
 
+const GRAPH_MAP_MAX_ZOOM = 64;
+
 export class WorkflowGraphMapPanel {
     [key: string]: any;
     constructor({ large = false } = {}) {
@@ -511,7 +513,7 @@ export class WorkflowGraphMapPanel {
         const direction = Number(event.deltaY) > 0 ? -1 : 1;
         const factor = direction > 0 ? 1.18 : 1 / 1.18;
         const oldZoom = Number(this._view.zoom || 1);
-        const newZoom = Math.max(1, Math.min(8, oldZoom * factor));
+        const newZoom = Math.max(1, Math.min(GRAPH_MAP_MAX_ZOOM, oldZoom * factor));
         if (newZoom === oldZoom) return;
         const view = this._renderInfo?.resolvedView;
         if (view?.renderScale && view?.viewMinX != null && view?.viewMinY != null) {
@@ -561,7 +563,7 @@ export class WorkflowGraphMapPanel {
         const margin = 2.0;
         const zoomW = boundsW / Math.max(1, w * margin);
         const zoomH = boundsH / Math.max(1, h * margin);
-        this._view.zoom = Math.max(1, Math.min(8, Math.min(zoomW, zoomH)));
+        this._view.zoom = Math.max(1, Math.min(GRAPH_MAP_MAX_ZOOM, Math.min(zoomW, zoomH)));
         this._view.centerX = x + w / 2;
         this._view.centerY = y + h / 2;
         this.refresh();

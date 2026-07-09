@@ -24,7 +24,7 @@ let _previewHookGeneration = 0;
 let _previewWithMetaLastAt = 0;
 
 const PREVIEW_META_SUPPRESSION_MS = 400;
-const IMAGE_EXTS = new Set([".png", ".jpg", ".jpeg", ".webp", ".avif", ".gif", ".bmp"]);
+const IMAGE_EXTS = new Set([".png", ".jpg", ".jpeg", ".webp", ".avif", ".jxl", ".gif", ".bmp"]);
 const VIDEO_EXTS = new Set([".mp4", ".webm", ".mov", ".avi", ".mkv", ".m4v"]);
 const AUDIO_EXTS = new Set([".mp3", ".wav", ".flac", ".ogg", ".m4a", ".aac", ".opus"]);
 const MODEL3D_EXTS = new Set([".glb", ".gltf", ".obj", ".fbx", ".stl", ".usdz"]);

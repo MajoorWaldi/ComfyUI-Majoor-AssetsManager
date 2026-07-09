@@ -626,7 +626,6 @@ function collectComfyWorkflowNodes(workflow: any, visited = new WeakSet()): any[
     if (visited.has(workflow)) return [];
     visited.add(workflow);
 
-    const out: any[] = [];
     let promptValue = workflow.prompt;
     if (typeof promptValue === "string" && promptValue.trim()) {
         try {
@@ -636,8 +635,10 @@ function collectComfyWorkflowNodes(workflow: any, visited = new WeakSet()): any[
         }
     }
     const promptGraph = promptValue && typeof promptValue === "object" ? promptValue : null;
-    const graph = promptGraph || (looksLikeComfyPromptGraph(workflow) ? workflow : null);
-    if (graph) out.push(...Object.values(graph));
+    if (promptGraph && looksLikeComfyPromptGraph(promptGraph)) return Object.values(promptGraph);
+
+    const out: any[] = [];
+    if (looksLikeComfyPromptGraph(workflow)) out.push(...Object.values(workflow));
 
     for (const graphLike of getGraphLikeObjects(workflow)) {
         const nodes = Array.isArray(graphLike?.nodes) ? graphLike.nodes.filter(Boolean) : [];

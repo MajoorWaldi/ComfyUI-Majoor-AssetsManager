@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from mjr_am_backend.features.index.fs_walker import FileSystemWalker
+from mjr_am_backend.features.index.fs_walker import FileSystemWalker, _is_enabled_extension
 
 
 def test_iter_files_non_recursive_only_current_directory(tmp_path: Path) -> None:
@@ -35,3 +35,13 @@ def test_iter_files_recursive_includes_nested_supported_files(tmp_path: Path) ->
     assert "top.webp" in found_set
     assert "nested.png" in found_set
     assert "nested.txt" not in found_set
+
+
+def test_jxl_extension_is_experimental_and_disabled_by_default(monkeypatch) -> None:
+    monkeypatch.delenv("MAJOOR_ENABLE_JXL", raising=False)
+    assert _is_enabled_extension(".jxl") is False
+
+
+def test_jxl_extension_can_be_enabled(monkeypatch) -> None:
+    monkeypatch.setenv("MAJOOR_ENABLE_JXL", "1")
+    assert _is_enabled_extension(".jxl") is True

@@ -96,6 +96,28 @@ describe("messageCenter", () => {
         expect(ids).not.toContain("info-2026-03-06-shortcut-guide");
     });
 
+    it("includes the 2.5.0 release announcement with a changelog link", async () => {
+        const firstLoad = await loadMessageCenter();
+
+        firstLoad.ensurePanelMessagesReady();
+        const entry = firstLoad
+            .listPanelMessages()
+            .find((message) => message.id === "whats-new-2026-07-09-version-2-5-0");
+
+        expect(entry).toMatchObject({
+            id: "whats-new-2026-07-09-version-2-5-0",
+            titleKey: "msg.whatsNew.title.version250",
+            bodyKey: "msg.whatsNew.body.version250",
+            categoryKey: "msg.category.release",
+            actionLabelKey: "label.changelog",
+            actionUrl: "CHANGELOG.md",
+            level: "success",
+        });
+        expect(entry?.body).toContain("New Features:");
+        expect(entry?.body).toContain("Improved:");
+        expect(entry?.body).toContain("Fixed:");
+    });
+
     it("includes the floating viewer shortcuts announcement as a builtin message", async () => {
         const firstLoad = await loadMessageCenter();
 

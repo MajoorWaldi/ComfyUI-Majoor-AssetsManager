@@ -504,6 +504,42 @@ describe("workflow graph map data", () => {
         );
     });
 
+    it("expands nested subgraphs that reference root-level definitions", () => {
+        const workflow = {
+            nodes: [
+                { id: 10, type: "outer-sg", pos: [0, 0], size: [300, 220] },
+            ],
+            links: [],
+            definitions: {
+                subgraphs: [
+                    {
+                        id: "outer-sg",
+                        name: "Outer",
+                        nodes: [
+                            { id: 20, type: "inner-sg", pos: [0, 0], size: [240, 160] },
+                        ],
+                        links: [],
+                    },
+                    {
+                        id: "inner-sg",
+                        name: "Inner",
+                        nodes: [
+                            { id: 30, type: "KSampler", pos: [10, 20], size: [160, 80] },
+                        ],
+                        links: [],
+                    },
+                ],
+            },
+        };
+
+        const expanded = expandSubgraphsForMinimap(workflow);
+        const ids = expanded.nodes.map((node) => String(node.id));
+
+        expect(ids).toContain("10");
+        expect(ids).toContain("10::20");
+        expect(ids).toContain("10::20::30");
+    });
+
     it("supports root-only mode for node listing and lookup", () => {
         const workflow = {
             nodes: [
