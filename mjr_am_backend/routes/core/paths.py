@@ -159,6 +159,7 @@ _ALLOWED_VIEW_EXTS = {
     ".tif",
     ".tiff",
     ".avif",
+    ".jxl",
     # Videos
     ".mp4",
     ".webm",
@@ -210,6 +211,7 @@ def _guess_content_type_for_file(path: Path) -> str:
                 ".tif": "image/tiff",
                 ".tiff": "image/tiff",
                 ".avif": "image/avif",
+                ".jxl": "image/jxl",
                 # Videos
                 ".mp4": "video/mp4",
                 ".m4v": "video/x-m4v",

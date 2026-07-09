@@ -8,18 +8,6 @@ const SLOT_ATTR = "data-mjr-topbar-mfv-slot";
 const BUTTON_LABEL_KEY = "label.floatingViewer";
 const BUTTON_LABEL_FALLBACK = "Viewer";
 const MFV_TOOLTIP_HINT = "V";
-const ACTIONBAR_SELECTORS = [
-    ".actionbar-container",
-    "[data-testid='actionbar-container']",
-    "[data-testid='topbar']",
-    ".comfyui-topbar",
-];
-const BUTTON_GROUP_SELECTORS = [
-    ".queue-button-group",
-    ".comfyui-button-group",
-    "[role='toolbar']",
-];
-const FALLBACK_ACTIONBAR_SELECTORS = [".topbar"];
 
 let _observer: any = null;
 let _observedTarget: any = null;
@@ -34,7 +22,17 @@ let _hasVisibilitySignal = false;
 function _tryObserveActionbar(container: any) {
     if (_observer && _observedTarget === container) return;
     if (!container) {
-        _observeBodyForActionbar();
+        if (!_bodyObserver && typeof MutationObserver !== "undefined") {
+            _bodyObserver = new MutationObserver(() => {
+                const c = getActionbarContainer();
+                if (c) {
+                    _bodyObserver?.disconnect?.();
+                    _bodyObserver = null;
+                    scheduleSync();
+                }
+            });
+            _bodyObserver.observe(document.body, { childList: true, subtree: true });
+        }
         return;
     }
     // Disconnect previous observer if target changed
@@ -44,50 +42,19 @@ function _tryObserveActionbar(container: any) {
         /* noop */
     }
     _observer = new MutationObserver(() => scheduleSync());
-    _observer.observe(container, { childList: true, subtree: true });
+    _observer.observe(container, { childList: true });
     _observedTarget = container;
-    _observeBodyForActionbar();
-}
-
-function _observeBodyForActionbar() {
-    if (_bodyObserver || typeof MutationObserver === "undefined" || !document.body) return;
-    _bodyObserver = new MutationObserver(() => scheduleSync());
-    _bodyObserver.observe(document.body, { childList: true, subtree: true });
-}
-
-function _isConnected(el: any) {
-    return Boolean(el?.isConnected || (el && document.body?.contains?.(el)));
-}
-
-function getButtonGroup(container: any) {
-    if (!container?.querySelector) return null;
-    for (const selector of BUTTON_GROUP_SELECTORS) {
-        const el = container.querySelector(selector);
-        if (el) return el;
+    try {
+        _bodyObserver?.disconnect?.();
+    } catch (_) {
+        /* noop */
     }
-    return null;
-}
-
-function isValidActionbarCandidate(el: any, { allowFallback = false } = {}) {
-    if (!el) return false;
-    if (!allowFallback) return true;
-    return Boolean(getButtonGroup(el));
+    _bodyObserver = null;
 }
 
 function getActionbarContainer() {
     if (typeof document === "undefined") return null;
-    for (const selector of ACTIONBAR_SELECTORS) {
-        const el = document.querySelector(selector);
-        if (isValidActionbarCandidate(el)) return el;
-    }
-    for (const selector of FALLBACK_ACTIONBAR_SELECTORS) {
-        const candidates = Array.from(document.querySelectorAll(selector));
-        const el = candidates.find((candidate) =>
-            isValidActionbarCandidate(candidate, { allowFallback: true }),
-        );
-        if (el) return el;
-    }
-    return null;
+    return document.querySelector(".actionbar-container");
 }
 
 function updateViewerTopOffset(container = getActionbarContainer()) {
@@ -105,9 +72,9 @@ function updateViewerTopOffset(container = getActionbarContainer()) {
     rootStyle.setProperty("--mjr-mfv-top-offset", `${safeTop}px`);
 }
 
-function getTopbarButtonParent(container: any) {
+function getAnchor(container: any) {
     if (!container) return null;
-    return getButtonGroup(container) || container;
+    return container.querySelector(".queue-button-group") || null;
 }
 
 function ensureSlotMounted(container: any) {
@@ -123,22 +90,27 @@ function ensureSlotMounted(container: any) {
         slot.style.padding = "0 4px";
     }
 
-    const parent = getTopbarButtonParent(container);
+    const anchor = getAnchor(container);
+    const parent = anchor?.parentElement || container;
 
     if (slot.parentElement !== parent) {
-        if (parent) {
+        if (anchor && parent) {
+            parent.insertBefore(slot, anchor.nextSibling);
+        } else {
             parent.appendChild(slot);
         }
-    } else if (parent && slot !== parent.lastElementChild) {
+    } else if (anchor && parent && slot.previousSibling !== anchor) {
+        parent.insertBefore(slot, anchor.nextSibling);
+    } else if (!anchor && slot !== parent.lastElementChild) {
         parent.appendChild(slot);
     }
 
     return slot;
 }
 
-function createIcon() {
+function createIcon(className = "pi pi-eye") {
     const icon = document.createElement("i");
-    icon.className = "mjr-topbar-mfv-icon pi pi-eye";
+    icon.className = className;
     icon.setAttribute("aria-hidden", "true");
     return icon;
 }
@@ -153,8 +125,8 @@ function createLabel(text = "Viewer") {
 function updateButtonState(button: any) {
     if (!button) return;
     const tooltipLabel = _visible
-        ? t("tooltip.closeMFV", "Close Majoor Floating Viewer")
-        : t("tooltip.openMFV", "Open Majoor Floating Viewer");
+        ? t("tooltip.closeMFV", "Close Floating Viewer")
+        : t("tooltip.openMFV", "Open Floating Viewer");
     setTooltipHint(button, tooltipLabel, MFV_TOOLTIP_HINT, {
         ariaLabel: tooltipLabel,
     });
@@ -162,7 +134,7 @@ function updateButtonState(button: any) {
     button.classList.toggle("primary", _visible);
     button.classList.toggle("mjr-topbar-mfv-active", _visible);
     button.replaceChildren(
-        createIcon(),
+        createIcon(_visible ? "pi pi-eye-slash" : "pi pi-eye"),
         createLabel(t(BUTTON_LABEL_KEY, BUTTON_LABEL_FALLBACK)),
     );
 }
@@ -180,15 +152,14 @@ function createButton() {
     const button = document.createElement("button");
     button.type = "button";
     button.setAttribute(BUTTON_ATTR, "1");
-    button.setAttribute("data-command-id", "mjr.toggleFloatingViewer");
-    button.className = "comfyui-button p-button p-component mjr-topbar-mfv-button";
+    button.className = "comfyui-button mjr-topbar-mfv-button";
     button.style.position = "relative";
     button.style.zIndex = "10030";
     button.style.width = "auto";
     button.style.height = "32px";
     button.style.minWidth = "32px";
-    button.style.padding = "0 8px";
-    button.style.gap = "8px";
+    button.style.padding = "0 10px";
+    button.style.gap = "6px";
     button.style.display = "inline-flex";
     button.style.alignItems = "center";
     button.style.justifyContent = "center";
@@ -210,9 +181,8 @@ function createButtonHost() {
 
 function _syncVisibleFromDom() {
     if (typeof document === "undefined") return;
-    const viewerNode = document.querySelector(".mjr-mfv");
-    if (_hasVisibilitySignal && !viewerNode) return;
-    const viewerOpen = !!viewerNode?.classList?.contains?.("is-visible");
+    if (_hasVisibilitySignal) return;
+    const viewerOpen = !!document.querySelector(".mjr-mfv.is-visible");
     if (_visible !== viewerOpen) {
         _visible = viewerOpen;
     }
@@ -222,18 +192,7 @@ function ensureButtonMounted() {
     const container = getActionbarContainer();
     if (!container) {
         updateViewerTopOffset(null);
-        _tryObserveActionbar(null);
         return null;
-    }
-
-    if (_observedTarget && !_isConnected(_observedTarget)) {
-        try {
-            _observer?.disconnect?.();
-        } catch (e) {
-            console.debug?.(e);
-        }
-        _observer = null;
-        _observedTarget = null;
     }
 
     _tryObserveActionbar(container);
@@ -335,8 +294,8 @@ export function teardownTopBarMfvButton(): void {
 
     try {
         document.documentElement?.style?.setProperty("--mjr-mfv-top-offset", "60px");
-        document.querySelectorAll(`[${BUTTON_HOST_ATTR}]`).forEach((el: any) => el.remove?.());
-        document.querySelectorAll(`[${SLOT_ATTR}]`).forEach((el: any) => el.remove?.());
+        document.querySelector(`[${BUTTON_HOST_ATTR}]`)?.remove?.();
+        document.querySelector(`[${SLOT_ATTR}]`)?.remove?.();
     } catch (e) {
         console.debug?.(e);
     }

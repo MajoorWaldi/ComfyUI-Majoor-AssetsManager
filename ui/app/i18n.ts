@@ -680,6 +680,9 @@ const DICTIONARY: Record<string, Record<string, string>> = {
         "msg.shortcuts.section.mfv": "Floating Viewer",
         "msg.shortcuts.section.video": "Video Playback",
         "msg.category.release": "Release",
+        "msg.whatsNew.title.version250": "New Version 2.5.0",
+        "msg.whatsNew.body.version250":
+            "Version 2.5.0 released. New Features: experimental JPEG XL support, native nested subgraphs in Graph Map, extended technical metadata, new viewer playback speeds, source-file actions, and an expanded Find Similar menu. Improved: runtime metadata ingestion, Rodin 3D grouping, output color management, prompt extraction, workflow matching, sidebar presentation, viewer rendering, and ComfyUI toolbar integration. Fixed: tags shortcuts, viewer playback and Floating Viewer controls, source-file loading, popover dismissal, generation information stability, Open in Folder, and subgraph workflow parsing.",
         "msg.whatsNew.title.dndGraphMapSettings": "New Version 2.4.9 - DnD, Graph Map & Settings",
         "msg.whatsNew.body.dndGraphMapSettings":
             "Version 2.4.9 released: Drag and Drop has been fixed and clarified, including canvas/node drops, staging behavior, visual feedback, and ComfyUI workflow-drop interactions. Graph Map in the Floating Viewer now lets you inspect embedded workflows without opening them on the canvas, copy nodes or attributes, and transfer node attributes to a similar selected node in the canvas. Settings access and explanations were also improved, with easier access from the panel gear icon and the Floating Viewer.",
@@ -1782,6 +1785,9 @@ const DICTIONARY: Record<string, Record<string, string>> = {
         "msg.shortcuts.section.mfv": "Floating Viewer",
         "msg.shortcuts.section.video": "Lecture video",
         "msg.category.release": "Version",
+        "msg.whatsNew.title.version250": "Nouvelle version 2.5.0",
+        "msg.whatsNew.body.version250":
+            "Version 2.5.0 publiee. Nouvelles fonctionnalites : support experimental de JPEG XL, sous-graphes natifs imbriques dans Graph Map, metadonnees techniques etendues, nouvelles vitesses de lecture, actions sur les fichiers sources et menu Find Similar enrichi. Ameliorations : ingestion des metadonnees d'execution, regroupement Rodin 3D, gestion des couleurs, extraction des prompts, correspondance des workflows, presentation de la sidebar, rendu du viewer et integration a la barre d'outils ComfyUI. Correctifs : raccourcis des tags, lecture et controles du Floating Viewer, chargement des fichiers sources, fermeture des popovers, stabilite des informations de generation, Open in Folder et analyse des workflows avec sous-graphes.",
         "msg.whatsNew.title.dndGraphMapSettings": "Nouvelle Version 2.4.9 - DnD, Graph Map et Parametres",
         "msg.whatsNew.body.dndGraphMapSettings":
             "Version 2.4.9 publiee : le Drag and Drop a ete corrige et clarifie, y compris pour le depot sur canvas/noeud, le comportement de staging, le feedback visuel et les interactions avec le workflow-drop de ComfyUI. Graph Map dans le Floating Viewer permet maintenant d'inspecter les workflows embarques sans les ouvrir sur le canvas, de copier des noeuds ou leurs attributs, et de transferer les attributs d'un noeud vers un noeud similaire selectionne sur le canvas. L'acces aux parametres et leurs explications ont aussi ete ameliores, avec un acces plus simple depuis l'icone engrenage du panneau et depuis le Floating Viewer.",

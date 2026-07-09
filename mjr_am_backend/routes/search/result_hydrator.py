@@ -109,14 +109,14 @@ async def query_browser_rows(db: Any, filepaths: list[str]) -> list[dict] | None
                     ''
                 )) AS workflow_type,
                 COALESCE(
-                    NULLIF(TRIM(COALESCE(m.positive_prompt, '')), ''),
                     CASE WHEN json_valid(COALESCE(m.metadata_raw, ''))
                         THEN SUBSTR(COALESCE(
-                            NULLIF(TRIM(COALESCE(json_extract(m.metadata_raw, '$.positive_prompt'), '')), ''),
-                            NULLIF(TRIM(COALESCE(json_extract(m.metadata_raw, '$.geninfo.positive.value'), '')), '')
+                            NULLIF(TRIM(COALESCE(json_extract(m.metadata_raw, '$.geninfo.positive.value'), '')), ''),
+                            NULLIF(TRIM(COALESCE(json_extract(m.metadata_raw, '$.positive_prompt'), '')), '')
                         ), 1, 250)
                         ELSE NULL
-                    END
+                    END,
+                    NULLIF(TRIM(COALESCE(m.positive_prompt, '')), '')
                 ) AS positive_prompt,
                 COALESCE(
                     m.generation_time_ms,

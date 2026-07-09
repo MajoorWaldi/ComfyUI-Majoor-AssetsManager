@@ -26,6 +26,7 @@ export function loadFloatingViewerMediaA(viewer: any, fileData: any, { autoMode 
         viewer._mode = MFV_MODES.SIMPLE;
         viewer._updateModeBtnUI();
     }
+    viewer._refresh();
     // ImageOps live previews are transient client-side canvas snapshots;
     // there is no backend asset to fetch metadata for. Skip the API round
     // trip entirely (also avoids the enrichment-vs-new-emission race).
@@ -46,8 +47,6 @@ export function loadFloatingViewerMediaA(viewer: any, fileData: any, { autoMode 
                 console.debug?.("[MFV] metadata enrich error", e);
             }
         })();
-    } else {
-        viewer._refresh();
     }
 }
 

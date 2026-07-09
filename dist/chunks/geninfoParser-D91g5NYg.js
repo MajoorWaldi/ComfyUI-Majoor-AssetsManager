@@ -385,21 +385,23 @@ function D(e, t) {
 function O(e, n = /* @__PURE__ */ new WeakSet()) {
 	if (!e || typeof e != "object" || n.has(e)) return [];
 	n.add(e);
-	let r = [], i = e.prompt;
-	if (typeof i == "string" && i.trim()) try {
-		i = JSON.parse(i);
+	let r = e.prompt;
+	if (typeof r == "string" && r.trim()) try {
+		r = JSON.parse(r);
 	} catch {
-		i = null;
+		r = null;
 	}
-	let a = (i && typeof i == "object" ? i : null) || (t(e) ? e : null);
-	a && r.push(...Object.values(a));
+	let i = r && typeof r == "object" ? r : null;
+	if (i && t(i)) return Object.values(i);
+	let a = [];
+	t(e) && a.push(...Object.values(e));
 	for (let t of k(e)) {
 		let e = Array.isArray(t?.nodes) ? t.nodes.filter(Boolean) : [];
-		r.push(...e);
-		for (let t of e) for (let e of j(t)) r.push(...O(e, n));
-		for (let e of A(t)) r.push(...O(e, n));
+		a.push(...e);
+		for (let t of e) for (let e of j(t)) a.push(...O(e, n));
+		for (let e of A(t)) a.push(...O(e, n));
 	}
-	return r;
+	return a;
 }
 function k(e) {
 	if (!e || typeof e != "object") return [];

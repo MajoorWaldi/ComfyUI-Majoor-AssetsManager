@@ -2,6 +2,7 @@ import sys
 import types
 
 import pytest
+from PIL import Image
 
 
 @pytest.fixture()
@@ -73,3 +74,14 @@ def test_resolve_execution_metadata_falls_back_to_workflow_node_type(monkeypatch
     assert metadata["workflow_id"] == "workflow-2"
     assert metadata["source_node_id"] == "12"
     assert metadata["source_node_type"] == "MajoorSaveVideo"
+
+
+def test_srgb_profile_is_valid_and_reusable(nodes_module, tmp_path):
+    profile = nodes_module._srgb_icc_profile()
+    assert profile
+    assert profile == nodes_module._srgb_save_kwargs()["icc_profile"]
+
+    path = tmp_path / "srgb.png"
+    Image.new("RGB", (2, 2), "red").save(path, **nodes_module._srgb_save_kwargs())
+    with Image.open(path) as saved:
+        assert saved.info["icc_profile"] == profile

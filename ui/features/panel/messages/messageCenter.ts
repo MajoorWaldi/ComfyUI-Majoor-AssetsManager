@@ -13,6 +13,21 @@ let _loaded = false;
 let _messages: any[] = [];
 const BUILTIN_PANEL_MESSAGES = Object.freeze([
     {
+        id: "whats-new-2026-07-09-version-2-5-0",
+        title: "New Version 2.5.0",
+        titleKey: "msg.whatsNew.title.version250",
+        emoji: "Info",
+        category: "Release",
+        categoryKey: "msg.category.release",
+        level: "success",
+        createdAt: Date.parse("2026-07-09T09:00:00Z"),
+        body: "Version 2.5.0 released. New Features: experimental JPEG XL support, native nested subgraphs in Graph Map, extended technical metadata, new viewer playback speeds, source-file actions, and an expanded Find Similar menu. Improved: runtime metadata ingestion, Rodin 3D grouping, output color management, prompt extraction, workflow matching, sidebar presentation, viewer rendering, and ComfyUI toolbar integration. Fixed: tags shortcuts, viewer playback and Floating Viewer controls, source-file loading, popover dismissal, generation information stability, Open in Folder, and subgraph workflow parsing.",
+        bodyKey: "msg.whatsNew.body.version250",
+        actionLabel: "Changelog",
+        actionLabelKey: "label.changelog",
+        actionUrl: "CHANGELOG.md",
+    },
+    {
         id: "whats-new-2026-06-11-workflow-tab-guide",
         title: "Workflow Tab Guide",
         emoji: "Info",

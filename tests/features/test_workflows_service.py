@@ -442,7 +442,7 @@ def test_set_workflow_tags_persists_list(monkeypatch, tmp_path):
     assert listed.data["assets"][0]["tags"] == ["cinematic", "flux"]
 
 
-def test_list_workflow_thumbnail_candidates_returns_linked_outputs(monkeypatch, tmp_path):
+def test_list_workflow_thumbnail_candidates_ignores_shared_workflow_id(monkeypatch, tmp_path):
     workflow_dir = tmp_path / "workflows"
     workflow_dir.mkdir()
     workflow_path = workflow_dir / "candidate-workflow.json"
@@ -467,6 +467,45 @@ def test_list_workflow_thumbnail_candidates_returns_linked_outputs(monkeypatch, 
             (1, str(linked_image), "candidate.png", "", 999, 3, "image", "wf-candidate-1"),
         )
         conn.execute("INSERT INTO asset_metadata(asset_id, workflow_hash) VALUES (?, ?)", (1, ""))
+        conn.commit()
+
+    monkeypatch.setenv("MJR_AM_WORKFLOW_DIRECTORY", str(workflow_dir))
+    monkeypatch.setattr("mjr_am_backend.features.workflows.service.get_runtime_index_db_path", lambda: index_db)
+
+    result = list_workflow_thumbnail_candidates(workflow_path, limit=10)
+
+    assert result.ok
+    assert result.data == []
+
+
+def test_list_workflow_thumbnail_candidates_returns_hash_linked_outputs(monkeypatch, tmp_path):
+    workflow_dir = tmp_path / "workflows"
+    workflow_dir.mkdir()
+    workflow_path = workflow_dir / "candidate-workflow.json"
+    workflow_path.write_text(
+        json.dumps({"id": "wf-candidate-1", "name": "Candidate", "nodes": [{"id": 1, "type": "KSampler"}]}),
+        encoding="utf-8",
+    )
+
+    output_dir = tmp_path / "output"
+    output_dir.mkdir()
+    linked_image = output_dir / "candidate.png"
+    linked_image.write_bytes(b"PNG")
+
+    index_dir = tmp_path / "index"
+    index_dir.mkdir()
+    index_db = index_dir / "assets.sqlite"
+    with sqlite3.connect(index_db) as conn:
+        conn.execute("CREATE TABLE assets (id INTEGER PRIMARY KEY, filepath TEXT, filename TEXT, subfolder TEXT, mtime INTEGER, size INTEGER, kind TEXT, workflow_id TEXT)")
+        conn.execute("CREATE TABLE asset_metadata (asset_id INTEGER PRIMARY KEY, workflow_hash TEXT)")
+        conn.execute(
+            "INSERT INTO assets(id, filepath, filename, subfolder, mtime, size, kind, workflow_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            (1, str(linked_image), "candidate.png", "", 999, 3, "image", "wf-candidate-1"),
+        )
+        conn.execute(
+            "INSERT INTO asset_metadata(asset_id, workflow_hash) VALUES (?, ?)",
+            (1, workflows_service._workflow_hash(workflow_path)),
+        )
         conn.commit()
 
     monkeypatch.setenv("MJR_AM_WORKFLOW_DIRECTORY", str(workflow_dir))
@@ -581,7 +620,7 @@ def test_set_workflow_thumbnail_converts_output_video_to_webp(monkeypatch, tmp_p
     assert result.data["max_video_seconds"] == 5
 
 
-def test_list_workflows_uses_linked_output_thumbnail_from_workflow_id(monkeypatch, tmp_path):
+def test_list_workflows_does_not_use_linked_output_thumbnail_from_workflow_id_only(monkeypatch, tmp_path):
     workflow_dir = tmp_path / "workflows"
     workflow_dir.mkdir()
     workflow_path = workflow_dir / "linked-thumb.json"
@@ -615,9 +654,9 @@ def test_list_workflows_uses_linked_output_thumbnail_from_workflow_id(monkeypatc
 
     assert result.ok
     asset = result.data["assets"][0]
-    assert asset["thumbnail_path"] == str(linked_image)
-    assert asset["thumbnail_url"].startswith("/mjr/am/download?filepath=")
-    assert "preview=1" in asset["thumbnail_url"]
+    assert asset["thumbnail_path"] == ""
+    assert asset["thumbnail_url"] == ""
+    assert asset["graph_map_thumbnail_url"].startswith("/mjr/am/workflows/graph-map-thumbnail?filepath=")
 
 
 def test_list_workflows_uses_linked_output_thumbnail_from_workflow_hash(monkeypatch, tmp_path):

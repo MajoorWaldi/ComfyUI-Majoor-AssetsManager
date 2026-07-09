@@ -68,6 +68,7 @@ const IMAGE_EXTENSIONS = new Set([
     "tiff",
     "tif",
     "avif",
+    "jxl",
     "heic",
     "heif",
     "apng",

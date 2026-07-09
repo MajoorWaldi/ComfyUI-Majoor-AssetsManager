@@ -1,7 +1,7 @@
 import { t as e } from "./rolldown-runtime-Dy4uBu1J.js";
-import { m as t, o as n } from "./events-CrhYyn_G.js";
-import { h as r } from "./Viewer-tAiiyC7n.js";
-import { i, n as a, r as o, t as s, u as c } from "./SidebarWorkflowSection-Df2o8W0e.js";
+import { m as t, o as n } from "./events-BR4juJWK.js";
+import { h as r } from "./Viewer-CZ9I2Zag.js";
+import { i, n as a, r as o, t as s, u as c } from "./SidebarWorkflowSection-DaUIh32R.js";
 import { B as l, D as u, E as d, O as f, T as p, ct as m, dt as h, k as g, ut as _ } from "./mjr-primevue-n1rsQYJg.js";
 //#region ui/vue/components/viewer/ViewerMetadataBlock.vue
 var v = { style: {
@@ -159,7 +159,7 @@ var v = { style: {
 		}
 		function P(e) {
 			let t = e || {}, n = t.generation_time || t.file_creation_time || t.mtime || t.created_at;
-			return !!(t.width && t.height || t.duration && t.duration > 0 || n || t.size && t.size > 0 || t.id != null || t.job_id || t.file_info?.job_id || t.source_node_id || t.file_info?.source_node_id || t.source_node_type || t.file_info?.source_node_type || t.workflow_id || t.file_info?.workflow_id || t.user_metadata?.workflow?.id || t.metadata?.workflow_id);
+			return !!(t.width && t.height || t.duration && t.duration > 0 || n || t.size && t.size > 0 || t.size_bytes && t.size_bytes >= 0 || t.metadata_raw?.raw_ffprobe || t.id != null || t.job_id || t.file_info?.job_id || t.source_node_id || t.file_info?.source_node_id || t.source_node_type || t.file_info?.source_node_type || t.workflow_id || t.file_info?.workflow_id || t.user_metadata?.workflow?.id || t.metadata?.workflow_id);
 		}
 		function F(e) {
 			if (e == null) return "";

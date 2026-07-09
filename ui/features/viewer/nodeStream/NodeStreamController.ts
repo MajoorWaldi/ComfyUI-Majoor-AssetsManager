@@ -59,7 +59,7 @@ let _lastPreviewKey: any = null;
 /** @type {string | null} */
 let _lastPreviewNodeId: any = null;
 
-const IMAGE_EXTS = new Set([".png", ".jpg", ".jpeg", ".webp", ".avif", ".gif", ".bmp", ".tiff"]);
+const IMAGE_EXTS = new Set([".png", ".jpg", ".jpeg", ".webp", ".avif", ".jxl", ".gif", ".bmp", ".tiff"]);
 
 const VIDEO_EXTS = new Set([".mp4", ".webm", ".mov", ".avi", ".mkv"]);
 

@@ -49,6 +49,7 @@ async def apply_startup_settings(
             "LTXAV RGB fallback setting restore failed: %s",
             "apply_ltxav_rgb_fallback_on_startup",
         ),
+        ("JPEG XL setting restore failed: %s", "apply_jxl_on_startup"),
     )
     for message, attribute_name in startup_steps:
         step = getattr(settings_service, attribute_name, None)

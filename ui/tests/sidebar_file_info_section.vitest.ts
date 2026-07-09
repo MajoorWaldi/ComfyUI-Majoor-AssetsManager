@@ -51,4 +51,61 @@ describe("SidebarFileInfoSection", () => {
         expect(text).toContain("workflow-2");
         wrapper.unmount();
     });
+
+    it("always shows technical media fields and formats ffprobe values", () => {
+        const wrapper = mount(SidebarFileInfoSection, {
+            props: {
+                asset: {
+                    kind: "video",
+                    duration: 2,
+                    size_bytes: 1_610_612_736,
+                    metadata_raw: {
+                        raw_ffprobe: {
+                            video_stream: {
+                                avg_frame_rate: "24/1",
+                                nb_frames: "48",
+                                bits_per_raw_sample: "10",
+                                sample_aspect_ratio: "1:1",
+                                codec_tag_string: "avc1",
+                                codec_name: "h264",
+                                codec_long_name: "H.264 / AVC",
+                                pix_fmt: "yuv420p10le",
+                                color_space: "bt709",
+                                tags: { encoder: "Lavc" },
+                            },
+                            format: { tags: {} },
+                        },
+                    },
+                },
+            },
+        });
+
+        const text = wrapper.text();
+        expect(text).toContain("48");
+        expect(text).toContain("10-bit fixed");
+        expect(text).toContain("1:1");
+        expect(text).toContain("avc1");
+        expect(text).toContain("H.264 / AVC");
+        expect(text).toContain("Lavc");
+        expect(text).toContain("yuv420p10le");
+        expect(text).toContain("bt709");
+        expect(text).toContain("1.5 GB");
+        wrapper.unmount();
+    });
+
+    it("keeps requested rows visible when metadata is unavailable", () => {
+        const wrapper = mount(SidebarFileInfoSection, { props: { asset: { id: 1 } } });
+        const text = wrapper.text();
+        expect(text).toContain("Frames");
+        expect(text).toContain("Bits / Channel");
+        expect(text).toContain("Pixel Aspect");
+        expect(text).toContain("Codec ID");
+        expect(text).toContain("Codec Name");
+        expect(text).toContain("Encoder");
+        expect(text).toContain("Pixel Format");
+        expect(text).toContain("Color Space");
+        expect(text).toContain("File Size");
+        expect(text).toContain("N/A");
+        wrapper.unmount();
+    });
 });

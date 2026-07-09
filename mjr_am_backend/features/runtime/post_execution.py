@@ -8,6 +8,7 @@ from typing import Any
 
 from ...adapters.comfy_core import (
     PromptOutputFile,
+    get_prompt_metadata_for_prompt,
     get_prompt_output_files,
     get_workflow_id_for_prompt,
     send_event,
@@ -15,6 +16,8 @@ from ...adapters.comfy_core import (
 from ...adapters.core_assets import fetch_by_job_id
 from ...config import get_runtime_output_root
 from ...shared import Result, get_logger
+from ..geninfo.parser_impl import parse_geninfo_from_prompt
+from ..index.metadata_helpers import MetadataHelpers
 
 logger = get_logger(__name__)
 
@@ -80,6 +83,9 @@ async def ingest_prompt_outputs(index_service: Any, prompt_id: str) -> Result[di
         return Result.Err(result.code or "INDEX_ERROR", result.error or "Failed to index prompt outputs")
 
     await _assign_execution_context(index_service, refs, safe_prompt_id)
+    await _write_runtime_metadata(index_service, refs, safe_prompt_id)
+    await _assign_rodin_package_context(index_service, refs, safe_prompt_id)
+    await _finalize_execution_stack(index_service, safe_prompt_id)
     payload = {
         "prompt_id": safe_prompt_id,
         "indexed": len(paths),
@@ -140,6 +146,118 @@ async def _assign_execution_context(
             )
         except Exception as exc:
             logger.debug("Failed to assign execution context to indexed output: %s", exc)
+
+
+def _runtime_metadata_payload(prompt_id: str) -> dict[str, Any]:
+    payload = get_prompt_metadata_for_prompt(prompt_id)
+    if not payload:
+        return {}
+    out = dict(payload)
+    out["quality"] = "full"
+    out["job_id"] = prompt_id
+    out["prompt_id"] = prompt_id
+    try:
+        geninfo_res = parse_geninfo_from_prompt(out.get("prompt"), workflow=out.get("workflow"))
+        if geninfo_res.ok and geninfo_res.data:
+            out["geninfo"] = geninfo_res.data
+    except Exception:
+        logger.debug("Runtime geninfo parse skipped for prompt_id=%s", prompt_id, exc_info=True)
+    return out
+
+
+async def _write_runtime_metadata(
+    index_service: Any,
+    refs: list[tuple[Path, PromptOutputFile]],
+    prompt_id: str,
+) -> None:
+    db = getattr(index_service, "db", None)
+    if db is None or not refs:
+        return
+    metadata = _runtime_metadata_payload(prompt_id)
+    if not metadata:
+        return
+    metadata_result: Result[dict[str, Any]] = Result.Ok(metadata, quality="full", source="comfy_history")
+    for path, _ref in refs:
+        try:
+            row = await db.aquery("SELECT id FROM assets WHERE filepath = ? LIMIT 1", (str(path),))
+            if not row.ok or not row.data:
+                continue
+            asset_id = int(row.data[0].get("id") or 0)
+            if asset_id:
+                await MetadataHelpers.write_asset_metadata_row(db, asset_id, metadata_result, filepath=str(path))
+        except Exception as exc:
+            logger.debug("Failed to write runtime metadata for indexed output: %s", exc)
+
+
+def _is_rodin_final_glb(path: Path) -> bool:
+    name = path.name.lower()
+    return path.suffix.lower() == ".glb" and name.startswith("rodin3d_")
+
+
+def _rodin_package_candidates(path: Path) -> list[Path]:
+    try:
+        output_root = Path(str(get_runtime_output_root())).resolve(strict=False)
+    except Exception:
+        output_root = path.parent.parent
+    try:
+        stat = path.stat()
+    except OSError:
+        return []
+    candidates: list[Path] = []
+    for folder in output_root.glob("Rodin3D_Gen25_*"):
+        if not folder.is_dir():
+            continue
+        base_glb = folder / "base_basic_shaded.glb"
+        preview = folder / "preview.webp"
+        try:
+            base_stat = base_glb.stat()
+        except OSError:
+            continue
+        if int(base_stat.st_size) != int(stat.st_size):
+            continue
+        if abs(float(base_stat.st_mtime) - float(stat.st_mtime)) > 10:
+            continue
+        candidates.append(base_glb)
+        if preview.is_file():
+            candidates.append(preview)
+    return candidates
+
+
+async def _assign_rodin_package_context(
+    index_service: Any,
+    refs: list[tuple[Path, PromptOutputFile]],
+    prompt_id: str,
+) -> None:
+    db = getattr(index_service, "db", None)
+    if db is None or not callable(getattr(db, "aexecute", None)):
+        return
+    for path, ref in refs:
+        if not _is_rodin_final_glb(path):
+            continue
+        for candidate in _rodin_package_candidates(path):
+            try:
+                await db.aexecute(
+                    "UPDATE assets "
+                    "SET job_id = ?, source_node_id = COALESCE(NULLIF(?, ''), source_node_id), "
+                    "source_node_type = COALESCE(NULLIF(?, ''), source_node_type), "
+                    "updated_at = CURRENT_TIMESTAMP "
+                    "WHERE filepath = ?",
+                    (prompt_id, ref.node_id, ref.node_type, str(candidate).lower()),
+                )
+            except Exception as exc:
+                logger.debug("Failed to assign Rodin package context: %s", exc)
+
+
+async def _finalize_execution_stack(index_service: Any, prompt_id: str) -> None:
+    db = getattr(index_service, "db", None)
+    if db is None:
+        return
+    try:
+        from ..stacks import StacksService
+
+        await StacksService(db).auto_stack_by_job_id(prompt_id)
+    except Exception as exc:
+        logger.debug("Failed to finalize execution stack for prompt_id=%s: %s", prompt_id, exc)
 
 
 async def ingest_prompt_outputs_from_services(services: dict[str, Any] | None, prompt_id: str) -> Result[dict[str, Any]]:

@@ -63,6 +63,7 @@ except Exception:
         ".webp",
         ".gif",
         ".avif",
+        ".jxl",
         ".mp4",
         ".mov",
         ".webm",
@@ -83,6 +84,12 @@ except Exception:
         ".ksplat",
         ".spz",
     }
+
+
+def _is_supported_extension(ext: str) -> bool:
+    if ext == ".jxl" and str(os.getenv("MAJOOR_ENABLE_JXL", "")).strip().lower() not in {"1", "true", "yes", "on"}:
+        return False
+    return ext in SUPPORTED_EXTENSIONS
 
 # Directories to always ignore (case-insensitive on Windows)
 IGNORED_DIRS = {
@@ -185,7 +192,7 @@ class DebouncedWatchHandler(FileSystemEventHandler):
         """Check if file has a supported extension."""
         try:
             ext = Path(path).suffix.lower()
-            return ext in SUPPORTED_EXTENSIONS
+            return _is_supported_extension(ext)
         except Exception:
             return False
 
@@ -554,7 +561,7 @@ class DebouncedWatchHandler(FileSystemEventHandler):
     def _is_supported_flush_file(filepath: str) -> bool:
         try:
             ext = Path(filepath).suffix.lower()
-            return ext not in EXCLUDED_EXTENSIONS and ext in SUPPORTED_EXTENSIONS
+            return ext not in EXCLUDED_EXTENSIONS and _is_supported_extension(ext)
         except Exception:
             return False
 

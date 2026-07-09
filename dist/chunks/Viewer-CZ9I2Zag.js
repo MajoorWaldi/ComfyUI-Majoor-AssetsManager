@@ -1,9 +1,9 @@
-import { P as e, V as t, _ as n, c as r, d as i, g as a, ht as o, n as s, o as c, pt as l, qt as u, r as d, s as f, x as p, y as m } from "./viewerRuntimeHosts-BbCWOXEG.js";
-import { Ct as h, D as g, a as _, ct as v, h as y, i as b, j as x, k as S, m as C, n as w, o as T, pt as E, r as D, rt as O, t as k } from "./events-CrhYyn_G.js";
+import { P as e, V as t, Yt as n, _ as r, c as i, d as a, g as o, gt as s, mt as c, n as l, o as u, r as d, s as f, x as p, y as m } from "./viewerRuntimeHosts-CZwQiIFv.js";
+import { Ct as h, D as g, a as _, ct as v, h as y, i as b, j as x, k as S, m as C, n as w, o as T, pt as E, r as D, rt as O, t as k } from "./events-BR4juJWK.js";
 import { T as A, nt as j, tt as M } from "./mjr-primevue-n1rsQYJg.js";
 import { n as N, r as ee } from "./mjr-vue-vendor-D2GeV7Qd.js";
 import { n as P, r as te, t as F } from "./state-DPiaUMw1.js";
-import { a as ne, c as re, i as ie, o as ae, r as oe, s as se } from "./model3dRenderer-B4V7IcZn.js";
+import { a as ne, c as re, i as ie, o as ae, r as oe, s as se } from "./model3dRenderer-Dz6vgESs.js";
 //#region ui/utils/events.ts
 function ce(e, t, { target: n = null, warnPrefix: r = "[Majoor]" } = {}) {
 	let i = n || (typeof window < "u" ? window : null);
@@ -1366,16 +1366,16 @@ function yt(e) {
 		kind: e.kind || ""
 	} : null;
 }
-async function bt({ x: e, y: t, assets: n }) {
-	let r = Array.isArray(n) ? n.map(yt).filter(Boolean) : [];
-	if (!r.length) {
-		u(C("toast.noValidAssetsSelected", "No valid assets selected."), "warning");
+async function bt({ x: e, y: t, assets: r }) {
+	let i = Array.isArray(r) ? r.map(yt).filter(Boolean) : [];
+	if (!i.length) {
+		n(C("toast.noValidAssetsSelected", "No valid assets selected."), "warning");
 		return;
 	}
 	_t({
 		x: Number(e) || 0,
 		y: Number(t) || 0,
-		assets: r
+		assets: i
 	});
 }
 //#endregion
@@ -1403,25 +1403,25 @@ function wt(e) {
 function Tt() {
 	for (let e of Array.from(St.keys())) wt(e);
 }
-function Et(t, n, { onSuccess: r, onFailure: a, successMessage: o = null, errorMessage: s = null, warnPrefix: c = "[RatingUpdater]" } = {}) {
+function Et(t, r, { onSuccess: i, onFailure: o, successMessage: s = null, errorMessage: c = null, warnPrefix: l = "[RatingUpdater]" } = {}) {
 	if (!t) return;
 	wt(t);
-	let l = new AbortController(), d = setTimeout(async () => {
+	let u = new AbortController(), d = setTimeout(async () => {
 		St.delete(String(t));
 		try {
-			let i = await e(t, n, { signal: l.signal });
-			if (!i?.ok) {
-				u(i?.error || s || "Failed to update rating", "error"), a?.(i);
+			let a = await e(t, r, { signal: u.signal });
+			if (!a?.ok) {
+				n(a?.error || c || "Failed to update rating", "error"), o?.(a);
 				return;
 			}
-			o && u(o, "success", 1500), r?.(i);
+			s && n(s, "success", 1500), i?.(a);
 		} catch (e) {
-			i(e, c, { showToast: !0 }), a?.(e);
+			a(e, l, { showToast: !0 }), o?.(e);
 		}
 	}, xt);
 	St.set(String(t), {
 		timer: d,
-		controller: l
+		controller: u
 	});
 }
 //#endregion
@@ -3128,7 +3128,7 @@ function xn(e) {
 	}
 }
 function Sn(t, n, r) {
-	let a = t?.id;
+	let i = t?.id;
 	try {
 		t.rating = n;
 	} catch (e) {
@@ -3139,25 +3139,25 @@ function Sn(t, n, r) {
 	} catch (e) {
 		console.debug?.(e);
 	}
-	if (a) {
-		Et(String(a), n, {
+	if (i) {
+		Et(String(i), n, {
 			successMessage: n > 0 ? `Rating set to ${n} stars` : "Rating cleared",
 			errorMessage: "Failed to update rating",
 			warnPrefix: "[ViewerContextMenu]",
 			onSuccess: () => {
 				ce(k, {
-					assetId: String(a),
+					assetId: String(i),
 					rating: n
 				}, { warnPrefix: "[ViewerContextMenu]" });
 			},
 			onFailure: (e) => {
-				i(e, "[ViewerContextMenu] Rating update", { showToast: !0 });
+				a(e, "[ViewerContextMenu] Rating update", { showToast: !0 });
 			}
 		});
 		return;
 	}
 	e(t, n).catch((e) => {
-		i(e, "[ViewerContextMenu] Rating update", { showToast: !0 });
+		a(e, "[ViewerContextMenu] Rating update", { showToast: !0 });
 	});
 }
 function Cn(e) {
@@ -3181,38 +3181,38 @@ function wn(e, t, n) {
 		Sn(e, 0, t);
 	}, { disabled: !n })), r;
 }
-function Tn({ asset: e, event: n, getCurrentViewUrl: r, onAssetChanged: a }) {
-	let s = typeof r == "function" ? r(e) : O(e), c = !!(e?.id || e?.filepath);
+function Tn({ asset: e, event: r, getCurrentViewUrl: i, onAssetChanged: o }) {
+	let l = typeof i == "function" ? i(e) : O(e), u = !!(e?.id || e?.filepath);
 	return [
 		yn(C("ctx.openInNewTab", "Open in New Tab"), "pi pi-external-link", null, async () => {
-			xn(s) && window.open(s, "_blank", "noopener,noreferrer");
+			xn(l) && window.open(l, "_blank", "noopener,noreferrer");
 		}),
 		yn(C("ctx.copyPath", "Copy path"), "pi pi-copy", mn.COPY_PATH, async () => {
 			let t = e?.filepath ? String(e.filepath) : "";
 			if (!t) {
-				u(C("toast.noFilePath"), "error");
+				n(C("toast.noFilePath"), "error");
 				return;
 			}
 			try {
-				await navigator.clipboard.writeText(t), u(C("toast.pathCopied"), "success", 2e3);
+				await navigator.clipboard.writeText(t), n(C("toast.pathCopied"), "success", 2e3);
 			} catch (e) {
-				console.error("[ViewerContextMenu] Copy failed:", e), u(C("toast.pathCopyFailed"), "error");
+				console.error("[ViewerContextMenu] Copy failed:", e), n(C("toast.pathCopyFailed"), "error");
 			}
 		}),
 		yn(C("ctx.downloadOriginal", "Download Original"), "pi pi-download", mn.DOWNLOAD, async () => {
 			if (!e || !e.filepath) return;
-			let t = v(e.filepath), n = document.createElement("a");
-			n.href = t, n.download = e.filename, document.body.appendChild(n), n.click(), document.body.removeChild(n), u(C("toast.downloadingFile", "Downloading {filename}...", { filename: e.filename }), "info", 3e3);
+			let t = v(e.filepath), r = document.createElement("a");
+			r.href = t, r.download = e.filename, document.body.appendChild(r), r.click(), document.body.removeChild(r), n(C("toast.downloadingFile", "Downloading {filename}...", { filename: e.filename }), "info", 3e3);
 		}, { disabled: !e?.filepath }),
 		yn(C("ctx.openInFolder", "Open in folder"), "pi pi-folder-open", mn.OPEN_IN_FOLDER, async () => {
-			let t = await l(e);
-			t?.ok ? u(C("toast.openedInFolder"), "info", 2e3) : u(t?.error || C("toast.openFolderFailed"), "error");
+			let t = await c(e);
+			t?.ok ? n(C("toast.openedInFolder"), "info", 2e3) : n(t?.error || C("toast.openFolderFailed"), "error");
 		}, { disabled: !(e?.id || e?.filepath) }),
 		yn(C("ctx.addToCollection", "Add to collection"), "pi pi-bookmark", mn.ADD_TO_COLLECTION, async () => {
 			try {
 				await bt({
-					x: n?.clientX,
-					y: n?.clientY,
+					x: r?.clientX,
+					y: r?.clientY,
 					assets: [e]
 				});
 			} catch (e) {
@@ -3222,8 +3222,8 @@ function Tn({ asset: e, event: n, getCurrentViewUrl: r, onAssetChanged: a }) {
 		bn(),
 		yn(C("ctx.editTags", "Edit tags"), "pi pi-tags", mn.EDIT_TAGS, async () => {
 			dn({
-				x: (Number(n?.clientX) || 0) + 6,
-				y: (Number(n?.clientY) || 0) + 6,
+				x: (Number(r?.clientX) || 0) + 6,
+				y: (Number(r?.clientY) || 0) + 6,
 				asset: e,
 				onChanged: ((...t) => {
 					let n = t[0];
@@ -3232,7 +3232,7 @@ function Tn({ asset: e, event: n, getCurrentViewUrl: r, onAssetChanged: a }) {
 						tags: n
 					}, { warnPrefix: "[ViewerContextMenu]" });
 					try {
-						a?.();
+						o?.();
 					} catch (e) {
 						console.debug?.(e);
 					}
@@ -3241,64 +3241,64 @@ function Tn({ asset: e, event: n, getCurrentViewUrl: r, onAssetChanged: a }) {
 		}, { closeOnSelect: !1 }),
 		bn(),
 		yn(C("ctx.setRating", "Set rating"), "pi pi-star", `${mn.RATING_SUBMENU} >`, null, {
-			disabled: !c,
+			disabled: !u,
 			closeOnSelect: !1,
-			submenu: wn(e, a, c)
+			submenu: wn(e, o, u)
 		}),
 		yn(C("ctx.refreshMetadata", "Refresh metadata"), "pi pi-sync", "R", async () => {
 			if (e?.id) try {
 				let t = await p(e.id, { refresh: !0 });
 				if (!t?.ok || !t?.data) {
-					u(t?.error || C("toast.metadataRefreshFailed", "Failed to refresh metadata."), "error");
+					n(t?.error || C("toast.metadataRefreshFailed", "Failed to refresh metadata."), "error");
 					return;
 				}
-				let n = t.data;
+				let r = t.data;
 				try {
 					ce(_, {
 						assetId: String(e.id),
-						info: n
+						info: r
 					}, { warnPrefix: "[ViewerContextMenu]" });
 				} catch (e) {
 					console.debug?.(e);
 				}
-				let r = [], i = Cn(n?.size_bytes);
-				i && r.push(i), n?.mime && r.push(n.mime), u(C("toast.metadataRefreshed", "Metadata refreshed{suffix}", { suffix: r.length ? ` (${r.join(", ")})` : "" }), "success", 3e3);
+				let i = [], a = Cn(r?.size_bytes);
+				a && i.push(a), r?.mime && i.push(r.mime), n(C("toast.metadataRefreshed", "Metadata refreshed{suffix}", { suffix: i.length ? ` (${i.join(", ")})` : "" }), "success", 3e3);
 			} catch (e) {
-				i(e, "[ViewerContextMenu] Metadata refresh", { showToast: !0 });
+				a(e, "[ViewerContextMenu] Metadata refresh", { showToast: !0 });
 			}
 		}, { disabled: !e?.id }),
 		bn(),
 		yn(C("ctx.rename", "Rename"), "pi pi-pencil", mn.RENAME, async () => {
 			if (!(e?.id || e?.filepath)) return;
-			let t = e.filename || "", n = ut(await L(C("dialog.rename.title", "Rename file"), t), t);
-			if (!n || n === t) return;
-			let r = st(n);
-			if (!r.valid) {
-				u(r.reason, "error");
+			let t = e.filename || "", r = ut(await L(C("dialog.rename.title", "Rename file"), t), t);
+			if (!r || r === t) return;
+			let i = st(r);
+			if (!i.valid) {
+				n(i.reason, "error");
 				return;
 			}
 			try {
-				let t = await o(e, n);
+				let t = await s(e, r);
 				if (t?.ok) {
-					let r = t?.data?.asset;
-					r && typeof r == "object" ? Object.assign(e, r) : (e.filename = n, e.filepath = e.filepath.replace(/[^\\/]+$/, n), e.path &&= String(e.path).replace(/[^\\/]+$/, n), e.file_info && typeof e.file_info == "object" && (e.file_info.filename = n, e.file_info.filepath && (e.file_info.filepath = String(e.file_info.filepath).replace(/[^\\/]+$/, n)), e.file_info.path && (e.file_info.path = String(e.file_info.path).replace(/[^\\/]+$/, n)))), u(C("toast.fileRenamedSuccess"), "success");
+					let i = t?.data?.asset;
+					i && typeof i == "object" ? Object.assign(e, i) : (e.filename = r, e.filepath = e.filepath.replace(/[^\\/]+$/, r), e.path &&= String(e.path).replace(/[^\\/]+$/, r), e.file_info && typeof e.file_info == "object" && (e.file_info.filename = r, e.file_info.filepath && (e.file_info.filepath = String(e.file_info.filepath).replace(/[^\\/]+$/, r)), e.file_info.path && (e.file_info.path = String(e.file_info.path).replace(/[^\\/]+$/, r)))), n(C("toast.fileRenamedSuccess"), "success");
 					try {
 						window.dispatchEvent(new CustomEvent("mjr:reload-grid", { detail: { reason: "viewer-rename" } }));
 					} catch (e) {
 						console.debug?.(e);
 					}
-					a?.();
-				} else u(t?.error || C("toast.fileRenameFailed"), "error");
+					o?.();
+				} else n(t?.error || C("toast.fileRenameFailed"), "error");
 			} catch (e) {
-				u(C("toast.errorRenaming", "Error renaming file: {error}", { error: e?.message || String(e || "") }), "error");
+				n(C("toast.errorRenaming", "Error renaming file: {error}", { error: e?.message || String(e || "") }), "error");
 			}
 		}, { disabled: !(e?.id || e?.filepath) }),
 		yn(C("ctx.delete", "Delete"), "pi pi-trash", mn.DELETE, async () => {
 			if ((e?.id || e?.filepath) && await mt(1, e?.filename)) try {
-				let n = await t(e);
-				n?.ok ? (u(C("toast.fileDeletedSuccess"), "success"), a?.()) : u(n?.error || C("toast.fileDeleteFailed"), "error");
+				let r = await t(e);
+				r?.ok ? (n(C("toast.fileDeletedSuccess"), "success"), o?.()) : n(r?.error || C("toast.fileDeleteFailed"), "error");
 			} catch (e) {
-				u(C("toast.errorDeleting", "Error deleting file: {error}", { error: e?.message || String(e || "") }), "error");
+				n(C("toast.errorDeleting", "Error deleting file: {error}", { error: e?.message || String(e || "") }), "error");
 			}
 		}, { disabled: !(e?.id || e?.filepath) })
 	];
@@ -4846,7 +4846,7 @@ function Wn(e) {
 	}
 	return null;
 }
-function Gn({ overlay: e, _content: t, singleView: n, state: r, VIEWER_MODES: i, computeOneToOneZoom: a, setZoom: o, scheduleOverlayRedraw: s, scheduleApplyGrade: c, syncToolsUIFromState: l, applyDistractionFreeUI: d, navigateViewerAssets: p, closeViewer: m, renderBadges: h, updateAssetRating: g, safeDispatchCustomEvent: _, ASSET_RATING_CHANGED_EVENT: v, probeTooltip: y, loupeWrap: b, getVideoControls: x, lifecycle: S, renderGenInfoPanel: T } = {}) {
+function Gn({ overlay: e, _content: t, singleView: r, state: i, VIEWER_MODES: a, computeOneToOneZoom: o, setZoom: s, scheduleOverlayRedraw: c, scheduleApplyGrade: l, syncToolsUIFromState: u, applyDistractionFreeUI: d, navigateViewerAssets: p, closeViewer: m, renderBadges: h, updateAssetRating: g, safeDispatchCustomEvent: _, ASSET_RATING_CHANGED_EVENT: v, probeTooltip: y, loupeWrap: b, getVideoControls: x, lifecycle: S, renderGenInfoPanel: T } = {}) {
 	let E = S?.unsubs || [], D = null, O = null, k = () => {
 		try {
 			D && clearTimeout(D);
@@ -4863,15 +4863,15 @@ function Gn({ overlay: e, _content: t, singleView: n, state: r, VIEWER_MODES: i,
 			if (D = null, O = null, e?.assetId) try {
 				let t = await g?.(e.assetId, e.rating);
 				if (!t?.ok) {
-					u(t?.error || C("toast.ratingUpdateFailed"), "error");
+					n(t?.error || C("toast.ratingUpdateFailed"), "error");
 					return;
 				}
-				u(C("toast.ratingSetN", { n: e.rating }), "success", 1500), _?.(v, {
+				n(C("toast.ratingSetN", { n: e.rating }), "success", 1500), _?.(v, {
 					assetId: String(e.assetId),
 					rating: e.rating
 				}, { warnPrefix: "[Viewer]" });
 			} catch {
-				u(C("toast.ratingUpdateError"), "error");
+				n(C("toast.ratingUpdateError"), "error");
 			}
 		}, 300);
 	}, j = () => {
@@ -4887,7 +4887,7 @@ function Gn({ overlay: e, _content: t, singleView: n, state: r, VIEWER_MODES: i,
 			} catch (e) {
 				console.debug?.(e);
 			}
-		}, v = r?.mode === i?.SINGLE, S = r?.assets?.[r?.currentIndex], E = () => {
+		}, v = i?.mode === a?.SINGLE, S = i?.assets?.[i?.currentIndex], E = () => {
 			try {
 				return !!t?.target?.closest?.(".mjr-viewer-playerbar");
 			} catch {
@@ -4939,16 +4939,16 @@ function Gn({ overlay: e, _content: t, singleView: n, state: r, VIEWER_MODES: i,
 			} catch (e) {
 				console.debug?.(e);
 			}
-			let t = n?.querySelector?.("video");
+			let t = r?.querySelector?.("video");
 			if (!t) return !1;
 			try {
 				t.pause?.();
 			} catch (e) {
 				console.debug?.(e);
 			}
-			let r = 1 / 30 * e;
+			let n = 1 / 30 * e;
 			try {
-				let n = Number(t.duration), i = Math.max(0, Math.min(Number.isFinite(n) ? n : Infinity, (t.currentTime || 0) + r));
+				let r = Number(t.duration), i = Math.max(0, Math.min(Number.isFinite(r) ? r : Infinity, (t.currentTime || 0) + n));
 				t.currentTime = i;
 				try {
 					t.dispatchEvent?.(new CustomEvent("mjr:frameStep", { detail: {
@@ -4964,14 +4964,14 @@ function Gn({ overlay: e, _content: t, singleView: n, state: r, VIEWER_MODES: i,
 			}
 		}, N = (e, { absolute: t = !1 } = {}) => {
 			try {
-				let n = k();
-				if (!n) return !1;
+				let r = k();
+				if (!r) return !1;
 				if (t) {
-					let t = n.setPlaybackRate?.(e);
-					return Number.isFinite(Number(t)) ? (r.playbackRate = Number(t), u(C("toast.playbackRate", "Playback {rate}x", { rate: Number(t).toFixed(2) }), "info", 1200), !0) : !1;
+					let t = r.setPlaybackRate?.(e);
+					return Number.isFinite(Number(t)) ? (i.playbackRate = Number(t), n(C("toast.playbackRate", "Playback {rate}x", { rate: Number(t).toFixed(2) }), "info", 1200), !0) : !1;
 				}
-				let i = n.adjustPlaybackRate?.(e);
-				return Number.isFinite(Number(i)) ? (r.playbackRate = Number(i), u(C("toast.playbackRate", "Playback {rate}x", { rate: Number(i).toFixed(2) }), "info", 1200), !0) : !1;
+				let a = r.adjustPlaybackRate?.(e);
+				return Number.isFinite(Number(a)) ? (i.playbackRate = Number(a), n(C("toast.playbackRate", "Playback {rate}x", { rate: Number(a).toFixed(2) }), "info", 1200), !0) : !1;
 			} catch {
 				return !1;
 			}
@@ -4979,7 +4979,7 @@ function Gn({ overlay: e, _content: t, singleView: n, state: r, VIEWER_MODES: i,
 		if ((t.ctrlKey || t.metaKey) && (t.key === "c" || t.key === "C")) try {
 			let e = Wn(S);
 			if (e) {
-				g(), navigator.clipboard?.writeText?.(e).then(() => u(C("toast.promptCopied", "Prompt copied to clipboard"), "success", 1500)).catch(() => u(C("toast.copyFailed", "Copy failed"), "error", 1500));
+				g(), navigator.clipboard?.writeText?.(e).then(() => n(C("toast.promptCopied", "Prompt copied to clipboard"), "success", 1500)).catch(() => n(C("toast.copyFailed", "Copy failed"), "error", 1500));
 				return;
 			}
 		} catch (e) {
@@ -4992,14 +4992,14 @@ function Gn({ overlay: e, _content: t, singleView: n, state: r, VIEWER_MODES: i,
 		switch (t.key) {
 			case "1": {
 				if (!t.altKey) break;
-				let e = X(a);
+				let e = X(o);
 				if (e == null) break;
 				g();
 				try {
-					let t = Math.abs((Number(r?.zoom) || 1) - e) < .01;
-					o?.(t ? 1 : e, {
-						clientX: r?._lastPointerX,
-						clientY: r?._lastPointerY
+					let t = Math.abs((Number(i?.zoom) || 1) - e) < .01;
+					s?.(t ? 1 : e, {
+						clientX: i?._lastPointerX,
+						clientY: i?._lastPointerY
 					});
 				} catch (e) {
 					console.debug?.(e);
@@ -5010,11 +5010,11 @@ function Gn({ overlay: e, _content: t, singleView: n, state: r, VIEWER_MODES: i,
 			case "G":
 				g();
 				try {
-					r.gridMode = ((Number(r.gridMode) || 0) + 1) % 5;
+					i.gridMode = ((Number(i.gridMode) || 0) + 1) % 5;
 				} catch (e) {
 					console.debug?.(e);
 				}
-				X(s), X(l);
+				X(c), X(u);
 				break;
 			case "f":
 			case "F":
@@ -5024,18 +5024,18 @@ function Gn({ overlay: e, _content: t, singleView: n, state: r, VIEWER_MODES: i,
 			case "D":
 				g();
 				try {
-					r.genInfoOpen = !r.genInfoOpen;
+					i.genInfoOpen = !i.genInfoOpen;
 				} catch (e) {
 					console.debug?.(e);
 				}
-				X(l), X(T);
+				X(u), X(T);
 				break;
 			case "t":
 			case "T":
 				if (!S?.id) break;
 				g(), dn({
-					x: Number(r?._lastPointerX) || Math.round((e?.clientWidth || 0) / 2),
-					y: Number(r?._lastPointerY) || Math.round((e?.clientHeight || 0) / 2),
+					x: Number(i?._lastPointerX) || Math.round((e?.clientWidth || 0) / 2),
+					y: Number(i?._lastPointerY) || Math.round((e?.clientHeight || 0) / 2),
 					asset: S,
 					onChanged: ((...e) => {
 						let t = e[0];
@@ -5050,35 +5050,35 @@ function Gn({ overlay: e, _content: t, singleView: n, state: r, VIEWER_MODES: i,
 			case "Z":
 				g();
 				try {
-					r.analysisMode = r.analysisMode === "zebra" ? "none" : "zebra";
+					i.analysisMode = i.analysisMode === "zebra" ? "none" : "zebra";
 				} catch (e) {
 					console.debug?.(e);
 				}
-				X(l), X(c);
+				X(u), X(l);
 				break;
 			case "i":
 			case "I":
 				if (v && S?.kind === "video" && k()?.setInPoint?.()) {
-					g(), u(C("toast.inPointSet", "In point set"), "info", 1200);
+					g(), n(C("toast.inPointSet", "In point set"), "info", 1200);
 					break;
 				}
 				g();
 				try {
-					r.probeEnabled = !r.probeEnabled;
+					i.probeEnabled = !i.probeEnabled;
 				} catch (e) {
 					console.debug?.(e);
 				}
 				try {
-					r.probeEnabled || (y.style.display = "none");
+					i.probeEnabled || (y.style.display = "none");
 				} catch (e) {
 					console.debug?.(e);
 				}
-				X(l);
+				X(u);
 				break;
 			case "o":
 			case "O":
 				if (v && S?.kind === "video" && k()?.setOutPoint?.()) {
-					g(), u(C("toast.outPointSet", "Out point set"), "info", 1200);
+					g(), n(C("toast.outPointSet", "Out point set"), "info", 1200);
 					break;
 				}
 				break;
@@ -5098,30 +5098,30 @@ function Gn({ overlay: e, _content: t, singleView: n, state: r, VIEWER_MODES: i,
 			case "L":
 				g();
 				try {
-					r.loupeEnabled = !r.loupeEnabled;
+					i.loupeEnabled = !i.loupeEnabled;
 				} catch (e) {
 					console.debug?.(e);
 				}
 				try {
-					r.loupeEnabled || (b.style.display = "none");
+					i.loupeEnabled || (b.style.display = "none");
 				} catch (e) {
 					console.debug?.(e);
 				}
-				X(l);
+				X(u);
 				break;
 			case "x":
 			case "X":
 				g();
 				try {
-					r.distractionFree = !r.distractionFree;
+					i.distractionFree = !i.distractionFree;
 				} catch (e) {
 					console.debug?.(e);
 				}
-				X(l), X(d), X(T);
+				X(u), X(d), X(T);
 				break;
 			case "c":
 			case "C": {
-				let e = r?._probe;
+				let e = i?._probe;
 				if (!e || e.r == null || e.g == null || e.b == null) break;
 				let t = `#${[
 					e.r,
@@ -5139,7 +5139,7 @@ function Gn({ overlay: e, _content: t, singleView: n, state: r, VIEWER_MODES: i,
 			case " ":
 			case "Spacebar":
 				if (v && S?.kind === "video") {
-					let e = n?.querySelector?.("video");
+					let e = r?.querySelector?.("video");
 					if (e) {
 						g();
 						try {
@@ -5190,23 +5190,23 @@ function Gn({ overlay: e, _content: t, singleView: n, state: r, VIEWER_MODES: i,
 				break;
 			case "[":
 			case "{":
-				g(), N(-.25) || u(C("toast.playbackVideoOnly"), "warning", 1400);
+				g(), N(-.25) || n(C("toast.playbackVideoOnly"), "warning", 1400);
 				break;
 			case "]":
 			case "}":
-				g(), N(.25) || u(C("toast.playbackVideoOnly"), "warning", 1400);
+				g(), N(.25) || n(C("toast.playbackVideoOnly"), "warning", 1400);
 				break;
 			case "\\":
 			case "|":
-				g(), N(1, { absolute: !0 }) || u(C("toast.playbackVideoOnly"), "warning", 1400);
+				g(), N(1, { absolute: !0 }) || n(C("toast.playbackVideoOnly"), "warning", 1400);
 				break;
 			case "+":
 			case "=":
 				g();
 				try {
-					o?.((Number(r?.zoom) || 1) + .25, {
-						clientX: r?._lastPointerX,
-						clientY: r?._lastPointerY
+					s?.((Number(i?.zoom) || 1) + .25, {
+						clientX: i?._lastPointerX,
+						clientY: i?._lastPointerY
 					});
 				} catch (e) {
 					console.debug?.(e);
@@ -5216,9 +5216,9 @@ function Gn({ overlay: e, _content: t, singleView: n, state: r, VIEWER_MODES: i,
 			case "_":
 				g();
 				try {
-					o?.((Number(r?.zoom) || 1) - .25, {
-						clientX: r?._lastPointerX,
-						clientY: r?._lastPointerY
+					s?.((Number(i?.zoom) || 1) - .25, {
+						clientX: i?._lastPointerX,
+						clientY: i?._lastPointerY
 					});
 				} catch (e) {
 					console.debug?.(e);
@@ -8606,7 +8606,7 @@ function xr(e) {
 		}
 	}
 	let n = e();
-	return s(n), n._mjrViewerAPI;
+	return l(n), n._mjrViewerAPI;
 }
 //#endregion
 //#region ui/features/viewer/playerBarManager.ts
@@ -9737,13 +9737,13 @@ var Wr = null, Gr = null, Kr = null, qr = null, Jr = null, Yr = null;
 function Xr() {
 	Wr || import("./abCompare-BXOoRlmV.js").then((e) => {
 		Wr = e;
-	}), Gr || import("./sideBySide-D5j5Upix.js").then((e) => {
+	}), Gr || import("./sideBySide-ClC9JgwZ.js").then((e) => {
 		Gr = e;
-	}), Kr || import("./model3dRenderer-B4V7IcZn.js").then((e) => e.t).then((e) => {
+	}), Kr || import("./model3dRenderer-Dz6vgESs.js").then((e) => e.t).then((e) => {
 		Kr = e;
 	}), qr || import("./scopes-X1iFrTle.js").then((e) => {
 		qr = e;
-	}), Jr || import("./genInfo-Ctven8JZ.js").then((e) => e.n).then((e) => {
+	}), Jr || import("./genInfo-Dt2N-RoA.js").then((e) => e.n).then((e) => {
 		Jr = e;
 	}), Yr || import("./frameExport-tksSZ7sb.js").then((e) => {
 		Yr = e;
@@ -9756,7 +9756,7 @@ var $ = {
 };
 function Zr() {
 	Xr(), Er();
-	let t = Vr(), i = In(t), o = i.unsubs || [], s = te();
+	let t = Vr(), n = In(t), a = n.unsubs || [], s = te();
 	s.mode = $.SINGLE;
 	try {
 		let e = Nn();
@@ -9764,7 +9764,7 @@ function Zr() {
 	} catch (e) {
 		console.debug?.(e);
 	}
-	let l = new Set([
+	let c = new Set([
 		"png",
 		"jpg",
 		"jpeg",
@@ -9773,56 +9773,57 @@ function Zr() {
 		"bmp",
 		"tiff",
 		"avif",
+		"jxl",
 		"heic",
 		"hdr",
 		"svg",
 		"apng"
-	]), u = null, d = null;
+	]), l = null, d = null;
 	function f() {
 		try {
-			return u?.mediaTransform?.() || "";
+			return l?.mediaTransform?.() || "";
 		} catch {
 			return "";
 		}
 	}
 	function h() {
 		try {
-			u?.clampPanToBounds?.();
+			l?.clampPanToBounds?.();
 		} catch (e) {
 			console.debug?.(e);
 		}
 	}
 	function g() {
 		try {
-			u?.applyTransform?.();
+			l?.applyTransform?.();
 		} catch (e) {
 			console.debug?.(e);
 		}
 	}
 	function _(e, t) {
 		try {
-			u?.setZoom?.(e, t);
+			l?.setZoom?.(e, t);
 		} catch (e) {
 			console.debug?.(e);
 		}
 	}
 	function v() {
 		try {
-			u?.updatePanCursor?.();
+			l?.updatePanCursor?.();
 		} catch (e) {
 			console.debug?.(e);
 		}
 	}
 	function y() {
 		try {
-			return u?.getPrimaryMedia?.() || null;
+			return l?.getPrimaryMedia?.() || null;
 		} catch {
 			return null;
 		}
 	}
 	function x(e) {
 		try {
-			return u?.getMediaNaturalSize?.(e) || {
+			return l?.getMediaNaturalSize?.(e) || {
 				w: 0,
 				h: 0
 			};
@@ -9835,21 +9836,21 @@ function Zr() {
 	}
 	function S() {
 		try {
-			return u?.getViewportRect?.() || null;
+			return l?.getViewportRect?.() || null;
 		} catch {
 			return null;
 		}
 	}
 	function E() {
 		try {
-			return u?.computeOneToOneZoom?.() ?? null;
+			return l?.computeOneToOneZoom?.() ?? null;
 		} catch {
 			return null;
 		}
 	}
 	function D() {
 		try {
-			u?.updateMediaNaturalSize?.();
+			l?.updateMediaNaturalSize?.();
 		} catch (e) {
 			console.debug?.(e);
 		}
@@ -9900,7 +9901,7 @@ function Zr() {
 		N = Un({
 			VIEWER_MODES: $,
 			state: s,
-			lifecycle: i,
+			lifecycle: n,
 			getCanAB: () => Xe(),
 			onToggleFullscreen: () => {
 				try {
@@ -10125,8 +10126,8 @@ function Zr() {
 		state: s,
 		VIEWER_MODES: $,
 		APP_CONFIG: T,
-		getAssetMetadata: a,
-		getAssetsBatch: n
+		getAssetMetadata: o,
+		getAssetsBatch: r
 	}), ke = 300 * 1e3, Ae = /* @__PURE__ */ new Map(), je = () => {
 		try {
 			let e = Date.now();
@@ -10173,7 +10174,7 @@ function Zr() {
 		}
 	};
 	try {
-		u = $n({
+		l = $n({
 			overlay: t,
 			content: fe,
 			singleView: B,
@@ -10182,10 +10183,10 @@ function Zr() {
 			state: s,
 			VIEWER_MODES: $,
 			scheduleOverlayRedraw: J,
-			lifecycle: i
+			lifecycle: n
 		});
 	} catch {
-		u = null;
+		l = null;
 	}
 	let Fe = (e, t, n) => {
 		try {
@@ -10341,7 +10342,7 @@ function Zr() {
 	}, Ve = async (e, { signal: t } = {}) => {
 		try {
 			return await Jr?.ensureViewerMetadataAsset?.(e, {
-				getAssetMetadata: a,
+				getAssetMetadata: o,
 				getFileMetadataScoped: m,
 				metadataCache: Oe,
 				signal: t
@@ -10831,7 +10832,7 @@ function Zr() {
 	}
 	let { preloadAdjacentAssets: tt, preloadImageForAsset: nt, trackPreloadRef: rt } = pr({
 		buildAssetViewURL: O,
-		IMAGE_PRELOAD_EXTENSIONS: l,
+		IMAGE_PRELOAD_EXTENSIONS: c,
 		state: s
 	}), { destroyPlayerBar: at, syncPlayerBar: ot } = Sr({
 		state: s,
@@ -10908,9 +10909,9 @@ function Zr() {
 	} catch {
 		d = null;
 	}
-	o.push(Z(be, "click", () => {
+	a.push(Z(be, "click", () => {
 		s.currentIndex > 0 && (s.currentIndex--, Qe());
-	})), o.push(Z(Se, "click", () => {
+	})), a.push(Z(Se, "click", () => {
 		s.currentIndex < s.assets.length - 1 && (s.currentIndex++, Qe());
 	}));
 	let mt = null, ht = () => {
@@ -10994,7 +10995,7 @@ function Zr() {
 			getMediaNaturalSize: x,
 			positionOverlayBox: yt
 		}).redraw,
-		lifecycle: i
+		lifecycle: n
 	});
 	try {
 		if (!fe._mjrOverlayResizeBound && "ResizeObserver" in window) {
@@ -11016,7 +11017,7 @@ function Zr() {
 			} catch (e) {
 				console.debug?.(e);
 			}
-			t._mjrResizeObserver = e, o.push(() => {
+			t._mjrResizeObserver = e, a.push(() => {
 				try {
 					e.disconnect();
 				} catch (e) {
@@ -11055,7 +11056,7 @@ function Zr() {
 				return null;
 			}
 		},
-		lifecycle: i
+		lifecycle: n
 	}), St = [], Ct = () => {
 		try {
 			for (let e of St) X(e);
@@ -11144,7 +11145,7 @@ function Zr() {
 		}
 	};
 	try {
-		t._mjrBadgeSyncBound ||= (o.push(Z(window, k, (e) => {
+		t._mjrBadgeSyncBound ||= (a.push(Z(window, k, (e) => {
 			try {
 				let t = e?.detail?.assetId, n = e?.detail?.rating;
 				if (t == null) return;
@@ -11158,7 +11159,7 @@ function Zr() {
 			} catch (e) {
 				console.debug?.(e);
 			}
-		}, { passive: !0 })), o.push(Z(window, w, (e) => {
+		}, { passive: !0 })), a.push(Z(window, w, (e) => {
 			try {
 				let t = e?.detail?.assetId, n = e?.detail?.tags;
 				if (t == null) return;
@@ -11344,10 +11345,10 @@ function Zr() {
 			console.debug?.(e);
 		}
 		let e = s?._prevHotkeyScope;
-		r(e || "panel"), s._prevHotkeyScope = null;
+		i(e || "panel"), s._prevHotkeyScope = null;
 	}
 	let Et = {
-		open(e, n = 0, i = null) {
+		open(e, n = 0, r = null) {
 			wt(), s.assets = Array.isArray(e) ? e : [e], s.currentIndex = Math.max(0, Math.min(n, s.assets.length - 1)), s.distractionFree = !1;
 			try {
 				Te.rebuild();
@@ -11360,7 +11361,7 @@ function Zr() {
 			} catch (e) {
 				console.debug?.(e);
 			}
-			s._panHintTimer = null, s._lastPointerX = null, s._lastPointerY = null, s._mediaW = 0, s._mediaH = 0, s.compareAsset = i, s.gridMode = 0, Be(), s._probe = null;
+			s._panHintTimer = null, s._lastPointerX = null, s._lastPointerY = null, s._mediaW = 0, s._mediaH = 0, s.compareAsset = r, s.gridMode = 0, Be(), s._probe = null;
 			try {
 				me.style.display = "none";
 			} catch (e) {
@@ -11383,7 +11384,7 @@ function Zr() {
 			} catch {
 				s._prevBodyOverflow = "";
 			}
-			document.body.style.overflow = "hidden", s._prevHotkeyScope = c().scope || null, r("viewer"), Qe();
+			document.body.style.overflow = "hidden", s._prevHotkeyScope = u().scope || null, i("viewer"), Qe();
 			try {
 				gt();
 			} catch (e) {

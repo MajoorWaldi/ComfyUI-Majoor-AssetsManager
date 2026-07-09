@@ -28,6 +28,7 @@ var d = new Set([
 	".jpeg",
 	".webp",
 	".avif",
+	".jxl",
 	".gif",
 	".bmp",
 	".tiff"
@@ -236,6 +237,7 @@ var w = "selected", T = null, E = null, D = !1, O = null, k = null, A = null, j 
 	".jpeg",
 	".webp",
 	".avif",
+	".jxl",
 	".gif",
 	".bmp",
 	".tiff"

@@ -11,7 +11,7 @@
 
 import { createAdapter } from "./BaseAdapter.js";
 
-const IMAGE_EXTS = new Set([".png", ".jpg", ".jpeg", ".webp", ".avif", ".gif", ".bmp", ".tiff"]);
+const IMAGE_EXTS = new Set([".png", ".jpg", ".jpeg", ".webp", ".avif", ".jxl", ".gif", ".bmp", ".tiff"]);
 
 function _hasImageExt(filename: any) {
     if (!filename) return false;

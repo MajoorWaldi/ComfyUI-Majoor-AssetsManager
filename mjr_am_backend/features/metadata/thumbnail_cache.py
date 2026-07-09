@@ -153,6 +153,9 @@ def get_or_create_thumbnail(source_path: str, *, size: Any = 320) -> Result[dict
     ok = False
     if kind == "image":
         ok = _generate_image_thumb(source, target, target_size)
+        # Pillow builds do not consistently ship a JPEG XL decoder yet.
+        if not ok and source.suffix.lower() == ".jxl":
+            ok = _generate_video_thumb(source, target, target_size)
     elif kind == "video":
         ok = _generate_video_thumb(source, target, target_size)
     if not ok:

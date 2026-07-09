@@ -34,16 +34,12 @@ dependencies = [
   "send2trash>=1.8.0,<3.0.0",
   "watchdog>=3.0.0,<7.0.0",
   "pywin32>=300,<313; sys_platform == 'win32'",
+  "blake3>=0.4.0,<2.0.0",
   # Note: tkinter is required for native folder browser functionality
   # tkinter is included in standard Python distribution but may be missing in minimal installs
 ]
 
 [project.optional-dependencies]
-# Optional fast content hashing (~5x faster than SHA-256). Auto-detected at runtime.
-fast-hash = [
-  "blake3>=0.4.0,<2.0.0",
-]
-
 vector = [
   "sentence-transformers>=2.2.0,<6.0.0",
   "transformers>=4.44.0,<6.0.0",

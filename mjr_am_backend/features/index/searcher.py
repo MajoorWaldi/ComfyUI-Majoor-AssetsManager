@@ -426,19 +426,19 @@ def _safe_positive_prompt_extract(max_len: int = 250) -> str:
 
     - ComfyUI workflow images store it at $.positive_prompt
     - A1111/geninfo images store it at $.geninfo.positive.value
-    COALESCE tries both; NULLIF+TRIM skips empty strings so a blank
-    $.positive_prompt doesn't shadow a valid $.geninfo.positive.value.
+    Gen Info is authoritative when available. The denormalized database field
+    remains a fallback for older indexed assets.
     """
     n = int(max_len)
     return (
         "COALESCE("
-        "NULLIF(TRIM(COALESCE(m.positive_prompt, '')), ''), "
         "CASE WHEN json_valid(COALESCE(m.metadata_raw, '')) THEN "
         f"SUBSTR(COALESCE("
-        f"NULLIF(TRIM(COALESCE(json_extract(m.metadata_raw, '$.positive_prompt'), '')), ''), "
-        f"NULLIF(TRIM(COALESCE(json_extract(m.metadata_raw, '$.geninfo.positive.value'), '')), '')"
+        f"NULLIF(TRIM(COALESCE(json_extract(m.metadata_raw, '$.geninfo.positive.value'), '')), ''), "
+        f"NULLIF(TRIM(COALESCE(json_extract(m.metadata_raw, '$.positive_prompt'), '')), '')"
         f"), 1, {n}) "
-        "ELSE NULL END"
+        "ELSE NULL END, "
+        "NULLIF(TRIM(COALESCE(m.positive_prompt, '')), '')"
         ")"
     )
 

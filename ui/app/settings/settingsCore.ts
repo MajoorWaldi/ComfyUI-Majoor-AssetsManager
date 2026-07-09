@@ -71,6 +71,7 @@ export const DEFAULT_SETTINGS = {
     },
     scan: {
         fastMode: true,
+        jxlEnabled: false,
     },
     watcher: {
         enabled: true,

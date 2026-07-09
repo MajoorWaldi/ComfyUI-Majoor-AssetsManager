@@ -875,10 +875,7 @@ def _collect_linked_preview_keys(cards: list[dict[str, Any]]) -> tuple[set[str],
     for card in cards:
         if str(card.get("thumbnail_path") or "").strip() and str(card.get("animated_thumbnail_path") or "").strip():
             continue
-        workflow_id = str(card.get("workflow_id") or "").strip()
         workflow_hash = str(card.get("workflow_hash") or "").strip()
-        if workflow_id:
-            workflow_ids.add(workflow_id)
         if workflow_hash:
             workflow_hashes.add(workflow_hash)
     return workflow_ids, workflow_hashes
@@ -934,7 +931,7 @@ def _linked_preview_maps(cards: list[dict[str, Any]]) -> tuple[dict[str, str], d
     except Exception:
         return {}, {}
 
-    for filepath_raw, wf_id_raw, wf_hash_raw in rows:
+    for filepath_raw, _wf_id_raw, wf_hash_raw in rows:
         filepath = str(filepath_raw or "").strip()
         if not filepath:
             continue
@@ -947,10 +944,7 @@ def _linked_preview_maps(cards: list[dict[str, Any]]) -> tuple[dict[str, str], d
         ext = candidate.suffix.lower()
         is_animated = ext in set(ANIMATED_EXTS)
         keys = []
-        wf_id = str(wf_id_raw or "").strip()
         wf_hash = str(wf_hash_raw or "").strip()
-        if wf_id:
-            keys.append(("id", wf_id))
         if wf_hash:
             keys.append(("hash", wf_hash))
         for key_type, value in keys:
@@ -969,11 +963,8 @@ def _apply_linked_preview_fallback(cards: list[dict[str, Any]]) -> None:
         return
 
     for card in cards:
-        workflow_id = str(card.get("workflow_id") or "").strip()
         workflow_hash = str(card.get("workflow_hash") or "").strip()
         keys = []
-        if workflow_id:
-            keys.append(f"id:{workflow_id}")
         if workflow_hash:
             keys.append(f"hash:{workflow_hash}")
 
@@ -1727,9 +1718,8 @@ def list_workflow_thumbnail_candidates(path: Path, *, limit: int = 12) -> Result
     if workflow is None:
         return Result.Err("INVALID_WORKFLOW", "Workflow JSON is missing or invalid")
 
-    workflow_id = str(workflow.get("id") or "").strip()
     workflow_hash = _workflow_hash(resolved)
-    if not workflow_id and not workflow_hash:
+    if not workflow_hash:
         return Result.Ok([])
 
     index_db_path = get_runtime_index_db_path()
@@ -1738,9 +1728,6 @@ def list_workflow_thumbnail_candidates(path: Path, *, limit: int = 12) -> Result
 
     clauses: list[str] = []
     params: list[Any] = []
-    if workflow_id:
-        clauses.append("a.workflow_id = ?")
-        params.append(workflow_id)
     if workflow_hash:
         clauses.append("m.workflow_hash = ?")
         params.append(workflow_hash)

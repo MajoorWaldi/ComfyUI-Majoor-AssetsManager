@@ -348,6 +348,10 @@ def _extract_ltxav_rgb_fallback_payload(body: dict) -> object | None:
     return _extract_ai_verbose_logs_payload(body)
 
 
+def _extract_jxl_payload(body: dict) -> object | None:
+    return _extract_ai_verbose_logs_payload(body)
+
+
 def _build_security_prefs(body: dict) -> dict[str, object]:
     prefs: dict[str, object] = {}
     for key in SECURITY_PREF_KEYS:
@@ -1537,6 +1541,44 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
             "settings:ltxav_rgb_fallback",
             response_result,
             enabled=enabled,
+        )
+        return _json_response(response_result)
+
+    @routes.get("/mjr/am/settings/jxl")
+    async def get_jxl_settings(request):
+        svc, error_result = await _require_services()
+        if error_result:
+            return _json_response(error_result)
+        settings_service = svc.get("settings")
+        if not settings_service:
+            return _json_response(Result.Err("SERVICE_UNAVAILABLE", "Settings service unavailable"))
+        enabled = await settings_service.get_jxl_enabled()
+        return _json_response(Result.Ok({"prefs": {"enabled": bool(enabled)}}))
+
+    @routes.post("/mjr/am/settings/jxl")
+    async def update_jxl_settings(request):
+        csrf = _csrf_error(request)
+        if csrf:
+            return _json_response(Result.Err(ErrorCode.CSRF, csrf))
+        auth = _require_write_access(request)
+        if not auth.ok:
+            return _json_response(auth)
+        svc, error_result = await _require_services()
+        if error_result:
+            return _json_response(error_result)
+        settings_service = svc.get("settings")
+        if not settings_service:
+            return _json_response(Result.Err(ErrorCode.SERVICE_UNAVAILABLE, "Settings service unavailable"))
+        body_res = await _read_json(request)
+        if not body_res.ok:
+            return _json_response(body_res)
+        enabled = _extract_jxl_payload(body_res.data or {})
+        if enabled is None:
+            return _json_response(Result.Err("INVALID_INPUT", "Missing JPEG XL value"))
+        result = await settings_service.set_jxl_enabled(enabled)
+        response_result = Result.Ok({"prefs": {"enabled": bool(result.data)}}) if result.ok else result
+        await _audit_settings_write(
+            svc, request, "settings_jxl", "settings:jxl", response_result, enabled=enabled
         )
         return _json_response(response_result)
 

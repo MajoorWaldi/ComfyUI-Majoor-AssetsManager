@@ -54,10 +54,10 @@ def hydrate_search_rows(rows: list[dict[str, Any]], *, include_highlight: bool) 
 
 def _resolve_positive_prompt(metadata_obj: dict[str, Any]) -> str:
     """Pick positive prompt text from metadata_raw, trying both storage formats."""
-    raw_pp = metadata_obj.get("positive_prompt")
+    geninfo = metadata_obj.get("geninfo") or {}
+    raw_pp = (geninfo.get("positive") or {}).get("value")
     if not raw_pp:
-        geninfo = metadata_obj.get("geninfo") or {}
-        raw_pp = (geninfo.get("positive") or {}).get("value")
+        raw_pp = metadata_obj.get("positive_prompt")
     return raw_pp[:250] if raw_pp and isinstance(raw_pp, str) else ""
 
 

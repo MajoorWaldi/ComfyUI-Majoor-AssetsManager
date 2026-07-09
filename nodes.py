@@ -24,13 +24,14 @@ import os
 import re
 import time
 from fractions import Fraction
+from functools import lru_cache
 from typing import Any
 
 import av  # type: ignore[import-untyped]
 import folder_paths  # type: ignore[import-untyped]
 import numpy as np
 from comfy.cli_args import args  # type: ignore[import-untyped]
-from PIL import Image
+from PIL import Image, ImageCms
 from PIL.PngImagePlugin import PngInfo
 
 try:
@@ -84,6 +85,18 @@ def _tensor_to_bytes(t: torch.Tensor) -> np.ndarray:
     _require_torch()
     arr = 255.0 * t.cpu().numpy()
     return np.clip(arr, 0, 255).astype(np.uint8)
+
+
+@lru_cache(maxsize=1)
+def _srgb_icc_profile() -> bytes:
+    """Return a standard sRGB ICC profile suitable for Pillow PNG/JPEG saves."""
+    profile = ImageCms.createProfile("sRGB")
+    return ImageCms.ImageCmsProfile(profile).tobytes()
+
+
+def _srgb_save_kwargs() -> dict[str, Any]:
+    """Return reusable Pillow color-management options."""
+    return {"icc_profile": _srgb_icc_profile()}
 
 
 def _require_torch() -> Any:
@@ -1021,6 +1034,7 @@ class MajoorSaveImage:
                 os.path.join(full_output_folder, file),
                 pnginfo=metadata,
                 compress_level=self.compress_level,
+                icc_profile=_srgb_icc_profile(),
             )
             results.append(
                 {"filename": file, "subfolder": subfolder, "type": self.type}
@@ -1259,7 +1273,20 @@ def _encode_mp4(
         stream.height = resolved_images.shape[1]
         stream.pix_fmt = "yuv420p"
         stream.bit_rate = 0
-        stream.options = {"crf": str(crf)}
+        stream.options = {
+            "crf": str(crf),
+            "colorprim": "bt709",
+            "transfer": "bt709",
+            "colormatrix": "bt709",
+            "color_range": "tv",
+        }
+        # FFmpeg enum values: BT.709 = 1; MPEG/TV limited range = 1.
+        # Set codec-context fields as well as x264 options so the MP4 stream
+        # remains correctly tagged across supported PyAV/FFmpeg versions.
+        stream.codec_context.color_primaries = 1
+        stream.codec_context.color_trc = 1
+        stream.codec_context.colorspace = 1
+        stream.codec_context.color_range = 1
 
         audio_stream = None
         if audio_info is not None:
@@ -1269,7 +1296,7 @@ def _encode_mp4(
         for frame_tensor in resolved_images:
             img = (frame_tensor * 255).clamp(0, 255).byte().cpu().numpy()
             video_frame = av.VideoFrame.from_ndarray(img, format="rgb24")
-            video_frame = video_frame.reformat(format="yuv420p")
+            video_frame = video_frame.reformat(format="yuv420p", dst_colorspace="ITU709")
             for packet in stream.encode(video_frame):
                 container.mux(packet)
         for packet in stream.encode():
@@ -1405,6 +1432,7 @@ class MajoorSaveVideo:
                 os.path.join(full_output_folder, sidecar_file),
                 pnginfo=png_metadata,
                 compress_level=4,
+                icc_profile=_srgb_icc_profile(),
             )
 
         # --- GIF / WebP via Pillow ---
