@@ -304,7 +304,8 @@ def _ltx_director_global_prompt(meta: dict[str, Any], *, text_budget: int) -> st
             node_type = str(node.get("class_type") or node.get("type") or "").strip().lower()
             if node_type not in {"ltxdirector", "ltxdirectorguide"}:
                 continue
-            inputs = node.get("inputs") if isinstance(node.get("inputs"), dict) else {}
+            raw_inputs = node.get("inputs")
+            inputs: dict[str, Any] = raw_inputs if isinstance(raw_inputs, dict) else {}
             timeline = inputs.get("timeline_data")
             timeline = try_parse_json_text(timeline) if isinstance(timeline, str) else timeline
             if isinstance(timeline, dict):

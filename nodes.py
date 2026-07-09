@@ -94,11 +94,6 @@ def _srgb_icc_profile() -> bytes:
     return ImageCms.ImageCmsProfile(profile).tobytes()
 
 
-def _srgb_save_kwargs() -> dict[str, bytes]:
-    """Color-management kwargs shared by current PNG and future JPEG outputs."""
-    return {"icc_profile": _srgb_icc_profile()}
-
-
 def _require_torch() -> Any:
     if torch is None:
         raise RuntimeError("torch is required for Majoor image/video node execution")
@@ -1034,7 +1029,7 @@ class MajoorSaveImage:
                 os.path.join(full_output_folder, file),
                 pnginfo=metadata,
                 compress_level=self.compress_level,
-                **_srgb_save_kwargs(),
+                icc_profile=_srgb_icc_profile(),
             )
             results.append(
                 {"filename": file, "subfolder": subfolder, "type": self.type}
@@ -1432,7 +1427,7 @@ class MajoorSaveVideo:
                 os.path.join(full_output_folder, sidecar_file),
                 pnginfo=png_metadata,
                 compress_level=4,
-                **_srgb_save_kwargs(),
+                icc_profile=_srgb_icc_profile(),
             )
 
         # --- GIF / WebP via Pillow ---
