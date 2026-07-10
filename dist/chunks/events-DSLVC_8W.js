@@ -273,7 +273,9 @@ function ae(e = {}) {
 	});
 }
 function oe(e) {
-	let t = e?.mtime, n = (e) => !e || !t ? e : `${e}${e.includes("?") ? "&" : "?"}v=${encodeURIComponent(t)}`, r = d(String(e?.filepath || e?.path || e?.fullpath || e?.full_path || e?.file_info?.filepath || e?.file_info?.path || "").trim()), i = String(e?.filename || e?.name || e?.file_info?.filename || "").trim(), a = String(e?.subfolder || e?.file_info?.subfolder || "").trim(), o = ((e) => {
+	let t = e?.mtime, n = (e) => !e || !t ? e : `${e}${e.includes("?") ? "&" : "?"}v=${encodeURIComponent(t)}`, r = d(String(e?.filepath || e?.path || e?.fullpath || e?.full_path || e?.file_info?.filepath || e?.file_info?.path || "").trim()), i = String(e?.type || e?.file_info?.type || "").toLowerCase().trim(), a = Number(e?.id ?? e?.asset_id);
+	if (!(i === "temp" || r.toLowerCase().includes("/temp/")) && Number.isSafeInteger(a) && a > 0) return n(`/mjr/am/viewer/asset/${encodeURIComponent(String(a))}`);
+	let o = String(e?.filename || e?.name || e?.file_info?.filename || "").trim(), s = String(e?.subfolder || e?.file_info?.subfolder || "").trim(), c = ((e) => {
 		let t = {
 			type: "",
 			subfolder: "",
@@ -287,23 +289,23 @@ function oe(e) {
 		} else t.filename = f(n).filename;
 		return t;
 	})(r);
-	if (!a && i.includes("/")) {
-		let e = i.lastIndexOf("/");
-		e > 0 && (a = i.slice(0, e), i = i.slice(e + 1));
+	if (!s && o.includes("/")) {
+		let e = o.lastIndexOf("/");
+		e > 0 && (s = o.slice(0, e), o = o.slice(e + 1));
 	}
-	if (!i && o.filename && (i = o.filename), !a && o.subfolder && (a = o.subfolder), !i) return "";
-	let s = String(e?.type || e?.file_info?.type || "").toLowerCase().trim();
-	s !== "input" && s !== "output" && s !== "temp" && s !== "custom" && (s = ""), !s && o.type && (s = o.type), !s && r && (r.includes("/input/") ? s = "input" : r.includes("/output/") ? s = "output" : r.includes("/temp/") && (s = "temp")), s ||= "output";
-	let c = r.includes("/output/") || r.includes("/input/") || r.includes("/temp/"), l = p(a) || a.startsWith("/");
-	if (r && s !== "custom" && (l || !c)) return n(se(r, { inline: !0 }));
-	if (s === "custom") {
+	if (!o && c.filename && (o = c.filename), !s && c.subfolder && (s = c.subfolder), !o) return "";
+	let l = String(e?.type || e?.file_info?.type || "").toLowerCase().trim();
+	l !== "input" && l !== "output" && l !== "temp" && l !== "custom" && (l = ""), !l && c.type && (l = c.type), !l && r && (r.includes("/input/") ? l = "input" : r.includes("/output/") ? l = "output" : r.includes("/temp/") && (l = "temp")), l ||= "output";
+	let m = r.includes("/output/") || r.includes("/input/") || r.includes("/temp/"), h = p(s) || s.startsWith("/");
+	if (r && l !== "custom" && (h || !m)) return n(se(r, { inline: !0 }));
+	if (l === "custom") {
 		let t = String(u(e) || "").trim();
-		if (t) return n(x(i, a, t));
+		if (t) return n(x(o, s, t));
 		if (r) return n(`${g.CUSTOM_VIEW}?filepath=${encodeURIComponent(r)}&browser_mode=1`);
-		let s = o.type || "output";
-		return n(v(i, a, s));
+		let i = c.type || "output";
+		return n(v(o, s, i));
 	}
-	return r.includes("/output/") && (s = "output"), r.includes("/input/") && (s = "input"), r.includes("/temp/") && (s = "temp"), n(v(i, a, s));
+	return r.includes("/output/") && (l = "output"), r.includes("/input/") && (l = "input"), r.includes("/temp/") && (l = "temp"), n(v(o, s, l));
 }
 function se(e, t = {}) {
 	if (!e) return "";

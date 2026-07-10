@@ -22,6 +22,27 @@ def _json(resp):
 
 
 @pytest.mark.asyncio
+async def test_viewer_asset_serves_canonical_indexed_path(monkeypatch, tmp_path: Path) -> None:
+    app = _app()
+    image = tmp_path / "problem.png"
+    image.write_bytes(b"\x89PNG\r\n\x1a\n")
+
+    async def _resolve(raw_id):
+        assert raw_id == "165"
+        return ({"id": 165, "filepath": str(image)}, image, tmp_path, None)
+
+    monkeypatch.setattr(m, "_resolve_viewer_asset_context", _resolve)
+
+    req = make_mocked_request(
+        "GET", "/mjr/am/viewer/asset/165", app=app, match_info={"asset_id": "165"}
+    )
+    resp = await (await app.router.resolve(req)).handler(req)
+    assert isinstance(resp, web.FileResponse)
+    assert resp.headers.get("Content-Type") == "image/png"
+    assert resp.headers.get("X-Content-Type-Options") == "nosniff"
+
+
+@pytest.mark.asyncio
 async def test_viewer_info_includes_model3d_contract(monkeypatch, tmp_path: Path) -> None:
     app = _app()
     model = tmp_path / "mesh.glb"

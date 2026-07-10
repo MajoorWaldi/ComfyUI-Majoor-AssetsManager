@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="720" viewBox="0 0 980 720" role="img" aria-labelledby="title desc">
+  <title id="title">Majoor operation permission settings</title>
+  <desc id="desc">Majoor write, delete, rename, open-folder, and index-reset permissions. Remote clients still require a token or explicit remote full access.</desc>
+  <rect width="980" height="720" rx="18" fill="#171717"/>
+  <rect x="0" width="235" height="720" rx="18" fill="#292929"/>
+  <text x="34" y="50" fill="#f4f4f5" font-family="Arial, sans-serif" font-size="22" font-weight="700">⚙ Settings</text>
+  <text x="34" y="130" fill="#a1a1aa" font-family="Arial, sans-serif" font-size="13" font-weight="700">APPLICATION SETTINGS</text>
+  <rect x="12" y="575" width="211" height="48" rx="6" fill="#45454b"/>
+  <text x="34" y="606" fill="#fff" font-family="Arial, sans-serif" font-size="16" font-weight="700">Majoor Assets Manager</text>
+  <text x="260" y="63" fill="#fff" font-family="Arial, sans-serif" font-size="20" font-weight="700">Security</text>
+  <text x="260" y="94" fill="#f59e0b" font-family="Arial, sans-serif" font-size="13">Operation permissions — remote clients still need a token or explicit Remote Full Access</text>
+  <g font-family="Arial, sans-serif" font-size="16" fill="#a1a1aa">
+    <text x="260" y="139">Allow HTTP Token Transport</text>
+    <text x="260" y="184">Allow Remote Full Access</text>
+    <text x="260" y="229">Require Token For All Writes</text>
+    <text x="260" y="274">API Token</text>
+    <text x="260" y="319">Recommended Remote LAN Setup</text>
+    <text x="260" y="364">Allow Index Reset</text>
+    <text x="260" y="409">Allow Open in Folder</text>
+    <text x="260" y="454">Allow Rename</text>
+    <text x="260" y="499">Allow Delete</text>
+    <text x="260" y="544">Allow Write</text>
+    <text x="260" y="589">Safe Mode</text>
+    <text x="260" y="634">Confirm before deleting</text>
+  </g>
+  <g font-family="Arial, sans-serif" font-size="13" text-anchor="middle">
+    <g fill="#3f3f46">
+      <rect x="820" y="120" width="42" height="24" rx="12"/><circle cx="832" cy="132" r="8" fill="#a1a1aa"/>
+      <rect x="820" y="165" width="42" height="24" rx="12"/><circle cx="832" cy="177" r="8" fill="#a1a1aa"/>
+      <rect x="820" y="210" width="42" height="24" rx="12"/><circle cx="832" cy="222" r="8" fill="#a1a1aa"/>
+      <rect x="820" y="300" width="42" height="24" rx="12"/><circle cx="832" cy="312" r="8" fill="#a1a1aa"/>
+      <rect x="820" y="570" width="42" height="24" rx="12"/><circle cx="832" cy="582" r="8" fill="#a1a1aa"/>
+    </g>
+    <g fill="#60a5fa">
+      <rect x="820" y="345" width="42" height="24" rx="12"/><circle cx="850" cy="357" r="8" fill="#111827"/>
+      <rect x="820" y="390" width="42" height="24" rx="12"/><circle cx="850" cy="402" r="8" fill="#111827"/>
+      <rect x="820" y="435" width="42" height="24" rx="12"/><circle cx="850" cy="447" r="8" fill="#111827"/>
+      <rect x="820" y="480" width="42" height="24" rx="12"/><circle cx="850" cy="492" r="8" fill="#111827"/>
+      <rect x="820" y="525" width="42" height="24" rx="12"/><circle cx="850" cy="537" r="8" fill="#111827"/>
+      <rect x="820" y="615" width="42" height="24" rx="12"/><circle cx="850" cy="627" r="8" fill="#111827"/>
+    </g>
+    <rect x="695" y="250" width="167" height="34" rx="6" fill="#111" stroke="#71717a"/>
+    <text x="778" y="272" fill="#a1a1aa">Auto-generated or configured</text>
+    <g fill="#27272a"><rect x="880" y="120" width="62" height="24" rx="5"/><rect x="880" y="165" width="62" height="24" rx="5"/><rect x="880" y="210" width="62" height="24" rx="5"/><rect x="880" y="300" width="62" height="24" rx="5"/><rect x="880" y="345" width="62" height="24" rx="5"/><rect x="880" y="390" width="62" height="24" rx="5"/><rect x="880" y="435" width="62" height="24" rx="5"/><rect x="880" y="480" width="62" height="24" rx="5"/><rect x="880" y="525" width="62" height="24" rx="5"/><rect x="880" y="570" width="62" height="24" rx="5"/><rect x="880" y="615" width="62" height="24" rx="5"/></g>
+    <g fill="#a1a1aa"><text x="911" y="137">Reset</text><text x="911" y="182">Reset</text><text x="911" y="227">Reset</text><text x="911" y="317">Reset</text><text x="911" y="362">Reset</text><text x="911" y="407">Reset</text><text x="911" y="452">Reset</text><text x="911" y="497">Reset</text><text x="911" y="542">Reset</text><text x="911" y="587">Reset</text><text x="911" y="632">Reset</text></g>
+  </g>
+</svg>

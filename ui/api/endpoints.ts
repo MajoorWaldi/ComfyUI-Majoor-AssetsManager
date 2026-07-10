@@ -526,6 +526,14 @@ export function buildAssetViewURL(asset: Record<string, any> | null | undefined)
                 "",
         ).trim(),
     );
+    const declaredType = String(asset?.type || asset?.file_info?.type || "")
+        .toLowerCase()
+        .trim();
+    const assetId = Number(asset?.id ?? asset?.asset_id);
+    const isTemporaryAsset = declaredType === "temp" || rawPath.toLowerCase().includes("/temp/");
+    if (!isTemporaryAsset && Number.isSafeInteger(assetId) && assetId > 0) {
+        return withMtime(`/mjr/am/viewer/asset/${encodeURIComponent(String(assetId))}`);
+    }
     let filename = String(
         asset?.filename || asset?.name || asset?.file_info?.filename || "",
     ).trim();
