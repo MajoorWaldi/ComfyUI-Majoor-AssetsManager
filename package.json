@@ -32,7 +32,7 @@
     "@playwright/test": "^1.61.1",
     "@types/node": "^25.9.1",
     "@vitejs/plugin-vue": "^6.0.7",
-    "@vitest/coverage-v8": "^4.1.8",
+    "@vitest/coverage-v8": "^4.1.10",
     "@vue/test-utils": "^2.4.10",
     "eslint": "^10.6.0",
     "happy-dom": "^20.10.6",
