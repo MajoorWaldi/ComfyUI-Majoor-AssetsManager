@@ -386,6 +386,32 @@ async def _resolve_viewer_file_context(
 def register_viewer_routes(routes: web.RouteTableDef) -> None:
     """Register viewer info and file-serving routes."""
 
+    @routes.get("/mjr/am/viewer/asset/{asset_id}")
+    async def viewer_asset(request: web.Request):
+        """Serve an indexed asset by its stable database id.
+
+        Resolving the canonical filepath on the server avoids rebuilding output,
+        input, custom-root, mapped-drive, or UNC paths in the browser.
+        """
+        raw_id = str(request.match_info.get("asset_id", "") or "").strip()
+        _asset, resolved, _root_limit, error = await _resolve_viewer_asset_context(raw_id)
+        if error:
+            return _json_response(error)
+        if resolved is None:
+            return _json_response(Result.Err("NOT_FOUND", "Asset file not found"))
+        if not _is_allowed_viewer_resource_file(resolved):
+            return _json_response(Result.Err("UNSUPPORTED", "Unsupported file type for viewer"))
+
+        content_type = _guess_content_type_for_file(resolved)
+        resp = web.FileResponse(path=str(resolved))
+        try:
+            resp.headers["Content-Type"] = content_type
+            resp.headers["Cache-Control"] = "private, max-age=3600, stale-while-revalidate=60"
+            resp.headers["X-Content-Type-Options"] = "nosniff"
+        except Exception:
+            pass
+        return resp
+
     @routes.get("/mjr/am/viewer/info")
     async def viewer_info(request: web.Request):
         """

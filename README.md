@@ -533,6 +533,20 @@ See [`docs/DB_MAINTENANCE.md`](docs/DB_MAINTENANCE.md) for detailed recovery pro
 - Check firewall settings for ComfyUI port
 - Verify CORS settings if accessing from different origin
 
+### “Write access is blocked”
+
+Majoor's write guard is separate from Windows, Linux, macOS, or NAS file permissions. A user can have full access to the files and still be blocked by Majoor when ComfyUI is opened through a LAN IP, reverse proxy, or tunnel. Majoor protects operations that modify data, including ratings, tags, rename, delete, index reset, and some file actions.
+
+For the safest remote setup, open **Settings → Majoor Assets Manager → Security** and enable **Recommended Remote LAN Setup**. This creates or reuses an API token and authorizes the current browser. On a trusted private LAN using plain HTTP, **Allow HTTP Token Transport** may also be required.
+
+The settings shown below enable the individual operations while keeping Safe Mode off and delete confirmation on. They do not by themselves authorize an anonymous LAN client: remote access still requires either **Recommended Remote LAN Setup** with a token, or **Allow Remote Full Access** on a fully trusted private LAN.
+
+![Majoor operation permission settings](docs/images/security-settings-trusted-lan.svg)
+
+Do not enable **Allow Remote Full Access** when ComfyUI is exposed to the internet, an untrusted network, or an unprotected tunnel.
+
+After changing the settings, refresh the ComfyUI page. Restart ComfyUI if environment variables override the UI values. See [Remote Access Write Permissions](docs/INSTALLATION.md#remote-access-write-permissions) for the complete decision guide.
+
 ---
 
 ## Development & Testing

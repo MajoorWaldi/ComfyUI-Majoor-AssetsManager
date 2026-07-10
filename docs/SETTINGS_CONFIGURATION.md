@@ -41,6 +41,14 @@ Majoor now exposes the main remote write controls directly in Settings, includin
 
 For the common trusted-LAN case, `Recommended Remote LAN Setup` is the intended one-click path. It generates a server-side token if needed, applies the recommended flags, and authorizes the current browser session immediately.
 
+The following image shows the individual operation permissions. It does not authorize an anonymous remote browser by itself. For LAN access, either enable `Recommended Remote LAN Setup` and use its token, or explicitly enable `Allow Remote Full Access` for a no-token trusted-LAN configuration. Keeping `Confirm before deleting` enabled is strongly recommended.
+
+![Majoor operation permission settings](images/security-settings-trusted-lan.svg)
+
+`Require Token For All Writes` and `Allow Remote Full Access` solve different problems. Disabling the first does not automatically allow non-local clients; the second is the explicit anonymous-remote-access bypass and must never be enabled on an internet-facing or untrusted network.
+
+Majoor security permissions are independent of filesystem permissions. Full Windows or NAS access does not automatically authorize Majoor writes, and a Majoor authorization error does not by itself prove that the operating system rejected the file operation.
+
 ### Token Types And What They Mean
 
 There are two unrelated token concepts in the UI:

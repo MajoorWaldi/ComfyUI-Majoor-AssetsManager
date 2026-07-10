@@ -239,7 +239,44 @@ pause
 ```
 
 ### Remote Access Write Permissions
-If you open ComfyUI from another machine, Majoor blocks write operations by default unless you explicitly allow them.
+If you open ComfyUI from another machine, Majoor may block write operations until you explicitly authorize them. The message does **not** necessarily mean that Windows, Linux, macOS, or your NAS denied filesystem access. Majoor has its own application-level write guard in addition to operating-system permissions.
+
+The guard covers operations that modify Majoor data or files, including ratings and tags, rename, delete, index reset, and other write actions. Accessing ComfyUI through `http://<LAN-IP>:8188` counts as remote access even when the browser and server are on the same private network.
+
+Choose one of the following configurations:
+
+1. **Authenticated LAN or remote access (recommended):** use `Recommended Remote LAN Setup`. Majoor generates or reuses an API token, requires it for writes, and keeps anonymous remote writes disabled.
+2. **Trusted private LAN without a token:** enable `Allow Remote Full Access` in addition to the required operation permissions. Use this only when every device and user on the network is trusted. Never use it for an internet-facing ComfyUI instance, public Wi-Fi, an untrusted shared network, or an unprotected tunnel.
+
+#### Operation permissions shown in Settings
+
+Open **Settings → Majoor Assets Manager → Security** and use these values:
+
+| Setting | Value |
+|---|---:|
+| Allow HTTP Token Transport | Off |
+| Allow Remote Full Access | Off |
+| Require Token For All Writes | Off |
+| API Token | Auto-generated or configured as needed |
+| Recommended Remote LAN Setup | Off |
+| Allow Index Reset | On |
+| Allow Open in Folder | On |
+| Allow Rename | On |
+| Allow Delete | On |
+| Allow Write | On |
+| Safe Mode | Off |
+| Confirm before deleting | On |
+
+![Majoor operation permission settings](images/security-settings-trusted-lan.svg)
+
+These values control which operations Majoor may perform. They are not, by themselves, remote-client authorization. A browser opened through a LAN IP must additionally use one of these paths:
+
+- **Recommended:** enable `Recommended Remote LAN Setup`; keep `Allow Remote Full Access` off. The preset configures a token and authorizes the current browser. On trusted plain-HTTP LAN access, it may also enable `Allow HTTP Token Transport`.
+- **No-token trusted LAN:** enable `Allow Remote Full Access`. This permits remote writes without token authentication and is therefore substantially less secure.
+
+`Require Token For All Writes` controls whether even otherwise-local writes require a token; disabling it does not override the separate non-local-client guard. Refresh the page after applying the settings. Restart ComfyUI if environment variables are configured because environment settings can override UI values.
+
+#### Authenticated setup (recommended)
 
 Recommended setup: define `MAJOOR_API_TOKEN` on the machine that runs ComfyUI, then send the same token from the remote client.
 
