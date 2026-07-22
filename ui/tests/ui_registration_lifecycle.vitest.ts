@@ -341,6 +341,7 @@ describe("native ComfyUI frontend registration payloads", () => {
             "mjr.pickOutputDirectory",
             "mjr.pickIndexDirectory",
             "mjr.openNodeContext",
+            "mjr.openNodeInFloatingViewer",
         ]);
     });
 
@@ -355,6 +356,7 @@ describe("native ComfyUI frontend registration payloads", () => {
             "mjr.openNodeContext",
             "mjr.openAssetsManager",
             "mjr.openFloatingViewer",
+            "mjr.openNodeInFloatingViewer",
             "mjr.openGeneratedFeed",
         ]) {
             const command = byId.get(id);
@@ -434,7 +436,7 @@ describe("selection toolbox commands", () => {
         expect(getMajoorSelectionToolboxCommands({ id: 12, comfyClass: "SaveImage" })).toEqual([
             "mjr.openNodeContext",
             "mjr.openAssetsManager",
-            "mjr.openFloatingViewer",
+            "mjr.openNodeInFloatingViewer",
         ]);
     });
 
@@ -443,7 +445,7 @@ describe("selection toolbox commands", () => {
             getMajoorSelectionToolboxCommands({
                 items: [{ comfyClass: "KSampler" }, { id: 9, type: "PreviewImage" }],
             }),
-        ).toEqual(["mjr.openNodeContext", "mjr.openAssetsManager", "mjr.openFloatingViewer"]);
+        ).toEqual(["mjr.openNodeContext", "mjr.openAssetsManager", "mjr.openNodeInFloatingViewer"]);
         expect(getMajoorSelectionToolboxCommands({ comfyClass: "CLIPTextEncode" })).toEqual([]);
     });
 });

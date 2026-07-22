@@ -272,7 +272,7 @@ Open **Settings → Majoor Assets Manager → Security** and use these values:
 These values control which operations Majoor may perform. They are not, by themselves, remote-client authorization. A browser opened through a LAN IP must additionally use one of these paths:
 
 - **Recommended:** enable `Recommended Remote LAN Setup`; keep `Allow Remote Full Access` off. The preset configures a token and authorizes the current browser. On trusted plain-HTTP LAN access, it may also enable `Allow HTTP Token Transport`.
-- **No-token trusted LAN:** enable `Allow Remote Full Access`. This permits remote writes without token authentication and is therefore substantially less secure.
+- **No-token trusted LAN:** enable `Allow Remote Full Access`. This permits remote writes without token authentication and is therefore substantially less secure. It takes effect even though Majoor auto-generates an API token at first startup, unless `Require Token For All Writes` is enabled (which always takes priority).
 
 `Require Token For All Writes` controls whether even otherwise-local writes require a token; disabling it does not override the separate non-local-client guard. Refresh the page after applying the settings. Restart ComfyUI if environment variables are configured because environment settings can override UI values.
 

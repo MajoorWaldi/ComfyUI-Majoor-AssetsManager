@@ -256,6 +256,7 @@ def _check_write_access_with_token(
     headers: Mapping[str, str],
     request_scheme: str,
     require_auth: bool,
+    allow_remote: bool = False,
 ) -> Result[bool]:
     if _token_hash_matches(provided, configured_hash):
         if not _request_transport_is_secure(
@@ -277,6 +278,13 @@ def _check_write_access_with_token(
         return Result.Ok(True, auth="loopback", client_ip=client_ip)
     if not require_auth and _is_loopback_fallback_unknown_peer(client_ip, headers):
         return Result.Ok(True, auth="loopback_unknown_peer", client_ip=client_ip)
+    if not require_auth and allow_remote:
+        # 'Allow Remote Full Access' (UI toggle / MAJOOR_ALLOW_REMOTE_WRITE) is
+        # explicit operator consent for tokenless remote writes on a trusted
+        # LAN. Honor it even though an (auto-generated) API token exists,
+        # otherwise remote clients are permanently blocked with no way to
+        # opt out (GitHub issue #167).
+        return Result.Ok(True, auth="allow_remote_no_token", client_ip=client_ip)
     return Result.Err(
         "AUTH_REQUIRED",
         "Write operation blocked: missing or invalid API token. Sign in to ComfyUI to bootstrap the session token automatically, or paste the API token in Settings -> Security (or send it via X-MJR-Token / Authorization: Bearer <token>).",
@@ -327,8 +335,8 @@ def _check_write_access(
 
     Overrides (env var OR persisted UI setting in Settings -> Security):
       - require_auth / MAJOOR_REQUIRE_AUTH=1 forces token auth even for loopback.
-      - allow_remote_write / MAJOOR_ALLOW_REMOTE_WRITE=1 allows remote writes
-        when no token is set.
+      - allow_remote_write / MAJOOR_ALLOW_REMOTE_WRITE=1 allows tokenless remote
+        writes, even when an (auto-generated) API token is configured.
     Persisted UI settings take precedence over env var fallbacks.
     """
     configured_hash = _get_write_token_hash()
@@ -348,6 +356,7 @@ def _check_write_access(
             headers=headers,
             request_scheme=request_scheme,
             require_auth=require_auth,
+            allow_remote=allow_remote,
         )
     return _check_write_access_without_token(
         client_ip=client_ip,

@@ -1,0 +1,35 @@
+{
+    "mjr_openAssetsManager": {
+        "label": "Ouvrir Majoor Assets Manager"
+    },
+    "mjr_scanAssets": {
+        "label": "Scanner les assets (Majoor)"
+    },
+    "mjr_toggleFloatingViewer": {
+        "label": "Basculer le floating viewer Majoor"
+    },
+    "mjr_refreshAssetsGrid": {
+        "label": "Rafraichir la grille d'assets Majoor"
+    },
+    "mjr_openFloatingViewer": {
+        "label": "Ouvrir le floating viewer Majoor"
+    },
+    "mjr_openGeneratedFeed": {
+        "label": "Ouvrir le flux genere Majoor"
+    },
+    "mjr_openSettings": {
+        "label": "Ouvrir les parametres Majoor"
+    },
+    "mjr_pickOutputDirectory": {
+        "label": "Choisir le dossier de sortie Majoor"
+    },
+    "mjr_pickIndexDirectory": {
+        "label": "Choisir le dossier d'index Majoor"
+    },
+    "mjr_openNodeContext": {
+        "label": "Afficher les assets de ce noeud dans Majoor Assets Manager"
+    },
+    "mjr_openNodeInFloatingViewer": {
+        "label": "Ouvrir le media de ce noeud dans le floating viewer Majoor"
+    }
+}

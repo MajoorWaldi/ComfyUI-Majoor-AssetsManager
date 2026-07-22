@@ -188,7 +188,8 @@ async def test_ingest_prompt_outputs_attaches_runtime_metadata(monkeypatch, tmp_
     ]
     assert metadata_writes
     assert metadata_writes[0][1][0] == 42
-    assert '"prompt_id": "prompt-glb"' in metadata_writes[0][1][8]
+    # params: (asset_id, rating, has_wf, has_gen, quality, wf_type, gen_time, positive_prompt, metadata_text, metadata_raw, asset_id)
+    assert '"prompt_id": "prompt-glb"' in metadata_writes[0][1][9]
 
 
 @pytest.mark.asyncio

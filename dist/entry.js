@@ -1,13 +1,13 @@
-import { $t as e, A as t, B as n, Bt as r, C as i, Ct as a, D as o, Dt as s, E as c, Ft as l, Gt as u, H as d, It as f, K as p, Kt as m, L as h, Lt as g, M as _, N as v, Nt as y, O as b, P as x, Pt as S, Qt as C, S as w, U as T, Ut as E, V as D, W as O, Wt as k, Xt as A, Yt as j, Zt as M, _ as N, _t as P, at as ee, b as te, c as F, ct as I, d as ne, dt as re, en as ie, f as ae, ft as oe, g as se, gt as ce, h as le, ht as ue, j as de, k as fe, l as pe, m as me, mt as he, nn as ge, o as _e, pt as ve, q as ye, s as be, tn as xe, u as Se, ut as Ce, vt as we, w as Te, y as Ee, yt as De, z as Oe, zt as ke } from "./chunks/viewerRuntimeHosts-BeyPtIl9.js";
-import { $ as Ae, A as je, Ct as Me, F as Ne, G as Pe, H as Fe, K as Ie, L as Le, Q as Re, St as ze, U as Be, W as Ve, X as He, Z as Ue, _ as We, at as Ge, bt as Ke, ct as qe, dt as Je, et as Ye, ft as Xe, g as Ze, h as Qe, it as $e, j as et, lt as tt, m as L, n as R, o as z, ot as nt, pt as rt, q as it, r as B, rt as at, st as ot, t as st, tt as V, ut as ct, xt as lt, yt as ut } from "./chunks/events-DSLVC_8W.js";
+import { $t as e, A as t, B as n, Bt as r, C as i, Ct as a, D as o, Dt as s, E as c, Ft as l, Gt as u, H as d, It as f, K as p, Kt as m, L as h, Lt as g, M as _, N as v, Nt as y, O as b, P as x, Pt as S, Qt as C, S as w, U as T, Ut as E, V as D, W as O, Wt as k, Xt as A, Yt as j, Zt as M, _ as N, _t as P, at as ee, b as te, c as F, ct as I, d as ne, dt as re, en as ie, f as ae, ft as oe, g as se, gt as ce, h as le, ht as ue, j as de, k as fe, l as pe, m as me, mt as he, nn as ge, o as _e, pt as ve, q as ye, s as be, tn as xe, u as Se, ut as Ce, vt as we, w as Te, y as Ee, yt as De, z as Oe, zt as ke } from "./chunks/viewerRuntimeHosts-CxIAoZ6G.js";
+import { $ as Ae, A as je, Ct as Me, F as Ne, G as Pe, H as Fe, K as Ie, L as Le, Q as Re, St as ze, U as Be, W as Ve, X as He, Z as Ue, _ as We, at as Ge, bt as Ke, ct as qe, dt as Je, et as Ye, ft as Xe, g as Ze, h as Qe, it as $e, j as et, lt as tt, m as L, n as R, o as z, ot as nt, pt as rt, q as it, r as B, rt as at, st as ot, t as st, tt as V, ut as ct, xt as lt, yt as ut } from "./chunks/events-fw5MiFly.js";
 import { a as dt, i as ft, n as pt, t as mt } from "./chunks/graphTraversal-Sruu0ipL.js";
-import { A as ht, B as gt, C as _t, D as vt, E as yt, F as bt, G as xt, H as St, I as Ct, J as wt, L as Tt, M as Et, N as Dt, O as Ot, P as kt, R as At, S as jt, T as Mt, U as Nt, V as Pt, W as Ft, Y as It, _ as Lt, b as Rt, d as zt, g as Bt, j as Vt, k as Ht, q as Ut, v as Wt, x as Gt, y as Kt, z as qt } from "./chunks/Viewer-C1jSvHym.js";
-import { $ as Jt, A as Yt, B as Xt, C as Zt, D as Qt, E as $t, F as en, G as tn, H as nn, I as rn, J as an, K as on, L as sn, M as cn, N as ln, O as un, P as dn, Q as fn, R as pn, S as mn, T as hn, U as gn, V as _n, W as vn, X as yn, Y as bn, Z as xn, a as Sn, c as Cn, d as wn, f as Tn, g as En, h as Dn, i as On, j as kn, k as An, l as jn, m as Mn, n as Nn, o as Pn, p as Fn, q as In, s as Ln, t as Rn, u as zn, w as Bn, z as Vn } from "./chunks/SidebarWorkflowSection-BwS0BsAZ.js";
-import { _ as Hn, i as Un, n as Wn, p as Gn, t as Kn } from "./chunks/openMajoorSettings-BaEfvO9h.js";
-import { a as qn, c as Jn, l as Yn, o as Xn, s as Zn, u as Qn } from "./chunks/floatingViewerManager-BtnD0d6Z.js";
+import { A as ht, B as gt, C as _t, D as vt, E as yt, F as bt, G as xt, H as St, I as Ct, J as wt, L as Tt, M as Et, N as Dt, O as Ot, P as kt, R as At, S as jt, T as Mt, U as Nt, V as Pt, W as Ft, Y as It, _ as Lt, b as Rt, d as zt, g as Bt, j as Vt, k as Ht, q as Ut, v as Wt, x as Gt, y as Kt, z as qt } from "./chunks/Viewer-DX60EV7R.js";
+import { $ as Jt, A as Yt, B as Xt, C as Zt, D as Qt, E as $t, F as en, G as tn, H as nn, I as rn, J as an, K as on, L as sn, M as cn, N as ln, O as un, P as dn, Q as fn, R as pn, S as mn, T as hn, U as gn, V as _n, W as vn, X as yn, Y as bn, Z as xn, a as Sn, c as Cn, d as wn, f as Tn, g as En, h as Dn, i as On, j as kn, k as An, l as jn, m as Mn, n as Nn, o as Pn, p as Fn, q as In, s as Ln, t as Rn, u as zn, w as Bn, z as Vn } from "./chunks/SidebarWorkflowSection-DCUx0Yal.js";
+import { _ as Hn, i as Un, n as Wn, p as Gn, t as Kn } from "./chunks/openMajoorSettings-CymrXZQO.js";
+import { a as qn, c as Jn, l as Yn, o as Xn, s as Zn, u as Qn } from "./chunks/floatingViewerManager-V417Tldi.js";
 import { A as $n, B as H, C as U, D as er, E as W, F as tr, G as nr, H as rr, I as ir, J as ar, K as or, L as sr, M as cr, N as lr, O as G, R as ur, S as dr, T as K, U as fr, V as pr, W as mr, b as hr, ct as q, dt as J, et as gr, it as _r, j as Y, k as X, lt as vr, nt as Z, q as Q, rt as yr, st as br, tt as xr, ut as Sr, v as Cr, w as wr, x as Tr, y as Er, z as Dr } from "./chunks/mjr-primevue-n1rsQYJg.js";
 import { n as Or, r as kr } from "./chunks/mjr-vue-vendor-D2GeV7Qd.js";
-import { t as Ar } from "./chunks/TagsEditor-DTRo7QA7.js";
+import { t as Ar } from "./chunks/TagsEditor-USrLZuDV.js";
 import { app as jr } from "../../scripts/app.js";
 function Mr(e = null) {
 	return null;
@@ -1026,7 +1026,7 @@ var Li = {
 	}
 }, Ri = null;
 function zi() {
-	return Ri ||= import("./chunks/viewerOpenRequest-BCoer6gp.js").then((e) => e.n), Ri;
+	return Ri ||= import("./chunks/viewerOpenRequest-B1N7d_vg.js").then((e) => e.n), Ri;
 }
 function Bi(e) {
 	if (!e) return "";
@@ -1543,10 +1543,10 @@ function Ji() {
 //#region ui/features/contextmenu/GridContextMenu.ts
 var Yi = 1, Xi = null, Zi = null;
 function Qi() {
-	return Xi ||= import("./chunks/viewerOpenRequest-BCoer6gp.js").then((e) => e.n), Xi;
+	return Xi ||= import("./chunks/viewerOpenRequest-B1N7d_vg.js").then((e) => e.n), Xi;
 }
 function $i() {
-	return Zi ||= import("./chunks/floatingViewerManager-BtnD0d6Z.js").then((e) => e.n), Zi;
+	return Zi ||= import("./chunks/floatingViewerManager-V417Tldi.js").then((e) => e.n), Zi;
 }
 function ea(e) {
 	let t = String(e || "").trim().toLowerCase();
@@ -7542,10 +7542,10 @@ var Lu = {
 		Z(!0);
 		let a = Z(0), s = Z(0), c = /* @__PURE__ */ new WeakMap(), l = 0, u = 0, d = 0, f = 0, p = 0, m = /* @__PURE__ */ new Map(), h = null, g = null;
 		function _() {
-			return h ||= import("./chunks/viewerOpenRequest-BCoer6gp.js").then((e) => e.n), h;
+			return h ||= import("./chunks/viewerOpenRequest-B1N7d_vg.js").then((e) => e.n), h;
 		}
 		function v() {
-			return g ||= import("./chunks/floatingViewerManager-BtnD0d6Z.js").then((e) => e.n), g;
+			return g ||= import("./chunks/floatingViewerManager-V417Tldi.js").then((e) => e.n), g;
 		}
 		function y(e) {
 			return (Array.isArray(e) ? e : []).slice().sort((e, t) => {
@@ -8834,10 +8834,10 @@ var Lu = {
 	}
 }, Qu = 240, $u = 120, ed = 80, td = null, nd = null;
 function rd() {
-	return td ||= import("./chunks/viewerOpenRequest-BCoer6gp.js").then((e) => e.n), td;
+	return td ||= import("./chunks/viewerOpenRequest-B1N7d_vg.js").then((e) => e.n), td;
 }
 function id() {
-	return nd ||= import("./chunks/floatingViewerManager-BtnD0d6Z.js").then((e) => e.n), nd;
+	return nd ||= import("./chunks/floatingViewerManager-V417Tldi.js").then((e) => e.n), nd;
 }
 function ad(e) {
 	let t = document.createElement("button");
@@ -11081,7 +11081,7 @@ function Pp() {
 var Fp = {
 	__name: "GlobalRuntime",
 	setup(e) {
-		let t = cr(() => import("./chunks/ViewerPortal-DqUjGixW.js")), n = Z(!1), r = [
+		let t = cr(() => import("./chunks/ViewerPortal-0kiXUeQp.js")), n = Z(!1), r = [
 			B.OPEN_VIEWER,
 			B.MFV_OPEN,
 			B.MFV_TOGGLE,
@@ -16671,44 +16671,98 @@ function $g({ similarBtn: e, similarPopover: t, similarFindBtn: n, similarDuplic
 		} catch (e) {
 			return console.debug?.(e), null;
 		}
-	}, O = async (e, t) => e && t.some((t) => Qg(e, t)) ? e : await D() || e, k = async (e = {}) => {
-		let t = String(e?.sourceNodeId || e?.source_node_id || "").trim();
-		if (t) {
+	}, O = async (e, t) => e && t.some((t) => Qg(e, t)) ? e : await D() || e, k = (e = {}) => (Array.isArray(e?.files) ? e.files : []).map((e) => ({
+		filename: String(e?.filename || "").trim(),
+		subfolder: String(e?.subfolder || "").trim().replace(/\\/g, "/"),
+		type: String(e?.type || "").trim().toLowerCase()
+	})).filter((e) => e.filename), A = async (e, t) => {
+		let n = [], r = /* @__PURE__ */ new Set();
+		for (let e of t.slice(0, 4)) {
+			let t = e.type === "input" ? "input" : "output";
+			try {
+				let i = await le(tt({
+					q: e.filename,
+					scope: t,
+					limit: 50,
+					includeTotal: !1
+				}), { timeoutMs: 3e4 });
+				if (!i?.ok) continue;
+				let a = Array.isArray(i?.data?.assets) ? i.data.assets : Array.isArray(i?.data) ? i.data : [], o = e.filename.toLowerCase(), s = (e.subfolder ? `${e.subfolder}/${e.filename}` : e.filename).toLowerCase();
+				for (let t of a) {
+					let i = String(t?.filename || "").toLowerCase();
+					if (i !== o) continue;
+					let a = String(t?.filepath || t?.path || "").replace(/\\/g, "/").toLowerCase();
+					if (e.subfolder && a && !a.endsWith(s)) continue;
+					let c = String(t?.id || a || i);
+					r.has(c) || (r.add(c), n.push(t));
+				}
+			} catch (e) {
+				console.debug?.(e);
+			}
+		}
+		if (!n.length) {
+			j(L("nodeContext.fileNotIndexed", "The node file is not indexed yet. Run a scan first."), "info", 3200);
+			return;
+		}
+		let i = String(e?.title || e?.sourceNodeType || e?.source_node_type || t[0]?.filename || "").trim();
+		h("similarResults", n), h("similarSourceAssetId", `node-file:${t[0]?.filename || ""}`), h("similarTitle", L("nodeContext.fileResultsTitle", "Node {node} file ({n} assets)", {
+			node: i || t[0]?.filename || "",
+			n: n.length
+		})), await g?.setScope?.("similar");
+	}, M = async (e = {}) => {
+		let t = String(e?.sourceNodeId || e?.source_node_id || "").trim(), n = k(e);
+		if (!(!t && !n.length)) {
 			try {
 				_?.();
 			} catch (e) {
 				console.debug?.(e);
 			}
+			if (!t) {
+				await A(e, n);
+				return;
+			}
 			try {
-				let n = await le(ct(t, {
+				let r = await le(ct(t, {
 					jobId: e?.jobId || e?.job_id || "",
 					latest: e?.latest !== !1,
 					limit: 500
 				}), { timeoutMs: 3e4 });
-				if (!n?.ok) {
-					if (Yg(n)) {
-						let e = window.MajoorAssetsManager ||= {};
-						e.nodeContextRouteMissingToastShown || (e.nodeContextRouteMissingToastShown = !0, j(L("nodeContext.routeMissing", "Node context backend route is not loaded yet. Restart ComfyUI after updating Majoor Assets Manager."), "warn", 7e3));
+				if (!r?.ok) {
+					if (Yg(r)) {
+						if (n.length) {
+							await A(e, n);
+							return;
+						}
+						let t = window.MajoorAssetsManager ||= {};
+						t.nodeContextRouteMissingToastShown || (t.nodeContextRouteMissingToastShown = !0, j(L("nodeContext.routeMissing", "Node context backend route is not loaded yet. Restart ComfyUI after updating Majoor Assets Manager."), "warn", 7e3));
 						return;
 					}
-					j(String(n?.error || L("nodeContext.loadFailed", "Failed to load node assets")), "error", 3e3);
+					if (n.length) {
+						await A(e, n);
+						return;
+					}
+					j(String(r?.error || L("nodeContext.loadFailed", "Failed to load node assets")), "error", 3e3);
 					return;
 				}
-				let r = Array.isArray(n?.data) ? n.data : [];
-				if (!r.length) {
+				let i = Array.isArray(r?.data) ? r.data : [];
+				if (!i.length) {
+					if (n.length) {
+						await A(e, n);
+						return;
+					}
 					j(L("nodeContext.noAssets", "No indexed assets found for this node yet."), "info", 2600);
 					return;
 				}
-				let i = String(e?.title || e?.sourceNodeType || e?.source_node_type || t).trim();
-				h("similarResults", r), h("similarSourceAssetId", `node:${t}`), h("similarTitle", L("nodeContext.resultsTitle", "Node {node} outputs ({n} assets)", {
-					node: i || t,
-					n: r.length
+				let a = String(e?.title || e?.sourceNodeType || e?.source_node_type || t).trim();
+				h("similarResults", i), h("similarSourceAssetId", `node:${t}`), h("similarTitle", L("nodeContext.resultsTitle", "Node {node} outputs ({n} assets)", {
+					node: a || t,
+					n: i.length
 				})), await g?.setScope?.("similar");
 			} catch (e) {
 				console.debug?.(e), j(L("nodeContext.loadFailed", "Failed to load node assets"), "error", 3e3);
 			}
 		}
-	}, A = async () => {
+	}, N = async () => {
 		if (!u()) {
 			j(d, "info", 2200);
 			return;
@@ -16745,7 +16799,7 @@ function $g({ similarBtn: e, similarPopover: t, similarFindBtn: n, similarDuplic
 		} finally {
 			e.disabled = !1, e.title = n;
 		}
-	}, M = async () => {
+	}, P = async () => {
 		try {
 			_?.();
 		} catch (e) {
@@ -16762,19 +16816,19 @@ function $g({ similarBtn: e, similarPopover: t, similarFindBtn: n, similarDuplic
 			return;
 		}
 		j(L("search.noKnownDuplicates", "No duplicate group is available yet. Run duplicate analysis from the duplicate alert first."), "info", 3200);
-	}, N = async () => {
+	}, ee = async () => {
 		let e = await O(await E(), ["source_node_id", "source_node_type"]), t = Qg(e, "source_node_id");
 		if (!t) {
 			j(L("search.noSourceNode", "Selected asset has no persisted source node id."), "info", 2600);
 			return;
 		}
-		await k({
+		await M({
 			sourceNodeId: t,
 			sourceNodeType: Qg(e, "source_node_type"),
 			jobId: Qg(e, "job_id"),
 			title: Qg(e, "source_node_type") || t
 		});
-	}, P = async () => {
+	}, te = async () => {
 		try {
 			_?.();
 		} catch (e) {
@@ -16807,12 +16861,12 @@ function $g({ similarBtn: e, similarPopover: t, similarFindBtn: n, similarDuplic
 		}
 		y?.toggle?.(t, e);
 	}, { signal: l?.signal });
-	let ee = (e, t) => {
+	let F = (e, t) => {
 		e?.addEventListener("click", (e) => {
 			e.stopPropagation(), t();
 		}, { signal: l?.signal });
 	};
-	ee(n, A), ee(i, M), ee(a, N), ee(o, P), s?.addEventListener(B.OPEN_STACK_GROUP, async (e) => {
+	F(n, N), F(i, P), F(a, ee), F(o, te), s?.addEventListener(B.OPEN_STACK_GROUP, async (e) => {
 		try {
 			let t = e?.detail || {}, n = Array.isArray(t?.members) ? t.members : [], r = `Generation group (${n.length} assets)`, i = Xg(n, String(t?.title || "").trim() || r);
 			i.truncated && j(`Large stack truncated to ${Jg}/${i.total} assets to keep the grid responsive.`, "warn", 5e3), h("similarResults", i.list), h("similarSourceAssetId", Zg(t)), h("similarTitle", i.title || r), await Promise.resolve(), await g?.setScope?.("similar");
@@ -16820,12 +16874,18 @@ function $g({ similarBtn: e, similarPopover: t, similarFindBtn: n, similarDuplic
 			console.debug?.(e);
 		}
 	}, { signal: l?.signal }), window.addEventListener(B.OPEN_NODE_CONTEXT, (e) => {
-		k(e?.detail || {});
+		try {
+			let e = window.MajoorAssetsManager;
+			e?.pendingNodeContext && (e.pendingNodeContext = null);
+		} catch (e) {
+			console.debug?.(e);
+		}
+		M(e?.detail || {});
 	}, { signal: l?.signal });
 	try {
 		let e = window.MajoorAssetsManager?.pendingNodeContext || null;
 		e && (window.MajoorAssetsManager.pendingNodeContext = null, setTimeout(() => {
-			k(e);
+			M(e);
 		}, 0));
 	} catch (e) {
 		console.debug?.(e);
@@ -24025,7 +24085,7 @@ async function iC(e, { settingId: t, settingsPathKey: n, save: r, successMessage
 	return j(a ? `${i} ${L("toast.restartComfyUiToApply", "Restart ComfyUI to apply.")}` : i, "success", 2800), !0;
 }
 function aC(e) {
-	return wC(e).find(CC) || null;
+	return OC(e).find(DC) || null;
 }
 function oC(e) {
 	let t = String(e?.id ?? e?.nodeId ?? e?.node_id ?? "").trim();
@@ -24039,18 +24099,60 @@ function oC(e) {
 		title: String(e?.title || e?.properties?.title || e?.properties?.name || n || "").trim()
 	};
 }
-function sC(e, t) {
-	let n = oC(XS);
-	if (!n) return j(L("toast.nodeContextMissing", "Select an output node first."), "info", 2200), !1;
-	eC(e, t);
+async function sC(e) {
+	if (!e) return [];
 	try {
-		typeof window < "u" && (window.MajoorAssetsManager = window.MajoorAssetsManager || {}, window.MajoorAssetsManager.pendingNodeContext = n, window.dispatchEvent(new CustomEvent(B.OPEN_NODE_CONTEXT, { detail: n })));
+		let t = (await import("./chunks/NodeStreamController-f2tXbqnR.js")).extractNodeFileData?.(e), n = String(t?.filename || "").trim();
+		return n ? [{
+			filename: n,
+			subfolder: String(t?.subfolder || ""),
+			type: String(t?.type || "output"),
+			kind: String(t?.kind || "")
+		}] : [];
+	} catch (e) {
+		return console.debug?.(e), [];
+	}
+}
+function cC(e) {
+	try {
+		if (typeof window > "u") return;
+		window.MajoorAssetsManager = window.MajoorAssetsManager || {}, window.MajoorAssetsManager.pendingNodeContext = e, window.dispatchEvent(new CustomEvent(B.OPEN_NODE_CONTEXT, { detail: e }));
 	} catch (e) {
 		console.debug?.(e);
 	}
-	return !0;
 }
-function cC(e, { sidebarTabId: t, triggerStartupScan: n }) {
+async function lC(e, t, n) {
+	eC(e, t);
+	let r = oC(n) || {}, i = await sC(n);
+	i.length && (r.files = i);
+	let a = String(n?.comfyClass || n?.type || "").toLowerCase();
+	return i.length && /load|upload/.test(a) && (delete r.source_node_id, delete r.sourceNodeId), !r.source_node_id && !i.length ? (j(L("toast.nodeContextMissing", "Select an output node first."), "info", 2200), !1) : (cC(r), !0);
+}
+async function uC(e) {
+	try {
+		let t = await sC(e);
+		if (t.length) {
+			let { floatingViewerManager: e } = await import("./chunks/floatingViewerManager-V417Tldi.js").then((e) => e.n);
+			if (await e.openAssets({
+				assets: t,
+				index: 0
+			})) return !0;
+		}
+	} catch (e) {
+		console.debug?.(e);
+	}
+	try {
+		window.dispatchEvent(new Event(B.MFV_OPEN));
+	} catch (e) {
+		console.debug?.(e);
+	}
+	return !1;
+}
+function dC(e, t) {
+	let n = XS;
+	return n ? (lC(e, t, n), !0) : (j(L("toast.nodeContextMissing", "Select an output node first."), "info", 2200), !1);
+}
+function fC(e, { sidebarTabId: t, triggerStartupScan: n }) {
 	return [
 		{
 			id: "mjr.openAssetsManager",
@@ -24151,11 +24253,22 @@ function cC(e, { sidebarTabId: t, triggerStartupScan: n }) {
 			title: L("tooltip.openNodeContext", "Show the latest indexed assets produced by this node"),
 			description: L("tooltip.openNodeContext", "Show the latest indexed assets produced by this node"),
 			icon: "pi pi-sitemap",
-			function: () => sC(e, t)
+			function: () => dC(e, t)
+		},
+		{
+			id: "mjr.openNodeInFloatingViewer",
+			label: L("command.openNodeInFloatingViewer", "Open node media in floating viewer"),
+			tooltip: L("tooltip.openNodeInFloatingViewer", "Open this node's media in the Majoor floating viewer"),
+			title: L("tooltip.openNodeInFloatingViewer", "Open this node's media in the Majoor floating viewer"),
+			description: L("tooltip.openNodeInFloatingViewer", "Open this node's media in the Majoor floating viewer"),
+			icon: "pi pi-window-maximize",
+			function: () => {
+				uC(XS);
+			}
 		}
 	];
 }
-function lC() {
+function pC() {
 	return [{
 		combo: {
 			alt: !0,
@@ -24172,7 +24285,7 @@ function lC() {
 		commandId: "mjr.toggleFloatingViewer"
 	}];
 }
-function uC() {
+function mC() {
 	return [{
 		path: ["Extensions", "Majoor Assets Manager"],
 		commands: [
@@ -24187,7 +24300,7 @@ function uC() {
 		]
 	}];
 }
-function dC(e, { sidebarTabId: t, triggerStartupScan: n }) {
+function hC(e, { sidebarTabId: t, triggerStartupScan: n }) {
 	return [null, {
 		content: "Majoor Assets Manager",
 		submenu: { options: [
@@ -24225,7 +24338,7 @@ function dC(e, { sidebarTabId: t, triggerStartupScan: n }) {
 		] }
 	}];
 }
-function fC() {
+function gC() {
 	return [
 		{
 			label: "Majoor Assets Manager",
@@ -24242,13 +24355,13 @@ function fC() {
 		}
 	];
 }
-function pC(e, t) {
-	for (let n of cC(e, t)) Fe(e, n);
+function _C(e, t) {
+	for (let n of fC(e, t)) Fe(e, n);
 }
-function mC(e) {
-	for (let t of lC()) Be(e, t);
+function vC(e) {
+	for (let t of pC()) Be(e, t);
 }
-function hC(e, { sidebarTabId: t }) {
+function yC(e, { sidebarTabId: t }) {
 	return If({ sidebarTabId: t }), Ve(e, {
 		id: t,
 		icon: "pi pi-folder",
@@ -24272,23 +24385,23 @@ function hC(e, { sidebarTabId: t }) {
 		destroy(e) {}
 	});
 }
-function gC() {
+function bC() {
 	try {
 		Tn(null, qS);
 	} catch {}
 }
-var _C = !1, vC = "mjr-sidebar-prewarm-host";
-function yC() {
-	if (_C || typeof document > "u" || !document?.body) return !1;
-	_C = !0;
+var xC = !1, SC = "mjr-sidebar-prewarm-host";
+function CC() {
+	if (xC || typeof document > "u" || !document?.body) return !1;
+	xC = !0;
 	try {
-		let e = document.getElementById(vC);
-		return e || (e = document.createElement("div"), e.id = vC, e.style.cssText = "position:fixed;left:-99999px;top:0;width:360px;height:600px;overflow:hidden;visibility:hidden;pointer-events:none;contain:strict;", e.setAttribute("aria-hidden", "true"), document.body.appendChild(e)), wn(e, fS, qS), !0;
+		let e = document.getElementById(SC);
+		return e || (e = document.createElement("div"), e.id = SC, e.style.cssText = "position:fixed;left:-99999px;top:0;width:360px;height:600px;overflow:hidden;visibility:hidden;pointer-events:none;contain:strict;", e.setAttribute("aria-hidden", "true"), document.body.appendChild(e)), wn(e, fS, qS), !0;
 	} catch (e) {
-		return console.debug?.(e), _C = !1, !1;
+		return console.debug?.(e), xC = !1, !1;
 	}
 }
-function bC() {
+function wC() {
 	return {
 		id: YS,
 		title: L("bottomFeed.title", "Generated Feed"),
@@ -24300,45 +24413,43 @@ function bC() {
 		destroy(e) {}
 	};
 }
-function xC() {
-	return [bC()];
+function TC() {
+	return [wC()];
 }
-function SC() {
+function EC() {
 	try {
 		Tn(null, JS);
 	} catch {}
 }
-function CC(e) {
+function DC(e) {
 	let t = String(e?.comfyClass || e?.type || e?.constructor?.type || "").trim();
 	return t ? /save|load|preview/i.test(t) : !1;
 }
-function wC(e) {
+function OC(e) {
 	return e ? Array.isArray(e) ? e.filter(Boolean) : e instanceof Set ? Array.from(e).filter(Boolean) : e instanceof Map ? Array.from(e.values()).filter(Boolean) : Array.isArray(e?.items) ? e.items.filter(Boolean) : Array.isArray(e?.nodes) ? e.nodes.filter(Boolean) : [e] : [];
 }
-function TC(e) {
+function kC(e) {
 	return XS = aC(e), XS ? [
 		"mjr.openNodeContext",
 		"mjr.openAssetsManager",
-		"mjr.openFloatingViewer"
+		"mjr.openNodeInFloatingViewer"
 	] : [];
 }
-function EC(e, t) {
+function AC(e, t) {
 	return {
 		content: e,
 		callback: t
 	};
 }
-function DC(e, t, { sidebarTabId: n }) {
-	return CC(e) ? [
-		EC("View in Assets Manager", () => eC(t, n)),
-		EC("Open in Floating Viewer", () => {
-			try {
-				window.dispatchEvent(new Event(B.MFV_OPEN));
-			} catch (e) {
-				console.debug?.(e);
-			}
+function jC(e, t, { sidebarTabId: n }) {
+	return DC(e) ? [
+		AC("View in Assets Manager", () => {
+			lC(t, n, e);
 		}),
-		EC("Index Output", () => {
+		AC("Open in Floating Viewer", () => {
+			uC(e);
+		}),
+		AC("Index Output", () => {
 			try {
 				tC(), j(L("toast.rescanningFile", "Rescanning file..."), "info", 1800);
 			} catch (e) {
@@ -24349,15 +24460,15 @@ function DC(e, t, { sidebarTabId: n }) {
 }
 //#endregion
 //#region ui/features/runtime/entryRuntimeLifecycle.ts
-var OC = "__MJR_ENTRY_RUNTIME__";
-function kC(e, t) {
+var MC = "__MJR_ENTRY_RUNTIME__";
+function NC(e, t) {
 	if (e) try {
 		e._mjrAssetUpdateReloadTimer &&= (clearTimeout(e._mjrAssetUpdateReloadTimer), null), e._mjrExecutedHandler && e.removeEventListener("executed", e._mjrExecutedHandler), e._mjrAssetAddedHandler && e.removeEventListener("mjr-asset-added", e._mjrAssetAddedHandler), e._mjrAssetUpdatedHandler && e.removeEventListener("mjr-asset-updated", e._mjrAssetUpdatedHandler), e._mjrStructuredEventHandler && e.removeEventListener(B.STRUCTURED_EVENT, e._mjrStructuredEventHandler), e._mjrScanCompleteHandler && e.removeEventListener(B.SCAN_COMPLETE, e._mjrScanCompleteHandler), e._mjrScanProgressHandler && e.removeEventListener(B.SCAN_PROGRESS, e._mjrScanProgressHandler), e._mjrAssetIndexingHandler && e.removeEventListener(B.ASSET_INDEXING, e._mjrAssetIndexingHandler), e._mjrAssetIndexedHandler && e.removeEventListener(B.ASSET_INDEXED, e._mjrAssetIndexedHandler), e._mjrExecutionStartHandler && e.removeEventListener("execution_start", e._mjrExecutionStartHandler), e._mjrExecutionEndHandler && (e.removeEventListener("execution_success", e._mjrExecutionEndHandler), e.removeEventListener("execution_error", e._mjrExecutionEndHandler), e.removeEventListener("execution_interrupted", e._mjrExecutionEndHandler)), e._mjrStacksUpdatedHandler && e.removeEventListener("mjr.stacks.updated", e._mjrStacksUpdatedHandler), e._mjrEnrichmentStatusHandler && e.removeEventListener(B.ENRICHMENT_STATUS, e._mjrEnrichmentStatusHandler), e._mjrDbRestoreStatusHandler && e.removeEventListener(B.DB_RESTORE_STATUS, e._mjrDbRestoreStatusHandler), e._mjrRuntimeStatusHandler && (e.removeEventListener("progress", e._mjrRuntimeStatusHandler), e.removeEventListener("status", e._mjrRuntimeStatusHandler), e.removeEventListener(B.RUNTIME_STATUS, e._mjrRuntimeStatusHandler), e.removeEventListener("execution_cached", e._mjrExecutionCachedHandler));
 	} catch (e) {
 		t?.(e, "entry.removeApiHandlers");
 	}
 }
-function AC(e, t) {
+function PC(e, t) {
 	try {
 		let t = e?.assetsDeletedHandler;
 		t && typeof window < "u" && window.removeEventListener(B.ASSETS_DELETED, t);
@@ -24365,7 +24476,7 @@ function AC(e, t) {
 		t?.(e, "entry.removeRuntimeWindowHandlers");
 	}
 }
-function jC(e, { reportError: t } = {}) {
+function FC(e, { reportError: t } = {}) {
 	if (!(!e || typeof e != "object")) {
 		try {
 			let t = Array.isArray(e._listenerCleanupFns) ? e._listenerCleanupFns : [];
@@ -24390,13 +24501,13 @@ function jC(e, { reportError: t } = {}) {
 			console.warn("[MJR teardown]", e);
 		}
 		try {
-			kC(e.api || null, t), AC(e, t);
+			NC(e.api || null, t), PC(e, t);
 		} catch (e) {
 			console.warn("[MJR teardown]", e);
 		}
 	}
 }
-function MC(e, t, n, r, i = void 0) {
+function IC(e, t, n, r, i = void 0) {
 	if (!e || !t?.addEventListener || typeof r != "function") return null;
 	let a = i && typeof i == "object" ? { ...i } : i;
 	if (typeof AbortController < "u") try {
@@ -24416,11 +24527,11 @@ function MC(e, t, n, r, i = void 0) {
 		}
 	}), null;
 }
-function NC({ cleanupEntryRuntimeFn: e = jC, teardownLiveStreamTracker: t, teardownNodeStream: n, teardownFloatingViewerManager: r, teardownGeneratedFeed: i, teardownAssetsSidebar: a, teardownGlobalRuntime: o, teardownTopBarMfvButton: s, reportError: c }) {
+function LC({ cleanupEntryRuntimeFn: e = FC, teardownLiveStreamTracker: t, teardownNodeStream: n, teardownFloatingViewerManager: r, teardownGeneratedFeed: i, teardownAssetsSidebar: a, teardownGlobalRuntime: o, teardownTopBarMfvButton: s, reportError: c }) {
 	try {
 		if (typeof window < "u") {
 			try {
-				let t = window[OC];
+				let t = window[MC];
 				e(t, { reportError: c });
 			} catch (e) {
 				console.warn("[MJR teardown]", e);
@@ -24460,7 +24571,7 @@ function NC({ cleanupEntryRuntimeFn: e = jC, teardownLiveStreamTracker: t, teard
 			} catch (e) {
 				console.warn("[MJR teardown]", e);
 			}
-			window[OC] = {
+			window[MC] = {
 				api: null,
 				assetsDeletedHandler: null,
 				_cleanupControllers: [],
@@ -24473,42 +24584,42 @@ function NC({ cleanupEntryRuntimeFn: e = jC, teardownLiveStreamTracker: t, teard
 }
 //#endregion
 //#region ui/entry.ts
-var PC = null, FC = null, IC = null;
-function LC() {
-	return IC ||= import("./chunks/floatingViewerManager-BtnD0d6Z.js").then((e) => e.n), IC;
+var RC = null, zC = null, BC = null;
+function VC() {
+	return BC ||= import("./chunks/floatingViewerManager-V417Tldi.js").then((e) => e.n), BC;
 }
-function RC() {
-	IC && IC.then((e) => e?.teardownFloatingViewerManager?.()).catch((e) => console.debug?.("[Majoor] MFV teardown skipped", e));
+function HC() {
+	BC && BC.then((e) => e?.teardownFloatingViewerManager?.()).catch((e) => console.debug?.("[Majoor] MFV teardown skipped", e));
 }
-var zC = "majoor-assets", BC = "__MJR_EXECUTION_RUNTIME__", VC = "Majoor.AssetsManager", HC = {
+var UC = "majoor-assets", WC = "__MJR_EXECUTION_RUNTIME__", GC = "Majoor.AssetsManager", KC = {
 	active: null,
 	promptId: ""
-}, UC = null, WC = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i, GC = /^[0-9a-f]{20,}$/i;
-function KC(...e) {
+}, qC = null, JC = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i, YC = /^[0-9a-f]{20,}$/i;
+function XC(...e) {
 	for (let t of e) {
 		let e = String(t || "").trim();
 		if (e) return e;
 	}
 	return "";
 }
-function qC(e) {
+function ZC(e) {
 	let t = String(e || "").trim();
-	return WC.test(t) || GC.test(t);
+	return JC.test(t) || YC.test(t);
 }
-function JC(e) {
-	return KC(e?.title, e?.properties?.title, e?.properties?.name, e?.properties?.label, e?.name);
+function QC(e) {
+	return XC(e?.title, e?.properties?.title, e?.properties?.name, e?.properties?.label, e?.name);
 }
-function YC(e) {
+function $C(e) {
 	if (!e || typeof e != "object") return [];
 	if (Array.isArray(e.nodes)) return e.nodes.filter(Boolean);
 	if (Array.isArray(e._nodes)) return e._nodes.filter(Boolean);
 	let t = e._nodes_by_id ?? e.nodes_by_id ?? null;
 	return t instanceof Map ? Array.from(t.values()).filter(Boolean) : t && typeof t == "object" ? Object.values(t).filter(Boolean) : [];
 }
-function XC(e) {
-	return YC(e).length > 0;
+function ew(e) {
+	return $C(e).length > 0;
 }
-function ZC(e) {
+function tw(e) {
 	return !e || typeof e != "object" ? !1 : [
 		e.subgraph,
 		e._subgraph,
@@ -24519,13 +24630,13 @@ function ZC(e) {
 		e.subgraph_instance?.graph,
 		e.inner_graph,
 		e.subgraph_graph
-	].some(XC) || Array.isArray(e.nodes) && e.nodes.length > 0 && e.nodes !== e.graph?.nodes ? !0 : qC(e.type) && !!JC(e);
+	].some(ew) || Array.isArray(e.nodes) && e.nodes.length > 0 && e.nodes !== e.graph?.nodes ? !0 : ZC(e.type) && !!QC(e);
 }
-function QC(e, t) {
-	let n = String(e?.type || t || "").trim(), r = JC(e);
-	return qC(n) ? r || "Subgraph" : n || r || "Node";
+function nw(e, t) {
+	let n = String(e?.type || t || "").trim(), r = QC(e);
+	return ZC(n) ? r || "Subgraph" : n || r || "Node";
 }
-function $C() {
+function rw() {
 	try {
 		return typeof window > "u" ? {
 			active_prompt_id: null,
@@ -24534,30 +24645,30 @@ function $C() {
 			progress_value: null,
 			progress_max: null,
 			cached_nodes: []
-		} : ((!window[BC] || typeof window[BC] != "object") && (window[BC] = {
+		} : ((!window[WC] || typeof window[WC] != "object") && (window[WC] = {
 			active_prompt_id: null,
 			queue_remaining: null,
 			progress_node: null,
 			progress_value: null,
 			progress_max: null,
 			cached_nodes: []
-		}), window[BC]);
+		}), window[WC]);
 	} catch (e) {
 		return console.debug?.(e), {};
 	}
 }
-function ew(e = {}) {
+function iw(e = {}) {
 	try {
-		let t = $C();
+		let t = rw();
 		Object.assign(t, e || {}), window.dispatchEvent(new CustomEvent(B.RUNTIME_STATUS, { detail: { ...t } }));
 	} catch (e) {
 		console.debug?.(e);
 	}
 }
-async function tw({ active: e, promptId: t = "" } = {}) {
+async function aw({ active: e, promptId: t = "" } = {}) {
 	let n = !!e, r = String(t || "").trim();
-	if (!(HC.active === n && HC.promptId === r)) {
-		HC = {
+	if (!(KC.active === n && KC.promptId === r)) {
+		KC = {
 			active: n,
 			promptId: r
 		};
@@ -24572,49 +24683,49 @@ async function tw({ active: e, promptId: t = "" } = {}) {
 		}
 	}
 }
-function nw() {
+function ow() {
 	try {
-		return !!String($C()?.active_prompt_id || "").trim();
+		return !!String(rw()?.active_prompt_id || "").trim();
 	} catch (e) {
 		return console.debug?.(e), !1;
 	}
 }
-function rw(e = 1200) {
+function sw(e = 1200) {
 	try {
-		UC && clearTimeout(UC);
+		qC && clearTimeout(qC);
 	} catch (e) {
 		console.debug?.(e);
 	}
-	UC = setTimeout(() => {
-		if (UC = null, nw()) {
-			rw(e);
+	qC = setTimeout(() => {
+		if (qC = null, ow()) {
+			sw(e);
 			return;
 		}
 		let t = Yn();
 		t && wi(t);
 	}, Math.max(250, Number(e) || 0));
 }
-function iw(e) {
-	import("./chunks/LiveStreamTracker-KOzN5Ww4.js").then((t) => {
-		PC = t;
+function cw(e) {
+	import("./chunks/LiveStreamTracker-B3aat538.js").then((t) => {
+		RC = t;
 		try {
 			t.initLiveStreamTracker(e);
 		} catch (e) {
 			console.warn("[MJR setup] initLiveStreamTracker failed:", e);
 		}
-	}).catch((e) => console.warn("[MJR setup] LiveStreamTracker load failed:", e)), import("./chunks/NodeStreamController-B4LiaaMK.js").then((t) => {
-		FC = t;
+	}).catch((e) => console.warn("[MJR setup] LiveStreamTracker load failed:", e)), import("./chunks/NodeStreamController-f2tXbqnR.js").then((t) => {
+		zC = t;
 		try {
 			t.initNodeStream({
 				app: e,
 				onOutput: (e) => {
-					LC().then((t) => t?.floatingViewerManager?.feedNodeStream?.(e)).catch((e) => console.debug?.("[NodeStream] MFV output failed", e));
+					VC().then((t) => t?.floatingViewerManager?.feedNodeStream?.(e)).catch((e) => console.debug?.("[NodeStream] MFV output failed", e));
 				},
 				onStatus: (t, n) => {
 					try {
-						let r = (e?.graph ?? e?.canvas?.graph ?? null)?.getNodeById?.(Number(t)), i = ZC(r), a = JC(r), o = i ? "Subgraph" : QC(r, n);
-						LC().then((e) => {
-							e?.floatingViewerManager?.setNodeStreamSelection?.(t, o, i ? a || QC(r, n) : a);
+						let r = (e?.graph ?? e?.canvas?.graph ?? null)?.getNodeById?.(Number(t)), i = tw(r), a = QC(r), o = i ? "Subgraph" : nw(r, n);
+						VC().then((e) => {
+							e?.floatingViewerManager?.setNodeStreamSelection?.(t, o, i ? a || nw(r, n) : a);
 						}).catch((e) => console.debug?.("[NodeStream] MFV status failed", e));
 					} catch (e) {
 						console.debug?.("[NodeStream] onStatus failed", e);
@@ -24626,7 +24737,7 @@ function iw(e) {
 		}
 	}).catch((e) => console.warn("[MJR setup] NodeStream load failed:", e));
 }
-async function aw(e, t) {
+async function lw(e, t) {
 	let n = await Ae({
 		app: e,
 		timeoutMs: 4e3
@@ -24645,14 +24756,14 @@ async function aw(e, t) {
 	} catch (e) {
 		console.debug?.(e);
 	}
-	kC(r?.api || null, ne), n !== r?.api && kC(n, ne), AC(r, ne), await ep({
+	NC(r?.api || null, ne), n !== r?.api && NC(n, ne), PC(r, ne), await ep({
 		api: n,
 		runtime: r,
 		executionRuntime: t,
 		appRef: jr,
-		liveStreamModule: PC,
-		ensureExecutionRuntime: $C,
-		emitRuntimeStatus: ew,
+		liveStreamModule: RC,
+		ensureExecutionRuntime: rw,
+		emitRuntimeStatus: iw,
 		getActiveGridContainer: Yn,
 		pushGeneratedAsset: qd,
 		upsertAsset: Mi,
@@ -24663,39 +24774,39 @@ async function aw(e, t) {
 		comfyToast: j,
 		t: L,
 		reportError: ne,
-		registerCleanableListener: MC,
-		syncExecutionBackendState: tw
+		registerCleanableListener: IC,
+		syncExecutionBackendState: aw
 	});
 }
-var ow = gf({
+var uw = gf({
 	post: fe,
 	ENDPOINTS: V,
 	reportError: ne,
 	extractOutputFiles: _f,
-	ensureExecutionRuntime: $C,
-	emitRuntimeStatus: ew,
+	ensureExecutionRuntime: rw,
+	emitRuntimeStatus: iw,
 	refreshGeneratedFeedHosts: Md,
 	getActiveGridContainer: Yn
 });
 jr.registerExtension({
-	name: VC,
+	name: GC,
 	settings: an(jr),
-	commands: cC(jr, {
-		sidebarTabId: zC,
+	commands: fC(jr, {
+		sidebarTabId: UC,
 		triggerStartupScan: Kr
 	}),
-	keybindings: lC(),
-	menuCommands: uC(),
-	aboutPageBadges: fC(),
-	bottomPanelTabs: xC(),
+	keybindings: pC(),
+	menuCommands: mC(),
+	aboutPageBadges: gC(),
+	bottomPanelTabs: TC(),
 	async setup() {
-		NC({
-			cleanupEntryRuntimeFn: jC,
-			teardownLiveStreamTracker: (e) => PC?.teardownLiveStreamTracker(e),
-			teardownNodeStream: (e) => FC?.teardownNodeStream(e),
-			teardownFloatingViewerManager: RC,
-			teardownGeneratedFeed: SC,
-			teardownAssetsSidebar: gC,
+		LC({
+			cleanupEntryRuntimeFn: FC,
+			teardownLiveStreamTracker: (e) => RC?.teardownLiveStreamTracker(e),
+			teardownNodeStream: (e) => zC?.teardownNodeStream(e),
+			teardownFloatingViewerManager: HC,
+			teardownGeneratedFeed: EC,
+			teardownAssetsSidebar: bC,
 			teardownGlobalRuntime: $S,
 			teardownTopBarMfvButton: WS,
 			reportError: ne
@@ -24707,25 +24818,25 @@ jr.registerExtension({
 		} catch (e) {
 			console.debug?.(e);
 		}
-		Xr(), vi({ enabled: !0 }), QS(), iw(e), bn(e, () => {
+		Xr(), vi({ enabled: !0 }), QS(), cw(e), bn(e, () => {
 			let e = Yn();
 			if (e) {
-				if (z.DEFER_GRID_FETCH_DURING_EXECUTION && nw()) {
-					rw();
+				if (z.DEFER_GRID_FETCH_DURING_EXECUTION && ow()) {
+					sw();
 					return;
 				}
 				wi(e);
 			}
-		}), pC(e, {
-			sidebarTabId: zC,
+		}), _C(e, {
+			sidebarTabId: UC,
 			triggerStartupScan: Kr
-		}), mC(e), setTimeout(() => {
+		}), vC(e), setTimeout(() => {
 			gi();
-		}, 5e3), aw(e, ow).catch((e) => ne(e, "entry.api_setup")), hC(e, { sidebarTabId: zC }) ? Se("[Majoor] Sidebar tab registered (Vue)") : console.warn("Majoor Assets Manager: extensionManager.registerSidebarTab is unavailable");
+		}, 5e3), lw(e, uw).catch((e) => ne(e, "entry.api_setup")), yC(e, { sidebarTabId: UC }) ? Se("[Majoor] Sidebar tab registered (Vue)") : console.warn("Majoor Assets Manager: extensionManager.registerSidebarTab is unavailable");
 		try {
 			let e = typeof window < "u" ? window.requestIdleCallback : null, t = () => {
 				try {
-					yC();
+					CC();
 				} catch (e) {
 					console.debug?.(e);
 				}
@@ -24734,26 +24845,26 @@ jr.registerExtension({
 		} catch (e) {
 			console.debug?.(e);
 		}
-		tp({ resolveNodeStreamModule: async () => (FC ||= await import("./chunks/NodeStreamController-B4LiaaMK.js"), FC) });
+		tp({ resolveNodeStreamModule: async () => (zC ||= await import("./chunks/NodeStreamController-f2tXbqnR.js"), zC) });
 	},
 	onNodeOutputsUpdated(e) {
 		try {
-			ow.handleNodeOutputsUpdated(e);
+			uw.handleNodeOutputsUpdated(e);
 		} catch (e) {
 			console.debug?.("[Majoor] onNodeOutputsUpdated error", e);
 		}
 	},
 	getNodeMenuItems(e) {
-		return DC(e, jr, { sidebarTabId: zC });
+		return jC(e, jr, { sidebarTabId: UC });
 	},
 	getCanvasMenuItems(e) {
-		return dC(jr, {
-			sidebarTabId: zC,
+		return hC(jr, {
+			sidebarTabId: UC,
 			triggerStartupScan: Kr
 		});
 	},
 	getSelectionToolboxCommands(e) {
-		return TC(e);
+		return kC(e);
 	}
 });
 //#endregion

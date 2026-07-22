@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased]
+
+### Fixed
+- **Full-text search on prompts restored** (#175): since the v18/v19 tag-normalization migrations, the search index column `metadata_text` was never populated, so prompts, negative prompts, model/LoRA names, and Majoor GenInfo overrides (including custom info blocks) were not searchable. The indexer now persists this text on every metadata write, and migration v21 automatically backfills already-indexed assets on startup — no index reset required.
+- **"Allow Remote Full Access" now effective with a configured token** (#167): an auto-generated API token always exists after first startup, which silently disabled the `Allow Remote Full Access` toggle — remote LAN clients without a token were blocked with "Write access is blocked" spam and no working opt-out. The toggle (and `MAJOOR_ALLOW_REMOTE_WRITE=1`) now permits tokenless remote writes even when a token is configured, unless `Require Token For All Writes` is enabled.
+- **False-positive route collision warning** (#167): the startup warning `Potential route path collisions detected before registration: /embeddings` was caused by comparing ComfyUI's own core routes against themselves via the shared route table. Collision detection now only considers Majoor-owned route paths.
+
 ## [2.5.0] - 2026-07-09
 
 ### New Features

@@ -1,4 +1,4 @@
-import { Ct as e, St as t, _t as n, gt as r, ht as i, k as a, m as o, nt as s, o as c, tt as l, vt as u, xt as d } from "./events-DSLVC_8W.js";
+import { Ct as e, St as t, _t as n, gt as r, ht as i, k as a, m as o, nt as s, o as c, tt as l, vt as u, xt as d } from "./events-fw5MiFly.js";
 //#region ui/app/settingsStore.ts
 var f = "mjrSettings", p = "mjrMinimapSettings", m = new Set([
 	"POST",

@@ -1,6 +1,6 @@
 import { EVENTS } from "../../app/events.js";
 import { get, getAssetMetadata, vectorFindSimilar } from "../../api/client.js";
-import { buildNodeContextMembersURL } from "../../api/endpoints.js";
+import { buildListURL, buildNodeContextMembersURL } from "../../api/endpoints.js";
 import { comfyToast } from "../../app/toast.js";
 import { t } from "../../app/i18n.js";
 
@@ -121,13 +121,108 @@ export function bindSimilarSearch({
         return fresh || asset;
     };
 
+    const readNodeContextFiles = (detail: Record<string, any> = {}) => {
+        const raw = Array.isArray(detail?.files) ? detail.files : [];
+        return raw
+            .map((file: any) => ({
+                filename: String(file?.filename || "").trim(),
+                subfolder: String(file?.subfolder || "").trim().replace(/\\/g, "/"),
+                type: String(file?.type || "").trim().toLowerCase(),
+            }))
+            .filter((file: any) => file.filename);
+    };
+
+    /**
+     * Fallback used when a node has no indexed source-node context (e.g. a
+     * Load Image node): resolve the file(s) referenced by the node against the
+     * asset index by filename and show exact matches in the "similar" scope.
+     */
+    const openNodeFilesFallback = async (detail: Record<string, any>, files: any[]) => {
+        const matches: any[] = [];
+        const seen = new Set<string>();
+        for (const file of files.slice(0, 4)) {
+            const scope = file.type === "input" ? "input" : "output";
+            try {
+                const res = await get(
+                    buildListURL({
+                        q: file.filename,
+                        scope,
+                        limit: 50,
+                        includeTotal: false,
+                    }),
+                    { timeoutMs: 30_000 },
+                );
+                if (!res?.ok) continue;
+                const rows = Array.isArray(res?.data?.assets)
+                    ? res.data.assets
+                    : Array.isArray(res?.data)
+                      ? res.data
+                      : [];
+                const wantedName = file.filename.toLowerCase();
+                const wantedSuffix = (
+                    file.subfolder ? `${file.subfolder}/${file.filename}` : file.filename
+                ).toLowerCase();
+                for (const row of rows) {
+                    const rowName = String(row?.filename || "").toLowerCase();
+                    if (rowName !== wantedName) continue;
+                    const rowPath = String(row?.filepath || row?.path || "")
+                        .replace(/\\/g, "/")
+                        .toLowerCase();
+                    if (file.subfolder && rowPath && !rowPath.endsWith(wantedSuffix)) continue;
+                    const key = String(row?.id || rowPath || rowName);
+                    if (seen.has(key)) continue;
+                    seen.add(key);
+                    matches.push(row);
+                }
+            } catch (err) {
+                console.debug?.(err);
+            }
+        }
+        if (!matches.length) {
+            comfyToast(
+                t(
+                    "nodeContext.fileNotIndexed",
+                    "The node file is not indexed yet. Run a scan first.",
+                ),
+                "info",
+                3200,
+            );
+            return;
+        }
+        const nodeLabel = String(
+            detail?.title ||
+                detail?.sourceNodeType ||
+                detail?.source_node_type ||
+                files[0]?.filename ||
+                "",
+        ).trim();
+        writePanelValue("similarResults", matches);
+        writePanelValue(
+            "similarSourceAssetId",
+            `node-file:${files[0]?.filename || ""}`,
+        );
+        writePanelValue(
+            "similarTitle",
+            t("nodeContext.fileResultsTitle", "Node {node} file ({n} assets)", {
+                node: nodeLabel || files[0]?.filename || "",
+                n: matches.length,
+            }),
+        );
+        await scopeController?.setScope?.("similar");
+    };
+
     const openNodeContext = async (detail: Record<string, any> = {}) => {
         const sourceNodeId = String(detail?.sourceNodeId || detail?.source_node_id || "").trim();
-        if (!sourceNodeId) return;
+        const files = readNodeContextFiles(detail);
+        if (!sourceNodeId && !files.length) return;
         try {
             closePopovers?.();
         } catch (err) {
             console.debug?.(err);
+        }
+        if (!sourceNodeId) {
+            await openNodeFilesFallback(detail, files);
+            return;
         }
         try {
             const res = await get(
@@ -140,6 +235,10 @@ export function bindSimilarSearch({
             );
             if (!res?.ok) {
                 if (isNodeContextRouteMissing(res)) {
+                    if (files.length) {
+                        await openNodeFilesFallback(detail, files);
+                        return;
+                    }
                     const root = ((window as any).MajoorAssetsManager ||= {});
                     if (!root.nodeContextRouteMissingToastShown) {
                         root.nodeContextRouteMissingToastShown = true;
@@ -154,6 +253,10 @@ export function bindSimilarSearch({
                     }
                     return;
                 }
+                if (files.length) {
+                    await openNodeFilesFallback(detail, files);
+                    return;
+                }
                 comfyToast(
                     String(res?.error || t("nodeContext.loadFailed", "Failed to load node assets")),
                     "error",
@@ -163,6 +266,10 @@ export function bindSimilarSearch({
             }
             const list = Array.isArray(res?.data) ? res.data : [];
             if (!list.length) {
+                if (files.length) {
+                    await openNodeFilesFallback(detail, files);
+                    return;
+                }
                 comfyToast(
                     t("nodeContext.noAssets", "No indexed assets found for this node yet."),
                     "info",
@@ -422,6 +529,12 @@ export function bindSimilarSearch({
     window.addEventListener(
         EVENTS.OPEN_NODE_CONTEXT,
         (event) => {
+            try {
+                const root = (window as any).MajoorAssetsManager;
+                if (root?.pendingNodeContext) root.pendingNodeContext = null;
+            } catch (err) {
+                console.debug?.(err);
+            }
             void openNodeContext((event as any)?.detail || {});
         },
         { signal: panelLifecycleAC?.signal },

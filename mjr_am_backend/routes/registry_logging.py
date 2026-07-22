@@ -123,10 +123,25 @@ def _extract_table_paths(routes: web.RouteTableDef) -> set[str]:
     return paths
 
 
+# Only paths owned by Majoor are meaningful for collision detection. The
+# route table is ComfyUI's shared ``PromptServer.instance.routes``, which
+# also contains core routes (e.g. ``/embeddings``) already present on the
+# app — those are not collisions caused by this extension.
+_MAJOOR_ROUTE_PREFIXES = (
+    "/mjr",
+    "/extensions/majoor-assetsmanager",
+    "/extensions/ComfyUI-Majoor-AssetsManager",
+)
+
+
+def _is_majoor_route_path(path: str) -> bool:
+    return path.startswith(_MAJOOR_ROUTE_PREFIXES)
+
+
 def _log_route_collisions(app: web.Application, routes: web.RouteTableDef) -> None:
     try:
         app_paths = _extract_app_paths(app)
-        table_paths = _extract_table_paths(routes)
+        table_paths = {p for p in _extract_table_paths(routes) if _is_majoor_route_path(p)}
         overlaps = sorted(app_paths.intersection(table_paths))
         if overlaps:
             logger.warning(
