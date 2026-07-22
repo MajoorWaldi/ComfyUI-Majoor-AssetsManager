@@ -12,5 +12,6 @@ from .m017_normalize_tags import MIGRATION as M017
 from .m018_fts_from_normalized_tags import MIGRATION as M018
 from .m019_drop_legacy_tag_columns import MIGRATION as M019
 from .m020_workflow_library_tables import MIGRATION as M020
+from .m021_backfill_metadata_text import MIGRATION as M021
 
-MIGRATIONS: list[Migration] = [M017, M018, M019, M020]
+MIGRATIONS: list[Migration] = [M017, M018, M019, M020, M021]

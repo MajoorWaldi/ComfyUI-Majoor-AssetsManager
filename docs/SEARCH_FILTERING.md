@@ -18,6 +18,17 @@ The Assets Manager uses SQLite FTS5 with BM25 ranking to provide fast and accura
 - Tags and ratings
 - File content where applicable
 
+#### Indexed Metadata Text
+For each asset, the following generation metadata is written into the full-text index:
+- Positive and negative prompts — including values supplied through **Majoor GenInfo Override** (`majoor_geninfo` PNG chunk), which take precedence over graph tracing
+- Model / checkpoint, VAE, and LoRA names
+- Sampler name and workflow type
+- A1111/Forge-style `parameters` text
+- Custom info blocks (title and content) attached via the GenInfo Override node
+- Input source filenames recorded in generation info
+
+> **Upgrading note**: databases indexed with versions where prompt indexing regressed are backfilled automatically at startup (schema migration v21). If older assets are still not searchable, re-scan the folder or use **Reset Index** in Index Status.
+
 ### Basic Search
 1. Locate the search bar at the top of the Assets Manager interface
 2. Type any text you want to search for

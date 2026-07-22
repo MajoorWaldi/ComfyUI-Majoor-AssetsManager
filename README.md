@@ -520,6 +520,7 @@ See [`docs/DB_MAINTENANCE.md`](docs/DB_MAINTENANCE.md) for detailed recovery pro
 - Verify the correct scope is selected
 - Check if directory has been indexed (status indicator)
 - Clear browser cache and reload
+- After upgrading, prompt/metadata text for previously indexed assets is backfilled automatically at startup (schema migration v21); if some older assets are still missing from results, re-scan the folder or use **Reset Index** in Index Status
 
 ### Drag & Drop Issues
 - Verify browser supports HTML5 drag & drop
@@ -539,7 +540,7 @@ Majoor's write guard is separate from Windows, Linux, macOS, or NAS file permiss
 
 For the safest remote setup, open **Settings → Majoor Assets Manager → Security** and enable **Recommended Remote LAN Setup**. This creates or reuses an API token and authorizes the current browser. On a trusted private LAN using plain HTTP, **Allow HTTP Token Transport** may also be required.
 
-The settings shown below enable the individual operations while keeping Safe Mode off and delete confirmation on. They do not by themselves authorize an anonymous LAN client: remote access still requires either **Recommended Remote LAN Setup** with a token, or **Allow Remote Full Access** on a fully trusted private LAN.
+The settings shown below enable the individual operations while keeping Safe Mode off and delete confirmation on. They do not by themselves authorize an anonymous LAN client: remote access still requires either **Recommended Remote LAN Setup** with a token, or **Allow Remote Full Access** on a fully trusted private LAN. **Allow Remote Full Access** takes effect even though Majoor auto-generates an API token at first startup — enabling it permits tokenless remote writes unless **Require Token For All Writes** is also enabled.
 
 ![Majoor operation permission settings](docs/images/security-settings-trusted-lan.svg)
 

@@ -763,7 +763,6 @@ def _enrich_tags_text_with_metadata(
     meta = metadata_result.data
     extras = _collect_geninfo_extras(meta)
     extracted_tags_text = _append_extra_tags(extracted_tags_text, extras)
-    _build_metadata_payload_preview(meta, extracted_tags_text, extras)
     return extracted_tags_text
 
 
@@ -776,20 +775,80 @@ def _append_extra_tags(extracted_tags_text: str, extras: list[str]) -> str:
     return extra_text
 
 
-def _build_metadata_payload_preview(meta: dict[str, Any], extracted_tags_text: str, extras: list[str]) -> None:
-    # Keep this payload preparation for parity with previous behavior.
-    meta_fields = [extracted_tags_text] + extras
-    if meta.get("prompt"):
-        meta_fields.append(str(meta.get("prompt")))
-    if meta.get("parameters"):
-        meta_fields.append(str(meta.get("parameters")))
-    if meta.get("model"):
-        meta_fields.append(str(meta.get("model")))
-    if meta.get("workflow_type"):
-        meta_fields.append(str(meta.get("workflow_type")))
-    if meta.get("metadata_raw"):
-        meta_fields.append(str(meta.get("metadata_raw")))
-    " ".join([str(f) for f in meta_fields if f])
+# Caps for the denormalized ``asset_metadata.metadata_text`` column that
+# feeds the ``asset_metadata_fts`` full-text index (via triggers).
+_METADATA_FTS_TEXT_MAX_CHARS = 12_000
+_METADATA_FTS_FIELD_BUDGET = 4_000
+
+
+def _collect_geninfo_search_text(geninfo: Any) -> list[str]:
+    """Collect override/parsed geninfo text blocks worth indexing for search."""
+    out: list[str] = []
+    if not isinstance(geninfo, dict):
+        return out
+    for key in ("positive", "negative", "notes"):
+        node = geninfo.get(key)
+        if isinstance(node, dict):
+            text = _compact_text_value(
+                node.get("value") or node.get("text"),
+                max_chars=_METADATA_FTS_FIELD_BUDGET,
+            )
+            if text:
+                out.append(text)
+    custom_info = geninfo.get("custom_info")
+    if isinstance(custom_info, list):
+        for block in custom_info:
+            if not isinstance(block, dict):
+                continue
+            for field in ("title", "content"):
+                text = _compact_text_value(
+                    block.get(field), max_chars=_METADATA_FTS_FIELD_BUDGET
+                )
+                if text:
+                    out.append(text)
+    return out
+
+
+def _build_metadata_fts_text(meta: dict[str, Any], extracted_tags_text: str, extras: list[str]) -> str:
+    """Build the searchable text persisted in ``asset_metadata.metadata_text``.
+
+    FTS triggers copy this column into ``asset_metadata_fts.metadata_text``,
+    which is what makes prompts (including Majoor GenInfo overrides), models,
+    LoRAs and custom info blocks findable from the search bar.
+    """
+    parts: list[str] = []
+    seen: set[str] = set()
+
+    def _add(value: Any, *, max_chars: int = _METADATA_FTS_FIELD_BUDGET) -> None:
+        text = _compact_text_value(value, max_chars=max_chars)
+        if text and text not in seen:
+            seen.add(text)
+            parts.append(text)
+
+    _add(extracted_tags_text)
+    for extra in extras:
+        _add(extra, max_chars=512)
+    _add(_best_effort_prompt_text(meta, text_budget=_METADATA_FTS_FIELD_BUDGET))
+    _add(_best_effort_negative_prompt_text(meta, text_budget=_METADATA_FTS_FIELD_BUDGET))
+    _add(_best_effort_model_name(meta, text_budget=256))
+    _add(_best_effort_sampler_name(meta, text_budget=256))
+    _add(_best_effort_workflow_type(meta))
+    _add(meta.get("parameters"))
+    for text in _collect_geninfo_search_text(meta.get("geninfo")):
+        _add(text)
+    joined = " ".join(parts).strip()
+    return joined[:_METADATA_FTS_TEXT_MAX_CHARS]
+
+
+def _metadata_fts_text_for_result(
+    metadata_result: Result[dict[str, Any]],
+    extracted_tags_text: str,
+) -> str:
+    if not (metadata_result and metadata_result.ok and isinstance(metadata_result.data, dict)):
+        return ""
+    meta = metadata_result.data
+    extras = _collect_geninfo_extras(meta)
+    return _build_metadata_fts_text(meta, extracted_tags_text, extras)
 
 
 def _graph_has_sampler(graph: Any) -> bool:
@@ -988,6 +1047,7 @@ class MetadataHelpers:
         extracted_rating, extracted_tags_json, extracted_tags_text = _extract_rating_and_tags(metadata_result)
         extracted_tags_text = _enrich_tags_text_with_metadata(metadata_result, extracted_tags_text)
         workflow_type, generation_time_ms, positive_prompt = _denormalized_metadata_fields(metadata_result)
+        metadata_text = _metadata_fts_text_for_result(metadata_result, extracted_tags_text)
 
         # Import existing OS/file metadata when DB has defaults, without overriding user edits.
         # - rating: only set if current rating is 0
@@ -1005,9 +1065,9 @@ class MetadataHelpers:
             INSERT INTO asset_metadata
             (
                 asset_id, rating, has_workflow, has_generation_data,
-                metadata_quality, workflow_type, generation_time_ms, positive_prompt, metadata_raw
+                metadata_quality, workflow_type, generation_time_ms, positive_prompt, metadata_text, metadata_raw
             )
-            SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?
+            SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
             WHERE EXISTS (SELECT 1 FROM assets WHERE id = ?)
             ON CONFLICT(asset_id) DO UPDATE SET
                 rating = CASE
@@ -1065,6 +1125,15 @@ class MetadataHelpers:
                     THEN excluded.positive_prompt
                     ELSE asset_metadata.positive_prompt
                 END,
+                metadata_text = CASE
+                    WHEN {should_upgrade} AND COALESCE(excluded.metadata_text, '') <> ''
+                    THEN excluded.metadata_text
+                    WHEN {same_quality}
+                         AND COALESCE(asset_metadata.metadata_text, '') = ''
+                         AND COALESCE(excluded.metadata_text, '') <> ''
+                    THEN excluded.metadata_text
+                    ELSE asset_metadata.metadata_text
+                END,
                 metadata_raw = CASE
                     WHEN {should_upgrade} THEN excluded.metadata_raw
                     WHEN {same_quality} AND {replace_raw_on_equal} THEN excluded.metadata_raw
@@ -1081,6 +1150,7 @@ class MetadataHelpers:
                 workflow_type,
                 generation_time_ms,
                 positive_prompt,
+                metadata_text,
                 metadata_raw_json,
                 asset_id,
             ),

@@ -1,5 +1,5 @@
-import { J as e, r as t } from "./events-DSLVC_8W.js";
-import { t as n } from "./floatingViewerManager-BtnD0d6Z.js";
+import { J as e, r as t } from "./events-fw5MiFly.js";
+import { t as n } from "./floatingViewerManager-V417Tldi.js";
 //#region ui/features/viewer/LiveStreamTracker.ts
 var r = !1, i = null, a = null, o = null, s = null, c = null, l = 0, u = 0, d = 400, f = new Set([
 	".png",

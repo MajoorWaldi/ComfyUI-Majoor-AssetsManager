@@ -129,6 +129,52 @@ async def test_allow_remote_write_override(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_allow_remote_write_override_with_configured_token(monkeypatch):
+    # Regression for GitHub issue #167: an auto-generated API token always
+    # exists after startup, which used to make 'Allow Remote Full Access'
+    # ineffective — remote clients without the token were always blocked.
+    _clear_auth_env(monkeypatch)
+    monkeypatch.setenv("MAJOOR_API_TOKEN", TEST_TOKEN)
+    monkeypatch.setenv("MAJOOR_ALLOW_REMOTE_WRITE", "1")
+
+    res = _check_write_access(peer_ip="203.0.113.10", headers={})
+    assert res.ok, res.error
+    assert (res.meta or {}).get("auth") == "allow_remote_no_token"
+
+    # A matching token still wins (auth=token path).
+    res2 = _check_write_access(
+        peer_ip="203.0.113.10",
+        headers={"X-MJR-Token": TEST_TOKEN},
+        request_scheme="https",
+    )
+    assert res2.ok, res2.error
+    assert (res2.meta or {}).get("auth") == "token"
+
+
+@pytest.mark.asyncio
+async def test_remote_blocked_with_configured_token_when_allow_remote_off(monkeypatch):
+    _clear_auth_env(monkeypatch)
+    monkeypatch.setenv("MAJOOR_API_TOKEN", TEST_TOKEN)
+
+    res = _check_write_access(peer_ip="203.0.113.10", headers={})
+    assert not res.ok
+    assert res.code == "AUTH_REQUIRED"
+
+
+@pytest.mark.asyncio
+async def test_require_auth_still_blocks_remote_despite_allow_remote(monkeypatch):
+    # 'Require Token For All Writes' has priority over 'Allow Remote Full Access'.
+    _clear_auth_env(monkeypatch)
+    monkeypatch.setenv("MAJOOR_API_TOKEN", TEST_TOKEN)
+    monkeypatch.setenv("MAJOOR_ALLOW_REMOTE_WRITE", "1")
+    monkeypatch.setenv("MAJOOR_REQUIRE_AUTH", "1")
+
+    res = _check_write_access(peer_ip="203.0.113.10", headers={})
+    assert not res.ok
+    assert res.code == "AUTH_REQUIRED"
+
+
+@pytest.mark.asyncio
 async def test_require_auth_without_token_blocks(monkeypatch):
     _clear_auth_env(monkeypatch)
     monkeypatch.setenv("MAJOOR_REQUIRE_AUTH", "1")

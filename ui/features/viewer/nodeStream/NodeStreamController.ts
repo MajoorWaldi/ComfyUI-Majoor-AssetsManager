@@ -498,6 +498,19 @@ function _stopSelectionPolling() {
 }
 
 /**
+ * Extract the primary media file descriptor from a canvas node.
+ * Probes node.imgs, widget media elements, and load-widget values.
+ * Returns `{ filename, subfolder, type, kind, ... }` or null.
+ */
+export function extractNodeFileData(node: any): Record<string, any> | null {
+    try {
+        return _extractFromCanvasNode(node) || null;
+    } catch {
+        return null;
+    }
+}
+
+/**
  * Kept as a compatibility shim for entry.js.
  * Node Stream is selection-only and intentionally ignores execution output
  * updates.

@@ -1271,11 +1271,15 @@ const DICTIONARY: Record<string, Record<string, string>> = {
         "command.openGeneratedFeed": "Open generated feed",
         "command.openSettings": "Open Majoor settings",
         "command.openNodeContext": "Show assets from selected node",
+        "command.openNodeInFloatingViewer": "Open node media in floating viewer",
         "tooltip.openAssetsManager": "Open Majoor Assets Manager",
         "tooltip.openFloatingViewer": "Open Majoor floating viewer",
         "tooltip.openGeneratedFeed": "Open the Majoor generated feed panel",
         "tooltip.openNodeContext": "Show the latest indexed assets produced by this node",
+        "tooltip.openNodeInFloatingViewer": "Open this node's media in the Majoor floating viewer",
         "tooltip.openMajoorSettings": "Open Majoor Assets Manager settings",
+        "nodeContext.fileNotIndexed": "The node file is not indexed yet. Run a scan first.",
+        "nodeContext.fileResultsTitle": "Node {node} file ({n} assets)",
 
         // --- Filters / Status ---
         "label.refineResults": "Refine your results",
@@ -1351,6 +1355,7 @@ const DICTIONARY: Record<string, Record<string, string>> = {
         "tooltip.openFloatingViewer": "Ouvrir le floating viewer Majoor",
         "tooltip.openGeneratedFeed": "Ouvrir le panneau du flux genere Majoor",
         "tooltip.openNodeContext": "Afficher les derniers assets indexes produits par ce noeud",
+        "tooltip.openNodeInFloatingViewer": "Ouvrir le media de ce noeud dans le floating viewer Majoor",
         "tooltip.openMajoorSettings": "Ouvrir les parametres de Majoor Assets Manager",
         "tooltip.previewStreamOff":
             "Preview KSampler : OFF - cliquer pour afficher les images de denoising pendant l'execution",
@@ -1398,6 +1403,9 @@ const DICTIONARY: Record<string, Record<string, string>> = {
         "command.openGeneratedFeed": "Ouvrir le flux genere",
         "command.openSettings": "Ouvrir les parametres Majoor",
         "command.openNodeContext": "Afficher les assets du noeud selectionne",
+        "command.openNodeInFloatingViewer": "Ouvrir le media du noeud dans le floating viewer",
+        "nodeContext.fileNotIndexed": "Le fichier du noeud n'est pas encore indexe. Lancez un scan d'abord.",
+        "nodeContext.fileResultsTitle": "Fichier du noeud {node} ({n} assets)",
         "label.refineResults": "Affiner les resultats",
         "label.workflowModelFamily": "Famille de modele",
         "label.workflowRunsOn": "Execute sur",

@@ -60,58 +60,58 @@ var p = a({
 		});
 		return i.length ? i : null;
 	}
-}), m = new Set([
+}), ee = new Set([
 	".mp4",
 	".webm",
 	".mov",
 	".avi",
 	".mkv"
 ]);
-function h(e) {
+function m(e) {
 	if (!e) return !1;
 	let t = String(e).lastIndexOf(".");
-	return t >= 0 && m.has(String(e).slice(t).toLowerCase());
+	return t >= 0 && ee.has(String(e).slice(t).toLowerCase());
 }
-function g(e) {
+function h(e) {
 	let t = e?.gifs;
 	if (Array.isArray(t) && t.length && t[0]?.filename) return t;
 	let n = e?.videos;
 	return Array.isArray(n) && n.length && n[0]?.filename ? n : null;
 }
-var ee = a({
+var te = a({
 	name: "video-output",
 	priority: 10,
 	description: "Video output (gifs/videos: [{filename, subfolder, type}])",
 	canHandle(e, t) {
-		return !!g(t);
+		return !!h(t);
 	},
 	extractMedia(e, t, n) {
-		let r = g(t);
+		let r = h(t);
 		if (!r) return null;
 		let i = [];
 		for (let t of r) t?.filename && i.push({
 			filename: t.filename,
 			subfolder: t.subfolder || "",
 			type: t.type || "output",
-			kind: h(t.filename) ? "video" : "image",
+			kind: m(t.filename) ? "video" : "image",
 			_nodeId: n,
 			_classType: e
 		});
 		return i.length ? i : null;
 	}
-}), te = "__imageops_state", ne = "imageops-live-preview";
-function re(e) {
+}), ne = "__imageops_state", re = "imageops-live-preview";
+function ie(e) {
 	return typeof HTMLCanvasElement < "u" && e instanceof HTMLCanvasElement;
 }
-function ie(e) {
-	return re(e) && Number(e.width) > 0 && Number(e.height) > 0;
-}
 function ae(e) {
+	return ie(e) && Number(e.width) > 0 && Number(e.height) > 0;
+}
+function oe(e) {
 	let t = 2166136261, n = String(e || "");
 	for (let e = 0; e < n.length; e += 1) t ^= n.charCodeAt(e), t = Math.imul(t, 16777619);
 	return (t >>> 0).toString(16);
 }
-function oe(e, t) {
+function se(e, t) {
 	let n = Number(e?.previewSourceWidth) || 0, r = Number(e?.previewSourceHeight) || 0, i = Number(t?.width) || 0, a = Number(t?.height) || 0;
 	if (n <= 0 || r <= 0 || i <= 0 || a <= 0) return null;
 	let o = Number(e?.previewZoom), s = Number(e?.previewPanX) || 0, c = Number(e?.previewPanY) || 0;
@@ -124,9 +124,9 @@ function oe(e, t) {
 		h: d
 	};
 }
-function se(e, t, n, r) {
+function ce(e, t, n, r) {
 	let i = r ? `${r.dx},${r.dy},${r.w}x${r.h}` : "full";
-	return ae([
+	return oe([
 		String(e?.id ?? ""),
 		String(t?.lastKey ?? ""),
 		String(t?.lastRenderTick ?? ""),
@@ -135,26 +135,26 @@ function se(e, t, n, r) {
 		i
 	].join("|"));
 }
-function _(e, t) {
+function g(e, t) {
 	let n = document.createElement("canvas");
 	n.width = t.w, n.height = t.h;
 	let r = n.getContext("2d");
 	return r ? (r.drawImage(e, t.dx, t.dy, t.w, t.h, 0, 0, t.w, t.h), n.toDataURL("image/png")) : "";
 }
-var v = /* @__PURE__ */ new WeakMap(), y = /* @__PURE__ */ new WeakMap();
-function ce(e) {
+var _ = /* @__PURE__ */ new WeakMap(), v = /* @__PURE__ */ new WeakMap();
+function le(e) {
 	if (!e) return null;
-	let t = e[te], n = t?.canvas;
-	if (!ie(n)) return null;
-	let r = oe(t, n), i = se(e, t, n, r), a = v.get(e) === i ? y.get(e) : "";
+	let t = e[ne], n = t?.canvas;
+	if (!ae(n)) return null;
+	let r = se(t, n), i = ce(e, t, n, r), a = _.get(e) === i ? v.get(e) : "";
 	if (!a) {
 		try {
-			a = r ? _(n, r) : n.toDataURL("image/png");
+			a = r ? g(n, r) : n.toDataURL("image/png");
 		} catch (e) {
 			return console.warn("[NodeStream] ImageOps canvas export failed:", e), null;
 		}
 		if (!a) return null;
-		v.set(e, i), y.set(e, a);
+		_.set(e, i), v.set(e, a);
 	}
 	let o = r ? r.w : Number(n.width) || void 0, s = r ? r.h : Number(n.height) || void 0, c = e.comfyClass || e.type || "ImageOps";
 	return {
@@ -167,45 +167,45 @@ function ce(e) {
 		height: s,
 		_nodeId: String(e.id ?? ""),
 		_classType: c,
-		_source: ne,
+		_source: re,
 		_signature: i
 	};
 }
 //#endregion
 //#region ui/features/viewer/nodeStream/ltxDirectorPreviewBridge.ts
-var le = "ltx-director-live-preview";
-function ue(e) {
+var ue = "ltx-director-live-preview";
+function de(e) {
 	return typeof HTMLCanvasElement < "u" && e instanceof HTMLCanvasElement;
 }
-function b(e) {
-	return ue(e) && Number(e.width) > 0 && Number(e.height) > 0;
+function y(e) {
+	return de(e) && Number(e.width) > 0 && Number(e.height) > 0;
 }
-function x(e) {
+function b(e) {
 	let t = 2166136261, n = String(e || "");
 	for (let e = 0; e < n.length; e++) t ^= n.charCodeAt(e), t = Math.imul(t, 16777619);
 	return (t >>> 0).toString(16);
 }
-function de(e) {
+function fe(e) {
 	let t = e?._ed?.canvas;
-	if (b(t)) return t;
+	if (y(t)) return t;
 	let n = e?._timelineEditor?.canvas;
-	return b(n) ? n : null;
+	return y(n) ? n : null;
 }
-function fe(e, t) {
+function pe(e, t) {
 	let n = e._ed;
-	return x([
+	return b([
 		String(e?.id ?? ""),
 		`${Number(t?.width) || 0}x${Number(t?.height) || 0}`,
 		String(+!!n?.dirty),
-		x(JSON.stringify(n?.splines ?? []))
+		b(JSON.stringify(n?.splines ?? []))
 	].join("|"));
 }
-var S = /* @__PURE__ */ new WeakMap(), C = /* @__PURE__ */ new WeakMap();
-function pe(e) {
+var x = /* @__PURE__ */ new WeakMap(), S = /* @__PURE__ */ new WeakMap();
+function me(e) {
 	if (!e) return null;
-	let t = de(e);
+	let t = fe(e);
 	if (!t) return null;
-	let n = fe(e, t), r = S.get(e) === n ? C.get(e) : "";
+	let n = pe(e, t), r = x.get(e) === n ? S.get(e) : "";
 	if (!r) {
 		try {
 			r = t.toDataURL("image/png");
@@ -213,7 +213,7 @@ function pe(e) {
 			return console.warn("[NodeStream] LTX Director canvas export failed:", e), null;
 		}
 		if (!r) return null;
-		S.set(e, n), C.set(e, r);
+		x.set(e, n), S.set(e, r);
 	}
 	let i = e.comfyClass || e.type || "LTXVSparseTrackEditor";
 	return {
@@ -226,12 +226,12 @@ function pe(e) {
 		height: Number(t.height) || void 0,
 		_nodeId: String(e.id ?? ""),
 		_classType: i,
-		_source: le,
+		_source: ue,
 		_signature: n
 	};
 }
-l(p), l(i), l(ee);
-var w = "selected", T = null, E = null, D = !1, O = null, k = null, A = null, j = null, M = null, N = null, P = new Set([
+l(p), l(i), l(te);
+var C = "selected", w = null, T = null, E = !1, D = null, O = null, k = null, A = null, j = null, M = null, N = new Set([
 	".png",
 	".jpg",
 	".jpeg",
@@ -241,17 +241,17 @@ var w = "selected", T = null, E = null, D = !1, O = null, k = null, A = null, j 
 	".gif",
 	".bmp",
 	".tiff"
-]), F = new Set([
+]), P = new Set([
 	".mp4",
 	".webm",
 	".mov",
 	".avi",
 	".mkv"
-]), I = 12, L = 96;
-function R(e) {
+]), F = 12, I = 96;
+function L(e) {
 	return e?.comfyClass || e?.type || null;
 }
-function z(e) {
+function R(e) {
 	try {
 		let t = new URL(e, window.location.href), n = t.searchParams.get("filename") || "";
 		return n ? {
@@ -263,7 +263,7 @@ function z(e) {
 		return null;
 	}
 }
-function B(e) {
+function z(e) {
 	if (e == null || typeof e != "string") return null;
 	let t = e.trim().replace(/\\/g, "/");
 	if (!t) return null;
@@ -273,33 +273,33 @@ function B(e) {
 		subfolder: n >= 0 ? t.slice(0, n) : ""
 	};
 }
-function V(e) {
+function B(e) {
 	if (!e) return "";
 	let t = String(e).lastIndexOf(".");
 	return t >= 0 ? String(e).slice(t).toLowerCase() : "";
 }
-function H(e, t = "") {
-	let n = V(t);
-	return F.has(n) ? "video" : P.has(n) ? "image" : String(R(e) || "").toLowerCase().includes("video") ? "video" : "image";
+function V(e, t = "") {
+	let n = B(t);
+	return P.has(n) ? "video" : N.has(n) ? "image" : String(L(e) || "").toLowerCase().includes("video") ? "video" : "image";
 }
-function U(e, t, n) {
+function H(e, t, n) {
 	return {
 		...t,
-		kind: t?.kind || H(e, t?.filename),
+		kind: t?.kind || V(e, t?.filename),
 		_nodeId: String(e?.id ?? ""),
-		_classType: R(e) || "",
+		_classType: L(e) || "",
 		_source: n
 	};
 }
-function W() {
-	let e = A?.canvas?.selected_nodes ?? A?.canvas?.selectedNodes ?? null;
+function U() {
+	let e = k?.canvas?.selected_nodes ?? k?.canvas?.selectedNodes ?? null;
 	return e ? Array.isArray(e) ? e.filter(Boolean) : e instanceof Map ? Array.from(e.values()).filter(Boolean) : typeof e == "object" ? Object.values(e).filter(Boolean) : [] : [];
 }
-function G() {
-	return e(A);
+function W() {
+	return e(k);
 }
-function K(e) {
-	let n = G();
+function G(e) {
+	let n = W();
 	if (e == null || !n) return null;
 	try {
 		return n.getNodeById?.(Number(e)) || t(n, e);
@@ -307,22 +307,22 @@ function K(e) {
 		return t(n, e);
 	}
 }
-function me() {
-	let e = G();
+function he() {
+	let e = W();
 	if (!e) return [];
 	let t = [];
 	return r(e, ({ node: e }) => t.push(e)), t;
 }
-function q(e, t = G()) {
+function K(e, t = W()) {
 	if (e == null) return null;
-	let n = String(e), i = t ? [] : me();
+	let n = String(e), i = t ? [] : he();
 	t && r(t, ({ node: e }) => i.push(e));
 	for (let e of i) if (Array.isArray(e?.inputs)) {
 		for (let t of e.inputs) if (t?.link != null && String(t.link) === n) return String(e.id ?? "");
 	}
 	return null;
 }
-function he(e, t = G()) {
+function ge(e, t = W()) {
 	if (e == null) return null;
 	let r = n(t);
 	if (!r) return null;
@@ -341,16 +341,16 @@ function he(e, t = G()) {
 	}
 	return typeof r == "object" && (r[e] || r[i] || r[a]) || null;
 }
-function ge(e, t = G()) {
-	let n = he(e, t);
+function _e(e, t = W()) {
+	let n = ge(e, t);
 	if (Array.isArray(n) && n.length >= 4) return String(n[3] ?? "");
 	if (n && typeof n == "object") {
 		let e = n.target_id ?? n.targetId ?? n.to ?? null;
 		if (e != null) return String(e);
 	}
-	return q(e, t);
+	return K(e, t);
 }
-function _e(e) {
+function ve(e) {
 	if (!Array.isArray(e?.outputs)) return [];
 	let t = [];
 	for (let n of e.outputs) {
@@ -361,88 +361,88 @@ function _e(e) {
 	}
 	return Array.from(new Set(t.map((e) => String(e))));
 }
-function ve(e) {
+function ye(e) {
 	let t = [], n = /* @__PURE__ */ new Set();
-	for (let r of _e(e)) {
-		let i = ge(r, e?.graph ?? G());
+	for (let r of ve(e)) {
+		let i = _e(r, e?.graph ?? W());
 		if (!i || n.has(i)) continue;
-		let a = K(i);
+		let a = G(i);
 		a && (n.add(i), t.push(a));
 	}
 	return t;
 }
-function J(e) {
-	let t = e ? String(e.id ?? "") : "", n = e && R(e) || "";
-	k?.(t, n);
+function q(e) {
+	let t = e ? String(e.id ?? "") : "", n = e && L(e) || "";
+	O?.(t, n);
 }
-function Y() {
-	let e = W(), t = e[0] || null, n = t ? String(t.id ?? "") : null;
-	return n === E ? n || (E = null) : (E = n, J(t)), e;
+function J() {
+	let e = U(), t = e[0] || null, n = t ? String(t.id ?? "") : null;
+	return n === T ? n || (T = null) : (T = n, q(t)), e;
 }
-function ye(e) {
+function be(e) {
 	if (!e) return null;
 	let t = e.imgs;
 	if (!Array.isArray(t) || t.length === 0) return null;
 	let n = t[t.length - 1]?.src || t[0]?.src;
 	if (!n) return null;
-	let r = z(n);
-	return r?.filename ? U(e, {
+	let r = R(n);
+	return r?.filename ? H(e, {
 		...r,
 		kind: "image"
 	}, "canvas") : null;
 }
-function be(e) {
+function xe(e) {
 	if (!e || !Array.isArray(e.widgets)) return null;
 	for (let t of e.widgets) {
 		let n = t?.element;
 		if (!n) continue;
 		let r = typeof HTMLVideoElement < "u" && n instanceof HTMLVideoElement ? n : n.querySelector?.("video");
 		if (r?.src) {
-			let t = z(r.src);
-			if (t?.filename) return U(e, {
+			let t = R(r.src);
+			if (t?.filename) return H(e, {
 				...t,
 				kind: "video"
 			}, "widget");
 		}
 		let i = typeof HTMLImageElement < "u" && n instanceof HTMLImageElement ? n : n.querySelector?.("img");
 		if (!i?.src) continue;
-		let a = z(i.src);
-		if (a?.filename) return U(e, {
+		let a = R(i.src);
+		if (a?.filename) return H(e, {
 			...a,
 			kind: "image"
 		}, "widget");
 	}
 	return null;
 }
-function xe(e) {
+function Se(e) {
 	if (!e || !Array.isArray(e.widgets) || !e.widgets.length) return null;
-	let t = String(R(e) || "").toLowerCase(), n = e.widgets[0]?.value;
+	let t = String(L(e) || "").toLowerCase(), n = e.widgets[0]?.value;
 	if (typeof n != "string") return null;
-	let r = B(n);
+	let r = z(n);
 	if (!r?.filename) return null;
-	let i = V(r.filename), a = P.has(i) || F.has(i), o = /(load|upload|loader|fromurl|folder|input)/.test(t);
-	return !a && !o ? null : U(e, {
+	let i = B(r.filename), a = N.has(i) || P.has(i), o = /(load|upload|loader|fromurl|folder|input)/.test(t);
+	return !a && !o ? null : H(e, {
 		...r,
 		type: "input",
-		kind: H(e, r.filename)
+		kind: V(e, r.filename)
 	}, "widget-value");
 }
-function Se(e) {
-	return ce(e) || pe(e) || ye(e) || be(e) || xe(e);
+function Y(e) {
+	return le(e) || me(e) || be(e) || xe(e) || Se(e);
 }
 function Ce(e) {
 	if (!e) return null;
-	let t = String(e.id ?? ""), n = R(e) || "", r = [{
+	let t = String(e.id ?? ""), n = L(e) || "", r = [{
 		node: e,
 		depth: 0
 	}], i = new Set(t ? [t] : []), a = 0;
-	for (; r.length > 0 && a < L;) {
+	for (; r.length > 0 && a < I;) {
 		let e = r.shift();
 		if (!e?.node) continue;
 		a += 1;
-		let o = Se(e.node);
+		let o = Y(e.node);
 		if (o) {
-			let r = o._nodeId || String(e.node.id ?? ""), i = o._classType || R(e.node) || "";
+			let r = o._nodeId || String(e.node.id ?? ""), i = o._classType || L(e.node) || "";
 			return {
 				...o,
 				_nodeId: t || r,
@@ -452,7 +452,7 @@ function Ce(e) {
 				_source: r === t ? o._source || "canvas" : "graph-downstream"
 			};
 		}
-		if (!(e.depth >= I)) for (let t of ve(e.node)) {
+		if (!(e.depth >= F)) for (let t of ye(e.node)) {
 			let n = String(t?.id ?? "");
 			!n || i.has(n) || (i.add(n), r.push({
 				node: t,
@@ -474,83 +474,90 @@ function we(e) {
 	].join("|") : "";
 }
 function X() {
-	M = null, N = null;
+	j = null, M = null;
 }
 function Te() {
-	return w === "pinned" ? K(T) : W()[0] || null;
+	return C === "pinned" ? G(w) : U()[0] || null;
 }
 function Z({ force: e = !1 } = {}) {
-	if (!D || !O || !G()) return;
+	if (!E || !D || !W()) return;
 	let t = Te(), n = t ? String(t.id ?? "") : null;
 	if (!n) {
-		J(null), X();
+		q(null), X();
 		return;
 	}
-	w === "pinned" && J(t);
+	C === "pinned" && q(t);
 	let r = Ce(t);
 	if (!r) {
 		X();
 		return;
 	}
 	let i = we(r);
-	!e && n === N && i === M || (N = n, M = i, O(r));
+	!e && n === M && i === j || (M = n, j = i, D(r));
 }
 function Q() {
-	let e = E;
-	Y();
-	let t = E !== e;
-	if (!D) {
+	let e = T;
+	J();
+	let t = T !== e;
+	if (!E) {
 		X();
 		return;
 	}
-	Z({ force: w !== "pinned" && t });
+	Z({ force: C !== "pinned" && t });
 }
 function Ee() {
-	j || (j = setInterval(Q, 150), Q());
+	A || (A = setInterval(Q, 150), Q());
 }
 function $() {
-	j &&= (clearInterval(j), null), X();
+	A &&= (clearInterval(A), null), X();
 }
-function De(e, t) {}
-function Oe({ app: e, onOutput: t, onStatus: n } = {}) {
-	O = t || null, k = n || null, A = e || null, e && Y(), console.debug("[NodeStream] Controller initialized (selection-only preview mode)");
+function De(e) {
+	try {
+		return Y(e) || null;
+	} catch {
+		return null;
+	}
 }
-function ke(e) {
-	if (D = !!e, !D) {
-		E = null, $();
+function Oe(e, t) {}
+function ke({ app: e, onOutput: t, onStatus: n } = {}) {
+	D = t || null, O = n || null, k = e || null, e && J(), console.debug("[NodeStream] Controller initialized (selection-only preview mode)");
+}
+function Ae(e) {
+	if (E = !!e, !E) {
+		T = null, $();
 		return;
 	}
-	if (X(), Y(), j) {
+	if (X(), J(), A) {
 		Q();
 		return;
 	}
 	Ee();
 }
-function Ae() {
-	return D;
+function je() {
+	return E;
 }
-function je(e) {
+function Me(e) {
 	let t = e === "pinned" ? "pinned" : "selected";
-	w !== t && (w = t, X(), D && Z({ force: !0 }));
+	C !== t && (C = t, X(), E && Z({ force: !0 }));
 }
-function Me() {
-	return w;
+function Ne() {
+	return C;
 }
-function Ne(e) {
+function Pe(e) {
 	if (e == null) {
-		T = null, w === "pinned" && (w = "selected"), X(), D && Z({ force: !0 });
+		w = null, C === "pinned" && (C = "selected"), X(), E && Z({ force: !0 });
 		return;
 	}
-	T = String(e), w = "pinned", X(), D && Z({ force: !0 });
-}
-function Pe() {
-	return T;
+	w = String(e), C = "pinned", X(), E && Z({ force: !0 });
 }
 function Fe() {
-	return Y(), E;
+	return w;
 }
-function Ie(e) {
-	D = !1, E = null, T = null, J(null), O = null, k = null, A = null, $(), console.debug("[NodeStream] Controller torn down");
+function Ie() {
+	return J(), T;
+}
+function Le(e) {
+	E = !1, T = null, w = null, q(null), D = null, O = null, k = null, $(), console.debug("[NodeStream] Controller torn down");
 }
 //#endregion
-export { Ae as getNodeStreamActive, Pe as getPinnedNodeId, Fe as getSelectedNodeId, Me as getWatchMode, Oe as initNodeStream, u as listAdapters, De as onNodeOutputs, Ne as pinNode, ke as setNodeStreamActive, je as setWatchMode, Ie as teardownNodeStream };
+export { De as extractNodeFileData, je as getNodeStreamActive, Fe as getPinnedNodeId, Ie as getSelectedNodeId, Ne as getWatchMode, ke as initNodeStream, u as listAdapters, Oe as onNodeOutputs, Pe as pinNode, Ae as setNodeStreamActive, Me as setWatchMode, Le as teardownNodeStream };

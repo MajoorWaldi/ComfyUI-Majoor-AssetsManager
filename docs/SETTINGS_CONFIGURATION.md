@@ -45,7 +45,7 @@ The following image shows the individual operation permissions. It does not auth
 
 ![Majoor operation permission settings](images/security-settings-trusted-lan.svg)
 
-`Require Token For All Writes` and `Allow Remote Full Access` solve different problems. Disabling the first does not automatically allow non-local clients; the second is the explicit anonymous-remote-access bypass and must never be enabled on an internet-facing or untrusted network.
+`Require Token For All Writes` and `Allow Remote Full Access` solve different problems. Disabling the first does not automatically allow non-local clients; the second is the explicit anonymous-remote-access bypass and must never be enabled on an internet-facing or untrusted network. `Allow Remote Full Access` is effective even when an API token is configured (Majoor auto-generates one at first startup): it permits tokenless remote writes unless `Require Token For All Writes` is enabled, which always takes priority.
 
 Majoor security permissions are independent of filesystem permissions. Full Windows or NAS access does not automatically authorize Majoor writes, and a Majoor authorization error does not by itself prove that the operating system rejected the file operation.
 

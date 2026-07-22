@@ -237,22 +237,103 @@ function resolveNodeContextDetail(node: any) {
     };
 }
 
-function openNodeContext(runtimeApp: any, sidebarTabId: any) {
-    const detail = resolveNodeContextDetail(_lastSelectionToolboxNode);
-    if (!detail) {
+/**
+ * Resolve the media file(s) referenced by a canvas node (Load Image widget
+ * value, node preview images, widget media elements). Lazy-imports the node
+ * stream extractor so this heavy module is only parsed on demand.
+ */
+async function resolveNodeFiles(node: any): Promise<Array<Record<string, any>>> {
+    if (!node) return [];
+    try {
+        const mod = await import("../viewer/nodeStream/NodeStreamController.js");
+        const fileData = mod.extractNodeFileData?.(node);
+        const filename = String(fileData?.filename || "").trim();
+        if (!filename) return [];
+        return [
+            {
+                filename,
+                subfolder: String(fileData?.subfolder || ""),
+                type: String(fileData?.type || "output"),
+                kind: String(fileData?.kind || ""),
+            },
+        ];
+    } catch (e) {
+        console.debug?.(e);
+        return [];
+    }
+}
+
+function dispatchNodeContext(detail: Record<string, any>) {
+    try {
+        if (typeof window === "undefined") return;
+        (window as any).MajoorAssetsManager = (window as any).MajoorAssetsManager || {};
+        (window as any).MajoorAssetsManager.pendingNodeContext = detail;
+        window.dispatchEvent(new CustomEvent(EVENTS.OPEN_NODE_CONTEXT, { detail }));
+    } catch (e) {
+        console.debug?.(e);
+    }
+}
+
+/**
+ * Open the Assets Manager panel focused on the given canvas node: shows the
+ * node's indexed outputs (source-node context) or, when unavailable, the
+ * file currently referenced by the node (Load Image widget, preview image).
+ */
+export async function openNodeTargetInManager(
+    runtimeApp: any,
+    sidebarTabId: string,
+    node: any,
+): Promise<boolean> {
+    openAssetsManagerPanel(runtimeApp, sidebarTabId);
+    const detail: Record<string, any> = resolveNodeContextDetail(node) || {};
+    const files = await resolveNodeFiles(node);
+    if (files.length) detail.files = files;
+    // Loader nodes reference an existing file rather than producing outputs:
+    // their node id would match unrelated source-node contexts, so resolve the
+    // referenced file directly.
+    const nodeType = String(node?.comfyClass || node?.type || "").toLowerCase();
+    if (files.length && /load|upload/.test(nodeType)) {
+        delete detail.source_node_id;
+        delete detail.sourceNodeId;
+    }
+    if (!detail.source_node_id && !files.length) {
         comfyToast(t("toast.nodeContextMissing", "Select an output node first."), "info", 2200);
         return false;
     }
-    openAssetsManagerPanel(runtimeApp, sidebarTabId);
+    dispatchNodeContext(detail);
+    return true;
+}
+
+/**
+ * Open the floating viewer directly on the media referenced by the node.
+ * Falls back to the plain MFV open event when no file can be resolved.
+ */
+export async function openNodeTargetInFloatingViewer(node: any): Promise<boolean> {
     try {
-        if (typeof window !== "undefined") {
-            (window as any).MajoorAssetsManager = (window as any).MajoorAssetsManager || {};
-            (window as any).MajoorAssetsManager.pendingNodeContext = detail;
-            window.dispatchEvent(new CustomEvent(EVENTS.OPEN_NODE_CONTEXT, { detail }));
+        const files = await resolveNodeFiles(node);
+        if (files.length) {
+            const { floatingViewerManager } = await import("../viewer/floatingViewerManager.js");
+            const opened = await floatingViewerManager.openAssets({ assets: files, index: 0 });
+            if (opened) return true;
         }
     } catch (e) {
         console.debug?.(e);
     }
+    try {
+        window.dispatchEvent(new Event(EVENTS.MFV_OPEN));
+    } catch (e) {
+        console.debug?.(e);
+    }
+    return false;
+}
+
+function openNodeContext(runtimeApp: any, sidebarTabId: any) {
+    const node = _lastSelectionToolboxNode;
+    if (!node) {
+        comfyToast(t("toast.nodeContextMissing", "Select an output node first."), "info", 2200);
+        return false;
+    }
+    void openNodeTargetInManager(runtimeApp, sidebarTabId, node);
     return true;
 }
 
@@ -387,6 +468,26 @@ export function buildNativeCommands(runtimeApp: any, { sidebarTabId, triggerStar
             ),
             icon: "pi pi-sitemap",
             function: () => openNodeContext(runtimeApp, sidebarTabId),
+        },
+        {
+            id: "mjr.openNodeInFloatingViewer",
+            label: t("command.openNodeInFloatingViewer", "Open node media in floating viewer"),
+            tooltip: t(
+                "tooltip.openNodeInFloatingViewer",
+                "Open this node's media in the Majoor floating viewer",
+            ),
+            title: t(
+                "tooltip.openNodeInFloatingViewer",
+                "Open this node's media in the Majoor floating viewer",
+            ),
+            description: t(
+                "tooltip.openNodeInFloatingViewer",
+                "Open this node's media in the Majoor floating viewer",
+            ),
+            icon: "pi pi-window-maximize",
+            function: () => {
+                void openNodeTargetInFloatingViewer(_lastSelectionToolboxNode);
+            },
         },
     ];
 }
@@ -673,7 +774,7 @@ function getSelectionItems(selectedItem: any) {
 export function getMajoorSelectionToolboxCommands(selectedItem: any): string[] {
     _lastSelectionToolboxNode = firstTrackableSelectionItem(selectedItem);
     if (!_lastSelectionToolboxNode) return [];
-    return ["mjr.openNodeContext", "mjr.openAssetsManager", "mjr.openFloatingViewer"];
+    return ["mjr.openNodeContext", "mjr.openAssetsManager", "mjr.openNodeInFloatingViewer"];
 }
 
 function nodeMenuEntry(label: any, callback: any) {
@@ -683,15 +784,11 @@ function nodeMenuEntry(label: any, callback: any) {
 export function getMajoorNodeMenuItems(node: any, runtimeApp: any, { sidebarTabId }: { sidebarTabId: string }): unknown[] {
     if (!isMajoorTrackableNode(node)) return [];
     return [
-        nodeMenuEntry("View in Assets Manager", () =>
-            openAssetsManagerPanel(runtimeApp, sidebarTabId),
-        ),
+        nodeMenuEntry("View in Assets Manager", () => {
+            void openNodeTargetInManager(runtimeApp, sidebarTabId, node);
+        }),
         nodeMenuEntry("Open in Floating Viewer", () => {
-            try {
-                window.dispatchEvent(new Event(EVENTS.MFV_OPEN));
-            } catch (e) {
-                console.debug?.(e);
-            }
+            void openNodeTargetInFloatingViewer(node);
         }),
         nodeMenuEntry("Index Output", () => {
             try {
