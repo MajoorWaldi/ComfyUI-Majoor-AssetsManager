@@ -1023,6 +1023,35 @@ def is_managed_workflow_json_path(path: Path) -> bool:
         return False
 
 
+def _resolve_managed_workflow_path(path: Path) -> Result[Path]:
+    """Resolve *path* while enforcing containment in the managed workflow root.
+
+    The lexical prefix check runs before any filesystem access so untrusted
+    paths never reach ``resolve``/``stat`` (avoids an existence oracle and
+    keeps the path-injection barrier visible to static analysis), then the
+    containment is re-validated after symlink resolution.
+    """
+    root = managed_workflow_root(create=False)
+    if root is None:
+        return Result.Err("FORBIDDEN", "Workflow path is not allowed")
+    try:
+        prefix = os.path.normcase(os.path.normpath(str(root)))
+        candidate = os.path.normcase(os.path.normpath(os.path.abspath(str(path))))
+    except Exception:
+        return Result.Err("FORBIDDEN", "Workflow path is not allowed")
+    if candidate != prefix and not candidate.startswith(prefix + os.sep):
+        return Result.Err("FORBIDDEN", "Workflow path is not allowed")
+    try:
+        resolved = Path(candidate).resolve(strict=True)
+    except FileNotFoundError:
+        return Result.Err("NOT_FOUND", "Workflow not found")
+    except Exception:
+        return Result.Err("FORBIDDEN", "Workflow path is not allowed")
+    if not is_managed_workflow_json_path(resolved):
+        return Result.Err("FORBIDDEN", "Workflow path is not allowed")
+    return Result.Ok(resolved)
+
+
 def read_workflow_content(path: Path) -> Result[dict[str, Any]]:
     if not is_workflow_json_path(path):
         return Result.Err("FORBIDDEN", "Workflow path is not allowed")
@@ -1291,12 +1320,10 @@ def _snapshot_workflow_version(path: Path, *, reason: str) -> Result[dict[str, A
 
 
 def list_workflow_versions(path: Path) -> Result[dict[str, Any]]:
-    if not is_managed_workflow_json_path(path):
-        return Result.Err("FORBIDDEN", "Workflow path is not allowed")
-    try:
-        resolved = path.resolve(strict=True)
-    except FileNotFoundError:
-        return Result.Err("NOT_FOUND", "Workflow not found")
+    resolved_check = _resolve_managed_workflow_path(path)
+    resolved = resolved_check.data
+    if not resolved_check.ok or resolved is None:
+        return Result.Err(resolved_check.code or "FORBIDDEN", resolved_check.error or "Workflow path is not allowed")
     history_dir = _workflow_history_dir(resolved)
     versions: list[dict[str, Any]] = []
     if history_dir.is_dir():
@@ -1333,23 +1360,29 @@ def _flatten_json(value: Any, prefix: str = "") -> dict[str, Any]:
 
 
 def diff_workflow_versions(path: Path, *, version_filepath: Any = "") -> Result[dict[str, Any]]:
-    if not is_managed_workflow_json_path(path):
-        return Result.Err("FORBIDDEN", "Workflow path is not allowed")
-    try:
-        current_path = path.resolve(strict=True)
-    except FileNotFoundError:
-        return Result.Err("NOT_FOUND", "Workflow not found")
+    resolved_check = _resolve_managed_workflow_path(path)
+    current_path = resolved_check.data
+    if not resolved_check.ok or current_path is None:
+        return Result.Err(resolved_check.code or "FORBIDDEN", resolved_check.error or "Workflow path is not allowed")
     versions = list_workflow_versions(current_path)
     if not versions.ok:
         return versions
     requested = str(version_filepath or "").strip()
     if requested:
+        history_root = _workflow_history_dir(current_path)
         try:
-            version_path = Path(requested).resolve(strict=True)
+            history_prefix = os.path.normcase(os.path.normpath(str(history_root)))
+            requested_norm = os.path.normcase(os.path.normpath(os.path.abspath(requested)))
+        except Exception:
+            return Result.Err("FORBIDDEN", "Workflow version path is not allowed")
+        if requested_norm != history_prefix and not requested_norm.startswith(history_prefix + os.sep):
+            return Result.Err("FORBIDDEN", "Workflow version path is not allowed")
+        try:
+            version_path = Path(requested_norm).resolve(strict=True)
         except FileNotFoundError:
             return Result.Err("NOT_FOUND", "Workflow version not found")
-        history_root = _workflow_history_dir(current_path).resolve(strict=False)
-        if version_path != history_root and history_root not in version_path.parents:
+        history_resolved = history_root.resolve(strict=False)
+        if version_path != history_resolved and history_resolved not in version_path.parents:
             return Result.Err("FORBIDDEN", "Workflow version path is not allowed")
     else:
         items = (versions.data or {}).get("versions") or []
@@ -1707,12 +1740,10 @@ def set_workflow_info(path: Path, *, info: dict[str, Any] | None = None) -> Resu
 
 
 def list_workflow_thumbnail_candidates(path: Path, *, limit: int = 12) -> Result[list[dict[str, Any]]]:
-    if not is_managed_workflow_json_path(path):
-        return Result.Err("FORBIDDEN", "Workflow path is not allowed")
-    try:
-        resolved = path.resolve(strict=True)
-    except FileNotFoundError:
-        return Result.Err("NOT_FOUND", "Workflow not found")
+    resolved_check = _resolve_managed_workflow_path(path)
+    resolved = resolved_check.data
+    if not resolved_check.ok or resolved is None:
+        return Result.Err(resolved_check.code or "FORBIDDEN", resolved_check.error or "Workflow path is not allowed")
 
     workflow = _safe_read_workflow_json(resolved)
     if workflow is None:
