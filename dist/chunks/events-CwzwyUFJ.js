@@ -103,6 +103,7 @@ var m = 200, h = 0, g = {
 	RETRY_SERVICES: "/mjr/am/retry-services",
 	STAGE_TO_INPUT: "/mjr/am/stage-to-input",
 	OPEN_IN_FOLDER: "/mjr/am/open-in-folder",
+	COLLECT_FILES: "/mjr/am/collect-files",
 	TOOLS_STATUS: "/mjr/am/tools/status",
 	SETTINGS_OUTPUT_DIRECTORY: "/mjr/am/settings/output-directory",
 	SETTINGS_INDEX_DIRECTORY: "/mjr/am/settings/index-directory",

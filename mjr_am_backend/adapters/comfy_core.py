@@ -231,6 +231,46 @@ class ComfyCoreAdapter:
             logger.debug("Failed to read ComfyUI model filenames", exc_info=True)
         return set()
 
+    def get_model_full_path(self, filename: str) -> str | None:
+        """Best-effort absolute path lookup for a model file via folder_paths."""
+        name = str(filename or "").strip()
+        if not name:
+            return None
+        try:
+            import folder_paths  # type: ignore
+
+            getter = getattr(folder_paths, "get_full_path", None)
+            if not callable(getter):
+                return None
+            categories = (
+                "checkpoints",
+                "clip",
+                "clip_vision",
+                "configs",
+                "controlnet",
+                "diffusion_models",
+                "embeddings",
+                "gligen",
+                "hypernetworks",
+                "loras",
+                "photomaker",
+                "style_models",
+                "unet",
+                "upscale_models",
+                "vae",
+                "vae_approx",
+            )
+            for category in categories:
+                try:
+                    full = getter(category, name)
+                except Exception:
+                    continue
+                if full:
+                    return str(full)
+        except Exception:
+            logger.debug("Failed to resolve model full path", exc_info=True)
+        return None
+
     def output_file_paths_from_history(self, prompt_id: str) -> list[str]:
         """Extract absolute output/temp file paths from a ComfyUI history entry."""
         return [item.path for item in self.output_files_from_history(prompt_id)]
@@ -536,6 +576,10 @@ def get_model_filenames() -> set[str]:
     return _ADAPTER.get_model_filenames()
 
 
+def get_model_full_path(filename: str) -> str | None:
+    return _ADAPTER.get_model_full_path(filename)
+
+
 def schedule_task(coro: Any) -> bool:
     return _ADAPTER.schedule_task(coro)
 
@@ -551,6 +595,7 @@ __all__ = [
     "get_temp_directory",
     "get_available_node_types",
     "get_model_filenames",
+    "get_model_full_path",
     "get_prompt_output_files",
     "get_prompt_output_paths",
     "get_prompt_metadata_for_prompt",
