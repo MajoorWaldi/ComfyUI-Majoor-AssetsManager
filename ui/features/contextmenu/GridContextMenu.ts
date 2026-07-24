@@ -9,6 +9,7 @@
 
 import {
     browserFolderOp,
+    collectFiles,
     deleteAsset,
     deleteWorkflow,
     duplicateWorkflow,
@@ -1448,6 +1449,33 @@ function _buildAssetItems({
                 }
             },
             { disabled: !(asset?.id || getAssetFilepath(asset)) },
+        ),
+        createItem(
+            t("ctx.collectFiles", "Collect files"),
+            "pi pi-box",
+            null,
+            async () => {
+                comfyToast(t("toast.collectingFiles", "Collecting files..."), "info", 2500);
+                const res = await collectFiles(asset);
+                if (!res?.ok) {
+                    comfyToast(res?.error || t("toast.collectFilesFailed", "Collect files failed"), "error");
+                    return;
+                }
+                const data = res?.data || {};
+                const missingCount = Array.isArray(data.missing) ? data.missing.length : 0;
+                const where = data.fallback_used
+                    ? t("toast.collectFallbackDir", "output folder (source folder not writable)")
+                    : t("toast.collectSameDir", "asset folder");
+                let message = t("toast.collectedFiles", "Collected {name} in {where}", {
+                    name: String(data.zip_name || "zip"),
+                    where,
+                });
+                if (missingCount > 0) {
+                    message += ` — ${missingCount} ${t("toast.collectMissingInputs", "input(s) missing")}`;
+                }
+                comfyToast(message, missingCount > 0 ? "warning" : "success", 6000);
+            },
+            { disabled: !getAssetFilepath(asset) },
         ),
         createItem(
             t("ctx.copyPath", "Copy path"),

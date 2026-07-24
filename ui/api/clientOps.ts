@@ -180,6 +180,21 @@ export async function openInFolder(assetOrId: any) {
     return post("/mjr/am/open-in-folder", { asset_id: normalizeAssetId(assetOrId) });
 }
 
+export async function collectFiles(assetOrPath: any) {
+    let filepath = "";
+    if (assetOrPath && typeof assetOrPath === "object") {
+        filepath = String(
+            assetOrPath.filepath || assetOrPath.path || assetOrPath?.file_info?.filepath || "",
+        ).trim();
+    } else {
+        filepath = String(assetOrPath || "").trim();
+    }
+    if (!filepath) {
+        return { ok: false, data: null, error: "Missing file path", code: "INVALID_INPUT" };
+    }
+    return post(ENDPOINTS.COLLECT_FILES, { filepath });
+}
+
 export async function browserFolderOp(
     { op = "", path = "", name = "", destination = "", recursive = true } = {},
     options = {},

@@ -5,10 +5,12 @@
  * Header, rating/tags, preview, file info, folder details, generation, and
  * workflow minimap now render directly in Vue.
  */
-import { computed } from "vue";
+import { computed, ref } from "vue";
 import { closeSidebar } from "../../../../components/sidebar/SidebarView.js";
+import { collectFiles } from "../../../../api/client.js";
 import { loadMajoorSettings } from "../../../../app/settings.js";
 import { t } from "../../../../app/i18n.js";
+import { comfyToast } from "../../../../app/toast.js";
 import SidebarHeaderSection from "./SidebarHeaderSection.vue";
 import SidebarPreviewSection from "./SidebarPreviewSection.vue";
 import SidebarFileInfoSection from "./SidebarFileInfoSection.vue";
@@ -56,6 +58,42 @@ function handleClose() {
         emit("close");
     }
 }
+
+const collecting = ref(false);
+const assetFilepath = computed(() =>
+    String(props.asset?.filepath || props.asset?.path || props.asset?.file_info?.filepath || "").trim(),
+);
+
+async function handleCollectFiles() {
+    if (collecting.value || !assetFilepath.value) return;
+    collecting.value = true;
+    try {
+        comfyToast(t("toast.collectingFiles", "Collecting files..."), "info", 2500);
+        const res = await collectFiles(assetFilepath.value);
+        if (!res?.ok) {
+            comfyToast(res?.error || t("toast.collectFilesFailed", "Collect files failed"), "error");
+            return;
+        }
+        const data = res?.data || {};
+        const missingCount = Array.isArray(data.missing) ? data.missing.length : 0;
+        const where = data.fallback_used
+            ? t("toast.collectFallbackDir", "output folder (source folder not writable)")
+            : t("toast.collectSameDir", "asset folder");
+        let message = t("toast.collectedFiles", "Collected {name} in {where}", {
+            name: String(data.zip_name || "zip"),
+            where,
+        });
+        if (missingCount > 0) {
+            message += ` \u2014 ${missingCount} ${t("toast.collectMissingInputs", "input(s) missing")}`;
+        }
+        comfyToast(message, missingCount > 0 ? "warning" : "success", 6000);
+    } catch (e) {
+        console.debug?.(e);
+        comfyToast(t("toast.collectFilesFailed", "Collect files failed"), "error");
+    } finally {
+        collecting.value = false;
+    }
+}
 </script>
 
 <template>
@@ -98,6 +136,21 @@ function handleClose() {
                 </div>
 
                 <SidebarFileInfoSection :asset="asset" />
+
+                <MButton
+                    v-if="assetFilepath"
+                    type="button"
+                    class="mjr-btn mjr-sidebar-collect-btn"
+                    severity="secondary"
+                    :disabled="collecting"
+                    :title="t('sidebar.collectFilesTooltip', 'Create a ZIP next to this asset with the workflow JSON, its media inputs and a manifest')"
+                    style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%"
+                    @click="handleCollectFiles"
+                >
+                    <i :class="collecting ? 'pi pi-spin pi-spinner' : 'pi pi-box'" />
+                    <span>{{ collecting ? t("sidebar.collectingFiles", "Collecting...") : t("sidebar.collectFiles", "Collect files") }}</span>
+                </MButton>
+
                 <SidebarGenerationSection :asset="asset" />
             </template>
             <SidebarWorkflowSection :asset="asset" />
