@@ -4,6 +4,9 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+### New Features
+- **Collect Files**: New right-click action and details-sidebar button that bundles an asset, its workflow JSON, the traced prompt text (positive/negative), and every media input referenced by the workflow into a `{asset}_collected.zip` created next to the file, with a manifest listing each input and model path. Falls back to `output/_mjr_collected/` when the asset folder is not writable. See `docs/COLLECT_FILES.md`.
+
 ### Fixed
 - **Full-text search on prompts restored** (#175): since the v18/v19 tag-normalization migrations, the search index column `metadata_text` was never populated, so prompts, negative prompts, model/LoRA names, and Majoor GenInfo overrides (including custom info blocks) were not searchable. The indexer now persists this text on every metadata write, and migration v21 automatically backfills already-indexed assets on startup — no index reset required.
 - **"Allow Remote Full Access" now effective with a configured token** (#167): an auto-generated API token always exists after first startup, which silently disabled the `Allow Remote Full Access` toggle — remote LAN clients without a token were blocked with "Write access is blocked" spam and no working opt-out. The toggle (and `MAJOOR_ALLOW_REMOTE_WRITE=1`) now permits tokenless remote writes even when a token is configured, unless `Require Token For All Writes` is enabled.

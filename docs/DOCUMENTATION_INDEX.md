@@ -31,6 +31,7 @@ Use these docs for the main library experience: grid browsing, search, organizat
 | **[WORKFLOWS.md](WORKFLOWS.md)** | Workflow tab library: save, import, load, inspect, categorize, thumbnail, and tag workflows |
 | **[RATINGS_TAGS_COLLECTIONS.md](RATINGS_TAGS_COLLECTIONS.md)** | Ratings, tags, collections, and organization |
 | **[DRAG_DROP.md](DRAG_DROP.md)** | Drag to canvas, staging, OS drag-out, clean export, ZIP download |
+| **[COLLECT_FILES.md](COLLECT_FILES.md)** | Bundle an asset, its workflow, prompt text, and media inputs into a ZIP |
 | **[DB_MAINTENANCE.md](DB_MAINTENANCE.md)** | Index database reset, recovery, and index directory configuration |
 
 ## Inspect
@@ -52,6 +53,7 @@ Use these docs for moving assets and workflow information back into ComfyUI.
 | --- | --- |
 | **[WORKFLOWS.md](WORKFLOWS.md)** | Save, import, load, inspect, and organize reusable ComfyUI workflows |
 | **[DRAG_DROP.md](DRAG_DROP.md)** | Load assets onto nodes or canvas, stage files to input |
+| **[COLLECT_FILES.md](COLLECT_FILES.md)** | Export a reproducible bundle (workflow + prompt + inputs) for sharing or archiving |
 | **[CUSTOM_NODES.md](CUSTOM_NODES.md)** | Majoor Save Image, Majoor Save Video, and Majoor GenInfo Override node reference |
 | **[SHORTCUTS.md](SHORTCUTS.md)** | Quick gestures such as S+Drag and L+Drop |
 

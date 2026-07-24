@@ -658,6 +658,48 @@ or:
 
 ---
 
+### Collect Files
+```http
+POST /mjr/am/collect-files
+```
+
+Bundles an asset, its embedded workflow, the traced prompt text, and all media inputs referenced by the workflow into a ZIP written next to the asset. See [COLLECT_FILES.md](COLLECT_FILES.md) for the full guide.
+
+**Request Body**:
+```json
+{
+  "filepath": "/absolute/path/to/file.png"
+}
+```
+
+**Response**:
+```json
+{
+  "ok": true,
+  "data": {
+    "zip_path": "/path/to/output/render_collected.zip",
+    "zip_name": "render_collected.zip",
+    "directory": "/path/to/output",
+    "fallback_used": false,
+    "copied": 3,
+    "missing": [],
+    "inputs": [{ "name": "photo.png", "path": "/path/to/input/photo.png", "status": "ok" }],
+    "models": [{ "name": "sdxl.safetensors", "path": "/path/to/checkpoints/sdxl.safetensors", "status": "located" }],
+    "has_workflow": true,
+    "has_prompt": true,
+    "has_prompt_text": true
+  }
+}
+```
+
+**Notes**:
+- `filepath` must resolve inside the ComfyUI output/input directories or a registered custom root.
+- When the asset folder is not writable, the ZIP falls back to `output/_mjr_collected/` and `fallback_used` is `true`.
+- Model files are listed in the manifest with resolved paths but never copied into the ZIP.
+- Rate limited (10 requests/minute) and requires write access.
+
+---
+
 ### Stage to Input
 ```http
 POST /mjr/am/stage-to-input

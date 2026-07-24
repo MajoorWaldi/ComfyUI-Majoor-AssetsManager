@@ -72,6 +72,7 @@ Use Assets Manager as a fast library for ComfyUI media:
 - full-text search and structured filters
 - ratings, tags, collections, duplicate awareness, and generation stacks
 - right-click actions for rename, delete, open folder, copy path, download, and ZIP export
+- Collect Files: one click bundles an asset, its workflow JSON, traced prompt text, and all referenced media inputs into a ZIP next to the file ([`docs/COLLECT_FILES.md`](docs/COLLECT_FILES.md))
 
 ### Inspect
 
@@ -283,6 +284,7 @@ If the Majoor nodes are **not** used, the asset manager falls back to its standa
 - **Rename**: Change filename
 - **Delete**: Remove asset (with confirmation)
 - **Open in Folder**: Show in file explorer
+- **Collect Files**: Bundle the asset, its workflow, traced prompt text, and all referenced media inputs into a ZIP created next to the file (see [`docs/COLLECT_FILES.md`](docs/COLLECT_FILES.md))
 - **Copy Path**: Copy full file path to clipboard
 - **Stage to Input**: Copy to ComfyUI input directory
 
