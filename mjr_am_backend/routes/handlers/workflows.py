@@ -188,20 +188,35 @@ async def _audit_workflow_write(
 
 
 def _resolve_path_under_roots(user_path: Path, safe_roots: list[Path]) -> Result[Path]:
+    # Lexical containment check before any filesystem access (no existence
+    # oracle outside the safe roots), then re-validated after symlink
+    # resolution.
     try:
-        resolved = user_path.resolve(strict=True)
-    except FileNotFoundError:
-        return Result.Err("NOT_FOUND", "Thumbnail not found")
+        candidate = os.path.normcase(os.path.normpath(os.path.abspath(str(user_path))))
     except Exception:
         return Result.Err("FORBIDDEN", "Thumbnail path is not allowed")
 
     for root in safe_roots:
         try:
-            root_resolved = root.resolve(strict=False)
+            prefix = os.path.normcase(os.path.normpath(str(root)))
         except Exception:
             continue
-        if resolved == root_resolved or resolved.is_relative_to(root_resolved):
-            return Result.Ok(resolved)
+        if candidate != prefix and not candidate.startswith(prefix + os.sep):
+            continue
+        try:
+            resolved = Path(candidate).resolve(strict=True)
+        except FileNotFoundError:
+            return Result.Err("NOT_FOUND", "Thumbnail not found")
+        except Exception:
+            return Result.Err("FORBIDDEN", "Thumbnail path is not allowed")
+        for allowed_root in safe_roots:
+            try:
+                root_resolved = allowed_root.resolve(strict=False)
+            except Exception:
+                continue
+            if resolved == root_resolved or resolved.is_relative_to(root_resolved):
+                return Result.Ok(resolved)
+        return Result.Err("FORBIDDEN", "Thumbnail path is not allowed")
     return Result.Err("FORBIDDEN", "Thumbnail path is not allowed")
 
 

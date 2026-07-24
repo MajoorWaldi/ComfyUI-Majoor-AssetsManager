@@ -151,8 +151,11 @@ async def test_workflow_save_forwards_info_fields(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_workflow_thumbnail_missing_returns_not_found(monkeypatch, tmp_path):
-    missing = tmp_path / "workflows" / "missing.png"
+    workflow_dir = tmp_path / "workflows"
+    workflow_dir.mkdir()
+    missing = workflow_dir / "missing.png"
 
+    monkeypatch.setenv("MJR_AM_WORKFLOW_DIRECTORY", str(workflow_dir))
     monkeypatch.setattr(workflows_routes, "is_workflow_thumbnail_path", lambda _path: True)
 
     app = _build_app()
