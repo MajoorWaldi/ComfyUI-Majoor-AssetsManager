@@ -5,7 +5,12 @@
 import { t } from "../i18n.js";
 import { APP_DEFAULTS } from "../config.js";
 import { loadMajoorSettings, saveMajoorSettings, applySettingsToConfig } from "./settingsCore.js";
-import { getLtxavRgbFallbackSettings, setLtxavRgbFallbackSettings } from "../../api/client.js";
+import {
+    getBrowserShowFolders,
+    setBrowserShowFolders,
+    getLtxavRgbFallbackSettings,
+    setLtxavRgbFallbackSettings,
+} from "../../api/client.js";
 import { comfyToast } from "../toast.js";
 
 const SETTINGS_PREFIX = "Majoor";
@@ -91,6 +96,44 @@ export function registerViewerSettings(safeAddSetting: (def: any) => void, setti
             saveMajoorSettings(settings);
             applySettingsToConfig(settings);
             notifyApplied("viewer.floatingPauseDuringExecution");
+        },
+    });
+
+    // ----------------------------------------------
+    // Section: Browser panel
+    // ----------------------------------------------
+
+    safeAddSetting({
+        id: `${SETTINGS_PREFIX}.Browser.ShowFolders`,
+        category: viewerCat("Browser"),
+        name: "Show folders in Input / Output panels",
+        tooltip:
+            "When enabled, subdirectories under the Input and Output roots are shown as folder cards in the browser grid. Disable to see only files.",
+        type: "boolean",
+        defaultValue: !!(settings.browser?.showFolders ?? true),
+        onChange: async (value: any) => {
+            const next = !!value;
+            const prev = !!(settings.browser?.showFolders ?? true);
+            settings.browser = settings.browser || {};
+            settings.browser.showFolders = next;
+            saveMajoorSettings(settings);
+            applySettingsToConfig(settings);
+            notifyApplied("browser.showFolders");
+            try {
+                const res = await setBrowserShowFolders(next);
+                if (!res?.ok) {
+                    throw new Error(res?.error || "Failed to update show folders setting");
+                }
+            } catch (error: any) {
+                settings.browser.showFolders = prev;
+                saveMajoorSettings(settings);
+                applySettingsToConfig(settings);
+                notifyApplied("browser.showFolders");
+                comfyToast(
+                    error?.message || "Failed to update show folders setting",
+                    "error",
+                );
+            }
         },
     });
 

@@ -1,9 +1,9 @@
-import { H as e, P as t, Xt as n, _ as r, _t as i, c as a, d as o, g as s, ht as c, n as l, o as u, r as d, s as f, x as p, y as m } from "./viewerRuntimeHosts-B0n5DSKG.js";
-import { Ct as h, D as g, a as _, ct as v, h as y, i as b, j as x, k as S, m as C, n as w, o as T, pt as E, r as D, rt as O, t as k } from "./events-CwzwyUFJ.js";
-import { T as A, nt as j, tt as M } from "./mjr-primevue-n1rsQYJg.js";
-import { n as N, r as ee } from "./mjr-vue-vendor-D2GeV7Qd.js";
+import { H as e, P as t, Zt as n, _ as r, _t as i, c as a, d as o, g as s, ht as c, n as l, o as u, r as d, s as f, x as p, y as m } from "./viewerRuntimeHosts-P4vwR-ik.js";
+import { Ct as h, D as g, a as _, ct as v, h as y, i as b, j as x, k as S, m as C, n as w, o as T, pt as E, r as D, rt as O, t as k } from "./events-C2U9lj7y.js";
+import { T as A, nt as j, tt as M } from "./mjr-primevue-BOCpq3qH.js";
+import { n as N, r as ee } from "./mjr-vue-vendor-B7WqP-K6.js";
 import { n as P, r as te, t as F } from "./state-DPiaUMw1.js";
-import { a as ne, c as re, i as ie, o as ae, r as oe, s as se } from "./model3dRenderer-Bzlr-goo.js";
+import { a as ne, c as re, i as ie, o as ae, r as oe, s as se } from "./model3dRenderer-C365Y-Y-.js";
 //#region ui/utils/events.ts
 function ce(e, t, { target: n = null, warnPrefix: r = "[Majoor]" } = {}) {
 	let i = n || (typeof window < "u" ? window : null);
@@ -9703,9 +9703,9 @@ function Hr({ state: e, buildAssetViewURL: t, onNavigate: n, onCompare: r }) {
 //#region ui/features/viewer/viewerOverlayDismiss.ts
 function Ur({ overlay: e, requestClose: t }) {
 	try {
-		let n = null;
+		let t = null;
 		e.addEventListener("pointerdown", (e) => {
-			e.isPrimary !== !1 && (n = {
+			e.isPrimary !== !1 && (t = {
 				x: e.clientX,
 				y: e.clientY,
 				t: Date.now()
@@ -9716,13 +9716,12 @@ function Ur({ overlay: e, requestClose: t }) {
 		}), e.addEventListener("click", (e) => {
 			try {
 				if (e.defaultPrevented || e.button !== 0) return;
-				if (n) {
-					let t = e.clientX - n.x, r = e.clientY - n.y;
-					if (Math.hypot(t, r) > 6 || Date.now() - n.t > 600) return;
+				if (t) {
+					let n = e.clientX - t.x, r = e.clientY - t.y;
+					if (Math.hypot(n, r) > 6 || Date.now() - t.t > 600) return;
 				}
-				let r = e.target;
-				if (dt(r, ".mjr-viewer-header") || dt(r, ".mjr-viewer-footer") || dt(r, ".mjr-viewer-geninfo") || dt(r, ".mjr-video-controls") || dt(r, ".mjr-context-menu") || dt(r, ".mjr-ab-slider") || dt(r, ".mjr-viewer-loupe") || dt(r, ".mjr-viewer-probe") || dt(r, ".mjr-viewer-media") || r && (r.tagName === "IMG" || r.tagName === "VIDEO" || r.tagName === "CANVAS")) return;
-				t?.();
+				let n = e.target;
+				if (dt(n, ".mjr-viewer-header") || dt(n, ".mjr-viewer-footer") || dt(n, ".mjr-viewer-geninfo") || dt(n, ".mjr-video-controls") || dt(n, ".mjr-context-menu") || dt(n, ".mjr-ab-slider") || dt(n, ".mjr-viewer-loupe") || dt(n, ".mjr-viewer-probe") || dt(n, ".mjr-viewer-media") || n && (n.tagName === "IMG" || n.tagName === "VIDEO" || n.tagName === "CANVAS")) return;
 			} catch (e) {
 				console.debug?.(e);
 			}
@@ -9737,13 +9736,13 @@ var Wr = null, Gr = null, Kr = null, qr = null, Jr = null, Yr = null;
 function Xr() {
 	Wr || import("./abCompare-BXOoRlmV.js").then((e) => {
 		Wr = e;
-	}), Gr || import("./sideBySide-BcWJTMio.js").then((e) => {
+	}), Gr || import("./sideBySide-CEWLgiuN.js").then((e) => {
 		Gr = e;
-	}), Kr || import("./model3dRenderer-Bzlr-goo.js").then((e) => e.t).then((e) => {
+	}), Kr || import("./model3dRenderer-C365Y-Y-.js").then((e) => e.t).then((e) => {
 		Kr = e;
 	}), qr || import("./scopes-X1iFrTle.js").then((e) => {
 		qr = e;
-	}), Jr || import("./genInfo-fRSdoinb.js").then((e) => e.n).then((e) => {
+	}), Jr || import("./genInfo-DZ6soYaj.js").then((e) => e.n).then((e) => {
 		Jr = e;
 	}), Yr || import("./frameExport-tksSZ7sb.js").then((e) => {
 		Yr = e;

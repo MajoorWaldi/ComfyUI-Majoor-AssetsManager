@@ -12,7 +12,7 @@ from pathlib import Path
 
 from aiohttp import web
 from mjr_am_backend.adapters.comfy_core import get_input_directory
-from mjr_am_backend.config import OUTPUT_ROOT
+from mjr_am_backend.config import OUTPUT_ROOT, get_runtime_output_root
 from mjr_am_backend.custom_roots import (
     add_custom_root,
     list_custom_roots,
@@ -765,9 +765,67 @@ def register_custom_roots_routes(routes: web.RouteTableDef) -> None:
             else:
                 logger.warning("browser/folder-op(%s): security prefs unavailable, skipping operation gate", op)
         source_raw = str(body.get("path") or body.get("filepath") or "").strip()
+        # Resolve scope markers into actual root paths
+        if source_raw.startswith("mjr://"):
+            parts = source_raw[len("mjr://"):].split("/", 1)
+            scope = parts[0]
+            rel = parts[1] if len(parts) > 1 else ""
+            if scope == "input":
+                root = get_input_directory()
+                if not root:
+                    return _json_response(Result.Err("DIR_NOT_FOUND", "Input directory not available"))
+                source_raw = str(Path(root) / rel) if rel else str(root)
+            elif scope == "output":
+                source_raw = str(Path(get_runtime_output_root()) / rel) if rel else str(get_runtime_output_root())
         source = _normalize_path(source_raw)
         if not source:
             return _json_response(Result.Err("INVALID_INPUT", "Invalid folder path"))
+
+        # move_file uses path for the SOURCE file (not a folder), so skip the
+        # common folder-directory validation and handle it separately.
+        if op == "move_file":
+            src_file = str(source)
+            dst_dir_raw = str(body.get("destination") or "").strip()
+            import sys; print(f"[MJR_MOVE] src='{src_file}' dst='{dst_dir_raw}'", file=sys.stderr, flush=True)
+            if not dst_dir_raw:
+                return _json_response(Result.Err("INVALID_INPUT", "Missing destination"))
+            dst_dir = _normalize_path(dst_dir_raw)
+            if not dst_dir:
+                return _json_response(Result.Err("INVALID_INPUT", "Invalid destination path"))
+            try:
+                dst_dir = dst_dir.resolve(strict=True)
+            except Exception:
+                return _json_response(Result.Err("DIR_NOT_FOUND", "Destination directory not found"))
+            if not dst_dir.is_dir():
+                return _json_response(Result.Err("INVALID_INPUT", "Destination is not a directory"))
+            if not (_is_path_allowed(dst_dir) or _is_path_allowed_custom(dst_dir)):
+                return _json_response(Result.Err("FORBIDDEN", "Destination is not within allowed roots"))
+            try:
+                src_path = Path(src_file).resolve(strict=True)
+            except Exception:
+                return _json_response(Result.Err("FILE_NOT_FOUND", "Source file not found"))
+            if not src_path.is_file():
+                return _json_response(Result.Err("INVALID_INPUT", "Source is not a file"))
+            if not (_is_path_allowed(src_path) or _is_path_allowed_custom(src_path)):
+                return _json_response(Result.Err("FORBIDDEN", "Source is not within allowed roots"))
+            try:
+                target = dst_dir / src_path.name
+                if target.exists():
+                    return _json_response(Result.Err("ALREADY_EXISTS", "File already exists at destination"))
+                await asyncio.to_thread(shutil.move, str(src_path), str(dst_dir))
+                await _invalidate_fs_list_cache()
+                try:
+                    src_scope, src_root_id = _infer_scan_scope(src_path.parent)
+                    await _kickoff_background_scan(
+                        str(src_path.parent), source=src_scope, root_id=src_root_id,
+                        recursive=False, incremental=True, respect_bg_scan_on_list=False,
+                    )
+                except Exception:
+                    pass
+                result = Result.Ok({"path": str(target.resolve(strict=False))})
+            except Exception as exc:
+                result = Result.Err("MOVE_FAILED", sanitize_error_message(exc, "Failed to move file"))
+            return _json_response(result)
 
         try:
             source = source.resolve(strict=True)
@@ -946,5 +1004,7 @@ def register_custom_roots_routes(routes: web.RouteTableDef) -> None:
                 recursive=recursive,
             )
             return _json_response(result)
+
+
 
         return _json_response(Result.Err("INVALID_INPUT", "Unsupported folder operation"))

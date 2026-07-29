@@ -1,4 +1,4 @@
-import { Ct as e, St as t, _t as n, gt as r, ht as i, k as a, m as o, nt as s, o as c, tt as l, vt as u, xt as d } from "./events-CwzwyUFJ.js";
+import { Ct as e, St as t, _t as n, gt as r, ht as i, k as a, m as o, nt as s, o as c, tt as l, vt as u, xt as d } from "./events-C2U9lj7y.js";
 //#region ui/app/settingsStore.ts
 var f = "mjrSettings", p = "mjrMinimapSettings", m = new Set([
 	"POST",
@@ -395,7 +395,7 @@ function ge(e) {
 function _e(e, t, n) {
 	return e && t ? `${e}: ${t}` : t || e || n || "";
 }
-function k(e, t = "info", n = null) {
+function ve(e, t = "info", n = null) {
 	if (!e || typeof e != "object") return null;
 	let r = O(e.title || e.summary), i = O(e.detail), a = O(e.message || _e(r, i, O(e.fallbackMessage)));
 	if (!a) return null;
@@ -419,24 +419,24 @@ function k(e, t = "info", n = null) {
 		actionUrl: O(e.actionUrl)
 	};
 }
-function A() {
+function k() {
 	if (D === null) try {
 		let e = localStorage.getItem(ue), t = e ? JSON.parse(e) : [];
 		D = Array.isArray(t) ? t.map((e) => {
-			if (e && typeof e == "object") return k(e);
+			if (e && typeof e == "object") return ve(e);
 			let t = O(e);
-			return t ? k({ message: t }) : null;
+			return t ? ve({ message: t }) : null;
 		}).filter(Boolean) : [];
 	} catch {
 		D = [];
 	}
 }
-function ve() {
+function ye() {
 	try {
 		localStorage.setItem(ue, JSON.stringify(D));
 	} catch {}
 }
-function ye() {
+function A() {
 	try {
 		window.dispatchEvent(new CustomEvent(pe));
 	} catch {}
@@ -454,8 +454,8 @@ function xe(e) {
 	} catch {}
 }
 function Se(e, t, n) {
-	A();
-	let r = k(e && typeof e == "object" ? e : {
+	k();
+	let r = ve(e && typeof e == "object" ? e : {
 		message: O(e),
 		type: t,
 		durationMs: n
@@ -469,21 +469,21 @@ function Se(e, t, n) {
 			D.splice(e, 1), r.id = String(t.id || r.id || "").trim() || r.id;
 		}
 	}
-	D.unshift(r), D.length > fe && (D = D.slice(0, fe)), ve(), ye();
+	D.unshift(r), D.length > fe && (D = D.slice(0, fe)), ye(), A();
 }
 function Ce() {
-	return A(), D.map((e) => ({ ...e }));
+	return k(), D.map((e) => ({ ...e }));
 }
 function we() {
-	A();
+	k();
 	let e = be();
 	return D.filter((t) => t.createdAt > e).length;
 }
 function Te() {
-	xe(Date.now()), ye();
+	xe(Date.now()), A();
 }
 function Ee() {
-	A(), D = [], ve(), xe(Date.now()), ye();
+	k(), D = [], ye(), xe(Date.now()), A();
 }
 //#endregion
 //#region ui/app/toast.ts
@@ -491,7 +491,7 @@ function De(e) {
 	let t = String(e || "info").trim().toLowerCase();
 	return t === "warn" ? "warning" : t === "danger" ? "error" : t === "success" || t === "warning" || t === "error" ? t : "info";
 }
-function Oe(e) {
+function j(e) {
 	if (typeof e == "string") return e;
 	if (e && typeof e == "object") {
 		let t = String(e.summary || "").trim(), n = String(e.detail || e.message || "").trim();
@@ -505,7 +505,7 @@ function Oe(e) {
 		return "Unknown message";
 	}
 }
-function ke(e, t, n, r) {
+function Oe(e, t, n, r) {
 	let i = r?.history && typeof r.history == "object" ? r.history : null, a = {
 		persistent: !(Number.isFinite(Number(n)) && Number(n) > 0),
 		source: String(i?.source || r?.source || "").trim(),
@@ -517,15 +517,15 @@ function ke(e, t, n, r) {
 		actionLabel: String(i?.actionLabel || "").trim(),
 		actionUrl: String(i?.actionUrl || "").trim()
 	};
-	return e && typeof e == "object" ? (a.title = String(i?.title || e.summary || "").trim(), a.detail = String(i?.detail || e.detail || e.message || "").trim(), a.message = Oe(e), a) : (a.title = String(i?.title || "").trim(), a.detail = String(i?.detail || "").trim(), a.message = Oe(e), a);
+	return e && typeof e == "object" ? (a.title = String(i?.title || e.summary || "").trim(), a.detail = String(i?.detail || e.detail || e.message || "").trim(), a.message = j(e), a) : (a.title = String(i?.title || "").trim(), a.detail = String(i?.detail || "").trim(), a.message = j(e), a);
 }
-function Ae(e, t = "info", n, r) {
+function ke(e, t = "info", n, r) {
 	try {
-		let i = ke(e, t, n, r);
+		let i = Oe(e, t, n, r);
 		i.forceStore = !0, Se(i, t, n ?? void 0);
 	} catch {}
 }
-function je(e) {
+function Ae(e) {
 	switch (e) {
 		case "success": return 2e3;
 		case "info": return 3e3;
@@ -534,7 +534,7 @@ function je(e) {
 		default: return 5e3;
 	}
 }
-function Me(e) {
+function je(e) {
 	if (typeof e != "string") return e;
 	let t = e.trim(), n = {
 		"Failed to update rating": o("toast.ratingUpdateFailed", "Failed to update rating"),
@@ -661,9 +661,9 @@ function Me(e) {
 	}
 	return t;
 }
-function j(e, t = "info", n, r) {
-	if (t = De(t), e = Me(e), n ??= je(t), !r?.noHistory) try {
-		Se(ke(e, t, n, r), t, n ?? void 0);
+function M(e, t = "info", n, r) {
+	if (t = De(t), e = je(e), n ??= Ae(t), !r?.noHistory) try {
+		Se(Oe(e, t, n, r), t, n ?? void 0);
 	} catch {}
 	let i = !(Number.isFinite(Number(n)) && Number(n) > 0);
 	try {
@@ -697,23 +697,23 @@ function j(e, t = "info", n, r) {
 	}
 	console.warn("[Majoor Toast] Native toast API unavailable", {
 		type: t,
-		message: Oe(e),
+		message: j(e),
 		duration: i ? 0 : n
 	});
 }
 //#endregion
 //#region ui/api/clientAuth.ts
-var Ne = 2e3, Pe = 15e3, Fe = 8e3, M = "token", N = null, P = null, Ie = null, Le = "", F = E({
-	ttlMs: Ne,
+var Me = 2e3, Ne = 15e3, Pe = 8e3, N = "token", P = null, F = null, Fe = null, Ie = "", I = E({
+	ttlMs: Me,
 	maxSize: 1
 });
+function Le() {
+	return String(Ie || "").trim();
+}
+function L(e) {
+	return Ie = String(e || "").trim(), !0;
+}
 function Re() {
-	return String(Le || "").trim();
-}
-function I(e) {
-	return Le = String(e || "").trim(), !0;
-}
-function ze() {
 	try {
 		let e = localStorage?.getItem?.(f), t = e ? JSON.parse(e) : {}, n = t && typeof t == "object" ? t : {}, r = n?.data && typeof n.data == "object" ? n.data : n;
 		r?.security && typeof r.security == "object" && String(r.security.apiToken || "").trim() && (r.security.apiToken = "", localStorage?.setItem?.(f, JSON.stringify(n)));
@@ -721,23 +721,23 @@ function ze() {
 		console.debug?.(e);
 	}
 }
-function Be() {
+function ze() {
 	try {
-		F.delete(M);
+		I.delete(N);
 	} catch (e) {
 		console.debug?.(e);
 	}
-	I(""), ze();
+	L(""), Re();
 }
-function L() {
-	let e = F.get(M);
+function R() {
+	let e = I.get(N);
 	if (e !== void 0) return e;
-	let t = Date.now(), n = Re();
-	if (n) return F.set(M, n, { at: t }), n;
+	let t = Date.now(), n = Le();
+	if (n) return I.set(N, n, { at: t }), n;
 	try {
 		let e = localStorage?.getItem?.(f), n = e ? JSON.parse(e) : null, r = n?.data && typeof n.data == "object" ? n.data : n, i = String(r?.security?.apiToken || "").trim();
 		if (i) {
-			I(i);
+			L(i);
 			try {
 				let e = n && typeof n == "object" ? n : {}, t = e?.data && typeof e.data == "object" ? e.data : e;
 				t?.security && typeof t.security == "object" && (t.security.apiToken = "", localStorage?.setItem?.(f, JSON.stringify(e)), window?.dispatchEvent?.(new CustomEvent("mjr-settings-changed", { detail: { key: "security.apiToken" } })));
@@ -745,16 +745,16 @@ function L() {
 				console.debug?.(e);
 			}
 		}
-		return F.set(M, i, { at: t }), i;
+		return I.set(N, i, { at: t }), i;
 	} catch {
-		return F.set(M, "", { at: t }), "";
+		return I.set(N, "", { at: t }), "";
 	}
 }
-function R(e) {
+function z(e) {
 	let t = String(e || "").trim();
 	if (!t) return !1;
 	try {
-		F.set(M, t), P = null, I(t), ze();
+		I.set(N, t), F = null, L(t), Re();
 		try {
 			window?.dispatchEvent?.(new CustomEvent("mjr-settings-changed", { detail: { key: "security.apiToken" } }));
 		} catch (e) {
@@ -765,43 +765,43 @@ function R(e) {
 		return !1;
 	}
 }
-var Ve = /^[A-Za-z0-9._\-~+/]+=*$/;
-function He(e) {
+var Be = /^[A-Za-z0-9._\-~+/]+=*$/;
+function Ve(e) {
 	let t = String(e || "").trim();
-	return t ? Ve.test(t) ? R(t) : (console.debug?.("[MJR auth] Rejected malformed security token (invalid characters)"), !1) : !1;
+	return t ? Be.test(t) ? z(t) : (console.debug?.("[MJR auth] Rejected malformed security token (invalid characters)"), !1) : !1;
 }
-function Ue() {
-	return !!L();
+function He() {
+	return !!R();
 }
-function z(e = {}) {
-	P = {
+function B(e = {}) {
+	F = {
 		code: String(e?.code || "").trim().toUpperCase(),
 		error: String(e?.error || "").trim(),
 		status: Number(e?.status || 0) || 0,
 		at: Date.now()
 	};
 }
-function We() {
-	let e = P;
+function Ue() {
+	let e = F;
 	if (!e) return null;
 	let t = Date.now() - (Number(e.at || 0) || 0);
-	return t < 0 || t > Pe ? (P = null, null) : e;
+	return t < 0 || t > Ne ? (F = null, null) : e;
 }
-function Ge(e) {
-	let t = We(), n = String(e?.code || "").trim().toUpperCase(), r = String(e?.error || "").trim(), i = String(t?.code || "").trim().toUpperCase(), a = String(t?.error || "").trim().toLowerCase(), s = r.toLowerCase();
+function We(e) {
+	let t = Ue(), n = String(e?.code || "").trim().toUpperCase(), r = String(e?.error || "").trim(), i = String(t?.code || "").trim().toUpperCase(), a = String(t?.error || "").trim().toLowerCase(), s = r.toLowerCase();
 	return n === "FORBIDDEN" && (s.includes("api token over insecure transport") || s.includes("allow http token transport")) ? o("toast.writeAuthInsecureTransport", "Write access is blocked because the Majoor API token is being sent over plain HTTP from a remote machine. Use HTTPS, or enable Settings -> Security -> Allow HTTP Token Transport for a trusted LAN.") : i === "FORBIDDEN" && (a.includes("already configured") || a.includes("rotate-token")) ? o("toast.writeAuthConfiguredTokenRequired", "Write access requires the Majoor API token already configured on the server. Open Settings -> Security -> API Token and enter the matching token.") : i === "AUTH_REQUIRED" && (a.includes("sign in to comfyui") || a.includes("authenticated comfyui user")) ? o("toast.writeAuthSignInRequired", "Write access is blocked. Sign in to ComfyUI first, then retry so Majoor can bootstrap the remote session token automatically.") : i === "BOOTSTRAP_DISABLED" || i === "AUTH_REQUIRED" && a.includes("bootstrap") || n === "AUTH_REQUIRED" && s.includes("api token") ? o("toast.writeAuthBootstrapHelp", "Write access is blocked. Sign in to ComfyUI and retry so Majoor can bootstrap the remote session automatically, or set a Majoor API token in Settings -> Security.") : "";
 }
-function Ke(e) {
+function Ge(e) {
 	let t = String(e || "").trim();
 	if (!t) return;
-	let n = Date.now(), r = Ie;
-	if (!(r && r.message === t && n - (Number(r.at || 0) || 0) < Fe)) {
-		Ie = {
+	let n = Date.now(), r = Fe;
+	if (!(r && r.message === t && n - (Number(r.at || 0) || 0) < Pe)) {
+		Fe = {
 			message: t,
 			at: n
 		};
 		try {
-			j({
+			M({
 				summary: o("toast.writeAuthTitle", "Majoor remote write access"),
 				detail: t
 			}, "warning", 6500, { noHistory: !0 });
@@ -810,16 +810,16 @@ function Ke(e) {
 		}
 	}
 }
-function qe(e) {
+function Ke(e) {
 	let t = String(e?.code || "").trim().toUpperCase(), n = String(e?.error || "").trim().toLowerCase(), r = t === "FORBIDDEN" && n.includes("write operation blocked");
 	if (t !== "AUTH_REQUIRED" && !r) return e;
-	let i = Ge(e);
-	return i ? (Ke(i), {
+	let i = We(e);
+	return i ? (Ge(i), {
 		...e,
 		error: i
 	}) : e;
 }
-async function Je() {
+async function qe() {
 	try {
 		let e = await fetch("/mjr/am/settings/security/bootstrap-token", {
 			method: "POST",
@@ -829,7 +829,7 @@ async function Je() {
 			},
 			body: "{}"
 		});
-		if (!(e.headers.get("content-type") || "").includes("application/json")) return z({
+		if (!(e.headers.get("content-type") || "").includes("application/json")) return B({
 			code: "INVALID_RESPONSE",
 			error: `Bootstrap token request returned non-JSON response (${e.status})`,
 			status: e.status
@@ -838,7 +838,7 @@ async function Je() {
 			token: !1
 		};
 		let t = await e.json().catch((e) => (console.debug?.("[MJR auth] JSON parse error:", e), null));
-		if (!t || typeof t != "object") return z({
+		if (!t || typeof t != "object") return B({
 			code: "INVALID_RESPONSE",
 			error: "Bootstrap token response was invalid.",
 			status: e.status
@@ -846,7 +846,7 @@ async function Je() {
 			ok: !1,
 			token: !1
 		};
-		if (!t.ok) return z({
+		if (!t.ok) return B({
 			code: t?.code,
 			error: t?.error,
 			status: e.status
@@ -856,14 +856,14 @@ async function Je() {
 		};
 		let n = String(t?.data?.token || "").trim();
 		return n ? {
-			ok: R(n),
+			ok: z(n),
 			token: !0
-		} : (P = null, {
+		} : (F = null, {
 			ok: !0,
 			token: !1
 		});
 	} catch (e) {
-		return z({
+		return B({
 			code: "NETWORK_ERROR",
 			error: e?.message || "Bootstrap token request failed.",
 			status: 0
@@ -873,141 +873,144 @@ async function Je() {
 		};
 	}
 }
-async function Ye({ force: e = !1, allowCookieRefresh: t = !1 } = {}) {
-	let n = L();
+async function Je({ force: e = !1, allowCookieRefresh: t = !1 } = {}) {
+	let n = R();
 	if (n && !e) return n;
 	let r = {
 		ok: !1,
 		token: !1
 	};
-	N ||= (async () => {
+	P ||= (async () => {
 		try {
-			return await Je();
+			return await qe();
 		} finally {
-			N = null;
+			P = null;
 		}
 	})();
 	try {
-		r = await N || r;
+		r = await P || r;
 	} catch (e) {
 		console.debug?.(e);
 	}
-	if (e && r?.ok && !r?.token && n) Be();
+	if (e && r?.ok && !r?.token && n) ze();
 	else if (e && !r?.ok) {
-		let e = We(), t = String(e?.code || "").trim().toUpperCase();
-		(!t || !["NETWORK_ERROR", "INVALID_RESPONSE"].includes(t)) && Be();
+		let e = Ue(), t = String(e?.code || "").trim().toUpperCase();
+		(!t || !["NETWORK_ERROR", "INVALID_RESPONSE"].includes(t)) && ze();
 	}
-	let i = L();
+	let i = R();
 	return !i && t && r?.ok ? !0 : i;
 }
-function Xe() {
-	F.clear();
+function Ye() {
+	I.clear();
 }
 //#endregion
 //#region ui/api/clientOps.ts
-async function Ze(e) {
+async function Xe(e) {
 	return !e || typeof e != "string" ? {
 		ok: !1,
 		error: "Missing mode",
 		code: "INVALID_INPUT"
-	} : q("/mjr/am/settings/probe-backend", { mode: e });
+	} : J("/mjr/am/settings/probe-backend", { mode: e });
 }
-async function Qe() {
-	return K(l.SETTINGS_METADATA_FALLBACK);
+async function Ze() {
+	return q(l.SETTINGS_METADATA_FALLBACK);
 }
-async function $e({ image: e, media: t } = {}) {
-	return q(l.SETTINGS_METADATA_FALLBACK, {
+async function Qe({ image: e, media: t } = {}) {
+	return J(l.SETTINGS_METADATA_FALLBACK, {
 		image: e,
 		media: t
 	});
 }
-async function et() {
-	return K(l.SETTINGS_VECTOR_SEARCH);
+async function $e() {
+	return q(l.SETTINGS_VECTOR_SEARCH);
 }
-async function tt(e = !0) {
+async function et(e = !0) {
 	if (e && typeof e == "object") {
 		let t = {};
-		return "enabled" in e && (t.enabled = !!e.enabled), "caption_on_index" in e && (t.caption_on_index = !!e.caption_on_index), "captionOnIndex" in e && (t.caption_on_index = !!e.captionOnIndex), "index_on_scan" in e && (t.index_on_scan = !!e.index_on_scan), "indexOnScan" in e && (t.index_on_scan = !!e.indexOnScan), "unload_after_use" in e && (t.unload_after_use = !!e.unload_after_use), "unloadAfterUse" in e && (t.unload_after_use = !!e.unloadAfterUse), "concurrency" in e && (t.concurrency = Number(e.concurrency) || 1), "vectorConcurrency" in e && (t.concurrency = Number(e.vectorConcurrency) || 1), q(l.SETTINGS_VECTOR_SEARCH, t);
+		return "enabled" in e && (t.enabled = !!e.enabled), "caption_on_index" in e && (t.caption_on_index = !!e.caption_on_index), "captionOnIndex" in e && (t.caption_on_index = !!e.captionOnIndex), "index_on_scan" in e && (t.index_on_scan = !!e.index_on_scan), "indexOnScan" in e && (t.index_on_scan = !!e.indexOnScan), "unload_after_use" in e && (t.unload_after_use = !!e.unload_after_use), "unloadAfterUse" in e && (t.unload_after_use = !!e.unloadAfterUse), "concurrency" in e && (t.concurrency = Number(e.concurrency) || 1), "vectorConcurrency" in e && (t.concurrency = Number(e.vectorConcurrency) || 1), J(l.SETTINGS_VECTOR_SEARCH, t);
 	}
-	return q(l.SETTINGS_VECTOR_SEARCH, { enabled: !!e });
+	return J(l.SETTINGS_VECTOR_SEARCH, { enabled: !!e });
+}
+async function tt() {
+	return J(l.SETTINGS_VECTOR_SEARCH_UNLOAD, {});
 }
 async function nt() {
-	return q(l.SETTINGS_VECTOR_SEARCH_UNLOAD, {});
+	return q(l.SETTINGS_EXECUTION_GROUPING);
 }
-async function rt() {
-	return K(l.SETTINGS_EXECUTION_GROUPING);
+async function rt(e = !0) {
+	return J(l.SETTINGS_EXECUTION_GROUPING, { enabled: !!e });
 }
 async function it(e = !0) {
-	return q(l.SETTINGS_EXECUTION_GROUPING, { enabled: !!e });
+	return J(l.SETTINGS_BROWSER_SHOW_FOLDERS, { enabled: !!e });
 }
 async function at() {
-	return K(l.SETTINGS_HUGGINGFACE);
+	return q(l.SETTINGS_HUGGINGFACE);
 }
 async function ot(e = "") {
-	return q(l.SETTINGS_HUGGINGFACE, { token: String(e ?? "").trim() });
+	return J(l.SETTINGS_HUGGINGFACE, { token: String(e ?? "").trim() });
 }
 async function st() {
-	return K(l.SETTINGS_AI_LOGGING);
+	return q(l.SETTINGS_AI_LOGGING);
 }
 async function ct(e = !1) {
-	return q(l.SETTINGS_AI_LOGGING, { enabled: !!e });
+	return J(l.SETTINGS_AI_LOGGING, { enabled: !!e });
 }
 async function lt() {
-	return K(l.SETTINGS_ROUTE_LOGGING);
+	return q(l.SETTINGS_ROUTE_LOGGING);
 }
 async function ut(e = !1) {
-	return q(l.SETTINGS_ROUTE_LOGGING, { enabled: !!e });
+	return J(l.SETTINGS_ROUTE_LOGGING, { enabled: !!e });
 }
 async function dt() {
-	return K(l.SETTINGS_STARTUP_LOGGING);
+	return q(l.SETTINGS_STARTUP_LOGGING);
 }
 async function ft(e = !1) {
-	return q(l.SETTINGS_STARTUP_LOGGING, { enabled: !!e });
+	return J(l.SETTINGS_STARTUP_LOGGING, { enabled: !!e });
 }
 async function pt() {
-	return K(l.SETTINGS_LTXAV_RGB_FALLBACK);
+	return q(l.SETTINGS_LTXAV_RGB_FALLBACK);
 }
 async function mt(e = !1) {
-	return q(l.SETTINGS_LTXAV_RGB_FALLBACK, { enabled: !!e });
+	return J(l.SETTINGS_LTXAV_RGB_FALLBACK, { enabled: !!e });
 }
 async function ht() {
-	return K(l.SETTINGS_JXL);
+	return q(l.SETTINGS_JXL);
 }
 async function gt(e = !1) {
-	return q(l.SETTINGS_JXL, { enabled: !!e });
+	return J(l.SETTINGS_JXL, { enabled: !!e });
 }
 async function _t() {
-	return K(l.SETTINGS_OUTPUT_DIRECTORY);
+	return q(l.SETTINGS_OUTPUT_DIRECTORY);
 }
 async function vt(e, t = {}) {
 	let n = String(e ?? "").trim();
-	return q(l.SETTINGS_OUTPUT_DIRECTORY, { output_directory: n }, t);
+	return J(l.SETTINGS_OUTPUT_DIRECTORY, { output_directory: n }, t);
 }
 async function yt() {
-	return K(l.SETTINGS_INDEX_DIRECTORY);
+	return q(l.SETTINGS_INDEX_DIRECTORY);
 }
 async function bt(e, t = {}) {
 	let n = String(e ?? "").trim();
-	return q(l.SETTINGS_INDEX_DIRECTORY, { index_directory: n }, t);
+	return J(l.SETTINGS_INDEX_DIRECTORY, { index_directory: n }, t);
 }
 async function xt(e = {}) {
-	return K(l.SETTINGS_WORKFLOW_ROOTS, e);
+	return q(l.SETTINGS_WORKFLOW_ROOTS, e);
 }
 async function St(e, t = {}) {
 	let n = Array.isArray(e) ? e.map((e) => String(e ?? "").trim()).filter(Boolean) : String(e ?? "").trim();
-	return q(l.SETTINGS_WORKFLOW_ROOTS, { workflow_roots: n }, t);
+	return J(l.SETTINGS_WORKFLOW_ROOTS, { workflow_roots: n }, t);
 }
 async function Ct() {
-	return K("/mjr/am/settings/security");
+	return q("/mjr/am/settings/security");
 }
 async function wt(e) {
-	return q("/mjr/am/settings/security", e && typeof e == "object" ? e : {});
+	return J("/mjr/am/settings/security", e && typeof e == "object" ? e : {});
 }
 async function Tt() {
-	let e = await q("/mjr/am/settings/security/bootstrap-token", {});
+	let e = await J("/mjr/am/settings/security/bootstrap-token", {});
 	if (e?.ok) try {
 		let t = String(e?.data?.token || "").trim();
-		t && R(t);
+		t && z(t);
 	} catch (e) {
 		console.debug?.(e);
 	}
@@ -1016,13 +1019,13 @@ async function Tt() {
 async function Et(e) {
 	if (e && typeof e == "object") {
 		let n = String(e.filepath || e.path || e?.file_info?.filepath || "").trim();
-		return n ? q("/mjr/am/open-in-folder", { filepath: n }) : q("/mjr/am/open-in-folder", { asset_id: t(e.id) });
+		return n ? J("/mjr/am/open-in-folder", { filepath: n }) : J("/mjr/am/open-in-folder", { asset_id: t(e.id) });
 	}
-	return q("/mjr/am/open-in-folder", { asset_id: t(e) });
+	return J("/mjr/am/open-in-folder", { asset_id: t(e) });
 }
 async function Dt(e) {
 	let t = "";
-	return t = e && typeof e == "object" ? String(e.filepath || e.path || e?.file_info?.filepath || "").trim() : String(e || "").trim(), t ? q(l.COLLECT_FILES, { filepath: t }) : {
+	return t = e && typeof e == "object" ? String(e.filepath || e.path || e?.file_info?.filepath || "").trim() : String(e || "").trim(), t ? J(l.COLLECT_FILES, { filepath: t }) : {
 		ok: !1,
 		data: null,
 		error: "Missing file path",
@@ -1034,7 +1037,7 @@ async function Ot({ op: e = "", path: t = "", name: n = "", destination: r = "",
 		op: String(e || "").trim().toLowerCase(),
 		path: String(t || "").trim()
 	};
-	return n != null && String(n).trim() && (o.name = String(n).trim()), r != null && String(r).trim() && (o.destination = String(r).trim()), o.op === "delete" && (o.recursive = !!i), q(l.BROWSER_FOLDER_OP, o, a);
+	return n != null && String(n).trim() && (o.name = String(n).trim()), r != null && String(r).trim() && (o.destination = String(r).trim()), o.op === "delete" && (o.recursive = !!i), J(l.BROWSER_FOLDER_OP, o, a);
 }
 async function kt(e = {}) {
 	let t = (e, t) => e == null ? t : !!e, n = String(e.scope || "output").trim().toLowerCase() || "output", r = e.customRootId ?? e.custom_root_id ?? e.rootId ?? e.root_id ?? e.customRoot ?? null, i = {
@@ -1052,52 +1055,52 @@ async function kt(e = {}) {
 		background_metadata: t(e.backgroundMetadata ?? e.background_metadata, !0),
 		maintenance_force: t(e.maintenanceForce ?? e.maintenance_force, !1)
 	};
-	return r && (i.custom_root_id = String(r)), q(l.INDEX_RESET, i);
+	return r && (i.custom_root_id = String(r)), J(l.INDEX_RESET, i);
 }
 async function At({ scope: e = "output", customRootId: t = "" } = {}) {
 	let n = String(e || "output").trim().toLowerCase() || "output", r = String(t || "").trim(), i = { scope: n };
-	return r && (i.custom_root_id = r), q(l.WATCHER_SCOPE, i);
+	return r && (i.custom_root_id = r), J(l.WATCHER_SCOPE, i);
 }
 async function jt(e = {}) {
-	return K(l.WATCHER_STATUS, e);
+	return q(l.WATCHER_STATUS, e);
 }
 async function Mt(e = !0) {
-	return q(l.WATCHER_TOGGLE, { enabled: !!e });
+	return J(l.WATCHER_TOGGLE, { enabled: !!e });
 }
 async function Nt() {
-	return K(l.WATCHER_SETTINGS);
+	return q(l.WATCHER_SETTINGS);
 }
 async function Pt(e = {}) {
-	return q(l.WATCHER_SETTINGS, e);
+	return J(l.WATCHER_SETTINGS, e);
 }
 async function Ft(e = {}) {
-	return K(l.TOOLS_STATUS, e);
+	return q(l.TOOLS_STATUS, e);
 }
 async function It(e = {}) {
-	return K(l.STATUS, e);
+	return q(l.STATUS, e);
 }
 async function Lt() {
-	return q("/mjr/am/db/force-delete", {});
+	return J("/mjr/am/db/force-delete", {});
 }
 async function Rt(e = {}) {
-	return K(l.DB_BACKUPS, e);
+	return q(l.DB_BACKUPS, e);
 }
 async function zt() {
-	return q(l.DB_BACKUP_SAVE, {});
+	return J(l.DB_BACKUP_SAVE, {});
 }
 async function Bt({ name: e = "", useLatest: t = !1 } = {}) {
 	let n = {};
-	return e && (n.name = String(e)), t && (n.use_latest = !0), q(l.DB_BACKUP_RESTORE, n);
+	return e && (n.name = String(e)), t && (n.use_latest = !0), J(l.DB_BACKUP_RESTORE, n);
 }
 async function Vt(e = 250) {
-	return q("/mjr/am/duplicates/analyze", { limit: Math.max(10, Math.min(5e3, Number(e) || 250)) });
+	return J("/mjr/am/duplicates/analyze", { limit: Math.max(10, Math.min(5e3, Number(e) || 250)) });
 }
 async function Ht({ scope: e = "output", customRootId: t = "", maxGroups: n = 6, maxPairs: r = 10 } = {}, i = {}) {
 	let a = `/mjr/am/duplicates/alerts?scope=${encodeURIComponent(String(e || "output"))}`;
-	return t && (a += `&custom_root_id=${encodeURIComponent(String(t))}`), a += `&max_groups=${encodeURIComponent(String(Math.max(1, Number(n) || 6)))}`, a += `&max_pairs=${encodeURIComponent(String(Math.max(1, Number(r) || 10)))}`, K(a, i);
+	return t && (a += `&custom_root_id=${encodeURIComponent(String(t))}`), a += `&max_groups=${encodeURIComponent(String(Math.max(1, Number(n) || 6)))}`, a += `&max_pairs=${encodeURIComponent(String(Math.max(1, Number(r) || 10)))}`, q(a, i);
 }
 async function Ut(e, t = []) {
-	return q("/mjr/am/duplicates/merge-tags", {
+	return J("/mjr/am/duplicates/merge-tags", {
 		keep_asset_id: Number(e) || 0,
 		merge_asset_ids: Array.isArray(t) ? t.map((e) => Number(e) || 0).filter((e) => e > 0) : []
 	});
@@ -1109,11 +1112,11 @@ async function Wt(e) {
 		let i = String(e.filepath || e.path || e?.file_info?.filepath || "").trim();
 		r = n ? { asset_id: n } : { filepath: i };
 	} else n = t(e), r = { asset_id: n };
-	let i = await q("/mjr/am/asset/delete", r);
+	let i = await J("/mjr/am/asset/delete", r);
 	return i?.ok && n && Kt([n]), i;
 }
 async function Gt(e) {
-	let n = Array.isArray(e) ? e.map((e) => t(e)).filter(Boolean) : [], r = await q("/mjr/am/assets/delete", { ids: n });
+	let n = Array.isArray(e) ? e.map((e) => t(e)).filter(Boolean) : [], r = await J("/mjr/am/assets/delete", { ids: n });
 	return r?.ok && Kt(n), r;
 }
 function Kt(e) {
@@ -1129,15 +1132,15 @@ async function qt(e, n) {
 	let r;
 	if (e && typeof e == "object") {
 		r = t(e.id);
-		let i = String(e.filepath || e.path || e?.file_info?.filepath || "").trim(), a = r ? await q("/mjr/am/asset/rename", {
+		let i = String(e.filepath || e.path || e?.file_info?.filepath || "").trim(), a = r ? await J("/mjr/am/asset/rename", {
 			asset_id: r,
 			new_name: n
-		}) : await q("/mjr/am/asset/rename", {
+		}) : await J("/mjr/am/asset/rename", {
 			filepath: i,
 			new_name: n
 		});
 		if (a?.ok && r) try {
-			let e = await J(r);
+			let e = await Mn(r);
 			e?.ok && e?.data && (a.data = {
 				...a.data || {},
 				asset: e.data
@@ -1148,12 +1151,12 @@ async function qt(e, n) {
 		return a;
 	}
 	r = t(e);
-	let i = await q("/mjr/am/asset/rename", {
+	let i = await J("/mjr/am/asset/rename", {
 		asset_id: r,
 		new_name: n
 	});
 	if (i?.ok && r) try {
-		let e = await J(r);
+		let e = await Mn(r);
 		e?.ok && e?.data && (i.data = {
 			...i.data || {},
 			asset: e.data
@@ -1166,29 +1169,29 @@ async function qt(e, n) {
 async function Jt() {
 	let e = typeof AbortController < "u" ? new AbortController() : null, t = null;
 	try {
-		return e && (t = setTimeout(() => e.abort(), 1e4)), await K("/mjr/am/collections", e ? { signal: e.signal } : {});
+		return e && (t = setTimeout(() => e.abort(), 1e4)), await q("/mjr/am/collections", e ? { signal: e.signal } : {});
 	} finally {
 		t && clearTimeout(t);
 	}
 }
 async function Yt(e) {
-	return q("/mjr/am/collections", { name: String(e || "").trim() });
+	return J("/mjr/am/collections", { name: String(e || "").trim() });
 }
 async function Xt(e) {
 	let t = String(e || "").trim();
-	return q(`/mjr/am/collections/${encodeURIComponent(t)}/delete`, {});
+	return J(`/mjr/am/collections/${encodeURIComponent(t)}/delete`, {});
 }
 async function Zt(e, t) {
 	let n = String(e || "").trim(), r = Array.isArray(t) ? t : [];
-	return q(`/mjr/am/collections/${encodeURIComponent(n)}/add`, { assets: r });
+	return J(`/mjr/am/collections/${encodeURIComponent(n)}/add`, { assets: r });
 }
 async function Qt(e, t) {
 	let n = String(e || "").trim(), r = Array.isArray(t) ? t : [];
-	return q(`/mjr/am/collections/${encodeURIComponent(n)}/remove`, { filepaths: r });
+	return J(`/mjr/am/collections/${encodeURIComponent(n)}/remove`, { filepaths: r });
 }
 async function $t(e) {
 	let t = String(e || "").trim();
-	return K(`/mjr/am/collections/${encodeURIComponent(t)}/assets`);
+	return q(`/mjr/am/collections/${encodeURIComponent(t)}/assets`);
 }
 async function en(e, t = 20) {
 	let n = String(e || "").trim();
@@ -1212,7 +1215,7 @@ async function en(e, t = 20) {
 		workflowId: r?.workflowId ?? null,
 		dateRange: r?.dateRange ?? null,
 		dateExact: r?.dateExact ?? null
-	}), K(c, { timeoutMs: 12e4 });
+	}), q(c, { timeoutMs: 12e4 });
 }
 async function tn(e, t = 20) {
 	let n = String(e || "").trim();
@@ -1221,29 +1224,29 @@ async function tn(e, t = 20) {
 		error: "Missing asset ID"
 	};
 	let r = t && typeof t == "object" ? t : { topK: Number(t) }, i = Math.max(1, Math.min(200, Number(r?.topK ?? 20) || 20)), a = String(r?.scope || "").trim(), o = String(r?.customRootId || "").trim(), s = `${l.VECTOR_SIMILAR}/${encodeURIComponent(n)}?top_k=${i}`;
-	return a && (s += `&scope=${encodeURIComponent(a)}`), o && (s += `&custom_root_id=${encodeURIComponent(o)}`), K(s, { dedupeKey: `vec:${n}:${i}:${a}:${o}` });
+	return a && (s += `&scope=${encodeURIComponent(a)}`), o && (s += `&custom_root_id=${encodeURIComponent(o)}`), q(s, { dedupeKey: `vec:${n}:${i}:${a}:${o}` });
 }
 async function nn(e) {
 	let t = String(e || "").trim();
-	return t ? K(`${l.VECTOR_ALIGNMENT}/${encodeURIComponent(t)}`) : {
+	return t ? q(`${l.VECTOR_ALIGNMENT}/${encodeURIComponent(t)}`) : {
 		ok: !1,
 		error: "Missing asset ID"
 	};
 }
 async function rn(e) {
 	let t = String(e || "").trim();
-	return t ? q(`${l.VECTOR_INDEX}/${encodeURIComponent(t)}`, {}) : {
+	return t ? J(`${l.VECTOR_INDEX}/${encodeURIComponent(t)}`, {}) : {
 		ok: !1,
 		error: "Missing asset ID"
 	};
 }
 async function an() {
-	return K(l.VECTOR_STATS);
+	return q(l.VECTOR_STATS);
 }
 async function on(e = 64, t = {}) {
 	let n = Math.max(1, Math.min(200, e)), r = typeof t?.onProgress == "function" ? t.onProgress : null, i = String(t?.scope || "").trim().toLowerCase(), a = String(t?.customRootId ?? t?.custom_root_id ?? "").trim(), o = `${l.VECTOR_BACKFILL}?batch_size=${n}&async=1`;
 	i && (o += `&scope=${encodeURIComponent(i)}`), a && (o += `&custom_root_id=${encodeURIComponent(a)}`);
-	let s = await q(o, {}, { timeoutMs: 3e4 });
+	let s = await J(o, {}, { timeoutMs: 3e4 });
 	if (!s?.ok) return s;
 	let c = s?.data || {}, u = String(c?.status || "").toLowerCase(), d = String(c?.backfill_id || "").trim();
 	try {
@@ -1259,7 +1262,7 @@ async function on(e = 64, t = {}) {
 	let f = Number(t?.pollIntervalMs), p = Number(t?.pollTimeoutMs), m = Number.isFinite(f) ? Math.max(500, Math.min(1e4, Math.floor(f))) : mn, h = Number.isFinite(p) ? Math.max(1e4, Math.min(gn, Math.floor(p))) : hn, g = Date.now(), _ = null;
 	for (; Date.now() - g < h;) {
 		await ee(m);
-		let e = await K(`${l.VECTOR_BACKFILL_STATUS}?backfill_id=${encodeURIComponent(d)}`, { timeoutMs: 3e4 });
+		let e = await q(`${l.VECTOR_BACKFILL_STATUS}?backfill_id=${encodeURIComponent(d)}`, { timeoutMs: 3e4 });
 		if (!e?.ok) {
 			_ = e;
 			continue;
@@ -1285,7 +1288,7 @@ async function on(e = 64, t = {}) {
 			status: 500
 		};
 	}
-	let v = await K(`${l.VECTOR_BACKFILL_STATUS}?backfill_id=${encodeURIComponent(d)}`, { timeoutMs: 3e4 }), y = v?.data || _?.data || {}, b = String(y?.status || "").toLowerCase();
+	let v = await q(`${l.VECTOR_BACKFILL_STATUS}?backfill_id=${encodeURIComponent(d)}`, { timeoutMs: 3e4 }), y = v?.data || _?.data || {}, b = String(y?.status || "").toLowerCase();
 	if (v?.ok && [
 		"queued",
 		"running",
@@ -1327,7 +1330,7 @@ async function on(e = 64, t = {}) {
 }
 async function sn(e) {
 	let t = String(e || "").trim();
-	return t ? q(`${l.VECTOR_CAPTION}/${encodeURIComponent(t)}`, {}) : {
+	return t ? J(`${l.VECTOR_CAPTION}/${encodeURIComponent(t)}`, {}) : {
 		ok: !1,
 		error: "Missing asset ID"
 	};
@@ -1354,20 +1357,20 @@ async function cn(e, { topK: t = 50, scope: n = "output", customRootId: r = "", 
 		workflowId: _,
 		dateRange: v,
 		dateExact: y
-	}), K(x, { timeoutMs: 12e4 });
+	}), q(x, { timeoutMs: 12e4 });
 }
 async function ln(e = 8) {
-	return q(l.VECTOR_SUGGEST_COLLECTIONS, { k: Math.max(2, Math.min(20, e)) });
+	return J(l.VECTOR_SUGGEST_COLLECTIONS, { k: Math.max(2, Math.min(20, e)) });
 }
 //#endregion
 //#region ui/api/client.ts
-var un = 3e4, dn = "__MJR_API_CLIENT__", fn = 2e3, pn = 200, mn = 1e3, hn = 30 * 6e4, gn = 720 * 6e4, B = "settings", _n = "available-tags", V = E({
-	ttlMs: fn,
-	maxSize: 1
-}), H = E({
+var un = 3e4, dn = "__MJR_API_CLIENT__", fn = 2e3, pn = 200, mn = 1e3, hn = 30 * 6e4, gn = 720 * 6e4, V = "settings", _n = "available-tags", H = E({
 	ttlMs: fn,
 	maxSize: 1
 }), U = E({
+	ttlMs: fn,
+	maxSize: 1
+}), W = E({
 	ttlMs: () => xn(),
 	maxSize: 1
 }), vn = new Set([
@@ -1400,13 +1403,13 @@ function xn() {
 	}
 }
 function Sn() {
-	V.clear();
-}
-function Cn() {
 	H.clear();
 }
-function W() {
+function Cn() {
 	U.clear();
+}
+function G() {
+	W.clear();
 }
 function wn(e) {
 	return String(e ?? "").trim().toLowerCase() || "";
@@ -1425,51 +1428,51 @@ try {
 	let e = typeof window < "u" ? window : null;
 	e && !e[dn] && (e[dn] = { initialized: !0 }, e.addEventListener?.("storage", (e) => {
 		try {
-			e?.key === "mjrSettings" && (Sn(), Cn(), W(), Xe());
+			e?.key === "mjrSettings" && (Sn(), Cn(), G(), Ye());
 		} catch (e) {
 			console.debug?.(e);
 		}
 	}), e.addEventListener?.("mjr-settings-changed", () => {
-		Sn(), Cn(), W(), Xe();
+		Sn(), Cn(), G(), Ye();
 	}));
 } catch (e) {
 	console.debug?.(e);
 }
 var En = () => {
-	let e = V.get(B);
+	let e = H.get(V);
 	if (e !== void 0) return e;
 	let t = Date.now();
 	try {
 		let e = localStorage?.getItem?.(f);
-		if (!e) return V.set(B, !1, { at: t }), !1;
+		if (!e) return H.set(V, !1, { at: t }), !1;
 		let n = !!JSON.parse(e)?.observability?.enabled;
-		return V.set(B, n, { at: t }), n;
+		return H.set(V, n, { at: t }), n;
 	} catch {
-		return V.set(B, !1, { at: t }), !1;
+		return H.set(V, !1, { at: t }), !1;
 	}
 }, Dn = () => {
-	let e = H.get(B);
+	let e = U.get(V);
 	if (e !== void 0) return e;
 	let t = Date.now();
 	try {
 		let e = localStorage?.getItem?.(f);
-		if (!e) return H.set(B, !0, { at: t }), !0;
+		if (!e) return U.set(V, !0, { at: t }), !0;
 		let n = JSON.parse(e)?.ratingTagsSync?.enabled, r = n == null ? !0 : bn(n, !0);
-		return H.set(B, r, { at: t }), r;
+		return U.set(V, r, { at: t }), r;
 	} catch {
-		return H.set(B, !0, { at: t }), !0;
+		return U.set(V, !0, { at: t }), !0;
 	}
-}, G = le({
+}, K = le({
 	readObsEnabled: En,
-	readAuthToken: L,
-	ensureWriteAuthToken: Ye,
-	normalizeWriteAuthFailure: qe
-}), On = G.fetchAPI;
-async function K(e, t = {}) {
-	return G.get(e, t);
+	readAuthToken: R,
+	ensureWriteAuthToken: Je,
+	normalizeWriteAuthFailure: Ke
+}), On = K.fetchAPI;
+async function q(e, t = {}) {
+	return K.get(e, t);
 }
-async function q(e, t, n = {}) {
-	return G.post(e, t, n);
+async function J(e, t, n = {}) {
+	return K.post(e, t, n);
 }
 async function kn(n, r, i = {}) {
 	let a = Dn(), o = n && typeof n == "object" ? n : null, s = t(o ? o.id : n), c = { rating: Math.max(0, Math.min(5, Number(r) || 0)) };
@@ -1495,10 +1498,10 @@ async function An(n, r, i = {}) {
 		},
 		body: JSON.stringify(d)
 	});
-	return f?.ok && W(), f;
+	return f?.ok && G(), f;
 }
 async function jn() {
-	let e = U.get(_n);
+	let e = W.get(_n);
 	if (Array.isArray(e)) return {
 		ok: !0,
 		data: e,
@@ -1506,24 +1509,24 @@ async function jn() {
 		code: "OK",
 		meta: { cached: !0 }
 	};
-	let t = await K("/mjr/am/tags");
+	let t = await q("/mjr/am/tags");
 	if (t?.ok && Array.isArray(t.data)) {
 		let e = Tn(t.data);
-		return U.set(_n, e), {
+		return W.set(_n, e), {
 			...t,
 			data: e
 		};
 	}
 	return t;
 }
-async function J(e, n = {}) {
+async function Mn(e, n = {}) {
 	let r = encodeURIComponent(t(e));
-	return K(`/mjr/am/asset/${r}`, {
+	return q(`/mjr/am/asset/${r}`, {
 		...n,
 		dedupeKey: n?.dedupeKey || `meta:${r}`
 	});
 }
-async function Mn(e, n = {}) {
+async function Nn(e, n = {}) {
 	let r = t(e);
 	if (!r) return {
 		ok: !1,
@@ -1534,33 +1537,24 @@ async function Mn(e, n = {}) {
 	let i = `/mjr/am/viewer/info?asset_id=${encodeURIComponent(r)}`;
 	n.refresh && (i += "&refresh=1");
 	let { refresh: a, ...o } = n;
-	return K(i, o);
+	return q(i, o);
 }
-async function Nn(e, t = {}) {
+async function Pn(e, t = {}) {
 	let n = Array.isArray(e) ? e : [], r = [];
 	for (let e of n) {
 		let t = Number(e);
 		if (Number.isFinite(t) && (r.push(Math.trunc(t)), r.length >= pn)) break;
 	}
-	return r.length ? q("/mjr/am/assets/batch", { asset_ids: r }, t) : {
+	return r.length ? J("/mjr/am/assets/batch", { asset_ids: r }, t) : {
 		ok: !0,
 		data: [],
 		error: null,
 		code: "OK"
 	};
 }
-async function Pn(e, t = {}) {
-	let n = i(e);
-	return n ? K(n, t) : {
-		ok: !1,
-		data: null,
-		error: "Missing workflow filepath",
-		code: "INVALID_INPUT"
-	};
-}
 async function Fn(e, t = {}) {
-	let r = n(e);
-	return r ? K(r, t) : {
+	let n = i(e);
+	return n ? q(n, t) : {
 		ok: !1,
 		data: null,
 		error: "Missing workflow filepath",
@@ -1568,25 +1562,34 @@ async function Fn(e, t = {}) {
 	};
 }
 async function In(e, t = {}) {
+	let r = n(e);
+	return r ? q(r, t) : {
+		ok: !1,
+		data: null,
+		error: "Missing workflow filepath",
+		code: "INVALID_INPUT"
+	};
+}
+async function Ln(e, t = {}) {
 	let n = u(e);
-	return n ? K(n, t) : {
+	return n ? q(n, t) : {
 		ok: !1,
 		data: null,
 		error: "Missing workflow filepath",
 		code: "INVALID_INPUT"
 	};
 }
-async function Ln(e, t = "", n = {}) {
+async function Rn(e, t = "", n = {}) {
 	let i = r(e, t);
-	return i ? K(i, n) : {
+	return i ? q(i, n) : {
 		ok: !1,
 		data: null,
 		error: "Missing workflow filepath",
 		code: "INVALID_INPUT"
 	};
 }
-async function Rn({ workflow: e = null, name: t = "", category: n = "", overwrite: r = !1, filepath: i = "", task: a = "", model_family: o = "", provider: s = "", runs_on: c = "", notes: u = "" } = {}, d = {}) {
-	return q(l.WORKFLOWS_SAVE, {
+async function zn({ workflow: e = null, name: t = "", category: n = "", overwrite: r = !1, filepath: i = "", task: a = "", model_family: o = "", provider: s = "", runs_on: c = "", notes: u = "" } = {}, d = {}) {
+	return J(l.WORKFLOWS_SAVE, {
 		workflow: e,
 		name: t,
 		category: n,
@@ -1599,33 +1602,33 @@ async function Rn({ workflow: e = null, name: t = "", category: n = "", overwrit
 		notes: u
 	}, d);
 }
-async function zn({ filepath: e = "", name: t = "" } = {}, n = {}) {
-	return q(l.WORKFLOWS_DUPLICATE, {
+async function Bn({ filepath: e = "", name: t = "" } = {}, n = {}) {
+	return J(l.WORKFLOWS_DUPLICATE, {
 		filepath: e,
 		name: t
 	}, n);
 }
-async function Bn({ filepath: e = "", name: t = "", category: n = "" } = {}, r = {}) {
-	return q(l.WORKFLOWS_MOVE, {
+async function Vn({ filepath: e = "", name: t = "", category: n = "" } = {}, r = {}) {
+	return J(l.WORKFLOWS_MOVE, {
 		filepath: e,
 		name: t,
 		category: n
 	}, r);
 }
-async function Vn({ filepath: e = "" } = {}, t = {}) {
-	return q(l.WORKFLOWS_DELETE, { filepath: e }, t);
-}
 async function Hn({ filepath: e = "" } = {}, t = {}) {
-	return q(l.WORKFLOWS_MARK_LOADED, { filepath: e }, t);
+	return J(l.WORKFLOWS_DELETE, { filepath: e }, t);
 }
-async function Un({ filepath: e = "", favorite: t = !1 } = {}, n = {}) {
-	return q(l.WORKFLOWS_FAVORITE, {
+async function Un({ filepath: e = "" } = {}, t = {}) {
+	return J(l.WORKFLOWS_MARK_LOADED, { filepath: e }, t);
+}
+async function Wn({ filepath: e = "", favorite: t = !1 } = {}, n = {}) {
+	return J(l.WORKFLOWS_FAVORITE, {
 		filepath: e,
 		favorite: !!t
 	}, n);
 }
-async function Wn({ filepath: e = "", task: t = "", model_family: n = "", provider: r = "", runs_on: i = "", notes: a = "" } = {}, o = {}) {
-	return q(l.WORKFLOWS_INFO, {
+async function Gn({ filepath: e = "", task: t = "", model_family: n = "", provider: r = "", runs_on: i = "", notes: a = "" } = {}, o = {}) {
+	return J(l.WORKFLOWS_INFO, {
 		filepath: e,
 		task: t,
 		model_family: n,
@@ -1634,24 +1637,24 @@ async function Wn({ filepath: e = "", task: t = "", model_family: n = "", provid
 		notes: a
 	}, o);
 }
-async function Gn({ filepath: e = "", limit: t = 12 } = {}, n = {}) {
+async function Kn({ filepath: e = "", limit: t = 12 } = {}, n = {}) {
 	let r = Math.max(1, Math.min(50, Number(t) || 12));
-	return K(`${l.WORKFLOWS_THUMBNAIL_CANDIDATES}?filepath=${encodeURIComponent(String(e || "").trim())}&limit=${encodeURIComponent(String(r))}`, n);
+	return q(`${l.WORKFLOWS_THUMBNAIL_CANDIDATES}?filepath=${encodeURIComponent(String(e || "").trim())}&limit=${encodeURIComponent(String(r))}`, n);
 }
-async function Kn(e = {}) {
-	return K(l.WORKFLOWS_MODEL_FAMILIES, e);
+async function qn(e = {}) {
+	return q(l.WORKFLOWS_MODEL_FAMILIES, e);
 }
-async function qn({ q: e = "*", limit: t = 100, offset: n = 0, sort: r = "mtime" } = {}, i = {}) {
+async function Jn({ q: e = "*", limit: t = 100, offset: n = 0, sort: r = "mtime" } = {}, i = {}) {
 	let a = Math.max(1, Math.min(500, Number(t) || 100)), o = Math.max(0, Number(n) || 0);
-	return K(`${l.LIST}?scope=workflow&q=${encodeURIComponent(String(e || "*"))}&limit=${encodeURIComponent(String(a))}&offset=${encodeURIComponent(String(o))}&sort=${encodeURIComponent(String(r || "mtime"))}`, i);
+	return q(`${l.LIST}?scope=workflow&q=${encodeURIComponent(String(e || "*"))}&limit=${encodeURIComponent(String(a))}&offset=${encodeURIComponent(String(o))}&sort=${encodeURIComponent(String(r || "mtime"))}`, i);
 }
-async function Jn({ filepath: e = "", source_filepath: t = "" } = {}, n = {}) {
-	return q(l.WORKFLOWS_THUMBNAIL_SET, {
+async function Yn({ filepath: e = "", source_filepath: t = "" } = {}, n = {}) {
+	return J(l.WORKFLOWS_THUMBNAIL_SET, {
 		filepath: e,
 		source_filepath: t
 	}, n);
 }
-async function Yn({ type: e = "output", filename: t = "", subfolder: n = "", root_id: r = "", rootId: i = "", filepath: a = "" } = {}, o = {}) {
+async function Xn({ type: e = "output", filename: t = "", subfolder: n = "", root_id: r = "", rootId: i = "", filepath: a = "" } = {}, o = {}) {
 	let s = String(e || "output").trim().toLowerCase() || "output", c = String(t || "").trim(), l = String(n || "").trim(), u = String(r || i || "").trim(), d = String(a || "").trim();
 	if (!c) return {
 		ok: !1,
@@ -1660,9 +1663,9 @@ async function Yn({ type: e = "output", filename: t = "", subfolder: n = "", roo
 		code: "INVALID_INPUT"
 	};
 	let f = `/mjr/am/metadata?type=${encodeURIComponent(s)}&filename=${encodeURIComponent(c)}`;
-	return d && (f += `&filepath=${encodeURIComponent(d)}`), l && (f += `&subfolder=${encodeURIComponent(l)}`), u && (f += `&root_id=${encodeURIComponent(u)}`), K(f, o);
+	return d && (f += `&filepath=${encodeURIComponent(d)}`), l && (f += `&subfolder=${encodeURIComponent(l)}`), u && (f += `&root_id=${encodeURIComponent(u)}`), q(f, o);
 }
-async function Xn({ filepath: e = "", root_id: t = "", subfolder: n = "" } = {}, r = {}) {
+async function Zn({ filepath: e = "", root_id: t = "", subfolder: n = "" } = {}, r = {}) {
 	try {
 		if (globalThis.__mjrFolderInfoSupported === !1) return {
 			ok: !1,
@@ -1671,7 +1674,7 @@ async function Xn({ filepath: e = "", root_id: t = "", subfolder: n = "" } = {},
 			code: "UNAVAILABLE"
 		};
 		if (globalThis.__mjrFolderInfoSupported == null) {
-			let e = await K("/mjr/am/routes");
+			let e = await q("/mjr/am/routes");
 			if (e?.ok && Array.isArray(e.data)) {
 				let t = e.data.some((e) => String(e?.path || "").trim() === "/mjr/am/folder-info");
 				if (globalThis.__mjrFolderInfoSupported = !!t, !t) return {
@@ -1687,7 +1690,7 @@ async function Xn({ filepath: e = "", root_id: t = "", subfolder: n = "" } = {},
 	}
 	let i = String(e || "").trim(), a = String(t || "").trim(), o = String(n || "").trim(), s = l.FOLDER_INFO, c = [];
 	i ? (c.push(`filepath=${encodeURIComponent(i)}`), c.push("browser_mode=1")) : (a && c.push(`root_id=${encodeURIComponent(a)}`), o && c.push(`subfolder=${encodeURIComponent(o)}`)), c.length && (s += `?${c.join("&")}`);
-	let u = await K(s, r);
+	let u = await q(s, r);
 	try {
 		!u?.ok && Number(u?.status || 0) === 404 && (globalThis.__mjrFolderInfoSupported = !1);
 	} catch (e) {
@@ -1697,12 +1700,12 @@ async function Xn({ filepath: e = "", root_id: t = "", subfolder: n = "" } = {},
 }
 //#endregion
 //#region ui/utils/logging.ts
-function Zn(e, ...t) {
+function Qn(e, ...t) {
 	try {
 		c.DEBUG_VERBOSE_ERRORS && console.debug(e, ...t);
 	} catch {}
 }
-function Qn(e, t = "Majoor", { showToast: n = !1, toastType: r = "error" } = {}) {
+function $n(e, t = "Majoor", { showToast: n = !1, toastType: r = "error" } = {}) {
 	let i = e?.message || String(e || "Unknown error");
 	try {
 		c.DEBUG_VERBOSE_ERRORS ? console.error(`[Majoor][${t}]`, i, e) : console.debug(`[Majoor][${t}]`, i);
@@ -1710,7 +1713,7 @@ function Qn(e, t = "Majoor", { showToast: n = !1, toastType: r = "error" } = {})
 		console.debug?.(e);
 	}
 	if (n && c.DEBUG_VERBOSE_ERRORS) try {
-		j(`${t}: ${i}`, r, 4e3);
+		M(`${t}: ${i}`, r, 4e3);
 	} catch (e) {
 		console.debug?.(e);
 	}
@@ -1722,44 +1725,44 @@ var Y = {
 	scope: null,
 	ratingHotkeysActive: !1
 };
-function $n() {
+function er() {
 	return Y;
 }
-function er(e) {
+function tr(e) {
 	Y.scope = e == null ? null : String(e);
 }
-function tr() {
+function nr() {
 	return !!Y.suspended;
 }
-function nr(e) {
+function rr(e) {
 	Y.ratingHotkeysActive = !!e;
 }
 //#endregion
 //#region ui/features/viewer/viewerRuntimeHosts.ts
-var X = null, Z = null, rr = ".mjr-viewer-overlay", ir = ".mjr-mfv";
-function ar(e) {
+var X = null, Z = null, ir = ".mjr-viewer-overlay", ar = ".mjr-mfv";
+function or(e) {
 	return !!e && typeof e.appendChild == "function";
 }
 function Q() {
 	return typeof document > "u" ? null : document?.body || null;
 }
-function or() {
+function sr() {
 	return typeof document > "u" ? null : document?.body || document?.documentElement || null;
 }
-function sr(e) {
-	return ar(e) ? e === Q() ? !0 : typeof e?.isConnected == "boolean" ? e.isConnected : !0 : !1;
-}
 function cr(e) {
-	return ar(e) ? e : null;
-}
-function $(e) {
-	return sr(e) ? e : Q();
+	return or(e) ? e === Q() ? !0 : typeof e?.isConnected == "boolean" ? e.isConnected : !0 : !1;
 }
 function lr(e) {
-	let t = or();
-	return sr(t) ? t : $(e);
+	return or(e) ? e : null;
 }
-function ur(e, t, n = $) {
+function $(e) {
+	return cr(e) ? e : Q();
+}
+function ur(e) {
+	let t = sr();
+	return cr(t) ? t : $(e);
+}
+function dr(e, t, n = $) {
 	let r = [], i = /* @__PURE__ */ new Set();
 	for (let a of [
 		n(t),
@@ -1778,29 +1781,29 @@ function ur(e, t, n = $) {
 	}
 	return r;
 }
-function dr(e, t, n = $) {
+function fr(e, t, n = $) {
 	let r = n(t);
 	if (!r) return;
-	let i = ur(e, t, n);
+	let i = dr(e, t, n);
 	for (let e of i) if (e && e.parentNode !== r) try {
 		r.appendChild(e);
 	} catch (e) {
 		console.debug?.(e);
 	}
 }
-function fr(e) {
-	return X = cr(e), dr(rr, X), () => pr(e);
-}
 function pr(e) {
-	(!e || X === e) && (X = null);
+	return X = lr(e), fr(ir, X), () => mr(e);
 }
 function mr(e) {
-	return Z = cr(e), dr(ir, Z, lr), () => hr(e);
+	(!e || X === e) && (X = null);
 }
 function hr(e) {
-	(!e || Z === e) && (Z = null);
+	return Z = lr(e), fr(ar, Z, ur), () => gr(e);
 }
 function gr(e) {
+	(!e || Z === e) && (Z = null);
+}
+function _r(e) {
 	let t = $(X);
 	try {
 		t?.appendChild?.(e);
@@ -1809,8 +1812,8 @@ function gr(e) {
 	}
 	return t;
 }
-function _r(e) {
-	let t = lr(Z);
+function vr(e) {
+	let t = ur(Z);
 	try {
 		t?.appendChild?.(e);
 	} catch (e) {
@@ -1818,8 +1821,8 @@ function _r(e) {
 	}
 	return t;
 }
-function vr() {
-	return ur(rr, X);
+function yr() {
+	return dr(ir, X);
 }
 //#endregion
-export { pt as $, Ee as $t, Rn as A, ut as At, Dt as B, on as Bt, Kn as C, ot as Ct, Hn as D, $e as Dt, qn as E, mt as Et, An as F, St as Ft, Lt as G, en as Gt, Wt as H, sn as Ht, Fn as I, Vt as It, Ht as J, Ue as Jt, st as K, an as Kt, Zt as L, Mt as Lt, Wn as M, ft as Mt, Jn as N, tt as Nt, Bn as O, vt as Ot, kn as P, At as Pt, ht as Q, pe as Qt, Tt as R, nt as Rt, Pn as S, it as St, In as T, gt as Tt, Gt as U, nn as Ut, Yt as V, tn as Vt, Xt as W, rn as Wt, at as X, j as Xt, rt as Y, He as Yt, yt as Z, Ae as Zt, Nn as _, qt as _t, fr as a, f as an, dt as at, Xn as b, zt as bt, er as c, Nt as ct, Qn as d, cn as dt, we as en, Qe as et, Vn as f, Jt as ft, J as g, Qt as gt, K as h, Et as ht, mr as i, p as in, Ct as it, Un as j, wt as jt, q as k, Ze as kt, nr as l, jt as lt, zn as m, Ut as mt, gr as n, Te as nn, lt as nt, $n as o, Ft as ot, Ln as p, Rt as pt, $t as q, ln as qt, vr as r, E as rn, It as rt, tr as s, et as st, _r as t, Ce as tn, _t as tt, Zn as u, xt as ut, jn as v, kt as vt, Gn as w, bt as wt, Mn as x, ct as xt, Yn as y, Bt as yt, Ot as z, Pt as zt };
+export { pt as $, pe as $t, zn as A, Xe as At, Dt as B, Pt as Bt, qn as C, rt as Ct, Un as D, mt as Dt, Jn as E, gt as Et, An as F, At as Ft, Lt as G, rn as Gt, Wt as H, tn as Ht, In as I, St as It, Ht as J, ln as Jt, st as K, en as Kt, Zt as L, Vt as Lt, Gn as M, wt as Mt, Yn as N, ft as Nt, Vn as O, Qe as Ot, kn as P, et as Pt, ht as Q, ke as Qt, Tt as R, Mt as Rt, Fn as S, it as St, Ln as T, bt as Tt, Gt as U, sn as Ut, Yt as V, on as Vt, Xt as W, nn as Wt, at as X, Ve as Xt, nt as Y, He as Yt, yt as Z, M as Zt, Pn as _, qt as _t, pr as a, p as an, dt as at, Zn as b, zt as bt, tr as c, Nt as ct, $n as d, cn as dt, Ee as en, Ze as et, Hn as f, Jt as ft, Mn as g, Qt as gt, q as h, Et as ht, hr as i, E as in, Ct as it, Wn as j, ut as jt, J as k, vt as kt, rr as l, jt as lt, Bn as m, Ut as mt, _r as n, Ce as nn, lt as nt, er as o, f as on, Ft as ot, Rn as p, Rt as pt, $t as q, an as qt, yr as r, Te as rn, It as rt, nr as s, $e as st, vr as t, we as tn, _t as tt, Qn as u, xt as ut, jn as v, kt as vt, Kn as w, ot as wt, Nn as x, ct as xt, Xn as y, Bt as yt, Ot as z, tt as zt };

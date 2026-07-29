@@ -118,6 +118,7 @@ var m = 200, h = 0, g = {
 	SETTINGS_STARTUP_LOGGING: "/mjr/am/settings/startup-logging",
 	SETTINGS_LTXAV_RGB_FALLBACK: "/mjr/am/settings/ltxav-rgb-fallback",
 	SETTINGS_JXL: "/mjr/am/settings/jxl",
+	SETTINGS_BROWSER_SHOW_FOLDERS: "/mjr/am/settings/browser-show-folders",
 	VIEW: "/view",
 	CUSTOM_VIEW: "/mjr/am/custom-view",
 	VIEWER_INFO: "/mjr/am/viewer/info",

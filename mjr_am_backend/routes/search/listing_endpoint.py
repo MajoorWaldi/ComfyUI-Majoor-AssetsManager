@@ -27,6 +27,7 @@ async def list_assets(
     get_input_directory: Callable[[], str],
     kickoff_background_scan: Callable[..., Any],
     list_filesystem_assets: Callable[..., Any],
+    list_filesystem_folders: Callable[..., Any],
     dedupe_result_assets_payload: Callable[[dict[str, Any]], dict[str, Any]],
     resolve_custom_root_fn: Callable[[str], Any],
     is_loopback_request: Callable[[web.Request], bool],
@@ -102,6 +103,7 @@ async def list_assets(
             get_input_directory=get_input_directory,
             kickoff_background_scan=kickoff_background_scan,
             list_filesystem_assets=list_filesystem_assets,
+            list_filesystem_folders=list_filesystem_folders,
             dedupe_result_assets_payload=dedupe_result_assets_payload,
             json_response=json_response,
         )
@@ -201,6 +203,7 @@ async def list_assets(
         get_input_directory=get_input_directory,
         kickoff_background_scan=kickoff_background_scan,
         list_filesystem_assets=list_filesystem_assets,
+        list_filesystem_folders=list_filesystem_folders,
         dedupe_result_assets_payload=dedupe_result_assets_payload,
         exclude_assets_under_root=exclude_assets_under_root,
         json_response=json_response,

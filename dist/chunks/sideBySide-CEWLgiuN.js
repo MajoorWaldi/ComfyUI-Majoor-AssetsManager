@@ -1,4 +1,4 @@
-import { i as e } from "./model3dRenderer-Bzlr-goo.js";
+import { i as e } from "./model3dRenderer-C365Y-Y-.js";
 import { i as t, o as n } from "./geninfoParser-D91g5NYg.js";
 //#region ui/features/viewer/sideBySide.ts
 function r(e) {

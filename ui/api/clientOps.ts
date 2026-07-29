@@ -64,6 +64,14 @@ export async function setExecutionGroupingSettings(enabled = true) {
     return post(ENDPOINTS.SETTINGS_EXECUTION_GROUPING, { enabled: !!enabled });
 }
 
+export async function getBrowserShowFolders() {
+    return get(ENDPOINTS.SETTINGS_BROWSER_SHOW_FOLDERS);
+}
+
+export async function setBrowserShowFolders(enabled = true) {
+    return post(ENDPOINTS.SETTINGS_BROWSER_SHOW_FOLDERS, { enabled: !!enabled });
+}
+
 export async function getHuggingFaceSettings() {
     return get(ENDPOINTS.SETTINGS_HUGGINGFACE);
 }

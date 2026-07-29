@@ -167,7 +167,7 @@ export const applyDragOutToOS = ({  dt, asset, containerEl, card, viewUrl, strip
                 try {
                     dt.setData("text/uri-list", url);
                     dt.setData("DownloadURL", `application/zip:${zipName}:${url}`);
-                    dt.effectAllowed = "copy";
+                    dt.effectAllowed = "copyMove";
                 } catch (e: any) {
                     console.debug?.(e);
                 }
@@ -187,7 +187,7 @@ export const applyDragOutToOS = ({  dt, asset, containerEl, card, viewUrl, strip
     try {
         dt.setData("text/uri-list", url);
         dt.setData("DownloadURL", `${mime}:${filename}:${url}`);
-        dt.effectAllowed = "copy";
+        dt.effectAllowed = "copyMove";
     } catch (e: any) {
         console.debug?.(e);
     }

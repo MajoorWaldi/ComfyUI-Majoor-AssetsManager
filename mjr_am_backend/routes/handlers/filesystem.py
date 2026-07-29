@@ -1473,3 +1473,106 @@ async def _dispatch_filesystem_listing_path(
         offset=offset,
         index_service=index_service,
     )
+
+
+# Directories under the *input* root that are hidden from the folder browser.
+# These are ComfyUI-internal folders that users should not navigate into.
+_INPUT_HIDDEN_DIRS: frozenset[str] = frozenset({
+    "pasted",      # ComfyUI paste buffer
+    "clipspace",   # ComfyUI clipboard between nodes
+    "3d",          # ComfyUI 3D model cache
+})
+
+
+async def _list_filesystem_folders(
+    root_dir: Path,
+    subfolder: str,
+    asset_type: str = "output",
+) -> Result[list[dict[str, Any]]]:
+    """
+    List visible subdirectories under ``root_dir/subfolder``.
+
+    Returns folder entries with ``kind: "folder"`` that can be merged into a
+    listing response alongside file assets.  Hidden directories (``.`` prefix,
+    ``_`` prefix, known system directories) are excluded.
+    """
+    target_result = _resolve_filesystem_listing_target(root_dir, subfolder)
+    if not target_result.ok:
+        return target_result
+    target_data = target_result.data if isinstance(target_result.data, dict) else {}
+    base = target_data.get("base")
+    target_dir_resolved = target_data.get("target_dir_resolved")
+    if not isinstance(base, Path) or not isinstance(target_dir_resolved, Path):
+        return Result.Err("LIST_FAILED", "Failed to resolve listing directory")
+
+    folders: list[dict[str, Any]] = []
+    try:
+        # ── ".." parent directory entry (except at root level) ──────────────
+        if subfolder:
+            try:
+                parent_resolved = target_dir_resolved.parent.resolve(strict=True)
+                if _is_within_root(parent_resolved, base):
+                    parent_rel = str(parent_resolved.relative_to(base)).replace("\\", "/")
+                    if parent_rel == ".":
+                        parent_rel = ""
+                    folders.append({
+                        "id": None,
+                        "filename": "..",
+                        "subfolder": parent_rel,
+                        "filepath": str(parent_resolved),
+                        "kind": "folder",
+                        "ext": "",
+                        "size": None,
+                        "mtime": 0,
+                        "width": None,
+                        "height": None,
+                        "duration": None,
+                        "rating": 0,
+                        "tags": [],
+                        "has_workflow": None,
+                        "has_generation_data": None,
+                        "type": asset_type,
+                        "root_id": "",
+                    })
+            except (ValueError, OSError):
+                pass
+
+        for entry in target_dir_resolved.iterdir():
+            if not entry.is_dir():
+                continue
+            name = entry.name
+            if name.startswith(".") or name.startswith("_"):
+                continue
+            if asset_type == "input" and name in _INPUT_HIDDEN_DIRS:
+                continue
+            try:
+                resolved = entry.resolve(strict=True)
+                if not _is_within_root(resolved, base):
+                    continue
+                rel = str(resolved.relative_to(base)).replace("\\", "/")
+            except (ValueError, OSError):
+                continue
+            folders.append({
+                "id": None,
+                "filename": name,
+                "subfolder": rel,
+                "filepath": str(resolved),
+                "kind": "folder",
+                "ext": "",
+                "size": None,
+                "mtime": int(entry.stat().st_mtime),
+                "width": None,
+                "height": None,
+                "duration": None,
+                "rating": 0,
+                "tags": [],
+                "has_workflow": None,
+                "has_generation_data": None,
+                "type": asset_type,
+                "root_id": "",
+            })
+    except OSError as exc:
+        return Result.Err("LIST_FAILED", f"Failed to list directory: {exc}")
+
+    folders.sort(key=lambda x: (x.get("filename") != "..", str(x.get("filename") or "").lower()))
+    return Result.Ok(folders)
