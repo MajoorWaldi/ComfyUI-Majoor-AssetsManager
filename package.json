@@ -26,6 +26,9 @@
     "format": "prettier --write \"ui/**/*.{ts,js,mjs,vue}\"",
     "format:check": "prettier --check \"ui/**/*.{ts,js,mjs,vue}\""
   },
+  "overrides": {
+    "brace-expansion": "5.0.8"
+  },
   "devDependencies": {
     "@comfyorg/litegraph": "^0.17.2",
     "@eslint/js": "^10.0.1",
