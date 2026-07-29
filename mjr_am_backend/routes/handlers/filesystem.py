@@ -1498,7 +1498,7 @@ async def _list_filesystem_folders(
     """
     target_result = _resolve_filesystem_listing_target(root_dir, subfolder)
     if not target_result.ok:
-        return target_result
+        return Result.Err(target_result.code, target_result.error or "Unknown error")
     target_data = target_result.data if isinstance(target_result.data, dict) else {}
     base = target_data.get("base")
     target_dir_resolved = target_data.get("target_dir_resolved")
