@@ -137,6 +137,23 @@ async def _build_browse_response(
             root_path, subfolder, asset_type="output"
         )
         all_folders: list[dict] = folder_result.data if (folder_result.ok and isinstance(folder_result.data, list)) else []
+
+        # Sort folders by mtime to match the requested sort order.
+        # ".." (parent navigation) always stays at the top.
+        parent_entry = None
+        regular_folders = []
+        for f in all_folders:
+            if f.get("filename") == "..":
+                parent_entry = f
+            else:
+                regular_folders.append(f)
+        reverse = sort_key != "mtime_asc"
+        regular_folders.sort(
+            key=lambda x: int(x.get("mtime") or 0) if x.get("mtime") is not None else 0,
+            reverse=reverse,
+        )
+        all_folders = ([parent_entry] if parent_entry else []) + regular_folders
+
         folder_count = len(all_folders)
 
         # Paginate: folders first, then files.  Adjust file offset by folder count
