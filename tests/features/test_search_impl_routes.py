@@ -550,8 +550,12 @@ async def test_list_output_passes_cursor_to_index(monkeypatch, tmp_path) -> None
             seen.update(kwargs)
             return Result.Ok({"assets": [], "total": None, "next_cursor": "", "has_more": False})
 
+    class _Settings:
+        async def get_browser_show_folders(self):
+            return False
+
     async def _svc():
-        return {"index": _Index()}, None
+        return {"index": _Index(), "settings": _Settings()}, None
 
     monkeypatch.setattr(search_impl, "_require_services", _svc)
     monkeypatch.setattr(search_impl, "_check_rate_limit", lambda *args, **kwargs: (True, None))
@@ -757,8 +761,12 @@ async def test_list_output_db_scope_applies_subfolder_filter(monkeypatch, tmp_pa
                 }
             )
 
+    class _Settings:
+        async def get_browser_show_folders(self):
+            return False
+
     async def _svc():
-        return {"index": _Index()}, None
+        return {"index": _Index(), "settings": _Settings()}, None
 
     async def _out_root(_svc):
         return str(tmp_path)
@@ -793,8 +801,12 @@ async def test_list_output_db_scope_does_not_force_empty_subfolder_filter(monkey
                 }
             )
 
+    class _Settings:
+        async def get_browser_show_folders(self):
+            return False
+
     async def _svc():
-        return {"index": _Index()}, None
+        return {"index": _Index(), "settings": _Settings()}, None
 
     async def _out_root(_svc):
         return str(tmp_path)

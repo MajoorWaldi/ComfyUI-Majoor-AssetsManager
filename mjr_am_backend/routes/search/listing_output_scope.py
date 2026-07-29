@@ -177,6 +177,7 @@ async def _build_browse_response(
             "offset": offset,
             "query": query,
             "scope": "output",
+            "mode": "filesystem",
         }
         return json_response(Result.Ok(payload))
     except Exception:
