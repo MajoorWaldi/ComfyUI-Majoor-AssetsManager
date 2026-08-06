@@ -203,7 +203,7 @@ async def _build_browse_response(
 
 async def _maybe_fallback_to_filesystem(
     *,
-    out_res,
+    out_res: Result[Any],
     query: str,
     offset: int,
     filters: dict[str, Any],
