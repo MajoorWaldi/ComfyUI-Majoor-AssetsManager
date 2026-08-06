@@ -1,10 +1,10 @@
 import { $ as e, At as t, Bt as n, Ct as r, Dt as i, Et as a, I as o, It as s, K as c, Mt as l, N as u, Nt as d, O as f, Ot as p, Pt as m, Q as h, Qt as g, R as _, Rt as v, S as y, St as b, T as x, Tt as S, Ut as C, Vt as ee, Wt as te, X as w, Xt as T, Y as ne, Yt as re, Z as ie, Zt as E, an as ae, at as oe, ct as se, et as ce, ht as le, it as ue, jt as de, k as D, kt as fe, lt as pe, nt as me, on as he, p as ge, qt as _e, rt as ve, st as ye, tt as be, ut as xe, w as Se, wt as Ce, xt as we, zt as Te } from "./viewerRuntimeHosts-DneLZtWG.js";
 import { Ct as Ee, K as De, N as Oe, T as ke, c as Ae, d as je, f as Me, h as Ne, j as Pe, l as Fe, m as O, o as k, p as Ie, pt as Le, s as A, tt as Re, u as ze, x as Be, y as Ve } from "./events-DEEu2sDf.js";
-import { F as He, K as Ue, P as We, Y as Ge, f as Ke, m as qe, p as Je } from "./Viewer-zY-V7v6e.js";
-import { t as Ye } from "./floatingViewerManager-COFmnbOD.js";
-import { A as Xe, B as j, C as M, D as Ze, E as N, G as Qe, H as P, J as $e, L as et, O as F, R as tt, S as nt, T as I, W as rt, _ as it, a as at, b as ot, c as st, ct as L, d as ct, dt as R, f as lt, g as ut, h as dt, i as ft, j as pt, k as z, l as mt, lt as ht, m as gt, n as _t, nt as B, o as vt, p as yt, q as bt, r as xt, s as St, t as Ct, tt as wt, u as Tt, ut as V, y as Et } from "./mjr-primevue-BKVyemoz.js";
-import { t as Dt } from "./mjr-vue-vendor-DNxXXaMq.js";
-import { t as Ot } from "./viewerOpenRequest-Gv3VIRAS.js";
+import { F as He, K as Ue, P as We, Y as Ge, f as Ke, m as qe, p as Je } from "./Viewer-TX6xKplx.js";
+import { t as Ye } from "./floatingViewerManager-CWBkdzsj.js";
+import { A as Xe, B as j, C as M, D as Ze, E as N, G as Qe, H as P, J as $e, L as et, O as F, R as tt, S as nt, T as I, W as rt, _ as it, a as at, b as ot, c as st, ct as L, d as ct, dt as R, f as lt, g as ut, h as dt, i as ft, j as pt, k as z, l as mt, lt as ht, m as gt, n as _t, nt as B, o as vt, p as yt, q as bt, r as xt, s as St, t as Ct, tt as wt, u as Tt, ut as V, y as Et } from "./mjr-primevue-DoFrWLE2.js";
+import { t as Dt } from "./mjr-vue-vendor-BXuhHv9f.js";
+import { t as Ot } from "./viewerOpenRequest-C3aLWISO.js";
 import { a as kt, i as At, n as jt, o as Mt, r as Nt, t as Pt } from "./geninfoParser-D7IjgI1x.js";
 //#region ui/app/settings/settingsUtils.ts
 var H = (e, t) => {
@@ -4139,127 +4139,132 @@ var Ma = {
 		function i(...e) {
 			return e.find((e) => e != null && e !== "");
 		}
-		function a(e, t) {
+		function a(e) {
+			if (e == null) return !1;
+			let t = String(e).trim();
+			return t !== "" && t.toUpperCase() !== "N/A";
+		}
+		function o(e, t) {
 			let n = i(e.bits_per_raw_sample, e.bits_per_sample, t.bits_per_channel, t.bitsperchannel, t.bit_depth), r = String(i(e.pix_fmt, t.pixel_format, t.pix_fmt) || ""), a = Number(r.match(/(?:p|gray|gbrp)(\d+)(?:le|be)?$/i)?.[1]), o = Number(n) || (a >= 8 ? a : 0), s = String(i(e.sample_fmt, t.sample_format) || "").toLowerCase(), c = s.includes("flt") || s.includes("dbl") || /(?:16|32)f\b/i.test(r);
 			return o > 0 ? `${o}-bit ${c ? "float" : "fixed"}` : r ? `8-bit ${c ? "float" : "fixed"}` : c ? "float" : "N/A";
 		}
-		function o(e, t) {
+		function s(e, t) {
 			let n = e?.[t] ?? e?.file_info?.[t];
 			return n != null && n !== "" ? n : t === "workflow_id" ? e?.user_metadata?.workflow?.id ?? e?.metadata?.workflow_id ?? "" : "";
 		}
-		let s = I(() => {
-			let e = t.asset || {}, s = r(e), c = s?.raw_ffprobe && typeof s.raw_ffprobe == "object" ? s.raw_ffprobe : {}, l = c?.video_stream && typeof c.video_stream == "object" ? c.video_stream : {}, u = c?.format && typeof c.format == "object" ? c.format : {}, d = [];
-			e.width && e.height && d.push({
+		let c = I(() => {
+			let e = t.asset || {}, c = r(e), l = c?.raw_ffprobe && typeof c.raw_ffprobe == "object" ? c.raw_ffprobe : {}, u = l?.video_stream && typeof l.video_stream == "object" ? l.video_stream : {}, d = l?.format && typeof l.format == "object" ? l.format : {}, f = [];
+			e.width && e.height && f.push({
 				label: "Dimensions",
 				value: `${e.width} x ${e.height}`,
 				tooltip: "Image/video resolution in pixels"
-			}), e.duration && e.duration > 0 && d.push({
+			}), e.duration && e.duration > 0 && f.push({
 				label: "Duration",
 				value: Da(e.duration),
 				tooltip: "Video duration"
 			});
-			let f = Je(e);
-			f != null && d.push({
+			let p = Je(e);
+			p != null && f.push({
 				label: "FPS",
-				value: Ke(f),
+				value: Ke(p),
 				tooltip: "Native frame rate"
 			});
-			let p = qe(e, f);
-			d.push({
+			let m = qe(e, p);
+			f.push({
 				label: "Frames",
-				value: p == null ? "N/A" : String(Math.max(0, Math.floor(p))),
+				value: m == null ? "N/A" : String(Math.max(0, Math.floor(m))),
 				tooltip: "Total frame count"
-			}), d.push({
+			}), f.push({
 				label: "Bits / Channel",
-				value: a(l, s),
+				value: o(u, c),
 				tooltip: "Channel precision and numeric representation"
-			}), d.push({
+			}), f.push({
 				label: "Pixel Aspect",
-				value: String(i(l.sample_aspect_ratio, s.pixel_aspect_ratio) || "N/A"),
+				value: String(i(u.sample_aspect_ratio, c.pixel_aspect_ratio) || "N/A"),
 				tooltip: "Pixel sample aspect ratio"
-			}), d.push({
+			}), f.push({
 				label: "Codec ID",
-				value: String(i(l.codec_tag_string, l.codec_tag, s.codec_id) || "N/A"),
+				value: String(i(u.codec_tag_string, u.codec_tag, c.codec_id) || "N/A"),
 				tooltip: "Container codec identifier"
-			}), d.push({
+			}), f.push({
 				label: "Codec Name",
-				value: String(i(l.codec_long_name, l.codec_name, s.codec_name) || "N/A"),
+				value: String(i(u.codec_long_name, u.codec_name, c.codec_name) || "N/A"),
 				tooltip: "Video codec name"
-			}), d.push({
+			}), f.push({
 				label: "Encoder",
-				value: String(i(l.tags?.encoder, u.tags?.encoder, s.encoder) || "N/A"),
+				value: String(i(u.tags?.encoder, d.tags?.encoder, c.encoder) || "N/A"),
 				tooltip: "Encoder recorded in file metadata"
-			}), d.push({
+			}), f.push({
 				label: "Pixel Format",
-				value: String(i(l.pix_fmt, s.pixel_format, s.pix_fmt) || "N/A"),
+				value: String(i(u.pix_fmt, c.pixel_format, c.pix_fmt) || "N/A"),
 				tooltip: "Stored pixel format"
-			}), d.push({
+			}), f.push({
 				label: "Color Space",
-				value: String(i(l.color_space, s.color_space, s.colorspace) || "N/A"),
+				value: String(i(u.color_space, c.color_space, c.colorspace) || "N/A"),
 				tooltip: "Encoded color space"
 			});
-			let m = He(e.generation_time_ms ?? e.metadata?.generation_time_ms ?? 0);
-			m > 0 && d.push({
+			let h = He(e.generation_time_ms ?? e.metadata?.generation_time_ms ?? 0);
+			h > 0 && f.push({
 				label: "Generation Time",
-				value: `${(Number(m) / 1e3).toFixed(1)}s`,
+				value: `${(Number(h) / 1e3).toFixed(1)}s`,
 				tooltip: "Time taken to generate this asset (workflow execution time)",
-				valueStyle: `color: ${We(m)}; font-weight: 600;`
+				valueStyle: `color: ${We(h)}; font-weight: 600;`
 			});
-			let h = e.generation_time || e.file_creation_time || e.mtime || e.created_at;
-			if (h) {
-				let e = Ta(h), t = Ea(h);
-				e && d.push({
+			let g = e.generation_time || e.file_creation_time || e.mtime || e.created_at;
+			if (g) {
+				let e = Ta(g), t = Ea(g);
+				e && f.push({
 					label: "Date",
 					value: e,
 					tooltip: "File creation/generation date"
-				}), t && d.push({
+				}), t && f.push({
 					label: "Time",
 					value: t,
 					tooltip: "File creation/generation time"
 				});
 			}
-			d.push({
+			f.push({
 				label: "File Size",
 				value: n(i(e.size_bytes, e.size, e.file_info?.size_bytes, e.file_info?.size)),
 				tooltip: "File size on disk"
-			}), e.id != null && d.push({
+			}), e.id != null && f.push({
 				label: "Asset ID",
 				value: String(e.id),
 				tooltip: "Internal database asset identifier"
 			});
-			let g = String(o(e, "job_id") || "").trim();
-			g && d.push({
+			let _ = String(s(e, "job_id") || "").trim();
+			_ && f.push({
 				label: "Job ID",
-				value: g,
+				value: _,
 				tooltip: "Workflow execution job identifier (prompt_id)"
 			});
-			let _ = String(o(e, "source_node_id") || "").trim();
-			_ && d.push({
+			let v = String(s(e, "source_node_id") || "").trim();
+			v && f.push({
 				label: "Source Node",
-				value: _,
+				value: v,
 				tooltip: "ComfyUI node id that produced this file"
 			});
-			let v = String(o(e, "source_node_type") || "").trim();
-			v && d.push({
+			let y = String(s(e, "source_node_type") || "").trim();
+			y && f.push({
 				label: "Node Type",
-				value: v,
+				value: y,
 				tooltip: "ComfyUI node class that produced this file"
 			});
-			let y = String(o(e, "workflow_id") || "").trim();
-			return y && d.push({
+			let b = String(s(e, "workflow_id") || "").trim();
+			return b && f.push({
 				label: "Workflow ID",
-				value: y,
+				value: b,
 				tooltip: "ComfyUI workflow identifier (from workflow.id in extra_data)"
-			}), d;
+			}), f.filter((e) => a(e.value));
 		});
-		return (e, t) => s.value.length ? (j(), z("div", Ma, [t[0] ||= N("div", { style: {
+		return (e, t) => c.value.length ? (j(), z("div", Ma, [t[0] ||= N("div", { style: {
 			"font-size": "12px",
 			"font-weight": "700",
 			color: "#607d8b",
 			"margin-bottom": "8px",
 			"text-transform": "uppercase",
 			"letter-spacing": "0.4px"
-		} }, " File Info ", -1), N("div", Na, [(j(!0), z(M, null, P(s.value, (e) => (j(), z("div", {
+		} }, " File Info ", -1), N("div", Na, [(j(!0), z(M, null, P(c.value, (e) => (j(), z("div", {
 			key: e.label,
 			style: {
 				display: "flex",
@@ -5122,7 +5127,7 @@ var Co = ["title"], wo = ["src"], To = {
 	setup(e) {
 		let t = e, n = B(0), r = B(!1), i = null;
 		function a() {
-			return i ||= import("./floatingViewerManager-COFmnbOD.js").then((e) => e.n), i;
+			return i ||= import("./floatingViewerManager-CWBkdzsj.js").then((e) => e.n), i;
 		}
 		function o() {
 			return (Array.isArray(t.inputFile?.previewCandidates) ? t.inputFile.previewCandidates : [])[n.value] || "";

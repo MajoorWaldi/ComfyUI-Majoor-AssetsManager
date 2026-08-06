@@ -39,6 +39,12 @@ function firstValue(...values) {
     return values.find((value) => value !== undefined && value !== null && value !== "");
 }
 
+function hasDisplayValue(value) {
+    if (value === undefined || value === null) return false;
+    const text = String(value).trim();
+    return text !== "" && text.toUpperCase() !== "N/A";
+}
+
 function formatBitDepth(stream, raw) {
     const bits = firstValue(
         stream.bits_per_raw_sample,
@@ -178,7 +184,7 @@ const rows = computed(() => {
     if (workflowId) {
         fileData.push({ label: "Workflow ID", value: workflowId, tooltip: "ComfyUI workflow identifier (from workflow.id in extra_data)" });
     }
-    return fileData;
+    return fileData.filter((row) => hasDisplayValue(row.value));
 });
 </script>
 

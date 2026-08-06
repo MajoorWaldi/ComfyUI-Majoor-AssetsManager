@@ -93,19 +93,20 @@ describe("SidebarFileInfoSection", () => {
         wrapper.unmount();
     });
 
-    it("keeps requested rows visible when metadata is unavailable", () => {
+    it("hides rows whose metadata is unavailable or empty", () => {
         const wrapper = mount(SidebarFileInfoSection, { props: { asset: { id: 1 } } });
         const text = wrapper.text();
-        expect(text).toContain("Frames");
-        expect(text).toContain("Bits / Channel");
-        expect(text).toContain("Pixel Aspect");
-        expect(text).toContain("Codec ID");
-        expect(text).toContain("Codec Name");
-        expect(text).toContain("Encoder");
-        expect(text).toContain("Pixel Format");
-        expect(text).toContain("Color Space");
-        expect(text).toContain("File Size");
-        expect(text).toContain("N/A");
+        expect(text).toContain("Asset ID");
+        expect(text).not.toContain("Frames");
+        expect(text).not.toContain("Bits / Channel");
+        expect(text).not.toContain("Pixel Aspect");
+        expect(text).not.toContain("Codec ID");
+        expect(text).not.toContain("Codec Name");
+        expect(text).not.toContain("Encoder");
+        expect(text).not.toContain("Pixel Format");
+        expect(text).not.toContain("Color Space");
+        expect(text).not.toContain("File Size");
+        expect(text).not.toContain("N/A");
         wrapper.unmount();
     });
 });
