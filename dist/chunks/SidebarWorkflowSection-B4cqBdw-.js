@@ -1,10 +1,10 @@
 import { $ as e, At as t, Bt as n, Ct as r, Dt as i, Et as a, I as o, It as s, K as c, Mt as l, N as u, Nt as d, O as f, Ot as p, Pt as m, Q as h, Qt as g, R as _, Rt as v, S as y, St as b, T as x, Tt as S, Ut as C, Vt as ee, Wt as te, X as w, Xt as T, Y as ne, Yt as re, Z as ie, Zt as E, an as ae, at as oe, ct as se, et as ce, ht as le, it as ue, jt as de, k as D, kt as fe, lt as pe, nt as me, on as he, p as ge, qt as _e, rt as ve, st as ye, tt as be, ut as xe, w as Se, wt as Ce, xt as we, zt as Te } from "./viewerRuntimeHosts-DneLZtWG.js";
 import { Ct as Ee, K as De, N as Oe, T as ke, c as Ae, d as je, f as Me, h as Ne, j as Pe, l as Fe, m as O, o as k, p as Ie, pt as Le, s as A, tt as Re, u as ze, x as Be, y as Ve } from "./events-DEEu2sDf.js";
-import { F as He, K as Ue, P as We, Y as Ge, f as Ke, m as qe, p as Je } from "./Viewer-UwR1AbHF.js";
-import { t as Ye } from "./floatingViewerManager-DfnpKtiy.js";
+import { F as He, K as Ue, P as We, Y as Ge, f as Ke, m as qe, p as Je } from "./Viewer-zY-V7v6e.js";
+import { t as Ye } from "./floatingViewerManager-COFmnbOD.js";
 import { A as Xe, B as j, C as M, D as Ze, E as N, G as Qe, H as P, J as $e, L as et, O as F, R as tt, S as nt, T as I, W as rt, _ as it, a as at, b as ot, c as st, ct as L, d as ct, dt as R, f as lt, g as ut, h as dt, i as ft, j as pt, k as z, l as mt, lt as ht, m as gt, n as _t, nt as B, o as vt, p as yt, q as bt, r as xt, s as St, t as Ct, tt as wt, u as Tt, ut as V, y as Et } from "./mjr-primevue-BKVyemoz.js";
-import { t as Dt } from "./mjr-vue-vendor-CsjHewX5.js";
-import { t as Ot } from "./viewerOpenRequest-D3EDfHDx.js";
+import { t as Dt } from "./mjr-vue-vendor-DNxXXaMq.js";
+import { t as Ot } from "./viewerOpenRequest-Gv3VIRAS.js";
 import { a as kt, i as At, n as jt, o as Mt, r as Nt, t as Pt } from "./geninfoParser-D7IjgI1x.js";
 //#region ui/app/settings/settingsUtils.ts
 var H = (e, t) => {
@@ -5122,7 +5122,7 @@ var Co = ["title"], wo = ["src"], To = {
 	setup(e) {
 		let t = e, n = B(0), r = B(!1), i = null;
 		function a() {
-			return i ||= import("./floatingViewerManager-DfnpKtiy.js").then((e) => e.n), i;
+			return i ||= import("./floatingViewerManager-COFmnbOD.js").then((e) => e.n), i;
 		}
 		function o() {
 			return (Array.isArray(t.inputFile?.previewCandidates) ? t.inputFile.previewCandidates : [])[n.value] || "";
