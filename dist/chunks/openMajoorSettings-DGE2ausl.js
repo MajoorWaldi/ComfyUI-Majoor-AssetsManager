@@ -1,6 +1,6 @@
-import { A as e, E as t, J as n, R as r, S as i, Y as a, b as o, j as s, m as c } from "./events-C2U9lj7y.js";
+import { A as e, E as t, J as n, R as r, S as i, Y as a, b as o, j as s, m as c } from "./events-DEEu2sDf.js";
 import { a as l, n as u } from "./graphTraversal-Sruu0ipL.js";
-import { J as d, b as f, v as p, x as ee, y as te } from "./SidebarWorkflowSection-2pSEjXh9.js";
+import { J as d, b as f, v as p, x as ee, y as te } from "./SidebarWorkflowSection-DigIwTnf.js";
 //#region ui/features/viewer/floatingViewerProgress.ts
 var m = "progress-update", h = "__MJR_MFV_PROGRESS_SERVICE__";
 function ne() {
@@ -397,7 +397,7 @@ function M(e) {
 }
 function ge(e) {
 	let t = V(String(e ?? "").trim());
-	return t ? t === "cnr_id" || t === "ver" || t === "node_name_for_s&r" || t === "subgraph_name" || t === "subgraph_id" || t === "enabletabs" || t === "tabwidth" || t === "tabxoffset" || t === "hassecondtab" || t === "secondtabtext" || t === "secondtaboffset" || t === "secondtabwidth" || t.startsWith("ue_") : !0;
+	return !t || t === "cnr_id" || t === "ver" || t === "node_name_for_s&r" || t === "subgraph_name" || t === "subgraph_id" || t === "enabletabs" || t === "tabwidth" || t === "tabxoffset" || t === "hassecondtab" || t === "secondtabtext" || t === "secondtaboffset" || t === "secondtabwidth" || t.startsWith("ue_");
 }
 function _e(e) {
 	let t = O(e);
@@ -1098,12 +1098,12 @@ function qe(e) {
 	};
 }
 function X(e, t) {
-	return t ? [
+	return !t || [
 		e?.id,
 		e?.name,
 		e?.tooltip,
 		...Array.isArray(e?.category) ? e.category : []
-	].join(" ").toLowerCase().includes(t) : !0;
+	].join(" ").toLowerCase().includes(t);
 }
 function Z(e, t) {
 	if (typeof e?.onChange == "function") {

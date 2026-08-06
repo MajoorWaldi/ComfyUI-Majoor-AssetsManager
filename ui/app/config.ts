@@ -94,6 +94,7 @@ export const APP_DEFAULTS = Object.freeze({
     MFV_PREVIEW_AUTO_OPEN: false,
     MFV_NODE_STREAM_AUTO_OPEN: false,
     MFV_PREVIEW_METHOD: "auto",
+    MFV_TOPBAR_BUTTON: true,
 
     // Rating/tags hydration (grid)
     RT_HYDRATE_CONCURRENCY: 2,

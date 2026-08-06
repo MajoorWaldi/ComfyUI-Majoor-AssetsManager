@@ -174,6 +174,23 @@ export function registerViewerSettings(safeAddSetting: (def: any) => void, setti
     });
 
     safeAddSetting({
+        id: `${SETTINGS_PREFIX}.Viewer.MfvTopbarButton`,
+        category: floatingViewerCat("Top bar Viewer button"),
+        name: "Show Viewer button in the top bar",
+        tooltip:
+            "Show a Viewer toggle button in the ComfyUI top bar next to the queue controls. Disable to hide it (the V shortcut keeps working).",
+        type: "boolean",
+        defaultValue: !!(settings.viewer?.mfvTopbarButton ?? APP_DEFAULTS.MFV_TOPBAR_BUTTON),
+        onChange: (value: any) => {
+            settings.viewer = settings.viewer || {};
+            settings.viewer.mfvTopbarButton = !!value;
+            saveMajoorSettings(settings);
+            applySettingsToConfig(settings);
+            notifyApplied("viewer.mfvTopbarButton");
+        },
+    });
+
+    safeAddSetting({
         id: `${SETTINGS_PREFIX}.Viewer.MfvSidebarPosition`,
         category: floatingViewerCat("Node Parameters sidebar position"),
         name: "Node Parameters sidebar position",

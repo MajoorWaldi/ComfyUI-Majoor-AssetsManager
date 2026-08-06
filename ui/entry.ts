@@ -25,6 +25,7 @@ import "./features/runtime/earlyFetch.js";
 // SaveImage / VHS_VideoCombine etc. Isolated from the Vue runtime so a
 // failure here cannot break the asset grid.
 import "./integration/comfy_send_to_am.js";
+import "./integration/majoor_save_placeholders.js";
 import { testAPI, triggerStartupScan } from "./app/bootstrap.js";
 import { checkMajoorVersion } from "./app/versionCheck.js";
 import { ensureStyleLoaded } from "./app/style.js";

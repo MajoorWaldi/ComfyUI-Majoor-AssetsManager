@@ -94,6 +94,7 @@ export const DEFAULT_SETTINGS = {
         floatingPauseDuringExecution: APP_DEFAULTS.FLOATING_VIEWER_PAUSE_DURING_EXECUTION,
         mfvLiveDefault: APP_DEFAULTS.MFV_LIVE_DEFAULT,
         mfvPreviewDefault: APP_DEFAULTS.MFV_PREVIEW_DEFAULT,
+        mfvTopbarButton: APP_DEFAULTS.MFV_TOPBAR_BUTTON,
         videoGradeThrottleFps: APP_DEFAULTS.VIEWER_VIDEO_GRADE_THROTTLE_FPS,
         scopesFps: APP_DEFAULTS.VIEWER_SCOPES_FPS,
         metaTtlMs: APP_DEFAULTS.VIEWER_META_TTL_MS,
@@ -519,6 +520,9 @@ export const applySettingsToConfig = (settings: Record<string, any>): void => {
     APP_CONFIG.MFV_LIVE_DEFAULT = settings.viewer?.mfvLiveDefault ?? APP_DEFAULTS.MFV_LIVE_DEFAULT;
     APP_CONFIG.MFV_PREVIEW_DEFAULT =
         settings.viewer?.mfvPreviewDefault ?? APP_DEFAULTS.MFV_PREVIEW_DEFAULT;
+    APP_CONFIG.MFV_TOPBAR_BUTTON = !!(
+        settings.viewer?.mfvTopbarButton ?? APP_DEFAULTS.MFV_TOPBAR_BUTTON
+    );
     APP_CONFIG.MFV_LIVE_AUTO_OPEN = false;
     APP_CONFIG.MFV_PREVIEW_AUTO_OPEN = false;
     APP_CONFIG.MFV_NODE_STREAM_AUTO_OPEN = false;

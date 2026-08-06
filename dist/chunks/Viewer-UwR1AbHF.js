@@ -1,9 +1,9 @@
-import { H as e, P as t, Zt as n, _ as r, _t as i, c as a, d as o, g as s, ht as c, n as l, o as u, r as d, s as f, x as p, y as m } from "./viewerRuntimeHosts-P4vwR-ik.js";
-import { Ct as h, D as g, a as _, ct as v, h as y, i as b, j as x, k as S, m as C, n as w, o as T, pt as E, r as D, rt as O, t as k } from "./events-C2U9lj7y.js";
-import { T as A, nt as j, tt as M } from "./mjr-primevue-BOCpq3qH.js";
-import { n as N, r as ee } from "./mjr-vue-vendor-B7WqP-K6.js";
+import { H as e, P as t, Zt as n, _ as r, _t as i, c as a, d as o, g as s, ht as c, n as l, o as u, r as d, s as f, x as p, y as m } from "./viewerRuntimeHosts-DneLZtWG.js";
+import { Ct as h, D as g, a as _, ct as v, h as y, i as b, j as x, k as S, m as C, n as w, o as T, pt as E, r as D, rt as O, t as k } from "./events-DEEu2sDf.js";
+import { T as A, nt as j, tt as M } from "./mjr-primevue-BKVyemoz.js";
+import { n as N, r as ee } from "./mjr-vue-vendor-CsjHewX5.js";
 import { n as P, r as te, t as F } from "./state-DPiaUMw1.js";
-import { a as ne, c as re, i as ie, o as ae, r as oe, s as se } from "./model3dRenderer-C365Y-Y-.js";
+import { a as ne, c as re, i as ie, o as ae, r as oe, s as se } from "./model3dRenderer-Cgp5upXw.js";
 //#region ui/utils/events.ts
 function ce(e, t, { target: n = null, warnPrefix: r = "[Majoor]" } = {}) {
 	let i = n || (typeof window < "u" ? window : null);
@@ -376,7 +376,7 @@ var le = async (e, t = "Majoor", n = {}) => {
 }, fe = (e, t = "Majoor") => {
 	let n = String(e ?? ""), r = String(t ?? "").trim();
 	return !r || r.toLowerCase() === "majoor" ? n : `${r}<br><br>${n}`;
-}, B = new Set(/* @__PURE__ */ "abort.blur.change.click.close.contextmenu.dblclick.dragend.dragenter.dragleave.dragover.dragstart.drop.error.focus.input.keydown.keypress.keyup.load.mousedown.mouseenter.mouseleave.mousemove.mouseout.mouseover.mouseup.reset.resize.scroll.select.submit.touchcancel.touchend.touchmove.touchstart.transitionend.unload.wheel".split(".")), V = new Set([
+}, B = /* @__PURE__ */ new Set(/* @__PURE__ */ "abort.blur.change.click.close.contextmenu.dblclick.dragend.dragenter.dragleave.dragover.dragstart.drop.error.focus.input.keydown.keypress.keyup.load.mousedown.mouseenter.mouseleave.mousemove.mouseout.mouseover.mouseup.reset.resize.scroll.select.submit.touchcancel.touchend.touchmove.touchstart.transitionend.unload.wheel".split(".")), V = /* @__PURE__ */ new Set([
 	"__proto__",
 	"constructor",
 	"prototype",
@@ -387,7 +387,7 @@ var le = async (e, t = "Majoor", n = {}) => {
 	"__defineSetter__",
 	"__lookupGetter__",
 	"__lookupSetter__"
-]), H = new Set([
+]), H = /* @__PURE__ */ new Set([
 	"id",
 	"name",
 	"value",
@@ -665,7 +665,7 @@ function Ne(e, t) {
 function Pe(e, t) {
 	let n = String(e?.kind || "").toLowerCase();
 	if (n) return n;
-	let r = new Set([
+	let r = /* @__PURE__ */ new Set([
 		"PNG",
 		"JPG",
 		"JPEG",
@@ -674,18 +674,18 @@ function Pe(e, t) {
 		"BMP",
 		"TIF",
 		"TIFF"
-	]), i = new Set([
+	]), i = /* @__PURE__ */ new Set([
 		"MP4",
 		"WEBM",
 		"MOV",
 		"AVI",
 		"MKV"
-	]), a = new Set([
+	]), a = /* @__PURE__ */ new Set([
 		"MP3",
 		"WAV",
 		"OGG",
 		"FLAC"
-	]), o = new Set([
+	]), o = /* @__PURE__ */ new Set([
 		"OBJ",
 		"FBX",
 		"GLB",
@@ -1198,7 +1198,7 @@ function it(e) {
 }
 //#endregion
 //#region ui/utils/filenames.ts
-var at = new Set([
+var at = /* @__PURE__ */ new Set([
 	"CON",
 	"PRN",
 	"AUX",
@@ -1329,7 +1329,7 @@ async function pt(e) {
 //#endregion
 //#region ui/utils/deleteGuard.ts
 async function mt(e, t) {
-	return T.DELETE_CONFIRMATION ? !!await I(e > 1 ? C("dialog.deleteSelectedFiles", "Delete {count} selected files?", { count: e }) : C("dialog.deleteSingleFile", "Delete \"{label}\"?", { label: String(t || C("label.thisFile", "this file")) }), C("dialog.confirmDeleteTitle", "Majoor: Confirm delete")) : !0;
+	return !T.DELETE_CONFIRMATION || !!await I(e > 1 ? C("dialog.deleteSelectedFiles", "Delete {count} selected files?", { count: e }) : C("dialog.deleteSingleFile", "Delete \"{label}\"?", { label: String(t || C("label.thisFile", "this file")) }), C("dialog.confirmDeleteTitle", "Majoor: Confirm delete"));
 }
 //#endregion
 //#region ui/features/collections/contextmenu/addToCollectionMenuState.ts
@@ -1668,7 +1668,8 @@ function Zt(e, t) {
 	i.appendChild(a), r.appendChild(i);
 	let o = () => {
 		try {
-			a.className = `pi ${e?.paused ? "pi-play" : "pi-pause"}`;
+			let t = !!e?.paused;
+			a.className = `pi ${t ? "pi-play" : "pi-pause"}`;
 		} catch (e) {
 			console.debug?.(e);
 		}
@@ -2114,7 +2115,8 @@ function Qt(e, t = {}) {
 			}
 		}, Fe = () => {
 			try {
-				M.textContent = !e?.paused || q._ppReverse ? C("video.pause", "Pause") : C("video.play", "Play");
+				let t = !e?.paused || q._ppReverse;
+				M.textContent = t ? C("video.pause", "Pause") : C("video.play", "Play");
 			} catch (e) {
 				console.debug?.(e);
 			}
@@ -2350,7 +2352,8 @@ function Qt(e, t = {}) {
 								t && typeof t.catch == "function" && t.catch(() => {}), Fe(), J();
 								return;
 							}
-							Ke(o - Math.max(1, Math.floor(Number(q.step) || 1))), J();
+							let s = Math.max(1, Math.floor(Number(q.step) || 1));
+							Ke(o - s), J();
 						}
 						q._ppRafId = requestAnimationFrame(r);
 					} catch (e) {
@@ -2393,8 +2396,8 @@ function Qt(e, t = {}) {
 			}
 		}, Ke = (t) => {
 			try {
-				let { maxF: n } = Me();
-				e.currentTime = Ae(F(t, 0, n > 0 ? n : Infinity));
+				let { maxF: n } = Me(), r = F(t, 0, n > 0 ? n : Infinity);
+				e.currentTime = Ae(r);
 			} catch (e) {
 				console.debug?.(e);
 			}
@@ -4372,7 +4375,7 @@ function Vn({ state: e, VIEWER_MODES: t, getCanAB: n, header: r, toolsRow: i, ch
 	}
 	try {
 		y.value = String(e.abCompareMode || "wipe");
-		let r = typeof n == "function" ? !!n() : !1, i = e.mode === t.AB_COMPARE && r, a = e.mode === t.SIDE_BY_SIDE, o = i || a;
+		let r = typeof n == "function" && !!n(), i = e.mode === t.AB_COMPARE && r, a = e.mode === t.SIDE_BY_SIDE, o = i || a;
 		y.disabled = !i;
 		try {
 			re.dataset.active = o ? "1" : "0", re.style.display = o ? "" : "none", le(re, {
@@ -4511,7 +4514,7 @@ function Vn({ state: e, VIEWER_MODES: t, getCanAB: n, header: r, toolsRow: i, ch
 		console.debug?.(e);
 	}
 	try {
-		let r = typeof n == "function" ? !!n() : !1, i = e.mode === t.AB_COMPARE && r, a = String(e.abCompareMode || "wipe");
+		let r = typeof n == "function" && !!n(), i = e.mode === t.AB_COMPARE && r, a = String(e.abCompareMode || "wipe");
 		oe(y, {
 			accentRgb: ae.compare,
 			active: i && a !== "wipe",
@@ -6451,11 +6454,11 @@ function $n({ overlay: e, content: t, singleView: n, abView: r, sideView: i, sta
 				t.style.cursor = "";
 				return;
 			}
-			let n = Number(a?.zoom) || 1, { w: r, h: i } = p(f()) || {
+			let n = Number(a?.zoom) || 1, r = f(), { w: i, h: o } = p(r) || {
 				w: 0,
 				h: 0
-			}, o = m(), s = o && r > 0 && i > 0 ? E(r, i, o.width, o.height, n) : !1;
-			if (!(n > 1.01 || s)) {
+			}, s = m(), c = s && i > 0 && o > 0 ? E(i, o, s.width, s.height, n) : !1;
+			if (!(n > 1.01 || c)) {
 				t.style.cursor = "";
 				return;
 			}
@@ -6615,11 +6618,11 @@ function $n({ overlay: e, content: t, singleView: n, abView: r, sideView: i, sta
 		if (!(() => {
 			try {
 				if (i) return !0;
-				let { w: e, h: t } = p(f()) || {
+				let e = f(), { w: t, h: n } = p(e) || {
 					w: 0,
 					h: 0
-				}, n = m();
-				return !n || !(e > 0 && t > 0) ? r > 1.01 : r > 1.01 || E(e, t, n.width, n.height, r);
+				}, a = m();
+				return !a || !(t > 0 && n > 0) ? r > 1.01 : r > 1.01 || E(t, n, a.width, a.height, r);
 			} catch {
 				return r > 1.01;
 			}
@@ -7100,7 +7103,7 @@ function or({ canvas: e, videoEl: t, disableWebGL: n, pauseDuringExecution: r = 
 		if (S) {
 			let e = `${v.toFixed(6)}|${u.toFixed(6)}`;
 			if (!y._lut || y._lutKey !== e) {
-				let t = new Uint8ClampedArray(256);
+				let t = /* @__PURE__ */ new Uint8ClampedArray(256);
 				for (let e = 0; e < 256; e += 1) {
 					let n = e / 255;
 					t[e] = Math.round(P(n * v) ** +u * 255);
@@ -7542,8 +7545,8 @@ function lr(e) {
 				let u = o * .5, d = c * .52, f = Math.max(36, Math.min(140, Math.floor(o / 12))), p = Math.min(o * .56, f * 8), m = p / Math.max(1, f - 1), h = u - p * .5, g = d - c * .08;
 				t.fillStyle = "rgba(255,255,255,0.95)";
 				for (let e = 0; e < f; e++) {
-					let i = h + e * m, a = r(n, (e / Math.max(1, f - 1) + l) % 1), o = g - a * c * .11, s = 1.2 + a * 1.2;
-					t.beginPath(), t.arc(i, o, s, 0, Math.PI * 2), t.fill();
+					let i = h + e * m, a = (e / Math.max(1, f - 1) + l) % 1, o = r(n, a), s = g - o * c * .11, u = 1.2 + o * 1.2;
+					t.beginPath(), t.arc(i, s, u, 0, Math.PI * 2), t.fill();
 				}
 				t.fillStyle = "rgba(255,255,255,0.9)";
 				for (let e = 0; e < f; e++) {
@@ -9703,9 +9706,9 @@ function Hr({ state: e, buildAssetViewURL: t, onNavigate: n, onCompare: r }) {
 //#region ui/features/viewer/viewerOverlayDismiss.ts
 function Ur({ overlay: e, requestClose: t }) {
 	try {
-		let t = null;
+		let n = null;
 		e.addEventListener("pointerdown", (e) => {
-			e.isPrimary !== !1 && (t = {
+			e.isPrimary !== !1 && (n = {
 				x: e.clientX,
 				y: e.clientY,
 				t: Date.now()
@@ -9716,12 +9719,13 @@ function Ur({ overlay: e, requestClose: t }) {
 		}), e.addEventListener("click", (e) => {
 			try {
 				if (e.defaultPrevented || e.button !== 0) return;
-				if (t) {
-					let n = e.clientX - t.x, r = e.clientY - t.y;
-					if (Math.hypot(n, r) > 6 || Date.now() - t.t > 600) return;
+				if (n) {
+					let t = e.clientX - n.x, r = e.clientY - n.y;
+					if (Math.hypot(t, r) > 6 || Date.now() - n.t > 600) return;
 				}
-				let n = e.target;
-				if (dt(n, ".mjr-viewer-header") || dt(n, ".mjr-viewer-footer") || dt(n, ".mjr-viewer-geninfo") || dt(n, ".mjr-video-controls") || dt(n, ".mjr-context-menu") || dt(n, ".mjr-ab-slider") || dt(n, ".mjr-viewer-loupe") || dt(n, ".mjr-viewer-probe") || dt(n, ".mjr-viewer-media") || n && (n.tagName === "IMG" || n.tagName === "VIDEO" || n.tagName === "CANVAS")) return;
+				let r = e.target;
+				if (dt(r, ".mjr-viewer-header") || dt(r, ".mjr-viewer-footer") || dt(r, ".mjr-viewer-geninfo") || dt(r, ".mjr-video-controls") || dt(r, ".mjr-context-menu") || dt(r, ".mjr-ab-slider") || dt(r, ".mjr-viewer-loupe") || dt(r, ".mjr-viewer-probe") || dt(r, ".mjr-viewer-media") || r && (r.tagName === "IMG" || r.tagName === "VIDEO" || r.tagName === "CANVAS")) return;
+				t?.();
 			} catch (e) {
 				console.debug?.(e);
 			}
@@ -9736,13 +9740,13 @@ var Wr = null, Gr = null, Kr = null, qr = null, Jr = null, Yr = null;
 function Xr() {
 	Wr || import("./abCompare-BXOoRlmV.js").then((e) => {
 		Wr = e;
-	}), Gr || import("./sideBySide-CEWLgiuN.js").then((e) => {
+	}), Gr || import("./sideBySide-BgbcasrF.js").then((e) => {
 		Gr = e;
-	}), Kr || import("./model3dRenderer-C365Y-Y-.js").then((e) => e.t).then((e) => {
+	}), Kr || import("./model3dRenderer-Cgp5upXw.js").then((e) => e.t).then((e) => {
 		Kr = e;
 	}), qr || import("./scopes-X1iFrTle.js").then((e) => {
 		qr = e;
-	}), Jr || import("./genInfo-DZ6soYaj.js").then((e) => e.n).then((e) => {
+	}), Jr || import("./genInfo-BJiJ-hcb.js").then((e) => e.n).then((e) => {
 		Jr = e;
 	}), Yr || import("./frameExport-tksSZ7sb.js").then((e) => {
 		Yr = e;
@@ -9763,7 +9767,7 @@ function Zr() {
 	} catch (e) {
 		console.debug?.(e);
 	}
-	let c = new Set([
+	let c = /* @__PURE__ */ new Set([
 		"png",
 		"jpg",
 		"jpeg",

@@ -1,5 +1,5 @@
 import { t as e } from "./rolldown-runtime-Dy4uBu1J.js";
-import { m as t, mt as n, o as r, r as i } from "./events-C2U9lj7y.js";
+import { m as t, mt as n, o as r, r as i } from "./events-DEEu2sDf.js";
 import { n as a } from "./state-DPiaUMw1.js";
 //#region ui/features/viewer/model3dCore.ts
 function o(e, t) {
@@ -388,7 +388,7 @@ function x({ canvas: e, url: t, getGradeParams: n, isDefaultGrade: r, _tonemap: 
 			}
 		}
 		if (!d) return;
-		let m = i || n?.() || {}, g = Number(m.exposureEV) || 0, _ = 1 / Math.max(.1, Math.min(3, Number(m.gamma) || 1)), v = String(m.channel || "rgb"), ee = String(m.analysisMode || "none"), te = a(m.zebraThreshold ?? .95), y = 2 ** g, b = new Float32Array(256);
+		let m = i || n?.() || {}, g = Number(m.exposureEV) || 0, _ = 1 / Math.max(.1, Math.min(3, Number(m.gamma) || 1)), v = String(m.channel || "rgb"), ee = String(m.analysisMode || "none"), te = a(m.zebraThreshold ?? .95), y = 2 ** g, b = /* @__PURE__ */ new Float32Array(256);
 		for (let e = 0; e < 256; e++) b[e] = (e / 255) ** _;
 		let x = d.data, S = o.data, C = s * c * 4, w = 0, T = () => {
 			if (f._destroyed || !e?.isConnected || t !== f.jobId) return;
@@ -405,8 +405,8 @@ function x({ canvas: e, url: t, getGradeParams: n, isDefaultGrade: r, _tonemap: 
 				else if (v === "b") i = c, o = c;
 				else if (v === "a") i = r, o = r, c = r;
 				else if (v === "l") {
-					let e = b[a(l) * 255 + .5 | 0];
-					i = e, o = e, c = e;
+					let e = a(l), t = b[e * 255 + .5 | 0];
+					i = t, o = t, c = t;
 				}
 				x[w] = Math.round(a(i) * 255), x[w + 1] = Math.round(a(o) * 255), x[w + 2] = Math.round(a(c) * 255), x[w + 3] = 255;
 			}
@@ -841,7 +841,7 @@ var ie = Object.freeze({
 	".splat": "splat",
 	".ksplat": "splat",
 	".spz": "splat"
-}), k = new Set(Object.keys(ie)), ae = new Set([
+}), k = new Set(Object.keys(ie)), ae = /* @__PURE__ */ new Set([
 	"gltf",
 	"obj",
 	"fbx",
@@ -925,7 +925,7 @@ function pe(e) {
 	return String(e?.loader || e?.viewer_info?.loader || "").trim().toLowerCase() || ie[de(e)] || "";
 }
 function me(e) {
-	return String(e?.kind || "").toLowerCase() === "model3d" ? !0 : k.has(de(e));
+	return String(e?.kind || "").toLowerCase() === "model3d" || k.has(de(e));
 }
 function he(e) {
 	return pe(e) || "gltf";
@@ -1212,7 +1212,8 @@ function F(e, a, o = {}) {
 			let e = Q[$];
 			e && (e.timeScale = Ae);
 		}), P.animSel.addEventListener("change", () => {
-			qe(Number(P.animSel.value) || 0);
+			let e = Number(P.animSel.value) || 0;
+			qe(e);
 		}), P.progressSlider.addEventListener("pointerdown", () => {
 			Me = !0;
 		}), P.progressSlider.addEventListener("pointerup", () => {
@@ -1235,7 +1236,7 @@ function F(e, a, o = {}) {
 	N.bgInput.addEventListener("input", () => {
 		let e = N.bgInput.value;
 		try {
-			R && (R.background = new (I?.Color || Object)(e));
+			R && (R.background = new ((I?.Color) || Object)(e));
 		} catch (e) {
 			console.debug?.(e);
 		}

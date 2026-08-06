@@ -1,12 +1,12 @@
-import { Zt as e, g as t, y as n } from "./viewerRuntimeHosts-P4vwR-ik.js";
-import { B as r, C as i, I as a, M as o, O as s, P as c, R as l, V as u, j as d, m as f, o as p, pt as m, r as h, rt as g, v as _, w as v, x as y } from "./events-C2U9lj7y.js";
+import { Zt as e, g as t, y as n } from "./viewerRuntimeHosts-DneLZtWG.js";
+import { B as r, C as i, I as a, M as o, O as s, P as c, R as l, V as u, j as d, m as f, o as p, pt as m, r as h, rt as g, v as _, w as v, x as y } from "./events-DEEu2sDf.js";
 import { a as b, i as x, o as S, s as C } from "./graphTraversal-Sruu0ipL.js";
-import { _ as w, g as T, m as E, n as D, p as ee, r as O, w as k } from "./Viewer-pHo9CcXS.js";
-import { _ as A, r as j } from "./SidebarWorkflowSection-2pSEjXh9.js";
-import { _ as M, a as N, c as P, d as F, f as I, g as L, h as te, i as ne, l as R, m as z, o as B, p as re, r as V, s as ie, t as ae, u as H, v as U } from "./openMajoorSettings-D8Sa3D0W.js";
-import { a as oe, n as se, r as ce } from "./model3dRenderer-C365Y-Y-.js";
-import { i as le, o as ue, r as de, t as fe } from "./geninfoParser-D91g5NYg.js";
-import { t as pe } from "./genInfo-DZ6soYaj.js";
+import { _ as w, g as T, m as E, n as D, p as ee, r as O, w as k } from "./Viewer-UwR1AbHF.js";
+import { _ as A, r as j } from "./SidebarWorkflowSection-DigIwTnf.js";
+import { _ as M, a as N, c as P, d as F, f as I, g as L, h as te, i as ne, l as R, m as z, o as B, p as re, r as V, s as ie, t as ae, u as H, v as U } from "./openMajoorSettings-DGE2ausl.js";
+import { a as oe, n as se, r as ce } from "./model3dRenderer-Cgp5upXw.js";
+import { i as le, o as ue, r as de, t as fe } from "./geninfoParser-D7IjgI1x.js";
+import { t as pe } from "./genInfo-BJiJ-hcb.js";
 //#region ui/features/viewer/floatingViewerConstants.ts
 var W = Object.freeze({
 	SIMPLE: "simple",
@@ -53,10 +53,10 @@ function Ce(e) {
 	return e instanceof HTMLMediaElement;
 }
 function we(e, t) {
-	return String(e || "").toLowerCase() === "video" ? !0 : t instanceof HTMLVideoElement;
+	return String(e || "").toLowerCase() === "video" || t instanceof HTMLVideoElement;
 }
 function Te(e, t) {
-	return String(e || "").toLowerCase() === "audio" ? !0 : t instanceof HTMLAudioElement;
+	return String(e || "").toLowerCase() === "audio" || t instanceof HTMLAudioElement;
 }
 function Ee(e) {
 	let t = String(e || "").toLowerCase();
@@ -281,13 +281,13 @@ function Oe(e, t = null, { kind: n = "" } = {}) {
 }
 //#endregion
 //#region ui/features/viewer/floatingViewerMedia.ts
-var ke = new Set([
+var ke = /* @__PURE__ */ new Set([
 	".mp4",
 	".webm",
 	".mov",
 	".avi",
 	".mkv"
-]), Ae = new Set([
+]), Ae = /* @__PURE__ */ new Set([
 	".mp3",
 	".wav",
 	".flac",
@@ -391,7 +391,12 @@ function J(e, { fill: t = !1, controls: n = !0, initialMuted: r = !1, initialPla
 	let o = G(e), s = `mjr-mfv-media mjr-mfv-media--fit-height${t ? " mjr-mfv-media--fill" : ""}`, c = je(e?.filename || "") === ".webp" && Number(e?.duration ?? e?.metadata_raw?.duration ?? 0) > 0, l = (r, a) => {
 		if (!n) return r;
 		let o = document.createElement("div");
-		o.className = `mjr-mfv-player-host${t ? " mjr-mfv-player-host--fill" : ""}`, o.appendChild(r);
+		if (o.className = `mjr-mfv-player-host${t ? " mjr-mfv-player-host--fill" : ""}`, a === "audio") {
+			o.classList.add("mjr-mfv-player-host--audio");
+			let t = document.createElement("div");
+			t.className = "mjr-mfv-player-audio-backdrop", t.textContent = String(e?.filename || "Audio"), o.appendChild(t);
+		}
+		o.appendChild(r);
 		try {
 			o.tabIndex = -1, o.addEventListener("pointerdown", (e) => {
 				try {
@@ -454,7 +459,7 @@ function Y(e, t, n, r) {
 }
 //#endregion
 //#region ui/features/viewer/workflowSidebar/NodeWidgetRenderer.ts
-var ze = new Set([
+var ze = /* @__PURE__ */ new Set([
 	"imageupload",
 	"button",
 	"hidden"
@@ -757,7 +762,7 @@ var $e = class {
 				onLocate: () => ot(i),
 				onToggle: (t) => {
 					if (t) {
-						this._expandedNodeIds = new Set([e]);
+						this._expandedNodeIds = /* @__PURE__ */ new Set([e]);
 						for (let e of this._renderers) e !== c && e.setExpanded(!1);
 					} else this._expandedNodeIds.delete(e);
 				}
@@ -1542,7 +1547,7 @@ var Q = Object.freeze({
 	RUNNING: "running",
 	STOPPING: "stopping",
 	ERROR: "error"
-}), Ht = new Set([
+}), Ht = /* @__PURE__ */ new Set([
 	"default",
 	"auto",
 	"latent2rgb",
@@ -3179,7 +3184,7 @@ function lr(e) {
 }
 var ur = 0, dr = class {
 	constructor({ controller: e = null } = {}) {
-		this._instanceId = ++ur, this._controller = e && typeof e == "object" ? { ...e } : null, this.element = null, this.isVisible = !1, this._contentEl = null, this._genSidebarEl = null, this._closeBtn = null, this._modeBtn = null, this._pinGroup = null, this._pinBtns = null, this._liveBtn = null, this._genBtn = null, this._genDropdown = null, this._genSidebarEnabled = !0, this._captureBtn = null, this._genInfoSelections = new Set([
+		this._instanceId = ++ur, this._controller = e && typeof e == "object" ? { ...e } : null, this.element = null, this.isVisible = !1, this._contentEl = null, this._genSidebarEl = null, this._closeBtn = null, this._modeBtn = null, this._pinGroup = null, this._pinBtns = null, this._liveBtn = null, this._genBtn = null, this._genDropdown = null, this._genSidebarEnabled = !0, this._captureBtn = null, this._genInfoSelections = /* @__PURE__ */ new Set([
 			"prompt",
 			"seed",
 			"model",
@@ -3609,7 +3614,7 @@ var ur = 0, dr = class {
 	}
 	_initCompareSync() {
 		if (this._destroyCompareSync(), this._contentEl && this._mode !== W.SIMPLE) try {
-			let e = Array.from(this._contentEl.querySelectorAll("video"));
+			let e = Array.from(this._contentEl.querySelectorAll("video, audio"));
 			if (e.length < 2) return;
 			let t = e[0] || null, n = e.slice(1);
 			if (!t || !n.length) return;
@@ -4056,7 +4061,7 @@ var ur = 0, dr = class {
 			if (e.className = "mjr-mfv-grid-cell", n) {
 				let t = G(n), i = r === "A", a = J(n, {
 					controls: i,
-					initialMuted: i ? this._mfvMuted : !0,
+					initialMuted: !i || this._mfvMuted,
 					initialPlaybackRate: i ? this._mfvPlaybackRate : 1
 				}), o = this._trackMediaControls?.(a) || a;
 				if (i && this._bindMfvPersistence?.(o), o ? e.appendChild(o) : e.appendChild(K(" - ")), e.appendChild(q(r, r === "A" || r === "C" ? "left" : "right")), t !== "audio") {

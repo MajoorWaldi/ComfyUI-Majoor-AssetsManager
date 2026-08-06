@@ -1234,7 +1234,7 @@ var G = {
 		}
 		V = !1, H = null, B.clear();
 	}
-}, K = "en-US", q = K, St = /* @__PURE__ */ new Set(), Ct = ["mjr_lang", "majoor.lang"], wt = "mjr_lang_follow_comfy", Tt = 500, J = /* @__PURE__ */ new Set(), Y = null, Et = new Set([
+}, K = "en-US", q = K, St = /* @__PURE__ */ new Set(), Ct = ["mjr_lang", "majoor.lang"], wt = "mjr_lang_follow_comfy", Tt = 500, J = /* @__PURE__ */ new Set(), Y = null, Et = /* @__PURE__ */ new Set([
 	"ar-SA",
 	"fa-IR",
 	"he-IL"
@@ -2944,12 +2944,12 @@ function Pt(e) {
 function Ft() {
 	try {
 		let e = String(G.get(wt) || "").trim().toLowerCase();
-		return e ? ![
+		return !e || ![
 			"0",
 			"false",
 			"no",
 			"off"
-		].includes(e) : !0;
+		].includes(e);
 	} catch (e) {
 		console.debug?.(e);
 	}
@@ -3194,6 +3194,7 @@ var Bt = (e) => {
 	MFV_PREVIEW_AUTO_OPEN: !1,
 	MFV_NODE_STREAM_AUTO_OPEN: !1,
 	MFV_PREVIEW_METHOD: "auto",
+	MFV_TOPBAR_BUTTON: !0,
 	RT_HYDRATE_CONCURRENCY: 2,
 	RT_HYDRATE_QUEUE_MAX: 100,
 	RT_HYDRATE_SEEN_MAX: 2e4,

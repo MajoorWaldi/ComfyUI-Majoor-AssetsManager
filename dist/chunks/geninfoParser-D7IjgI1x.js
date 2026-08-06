@@ -357,8 +357,8 @@ function E(e, t) {
 		a && n.add(a);
 		let o = i?.inputs || {};
 		if (String(i?.class_type || i?.type || "").toLowerCase().includes("switch")) {
-			let e = r(T(o.switch, t) ? o.on_true : o.on_false);
-			if (e) return e;
+			let e = T(o.switch, t), n = r(e ? o.on_true : o.on_false);
+			if (n) return n;
 		}
 		let s = o.unet_name || o.ckpt_name || o.model_name || o.model || o.checkpoint || o.checkpoint_name || "";
 		if (typeof s == "string" && s.trim()) return s.trim();
@@ -474,14 +474,14 @@ function N(e) {
 }
 //#endregion
 //#region ui/components/sidebar/parsers/geninfoParser.ts
-var P = /^(?:[a-z]:[\\/]|[\\/]{1,2}|\.{1,2}[\\/]|~[\\/]).+?[\\/][^\\/\n]+\.(?:png|jpe?g|webp|gif|bmp|tiff?|avif|heic|heif|apng|hdr|svg|mp4|webm|mov|mkv|avi|m4v|mp3|wav|flac|ogg|glb|gltf|obj|fbx|ply|stl|ckpt|safetensors|pt|pth|bin|gguf|json|ya?ml)$/i, F = /^(?!.*[,;])(?!.*\b(?:cinematic|portrait|landscape|lighting|style|detailed|masterpiece|photo|render)\b).*(?:[\\/][^\\/\n]+){2,}\.(?:png|jpe?g|webp|gif|bmp|tiff?|avif|heic|heif|apng|hdr|svg|mp4|webm|mov|mkv|avi|m4v|mp3|wav|flac|ogg|glb|gltf|obj|fbx|ply|stl|ckpt|safetensors|pt|pth|bin|gguf|json|ya?ml)$/i, I = new Set([
+var P = /^(?:[a-z]:[\\/]|[\\/]{1,2}|\.{1,2}[\\/]|~[\\/]).+?[\\/][^\\/\n]+\.(?:png|jpe?g|webp|gif|bmp|tiff?|avif|heic|heif|apng|hdr|svg|mp4|webm|mov|mkv|avi|m4v|mp3|wav|flac|ogg|glb|gltf|obj|fbx|ply|stl|ckpt|safetensors|pt|pth|bin|gguf|json|ya?ml)$/i, F = /^(?!.*[,;])(?!.*\b(?:cinematic|portrait|landscape|lighting|style|detailed|masterpiece|photo|render)\b).*(?:[\\/][^\\/\n]+){2,}\.(?:png|jpe?g|webp|gif|bmp|tiff?|avif|heic|heif|apng|hdr|svg|mp4|webm|mov|mkv|avi|m4v|mp3|wav|flac|ogg|glb|gltf|obj|fbx|ply|stl|ckpt|safetensors|pt|pth|bin|gguf|json|ya?ml)$/i, I = /* @__PURE__ */ new Set([
 	"workflow",
 	"quicktime:workflow",
 	"keys:workflow",
 	"comfyui:workflow",
 	"comfy_workflow",
 	"comfyuiworkflow"
-]), L = new Set([
+]), L = /* @__PURE__ */ new Set([
 	"prompt",
 	"quicktime:prompt",
 	"keys:prompt",

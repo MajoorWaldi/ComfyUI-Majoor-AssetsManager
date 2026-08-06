@@ -1,6 +1,6 @@
-import { Ct as e, St as t, _t as n, gt as r, ht as i, k as a, m as o, nt as s, o as c, tt as l, vt as u, xt as d } from "./events-C2U9lj7y.js";
+import { Ct as e, St as t, _t as n, gt as r, ht as i, k as a, m as o, nt as s, o as c, tt as l, vt as u, xt as d } from "./events-DEEu2sDf.js";
 //#region ui/app/settingsStore.ts
-var f = "mjrSettings", p = "mjrMinimapSettings", m = new Set([
+var f = "mjrSettings", p = "mjrMinimapSettings", m = /* @__PURE__ */ new Set([
 	"POST",
 	"PUT",
 	"DELETE",
@@ -306,7 +306,7 @@ function E({ ttlMs: e = 0, maxSize: t = 100, now: n = () => Date.now() } = {}) {
 		}
 	}
 	function s(e, t, n) {
-		return e ? n > 0 ? t - Number(e.at || 0) > n : !1 : !0;
+		return !e || n > 0 && t - Number(e.at || 0) > n;
 	}
 	function c(e = i(), t = a()) {
 		if (t > 0) for (let [n, i] of r.entries()) s(i, e, t) && r.delete(n);
@@ -1373,12 +1373,12 @@ var un = 3e4, dn = "__MJR_API_CLIENT__", fn = 2e3, pn = 200, mn = 1e3, hn = 30 *
 }), W = E({
 	ttlMs: () => xn(),
 	maxSize: 1
-}), vn = new Set([
+}), vn = /* @__PURE__ */ new Set([
 	"1",
 	"true",
 	"yes",
 	"on"
-]), yn = new Set([
+]), yn = /* @__PURE__ */ new Set([
 	"0",
 	"false",
 	"no",
@@ -1457,7 +1457,7 @@ var En = () => {
 	try {
 		let e = localStorage?.getItem?.(f);
 		if (!e) return U.set(V, !0, { at: t }), !0;
-		let n = JSON.parse(e)?.ratingTagsSync?.enabled, r = n == null ? !0 : bn(n, !0);
+		let n = JSON.parse(e)?.ratingTagsSync?.enabled, r = n == null || bn(n, !0);
 		return U.set(V, r, { at: t }), r;
 	} catch {
 		return U.set(V, !0, { at: t }), !0;
@@ -1750,7 +1750,7 @@ function sr() {
 	return typeof document > "u" ? null : document?.body || document?.documentElement || null;
 }
 function cr(e) {
-	return or(e) ? e === Q() ? !0 : typeof e?.isConnected == "boolean" ? e.isConnected : !0 : !1;
+	return or(e) ? e === Q() || typeof e?.isConnected != "boolean" || e.isConnected : !1;
 }
 function lr(e) {
 	return or(e) ? e : null;

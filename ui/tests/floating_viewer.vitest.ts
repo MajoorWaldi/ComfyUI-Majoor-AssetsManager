@@ -760,7 +760,7 @@ describe("FloatingViewer", () => {
         expect(viewer._compareSyncAC).toBeNull();
     });
 
-    it("does not sync audio elements in floating compare modes", async () => {
+    it("syncs audio elements in floating compare modes", async () => {
         const { FloatingViewer, MFV_MODES } = await import("../features/viewer/FloatingViewer.js");
 
         const audioA = { nodeName: "AUDIO" };
@@ -768,7 +768,9 @@ describe("FloatingViewer", () => {
         const viewer = {
             _mode: MFV_MODES.SIDE,
             _contentEl: {
-                querySelectorAll: vi.fn((selector) => (selector === "video" ? [] : [audioA, audioB])),
+                querySelectorAll: vi.fn((selector) =>
+                    selector === "video, audio" ? [audioA, audioB] : [],
+                ),
             },
             _compareSyncAC: null,
             _destroyCompareSync: FloatingViewer.prototype._destroyCompareSync,
@@ -776,9 +778,11 @@ describe("FloatingViewer", () => {
 
         FloatingViewer.prototype._initCompareSync.call(viewer);
 
-        expect(viewer._contentEl.querySelectorAll).toHaveBeenCalledWith("video");
-        expect(installFollowerVideoSyncMock).not.toHaveBeenCalled();
-        expect(viewer._compareSyncAC).toBeNull();
+        expect(viewer._contentEl.querySelectorAll).toHaveBeenCalledWith("video, audio");
+        expect(installFollowerVideoSyncMock).toHaveBeenCalledWith(audioA, [audioB], {
+            threshold: 0.08,
+        });
+        expect(viewer._compareSyncAC).toBeTruthy();
     });
 
     it("enables autoplay for audio in MFV", async () => {

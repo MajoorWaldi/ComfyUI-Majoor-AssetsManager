@@ -8393,6 +8393,27 @@ body.mjr-mfv-popout-body {
     container-type: inline-size;
 }
 
+.mjr-mfv-player-host--audio {
+    background: radial-gradient(circle at 20% 20%, rgba(95, 179, 255, 0.2), rgba(18, 20, 28, 0.95));
+}
+
+.mjr-mfv-player-audio-backdrop {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+    text-shadow: 0 2px 12px rgba(0, 0, 0, 0.45);
+    pointer-events: none;
+    padding: 18px;
+    text-align: center;
+    overflow-wrap: anywhere;
+}
+
 .mjr-mfv-player-host .mjr-video-controls {
     z-index: 30;
 }

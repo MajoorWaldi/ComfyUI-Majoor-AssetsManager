@@ -1,5 +1,5 @@
 import { a as e, n as t, r as n, s as r } from "./graphTraversal-Sruu0ipL.js";
-import { KnownNodesAdapter as i, t as a } from "./KnownNodesAdapter-Csi3_LhH.js";
+import { KnownNodesAdapter as i, t as a } from "./KnownNodesAdapter-D3kDh32d.js";
 //#region ui/features/viewer/nodeStream/NodeStreamRegistry.ts
 var o = [], s = !1;
 function c() {
@@ -22,7 +22,7 @@ function u() {
 }
 //#endregion
 //#region ui/features/viewer/nodeStream/adapters/DefaultImageAdapter.ts
-var d = new Set([
+var d = /* @__PURE__ */ new Set([
 	".png",
 	".jpg",
 	".jpeg",
@@ -60,7 +60,7 @@ var p = a({
 		});
 		return i.length ? i : null;
 	}
-}), ee = new Set([
+}), ee = /* @__PURE__ */ new Set([
 	".mp4",
 	".webm",
 	".mov",
@@ -231,7 +231,7 @@ function me(e) {
 	};
 }
 l(p), l(i), l(te);
-var C = "selected", w = null, T = null, E = !1, D = null, O = null, k = null, A = null, j = null, M = null, N = new Set([
+var C = "selected", w = null, T = null, E = !1, D = null, O = null, k = null, A = null, j = null, M = null, N = /* @__PURE__ */ new Set([
 	".png",
 	".jpg",
 	".jpeg",
@@ -241,7 +241,7 @@ var C = "selected", w = null, T = null, E = !1, D = null, O = null, k = null, A 
 	".gif",
 	".bmp",
 	".tiff"
-]), P = new Set([
+]), P = /* @__PURE__ */ new Set([
 	".mp4",
 	".webm",
 	".mov",

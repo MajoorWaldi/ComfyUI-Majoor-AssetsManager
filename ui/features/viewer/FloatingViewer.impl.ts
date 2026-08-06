@@ -953,7 +953,7 @@ export class FloatingViewer {
         if (!this._contentEl) return;
         if (this._mode === MFV_MODES.SIMPLE) return;
         try {
-            const playables = Array.from(this._contentEl.querySelectorAll("video"));
+            const playables = Array.from(this._contentEl.querySelectorAll("video, audio"));
             if (playables.length < 2) return;
             const leader = playables[0] || null;
             const followers = playables.slice(1);

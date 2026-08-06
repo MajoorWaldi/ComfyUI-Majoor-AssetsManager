@@ -1,11 +1,11 @@
-import { $ as e, At as t, Bt as n, Ct as r, Dt as i, Et as a, I as o, It as s, K as c, Mt as l, N as u, Nt as d, O as f, Ot as p, Pt as m, Q as h, Qt as g, R as _, Rt as v, S as y, St as b, T as x, Tt as S, Ut as C, Vt as ee, Wt as te, X as w, Xt as T, Y as ne, Yt as re, Z as ie, Zt as E, an as ae, at as oe, ct as se, et as ce, ht as le, it as ue, jt as de, k as D, kt as fe, lt as pe, nt as me, on as he, p as ge, qt as _e, rt as ve, st as ye, tt as be, ut as xe, w as Se, wt as Ce, xt as we, zt as Te } from "./viewerRuntimeHosts-P4vwR-ik.js";
-import { Ct as Ee, K as De, N as Oe, T as ke, c as Ae, d as je, f as Me, h as Ne, j as Pe, l as Fe, m as O, o as k, p as Ie, pt as Le, s as A, tt as Re, u as ze, x as Be, y as Ve } from "./events-C2U9lj7y.js";
-import { F as He, K as Ue, P as We, Y as Ge, f as Ke, m as qe, p as Je } from "./Viewer-pHo9CcXS.js";
-import { t as Ye } from "./floatingViewerManager-C0fDYFQu.js";
-import { A as Xe, B as j, C as M, D as Ze, E as N, G as Qe, H as P, J as $e, L as et, O as F, R as tt, S as nt, T as I, W as rt, _ as it, a as at, b as ot, c as st, ct as L, d as ct, dt as R, f as lt, g as ut, h as dt, i as ft, j as pt, k as z, l as mt, lt as ht, m as gt, n as _t, nt as B, o as vt, p as yt, q as bt, r as xt, s as St, t as Ct, tt as wt, u as Tt, ut as V, y as Et } from "./mjr-primevue-BOCpq3qH.js";
-import { t as Dt } from "./mjr-vue-vendor-B7WqP-K6.js";
-import { t as Ot } from "./viewerOpenRequest-BcaSPESm.js";
-import { a as kt, i as At, n as jt, o as Mt, r as Nt, t as Pt } from "./geninfoParser-D91g5NYg.js";
+import { $ as e, At as t, Bt as n, Ct as r, Dt as i, Et as a, I as o, It as s, K as c, Mt as l, N as u, Nt as d, O as f, Ot as p, Pt as m, Q as h, Qt as g, R as _, Rt as v, S as y, St as b, T as x, Tt as S, Ut as C, Vt as ee, Wt as te, X as w, Xt as T, Y as ne, Yt as re, Z as ie, Zt as E, an as ae, at as oe, ct as se, et as ce, ht as le, it as ue, jt as de, k as D, kt as fe, lt as pe, nt as me, on as he, p as ge, qt as _e, rt as ve, st as ye, tt as be, ut as xe, w as Se, wt as Ce, xt as we, zt as Te } from "./viewerRuntimeHosts-DneLZtWG.js";
+import { Ct as Ee, K as De, N as Oe, T as ke, c as Ae, d as je, f as Me, h as Ne, j as Pe, l as Fe, m as O, o as k, p as Ie, pt as Le, s as A, tt as Re, u as ze, x as Be, y as Ve } from "./events-DEEu2sDf.js";
+import { F as He, K as Ue, P as We, Y as Ge, f as Ke, m as qe, p as Je } from "./Viewer-UwR1AbHF.js";
+import { t as Ye } from "./floatingViewerManager-DfnpKtiy.js";
+import { A as Xe, B as j, C as M, D as Ze, E as N, G as Qe, H as P, J as $e, L as et, O as F, R as tt, S as nt, T as I, W as rt, _ as it, a as at, b as ot, c as st, ct as L, d as ct, dt as R, f as lt, g as ut, h as dt, i as ft, j as pt, k as z, l as mt, lt as ht, m as gt, n as _t, nt as B, o as vt, p as yt, q as bt, r as xt, s as St, t as Ct, tt as wt, u as Tt, ut as V, y as Et } from "./mjr-primevue-BKVyemoz.js";
+import { t as Dt } from "./mjr-vue-vendor-CsjHewX5.js";
+import { t as Ot } from "./viewerOpenRequest-D3EDfHDx.js";
+import { a as kt, i as At, n as jt, o as Mt, r as Nt, t as Pt } from "./geninfoParser-D7IjgI1x.js";
 //#region ui/app/settings/settingsUtils.ts
 var H = (e, t) => {
 	if (typeof e == "boolean") return e;
@@ -113,6 +113,7 @@ var H = (e, t) => {
 		floatingPauseDuringExecution: A.FLOATING_VIEWER_PAUSE_DURING_EXECUTION,
 		mfvLiveDefault: A.MFV_LIVE_DEFAULT,
 		mfvPreviewDefault: A.MFV_PREVIEW_DEFAULT,
+		mfvTopbarButton: A.MFV_TOPBAR_BUTTON,
 		videoGradeThrottleFps: A.VIEWER_VIDEO_GRADE_THROTTLE_FPS,
 		scopesFps: A.VIEWER_SCOPES_FPS,
 		metaTtlMs: A.VIEWER_META_TTL_MS,
@@ -121,7 +122,7 @@ var H = (e, t) => {
 		mfvPreviewMethod: A.MFV_PREVIEW_METHOD,
 		ltxavRgbFallback: !1
 	},
-	browser: { showFolders: !0 },
+	browser: { showFolders: !1 },
 	rtHydrate: {
 		concurrency: A.RT_HYDRATE_CONCURRENCY,
 		queueMax: A.RT_HYDRATE_QUEUE_MAX,
@@ -217,7 +218,7 @@ var H = (e, t) => {
 		let t = JSON.parse(e), n = t && typeof t == "object" && Number.isInteger(t.version) && t.data && typeof t.data == "object";
 		if (!n && !(t && typeof t == "object" && !Array.isArray(t))) return { ...W };
 		if (n && Number(t.version) > 1) return console.warn("[Majoor] settings schema version is newer than this build, using defaults"), { ...W };
-		let r = n ? t.data : t, i = new Set(/* @__PURE__ */ "debug.grid.infiniteScroll.siblings.autoScan.scan.watcher.status.viewer.rtHydrate.observability.feed.sidebar.probeBackend.i18n.paths.db.ratingTagsSync.cache.search.ai.executionGrouping.workflowMinimap.ui.security.safety".split(".")), a = {};
+		let r = n ? t.data : t, i = /* @__PURE__ */ new Set(/* @__PURE__ */ "debug.grid.infiniteScroll.siblings.autoScan.scan.watcher.status.viewer.rtHydrate.observability.feed.sidebar.probeBackend.i18n.paths.db.ratingTagsSync.cache.search.ai.executionGrouping.workflowMinimap.ui.security.safety".split(".")), a = {};
 		if (r && typeof r == "object") for (let [e, t] of Object.entries(r)) i.has(e) && (a[e] = t);
 		let o = Lt(W, a);
 		if (!n) try {
@@ -280,7 +281,7 @@ var H = (e, t) => {
 	} catch (e) {
 		console.debug?.(e);
 	}
-	k.INFINITE_SCROLL_ENABLED = !!e.infiniteScroll?.enabled, k.INFINITE_SCROLL_ROOT_MARGIN = String(e.infiniteScroll?.rootMargin || A.INFINITE_SCROLL_ROOT_MARGIN), k.INFINITE_SCROLL_THRESHOLD = Math.max(0, Math.min(1, U(e.infiniteScroll?.threshold, A.INFINITE_SCROLL_THRESHOLD))), k.BOTTOM_GAP_PX = Math.max(0, Math.min(5e3, Math.round(U(e.infiniteScroll?.bottomGapPx, A.BOTTOM_GAP_PX)))), k.VIEWER_ALLOW_PAN_AT_ZOOM_1 = !!e.viewer?.allowPanAtZoom1, k.VIEWER_DISABLE_WEBGL_VIDEO = !!e.viewer?.disableWebGL, k.VIEWER_PAUSE_DURING_EXECUTION = !!(e.viewer?.pauseDuringExecution ?? A.VIEWER_PAUSE_DURING_EXECUTION), k.FLOATING_VIEWER_PAUSE_DURING_EXECUTION = !!(e.viewer?.floatingPauseDuringExecution ?? A.FLOATING_VIEWER_PAUSE_DURING_EXECUTION), k.MFV_LIVE_DEFAULT = e.viewer?.mfvLiveDefault ?? A.MFV_LIVE_DEFAULT, k.MFV_PREVIEW_DEFAULT = e.viewer?.mfvPreviewDefault ?? A.MFV_PREVIEW_DEFAULT, k.MFV_LIVE_AUTO_OPEN = !1, k.MFV_PREVIEW_AUTO_OPEN = !1, k.MFV_NODE_STREAM_AUTO_OPEN = !1;
+	k.INFINITE_SCROLL_ENABLED = !!e.infiniteScroll?.enabled, k.INFINITE_SCROLL_ROOT_MARGIN = String(e.infiniteScroll?.rootMargin || A.INFINITE_SCROLL_ROOT_MARGIN), k.INFINITE_SCROLL_THRESHOLD = Math.max(0, Math.min(1, U(e.infiniteScroll?.threshold, A.INFINITE_SCROLL_THRESHOLD))), k.BOTTOM_GAP_PX = Math.max(0, Math.min(5e3, Math.round(U(e.infiniteScroll?.bottomGapPx, A.BOTTOM_GAP_PX)))), k.VIEWER_ALLOW_PAN_AT_ZOOM_1 = !!e.viewer?.allowPanAtZoom1, k.VIEWER_DISABLE_WEBGL_VIDEO = !!e.viewer?.disableWebGL, k.VIEWER_PAUSE_DURING_EXECUTION = !!(e.viewer?.pauseDuringExecution ?? A.VIEWER_PAUSE_DURING_EXECUTION), k.FLOATING_VIEWER_PAUSE_DURING_EXECUTION = !!(e.viewer?.floatingPauseDuringExecution ?? A.FLOATING_VIEWER_PAUSE_DURING_EXECUTION), k.MFV_LIVE_DEFAULT = e.viewer?.mfvLiveDefault ?? A.MFV_LIVE_DEFAULT, k.MFV_PREVIEW_DEFAULT = e.viewer?.mfvPreviewDefault ?? A.MFV_PREVIEW_DEFAULT, k.MFV_TOPBAR_BUTTON = !!(e.viewer?.mfvTopbarButton ?? A.MFV_TOPBAR_BUTTON), k.MFV_LIVE_AUTO_OPEN = !1, k.MFV_PREVIEW_AUTO_OPEN = !1, k.MFV_NODE_STREAM_AUTO_OPEN = !1;
 	{
 		let t = String(e.viewer?.mfvPreviewMethod || A.MFV_PREVIEW_METHOD).toLowerCase();
 		k.MFV_PREVIEW_METHOD = [
@@ -951,9 +952,9 @@ function dn(t, n, r) {
 		name: "Show folders in Input / Output panels",
 		tooltip: "When enabled, subdirectories under the Input and Output roots are shown as folder cards in the browser grid. Disable to see only files.",
 		type: "boolean",
-		defaultValue: !!(n.browser?.showFolders ?? !0),
+		defaultValue: !!(n.browser?.showFolders ?? !1),
 		onChange: async (e) => {
-			let t = !!e, i = !!(n.browser?.showFolders ?? !0);
+			let t = !!e, i = !!(n.browser?.showFolders ?? !1);
 			n.browser = n.browser || {}, n.browser.showFolders = t, G(n), K(n), r("browser.showFolders");
 			try {
 				let e = await b(t);
@@ -981,6 +982,16 @@ function dn(t, n, r) {
 		defaultValue: !!(n.viewer?.mfvPreviewDefault ?? A.MFV_PREVIEW_DEFAULT),
 		onChange: (e) => {
 			n.viewer = n.viewer || {}, n.viewer.mfvPreviewDefault = !!e, G(n), K(n), r("viewer.mfvPreviewDefault");
+		}
+	}), t({
+		id: `${ln}.Viewer.MfvTopbarButton`,
+		category: s("Top bar Viewer button"),
+		name: "Show Viewer button in the top bar",
+		tooltip: "Show a Viewer toggle button in the ComfyUI top bar next to the queue controls. Disable to hide it (the V shortcut keeps working).",
+		type: "boolean",
+		defaultValue: !!(n.viewer?.mfvTopbarButton ?? A.MFV_TOPBAR_BUTTON),
+		onChange: (e) => {
+			n.viewer = n.viewer || {}, n.viewer.mfvTopbarButton = !!e, G(n), K(n), r("viewer.mfvTopbarButton");
 		}
 	}), t({
 		id: `${ln}.Viewer.MfvSidebarPosition`,
@@ -2047,8 +2058,8 @@ function Rn(e, n, r, i) {
 			}
 		}), setTimeout(u, 0), (async () => {
 			try {
-				let e = (await w())?.data?.prefs || {}, t = !!e?.has_token, n = String(e?.token_hint || "").trim();
-				d(t ? `Configured ${n || "(saved)"}` : "Paste HuggingFace token (hf_...)");
+				let e = (await w())?.data?.prefs || {}, t = !!e?.has_token, n = String(e?.token_hint || "").trim(), r = t ? `Configured ${n || "(saved)"}` : "Paste HuggingFace token (hf_...)";
+				d(r);
 			} catch (e) {
 				console.debug?.(e);
 			}
@@ -2396,7 +2407,7 @@ var Hn = "Majoor Assets Manager", Un = /^\s*Majoor:\s*/i, Wn = Object.freeze({
 	GENERAL: "General",
 	ADVANCED: "Advanced",
 	SECURITY: "Security"
-}), Gn = new Set([
+}), Gn = /* @__PURE__ */ new Set([
 	"grid.starColor",
 	"grid.badgeImageColor",
 	"grid.badgeVideoColor",
@@ -2683,7 +2694,7 @@ function jr() {
 }
 //#endregion
 //#region ui/features/dnd/utils/constants.ts
-var Mr = "application/x-mjr-asset", Nr = "application/x-mjr-assets", Pr = "application/x-comfy-asset-info", Fr = new Set([
+var Mr = "application/x-mjr-asset", Nr = "application/x-mjr-assets", Pr = "application/x-comfy-asset-info", Fr = /* @__PURE__ */ new Set([
 	".png",
 	".jpg",
 	".jpeg",
@@ -2692,13 +2703,13 @@ var Mr = "application/x-mjr-asset", Nr = "application/x-mjr-assets", Pr = "appli
 	".bmp",
 	".avif",
 	".jxl"
-]), Ir = new Set([
+]), Ir = /* @__PURE__ */ new Set([
 	".mp4",
 	".mov",
 	".mkv",
 	".webm",
 	".avi"
-]), Lr = new Set([
+]), Lr = /* @__PURE__ */ new Set([
 	".wav",
 	".mp3",
 	".flac",
@@ -2706,7 +2717,7 @@ var Mr = "application/x-mjr-asset", Nr = "application/x-mjr-assets", Pr = "appli
 	".m4a",
 	".aac",
 	".opus"
-]), Rr = new Set([
+]), Rr = /* @__PURE__ */ new Set([
 	".obj",
 	".fbx",
 	".glb",
@@ -2719,20 +2730,20 @@ var Mr = "application/x-mjr-asset", Nr = "application/x-mjr-assets", Pr = "appli
 ]), zr = (e) => {
 	if (!e) return !1;
 	let t = e.lastIndexOf(".");
-	return t === -1 ? !1 : Fr.has(e.slice(t).toLowerCase());
-}, Br = (e) => e ? String(e.kind || "").toLowerCase() === "image" ? !0 : zr(e.filename) : !1, Vr = (e) => {
+	return t !== -1 && Fr.has(e.slice(t).toLowerCase());
+}, Br = (e) => e ? String(e.kind || "").toLowerCase() === "image" || zr(e.filename) : !1, Vr = (e) => {
 	if (!e) return !1;
 	let t = e.lastIndexOf(".");
-	return t === -1 ? !1 : Ir.has(e.slice(t).toLowerCase());
-}, Hr = (e) => e ? String(e.kind || "").toLowerCase() === "video" ? !0 : Vr(e.filename) : !1, Ur = (e) => {
+	return t !== -1 && Ir.has(e.slice(t).toLowerCase());
+}, Hr = (e) => e ? String(e.kind || "").toLowerCase() === "video" || Vr(e.filename) : !1, Ur = (e) => {
 	if (!e) return !1;
 	let t = e.lastIndexOf(".");
-	return t === -1 ? !1 : Lr.has(e.slice(t).toLowerCase());
-}, Wr = (e) => e ? String(e.kind || "").toLowerCase() === "audio" ? !0 : Ur(e.filename) : !1, Gr = (e) => {
+	return t !== -1 && Lr.has(e.slice(t).toLowerCase());
+}, Wr = (e) => e ? String(e.kind || "").toLowerCase() === "audio" || Ur(e.filename) : !1, Gr = (e) => {
 	if (!e) return !1;
 	let t = e.lastIndexOf(".");
-	return t === -1 ? !1 : Rr.has(e.slice(t).toLowerCase());
-}, Kr = (e) => e ? String(e.kind || "").toLowerCase() === "model3d" ? !0 : Gr(e.filename) : !1, qr = (e) => Br(e) || Hr(e) || Wr(e) || Kr(e) || String(e?.kind || "").toLowerCase() === "workflow", Jr = {
+	return t !== -1 && Rr.has(e.slice(t).toLowerCase());
+}, Kr = (e) => e ? String(e.kind || "").toLowerCase() === "model3d" || Gr(e.filename) : !1, qr = (e) => Br(e) || Hr(e) || Wr(e) || Kr(e) || String(e?.kind || "").toLowerCase() === "workflow", Jr = {
 	mp4: "video/mp4",
 	mov: "video/quicktime",
 	webm: "video/webm",
@@ -2823,7 +2834,7 @@ var Mr = "application/x-mjr-asset", Nr = "application/x-mjr-assets", Pr = "appli
 			value: t
 		}), r.values = n);
 	}
-}, di = new Set([
+}, di = /* @__PURE__ */ new Set([
 	"number",
 	"int",
 	"float",
@@ -2879,7 +2890,7 @@ var Mr = "application/x-mjr-asset", Nr = "application/x-mjr-assets", Pr = "appli
 	}
 	return c.w;
 }, gi = {
-	exactNames: new Set([
+	exactNames: /* @__PURE__ */ new Set([
 		"video_path",
 		"input_video",
 		"source_video",
@@ -2920,12 +2931,12 @@ var Mr = "application/x-mjr-asset", Nr = "application/x-mjr-assets", Pr = "appli
 		],
 		score: 45
 	}],
-	exactSingleNames: new Set(["video"]),
+	exactSingleNames: /* @__PURE__ */ new Set(["video"]),
 	looksLikeFn: Xr,
 	comboChecker: Qr,
 	scoreKey: "__mjrVideoPickScore"
 }, _i = {
-	exactNames: new Set([
+	exactNames: /* @__PURE__ */ new Set([
 		"image",
 		"image_path",
 		"input_image",
@@ -2978,12 +2989,12 @@ var Mr = "application/x-mjr-asset", Nr = "application/x-mjr-assets", Pr = "appli
 		],
 		score: 35
 	}],
-	exactSingleNames: new Set(["image", "face"]),
+	exactSingleNames: /* @__PURE__ */ new Set(["image", "face"]),
 	looksLikeFn: $r,
 	comboChecker: ei,
 	scoreKey: "__mjrImagePickScore"
 }, vi = {
-	exactNames: new Set([
+	exactNames: /* @__PURE__ */ new Set([
 		"audio_path",
 		"input_audio",
 		"source_audio",
@@ -3029,12 +3040,12 @@ var Mr = "application/x-mjr-asset", Nr = "application/x-mjr-assets", Pr = "appli
 		],
 		score: 45
 	}],
-	exactSingleNames: new Set(["audio", "voice"]),
+	exactSingleNames: /* @__PURE__ */ new Set(["audio", "voice"]),
 	looksLikeFn: ti,
 	comboChecker: ni,
 	scoreKey: "__mjrAudioPickScore"
 }, yi = {
-	exactNames: new Set([
+	exactNames: /* @__PURE__ */ new Set([
 		"model_path",
 		"input_model",
 		"source_model",
@@ -3087,7 +3098,7 @@ var Mr = "application/x-mjr-asset", Nr = "application/x-mjr-assets", Pr = "appli
 		terms: ["asset", "resource"],
 		score: 30
 	}],
-	exactSingleNames: new Set([
+	exactSingleNames: /* @__PURE__ */ new Set([
 		"model",
 		"mesh",
 		"geometry"
@@ -4268,7 +4279,7 @@ var Ma = {
 			title: String(e.value || "")
 		}, R(e.value), 13, Fa)]))), 128))])])) : F("", !0);
 	}
-}, La = new Set([
+}, La = /* @__PURE__ */ new Set([
 	"png",
 	"jpg",
 	"jpeg",
@@ -5111,7 +5122,7 @@ var Co = ["title"], wo = ["src"], To = {
 	setup(e) {
 		let t = e, n = B(0), r = B(!1), i = null;
 		function a() {
-			return i ||= import("./floatingViewerManager-C0fDYFQu.js").then((e) => e.n), i;
+			return i ||= import("./floatingViewerManager-DfnpKtiy.js").then((e) => e.n), i;
 		}
 		function o() {
 			return (Array.isArray(t.inputFile?.previewCandidates) ? t.inputFile.previewCandidates : [])[n.value] || "";

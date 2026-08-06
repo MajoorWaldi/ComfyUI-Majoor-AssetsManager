@@ -164,6 +164,16 @@ export function buildFloatingViewerMediaElement(
         if (!controls) return mediaEl;
         const host = document.createElement("div");
         host.className = `mjr-mfv-player-host${fill ? " mjr-mfv-player-host--fill" : ""}`;
+        if (mediaKind === "audio") {
+            // Audio has no visual frame — give the host a styled backdrop with
+            // the filename so it reads like the video player (parity with the
+            // simple-player audio treatment).
+            host.classList.add("mjr-mfv-player-host--audio");
+            const backdrop = document.createElement("div");
+            backdrop.className = "mjr-mfv-player-audio-backdrop";
+            backdrop.textContent = String(fileData?.filename || "Audio");
+            host.appendChild(backdrop);
+        }
         host.appendChild(mediaEl);
 
         // Make the player host focusable so clicking it routes keyboard shortcuts

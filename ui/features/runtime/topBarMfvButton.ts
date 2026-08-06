@@ -1,3 +1,4 @@
+import { APP_CONFIG } from "../../app/config.js";
 import { EVENTS } from "../../app/events.js";
 import { t } from "../../app/i18n.js";
 import { setTooltipHint } from "../../utils/tooltipShortcuts.js";
@@ -8,12 +9,14 @@ const SLOT_ATTR = "data-mjr-topbar-mfv-slot";
 const BUTTON_LABEL_KEY = "label.floatingViewer";
 const BUTTON_LABEL_FALLBACK = "Viewer";
 const MFV_TOOLTIP_HINT = "V";
+const TOPBAR_BUTTON_SETTING_KEY = "viewer.mfvTopbarButton";
 
 let _observer: any = null;
 let _observedTarget: any = null;
 let _bodyObserver: any = null;
 let _visibilityListener: any = null;
 let _resizeListener: any = null;
+let _settingsListener: any = null;
 let _syncQueued = false;
 let _syncTimer: any = null;
 let _visible = false;
@@ -99,7 +102,10 @@ function ensureSlotMounted(container: any) {
         } else {
             parent.appendChild(slot);
         }
-    } else if (anchor && parent && slot.previousSibling !== anchor) {
+    } else if (anchor && parent && slot.previousElementSibling !== anchor) {
+        // Compare element siblings (not raw siblings) so stray text/comment
+        // nodes emitted by the host UI framework don't trigger endless
+        // re-insertion loops through the MutationObserver.
         parent.insertBefore(slot, anchor.nextSibling);
     } else if (!anchor && slot !== parent.lastElementChild) {
         parent.appendChild(slot);
@@ -188,10 +194,31 @@ function _syncVisibleFromDom() {
     }
 }
 
+function _isTopbarButtonEnabled(): boolean {
+    return (APP_CONFIG as any).MFV_TOPBAR_BUTTON !== false;
+}
+
+function _removeButtonDom() {
+    try {
+        document.querySelector(`[${BUTTON_HOST_ATTR}]`)?.remove?.();
+        document.querySelector(`[${SLOT_ATTR}]`)?.remove?.();
+    } catch (e) {
+        console.debug?.(e);
+    }
+}
+
 function ensureButtonMounted() {
     const container = getActionbarContainer();
     if (!container) {
         updateViewerTopOffset(null);
+        return null;
+    }
+
+    if (!_isTopbarButtonEnabled()) {
+        // Setting disabled: keep the top-offset var in sync but remove the
+        // button/slot from the actionbar.
+        _removeButtonDom();
+        updateViewerTopOffset(container);
         return null;
     }
 
@@ -249,6 +276,15 @@ export function mountTopBarMfvButton(): boolean {
         window.addEventListener("resize", _resizeListener);
     }
 
+    if (!_settingsListener) {
+        _settingsListener = (event: any) => {
+            const key = event?.detail?.key;
+            if (key !== TOPBAR_BUTTON_SETTING_KEY && key !== "storage") return;
+            scheduleSync();
+        };
+        window.addEventListener("mjr-settings-changed", _settingsListener);
+    }
+
     _tryObserveActionbar(getActionbarContainer());
 
     return true;
@@ -288,6 +324,11 @@ export function teardownTopBarMfvButton(): void {
         window.removeEventListener("resize", _resizeListener);
     }
     _resizeListener = null;
+
+    if (_settingsListener && typeof window !== "undefined") {
+        window.removeEventListener("mjr-settings-changed", _settingsListener);
+    }
+    _settingsListener = null;
     _syncQueued = false;
     _visible = false;
     _hasVisibilitySignal = false;

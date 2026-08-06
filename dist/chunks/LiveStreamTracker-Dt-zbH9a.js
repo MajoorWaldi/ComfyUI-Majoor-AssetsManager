@@ -1,7 +1,7 @@
-import { J as e, r as t } from "./events-C2U9lj7y.js";
-import { t as n } from "./floatingViewerManager-C0fDYFQu.js";
+import { J as e, r as t } from "./events-DEEu2sDf.js";
+import { t as n } from "./floatingViewerManager-DfnpKtiy.js";
 //#region ui/features/viewer/LiveStreamTracker.ts
-var r = !1, i = null, a = null, o = null, s = null, c = null, l = 0, u = 0, d = 400, f = new Set([
+var r = !1, i = null, a = null, o = null, s = null, c = null, l = 0, u = 0, d = 400, f = /* @__PURE__ */ new Set([
 	".png",
 	".jpg",
 	".jpeg",
@@ -10,14 +10,14 @@ var r = !1, i = null, a = null, o = null, s = null, c = null, l = 0, u = 0, d = 
 	".jxl",
 	".gif",
 	".bmp"
-]), p = new Set([
+]), p = /* @__PURE__ */ new Set([
 	".mp4",
 	".webm",
 	".mov",
 	".avi",
 	".mkv",
 	".m4v"
-]), m = new Set([
+]), m = /* @__PURE__ */ new Set([
 	".mp3",
 	".wav",
 	".flac",
@@ -25,7 +25,7 @@ var r = !1, i = null, a = null, o = null, s = null, c = null, l = 0, u = 0, d = 
 	".m4a",
 	".aac",
 	".opus"
-]), h = new Set([
+]), h = /* @__PURE__ */ new Set([
 	".glb",
 	".gltf",
 	".obj",

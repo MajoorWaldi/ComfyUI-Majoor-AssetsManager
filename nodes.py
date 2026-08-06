@@ -105,6 +105,63 @@ def _require_torch() -> Any:
     return torch
 
 
+_FILENAME_PLACEHOLDER_RE = re.compile(r"%([^%]+)%")
+_DATE_FORMAT_TOKEN_RE = re.compile(r"dd?|MM?|hh?|mm?|ss?|yyy?y?")
+
+
+def _format_date_placeholder(fmt: str, now: datetime.datetime) -> str:
+    """Replicate the ComfyUI frontend ``formatDate`` token semantics.
+
+    Tokens: ``yyyy``/``yy`` (year), ``M``/``MM`` (month), ``d``/``dd`` (day),
+    ``h``/``hh`` (hour), ``m``/``mm`` (minute), ``s``/``ss`` (second).
+    Doubled tokens are zero-padded to two digits.
+    """
+
+    def _token(match: re.Match[str]) -> str:
+        text = match.group(0)
+        if text == "yyyy":
+            return str(now.year)
+        if text == "yy":
+            return str(now.year)[-2:]
+        values = {
+            "d": now.day,
+            "M": now.month,
+            "h": now.hour,
+            "m": now.minute,
+            "s": now.second,
+        }
+        value = values.get(text[0])
+        if value is None:
+            return text
+        return str(value).zfill(len(text))
+
+    return _DATE_FORMAT_TOKEN_RE.sub(_token, fmt)
+
+
+def _resolve_filename_prefix_placeholders(filename_prefix: str) -> str:
+    """Server-side fallback for ``%date:FORMAT%`` placeholders (issue #194).
+
+    ComfyUI's frontend only rewrites ``filename_prefix`` for its own core save
+    nodes, so custom nodes receive the placeholders verbatim. ``%width%``,
+    ``%height%``, ``%year%``... are already handled by
+    ``folder_paths.get_save_image_path``; only ``%date:...%`` needs resolving
+    here. ``%Node.widget%`` references are resolved by the bundled frontend
+    extension when a graph is available.
+    """
+    now = datetime.datetime.now()
+
+    def _sub(match: re.Match[str]) -> str:
+        text = match.group(1)
+        if text.startswith("date:"):
+            return _format_date_placeholder(text[5:], now)
+        return match.group(0)
+
+    try:
+        return _FILENAME_PLACEHOLDER_RE.sub(_sub, str(filename_prefix))
+    except (TypeError, ValueError):
+        return filename_prefix
+
+
 def _next_counter(directory: str, prefix: str) -> int:
     """Find the next available counter for *prefix_NNNNN* in *directory*."""
     max_counter = 0
@@ -1008,7 +1065,7 @@ class MajoorSaveImage:
         extra_pnginfo: dict | None = None,
         unique_id: Any | None = None,
     ):
-        filename_prefix += self.prefix_append
+        filename_prefix = _resolve_filename_prefix_placeholders(filename_prefix) + self.prefix_append
         full_output_folder, filename, counter, subfolder, filename_prefix = (
             folder_paths.get_save_image_path(
                 filename_prefix,
@@ -1412,6 +1469,7 @@ class MajoorSaveVideo:
         gen_time = generation_time_ms if generation_time_ms >= 0 else _get_generation_time_ms()
         num_frames = resolved_images.size(0)
 
+        filename_prefix = _resolve_filename_prefix_placeholders(filename_prefix)
         full_output_folder, filename, _counter, subfolder, _prefix = (
             folder_paths.get_save_image_path(
                 filename_prefix,
