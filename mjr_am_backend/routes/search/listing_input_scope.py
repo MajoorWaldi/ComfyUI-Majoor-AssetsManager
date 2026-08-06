@@ -138,7 +138,7 @@ async def handle_input_scope(
     svc, _ = await require_services()
     touch_enrichment_pause(svc, seconds=1.5)
 
-    _show_folders = True
+    _show_folders = False
     try:
         _settings_svc = svc.get("settings") if isinstance(svc, dict) else None
         if _settings_svc is not None:
@@ -169,6 +169,16 @@ async def handle_input_scope(
             json_response=json_response,
         )
         if browse_resp is not None:
+            # Index unindexed files so status dots resolve instead of staying
+            # "pending" (blue) forever. Scan from the root (recursive when a
+            # subfolder is open) so stored subfolder paths stay root-relative.
+            if offset == 0:
+                await kickoff_background_scan(
+                    str(root_dir),
+                    source="input",
+                    recursive=bool(subfolder),
+                    incremental=True,
+                )
             return browse_resp
 
     if svc and svc.get("index"):

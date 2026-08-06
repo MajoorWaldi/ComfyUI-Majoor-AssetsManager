@@ -69,6 +69,7 @@ Useful first links:
 Use Assets Manager as a fast library for ComfyUI media:
 - virtual grid browsing for large output folders
 - Outputs, Inputs, Custom roots, and Collections scopes
+- folder cards in Input / Output scopes: open subfolders, navigate back with `..`, drag assets onto a folder to move them, and create folders from the right-click menu (opt-in via **Show folders in Input / Output panels** in Settings → Browser, disabled by default)
 - full-text search and structured filters
 - ratings, tags, collections, duplicate awareness, and generation stacks
 - right-click actions for rename, delete, open folder, copy path, download, and ZIP export

@@ -110,10 +110,10 @@ export function registerViewerSettings(safeAddSetting: (def: any) => void, setti
         tooltip:
             "When enabled, subdirectories under the Input and Output roots are shown as folder cards in the browser grid. Disable to see only files.",
         type: "boolean",
-        defaultValue: !!(settings.browser?.showFolders ?? true),
+        defaultValue: !!(settings.browser?.showFolders ?? false),
         onChange: async (value: any) => {
             const next = !!value;
-            const prev = !!(settings.browser?.showFolders ?? true);
+            const prev = !!(settings.browser?.showFolders ?? false);
             settings.browser = settings.browser || {};
             settings.browser.showFolders = next;
             saveMajoorSettings(settings);

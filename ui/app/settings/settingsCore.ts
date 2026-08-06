@@ -103,7 +103,7 @@ export const DEFAULT_SETTINGS = {
         ltxavRgbFallback: false,
     },
     browser: {
-        showFolders: true,
+        showFolders: false,
     },
     rtHydrate: {
         concurrency: APP_DEFAULTS.RT_HYDRATE_CONCURRENCY,

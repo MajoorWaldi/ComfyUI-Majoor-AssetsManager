@@ -145,6 +145,14 @@ Use that line as the quickest confirmation that the current browser session can 
     - **Default**: Enabled / On
     - **Purpose**: Controls whether the KSampler denoising preview starts enabled when the Floating Viewer opens, initializes, or resets. This stream shows sampler preview blobs during execution, not selected-node media.
 
+### Show Folders In Input / Output Panels
+
+- **UI location**: Settings → Majoor Assets Manager › Browser
+- **Setting key**: `browser.showFolders`
+- **Default**: Disabled / Off
+- **Purpose**: When enabled, subdirectories under the Input and Output roots appear as folder cards in the browser grid. Open a folder to browse its content, navigate back with the `..` parent entry, drag-and-drop assets onto a folder card to move them into that folder, and create subfolders from the right-click menu.
+- **When disabled (default)**: The Input and Output grids show the classic flat file listing — no folder cards, no folder navigation, and no root-level "Create folder here" context menu.
+
 ### Media Probe Backend
 
 - **Auto**: Automatically choose the best available backend

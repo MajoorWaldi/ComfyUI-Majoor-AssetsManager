@@ -1367,20 +1367,20 @@ class AppSettings:
             return Result.Ok(normalized)
 
     async def get_browser_show_folders(self) -> bool:
-        """Return whether Input/Output scope browser shows subfolders (default: True)."""
+        """Return whether Input/Output scope browser shows subfolders (default: False)."""
         async with self._lock:
             current_version = await self._get_settings_version()
             cached = self._cache.get(_BROWSER_SHOW_FOLDERS_KEY, version=current_version)
             if cached is not None:
-                return parse_bool(cached, True)
+                return parse_bool(cached, False)
             raw = await self._read_setting(_BROWSER_SHOW_FOLDERS_KEY)
-            enabled = parse_bool(raw, True) if raw is not None else True
+            enabled = parse_bool(raw, False) if raw is not None else False
             self._cache.put(_BROWSER_SHOW_FOLDERS_KEY, "1" if enabled else "0", version=current_version)
             return enabled
 
     async def set_browser_show_folders(self, enabled: Any) -> Result[bool]:
         """Persist Input/Output folder display preference and bump settings version."""
-        normalized = parse_bool(enabled, True)
+        normalized = parse_bool(enabled, False)
         async with self._lock:
             res = await self._write_setting(_BROWSER_SHOW_FOLDERS_KEY, "1" if normalized else "0")
             if not res.ok:

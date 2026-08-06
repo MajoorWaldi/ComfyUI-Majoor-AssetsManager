@@ -28,6 +28,7 @@ import {
 import { ENDPOINTS, buildBatchZipDownloadURL, buildDownloadURL } from "../../api/endpoints.js";
 import { ASSET_RATING_CHANGED_EVENT } from "../../app/events.js";
 import { t } from "../../app/i18n.js";
+import { loadMajoorSettings } from "../../app/settings/settingsCore.js";
 import { comfyConfirm, comfyPrompt } from "../../app/dialogs.js";
 import { comfyToast } from "../../app/toast.js";
 import { APP_CONFIG } from "../../app/config.js";
@@ -536,6 +537,15 @@ function setRating(asset: any, rating: any, onChanged: any) {
 function _isBrowserScope(panelState: any) {
     const scope = String(panelState?.scope || "").toLowerCase();
     return scope === "custom" || scope === "input" || scope === "output";
+}
+
+function _browserFoldersEnabled() {
+    try {
+        const settings = loadMajoorSettings();
+        return !!(settings?.browser?.showFolders ?? false);
+    } catch {
+        return false;
+    }
 }
 
 function _isWorkflowScope(panelState: any) {
@@ -1852,8 +1862,11 @@ export function bindGridContextMenu({ gridContainer, getState = () => ({}) }: { 
             const scope = String(gridContainer?.dataset?.mjrScope || "").toLowerCase();
             const subfolderPath = String(gridContainer?.dataset?.mjrSubfolder || "").trim();
             // For input/output scopes at root level the subfolder is empty —
-            // still show the menu so users can create folders at the root.
-            if (!subfolderPath && scope !== "input" && scope !== "output") return;
+            // still show the menu so users can create folders at the root, but
+            // only while folder browsing is enabled (browser.showFolders).
+            const allowRootFolderCreate =
+                (scope === "input" || scope === "output") && _browserFoldersEnabled();
+            if (!subfolderPath && !allowRootFolderCreate) return;
 
             event.preventDefault();
             event.stopPropagation();

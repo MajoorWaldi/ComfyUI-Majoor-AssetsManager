@@ -227,7 +227,7 @@ async def handle_output_scope(
         return json_response(error_result)
     touch_enrichment_pause(svc, seconds=1.5)
 
-    _show_folders = True
+    _show_folders = False
     try:
         _settings_svc = svc.get("settings") if isinstance(svc, dict) else None
         if _settings_svc is not None:
@@ -263,6 +263,18 @@ async def handle_output_scope(
             json_response=json_response,
         )
         if browse_resp is not None:
+            # Index unindexed files so status dots resolve instead of staying
+            # "pending" (blue) forever. Scan from the root (recursive when a
+            # subfolder is open) so stored subfolder paths stay root-relative.
+            if offset == 0:
+                await kickoff_background_scan(
+                    str(Path(output_root)),
+                    source="output",
+                    recursive=bool(subfolder),
+                    incremental=True,
+                    fast=True,
+                    background_metadata=True,
+                )
             return browse_resp
 
     output_filters = {
