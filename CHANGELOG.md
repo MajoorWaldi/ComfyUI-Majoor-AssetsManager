@@ -5,6 +5,7 @@ All notable changes to this project are documented in this file.
 ## [Unreleased]
 
 ### New Features
+- **Folder browsing in Input / Output scopes** (#188): Subfolders under the Input and Output roots can now appear as folder cards in the grid — open a folder to browse its content, navigate back with the `..` parent entry, drag-and-drop assets onto a folder card to move them, and create subfolders from the right-click menu. Opt in with the new **Show folders in Input / Output panels** setting (Settings → Majoor Assets Manager → Browser, disabled by default — the grid keeps the classic flat listing until enabled). Thanks @bsawang.
 - **Collect Files**: New right-click action and details-sidebar button that bundles an asset, its workflow JSON, the traced prompt text (positive/negative), and every media input referenced by the workflow into a `{asset}_collected.zip` created next to the file, with a manifest listing each input and model path. Falls back to `output/_mjr_collected/` when the asset folder is not writable. See `docs/COLLECT_FILES.md`.
 
 ### Fixed

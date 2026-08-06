@@ -9,21 +9,62 @@
  *
  * Phase 4.2.
  */
+import { ref } from "vue";
+
 const props = defineProps({
     asset: { type: Object, required: true },
     selected: { type: Boolean, default: false },
 });
 
+const emit = defineEmits(["drop-asset"]);
+
 const filename = () => String(props.asset.filename || "");
+
+// ── Drop target for moving assets into this folder ──────────────────────
+const dropActive = ref(false);
+
+function onDragOver(event) {
+    // Allow drops — Vue's .prevent modifier already called preventDefault.
+    if (event.dataTransfer) {
+        event.dataTransfer.dropEffect = "move";
+    }
+    dropActive.value = true;
+}
+
+function onDragLeave() {
+    dropActive.value = false;
+}
+
+function onDrop(event) {
+    dropActive.value = false;
+    if (!event.dataTransfer) return;
+    const types = Array.from(event.dataTransfer.types);
+    if (!types.includes("application/x-mjr-asset")) return;
+
+    let payload = null;
+    try {
+        const raw = event.dataTransfer.getData("application/x-mjr-asset");
+        if (raw) payload = JSON.parse(raw);
+    } catch {}
+    if (!payload) return;
+
+    const folderPath = String(props.asset.filepath || "").trim();
+    if (!folderPath) return;
+
+    emit("drop-asset", { asset: payload, folderPath });
+}
 </script>
 
 <template>
     <div
         class="mjr-asset-card mjr-card mjr-folder-card"
-        :class="{ 'is-selected': selected }"
+        :class="{ 'is-selected': selected, 'drop-active': dropActive }"
         role="button"
         :tabindex="0"
         draggable="true"
+        @dragover.prevent="onDragOver"
+        @dragleave="onDragLeave"
+        @drop.stop.prevent="onDrop"
         :data-mjr-asset-id="String(asset.id ?? '')"
         :data-mjr-filename-key="String(asset.filename || '').toLowerCase()"
         data-mjr-ext="FOLDER"
@@ -60,3 +101,11 @@ const filename = () => String(props.asset.filename || "");
         </div>
     </div>
 </template>
+
+<style scoped>
+.mjr-folder-card.drop-active {
+    outline: 2px solid #4a90e2;
+    outline-offset: -2px;
+    background: rgba(74, 144, 226, 0.08);
+}
+</style>

@@ -72,7 +72,7 @@ describe("drag-out to OS", () => {
         expect(dt.getData("text/uri-list")).toContain(
             "/mjr/am/batch-zip/mjr_1234567890123456789012345678",
         );
-        expect(dt.effectAllowed).toBe("copy");
+        expect(dt.effectAllowed).toBe("copyMove");
     });
 
     it("uses the canonical selected-assets API for multi-file drag-out", async () => {

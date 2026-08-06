@@ -1238,6 +1238,50 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
         )
         return _json_response(response_result)
 
+    @routes.get("/mjr/am/settings/browser-show-folders")
+    async def get_browser_show_folders_settings(request):
+        svc, error_result = await _require_services()
+        if error_result:
+            return _json_response(error_result)
+
+        settings_service = svc.get("settings")
+        if not settings_service:
+            return _json_response(Result.Err("SERVICE_UNAVAILABLE", "Settings service unavailable"))
+
+        enabled = await settings_service.get_browser_show_folders()
+        return _json_response(Result.Ok({"enabled": bool(enabled)}))
+
+    @routes.post("/mjr/am/settings/browser-show-folders")
+    async def update_browser_show_folders_settings(request):
+        csrf = _csrf_error(request)
+        if csrf:
+            return _json_response(Result.Err(ErrorCode.CSRF, csrf))
+        auth = _require_write_access(request)
+        if not auth.ok:
+            return _json_response(auth)
+
+        svc, error_result = await _require_services()
+        if error_result:
+            return _json_response(error_result)
+
+        settings_service = svc.get("settings")
+        if not settings_service:
+            return _json_response(Result.Err(ErrorCode.SERVICE_UNAVAILABLE, "Settings service unavailable"))
+
+        body_res = await _read_json(request)
+        if not body_res.ok:
+            return _json_response(body_res)
+        body = body_res.data or {}
+
+        enabled = body.get("enabled")
+        if enabled is None:
+            return _json_response(Result.Err("INVALID_INPUT", "Missing enabled value"))
+
+        result = await settings_service.set_browser_show_folders(enabled)
+        if not result.ok:
+            return _json_response(result)
+        return _json_response(Result.Ok({"enabled": bool(result.data)}))
+
     @routes.get("/mjr/am/settings/huggingface")
     async def get_huggingface_settings(request):
         svc, error_result = await _require_services()

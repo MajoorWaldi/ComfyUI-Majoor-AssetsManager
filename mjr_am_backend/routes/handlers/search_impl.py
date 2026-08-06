@@ -29,6 +29,7 @@ from ..core.security import _check_rate_limit
 from .filesystem import (
     _kickoff_background_scan,
     _list_filesystem_assets,
+    _list_filesystem_folders,
     _paginate_filesystem_listing_entries,
     _parse_filesystem_listing_filters,
 )
@@ -188,6 +189,7 @@ async def list_assets(request: web.Request) -> web.Response:
         get_input_directory=get_input_directory,
         kickoff_background_scan=_kickoff_background_scan,
         list_filesystem_assets=_list_filesystem_assets,
+        list_filesystem_folders=_list_filesystem_folders,
         dedupe_result_assets_payload=_dedupe_result_assets_payload,
         resolve_custom_root_fn=resolve_custom_root,
         is_loopback_request=_is_loopback_request,

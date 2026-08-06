@@ -896,6 +896,11 @@ export function createDragDropRuntimeHandlers(): Record<string, any> {
         const app = _resolveApp();
         const types = Array.from(event?.dataTransfer?.types || []);
         if (!types.includes(DND_MIME)) return;
+        // If the drop landed on a folder card, skip the canvas handler —
+        // the folder card handles the drop itself (move file into folder).
+        try {
+            if ((event?.target as Element)?.closest?.(".mjr-folder-card")) return;
+        } catch {}
         const payload = getDraggedAsset(event, DND_MIME);
         if (!isManagedPayload(payload)) return;
         if (!isCanvasDropTarget(app, event)) return;

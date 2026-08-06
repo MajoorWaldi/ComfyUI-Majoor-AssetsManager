@@ -56,6 +56,11 @@ export function createBrowserNavigationController({
     };
 
     const resolveFolderTargetPath = (asset: any) => {
+        // ".." parent folder: always navigate to parent of current path
+        if (normPath(asset?.filename || "") === "..") {
+            return parentFolderPath(currentFolderPath());
+        }
+
         const rawSubfolder = normPath(asset?.subfolder || "");
         if (rawSubfolder) return rawSubfolder;
 
