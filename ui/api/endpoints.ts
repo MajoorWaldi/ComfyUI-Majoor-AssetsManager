@@ -89,6 +89,7 @@ export const ENDPOINTS = {
     SETTINGS_STARTUP_LOGGING: "/mjr/am/settings/startup-logging",
     SETTINGS_LTXAV_RGB_FALLBACK: "/mjr/am/settings/ltxav-rgb-fallback",
     SETTINGS_JXL: "/mjr/am/settings/jxl",
+    SETTINGS_BROWSER_SHOW_FOLDERS: "/mjr/am/settings/browser-show-folders",
 
     // View (ComfyUI native)
     VIEW: "/view",

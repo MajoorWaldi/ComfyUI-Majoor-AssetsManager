@@ -3,6 +3,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, provide, ref, watch } f
 import { APP_CONFIG } from "../../../app/config.js";
 import { EVENTS } from "../../../app/events.js";
 import { get, getWorkflowContent, markWorkflowLoaded, setWorkflowFavorite } from "../../../api/client.js";
+import { browserFolderOp } from "../../../api/clientOps.js";
 import { buildStackMembersURL } from "../../../api/endpoints.js";
 import {
     getRawHostApp,
@@ -1505,6 +1506,26 @@ function handleCardDblclick(asset) {
     void openAssetViewer(asset);
 }
 
+async function handleDropAsset({ asset: draggedAsset, folderPath }) {
+    const filepath = String(draggedAsset?.filepath || "").trim();
+    if (!filepath || !folderPath) return;
+    try {
+        const res = await browserFolderOp({
+            op: "move_file",
+            path: filepath,
+            destination: folderPath,
+        });
+        if (res?.ok) {
+            comfyToast("Moved to folder", "success");
+            loader.reload();
+        } else {
+            comfyToast(res?.error || "Failed to move file", "error");
+        }
+    } catch (error) {
+        comfyToast(error?.message || "Failed to move file", "error");
+    }
+}
+
 let scrollCleanup = null;
 let fillViewportPromise = null;
 let lastFillViewportAt = 0;
@@ -1965,6 +1986,7 @@ defineExpose({
                         @mousedown.left="handleCardPrimaryMouseDown($event, asset)"
                         @click="handleCardClick($event, asset)"
                         @dblclick.stop="handleCardDblclick(asset)"
+                        @drop-asset="handleDropAsset"
                     />
 
                     <div
@@ -2042,6 +2064,7 @@ defineExpose({
                         @mousedown.left="handleCardPrimaryMouseDown($event, asset)"
                         @click="handleCardClick($event, asset)"
                         @dblclick.stop="handleCardDblclick(asset)"
+                        @drop-asset="handleDropAsset"
                     />
 
                     <div

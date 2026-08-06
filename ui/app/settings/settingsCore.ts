@@ -102,6 +102,9 @@ export const DEFAULT_SETTINGS = {
         mfvPreviewMethod: APP_DEFAULTS.MFV_PREVIEW_METHOD,
         ltxavRgbFallback: false,
     },
+    browser: {
+        showFolders: true,
+    },
     rtHydrate: {
         concurrency: APP_DEFAULTS.RT_HYDRATE_CONCURRENCY,
         queueMax: APP_DEFAULTS.RT_HYDRATE_QUEUE_MAX,

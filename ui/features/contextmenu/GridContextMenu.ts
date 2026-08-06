@@ -534,7 +534,8 @@ function setRating(asset: any, rating: any, onChanged: any) {
 }
 
 function _isBrowserScope(panelState: any) {
-    return String(panelState?.scope || "").toLowerCase() === "custom";
+    const scope = String(panelState?.scope || "").toLowerCase();
+    return scope === "custom" || scope === "input" || scope === "output";
 }
 
 function _isWorkflowScope(panelState: any) {
@@ -990,6 +991,14 @@ function _buildRatingSubmenu(asset: any, canRate: any) {
     ];
 }
 
+function _resolveCreateFolderPath(currentPath: string, gridContainer: any): string {
+    const scope = String(gridContainer?.dataset?.mjrScope || "").toLowerCase();
+    if (scope !== "input" && scope !== "output") return currentPath;
+    const rel = String(currentPath || "").trim().replaceAll("\\", "/");
+    // Encode the scope + optional relative subfolder, e.g. "mjr://input/sub/dir"
+    return rel ? `mjr://${scope}/${rel}` : `mjr://${scope}`;
+}
+
 function _buildEmptyGridItems({ currentPath, gridContainer }: { currentPath?: any; gridContainer?: any } = {}) {
     return [
         createItem(
@@ -1006,7 +1015,7 @@ function _buildEmptyGridItems({ currentPath, gridContainer }: { currentPath?: an
                     if (!next) return;
                     const res = await browserFolderOp({
                         op: "create",
-                        path: currentPath,
+                        path: _resolveCreateFolderPath(currentPath, gridContainer),
                         name: next,
                     });
                     if (!res?.ok) {
@@ -1840,15 +1849,18 @@ export function bindGridContextMenu({ gridContainer, getState = () => ({}) }: { 
 
         if (!card) {
             if (!_isBrowserScope(panelState)) return;
-            const currentPath = String(gridContainer?.dataset?.mjrSubfolder || "").trim();
-            if (!currentPath) return;
+            const scope = String(gridContainer?.dataset?.mjrScope || "").toLowerCase();
+            const subfolderPath = String(gridContainer?.dataset?.mjrSubfolder || "").trim();
+            // For input/output scopes at root level the subfolder is empty —
+            // still show the menu so users can create folders at the root.
+            if (!subfolderPath && scope !== "input" && scope !== "output") return;
 
             event.preventDefault();
             event.stopPropagation();
             openGridContextMenu({
                 x: event.clientX,
                 y: event.clientY,
-                items: _buildEmptyGridItems({ currentPath, gridContainer }),
+                items: _buildEmptyGridItems({ currentPath: subfolderPath, gridContainer }),
             });
             return;
         }
