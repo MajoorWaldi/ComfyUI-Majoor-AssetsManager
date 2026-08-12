@@ -232,6 +232,27 @@ export function registerViewerSettings(safeAddSetting: (def: any) => void, setti
     });
 
     safeAddSetting({
+        id: `${SETTINGS_PREFIX}.Viewer.MfvKjPreviewOverrideEnabled`,
+        category: floatingViewerCat(
+            t("setting.viewer.mfvKjPreviewOverride.name").replace("Majoor: ", ""),
+        ),
+        name: t("setting.viewer.mfvKjPreviewOverride.name"),
+        tooltip: t("setting.viewer.mfvKjPreviewOverride.desc"),
+        type: "boolean",
+        defaultValue: !!(
+            settings.viewer?.mfvKjPreviewOverrideEnabled ??
+            APP_DEFAULTS.MFV_KJ_PREVIEW_OVERRIDE_ENABLED
+        ),
+        onChange: (value: any) => {
+            settings.viewer = settings.viewer || {};
+            settings.viewer.mfvKjPreviewOverrideEnabled = !!value;
+            saveMajoorSettings(settings);
+            applySettingsToConfig(settings);
+            notifyApplied("viewer.mfvKjPreviewOverrideEnabled");
+        },
+    });
+
+    safeAddSetting({
         id: `${SETTINGS_PREFIX}.Viewer.LtxavRgbFallback`,
         category: floatingViewerCat("LTXAV preview fallback"),
         name: "Majoor: LTXAV RGB Preview Fallback (experimental)",

@@ -173,6 +173,71 @@ describe("fetchAPI non-JSON response", () => {
         expect(result.ok).toBe(false);
         expect(result.code).toBe("INVALID_RESPONSE");
     });
+
+    it("preserves the server request ID for diagnostics", async () => {
+        globalThis.fetch = vi.fn(async () => ({
+            status: 400,
+            headers: {
+                get: (name) => {
+                    if (name === "content-type") return "application/json";
+                    if (name === "x-request-id") return "request-123";
+                    return null;
+                },
+            },
+            json: async () => ({ ok: false, code: "INVALID_INPUT", error: "Invalid value" }),
+        }));
+
+        const mod = await importUtils();
+        const { fetchAPI } = makeClient(mod);
+        const result = await fetchAPI("/mjr/am/test");
+
+        expect(result.request_id).toBe("request-123");
+        expect(result.status).toBe(400);
+    });
+});
+
+describe("fetchAPI retryable HTTP status", () => {
+    it("retries idempotent GET requests and honors Retry-After", async () => {
+        let calls = 0;
+        globalThis.fetch = vi.fn(async () => {
+            calls += 1;
+            return {
+                status: calls === 1 ? 429 : 200,
+                headers: {
+                    get: (name) => {
+                        if (name === "content-type") return "application/json";
+                        if (name === "retry-after" && calls === 1) return "0";
+                        return null;
+                    },
+                },
+                json: async () =>
+                    calls === 1
+                        ? { ok: false, code: "RATE_LIMIT", error: "Slow down" }
+                        : { ok: true, data: { recovered: true } },
+            };
+        });
+
+        const mod = await importUtils();
+        const { get } = makeClient(mod);
+        const result = await get("/mjr/am/retry-after");
+
+        expect(result.ok).toBe(true);
+        expect(calls).toBe(2);
+    });
+
+    it("does not automatically replay write requests", async () => {
+        globalThis.fetch = makeJsonFetch(
+            { ok: false, code: "SERVICE_UNAVAILABLE", error: "Try later" },
+            503,
+        );
+
+        const mod = await importUtils();
+        const { post } = makeClient(mod);
+        const result = await post("/mjr/am/write", { value: 1 });
+
+        expect(result.ok).toBe(false);
+        expect(globalThis.fetch).toHaveBeenCalledTimes(1);
+    });
 });
 
 // ---------------------------------------------------------------------------

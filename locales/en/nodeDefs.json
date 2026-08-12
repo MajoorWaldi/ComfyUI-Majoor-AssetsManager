@@ -1,0 +1,36 @@
+{
+    "MajoorGenInfoOverride": {
+        "display_name": "Majoor Gen Info Override",
+        "description": "Build explicit generation metadata for Majoor save nodes.",
+        "inputs": {
+            "workflow_context": { "name": "Workflow context", "tooltip": "Connect a late workflow node to recover executed sampler values." },
+            "positive_prompt": { "name": "Positive prompt" },
+            "negative_prompt": { "name": "Negative prompt" },
+            "loras_json": { "name": "LoRAs (JSON)" },
+            "custom_info_json": { "name": "Custom information (JSON)" }
+        },
+        "outputs": { "0": { "name": "Generation information override" } }
+    },
+    "MajoorSaveImage": {
+        "display_name": "Majoor Save Image",
+        "description": "Save images with workflow and Majoor generation metadata.",
+        "inputs": {
+            "images": { "name": "Images" },
+            "filename_prefix": { "name": "Filename prefix" },
+            "generation_time_ms": { "name": "Generation time (ms)" },
+            "geninfo_override": { "name": "Generation information override" }
+        }
+    },
+    "MajoorSaveVideo": {
+        "display_name": "Majoor Save Video",
+        "description": "Save video, image frames and optional audio with Majoor metadata.",
+        "inputs": {
+            "filename_prefix": { "name": "Filename prefix" },
+            "frame_rate": { "name": "Frame rate" },
+            "loop_count": { "name": "Loop count" },
+            "generation_time_ms": { "name": "Generation time (ms)" },
+            "geninfo_override": { "name": "Generation information override" },
+            "save_first_frame": { "name": "Save first frame sidecar" }
+        }
+    }
+}

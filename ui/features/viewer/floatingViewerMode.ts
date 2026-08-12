@@ -126,17 +126,42 @@ export function setFloatingViewerPreviewActive(viewer: any, active: any) {
     }
 }
 
-export function loadFloatingViewerPreviewBlob(viewer: any, blob: any, opts: Record<string, any> = {}) {
+export function loadFloatingViewerPreviewBlob(
+    viewer: any,
+    blob: any,
+    opts: Record<string, any> = {},
+) {
     if (!blob || !(blob instanceof Blob)) return;
     viewer._revokePreviewBlob();
     const url = URL.createObjectURL(blob);
     viewer._previewBlobUrl = url;
+    const mime = String(opts?.mime || blob.type || "image/jpeg")
+        .trim()
+        .toLowerCase();
+    const isVideo = mime === "video/mp4";
+    const filename =
+        opts?.filename ||
+        (isVideo
+            ? "preview.mp4"
+            : mime === "image/webp"
+              ? "preview.webp"
+              : mime === "image/png"
+                ? "preview.png"
+                : "preview.jpg");
     const fileData = {
         url,
-        filename: "preview.jpg",
-        kind: "image",
+        filename,
+        kind: isVideo ? "video" : "image",
+        mime,
+        width: Number(opts?.width) || undefined,
+        height: Number(opts?.height) || undefined,
+        fps: Number(opts?.fps) || undefined,
         _isPreview: true,
         _sourceLabel: opts?.sourceLabel || null,
+        _previewSource: opts?.source || "comfy",
+        _previewNodeId: opts?.nodeId != null ? String(opts.nodeId) : null,
+        _previewStep: Number.isFinite(Number(opts?.step)) ? Number(opts.step) : null,
+        _previewTotal: Number.isFinite(Number(opts?.total)) ? Number(opts.total) : null,
     };
 
     const inCompare =

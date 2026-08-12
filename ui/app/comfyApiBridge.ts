@@ -109,6 +109,7 @@ export function getSettingsApi(app?: any): any {
     const runtimeApp = _isObject(app) ? app : getComfyApp();
     if (!runtimeApp || typeof runtimeApp !== "object") return null;
     return (
+        runtimeApp?.extensionManager?.setting ||
         runtimeApp?.ui?.settings ||
         runtimeApp?.settings ||
         runtimeApp?.ui?.api?.settings ||
@@ -148,7 +149,16 @@ export function setSettingValue(app: any, key: string, value: any): boolean {
     for (const name of candidates) {
         try {
             if (typeof settingsApi?.[name] === "function") {
-                settingsApi[name](key, value);
+                const result = settingsApi[name](key, value);
+                // The current extensionManager.setting.set API is async, while
+                // legacy settings surfaces are synchronous. Keep this
+                // compatibility function synchronous and make rejected writes
+                // observable without leaking an unhandled promise rejection.
+                if (result && typeof result.catch === "function") {
+                    void result.catch((error: unknown) => {
+                        console.warn?.(`[Majoor] Unable to write ComfyUI setting ${key}`, error);
+                    });
+                }
                 return true;
             }
         } catch {

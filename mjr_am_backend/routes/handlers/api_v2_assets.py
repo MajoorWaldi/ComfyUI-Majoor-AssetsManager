@@ -59,6 +59,27 @@ DEFAULT_LIMIT = 50
 MAX_LIMIT = 500
 MAX_OFFSET = 1_000_000
 
+_ERROR_HTTP_STATUS = {
+    "INVALID_INPUT": 400,
+    "INVALID_JSON": 400,
+    "AUTH_REQUIRED": 401,
+    "CSRF": 403,
+    "NOT_FOUND": 404,
+    "CONFLICT": 409,
+    "RATE_LIMIT": 429,
+    "SERVICE_UNAVAILABLE": 503,
+    "TOOL_MISSING": 503,
+    "DB_ERROR": 503,
+    "TIMEOUT": 504,
+}
+
+
+def _api_error_response(result: Result[Any]) -> web.Response:
+    """Return an HTTP-semantic error for the versioned compatibility API."""
+    code = str(result.code or "").upper()
+    status = _ERROR_HTTP_STATUS.get(code, 500)
+    return _json_response(result, status=status)
+
 VALID_SORT_FIELDS = {
     "name": "a.filename",
     "size": "a.size",
@@ -414,9 +435,9 @@ def _parse_multi(query: dict[str, list[str]], key: str) -> list[str]:
 async def _list_assets(request: web.Request) -> web.Response:
     services, err = await _require_services()
     if err is not None:
-        return _json_response(err)
+        return _api_error_response(err)
     if not isinstance(services, dict) or "db" not in services:
-        return _json_response(Result.Err("SERVICE_UNAVAILABLE", "Database unavailable"))
+        return _api_error_response(Result.Err("SERVICE_UNAVAILABLE", "Database unavailable"))
 
     q = request.rel_url.query
 
@@ -445,7 +466,7 @@ async def _list_assets(request: web.Request) -> web.Response:
         )
     except Exception as exc:
         logger.warning("api/v2/assets list failed: %s", exc, exc_info=True)
-        return _json_response(Result.Err("DB_ERROR", "Asset listing failed"))
+        return _api_error_response(Result.Err("DB_ERROR", "Asset listing failed"))
 
     assets = [_row_to_asset(row) for row in rows]
     payload = {
@@ -492,16 +513,16 @@ async def _get_asset(request: web.Request) -> web.Response:
     asset_id = request.match_info.get("id", "")
     services, err = await _require_services()
     if err is not None:
-        return _json_response(err)
+        return _api_error_response(err)
     if not isinstance(services, dict) or "db" not in services:
-        return _json_response(Result.Err("SERVICE_UNAVAILABLE", "Database unavailable"))
+        return _api_error_response(Result.Err("SERVICE_UNAVAILABLE", "Database unavailable"))
 
     where, params = _resolve_asset_id(asset_id)
     try:
         row = await _query_one(services["db"], where, params)
     except Exception as exc:
         logger.warning("api/v2/assets get failed: %s", exc, exc_info=True)
-        return _json_response(Result.Err("DB_ERROR", "Asset lookup failed"))
+        return _api_error_response(Result.Err("DB_ERROR", "Asset lookup failed"))
 
     if row is None:
         return web.json_response({"error": "Asset not found"}, status=404)
@@ -541,16 +562,16 @@ async def _get_asset_tags(request: web.Request) -> web.Response:
     asset_id = request.match_info.get("id", "")
     services, err = await _require_services()
     if err is not None:
-        return _json_response(err)
+        return _api_error_response(err)
     if not isinstance(services, dict) or "db" not in services:
-        return _json_response(Result.Err("SERVICE_UNAVAILABLE", "Database unavailable"))
+        return _api_error_response(Result.Err("SERVICE_UNAVAILABLE", "Database unavailable"))
 
     where, params = _resolve_asset_id(asset_id)
     try:
         row = await _query_one(services["db"], where, params)
     except Exception as exc:
         logger.warning("api/v2/assets tags lookup failed: %s", exc, exc_info=True)
-        return _json_response(Result.Err("DB_ERROR", "Asset lookup failed"))
+        return _api_error_response(Result.Err("DB_ERROR", "Asset lookup failed"))
 
     if row is None:
         return web.json_response({"error": "Asset not found"}, status=404)
@@ -568,9 +589,9 @@ async def _seed_status(request: web.Request) -> web.Response:
     """
     services, err = await _require_services()
     if err is not None:
-        return _json_response(err)
+        return _api_error_response(err)
     if not isinstance(services, dict) or "db" not in services:
-        return _json_response(Result.Err("SERVICE_UNAVAILABLE", "Database unavailable"))
+        return _api_error_response(Result.Err("SERVICE_UNAVAILABLE", "Database unavailable"))
     db = services["db"]
 
     try:
@@ -581,7 +602,7 @@ async def _seed_status(request: web.Request) -> web.Response:
         )
     except Exception as exc:
         logger.warning("api/v2/assets seed/status failed: %s", exc, exc_info=True)
-        return _json_response(Result.Err("DB_ERROR", "Seed status lookup failed"))
+        return _api_error_response(Result.Err("DB_ERROR", "Seed status lookup failed"))
 
     total = 0
     if total_res.ok and total_res.data:
@@ -624,9 +645,9 @@ async def _tags_refine(request: web.Request) -> web.Response:
     """
     services, err = await _require_services()
     if err is not None:
-        return _json_response(err)
+        return _api_error_response(err)
     if not isinstance(services, dict) or "db" not in services:
-        return _json_response(Result.Err("SERVICE_UNAVAILABLE", "Database unavailable"))
+        return _api_error_response(Result.Err("SERVICE_UNAVAILABLE", "Database unavailable"))
     db = services["db"]
 
     q = request.rel_url.query
@@ -669,7 +690,7 @@ async def _tags_refine(request: web.Request) -> web.Response:
         res = await db.aquery(sql, tuple([*params, limit]))
     except Exception as exc:
         logger.warning("api/v2/assets tags/refine failed: %s", exc, exc_info=True)
-        return _json_response(Result.Err("DB_ERROR", "Tag refine failed"))
+        return _api_error_response(Result.Err("DB_ERROR", "Tag refine failed"))
 
     tags: list[dict[str, Any]] = []
     if res.ok and isinstance(res.data, list):

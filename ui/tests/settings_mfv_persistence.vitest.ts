@@ -58,31 +58,35 @@ describe("MFV settings persistence", () => {
         };
     });
 
-    it("persists Live Stream and KSampler Preview defaults across reload-style reads", async () => {
-        const { loadMajoorSettings, saveMajoorSettings } = await import(
-            "../app/settings/settingsCore.js"
-        );
+    it("persists MFV stream and KJNodes preview defaults across reload-style reads", async () => {
+        const { loadMajoorSettings, saveMajoorSettings } =
+            await import("../app/settings/settingsCore.js");
         const { registerViewerSettings } = await import("../app/settings/settingsViewer.js");
 
         const settings = loadMajoorSettings();
         settings.viewer.mfvLiveDefault = false;
         settings.viewer.mfvPreviewDefault = false;
+        settings.viewer.mfvKjPreviewOverrideEnabled = false;
         saveMajoorSettings(settings);
 
         let reloaded = loadMajoorSettings();
         let definitions = [];
         registerViewerSettings((definition) => definitions.push(definition), reloaded, vi.fn());
 
-        definitions.find((definition) => definition.id === "Majoor.Viewer.MfvLiveDefault").onChange(
-            true,
-        );
+        definitions
+            .find((definition) => definition.id === "Majoor.Viewer.MfvLiveDefault")
+            .onChange(true);
         definitions
             .find((definition) => definition.id === "Majoor.Viewer.MfvPreviewDefault")
+            .onChange(true);
+        definitions
+            .find((definition) => definition.id === "Majoor.Viewer.MfvKjPreviewOverrideEnabled")
             .onChange(true);
 
         reloaded = loadMajoorSettings();
         expect(reloaded.viewer.mfvLiveDefault).toBe(true);
         expect(reloaded.viewer.mfvPreviewDefault).toBe(true);
+        expect(reloaded.viewer.mfvKjPreviewOverrideEnabled).toBe(true);
 
         definitions = [];
         registerViewerSettings((definition) => definitions.push(definition), reloaded, vi.fn());
@@ -94,6 +98,11 @@ describe("MFV settings persistence", () => {
         expect(
             definitions.find((definition) => definition.id === "Majoor.Viewer.MfvPreviewDefault")
                 .defaultValue,
+        ).toBe(true);
+        expect(
+            definitions.find(
+                (definition) => definition.id === "Majoor.Viewer.MfvKjPreviewOverrideEnabled",
+            ).defaultValue,
         ).toBe(true);
     });
 });

@@ -101,6 +101,7 @@ export const DEFAULT_SETTINGS = {
         metaMaxEntries: APP_DEFAULTS.VIEWER_META_MAX_ENTRIES,
         mfvSidebarPosition: "right",
         mfvPreviewMethod: APP_DEFAULTS.MFV_PREVIEW_METHOD,
+        mfvKjPreviewOverrideEnabled: APP_DEFAULTS.MFV_KJ_PREVIEW_OVERRIDE_ENABLED,
         ltxavRgbFallback: false,
     },
     browser: {
@@ -520,6 +521,9 @@ export const applySettingsToConfig = (settings: Record<string, any>): void => {
     APP_CONFIG.MFV_LIVE_DEFAULT = settings.viewer?.mfvLiveDefault ?? APP_DEFAULTS.MFV_LIVE_DEFAULT;
     APP_CONFIG.MFV_PREVIEW_DEFAULT =
         settings.viewer?.mfvPreviewDefault ?? APP_DEFAULTS.MFV_PREVIEW_DEFAULT;
+    APP_CONFIG.MFV_KJ_PREVIEW_OVERRIDE_ENABLED = !!(
+        settings.viewer?.mfvKjPreviewOverrideEnabled ?? APP_DEFAULTS.MFV_KJ_PREVIEW_OVERRIDE_ENABLED
+    );
     APP_CONFIG.MFV_TOPBAR_BUTTON = !!(
         settings.viewer?.mfvTopbarButton ?? APP_DEFAULTS.MFV_TOPBAR_BUTTON
     );

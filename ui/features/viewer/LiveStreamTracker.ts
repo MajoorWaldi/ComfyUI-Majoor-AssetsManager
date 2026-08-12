@@ -6,11 +6,14 @@
  *     file after workflow execution.
  *  2. b_preview: when KSampler Preview is active, streams denoising-step preview
  *     blobs from the ComfyUI WebSocket API.
+ *  3. kj_preview_override: streams the richer image/animated/video previews
+ *     emitted by KJNodes Model Preview Override when enabled in settings.
  *
  * Canvas node selection is intentionally owned by Node Stream, not Live Stream.
  */
 
 import { EVENTS } from "../../app/events.js";
+import { APP_CONFIG } from "../../app/config.js";
 import { waitForRawHostApi } from "../../app/hostAdapter.js";
 import { floatingViewerManager } from "./floatingViewerManager.js";
 
@@ -18,12 +21,18 @@ let _initialized = false;
 let _genOutputHandler: any = null;
 let _previewHandler: any = null;
 let _previewWithMetaHandler: any = null;
+let _kjPreviewOverrideHandler: any = null;
+let _executionStartHandler: any = null;
+let _executionEndHandler: any = null;
 let _apiRef: any = null;
 let _currentJobId: any = null;
 let _previewHookGeneration = 0;
 let _previewWithMetaLastAt = 0;
+let _kjPreviewRunActive = false;
 
 const PREVIEW_META_SUPPRESSION_MS = 400;
+const KJ_PREVIEW_OVERRIDE_EVENT = "kj_preview_override";
+const KJ_PREVIEW_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "video/mp4"]);
 const IMAGE_EXTS = new Set([".png", ".jpg", ".jpeg", ".webp", ".avif", ".jxl", ".gif", ".bmp"]);
 const VIDEO_EXTS = new Set([".mp4", ".webm", ".mov", ".avi", ".mkv", ".m4v"]);
 const AUDIO_EXTS = new Set([".mp3", ".wav", ".flac", ".ogg", ".m4a", ".aac", ".opus"]);
@@ -55,6 +64,47 @@ function _hasRecentPreviewWithMeta() {
     return Date.now() - _previewWithMetaLastAt <= PREVIEW_META_SUPPRESSION_MS;
 }
 
+function _normalizeKjPreviewMime(value: any) {
+    const mime = String(value || "image/jpeg")
+        .trim()
+        .toLowerCase();
+    return KJ_PREVIEW_MIME_TYPES.has(mime) ? mime : null;
+}
+
+/** Decode KJNodes' raw base64 payload without introducing a data URL. */
+export function decodeKjPreviewPayload(detail: any): Blob | null {
+    const mime = _normalizeKjPreviewMime(detail?.mime);
+    const encoded = String(detail?.image || "").trim();
+    if (!mime || !encoded || typeof globalThis.atob !== "function") return null;
+
+    try {
+        const binary = globalThis.atob(encoded);
+        const chunks: ArrayBuffer[] = [];
+        const chunkSize = 32 * 1024;
+        for (let offset = 0; offset < binary.length; offset += chunkSize) {
+            const slice = binary.slice(offset, offset + chunkSize);
+            const buffer = new ArrayBuffer(slice.length);
+            const bytes = new Uint8Array(buffer);
+            for (let index = 0; index < slice.length; index += 1) {
+                bytes[index] = slice.charCodeAt(index);
+            }
+            chunks.push(buffer);
+        }
+        return new Blob(chunks, { type: mime });
+    } catch {
+        return null;
+    }
+}
+
+function _formatKjPreviewSourceLabel(detail: any) {
+    const nodeId = String(detail?.node_id ?? "").trim();
+    const step = Number(detail?.step);
+    const total = Number(detail?.total);
+    const stepLabel =
+        Number.isFinite(step) && Number.isFinite(total) && total > 0 ? ` · ${step}/${total}` : "";
+    return `KJ Preview Override${nodeId ? ` · Node ${nodeId}` : ""}${stepLabel}`;
+}
+
 async function _hookPreviewApi(app: any) {
     const hookGeneration = ++_previewHookGeneration;
     try {
@@ -68,8 +118,51 @@ async function _hookPreviewApi(app: any) {
         }
         _apiRef = api;
 
+        _executionStartHandler = () => {
+            _kjPreviewRunActive = false;
+        };
+        _executionEndHandler = () => {
+            _kjPreviewRunActive = false;
+        };
+        api.addEventListener("execution_start", _executionStartHandler);
+        api.addEventListener("executing", _executionStartHandler);
+        api.addEventListener("execution_success", _executionEndHandler);
+        api.addEventListener("execution_error", _executionEndHandler);
+        api.addEventListener("execution_interrupted", _executionEndHandler);
+
+        _kjPreviewOverrideHandler = (e: any) => {
+            try {
+                if (APP_CONFIG.MFV_KJ_PREVIEW_OVERRIDE_ENABLED === false) {
+                    _kjPreviewRunActive = false;
+                    return;
+                }
+                const detail = e?.detail || null;
+                const blob = decodeKjPreviewPayload(detail);
+                if (!blob) return;
+
+                _kjPreviewRunActive = true;
+                const nodeId = String(detail?.node_id ?? "").trim();
+                floatingViewerManager.feedPreviewBlob(blob, {
+                    source: "kj-preview-override",
+                    sourceLabel: _formatKjPreviewSourceLabel(detail),
+                    nodeId: nodeId || null,
+                    mime: blob.type,
+                    width: Number(detail?.w) || undefined,
+                    height: Number(detail?.h) || undefined,
+                    fps: Number(detail?.fps) || undefined,
+                    step: Number.isFinite(Number(detail?.step)) ? Number(detail.step) : null,
+                    total: Number.isFinite(Number(detail?.total)) ? Number(detail.total) : null,
+                });
+            } catch (err: any) {
+                console.debug?.("[MFV] KJNodes preview override error", err);
+            }
+        };
+        api.addEventListener(KJ_PREVIEW_OVERRIDE_EVENT, _kjPreviewOverrideHandler);
+
         _previewWithMetaHandler = (e: any) => {
             try {
+                if (_kjPreviewRunActive && APP_CONFIG.MFV_KJ_PREVIEW_OVERRIDE_ENABLED !== false)
+                    return;
                 const { blob, nodeId, jobId } = e.detail || {};
                 // Validate blob before marking the suppression timestamp so that
                 // an invalid/missing blob does not silence the b_preview fallback.
@@ -87,6 +180,8 @@ async function _hookPreviewApi(app: any) {
 
         _previewHandler = (e: any) => {
             try {
+                if (_kjPreviewRunActive && APP_CONFIG.MFV_KJ_PREVIEW_OVERRIDE_ENABLED !== false)
+                    return;
                 if (_hasRecentPreviewWithMeta()) return;
                 const blob = e.detail;
                 if (!blob || !(blob instanceof Blob)) return;
@@ -98,7 +193,7 @@ async function _hookPreviewApi(app: any) {
         api.addEventListener("b_preview", _previewHandler);
 
         console.debug(
-            "[Majoor] MFV preview stream hooked to ComfyUI API (b_preview_with_metadata + b_preview fallback)",
+            "[Majoor] MFV preview stream hooked to ComfyUI API (KJ Preview Override + binary previews)",
         );
     } catch (e: any) {
         console.debug?.("[Majoor] MFV preview hook failed - preview streaming disabled", e);
@@ -107,6 +202,35 @@ async function _hookPreviewApi(app: any) {
 
 function _detachPreviewApiListeners() {
     if (_apiRef) {
+        if (_kjPreviewOverrideHandler) {
+            try {
+                _apiRef.removeEventListener(KJ_PREVIEW_OVERRIDE_EVENT, _kjPreviewOverrideHandler);
+            } catch (e: any) {
+                console.debug?.(e);
+            }
+        }
+        if (_executionStartHandler) {
+            for (const eventType of ["execution_start", "executing"]) {
+                try {
+                    _apiRef.removeEventListener(eventType, _executionStartHandler);
+                } catch (e: any) {
+                    console.debug?.(e);
+                }
+            }
+        }
+        if (_executionEndHandler) {
+            for (const eventType of [
+                "execution_success",
+                "execution_error",
+                "execution_interrupted",
+            ]) {
+                try {
+                    _apiRef.removeEventListener(eventType, _executionEndHandler);
+                } catch (e: any) {
+                    console.debug?.(e);
+                }
+            }
+        }
         if (_previewHandler) {
             try {
                 _apiRef.removeEventListener("b_preview", _previewHandler);
@@ -122,9 +246,13 @@ function _detachPreviewApiListeners() {
             }
         }
     }
+    _kjPreviewOverrideHandler = null;
+    _executionStartHandler = null;
+    _executionEndHandler = null;
     _previewHandler = null;
     _previewWithMetaHandler = null;
     _previewWithMetaLastAt = 0;
+    _kjPreviewRunActive = false;
     _apiRef = null;
 }
 

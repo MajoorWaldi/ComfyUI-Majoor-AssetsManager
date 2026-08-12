@@ -241,7 +241,9 @@ export function buildFloatingViewerMediaElement(
         v.src = url;
         v.controls = false;
         v.loop = true;
-        v.muted = initialMuted;
+        // Generated preview clips (including KJNodes Model Preview Override)
+        // are visual-only and must autoplay even under strict browser policies.
+        v.muted = fileData?._isPreview ? true : initialMuted;
         v.playbackRate = initialPlaybackRate;
         v.autoplay = true;
         v.playsInline = true;

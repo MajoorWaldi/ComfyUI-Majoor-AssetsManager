@@ -1,8 +1,14 @@
 import type { LGraph, LGraphCanvas } from "@comfyorg/litegraph";
+import type { ComfyApp as OfficialComfyApp } from "@comfyorg/comfyui-frontend-types";
+
+// Re-export the upstream host type so new integration code can adopt the
+// official contract incrementally. Majoor's compatibility interfaces below
+// intentionally remain wider for older stable ComfyUI builds.
+export type { OfficialComfyApp };
 
 type MajoorSettingCategory = [string, ...string[]] | string[];
 
-interface MajoorSettingDefinition {
+export interface MajoorSettingDefinition {
     id: string;
     name?: string;
     tooltip?: string;
@@ -16,14 +22,20 @@ interface MajoorSettingDefinition {
     onChange?: (value: unknown, oldValue?: unknown) => void | Promise<void>;
 }
 
-interface MajoorExtensionToast {
+export interface MajoorExtensionToast {
     add(message: unknown): void;
     addAlert?(message: string): void;
 }
 
-interface MajoorExtensionDialog {
+export interface MajoorExtensionDialog {
     alert?(payload: string | { title?: string; message?: string }): Promise<void> | void;
-    confirm?(payload: string | { title?: string; message?: string }): Promise<boolean> | boolean;
+    confirm?(payload: string | {
+        title: string;
+        message: string;
+        type?: "default" | "overwrite" | "delete" | "dirtyClose" | "reinstall";
+        itemList?: string[];
+        hint?: string;
+    }): Promise<boolean | null> | boolean | null;
     prompt?(
         payload:
             | string
@@ -51,7 +63,7 @@ interface MajoorBottomPanelController {
     registerBottomPanelTab?(tab: unknown): void;
 }
 
-interface MajoorExtensionManager {
+export interface MajoorExtensionManager {
     toast?: MajoorExtensionToast;
     dialog?: MajoorExtensionDialog;
     settings?: unknown;
@@ -87,13 +99,13 @@ interface MajoorWorkspaceStore {
     unregisterSidebarTab?(id: string): void;
 }
 
-interface MajoorComfyApi {
+export interface MajoorComfyApi {
     fetchApi?(route: string, options?: RequestInit): Promise<Response>;
     apiURL(route: string): string;
     settings?: unknown;
 }
 
-interface MajoorComfyApp {
+export interface MajoorComfyApp {
     api?: MajoorComfyApi;
     ui?: {
         api?: MajoorComfyApi;

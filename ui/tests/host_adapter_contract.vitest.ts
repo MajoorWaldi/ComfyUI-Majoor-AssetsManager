@@ -2,15 +2,23 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const bridgeState = vi.hoisted(() => {
     let comfyApp: any = null;
+    let dialogApi: any = null;
     return {
         reset() {
             comfyApp = null;
+            dialogApi = null;
         },
         setApp(app: any) {
             comfyApp = app;
         },
         getApp() {
             return comfyApp;
+        },
+        setDialogApi(api: any) {
+            dialogApi = api;
+        },
+        getDialogApi() {
+            return dialogApi;
         },
     };
 });
@@ -21,7 +29,7 @@ vi.mock("../app/comfyApiBridge.js", () => ({
     fetchComfyApi: vi.fn(async () => new Response(null, { status: 200 })),
     getComfyApi: vi.fn((app?: any) => app?.api || null),
     getComfyApp: vi.fn(() => bridgeState.getApp()),
-    getExtensionDialogApi: vi.fn(() => null),
+    getExtensionDialogApi: vi.fn(() => bridgeState.getDialogApi()),
     getExtensionManager: vi.fn(() => null),
     getExtensionToastApi: vi.fn(() => null),
     getSettingValue: vi.fn(() => null),
@@ -43,6 +51,21 @@ describe("hostAdapter contract", () => {
     beforeEach(async () => {
         vi.resetModules();
         bridgeState.reset();
+    });
+
+    it("uses the current ComfyUI confirm dialog contract", async () => {
+        const confirmDialog = vi.fn(async () => true);
+        bridgeState.setDialogApi({ confirm: confirmDialog });
+        const mod = await import("../app/hostAdapter.js");
+
+        await expect(
+            mod.confirm({ message: "Delete this asset?", header: "Legacy title", type: "delete" }),
+        ).resolves.toBe(true);
+        expect(confirmDialog).toHaveBeenCalledWith({
+            title: "Legacy title",
+            message: "Delete this asset?",
+            type: "delete",
+        });
     });
 
     it("observeHostCanvasSelection uses event path and unsubscribes cleanly", async () => {

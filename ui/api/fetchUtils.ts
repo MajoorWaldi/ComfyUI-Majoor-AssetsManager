@@ -3,6 +3,7 @@ const DEFAULT_FETCH_TIMEOUT_MS = 20_000;
 const MAX_FETCH_TIMEOUT_MS = 300_000;
 const MAX_RETRIES = 3;
 const RETRY_BASE_DELAY_MS = 400;
+const MAX_RETRY_AFTER_MS = 10_000;
 const BOOTSTRAP_TOKEN_PATH = "/mjr/am/settings/security/bootstrap-token";
 const API_PREFIX = "/mjr/am/";
 const _pendingRequests = new Map();
@@ -63,6 +64,38 @@ function _isRetryableError(error: any) {
     } catch {
         return false;
     }
+}
+
+function _responseMetadata(response: any) {
+    try {
+        const requestId = String(response?.headers?.get?.("x-request-id") || "").trim();
+        const retryAfterRaw = String(response?.headers?.get?.("retry-after") || "").trim();
+        let retryAfterSeconds: number | null = null;
+        if (retryAfterRaw) {
+            const numeric = Number(retryAfterRaw);
+            if (Number.isFinite(numeric) && numeric >= 0) {
+                retryAfterSeconds = numeric;
+            } else {
+                const retryDate = Date.parse(retryAfterRaw);
+                if (Number.isFinite(retryDate)) {
+                    retryAfterSeconds = Math.max(0, (retryDate - Date.now()) / 1000);
+                }
+            }
+        }
+        return { requestId, retryAfterSeconds };
+    } catch {
+        return { requestId: "", retryAfterSeconds: null };
+    }
+}
+
+function _attachResponseMetadata(result: any, response: any) {
+    if (!result || typeof result !== "object") return result;
+    const { requestId, retryAfterSeconds } = _responseMetadata(response);
+    if (requestId && !("request_id" in result)) result.request_id = requestId;
+    if (retryAfterSeconds !== null && !("retry_after" in result)) {
+        result.retry_after = retryAfterSeconds;
+    }
+    return result;
 }
 
 function _resolveFetchTimeoutMs(options: Record<string, any> = {}) {
@@ -267,14 +300,14 @@ async function _handleResponse(
                 return await fetchAPI(url, { ...options, _authRetryDone: true }, retryCount);
             }
         }
-        return {
+        return _attachResponseMetadata({
             ok: false,
             error: `Server returned non-JSON response (${response.status})`,
             code: "INVALID_RESPONSE",
             status: response.status,
             content_type: contentType,
             data: null,
-        };
+        }, response);
     }
 
     let result = await response.json().catch((e: any) => {
@@ -283,13 +316,13 @@ async function _handleResponse(
     });
 
     if (typeof result !== "object" || result === null) {
-        return {
+        return _attachResponseMetadata({
             ok: false,
             error: "Invalid response structure",
             code: "INVALID_RESPONSE",
             status: response.status,
             data: null,
-        };
+        }, response);
     }
 
     if (!("status" in result)) {
@@ -298,6 +331,24 @@ async function _handleResponse(
         } catch (e) {
             console.debug?.(e);
         }
+    }
+    _attachResponseMetadata(result, response);
+
+    const status = Number(result?.status || response.status || 0);
+    const retryableStatus = status === 429 || status === 503 || status === 504;
+    if (
+        !result?.ok &&
+        retryableStatus &&
+        method === "GET" &&
+        retryCount < MAX_RETRIES &&
+        !options?.signal?.aborted
+    ) {
+        const retryAfterSeconds = Number(result?.retry_after);
+        const retryDelayMs = Number.isFinite(retryAfterSeconds)
+            ? Math.min(MAX_RETRY_AFTER_MS, Math.max(0, retryAfterSeconds * 1000))
+            : RETRY_BASE_DELAY_MS * (retryCount + 1);
+        await delay(retryDelayMs);
+        return await fetchAPI(url, options, retryCount + 1);
     }
 
     // On an AUTH_REQUIRED / 401 JSON response, try one token refresh + retry.

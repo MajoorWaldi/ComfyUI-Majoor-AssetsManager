@@ -1,7 +1,15 @@
 type LooseRecord = Record<string, any>;
 
 export type GraphVisit = { graph: LooseRecord; label: string };
-export type GraphNodeVisit = { node: LooseRecord; graph: LooseRecord; label: string; qualifiedId: string };
+export type GraphNodeVisit = {
+    node: LooseRecord;
+    graph: LooseRecord;
+    label: string;
+    /** ComfyUI UI-state identifier: <graph UUID>:<local id>, or the local id at root. */
+    locatorId: string;
+    /** Human-readable path retained for diagnostics and older Majoor state. */
+    qualifiedId: string;
+};
 
 export function getHostRootGraph(app: any = null): LooseRecord | null {
     return app?.rootGraph ?? app?.graph?.rootGraph ?? app?.graph ?? app?.canvas?.graph ?? null;
@@ -23,6 +31,13 @@ export function getGraphLinks(graph: any): any {
 
 export function getGraphLabel(graph: any, fallback: string): string {
     return String(graph?.name ?? graph?.title ?? graph?.id ?? fallback).trim() || fallback;
+}
+
+export function getNodeLocatorId(node: any, graph: any = node?.graph): string {
+    const nodeId = String(node?.id ?? node?.ID ?? "").trim();
+    if (!nodeId) return "";
+    const graphId = String(graph?.id ?? "").trim();
+    return graphId ? `${graphId}:${nodeId}` : nodeId;
 }
 
 function _pushGraphVisit(out: GraphVisit[], seen: Set<any>, graph: any, label: string): void {
@@ -108,6 +123,7 @@ export function walkGraphNodes(appOrGraph: any, callback: (visit: GraphNodeVisit
                 node,
                 graph: visit.graph,
                 label: visit.label,
+                locatorId: getNodeLocatorId(node, visit.graph),
                 qualifiedId: `${visit.label}::${nodeId}`,
             });
         }
@@ -129,7 +145,7 @@ export function findGraphNodeByQualifiedId(appOrGraph: any, qualifiedId: any): L
     if (!wanted) return null;
     let found: LooseRecord | null = null;
     walkGraphNodes(appOrGraph, (visit) => {
-        if (!found && visit.qualifiedId === wanted) found = visit.node;
+        if (!found && (visit.qualifiedId === wanted || visit.locatorId === wanted)) found = visit.node;
     });
     return found;
 }

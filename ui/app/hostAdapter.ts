@@ -135,16 +135,23 @@ export function getHostToastApi(app: any = null): any {
  * Show a confirmation dialog.
  * Returns a Promise<boolean> (true = confirmed, false = cancelled / unavailable).
  *
- * @param {{ message: string, header?: string }} opts
+ * @param {{ message: string, title?: string, header?: string, type?: "default"|"overwrite"|"delete"|"dirtyClose"|"reinstall" }} opts
  * @returns {Promise<boolean>}
  */
-export async function confirm(opts: { message: string; header?: string } | null | undefined): Promise<boolean> {
+export async function confirm(opts: {
+    message: string;
+    title?: string;
+    /** @deprecated Use title. Retained for Majoor callers created before ComfyUI's dialog contract. */
+    header?: string;
+    type?: "default" | "overwrite" | "delete" | "dirtyClose" | "reinstall";
+} | null | undefined): Promise<boolean> {
     try {
         const dialogApi = getExtensionDialogApi(_app || getComfyApp());
         if (dialogApi && typeof dialogApi.confirm === "function") {
             const result = await dialogApi.confirm({
                 message: opts?.message ?? "",
-                header: opts?.header ?? "Confirm",
+                title: opts?.title ?? opts?.header ?? "Confirm",
+                type: opts?.type ?? "default",
             });
             return !!result;
         }

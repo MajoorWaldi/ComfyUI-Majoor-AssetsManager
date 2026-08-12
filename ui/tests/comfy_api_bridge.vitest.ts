@@ -192,6 +192,28 @@ describe("comfyApiBridge", () => {
         expect(setSettingValue).toHaveBeenCalledWith("Majoor.Test", false);
     });
 
+    it("prefers extensionManager.setting over legacy settings APIs", async () => {
+        const set = vi.fn(async () => undefined);
+        const legacyGet = vi.fn(() => "legacy");
+        const app = {
+            extensionManager: {
+                setting: {
+                    get: vi.fn((key: string) => (key === "Majoor.Test" ? "native" : undefined)),
+                    set,
+                },
+            },
+            ui: { settings: { getSettingValue: legacyGet } },
+        };
+
+        const mod = await import("../app/comfyApiBridge.js");
+
+        expect(mod.getSettingsApi(app)).toBe(app.extensionManager.setting);
+        expect(mod.getSettingValue(app, "Majoor.Test")).toBe("native");
+        expect(mod.setSettingValue(app, "Majoor.Test", "next")).toBe(true);
+        expect(set).toHaveBeenCalledWith("Majoor.Test", "next");
+        expect(legacyGet).not.toHaveBeenCalled();
+    });
+
     it("falls back to map-like settings stores when helper methods are unavailable", async () => {
         const app = {
             settings: {
