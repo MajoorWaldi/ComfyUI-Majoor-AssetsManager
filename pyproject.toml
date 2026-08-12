@@ -91,7 +91,7 @@ PublisherId = "majoor-waldi"
 DisplayName = "ComfyUI-Majoor-AssetsManager"
 Icon = "https://raw.githubusercontent.com/MajoorWaldi/ComfyUI-Majoor-AssetsManager/main/ressources/icon.png"
 WebDirectory = "dist"
-includes = ["dist/"]
+includes = ["dist/", "locales/", "example_workflows/"]
 "requires-comfyui" = ">=0.13.0"
 
 [tool.black]

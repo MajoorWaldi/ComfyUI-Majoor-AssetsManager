@@ -1,0 +1,54 @@
+{
+    "last_node_id": 3,
+    "last_link_id": 2,
+    "nodes": [
+        {
+            "id": 1,
+            "type": "EmptyImage",
+            "pos": [80, 120],
+            "size": [315, 106],
+            "flags": {},
+            "order": 0,
+            "mode": 0,
+            "outputs": [{ "name": "IMAGE", "type": "IMAGE", "links": [1], "slot_index": 0 }],
+            "properties": { "Node name for S&R": "EmptyImage" },
+            "widgets_values": [512, 512, 1]
+        },
+        {
+            "id": 2,
+            "type": "MajoorGenInfoOverride",
+            "pos": [80, 310],
+            "size": [390, 430],
+            "flags": {},
+            "order": 1,
+            "mode": 0,
+            "inputs": [{ "name": "workflow_context", "type": "*", "link": null }],
+            "outputs": [{ "name": "geninfo_override", "type": "MAJOOR_GENINFO", "links": [2], "slot_index": 0 }],
+            "properties": { "Node name for S&R": "MajoorGenInfoOverride" },
+            "widgets_values": ["A documented Majoor example", "", -1, -1, -1, "", "", "", "", "", -1, "", "Example workflow", ""]
+        },
+        {
+            "id": 3,
+            "type": "MajoorSaveImage",
+            "pos": [570, 170],
+            "size": [330, 150],
+            "flags": {},
+            "order": 2,
+            "mode": 0,
+            "inputs": [
+                { "name": "images", "type": "IMAGE", "link": 1 },
+                { "name": "geninfo_override", "type": "MAJOOR_GENINFO", "link": 2 }
+            ],
+            "properties": { "Node name for S&R": "MajoorSaveImage" },
+            "widgets_values": ["Majoor/Example", -1]
+        }
+    ],
+    "links": [
+        [1, 1, 0, 3, 0, "IMAGE"],
+        [2, 2, 0, 3, 1, "MAJOOR_GENINFO"]
+    ],
+    "groups": [],
+    "config": {},
+    "extra": { "ds": { "scale": 1, "offset": [0, 0] } },
+    "version": 0.4
+}

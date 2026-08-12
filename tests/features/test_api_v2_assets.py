@@ -429,3 +429,13 @@ async def test_tags_refine_is_not_eaten_by_id_route(monkeypatch):
     match = await app.router.resolve(req)
     if match.handler is not api_v2_assets._tags_refine:
         pytest.fail(f"tags/refine routed to {match.handler.__name__}")
+# Versioned API errors use HTTP semantics even though legacy /mjr/am routes
+# retain their historical HTTP-200 envelope for compatibility.
+def test_api_error_response_maps_stable_codes_to_http_statuses():
+    invalid = api_v2_assets._api_error_response(Result.Err("INVALID_INPUT", "Bad request"))
+    unavailable = api_v2_assets._api_error_response(
+        Result.Err("SERVICE_UNAVAILABLE", "Database unavailable")
+    )
+
+    assert invalid.status == 400
+    assert unavailable.status == 503

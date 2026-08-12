@@ -5,6 +5,7 @@ const state = vi.hoisted(() => {
     const feedPreviewBlob = vi.fn();
     const getLiveActive = vi.fn(() => true);
     const waitForComfyApi = vi.fn();
+    const appConfig = { MFV_KJ_PREVIEW_OVERRIDE_ENABLED: true };
 
     let api = null;
 
@@ -13,6 +14,7 @@ const state = vi.hoisted(() => {
         feedPreviewBlob,
         getLiveActive,
         waitForComfyApi,
+        appConfig,
         setApi(nextApi) {
             api = nextApi;
             waitForComfyApi.mockResolvedValue(nextApi);
@@ -25,6 +27,7 @@ const state = vi.hoisted(() => {
             getLiveActive.mockReturnValue(true);
             waitForComfyApi.mockReset();
             waitForComfyApi.mockResolvedValue(api);
+            appConfig.MFV_KJ_PREVIEW_OVERRIDE_ENABLED = true;
         },
     };
 });
@@ -43,8 +46,12 @@ vi.mock("../features/viewer/floatingViewerManager.js", () => ({
     },
 }));
 
-vi.mock("../app/comfyApiBridge.js", () => ({
-    waitForComfyApi: (...args) => state.waitForComfyApi(...args),
+vi.mock("../app/config.js", () => ({
+    APP_CONFIG: state.appConfig,
+}));
+
+vi.mock("../app/hostAdapter.js", () => ({
+    waitForRawHostApi: (...args) => state.waitForComfyApi(...args),
 }));
 
 function createWindowStub() {
@@ -155,6 +162,108 @@ describe("LiveStreamTracker", () => {
 
         expect(state.feedPreviewBlob).toHaveBeenCalledWith(fallbackBlob);
 
+        mod.teardownLiveStreamTracker({});
+    });
+
+    it("streams KJNodes JPEG preview override frames with node and step context", async () => {
+        const api = new FakeApi();
+        state.setApi(api);
+
+        const mod = await import("../features/viewer/LiveStreamTracker.js");
+        mod.initLiveStreamTracker({});
+        await flushMicrotasks();
+
+        api.dispatchEvent(
+            new CustomEvent("kj_preview_override", {
+                detail: {
+                    node_id: "12:7",
+                    image: "aGVsbG8=",
+                    mime: "image/jpeg",
+                    w: 1024,
+                    h: 768,
+                    step: 3,
+                    total: 20,
+                },
+            }),
+        );
+
+        expect(state.feedPreviewBlob).toHaveBeenCalledTimes(1);
+        const [blob, options] = state.feedPreviewBlob.mock.calls[0];
+        expect(blob).toBeInstanceOf(Blob);
+        expect(blob.type).toBe("image/jpeg");
+        expect(await blob.text()).toBe("hello");
+        expect(options).toEqual({
+            source: "kj-preview-override",
+            sourceLabel: "KJ Preview Override · Node 12:7 · 3/20",
+            nodeId: "12:7",
+            mime: "image/jpeg",
+            width: 1024,
+            height: 768,
+            fps: undefined,
+            step: 3,
+            total: 20,
+        });
+
+        mod.teardownLiveStreamTracker({});
+    });
+
+    it("supports KJNodes MP4 previews and suppresses binary previews for that execution", async () => {
+        const api = new FakeApi();
+        state.setApi(api);
+
+        const mod = await import("../features/viewer/LiveStreamTracker.js");
+        mod.initLiveStreamTracker({});
+        await flushMicrotasks();
+
+        api.dispatchEvent(
+            new CustomEvent("kj_preview_override", {
+                detail: {
+                    node_id: "8",
+                    image: "AAAAIGZ0eXA=",
+                    mime: "video/mp4",
+                    fps: 12,
+                    step: 1,
+                    total: 8,
+                },
+            }),
+        );
+
+        const [blob, options] = state.feedPreviewBlob.mock.calls[0];
+        expect(blob.type).toBe("video/mp4");
+        expect(options.fps).toBe(12);
+
+        state.feedPreviewBlob.mockClear();
+        api.dispatchEvent(new CustomEvent("b_preview", { detail: new Blob(["fallback"]) }));
+        expect(state.feedPreviewBlob).not.toHaveBeenCalled();
+
+        // Moving to another execution node ends KJ's priority so a later
+        // sampler without Model Preview Override can use the core preview.
+        api.dispatchEvent(new CustomEvent("executing", { detail: "next-node" }));
+        api.dispatchEvent(new CustomEvent("b_preview", { detail: new Blob(["next"]) }));
+        expect(state.feedPreviewBlob).toHaveBeenCalledTimes(1);
+
+        mod.teardownLiveStreamTracker({});
+    });
+
+    it("ignores KJNodes preview override frames when the dedicated setting is disabled", async () => {
+        const api = new FakeApi();
+        state.setApi(api);
+        state.appConfig.MFV_KJ_PREVIEW_OVERRIDE_ENABLED = false;
+
+        const mod = await import("../features/viewer/LiveStreamTracker.js");
+        mod.initLiveStreamTracker({});
+        await flushMicrotasks();
+
+        api.dispatchEvent(
+            new CustomEvent("kj_preview_override", {
+                detail: { node_id: "4", image: "aGVsbG8=", mime: "image/webp" },
+            }),
+        );
+
+        expect(state.feedPreviewBlob).not.toHaveBeenCalled();
+
+        api.dispatchEvent(new CustomEvent("b_preview", { detail: new Blob(["standard"]) }));
+        expect(state.feedPreviewBlob).toHaveBeenCalledTimes(1);
         mod.teardownLiveStreamTracker({});
     });
 });

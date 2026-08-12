@@ -109,6 +109,7 @@ There are several ways to open the Majoor Floating Viewer:
 - **Live Stream** starts **enabled by default**
 - **KSampler Preview** also starts **enabled by default**
 - You can change both in **Settings → Majoor Assets Manager › Viewer**
+- KJNodes **Model Preview Override** frames are supported; disable only that source with **Show KJNodes Model Preview Override in MFV** under the Floating Viewer settings.
 
 #### Enabling Live Stream
 

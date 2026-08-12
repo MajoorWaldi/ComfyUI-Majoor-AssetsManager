@@ -1,4 +1,4 @@
-import { a as e, n as t, s as n } from "./graphTraversal-Sruu0ipL.js";
+import { a as e, n as t, s as n } from "./graphTraversal-B47GgY7Z.js";
 //#region ui/utils/ids.ts
 function r(e) {
 	try {
@@ -405,7 +405,7 @@ function j() {
 }
 function he(e) {
 	let t = E(e) ? e : j();
-	return !t || typeof t != "object" ? null : t?.ui?.settings || t?.settings || t?.ui?.api?.settings || t?.api?.settings || null;
+	return !t || typeof t != "object" ? null : t?.extensionManager?.setting || t?.ui?.settings || t?.settings || t?.ui?.api?.settings || t?.api?.settings || null;
 }
 function ge(e, t) {
 	let n = he(e);
@@ -438,7 +438,12 @@ function _e(e, t, n) {
 		"set",
 		"updateSetting"
 	]) try {
-		if (typeof r?.[e] == "function") return r[e](t, n), !0;
+		if (typeof r?.[e] == "function") {
+			let i = r[e](t, n);
+			return i && typeof i.catch == "function" && i.catch((e) => {
+				console.warn?.(`[Majoor] Unable to write ComfyUI setting ${t}`, e);
+			}), !0;
+		}
 	} catch {}
 	try {
 		let e = r?.settings || r?.values || null;
@@ -1392,6 +1397,8 @@ var G = {
 		"setting.viewer.mfvPreviewDefault.desc": "Controls whether KSampler preview starts enabled when the Floating Viewer initializes or resets.",
 		"setting.viewer.mfvPreviewMethod.name": "Majoor: MFV Preview Method",
 		"setting.viewer.mfvPreviewMethod.desc": "Preview mode forced by the Floating Viewer Run button. 'taesd' gives the best chance of getting previews, with latent2rgb fallback when available.",
+		"setting.viewer.mfvKjPreviewOverride.name": "Majoor: Show KJNodes Model Preview Override in MFV",
+		"setting.viewer.mfvKjPreviewOverride.desc": "Display JPEG, animated WebP, and MP4 generation previews emitted by KJNodes Model Preview Override in the Floating Viewer. The MFV KSampler Preview toggle must also be enabled.",
 		"setting.minimap.enabled.name": "Majoor: Enable Minimap",
 		"setting.minimap.enabled.desc": "Global activation of the workflow minimap.",
 		"setting.scan.startup.name": "Majoor: Auto-scan on Startup",
@@ -2682,6 +2689,8 @@ var G = {
 		"setting.viewer.floatingPauseExecution.desc": "Met en pause le Floating Viewer pendant la generation. Desactivez cette option pour garder les steps visibles en direct.",
 		"setting.viewer.mfvPreviewMethod.name": "Majoor : Methode de preview MFV",
 		"setting.viewer.mfvPreviewMethod.desc": "Mode de preview force par le bouton Run du Floating Viewer. 'taesd' donne la meilleure chance d'avoir un preview, avec repli sur latent2rgb quand c'est possible.",
+		"setting.viewer.mfvKjPreviewOverride.name": "Majoor : afficher Model Preview Override de KJNodes dans le MFV",
+		"setting.viewer.mfvKjPreviewOverride.desc": "Affiche dans le Floating Viewer les previews JPEG, WebP anime et MP4 emises par Model Preview Override de KJNodes. Le bouton KSampler Preview du MFV doit aussi etre active.",
 		"runtime.unavailable": "Runtime indisponible",
 		"runtime.metricsTitle": "Metriques runtime\nConnexions DB actives : {active}\nFile enrichissement : {enrichQ}\nFichiers watcher en attente : {pending}",
 		"runtime.metricsLine": "DB active : {active} | File enrich. : {enrichQ} | Watcher en attente : {pending}",
@@ -3194,6 +3203,7 @@ var Bt = (e) => {
 	MFV_PREVIEW_AUTO_OPEN: !1,
 	MFV_NODE_STREAM_AUTO_OPEN: !1,
 	MFV_PREVIEW_METHOD: "auto",
+	MFV_KJ_PREVIEW_OVERRIDE_ENABLED: !0,
 	MFV_TOPBAR_BUTTON: !0,
 	RT_HYDRATE_CONCURRENCY: 2,
 	RT_HYDRATE_QUEUE_MAX: 100,

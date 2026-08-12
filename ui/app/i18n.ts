@@ -227,6 +227,10 @@ const DICTIONARY: Record<string, Record<string, string>> = {
         "setting.viewer.mfvPreviewMethod.name": "Majoor: MFV Preview Method",
         "setting.viewer.mfvPreviewMethod.desc":
             "Preview mode forced by the Floating Viewer Run button. 'taesd' gives the best chance of getting previews, with latent2rgb fallback when available.",
+        "setting.viewer.mfvKjPreviewOverride.name":
+            "Majoor: Show KJNodes Model Preview Override in MFV",
+        "setting.viewer.mfvKjPreviewOverride.desc":
+            "Display JPEG, animated WebP, and MP4 generation previews emitted by KJNodes Model Preview Override in the Floating Viewer. The MFV KSampler Preview toggle must also be enabled.",
         "setting.minimap.enabled.name": "Majoor: Enable Minimap",
         "setting.minimap.enabled.desc": "Global activation of the workflow minimap.",
 
@@ -1660,6 +1664,10 @@ const DICTIONARY: Record<string, Record<string, string>> = {
         "setting.viewer.mfvPreviewMethod.name": "Majoor : Methode de preview MFV",
         "setting.viewer.mfvPreviewMethod.desc":
             "Mode de preview force par le bouton Run du Floating Viewer. 'taesd' donne la meilleure chance d'avoir un preview, avec repli sur latent2rgb quand c'est possible.",
+        "setting.viewer.mfvKjPreviewOverride.name":
+            "Majoor : afficher Model Preview Override de KJNodes dans le MFV",
+        "setting.viewer.mfvKjPreviewOverride.desc":
+            "Affiche dans le Floating Viewer les previews JPEG, WebP anime et MP4 emises par Model Preview Override de KJNodes. Le bouton KSampler Preview du MFV doit aussi etre active.",
 
         "runtime.unavailable": "Runtime indisponible",
         "runtime.metricsTitle":

@@ -59,7 +59,7 @@ function formatDate(text: string, date: Date): string {
 const INVALID_CHARS_RE = /[/?<>\\:*|"\x00-\x1F\x7F]/g;
 
 function collectGraphNodes(graph: any): any[] {
-    const nodes = graph?._nodes;
+    const nodes = graph?.nodes ?? graph?._nodes;
     return Array.isArray(nodes) ? nodes : [];
 }
 
@@ -98,7 +98,8 @@ function installSerializeHook(node: any, app: any): void {
             ? node.widgets.find((w: any) => w?.name === "filename_prefix")
             : null;
         if (!widget || typeof widget.serializeValue === "function") return;
-        widget.serializeValue = () => applyTextReplacements(app?.graph, widget.value);
+        widget.serializeValue = () =>
+            applyTextReplacements(node?.graph || app?.graph, widget.value);
     } catch {
         /* defensive — never break node creation */
     }
@@ -114,15 +115,11 @@ function registerSavePlaceholders(): void {
     }
     app.registerExtension({
         name: EXTENSION_ID,
-        beforeRegisterNodeDef(nodeType: any, nodeData: any) {
+        nodeCreated(node: any) {
             try {
-                if (!TARGET_NODE_TYPES.has(String(nodeData?.name || ""))) return;
-                const onNodeCreated = nodeType?.prototype?.onNodeCreated;
-                nodeType.prototype.onNodeCreated = function (...args: any[]) {
-                    const result = onNodeCreated?.apply(this, args);
-                    installSerializeHook(this, app);
-                    return result;
-                };
+                const nodeType = String(node?.comfyClass || node?.type || "");
+                if (!TARGET_NODE_TYPES.has(nodeType)) return;
+                installSerializeHook(node, app);
             } catch {
                 /* defensive — never break node registration */
             }

@@ -85,3 +85,22 @@ def test_srgb_profile_is_valid_and_reusable(nodes_module, tmp_path):
     Image.new("RGB", (2, 2), "red").save(path, **nodes_module._srgb_save_kwargs())
     with Image.open(path) as saved:
         assert saved.info["icc_profile"] == profile
+
+
+def test_progress_bar_uses_comfyui_surface_when_available(monkeypatch, nodes_module):
+    updates = []
+
+    class FakeProgressBar:
+        def __init__(self, total):
+            self.total = total
+
+        def update(self, value=1):
+            updates.append(value)
+
+    monkeypatch.setattr(nodes_module, "_ComfyProgressBar", FakeProgressBar)
+
+    progress = nodes_module._make_progress_bar(4)
+    progress.update(1)
+
+    assert progress.total == 4
+    assert updates == [1]

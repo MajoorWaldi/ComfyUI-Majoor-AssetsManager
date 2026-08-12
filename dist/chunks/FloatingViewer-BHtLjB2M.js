@@ -1,12 +1,12 @@
-import { Zt as e, g as t, y as n } from "./viewerRuntimeHosts-DneLZtWG.js";
-import { B as r, C as i, I as a, M as o, O as s, P as c, R as l, V as u, j as d, m as f, o as p, pt as m, r as h, rt as g, v as _, w as v, x as y } from "./events-DEEu2sDf.js";
-import { a as b, i as x, o as S, s as C } from "./graphTraversal-Sruu0ipL.js";
-import { _ as w, g as T, m as E, n as D, p as ee, r as O, w as k } from "./Viewer-TX6xKplx.js";
-import { _ as A, r as j } from "./SidebarWorkflowSection-DYhox-EO.js";
-import { _ as M, a as N, c as P, d as F, f as I, g as L, h as te, i as ne, l as R, m as z, o as B, p as re, r as V, s as ie, t as ae, u as H, v as U } from "./openMajoorSettings-2rwgT5mN.js";
-import { a as oe, n as se, r as ce } from "./model3dRenderer-Cgp5upXw.js";
+import { Zt as e, g as t, y as n } from "./viewerRuntimeHosts-DnxOM2iT.js";
+import { B as r, C as i, I as a, M as o, O as s, P as c, R as l, V as u, j as d, m as f, o as p, pt as m, r as h, rt as g, v as _, w as v, x as y } from "./events-DvbhPjDM.js";
+import { a as b, i as x, o as S, s as C } from "./graphTraversal-B47GgY7Z.js";
+import { _ as w, g as T, m as E, n as D, p as ee, r as O, w as k } from "./Viewer-D2tVn-M0.js";
+import { _ as A, r as j } from "./SidebarWorkflowSection-lA_KWmoZ.js";
+import { _ as M, a as N, c as P, d as F, f as I, g as L, h as te, i as ne, l as R, m as z, o as B, p as re, r as V, s as ie, t as ae, u as H, v as U } from "./openMajoorSettings-DyHAm-Nl.js";
+import { a as oe, n as se, r as ce } from "./model3dRenderer-k1rgsPR4.js";
 import { i as le, o as ue, r as de, t as fe } from "./geninfoParser-D7IjgI1x.js";
-import { t as pe } from "./genInfo-CkGL_frW.js";
+import { t as pe } from "./genInfo-CawkOUtj.js";
 //#region ui/features/viewer/floatingViewerConstants.ts
 var W = Object.freeze({
 	SIMPLE: "simple",
@@ -436,8 +436,8 @@ function J(e, { fill: t = !1, controls: n = !0, initialMuted: r = !1, initialPla
 		return t(), l(e, "audio");
 	}
 	if (o === "video") {
-		let e = document.createElement("video");
-		return e.className = s, e.src = a, e.controls = !1, e.loop = !0, e.muted = r, e.playbackRate = i, e.autoplay = !0, e.playsInline = !0, r ? Ne(e) : Pe(e), l(e, "video");
+		let t = document.createElement("video");
+		return t.className = s, t.src = a, t.controls = !1, t.loop = !0, t.muted = e?._isPreview ? !0 : r, t.playbackRate = i, t.autoplay = !0, t.playsInline = !0, r ? Ne(t) : Pe(t), l(t, "video");
 	}
 	if (o === "model3d") return ce(e, a, {
 		hostClassName: `mjr-model3d-host mjr-mfv-model3d-host${t ? " mjr-mfv-model3d-host--fill" : ""}`,
@@ -2392,12 +2392,20 @@ function En(e, t, n = {}) {
 	e._revokePreviewBlob();
 	let r = URL.createObjectURL(t);
 	e._previewBlobUrl = r;
-	let i = {
+	let i = String(n?.mime || t.type || "image/jpeg").trim().toLowerCase(), a = i === "video/mp4", o = {
 		url: r,
-		filename: "preview.jpg",
-		kind: "image",
+		filename: n?.filename || (a ? "preview.mp4" : i === "image/webp" ? "preview.webp" : i === "image/png" ? "preview.png" : "preview.jpg"),
+		kind: a ? "video" : "image",
+		mime: i,
+		width: Number(n?.width) || void 0,
+		height: Number(n?.height) || void 0,
+		fps: Number(n?.fps) || void 0,
 		_isPreview: !0,
-		_sourceLabel: n?.sourceLabel || null
+		_sourceLabel: n?.sourceLabel || null,
+		_previewSource: n?.source || "comfy",
+		_previewNodeId: n?.nodeId == null ? null : String(n.nodeId),
+		_previewStep: Number.isFinite(Number(n?.step)) ? Number(n.step) : null,
+		_previewTotal: Number.isFinite(Number(n?.total)) ? Number(n.total) : null
 	};
 	if (e._mode === W.AB || e._mode === W.SIDE || e._mode === W.GRID) {
 		let t = e.getPinnedSlots();
@@ -2408,9 +2416,9 @@ function En(e, t, n = {}) {
 				"C",
 				"D"
 			].find((e) => !t.has(e)) || "A";
-			e[`_media${n}`] = i;
-		} else t.has("B") ? e._mediaA = i : e._mediaB = i;
-	} else e._mediaA = i, e._resetMfvZoom(), e._mode !== W.SIMPLE && (e._mode = W.SIMPLE, e._updateModeBtnUI());
+			e[`_media${n}`] = o;
+		} else t.has("B") ? e._mediaA = o : e._mediaB = o;
+	} else e._mediaA = o, e._resetMfvZoom(), e._mode !== W.SIMPLE && (e._mode = W.SIMPLE, e._updateModeBtnUI());
 	++e._refreshGen, e._refresh();
 }
 function Dn(e) {

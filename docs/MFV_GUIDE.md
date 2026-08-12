@@ -141,6 +141,8 @@ KSampler Preview is for denoising-step frames during execution.
 - useful when you want feedback before the final file exists
 - different from Live Stream and different from Node Stream
 
+When a workflow uses KJNodes **Model Preview Override**, MFV also accepts its live JPEG, animated WebP, and MP4 frames. Keep KSampler Preview enabled, then use **Settings → Majoor Assets Manager → Floating Viewer → Show KJNodes Model Preview Override in MFV** to enable or disable the KJNodes source independently.
+
 In short:
 
 - **Live Stream** = final outputs

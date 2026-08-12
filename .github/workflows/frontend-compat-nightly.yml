@@ -31,10 +31,28 @@ jobs:
             - name: Install extension dependencies
               run: npm ci --ignore-scripts
 
+            - name: Typecheck against the official ComfyUI frontend types
+              run: npx tsc -p tsconfig.json --noEmit --pretty false
+
+            - name: Run ComfyUI integration contract tests
+              run: >-
+                  npx vitest run
+                  ui/tests/comfy_api_bridge.vitest.ts
+                  ui/tests/host_adapter_contract.vitest.ts
+                  ui/tests/graph_traversal.vitest.ts
+                  ui/tests/majoor_save_placeholders.vitest.ts
+
             - name: Build extension bundle
               run: npm run build
 
-            - name: Check expected frontend API surfaces
+            - name: Verify node documentation is bundled
+              shell: bash
+              run: |
+                  test -f dist/docs/MajoorSaveImage.md
+                  test -f dist/docs/MajoorSaveVideo.md
+                  test -f dist/docs/MajoorGenInfoOverride.md
+
+            - name: Check nightly frontend integration surfaces
               shell: bash
               run: |
                   set -euo pipefail

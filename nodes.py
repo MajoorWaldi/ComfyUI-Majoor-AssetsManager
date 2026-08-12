@@ -35,6 +35,11 @@ from PIL import Image, ImageCms
 from PIL.PngImagePlugin import PngInfo
 
 try:
+    from comfy.utils import ProgressBar as _ComfyProgressBar  # type: ignore[import-untyped]
+except (ImportError, ModuleNotFoundError):
+    _ComfyProgressBar = None
+
+try:
     import torch  # type: ignore[import-untyped]
 except ModuleNotFoundError:
     torch = None  # type: ignore[assignment]
@@ -57,6 +62,24 @@ MAJOOR_ANY = _AnyType("*")
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+
+class _NullProgressBar:
+    """ProgressBar-compatible fallback for tests and older ComfyUI builds."""
+
+    def update(self, value: int = 1) -> None:
+        del value
+
+
+def _make_progress_bar(total: int) -> Any:
+    total = max(1, int(total))
+    if _ComfyProgressBar is None:
+        return _NullProgressBar()
+    try:
+        return _ComfyProgressBar(total)
+    except Exception:
+        _log.debug("ComfyUI ProgressBar is unavailable", exc_info=True)
+        return _NullProgressBar()
 
 
 def _get_generation_time_ms() -> int:
@@ -1078,6 +1101,7 @@ class MajoorSaveImage:
         gen_time = generation_time_ms if generation_time_ms >= 0 else _get_generation_time_ms()
 
         results: list[dict[str, str]] = []
+        progress = _make_progress_bar(len(images))
         for batch_number, image in enumerate(images):
             img = Image.fromarray(_tensor_to_bytes(image))
 
@@ -1097,6 +1121,7 @@ class MajoorSaveImage:
                 {"filename": file, "subfolder": subfolder, "type": self.type}
             )
             counter += 1
+            progress.update(1)
 
         return {"ui": {"images": results}}
 
@@ -1185,12 +1210,17 @@ def _save_animated(
     output_folder: str,
     filename: str,
     counter: int,
+    progress: Any | None = None,
 ) -> str:
     """Save GIF / WebP via Pillow. Returns the output filename."""
     out_file = f"{filename}_{counter:05}.{fmt}"
     out_path = os.path.join(output_folder, out_file)
     num_frames = resolved_images.size(0)
-    frames = [Image.fromarray(_tensor_to_bytes(resolved_images[i])) for i in range(num_frames)]
+    frames: list[Image.Image] = []
+    progress = progress or _make_progress_bar(num_frames)
+    for index in range(num_frames):
+        frames.append(Image.fromarray(_tensor_to_bytes(resolved_images[index])))
+        progress.update(1)
     save_kwargs: dict[str, Any] = {
         "save_all": True,
         "append_images": frames[1:],
@@ -1316,6 +1346,7 @@ def _encode_mp4(
     container_meta: dict[str, str],
     audio_input: Any | None,
     num_frames: int,
+    progress: Any | None = None,
 ) -> None:
     """Encode frames + optional audio into an MP4 via PyAV."""
     fps_fraction = Fraction(round(fps * 1000), 1000)
@@ -1350,12 +1381,14 @@ def _encode_mp4(
             waveform, sample_rate, layout = audio_info
             audio_stream = container.add_stream("aac", rate=sample_rate, layout=layout)
 
+        progress = progress or _make_progress_bar(num_frames)
         for frame_tensor in resolved_images:
             img = (frame_tensor * 255).clamp(0, 255).byte().cpu().numpy()
             video_frame = av.VideoFrame.from_ndarray(img, format="rgb24")
             video_frame = video_frame.reformat(format="yuv420p", dst_colorspace="ITU709")
             for packet in stream.encode(video_frame):
                 container.mux(packet)
+            progress.update(1)
         for packet in stream.encode():
             container.mux(packet)
 
@@ -1495,9 +1528,10 @@ class MajoorSaveVideo:
 
         # --- GIF / WebP via Pillow ---
         if format in ("gif", "webp"):
+            progress = _make_progress_bar(num_frames)
             out_file = _save_animated(
                 resolved_images, format, resolved_fps, loop_count,
-                full_output_folder, filename, counter,
+                full_output_folder, filename, counter, progress,
             )
             return _build_video_ui(out_file, subfolder, self.type, out_file)
 
@@ -1506,7 +1540,17 @@ class MajoorSaveVideo:
         out_file = f"{filename}_{counter:05}_.mp4"
         out_path = os.path.join(full_output_folder, out_file)
 
-        _encode_mp4(out_path, resolved_images, resolved_fps, crf, container_meta, resolved_audio, num_frames)
+        progress = _make_progress_bar(num_frames)
+        _encode_mp4(
+            out_path,
+            resolved_images,
+            resolved_fps,
+            crf,
+            container_meta,
+            resolved_audio,
+            num_frames,
+            progress,
+        )
 
         return _build_video_ui(out_file, subfolder, self.type, sidecar_file)
 

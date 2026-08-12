@@ -94,6 +94,7 @@ export const APP_DEFAULTS = Object.freeze({
     MFV_PREVIEW_AUTO_OPEN: false,
     MFV_NODE_STREAM_AUTO_OPEN: false,
     MFV_PREVIEW_METHOD: "auto",
+    MFV_KJ_PREVIEW_OVERRIDE_ENABLED: true,
     MFV_TOPBAR_BUTTON: true,
 
     // Rating/tags hydration (grid)

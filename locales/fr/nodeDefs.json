@@ -1,0 +1,36 @@
+{
+    "MajoorGenInfoOverride": {
+        "display_name": "Majoor – Remplacement des informations de génération",
+        "description": "Construit les métadonnées de génération utilisées par les nodes de sauvegarde Majoor.",
+        "inputs": {
+            "workflow_context": { "name": "Contexte du workflow", "tooltip": "Reliez un node tardif pour retrouver les valeurs réellement exécutées du sampler." },
+            "positive_prompt": { "name": "Prompt positif" },
+            "negative_prompt": { "name": "Prompt négatif" },
+            "loras_json": { "name": "LoRAs (JSON)" },
+            "custom_info_json": { "name": "Informations personnalisées (JSON)" }
+        },
+        "outputs": { "0": { "name": "Remplacement des informations de génération" } }
+    },
+    "MajoorSaveImage": {
+        "display_name": "Majoor – Sauvegarder l’image",
+        "description": "Sauvegarde les images avec le workflow et les métadonnées de génération Majoor.",
+        "inputs": {
+            "images": { "name": "Images" },
+            "filename_prefix": { "name": "Préfixe du fichier" },
+            "generation_time_ms": { "name": "Temps de génération (ms)" },
+            "geninfo_override": { "name": "Remplacement des informations de génération" }
+        }
+    },
+    "MajoorSaveVideo": {
+        "display_name": "Majoor – Sauvegarder la vidéo",
+        "description": "Sauvegarde une vidéo, des frames et un audio optionnel avec les métadonnées Majoor.",
+        "inputs": {
+            "filename_prefix": { "name": "Préfixe du fichier" },
+            "frame_rate": { "name": "Images par seconde" },
+            "loop_count": { "name": "Nombre de boucles" },
+            "generation_time_ms": { "name": "Temps de génération (ms)" },
+            "geninfo_override": { "name": "Remplacement des informations de génération" },
+            "save_first_frame": { "name": "Sauvegarder le sidecar de la première frame" }
+        }
+    }
+}

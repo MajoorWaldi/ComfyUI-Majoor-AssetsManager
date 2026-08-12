@@ -314,6 +314,11 @@ MFV now has a dedicated illustrated guide focused on the real workflow inside th
 - Follows the latest completed output file instead of the currently selected node
 - No manual refresh needed
 
+### KJNodes Model Preview Override
+- MFV displays the live JPEG, animated WebP, or MP4 preview emitted by KJNodes' **Model Preview Override** node while sampling.
+- Keep **KSampler Preview** enabled in the MFV toolbar (or press **K**) to display these frames.
+- Use **Settings → Majoor Assets Manager → Floating Viewer → Show KJNodes Model Preview Override in MFV** to enable or disable this source independently.
+
 ### Compare Modes
 - **Simple**: Single asset view
 - **A/B Compare**: Fast two-slot comparison
