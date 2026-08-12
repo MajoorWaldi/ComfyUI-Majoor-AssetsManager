@@ -208,6 +208,62 @@ async def search_assets(
     return json_response(result)
 
 
+def _rating_tags_missing(current: dict[str, Any]) -> bool:
+    rating = int(current.get("rating") or 0)
+    tags = current.get("tags") or []
+    tags_empty = True
+    if isinstance(tags, list):
+        tags_empty = len(tags) == 0
+    elif isinstance(tags, str):
+        tags_empty = tags.strip() in ("", "[]")
+    return rating <= 0 or tags_empty
+
+
+async def _hydrate_rating_tags(
+    svc: dict[str, Any],
+    asset_id: int,
+    current: dict[str, Any],
+    *,
+    to_thread_timeout_s: int | float,
+    write_asset_metadata_row: Callable[..., Any],
+) -> Result | None:
+    """Extract rating/tags from the file and persist them; returns refreshed asset or None."""
+    filepath = current.get("filepath")
+    if not isinstance(filepath, str) or not filepath:
+        return None
+    meta_svc = svc.get("metadata")
+    db = svc.get("db")
+    if not meta_svc or not db:
+        return None
+    try:
+        meta_res = await asyncio.wait_for(
+            asyncio.to_thread(meta_svc.extract_rating_tags_only, filepath),
+            timeout=to_thread_timeout_s,
+        )
+    except asyncio.TimeoutError:
+        return None
+    if not meta_res or not meta_res.ok or not meta_res.data:
+        return None
+    try:
+        await asyncio.wait_for(
+            write_asset_metadata_row(
+                db,
+                asset_id,
+                Result.Ok(
+                    {
+                        "rating": meta_res.data.get("rating"),
+                        "tags": meta_res.data.get("tags") or [],
+                        "quality": "partial",
+                    }
+                ),
+            ),
+            timeout=to_thread_timeout_s,
+        )
+    except Exception:
+        pass
+    return await svc["index"].get_asset(asset_id)
+
+
 async def get_asset(
     request: web.Request,
     *,
@@ -234,46 +290,16 @@ async def get_asset(
     if hydrate in ("rating_tags", "ratingtags", "rt"):
         try:
             current = result.data or {}
-            rating = int(current.get("rating") or 0)
-            tags = current.get("tags") or []
-            tags_empty = True
-            if isinstance(tags, list):
-                tags_empty = len(tags) == 0
-            elif isinstance(tags, str):
-                tags_empty = tags.strip() in ("", "[]")
-
-            if rating <= 0 or tags_empty:
-                filepath = current.get("filepath")
-                if isinstance(filepath, str) and filepath:
-                    meta_svc = svc.get("metadata")
-                    db = svc.get("db")
-                    if meta_svc and db:
-                        try:
-                            meta_res = await asyncio.wait_for(
-                                asyncio.to_thread(meta_svc.extract_rating_tags_only, filepath),
-                                timeout=to_thread_timeout_s,
-                            )
-                        except asyncio.TimeoutError:
-                            meta_res = Result.Err("TIMEOUT", "Rating/tags extraction timed out")
-                        if meta_res and meta_res.ok and meta_res.data:
-                            try:
-                                await asyncio.wait_for(
-                                    write_asset_metadata_row(
-                                        db,
-                                        asset_id,
-                                        Result.Ok(
-                                            {
-                                                "rating": meta_res.data.get("rating"),
-                                                "tags": meta_res.data.get("tags") or [],
-                                                "quality": "partial",
-                                            }
-                                        ),
-                                    ),
-                                    timeout=to_thread_timeout_s,
-                                )
-                            except Exception:
-                                pass
-                            result = await svc["index"].get_asset(asset_id)
+            if _rating_tags_missing(current):
+                refreshed = await _hydrate_rating_tags(
+                    svc,
+                    asset_id,
+                    current,
+                    to_thread_timeout_s=to_thread_timeout_s,
+                    write_asset_metadata_row=write_asset_metadata_row,
+                )
+                if refreshed is not None:
+                    result = refreshed
         except Exception:
             pass
 

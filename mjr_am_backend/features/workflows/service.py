@@ -1429,6 +1429,23 @@ def _workflow_save_info_updates(card: dict[str, Any], *, info: dict[str, Any] | 
     return updates
 
 
+def _finalize_saved_workflow(target: Path, info: dict[str, Any] | None) -> Result[dict[str, Any]]:
+    root = managed_workflow_root(create=False) or target.parent
+    card = _workflow_to_card(target, root)
+    if card is None:
+        return Result.Err("INVALID_WORKFLOW", "Workflow JSON is missing or invalid")
+    metadata_updates = _workflow_save_info_updates(card, info=info)
+    if metadata_updates:
+        meta_write = _upsert_workflow_library_card(card, updates=metadata_updates)
+        if not meta_write.ok:
+            return Result.Err(
+                meta_write.code or "WORKFLOW_DB_FAILED",
+                meta_write.error or "Failed to save workflow info",
+            )
+        card = _workflow_to_card(target, root) or card
+    return Result.Ok({"saved": True, "workflow": card, "filepath": str(target)})
+
+
 def save_workflow(
     *,
     workflow: dict[str, Any],
@@ -1464,20 +1481,7 @@ def save_workflow(
     write = _atomic_write_json(target, workflow)
     if not write.ok:
         return Result.Err(write.code or "WORKFLOW_WRITE_FAILED", write.error or "Failed to save workflow")
-    root = managed_workflow_root(create=False) or target.parent
-    card = _workflow_to_card(target, root)
-    if card is None:
-        return Result.Err("INVALID_WORKFLOW", "Workflow JSON is missing or invalid")
-    metadata_updates = _workflow_save_info_updates(card, info=info)
-    if metadata_updates:
-        meta_write = _upsert_workflow_library_card(card, updates=metadata_updates)
-        if not meta_write.ok:
-            return Result.Err(
-                meta_write.code or "WORKFLOW_DB_FAILED",
-                meta_write.error or "Failed to save workflow info",
-            )
-        card = _workflow_to_card(target, root) or card
-    return Result.Ok({"saved": True, "workflow": card, "filepath": str(target)})
+    return _finalize_saved_workflow(target, info)
 
 
 def duplicate_workflow(path: Path, *, name: Any = "") -> Result[dict[str, Any]]:

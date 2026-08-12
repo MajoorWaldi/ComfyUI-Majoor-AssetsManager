@@ -8,6 +8,7 @@ from typing import Any
 
 from aiohttp import web
 from mjr_am_backend.shared import Result
+
 from .route_helpers import has_meaningful_filters
 
 
@@ -116,6 +117,65 @@ async def _build_browse_response(
         return None
 
 
+async def _get_show_folders_setting(svc: Any) -> bool:
+    try:
+        settings_svc = svc.get("settings") if isinstance(svc, dict) else None
+        if settings_svc is not None:
+            return bool(await settings_svc.get_browser_show_folders())
+    except Exception:
+        pass
+    return False
+
+
+async def _try_indexed_input_response(
+    svc: Any,
+    *,
+    root_dir: Path,
+    query: str,
+    limit: int,
+    offset: int,
+    sort_key: str,
+    filters: dict[str, Any],
+    include_total: bool,
+    subfolder: str,
+    show_folders: bool,
+    dedupe_result_assets_payload: Callable[[dict[str, Any]], dict[str, Any]],
+    list_filesystem_folders: Callable[..., Any],
+    json_response: Callable[[Any], web.Response],
+) -> web.Response | None:
+    root_path = str(root_dir.resolve(strict=False))
+    scoped_filters = dict(filters or {})
+    scoped_filters["source"] = "input"
+    if subfolder:
+        scoped_filters["subfolder"] = str(subfolder)
+
+    db_result = await svc["index"].search_scoped(
+        query,
+        roots=[root_path],
+        limit=limit,
+        offset=offset,
+        filters=scoped_filters,
+        include_total=include_total,
+        sort=sort_key,
+    )
+
+    if not db_result.ok:
+        return None
+    for asset in db_result.data.get("assets") or []:
+        asset["type"] = "input"
+    db_result.data["scope"] = "input"
+    db_result.data = dedupe_result_assets_payload(db_result.data)
+    db_result.data = await _attach_filesystem_folders(
+        db_result.data,
+        root_dir=root_dir,
+        subfolder=subfolder,
+        offset=offset,
+        list_filesystem_folders=list_filesystem_folders,
+        show_folders=show_folders,
+    )
+    return json_response(db_result)
+
+
 async def handle_input_scope(
     *,
     query: str,
@@ -138,13 +198,7 @@ async def handle_input_scope(
     svc, _ = await require_services()
     touch_enrichment_pause(svc, seconds=1.5)
 
-    _show_folders = False
-    try:
-        _settings_svc = svc.get("settings") if isinstance(svc, dict) else None
-        if _settings_svc is not None:
-            _show_folders = await _settings_svc.get_browser_show_folders()
-    except Exception:
-        pass
+    _show_folders = await _get_show_folders_setting(svc)
 
     # ── Browse mode: show current-level folders + files (non-recursive) ────
     # When the folder setting is on and the user is browsing normally, use
@@ -182,36 +236,23 @@ async def handle_input_scope(
             return browse_resp
 
     if svc and svc.get("index"):
-        root_path = str(root_dir.resolve(strict=False))
-        scoped_filters = dict(filters or {})
-        scoped_filters["source"] = "input"
-        if subfolder:
-            scoped_filters["subfolder"] = str(subfolder)
-
-        db_result = await svc["index"].search_scoped(
-            query,
-            roots=[root_path],
+        indexed_resp = await _try_indexed_input_response(
+            svc,
+            root_dir=root_dir,
+            query=query,
             limit=limit,
             offset=offset,
-            filters=scoped_filters,
+            sort_key=sort_key,
+            filters=filters,
             include_total=include_total,
-            sort=sort_key,
+            subfolder=subfolder,
+            show_folders=_show_folders,
+            dedupe_result_assets_payload=dedupe_result_assets_payload,
+            list_filesystem_folders=list_filesystem_folders,
+            json_response=json_response,
         )
-
-        if db_result.ok:
-            for asset in db_result.data.get("assets") or []:
-                asset["type"] = "input"
-            db_result.data["scope"] = "input"
-            db_result.data = dedupe_result_assets_payload(db_result.data)
-            db_result.data = await _attach_filesystem_folders(
-                db_result.data,
-                root_dir=root_dir,
-                subfolder=subfolder,
-                offset=offset,
-                list_filesystem_folders=list_filesystem_folders,
-                show_folders=_show_folders,
-            )
-            return json_response(db_result)
+        if indexed_resp is not None:
+            return indexed_resp
 
     if query == "*" and offset == 0 and not filters:
         await kickoff_background_scan(

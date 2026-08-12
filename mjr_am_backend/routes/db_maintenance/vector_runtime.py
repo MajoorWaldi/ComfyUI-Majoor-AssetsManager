@@ -129,54 +129,22 @@ async def backfill_job_ids_by_prefix(db) -> Result[dict[str, int]]:
         if not rows:
             return Result.Ok({"groups": 0, "updated": 0, "skipped": 0})
 
-        groups: dict[tuple[str, str, str, str], list[dict]] = {}
-        for row in rows:
-            prefix = extract_filename_prefix(row.get("filename") or "")
-            if not prefix:
-                continue
-            key = (
-                str(row.get("subfolder") or "").strip().lower(),
-                str(row.get("source") or "output").strip().lower(),
-                str(row.get("root_id") or "").strip().lower(),
-                prefix,
-            )
-            groups.setdefault(key, []).append(row)
+        groups = _group_assets_by_prefix(rows)
 
         updated_count = 0
         skipped_count = 0
         groups_with_updates = 0
 
-        for _key, group_rows in groups.items():
+        for group_rows in groups.values():
             if len(group_rows) < 2:
                 continue
-
-            group_job_id = None
-            for row in group_rows:
-                job = str(row.get("job_id") or "").strip()
-                if job:
-                    group_job_id = job
-                    break
-
+            group_job_id = _first_group_job_id(group_rows)
             if not group_job_id:
                 skipped_count += len(group_rows)
                 continue
-
-            group_updated = False
-            for row in group_rows:
-                if str(row.get("job_id") or "").strip():
-                    continue
-                asset_id = int(row.get("id") or 0)
-                if not asset_id:
-                    continue
-                update_res = await db.aexecute(
-                    "UPDATE assets SET job_id = ? WHERE id = ? AND (job_id IS NULL OR job_id = '')",
-                    (group_job_id, asset_id),
-                )
-                if update_res.ok:
-                    updated_count += 1
-                    group_updated = True
-
-            if group_updated:
+            group_updated_count = await _propagate_job_id_to_group(db, group_rows, group_job_id)
+            updated_count += group_updated_count
+            if group_updated_count:
                 groups_with_updates += 1
 
         return Result.Ok(
@@ -188,6 +156,47 @@ async def backfill_job_ids_by_prefix(db) -> Result[dict[str, int]]:
         )
     except Exception as exc:
         return Result.Err("DB_ERROR", safe_error_message(exc, "Failed to backfill job_ids"))
+
+
+def _group_assets_by_prefix(rows: list[dict]) -> dict[tuple[str, str, str, str], list[dict]]:
+    groups: dict[tuple[str, str, str, str], list[dict]] = {}
+    for row in rows:
+        prefix = extract_filename_prefix(row.get("filename") or "")
+        if not prefix:
+            continue
+        key = (
+            str(row.get("subfolder") or "").strip().lower(),
+            str(row.get("source") or "output").strip().lower(),
+            str(row.get("root_id") or "").strip().lower(),
+            prefix,
+        )
+        groups.setdefault(key, []).append(row)
+    return groups
+
+
+def _first_group_job_id(group_rows: list[dict]) -> str | None:
+    for row in group_rows:
+        job = str(row.get("job_id") or "").strip()
+        if job:
+            return job
+    return None
+
+
+async def _propagate_job_id_to_group(db, group_rows: list[dict], group_job_id: str) -> int:
+    updated = 0
+    for row in group_rows:
+        if str(row.get("job_id") or "").strip():
+            continue
+        asset_id = int(row.get("id") or 0)
+        if not asset_id:
+            continue
+        update_res = await db.aexecute(
+            "UPDATE assets SET job_id = ? WHERE id = ? AND (job_id IS NULL OR job_id = '')",
+            (group_job_id, asset_id),
+        )
+        if update_res.ok:
+            updated += 1
+    return updated
 
 
 def build_backfill_scope_clause(normalized_scope: str, normalized_custom_root: str) -> tuple[str, list[Any]]:
