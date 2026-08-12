@@ -32,14 +32,14 @@
   "devDependencies": {
     "@comfyorg/litegraph": "^0.17.2",
     "@eslint/js": "^10.0.1",
-    "@playwright/test": "^1.62.1",
-    "@types/node": "^26.1.1",
+    "@playwright/test": "^1.61.1",
+    "@types/node": "^26.1.2",
     "@vitejs/plugin-vue": "^6.0.8",
     "@vitest/coverage-v8": "^4.1.10",
     "@vue/test-utils": "^2.4.10",
     "eslint": "^10.8.0",
     "happy-dom": "^20.11.1",
-    "knip": "^6.29.0",
+    "knip": "^6.31.0",
     "oxlint": "^1.75.0",
     "prettier": "^3.9.6",
     "typescript": "^6.0.3",
@@ -47,7 +47,7 @@
     "vitest": "^4.1.9"
   },
   "dependencies": {
-    "@tanstack/vue-virtual": "^3.13.34",
+    "@tanstack/vue-virtual": "^3.13.35",
     "pinia": "^4.0.2",
     "primevue": "4.5.5",
     "three": "0.185.1",
