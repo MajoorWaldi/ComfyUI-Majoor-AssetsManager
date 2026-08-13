@@ -8,6 +8,8 @@ from mjr_am_backend.routes.core import security as sec
 from mjr_am_backend.routes.handlers import collections as collections_mod
 from mjr_am_backend.routes.handlers import custom_roots as custom_roots_mod
 from mjr_am_backend.routes.handlers import health as health_mod
+from mjr_am_backend.routes.handlers import integration as integration_mod
+from mjr_am_backend.routes.handlers import metadata_catalog as metadata_catalog_mod
 from mjr_am_backend.shared import Result
 
 
@@ -84,6 +86,38 @@ async def test_collections_mutations_require_csrf_and_write_access(monkeypatch) 
     req2 = make_mocked_request("POST", "/mjr/am/collections", app=app)
     resp2 = await (await app.router.resolve(req2)).handler(req2)
     assert _json(resp2).get("code") == "AUTH_REQUIRED"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("module", "register_fn", "path"),
+    [
+        (integration_mod, integration_mod.register_integration_routes, "/mjr/am/integration/send-from-node"),
+        (
+            metadata_catalog_mod,
+            metadata_catalog_mod.register_metadata_catalog_routes,
+            "/mjr/am/metadata/backfill-parser-version",
+        ),
+    ],
+)
+async def test_new_mutation_routes_require_csrf_and_write_access(
+    monkeypatch, module, register_fn, path
+) -> None:
+    app = _app(register_fn)
+    monkeypatch.setattr(module, "_csrf_error", lambda _request: "csrf blocked")
+    request = make_mocked_request("POST", path, app=app)
+    response = await (await app.router.resolve(request)).handler(request)
+    assert _json(response).get("code") == "CSRF"
+
+    monkeypatch.setattr(module, "_csrf_error", lambda _request: None)
+    monkeypatch.setattr(
+        module,
+        "_require_write_access",
+        lambda _request: Result.Err("AUTH_REQUIRED", "auth required"),
+    )
+    request = make_mocked_request("POST", path, app=app)
+    response = await (await app.router.resolve(request)).handler(request)
+    assert _json(response).get("code") == "AUTH_REQUIRED"
 
 
 @pytest.mark.asyncio

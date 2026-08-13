@@ -136,6 +136,7 @@ async function _hookPreviewApi(app: any) {
                     _kjPreviewRunActive = false;
                     return;
                 }
+                if (!floatingViewerManager.canAcceptPreviewBlob()) return;
                 const detail = e?.detail || null;
                 const blob = decodeKjPreviewPayload(detail);
                 if (!blob) return;
@@ -163,6 +164,7 @@ async function _hookPreviewApi(app: any) {
             try {
                 if (_kjPreviewRunActive && APP_CONFIG.MFV_KJ_PREVIEW_OVERRIDE_ENABLED !== false)
                     return;
+                if (!floatingViewerManager.canAcceptPreviewBlob()) return;
                 const { blob, nodeId, jobId } = e.detail || {};
                 // Validate blob before marking the suppression timestamp so that
                 // an invalid/missing blob does not silence the b_preview fallback.
@@ -183,6 +185,7 @@ async function _hookPreviewApi(app: any) {
                 if (_kjPreviewRunActive && APP_CONFIG.MFV_KJ_PREVIEW_OVERRIDE_ENABLED !== false)
                     return;
                 if (_hasRecentPreviewWithMeta()) return;
+                if (!floatingViewerManager.canAcceptPreviewBlob()) return;
                 const blob = e.detail;
                 if (!blob || !(blob instanceof Blob)) return;
                 floatingViewerManager.feedPreviewBlob(blob);

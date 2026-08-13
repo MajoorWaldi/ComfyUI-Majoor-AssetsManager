@@ -1,6 +1,6 @@
 import { t as e } from "./rolldown-runtime-Dy4uBu1J.js";
-import { _ as t, d as n, o as r, s as i, t as a } from "./viewerRuntimeHosts-DnxOM2iT.js";
-import { o, r as s, z as c } from "./events-DvbhPjDM.js";
+import { _ as t, d as n, o as r, s as i, t as a } from "./viewerRuntimeHosts-jn3aL1UJ.js";
+import { o, r as s, z as c } from "./events-BI9U0VmZ.js";
 //#region ui/features/panel/panelRuntimeRefs.ts
 var l = null;
 function u(e) {
@@ -98,11 +98,11 @@ var ie = /* @__PURE__ */ e({
 	teardownFloatingViewerManager: () => $
 }), h = null, g = null;
 async function ae() {
-	return h || (g ||= import("./FloatingViewer-BHtLjB2M.js").then((e) => (h = e.FloatingViewer, h)), g);
+	return h || (g ||= import("./FloatingViewer-C08jN86h.js").then((e) => (h = e.FloatingViewer, h)), g);
 }
 var _ = null, oe = null;
 async function se() {
-	if (!_) return oe ||= import("./NodeStreamController-CmpVBxcX.js").then((e) => {
+	if (!_) return oe ||= import("./NodeStreamController-DpGjUOfx.js").then((e) => {
 		_ = e.setNodeStreamActive;
 	}), oe;
 }
@@ -423,8 +423,11 @@ var J = {
 	getPreviewActive() {
 		return C;
 	},
+	canAcceptPreviewBlob() {
+		return C ? y?.isVisible ? !0 : o.MFV_PREVIEW_AUTO_OPEN !== !1 : !1;
+	},
 	async feedPreviewBlob(e, t = {}) {
-		if (!C) return;
+		if (!J.canAcceptPreviewBlob()) return;
 		let n = await k(), r = !!n.isVisible;
 		!r && o.MFV_PREVIEW_AUTO_OPEN === !1 || (n.isVisible || n.show(), N(n), n.loadPreviewBlob(e, ...Object.keys(t).length ? [t] : []), r || M(!0));
 	},

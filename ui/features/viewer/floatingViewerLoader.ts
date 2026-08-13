@@ -1,6 +1,7 @@
 import { ensureViewerMetadataAsset } from "./genInfo.js";
 import { getAssetMetadata, getFileMetadataScoped } from "../../api/client.js";
 import { MFV_MODES } from "./floatingViewerConstants.js";
+import { revokeDetachedFloatingViewerPreviewBlobs } from "./floatingViewerMode.js";
 
 const IMAGEOPS_LIVE_SOURCE = "imageops-live-preview";
 
@@ -19,6 +20,7 @@ export function loadFloatingViewerMediaA(viewer: any, fileData: any, { autoMode 
         _isImageOpsLive(prev) &&
         String(prev?._nodeId || "") === String(fileData?._nodeId || "");
     viewer._mediaA = fileData || null;
+    revokeDetachedFloatingViewerPreviewBlobs(viewer, [prev]);
     if (!sameNodeStream) {
         viewer._resetMfvZoom();
     }
@@ -51,8 +53,10 @@ export function loadFloatingViewerMediaA(viewer: any, fileData: any, { autoMode 
 }
 
 export function loadFloatingViewerMediaPair(viewer: any, a: any, b: any): void {
+    const previousMedia = [viewer._mediaA, viewer._mediaB];
     viewer._mediaA = a || null;
     viewer._mediaB = b || null;
+    revokeDetachedFloatingViewerPreviewBlobs(viewer, previousMedia);
     viewer._resetMfvZoom();
     if (viewer._mode === MFV_MODES.SIMPLE) {
         viewer._mode = MFV_MODES.AB;
@@ -81,10 +85,12 @@ export function loadFloatingViewerMediaPair(viewer: any, a: any, b: any): void {
 }
 
 export function loadFloatingViewerMediaQuad(viewer: any, a: any, b: any, c: any, d: any): void {
+    const previousMedia = [viewer._mediaA, viewer._mediaB, viewer._mediaC, viewer._mediaD];
     viewer._mediaA = a || null;
     viewer._mediaB = b || null;
     viewer._mediaC = c || null;
     viewer._mediaD = d || null;
+    revokeDetachedFloatingViewerPreviewBlobs(viewer, previousMedia);
     viewer._resetMfvZoom();
     if (viewer._mode !== MFV_MODES.GRID) {
         viewer._mode = MFV_MODES.GRID;

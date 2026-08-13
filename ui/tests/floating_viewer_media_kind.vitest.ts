@@ -12,6 +12,12 @@ describe("floating viewer media kind", () => {
 
     it("keeps Comfy bucket type fallback based on file extension", () => {
         expect(getFloatingViewerMediaKind({ type: "output", filename: "clip.webm" })).toBe("video");
+        expect(getFloatingViewerMediaKind({ type: "output", filename: "clip.m4v" })).toBe("video");
         expect(getFloatingViewerMediaKind({ type: "input", filename: "image.png" })).toBe("image");
+    });
+
+    it("uses MIME when filenames do not expose a media extension", () => {
+        expect(getFloatingViewerMediaKind({ filename: "preview", mime: "video/mp4" })).toBe("video");
+        expect(getFloatingViewerMediaKind({ filename: "preview.bin", mimetype: "audio/ogg" })).toBe("audio");
     });
 });

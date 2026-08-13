@@ -14,7 +14,7 @@ from mjr_am_backend.features.metadata.section_catalog import (
 )
 from mjr_am_backend.shared import Result, sanitize_error_message
 
-from ..core import _json_response, _require_services
+from ..core import _csrf_error, _json_response, _require_services, _require_write_access
 
 
 def register_metadata_catalog_routes(routes: web.RouteTableDef) -> None:
@@ -63,6 +63,13 @@ def register_metadata_catalog_routes(routes: web.RouteTableDef) -> None:
 
     @routes.post("/mjr/am/metadata/backfill-parser-version")
     async def post_metadata_backfill(request: web.Request) -> web.Response:
+        csrf = _csrf_error(request)
+        if csrf:
+            return _json_response(Result.Err("CSRF", csrf))
+        auth = _require_write_access(request)
+        if not auth.ok:
+            return _json_response(auth)
+
         svc, error_result = await _require_services()
         if error_result:
             return _json_response(error_result)

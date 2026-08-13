@@ -181,7 +181,7 @@ function bindVideoAutoplay(video) {
         (entries) => {
             for (const entry of entries) {
                 try {
-                    if (entry.isIntersecting) {
+                    if (entry.isIntersecting && Number(entry.intersectionRatio || 0) >= 0.25) {
                         void ensureVideoThumbSource(video).then(() => {
                             try {
                                 if (video.isConnected) video.play?.().catch?.(() => {});
@@ -603,6 +603,22 @@ watch(videoMode, (mode) => {
         applyVideoMode(thumb, video, mode);
     }
 });
+
+// Virtualized cards may keep the same <video> element while swapping the asset.
+// Release the previous cache reference and bind the new URL after Vue updates
+// `data-src`, otherwise the card can keep playing the video from the old row.
+watch(
+    videoUrl,
+    (nextUrl, previousUrl) => {
+        if (nextUrl === previousUrl) return;
+        const video = videoRef.value;
+        const thumb = thumbRef.value;
+        if (!video || !thumb) return;
+        unobserveVideoThumb(video);
+        applyVideoMode(thumb, video, videoMode.value);
+    },
+    { flush: "post" },
+);
 
 onBeforeUnmount(() => {
     window.removeEventListener("mjr-settings-changed", onSettingsChangedForVideo);

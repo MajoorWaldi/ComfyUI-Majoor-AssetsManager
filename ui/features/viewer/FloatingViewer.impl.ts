@@ -973,6 +973,7 @@ export class FloatingViewer {
         this._destroyPanZoom();
         this._destroyCompareSync();
         this._destroyMediaControls();
+        _pauseMediaIn(this._contentEl);
         const overlayCanvas = this._overlayCanvas || null;
         this._contentEl.replaceChildren();
         this._contentEl.style.overflow = "hidden";

@@ -97,4 +97,23 @@ describe("floating viewer media player bridge", () => {
         expect(video.controls).toBe(false);
         expect(mountUnifiedMediaControlsMock).not.toHaveBeenCalled();
     });
+
+    it("starts generated video previews muted with metadata preload", async () => {
+        const play = vi.spyOn(HTMLMediaElement.prototype, "play").mockResolvedValue(undefined);
+        const { buildFloatingViewerMediaElement } =
+            await import("../features/viewer/floatingViewerMedia.js");
+
+        const root = buildFloatingViewerMediaElement({
+            filename: "preview.mp4",
+            mime: "video/mp4",
+            _isPreview: true,
+        });
+        const video = root?.querySelector("video");
+
+        expect(video?.muted).toBe(true);
+        expect(video?.autoplay).toBe(true);
+        expect(video?.playsInline).toBe(true);
+        expect(video?.preload).toBe("metadata");
+        expect(play).toHaveBeenCalled();
+    });
 });

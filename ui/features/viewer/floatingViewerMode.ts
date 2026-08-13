@@ -121,8 +121,28 @@ export function setFloatingViewerPreviewActive(viewer: any, active: any) {
     icon.setAttribute("aria-hidden", "true");
     viewer._previewBtn.replaceChildren(icon);
     viewer._previewBtn.title = tooltip;
-    if (!viewer._previewActive) {
-        viewer._revokePreviewBlob();
+}
+
+function _getPreviewBlobUrl(media: any): string {
+    if (!media?._isPreview) return "";
+    return String(media?._previewBlobUrl || media?.url || "").trim();
+}
+
+export function revokeDetachedFloatingViewerPreviewBlobs(viewer: any, previousMedia: any[]): void {
+    const liveUrls = new Set(
+        ["A", "B", "C", "D"]
+            .map((slot) => _getPreviewBlobUrl(viewer[`_media${slot}`]))
+            .filter(Boolean),
+    );
+    for (const media of previousMedia) {
+        const url = _getPreviewBlobUrl(media);
+        if (!url || liveUrls.has(url)) continue;
+        try {
+            URL.revokeObjectURL(url);
+        } catch {
+            /* noop */
+        }
+        if (String(viewer._previewBlobUrl || "") === url) viewer._previewBlobUrl = null;
     }
 }
 
@@ -132,7 +152,24 @@ export function loadFloatingViewerPreviewBlob(
     opts: Record<string, any> = {},
 ) {
     if (!blob || !(blob instanceof Blob)) return;
-    viewer._revokePreviewBlob();
+
+    const inCompare =
+        viewer._mode === MFV_MODES.AB ||
+        viewer._mode === MFV_MODES.SIDE ||
+        viewer._mode === MFV_MODES.GRID;
+    let target = "A";
+    if (inCompare) {
+        const pins = viewer.getPinnedSlots();
+        if (viewer._mode === MFV_MODES.GRID) {
+            target = ["A", "B", "C", "D"].find((slot: any) => !pins.has(slot)) || "";
+        } else {
+            target = pins.has("B") ? (pins.has("A") ? "" : "A") : "B";
+        }
+        // A fully pinned comparison is immutable; drop the transient frame.
+        if (!target) return;
+    }
+
+    const previousMedia = viewer[`_media${target}`] || null;
     const url = URL.createObjectURL(blob);
     viewer._previewBlobUrl = url;
     const mime = String(opts?.mime || blob.type || "image/jpeg")
@@ -162,22 +199,11 @@ export function loadFloatingViewerPreviewBlob(
         _previewNodeId: opts?.nodeId != null ? String(opts.nodeId) : null,
         _previewStep: Number.isFinite(Number(opts?.step)) ? Number(opts.step) : null,
         _previewTotal: Number.isFinite(Number(opts?.total)) ? Number(opts.total) : null,
+        _previewBlobUrl: url,
     };
 
-    const inCompare =
-        viewer._mode === MFV_MODES.AB ||
-        viewer._mode === MFV_MODES.SIDE ||
-        viewer._mode === MFV_MODES.GRID;
     if (inCompare) {
-        const pins = viewer.getPinnedSlots();
-        if (viewer._mode === MFV_MODES.GRID) {
-            const target = ["A", "B", "C", "D"].find((s: any) => !pins.has(s)) || "A";
-            viewer[`_media${target}`] = fileData;
-        } else if (pins.has("B")) {
-            viewer._mediaA = fileData;
-        } else {
-            viewer._mediaB = fileData;
-        }
+        viewer[`_media${target}`] = fileData;
     } else {
         viewer._mediaA = fileData;
         viewer._resetMfvZoom();
@@ -186,19 +212,27 @@ export function loadFloatingViewerPreviewBlob(
             viewer._updateModeBtnUI();
         }
     }
+
+    revokeDetachedFloatingViewerPreviewBlobs(viewer, [previousMedia]);
     ++viewer._refreshGen;
     viewer._refresh();
 }
 
 export function revokeFloatingViewerPreviewBlob(viewer: any) {
-    if (viewer._previewBlobUrl) {
+    const urls = new Set<string>();
+    if (viewer._previewBlobUrl) urls.add(String(viewer._previewBlobUrl));
+    for (const slot of ["A", "B", "C", "D"]) {
+        const url = _getPreviewBlobUrl(viewer[`_media${slot}`]);
+        if (url) urls.add(url);
+    }
+    for (const url of urls) {
         try {
-            URL.revokeObjectURL(viewer._previewBlobUrl);
+            URL.revokeObjectURL(url);
         } catch {
             /* noop */
         }
-        viewer._previewBlobUrl = null;
     }
+    viewer._previewBlobUrl = null;
 }
 
 export function setFloatingViewerNodeStreamActive(viewer: any, active: any) {

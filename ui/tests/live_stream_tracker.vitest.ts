@@ -4,6 +4,7 @@ const state = vi.hoisted(() => {
     const upsertWithContent = vi.fn();
     const feedPreviewBlob = vi.fn();
     const getLiveActive = vi.fn(() => true);
+    const canAcceptPreviewBlob = vi.fn(() => true);
     const waitForComfyApi = vi.fn();
     const appConfig = { MFV_KJ_PREVIEW_OVERRIDE_ENABLED: true };
 
@@ -13,6 +14,7 @@ const state = vi.hoisted(() => {
         upsertWithContent,
         feedPreviewBlob,
         getLiveActive,
+        canAcceptPreviewBlob,
         waitForComfyApi,
         appConfig,
         setApi(nextApi) {
@@ -25,6 +27,8 @@ const state = vi.hoisted(() => {
             feedPreviewBlob.mockReset();
             getLiveActive.mockReset();
             getLiveActive.mockReturnValue(true);
+            canAcceptPreviewBlob.mockReset();
+            canAcceptPreviewBlob.mockReturnValue(true);
             waitForComfyApi.mockReset();
             waitForComfyApi.mockResolvedValue(api);
             appConfig.MFV_KJ_PREVIEW_OVERRIDE_ENABLED = true;
@@ -41,6 +45,7 @@ vi.mock("../app/events.js", () => ({
 vi.mock("../features/viewer/floatingViewerManager.js", () => ({
     floatingViewerManager: {
         getLiveActive: () => state.getLiveActive(),
+        canAcceptPreviewBlob: () => state.canAcceptPreviewBlob(),
         upsertWithContent: (...args) => state.upsertWithContent(...args),
         feedPreviewBlob: (...args) => state.feedPreviewBlob(...args),
     },
@@ -264,6 +269,26 @@ describe("LiveStreamTracker", () => {
 
         api.dispatchEvent(new CustomEvent("b_preview", { detail: new Blob(["standard"]) }));
         expect(state.feedPreviewBlob).toHaveBeenCalledTimes(1);
+        mod.teardownLiveStreamTracker({});
+    });
+
+    it("does not decode KJ preview payloads while the viewer rejects preview frames", async () => {
+        const api = new FakeApi();
+        state.setApi(api);
+        state.canAcceptPreviewBlob.mockReturnValue(false);
+        const atobSpy = vi.spyOn(globalThis, "atob");
+
+        const mod = await import("../features/viewer/LiveStreamTracker.js");
+        mod.initLiveStreamTracker({});
+        await flushMicrotasks();
+        api.dispatchEvent(
+            new CustomEvent("kj_preview_override", {
+                detail: { image: "aGVsbG8=", mime: "image/jpeg" },
+            }),
+        );
+
+        expect(atobSpy).not.toHaveBeenCalled();
+        expect(state.feedPreviewBlob).not.toHaveBeenCalled();
         mod.teardownLiveStreamTracker({});
     });
 });

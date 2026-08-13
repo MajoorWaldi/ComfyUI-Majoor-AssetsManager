@@ -557,10 +557,8 @@ describe("floatingViewerManager", () => {
         floatingViewerManager.setPreviewActive(true);
         await floatingViewerManager.feedPreviewBlob(blob);
 
-        const viewer = state.getLastViewer();
-        expect(viewer).toBeTruthy();
-        expect(viewer.isVisible).toBe(false);
-        expect(viewer.loadPreviewBlob).not.toHaveBeenCalled();
+        expect(floatingViewerManager.canAcceptPreviewBlob()).toBe(false);
+        expect(state.getLastViewer()).toBeNull();
 
         APP_CONFIG.MFV_PREVIEW_AUTO_OPEN = false;
     });

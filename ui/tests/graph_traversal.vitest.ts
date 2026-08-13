@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import {
     collectGraphVisits,
+    findGraphNodeById,
     findGraphNodeByQualifiedId,
     getNodeLocatorId,
     walkGraphNodes,
@@ -12,7 +13,7 @@ describe("graphTraversal", () => {
         const childNode = { id: 7, type: "MajoorSaveImage" };
         const childGraph = { id: "graph-uuid", name: "Nested", nodes: [childNode] };
         const rootNode = { id: 2, title: "Group", subgraph: childGraph };
-        const root = { nodes: [rootNode] };
+        const root = { id: "00000000-0000-0000-0000-000000000000", isRootGraph: true, nodes: [rootNode] };
         const visits: any[] = [];
 
         walkGraphNodes(root, (visit) => visits.push(visit));
@@ -38,5 +39,33 @@ describe("graphTraversal", () => {
         };
 
         expect(collectGraphVisits(root).map((visit) => visit.graph)).toContain(serialized);
+    });
+
+    it("resolves hierarchical execution IDs through concrete subgraph nodes", () => {
+        const leaf = { id: 9, type: "PreviewImage" };
+        const nested = { id: "nested-uuid", nodes: [leaf] };
+        const child = { id: 7, subgraph: nested };
+        const childGraph = { id: "child-uuid", nodes: [child] };
+        const host = { id: 3, subgraph: childGraph };
+        const rootLeafWithSameLocalId = { id: 9, type: "RootPreview" };
+        const root = { isRootGraph: true, nodes: [host, rootLeafWithSameLocalId] };
+
+        expect(findGraphNodeById(root, "3:7:9")).toBe(leaf);
+        expect(findGraphNodeById(root, "child-uuid:7")).toBe(child);
+        expect(findGraphNodeById(root, "9")).toBe(rootLeafWithSameLocalId);
+    });
+
+    it("does not append serialized duplicates when live subgraphs are available", () => {
+        const live = { id: "shared-uuid", nodes: [{ id: 4 }] };
+        const serialized = { id: "shared-uuid", nodes: [{ id: 4 }] };
+        const root = {
+            isRootGraph: true,
+            nodes: [{ id: 1, subgraph: live }],
+            serialize: vi.fn(() => ({ definitions: { subgraphs: [serialized] } })),
+        };
+
+        const graphs = collectGraphVisits(root).map((visit) => visit.graph);
+        expect(graphs).toContain(live);
+        expect(graphs).not.toContain(serialized);
     });
 });

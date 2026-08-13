@@ -1,6 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { loadFloatingViewerPreviewBlob } from "../features/viewer/floatingViewerMode.js";
+import {
+    loadFloatingViewerPreviewBlob,
+    revokeFloatingViewerPreviewBlob,
+} from "../features/viewer/floatingViewerMode.js";
 
 describe("Floating Viewer KJNodes preview media", () => {
     const originalCreateObjectUrl = URL.createObjectURL;
@@ -83,5 +86,54 @@ describe("Floating Viewer KJNodes preview media", () => {
                 mime: "video/mp4",
             }),
         );
+    });
+
+    it("keeps pinned preview blob URLs valid while updating another compare slot", () => {
+        URL.createObjectURL = vi
+            .fn()
+            .mockReturnValueOnce("blob:pinned-a")
+            .mockReturnValueOnce("blob:new-b");
+        const pins = new Set();
+        const viewer = {
+            _mode: "simple",
+            _previewBlobUrl: null,
+            _mediaA: null,
+            _mediaB: null,
+            _refreshGen: 0,
+            _resetMfvZoom: vi.fn(),
+            _updateModeBtnUI: vi.fn(),
+            _refresh: vi.fn(),
+            getPinnedSlots: () => pins,
+        };
+
+        loadFloatingViewerPreviewBlob(viewer, new Blob(["first"]));
+        pins.add("A");
+        viewer._mode = "ab";
+        loadFloatingViewerPreviewBlob(viewer, new Blob(["second"]));
+
+        expect(viewer._mediaA.url).toBe("blob:pinned-a");
+        expect(viewer._mediaB.url).toBe("blob:new-b");
+        expect(URL.revokeObjectURL).not.toHaveBeenCalledWith("blob:pinned-a");
+
+        revokeFloatingViewerPreviewBlob(viewer);
+        expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:pinned-a");
+        expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:new-b");
+    });
+
+    it("does not replace media when every compare slot is pinned", () => {
+        const existing = { filename: "keep.png" };
+        const viewer = {
+            _mode: "ab",
+            _mediaA: existing,
+            _mediaB: existing,
+            _refreshGen: 0,
+            _refresh: vi.fn(),
+            getPinnedSlots: () => new Set(["A", "B"]),
+        };
+
+        loadFloatingViewerPreviewBlob(viewer, new Blob(["ignored"]));
+
+        expect(URL.createObjectURL).not.toHaveBeenCalled();
+        expect(viewer._refresh).not.toHaveBeenCalled();
     });
 });

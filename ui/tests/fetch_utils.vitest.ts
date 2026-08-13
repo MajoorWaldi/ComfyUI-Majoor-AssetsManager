@@ -300,6 +300,23 @@ describe("fetchAPI retry on network error", () => {
         expect(globalThis.fetch).toHaveBeenCalledTimes(1);
         expect(result.ok).toBe(false);
     });
+
+    it("does not replay POST requests after a network failure", async () => {
+        globalThis.fetch = vi.fn(async () => {
+            throw new TypeError("Failed to fetch");
+        });
+
+        const mod = await importUtils();
+        const { fetchAPI } = makeClient(mod);
+        const result = await fetchAPI("/mjr/am/write-once", {
+            method: "POST",
+            body: JSON.stringify({ value: 1 }),
+        });
+
+        expect(result.code).toBe("NETWORK_ERROR");
+        expect(result.retries).toBe(0);
+        expect(globalThis.fetch).toHaveBeenCalledTimes(1);
+    });
 });
 
 // ---------------------------------------------------------------------------
