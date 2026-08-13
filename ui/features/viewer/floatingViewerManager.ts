@@ -647,13 +647,19 @@ export const floatingViewerManager = {
         return _previewActive;
     },
 
+    canAcceptPreviewBlob() {
+        if (!_previewActive) return false;
+        if (_instance?.isVisible) return true;
+        return APP_CONFIG.MFV_PREVIEW_AUTO_OPEN !== false;
+    },
+
     /**
      * Feed a preview blob from the KSampler WebSocket into the viewer.
      * If preview mode is off or the viewer is not visible, the blob is ignored.
      * @param {Blob} blob  JPEG/PNG Blob from the ComfyUI `b_preview` event.
      */
     async feedPreviewBlob(blob: any, opts = {}) {
-        if (!_previewActive) return;
+        if (!floatingViewerManager.canAcceptPreviewBlob()) return;
         const inst = await _getInstance();
         const wasVisible = Boolean(inst.isVisible);
         if (!wasVisible && APP_CONFIG.MFV_PREVIEW_AUTO_OPEN === false) return;

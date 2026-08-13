@@ -457,7 +457,9 @@ export function createApiFetchClient({
             } catch (e) {
                 console.debug?.(e);
             }
-            if (retryCount < MAX_RETRIES && _isRetryableError(error)) {
+            const requestMethod = String(options?.method || "GET").toUpperCase();
+            const canReplayRequest = requestMethod === "GET" || requestMethod === "HEAD";
+            if (canReplayRequest && retryCount < MAX_RETRIES && _isRetryableError(error)) {
                 try {
                     await delay(RETRY_BASE_DELAY_MS * (retryCount + 1));
                 } catch (e) {

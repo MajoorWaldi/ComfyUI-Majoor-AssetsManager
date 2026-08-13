@@ -1,27 +1,27 @@
-import { Zt as e, g as t, y as n } from "./viewerRuntimeHosts-DnxOM2iT.js";
-import { B as r, C as i, I as a, M as o, O as s, P as c, R as l, V as u, j as d, m as f, o as p, pt as m, r as h, rt as g, v as _, w as v, x as y } from "./events-DvbhPjDM.js";
-import { a as b, i as x, o as S, s as C } from "./graphTraversal-B47GgY7Z.js";
-import { _ as w, g as T, m as E, n as D, p as ee, r as O, w as k } from "./Viewer-D2tVn-M0.js";
-import { _ as A, r as j } from "./SidebarWorkflowSection-lA_KWmoZ.js";
-import { _ as M, a as N, c as P, d as F, f as I, g as L, h as te, i as ne, l as R, m as z, o as B, p as re, r as V, s as ie, t as ae, u as H, v as U } from "./openMajoorSettings-DyHAm-Nl.js";
-import { a as oe, n as se, r as ce } from "./model3dRenderer-k1rgsPR4.js";
-import { i as le, o as ue, r as de, t as fe } from "./geninfoParser-D7IjgI1x.js";
-import { t as pe } from "./genInfo-CawkOUtj.js";
+import { Zt as e, g as t, y as n } from "./viewerRuntimeHosts-jn3aL1UJ.js";
+import { B as r, C as i, I as a, M as o, O as s, P as c, R as l, V as u, j as d, m as f, o as p, pt as m, r as h, rt as g, v as _, w as v, x as y } from "./events-BI9U0VmZ.js";
+import { a as b, i as x, o as S, s as C } from "./graphTraversal-BIYmTTPW.js";
+import { _ as w, g as T, m as E, n as D, p as ee, r as O, w as k } from "./Viewer-6UShdN-b.js";
+import { _ as A, r as j } from "./SidebarWorkflowSection-BUCY3Zws.js";
+import { _ as M, a as N, c as P, d as F, f as I, g as L, h as te, i as R, l as z, m as B, o as V, p as ne, r as H, s as re, t as ie, u as U, v as W } from "./openMajoorSettings-CVRcSZSP.js";
+import { a as ae, n as oe, r as se } from "./model3dRenderer-DNbDaU5R.js";
+import { i as ce, o as le, r as ue, t as de } from "./geninfoParser-D7IjgI1x.js";
+import { t as fe } from "./genInfo-B7-wd-fB.js";
 //#region ui/features/viewer/floatingViewerConstants.ts
-var W = Object.freeze({
+var G = Object.freeze({
 	SIMPLE: "simple",
 	AB: "ab",
 	SIDE: "side",
 	GRID: "grid",
 	GRAPH: "graph"
-}), me = .25, he = 8e-4, ge = 30;
-function _e(e) {
+}), pe = .25, me = 8e-4, he = 30;
+function ge(e) {
 	let t = Number(e);
 	if (!Number.isFinite(t) || t < 0) return "0:00";
 	let n = Math.floor(t), r = Math.floor(n / 3600), i = Math.floor(n % 3600 / 60), a = n % 60;
 	return r > 0 ? `${r}:${String(i).padStart(2, "0")}:${String(a).padStart(2, "0")}` : `${i}:${String(a).padStart(2, "0")}`;
 }
-function ve(e) {
+function _e(e) {
 	try {
 		let t = e?.play?.();
 		t && typeof t.catch == "function" && t.catch(() => {});
@@ -29,40 +29,40 @@ function ve(e) {
 		console.debug?.(e);
 	}
 }
-function ye(e, t) {
+function ve(e, t) {
 	let n = Math.floor(Number(e) || 0), r = Math.max(0, Math.floor(Number(t) || 0));
 	return n < 0 ? 0 : r > 0 && n > r ? r : n;
 }
-function be(e, t) {
-	let n = Number(e?.currentTime || 0), r = Number(t) > 0 ? Number(t) : ge;
+function ye(e, t) {
+	let n = Number(e?.currentTime || 0), r = Number(t) > 0 ? Number(t) : he;
 	return Math.max(0, Math.floor(n * r));
 }
-function xe(e, t) {
-	let n = Number(e?.duration || 0), r = Number(t) > 0 ? Number(t) : ge;
+function be(e, t) {
+	let n = Number(e?.duration || 0), r = Number(t) > 0 ? Number(t) : he;
 	return !Number.isFinite(n) || n <= 0 ? 0 : Math.max(0, Math.floor(n * r));
 }
-function Se(e, t, n) {
-	let r = Number(n) > 0 ? Number(n) : ge, i = ye(t, xe(e, r)) / r;
+function xe(e, t, n) {
+	let r = Number(n) > 0 ? Number(n) : he, i = ve(t, be(e, r)) / r;
 	try {
 		e.currentTime = Math.max(0, i);
 	} catch (e) {
 		console.debug?.(e);
 	}
 }
-function Ce(e) {
+function Se(e) {
 	return e instanceof HTMLMediaElement;
 }
-function we(e, t) {
+function Ce(e, t) {
 	return String(e || "").toLowerCase() === "video" || t instanceof HTMLVideoElement;
 }
-function Te(e, t) {
+function we(e, t) {
 	return String(e || "").toLowerCase() === "audio" || t instanceof HTMLAudioElement;
 }
-function Ee(e) {
+function Te(e) {
 	let t = String(e || "").toLowerCase();
 	return t === "gif" || t === "animated-image";
 }
-function De(e) {
+function Ee(e) {
 	try {
 		let t = Number(e?.naturalWidth || e?.width || 0), n = Number(e?.naturalHeight || e?.height || 0);
 		if (!(t > 0 && n > 0)) return "";
@@ -74,10 +74,10 @@ function De(e) {
 		return console.debug?.(e), "";
 	}
 }
-function Oe(e, t = null, { kind: n = "" } = {}) {
+function De(e, t = null, { kind: n = "" } = {}) {
 	if (!e || e._mjrSimplePlayerMounted) return e?.parentElement || null;
 	e._mjrSimplePlayerMounted = !0;
-	let r = ee(t) || ge, i = Ce(e), a = we(n, e), o = Te(n, e), s = Ee(n), c = document.createElement("div");
+	let r = ee(t) || he, i = Se(e), a = Ce(n, e), o = we(n, e), s = Te(n), c = document.createElement("div");
 	c.className = "mjr-mfv-simple-player", c.tabIndex = 0, c.setAttribute("role", "group"), c.setAttribute("aria-label", "Media player"), o && c.classList.add("is-audio"), s && c.classList.add("is-animated-image");
 	let l = document.createElement("div");
 	l.className = "mjr-mfv-simple-player-controls";
@@ -132,7 +132,7 @@ function Oe(e, t = null, { kind: n = "" } = {}) {
 		x.className = "pi pi-volume-off", b.disabled = !0, b.classList.add("is-disabled");
 	}, k = () => {
 		if (!a || !(e instanceof HTMLVideoElement)) return;
-		let t = be(e, r), n = xe(e, r);
+		let t = ye(e, r), n = be(e, r);
 		y.textContent = n > 0 ? `F: ${t}/${n}` : `F: ${t}`;
 	}, A = () => {
 		let e = Math.max(0, Math.min(100, Number(u.value) / 1e3 * 100));
@@ -145,8 +145,8 @@ function Oe(e, t = null, { kind: n = "" } = {}) {
 		let t = Number(e.currentTime || 0), n = Number(e.duration || 0);
 		if (Number.isFinite(n) && n > 0) {
 			let e = Math.max(0, Math.min(1, t / n));
-			u.value = String(Math.round(e * 1e3)), v.textContent = `${_e(t)} / ${_e(n)}`;
-		} else u.value = "0", v.textContent = `${_e(t)} / 0:00`;
+			u.value = String(Math.round(e * 1e3)), v.textContent = `${ge(t)} / ${ge(n)}`;
+		} else u.value = "0", v.textContent = `${ge(t)} / 0:00`;
 		A();
 	}, M = () => {
 		try {
@@ -194,7 +194,7 @@ function Oe(e, t = null, { kind: n = "" } = {}) {
 	}, I = (t) => {
 		F(t);
 		try {
-			i ? e.paused ? ve(e) : e.pause?.() : s && (C ? (e.src = S ? `${S}${S.includes("?") ? "&" : "?"}mjr_anim=${Date.now()}` : e.src, C = !1) : (w ||= De(e), w && (e.src = w), C = !0));
+			i ? e.paused ? _e(e) : e.pause?.() : s && (C ? (e.src = S ? `${S}${S.includes("?") ? "&" : "?"}mjr_anim=${Date.now()}` : e.src, C = !1) : (w ||= Ee(e), w && (e.src = w), C = !0));
 		} catch (e) {
 			console.debug?.(e);
 		}
@@ -206,7 +206,7 @@ function Oe(e, t = null, { kind: n = "" } = {}) {
 			} catch (e) {
 				console.debug?.(e);
 			}
-			Se(e, be(e, r) + t, r), D(), k(), j();
+			xe(e, ye(e, r) + t, r), D(), k(), j();
 		}
 	}, te = (t) => {
 		if (F(t), e instanceof HTMLMediaElement) {
@@ -217,7 +217,7 @@ function Oe(e, t = null, { kind: n = "" } = {}) {
 			}
 			O();
 		}
-	}, ne = (t) => {
+	}, R = (t) => {
 		if (F(t), !i) return;
 		A();
 		let n = Number(e.duration || 0);
@@ -229,14 +229,14 @@ function Oe(e, t = null, { kind: n = "" } = {}) {
 			console.debug?.(e);
 		}
 		k(), j();
-	}, R = (e) => F(e), z = (e) => {
+	}, z = (e) => F(e), B = (e) => {
 		try {
 			if (e?.target?.closest?.("button, input, textarea, select")) return;
 			c.focus?.({ preventScroll: !0 });
 		} catch (e) {
 			console.debug?.(e);
 		}
-	}, B = (e) => {
+	}, V = (e) => {
 		let t = String(e?.key || "");
 		if (!(!t || e?.altKey || e?.ctrlKey || e?.metaKey)) {
 			if (t === " " || t === "Spacebar") {
@@ -255,11 +255,11 @@ function Oe(e, t = null, { kind: n = "" } = {}) {
 		}
 	};
 	try {
-		c._mjrSimplePlayerHandleKeydown = B;
+		c._mjrSimplePlayerHandleKeydown = V;
 	} catch (e) {
 		console.debug?.(e);
 	}
-	f.addEventListener("click", I), m.addEventListener("click", (e) => L(-1, e)), g.addEventListener("click", (e) => L(1, e)), b.addEventListener("click", te), u.addEventListener("input", ne), l.addEventListener("pointerdown", R), l.addEventListener("click", R), l.addEventListener("dblclick", R), c.addEventListener("pointerdown", z), c.addEventListener("keydown", B), e instanceof HTMLMediaElement && (e.addEventListener("play", () => {
+	f.addEventListener("click", I), m.addEventListener("click", (e) => L(-1, e)), g.addEventListener("click", (e) => L(1, e)), b.addEventListener("click", te), u.addEventListener("input", R), l.addEventListener("pointerdown", z), l.addEventListener("click", z), l.addEventListener("dblclick", z), c.addEventListener("pointerdown", B), c.addEventListener("keydown", V), e instanceof HTMLMediaElement && (e.addEventListener("play", () => {
 		D(), P();
 	}, { passive: !0 }), e.addEventListener("pause", () => {
 		M(), D(), k(), j();
@@ -271,7 +271,7 @@ function Oe(e, t = null, { kind: n = "" } = {}) {
 		k(), j();
 	}, { passive: !0 }), e.addEventListener("loadedmetadata", () => {
 		k(), j();
-	}, { passive: !0 })), ve(e), D(), O(), k(), j(), P();
+	}, { passive: !0 })), _e(e), D(), O(), k(), j(), P();
 	try {
 		c._mjrSimplePlayerDestroy = M, c._mjrMediaControlsHandle = { destroy: M };
 	} catch (e) {
@@ -281,13 +281,14 @@ function Oe(e, t = null, { kind: n = "" } = {}) {
 }
 //#endregion
 //#region ui/features/viewer/floatingViewerMedia.ts
-var ke = /* @__PURE__ */ new Set([
+var Oe = /* @__PURE__ */ new Set([
 	".mp4",
 	".webm",
 	".mov",
 	".avi",
-	".mkv"
-]), Ae = /* @__PURE__ */ new Set([
+	".mkv",
+	".m4v"
+]), ke = /* @__PURE__ */ new Set([
 	".mp3",
 	".wav",
 	".flac",
@@ -297,7 +298,7 @@ var ke = /* @__PURE__ */ new Set([
 	".opus",
 	".wma"
 ]);
-function je(e) {
+function Ae(e) {
 	try {
 		let t = String(e || "").trim(), n = t.lastIndexOf(".");
 		return n >= 0 ? t.slice(n).toLowerCase() : "";
@@ -305,7 +306,7 @@ function je(e) {
 		return "";
 	}
 }
-function G(e) {
+function K(e) {
 	let t = String(e?.kind || "").toLowerCase();
 	if (t === "video") return "video";
 	if (t === "audio") return "audio";
@@ -314,21 +315,25 @@ function G(e) {
 	if (r === "video") return "video";
 	if (r === "audio") return "audio";
 	if (r === "model3d") return "model3d";
-	let i = je(e?.filename || "");
-	return i === ".gif" ? "gif" : ke.has(i) ? "video" : Ae.has(i) ? "audio" : se.has(i) ? "model3d" : "image";
+	let i = String(e?.mime || e?.mimetype || e?.content_type || "").trim().toLowerCase();
+	if (i.startsWith("video/")) return "video";
+	if (i.startsWith("audio/")) return "audio";
+	if (i.startsWith("image/gif")) return "gif";
+	let a = Ae(e?.filename || "");
+	return a === ".gif" ? "gif" : Oe.has(a) ? "video" : ke.has(a) ? "audio" : oe.has(a) ? "model3d" : "image";
 }
-function Me(e) {
+function je(e) {
 	return e ? e.url ? String(e.url) : e.filename && e.id == null ? m(e.filename, e.subfolder || "", e.type || "output") : e.filename && g(e) || "" : "";
 }
-function K(e = "No media  -  select assets in the grid") {
+function q(e = "No media  -  select assets in the grid") {
 	let t = document.createElement("div");
 	return t.className = "mjr-mfv-empty", t.textContent = e, t;
 }
-function q(e, t) {
+function J(e, t) {
 	let n = document.createElement("div");
 	return n.className = `mjr-mfv-label label-${t}`, n.textContent = e, n;
 }
-function Ne(e) {
+function Me(e) {
 	if (!(!e || typeof e.play != "function")) try {
 		let t = e.play();
 		t && typeof t.catch == "function" && t.catch(() => {});
@@ -336,12 +341,12 @@ function Ne(e) {
 		console.debug?.(e);
 	}
 }
-function Pe(e) {
+function Ne(e) {
 	if (!(!e || typeof e.play != "function")) try {
 		let t = e.play();
 		t && typeof t.catch == "function" && t.catch(() => {
 			try {
-				e.muted = !0, Ne(e);
+				e.muted = !0, Me(e);
 			} catch (e) {
 				console.debug?.(e);
 			}
@@ -350,7 +355,7 @@ function Pe(e) {
 		console.debug?.(e);
 	}
 }
-function Fe(e, t) {
+function Pe(e, t) {
 	let n = e && e.nodeType === 1 ? e : e?.parentElement || null;
 	for (; n && n !== t;) {
 		try {
@@ -363,7 +368,7 @@ function Fe(e, t) {
 	}
 	return null;
 }
-function Ie(e, t, n) {
+function Fe(e, t, n) {
 	if (!e) return !1;
 	if (Math.abs(Number(n) || 0) >= Math.abs(Number(t) || 0)) {
 		let t = Number(e.scrollTop || 0), r = Math.max(0, Number(e.scrollHeight || 0) - Number(e.clientHeight || 0));
@@ -372,7 +377,7 @@ function Ie(e, t, n) {
 	let r = Number(e.scrollLeft || 0), i = Math.max(0, Number(e.scrollWidth || 0) - Number(e.clientWidth || 0));
 	return t < 0 && r > 0 || t > 0 && r < i;
 }
-function Le(e) {
+function Ie(e) {
 	if (e) try {
 		let t = e.querySelectorAll?.("video, audio");
 		if (!t || !t.length) return;
@@ -385,10 +390,10 @@ function Le(e) {
 		console.debug?.(e);
 	}
 }
-function J(e, { fill: t = !1, controls: n = !0, initialMuted: r = !1, initialPlaybackRate: i = 1 } = {}) {
-	let a = Me(e);
+function Y(e, { fill: t = !1, controls: n = !0, initialMuted: r = !1, initialPlaybackRate: i = 1 } = {}) {
+	let a = je(e);
 	if (!a) return null;
-	let o = G(e), s = `mjr-mfv-media mjr-mfv-media--fit-height${t ? " mjr-mfv-media--fill" : ""}`, c = je(e?.filename || "") === ".webp" && Number(e?.duration ?? e?.metadata_raw?.duration ?? 0) > 0, l = (r, a) => {
+	let o = K(e), s = `mjr-mfv-media mjr-mfv-media--fit-height${t ? " mjr-mfv-media--fill" : ""}`, c = Ae(e?.filename || "") === ".webp" && Number(e?.duration ?? e?.metadata_raw?.duration ?? 0) > 0, l = (r, a) => {
 		if (!n) return r;
 		let o = document.createElement("div");
 		if (o.className = `mjr-mfv-player-host${t ? " mjr-mfv-player-host--fill" : ""}`, a === "audio") {
@@ -427,7 +432,7 @@ function J(e, { fill: t = !1, controls: n = !0, initialMuted: r = !1, initialPla
 	if (o === "audio") {
 		let e = document.createElement("audio");
 		e.className = s, e.src = a, e.controls = !1, e.autoplay = !0, e.preload = "metadata", e.loop = !0, e.muted = r, e.playbackRate = i;
-		let t = r ? () => Ne(e) : () => Pe(e);
+		let t = r ? () => Me(e) : () => Ne(e);
 		try {
 			e.addEventListener("loadedmetadata", t, { once: !0 });
 		} catch (e) {
@@ -437,9 +442,16 @@ function J(e, { fill: t = !1, controls: n = !0, initialMuted: r = !1, initialPla
 	}
 	if (o === "video") {
 		let t = document.createElement("video");
-		return t.className = s, t.src = a, t.controls = !1, t.loop = !0, t.muted = e?._isPreview ? !0 : r, t.playbackRate = i, t.autoplay = !0, t.playsInline = !0, r ? Ne(t) : Pe(t), l(t, "video");
+		t.className = s, t.src = a, t.controls = !1, t.loop = !0, t.preload = "metadata", t.muted = e?._isPreview ? !0 : r, t.playbackRate = i, t.autoplay = !0, t.playsInline = !0;
+		let n = t.muted ? () => Me(t) : () => Ne(t);
+		try {
+			t.addEventListener("loadedmetadata", n, { once: !0 });
+		} catch (e) {
+			console.debug?.(e);
+		}
+		return n(), l(t, "video");
 	}
-	if (o === "model3d") return ce(e, a, {
+	if (o === "model3d") return se(e, a, {
 		hostClassName: `mjr-model3d-host mjr-mfv-model3d-host${t ? " mjr-mfv-model3d-host--fill" : ""}`,
 		canvasClassName: `mjr-mfv-media mjr-model3d-render-canvas${t ? " mjr-mfv-media--fill" : ""}`,
 		hintText: "Rotate: left drag  Pan: right drag  Zoom: wheel or middle drag",
@@ -447,15 +459,15 @@ function J(e, { fill: t = !1, controls: n = !0, initialMuted: r = !1, initialPla
 		pauseDuringExecution: !!p.FLOATING_VIEWER_PAUSE_DURING_EXECUTION
 	});
 	let u = document.createElement("img");
-	return u.className = s, u.src = a, u.alt = String(e?.filename || ""), u.draggable = !1, (o === "gif" || c) && Oe(u, e, { kind: o === "gif" ? "gif" : "animated-image" }) || u;
+	return u.className = s, u.src = a, u.alt = String(e?.filename || ""), u.draggable = !1, (o === "gif" || c) && De(u, e, { kind: o === "gif" ? "gif" : "animated-image" }) || u;
 }
-function Re(e, t, n, r, i, a) {
+function Le(e, t, n, r, i, a) {
 	e.beginPath(), typeof e.roundRect == "function" ? e.roundRect(t, n, r, i, a) : (e.moveTo(t + a, n), e.lineTo(t + r - a, n), e.quadraticCurveTo(t + r, n, t + r, n + a), e.lineTo(t + r, n + i - a), e.quadraticCurveTo(t + r, n + i, t + r - a, n + i), e.lineTo(t + a, n + i), e.quadraticCurveTo(t, n + i, t, n + i - a), e.lineTo(t, n + a), e.quadraticCurveTo(t, n, t + a, n), e.closePath());
 }
-function Y(e, t, n, r) {
+function Re(e, t, n, r) {
 	e.save(), e.font = "bold 10px system-ui, sans-serif";
 	let i = e.measureText(t).width;
-	e.fillStyle = "rgba(0,0,0,0.58)", Re(e, n, r, i + 10, 18, 4), e.fill(), e.fillStyle = "#fff", e.fillText(t, n + 5, r + 13), e.restore();
+	e.fillStyle = "rgba(0,0,0,0.58)", Le(e, n, r, i + 10, 18, 4), e.fill(), e.fillStyle = "#fff", e.fillText(t, n + 5, r + 13), e.restore();
 }
 //#endregion
 //#region ui/features/viewer/workflowSidebar/NodeWidgetRenderer.ts
@@ -622,7 +634,7 @@ var Ze = class {
 			a.className = "mjr-ws-widget-label", a.textContent = t.name || "";
 			let o = document.createElement("div");
 			o.className = "mjr-ws-widget-input";
-			let s = V(t, () => {}, e);
+			let s = H(t, () => {}, e);
 			o.appendChild(s), this._inputMap.set(t.name, s);
 			let l = s._mjrAutoFit ?? s.querySelector?.("textarea")?._mjrAutoFit;
 			l && this._autoFits.push(l), i.appendChild(a), i.appendChild(o), c.appendChild(i);
@@ -915,7 +927,7 @@ function pt(e) {
 			index: t
 		});
 	});
-	let a = xt(R(e)), o = xt(t?.type || t?.comfyClass || t?.class_type), s = !!(a && o && a === o), c = /* @__PURE__ */ new Set(), l = 0;
+	let a = xt(z(e)), o = xt(t?.type || t?.comfyClass || t?.class_type), s = !!(a && o && a === o), c = /* @__PURE__ */ new Set(), l = 0;
 	for (let e of n) {
 		let n = bt(e.label), a = n ? i.get(n) : null;
 		if ((!a || c.has(a.index)) && s && Number.isInteger(e.index)) {
@@ -925,7 +937,7 @@ function pt(e) {
 				index: e.index
 			});
 		}
-		!a || c.has(a.index) || ne(a.widget, X(e.value), t) && (c.add(a.index), l += 1);
+		!a || c.has(a.index) || R(a.widget, X(e.value), t) && (c.add(a.index), l += 1);
 	}
 	return u(), {
 		ok: l > 0,
@@ -957,7 +969,7 @@ function _t(e, t) {
 	delete e._mjrPromptInputs, delete e._mjrSubgraphProxyParams;
 }
 function vt(e, t) {
-	let n = xt(R(e)), r = F(e), i = new Map(r.map((e) => [bt(e.label), e.value]));
+	let n = xt(z(e)), r = F(e), i = new Map(r.map((e) => [bt(e.label), e.value]));
 	if (n.includes("ksamplerselect")) return t.sampler_name == null ? null : [X(t.sampler_name)];
 	if (n.includes("ksampler")) {
 		let e = t.control_after_generate ?? i.get("control_after_generate") ?? r[1]?.value;
@@ -1009,7 +1021,7 @@ var St = 64, Ct = class {
 		return this._el;
 	}
 	setAsset(e) {
-		this._asset !== e && (this._asset = e || null, this._workflow = re(this._asset), this._selectedNodeId = "", this._view = {
+		this._asset !== e && (this._asset = e || null, this._workflow = ne(this._asset), this._selectedNodeId = "", this._view = {
 			zoom: 1,
 			centerX: null,
 			centerY: null
@@ -1077,16 +1089,16 @@ var St = 64, Ct = class {
 			return;
 		}
 		this._status.textContent = this._large ? this._selectedNodeId ? `${t} nodes (${this._subgraphDisplayMode}) - selected #${this._selectedNodeId}` : `${t} nodes (${this._subgraphDisplayMode}) - select a node` : `${t} nodes - graph opened in viewer`;
-		let n = B(this._workflow, this._selectedNodeId, { includeSubgraphs: e });
+		let n = V(this._workflow, this._selectedNodeId, { includeSubgraphs: e });
 		if (!n) {
 			let e = document.createElement("div");
 			e.className = "mjr-ws-sidebar-empty", e.textContent = this._large ? "Click a node in the graph map" : "Use the large Graph Map in the viewer to select nodes", wt(this._details, e);
 			return;
 		}
 		let r = document.createElement("div");
-		r.className = "mjr-wgm-node-title", r.textContent = ie(n);
+		r.className = "mjr-wgm-node-title", r.textContent = re(n);
 		let i = document.createElement("div");
-		i.className = "mjr-wgm-node-meta", i.textContent = `#${this._selectedNodeId} ${H(n) || R(n) || "Node"}`;
+		i.className = "mjr-wgm-node-meta", i.textContent = `#${this._selectedNodeId} ${U(n) || z(n) || "Node"}`;
 		let a = this._buildBreadcrumb(n), o = document.createElement("div");
 		o.className = "mjr-wgm-actions", o.appendChild(this._makeAction("Copy node", "pi pi-copy", () => ct(n))), o.appendChild(this._makeAction("Import node", "pi pi-plus-circle", () => ft(n))), o.appendChild(this._makeAction("Import workflow", "pi pi-download", () => dt(this._workflow))), o.appendChild(this._makeAction("Transfer params to selected canvas node", "pi pi-arrow-right-arrow-left", () => pt(n)?.ok));
 		let s = this._buildNodeVisual(n);
@@ -1100,7 +1112,7 @@ var St = 64, Ct = class {
 		let t = document.createElement("div");
 		t.className = "mjr-wgm-breadcrumb";
 		let n = ["Workflow"], r = String(e?._mjrSubgraphName || "").trim(), i = String(this._selectedNodeId || "");
-		(r || i.includes("::")) && n.push(r || String(i.split("::")[0] || "Subgraph")), n.push(ie(e));
+		(r || i.includes("::")) && n.push(r || String(i.split("::")[0] || "Subgraph")), n.push(re(e));
 		for (let e = 0; e < n.length; e += 1) {
 			if (e > 0) {
 				let e = document.createElement("span");
@@ -1123,7 +1135,7 @@ var St = 64, Ct = class {
 		let n = document.createElement("div");
 		n.className = "mjr-wgm-node-visual-header";
 		let r = document.createElement("span");
-		r.className = "mjr-wgm-node-visual-type", r.textContent = H(e) || R(e) || "Node";
+		r.className = "mjr-wgm-node-visual-type", r.textContent = U(e) || z(e) || "Node";
 		let i = document.createElement("span");
 		i.className = "mjr-wgm-node-visual-id", i.textContent = `#${String(e?.id ?? this._selectedNodeId ?? "")}`, n.append(r, i);
 		let a = document.createElement("div");
@@ -1217,7 +1229,7 @@ var St = 64, Ct = class {
 			return;
 		}
 		this._disposePreviewMedia();
-		let n = J(e, { fill: !0 });
+		let n = Y(e, { fill: !0 });
 		if (n) {
 			n.classList?.add?.("mjr-wgm-preview-media"), this._previewMedia = n, this._previewKey = t, this._preview.appendChild(n);
 			return;
@@ -1366,7 +1378,7 @@ function Nt(e) {
 	})) : [];
 }
 function Pt(e) {
-	let t = `${String(R(e) || "").toLowerCase()} ${String(H(e) || "").toLowerCase()}`;
+	let t = `${String(z(e) || "").toLowerCase()} ${String(U(e) || "").toLowerCase()}`;
 	return t.trim() ? /ksampler|sampler|scheduler|cfg|steps|noise|seed/.test(t) ? "sampler" : /checkpoint|clip|vae|unet|lora|model|loader/.test(t) ? "model" : /text|prompt|token|encode|decoder|caption|florence/.test(t) ? "text" : /latent|image|mask|video|audio|preview|save|load|upscale/.test(t) ? "media" : /controlnet|conditioning|guidance|adapter|ipadapter/.test(t) ? "control" : /math|logic|switch|merge|concat|combine|route|branch|reroute/.test(t) ? "logic" : "generic" : "generic";
 }
 function Ft(e) {
@@ -1578,7 +1590,7 @@ function Gt() {
 		let e = Wt("tooltip.queueStop", "Stop Generation");
 		i.title = e, i.setAttribute("aria-label", e);
 	}
-	function h(e = U.getSnapshot(), { authoritative: t = !1 } = {}) {
+	function h(e = W.getSnapshot(), { authoritative: t = !1 } = {}) {
 		let n = Math.max(0, Number(e?.queue) || 0), r = e?.prompt || null, i = !!r?.currentlyExecuting, a = !!(r && (r.currentlyExecuting || r.errorDetails)), o = n > 0 || a, s = !!r?.errorDetails;
 		t && n === 0 && !r && (c = !1, l = !1);
 		let u = c || l || i || n > 0;
@@ -1630,14 +1642,14 @@ function Gt() {
 	}
 	m(), i.disabled = !0, t.addEventListener("click", v), i.addEventListener("click", y);
 	let b = (e) => {
-		h(e?.detail || U.getSnapshot(), { authoritative: !0 });
+		h(e?.detail || W.getSnapshot(), { authoritative: !0 });
 	};
-	return U.addEventListener(Ut, b), M({ timeoutMs: 4e3 }).catch((e) => {
+	return W.addEventListener(Ut, b), M({ timeoutMs: 4e3 }).catch((e) => {
 		console.debug?.(e);
 	}), h(), {
 		el: e,
 		dispose() {
-			f(), t.removeEventListener("click", v), i.removeEventListener("click", y), U.removeEventListener(Ut, b);
+			f(), t.removeEventListener("click", v), i.removeEventListener("click", y), W.removeEventListener(Ut, b);
 		}
 	};
 }
@@ -1709,13 +1721,13 @@ function Qt(e) {
 		["VAE", t.vae]
 	], r = /* @__PURE__ */ new Set(), i = [];
 	for (let [e, t] of n) {
-		let n = de(t?.name || t?.value || t || "");
+		let n = ue(t?.name || t?.value || t || "");
 		if (!(!n || r.has(n)) && (r.add(n), i.push(`${e}: ${n}`), i.length >= 3)) break;
 	}
 	return i.join(" | ");
 }
 function $t(e) {
-	let t = fe(e);
+	let t = de(e);
 	return t.workflowLabel ? [t.workflowLabel, t.workflowBadge].filter(Boolean).join(" | ") : "";
 }
 function en(e, t, n, r) {
@@ -1790,12 +1802,12 @@ var tn = {
 };
 function an(e) {
 	let t = document.createElement("div");
-	return t.className = "mjr-mfv", t.setAttribute("role", "dialog"), t.setAttribute("aria-modal", "false"), t.setAttribute("aria-hidden", "true"), e.element = t, t.appendChild(e._buildHeader()), t.setAttribute("aria-labelledby", e._titleId), t.appendChild(e._buildToolbar()), t.appendChild(te(e)), e._contentWrapper = document.createElement("div"), e._contentWrapper.className = "mjr-mfv-content-wrapper", e._applySidebarPosition(), e._contentEl = document.createElement("div"), e._contentEl.className = "mjr-mfv-content", e._contentWrapper.appendChild(e._contentEl), e._overlayCanvas = document.createElement("canvas"), e._overlayCanvas.className = "mjr-mfv-overlay-canvas", e._contentEl.appendChild(e._overlayCanvas), e._contentEl.appendChild(z(e)), e._genSidebarEl = document.createElement("aside"), e._genSidebarEl.className = "mjr-mfv-gen-sidebar", e._genSidebarEl.setAttribute("aria-label", "Generation info"), e._genSidebarEl.setAttribute("hidden", ""), e._sidebar = new zt({
+	return t.className = "mjr-mfv", t.setAttribute("role", "dialog"), t.setAttribute("aria-modal", "false"), t.setAttribute("aria-hidden", "true"), e.element = t, t.appendChild(e._buildHeader()), t.setAttribute("aria-labelledby", e._titleId), t.appendChild(e._buildToolbar()), t.appendChild(te(e)), e._contentWrapper = document.createElement("div"), e._contentWrapper.className = "mjr-mfv-content-wrapper", e._applySidebarPosition(), e._contentEl = document.createElement("div"), e._contentEl.className = "mjr-mfv-content", e._contentWrapper.appendChild(e._contentEl), e._overlayCanvas = document.createElement("canvas"), e._overlayCanvas.className = "mjr-mfv-overlay-canvas", e._contentEl.appendChild(e._overlayCanvas), e._contentEl.appendChild(B(e)), e._genSidebarEl = document.createElement("aside"), e._genSidebarEl.className = "mjr-mfv-gen-sidebar", e._genSidebarEl.setAttribute("aria-label", "Generation info"), e._genSidebarEl.setAttribute("hidden", ""), e._sidebar = new zt({
 		hostEl: t,
 		onClose: () => e._updateSettingsBtnState(!1),
-		onOpenGraphMap: () => e.setMode?.(W.GRAPH),
+		onOpenGraphMap: () => e.setMode?.(G.GRAPH),
 		onCloseGraphMap: () => {
-			e._mode === W.GRAPH && e.setMode?.(W.SIMPLE);
+			e._mode === G.GRAPH && e.setMode?.(G.SIMPLE);
 		}
 	}), e._contentWrapper.appendChild(e._genSidebarEl), e._contentWrapper.appendChild(e._sidebar.el), t.appendChild(e._contentWrapper), e._rebindControlHandlers(), e._bindPanelInteractions(), e._bindDocumentUiHandlers(), e._bindLayoutObserver?.(), e._onSidebarPosChanged = (t) => {
 		t?.detail?.key === "viewer.mfvSidebarPosition" && e._applySidebarPosition();
@@ -1831,23 +1843,23 @@ function sn(e) {
 	n.className = "mjr-mfv-toolbar";
 	let r = en("<i class=\"pi pi-image\" aria-hidden=\"true\"></i>", f("viewer.mode", "Viewer mode"), [
 		{
-			value: W.SIMPLE,
+			value: G.SIMPLE,
 			html: `<i class="pi pi-image" aria-hidden="true"></i><span>${f("viewer.mode.simple", "Simple")}</span>`
 		},
 		{
-			value: W.AB,
+			value: G.AB,
 			html: `<i class="pi pi-clone" aria-hidden="true"></i><span>${f("viewer.mode.abCompare", "A/B Compare")}</span>`
 		},
 		{
-			value: W.SIDE,
+			value: G.SIDE,
 			html: `<i class="pi pi-table" aria-hidden="true"></i><span>${f("viewer.mode.sideBySide", "Side-by-side")}</span>`
 		},
 		{
-			value: W.GRID,
+			value: G.GRID,
 			html: `<i class="pi pi-th-large" aria-hidden="true"></i><span>${f("viewer.mode.grid", "Grid")}</span>`
 		},
 		{
-			value: W.GRAPH,
+			value: G.GRAPH,
 			html: `<i class="pi pi-sitemap" aria-hidden="true"></i><span>${f("workflowSidebar.graphMap", "Graph Map")}</span>`
 		}
 	], e);
@@ -2105,26 +2117,26 @@ function sn(e) {
 	});
 	let te = document.createElement("div");
 	te.className = "mjr-mfv-toolbar-sep", te.setAttribute("aria-hidden", "true"), n.appendChild(te), e._liveBtn = document.createElement("button"), e._liveBtn.type = "button", e._liveBtn.className = "mjr-icon-btn", e._liveBtn.innerHTML = "<i class=\"pi pi-circle\" aria-hidden=\"true\"></i>", e._liveBtn.setAttribute("aria-pressed", "false"), w(e._liveBtn, f("tooltip.liveStreamOff", "Live Stream: OFF - click to follow final generation outputs"), "L"), n.appendChild(e._liveBtn), e._previewBtn = document.createElement("button"), e._previewBtn.type = "button", e._previewBtn.className = "mjr-icon-btn", e._previewBtn.innerHTML = "<i class=\"pi pi-eye\" aria-hidden=\"true\"></i>", e._previewBtn.setAttribute("aria-pressed", "false"), w(e._previewBtn, f("tooltip.previewStreamOff", "KSampler Preview: OFF - click to stream sampler denoising frames"), "K"), n.appendChild(e._previewBtn), e._nodeStreamBtn = document.createElement("button"), e._nodeStreamBtn.type = "button", e._nodeStreamBtn.className = "mjr-icon-btn", e._nodeStreamBtn.innerHTML = "<i class=\"pi pi-sitemap\" aria-hidden=\"true\"></i>", e._nodeStreamBtn.setAttribute("aria-pressed", "false"), w(e._nodeStreamBtn, f("tooltip.nodeStreamOff", "Node Stream: OFF - click to follow selected node previews, including ImageOps live canvases"), "N"), n.appendChild(e._nodeStreamBtn), e._genBtn = document.createElement("button"), e._genBtn.type = "button", e._genBtn.className = "mjr-icon-btn", e._genBtn.setAttribute("aria-pressed", String(!!e._genSidebarEnabled));
+	let R = document.createElement("i");
+	R.className = "pi pi-info-circle", R.setAttribute("aria-hidden", "true"), e._genBtn.appendChild(R), n.appendChild(e._genBtn), e._updateGenBtnUI(), e._popoutBtn = document.createElement("button"), e._popoutBtn.type = "button", e._popoutBtn.className = "mjr-icon-btn";
+	let z = f("tooltip.popOutViewer", "Pop out viewer to separate window");
+	e._popoutBtn.title = z, e._popoutBtn.setAttribute("aria-label", z), e._popoutBtn.setAttribute("aria-pressed", "false");
+	let B = document.createElement("i");
+	B.className = "pi pi-external-link", B.setAttribute("aria-hidden", "true"), e._popoutBtn.appendChild(B), n.appendChild(e._popoutBtn), e._captureBtn = document.createElement("button"), e._captureBtn.type = "button", e._captureBtn.className = "mjr-icon-btn";
+	let V = f("tooltip.captureView", "Save view as image");
+	e._captureBtn.title = V, e._captureBtn.setAttribute("aria-label", V);
 	let ne = document.createElement("i");
-	ne.className = "pi pi-info-circle", ne.setAttribute("aria-hidden", "true"), e._genBtn.appendChild(ne), n.appendChild(e._genBtn), e._updateGenBtnUI(), e._popoutBtn = document.createElement("button"), e._popoutBtn.type = "button", e._popoutBtn.className = "mjr-icon-btn";
-	let R = f("tooltip.popOutViewer", "Pop out viewer to separate window");
-	e._popoutBtn.title = R, e._popoutBtn.setAttribute("aria-label", R), e._popoutBtn.setAttribute("aria-pressed", "false");
-	let z = document.createElement("i");
-	z.className = "pi pi-external-link", z.setAttribute("aria-hidden", "true"), e._popoutBtn.appendChild(z), n.appendChild(e._popoutBtn), e._captureBtn = document.createElement("button"), e._captureBtn.type = "button", e._captureBtn.className = "mjr-icon-btn";
-	let B = f("tooltip.captureView", "Save view as image");
-	e._captureBtn.title = B, e._captureBtn.setAttribute("aria-label", B);
-	let re = document.createElement("i");
-	re.className = "pi pi-download", re.setAttribute("aria-hidden", "true"), e._captureBtn.appendChild(re), n.appendChild(e._captureBtn);
-	let V = document.createElement("div");
-	V.className = "mjr-mfv-toolbar-sep", V.style.marginLeft = "auto", V.setAttribute("aria-hidden", "true"), n.appendChild(V), e._settingsBtn = document.createElement("button"), e._settingsBtn.type = "button", e._settingsBtn.className = "mjr-icon-btn mjr-mfv-settings-btn";
-	let ie = f("tooltip.nodeParams", "Node Parameters");
-	e._settingsBtn.title = ie, e._settingsBtn.setAttribute("aria-label", ie), e._settingsBtn.setAttribute("aria-pressed", "false");
-	let ae = document.createElement("i");
-	ae.className = "pi pi-sliders-h", ae.setAttribute("aria-hidden", "true"), e._settingsBtn.appendChild(ae), n.appendChild(e._settingsBtn), e._runHandle = Gt(), n.appendChild(e._runHandle.el), e._majoorSettingsBtn = document.createElement("button"), e._majoorSettingsBtn.type = "button", e._majoorSettingsBtn.className = "mjr-icon-btn mjr-mfv-majoor-settings-btn";
-	let H = f("tooltip.openMajoorSettings", "Open Majoor Assets Manager settings");
-	e._majoorSettingsBtn.title = H, e._majoorSettingsBtn.setAttribute("aria-label", H);
-	let U = document.createElement("i");
-	return U.className = "pi pi-cog", U.setAttribute("aria-hidden", "true"), e._majoorSettingsBtn.appendChild(U), n.appendChild(e._majoorSettingsBtn), e._handleDocClick = (t) => {
+	ne.className = "pi pi-download", ne.setAttribute("aria-hidden", "true"), e._captureBtn.appendChild(ne), n.appendChild(e._captureBtn);
+	let H = document.createElement("div");
+	H.className = "mjr-mfv-toolbar-sep", H.style.marginLeft = "auto", H.setAttribute("aria-hidden", "true"), n.appendChild(H), e._settingsBtn = document.createElement("button"), e._settingsBtn.type = "button", e._settingsBtn.className = "mjr-icon-btn mjr-mfv-settings-btn";
+	let re = f("tooltip.nodeParams", "Node Parameters");
+	e._settingsBtn.title = re, e._settingsBtn.setAttribute("aria-label", re), e._settingsBtn.setAttribute("aria-pressed", "false");
+	let ie = document.createElement("i");
+	ie.className = "pi pi-sliders-h", ie.setAttribute("aria-hidden", "true"), e._settingsBtn.appendChild(ie), n.appendChild(e._settingsBtn), e._runHandle = Gt(), n.appendChild(e._runHandle.el), e._majoorSettingsBtn = document.createElement("button"), e._majoorSettingsBtn.type = "button", e._majoorSettingsBtn.className = "mjr-icon-btn mjr-mfv-majoor-settings-btn";
+	let U = f("tooltip.openMajoorSettings", "Open Majoor Assets Manager settings");
+	e._majoorSettingsBtn.title = U, e._majoorSettingsBtn.setAttribute("aria-label", U);
+	let W = document.createElement("i");
+	return W.className = "pi pi-cog", W.setAttribute("aria-hidden", "true"), e._majoorSettingsBtn.appendChild(W), n.appendChild(e._majoorSettingsBtn), e._handleDocClick = (t) => {
 		let n = t?.target;
 		e._chPopover?.classList?.contains("is-open") && !e._chBtn?.contains?.(n) && !e._chPopover.contains(n) && e._closeChPopover?.(), e._guidePopover?.classList?.contains("is-open") && !e._guideBtn?.contains?.(n) && !e._guidePopover.contains(n) && e._closeGuidePopover?.(), e._pinPopover?.classList?.contains("is-open") && !e._pinBtn?.contains?.(n) && !e._pinPopover.contains(n) && e._closePinPopover?.(), e._formatPopover?.classList?.contains("is-open") && !e._formatToggle?.contains?.(n) && !e._formatPopover.contains(n) && e._closeFormatPopover?.(), n?.closest?.(".mjr-mfv-idrop") || e.element?.querySelectorAll?.(".mjr-mfv-idrop-menu.is-open").forEach((e) => e.classList.remove("is-open"));
 	}, e._bindDocumentUiHandlers(), n;
@@ -2146,7 +2158,7 @@ function cn(e) {
 		let n = t.target?.closest?.(".mjr-mfv-pin-btn");
 		if (!n) return;
 		let r = n.dataset.slot;
-		r && (e._pinnedSlots.has(r) ? e._pinnedSlots.delete(r) : e._pinnedSlots.add(r), e._pinnedSlots.has("C") || e._pinnedSlots.has("D") ? e._mode !== W.GRID && e.setMode(W.GRID) : e._pinnedSlots.size > 0 && e._mode === W.SIMPLE && e.setMode(W.AB), e._updatePinUI());
+		r && (e._pinnedSlots.has(r) ? e._pinnedSlots.delete(r) : e._pinnedSlots.add(r), e._pinnedSlots.has("C") || e._pinnedSlots.has("D") ? e._mode !== G.GRID && e.setMode(G.GRID) : e._pinnedSlots.size > 0 && e._mode === G.SIMPLE && e.setMode(G.AB), e._updatePinUI());
 	}, { signal: t }), e._liveBtn?.addEventListener("click", () => {
 		e._dispatchControllerAction("toggleLive", h.MFV_LIVE_TOGGLE);
 	}, { signal: t }), e._previewBtn?.addEventListener("click", () => {
@@ -2160,7 +2172,7 @@ function cn(e) {
 	}, { signal: t }), e._captureBtn?.addEventListener("click", () => e._captureView(), { signal: t }), e._settingsBtn?.addEventListener("click", () => {
 		e._sidebar?.toggle(), e._updateSettingsBtnState(e._sidebar?.isVisible ?? !1);
 	}, { signal: t }), e._majoorSettingsBtn?.addEventListener("click", (t) => {
-		t.stopPropagation(), e._closeAllToolbarPopovers?.(), ae();
+		t.stopPropagation(), e._closeAllToolbarPopovers?.(), ie();
 	}, { signal: t }), e._guidesSelect?.addEventListener("change", () => {
 		e._gridMode = Number(e._guidesSelect.value) || 0, e._guideBtn?.classList.toggle("is-on", e._gridMode !== 0), e._redrawOverlayGuides?.();
 	}, { signal: t }), e._channelSelect?.addEventListener("change", () => {
@@ -2235,7 +2247,7 @@ function hn(e) {
 function gn(e, t) {
 	if (!t) return {};
 	try {
-		let e = t.geninfo ? { geninfo: t.geninfo } : t.metadata || t.metadata_raw || t, n = le(e) || null, r = {
+		let e = t.geninfo ? { geninfo: t.geninfo } : t.metadata || t.metadata_raw || t, n = ce(e) || null, r = {
 			prompt: "",
 			seed: "",
 			model: "",
@@ -2247,9 +2259,9 @@ function gn(e, t) {
 			genTime: ""
 		};
 		if (n && typeof n == "object") {
-			n.prompt && (r.prompt = ue(String(n.prompt))), n.seed != null && (r.seed = String(n.seed)), n.model && (r.model = Array.isArray(n.model) ? n.model.join(", ") : String(n.model));
+			n.prompt && (r.prompt = le(String(n.prompt))), n.seed != null && (r.seed = String(n.seed)), n.model && (r.model = Array.isArray(n.model) ? n.model.join(", ") : String(n.model));
 			let i = $t(n), a = Qt(n);
-			a && (r.model = a), i && (r.model = [i, r.model].filter(Boolean).join(" | ")), Array.isArray(n.loras) && (r.lora = n.loras.map((e) => typeof e == "string" ? e : e?.name || e?.lora_name || e?.model_name || "").filter(Boolean).join(", ")), n.sampler && (r.sampler = String(n.sampler)), n.scheduler && (r.scheduler = String(n.scheduler)), n.cfg != null && (r.cfg = String(n.cfg)), n.steps != null && (r.step = String(n.steps)), !r.prompt && e?.prompt && (r.prompt = ue(String(e.prompt || "")));
+			a && (r.model = a), i && (r.model = [i, r.model].filter(Boolean).join(" | ")), Array.isArray(n.loras) && (r.lora = n.loras.map((e) => typeof e == "string" ? e : e?.name || e?.lora_name || e?.model_name || "").filter(Boolean).join(", ")), n.sampler && (r.sampler = String(n.sampler)), n.scheduler && (r.scheduler = String(n.scheduler)), n.cfg != null && (r.cfg = String(n.cfg)), n.steps != null && (r.step = String(n.steps)), !r.prompt && e?.prompt && (r.prompt = le(String(e.prompt || "")));
 			let o = t.generation_time_ms ?? t.metadata_raw?.generation_time_ms ?? e?.generation_time_ms ?? e?.geninfo?.generation_time_ms ?? 0;
 			return o && Number.isFinite(Number(o)) && o > 0 && o < 864e5 && (r.genTime = mn(Number(o) / 1e3)), r;
 		}
@@ -2257,7 +2269,7 @@ function gn(e, t) {
 		console.debug?.("[MFV] geninfo normalize failed", e);
 	}
 	let n = t?.metadata || t?.metadata_raw || t || {}, r = {
-		prompt: ue(String(n?.prompt || n?.positive || "")),
+		prompt: le(String(n?.prompt || n?.positive || "")),
 		seed: n?.seed == null ? "" : String(n.seed),
 		model: n?.checkpoint || n?.ckpt_name || n?.model || "",
 		lora: Array.isArray(n?.loras) ? n.loras.join(", ") : n?.lora || "",
@@ -2314,16 +2326,16 @@ function vn(e) {
 }
 function yn(e) {
 	let t = [
-		W.SIMPLE,
-		W.AB,
-		W.SIDE,
-		W.GRID,
-		W.GRAPH
+		G.SIMPLE,
+		G.AB,
+		G.SIDE,
+		G.GRID,
+		G.GRAPH
 	];
 	e._mode = t[(t.indexOf(e._mode) + 1) % t.length], e._updateModeBtnUI(), e._refresh(), e._notifyModeChanged();
 }
 function bn(e, t) {
-	Object.values(W).includes(t) && (e._mode = t, e._updateModeBtnUI(), e._refresh(), e._notifyModeChanged());
+	Object.values(G).includes(t) && (e._mode = t, e._updateModeBtnUI(), e._refresh(), e._notifyModeChanged());
 }
 function xn(e) {
 	return e._pinnedSlots;
@@ -2347,28 +2359,28 @@ function Sn(e) {
 function Cn(e) {
 	if (!e._modeBtn) return;
 	let { icon: t = "pi-image", label: n = "" } = {
-		[W.SIMPLE]: {
+		[G.SIMPLE]: {
 			icon: "pi-image",
 			label: "Mode: Simple - click to switch"
 		},
-		[W.AB]: {
+		[G.AB]: {
 			icon: "pi-clone",
 			label: "Mode: A/B Compare - click to switch"
 		},
-		[W.SIDE]: {
+		[G.SIDE]: {
 			icon: "pi-table",
 			label: "Mode: Side-by-Side - click to switch"
 		},
-		[W.GRID]: {
+		[G.GRID]: {
 			icon: "pi-th-large",
 			label: "Mode: Grid Compare (up to 4) - click to switch"
 		},
-		[W.GRAPH]: {
+		[G.GRAPH]: {
 			icon: "pi-sitemap",
 			label: "Mode: Graph Map - click to switch"
 		}
 	}[e._mode] || {}, r = T(n, "C"), i = document.createElement("i");
-	i.className = `pi ${t}`, i.setAttribute("aria-hidden", "true"), e._modeBtn.replaceChildren(i), e._modeBtn.title = r, e._modeBtn.setAttribute("aria-label", r), e._modeBtn.removeAttribute("aria-pressed"), e._modeBtn.classList.toggle("is-on", e._mode !== W.SIMPLE), e._modeDrop?.selectItem?.(e._mode);
+	i.className = `pi ${t}`, i.setAttribute("aria-hidden", "true"), e._modeBtn.replaceChildren(i), e._modeBtn.title = r, e._modeBtn.setAttribute("aria-label", r), e._modeBtn.removeAttribute("aria-pressed"), e._modeBtn.classList.toggle("is-on", e._mode !== G.SIMPLE), e._modeDrop?.selectItem?.(e._mode);
 }
 function wn(e, t) {
 	if (!e._liveBtn) return;
@@ -2385,18 +2397,47 @@ function Tn(e, t) {
 	let n = T(e._previewActive ? f("tooltip.previewStreamOn", "KSampler Preview: ON - streams sampler denoising frames during execution") : f("tooltip.previewStreamOff", "KSampler Preview: OFF - click to stream sampler denoising frames"), "K");
 	e._previewBtn.setAttribute("aria-pressed", String(e._previewActive)), e._previewBtn.setAttribute("aria-label", n);
 	let r = document.createElement("i");
-	r.className = e._previewActive ? "pi pi-eye" : "pi pi-eye-slash", r.setAttribute("aria-hidden", "true"), e._previewBtn.replaceChildren(r), e._previewBtn.title = n, e._previewActive || e._revokePreviewBlob();
+	r.className = e._previewActive ? "pi pi-eye" : "pi pi-eye-slash", r.setAttribute("aria-hidden", "true"), e._previewBtn.replaceChildren(r), e._previewBtn.title = n;
 }
-function En(e, t, n = {}) {
+function En(e) {
+	return e?._isPreview ? String(e?._previewBlobUrl || e?.url || "").trim() : "";
+}
+function Dn(e, t) {
+	let n = new Set([
+		"A",
+		"B",
+		"C",
+		"D"
+	].map((t) => En(e[`_media${t}`])).filter(Boolean));
+	for (let r of t) {
+		let t = En(r);
+		if (!(!t || n.has(t))) {
+			try {
+				URL.revokeObjectURL(t);
+			} catch {}
+			String(e._previewBlobUrl || "") === t && (e._previewBlobUrl = null);
+		}
+	}
+}
+function On(e, t, n = {}) {
 	if (!t || !(t instanceof Blob)) return;
-	e._revokePreviewBlob();
-	let r = URL.createObjectURL(t);
-	e._previewBlobUrl = r;
-	let i = String(n?.mime || t.type || "image/jpeg").trim().toLowerCase(), a = i === "video/mp4", o = {
-		url: r,
-		filename: n?.filename || (a ? "preview.mp4" : i === "image/webp" ? "preview.webp" : i === "image/png" ? "preview.png" : "preview.jpg"),
-		kind: a ? "video" : "image",
-		mime: i,
+	let r = e._mode === G.AB || e._mode === G.SIDE || e._mode === G.GRID, i = "A";
+	if (r) {
+		let t = e.getPinnedSlots();
+		if (i = e._mode === G.GRID ? [
+			"A",
+			"B",
+			"C",
+			"D"
+		].find((e) => !t.has(e)) || "" : t.has("B") ? t.has("A") ? "" : "A" : "B", !i) return;
+	}
+	let a = e[`_media${i}`] || null, o = URL.createObjectURL(t);
+	e._previewBlobUrl = o;
+	let s = String(n?.mime || t.type || "image/jpeg").trim().toLowerCase(), c = s === "video/mp4", l = {
+		url: o,
+		filename: n?.filename || (c ? "preview.mp4" : s === "image/webp" ? "preview.webp" : s === "image/png" ? "preview.png" : "preview.jpg"),
+		kind: c ? "video" : "image",
+		mime: s,
 		width: Number(n?.width) || void 0,
 		height: Number(n?.height) || void 0,
 		fps: Number(n?.fps) || void 0,
@@ -2405,31 +2446,29 @@ function En(e, t, n = {}) {
 		_previewSource: n?.source || "comfy",
 		_previewNodeId: n?.nodeId == null ? null : String(n.nodeId),
 		_previewStep: Number.isFinite(Number(n?.step)) ? Number(n.step) : null,
-		_previewTotal: Number.isFinite(Number(n?.total)) ? Number(n.total) : null
+		_previewTotal: Number.isFinite(Number(n?.total)) ? Number(n.total) : null,
+		_previewBlobUrl: o
 	};
-	if (e._mode === W.AB || e._mode === W.SIDE || e._mode === W.GRID) {
-		let t = e.getPinnedSlots();
-		if (e._mode === W.GRID) {
-			let n = [
-				"A",
-				"B",
-				"C",
-				"D"
-			].find((e) => !t.has(e)) || "A";
-			e[`_media${n}`] = o;
-		} else t.has("B") ? e._mediaA = o : e._mediaB = o;
-	} else e._mediaA = o, e._resetMfvZoom(), e._mode !== W.SIMPLE && (e._mode = W.SIMPLE, e._updateModeBtnUI());
-	++e._refreshGen, e._refresh();
+	r ? e[`_media${i}`] = l : (e._mediaA = l, e._resetMfvZoom(), e._mode !== G.SIMPLE && (e._mode = G.SIMPLE, e._updateModeBtnUI())), Dn(e, [a]), ++e._refreshGen, e._refresh();
 }
-function Dn(e) {
-	if (e._previewBlobUrl) {
-		try {
-			URL.revokeObjectURL(e._previewBlobUrl);
-		} catch {}
-		e._previewBlobUrl = null;
+function kn(e) {
+	let t = /* @__PURE__ */ new Set();
+	e._previewBlobUrl && t.add(String(e._previewBlobUrl));
+	for (let n of [
+		"A",
+		"B",
+		"C",
+		"D"
+	]) {
+		let r = En(e[`_media${n}`]);
+		r && t.add(r);
 	}
+	for (let e of t) try {
+		URL.revokeObjectURL(e);
+	} catch {}
+	e._previewBlobUrl = null;
 }
-function On(e, t) {
+function An(e, t) {
 	if (e._nodeStreamActive = !!t, e._nodeStreamActive || e.setNodeStreamSelection?.(null), !e._nodeStreamBtn) return;
 	e._nodeStreamBtn.classList.toggle("mjr-nodestream-active", e._nodeStreamActive);
 	let n = T(e._nodeStreamActive ? f("tooltip.nodeStreamOn", "Node Stream: ON - follows the selected node preview when frontend media exists") : f("tooltip.nodeStreamOff", "Node Stream: OFF - click to follow selected node previews, including ImageOps live canvases"), "N");
@@ -2439,8 +2478,8 @@ function On(e, t) {
 }
 //#endregion
 //#region ui/features/viewer/floatingViewerPopout.ts
-var kn = /* @__PURE__ */ "--border-color.--border-default.--button-hover-surface.--button-surface.--comfy-accent.--comfy-font.--comfy-input-bg.--comfy-menu-bg.--comfy-menu-secondary-bg.--comfy-status-error.--comfy-status-success.--comfy-status-warning.--content-bg.--content-fg.--descrip-text.--destructive-background.--font-inter.--input-text.--interface-menu-surface.--interface-panel-hover-surface.--interface-panel-selected-surface.--interface-panel-surface.--modal-card-background.--muted-foreground.--primary-background.--primary-background-hover.--radius-lg.--radius-md.--radius-sm.--success-background.--warning-background".split(".");
-function An() {
+var jn = /* @__PURE__ */ "--border-color.--border-default.--button-hover-surface.--button-surface.--comfy-accent.--comfy-font.--comfy-input-bg.--comfy-menu-bg.--comfy-menu-secondary-bg.--comfy-status-error.--comfy-status-success.--comfy-status-warning.--content-bg.--content-fg.--descrip-text.--destructive-background.--font-inter.--input-text.--interface-menu-surface.--interface-panel-hover-surface.--interface-panel-selected-surface.--interface-panel-surface.--modal-card-background.--muted-foreground.--primary-background.--primary-background-hover.--radius-lg.--radius-md.--radius-sm.--success-background.--warning-background".split(".");
+function Mn() {
 	try {
 		let e = typeof window < "u" ? window : globalThis, t = e?.process?.versions?.electron;
 		if (typeof t == "string" && t.trim() || e?.electron || e?.ipcRenderer || e?.electronAPI) return !0;
@@ -2469,10 +2508,10 @@ function $(e, t = null, n = "info") {
 		console.debug?.(e);
 	}
 }
-function jn(e, ...t) {
+function Nn(e, ...t) {
 	return Array.from(new Set([String(e || ""), ...t].join(" ").split(/\s+/).filter(Boolean))).join(" ");
 }
-function Mn(e, t) {
+function Pn(e, t) {
 	if (!(!e || !t)) for (let n of Array.from(e.attributes || [])) {
 		let e = String(n?.name || "");
 		if (!(!e || e === "class" || e === "style")) try {
@@ -2482,7 +2521,7 @@ function Mn(e, t) {
 		}
 	}
 }
-function Nn(e, t) {
+function Fn(e, t) {
 	if (!e || !t?.style) return;
 	let n = typeof window < "u" && window?.getComputedStyle || globalThis?.getComputedStyle;
 	if (typeof n != "function") return;
@@ -2493,7 +2532,7 @@ function Nn(e, t) {
 		console.debug?.(e);
 	}
 	if (r) {
-		for (let e of kn) try {
+		for (let e of jn) try {
 			let n = String(r.getPropertyValue?.(e) || "").trim();
 			n && t.style.setProperty(e, n);
 		} catch (e) {
@@ -2507,12 +2546,12 @@ function Nn(e, t) {
 		}
 	}
 }
-function Pn(e) {
+function In(e) {
 	if (!e?.documentElement || !e?.body || !document?.documentElement) return;
 	let t = document.documentElement, n = document.body, r = e.documentElement, i = e.body;
-	r.className = jn(t.className, "mjr-mfv-popout-document"), i.className = jn(n?.className, "mjr-mfv-popout-body"), Mn(t, r), Mn(n, i), Nn(t, r), Nn(n, i), t?.lang && (r.lang = t.lang), t?.dir && (r.dir = t.dir);
+	r.className = Nn(t.className, "mjr-mfv-popout-document"), i.className = Nn(n?.className, "mjr-mfv-popout-body"), Pn(t, r), Pn(n, i), Fn(t, r), Fn(n, i), t?.lang && (r.lang = t.lang), t?.dir && (r.dir = t.dir);
 }
-function Fn(e) {
+function Ln(e) {
 	if (!e?.body) return null;
 	try {
 		(e.getElementById?.("mjr-mfv-popout-root"))?.remove?.();
@@ -2522,10 +2561,10 @@ function Fn(e) {
 	let t = e.createElement("div");
 	return t.id = "mjr-mfv-popout-root", t.className = "mjr-mfv-popout-root", e.body.appendChild(t), t;
 }
-function In(e) {
+function Rn(e) {
 	e._resetGenDropdownForCurrentDocument(), e._rebindControlHandlers(), e._bindPanelInteractions(), e._bindDocumentUiHandlers(), e._unbindLayoutObserver?.(), e._bindLayoutObserver?.(), e._refresh?.(), e._updatePopoutBtnUI();
 }
-function Ln(e, t) {
+function zn(e, t) {
 	if (!e.element) return;
 	let n = !!t;
 	if (e._desktopExpanded === n) return;
@@ -2535,13 +2574,13 @@ function Ln(e, t) {
 			parent: r.parentNode || null,
 			nextSibling: r.nextSibling || null,
 			styleAttr: r.getAttribute("style")
-		}, r.parentNode !== document.body && document.body.appendChild(r), r.classList.add("mjr-mfv--desktop-expanded", "is-visible"), r.setAttribute("aria-hidden", "false"), r.style.position = "fixed", r.style.top = "12px", r.style.left = "12px", r.style.right = "12px", r.style.bottom = "12px", r.style.width = "auto", r.style.height = "auto", r.style.maxWidth = "none", r.style.maxHeight = "none", r.style.minWidth = "320px", r.style.minHeight = "240px", r.style.resize = "none", r.style.margin = "0", r.style.zIndex = "2147483000", e._desktopExpanded = !0, e.isVisible = !0, In(e), $("electron-in-app-expanded", { isVisible: e.isVisible });
+		}, r.parentNode !== document.body && document.body.appendChild(r), r.classList.add("mjr-mfv--desktop-expanded", "is-visible"), r.setAttribute("aria-hidden", "false"), r.style.position = "fixed", r.style.top = "12px", r.style.left = "12px", r.style.right = "12px", r.style.bottom = "12px", r.style.width = "auto", r.style.height = "auto", r.style.maxWidth = "none", r.style.maxHeight = "none", r.style.minWidth = "320px", r.style.minHeight = "240px", r.style.resize = "none", r.style.margin = "0", r.style.zIndex = "2147483000", e._desktopExpanded = !0, e.isVisible = !0, Rn(e), $("electron-in-app-expanded", { isVisible: e.isVisible });
 		return;
 	}
 	let i = e._desktopExpandRestore;
-	e._desktopExpanded = !1, r.classList.remove("mjr-mfv--desktop-expanded"), i?.styleAttr == null || i.styleAttr === "" ? r.removeAttribute("style") : r.setAttribute("style", i.styleAttr), i?.parent && i.parent.isConnected && (i.nextSibling && i.nextSibling.parentNode === i.parent ? i.parent.insertBefore(r, i.nextSibling) : i.parent.appendChild(r)), e._desktopExpandRestore = null, In(e), $("electron-in-app-restored", null);
+	e._desktopExpanded = !1, r.classList.remove("mjr-mfv--desktop-expanded"), i?.styleAttr == null || i.styleAttr === "" ? r.removeAttribute("style") : r.setAttribute("style", i.styleAttr), i?.parent && i.parent.isConnected && (i.nextSibling && i.nextSibling.parentNode === i.parent ? i.parent.insertBefore(r, i.nextSibling) : i.parent.appendChild(r)), e._desktopExpandRestore = null, Rn(e), $("electron-in-app-restored", null);
 }
-function Rn(t, n) {
+function Bn(t, n) {
 	t._desktopPopoutUnsupported = !0, $("electron-in-app-fallback", { message: n?.message || String(n || "unknown error") }, "warn"), t._setDesktopExpanded(!0);
 	try {
 		e(f("toast.popoutElectronInAppFallback", "Desktop PiP is unavailable here. Viewer expanded inside the app instead."), "warning", 4500);
@@ -2549,14 +2588,14 @@ function Rn(t, n) {
 		console.debug?.(e);
 	}
 }
-function zn(e, t, n, r, i) {
+function Vn(e, t, n, r, i) {
 	return $("electron-popup-fallback-attempt", { reason: i?.message || String(i || "unknown") }, "warn"), e._fallbackPopout(t, n, r), e._popoutWindow ? (e._desktopPopoutUnsupported = !1, $("electron-popup-fallback-opened", null), !0) : !1;
 }
-function Bn(e) {
+function Hn(e) {
 	if (e._isPopped || !e.element) return;
 	let t = e.element;
 	e._stopEdgeResize();
-	let n = An(), r = typeof window < "u" && "documentPictureInPicture" in window, i = String(window?.navigator?.userAgent || globalThis?.navigator?.userAgent || ""), a = Math.max(t.offsetWidth || 520, 400), o = Math.max(t.offsetHeight || 420, 300);
+	let n = Mn(), r = typeof window < "u" && "documentPictureInPicture" in window, i = String(window?.navigator?.userAgent || globalThis?.navigator?.userAgent || ""), a = Math.max(t.offsetWidth || 520, 400), o = Math.max(t.offsetHeight || 420, 300);
 	if ($("start", {
 		isElectronHost: n,
 		hasDocumentPiP: r,
@@ -2591,7 +2630,7 @@ function Bn(e) {
 				e._popoutCloseHandler = i;
 				let a = n.document;
 				a.title = "Majoor Viewer", e._installPopoutStyles(a);
-				let o = Fn(a);
+				let o = Ln(a);
 				if (!o) {
 					e._activateDesktopExpandedFallback(/* @__PURE__ */ Error("Popup root creation failed"));
 					return;
@@ -2609,7 +2648,7 @@ function Bn(e) {
 					e._activateDesktopExpandedFallback(t);
 					return;
 				}
-				t.classList.add("is-visible"), e.isVisible = !0, In(e), $("electron-pip-ready", { isPopped: e._isPopped }), n.addEventListener("pagehide", i, { signal: r }), e._startPopoutCloseWatch(), e._popoutKeydownHandler = (t) => {
+				t.classList.add("is-visible"), e.isVisible = !0, Rn(e), $("electron-pip-ready", { isPopped: e._isPopped }), n.addEventListener("pagehide", i, { signal: r }), e._startPopoutCloseWatch(), e._popoutKeydownHandler = (t) => {
 					let n = String(t?.target?.tagName || "").toLowerCase();
 					t?.defaultPrevented || t?.target?.isContentEditable || n === "input" || n === "textarea" || n === "select" || e._forwardKeydownToController(t);
 				}, n.addEventListener("keydown", e._popoutKeydownHandler, { signal: r });
@@ -2628,7 +2667,7 @@ function Bn(e) {
 		}), e._fallbackPopout(t, a, o);
 	}
 }
-function Vn(e, t, n, r) {
+function Un(e, t, n, r) {
 	$("browser-popup-open", {
 		width: n,
 		height: r
@@ -2656,7 +2695,7 @@ function Vn(e, t, n, r) {
 		}
 		if (!n) return;
 		n.title = "Majoor Viewer", e._installPopoutStyles(n);
-		let r = Fn(n);
+		let r = Ln(n);
 		if (r) {
 			try {
 				r.appendChild(n.adoptNode(t));
@@ -2664,7 +2703,7 @@ function Vn(e, t, n, r) {
 				console.warn("[MFV] adoptNode failed", e);
 				return;
 			}
-			t.classList.add("is-visible"), e.isVisible = !0, In(e);
+			t.classList.add("is-visible"), e.isVisible = !0, Rn(e);
 		}
 	};
 	try {
@@ -2682,7 +2721,7 @@ function Vn(e, t, n, r) {
 		t?.defaultPrevented || t?.target?.isContentEditable || n === "input" || n === "textarea" || n === "select" || e._forwardKeydownToController(t);
 	}, a.addEventListener("keydown", e._popoutKeydownHandler, { signal: o });
 }
-function Hn(e) {
+function Wn(e) {
 	if (e._popoutCloseTimer != null) {
 		try {
 			window.clearInterval(e._popoutCloseTimer);
@@ -2692,7 +2731,7 @@ function Hn(e) {
 		e._popoutCloseTimer = null;
 	}
 }
-function Un(e) {
+function Gn(e) {
 	e._clearPopoutCloseWatch(), e._popoutCloseTimer = window.setInterval(() => {
 		if (!e._isPopped) {
 			e._clearPopoutCloseWatch();
@@ -2702,7 +2741,7 @@ function Un(e) {
 		(!t || t.closed) && (e._clearPopoutCloseWatch(), e._schedulePopInFromPopupClose());
 	}, 250);
 }
-function Wn(e) {
+function Kn(e) {
 	!e._isPopped || e._popoutRestoreGuard || (e._popoutRestoreGuard = !0, window.setTimeout(() => {
 		try {
 			e.popIn({ closePopupWindow: !1 });
@@ -2711,14 +2750,14 @@ function Wn(e) {
 		}
 	}, 0));
 }
-function Gn(e, t) {
+function qn(e, t) {
 	if (!t?.head) return;
 	try {
 		for (let e of t.head.querySelectorAll("[data-mjr-popout-cloned-style='1']")) e.remove();
 	} catch (e) {
 		console.debug?.(e);
 	}
-	Pn(t);
+	In(t);
 	try {
 		let e = document.documentElement.style.cssText;
 		if (e) {
@@ -2742,7 +2781,7 @@ function Gn(e, t) {
 	let n = t.createElement("style");
 	n.setAttribute("data-mjr-popout-cloned-style", "1"), n.textContent = "\n        html.mjr-mfv-popout-document {\n            min-height: 100%;\n            background:\n                radial-gradient(\n                    1200px 420px at 50% 0%,\n                    color-mix(in srgb, var(--primary-background, var(--comfy-accent, #5fb3ff)) 10%, transparent),\n                    transparent 62%\n                ),\n                linear-gradient(\n                    180deg,\n                    color-mix(in srgb, var(--interface-panel-surface, var(--content-bg, #16191f)) 82%, #000 18%),\n                    color-mix(in srgb, var(--interface-menu-surface, var(--comfy-menu-bg, #1f2227)) 84%, #000 16%)\n                ) !important;\n        }\n        body.mjr-mfv-popout-body {\n            margin: 0 !important;\n            display: flex !important;\n            min-height: 100vh !important;\n            overflow: hidden !important;\n            background: transparent !important;\n        }\n        #mjr-mfv-popout-root,\n        .mjr-mfv-popout-root {\n            flex: 1 !important;\n            min-width: 0 !important;\n            min-height: 0 !important;\n            display: flex !important;\n            isolation: isolate;\n        }\n        body.mjr-mfv-popout-body .mjr-mfv {\n            position: static !important;\n            width: 100% !important;\n            height: 100% !important;\n            min-width: 0 !important;\n            min-height: 0 !important;\n            resize: none !important;\n            border-radius: 0 !important;\n            display: flex !important;\n            opacity: 1 !important;\n            visibility: visible !important;\n            pointer-events: auto !important;\n            transform: none !important;\n            max-width: none !important;\n            max-height: none !important;\n            overflow: hidden !important;\n        }\n    ", t.head.appendChild(n);
 }
-function Kn(e, { closePopupWindow: t = !0 } = {}) {
+function Jn(e, { closePopupWindow: t = !0 } = {}) {
 	if (e._desktopExpanded) {
 		e._setDesktopExpanded(!1);
 		return;
@@ -2762,14 +2801,14 @@ function Kn(e, { closePopupWindow: t = !0 } = {}) {
 	} catch (e) {
 		console.debug?.("[MFV] pop-in adopt failed", e);
 	}
-	if (document.body.appendChild(r), r.classList.add("is-visible"), r.setAttribute("aria-hidden", "false"), e.isVisible = !0, In(e), t) try {
+	if (document.body.appendChild(r), r.classList.add("is-visible"), r.setAttribute("aria-hidden", "false"), e.isVisible = !0, Rn(e), t) try {
 		n?.close();
 	} catch (e) {
 		console.debug?.(e);
 	}
 	e._popoutWindow = null;
 }
-function qn(e) {
+function Yn(e) {
 	if (!e._popoutBtn) return;
 	let t = e._isPopped || e._desktopExpanded;
 	e.element && e.element.classList.toggle("mjr-mfv--popped", t), e._popoutBtn.classList.toggle("mjr-popin-active", t);
@@ -2778,7 +2817,7 @@ function qn(e) {
 }
 //#endregion
 //#region ui/features/viewer/floatingViewerPanel.ts
-function Jn(e) {
+function Xn(e) {
 	return {
 		n: "ns-resize",
 		s: "ns-resize",
@@ -2790,12 +2829,12 @@ function Jn(e) {
 		sw: "nesw-resize"
 	}[e] || "";
 }
-function Yn(e, t, n) {
+function Zn(e, t, n) {
 	if (!n) return "";
 	let r = e <= n.left + 8, i = e >= n.right - 8, a = t <= n.top + 8, o = t >= n.bottom - 8;
 	return a && r ? "nw" : a && i ? "ne" : o && r ? "sw" : o && i ? "se" : a ? "n" : o ? "s" : r ? "w" : i ? "e" : "";
 }
-function Xn(e) {
+function Qn(e) {
 	if (e.element) {
 		try {
 			e._resizeWindowCleanup?.();
@@ -2810,7 +2849,7 @@ function Xn(e) {
 		e._resizeState = null, e.element.classList.remove("mjr-mfv--resizing"), e.element.style.cursor = "";
 	}
 }
-function Zn(e) {
+function $n(e) {
 	if (e.element) {
 		e._stopEdgeResize();
 		try {
@@ -2821,7 +2860,7 @@ function Zn(e) {
 		e._panelAC = new AbortController(), e._initEdgeResize(e.element), e._initDrag(e.element.querySelector(".mjr-mfv-header"));
 	}
 }
-function Qn(e, t) {
+function er(e, t) {
 	if (!t) return;
 	let n = (t) => {
 		if (!e.element || e._isPopped) return "";
@@ -2892,7 +2931,7 @@ function Qn(e, t) {
 		!e._resizeState && e.element && (e.element.style.cursor = "");
 	}, { signal: r });
 }
-function $n(e, t) {
+function tr(e, t) {
 	if (!t) return;
 	let n = e._panelAC?.signal, r = null;
 	t.addEventListener("pointerdown", (n) => {
@@ -2920,15 +2959,15 @@ function $n(e, t) {
 }
 //#endregion
 //#region ui/features/viewer/floatingViewerCapture.ts
-async function er(e, t, n, r, i, a, o, s) {
+async function nr(e, t, n, r, i, a, o, s) {
 	if (!n) return;
-	let c = G(n), l = null;
+	let c = K(n), l = null;
 	if (c === "video" && (l = s instanceof HTMLVideoElement ? s : e._contentEl?.querySelector("video") || null), !l && c === "model3d") {
 		let t = n?.id == null ? "" : String(n.id);
 		t && (l = e._contentEl?.querySelector?.(`.mjr-model3d-render-canvas[data-mjr-asset-id="${t}"]`) || null), l ||= e._contentEl?.querySelector?.(".mjr-model3d-render-canvas") || null;
 	}
 	if (!l) {
-		let e = Me(n);
+		let e = je(n);
 		if (!e) return;
 		l = await new Promise((t) => {
 			let n = new Image();
@@ -2941,7 +2980,7 @@ async function er(e, t, n, r, i, a, o, s) {
 	let f = Math.min(a / u, o / d);
 	t.drawImage(l, r + (a - u * f) / 2, i + (o - d * f) / 2, u * f, d * f);
 }
-function tr(e, t, n, r) {
+function rr(e, t, n, r) {
 	if (!t || !n || !e._genInfoSelections.size) return 0;
 	let i = e._getGenFields(n), a = [
 		"prompt",
@@ -2973,7 +3012,7 @@ function tr(e, t, n, r) {
 	}
 	return s > 0 ? s * 16 + 16 : 0;
 }
-function nr(e, t, n, r, i, a, o) {
+function ir(e, t, n, r, i, a, o) {
 	if (!n || !e._genInfoSelections.size) return;
 	let s = e._getGenFields(n), c = {
 		prompt: "#7ec8ff",
@@ -3028,16 +3067,16 @@ function nr(e, t, n, r, i, a, o) {
 		});
 	}
 	let p = f.reduce((e, t) => e + t.lines.length, 0) * 16 + 16, m = r + 8, h = i + o - p - 8;
-	t.globalAlpha = .72, t.fillStyle = "#000", Re(t, m, h, d, p, 6), t.fill(), t.globalAlpha = 1;
+	t.globalAlpha = .72, t.fillStyle = "#000", Le(t, m, h, d, p, 6), t.fill(), t.globalAlpha = 1;
 	let g = h + 8 + 11;
 	for (let { label: e, labelW: n, lines: r, color: i } of f) for (let a = 0; a < r.length; a++) a === 0 ? (t.font = "bold 11px system-ui, sans-serif", t.fillStyle = i, t.fillText(e, m + 8, g), t.font = "11px system-ui, sans-serif", t.fillStyle = "rgba(255,255,255,0.88)", t.fillText(r[a], m + 8 + n, g)) : (t.font = "11px system-ui, sans-serif", t.fillStyle = "rgba(255,255,255,0.88)", t.fillText(r[a], m + 8 + n, g)), g += 16;
 	t.restore();
 }
-async function rr(e) {
+async function ar(e) {
 	if (!e._contentEl) return;
 	e._captureBtn && (e._captureBtn.disabled = !0, e._captureBtn.setAttribute("aria-label", f("tooltip.capturingView", "Capturing...")));
 	let t = e._contentEl.clientWidth || 480, n = e._contentEl.clientHeight || 360, r = n;
-	if (e._mode === W.SIMPLE && e._mediaA && e._genInfoSelections.size) {
+	if (e._mode === G.SIMPLE && e._mediaA && e._genInfoSelections.size) {
 		let i = document.createElement("canvas");
 		i.width = t, i.height = n;
 		let a = i.getContext("2d"), o = e._estimateGenInfoOverlayHeight(a, e._mediaA, t);
@@ -3051,14 +3090,14 @@ async function rr(e) {
 	let a = i.getContext("2d");
 	a.fillStyle = "#0d0d0d", a.fillRect(0, 0, t, r);
 	try {
-		if (e._mode === W.SIMPLE) e._mediaA && (await e._drawMediaFit(a, e._mediaA, 0, 0, t, n), e._drawGenInfoOverlay(a, e._mediaA, 0, 0, t, r));
-		else if (e._mode === W.AB) {
+		if (e._mode === G.SIMPLE) e._mediaA && (await e._drawMediaFit(a, e._mediaA, 0, 0, t, n), e._drawGenInfoOverlay(a, e._mediaA, 0, 0, t, r));
+		else if (e._mode === G.AB) {
 			let n = Math.round(e._abDividerX * t), i = e._contentEl.querySelector(".mjr-mfv-ab-layer:not(.mjr-mfv-ab-layer--b) video"), o = e._contentEl.querySelector(".mjr-mfv-ab-layer--b video");
-			e._mediaA && await e._drawMediaFit(a, e._mediaA, 0, 0, t, r, i), e._mediaB && (a.save(), a.beginPath(), a.rect(n, 0, t - n, r), a.clip(), await e._drawMediaFit(a, e._mediaB, 0, 0, t, r, o), a.restore()), a.save(), a.strokeStyle = "rgba(255,255,255,0.88)", a.lineWidth = 2, a.beginPath(), a.moveTo(n, 0), a.lineTo(n, r), a.stroke(), a.restore(), Y(a, "A", 8, 8), Y(a, "B", n + 8, 8), e._mediaA && e._drawGenInfoOverlay(a, e._mediaA, 0, 0, n, r), e._mediaB && e._drawGenInfoOverlay(a, e._mediaB, n, 0, t - n, r);
-		} else if (e._mode === W.SIDE) {
+			e._mediaA && await e._drawMediaFit(a, e._mediaA, 0, 0, t, r, i), e._mediaB && (a.save(), a.beginPath(), a.rect(n, 0, t - n, r), a.clip(), await e._drawMediaFit(a, e._mediaB, 0, 0, t, r, o), a.restore()), a.save(), a.strokeStyle = "rgba(255,255,255,0.88)", a.lineWidth = 2, a.beginPath(), a.moveTo(n, 0), a.lineTo(n, r), a.stroke(), a.restore(), Re(a, "A", 8, 8), Re(a, "B", n + 8, 8), e._mediaA && e._drawGenInfoOverlay(a, e._mediaA, 0, 0, n, r), e._mediaB && e._drawGenInfoOverlay(a, e._mediaB, n, 0, t - n, r);
+		} else if (e._mode === G.SIDE) {
 			let n = Math.floor(t / 2), i = e._contentEl.querySelector(".mjr-mfv-side-panel:first-child video"), o = e._contentEl.querySelector(".mjr-mfv-side-panel:last-child video");
-			e._mediaA && (await e._drawMediaFit(a, e._mediaA, 0, 0, n, r, i), e._drawGenInfoOverlay(a, e._mediaA, 0, 0, n, r)), a.fillStyle = "#111", a.fillRect(n, 0, 2, r), e._mediaB && (await e._drawMediaFit(a, e._mediaB, n, 0, n, r, o), e._drawGenInfoOverlay(a, e._mediaB, n, 0, n, r)), Y(a, "A", 8, 8), Y(a, "B", n + 8, 8);
-		} else if (e._mode === W.GRID) {
+			e._mediaA && (await e._drawMediaFit(a, e._mediaA, 0, 0, n, r, i), e._drawGenInfoOverlay(a, e._mediaA, 0, 0, n, r)), a.fillStyle = "#111", a.fillRect(n, 0, 2, r), e._mediaB && (await e._drawMediaFit(a, e._mediaB, n, 0, n, r, o), e._drawGenInfoOverlay(a, e._mediaB, n, 0, n, r)), Re(a, "A", 8, 8), Re(a, "B", n + 8, 8);
+		} else if (e._mode === G.GRID) {
 			let n = Math.floor(t / 2), i = Math.floor(r / 2), o = [
 				{
 					media: e._mediaA,
@@ -3095,7 +3134,7 @@ async function rr(e) {
 			], s = e._contentEl.querySelectorAll(".mjr-mfv-grid-cell");
 			for (let t = 0; t < o.length; t++) {
 				let n = o[t], r = s[t]?.querySelector("video") || null;
-				n.media && (await e._drawMediaFit(a, n.media, n.x, n.y, n.w, n.h, r), e._drawGenInfoOverlay(a, n.media, n.x, n.y, n.w, n.h)), Y(a, n.label, n.x + 8, n.y + 8);
+				n.media && (await e._drawMediaFit(a, n.media, n.x, n.y, n.w, n.h, r), e._drawGenInfoOverlay(a, n.media, n.x, n.y, n.w, n.h)), Re(a, n.label, n.x + 8, n.y + 8);
 			}
 			a.save(), a.fillStyle = "#111", a.fillRect(n - 1, 0, 2, r), a.fillRect(0, i - 1, t, 2), a.restore();
 		}
@@ -3103,9 +3142,9 @@ async function rr(e) {
 		console.debug("[MFV] capture error:", e);
 	}
 	let o = `${{
-		[W.AB]: "mfv-ab",
-		[W.SIDE]: "mfv-side",
-		[W.GRID]: "mfv-grid"
+		[G.AB]: "mfv-ab",
+		[G.SIDE]: "mfv-side",
+		[G.GRID]: "mfv-grid"
 	}[e._mode] ?? "mfv"}-${Date.now()}.png`;
 	try {
 		let e = i.toDataURL("image/png"), t = document.createElement("a");
@@ -3118,17 +3157,17 @@ async function rr(e) {
 }
 //#endregion
 //#region ui/features/viewer/floatingViewerLoader.ts
-var ir = "imageops-live-preview";
-function ar(e) {
-	return String(e?._source || "") === ir;
+var or = "imageops-live-preview";
+function sr(e) {
+	return String(e?._source || "") === or;
 }
-function or(e, r, { autoMode: i = !1 } = {}) {
-	let a = e._mediaA || null, o = ar(r), s = o && ar(a) && String(a?._nodeId || "") === String(r?._nodeId || "");
-	if (e._mediaA = r || null, s || e._resetMfvZoom(), i && e._mode !== W.SIMPLE && e._mode !== W.GRAPH && (e._mode = W.SIMPLE, e._updateModeBtnUI()), e._refresh(), e._mediaA && !o && typeof pe == "function") {
+function cr(e, r, { autoMode: i = !1 } = {}) {
+	let a = e._mediaA || null, o = sr(r), s = o && sr(a) && String(a?._nodeId || "") === String(r?._nodeId || "");
+	if (e._mediaA = r || null, Dn(e, [a]), s || e._resetMfvZoom(), i && e._mode !== G.SIMPLE && e._mode !== G.GRAPH && (e._mode = G.SIMPLE, e._updateModeBtnUI()), e._refresh(), e._mediaA && !o && typeof fe == "function") {
 		let r = ++e._refreshGen;
 		(async () => {
 			try {
-				let i = await pe(e._mediaA, {
+				let i = await fe(e._mediaA, {
 					getAssetMetadata: t,
 					getFileMetadataScoped: n
 				});
@@ -3140,12 +3179,13 @@ function or(e, r, { autoMode: i = !1 } = {}) {
 		})();
 	}
 }
-function sr(e, r, i) {
-	e._mediaA = r || null, e._mediaB = i || null, e._resetMfvZoom(), e._mode === W.SIMPLE && (e._mode = W.AB, e._updateModeBtnUI());
-	let a = ++e._refreshGen, o = async (e) => {
+function lr(e, r, i) {
+	let a = [e._mediaA, e._mediaB];
+	e._mediaA = r || null, e._mediaB = i || null, Dn(e, a), e._resetMfvZoom(), e._mode === G.SIMPLE && (e._mode = G.AB, e._updateModeBtnUI());
+	let o = ++e._refreshGen, s = async (e) => {
 		if (!e) return e;
 		try {
-			return await pe(e, {
+			return await fe(e, {
 				getAssetMetadata: t,
 				getFileMetadataScoped: n
 			}) || e;
@@ -3154,16 +3194,22 @@ function sr(e, r, i) {
 		}
 	};
 	(async () => {
-		let [t, n] = await Promise.all([o(e._mediaA), o(e._mediaB)]);
-		e._refreshGen === a && (e._mediaA = t || null, e._mediaB = n || null, e._refresh());
+		let [t, n] = await Promise.all([s(e._mediaA), s(e._mediaB)]);
+		e._refreshGen === o && (e._mediaA = t || null, e._mediaB = n || null, e._refresh());
 	})();
 }
-function cr(e, r, i, a, o) {
-	e._mediaA = r || null, e._mediaB = i || null, e._mediaC = a || null, e._mediaD = o || null, e._resetMfvZoom(), e._mode !== W.GRID && (e._mode = W.GRID, e._updateModeBtnUI());
-	let s = ++e._refreshGen, c = async (e) => {
+function ur(e, r, i, a, o) {
+	let s = [
+		e._mediaA,
+		e._mediaB,
+		e._mediaC,
+		e._mediaD
+	];
+	e._mediaA = r || null, e._mediaB = i || null, e._mediaC = a || null, e._mediaD = o || null, Dn(e, s), e._resetMfvZoom(), e._mode !== G.GRID && (e._mode = G.GRID, e._updateModeBtnUI());
+	let c = ++e._refreshGen, l = async (e) => {
 		if (!e) return e;
 		try {
-			return await pe(e, {
+			return await fe(e, {
 				getAssetMetadata: t,
 				getFileMetadataScoped: n
 			}) || e;
@@ -3173,26 +3219,26 @@ function cr(e, r, i, a, o) {
 	};
 	(async () => {
 		let [t, n, r, i] = await Promise.all([
-			c(e._mediaA),
-			c(e._mediaB),
-			c(e._mediaC),
-			c(e._mediaD)
+			l(e._mediaA),
+			l(e._mediaB),
+			l(e._mediaC),
+			l(e._mediaD)
 		]);
-		e._refreshGen === s && (e._mediaA = t || null, e._mediaB = n || null, e._mediaC = r || null, e._mediaD = i || null, e._refresh());
+		e._refreshGen === c && (e._mediaA = t || null, e._mediaB = n || null, e._mediaC = r || null, e._mediaD = i || null, e._refresh());
 	})();
 }
 //#endregion
 //#region ui/features/viewer/FloatingViewer.impl.ts
-function lr(e) {
+function dr(e) {
 	try {
 		return !!e?.classList?.contains("mjr-mfv-simple-player") || !!e?.classList?.contains("mjr-mfv-player-host") || !!e?.querySelector?.(".mjr-video-controls, .mjr-mfv-simple-player-controls");
 	} catch (e) {
 		return console.debug?.(e), !1;
 	}
 }
-var ur = 0, dr = class {
+var fr = 0, pr = class {
 	constructor({ controller: e = null } = {}) {
-		this._instanceId = ++ur, this._controller = e && typeof e == "object" ? { ...e } : null, this.element = null, this.isVisible = !1, this._contentEl = null, this._genSidebarEl = null, this._closeBtn = null, this._modeBtn = null, this._pinGroup = null, this._pinBtns = null, this._liveBtn = null, this._genBtn = null, this._genDropdown = null, this._genSidebarEnabled = !0, this._captureBtn = null, this._genInfoSelections = /* @__PURE__ */ new Set([
+		this._instanceId = ++fr, this._controller = e && typeof e == "object" ? { ...e } : null, this.element = null, this.isVisible = !1, this._contentEl = null, this._genSidebarEl = null, this._closeBtn = null, this._modeBtn = null, this._pinGroup = null, this._pinBtns = null, this._liveBtn = null, this._genBtn = null, this._genDropdown = null, this._genSidebarEnabled = !0, this._captureBtn = null, this._genInfoSelections = /* @__PURE__ */ new Set([
 			"prompt",
 			"seed",
 			"model",
@@ -3202,7 +3248,7 @@ var ur = 0, dr = class {
 			"cfg",
 			"step",
 			"genTime"
-		]), this._mode = W.SIMPLE, this._mediaA = null, this._mediaB = null, this._mediaC = null, this._mediaD = null, this._pinnedSlots = /* @__PURE__ */ new Set(), this._abDividerX = .5, this._mfvMuted = !1, this._mfvPlaybackRate = 1, this._zoom = 1, this._panX = 0, this._panY = 0, this._panzoomAC = null, this._dragging = !1, this._compareSyncAC = null, this._btnAC = null, this._refreshGen = 0, this._popoutWindow = null, this._popoutBtn = null, this._isPopped = !1, this._desktopExpanded = !1, this._desktopExpandRestore = null, this._desktopPopoutUnsupported = !1, this._popoutCloseHandler = null, this._popoutKeydownHandler = null, this._popoutCloseTimer = null, this._popoutRestoreGuard = !1, this._previewBtn = null, this._previewBlobUrl = null, this._previewActive = !1, this._nodeStreamBtn = null, this._nodeStreamActive = !1, this._nodeStreamSelection = null, this._nodeStreamOverlayEl = null, this._docAC = new AbortController(), this._popoutAC = null, this._panelAC = new AbortController(), this._resizeState = null, this._titleId = `mjr-mfv-title-${this._instanceId}`, this._genDropdownId = `mjr-mfv-gen-dropdown-${this._instanceId}`, this._progressEl = null, this._progressNodesEl = null, this._progressStepsEl = null, this._progressTextEl = null, this._mediaProgressEl = null, this._mediaProgressTextEl = null, this._progressUpdateHandler = null, this._progressCurrentNodeId = null, this._docClickHost = null, this._handleDocClick = null, this._mediaControlHandles = [], this._layoutObserver = null, this._channel = "rgb", this._exposureEV = 0, this._gridMode = 0, this._overlayMaskEnabled = !1, this._overlayMaskOpacity = .65, this._overlayFormat = "image", this._graphMapPanel = new Ct({ large: !0 });
+		]), this._mode = G.SIMPLE, this._mediaA = null, this._mediaB = null, this._mediaC = null, this._mediaD = null, this._pinnedSlots = /* @__PURE__ */ new Set(), this._abDividerX = .5, this._mfvMuted = !1, this._mfvPlaybackRate = 1, this._zoom = 1, this._panX = 0, this._panY = 0, this._panzoomAC = null, this._dragging = !1, this._compareSyncAC = null, this._btnAC = null, this._refreshGen = 0, this._popoutWindow = null, this._popoutBtn = null, this._isPopped = !1, this._desktopExpanded = !1, this._desktopExpandRestore = null, this._desktopPopoutUnsupported = !1, this._popoutCloseHandler = null, this._popoutKeydownHandler = null, this._popoutCloseTimer = null, this._popoutRestoreGuard = !1, this._previewBtn = null, this._previewBlobUrl = null, this._previewActive = !1, this._nodeStreamBtn = null, this._nodeStreamActive = !1, this._nodeStreamSelection = null, this._nodeStreamOverlayEl = null, this._docAC = new AbortController(), this._popoutAC = null, this._panelAC = new AbortController(), this._resizeState = null, this._titleId = `mjr-mfv-title-${this._instanceId}`, this._genDropdownId = `mjr-mfv-gen-dropdown-${this._instanceId}`, this._progressEl = null, this._progressNodesEl = null, this._progressStepsEl = null, this._progressTextEl = null, this._mediaProgressEl = null, this._mediaProgressTextEl = null, this._progressUpdateHandler = null, this._progressCurrentNodeId = null, this._docClickHost = null, this._handleDocClick = null, this._mediaControlHandles = [], this._layoutObserver = null, this._channel = "rgb", this._exposureEV = 0, this._gridMode = 0, this._overlayMaskEnabled = !1, this._overlayMaskOpacity = .65, this._overlayFormat = "image", this._graphMapPanel = new Ct({ large: !0 });
 	}
 	_dispatchControllerAction(e, t) {
 		try {
@@ -3315,13 +3361,13 @@ var ur = 0, dr = class {
 		return Tn(this, e);
 	}
 	loadPreviewBlob(e, t = {}) {
-		return En(this, e, t);
+		return On(this, e, t);
 	}
 	_revokePreviewBlob() {
-		return Dn(this);
+		return kn(this);
 	}
 	setNodeStreamActive(e) {
-		return On(this, e);
+		return An(this, e);
 	}
 	setNodeStreamSelection(e) {
 		e && (e.nodeId != null || e.classType) ? this._nodeStreamSelection = {
@@ -3347,17 +3393,17 @@ var ur = 0, dr = class {
 		this._nodeStreamOverlayEl.textContent = `${n}  -  ${r}${i}`.trim();
 	}
 	loadMediaA(e, { autoMode: t = !1 } = {}) {
-		return or(this, e, { autoMode: t });
+		return cr(this, e, { autoMode: t });
 	}
 	loadMediaPair(e, t) {
-		return sr(this, e, t);
+		return lr(this, e, t);
 	}
 	loadMediaQuad(e, t, n, r) {
-		return cr(this, e, t, n, r);
+		return ur(this, e, t, n, r);
 	}
 	_applyTransform() {
 		if (!this._contentEl) return;
-		let e = Math.max(me, Math.min(8, this._zoom)), t = this._contentEl.clientWidth || 0, n = this._contentEl.clientHeight || 0, r = Math.max(0, (e - 1) * t / 2), i = Math.max(0, (e - 1) * n / 2);
+		let e = Math.max(pe, Math.min(8, this._zoom)), t = this._contentEl.clientWidth || 0, n = this._contentEl.clientHeight || 0, r = Math.max(0, (e - 1) * t / 2), i = Math.max(0, (e - 1) * n / 2);
 		this._panX = Math.max(-r, Math.min(r, this._panX)), this._panY = Math.max(-i, Math.min(i, this._panY));
 		let a = `translate(${this._panX}px,${this._panY}px) scale(${e})`;
 		for (let e of this._contentEl.querySelectorAll(".mjr-mfv-media")) e?._mjrDisableViewerTransform || (e.style.transform = a, e.style.transformOrigin = "center");
@@ -3478,7 +3524,7 @@ var ur = 0, dr = class {
 			for (let e of l) n.strokeRect(e.x + .5, e.y + .5, e.w - 1, e.h - 1);
 			n.restore();
 		}
-		if (this._mode !== W.SIMPLE || !this._gridMode) return;
+		if (this._mode !== G.SIMPLE || !this._gridMode) return;
 		let u = l[0];
 		if (!u) return;
 		n.save(), n.translate(u.x, u.y), n.strokeStyle = "rgba(255,255,255,0.22)", n.lineWidth = Math.max(2, Math.round(1.25 * r));
@@ -3488,7 +3534,7 @@ var ur = 0, dr = class {
 		this._gridMode === 1 ? (d(u.w / 3, 0, u.w / 3, u.h), d(2 * u.w / 3, 0, 2 * u.w / 3, u.h), d(0, u.h / 3, u.w, u.h / 3), d(0, 2 * u.h / 3, u.w, 2 * u.h / 3)) : this._gridMode === 2 ? (d(u.w / 2, 0, u.w / 2, u.h), d(0, u.h / 2, u.w, u.h / 2)) : this._gridMode === 3 && (n.strokeRect(u.w * .1 + .5, u.h * .1 + .5, u.w * .8 - 1, u.h * .8 - 1), n.strokeRect(u.w * .05 + .5, u.h * .05 + .5, u.w * .9 - 1, u.h * .9 - 1)), n.restore();
 	}
 	_setMfvZoom(e, t, n) {
-		let r = Math.max(me, Math.min(8, this._zoom)), i = Math.max(me, Math.min(8, Number(e) || 1));
+		let r = Math.max(pe, Math.min(8, this._zoom)), i = Math.max(pe, Math.min(8, Number(e) || 1));
 		if (t != null && n != null && this._contentEl) {
 			let e = i / r, a = this._contentEl.getBoundingClientRect(), o = t - (a.left + a.width / 2), s = n - (a.top + a.height / 2);
 			this._panX = this._panX * e + (1 - e) * o, this._panY = this._panY * e + (1 - e) * s;
@@ -3522,11 +3568,11 @@ var ur = 0, dr = class {
 		this._panzoomAC = new AbortController();
 		let t = { signal: this._panzoomAC.signal };
 		e.addEventListener("wheel", (t) => {
-			if (t.target?.closest?.("audio") || t.target?.closest?.(".mjr-video-controls, .mjr-mfv-simple-player-controls") || oe(t.target)) return;
-			let n = Fe(t.target, e);
-			if (n && Ie(n, Number(t.deltaX || 0), Number(t.deltaY || 0))) return;
+			if (t.target?.closest?.("audio") || t.target?.closest?.(".mjr-video-controls, .mjr-mfv-simple-player-controls") || ae(t.target)) return;
+			let n = Pe(t.target, e);
+			if (n && Fe(n, Number(t.deltaX || 0), Number(t.deltaY || 0))) return;
 			t.preventDefault();
-			let r = 1 - (t.deltaY || t.deltaX || 0) * he;
+			let r = 1 - (t.deltaY || t.deltaX || 0) * me;
 			this._setMfvZoom(this._zoom * r, t.clientX, t.clientY);
 		}, {
 			...t,
@@ -3534,7 +3580,7 @@ var ur = 0, dr = class {
 		});
 		let n = !1, r = 0, i = 0, a = 0, o = 0;
 		e.addEventListener("pointerdown", (t) => {
-			if (!(t.button !== 0 && t.button !== 1) && !(this._zoom <= 1.01) && !t.target?.closest?.("video") && !t.target?.closest?.("audio") && !t.target?.closest?.(".mjr-video-controls, .mjr-mfv-simple-player-controls") && !t.target?.closest?.(".mjr-mfv-ab-divider") && !oe(t.target)) {
+			if (!(t.button !== 0 && t.button !== 1) && !(this._zoom <= 1.01) && !t.target?.closest?.("video") && !t.target?.closest?.("audio") && !t.target?.closest?.(".mjr-video-controls, .mjr-mfv-simple-player-controls") && !t.target?.closest?.(".mjr-mfv-ab-divider") && !ae(t.target)) {
 				t.preventDefault(), n = !0, this._dragging = !0, r = t.clientX, i = t.clientY, a = this._panX, o = this._panY;
 				try {
 					e.setPointerCapture(t.pointerId);
@@ -3558,7 +3604,7 @@ var ur = 0, dr = class {
 			}
 		};
 		e.addEventListener("pointerup", s, t), e.addEventListener("pointercancel", s, t), e.addEventListener("dblclick", (e) => {
-			if (e.target?.closest?.("video") || e.target?.closest?.("audio") || e.target?.closest?.(".mjr-video-controls, .mjr-mfv-simple-player-controls") || oe(e.target)) return;
+			if (e.target?.closest?.("video") || e.target?.closest?.("audio") || e.target?.closest?.(".mjr-video-controls, .mjr-mfv-simple-player-controls") || ae(e.target)) return;
 			let t = Math.abs(this._zoom - 1) < .05;
 			this._setMfvZoom(t ? Math.min(4, this._zoom * 4) : 1, e.clientX, e.clientY);
 		}, t);
@@ -3621,7 +3667,7 @@ var ur = 0, dr = class {
 		return e;
 	}
 	_initCompareSync() {
-		if (this._destroyCompareSync(), this._contentEl && this._mode !== W.SIMPLE) try {
+		if (this._destroyCompareSync(), this._contentEl && this._mode !== G.SIMPLE) try {
 			let e = Array.from(this._contentEl.querySelectorAll("video, audio"));
 			if (e.length < 2) return;
 			let t = e[0] || null, n = e.slice(1);
@@ -3633,33 +3679,33 @@ var ur = 0, dr = class {
 	}
 	_refresh() {
 		if (!this._contentEl) return;
-		this._sidebar?.setAsset?.(this._mediaA || null), this._destroyPanZoom(), this._destroyCompareSync(), this._destroyMediaControls();
+		this._sidebar?.setAsset?.(this._mediaA || null), this._destroyPanZoom(), this._destroyCompareSync(), this._destroyMediaControls(), Ie(this._contentEl);
 		let e = this._overlayCanvas || null;
 		switch (this._contentEl.replaceChildren(), this._contentEl.style.overflow = "hidden", this._mode) {
-			case W.SIMPLE:
+			case G.SIMPLE:
 				this._renderSimple();
 				break;
-			case W.AB:
+			case G.AB:
 				this._renderAB();
 				break;
-			case W.SIDE:
+			case G.SIDE:
 				this._renderSide();
 				break;
-			case W.GRID:
+			case G.GRID:
 				this._renderGrid();
 				break;
-			case W.GRAPH:
+			case G.GRAPH:
 				this._renderGraphMap();
 				break;
 		}
-		e && this._contentEl.appendChild(e), this._nodeStreamSelection && this._updateNodeStreamOverlay(), this._mediaProgressEl && this._contentEl.appendChild(this._mediaProgressEl), this._applyMediaToneControls(), this._applyTransform(), this._mode !== W.GRAPH && this._initPanZoom(this._contentEl), this._initCompareSync(), this._renderGenInfoSidebar();
+		e && this._contentEl.appendChild(e), this._nodeStreamSelection && this._updateNodeStreamOverlay(), this._mediaProgressEl && this._contentEl.appendChild(this._mediaProgressEl), this._applyMediaToneControls(), this._applyTransform(), this._mode !== G.GRAPH && this._initPanZoom(this._contentEl), this._initCompareSync(), this._renderGenInfoSidebar();
 	}
 	_renderGenInfoSidebar() {
 		let e = this._genSidebarEl;
 		if (!e) return;
 		e.replaceChildren();
 		let t = this._getGenInfoSidebarSlots();
-		if (this._mode === W.GRAPH || !this._genSidebarEnabled || t.length === 0) {
+		if (this._mode === G.GRAPH || !this._genSidebarEnabled || t.length === 0) {
 			e.classList.remove("open"), e.setAttribute("hidden", ""), this._updateGenBtnUI?.();
 			return;
 		}
@@ -3667,7 +3713,7 @@ var ur = 0, dr = class {
 		n.className = "mjr-mfv-gen-sidebar-title", n.textContent = "Gen Info", e.appendChild(n);
 		let r = 0;
 		for (let n of t) {
-			if (G(n.media) === "audio") continue;
+			if (K(n.media) === "audio") continue;
 			let i = this._buildGenInfoSidebarContent(n.media);
 			if (!i) continue;
 			let a = document.createElement("section");
@@ -3697,12 +3743,12 @@ var ur = 0, dr = class {
 			media: this._mediaD,
 			label: "D"
 		};
-		return (this._mode === W.GRID ? [
+		return (this._mode === G.GRID ? [
 			e,
 			t,
 			n,
 			r
-		] : this._mode === W.AB || this._mode === W.SIDE ? [e, t] : [e]).filter((e) => e.media);
+		] : this._mode === G.AB || this._mode === G.SIDE ? [e, t] : [e]).filter((e) => e.media);
 	}
 	_buildGenInfoSidebarContent(e) {
 		let t = this._getGenFields(e)?.genTime || "", n = null;
@@ -3935,34 +3981,34 @@ var ur = 0, dr = class {
 	}
 	_renderSimple() {
 		if (!this._mediaA) {
-			this._contentEl.appendChild(K());
+			this._contentEl.appendChild(q());
 			return;
 		}
-		let e = J(this._mediaA, {
+		let e = Y(this._mediaA, {
 			initialMuted: this._mfvMuted,
 			initialPlaybackRate: this._mfvPlaybackRate
 		}), t = this._trackMediaControls?.(e) || e;
 		if (this._bindMfvPersistence?.(t), !t) {
-			this._contentEl.appendChild(K("Could not load media"));
+			this._contentEl.appendChild(q("Could not load media"));
 			return;
 		}
 		let n = document.createElement("div");
 		n.className = "mjr-mfv-simple-container", n.appendChild(t), this._contentEl.appendChild(n);
 	}
 	_renderAB() {
-		let e = this._mediaA ? J(this._mediaA, {
+		let e = this._mediaA ? Y(this._mediaA, {
 			fill: !0,
 			initialMuted: this._mfvMuted,
 			initialPlaybackRate: this._mfvPlaybackRate
-		}) : null, t = this._mediaB ? J(this._mediaB, {
+		}) : null, t = this._mediaB ? Y(this._mediaB, {
 			fill: !0,
 			controls: !1,
 			initialMuted: !0
 		}) : null, n = this._trackMediaControls?.(e) || e, r = this._trackMediaControls?.(t) || t;
 		this._bindMfvPersistence?.(n);
-		let i = this._mediaA ? G(this._mediaA) : "", a = this._mediaB ? G(this._mediaB) : "";
+		let i = this._mediaA ? K(this._mediaA) : "", a = this._mediaB ? K(this._mediaB) : "";
 		if (!n && !r) {
-			this._contentEl.appendChild(K("Select 2 assets for A/B compare"));
+			this._contentEl.appendChild(q("Select 2 assets for A/B compare"));
 			return;
 		}
 		if (!r) {
@@ -3984,9 +4030,9 @@ var ur = 0, dr = class {
 		let u = document.createElement("div");
 		u.className = "mjr-mfv-ab-divider", u.style.left = `${l}%`;
 		let d = this._buildGenInfoDOM(this._mediaA), f = null;
-		d && (f = document.createElement("div"), f.className = "mjr-mfv-geninfo-a", lr(n) && f.classList.add("mjr-mfv-geninfo--above-player"), f.appendChild(d), f.style.right = `calc(${100 - l}% + 8px)`);
+		d && (f = document.createElement("div"), f.className = "mjr-mfv-geninfo-a", dr(n) && f.classList.add("mjr-mfv-geninfo--above-player"), f.appendChild(d), f.style.right = `calc(${100 - l}% + 8px)`);
 		let p = this._buildGenInfoDOM(this._mediaB), m = null;
-		p && (m = document.createElement("div"), m.className = "mjr-mfv-geninfo-b", lr(r) && m.classList.add("mjr-mfv-geninfo--above-player"), m.appendChild(p), m.style.left = `calc(${l}% + 8px)`);
+		p && (m = document.createElement("div"), m.className = "mjr-mfv-geninfo-b", dr(r) && m.classList.add("mjr-mfv-geninfo--above-player"), m.appendChild(p), m.style.left = `calc(${l}% + 8px)`);
 		let h = null;
 		u.addEventListener("pointerdown", (e) => {
 			e.preventDefault(), u.setPointerCapture(e.pointerId);
@@ -4005,37 +4051,37 @@ var ur = 0, dr = class {
 					h?.abort();
 				} catch {}
 			}, { signal: t });
-		}, this._panelAC?.signal ? { signal: this._panelAC.signal } : void 0), o.appendChild(s), o.appendChild(c), o.appendChild(u), f && o.appendChild(f), m && o.appendChild(m), o.appendChild(q("A", "left")), o.appendChild(q("B", "right")), this._contentEl.appendChild(o);
+		}, this._panelAC?.signal ? { signal: this._panelAC.signal } : void 0), o.appendChild(s), o.appendChild(c), o.appendChild(u), f && o.appendChild(f), m && o.appendChild(m), o.appendChild(J("A", "left")), o.appendChild(J("B", "right")), this._contentEl.appendChild(o);
 	}
 	_renderSide() {
-		let e = this._mediaA ? J(this._mediaA, {
+		let e = this._mediaA ? Y(this._mediaA, {
 			initialMuted: this._mfvMuted,
 			initialPlaybackRate: this._mfvPlaybackRate
-		}) : null, t = this._mediaB ? J(this._mediaB, {
+		}) : null, t = this._mediaB ? Y(this._mediaB, {
 			controls: !1,
 			initialMuted: !0
 		}) : null, n = this._trackMediaControls?.(e) || e, r = this._trackMediaControls?.(t) || t;
 		this._bindMfvPersistence?.(n);
-		let i = this._mediaA ? G(this._mediaA) : "", a = this._mediaB ? G(this._mediaB) : "";
+		let i = this._mediaA ? K(this._mediaA) : "", a = this._mediaB ? K(this._mediaB) : "";
 		if (!n && !r) {
-			this._contentEl.appendChild(K("Select 2 assets for Side-by-Side"));
+			this._contentEl.appendChild(q("Select 2 assets for Side-by-Side"));
 			return;
 		}
 		let o = document.createElement("div");
 		o.className = "mjr-mfv-side-container";
 		let s = document.createElement("div");
-		s.className = "mjr-mfv-side-panel", n ? s.appendChild(n) : s.appendChild(K(" - ")), s.appendChild(q("A", "left"));
+		s.className = "mjr-mfv-side-panel", n ? s.appendChild(n) : s.appendChild(q(" - ")), s.appendChild(J("A", "left"));
 		let c = i === "audio" ? null : this._buildGenInfoDOM(this._mediaA);
 		if (c) {
 			let e = document.createElement("div");
-			e.className = "mjr-mfv-geninfo-a", lr(n) && e.classList.add("mjr-mfv-geninfo--above-player"), e.appendChild(c), s.appendChild(e);
+			e.className = "mjr-mfv-geninfo-a", dr(n) && e.classList.add("mjr-mfv-geninfo--above-player"), e.appendChild(c), s.appendChild(e);
 		}
 		let l = document.createElement("div");
-		l.className = "mjr-mfv-side-panel", r ? l.appendChild(r) : l.appendChild(K(" - ")), l.appendChild(q("B", "right"));
+		l.className = "mjr-mfv-side-panel", r ? l.appendChild(r) : l.appendChild(q(" - ")), l.appendChild(J("B", "right"));
 		let u = a === "audio" ? null : this._buildGenInfoDOM(this._mediaB);
 		if (u) {
 			let e = document.createElement("div");
-			e.className = "mjr-mfv-geninfo-b", lr(r) && e.classList.add("mjr-mfv-geninfo--above-player"), e.appendChild(u), l.appendChild(e);
+			e.className = "mjr-mfv-geninfo-b", dr(r) && e.classList.add("mjr-mfv-geninfo--above-player"), e.appendChild(u), l.appendChild(e);
 		}
 		o.appendChild(s), o.appendChild(l), this._contentEl.appendChild(o);
 	}
@@ -4059,7 +4105,7 @@ var ur = 0, dr = class {
 			}
 		];
 		if (!e.filter((e) => e.media).length) {
-			this._contentEl.appendChild(K("Select up to 4 assets for Grid Compare"));
+			this._contentEl.appendChild(q("Select up to 4 assets for Grid Compare"));
 			return;
 		}
 		let t = document.createElement("div");
@@ -4067,19 +4113,19 @@ var ur = 0, dr = class {
 		for (let { media: n, label: r } of e) {
 			let e = document.createElement("div");
 			if (e.className = "mjr-mfv-grid-cell", n) {
-				let t = G(n), i = r === "A", a = J(n, {
+				let t = K(n), i = r === "A", a = Y(n, {
 					controls: i,
 					initialMuted: !i || this._mfvMuted,
 					initialPlaybackRate: i ? this._mfvPlaybackRate : 1
 				}), o = this._trackMediaControls?.(a) || a;
-				if (i && this._bindMfvPersistence?.(o), o ? e.appendChild(o) : e.appendChild(K(" - ")), e.appendChild(q(r, r === "A" || r === "C" ? "left" : "right")), t !== "audio") {
+				if (i && this._bindMfvPersistence?.(o), o ? e.appendChild(o) : e.appendChild(q(" - ")), e.appendChild(J(r, r === "A" || r === "C" ? "left" : "right")), t !== "audio") {
 					let t = this._buildGenInfoDOM(n);
 					if (t) {
 						let n = document.createElement("div");
-						n.className = `mjr-mfv-geninfo-${r.toLowerCase()}`, lr(o) && n.classList.add("mjr-mfv-geninfo--above-player"), n.appendChild(t), e.appendChild(n);
+						n.className = `mjr-mfv-geninfo-${r.toLowerCase()}`, dr(o) && n.classList.add("mjr-mfv-geninfo--above-player"), n.appendChild(t), e.appendChild(n);
 					}
 				}
-			} else e.appendChild(K(" - ")), e.appendChild(q(r, r === "A" || r === "C" ? "left" : "right"));
+			} else e.appendChild(q(" - ")), e.appendChild(J(r, r === "A" || r === "C" ? "left" : "right"));
 			t.appendChild(e);
 		}
 		this._contentEl.appendChild(t);
@@ -4088,73 +4134,73 @@ var ur = 0, dr = class {
 		this.element && (this._bindDocumentUiHandlers(), this.element.classList.add("is-visible"), this.element.setAttribute("aria-hidden", "false"), this.isVisible = !0);
 	}
 	hide() {
-		this.element && (this._destroyPanZoom(), this._destroyCompareSync(), this._stopEdgeResize(), this._closeGenDropdown(), Le(this.element), this.element.classList.remove("is-visible"), this.element.setAttribute("aria-hidden", "true"), this.isVisible = !1);
+		this.element && (this._destroyPanZoom(), this._destroyCompareSync(), this._stopEdgeResize(), this._closeGenDropdown(), Ie(this.element), this.element.classList.remove("is-visible"), this.element.setAttribute("aria-hidden", "true"), this.isVisible = !1);
 	}
 	_setDesktopExpanded(e) {
-		return Ln(this, e);
+		return zn(this, e);
 	}
 	_activateDesktopExpandedFallback(e) {
-		return Rn(this, e);
+		return Bn(this, e);
 	}
 	_tryElectronPopupFallback(e, t, n, r) {
-		return zn(this, e, t, n, r);
+		return Vn(this, e, t, n, r);
 	}
 	popOut() {
-		return Bn(this);
-	}
-	_fallbackPopout(e, t, n) {
-		return Vn(this, e, t, n);
-	}
-	_clearPopoutCloseWatch() {
 		return Hn(this);
 	}
-	_startPopoutCloseWatch() {
-		return Un(this);
+	_fallbackPopout(e, t, n) {
+		return Un(this, e, t, n);
 	}
-	_schedulePopInFromPopupClose() {
+	_clearPopoutCloseWatch() {
 		return Wn(this);
 	}
+	_startPopoutCloseWatch() {
+		return Gn(this);
+	}
+	_schedulePopInFromPopupClose() {
+		return Kn(this);
+	}
 	_installPopoutStyles(e) {
-		return Gn(this, e);
+		return qn(this, e);
 	}
 	popIn(e) {
-		return Kn(this, e);
+		return Jn(this, e);
 	}
 	_updatePopoutBtnUI() {
-		return qn(this);
+		return Yn(this);
 	}
 	get isPopped() {
 		return this._isPopped || this._desktopExpanded;
 	}
 	_resizeCursorForDirection(e) {
-		return Jn(e);
+		return Xn(e);
 	}
 	_getResizeDirectionFromPoint(e, t, n) {
-		return Yn(e, t, n);
+		return Zn(e, t, n);
 	}
 	_stopEdgeResize() {
-		return Xn(this);
+		return Qn(this);
 	}
 	_bindPanelInteractions() {
-		return Zn(this);
+		return $n(this);
 	}
 	_initEdgeResize(e) {
-		return Qn(this, e);
+		return er(this, e);
 	}
 	_initDrag(e) {
-		return $n(this, e);
+		return tr(this, e);
 	}
 	async _drawMediaFit(e, t, n, r, i, a, o) {
-		return er(this, e, t, n, r, i, a, o);
+		return nr(this, e, t, n, r, i, a, o);
 	}
 	_estimateGenInfoOverlayHeight(e, t, n) {
-		return tr(this, e, t, n);
+		return rr(this, e, t, n);
 	}
 	_drawGenInfoOverlay(e, t, n, r, i, a) {
-		return nr(this, e, t, n, r, i, a);
+		return ir(this, e, t, n, r, i, a);
 	}
 	async _captureView() {
-		return rr(this);
+		return ar(this);
 	}
 	dispose() {
 		L(this), this._destroyPanZoom(), this._destroyCompareSync(), this._destroyMediaControls(), this._unbindLayoutObserver(), this._stopEdgeResize(), this._clearPopoutCloseWatch();
@@ -4214,4 +4260,4 @@ var ur = 0, dr = class {
 	}
 };
 //#endregion
-export { dr as FloatingViewer };
+export { pr as FloatingViewer };

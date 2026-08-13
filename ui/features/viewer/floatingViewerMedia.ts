@@ -5,7 +5,7 @@ import { mountUnifiedMediaControls } from "./mediaPlayer.js";
 import { mountFloatingViewerSimplePlayer } from "./floatingViewerSimplePlayer.js";
 import { readAssetFps, readAssetFrameCount } from "../../utils/mediaFps.js";
 
-const VIDEO_EXTS = new Set([".mp4", ".webm", ".mov", ".avi", ".mkv"]);
+const VIDEO_EXTS = new Set([".mp4", ".webm", ".mov", ".avi", ".mkv", ".m4v"]);
 const AUDIO_EXTS = new Set([".mp3", ".wav", ".flac", ".ogg", ".m4a", ".aac", ".opus", ".wma"]);
 
 export function getFloatingViewerMediaExt(filename: any): string {
@@ -28,6 +28,12 @@ export function getFloatingViewerMediaKind(fileData: any): string {
     if (assetType === "video") return "video";
     if (assetType === "audio") return "audio";
     if (assetType === "model3d") return "model3d";
+    const mime = String(fileData?.mime || fileData?.mimetype || fileData?.content_type || "")
+        .trim()
+        .toLowerCase();
+    if (mime.startsWith("video/")) return "video";
+    if (mime.startsWith("audio/")) return "audio";
+    if (mime.startsWith("image/gif")) return "gif";
     const ext = getFloatingViewerMediaExt(fileData?.filename || "");
     if (ext === ".gif") return "gif";
     if (VIDEO_EXTS.has(ext)) return "video";
@@ -241,17 +247,22 @@ export function buildFloatingViewerMediaElement(
         v.src = url;
         v.controls = false;
         v.loop = true;
+        v.preload = "metadata";
         // Generated preview clips (including KJNodes Model Preview Override)
         // are visual-only and must autoplay even under strict browser policies.
         v.muted = fileData?._isPreview ? true : initialMuted;
         v.playbackRate = initialPlaybackRate;
         v.autoplay = true;
         v.playsInline = true;
-        if (initialMuted) {
-            attemptFloatingViewerAutoplay(v);
-        } else {
-            attemptFloatingViewerAutoplayWithSound(v);
+        const autoplay = v.muted
+            ? () => attemptFloatingViewerAutoplay(v)
+            : () => attemptFloatingViewerAutoplayWithSound(v);
+        try {
+            v.addEventListener("loadedmetadata", autoplay, { once: true });
+        } catch (e: any) {
+            console.debug?.(e);
         }
+        autoplay();
         return buildPlayableMediaHost(v, "video");
     }
 

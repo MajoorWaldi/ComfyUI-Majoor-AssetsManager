@@ -1,4 +1,4 @@
-import { Ct as e, St as t, _t as n, gt as r, ht as i, k as a, m as o, nt as s, o as c, tt as l, vt as u, xt as d } from "./events-DvbhPjDM.js";
+import { Ct as e, St as t, _t as n, gt as r, ht as i, k as a, m as o, nt as s, o as c, tt as l, vt as u, xt as d } from "./events-BI9U0VmZ.js";
 //#region ui/app/settingsStore.ts
 var f = "mjrSettings", p = "mjrMinimapSettings", m = /* @__PURE__ */ new Set([
 	"POST",
@@ -258,7 +258,8 @@ function ue({ readObsEnabled: e = () => !1, readAuthToken: t = () => "", ensureW
 			} catch (e) {
 				console.debug?.(e);
 			}
-			if (c < _ && ne(e)) {
+			let t = String(s?.method || "GET").toUpperCase();
+			if ((t === "GET" || t === "HEAD") && c < _ && ne(e)) {
 				try {
 					await ee(v * (c + 1));
 				} catch (e) {

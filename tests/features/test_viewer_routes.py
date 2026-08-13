@@ -42,6 +42,68 @@ async def test_viewer_asset_serves_canonical_indexed_path(monkeypatch, tmp_path:
     assert resp.headers.get("X-Content-Type-Options") == "nosniff"
 
 
+@pytest.mark.parametrize(
+    ("extension", "content_type"),
+    [
+        (".mp4", "video/mp4"),
+        (".webm", "video/webm"),
+        (".mov", "video/quicktime"),
+        (".mkv", "video/x-matroska"),
+        (".avi", "video/x-msvideo"),
+        (".m4v", "video/x-m4v"),
+        (".wav", "audio/wav"),
+        (".mp3", "audio/mpeg"),
+        (".flac", "audio/flac"),
+        (".ogg", "audio/ogg"),
+        (".aiff", "audio/aiff"),
+        (".aif", "audio/aiff"),
+        (".m4a", "audio/mp4"),
+        (".aac", "audio/aac"),
+    ],
+)
+@pytest.mark.asyncio
+async def test_viewer_asset_serves_video_and_audio(
+    monkeypatch, tmp_path: Path, extension: str, content_type: str
+) -> None:
+    app = _app()
+    media = tmp_path / f"media{extension}"
+    media.write_bytes(b"media")
+
+    async def _resolve(raw_id):
+        assert raw_id == "202"
+        return ({"id": 202, "filepath": str(media)}, media, tmp_path, None)
+
+    monkeypatch.setattr(m, "_resolve_viewer_asset_context", _resolve)
+
+    req = make_mocked_request(
+        "GET", "/mjr/am/viewer/asset/202", app=app, match_info={"asset_id": "202"}
+    )
+    resp = await (await app.router.resolve(req)).handler(req)
+    assert isinstance(resp, web.FileResponse)
+    assert resp.headers.get("Content-Type") == content_type
+    assert resp.headers.get("X-Content-Type-Options") == "nosniff"
+
+
+@pytest.mark.asyncio
+async def test_viewer_asset_rejects_non_media_file(monkeypatch, tmp_path: Path) -> None:
+    app = _app()
+    text_file = tmp_path / "notes.txt"
+    text_file.write_text("not viewer media", encoding="utf-8")
+
+    async def _resolve(_raw_id):
+        return ({"id": 203, "filepath": str(text_file)}, text_file, tmp_path, None)
+
+    monkeypatch.setattr(m, "_resolve_viewer_asset_context", _resolve)
+
+    req = make_mocked_request(
+        "GET", "/mjr/am/viewer/asset/203", app=app, match_info={"asset_id": "203"}
+    )
+    resp = await (await app.router.resolve(req)).handler(req)
+    body = _json(resp)
+    assert body.get("ok") is False
+    assert body.get("code") == "UNSUPPORTED"
+
+
 @pytest.mark.asyncio
 async def test_viewer_info_includes_model3d_contract(monkeypatch, tmp_path: Path) -> None:
     app = _app()

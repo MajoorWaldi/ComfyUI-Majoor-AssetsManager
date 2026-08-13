@@ -158,6 +158,84 @@ describe("AssetCardInner media display", () => {
         expect(video.getAttribute("src") || video.src).toContain("/api/assets/clip-no-poster");
     });
 
+    it("releases and replaces the video source when a virtualized card changes asset", async () => {
+        MediaBlobCache.acquireUrl
+            .mockResolvedValueOnce("blob:old-video")
+            .mockResolvedValueOnce("blob:new-video");
+        const wrapper = mount(AssetCardInner, {
+            attachTo: document.body,
+            props: {
+                asset: {
+                    id: "video-old",
+                    filename: "old.mp4",
+                    kind: "video",
+                    preview_url: "/api/assets/old",
+                },
+            },
+            global: assetCardGlobal(),
+        });
+        await nextTick();
+        await Promise.resolve();
+
+        await wrapper.setProps({
+            asset: {
+                id: "video-new",
+                filename: "new.mp4",
+                kind: "video",
+                preview_url: "/api/assets/new",
+            },
+        });
+        await nextTick();
+        await Promise.resolve();
+
+        const video = wrapper.find("video.mjr-thumb-media").element;
+        expect(MediaBlobCache.releaseUrl).toHaveBeenCalledWith("/api/assets/old");
+        expect(video.getAttribute("src") || video.src).toContain("blob:new-video");
+        wrapper.unmount();
+    });
+
+    it("autoplays only after at least 25 percent of the video card is visible", async () => {
+        let intersectionCallback;
+        vi.stubGlobal(
+            "IntersectionObserver",
+            class {
+                constructor(callback) {
+                    intersectionCallback = callback;
+                }
+                observe() {}
+                unobserve() {}
+                disconnect() {}
+            },
+        );
+        APP_CONFIG.GRID_VIDEO_AUTOPLAY_MODE = "always";
+        const play = vi.spyOn(HTMLMediaElement.prototype, "play").mockResolvedValue(undefined);
+        const wrapper = mount(AssetCardInner, {
+            attachTo: document.body,
+            props: {
+                asset: {
+                    id: "video-visible",
+                    filename: "visible.mp4",
+                    kind: "video",
+                    preview_url: "/api/assets/visible",
+                },
+            },
+            global: assetCardGlobal(),
+        });
+        await nextTick();
+
+        intersectionCallback([{ isIntersecting: true, intersectionRatio: 0.1 }]);
+        await Promise.resolve();
+        expect(MediaBlobCache.acquireUrl).not.toHaveBeenCalled();
+        expect(play).not.toHaveBeenCalled();
+
+        intersectionCallback([{ isIntersecting: true, intersectionRatio: 0.25 }]);
+        await Promise.resolve();
+        await Promise.resolve();
+        expect(MediaBlobCache.acquireUrl).toHaveBeenCalledWith("/api/assets/visible");
+        expect(play).toHaveBeenCalled();
+        wrapper.unmount();
+    });
+
     it("renders separators between card metadata fields", () => {
         const wrapper = mount(AssetCardInner, {
             props: {

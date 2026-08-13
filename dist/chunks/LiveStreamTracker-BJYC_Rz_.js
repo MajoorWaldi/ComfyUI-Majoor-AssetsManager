@@ -1,5 +1,5 @@
-import { J as e, o as t, r as n } from "./events-DvbhPjDM.js";
-import { t as r } from "./floatingViewerManager-D3aktpw1.js";
+import { J as e, o as t, r as n } from "./events-BI9U0VmZ.js";
+import { t as r } from "./floatingViewerManager-BvHclU-y.js";
 //#region ui/features/viewer/LiveStreamTracker.ts
 var i = !1, a = null, o = null, s = null, c = null, l = null, u = null, d = null, f = null, p = 0, m = 0, h = !1, g = 400, _ = "kj_preview_override", v = /* @__PURE__ */ new Set([
 	"image/jpeg",
@@ -97,6 +97,7 @@ async function k(n) {
 					h = !1;
 					return;
 				}
+				if (!r.canAcceptPreviewBlob()) return;
 				let n = e?.detail || null, i = D(n);
 				if (!i) return;
 				h = !0;
@@ -117,7 +118,7 @@ async function k(n) {
 			}
 		}, a.addEventListener(_, c), s = (e) => {
 			try {
-				if (h && t.MFV_KJ_PREVIEW_OVERRIDE_ENABLED !== !1) return;
+				if (h && t.MFV_KJ_PREVIEW_OVERRIDE_ENABLED !== !1 || !r.canAcceptPreviewBlob()) return;
 				let { blob: n, nodeId: i, jobId: a } = e.detail || {};
 				if (!n || !(n instanceof Blob) || (m = Date.now(), f && a && a !== f)) return;
 				r.feedPreviewBlob(n, { sourceLabel: i ? `Node ${i}` : null });
@@ -126,7 +127,7 @@ async function k(n) {
 			}
 		}, a.addEventListener("b_preview_with_metadata", s), o = (e) => {
 			try {
-				if (h && t.MFV_KJ_PREVIEW_OVERRIDE_ENABLED !== !1 || T()) return;
+				if (h && t.MFV_KJ_PREVIEW_OVERRIDE_ENABLED !== !1 || T() || !r.canAcceptPreviewBlob()) return;
 				let n = e.detail;
 				if (!n || !(n instanceof Blob)) return;
 				r.feedPreviewBlob(n);

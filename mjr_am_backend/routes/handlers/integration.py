@@ -19,10 +19,12 @@ from mjr_am_backend.adapters.comfy_core import get_output_directory
 from mjr_am_backend.shared import Result, get_logger
 
 from ..core import (
+    _csrf_error,
     _is_path_allowed,
     _json_response,
     _normalize_path,
     _require_services,
+    _require_write_access,
     safe_error_message,
 )
 
@@ -72,6 +74,13 @@ def register_integration_routes(routes: web.RouteTableDef) -> None:
 
     @routes.post("/mjr/am/integration/send-from-node")
     async def send_from_node(request: web.Request):
+        csrf = _csrf_error(request)
+        if csrf:
+            return _json_response(Result.Err("CSRF", csrf))
+        auth = _require_write_access(request)
+        if not auth.ok:
+            return _json_response(auth)
+
         try:
             payload = await request.json()
         except Exception:

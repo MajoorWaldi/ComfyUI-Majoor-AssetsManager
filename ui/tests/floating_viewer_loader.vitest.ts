@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const state = vi.hoisted(() => ({
     ensureViewerMetadataAssetMock: vi.fn(),
@@ -14,8 +14,15 @@ vi.mock("../api/client.js", () => ({
 }));
 
 describe("floating viewer loader", () => {
+    const originalRevokeObjectUrl = URL.revokeObjectURL;
+
     beforeEach(() => {
         state.ensureViewerMetadataAssetMock.mockReset();
+        URL.revokeObjectURL = vi.fn();
+    });
+
+    afterEach(() => {
+        URL.revokeObjectURL = originalRevokeObjectUrl;
     });
 
     it("refreshes graph map immediately while metadata enrichment is pending", async () => {
@@ -50,5 +57,32 @@ describe("floating viewer loader", () => {
 
         expect(viewer._mediaA).toBe(enrichedAsset);
         expect(viewer._refresh).toHaveBeenCalledTimes(2);
+    });
+
+    it("releases a preview blob only after its viewer slot is replaced", async () => {
+        state.ensureViewerMetadataAssetMock.mockResolvedValue(null);
+        const { loadFloatingViewerMediaA } = await import("../features/viewer/floatingViewerLoader.js");
+        const preview = {
+            url: "blob:preview-old",
+            _previewBlobUrl: "blob:preview-old",
+            _isPreview: true,
+        };
+        const viewer = {
+            _mediaA: preview,
+            _mediaB: null,
+            _mediaC: null,
+            _mediaD: null,
+            _previewBlobUrl: "blob:preview-old",
+            _mode: "simple",
+            _refreshGen: 0,
+            _resetMfvZoom: vi.fn(),
+            _refresh: vi.fn(),
+            _updateModeBtnUI: vi.fn(),
+        };
+
+        loadFloatingViewerMediaA(viewer, { id: 11, filename: "final.png" });
+
+        expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:preview-old");
+        expect(viewer._previewBlobUrl).toBeNull();
     });
 });
