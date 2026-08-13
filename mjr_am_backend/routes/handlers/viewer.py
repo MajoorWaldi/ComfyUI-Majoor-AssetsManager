@@ -20,6 +20,7 @@ from mjr_am_backend.shared import Result, get_logger
 
 from ..core import (
     _guess_content_type_for_file,
+    _is_allowed_view_media_file,
     _is_path_allowed,
     _is_path_allowed_custom,
     _is_within_root,
@@ -399,7 +400,7 @@ def register_viewer_routes(routes: web.RouteTableDef) -> None:
             return _json_response(error)
         if resolved is None:
             return _json_response(Result.Err("NOT_FOUND", "Asset file not found"))
-        if not _is_allowed_viewer_resource_file(resolved):
+        if not _is_allowed_view_media_file(resolved):
             return _json_response(Result.Err("UNSUPPORTED", "Unsupported file type for viewer"))
 
         content_type = _guess_content_type_for_file(resolved)
