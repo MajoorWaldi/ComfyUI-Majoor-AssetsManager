@@ -40,7 +40,7 @@
     "@vue/test-utils": "^2.4.10",
     "eslint": "^10.8.0",
     "happy-dom": "^20.11.1",
-    "knip": "^6.31.0",
+    "knip": "^6.32.1",
     "oxlint": "^1.75.0",
     "prettier": "^3.9.6",
     "typescript": "^6.0.3",
