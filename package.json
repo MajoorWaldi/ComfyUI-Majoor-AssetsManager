@@ -50,7 +50,7 @@
   "dependencies": {
     "@tanstack/vue-virtual": "^3.13.35",
     "pinia": "^4.0.2",
-    "primevue": "4.5.5",
+    "primevue": "5.0.0",
     "three": "0.185.1",
     "vue": "^3.5.41"
   }
