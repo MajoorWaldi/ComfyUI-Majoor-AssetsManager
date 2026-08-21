@@ -44,7 +44,7 @@
     "oxlint": "^1.75.0",
     "prettier": "^3.9.6",
     "typescript": "^7.0.2",
-    "vite": "^8.1.5",
+    "vite": "^8.2.1",
     "vitest": "^4.1.9"
   },
   "dependencies": {
