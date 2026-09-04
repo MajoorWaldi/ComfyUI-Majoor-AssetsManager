@@ -659,8 +659,10 @@ def _prune_expired_generated(now: float) -> None:
         _RECENT_GENERATED.pop(k, None)
 
 
-def _prune_oldest_generated() -> None:
-    for k, _ in sorted(_RECENT_GENERATED.items(), key=lambda kv: kv[1])[:1000]:
+def _prune_oldest_generated(overflow: int) -> None:
+    if overflow <= 0:
+        return
+    for k, _ in sorted(_RECENT_GENERATED.items(), key=lambda kv: kv[1])[:overflow]:
         _RECENT_GENERATED.pop(k, None)
 
 
@@ -673,15 +675,19 @@ def mark_recent_generated(paths: list[str]) -> None:
     now = time.time()
     try:
         with _RECENT_GENERATED_LOCK:
-            # Prune *before* inserting so the cache never exceeds the hard cap.
+            # Pre-prune expired entries opportunistically, then enforce the hard
+            # cap *after* inserting the incoming batch — a batch larger than the
+            # pre-insert headroom must not be allowed to push the cache past the
+            # cap (pre-insert-only pruning can't account for the batch size).
             if len(_RECENT_GENERATED) >= _RECENT_GENERATED_HARD_CAP:
                 _prune_expired_generated(now)
-            if len(_RECENT_GENERATED) >= _RECENT_GENERATED_HARD_CAP:
-                _prune_oldest_generated()
             for p in paths:
                 key = _normalize_recent_key(p)
                 if key:
                     _RECENT_GENERATED[key] = now
+            overflow = len(_RECENT_GENERATED) - _RECENT_GENERATED_HARD_CAP
+            if overflow > 0:
+                _prune_oldest_generated(overflow)
     except Exception:
         return
 

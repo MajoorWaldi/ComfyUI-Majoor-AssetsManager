@@ -46,6 +46,7 @@ from .registry_logging import (
     _route_verbose_logs_enabled,
 )
 from .registry_middlewares import (
+    _is_majoor_path,  # noqa: F401 - compatibility re-export used by tests
     _request_path_and_method,  # noqa: F401 - compatibility re-export used by tests
     _requires_auth,  # noqa: F401 - compatibility re-export used by tests
     _store_request_user_id,
@@ -69,6 +70,12 @@ _APP_KEY_BG_SCAN_CLEANUP_INSTALLED: web.AppKey[bool] = web.AppKey("_mjr_bg_scan_
 
 logger = get_logger(__name__)
 _ROUTES_REGISTERED = False
+# Labels of route groups already added to the shared RouteTableDef. Tracked
+# per group (not just by the all-or-nothing _ROUTES_REGISTERED flag) because
+# route_group.register_fn() mutates the shared table in place: if a group
+# raises part-way through the loop, the groups before it are already
+# registered, and a later retry would otherwise add them a second time.
+_REGISTERED_ROUTE_GROUPS: set[str] = set()
 
 
 def _auth_error_response_or_none(request: web.Request) -> web.StreamResponse | None:
@@ -131,12 +138,21 @@ def register_all_routes() -> web.RouteTableDef:
     verbose = _route_verbose_logs_enabled()
 
     for route_group in CORE_ROUTE_REGISTRATIONS:
+        if route_group.label in _REGISTERED_ROUTE_GROUPS:
+            continue
+        # A core group failing is fatal and intentionally propagates, but the
+        # groups registered before it stay marked so a retry resumes rather
+        # than duplicating them.
         route_group.register_fn(routes)
+        _REGISTERED_ROUTE_GROUPS.add(route_group.label)
 
     failed_optional: list[str] = []
     for route_group in OPTIONAL_ROUTE_REGISTRATIONS:
+        if route_group.label in _REGISTERED_ROUTE_GROUPS:
+            continue
         try:
             route_group.register_fn(routes)
+            _REGISTERED_ROUTE_GROUPS.add(route_group.label)
             if verbose:
                 for msg in route_group.verbose_messages:
                     logger.info(msg)
@@ -163,8 +179,14 @@ def register_routes(app: web.Application, user_manager=None) -> None:
     """
     Register routes onto an aiohttp application.
 
-    This is primarily used for unit tests; in ComfyUI, routes are registered
-    via PromptServer decorators at import time.
+    In real ComfyUI runtime, `app` is the live `PromptServer.instance.app`.
+    Our routes already live in `PromptServer.instance.routes` (populated by
+    `register_all_routes()`), and ComfyUI itself calls
+    `self.app.add_routes(self.routes)` later during startup - so
+    `_register_app_routes_best_effort()` skips the redundant `app.add_routes()`
+    call for that app and only marks it as registered. For standalone/test
+    apps (not the live PromptServer app), this eagerly calls `app.add_routes()`
+    so the routes are available immediately.
     """
     if not _prepare_route_table(app, user_manager):
         return

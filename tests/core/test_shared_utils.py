@@ -81,10 +81,17 @@ def test_result_map_ok():
     assert mapped.data == 10
 
 
-def test_result_map_no_data():
+def test_result_map_ok_none_data():
     r = result_mod.Result.Ok(None)
     mapped = r.map(lambda x: x)
-    # ok=True but data is None → cast(Result, self)
+    # ok=True with a legitimate None payload: still mapped, not treated as a failure.
+    assert mapped.ok
+    assert mapped.data is None
+
+
+def test_result_map_err_returns_self():
+    r = result_mod.Result.Err("E", "bad")
+    mapped = r.map(lambda x: x)
     assert mapped is r
 
 
@@ -103,6 +110,15 @@ def test_result_unwrap_or_default():
 
 def test_result_unwrap_or_ok():
     assert result_mod.Result.Ok(7).unwrap_or(99) == 7
+
+
+def test_result_unwrap_ok_none_data():
+    # Ok(None) is a legitimate success payload, not a failure to fall back from.
+    assert result_mod.Result.Ok(None).unwrap() is None
+
+
+def test_result_unwrap_or_ok_none_data():
+    assert result_mod.Result.Ok(None).unwrap_or(99) is None
 
 
 def test_result_constructor_rejects_ok_with_error():

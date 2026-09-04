@@ -1,6 +1,6 @@
 import { t as e } from "./rolldown-runtime-Dy4uBu1J.js";
-import { _ as t, d as n, o as r, s as i, t as a } from "./viewerRuntimeHosts-jn3aL1UJ.js";
-import { o, r as s, z as c } from "./events-BI9U0VmZ.js";
+import { _ as t, d as n, o as r, s as i, t as a } from "./viewerRuntimeHosts-DC1iA_jY.js";
+import { o, r as s, z as c } from "./events-DjjLASfV.js";
 //#region ui/features/panel/panelRuntimeRefs.ts
 var l = null;
 function u(e) {
@@ -98,7 +98,7 @@ var ie = /* @__PURE__ */ e({
 	teardownFloatingViewerManager: () => $
 }), h = null, g = null;
 async function ae() {
-	return h || (g ||= import("./FloatingViewer-C08jN86h.js").then((e) => (h = e.FloatingViewer, h)), g);
+	return h || (g ||= import("./FloatingViewer-AB1oLZ0d.js").then((e) => (h = e.FloatingViewer, h)), g);
 }
 var _ = null, oe = null;
 async function se() {
@@ -191,7 +191,7 @@ function P(e) {
 function de(e, t) {
 	if (!e) return;
 	let n = e._mode;
-	if (!(n === v.AB || n === v.SIDE || n === v.GRID)) {
+	if (n !== v.AB && n !== v.SIDE && n !== v.GRID) {
 		e.loadMediaA(t, { autoMode: !0 });
 		return;
 	}

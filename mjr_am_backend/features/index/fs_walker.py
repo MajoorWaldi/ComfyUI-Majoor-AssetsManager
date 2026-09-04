@@ -7,6 +7,7 @@ thread-safe Queue consumed by the async scan loop.
 import os
 import threading
 import time
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
@@ -109,9 +110,21 @@ class FileSystemWalker:
     into a Queue. Supports optional I/O throttling via SCAN_IOPS_LIMIT.
     """
 
-    def __init__(self, scan_iops_limit: float) -> None:
+    def __init__(
+        self,
+        scan_iops_limit: float,
+        symlink_target_allowed: Callable[[Path], bool] | None = None,
+    ) -> None:
         self._scan_iops_limit = scan_iops_limit
         self._scan_iops_next_ts = 0.0
+        # Optional invariant check applied to symlinked *files*: the caller
+        # supplies the same "is this inside an allowed root?" predicate the
+        # viewer enforces at open time. Without it the scanner can index a
+        # symlink whose target escapes every registered root, producing a
+        # "ghost asset" - a row in the grid that the security layer then
+        # refuses to open. Only consulted for actual symlinks, so ordinary
+        # files never pay the resolve() cost.
+        self._symlink_target_allowed = symlink_target_allowed
 
     # ------------------------------------------------------------------
     # I/O throttling
@@ -197,6 +210,29 @@ class FileSystemWalker:
             return None
         return None
 
+    def _symlink_target_is_allowed(self, entry, file_path: Path) -> bool:
+        """Reject symlinked files whose target escapes every allowed root.
+
+        Non-symlinks short-circuit, so a normal scan does no extra I/O.
+        """
+        if self._symlink_target_allowed is None:
+            return True
+        try:
+            if not entry.is_symlink():
+                return True
+        except (OSError, PermissionError):
+            return True
+        try:
+            if self._symlink_target_allowed(file_path):
+                return True
+        except Exception as exc:
+            # A failing predicate must not abort the scan; be conservative and
+            # skip the entry rather than indexing something unopenable.
+            logger.debug("Scan skipped symlink %s (root check failed: %s)", file_path, exc)
+            return False
+        logger.debug("Scan skipped symlink %s: target outside allowed roots", file_path)
+        return False
+
     def _candidate(self, entry) -> ScanCandidate | None:
         try:
             # Keep historical behavior: index symlinks to files, but do not recurse into symlinked dirs.
@@ -215,6 +251,8 @@ class FileSystemWalker:
                 if kind == "unknown":
                     return None
             file_path = Path(entry.path)
+            if not self._symlink_target_is_allowed(entry, file_path):
+                return None
             stat = entry.stat(follow_symlinks=True)
             return ScanCandidate(file_path, stat, kind)
         except (OSError, PermissionError):

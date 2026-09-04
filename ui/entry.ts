@@ -415,9 +415,9 @@ const executionRuntime = createExecutionRuntimeController({
 });
 
 // -- extension registration -----------------------------------------------------
-// Keep registration unconditional. ComfyUI reload needs setup() to run again,
-// and installEntryRuntimeController() already tears down the previous runtime.
-app.registerExtension({
+// Build the extension object once so it can be re-used if `registerExtension`
+// throws below (see try/catch after the object literal).
+const majoorExtension = {
     name: EXTENSION_NAME,
 
     /**
@@ -607,4 +607,24 @@ app.registerExtension({
     getSelectionToolboxCommands(selectedItem) {
         return getMajoorSelectionToolboxCommands(selectedItem);
     },
-});
+};
+
+try {
+    app.registerExtension(majoorExtension);
+} catch (e) {
+    // ComfyUI's registerExtension() throws "Extension named '...' already
+    // registered" on a second call for the same name, and there is no
+    // unregisterExtension API to undo the first registration. That means a
+    // live re-import of this module (module hot-reload, or a manual
+    // "reload extension" action without a full page refresh) throws here
+    // instead of ComfyUI invoking setup() again on the existing
+    // registration - so the reload-safe teardown/reinit path below would
+    // otherwise never run. Run setup() directly so it still does.
+    console.warn(
+        "[Majoor] registerExtension() threw (extension already registered) - re-running setup() directly",
+        e,
+    );
+    void majoorExtension.setup().catch((setupError: unknown) =>
+        reportError(setupError, "entry.setup_after_duplicate_registration"),
+    );
+}

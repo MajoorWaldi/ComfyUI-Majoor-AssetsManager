@@ -1,12 +1,12 @@
-import { Zt as e, g as t, y as n } from "./viewerRuntimeHosts-jn3aL1UJ.js";
-import { B as r, C as i, I as a, M as o, O as s, P as c, R as l, V as u, j as d, m as f, o as p, pt as m, r as h, rt as g, v as _, w as v, x as y } from "./events-BI9U0VmZ.js";
+import { Zt as e, g as t, y as n } from "./viewerRuntimeHosts-DC1iA_jY.js";
+import { B as r, C as i, I as a, M as o, O as s, P as c, R as l, V as u, j as d, m as f, o as p, pt as m, r as h, rt as g, v as _, w as v, x as y } from "./events-DjjLASfV.js";
 import { a as b, i as x, o as S, s as C } from "./graphTraversal-BIYmTTPW.js";
-import { _ as w, g as T, m as E, n as D, p as ee, r as O, w as k } from "./Viewer-6UShdN-b.js";
-import { _ as A, r as j } from "./SidebarWorkflowSection-BUCY3Zws.js";
-import { _ as M, a as N, c as P, d as F, f as I, g as L, h as te, i as R, l as z, m as B, o as V, p as ne, r as H, s as re, t as ie, u as U, v as W } from "./openMajoorSettings-CVRcSZSP.js";
-import { a as ae, n as oe, r as se } from "./model3dRenderer-DNbDaU5R.js";
-import { i as ce, o as le, r as ue, t as de } from "./geninfoParser-D7IjgI1x.js";
-import { t as fe } from "./genInfo-B7-wd-fB.js";
+import { _ as w, g as T, m as E, n as D, p as ee, r as O, w as k } from "./Viewer-GH30s1No.js";
+import { _ as A, r as j } from "./SidebarWorkflowSection-DckvqBNY.js";
+import { _ as M, a as N, c as P, d as F, f as I, g as L, h as te, i as R, l as z, m as B, o as V, p as ne, r as H, s as re, t as ie, u as U, v as W } from "./openMajoorSettings-CHrLP8DR.js";
+import { a as ae, n as oe, r as se } from "./model3dRenderer-Dst3PlP7.js";
+import { i as ce, o as le, r as ue, t as de } from "./geninfoParser-DS9m_bHm.js";
+import { t as fe } from "./genInfo-Bq-kF66o.js";
 //#region ui/features/viewer/floatingViewerConstants.ts
 var G = Object.freeze({
 	SIMPLE: "simple",
@@ -872,7 +872,9 @@ function st() {
 //#endregion
 //#region ui/features/viewer/workflowGraphMap/workflowGraphMapActions.ts
 async function ct(e) {
-	return e ? k(JSON.stringify(gt(e), null, 2)) : !1;
+	if (!e) return !1;
+	let t = JSON.stringify(gt(e), null, 2);
+	return k(t);
 }
 async function lt(e) {
 	return k(ut(e));
@@ -1124,7 +1126,7 @@ var St = 64, Ct = class {
 		return t;
 	}
 	_setSubgraphDisplayMode(e) {
-		e !== "expand" && e !== "host" || this._subgraphDisplayMode !== e && (this._subgraphDisplayMode = e, e === "host" && String(this._selectedNodeId || "").includes("::") && (this._selectedNodeId = ""), this._syncModeButtons(), this.refresh());
+		(e === "expand" || e === "host") && this._subgraphDisplayMode !== e && (this._subgraphDisplayMode = e, e === "host" && String(this._selectedNodeId || "").includes("::") && (this._selectedNodeId = ""), this._syncModeButtons(), this.refresh());
 	}
 	_syncModeButtons() {
 		for (let [e, t] of this._modeButtons.entries()) t.classList?.toggle?.("is-active", e === this._subgraphDisplayMode);
@@ -1159,7 +1161,7 @@ var St = 64, Ct = class {
 				i.className = "mjr-wgm-node-widget-value";
 				let a = Et(e?.value);
 				i.textContent = a, Dt(e?.value, a) && t.classList.add("is-multiline"), Ot(n) && t.classList.add("is-text-field"), t.append(r, i), t.addEventListener("click", () => this._copyParam(t, e?.value)), t.addEventListener("keydown", (n) => {
-					n.key !== "Enter" && n.key !== " " || (n.preventDefault?.(), this._copyParam(t, e?.value));
+					(n.key === "Enter" || n.key === " ") && (n.preventDefault?.(), this._copyParam(t, e?.value));
 				}), c.appendChild(t);
 			}
 			if (u.length > 12) {
@@ -1621,7 +1623,7 @@ function Gt() {
 		return { tracked: await a(d()) };
 	}
 	async function v() {
-		if (!(s === Q.RUNNING || s === Q.STOPPING)) {
+		if (s !== Q.RUNNING && s !== Q.STOPPING) {
 			c = !0, l = !1, h();
 			try {
 				(await Zt())?.tracked || (c = !1), h();
@@ -1692,9 +1694,10 @@ function Xt(e) {
 async function Zt() {
 	let e = d();
 	if (!e) throw Error("ComfyUI app not available");
+	let t = Xt(b(e));
 	return { tracked: await r({
 		app: e,
-		forceNativeQueue: Xt(b(e)),
+		forceNativeQueue: t,
 		resolvePromptData(e) {
 			return typeof e?.graphToPrompt == "function" ? e.graphToPrompt() : null;
 		},
@@ -2386,18 +2389,18 @@ function wn(e, t) {
 	if (!e._liveBtn) return;
 	let n = !!t;
 	e._liveBtn.classList.toggle("mjr-live-active", n);
-	let r = T(n ? f("tooltip.liveStreamOn", "Live Stream: ON - follows final generation outputs after execution") : f("tooltip.liveStreamOff", "Live Stream: OFF - click to follow final generation outputs"), "L");
-	e._liveBtn.setAttribute("aria-pressed", String(n)), e._liveBtn.setAttribute("aria-label", r);
-	let i = document.createElement("i");
-	i.className = n ? "pi pi-circle-fill" : "pi pi-circle", i.setAttribute("aria-hidden", "true"), e._liveBtn.replaceChildren(i), e._liveBtn.title = r;
+	let r = n ? f("tooltip.liveStreamOn", "Live Stream: ON - follows final generation outputs after execution") : f("tooltip.liveStreamOff", "Live Stream: OFF - click to follow final generation outputs"), i = T(r, "L");
+	e._liveBtn.setAttribute("aria-pressed", String(n)), e._liveBtn.setAttribute("aria-label", i);
+	let a = document.createElement("i");
+	a.className = n ? "pi pi-circle-fill" : "pi pi-circle", a.setAttribute("aria-hidden", "true"), e._liveBtn.replaceChildren(a), e._liveBtn.title = i;
 }
 function Tn(e, t) {
 	if (e._previewActive = !!t, !e._previewBtn) return;
 	e._previewBtn.classList.toggle("mjr-preview-active", e._previewActive);
-	let n = T(e._previewActive ? f("tooltip.previewStreamOn", "KSampler Preview: ON - streams sampler denoising frames during execution") : f("tooltip.previewStreamOff", "KSampler Preview: OFF - click to stream sampler denoising frames"), "K");
-	e._previewBtn.setAttribute("aria-pressed", String(e._previewActive)), e._previewBtn.setAttribute("aria-label", n);
-	let r = document.createElement("i");
-	r.className = e._previewActive ? "pi pi-eye" : "pi pi-eye-slash", r.setAttribute("aria-hidden", "true"), e._previewBtn.replaceChildren(r), e._previewBtn.title = n;
+	let n = e._previewActive ? f("tooltip.previewStreamOn", "KSampler Preview: ON - streams sampler denoising frames during execution") : f("tooltip.previewStreamOff", "KSampler Preview: OFF - click to stream sampler denoising frames"), r = T(n, "K");
+	e._previewBtn.setAttribute("aria-pressed", String(e._previewActive)), e._previewBtn.setAttribute("aria-label", r);
+	let i = document.createElement("i");
+	i.className = e._previewActive ? "pi pi-eye" : "pi pi-eye-slash", i.setAttribute("aria-hidden", "true"), e._previewBtn.replaceChildren(i), e._previewBtn.title = r;
 }
 function En(e) {
 	return e?._isPreview ? String(e?._previewBlobUrl || e?.url || "").trim() : "";
@@ -2471,10 +2474,10 @@ function kn(e) {
 function An(e, t) {
 	if (e._nodeStreamActive = !!t, e._nodeStreamActive || e.setNodeStreamSelection?.(null), !e._nodeStreamBtn) return;
 	e._nodeStreamBtn.classList.toggle("mjr-nodestream-active", e._nodeStreamActive);
-	let n = T(e._nodeStreamActive ? f("tooltip.nodeStreamOn", "Node Stream: ON - follows the selected node preview when frontend media exists") : f("tooltip.nodeStreamOff", "Node Stream: OFF - click to follow selected node previews, including ImageOps live canvases"), "N");
-	e._nodeStreamBtn.setAttribute("aria-pressed", String(e._nodeStreamActive)), e._nodeStreamBtn.setAttribute("aria-label", n);
-	let r = document.createElement("i");
-	r.className = "pi pi-sitemap", r.setAttribute("aria-hidden", "true"), e._nodeStreamBtn.replaceChildren(r), e._nodeStreamBtn.title = n;
+	let n = e._nodeStreamActive ? f("tooltip.nodeStreamOn", "Node Stream: ON - follows the selected node preview when frontend media exists") : f("tooltip.nodeStreamOff", "Node Stream: OFF - click to follow selected node previews, including ImageOps live canvases"), r = T(n, "N");
+	e._nodeStreamBtn.setAttribute("aria-pressed", String(e._nodeStreamActive)), e._nodeStreamBtn.setAttribute("aria-label", r);
+	let i = document.createElement("i");
+	i.className = "pi pi-sitemap", i.setAttribute("aria-hidden", "true"), e._nodeStreamBtn.replaceChildren(i), e._nodeStreamBtn.title = r;
 }
 //#endregion
 //#region ui/features/viewer/floatingViewerPopout.ts
@@ -3370,11 +3373,11 @@ var fr = 0, pr = class {
 		return An(this, e);
 	}
 	setNodeStreamSelection(e) {
-		e && (e.nodeId != null || e.classType) ? this._nodeStreamSelection = {
+		this._nodeStreamSelection = e && (e.nodeId != null || e.classType) ? {
 			nodeId: String(e.nodeId ?? ""),
 			classType: String(e.classType || ""),
 			title: e.title ? String(e.title) : ""
-		} : this._nodeStreamSelection = null, this._updateNodeStreamOverlay();
+		} : null, this._updateNodeStreamOverlay();
 	}
 	_updateNodeStreamOverlay() {
 		let e = this._contentEl;
@@ -3580,7 +3583,7 @@ var fr = 0, pr = class {
 		});
 		let n = !1, r = 0, i = 0, a = 0, o = 0;
 		e.addEventListener("pointerdown", (t) => {
-			if (!(t.button !== 0 && t.button !== 1) && !(this._zoom <= 1.01) && !t.target?.closest?.("video") && !t.target?.closest?.("audio") && !t.target?.closest?.(".mjr-video-controls, .mjr-mfv-simple-player-controls") && !t.target?.closest?.(".mjr-mfv-ab-divider") && !ae(t.target)) {
+			if ((t.button === 0 || t.button === 1) && !(this._zoom <= 1.01) && !t.target?.closest?.("video") && !t.target?.closest?.("audio") && !t.target?.closest?.(".mjr-video-controls, .mjr-mfv-simple-player-controls") && !t.target?.closest?.(".mjr-mfv-ab-divider") && !ae(t.target)) {
 				t.preventDefault(), n = !0, this._dragging = !0, r = t.clientX, i = t.clientY, a = this._panX, o = this._panY;
 				try {
 					e.setPointerCapture(t.pointerId);
@@ -3694,9 +3697,7 @@ var fr = 0, pr = class {
 			case G.GRID:
 				this._renderGrid();
 				break;
-			case G.GRAPH:
-				this._renderGraphMap();
-				break;
+			case G.GRAPH: this._renderGraphMap();
 		}
 		e && this._contentEl.appendChild(e), this._nodeStreamSelection && this._updateNodeStreamOverlay(), this._mediaProgressEl && this._contentEl.appendChild(this._mediaProgressEl), this._applyMediaToneControls(), this._applyTransform(), this._mode !== G.GRAPH && this._initPanZoom(this._contentEl), this._initCompareSync(), this._renderGenInfoSidebar();
 	}

@@ -786,7 +786,7 @@ def register_custom_roots_routes(routes: web.RouteTableDef) -> None:
         if op == "move_file":
             src_file = str(source)
             dst_dir_raw = str(body.get("destination") or "").strip()
-            import sys; print(f"[MJR_MOVE] src='{src_file}' dst='{dst_dir_raw}'", file=sys.stderr, flush=True)
+            logger.debug("Move file requested: src=%s dst=%s", src_file, dst_dir_raw)
             if not dst_dir_raw:
                 return _json_response(Result.Err("INVALID_INPUT", "Missing destination"))
             dst_dir = _normalize_path(dst_dir_raw)

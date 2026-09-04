@@ -18,10 +18,15 @@
     "test:e2e": "playwright test",
     "test:e2e:list": "playwright test --list",
     "lint:js": "eslint ui/",
-    "lint:js:ox": "oxlint ui/ --quiet --disable-unicorn-plugin --ignore-pattern ui/vue/majoor-ui.* || node -e \"process.exit(0)\"",
-    "lint:dead": "knip --config knip.json || node -e \"process.exit(0)\"",
-    "typecheck:js": "tsc -p tsconfig.json --noEmit || node -e \"process.exit(0)\"",
-    "typecheck:tests": "tsc -p tsconfig.test.json --noEmit || node -e \"process.exit(0)\"",
+    "lint:js:ox": "oxlint ui/ --quiet --disable-unicorn-plugin --ignore-pattern ui/vue/majoor-ui.*",
+    "lint:js:ox:advisory": "oxlint ui/ --quiet --disable-unicorn-plugin --ignore-pattern ui/vue/majoor-ui.* || node -e \"process.exit(0)\"",
+    "lint:dead": "knip --config knip.json",
+    "lint:dead:advisory": "knip --config knip.json || node -e \"process.exit(0)\"",
+    "typecheck:js": "tsc -p tsconfig.json --noEmit",
+    "typecheck:js:advisory": "tsc -p tsconfig.json --noEmit || node -e \"process.exit(0)\"",
+    "typecheck:tests": "tsc -p tsconfig.test.json --noEmit",
+    "typecheck:tests:advisory": "tsc -p tsconfig.test.json --noEmit || node -e \"process.exit(0)\"",
+    "quality:strict": "npm run lint:js && npm run lint:js:ox && npm run typecheck:js && npm run typecheck:tests && npm run lint:dead && npm run test:js",
     "lint:js:fix": "eslint ui/ --fix",
     "format": "prettier --write \"ui/**/*.{ts,js,mjs,vue}\"",
     "format:check": "prettier --check \"ui/**/*.{ts,js,mjs,vue}\""
@@ -50,7 +55,7 @@
   "dependencies": {
     "@tanstack/vue-virtual": "^3.13.35",
     "pinia": "^4.0.3",
-    "primevue": "5.0.1",
+    "primevue": "4.5.5",
     "three": "0.185.1",
     "vue": "^3.5.41"
   }

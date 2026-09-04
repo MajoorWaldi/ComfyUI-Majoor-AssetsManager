@@ -1,6 +1,6 @@
-import { A as e, E as t, J as n, R as r, S as i, Y as a, b as o, j as s, m as c } from "./events-BI9U0VmZ.js";
+import { A as e, E as t, J as n, R as r, S as i, Y as a, b as o, j as s, m as c } from "./events-DjjLASfV.js";
 import { a as l, n as u } from "./graphTraversal-BIYmTTPW.js";
-import { J as d, b as f, v as p, x as ee, y as te } from "./SidebarWorkflowSection-BUCY3Zws.js";
+import { J as d, b as f, v as p, x as ee, y as te } from "./SidebarWorkflowSection-DckvqBNY.js";
 //#region ui/features/viewer/floatingViewerProgress.ts
 var m = "progress-update", h = "__MJR_MFV_PROGRESS_SERVICE__";
 function ne() {
@@ -342,7 +342,7 @@ function k(e) {
 		let e = String(n?.label || n?.key || "").trim();
 		!e || t.some(([t]) => String(t) === e) || t.push([e, n?.value]);
 	}
-	if (n) for (let [e, r] of Object.entries(n)) ge(e) || r == null || typeof r == "object" || t.push([e, r]);
+	if (n) for (let [e, r] of Object.entries(n)) ge(e) || r != null && typeof r != "object" && t.push([e, r]);
 	return t.slice(0, 160);
 }
 function fe(e) {
@@ -771,7 +771,7 @@ function G(e, n, i = null) {
 		if (Number.isNaN(t)) return !1;
 		let r = e.options ?? {}, i = r.min ?? -Infinity, o = r.max ?? Infinity, s = Math.min(o, Math.max(i, t));
 		(a === "int" || r.precision === 0 || r.round === 1) && (s = Math.round(s)), e.value = s;
-	} else a === "toggle" || a === "boolean" ? e.value = !!n : e.value = n;
+	} else e.value = a === "toggle" || a === "boolean" ? !!n : n;
 	try {
 		let n = t(), o = i ?? e?.parent ?? null, s = e.value;
 		e.callback?.(e.value, n, o, null, e), (a === "number" || a === "int" || a === "float") && (e.value = s), Ie(e), r(o);

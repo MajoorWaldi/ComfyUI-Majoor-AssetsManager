@@ -17,7 +17,41 @@ from .core import (
 )
 
 API_PREFIX = "/mjr/am/"
+
+# The OpenAPI-aligned read-only compat surface (routes/handlers/api_v2_assets.py).
+# It is part of this extension's HTTP surface and must sit behind the same
+# security boundary as API_PREFIX.
+COMPAT_API_PREFIX = "/api/v2/assets"
+
+# ComfyUI's PromptServer mirrors EVERY registered route under an additional
+# "/api" prefix -- see `add_routes()` in ComfyUI/server.py, which rebuilds the
+# route table as `api_routes.route(route.method, "/api" + route.path)` before
+# adding both tables to the app. So /mjr/am/x is also served at /api/mjr/am/x.
+# Middleware that matches only the canonical prefix silently does NOT apply to
+# the mirrored path, which previously let a request to /api/mjr/am/<mutation>
+# skip the authentication check entirely.
+_COMFY_API_MIRROR_PREFIX = "/api"
+
+_MAJOOR_PATH_PREFIXES: tuple[str, ...] = tuple(
+    prefix
+    for canonical in (API_PREFIX, COMPAT_API_PREFIX)
+    for prefix in (canonical, _COMFY_API_MIRROR_PREFIX + canonical)
+)
+
 _SENSITIVE_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
+
+
+def _is_majoor_path(path: str) -> bool:
+    """True when ``path`` addresses this extension's own HTTP surface.
+
+    Matches the canonical prefixes and ComfyUI's mirrored ``/api`` variants, so
+    every middleware guarding this extension applies to both spellings of the
+    same route.
+    """
+    try:
+        return str(path or "").startswith(_MAJOOR_PATH_PREFIXES)
+    except Exception:
+        return False
 
 # Paths under which ComfyUI serves our `WEB_DIRECTORY` (dist/). We force
 # revalidation on these so users always get the freshly built bundle after a
@@ -73,7 +107,7 @@ async def security_headers_middleware(
         path = request.path or ""
     except Exception:
         path = ""
-    if not path.startswith(API_PREFIX):
+    if not _is_majoor_path(path):
         return response
 
     try:
@@ -104,18 +138,21 @@ async def api_versioning_middleware(
     except Exception:
         path = ""
 
-    prefix = API_PREFIX + "v1"
-    if path == prefix or path.startswith(prefix + "/"):
-        tail = path[len(prefix):] or "/"
-        target = API_PREFIX.rstrip("/") + tail
-        qs = ""
-        try:
-            qs = request.query_string or ""
-        except Exception:
+    # Handle the canonical path and ComfyUI's mirrored "/api" variant, keeping
+    # the caller on whichever spelling they used.
+    for mirror in ("", _COMFY_API_MIRROR_PREFIX):
+        prefix = mirror + API_PREFIX + "v1"
+        if path == prefix or path.startswith(prefix + "/"):
+            tail = path[len(prefix):] or "/"
+            target = mirror + API_PREFIX.rstrip("/") + tail
             qs = ""
-        if qs:
-            target = target + "?" + qs
-        raise web.HTTPPermanentRedirect(location=target)
+            try:
+                qs = request.query_string or ""
+            except Exception:
+                qs = ""
+            if qs:
+                target = target + "?" + qs
+            raise web.HTTPPermanentRedirect(location=target)
 
     return await handler(request)
 
@@ -128,7 +165,7 @@ def _request_path_and_method(request: web.Request) -> tuple[str, str]:
 
 
 def _requires_auth(path: str, method: str) -> bool:
-    return path.startswith(API_PREFIX) and method in _SENSITIVE_METHODS
+    return _is_majoor_path(path) and method in _SENSITIVE_METHODS
 
 
 def _store_request_user_id(request: web.Request, user_id: Any) -> None:

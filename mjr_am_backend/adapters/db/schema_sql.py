@@ -1,6 +1,12 @@
 """SQL constants and identifier-safety helpers for the database schema."""
 import re
 
+# NOTE: this is the *baseline* schema version stamped on a brand-new database
+# created from CREATE_TABLES_SQL below - not the latest schema version overall.
+# Existing databases are then advanced past this by the migration runner (see
+# mjr_am_backend/adapters/db/migrations/), which currently goes up to m021.
+# A fresh DB effectively starts at 16 and is immediately migrated to the
+# latest migration version on first boot, so the two numbers naturally diverge.
 CURRENT_SCHEMA_VERSION = 16
 # Schema version history (high-level):
 # 1: initial assets + metadata tables
@@ -193,7 +199,15 @@ CREATE INDEX IF NOT EXISTS idx_assets_source ON assets(source);
 CREATE INDEX IF NOT EXISTS idx_assets_source_lower ON assets(LOWER(source));
 CREATE INDEX IF NOT EXISTS idx_assets_root_id ON assets(root_id);
 CREATE INDEX IF NOT EXISTS idx_assets_source_root_id ON assets(source, root_id);
-CREATE UNIQUE INDEX IF NOT EXISTS idx_assets_filepath_source_root ON assets(filepath, source, root_id);
+-- NOTE: there is deliberately no UNIQUE index on (filepath, source, root_id).
+-- `assets.filepath` is already declared UNIQUE at the column level, so any
+-- tuple containing it is trivially unique: such an index could never reject a
+-- row the column constraint does not already reject, nor narrow a lookup
+-- further than the implicit filepath autoindex. It only cost an extra B-tree
+-- write per asset insert/update on the scan hot path. Migration m022 drops it
+-- from existing databases. (This says nothing about the longer-term question
+-- of whether asset identity should become (root_id, relative_path) instead of
+-- an absolute filepath - that model change is still open.)
 CREATE INDEX IF NOT EXISTS idx_metadata_rating ON asset_metadata(rating);
 CREATE INDEX IF NOT EXISTS idx_metadata_workflow_hash ON asset_metadata(workflow_hash);
 CREATE INDEX IF NOT EXISTS idx_metadata_quality_workflow ON asset_metadata(metadata_quality, has_workflow);

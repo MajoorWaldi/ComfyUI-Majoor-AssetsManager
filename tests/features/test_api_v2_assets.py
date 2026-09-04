@@ -95,6 +95,18 @@ def test_row_to_asset_shapes_fields_correctly():
     assert asset["metadata"]["source_node_type"] == "SaveImage"
 
 
+def test_row_to_asset_does_not_leak_absolute_filepath():
+    # This is a network-reachable compat surface; the DB-recorded absolute
+    # filepath (local disk layout, drive letters, project/client folder
+    # names) must never appear in the response, only relative location info.
+    secret_path = "C:/Users/alice/output/client-secret/shot.png"
+    asset = api_v2_assets._row_to_asset(_row(filepath=secret_path))
+    assert "filepath" not in asset["metadata"]
+    assert secret_path not in json.dumps(asset)
+    assert "alice" not in json.dumps(asset)
+    assert "client-secret" not in json.dumps(asset)
+
+
 def test_row_to_asset_omits_hash_when_algo_not_blake3():
     asset = api_v2_assets._row_to_asset(
         _row(hash_algo="sha256", content_hash="deadbeef")

@@ -152,9 +152,12 @@ def _parse_user_metadata(raw: Any) -> dict[str, Any]:
 
 
 def _system_metadata(row: dict[str, Any]) -> dict[str, Any]:
+    # Deliberately excludes the DB-recorded absolute "filepath": this is a
+    # network-reachable compat surface and `subfolder` + `root_id` already
+    # convey the asset's location without disclosing the host's local
+    # filesystem layout (drive letters, usernames, project folder names).
     out: dict[str, Any] = {}
     for key in (
-        "filepath",
         "subfolder",
         "source",
         "root_id",

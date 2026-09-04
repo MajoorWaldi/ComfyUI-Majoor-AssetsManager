@@ -53,16 +53,16 @@ class Result(Generic[T]):
 
     def map(self, fn: Callable[[T], U]) -> "Result[U]":
         """Map the data if ok, otherwise return self."""
-        if self.ok and self.data is not None:
+        if self.ok:
             return Result.Ok(fn(self.data), **self.meta)
         return cast(Result[U], self)
 
     def unwrap(self) -> T:
         """Get data or raise ValueError if error."""
-        if self.ok and self.data is not None:
+        if self.ok:
             return self.data
         raise ValueError(f"[{self.code}] {self.error}")
 
     def unwrap_or(self, default: T) -> T:
         """Get data or return default if error."""
-        return self.data if (self.ok and self.data is not None) else default
+        return self.data if self.ok else default

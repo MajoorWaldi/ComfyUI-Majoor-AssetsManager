@@ -1,9 +1,9 @@
-import { H as e, P as t, Zt as n, _ as r, _t as i, c as a, d as o, g as s, ht as c, n as l, o as u, r as d, s as f, x as p, y as m } from "./viewerRuntimeHosts-jn3aL1UJ.js";
-import { Ct as h, D as g, a as _, ct as v, h as y, i as b, j as x, k as S, m as C, n as w, o as T, pt as E, r as D, rt as O, t as k } from "./events-BI9U0VmZ.js";
-import { T as A, nt as j, tt as M } from "./mjr-primevue-BiC2k1jO.js";
-import { n as N, r as ee } from "./mjr-vue-vendor-BJEUNir5.js";
+import { H as e, P as t, Zt as n, _ as r, _t as i, c as a, d as o, g as s, ht as c, n as l, o as u, r as d, s as f, x as p, y as m } from "./viewerRuntimeHosts-DC1iA_jY.js";
+import { Ct as h, D as g, a as _, ct as v, h as y, i as b, j as x, k as S, m as C, n as w, o as T, pt as E, r as D, rt as O, t as k } from "./events-DjjLASfV.js";
+import { T as A, nt as j, tt as M } from "./mjr-primevue-DtKnnCVn.js";
+import { n as N, r as ee } from "./mjr-vue-vendor-BU1tBlvz.js";
 import { n as P, r as te, t as F } from "./state-DPiaUMw1.js";
-import { a as ne, c as re, i as ie, o as ae, r as oe, s as se } from "./model3dRenderer-DNbDaU5R.js";
+import { a as ne, c as re, i as ie, o as ae, r as oe, s as se } from "./model3dRenderer-Dst3PlP7.js";
 //#region ui/utils/events.ts
 function ce(e, t, { target: n = null, warnPrefix: r = "[Majoor]" } = {}) {
 	let i = n || (typeof window < "u" ? window : null);
@@ -2469,8 +2469,8 @@ function Qt(e, t = {}) {
 				if (!Number.isFinite(n) || n <= 0) return !1;
 				let r = f.getBoundingClientRect?.(), i = Number(r?.width) || 0;
 				if (!(i > 0)) return !1;
-				let a = P(F((Number(t) || 0) - Number(r.left || 0), 0, i) / i), o = a * n;
-				return e.currentTime = o, Pe(), p.value = String(Math.round(a * Ne())), J(o), !0;
+				let a = F((Number(t) || 0) - Number(r.left || 0), 0, i), o = P(a / i), s = o * n;
+				return e.currentTime = s, Pe(), p.value = String(Math.round(o * Ne())), J(s), !0;
 			} catch (e) {
 				return console.debug?.(e), !1;
 			}
@@ -2661,33 +2661,35 @@ function Qt(e, t = {}) {
 				let { inF: t, outF: n, maxF: r } = Me();
 				if (r <= 0 || t <= 0 && n >= r && !q.loop && !q.pingpong && !q.once || q._ppReverse) return;
 				let i = ke();
-				if (i >= n - Math.max(1, Math.floor(Number(q.step) || 1))) if (q.pingpong) {
-					Ue();
-					return;
-				} else if (q.loop) {
-					Ke(t);
-					try {
-						let t = e.play?.();
-						t && typeof t.catch == "function" && t.catch(() => {});
-					} catch (e) {
-						console.debug?.(e);
+				if (i >= n - Math.max(1, Math.floor(Number(q.step) || 1))) {
+					if (q.pingpong) {
+						Ue();
+						return;
 					}
-				} else if (q.once) {
-					try {
-						e.pause?.();
-					} catch (e) {
-						console.debug?.(e);
+					if (q.loop) {
+						Ke(t);
+						try {
+							let t = e.play?.();
+							t && typeof t.catch == "function" && t.catch(() => {});
+						} catch (e) {
+							console.debug?.(e);
+						}
+					} else if (q.once) {
+						try {
+							e.pause?.();
+						} catch (e) {
+							console.debug?.(e);
+						}
+						Ke(n);
+					} else {
+						try {
+							e.pause?.();
+						} catch (e) {
+							console.debug?.(e);
+						}
+						Ke(n);
 					}
-					Ke(n);
-				} else {
-					try {
-						e.pause?.();
-					} catch (e) {
-						console.debug?.(e);
-					}
-					Ke(n);
-				}
-				else i < t && Ke(t);
+				} else i < t && Ke(t);
 			} catch (e) {
 				console.debug?.(e);
 			}
@@ -3265,7 +3267,9 @@ function Tn({ asset: t, event: r, getCurrentViewUrl: a, onAssetChanged: s }) {
 					console.debug?.(e);
 				}
 				let i = [], a = Cn(r?.size_bytes);
-				a && i.push(a), r?.mime && i.push(r.mime), n(C("toast.metadataRefreshed", "Metadata refreshed{suffix}", { suffix: i.length ? ` (${i.join(", ")})` : "" }), "success", 3e3);
+				a && i.push(a), r?.mime && i.push(r.mime);
+				let o = i.length ? ` (${i.join(", ")})` : "";
+				n(C("toast.metadataRefreshed", "Metadata refreshed{suffix}", { suffix: o }), "success", 3e3);
 			} catch (e) {
 				o(e, "[ViewerContextMenu] Metadata refresh", { showToast: !0 });
 			}
@@ -5226,7 +5230,6 @@ function Gn({ overlay: e, _content: t, singleView: r, state: i, VIEWER_MODES: a,
 				} catch (e) {
 					console.debug?.(e);
 				}
-				break;
 		}
 	}, N = null, ee = () => {
 		try {
@@ -5902,7 +5905,7 @@ function Jn({ gridCanvas: e, content: t, state: n, VIEWER_MODES: r, getPrimaryMe
 						};
 						e(.05, .24), e(.1, .18);
 					} else if (n.gridMode === 4) {
-						let t = .382, n = 1 - t;
+						let t = .382, n = .618;
 						e(A.w * t, 0, A.w * t, A.h), e(A.w * n, 0, A.w * n, A.h), e(0, A.h * t, A.w, A.h * t), e(0, A.h * n, A.w, A.h * n);
 					}
 				} catch (e) {
@@ -7115,11 +7118,12 @@ function or({ canvas: e, videoEl: t, disableWebGL: n, pauseDuringExecution: r = 
 		if (w) for (let e = 0; e < x.length; e += 4) x[e] = w[b[e] ?? 0], x[e + 1] = w[b[e + 1] ?? 0], x[e + 2] = w[b[e + 2] ?? 0], x[e + 3] = 255;
 		else for (let e = 0; e < x.length; e += 4) {
 			let t = (b[e] ?? 0) / 255, n = (b[e + 1] ?? 0) / 255, r = (b[e + 2] ?? 0) / 255, i = (b[e + 3] ?? 255) / 255, a = t * v, s = n * v, c = r * v, l = .2126 * a + .7152 * s + .0722 * c;
-			if (f === "zebra") if (P(l) >= _) {
-				let t = (Math.floor(e / 4) % o + Math.floor(e / 4 / o) & 7) < 3;
-				a = +!!t, s = +!!t, c = +!!t;
+			if (f === "zebra") {
+				if (P(l) >= _) {
+					let t = (Math.floor(e / 4) % o + Math.floor(e / 4 / o) & 7) < 3;
+					a = +!!t, s = +!!t, c = +!!t;
+				} else a = P(a) ** +u, s = P(s) ** +u, c = P(c) ** +u;
 			} else a = P(a) ** +u, s = P(s) ** +u, c = P(c) ** +u;
-			else a = P(a) ** +u, s = P(s) ** +u, c = P(c) ** +u;
 			if (d === "r") s = a, c = a;
 			else if (d === "g") a = s, c = s;
 			else if (d === "b") a = c, s = c;
@@ -9740,13 +9744,13 @@ var Wr = null, Gr = null, Kr = null, qr = null, Jr = null, Yr = null;
 function Xr() {
 	Wr || import("./abCompare-BXOoRlmV.js").then((e) => {
 		Wr = e;
-	}), Gr || import("./sideBySide-BN9khDtS.js").then((e) => {
+	}), Gr || import("./sideBySide-COSp1JaA.js").then((e) => {
 		Gr = e;
-	}), Kr || import("./model3dRenderer-DNbDaU5R.js").then((e) => e.t).then((e) => {
+	}), Kr || import("./model3dRenderer-Dst3PlP7.js").then((e) => e.t).then((e) => {
 		Kr = e;
-	}), qr || import("./scopes-X1iFrTle.js").then((e) => {
+	}), qr || import("./scopes-Dx5cTyCY.js").then((e) => {
 		qr = e;
-	}), Jr || import("./genInfo-B7-wd-fB.js").then((e) => e.n).then((e) => {
+	}), Jr || import("./genInfo-Bq-kF66o.js").then((e) => e.n).then((e) => {
 		Jr = e;
 	}), Yr || import("./frameExport-tksSZ7sb.js").then((e) => {
 		Yr = e;
@@ -9967,7 +9971,7 @@ function Zr() {
 				try {
 					let e = () => {
 						let e = E();
-						return e == null ? !1 : (_(Math.abs((Number(o.zoom) || 1) - e) < .01 ? 1 : e, {
+						return e != null && (_(Math.abs((Number(o.zoom) || 1) - e) < .01 ? 1 : e, {
 							clientX: o._lastPointerX,
 							clientY: o._lastPointerY
 						}), !0);
@@ -10131,7 +10135,7 @@ function Zr() {
 		APP_CONFIG: T,
 		getAssetMetadata: s,
 		getAssetsBatch: r
-	}), ke = 300 * 1e3, Ae = /* @__PURE__ */ new Map(), je = () => {
+	}), ke = 3e5, Ae = /* @__PURE__ */ new Map(), je = () => {
 		try {
 			let e = Date.now();
 			for (let [t, n] of Ae.entries()) {
@@ -10274,7 +10278,7 @@ function Zr() {
 					e.save(), e.font = "12px var(--comfy-font, ui-sans-serif, system-ui)", e.textAlign = "center", e.textBaseline = "middle";
 					let u = "Zoom in to pan", d = e.measureText(u), f = Math.min(n.w - 20, Math.max(140, d.width + 26));
 					e.fillStyle = "rgba(0,0,0,0.65)", e.strokeStyle = "rgba(255,255,255,0.18)", e.lineWidth = 1, e.beginPath();
-					let p = c - f / 2, m = l - 26 / 2;
+					let p = c - f / 2, m = l - 13;
 					e.moveTo(p + 10, m), e.arcTo(p + f, m, p + f, m + 26, 10), e.arcTo(p + f, m + 26, p, m + 26, 10), e.arcTo(p, m + 26, p, m, 10), e.arcTo(p, m, p + f, m, 10), e.closePath(), e.fill(), e.stroke(), e.fillStyle = "rgba(255,255,255,0.92)", e.fillText(u, c, l), e.restore();
 				}
 			} catch (e) {

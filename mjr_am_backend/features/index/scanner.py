@@ -101,6 +101,26 @@ _VECTOR_INDEX_DEFAULT_CONCURRENCY = 2
 _VECTOR_INDEX_SEMAPHORES: "weakref.WeakKeyDictionary[asyncio.AbstractEventLoop, tuple[int, asyncio.Semaphore]]" = weakref.WeakKeyDictionary()
 
 
+def _symlink_target_within_allowed_roots(path: Any) -> bool:
+    """Scan-time guard mirroring the viewer's open-time root check.
+
+    Applied by FileSystemWalker to symlinked files only. Indexing a symlink
+    whose target escapes every registered root would create a row the viewer
+    then refuses to serve, so the two layers must agree on the invariant.
+
+    The import is deferred: ``routes.core`` builds services that import this
+    package, so a module-level import would create a cycle.
+    """
+    try:
+        from ...routes.core import _is_path_allowed
+
+        return bool(_is_path_allowed(path, must_exist=True))
+    except Exception:
+        # Root registry unavailable (e.g. standalone scan in tests): fall back
+        # to historical behaviour rather than silently dropping every symlink.
+        return True
+
+
 def _is_fatal_db_error(exc: Exception) -> bool:
     if not isinstance(exc, sqlite3.DatabaseError):
         return False
@@ -327,7 +347,10 @@ class IndexScanner:
         self._max_to_enrich_items = int(MAX_TO_ENRICH_ITEMS)
         self._batch_fallback_count = 0
         self._batch_fallback_lock = threading.Lock()
-        self._fs_walker = FileSystemWalker(scan_iops_limit=max(0.0, float(SCAN_IOPS_LIMIT)))
+        self._fs_walker = FileSystemWalker(
+            scan_iops_limit=max(0.0, float(SCAN_IOPS_LIMIT)),
+            symlink_target_allowed=_symlink_target_within_allowed_roots,
+        )
         self._vector_service: Any | None = None
         self._vector_searcher: Any | None = None
         self._vector_index_lock = asyncio.Lock()

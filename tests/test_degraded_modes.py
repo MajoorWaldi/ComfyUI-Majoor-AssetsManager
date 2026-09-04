@@ -221,6 +221,64 @@ class TestRoutesIdempotency:
         finally:
             registry._ROUTES_REGISTERED = original_flag
 
+    def test_core_route_group_failure_does_not_duplicate_on_retry(self):
+        """A core group raising part-way must not cause the groups registered
+        before it to be added a second time when registration is retried.
+
+        register_fn() mutates the shared RouteTableDef in place, so re-running
+        an already-applied group would register duplicate routes on the app.
+        """
+        from mjr_am_backend.routes import registry
+        from mjr_am_backend.routes.route_catalog import RouteRegistration
+
+        applied: list[str] = []
+        should_fail = {"value": True}
+
+        def _ok_a(_routes):
+            applied.append("group-a")
+
+        def _ok_b(_routes):
+            applied.append("group-b")
+
+        def _flaky(_routes):
+            applied.append("group-flaky")
+            if should_fail["value"]:
+                raise RuntimeError("boom")
+
+        fake_core = (
+            RouteRegistration("group-a", _ok_a),
+            RouteRegistration("group-flaky", _flaky),
+            RouteRegistration("group-b", _ok_b),
+        )
+
+        original_flag = registry._ROUTES_REGISTERED
+        original_groups = set(registry._REGISTERED_ROUTE_GROUPS)
+        try:
+            registry._ROUTES_REGISTERED = False
+            registry._REGISTERED_ROUTE_GROUPS.clear()
+            with (
+                patch.object(registry, "CORE_ROUTE_REGISTRATIONS", fake_core),
+                patch.object(registry, "OPTIONAL_ROUTE_REGISTRATIONS", ()),
+                patch.object(registry, "_get_prompt_server") as mock_ps,
+            ):
+                mock_ps.return_value.instance.routes = MagicMock()
+
+                with pytest.raises(RuntimeError):
+                    registry.register_all_routes()
+                assert applied == ["group-a", "group-flaky"]
+
+                # Retry once the transient failure clears.
+                should_fail["value"] = False
+                registry.register_all_routes()
+
+            # group-a must NOT have been re-applied; the retry resumes at the
+            # failed group and continues past it.
+            assert applied == ["group-a", "group-flaky", "group-flaky", "group-b"]
+        finally:
+            registry._ROUTES_REGISTERED = original_flag
+            registry._REGISTERED_ROUTE_GROUPS.clear()
+            registry._REGISTERED_ROUTE_GROUPS.update(original_groups)
+
 
 # ---------------------------------------------------------------------------
 # 5. DB migration failure — structured Err, not raw exception

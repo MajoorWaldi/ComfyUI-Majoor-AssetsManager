@@ -17,6 +17,32 @@ def test_request_helpers_and_requires_auth():
     assert r._requires_auth("/mjr/am/x", "GET") is False
 
 
+def test_requires_auth_covers_comfy_api_mirror():
+    """ComfyUI's PromptServer.add_routes() mirrors every route under "/api",
+    so /api/mjr/am/<mutation> reaches the same handler as /mjr/am/<mutation>.
+    Both spellings must demand authentication, or the mirror is a bypass."""
+    assert r._requires_auth("/api/mjr/am/assets/delete", "POST") is True
+    assert r._requires_auth("/api/mjr/am/assets/rename", "PATCH") is True
+    assert r._requires_auth("/api/mjr/am/list", "GET") is False
+
+
+def test_requires_auth_covers_v2_compat_surface_and_its_mirror():
+    # The v2 compat layer is read-only today, so no method triggers auth, but
+    # the boundary must recognise it (and its mirror) as our surface so a
+    # future mutating v2 route is guarded by default.
+    assert r._is_majoor_path("/api/v2/assets") is True
+    assert r._is_majoor_path("/api/v2/assets/1/content") is True
+    assert r._is_majoor_path("/api/api/v2/assets") is True
+    assert r._requires_auth("/api/v2/assets", "DELETE") is True
+
+
+def test_security_boundary_does_not_capture_comfyui_core_routes():
+    """The boundary must not swallow ComfyUI's own routes - applying our CSP /
+    auth rules to core endpoints would break the host application."""
+    for path in ("/prompt", "/api/prompt", "/view", "/api/view", "/userdata/x", "/"):
+        assert r._is_majoor_path(path) is False
+
+
 @pytest.mark.asyncio
 async def test_api_versioning_and_security_headers_middlewares():
     req_v = make_mocked_request("GET", "/mjr/am/v1/test?a=1")
@@ -34,6 +60,33 @@ async def test_api_versioning_and_security_headers_middlewares():
     req_other = make_mocked_request("GET", "/")
     resp_other = await r.security_headers_middleware(req_other, _handler)
     assert resp_other.text == "ok"
+
+
+@pytest.mark.asyncio
+async def test_security_headers_applied_to_mirror_and_compat_surface():
+    async def _handler(_req):
+        return web.Response(text="ok")
+
+    # ComfyUI's "/api" mirror and the v2 compat layer must get the same
+    # hardening headers as the canonical /mjr/am/ prefix.
+    for path in ("/api/mjr/am/health", "/api/v2/assets", "/api/v2/assets/1/content"):
+        resp = await r.security_headers_middleware(make_mocked_request("GET", path), _handler)
+        assert resp.headers.get("X-Content-Type-Options") == "nosniff", path
+        assert resp.headers.get("Content-Security-Policy") == "default-src 'none'", path
+        assert resp.headers.get("X-Frame-Options") == "DENY", path
+
+
+@pytest.mark.asyncio
+async def test_api_versioning_redirect_preserves_mirror_prefix():
+    async def _handler(_req):
+        return web.Response(text="ok")
+
+    with pytest.raises(web.HTTPPermanentRedirect) as excinfo:
+        await r.api_versioning_middleware(
+            make_mocked_request("GET", "/api/mjr/am/v1/test?a=1"), _handler
+        )
+    # A caller who used the mirrored spelling must stay on it after the redirect.
+    assert excinfo.value.location == "/api/mjr/am/test?a=1"
 
 
 def test_auth_error_response_or_none(monkeypatch):

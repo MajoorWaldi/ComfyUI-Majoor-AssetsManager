@@ -160,8 +160,21 @@ def _register_app_routes_best_effort(
     logger: Any,
 ) -> None:
     try:
-        route_table = get_prompt_server_fn().instance.routes
+        prompt_server_instance = getattr(get_prompt_server_fn(), "instance", None)
+        route_table = getattr(prompt_server_instance, "routes", None)
+        if route_table is None:
+            logger.warning("Failed to register routes on aiohttp app: PromptServer.instance.routes unavailable")
+            return
         log_route_collisions_fn(app, route_table)
+        if app is getattr(prompt_server_instance, "app", None):
+            # This is the live PromptServer app: our routes already live in the
+            # shared `route_table` (populated by register_all_routes()), and
+            # ComfyUI's own PromptServer.add_routes() will call
+            # `self.app.add_routes(self.routes)` itself later during startup
+            # (main.py, after custom-node loading). Calling app.add_routes()
+            # here too would register the entire core+Majoor route table twice.
+            mark_routes_registered_fn(app)
+            return
         app.add_routes(route_table)
         mark_routes_registered_fn(app)
     except Exception as exc:

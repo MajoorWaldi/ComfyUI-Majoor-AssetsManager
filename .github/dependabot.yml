@@ -12,3 +12,14 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    ignore:
+      # PrimeVue 5 moved from MIT to PrimeTek's commercial "PrimeUI" license:
+      # it requires a license key, shows a license notice without one, and its
+      # terms forbid redistributing it "as a component library or development
+      # tool" without a separate OEM License. This project is GPL-3.0 and
+      # commits its built bundle (dist/) to the repo, so shipping PrimeVue 5
+      # would both nag every user and conflict with the GPL's requirement that
+      # the whole distributed work be redistributable. Stay on the 4.x MIT
+      # line; revisit only as a deliberate, licensed decision.
+      - dependency-name: "primevue"
+        update-types: ["version-update:semver-major"]

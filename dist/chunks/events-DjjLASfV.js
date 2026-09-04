@@ -768,7 +768,7 @@ function qe(e = {}) {
 		wrappedQueuePrompt: o,
 		restore: () => {
 			try {
-				return (t.queuePrompt?.[P] || null)?.owner === n ? (t.queuePrompt = a, !0) : !1;
+				return (t.queuePrompt?.[P] || null)?.owner === n && (t.queuePrompt = a, !0);
 			} catch (e) {
 				return console.debug?.(e), !1;
 			}
@@ -3209,7 +3209,7 @@ var Bt = (e) => {
 	RT_HYDRATE_QUEUE_MAX: 100,
 	RT_HYDRATE_SEEN_MAX: 2e4,
 	RT_HYDRATE_PRUNE_BUDGET: 250,
-	RT_HYDRATE_SEEN_TTL_MS: 600 * 1e3,
+	RT_HYDRATE_SEEN_TTL_MS: 6e5,
 	VIEWER_META_TTL_MS: 3e4,
 	VIEWER_META_MAX_ENTRIES: 500,
 	WORKFLOW_MINIMAP_ENABLED: !0,

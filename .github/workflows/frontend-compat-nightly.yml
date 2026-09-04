@@ -40,7 +40,28 @@ jobs:
 
             - name: Activate latest generated ComfyUI frontend types
               shell: bash
-              run: cp _upstream/ComfyUI_frontend/dist/index.d.ts node_modules/@comfyorg/comfyui-frontend-types/index.d.ts
+              run: |
+                  set -euo pipefail
+                  root="_upstream/ComfyUI_frontend"
+                  entry=""
+                  for candidate in "$root/dist/index.d.ts" "$root/dist/types/index.d.ts"; do
+                      if [ -f "$candidate" ]; then
+                          entry="$candidate"
+                          break
+                      fi
+                  done
+                  if [ -z "$entry" ]; then
+                      echo "::error::Generated type entrypoint not found under $root/dist."
+                      echo "This usually means upstream's 'pnpm build:types' failed to emit a" \
+                           "declaration bundle (e.g. a type error on their main branch) rather" \
+                           "than this extension being incompatible - check the 'Build types from" \
+                           "latest ComfyUI frontend source' step's output above."
+                      echo "Contents of $root/dist (if it exists):"
+                      find "$root/dist" -maxdepth 3 -type f 2>/dev/null | sort || echo "  (dist/ does not exist)"
+                      exit 1
+                  fi
+                  echo "Using generated types from: $entry"
+                  cp "$entry" node_modules/@comfyorg/comfyui-frontend-types/index.d.ts
 
             - name: Typecheck against latest official ComfyUI frontend types
               run: npx tsc -p tsconfig.json --noEmit --pretty false

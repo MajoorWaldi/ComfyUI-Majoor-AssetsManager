@@ -227,7 +227,7 @@ function p(e, t, n) {
 }
 function m(e) {
 	let t = {};
-	for (let [n, r] of Object.entries(e || {})) r == null || r === "" || Array.isArray(r) && r.length === 0 || r && typeof r == "object" && !Array.isArray(r) && Object.keys(r).length === 0 || (t[n] = r);
+	for (let [n, r] of Object.entries(e || {})) r != null && r !== "" && (Array.isArray(r) && r.length === 0 || r && typeof r == "object" && !Array.isArray(r) && Object.keys(r).length === 0 || (t[n] = r));
 	return t;
 }
 function h(e) {
@@ -235,7 +235,7 @@ function h(e) {
 	let t = {};
 	for (let n of Object.keys(e).sort()) {
 		let r = e[n];
-		r == null || r === "" || (t[n] = r);
+		r != null && r !== "" && (t[n] = r);
 	}
 	return JSON.stringify(t);
 }
@@ -495,7 +495,7 @@ function R(r) {
 		let i = r.geninfo || r.GenInfo || r.generation || null;
 		if (i && typeof i == "object") {
 			let e = {}, t = /* @__PURE__ */ new Set(), n = (e, n) => {
-				if (!(!n || typeof n != "object") && !(n.confidence !== "override" && n.source !== "majoor_geninfo")) for (let n of Array.isArray(e) ? e : [e]) t.add(n);
+				if (!(!n || typeof n != "object") && (n.confidence === "override" || n.source === "majoor_geninfo")) for (let n of Array.isArray(e) ? e : [e]) t.add(n);
 			}, a = i.positive?.value ?? i.positive?.text ?? null, o = i.negative?.value ?? i.negative?.text ?? null;
 			typeof a == "string" && a.trim() && (e.prompt = a), typeof o == "string" && o.trim() && (e.negative_prompt = o), n("prompt", i.positive), n("negative_prompt", i.negative);
 			let s = i.checkpoint?.name ?? i.checkpoint ?? null;
@@ -670,7 +670,7 @@ function H(e, t) {
 }
 function U(e, t) {
 	if (!(!t || typeof t != "object")) {
-		for (let [n, r] of Object.entries(t)) if (!(r == null || r === "")) {
+		for (let [n, r] of Object.entries(t)) if (r != null && r !== "") {
 			if (Array.isArray(r) && Array.isArray(e[n])) {
 				e[n] = G(e[n], r);
 				continue;

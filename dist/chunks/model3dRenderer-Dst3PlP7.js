@@ -1,5 +1,5 @@
 import { t as e } from "./rolldown-runtime-Dy4uBu1J.js";
-import { m as t, mt as n, o as r, r as i } from "./events-BI9U0VmZ.js";
+import { m as t, mt as n, o as r, r as i } from "./events-DjjLASfV.js";
 import { n as a } from "./state-DPiaUMw1.js";
 //#region ui/features/viewer/model3dCore.ts
 function o(e, t) {
@@ -395,11 +395,12 @@ function x({ canvas: e, url: t, getGradeParams: n, isDefaultGrade: r, _tonemap: 
 			let n = Math.min(C, w + 22e4);
 			for (; w < n; w += 4) {
 				let e = (S[w] ?? 0) / 255, t = (S[w + 1] ?? 0) / 255, n = (S[w + 2] ?? 0) / 255, r = (S[w + 3] ?? 255) / 255, i = e * y, o = t * y, c = n * y, l = .2126 * i + .7152 * o + .0722 * c;
-				if (ee === "zebra") if (a(l) >= te) {
-					let e = (Math.floor(w / 4) % s + Math.floor(w / 4 / s) & 7) < 3;
-					i = +!!e, o = +!!e, c = +!!e;
+				if (ee === "zebra") {
+					if (a(l) >= te) {
+						let e = (Math.floor(w / 4) % s + Math.floor(w / 4 / s) & 7) < 3;
+						i = +!!e, o = +!!e, c = +!!e;
+					} else i = b[a(i) * 255 + .5 | 0], o = b[a(o) * 255 + .5 | 0], c = b[a(c) * 255 + .5 | 0];
 				} else i = b[a(i) * 255 + .5 | 0], o = b[a(o) * 255 + .5 | 0], c = b[a(c) * 255 + .5 | 0];
-				else i = b[a(i) * 255 + .5 | 0], o = b[a(o) * 255 + .5 | 0], c = b[a(c) * 255 + .5 | 0];
 				if (v === "r") o = i, c = i;
 				else if (v === "g") i = o, c = o;
 				else if (v === "b") i = c, o = c;

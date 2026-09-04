@@ -87,6 +87,20 @@ def test_recent_generated_roundtrip_and_prune(monkeypatch):
     assert w.is_recent_generated("C:/a.png") is False
 
 
+def test_mark_recent_generated_enforces_hard_cap_for_large_batch(monkeypatch):
+    # Pre-fill the cache right up against the hard cap, then insert a batch
+    # bigger than the pre-insert headroom in one call. Pruning only *before*
+    # insertion (the old behaviour) can't account for the incoming batch size
+    # and lets the cache overshoot the cap; it must be enforced afterward too.
+    monkeypatch.setattr(w.time, "time", lambda: 1000.0)
+    cap = w._RECENT_GENERATED_HARD_CAP
+    w.mark_recent_generated([f"C:/pre_{i}.png" for i in range(cap - 1)])
+    assert len(w._RECENT_GENERATED) == cap - 1
+
+    w.mark_recent_generated([f"C:/batch_{i}.png" for i in range(1000)])
+    assert len(w._RECENT_GENERATED) <= cap
+
+
 def test_normalize_recent_key_handles_error(monkeypatch):
     monkeypatch.setattr(w.os.path, "normpath", lambda _p: (_ for _ in ()).throw(RuntimeError("x")))
     assert w._normalize_recent_key("x") == "x"

@@ -1,5 +1,5 @@
-import { J as e, o as t, r as n } from "./events-BI9U0VmZ.js";
-import { t as r } from "./floatingViewerManager-BvHclU-y.js";
+import { J as e, o as t, r as n } from "./events-DjjLASfV.js";
+import { t as r } from "./floatingViewerManager-BVG4XDLW.js";
 //#region ui/features/viewer/LiveStreamTracker.ts
 var i = !1, a = null, o = null, s = null, c = null, l = null, u = null, d = null, f = null, p = 0, m = 0, h = !1, g = 400, _ = "kj_preview_override", v = /* @__PURE__ */ new Set([
 	"image/jpeg",
@@ -59,7 +59,7 @@ function D(e) {
 	let t = E(e?.mime), n = String(e?.image || "").trim();
 	if (!t || !n || typeof globalThis.atob != "function") return null;
 	try {
-		let e = globalThis.atob(n), r = [], i = 32 * 1024;
+		let e = globalThis.atob(n), r = [], i = 32768;
 		for (let t = 0; t < e.length; t += i) {
 			let n = e.slice(t, t + i), a = new ArrayBuffer(n.length), o = new Uint8Array(a);
 			for (let e = 0; e < n.length; e += 1) o[e] = n.charCodeAt(e);
