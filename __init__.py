@@ -11,25 +11,30 @@ import os
 import re
 import sys
 from pathlib import Path
-from typing import Any
 
-# ComfyUI extension metadata – populated from nodes.py below.
-NODE_CLASS_MAPPINGS: dict[str, Any] = {}
-NODE_DISPLAY_NAME_MAPPINGS: dict[str, str] = {}
 
-try:
-    from .nodes import (
-        NODE_CLASS_MAPPINGS as _ncm,
-    )
-    from .nodes import (
-        NODE_DISPLAY_NAME_MAPPINGS as _ndnm,
-    )
-    NODE_CLASS_MAPPINGS.update(_ncm)
-    NODE_DISPLAY_NAME_MAPPINGS.update(_ndnm)
-except Exception:
-    logging.getLogger("majoor_assets_manager").debug(
-        "failed to import custom nodes", exc_info=True,
-    )
+# ComfyUI Nodes V3 extension entrypoint. Node classes are defined in nodes.py
+# using the comfy_api.latest io.ComfyNode schema and are resolved lazily here
+# so a broken optional dependency (torch/av) degrades to zero nodes instead of
+# preventing the rest of the extension (routes, frontend bundle) from loading.
+async def comfy_entrypoint():
+    from comfy_api.latest import ComfyExtension  # type: ignore[import-untyped]
+
+    class _MajoorAssetsManagerExtension(ComfyExtension):
+        async def get_node_list(self):
+            try:
+                from .nodes import comfy_entrypoint as _nodes_entrypoint
+            except Exception:
+                logging.getLogger("majoor_assets_manager").debug(
+                    "failed to import custom nodes", exc_info=True,
+                )
+                return []
+            extension = await _nodes_entrypoint()
+            return await extension.get_node_list()
+
+    return _MajoorAssetsManagerExtension()
+
+
 # Resolved below after `root` is known; keep None as sentinel so imports
 # executed before root assignment don't accidentally use a relative path.
 WEB_DIRECTORY = None
@@ -211,8 +216,7 @@ except Exception:
     _logger.exception("failed to initialize at import time")
 
 __all__ = [
-    "NODE_CLASS_MAPPINGS",
-    "NODE_DISPLAY_NAME_MAPPINGS",
+    "comfy_entrypoint",
     "WEB_DIRECTORY",
     "__version__",
     "__branch__",

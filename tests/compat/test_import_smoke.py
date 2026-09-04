@@ -1,4 +1,5 @@
 import importlib.util
+import inspect
 from pathlib import Path
 
 
@@ -10,8 +11,11 @@ def test_import_exposes_expected_public_symbols():
     spec.loader.exec_module(module)
     assert hasattr(module, "init_prompt_server")
     assert callable(module.init_prompt_server)
-    assert hasattr(module, "NODE_CLASS_MAPPINGS")
-    assert isinstance(module.NODE_CLASS_MAPPINGS, dict)
+    # ComfyUI Nodes V3: node classes are exposed via an async comfy_entrypoint()
+    # returning a ComfyExtension, not via legacy NODE_CLASS_MAPPINGS.
+    assert hasattr(module, "comfy_entrypoint")
+    assert callable(module.comfy_entrypoint)
+    assert inspect.iscoroutinefunction(module.comfy_entrypoint)
     assert hasattr(module, "WEB_DIRECTORY")
     assert isinstance(module.WEB_DIRECTORY, str)
     assert hasattr(module, "__version__")

@@ -31,6 +31,7 @@ import av  # type: ignore[import-untyped]
 import folder_paths  # type: ignore[import-untyped]
 import numpy as np
 from comfy.cli_args import args  # type: ignore[import-untyped]
+from comfy_api.latest import IO, ComfyExtension  # type: ignore[import-untyped]
 from PIL import Image, ImageCms
 from PIL.PngImagePlugin import PngInfo
 
@@ -50,14 +51,6 @@ except ImportError:
     from mjr_am_backend.video_ui import build_video_ui as _build_video_ui
 
 _log = logging.getLogger("majoor_assets_manager.nodes")
-
-
-class _AnyType(str):
-    def __ne__(self, other: object) -> bool:
-        return False
-
-
-MAJOOR_ANY = _AnyType("*")
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -897,68 +890,58 @@ def _prompt_runtime_sampler_payload(prompt: Any | None, workflow: Any | None) ->
     return out
 
 
-class MajoorGenInfoOverride:
+class MajoorGenInfoOverride(IO.ComfyNode):
     """Build explicit Majoor geninfo metadata for Save Image/Video nodes."""
 
     @classmethod
-    def INPUT_TYPES(cls):  # noqa: N802
-        return {
-            "required": {
-                "positive_prompt": ("STRING", {"default": "", "multiline": True}),
-                "negative_prompt": ("STRING", {"default": "", "multiline": True}),
-            },
-            "optional": {
-                "workflow_context": (
-                    MAJOOR_ANY,
-                    {
-                        "tooltip": "Optional dependency input. Connect a late workflow node, for example VAE Decode IMAGE, so this node runs with full graph context.",
-                    },
+    def define_schema(cls) -> IO.Schema:
+        return IO.Schema(
+            node_id="MajoorGenInfoOverride",
+            display_name="〽️ Majoor Gen Info Override",
+            category="Majoor",
+            description="Build explicit geninfo metadata consumed by Majoor Save Image/Video.",
+            inputs=[
+                IO.String.Input("positive_prompt", default="", multiline=True),
+                IO.String.Input("negative_prompt", default="", multiline=True),
+                IO.AnyType.Input(
+                    "workflow_context",
+                    optional=True,
+                    tooltip="Optional dependency input. Connect a late workflow node, for example VAE Decode IMAGE, so this node runs with full graph context.",
                 ),
-                "seed": ("INT", {"default": -1, "min": -1, "max": 0xffffffffffffffff, "control_after_generate": False}),
-                "steps": ("INT", {"default": -1, "min": -1}),
-                "cfg": ("FLOAT", {"default": -1.0, "min": -1.0, "step": 0.1}),
-                "sampler": ("STRING", {"default": ""}),
-                "scheduler": ("STRING", {"default": ""}),
-                "model": ("STRING", {"default": ""}),
-                "vae": ("STRING", {"default": ""}),
-                "clip": ("STRING", {"default": ""}),
-                "denoise": ("FLOAT", {"default": -1.0, "min": -1.0, "max": 1.0, "step": 0.01}),
-                "loras_json": (
-                    "STRING",
-                    {
-                        "default": "",
-                        "multiline": True,
-                        "tooltip": "JSON array: [{\"name\":\"lora.safetensors\",\"strength\":0.8}]",
-                    },
+                IO.Int.Input(
+                    "seed", optional=True, default=-1, min=-1, max=0xffffffffffffffff, control_after_generate=False,
                 ),
-                "workflow_notes": ("STRING", {"default": "", "multiline": True}),
-                "custom_info_json": (
-                    "STRING",
-                    {
-                        "default": "",
-                        "multiline": True,
-                        "tooltip": "JSON array: [{\"title\":\"Notes\",\"content\":\"...\",\"color\":\"#4CAF50\"}]",
-                    },
+                IO.Int.Input("steps", optional=True, default=-1, min=-1),
+                IO.Float.Input("cfg", optional=True, default=-1.0, min=-1.0, step=0.1),
+                IO.String.Input("sampler", optional=True, default=""),
+                IO.String.Input("scheduler", optional=True, default=""),
+                IO.String.Input("model", optional=True, default=""),
+                IO.String.Input("vae", optional=True, default=""),
+                IO.String.Input("clip", optional=True, default=""),
+                IO.Float.Input("denoise", optional=True, default=-1.0, min=-1.0, max=1.0, step=0.01),
+                IO.String.Input(
+                    "loras_json",
+                    optional=True,
+                    default="",
+                    multiline=True,
+                    tooltip="JSON array: [{\"name\":\"lora.safetensors\",\"strength\":0.8}]",
                 ),
-            },
-            "hidden": {
-                "prompt": "PROMPT",
-                "extra_pnginfo": "EXTRA_PNGINFO",
-            },
-        }
-
-    RETURN_TYPES = ("MAJOOR_GENINFO",)
-    RETURN_NAMES = ("geninfo_override",)
-    FUNCTION = "build"
-    CATEGORY = "Majoor"
-    DESCRIPTION = "Build explicit geninfo metadata consumed by Majoor Save Image/Video."
+                IO.String.Input("workflow_notes", optional=True, default="", multiline=True),
+                IO.String.Input(
+                    "custom_info_json",
+                    optional=True,
+                    default="",
+                    multiline=True,
+                    tooltip="JSON array: [{\"title\":\"Notes\",\"content\":\"...\",\"color\":\"#4CAF50\"}]",
+                ),
+            ],
+            outputs=[IO.Custom("MAJOOR_GENINFO").Output(display_name="geninfo_override")],
+            hidden=[IO.Hidden.prompt, IO.Hidden.extra_pnginfo],
+        )
 
     @classmethod
-    def VALIDATE_INPUTS(cls, **kwargs):  # noqa: N802
-        return True
-
-    def build(
-        self,
+    def execute(
+        cls,
         positive_prompt: str = "",
         negative_prompt: str = "",
         workflow_context: Any | None = None,
@@ -974,9 +957,9 @@ class MajoorGenInfoOverride:
         loras_json: str = "",
         workflow_notes: str = "",
         custom_info_json: str = "",
-        prompt: Any | None = None,
-        extra_pnginfo: dict | None = None,
-    ):
+    ) -> IO.NodeOutput:
+        prompt = cls.hidden.prompt
+        extra_pnginfo = cls.hidden.extra_pnginfo
         manual = _build_geninfo_override_payload(
             positive_prompt=positive_prompt,
             negative_prompt=negative_prompt,
@@ -1015,14 +998,14 @@ class MajoorGenInfoOverride:
                     payload[key] = fallback[key]
         if _payload_has_meaningful_value(runtime_payload, "seed"):
             payload["seed"] = runtime_payload["seed"]
-        return {"ui": {"majoor_geninfo_override": [payload]}, "result": (payload,)}
+        return IO.NodeOutput(payload, ui={"majoor_geninfo_override": [payload]})
 
 
 # ---------------------------------------------------------------------------
 # MajoorSaveImage
 # ---------------------------------------------------------------------------
 
-class MajoorSaveImage:
+class MajoorSaveImage(IO.ComfyNode):
     """
     Save images to the ComfyUI output directory with **generation_time_ms**
     persisted in the PNG text metadata.
@@ -1032,67 +1015,59 @@ class MajoorSaveImage:
     node automatically computes the time elapsed since the prompt started.
     """
 
-    def __init__(self) -> None:
-        self.output_dir = folder_paths.get_output_directory()
-        self.type = "output"
-        self.prefix_append = ""
-        self.compress_level = 4
+    @classmethod
+    def define_schema(cls) -> IO.Schema:
+        return IO.Schema(
+            node_id="MajoorSaveImage",
+            display_name="〽️ Majoor Save Image 💾",
+            category="Majoor",
+            description="Save images with generation_time_ms metadata for Majoor Assets Manager.",
+            inputs=[
+                IO.Image.Input("images", tooltip="The images to save."),
+                IO.String.Input(
+                    "filename_prefix",
+                    default="Majoor",
+                    tooltip="Prefix for the saved file. Supports ComfyUI formatting placeholders.",
+                ),
+                IO.Int.Input(
+                    "generation_time_ms",
+                    optional=True,
+                    default=-1,
+                    min=-1,
+                    tooltip="Generation time in milliseconds. -1 = auto-detect from prompt lifecycle.",
+                ),
+                IO.Custom("MAJOOR_GENINFO").Input(
+                    "geninfo_override",
+                    optional=True,
+                    tooltip="Explicit geninfo override from Majoor Gen Info Override.",
+                ),
+            ],
+            outputs=[],
+            hidden=[IO.Hidden.prompt, IO.Hidden.extra_pnginfo, IO.Hidden.unique_id],
+            is_output_node=True,
+        )
 
     @classmethod
-    def INPUT_TYPES(cls):  # noqa: N802
-        return {
-            "required": {
-                "images": ("IMAGE", {"tooltip": "The images to save."}),
-                "filename_prefix": (
-                    "STRING",
-                    {
-                        "default": "Majoor",
-                        "tooltip": "Prefix for the saved file. Supports ComfyUI formatting placeholders.",
-                    },
-                ),
-            },
-            "optional": {
-                "generation_time_ms": (
-                    "INT",
-                    {
-                        "default": -1,
-                        "min": -1,
-                        "tooltip": "Generation time in milliseconds. -1 = auto-detect from prompt lifecycle.",
-                    },
-                ),
-                "geninfo_override": (
-                    "MAJOOR_GENINFO",
-                    {"tooltip": "Explicit geninfo override from Majoor Gen Info Override."},
-                ),
-            },
-            "hidden": {
-                "prompt": "PROMPT",
-                "extra_pnginfo": "EXTRA_PNGINFO",
-                "unique_id": "UNIQUE_ID",
-            },
-        }
-
-    RETURN_TYPES = ()
-    FUNCTION = "save_images"
-    OUTPUT_NODE = True
-    CATEGORY = "Majoor"
-    DESCRIPTION = "Save images with generation_time_ms metadata for Majoor Assets Manager."
-
-    def save_images(
-        self,
+    def execute(
+        cls,
         images: torch.Tensor,
         filename_prefix: str = "Majoor",
         generation_time_ms: int = -1,
         geninfo_override: Any | None = None,
-        prompt: Any | None = None,
-        extra_pnginfo: dict | None = None,
-        unique_id: Any | None = None,
-    ):
-        filename_prefix = _resolve_filename_prefix_placeholders(filename_prefix) + self.prefix_append
+    ) -> IO.NodeOutput:
+        prompt = cls.hidden.prompt
+        extra_pnginfo = cls.hidden.extra_pnginfo
+        unique_id = cls.hidden.unique_id
+
+        output_dir = folder_paths.get_output_directory()
+        output_type = "output"
+        compress_level = 4
+
+        filename_prefix = _resolve_filename_prefix_placeholders(filename_prefix)
         full_output_folder, filename, counter, subfolder, filename_prefix = (
             folder_paths.get_save_image_path(
                 filename_prefix,
-                self.output_dir,
+                output_dir,
                 images[0].shape[1],
                 images[0].shape[0],
             )
@@ -1114,16 +1089,16 @@ class MajoorSaveImage:
             img.save(
                 os.path.join(full_output_folder, file),
                 pnginfo=metadata,
-                compress_level=self.compress_level,
+                compress_level=compress_level,
                 icc_profile=_srgb_icc_profile(),
             )
             results.append(
-                {"filename": file, "subfolder": subfolder, "type": self.type}
+                {"filename": file, "subfolder": subfolder, "type": output_type}
             )
             counter += 1
             progress.update(1)
 
-        return {"ui": {"images": results}}
+        return IO.NodeOutput(ui={"images": results})
 
 
 # ---------------------------------------------------------------------------
@@ -1407,7 +1382,7 @@ def _encode_mp4(
                 container.mux(packet)
 
 
-class MajoorSaveVideo:
+class MajoorSaveVideo(IO.ComfyNode):
     """
     Save a VIDEO or a batch of IMAGE frames as a video file.
 
@@ -1418,67 +1393,70 @@ class MajoorSaveVideo:
     For GIF / WebP the node uses Pillow, with a PNG sidecar for metadata.
     """
 
-    def __init__(self) -> None:
-        self.output_dir = folder_paths.get_output_directory()
-        self.type = "output"
-
     @classmethod
-    def INPUT_TYPES(cls):  # noqa: N802
-        return {
-            "required": {
-                "filename_prefix": ("STRING", {"default": "MajoorVideo"}),
-                "format": (_SUPPORTED_VIDEO_FORMATS, {"default": "mp4 (h264)"}),
-            },
-            "optional": {
-                "images": ("IMAGE", {"tooltip": "Batch of frames to encode as video."}),
-                "video": (
-                    "*",
-                    {"tooltip": "A VIDEO input, or AUDIO routed into this socket (native SaveVideo style)."},
+    def define_schema(cls) -> IO.Schema:
+        return IO.Schema(
+            node_id="MajoorSaveVideo",
+            display_name="〽️ Majoor Save Video 🎬",
+            category="Majoor",
+            description="Save images or video with generation_time_ms metadata for Majoor Assets Manager.",
+            inputs=[
+                IO.String.Input("filename_prefix", default="MajoorVideo"),
+                IO.Combo.Input("format", options=_SUPPORTED_VIDEO_FORMATS, default="mp4 (h264)"),
+                IO.Image.Input("images", optional=True, tooltip="Batch of frames to encode as video."),
+                IO.AnyType.Input(
+                    "video",
+                    optional=True,
+                    tooltip="A VIDEO input, or AUDIO routed into this socket (native SaveVideo style).",
                 ),
-                "frame_rate": (
-                    "FLOAT",
-                    {"default": 24.0, "min": 1.0, "max": 120.0, "step": 1.0,
-                     "tooltip": "FPS – ignored when a VIDEO input already carries its own frame rate."},
+                IO.Float.Input(
+                    "frame_rate",
+                    optional=True,
+                    default=24.0,
+                    min=1.0,
+                    max=120.0,
+                    step=1.0,
+                    tooltip="FPS – ignored when a VIDEO input already carries its own frame rate.",
                 ),
-                "loop_count": ("INT", {"default": 0, "min": 0, "max": 100, "step": 1}),
-                "generation_time_ms": (
-                    "INT",
-                    {"default": -1, "min": -1,
-                     "tooltip": "Generation time in ms. -1 = auto-detect."},
+                IO.Int.Input("loop_count", optional=True, default=0, min=0, max=100, step=1),
+                IO.Int.Input(
+                    "generation_time_ms",
+                    optional=True,
+                    default=-1,
+                    min=-1,
+                    tooltip="Generation time in ms. -1 = auto-detect.",
                 ),
-                "geninfo_override": (
-                    "MAJOOR_GENINFO",
-                    {"tooltip": "Explicit geninfo override from Majoor Gen Info Override."},
+                IO.Custom("MAJOOR_GENINFO").Input(
+                    "geninfo_override",
+                    optional=True,
+                    tooltip="Explicit geninfo override from Majoor Gen Info Override.",
                 ),
-                "audio": ("AUDIO", {"tooltip": "Audio to mux into the video."}),
-                "crf": (
-                    "INT",
-                    {"default": 19, "min": 0, "max": 63,
-                     "tooltip": "Constant Rate Factor (lower = higher quality)."},
+                IO.Audio.Input("audio", optional=True, tooltip="Audio to mux into the video."),
+                IO.Int.Input(
+                    "crf",
+                    optional=True,
+                    default=19,
+                    min=0,
+                    max=63,
+                    tooltip="Constant Rate Factor (lower = higher quality).",
                 ),
-                "save_first_frame": (
-                    "BOOLEAN",
-                    {"default": True,
-                     "tooltip": "Save a PNG sidecar of the first frame with full metadata."},
+                IO.Boolean.Input(
+                    "save_first_frame",
+                    optional=True,
+                    default=True,
+                    tooltip="Save a PNG sidecar of the first frame with full metadata.",
                 ),
-            },
-            "hidden": {
-                "prompt": "PROMPT",
-                "extra_pnginfo": "EXTRA_PNGINFO",
-                "unique_id": "UNIQUE_ID",
-            },
-        }
-
-    RETURN_TYPES = ()
-    FUNCTION = "save_video"
-    OUTPUT_NODE = True
-    CATEGORY = "Majoor"
-    DESCRIPTION = "Save images or video with generation_time_ms metadata for Majoor Assets Manager."
+            ],
+            outputs=[],
+            hidden=[IO.Hidden.prompt, IO.Hidden.extra_pnginfo, IO.Hidden.unique_id],
+            is_output_node=True,
+        )
 
     # ------------------------------------------------------------------ #
 
-    def save_video(
-        self,
+    @classmethod
+    def execute(
+        cls,
         filename_prefix: str = "MajoorVideo",
         format: str = "mp4 (h264)",
         images: torch.Tensor | None = None,
@@ -1490,13 +1468,17 @@ class MajoorSaveVideo:
         audio: dict | None = None,
         crf: int = 19,
         save_first_frame: bool = True,
-        prompt: Any | None = None,
-        extra_pnginfo: dict | None = None,
-        unique_id: Any | None = None,
-    ):
+    ) -> IO.NodeOutput:
+        prompt = cls.hidden.prompt
+        extra_pnginfo = cls.hidden.extra_pnginfo
+        unique_id = cls.hidden.unique_id
+
+        output_dir = folder_paths.get_output_directory()
+        output_type = "output"
+
         resolved = _resolve_video_inputs(video, images, audio, frame_rate)
         if resolved is None:
-            return {"ui": {"videos": []}}
+            return IO.NodeOutput(ui={"videos": []})
         resolved_images, resolved_fps, resolved_audio = resolved
 
         gen_time = generation_time_ms if generation_time_ms >= 0 else _get_generation_time_ms()
@@ -1506,7 +1488,7 @@ class MajoorSaveVideo:
         full_output_folder, filename, _counter, subfolder, _prefix = (
             folder_paths.get_save_image_path(
                 filename_prefix,
-                self.output_dir,
+                output_dir,
                 resolved_images[0].shape[1],
                 resolved_images[0].shape[0],
             )
@@ -1533,7 +1515,7 @@ class MajoorSaveVideo:
                 resolved_images, format, resolved_fps, loop_count,
                 full_output_folder, filename, counter, progress,
             )
-            return _build_video_ui(out_file, subfolder, self.type, out_file)
+            return IO.NodeOutput(ui=_build_video_ui(out_file, subfolder, output_type, out_file)["ui"])
 
         # --- MP4 via PyAV ---
         container_meta = _build_container_metadata(prompt, extra_pnginfo, gen_time, geninfo_override, unique_id)
@@ -1552,20 +1534,17 @@ class MajoorSaveVideo:
             progress,
         )
 
-        return _build_video_ui(out_file, subfolder, self.type, sidecar_file)
+        return IO.NodeOutput(ui=_build_video_ui(out_file, subfolder, output_type, sidecar_file)["ui"])
 
 # ---------------------------------------------------------------------------
-# Registration helpers
+# Registration helpers (ComfyUI Nodes V3 extension entrypoint)
 # ---------------------------------------------------------------------------
 
-NODE_CLASS_MAPPINGS: dict[str, type] = {
-    "MajoorGenInfoOverride": MajoorGenInfoOverride,
-    "MajoorSaveImage": MajoorSaveImage,
-    "MajoorSaveVideo": MajoorSaveVideo,
-}
 
-NODE_DISPLAY_NAME_MAPPINGS: dict[str, str] = {
-    "MajoorGenInfoOverride": "〽️ Majoor Gen Info Override",
-    "MajoorSaveImage": "〽️ Majoor Save Image 💾",
-    "MajoorSaveVideo": "〽️ Majoor Save Video 🎬",
-}
+class MajoorAssetsManagerExtension(ComfyExtension):
+    async def get_node_list(self) -> list[type[IO.ComfyNode]]:
+        return [MajoorGenInfoOverride, MajoorSaveImage, MajoorSaveVideo]
+
+
+async def comfy_entrypoint() -> MajoorAssetsManagerExtension:
+    return MajoorAssetsManagerExtension()

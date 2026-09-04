@@ -22,6 +22,17 @@ def nodes_module():
     av_stub.open = lambda *args, **kwargs: None
     sys.modules.setdefault("av", av_stub)
 
+    # nodes.py defines its node classes with the ComfyUI Nodes V3 API
+    # (comfy_api.latest.IO.ComfyNode / ComfyExtension). This test only exercises
+    # module-level helper functions, not define_schema()/execute(), so a bare
+    # subclassable stand-in for each base class is enough to let the import succeed.
+    comfy_api_stub = types.ModuleType("comfy_api")
+    comfy_api_latest_stub = types.ModuleType("comfy_api.latest")
+    comfy_api_latest_stub.ComfyExtension = type("ComfyExtension", (), {})
+    comfy_api_latest_stub.IO = types.SimpleNamespace(ComfyNode=type("ComfyNode", (), {}))
+    sys.modules.setdefault("comfy_api", comfy_api_stub)
+    sys.modules.setdefault("comfy_api.latest", comfy_api_latest_stub)
+
     import importlib
 
     return importlib.import_module("nodes")
