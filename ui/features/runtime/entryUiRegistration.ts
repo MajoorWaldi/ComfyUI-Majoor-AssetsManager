@@ -567,14 +567,20 @@ export function getMajoorCanvasMenuItems(runtimeApp: any, { sidebarTabId, trigge
     ];
 }
 
-export function buildAboutPageBadges(): unknown[] {
+interface AboutPageBadge {
+    label: string;
+    icon: string;
+    url?: string;
+}
+
+export function buildAboutPageBadges(): AboutPageBadge[] {
     return [
         {
             label: "Majoor Assets Manager",
             icon: "pi pi-folder",
         },
         {
-            label: "v2.5.0",
+            label: "v2.5.1",
             icon: "pi pi-tag",
         },
         {

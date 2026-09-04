@@ -24766,7 +24766,7 @@ function RC() {
 			icon: "pi pi-folder"
 		},
 		{
-			label: "v2.5.0",
+			label: "v2.5.1",
 			icon: "pi pi-tag"
 		},
 		{

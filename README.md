@@ -97,15 +97,13 @@ Move useful assets and workflow context back into ComfyUI:
 
 ## Latest Release
 
-### v2.5.0 Highlights
-- **Experimental JPEG XL support**: Optionally index, preview, view, and drag `.jxl` images.
-- **Native ComfyUI subgraphs**: Graph Map recursively expands nested subgraphs, including shared root-level definitions.
-- **Richer technical metadata**: Inspect bit depth, pixel format, encoder, and color-space information.
-- **Runtime metadata ingestion**: Preserve prompt, workflow, GenInfo, job, and source-node context after execution.
-- **Viewer and source-file actions**: Use additional playback speeds and open generation source files in the viewer, Floating Viewer, folder, or asset loader.
-- **Find Similar menu**: Find similar or duplicate assets and outputs from the same save node or workflow.
-- **Output fidelity**: Majoor Save images include an sRGB ICC profile and MP4 outputs are explicitly tagged as BT.709.
-- **Stability fixes**: Improved tags shortcuts, playback state, Floating Viewer controls, source-file loading, popover dismissal, and subgraph parsing.
+### v2.5.1 Highlights
+- **KJNodes Model Preview Override support**: Show KJNodes preview streams in the Floating Viewer with JPEG, PNG, animated WebP, and MP4 payloads.
+- **Top bar Viewer control**: Toggle the ComfyUI top bar Viewer button while keeping the `V` shortcut available.
+- **Folder browsing in Input / Output scopes**: Browse subfolders, navigate back with `..`, move assets with drag-and-drop, and create folders from the context menu.
+- **Collect Files workflow**: Bundle an asset, its workflow JSON, traced prompts, and referenced media inputs into a collected ZIP.
+- **Remote access and search fixes**: Restored full-text prompt search and fixed tokenless remote writes when explicitly allowed.
+- **Viewer stability fixes**: Improved audio compare sync, audio player visuals, top bar Viewer button stability, and Majoor Save filename prefix placeholder handling.
 
 See [CHANGELOG.md](CHANGELOG.md) for the complete release notes.
 
@@ -780,5 +778,5 @@ Optional attribution request: See [`NOTICE`](NOTICE) file for details.
 
 ---
 
-*Last updated: July 9, 2026*
-*Version: 2.5.0*
+*Last updated: September 4, 2026*
+*Version: 2.5.1*

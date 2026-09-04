@@ -4,6 +4,8 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+## [2.5.1] - 2026-09-04
+
 ### New Features
 - **KJNodes Model Preview Override in Floating Viewer**: Added live display support for previews emitted by KJNodes' **Model Preview Override** node during generation. MFV accepts JPEG, PNG, animated WebP, and MP4 payloads, preserves node, step, dimension, and FPS context, prioritizes the KJNodes stream over duplicate ComfyUI binary previews for the active node, and safely returns to the standard preview stream afterward. The new **Show KJNodes Model Preview Override in MFV** setting is available under Settings → Majoor Assets Manager → Floating Viewer and is enabled by default; the MFV **KSampler Preview** toggle must also be enabled.
 - **Top bar Viewer button toggle**: New **Show Viewer button in the top bar** setting (Settings → Majoor Assets Manager → Floating Viewer, enabled by default) to show or hide the Viewer toggle button in the ComfyUI top bar. The change applies live and the `V` shortcut keeps working when the button is hidden.

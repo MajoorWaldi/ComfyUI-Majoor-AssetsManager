@@ -421,10 +421,10 @@ describe("native ComfyUI frontend registration payloads", () => {
     });
 
     it("builds About page badges with version and docs metadata", () => {
-        const badges = buildAboutPageBadges();
+        const badges = buildAboutPageBadges() as Array<{ label: string; url?: string }>;
         expect(badges.map((badge) => badge.label)).toEqual([
             "Majoor Assets Manager",
-            "v2.5.0",
+            "v2.5.1",
             "Docs",
         ]);
         expect(badges[2].url).toContain("MajoorWaldi");
