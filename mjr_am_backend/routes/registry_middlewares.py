@@ -38,9 +38,6 @@ _MAJOOR_PATH_PREFIXES: tuple[str, ...] = tuple(
     for prefix in (canonical, _COMFY_API_MIRROR_PREFIX + canonical)
 )
 
-_SENSITIVE_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
-
-
 def _is_majoor_path(path: str) -> bool:
     """True when ``path`` addresses this extension's own HTTP surface.
 
@@ -165,7 +162,16 @@ def _request_path_and_method(request: web.Request) -> tuple[str, str]:
 
 
 def _requires_auth(path: str, method: str) -> bool:
-    return _is_majoor_path(path) and method in _SENSITIVE_METHODS
+    """Every request on this extension's HTTP surface requires auth when Comfy
+    auth is enabled -- reads leak the same custom-root paths, tags, ratings and
+    generation metadata that writes would let an attacker tamper with, so GET
+    must sit behind the same boundary as POST/PUT/PATCH/DELETE. ``method`` is
+    accepted for backward compatibility with existing call sites but no longer
+    changes the outcome; ``_require_authenticated_user`` itself is a no-op
+    (auth_mode="disabled"/"unavailable") on the default single-user setup, so
+    this costs nothing until Comfy's own multi-user auth is turned on.
+    """
+    return _is_majoor_path(path)
 
 
 def _store_request_user_id(request: web.Request, user_id: Any) -> None:

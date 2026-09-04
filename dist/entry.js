@@ -6969,9 +6969,11 @@ function Tu(e, t) {
 }
 var Eu = (e, t) => Math.abs(e - t) < 1.01, Du = (e, t, n) => {
 	let r;
-	return function(...i) {
+	return Object.assign(function(...i) {
 		e.clearTimeout(r), r = e.setTimeout(() => t.apply(this, i), n);
-	};
+	}, { cancel: () => {
+		e.clearTimeout(r);
+	} });
 }, Ou, ku = () => {
 	if (Ou !== void 0) return Ou;
 	if (typeof navigator > "u") return Ou = !1;
@@ -7030,7 +7032,7 @@ var Eu = (e, t) => Math.abs(e - t) < 1.01, Du = (e, t, n) => {
 		o = n(r), s?.(), t(o, e);
 	}, l = c(!0), u = c(!1);
 	return r.addEventListener("scroll", l, Pu), a && r.addEventListener("scrollend", u, Pu), () => {
-		r.removeEventListener("scroll", l), a && r.removeEventListener("scrollend", u);
+		r.removeEventListener("scroll", l), a && r.removeEventListener("scrollend", u), s?.cancel();
 	};
 }, Lu = (e, t) => Iu(e, t, (t) => {
 	let { horizontal: n, isRtl: r } = e.options;
@@ -7073,7 +7075,7 @@ var Eu = (e, t) => Math.abs(e - t) < 1.01, Du = (e, t, n) => {
 							}
 							return;
 						}
-						this.shouldMeasureDuringScroll(n) && this.resizeItem(n, this.options.measureElement(t, e, this));
+						this.isIndexInRange(n) && this.shouldMeasureDuringScroll(n) && this.resizeItem(n, this.options.measureElement(t, e, this));
 					};
 					this.options.useAnimationFrameWithResizeObserver ? requestAnimationFrame(t) : t();
 				});
@@ -7172,7 +7174,7 @@ var Eu = (e, t) => Math.abs(e - t) < 1.01, Du = (e, t, n) => {
 				this.range ? this.range.endIndex : null
 			]
 		}), this.cleanup = () => {
-			this.unsubs.filter(Boolean).forEach((e) => e()), this.unsubs = [], this.observer.disconnect(), this.rafId != null && this.targetWindow && (this.targetWindow.cancelAnimationFrame(this.rafId), this.rafId = null), this.scrollState = null, this._iosDeferredAdjustment = 0, this._iosTouching = !1, this._iosJustTouchEnded = !1, this.scrollElement = null, this.targetWindow = null;
+			this.unsubs.filter(Boolean).forEach((e) => e()), this.unsubs = [], this.observer.disconnect(), this.rafId != null && this.targetWindow && (this.targetWindow.cancelAnimationFrame(this.rafId), this.rafId = null), this.scrollState = null, this.isScrolling = !1, this.scrollDirection = null, this._iosDeferredAdjustment = 0, this._iosTouching = !1, this._iosJustTouchEnded = !1, this.scrollElement = null, this.targetWindow = null;
 		}, this._didMount = () => () => {
 			this.cleanup();
 		}, this._willUpdate = () => {
@@ -7247,7 +7249,7 @@ var Eu = (e, t) => Math.abs(e - t) < 1.01, Du = (e, t, n) => {
 			lanes: a,
 			laneAssignmentMode: o,
 			gap: s
-		}), { key: !1 }), this.getMeasurements = wu(() => [this.getMeasurementOptions(), this.itemSizeCacheVersion], ({ count: e, paddingStart: t, scrollMargin: n, getItemKey: r, enabled: i, lanes: a, laneAssignmentMode: o, gap: s }, c) => {
+		}), { key: !1 }), this.isIndexInRange = (e) => e >= 0 && e < this.options.count, this.getMeasurements = wu(() => [this.getMeasurementOptions(), this.itemSizeCacheVersion], ({ count: e, paddingStart: t, scrollMargin: n, getItemKey: r, enabled: i, lanes: a, laneAssignmentMode: o, gap: s }, c) => {
 			let l = this.itemSizeCache;
 			if (!i) return this.measurementsCache = [], this.itemSizeCache.clear(), this.laneAssignments.clear(), [];
 			if (this.laneAssignments.size > e) for (let t of this.laneAssignments.keys()) t >= e && this.laneAssignments.delete(t);
@@ -7354,10 +7356,12 @@ var Eu = (e, t) => Math.abs(e - t) < 1.01, Du = (e, t, n) => {
 				});
 				return;
 			}
-			let t = this.indexFromElement(e), n = this.options.getItemKey(t), r = this.elementsCache.get(n);
+			let t = this.indexFromElement(e);
+			if (!this.isIndexInRange(t)) return;
+			let n = this.options.getItemKey(t), r = this.elementsCache.get(n);
 			r !== e && (r && this.observer.unobserve(r), this.observer.observe(e), this.elementsCache.set(n, e)), (!this.isScrolling || this.scrollState) && this.shouldMeasureDuringScroll(t) && this.resizeItem(t, this.options.measureElement(e, void 0, this));
 		}, this.resizeItem = (e, t) => {
-			if (e < 0 || e >= this.options.count) return;
+			if (!this.isIndexInRange(e)) return;
 			let n, r, i, a = this._flatMeasurements;
 			if (this.options.lanes === 1 && a !== null) i = this.options.getItemKey(e), r = a[e * 2], n = a[e * 2 + 1];
 			else {

@@ -421,6 +421,61 @@ class ComfyCoreAdapter:
         except Exception:
             return False
 
+    def register_prompt_lifecycle_provider(
+        self,
+        *,
+        on_prompt_start: Any,
+        on_prompt_end: Any,
+    ) -> bool:
+        """Register a cache provider used only to observe prompt start/end.
+
+        Resolves ``CacheProvider`` through ComfyUI's public, documented
+        ``comfy_api.latest.Caching`` surface rather than importing the
+        underscore-prefixed ``comfy_api.latest._caching`` module directly, so
+        this stays the single place that needs updating if ComfyUI reshapes
+        its internal cache-provider plumbing. Falls back to the private
+        module only for older ComfyUI builds that predate the public alias.
+        """
+        try:
+            base_cls = self._resolve_cache_provider_base()
+            from comfy_execution.cache_provider import register_cache_provider
+        except Exception:
+            logger.debug("No cache-provider API available on this ComfyUI build", exc_info=True)
+            return False
+
+        class _PromptLifecycleProvider(base_cls):  # type: ignore[misc, valid-type]
+            async def on_lookup(self, context):  # type: ignore[override]
+                _ = context
+                return None
+
+            async def on_store(self, context, value):  # type: ignore[override]
+                _ = (context, value)
+                return None
+
+            def on_prompt_start(self, prompt_id: str) -> None:
+                on_prompt_start(prompt_id)
+
+            def on_prompt_end(self, prompt_id: str) -> None:
+                on_prompt_end(prompt_id)
+
+        try:
+            register_cache_provider(_PromptLifecycleProvider())
+            return True
+        except Exception:
+            logger.debug("Failed to register prompt lifecycle cache provider", exc_info=True)
+            return False
+
+    @staticmethod
+    def _resolve_cache_provider_base() -> Any:
+        try:
+            from comfy_api.latest import Caching
+
+            return Caching.CacheProvider
+        except Exception:
+            from comfy_api.latest._caching import CacheProvider
+
+            return CacheProvider
+
     def capabilities(self) -> ComfyCoreCapabilities:
         instance = self.get_prompt_server_instance()
         app = getattr(instance, "app", None) if instance is not None else None

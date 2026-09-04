@@ -14,7 +14,9 @@ def test_request_helpers_and_requires_auth():
     assert path == "/mjr/am/x" and method == "POST"
     assert r._requires_auth(path, method) is True
     assert r._requires_auth("/other", "POST") is False
-    assert r._requires_auth("/mjr/am/x", "GET") is False
+    # Reads are guarded too: they leak custom-root paths, tags, ratings and
+    # generation metadata, so GET must sit behind the same boundary as writes.
+    assert r._requires_auth("/mjr/am/x", "GET") is True
 
 
 def test_requires_auth_covers_comfy_api_mirror():
@@ -23,13 +25,12 @@ def test_requires_auth_covers_comfy_api_mirror():
     Both spellings must demand authentication, or the mirror is a bypass."""
     assert r._requires_auth("/api/mjr/am/assets/delete", "POST") is True
     assert r._requires_auth("/api/mjr/am/assets/rename", "PATCH") is True
-    assert r._requires_auth("/api/mjr/am/list", "GET") is False
+    assert r._requires_auth("/api/mjr/am/list", "GET") is True
 
 
 def test_requires_auth_covers_v2_compat_surface_and_its_mirror():
-    # The v2 compat layer is read-only today, so no method triggers auth, but
-    # the boundary must recognise it (and its mirror) as our surface so a
-    # future mutating v2 route is guarded by default.
+    # The v2 compat layer is read-only, but reads still require auth -- same
+    # boundary as writes, gated on Comfy's own auth being enabled.
     assert r._is_majoor_path("/api/v2/assets") is True
     assert r._is_majoor_path("/api/v2/assets/1/content") is True
     assert r._is_majoor_path("/api/api/v2/assets") is True

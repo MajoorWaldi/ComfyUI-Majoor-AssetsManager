@@ -11,17 +11,30 @@ from ...shared import sanitize_error_message as _safe_error_message
 from .models import AssetDeleteTarget
 
 
+class _CleanupDeleteError(RuntimeError):
+    """Raised to abort the cleanup transaction so it rolls back atomically."""
+
+
 async def _execute_cleanup_delete(
     services: dict[str, Any],
     sql: str,
     params: tuple[Any, ...],
     *,
     label: str,
-) -> str | None:
+) -> None:
+    """Run one cleanup DELETE, raising on failure.
+
+    Raising (rather than collecting an error string and continuing) is
+    required so the enclosing ``atransaction()`` block rolls back the whole
+    cleanup instead of committing a partial delete -- ``transaction_context``
+    only rolls back when an exception propagates out of the ``async with``
+    body; a swallowed failure would commit whatever DELETEs did succeed and
+    leave the filesystem, ``assets``, ``scan_journal`` and ``metadata_cache``
+    tables inconsistent with each other.
+    """
     result = await services["db"].aexecute(sql, params)
-    if result.ok:
-        return None
-    return f"{label}: {result.error or 'delete failed'}"
+    if not result.ok:
+        raise _CleanupDeleteError(f"{label}: {result.error or 'delete failed'}")
 
 
 def delete_file_best_effort(path: Path) -> Result[bool]:
@@ -81,39 +94,33 @@ async def delete_asset_and_cleanup(
     try:
         async with services["db"].atransaction(mode="immediate"):
             if matched_asset_id is not None:
-                cleanup_error = await _execute_cleanup_delete(
+                await _execute_cleanup_delete(
                     services,
                     "DELETE FROM assets WHERE id = ?",
                     (matched_asset_id,),
                     label="assets",
                 )
-                if cleanup_error:
-                    db_cleanup_errors.append(cleanup_error)
             else:
-                cleanup_error = await _execute_cleanup_delete(
+                await _execute_cleanup_delete(
                     services,
                     f"DELETE FROM assets WHERE {resolved_filepath_where}",
                     resolved_filepath_params,
                     label="assets",
                 )
-                if cleanup_error:
-                    db_cleanup_errors.append(cleanup_error)
-            cleanup_error = await _execute_cleanup_delete(
+            await _execute_cleanup_delete(
                 services,
                 f"DELETE FROM scan_journal WHERE {resolved_filepath_where}",
                 resolved_filepath_params,
                 label="scan_journal",
             )
-            if cleanup_error:
-                db_cleanup_errors.append(cleanup_error)
-            cleanup_error = await _execute_cleanup_delete(
+            await _execute_cleanup_delete(
                 services,
                 f"DELETE FROM metadata_cache WHERE {resolved_filepath_where}",
                 resolved_filepath_params,
                 label="metadata_cache",
             )
-            if cleanup_error:
-                db_cleanup_errors.append(cleanup_error)
+    except _CleanupDeleteError as exc:
+        db_cleanup_errors.append(str(exc))
     except Exception as exc:
         db_cleanup_errors.append(safe_error_message(exc, "DB cleanup failed"))
 

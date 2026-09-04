@@ -102,6 +102,12 @@ async def test_delete_asset_and_cleanup_reports_db_cleanup_failure(tmp_path: Pat
     assert payload["deleted"] == 1
     assert payload["db_cleanup_ok"] is False
     assert payload["db_errors"]
+    # Atomicity: the first cleanup DELETE failing must abort the whole
+    # transaction rather than continuing on to scan_journal/metadata_cache,
+    # so a partial cleanup is never committed alongside the deleted file.
+    cleanup_sql = [sql for sql, _ in db.executed if sql.startswith("DELETE FROM")]
+    assert cleanup_sql == ["DELETE FROM assets WHERE id = ?"]
+    assert len(payload["db_errors"]) == 1
 
 
 @pytest.mark.asyncio

@@ -14,7 +14,60 @@ on:
 permissions: {}
 
 jobs:
+  quality:
+    name: Quality Gate
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install .[dev]
+
+      - name: Run pytest
+        run: python -m pytest -q
+
+      - name: Run mypy
+        run: python -m mypy --config-file mypy.ini
+
+      - name: Install JS dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Typecheck frontend
+        run: npx tsc -p tsconfig.json --noEmit --pretty false
+
+      - name: Build frontend bundle
+        run: npm run build
+
+      - name: Fail if committed dist/ is stale
+        run: |
+          if ! git diff --quiet -- dist; then
+            echo "::error::Committed dist/ differs from a fresh build. Run 'npm run build' and commit the result before releasing."
+            git diff --stat -- dist
+            exit 1
+          fi
+
+      - name: Run JS tests (vitest)
+        run: npm run test:js
+
   build-nightly:
+    needs: quality
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -41,7 +94,7 @@ jobs:
           -x "*.zip"
 
       - name: Update Nightly Release
-        uses: softprops/action-gh-release@v3 # TODO: pin to commit SHA for supply-chain safety
+        uses: softprops/action-gh-release@5113cdc90fd4d541c801c55356214017bf5ae34b # v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           tag_name: nightly

@@ -119,9 +119,23 @@ def _snapshot_locked(now: float) -> dict[str, Any]:
     }
 
 
-_PROMPT_LIFECYCLE_PROVIDER = None
 _PROMPT_LIFECYCLE_REGISTERED = False
 _PROMPT_LIFECYCLE_LOCK = threading.Lock()
+
+
+def _on_prompt_start(prompt_id: str) -> None:
+    mark_generation_started(prompt_id)
+
+
+def _on_prompt_end(prompt_id: str) -> None:
+    try:
+        from .config import EXECUTION_IDLE_GRACE_SECONDS
+
+        cooldown_seconds = float(EXECUTION_IDLE_GRACE_SECONDS or 0.0)
+    except Exception:
+        cooldown_seconds = 0.0
+    mark_generation_finished(prompt_id, cooldown_seconds=cooldown_seconds)
+    schedule_post_execution_ingestion(prompt_id)
 
 
 def ensure_prompt_lifecycle_provider_registered() -> bool:
@@ -130,46 +144,21 @@ def ensure_prompt_lifecycle_provider_registered() -> bool:
 
     ComfyUI emits prompt start/end through the external cache-provider API during
     backend execution. Using that hook keeps generation tracking correct even
-    when no browser tab is connected.
+    when no browser tab is connected. Registration itself goes through
+    ``ComfyCoreAdapter`` so this module never has to import ComfyUI's
+    underscore-private ``_caching`` module directly.
     """
-    global _PROMPT_LIFECYCLE_PROVIDER, _PROMPT_LIFECYCLE_REGISTERED
+    global _PROMPT_LIFECYCLE_REGISTERED
     with _PROMPT_LIFECYCLE_LOCK:
         if _PROMPT_LIFECYCLE_REGISTERED:
             return True
-        try:
-            from comfy_api.latest._caching import CacheProvider
-            from comfy_execution.cache_provider import register_cache_provider
-        except Exception:
-            return False
 
-        class _PromptLifecycleProvider(CacheProvider):
-            async def on_lookup(self, context):  # type: ignore[override]
-                _ = context
-                return None
+        from .adapters.comfy_core import get_comfy_core
 
-            async def on_store(self, context, value):  # type: ignore[override]
-                _ = (context, value)
-                return None
-
-            def on_prompt_start(self, prompt_id: str) -> None:
-                mark_generation_started(prompt_id)
-
-            def on_prompt_end(self, prompt_id: str) -> None:
-                try:
-                    from .config import EXECUTION_IDLE_GRACE_SECONDS
-
-                    cooldown_seconds = float(EXECUTION_IDLE_GRACE_SECONDS or 0.0)
-                except Exception:
-                    cooldown_seconds = 0.0
-                mark_generation_finished(prompt_id, cooldown_seconds=cooldown_seconds)
-                schedule_post_execution_ingestion(prompt_id)
-
-        try:
-            provider = _PromptLifecycleProvider()
-            register_cache_provider(provider)
-        except Exception:
-            return False
-
-        _PROMPT_LIFECYCLE_PROVIDER = provider
-        _PROMPT_LIFECYCLE_REGISTERED = True
-        return True
+        ok = get_comfy_core().register_prompt_lifecycle_provider(
+            on_prompt_start=_on_prompt_start,
+            on_prompt_end=_on_prompt_end,
+        )
+        if ok:
+            _PROMPT_LIFECYCLE_REGISTERED = True
+        return ok
