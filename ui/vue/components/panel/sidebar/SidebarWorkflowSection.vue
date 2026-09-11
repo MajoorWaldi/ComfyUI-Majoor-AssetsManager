@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import type { MjrAssetLike } from "../../../../types/asset";
+import type { ComfyPromptGraphLike, ComfyWorkflowLike, ComfyWorkflowNodeLike } from "../../../../types/comfyWorkflow";
 import { drawWorkflowMinimap, synthesizeWorkflowFromPromptGraph } from "../../../../components/sidebar/utils/minimap.js";
 import {
     diffWorkflow,
@@ -51,19 +52,62 @@ const SIZE_OPTIONS = Object.freeze([
     { key: "expanded", label: "Expanded", height: 220 },
 ]);
 
+interface MinimapSettings {
+    nodeColors: boolean;
+    showLinks: boolean;
+    showGroups: boolean;
+    renderBypassState: boolean;
+    renderErrorState: boolean;
+    showViewport: boolean;
+    showNodeLabels: boolean;
+    size: string;
+}
+
+interface MinimapView {
+    zoom: number;
+    centerX: number | null;
+    centerY: number | null;
+    hoveredNodeId: string | null;
+}
+
+type WorldPoint = { x: number; y: number };
+
+interface WorkflowValidationResult {
+    node_count?: number;
+    subgraph_count?: number;
+    required_nodes?: unknown[];
+    missing_nodes?: unknown;
+    missing_models?: unknown;
+    warnings?: unknown;
+    [key: string]: unknown;
+}
+
+interface WorkflowVersionEntry {
+    filename?: string;
+    filepath?: string;
+    [key: string]: unknown;
+}
+
+interface WorkflowDiffResult {
+    changed?: unknown[];
+    added?: unknown[];
+    removed?: unknown[];
+    [key: string]: unknown;
+}
+
 const canvasRef = ref<HTMLCanvasElement | null>(null);
 const categoryDraft = ref("");
 const savingCategory = ref(false);
 const loadingWorkflowPayload = ref(false);
-const lazyWorkflowPayload = ref<any>(null);
+const lazyWorkflowPayload = ref<{ workflow?: unknown; prompt?: unknown } | null>(null);
 const validationLoading = ref(false);
-const workflowValidation = ref<any>(null);
-const workflowVersions = ref<any[]>([]);
-const workflowDiff = ref<any>(null);
+const workflowValidation = ref<WorkflowValidationResult | null>(null);
+const workflowVersions = ref<WorkflowVersionEntry[]>([]);
+const workflowDiff = ref<WorkflowDiffResult | null>(null);
 const showTools = ref(false);
 const rawJsonOpen = ref(false);
-const minimapSettings = ref<any>(loadWorkflowMinimapSettings());
-const minimapView = ref<any>({ ...DEFAULT_VIEW });
+const minimapSettings = ref<MinimapSettings>(loadWorkflowMinimapSettings());
+const minimapView = ref<MinimapView>({ ...DEFAULT_VIEW });
 const minimapCursor = ref("crosshair");
 const hoveredNodeLabel = ref("");
 
@@ -109,7 +153,7 @@ function coerceMetadataRawObject(asset: MjrAssetLike | null | undefined) {
     return null;
 }
 
-function looksLikePromptGraph(obj: any) {
+function looksLikePromptGraph(obj: unknown) {
     try {
         const entries = Object.entries(obj || {});
         if (!entries.length) return false;
@@ -125,7 +169,7 @@ function looksLikePromptGraph(obj: any) {
     return false;
 }
 
-function coerceWorkflow(asset: MjrAssetLike | null | undefined) {
+function coerceWorkflow(asset: MjrAssetLike | null | undefined): ComfyWorkflowLike | null {
     const metadataRaw = coerceMetadataRawObject(asset);
     const value =
         asset?.workflow ||
@@ -149,7 +193,7 @@ function coerceWorkflow(asset: MjrAssetLike | null | undefined) {
     return null;
 }
 
-function coercePromptGraph(asset: MjrAssetLike | null | undefined) {
+function coercePromptGraph(asset: MjrAssetLike | null | undefined): ComfyPromptGraphLike | null {
     const metadataRaw = coerceMetadataRawObject(asset);
     const value =
         asset?.prompt || asset?.Prompt || metadataRaw?.prompt || metadataRaw?.Prompt || null;
@@ -199,7 +243,7 @@ function loadWorkflowMinimapSettings() {
     }
 }
 
-function persistWorkflowMinimapSettings(nextSettings: any) {
+function persistWorkflowMinimapSettings(nextSettings: MinimapSettings) {
     try {
         const next = loadMajoorSettings();
         next.workflowMinimap = { ...next.workflowMinimap, ...nextSettings };
@@ -370,7 +414,7 @@ const categorySegments = computed(() =>
 const categoryDisplayName = computed(() => categorySegments.value.at(-1) || currentCategory.value || "Root");
 const categoryDisplaySegments = computed(() => categorySegments.value.slice(-1));
 
-function workflowNodeLabel(node: any, index: number) {
+function workflowNodeLabel(node: ComfyWorkflowNodeLike, index: number) {
     const id = node?.id ?? node?.key ?? index + 1;
     return String(
         node?.title ||
@@ -382,7 +426,7 @@ function workflowNodeLabel(node: any, index: number) {
     );
 }
 
-function workflowNodeType(node: any) {
+function workflowNodeType(node: ComfyWorkflowNodeLike) {
     return String(node?.type || node?.class_type || node?.name || "").trim();
 }
 
@@ -601,11 +645,11 @@ function renderCanvas() {
     syncResolvedView(lastRenderInfo?.resolvedView);
 }
 
-function centerMainCanvasOnWorld(worldPoint: any) {
+function centerMainCanvasOnWorld(worldPoint: WorldPoint) {
     centerGraphCanvasOnWorldPoint(worldPoint);
 }
 
-function getCanvasLocalPoint(event: any) {
+function getCanvasLocalPoint(event: PointerEvent | WheelEvent | MouseEvent) {
     const canvas = canvasRef.value;
     if (!canvas) return null;
     const rect = canvas.getBoundingClientRect?.();
@@ -616,7 +660,7 @@ function getCanvasLocalPoint(event: any) {
     };
 }
 
-function getWorldPointFromEvent(event: any) {
+function getWorldPointFromEvent(event: PointerEvent | WheelEvent | MouseEvent) {
     const local = getCanvasLocalPoint(event);
     if (!local || !lastRenderInfo?.canvasToWorld) return null;
     return {
@@ -625,7 +669,7 @@ function getWorldPointFromEvent(event: any) {
     };
 }
 
-function updateHoverState(event: any) {
+function updateHoverState(event: PointerEvent | WheelEvent | MouseEvent) {
     const local = getCanvasLocalPoint(event);
     const hit = local && lastRenderInfo?.hitTestNode ? lastRenderInfo.hitTestNode(local.x, local.y) : null;
     const nextId = hit?.id !== null && hit?.id !== undefined ? String(hit.id) : null;
@@ -642,7 +686,7 @@ function updateHoverState(event: any) {
     renderCanvas();
 }
 
-function navigateToMinimapPoint(worldPoint: any) {
+function navigateToMinimapPoint(worldPoint: WorldPoint | null | undefined) {
     if (!worldPoint) return;
     centerMainCanvasOnWorld(worldPoint);
     minimapView.value = {
