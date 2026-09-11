@@ -32,7 +32,7 @@ import { t } from "../../app/i18n.js";
 import { post, setIndexDirectorySetting, setOutputDirectorySetting } from "../../api/client.js";
 import { ENDPOINTS } from "../../api/endpoints.js";
 import { loadMajoorSettings, saveMajoorSettings } from "../../app/settings/settingsCore.js";
-import { mountKeepAlive, unmountKeepAlive } from "../../vue/createVueApp.js";
+import { hasKeepAlive, mountKeepAlive, unmountKeepAlive } from "../../vue/createVueApp.js";
 import GlobalRuntimeApp from "../../vue/GlobalRuntime.vue";
 import AssetsManagerApp from "../../vue/App.vue";
 import GeneratedFeedApp from "../../vue/GeneratedFeedApp.vue";
@@ -671,6 +671,12 @@ export function teardownAssetsSidebar(): void {
     } catch {
         /* ignore */
     }
+    _sidebarPrewarmStarted = false;
+    try {
+        document.getElementById(PREWARM_HOST_ID)?.remove?.();
+    } catch {
+        /* ignore */
+    }
 }
 
 let _sidebarPrewarmStarted = false;
@@ -691,6 +697,11 @@ const PREWARM_HOST_ID = "mjr-sidebar-prewarm-host";
 export function prewarmAssetsSidebar(): boolean {
     if (_sidebarPrewarmStarted) return false;
     if (typeof document === "undefined" || !document?.body) return false;
+    // If the real sidebar has already been opened (or a previous prewarm
+    // already created the instance), never touch the live host: attaching it
+    // to our detached prewarm container here would rip it out of whatever
+    // container - visible or not - currently owns it.
+    if (hasKeepAlive(SIDEBAR_MOUNT_KEY)) return false;
     _sidebarPrewarmStarted = true;
     try {
         let host = document.getElementById(PREWARM_HOST_ID);
@@ -706,7 +717,7 @@ export function prewarmAssetsSidebar(): boolean {
             host.setAttribute("aria-hidden", "true");
             document.body.appendChild(host);
         }
-        mountKeepAlive(host, AssetsManagerApp, SIDEBAR_MOUNT_KEY);
+        mountKeepAlive(host, AssetsManagerApp, SIDEBAR_MOUNT_KEY, { attachIfExists: false });
         return true;
     } catch (e) {
         console.debug?.(e);

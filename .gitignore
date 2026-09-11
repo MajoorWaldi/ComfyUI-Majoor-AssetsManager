@@ -230,3 +230,7 @@ docs/COMFY_INTEGRATION_IMPLEMENTATION_CHECKLIST.md
 .codex_audit/diff_grid_helpers_vs_2.4.8.patch
 .codex_audit/diff_panel_components_vs_2.4.8.patch
 .codex_audit/diff_panel_features_vs_2.4.8.patch
+docs/audits/evidence/comparative-audit-probes.ts.txt
+docs/audits/evidence/README.md
+docs/audits/evidence/sidebar-prewarm-probe.ts.txt
+docs/audits/2026-09-11-comfytv-reference-assets-manager.md

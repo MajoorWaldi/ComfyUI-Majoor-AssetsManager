@@ -315,7 +315,15 @@ async function _handleResponse(
         return null;
     });
 
-    if (typeof result !== "object" || result === null) {
+    // The `ApiResult` envelope contract requires a boolean `ok` field - an
+    // array (`[]`) or any object missing it is not a valid envelope, even
+    // though it parses as JSON.
+    if (
+        typeof result !== "object" ||
+        result === null ||
+        Array.isArray(result) ||
+        typeof result.ok !== "boolean"
+    ) {
         return _attachResponseMetadata({
             ok: false,
             error: "Invalid response structure",
@@ -323,6 +331,20 @@ async function _handleResponse(
             status: response.status,
             data: null,
         }, response);
+    }
+
+    // Guard against an envelope that disagrees with the transport: a server
+    // error status paired with `ok:true` is an inconsistency we must not
+    // forward as success.
+    if (result.ok === true && Number(response.status || 0) >= 400) {
+        result = {
+            ...result,
+            ok: false,
+            error:
+                result.error ||
+                `Server reported success with an HTTP error status (${response.status})`,
+            code: "INVALID_RESPONSE",
+        };
     }
 
     if (!("status" in result)) {
@@ -499,8 +521,14 @@ export function createApiFetchClient({
     }
 
     async function get(url: string, options: Record<string, any> = {}) {
+        // A caller-supplied AbortSignal is independent per-caller: the shared
+        // fetch behind a dedupe key only ever wires up the *first* caller's
+        // signal, so a second caller aborting its own signal would have no
+        // effect, and the first caller aborting would wrongly abort the
+        // second caller's request too. Skip dedup whenever a signal is
+        // present so each caller controls its own request lifecycle.
         const dedupeKey =
-            options?.dedupe === false
+            options?.dedupe === false || options?.signal
                 ? ""
                 : String(options?.dedupeKey || "").trim() ||
                   _buildPendingRequestKey("GET", url, options);

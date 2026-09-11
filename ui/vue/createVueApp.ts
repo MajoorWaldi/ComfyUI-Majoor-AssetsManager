@@ -95,7 +95,12 @@ function _attachHost(container: any, host: any) {
  * @param {string}       [mountKey]    - Unique key used to identify the app.
  * @returns {boolean} true if a new app was mounted, false if already alive.
  */
-export function mountKeepAlive(container: HTMLElement, component: any, mountKey = "_mjrVueApp"): boolean {
+export function mountKeepAlive(
+    container: HTMLElement,
+    component: any,
+    mountKey = "_mjrVueApp",
+    { attachIfExists = true }: { attachIfExists?: boolean } = {},
+): boolean {
     if (!container) return false;
     let record = _registry.get(mountKey);
     let created = false;
@@ -108,8 +113,15 @@ export function mountKeepAlive(container: HTMLElement, component: any, mountKey 
         created = true;
     }
 
-    _attachHost(container, record.host);
-    record.container = container;
+    // Callers that only want to warm up an instance (without claiming it for
+    // their own container) pass attachIfExists:false. If the host is already
+    // alive - whether attached to a real, visible container or a previous
+    // prewarm container - skip re-attaching so we never rip it out of a panel
+    // the user currently has open.
+    if (created || attachIfExists) {
+        _attachHost(container, record.host);
+        record.container = container;
+    }
     return created;
 }
 
@@ -121,6 +133,14 @@ export function mountKeepAlive(container: HTMLElement, component: any, mountKey 
  * @param {HTMLElement} container
  * @param {string}      [mountKey]
  */
+/**
+ * True if a keep-alive app instance already exists for `mountKey`, whether
+ * it is currently attached to a real container or a detached prewarm host.
+ */
+export function hasKeepAlive(mountKey = "_mjrVueApp"): boolean {
+    return _registry.has(mountKey);
+}
+
 export function unmountKeepAlive(container: HTMLElement | null, mountKey = "_mjrVueApp"): void {
     void container;
     const record = _registry.get(mountKey);
