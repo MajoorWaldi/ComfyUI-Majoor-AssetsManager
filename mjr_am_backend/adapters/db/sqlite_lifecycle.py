@@ -46,13 +46,13 @@ async def abort_begin_tx(self, conn: aiosqlite.Connection | None, lock: asyncio.
         try:
             await conn.rollback()
         except Exception:
-            pass
+            logger.debug("abort_begin_tx: suppressed exception", exc_info=True)
         await self._release_connection_async(conn)
     if lock is not None:
         try:
             lock.release()
         except Exception:
-            pass
+            logger.debug("abort_begin_tx: suppressed exception", exc_info=True)
 
 
 def get_tx_state(self, token: str) -> tuple[aiosqlite.Connection | None, bool]:
@@ -84,13 +84,13 @@ async def cleanup_tx_state(
             if had_write_lock:
                 self._tx_write_lock_tokens.discard(token)
     except Exception:
-        pass
+        logger.debug("cleanup_tx_state: suppressed exception", exc_info=True)
     await self._release_connection_async(conn)
     if lock is not None and had_write_lock:
         try:
             lock.release()
         except Exception:
-            pass
+            logger.debug("cleanup_tx_state: suppressed exception", exc_info=True)
 
 
 async def begin_tx_async(self, mode: str) -> Result[str]:
@@ -127,7 +127,7 @@ async def commit_tx_async(self, token: str) -> Result[bool]:
         try:
             await conn.rollback()
         except Exception:
-            pass
+            logger.debug("commit_tx_async: suppressed exception", exc_info=True)
         return Result.Err(ErrorCode.DB_ERROR, str(exc))
     finally:
         await self._cleanup_tx_state(token, conn, had_write_lock, lock)
@@ -148,7 +148,7 @@ async def rollback_tx_async(self, token: str) -> Result[bool]:
         try:
             await conn.rollback()
         except Exception:
-            pass
+            logger.debug("rollback_tx_async: suppressed exception", exc_info=True)
         return Result.Ok(True)
     finally:
         try:
@@ -157,13 +157,13 @@ async def rollback_tx_async(self, token: str) -> Result[bool]:
                 if had_write_lock:
                     self._tx_write_lock_tokens.discard(token)
         except Exception:
-            pass
+            logger.debug("rollback_tx_async: suppressed exception", exc_info=True)
         await self._release_connection_async(conn)
         if lock is not None and had_write_lock:
             try:
                 lock.release()
             except Exception:
-                pass
+                logger.debug("rollback_tx_async: suppressed exception", exc_info=True)
 
 
 async def close_all_async(self):
@@ -175,7 +175,7 @@ async def close_all_async(self):
         try:
             await conn.close()
         except Exception:
-            pass
+            logger.debug("close_all_async: suppressed exception", exc_info=True)
 
     while True:
         try:
@@ -185,14 +185,14 @@ async def close_all_async(self):
         try:
             await conn.close()
         except Exception:
-            pass
+            logger.debug("close_all_async: suppressed exception", exc_info=True)
 
     active_list = list(self._active_conns)
     for conn in active_list:
         try:
             await conn.close()
         except Exception:
-            pass
+            logger.debug("close_all_async: suppressed exception", exc_info=True)
     self._active_conns.clear()
     self._active_conns_idle.set()
     self._async_sem = None
@@ -224,7 +224,7 @@ async def checkpoint_wal_before_reset_async(self) -> None:
                     try:
                         await cur.close()
                     except Exception:
-                        pass
+                        logger.debug("checkpoint_wal_before_reset_async: suppressed exception", exc_info=True)
                 break
             except Exception as exc:
                 if self._is_locked_error(exc) and attempt < self._lock_retry_attempts:
@@ -382,7 +382,7 @@ def is_windows_sharing_violation(exc: Exception) -> bool:
         if winerror in (32, 33):
             return True
     except Exception:
-        pass
+        logger.debug("is_windows_sharing_violation: suppressed exception", exc_info=True)
     msg = str(exc).lower()
     return (
         "winerror 32" in msg
@@ -518,7 +518,7 @@ def find_locking_pids_windows(cls, path: Path) -> list[int]:
             try:
                 rm.RmEndSession(session)
             except Exception:
-                pass
+                logger.debug("find_locking_pids_windows: suppressed exception", exc_info=True)
     except Exception:
         return []
 
@@ -606,7 +606,7 @@ async def transaction_context(self, token_ctx: Any, mode: str = "immediate"):
         try:
             await self._rollback_tx_for_async(token)
         except Exception:
-            pass
+            logger.debug("transaction_context: suppressed exception", exc_info=True)
         raise
     finally:
         token_ctx.reset(token_handle)

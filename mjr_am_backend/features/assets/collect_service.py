@@ -397,7 +397,7 @@ def _writable_dest_dir(preferred: Path) -> tuple[Path, bool]:
         probe.unlink()
         return preferred, False
     except Exception:
-        pass
+        logger.debug("_writable_dest_dir: suppressed exception", exc_info=True)
     fallback = Path(str(get_runtime_output_root())) / _FALLBACK_SUBDIR
     fallback.mkdir(parents=True, exist_ok=True)
     return fallback, True
@@ -487,7 +487,7 @@ def build_collect_zip(
             try:
                 tmp_path.unlink()
             except Exception:
-                pass
+                logger.debug("build_collect_zip: suppressed exception", exc_info=True)
 
     missing = [item["name"] for item in inputs if item.get("status") == "missing"]
     return Result.Ok(

@@ -125,12 +125,12 @@ def stop_asset_lock_pruner(sqlite_obj: Any) -> None:
         try:
             t.join(timeout=1.0)
         except Exception:
-            pass
+            logger.debug("stop_asset_lock_pruner: suppressed exception", exc_info=True)
     try:
         with sqlite_obj._asset_locks_lock:
             sqlite_obj._asset_locks.clear()
     except Exception:
-        pass
+        logger.debug("stop_asset_lock_pruner: suppressed exception", exc_info=True)
 
 
 def prune_asset_locks_locked(sqlite_obj: Any, now: float) -> None:
@@ -206,7 +206,7 @@ def get_or_create_asset_lock(sqlite_obj: Any, asset_id: Any, key_builder) -> Any
                 entry["last"] = now
                 return entry["lock"]
             except Exception:
-                pass
+                logger.debug("get_or_create_asset_lock: suppressed exception", exc_info=True)
         # H-2: Use threading.Lock instead of asyncio.Lock.
         # The protecting dict lock (_asset_locks_lock) is a threading.Lock and this
         # function may be called from multiple threads.  asyncio.Lock objects are
@@ -245,5 +245,5 @@ def diagnostics(sqlite_obj: Any) -> dict[str, Any]:
         if last and (time.time() - last) > 10.0:
             data["locked"] = False
     except Exception:
-        pass
+        logger.debug("diagnostics: suppressed exception", exc_info=True)
     return data

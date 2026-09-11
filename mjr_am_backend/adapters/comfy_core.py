@@ -412,7 +412,7 @@ class ComfyCoreAdapter:
             if isinstance(SERVER_FEATURE_FLAGS, dict):
                 return dict(SERVER_FEATURE_FLAGS)
         except Exception:
-            pass
+            logger.debug("get_feature_flags: suppressed exception", exc_info=True)
         return {}
 
     def has_feature(self, name: str) -> bool:
