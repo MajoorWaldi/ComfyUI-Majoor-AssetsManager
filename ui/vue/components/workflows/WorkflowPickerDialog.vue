@@ -4,11 +4,30 @@ import { listWorkflows } from "../../../api/client.js";
 import { t } from "../../../app/i18n.js";
 import { workflowPickerState, closeWorkflowPicker } from "../../../features/workflows/workflowPickerState.js";
 
+interface WorkflowListItem {
+    filepath?: string;
+    filename?: string;
+    display_name?: string;
+    name?: string;
+    task?: string;
+    model_family?: string;
+    runs_on?: string;
+    subfolder?: string;
+    kind?: string;
+    mtime?: unknown;
+    thumbnail_url?: string;
+    animated_thumbnail_url?: string;
+    thumb_url?: string;
+    preview_url?: string;
+    graph_map_thumbnail_url?: string;
+    [key: string]: unknown;
+}
+
 const query = ref("");
 const loading = ref(false);
 const loadingMore = ref(false);
 const error = ref("");
-const workflows = ref<any[]>([]);
+const workflows = ref<WorkflowListItem[]>([]);
 const selectedPath = ref("");
 const workflowOffset = ref(0);
 const hasMoreWorkflows = ref(false);
@@ -74,11 +93,11 @@ const selectedWorkflow = computed(() =>
     (workflows.value || []).find((workflow) => String(workflow?.filepath || "") === selectedPath.value) || null,
 );
 
-function workflowTitle(workflow: any) {
+function workflowTitle(workflow: WorkflowListItem) {
     return String(workflow?.display_name || workflow?.name || workflow?.filename || "Workflow");
 }
 
-function workflowMeta(workflow: any) {
+function workflowMeta(workflow: WorkflowListItem) {
     if (isAssetMode.value) {
         return [workflow?.kind, workflow?.mtime ? new Date(Number(workflow.mtime) * 1000).toLocaleString() : ""]
             .map((value) => String(value || "").trim())
@@ -91,7 +110,7 @@ function workflowMeta(workflow: any) {
         .join(" / ");
 }
 
-function workflowThumb(workflow: any) {
+function workflowThumb(workflow: WorkflowListItem) {
     return String(
         workflow?.thumbnail_url ||
             workflow?.animated_thumbnail_url ||
@@ -146,7 +165,7 @@ async function loadWorkflowPage({ reset = false }: { reset?: boolean } = {}) {
         }
     } catch (err) {
         if (id === requestId) {
-            error.value = String((err as any)?.message || err || "Failed to load workflows");
+            error.value = String((err as Error)?.message || err || "Failed to load workflows");
             workflows.value = [];
         }
     } finally {

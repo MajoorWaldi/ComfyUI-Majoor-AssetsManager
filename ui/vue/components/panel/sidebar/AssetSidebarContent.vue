@@ -24,7 +24,7 @@ import ContextMenuPortal from "../../common/ContextMenuPortal.vue";
 
 const props = defineProps<{
     asset: MjrAssetLike;
-    onUpdate?: ((...args: any[]) => void) | null;
+    onUpdate?: ((patch: Record<string, unknown>) => void) | null;
     sidebar?: object | null;
 }>();
 

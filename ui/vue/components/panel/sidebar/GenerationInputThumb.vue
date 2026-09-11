@@ -34,7 +34,11 @@ const props = defineProps<{
 const currentSrcIndex = ref(0);
 const flashOutline = ref(false);
 
-let floatingViewerManagerModulePromise: Promise<any> | null = null;
+interface FloatingViewerManagerModule {
+    floatingViewerManager: { openAssets: (opts: { assets: unknown[]; index: number }) => Promise<void> };
+}
+
+let floatingViewerManagerModulePromise: Promise<FloatingViewerManagerModule> | null = null;
 
 function loadFloatingViewerManagerModule() {
     if (!floatingViewerManagerModulePromise) {

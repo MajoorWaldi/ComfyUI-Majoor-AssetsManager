@@ -8,10 +8,11 @@ import {
     addToCollectionMenuState,
     closeAddToCollectionMenu,
 } from "../../../features/collections/contextmenu/addToCollectionMenuState.js";
+import type { MjrAddCollectionResult, MjrCollectionItem } from "../../../types/collections";
 
 const menuRef = ref<HTMLElement | null>(null);
 const loading = ref(false);
-const collections = ref<any[]>([]);
+const collections = ref<MjrCollectionItem[]>([]);
 const loadError = ref("");
 
 let loadToken = 0;
@@ -31,7 +32,7 @@ const selectionLabel = computed(() =>
     (selectionCount.value > 1 ? ` (${selectionCount.value})` : ""),
 );
 
-function formatAddResultMessage({ collectionName, selectedCount, addRes }: { collectionName?: unknown; selectedCount: number; addRes: any }) {
+function formatAddResultMessage({ collectionName, selectedCount, addRes }: { collectionName?: unknown; selectedCount: number; addRes: MjrAddCollectionResult }) {
     const added = Number(addRes?.data?.added ?? 0) || 0;
     const skippedExisting = Number(addRes?.data?.skipped_existing ?? 0) || 0;
     const skippedDuplicate = Number(addRes?.data?.skipped_duplicate ?? 0) || 0;
