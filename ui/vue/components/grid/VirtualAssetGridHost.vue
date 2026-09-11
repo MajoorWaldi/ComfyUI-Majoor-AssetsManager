@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, provide, ref, watch } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, provide, ref, watch, type Ref } from "vue";
 import { APP_CONFIG } from "../../../app/config.js";
 import { EVENTS } from "../../../app/events.js";
 import { get, getWorkflowContent, markWorkflowLoaded, setWorkflowFavorite } from "../../../api/client.js";
@@ -27,14 +27,15 @@ import { buildStaticGridRows, useGridVirtualRows } from "../../grid/useGridVirtu
 import { useInfiniteTrigger } from "../../grid/useInfiniteTrigger.js";
 import { buildDisplayAssets, isRenderableAsset } from "../../grid/useGridDisplayAssets.js";
 import { readRenderedAssetCards } from "./gridDomBridge.js";
+import type { MjrAssetLike } from "../../../types/asset";
 
 const props = withDefaults(
     defineProps<{
-        scrollElement?: any;
+        scrollElement?: Ref<HTMLElement | null> | HTMLElement | null;
         virtualize?: boolean;
         applyDefaultSettingsClasses?: boolean;
-        onCardRendered?: ((...args: any[]) => void) | null;
-        onCardDblclick?: ((...args: any[]) => void) | null;
+        onCardRendered?: ((card: HTMLElement, asset: MjrAssetLike, gridContainer: HTMLElement | null) => void) | null;
+        onCardDblclick?: ((payload: { asset: MjrAssetLike; assets: MjrAssetLike[]; gridContainer: HTMLElement | null }) => void) | null;
         emitWindowSelectionEvents?: boolean;
     }>(),
     {
@@ -166,7 +167,7 @@ const {
     getActiveAsset,
 } = useGridState();
 
-function resolveElement(maybeRef) {
+function resolveElement(maybeRef: Ref<HTMLElement | null> | HTMLElement | null | undefined) {
     if (!maybeRef) return null;
     if (typeof maybeRef === "object" && "value" in maybeRef) {
         return maybeRef.value || null;
@@ -1468,7 +1469,7 @@ async function loadWorkflowAsset(asset) {
     comfyToast(t("toast.workflowLoaded", "Workflow loaded"), "success", 1800);
 }
 
-function handleCardDblclick(asset) {
+function handleCardDblclick(asset: MjrAssetLike) {
     try {
         if (typeof props.onCardDblclick === "function") {
             props.onCardDblclick({

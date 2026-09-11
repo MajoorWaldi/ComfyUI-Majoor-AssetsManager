@@ -24,10 +24,16 @@ const panelStore = usePanelStore();
 
 const gridContainerRef = computed(() => gridHostRef.value?.gridContainer ?? null);
 
+interface AssetsQueryController {
+    setVisibility?: () => void;
+    dispose?: () => void;
+    [key: string]: unknown;
+}
+
 let disposeScrollSync: (() => void) | null = null;
 let disposeGridHostState: (() => void) | null = null;
-let gridHostStateOptions: any = null;
-let assetsQueryController: any = null;
+let gridHostStateOptions: Record<string, unknown> | null = null;
+let assetsQueryController: AssetsQueryController | null = null;
 let disposeVisibilityObservers: (() => void) | null = null;
 
 function syncAssetsQueryVisibility() {
@@ -155,7 +161,7 @@ function currentGridContainer() {
     return gridContainerRef.value || null;
 }
 
-function bindGridHostState(opts: any = {}) {
+function bindGridHostState(opts: Record<string, unknown> = {}) {
     const container = currentGridContainer();
     if (!container) return;
     gridHostStateOptions = opts;
@@ -225,7 +231,7 @@ onBeforeUnmount(() => {
 
 watch(
     gridContainerRef,
-    (container: any, previous: any) => {
+    (container, previous) => {
         try {
             if (previous && previous !== container) {
                 clearActiveGridContainer(previous);
@@ -254,13 +260,13 @@ defineExpose({
     get gridContainer() {
         return currentGridContainer();
     },
-    onGridContainerReady(container: any) {
+    onGridContainerReady(container?: unknown) {
         if (container && container !== currentGridContainer()) {
             return currentGridContainer();
         }
         return currentGridContainer();
     },
-    bindGridHostState(opts: any = {}) {
+    bindGridHostState(opts: Record<string, unknown> = {}) {
         bindGridHostState(opts);
         return () => {
             try {
@@ -271,7 +277,7 @@ defineExpose({
             disposeGridHostState = null;
         };
     },
-    restoreGridUiState(initialLoadPromise: any, opts: any = {}) {
+    restoreGridUiState(initialLoadPromise: unknown, opts: Record<string, unknown> = {}) {
         return restoreGridUiStateRuntime({
             initialLoadPromise,
             gridWrapper: gridWrapperRef.value,
@@ -280,7 +286,7 @@ defineExpose({
             ...opts,
         });
     },
-    initAssetsQueryController(options: any = {}) {
+    initAssetsQueryController(options: Record<string, unknown> = {}) {
         const gridContainer = currentGridContainer();
         if (!gridContainer || !gridWrapperRef.value) return null;
         try {
@@ -296,34 +302,34 @@ defineExpose({
         syncAssetsQueryVisibility();
         return assetsQueryController;
     },
-    loadAssets(...args: any[]) {
+    loadAssets(...args: unknown[]) {
         return gridHostRef.value?.loadAssets?.(...args);
     },
-    loadAssetsFromList(...args: any[]) {
+    loadAssetsFromList(...args: unknown[]) {
         return gridHostRef.value?.loadAssetsFromList?.(...args);
     },
-    prepareGridForScopeSwitch(...args: any[]) {
+    prepareGridForScopeSwitch(...args: unknown[]) {
         return gridHostRef.value?.prepareGridForScopeSwitch?.(...args);
     },
-    refreshGrid(...args: any[]) {
+    refreshGrid(...args: unknown[]) {
         return gridHostRef.value?.refreshGrid?.(...args);
     },
-    captureAnchor(...args: any[]) {
+    captureAnchor(...args: unknown[]) {
         return gridHostRef.value?.captureAnchor?.(...args);
     },
-    restoreAnchor(...args: any[]) {
+    restoreAnchor(...args: unknown[]) {
         return gridHostRef.value?.restoreAnchor?.(...args);
     },
-    hydrateGridFromSnapshot(...args: any[]) {
+    hydrateGridFromSnapshot(...args: unknown[]) {
         return gridHostRef.value?.hydrateFromSnapshot?.(...args);
     },
-    upsertAsset(...args: any[]) {
+    upsertAsset(...args: unknown[]) {
         return gridHostRef.value?.upsertAsset?.(...args);
     },
-    removeAssets(...args: any[]) {
+    removeAssets(...args: unknown[]) {
         return gridHostRef.value?.removeAssets?.(...args);
     },
-    disposeGrid(...args: any[]) {
+    disposeGrid(...args: unknown[]) {
         return gridHostRef.value?.dispose?.(...args);
     },
 });
