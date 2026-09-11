@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import {
     closeAllGridContextMenus,
@@ -8,18 +8,18 @@ import {
 } from "../../../features/contextmenu/gridContextMenuState.js";
 import TagsEditor from "../common/TagsEditor.vue";
 
-const mainMenuRef = ref(null);
-const submenuRef = ref(null);
-const tagsPopoverRef = ref(null);
+const mainMenuRef = ref<HTMLElement | null>(null);
+const submenuRef = ref<HTMLElement | null>(null);
+const tagsPopoverRef = ref<HTMLElement | null>(null);
 
-let submenuCloseTimer = null;
-let globalListenersController = null;
+let submenuCloseTimer: ReturnType<typeof setTimeout> | null = null;
+let globalListenersController: AbortController | null = null;
 
 const mainMenuStyle = computed(() => _layerStyle(gridContextMenuState.main, 10031));
 const submenuStyle = computed(() => _layerStyle(gridContextMenuState.submenu, 10032));
 const tagsPopoverStyle = computed(() => _layerStyle(gridContextMenuState.tags, 10033));
 
-function _layerStyle(layer, zIndex) {
+function _layerStyle(layer: any, zIndex: number) {
     return {
         position: "fixed",
         left: `${Math.round(Number(layer?.x) || 0)}px`,
@@ -43,7 +43,7 @@ function _scheduleSubmenuClose() {
     }, 180);
 }
 
-function _clampLayerToViewport(layer, element) {
+function _clampLayerToViewport(layer: any, element: HTMLElement | null) {
     if (!layer?.open || !element) return;
     const rect = element.getBoundingClientRect();
     const vw = Number(window.innerWidth || 0);
@@ -58,12 +58,12 @@ function _clampLayerToViewport(layer, element) {
     layer.y = y;
 }
 
-async function _afterOpenClamp(layer, elementRef) {
+async function _afterOpenClamp(layer: any, elementRef: { value: HTMLElement | null }) {
     await nextTick();
     _clampLayerToViewport(layer, elementRef?.value || null);
 }
 
-function _focusFirstItem(menuRef) {
+function _focusFirstItem(menuRef: { value: HTMLElement | null }) {
     try {
         menuRef?.value
             ?.querySelector?.('.mjr-context-menu-item:not([aria-disabled="true"])')
@@ -73,13 +73,13 @@ function _focusFirstItem(menuRef) {
     }
 }
 
-function _openSubmenuForItem(item, event) {
+function _openSubmenuForItem(item: any, event: MouseEvent) {
     if (!Array.isArray(item?.submenu) || !item.submenu.length) {
         closeGridSubmenu();
         return;
     }
     _clearSubmenuTimer();
-    const target = event?.currentTarget;
+    const target = event?.currentTarget as HTMLElement | null;
     const rect = target?.getBoundingClientRect?.();
     openGridSubmenu({
         x: Math.round((rect?.right || gridContextMenuState.main.x || 0) + 6),
@@ -89,7 +89,7 @@ function _openSubmenuForItem(item, event) {
     });
 }
 
-async function handleItemClick(item, event, source = "main") {
+async function handleItemClick(item: any, event: Event, source = "main") {
     if (!item || item.type !== "item" || item.disabled) return;
     if (Array.isArray(item.submenu) && item.submenu.length) {
         _openSubmenuForItem(item, event);
@@ -108,7 +108,7 @@ async function handleItemClick(item, event, source = "main") {
     }
 }
 
-function handleMainItemEnter(item, event) {
+function handleMainItemEnter(item: any, event: MouseEvent) {
     if (Array.isArray(item?.submenu) && item.submenu.length) {
         _openSubmenuForItem(item, event);
         return;
@@ -116,7 +116,7 @@ function handleMainItemEnter(item, event) {
     closeGridSubmenu();
 }
 
-function handleMainItemLeave(item) {
+function handleMainItemLeave(item: any) {
     if (Array.isArray(item?.submenu) && item.submenu.length) {
         _scheduleSubmenuClose();
     }
@@ -130,8 +130,8 @@ function handleSubmenuLeave() {
     _scheduleSubmenuClose();
 }
 
-function handleGlobalPointerDown(event) {
-    const target = event?.target;
+function handleGlobalPointerDown(event: PointerEvent) {
+    const target = event?.target as Node;
     const insideMenu =
         mainMenuRef.value?.contains?.(target) ||
         submenuRef.value?.contains?.(target) ||
@@ -141,7 +141,7 @@ function handleGlobalPointerDown(event) {
     }
 }
 
-function handleGlobalKeydown(event) {
+function handleGlobalKeydown(event: KeyboardEvent) {
     if (event?.key === "Escape") {
         closeAllGridContextMenus();
     }
@@ -151,18 +151,19 @@ function handleGlobalScroll() {
     closeAllGridContextMenus();
 }
 
-function handleCloseAllMenus(event) {
-    if (String(event?.detail?.source || "") === "grid") return;
+function handleCloseAllMenus(event: Event) {
+    const detail = (event as CustomEvent)?.detail;
+    if (String(detail?.source || "") === "grid") return;
     closeAllGridContextMenus();
 }
 
-function handleTagsModelValue(tags) {
+function handleTagsModelValue(tags: unknown) {
     const asset = gridContextMenuState.tags.asset;
     if (!asset) return;
     asset.tags = Array.isArray(tags) ? [...tags] : [];
 }
 
-function handleTagsChange(payload) {
+function handleTagsChange(payload: any) {
     const tags = Array.isArray(payload?.tags) ? payload.tags : [];
     try {
         gridContextMenuState.tags.onChanged?.(tags);

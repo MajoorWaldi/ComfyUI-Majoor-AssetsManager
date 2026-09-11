@@ -18981,7 +18981,7 @@ var V_ = {
 			])]);
 		};
 	}
-}), J_ = { class: "mjr-am-search-pill" }, Y_ = ["id"], X_ = { class: "mjr-am-search-tools" }, Z_ = { class: "mjr-popover-anchor" }, Q_ = { class: "mjr-popover-anchor" }, $_ = "Ctrl/Cmd+F, Ctrl/Cmd+K, Ctrl/Cmd+H", ev = "AND", tv = {
+}), J_ = { class: "mjr-am-search-pill" }, Y_ = ["id"], X_ = { class: "mjr-am-search-tools" }, Z_ = { class: "mjr-popover-anchor" }, Q_ = { class: "mjr-popover-anchor" }, $_ = "Ctrl/Cmd+F, Ctrl/Cmd+K, Ctrl/Cmd+H", ev = "AND", tv = /* @__PURE__ */ dr({
 	__name: "SearchBar",
 	emits: ["search-change"],
 	setup(e, { expose: t, emit: n }) {
@@ -19021,7 +19021,7 @@ var V_ = {
 				C({ semantic: m.value });
 			}
 		}, T = async (e) => {
-			let t = e.target.value || "";
+			let t = e.target?.value || "";
 			i.searchQuery = t, i.metadataSearchMode = ev, S(), C({ query: t }), await A();
 		}, E = (e) => {
 			let t = String(e || "").split(/\s+/);
@@ -19187,7 +19187,7 @@ var V_ = {
 			])], 512);
 		};
 	}
-}, nv = {
+}), nv = {
 	class: "mjr-popover mjr-sort-popover",
 	style: { display: "none" }
 }, rv = { class: "mjr-menu-item-label" }, iv = /* @__PURE__ */ dr({
@@ -23267,7 +23267,7 @@ var Qb = { class: "mjr-sidebar-preview" }, $b = ["src"], ex = ["src"], tx = ["sr
 }, Ox = { class: "mjr-context-menu-item-left" }, kx = {
 	key: 0,
 	class: "mjr-context-menu-hint"
-}, Ax = {
+}, Ax = /* @__PURE__ */ dr({
 	__name: "GridContextMenu",
 	setup(e) {
 		let t = Z(null), n = Z(null), r = Z(null), i = null, a = null, o = G(() => l(_n.main, 10031)), s = G(() => l(_n.submenu, 10032)), c = G(() => l(_n.tags, 10033));
@@ -23359,7 +23359,8 @@ var Qb = { class: "mjr-sidebar-preview" }, $b = ["src"], ex = ["src"], tx = ["sr
 			vn();
 		}
 		function w(e) {
-			String(e?.detail?.source || "") !== "grid" && vn();
+			let t = e?.detail;
+			String(t?.source || "") !== "grid" && vn();
 		}
 		function T(e) {
 			let t = _n.tags.asset;
@@ -23498,7 +23499,7 @@ var Qb = { class: "mjr-sidebar-preview" }, $b = ["src"], ex = ["src"], tx = ["sr
 			]);
 		};
 	}
-}, jx = { class: "mjr-workflow-picker-dialog mjr-workflow-info-dialog" }, Mx = { class: "mjr-workflow-picker-header" }, Nx = { class: "mjr-workflow-picker-title" }, Px = { class: "mjr-workflow-picker-subtitle" }, Fx = { class: "mjr-workflow-info-form" }, Ix = { class: "is-wide" }, Lx = { class: "mjr-workflow-picker-footer" }, Rx = /* @__PURE__ */ dr({
+}), jx = { class: "mjr-workflow-picker-dialog mjr-workflow-info-dialog" }, Mx = { class: "mjr-workflow-picker-header" }, Nx = { class: "mjr-workflow-picker-title" }, Px = { class: "mjr-workflow-picker-subtitle" }, Fx = { class: "mjr-workflow-info-form" }, Ix = { class: "is-wide" }, Lx = { class: "mjr-workflow-picker-footer" }, Rx = /* @__PURE__ */ dr({
 	__name: "WorkflowInfoDialog",
 	setup(e) {
 		let t = Cr({
