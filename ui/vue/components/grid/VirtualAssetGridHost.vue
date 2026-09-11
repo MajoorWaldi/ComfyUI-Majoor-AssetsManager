@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, provide, ref, watch } from "vue";
 import { APP_CONFIG } from "../../../app/config.js";
 import { EVENTS } from "../../../app/events.js";
@@ -28,34 +28,32 @@ import { useInfiniteTrigger } from "../../grid/useInfiniteTrigger.js";
 import { buildDisplayAssets, isRenderableAsset } from "../../grid/useGridDisplayAssets.js";
 import { readRenderedAssetCards } from "./gridDomBridge.js";
 
-const props = defineProps({
-    scrollElement: {
-        type: [Object, null],
-        default: null,
+const props = withDefaults(
+    defineProps<{
+        scrollElement?: any;
+        virtualize?: boolean;
+        applyDefaultSettingsClasses?: boolean;
+        onCardRendered?: ((...args: any[]) => void) | null;
+        onCardDblclick?: ((...args: any[]) => void) | null;
+        emitWindowSelectionEvents?: boolean;
+    }>(),
+    {
+        scrollElement: null,
+        virtualize: true,
+        applyDefaultSettingsClasses: true,
+        onCardRendered: null,
+        onCardDblclick: null,
+        emitWindowSelectionEvents: true,
     },
-    virtualize: {
-        type: Boolean,
-        default: true,
-    },
-    applyDefaultSettingsClasses: {
-        type: Boolean,
-        default: true,
-    },
-    onCardRendered: {
-        type: Function,
-        default: null,
-    },
-    onCardDblclick: {
-        type: Function,
-        default: null,
-    },
-    emitWindowSelectionEvents: {
-        type: Boolean,
-        default: true,
-    },
-});
+);
 
-const gridContainerRef = ref(null);
+// The container carries ~30 ad-hoc `_mjr*` properties written by this
+// component and read by legacy controller code (GridSelectionManager,
+// DragDrop, etc.) -- an index signature matches that existing contract
+// rather than re-declaring each property.
+type MjrGridContainer = HTMLDivElement & Record<string, any>;
+
+const gridContainerRef = ref<MjrGridContainer | null>(null);
 const hostWidth = ref(1024); // Fallback until ResizeObserver fires
 const hasMeasuredHostWidthOnce = ref(true); // Don't block first render
 const settingsVersion = ref(0);

@@ -7755,7 +7755,7 @@ function td(e) {
 	return r;
 }
 //#endregion
-//#region ui/vue/components/grid/VirtualAssetGridHost.vue
+//#region ui/vue/components/grid/VirtualAssetGridHost.vue?vue&type=script&setup=true&lang.ts
 var nd = {
 	key: 0,
 	class: "mjr-grid-loading-overlay",
@@ -7829,13 +7829,10 @@ var nd = {
 	"onMousedown",
 	"onClick",
 	"onDblclick"
-], hd = 501, gd = {
+], hd = 501, gd = /* @__PURE__ */ dr({
 	__name: "VirtualAssetGridHost",
 	props: {
-		scrollElement: {
-			type: [Object, null],
-			default: null
-		},
+		scrollElement: { default: null },
 		virtualize: {
 			type: Boolean,
 			default: !0
@@ -7845,11 +7842,11 @@ var nd = {
 			default: !0
 		},
 		onCardRendered: {
-			type: Function,
+			type: [Function, null],
 			default: null
 		},
 		onCardDblclick: {
-			type: Function,
+			type: [Function, null],
 			default: null
 		},
 		emitWindowSelectionEvents: {
@@ -9167,7 +9164,7 @@ var nd = {
 			}, null, 512)
 		], 512));
 	}
-}, _d = 240, vd = 120, yd = 80, bd = null, xd = null;
+}), _d = 240, vd = 120, yd = 80, bd = null, xd = null;
 function Sd() {
 	return bd ||= import("./chunks/viewerOpenRequest-CzyrZA71.js").then((e) => e.n), bd;
 }
