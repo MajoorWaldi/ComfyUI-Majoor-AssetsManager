@@ -20019,7 +20019,7 @@ function sy() {
 	}
 }
 //#endregion
-//#region ui/vue/components/panel/CollectionsPopover.vue
+//#region ui/vue/components/panel/CollectionsPopover.vue?vue&type=script&setup=true&lang.ts
 var cy = { class: "mjr-menu mjr-collections-menu" }, ly = { class: "mjr-menu-item-label" }, uy = { class: "mjr-menu-item-label" }, dy = { class: "mjr-menu-item-right" }, fy = {
 	key: 0,
 	class: "mjr-menu-item-hint"
@@ -20038,7 +20038,7 @@ var cy = { class: "mjr-menu mjr-collections-menu" }, ly = { class: "mjr-menu-ite
 }, by = { class: "mjr-state-block" }, xy = { class: "mjr-section-title mjr-section-title--cyan" }, Sy = { class: "mjr-section-hint" }, Cy = { class: "mjr-menu-item-label mjr-menu-item-label--icon" }, wy = { class: "mjr-section-title mjr-section-title--violet" }, Ty = { class: "mjr-section-hint" }, Ey = { class: "mjr-menu-item-label mjr-menu-item-label--icon" }, Dy = {
 	key: 0,
 	class: "mjr-state-block is-error"
-}, Oy = { class: "mjr-cluster-thumbs" }, ky = ["src", "alt"], Ay = { class: "mjr-cluster-info" }, jy = ["title"], My = { class: "mjr-cluster-count" }, Ny = "mjr:collections-changed", Py = {
+}, Oy = { class: "mjr-cluster-thumbs" }, ky = ["src", "alt"], Ay = { class: "mjr-cluster-info" }, jy = ["title"], My = { class: "mjr-cluster-count" }, Ny = "mjr:collections-changed", Py = /* @__PURE__ */ dr({
 	__name: "CollectionsPopover",
 	setup(e, { expose: t }) {
 		let n = Oh(), r = Z(null), i = Z([]), a = Z(!1), o = Z(""), s = Z(!1), c = Z(!0), l = Z(!1), u = Z(!1), d = Z(!1), f = Z([]), g = Z(""), _ = Z(""), v = 0, y = null, b = !1, x = G(() => String(n.collectionId || "").trim()), S = G(() => String(n.collectionName || "").trim()), C = G(() => !!x.value), w = G(() => !c.value || u.value), T = G(() => c.value && l.value), D = G(() => `${Math.max(1, Math.min(i.value.length, 6)) * 48}px`);
@@ -20440,7 +20440,7 @@ var cy = { class: "mjr-menu mjr-collections-menu" }, ly = { class: "mjr-menu-ite
 			])], 512);
 		};
 	}
-}, Fy = { class: "mjr-popover mjr-pinned-folders-popover mjr-popover--hidden" }, Iy = {
+}), Fy = { class: "mjr-popover mjr-pinned-folders-popover mjr-popover--hidden" }, Iy = {
 	key: 0,
 	class: "mjr-muted mjr-pinned-folders-empty"
 }, Ly = {
