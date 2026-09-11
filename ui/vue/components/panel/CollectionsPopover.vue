@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { MjrAssetLike } from "../../../types/asset";
+import type { MjrCluster, MjrCollectionItem, MjrSmartCollectionIdea } from "../../../types/collections";
 /**
  * CollectionsPopover.vue - Reactive collections menu.
  *
@@ -37,7 +38,7 @@ const COLLECTIONS_CHANGED_EVENT = "mjr:collections-changed";
 const panelStore = usePanelStore();
 const rootRef = ref<HTMLElement | null>(null);
 
-const collections = ref<any[]>([]);
+const collections = ref<MjrCollectionItem[]>([]);
 const collectionsLoading = ref(false);
 const loadError = ref("");
 
@@ -47,7 +48,7 @@ const vectorAvailable = ref(false);
 const vectorDisabled = ref(false);
 
 const clustersLoading = ref(false);
-const clusters = ref<any[]>([]);
+const clusters = ref<Array<MjrCluster & { _label: string }>>([]);
 const clustersError = ref("");
 
 const busyActionKey = ref("");
@@ -192,8 +193,8 @@ async function refresh() {
     }
 }
 
-function withBusyAction(key: string, fn: (...args: any[]) => Promise<void>) {
-    return async (...args: any[]) => {
+function withBusyAction<Args extends unknown[]>(key: string, fn: (...args: Args) => Promise<void>) {
+    return async (...args: Args) => {
         if (busyActionKey.value) return;
         busyActionKey.value = key;
         try {
@@ -239,7 +240,7 @@ const handleExitCollection = withBusyAction("exit", async () => {
     });
 });
 
-const handleOpenCollection = withBusyAction("open", async (item: any) => {
+const handleOpenCollection = withBusyAction("open", async (item: MjrCollectionItem) => {
     const id = String(item?.id || "");
     const name = String(item?.name || id);
     if (!id) return;
@@ -259,7 +260,7 @@ const handleOpenCollection = withBusyAction("open", async (item: any) => {
     });
 });
 
-const handleDeleteCollection = withBusyAction("delete", async (item: any) => {
+const handleDeleteCollection = withBusyAction("delete", async (item: MjrCollectionItem) => {
     const id = String(item?.id || "");
     const name = String(item?.name || id);
     if (!id) return;
@@ -289,7 +290,7 @@ const handleDeleteCollection = withBusyAction("delete", async (item: any) => {
     await refresh();
 });
 
-async function createSmartCollection(idea: any) {
+async function createSmartCollection(idea: MjrSmartCollectionIdea) {
     const label = String(idea?.label || "").trim();
     if (!label) return;
 
@@ -368,7 +369,7 @@ async function createSmartCollection(idea: any) {
     });
 }
 
-async function handleSmartSuggestion(idea: any) {
+async function handleSmartSuggestion(idea: MjrSmartCollectionIdea) {
     if (!idea?.key) return;
     const key = `smart:${idea.key}`;
     if (busyActionKey.value) return;
@@ -414,7 +415,7 @@ async function analyzeLibrary() {
     }
 }
 
-async function createCollectionFromCluster(cluster: any) {
+async function createCollectionFromCluster(cluster: MjrCluster) {
     const key = `cluster:${String(cluster?.cluster_id ?? "")}`;
     if (busyActionKey.value) return;
     busyActionKey.value = key;
