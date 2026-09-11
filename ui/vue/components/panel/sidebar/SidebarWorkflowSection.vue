@@ -111,8 +111,22 @@ const minimapView = ref<MinimapView>({ ...DEFAULT_VIEW });
 const minimapCursor = ref("crosshair");
 const hoveredNodeLabel = ref("");
 
+interface MinimapRenderInfo {
+    resolvedView?: {
+        viewMinX?: number;
+        viewMinY?: number;
+        visibleW?: number;
+        visibleH?: number;
+        [key: string]: unknown;
+    };
+    canvasToWorld?: (x: number, y: number) => WorldPoint;
+    hitTestNode?: (x: number, y: number) => { id?: unknown; label?: string } | null;
+    bounds?: { width?: number; height?: number };
+    [key: string]: unknown;
+}
+
 let resizeObserver: ResizeObserver | null = null;
-let lastRenderInfo: any = null;
+let lastRenderInfo: MinimapRenderInfo | null = null;
 let activePointerId: number | null = null;
 
 function clampNumber(value: unknown, min: number, max: number) {
@@ -121,7 +135,7 @@ function clampNumber(value: unknown, min: number, max: number) {
     return Math.max(min, Math.min(max, n));
 }
 
-function syncResolvedView(nextView: any) {
+function syncResolvedView(nextView: MinimapRenderInfo["resolvedView"] | undefined) {
     if (!nextView || typeof nextView !== "object") return;
     minimapView.value = {
         ...minimapView.value,

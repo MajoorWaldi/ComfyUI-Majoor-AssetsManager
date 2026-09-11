@@ -22,7 +22,7 @@ const unpinLabel = ref("Unpin folder");
 const openHandler = ref<((root: PinnedRoot) => void) | null>(null);
 const unpinHandler = ref<((root: PinnedRoot, event?: Event) => void) | null>(null);
 
-function normalizeRoot(root: any): PinnedRoot | null {
+function normalizeRoot(root: { id?: unknown; label?: unknown; name?: unknown; path?: unknown } | null | undefined): PinnedRoot | null {
     const id = String(root?.id || "").trim();
     if (!id) return null;
     const label = String(root?.label || root?.name || root?.path || id).trim();

@@ -23,6 +23,7 @@ import { ref, onMounted, onUnmounted } from "vue";
 import { patchActiveAsset, useActiveAsset } from "../../composables/useActiveAsset.js";
 import AssetSidebarContent from "./sidebar/AssetSidebarContent.vue";
 import { t } from "../../../app/i18n.js";
+import type { MjrAssetLike } from "../../../types/asset";
 import {
     ASSET_RATING_CHANGED_EVENT,
     ASSET_TAGS_CHANGED_EVENT,
@@ -32,9 +33,9 @@ import {
 // DOM node (see module docblock); typed loosely to match that contract.
 type SidebarElement = HTMLDivElement & {
     _requestSeq?: number;
-    _currentAsset?: any;
-    _currentFullAsset?: any;
-    _ratingTagsSection?: any;
+    _currentAsset?: MjrAssetLike | null;
+    _currentFullAsset?: MjrAssetLike | null;
+    _ratingTagsSection?: unknown;
     _mjrAbortController?: AbortController | null;
     _currentFetchAbortController?: { abort?: () => void } | null;
     dispose?: () => void;

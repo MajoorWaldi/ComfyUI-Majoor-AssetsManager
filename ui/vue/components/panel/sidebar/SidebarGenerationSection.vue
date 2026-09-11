@@ -23,11 +23,23 @@ const captionText = ref("");
 const copyCaptionLabel = ref(t("action.copy", "Copy"));
 const generateCaptionLabel = ref(t("action.generate", "Generate"));
 const generatingCaption = ref(false);
-const alignmentState = ref<Record<string, any>>(createDefaultAlignmentState());
+interface AlignmentState {
+    scoreText: string;
+    scoreColor: string;
+    qualityText: string;
+    qualityColor: string;
+    qualityBackground: string;
+    fillWidth: string;
+    fillColor: string;
+    aiStatusVisible: boolean;
+    aiStatusText: string;
+}
+
+const alignmentState = ref<AlignmentState>(createDefaultAlignmentState());
 
 let alignmentRequestToken = 0;
 
-function createDefaultAlignmentState(): Record<string, any> {
+function createDefaultAlignmentState(): AlignmentState {
     return {
         scoreText: "...",
         scoreColor: "#888",
@@ -216,11 +228,11 @@ function modelGroupStyle(accentColor: unknown, emphasis = true) {
     };
 }
 
-function modelBranchAccent(branch: any) {
+function modelBranchAccent(_branch: { key?: unknown }) {
     return "#CE6DE0";
 }
 
-function samplingBranchAccent(branch: any) {
+function samplingBranchAccent(branch: { key?: unknown }) {
     const key = String(branch?.key || "").toLowerCase();
     if (key.includes("high")) return "#FFC107";
     if (key.includes("low")) return "#FFB300";

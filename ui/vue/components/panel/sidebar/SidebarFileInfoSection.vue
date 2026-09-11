@@ -53,7 +53,7 @@ function hasDisplayValue(value: unknown) {
     return text !== "" && text.toUpperCase() !== "N/A";
 }
 
-function formatBitDepth(stream: any, raw: any) {
+function formatBitDepth(stream: Record<string, unknown>, raw: Record<string, unknown>) {
     const bits = firstValue(
         stream.bits_per_raw_sample,
         stream.bits_per_sample,

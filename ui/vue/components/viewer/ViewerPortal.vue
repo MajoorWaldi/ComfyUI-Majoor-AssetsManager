@@ -21,10 +21,18 @@ import FloatingViewerHost from "./FloatingViewerHost.vue";
 import ViewerOverlayHost from "./ViewerOverlayHost.vue";
 import ViewerContextMenuPortal from "./ViewerContextMenuPortal.vue";
 
-let _instance = null;
+interface OpenViewerEventDetail {
+    assets?: unknown[];
+    asset?: unknown;
+    index?: unknown;
+    mode?: unknown;
+    handled?: boolean;
+}
+
+let _instance: any = null;
 
 function _openFromEvent(event: Event) {
-    const detail: any = (event as CustomEvent)?.detail || {};
+    const detail: OpenViewerEventDetail = (event as CustomEvent)?.detail || {};
     const assets = Array.isArray(detail?.assets)
         ? detail.assets.filter(Boolean)
         : detail?.asset

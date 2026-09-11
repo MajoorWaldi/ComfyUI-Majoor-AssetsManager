@@ -51,7 +51,7 @@ function coerceMetadataRawObject(asset: MjrAssetLike | null | undefined) {
     }
 }
 
-function looksLikePromptGraph(obj: any) {
+function looksLikePromptGraph(obj: unknown) {
     try {
         const entries = Object.entries(obj || {});
         if (!entries.length) return false;
@@ -138,7 +138,7 @@ function hasFileInfoData(asset: MjrAssetLike | null | undefined) {
     );
 }
 
-function formatRawMetadata(raw: any) {
+function formatRawMetadata(raw: unknown) {
     if (raw == null) return "";
     const text = typeof raw === "string" ? raw : JSON.stringify(raw, null, 2);
     if (!text) return "";

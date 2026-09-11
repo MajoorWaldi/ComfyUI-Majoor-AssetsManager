@@ -14,7 +14,7 @@ const props = withDefaults(
 );
 
 const previewContainerRef = ref<HTMLDivElement | null>(null);
-let videoControlsHandle: any = null;
+let videoControlsHandle: { destroy?: () => void } | null = null;
 
 const viewUrl = computed(() => buildAssetViewURL(props.asset) || "");
 const ext = computed(() => {
