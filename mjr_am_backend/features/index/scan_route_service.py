@@ -658,7 +658,7 @@ async def _maybe_finalize_reset_clear_phase(
     try:
         await db.avacuum()
     except Exception:
-        pass
+        _log.debug("_maybe_finalize_reset_clear_phase: suppressed exception", exc_info=True)
     if not (reindex and index_dir_path.exists()):
         return
     try:

@@ -700,7 +700,7 @@ def _extract_api_node_geninfo_fallback(
                     extra_out["api_provider"] = _api_provider_for_node(node)
                     extra.append(extra_out)
             except Exception:
-                pass
+                logger.debug("_extract_api_node_geninfo_fallback: suppressed exception", exc_info=True)
         if extra:
             out["extra_api_passes"] = extra
 

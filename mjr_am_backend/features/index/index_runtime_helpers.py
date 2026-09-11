@@ -66,7 +66,7 @@ def record_index_entry_success(
         try:
             added_ids.append(int(added_asset_id))
         except Exception:
-            pass
+            logger.debug("record_index_entry_success: suppressed exception", exc_info=True)
     scanner._append_to_enrich(entry=entry, to_enrich=to_enrich, respect_limit=respect_enrich_limit)
     try:
         logger.debug(
@@ -77,7 +77,7 @@ def record_index_entry_success(
             added_asset_id,
         )
     except Exception:
-        pass
+        logger.debug("record_index_entry_success: suppressed exception", exc_info=True)
 
 
 def entry_state_drifted(scanner: Any, *, entry: dict[str, Any], stats: dict[str, Any]) -> bool:

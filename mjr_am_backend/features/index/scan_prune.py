@@ -79,7 +79,7 @@ async def _delete_asset_ids(scanner: Any, asset_ids: list[int]) -> Result[int]:
                 tuple(batch),
             )
         except Exception:
-            pass
+            logger.debug("_delete_asset_ids: suppressed exception", exc_info=True)
         res = await scanner.db.aexecute(
             f"DELETE FROM assets WHERE id IN ({placeholders})",
             tuple(batch),

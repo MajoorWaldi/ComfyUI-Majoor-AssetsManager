@@ -93,7 +93,7 @@ class MetadataEnricher:
 
             send_event("mjr-enrichment-status", payload)
         except Exception:
-            pass
+            logger.debug("_emit_status: suppressed exception", exc_info=True)
 
     def pause_for_interaction(self, seconds: float = 1.5) -> None:
         """
@@ -197,7 +197,7 @@ class MetadataEnricher:
             except asyncio.CancelledError:
                 pass
             except Exception:
-                pass
+                logger.debug("stop_enrichment: suppressed exception", exc_info=True)
         self._emit_status(False, queue_left=0 if clear_queue else len(self._enrich_queue))
 
     async def _enrichment_worker(self) -> None:
@@ -350,7 +350,7 @@ class MetadataEnricher:
                         metadata_result,
                     )
                 except Exception:
-                    pass
+                    logger.debug("_prepare_updates_from_extraction: suppressed exception", exc_info=True)
             updates.append(self._build_update_item(asset_id, fp, metadata_result))
         return updates
 
@@ -374,7 +374,7 @@ class MetadataEnricher:
 
                 send_event("mjr-asset-updated", sanitize_for_json(payload))
         except Exception:
-            pass
+            logger.debug("_notify_asset_updated: suppressed exception", exc_info=True)
 
     async def _apply_update_item(self, item: dict[str, Any], metadata_helpers_cls: Any) -> str | None:
         asset_id = item.get("asset_id")
