@@ -7,7 +7,7 @@ import { _ as Gn, i as Kn, n as qn, p as Jn, t as Yn } from "./chunks/openMajoor
 import { a as Xn, c as Zn, l as Qn, o as $n, s as er, u as tr } from "./chunks/floatingViewerManager-DH9X1qG1.js";
 import { A as nr, B as rr, C as V, D as ir, E as H, G as ar, H as or, I as sr, J as U, K as cr, L as lr, M as ur, N as dr, O as W, P as fr, R as pr, S as mr, T as G, U as hr, V as K, W as gr, Y as _r, at as vr, b as yr, ct as br, dt as xr, ft as q, it as Sr, j as J, k as Y, lt as X, nt as Cr, q as wr, rt as Z, tt as Tr, ut as Q, v as Er, w as Dr, x as Or, y as kr, z as Ar } from "./chunks/mjr-primevue-C955bvXT.js";
 import { n as jr, r as Mr } from "./chunks/mjr-vue-vendor-CF0zsqr1.js";
-import { t as Nr } from "./chunks/TagsEditor-Lru3KCcB.js";
+import { t as Nr } from "./chunks/TagsEditor-D6lUouYG.js";
 import { app as Pr } from "../../scripts/app.js";
 function Fr(e = null) {
 	return null;
@@ -11419,7 +11419,7 @@ function $p() {
 var em = /* @__PURE__ */ dr({
 	__name: "GlobalRuntime",
 	setup(e) {
-		let t = ur(() => import("./chunks/ViewerPortal-oybcTQBe.js")), n = Z(!1), r = [
+		let t = ur(() => import("./chunks/ViewerPortal-B4K1Poec.js")), n = Z(!1), r = [
 			z.OPEN_VIEWER,
 			z.MFV_OPEN,
 			z.MFV_TOGGLE,
@@ -23597,7 +23597,7 @@ var Qb = { class: "mjr-sidebar-preview" }, $b = ["src"], ex = ["src"], tx = ["sr
 }, tS = ["onClick"], nS = { class: "mjr-workflow-picker-thumb" }, rS = ["src", "alt"], iS = {
 	key: 1,
 	class: "pi pi-sitemap"
-}, aS = { class: "mjr-workflow-picker-card-info" }, oS = ["disabled"], sS = { class: "mjr-workflow-picker-card-info" }, cS = { class: "mjr-workflow-picker-footer" }, lS = ["disabled"], uS = 120, dS = {
+}, aS = { class: "mjr-workflow-picker-card-info" }, oS = ["disabled"], sS = { class: "mjr-workflow-picker-card-info" }, cS = { class: "mjr-workflow-picker-footer" }, lS = ["disabled"], uS = 120, dS = /* @__PURE__ */ dr({
 	__name: "WorkflowPickerDialog",
 	setup(e) {
 		let t = Z(""), n = Z(!1), r = Z(!1), i = Z(""), o = Z([]), s = Z(""), c = Z(0), l = Z(!1), u = 0, d = G(() => Cn.sourceAsset || null), f = G(() => Cn.workflow || null), p = G(() => String(Cn.mode || "") === "asset"), m = G(() => String(d.value?.filename || d.value?.display_name || f.value?.display_name || f.value?.filename || d.value?.filepath || f.value?.filepath || "")), h = G(() => x("task")), g = G(() => x("model_family")), _ = G(() => x("runs_on")), v = Z(""), y = Z(""), b = Z("");
@@ -23777,7 +23777,7 @@ var Qb = { class: "mjr-sidebar-preview" }, $b = ["src"], ex = ["src"], tx = ["sr
 			}, q(X(L)("action.apply", "Apply")), 9, lS)])
 		], 2)], 32)) : W("", !0)]));
 	}
-}, fS = { class: "mjr-workflow-picker-dialog mjr-workflow-info-dialog" }, pS = { class: "mjr-workflow-picker-header" }, mS = { class: "mjr-workflow-picker-title" }, hS = { class: "mjr-workflow-picker-subtitle" }, gS = { class: "mjr-workflow-info-form" }, _S = { class: "is-wide" }, vS = { class: "is-wide" }, yS = { class: "mjr-workflow-picker-footer" }, bS = /* @__PURE__ */ dr({
+}), fS = { class: "mjr-workflow-picker-dialog mjr-workflow-info-dialog" }, pS = { class: "mjr-workflow-picker-header" }, mS = { class: "mjr-workflow-picker-title" }, hS = { class: "mjr-workflow-picker-subtitle" }, gS = { class: "mjr-workflow-info-form" }, _S = { class: "is-wide" }, vS = { class: "is-wide" }, yS = { class: "mjr-workflow-picker-footer" }, bS = /* @__PURE__ */ dr({
 	__name: "WorkflowSaveInfoDialog",
 	setup(e) {
 		let t = Cr({
