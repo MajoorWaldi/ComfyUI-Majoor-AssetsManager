@@ -1,9 +1,9 @@
 import { a as e, i as t } from "./viewerRuntimeHosts-CIiyEfr6.js";
 import { r as n } from "./events-DjjLASfV.js";
-import { a as r, c as i, i as a, l as o, o as s, s as c, t as l, u } from "./Viewer-DV1tJ-kM.js";
-import { i as d, r as f } from "./floatingViewerManager-DpGzuCP2.js";
+import { a as r, c as i, i as a, l as o, o as s, s as c, t as l, u } from "./Viewer-CH1iC9ns.js";
+import { i as d, r as f } from "./floatingViewerManager-DH9X1qG1.js";
 import { B as p, C as m, D as h, E as g, G as _, J as v, K as y, L as b, N as x, O as S, T as C, U as w, V as T, dt as E, ft as D, j as O, k, lt as A, rt as j, ut as M, w as N, z as P } from "./mjr-primevue-C955bvXT.js";
-import { t as F } from "./TagsEditor-BUtiv0LW.js";
+import { t as F } from "./TagsEditor-Lru3KCcB.js";
 //#endregion
 //#region ui/vue/components/viewer/FloatingViewerHost.vue
 var I = /* @__PURE__ */ x({
@@ -61,7 +61,7 @@ var I = /* @__PURE__ */ x({
 }, H = { class: "mjr-context-menu-item-left" }, U = {
 	key: 0,
 	class: "mjr-context-menu-hint"
-}, W = {
+}, W = /* @__PURE__ */ x({
 	__name: "ViewerContextMenu",
 	setup(e) {
 		let t = j(null), n = j(null), a = j(null), o = null, c = null, l = C(() => x(u.main, 10041)), d = C(() => x(u.submenu, 10042)), f = C(() => x(u.tags, 10043));
@@ -153,7 +153,8 @@ var I = /* @__PURE__ */ x({
 			r();
 		}
 		function ie(e) {
-			String(e?.detail?.source || "") !== "viewer" && r();
+			let t = e?.detail;
+			String(t?.source || "") !== "viewer" && r();
 		}
 		function ae(e) {
 			let t = u.tags.asset;
@@ -282,7 +283,7 @@ var I = /* @__PURE__ */ x({
 			]);
 		};
 	}
-}, G = /* @__PURE__ */ x({
+}), G = /* @__PURE__ */ x({
 	__name: "ViewerContextMenuPortal",
 	setup(e) {
 		let t = j(""), n = C(() => c(t.value));

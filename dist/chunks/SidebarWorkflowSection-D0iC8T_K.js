@@ -1,10 +1,10 @@
 import { $ as e, At as t, Bt as n, Ct as r, Dt as i, Et as a, I as o, It as s, K as c, Mt as l, N as u, Nt as d, O as f, Ot as p, Pt as m, Q as h, Qt as g, R as _, Rt as v, S as y, St as b, T as x, Tt as S, Ut as C, Vt as ee, Wt as te, X as w, Xt as T, Y as ne, Yt as re, Z as ie, Zt as E, an as ae, at as oe, ct as se, et as ce, ht as le, it as ue, jt as de, k as D, kt as fe, lt as pe, nt as me, on as he, p as ge, qt as _e, rt as ve, st as ye, tt as be, ut as xe, w as Se, wt as Ce, xt as we, zt as Te } from "./viewerRuntimeHosts-CIiyEfr6.js";
 import { Ct as Ee, K as De, N as Oe, T as ke, c as Ae, d as je, f as Me, h as Ne, j as Pe, l as Fe, m as O, o as k, p as Ie, pt as Le, s as A, tt as Re, u as ze, x as Be, y as Ve } from "./events-DjjLASfV.js";
-import { F as He, K as Ue, P as We, Y as Ge, f as Ke, m as qe, p as Je } from "./Viewer-DV1tJ-kM.js";
-import { t as Ye } from "./floatingViewerManager-DpGzuCP2.js";
+import { F as He, K as Ue, P as We, Y as Ge, f as Ke, m as qe, p as Je } from "./Viewer-CH1iC9ns.js";
+import { t as Ye } from "./floatingViewerManager-DH9X1qG1.js";
 import { A as Xe, C as j, D as Ze, E as M, G as Qe, J as $e, K as et, N as tt, O as N, R as nt, S as rt, T as P, U as F, V as I, Y as it, _ as at, a as ot, b as st, c as ct, d as lt, dt as L, f as ut, ft as R, g as dt, h as ft, i as pt, j as mt, k as z, l as ht, lt as B, m as gt, n as _t, nt as vt, o as yt, p as bt, r as xt, rt as V, s as St, t as Ct, u as wt, ut as Tt, y as Et, z as Dt } from "./mjr-primevue-C955bvXT.js";
 import { t as Ot } from "./mjr-vue-vendor-CF0zsqr1.js";
-import { t as kt } from "./viewerOpenRequest-CkjKIL7P.js";
+import { t as kt } from "./viewerOpenRequest-D8TL9Smt.js";
 import { a as At, i as jt, n as Mt, o as Nt, r as Pt, t as Ft } from "./geninfoParser-DS9m_bHm.js";
 //#region ui/app/settings/settingsUtils.ts
 var H = (e, t) => {
@@ -5085,7 +5085,7 @@ function wo(e) {
 	};
 }
 //#endregion
-//#region ui/vue/components/panel/sidebar/GenerationInputThumb.vue
+//#region ui/vue/components/panel/sidebar/GenerationInputThumb.vue?vue&type=script&setup=true&lang.ts
 var To = ["title"], Eo = ["src"], Do = {
 	key: 1,
 	style: {
@@ -5134,16 +5134,13 @@ var To = ["title"], Eo = ["src"], Do = {
 		"font-size": "16px",
 		"pointer-events": "none"
 	}
-}, Mo = {
+}, Mo = /* @__PURE__ */ tt({
 	__name: "GenerationInputThumb",
-	props: { inputFile: {
-		type: Object,
-		required: !0
-	} },
+	props: { inputFile: {} },
 	setup(e) {
 		let t = e, n = V(0), r = V(!1), i = null;
 		function a() {
-			return i ||= import("./floatingViewerManager-DpGzuCP2.js").then((e) => e.n), i;
+			return i ||= import("./floatingViewerManager-DH9X1qG1.js").then((e) => e.n), i;
 		}
 		function o() {
 			return (Array.isArray(t.inputFile?.previewCandidates) ? t.inputFile.previewCandidates : [])[n.value] || "";
@@ -5351,7 +5348,7 @@ var To = ["title"], Eo = ["src"], Do = {
 			onError: s
 		}, null, 40, ko)), e.inputFile.role && e.inputFile.role !== "secondary" ? (I(), z("div", Ao, R(e.inputFile.roleLabel), 1)) : e.inputFile.isVideo ? (I(), z("div", jo, " Play ")) : N("", !0)], 44, To));
 	}
-}, No = {
+}), No = {
 	key: 0,
 	style: {
 		display: "flex",
