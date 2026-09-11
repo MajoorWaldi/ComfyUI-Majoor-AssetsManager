@@ -63,7 +63,7 @@ type MjrVideoElement = HTMLVideoElement & {
     _mjrAutoplayCleanup?: (() => void) | null;
 };
 
-async function loadImageBlob(url: unknown, options: any = {}) {
+async function loadImageBlob(url: unknown, options: { signal?: AbortSignal } = {}) {
     if (!url) return null;
     try {
         if (MediaBlobCache.hasError(url)) return null;

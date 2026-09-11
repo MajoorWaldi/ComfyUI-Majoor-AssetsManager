@@ -19,6 +19,7 @@ import { t } from "../../../app/i18n.js";
 import { appendTooltipHint } from "../../../utils/tooltipShortcuts.js";
 import { createUniqueId } from "../../../utils/ids.js";
 import SimilarSearchPopover from "./SimilarSearchPopover.vue";
+import type { MjrSimilarSearchPopoverExpose } from "../../../types/componentExposes";
 
 const SEARCH_TOOLTIP_HINT = "Ctrl/Cmd+F, Ctrl/Cmd+K, Ctrl/Cmd+H";
 
@@ -31,7 +32,7 @@ const searchSectionRef = ref<HTMLElement | null>(null);
 const searchInputRef = ref<MaybeComponentRef>(null);
 const dataListRef = ref<HTMLDataListElement | null>(null);
 const similarBtnRef = ref<MaybeComponentRef>(null);
-const similarPopoverRef = ref<any>(null);
+const similarPopoverRef = ref<MjrSimilarSearchPopoverExpose | null>(null);
 const semanticBtnRef = ref<MaybeComponentRef>(null);
 const dataListId = createUniqueId("mjr-search-autocomplete-", 8);
 const METADATA_SEARCH_MODE = "AND";
@@ -43,8 +44,13 @@ const getSearchInputEl = () => resolveDomElement(searchInputRef.value);
 const semanticMode = ref(false);
 const semanticEnabled = ref(true);
 const metadataMode = ref(METADATA_SEARCH_MODE);
-let metadataKeysCache: any = null;
-let metadataKeysPromise: Promise<any> | null = null;
+interface MetadataKeysResult {
+    keys?: string[];
+    workflow_nodes?: Record<string, string[]>;
+}
+
+let metadataKeysCache: MetadataKeysResult | null = null;
+let metadataKeysPromise: Promise<MetadataKeysResult> | null = null;
 
 // Computed placeholder based on semantic mode
 const searchPlaceholder = computed(() => {
@@ -157,7 +163,7 @@ function replaceLastSearchToken(value: unknown, replacement: string) {
     return `${prefix}${replacement}`.trimStart();
 }
 
-function buildMetadataSuggestions(value: unknown, metadataKeys: any) {
+function buildMetadataSuggestions(value: unknown, metadataKeys: MetadataKeysResult | null) {
     const token = getLastSearchToken(value);
     const normalizedToken = token.replace(/^-/, "");
     const aliases = metadataSearchAliases();

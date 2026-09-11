@@ -32,12 +32,12 @@ const assetsGridRef = ref<MjrAssetsGridExpose | null>(null);
 const sidebarSectionRef = ref<MjrSidebarSectionExpose | null>(null);
 
 /** Handle returned by the panel runtime mount call. */
-let disposeHandle: any = null;
+let disposeHandle: { dispose?: () => void } | null = null;
 
 onMounted(async () => {
     if (!containerRef.value) return;
 
-    const external: Record<string, any> = {};
+    const external: Record<string, unknown> = {};
 
     if (statusSectionRef.value) {
         external.statusSection = statusSectionRef.value.statusSection;

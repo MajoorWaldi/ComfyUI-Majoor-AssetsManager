@@ -106,7 +106,12 @@ function updateSummaryBar({
     gridContainer,
     context = null,
     actions = null,
-}: { state?: any; gridContainer?: any; context?: any; actions?: any } = {}) {
+}: {
+    state?: unknown;
+    gridContainer?: unknown;
+    context?: { duplicatesAlert?: unknown } | null;
+    actions?: { onDuplicateAlertClick?: (payload: unknown) => void } | null;
+} = {}) {
     const nextState = buildSummaryBarState({ state, gridContainer, context });
 
     panelStore.lastGridCount = nextState.shown;
@@ -143,7 +148,7 @@ function setFolderBreadcrumb({
     back = null,
     up = null,
     items = [],
-}: { visible?: boolean; back?: any; up?: any; items?: any[] } = {}) {
+}: { visible?: boolean; back?: BreadcrumbAction | null; up?: BreadcrumbAction | null; items?: unknown[] } = {}) {
     breadcrumbVisible.value = !!visible;
     breadcrumbBack.value = back && typeof back === "object" ? back : null;
     breadcrumbUp.value = up && typeof up === "object" ? up : null;

@@ -127,6 +127,14 @@ export interface MjrFilterPopoverExpose {
     readonly agendaContainer: HTMLElement | null;
 }
 
+export interface MjrSimilarSearchPopoverExpose {
+    readonly $el?: HTMLElement;
+    readonly findSimilarBtn: HTMLElement | null;
+    readonly findDuplicatesBtn: HTMLElement | null;
+    readonly sameNodeBtn: HTMLElement | null;
+    readonly sameWorkflowBtn: HTMLElement | null;
+}
+
 export interface MjrCollectionsPopoverExpose {
     readonly $el?: HTMLElement;
     refresh: () => Promise<void>;

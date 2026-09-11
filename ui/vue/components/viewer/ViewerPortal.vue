@@ -29,7 +29,13 @@ interface OpenViewerEventDetail {
     handled?: boolean;
 }
 
-let _instance: any = null;
+interface ViewerInstance {
+    open?: (assets: unknown[], index: number) => void;
+    setMode?: (mode: string) => void;
+    dispose?: () => void;
+}
+
+let _instance: ViewerInstance | null = null;
 
 function _openFromEvent(event: Event) {
     const detail: OpenViewerEventDetail = (event as CustomEvent)?.detail || {};
