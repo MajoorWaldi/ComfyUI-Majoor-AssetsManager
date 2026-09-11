@@ -7,6 +7,7 @@ import {
     viewerContextMenuState,
 } from "../../../features/contextmenu/viewerContextMenuState.js";
 import TagsEditor from "../common/TagsEditor.vue";
+import type { MjrContextMenuItem, MjrContextMenuLayer } from "../../../types/contextMenu";
 
 const mainMenuRef = ref<HTMLElement | null>(null);
 const submenuRef = ref<HTMLElement | null>(null);
@@ -19,7 +20,7 @@ const mainMenuStyle = computed(() => layerStyle(viewerContextMenuState.main, 100
 const submenuStyle = computed(() => layerStyle(viewerContextMenuState.submenu, 10042));
 const tagsPopoverStyle = computed(() => layerStyle(viewerContextMenuState.tags, 10043));
 
-function layerStyle(layer: any, zIndex: number) {
+function layerStyle(layer: MjrContextMenuLayer | undefined, zIndex: number) {
     return {
         position: "fixed",
         left: `${Math.round(Number(layer?.x) || 0)}px`,
@@ -43,7 +44,7 @@ function scheduleSubmenuClose() {
     }, 180);
 }
 
-function clampLayerToViewport(layer: any, element: HTMLElement | null) {
+function clampLayerToViewport(layer: MjrContextMenuLayer | undefined, element: HTMLElement | null) {
     if (!layer?.open || !element) return;
     const rect = element.getBoundingClientRect();
     const vw = Number(window.innerWidth || 0);
@@ -58,7 +59,7 @@ function clampLayerToViewport(layer: any, element: HTMLElement | null) {
     layer.y = y;
 }
 
-async function afterOpenClamp(layer: any, elementRef: { value: HTMLElement | null }) {
+async function afterOpenClamp(layer: MjrContextMenuLayer, elementRef: { value: HTMLElement | null }) {
     await nextTick();
     clampLayerToViewport(layer, elementRef?.value || null);
 }
@@ -73,7 +74,7 @@ function focusFirstItem(menuRef: { value: HTMLElement | null }) {
     }
 }
 
-function openSubmenuForItem(item: any, event: MouseEvent) {
+function openSubmenuForItem(item: MjrContextMenuItem | undefined, event: MouseEvent) {
     if (!Array.isArray(item?.submenu) || !item.submenu.length) {
         closeViewerSubmenu();
         return;
@@ -89,7 +90,7 @@ function openSubmenuForItem(item: any, event: MouseEvent) {
     });
 }
 
-async function handleItemClick(item: any, event: Event, source = "main") {
+async function handleItemClick(item: MjrContextMenuItem | undefined, event: Event, source = "main") {
     if (!item || item.type !== "item" || item.disabled) return;
     if (Array.isArray(item.submenu) && item.submenu.length) {
         openSubmenuForItem(item, event);
@@ -108,7 +109,7 @@ async function handleItemClick(item: any, event: Event, source = "main") {
     }
 }
 
-function handleMainItemEnter(item: any, event: MouseEvent) {
+function handleMainItemEnter(item: MjrContextMenuItem | undefined, event: MouseEvent) {
     if (Array.isArray(item?.submenu) && item.submenu.length) {
         openSubmenuForItem(item, event);
         return;
@@ -116,7 +117,7 @@ function handleMainItemEnter(item: any, event: MouseEvent) {
     closeViewerSubmenu();
 }
 
-function handleMainItemLeave(item: any) {
+function handleMainItemLeave(item: MjrContextMenuItem | undefined) {
     if (Array.isArray(item?.submenu) && item.submenu.length) {
         scheduleSubmenuClose();
     }
@@ -159,7 +160,7 @@ function handleTagsModelValue(tags: unknown) {
     asset.tags = Array.isArray(tags) ? [...tags] : [];
 }
 
-function handleTagsChange(payload: any) {
+function handleTagsChange(payload: { tags?: unknown[] }) {
     const tags = Array.isArray(payload?.tags) ? payload.tags : [];
     try {
         viewerContextMenuState.tags.onChanged?.(tags);

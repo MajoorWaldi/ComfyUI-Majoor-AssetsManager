@@ -10,9 +10,25 @@ import { createCanvasLoaderNodes } from "../../../../features/dnd/canvasLoaderNo
 import { stageToInputDetailed } from "../../../../features/dnd/staging/stageToInput.js";
 import { requestViewerOpen } from "../../../../features/viewer/viewerOpenRequest.js";
 import { isSafeOpenUrl } from "./generationSectionState.js";
+import type { MjrContextMenuItem } from "../../../../types/contextMenu";
+
+interface GenerationInputFileLike {
+    filename?: string;
+    filepath?: string;
+    subfolder?: string;
+    type?: string;
+    kind?: string;
+    root_id?: string;
+    isVideo?: boolean;
+    isAudio?: boolean;
+    role?: string;
+    roleLabel?: string;
+    previewCandidates?: string[];
+    [key: string]: unknown;
+}
 
 const props = defineProps<{
-    inputFile: any;
+    inputFile: GenerationInputFileLike;
 }>();
 
 const currentSrcIndex = ref(0);
@@ -80,7 +96,7 @@ function asAsset() {
     };
 }
 
-function inferKind(input: any = props.inputFile || {}) {
+function inferKind(input: GenerationInputFileLike = props.inputFile || {}) {
     const explicit = String(input.kind || "").trim().toLowerCase();
     if (explicit === "image" || explicit === "video" || explicit === "audio" || explicit === "model3d") return explicit;
     if (input.isVideo) return "video";
@@ -92,7 +108,7 @@ function inferKind(input: any = props.inputFile || {}) {
     return "image";
 }
 
-function createMenuItem(label: string, iconClass: string, action: () => void, { disabled = false }: { disabled?: boolean } = {}) {
+function createMenuItem(label: string, iconClass: string, action: () => void, { disabled = false }: { disabled?: boolean } = {}): MjrContextMenuItem {
     return {
         id: `mjr-generation-source-${String(label).toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
         type: "item",
@@ -105,7 +121,7 @@ function createMenuItem(label: string, iconClass: string, action: () => void, { 
     };
 }
 
-function createSeparator() {
+function createSeparator(): MjrContextMenuItem {
     return {
         id: "mjr-generation-source-separator",
         type: "separator",

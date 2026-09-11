@@ -18,3 +18,18 @@ export interface MjrContextMenuItem {
     action?: (...args: unknown[]) => unknown;
     [key: string]: unknown;
 }
+
+/** One positioned layer (main menu / submenu / tags popover) of gridContextMenuState.js / viewerContextMenuState.js. */
+export interface MjrContextMenuLayer {
+    open?: boolean;
+    x?: number;
+    y?: number;
+    items?: MjrContextMenuItem[];
+    title?: string;
+}
+
+/** The `.tags` layer additionally carries the asset being tagged and its change callback. */
+export interface MjrTagsMenuLayer extends MjrContextMenuLayer {
+    asset?: { tags?: unknown; [key: string]: unknown } | null;
+    onChanged?: (tags: unknown) => void;
+}
