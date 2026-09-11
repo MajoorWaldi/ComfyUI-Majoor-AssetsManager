@@ -119,6 +119,7 @@ function B(t, n) {
 	t instanceof Map && n instanceof Map ? n.forEach((e, n) => t.set(n, e)) : t instanceof Set && n instanceof Set && n.forEach(t.add, t);
 	for (let r in n) {
 		if (!Object.hasOwn(n, r)) continue;
+		if (r === "__proto__" || r === "constructor" || r === "prototype") continue;
 		let i = n[r], o = t[r];
 		t[r] = b(o) && b(i) && Object.hasOwn(t, r) && !e(i) && !a(i) ? B(o, i) : i;
 	}
