@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { drawWorkflowMinimap, synthesizeWorkflowFromPromptGraph } from "../../../../components/sidebar/utils/minimap.js";
 import {
@@ -18,9 +18,9 @@ import { centerGraphCanvasOnWorldPoint } from "../../../../app/hostAdapter.js";
 import { floatingViewerManager } from "../../../../features/viewer/floatingViewerManager.js";
 import { openWorkflowAssetPicker } from "../../../../features/workflows/workflowPickerState.js";
 
-const props = defineProps({
-    asset: { type: Object, required: true },
-});
+const props = defineProps<{
+    asset: any;
+}>();
 
 const DEFAULT_SETTINGS = Object.freeze({
     nodeColors: true,
@@ -50,33 +50,33 @@ const SIZE_OPTIONS = Object.freeze([
     { key: "expanded", label: "Expanded", height: 220 },
 ]);
 
-const canvasRef = ref(null);
+const canvasRef = ref<HTMLCanvasElement | null>(null);
 const categoryDraft = ref("");
 const savingCategory = ref(false);
 const loadingWorkflowPayload = ref(false);
-const lazyWorkflowPayload = ref(null);
+const lazyWorkflowPayload = ref<any>(null);
 const validationLoading = ref(false);
-const workflowValidation = ref(null);
-const workflowVersions = ref([]);
-const workflowDiff = ref(null);
+const workflowValidation = ref<any>(null);
+const workflowVersions = ref<any[]>([]);
+const workflowDiff = ref<any>(null);
 const showTools = ref(false);
 const rawJsonOpen = ref(false);
-const minimapSettings = ref(loadWorkflowMinimapSettings());
-const minimapView = ref({ ...DEFAULT_VIEW });
+const minimapSettings = ref<any>(loadWorkflowMinimapSettings());
+const minimapView = ref<any>({ ...DEFAULT_VIEW });
 const minimapCursor = ref("crosshair");
 const hoveredNodeLabel = ref("");
 
-let resizeObserver = null;
-let lastRenderInfo = null;
-let activePointerId = null;
+let resizeObserver: ResizeObserver | null = null;
+let lastRenderInfo: any = null;
+let activePointerId: number | null = null;
 
-function clampNumber(value, min, max) {
+function clampNumber(value: unknown, min: number, max: number) {
     const n = Number(value);
     if (!Number.isFinite(n)) return min;
     return Math.max(min, Math.min(max, n));
 }
 
-function syncResolvedView(nextView) {
+function syncResolvedView(nextView: any) {
     if (!nextView || typeof nextView !== "object") return;
     minimapView.value = {
         ...minimapView.value,
@@ -91,7 +91,7 @@ function resetMinimapView() {
     hoveredNodeLabel.value = "";
 }
 
-function coerceMetadataRawObject(asset) {
+function coerceMetadataRawObject(asset: any) {
     const raw = asset?.metadata_raw ?? null;
     if (!raw) return null;
     if (typeof raw === "object") return raw;
@@ -108,7 +108,7 @@ function coerceMetadataRawObject(asset) {
     return null;
 }
 
-function looksLikePromptGraph(obj) {
+function looksLikePromptGraph(obj: any) {
     try {
         const entries = Object.entries(obj || {});
         if (!entries.length) return false;
@@ -124,7 +124,7 @@ function looksLikePromptGraph(obj) {
     return false;
 }
 
-function coerceWorkflow(asset) {
+function coerceWorkflow(asset: any) {
     const metadataRaw = coerceMetadataRawObject(asset);
     const value =
         asset?.workflow ||
@@ -148,7 +148,7 @@ function coerceWorkflow(asset) {
     return null;
 }
 
-function coercePromptGraph(asset) {
+function coercePromptGraph(asset: any) {
     const metadataRaw = coerceMetadataRawObject(asset);
     const value =
         asset?.prompt || asset?.Prompt || metadataRaw?.prompt || metadataRaw?.Prompt || null;
@@ -198,7 +198,7 @@ function loadWorkflowMinimapSettings() {
     }
 }
 
-function persistWorkflowMinimapSettings(nextSettings) {
+function persistWorkflowMinimapSettings(nextSettings: any) {
     try {
         const next = loadMajoorSettings();
         next.workflowMinimap = { ...next.workflowMinimap, ...nextSettings };
@@ -295,7 +295,7 @@ const workflowBadges = computed(() => {
     return badges;
 });
 
-function workflowBadgeStyle(tone) {
+function workflowBadgeStyle(tone: unknown) {
     const base = "display:inline-flex;align-items:center;gap:5px;max-width:100%;padding:4px 8px;border-radius:999px;font-size:10px;font-weight:750;line-height:1.1;overflow:hidden";
     if (tone === "favorite") return `${base};background:rgba(255,193,7,0.15);border:1px solid rgba(255,193,7,0.34);color:#ffe082`;
     if (tone === "usage") return `${base};background:rgba(33,150,243,0.14);border:1px solid rgba(33,150,243,0.30);color:#90caf9`;
@@ -303,7 +303,7 @@ function workflowBadgeStyle(tone) {
     return `${base};background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.14);color:rgba(255,255,255,0.82)`;
 }
 
-function normalizeStringList(value) {
+function normalizeStringList(value: unknown) {
     if (Array.isArray(value)) return value.map((item) => String(item || "").trim()).filter(Boolean);
     if (typeof value === "string") {
         const text = value.trim();
@@ -318,7 +318,7 @@ function normalizeStringList(value) {
     return [];
 }
 
-function formatUnixDate(value) {
+function formatUnixDate(value: unknown) {
     const n = Number(value);
     if (!Number.isFinite(n) || n <= 0) return "";
     const ms = n > 10_000_000_000 ? n : n * 1000;
@@ -369,7 +369,7 @@ const categorySegments = computed(() =>
 const categoryDisplayName = computed(() => categorySegments.value.at(-1) || currentCategory.value || "Root");
 const categoryDisplaySegments = computed(() => categorySegments.value.slice(-1));
 
-function workflowNodeLabel(node, index) {
+function workflowNodeLabel(node: any, index: number) {
     const id = node?.id ?? node?.key ?? index + 1;
     return String(
         node?.title ||
@@ -381,7 +381,7 @@ function workflowNodeLabel(node, index) {
     );
 }
 
-function workflowNodeType(node) {
+function workflowNodeType(node: any) {
     return String(node?.type || node?.class_type || node?.name || "").trim();
 }
 
@@ -600,11 +600,11 @@ function renderCanvas() {
     syncResolvedView(lastRenderInfo?.resolvedView);
 }
 
-function centerMainCanvasOnWorld(worldPoint) {
+function centerMainCanvasOnWorld(worldPoint: any) {
     centerGraphCanvasOnWorldPoint(worldPoint);
 }
 
-function getCanvasLocalPoint(event) {
+function getCanvasLocalPoint(event: any) {
     const canvas = canvasRef.value;
     if (!canvas) return null;
     const rect = canvas.getBoundingClientRect?.();
@@ -615,7 +615,7 @@ function getCanvasLocalPoint(event) {
     };
 }
 
-function getWorldPointFromEvent(event) {
+function getWorldPointFromEvent(event: any) {
     const local = getCanvasLocalPoint(event);
     if (!local || !lastRenderInfo?.canvasToWorld) return null;
     return {
@@ -624,7 +624,7 @@ function getWorldPointFromEvent(event) {
     };
 }
 
-function updateHoverState(event) {
+function updateHoverState(event: any) {
     const local = getCanvasLocalPoint(event);
     const hit = local && lastRenderInfo?.hitTestNode ? lastRenderInfo.hitTestNode(local.x, local.y) : null;
     const nextId = hit?.id !== null && hit?.id !== undefined ? String(hit.id) : null;
@@ -641,7 +641,7 @@ function updateHoverState(event) {
     renderCanvas();
 }
 
-function navigateToMinimapPoint(worldPoint) {
+function navigateToMinimapPoint(worldPoint: any) {
     if (!worldPoint) return;
     centerMainCanvasOnWorld(worldPoint);
     minimapView.value = {
@@ -652,7 +652,7 @@ function navigateToMinimapPoint(worldPoint) {
     renderCanvas();
 }
 
-function onMinimapPointerDown(event) {
+function onMinimapPointerDown(event: PointerEvent) {
     if (Number(event?.button ?? 0) !== 0) return;
     const point = getWorldPointFromEvent(event);
     if (!point) return;
@@ -665,7 +665,7 @@ function onMinimapPointerDown(event) {
     event.stopPropagation?.();
 }
 
-function onMinimapPointerMove(event) {
+function onMinimapPointerMove(event: PointerEvent) {
     if (activePointerId !== null && event.pointerId === activePointerId) {
         const point = getWorldPointFromEvent(event);
         if (point) navigateToMinimapPoint(point.world);
@@ -676,7 +676,7 @@ function onMinimapPointerMove(event) {
     updateHoverState(event);
 }
 
-function endMinimapPointerInteraction(event) {
+function endMinimapPointerInteraction(event: PointerEvent | { type?: string; pointerId?: number } | undefined) {
     if (activePointerId !== null && event?.pointerId === activePointerId) {
         canvasRef.value?.releasePointerCapture?.(activePointerId);
         activePointerId = null;
@@ -694,7 +694,7 @@ function endMinimapPointerInteraction(event) {
     }
 }
 
-function onMinimapWheel(event) {
+function onMinimapWheel(event: WheelEvent) {
     const point = getWorldPointFromEvent(event);
     const resolvedView = lastRenderInfo?.resolvedView;
     if (!point || !resolvedView) return;
@@ -734,7 +734,7 @@ function onMinimapWheel(event) {
     event.stopPropagation?.();
 }
 
-function onMinimapDoubleClick(event) {
+function onMinimapDoubleClick(event: MouseEvent) {
     const point = getWorldPointFromEvent(event);
     resetMinimapView();
     if (point) centerMainCanvasOnWorld(point.world);
@@ -743,7 +743,7 @@ function onMinimapDoubleClick(event) {
     event.stopPropagation?.();
 }
 
-function toggleSetting(key) {
+function toggleSetting(key: string) {
     minimapSettings.value = {
         ...minimapSettings.value,
         [key]: !minimapSettings.value?.[key],
@@ -751,7 +751,7 @@ function toggleSetting(key) {
     persistWorkflowMinimapSettings(minimapSettings.value);
 }
 
-function setMinimapSize(sizeKey) {
+function setMinimapSize(sizeKey: unknown) {
     if (!SIZE_OPTIONS.some((item) => item.key === sizeKey)) return;
     minimapSettings.value = {
         ...minimapSettings.value,
