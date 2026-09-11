@@ -185,7 +185,7 @@ class DebouncedWatchHandler(FileSystemEventHandler):
             if parts and parts[-1].startswith("."):
                 return True
         except Exception:
-            pass
+            logger.debug("_is_ignored_path: suppressed exception", exc_info=True)
         return False
 
     def _is_supported(self, path: str) -> bool:
@@ -209,7 +209,7 @@ class DebouncedWatchHandler(FileSystemEventHandler):
             self._debounce_s = max(0.05, settings.debounce_ms / 1000.0)
             self._dedupe_ttl_s = max(0.1, settings.dedupe_ttl_ms / 1000.0)
         except Exception:
-            pass
+            logger.debug("_refresh_runtime_settings: suppressed exception", exc_info=True)
 
     def refresh_runtime_settings(self) -> None:
         """Expose runtime tuning for external callers."""
@@ -251,7 +251,7 @@ class DebouncedWatchHandler(FileSystemEventHandler):
                 path,
             )
         except Exception:
-            pass
+            logger.debug("_maybe_log_pending_limit: suppressed exception", exc_info=True)
         self._last_pending_warning = now
 
     def _maybe_log_overflow_drop(self, path: str) -> None:
@@ -267,7 +267,7 @@ class DebouncedWatchHandler(FileSystemEventHandler):
                 self._dropped_count,
             )
         except Exception:
-            pass
+            logger.debug("_maybe_log_overflow_drop: suppressed exception", exc_info=True)
         self._last_overflow_drop_warning = now
 
     def on_created(self, event):
@@ -362,7 +362,7 @@ class DebouncedWatchHandler(FileSystemEventHandler):
 
             self._loop.call_soon_threadsafe(_do_schedule)
         except Exception:
-            pass
+            logger.debug("_schedule_flush: suppressed exception", exc_info=True)
 
     def _handle_deleted_file(self, path: str):
         if not path:
@@ -594,7 +594,7 @@ class DebouncedWatchHandler(FileSystemEventHandler):
                 len(deferred),
             )
         except Exception:
-            pass
+            logger.debug("_apply_flush_backpressure: suppressed exception", exc_info=True)
         return files
 
     def _mark_recent_files(self, files: list[str]) -> None:
@@ -717,7 +717,7 @@ def _record_flush_volume(count: int) -> None:
                 WATCHER_STREAM_ALERT_THRESHOLD,
             )
         except Exception:
-            pass
+            logger.debug("_record_flush_volume: suppressed exception", exc_info=True)
 
 
 def _prune_stream_events(now: float, window: float) -> None:
@@ -1112,7 +1112,7 @@ class OutputWatcher:
                     if self._observer and entry.get("watch"):
                         self._observer.unschedule(entry.get("watch"))
                 except Exception:
-                    pass
+                    logger.debug("remove_path: suppressed exception", exc_info=True)
                 logger.info("Watcher removed: %s", normalized)
         except Exception as e:
             logger.debug("Failed to remove watch for %s: %s", path, e)
@@ -1139,7 +1139,7 @@ class OutputWatcher:
         try:
             self._handler.refresh_runtime_settings()
         except Exception:
-            pass
+            logger.debug("refresh_runtime_settings: suppressed exception", exc_info=True)
 
     def flush_pending(self) -> bool:
         """Flush watcher pending queue immediately (best-effort)."""
@@ -1168,7 +1168,7 @@ def _is_under_path(candidate: str, root: str) -> bool:
         if common == root:
             return True
     except Exception:
-        pass
+        logger.debug("_is_under_path: suppressed exception", exc_info=True)
     try:
         root_sep = root if root.endswith(os.sep) else root + os.sep
         return candidate.startswith(root_sep) or candidate == root

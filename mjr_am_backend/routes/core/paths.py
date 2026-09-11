@@ -234,13 +234,13 @@ def _guess_content_type_for_file(path: Path) -> str:
             if ext in known:
                 return known[ext]
     except Exception:
-        pass
+        logger.debug("_guess_content_type_for_file: suppressed exception", exc_info=True)
     try:
         ct, _ = mimetypes.guess_type(str(path))
         if ct:
             return ct
     except Exception:
-        pass
+        logger.debug("_guess_content_type_for_file: suppressed exception", exc_info=True)
     return "application/octet-stream"
 
 

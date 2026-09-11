@@ -73,13 +73,13 @@ def _empty_torch_device_cache() -> None:
         if cuda is not None and callable(getattr(cuda, "ipc_collect", None)):
             cuda.ipc_collect()
     except Exception:
-        pass
+        logger.debug("_empty_torch_device_cache: suppressed exception", exc_info=True)
     try:
         mps = getattr(getattr(torch, "mps", None), "empty_cache", None)
         if callable(mps):
             mps()
     except Exception:
-        pass
+        logger.debug("_empty_torch_device_cache: suppressed exception", exc_info=True)
 
 
 def unload_global_model_cache() -> dict[str, int]:
@@ -231,7 +231,7 @@ def _suppress_stdout_only():
         os.dup2(devnull_fd, 1)
         sys.stdout = io.StringIO()
     except Exception:
-        pass
+        logger.debug("_suppress_stdout_only: suppressed exception", exc_info=True)
     try:
         yield
     finally:
@@ -240,17 +240,17 @@ def _suppress_stdout_only():
             if old_stdout_fd >= 0:
                 os.dup2(old_stdout_fd, 1)
         except Exception:
-            pass
+            logger.debug("_suppress_stdout_only: suppressed exception", exc_info=True)
         try:
             if old_stdout_fd >= 0:
                 os.close(old_stdout_fd)
         except Exception:
-            pass
+            logger.debug("_suppress_stdout_only: suppressed exception", exc_info=True)
         try:
             if devnull_fd >= 0:
                 os.close(devnull_fd)
         except Exception:
-            pass
+            logger.debug("_suppress_stdout_only: suppressed exception", exc_info=True)
 
 
 def _log_model_loading_once(model_name: str) -> None:
@@ -263,7 +263,7 @@ def _log_model_loading_once(model_name: str) -> None:
     try:
         os.environ[env_key] = "1"
     except Exception:
-        pass
+        logger.debug("_log_model_loading_once: suppressed exception", exc_info=True)
     logger.info("Loading multimodal embedding model '%s' …", model_name)
 
 # ---------------------------------------------------------------------------
@@ -323,7 +323,7 @@ def _extract_video_duration(video_path: str) -> float | None:
         if proc.returncode == 0 and proc.stdout.strip():
             return float(proc.stdout.strip())
     except Exception:
-        pass
+        logger.debug("_extract_video_duration: suppressed exception", exc_info=True)
     return None
 
 
@@ -418,7 +418,7 @@ def _tokenizer_effective_max_length(model_max: int | None, tokenizer: Any | None
         if 0 < raw_tok_max < 100000:
             effective_max_len = max(4, min(effective_max_len, raw_tok_max))
     except Exception:
-        pass
+        logger.debug("_tokenizer_effective_max_length: suppressed exception", exc_info=True)
     return effective_max_len
 
 
@@ -429,7 +429,7 @@ def _truncate_with_tokenizer(cleaned: str, tokenizer: Any, model_max: int | None
         token_count = len(tokenizer.tokenize(cleaned))
         full_token_len = int(token_count) + 2
     except Exception:
-        pass
+        logger.debug("_truncate_with_tokenizer: suppressed exception", exc_info=True)
 
     token_ids = tokenizer.encode(
         cleaned,
@@ -533,7 +533,7 @@ def _load_siglip_components(service: Any, hf_logging: Any, AutoModel: Any, AutoP
         try:
             service._siglip_model.eval()
         except Exception:
-            pass
+            logger.debug("_load_siglip_components: suppressed exception", exc_info=True)
 
         cfg = getattr(service._siglip_model, "config", None)
         resolved_dim = service._derive_hidden_size_from_subconfigs(cfg) if cfg is not None else None
@@ -606,7 +606,7 @@ def _patch_florence_sdpa_support() -> None:
         if not hasattr(PreTrainedModel, "_supports_sdpa"):
             PreTrainedModel._supports_sdpa = False
     except Exception:
-        pass
+        logger.debug("_patch_florence_sdpa_support: suppressed exception", exc_info=True)
     try:
         for _module in list(sys.modules.values()):
             if _module is None:
@@ -617,7 +617,7 @@ def _patch_florence_sdpa_support() -> None:
             if not hasattr(cls, "_supports_sdpa"):
                 cls._supports_sdpa = False
     except Exception:
-        pass
+        logger.debug("_patch_florence_sdpa_support: suppressed exception", exc_info=True)
 
 
 def _load_florence_model_with_compat(prompt_model_name: str, AutoModelForCausalLM: Any) -> Any:
@@ -692,7 +692,7 @@ def _load_florence_components(service: Any, hf_logging: Any, AutoModelForCausalL
             try:
                 service._prompt_model._supports_sdpa = False
             except Exception:
-                pass
+                logger.debug("_load_florence_components: suppressed exception", exc_info=True)
         service._prompt_model.eval()
         return service._prompt_processor, service._prompt_model, torch
     finally:
@@ -1009,7 +1009,7 @@ class VectorService:
                     tok = self._unwrap_tokenizer(getattr(first_module, "processor", None))
                 return tok
         except Exception:
-            pass
+            logger.debug("_tokenizer_from_first_module: suppressed exception", exc_info=True)
         return None
 
     def _tokenizer_from_model_attr(self, model: SentenceTransformer) -> Any | None:
@@ -1031,7 +1031,7 @@ class VectorService:
                         logger.debug("Found tokenizer in _modules['%s'].processor", _name)
                         return tok
         except Exception:
-            pass
+            logger.debug("_tokenizer_from_modules_dict: suppressed exception", exc_info=True)
         return None
 
     def _tokenizer_from_deep_walk(self, model: SentenceTransformer) -> Any | None:
@@ -1045,7 +1045,7 @@ class VectorService:
                     logger.debug("Found tokenizer via deep walk: model.%s", attr_name)
                     return candidate
         except Exception:
-            pass
+            logger.debug("_tokenizer_from_deep_walk: suppressed exception", exc_info=True)
         return None
 
     def _log_tokenizer_not_found(self, model: SentenceTransformer) -> None:
@@ -1715,7 +1715,7 @@ class VectorService:
                             if callable(getter):
                                 return getter(field)
                         except Exception:
-                            pass
+                            logger.debug("_get_field: suppressed exception", exc_info=True)
                         try:
                             return container[field]
                         except Exception:
@@ -1733,7 +1733,7 @@ class VectorService:
                         pixel_values = _get_field(combo, "pixel_values")
                         pixel_mask = _get_field(combo, "pixel_mask")
                     except Exception:
-                        pass
+                        logger.debug("_infer_caption: suppressed exception", exc_info=True)
 
                     if input_ids is None and tokenizer is not None:
                         try:
@@ -1788,7 +1788,7 @@ class VectorService:
                                 if isinstance(val, str) and val.strip():
                                     text = val.strip()
                         except Exception:
-                            pass
+                            logger.debug("_get_field: suppressed exception", exc_info=True)
                     return text
 
             caption = await asyncio.to_thread(_infer_caption)
@@ -1867,7 +1867,7 @@ class VectorService:
                 try:
                     self._video_model.eval()
                 except Exception:
-                    pass
+                    logger.debug("_ensure_xclip_components: suppressed exception", exc_info=True)
                 log_success(
                     logger,
                     f"X-CLIP video model loaded and ready: '{self._video_model_name}'",
@@ -1998,7 +1998,7 @@ def _unwrap_single_batch_vector(value: Any) -> Any:
             if isinstance(first, Sequence) and not isinstance(first, (str, bytes, bytearray)):
                 return first
     except Exception:
-        pass
+        logger.debug("_unwrap_single_batch_vector: suppressed exception", exc_info=True)
     return value
 
 
@@ -2053,7 +2053,7 @@ def _normalise_vector(vec: Any) -> list[float]:
             return [float(x) for x in arr_norm.tolist()]
         return [float(x) for x in arr_np.tolist()]
     except Exception:
-        pass
+        logger.debug("_normalise_vector: suppressed exception", exc_info=True)
 
     def _flatten_floats(value: Any) -> list[float]:
         if value is None:
