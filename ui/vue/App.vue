@@ -15,15 +15,21 @@ import SummaryBarSection from "./components/panel/SummaryBarSection.vue";
 import AssetsGrid from "./components/grid/AssetsGrid.vue";
 import SidebarSection from "./components/panel/SidebarSection.vue";
 import ContextMenuPortal from "./components/common/ContextMenuPortal.vue";
+import type {
+    MjrAssetsGridExpose,
+    MjrSidebarSectionExpose,
+    MjrStatusSectionExpose,
+    MjrSummaryBarSectionExpose,
+} from "../types/componentExposes";
 
 const containerRef = ref<HTMLDivElement | null>(null);
-// These bind to child component exposes (statusSection, gridWrapper, etc.) that
-// aren't individually typed yet, so the refs stay `any` at this glue boundary.
-const statusSectionRef = ref<any>(null);
-const headerSectionRef = ref<any>(null);
-const summaryBarSectionRef = ref<any>(null);
-const assetsGridRef = ref<any>(null);
-const sidebarSectionRef = ref<any>(null);
+const statusSectionRef = ref<MjrStatusSectionExpose | null>(null);
+// HeaderSection is only ever forwarded whole (never destructured here), so a
+// full expose interface would add nothing beyond documentation weight.
+const headerSectionRef = ref<Record<string, unknown> | null>(null);
+const summaryBarSectionRef = ref<MjrSummaryBarSectionExpose | null>(null);
+const assetsGridRef = ref<MjrAssetsGridExpose | null>(null);
+const sidebarSectionRef = ref<MjrSidebarSectionExpose | null>(null);
 
 /** Handle returned by the panel runtime mount call. */
 let disposeHandle: any = null;

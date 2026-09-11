@@ -32,6 +32,15 @@ import CollectionsPopover from "./CollectionsPopover.vue";
 import PinnedFoldersPopover from "./PinnedFoldersPopover.vue";
 import CustomRootsPopover from "./CustomRootsPopover.vue";
 import MessagePopover from "./MessagePopover.vue";
+import type {
+    MjrCollectionsPopoverExpose,
+    MjrComponentWithEl,
+    MjrCustomRootsPopoverExpose,
+    MjrFilterPopoverExpose,
+    MjrMessagePopoverExpose,
+    MjrPinnedFoldersPopoverExpose,
+    MjrSearchBarExpose,
+} from "../../../types/componentExposes";
 
 // ── version badge helpers ──────────────────────────────────────────────────────
 
@@ -111,13 +120,13 @@ const saveWorkflowBtnRef = ref<MaybeComponentRef>(null);
 const pickWorkflowRootBtnRef = ref<MaybeComponentRef>(null);
 const importWorkflowInputRef = ref<HTMLInputElement | null>(null);
 // These bind to child component exposes that aren't individually typed yet.
-const searchBarRef = ref<any>(null);
-const sortPopoverRef         = ref<any>(null);  // <SortPopover>
-const filterPopoverRef       = ref<any>(null);  // <FilterPopover>
-const collectionsPopoverRef  = ref<any>(null);  // <CollectionsPopover>
-const pinnedFoldersPopoverRef= ref<any>(null);  // <PinnedFoldersPopover>
-const customPopoverRef       = ref<any>(null);  // <CustomRootsPopover>
-const messagePopoverRef      = ref<any>(null);  // <MessagePopover>
+const searchBarRef = ref<MjrSearchBarExpose | null>(null);
+const sortPopoverRef         = ref<MjrComponentWithEl>(null);  // <SortPopover>
+const filterPopoverRef       = ref<MjrFilterPopoverExpose | null>(null);  // <FilterPopover>
+const collectionsPopoverRef  = ref<MjrCollectionsPopoverExpose | null>(null);  // <CollectionsPopover>
+const pinnedFoldersPopoverRef= ref<MjrPinnedFoldersPopoverExpose | null>(null);  // <PinnedFoldersPopover>
+const customPopoverRef       = ref<MjrCustomRootsPopoverExpose | null>(null);  // <CustomRootsPopover>
+const messagePopoverRef      = ref<MjrMessagePopoverExpose | null>(null);  // <MessagePopover>
 
 const tabAllRef = ref<MaybeComponentRef>(null);
 const tabInputsRef = ref<MaybeComponentRef>(null);

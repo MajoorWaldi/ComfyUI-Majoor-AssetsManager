@@ -14,11 +14,11 @@ import {
     installGridScrollSync,
     restoreGridUiState as restoreGridUiStateRuntime,
 } from "./assetsGridHostState.js";
+import type { MjrVirtualAssetGridHostExpose } from "../../../types/componentExposes";
 
 const browseSectionRef = ref<HTMLDivElement | null>(null);
 const gridWrapperRef = ref<HTMLDivElement | null>(null);
-// Binds to VirtualAssetGridHost's defineExpose, which isn't individually typed yet.
-const gridHostRef = ref<any>(null);
+const gridHostRef = ref<MjrVirtualAssetGridHostExpose | null>(null);
 
 const panelStore = usePanelStore();
 
