@@ -8,6 +8,9 @@ from collections.abc import Mapping
 from functools import lru_cache
 
 from aiohttp import web
+from mjr_am_backend.shared import get_logger
+
+logger = get_logger(__name__)
 
 _DEFAULT_TRUSTED_PROXIES = "127.0.0.1,::1"
 _DEFAULT_CLIENT_ID_HASH_HEX_CHARS = 16
@@ -67,7 +70,7 @@ def _parse_trusted_proxies() -> list[ipaddress._BaseNetwork]:
                 if int(getattr(net, "prefixlen", 0)) == 0:
                     continue
             except Exception:
-                pass
+                logger.debug("_parse_trusted_proxies: suppressed exception", exc_info=True)
             filtered.append(net)
         out = filtered
     return out
@@ -82,7 +85,7 @@ def _refresh_trusted_proxy_cache() -> None:
     try:
         _is_trusted_proxy.cache_clear()
     except Exception:
-        pass
+        logger.debug("_refresh_trusted_proxy_cache: suppressed exception", exc_info=True)
 
 
 @lru_cache(maxsize=2048)

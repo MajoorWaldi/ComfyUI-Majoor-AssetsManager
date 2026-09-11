@@ -6,7 +6,9 @@ from contextvars import ContextVar, Token
 from typing import Any
 
 from aiohttp import web
-from mjr_am_backend.shared import Result
+from mjr_am_backend.shared import Result, get_logger
+
+logger = get_logger(__name__)
 
 _CURRENT_USER_ID: ContextVar[str] = ContextVar("mjr_current_user_id", default="")
 
@@ -87,7 +89,7 @@ def _comfy_auth_enabled(user_manager: Any) -> bool:
                 if isinstance(out, bool):
                     return out
     except Exception:
-        pass
+        logger.debug("_comfy_auth_enabled: suppressed exception", exc_info=True)
     # If manager exists but does not expose flags, assume enabled to fail safe.
     return True
 
@@ -117,7 +119,7 @@ def _get_request_user_id(request: web.Request | None) -> str:
         if stored:
             return stored
     except Exception:
-        pass
+        logger.debug("_get_request_user_id: suppressed exception", exc_info=True)
     try:
         return _resolve_request_user_id(request)
     except Exception:

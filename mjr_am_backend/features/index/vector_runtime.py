@@ -10,9 +10,13 @@ from __future__ import annotations
 import asyncio
 from typing import Any
 
+from mjr_am_backend.shared import get_logger
+
 from ...config import is_vector_search_enabled
 from ...runtime_activity import is_generation_busy
 from ...shared import Result
+
+logger = get_logger(__name__)
 
 
 def _get_vector_runtime_lock(services: dict[str, Any]) -> asyncio.Lock:
@@ -171,7 +175,7 @@ async def ensure_vector_runtime(
                     str(reason or "runtime"),
                 )
             except Exception:
-                pass
+                logger.debug("ensure_vector_runtime: suppressed exception", exc_info=True)
         return None, None
 
     if services.get("db") is None:
@@ -190,5 +194,5 @@ async def ensure_vector_runtime(
             try:
                 logger.info("Vector services initialized lazily (%s)", str(reason or "runtime"))
             except Exception:
-                pass
+                logger.debug("ensure_vector_runtime: suppressed exception", exc_info=True)
         return vector_service, vector_searcher

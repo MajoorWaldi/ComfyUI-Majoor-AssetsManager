@@ -12,6 +12,10 @@ import threading
 import time
 from typing import Any
 
+from mjr_am_backend.shared import get_logger
+
+logger = get_logger(__name__)
+
 _LOCK = threading.Lock()
 _STATE: dict[str, Any] = {
     "generation_active": False,
@@ -79,7 +83,7 @@ def schedule_post_execution_ingestion(prompt_id: str | None) -> bool:
             try:
                 coro.close()
             except Exception:
-                pass
+                logger.debug("_run: suppressed exception", exc_info=True)
         return scheduled
     except Exception:
         return False

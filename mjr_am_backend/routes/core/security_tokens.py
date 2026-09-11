@@ -7,7 +7,11 @@ import os
 from collections.abc import Mapping
 from http.cookies import SimpleCookie
 
+from mjr_am_backend.shared import get_logger
+
 from .security_policy import _validate_token_format
+
+logger = get_logger(__name__)
 
 _PBKDF2_TOKEN_PEPPER_FALLBACK = "mjr_api_token_pepper_fallback"
 
@@ -121,7 +125,7 @@ def _extract_write_token_from_cookie(headers: Mapping[str, str]) -> str:
         if raw is not None:
             return str(raw.value or "").strip()
     except Exception:
-        pass
+        logger.debug("_extract_write_token_from_cookie: suppressed exception", exc_info=True)
     return ""
 
 

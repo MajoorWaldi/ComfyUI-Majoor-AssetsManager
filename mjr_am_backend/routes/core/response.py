@@ -6,7 +6,9 @@ import math
 from dataclasses import asdict, is_dataclass
 
 from aiohttp import web
-from mjr_am_backend.shared import Result
+from mjr_am_backend.shared import Result, get_logger
+
+logger = get_logger(__name__)
 
 
 def safe_error_message(exc: Exception, generic_message: str) -> str:
@@ -63,7 +65,7 @@ def _json_response(result: Result, status: int | None = None):
         if retry_after is not None:
             response.headers["Retry-After"] = str(int(retry_after))
     except Exception:
-        pass
+        logger.debug("_json_response: suppressed exception", exc_info=True)
 
     return response
 

@@ -6,6 +6,9 @@ from collections.abc import Callable
 from typing import Any
 
 from aiohttp import web
+from mjr_am_backend.shared import get_logger
+
+logger = get_logger(__name__)
 
 
 def _install_security_middlewares(
@@ -33,14 +36,14 @@ def _install_security_middlewares(
             from mjr_am_backend.bootstrap_report import record_stage
             record_stage("security_middlewares", "ok")
         except Exception:
-            pass
+            logger.debug("_install_security_middlewares: suppressed exception", exc_info=True)
     except Exception as exc:
         logger.debug("Failed to install security middlewares: %s", exc)
         try:
             from mjr_am_backend.bootstrap_report import record_stage
             record_stage("security_middlewares", "degraded", "fatal", str(exc)[:120])
         except Exception:
-            pass
+            logger.debug("_install_security_middlewares: suppressed exception", exc_info=True)
 
 
 def _install_background_scan_cleanup(
@@ -53,7 +56,7 @@ def _install_background_scan_cleanup(
         if app.get(installed_key):
             return
     except Exception:
-        pass
+        logger.debug("_install_background_scan_cleanup: suppressed exception", exc_info=True)
 
     async def _on_cleanup(_app: web.Application) -> None:
         try:

@@ -12,11 +12,15 @@ from pathlib import Path
 from queue import Queue
 from typing import Any
 
+from mjr_am_backend.shared import get_logger
+
 from ...config import SCAN_BATCH_XL, SCAN_LOG_PROGRESS_EVERY, SCAN_LOG_PROGRESS_MIN_SECONDS
 from .fs_walker import _FS_WALK_EXECUTOR, ScanQueueItem, scan_candidate_path
 from .index_batching import BatchCandidate, existing_map_for_batch, index_batch
 from .scan_batch_utils import normalize_filepath_str, stream_batch_target
 from .scan_storage_ops import get_journal_entries
+
+logger = get_logger(__name__)
 
 
 async def run_scan_streaming_loop(
@@ -63,7 +67,7 @@ async def run_scan_streaming_loop(
         try:
             await asyncio.wait_for(walk_future, timeout=2.0)
         except Exception:
-            pass
+            logger.debug("run_scan_streaming_loop: suppressed exception", exc_info=True)
 
 
 def _should_log_progress(
@@ -96,7 +100,7 @@ def _emit_scan_progress(scanner: Any, stats: dict[str, Any], batch: list[ScanQue
                 queue_batch_size=len(batch),
             )
     except Exception:
-        pass
+        logger.debug("_emit_scan_progress: suppressed exception", exc_info=True)
 
 
 async def _process_pulled_files(

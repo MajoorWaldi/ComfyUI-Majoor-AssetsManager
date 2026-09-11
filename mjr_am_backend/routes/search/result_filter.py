@@ -3,6 +3,9 @@ import os
 from pathlib import Path
 
 from mjr_am_backend.config import OUTPUT_ROOT
+from mjr_am_backend.shared import get_logger
+
+logger = get_logger(__name__)
 
 
 def search_db_from_services(svc: dict | None):
@@ -15,7 +18,7 @@ def touch_enrichment_pause(services: dict | None, seconds: float = 1.5) -> None:
         if idx and hasattr(idx, "pause_enrichment_for_interaction"):
             idx.pause_enrichment_for_interaction(seconds=seconds)
     except Exception:
-        pass
+        logger.debug("touch_enrichment_pause: suppressed exception", exc_info=True)
 
 
 def is_under_root(root: str, fp: str) -> bool:
@@ -48,5 +51,5 @@ async def runtime_output_root(svc: dict | None) -> str:
             if override:
                 return str(Path(override).resolve(strict=False))
     except Exception:
-        pass
+        logger.debug("runtime_output_root: suppressed exception", exc_info=True)
     return str(Path(OUTPUT_ROOT).resolve(strict=False))

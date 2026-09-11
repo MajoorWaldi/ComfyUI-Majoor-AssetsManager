@@ -12,6 +12,9 @@ from pathlib import Path
 from typing import Any
 
 from aiohttp import web
+from mjr_am_backend.shared import get_logger
+
+logger = get_logger(__name__)
 
 COMFYUI_STRIP_TAGS_WEBP = [
     "EXIF:Make",
@@ -141,7 +144,7 @@ def build_download_response(
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["Cache-Control"] = "private, max-age=60" if preview else "private, no-cache"
     except Exception:
-        pass
+        logger.debug("build_download_response: suppressed exception", exc_info=True)
     return response
 
 
@@ -284,7 +287,7 @@ async def download_clean_exiftool(
             try:
                 shutil.rmtree(tmp_dir, ignore_errors=True)
             except Exception:
-                pass
+                logger.debug("download_clean_exiftool: suppressed exception", exc_info=True)
         return build_download_response(resolved_path)
 
 

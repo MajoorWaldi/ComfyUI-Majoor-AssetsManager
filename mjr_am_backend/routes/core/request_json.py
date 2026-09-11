@@ -13,7 +13,9 @@ import os
 from typing import Any
 
 from aiohttp import web
-from mjr_am_backend.shared import ErrorCode, Result
+from mjr_am_backend.shared import ErrorCode, Result, get_logger
+
+logger = get_logger(__name__)
 
 DEFAULT_MAX_JSON_BYTES = 10 * 1024 * 1024  # 10MB
 MIN_JSON_BYTES = 1024
@@ -28,7 +30,7 @@ def _max_json_bytes() -> int:
             if n > 0:
                 return n
     except Exception:
-        pass
+        logger.debug("_max_json_bytes: suppressed exception", exc_info=True)
     return DEFAULT_MAX_JSON_BYTES
 
 
