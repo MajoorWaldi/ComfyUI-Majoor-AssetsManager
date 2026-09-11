@@ -114,9 +114,10 @@ export function transferNodeParamsToSelectedCanvasNode(
     for (const entry of sourceEntries) {
         const key = _normalizeName(entry.label);
         let target = key ? targetByName.get(key) : null;
-        if ((!target || usedTargets.has(target.index)) && allowPositionFallback && Number.isInteger(entry.index)) {
-            const positional = targetWidgets[entry.index];
-            if (positional) target = { widget: positional, index: entry.index };
+        const entryIndex = entry.index;
+        if ((!target || usedTargets.has(target.index)) && allowPositionFallback && typeof entryIndex === "number" && Number.isInteger(entryIndex)) {
+            const positional = targetWidgets[entryIndex];
+            if (positional) target = { widget: positional, index: entryIndex };
         }
         if (!target || usedTargets.has(target.index)) continue;
         if (writeWidgetValue(target.widget, _cloneValue(entry.value), targetNode)) {

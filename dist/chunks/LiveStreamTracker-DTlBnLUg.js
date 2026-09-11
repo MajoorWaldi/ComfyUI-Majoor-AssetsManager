@@ -1,5 +1,5 @@
 import { J as e, o as t, r as n } from "./events-DjjLASfV.js";
-import { t as r } from "./floatingViewerManager-DzpdJF0a.js";
+import { t as r } from "./floatingViewerManager-B8UU5LbV.js";
 //#region ui/features/viewer/LiveStreamTracker.ts
 var i = !1, a = null, o = null, s = null, c = null, l = null, u = null, d = null, f = null, p = 0, m = 0, h = !1, g = 400, _ = "kj_preview_override", v = /* @__PURE__ */ new Set([
 	"image/jpeg",

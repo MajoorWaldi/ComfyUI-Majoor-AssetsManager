@@ -1,13 +1,13 @@
 import { $t as e, A as t, B as n, C as r, D as i, E as a, Ft as o, G as s, Gt as c, H as l, Ht as u, It as d, J as f, Jt as p, Kt as m, L as h, Lt as g, M as _, N as v, O as y, P as b, Qt as x, Rt as S, S as C, Tt as w, U as T, V as E, Vt as D, W as O, Zt as k, _ as A, _t as j, b as M, bt as N, c as ee, d as P, dt as te, en as ne, f as F, ft as re, g as ie, gt as ae, h as oe, ht as se, in as ce, j as le, k as ue, kt as de, l as fe, lt as pe, m as me, mt as he, nn as ge, o as _e, ot as ve, pt as ye, q as be, qt as xe, rn as Se, s as Ce, tn as we, u as Te, vt as Ee, w as De, y as Oe, yt as ke, z as Ae, zt as je } from "./chunks/viewerRuntimeHosts-CIiyEfr6.js";
 import { $ as Me, A as Ne, Ct as Pe, F as Fe, G as Ie, H as Le, K as Re, L as ze, Q as Be, St as Ve, U as He, W as Ue, X as We, Z as Ge, _ as Ke, at as qe, bt as Je, ct as Ye, dt as Xe, et as Ze, ft as Qe, g as $e, h as et, it as tt, j as nt, lt as I, m as L, n as rt, o as R, ot as it, pt as at, q as ot, r as z, rt as st, st as ct, t as lt, tt as B, ut, xt as dt, yt as ft } from "./chunks/events-DjjLASfV.js";
 import { a as pt, i as mt, n as ht, t as gt } from "./chunks/graphTraversal-BIYmTTPW.js";
-import { A as _t, B as vt, C as yt, D as bt, E as xt, F as St, G as Ct, H as wt, I as Tt, J as Et, L as Dt, M as Ot, N as kt, O as At, P as jt, R as Mt, S as Nt, T as Pt, U as Ft, V as It, W as Lt, Y as Rt, _ as zt, b as Bt, d as Vt, g as Ht, j as Ut, k as Wt, q as Gt, v as Kt, x as qt, y as Jt, z as Yt } from "./chunks/Viewer-BAMImVKX.js";
-import { $ as Xt, A as Zt, B as Qt, C as $t, D as en, E as tn, F as nn, G as rn, H as an, I as on, J as sn, K as cn, L as ln, M as un, N as dn, O as fn, P as pn, Q as mn, R as hn, T as gn, U as _n, V as vn, W as yn, X as bn, Y as xn, Z as Sn, _ as Cn, a as wn, c as Tn, d as En, et as Dn, f as On, g as kn, h as An, i as jn, j as Mn, k as Nn, l as Pn, m as Fn, n as In, o as Ln, p as Rn, q as zn, s as Bn, t as Vn, u as Hn, w as Un, z as Wn } from "./chunks/SidebarWorkflowSection-BJKIv3O9.js";
-import { _ as Gn, i as Kn, n as qn, p as Jn, t as Yn } from "./chunks/openMajoorSettings-DqzyR-0o.js";
-import { a as Xn, c as Zn, l as Qn, o as $n, s as er, u as tr } from "./chunks/floatingViewerManager-DzpdJF0a.js";
+import { A as _t, B as vt, C as yt, D as bt, E as xt, F as St, G as Ct, H as wt, I as Tt, J as Et, L as Dt, M as Ot, N as kt, O as At, P as jt, R as Mt, S as Nt, T as Pt, U as Ft, V as It, W as Lt, Y as Rt, _ as zt, b as Bt, d as Vt, g as Ht, j as Ut, k as Wt, q as Gt, v as Kt, x as qt, y as Jt, z as Yt } from "./chunks/Viewer-CwQ9gDY9.js";
+import { $ as Xt, A as Zt, B as Qt, C as $t, D as en, E as tn, F as nn, G as rn, H as an, I as on, J as sn, K as cn, L as ln, M as un, N as dn, O as fn, P as pn, Q as mn, R as hn, T as gn, U as _n, V as vn, W as yn, X as bn, Y as xn, Z as Sn, _ as Cn, a as wn, c as Tn, d as En, et as Dn, f as On, g as kn, h as An, i as jn, j as Mn, k as Nn, l as Pn, m as Fn, n as In, o as Ln, p as Rn, q as zn, s as Bn, t as Vn, u as Hn, w as Un, z as Wn } from "./chunks/SidebarWorkflowSection-DVJBA9Jl.js";
+import { _ as Gn, i as Kn, n as qn, p as Jn, t as Yn } from "./chunks/openMajoorSettings-BAEXZnAB.js";
+import { a as Xn, c as Zn, l as Qn, o as $n, s as er, u as tr } from "./chunks/floatingViewerManager-B8UU5LbV.js";
 import { A as nr, B as V, C as H, D as rr, E as U, F as ir, G as ar, H as or, I as sr, J as cr, K as lr, L as ur, M as dr, N as fr, O as W, R as pr, S as mr, T as G, U as hr, V as gr, W as _r, b as vr, ct as K, dt as q, et as yr, it as br, j as J, k as Y, lt as X, nt as Z, q as Q, rt as xr, st as Sr, tt as Cr, ut as wr, v as Tr, w as Er, x as Dr, y as Or, z as kr } from "./chunks/mjr-primevue-DtKnnCVn.js";
 import { n as Ar, r as jr } from "./chunks/mjr-vue-vendor-BU1tBlvz.js";
-import { t as Mr } from "./chunks/TagsEditor-Chrf2l6e.js";
+import { t as Mr } from "./chunks/TagsEditor-CU_Kmnfs.js";
 import { app as Nr } from "../../scripts/app.js";
 function Pr(e = null) {
 	return null;
@@ -1097,7 +1097,7 @@ var Ji = {
 	}
 }, Yi = null;
 function Xi() {
-	return Yi ||= import("./chunks/viewerOpenRequest-C9A_Z_NY.js").then((e) => e.n), Yi;
+	return Yi ||= import("./chunks/viewerOpenRequest-BIE_jr_k.js").then((e) => e.n), Yi;
 }
 function Zi(e) {
 	if (!e) return "";
@@ -1614,10 +1614,10 @@ function aa() {
 //#region ui/features/contextmenu/GridContextMenu.ts
 var oa = 1, sa = null, ca = null;
 function la() {
-	return sa ||= import("./chunks/viewerOpenRequest-C9A_Z_NY.js").then((e) => e.n), sa;
+	return sa ||= import("./chunks/viewerOpenRequest-BIE_jr_k.js").then((e) => e.n), sa;
 }
 function ua() {
-	return ca ||= import("./chunks/floatingViewerManager-DzpdJF0a.js").then((e) => e.n), ca;
+	return ca ||= import("./chunks/floatingViewerManager-B8UU5LbV.js").then((e) => e.n), ca;
 }
 function da(e) {
 	let t = String(e || "").trim().toLowerCase();
@@ -7874,10 +7874,10 @@ var nd = {
 		Z(!0);
 		let o = Z(0), s = Z(0), c = /* @__PURE__ */ new WeakMap(), l = 0, u = 0, d = 0, f = 0, p = 0, m = /* @__PURE__ */ new Map(), h = null, g = null;
 		function _() {
-			return h ||= import("./chunks/viewerOpenRequest-C9A_Z_NY.js").then((e) => e.n), h;
+			return h ||= import("./chunks/viewerOpenRequest-BIE_jr_k.js").then((e) => e.n), h;
 		}
 		function v() {
-			return g ||= import("./chunks/floatingViewerManager-DzpdJF0a.js").then((e) => e.n), g;
+			return g ||= import("./chunks/floatingViewerManager-B8UU5LbV.js").then((e) => e.n), g;
 		}
 		function y(e) {
 			return (Array.isArray(e) ? e : []).slice().sort((e, t) => {
@@ -9181,10 +9181,10 @@ var nd = {
 	}
 }, _d = 240, vd = 120, yd = 80, bd = null, xd = null;
 function Sd() {
-	return bd ||= import("./chunks/viewerOpenRequest-C9A_Z_NY.js").then((e) => e.n), bd;
+	return bd ||= import("./chunks/viewerOpenRequest-BIE_jr_k.js").then((e) => e.n), bd;
 }
 function Cd() {
-	return xd ||= import("./chunks/floatingViewerManager-DzpdJF0a.js").then((e) => e.n), xd;
+	return xd ||= import("./chunks/floatingViewerManager-B8UU5LbV.js").then((e) => e.n), xd;
 }
 function wd(e) {
 	let t = document.createElement("button");
@@ -11428,7 +11428,7 @@ function $p() {
 var em = {
 	__name: "GlobalRuntime",
 	setup(e) {
-		let t = dr(() => import("./chunks/ViewerPortal-C6xufgZs.js")), n = Z(!1), r = [
+		let t = dr(() => import("./chunks/ViewerPortal-BjkFkQn3.js")), n = Z(!1), r = [
 			z.OPEN_VIEWER,
 			z.MFV_OPEN,
 			z.MFV_TOGGLE,
@@ -24565,7 +24565,7 @@ async function FC(e) {
 	try {
 		let t = await MC(e);
 		if (t.length) {
-			let { floatingViewerManager: e } = await import("./chunks/floatingViewerManager-DzpdJF0a.js").then((e) => e.n);
+			let { floatingViewerManager: e } = await import("./chunks/floatingViewerManager-B8UU5LbV.js").then((e) => e.n);
 			if (await e.openAssets({
 				assets: t,
 				index: 0
@@ -25023,7 +25023,7 @@ function cw({ cleanupEntryRuntimeFn: e = ow, teardownLiveStreamTracker: t, teard
 //#region ui/entry.ts
 var lw = null, uw = null, dw = null;
 function fw() {
-	return dw ||= import("./chunks/floatingViewerManager-DzpdJF0a.js").then((e) => e.n), dw;
+	return dw ||= import("./chunks/floatingViewerManager-B8UU5LbV.js").then((e) => e.n), dw;
 }
 function pw() {
 	dw && dw.then((e) => e?.teardownFloatingViewerManager?.()).catch((e) => console.debug?.("[Majoor] MFV teardown skipped", e));
@@ -25143,7 +25143,7 @@ function Mw(e = 1200) {
 	}, Math.max(250, Number(e) || 0));
 }
 function Nw(e) {
-	import("./chunks/LiveStreamTracker-OxTrUCsv.js").then((t) => {
+	import("./chunks/LiveStreamTracker-DTlBnLUg.js").then((t) => {
 		lw = t;
 		try {
 			t.initLiveStreamTracker(e);

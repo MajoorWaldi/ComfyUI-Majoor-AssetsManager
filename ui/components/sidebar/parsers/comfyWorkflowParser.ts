@@ -658,7 +658,7 @@ function collectComfyWorkflowNodes(workflow: any, visited = new WeakSet()): any[
 
 function getGraphLikeObjects(value: any): any[] {
     if (!value || typeof value !== "object") return [];
-    const out = [];
+    const out: any[] = [];
     const add = (candidate: any) => {
         if (candidate && typeof candidate === "object" && Array.isArray(candidate.nodes)) out.push(candidate);
     };

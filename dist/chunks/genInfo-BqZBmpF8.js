@@ -1,7 +1,7 @@
 import { t as e } from "./rolldown-runtime-Dy4uBu1J.js";
 import { m as t, o as n } from "./events-DjjLASfV.js";
-import { h as r } from "./Viewer-BAMImVKX.js";
-import { i, n as a, r as o, t as s, u as c } from "./SidebarWorkflowSection-BJKIv3O9.js";
+import { h as r } from "./Viewer-CwQ9gDY9.js";
+import { i, n as a, r as o, t as s, u as c } from "./SidebarWorkflowSection-DVJBA9Jl.js";
 import { B as l, D as u, E as d, O as f, T as p, ct as m, dt as h, k as g, ut as _ } from "./mjr-primevue-DtKnnCVn.js";
 //#region ui/vue/components/viewer/ViewerMetadataBlock.vue
 var v = { style: {

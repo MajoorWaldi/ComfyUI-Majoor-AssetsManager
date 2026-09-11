@@ -20,6 +20,9 @@ from pathlib import Path
 async def comfy_entrypoint():
     from comfy_api.latest import ComfyExtension  # type: ignore[import-untyped]
 
+    # Wraps nodes.comfy_entrypoint() rather than re-exporting it directly so a
+    # broken nodes.py import degrades to zero nodes (see except below) instead
+    # of aborting extension load entirely.
     class _MajoorAssetsManagerExtension(ComfyExtension):
         async def get_node_list(self):
             try:

@@ -254,8 +254,8 @@ export class FloatingViewer {
                 bubbles: true,
                 cancelable: true,
             });
-            const dispatched = window.dispatchEvent(forwardedEvent);
-            if (!dispatched || forwardedEvent.defaultPrevented) {
+            const dispatched = window.dispatchEvent(forwardedEvent!);
+            if (!dispatched || forwardedEvent!.defaultPrevented) {
                 event?.preventDefault?.();
                 event?.stopPropagation?.();
                 event?.stopImmediatePropagation?.();
