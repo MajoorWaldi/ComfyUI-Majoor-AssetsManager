@@ -120,3 +120,23 @@ def test_comfy_core_adapter_reads_temp_directory(monkeypatch, tmp_path):
     adapter = ComfyCoreAdapter()
 
     assert adapter.get_temp_directory() == str(temp)
+
+
+def test_comfy_core_adapter_reads_base_path(monkeypatch, tmp_path):
+    monkeypatch.setitem(
+        sys.modules,
+        "folder_paths",
+        SimpleNamespace(base_path=str(tmp_path)),
+    )
+
+    adapter = ComfyCoreAdapter()
+
+    assert adapter.get_base_path() == str(tmp_path)
+
+
+def test_comfy_core_adapter_base_path_none_when_unavailable(monkeypatch):
+    monkeypatch.setitem(sys.modules, "folder_paths", SimpleNamespace())
+
+    adapter = ComfyCoreAdapter()
+
+    assert adapter.get_base_path() is None

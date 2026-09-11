@@ -178,6 +178,25 @@ class ComfyCoreAdapter:
             logger.debug("Failed to resolve ComfyUI temp directory", exc_info=True)
         return None
 
+    def get_base_path(self) -> str | None:
+        """Return the ComfyUI installation root via ``folder_paths.base_path``.
+
+        This is the authoritative root ComfyUI itself resolved at startup, so
+        it is far more reliable than heuristics that walk up from some other
+        directory (output dir, this package's own file) hoping to land on a
+        folder containing both ``main.py`` and ``folder_paths.py`` - a
+        heuristic that breaks under non-standard install layouts.
+        """
+        try:
+            import folder_paths  # type: ignore
+
+            value = getattr(folder_paths, "base_path", None)
+            if value:
+                return str(value)
+        except Exception:
+            logger.debug("Failed to resolve ComfyUI base_path", exc_info=True)
+        return None
+
     def get_available_node_types(self) -> set[str]:
         """Return ComfyUI node class names currently registered in the backend."""
         try:
@@ -623,6 +642,10 @@ def get_temp_directory() -> str | None:
     return _ADAPTER.get_temp_directory()
 
 
+def get_base_path() -> str | None:
+    return _ADAPTER.get_base_path()
+
+
 def get_available_node_types() -> set[str]:
     return _ADAPTER.get_available_node_types()
 
@@ -648,6 +671,7 @@ __all__ = [
     "get_input_directory",
     "get_output_directory",
     "get_temp_directory",
+    "get_base_path",
     "get_available_node_types",
     "get_model_filenames",
     "get_model_full_path",

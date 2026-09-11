@@ -21,6 +21,41 @@ from mjr_am_backend.features.workflows import service as workflows_service
 from mjr_am_backend.shared import Result
 
 
+def test_detect_comfy_root_prefers_base_path_over_layout_heuristic(monkeypatch, tmp_path):
+    """Regression for GH #222: ``get_base_path()`` (``folder_paths.base_path``,
+    the root ComfyUI itself resolved at startup) must win over the fallback
+    heuristic that walks up from the output directory looking for a folder
+    containing both main.py and folder_paths.py side by side - a heuristic
+    that silently returns None under non-standard install layouts and makes
+    every workflow path look "not allowed".
+    """
+    real_root = tmp_path / "real_comfy_root"
+    real_root.mkdir()
+    (real_root / "main.py").write_text("", encoding="utf-8")
+    (real_root / "folder_paths.py").write_text("", encoding="utf-8")
+
+    unrelated_output = tmp_path / "unrelated" / "output"
+    unrelated_output.mkdir(parents=True)
+
+    monkeypatch.setattr(workflows_service, "get_base_path", lambda: str(real_root))
+    monkeypatch.setattr(workflows_service, "get_output_directory", lambda: str(unrelated_output))
+
+    assert workflows_service._detect_comfy_root() == real_root.resolve(strict=False)
+
+
+def test_detect_comfy_root_falls_back_when_base_path_unavailable(monkeypatch, tmp_path):
+    comfy_root = tmp_path / "comfy"
+    output_dir = comfy_root / "output"
+    output_dir.mkdir(parents=True)
+    (comfy_root / "main.py").write_text("", encoding="utf-8")
+    (comfy_root / "folder_paths.py").write_text("", encoding="utf-8")
+
+    monkeypatch.setattr(workflows_service, "get_base_path", lambda: None)
+    monkeypatch.setattr(workflows_service, "get_output_directory", lambda: str(output_dir))
+
+    assert workflows_service._detect_comfy_root() == comfy_root.resolve(strict=False)
+
+
 def test_list_workflows_discovers_env_directory(monkeypatch, tmp_path):
     workflow_dir = tmp_path / "workflows"
     workflow_dir.mkdir()

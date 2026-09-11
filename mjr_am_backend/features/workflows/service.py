@@ -18,6 +18,7 @@ from urllib.parse import quote
 
 from mjr_am_backend.adapters.comfy_core import (
     get_available_node_types,
+    get_base_path,
     get_model_filenames,
     get_output_directory,
 )
@@ -93,6 +94,21 @@ def _env_paths(raw: Any = "") -> list[Path]:
 
 
 def _detect_comfy_root() -> Path | None:
+    # `folder_paths.base_path` is the root ComfyUI itself resolved at startup -
+    # authoritative, and unlike the heuristics below it doesn't depend on the
+    # output directory or this package's own install depth being "normal", so
+    # it keeps working under non-standard layouts (e.g. portable installs)
+    # where those heuristics silently fail and make every workflow path look
+    # "not allowed".
+    try:
+        base_path = get_base_path()
+        if base_path:
+            resolved_base = Path(base_path).resolve(strict=False)
+            if resolved_base.is_dir():
+                return resolved_base
+    except Exception:
+        pass
+
     candidates: list[Path] = []
     try:
         out_dir = get_output_directory() or OUTPUT_ROOT
