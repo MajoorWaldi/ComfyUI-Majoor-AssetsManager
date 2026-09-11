@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import {
     closeAllViewerContextMenus,
@@ -7,19 +7,20 @@ import {
     viewerContextMenuState,
 } from "../../../features/contextmenu/viewerContextMenuState.js";
 import TagsEditor from "../common/TagsEditor.vue";
+import type { MjrContextMenuItem, MjrContextMenuLayer } from "../../../types/contextMenu";
 
-const mainMenuRef = ref(null);
-const submenuRef = ref(null);
-const tagsPopoverRef = ref(null);
+const mainMenuRef = ref<HTMLElement | null>(null);
+const submenuRef = ref<HTMLElement | null>(null);
+const tagsPopoverRef = ref<HTMLElement | null>(null);
 
-let submenuCloseTimer = null;
-let globalListenersController = null;
+let submenuCloseTimer: ReturnType<typeof setTimeout> | null = null;
+let globalListenersController: AbortController | null = null;
 
 const mainMenuStyle = computed(() => layerStyle(viewerContextMenuState.main, 10041));
 const submenuStyle = computed(() => layerStyle(viewerContextMenuState.submenu, 10042));
 const tagsPopoverStyle = computed(() => layerStyle(viewerContextMenuState.tags, 10043));
 
-function layerStyle(layer, zIndex) {
+function layerStyle(layer: MjrContextMenuLayer | undefined, zIndex: number) {
     return {
         position: "fixed",
         left: `${Math.round(Number(layer?.x) || 0)}px`,
@@ -43,7 +44,7 @@ function scheduleSubmenuClose() {
     }, 180);
 }
 
-function clampLayerToViewport(layer, element) {
+function clampLayerToViewport(layer: MjrContextMenuLayer | undefined, element: HTMLElement | null) {
     if (!layer?.open || !element) return;
     const rect = element.getBoundingClientRect();
     const vw = Number(window.innerWidth || 0);
@@ -58,12 +59,12 @@ function clampLayerToViewport(layer, element) {
     layer.y = y;
 }
 
-async function afterOpenClamp(layer, elementRef) {
+async function afterOpenClamp(layer: MjrContextMenuLayer, elementRef: { value: HTMLElement | null }) {
     await nextTick();
     clampLayerToViewport(layer, elementRef?.value || null);
 }
 
-function focusFirstItem(menuRef) {
+function focusFirstItem(menuRef: { value: HTMLElement | null }) {
     try {
         menuRef?.value
             ?.querySelector?.('.mjr-context-menu-item:not([aria-disabled="true"])')
@@ -73,13 +74,13 @@ function focusFirstItem(menuRef) {
     }
 }
 
-function openSubmenuForItem(item, event) {
+function openSubmenuForItem(item: MjrContextMenuItem | undefined, event: MouseEvent) {
     if (!Array.isArray(item?.submenu) || !item.submenu.length) {
         closeViewerSubmenu();
         return;
     }
     clearSubmenuTimer();
-    const target = event?.currentTarget;
+    const target = event?.currentTarget as HTMLElement | null;
     const rect = target?.getBoundingClientRect?.();
     openViewerSubmenu({
         x: Math.round((rect?.right || viewerContextMenuState.main.x || 0) + 6),
@@ -89,7 +90,7 @@ function openSubmenuForItem(item, event) {
     });
 }
 
-async function handleItemClick(item, event, source = "main") {
+async function handleItemClick(item: MjrContextMenuItem | undefined, event: Event, source = "main") {
     if (!item || item.type !== "item" || item.disabled) return;
     if (Array.isArray(item.submenu) && item.submenu.length) {
         openSubmenuForItem(item, event);
@@ -108,7 +109,7 @@ async function handleItemClick(item, event, source = "main") {
     }
 }
 
-function handleMainItemEnter(item, event) {
+function handleMainItemEnter(item: MjrContextMenuItem | undefined, event: MouseEvent) {
     if (Array.isArray(item?.submenu) && item.submenu.length) {
         openSubmenuForItem(item, event);
         return;
@@ -116,7 +117,7 @@ function handleMainItemEnter(item, event) {
     closeViewerSubmenu();
 }
 
-function handleMainItemLeave(item) {
+function handleMainItemLeave(item: MjrContextMenuItem | undefined) {
     if (Array.isArray(item?.submenu) && item.submenu.length) {
         scheduleSubmenuClose();
     }
@@ -130,8 +131,8 @@ function handleSubmenuLeave() {
     scheduleSubmenuClose();
 }
 
-function handleGlobalPointerDown(event) {
-    const target = event?.target;
+function handleGlobalPointerDown(event: PointerEvent) {
+    const target = event?.target as Node;
     const insideMenu =
         mainMenuRef.value?.contains?.(target) ||
         submenuRef.value?.contains?.(target) ||
@@ -139,7 +140,7 @@ function handleGlobalPointerDown(event) {
     if (!insideMenu) closeAllViewerContextMenus();
 }
 
-function handleGlobalKeydown(event) {
+function handleGlobalKeydown(event: KeyboardEvent) {
     if (event?.key === "Escape") closeAllViewerContextMenus();
 }
 
@@ -147,18 +148,19 @@ function handleGlobalScroll() {
     closeAllViewerContextMenus();
 }
 
-function handleCloseAllMenus(event) {
-    if (String(event?.detail?.source || "") === "viewer") return;
+function handleCloseAllMenus(event: Event) {
+    const detail = (event as CustomEvent)?.detail;
+    if (String(detail?.source || "") === "viewer") return;
     closeAllViewerContextMenus();
 }
 
-function handleTagsModelValue(tags) {
+function handleTagsModelValue(tags: unknown) {
     const asset = viewerContextMenuState.tags.asset;
     if (!asset) return;
     asset.tags = Array.isArray(tags) ? [...tags] : [];
 }
 
-function handleTagsChange(payload) {
+function handleTagsChange(payload: { tags?: unknown[] }) {
     const tags = Array.isArray(payload?.tags) ? payload.tags : [];
     try {
         viewerContextMenuState.tags.onChanged?.(tags);

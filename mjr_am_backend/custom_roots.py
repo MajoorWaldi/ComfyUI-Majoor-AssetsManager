@@ -103,7 +103,7 @@ def _is_symlink_like(path: Path) -> bool:
         if path.is_symlink():
             return True
     except Exception:
-        pass
+        logger.debug("_is_symlink_like: suppressed exception", exc_info=True)
     try:
         st = path.lstat()
         # Windows: reparse points cover symlinks/junctions + cloud placeholders.
@@ -113,7 +113,7 @@ def _is_symlink_like(path: Path) -> bool:
             if attrs & mask:
                 return True
     except Exception:
-        pass
+        logger.debug("_is_symlink_like: suppressed exception", exc_info=True)
     # Detect symlink/junction traversal in parent segments.
     # If canonical real path differs from normalized absolute path,
     # a link-like indirection is involved.
@@ -123,7 +123,7 @@ def _is_symlink_like(path: Path) -> bool:
         if abs_norm and real_norm and abs_norm != real_norm:
             return True
     except Exception:
-        pass
+        logger.debug("_is_symlink_like: suppressed exception", exc_info=True)
     return False
 
 
@@ -177,7 +177,7 @@ def _read_store(*, user_id: str | None = None) -> dict[str, Any]:
                 logger.warning("Custom roots store too large, ignoring: %s", store_path)
                 return {"version": 1, "roots": []}
         except Exception:
-            pass
+            logger.debug("_read_store: suppressed exception", exc_info=True)
         raw = store_path.read_text(encoding="utf-8")
         data = json.loads(raw) if raw else {}
         if not isinstance(data, dict):

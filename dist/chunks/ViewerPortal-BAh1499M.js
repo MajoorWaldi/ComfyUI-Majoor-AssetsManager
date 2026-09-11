@@ -1,19 +1,20 @@
 import { a as e, i as t } from "./viewerRuntimeHosts-CIiyEfr6.js";
 import { r as n } from "./events-DjjLASfV.js";
-import { a as r, c as i, i as a, l as o, o as s, s as c, t as l, u } from "./Viewer-BAMImVKX.js";
-import { i as d, r as f } from "./floatingViewerManager-DzpdJF0a.js";
-import { B as p, C as m, D as h, E as g, G as _, H as v, I as y, O as b, R as x, T as S, W as C, ct as w, dt as T, j as E, k as D, lt as O, nt as k, q as A, ut as j, w as M, z as N } from "./mjr-primevue-DtKnnCVn.js";
-import { t as P } from "./TagsEditor-Chrf2l6e.js";
+import { a as r, c as i, i as a, l as o, o as s, s as c, t as l, u } from "./Viewer-DDNDTRcP.js";
+import { i as d, r as f } from "./floatingViewerManager-Bnd82Qrd.js";
+import { B as p, C as m, D as h, E as g, G as _, J as v, K as y, L as b, N as x, O as S, T as C, U as w, V as T, dt as E, ft as D, j as O, k, lt as A, rt as j, ut as M, w as N, z as P } from "./mjr-primevue-C955bvXT.js";
+import { t as F } from "./TagsEditor-BHGoWuSC.js";
+//#endregion
 //#region ui/vue/components/viewer/FloatingViewerHost.vue
-var F = {
+var I = /* @__PURE__ */ x({
 	__name: "FloatingViewerHost",
 	setup(e) {
-		let n = k(null), r = null;
-		return x(() => {
+		let n = j(null), r = null;
+		return P(() => {
 			r = t(n.value);
-		}), N(() => {
+		}), p(() => {
 			r?.(), r = null;
-		}), (e, t) => (p(), D("div", {
+		}), (e, t) => (T(), k("div", {
 			ref_key: "hostRef",
 			ref: n,
 			class: "mjr-viewer-runtime-host mjr-viewer-runtime-host--floating",
@@ -25,15 +26,15 @@ var F = {
 			}
 		}, null, 512));
 	}
-}, I = {
+}), L = /* @__PURE__ */ x({
 	__name: "ViewerOverlayHost",
 	setup(t) {
-		let n = k(null), r = null;
-		return x(() => {
+		let n = j(null), r = null;
+		return P(() => {
 			r = e(n.value);
-		}), N(() => {
+		}), p(() => {
 			r?.(), r = null;
-		}), (e, t) => (p(), D("div", {
+		}), (e, t) => (T(), k("div", {
 			ref_key: "hostRef",
 			ref: n,
 			class: "mjr-viewer-runtime-host mjr-viewer-runtime-host--main",
@@ -45,26 +46,26 @@ var F = {
 			}
 		}, null, 512));
 	}
-}, L = {
+}), R = {
 	key: 0,
 	class: "mjr-context-menu-separator"
-}, R = { class: "mjr-context-menu-item-left" }, ee = { class: "mjr-context-menu-item-right" }, te = {
+}, ee = { class: "mjr-context-menu-item-left" }, te = { class: "mjr-context-menu-item-right" }, z = {
 	key: 0,
 	class: "mjr-context-menu-hint"
-}, z = {
+}, B = {
 	key: 1,
 	class: "mjr-context-menu-submenu-arrow"
-}, B = {
+}, V = {
 	key: 0,
 	class: "mjr-context-menu-separator"
-}, V = { class: "mjr-context-menu-item-left" }, H = {
+}, H = { class: "mjr-context-menu-item-left" }, U = {
 	key: 0,
 	class: "mjr-context-menu-hint"
-}, U = {
+}, W = /* @__PURE__ */ x({
 	__name: "ViewerContextMenu",
 	setup(e) {
-		let t = k(null), n = k(null), a = k(null), o = null, c = null, l = S(() => F(u.main, 10041)), d = S(() => F(u.submenu, 10042)), f = S(() => F(u.tags, 10043));
-		function F(e, t) {
+		let t = j(null), n = j(null), a = j(null), o = null, c = null, l = C(() => x(u.main, 10041)), d = C(() => x(u.submenu, 10042)), f = C(() => x(u.tags, 10043));
+		function x(e, t) {
 			return {
 				position: "fixed",
 				left: `${Math.round(Number(e?.x) || 0)}px`,
@@ -76,7 +77,7 @@ var F = {
 		function I() {
 			o &&= (clearTimeout(o), null);
 		}
-		function U() {
+		function L() {
 			I(), o = setTimeout(() => {
 				s();
 			}, 180);
@@ -87,7 +88,7 @@ var F = {
 			a + n.width > r && (a = Math.max(8, r - n.width - 10)), o + n.height > i && (o = Math.max(8, i - n.height - 10)), a < 8 && (a = 8), o < 8 && (o = 8), e.x = a, e.y = o;
 		}
 		async function G(e, t) {
-			await y(), W(e, t?.value || null);
+			await b(), W(e, t?.value || null);
 		}
 		function K(e) {
 			try {
@@ -133,26 +134,27 @@ var F = {
 			s();
 		}
 		function X(e) {
-			Array.isArray(e?.submenu) && e.submenu.length && U();
+			Array.isArray(e?.submenu) && e.submenu.length && L();
 		}
 		function Z() {
 			I();
 		}
 		function ne() {
-			U();
+			L();
 		}
-		function Q(e) {
+		function re(e) {
 			let i = e?.target;
 			t.value?.contains?.(i) || n.value?.contains?.(i) || a.value?.contains?.(i) || r();
 		}
-		function re(e) {
+		function Q(e) {
 			e?.key === "Escape" && r();
 		}
 		function $() {
 			r();
 		}
 		function ie(e) {
-			String(e?.detail?.source || "") !== "viewer" && r();
+			let t = e?.detail;
+			String(t?.source || "") !== "viewer" && r();
 		}
 		function ae(e) {
 			let t = u.tags.asset;
@@ -166,27 +168,27 @@ var F = {
 				console.debug?.(e);
 			}
 		}
-		return _(() => u.main.open, async (e) => {
+		return y(() => u.main.open, async (e) => {
 			e && (await G(u.main, t), K(t));
-		}), _(() => u.submenu.open, async (e) => {
+		}), y(() => u.submenu.open, async (e) => {
 			e && (await G(u.submenu, n), K(n));
-		}), _(() => u.tags.open, async (e) => {
+		}), y(() => u.tags.open, async (e) => {
 			e && await G(u.tags, a);
-		}), x(() => {
+		}), P(() => {
 			c = new AbortController();
 			let e = {
 				capture: !0,
 				passive: !0,
 				signal: c.signal
 			};
-			window.addEventListener("pointerdown", Q, e), window.addEventListener("keydown", re, {
+			window.addEventListener("pointerdown", re, e), window.addEventListener("keydown", Q, {
 				capture: !0,
 				signal: c.signal
 			}), window.addEventListener("scroll", $, e), window.addEventListener("wheel", $, e), window.addEventListener("resize", $, {
 				passive: !0,
 				signal: c.signal
 			}), window.addEventListener("mjr-close-all-menus", ie, { signal: c.signal });
-		}), N(() => {
+		}), p(() => {
 			I();
 			try {
 				c?.abort();
@@ -195,20 +197,20 @@ var F = {
 			}
 			c = null, r();
 		}), (e, r) => {
-			let i = C("MButton");
-			return p(), h(M, { to: "body" }, [
-				w(u).main.open ? (p(), D("div", {
+			let i = _("MButton");
+			return T(), h(N, { to: "body" }, [
+				A(u).main.open ? (T(), k("div", {
 					key: 0,
 					ref_key: "mainMenuRef",
 					ref: t,
 					class: "mjr-viewer-context-menu mjr-context-menu",
-					style: j(l.value),
+					style: E(l.value),
 					role: "menu",
 					"aria-label": "Viewer context menu"
-				}, [(p(!0), D(m, null, v(w(u).main.items, (e) => (p(), D(m, { key: e.id }, [e.type === "separator" ? (p(), D("div", L)) : (p(), h(i, {
+				}, [(T(!0), k(m, null, w(A(u).main.items, (e) => (T(), k(m, { key: e.id }, [e.type === "separator" ? (T(), k("div", R)) : (T(), h(i, {
 					key: 1,
 					type: "button",
-					class: O(["mjr-context-menu-item", {
+					class: M(["mjr-context-menu-item", {
 						"is-disabled": e.disabled,
 						"has-submenu": Array.isArray(e.submenu) && e.submenu.length
 					}]),
@@ -221,10 +223,10 @@ var F = {
 					onMouseenter: (t) => Y(e, t),
 					onMouseleave: (t) => X(e)
 				}, {
-					default: A(() => [g("span", R, [e.iconClass ? (p(), D("i", {
+					default: v(() => [g("span", ee, [e.iconClass ? (T(), k("i", {
 						key: 0,
-						class: O(e.iconClass)
-					}, null, 2)) : b("", !0), g("span", null, T(e.label), 1)]), g("span", ee, [e.rightHint ? (p(), D("span", te, T(e.rightHint), 1)) : b("", !0), Array.isArray(e.submenu) && e.submenu.length ? (p(), D("span", z, " > ")) : b("", !0)])]),
+						class: M(e.iconClass)
+					}, null, 2)) : S("", !0), g("span", null, D(e.label), 1)]), g("span", te, [e.rightHint ? (T(), k("span", z, D(e.rightHint), 1)) : S("", !0), Array.isArray(e.submenu) && e.submenu.length ? (T(), k("span", B, " > ")) : S("", !0)])]),
 					_: 2
 				}, 1032, [
 					"class",
@@ -233,21 +235,21 @@ var F = {
 					"onClick",
 					"onMouseenter",
 					"onMouseleave"
-				]))], 64))), 128))], 4)) : b("", !0),
-				w(u).submenu.open ? (p(), D("div", {
+				]))], 64))), 128))], 4)) : S("", !0),
+				A(u).submenu.open ? (T(), k("div", {
 					key: 1,
 					ref_key: "submenuRef",
 					ref: n,
 					class: "mjr-viewer-rating-submenu mjr-context-menu",
-					style: j(d.value),
+					style: E(d.value),
 					role: "menu",
 					"aria-label": "Viewer context submenu",
 					onMouseenter: Z,
 					onMouseleave: ne
-				}, [(p(!0), D(m, null, v(w(u).submenu.items, (e) => (p(), D(m, { key: e.id }, [e.type === "separator" ? (p(), D("div", B)) : (p(), h(i, {
+				}, [(T(!0), k(m, null, w(A(u).submenu.items, (e) => (T(), k(m, { key: e.id }, [e.type === "separator" ? (T(), k("div", V)) : (T(), h(i, {
 					key: 1,
 					type: "button",
-					class: O(["mjr-context-menu-item", { "is-disabled": e.disabled }]),
+					class: M(["mjr-context-menu-item", { "is-disabled": e.disabled }]),
 					severity: "secondary",
 					text: "",
 					role: "menuitem",
@@ -255,43 +257,43 @@ var F = {
 					tabindex: e.disabled ? -1 : 0,
 					onClick: (t) => J(e, t, "submenu")
 				}, {
-					default: A(() => [g("span", V, [e.iconClass ? (p(), D("i", {
+					default: v(() => [g("span", H, [e.iconClass ? (T(), k("i", {
 						key: 0,
-						class: O(e.iconClass)
-					}, null, 2)) : b("", !0), g("span", null, T(e.label), 1)]), e.rightHint ? (p(), D("span", H, T(e.rightHint), 1)) : b("", !0)]),
+						class: M(e.iconClass)
+					}, null, 2)) : S("", !0), g("span", null, D(e.label), 1)]), e.rightHint ? (T(), k("span", U, D(e.rightHint), 1)) : S("", !0)]),
 					_: 2
 				}, 1032, [
 					"class",
 					"aria-disabled",
 					"tabindex",
 					"onClick"
-				]))], 64))), 128))], 36)) : b("", !0),
-				w(u).tags.open && w(u).tags.asset ? (p(), D("div", {
+				]))], 64))), 128))], 36)) : S("", !0),
+				A(u).tags.open && A(u).tags.asset ? (T(), k("div", {
 					key: 2,
 					ref_key: "tagsPopoverRef",
 					ref: a,
 					class: "mjr-viewer-popover",
-					style: j(f.value)
-				}, [E(P, {
-					asset: w(u).tags.asset,
-					"model-value": w(u).tags.asset?.tags || [],
+					style: E(f.value)
+				}, [O(F, {
+					asset: A(u).tags.asset,
+					"model-value": A(u).tags.asset?.tags || [],
 					"onUpdate:modelValue": ae,
 					onTagsChange: oe
-				}, null, 8, ["asset", "model-value"])], 4)) : b("", !0)
+				}, null, 8, ["asset", "model-value"])], 4)) : S("", !0)
 			]);
 		};
 	}
-}, W = {
+}), G = /* @__PURE__ */ x({
 	__name: "ViewerContextMenuPortal",
 	setup(e) {
-		let t = k(""), n = S(() => c(t.value));
-		return x(() => {
+		let t = j(""), n = C(() => c(t.value));
+		return P(() => {
 			t.value = a();
-		}), N(() => {
+		}), p(() => {
 			o(t.value), t.value = "";
-		}), (e, t) => n.value ? (p(), h(U, { key: 0 })) : b("", !0);
+		}), (e, t) => n.value ? (T(), h(W, { key: 0 })) : S("", !0);
 	}
-}, G = {
+}), K = /* @__PURE__ */ x({
 	__name: "ViewerPortal",
 	setup(e) {
 		let t = null;
@@ -305,7 +307,7 @@ var F = {
 				console.debug?.(e);
 			}
 		}
-		return x(() => {
+		return P(() => {
 			try {
 				f();
 			} catch (e) {
@@ -321,7 +323,7 @@ var F = {
 			} catch (e) {
 				console.debug?.(e);
 			}
-		}), N(() => {
+		}), p(() => {
 			try {
 				window.removeEventListener(n.OPEN_VIEWER, r);
 			} catch (e) {
@@ -338,12 +340,12 @@ var F = {
 				console.debug?.(e);
 			}
 			t = null;
-		}), (e, t) => (p(), D(m, null, [
-			E(I),
-			E(F),
-			E(W)
+		}), (e, t) => (T(), k(m, null, [
+			O(L),
+			O(I),
+			O(G)
 		], 64));
 	}
-};
+});
 //#endregion
-export { G as default };
+export { K as default };

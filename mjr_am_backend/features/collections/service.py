@@ -177,7 +177,7 @@ class CollectionsService:
         try:
             self._base_root.mkdir(parents=True, exist_ok=True)
         except Exception:
-            pass
+            logger.debug("__init__: suppressed exception", exc_info=True)
 
     def _effective_user_id(self) -> str:
         if self._forced_user_id:
@@ -189,7 +189,7 @@ class CollectionsService:
         try:
             base.mkdir(parents=True, exist_ok=True)
         except Exception:
-            pass
+            logger.debug("_effective_base_dir: suppressed exception", exc_info=True)
         return base
 
     def _collection_path(self, collection_id: str) -> Path | None:

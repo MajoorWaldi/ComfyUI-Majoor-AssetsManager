@@ -58,7 +58,7 @@ def _base_dir_for_paths(item_type: str, paths: list[Path]) -> str:
             if all(path == root or root in path.parents for path in paths):
                 return str(root)
         except Exception:
-            pass
+            logger.debug("_base_dir_for_paths: suppressed exception", exc_info=True)
     # Fall back to the common ancestor of this (single-type) group only - mixing
     # output and temp paths into one commonpath would walk up to their shared
     # parent (e.g. the ComfyUI root) and make every subfolder wrongly include

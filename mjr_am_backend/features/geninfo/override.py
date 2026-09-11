@@ -6,6 +6,10 @@ import json
 import re
 from typing import Any
 
+from mjr_am_backend.shared import get_logger
+
+logger = get_logger(__name__)
+
 _OVERRIDE_KEYS = {"majoorgeninfo", "mjrgeninfo", "majooroverride"}
 _MAX_TEXT_LEN = 20_000
 _MAX_INFO_BLOCKS = 32
@@ -130,7 +134,7 @@ def _build_loras(value: Any, source: str) -> list[dict[str, Any]]:
             try:
                 entry["strength"] = float(strength)
             except Exception:
-                pass
+                logger.debug("_build_loras: suppressed exception", exc_info=True)
         out.append(entry)
     return out
 

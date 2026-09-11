@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 /**
  * TagsEditor.vue - Interactive tags editor with autocomplete.
  *
@@ -6,6 +6,7 @@
  * Emits tags-change event when tags are updated.
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import type { MjrAssetLike } from "../../../types/asset";
 import { getAvailableTags, updateAssetTags } from "../../../api/client.js";
 import { ASSET_TAGS_CHANGED_EVENT } from "../../../app/events.js";
 import { t } from "../../../app/i18n.js";
@@ -16,7 +17,7 @@ import { normalizeAssetId } from "../../../utils/ids.js";
 const MAX_TAG_LEN = 100;
 const MAX_TAGS = 200;
 
-function normalizeInputTag(raw) {
+function normalizeInputTag(raw: unknown) {
     try {
         const value = String(raw ?? "").trim();
         if (!value) return null;
@@ -32,7 +33,7 @@ function normalizeInputTag(raw) {
     }
 }
 
-function normalizeStoredTag(raw) {
+function normalizeStoredTag(raw: unknown) {
     try {
         const value = String(raw ?? "")
             // eslint-disable-next-line no-control-regex
@@ -44,12 +45,12 @@ function normalizeStoredTag(raw) {
     }
 }
 
-function tagKey(raw) {
+function tagKey(raw: unknown) {
     const normalized = normalizeStoredTag(raw);
     return normalized ? normalized.toLowerCase() : "";
 }
 
-function dedupeTags(rawTags) {
+function dedupeTags(rawTags: unknown) {
     const next = [];
     const seen = new Set();
     for (const raw of Array.isArray(rawTags) ? rawTags : []) {
@@ -64,7 +65,7 @@ function dedupeTags(rawTags) {
     return next;
 }
 
-function normalizeTags(rawTags) {
+function normalizeTags(rawTags: unknown) {
     if (Array.isArray(rawTags)) {
         return dedupeTags(rawTags);
     }
@@ -81,7 +82,7 @@ function normalizeTags(rawTags) {
     return [];
 }
 
-function areTagsEqual(left, right) {
+function areTagsEqual(left: unknown, right: unknown) {
     if (!Array.isArray(left) || !Array.isArray(right)) return false;
     if (left.length !== right.length) return false;
     for (let index = 0; index < left.length; index += 1) {
@@ -90,42 +91,36 @@ function areTagsEqual(left, right) {
     return true;
 }
 
-const props = defineProps({
-    asset: {
-        type: Object,
-        required: true,
-    },
-    modelValue: {
-        type: [Array, String],
-        default: () => [],
-    },
-    disabled: {
-        type: Boolean,
-        default: false,
-    },
-});
+const props = defineProps<{
+    asset: MjrAssetLike;
+    modelValue?: string[] | string;
+    disabled?: boolean;
+}>();
 
-const emit = defineEmits(["update:modelValue", "tags-change"]);
+const emit = defineEmits<{
+    "update:modelValue": [tags: string[]];
+    "tags-change": [payload: { assetId: unknown; tags: string[] }];
+}>();
 
 const initialTags = normalizeTags(props.asset?.tags ?? props.modelValue ?? []);
-const tags = ref([...initialTags]);
-const inputRef = ref(null);
+const tags = ref<string[]>([...initialTags]);
+const inputRef = ref<{ $el?: HTMLElement } | HTMLElement | null>(null);
 const inputValue = ref("");
 const showDropdown = ref(false);
 const selectedIndex = ref(-1);
-const selectedSuggestion = ref(null);
-const availableTags = ref([]);
+const selectedSuggestion = ref<string | null>(null);
+const availableTags = ref<string[]>([]);
 const saving = ref(false);
 
-const resolveDomElement = (value) => value?.$el || value || null;
+const resolveDomElement = (value: { $el?: HTMLElement } | HTMLElement | null): HTMLElement | null => (value as { $el?: HTMLElement } | null)?.$el || value || null;
 
 let saveInFlight = false;
 let savePending = false;
-let saveAC = null;
-let lastSaved = [...initialTags];
+let saveAC: AbortController | null = null;
+let lastSaved: string[] = [...initialTags];
 
-const retryDelay = (attemptIndex) => Math.min(100 * 2 ** Math.max(0, attemptIndex - 1), 2000);
-const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const retryDelay = (attemptIndex: number) => Math.min(100 * 2 ** Math.max(0, attemptIndex - 1), 2000);
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 const handleInputBlur = () => setTimeout(() => (showDropdown.value = false), 200);
 
 const filteredSuggestions = computed(() => {
@@ -143,7 +138,7 @@ const filteredSuggestions = computed(() => {
 
 const hasSuggestions = computed(() => filteredSuggestions.value.length > 0);
 
-function syncFromExternal(rawTags) {
+function syncFromExternal(rawTags: unknown) {
     if (saveInFlight) return;
     const normalized = normalizeTags(rawTags);
     lastSaved = [...normalized];
@@ -152,7 +147,7 @@ function syncFromExternal(rawTags) {
     }
 }
 
-function emitPersistedTags(nextTags) {
+function emitPersistedTags(nextTags: string[]) {
     const normalized = [...nextTags];
     const assetId = props.asset?.id != null ? String(props.asset.id) : "";
     emit("update:modelValue", normalized);
@@ -284,7 +279,7 @@ onBeforeUnmount(() => {
     }
 });
 
-function addTag(tag) {
+function addTag(tag: unknown) {
     if (props.disabled) return;
     const normalized = normalizeInputTag(tag);
     if (!normalized) return;
@@ -301,7 +296,7 @@ function addTag(tag) {
     void saveTags();
 }
 
-function removeTag(index) {
+function removeTag(index: number) {
     if (props.disabled) return;
     if (index < 0 || index >= tags.value.length) return;
     const next = [...tags.value];
@@ -310,7 +305,7 @@ function removeTag(index) {
     void saveTags();
 }
 
-function handleInputKeydown(event) {
+function handleInputKeydown(event: KeyboardEvent) {
     if (event.key === "Enter" || event.key === ",") {
         event.preventDefault();
         const highlighted =
@@ -362,7 +357,7 @@ function handleInputKeydown(event) {
     }
 }
 
-function selectSuggestion(tag) {
+function selectSuggestion(tag: unknown) {
     addTag(tag);
     inputValue.value = "";
     showDropdown.value = false;
@@ -371,7 +366,7 @@ function selectSuggestion(tag) {
     resolveDomElement(inputRef.value)?.focus();
 }
 
-function handleSuggestionChange(event) {
+function handleSuggestionChange(event: { value?: unknown } | undefined) {
     const selected = event?.value ?? selectedSuggestion.value;
     if (!selected) return;
     selectSuggestion(selected);

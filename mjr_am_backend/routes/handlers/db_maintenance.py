@@ -95,7 +95,7 @@ async def _stop_index_enrichment(index_service: Any) -> None:
         try:
             await index_service.stop_enrichment(clear_queue=True)
         except Exception:
-            pass
+            logger.debug("_stop_index_enrichment: suppressed exception", exc_info=True)
 
 
 def _invalidate_vector_searcher(svc: Any) -> None:
@@ -107,7 +107,7 @@ def _invalidate_vector_searcher(svc: Any) -> None:
         try:
             searcher.invalidate()
         except Exception:
-            pass
+            logger.debug("_invalidate_vector_searcher: suppressed exception", exc_info=True)
 
 
 async def _run_vector_backfill_job(
@@ -153,7 +153,7 @@ async def _run_vector_backfill_job(
         try:
             await _restart_watcher_if_needed(svc if isinstance(svc, dict) else None, watcher_was_running)
         except Exception:
-            pass
+            logger.debug("_run_vector_backfill_job: suppressed exception", exc_info=True)
         set_db_maintenance_active(False)
         backfill_jobs.clear_active_job_id(backfill_id)
         await maybe_unload_vector_runtime_after_use(svc, logger=logger)
@@ -607,9 +607,9 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
                     try:
                         await index_service.stop_enrichment(clear_queue=True)
                     except Exception:
-                        pass
+                        logger.debug("db_force_delete: suppressed exception", exc_info=True)
         except Exception:
-            pass
+            logger.debug("db_force_delete: suppressed exception", exc_info=True)
 
         logger.warning("Force-delete DB requested (emergency recovery)")
         try:
@@ -641,7 +641,7 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
                             )
                             started_scans.append(base_path)
                         except Exception:
-                            pass
+                            logger.debug("db_force_delete: suppressed exception", exc_info=True)
                         try:
                             from mjr_am_backend.adapters.comfy_core import get_input_directory
 
@@ -659,7 +659,7 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
                             )
                             started_scans.append(input_path)
                         except Exception:
-                            pass
+                            logger.debug("db_force_delete: suppressed exception", exc_info=True)
                     _emit_restore_status("done", "success", operation="delete_db")
                     result = Result.Ok({
                         "method": "adapter_reset",
@@ -682,7 +682,7 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
                     try:
                         await db.aclose()
                     except Exception:
-                        pass
+                        logger.debug("db_force_delete: suppressed exception", exc_info=True)
 
             # 2. Force GC to release file handles (critical on Windows)
             gc.collect()
@@ -790,7 +790,7 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
                     )
                     started_scans.append(base_path)
                 except Exception:
-                    pass
+                    logger.debug("db_force_delete: suppressed exception", exc_info=True)
                 try:
                     from mjr_am_backend.adapters.comfy_core import get_input_directory
 
@@ -808,7 +808,7 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
                     )
                     started_scans.append(input_path)
                 except Exception:
-                    pass
+                    logger.debug("db_force_delete: suppressed exception", exc_info=True)
 
             _emit_restore_status("done", "success", operation="delete_db")
             result = Result.Ok({
@@ -843,7 +843,7 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
             try:
                 await _restart_watcher_if_needed(svc if isinstance(svc, dict) else None, watcher_was_running)
             except Exception:
-                pass
+                logger.debug("db_force_delete: suppressed exception", exc_info=True)
             set_db_maintenance_active(False)
 
     @routes.post("/mjr/am/db/cleanup-case-duplicates")
@@ -897,7 +897,7 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
                 try:
                     await index_service.stop_enrichment(clear_queue=True)
                 except Exception:
-                    pass
+                    logger.debug("db_cleanup_case_duplicates: suppressed exception", exc_info=True)
 
             async with db.atransaction(mode="immediate") as tx:
                 if not tx.ok:
@@ -913,7 +913,7 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
             try:
                 await db.aquery("PRAGMA optimize", ())
             except Exception:
-                pass
+                logger.debug("db_cleanup_case_duplicates: suppressed exception", exc_info=True)
 
             payload = {"ran": True, **(cleanup_res.data or {})}
             result = Result.Ok(payload)
@@ -941,7 +941,7 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
             try:
                 await _restart_watcher_if_needed(svc if isinstance(svc, dict) else None, watcher_was_running)
             except Exception:
-                pass
+                logger.debug("db_cleanup_case_duplicates: suppressed exception", exc_info=True)
             set_db_maintenance_active(False)
 
     @routes.post("/mjr/am/db/backfill-job-ids-by-prefix")
@@ -991,7 +991,7 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
                     # Re-stack affected assets
                     pass  # Stacking will be handled on next list
             except Exception:
-                pass
+                logger.debug("db_backfill_job_ids_by_prefix: suppressed exception", exc_info=True)
 
             payload = {"ran": True, **(backfill_res.data or {})}
             result = Result.Ok(payload)
@@ -1018,7 +1018,7 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
             try:
                 await _restart_watcher_if_needed(svc if isinstance(svc, dict) else None, watcher_was_running)
             except Exception:
-                pass
+                logger.debug("db_backfill_job_ids_by_prefix: suppressed exception", exc_info=True)
             set_db_maintenance_active(False)
 
     @routes.post("/mjr/am/db/backfill-missing-vectors")
@@ -1122,7 +1122,7 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
                 try:
                     await index_service.stop_enrichment(clear_queue=True)
                 except Exception:
-                    pass
+                    logger.debug("db_backfill_missing_vectors: suppressed exception", exc_info=True)
 
             backfill_res = await _backfill_missing_asset_vectors(
                 db,
@@ -1139,7 +1139,7 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
                 try:
                     searcher.invalidate()
                 except Exception:
-                    pass
+                    logger.debug("db_backfill_missing_vectors: suppressed exception", exc_info=True)
 
             payload = {
                 "ran": True,
@@ -1178,7 +1178,7 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
             try:
                 await _restart_watcher_if_needed(svc if isinstance(svc, dict) else None, watcher_was_running)
             except Exception:
-                pass
+                logger.debug("db_backfill_missing_vectors: suppressed exception", exc_info=True)
             set_db_maintenance_active(False)
 
     @routes.get("/mjr/am/db/backfill-missing-vectors/status")
@@ -1229,7 +1229,7 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
             try:
                 await db.aquery("PRAGMA wal_checkpoint(TRUNCATE)", ())
             except Exception:
-                pass
+                logger.debug("db_backup_save: suppressed exception", exc_info=True)
             await asyncio.to_thread(_sqlite_backup_file, INDEX_DB_PATH, target)
         except Exception as exc:
             result: Result[Any] = Result.Err("DB_ERROR", safe_error_message(exc, "Failed to save DB backup"))
@@ -1336,7 +1336,7 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
                 try:
                     await index_service.stop_enrichment(clear_queue=True)
                 except Exception:
-                    pass
+                    logger.debug("db_backup_restore: suppressed exception", exc_info=True)
 
             _emit_restore_status("resetting_db", "info", operation="restore_db", name=src.name)
             reset_res = await db.areset()
@@ -1357,13 +1357,13 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
             try:
                 await db._ensure_initialized_async()
             except Exception:
-                pass
+                logger.debug("db_backup_restore: suppressed exception", exc_info=True)
             try:
                 from mjr_am_backend.adapters.db.schema import migrate_schema
 
                 await migrate_schema(db)
             except Exception:
-                pass
+                logger.debug("db_backup_restore: suppressed exception", exc_info=True)
 
             scans_triggered: list[str] = []
             if index_service:
@@ -1383,7 +1383,7 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
                     )
                     scans_triggered.append(out_path)
                 except Exception:
-                    pass
+                    logger.debug("db_backup_restore: suppressed exception", exc_info=True)
                 try:
                     from mjr_am_backend.adapters.comfy_core import get_input_directory
 
@@ -1401,7 +1401,7 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
                     )
                     scans_triggered.append(input_path)
                 except Exception:
-                    pass
+                    logger.debug("db_backup_restore: suppressed exception", exc_info=True)
         except Exception as exc:
             _emit_restore_status("failed", "error", safe_error_message(exc, "Failed to restore DB backup"), operation="restore_db", name=src.name)
             result = Result.Err("DB_ERROR", safe_error_message(exc, "Failed to restore DB backup"))
@@ -1418,7 +1418,7 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
             try:
                 await _restart_watcher_if_needed(svc if isinstance(svc, dict) else None, watcher_was_running)
             except Exception:
-                pass
+                logger.debug("db_backup_restore: suppressed exception", exc_info=True)
             set_db_maintenance_active(False)
         _emit_restore_status("done", "success", "Database restore completed", operation="restore_db", name=src.name)
         result = Result.Ok(

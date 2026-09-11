@@ -1,4 +1,6 @@
-<script setup>
+<script setup lang="ts">
+import type { MjrAssetLike } from "../../../types/asset";
+import type { MjrCluster, MjrCollectionItem, MjrSmartCollectionIdea } from "../../../types/collections";
 /**
  * CollectionsPopover.vue - Reactive collections menu.
  *
@@ -34,9 +36,9 @@ import {
 const COLLECTIONS_CHANGED_EVENT = "mjr:collections-changed";
 
 const panelStore = usePanelStore();
-const rootRef = ref(null);
+const rootRef = ref<HTMLElement | null>(null);
 
-const collections = ref([]);
+const collections = ref<MjrCollectionItem[]>([]);
 const collectionsLoading = ref(false);
 const loadError = ref("");
 
@@ -46,13 +48,13 @@ const vectorAvailable = ref(false);
 const vectorDisabled = ref(false);
 
 const clustersLoading = ref(false);
-const clusters = ref([]);
+const clusters = ref<Array<MjrCluster & { _label: string }>>([]);
 const clustersError = ref("");
 
 const busyActionKey = ref("");
 
 let _refreshToken = 0;
-let _visibilityObserver = null;
+let _visibilityObserver: MutationObserver | null = null;
 let _wasOpen = false;
 
 const activeCollectionId = computed(() => String(panelStore.collectionId || "").trim());
@@ -75,7 +77,7 @@ function emitCollectionsChanged({
     collectionName = activeCollectionName.value,
     close = true,
     reload = true,
-} = {}) {
+}: { collectionId?: string; collectionName?: string; close?: boolean; reload?: boolean } = {}) {
     try {
         window.dispatchEvent(
             new CustomEvent(COLLECTIONS_CHANGED_EVENT, {
@@ -92,7 +94,7 @@ function emitCollectionsChanged({
     }
 }
 
-function viewUrlForSample(asset) {
+function viewUrlForSample(asset: MjrAssetLike) {
     try {
         return buildAssetViewURL(asset) || "";
     } catch (e) {
@@ -132,8 +134,8 @@ async function loadAiAvailability() {
     }
 }
 
-function mergeAssetsByFilepath(...groups) {
-    const merged = [];
+function mergeAssetsByFilepath(...groups: MjrAssetLike[][]) {
+    const merged: MjrAssetLike[] = [];
     const seen = new Set();
     for (const group of groups) {
         for (const asset of Array.isArray(group) ? group : []) {
@@ -191,8 +193,8 @@ async function refresh() {
     }
 }
 
-function withBusyAction(key, fn) {
-    return async (...args) => {
+function withBusyAction<Args extends unknown[]>(key: string, fn: (...args: Args) => Promise<void>) {
+    return async (...args: Args) => {
         if (busyActionKey.value) return;
         busyActionKey.value = key;
         try {
@@ -238,7 +240,7 @@ const handleExitCollection = withBusyAction("exit", async () => {
     });
 });
 
-const handleOpenCollection = withBusyAction("open", async (item) => {
+const handleOpenCollection = withBusyAction("open", async (item: MjrCollectionItem) => {
     const id = String(item?.id || "");
     const name = String(item?.name || id);
     if (!id) return;
@@ -258,7 +260,7 @@ const handleOpenCollection = withBusyAction("open", async (item) => {
     });
 });
 
-const handleDeleteCollection = withBusyAction("delete", async (item) => {
+const handleDeleteCollection = withBusyAction("delete", async (item: MjrCollectionItem) => {
     const id = String(item?.id || "");
     const name = String(item?.name || id);
     if (!id) return;
@@ -288,7 +290,7 @@ const handleDeleteCollection = withBusyAction("delete", async (item) => {
     await refresh();
 });
 
-async function createSmartCollection(idea) {
+async function createSmartCollection(idea: MjrSmartCollectionIdea) {
     const label = String(idea?.label || "").trim();
     if (!label) return;
 
@@ -367,7 +369,7 @@ async function createSmartCollection(idea) {
     });
 }
 
-async function handleSmartSuggestion(idea) {
+async function handleSmartSuggestion(idea: MjrSmartCollectionIdea) {
     if (!idea?.key) return;
     const key = `smart:${idea.key}`;
     if (busyActionKey.value) return;
@@ -413,7 +415,7 @@ async function analyzeLibrary() {
     }
 }
 
-async function createCollectionFromCluster(cluster) {
+async function createCollectionFromCluster(cluster: MjrCluster) {
     const key = `cluster:${String(cluster?.cluster_id ?? "")}`;
     if (busyActionKey.value) return;
     busyActionKey.value = key;

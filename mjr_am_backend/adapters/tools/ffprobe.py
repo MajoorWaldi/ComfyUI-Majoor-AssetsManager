@@ -192,7 +192,7 @@ class FFProbe:
             try:
                 process.wait(timeout=5)
             except Exception:
-                pass
+                logger.debug("_run_ffprobe_cmd: suppressed exception", exc_info=True)
             raise
         return subprocess.CompletedProcess(cmd, process.returncode, stdout, stderr)
 
@@ -303,7 +303,7 @@ class FFProbe:
             try:
                 process.kill()
             except Exception:
-                pass
+                logger.debug("_communicate_with_timeout: suppressed exception", exc_info=True)
             logger.error(f"ffprobe timeout for {path}")
             return Result.Err(
                 ErrorCode.TIMEOUT,

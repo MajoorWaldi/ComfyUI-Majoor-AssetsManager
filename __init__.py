@@ -20,6 +20,9 @@ from pathlib import Path
 async def comfy_entrypoint():
     from comfy_api.latest import ComfyExtension  # type: ignore[import-untyped]
 
+    # Wraps nodes.comfy_entrypoint() rather than re-exporting it directly so a
+    # broken nodes.py import degrades to zero nodes (see except below) instead
+    # of aborting extension load entirely.
     class _MajoorAssetsManagerExtension(ComfyExtension):
         async def get_node_list(self):
             try:
@@ -55,7 +58,7 @@ def _read_version_from_pyproject() -> str:
         if match:
             return match.group(1).strip()
     except Exception:
-        pass
+        _logger.debug("_read_version_from_pyproject: suppressed exception", exc_info=True)
     return "0.0.0"
 
 
@@ -118,7 +121,7 @@ def init_prompt_server() -> None:
             try:
                 record_stage(name, status, severity, detail)
             except Exception:
-                pass
+                _logger.debug("_record: suppressed exception", exc_info=True)
 
     try:
         try:

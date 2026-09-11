@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 /**
  * RatingEditor.vue - Interactive star rating editor.
  *
@@ -12,31 +12,23 @@ import { t } from "../../../app/i18n.js";
 import { comfyToast } from "../../../app/toast.js";
 import { safeDispatchCustomEvent } from "../../../utils/events.js";
 import { normalizeAssetId } from "../../../utils/ids.js";
+import type { MjrAssetLike } from "../../../types/asset";
 
-function clampRating(value) {
+function clampRating(value: unknown) {
     return Math.max(0, Math.min(5, Number(value) || 0));
 }
 
-const props = defineProps({
-    asset: {
-        type: Object,
-        required: true,
-    },
-    modelValue: {
-        type: [Number, String],
-        default: 0,
-    },
-    disabled: {
-        type: Boolean,
-        default: false,
-    },
-    size: {
-        type: [Number, String],
-        default: 16,
-    },
-});
+const props = defineProps<{
+    asset: MjrAssetLike;
+    modelValue?: number | string;
+    disabled?: boolean;
+    size?: number | string;
+}>();
 
-const emit = defineEmits(["update:modelValue", "rating-change"]);
+const emit = defineEmits<{
+    "update:modelValue": [value: number];
+    "rating-change": [payload: { assetId: unknown; rating: number }];
+}>();
 
 const initialRating = clampRating(props.asset?.rating ?? props.modelValue);
 const currentRating = ref(initialRating);
@@ -45,15 +37,15 @@ const saving = ref(false);
 
 let savedRating = initialRating;
 let desiredRating = initialRating;
-let saveAC = null;
+let saveAC: AbortController | null = null;
 
 const displayRating = computed(() =>
     hoveredStar.value > 0 ? hoveredStar.value : currentRating.value,
 );
 
-const starColor = (starValue) => (starValue <= displayRating.value ? "#FFD45A" : "#555");
+const starColor = (starValue: number) => (starValue <= displayRating.value ? "#FFD45A" : "#555");
 
-const starTransform = (starValue) => (starValue <= displayRating.value ? "scale(1.1)" : "scale(1)");
+const starTransform = (starValue: number) => (starValue <= displayRating.value ? "scale(1.1)" : "scale(1)");
 
 const starSize = computed(() => {
     const raw = props.size;
@@ -62,10 +54,10 @@ const starSize = computed(() => {
     return text || "16px";
 });
 
-const retryDelay = (attemptIndex) => Math.min(100 * 2 ** Math.max(0, attemptIndex - 1), 2000);
-const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const retryDelay = (attemptIndex: number) => Math.min(100 * 2 ** Math.max(0, attemptIndex - 1), 2000);
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-function syncFromExternal(nextValue) {
+function syncFromExternal(nextValue: unknown) {
     if (saving.value) return;
     const next = clampRating(nextValue);
     savedRating = next;
@@ -75,7 +67,7 @@ function syncFromExternal(nextValue) {
     }
 }
 
-function revertToSavedRating(message = null) {
+function revertToSavedRating(message: string | null = null) {
     currentRating.value = savedRating;
     desiredRating = savedRating;
     emit("update:modelValue", savedRating);
@@ -159,7 +151,7 @@ async function flushSaves() {
     }
 }
 
-function queueRating(nextRating) {
+function queueRating(nextRating: unknown) {
     if (props.disabled) return;
     const normalized = clampRating(nextRating);
     desiredRating = normalized;
@@ -174,11 +166,11 @@ function queueRating(nextRating) {
     void flushSaves();
 }
 
-function handleStarClick(rating) {
+function handleStarClick(rating: number) {
     queueRating(rating);
 }
 
-function handleStarEnter(rating) {
+function handleStarEnter(rating: number) {
     if (props.disabled) return;
     hoveredStar.value = rating;
 }
@@ -187,10 +179,10 @@ function handleStarLeave() {
     hoveredStar.value = 0;
 }
 
-function handleKeydown(event) {
+function handleKeydown(event: KeyboardEvent) {
     if (props.disabled) return;
 
-    let nextRating = null;
+    let nextRating: number | null = null;
     switch (event.key) {
         case "ArrowRight":
         case "ArrowUp":

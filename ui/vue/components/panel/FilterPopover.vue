@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 /**
  * FilterPopover.vue — Reactive filter menu, content-only.
  *
@@ -20,21 +20,23 @@ const panelStore = usePanelStore();
 
 // Numeric/date inputs still expose DOM elements. Selects/checkboxes expose
 // value facades because PrimeVue does not render native select nodes.
-const minSizeInputRef = ref(null);
-const maxSizeInputRef = ref(null);
-const minWidthInputRef = ref(null);
-const minHeightInputRef = ref(null);
-const maxWidthInputRef = ref(null);
-const maxHeightInputRef = ref(null);
-const agendaContainerRef = ref(null);
-const dateExactInputRef = ref(null);
-const workflowIdInputRef = ref(null);
-const workflowModelInputRef = ref(null);
-const workflowModelFamilyOptions = ref([{ label: t("filter.any", "Any"), value: "" }]);
+type MaybeComponentRef = { $el?: HTMLInputElement; value?: string } | HTMLInputElement | null;
 
-const resolveDomElement = (value) => value?.$el || value || null;
-const getInputValue = (inputRef) => resolveDomElement(inputRef.value)?.value || "";
-const setInputValue = (inputRef, value) => {
+const minSizeInputRef = ref<MaybeComponentRef>(null);
+const maxSizeInputRef = ref<MaybeComponentRef>(null);
+const minWidthInputRef = ref<MaybeComponentRef>(null);
+const minHeightInputRef = ref<MaybeComponentRef>(null);
+const maxWidthInputRef = ref<MaybeComponentRef>(null);
+const maxHeightInputRef = ref<MaybeComponentRef>(null);
+const agendaContainerRef = ref<HTMLElement | null>(null);
+const dateExactInputRef = ref<MaybeComponentRef>(null);
+const workflowIdInputRef = ref<MaybeComponentRef>(null);
+const workflowModelInputRef = ref<MaybeComponentRef>(null);
+const workflowModelFamilyOptions = ref<Array<{ label: string; value: string }>>([{ label: t("filter.any", "Any"), value: "" }]);
+
+const resolveDomElement = (value: MaybeComponentRef): HTMLInputElement | null => ((value as { $el?: HTMLInputElement } | null)?.$el || value || null) as HTMLInputElement | null;
+const getInputValue = (inputRef: { value: MaybeComponentRef }) => resolveDomElement(inputRef.value)?.value || "";
+const setInputValue = (inputRef: { value: MaybeComponentRef }, value: unknown) => {
     const input = resolveDomElement(inputRef.value);
     if (input) input.value = String(value ?? "");
 };
@@ -131,7 +133,7 @@ const agendaInputClass = computed(() => {
     };
 });
 
-const parseLooseNumber = (value) => {
+const parseLooseNumber = (value: unknown) => {
     const raw = String(value ?? "").trim();
     if (!raw) return 0;
     const normalized = raw.replace(",", ".");
@@ -169,41 +171,41 @@ onMounted(() => {
     void refreshWorkflowModelFamilies();
 });
 
-const applyKindValue = (value, { emit = true } = {}) => {
+const applyKindValue = (value: unknown, { emit = true }: { emit?: boolean } = {}) => {
     panelStore.kindFilter = String(value || "");
     if (emit) dispatchFiltersChanged();
 };
 
-const applyWorkflowOnlyValue = (value, { emit = true } = {}) => {
+const applyWorkflowOnlyValue = (value: unknown, { emit = true }: { emit?: boolean } = {}) => {
     panelStore.workflowOnly = Boolean(value);
     if (emit) dispatchFiltersChanged();
 };
 
-const applyWorkflowTypeValue = (value, { emit = true } = {}) => {
+const applyWorkflowTypeValue = (value: unknown, { emit = true }: { emit?: boolean } = {}) => {
     panelStore.workflowType = String(value || "")
         .trim()
         .toUpperCase();
     if (emit) dispatchFiltersChanged();
 };
 
-const applyWorkflowIdValue = (value, { emit = true } = {}) => {
+const applyWorkflowIdValue = (value: unknown, { emit = true }: { emit?: boolean } = {}) => {
     panelStore.workflowId = String(value || "").trim();
     if (emit) dispatchFiltersChanged();
 };
 
-const applyWorkflowModelValue = (value, { emit = true } = {}) => {
+const applyWorkflowModelValue = (value: unknown, { emit = true }: { emit?: boolean } = {}) => {
     panelStore.workflowModelFilter = String(value || "").trim();
     if (emit) dispatchFiltersChanged();
 };
 
-const applyWorkflowRunsOnValue = (value, { emit = true } = {}) => {
+const applyWorkflowRunsOnValue = (value: unknown, { emit = true }: { emit?: boolean } = {}) => {
     panelStore.workflowRunsOnFilter = String(value || "")
         .trim()
         .toLowerCase();
     if (emit) dispatchFiltersChanged();
 };
 
-const applyRatingValue = (value, { emit = true } = {}) => {
+const applyRatingValue = (value: unknown, { emit = true }: { emit?: boolean } = {}) => {
     panelStore.minRating = Number(value || 0) || 0;
     if (emit) dispatchFiltersChanged();
 };
@@ -240,7 +242,7 @@ const onResolutionChange = () => {
     dispatchFiltersChanged();
 };
 
-const applyResolutionPresetValue = (value, { emit = true } = {}) => {
+const applyResolutionPresetValue = (value: unknown, { emit = true }: { emit?: boolean } = {}) => {
     const preset = String(value || "").trim();
     const map = {
         hd: [1280, 720],
@@ -248,7 +250,7 @@ const applyResolutionPresetValue = (value, { emit = true } = {}) => {
         qhd: [2560, 1440],
         uhd: [3840, 2160],
     };
-    const [w, h] = map[preset] || [0, 0];
+    const [w, h] = (map as Record<string, [number, number]>)[preset] || [0, 0];
     panelStore.minWidth = Number(w || 0);
     panelStore.minHeight = Number(h || 0);
     panelStore.maxWidth = 0;
@@ -260,7 +262,7 @@ const applyResolutionPresetValue = (value, { emit = true } = {}) => {
     if (emit) dispatchFiltersChanged();
 };
 
-const applyDateRangeValue = (value, { emit = true } = {}) => {
+const applyDateRangeValue = (value: unknown, { emit = true }: { emit?: boolean } = {}) => {
     panelStore.dateRangeFilter = String(value || "");
     if (panelStore.dateRangeFilter && panelStore.dateExactFilter) {
         panelStore.dateExactFilter = "";
@@ -269,30 +271,30 @@ const applyDateRangeValue = (value, { emit = true } = {}) => {
     if (emit) dispatchFiltersChanged();
 };
 
-const onDateExactChange = (event) => {
-    panelStore.dateExactFilter = String(event?.target?.value || "").trim();
+const onDateExactChange = (event: Event) => {
+    panelStore.dateExactFilter = String((event?.target as HTMLInputElement)?.value || "").trim();
     if (panelStore.dateExactFilter && panelStore.dateRangeFilter) {
         panelStore.dateRangeFilter = "";
     }
     dispatchFiltersChanged();
 };
 
-const toggleGroup = (groupName) => {
+const toggleGroup = (groupName: string) => {
     const key = String(groupName || "").trim().toLowerCase();
     if (!key || !(key in groupOpen.value)) return;
     groupOpen.value = {
         ...groupOpen.value,
-        [key]: !groupOpen.value[key],
+        [key]: !(groupOpen.value as Record<string, boolean>)[key],
     };
 };
 
-const isGroupOpen = (groupName) => Boolean(groupOpen.value[String(groupName || "").trim().toLowerCase()]);
+const isGroupOpen = (groupName: string) => Boolean((groupOpen.value as Record<string, boolean>)[String(groupName || "").trim().toLowerCase()]);
 
-const createValueFacade = ({ getValue, setValue }) => ({
+const createValueFacade = ({ getValue, setValue }: { getValue: () => unknown; setValue: (value: unknown, opts: { emit: boolean }) => void }) => ({
     get value() {
         return getValue();
     },
-    set value(nextValue) {
+    set value(nextValue: unknown) {
         setValue(nextValue, { emit: false });
     },
     addEventListener() {},
@@ -302,11 +304,11 @@ const createValueFacade = ({ getValue, setValue }) => ({
     },
 });
 
-const createCheckedFacade = ({ getChecked, setChecked }) => ({
+const createCheckedFacade = ({ getChecked, setChecked }: { getChecked: () => unknown; setChecked: (value: unknown, opts: { emit: boolean }) => void }) => ({
     get checked() {
         return getChecked();
     },
-    set checked(nextChecked) {
+    set checked(nextChecked: unknown) {
         setChecked(nextChecked, { emit: false });
     },
     addEventListener() {},

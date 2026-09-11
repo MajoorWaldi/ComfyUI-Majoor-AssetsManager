@@ -1,5 +1,6 @@
-<script setup>
+<script setup lang="ts">
 import { computed, ref, watch } from "vue";
+import type { MjrAssetLike } from "../../../../types/asset";
 import { vectorGenerateCaption, vectorGetAlignment } from "../../../../api/client.js";
 import { t } from "../../../../app/i18n.js";
 import { metadataSectionByKey } from "../../../../features/metadata/metadataSectionCatalog.js";
@@ -12,9 +13,9 @@ import {
     normalizeCaptionDisplay,
 } from "./generationSectionState.js";
 
-const props = defineProps({
-    asset: { type: Object, required: true },
-});
+const props = defineProps<{
+    asset: MjrAssetLike;
+}>();
 
 const promptTabIndex = ref(0);
 const pipelineTabIndex = ref(0);
@@ -22,11 +23,23 @@ const captionText = ref("");
 const copyCaptionLabel = ref(t("action.copy", "Copy"));
 const generateCaptionLabel = ref(t("action.generate", "Generate"));
 const generatingCaption = ref(false);
-const alignmentState = ref(createDefaultAlignmentState());
+interface AlignmentState {
+    scoreText: string;
+    scoreColor: string;
+    qualityText: string;
+    qualityColor: string;
+    qualityBackground: string;
+    fillWidth: string;
+    fillColor: string;
+    aiStatusVisible: boolean;
+    aiStatusText: string;
+}
+
+const alignmentState = ref<AlignmentState>(createDefaultAlignmentState());
 
 let alignmentRequestToken = 0;
 
-function createDefaultAlignmentState() {
+function createDefaultAlignmentState(): AlignmentState {
     return {
         scoreText: "...",
         scoreColor: "#888",
@@ -40,7 +53,7 @@ function createDefaultAlignmentState() {
     };
 }
 
-function hexToRgba(hex, alpha) {
+function hexToRgba(hex: unknown, alpha: number) {
     const normalized = String(hex || "")
         .trim()
         .replace(/^#/, "");
@@ -51,7 +64,7 @@ function hexToRgba(hex, alpha) {
     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
-function boxStyle(accentColor, { emphasis = false, startAlpha = 0.16, endAlpha = 0.08 } = {}) {
+function boxStyle(accentColor: unknown, { emphasis = false, startAlpha = 0.16, endAlpha = 0.08 }: { emphasis?: boolean; startAlpha?: number; endAlpha?: number } = {}) {
     return {
         background: emphasis
             ? `linear-gradient(135deg, ${hexToRgba(accentColor, startAlpha)} 0%, ${hexToRgba(accentColor, endAlpha)} 100%)`
@@ -190,7 +203,7 @@ const parameterSections = computed(() => {
     return sections;
 });
 
-function flashBackground(target, background, delay = 450) {
+function flashBackground(target: HTMLElement | null | undefined, background: string, delay = 450) {
     if (!target) return;
 
     const previous = target.style.background;
@@ -200,7 +213,7 @@ function flashBackground(target, background, delay = 450) {
     }, delay);
 }
 
-function modelGroupStyle(accentColor, emphasis = true) {
+function modelGroupStyle(accentColor: unknown, emphasis = true) {
     return {
         background: emphasis
             ? `linear-gradient(135deg, ${hexToRgba(accentColor, 0.16)} 0%, ${hexToRgba(accentColor, 0.08)} 100%)`
@@ -215,11 +228,11 @@ function modelGroupStyle(accentColor, emphasis = true) {
     };
 }
 
-function modelBranchAccent(branch) {
+function modelBranchAccent(_branch: { key?: unknown }) {
     return "#CE6DE0";
 }
 
-function samplingBranchAccent(branch) {
+function samplingBranchAccent(branch: { key?: unknown }) {
     const key = String(branch?.key || "").toLowerCase();
     if (key.includes("high")) return "#FFC107";
     if (key.includes("low")) return "#FFB300";
@@ -229,13 +242,13 @@ function samplingBranchAccent(branch) {
     return "#FF9800";
 }
 
-function modelGroupAccent(key) {
+function modelGroupAccent(key: unknown) {
     if (key === "high_noise") return "#FF7043";
     if (key === "low_noise") return "#29B6F6";
     return "#AB47BC";
 }
 
-async function copyText(value, target = null, background = "rgba(76, 175, 80, 0.35)") {
+async function copyText(value: unknown, target: HTMLElement | null = null, background = "rgba(76, 175, 80, 0.35)") {
     const text = String(value ?? "").trim();
     if (!text || text === "-") return;
     try {

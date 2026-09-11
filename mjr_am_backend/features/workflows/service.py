@@ -107,18 +107,18 @@ def _detect_comfy_root() -> Path | None:
             if resolved_base.is_dir():
                 return resolved_base
     except Exception:
-        pass
+        logger.debug("_detect_comfy_root: suppressed exception", exc_info=True)
 
     candidates: list[Path] = []
     try:
         out_dir = get_output_directory() or OUTPUT_ROOT
         candidates.extend(Path(out_dir).resolve(strict=False).parents)
     except Exception:
-        pass
+        logger.debug("_detect_comfy_root: suppressed exception", exc_info=True)
     try:
         candidates.extend(Path(__file__).resolve().parents)
     except Exception:
-        pass
+        logger.debug("_detect_comfy_root: suppressed exception", exc_info=True)
     for parent in candidates:
         try:
             if (parent / "main.py").is_file() and (parent / "folder_paths.py").is_file():
@@ -148,7 +148,7 @@ def workflow_roots() -> list[Path]:
             ]
         )
     except Exception:
-        pass
+        logger.debug("workflow_roots: suppressed exception", exc_info=True)
 
     out: list[Path] = []
     seen: set[str] = set()
@@ -243,7 +243,7 @@ def _atomic_write_json(path: Path, payload: dict[str, Any]) -> Result[bool]:
                 if tmp_path.exists():
                     tmp_path.unlink()
             except Exception:
-                pass
+                logger.debug("_atomic_write_json: suppressed exception", exc_info=True)
         return Result.Ok(True)
     except Exception as exc:
         logger.debug("Workflow write failed", exc_info=True)
@@ -824,11 +824,11 @@ def _is_allowed_thumbnail_source(path: Path) -> bool:
         out_dir = get_output_directory() or OUTPUT_ROOT
         roots.append(Path(out_dir))
     except Exception:
-        pass
+        logger.debug("_is_allowed_thumbnail_source: suppressed exception", exc_info=True)
     try:
         roots.append(Path(OUTPUT_ROOT))
     except Exception:
-        pass
+        logger.debug("_is_allowed_thumbnail_source: suppressed exception", exc_info=True)
     return any(_is_path_inside(resolved, root) for root in roots)
 
 
@@ -882,7 +882,7 @@ def _clear_stale_workflow_thumbnails(workflow_path: Path, keep_suffix: str) -> N
             try:
                 stale.unlink()
             except Exception:
-                pass
+                logger.debug("_clear_stale_workflow_thumbnails: suppressed exception", exc_info=True)
 
 
 def _collect_linked_preview_keys(cards: list[dict[str, Any]]) -> tuple[set[str], set[str]]:
@@ -1548,7 +1548,7 @@ def _move_workflow_history_dir(source: Path, target: Path) -> None:
     try:
         source_history.rmdir()
     except Exception:
-        pass
+        logger.debug("_move_workflow_history_dir: suppressed exception", exc_info=True)
 
 
 def _update_workflow_library_filepath(source: Path, target: Path) -> None:
@@ -2113,7 +2113,7 @@ def _workflow_root_for_path(path: Path, roots: list[Path]) -> Path:
             if resolved == root_resolved or root_resolved in resolved.parents:
                 return root_resolved
     except Exception:
-        pass
+        logger.debug("_workflow_root_for_path: suppressed exception", exc_info=True)
     return path.parent
 
 
@@ -2432,7 +2432,7 @@ def _list_workflows_from_filesystem(
                     if safe_subfolder and rel != safe_subfolder:
                         continue
                 except Exception:
-                    pass
+                    logger.debug("_list_workflows_from_filesystem: suppressed exception", exc_info=True)
                 card = _workflow_to_card(path, root)
                 if card and _matches_query(card, query):
                     cards.append(card)

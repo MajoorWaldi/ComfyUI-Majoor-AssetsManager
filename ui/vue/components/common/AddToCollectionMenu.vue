@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import { listCollections, createCollection, addAssetsToCollection } from "../../../api/client.js";
 import { comfyPrompt } from "../../../app/dialogs.js";
@@ -8,14 +8,15 @@ import {
     addToCollectionMenuState,
     closeAddToCollectionMenu,
 } from "../../../features/collections/contextmenu/addToCollectionMenuState.js";
+import type { MjrAddCollectionResult, MjrCollectionItem } from "../../../types/collections";
 
-const menuRef = ref(null);
+const menuRef = ref<HTMLElement | null>(null);
 const loading = ref(false);
-const collections = ref([]);
+const collections = ref<MjrCollectionItem[]>([]);
 const loadError = ref("");
 
 let loadToken = 0;
-let globalListenersController = null;
+let globalListenersController: AbortController | null = null;
 
 const menuStyle = computed(() => ({
     position: "fixed",
@@ -31,7 +32,7 @@ const selectionLabel = computed(() =>
     (selectionCount.value > 1 ? ` (${selectionCount.value})` : ""),
 );
 
-function formatAddResultMessage({ collectionName, selectedCount, addRes }) {
+function formatAddResultMessage({ collectionName, selectedCount, addRes }: { collectionName?: unknown; selectedCount: number; addRes: MjrAddCollectionResult }) {
     const added = Number(addRes?.data?.added ?? 0) || 0;
     const skippedExisting = Number(addRes?.data?.skipped_existing ?? 0) || 0;
     const skippedDuplicate = Number(addRes?.data?.skipped_duplicate ?? 0) || 0;
@@ -111,7 +112,7 @@ async function loadCollections() {
     }
 }
 
-async function addToCollection(id, name) {
+async function addToCollection(id: string, name: string) {
     const selected = Array.isArray(addToCollectionMenuState.assets)
         ? addToCollectionMenuState.assets
         : [];
@@ -176,13 +177,13 @@ async function createAndAddCollection() {
     );
 }
 
-function handleGlobalPointerDown(event) {
-    if (!menuRef.value?.contains?.(event?.target)) {
+function handleGlobalPointerDown(event: PointerEvent) {
+    if (!menuRef.value?.contains?.(event?.target as Node)) {
         closeAddToCollectionMenu();
     }
 }
 
-function handleGlobalKeydown(event) {
+function handleGlobalKeydown(event: KeyboardEvent) {
     if (event?.key === "Escape") closeAddToCollectionMenu();
 }
 

@@ -202,7 +202,7 @@ async def _remove_custom_root_runtime_artifacts(root_path: str, rid: object) -> 
                 try:
                     await asyncio.sleep(0.25)
                 except Exception:
-                    pass
+                    logger.debug("_remove_custom_root_runtime_artifacts: suppressed exception", exc_info=True)
     if last_exc is not None:
         report["db_ok"] = False
         report["errors"].append(f"db:{last_exc.__class__.__name__}")
@@ -656,7 +656,7 @@ def register_custom_roots_routes(routes: web.RouteTableDef) -> None:
                 resp.headers["Content-Security-Policy"] = "default-src 'none'"
                 resp.headers["X-Frame-Options"] = "DENY"
             except Exception:
-                pass
+                logger.debug("_validate_no_symlink_open: suppressed exception", exc_info=True)
             return resp
         except FileNotFoundError:
             return _json_response(Result.Err("NOT_FOUND", "File not found"))
@@ -727,7 +727,7 @@ def register_custom_roots_routes(routes: web.RouteTableDef) -> None:
                 stats["root_id"] = root_id
                 stats["relative_path"] = str(target.relative_to(base_root)).replace("\\", "/")
             except Exception:
-                pass
+                logger.debug("folder_info: suppressed exception", exc_info=True)
         return _json_response(Result.Ok(stats))
 
     @routes.post("/mjr/am/browser/folder-op")
@@ -821,7 +821,7 @@ def register_custom_roots_routes(routes: web.RouteTableDef) -> None:
                         recursive=False, incremental=True, respect_bg_scan_on_list=False,
                     )
                 except Exception:
-                    pass
+                    logger.debug("browser_folder_op: suppressed exception", exc_info=True)
                 result = Result.Ok({"path": str(target.resolve(strict=False))})
             except Exception as exc:
                 result = Result.Err("MOVE_FAILED", sanitize_error_message(exc, "Failed to move file"))

@@ -10,8 +10,11 @@ from queue import Empty
 from typing import Any
 
 import aiosqlite
+from mjr_am_backend.shared import get_logger
 
 from .connection_pool import runtime_status as pool_runtime_status
+
+logger = get_logger(__name__)
 
 
 def get_runtime_status(self, *, busy_timeout_ms: int) -> dict[str, Any]:
@@ -94,7 +97,7 @@ async def release_connection_async(self, conn: aiosqlite.Connection):
             try:
                 await conn.close()
             except Exception:
-                pass
+                logger.debug("release_connection_async: suppressed exception", exc_info=True)
     finally:
         if self._async_sem:
             self._async_sem.release()
@@ -125,7 +128,7 @@ async def ensure_initialized_async(
             try:
                 await conn.close()
             except Exception:
-                pass
+                logger.debug("ensure_initialized_async: suppressed exception", exc_info=True)
         else:
             await release_connection_async(self, conn)
     with self._lock:

@@ -1,5 +1,5 @@
-<script setup>
-import { computed, nextTick, onBeforeUnmount, onMounted, provide, ref, watch } from "vue";
+<script setup lang="ts">
+import { computed, nextTick, onBeforeUnmount, onMounted, provide, ref, watch, type Ref } from "vue";
 import { APP_CONFIG } from "../../../app/config.js";
 import { EVENTS } from "../../../app/events.js";
 import { get, getWorkflowContent, markWorkflowLoaded, setWorkflowFavorite } from "../../../api/client.js";
@@ -27,35 +27,34 @@ import { buildStaticGridRows, useGridVirtualRows } from "../../grid/useGridVirtu
 import { useInfiniteTrigger } from "../../grid/useInfiniteTrigger.js";
 import { buildDisplayAssets, isRenderableAsset } from "../../grid/useGridDisplayAssets.js";
 import { readRenderedAssetCards } from "./gridDomBridge.js";
+import type { MjrAssetLike } from "../../../types/asset";
 
-const props = defineProps({
-    scrollElement: {
-        type: [Object, null],
-        default: null,
+const props = withDefaults(
+    defineProps<{
+        scrollElement?: Ref<HTMLElement | null> | HTMLElement | null;
+        virtualize?: boolean;
+        applyDefaultSettingsClasses?: boolean;
+        onCardRendered?: ((card: HTMLElement, asset: MjrAssetLike, gridContainer: HTMLElement | null) => void) | null;
+        onCardDblclick?: ((payload: { asset: MjrAssetLike; assets: MjrAssetLike[]; gridContainer: HTMLElement | null }) => void) | null;
+        emitWindowSelectionEvents?: boolean;
+    }>(),
+    {
+        scrollElement: null,
+        virtualize: true,
+        applyDefaultSettingsClasses: true,
+        onCardRendered: null,
+        onCardDblclick: null,
+        emitWindowSelectionEvents: true,
     },
-    virtualize: {
-        type: Boolean,
-        default: true,
-    },
-    applyDefaultSettingsClasses: {
-        type: Boolean,
-        default: true,
-    },
-    onCardRendered: {
-        type: Function,
-        default: null,
-    },
-    onCardDblclick: {
-        type: Function,
-        default: null,
-    },
-    emitWindowSelectionEvents: {
-        type: Boolean,
-        default: true,
-    },
-});
+);
 
-const gridContainerRef = ref(null);
+// The container carries ~30 ad-hoc `_mjr*` properties written by this
+// component and read by legacy controller code (GridSelectionManager,
+// DragDrop, etc.) -- an index signature matches that existing contract
+// rather than re-declaring each property.
+type MjrGridContainer = HTMLDivElement & Record<string, any>;
+
+const gridContainerRef = ref<MjrGridContainer | null>(null);
 const hostWidth = ref(1024); // Fallback until ResizeObserver fires
 const hasMeasuredHostWidthOnce = ref(true); // Don't block first render
 const settingsVersion = ref(0);
@@ -168,7 +167,7 @@ const {
     getActiveAsset,
 } = useGridState();
 
-function resolveElement(maybeRef) {
+function resolveElement(maybeRef: Ref<HTMLElement | null> | HTMLElement | null | undefined) {
     if (!maybeRef) return null;
     if (typeof maybeRef === "object" && "value" in maybeRef) {
         return maybeRef.value || null;
@@ -1470,7 +1469,7 @@ async function loadWorkflowAsset(asset) {
     comfyToast(t("toast.workflowLoaded", "Workflow loaded"), "success", 1800);
 }
 
-function handleCardDblclick(asset) {
+function handleCardDblclick(asset: MjrAssetLike) {
     try {
         if (typeof props.onCardDblclick === "function") {
             props.onCardDblclick({

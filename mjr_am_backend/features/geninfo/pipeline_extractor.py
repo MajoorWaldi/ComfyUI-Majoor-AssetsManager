@@ -5,6 +5,8 @@ from __future__ import annotations
 import json
 from typing import Any
 
+from mjr_am_backend.shared import get_logger
+
 from .graph_converter import (
     _collect_upstream_nodes,
     _inputs,
@@ -21,6 +23,8 @@ from .sampler_widget_extractor import (
     _looks_like_pipeline_pass_node,
     _node_has_detailer_signals,
 )
+
+logger = get_logger(__name__)
 
 _SAMPLER_FIELD_SPECS: list[tuple[str, type[int] | type[float] | type[str]]] = [
     ("sampler_name", str),
@@ -41,7 +45,7 @@ def _cast_sampler_fields(sampler_values: dict[str, Any], target: dict[str, Any])
         try:
             target[key] = caster(val)  # type: ignore[operator]
         except Exception:
-            pass
+            logger.debug("_cast_sampler_fields: suppressed exception", exc_info=True)
 
 
 def _classify_pipeline_pass_name(

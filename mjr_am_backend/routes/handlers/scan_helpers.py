@@ -74,7 +74,7 @@ def _emit_maintenance_status(step: str, level: str = "info", message: str | None
             payload.update(extra)
         send_event("mjr-db-restore-status", payload)
     except Exception:
-        pass
+        logger.debug("_emit_maintenance_status: suppressed exception", exc_info=True)
 
 
 # ---------------------------------------------------------------------------
@@ -89,7 +89,7 @@ async def _runtime_output_root(svc: dict | None) -> str:
             if override:
                 return str(Path(override).resolve(strict=False))
     except Exception:
-        pass
+        logger.debug("_runtime_output_root: suppressed exception", exc_info=True)
     return str(Path(OUTPUT_ROOT).resolve(strict=False))
 
 
@@ -226,7 +226,7 @@ async def _write_multipart_file_atomic(dest_dir: Path, filename: str, field) -> 
             try:
                 claimed_final.unlink(missing_ok=True)
             except Exception:
-                pass
+                logger.debug("_write_multipart_file_atomic: suppressed exception", exc_info=True)
         _cleanup_temp_upload_file(fd, tmp_path)
         return Result.Err("UPLOAD_FAILED", safe_error_message(exc, "Upload failed"))
 
@@ -277,12 +277,12 @@ def _cleanup_temp_upload_file(fd: int | None, tmp_path: str | None) -> None:
         if fd is not None:
             os.close(fd)
     except Exception:
-        pass
+        logger.debug("_cleanup_temp_upload_file: suppressed exception", exc_info=True)
     try:
         if tmp_path:
             Path(str(tmp_path)).unlink(missing_ok=True)
     except Exception:
-        pass
+        logger.debug("_cleanup_temp_upload_file: suppressed exception", exc_info=True)
 
 
 # ---------------------------------------------------------------------------

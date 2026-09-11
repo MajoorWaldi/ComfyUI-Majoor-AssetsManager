@@ -9,16 +9,16 @@
         "label": "Basculer le floating viewer Majoor"
     },
     "mjr_refreshAssetsGrid": {
-        "label": "Rafraichir la grille d'assets Majoor"
+        "label": "Rafraîchir la grille d'assets Majoor"
     },
     "mjr_openFloatingViewer": {
         "label": "Ouvrir le floating viewer Majoor"
     },
     "mjr_openGeneratedFeed": {
-        "label": "Ouvrir le flux genere Majoor"
+        "label": "Ouvrir le flux généré Majoor"
     },
     "mjr_openSettings": {
-        "label": "Ouvrir les parametres Majoor"
+        "label": "Ouvrir les paramètres Majoor"
     },
     "mjr_pickOutputDirectory": {
         "label": "Choisir le dossier de sortie Majoor"
@@ -27,9 +27,9 @@
         "label": "Choisir le dossier d'index Majoor"
     },
     "mjr_openNodeContext": {
-        "label": "Afficher les assets de ce noeud dans Majoor Assets Manager"
+        "label": "Afficher les assets de ce nœud dans Majoor Assets Manager"
     },
     "mjr_openNodeInFloatingViewer": {
-        "label": "Ouvrir le media de ce noeud dans le floating viewer Majoor"
+        "label": "Ouvrir le média de ce nœud dans le floating viewer Majoor"
     }
 }

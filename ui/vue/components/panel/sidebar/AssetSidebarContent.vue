@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 /**
  * AssetSidebarContent.vue — Vue-rendered sidebar content.
  *
@@ -6,6 +6,7 @@
  * workflow minimap now render directly in Vue.
  */
 import { computed, ref } from "vue";
+import type { MjrAssetLike } from "../../../../types/asset";
 import { closeSidebar } from "../../../../components/sidebar/SidebarView.js";
 import { collectFiles } from "../../../../api/client.js";
 import { loadMajoorSettings } from "../../../../app/settings.js";
@@ -21,13 +22,13 @@ import RatingEditor from "../../common/RatingEditor.vue";
 import TagsEditor from "../../common/TagsEditor.vue";
 import ContextMenuPortal from "../../common/ContextMenuPortal.vue";
 
-const props = defineProps({
-    asset: { type: Object, required: true },
-    onUpdate: { type: Function, default: null },
-    sidebar: { type: Object, default: null },
-});
+const props = defineProps<{
+    asset: MjrAssetLike;
+    onUpdate?: ((patch: Record<string, unknown>) => void) | null;
+    sidebar?: object | null;
+}>();
 
-const emit = defineEmits(["close"]);
+const emit = defineEmits<{ close: [] }>();
 
 const isFolder = computed(() => String(props.asset?.kind || "").toLowerCase() === "folder");
 const isWorkflow = computed(() => {

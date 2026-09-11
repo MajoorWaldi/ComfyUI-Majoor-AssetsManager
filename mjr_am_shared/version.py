@@ -7,6 +7,10 @@ from functools import lru_cache
 from pathlib import Path
 from typing import TypedDict
 
+from .log import get_logger
+
+logger = get_logger(__name__)
+
 
 class VersionInfo(TypedDict):
     version: str
@@ -32,7 +36,7 @@ def _find_pyproject_version() -> str:
         if match:
             return match.group(1).strip()
     except Exception:
-        pass
+        logger.debug("_find_pyproject_version: suppressed exception", exc_info=True)
     return "0.0.0"
 
 
@@ -113,7 +117,7 @@ def _resolve_branch_from_path() -> str:
         if _looks_nightly(root_name):
             return "nightly"
     except Exception:
-        pass
+        logger.debug("_resolve_branch_from_path: suppressed exception", exc_info=True)
     return ""
 
 

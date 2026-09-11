@@ -1,16 +1,20 @@
-<script setup>
+<script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { buildAssetViewURL } from "../../../../api/endpoints.js";
 import { formatFileSize, formatShortDate } from "../../../../components/sidebar/utils/format.js";
 import { mountVideoControls } from "../../../../components/VideoControls.js";
+import type { MjrAssetLike } from "../../../../types/asset";
 
-const props = defineProps({
-    asset: { type: Object, required: true },
-    showPreviewThumb: { type: Boolean, default: true },
-});
+const props = withDefaults(
+    defineProps<{
+        asset: MjrAssetLike;
+        showPreviewThumb?: boolean;
+    }>(),
+    { showPreviewThumb: true },
+);
 
-const previewContainerRef = ref(null);
-let videoControlsHandle = null;
+const previewContainerRef = ref<HTMLDivElement | null>(null);
+let videoControlsHandle: { destroy?: () => void } | null = null;
 
 const viewUrl = computed(() => buildAssetViewURL(props.asset) || "");
 const ext = computed(() => {
@@ -39,7 +43,7 @@ function cleanupVideoControls() {
     videoControlsHandle = null;
 }
 
-function tryPlay(video) {
+function tryPlay(video: HTMLVideoElement | null | undefined) {
     try {
         const promise = video?.play?.();
         if (promise && typeof promise.catch === "function") promise.catch(() => {});

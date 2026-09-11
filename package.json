@@ -26,7 +26,8 @@
     "typecheck:js:advisory": "tsc -p tsconfig.json --noEmit || node -e \"process.exit(0)\"",
     "typecheck:tests": "tsc -p tsconfig.test.json --noEmit",
     "typecheck:tests:advisory": "tsc -p tsconfig.test.json --noEmit || node -e \"process.exit(0)\"",
-    "quality:strict": "npm run lint:js && npm run lint:js:ox && npm run typecheck:js && npm run typecheck:tests && npm run lint:dead && npm run test:js",
+    "typecheck:js:strict": "tsc -p tsconfig.strict.json --noEmit",
+    "quality:strict": "npm run lint:js && npm run lint:js:ox && npm run typecheck:js && npm run typecheck:js:strict && npm run typecheck:tests && npm run lint:dead && npm run test:js",
     "lint:js:fix": "eslint ui/ --fix",
     "format": "prettier --write \"ui/**/*.{ts,js,mjs,vue}\"",
     "format:check": "prettier --check \"ui/**/*.{ts,js,mjs,vue}\""

@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 /**
  * HeaderSection.vue — Hybrid Vue header/search shell for the assets manager.
  *
@@ -32,17 +32,26 @@ import CollectionsPopover from "./CollectionsPopover.vue";
 import PinnedFoldersPopover from "./PinnedFoldersPopover.vue";
 import CustomRootsPopover from "./CustomRootsPopover.vue";
 import MessagePopover from "./MessagePopover.vue";
+import type {
+    MjrCollectionsPopoverExpose,
+    MjrComponentWithEl,
+    MjrCustomRootsPopoverExpose,
+    MjrFilterPopoverExpose,
+    MjrMessagePopoverExpose,
+    MjrPinnedFoldersPopoverExpose,
+    MjrSearchBarExpose,
+} from "../../../types/componentExposes";
 
 // ── version badge helpers ──────────────────────────────────────────────────────
 
-let extensionMetadataPromise = null;
+let extensionMetadataPromise: Promise<{ version?: string }> | null = null;
 
 const VERSION_BADGE_LABEL_CLASS = "mjr-am-version-badge-label";
 const MFV_TOOLTIP_HINT = "V";
 
 function getExtensionMetadata() {
     if (!extensionMetadataPromise) {
-        extensionMetadataPromise = Promise.resolve({}).catch((err) => {
+        extensionMetadataPromise = Promise.resolve({}).catch((err: unknown) => {
             extensionMetadataPromise = null;
             throw err;
         });
@@ -50,7 +59,7 @@ function getExtensionMetadata() {
     return extensionMetadataPromise;
 }
 
-function isNightlyVersion(version, branch = "") {
+function isNightlyVersion(version: unknown, branch: unknown = "") {
     const v = String(version || "").trim().toLowerCase();
     const b = String(branch || "").trim().toLowerCase();
     const nightlyKw = ["nightly", "dev", "alpha", "experimental"];
@@ -79,7 +88,7 @@ function resolveRuntimeBranch() {
 
 // ── sort icon map ──────────────────────────────────────────────────────────────
 
-const SORT_ICONS = {
+const SORT_ICONS: Record<string, string> = {
     name_asc:   "pi pi-sort-alpha-down",
     name_desc:  "pi pi-sort-alpha-up",
     mtime_asc:  "pi pi-sort-amount-up-alt",
@@ -95,35 +104,38 @@ const panelStore = usePanelStore();
 const branch = resolveRuntimeBranch();
 const initialNightly = branch === "nightly";
 
-const headerRef = ref(null);
-const headerActionsRef = ref(null);
-const customMenuBtnRef = ref(null);
-const filterBtnRef = ref(null);
-const sortBtnRef = ref(null);
-const collectionsBtnRef = ref(null);
-const pinnedFoldersBtnRef = ref(null);
-const mfvBtnRef = ref(null);
-const messageBtnRef = ref(null);
-const settingsBtnRef = ref(null);
-const saveWorkflowBtnRef = ref(null);
-const pickWorkflowRootBtnRef = ref(null);
-const importWorkflowInputRef = ref(null);
-const searchBarRef = ref(null);
-const sortPopoverRef         = ref(null);  // <SortPopover>
-const filterPopoverRef       = ref(null);  // <FilterPopover>
-const collectionsPopoverRef  = ref(null);  // <CollectionsPopover>
-const pinnedFoldersPopoverRef= ref(null);  // <PinnedFoldersPopover>
-const customPopoverRef       = ref(null);  // <CustomRootsPopover>
-const messagePopoverRef      = ref(null);  // <MessagePopover>
+type MaybeComponentRef = { $el?: HTMLElement } | HTMLElement | null;
 
-const tabAllRef = ref(null);
-const tabInputsRef = ref(null);
-const tabOutputsRef = ref(null);
-const tabCustomRef = ref(null);
-const tabWorkflowRef = ref(null);
-const tabSimilarRef = ref(null);
+const headerRef = ref<(HTMLElement & { _mjrVersionUpdateCleanup?: () => void }) | null>(null);
+const headerActionsRef = ref<HTMLElement | null>(null);
+const customMenuBtnRef = ref<MaybeComponentRef>(null);
+const filterBtnRef = ref<MaybeComponentRef>(null);
+const sortBtnRef = ref<MaybeComponentRef>(null);
+const collectionsBtnRef = ref<MaybeComponentRef>(null);
+const pinnedFoldersBtnRef = ref<MaybeComponentRef>(null);
+const mfvBtnRef = ref<MaybeComponentRef>(null);
+const messageBtnRef = ref<MaybeComponentRef>(null);
+const settingsBtnRef = ref<MaybeComponentRef>(null);
+const saveWorkflowBtnRef = ref<MaybeComponentRef>(null);
+const pickWorkflowRootBtnRef = ref<MaybeComponentRef>(null);
+const importWorkflowInputRef = ref<HTMLInputElement | null>(null);
+// These bind to child component exposes that aren't individually typed yet.
+const searchBarRef = ref<MjrSearchBarExpose | null>(null);
+const sortPopoverRef         = ref<MjrComponentWithEl>(null);  // <SortPopover>
+const filterPopoverRef       = ref<MjrFilterPopoverExpose | null>(null);  // <FilterPopover>
+const collectionsPopoverRef  = ref<MjrCollectionsPopoverExpose | null>(null);  // <CollectionsPopover>
+const pinnedFoldersPopoverRef= ref<MjrPinnedFoldersPopoverExpose | null>(null);  // <PinnedFoldersPopover>
+const customPopoverRef       = ref<MjrCustomRootsPopoverExpose | null>(null);  // <CustomRootsPopover>
+const messagePopoverRef      = ref<MjrMessagePopoverExpose | null>(null);  // <MessagePopover>
 
-const resolveDomElement = (value) => value?.$el || value || null;
+const tabAllRef = ref<MaybeComponentRef>(null);
+const tabInputsRef = ref<MaybeComponentRef>(null);
+const tabOutputsRef = ref<MaybeComponentRef>(null);
+const tabCustomRef = ref<MaybeComponentRef>(null);
+const tabWorkflowRef = ref<MaybeComponentRef>(null);
+const tabSimilarRef = ref<MaybeComponentRef>(null);
+
+const resolveDomElement = (value: MaybeComponentRef): HTMLElement | null => ((value as { $el?: HTMLElement } | null)?.$el || value || null) as HTMLElement | null;
 
 // ── version badge state ────────────────────────────────────────────────────────
 
@@ -308,7 +320,7 @@ function triggerImportWorkflow() {
     }
 }
 
-function readWorkflowImportFile(file) {
+function readWorkflowImportFile(file: File) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => {
@@ -324,8 +336,8 @@ function readWorkflowImportFile(file) {
     });
 }
 
-async function onImportWorkflowFiles(event) {
-    const files = Array.from(event?.target?.files || []).filter((file) =>
+async function onImportWorkflowFiles(event: Event) {
+    const files = Array.from((event?.target as HTMLInputElement)?.files || []).filter((file) =>
         String(file?.name || "").toLowerCase().endsWith(".json"),
     );
     if (!files.length) return;
@@ -369,12 +381,12 @@ async function onImportWorkflowFiles(event) {
 
 // ── version badge helpers ──────────────────────────────────────────────────────
 
-function setVersionBadgeText(text, { channel = "" } = {}) {
+function setVersionBadgeText(text: unknown, { channel = "" }: { channel?: string } = {}) {
     versionBadgeText.value = String(text || "");
     if (channel) versionBadgeChannel.value = channel;
 }
 
-function applyExtensionMetadata(isNightly) {
+function applyExtensionMetadata(isNightly: boolean) {
     getExtensionMetadata()
         .then((info) => {
             const alreadyNightly =
@@ -388,7 +400,7 @@ function applyExtensionMetadata(isNightly) {
         .catch(() => { extensionMetadataPromise = null; });
 }
 
-async function hydrateBackendVersionBadge(isNightly) {
+async function hydrateBackendVersionBadge(isNightly: boolean) {
     try {
         const result = await get(ENDPOINTS.VERSION, { cache: "no-cache" });
         if (!result?.ok) return;
@@ -409,7 +421,7 @@ async function hydrateBackendVersionBadge(isNightly) {
     }
 }
 
-function applyDotState(state) {
+function applyDotState(state: { channel?: unknown; current?: unknown; latest?: unknown; available?: unknown } | undefined) {
     const ch = String(state?.channel || "").trim().toLowerCase();
     const cur = String(state?.current || "").trim().toLowerCase();
     const lat = String(state?.latest || "").trim().toLowerCase();
@@ -436,12 +448,12 @@ function syncMfvStateFromDom() {
     }
 }
 
-function handleMfvVisibility(event) {
-    mfvVisible.value = Boolean(event?.detail?.visible);
+function handleMfvVisibility(event: Event) {
+    mfvVisible.value = Boolean((event as CustomEvent)?.detail?.visible);
 }
 
-function handleVersionUpdate(event) {
-    try { applyDotState(event?.detail); } catch (e) { console.debug?.(e); }
+function handleVersionUpdate(event: Event) {
+    try { applyDotState((event as CustomEvent)?.detail); } catch (e) { console.debug?.(e); }
 }
 
 function handleMfvToggle() {
@@ -575,7 +587,7 @@ defineExpose({
     get similarDuplicatesBtn() { return searchBarRef.value?.similarDuplicatesBtn ?? null; },
     get similarSameNodeBtn() { return searchBarRef.value?.similarSameNodeBtn ?? null; },
     get similarSameWorkflowBtn() { return searchBarRef.value?.similarSameWorkflowBtn ?? null; },
-    setSemanticEnabled(enabled) { searchBarRef.value?.setSemanticEnabled?.(enabled); },
+    setSemanticEnabled(enabled: unknown) { searchBarRef.value?.setSemanticEnabled?.(enabled); },
     _headerDispose: dispose,
 });
 </script>

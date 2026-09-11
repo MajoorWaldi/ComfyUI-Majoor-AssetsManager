@@ -1,4 +1,5 @@
-<script setup>
+<script setup lang="ts">
+import type { MjrAssetLike } from "../../../types/asset";
 /**
  * AssetCardInner.vue - Fragment component rendered inside an imperatively-created
  * `.mjr-asset-card` shell.  Replaces createAssetCard()/createThumbnail() from Card.js.
@@ -24,7 +25,7 @@ import RatingBadge from "../common/RatingBadge.vue";
 import TagsBadge from "../common/TagsBadge.vue";
 import GenTimeBadge from "../common/GenTimeBadge.vue";
 
-function hashString(value) {
+function hashString(value: unknown) {
     let hash = 2166136261;
     const text = String(value || "");
     for (let i = 0; i < text.length; i += 1) {
@@ -34,7 +35,7 @@ function hashString(value) {
     return hash >>> 0;
 }
 
-function makeAudioWaveformBars(seedText, count = 34) {
+function makeAudioWaveformBars(seedText: unknown, count = 34) {
     let seed = hashString(seedText) || 1;
     const bars = [];
     for (let i = 0; i < count; i += 1) {
@@ -54,7 +55,15 @@ function makeAudioWaveformBars(seedText, count = 34) {
  * Load image using the session blob cache for instant re-access.
  * Falls back to direct URL if cache fails.
  */
-async function loadImageBlob(url, options = {}) {
+type MjrVideoElement = HTMLVideoElement & {
+    _mjrVideoLoadRequestId?: number;
+    _mjrSourceKey?: string;
+    _mjrCachedSrc?: string;
+    _mjrHoverCleanup?: (() => void) | null;
+    _mjrAutoplayCleanup?: (() => void) | null;
+};
+
+async function loadImageBlob(url: unknown, options: { signal?: AbortSignal } = {}) {
     if (!url) return null;
     try {
         if (MediaBlobCache.hasError(url)) return null;
@@ -73,7 +82,7 @@ function waitForImageBlobLoadWindow() {
  * Load video thumbnail using the session blob cache for instant re-access.
  * Falls back to direct URL if cache fails.
  */
-async function ensureVideoThumbSource(video) {
+async function ensureVideoThumbSource(video: MjrVideoElement | null | undefined) {
     if (!video) return;
     try {
         const src = String(video.dataset?.src || "").trim();
@@ -118,7 +127,7 @@ async function ensureVideoThumbSource(video) {
     }
 }
 
-function releaseVideoThumbSource(video) {
+function releaseVideoThumbSource(video: MjrVideoElement | null | undefined) {
     if (!video) return;
     try {
         video._mjrVideoLoadRequestId = (Number(video._mjrVideoLoadRequestId || 0) || 0) + 1;
@@ -144,7 +153,7 @@ function releaseVideoThumbSource(video) {
     }
 }
 
-function bindVideoThumbHover(thumbEl, video) {
+function bindVideoThumbHover(thumbEl: HTMLElement | null | undefined, video: MjrVideoElement | null | undefined) {
     if (!thumbEl || !video) return;
     const onEnter = async () => {
         try {
@@ -175,7 +184,7 @@ function bindVideoThumbHover(thumbEl, video) {
     };
 }
 
-function bindVideoAutoplay(video) {
+function bindVideoAutoplay(video: MjrVideoElement | null | undefined) {
     if (!video) return;
     const observer = new IntersectionObserver(
         (entries) => {
@@ -211,7 +220,7 @@ function bindVideoAutoplay(video) {
     };
 }
 
-function cleanupVideoBehaviors(video) {
+function cleanupVideoBehaviors(video: MjrVideoElement | null | undefined) {
     if (!video) return;
     try {
         video._mjrHoverCleanup?.();
@@ -225,7 +234,7 @@ function cleanupVideoBehaviors(video) {
     }
 }
 
-function applyVideoMode(thumbEl, video, mode) {
+function applyVideoMode(thumbEl: HTMLElement | null | undefined, video: MjrVideoElement | null | undefined, mode: unknown) {
     if (!video) return;
     cleanupVideoBehaviors(video);
     if (mode === "hover") {
@@ -239,7 +248,7 @@ function applyVideoMode(thumbEl, video, mode) {
     // "off" - no bindings, video stays paused
 }
 
-function unobserveVideoThumb(video) {
+function unobserveVideoThumb(video: MjrVideoElement | null | undefined) {
     if (!video) return;
     cleanupVideoBehaviors(video);
     releaseVideoThumbSource(video);
@@ -247,11 +256,11 @@ function unobserveVideoThumb(video) {
 
 // --- Props -------------------------------------------------------------------
 
-const props = defineProps({
+const props = defineProps<{
     /** shallowReactive asset object from createVueCard() in GridView_impl.js */
-    asset: { type: Object, required: true },
-});
-const emit = defineEmits(["workflow-action"]);
+    asset: MjrAssetLike;
+}>();
+const emit = defineEmits<{ "workflow-action": [payload: { type: string; event: Event | undefined; asset: MjrAssetLike }] }>();
 
 // --- Computed from asset -----------------------------------------------------
 
@@ -458,7 +467,7 @@ const showDupStackButton = computed(() => hasDupStack.value && !hasStackGroup.va
 const stackOpening = ref(false);
 const dupOpening = ref(false);
 
-async function onStackGroupClick(event) {
+async function onStackGroupClick(event: Event) {
     event.preventDefault();
     event.stopPropagation();
     if (stackOpening.value) return;
@@ -472,7 +481,7 @@ async function onStackGroupClick(event) {
     }
 }
 
-function onDupStackClick(event) {
+function onDupStackClick(event: Event) {
     event.preventDefault();
     event.stopPropagation();
     if (dupOpening.value) return;
@@ -488,10 +497,10 @@ function onDupStackClick(event) {
 
 // --- Template refs -----------------------------------------------------------
 
-const thumbRef = ref(null);
-const videoRef = ref(null);
-const imgRef = ref(null);
-const dotWrapperRef = ref(null);
+const thumbRef = ref<HTMLElement | null>(null);
+const videoRef = ref<MjrVideoElement | null>(null);
+const imgRef = ref<HTMLImageElement | null>(null);
+const dotWrapperRef = ref<HTMLElement | null>(null);
 const imgError = ref(false);
 const model3dImgError = ref(false);
 const cachedImageSrc = ref("");
@@ -664,7 +673,7 @@ watchEffect(() => {
 
 // --- Helpers -----------------------------------------------------------------
 
-function onImgError(event) {
+function onImgError(_event: Event) {
     imgError.value = true;
     try {
         const failedUrl = isWorkflow.value ? explicitThumbnailUrl.value : imageUrl.value;
@@ -678,11 +687,11 @@ function onModel3dImgError() {
     model3dErrorSourceKey = String(posterUrl.value || "").trim();
 }
 
-function onFileBadgeClick(event) {
+function onFileBadgeClick(event: MouseEvent) {
     if (!hasCollision.value) return;
     event.preventDefault();
     event.stopPropagation();
-    const card = event.target?.closest?.(".mjr-asset-card");
+    const card = (event.target as HTMLElement | null)?.closest?.(".mjr-asset-card");
     if (!card) return;
     card.dispatchEvent(
         new CustomEvent("mjr:badge-duplicates-focus", {
@@ -699,7 +708,7 @@ function onFileBadgeClick(event) {
     );
 }
 
-function emitWorkflowAction(action, event) {
+function emitWorkflowAction(action: unknown, event?: Event) {
     try {
         event?.preventDefault?.();
         event?.stopPropagation?.();

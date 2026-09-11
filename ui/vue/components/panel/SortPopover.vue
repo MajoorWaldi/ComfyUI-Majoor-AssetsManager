@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 /**
  * SortPopover.vue — Reactive sort menu, content-only.
  *
@@ -20,7 +20,7 @@ const panelStore = usePanelStore();
 
 const currentSort = computed(() => panelStore.sort || "mtime_desc");
 
-const handleSortChange = (key) => {
+const handleSortChange = (key: string) => {
     panelStore.sort = key;
     try {
         window.dispatchEvent(new CustomEvent("mjr:sort-changed", { detail: { sort: key } }));

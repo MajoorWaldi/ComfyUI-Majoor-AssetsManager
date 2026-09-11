@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 /**
  * App.vue — Root Vue component for the Majoor Assets Manager sidebar panel.
  *
@@ -15,21 +15,29 @@ import SummaryBarSection from "./components/panel/SummaryBarSection.vue";
 import AssetsGrid from "./components/grid/AssetsGrid.vue";
 import SidebarSection from "./components/panel/SidebarSection.vue";
 import ContextMenuPortal from "./components/common/ContextMenuPortal.vue";
+import type {
+    MjrAssetsGridExpose,
+    MjrSidebarSectionExpose,
+    MjrStatusSectionExpose,
+    MjrSummaryBarSectionExpose,
+} from "../types/componentExposes";
 
-const containerRef = ref(null);
-const statusSectionRef = ref(null);
-const headerSectionRef = ref(null);
-const summaryBarSectionRef = ref(null);
-const assetsGridRef = ref(null);
-const sidebarSectionRef = ref(null);
+const containerRef = ref<HTMLDivElement | null>(null);
+const statusSectionRef = ref<MjrStatusSectionExpose | null>(null);
+// HeaderSection is only ever forwarded whole (never destructured here), so a
+// full expose interface would add nothing beyond documentation weight.
+const headerSectionRef = ref<Record<string, unknown> | null>(null);
+const summaryBarSectionRef = ref<MjrSummaryBarSectionExpose | null>(null);
+const assetsGridRef = ref<MjrAssetsGridExpose | null>(null);
+const sidebarSectionRef = ref<MjrSidebarSectionExpose | null>(null);
 
 /** Handle returned by the panel runtime mount call. */
-let disposeHandle = null;
+let disposeHandle: { dispose?: () => void } | null = null;
 
 onMounted(async () => {
     if (!containerRef.value) return;
 
-    const external = {};
+    const external: Record<string, unknown> = {};
 
     if (statusSectionRef.value) {
         external.statusSection = statusSectionRef.value.statusSection;

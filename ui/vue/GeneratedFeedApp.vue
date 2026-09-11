@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 /**
  * GeneratedFeedApp.vue — Root Vue component for the Generated Feed bottom panel.
  *
@@ -15,11 +15,11 @@ import {
 } from "../features/bottomPanel/feed/feedHost.js";
 import ContextMenuPortal from "./components/common/ContextMenuPortal.vue";
 
-const containerRef = ref(null);
+const containerRef = ref<HTMLDivElement | null>(null);
 
-let host = null;
+let host: unknown = null;
 
-function normalizeFeedHostLayout(root) {
+function normalizeFeedHostLayout(root: HTMLElement | null | undefined) {
     if (!root) return;
     const targets = [root, root.parentElement, root.parentElement?.parentElement];
     for (let index = 0; index < targets.length; index += 1) {

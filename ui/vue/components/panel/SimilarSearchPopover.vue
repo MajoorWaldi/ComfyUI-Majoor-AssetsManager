@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 /**
  * SimilarSearchPopover.vue - action menu for similarity/group filters.
  *
@@ -8,12 +8,12 @@
 import { ref } from "vue";
 import { t } from "../../../app/i18n.js";
 
-const findSimilarBtnRef = ref(null);
-const findDuplicatesBtnRef = ref(null);
-const sameNodeBtnRef = ref(null);
-const sameWorkflowBtnRef = ref(null);
+const findSimilarBtnRef = ref<{ $el?: HTMLElement } | HTMLElement | null>(null);
+const findDuplicatesBtnRef = ref<{ $el?: HTMLElement } | HTMLElement | null>(null);
+const sameNodeBtnRef = ref<{ $el?: HTMLElement } | HTMLElement | null>(null);
+const sameWorkflowBtnRef = ref<{ $el?: HTMLElement } | HTMLElement | null>(null);
 
-const resolveDomElement = (value) => value?.$el || value || null;
+const resolveDomElement = (value: { $el?: HTMLElement } | HTMLElement | null) => (value as { $el?: HTMLElement } | null)?.$el || value || null;
 
 defineExpose({
     get findSimilarBtn() {
