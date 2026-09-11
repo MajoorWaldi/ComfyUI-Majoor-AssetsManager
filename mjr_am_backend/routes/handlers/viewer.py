@@ -92,7 +92,7 @@ def _custom_view_roots() -> list[Path]:
                 except Exception:
                     continue
     except Exception:
-        pass
+        logger.debug("_custom_view_roots: suppressed exception", exc_info=True)
     return roots
 
 
@@ -410,7 +410,7 @@ def register_viewer_routes(routes: web.RouteTableDef) -> None:
             resp.headers["Cache-Control"] = "private, max-age=3600, stale-while-revalidate=60"
             resp.headers["X-Content-Type-Options"] = "nosniff"
         except Exception:
-            pass
+            logger.debug("viewer_asset: suppressed exception", exc_info=True)
         return resp
 
     @routes.get("/mjr/am/viewer/info")
@@ -486,7 +486,7 @@ def register_viewer_routes(routes: web.RouteTableDef) -> None:
             resp.headers["Cache-Control"] = "public, max-age=3600, stale-while-revalidate=60"
             resp.headers["X-Content-Type-Options"] = "nosniff"
         except Exception:
-            pass
+            logger.debug("viewer_resource: suppressed exception", exc_info=True)
         return resp
 
     @routes.get("/mjr/am/view/by-hash")
@@ -573,5 +573,5 @@ def register_viewer_routes(routes: web.RouteTableDef) -> None:
             resp.headers["Cache-Control"] = "public, max-age=31536000, immutable"
             resp.headers["X-Content-Type-Options"] = "nosniff"
         except Exception:
-            pass
+            logger.debug("viewer_by_hash: suppressed exception", exc_info=True)
         return resp

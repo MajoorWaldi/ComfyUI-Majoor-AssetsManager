@@ -107,7 +107,7 @@ def _extract_app_paths(app: web.Application) -> set[str]:
             except Exception:
                 continue
     except Exception:
-        pass
+        logger.debug("_extract_app_paths: suppressed exception", exc_info=True)
     return paths
 
 
@@ -119,7 +119,7 @@ def _extract_table_paths(routes: web.RouteTableDef) -> set[str]:
             if isinstance(path, str) and path:
                 paths.add(path)
     except Exception:
-        pass
+        logger.debug("_extract_table_paths: suppressed exception", exc_info=True)
     return paths
 
 
@@ -149,7 +149,7 @@ def _log_route_collisions(app: web.Application, routes: web.RouteTableDef) -> No
                 ", ".join(overlaps[:20]),
             )
     except Exception:
-        pass
+        logger.debug("_log_route_collisions: suppressed exception", exc_info=True)
 
 
 __all__ = [

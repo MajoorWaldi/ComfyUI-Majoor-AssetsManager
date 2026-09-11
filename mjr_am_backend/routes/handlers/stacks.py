@@ -34,7 +34,7 @@ def _send_stack_update_event(payload) -> None:
 
         send_event("mjr.stacks.updated", payload)
     except Exception:
-        pass
+        logger.debug("_send_stack_update_event: suppressed exception", exc_info=True)
 
 
 def _stacks_service(services):
@@ -62,7 +62,7 @@ def _stacks_service(services):
     try:
         services._stacks_service = svc
     except Exception:
-        pass
+        logger.debug("_stacks_service: suppressed exception", exc_info=True)
     return svc
 
 
@@ -290,6 +290,6 @@ def register_stacks_routes(routes: web.RouteTableDef) -> None:
                 if stacks:
                     _send_stack_update_event(result.data)
             except Exception:
-                pass
+                logger.debug("auto_stack: suppressed exception", exc_info=True)
 
         return _json_response(result)

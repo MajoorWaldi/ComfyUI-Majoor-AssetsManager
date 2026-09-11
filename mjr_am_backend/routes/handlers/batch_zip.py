@@ -165,7 +165,7 @@ def _log_orphaned_batch_zips() -> None:
                 ", ".join(orphaned[:10]),
             )
     except Exception:
-        pass
+        logger.debug("_log_orphaned_batch_zips: suppressed exception", exc_info=True)
 
 
 def _orphaned_batch_zip_names() -> list[str]:
@@ -482,7 +482,7 @@ def register_batch_zip_routes(routes: web.RouteTableDef) -> None:
                     if zip_path.exists():
                         zip_path.unlink()
                 except Exception:
-                    pass
+                    logger.debug("_build_zip: suppressed exception", exc_info=True)
 
                 count = 0
                 cumulative_bytes = 0
@@ -694,7 +694,7 @@ def register_batch_zip_routes(routes: web.RouteTableDef) -> None:
                     try:
                         zi.file_size = int(getattr(st, "st_size", 0) or 0)
                     except Exception:
-                        pass
+                        logger.debug("_zip_add_file_open_handle: suppressed exception", exc_info=True)
 
                     with zf.open(zi, "w") as out:
                         while True:
@@ -738,14 +738,14 @@ def register_batch_zip_routes(routes: web.RouteTableDef) -> None:
             try:
                 loop.call_soon_threadsafe(cache_event.set)
             except Exception:
-                pass
+                logger.debug("_zip_add_file_open_handle: suppressed exception", exc_info=True)
 
         if not ok:
             try:
                 if zip_path.exists():
                     zip_path.unlink()
             except Exception:
-                pass
+                logger.debug("_zip_add_file_open_handle: suppressed exception", exc_info=True)
 
         if ok:
             return _json_response(Result.Ok({"token": token, "count": count, "filename": filename}))

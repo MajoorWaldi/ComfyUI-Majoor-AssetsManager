@@ -349,7 +349,7 @@ def _set_background_entry(key: str, value: dict[str, Any]) -> None:
     try:
         _BACKGROUND_SCAN_LAST.move_to_end(key)
     except Exception:
-        pass
+        logger.debug("_set_background_entry: suppressed exception", exc_info=True)
     while len(_BACKGROUND_SCAN_LAST) > _BACKGROUND_SCAN_HISTORY_MAX:
         _BACKGROUND_SCAN_LAST.popitem(last=False)
 
@@ -416,7 +416,7 @@ def _peek_background_entry(key: str) -> tuple[float, bool]:
         if isinstance(entry, (int, float)):
             return float(entry), False
     except Exception:
-        pass
+        logger.debug("_peek_background_entry: suppressed exception", exc_info=True)
     return 0.0, False
 
 
@@ -518,7 +518,7 @@ async def stop_background_scan_worker(*, drain: bool = True, timeout_s: float = 
         except asyncio.CancelledError:
             pass
         except Exception:
-            pass
+            logger.debug("stop_background_scan_worker: suppressed exception", exc_info=True)
     _SCAN_TASK = None
 
 
@@ -840,7 +840,7 @@ def _filesystem_dir_cache_state(base: Path, target_dir_resolved: Path) -> Result
         if FS_LIST_CACHE_WATCHER_ENABLED and not is_generation_busy(include_cooldown=False):
             ensure_fs_list_cache_watching(str(base))
     except Exception:
-        pass
+        logger.debug("_filesystem_dir_cache_state: suppressed exception", exc_info=True)
     try:
         watch_token = int(get_fs_list_cache_token(str(base)))
     except Exception:
