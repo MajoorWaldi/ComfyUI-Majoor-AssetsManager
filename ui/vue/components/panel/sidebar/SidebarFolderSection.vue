@@ -16,7 +16,7 @@ interface FolderAssetLike {
     subfolder?: string;
     filename?: string;
     mtime?: number;
-    [key: string]: unknown;
+    [key: string]: any;
 }
 
 const props = defineProps<{

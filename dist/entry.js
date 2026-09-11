@@ -4737,7 +4737,7 @@ var Ls = Is(), Rs = ["title"], zs = /* @__PURE__ */ dr({
 			}
 		}, q(e.asset.filename), 9, Ac), n[0] ||= H("div", { class: "mjr-card-meta-row" }, null, -1)])], 42, Oc));
 	}
-}), [["__scopeId", "data-v-b2a2f086"]]);
+}), [["__scopeId", "data-v-52d05c1a"]]);
 //#endregion
 //#region ui/vue/composables/useGridState.ts
 function Mc(e) {
@@ -23788,7 +23788,7 @@ var Qb = { class: "mjr-sidebar-preview" }, $b = ["src"], ex = ["src"], tx = ["sr
 			}, q(X(L)("action.apply", "Apply")), 9, lS)])
 		], 2)], 32)) : W("", !0)]));
 	}
-}, fS = { class: "mjr-workflow-picker-dialog mjr-workflow-info-dialog" }, pS = { class: "mjr-workflow-picker-header" }, mS = { class: "mjr-workflow-picker-title" }, hS = { class: "mjr-workflow-picker-subtitle" }, gS = { class: "mjr-workflow-info-form" }, _S = { class: "is-wide" }, vS = { class: "is-wide" }, yS = { class: "mjr-workflow-picker-footer" }, bS = {
+}, fS = { class: "mjr-workflow-picker-dialog mjr-workflow-info-dialog" }, pS = { class: "mjr-workflow-picker-header" }, mS = { class: "mjr-workflow-picker-title" }, hS = { class: "mjr-workflow-picker-subtitle" }, gS = { class: "mjr-workflow-info-form" }, _S = { class: "is-wide" }, vS = { class: "is-wide" }, yS = { class: "mjr-workflow-picker-footer" }, bS = /* @__PURE__ */ dr({
 	__name: "WorkflowSaveInfoDialog",
 	setup(e) {
 		let t = Cr({
@@ -23910,7 +23910,7 @@ var Qb = { class: "mjr-sidebar-preview" }, $b = ["src"], ex = ["src"], tx = ["sr
 			])])) : W("", !0)]);
 		};
 	}
-}, xS = /* @__PURE__ */ dr({
+}), xS = /* @__PURE__ */ dr({
 	__name: "ContextMenuPortal",
 	setup(e) {
 		let t = Z(""), n = G(() => yn(t.value));
@@ -23958,21 +23958,12 @@ var Qb = { class: "mjr-sidebar-preview" }, $b = ["src"], ex = ["src"], tx = ["sr
 } }, DS = { style: {
 	"font-size": "0.8em",
 	opacity: "0.6"
-} }, OS = {
+} }, OS = /* @__PURE__ */ dr({
 	__name: "AssetSidebarContent",
 	props: {
-		asset: {
-			type: Object,
-			required: !0
-		},
-		onUpdate: {
-			type: Function,
-			default: null
-		},
-		sidebar: {
-			type: Object,
-			default: null
-		}
+		asset: {},
+		onUpdate: { type: [Function, null] },
+		sidebar: {}
 	},
 	emits: ["close"],
 	setup(e, { emit: t }) {
@@ -24066,7 +24057,7 @@ var Qb = { class: "mjr-sidebar-preview" }, $b = ["src"], ex = ["src"], tx = ["sr
 			], 64);
 		};
 	}
-}, kS = {
+}), kS = {
 	key: 1,
 	class: "mjr-sidebar-placeholder",
 	style: {
@@ -24079,7 +24070,7 @@ var Qb = { class: "mjr-sidebar-preview" }, $b = ["src"], ex = ["src"], tx = ["sr
 		"font-size": "0.85em",
 		"text-align": "center"
 	}
-}, AS = {
+}, AS = /* @__PURE__ */ dr({
 	__name: "SidebarSection",
 	setup(e, { expose: t }) {
 		let n = Z(null), { activeAsset: r, onUpdateCallback: i } = ah();
@@ -24166,7 +24157,7 @@ var Qb = { class: "mjr-sidebar-preview" }, $b = ["src"], ex = ["src"], tx = ["sr
 			"sidebar"
 		])) : (K(), Y("div", kS, q(X(L)("sidebar.placeholderSelectAsset", "Select an asset to view details")), 1))], 512));
 	}
-}, jS = {
+}), jS = /* @__PURE__ */ dr({
 	__name: "App",
 	setup(e) {
 		let t = Z(null), n = Z(null), r = Z(null), i = Z(null), a = Z(null), o = Z(null), s = null;
@@ -24225,7 +24216,7 @@ var Qb = { class: "mjr-sidebar-preview" }, $b = ["src"], ex = ["src"], tx = ["sr
 			}, null, 512)
 		], 64));
 	}
-}, MS = /* @__PURE__ */ dr({
+}), MS = /* @__PURE__ */ dr({
 	__name: "GeneratedFeedApp",
 	setup(e) {
 		let t = Z(null), n = null;

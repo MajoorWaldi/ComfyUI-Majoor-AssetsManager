@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 /**
  * App.vue — Root Vue component for the Majoor Assets Manager sidebar panel.
  *
@@ -16,20 +16,22 @@ import AssetsGrid from "./components/grid/AssetsGrid.vue";
 import SidebarSection from "./components/panel/SidebarSection.vue";
 import ContextMenuPortal from "./components/common/ContextMenuPortal.vue";
 
-const containerRef = ref(null);
-const statusSectionRef = ref(null);
-const headerSectionRef = ref(null);
-const summaryBarSectionRef = ref(null);
-const assetsGridRef = ref(null);
-const sidebarSectionRef = ref(null);
+const containerRef = ref<HTMLDivElement | null>(null);
+// These bind to child component exposes (statusSection, gridWrapper, etc.) that
+// aren't individually typed yet, so the refs stay `any` at this glue boundary.
+const statusSectionRef = ref<any>(null);
+const headerSectionRef = ref<any>(null);
+const summaryBarSectionRef = ref<any>(null);
+const assetsGridRef = ref<any>(null);
+const sidebarSectionRef = ref<any>(null);
 
 /** Handle returned by the panel runtime mount call. */
-let disposeHandle = null;
+let disposeHandle: any = null;
 
 onMounted(async () => {
     if (!containerRef.value) return;
 
-    const external = {};
+    const external: Record<string, any> = {};
 
     if (statusSectionRef.value) {
         external.statusSection = statusSectionRef.value.statusSection;

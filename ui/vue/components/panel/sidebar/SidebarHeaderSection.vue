@@ -6,7 +6,7 @@
  * Phase 5.
  */
 const props = defineProps<{
-    asset: { filename?: string; [key: string]: unknown };
+    asset: { filename?: string; [key: string]: any };
 }>();
 
 const emit = defineEmits<{ close: [] }>();

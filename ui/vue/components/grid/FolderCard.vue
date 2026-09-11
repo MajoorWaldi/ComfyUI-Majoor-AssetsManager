@@ -12,7 +12,7 @@
 import { ref } from "vue";
 
 const props = defineProps<{
-    asset: { id?: unknown; filename?: string; filepath?: string; [key: string]: unknown };
+    asset: { id?: unknown; filename?: string; filepath?: string; [key: string]: any };
     selected?: boolean;
 }>();
 

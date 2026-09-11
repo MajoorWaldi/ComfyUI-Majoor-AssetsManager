@@ -6,7 +6,7 @@ import { mountVideoControls } from "../../../../components/VideoControls.js";
 
 const props = withDefaults(
     defineProps<{
-        asset: { filename?: string; kind?: string; size?: unknown; mtime?: unknown; [key: string]: unknown };
+        asset: { filename?: string; kind?: string; size?: unknown; mtime?: unknown; [key: string]: any };
         showPreviewThumb?: boolean;
     }>(),
     { showPreviewThumb: true },

@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 /**
  * AssetSidebarContent.vue — Vue-rendered sidebar content.
  *
@@ -21,13 +21,25 @@ import RatingEditor from "../../common/RatingEditor.vue";
 import TagsEditor from "../../common/TagsEditor.vue";
 import ContextMenuPortal from "../../common/ContextMenuPortal.vue";
 
-const props = defineProps({
-    asset: { type: Object, required: true },
-    onUpdate: { type: Function, default: null },
-    sidebar: { type: Object, default: null },
-});
+interface SidebarAssetLike {
+    kind?: string;
+    source?: string;
+    scope?: string;
+    filepath?: string;
+    path?: string;
+    rating?: unknown;
+    tags?: unknown;
+    file_info?: { filepath?: string; [key: string]: any };
+    [key: string]: any;
+}
 
-const emit = defineEmits(["close"]);
+const props = defineProps<{
+    asset: SidebarAssetLike;
+    onUpdate?: ((...args: any[]) => void) | null;
+    sidebar?: object | null;
+}>();
+
+const emit = defineEmits<{ close: [] }>();
 
 const isFolder = computed(() => String(props.asset?.kind || "").toLowerCase() === "folder");
 const isWorkflow = computed(() => {
