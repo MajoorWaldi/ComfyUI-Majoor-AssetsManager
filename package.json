@@ -38,7 +38,7 @@
     "@comfyorg/comfyui-frontend-types": "^1.54.3",
     "@comfyorg/litegraph": "^0.17.2",
     "@eslint/js": "^10.0.1",
-    "@playwright/test": "^1.61.1",
+    "@playwright/test": "^1.63.0",
     "@types/node": "^26.2.0",
     "@vitejs/plugin-vue": "^6.0.8",
     "@vitest/coverage-v8": "^4.1.11",
