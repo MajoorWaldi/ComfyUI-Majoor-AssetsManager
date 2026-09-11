@@ -1,17 +1,17 @@
 import { A as e, E as t, J as n, R as r, S as i, Y as a, b as o, j as s, m as c } from "./events-DjjLASfV.js";
 import { a as l, n as u } from "./graphTraversal-BIYmTTPW.js";
-import { J as d, b as f, v as p, x as ee, y as te } from "./SidebarWorkflowSection-DckvqBNY.js";
+import { S as d, Y as f, b as p, x as m, y as h } from "./SidebarWorkflowSection-BJKIv3O9.js";
 //#region ui/features/viewer/floatingViewerProgress.ts
-var m = "progress-update", h = "__MJR_MFV_PROGRESS_SERVICE__";
-function ne() {
+var g = "progress-update", _ = "__MJR_MFV_PROGRESS_SERVICE__";
+function ee() {
 	return typeof globalThis < "u" ? globalThis : typeof window < "u" ? window : {};
 }
-function g(e, t) {
+function v(e, t) {
 	if (typeof CustomEvent == "function") return new CustomEvent(e, { detail: t });
 	let n = typeof Event == "function" ? new Event(e) : { type: e };
 	return n.detail = t, n;
 }
-var re = class {
+var te = class {
 	constructor(e, t = () => s()) {
 		this.id = String(e || ""), this.promptApi = null, this.executedNodeIds = [], this.totalNodes = 0, this.currentlyExecuting = null, this.errorDetails = null, this._getApp = typeof t == "function" ? t : () => null;
 	}
@@ -60,7 +60,7 @@ var re = class {
 	error(e) {
 		this.errorDetails = e || null;
 	}
-}, _ = class extends EventTarget {
+}, ne = class extends EventTarget {
 	constructor({ getApi: t = (t) => e(t), getApp: r = () => s(), waitForApi: i = (e) => n(e) } = {}) {
 		super(), this._getApi = t, this._getApp = r, this._waitForApi = i, this.promptsMap = /* @__PURE__ */ new Map(), this.currentExecution = null, this.lastQueueRemaining = 0, this._api = null, this._listenerEntries = [], this._initPromise = null, this._queuePromptBinding = null;
 	}
@@ -76,7 +76,7 @@ var re = class {
 	}
 	getOrMakePrompt(e) {
 		let t = String(e || "").trim() || "unknown", n = this.promptsMap.get(t);
-		return n || (n = new re(t, this._getApp), this.promptsMap.set(t, n)), n;
+		return n || (n = new te(t, this._getApp), this.promptsMap.set(t, n)), n;
 	}
 	async ensureInitialized({ api: e = null, app: t = null, timeoutMs: n = 0 } = {}) {
 		return e && this._api === e ? e : !e && this._api ? this._api : (this._initPromise ||= this._ensureInitializedInternal({
@@ -126,7 +126,7 @@ var re = class {
 					let o = String(a?.prompt_id || a?.promptId || "").trim();
 					if (o) {
 						let e = t.getOrMakePrompt(o);
-						e.setPrompt(r), t.currentExecution ||= e, t.dispatchEvent(g("queue-prompt", { prompt: e })), t.dispatchProgressUpdate();
+						e.setPrompt(r), t.currentExecution ||= e, t.dispatchEvent(v("queue-prompt", { prompt: e })), t.dispatchProgressUpdate();
 					}
 					return a;
 				};
@@ -172,7 +172,7 @@ var re = class {
 		});
 	}
 	dispatchProgressUpdate() {
-		this.dispatchEvent(g(m, this.getSnapshot()));
+		this.dispatchEvent(v(g, this.getSnapshot()));
 	}
 	dispose({ resetPatchedQueuePrompt: e = !1, keepState: t = !1 } = {}) {
 		for (let { api: e, type: t, handler: n } of this._listenerEntries.splice(0)) try {
@@ -187,12 +187,12 @@ var re = class {
 		}
 		this._queuePromptBinding = null, this._api = null, t || (this.promptsMap.clear(), this.currentExecution = null, this.lastQueueRemaining = 0);
 	}
-}, v = ne(), y = v[h] || new _();
-v[h] || (v[h] = y);
-function b(e = {}) {
-	return y.ensureInitialized(e);
+}, y = ee(), b = y[_] || new ne();
+y[_] || (y[_] = b);
+function x(e = {}) {
+	return b.ensureInitialized(e);
 }
-function ie(e) {
+function re(e) {
 	let t = Math.max(0, Number(e?.queue) || 0), n = e?.prompt || null;
 	if (n?.errorDetails) return [
 		String(n.errorDetails?.exception_type || "Execution error").trim(),
@@ -216,7 +216,7 @@ function ie(e) {
 	}
 	return t > 0 ? `(${t}) Running... in another tab` : "Idle";
 }
-function ae(e) {
+function ie(e) {
 	let t = e?.prompt || null;
 	if (t?.errorDetails) {
 		let e = t?.errorDetails || {}, n = String(t?.currentlyExecuting?.nodeLabel || e?.node_type || e?.node_id || "Execution").trim(), r = e?.exception_message ?? e?.error ?? e?.message ?? e?.detail ?? e?.reason ?? "", i = (Array.isArray(r) ? r.map((e) => String(e || "").trim()).filter(Boolean).join(" | ") : String(r || "").trim()).replace(/\s+/g, " ").trim();
@@ -227,7 +227,7 @@ function ae(e) {
 	let r = String(n.nodeLabel || n.nodeId || "Node").trim(), i = Number(n.step), a = Number(n.maxSteps);
 	return Number.isFinite(i) && Number.isFinite(a) && a > 0 ? n.pass > 1 ? `${r} #${n.pass} - ${i}/${a}` : `${r} - ${i}/${a}` : r;
 }
-function x(e, t) {
+function S(e, t) {
 	if (!e?._progressEl && !e?._mediaProgressEl) return;
 	let n = t?.prompt || null, r = String(n?.errorDetails?.node_id || n?.currentlyExecuting?.nodeId || "").trim(), i = "0%", a = "0%", o = !!n?.errorDetails;
 	if (n?.currentlyExecuting) {
@@ -238,12 +238,12 @@ function x(e, t) {
 		let e = Number(n.currentlyExecuting?.step), t = Number(n.currentlyExecuting?.maxSteps);
 		Number.isFinite(e) && Number.isFinite(t) && t > 0 && (a = `${Math.max(0, Math.min(100, e / t * 100))}%`);
 	} else o && (i = "100%", a = "100%");
-	if (e._progressCurrentNodeId = r || null, e._progressEl && (e._progressNodesEl.style.width = i, e._progressStepsEl.style.width = a, e._progressTextEl.textContent = ie(t), e._progressEl.classList.toggle("is-error", o), e._progressEl.classList.toggle("is-clickable", !!r), e._progressEl.title = r ? "Execution progress - click to center active node" : "Execution progress"), e._mediaProgressEl) {
-		let n = ae(t);
+	if (e._progressCurrentNodeId = r || null, e._progressEl && (e._progressNodesEl.style.width = i, e._progressStepsEl.style.width = a, e._progressTextEl.textContent = re(t), e._progressEl.classList.toggle("is-error", o), e._progressEl.classList.toggle("is-clickable", !!r), e._progressEl.title = r ? "Execution progress - click to center active node" : "Execution progress"), e._mediaProgressEl) {
+		let n = ie(t);
 		e._mediaProgressTextEl.textContent = n, e._mediaProgressEl.title = n || "", e._mediaProgressEl.classList.toggle("is-error", o), e._mediaProgressEl.classList.toggle("is-visible", !!n);
 	}
 }
-function oe(e, t) {
+function ae(e, t) {
 	let n = String(t || "").trim();
 	if (!n) return !1;
 	try {
@@ -252,7 +252,7 @@ function oe(e, t) {
 		return console.debug?.(e), !1;
 	}
 }
-function se(e) {
+function oe(e) {
 	let t = document.createElement("div");
 	t.className = "mjr-mfv-progress", t.setAttribute("role", "status"), t.setAttribute("aria-live", "polite");
 	let n = document.createElement("div");
@@ -263,22 +263,22 @@ function se(e) {
 	i.className = "mjr-mfv-progress-overlay", i.setAttribute("aria-hidden", "true");
 	let a = document.createElement("span");
 	return a.className = "mjr-mfv-progress-text", a.textContent = "Idle", t.appendChild(n), t.appendChild(r), t.appendChild(i), t.appendChild(a), t.addEventListener("pointerdown", (t) => {
-		t.button === 0 && oe(e, e._progressCurrentNodeId) && (t.preventDefault(), t.stopPropagation());
-	}), e._progressEl = t, e._progressNodesEl = n, e._progressStepsEl = r, e._progressTextEl = a, e._progressUpdateHandler && y.removeEventListener(m, e._progressUpdateHandler), e._progressUpdateHandler = (t) => {
-		x(e, t?.detail || y.getSnapshot());
-	}, y.addEventListener(m, e._progressUpdateHandler), b({ timeoutMs: 4e3 }).catch((e) => {
+		t.button === 0 && ae(e, e._progressCurrentNodeId) && (t.preventDefault(), t.stopPropagation());
+	}), e._progressEl = t, e._progressNodesEl = n, e._progressStepsEl = r, e._progressTextEl = a, e._progressUpdateHandler && b.removeEventListener(g, e._progressUpdateHandler), e._progressUpdateHandler = (t) => {
+		S(e, t?.detail || b.getSnapshot());
+	}, b.addEventListener(g, e._progressUpdateHandler), x({ timeoutMs: 4e3 }).catch((e) => {
 		console.debug?.(e);
-	}), x(e, y.getSnapshot()), t;
+	}), S(e, b.getSnapshot()), t;
 }
-function ce(e) {
+function se(e) {
 	let t = document.createElement("div");
 	t.className = "mjr-mfv-media-progress", t.setAttribute("aria-hidden", "true");
 	let n = document.createElement("span");
-	return n.className = "mjr-mfv-media-progress-text", t.appendChild(n), e._mediaProgressEl = t, e._mediaProgressTextEl = n, x(e, y.getSnapshot()), t;
+	return n.className = "mjr-mfv-media-progress-text", t.appendChild(n), e._mediaProgressEl = t, e._mediaProgressTextEl = n, S(e, b.getSnapshot()), t;
 }
-function S(e) {
+function ce(e) {
 	if (e?._progressUpdateHandler) try {
-		y.removeEventListener(m, e._progressUpdateHandler);
+		b.removeEventListener(g, e._progressUpdateHandler);
 	} catch (e) {
 		console.debug?.(e);
 	}
@@ -328,13 +328,13 @@ function E(e, t, n = null) {
 	return null;
 }
 function D(e) {
-	return te(e);
+	return p(e);
 }
 function O(e) {
-	return f(e);
+	return m(e);
 }
 function de(e) {
-	return ee(e);
+	return d(e);
 }
 function k(e) {
 	let t = fe(e), n = e?.properties && typeof e.properties == "object" ? e.properties : null;
@@ -547,8 +547,8 @@ function Se(e) {
 	if (Array.isArray(e.nodes)) return e;
 	let t = Ce(e);
 	if (t) return t;
-	if (e.prompt && typeof e.prompt == "object") return p(e.prompt);
-	let n = p(e);
+	if (e.prompt && typeof e.prompt == "object") return h(e.prompt);
+	let n = h(e);
 	return n && Array.isArray(n.nodes) ? n : null;
 }
 function Ce(e) {
@@ -1221,7 +1221,7 @@ function Q() {
 function Ze(e = s()) {
 	if (typeof document > "u") return !1;
 	Y?.root?.isConnected || (Y = Xe());
-	let t = d(e), n = () => Ye(Y.body, t, String(Y.search.value || "").trim().toLowerCase());
+	let t = f(e), n = () => Ye(Y.body, t, String(Y.search.value || "").trim().toLowerCase());
 	Y.search.oninput = n, Y.search.value = "", n(), Y.root.hidden = !1;
 	try {
 		window.dispatchEvent(new CustomEvent(J, { detail: { open: !0 } }));
@@ -1241,4 +1241,4 @@ try {
 	console.debug?.(e);
 }
 //#endregion
-export { b as _, le as a, k as c, A as d, T as f, S as g, se as h, G as i, O as l, ce as m, J as n, E as o, ue as p, Fe as r, D as s, $ as t, de as u, y as v };
+export { x as _, le as a, k as c, A as d, T as f, ce as g, oe as h, G as i, O as l, se as m, J as n, E as o, ue as p, Fe as r, D as s, $ as t, de as u, b as v };

@@ -182,14 +182,19 @@ async function le(e, t, n, r, { ensureWriteAuthToken: i, normalizeWriteAuthFailu
 		data: null
 	}, e);
 	let u = await e.json().catch((e) => (console.debug?.("[MJR API] JSON parse error:", e), null));
-	if (typeof u != "object" || !u) return E({
+	if (typeof u != "object" || !u || Array.isArray(u) || typeof u.ok != "boolean") return E({
 		ok: !1,
 		error: "Invalid response structure",
 		code: "INVALID_RESPONSE",
 		status: e.status,
 		data: null
 	}, e);
-	if (!("status" in u)) try {
+	if (u.ok === !0 && Number(e.status || 0) >= 400 && (u = {
+		...u,
+		ok: !1,
+		error: u.error || `Server reported success with an HTTP error status (${e.status})`,
+		code: "INVALID_RESPONSE"
+	}), !("status" in u)) try {
 		u.status = e.status;
 	} catch (e) {
 		console.debug?.(e);
@@ -289,7 +294,7 @@ function ue({ readObsEnabled: e = () => !1, readAuthToken: t = () => "", ensureW
 		}
 	}
 	async function o(e, t = {}) {
-		return oe(t?.dedupe === !1 ? "" : String(t?.dedupeKey || "").trim() || ae("GET", e, t), () => a(e, {
+		return oe(t?.dedupe === !1 || t?.signal ? "" : String(t?.dedupeKey || "").trim() || ae("GET", e, t), () => a(e, {
 			...t,
 			method: "GET"
 		}));
