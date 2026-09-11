@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 /**
  * CustomRootsPopover.vue — Custom browser root folder selector.
  *
@@ -13,7 +13,15 @@
 import { ref } from "vue";
 import { t } from "../../../app/i18n.js";
 
-const customRootOptions = ref([
+interface RootOption {
+    label: string;
+    value: string;
+    disabled: boolean;
+    text?: string;
+    textContent?: string;
+}
+
+const customRootOptions = ref<RootOption[]>([
     {
         label: t("label.selectFolder", "Select folder..."),
         value: "",
@@ -22,14 +30,14 @@ const customRootOptions = ref([
 ]);
 const customRootValue = ref("");
 const customRootDisabled = ref(false);
-const customAddBtnRef = ref(null);
-const customRemoveBtnRef = ref(null);
+const customAddBtnRef = ref<{ $el?: HTMLElement } | HTMLElement | null>(null);
+const customRemoveBtnRef = ref<{ $el?: HTMLElement } | HTMLElement | null>(null);
 
-const resolveDomElement = (value) => value?.$el || value || null;
+const resolveDomElement = (value: any) => value?.$el || value || null;
 
 const customSelectEventTarget = new EventTarget();
 
-const normalizeOptionElement = (option) => ({
+const normalizeOptionElement = (option: any): RootOption => ({
     value: String(option?.value || ""),
     label: String(option?.textContent || option?.text || option?.label || ""),
     text: String(option?.text || option?.textContent || option?.label || ""),
@@ -37,7 +45,7 @@ const normalizeOptionElement = (option) => ({
     disabled: Boolean(option?.disabled),
 });
 
-const findOptionByValue = (value) =>
+const findOptionByValue = (value: unknown) =>
     customRootOptions.value.find((option) => String(option.value || "") === String(value || "")) ||
     null;
 
@@ -45,14 +53,14 @@ const customSelectFacade = {
     get value() {
         return customRootValue.value;
     },
-    set value(nextValue) {
+    set value(nextValue: unknown) {
         const normalized = String(nextValue || "");
         customRootValue.value = findOptionByValue(normalized) ? normalized : "";
     },
     get disabled() {
         return customRootDisabled.value;
     },
-    set disabled(nextDisabled) {
+    set disabled(nextDisabled: unknown) {
         customRootDisabled.value = Boolean(nextDisabled);
     },
     get options() {
@@ -66,7 +74,7 @@ const customSelectFacade = {
             ),
         );
     },
-    set selectedIndex(nextIndex) {
+    set selectedIndex(nextIndex: unknown) {
         const option = customRootOptions.value[Number(nextIndex) || 0] || customRootOptions.value[0];
         customRootValue.value = String(option?.value || "");
     },
@@ -77,31 +85,31 @@ const customSelectFacade = {
     get innerHTML() {
         return "";
     },
-    set innerHTML(_html) {
+    set innerHTML(_html: unknown) {
         customRootOptions.value = [];
         customRootValue.value = "";
     },
-    appendChild(option) {
+    appendChild(option: any) {
         const normalized = normalizeOptionElement(option);
         customRootOptions.value = [...customRootOptions.value, normalized];
         return option;
     },
-    querySelector(selector) {
+    querySelector(selector: string) {
         if (selector !== 'option[value=""]') return null;
         return findOptionByValue("");
     },
-    addEventListener(event, handler, options) {
+    addEventListener(event: string, handler: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions) {
         customSelectEventTarget.addEventListener(event, handler, options);
     },
-    removeEventListener(event, handler, options) {
+    removeEventListener(event: string, handler: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions) {
         customSelectEventTarget.removeEventListener(event, handler, options);
     },
-    dispatchEvent(event) {
+    dispatchEvent(event: Event) {
         return customSelectEventTarget.dispatchEvent(event);
     },
 };
 
-function handleCustomRootValue(value) {
+function handleCustomRootValue(value: unknown) {
     customSelectFacade.value = value;
     try {
         customSelectFacade.dispatchEvent(new Event("change"));

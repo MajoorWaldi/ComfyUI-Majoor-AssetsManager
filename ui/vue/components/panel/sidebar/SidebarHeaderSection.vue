@@ -1,15 +1,15 @@
-<script setup>
+<script setup lang="ts">
 /**
  * SidebarHeaderSection.vue — Sidebar header: asset filename + close button.
  *
  * Replaces createSidebarHeader() from HeaderSection.js.
  * Phase 5.
  */
-const props = defineProps({
-    asset: { type: Object, required: true },
-});
+const props = defineProps<{
+    asset: { filename?: string; [key: string]: unknown };
+}>();
 
-const emit = defineEmits(["close"]);
+const emit = defineEmits<{ close: [] }>();
 
 const filename = () => String(props.asset?.filename || "");
 </script>

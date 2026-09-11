@@ -1,11 +1,11 @@
-<script setup>
+<script setup lang="ts">
 import { onMounted, onUnmounted, ref } from "vue";
 import {
     registerFloatingViewerHost,
 } from "../../../features/viewer/viewerRuntimeHosts.js";
 
-const hostRef = ref(null);
-let disposeHostRegistration = null;
+const hostRef = ref<HTMLDivElement | null>(null);
+let disposeHostRegistration: (() => void) | null = null;
 
 onMounted(() => {
     disposeHostRegistration = registerFloatingViewerHost(hostRef.value);

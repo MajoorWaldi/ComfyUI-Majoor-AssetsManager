@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 /**
  * StatusSection.vue — Renderless Phase-2 wrapper for the status indicator panel.
  *

@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 /**
  * FolderCard.vue — Complete Vue card for folder assets.
  * Replaces createFolderCard() from FolderCard.js.
@@ -11,19 +11,19 @@
  */
 import { ref } from "vue";
 
-const props = defineProps({
-    asset: { type: Object, required: true },
-    selected: { type: Boolean, default: false },
-});
+const props = defineProps<{
+    asset: { id?: unknown; filename?: string; filepath?: string; [key: string]: unknown };
+    selected?: boolean;
+}>();
 
-const emit = defineEmits(["drop-asset"]);
+const emit = defineEmits<{ "drop-asset": [payload: { asset: unknown; folderPath: string }] }>();
 
 const filename = () => String(props.asset.filename || "");
 
 // ── Drop target for moving assets into this folder ──────────────────────
 const dropActive = ref(false);
 
-function onDragOver(event) {
+function onDragOver(event: DragEvent) {
     // Allow drops — Vue's .prevent modifier already called preventDefault.
     if (event.dataTransfer) {
         event.dataTransfer.dropEffect = "move";
@@ -35,7 +35,7 @@ function onDragLeave() {
     dropActive.value = false;
 }
 
-function onDrop(event) {
+function onDrop(event: DragEvent) {
     dropActive.value = false;
     if (!event.dataTransfer) return;
     const types = Array.from(event.dataTransfer.types);

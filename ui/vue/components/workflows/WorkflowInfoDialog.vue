@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { computed, reactive, watch } from "vue";
 import { setWorkflowInfo } from "../../../api/client.js";
 import { t } from "../../../app/i18n.js";

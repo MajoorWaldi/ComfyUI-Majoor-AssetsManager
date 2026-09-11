@@ -1,13 +1,29 @@
-<script setup>
+<script setup lang="ts">
 import { computed } from "vue";
 import { t } from "../../../../app/i18n.js";
 import { formatDate, formatTime } from "../../../../utils/format.js";
 
-const props = defineProps({
-    asset: { type: Object, required: true },
-});
+interface FolderInfoRow {
+    label: string;
+    value: string;
+    valueStyle?: string;
+}
 
-function formatBytes(bytes) {
+interface FolderAssetLike {
+    folder_info?: Record<string, unknown>;
+    folderInfo?: Record<string, unknown>;
+    filepath?: string;
+    subfolder?: string;
+    filename?: string;
+    mtime?: number;
+    [key: string]: unknown;
+}
+
+const props = defineProps<{
+    asset: FolderAssetLike;
+}>();
+
+function formatBytes(bytes: unknown) {
     const n = Number(bytes || 0);
     if (!Number.isFinite(n) || n <= 0) return "0 B";
     const units = ["B", "KB", "MB", "GB", "TB"];
@@ -31,7 +47,7 @@ const rows = computed(() => {
     const mtime = Number(data.mtime ?? asset.mtime ?? 0);
     const ctime = Number(data.ctime ?? 0);
     const truncated = !!data.truncated;
-    const result = [
+    const result: FolderInfoRow[] = [
         { label: t("sidebar.folder.name", "Name"), value: name || "-" },
         { label: t("sidebar.folder.path", "Path"), value: path || "-" },
         { label: t("sidebar.folder.folders", "Folders"), value: Number.isFinite(folders) ? String(folders) : "-" },

@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 /**
  * RatingBadge.vue — Display-only rating badge (stars).
  *
@@ -12,7 +12,7 @@ const props = defineProps({
     rating: {
         type: [Number, String],
         default: 0,
-        validator: (value) => {
+        validator: (value: unknown) => {
             const num = Number(value);
             return Number.isInteger(num) && num >= 0 && num <= 5;
         },

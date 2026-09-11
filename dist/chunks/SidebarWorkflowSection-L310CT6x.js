@@ -1,10 +1,10 @@
 import { $ as e, At as t, Bt as n, Ct as r, Dt as i, Et as a, I as o, It as s, K as c, Mt as l, N as u, Nt as d, O as f, Ot as p, Pt as m, Q as h, Qt as g, R as _, Rt as v, S as y, St as b, T as x, Tt as S, Ut as C, Vt as ee, Wt as te, X as w, Xt as T, Y as ne, Yt as re, Z as ie, Zt as E, an as ae, at as oe, ct as se, et as ce, ht as le, it as ue, jt as de, k as D, kt as fe, lt as pe, nt as me, on as he, p as ge, qt as _e, rt as ve, st as ye, tt as be, ut as xe, w as Se, wt as Ce, xt as we, zt as Te } from "./viewerRuntimeHosts-CIiyEfr6.js";
 import { Ct as Ee, K as De, N as Oe, T as ke, c as Ae, d as je, f as Me, h as Ne, j as Pe, l as Fe, m as O, o as k, p as Ie, pt as Le, s as A, tt as Re, u as ze, x as Be, y as Ve } from "./events-DjjLASfV.js";
-import { F as He, K as Ue, P as We, Y as Ge, f as Ke, m as qe, p as Je } from "./Viewer-CwQ9gDY9.js";
-import { t as Ye } from "./floatingViewerManager-B8UU5LbV.js";
-import { A as Xe, B as j, C as M, D as Ze, E as N, G as Qe, H as P, J as $e, L as et, O as F, R as tt, S as nt, T as I, W as rt, _ as it, a as at, b as ot, c as st, ct as L, d as ct, dt as R, f as lt, g as ut, h as dt, i as ft, j as pt, k as z, l as mt, lt as ht, m as gt, n as _t, nt as B, o as vt, p as yt, q as bt, r as xt, s as St, t as Ct, tt as wt, u as Tt, ut as V, y as Et } from "./mjr-primevue-DtKnnCVn.js";
-import { t as Dt } from "./mjr-vue-vendor-BU1tBlvz.js";
-import { t as Ot } from "./viewerOpenRequest-BIE_jr_k.js";
+import { F as He, K as Ue, P as We, Y as Ge, f as Ke, m as qe, p as Je } from "./Viewer-WwkVXVKM.js";
+import { t as Ye } from "./floatingViewerManager-Dco4h9gC.js";
+import { A as Xe, C as j, D as Ze, E as M, G as Qe, J as $e, K as et, O as N, R as tt, S as nt, T as P, U as F, V as I, Y as rt, _ as it, a as at, b as ot, c as st, d as ct, dt as L, f as lt, ft as R, g as ut, h as dt, i as ft, j as pt, k as z, l as mt, lt as B, m as ht, n as gt, nt as _t, o as vt, p as yt, r as bt, rt as V, s as xt, t as St, u as Ct, ut as wt, y as Tt, z as Et } from "./mjr-primevue-C955bvXT.js";
+import { t as Dt } from "./mjr-vue-vendor-CF0zsqr1.js";
+import { t as Ot } from "./viewerOpenRequest-Dm6TlHdM.js";
 import { a as kt, i as At, n as jt, o as Mt, r as Nt, t as Pt } from "./geninfoParser-DS9m_bHm.js";
 //#region ui/app/settings/settingsUtils.ts
 var H = (e, t) => {
@@ -2651,7 +2651,7 @@ function vr() {
 		title: ""
 	};
 }
-var Y = wt({
+var Y = _t({
 	portalOwnerId: "",
 	mountedPortalIds: [],
 	main: vr(),
@@ -3872,7 +3872,7 @@ function da(e, t = null) {
 }
 //#endregion
 //#region ui/features/workflows/workflowPickerState.ts
-var X = wt({
+var X = _t({
 	open: !1,
 	mode: "workflow",
 	title: "",
@@ -3904,16 +3904,16 @@ function ma(e = null) {
 var ha = {
 	Button: lt,
 	Checkbox: ct,
-	InputText: Tt,
+	InputText: Ct,
 	Textarea: mt,
-	Select: St,
+	Select: xt,
 	ToggleButton: vt,
 	Badge: yt,
 	Tag: at,
 	Dialog: ft,
-	Menu: xt,
-	Listbox: _t,
-	Tree: Ct,
+	Menu: bt,
+	Listbox: gt,
+	Tree: St,
 	VirtualScroller: st
 };
 function ga(e) {
@@ -3921,7 +3921,7 @@ function ga(e) {
 		ripple: !1,
 		unstyled: !0,
 		zIndex: { overlay: 10100 }
-	}), e.use(dt), e.use(gt), Object.entries(ha).forEach(([t, n]) => {
+	}), e.use(dt), e.use(ht), Object.entries(ha).forEach(([t, n]) => {
 		e.component(`M${t}`, n);
 	}), e;
 }
@@ -4171,7 +4171,7 @@ var Na = {
 			let n = e?.[t] ?? e?.file_info?.[t];
 			return n != null && n !== "" ? n : t === "workflow_id" ? e?.user_metadata?.workflow?.id ?? e?.metadata?.workflow_id ?? "" : "";
 		}
-		let c = I(() => {
+		let c = P(() => {
 			let e = t.asset || {}, c = r(e), l = c?.raw_ffprobe && typeof c.raw_ffprobe == "object" ? c.raw_ffprobe : {}, u = l?.video_stream && typeof l.video_stream == "object" ? l.video_stream : {}, d = l?.format && typeof l.format == "object" ? l.format : {}, f = [];
 			e.width && e.height && f.push({
 				label: "Dimensions",
@@ -4276,14 +4276,14 @@ var Na = {
 				tooltip: "ComfyUI workflow identifier (from workflow.id in extra_data)"
 			}), f.filter((e) => a(e.value));
 		});
-		return (e, t) => c.value.length ? (j(), z("div", Na, [t[0] ||= N("div", { style: {
+		return (e, t) => c.value.length ? (I(), z("div", Na, [t[0] ||= M("div", { style: {
 			"font-size": "12px",
 			"font-weight": "700",
 			color: "#607d8b",
 			"margin-bottom": "8px",
 			"text-transform": "uppercase",
 			"letter-spacing": "0.4px"
-		} }, " File Info ", -1), N("div", Pa, [(j(!0), z(M, null, P(c.value, (e) => (j(), z("div", {
+		} }, " File Info ", -1), M("div", Pa, [(I(!0), z(j, null, F(c.value, (e) => (I(), z("div", {
 			key: e.label,
 			style: {
 				display: "flex",
@@ -4291,17 +4291,17 @@ var Na = {
 				"align-items": "flex-start",
 				"justify-content": "space-between"
 			}
-		}, [N("div", {
+		}, [M("div", {
 			title: e.tooltip || "",
 			style: {
 				"font-size": "12px",
 				opacity: "0.68",
 				"min-width": "92px"
 			}
-		}, R(e.label), 9, Fa), N("div", {
-			style: V(e.valueStyle || "font-size: 12px; text-align: right; word-break: break-word"),
+		}, R(e.label), 9, Fa), M("div", {
+			style: L(e.valueStyle || "font-size: 12px; text-align: right; word-break: break-word"),
 			title: String(e.value || "")
-		}, R(e.value), 13, Ia)]))), 128))])])) : F("", !0);
+		}, R(e.value), 13, Ia)]))), 128))])])) : N("", !0);
 	}
 }, Ra = /* @__PURE__ */ new Set([
 	"png",
@@ -5144,9 +5144,9 @@ var wo = ["title"], To = ["src"], Eo = {
 		required: !0
 	} },
 	setup(e) {
-		let t = e, n = B(0), r = B(!1), i = null;
+		let t = e, n = V(0), r = V(!1), i = null;
 		function a() {
-			return i ||= import("./floatingViewerManager-B8UU5LbV.js").then((e) => e.n), i;
+			return i ||= import("./floatingViewerManager-Dco4h9gC.js").then((e) => e.n), i;
 		}
 		function o() {
 			return (Array.isArray(t.inputFile?.previewCandidates) ? t.inputFile.previewCandidates : [])[n.value] || "";
@@ -5306,9 +5306,9 @@ var wo = ["title"], To = ["src"], Eo = {
 		function S() {
 			return !!t.inputFile?.isAudio;
 		}
-		return (t, n) => (j(), z("div", {
+		return (t, n) => (I(), z("div", {
 			title: `${e.inputFile.filename} (click to copy, double-click to open in new tab)`,
-			style: V({
+			style: L({
 				width: "64px",
 				height: "64px",
 				background: "#222",
@@ -5325,7 +5325,7 @@ var wo = ["title"], To = ["src"], Eo = {
 			onClick: c,
 			onDblclick: l,
 			onContextmenu: y
-		}, [e.inputFile.isVideo ? (j(), z("video", {
+		}, [e.inputFile.isVideo ? (I(), z("video", {
 			key: 0,
 			src: o(),
 			muted: "",
@@ -5340,10 +5340,10 @@ var wo = ["title"], To = ["src"], Eo = {
 			onError: s,
 			onMouseover: b,
 			onMouseout: x
-		}, null, 40, To)) : S() ? (j(), z("div", Eo, [n[0] ||= N("div", { style: {
+		}, null, 40, To)) : S() ? (I(), z("div", Eo, [n[0] ||= M("div", { style: {
 			"font-size": "18px",
 			"line-height": "1"
-		} }, "♪", -1), N("div", Do, R(e.inputFile.filename), 1)])) : (j(), z("img", {
+		} }, "♪", -1), M("div", Do, R(e.inputFile.filename), 1)])) : (I(), z("img", {
 			key: 2,
 			src: o(),
 			style: {
@@ -5352,7 +5352,7 @@ var wo = ["title"], To = ["src"], Eo = {
 				"object-fit": "cover"
 			},
 			onError: s
-		}, null, 40, Oo)), e.inputFile.role && e.inputFile.role !== "secondary" ? (j(), z("div", ko, R(e.inputFile.roleLabel), 1)) : e.inputFile.isVideo ? (j(), z("div", Ao, " Play ")) : F("", !0)], 44, wo));
+		}, null, 40, Oo)), e.inputFile.role && e.inputFile.role !== "secondary" ? (I(), z("div", ko, R(e.inputFile.roleLabel), 1)) : e.inputFile.isVideo ? (I(), z("div", Ao, " Play ")) : N("", !0)], 44, wo));
 	}
 }, Mo = {
 	key: 0,
@@ -5852,7 +5852,7 @@ var wo = ["title"], To = ["src"], Eo = {
 		required: !0
 	} },
 	setup(e) {
-		let t = e, n = B(0), r = B(0), i = B(""), a = B(O("action.copy", "Copy")), o = B(O("action.generate", "Generate")), s = B(!1), c = B(u()), l = 0;
+		let t = e, n = V(0), r = V(0), i = V(""), a = V(O("action.copy", "Copy")), o = V(O("action.generate", "Generate")), s = V(!1), c = V(u()), l = 0;
 		function u() {
 			return {
 				scoreText: "...",
@@ -5909,9 +5909,9 @@ var wo = ["title"], To = ["src"], Eo = {
 				whiteSpace: "nowrap"
 			};
 		}
-		let h = I(() => Co(t.asset)), g = I(() => Ha()), _ = I(() => h.value.kind === "full" || h.value.kind === "caption-only"), v = I(() => Ga(i.value) || h.value.emptyCaptionText), y = I(() => g.value && h.value.isImageAsset && !!t.asset?.id), b = I(() => g.value && !!Ga(v.value) && v.value !== h.value.emptyCaptionText), x = I(() => h.value.branchCards.filter((e) => e.modelFields.length || e.loras.length)), S = I(() => h.value.branchCards.filter((e) => e.samplingFields.length));
-		I(() => h.value.branchCards.filter((e) => e.loras.length));
-		let ee = I(() => {
+		let h = P(() => Co(t.asset)), g = P(() => Ha()), _ = P(() => h.value.kind === "full" || h.value.kind === "caption-only"), v = P(() => Ga(i.value) || h.value.emptyCaptionText), y = P(() => g.value && h.value.isImageAsset && !!t.asset?.id), b = P(() => g.value && !!Ga(v.value) && v.value !== h.value.emptyCaptionText), x = P(() => h.value.branchCards.filter((e) => e.modelFields.length || e.loras.length)), S = P(() => h.value.branchCards.filter((e) => e.samplingFields.length));
+		P(() => h.value.branchCards.filter((e) => e.loras.length));
+		let ee = P(() => {
 			let e = [], t = (e, t) => Ma(e)?.title || t;
 			return !x.value.length && h.value.modelFields.length && e.push({
 				key: "model",
@@ -6093,9 +6093,9 @@ var wo = ["title"], To = ["src"], Eo = {
 				console.debug?.(e);
 			}
 		}
-		return Qe(() => t.asset, () => {
+		return et(() => t.asset, () => {
 			n.value = 0, r.value = 0, i.value = String(t.asset?.enhanced_caption || "").trim(), a.value = O("action.copy", "Copy"), o.value = O("action.generate", "Generate");
-		}, { immediate: !0 }), Qe(() => [
+		}, { immediate: !0 }), et(() => [
 			t.asset?.id,
 			h.value.kind,
 			h.value.showAlignment,
@@ -6103,10 +6103,10 @@ var wo = ["title"], To = ["src"], Eo = {
 		], () => {
 			se();
 		}, { immediate: !0 }), (e, t) => {
-			let r = rt("MButton");
-			return h.value.kind === "empty" ? F("", !0) : (j(), z("div", Mo, [
-				h.value.workflowType ? (j(), z("div", No, [N("span", Po, R(L(O)("viewer.workflow", "Workflow")), 1), N("div", Fo, [N("span", {
-					title: L(O)("sidebar.generation.workflowEngine", "Workflow engine: {value}", { value: h.value.workflowType }),
+			let r = Qe("MButton");
+			return h.value.kind === "empty" ? N("", !0) : (I(), z("div", Mo, [
+				h.value.workflowType ? (I(), z("div", No, [M("span", Po, R(B(O)("viewer.workflow", "Workflow")), 1), M("div", Fo, [M("span", {
+					title: B(O)("sidebar.generation.workflowEngine", "Workflow engine: {value}", { value: h.value.workflowType }),
 					style: {
 						background: "#2196F3",
 						color: "white",
@@ -6116,9 +6116,9 @@ var wo = ["title"], To = ["src"], Eo = {
 						"font-size": "10px",
 						"letter-spacing": "0.2px"
 					}
-				}, R(h.value.workflowLabel || h.value.workflowType), 9, Io), h.value.workflowBadge ? (j(), z("span", {
+				}, R(h.value.workflowLabel || h.value.workflowType), 9, Io), h.value.workflowBadge ? (I(), z("span", {
 					key: 0,
-					title: L(O)("sidebar.generation.apiProvider", "API provider: {value}", { value: h.value.workflowBadge }),
+					title: B(O)("sidebar.generation.apiProvider", "API provider: {value}", { value: h.value.workflowBadge }),
 					style: {
 						background: "rgba(255,255,255,0.08)",
 						color: "var(--fg-color, #eee)",
@@ -6129,41 +6129,41 @@ var wo = ["title"], To = ["src"], Eo = {
 						"font-size": "10px",
 						"letter-spacing": "0.2px"
 					}
-				}, R(h.value.workflowBadge), 9, Lo)) : F("", !0)])])) : F("", !0),
-				h.value.isOverride ? (j(), z("div", {
+				}, R(h.value.workflowBadge), 9, Lo)) : N("", !0)])])) : N("", !0),
+				h.value.isOverride ? (I(), z("div", {
 					key: 1,
-					style: V(f("#00BCD4", {
+					style: L(f("#00BCD4", {
 						emphasis: !0,
 						startAlpha: .14,
 						endAlpha: .08
 					}))
-				}, [N("div", Ro, [N("span", zo, R(L(O)("sidebar.generation.override", "Override")), 1), N("span", Bo, R(h.value.overrideLabel), 1)])], 4)) : F("", !0),
-				h.value.isTruncated ? (j(), z("div", {
+				}, [M("div", Ro, [M("span", zo, R(B(O)("sidebar.generation.override", "Override")), 1), M("span", Bo, R(h.value.overrideLabel), 1)])], 4)) : N("", !0),
+				h.value.isTruncated ? (I(), z("div", {
 					key: 2,
-					style: V(f("#FF9800", {
+					style: L(f("#FF9800", {
 						emphasis: !0,
 						startAlpha: .12,
 						endAlpha: .08
 					}))
-				}, [N("div", Vo, R(L(O)("sidebar.generation.metadataTruncated", "Metadata Truncated")), 1), N("div", Ho, R(L(O)("sidebar.generation.metadataTruncatedBody", "Generation data is incomplete because it exceeded the size limit.")), 1)], 4)) : F("", !0),
-				h.value.kind === "media-only" ? (j(), z("div", {
+				}, [M("div", Vo, R(B(O)("sidebar.generation.metadataTruncated", "Metadata Truncated")), 1), M("div", Ho, R(B(O)("sidebar.generation.metadataTruncatedBody", "Generation data is incomplete because it exceeded the size limit.")), 1)], 4)) : N("", !0),
+				h.value.kind === "media-only" ? (I(), z("div", {
 					key: 3,
-					style: V(f("#9E9E9E", {
+					style: L(f("#9E9E9E", {
 						emphasis: !0,
 						startAlpha: .1,
 						endAlpha: .06
 					}))
-				}, [N("div", Uo, R(L(O)("sidebar.generation.generationData", "Generation Data")), 1), N("div", Wo, R(h.value.mediaOnlyMessage), 1)], 4)) : F("", !0),
-				h.value.kind === "full" ? (j(), z(M, { key: 4 }, [
-					h.value.ltxDirector ? (j(), z("div", {
+				}, [M("div", Uo, R(B(O)("sidebar.generation.generationData", "Generation Data")), 1), M("div", Wo, R(h.value.mediaOnlyMessage), 1)], 4)) : N("", !0),
+				h.value.kind === "full" ? (I(), z(j, { key: 4 }, [
+					h.value.ltxDirector ? (I(), z("div", {
 						key: 0,
-						style: V(f("#26C6DA", {
+						style: L(f("#26C6DA", {
 							emphasis: !0,
 							startAlpha: .15,
 							endAlpha: .08
 						}))
 					}, [
-						N("div", Go, [N("div", Ko, R(h.value.ltxDirector.title || "LTX Director"), 1), t[8] ||= N("span", { style: {
+						M("div", Go, [M("div", Ko, R(h.value.ltxDirector.title || "LTX Director"), 1), t[8] ||= M("span", { style: {
 							"font-size": "10px",
 							"font-weight": "700",
 							color: "#26C6DA",
@@ -6172,7 +6172,7 @@ var wo = ["title"], To = ["src"], Eo = {
 							"border-radius": "999px",
 							padding: "2px 8px"
 						} }, " Director ", -1)]),
-						h.value.ltxDirector.fields.length ? (j(), z("div", qo, [(j(!0), z(M, null, P(h.value.ltxDirector.fields, (e) => (j(), z("div", {
+						h.value.ltxDirector.fields.length ? (I(), z("div", qo, [(I(!0), z(j, null, F(h.value.ltxDirector.fields, (e) => (I(), z("div", {
 							key: `ltx-field-${e.label}`,
 							style: {
 								border: "1px solid rgba(255,255,255,0.10)",
@@ -6181,16 +6181,16 @@ var wo = ["title"], To = ["src"], Eo = {
 								padding: "7px 8px",
 								"min-width": "0"
 							}
-						}, [N("div", Jo, R(e.label), 1), N("div", Yo, R(e.value), 1)]))), 128))])) : F("", !0),
-						h.value.ltxDirector.globalPrompt ? (j(), z("div", Xo, [t[9] ||= N("div", { style: {
+						}, [M("div", Jo, R(e.label), 1), M("div", Yo, R(e.value), 1)]))), 128))])) : N("", !0),
+						h.value.ltxDirector.globalPrompt ? (I(), z("div", Xo, [t[9] ||= M("div", { style: {
 							"font-size": "10px",
 							"font-weight": "800",
 							color: "#66BB6A",
 							"text-transform": "uppercase",
 							"letter-spacing": "0.45px",
 							"margin-bottom": "6px"
-						} }, " Global Prompt ", -1), N("div", {
-							title: L(O)("action.clickToCopy", "Click to copy"),
+						} }, " Global Prompt ", -1), M("div", {
+							title: B(O)("action.clickToCopy", "Click to copy"),
 							style: {
 								"font-size": "12px",
 								color: "var(--fg-color,#eee)",
@@ -6200,8 +6200,8 @@ var wo = ["title"], To = ["src"], Eo = {
 								cursor: "pointer"
 							},
 							onClick: t[0] ||= (e) => E(h.value.ltxDirector.globalPrompt, e.currentTarget)
-						}, R(h.value.ltxDirector.globalPrompt), 9, Zo)])) : F("", !0),
-						h.value.ltxDirector.segments.length ? (j(), z("div", Qo, [(j(!0), z(M, null, P(h.value.ltxDirector.segments, (e) => (j(), z("div", {
+						}, R(h.value.ltxDirector.globalPrompt), 9, Zo)])) : N("", !0),
+						h.value.ltxDirector.segments.length ? (I(), z("div", Qo, [(I(!0), z(j, null, F(h.value.ltxDirector.segments, (e) => (I(), z("div", {
 							key: e.key,
 							style: {
 								border: "1px solid rgba(38,198,218,0.30)",
@@ -6209,7 +6209,7 @@ var wo = ["title"], To = ["src"], Eo = {
 								background: "rgba(38,198,218,0.075)",
 								padding: "10px"
 							}
-						}, [N("div", $o, [N("div", es, R(e.label), 1), N("div", ts, [e.inLabel ? (j(), z("span", ns, " in " + R(e.inLabel), 1)) : F("", !0), e.outLabel ? (j(), z("span", rs, " out " + R(e.outLabel), 1)) : F("", !0)])]), N("div", is, [e.filename ? (j(), Ze(jo, {
+						}, [M("div", $o, [M("div", es, R(e.label), 1), M("div", ts, [e.inLabel ? (I(), z("span", ns, " in " + R(e.inLabel), 1)) : N("", !0), e.outLabel ? (I(), z("span", rs, " out " + R(e.outLabel), 1)) : N("", !0)])]), M("div", is, [e.filename ? (I(), Ze(jo, {
 							key: 0,
 							"input-file": {
 								filename: e.filename,
@@ -6220,9 +6220,9 @@ var wo = ["title"], To = ["src"], Eo = {
 								isAudio: e.isAudio,
 								previewCandidates: e.previewCandidates
 							}
-						}, null, 8, ["input-file"])) : F("", !0), N("div", as, [e.prompt ? (j(), z("div", {
+						}, null, 8, ["input-file"])) : N("", !0), M("div", as, [e.prompt ? (I(), z("div", {
 							key: 0,
-							title: L(O)("action.clickToCopy", "Click to copy"),
+							title: B(O)("action.clickToCopy", "Click to copy"),
 							style: {
 								"font-size": "12px",
 								color: "var(--fg-color,#eee)",
@@ -6232,17 +6232,17 @@ var wo = ["title"], To = ["src"], Eo = {
 								cursor: "pointer"
 							},
 							onClick: (t) => E(e.prompt, t.currentTarget)
-						}, R(e.prompt), 9, os)) : F("", !0), e.filename || e.type ? (j(), z("div", ss, [e.type ? (j(), z("span", cs, R(e.type), 1)) : F("", !0), e.filename ? (j(), z("span", ls, R(e.filename), 1)) : F("", !0)])) : F("", !0)])])]))), 128))])) : F("", !0)
-					], 4)) : F("", !0),
-					h.value.ideogram ? (j(), z("div", {
+						}, R(e.prompt), 9, os)) : N("", !0), e.filename || e.type ? (I(), z("div", ss, [e.type ? (I(), z("span", cs, R(e.type), 1)) : N("", !0), e.filename ? (I(), z("span", ls, R(e.filename), 1)) : N("", !0)])) : N("", !0)])])]))), 128))])) : N("", !0)
+					], 4)) : N("", !0),
+					h.value.ideogram ? (I(), z("div", {
 						key: 1,
-						style: V(f("#FFB300", {
+						style: L(f("#FFB300", {
 							emphasis: !0,
 							startAlpha: .15,
 							endAlpha: .08
 						}))
 					}, [
-						N("div", us, [N("div", ds, R(h.value.ideogram.title || "Ideogram 4"), 1), t[10] ||= N("span", { style: {
+						M("div", us, [M("div", ds, R(h.value.ideogram.title || "Ideogram 4"), 1), t[10] ||= M("span", { style: {
 							"font-size": "10px",
 							"font-weight": "700",
 							color: "#FFCA28",
@@ -6251,7 +6251,7 @@ var wo = ["title"], To = ["src"], Eo = {
 							"border-radius": "999px",
 							padding: "2px 8px"
 						} }, " Prompt JSON ", -1)]),
-						h.value.ideogram.fields.length ? (j(), z("div", fs, [(j(!0), z(M, null, P(h.value.ideogram.fields, (e) => (j(), z("div", {
+						h.value.ideogram.fields.length ? (I(), z("div", fs, [(I(!0), z(j, null, F(h.value.ideogram.fields, (e) => (I(), z("div", {
 							key: `ideogram-field-${e.label}`,
 							style: {
 								border: "1px solid rgba(255,255,255,0.10)",
@@ -6260,16 +6260,16 @@ var wo = ["title"], To = ["src"], Eo = {
 								padding: "7px 8px",
 								"min-width": "0"
 							}
-						}, [N("div", ps, R(e.label), 1), N("div", ms, R(e.value), 1)]))), 128))])) : F("", !0),
-						h.value.ideogram.highLevelDescription ? (j(), z("div", hs, [t[11] ||= N("div", { style: {
+						}, [M("div", ps, R(e.label), 1), M("div", ms, R(e.value), 1)]))), 128))])) : N("", !0),
+						h.value.ideogram.highLevelDescription ? (I(), z("div", hs, [t[11] ||= M("div", { style: {
 							"font-size": "10px",
 							"font-weight": "800",
 							color: "#81C784",
 							"text-transform": "uppercase",
 							"letter-spacing": "0.45px",
 							"margin-bottom": "6px"
-						} }, " High Level Description ", -1), N("div", {
-							title: L(O)("action.clickToCopy", "Click to copy"),
+						} }, " High Level Description ", -1), M("div", {
+							title: B(O)("action.clickToCopy", "Click to copy"),
 							style: {
 								"font-size": "12px",
 								color: "var(--fg-color,#eee)",
@@ -6279,16 +6279,16 @@ var wo = ["title"], To = ["src"], Eo = {
 								cursor: "pointer"
 							},
 							onClick: t[1] ||= (e) => E(h.value.ideogram.highLevelDescription, e.currentTarget)
-						}, R(h.value.ideogram.highLevelDescription), 9, gs)])) : F("", !0),
-						h.value.ideogram.background ? (j(), z("div", _s, [t[12] ||= N("div", { style: {
+						}, R(h.value.ideogram.highLevelDescription), 9, gs)])) : N("", !0),
+						h.value.ideogram.background ? (I(), z("div", _s, [t[12] ||= M("div", { style: {
 							"font-size": "10px",
 							"font-weight": "800",
 							color: "#64B5F6",
 							"text-transform": "uppercase",
 							"letter-spacing": "0.45px",
 							"margin-bottom": "6px"
-						} }, " Background ", -1), N("div", {
-							title: L(O)("action.clickToCopy", "Click to copy"),
+						} }, " Background ", -1), M("div", {
+							title: B(O)("action.clickToCopy", "Click to copy"),
 							style: {
 								"font-size": "12px",
 								color: "var(--fg-color,#eee)",
@@ -6298,8 +6298,8 @@ var wo = ["title"], To = ["src"], Eo = {
 								cursor: "pointer"
 							},
 							onClick: t[2] ||= (e) => E(h.value.ideogram.background, e.currentTarget)
-						}, R(h.value.ideogram.background), 9, vs)])) : F("", !0),
-						h.value.ideogram.elements.length ? (j(), z("div", ys, [(j(!0), z(M, null, P(h.value.ideogram.elements, (e) => (j(), z("div", {
+						}, R(h.value.ideogram.background), 9, vs)])) : N("", !0),
+						h.value.ideogram.elements.length ? (I(), z("div", ys, [(I(!0), z(j, null, F(h.value.ideogram.elements, (e) => (I(), z("div", {
 							key: e.key,
 							style: {
 								border: "1px solid rgba(255,179,0,0.30)",
@@ -6308,10 +6308,10 @@ var wo = ["title"], To = ["src"], Eo = {
 								padding: "10px"
 							}
 						}, [
-							N("div", bs, [N("div", xs, R(e.label), 1), e.bbox ? (j(), z("span", Ss, " bbox " + R(e.bbox), 1)) : F("", !0)]),
-							e.description ? (j(), z("div", {
+							M("div", bs, [M("div", xs, R(e.label), 1), e.bbox ? (I(), z("span", Ss, " bbox " + R(e.bbox), 1)) : N("", !0)]),
+							e.description ? (I(), z("div", {
 								key: 0,
-								title: L(O)("action.clickToCopy", "Click to copy"),
+								title: B(O)("action.clickToCopy", "Click to copy"),
 								style: {
 									"font-size": "12px",
 									color: "var(--fg-color,#eee)",
@@ -6321,11 +6321,11 @@ var wo = ["title"], To = ["src"], Eo = {
 									cursor: "pointer"
 								},
 								onClick: (t) => E(e.description, t.currentTarget)
-							}, R(e.description), 9, Cs)) : F("", !0),
-							e.palette.length ? (j(), z("div", ws, [(j(!0), z(M, null, P(e.palette, (t) => (j(), z("span", {
+							}, R(e.description), 9, Cs)) : N("", !0),
+							e.palette.length ? (I(), z("div", ws, [(I(!0), z(j, null, F(e.palette, (t) => (I(), z("span", {
 								key: `${e.key}-${t}`,
 								title: t,
-								style: V({
+								style: L({
 									width: "18px",
 									height: "18px",
 									borderRadius: "4px",
@@ -6333,9 +6333,9 @@ var wo = ["title"], To = ["src"], Eo = {
 									background: t
 								}),
 								onClick: (e) => E(t, e.currentTarget)
-							}, null, 12, Ts))), 128))])) : F("", !0)
-						]))), 128))])) : F("", !0),
-						N("details", Es, [t[13] ||= N("summary", { style: {
+							}, null, 12, Ts))), 128))])) : N("", !0)
+						]))), 128))])) : N("", !0),
+						M("details", Es, [t[13] ||= M("summary", { style: {
 							cursor: "pointer",
 							padding: "8px 10px",
 							"font-size": "10px",
@@ -6343,8 +6343,8 @@ var wo = ["title"], To = ["src"], Eo = {
 							color: "#FFCA28",
 							"text-transform": "uppercase",
 							"letter-spacing": "0.45px"
-						} }, " JSON sent to text encoder ", -1), N("pre", {
-							title: L(O)("action.clickToCopy", "Click to copy"),
+						} }, " JSON sent to text encoder ", -1), M("pre", {
+							title: B(O)("action.clickToCopy", "Click to copy"),
 							style: {
 								margin: "0",
 								padding: "10px",
@@ -6359,23 +6359,23 @@ var wo = ["title"], To = ["src"], Eo = {
 							},
 							onClick: t[3] ||= (e) => E(h.value.ideogram.json, e.currentTarget)
 						}, R(h.value.ideogram.json), 9, Ds)])
-					], 4)) : F("", !0),
-					!h.value.ltxDirector && !h.value.ideogram && h.value.promptTabs.length ? (j(), z("div", {
+					], 4)) : N("", !0),
+					!h.value.ltxDirector && !h.value.ideogram && h.value.promptTabs.length ? (I(), z("div", {
 						key: 2,
-						style: V(f("#4CAF50", {
+						style: L(f("#4CAF50", {
 							emphasis: !0,
 							startAlpha: .16,
 							endAlpha: .1
 						}))
 					}, [
-						N("div", Os, R(L(O)("sidebar.generation.promptPipeline", "Prompt Pipeline ({count} variants)", { count: h.value.promptTabs.length })), 1),
-						N("div", ks, [(j(!0), z(M, null, P(h.value.promptTabs, (e, t) => (j(), Ze(r, {
+						M("div", Os, R(B(O)("sidebar.generation.promptPipeline", "Prompt Pipeline ({count} variants)", { count: h.value.promptTabs.length })), 1),
+						M("div", ks, [(I(!0), z(j, null, F(h.value.promptTabs, (e, t) => (I(), Ze(r, {
 							key: e.label,
 							type: "button",
 							severity: "secondary",
 							text: "",
 							rounded: "",
-							style: V({
+							style: L({
 								appearance: "none",
 								border: n.value === t ? "1px solid #4CAF50" : "1px solid var(--border-color, rgba(255,255,255,0.12))",
 								borderRadius: "999px",
@@ -6389,10 +6389,10 @@ var wo = ["title"], To = ["src"], Eo = {
 							}),
 							onClick: (e) => n.value = t
 						}, {
-							default: bt(() => [Xe(R(e.label), 1)]),
+							default: $e(() => [Xe(R(e.label), 1)]),
 							_: 2
 						}, 1032, ["style", "onClick"]))), 128))]),
-						(j(!0), z(M, null, P(h.value.promptTabs, (e, t) => $e((j(), z("div", {
+						(I(!0), z(j, null, F(h.value.promptTabs, (e, t) => rt((I(), z("div", {
 							key: `${e.label}-panel`,
 							style: {
 								display: "flex",
@@ -6405,8 +6405,8 @@ var wo = ["title"], To = ["src"], Eo = {
 								padding: "10px"
 							}
 						}, [
-							N("div", As, R(L(O)("sidebar.generation.positive", "POSITIVE")), 1),
-							N("div", {
+							M("div", As, R(B(O)("sidebar.generation.positive", "POSITIVE")), 1),
+							M("div", {
 								style: {
 									"font-size": "12px",
 									color: "var(--fg-color, #ddd)",
@@ -6416,7 +6416,7 @@ var wo = ["title"], To = ["src"], Eo = {
 								},
 								onClick: (t) => E(e.positive, t.currentTarget)
 							}, R(e.positive), 9, js),
-							e.negative ? (j(), z(M, { key: 0 }, [N("div", Ms, R(L(O)("sidebar.generation.negative", "NEGATIVE")), 1), N("div", {
+							e.negative ? (I(), z(j, { key: 0 }, [M("div", Ms, R(B(O)("sidebar.generation.negative", "NEGATIVE")), 1), M("div", {
 								style: {
 									"font-size": "12px",
 									color: "var(--fg-color, #ddd)",
@@ -6425,21 +6425,21 @@ var wo = ["title"], To = ["src"], Eo = {
 									cursor: "pointer"
 								},
 								onClick: (t) => E(e.negative, t.currentTarget)
-							}, R(e.negative), 9, Ns)], 64)) : F("", !0)
+							}, R(e.negative), 9, Ns)], 64)) : N("", !0)
 						])), [[ot, n.value === t]])), 128))
-					], 4)) : !h.value.ltxDirector && !h.value.ideogram && h.value.positivePrompt ? (j(), z("div", {
+					], 4)) : !h.value.ltxDirector && !h.value.ideogram && h.value.positivePrompt ? (I(), z("div", {
 						key: 3,
-						style: V(f("#4CAF50", {
+						style: L(f("#4CAF50", {
 							emphasis: !0,
 							startAlpha: .16,
 							endAlpha: .1
 						}))
-					}, [N("div", Ps, [N("span", null, R(L(O)("sidebar.generation.positivePrompt", "Positive Prompt")), 1), h.value.positivePromptOverride ? (j(), z("span", {
+					}, [M("div", Ps, [M("span", null, R(B(O)("sidebar.generation.positivePrompt", "Positive Prompt")), 1), h.value.positivePromptOverride ? (I(), z("span", {
 						key: 0,
-						style: V(m()),
-						title: L(O)("sidebar.generation.overrideTooltip", "This field was forced by Majoor Gen Info Override")
-					}, R(L(O)("sidebar.generation.override", "override")), 13, Fs)) : F("", !0)]), N("div", {
-						title: L(O)("action.clickToCopy", "Click to copy"),
+						style: L(m()),
+						title: B(O)("sidebar.generation.overrideTooltip", "This field was forced by Majoor Gen Info Override")
+					}, R(B(O)("sidebar.generation.override", "override")), 13, Fs)) : N("", !0)]), M("div", {
+						title: B(O)("action.clickToCopy", "Click to copy"),
 						style: {
 							"font-size": "12px",
 							color: "var(--fg-color, rgba(255,255,255,0.9))",
@@ -6449,20 +6449,20 @@ var wo = ["title"], To = ["src"], Eo = {
 							cursor: "pointer"
 						},
 						onClick: t[4] ||= (e) => E(h.value.positivePrompt, e.currentTarget)
-					}, R(h.value.positivePrompt), 9, Is)], 4)) : F("", !0),
-					!h.value.ltxDirector && !h.value.ideogram && !h.value.promptTabs.length && h.value.negativePrompt ? (j(), z("div", {
+					}, R(h.value.positivePrompt), 9, Is)], 4)) : N("", !0),
+					!h.value.ltxDirector && !h.value.ideogram && !h.value.promptTabs.length && h.value.negativePrompt ? (I(), z("div", {
 						key: 4,
-						style: V(f("#F44336", {
+						style: L(f("#F44336", {
 							emphasis: !0,
 							startAlpha: .16,
 							endAlpha: .1
 						}))
-					}, [N("div", Ls, [N("span", null, R(L(O)("sidebar.generation.negativePrompt", "Negative Prompt")), 1), h.value.negativePromptOverride ? (j(), z("span", {
+					}, [M("div", Ls, [M("span", null, R(B(O)("sidebar.generation.negativePrompt", "Negative Prompt")), 1), h.value.negativePromptOverride ? (I(), z("span", {
 						key: 0,
-						style: V(m()),
-						title: L(O)("sidebar.generation.overrideTooltip", "This field was forced by Majoor Gen Info Override")
-					}, R(L(O)("sidebar.generation.override", "override")), 13, Rs)) : F("", !0)]), N("div", {
-						title: L(O)("action.clickToCopy", "Click to copy"),
+						style: L(m()),
+						title: B(O)("sidebar.generation.overrideTooltip", "This field was forced by Majoor Gen Info Override")
+					}, R(B(O)("sidebar.generation.override", "override")), 13, Rs)) : N("", !0)]), M("div", {
+						title: B(O)("action.clickToCopy", "Click to copy"),
 						style: {
 							"font-size": "12px",
 							color: "var(--fg-color, rgba(255,255,255,0.9))",
@@ -6472,9 +6472,9 @@ var wo = ["title"], To = ["src"], Eo = {
 							cursor: "pointer"
 						},
 						onClick: t[5] ||= (e) => E(h.value.negativePrompt, e.currentTarget)
-					}, R(h.value.negativePrompt), 9, zs)], 4)) : F("", !0)
-				], 64)) : F("", !0),
-				_.value ? (j(), z("div", {
+					}, R(h.value.negativePrompt), 9, zs)], 4)) : N("", !0)
+				], 64)) : N("", !0),
+				_.value ? (I(), z("div", {
 					key: 5,
 					style: {
 						background: "linear-gradient(135deg, rgba(0, 188, 212, 0.14) 0%, rgba(33, 150, 243, 0.10) 100%)",
@@ -6485,19 +6485,19 @@ var wo = ["title"], To = ["src"], Eo = {
 						"flex-direction": "column",
 						gap: "10px"
 					},
-					class: ht({ "mjr-ai-disabled-block": !g.value })
+					class: wt({ "mjr-ai-disabled-block": !g.value })
 				}, [
-					h.value.showAlignment ? (j(), z(M, { key: 0 }, [
-						N("div", Bs, [N("span", { title: L(O)("sidebar.generation.promptAlignmentTooltip", "How closely the generated image matches the prompt (SigLIP2 score)") }, R(L(O)("sidebar.generation.promptAlignment", "Prompt Alignment")), 9, Vs)]),
-						N("div", Hs, [
-							N("div", Us, [N("div", { style: V({
+					h.value.showAlignment ? (I(), z(j, { key: 0 }, [
+						M("div", Bs, [M("span", { title: B(O)("sidebar.generation.promptAlignmentTooltip", "How closely the generated image matches the prompt (SigLIP2 score)") }, R(B(O)("sidebar.generation.promptAlignment", "Prompt Alignment")), 9, Vs)]),
+						M("div", Hs, [
+							M("div", Us, [M("div", { style: L({
 								height: "100%",
 								width: c.value.fillWidth,
 								background: c.value.fillColor,
 								borderRadius: "4px",
 								transition: "width 0.6s ease, background 0.4s ease"
 							}) }, null, 4)]),
-							N("span", { style: V({
+							M("span", { style: L({
 								fontSize: "13px",
 								fontWeight: "700",
 								color: c.value.scoreColor,
@@ -6505,7 +6505,7 @@ var wo = ["title"], To = ["src"], Eo = {
 								textAlign: "right",
 								fontFamily: "'Consolas', 'Monaco', monospace"
 							}) }, R(c.value.scoreText), 5),
-							N("span", { style: V({
+							M("span", { style: L({
 								fontSize: "9px",
 								fontWeight: "700",
 								padding: "2px 6px",
@@ -6516,15 +6516,15 @@ var wo = ["title"], To = ["src"], Eo = {
 								letterSpacing: "0.5px"
 							}) }, R(c.value.qualityText), 5)
 						]),
-						c.value.aiStatusVisible ? (j(), z("div", Ws, R(c.value.aiStatusText), 1)) : F("", !0)
-					], 64)) : F("", !0),
-					N("div", Gs, [N("span", { title: L(O)("sidebar.generation.aiCaptionTooltip", "AI caption generated by Florence-2") }, R(h.value.captionLabel), 9, Ks), N("div", qs, [pt(r, {
+						c.value.aiStatusVisible ? (I(), z("div", Ws, R(c.value.aiStatusText), 1)) : N("", !0)
+					], 64)) : N("", !0),
+					M("div", Gs, [M("span", { title: B(O)("sidebar.generation.aiCaptionTooltip", "AI caption generated by Florence-2") }, R(h.value.captionLabel), 9, Ks), M("div", qs, [pt(r, {
 						type: "button",
 						class: "mjr-ai-control",
 						severity: "secondary",
 						text: "",
 						disabled: !y.value || s.value,
-						style: V([{
+						style: L([{
 							border: "1px solid rgba(0,188,212,0.45)",
 							background: "rgba(0,188,212,0.12)",
 							color: "#00BCD4",
@@ -6539,7 +6539,7 @@ var wo = ["title"], To = ["src"], Eo = {
 						}]),
 						onClick: nt(ce, ["stop"])
 					}, {
-						default: bt(() => [Xe(R(o.value), 1)]),
+						default: $e(() => [Xe(R(o.value), 1)]),
 						_: 1
 					}, 8, ["disabled", "style"]), pt(r, {
 						type: "button",
@@ -6547,7 +6547,7 @@ var wo = ["title"], To = ["src"], Eo = {
 						severity: "secondary",
 						text: "",
 						disabled: !b.value,
-						style: V([{
+						style: L([{
 							border: "1px solid rgba(0,188,212,0.45)",
 							background: "rgba(0,188,212,0.12)",
 							color: "#00BCD4",
@@ -6562,12 +6562,12 @@ var wo = ["title"], To = ["src"], Eo = {
 						}]),
 						onClick: nt(le, ["stop"])
 					}, {
-						default: bt(() => [Xe(R(a.value), 1)]),
+						default: $e(() => [Xe(R(a.value), 1)]),
 						_: 1
 					}, 8, ["disabled", "style"])])]),
-					N("div", {
-						title: g.value ? L(O)("sidebar.generation.copyCaptionTooltip", "Click to copy caption") : L(O)("sidebar.generation.aiCaptionDisabled", "AI caption controls are disabled"),
-						style: V({
+					M("div", {
+						title: g.value ? B(O)("sidebar.generation.copyCaptionTooltip", "Click to copy caption") : B(O)("sidebar.generation.aiCaptionDisabled", "AI caption controls are disabled"),
+						style: L({
 							marginTop: "4px",
 							padding: "8px",
 							borderRadius: "6px",
@@ -6582,26 +6582,26 @@ var wo = ["title"], To = ["src"], Eo = {
 						}),
 						onClick: le
 					}, R(v.value), 13, Js)
-				], 2)) : F("", !0),
-				x.value.length ? (j(), z("div", {
+				], 2)) : N("", !0),
+				x.value.length ? (I(), z("div", {
 					key: 6,
-					style: V(f("#9C27B0", {
+					style: L(f("#9C27B0", {
 						emphasis: !0,
 						startAlpha: .18,
 						endAlpha: .1
 					}))
-				}, [N("div", Ys, R(L(O)("sidebar.generation.models", "Models")), 1), N("div", Xs, [(j(!0), z(M, null, P(x.value, (e) => (j(), z("div", {
+				}, [M("div", Ys, R(B(O)("sidebar.generation.models", "Models")), 1), M("div", Xs, [(I(!0), z(j, null, F(x.value, (e) => (I(), z("div", {
 					key: `models-top-${e.key}`,
-					style: V(T(ne(e), !0))
+					style: L(T(ne(e), !0))
 				}, [
-					N("div", { style: V({
+					M("div", { style: L({
 						fontSize: "10px",
 						fontWeight: "800",
 						color: ne(e),
 						letterSpacing: "0.6px",
 						textTransform: "uppercase"
 					}) }, R(e.label), 5),
-					(j(!0), z(M, null, P(e.modelFields, (t) => (j(), z("div", {
+					(I(!0), z(j, null, F(e.modelFields, (t) => (I(), z("div", {
 						key: `model-top-${e.key}-${t.label}`,
 						style: {
 							display: "flex",
@@ -6609,7 +6609,7 @@ var wo = ["title"], To = ["src"], Eo = {
 							gap: "3px",
 							"min-width": "0"
 						}
-					}, [N("span", Zs, R(t.label), 1), N("span", {
+					}, [M("span", Zs, R(t.label), 1), M("span", {
 						style: {
 							"font-size": "12px",
 							color: "var(--fg-color, rgba(255,255,255,0.96))",
@@ -6619,13 +6619,13 @@ var wo = ["title"], To = ["src"], Eo = {
 						},
 						onClick: (e) => E(t.value, e.currentTarget)
 					}, R(t.value || "-"), 9, Qs)]))), 128)),
-					e.loras.length ? (j(), z("div", $s, [t[14] ||= N("span", { style: {
+					e.loras.length ? (I(), z("div", $s, [t[14] ||= M("span", { style: {
 						"font-size": "10px",
 						"font-weight": "700",
 						color: "rgba(255,255,255,0.58)",
 						"text-transform": "uppercase",
 						"letter-spacing": "0.4px"
-					} }, "LoRA", -1), (j(!0), z(M, null, P(e.loras, (t, n) => (j(), z("span", {
+					} }, "LoRA", -1), (I(!0), z(j, null, F(e.loras, (t, n) => (I(), z("span", {
 						key: `model-top-${e.key}-lora-${n}`,
 						style: {
 							"font-size": "12px",
@@ -6639,31 +6639,31 @@ var wo = ["title"], To = ["src"], Eo = {
 							cursor: "pointer"
 						},
 						onClick: (e) => E(t, e.currentTarget)
-					}, R(t), 9, ec))), 128))])) : F("", !0)
-				], 4))), 128))])], 4)) : F("", !0),
-				h.value.lyrics ? (j(), z("div", {
+					}, R(t), 9, ec))), 128))])) : N("", !0)
+				], 4))), 128))])], 4)) : N("", !0),
+				h.value.lyrics ? (I(), z("div", {
 					key: 7,
-					style: V(f("#00BCD4", { emphasis: !1 }))
-				}, [N("div", tc, [N("span", null, R(L(O)("sidebar.generation.lyrics", "Lyrics")), 1)]), N("div", nc, R(h.value.lyrics), 1)], 4)) : F("", !0),
-				h.value.branchCards.length ? (j(), z(M, { key: 8 }, [
-					F("", !0),
-					S.value.length ? (j(), z("div", {
+					style: L(f("#00BCD4", { emphasis: !1 }))
+				}, [M("div", tc, [M("span", null, R(B(O)("sidebar.generation.lyrics", "Lyrics")), 1)]), M("div", nc, R(h.value.lyrics), 1)], 4)) : N("", !0),
+				h.value.branchCards.length ? (I(), z(j, { key: 8 }, [
+					N("", !0),
+					S.value.length ? (I(), z("div", {
 						key: 1,
-						style: V(f("#FF9800", {
+						style: L(f("#FF9800", {
 							emphasis: !0,
 							startAlpha: .16,
 							endAlpha: .1
 						}))
-					}, [N("div", rc, R(L(O)("sidebar.generation.sampling", "Sampling")), 1), N("div", ic, [(j(!0), z(M, null, P(S.value, (e) => (j(), z("div", {
+					}, [M("div", rc, R(B(O)("sidebar.generation.sampling", "Sampling")), 1), M("div", ic, [(I(!0), z(j, null, F(S.value, (e) => (I(), z("div", {
 						key: `sampling-${e.key}`,
-						style: V(T(re(e), !0))
-					}, [N("div", { style: V({
+						style: L(T(re(e), !0))
+					}, [M("div", { style: L({
 						fontSize: "10px",
 						fontWeight: "800",
 						color: re(e),
 						letterSpacing: "0.6px",
 						textTransform: "uppercase"
-					}) }, R(e.label), 5), (j(!0), z(M, null, P(e.samplingFields, (t) => (j(), z("div", {
+					}) }, R(e.label), 5), (I(!0), z(j, null, F(e.samplingFields, (t) => (I(), z("div", {
 						key: `sampling-row-${e.key}-${t.label}`,
 						style: {
 							display: "grid",
@@ -6673,7 +6673,7 @@ var wo = ["title"], To = ["src"], Eo = {
 							color: "rgba(255,255,255,0.72)",
 							"align-items": "start"
 						}
-					}, [N("span", null, R(t.label), 1), N("span", {
+					}, [M("span", null, R(t.label), 1), M("span", {
 						style: {
 							color: "var(--fg-color, #ddd)",
 							"word-break": "break-word",
@@ -6681,26 +6681,26 @@ var wo = ["title"], To = ["src"], Eo = {
 							cursor: "pointer"
 						},
 						onClick: (e) => E(t.value, e.currentTarget)
-					}, R(t.value), 9, ac)]))), 128))], 4))), 128))])], 4)) : F("", !0),
-					F("", !0)
-				], 64)) : h.value.modelGroups.length ? (j(), z("div", {
+					}, R(t.value), 9, ac)]))), 128))], 4))), 128))])], 4)) : N("", !0),
+					N("", !0)
+				], 64)) : h.value.modelGroups.length ? (I(), z("div", {
 					key: 9,
-					style: V(f("#9C27B0", {
+					style: L(f("#9C27B0", {
 						emphasis: !0,
 						startAlpha: .18,
 						endAlpha: .1
 					}))
-				}, [N("div", oc, R(L(O)("sidebar.generation.models", "Models")), 1), N("div", sc, [(j(!0), z(M, null, P(h.value.modelGroups, (e) => (j(), z("div", {
+				}, [M("div", oc, R(B(O)("sidebar.generation.models", "Models")), 1), M("div", sc, [(I(!0), z(j, null, F(h.value.modelGroups, (e) => (I(), z("div", {
 					key: `model-group-${e.key}`,
-					style: V(T(ie(e.key), !0))
+					style: L(T(ie(e.key), !0))
 				}, [
-					N("div", cc, [N("div", { style: V({
+					M("div", cc, [M("div", { style: L({
 						fontSize: "10px",
 						fontWeight: "800",
 						color: ie(e.key),
 						letterSpacing: "0.6px",
 						textTransform: "uppercase"
-					}) }, R(e.label), 5), N("span", { style: V({
+					}) }, R(e.label), 5), M("span", { style: L({
 						fontSize: "9px",
 						fontWeight: "700",
 						color: "#fff",
@@ -6711,13 +6711,13 @@ var wo = ["title"], To = ["src"], Eo = {
 						letterSpacing: "0.4px",
 						textTransform: "uppercase"
 					}) }, R(e.loras?.length || 0) + " LoRA ", 5)]),
-					N("div", lc, [t[15] ||= N("div", { style: {
+					M("div", lc, [t[15] ||= M("div", { style: {
 						"font-size": "10px",
 						"font-weight": "700",
 						color: "rgba(255,255,255,0.58)",
 						"text-transform": "uppercase",
 						"letter-spacing": "0.4px"
-					} }, " UNet ", -1), N("div", {
+					} }, " UNet ", -1), M("div", {
 						style: {
 							"font-size": "12px",
 							color: "var(--fg-color, rgba(255,255,255,0.96))",
@@ -6727,7 +6727,7 @@ var wo = ["title"], To = ["src"], Eo = {
 						},
 						onClick: (t) => E(e.model, t.currentTarget)
 					}, R(e.model || "-"), 9, uc)]),
-					e.loras?.length ? (j(), z("div", dc, [N("div", fc, R(L(O)("sidebar.generation.loraStack", "LoRA Stack")), 1), N("div", pc, [(j(!0), z(M, null, P(e.loras, (t, n) => (j(), z("div", {
+					e.loras?.length ? (I(), z("div", dc, [M("div", fc, R(B(O)("sidebar.generation.loraStack", "LoRA Stack")), 1), M("div", pc, [(I(!0), z(j, null, F(e.loras, (t, n) => (I(), z("div", {
 						key: `${e.key}-lora-${n}`,
 						style: {
 							"font-size": "12px",
@@ -6741,19 +6741,19 @@ var wo = ["title"], To = ["src"], Eo = {
 							cursor: "pointer"
 						},
 						onClick: (e) => E(t, e.currentTarget)
-					}, R(t), 9, mc))), 128))])])) : F("", !0)
-				], 4))), 128))])], 4)) : F("", !0),
-				(j(!0), z(M, null, P(ee.value, (e) => (j(), z("div", {
+					}, R(t), 9, mc))), 128))])])) : N("", !0)
+				], 4))), 128))])], 4)) : N("", !0),
+				(I(!0), z(j, null, F(ee.value, (e) => (I(), z("div", {
 					key: e.key,
-					style: V(f(e.accent, { emphasis: e.emphasis }))
-				}, [N("div", { style: V({
+					style: L(f(e.accent, { emphasis: e.emphasis }))
+				}, [M("div", { style: L({
 					fontSize: "11px",
 					fontWeight: "600",
 					color: e.accent,
 					textTransform: "uppercase",
 					letterSpacing: "0.5px",
 					marginBottom: "10px"
-				}) }, R(e.title), 5), N("div", hc, [(j(!0), z(M, null, P(e.fields, (t) => (j(), z(M, { key: `${e.key}-${t.label}` }, [N("div", {
+				}) }, R(e.title), 5), M("div", hc, [(I(!0), z(j, null, F(e.fields, (t) => (I(), z(j, { key: `${e.key}-${t.label}` }, [M("div", {
 					title: t.label,
 					style: {
 						"font-size": "11px",
@@ -6763,11 +6763,11 @@ var wo = ["title"], To = ["src"], Eo = {
 						"align-items": "center",
 						gap: "6px"
 					}
-				}, [N("span", null, R(t.label) + ":", 1), t.override ? (j(), z("span", {
+				}, [M("span", null, R(t.label) + ":", 1), t.override ? (I(), z("span", {
 					key: 0,
-					style: V(m()),
-					title: L(O)("sidebar.generation.overrideTooltip", "This field was forced by Majoor Gen Info Override")
-				}, R(L(O)("sidebar.generation.override", "override")), 13, _c)) : F("", !0)], 8, gc), N("div", {
+					style: L(m()),
+					title: B(O)("sidebar.generation.overrideTooltip", "This field was forced by Majoor Gen Info Override")
+				}, R(B(O)("sidebar.generation.override", "override")), 13, _c)) : N("", !0)], 8, gc), M("div", {
 					title: `${t.label}: ${t.value}`,
 					style: {
 						"font-size": "12px",
@@ -6778,10 +6778,10 @@ var wo = ["title"], To = ["src"], Eo = {
 					},
 					onClick: (e) => E(t.value, e.currentTarget)
 				}, R(t.value), 9, vc)], 64))), 128))])], 4))), 128)),
-				h.value.notesFields.length ? (j(), z("div", {
+				h.value.notesFields.length ? (I(), z("div", {
 					key: 10,
-					style: V(f("#4CAF50", { emphasis: !1 }))
-				}, [N("div", yc, R(L(O)("sidebar.generation.notes", "Notes")), 1), (j(!0), z(M, null, P(h.value.notesFields, (e) => (j(), z("div", {
+					style: L(f("#4CAF50", { emphasis: !1 }))
+				}, [M("div", yc, R(B(O)("sidebar.generation.notes", "Notes")), 1), (I(!0), z(j, null, F(h.value.notesFields, (e) => (I(), z("div", {
 					key: e.label,
 					title: `${e.label}: ${e.value}`,
 					style: {
@@ -6793,24 +6793,24 @@ var wo = ["title"], To = ["src"], Eo = {
 						cursor: "pointer"
 					},
 					onClick: (t) => E(e.value, t.currentTarget)
-				}, R(e.value), 9, bc))), 128))], 4)) : F("", !0),
-				h.value.moduleBlocks.length ? (j(), z("div", {
+				}, R(e.value), 9, bc))), 128))], 4)) : N("", !0),
+				h.value.moduleBlocks.length ? (I(), z("div", {
 					key: 11,
-					style: V(f("#26C6DA", {
+					style: L(f("#26C6DA", {
 						emphasis: !0,
 						startAlpha: .14,
 						endAlpha: .08
 					}))
-				}, [N("div", xc, R(L(O)("sidebar.generation.modules", "Modules")), 1), N("div", Sc, [(j(!0), z(M, null, P(h.value.moduleBlocks, (e) => (j(), z("div", {
+				}, [M("div", xc, R(B(O)("sidebar.generation.modules", "Modules")), 1), M("div", Sc, [(I(!0), z(j, null, F(h.value.moduleBlocks, (e) => (I(), z("div", {
 					key: `module-${e.key}-${e.title}`,
-					style: V(T(e.accent, !1))
-				}, [N("div", { style: V({
+					style: L(T(e.accent, !1))
+				}, [M("div", { style: L({
 					fontSize: "10px",
 					fontWeight: "800",
 					color: e.accent,
 					letterSpacing: "0.6px",
 					textTransform: "uppercase"
-				}) }, R(e.title), 5), (j(!0), z(M, null, P(e.fields, (t) => (j(), z("div", {
+				}) }, R(e.title), 5), (I(!0), z(j, null, F(e.fields, (t) => (I(), z("div", {
 					key: `module-${e.key}-${t.label}`,
 					style: {
 						display: "flex",
@@ -6818,7 +6818,7 @@ var wo = ["title"], To = ["src"], Eo = {
 						gap: "3px",
 						"min-width": "0"
 					}
-				}, [N("span", Cc, R(t.label), 1), N("span", {
+				}, [M("span", Cc, R(t.label), 1), M("span", {
 					title: `${t.label}: ${t.value}`,
 					style: {
 						"font-size": "12px",
@@ -6829,12 +6829,12 @@ var wo = ["title"], To = ["src"], Eo = {
 						cursor: "pointer"
 					},
 					onClick: (e) => E(t.value, e.currentTarget)
-				}, R(t.value), 9, wc)]))), 128))], 4))), 128))])], 4)) : F("", !0),
-				h.value.ttsInstruction ? (j(), z("div", {
+				}, R(t.value), 9, wc)]))), 128))], 4))), 128))])], 4)) : N("", !0),
+				h.value.ttsInstruction ? (I(), z("div", {
 					key: 12,
-					style: V(f("#26A69A", { emphasis: !1 }))
-				}, [N("div", Tc, [N("span", null, R(L(O)("sidebar.generation.ttsInstruction", "TTS Instruction")), 1)]), N("div", {
-					title: L(O)("action.clickToCopy", "Click to copy"),
+					style: L(f("#26A69A", { emphasis: !1 }))
+				}, [M("div", Tc, [M("span", null, R(B(O)("sidebar.generation.ttsInstruction", "TTS Instruction")), 1)]), M("div", {
+					title: B(O)("action.clickToCopy", "Click to copy"),
 					style: {
 						"font-size": "12px",
 						color: "var(--fg-color, rgba(255,255,255,0.9))",
@@ -6844,12 +6844,12 @@ var wo = ["title"], To = ["src"], Eo = {
 						cursor: "pointer"
 					},
 					onClick: t[6] ||= (e) => E(h.value.ttsInstruction, e.currentTarget)
-				}, R(h.value.ttsInstruction), 9, Ec)], 4)) : F("", !0),
-				h.value.seed !== null && h.value.seed !== void 0 && h.value.seed !== "" ? (j(), z("div", {
+				}, R(h.value.ttsInstruction), 9, Ec)], 4)) : N("", !0),
+				h.value.seed !== null && h.value.seed !== void 0 && h.value.seed !== "" ? (I(), z("div", {
 					key: 13,
-					style: V(p())
-				}, [N("div", Dc, R(L(O)("sidebar.generation.seed", "SEED")), 1), N("div", {
-					title: L(O)("sidebar.generation.copySeedTooltip", "Click to copy seed: {seed}", { seed: h.value.seed }),
+					style: L(p())
+				}, [M("div", Dc, R(B(O)("sidebar.generation.seed", "SEED")), 1), M("div", {
+					title: B(O)("sidebar.generation.copySeedTooltip", "Click to copy seed: {seed}", { seed: h.value.seed }),
 					style: {
 						"font-size": "18px",
 						"font-weight": "700",
@@ -6862,16 +6862,16 @@ var wo = ["title"], To = ["src"], Eo = {
 						transition: "background 0.2s"
 					},
 					onClick: t[7] ||= (e) => E(h.value.seed, e.currentTarget, "rgba(76, 175, 80, 0.4)")
-				}, R(h.value.seed), 9, Oc)], 4)) : F("", !0),
-				h.value.inputFiles.length ? (j(), z("div", {
+				}, R(h.value.seed), 9, Oc)], 4)) : N("", !0),
+				h.value.inputFiles.length ? (I(), z("div", {
 					key: 14,
-					style: V(f("#4CAF50", {
+					style: L(f("#4CAF50", {
 						emphasis: !0,
 						startAlpha: .16,
 						endAlpha: .1
 					}))
-				}, [N("div", {
-					title: L(O)("tooltip.generationInputs", "Input files used in generation"),
+				}, [M("div", {
+					title: B(O)("tooltip.generationInputs", "Input files used in generation"),
 					style: {
 						"font-size": "11px",
 						"font-weight": "600",
@@ -6880,10 +6880,10 @@ var wo = ["title"], To = ["src"], Eo = {
 						"letter-spacing": "0.5px",
 						"margin-bottom": "8px"
 					}
-				}, R(L(O)("sidebar.generation.sourceFiles", "Source Files")), 9, kc), N("div", Ac, [(j(!0), z(M, null, P(h.value.inputFiles, (e) => (j(), Ze(jo, {
+				}, R(B(O)("sidebar.generation.sourceFiles", "Source Files")), 9, kc), M("div", Ac, [(I(!0), z(j, null, F(h.value.inputFiles, (e) => (I(), Ze(jo, {
 					key: e.id,
 					"input-file": e
-				}, null, 8, ["input-file"]))), 128))])], 4)) : F("", !0)
+				}, null, 8, ["input-file"]))), 128))])], 4)) : N("", !0)
 			]));
 		};
 	}
@@ -7261,7 +7261,7 @@ var wo = ["title"], To = ["src"], Eo = {
 				label: "Expanded",
 				height: 220
 			}
-		]), a = B(null), s = B(""), c = B(!1), l = B(!1), d = B(null), p = B(!1), m = B(null), h = B([]), g = B(null), _ = B(!1), v = B(!1), b = B(ue()), S = B({ ...r }), C = B("crosshair"), ee = B(""), te = null, w = null, T = null;
+		]), a = V(null), s = V(""), c = V(!1), l = V(!1), d = V(null), p = V(!1), m = V(null), h = V([]), g = V(null), _ = V(!1), v = V(!1), b = V(ue()), S = V({ ...r }), C = V("crosshair"), ee = V(""), te = null, w = null, T = null;
 		function ne(e, t, n) {
 			let r = Number(e);
 			return Number.isFinite(r) ? Math.max(t, Math.min(n, r)) : t;
@@ -7379,29 +7379,29 @@ var wo = ["title"], To = ["src"], Eo = {
 				console.debug?.(e);
 			}
 		}
-		let D = I(() => {
+		let D = P(() => {
 			let e = ce(t.asset) || ce(d.value), n = le(t.asset) || le(d.value);
 			return !e && !n ? null : e || da(n);
-		}), fe = I(() => String(t.asset?.filepath || t.asset?.path || t.asset?.file_info?.filepath || "").trim()), pe = I(() => String(t.asset?.display_name || t.asset?.name || t.asset?.filename || t.asset?.title || "Workflow").trim()), me = I(() => String(t.asset?.task || t.asset?.workflow_task || "").trim()), he = I(() => String(t.asset?.model_family || t.asset?.workflow_model_family || "").trim()), _e = I(() => String(t.asset?.provider || t.asset?.workflow_provider || "").trim()), ve = I(() => String(t.asset?.runs_on || t.asset?.runsOn || "").trim().toLowerCase()), ye = I(() => {
+		}), fe = P(() => String(t.asset?.filepath || t.asset?.path || t.asset?.file_info?.filepath || "").trim()), pe = P(() => String(t.asset?.display_name || t.asset?.name || t.asset?.filename || t.asset?.title || "Workflow").trim()), me = P(() => String(t.asset?.task || t.asset?.workflow_task || "").trim()), he = P(() => String(t.asset?.model_family || t.asset?.workflow_model_family || "").trim()), _e = P(() => String(t.asset?.provider || t.asset?.workflow_provider || "").trim()), ve = P(() => String(t.asset?.runs_on || t.asset?.runsOn || "").trim().toLowerCase()), ye = P(() => {
 			let e = ve.value, t = _e.value;
 			return e === "api" && t ? `API · ${t}` : e ? t && t.toLowerCase() !== e ? `${e} · ${t}` : e : t;
-		}), be = I(() => String(t.asset?.notes || "").trim()), xe = I(() => [
+		}), be = P(() => String(t.asset?.notes || "").trim()), xe = P(() => [
 			t.asset?.detected_task ? `detected: ${t.asset.detected_task}` : "",
 			t.asset?.detected_model_family ? t.asset.detected_model_family : "",
 			t.asset?.detected_provider ? t.asset.detected_provider : ""
-		].filter(Boolean).join(" · ")), Ce = I(() => A(t.asset?.missing_nodes || t.asset?.missingNodes)), we = I(() => A(t.asset?.missing_models || t.asset?.missingModels)), Te = I(() => A(t.asset?.tags || t.asset?.workflow_tags || t.asset?.tags_json)), Ee = I(() => Te.value.slice(0, 3)), De = I(() => Math.max(0, Te.value.length - Ee.value.length)), Oe = I(() => A(m.value?.missing_nodes)), ke = I(() => A(m.value?.missing_models)), Ae = I(() => A(m.value?.warnings)), je = I(() => {
+		].filter(Boolean).join(" · ")), Ce = P(() => A(t.asset?.missing_nodes || t.asset?.missingNodes)), we = P(() => A(t.asset?.missing_models || t.asset?.missingModels)), Te = P(() => A(t.asset?.tags || t.asset?.workflow_tags || t.asset?.tags_json)), Ee = P(() => Te.value.slice(0, 3)), De = P(() => Math.max(0, Te.value.length - Ee.value.length)), Oe = P(() => A(m.value?.missing_nodes)), ke = P(() => A(m.value?.missing_models)), Ae = P(() => A(m.value?.warnings)), je = P(() => {
 			let e = m.value;
 			return e ? `${Number(e.node_count || 0)} nodes | ${Number(e.subgraph_count || 0)} subgraphs | ${Array.isArray(e.required_nodes) ? e.required_nodes.length : 0} node types` : "";
-		}), Me = I(() => {
+		}), Me = P(() => {
 			let e = h.value?.[0];
 			return e ? String(e.filename || "").replace(/\.json$/i, "") : "";
-		}), Ne = I(() => {
+		}), Ne = P(() => {
 			let e = g.value;
 			return e ? `${Number(e.changed?.length || 0)} changed | ${Number(e.added?.length || 0)} added | ${Number(e.removed?.length || 0)} removed` : "";
-		}), Pe = I(() => {
+		}), Pe = P(() => {
 			let e = Number(t.asset?.usage_count || t.asset?.usageCount || 0);
 			return !Number.isFinite(e) || e <= 0 ? "" : `${Math.floor(e)} use${e === 1 ? "" : "s"}`;
-		}), Fe = I(() => Re(t.asset?.last_loaded_at || t.asset?.lastLoadedAt)), k = I(() => Re(t.asset?.mtime || t.asset?.modified_at || t.asset?.updated_at)), Ie = I(() => {
+		}), Fe = P(() => Re(t.asset?.last_loaded_at || t.asset?.lastLoadedAt)), k = P(() => Re(t.asset?.mtime || t.asset?.modified_at || t.asset?.updated_at)), Ie = P(() => {
 			let e = [];
 			t.asset?.favorite && e.push({
 				key: "favorite",
@@ -7481,7 +7481,7 @@ var wo = ["title"], To = ["src"], Eo = {
 				}
 			}
 		}
-		let Be = I(() => t.asset?.has_generation_data ? "Complete" : "Partial"), He = I(() => D.value ? JSON.stringify(D.value, null, 2) : ""), Ue = I(() => String(t.asset?.category || t.asset?.subfolder || t.asset?.folder || "").trim().replace(/^\/+|\/+$/g, "")), We = I(() => Ue.value ? Ue.value.split(/[\\/]+/).filter(Boolean) : []), Ge = I(() => We.value.at(-1) || Ue.value || "Root"), Ke = I(() => We.value.slice(-1));
+		let Be = P(() => t.asset?.has_generation_data ? "Complete" : "Partial"), He = P(() => D.value ? JSON.stringify(D.value, null, 2) : ""), Ue = P(() => String(t.asset?.category || t.asset?.subfolder || t.asset?.folder || "").trim().replace(/^\/+|\/+$/g, "")), We = P(() => Ue.value ? Ue.value.split(/[\\/]+/).filter(Boolean) : []), Ge = P(() => We.value.at(-1) || Ue.value || "Root"), Ke = P(() => We.value.slice(-1));
 		function qe(e, t) {
 			let n = e?.id ?? e?.key ?? t + 1;
 			return String(e?.title || e?._meta?.title || e?.type || e?.class_type || e?.name || `Node ${n}`);
@@ -7597,7 +7597,7 @@ var wo = ["title"], To = ["src"], Eo = {
 				p.value = !1;
 			}
 		}
-		let ct = I(() => (Array.isArray(D.value?.nodes) ? D.value.nodes : []).slice(0, Gl).map((e, t) => {
+		let ct = P(() => (Array.isArray(D.value?.nodes) ? D.value.nodes : []).slice(0, Gl).map((e, t) => {
 			let n = e?.id ?? e?.key ?? t + 1, r = Je(e);
 			return {
 				key: String(n),
@@ -7608,7 +7608,7 @@ var wo = ["title"], To = ["src"], Eo = {
 					type: r
 				}
 			};
-		})), lt = I(() => Math.max(0, Number(ut.value.nodes || 0) - ct.value.length)), ut = I(() => {
+		})), lt = P(() => Math.max(0, Number(ut.value.nodes || 0) - ct.value.length)), ut = P(() => {
 			let e = D.value;
 			return e ? {
 				nodes: Array.isArray(e?.nodes) ? e.nodes.length : 0,
@@ -7621,10 +7621,10 @@ var wo = ["title"], To = ["src"], Eo = {
 				groups: 0,
 				source: ""
 			};
-		}), dt = I(() => {
+		}), dt = P(() => {
 			let e = String(b.value?.size || "comfortable");
 			return i.find((t) => t.key === e) || i[1];
-		}), ft = I(() => `${dt.value.height}px`), mt = I(() => [
+		}), ft = P(() => `${dt.value.height}px`), mt = P(() => [
 			{
 				key: "showNodeLabels",
 				label: "Node Labels",
@@ -7661,7 +7661,7 @@ var wo = ["title"], To = ["src"], Eo = {
 				iconClass: "pi pi-window-maximize"
 			}
 		]);
-		function gt() {
+		function ht() {
 			let e = a.value, t = D.value;
 			if (!e || !t) return;
 			let n = Math.max(1, e.clientWidth || 320), r = Math.max(1, e.clientHeight || 120), i = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
@@ -7672,10 +7672,10 @@ var wo = ["title"], To = ["src"], Eo = {
 				view: S.value
 			}) || null, re(w?.resolvedView);
 		}
-		function _t(e) {
+		function gt(e) {
 			Ve(e);
 		}
-		function vt(e) {
+		function _t(e) {
 			let t = a.value;
 			if (!t) return null;
 			let n = t.getBoundingClientRect?.();
@@ -7684,48 +7684,48 @@ var wo = ["title"], To = ["src"], Eo = {
 				y: Number(e?.clientY) - n.top
 			} : null;
 		}
-		function yt(e) {
-			let t = vt(e);
+		function vt(e) {
+			let t = _t(e);
 			return !t || !w?.canvasToWorld ? null : {
 				local: t,
 				world: w.canvasToWorld(t.x, t.y)
 			};
 		}
-		function xt(e) {
-			let t = vt(e), n = t && w?.hitTestNode ? w.hitTestNode(t.x, t.y) : null, r = n?.id !== null && n?.id !== void 0 ? String(n.id) : null, i = S.value.hoveredNodeId !== null && S.value.hoveredNodeId !== void 0 ? String(S.value.hoveredNodeId) : null;
+		function yt(e) {
+			let t = _t(e), n = t && w?.hitTestNode ? w.hitTestNode(t.x, t.y) : null, r = n?.id !== null && n?.id !== void 0 ? String(n.id) : null, i = S.value.hoveredNodeId !== null && S.value.hoveredNodeId !== void 0 ? String(S.value.hoveredNodeId) : null;
 			ee.value = n?.label || "", r !== i && (S.value = {
 				...S.value,
 				hoveredNodeId: r
-			}, gt());
+			}, ht());
 		}
-		function St(e) {
-			e && (_t(e), S.value = {
+		function bt(e) {
+			e && (gt(e), S.value = {
 				...S.value,
 				centerX: Number(e.x),
 				centerY: Number(e.y)
-			}, gt());
+			}, ht());
 		}
-		function Ct(e) {
+		function xt(e) {
 			if (Number(e?.button ?? 0) !== 0) return;
-			let t = yt(e);
-			t && (T = e.pointerId ?? 1, C.value = "grabbing", a.value?.setPointerCapture?.(T), St(t.world), xt(e), e.preventDefault?.(), e.stopPropagation?.());
+			let t = vt(e);
+			t && (T = e.pointerId ?? 1, C.value = "grabbing", a.value?.setPointerCapture?.(T), bt(t.world), yt(e), e.preventDefault?.(), e.stopPropagation?.());
 		}
-		function wt(e) {
+		function St(e) {
 			if (T !== null && e.pointerId === T) {
-				let t = yt(e);
-				t && St(t.world), e.preventDefault?.(), e.stopPropagation?.();
+				let t = vt(e);
+				t && bt(t.world), e.preventDefault?.(), e.stopPropagation?.();
 				return;
 			}
-			xt(e);
+			yt(e);
 		}
-		function Tt(e) {
+		function Ct(e) {
 			T !== null && e?.pointerId === T && (a.value?.releasePointerCapture?.(T), T = null, C.value = "crosshair"), e?.type === "pointerleave" && (ee.value = "", S.value.hoveredNodeId !== null && (S.value = {
 				...S.value,
 				hoveredNodeId: null
-			}, gt()));
+			}, ht()));
 		}
 		function Dt(e) {
-			let t = yt(e), n = w?.resolvedView;
+			let t = vt(e), n = w?.resolvedView;
 			if (!t || !n) return;
 			let r = ne(Number(e?.deltaY) || 0, -240, 240), i = Math.exp(-r * .0025), a = ne((Number(S.value.zoom) || 1) * i, Ul, Wl);
 			if (Math.abs(a - (Number(S.value.zoom) || 1)) < .001) {
@@ -7738,11 +7738,11 @@ var wo = ["title"], To = ["src"], Eo = {
 				zoom: a,
 				centerX: Number(t.world.x) + (.5 - c) * o,
 				centerY: Number(t.world.y) + (.5 - l) * s
-			}, gt(), xt(e), e.preventDefault?.(), e.stopPropagation?.();
+			}, ht(), yt(e), e.preventDefault?.(), e.stopPropagation?.();
 		}
 		function Ot(e) {
-			let t = yt(e);
-			ie(), t && _t(t.world), gt(), e.preventDefault?.(), e.stopPropagation?.();
+			let t = vt(e);
+			ie(), t && gt(t.world), ht(), e.preventDefault?.(), e.stopPropagation?.();
 		}
 		function kt(e) {
 			b.value = {
@@ -7756,22 +7756,22 @@ var wo = ["title"], To = ["src"], Eo = {
 				size: e
 			}, de(b.value));
 		}
-		return tt(() => {
-			a.value && typeof ResizeObserver == "function" && (te = new ResizeObserver(() => gt()), te.observe(a.value)), nt(), ze(), gt();
-		}), Qe(D, () => {
-			ie(), gt();
-		}, { flush: "post" }), Qe(fe, () => {
+		return Et(() => {
+			a.value && typeof ResizeObserver == "function" && (te = new ResizeObserver(() => ht()), te.observe(a.value)), nt(), ze(), ht();
+		}), et(D, () => {
+			ie(), ht();
+		}, { flush: "post" }), et(fe, () => {
 			d.value = null, ze();
-		}, { immediate: !0 }), Qe(Ue, () => {
+		}, { immediate: !0 }), et(Ue, () => {
 			nt();
-		}), Qe(b, () => {
-			gt();
+		}), et(b, () => {
+			ht();
 		}, {
 			deep: !0,
 			flush: "post"
-		}), Qe(_, () => {
-			gt();
-		}, { flush: "post" }), et(() => {
+		}), et(_, () => {
+			ht();
+		}, { flush: "post" }), tt(() => {
 			try {
 				te?.disconnect?.();
 			} catch (e) {
@@ -7779,9 +7779,9 @@ var wo = ["title"], To = ["src"], Eo = {
 			}
 			te = null, T = null;
 		}), (e, t) => {
-			let n = rt("MButton"), r = rt("MTree");
-			return D.value ? (j(), z("div", Mc, [
-				t[18] ||= N("div", { style: {
+			let n = Qe("MButton"), r = Qe("MTree");
+			return D.value ? (I(), z("div", Mc, [
+				t[18] ||= M("div", { style: {
 					"font-size": "13px",
 					"font-weight": "600",
 					color: "var(--fg-color, #eaeaea)",
@@ -7789,9 +7789,9 @@ var wo = ["title"], To = ["src"], Eo = {
 					"text-transform": "uppercase",
 					"letter-spacing": "0.5px"
 				} }, " ComfyUI Workflow ", -1),
-				N("div", Nc, [
-					N("div", Pc, R(pe.value), 1),
-					fe.value ? (j(), z("div", {
+				M("div", Nc, [
+					M("div", Pc, R(pe.value), 1),
+					fe.value ? (I(), z("div", {
 						key: 0,
 						style: {
 							"font-size": "11px",
@@ -7802,56 +7802,56 @@ var wo = ["title"], To = ["src"], Eo = {
 							"white-space": "nowrap"
 						},
 						title: fe.value
-					}, R(fe.value), 9, Fc)) : F("", !0),
-					Ie.value.length ? (j(), z("div", Ic, [(j(!0), z(M, null, P(Ie.value, (e) => (j(), z("span", {
+					}, R(fe.value), 9, Fc)) : N("", !0),
+					Ie.value.length ? (I(), z("div", Ic, [(I(!0), z(j, null, F(Ie.value, (e) => (I(), z("span", {
 						key: e.key,
-						style: V(Le(e.tone)),
+						style: L(Le(e.tone)),
 						title: e.label
-					}, [N("i", {
-						class: ht(e.icon),
+					}, [M("i", {
+						class: wt(e.icon),
 						style: {
 							"font-size": "10px",
 							flex: "0 0 auto"
 						}
-					}, null, 2), N("span", Rc, R(e.label), 1)], 12, Lc))), 128))])) : F("", !0)
+					}, null, 2), M("span", Rc, R(e.label), 1)], 12, Lc))), 128))])) : N("", !0)
 				]),
-				N("div", zc, [N("div", Bc, R(Be.value), 1), ut.value.source ? (j(), z("div", Vc, R(ut.value.source), 1)) : F("", !0)]),
-				N("div", Hc, [
-					me.value ? (j(), z("div", Uc, [t[3] ||= N("div", { style: {
+				M("div", zc, [M("div", Bc, R(Be.value), 1), ut.value.source ? (I(), z("div", Vc, R(ut.value.source), 1)) : N("", !0)]),
+				M("div", Hc, [
+					me.value ? (I(), z("div", Uc, [t[3] ||= M("div", { style: {
 						"font-size": "10px",
 						"font-weight": "700",
 						color: "rgba(255,255,255,0.55)",
 						"text-transform": "uppercase",
 						"letter-spacing": "0.4px"
-					} }, "Task", -1), N("div", Wc, R(me.value), 1)])) : F("", !0),
-					he.value ? (j(), z("div", Gc, [t[4] ||= N("div", { style: {
+					} }, "Task", -1), M("div", Wc, R(me.value), 1)])) : N("", !0),
+					he.value ? (I(), z("div", Gc, [t[4] ||= M("div", { style: {
 						"font-size": "10px",
 						"font-weight": "700",
 						color: "rgba(255,255,255,0.55)",
 						"text-transform": "uppercase",
 						"letter-spacing": "0.4px"
-					} }, "Model", -1), N("div", Kc, R(he.value), 1)])) : F("", !0),
-					ye.value ? (j(), z("div", qc, [t[5] ||= N("div", { style: {
+					} }, "Model", -1), M("div", Kc, R(he.value), 1)])) : N("", !0),
+					ye.value ? (I(), z("div", qc, [t[5] ||= M("div", { style: {
 						"font-size": "10px",
 						"font-weight": "700",
 						color: "rgba(255,255,255,0.55)",
 						"text-transform": "uppercase",
 						"letter-spacing": "0.4px"
-					} }, "Runs on", -1), N("div", Jc, R(ye.value), 1)])) : F("", !0),
-					Pe.value || k.value ? (j(), z("div", Yc, [
-						t[6] ||= N("div", { style: {
+					} }, "Runs on", -1), M("div", Jc, R(ye.value), 1)])) : N("", !0),
+					Pe.value || k.value ? (I(), z("div", Yc, [
+						t[6] ||= M("div", { style: {
 							"font-size": "10px",
 							"font-weight": "700",
 							color: "rgba(255,255,255,0.55)",
 							"text-transform": "uppercase",
 							"letter-spacing": "0.4px"
 						} }, "Library", -1),
-						N("div", Xc, R(Pe.value || k.value), 1),
-						Pe.value && k.value ? (j(), z("div", Zc, R(k.value), 1)) : F("", !0)
-					])) : F("", !0)
+						M("div", Xc, R(Pe.value || k.value), 1),
+						Pe.value && k.value ? (I(), z("div", Zc, R(k.value), 1)) : N("", !0)
+					])) : N("", !0)
 				]),
-				Ce.value.length || we.value.length ? (j(), z("div", Qc, [
-					t[7] ||= N("div", { style: {
+				Ce.value.length || we.value.length ? (I(), z("div", Qc, [
+					t[7] ||= M("div", { style: {
 						"font-size": "10px",
 						"font-weight": "800",
 						color: "#ef9a9a",
@@ -7859,15 +7859,15 @@ var wo = ["title"], To = ["src"], Eo = {
 						"letter-spacing": "0.4px",
 						"margin-bottom": "6px"
 					} }, "Missing dependencies", -1),
-					Ce.value.length ? (j(), z("div", {
+					Ce.value.length ? (I(), z("div", {
 						key: 0,
-						style: V({
+						style: L({
 							display: "flex",
 							flexWrap: "wrap",
 							gap: "5px",
 							marginBottom: we.value.length ? "7px" : "0"
 						})
-					}, [(j(!0), z(M, null, P(Ce.value, (e) => (j(), z("span", {
+					}, [(I(!0), z(j, null, F(Ce.value, (e) => (I(), z("span", {
 						key: `node-${e}`,
 						style: {
 							padding: "3px 7px",
@@ -7877,8 +7877,8 @@ var wo = ["title"], To = ["src"], Eo = {
 							"font-weight": "700",
 							color: "#ffcdd2"
 						}
-					}, R(e), 1))), 128))], 4)) : F("", !0),
-					we.value.length ? (j(), z("div", $c, [(j(!0), z(M, null, P(we.value, (e) => (j(), z("span", {
+					}, R(e), 1))), 128))], 4)) : N("", !0),
+					we.value.length ? (I(), z("div", $c, [(I(!0), z(j, null, F(we.value, (e) => (I(), z("span", {
 						key: `model-${e}`,
 						style: {
 							padding: "3px 7px",
@@ -7888,17 +7888,17 @@ var wo = ["title"], To = ["src"], Eo = {
 							"font-weight": "700",
 							color: "#ffe0b2"
 						}
-					}, R(e), 1))), 128))])) : F("", !0)
-				])) : F("", !0),
-				be.value || xe.value ? (j(), z("div", el, [be.value ? (j(), z("div", tl, R(be.value), 1)) : F("", !0), xe.value ? (j(), z("div", {
+					}, R(e), 1))), 128))])) : N("", !0)
+				])) : N("", !0),
+				be.value || xe.value ? (I(), z("div", el, [be.value ? (I(), z("div", tl, R(be.value), 1)) : N("", !0), xe.value ? (I(), z("div", {
 					key: 1,
-					style: V({
+					style: L({
 						fontSize: "11px",
 						color: "rgba(255,255,255,0.48)",
 						marginTop: be.value ? "7px" : "0"
 					})
-				}, R(xe.value), 5)) : F("", !0)])) : F("", !0),
-				N("div", nl, [
+				}, R(xe.value), 5)) : N("", !0)])) : N("", !0),
+				M("div", nl, [
 					pt(n, {
 						type: "button",
 						severity: "secondary",
@@ -7919,7 +7919,7 @@ var wo = ["title"], To = ["src"], Eo = {
 						},
 						onClick: at
 					}, {
-						default: bt(() => [t[8] ||= N("i", { class: "pi pi-image" }, null, -1), N("span", null, R(L(O)("ctx.setWorkflowThumbnail", "Set workflow thumbnail")), 1)]),
+						default: $e(() => [t[8] ||= M("i", { class: "pi pi-image" }, null, -1), M("span", null, R(B(O)("ctx.setWorkflowThumbnail", "Set workflow thumbnail")), 1)]),
 						_: 1
 					}),
 					pt(n, {
@@ -7942,7 +7942,7 @@ var wo = ["title"], To = ["src"], Eo = {
 						},
 						onClick: ot
 					}, {
-						default: bt(() => [t[9] ||= N("i", { class: "pi pi-search" }, null, -1), N("span", null, R(L(O)("ctx.inspect", "Inspect")), 1)]),
+						default: $e(() => [t[9] ||= M("i", { class: "pi pi-search" }, null, -1), M("span", null, R(B(O)("ctx.inspect", "Inspect")), 1)]),
 						_: 1
 					}),
 					pt(n, {
@@ -7966,19 +7966,19 @@ var wo = ["title"], To = ["src"], Eo = {
 						},
 						onClick: st
 					}, {
-						default: bt(() => [N("i", { class: ht(p.value ? "pi pi-spin pi-spinner" : "pi pi-check-circle") }, null, 2), N("span", null, R(p.value ? "Checking" : "Validate"), 1)]),
+						default: $e(() => [M("i", { class: wt(p.value ? "pi pi-spin pi-spinner" : "pi pi-check-circle") }, null, 2), M("span", null, R(p.value ? "Checking" : "Validate"), 1)]),
 						_: 1
 					}, 8, ["disabled"])
 				]),
-				m.value ? (j(), z("div", rl, [
-					N("div", il, [t[10] ||= N("div", { style: {
+				m.value ? (I(), z("div", rl, [
+					M("div", il, [t[10] ||= M("div", { style: {
 						"font-size": "10px",
 						"font-weight": "800",
 						color: "#a5d6a7",
 						"text-transform": "uppercase",
 						"letter-spacing": "0.4px"
-					} }, "Workflow diagnostics", -1), N("div", al, R(je.value), 1)]),
-					Oe.value.length || ke.value.length ? (j(), z("div", ol, [Oe.value.length ? (j(), z("div", sl, [(j(!0), z(M, null, P(Oe.value, (e) => (j(), z("span", {
+					} }, "Workflow diagnostics", -1), M("div", al, R(je.value), 1)]),
+					Oe.value.length || ke.value.length ? (I(), z("div", ol, [Oe.value.length ? (I(), z("div", sl, [(I(!0), z(j, null, F(Oe.value, (e) => (I(), z("span", {
 						key: `diag-node-${e}`,
 						style: {
 							padding: "3px 7px",
@@ -7988,7 +7988,7 @@ var wo = ["title"], To = ["src"], Eo = {
 							"font-weight": "700",
 							color: "#ffcdd2"
 						}
-					}, " Missing node: " + R(e), 1))), 128))])) : F("", !0), ke.value.length ? (j(), z("div", cl, [(j(!0), z(M, null, P(ke.value, (e) => (j(), z("span", {
+					}, " Missing node: " + R(e), 1))), 128))])) : N("", !0), ke.value.length ? (I(), z("div", cl, [(I(!0), z(j, null, F(ke.value, (e) => (I(), z("span", {
 						key: `diag-model-${e}`,
 						style: {
 							padding: "3px 7px",
@@ -7998,40 +7998,40 @@ var wo = ["title"], To = ["src"], Eo = {
 							"font-weight": "700",
 							color: "#ffe0b2"
 						}
-					}, " Missing model: " + R(e), 1))), 128))])) : F("", !0)])) : (j(), z("div", ll, " No missing dependencies detected by the current ComfyUI runtime. ")),
-					Ae.value.length ? (j(), z("div", ul, R(Ae.value.join(" | ")), 1)) : F("", !0),
-					Me.value || Ne.value ? (j(), z("div", dl, [Xe(" Latest version: " + R(Me.value || "none"), 1), Ne.value ? (j(), z("span", fl, " | Diff: " + R(Ne.value), 1)) : F("", !0)])) : F("", !0)
-				])) : F("", !0),
-				N("div", pl, [
-					N("div", ml, [t[11] ||= N("div", { style: {
+					}, " Missing model: " + R(e), 1))), 128))])) : N("", !0)])) : (I(), z("div", ll, " No missing dependencies detected by the current ComfyUI runtime. ")),
+					Ae.value.length ? (I(), z("div", ul, R(Ae.value.join(" | ")), 1)) : N("", !0),
+					Me.value || Ne.value ? (I(), z("div", dl, [Xe(" Latest version: " + R(Me.value || "none"), 1), Ne.value ? (I(), z("span", fl, " | Diff: " + R(Ne.value), 1)) : N("", !0)])) : N("", !0)
+				])) : N("", !0),
+				M("div", pl, [
+					M("div", ml, [t[11] ||= M("div", { style: {
 						"font-size": "10px",
 						"font-weight": "700",
 						color: "rgba(255,255,255,0.55)",
 						"text-transform": "uppercase",
 						"letter-spacing": "0.4px"
-					} }, "Nodes", -1), N("div", hl, R(ut.value.nodes), 1)]),
-					N("div", gl, [t[12] ||= N("div", { style: {
+					} }, "Nodes", -1), M("div", hl, R(ut.value.nodes), 1)]),
+					M("div", gl, [t[12] ||= M("div", { style: {
 						"font-size": "10px",
 						"font-weight": "700",
 						color: "rgba(255,255,255,0.55)",
 						"text-transform": "uppercase",
 						"letter-spacing": "0.4px"
-					} }, "Links", -1), N("div", _l, R(ut.value.links), 1)]),
-					N("div", vl, [t[13] ||= N("div", { style: {
+					} }, "Links", -1), M("div", _l, R(ut.value.links), 1)]),
+					M("div", vl, [t[13] ||= M("div", { style: {
 						"font-size": "10px",
 						"font-weight": "700",
 						color: "rgba(255,255,255,0.55)",
 						"text-transform": "uppercase",
 						"letter-spacing": "0.4px"
-					} }, "Groups", -1), N("div", yl, R(ut.value.groups), 1)])
+					} }, "Groups", -1), M("div", yl, R(ut.value.groups), 1)])
 				]),
-				N("div", bl, [N("div", xl, [N("div", Sl, [t[14] ||= N("div", { style: {
+				M("div", bl, [M("div", xl, [M("div", Sl, [t[14] ||= M("div", { style: {
 					"font-size": "10px",
 					"font-weight": "700",
 					color: "rgba(255,255,255,0.55)",
 					"text-transform": "uppercase",
 					"letter-spacing": "0.4px"
-				} }, "Category", -1), N("div", {
+				} }, "Category", -1), M("div", {
 					title: Ue.value || "Root",
 					style: {
 						"font-size": "12px",
@@ -8042,7 +8042,7 @@ var wo = ["title"], To = ["src"], Eo = {
 						"white-space": "nowrap",
 						"max-width": "100%"
 					}
-				}, R(Ge.value), 9, Cl)]), Ke.value.length ? (j(), z("div", {
+				}, R(Ge.value), 9, Cl)]), Ke.value.length ? (I(), z("div", {
 					key: 0,
 					title: Ue.value,
 					style: {
@@ -8053,7 +8053,7 @@ var wo = ["title"], To = ["src"], Eo = {
 						"min-width": "0",
 						"max-width": "45%"
 					}
-				}, [(j(!0), z(M, null, P(Ke.value, (e) => (j(), z("span", {
+				}, [(I(!0), z(j, null, F(Ke.value, (e) => (I(), z("span", {
 					key: e,
 					style: {
 						padding: "3px 7px",
@@ -8070,10 +8070,10 @@ var wo = ["title"], To = ["src"], Eo = {
 						"text-overflow": "ellipsis",
 						"white-space": "nowrap"
 					}
-				}, R(e), 1))), 128))], 8, wl)) : F("", !0)]), N("div", Tl, [$e(N("input", {
+				}, R(e), 1))), 128))], 8, wl)) : N("", !0)]), M("div", Tl, [rt(M("input", {
 					"onUpdate:modelValue": t[0] ||= (e) => s.value = e,
 					type: "text",
-					placeholder: L(O)("dialog.workflowCategory", "Workflow category"),
+					placeholder: B(O)("dialog.workflowCategory", "Workflow category"),
 					style: {
 						flex: "1",
 						"min-width": "0",
@@ -8084,13 +8084,13 @@ var wo = ["title"], To = ["src"], Eo = {
 						color: "rgba(255,255,255,0.92)",
 						"font-size": "12px"
 					}
-				}, null, 8, El), [[Et, s.value]]), pt(n, {
+				}, null, 8, El), [[Tt, s.value]]), pt(n, {
 					type: "button",
 					severity: "secondary",
 					text: "",
 					rounded: "",
 					disabled: c.value,
-					style: V({
+					style: L({
 						padding: "8px 12px",
 						borderRadius: "8px",
 						border: "1px solid rgba(255,255,255,0.12)",
@@ -8103,11 +8103,11 @@ var wo = ["title"], To = ["src"], Eo = {
 					}),
 					onClick: it
 				}, {
-					default: bt(() => [Xe(R(c.value ? "Saving..." : "Move"), 1)]),
+					default: $e(() => [Xe(R(c.value ? "Saving..." : "Move"), 1)]),
 					_: 1
 				}, 8, ["disabled", "style"])])]),
-				ct.value.length ? (j(), z("div", Dl, [
-					t[15] ||= N("div", { class: "mjr-section-title" }, " Workflow Nodes ", -1),
+				ct.value.length ? (I(), z("div", Dl, [
+					t[15] ||= M("div", { class: "mjr-section-title" }, " Workflow Nodes ", -1),
 					pt(r, {
 						value: ct.value,
 						class: "mjr-workflow-tree",
@@ -8121,23 +8121,23 @@ var wo = ["title"], To = ["src"], Eo = {
 							nodeLabel: { class: "mjr-workflow-tree-label" }
 						}
 					}, {
-						default: bt(({ node: e }) => [N("span", Ol, [
-							N("span", kl, R(e.label), 1),
-							e.data?.type ? (j(), z("span", Al, R(e.data.type), 1)) : F("", !0),
-							N("span", jl, "#" + R(e.data?.id), 1)
+						default: $e(({ node: e }) => [M("span", Ol, [
+							M("span", kl, R(e.label), 1),
+							e.data?.type ? (I(), z("span", Al, R(e.data.type), 1)) : N("", !0),
+							M("span", jl, "#" + R(e.data?.id), 1)
 						])]),
 						_: 1
 					}, 8, ["value"]),
-					lt.value ? (j(), z("div", Ml, " +" + R(lt.value) + " more nodes ", 1)) : F("", !0)
-				])) : F("", !0),
-				N("div", Nl, [N("div", Pl, [(j(!0), z(M, null, P(L(i), (e) => (j(), Ze(n, {
+					lt.value ? (I(), z("div", Ml, " +" + R(lt.value) + " more nodes ", 1)) : N("", !0)
+				])) : N("", !0),
+				M("div", Nl, [M("div", Pl, [(I(!0), z(j, null, F(B(i), (e) => (I(), Ze(n, {
 					key: e.key,
 					type: "button",
 					severity: "secondary",
 					text: "",
 					rounded: "",
 					title: `${e.label} minimap`,
-					style: V({
+					style: L({
 						appearance: "none",
 						border: b.value.size === e.key ? "1px solid rgba(33,150,243,0.55)" : "1px solid rgba(255,255,255,0.12)",
 						borderRadius: "999px",
@@ -8150,7 +8150,7 @@ var wo = ["title"], To = ["src"], Eo = {
 					}),
 					onClick: (t) => At(e.key)
 				}, {
-					default: bt(() => [Xe(R(e.label), 1)]),
+					default: $e(() => [Xe(R(e.label), 1)]),
 					_: 2
 				}, 1032, [
 					"title",
@@ -8162,7 +8162,7 @@ var wo = ["title"], To = ["src"], Eo = {
 					severity: "secondary",
 					text: "",
 					rounded: "",
-					title: L(O)("tooltip.minimapSettings", "Minimap settings"),
+					title: B(O)("tooltip.minimapSettings", "Minimap settings"),
 					style: {
 						width: "28px",
 						height: "28px",
@@ -8177,15 +8177,15 @@ var wo = ["title"], To = ["src"], Eo = {
 					},
 					onClick: t[1] ||= (e) => _.value = !_.value
 				}, {
-					default: bt(() => [...t[16] ||= [N("i", { class: "pi pi-sliders-h" }, null, -1)]]),
+					default: $e(() => [...t[16] ||= [M("i", { class: "pi pi-sliders-h" }, null, -1)]]),
 					_: 1
 				}, 8, ["title"])]),
-				_.value ? (j(), z("div", Fl, [(j(!0), z(M, null, P(mt.value, (e) => (j(), Ze(n, {
+				_.value ? (I(), z("div", Fl, [(I(!0), z(j, null, F(mt.value, (e) => (I(), Ze(n, {
 					key: e.key,
 					type: "button",
 					severity: "secondary",
 					text: "",
-					style: V({
+					style: L({
 						display: "flex",
 						alignItems: "center",
 						gap: "10px",
@@ -8199,8 +8199,8 @@ var wo = ["title"], To = ["src"], Eo = {
 					}),
 					onClick: (t) => kt(e.key)
 				}, {
-					default: bt(() => [
-						N("span", { style: V({
+					default: $e(() => [
+						M("span", { style: L({
 							width: "22px",
 							height: "22px",
 							borderRadius: "6px",
@@ -8210,29 +8210,29 @@ var wo = ["title"], To = ["src"], Eo = {
 							background: b.value?.[e.key] ? "rgba(76,175,80,0.95)" : "rgba(255,255,255,0.08)",
 							border: b.value?.[e.key] ? "1px solid rgba(76,175,80,0.35)" : "1px solid rgba(255,255,255,0.12)",
 							flex: "0 0 auto"
-						}) }, [N("i", {
+						}) }, [M("i", {
 							class: "pi pi-check",
-							style: V({
+							style: L({
 								fontSize: "12px",
 								opacity: b.value?.[e.key] ? "1" : "0"
 							})
 						}, null, 4)], 4),
-						N("i", {
-							class: ht(e.iconClass),
+						M("i", {
+							class: wt(e.iconClass),
 							style: {
 								"font-size": "18px",
 								opacity: "0.9",
 								width: "18px"
 							}
 						}, null, 2),
-						N("div", Il, [N("div", Ll, R(e.label), 1), N("div", Rl, R(b.value?.[e.key] ? "On" : "Off"), 1)])
+						M("div", Il, [M("div", Ll, R(e.label), 1), M("div", Rl, R(b.value?.[e.key] ? "On" : "Off"), 1)])
 					]),
 					_: 2
-				}, 1032, ["style", "onClick"]))), 128))])) : F("", !0),
-				N("div", zl, [N("canvas", {
+				}, 1032, ["style", "onClick"]))), 128))])) : N("", !0),
+				M("div", zl, [M("canvas", {
 					ref_key: "canvasRef",
 					ref: a,
-					style: V({
+					style: L({
 						width: "100%",
 						height: ft.value,
 						cursor: C.value,
@@ -8243,26 +8243,26 @@ var wo = ["title"], To = ["src"], Eo = {
 						border: "1px solid var(--mjr-border, rgba(255,255,255,0.12))",
 						boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.03)"
 					}),
-					onPointerdown: Ct,
-					onPointermove: wt,
-					onPointerup: Tt,
-					onPointercancel: Tt,
-					onPointerleave: Tt,
+					onPointerdown: xt,
+					onPointermove: St,
+					onPointerup: Ct,
+					onPointercancel: Ct,
+					onPointerleave: Ct,
 					onWheel: Dt,
 					onDblclick: Ot
 				}, null, 36)]),
-				N("div", Bl, [N("span", null, R(ee.value || "Click/drag to navigate | wheel to zoom"), 1), N("span", null, R(Math.round((S.value.zoom || 1) * 100)) + "% | " + R(dt.value.label), 1)]),
-				N("details", {
+				M("div", Bl, [M("span", null, R(ee.value || "Click/drag to navigate | wheel to zoom"), 1), M("span", null, R(Math.round((S.value.zoom || 1) * 100)) + "% | " + R(dt.value.label), 1)]),
+				M("details", {
 					open: v.value,
 					style: { "margin-top": "10px" },
 					onToggle: t[2] ||= (e) => v.value = e.target.open
-				}, [t[17] ||= N("summary", { style: {
+				}, [t[17] ||= M("summary", { style: {
 					cursor: "pointer",
 					color: "var(--mjr-muted, rgba(255,255,255,0.65))",
 					"font-size": "12px",
 					"user-select": "none"
-				} }, " Show raw JSON ", -1), N("pre", Hl, R(He.value), 1)], 40, Vl)
-			])) : F("", !0);
+				} }, " Show raw JSON ", -1), M("pre", Hl, R(He.value), 1)], 40, Vl)
+			])) : N("", !0);
 		};
 	}
 };

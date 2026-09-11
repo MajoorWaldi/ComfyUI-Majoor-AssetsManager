@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 /**
  * ViewerPortal.vue - Vue lifecycle owner for the viewer runtime.
  *
@@ -23,8 +23,8 @@ import ViewerContextMenuPortal from "./ViewerContextMenuPortal.vue";
 
 let _instance = null;
 
-function _openFromEvent(event) {
-    const detail = event?.detail || {};
+function _openFromEvent(event: Event) {
+    const detail: any = (event as CustomEvent)?.detail || {};
     const assets = Array.isArray(detail?.assets)
         ? detail.assets.filter(Boolean)
         : detail?.asset
