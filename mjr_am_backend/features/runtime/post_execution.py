@@ -10,6 +10,7 @@ from ...adapters.comfy_core import (
     PromptOutputFile,
     get_prompt_metadata_for_prompt,
     get_prompt_output_files,
+    get_temp_directory,
     get_workflow_id_for_prompt,
     send_event,
 )
@@ -38,20 +39,49 @@ def _existing_refs(refs: list[PromptOutputFile]) -> list[tuple[Path, PromptOutpu
     return out
 
 
-def _base_dir_for_paths(paths: list[Path]) -> str:
+def _root_dir_for_item_type(item_type: str) -> Path | None:
     try:
-        output_root = Path(str(get_runtime_output_root())).resolve(strict=False)
-        if all(path == output_root or output_root in path.parents for path in paths):
-            return str(output_root)
+        if item_type == "temp":
+            temp_dir = get_temp_directory()
+            if temp_dir:
+                return Path(str(temp_dir)).resolve(strict=False)
+            return None
+        return Path(str(get_runtime_output_root())).resolve(strict=False)
     except Exception:
-        pass
+        return None
+
+
+def _base_dir_for_paths(item_type: str, paths: list[Path]) -> str:
+    root = _root_dir_for_item_type(item_type)
+    if root is not None:
+        try:
+            if all(path == root or root in path.parents for path in paths):
+                return str(root)
+        except Exception:
+            pass
+    # Fall back to the common ancestor of this (single-type) group only - mixing
+    # output and temp paths into one commonpath would walk up to their shared
+    # parent (e.g. the ComfyUI root) and make every subfolder wrongly include
+    # "output" or "temp" as a literal path segment.
     try:
         return str(os.path.commonpath([str(path) for path in paths]))
     except Exception:
         try:
             return str(paths[0].parent)
         except Exception:
-            return str(get_runtime_output_root())
+            return str(root) if root is not None else str(get_runtime_output_root())
+
+
+def _group_refs_by_item_type(
+    refs: list[tuple[Path, PromptOutputFile]],
+) -> dict[str, list[tuple[Path, PromptOutputFile]]]:
+    groups: dict[str, list[tuple[Path, PromptOutputFile]]] = {}
+    for path, ref in refs:
+        item_type = str(getattr(ref, "item_type", "") or "").strip().lower()
+        if item_type not in ("output", "temp"):
+            item_type = "output"
+        groups.setdefault(item_type, []).append((path, ref))
+    return groups
 
 
 async def ingest_prompt_outputs(index_service: Any, prompt_id: str) -> Result[dict[str, Any]]:
@@ -66,21 +96,33 @@ async def ingest_prompt_outputs(index_service: Any, prompt_id: str) -> Result[di
         send_event("mjr-core-execution-assets-ready", payload)
         return Result.Ok(payload)
 
-    paths = [path for path, _ref in refs]
-    base_dir = _base_dir_for_paths(paths)
     index_paths = getattr(index_service, "index_paths", None)
     if not callable(index_paths):
         return Result.Err("SERVICE_UNAVAILABLE", "index service does not support index_paths")
 
-    result = await index_paths(
-        paths,
-        base_dir=base_dir,
-        incremental=True,
-        source="output",
-        root_id=None,
-    )
-    if not result.ok:
-        return Result.Err(result.code or "INDEX_ERROR", result.error or "Failed to index prompt outputs")
+    # Index output and temp files separately: they live under different root
+    # directories, and computing one shared base_dir across both (e.g. via a
+    # naive commonpath) walks up to their shared ComfyUI-root ancestor, which
+    # makes every subfolder wrongly include "output" or "temp" as a literal
+    # leading path segment - breaking the /view URL built from it.
+    groups = _group_refs_by_item_type(refs)
+    all_paths: list[Path] = []
+    combined_stats: dict[str, Any] = {}
+    for item_type, group_refs in groups.items():
+        paths = [path for path, _ref in group_refs]
+        base_dir = _base_dir_for_paths(item_type, paths)
+        result = await index_paths(
+            paths,
+            base_dir=base_dir,
+            incremental=True,
+            source=item_type,
+            root_id=None,
+        )
+        if not result.ok:
+            return Result.Err(result.code or "INDEX_ERROR", result.error or "Failed to index prompt outputs")
+        all_paths.extend(paths)
+        if isinstance(result.data, dict):
+            combined_stats[item_type] = result.data
 
     await _assign_execution_context(index_service, refs, safe_prompt_id)
     await _write_runtime_metadata(index_service, refs, safe_prompt_id)
@@ -88,9 +130,9 @@ async def ingest_prompt_outputs(index_service: Any, prompt_id: str) -> Result[di
     await _finalize_execution_stack(index_service, safe_prompt_id)
     payload = {
         "prompt_id": safe_prompt_id,
-        "indexed": len(paths),
-        "paths": [str(path) for path in paths],
-        "stats": result.data if isinstance(result.data, dict) else {},
+        "indexed": len(all_paths),
+        "paths": [str(path) for path in all_paths],
+        "stats": combined_stats,
     }
     send_event("mjr-core-execution-assets-ready", payload)
     return Result.Ok(payload)

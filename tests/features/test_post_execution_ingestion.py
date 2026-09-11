@@ -193,6 +193,61 @@ async def test_ingest_prompt_outputs_attaches_runtime_metadata(monkeypatch, tmp_
 
 
 @pytest.mark.asyncio
+async def test_ingest_prompt_outputs_keeps_output_and_temp_subfolders_separate(
+    monkeypatch, tmp_path: Path
+):
+    """Regression for GH #222: a prompt producing both an "output" file
+    (Save Image) and a "temp" file (e.g. a Preview Image node) must not have
+    its base_dir computed across both roots - that walks up to their shared
+    ComfyUI-root ancestor and wrongly prefixes every subfolder with "output"
+    or "temp", breaking the /view URL built from it.
+    """
+    root = tmp_path / "ComfyUI"
+    output = root / "output"
+    temp = root / "temp"
+    output.mkdir(parents=True)
+    temp.mkdir(parents=True)
+    output_file = output / "Krea2_yogi_00117_.png"
+    temp_file = temp / "preview_00001_.png"
+    output_file.write_bytes(b"x")
+    temp_file.write_bytes(b"y")
+    index = _Index()
+
+    monkeypatch.setattr(
+        mod,
+        "get_prompt_output_files",
+        lambda _prompt_id: [
+            PromptOutputFile(
+                path=str(output_file), node_id="7", node_type="SaveImage", item_type="output"
+            ),
+            PromptOutputFile(
+                path=str(temp_file), node_id="3", node_type="PreviewImage", item_type="temp"
+            ),
+        ],
+    )
+    monkeypatch.setattr(mod, "fetch_by_job_id", lambda _prompt_id: _async_result([]))
+    monkeypatch.setattr(mod, "get_runtime_output_root", lambda: str(output))
+    monkeypatch.setattr(mod, "get_temp_directory", lambda: str(temp))
+    monkeypatch.setattr(mod, "send_event", lambda *_args, **_kwargs: True)
+
+    result = await mod.ingest_prompt_outputs(index, "prompt-mixed")
+
+    assert result.ok
+    assert len(index.calls) == 2
+    by_source = {kwargs["source"]: (paths, kwargs) for paths, kwargs in index.calls}
+
+    output_paths, output_kwargs = by_source["output"]
+    assert output_paths == [output_file.resolve(strict=False)]
+    assert output_kwargs["base_dir"] == str(output.resolve(strict=False))
+
+    temp_paths, temp_kwargs = by_source["temp"]
+    assert temp_paths == [temp_file.resolve(strict=False)]
+    assert temp_kwargs["base_dir"] == str(temp.resolve(strict=False))
+
+    assert result.data["indexed"] == 2
+
+
+@pytest.mark.asyncio
 async def test_ingest_prompt_outputs_assigns_rodin_package_context(monkeypatch, tmp_path: Path):
     output = tmp_path / "out"
     package = output / "Rodin3D_Gen25_abc"
