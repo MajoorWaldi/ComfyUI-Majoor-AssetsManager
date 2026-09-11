@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 /**
  * MessagePopover.vue — Messages / history / shortcuts panel.
  *
@@ -17,19 +17,21 @@ import { t } from "../../../app/i18n.js";
 
 const GITHUB_REPO_URL = "https://github.com/MajoorWaldi/ComfyUI-Majoor-AssetsManager";
 
-const titleRef            = ref(null);
-const markReadBtnRef      = ref(null);
-const messageTabBtnRef    = ref(null);
-const messageTabBadgeRef  = ref(null);
-const historyTabBtnRef    = ref(null);
-const historyTabBadgeRef  = ref(null);
-const historyTabCountRef  = ref(null);
-const shortcutsTabBtnRef  = ref(null);
-const messageListRef      = ref(null);
-const historyPanelRef     = ref(null);
-const shortcutsPanelRef   = ref(null);
+type MaybeComponentRef = { $el?: HTMLElement } | HTMLElement | null;
 
-const resolveDomElement = (value) => value?.$el || value || null;
+const titleRef            = ref<HTMLElement | null>(null);
+const markReadBtnRef      = ref<MaybeComponentRef>(null);
+const messageTabBtnRef    = ref<MaybeComponentRef>(null);
+const messageTabBadgeRef  = ref<HTMLElement | null>(null);
+const historyTabBtnRef    = ref<MaybeComponentRef>(null);
+const historyTabBadgeRef  = ref<HTMLElement | null>(null);
+const historyTabCountRef  = ref<HTMLElement | null>(null);
+const shortcutsTabBtnRef  = ref<MaybeComponentRef>(null);
+const messageListRef      = ref<HTMLElement | null>(null);
+const historyPanelRef     = ref<HTMLElement | null>(null);
+const shortcutsPanelRef   = ref<HTMLElement | null>(null);
+
+const resolveDomElement = (value: MaybeComponentRef) => (value as any)?.$el || value || null;
 
 defineExpose({
     get title()            { return titleRef.value; },

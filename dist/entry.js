@@ -20643,7 +20643,7 @@ var cy = { class: "mjr-menu mjr-collections-menu" }, ly = { class: "mjr-menu-ite
 }), Ky = ["aria-label"], qy = { class: "mjr-messages-head" }, Jy = { class: "mjr-messages-actions" }, Yy = ["title"], Xy = { class: "mjr-messages-star-label" }, Zy = {
 	class: "mjr-messages-tabs",
 	role: "tablist"
-}, Qy = { class: "mjr-messages-panels" }, $y = { class: "mjr-messages-empty" }, eb = "https://github.com/MajoorWaldi/ComfyUI-Majoor-AssetsManager", tb = {
+}, Qy = { class: "mjr-messages-panels" }, $y = { class: "mjr-messages-empty" }, eb = "https://github.com/MajoorWaldi/ComfyUI-Majoor-AssetsManager", tb = /* @__PURE__ */ dr({
 	__name: "MessagePopover",
 	setup(e, { expose: t }) {
 		let n = Z(null), r = Z(null), i = Z(null), a = Z(null), o = Z(null), s = Z(null), c = Z(null), l = Z(null), u = Z(null), d = Z(null), f = Z(null), p = (e) => e?.$el || e || null;
@@ -20834,7 +20834,7 @@ var cy = { class: "mjr-menu mjr-collections-menu" }, ly = { class: "mjr-menu-ite
 			})], 8, Ky);
 		};
 	}
-}, nb = { class: "mjr-am-header-row" }, rb = { class: "mjr-am-header-left" }, ib = { class: "mjr-am-header-title" }, ab = ["data-mjr-version-channel", "title"], ob = { class: "mjr-tabs" }, sb = { class: "mjr-am-header-tools" }, cb = {
+}), nb = { class: "mjr-am-header-row" }, rb = { class: "mjr-am-header-left" }, ib = { class: "mjr-am-header-title" }, ab = ["data-mjr-version-channel", "title"], ob = { class: "mjr-tabs" }, sb = { class: "mjr-am-header-tools" }, cb = {
 	class: "mjr-popover-anchor",
 	style: { display: "none" }
 }, lb = { class: "mjr-popover-anchor" }, ub = { class: "mjr-popover-anchor" }, db = { class: "mjr-popover-anchor" }, fb = { class: "mjr-popover-anchor" }, pb = { class: "mjr-popover-anchor" }, mb = "mjr-am-version-badge-label", hb = "V", gb = {
@@ -21866,14 +21866,14 @@ function Db({ state: e, gridContainer: t, context: n = null } = {}) {
 	};
 }
 //#endregion
-//#region ui/vue/components/panel/SummaryBarSection.vue
+//#region ui/vue/components/panel/SummaryBarSection.vue?vue&type=script&setup=true&lang.ts
 var Ob = {
 	key: 2,
 	class: "mjr-folder-breadcrumb-separator"
 }, kb = {
 	key: 0,
 	class: "mjr-folder-breadcrumb-separator"
-}, Ab = { class: "mjr-am-summary-left" }, jb = { class: "mjr-am-summary-text" }, Mb = { class: "mjr-am-summary-right" }, Nb = ["aria-label"], Pb = {
+}, Ab = { class: "mjr-am-summary-left" }, jb = { class: "mjr-am-summary-text" }, Mb = { class: "mjr-am-summary-right" }, Nb = ["aria-label"], Pb = /* @__PURE__ */ dr({
 	__name: "SummaryBarSection",
 	setup(e, { expose: t }) {
 		let n = Oh(), r = Z(null), i = Z(null), a = Z(null), o = Z(""), s = Z(""), c = Z(!1), l = Z(!1), u = Z(null), d = Z(null), f = Z([]), p = xb(), m = G(() => String(n.kindFilter || "").trim().toLowerCase()), h = G(() => {
@@ -22073,7 +22073,7 @@ var Ob = {
 			])], 512)], 64);
 		};
 	}
-};
+});
 //#endregion
 //#region ui/vue/composables/useGridContextMenu.ts
 function Fb(e, t) {
@@ -22904,25 +22904,13 @@ var Qb = { class: "mjr-sidebar-preview" }, $b = ["src"], ex = ["src"], tx = ["sr
 	"aria-label",
 	"aria-valuenow",
 	"tabindex"
-], fx = {
+], fx = /* @__PURE__ */ dr({
 	__name: "RatingEditor",
 	props: {
-		asset: {
-			type: Object,
-			required: !0
-		},
-		modelValue: {
-			type: [Number, String],
-			default: 0
-		},
-		disabled: {
-			type: Boolean,
-			default: !1
-		},
-		size: {
-			type: [Number, String],
-			default: 16
-		}
+		asset: {},
+		modelValue: {},
+		disabled: { type: Boolean },
+		size: {}
 	},
 	emits: ["update:modelValue", "rating-change"],
 	setup(e, { emit: t }) {
@@ -23101,7 +23089,7 @@ var Qb = { class: "mjr-sidebar-preview" }, $b = ["src"], ex = ["src"], tx = ["sr
 			])), 64))], 44, dx);
 		};
 	}
-}, px = ["aria-label"], mx = { class: "mjr-context-menu-title" }, hx = { class: "mjr-context-menu-item-left" }, gx = {
+}), px = ["aria-label"], mx = { class: "mjr-context-menu-title" }, hx = { class: "mjr-context-menu-item-left" }, gx = {
 	key: 0,
 	class: "mjr-context-menu-note"
 }, _x = {
