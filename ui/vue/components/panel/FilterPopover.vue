@@ -34,7 +34,7 @@ const workflowIdInputRef = ref<MaybeComponentRef>(null);
 const workflowModelInputRef = ref<MaybeComponentRef>(null);
 const workflowModelFamilyOptions = ref<Array<{ label: string; value: string }>>([{ label: t("filter.any", "Any"), value: "" }]);
 
-const resolveDomElement = (value: MaybeComponentRef): HTMLInputElement | null => ((value as any)?.$el || value || null) as HTMLInputElement | null;
+const resolveDomElement = (value: MaybeComponentRef): HTMLInputElement | null => ((value as { $el?: HTMLInputElement } | null)?.$el || value || null) as HTMLInputElement | null;
 const getInputValue = (inputRef: { value: MaybeComponentRef }) => resolveDomElement(inputRef.value)?.value || "";
 const setInputValue = (inputRef: { value: MaybeComponentRef }, value: unknown) => {
     const input = resolveDomElement(inputRef.value);

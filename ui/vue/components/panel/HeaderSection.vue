@@ -44,7 +44,7 @@ import type {
 
 // ── version badge helpers ──────────────────────────────────────────────────────
 
-let extensionMetadataPromise: Promise<any> | null = null;
+let extensionMetadataPromise: Promise<{ version?: string }> | null = null;
 
 const VERSION_BADGE_LABEL_CLASS = "mjr-am-version-badge-label";
 const MFV_TOOLTIP_HINT = "V";
@@ -135,7 +135,7 @@ const tabCustomRef = ref<MaybeComponentRef>(null);
 const tabWorkflowRef = ref<MaybeComponentRef>(null);
 const tabSimilarRef = ref<MaybeComponentRef>(null);
 
-const resolveDomElement = (value: MaybeComponentRef): HTMLElement | null => ((value as any)?.$el || value || null) as HTMLElement | null;
+const resolveDomElement = (value: MaybeComponentRef): HTMLElement | null => ((value as { $el?: HTMLElement } | null)?.$el || value || null) as HTMLElement | null;
 
 // ── version badge state ────────────────────────────────────────────────────────
 
@@ -393,7 +393,7 @@ function applyExtensionMetadata(isNightly: boolean) {
                 versionBadgeChannel.value.toLowerCase() === "nightly" ||
                 versionBadgeText.value.toLowerCase() === "nightly";
             if (!isNightly && !alreadyNightly) {
-                const v = (typeof (info as any)?.version === "string" ? (info as any).version.trim() : "") || "";
+                const v = (typeof info?.version === "string" ? info.version.trim() : "") || "";
                 if (v) setVersionBadgeText(`v${v}`, { channel: "stable" });
             }
         })
@@ -421,7 +421,7 @@ async function hydrateBackendVersionBadge(isNightly: boolean) {
     }
 }
 
-function applyDotState(state: any) {
+function applyDotState(state: { channel?: unknown; current?: unknown; latest?: unknown; available?: unknown } | undefined) {
     const ch = String(state?.channel || "").trim().toLowerCase();
     const cur = String(state?.current || "").trim().toLowerCase();
     const lat = String(state?.latest || "").trim().toLowerCase();

@@ -112,7 +112,7 @@ const selectedSuggestion = ref<string | null>(null);
 const availableTags = ref<string[]>([]);
 const saving = ref(false);
 
-const resolveDomElement = (value: any): HTMLElement | null => value?.$el || value || null;
+const resolveDomElement = (value: { $el?: HTMLElement } | HTMLElement | null): HTMLElement | null => (value as { $el?: HTMLElement } | null)?.$el || value || null;
 
 let saveInFlight = false;
 let savePending = false;
@@ -366,7 +366,7 @@ function selectSuggestion(tag: unknown) {
     resolveDomElement(inputRef.value)?.focus();
 }
 
-function handleSuggestionChange(event: any) {
+function handleSuggestionChange(event: { value?: unknown } | undefined) {
     const selected = event?.value ?? selectedSuggestion.value;
     if (!selected) return;
     selectSuggestion(selected);

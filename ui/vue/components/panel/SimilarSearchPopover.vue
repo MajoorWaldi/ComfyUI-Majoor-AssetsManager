@@ -13,7 +13,7 @@ const findDuplicatesBtnRef = ref<{ $el?: HTMLElement } | HTMLElement | null>(nul
 const sameNodeBtnRef = ref<{ $el?: HTMLElement } | HTMLElement | null>(null);
 const sameWorkflowBtnRef = ref<{ $el?: HTMLElement } | HTMLElement | null>(null);
 
-const resolveDomElement = (value: any) => value?.$el || value || null;
+const resolveDomElement = (value: { $el?: HTMLElement } | HTMLElement | null) => (value as { $el?: HTMLElement } | null)?.$el || value || null;
 
 defineExpose({
     get findSimilarBtn() {

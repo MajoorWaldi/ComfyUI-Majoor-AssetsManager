@@ -31,7 +31,7 @@ const messageListRef      = ref<HTMLElement | null>(null);
 const historyPanelRef     = ref<HTMLElement | null>(null);
 const shortcutsPanelRef   = ref<HTMLElement | null>(null);
 
-const resolveDomElement = (value: MaybeComponentRef) => (value as any)?.$el || value || null;
+const resolveDomElement = (value: MaybeComponentRef) => (value as { $el?: HTMLElement } | null)?.$el || value || null;
 
 defineExpose({
     get title()            { return titleRef.value; },

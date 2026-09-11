@@ -21,6 +21,16 @@ interface RootOption {
     textContent?: string;
 }
 
+interface RawOptionInput {
+    value?: unknown;
+    textContent?: unknown;
+    text?: unknown;
+    label?: unknown;
+    disabled?: unknown;
+}
+
+type MaybeComponentRef = { $el?: HTMLElement } | HTMLElement | null;
+
 const customRootOptions = ref<RootOption[]>([
     {
         label: t("label.selectFolder", "Select folder..."),
@@ -33,11 +43,11 @@ const customRootDisabled = ref(false);
 const customAddBtnRef = ref<{ $el?: HTMLElement } | HTMLElement | null>(null);
 const customRemoveBtnRef = ref<{ $el?: HTMLElement } | HTMLElement | null>(null);
 
-const resolveDomElement = (value: any) => value?.$el || value || null;
+const resolveDomElement = (value: MaybeComponentRef) => (value as { $el?: HTMLElement } | null)?.$el || value || null;
 
 const customSelectEventTarget = new EventTarget();
 
-const normalizeOptionElement = (option: any): RootOption => ({
+const normalizeOptionElement = (option: RawOptionInput): RootOption => ({
     value: String(option?.value || ""),
     label: String(option?.textContent || option?.text || option?.label || ""),
     text: String(option?.text || option?.textContent || option?.label || ""),
@@ -89,7 +99,7 @@ const customSelectFacade = {
         customRootOptions.value = [];
         customRootValue.value = "";
     },
-    appendChild(option: any) {
+    appendChild(option: RawOptionInput) {
         const normalized = normalizeOptionElement(option);
         customRootOptions.value = [...customRootOptions.value, normalized];
         return option;

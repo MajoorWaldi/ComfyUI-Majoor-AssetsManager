@@ -36,7 +36,7 @@ const semanticBtnRef = ref<MaybeComponentRef>(null);
 const dataListId = createUniqueId("mjr-search-autocomplete-", 8);
 const METADATA_SEARCH_MODE = "AND";
 
-const resolveDomElement = (value: MaybeComponentRef): HTMLInputElement | null => ((value as any)?.$el || value || null) as HTMLInputElement | null;
+const resolveDomElement = (value: MaybeComponentRef): HTMLInputElement | null => ((value as { $el?: HTMLInputElement } | null)?.$el || value || null) as HTMLInputElement | null;
 const getSearchInputEl = () => resolveDomElement(searchInputRef.value);
 
 // Local semantic mode state (synced with settings, not persisted)
