@@ -133,8 +133,8 @@ async function loadAiAvailability() {
     }
 }
 
-function mergeAssetsByFilepath(...groups: any[][]) {
-    const merged = [];
+function mergeAssetsByFilepath(...groups: MjrAssetLike[][]) {
+    const merged: MjrAssetLike[] = [];
     const seen = new Set();
     for (const group of groups) {
         for (const asset of Array.isArray(group) ? group : []) {
