@@ -4064,12 +4064,9 @@ var Ls = Is(), Rs = ["title"], zs = /* @__PURE__ */ dr({
 		opacity: "0.55",
 		margin: "0 3px"
 	}
-}, wc = ["title"], Tc = { class: "mjr-stack-group-button-count" }, Ec = { class: "mjr-dup-stack-count" }, Dc = {
+}, wc = ["title"], Tc = { class: "mjr-stack-group-button-count" }, Ec = { class: "mjr-dup-stack-count" }, Dc = /* @__PURE__ */ dr({
 	__name: "AssetCardInner",
-	props: { asset: {
-		type: Object,
-		required: !0
-	} },
+	props: { asset: {} },
 	emits: ["workflow-action"],
 	setup(e, { emit: t }) {
 		function n(e) {
@@ -4645,7 +4642,7 @@ var Ls = Is(), Rs = ["title"], zs = /* @__PURE__ */ dr({
 			], 64);
 		};
 	}
-}, Oc = [
+}), Oc = [
 	"data-mjr-asset-id",
 	"data-mjr-filename-key",
 	"data-mjr-stem",
