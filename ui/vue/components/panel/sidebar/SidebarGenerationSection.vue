@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
+import type { MjrAssetLike } from "../../../../types/asset";
 import { vectorGenerateCaption, vectorGetAlignment } from "../../../../api/client.js";
 import { t } from "../../../../app/i18n.js";
 import { metadataSectionByKey } from "../../../../features/metadata/metadataSectionCatalog.js";
@@ -13,7 +14,7 @@ import {
 } from "./generationSectionState.js";
 
 const props = defineProps<{
-    asset: any;
+    asset: MjrAssetLike;
 }>();
 
 const promptTabIndex = ref(0);

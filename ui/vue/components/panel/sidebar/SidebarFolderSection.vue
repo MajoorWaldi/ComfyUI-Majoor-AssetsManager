@@ -2,6 +2,7 @@
 import { computed } from "vue";
 import { t } from "../../../../app/i18n.js";
 import { formatDate, formatTime } from "../../../../utils/format.js";
+import type { MjrAssetLike } from "../../../../types/asset";
 
 interface FolderInfoRow {
     label: string;
@@ -9,18 +10,8 @@ interface FolderInfoRow {
     valueStyle?: string;
 }
 
-interface FolderAssetLike {
-    folder_info?: Record<string, unknown>;
-    folderInfo?: Record<string, unknown>;
-    filepath?: string;
-    subfolder?: string;
-    filename?: string;
-    mtime?: number;
-    [key: string]: any;
-}
-
 const props = defineProps<{
-    asset: FolderAssetLike;
+    asset: MjrAssetLike;
 }>();
 
 function formatBytes(bytes: unknown) {

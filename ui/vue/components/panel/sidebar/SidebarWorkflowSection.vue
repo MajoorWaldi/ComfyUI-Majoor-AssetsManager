@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import type { MjrAssetLike } from "../../../../types/asset";
 import { drawWorkflowMinimap, synthesizeWorkflowFromPromptGraph } from "../../../../components/sidebar/utils/minimap.js";
 import {
     diffWorkflow,
@@ -19,7 +20,7 @@ import { floatingViewerManager } from "../../../../features/viewer/floatingViewe
 import { openWorkflowAssetPicker } from "../../../../features/workflows/workflowPickerState.js";
 
 const props = defineProps<{
-    asset: any;
+    asset: MjrAssetLike;
 }>();
 
 const DEFAULT_SETTINGS = Object.freeze({
@@ -91,7 +92,7 @@ function resetMinimapView() {
     hoveredNodeLabel.value = "";
 }
 
-function coerceMetadataRawObject(asset: any) {
+function coerceMetadataRawObject(asset: MjrAssetLike | null | undefined) {
     const raw = asset?.metadata_raw ?? null;
     if (!raw) return null;
     if (typeof raw === "object") return raw;
@@ -124,7 +125,7 @@ function looksLikePromptGraph(obj: any) {
     return false;
 }
 
-function coerceWorkflow(asset: any) {
+function coerceWorkflow(asset: MjrAssetLike | null | undefined) {
     const metadataRaw = coerceMetadataRawObject(asset);
     const value =
         asset?.workflow ||
@@ -148,7 +149,7 @@ function coerceWorkflow(asset: any) {
     return null;
 }
 
-function coercePromptGraph(asset: any) {
+function coercePromptGraph(asset: MjrAssetLike | null | undefined) {
     const metadataRaw = coerceMetadataRawObject(asset);
     const value =
         asset?.prompt || asset?.Prompt || metadataRaw?.prompt || metadataRaw?.Prompt || null;

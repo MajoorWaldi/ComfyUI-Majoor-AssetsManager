@@ -6,6 +6,7 @@
  * workflow minimap now render directly in Vue.
  */
 import { computed, ref } from "vue";
+import type { MjrAssetLike } from "../../../../types/asset";
 import { closeSidebar } from "../../../../components/sidebar/SidebarView.js";
 import { collectFiles } from "../../../../api/client.js";
 import { loadMajoorSettings } from "../../../../app/settings.js";
@@ -21,20 +22,8 @@ import RatingEditor from "../../common/RatingEditor.vue";
 import TagsEditor from "../../common/TagsEditor.vue";
 import ContextMenuPortal from "../../common/ContextMenuPortal.vue";
 
-interface SidebarAssetLike {
-    kind?: string;
-    source?: string;
-    scope?: string;
-    filepath?: string;
-    path?: string;
-    rating?: unknown;
-    tags?: unknown;
-    file_info?: { filepath?: string; [key: string]: any };
-    [key: string]: any;
-}
-
 const props = defineProps<{
-    asset: SidebarAssetLike;
+    asset: MjrAssetLike;
     onUpdate?: ((...args: any[]) => void) | null;
     sidebar?: object | null;
 }>();

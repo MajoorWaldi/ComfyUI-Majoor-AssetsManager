@@ -4734,7 +4734,7 @@ var Ls = Is(), Rs = ["title"], zs = /* @__PURE__ */ dr({
 			}
 		}, q(e.asset.filename), 9, Ac), n[0] ||= H("div", { class: "mjr-card-meta-row" }, null, -1)])], 42, Oc));
 	}
-}), [["__scopeId", "data-v-52d05c1a"]]);
+}), [["__scopeId", "data-v-252fa951"]]);
 //#endregion
 //#region ui/vue/composables/useGridState.ts
 function Mc(e) {

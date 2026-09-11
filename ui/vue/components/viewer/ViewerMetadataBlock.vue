@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
+import type { MjrAssetLike } from "../../../types/asset";
 import { t } from "../../../app/i18n.js";
 import { APP_CONFIG } from "../../../app/config.js";
 import SidebarFileInfoSection from "../panel/sidebar/SidebarFileInfoSection.vue";
@@ -9,12 +10,12 @@ import { buildGenerationSectionState } from "../panel/sidebar/generationSectionS
 
 const props = defineProps<{
     title?: string;
-    asset?: any;
+    asset?: MjrAssetLike;
     loading?: boolean;
     onRetry?: (() => void) | null;
 }>();
 
-function getGenInfoStatus(asset: any) {
+function getGenInfoStatus(asset: MjrAssetLike | null | undefined) {
     try {
         if (!asset || typeof asset !== "object") return null;
         const raw = asset?.metadata_raw;
@@ -35,7 +36,7 @@ function getGenInfoStatus(asset: any) {
     }
 }
 
-function coerceMetadataRawObject(asset: any) {
+function coerceMetadataRawObject(asset: MjrAssetLike | null | undefined) {
     const raw = asset?.metadata_raw ?? null;
     if (!raw) return null;
     if (typeof raw === "object") return raw;
@@ -66,7 +67,7 @@ function looksLikePromptGraph(obj: any) {
     return false;
 }
 
-function coerceWorkflow(asset: any) {
+function coerceWorkflow(asset: MjrAssetLike | null | undefined) {
     const metadataRaw = coerceMetadataRawObject(asset);
     const value =
         asset?.workflow ||
@@ -88,7 +89,7 @@ function coerceWorkflow(asset: any) {
     }
 }
 
-function coercePromptGraph(asset: any) {
+function coercePromptGraph(asset: MjrAssetLike | null | undefined) {
     const metadataRaw = coerceMetadataRawObject(asset);
     const value =
         asset?.prompt || asset?.Prompt || metadataRaw?.prompt || metadataRaw?.Prompt || null;
@@ -105,11 +106,11 @@ function coercePromptGraph(asset: any) {
     }
 }
 
-function hasWorkflowData(asset: any) {
+function hasWorkflowData(asset: MjrAssetLike | null | undefined) {
     return !!(coerceWorkflow(asset) || coercePromptGraph(asset));
 }
 
-function hasFileInfoData(asset: any) {
+function hasFileInfoData(asset: MjrAssetLike | null | undefined) {
     const target = asset || {};
     const timestamp =
         target.generation_time ||

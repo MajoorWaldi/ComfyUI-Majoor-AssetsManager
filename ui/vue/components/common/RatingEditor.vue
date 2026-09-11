@@ -12,19 +12,14 @@ import { t } from "../../../app/i18n.js";
 import { comfyToast } from "../../../app/toast.js";
 import { safeDispatchCustomEvent } from "../../../utils/events.js";
 import { normalizeAssetId } from "../../../utils/ids.js";
+import type { MjrAssetLike } from "../../../types/asset";
 
 function clampRating(value: unknown) {
     return Math.max(0, Math.min(5, Number(value) || 0));
 }
 
-interface RatingAssetLike {
-    id?: unknown;
-    rating?: unknown;
-    [key: string]: any;
-}
-
 const props = defineProps<{
-    asset: RatingAssetLike;
+    asset: MjrAssetLike;
     modelValue?: number | string;
     disabled?: boolean;
     size?: number | string;

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { MjrAssetLike } from "../../../types/asset";
 /**
  * CollectionsPopover.vue - Reactive collections menu.
  *
@@ -92,7 +93,7 @@ function emitCollectionsChanged({
     }
 }
 
-function viewUrlForSample(asset: any) {
+function viewUrlForSample(asset: MjrAssetLike) {
     try {
         return buildAssetViewURL(asset) || "";
     } catch (e) {

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { MjrAssetLike } from "../../../types/asset";
 /**
  * AssetCardInner.vue - Fragment component rendered inside an imperatively-created
  * `.mjr-asset-card` shell.  Replaces createAssetCard()/createThumbnail() from Card.js.
@@ -257,9 +258,9 @@ function unobserveVideoThumb(video: MjrVideoElement | null | undefined) {
 
 const props = defineProps<{
     /** shallowReactive asset object from createVueCard() in GridView_impl.js */
-    asset: any;
+    asset: MjrAssetLike;
 }>();
-const emit = defineEmits<{ "workflow-action": [payload: { type: string; event: Event | undefined; asset: any }] }>();
+const emit = defineEmits<{ "workflow-action": [payload: { type: string; event: Event | undefined; asset: MjrAssetLike }] }>();
 
 // --- Computed from asset -----------------------------------------------------
 

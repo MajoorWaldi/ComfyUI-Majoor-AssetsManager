@@ -6,6 +6,7 @@
  * Emits tags-change event when tags are updated.
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import type { MjrAssetLike } from "../../../types/asset";
 import { getAvailableTags, updateAssetTags } from "../../../api/client.js";
 import { ASSET_TAGS_CHANGED_EVENT } from "../../../app/events.js";
 import { t } from "../../../app/i18n.js";
@@ -90,14 +91,8 @@ function areTagsEqual(left: unknown, right: unknown) {
     return true;
 }
 
-interface TagsAssetLike {
-    id?: unknown;
-    tags?: unknown;
-    [key: string]: any;
-}
-
 const props = defineProps<{
-    asset: TagsAssetLike;
+    asset: MjrAssetLike;
     modelValue?: string[] | string;
     disabled?: boolean;
 }>();

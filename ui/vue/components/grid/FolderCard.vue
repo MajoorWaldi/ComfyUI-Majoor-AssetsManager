@@ -10,13 +10,14 @@
  * Phase 4.2.
  */
 import { ref } from "vue";
+import type { MjrAssetLike } from "../../../types/asset";
 
 const props = defineProps<{
-    asset: { id?: unknown; filename?: string; filepath?: string; [key: string]: any };
+    asset: MjrAssetLike;
     selected?: boolean;
 }>();
 
-const emit = defineEmits<{ "drop-asset": [payload: { asset: unknown; folderPath: string }] }>();
+const emit = defineEmits<{ "drop-asset": [payload: { asset: MjrAssetLike; folderPath: string }] }>();
 
 const filename = () => String(props.asset.filename || "");
 

@@ -5,8 +5,10 @@
  * Replaces createSidebarHeader() from HeaderSection.js.
  * Phase 5.
  */
+import type { MjrAssetLike } from "../../../../types/asset";
+
 const props = defineProps<{
-    asset: { filename?: string; [key: string]: any };
+    asset: MjrAssetLike;
 }>();
 
 const emit = defineEmits<{ close: [] }>();

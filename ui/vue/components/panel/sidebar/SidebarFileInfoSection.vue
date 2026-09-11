@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
+import type { MjrAssetLike } from "../../../../types/asset";
 import { formatDate, formatTime, formatDuration } from "../../../../utils/format.js";
 import { formatFps, readAssetFps, readAssetFrameCount } from "../../../../utils/mediaFps.js";
 import { genTimeColor, normalizeGenerationTimeMs } from "../../../../components/Badges.js";
@@ -12,7 +13,7 @@ interface FileInfoRow {
 }
 
 const props = defineProps<{
-    asset: any;
+    asset: MjrAssetLike;
 }>();
 
 function formatFileSize(bytes: unknown) {
@@ -30,7 +31,7 @@ function formatFileSize(bytes: unknown) {
     return `${size.toFixed(1)} ${units[unitIndex]}`;
 }
 
-function readRawMetadata(asset: any) {
+function readRawMetadata(asset: MjrAssetLike) {
     const raw = asset?.metadata_raw;
     if (raw && typeof raw === "object") return raw;
     if (typeof raw !== "string" || !raw.trim()) return {};
@@ -70,7 +71,7 @@ function formatBitDepth(stream: any, raw: any) {
     return isFloat ? "float" : "N/A";
 }
 
-function readAssetField(asset: any, key: string) {
+function readAssetField(asset: MjrAssetLike, key: string) {
     const direct = asset?.[key] ?? asset?.file_info?.[key];
     if (direct !== undefined && direct !== null && direct !== "") return direct;
     // Fallback for fields nested under user_metadata (the backend may surface

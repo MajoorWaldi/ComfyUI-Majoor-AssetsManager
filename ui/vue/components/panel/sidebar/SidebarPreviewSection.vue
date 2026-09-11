@@ -3,10 +3,11 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { buildAssetViewURL } from "../../../../api/endpoints.js";
 import { formatFileSize, formatShortDate } from "../../../../components/sidebar/utils/format.js";
 import { mountVideoControls } from "../../../../components/VideoControls.js";
+import type { MjrAssetLike } from "../../../../types/asset";
 
 const props = withDefaults(
     defineProps<{
-        asset: { filename?: string; kind?: string; size?: unknown; mtime?: unknown; [key: string]: any };
+        asset: MjrAssetLike;
         showPreviewThumb?: boolean;
     }>(),
     { showPreviewThumb: true },
