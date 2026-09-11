@@ -22330,7 +22330,7 @@ async function Gb({ initialLoadPromise: e, gridWrapper: t, gridContainer: n, pan
 }
 //#endregion
 //#region ui/vue/components/grid/AssetsGrid.vue
-var Kb = {
+var Kb = /* @__PURE__ */ dr({
 	__name: "AssetsGrid",
 	setup(e, { expose: t }) {
 		let n = Z(null), r = Z(null), i = Z(null), a = Oh(), o = G(() => i.value?.gridContainer ?? null), s = null, c = null, l = null, u = null;
@@ -22378,7 +22378,7 @@ var Kb = {
 						n.value,
 						r.value,
 						n.value?.parentElement || null
-					].filter(Boolean);
+					].filter((e) => !!e);
 					for (let e of a) t.observe(e);
 					e.push(() => t.disconnect());
 				}
@@ -22393,7 +22393,7 @@ var Kb = {
 						n.value,
 						r.value,
 						n.value?.parentElement || null
-					].filter(Boolean);
+					].filter((e) => !!e);
 					for (let e of a) t.observe(e, {
 						attributes: !0,
 						attributeFilter: [
@@ -22600,7 +22600,7 @@ var Kb = {
 			"scroll-element": r.value
 		}, null, 8, ["scroll-element"])], 512)], 512));
 	}
-}, qb = {
+}), qb = {
 	class: "mjr-sidebar-header",
 	style: {
 		display: "flex",
@@ -23101,7 +23101,7 @@ var Qb = { class: "mjr-sidebar-preview" }, $b = ["src"], ex = ["src"], tx = ["sr
 }, yx = { class: "mjr-context-menu-item-left" }, bx = {
 	key: 0,
 	class: "mjr-context-menu-hint"
-}, xx = {
+}, xx = /* @__PURE__ */ dr({
 	__name: "AddToCollectionMenu",
 	setup(e) {
 		let t = Z(null), n = Z(!1), r = Z([]), i = Z(""), a = 0, o = null, s = G(() => ({
@@ -23252,7 +23252,7 @@ var Qb = { class: "mjr-sidebar-preview" }, $b = ["src"], ex = ["src"], tx = ["sr
 			], 12, px)) : W("", !0)]);
 		};
 	}
-}, Sx = {
+}), Sx = {
 	key: 0,
 	class: "mjr-context-menu-separator"
 }, Cx = { class: "mjr-context-menu-item-left" }, wx = { class: "mjr-context-menu-item-right" }, Tx = {

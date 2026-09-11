@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, provide, ref, watch } from "vue";
 import { usePanelStore } from "../../../stores/usePanelStore.js";
 import {
@@ -15,19 +15,20 @@ import {
     restoreGridUiState as restoreGridUiStateRuntime,
 } from "./assetsGridHostState.js";
 
-const browseSectionRef = ref(null);
-const gridWrapperRef = ref(null);
-const gridHostRef = ref(null);
+const browseSectionRef = ref<HTMLDivElement | null>(null);
+const gridWrapperRef = ref<HTMLDivElement | null>(null);
+// Binds to VirtualAssetGridHost's defineExpose, which isn't individually typed yet.
+const gridHostRef = ref<any>(null);
 
 const panelStore = usePanelStore();
 
 const gridContainerRef = computed(() => gridHostRef.value?.gridContainer ?? null);
 
-let disposeScrollSync = null;
-let disposeGridHostState = null;
-let gridHostStateOptions = null;
-let assetsQueryController = null;
-let disposeVisibilityObservers = null;
+let disposeScrollSync: (() => void) | null = null;
+let disposeGridHostState: (() => void) | null = null;
+let gridHostStateOptions: any = null;
+let assetsQueryController: any = null;
+let disposeVisibilityObservers: (() => void) | null = null;
 
 function syncAssetsQueryVisibility() {
     try {
@@ -58,7 +59,7 @@ function installVisibilityObservers() {
         console.debug?.(e);
     }
 
-    const cleanups = [];
+    const cleanups: Array<() => void> = [];
     let visibilityRaf = 0;
     const notifyVisibility = () => {
         if (visibilityRaf) return;
@@ -90,7 +91,7 @@ function installVisibilityObservers() {
                 browseSectionRef.value,
                 gridWrapperRef.value,
                 browseSectionRef.value?.parentElement || null,
-            ].filter(Boolean);
+            ].filter((el): el is Element => Boolean(el));
             for (const target of targets) {
                 resizeObserver.observe(target);
             }
@@ -109,7 +110,7 @@ function installVisibilityObservers() {
                 browseSectionRef.value,
                 gridWrapperRef.value,
                 browseSectionRef.value?.parentElement || null,
-            ].filter(Boolean);
+            ].filter((el): el is Element => Boolean(el));
             for (const target of targets) {
                 mutationObserver.observe(target, {
                     attributes: true,
@@ -154,7 +155,7 @@ function currentGridContainer() {
     return gridContainerRef.value || null;
 }
 
-function bindGridHostState(opts = {}) {
+function bindGridHostState(opts: any = {}) {
     const container = currentGridContainer();
     if (!container) return;
     gridHostStateOptions = opts;
@@ -166,7 +167,7 @@ function bindGridHostState(opts = {}) {
     disposeGridHostState = bindGridHostStateRuntime(container, {
         panelStore,
         ...opts,
-    });
+    }) as (() => void) | null;
 }
 
 onMounted(() => {
@@ -224,7 +225,7 @@ onBeforeUnmount(() => {
 
 watch(
     gridContainerRef,
-    (container, previous) => {
+    (container: any, previous: any) => {
         try {
             if (previous && previous !== container) {
                 clearActiveGridContainer(previous);
@@ -253,13 +254,13 @@ defineExpose({
     get gridContainer() {
         return currentGridContainer();
     },
-    onGridContainerReady(container) {
+    onGridContainerReady(container: any) {
         if (container && container !== currentGridContainer()) {
             return currentGridContainer();
         }
         return currentGridContainer();
     },
-    bindGridHostState(opts = {}) {
+    bindGridHostState(opts: any = {}) {
         bindGridHostState(opts);
         return () => {
             try {
@@ -270,7 +271,7 @@ defineExpose({
             disposeGridHostState = null;
         };
     },
-    restoreGridUiState(initialLoadPromise, opts = {}) {
+    restoreGridUiState(initialLoadPromise: any, opts: any = {}) {
         return restoreGridUiStateRuntime({
             initialLoadPromise,
             gridWrapper: gridWrapperRef.value,
@@ -279,7 +280,7 @@ defineExpose({
             ...opts,
         });
     },
-    initAssetsQueryController(options = {}) {
+    initAssetsQueryController(options: any = {}) {
         const gridContainer = currentGridContainer();
         if (!gridContainer || !gridWrapperRef.value) return null;
         try {
@@ -295,34 +296,34 @@ defineExpose({
         syncAssetsQueryVisibility();
         return assetsQueryController;
     },
-    loadAssets(...args) {
+    loadAssets(...args: any[]) {
         return gridHostRef.value?.loadAssets?.(...args);
     },
-    loadAssetsFromList(...args) {
+    loadAssetsFromList(...args: any[]) {
         return gridHostRef.value?.loadAssetsFromList?.(...args);
     },
-    prepareGridForScopeSwitch(...args) {
+    prepareGridForScopeSwitch(...args: any[]) {
         return gridHostRef.value?.prepareGridForScopeSwitch?.(...args);
     },
-    refreshGrid(...args) {
+    refreshGrid(...args: any[]) {
         return gridHostRef.value?.refreshGrid?.(...args);
     },
-    captureAnchor(...args) {
+    captureAnchor(...args: any[]) {
         return gridHostRef.value?.captureAnchor?.(...args);
     },
-    restoreAnchor(...args) {
+    restoreAnchor(...args: any[]) {
         return gridHostRef.value?.restoreAnchor?.(...args);
     },
-    hydrateGridFromSnapshot(...args) {
+    hydrateGridFromSnapshot(...args: any[]) {
         return gridHostRef.value?.hydrateFromSnapshot?.(...args);
     },
-    upsertAsset(...args) {
+    upsertAsset(...args: any[]) {
         return gridHostRef.value?.upsertAsset?.(...args);
     },
-    removeAssets(...args) {
+    removeAssets(...args: any[]) {
         return gridHostRef.value?.removeAssets?.(...args);
     },
-    disposeGrid(...args) {
+    disposeGrid(...args: any[]) {
         return gridHostRef.value?.dispose?.(...args);
     },
 });
