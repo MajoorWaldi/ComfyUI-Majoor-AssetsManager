@@ -20834,7 +20834,7 @@ var cy = { class: "mjr-menu mjr-collections-menu" }, ly = { class: "mjr-menu-ite
 }), nb = { class: "mjr-am-header-row" }, rb = { class: "mjr-am-header-left" }, ib = { class: "mjr-am-header-title" }, ab = ["data-mjr-version-channel", "title"], ob = { class: "mjr-tabs" }, sb = { class: "mjr-am-header-tools" }, cb = {
 	class: "mjr-popover-anchor",
 	style: { display: "none" }
-}, lb = { class: "mjr-popover-anchor" }, ub = { class: "mjr-popover-anchor" }, db = { class: "mjr-popover-anchor" }, fb = { class: "mjr-popover-anchor" }, pb = { class: "mjr-popover-anchor" }, mb = "mjr-am-version-badge-label", hb = "V", gb = {
+}, lb = { class: "mjr-popover-anchor" }, ub = { class: "mjr-popover-anchor" }, db = { class: "mjr-popover-anchor" }, fb = { class: "mjr-popover-anchor" }, pb = { class: "mjr-popover-anchor" }, mb = "mjr-am-version-badge-label", hb = "V", gb = /* @__PURE__ */ dr({
 	__name: "HeaderSection",
 	setup(e, { expose: n }) {
 		let r = null;
@@ -21652,7 +21652,7 @@ var cy = { class: "mjr-menu mjr-collections-menu" }, ly = { class: "mjr-menu-ite
 			}, 512)], 64);
 		};
 	}
-}, _b = (e) => {
+}), _b = (e) => {
 	try {
 		return String(e ?? "");
 	} catch {
