@@ -40,7 +40,7 @@
     "@comfyorg/litegraph": "^0.17.2",
     "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.63.0",
-    "@types/node": "^26.2.0",
+    "@types/node": "^26.5.1",
     "@vitejs/plugin-vue": "^6.0.8",
     "@vitest/coverage-v8": "^4.1.11",
     "@vue/test-utils": "^2.5.0",
