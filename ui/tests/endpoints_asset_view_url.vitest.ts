@@ -24,4 +24,15 @@ describe("buildAssetViewURL", () => {
             }),
         ).toBe("/view?filename=preview.png&subfolder=previews&type=temp");
     });
+
+    it("normalizes output-root relative paths so root files do not get subfolder=output", () => {
+        expect(
+            buildAssetViewURL({
+                filename: "Krea2_yogi_00117_.png",
+                filepath: "output/Krea2_yogi_00117_.png",
+                subfolder: "output",
+                type: "output",
+            }),
+        ).toBe("/view?filename=Krea2_yogi_00117_.png&type=output");
+    });
 });

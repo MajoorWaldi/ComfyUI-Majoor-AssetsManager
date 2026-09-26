@@ -1,10 +1,10 @@
-import { $ as e, At as t, Bt as n, Ct as r, Dt as i, Et as a, I as o, It as s, K as c, Mt as l, N as u, Nt as d, O as f, Ot as p, Pt as m, Q as h, Qt as g, R as _, Rt as v, S as y, St as b, T as x, Tt as S, Ut as C, Vt as ee, Wt as te, X as w, Xt as T, Y as ne, Yt as re, Z as ie, Zt as E, an as ae, at as oe, ct as se, et as ce, ht as le, it as ue, jt as de, k as D, kt as fe, lt as pe, nt as me, on as he, p as ge, qt as _e, rt as ve, st as ye, tt as be, ut as xe, w as Se, wt as Ce, xt as we, zt as Te } from "./viewerRuntimeHosts-CIiyEfr6.js";
-import { Ct as Ee, K as De, N as Oe, T as ke, c as Ae, d as je, f as Me, h as Ne, j as Pe, l as Fe, m as O, o as k, p as Ie, pt as Le, s as A, tt as Re, u as ze, x as Be, y as Ve } from "./events-DjjLASfV.js";
-import { F as He, K as Ue, P as We, Y as Ge, f as Ke, m as qe, p as Je } from "./Viewer-DtYA0ZJv.js";
-import { t as Ye } from "./floatingViewerManager-DJgZr1T5.js";
+import { $ as e, At as t, Bt as n, Ct as r, Dt as i, Et as a, I as o, It as s, K as c, Mt as l, N as u, Nt as d, O as f, Ot as p, Pt as m, Q as h, Qt as g, R as _, Rt as v, S as y, St as b, T as x, Tt as S, Ut as C, Vt as ee, Wt as te, X as w, Xt as T, Y as ne, Yt as re, Z as ie, Zt as E, an as ae, at as oe, ct as se, et as ce, ht as le, it as ue, jt as de, k as D, kt as fe, lt as pe, nt as me, on as he, p as ge, qt as _e, rt as ve, st as ye, tt as be, ut as xe, w as Se, wt as Ce, xt as we, zt as Te } from "./viewerRuntimeHosts-UUPTmGVi.js";
+import { Ct as Ee, K as De, N as Oe, T as ke, c as Ae, d as je, f as Me, h as Ne, j as Pe, l as Fe, m as O, o as k, p as Ie, pt as Le, s as A, tt as Re, u as ze, x as Be, y as Ve } from "./events-CtcGJdUb.js";
+import { F as He, K as Ue, P as We, Y as Ge, f as Ke, m as qe, p as Je } from "./Viewer-BHWnCryb.js";
+import { t as Ye } from "./floatingViewerManager-BBbBvrbt.js";
 import { A as Xe, C as j, D as Ze, E as M, G as Qe, J as $e, K as et, N as tt, O as N, R as nt, S as rt, T as P, U as F, V as I, Y as it, _ as at, a as ot, b as st, c as ct, d as lt, dt as L, f as ut, ft as R, g as dt, h as ft, i as pt, j as mt, k as z, l as ht, lt as B, m as gt, n as _t, nt as vt, o as yt, p as bt, r as xt, rt as V, s as St, t as Ct, u as wt, ut as Tt, y as Et, z as Dt } from "./mjr-primevue-BlSRoWcG.js";
 import { t as Ot } from "./mjr-vue-vendor-Bb2CVJXl.js";
-import { t as kt } from "./viewerOpenRequest-Dggp2bnN.js";
+import { t as kt } from "./viewerOpenRequest-CfsUFzwU.js";
 import { a as At, i as jt, n as Mt, o as Nt, r as Pt, t as Ft } from "./geninfoParser-DS9m_bHm.js";
 //#region ui/app/settings/settingsUtils.ts
 var H = (e, t) => {
@@ -5140,7 +5140,7 @@ var To = ["title"], Eo = ["src"], Do = {
 	setup(e) {
 		let t = e, n = V(0), r = V(!1), i = null;
 		function a() {
-			return i ||= import("./floatingViewerManager-DJgZr1T5.js").then((e) => e.n), i;
+			return i ||= import("./floatingViewerManager-BBbBvrbt.js").then((e) => e.n), i;
 		}
 		function o() {
 			return (Array.isArray(t.inputFile?.previewCandidates) ? t.inputFile.previewCandidates : [])[n.value] || "";
@@ -7131,13 +7131,16 @@ var To = ["title"], Eo = ["src"], Do = {
 	"font-weight": "700",
 	color: "rgba(255,255,255,0.94)",
 	"margin-top": "2px"
-} }, xl = { style: {
-	"margin-bottom": "12px",
-	padding: "10px",
-	"border-radius": "10px",
-	background: "rgba(255,255,255,0.03)",
-	border: "1px solid rgba(255,255,255,0.10)"
-} }, Sl = { style: {
+} }, xl = {
+	key: 3,
+	style: {
+		"margin-bottom": "12px",
+		padding: "10px",
+		"border-radius": "10px",
+		background: "rgba(255,255,255,0.03)",
+		border: "1px solid rgba(255,255,255,0.10)"
+	}
+}, Sl = { style: {
 	display: "flex",
 	"align-items": "center",
 	"justify-content": "space-between",
@@ -7152,7 +7155,7 @@ var To = ["title"], Eo = ["src"], Do = {
 	gap: "8px",
 	"align-items": "center"
 } }, Dl = ["placeholder"], Ol = {
-	key: 3,
+	key: 4,
 	class: "mjr-workflow-tree-wrap"
 }, kl = { class: "mjr-workflow-tree-node" }, Al = { class: "mjr-workflow-tree-node-name" }, jl = {
 	key: 0,
@@ -7172,7 +7175,7 @@ var To = ["title"], Eo = ["src"], Do = {
 	gap: "6px",
 	"align-items": "center"
 } }, Il = {
-	key: 4,
+	key: 5,
 	style: {
 		display: "grid",
 		"grid-template-columns": "repeat(auto-fit, minmax(180px, 1fr))",
@@ -7370,75 +7373,79 @@ var To = ["title"], Eo = ["src"], Do = {
 		let D = P(() => {
 			let e = ce(t.asset) || ce(d.value), n = le(t.asset) || le(d.value);
 			return !e && !n ? null : e || fa(n);
-		}), fe = P(() => String(t.asset?.filepath || t.asset?.path || t.asset?.file_info?.filepath || "").trim()), pe = P(() => String(t.asset?.display_name || t.asset?.name || t.asset?.filename || t.asset?.title || "Workflow").trim()), me = P(() => String(t.asset?.task || t.asset?.workflow_task || "").trim()), he = P(() => String(t.asset?.model_family || t.asset?.workflow_model_family || "").trim()), _e = P(() => String(t.asset?.provider || t.asset?.workflow_provider || "").trim()), ve = P(() => String(t.asset?.runs_on || t.asset?.runsOn || "").trim().toLowerCase()), ye = P(() => {
-			let e = ve.value, t = _e.value;
+		}), fe = P(() => String(t.asset?.filepath || t.asset?.path || t.asset?.file_info?.filepath || "").trim()), pe = P(() => {
+			if (fe.value.toLowerCase().endsWith(".json")) return !0;
+			let e = String(t.asset?.kind || "").trim().toLowerCase(), n = String(t.asset?.source || "").trim().toLowerCase();
+			return e === "workflow" || n === "workflow";
+		}), me = P(() => String(t.asset?.display_name || t.asset?.name || t.asset?.filename || t.asset?.title || "Workflow").trim()), he = P(() => String(t.asset?.task || t.asset?.workflow_task || "").trim()), _e = P(() => String(t.asset?.model_family || t.asset?.workflow_model_family || "").trim()), ve = P(() => String(t.asset?.provider || t.asset?.workflow_provider || "").trim()), ye = P(() => String(t.asset?.runs_on || t.asset?.runsOn || "").trim().toLowerCase()), be = P(() => {
+			let e = ye.value, t = ve.value;
 			return e === "api" && t ? `API · ${t}` : e ? t && t.toLowerCase() !== e ? `${e} · ${t}` : e : t;
-		}), be = P(() => String(t.asset?.notes || "").trim()), xe = P(() => [
+		}), xe = P(() => String(t.asset?.notes || "").trim()), Ce = P(() => [
 			t.asset?.detected_task ? `detected: ${t.asset.detected_task}` : "",
 			t.asset?.detected_model_family ? t.asset.detected_model_family : "",
 			t.asset?.detected_provider ? t.asset.detected_provider : ""
-		].filter(Boolean).join(" · ")), Ce = P(() => A(t.asset?.missing_nodes || t.asset?.missingNodes)), we = P(() => A(t.asset?.missing_models || t.asset?.missingModels)), Te = P(() => A(t.asset?.tags || t.asset?.workflow_tags || t.asset?.tags_json)), Ee = P(() => Te.value.slice(0, 3)), De = P(() => Math.max(0, Te.value.length - Ee.value.length)), Oe = P(() => A(m.value?.missing_nodes)), ke = P(() => A(m.value?.missing_models)), Ae = P(() => A(m.value?.warnings)), je = P(() => {
+		].filter(Boolean).join(" · ")), we = P(() => Re(t.asset?.missing_nodes || t.asset?.missingNodes)), Te = P(() => Re(t.asset?.missing_models || t.asset?.missingModels)), Ee = P(() => Re(t.asset?.tags || t.asset?.workflow_tags || t.asset?.tags_json)), De = P(() => Ee.value.slice(0, 3)), Oe = P(() => Math.max(0, Ee.value.length - De.value.length)), ke = P(() => Re(m.value?.missing_nodes)), Ae = P(() => Re(m.value?.missing_models)), je = P(() => Re(m.value?.warnings)), Me = P(() => {
 			let e = m.value;
 			return e ? `${Number(e.node_count || 0)} nodes | ${Number(e.subgraph_count || 0)} subgraphs | ${Array.isArray(e.required_nodes) ? e.required_nodes.length : 0} node types` : "";
-		}), Me = P(() => {
+		}), Ne = P(() => {
 			let e = h.value?.[0];
 			return e ? String(e.filename || "").replace(/\.json$/i, "") : "";
-		}), Ne = P(() => {
+		}), Pe = P(() => {
 			let e = g.value;
 			return e ? `${Number(e.changed?.length || 0)} changed | ${Number(e.added?.length || 0)} added | ${Number(e.removed?.length || 0)} removed` : "";
-		}), Pe = P(() => {
+		}), Fe = P(() => {
 			let e = Number(t.asset?.usage_count || t.asset?.usageCount || 0);
 			return !Number.isFinite(e) || e <= 0 ? "" : `${Math.floor(e)} use${e === 1 ? "" : "s"}`;
-		}), Fe = P(() => Re(t.asset?.last_loaded_at || t.asset?.lastLoadedAt)), k = P(() => Re(t.asset?.mtime || t.asset?.modified_at || t.asset?.updated_at)), Ie = P(() => {
+		}), k = P(() => ze(t.asset?.last_loaded_at || t.asset?.lastLoadedAt)), Ie = P(() => ze(t.asset?.mtime || t.asset?.modified_at || t.asset?.updated_at)), Le = P(() => {
 			let e = [];
 			t.asset?.favorite && e.push({
 				key: "favorite",
 				label: "Favorite",
 				icon: "pi pi-star-fill",
 				tone: "favorite"
-			}), Pe.value && e.push({
+			}), Fe.value && e.push({
 				key: "usage",
-				label: Pe.value,
+				label: Fe.value,
 				icon: "pi pi-play-circle",
 				tone: "usage"
-			}), Fe.value && e.push({
+			}), k.value && e.push({
 				key: "last-loaded",
-				label: `Loaded ${Fe.value}`,
+				label: `Loaded ${k.value}`,
 				icon: "pi pi-clock",
 				tone: "loaded"
 			});
-			for (let t of Ee.value) e.push({
+			for (let t of De.value) e.push({
 				key: `tag-${t}`,
 				label: t,
 				icon: "pi pi-tag",
 				tone: "tag"
 			});
-			return De.value && e.push({
+			return Oe.value && e.push({
 				key: "tags-more",
-				label: `+${De.value} tags`,
+				label: `+${Oe.value} tags`,
 				icon: "pi pi-tags",
 				tone: "tag"
 			}), e;
 		});
-		function Le(e) {
+		function A(e) {
 			let t = "display:inline-flex;align-items:center;gap:5px;max-width:100%;padding:4px 8px;border-radius:999px;font-size:10px;font-weight:750;line-height:1.1;overflow:hidden";
 			return e === "favorite" ? `${t};background:rgba(255,193,7,0.15);border:1px solid rgba(255,193,7,0.34);color:#ffe082` : e === "usage" ? `${t};background:rgba(33,150,243,0.14);border:1px solid rgba(33,150,243,0.30);color:#90caf9` : e === "loaded" ? `${t};background:rgba(76,175,80,0.13);border:1px solid rgba(76,175,80,0.28);color:#a5d6a7` : `${t};background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.14);color:rgba(255,255,255,0.82)`;
 		}
-		function A(e) {
+		function Re(e) {
 			if (Array.isArray(e)) return e.map((e) => String(e || "").trim()).filter(Boolean);
 			if (typeof e == "string") {
 				let t = e.trim();
 				if (!t) return [];
 				try {
 					let e = JSON.parse(t);
-					if (Array.isArray(e)) return A(e);
+					if (Array.isArray(e)) return Re(e);
 				} catch {
 					return t.split(/[,\n]/).map((e) => e.trim()).filter(Boolean);
 				}
 			}
 			return [];
 		}
-		function Re(e) {
+		function ze(e) {
 			let t = Number(e);
 			if (!Number.isFinite(t) || t <= 0) return "";
 			let n = t > 1e10 ? t : t * 1e3;
@@ -7448,7 +7455,7 @@ var To = ["title"], Eo = ["src"], Do = {
 				return "";
 			}
 		}
-		async function ze() {
+		async function Be() {
 			if (D.value) return;
 			let e = fe.value;
 			if (e && !l.value) {
@@ -7469,25 +7476,26 @@ var To = ["title"], Eo = ["src"], Do = {
 				}
 			}
 		}
-		let Be = P(() => t.asset?.has_generation_data ? "Complete" : "Partial"), He = P(() => D.value ? JSON.stringify(D.value, null, 2) : ""), Ue = P(() => String(t.asset?.category || t.asset?.subfolder || t.asset?.folder || "").trim().replace(/^\/+|\/+$/g, "")), We = P(() => Ue.value ? Ue.value.split(/[\\/]+/).filter(Boolean) : []), Ge = P(() => We.value.at(-1) || Ue.value || "Root"), Ke = P(() => We.value.slice(-1));
-		function qe(e, t) {
+		let He = P(() => t.asset?.has_generation_data ? "Complete" : "Partial"), Ue = P(() => D.value ? JSON.stringify(D.value, null, 2) : ""), We = P(() => String(t.asset?.category || t.asset?.subfolder || t.asset?.folder || "").trim().replace(/^\/+|\/+$/g, "")), Ge = P(() => We.value ? We.value.split(/[\\/]+/).filter(Boolean) : []), Ke = P(() => Ge.value.at(-1) || We.value || "Root"), qe = P(() => Ge.value.slice(-1));
+		function Je(e, t) {
 			let n = e?.id ?? e?.key ?? t + 1;
 			return String(e?.title || e?._meta?.title || e?.type || e?.class_type || e?.name || `Node ${n}`);
 		}
-		function Je(e) {
+		function tt(e) {
 			return String(e?.type || e?.class_type || e?.name || "").trim();
 		}
-		function tt() {
-			s.value = Ue.value;
+		function rt() {
+			s.value = We.value;
 		}
-		async function rt() {
+		async function at() {
+			if (!pe.value) return;
 			let e = String(t.asset?.filepath || t.asset?.path || t.asset?.file_info?.filepath || "").trim();
 			if (!e) {
 				E(O("toast.workflowMissingPath", "Workflow file path is missing."), "error");
 				return;
 			}
 			let n = String(s.value || "").trim();
-			if (n !== Ue.value) {
+			if (n !== We.value) {
 				c.value = !0;
 				try {
 					let t = await f({
@@ -7506,7 +7514,7 @@ var To = ["title"], Eo = ["src"], Do = {
 				}
 			}
 		}
-		async function at() {
+		async function ot() {
 			let e = fe.value;
 			if (!e) {
 				E(O("toast.workflowMissingPath", "Workflow file path is missing."), "error");
@@ -7541,8 +7549,8 @@ var To = ["title"], Eo = ["src"], Do = {
 			}
 			E(O("toast.workflowUpdated", "Workflow updated"), "success", 1800), window?.dispatchEvent?.(new CustomEvent("mjr:reload-grid", { detail: { reason: "workflow-thumbnail-sidebar" } }));
 		}
-		async function ot() {
-			if (await ze(), !D.value) {
+		async function st() {
+			if (await Be(), !D.value) {
 				E(O("toast.workflowLoadFailed", "Failed to load workflow."), "error");
 				return;
 			}
@@ -7560,7 +7568,7 @@ var To = ["title"], Eo = ["src"], Do = {
 				console.debug?.(e), E(O("toast.workflowLoadFailed", "Failed to load workflow."), "error");
 			}
 		}
-		async function st() {
+		async function ct() {
 			let e = fe.value;
 			if (!e) {
 				E(O("toast.workflowMissingPath", "Workflow file path is missing."), "error");
@@ -7585,18 +7593,18 @@ var To = ["title"], Eo = ["src"], Do = {
 				p.value = !1;
 			}
 		}
-		let ct = P(() => (Array.isArray(D.value?.nodes) ? D.value.nodes : []).slice(0, Kl).map((e, t) => {
-			let n = e?.id ?? e?.key ?? t + 1, r = Je(e);
+		let lt = P(() => (Array.isArray(D.value?.nodes) ? D.value.nodes : []).slice(0, Kl).map((e, t) => {
+			let n = e?.id ?? e?.key ?? t + 1, r = tt(e);
 			return {
 				key: String(n),
-				label: qe(e, t),
+				label: Je(e, t),
 				icon: "pi pi-circle-fill",
 				data: {
 					id: n,
 					type: r
 				}
 			};
-		})), lt = P(() => Math.max(0, Number(ut.value.nodes || 0) - ct.value.length)), ut = P(() => {
+		})), ut = P(() => Math.max(0, Number(dt.value.nodes || 0) - lt.value.length)), dt = P(() => {
 			let e = D.value;
 			return e ? {
 				nodes: Array.isArray(e?.nodes) ? e.nodes.length : 0,
@@ -7609,10 +7617,10 @@ var To = ["title"], Eo = ["src"], Do = {
 				groups: 0,
 				source: ""
 			};
-		}), dt = P(() => {
+		}), ft = P(() => {
 			let e = String(b.value?.size || "comfortable");
 			return i.find((t) => t.key === e) || i[1];
-		}), ft = P(() => `${dt.value.height}px`), pt = P(() => [
+		}), pt = P(() => `${ft.value.height}px`), ht = P(() => [
 			{
 				key: "showNodeLabels",
 				label: "Node Labels",
@@ -7649,7 +7657,7 @@ var To = ["title"], Eo = ["src"], Do = {
 				iconClass: "pi pi-window-maximize"
 			}
 		]);
-		function ht() {
+		function gt() {
 			let e = a.value, t = D.value;
 			if (!e || !t) return;
 			let n = Math.max(1, e.clientWidth || 320), r = Math.max(1, e.clientHeight || 120), i = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
@@ -7660,10 +7668,10 @@ var To = ["title"], Eo = ["src"], Do = {
 				view: S.value
 			}) || null, re(w?.resolvedView);
 		}
-		function gt(e) {
+		function _t(e) {
 			Ve(e);
 		}
-		function _t(e) {
+		function vt(e) {
 			let t = a.value;
 			if (!t) return null;
 			let n = t.getBoundingClientRect?.();
@@ -7672,48 +7680,48 @@ var To = ["title"], Eo = ["src"], Do = {
 				y: Number(e?.clientY) - n.top
 			} : null;
 		}
-		function vt(e) {
-			let t = _t(e);
+		function yt(e) {
+			let t = vt(e);
 			return !t || !w?.canvasToWorld ? null : {
 				local: t,
 				world: w.canvasToWorld(t.x, t.y)
 			};
 		}
-		function yt(e) {
-			let t = _t(e), n = t && w?.hitTestNode ? w.hitTestNode(t.x, t.y) : null, r = n?.id !== null && n?.id !== void 0 ? String(n.id) : null, i = S.value.hoveredNodeId !== null && S.value.hoveredNodeId !== void 0 ? String(S.value.hoveredNodeId) : null;
+		function bt(e) {
+			let t = vt(e), n = t && w?.hitTestNode ? w.hitTestNode(t.x, t.y) : null, r = n?.id !== null && n?.id !== void 0 ? String(n.id) : null, i = S.value.hoveredNodeId !== null && S.value.hoveredNodeId !== void 0 ? String(S.value.hoveredNodeId) : null;
 			ee.value = n?.label || "", r !== i && (S.value = {
 				...S.value,
 				hoveredNodeId: r
-			}, ht());
+			}, gt());
 		}
-		function bt(e) {
-			e && (gt(e), S.value = {
+		function xt(e) {
+			e && (_t(e), S.value = {
 				...S.value,
 				centerX: Number(e.x),
 				centerY: Number(e.y)
-			}, ht());
-		}
-		function xt(e) {
-			if (Number(e?.button ?? 0) !== 0) return;
-			let t = vt(e);
-			t && (T = e.pointerId ?? 1, C.value = "grabbing", a.value?.setPointerCapture?.(T), bt(t.world), yt(e), e.preventDefault?.(), e.stopPropagation?.());
+			}, gt());
 		}
 		function St(e) {
-			if (T !== null && e.pointerId === T) {
-				let t = vt(e);
-				t && bt(t.world), e.preventDefault?.(), e.stopPropagation?.();
-				return;
-			}
-			yt(e);
+			if (Number(e?.button ?? 0) !== 0) return;
+			let t = yt(e);
+			t && (T = e.pointerId ?? 1, C.value = "grabbing", a.value?.setPointerCapture?.(T), xt(t.world), bt(e), e.preventDefault?.(), e.stopPropagation?.());
 		}
 		function Ct(e) {
+			if (T !== null && e.pointerId === T) {
+				let t = yt(e);
+				t && xt(t.world), e.preventDefault?.(), e.stopPropagation?.();
+				return;
+			}
+			bt(e);
+		}
+		function wt(e) {
 			T !== null && e?.pointerId === T && (a.value?.releasePointerCapture?.(T), T = null, C.value = "crosshair"), e?.type === "pointerleave" && (ee.value = "", S.value.hoveredNodeId !== null && (S.value = {
 				...S.value,
 				hoveredNodeId: null
-			}, ht()));
+			}, gt()));
 		}
-		function wt(e) {
-			let t = vt(e), n = w?.resolvedView;
+		function Ot(e) {
+			let t = yt(e), n = w?.resolvedView;
 			if (!t || !n) return;
 			let r = ne(Number(e?.deltaY) || 0, -240, 240), i = Math.exp(-r * .0025), a = ne((Number(S.value.zoom) || 1) * i, Wl, Gl);
 			if (Math.abs(a - (Number(S.value.zoom) || 1)) < .001) {
@@ -7726,39 +7734,39 @@ var To = ["title"], Eo = ["src"], Do = {
 				zoom: a,
 				centerX: Number(t.world.x) + (.5 - c) * o,
 				centerY: Number(t.world.y) + (.5 - l) * s
-			}, ht(), yt(e), e.preventDefault?.(), e.stopPropagation?.();
-		}
-		function Ot(e) {
-			let t = vt(e);
-			ie(), t && gt(t.world), ht(), e.preventDefault?.(), e.stopPropagation?.();
+			}, gt(), bt(e), e.preventDefault?.(), e.stopPropagation?.();
 		}
 		function kt(e) {
+			let t = yt(e);
+			ie(), t && _t(t.world), gt(), e.preventDefault?.(), e.stopPropagation?.();
+		}
+		function At(e) {
 			b.value = {
 				...b.value,
 				[e]: !b.value?.[e]
 			}, de(b.value);
 		}
-		function At(e) {
+		function jt(e) {
 			i.some((t) => t.key === e) && (b.value = {
 				...b.value,
 				size: e
 			}, de(b.value));
 		}
 		return Dt(() => {
-			a.value && typeof ResizeObserver == "function" && (te = new ResizeObserver(() => ht()), te.observe(a.value)), tt(), ze(), ht();
+			a.value && typeof ResizeObserver == "function" && (te = new ResizeObserver(() => gt()), te.observe(a.value)), rt(), Be(), gt();
 		}), et(D, () => {
-			ie(), ht();
+			ie(), gt();
 		}, { flush: "post" }), et(fe, () => {
-			d.value = null, ze();
-		}, { immediate: !0 }), et(Ue, () => {
-			tt();
+			d.value = null, Be();
+		}, { immediate: !0 }), et(We, () => {
+			rt();
 		}), et(b, () => {
-			ht();
+			gt();
 		}, {
 			deep: !0,
 			flush: "post"
 		}), et(_, () => {
-			ht();
+			gt();
 		}, { flush: "post" }), nt(() => {
 			try {
 				te?.disconnect?.();
@@ -7778,7 +7786,7 @@ var To = ["title"], Eo = ["src"], Do = {
 					"letter-spacing": "0.5px"
 				} }, " ComfyUI Workflow ", -1),
 				M("div", Pc, [
-					M("div", Fc, R(pe.value), 1),
+					M("div", Fc, R(me.value), 1),
 					fe.value ? (I(), z("div", {
 						key: 0,
 						style: {
@@ -7791,9 +7799,9 @@ var To = ["title"], Eo = ["src"], Do = {
 						},
 						title: fe.value
 					}, R(fe.value), 9, Ic)) : N("", !0),
-					Ie.value.length ? (I(), z("div", Lc, [(I(!0), z(j, null, F(Ie.value, (e) => (I(), z("span", {
+					Le.value.length ? (I(), z("div", Lc, [(I(!0), z(j, null, F(Le.value, (e) => (I(), z("span", {
 						key: e.key,
-						style: L(Le(e.tone)),
+						style: L(A(e.tone)),
 						title: e.label
 					}, [M("i", {
 						class: Tt(e.icon),
@@ -7803,30 +7811,30 @@ var To = ["title"], Eo = ["src"], Do = {
 						}
 					}, null, 2), M("span", zc, R(e.label), 1)], 12, Rc))), 128))])) : N("", !0)
 				]),
-				M("div", Bc, [M("div", Vc, R(Be.value), 1), ut.value.source ? (I(), z("div", Hc, R(ut.value.source), 1)) : N("", !0)]),
+				M("div", Bc, [M("div", Vc, R(He.value), 1), dt.value.source ? (I(), z("div", Hc, R(dt.value.source), 1)) : N("", !0)]),
 				M("div", Uc, [
-					me.value ? (I(), z("div", Wc, [t[3] ||= M("div", { style: {
+					he.value ? (I(), z("div", Wc, [t[3] ||= M("div", { style: {
 						"font-size": "10px",
 						"font-weight": "700",
 						color: "rgba(255,255,255,0.55)",
 						"text-transform": "uppercase",
 						"letter-spacing": "0.4px"
-					} }, "Task", -1), M("div", Gc, R(me.value), 1)])) : N("", !0),
-					he.value ? (I(), z("div", Kc, [t[4] ||= M("div", { style: {
+					} }, "Task", -1), M("div", Gc, R(he.value), 1)])) : N("", !0),
+					_e.value ? (I(), z("div", Kc, [t[4] ||= M("div", { style: {
 						"font-size": "10px",
 						"font-weight": "700",
 						color: "rgba(255,255,255,0.55)",
 						"text-transform": "uppercase",
 						"letter-spacing": "0.4px"
-					} }, "Model", -1), M("div", qc, R(he.value), 1)])) : N("", !0),
-					ye.value ? (I(), z("div", Jc, [t[5] ||= M("div", { style: {
+					} }, "Model", -1), M("div", qc, R(_e.value), 1)])) : N("", !0),
+					be.value ? (I(), z("div", Jc, [t[5] ||= M("div", { style: {
 						"font-size": "10px",
 						"font-weight": "700",
 						color: "rgba(255,255,255,0.55)",
 						"text-transform": "uppercase",
 						"letter-spacing": "0.4px"
-					} }, "Runs on", -1), M("div", Yc, R(ye.value), 1)])) : N("", !0),
-					Pe.value || k.value ? (I(), z("div", Xc, [
+					} }, "Runs on", -1), M("div", Yc, R(be.value), 1)])) : N("", !0),
+					Fe.value || Ie.value ? (I(), z("div", Xc, [
 						t[6] ||= M("div", { style: {
 							"font-size": "10px",
 							"font-weight": "700",
@@ -7834,11 +7842,11 @@ var To = ["title"], Eo = ["src"], Do = {
 							"text-transform": "uppercase",
 							"letter-spacing": "0.4px"
 						} }, "Library", -1),
-						M("div", Zc, R(Pe.value || k.value), 1),
-						Pe.value && k.value ? (I(), z("div", Qc, R(k.value), 1)) : N("", !0)
+						M("div", Zc, R(Fe.value || Ie.value), 1),
+						Fe.value && Ie.value ? (I(), z("div", Qc, R(Ie.value), 1)) : N("", !0)
 					])) : N("", !0)
 				]),
-				Ce.value.length || we.value.length ? (I(), z("div", $c, [
+				we.value.length || Te.value.length ? (I(), z("div", $c, [
 					t[7] ||= M("div", { style: {
 						"font-size": "10px",
 						"font-weight": "800",
@@ -7847,15 +7855,15 @@ var To = ["title"], Eo = ["src"], Do = {
 						"letter-spacing": "0.4px",
 						"margin-bottom": "6px"
 					} }, "Missing dependencies", -1),
-					Ce.value.length ? (I(), z("div", {
+					we.value.length ? (I(), z("div", {
 						key: 0,
 						style: L({
 							display: "flex",
 							flexWrap: "wrap",
 							gap: "5px",
-							marginBottom: we.value.length ? "7px" : "0"
+							marginBottom: Te.value.length ? "7px" : "0"
 						})
-					}, [(I(!0), z(j, null, F(Ce.value, (e) => (I(), z("span", {
+					}, [(I(!0), z(j, null, F(we.value, (e) => (I(), z("span", {
 						key: `node-${e}`,
 						style: {
 							padding: "3px 7px",
@@ -7866,7 +7874,7 @@ var To = ["title"], Eo = ["src"], Do = {
 							color: "#ffcdd2"
 						}
 					}, R(e), 1))), 128))], 4)) : N("", !0),
-					we.value.length ? (I(), z("div", el, [(I(!0), z(j, null, F(we.value, (e) => (I(), z("span", {
+					Te.value.length ? (I(), z("div", el, [(I(!0), z(j, null, F(Te.value, (e) => (I(), z("span", {
 						key: `model-${e}`,
 						style: {
 							padding: "3px 7px",
@@ -7878,14 +7886,14 @@ var To = ["title"], Eo = ["src"], Do = {
 						}
 					}, R(e), 1))), 128))])) : N("", !0)
 				])) : N("", !0),
-				be.value || xe.value ? (I(), z("div", tl, [be.value ? (I(), z("div", nl, R(be.value), 1)) : N("", !0), xe.value ? (I(), z("div", {
+				xe.value || Ce.value ? (I(), z("div", tl, [xe.value ? (I(), z("div", nl, R(xe.value), 1)) : N("", !0), Ce.value ? (I(), z("div", {
 					key: 1,
 					style: L({
 						fontSize: "11px",
 						color: "rgba(255,255,255,0.48)",
-						marginTop: be.value ? "7px" : "0"
+						marginTop: xe.value ? "7px" : "0"
 					})
-				}, R(xe.value), 5)) : N("", !0)])) : N("", !0),
+				}, R(Ce.value), 5)) : N("", !0)])) : N("", !0),
 				M("div", rl, [
 					mt(n, {
 						type: "button",
@@ -7905,7 +7913,7 @@ var To = ["title"], Eo = ["src"], Do = {
 							"justify-content": "center",
 							gap: "7px"
 						},
-						onClick: at
+						onClick: ot
 					}, {
 						default: $e(() => [t[8] ||= M("i", { class: "pi pi-image" }, null, -1), M("span", null, R(B(O)("ctx.setWorkflowThumbnail", "Set workflow thumbnail")), 1)]),
 						_: 1
@@ -7928,7 +7936,7 @@ var To = ["title"], Eo = ["src"], Do = {
 							"justify-content": "center",
 							gap: "7px"
 						},
-						onClick: ot
+						onClick: st
 					}, {
 						default: $e(() => [t[9] ||= M("i", { class: "pi pi-search" }, null, -1), M("span", null, R(B(O)("ctx.inspect", "Inspect")), 1)]),
 						_: 1
@@ -7952,7 +7960,7 @@ var To = ["title"], Eo = ["src"], Do = {
 							"justify-content": "center",
 							gap: "7px"
 						},
-						onClick: st
+						onClick: ct
 					}, {
 						default: $e(() => [M("i", { class: Tt(p.value ? "pi pi-spin pi-spinner" : "pi pi-check-circle") }, null, 2), M("span", null, R(p.value ? "Checking" : "Validate"), 1)]),
 						_: 1
@@ -7965,8 +7973,8 @@ var To = ["title"], Eo = ["src"], Do = {
 						color: "#a5d6a7",
 						"text-transform": "uppercase",
 						"letter-spacing": "0.4px"
-					} }, "Workflow diagnostics", -1), M("div", ol, R(je.value), 1)]),
-					Oe.value.length || ke.value.length ? (I(), z("div", sl, [Oe.value.length ? (I(), z("div", cl, [(I(!0), z(j, null, F(Oe.value, (e) => (I(), z("span", {
+					} }, "Workflow diagnostics", -1), M("div", ol, R(Me.value), 1)]),
+					ke.value.length || Ae.value.length ? (I(), z("div", sl, [ke.value.length ? (I(), z("div", cl, [(I(!0), z(j, null, F(ke.value, (e) => (I(), z("span", {
 						key: `diag-node-${e}`,
 						style: {
 							padding: "3px 7px",
@@ -7976,7 +7984,7 @@ var To = ["title"], Eo = ["src"], Do = {
 							"font-weight": "700",
 							color: "#ffcdd2"
 						}
-					}, " Missing node: " + R(e), 1))), 128))])) : N("", !0), ke.value.length ? (I(), z("div", ll, [(I(!0), z(j, null, F(ke.value, (e) => (I(), z("span", {
+					}, " Missing node: " + R(e), 1))), 128))])) : N("", !0), Ae.value.length ? (I(), z("div", ll, [(I(!0), z(j, null, F(Ae.value, (e) => (I(), z("span", {
 						key: `diag-model-${e}`,
 						style: {
 							padding: "3px 7px",
@@ -7987,8 +7995,8 @@ var To = ["title"], Eo = ["src"], Do = {
 							color: "#ffe0b2"
 						}
 					}, " Missing model: " + R(e), 1))), 128))])) : N("", !0)])) : (I(), z("div", ul, " No missing dependencies detected by the current ComfyUI runtime. ")),
-					Ae.value.length ? (I(), z("div", dl, R(Ae.value.join(" | ")), 1)) : N("", !0),
-					Me.value || Ne.value ? (I(), z("div", fl, [Xe(" Latest version: " + R(Me.value || "none"), 1), Ne.value ? (I(), z("span", pl, " | Diff: " + R(Ne.value), 1)) : N("", !0)])) : N("", !0)
+					je.value.length ? (I(), z("div", dl, R(je.value.join(" | ")), 1)) : N("", !0),
+					Ne.value || Pe.value ? (I(), z("div", fl, [Xe(" Latest version: " + R(Ne.value || "none"), 1), Pe.value ? (I(), z("span", pl, " | Diff: " + R(Pe.value), 1)) : N("", !0)])) : N("", !0)
 				])) : N("", !0),
 				M("div", ml, [
 					M("div", hl, [t[11] ||= M("div", { style: {
@@ -7997,30 +8005,30 @@ var To = ["title"], Eo = ["src"], Do = {
 						color: "rgba(255,255,255,0.55)",
 						"text-transform": "uppercase",
 						"letter-spacing": "0.4px"
-					} }, "Nodes", -1), M("div", gl, R(ut.value.nodes), 1)]),
+					} }, "Nodes", -1), M("div", gl, R(dt.value.nodes), 1)]),
 					M("div", _l, [t[12] ||= M("div", { style: {
 						"font-size": "10px",
 						"font-weight": "700",
 						color: "rgba(255,255,255,0.55)",
 						"text-transform": "uppercase",
 						"letter-spacing": "0.4px"
-					} }, "Links", -1), M("div", vl, R(ut.value.links), 1)]),
+					} }, "Links", -1), M("div", vl, R(dt.value.links), 1)]),
 					M("div", yl, [t[13] ||= M("div", { style: {
 						"font-size": "10px",
 						"font-weight": "700",
 						color: "rgba(255,255,255,0.55)",
 						"text-transform": "uppercase",
 						"letter-spacing": "0.4px"
-					} }, "Groups", -1), M("div", bl, R(ut.value.groups), 1)])
+					} }, "Groups", -1), M("div", bl, R(dt.value.groups), 1)])
 				]),
-				M("div", xl, [M("div", Sl, [M("div", Cl, [t[14] ||= M("div", { style: {
+				pe.value ? (I(), z("div", xl, [M("div", Sl, [M("div", Cl, [t[14] ||= M("div", { style: {
 					"font-size": "10px",
 					"font-weight": "700",
 					color: "rgba(255,255,255,0.55)",
 					"text-transform": "uppercase",
 					"letter-spacing": "0.4px"
 				} }, "Category", -1), M("div", {
-					title: Ue.value || "Root",
+					title: We.value || "Root",
 					style: {
 						"font-size": "12px",
 						color: "rgba(255,255,255,0.8)",
@@ -8030,9 +8038,9 @@ var To = ["title"], Eo = ["src"], Do = {
 						"white-space": "nowrap",
 						"max-width": "100%"
 					}
-				}, R(Ge.value), 9, wl)]), Ke.value.length ? (I(), z("div", {
+				}, R(Ke.value), 9, wl)]), qe.value.length ? (I(), z("div", {
 					key: 0,
-					title: Ue.value,
+					title: We.value,
 					style: {
 						display: "flex",
 						"flex-wrap": "wrap",
@@ -8041,7 +8049,7 @@ var To = ["title"], Eo = ["src"], Do = {
 						"min-width": "0",
 						"max-width": "45%"
 					}
-				}, [(I(!0), z(j, null, F(Ke.value, (e) => (I(), z("span", {
+				}, [(I(!0), z(j, null, F(qe.value, (e) => (I(), z("span", {
 					key: e,
 					style: {
 						padding: "3px 7px",
@@ -8089,15 +8097,15 @@ var To = ["title"], Eo = ["src"], Do = {
 						fontWeight: "700",
 						whiteSpace: "nowrap"
 					}),
-					onClick: rt
+					onClick: at
 				}, {
 					default: $e(() => [Xe(R(c.value ? "Saving..." : "Move"), 1)]),
 					_: 1
-				}, 8, ["disabled", "style"])])]),
-				ct.value.length ? (I(), z("div", Ol, [
+				}, 8, ["disabled", "style"])])])) : N("", !0),
+				lt.value.length ? (I(), z("div", Ol, [
 					t[15] ||= M("div", { class: "mjr-section-title" }, " Workflow Nodes ", -1),
 					mt(r, {
-						value: ct.value,
+						value: lt.value,
 						class: "mjr-workflow-tree",
 						"scroll-height": "180px",
 						pt: {
@@ -8116,7 +8124,7 @@ var To = ["title"], Eo = ["src"], Do = {
 						])]),
 						_: 1
 					}, 8, ["value"]),
-					lt.value ? (I(), z("div", Nl, " +" + R(lt.value) + " more nodes ", 1)) : N("", !0)
+					ut.value ? (I(), z("div", Nl, " +" + R(ut.value) + " more nodes ", 1)) : N("", !0)
 				])) : N("", !0),
 				M("div", Pl, [M("div", Fl, [(I(!0), z(j, null, F(B(i), (e) => (I(), Ze(n, {
 					key: e.key,
@@ -8136,7 +8144,7 @@ var To = ["title"], Eo = ["src"], Do = {
 						fontWeight: b.value.size === e.key ? "700" : "600",
 						cursor: "pointer"
 					}),
-					onClick: (t) => At(e.key)
+					onClick: (t) => jt(e.key)
 				}, {
 					default: $e(() => [Xe(R(e.label), 1)]),
 					_: 2
@@ -8168,7 +8176,7 @@ var To = ["title"], Eo = ["src"], Do = {
 					default: $e(() => [...t[16] ||= [M("i", { class: "pi pi-sliders-h" }, null, -1)]]),
 					_: 1
 				}, 8, ["title"])]),
-				_.value ? (I(), z("div", Il, [(I(!0), z(j, null, F(pt.value, (e) => (I(), Ze(n, {
+				_.value ? (I(), z("div", Il, [(I(!0), z(j, null, F(ht.value, (e) => (I(), Ze(n, {
 					key: e.key,
 					type: "button",
 					severity: "secondary",
@@ -8185,7 +8193,7 @@ var To = ["title"], Eo = ["src"], Do = {
 						color: "rgba(255,255,255,0.92)",
 						textAlign: "left"
 					}),
-					onClick: (t) => kt(e.key)
+					onClick: (t) => At(e.key)
 				}, {
 					default: $e(() => [
 						M("span", { style: L({
@@ -8222,7 +8230,7 @@ var To = ["title"], Eo = ["src"], Do = {
 					ref: a,
 					style: L({
 						width: "100%",
-						height: ft.value,
+						height: pt.value,
 						cursor: C.value,
 						touchAction: "none",
 						borderRadius: "10px",
@@ -8231,15 +8239,15 @@ var To = ["title"], Eo = ["src"], Do = {
 						border: "1px solid var(--mjr-border, rgba(255,255,255,0.12))",
 						boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.03)"
 					}),
-					onPointerdown: xt,
-					onPointermove: St,
-					onPointerup: Ct,
-					onPointercancel: Ct,
-					onPointerleave: Ct,
-					onWheel: wt,
-					onDblclick: Ot
+					onPointerdown: St,
+					onPointermove: Ct,
+					onPointerup: wt,
+					onPointercancel: wt,
+					onPointerleave: wt,
+					onWheel: Ot,
+					onDblclick: kt
 				}, null, 36)]),
-				M("div", Vl, [M("span", null, R(ee.value || "Click/drag to navigate | wheel to zoom"), 1), M("span", null, R(Math.round((S.value.zoom || 1) * 100)) + "% | " + R(dt.value.label), 1)]),
+				M("div", Vl, [M("span", null, R(ee.value || "Click/drag to navigate | wheel to zoom"), 1), M("span", null, R(Math.round((S.value.zoom || 1) * 100)) + "% | " + R(ft.value.label), 1)]),
 				M("details", {
 					open: v.value,
 					style: { "margin-top": "10px" },
@@ -8249,7 +8257,7 @@ var To = ["title"], Eo = ["src"], Do = {
 					color: "var(--mjr-muted, rgba(255,255,255,0.65))",
 					"font-size": "12px",
 					"user-select": "none"
-				} }, " Show raw JSON ", -1), M("pre", Ul, R(He.value), 1)], 40, Hl)
+				} }, " Show raw JSON ", -1), M("pre", Ul, R(Ue.value), 1)], 40, Hl)
 			])) : N("", !0);
 		};
 	}
