@@ -6,7 +6,7 @@ from collections.abc import Awaitable, Callable
 from typing import Any
 
 from aiohttp import web
-from mjr_am_backend.shared import Result
+from mjr_am_backend.shared import Result, get_logger
 
 from .core import (
     _get_request_user_id,
@@ -15,6 +15,8 @@ from .core import (
     _require_authenticated_user,
     _reset_request_user_context,
 )
+
+logger = get_logger(__name__)
 
 API_PREFIX = "/mjr/am/"
 
@@ -86,7 +88,7 @@ async def static_extension_cache_middleware(
         response.headers["Cache-Control"] = "no-cache, must-revalidate"
         response.headers.setdefault("Pragma", "no-cache")
     except Exception:
-        pass
+        logger.debug("static_extension_cache_middleware: suppressed exception", exc_info=True)
     return response
 
 
@@ -115,7 +117,7 @@ async def security_headers_middleware(
         response.headers.setdefault("Cache-Control", "no-store, no-cache, must-revalidate")
         response.headers.setdefault("Pragma", "no-cache")
     except Exception:
-        pass
+        logger.debug("security_headers_middleware: suppressed exception", exc_info=True)
 
     return response
 
@@ -178,7 +180,7 @@ def _store_request_user_id(request: web.Request, user_id: Any) -> None:
     try:
         request["mjr_user_id"] = str(user_id or "").strip()
     except Exception:
-        pass
+        logger.debug("_store_request_user_id: suppressed exception", exc_info=True)
 
 
 def _auth_error_response_or_none(request: web.Request) -> web.StreamResponse | None:

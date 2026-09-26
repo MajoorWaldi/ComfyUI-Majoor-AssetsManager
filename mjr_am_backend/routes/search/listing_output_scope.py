@@ -7,9 +7,11 @@ from pathlib import Path
 from typing import Any
 
 from aiohttp import web
-from mjr_am_backend.shared import Result
+from mjr_am_backend.shared import Result, get_logger
 
 from .route_helpers import has_meaningful_filters
+
+logger = get_logger(__name__)
 
 
 def _merge_folders_into_assets(
@@ -100,7 +102,7 @@ async def _attach_filesystem_folders(
             if existing_total is not None:
                 payload["total"] = int(existing_total) + len(folders)
     except Exception:
-        pass
+        logger.debug("_attach_filesystem_folders: suppressed exception", exc_info=True)
     return payload
 
 
@@ -298,7 +300,7 @@ async def handle_output_scope(
         if _settings_svc is not None:
             _show_folders = await _settings_svc.get_browser_show_folders()
     except Exception:
-        pass
+        logger.debug("handle_output_scope: suppressed exception", exc_info=True)
 
     output_root = await runtime_output_root(svc)
     input_root = str(Path(get_input_directory()).resolve(strict=False))

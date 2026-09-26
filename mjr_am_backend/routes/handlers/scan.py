@@ -105,7 +105,7 @@ def _send_prompt_event(event: str, payload: Any) -> None:
 
         emit_event(event, payload)
     except Exception:
-        pass
+        logger.debug("_send_prompt_event: suppressed exception", exc_info=True)
 
 
 def _normalize_job_id(value: Any) -> str:
@@ -241,7 +241,7 @@ def _invalidate_vector_searcher(svc: dict | None) -> None:
         if searcher and hasattr(searcher, "invalidate"):
             searcher.invalidate()
     except Exception:
-        pass
+        logger.debug("_invalidate_vector_searcher: suppressed exception", exc_info=True)
 
 
 async def _wait_for_with_cleanup(awaitable, *, timeout: float):
@@ -546,7 +546,7 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
                         reason="generation_index",
                     )
                 except Exception:
-                    pass
+                    logger.debug("index_files: suppressed exception", exc_info=True)
             else:
                 return _json_response(Result.Err("DB_MAINTENANCE", "Database maintenance in progress. Please wait."))
 
@@ -626,7 +626,7 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
                                         except Exception:
                                             continue
                         except Exception:
-                            pass
+                            logger.debug("index_files: suppressed exception", exc_info=True)
 
                     if base_root and base_type:
                         # Enforce allowlist checks
@@ -641,7 +641,7 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
                             try:
                                 recent_generated_paths.append(str(normalized))
                             except Exception:
-                                pass
+                                logger.debug("index_files: suppressed exception", exc_info=True)
                         continue
 
             if not filename:
@@ -684,7 +684,7 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
                 try:
                     recent_generated_paths.append(str(normalized))
                 except Exception:
-                    pass
+                    logger.debug("index_files: suppressed exception", exc_info=True)
 
         if not grouped_paths:
             result = Result.Err("INVALID_INPUT", "No valid files to index")
@@ -707,14 +707,14 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
                         "prompt_id": prompt_id or item.get("prompt_id") or None,
                     }))
         except Exception:
-            pass
+            logger.debug("index_files: suppressed exception", exc_info=True)
 
         if recent_generated_paths:
             try:
                 from mjr_am_backend.features.index.watcher import mark_recent_generated
                 mark_recent_generated(recent_generated_paths)
             except Exception:
-                pass
+                logger.debug("index_files: suppressed exception", exc_info=True)
 
         total_stats = {
             "scanned": 0,
@@ -957,7 +957,7 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
                             try:
                                 cur_meta = json.loads(raw)
                             except Exception:
-                                pass
+                                logger.debug("_video_sibling_lookup_keys: suppressed exception", exc_info=True)
                         merged = dict(cur_meta)
                         merged["generation_time_ms"] = gt
                         try:
@@ -1233,9 +1233,9 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
                                     sanitize_for_json(payload),
                                 )
                             except Exception:
-                                pass
+                                logger.debug("_video_sibling_lookup_keys: suppressed exception", exc_info=True)
                     except Exception:
-                        pass
+                        logger.debug("_video_sibling_lookup_keys: suppressed exception", exc_info=True)
 
             except Exception as ex:
                 logger.debug("Failed during batch metadata enhancement: %s", ex)
@@ -1270,7 +1270,7 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
                 "stats": total_stats,
             }))
         except Exception:
-            pass
+            logger.debug("index_files: suppressed exception", exc_info=True)
 
         return _json_response(Result.Ok(total_stats))
 
@@ -1369,7 +1369,7 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
                 try:
                     await index_svc.stop_enrichment(clear_queue=True)
                 except Exception:
-                    pass
+                    logger.debug("reset_index: suppressed exception", exc_info=True)
         except Exception:
             scan_lock = None
 
@@ -1547,7 +1547,7 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
             try:
                 await _restart_watcher_if_needed(svc, watcher_was_running)
             except Exception:
-                pass
+                logger.debug("reset_index: suppressed exception", exc_info=True)
             set_db_maintenance_active(False)
 
     register_staging_routes(routes, deps=globals())

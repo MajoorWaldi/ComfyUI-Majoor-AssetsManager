@@ -165,7 +165,7 @@ def _bootstrap_enabled() -> bool:
         if get_security_pref("allow_remote_write") is True:
             return True
     except Exception:
-        pass
+        logger.debug("_bootstrap_enabled: suppressed exception", exc_info=True)
     return False
 
 
@@ -184,7 +184,7 @@ def _bootstrap_allows_insecure_transport() -> bool:
         if snapshot is False:
             return False
     except Exception:
-        pass
+        logger.debug("_bootstrap_allows_insecure_transport: suppressed exception", exc_info=True)
     try:
         raw = str(get_env("MAJOOR_ALLOW_INSECURE_TOKEN_TRANSPORT") or "").strip().lower()
     except Exception:
@@ -379,7 +379,7 @@ def _safe_runtime_status(service: object) -> dict:
             if isinstance(payload, dict):
                 return payload
     except Exception:
-        pass
+        logger.debug("_safe_runtime_status: suppressed exception", exc_info=True)
     return {}
 
 
@@ -389,7 +389,7 @@ def _safe_watcher_pending_count(watcher: object) -> int:
         if callable(get_pending):
             return int(get_pending() or 0)
     except Exception:
-        pass
+        logger.debug("_safe_watcher_pending_count: suppressed exception", exc_info=True)
     return 0
 
 
@@ -409,7 +409,7 @@ def _safe_watcher_directories(watcher: object) -> list[str]:
         if isinstance(value, (list, tuple, set)):
             return [str(path) for path in value if path]
     except Exception:
-        pass
+        logger.debug("_safe_watcher_directories: suppressed exception", exc_info=True)
     return []
 
 
@@ -439,7 +439,7 @@ def _vector_runtime_diagnostics(svc: dict | None) -> dict:
             payload.setdefault("degraded", False)
             return payload
     except Exception:
-        pass
+        logger.debug("_vector_runtime_diagnostics: suppressed exception", exc_info=True)
     return {"enabled": True, "loaded": True, "degraded": False, "last_error": None}
 
 
@@ -473,7 +473,7 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
                 if override:
                     return str(Path(override).resolve(strict=False))
         except Exception:
-            pass
+            logger.debug("_runtime_output_root: suppressed exception", exc_info=True)
         return str(Path(OUTPUT_ROOT).resolve(strict=False))
 
     @routes.get("/mjr/am/health")
@@ -501,13 +501,13 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
                 if bool(vector_diag.get("degraded")) and overall == "healthy":
                     result.data["overall"] = "degraded"
             except Exception:
-                pass
+                logger.debug("health: suppressed exception", exc_info=True)
             # Attach the bootstrap report so callers get one coherent status snapshot.
             try:
                 from mjr_am_backend.bootstrap_report import get_report
                 result.data["bootstrap"] = get_report()
             except Exception:
-                pass
+                logger.debug("health: suppressed exception", exc_info=True)
         return _json_response(result)
 
     @routes.get("/mjr/am/health/counters")
@@ -803,18 +803,18 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
                 try:
                     watcher.remove_path(old_output_dir)
                 except Exception:
-                    pass
+                    logger.debug("update_output_directory_setting: suppressed exception", exc_info=True)
                 if new_output_dir:
                     try:
                         watcher.add_path(new_output_dir, source="output", root_id=None)
                     except Exception:
-                        pass
+                        logger.debug("update_output_directory_setting: suppressed exception", exc_info=True)
         except Exception:
-            pass
+            logger.debug("update_output_directory_setting: suppressed exception", exc_info=True)
         try:
             await _invalidate_fs_list_cache()
         except Exception:
-            pass
+            logger.debug("update_output_directory_setting: suppressed exception", exc_info=True)
         if new_output_dir and new_output_dir != old_output_dir:
             try:
                 await _kickoff_background_scan(
@@ -826,7 +826,7 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
                     respect_bg_scan_on_list=False,
                 )
             except Exception:
-                pass
+                logger.debug("update_output_directory_setting: suppressed exception", exc_info=True)
         response_result = Result.Ok({"output_directory": result.data})
         await _audit_settings_write(
             svc,
@@ -1084,7 +1084,7 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
 
                     unload_vector_runtime_models(svc)
                 except Exception:
-                    pass
+                    logger.debug("update_vector_search_settings: suppressed exception", exc_info=True)
         else:
             result = Result.Ok(await settings_service.get_vector_search_enabled())
         caption_result = (
@@ -1750,11 +1750,11 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
             try:
                 _safe_mode_enabled.cache_clear()
             except Exception:
-                pass
+                logger.debug("update_security_settings: suppressed exception", exc_info=True)
             try:
                 _refresh_trusted_proxy_cache()
             except Exception:
-                pass
+                logger.debug("update_security_settings: suppressed exception", exc_info=True)
             current_prefs = result.data or (await settings_service.get_security_prefs())
             response_result = Result.Ok({"prefs": current_prefs})
             await _audit_settings_write(

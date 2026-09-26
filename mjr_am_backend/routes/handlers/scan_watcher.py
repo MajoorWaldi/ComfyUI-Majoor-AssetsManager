@@ -92,7 +92,7 @@ def _watcher_directories(watcher: Any) -> list[str]:
         if isinstance(value, (list, tuple, set)):
             return [str(path) for path in value if path]
     except Exception:
-        pass
+        logger.debug("_watcher_directories: suppressed exception", exc_info=True)
     return []
 
 
@@ -117,7 +117,7 @@ async def _delay_for_recent_generated_marker() -> None:
         if not _RECENT_GENERATED:
             return
     except Exception:
-        pass
+        logger.debug("_delay_for_recent_generated_marker: suppressed exception", exc_info=True)
     try:
         await asyncio.sleep(0.2)
     except Exception:
@@ -481,7 +481,7 @@ def register_watcher_routes(routes: web.RouteTableDef, *, deps: dict | None = No
             if db:
                 await persist_watcher_scope(db, scope, custom_root_id, user_id=request_user_id or None)
         except Exception:
-            pass
+            logger.debug("watcher_scope: suppressed exception", exc_info=True)
 
         # If watcher is not enabled, just acknowledge.
         watcher = svc.get("watcher")
@@ -523,7 +523,7 @@ def register_watcher_routes(routes: web.RouteTableDef, *, deps: dict | None = No
                     await watcher.stop()
                     svc["watcher"] = None
             except Exception:
-                pass
+                logger.debug("watcher_scope: suppressed exception", exc_info=True)
             result = Result.Ok({"enabled": False, "directories": [], "scope": scope})
             await _audit_watcher_write(
                 svc,
@@ -567,12 +567,12 @@ def register_watcher_routes(routes: web.RouteTableDef, *, deps: dict | None = No
                 )
                 return _json_response(result)
         except Exception:
-            pass
+            logger.debug("watcher_scope: suppressed exception", exc_info=True)
 
         try:
             await watcher.stop()
         except Exception:
-            pass
+            logger.debug("watcher_scope: suppressed exception", exc_info=True)
 
         # Use the shared callback builder so all watcher instances share the same
         # recent-generated filtering logic (BUG-02: was previously duplicated inline).

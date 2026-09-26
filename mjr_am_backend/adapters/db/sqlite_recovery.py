@@ -76,7 +76,7 @@ async def run_recovery_pragma(
                 try:
                     await cur.close()
                 except Exception:
-                    pass
+                    logger.debug("run_recovery_pragma: suppressed exception", exc_info=True)
         except sqlite3.OperationalError as exc:
             if self._is_locked_error(exc) and attempt < self._lock_retry_attempts:
                 await sleep_backoff(self, attempt)
@@ -207,7 +207,7 @@ async def attempt_missing_table_recovery_async(
                 )
                 update_known_columns_lower(new_known_columns_lower)
             except Exception:
-                pass
+                logger.debug("attempt_missing_table_recovery_async: suppressed exception", exc_info=True)
             return True
     except Exception as exc:
         logger.warning("Schema self-heal after missing table failed: %s", exc)
@@ -222,5 +222,5 @@ async def sleep_backoff(self, attempt: int):
     try:
         logger.debug("DB lock backoff: attempt=%d delay=%.3fs", int(attempt), float(delay))
     except Exception:
-        pass
+        logger.debug("sleep_backoff: suppressed exception", exc_info=True)
     await asyncio.sleep(delay)

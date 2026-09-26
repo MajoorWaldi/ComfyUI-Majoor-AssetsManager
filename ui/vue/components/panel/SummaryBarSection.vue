@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 /**
  * SummaryBarSection.vue — Phase-2→3 transition component for the summary bar.
  *
@@ -16,18 +16,32 @@ import { t } from "../../../app/i18n.js";
 import { usePanelStore } from "../../../stores/usePanelStore.js";
 import { buildSummaryBarState } from "./summaryBarState.js";
 
+interface BreadcrumbAction {
+    disabled?: boolean;
+    label?: string;
+    onClick?: (() => void) | null;
+}
+
+interface BreadcrumbItem {
+    label: string;
+    target: string;
+    current: boolean;
+    disabled?: boolean;
+    onClick: (() => void) | null;
+}
+
 const panelStore = usePanelStore();
 
-const summaryBar = ref(null);
-const folderBreadcrumb = ref(null);
-const pillsHost = ref(null);
+const summaryBar = ref<HTMLElement | null>(null);
+const folderBreadcrumb = ref<HTMLElement | null>(null);
+const pillsHost = ref<HTMLElement | null>(null);
 const summaryText = ref("");
 const duplicateText = ref("");
 const showDuplicateAlert = ref(false);
 const breadcrumbVisible = ref(false);
-const breadcrumbBack = ref(null);
-const breadcrumbUp = ref(null);
-const breadcrumbItems = ref([]);
+const breadcrumbBack = ref<BreadcrumbAction | null>(null);
+const breadcrumbUp = ref<BreadcrumbAction | null>(null);
+const breadcrumbItems = ref<BreadcrumbItem[]>([]);
 
 const pillsView = createContextPillsView();
 
@@ -58,7 +72,7 @@ const mediaShortcuts = computed(() => {
     ];
 });
 
-let duplicateAlertAction = null;
+let duplicateAlertAction: (() => void) | null = null;
 
 function handleDuplicateAlertClick() {
     try {
@@ -68,7 +82,7 @@ function handleDuplicateAlertClick() {
     }
 }
 
-function isKindShortcutActive(kind) {
+function isKindShortcutActive(kind: string) {
     return normalizedKindFilter.value === String(kind || "").trim().toLowerCase();
 }
 
@@ -80,14 +94,24 @@ function notifyFiltersChanged() {
     }
 }
 
-function toggleKindShortcut(kind) {
+function toggleKindShortcut(kind: string) {
     const normalized = String(kind || "").trim().toLowerCase();
     if (!normalized) return;
     panelStore.kindFilter = isKindShortcutActive(normalized) ? "" : normalized;
     notifyFiltersChanged();
 }
 
-function updateSummaryBar({ state, gridContainer, context = null, actions = null } = {}) {
+function updateSummaryBar({
+    state,
+    gridContainer,
+    context = null,
+    actions = null,
+}: {
+    state?: unknown;
+    gridContainer?: unknown;
+    context?: { duplicatesAlert?: unknown } | null;
+    actions?: { onDuplicateAlertClick?: (payload: unknown) => void } | null;
+} = {}) {
     const nextState = buildSummaryBarState({ state, gridContainer, context });
 
     panelStore.lastGridCount = nextState.shown;
@@ -124,7 +148,7 @@ function setFolderBreadcrumb({
     back = null,
     up = null,
     items = [],
-} = {}) {
+}: { visible?: boolean; back?: BreadcrumbAction | null; up?: BreadcrumbAction | null; items?: unknown[] } = {}) {
     breadcrumbVisible.value = !!visible;
     breadcrumbBack.value = back && typeof back === "object" ? back : null;
     breadcrumbUp.value = up && typeof up === "object" ? up : null;
@@ -140,7 +164,7 @@ function setFolderBreadcrumb({
         : [];
 }
 
-function runBreadcrumbAction(action) {
+function runBreadcrumbAction(action: BreadcrumbAction | BreadcrumbItem | null | undefined) {
     if (!action || action.disabled || typeof action.onClick !== "function") return;
     try {
         action.onClick();

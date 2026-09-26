@@ -7,9 +7,11 @@ from pathlib import Path
 from typing import Any
 
 from aiohttp import web
-from mjr_am_backend.shared import Result
+from mjr_am_backend.shared import Result, get_logger
 
 from .route_helpers import has_meaningful_filters
+
+logger = get_logger(__name__)
 
 
 async def _attach_filesystem_folders(
@@ -48,7 +50,7 @@ async def _attach_filesystem_folders(
             if existing_total is not None:
                 payload["total"] = int(existing_total) + len(folders)
     except Exception:
-        pass
+        logger.debug("_attach_filesystem_folders: suppressed exception", exc_info=True)
     return payload
 
 
@@ -123,7 +125,7 @@ async def _get_show_folders_setting(svc: Any) -> bool:
         if settings_svc is not None:
             return bool(await settings_svc.get_browser_show_folders())
     except Exception:
-        pass
+        logger.debug("_get_show_folders_setting: suppressed exception", exc_info=True)
     return False
 
 

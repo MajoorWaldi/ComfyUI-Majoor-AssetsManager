@@ -10,9 +10,13 @@ from __future__ import annotations
 
 from typing import Any
 
+from mjr_am_backend.shared import get_logger
+
 from .graph_converter import _inputs, _is_link, _lower, _node_type, _walk_passthrough
 from .parser_impl import _clean_model_id, _extract_input_files
 from .sampler_tracer import _scalar
+
+logger = get_logger(__name__)
 
 
 def _is_standalone_upscaler_node(node: dict[str, Any]) -> bool:
@@ -116,7 +120,7 @@ def _extract_upscaler_size(
                 r = int(res)
                 return {"width": r, "height": r, "confidence": "high", "source": source}
             except Exception:
-                pass
+                logger.debug("_extract_upscaler_size: suppressed exception", exc_info=True)
     # Explicit width/height pair
     for wkey, hkey in (("width", "height"), ("target_width", "target_height"), ("out_width", "out_height")):
         w = _scalar(ins.get(wkey))

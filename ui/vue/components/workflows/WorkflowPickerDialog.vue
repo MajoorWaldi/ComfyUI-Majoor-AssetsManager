@@ -1,14 +1,33 @@
-<script setup>
+<script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from "vue";
 import { listWorkflows } from "../../../api/client.js";
 import { t } from "../../../app/i18n.js";
 import { workflowPickerState, closeWorkflowPicker } from "../../../features/workflows/workflowPickerState.js";
 
+interface WorkflowListItem {
+    filepath?: string;
+    filename?: string;
+    display_name?: string;
+    name?: string;
+    task?: string;
+    model_family?: string;
+    runs_on?: string;
+    subfolder?: string;
+    kind?: string;
+    mtime?: unknown;
+    thumbnail_url?: string;
+    animated_thumbnail_url?: string;
+    thumb_url?: string;
+    preview_url?: string;
+    graph_map_thumbnail_url?: string;
+    [key: string]: unknown;
+}
+
 const query = ref("");
 const loading = ref(false);
 const loadingMore = ref(false);
 const error = ref("");
-const workflows = ref([]);
+const workflows = ref<WorkflowListItem[]>([]);
 const selectedPath = ref("");
 const workflowOffset = ref(0);
 const hasMoreWorkflows = ref(false);
@@ -37,7 +56,7 @@ const taskFilter = ref("");
 const modelFilter = ref("");
 const runsOnFilter = ref("");
 
-function uniqueOption(key) {
+function uniqueOption(key: string) {
     const seen = new Set();
     for (const workflow of workflows.value || []) {
         const value = String(workflow?.[key] || "").trim();
@@ -74,11 +93,11 @@ const selectedWorkflow = computed(() =>
     (workflows.value || []).find((workflow) => String(workflow?.filepath || "") === selectedPath.value) || null,
 );
 
-function workflowTitle(workflow) {
+function workflowTitle(workflow: WorkflowListItem) {
     return String(workflow?.display_name || workflow?.name || workflow?.filename || "Workflow");
 }
 
-function workflowMeta(workflow) {
+function workflowMeta(workflow: WorkflowListItem) {
     if (isAssetMode.value) {
         return [workflow?.kind, workflow?.mtime ? new Date(Number(workflow.mtime) * 1000).toLocaleString() : ""]
             .map((value) => String(value || "").trim())
@@ -91,7 +110,7 @@ function workflowMeta(workflow) {
         .join(" / ");
 }
 
-function workflowThumb(workflow) {
+function workflowThumb(workflow: WorkflowListItem) {
     return String(
         workflow?.thumbnail_url ||
             workflow?.animated_thumbnail_url ||
@@ -102,7 +121,7 @@ function workflowThumb(workflow) {
     ).trim();
 }
 
-async function loadWorkflowPage({ reset = false } = {}) {
+async function loadWorkflowPage({ reset = false }: { reset?: boolean } = {}) {
     const id = ++requestId;
     if (reset) {
         workflowOffset.value = 0;
@@ -146,7 +165,7 @@ async function loadWorkflowPage({ reset = false } = {}) {
         }
     } catch (err) {
         if (id === requestId) {
-            error.value = String(err?.message || err || "Failed to load workflows");
+            error.value = String((err as Error)?.message || err || "Failed to load workflows");
             workflows.value = [];
         }
     } finally {
@@ -175,7 +194,7 @@ function cancel() {
     closeWorkflowPicker(null);
 }
 
-function onKeydown(event) {
+function onKeydown(event: KeyboardEvent) {
     if (event.key === "Escape") {
         event.preventDefault();
         cancel();

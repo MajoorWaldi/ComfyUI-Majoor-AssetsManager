@@ -1,14 +1,22 @@
-<script setup>
+<script setup lang="ts">
 import { computed } from "vue";
+import type { MjrAssetLike } from "../../../../types/asset";
 import { formatDate, formatTime, formatDuration } from "../../../../utils/format.js";
 import { formatFps, readAssetFps, readAssetFrameCount } from "../../../../utils/mediaFps.js";
 import { genTimeColor, normalizeGenerationTimeMs } from "../../../../components/Badges.js";
 
-const props = defineProps({
-    asset: { type: Object, required: true },
-});
+interface FileInfoRow {
+    label: string;
+    value: string;
+    tooltip?: string;
+    valueStyle?: string;
+}
 
-function formatFileSize(bytes) {
+const props = defineProps<{
+    asset: MjrAssetLike;
+}>();
+
+function formatFileSize(bytes: unknown) {
     const byteCount = Number(bytes);
     if (!Number.isFinite(byteCount) || byteCount < 0) return "N/A";
     if (byteCount === 0) return "0 bytes";
@@ -23,7 +31,7 @@ function formatFileSize(bytes) {
     return `${size.toFixed(1)} ${units[unitIndex]}`;
 }
 
-function readRawMetadata(asset) {
+function readRawMetadata(asset: MjrAssetLike) {
     const raw = asset?.metadata_raw;
     if (raw && typeof raw === "object") return raw;
     if (typeof raw !== "string" || !raw.trim()) return {};
@@ -35,17 +43,17 @@ function readRawMetadata(asset) {
     }
 }
 
-function firstValue(...values) {
+function firstValue(...values: unknown[]) {
     return values.find((value) => value !== undefined && value !== null && value !== "");
 }
 
-function hasDisplayValue(value) {
+function hasDisplayValue(value: unknown) {
     if (value === undefined || value === null) return false;
     const text = String(value).trim();
     return text !== "" && text.toUpperCase() !== "N/A";
 }
 
-function formatBitDepth(stream, raw) {
+function formatBitDepth(stream: Record<string, unknown>, raw: Record<string, unknown>) {
     const bits = firstValue(
         stream.bits_per_raw_sample,
         stream.bits_per_sample,
@@ -63,7 +71,7 @@ function formatBitDepth(stream, raw) {
     return isFloat ? "float" : "N/A";
 }
 
-function readAssetField(asset, key) {
+function readAssetField(asset: MjrAssetLike, key: string) {
     const direct = asset?.[key] ?? asset?.file_info?.[key];
     if (direct !== undefined && direct !== null && direct !== "") return direct;
     // Fallback for fields nested under user_metadata (the backend may surface
@@ -87,7 +95,7 @@ const rows = computed(() => {
         ? ffprobe.video_stream
         : {};
     const format = ffprobe?.format && typeof ffprobe.format === "object" ? ffprobe.format : {};
-    const fileData = [];
+    const fileData: FileInfoRow[] = [];
     if (asset.width && asset.height) {
         fileData.push({
             label: "Dimensions",

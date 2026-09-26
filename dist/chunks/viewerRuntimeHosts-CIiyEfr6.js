@@ -1,6 +1,6 @@
-import { Ct as e, St as t, _t as n, gt as r, ht as i, k as a, m as o, nt as s, o as c, tt as l, vt as u, xt as d } from "./events-Bamza1ns.js";
+import { Ct as e, St as t, _t as n, gt as r, ht as i, k as a, m as o, nt as s, o as c, tt as l, vt as u, xt as d } from "./events-DjjLASfV.js";
 //#region ui/app/settingsStore.ts
-var f = "mjrSettings", p = "mjrMinimapSettings", m = new Set([
+var f = "mjrSettings", p = "mjrMinimapSettings", m = /* @__PURE__ */ new Set([
 	"POST",
 	"PUT",
 	"DELETE",
@@ -182,14 +182,19 @@ async function le(e, t, n, r, { ensureWriteAuthToken: i, normalizeWriteAuthFailu
 		data: null
 	}, e);
 	let u = await e.json().catch((e) => (console.debug?.("[MJR API] JSON parse error:", e), null));
-	if (typeof u != "object" || !u) return E({
+	if (typeof u != "object" || !u || Array.isArray(u) || typeof u.ok != "boolean") return E({
 		ok: !1,
 		error: "Invalid response structure",
 		code: "INVALID_RESPONSE",
 		status: e.status,
 		data: null
 	}, e);
-	if (!("status" in u)) try {
+	if (u.ok === !0 && Number(e.status || 0) >= 400 && (u = {
+		...u,
+		ok: !1,
+		error: u.error || `Server reported success with an HTTP error status (${e.status})`,
+		code: "INVALID_RESPONSE"
+	}), !("status" in u)) try {
 		u.status = e.status;
 	} catch (e) {
 		console.debug?.(e);
@@ -289,7 +294,7 @@ function ue({ readObsEnabled: e = () => !1, readAuthToken: t = () => "", ensureW
 		}
 	}
 	async function o(e, t = {}) {
-		return oe(t?.dedupe === !1 ? "" : String(t?.dedupeKey || "").trim() || ae("GET", e, t), () => a(e, {
+		return oe(t?.dedupe === !1 || t?.signal ? "" : String(t?.dedupeKey || "").trim() || ae("GET", e, t), () => a(e, {
 			...t,
 			method: "GET"
 		}));
@@ -340,7 +345,7 @@ function O({ ttlMs: e = 0, maxSize: t = 100, now: n = () => Date.now() } = {}) {
 		}
 	}
 	function s(e, t, n) {
-		return e ? n > 0 ? t - Number(e.at || 0) > n : !1 : !0;
+		return !e || n > 0 && t - Number(e.at || 0) > n;
 	}
 	function c(e = i(), t = a()) {
 		if (t > 0) for (let [n, i] of r.entries()) s(i, e, t) && r.delete(n);
@@ -1398,7 +1403,7 @@ async function dn(e = 8) {
 }
 //#endregion
 //#region ui/api/client.ts
-var fn = 3e4, pn = "__MJR_API_CLIENT__", mn = 2e3, hn = 200, gn = 1e3, _n = 30 * 6e4, vn = 720 * 6e4, H = "settings", yn = "available-tags", U = O({
+var fn = 3e4, pn = "__MJR_API_CLIENT__", mn = 2e3, hn = 200, gn = 1e3, _n = 18e5, vn = 432e5, H = "settings", yn = "available-tags", U = O({
 	ttlMs: mn,
 	maxSize: 1
 }), W = O({
@@ -1407,12 +1412,12 @@ var fn = 3e4, pn = "__MJR_API_CLIENT__", mn = 2e3, hn = 200, gn = 1e3, _n = 30 *
 }), G = O({
 	ttlMs: () => Cn(),
 	maxSize: 1
-}), bn = new Set([
+}), bn = /* @__PURE__ */ new Set([
 	"1",
 	"true",
 	"yes",
 	"on"
-]), xn = new Set([
+]), xn = /* @__PURE__ */ new Set([
 	"0",
 	"false",
 	"no",
@@ -1431,7 +1436,7 @@ function Sn(e, t = !1) {
 function Cn() {
 	try {
 		let e = localStorage?.getItem?.("mjrSettings") || "{}", t = JSON.parse(e), n = t?.cache?.tagsTTLms ?? t?.cache?.tagsTTL ?? t?.cache?.tags_ttl_ms ?? null, r = Number(n);
-		return Number.isFinite(r) ? Math.max(1e3, Math.min(10 * 6e4, Math.floor(r))) : fn;
+		return Number.isFinite(r) ? Math.max(1e3, Math.min(6e5, Math.floor(r))) : fn;
 	} catch {
 		return fn;
 	}
@@ -1491,7 +1496,7 @@ var On = () => {
 	try {
 		let e = localStorage?.getItem?.(f);
 		if (!e) return W.set(H, !0, { at: t }), !0;
-		let n = JSON.parse(e)?.ratingTagsSync?.enabled, r = n == null ? !0 : Sn(n, !0);
+		let n = JSON.parse(e)?.ratingTagsSync?.enabled, r = n == null || Sn(n, !0);
 		return W.set(H, r, { at: t }), r;
 	} catch {
 		return W.set(H, !0, { at: t }), !0;
@@ -1509,30 +1514,30 @@ async function Y(e, t, n = {}) {
 	return q.post(e, t, n);
 }
 async function jn(n, r, i = {}) {
-	let a = kn(), o = n && typeof n == "object" ? n : null, s = t(o ? o.id : n), c = { rating: Math.max(0, Math.min(5, Number(r) || 0)) };
-	return s ? c.asset_id = s : o && (c.filepath = o.filepath || o.path || o?.file_info?.filepath || "", c.type = o.type || "output", c.root_id = e(o)), An("/mjr/am/asset/rating", {
+	let a = kn(), o = n && typeof n == "object" ? n : null, s = o ? o.id : n, c = t(s), l = { rating: Math.max(0, Math.min(5, Number(r) || 0)) };
+	return c ? l.asset_id = c : o && (l.filepath = o.filepath || o.path || o?.file_info?.filepath || "", l.type = o.type || "output", l.root_id = e(o)), An("/mjr/am/asset/rating", {
 		...i,
 		method: "POST",
 		headers: {
 			"Content-Type": "application/json",
 			...a ? { "X-MJR-RTSYNC": "on" } : {}
 		},
-		body: JSON.stringify(c)
+		body: JSON.stringify(l)
 	});
 }
 async function Mn(n, r, i = {}) {
-	let a = kn(), o = n && typeof n == "object" ? n : null, s = t(o ? o.id : n), c = String(o?.kind || o?.type || "").trim().toLowerCase() === "workflow", u = String(o?.filepath || o?.path || o?.file_info?.filepath || "").trim(), d = { tags: Array.isArray(r) ? r : [] };
-	c && u ? d.filepath = u : s ? d.asset_id = s : o && (d.filepath = o.filepath || o.path || o?.file_info?.filepath || "", d.type = o.type || "output", d.root_id = e(o));
-	let f = await An(c && u ? l.WORKFLOWS_TAGS : "/mjr/am/asset/tags", {
+	let a = kn(), o = n && typeof n == "object" ? n : null, s = o ? o.id : n, c = t(s), u = String(o?.kind || o?.type || "").trim().toLowerCase() === "workflow", d = String(o?.filepath || o?.path || o?.file_info?.filepath || "").trim(), f = { tags: Array.isArray(r) ? r : [] };
+	u && d ? f.filepath = d : c ? f.asset_id = c : o && (f.filepath = o.filepath || o.path || o?.file_info?.filepath || "", f.type = o.type || "output", f.root_id = e(o));
+	let p = await An(u && d ? l.WORKFLOWS_TAGS : "/mjr/am/asset/tags", {
 		...i,
 		method: "POST",
 		headers: {
 			"Content-Type": "application/json",
 			...a ? { "X-MJR-RTSYNC": "on" } : {}
 		},
-		body: JSON.stringify(d)
+		body: JSON.stringify(f)
 	});
-	return f?.ok && K(), f;
+	return p?.ok && K(), p;
 }
 async function Nn() {
 	let e = G.get(yn);
@@ -1784,7 +1789,7 @@ function ur() {
 	return typeof document > "u" ? null : document?.body || document?.documentElement || null;
 }
 function dr(e) {
-	return cr(e) ? e === lr() ? !0 : typeof e?.isConnected == "boolean" ? e.isConnected : !0 : !1;
+	return cr(e) ? e === lr() || typeof e?.isConnected != "boolean" || e.isConnected : !1;
 }
 function fr(e) {
 	return cr(e) ? e : null;

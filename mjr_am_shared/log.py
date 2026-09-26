@@ -70,7 +70,7 @@ def _ensure_correlation_filter(logger: logging.Logger) -> None:
             logger.addFilter(CorrelationFilter())
         _configured_loggers.add(logger.name)
     except Exception:
-        pass
+        logger.debug("_ensure_correlation_filter: suppressed exception", exc_info=True)
 
 def get_logger(name: str, level: int | None = None) -> logging.Logger:
     """

@@ -454,7 +454,7 @@ async def resolve_existing_state_for_batch(
                 existing_state = existing_ci.data[0]
                 existing_map[fp] = existing_state
         except Exception:
-            pass
+            logger.debug("resolve_existing_state_for_batch: suppressed exception", exc_info=True)
     return existing_state
 
 

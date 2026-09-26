@@ -652,7 +652,7 @@ class IndexScanner:
                     logger=logger,
                 )
             except Exception:
-                pass
+                logger.debug("_index_missing_asset_vectors: suppressed exception", exc_info=True)
 
     def _normalize_asset_ids(self, asset_ids: list[int]) -> list[int]:
         normalized: list[int] = []

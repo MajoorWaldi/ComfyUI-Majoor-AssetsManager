@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { ref } from "vue";
 import { ENDPOINTS } from "../../../../api/endpoints.js";
 import { openInFolder, post } from "../../../../api/client.js";
@@ -10,15 +10,35 @@ import { createCanvasLoaderNodes } from "../../../../features/dnd/canvasLoaderNo
 import { stageToInputDetailed } from "../../../../features/dnd/staging/stageToInput.js";
 import { requestViewerOpen } from "../../../../features/viewer/viewerOpenRequest.js";
 import { isSafeOpenUrl } from "./generationSectionState.js";
+import type { MjrContextMenuItem } from "../../../../types/contextMenu";
 
-const props = defineProps({
-    inputFile: { type: Object, required: true },
-});
+interface GenerationInputFileLike {
+    filename?: string;
+    filepath?: string;
+    subfolder?: string;
+    type?: string;
+    kind?: string;
+    root_id?: string;
+    isVideo?: boolean;
+    isAudio?: boolean;
+    role?: string;
+    roleLabel?: string;
+    previewCandidates?: string[];
+    [key: string]: unknown;
+}
+
+const props = defineProps<{
+    inputFile: GenerationInputFileLike;
+}>();
 
 const currentSrcIndex = ref(0);
 const flashOutline = ref(false);
 
-let floatingViewerManagerModulePromise = null;
+interface FloatingViewerManagerModule {
+    floatingViewerManager: { openAssets: (opts: { assets: unknown[]; index: number }) => Promise<void> };
+}
+
+let floatingViewerManagerModulePromise: Promise<FloatingViewerManagerModule> | null = null;
 
 function loadFloatingViewerManagerModule() {
     if (!floatingViewerManagerModulePromise) {
@@ -43,7 +63,7 @@ function handleMediaError() {
     }
 }
 
-async function copyPath(event) {
+async function copyPath(event?: Event) {
     event?.stopPropagation?.();
     const value = String(props.inputFile?.filepath || props.inputFile?.filename || "").trim();
     if (!value) return;
@@ -58,7 +78,7 @@ async function copyPath(event) {
     }
 }
 
-function openPreview(event) {
+function openPreview(event?: Event) {
     event?.stopPropagation?.();
     openInMainViewer();
 }
@@ -80,7 +100,7 @@ function asAsset() {
     };
 }
 
-function inferKind(input = props.inputFile || {}) {
+function inferKind(input: GenerationInputFileLike = props.inputFile || {}) {
     const explicit = String(input.kind || "").trim().toLowerCase();
     if (explicit === "image" || explicit === "video" || explicit === "audio" || explicit === "model3d") return explicit;
     if (input.isVideo) return "video";
@@ -92,7 +112,7 @@ function inferKind(input = props.inputFile || {}) {
     return "image";
 }
 
-function createMenuItem(label, iconClass, action, { disabled = false } = {}) {
+function createMenuItem(label: string, iconClass: string, action: () => void, { disabled = false }: { disabled?: boolean } = {}): MjrContextMenuItem {
     return {
         id: `mjr-generation-source-${String(label).toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
         type: "item",
@@ -105,7 +125,7 @@ function createMenuItem(label, iconClass, action, { disabled = false } = {}) {
     };
 }
 
-function createSeparator() {
+function createSeparator(): MjrContextMenuItem {
     return {
         id: "mjr-generation-source-separator",
         type: "separator",
@@ -185,7 +205,7 @@ async function loadAssetToCanvas() {
     comfyToast(t("toast.assetLoadedToCanvas", "{kind} loader added to canvas.", { kind: kindLabel }), "success", 1800);
 }
 
-function handleContextMenu(event) {
+function handleContextMenu(event: MouseEvent) {
     event?.preventDefault?.();
     event?.stopPropagation?.();
     const kind = inferKind();
@@ -221,13 +241,13 @@ function handleContextMenu(event) {
     });
 }
 
-function handleVideoOver(event) {
-    event.target?.play?.().catch?.(() => {});
+function handleVideoOver(event: Event) {
+    (event.target as HTMLVideoElement | null)?.play?.().catch?.(() => {});
 }
 
-function handleVideoOut(event) {
+function handleVideoOut(event: Event) {
     try {
-        event.target?.pause?.();
+        (event.target as HTMLVideoElement | null)?.pause?.();
     } catch (e) {
         console.debug?.(e);
     }

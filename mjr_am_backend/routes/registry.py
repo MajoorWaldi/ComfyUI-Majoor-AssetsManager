@@ -122,7 +122,7 @@ def _bootstrap_record(name: str, status: str, severity: str = "none", detail: st
         from mjr_am_backend.bootstrap_report import record_stage
         record_stage(name, status, severity, detail)
     except Exception:
-        pass
+        logger.debug("_bootstrap_record: suppressed exception", exc_info=True)
 
 
 def register_all_routes() -> web.RouteTableDef:

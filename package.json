@@ -26,7 +26,8 @@
     "typecheck:js:advisory": "tsc -p tsconfig.json --noEmit || node -e \"process.exit(0)\"",
     "typecheck:tests": "tsc -p tsconfig.test.json --noEmit",
     "typecheck:tests:advisory": "tsc -p tsconfig.test.json --noEmit || node -e \"process.exit(0)\"",
-    "quality:strict": "npm run lint:js && npm run lint:js:ox && npm run typecheck:js && npm run typecheck:tests && npm run lint:dead && npm run test:js",
+    "typecheck:js:strict": "tsc -p tsconfig.strict.json --noEmit",
+    "quality:strict": "npm run lint:js && npm run lint:js:ox && npm run typecheck:js && npm run typecheck:js:strict && npm run typecheck:tests && npm run lint:dead && npm run test:js",
     "lint:js:fix": "eslint ui/ --fix",
     "format": "prettier --write \"ui/**/*.{ts,js,mjs,vue}\"",
     "format:check": "prettier --check \"ui/**/*.{ts,js,mjs,vue}\""
@@ -35,22 +36,22 @@
     "brace-expansion": "5.0.9"
   },
   "devDependencies": {
-    "@comfyorg/comfyui-frontend-types": "^1.54.3",
+    "@comfyorg/comfyui-frontend-types": "^1.55.12",
     "@comfyorg/litegraph": "^0.17.2",
     "@eslint/js": "^10.0.1",
-    "@playwright/test": "^1.61.1",
-    "@types/node": "^26.2.0",
-    "@vitejs/plugin-vue": "^6.0.8",
+    "@playwright/test": "^1.63.0",
+    "@types/node": "^26.6.2",
+    "@vitejs/plugin-vue": "^6.0.9",
     "@vitest/coverage-v8": "^4.1.11",
-    "@vue/test-utils": "^2.4.10",
+    "@vue/test-utils": "^2.5.1",
     "eslint": "^10.9.1",
-    "happy-dom": "^20.11.1",
-    "knip": "^6.32.2",
-    "oxlint": "^1.78.0",
-    "prettier": "^3.9.6",
+    "happy-dom": "^20.14.5",
+    "knip": "^6.35.1",
+    "oxlint": "^1.82.0",
+    "prettier": "^3.9.8",
     "typescript": "^7.0.2",
     "vite": "^8.2.2",
-    "vitest": "^4.1.11"
+    "vitest": "^5.0.1"
   },
   "dependencies": {
     "@tanstack/vue-virtual": "^3.13.36",

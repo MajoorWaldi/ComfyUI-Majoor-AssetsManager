@@ -148,7 +148,7 @@ class DuplicatesService:
         try:
             self._status.update(kwargs)
         except Exception:
-            pass
+            logger.debug("_set_status: suppressed exception", exc_info=True)
 
     async def start_background_analysis(self, limit: int = 250) -> Result[dict[str, Any]]:
         async with self._lock:

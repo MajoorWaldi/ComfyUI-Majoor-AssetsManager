@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 /**
  * ContextMenuPortal.vue — Singleton Vue owner for the grid/feed context menu.
  *

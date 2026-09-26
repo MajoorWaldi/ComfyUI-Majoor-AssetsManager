@@ -76,7 +76,7 @@ def ensure_fs_list_cache_watching(path: str) -> None:
                 try:
                     obs.daemon = True
                 except Exception:
-                    pass
+                    logger.debug("ensure_fs_list_cache_watching: suppressed exception", exc_info=True)
                 try:
                     obs.start()
                 except Exception as exc:
@@ -126,7 +126,7 @@ def release_fs_list_cache_watching(path: str) -> None:
             try:
                 _OBSERVER.unschedule(watch)
             except Exception:
-                pass
+                logger.debug("release_fs_list_cache_watching: suppressed exception", exc_info=True)
     except Exception:
         return
 
@@ -152,8 +152,8 @@ def stop_global_fs_list_cache_watcher() -> None:
     try:
         obs.stop()
     except Exception:
-        pass
+        logger.debug("stop_global_fs_list_cache_watcher: suppressed exception", exc_info=True)
     try:
         obs.join(timeout=2.0)
     except Exception:
-        pass
+        logger.debug("stop_global_fs_list_cache_watcher: suppressed exception", exc_info=True)

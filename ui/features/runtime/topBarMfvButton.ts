@@ -13,6 +13,12 @@ const TOPBAR_BUTTON_SETTING_KEY = "viewer.mfvTopbarButton";
 
 let _observer: any = null;
 let _observedTarget: any = null;
+// Observes the actionbar container's own parent so a wholesale replacement of
+// `.actionbar-container` (the parent's childList changing, not the container's)
+// is detected even after the initial mutation burst has settled - the container
+// observer alone goes silent once its node is detached and never fires again.
+let _parentObserver: any = null;
+let _observedParent: any = null;
 let _bodyObserver: any = null;
 let _visibilityListener: any = null;
 let _resizeListener: any = null;
@@ -23,7 +29,6 @@ let _visible = false;
 let _hasVisibilitySignal = false;
 
 function _tryObserveActionbar(container: any) {
-    if (_observer && _observedTarget === container) return;
     if (!container) {
         if (!_bodyObserver && typeof MutationObserver !== "undefined") {
             _bodyObserver = new MutationObserver(() => {
@@ -38,21 +43,37 @@ function _tryObserveActionbar(container: any) {
         }
         return;
     }
-    // Disconnect previous observer if target changed
-    try {
-        _observer?.disconnect?.();
-    } catch (_) {
-        /* noop */
-    }
-    _observer = new MutationObserver(() => scheduleSync());
-    _observer.observe(container, { childList: true });
-    _observedTarget = container;
     try {
         _bodyObserver?.disconnect?.();
     } catch (_) {
         /* noop */
     }
     _bodyObserver = null;
+
+    if (_observedTarget !== container) {
+        try {
+            _observer?.disconnect?.();
+        } catch (_) {
+            /* noop */
+        }
+        _observer = new MutationObserver(() => scheduleSync());
+        _observer.observe(container, { childList: true });
+        _observedTarget = container;
+    }
+
+    const parent = container.parentElement;
+    if (parent && _observedParent !== parent) {
+        try {
+            _parentObserver?.disconnect?.();
+        } catch (_) {
+            /* noop */
+        }
+        // childList-only on the immediate parent: cheap, and fires exactly when
+        // the host UI swaps the actionbar container node for a new one.
+        _parentObserver = new MutationObserver(() => scheduleSync());
+        _parentObserver.observe(parent, { childList: true });
+        _observedParent = parent;
+    }
 }
 
 function getActionbarContainer() {
@@ -298,6 +319,14 @@ export function teardownTopBarMfvButton(): void {
     }
     _observer = null;
     _observedTarget = null;
+
+    try {
+        _parentObserver?.disconnect?.();
+    } catch (e) {
+        console.debug?.(e);
+    }
+    _parentObserver = null;
+    _observedParent = null;
 
     try {
         _bodyObserver?.disconnect?.();

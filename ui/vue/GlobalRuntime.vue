@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 /**
  * GlobalRuntime.vue - always-mounted Vue runtime owner.
  *
@@ -22,11 +22,11 @@ const VIEWER_BOOT_EVENTS = [
     EVENTS.MFV_POPOUT,
 ];
 
-function ensureViewerRuntime(event) {
+function ensureViewerRuntime(event: Event) {
     if (viewerRuntimeActive.value) return;
     viewerRuntimeActive.value = true;
     const type = String(event?.type || "");
-    const detail = event?.detail || null;
+    const detail = (event as CustomEvent)?.detail ?? null;
     if (!type || type === EVENTS.OPEN_VIEWER) return;
     void nextTick(() => {
         try {

@@ -43,9 +43,15 @@ jobs:
               run: |
                   set -euo pipefail
                   root="_upstream/ComfyUI_frontend"
+                  pkg_dir="node_modules/@comfyorg/comfyui-frontend-types"
                   entry=""
-                  for candidate in "$root/dist/index.d.ts" "$root/dist/types/index.d.ts"; do
-                      if [ -f "$candidate" ]; then
+                  # Relative to "$root/dist", since we copy that whole directory below
+                  # (some entrypoints are a single bundled declaration file; others -
+                  # when upstream's declaration bundling step is skipped - are a plain
+                  # per-file tsc emission mirroring src/, which only works if its
+                  # sibling files are copied alongside it so relative imports resolve).
+                  for candidate in "index.d.ts" "types/index.d.ts" "src/types/index.d.ts"; do
+                      if [ -f "$root/dist/$candidate" ]; then
                           entry="$candidate"
                           break
                       fi
@@ -60,8 +66,20 @@ jobs:
                       find "$root/dist" -maxdepth 3 -type f 2>/dev/null | sort || echo "  (dist/ does not exist)"
                       exit 1
                   fi
-                  echo "Using generated types from: $entry"
-                  cp "$entry" node_modules/@comfyorg/comfyui-frontend-types/index.d.ts
+                  echo "Using generated types from: $root/dist/$entry"
+                  # Copy the whole generated dist/ tree (not just the entry file) so
+                  # that an unbundled, per-file declaration emission keeps its
+                  # relative imports resolvable, then re-export the real entry - and
+                  # global.d.ts's ambient augmentations, if present - from the
+                  # package's index.d.ts.
+                  rm -rf "$pkg_dir/_generated"
+                  cp -r "$root/dist" "$pkg_dir/_generated"
+                  {
+                      if [ -f "$pkg_dir/_generated/global.d.ts" ]; then
+                          echo '/// <reference path="./_generated/global.d.ts" />'
+                      fi
+                      echo "export * from \"./_generated/${entry%.d.ts}.js\";"
+                  } > "$pkg_dir/index.d.ts"
 
             - name: Typecheck against latest official ComfyUI frontend types
               run: npx tsc -p tsconfig.json --noEmit --pretty false

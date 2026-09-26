@@ -516,7 +516,7 @@ class MetadataService:
                     image_enabled = bool(prefs.get("image", True))
                     media_enabled = bool(prefs.get("media", True))
         except Exception:
-            pass
+            logger.debug("_resolve_fallback_prefs: suppressed exception", exc_info=True)
         return image_enabled, media_enabled
 
     async def get_metadata(
@@ -1002,7 +1002,7 @@ class MetadataService:
         try:
             await self._enrich_with_geninfo_async(combined)
         except Exception:
-            pass
+            logger.debug("_finalize_audio_metadata_ok: suppressed exception", exc_info=True)
         quality = metadata_result.meta.get("quality", "none")
         return Result.Ok(combined, quality=quality)
 

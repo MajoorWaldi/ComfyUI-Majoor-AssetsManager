@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 /**
  * ViewerPortal.vue - Vue lifecycle owner for the viewer runtime.
  *
@@ -21,10 +21,24 @@ import FloatingViewerHost from "./FloatingViewerHost.vue";
 import ViewerOverlayHost from "./ViewerOverlayHost.vue";
 import ViewerContextMenuPortal from "./ViewerContextMenuPortal.vue";
 
-let _instance = null;
+interface OpenViewerEventDetail {
+    assets?: unknown[];
+    asset?: unknown;
+    index?: unknown;
+    mode?: unknown;
+    handled?: boolean;
+}
 
-function _openFromEvent(event) {
-    const detail = event?.detail || {};
+interface ViewerInstance {
+    open?: (assets: unknown[], index: number) => void;
+    setMode?: (mode: string) => void;
+    dispose?: () => void;
+}
+
+let _instance: ViewerInstance | null = null;
+
+function _openFromEvent(event: Event) {
+    const detail: OpenViewerEventDetail = (event as CustomEvent)?.detail || {};
     const assets = Array.isArray(detail?.assets)
         ? detail.assets.filter(Boolean)
         : detail?.asset

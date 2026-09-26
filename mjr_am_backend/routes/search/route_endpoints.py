@@ -7,7 +7,9 @@ from collections.abc import Callable
 from typing import Any
 
 from aiohttp import web
-from mjr_am_backend.shared import Result
+from mjr_am_backend.shared import Result, get_logger
+
+logger = get_logger(__name__)
 
 
 async def autocomplete_assets(
@@ -260,7 +262,7 @@ async def _hydrate_rating_tags(
             timeout=to_thread_timeout_s,
         )
     except Exception:
-        pass
+        logger.debug("_hydrate_rating_tags: suppressed exception", exc_info=True)
     return await svc["index"].get_asset(asset_id)
 
 
@@ -301,6 +303,6 @@ async def get_asset(
                 if refreshed is not None:
                     result = refreshed
         except Exception:
-            pass
+            logger.debug("get_asset: suppressed exception", exc_info=True)
 
     return json_response(result)

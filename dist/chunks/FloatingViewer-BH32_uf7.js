@@ -1,12 +1,12 @@
-import { Zt as e, g as t, y as n } from "./viewerRuntimeHosts-CuR8T4j6.js";
-import { B as r, C as i, I as a, M as o, O as s, P as c, R as l, V as u, j as d, m as f, o as p, pt as m, r as h, rt as g, v as _, w as v, x as y } from "./events-Bamza1ns.js";
+import { Zt as e, g as t, y as n } from "./viewerRuntimeHosts-CIiyEfr6.js";
+import { B as r, C as i, I as a, M as o, O as s, P as c, R as l, V as u, j as d, m as f, o as p, pt as m, r as h, rt as g, v as _, w as v, x as y } from "./events-DjjLASfV.js";
 import { a as b, i as x, o as S, s as C } from "./graphTraversal-BIYmTTPW.js";
-import { _ as w, g as T, m as E, n as D, p as ee, r as O, w as k } from "./Viewer-Dzb5KE6D.js";
-import { _ as A, r as j } from "./SidebarWorkflowSection-B4wvtrtQ.js";
-import { _ as M, a as N, c as P, d as F, f as I, g as L, h as te, i as R, l as z, m as B, o as V, p as ne, r as H, s as re, t as ie, u as U, v as W } from "./openMajoorSettings-JYq392b-.js";
-import { a as ae, n as oe, r as se } from "./model3dRenderer-BAzbZdW-.js";
-import { i as ce, o as le, r as ue, t as de } from "./geninfoParser-D91g5NYg.js";
-import { t as fe } from "./genInfo-CwY4j1FN.js";
+import { _ as w, g as T, m as E, n as D, p as ee, r as O, w as k } from "./Viewer-DtYA0ZJv.js";
+import { r as A, v as j } from "./SidebarWorkflowSection-e5mbjYOf.js";
+import { _ as M, a as N, c as P, d as F, f as I, g as L, h as te, i as R, l as z, m as B, o as V, p as ne, r as H, s as re, t as ie, u as U, v as W } from "./openMajoorSettings-BBzamon8.js";
+import { a as ae, n as oe, r as se } from "./model3dRenderer-Dst3PlP7.js";
+import { i as ce, o as le, r as ue, t as de } from "./geninfoParser-DS9m_bHm.js";
+import { t as fe } from "./genInfo-Djzz88Fr.js";
 //#region ui/features/viewer/floatingViewerConstants.ts
 var G = Object.freeze({
 	SIMPLE: "simple",
@@ -53,10 +53,10 @@ function Se(e) {
 	return e instanceof HTMLMediaElement;
 }
 function Ce(e, t) {
-	return String(e || "").toLowerCase() === "video" ? !0 : t instanceof HTMLVideoElement;
+	return String(e || "").toLowerCase() === "video" || t instanceof HTMLVideoElement;
 }
 function we(e, t) {
-	return String(e || "").toLowerCase() === "audio" ? !0 : t instanceof HTMLAudioElement;
+	return String(e || "").toLowerCase() === "audio" || t instanceof HTMLAudioElement;
 }
 function Te(e) {
 	let t = String(e || "").toLowerCase();
@@ -281,14 +281,14 @@ function De(e, t = null, { kind: n = "" } = {}) {
 }
 //#endregion
 //#region ui/features/viewer/floatingViewerMedia.ts
-var Oe = new Set([
+var Oe = /* @__PURE__ */ new Set([
 	".mp4",
 	".webm",
 	".mov",
 	".avi",
 	".mkv",
 	".m4v"
-]), ke = new Set([
+]), ke = /* @__PURE__ */ new Set([
 	".mp3",
 	".wav",
 	".flac",
@@ -471,7 +471,7 @@ function Re(e, t, n, r) {
 }
 //#endregion
 //#region ui/features/viewer/workflowSidebar/NodeWidgetRenderer.ts
-var ze = new Set([
+var ze = /* @__PURE__ */ new Set([
 	"imageupload",
 	"button",
 	"hidden"
@@ -774,7 +774,7 @@ var $e = class {
 				onLocate: () => ot(i),
 				onToggle: (t) => {
 					if (t) {
-						this._expandedNodeIds = new Set([e]);
+						this._expandedNodeIds = /* @__PURE__ */ new Set([e]);
 						for (let e of this._renderers) e !== c && e.setExpanded(!1);
 					} else this._expandedNodeIds.delete(e);
 				}
@@ -872,7 +872,9 @@ function st() {
 //#endregion
 //#region ui/features/viewer/workflowGraphMap/workflowGraphMapActions.ts
 async function ct(e) {
-	return e ? k(JSON.stringify(gt(e), null, 2)) : !1;
+	if (!e) return !1;
+	let t = JSON.stringify(gt(e), null, 2);
+	return k(t);
 }
 async function lt(e) {
 	return k(ut(e));
@@ -929,12 +931,12 @@ function pt(e) {
 	});
 	let a = xt(z(e)), o = xt(t?.type || t?.comfyClass || t?.class_type), s = !!(a && o && a === o), c = /* @__PURE__ */ new Set(), l = 0;
 	for (let e of n) {
-		let n = bt(e.label), a = n ? i.get(n) : null;
-		if ((!a || c.has(a.index)) && s && Number.isInteger(e.index)) {
-			let t = r[e.index];
-			t && (a = {
-				widget: t,
-				index: e.index
+		let n = bt(e.label), a = n ? i.get(n) : null, o = e.index;
+		if ((!a || c.has(a.index)) && s && typeof o == "number" && Number.isInteger(o)) {
+			let e = r[o];
+			e && (a = {
+				widget: e,
+				index: o
 			});
 		}
 		!a || c.has(a.index) || R(a.widget, X(e.value), t) && (c.add(a.index), l += 1);
@@ -1070,7 +1072,7 @@ var St = 64, Ct = class {
 			c?.clearRect?.(0, 0, n, r), this._renderInfo = null;
 			return;
 		}
-		this._renderInfo = A(e, this._workflow, {
+		this._renderInfo = j(e, this._workflow, {
 			showNodeLabels: !0,
 			showViewport: !1,
 			expandSubgraphs: this._subgraphDisplayMode !== "host",
@@ -1124,7 +1126,7 @@ var St = 64, Ct = class {
 		return t;
 	}
 	_setSubgraphDisplayMode(e) {
-		e !== "expand" && e !== "host" || this._subgraphDisplayMode !== e && (this._subgraphDisplayMode = e, e === "host" && String(this._selectedNodeId || "").includes("::") && (this._selectedNodeId = ""), this._syncModeButtons(), this.refresh());
+		(e === "expand" || e === "host") && this._subgraphDisplayMode !== e && (this._subgraphDisplayMode = e, e === "host" && String(this._selectedNodeId || "").includes("::") && (this._selectedNodeId = ""), this._syncModeButtons(), this.refresh());
 	}
 	_syncModeButtons() {
 		for (let [e, t] of this._modeButtons.entries()) t.classList?.toggle?.("is-active", e === this._subgraphDisplayMode);
@@ -1159,7 +1161,7 @@ var St = 64, Ct = class {
 				i.className = "mjr-wgm-node-widget-value";
 				let a = Et(e?.value);
 				i.textContent = a, Dt(e?.value, a) && t.classList.add("is-multiline"), Ot(n) && t.classList.add("is-text-field"), t.append(r, i), t.addEventListener("click", () => this._copyParam(t, e?.value)), t.addEventListener("keydown", (n) => {
-					n.key !== "Enter" && n.key !== " " || (n.preventDefault?.(), this._copyParam(t, e?.value));
+					(n.key === "Enter" || n.key === " ") && (n.preventDefault?.(), this._copyParam(t, e?.value));
 				}), c.appendChild(t);
 			}
 			if (u.length > 12) {
@@ -1559,7 +1561,7 @@ var Q = Object.freeze({
 	RUNNING: "running",
 	STOPPING: "stopping",
 	ERROR: "error"
-}), Ht = new Set([
+}), Ht = /* @__PURE__ */ new Set([
 	"default",
 	"auto",
 	"latent2rgb",
@@ -1621,7 +1623,7 @@ function Gt() {
 		return { tracked: await a(d()) };
 	}
 	async function v() {
-		if (!(s === Q.RUNNING || s === Q.STOPPING)) {
+		if (s !== Q.RUNNING && s !== Q.STOPPING) {
 			c = !0, l = !1, h();
 			try {
 				(await Zt())?.tracked || (c = !1), h();
@@ -1692,9 +1694,10 @@ function Xt(e) {
 async function Zt() {
 	let e = d();
 	if (!e) throw Error("ComfyUI app not available");
+	let t = Xt(b(e));
 	return { tracked: await r({
 		app: e,
-		forceNativeQueue: Xt(b(e)),
+		forceNativeQueue: t,
 		resolvePromptData(e) {
 			return typeof e?.graphToPrompt == "function" ? e.graphToPrompt() : null;
 		},
@@ -2386,18 +2389,18 @@ function wn(e, t) {
 	if (!e._liveBtn) return;
 	let n = !!t;
 	e._liveBtn.classList.toggle("mjr-live-active", n);
-	let r = T(n ? f("tooltip.liveStreamOn", "Live Stream: ON - follows final generation outputs after execution") : f("tooltip.liveStreamOff", "Live Stream: OFF - click to follow final generation outputs"), "L");
-	e._liveBtn.setAttribute("aria-pressed", String(n)), e._liveBtn.setAttribute("aria-label", r);
-	let i = document.createElement("i");
-	i.className = n ? "pi pi-circle-fill" : "pi pi-circle", i.setAttribute("aria-hidden", "true"), e._liveBtn.replaceChildren(i), e._liveBtn.title = r;
+	let r = n ? f("tooltip.liveStreamOn", "Live Stream: ON - follows final generation outputs after execution") : f("tooltip.liveStreamOff", "Live Stream: OFF - click to follow final generation outputs"), i = T(r, "L");
+	e._liveBtn.setAttribute("aria-pressed", String(n)), e._liveBtn.setAttribute("aria-label", i);
+	let a = document.createElement("i");
+	a.className = n ? "pi pi-circle-fill" : "pi pi-circle", a.setAttribute("aria-hidden", "true"), e._liveBtn.replaceChildren(a), e._liveBtn.title = i;
 }
 function Tn(e, t) {
 	if (e._previewActive = !!t, !e._previewBtn) return;
 	e._previewBtn.classList.toggle("mjr-preview-active", e._previewActive);
-	let n = T(e._previewActive ? f("tooltip.previewStreamOn", "KSampler Preview: ON - streams sampler denoising frames during execution") : f("tooltip.previewStreamOff", "KSampler Preview: OFF - click to stream sampler denoising frames"), "K");
-	e._previewBtn.setAttribute("aria-pressed", String(e._previewActive)), e._previewBtn.setAttribute("aria-label", n);
-	let r = document.createElement("i");
-	r.className = e._previewActive ? "pi pi-eye" : "pi pi-eye-slash", r.setAttribute("aria-hidden", "true"), e._previewBtn.replaceChildren(r), e._previewBtn.title = n;
+	let n = e._previewActive ? f("tooltip.previewStreamOn", "KSampler Preview: ON - streams sampler denoising frames during execution") : f("tooltip.previewStreamOff", "KSampler Preview: OFF - click to stream sampler denoising frames"), r = T(n, "K");
+	e._previewBtn.setAttribute("aria-pressed", String(e._previewActive)), e._previewBtn.setAttribute("aria-label", r);
+	let i = document.createElement("i");
+	i.className = e._previewActive ? "pi pi-eye" : "pi pi-eye-slash", i.setAttribute("aria-hidden", "true"), e._previewBtn.replaceChildren(i), e._previewBtn.title = r;
 }
 function En(e) {
 	return e?._isPreview ? String(e?._previewBlobUrl || e?.url || "").trim() : "";
@@ -2471,10 +2474,10 @@ function kn(e) {
 function An(e, t) {
 	if (e._nodeStreamActive = !!t, e._nodeStreamActive || e.setNodeStreamSelection?.(null), !e._nodeStreamBtn) return;
 	e._nodeStreamBtn.classList.toggle("mjr-nodestream-active", e._nodeStreamActive);
-	let n = T(e._nodeStreamActive ? f("tooltip.nodeStreamOn", "Node Stream: ON - follows the selected node preview when frontend media exists") : f("tooltip.nodeStreamOff", "Node Stream: OFF - click to follow selected node previews, including ImageOps live canvases"), "N");
-	e._nodeStreamBtn.setAttribute("aria-pressed", String(e._nodeStreamActive)), e._nodeStreamBtn.setAttribute("aria-label", n);
-	let r = document.createElement("i");
-	r.className = "pi pi-sitemap", r.setAttribute("aria-hidden", "true"), e._nodeStreamBtn.replaceChildren(r), e._nodeStreamBtn.title = n;
+	let n = e._nodeStreamActive ? f("tooltip.nodeStreamOn", "Node Stream: ON - follows the selected node preview when frontend media exists") : f("tooltip.nodeStreamOff", "Node Stream: OFF - click to follow selected node previews, including ImageOps live canvases"), r = T(n, "N");
+	e._nodeStreamBtn.setAttribute("aria-pressed", String(e._nodeStreamActive)), e._nodeStreamBtn.setAttribute("aria-label", r);
+	let i = document.createElement("i");
+	i.className = "pi pi-sitemap", i.setAttribute("aria-hidden", "true"), e._nodeStreamBtn.replaceChildren(i), e._nodeStreamBtn.title = r;
 }
 //#endregion
 //#region ui/features/viewer/floatingViewerPopout.ts
@@ -3238,7 +3241,7 @@ function dr(e) {
 }
 var fr = 0, pr = class {
 	constructor({ controller: e = null } = {}) {
-		this._instanceId = ++fr, this._controller = e && typeof e == "object" ? { ...e } : null, this.element = null, this.isVisible = !1, this._contentEl = null, this._genSidebarEl = null, this._closeBtn = null, this._modeBtn = null, this._pinGroup = null, this._pinBtns = null, this._liveBtn = null, this._genBtn = null, this._genDropdown = null, this._genSidebarEnabled = !0, this._captureBtn = null, this._genInfoSelections = new Set([
+		this._instanceId = ++fr, this._controller = e && typeof e == "object" ? { ...e } : null, this.element = null, this.isVisible = !1, this._contentEl = null, this._genSidebarEl = null, this._closeBtn = null, this._modeBtn = null, this._pinGroup = null, this._pinBtns = null, this._liveBtn = null, this._genBtn = null, this._genDropdown = null, this._genSidebarEnabled = !0, this._captureBtn = null, this._genInfoSelections = /* @__PURE__ */ new Set([
 			"prompt",
 			"seed",
 			"model",
@@ -3370,11 +3373,11 @@ var fr = 0, pr = class {
 		return An(this, e);
 	}
 	setNodeStreamSelection(e) {
-		e && (e.nodeId != null || e.classType) ? this._nodeStreamSelection = {
+		this._nodeStreamSelection = e && (e.nodeId != null || e.classType) ? {
 			nodeId: String(e.nodeId ?? ""),
 			classType: String(e.classType || ""),
 			title: e.title ? String(e.title) : ""
-		} : this._nodeStreamSelection = null, this._updateNodeStreamOverlay();
+		} : null, this._updateNodeStreamOverlay();
 	}
 	_updateNodeStreamOverlay() {
 		let e = this._contentEl;
@@ -3580,7 +3583,7 @@ var fr = 0, pr = class {
 		});
 		let n = !1, r = 0, i = 0, a = 0, o = 0;
 		e.addEventListener("pointerdown", (t) => {
-			if (!(t.button !== 0 && t.button !== 1) && !(this._zoom <= 1.01) && !t.target?.closest?.("video") && !t.target?.closest?.("audio") && !t.target?.closest?.(".mjr-video-controls, .mjr-mfv-simple-player-controls") && !t.target?.closest?.(".mjr-mfv-ab-divider") && !ae(t.target)) {
+			if ((t.button === 0 || t.button === 1) && !(this._zoom <= 1.01) && !t.target?.closest?.("video") && !t.target?.closest?.("audio") && !t.target?.closest?.(".mjr-video-controls, .mjr-mfv-simple-player-controls") && !t.target?.closest?.(".mjr-mfv-ab-divider") && !ae(t.target)) {
 				t.preventDefault(), n = !0, this._dragging = !0, r = t.clientX, i = t.clientY, a = this._panX, o = this._panY;
 				try {
 					e.setPointerCapture(t.pointerId);
@@ -3694,9 +3697,7 @@ var fr = 0, pr = class {
 			case G.GRID:
 				this._renderGrid();
 				break;
-			case G.GRAPH:
-				this._renderGraphMap();
-				break;
+			case G.GRAPH: this._renderGraphMap();
 		}
 		e && this._contentEl.appendChild(e), this._nodeStreamSelection && this._updateNodeStreamOverlay(), this._mediaProgressEl && this._contentEl.appendChild(this._mediaProgressEl), this._applyMediaToneControls(), this._applyTransform(), this._mode !== G.GRAPH && this._initPanZoom(this._contentEl), this._initCompareSync(), this._renderGenInfoSidebar();
 	}
@@ -3753,7 +3754,7 @@ var fr = 0, pr = class {
 	_buildGenInfoSidebarContent(e) {
 		let t = this._getGenFields(e)?.genTime || "", n = null;
 		try {
-			n = j(e);
+			n = A(e);
 		} catch (e) {
 			console.debug?.(e);
 		}
@@ -4115,7 +4116,7 @@ var fr = 0, pr = class {
 			if (e.className = "mjr-mfv-grid-cell", n) {
 				let t = K(n), i = r === "A", a = Y(n, {
 					controls: i,
-					initialMuted: i ? this._mfvMuted : !0,
+					initialMuted: !i || this._mfvMuted,
 					initialPlaybackRate: i ? this._mfvPlaybackRate : 1
 				}), o = this._trackMediaControls?.(a) || a;
 				if (i && this._bindMfvPersistence?.(o), o ? e.appendChild(o) : e.appendChild(q(" - ")), e.appendChild(J(r, r === "A" || r === "C" ? "left" : "right")), t !== "audio") {

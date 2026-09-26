@@ -479,7 +479,7 @@ class AppSettings:
             set_env("MAJOOR_API_TOKEN_HASH", token_hash)
             set_env("MJR_API_TOKEN_HASH", token_hash)
         except Exception:
-            pass
+            logger.debug("_set_api_token_env: suppressed exception", exc_info=True)
 
     async def _read_setting_exact(self, key: str) -> str | None:
         result = await self._db.aquery("SELECT value FROM metadata WHERE key = ?", (key,))
@@ -681,7 +681,7 @@ class AppSettings:
                 try:
                     logger.warning("Failed to bump settings version after rotate: %s", bump.error)
                 except Exception:
-                    pass
+                    logger.debug("rotate_api_token: suppressed exception", exc_info=True)
             return Result.Ok({"api_token": token})
 
     async def bootstrap_api_token(self) -> Result[dict[str, str]]:
@@ -798,7 +798,7 @@ class AppSettings:
                     try:
                         logger.warning("Failed to bump settings version: %s", bump.error)
                     except Exception:
-                        pass
+                        logger.debug("set_probe_backend: suppressed exception", exc_info=True)
                 self._cache.put(cache_key, normalized, version=int(
                     bump.data or await self._get_settings_version(user_scoped=True, user_id=user_id) or 0
                 ))
@@ -898,7 +898,7 @@ class AppSettings:
                 try:
                     logger.warning("Failed to bump settings version: %s", bump.error)
                 except Exception:
-                    pass
+                    logger.debug("set_metadata_fallback_prefs: suppressed exception", exc_info=True)
 
             current_version = int(bump.data or await self._get_settings_version(user_scoped=True, user_id=user_id) or 0)
             for key, value in to_write.items():
@@ -1004,7 +1004,7 @@ class AppSettings:
                 try:
                     logger.warning("Failed to bump settings version: %s", bump.error)
                 except Exception:
-                    pass
+                    logger.debug("set_vector_search_enabled: suppressed exception", exc_info=True)
             current_version = int(bump.data or await self._get_settings_version() or 0)
             self._cache.put(_VECTOR_SEARCH_ENABLED_KEY, "1" if normalized else "0", version=current_version)
             return Result.Ok(normalized)
@@ -1022,7 +1022,7 @@ class AppSettings:
                 try:
                     logger.warning("Failed to bump settings version: %s", bump.error)
                 except Exception:
-                    pass
+                    logger.debug("set_vector_caption_on_index_enabled: suppressed exception", exc_info=True)
             current_version = int(bump.data or await self._get_settings_version() or 0)
             self._cache.put(_VECTOR_CAPTION_ON_INDEX_KEY, "1" if normalized else "0", version=current_version)
             return Result.Ok(normalized)
@@ -1095,7 +1095,7 @@ class AppSettings:
             set_env("MJR_AM_EXECUTION_GROUPING_ENABLED", normalized)
             set_env("MAJOOR_EXECUTION_GROUPING_ENABLED", normalized)
         except Exception:
-            pass
+            logger.debug("_set_execution_grouping_env_vars: suppressed exception", exc_info=True)
 
     async def set_execution_grouping_enabled(self, enabled: Any) -> Result[bool]:
         """Persist execution-grouping enable preference and apply runtime env vars."""
@@ -1114,7 +1114,7 @@ class AppSettings:
                 try:
                     logger.warning("Failed to bump settings version: %s", bump.error)
                 except Exception:
-                    pass
+                    logger.debug("set_execution_grouping_enabled: suppressed exception", exc_info=True)
             current_version = int(bump.data or await self._get_settings_version() or 0)
             self._cache.put(_EXECUTION_GROUPING_ENABLED_KEY, "1" if normalized else "0", version=current_version)
             return Result.Ok(normalized)
@@ -1172,7 +1172,7 @@ class AppSettings:
                 try:
                     logger.warning("Failed to bump settings version: %s", bump.error)
                 except Exception:
-                    pass
+                    logger.debug("set_huggingface_token: suppressed exception", exc_info=True)
 
             return Result.Ok({
                 "has_token": bool(token),
@@ -1210,7 +1210,7 @@ class AppSettings:
                 try:
                     logger.warning("Failed to bump settings version: %s", bump.error)
                 except Exception:
-                    pass
+                    logger.debug("set_ai_verbose_logs_enabled: suppressed exception", exc_info=True)
             current_version = int(bump.data or await self._get_settings_version() or 0)
             self._cache.put(_AI_VERBOSE_LOGS_KEY, "1" if normalized else "0", version=current_version)
             return Result.Ok(normalized)
@@ -1250,7 +1250,7 @@ class AppSettings:
                 try:
                     logger.warning("Failed to bump settings version: %s", bump.error)
                 except Exception:
-                    pass
+                    logger.debug("set_route_verbose_logs_enabled: suppressed exception", exc_info=True)
             current_version = int(bump.data or await self._get_settings_version() or 0)
             self._cache.put(_ROUTE_VERBOSE_LOGS_KEY, "1" if normalized else "0", version=current_version)
             return Result.Ok(normalized)
@@ -1290,7 +1290,7 @@ class AppSettings:
                 try:
                     logger.warning("Failed to bump settings version: %s", bump.error)
                 except Exception:
-                    pass
+                    logger.debug("set_startup_verbose_logs_enabled: suppressed exception", exc_info=True)
             current_version = int(bump.data or await self._get_settings_version() or 0)
             self._cache.put(_STARTUP_VERBOSE_LOGS_KEY, "1" if normalized else "0", version=current_version)
             return Result.Ok(normalized)
@@ -1334,7 +1334,7 @@ class AppSettings:
                 try:
                     logger.warning("Failed to bump settings version: %s", bump.error)
                 except Exception:
-                    pass
+                    logger.debug("set_ltxav_rgb_fallback_enabled: suppressed exception", exc_info=True)
             current_version = int(bump.data or await self._get_settings_version() or 0)
             self._cache.put(
                 _LTXAV_RGB_FALLBACK_ENABLED_KEY,
@@ -1712,7 +1712,7 @@ class AppSettings:
                 setter(normalized_target)
                 return
             except Exception:
-                pass
+                logger.debug("_apply_comfy_output_directory: suppressed exception", exc_info=True)
         try:
             folder_paths.output_directory = normalized_target
         except Exception:

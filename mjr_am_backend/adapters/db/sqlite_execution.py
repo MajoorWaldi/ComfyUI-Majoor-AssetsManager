@@ -8,8 +8,11 @@ from collections.abc import Callable
 from typing import Any
 
 import aiosqlite
+from mjr_am_backend.shared import get_logger
 
 from ...shared import ErrorCode, Result
+
+logger = get_logger(__name__)
 
 
 async def with_query_timeout(self, coro):
@@ -258,7 +261,7 @@ async def execute_with_cursor_result(
         try:
             await cursor.close()
         except Exception:
-            pass
+            logger.debug("execute_with_cursor_result: suppressed exception", exc_info=True)
 
 
 async def executemany_async(
@@ -371,7 +374,7 @@ async def executemany_on_conn_locked_async(
                     try:
                         await cursor.close()
                     except Exception:
-                        pass
+                        logger.debug("executemany_on_conn_locked_async: suppressed exception", exc_info=True)
             except sqlite3.OperationalError as exc:
                 if self._is_locked_error(exc) and attempt < self._lock_retry_attempts:
                     await self._sleep_backoff(attempt)

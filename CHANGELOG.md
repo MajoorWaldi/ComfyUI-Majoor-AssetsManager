@@ -65,13 +65,13 @@ All notable changes to this project are documented in this file.
 
 ## [2.4.9] - 2026-06-25
 
-### ✨ Improved
+### Improved
 - **Graph Map UI and Parsing**: Improved Graph Map node UI and widget parsing for clearer node inspection and more reliable node details. See [docs/GRAPH_MAP.md](docs/GRAPH_MAP.md).
 - **GenInfo Metadata Parsing**: Improved metadata parsing for GenInfo display accuracy and consistency. See [docs/VIEWER_FEATURE_TUTORIAL.md](docs/VIEWER_FEATURE_TUTORIAL.md) and [docs/MFV_GUIDE.md](docs/MFV_GUIDE.md).
 - **Quick Media Filters**: Added direct filter shortcut buttons to quickly display Images, Videos, Audio, or 3D assets. See [docs/SEARCH_FILTERING.md](docs/SEARCH_FILTERING.md).
 - **Drag and Drop Features**: Improved drag-and-drop behavior, node compatibility handling, and clean export workflow. See [docs/DRAG_DROP.md](docs/DRAG_DROP.md).
 
-### 🎉 New Features
+### New Features
 - **Configurable Workflow Roots**: Added a Settings option for Workflow tab roots and a Workflow-tab toolbar button to pick the saved workflow root directly beside the save/import actions. See [docs/WORKFLOWS.md](docs/WORKFLOWS.md) and [docs/SETTINGS_CONFIGURATION.md](docs/SETTINGS_CONFIGURATION.md).
 - **Workflow Tab Library**: Added a dedicated Workflow tab guide and documented the full workflow library behavior: save/import current workflows, load them back into ComfyUI, inspect them in Graph Map, organize categories, set thumbnails, and edit workflow metadata. See [docs/WORKFLOWS.md](docs/WORKFLOWS.md).
 - **Majoor GenInfo Override Node**: Added a new `Majoor GenInfo Override` node to inject custom/manual GenInfo data through Majoor Save nodes. See [docs/CUSTOM_NODES.md](docs/CUSTOM_NODES.md).
@@ -79,7 +79,7 @@ All notable changes to this project are documented in this file.
 ### Message Center
 - **Workflow Tab Guide Announcement**: Added a built-in Message Center entry linking directly to the Workflow tab guide.
 
-### 🔧 Refactoring, Code Quality & Fixes
+### Refactoring, Code Quality & Fixes
 - **Frontend TypeScript Refactor**: Continued major UI code refactoring to TypeScript to align with ComfyUI frontend evolution. See [docs/MIGRATION_TS_TRACKER.md](docs/MIGRATION_TS_TRACKER.md).
 - **Easier AI Settings Access**: Improved access to AI settings via a dedicated button in the Assets Manager panel and in the Floating Viewer. See [docs/SETTINGS_CONFIGURATION.md](docs/SETTINGS_CONFIGURATION.md).
 - **ComfyUI Frontend Integration**: Improved Majoor Assets Manager integration with the ComfyUI frontend for smoother interoperability and UI consistency. See [docs/FRONTEND_LIFECYCLE_CONVENTIONS.md](docs/FRONTEND_LIFECYCLE_CONVENTIONS.md).
@@ -100,48 +100,48 @@ All notable changes to this project are documented in this file.
 - **Workflow Inspection in Floating Viewer**: The Floating Viewer can now inspect embedded workflows without opening them on the canvas.
 - **Graph Map Node Actions**: Added workflow graph inspection tools for copying nodes, copying node attributes, and transferring node attributes to a similar selected node on the ComfyUI graph canvas.
 
-### 📚 Documentation
+### Documentation
 - **Graph Map Guide**: Added a dedicated Graph Map documentation page with screenshots, workflow map usage notes, and a focused explanation of node detail actions.
 - **README Presentation**: Added Graph Map presentation content and screenshot references to the main README.
 
-### 💬 Message Center
+### Message Center
 - **Graph Map Announcement**: Added a built-in Message Center entry linking directly to the Graph Map guide.
 
 ---
 
 ## [2.4.7] - 2026-05-01
 
-### 🚀 Performance
+### Performance
 - **Grid Performance Improvements**: Improved grid responsiveness, scrolling stability, and asset loading behavior for large libraries.
 
-### 🎉 Major Features — Majoor Floating Viewer
+### Major Features — Majoor Floating Viewer
 - **MFV is now an advanced viewer**: The Floating Viewer is no longer a light viewer only; it now provides a richer workflow surface for inspecting, comparing, and controlling generation assets.
 - **Node Stream**: Follow selected node previews directly inside the Floating Viewer, including supported live preview sources.
 - **Node Parameters**: Open the workflow node sidebar from the viewer and inspect node parameters without leaving the MFV.
 - **Edit Nodes from the Viewer**: Edit node widgets directly inside the Floating Viewer, including prompts and common workflow parameters.
 
-### 🧰 Toolbox
+### Toolbox
 - **New Toolbox Tools**: Added new tools to the toolbox for faster access to common asset and workflow operations.
 
-### 🔧 Code Quality & Fixes
+### Code Quality & Fixes
 - **Code Corrections**: Applied code corrections and cleanup across the frontend/backend integration surface for better maintainability.
 
 ---
 
 ## [2.4.6] - 2026-04-20
 
-### 🐛 Bug Fixes & Performance
+### Bug Fixes & Performance
 - **Bug Fixes**: Various bug fixes
 - **Performance and Fluidity**: Performance and fluidity improvements
 
-### ✨ Improved
+### Improved
 - **Concatenate Support**: Improved concatenate support for default and custom nodes — by Forsion07
 
-### 🔌 API & Integrations
+### API & Integrations
 - **Api Node Helpers**: Add support helpers for Api Node
 - **Ernie Image Helper**: Add support helper for Ernie Image
 
-### ⚙️ Settings & Defaults
+### Settings & Defaults
 - **Live Stream disabled by default**: MFV Live Stream (green button) is now OFF by default; can be re-enabled permanently via Settings → Majoor Assets Manager › Viewer
 - **Live Stream & KSampler Preview configurable by default**: Both toggles can be set as the default state via Settings → Viewer; when Live Stream is active, clicking a Load Image node or a generation end automatically opens the Floating Viewer
 
@@ -149,7 +149,7 @@ All notable changes to this project are documented in this file.
 
 ## [2.4.5] - 2026-04-10
 
-### 🎉 New Features — Floating Viewer
+### New Features — Floating Viewer
 - **Multi-Pin References (A/B/C/D)**: Pin up to 4 images simultaneously with toggle buttons; pinned slots hold their content while unpinned slots follow Live Stream
 - **Node Parameters Sidebar**: View and edit workflow node widgets (prompts, seeds, samplers) directly inside the Floating Viewer
 - **Run Button in Viewer**: Queue prompt from the viewer toolbar without switching back to the canvas
@@ -158,16 +158,16 @@ All notable changes to this project are documented in this file.
 - **Toolbar Layout**: Run and Node Parameters buttons placed at far right for ergonomic access
 - **Topbar MFV Button**: New Viewer toggle button in the ComfyUI top action bar — open or close the Floating Viewer without opening the sidebar; highlights when the viewer is active
 
-### 🎉 New Features — Custom Nodes
+### New Features — Custom Nodes
 - **Majoor Save Image 💾**: Drop-in replacement for the built-in SaveImage node that persists `generation_time_ms` in PNG text chunks alongside prompt and workflow metadata; supports auto-detection of generation time from the prompt lifecycle
 - **Majoor Save Video 🎬**: Save IMAGE batches or VIDEO inputs as MP4 (h264 via PyAV), GIF, or WebP; embeds `generation_time_ms`, prompt, and workflow directly in the MP4 container metadata; optional PNG sidecar for first frame; supports audio muxing and configurable CRF quality
 - **Generation Time Extraction**: The metadata extraction pipeline now reads `generation_time_ms` from PNG text chunks and MP4 container format tags, so the value survives index resets and re-indexing
 
-### ✨ Improved
+### Improved
 - **MFV Gen Info Overlay Placement**: Keep Gen Info as the original overlay and automatically place it above the inline player controls when the player is visible
 - **MFV Simple Player Keyboard Controls**: Support focused playback shortcuts with Space for play/pause and Left/Right for frame-by-frame stepping
 
-### 🐛 Bug Fixes & Issue Resolutions
+### Bug Fixes & Issue Resolutions
 - **Realtime Vector Indexing**: Fixed newly generated assets not always entering automatic vector indexing after save/index events
 - **Grid Reload Stability**: Fixed unnecessary full refreshes and parasitic reloads triggered by ambiguous settings sync and window events
 - **Pagination Freeze at Bottom**: Fixed cases where scrolling could stall when a page returned results that were fully deduplicated or hidden
@@ -178,10 +178,10 @@ All notable changes to this project are documented in this file.
 
 ## [2.4.4] - 2026-04-05
 
-### ✨ Improved
+### Improved
 - Refactor frontend in Vue to match ComfyUI frontend evolution
 
-### 📚 Documentation
+### Documentation
 - Sync documentation with the current repository layout and commands
 - Update published documentation and user guide to version 2.4.4
 - Refresh plugin compatibility examples and reference material
@@ -190,7 +190,7 @@ All notable changes to this project are documented in this file.
 
 ## [2.4.3] - 2026-03-29
 
-### ✨ Improved
+### Improved
 - Improve assets metadata parsing
 - Add Grid Compare capability in floating viewer up to 4 Assets
 - Add ping pong loop in main Viewer player
@@ -205,7 +205,7 @@ All notable changes to this project are documented in this file.
 
 ## [2.4.2] - 2026-03-17
 
-### 🎉 Major Features
+### Major Features
 
 #### 3D Model Viewing Support
 - **Basic 3D Model Thumbnail Rendering** — Implemented 3D model thumbnail rendering with fallback icon support
@@ -229,7 +229,7 @@ All notable changes to this project are documented in this file.
 - **CSS Animations** — Updated animations and z-index hierarchy for better visual presentation
 - **Backend Logging** — Enhanced logging for request handling
 
-### 🐛 Bug Fixes & Resilience
+### Bug Fixes & Resilience
 
 #### Stability Improvements
 - **Card.js Timeout Leak** — Fixed potential timeout leak in Card.js
@@ -244,32 +244,32 @@ All notable changes to this project are documented in this file.
 
 ## [2.4.1] - 2026-03-09
 
-### ✨ Added
+### Added
 - Added CLIP-based semantic search engine with AI toggle, prompt alignment scoring in GenInfo panel, smart collection suggestions, and auto-tagging pipeline
 - Added support for rgthree and easy use custom node parsing
 - Added shortcut guide tab to message popover in panel
 - Added linked model entry function for upscaler model extraction
 
-### 🐛 Fixed
+### Fixed
 - Fixed download form viewers issues
 - Fixed workflow filter bugs
 - Fixed MFV memory leaks and hot-reload listener accumulation
 - Fixed SQL placeholder count unbounded in generation-time batch query (capped at 500)
 - Fixed numpy array dtype consistency (float32) in vector operations
 
-### 🚀 Improved
+### Improved
 - Enhanced compare overlay functionality
 - Improved text search performance and accuracy
 - Enhanced geninfo extraction for upscalers and samplers
 - Enhanced tag handling and agenda calendar functionality
 - Refactored upscaler model extraction logic
 
-### 📚 Documentation
+### Documentation
 - Added comprehensive AI features guide and new documentation
 
 ## [2.4.0] - 2026-02-28
 
-### 🎉 Major Features
+### Major Features
 
 #### Majoor Floating Viewer (MFV) — NEW! 🎯
 A lightweight floating viewer panel for real-time generation comparison:
@@ -282,7 +282,7 @@ A lightweight floating viewer panel for real-time generation comparison:
 - **Draggable Panel** — Position anywhere on screen, resizable
 - **Keyboard Shortcuts** — Quick mode switching and controls
 
-### 🔧 Refactoring & Code Quality
+### Refactoring & Code Quality
 
 #### Major Code Refactoring
 - **Inline Styles → CSS Classes** — Moved all static inline styles to theme-comfy.css
@@ -291,7 +291,7 @@ A lightweight floating viewer panel for real-time generation comparison:
 - **Code Cleanup** — Removed dead code, improved naming, added documentation
 - **Performance Optimization** — Reduced redundant parsing, improved caching
 
-### 🐛 Bug Fixes
+### Bug Fixes
 
 #### Critical Fixes
 - **CSS File Corruption** — Fixed null character corruption in theme-comfy.css
@@ -306,7 +306,7 @@ A lightweight floating viewer panel for real-time generation comparison:
 - Fixed dropdown positioning and event handling
 - Fixed cache invalidation issues
 
-### 🐧 Linux Support
+### Linux Support
 
 #### Cross-Platform Compatibility
 - **Full Linux Support** — Tested on Ubuntu 22.04+, Fedora, Debian
@@ -315,7 +315,7 @@ A lightweight floating viewer panel for real-time generation comparison:
 - **Case Sensitivity** — Fixed case-sensitive file system issues
 - **Dependencies** — Updated requirements.txt for Linux compatibility
 
-### 🧪 Test Coverage
+### Test Coverage
 
 #### New Test Suites
 - **Unit Tests** — Added tests for geninfo parser, metadata extraction
@@ -332,7 +332,7 @@ A lightweight floating viewer panel for real-time generation comparison:
 - `tests/database/test_schema_heal.py` — Database schema tests
 - `vitest.config.mjs` — Frontend test configuration
 
-### ⚙️ Technical Changes
+### Technical Changes
 
 #### Dependencies
 - Added Vitest for frontend testing

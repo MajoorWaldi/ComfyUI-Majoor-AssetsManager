@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 /**
  * SearchBar.vue — Reactive search bar component for the assets manager.
  *
@@ -19,30 +19,38 @@ import { t } from "../../../app/i18n.js";
 import { appendTooltipHint } from "../../../utils/tooltipShortcuts.js";
 import { createUniqueId } from "../../../utils/ids.js";
 import SimilarSearchPopover from "./SimilarSearchPopover.vue";
+import type { MjrSimilarSearchPopoverExpose } from "../../../types/componentExposes";
 
 const SEARCH_TOOLTIP_HINT = "Ctrl/Cmd+F, Ctrl/Cmd+K, Ctrl/Cmd+H";
 
-const emit = defineEmits(["search-change"]);
+const emit = defineEmits<{ "search-change": [payload: Record<string, unknown>] }>();
+
+type MaybeComponentRef = { $el?: HTMLElement } | HTMLElement | null;
 
 const panelStore = usePanelStore();
-const searchSectionRef = ref(null);
-const searchInputRef = ref(null);
-const dataListRef = ref(null);
-const similarBtnRef = ref(null);
-const similarPopoverRef = ref(null);
-const semanticBtnRef = ref(null);
+const searchSectionRef = ref<HTMLElement | null>(null);
+const searchInputRef = ref<MaybeComponentRef>(null);
+const dataListRef = ref<HTMLDataListElement | null>(null);
+const similarBtnRef = ref<MaybeComponentRef>(null);
+const similarPopoverRef = ref<MjrSimilarSearchPopoverExpose | null>(null);
+const semanticBtnRef = ref<MaybeComponentRef>(null);
 const dataListId = createUniqueId("mjr-search-autocomplete-", 8);
 const METADATA_SEARCH_MODE = "AND";
 
-const resolveDomElement = (value) => value?.$el || value || null;
+const resolveDomElement = (value: MaybeComponentRef): HTMLInputElement | null => ((value as { $el?: HTMLInputElement } | null)?.$el || value || null) as HTMLInputElement | null;
 const getSearchInputEl = () => resolveDomElement(searchInputRef.value);
 
 // Local semantic mode state (synced with settings, not persisted)
 const semanticMode = ref(false);
 const semanticEnabled = ref(true);
 const metadataMode = ref(METADATA_SEARCH_MODE);
-let metadataKeysCache = null;
-let metadataKeysPromise = null;
+interface MetadataKeysResult {
+    keys?: string[];
+    workflow_nodes?: Record<string, string[]>;
+}
+
+let metadataKeysCache: MetadataKeysResult | null = null;
+let metadataKeysPromise: Promise<MetadataKeysResult> | null = null;
 
 // Computed placeholder based on semantic mode
 const searchPlaceholder = computed(() => {
@@ -99,7 +107,7 @@ const syncSemanticDataset = () => {
     }
 };
 
-const emitSearchChange = (payload = {}) => {
+const emitSearchChange = (payload: Record<string, unknown> = {}) => {
     emit("search-change", {
         query: getSearchInputEl()?.value || "",
         semantic: semanticMode.value,
@@ -122,8 +130,8 @@ const toggleSemanticMode = () => {
 };
 
 // Handle search input
-const handleSearchInput = async (e) => {
-    const value = e.target.value || "";
+const handleSearchInput = async (e: Event) => {
+    const value = (e.target as HTMLInputElement)?.value || "";
     panelStore.searchQuery = value;
     panelStore.metadataSearchMode = METADATA_SEARCH_MODE;
     syncSemanticDataset();
@@ -131,7 +139,7 @@ const handleSearchInput = async (e) => {
     await handleAutocomplete();
 };
 
-const getLastSearchToken = (value) => {
+const getLastSearchToken = (value: unknown) => {
     const parts = String(value || "").split(/\s+/);
     return parts[parts.length - 1] || "";
 };
@@ -148,14 +156,14 @@ async function loadMetadataKeys() {
     return metadataKeysPromise;
 }
 
-function replaceLastSearchToken(value, replacement) {
+function replaceLastSearchToken(value: unknown, replacement: string) {
     const text = String(value || "");
     const match = text.match(/^(.*?)(\S*)$/);
     const prefix = match ? match[1] : "";
     return `${prefix}${replacement}`.trimStart();
 }
 
-function buildMetadataSuggestions(value, metadataKeys) {
+function buildMetadataSuggestions(value: unknown, metadataKeys: MetadataKeysResult | null) {
     const token = getLastSearchToken(value);
     const normalizedToken = token.replace(/^-/, "");
     const aliases = metadataSearchAliases();
@@ -285,7 +293,7 @@ defineExpose({
     get semanticBtn() {
         return resolveDomElement(semanticBtnRef.value);
     },
-    setSemanticEnabled: (enabled) => {
+    setSemanticEnabled: (enabled: unknown) => {
         semanticEnabled.value = !!enabled;
         syncSemanticDataset();
     },

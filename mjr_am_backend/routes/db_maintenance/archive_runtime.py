@@ -174,7 +174,7 @@ def emit_restore_status(step: str, level: str = "info", message: str | None = No
             payload.update(extra)
         send_event("mjr-db-restore-status", payload)
     except Exception:
-        pass
+        logger.debug("emit_restore_status: suppressed exception", exc_info=True)
 
 
 async def remove_with_retry(path: Path, attempts: int = 6) -> None:
@@ -201,7 +201,7 @@ def is_windows_sharing_violation(exc: Exception) -> bool:
         if winerror in (32, 33):
             return True
     except Exception:
-        pass
+        logger.debug("is_windows_sharing_violation: suppressed exception", exc_info=True)
     msg = str(exc).lower()
     return (
         "winerror 32" in msg

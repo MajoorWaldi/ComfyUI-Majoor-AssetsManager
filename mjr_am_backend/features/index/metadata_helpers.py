@@ -1170,7 +1170,7 @@ class MetadataHelpers:
                     },
                 )
             except Exception:
-                pass
+                logger.debug("write_asset_metadata_row: suppressed exception", exc_info=True)
             # Stop-write phase: do not update legacy JSON tag columns. Metadata
             # extraction may seed normalized tags only when the asset has no
             # user tag links yet.
@@ -1214,7 +1214,7 @@ class MetadataHelpers:
                     (asset_id,),
                 )
             except Exception:
-                pass
+                logger.debug("write_asset_metadata_row: suppressed exception", exc_info=True)
         return result
 
     @staticmethod
@@ -1367,7 +1367,7 @@ class MetadataHelpers:
         try:
             await MetadataHelpers._maybe_cleanup_metadata_cache(db)
         except Exception:
-            pass
+            logger.debug("store_metadata_cache: suppressed exception", exc_info=True)
         return write_res
 
     @staticmethod
@@ -1419,7 +1419,7 @@ class MetadataHelpers:
                 int(max_bytes),
             )
         except Exception:
-            pass
+            logger.debug("_log_metadata_payload_too_large: suppressed exception", exc_info=True)
 
     @staticmethod
     def compute_metadata_hash(raw_json: str) -> str:

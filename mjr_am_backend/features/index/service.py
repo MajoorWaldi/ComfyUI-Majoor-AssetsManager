@@ -601,7 +601,7 @@ class IndexService:
         try:
             self._enricher.pause_for_interaction(seconds=seconds)
         except Exception:
-            pass
+            logger.debug("pause_enrichment_for_interaction: suppressed exception", exc_info=True)
 
     async def stop_enrichment(self, clear_queue: bool = True) -> None:
         """
@@ -610,7 +610,7 @@ class IndexService:
         try:
             await self._enricher.stop_enrichment(clear_queue=clear_queue)
         except Exception:
-            pass
+            logger.debug("stop_enrichment: suppressed exception", exc_info=True)
 
     def get_runtime_status(self) -> dict[str, Any]:
         """Return lightweight runtime counters for diagnostics/dashboard."""

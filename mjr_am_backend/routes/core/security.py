@@ -161,7 +161,7 @@ def _refresh_trusted_proxy_cache() -> None:
     try:
         _is_trusted_proxy.cache_clear()
     except Exception:
-        pass
+        logger.debug("_refresh_trusted_proxy_cache: suppressed exception", exc_info=True)
     # Also refresh the proxies sub-module (used by security_csrf, etc.)
     from .security_proxies import _refresh_trusted_proxy_cache as _proxies_refresh
     _proxies_refresh()
@@ -458,18 +458,18 @@ def _reset_security_state_for_tests() -> None:
     try:
         _is_trusted_proxy.cache_clear()
     except Exception:
-        pass
+        logger.debug("_reset_security_state_for_tests: suppressed exception", exc_info=True)
     try:
         _safe_mode_enabled.cache_clear()
     except Exception:
-        pass
+        logger.debug("_reset_security_state_for_tests: suppressed exception", exc_info=True)
     try:
         _WARNED_TOKEN_SOURCES.clear()
     except Exception:
-        pass
+        logger.debug("_reset_security_state_for_tests: suppressed exception", exc_info=True)
     try:
         from .security_prefs_snapshot import reset_snapshot_for_tests
 
         reset_snapshot_for_tests()
     except Exception:
-        pass
+        logger.debug("_reset_security_state_for_tests: suppressed exception", exc_info=True)

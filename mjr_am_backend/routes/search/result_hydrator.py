@@ -3,6 +3,10 @@ import json
 import os
 from typing import Any
 
+from mjr_am_backend.shared import get_logger
+
+logger = get_logger(__name__)
+
 
 def dedupe_key(asset: dict) -> str:
     fp = str((asset or {}).get("filepath") or "").strip()
@@ -56,7 +60,7 @@ def norm_filepath(fp: str) -> str:
         if os.name == "nt":
             return os.path.normcase(os.path.normpath(str(fp or "")))
     except Exception:
-        pass
+        logger.debug("norm_filepath: suppressed exception", exc_info=True)
     return str(fp or "")
 
 

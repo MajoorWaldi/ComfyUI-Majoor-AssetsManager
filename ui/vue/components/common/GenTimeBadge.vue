@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 /**
  * GenTimeBadge.vue — Generation time badge overlay on asset thumbnails.
  * Replaces createGenTimeBadge() from Badges.js.
@@ -6,9 +6,10 @@
 import { computed } from "vue";
 import { genTimeColor, normalizeGenerationTimeMs, formatGenTime } from "../../../components/Badges.js";
 
-const props = defineProps({
-    genTimeMs: { type: [Number, String], default: 0 },
-});
+const props = withDefaults(
+    defineProps<{ genTimeMs?: number | string }>(),
+    { genTimeMs: 0 },
+);
 
 const ms = computed(() => normalizeGenerationTimeMs(props.genTimeMs));
 const isValid = computed(() => ms.value > 0);

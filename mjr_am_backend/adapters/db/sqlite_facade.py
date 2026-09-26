@@ -338,11 +338,11 @@ class _AsyncLoopThread:
                     if pending:
                         loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
                 except Exception:
-                    pass
+                    logger.debug("_run: suppressed exception", exc_info=True)
                 try:
                     loop.close()
                 except Exception:
-                    pass
+                    logger.debug("_run: suppressed exception", exc_info=True)
 
         self._thread = threading.Thread(target=_run, daemon=True)
         self._thread.start()
@@ -380,12 +380,12 @@ class _AsyncLoopThread:
             try:
                 loop.call_soon_threadsafe(loop.stop)
             except Exception:
-                pass
+                logger.debug("stop: suppressed exception", exc_info=True)
             if thread and thread.is_alive() and thread.ident != threading.get_ident():
                 try:
                     thread.join(timeout=5.0)
                 except Exception:
-                    pass
+                    logger.debug("stop: suppressed exception", exc_info=True)
             self._thread_ident = None
             self._thread = None
             self._loop = None

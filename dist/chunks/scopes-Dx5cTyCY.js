@@ -67,7 +67,7 @@ function k(e, { sampleStep: i = r } = {}) {
 }
 function A(e, t, r, { channel: i = "rgb" } = {}) {
 	try {
-		let { x: a, y: o, w: s, h: l } = t, u = p, d = f, _ = a + d, v = o + u, y = s - d * 2, b = l - u - d;
+		let { x: a, y: o, w: s, h: l } = t, u = p, d = f, _ = a + d, v = o + u, y = s - 20, b = l - u - d;
 		if (!(y > m && b > m)) return;
 		e.save(), e.globalCompositeOperation = "source-over", e.strokeStyle = "rgba(255,255,255,0.10)", e.lineWidth = c, e.beginPath(), e.rect(_, v, y, b), e.stroke();
 		let x = Number(r?.max) || 1, S = (t, r) => {
@@ -120,7 +120,7 @@ function j(n, { columns: r = i, rows: s = a, sampleStep: c = o } = {}) {
 }
 function M(e, t, n) {
 	try {
-		let { x: r, y: i, w: a, h: o } = t, s = p, l = f, u = r + l, d = i + s, h = a - l * 2, g = o - s - l;
+		let { x: r, y: i, w: a, h: o } = t, s = p, l = f, u = r + l, d = i + s, h = a - 20, g = o - s - l;
 		if (!(h > m && g > m)) return;
 		e.save(), e.strokeStyle = "rgba(255,255,255,0.10)", e.lineWidth = c, e.beginPath(), e.rect(u, d, h, g), e.stroke();
 		let _ = n?.gridW || 0, v = n?.gridH || 0, y = n?.out, b = Number(n?.max) || 1;

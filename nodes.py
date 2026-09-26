@@ -790,7 +790,7 @@ def _runtime_sampler_payload_from_node(
             if val is not None and val != "":
                 out[dst_key] = caster(val)
         except Exception:
-            pass
+            _log.debug("_runtime_sampler_payload_from_node: suppressed exception", exc_info=True)
     for src_key, dst_key in (("sampler_name", "sampler"), ("sampler", "sampler"), ("scheduler", "scheduler")):
         val = values.get(src_key)
         if val is None:
@@ -1142,7 +1142,7 @@ def _resolve_video_inputs(
                         "sample_rate": sample_rate,
                     }
             except Exception:
-                pass
+                _log.debug("_coerce_audio_input: suppressed exception", exc_info=True)
         return None
 
     resolved_images: torch.Tensor | None = None
@@ -1273,7 +1273,7 @@ def _prepare_audio(
                 if waveform is not None:
                     return waveform, int(sample_rate or 44100)
             except Exception:
-                pass
+                _log.debug("_extract_audio_payload: suppressed exception", exc_info=True)
 
         return None, 44100
 

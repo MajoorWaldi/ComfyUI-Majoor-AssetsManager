@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 /**
  * PinnedFoldersPopover.vue - Vue-owned pinned folders menu.
  *
@@ -7,16 +7,22 @@
  */
 import { ref } from "vue";
 
-const menuRef = ref(null);
-const roots = ref([]);
+interface PinnedRoot {
+    id: string;
+    label: string;
+    path: string;
+}
+
+const menuRef = ref<HTMLElement | null>(null);
+const roots = ref<PinnedRoot[]>([]);
 const loading = ref(false);
 const emptyLabel = ref("No pinned folders");
 const loadingLabel = ref("Loading...");
 const unpinLabel = ref("Unpin folder");
-const openHandler = ref(null);
-const unpinHandler = ref(null);
+const openHandler = ref<((root: PinnedRoot) => void) | null>(null);
+const unpinHandler = ref<((root: PinnedRoot, event?: Event) => void) | null>(null);
 
-function normalizeRoot(root) {
+function normalizeRoot(root: { id?: unknown; label?: unknown; name?: unknown; path?: unknown } | null | undefined): PinnedRoot | null {
     const id = String(root?.id || "").trim();
     if (!id) return null;
     const label = String(root?.label || root?.name || root?.path || id).trim();
@@ -35,8 +41,18 @@ function setPinnedFolders({
     onOpen = null,
     onUnpin = null,
     loading: nextLoading = false,
+}: {
+    roots?: unknown[];
+    emptyLabel?: string;
+    loadingLabel?: string;
+    unpinLabel?: string;
+    onOpen?: ((root: PinnedRoot) => void) | null;
+    onUnpin?: ((root: PinnedRoot, event?: Event) => void) | null;
+    loading?: boolean;
 } = {}) {
-    roots.value = Array.isArray(nextRoots) ? nextRoots.map(normalizeRoot).filter(Boolean) : [];
+    roots.value = Array.isArray(nextRoots)
+        ? nextRoots.map(normalizeRoot).filter((r): r is PinnedRoot => r !== null)
+        : [];
     if (nextEmptyLabel) emptyLabel.value = String(nextEmptyLabel);
     if (nextLoadingLabel) loadingLabel.value = String(nextLoadingLabel);
     if (nextUnpinLabel) unpinLabel.value = String(nextUnpinLabel);
@@ -45,16 +61,16 @@ function setPinnedFolders({
     loading.value = !!nextLoading;
 }
 
-function setPinnedFoldersLoading(value, label = "") {
+function setPinnedFoldersLoading(value: boolean, label = "") {
     loading.value = !!value;
     if (label) loadingLabel.value = String(label);
 }
 
-function handleOpen(root) {
+function handleOpen(root: PinnedRoot) {
     openHandler.value?.(root);
 }
 
-function handleUnpin(root, event) {
+function handleUnpin(root: PinnedRoot, event?: Event) {
     event?.preventDefault?.();
     event?.stopPropagation?.();
     unpinHandler.value?.(root, event);

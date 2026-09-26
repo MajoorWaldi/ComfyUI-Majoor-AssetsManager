@@ -44,7 +44,7 @@ const _setWidgetValue = (widget: any, value: any) => {
     }
 };
 
-const _getCanvasCenterPos = (app: any) => {
+const _getCanvasCenterPos = (app: any): [number, number] => {
     const canvasEl = app?.canvas?.canvas || document.querySelector("canvas");
     const rect = canvasEl?.getBoundingClientRect?.();
     const rectWidth = rect ? Number(rect.width || rect.right - rect.left) : 0;
@@ -57,7 +57,7 @@ const _getCanvasCenterPos = (app: any) => {
     return _getCanvasPosFromClient(app, left + Math.max(0, width / 2), top + Math.max(0, height / 2));
 };
 
-const _getCanvasPosFromClient = (app: any, clientX: any, clientY: any) => {
+const _getCanvasPosFromClient = (app: any, clientX: any, clientY: any): [number, number] => {
     const canvasEl = app?.canvas?.canvas || document.querySelector("canvas");
     const rect = canvasEl?.getBoundingClientRect?.();
     const ds = app?.canvas?.ds || {};

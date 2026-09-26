@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 /**
  * SidebarSection.vue — Vue lifecycle owner for the asset detail sidebar.
  *
@@ -23,12 +23,26 @@ import { ref, onMounted, onUnmounted } from "vue";
 import { patchActiveAsset, useActiveAsset } from "../../composables/useActiveAsset.js";
 import AssetSidebarContent from "./sidebar/AssetSidebarContent.vue";
 import { t } from "../../../app/i18n.js";
+import type { MjrAssetLike } from "../../../types/asset";
 import {
     ASSET_RATING_CHANGED_EVENT,
     ASSET_TAGS_CHANGED_EVENT,
 } from "../../../app/events.js";
 
-const sidebarEl = ref(null);
+// Legacy SidebarView.js writes several ad-hoc properties directly onto this
+// DOM node (see module docblock); typed loosely to match that contract.
+type SidebarElement = HTMLDivElement & {
+    _requestSeq?: number;
+    _currentAsset?: MjrAssetLike | null;
+    _currentFullAsset?: MjrAssetLike | null;
+    _ratingTagsSection?: unknown;
+    _mjrAbortController?: AbortController | null;
+    _currentFetchAbortController?: { abort?: () => void } | null;
+    dispose?: () => void;
+    _dispose?: () => void;
+};
+
+const sidebarEl = ref<SidebarElement | null>(null);
 const { activeAsset, onUpdateCallback } = useActiveAsset();
 
 // Apply initial closed CSS once the element is in the DOM.
@@ -48,14 +62,14 @@ onMounted(() => {
     el._currentFullAsset = null;
     el._ratingTagsSection = null;
 
-    const matchesCurrent = (assetId) => {
+    const matchesCurrent = (assetId: unknown) => {
         const currentId = el._currentAsset?.id ?? el._currentFullAsset?.id ?? activeAsset.value?.id;
         if (currentId == null || assetId == null) return false;
         return String(currentId) === String(assetId);
     };
 
-    const onRatingChanged = (event) => {
-        const detail = event?.detail || {};
+    const onRatingChanged = (event: Event) => {
+        const detail = (event as CustomEvent)?.detail || {};
         const assetId = detail.assetId ?? detail.id ?? null;
         const rating = Number(detail.rating);
         if (!matchesCurrent(assetId) || !Number.isFinite(rating)) return;
@@ -68,8 +82,8 @@ onMounted(() => {
         }
     };
 
-    const onTagsChanged = (event) => {
-        const detail = event?.detail || {};
+    const onTagsChanged = (event: Event) => {
+        const detail = (event as CustomEvent)?.detail || {};
         const assetId = detail.assetId ?? detail.id ?? null;
         const tags = Array.isArray(detail.tags) ? detail.tags : null;
         if (!matchesCurrent(assetId) || !tags) return;
@@ -82,7 +96,7 @@ onMounted(() => {
         }
     };
 
-    const cleanupFns = [];
+    const cleanupFns: Array<() => void> = [];
     const abortController = typeof AbortController !== "undefined" ? new AbortController() : null;
     el._mjrAbortController = abortController;
     el.dispose = () => {

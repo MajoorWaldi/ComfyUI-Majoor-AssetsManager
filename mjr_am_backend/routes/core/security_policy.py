@@ -92,7 +92,7 @@ def _pref_truthy(key: str, env_var: str, prefs: Mapping[str, Any] | None) -> boo
         try:
             return _coerce_pref_bool(prefs[key])
         except Exception:
-            pass
+            logger.debug("_pref_truthy: suppressed exception", exc_info=True)
     return _env_truthy(env_var)
 
 

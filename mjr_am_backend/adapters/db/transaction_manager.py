@@ -9,6 +9,9 @@ from pathlib import Path
 from typing import Any
 
 import aiosqlite
+from mjr_am_backend.shared import get_logger
+
+logger = get_logger(__name__)
 
 # Allow bare/qualified identifiers only; this is a strict guard for the
 # `{IN_CLAUSE}` template path and intentionally not a full SQL parser.
@@ -38,7 +41,7 @@ def rows_to_dicts(rows: Any) -> list[dict[str, Any]]:
             try:
                 out.append(dict(r))
             except Exception:
-                pass
+                logger.debug("rows_to_dicts: suppressed exception", exc_info=True)
         return out
 
 

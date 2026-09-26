@@ -187,8 +187,8 @@ def _reset_rate_limit_state_for_tests() -> None:
         with _rate_limit_lock:
             _rate_limit_state.clear()
     except Exception:
-        pass
+        logger.debug("_reset_rate_limit_state_for_tests: suppressed exception", exc_info=True)
     try:
         _rate_limit_cleanup_stop.set()
     except Exception:
-        pass
+        logger.debug("_reset_rate_limit_state_for_tests: suppressed exception", exc_info=True)

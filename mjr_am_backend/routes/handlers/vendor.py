@@ -65,7 +65,7 @@ def register_vendor_routes(routes: web.RouteTableDef) -> None:
             resp.headers["Cache-Control"] = "public, max-age=86400, stale-while-revalidate=3600"
             resp.headers["X-Content-Type-Options"] = "nosniff"
         except Exception:
-            pass
+            _logger.debug("_serve_vendor_static: suppressed exception", exc_info=True)
         return resp
 
     @routes.get("/mjr/am/vendor/{path:.*}")

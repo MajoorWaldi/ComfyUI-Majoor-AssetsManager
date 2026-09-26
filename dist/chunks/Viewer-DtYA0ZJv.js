@@ -1,9 +1,9 @@
-import { H as e, P as t, Zt as n, _ as r, _t as i, c as a, d as o, g as s, ht as c, n as l, o as u, r as d, s as f, x as p, y as m } from "./viewerRuntimeHosts-CuR8T4j6.js";
-import { Ct as h, D as g, a as _, ct as v, h as y, i as b, j as x, k as S, m as C, n as w, o as T, pt as E, r as D, rt as O, t as k } from "./events-Bamza1ns.js";
-import { T as A, nt as j, tt as M } from "./mjr-primevue-n1rsQYJg.js";
-import { n as N, r as ee } from "./mjr-vue-vendor-D2GeV7Qd.js";
+import { H as e, P as t, Zt as n, _ as r, _t as i, c as a, d as o, g as s, ht as c, n as l, o as u, r as d, s as f, x as p, y as m } from "./viewerRuntimeHosts-CIiyEfr6.js";
+import { Ct as h, D as g, a as _, ct as v, h as y, i as b, j as x, k as S, m as C, n as w, o as T, pt as E, r as D, rt as O, t as k } from "./events-DjjLASfV.js";
+import { T as A, nt as j, rt as M } from "./mjr-primevue-BlSRoWcG.js";
+import { n as N, r as ee } from "./mjr-vue-vendor-Bb2CVJXl.js";
 import { n as P, r as te, t as F } from "./state-DPiaUMw1.js";
-import { a as ne, c as re, i as ie, o as ae, r as oe, s as se } from "./model3dRenderer-BAzbZdW-.js";
+import { a as ne, c as re, i as ie, o as ae, r as oe, s as se } from "./model3dRenderer-Dst3PlP7.js";
 //#region ui/utils/events.ts
 function ce(e, t, { target: n = null, warnPrefix: r = "[Majoor]" } = {}) {
 	let i = n || (typeof window < "u" ? window : null);
@@ -376,7 +376,7 @@ var le = async (e, t = "Majoor", n = {}) => {
 }, fe = (e, t = "Majoor") => {
 	let n = String(e ?? ""), r = String(t ?? "").trim();
 	return !r || r.toLowerCase() === "majoor" ? n : `${r}<br><br>${n}`;
-}, B = new Set(/* @__PURE__ */ "abort.blur.change.click.close.contextmenu.dblclick.dragend.dragenter.dragleave.dragover.dragstart.drop.error.focus.input.keydown.keypress.keyup.load.mousedown.mouseenter.mouseleave.mousemove.mouseout.mouseover.mouseup.reset.resize.scroll.select.submit.touchcancel.touchend.touchmove.touchstart.transitionend.unload.wheel".split(".")), V = new Set([
+}, B = /* @__PURE__ */ new Set(/* @__PURE__ */ "abort.blur.change.click.close.contextmenu.dblclick.dragend.dragenter.dragleave.dragover.dragstart.drop.error.focus.input.keydown.keypress.keyup.load.mousedown.mouseenter.mouseleave.mousemove.mouseout.mouseover.mouseup.reset.resize.scroll.select.submit.touchcancel.touchend.touchmove.touchstart.transitionend.unload.wheel".split(".")), V = /* @__PURE__ */ new Set([
 	"__proto__",
 	"constructor",
 	"prototype",
@@ -387,7 +387,7 @@ var le = async (e, t = "Majoor", n = {}) => {
 	"__defineSetter__",
 	"__lookupGetter__",
 	"__lookupSetter__"
-]), H = new Set([
+]), H = /* @__PURE__ */ new Set([
 	"id",
 	"name",
 	"value",
@@ -493,7 +493,7 @@ function ye(e, t = {}) {
 //#endregion
 //#region ui/stores/useRuntimeStore.ts
 var q = N("mjr-runtime", () => {
-	let e = j(null), t = j(null), n = j(!1), r = j(0), i = j(null), a = j(null), o = j(null), s = j(null), c = j(null), l = j([]), u = A(() => !!i.value), d = A(() => {
+	let e = M(null), t = M(null), n = M(!1), r = M(0), i = M(null), a = M(null), o = M(null), s = M(null), c = M(null), l = M([]), u = A(() => !!i.value), d = A(() => {
 		let e = s.value, t = c.value;
 		return !t || t <= 0 || e == null ? 0 : Math.round(e / t * 100);
 	});
@@ -665,7 +665,7 @@ function Ne(e, t) {
 function Pe(e, t) {
 	let n = String(e?.kind || "").toLowerCase();
 	if (n) return n;
-	let r = new Set([
+	let r = /* @__PURE__ */ new Set([
 		"PNG",
 		"JPG",
 		"JPEG",
@@ -674,18 +674,18 @@ function Pe(e, t) {
 		"BMP",
 		"TIF",
 		"TIFF"
-	]), i = new Set([
+	]), i = /* @__PURE__ */ new Set([
 		"MP4",
 		"WEBM",
 		"MOV",
 		"AVI",
 		"MKV"
-	]), a = new Set([
+	]), a = /* @__PURE__ */ new Set([
 		"MP3",
 		"WAV",
 		"OGG",
 		"FLAC"
-	]), o = new Set([
+	]), o = /* @__PURE__ */ new Set([
 		"OBJ",
 		"FBX",
 		"GLB",
@@ -1198,7 +1198,7 @@ function it(e) {
 }
 //#endregion
 //#region ui/utils/filenames.ts
-var at = new Set([
+var at = /* @__PURE__ */ new Set([
 	"CON",
 	"PRN",
 	"AUX",
@@ -1329,11 +1329,11 @@ async function pt(e) {
 //#endregion
 //#region ui/utils/deleteGuard.ts
 async function mt(e, t) {
-	return T.DELETE_CONFIRMATION ? !!await I(e > 1 ? C("dialog.deleteSelectedFiles", "Delete {count} selected files?", { count: e }) : C("dialog.deleteSingleFile", "Delete \"{label}\"?", { label: String(t || C("label.thisFile", "this file")) }), C("dialog.confirmDeleteTitle", "Majoor: Confirm delete")) : !0;
+	return !T.DELETE_CONFIRMATION || !!await I(e > 1 ? C("dialog.deleteSelectedFiles", "Delete {count} selected files?", { count: e }) : C("dialog.deleteSingleFile", "Delete \"{label}\"?", { label: String(t || C("label.thisFile", "this file")) }), C("dialog.confirmDeleteTitle", "Majoor: Confirm delete"));
 }
 //#endregion
 //#region ui/features/collections/contextmenu/addToCollectionMenuState.ts
-var ht = M({
+var ht = j({
 	open: !1,
 	x: 0,
 	y: 0,
@@ -1668,7 +1668,8 @@ function Zt(e, t) {
 	i.appendChild(a), r.appendChild(i);
 	let o = () => {
 		try {
-			a.className = `pi ${e?.paused ? "pi-play" : "pi-pause"}`;
+			let t = !!e?.paused;
+			a.className = `pi ${t ? "pi-play" : "pi-pause"}`;
 		} catch (e) {
 			console.debug?.(e);
 		}
@@ -2114,7 +2115,8 @@ function Qt(e, t = {}) {
 			}
 		}, Fe = () => {
 			try {
-				M.textContent = !e?.paused || q._ppReverse ? C("video.pause", "Pause") : C("video.play", "Play");
+				let t = !e?.paused || q._ppReverse;
+				M.textContent = t ? C("video.pause", "Pause") : C("video.play", "Play");
 			} catch (e) {
 				console.debug?.(e);
 			}
@@ -2350,7 +2352,8 @@ function Qt(e, t = {}) {
 								t && typeof t.catch == "function" && t.catch(() => {}), Fe(), J();
 								return;
 							}
-							Ke(o - Math.max(1, Math.floor(Number(q.step) || 1))), J();
+							let s = Math.max(1, Math.floor(Number(q.step) || 1));
+							Ke(o - s), J();
 						}
 						q._ppRafId = requestAnimationFrame(r);
 					} catch (e) {
@@ -2393,8 +2396,8 @@ function Qt(e, t = {}) {
 			}
 		}, Ke = (t) => {
 			try {
-				let { maxF: n } = Me();
-				e.currentTime = Ae(F(t, 0, n > 0 ? n : Infinity));
+				let { maxF: n } = Me(), r = F(t, 0, n > 0 ? n : Infinity);
+				e.currentTime = Ae(r);
 			} catch (e) {
 				console.debug?.(e);
 			}
@@ -2466,8 +2469,8 @@ function Qt(e, t = {}) {
 				if (!Number.isFinite(n) || n <= 0) return !1;
 				let r = f.getBoundingClientRect?.(), i = Number(r?.width) || 0;
 				if (!(i > 0)) return !1;
-				let a = P(F((Number(t) || 0) - Number(r.left || 0), 0, i) / i), o = a * n;
-				return e.currentTime = o, Pe(), p.value = String(Math.round(a * Ne())), J(o), !0;
+				let a = F((Number(t) || 0) - Number(r.left || 0), 0, i), o = P(a / i), s = o * n;
+				return e.currentTime = s, Pe(), p.value = String(Math.round(o * Ne())), J(s), !0;
 			} catch (e) {
 				return console.debug?.(e), !1;
 			}
@@ -2658,33 +2661,35 @@ function Qt(e, t = {}) {
 				let { inF: t, outF: n, maxF: r } = Me();
 				if (r <= 0 || t <= 0 && n >= r && !q.loop && !q.pingpong && !q.once || q._ppReverse) return;
 				let i = ke();
-				if (i >= n - Math.max(1, Math.floor(Number(q.step) || 1))) if (q.pingpong) {
-					Ue();
-					return;
-				} else if (q.loop) {
-					Ke(t);
-					try {
-						let t = e.play?.();
-						t && typeof t.catch == "function" && t.catch(() => {});
-					} catch (e) {
-						console.debug?.(e);
+				if (i >= n - Math.max(1, Math.floor(Number(q.step) || 1))) {
+					if (q.pingpong) {
+						Ue();
+						return;
 					}
-				} else if (q.once) {
-					try {
-						e.pause?.();
-					} catch (e) {
-						console.debug?.(e);
+					if (q.loop) {
+						Ke(t);
+						try {
+							let t = e.play?.();
+							t && typeof t.catch == "function" && t.catch(() => {});
+						} catch (e) {
+							console.debug?.(e);
+						}
+					} else if (q.once) {
+						try {
+							e.pause?.();
+						} catch (e) {
+							console.debug?.(e);
+						}
+						Ke(n);
+					} else {
+						try {
+							e.pause?.();
+						} catch (e) {
+							console.debug?.(e);
+						}
+						Ke(n);
 					}
-					Ke(n);
-				} else {
-					try {
-						e.pause?.();
-					} catch (e) {
-						console.debug?.(e);
-					}
-					Ke(n);
-				}
-				else i < t && Ke(t);
+				} else i < t && Ke(t);
 			} catch (e) {
 				console.debug?.(e);
 			}
@@ -3021,7 +3026,7 @@ function $t() {
 		title: ""
 	};
 }
-var Q = M({
+var Q = j({
 	portalOwnerId: "",
 	mountedPortalIds: [],
 	main: $t(),
@@ -3262,7 +3267,9 @@ function Tn({ asset: t, event: r, getCurrentViewUrl: a, onAssetChanged: s }) {
 					console.debug?.(e);
 				}
 				let i = [], a = Cn(r?.size_bytes);
-				a && i.push(a), r?.mime && i.push(r.mime), n(C("toast.metadataRefreshed", "Metadata refreshed{suffix}", { suffix: i.length ? ` (${i.join(", ")})` : "" }), "success", 3e3);
+				a && i.push(a), r?.mime && i.push(r.mime);
+				let o = i.length ? ` (${i.join(", ")})` : "";
+				n(C("toast.metadataRefreshed", "Metadata refreshed{suffix}", { suffix: o }), "success", 3e3);
 			} catch (e) {
 				o(e, "[ViewerContextMenu] Metadata refresh", { showToast: !0 });
 			}
@@ -4372,7 +4379,7 @@ function Vn({ state: e, VIEWER_MODES: t, getCanAB: n, header: r, toolsRow: i, ch
 	}
 	try {
 		y.value = String(e.abCompareMode || "wipe");
-		let r = typeof n == "function" ? !!n() : !1, i = e.mode === t.AB_COMPARE && r, a = e.mode === t.SIDE_BY_SIDE, o = i || a;
+		let r = typeof n == "function" && !!n(), i = e.mode === t.AB_COMPARE && r, a = e.mode === t.SIDE_BY_SIDE, o = i || a;
 		y.disabled = !i;
 		try {
 			re.dataset.active = o ? "1" : "0", re.style.display = o ? "" : "none", le(re, {
@@ -4511,7 +4518,7 @@ function Vn({ state: e, VIEWER_MODES: t, getCanAB: n, header: r, toolsRow: i, ch
 		console.debug?.(e);
 	}
 	try {
-		let r = typeof n == "function" ? !!n() : !1, i = e.mode === t.AB_COMPARE && r, a = String(e.abCompareMode || "wipe");
+		let r = typeof n == "function" && !!n(), i = e.mode === t.AB_COMPARE && r, a = String(e.abCompareMode || "wipe");
 		oe(y, {
 			accentRgb: ae.compare,
 			active: i && a !== "wipe",
@@ -5223,7 +5230,6 @@ function Gn({ overlay: e, _content: t, singleView: r, state: i, VIEWER_MODES: a,
 				} catch (e) {
 					console.debug?.(e);
 				}
-				break;
 		}
 	}, N = null, ee = () => {
 		try {
@@ -5899,7 +5905,7 @@ function Jn({ gridCanvas: e, content: t, state: n, VIEWER_MODES: r, getPrimaryMe
 						};
 						e(.05, .24), e(.1, .18);
 					} else if (n.gridMode === 4) {
-						let t = .382, n = 1 - t;
+						let t = .382, n = .618;
 						e(A.w * t, 0, A.w * t, A.h), e(A.w * n, 0, A.w * n, A.h), e(0, A.h * t, A.w, A.h * t), e(0, A.h * n, A.w, A.h * n);
 					}
 				} catch (e) {
@@ -6451,11 +6457,11 @@ function $n({ overlay: e, content: t, singleView: n, abView: r, sideView: i, sta
 				t.style.cursor = "";
 				return;
 			}
-			let n = Number(a?.zoom) || 1, { w: r, h: i } = p(f()) || {
+			let n = Number(a?.zoom) || 1, r = f(), { w: i, h: o } = p(r) || {
 				w: 0,
 				h: 0
-			}, o = m(), s = o && r > 0 && i > 0 ? E(r, i, o.width, o.height, n) : !1;
-			if (!(n > 1.01 || s)) {
+			}, s = m(), c = s && i > 0 && o > 0 ? E(i, o, s.width, s.height, n) : !1;
+			if (!(n > 1.01 || c)) {
 				t.style.cursor = "";
 				return;
 			}
@@ -6615,11 +6621,11 @@ function $n({ overlay: e, content: t, singleView: n, abView: r, sideView: i, sta
 		if (!(() => {
 			try {
 				if (i) return !0;
-				let { w: e, h: t } = p(f()) || {
+				let e = f(), { w: t, h: n } = p(e) || {
 					w: 0,
 					h: 0
-				}, n = m();
-				return !n || !(e > 0 && t > 0) ? r > 1.01 : r > 1.01 || E(e, t, n.width, n.height, r);
+				}, a = m();
+				return !a || !(t > 0 && n > 0) ? r > 1.01 : r > 1.01 || E(t, n, a.width, a.height, r);
 			} catch {
 				return r > 1.01;
 			}
@@ -7100,7 +7106,7 @@ function or({ canvas: e, videoEl: t, disableWebGL: n, pauseDuringExecution: r = 
 		if (S) {
 			let e = `${v.toFixed(6)}|${u.toFixed(6)}`;
 			if (!y._lut || y._lutKey !== e) {
-				let t = new Uint8ClampedArray(256);
+				let t = /* @__PURE__ */ new Uint8ClampedArray(256);
 				for (let e = 0; e < 256; e += 1) {
 					let n = e / 255;
 					t[e] = Math.round(P(n * v) ** +u * 255);
@@ -7112,11 +7118,12 @@ function or({ canvas: e, videoEl: t, disableWebGL: n, pauseDuringExecution: r = 
 		if (w) for (let e = 0; e < x.length; e += 4) x[e] = w[b[e] ?? 0], x[e + 1] = w[b[e + 1] ?? 0], x[e + 2] = w[b[e + 2] ?? 0], x[e + 3] = 255;
 		else for (let e = 0; e < x.length; e += 4) {
 			let t = (b[e] ?? 0) / 255, n = (b[e + 1] ?? 0) / 255, r = (b[e + 2] ?? 0) / 255, i = (b[e + 3] ?? 255) / 255, a = t * v, s = n * v, c = r * v, l = .2126 * a + .7152 * s + .0722 * c;
-			if (f === "zebra") if (P(l) >= _) {
-				let t = (Math.floor(e / 4) % o + Math.floor(e / 4 / o) & 7) < 3;
-				a = +!!t, s = +!!t, c = +!!t;
+			if (f === "zebra") {
+				if (P(l) >= _) {
+					let t = (Math.floor(e / 4) % o + Math.floor(e / 4 / o) & 7) < 3;
+					a = +!!t, s = +!!t, c = +!!t;
+				} else a = P(a) ** +u, s = P(s) ** +u, c = P(c) ** +u;
 			} else a = P(a) ** +u, s = P(s) ** +u, c = P(c) ** +u;
-			else a = P(a) ** +u, s = P(s) ** +u, c = P(c) ** +u;
 			if (d === "r") s = a, c = a;
 			else if (d === "g") a = s, c = s;
 			else if (d === "b") a = c, s = c;
@@ -7542,8 +7549,8 @@ function lr(e) {
 				let u = o * .5, d = c * .52, f = Math.max(36, Math.min(140, Math.floor(o / 12))), p = Math.min(o * .56, f * 8), m = p / Math.max(1, f - 1), h = u - p * .5, g = d - c * .08;
 				t.fillStyle = "rgba(255,255,255,0.95)";
 				for (let e = 0; e < f; e++) {
-					let i = h + e * m, a = r(n, (e / Math.max(1, f - 1) + l) % 1), o = g - a * c * .11, s = 1.2 + a * 1.2;
-					t.beginPath(), t.arc(i, o, s, 0, Math.PI * 2), t.fill();
+					let i = h + e * m, a = (e / Math.max(1, f - 1) + l) % 1, o = r(n, a), s = g - o * c * .11, u = 1.2 + o * 1.2;
+					t.beginPath(), t.arc(i, s, u, 0, Math.PI * 2), t.fill();
 				}
 				t.fillStyle = "rgba(255,255,255,0.9)";
 				for (let e = 0; e < f; e++) {
@@ -9737,13 +9744,13 @@ var Wr = null, Gr = null, Kr = null, qr = null, Jr = null, Yr = null;
 function Xr() {
 	Wr || import("./abCompare-BXOoRlmV.js").then((e) => {
 		Wr = e;
-	}), Gr || import("./sideBySide-B_bwMtJV.js").then((e) => {
+	}), Gr || import("./sideBySide-COSp1JaA.js").then((e) => {
 		Gr = e;
-	}), Kr || import("./model3dRenderer-BAzbZdW-.js").then((e) => e.t).then((e) => {
+	}), Kr || import("./model3dRenderer-Dst3PlP7.js").then((e) => e.t).then((e) => {
 		Kr = e;
-	}), qr || import("./scopes-X1iFrTle.js").then((e) => {
+	}), qr || import("./scopes-Dx5cTyCY.js").then((e) => {
 		qr = e;
-	}), Jr || import("./genInfo-CwY4j1FN.js").then((e) => e.n).then((e) => {
+	}), Jr || import("./genInfo-Djzz88Fr.js").then((e) => e.n).then((e) => {
 		Jr = e;
 	}), Yr || import("./frameExport-tksSZ7sb.js").then((e) => {
 		Yr = e;
@@ -9764,7 +9771,7 @@ function Zr() {
 	} catch (e) {
 		console.debug?.(e);
 	}
-	let c = new Set([
+	let c = /* @__PURE__ */ new Set([
 		"png",
 		"jpg",
 		"jpeg",
@@ -9964,7 +9971,7 @@ function Zr() {
 				try {
 					let e = () => {
 						let e = E();
-						return e == null ? !1 : (_(Math.abs((Number(o.zoom) || 1) - e) < .01 ? 1 : e, {
+						return e != null && (_(Math.abs((Number(o.zoom) || 1) - e) < .01 ? 1 : e, {
 							clientX: o._lastPointerX,
 							clientY: o._lastPointerY
 						}), !0);
@@ -10128,7 +10135,7 @@ function Zr() {
 		APP_CONFIG: T,
 		getAssetMetadata: s,
 		getAssetsBatch: r
-	}), ke = 300 * 1e3, Ae = /* @__PURE__ */ new Map(), je = () => {
+	}), ke = 3e5, Ae = /* @__PURE__ */ new Map(), je = () => {
 		try {
 			let e = Date.now();
 			for (let [t, n] of Ae.entries()) {
@@ -10271,7 +10278,7 @@ function Zr() {
 					e.save(), e.font = "12px var(--comfy-font, ui-sans-serif, system-ui)", e.textAlign = "center", e.textBaseline = "middle";
 					let u = "Zoom in to pan", d = e.measureText(u), f = Math.min(n.w - 20, Math.max(140, d.width + 26));
 					e.fillStyle = "rgba(0,0,0,0.65)", e.strokeStyle = "rgba(255,255,255,0.18)", e.lineWidth = 1, e.beginPath();
-					let p = c - f / 2, m = l - 26 / 2;
+					let p = c - f / 2, m = l - 13;
 					e.moveTo(p + 10, m), e.arcTo(p + f, m, p + f, m + 26, 10), e.arcTo(p + f, m + 26, p, m + 26, 10), e.arcTo(p, m + 26, p, m, 10), e.arcTo(p, m, p + f, m, 10), e.closePath(), e.fill(), e.stroke(), e.fillStyle = "rgba(255,255,255,0.92)", e.fillText(u, c, l), e.restore();
 				}
 			} catch (e) {
