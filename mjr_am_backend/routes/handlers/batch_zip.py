@@ -39,11 +39,12 @@ from mjr_am_backend.routes.core.security import (
 )
 from mjr_am_backend.routes.core.services import _require_services
 from mjr_am_backend.shared import Result, get_logger, sanitize_error_message
+from mjr_am_shared.runtime_env import get_env
 
 logger = get_logger(__name__)
 
 _BATCH_DIR = Path(
-    os.environ.get("MAJOOR_BATCH_ZIP_DIR") or str(OUTPUT_ROOT_PATH / "_mjr_batch_zips")
+    get_env("MAJOOR_BATCH_ZIP_DIR") or str(OUTPUT_ROOT_PATH / "_mjr_batch_zips")
 )
 _BATCH_LOCK = threading.Lock()
 _BATCH_CACHE: dict[str, dict[str, Any]] = {}
@@ -103,7 +104,7 @@ _RATE_LIMIT_WINDOW_SECONDS = 60
 
 def _env_int(name: str, default: int, *, minimum: int | None = None) -> int:
     try:
-        value = int(os.environ.get(name, str(default)))
+        value = int(get_env(name, str(default)))
     except Exception:
         value = default
     if minimum is not None:
@@ -113,7 +114,7 @@ def _env_int(name: str, default: int, *, minimum: int | None = None) -> int:
 
 def _env_float(name: str, default: float, *, minimum: float | None = None) -> float:
     try:
-        value = float(os.environ.get(name, str(default)))
+        value = float(get_env(name, str(default)))
     except Exception:
         value = default
     if minimum is not None:

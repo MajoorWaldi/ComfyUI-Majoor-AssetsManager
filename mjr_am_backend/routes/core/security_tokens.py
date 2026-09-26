@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import hashlib
-import os
 from collections.abc import Mapping
 from http.cookies import SimpleCookie
+
+from mjr_am_shared.runtime_env import get_env
 
 from .security_policy import _validate_token_format
 
@@ -14,7 +15,7 @@ _PBKDF2_TOKEN_PEPPER_FALLBACK = "mjr_api_token_pepper_fallback"
 
 def _get_write_token() -> str:
     try:
-        raw = (os.environ.get("MAJOOR_API_TOKEN") or os.environ.get("MJR_API_TOKEN") or "").strip()
+        raw = (get_env("MAJOOR_API_TOKEN") or get_env("MJR_API_TOKEN") or "").strip()
     except Exception:
         raw = ""
     return _validate_token_format(raw, "MAJOOR_API_TOKEN") or ""
@@ -26,7 +27,7 @@ def _hash_token(value: str) -> str:
     except Exception:
         normalized = ""
     try:
-        pepper = str(os.environ.get("MAJOOR_API_TOKEN_PEPPER") or "").strip()
+        pepper = str(get_env("MAJOOR_API_TOKEN_PEPPER") or "").strip()
     except Exception:
         pepper = ""
     payload = f"{pepper}\0{normalized}".encode("utf-8", errors="ignore")
@@ -44,7 +45,7 @@ def _hash_token_pbkdf2(value: str) -> str:
     except Exception:
         normalized = ""
     try:
-        pepper = str(os.environ.get("MAJOOR_API_TOKEN_PEPPER") or "").strip()
+        pepper = str(get_env("MAJOOR_API_TOKEN_PEPPER") or "").strip()
     except Exception:
         pepper = ""
     if not pepper:
@@ -73,7 +74,7 @@ def _token_hash_matches(provided: str, configured_hash: str) -> bool:
 def _get_write_token_hash() -> str:
     try:
         configured_hash = (
-            (os.environ.get("MAJOOR_API_TOKEN_HASH") or os.environ.get("MJR_API_TOKEN_HASH") or "")
+            (get_env("MAJOOR_API_TOKEN_HASH") or get_env("MJR_API_TOKEN_HASH") or "")
             .strip()
             .lower()
         )

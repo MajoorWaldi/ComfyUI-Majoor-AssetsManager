@@ -30,6 +30,7 @@ from mjr_am_backend.config import (
 )
 from mjr_am_backend.runtime_activity import is_generation_busy
 from mjr_am_backend.shared import Result, classify_file, get_logger, sanitize_error_message
+from mjr_am_shared.runtime_env import get_env
 from mjr_am_shared.scan_throttle import normalize_scan_directory, should_skip_background_scan
 
 from ..core import _is_within_root, _require_services, _safe_rel_path
@@ -49,7 +50,7 @@ def _normalize_sort_key(sort: str | None) -> str:
 _BACKGROUND_SCAN_LOCKS_GUARD = asyncio.Lock()
 _BACKGROUND_SCAN_LOCKS: dict[str, asyncio.Lock] = {}
 _BACKGROUND_SCAN_LOCKS_ORDER: OrderedDict[str, None] = OrderedDict()
-_BACKGROUND_SCAN_LOCKS_MAX = max(32, int(os.getenv("MAJOOR_BG_SCAN_LOCKS_MAX", "1024") or 1024))
+_BACKGROUND_SCAN_LOCKS_MAX = max(32, int(get_env("MAJOOR_BG_SCAN_LOCKS_MAX", "1024") or 1024))
 _BACKGROUND_SCAN_LAST: OrderedDict[str, dict[str, Any]] = OrderedDict()
 _BACKGROUND_SCAN_FAILURES: list[dict[str, Any]] = []
 _BACKGROUND_SCAN_FAILURES_LOCK = threading.Lock()

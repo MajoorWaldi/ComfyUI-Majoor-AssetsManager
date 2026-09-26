@@ -227,7 +227,7 @@ function p(e, t, n) {
 }
 function m(e) {
 	let t = {};
-	for (let [n, r] of Object.entries(e || {})) r != null && r !== "" && (Array.isArray(r) && r.length === 0 || r && typeof r == "object" && !Array.isArray(r) && Object.keys(r).length === 0 || (t[n] = r));
+	for (let [n, r] of Object.entries(e || {})) r == null || r === "" || Array.isArray(r) && r.length === 0 || r && typeof r == "object" && !Array.isArray(r) && Object.keys(r).length === 0 || (t[n] = r);
 	return t;
 }
 function h(e) {
@@ -235,7 +235,7 @@ function h(e) {
 	let t = {};
 	for (let n of Object.keys(e).sort()) {
 		let r = e[n];
-		r != null && r !== "" && (t[n] = r);
+		r == null || r === "" || (t[n] = r);
 	}
 	return JSON.stringify(t);
 }
@@ -357,8 +357,8 @@ function E(e, t) {
 		a && n.add(a);
 		let o = i?.inputs || {};
 		if (String(i?.class_type || i?.type || "").toLowerCase().includes("switch")) {
-			let e = T(o.switch, t), n = r(e ? o.on_true : o.on_false);
-			if (n) return n;
+			let e = r(T(o.switch, t) ? o.on_true : o.on_false);
+			if (e) return e;
 		}
 		let s = o.unet_name || o.ckpt_name || o.model_name || o.model || o.checkpoint || o.checkpoint_name || "";
 		if (typeof s == "string" && s.trim()) return s.trim();
@@ -474,14 +474,14 @@ function N(e) {
 }
 //#endregion
 //#region ui/components/sidebar/parsers/geninfoParser.ts
-var P = /^(?:[a-z]:[\\/]|[\\/]{1,2}|\.{1,2}[\\/]|~[\\/]).+?[\\/][^\\/\n]+\.(?:png|jpe?g|webp|gif|bmp|tiff?|avif|heic|heif|apng|hdr|svg|mp4|webm|mov|mkv|avi|m4v|mp3|wav|flac|ogg|glb|gltf|obj|fbx|ply|stl|ckpt|safetensors|pt|pth|bin|gguf|json|ya?ml)$/i, F = /^(?!.*[,;])(?!.*\b(?:cinematic|portrait|landscape|lighting|style|detailed|masterpiece|photo|render)\b).*(?:[\\/][^\\/\n]+){2,}\.(?:png|jpe?g|webp|gif|bmp|tiff?|avif|heic|heif|apng|hdr|svg|mp4|webm|mov|mkv|avi|m4v|mp3|wav|flac|ogg|glb|gltf|obj|fbx|ply|stl|ckpt|safetensors|pt|pth|bin|gguf|json|ya?ml)$/i, I = /* @__PURE__ */ new Set([
+var P = /^(?:[a-z]:[\\/]|[\\/]{1,2}|\.{1,2}[\\/]|~[\\/]).+?[\\/][^\\/\n]+\.(?:png|jpe?g|webp|gif|bmp|tiff?|avif|heic|heif|apng|hdr|svg|mp4|webm|mov|mkv|avi|m4v|mp3|wav|flac|ogg|glb|gltf|obj|fbx|ply|stl|ckpt|safetensors|pt|pth|bin|gguf|json|ya?ml)$/i, F = /^(?!.*[,;])(?!.*\b(?:cinematic|portrait|landscape|lighting|style|detailed|masterpiece|photo|render)\b).*(?:[\\/][^\\/\n]+){2,}\.(?:png|jpe?g|webp|gif|bmp|tiff?|avif|heic|heif|apng|hdr|svg|mp4|webm|mov|mkv|avi|m4v|mp3|wav|flac|ogg|glb|gltf|obj|fbx|ply|stl|ckpt|safetensors|pt|pth|bin|gguf|json|ya?ml)$/i, I = new Set([
 	"workflow",
 	"quicktime:workflow",
 	"keys:workflow",
 	"comfyui:workflow",
 	"comfy_workflow",
 	"comfyuiworkflow"
-]), L = /* @__PURE__ */ new Set([
+]), L = new Set([
 	"prompt",
 	"quicktime:prompt",
 	"keys:prompt",
@@ -495,7 +495,7 @@ function R(r) {
 		let i = r.geninfo || r.GenInfo || r.generation || null;
 		if (i && typeof i == "object") {
 			let e = {}, t = /* @__PURE__ */ new Set(), n = (e, n) => {
-				if (!(!n || typeof n != "object") && (n.confidence === "override" || n.source === "majoor_geninfo")) for (let n of Array.isArray(e) ? e : [e]) t.add(n);
+				if (!(!n || typeof n != "object") && !(n.confidence !== "override" && n.source !== "majoor_geninfo")) for (let n of Array.isArray(e) ? e : [e]) t.add(n);
 			}, a = i.positive?.value ?? i.positive?.text ?? null, o = i.negative?.value ?? i.negative?.text ?? null;
 			typeof a == "string" && a.trim() && (e.prompt = a), typeof o == "string" && o.trim() && (e.negative_prompt = o), n("prompt", i.positive), n("negative_prompt", i.negative);
 			let s = i.checkpoint?.name ?? i.checkpoint ?? null;
@@ -670,7 +670,7 @@ function H(e, t) {
 }
 function U(e, t) {
 	if (!(!t || typeof t != "object")) {
-		for (let [n, r] of Object.entries(t)) if (r != null && r !== "") {
+		for (let [n, r] of Object.entries(t)) if (!(r == null || r === "")) {
 			if (Array.isArray(r) && Array.isArray(e[n])) {
 				e[n] = G(e[n], r);
 				continue;

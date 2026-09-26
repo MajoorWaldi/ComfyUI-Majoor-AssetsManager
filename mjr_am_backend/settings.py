@@ -21,6 +21,8 @@ import time
 from collections.abc import Mapping
 from typing import Any
 
+from mjr_am_shared.runtime_env import get_env, set_env, unset_env
+
 from .config import (
     _OUTPUT_DIR_OVERRIDE_FILE_PATH,
     MEDIA_PROBE_BACKEND,
@@ -237,7 +239,7 @@ class AppSettings:
 
     def _token_pepper(self) -> str:
         try:
-            return str(os.environ.get("MAJOOR_API_TOKEN_PEPPER") or "").strip()
+            return str(get_env("MAJOOR_API_TOKEN_PEPPER") or "").strip()
         except Exception:
             return ""
 
@@ -322,18 +324,18 @@ class AppSettings:
 
     def _env_api_token(self) -> str:
         try:
-            return (os.environ.get("MAJOOR_API_TOKEN") or os.environ.get("MJR_API_TOKEN") or "").strip()
+            return (get_env("MAJOOR_API_TOKEN") or get_env("MJR_API_TOKEN") or "").strip()
         except Exception:
             return ""
 
     def _env_huggingface_token(self) -> str:
         try:
             return (
-                os.environ.get("HF_TOKEN")
-                or os.environ.get("HUGGING_FACE_HUB_TOKEN")
-                or os.environ.get("HUGGINGFACEHUB_API_TOKEN")
-                or os.environ.get("MAJOOR_HF_TOKEN")
-                or os.environ.get("MJR_AM_HF_TOKEN")
+                get_env("HF_TOKEN")
+                or get_env("HUGGING_FACE_HUB_TOKEN")
+                or get_env("HUGGINGFACEHUB_API_TOKEN")
+                or get_env("MAJOOR_HF_TOKEN")
+                or get_env("MJR_AM_HF_TOKEN")
                 or ""
             ).strip()
         except Exception:
@@ -343,10 +345,10 @@ class AppSettings:
     def _env_ai_verbose_logs_enabled() -> bool:
         try:
             raw = (
-                os.environ.get("MAJOOR_AI_VERBOSE_LOGS")
-                or os.environ.get("MJR_AM_AI_VERBOSE_LOGS")
-                or os.environ.get("MAJOOR_VERBOSE_AI_LOGS")
-                or os.environ.get("MJR_AM_VERBOSE_AI_LOGS")
+                get_env("MAJOOR_AI_VERBOSE_LOGS")
+                or get_env("MJR_AM_AI_VERBOSE_LOGS")
+                or get_env("MAJOOR_VERBOSE_AI_LOGS")
+                or get_env("MJR_AM_VERBOSE_AI_LOGS")
                 or ""
             )
         except Exception:
@@ -357,10 +359,10 @@ class AppSettings:
     def _env_route_verbose_logs_enabled() -> bool:
         try:
             raw = (
-                os.environ.get("MAJOOR_ROUTE_VERBOSE_LOGS")
-                or os.environ.get("MJR_AM_ROUTE_VERBOSE_LOGS")
-                or os.environ.get("MAJOOR_VERBOSE_ROUTE_LOGS")
-                or os.environ.get("MJR_AM_VERBOSE_ROUTE_LOGS")
+                get_env("MAJOOR_ROUTE_VERBOSE_LOGS")
+                or get_env("MJR_AM_ROUTE_VERBOSE_LOGS")
+                or get_env("MAJOOR_VERBOSE_ROUTE_LOGS")
+                or get_env("MJR_AM_VERBOSE_ROUTE_LOGS")
                 or ""
             )
         except Exception:
@@ -371,10 +373,10 @@ class AppSettings:
     def _env_startup_verbose_logs_enabled() -> bool:
         try:
             raw = (
-                os.environ.get("MAJOOR_STARTUP_VERBOSE_LOGS")
-                or os.environ.get("MJR_AM_STARTUP_VERBOSE_LOGS")
-                or os.environ.get("MAJOOR_VERBOSE_STARTUP_LOGS")
-                or os.environ.get("MJR_AM_VERBOSE_STARTUP_LOGS")
+                get_env("MAJOOR_STARTUP_VERBOSE_LOGS")
+                or get_env("MJR_AM_STARTUP_VERBOSE_LOGS")
+                or get_env("MAJOOR_VERBOSE_STARTUP_LOGS")
+                or get_env("MJR_AM_VERBOSE_STARTUP_LOGS")
                 or ""
             )
         except Exception:
@@ -385,8 +387,8 @@ class AppSettings:
     def _env_ltxav_rgb_fallback_enabled() -> bool:
         try:
             raw = (
-                os.environ.get("MJR_ENABLE_LTXAV_RGB_FALLBACK")
-                or os.environ.get("MAJOOR_ENABLE_LTXAV_RGB_FALLBACK")
+                get_env("MJR_ENABLE_LTXAV_RGB_FALLBACK")
+                or get_env("MAJOOR_ENABLE_LTXAV_RGB_FALLBACK")
                 or ""
             )
         except Exception:
@@ -395,24 +397,24 @@ class AppSettings:
 
     @staticmethod
     def _env_jxl_enabled() -> bool:
-        return parse_bool(os.environ.get("MAJOOR_ENABLE_JXL", ""), False)
+        return parse_bool(get_env("MAJOOR_ENABLE_JXL", ""), False)
 
     @staticmethod
     def _set_huggingface_token_env(token: str) -> None:
         normalized = str(token or "").strip()
         try:
             if normalized:
-                os.environ["HF_TOKEN"] = normalized
-                os.environ["HUGGING_FACE_HUB_TOKEN"] = normalized
-                os.environ["HUGGINGFACEHUB_API_TOKEN"] = normalized
-                os.environ["MAJOOR_HF_TOKEN"] = normalized
-                os.environ["MJR_AM_HF_TOKEN"] = normalized
+                set_env("HF_TOKEN", normalized)
+                set_env("HUGGING_FACE_HUB_TOKEN", normalized)
+                set_env("HUGGINGFACEHUB_API_TOKEN", normalized)
+                set_env("MAJOOR_HF_TOKEN", normalized)
+                set_env("MJR_AM_HF_TOKEN", normalized)
             else:
-                os.environ.pop("HF_TOKEN", None)
-                os.environ.pop("HUGGING_FACE_HUB_TOKEN", None)
-                os.environ.pop("HUGGINGFACEHUB_API_TOKEN", None)
-                os.environ.pop("MAJOOR_HF_TOKEN", None)
-                os.environ.pop("MJR_AM_HF_TOKEN", None)
+                unset_env("HF_TOKEN")
+                unset_env("HUGGING_FACE_HUB_TOKEN")
+                unset_env("HUGGINGFACEHUB_API_TOKEN")
+                unset_env("MAJOOR_HF_TOKEN")
+                unset_env("MJR_AM_HF_TOKEN")
         except Exception:
             return
 
@@ -427,8 +429,8 @@ class AppSettings:
     def _env_api_token_hash(self) -> str:
         try:
             return (
-                os.environ.get("MAJOOR_API_TOKEN_HASH")
-                or os.environ.get("MJR_API_TOKEN_HASH")
+                get_env("MAJOOR_API_TOKEN_HASH")
+                or get_env("MJR_API_TOKEN_HASH")
                 or ""
             ).strip().lower()
         except Exception:
@@ -469,13 +471,13 @@ class AppSettings:
     def _set_api_token_env(token: str, token_hash: str, *, include_plain: bool) -> None:
         try:
             if include_plain:
-                os.environ["MAJOOR_API_TOKEN"] = token
-                os.environ["MJR_API_TOKEN"] = token
+                set_env("MAJOOR_API_TOKEN", token)
+                set_env("MJR_API_TOKEN", token)
             else:
-                os.environ.pop("MAJOOR_API_TOKEN", None)
-                os.environ.pop("MJR_API_TOKEN", None)
-            os.environ["MAJOOR_API_TOKEN_HASH"] = token_hash
-            os.environ["MJR_API_TOKEN_HASH"] = token_hash
+                unset_env("MAJOOR_API_TOKEN")
+                unset_env("MJR_API_TOKEN")
+            set_env("MAJOOR_API_TOKEN_HASH", token_hash)
+            set_env("MJR_API_TOKEN_HASH", token_hash)
         except Exception:
             pass
 
@@ -623,7 +625,7 @@ class AppSettings:
             info = _SECURITY_PREFS_INFO.get(key) or {}
             env_var = str(info.get("env") or "").strip()
             if env_var:
-                os.environ[env_var] = "1" if value else "0"
+                set_env(env_var, "1" if value else "0")
         except Exception:
             return
 
@@ -1090,8 +1092,8 @@ class AppSettings:
     def _set_execution_grouping_env_vars(enabled: bool) -> None:
         normalized = "1" if parse_bool(enabled, True) else "0"
         try:
-            os.environ["MJR_AM_EXECUTION_GROUPING_ENABLED"] = normalized
-            os.environ["MAJOOR_EXECUTION_GROUPING_ENABLED"] = normalized
+            set_env("MJR_AM_EXECUTION_GROUPING_ENABLED", normalized)
+            set_env("MAJOOR_EXECUTION_GROUPING_ENABLED", normalized)
         except Exception:
             pass
 
@@ -1393,41 +1395,41 @@ class AppSettings:
     def _set_vector_search_env_vars(self, enabled: bool) -> None:
         value = "1" if enabled else "0"
         try:
-            os.environ["MJR_AM_ENABLE_VECTOR_SEARCH"] = value
-            os.environ["MJR_ENABLE_VECTOR_SEARCH"] = value
-            os.environ["MAJOOR_ENABLE_VECTOR_SEARCH"] = value
+            set_env("MJR_AM_ENABLE_VECTOR_SEARCH", value)
+            set_env("MJR_ENABLE_VECTOR_SEARCH", value)
+            set_env("MAJOOR_ENABLE_VECTOR_SEARCH", value)
         except Exception:
             return
 
     def _set_vector_caption_on_index_env_vars(self, enabled: bool) -> None:
         value = "1" if enabled else "0"
         try:
-            os.environ["MJR_AM_VECTOR_CAPTION_ON_INDEX"] = value
-            os.environ["MAJOOR_VECTOR_CAPTION_ON_INDEX"] = value
+            set_env("MJR_AM_VECTOR_CAPTION_ON_INDEX", value)
+            set_env("MAJOOR_VECTOR_CAPTION_ON_INDEX", value)
         except Exception:
             return
 
     def _set_vector_index_on_scan_env_vars(self, enabled: bool) -> None:
         value = "1" if enabled else "0"
         try:
-            os.environ["MJR_AM_VECTOR_INDEX_ON_SCAN"] = value
-            os.environ["MAJOOR_VECTOR_INDEX_ON_SCAN"] = value
+            set_env("MJR_AM_VECTOR_INDEX_ON_SCAN", value)
+            set_env("MAJOOR_VECTOR_INDEX_ON_SCAN", value)
         except Exception:
             return
 
     def _set_vector_unload_after_use_env_vars(self, enabled: bool) -> None:
         value = "1" if enabled else "0"
         try:
-            os.environ["MJR_AM_VECTOR_UNLOAD_AFTER_USE"] = value
-            os.environ["MAJOOR_VECTOR_UNLOAD_AFTER_USE"] = value
+            set_env("MJR_AM_VECTOR_UNLOAD_AFTER_USE", value)
+            set_env("MAJOOR_VECTOR_UNLOAD_AFTER_USE", value)
         except Exception:
             return
 
     def _set_vector_concurrency_env_vars(self, value: int) -> None:
         normalized = str(self._normalize_vector_concurrency(value))
         try:
-            os.environ["MJR_VECTOR_CONCURRENCY"] = normalized
-            os.environ["MJR_AM_VECTOR_CONCURRENCY"] = normalized
+            set_env("MJR_VECTOR_CONCURRENCY", normalized)
+            set_env("MJR_AM_VECTOR_CONCURRENCY", normalized)
         except Exception:
             return
 
@@ -1441,44 +1443,44 @@ class AppSettings:
     def _set_ai_verbose_logs_env_vars(self, enabled: bool) -> None:
         value = "1" if enabled else "0"
         try:
-            os.environ["MAJOOR_AI_VERBOSE_LOGS"] = value
-            os.environ["MJR_AM_AI_VERBOSE_LOGS"] = value
-            os.environ["MAJOOR_VERBOSE_AI_LOGS"] = value
-            os.environ["MJR_AM_VERBOSE_AI_LOGS"] = value
+            set_env("MAJOOR_AI_VERBOSE_LOGS", value)
+            set_env("MJR_AM_AI_VERBOSE_LOGS", value)
+            set_env("MAJOOR_VERBOSE_AI_LOGS", value)
+            set_env("MJR_AM_VERBOSE_AI_LOGS", value)
         except Exception:
             return
 
     def _set_route_verbose_logs_env_vars(self, enabled: bool) -> None:
         value = "1" if enabled else "0"
         try:
-            os.environ["MAJOOR_ROUTE_VERBOSE_LOGS"] = value
-            os.environ["MJR_AM_ROUTE_VERBOSE_LOGS"] = value
-            os.environ["MAJOOR_VERBOSE_ROUTE_LOGS"] = value
-            os.environ["MJR_AM_VERBOSE_ROUTE_LOGS"] = value
+            set_env("MAJOOR_ROUTE_VERBOSE_LOGS", value)
+            set_env("MJR_AM_ROUTE_VERBOSE_LOGS", value)
+            set_env("MAJOOR_VERBOSE_ROUTE_LOGS", value)
+            set_env("MJR_AM_VERBOSE_ROUTE_LOGS", value)
         except Exception:
             return
 
     def _set_startup_verbose_logs_env_vars(self, enabled: bool) -> None:
         value = "1" if enabled else "0"
         try:
-            os.environ["MAJOOR_STARTUP_VERBOSE_LOGS"] = value
-            os.environ["MJR_AM_STARTUP_VERBOSE_LOGS"] = value
-            os.environ["MAJOOR_VERBOSE_STARTUP_LOGS"] = value
-            os.environ["MJR_AM_VERBOSE_STARTUP_LOGS"] = value
+            set_env("MAJOOR_STARTUP_VERBOSE_LOGS", value)
+            set_env("MJR_AM_STARTUP_VERBOSE_LOGS", value)
+            set_env("MAJOOR_VERBOSE_STARTUP_LOGS", value)
+            set_env("MJR_AM_VERBOSE_STARTUP_LOGS", value)
         except Exception:
             return
 
     def _set_ltxav_rgb_fallback_env_vars(self, enabled: bool) -> None:
         value = "1" if enabled else "0"
         try:
-            os.environ["MJR_ENABLE_LTXAV_RGB_FALLBACK"] = value
-            os.environ["MAJOOR_ENABLE_LTXAV_RGB_FALLBACK"] = value
+            set_env("MJR_ENABLE_LTXAV_RGB_FALLBACK", value)
+            set_env("MAJOOR_ENABLE_LTXAV_RGB_FALLBACK", value)
         except Exception:
             return
 
     @staticmethod
     def _set_jxl_env_var(enabled: bool) -> None:
-        os.environ["MAJOOR_ENABLE_JXL"] = "1" if enabled else "0"
+        set_env("MAJOOR_ENABLE_JXL", "1" if enabled else "0")
 
     def _normalize_metadata_fallback_write_payload(
         self,
@@ -1583,8 +1585,8 @@ class AppSettings:
         joined = os.pathsep.join(str(root) for root in roots if str(root or "").strip())
         try:
             if joined:
-                os.environ["MJR_AM_WORKFLOW_DIRECTORIES"] = joined
-                os.environ["MAJOOR_WORKFLOW_DIRECTORIES"] = joined
+                set_env("MJR_AM_WORKFLOW_DIRECTORIES", joined)
+                set_env("MAJOOR_WORKFLOW_DIRECTORIES", joined)
             else:
                 self._clear_workflow_roots_env_vars()
         except Exception:
@@ -1592,8 +1594,8 @@ class AppSettings:
 
     def _clear_workflow_roots_env_vars(self) -> None:
         try:
-            os.environ.pop("MJR_AM_WORKFLOW_DIRECTORIES", None)
-            os.environ.pop("MAJOOR_WORKFLOW_DIRECTORIES", None)
+            unset_env("MJR_AM_WORKFLOW_DIRECTORIES")
+            unset_env("MAJOOR_WORKFLOW_DIRECTORIES")
         except Exception:
             return
 
@@ -1654,8 +1656,8 @@ class AppSettings:
 
     def _clear_output_directory_env_vars(self) -> None:
         try:
-            os.environ.pop("MAJOOR_OUTPUT_DIRECTORY", None)
-            os.environ.pop("MJR_AM_OUTPUT_DIRECTORY", None)
+            unset_env("MAJOOR_OUTPUT_DIRECTORY")
+            unset_env("MJR_AM_OUTPUT_DIRECTORY")
         except Exception:
             return
 
@@ -1668,25 +1670,25 @@ class AppSettings:
 
     def _restore_output_directory_target(self) -> str:
         try:
-            original = str(os.environ.get(_ORIGINAL_OUTPUT_DIRECTORY_ENV) or "").strip()
+            original = str(get_env(_ORIGINAL_OUTPUT_DIRECTORY_ENV) or "").strip()
         except Exception:
             original = ""
         return original or str(OUTPUT_ROOT or "").strip()
 
     def _clear_original_output_directory_env(self) -> None:
         try:
-            os.environ.pop(_ORIGINAL_OUTPUT_DIRECTORY_ENV, None)
+            unset_env(_ORIGINAL_OUTPUT_DIRECTORY_ENV)
         except Exception:
             return
 
     def _set_output_directory_env_vars(self, normalized: str) -> None:
         try:
-            if not str(os.environ.get(_ORIGINAL_OUTPUT_DIRECTORY_ENV) or "").strip():
+            if not str(get_env(_ORIGINAL_OUTPUT_DIRECTORY_ENV) or "").strip():
                 current = self._get_current_comfy_output_directory()
                 if current:
-                    os.environ[_ORIGINAL_OUTPUT_DIRECTORY_ENV] = current
-            os.environ["MAJOOR_OUTPUT_DIRECTORY"] = normalized
-            os.environ["MJR_AM_OUTPUT_DIRECTORY"] = normalized
+                    set_env(_ORIGINAL_OUTPUT_DIRECTORY_ENV, current)
+            set_env("MAJOOR_OUTPUT_DIRECTORY", normalized)
+            set_env("MJR_AM_OUTPUT_DIRECTORY", normalized)
         except Exception:
             return
 

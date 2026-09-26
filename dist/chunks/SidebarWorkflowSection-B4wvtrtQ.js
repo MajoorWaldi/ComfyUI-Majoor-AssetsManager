@@ -1,11 +1,11 @@
-import { $ as e, At as t, Bt as n, Ct as r, Dt as i, Et as a, I as o, It as s, K as c, Mt as l, N as u, Nt as d, O as f, Ot as p, Pt as m, Q as h, Qt as g, R as _, Rt as v, S as y, St as b, T as x, Tt as S, Ut as C, Vt as ee, Wt as te, X as w, Xt as T, Y as ne, Yt as re, Z as ie, Zt as E, an as ae, at as oe, ct as se, et as ce, ht as le, it as ue, jt as de, k as D, kt as fe, lt as pe, nt as me, on as he, p as ge, qt as _e, rt as ve, st as ye, tt as be, ut as xe, w as Se, wt as Ce, xt as we, zt as Te } from "./viewerRuntimeHosts-DC1iA_jY.js";
-import { Ct as Ee, K as De, N as Oe, T as ke, c as Ae, d as je, f as Me, h as Ne, j as Pe, l as Fe, m as O, o as k, p as Ie, pt as Le, s as A, tt as Re, u as ze, x as Be, y as Ve } from "./events-DjjLASfV.js";
-import { F as He, K as Ue, P as We, Y as Ge, f as Ke, m as qe, p as Je } from "./Viewer-GH30s1No.js";
-import { t as Ye } from "./floatingViewerManager-BVG4XDLW.js";
-import { A as Xe, B as j, C as M, D as Ze, E as N, G as Qe, H as P, J as $e, L as et, O as F, R as tt, S as nt, T as I, W as rt, _ as it, a as at, b as ot, c as st, ct as L, d as ct, dt as R, f as lt, g as ut, h as dt, i as ft, j as pt, k as z, l as mt, lt as ht, m as gt, n as _t, nt as B, o as vt, p as yt, q as bt, r as xt, s as St, t as Ct, tt as wt, u as Tt, ut as V, y as Et } from "./mjr-primevue-DtKnnCVn.js";
-import { t as Dt } from "./mjr-vue-vendor-BU1tBlvz.js";
-import { t as Ot } from "./viewerOpenRequest-DQQY02Vk.js";
-import { a as kt, i as At, n as jt, o as Mt, r as Nt, t as Pt } from "./geninfoParser-DS9m_bHm.js";
+import { $ as e, At as t, Bt as n, Ct as r, Dt as i, Et as a, I as o, It as s, K as c, Mt as l, N as u, Nt as d, O as f, Ot as p, Pt as m, Q as h, Qt as g, R as _, Rt as v, S as y, St as b, T as x, Tt as S, Ut as C, Vt as ee, Wt as te, X as w, Xt as T, Y as ne, Yt as re, Z as ie, Zt as E, an as ae, at as oe, ct as se, et as ce, ht as le, it as ue, jt as de, k as D, kt as fe, lt as pe, nt as me, on as he, p as ge, qt as _e, rt as ve, st as ye, tt as be, ut as xe, w as Se, wt as Ce, xt as we, zt as Te } from "./viewerRuntimeHosts-CuR8T4j6.js";
+import { Ct as Ee, K as De, N as Oe, T as ke, c as Ae, d as je, f as Me, h as Ne, j as Pe, l as Fe, m as O, o as k, p as Ie, pt as Le, s as A, tt as Re, u as ze, x as Be, y as Ve } from "./events-Bamza1ns.js";
+import { F as He, K as Ue, P as We, Y as Ge, f as Ke, m as qe, p as Je } from "./Viewer-Dzb5KE6D.js";
+import { t as Ye } from "./floatingViewerManager-5-IYujSt.js";
+import { A as Xe, B as j, C as M, D as Ze, E as N, G as Qe, H as P, J as $e, L as et, O as F, R as tt, S as nt, T as I, W as rt, _ as it, a as at, b as ot, c as st, ct as L, d as ct, dt as R, f as lt, g as ut, h as dt, i as ft, j as pt, k as z, l as mt, lt as ht, m as gt, n as _t, nt as B, o as vt, p as yt, q as bt, r as xt, s as St, t as Ct, tt as wt, u as Tt, ut as V, y as Et } from "./mjr-primevue-n1rsQYJg.js";
+import { t as Dt } from "./mjr-vue-vendor-D2GeV7Qd.js";
+import { t as Ot } from "./viewerOpenRequest-C4hEgmOj.js";
+import { a as kt, i as At, n as jt, o as Mt, r as Nt, t as Pt } from "./geninfoParser-D91g5NYg.js";
 //#region ui/app/settings/settingsUtils.ts
 var H = (e, t) => {
 	if (typeof e == "boolean") return e;
@@ -219,7 +219,7 @@ var H = (e, t) => {
 		let t = JSON.parse(e), n = t && typeof t == "object" && Number.isInteger(t.version) && t.data && typeof t.data == "object";
 		if (!n && !(t && typeof t == "object" && !Array.isArray(t))) return { ...W };
 		if (n && Number(t.version) > 1) return console.warn("[Majoor] settings schema version is newer than this build, using defaults"), { ...W };
-		let r = n ? t.data : t, i = /* @__PURE__ */ new Set(/* @__PURE__ */ "debug.grid.infiniteScroll.siblings.autoScan.scan.watcher.status.viewer.rtHydrate.observability.feed.sidebar.probeBackend.i18n.paths.db.ratingTagsSync.cache.search.ai.executionGrouping.workflowMinimap.ui.security.safety".split(".")), a = {};
+		let r = n ? t.data : t, i = new Set(/* @__PURE__ */ "debug.grid.infiniteScroll.siblings.autoScan.scan.watcher.status.viewer.rtHydrate.observability.feed.sidebar.probeBackend.i18n.paths.db.ratingTagsSync.cache.search.ai.executionGrouping.workflowMinimap.ui.security.safety".split(".")), a = {};
 		if (r && typeof r == "object") for (let [e, t] of Object.entries(r)) i.has(e) && (a[e] = t);
 		let o = Lt(W, a);
 		if (!n) try {
@@ -255,8 +255,8 @@ var H = (e, t) => {
 		}
 	}
 }, K = (e) => {
-	let t = Number(A.MAX_PAGE_SIZE) || 2e3, n = Math.max(50, Math.min(t, Number(e.grid?.pageSize) || A.DEFAULT_PAGE_SIZE));
-	k.DEFAULT_PAGE_SIZE = n, k.AUTO_SCAN_ON_STARTUP = !!e.autoScan?.onStartup, k.EXECUTION_GROUPING_ENABLED = !!(e.executionGrouping?.enabled ?? A.EXECUTION_GROUPING_ENABLED), k.STATUS_POLL_INTERVAL = Math.max(1e3, Number(e.status?.pollInterval) || A.STATUS_POLL_INTERVAL), k.DEBUG_SAFE_CALL = !!e.debug?.safeCall, k.DEBUG_SAFE_LISTENERS = !!e.debug?.safeListeners, k.DEBUG_VIEWER = !!e.debug?.viewer, k.GRID_MIN_SIZE = Vt(e.grid), k.FEED_GRID_MIN_SIZE = Ht(e.feed), k.GRID_GAP = Math.max(0, Math.min(40, Math.round(U(e.grid?.gap, A.GRID_GAP)))), k.GRID_SHOW_BADGES_EXTENSION = !!(e.grid?.showExtBadge ?? A.GRID_SHOW_BADGES_EXTENSION), k.GRID_SHOW_BADGES_RATING = !!(e.grid?.showRatingBadge ?? A.GRID_SHOW_BADGES_RATING), k.GRID_SHOW_BADGES_TAGS = !!(e.grid?.showTagsBadge ?? A.GRID_SHOW_BADGES_TAGS), k.GRID_SHOW_DETAILS = !!(e.grid?.showDetails ?? A.GRID_SHOW_DETAILS), k.GRID_SHOW_DETAILS_FILENAME = !!(e.grid?.showFilename ?? A.GRID_SHOW_DETAILS_FILENAME), k.GRID_SHOW_DETAILS_DATE = !!(e.grid?.showDate ?? A.GRID_SHOW_DETAILS_DATE), k.GRID_SHOW_DETAILS_DIMENSIONS = !!(e.grid?.showDimensions ?? A.GRID_SHOW_DETAILS_DIMENSIONS), k.GRID_SHOW_DETAILS_GENTIME = !!(e.grid?.showGenTime ?? A.GRID_SHOW_DETAILS_GENTIME), k.GRID_SHOW_HOVER_INFO = !!(e.grid?.showHoverInfo ?? A.GRID_SHOW_HOVER_INFO), k.GRID_SHOW_WORKFLOW_DOT = !!(e.grid?.showWorkflowDot ?? A.GRID_SHOW_WORKFLOW_DOT);
+	let t = Number(A.MAX_PAGE_SIZE) || 2e3;
+	k.DEFAULT_PAGE_SIZE = Math.max(50, Math.min(t, Number(e.grid?.pageSize) || A.DEFAULT_PAGE_SIZE)), k.AUTO_SCAN_ON_STARTUP = !!e.autoScan?.onStartup, k.EXECUTION_GROUPING_ENABLED = !!(e.executionGrouping?.enabled ?? A.EXECUTION_GROUPING_ENABLED), k.STATUS_POLL_INTERVAL = Math.max(1e3, Number(e.status?.pollInterval) || A.STATUS_POLL_INTERVAL), k.DEBUG_SAFE_CALL = !!e.debug?.safeCall, k.DEBUG_SAFE_LISTENERS = !!e.debug?.safeListeners, k.DEBUG_VIEWER = !!e.debug?.viewer, k.GRID_MIN_SIZE = Vt(e.grid), k.FEED_GRID_MIN_SIZE = Ht(e.feed), k.GRID_GAP = Math.max(0, Math.min(40, Math.round(U(e.grid?.gap, A.GRID_GAP)))), k.GRID_SHOW_BADGES_EXTENSION = !!(e.grid?.showExtBadge ?? A.GRID_SHOW_BADGES_EXTENSION), k.GRID_SHOW_BADGES_RATING = !!(e.grid?.showRatingBadge ?? A.GRID_SHOW_BADGES_RATING), k.GRID_SHOW_BADGES_TAGS = !!(e.grid?.showTagsBadge ?? A.GRID_SHOW_BADGES_TAGS), k.GRID_SHOW_DETAILS = !!(e.grid?.showDetails ?? A.GRID_SHOW_DETAILS), k.GRID_SHOW_DETAILS_FILENAME = !!(e.grid?.showFilename ?? A.GRID_SHOW_DETAILS_FILENAME), k.GRID_SHOW_DETAILS_DATE = !!(e.grid?.showDate ?? A.GRID_SHOW_DETAILS_DATE), k.GRID_SHOW_DETAILS_DIMENSIONS = !!(e.grid?.showDimensions ?? A.GRID_SHOW_DETAILS_DIMENSIONS), k.GRID_SHOW_DETAILS_GENTIME = !!(e.grid?.showGenTime ?? A.GRID_SHOW_DETAILS_GENTIME), k.GRID_SHOW_HOVER_INFO = !!(e.grid?.showHoverInfo ?? A.GRID_SHOW_HOVER_INFO), k.GRID_SHOW_WORKFLOW_DOT = !!(e.grid?.showWorkflowDot ?? A.GRID_SHOW_WORKFLOW_DOT);
 	{
 		let t = String(e.grid?.workflowGroupBy ?? A.WORKFLOW_GRID_GROUP_BY).toLowerCase();
 		k.WORKFLOW_GRID_GROUP_BY = [
@@ -271,11 +271,11 @@ var H = (e, t) => {
 		let t = e.grid?.videoAutoplayMode ?? A.GRID_VIDEO_AUTOPLAY_MODE;
 		t ??= e.grid?.videoHoverAutoplay === !1 ? "off" : "hover", t === !0 && (t = "hover"), t === !1 && (t = "off"), t !== "hover" && t !== "always" && t !== "off" && (t = "hover"), k.GRID_VIDEO_AUTOPLAY_MODE = t;
 	}
-	let r = (e, t) => {
+	let n = (e, t) => {
 		let n = String(e || "").trim();
 		return /^[0-9a-fA-F]{6}$/.test(n) && (n = `#${n}`), /^#[0-9a-fA-F]{3,8}$/.test(n) ? n : t;
 	};
-	k.BADGE_STAR_COLOR = r(e.grid?.starColor, A.BADGE_STAR_COLOR), k.BADGE_IMAGE_COLOR = r(e.grid?.badgeImageColor, A.BADGE_IMAGE_COLOR), k.BADGE_VIDEO_COLOR = r(e.grid?.badgeVideoColor, A.BADGE_VIDEO_COLOR), k.BADGE_AUDIO_COLOR = r(e.grid?.badgeAudioColor, A.BADGE_AUDIO_COLOR), k.BADGE_MODEL3D_COLOR = r(e.grid?.badgeModel3dColor, A.BADGE_MODEL3D_COLOR), k.BADGE_DUPLICATE_ALERT_COLOR = r(e.grid?.badgeDuplicateAlertColor, A.BADGE_DUPLICATE_ALERT_COLOR), k.UI_CARD_HOVER_COLOR = r(e.ui?.cardHoverColor, A.UI_CARD_HOVER_COLOR), k.UI_CARD_SELECTION_COLOR = r(e.ui?.cardSelectionColor, A.UI_CARD_SELECTION_COLOR), k.UI_RATING_COLOR = r(e.ui?.ratingColor, A.UI_RATING_COLOR), k.UI_TAG_COLOR = r(e.ui?.tagColor, A.UI_TAG_COLOR);
+	k.BADGE_STAR_COLOR = n(e.grid?.starColor, A.BADGE_STAR_COLOR), k.BADGE_IMAGE_COLOR = n(e.grid?.badgeImageColor, A.BADGE_IMAGE_COLOR), k.BADGE_VIDEO_COLOR = n(e.grid?.badgeVideoColor, A.BADGE_VIDEO_COLOR), k.BADGE_AUDIO_COLOR = n(e.grid?.badgeAudioColor, A.BADGE_AUDIO_COLOR), k.BADGE_MODEL3D_COLOR = n(e.grid?.badgeModel3dColor, A.BADGE_MODEL3D_COLOR), k.BADGE_DUPLICATE_ALERT_COLOR = n(e.grid?.badgeDuplicateAlertColor, A.BADGE_DUPLICATE_ALERT_COLOR), k.UI_CARD_HOVER_COLOR = n(e.ui?.cardHoverColor, A.UI_CARD_HOVER_COLOR), k.UI_CARD_SELECTION_COLOR = n(e.ui?.cardSelectionColor, A.UI_CARD_SELECTION_COLOR), k.UI_RATING_COLOR = n(e.ui?.ratingColor, A.UI_RATING_COLOR), k.UI_TAG_COLOR = n(e.ui?.tagColor, A.UI_TAG_COLOR);
 	try {
 		let e = Array.from(document.querySelectorAll(".mjr-assets-manager"));
 		for (let t of e) t.style.setProperty("--mjr-star-active", k.BADGE_STAR_COLOR), t.style.setProperty("--mjr-badge-image", k.BADGE_IMAGE_COLOR), t.style.setProperty("--mjr-badge-video", k.BADGE_VIDEO_COLOR), t.style.setProperty("--mjr-badge-audio", k.BADGE_AUDIO_COLOR), t.style.setProperty("--mjr-badge-model3d", k.BADGE_MODEL3D_COLOR), t.style.setProperty("--mjr-badge-duplicate-alert", k.BADGE_DUPLICATE_ALERT_COLOR), t.style.setProperty("--mjr-card-hover-color", k.UI_CARD_HOVER_COLOR), t.style.setProperty("--mjr-card-selection-color", k.UI_CARD_SELECTION_COLOR), t.style.setProperty("--mjr-rating-color", k.UI_RATING_COLOR), t.style.setProperty("--mjr-tag-color", k.UI_TAG_COLOR);
@@ -301,7 +301,7 @@ var H = (e, t) => {
 			"bottom"
 		].includes(t) ? t : "right";
 	}
-	k.VIEWER_VIDEO_GRADE_THROTTLE_FPS = Math.max(1, Math.min(60, Math.round(U(e.viewer?.videoGradeThrottleFps, A.VIEWER_VIDEO_GRADE_THROTTLE_FPS)))), k.VIEWER_SCOPES_FPS = Math.max(1, Math.min(60, Math.round(U(e.viewer?.scopesFps, A.VIEWER_SCOPES_FPS)))), k.VIEWER_META_TTL_MS = Math.max(1e3, Math.min(6e5, Math.round(U(e.viewer?.metaTtlMs, A.VIEWER_META_TTL_MS)))), k.VIEWER_META_MAX_ENTRIES = Math.max(50, Math.min(5e3, Math.round(U(e.viewer?.metaMaxEntries, A.VIEWER_META_MAX_ENTRIES)))), k.WORKFLOW_MINIMAP_ENABLED = !!(e.workflowMinimap?.enabled ?? A.WORKFLOW_MINIMAP_ENABLED), k.RT_HYDRATE_CONCURRENCY = Math.max(1, Math.min(16, Math.round(U(e.rtHydrate?.concurrency, A.RT_HYDRATE_CONCURRENCY)))), k.RT_HYDRATE_QUEUE_MAX = Math.max(10, Math.min(5e3, Math.round(U(e.rtHydrate?.queueMax, A.RT_HYDRATE_QUEUE_MAX)))), k.RT_HYDRATE_SEEN_MAX = Math.max(1e3, Math.min(2e5, Math.round(U(e.rtHydrate?.seenMax, A.RT_HYDRATE_SEEN_MAX)))), k.RT_HYDRATE_PRUNE_BUDGET = Math.max(10, Math.min(1e4, Math.round(U(e.rtHydrate?.pruneBudget, A.RT_HYDRATE_PRUNE_BUDGET)))), k.RT_HYDRATE_SEEN_TTL_MS = Math.max(5e3, Math.min(216e5, Math.round(U(e.rtHydrate?.seenTtlMs, A.RT_HYDRATE_SEEN_TTL_MS)))), k.DELETE_CONFIRMATION = !!e.safety?.confirmDeletion, k.DEBUG_VERBOSE_ERRORS = !!e.observability?.verboseErrors, k.WATCHER_MAX_PENDING = Math.max(10, Math.min(5e3, Math.round(U(e.watcher?.maxPending, 500)))), k.WATCHER_MIN_SIZE = Math.max(0, Math.min(1e6, Math.round(U(e.watcher?.minSize, 100)))), k.WATCHER_MAX_SIZE = Math.max(1e5, Math.min(17179869184, Math.round(U(e.watcher?.maxSize, 4294967296)))), k.DB_TIMEOUT_MS = Math.max(1e3, Math.min(3e4, Math.round(U(e.db?.timeoutMs, 5e3)))), k.DB_MAX_CONNECTIONS = Math.max(1, Math.min(100, Math.round(U(e.db?.maxConnections, 10)))), k.DB_QUERY_TIMEOUT_MS = Math.max(500, Math.min(1e4, Math.round(U(e.db?.queryTimeoutMs, 1e3)))), k.SIDEBAR_ASSET_BADGE_ENABLED = !!(e.sidebar?.assetBadgeEnabled ?? A.SIDEBAR_ASSET_BADGE_ENABLED), k.SEARCH_REQUEST_LIMIT = Math.max(10, Math.min(A.MAX_PAGE_SIZE || 2e3, Math.round(U(e.search?.maxResults, A.SEARCH_DEFAULT_LIMIT))));
+	k.VIEWER_VIDEO_GRADE_THROTTLE_FPS = Math.max(1, Math.min(60, Math.round(U(e.viewer?.videoGradeThrottleFps, A.VIEWER_VIDEO_GRADE_THROTTLE_FPS)))), k.VIEWER_SCOPES_FPS = Math.max(1, Math.min(60, Math.round(U(e.viewer?.scopesFps, A.VIEWER_SCOPES_FPS)))), k.VIEWER_META_TTL_MS = Math.max(1e3, Math.min(10 * 6e4, Math.round(U(e.viewer?.metaTtlMs, A.VIEWER_META_TTL_MS)))), k.VIEWER_META_MAX_ENTRIES = Math.max(50, Math.min(5e3, Math.round(U(e.viewer?.metaMaxEntries, A.VIEWER_META_MAX_ENTRIES)))), k.WORKFLOW_MINIMAP_ENABLED = !!(e.workflowMinimap?.enabled ?? A.WORKFLOW_MINIMAP_ENABLED), k.RT_HYDRATE_CONCURRENCY = Math.max(1, Math.min(16, Math.round(U(e.rtHydrate?.concurrency, A.RT_HYDRATE_CONCURRENCY)))), k.RT_HYDRATE_QUEUE_MAX = Math.max(10, Math.min(5e3, Math.round(U(e.rtHydrate?.queueMax, A.RT_HYDRATE_QUEUE_MAX)))), k.RT_HYDRATE_SEEN_MAX = Math.max(1e3, Math.min(2e5, Math.round(U(e.rtHydrate?.seenMax, A.RT_HYDRATE_SEEN_MAX)))), k.RT_HYDRATE_PRUNE_BUDGET = Math.max(10, Math.min(1e4, Math.round(U(e.rtHydrate?.pruneBudget, A.RT_HYDRATE_PRUNE_BUDGET)))), k.RT_HYDRATE_SEEN_TTL_MS = Math.max(5e3, Math.min(360 * 6e4, Math.round(U(e.rtHydrate?.seenTtlMs, A.RT_HYDRATE_SEEN_TTL_MS)))), k.DELETE_CONFIRMATION = !!e.safety?.confirmDeletion, k.DEBUG_VERBOSE_ERRORS = !!e.observability?.verboseErrors, k.WATCHER_MAX_PENDING = Math.max(10, Math.min(5e3, Math.round(U(e.watcher?.maxPending, 500)))), k.WATCHER_MIN_SIZE = Math.max(0, Math.min(1e6, Math.round(U(e.watcher?.minSize, 100)))), k.WATCHER_MAX_SIZE = Math.max(1e5, Math.min(17179869184, Math.round(U(e.watcher?.maxSize, 4294967296)))), k.DB_TIMEOUT_MS = Math.max(1e3, Math.min(3e4, Math.round(U(e.db?.timeoutMs, 5e3)))), k.DB_MAX_CONNECTIONS = Math.max(1, Math.min(100, Math.round(U(e.db?.maxConnections, 10)))), k.DB_QUERY_TIMEOUT_MS = Math.max(500, Math.min(1e4, Math.round(U(e.db?.queryTimeoutMs, 1e3)))), k.SIDEBAR_ASSET_BADGE_ENABLED = !!(e.sidebar?.assetBadgeEnabled ?? A.SIDEBAR_ASSET_BADGE_ENABLED), k.SEARCH_REQUEST_LIMIT = Math.max(10, Math.min(A.MAX_PAGE_SIZE || 2e3, Math.round(U(e.search?.maxResults, A.SEARCH_DEFAULT_LIMIT))));
 };
 async function Gt() {
 	try {
@@ -2069,8 +2069,8 @@ function Rn(e, n, r, i) {
 			}
 		}), setTimeout(u, 0), (async () => {
 			try {
-				let e = (await w())?.data?.prefs || {}, t = !!e?.has_token, n = String(e?.token_hint || "").trim(), r = t ? `Configured ${n || "(saved)"}` : "Paste HuggingFace token (hf_...)";
-				d(r);
+				let e = (await w())?.data?.prefs || {}, t = !!e?.has_token, n = String(e?.token_hint || "").trim();
+				d(t ? `Configured ${n || "(saved)"}` : "Paste HuggingFace token (hf_...)");
 			} catch (e) {
 				console.debug?.(e);
 			}
@@ -2186,26 +2186,23 @@ function Rn(e, n, r, i) {
 								label: "running"
 							}
 						} });
-					} else {
-						let e = O("toast.vectorBackfillComplete", "Vector backfill complete! Processed: {processed}, Indexed: {indexed}, Skipped: {skipped}", {
-							processed: o,
+					} else E(O("toast.vectorBackfillComplete", "Vector backfill complete! Processed: {processed}, Indexed: {indexed}, Skipped: {skipped}", {
+						processed: o,
+						indexed: s,
+						skipped: c
+					}), "success", void 0, { history: {
+						...t.history,
+						status: "succeeded",
+						detail: `Processed ${o}, indexed ${s}, skipped ${c}`,
+						progress: {
+							current: o,
+							total: o,
+							percent: o > 0 ? 100 : null,
 							indexed: s,
-							skipped: c
-						});
-						E(e, "success", void 0, { history: {
-							...t.history,
-							status: "succeeded",
-							detail: `Processed ${o}, indexed ${s}, skipped ${c}`,
-							progress: {
-								current: o,
-								total: o,
-								percent: o > 0 ? 100 : null,
-								indexed: s,
-								skipped: c,
-								label: "done"
-							}
-						} });
-					}
+							skipped: c,
+							label: "done"
+						}
+					} });
 					try {
 						let e = await _e();
 						e?.ok && console.debug?.("[Majoor] Vector stats after backfill:", e.data);
@@ -2421,7 +2418,7 @@ var Hn = "Majoor Assets Manager", Un = /^\s*Majoor:\s*/i, Wn = Object.freeze({
 	GENERAL: "General",
 	ADVANCED: "Advanced",
 	SECURITY: "Security"
-}), Gn = /* @__PURE__ */ new Set([
+}), Gn = new Set([
 	"grid.starColor",
 	"grid.badgeImageColor",
 	"grid.badgeVideoColor",
@@ -2708,7 +2705,7 @@ function jr() {
 }
 //#endregion
 //#region ui/features/dnd/utils/constants.ts
-var Mr = "application/x-mjr-asset", Nr = "application/x-mjr-assets", Pr = "application/x-comfy-asset-info", Fr = /* @__PURE__ */ new Set([
+var Mr = "application/x-mjr-asset", Nr = "application/x-mjr-assets", Pr = "application/x-comfy-asset-info", Fr = new Set([
 	".png",
 	".jpg",
 	".jpeg",
@@ -2717,13 +2714,13 @@ var Mr = "application/x-mjr-asset", Nr = "application/x-mjr-assets", Pr = "appli
 	".bmp",
 	".avif",
 	".jxl"
-]), Ir = /* @__PURE__ */ new Set([
+]), Ir = new Set([
 	".mp4",
 	".mov",
 	".mkv",
 	".webm",
 	".avi"
-]), Lr = /* @__PURE__ */ new Set([
+]), Lr = new Set([
 	".wav",
 	".mp3",
 	".flac",
@@ -2731,7 +2728,7 @@ var Mr = "application/x-mjr-asset", Nr = "application/x-mjr-assets", Pr = "appli
 	".m4a",
 	".aac",
 	".opus"
-]), Rr = /* @__PURE__ */ new Set([
+]), Rr = new Set([
 	".obj",
 	".fbx",
 	".glb",
@@ -2744,20 +2741,20 @@ var Mr = "application/x-mjr-asset", Nr = "application/x-mjr-assets", Pr = "appli
 ]), zr = (e) => {
 	if (!e) return !1;
 	let t = e.lastIndexOf(".");
-	return t !== -1 && Fr.has(e.slice(t).toLowerCase());
-}, Br = (e) => e ? String(e.kind || "").toLowerCase() === "image" || zr(e.filename) : !1, Vr = (e) => {
+	return t === -1 ? !1 : Fr.has(e.slice(t).toLowerCase());
+}, Br = (e) => e ? String(e.kind || "").toLowerCase() === "image" ? !0 : zr(e.filename) : !1, Vr = (e) => {
 	if (!e) return !1;
 	let t = e.lastIndexOf(".");
-	return t !== -1 && Ir.has(e.slice(t).toLowerCase());
-}, Hr = (e) => e ? String(e.kind || "").toLowerCase() === "video" || Vr(e.filename) : !1, Ur = (e) => {
+	return t === -1 ? !1 : Ir.has(e.slice(t).toLowerCase());
+}, Hr = (e) => e ? String(e.kind || "").toLowerCase() === "video" ? !0 : Vr(e.filename) : !1, Ur = (e) => {
 	if (!e) return !1;
 	let t = e.lastIndexOf(".");
-	return t !== -1 && Lr.has(e.slice(t).toLowerCase());
-}, Wr = (e) => e ? String(e.kind || "").toLowerCase() === "audio" || Ur(e.filename) : !1, Gr = (e) => {
+	return t === -1 ? !1 : Lr.has(e.slice(t).toLowerCase());
+}, Wr = (e) => e ? String(e.kind || "").toLowerCase() === "audio" ? !0 : Ur(e.filename) : !1, Gr = (e) => {
 	if (!e) return !1;
 	let t = e.lastIndexOf(".");
-	return t !== -1 && Rr.has(e.slice(t).toLowerCase());
-}, Kr = (e) => e ? String(e.kind || "").toLowerCase() === "model3d" || Gr(e.filename) : !1, qr = (e) => Br(e) || Hr(e) || Wr(e) || Kr(e) || String(e?.kind || "").toLowerCase() === "workflow", Jr = {
+	return t === -1 ? !1 : Rr.has(e.slice(t).toLowerCase());
+}, Kr = (e) => e ? String(e.kind || "").toLowerCase() === "model3d" ? !0 : Gr(e.filename) : !1, qr = (e) => Br(e) || Hr(e) || Wr(e) || Kr(e) || String(e?.kind || "").toLowerCase() === "workflow", Jr = {
 	mp4: "video/mp4",
 	mov: "video/quicktime",
 	webm: "video/webm",
@@ -2840,17 +2837,15 @@ var Mr = "application/x-mjr-asset", Nr = "application/x-mjr-assets", Pr = "appli
 	if (!e || e.type !== "combo" || !e.options) return;
 	let n = e.options.values, r = e.options;
 	if (typeof n != "function") {
-		if (!Array.isArray(n)) {
-			if (n && typeof n == "object" && Array.isArray(n.values)) r = n, n = n.values;
-			else return;
-		}
+		if (!Array.isArray(n)) if (n && typeof n == "object" && Array.isArray(n.values)) r = n, n = n.values;
+		else return;
 		n.some((e) => typeof e == "string" ? e === t : (e?.content ?? e?.value ?? e?.text) === t) || (n.length === 0 || typeof n[0] == "string" ? n.unshift(t) : n.unshift({
 			content: t,
 			text: t,
 			value: t
 		}), r.values = n);
 	}
-}, di = /* @__PURE__ */ new Set([
+}, di = new Set([
 	"number",
 	"int",
 	"float",
@@ -2906,7 +2901,7 @@ var Mr = "application/x-mjr-asset", Nr = "application/x-mjr-assets", Pr = "appli
 	}
 	return c.w;
 }, gi = {
-	exactNames: /* @__PURE__ */ new Set([
+	exactNames: new Set([
 		"video_path",
 		"input_video",
 		"source_video",
@@ -2947,12 +2942,12 @@ var Mr = "application/x-mjr-asset", Nr = "application/x-mjr-assets", Pr = "appli
 		],
 		score: 45
 	}],
-	exactSingleNames: /* @__PURE__ */ new Set(["video"]),
+	exactSingleNames: new Set(["video"]),
 	looksLikeFn: Xr,
 	comboChecker: Qr,
 	scoreKey: "__mjrVideoPickScore"
 }, _i = {
-	exactNames: /* @__PURE__ */ new Set([
+	exactNames: new Set([
 		"image",
 		"image_path",
 		"input_image",
@@ -3005,12 +3000,12 @@ var Mr = "application/x-mjr-asset", Nr = "application/x-mjr-assets", Pr = "appli
 		],
 		score: 35
 	}],
-	exactSingleNames: /* @__PURE__ */ new Set(["image", "face"]),
+	exactSingleNames: new Set(["image", "face"]),
 	looksLikeFn: $r,
 	comboChecker: ei,
 	scoreKey: "__mjrImagePickScore"
 }, vi = {
-	exactNames: /* @__PURE__ */ new Set([
+	exactNames: new Set([
 		"audio_path",
 		"input_audio",
 		"source_audio",
@@ -3056,12 +3051,12 @@ var Mr = "application/x-mjr-asset", Nr = "application/x-mjr-assets", Pr = "appli
 		],
 		score: 45
 	}],
-	exactSingleNames: /* @__PURE__ */ new Set(["audio", "voice"]),
+	exactSingleNames: new Set(["audio", "voice"]),
 	looksLikeFn: ti,
 	comboChecker: ni,
 	scoreKey: "__mjrAudioPickScore"
 }, yi = {
-	exactNames: /* @__PURE__ */ new Set([
+	exactNames: new Set([
 		"model_path",
 		"input_model",
 		"source_model",
@@ -3114,7 +3109,7 @@ var Mr = "application/x-mjr-asset", Nr = "application/x-mjr-assets", Pr = "appli
 		terms: ["asset", "resource"],
 		score: 30
 	}],
-	exactSingleNames: /* @__PURE__ */ new Set([
+	exactSingleNames: new Set([
 		"model",
 		"mesh",
 		"geometry"
@@ -3131,7 +3126,7 @@ var Mr = "application/x-mjr-asset", Nr = "application/x-mjr-assets", Pr = "appli
 	if (!i || !a) return null;
 	let o = i.getBoundingClientRect(), s = Number(a.scale) || 1, c = a.offset || [0, 0], l = Array.isArray(c) ? Number(c[0]) || 0 : Number(c?.x) || 0, u = Array.isArray(c) ? Number(c[1]) || 0 : Number(c?.y) || 0, d = (n - o.left) / s - l, f = (r - o.top) / s - u, p = t.pos[0], m = t.pos[1], h = t.constructor.title_height || 30;
 	for (let e = 0; e < t.inputs.length; e++) {
-		let n = t.inputs[e], r = m + h + e * 20 + 10, i = d - p, a = f - r;
+		let n = t.inputs[e], r = m + h + e * 20 + 20 / 2, i = d - p, a = f - r;
 		if (Math.abs(i) <= 18 && Math.abs(a) <= 12) return {
 			index: e,
 			input: n
@@ -3472,7 +3467,7 @@ function ta(e, t, n = null) {
 	if (!m.length) return r.clearRect(0, 0, l, u), null;
 	let v = m[0].x, y = m[0].y, b = m[0].x + m[0].w, x = m[0].y + m[0].h;
 	for (let e of m) v = Math.min(v, e.x), y = Math.min(y, e.y), b = Math.max(b, e.x + e.w), x = Math.max(x, e.y + e.h);
-	let S = Math.max(1, b - v), C = Math.max(1, x - y), ee = v + S / 2, te = y + C / 2, w = i.view && typeof i.view == "object" ? i.view : Object.create(null), T = Qi(w.zoom ?? 1, qi, Ji), ne = Math.max(1, S / T), re = Math.max(1, C / T), ie = ne / 2, E = re / 2, ae = ne >= S ? ee : Qi(w.centerX ?? ee, v + ie, b - ie), oe = re >= C ? te : Qi(w.centerY ?? te, y + E, x - E), se = ae - ie, ce = oe - E, le = Ki, ue = Math.min((l - 12) / ne, (u - 12) / re), de = w.hoveredNodeId !== null && w.hoveredNodeId !== void 0 ? String(w.hoveredNodeId) : null;
+	let S = Math.max(1, b - v), C = Math.max(1, x - y), ee = v + S / 2, te = y + C / 2, w = i.view && typeof i.view == "object" ? i.view : Object.create(null), T = Qi(w.zoom ?? 1, qi, Ji), ne = Math.max(1, S / T), re = Math.max(1, C / T), ie = ne / 2, E = re / 2, ae = ne >= S ? ee : Qi(w.centerX ?? ee, v + ie, b - ie), oe = re >= C ? te : Qi(w.centerY ?? te, y + E, x - E), se = ae - ie, ce = oe - E, le = Ki, ue = Math.min((l - le * 2) / ne, (u - le * 2) / re), de = w.hoveredNodeId !== null && w.hoveredNodeId !== void 0 ? String(w.hoveredNodeId) : null;
 	r.clearRect(0, 0, l, u), r.fillStyle = "rgba(0,0,0,0.22)", r.fillRect(0, 0, l, u);
 	let D = (e, t) => ({
 		x: le + (e - se) * ue,
@@ -3949,7 +3944,7 @@ function ba(e) {
 	return t.dataset.mjrKeepAliveHost = String(e || "_mjrVueApp"), t.style.height = "100%", t.style.width = "100%", t.style.minHeight = "0", t.style.display = "flex", t.style.flexDirection = "column", t.style.overflow = "hidden", t;
 }
 function xa(e, t) {
-	!e || !t || (e.style.height = "100%", e.style.minHeight = "0", e.style.display = "flex", e.style.flexDirection = "column", e.style.overflow = "hidden", (e.firstChild !== t || e.childNodes.length !== 1) && (e.replaceChildren(t), ya(t?.dataset?.mjrKeepAliveHost, t, e)));
+	!e || !t || (e.style.height = "100%", e.style.minHeight = "0", e.style.display = "flex", e.style.flexDirection = "column", e.style.overflow = "hidden", !(e.firstChild === t && e.childNodes.length === 1) && (e.replaceChildren(t), ya(t?.dataset?.mjrKeepAliveHost, t, e)));
 }
 function Sa(e, t, n = "_mjrVueApp") {
 	if (!e) return !1;
@@ -4300,7 +4295,7 @@ var Ma = {
 			title: String(e.value || "")
 		}, R(e.value), 13, Fa)]))), 128))])])) : F("", !0);
 	}
-}, La = /* @__PURE__ */ new Set([
+}, La = new Set([
 	"png",
 	"jpg",
 	"jpeg",
@@ -4396,7 +4391,7 @@ function Ya(e) {
 	return e?.metadata_raw && t.push(e.metadata_raw), e?.workflow && t.push(e.workflow), e?.metadata_raw?.workflow && t.push(e.metadata_raw.workflow), e?.metadata_raw?.raw_ffprobe?.format?.tags && t.push(e.metadata_raw.raw_ffprobe.format.tags), e?.metadata_raw?.ffprobe?.format?.tags && t.push(e.metadata_raw.ffprobe.format.tags), e?.geninfo && typeof e.geninfo == "object" && t.push({ geninfo: e.geninfo }), e?.metadata && (typeof e.metadata == "object" || typeof e.metadata == "string") && t.push(e.metadata), e?.prompt && (typeof e.prompt == "object" || typeof e.prompt == "string") && t.push(e.prompt), e?.exif && t.push(e.exif), e && typeof e == "object" && t.push(e), t;
 }
 function Xa(e, t) {
-	for (let [n, r] of Object.entries(t)) r != null && r !== "" && (e[n] === void 0 || e[n] === null || e[n] === "") && (e[n] = r);
+	for (let [n, r] of Object.entries(t)) r == null || r === "" || (e[n] === void 0 || e[n] === null || e[n] === "") && (e[n] = r);
 }
 function Za(e) {
 	let t = Ya(e), n = {};
@@ -4637,7 +4632,7 @@ function go(e, t, n, r) {
 	let o = /* @__PURE__ */ new Set();
 	return i.filter((e) => {
 		let t = `${e.key}:${e.title}:${JSON.stringify(e.fields)}`;
-		return !o.has(t) && (o.add(t), !0);
+		return o.has(t) ? !1 : (o.add(t), !0);
 	});
 }
 function _o(e) {
@@ -5143,7 +5138,7 @@ var Co = ["title"], wo = ["src"], To = {
 	setup(e) {
 		let t = e, n = B(0), r = B(!1), i = null;
 		function a() {
-			return i ||= import("./floatingViewerManager-BVG4XDLW.js").then((e) => e.n), i;
+			return i ||= import("./floatingViewerManager-5-IYujSt.js").then((e) => e.n), i;
 		}
 		function o() {
 			return (Array.isArray(t.inputFile?.previewCandidates) ? t.inputFile.previewCandidates : [])[n.value] || "";
@@ -5211,14 +5206,13 @@ var Co = ["title"], wo = ["src"], To = {
 			return qa(o()) || !!t.inputFile?.filename || !!t.inputFile?.filepath;
 		}
 		function h() {
-			let e = u();
 			if (Ot({
-				asset: e,
+				asset: u(),
 				index: 0
 			})) return;
-			let t = o();
-			if (qa(t)) try {
-				window.open(t, "_blank", "noopener,noreferrer");
+			let e = o();
+			if (qa(e)) try {
+				window.open(e, "_blank", "noopener,noreferrer");
 			} catch (e) {
 				console.debug?.(e);
 			}
@@ -5271,8 +5265,7 @@ var Co = ["title"], wo = ["src"], To = {
 				E(O("toast.loadAssetFailed", "Failed to load asset."), "error");
 				return;
 			}
-			let r = e.kind ? e.kind.charAt(0).toUpperCase() + e.kind.slice(1) : "Asset";
-			E(O("toast.assetLoadedToCanvas", "{kind} loader added to canvas.", { kind: r }), "success", 1800);
+			E(O("toast.assetLoadedToCanvas", "{kind} loader added to canvas.", { kind: e.kind ? e.kind.charAt(0).toUpperCase() + e.kind.slice(1) : "Asset" }), "success", 1800);
 		}
 		function y(e) {
 			e?.preventDefault?.(), e?.stopPropagation?.();

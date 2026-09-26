@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-import os
 import sqlite3
 
 from aiohttp import web
 from mjr_am_backend.config import get_runtime_index_db_path
 from mjr_am_backend.shared import get_logger
 from mjr_am_backend.utils import parse_bool
+from mjr_am_shared.runtime_env import get_env
 
 logger = get_logger(__name__)
 
@@ -31,7 +31,7 @@ def _route_verbose_logs_enabled() -> bool:
 def _read_route_verbose_logs_env() -> bool | None:
     for key in _ROUTE_VERBOSE_LOG_ENV_KEYS:
         try:
-            raw = os.environ.get(key)
+            raw = get_env(key)
         except Exception:
             raw = None
         if raw is None or str(raw).strip() == "":

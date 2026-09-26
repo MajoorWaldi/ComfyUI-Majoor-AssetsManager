@@ -1,6 +1,7 @@
 """
 Shared helper functions and constants for scan/upload/stage handlers.
 """
+
 import asyncio
 import os
 import tempfile
@@ -11,6 +12,7 @@ from typing import Any
 from mjr_am_backend.config import OUTPUT_ROOT
 from mjr_am_backend.shared import Result, get_logger, sanitize_error_message
 from mjr_am_backend.utils import env_float
+from mjr_am_shared.runtime_env import get_env
 
 from ..core import safe_error_message
 
@@ -22,7 +24,7 @@ logger = get_logger(__name__)
 
 _DEFAULT_MAX_UPLOAD_SIZE_BYTES = 500 * 1024 * 1024
 try:
-    _DB_CONSISTENCY_SAMPLE = int(os.environ.get("MJR_DB_CONSISTENCY_SAMPLE", "32"))
+    _DB_CONSISTENCY_SAMPLE = int(get_env("MJR_DB_CONSISTENCY_SAMPLE", "32"))
 except Exception as exc:
     logger.warning("Invalid MJR_DB_CONSISTENCY_SAMPLE value; using default 32 (%s)", exc)
     _DB_CONSISTENCY_SAMPLE = 32
@@ -35,7 +37,7 @@ _MAX_FILENAME_LEN = 255
 
 def _env_int(name: str, default: int, *, minimum: int = 1) -> int:
     try:
-        value = int(os.environ.get(name, str(default)))
+        value = int(get_env(name, str(default)))
     except Exception:
         value = default
     return max(minimum, value)
@@ -163,7 +165,7 @@ def _default_allowed_upload_exts() -> set[str]:
 
 def _add_env_upload_extensions(allowed: set[str]) -> None:
     try:
-        extra = os.environ.get("MJR_UPLOAD_EXTRA_EXT", "")
+        extra = get_env("MJR_UPLOAD_EXTRA_EXT", "")
     except Exception:
         return
     if not extra:

@@ -16,6 +16,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from mjr_am_shared.runtime_env import get_env
+
 from ...adapters.tools.exiftool import ExifTool
 from ...features.index.watcher import mark_recent_generated
 from ...shared import ErrorCode, Result, get_logger
@@ -27,7 +29,7 @@ WIN_SHELL_COL_SCAN_MAX = 256
 WIN_SHELL_DEFAULT_RATING_COL_IDX = 14
 WIN_SHELL_DEFAULT_TAGS_COL_IDX = 21
 try:
-    RT_SYNC_PENDING_MAX = max(128, int(os.getenv("MAJOOR_RT_SYNC_PENDING_MAX", "5000") or 5000))
+    RT_SYNC_PENDING_MAX = max(128, int(get_env("MAJOOR_RT_SYNC_PENDING_MAX", "5000") or 5000))
 except Exception:
     RT_SYNC_PENDING_MAX = 5000
 

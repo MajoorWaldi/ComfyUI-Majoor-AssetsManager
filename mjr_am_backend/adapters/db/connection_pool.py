@@ -1,12 +1,14 @@
 """
 Connection pool and runtime/lock-pruner helpers extracted from sqlite.py.
 """
+
 import json
-import os
 import threading
 import time
 from pathlib import Path
 from typing import Any
+
+from mjr_am_shared.runtime_env import get_env
 
 from ...shared import get_logger
 from ...startup_logging import startup_log_info
@@ -43,7 +45,7 @@ def load_user_db_config(sqlite_obj: Any) -> dict[str, Any]:
 
 def resolve_user_db_config_path(sqlite_obj: Any) -> Path:
     default_path = sqlite_obj.db_path.parent / "db_config.json"
-    cfg_path_raw = os.getenv("MAJOOR_DB_CONFIG_PATH", "").strip()
+    cfg_path_raw = get_env("MAJOOR_DB_CONFIG_PATH", "").strip()
     if not cfg_path_raw:
         return default_path
     try:

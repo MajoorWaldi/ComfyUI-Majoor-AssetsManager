@@ -19,6 +19,8 @@ from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
+from mjr_am_shared.runtime_env import get_env
+
 from ...config import COLLECTIONS_DIR_PATH
 from ...shared import ErrorCode, Result, classify_file, get_logger
 
@@ -36,7 +38,7 @@ _ID_RE = re.compile(rf"^[a-zA-Z0-9_-]{{{MIN_COLLECTION_ID_LEN},{MAX_COLLECTION_I
 _USER_SEGMENT_RE = re.compile(r"[^A-Za-z0-9._-]+")
 _DEFAULT_MAX_ITEMS = DEFAULT_MAX_COLLECTION_ITEMS
 try:
-    _MAX_COLLECTION_ITEMS = int(os.environ.get("MJR_COLLECTION_MAX_ITEMS", str(_DEFAULT_MAX_ITEMS)))
+    _MAX_COLLECTION_ITEMS = int(get_env("MJR_COLLECTION_MAX_ITEMS", str(_DEFAULT_MAX_ITEMS)))
 except Exception:
     _MAX_COLLECTION_ITEMS = _DEFAULT_MAX_ITEMS
 _MAX_COLLECTION_ITEMS = max(MIN_COLLECTION_ITEMS, min(HARD_MAX_COLLECTION_ITEMS, int(_MAX_COLLECTION_ITEMS or _DEFAULT_MAX_ITEMS)))

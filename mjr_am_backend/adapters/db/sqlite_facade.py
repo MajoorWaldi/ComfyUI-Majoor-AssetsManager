@@ -20,7 +20,6 @@ from __future__ import annotations
 import asyncio
 import concurrent.futures
 import contextvars
-import os
 import re
 import threading
 from contextlib import asynccontextmanager
@@ -29,6 +28,7 @@ from queue import Queue
 from typing import Any
 
 import aiosqlite
+from mjr_am_shared.runtime_env import get_env
 
 from ...config import DB_MAX_CONNECTIONS, DB_QUERY_TIMEOUT, DB_TIMEOUT
 from ...shared import ErrorCode, Result, get_logger
@@ -159,11 +159,11 @@ logger = get_logger(__name__)
 SQLITE_BUSY_TIMEOUT_MS = max(1000, int(float(DB_TIMEOUT) * 1000))
 # Negative cache_size is in KiB. -64000 ~= 64 MiB cache.
 SQLITE_CACHE_SIZE_KIB = -64000
-ASSET_LOCKS_MAX = int(os.getenv("MAJOOR_ASSET_LOCKS_MAX", "10000") or 10000)
-ASSET_LOCKS_TTL_S = float(os.getenv("MAJOOR_ASSET_LOCKS_TTL_SECONDS", "600") or 600.0)
-ASSET_LOCKS_PRUNE_INTERVAL_S = float(os.getenv("MAJOOR_ASSET_LOCKS_PRUNE_INTERVAL_SECONDS", "60") or 60.0)
+ASSET_LOCKS_MAX = int(get_env("MAJOOR_ASSET_LOCKS_MAX", "10000") or 10000)
+ASSET_LOCKS_TTL_S = float(get_env("MAJOOR_ASSET_LOCKS_TTL_SECONDS", "600") or 600.0)
+ASSET_LOCKS_PRUNE_INTERVAL_S = float(get_env("MAJOOR_ASSET_LOCKS_PRUNE_INTERVAL_SECONDS", "60") or 60.0)
 ASYNC_LOOP_RUN_TIMEOUT_S = float(
-    os.getenv(
+    get_env(
         "MAJOOR_DB_LOOP_RUN_TIMEOUT_SECONDS",
         str(max(5.0, float(DB_QUERY_TIMEOUT) if DB_QUERY_TIMEOUT else 60.0)),
     )

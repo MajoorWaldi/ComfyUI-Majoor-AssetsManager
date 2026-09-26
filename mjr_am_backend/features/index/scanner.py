@@ -1,13 +1,15 @@
 """
 Index scanner - handles directory scanning and file indexing operations.
 """
+
 import asyncio
 import json
-import os
 import sqlite3
 import threading
 import weakref
 from typing import Any
+
+from mjr_am_shared.runtime_env import get_env
 
 from ...adapters.db.sqlite import Sqlite
 from ...config import MAX_TO_ENRICH_ITEMS, is_vector_index_on_scan_enabled
@@ -131,7 +133,7 @@ def _is_fatal_db_error(exc: Exception) -> bool:
 
 def _vector_index_concurrency() -> int:
     try:
-        return max(1, int(os.environ.get("MJR_VECTOR_CONCURRENCY", str(_VECTOR_INDEX_DEFAULT_CONCURRENCY))))
+        return max(1, int(get_env("MJR_VECTOR_CONCURRENCY", str(_VECTOR_INDEX_DEFAULT_CONCURRENCY))))
     except (TypeError, ValueError):
         return _VECTOR_INDEX_DEFAULT_CONCURRENCY
 

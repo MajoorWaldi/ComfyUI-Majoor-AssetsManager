@@ -30,7 +30,6 @@ import logging
 import math
 import os
 import struct
-import subprocess
 import sys
 import threading
 import time
@@ -38,6 +37,9 @@ import warnings
 from collections.abc import Sequence
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
+
+from mjr_am_backend.adapters.tools import external_tools, local_media
+from mjr_am_shared.runtime_env import get_env, set_env, unset_env
 
 from ...config import (
     FFPROBE_BIN,
@@ -94,10 +96,10 @@ def unload_global_model_cache() -> dict[str, int]:
 
 def _ai_verbose_logs_enabled() -> bool:
     raw = str(
-        os.environ.get("MAJOOR_AI_VERBOSE_LOGS")
-        or os.environ.get("MJR_AM_AI_VERBOSE_LOGS")
-        or os.environ.get("MAJOOR_VERBOSE_AI_LOGS")
-        or os.environ.get("MJR_AM_VERBOSE_AI_LOGS")
+        get_env("MAJOOR_AI_VERBOSE_LOGS")
+        or get_env("MJR_AM_AI_VERBOSE_LOGS")
+        or get_env("MAJOOR_VERBOSE_AI_LOGS")
+        or get_env("MJR_AM_VERBOSE_AI_LOGS")
         or ""
     ).strip().lower()
     return raw in {"1", "true", "yes", "on", "enabled", "enable"}
@@ -117,8 +119,8 @@ def _configure_hf_quiet_mode() -> None:
             "TQDM_DISABLE",
             "TRANSFORMERS_NO_ADVISORY_WARNINGS",
         ):
-            os.environ.pop(key, None)
-        os.environ["TRANSFORMERS_VERBOSITY"] = "info"
+            unset_env(key)
+        set_env("TRANSFORMERS_VERBOSITY", "info")
         logging.getLogger("httpx").setLevel(logging.INFO)
         logging.getLogger("httpcore").setLevel(logging.INFO)
         logging.getLogger("huggingface_hub").setLevel(logging.INFO)
@@ -129,10 +131,10 @@ def _configure_hf_quiet_mode() -> None:
     # Force-set (not setdefault) so repeated calls always win.
     # NOTE: HF_HUB_DISABLE_PROGRESS_BARS and TQDM_DISABLE are intentionally
     # NOT set — download progress bars are kept visible for user feedback.
-    os.environ["HF_HUB_DISABLE_SYMLINKS_WARNING"] = "1"
-    os.environ["HF_HUB_DISABLE_EXPERIMENTAL_WARNING"] = "1"
-    os.environ["TRANSFORMERS_NO_ADVISORY_WARNINGS"] = "1"
-    os.environ["TRANSFORMERS_VERBOSITY"] = "error"
+    set_env("HF_HUB_DISABLE_SYMLINKS_WARNING", "1")
+    set_env("HF_HUB_DISABLE_EXPERIMENTAL_WARNING", "1")
+    set_env("TRANSFORMERS_NO_ADVISORY_WARNINGS", "1")
+    set_env("TRANSFORMERS_VERBOSITY", "error")
     for _logger_name in (
         "httpx", "httpcore",
         "huggingface_hub", "huggingface_hub.file_download",
@@ -257,11 +259,11 @@ def _log_model_loading_once(model_name: str) -> None:
     """Emit a single INFO line per process/model; subsequent attempts are DEBUG only."""
     key_hash = hashlib.sha256(str(model_name or "").encode("utf-8", errors="ignore")).hexdigest()[:16]
     env_key = f"MJR_AM_MODEL_LOAD_LOGGED_{key_hash}"
-    if str(os.environ.get(env_key) or "").strip() == "1":
+    if str(get_env(env_key) or "").strip() == "1":
         logger.debug("Reusing previously logged model load event for '%s'", model_name)
         return
     try:
-        os.environ[env_key] = "1"
+        set_env(env_key, "1")
     except Exception:
         pass
     logger.info("Loading multimodal embedding model '%s' …", model_name)
@@ -306,50 +308,20 @@ def _encode_quiet(model: Any, payload: Any, **kwargs: Any) -> Any:
 # ---------------------------------------------------------------------------
 
 def _extract_video_duration(video_path: str) -> float | None:
-    """Use ffprobe to obtain video duration in seconds."""
+    """Read duration through the shared local-media adapter."""
     try:
-        proc = subprocess.run(
-            [
-                str(FFPROBE_BIN),
-                "-v", "error",
-                "-show_entries", "format=duration",
-                "-of", "default=noprint_wrappers=1:nokey=1",
-                str(video_path),
-            ],
-            capture_output=True,
-            text=True,
-            timeout=15,
-        )
-        if proc.returncode == 0 and proc.stdout.strip():
-            return float(proc.stdout.strip())
+        return local_media.video_duration(video_path, str(FFPROBE_BIN))
     except Exception:
-        pass
-    return None
+        return None
 
 
 def _extract_frame_at(video_path: str, timestamp: float) -> PILImage.Image | None:
-    """Extract a single video frame as a PIL Image at *timestamp* seconds."""
+    """Extract a local video frame through the shared media adapter."""
     try:
-        from PIL import Image as PILImage  # noqa: F811
-
-        proc = subprocess.run(
-            [
-                str(FFPROBE_BIN).replace("ffprobe", "ffmpeg"),
-                "-ss", str(timestamp),
-                "-i", str(video_path),
-                "-frames:v", "1",
-                "-f", "image2pipe",
-                "-vcodec", "png",
-                "-",
-            ],
-            capture_output=True,
-            timeout=30,
-        )
-        if proc.returncode == 0 and proc.stdout:
-            return PILImage.open(io.BytesIO(proc.stdout)).convert("RGB")
+        return local_media.video_frame(video_path, timestamp, str(FFPROBE_BIN))
     except Exception as exc:
         logger.debug("Frame extraction at %.1fs failed: %s", timestamp, exc)
-    return None
+        return None
 
 
 def _build_keyframe_timestamps(duration: float, interval: float) -> list[float]:
@@ -737,6 +709,10 @@ def extract_keyframes(video_path: str, interval: float | None = None) -> list[PI
     Tries ffprobe/ffmpeg first, then falls back to OpenCV (cv2) if the
     ffmpeg-based extraction yields no frames.
     """
+    try:
+        video_path = external_tools.local_media_path(video_path)
+    except (OSError, RuntimeError, ValueError):
+        return []
     interval = interval or VECTOR_VIDEO_KEYFRAME_INTERVAL
     duration = _extract_video_duration(video_path)
     if duration is None or duration <= 0:

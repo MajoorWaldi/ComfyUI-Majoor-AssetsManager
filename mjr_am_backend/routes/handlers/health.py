@@ -1,9 +1,9 @@
 """
 Health check endpoints.
 """
+
 import asyncio
 import hashlib
-import os
 import re
 from collections.abc import Mapping
 from pathlib import Path
@@ -30,6 +30,7 @@ from mjr_am_backend.runtime_activity import (
 from mjr_am_backend.shared import ErrorCode, Result, get_logger, sanitize_error_message
 from mjr_am_backend.tool_detect import get_tool_status
 from mjr_am_backend.utils import parse_bool
+from mjr_am_shared.runtime_env import get_env
 
 from ..core import (
     _check_rate_limit,
@@ -112,7 +113,7 @@ def _hash_api_token(token: str) -> str:
     except Exception:
         normalized = ""
     try:
-        pepper = str(os.environ.get("MAJOOR_API_TOKEN_PEPPER") or "").strip()
+        pepper = str(get_env("MAJOOR_API_TOKEN_PEPPER") or "").strip()
     except Exception:
         pepper = ""
     payload = f"{pepper}\0{normalized}".encode("utf-8", errors="ignore")
@@ -150,7 +151,7 @@ def _is_secure_request_transport(request: web.Request) -> bool:
 
 def _bootstrap_enabled() -> bool:
     try:
-        raw = str(os.environ.get("MAJOOR_ALLOW_BOOTSTRAP") or "").strip().lower()
+        raw = str(get_env("MAJOOR_ALLOW_BOOTSTRAP") or "").strip().lower()
     except Exception:
         raw = ""
     if raw in {"1", "true", "yes", "on"}:
@@ -185,7 +186,7 @@ def _bootstrap_allows_insecure_transport() -> bool:
     except Exception:
         pass
     try:
-        raw = str(os.environ.get("MAJOOR_ALLOW_INSECURE_TOKEN_TRANSPORT") or "").strip().lower()
+        raw = str(get_env("MAJOOR_ALLOW_INSECURE_TOKEN_TRANSPORT") or "").strip().lower()
     except Exception:
         raw = ""
     return raw in {"1", "true", "yes", "on"}
@@ -193,7 +194,7 @@ def _bootstrap_allows_insecure_transport() -> bool:
 
 def _should_expose_token_response() -> bool:
     try:
-        raw = str(os.environ.get("MAJOOR_EXPOSE_TOKEN_IN_RESPONSE") or "").strip().lower()
+        raw = str(get_env("MAJOOR_EXPOSE_TOKEN_IN_RESPONSE") or "").strip().lower()
     except Exception:
         raw = ""
     return raw in {"1", "true", "yes", "on"}
