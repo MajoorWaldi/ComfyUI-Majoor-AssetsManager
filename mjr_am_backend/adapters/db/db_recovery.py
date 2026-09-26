@@ -1,12 +1,14 @@
 """
 Database recovery and diagnostics helpers extracted from sqlite.py.
 """
-import os
+
 import re
 import sqlite3
 import time
 from pathlib import Path
 from typing import Any
+
+from mjr_am_shared.runtime_env import get_env
 
 from ...shared import get_logger
 
@@ -85,7 +87,7 @@ def set_recovery_state(sqlite_obj: Any, state: str, error: str | None = None) ->
 
 def is_auto_reset_enabled() -> bool:
     try:
-        return str(os.getenv("MAJOOR_DB_AUTO_RESET", "true")).strip().lower() in (
+        return str(get_env("MAJOOR_DB_AUTO_RESET", "true")).strip().lower() in (
             "1",
             "true",
             "yes",

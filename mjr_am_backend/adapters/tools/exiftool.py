@@ -1,6 +1,7 @@
 """
 ExifTool adapter for reading and writing metadata.
 """
+
 import asyncio
 import json
 import os
@@ -10,9 +11,12 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
+from mjr_am_shared.runtime_env import get_env
+
 from ...config import EXIFTOOL_TIMEOUT, TOOL_LOW_PRIORITY_SUBPROCESSES
 from ...shared import ErrorCode, Result, get_logger
 from ...tool_candidates import iter_exiftool_candidates
+from . import external_tools
 
 logger = get_logger(__name__)
 
@@ -265,7 +269,7 @@ class ExifTool:
 
     @staticmethod
     def _is_under_trusted_dirs(resolved: str) -> bool:
-        trusted_dirs_raw = str(os.getenv("MAJOOR_EXIFTOOL_TRUSTED_DIRS", "") or "").strip()
+        trusted_dirs_raw = str(get_env("MAJOOR_EXIFTOOL_TRUSTED_DIRS", "") or "").strip()
         if not trusted_dirs_raw:
             return True
         try:
@@ -394,7 +398,7 @@ class ExifTool:
         timeout_s: float,
         stdin_input: bytes | None,
     ) -> subprocess.CompletedProcess:
-        return subprocess.run(
+        return external_tools.run(
             cmd,
             capture_output=True,
             text=False,
@@ -587,7 +591,7 @@ class ExifTool:
             stdin_bytes = None
         else:
             stdin_bytes = str(stdin_input).encode("utf-8", errors="replace")
-        return subprocess.run(
+        return external_tools.run(
             cmd,
             capture_output=True,
             text=False,
@@ -919,7 +923,7 @@ class ExifTool:
         return cmd, stdin_input
 
     def _run_write_command(self, cmd: list[str], stdin_input: str | None):
-        return subprocess.run(
+        return external_tools.run(
             cmd,
             capture_output=True,
             text=False,

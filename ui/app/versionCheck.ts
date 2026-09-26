@@ -7,10 +7,6 @@ import { SettingsStore } from "./settings/SettingsStore.js";
 
 export const VERSION_UPDATE_EVENT = "mjr:version-update-available";
 const VERSION_UPDATE_STATE_KEY = "__MJR_VERSION_UPDATE_STATE__";
-const LATEST_RELEASE_URL =
-    "https://api.github.com/repos/MajoorWaldi/ComfyUI-Majoor-AssetsManager/releases/latest";
-const NIGHTLY_RELEASE_URL =
-    "https://api.github.com/repos/MajoorWaldi/ComfyUI-Majoor-AssetsManager/releases/tags/nightly";
 const LAST_CHECK_KEY = "majoor_last_update_check";
 const VERSION_TOAST_NOTICE_VERSION_KEY = "majoor_version_toast_notice_version";
 const DB_RESET_NOTICE_VERSION_KEY = "majoor_db_reset_notice_version";
@@ -68,68 +64,21 @@ function isNewerVersion(remote: any, local: any): boolean {
     return false;
 }
 
-function createFetchTimeoutSignal(timeoutMs: number): { signal: AbortSignal | undefined; cleanup: () => void } {
-    const ms = Math.max(1, Number(timeoutMs) || 10000);
-    try {
-        if (typeof AbortSignal !== "undefined" && typeof AbortSignal.timeout === "function") {
-            return { signal: AbortSignal.timeout(ms), cleanup: () => {} };
-        }
-    } catch (e) {
-        console.debug?.(e);
+async function fetchReleasePayload(channel: "stable" | "nightly"): Promise<Record<string, unknown>> {
+    const result = await get(`/mjr/am/releases?channel=${channel}`);
+    if (!result?.ok || !result.data || typeof result.data !== "object") {
+        throw new Error(result?.error || "Release check failed");
     }
-    try {
-        if (typeof AbortController !== "undefined") {
-            const controller = new AbortController();
-            const timer = setTimeout(() => {
-                try {
-                    controller.abort();
-                } catch (e) {
-                    console.debug?.(e);
-                }
-            }, ms);
-            return {
-                signal: controller.signal,
-                cleanup: () => {
-                    try {
-                        clearTimeout(timer);
-                    } catch (e) {
-                        console.debug?.(e);
-                    }
-                },
-            };
-        }
-    } catch (e) {
-        console.debug?.(e);
-    }
-    return { signal: undefined, cleanup: () => {} };
-}
-
-async function fetchReleasePayload(url: string): Promise<Record<string, unknown>> {
-    const { signal, cleanup } = createFetchTimeoutSignal(10_000);
-    const response = await fetch(url, {
-        cache: "no-cache",
-        signal,
-        headers: {
-            Accept: "application/vnd.github+json",
-        },
-    }).finally(() => cleanup());
-    if (!response.ok) {
-        throw new Error(`GitHub release request failed (${response.status})`);
-    }
-    const payload = await response.json().catch(() => null);
-    if (!payload || typeof payload !== "object") {
-        throw new Error("GitHub release returned invalid payload");
-    }
-    return payload;
+    return result.data;
 }
 
 async function fetchLatestReleaseVersion(): Promise<string | null> {
-    const payload = await fetchReleasePayload(LATEST_RELEASE_URL);
+    const payload = await fetchReleasePayload("stable");
     return normalizeVersion(payload.tag_name);
 }
 
 async function fetchNightlyReleaseMarker(): Promise<string> {
-    const payload = await fetchReleasePayload(NIGHTLY_RELEASE_URL);
+    const payload = await fetchReleasePayload("nightly");
     const marker = String(
         payload.published_at ||
             payload.created_at ||

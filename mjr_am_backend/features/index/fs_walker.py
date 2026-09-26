@@ -4,6 +4,7 @@ FileSystemWalker — handles filesystem traversal and I/O throttling for directo
 The walker runs on a thread-pool executor and pushes discovered file paths into a
 thread-safe Queue consumed by the async scan loop.
 """
+
 import os
 import threading
 import time
@@ -13,6 +14,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from queue import Empty, Queue
 from typing import Any
+
+from mjr_am_shared.runtime_env import get_env
 
 from ...shared import EXTENSIONS, FileKind, classify_file, get_logger
 
@@ -66,7 +69,7 @@ def scan_candidate_kind(candidate: ScanCandidate | Path) -> FileKind | None:
 # ---------------------------------------------------------------------------
 
 try:
-    _FS_WALK_MAX_WORKERS = max(1, int(os.getenv("MAJOOR_FS_WALK_MAX_WORKERS", "4") or 4))
+    _FS_WALK_MAX_WORKERS = max(1, int(get_env("MAJOOR_FS_WALK_MAX_WORKERS", "4") or 4))
 except Exception:
     _FS_WALK_MAX_WORKERS = 4
 
@@ -76,7 +79,7 @@ _FS_WALK_EXECUTOR = ThreadPoolExecutor(
 )
 
 try:
-    SCAN_IOPS_LIMIT = float(os.getenv("MAJOOR_SCAN_IOPS_LIMIT", "0") or 0.0)
+    SCAN_IOPS_LIMIT = float(get_env("MAJOOR_SCAN_IOPS_LIMIT", "0") or 0.0)
 except Exception:
     SCAN_IOPS_LIMIT = 0.0
 
@@ -96,7 +99,7 @@ except Exception:
 
 def _is_enabled_extension(ext: str) -> bool:
     if ext == ".jxl":
-        return str(os.getenv("MAJOOR_ENABLE_JXL", "")).strip().lower() in {"1", "true", "yes", "on"}
+        return str(get_env("MAJOOR_ENABLE_JXL", "")).strip().lower() in {"1", "true", "yes", "on"}
     return True
 
 

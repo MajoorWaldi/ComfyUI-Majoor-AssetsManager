@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-import os
 import threading
 import time
 from collections import OrderedDict
 
 from aiohttp import web
 from mjr_am_backend.shared import get_logger
+from mjr_am_shared.runtime_env import get_env
 
 logger = get_logger(__name__)
 
@@ -19,14 +19,14 @@ _DEFAULT_RATE_LIMIT_BACKGROUND_CLEANUP_SECONDS = 60
 
 try:
     _MAX_RATE_LIMIT_CLIENTS = int(
-        os.environ.get("MAJOOR_RATE_LIMIT_MAX_CLIENTS", str(_DEFAULT_MAX_RATE_LIMIT_CLIENTS))
+        get_env("MAJOOR_RATE_LIMIT_MAX_CLIENTS", str(_DEFAULT_MAX_RATE_LIMIT_CLIENTS))
     )
 except Exception:
     _MAX_RATE_LIMIT_CLIENTS = _DEFAULT_MAX_RATE_LIMIT_CLIENTS
 
 try:
     _RATE_LIMIT_MIN_WINDOW_SECONDS = int(
-        os.environ.get(
+        get_env(
             "MAJOOR_RATE_LIMIT_MIN_WINDOW_SECONDS", str(_DEFAULT_RATE_LIMIT_MIN_WINDOW_SECONDS)
         )
     )
@@ -35,7 +35,7 @@ except Exception:
 
 try:
     _MAX_RATE_LIMIT_ENDPOINTS_PER_CLIENT = int(
-        os.environ.get(
+        get_env(
             "MAJOOR_RATE_LIMIT_MAX_ENDPOINTS_PER_CLIENT",
             str(_DEFAULT_MAX_RATE_LIMIT_ENDPOINTS_PER_CLIENT),
         )
@@ -45,7 +45,7 @@ except Exception:
 
 try:
     _RATE_LIMIT_BACKGROUND_CLEANUP_SECONDS = int(
-        os.environ.get(
+        get_env(
             "MAJOOR_RATE_LIMIT_BACKGROUND_CLEANUP_SECONDS",
             str(_DEFAULT_RATE_LIMIT_BACKGROUND_CLEANUP_SECONDS),
         )

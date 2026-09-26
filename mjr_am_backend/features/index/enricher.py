@@ -8,6 +8,8 @@ import os
 import time
 from typing import Any
 
+from mjr_am_shared.runtime_env import get_env
+
 from ...adapters.db.sqlite import Sqlite
 from ...runtime_activity import is_generation_busy
 from ...shared import Result, get_logger
@@ -46,7 +48,7 @@ class MetadataEnricher:
     """
 
     # Batch size configurable via MAJOOR_ENRICHER_CHUNK_SIZE.
-    _CHUNK_SIZE = int(os.getenv("MAJOOR_ENRICHER_CHUNK_SIZE", 64))
+    _CHUNK_SIZE = int(get_env("MAJOOR_ENRICHER_CHUNK_SIZE", 64))
 
     def __init__(
         self,

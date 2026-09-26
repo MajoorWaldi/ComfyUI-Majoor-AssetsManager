@@ -9,6 +9,7 @@ import threading
 from pathlib import Path
 from typing import Any
 
+from mjr_am_backend.adapters.tools import external_tools
 from mjr_am_backend.config import (
     EXIFTOOL_BIN,
     EXIFTOOL_MIN_VERSION,
@@ -82,7 +83,7 @@ def _enforce_min_version(name: str, actual: str | None, minimum: str) -> bool:
 
 
 def _run_command(cmd: list[str]) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(
+    return external_tools.run(
         cmd,
         capture_output=True,
         text=True,

@@ -5,6 +5,7 @@ Watches output and custom root directories for files added outside of ComfyUI
 (e.g., manual copies, external tools). Does NOT conflict with entry.js which
 handles ComfyUI executed events.
 """
+
 import asyncio
 import os
 import time
@@ -17,6 +18,7 @@ from typing import (
     cast,
 )
 
+from mjr_am_shared.runtime_env import get_env
 from watchdog.events import (
     DirCreatedEvent,
     FileCreatedEvent,
@@ -87,7 +89,7 @@ except Exception:
 
 
 def _is_supported_extension(ext: str) -> bool:
-    if ext == ".jxl" and str(os.getenv("MAJOOR_ENABLE_JXL", "")).strip().lower() not in {"1", "true", "yes", "on"}:
+    if ext == ".jxl" and str(get_env("MAJOOR_ENABLE_JXL", "")).strip().lower() not in {"1", "true", "yes", "on"}:
         return False
     return ext in SUPPORTED_EXTENSIONS
 

@@ -23,12 +23,15 @@ A log line at startup (level INFO) reports which strategy was selected.
 Input/index directory resolution follows a similar pattern; see
 ``_resolve_index_dir()``.
 """
+
 import contextlib
 import logging
 import os
 import sys
 import threading
 from pathlib import Path
+
+from mjr_am_shared.runtime_env import get_env, has_env, set_env, unset_env
 
 from .utils import env_bool
 
@@ -46,7 +49,7 @@ def _env_raw(*names: str, default: str | None = None) -> str | None:
         if not name:
             continue
         try:
-            val = os.getenv(name)
+            val = get_env(name)
         except Exception:  # OK: os.getenv can raise on broken env (embedded runtimes)
             val = None
         if val is not None and str(val).strip() != "":
@@ -95,7 +98,7 @@ def _env_bool(default: bool, *names: str) -> bool:
         if not name:
             continue
         try:
-            if name in os.environ:
+            if has_env(name):
                 return env_bool(name, default)
         except Exception:  # OK: env access guard (embedded/restricted runtimes)
             continue
@@ -359,7 +362,7 @@ def set_index_directory_override(path: str) -> str:
     normalized = str(path or "").strip()
     if not normalized:
         for env_name in _INDEX_DIR_OVERRIDE_ENV_NAMES:
-            os.environ.pop(env_name, None)
+            unset_env(env_name)
         try:
             if _INDEX_DIR_OVERRIDE_FILE_PATH.exists():
                 _INDEX_DIR_OVERRIDE_FILE_PATH.unlink()
@@ -369,7 +372,7 @@ def set_index_directory_override(path: str) -> str:
 
     resolved = str(_normalize_index_dir_candidate(normalized, OUTPUT_ROOT_PATH))
     for env_name in _INDEX_DIR_OVERRIDE_ENV_NAMES:
-        os.environ[env_name] = resolved
+        set_env(env_name, resolved)
     _write_index_override_file_atomic(resolved)
     return resolved
 

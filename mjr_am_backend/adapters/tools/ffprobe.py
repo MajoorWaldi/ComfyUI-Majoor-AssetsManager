@@ -1,6 +1,7 @@
 """
 FFprobe adapter for video metadata extraction.
 """
+
 import asyncio
 import json
 import os
@@ -8,8 +9,11 @@ import shutil
 import subprocess
 from pathlib import Path
 
+from mjr_am_shared.runtime_env import get_env
+
 from ...config import FFPROBE_TIMEOUT, TOOL_LOW_PRIORITY_SUBPROCESSES
 from ...shared import ErrorCode, Result, get_logger
+from . import external_tools
 
 logger = get_logger(__name__)
 _FFPROBE_CANDIDATE_NAMES = ("ffprobe", "ffprobe.exe")
@@ -38,7 +42,7 @@ class FFProbe:
         self.bin = bin_name
         self.timeout = float(timeout) if timeout is not None else float(FFPROBE_TIMEOUT)
         try:
-            self._max_workers = max(1, int(os.getenv("MAJOOR_FFPROBE_MAX_WORKERS", "4")))
+            self._max_workers = max(1, int(get_env("MAJOOR_FFPROBE_MAX_WORKERS", "4")))
         except Exception:
             self._max_workers = 4
         self._resolved_bin: str | None = None
@@ -176,7 +180,7 @@ class FFProbe:
             )
 
     def _run_ffprobe_cmd(self, cmd: list[str]) -> subprocess.CompletedProcess[str]:
-        process = subprocess.Popen(
+        process = external_tools.popen(
             cmd,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
@@ -262,6 +266,7 @@ class FFProbe:
         return [
             self._resolved_bin or self.bin,
             "-v", "error",
+            "-protocol_whitelist", "file,pipe",
             "-print_format", "json",
             "-show_format",
             "-show_streams",
@@ -271,21 +276,13 @@ class FFProbe:
 
     def _validate_probe_path(self, path: str) -> Result[str]:
         try:
-            normalized = str(path or "").strip()
-        except Exception:
-            normalized = ""
-        if not normalized:
-            return Result.Err(ErrorCode.INVALID_INPUT, "Invalid file path")
-        if "\x00" in normalized or "\n" in normalized or "\r" in normalized:
-            return Result.Err(ErrorCode.INVALID_INPUT, "Invalid file path")
-        # Prevent ffprobe option injection via user-controlled leading dash.
-        if normalized.startswith("-"):
-            return Result.Err(ErrorCode.INVALID_INPUT, "Invalid file path")
-        return Result.Ok(normalized)
+            return Result.Ok(external_tools.local_media_path(path))
+        except (OSError, RuntimeError, ValueError):
+            return Result.Err(ErrorCode.INVALID_INPUT, "Only existing filesystem files can be probed")
 
     async def _spawn_ffprobe_process(self, cmd: list[str]) -> asyncio.subprocess.Process:
-        return await asyncio.create_subprocess_exec(
-            *cmd,
+        return await external_tools.spawn(
+            cmd,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
             close_fds=os.name != "nt",

@@ -1,9 +1,11 @@
 """
 Shared candidate helpers for external tool resolution.
 """
-import os
+
 from collections.abc import Callable
 from pathlib import Path
+
+from mjr_am_shared.runtime_env import get_env
 
 EXIFTOOL_CANDIDATE_NAMES = ("exiftool", "exiftool.exe", "exiftool(-k)", "exiftool(-k).exe")
 
@@ -48,13 +50,13 @@ def _add_named_exiftool_aliases(raw: str, add: Callable[[str], None]) -> None:
 def _iter_common_windows_exiftool_paths() -> list[str]:
     roots: list[str] = []
 
-    local_app_data = strip_optional_quotes(os.getenv("LOCALAPPDATA"))
+    local_app_data = strip_optional_quotes(get_env("LOCALAPPDATA"))
     if local_app_data:
         roots.append(str(Path(local_app_data) / "Programs" / "ExifTool"))
         roots.append(str(Path(local_app_data) / "Microsoft" / "WinGet" / "Links"))
 
     for env_name in ("ProgramFiles", "ProgramFiles(x86)"):
-        root = strip_optional_quotes(os.getenv(env_name))
+        root = strip_optional_quotes(get_env(env_name))
         if root:
             roots.append(str(Path(root) / "ExifTool"))
 

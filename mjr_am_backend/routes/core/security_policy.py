@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-import os
 from collections.abc import Mapping
 from functools import lru_cache
 from typing import Any
 
 from mjr_am_backend.shared import Result, get_logger
+from mjr_am_shared.runtime_env import get_env
 
 logger = get_logger(__name__)
 _WARNED_TOKEN_SOURCES: set[str] = set()
@@ -15,7 +15,7 @@ _WARNED_TOKEN_SOURCES: set[str] = set()
 
 def _env_truthy(name: str, default: bool = False) -> bool:
     try:
-        raw = os.environ.get(name)
+        raw = get_env(name)
     except Exception:
         raw = None
     if raw is None:
@@ -57,7 +57,7 @@ def _validate_token_format(token: str, source: str) -> str | None:
 @lru_cache(maxsize=1)
 def _safe_mode_enabled() -> bool:
     try:
-        raw = os.environ.get("MAJOOR_SAFE_MODE")
+        raw = get_env("MAJOOR_SAFE_MODE")
     except Exception:
         raw = None
     if raw is None:
@@ -178,4 +178,3 @@ async def _resolve_security_prefs(services: Mapping[str, Any] | None) -> Mapping
         return await settings_service.get_security_prefs()
     except Exception:
         return None
-

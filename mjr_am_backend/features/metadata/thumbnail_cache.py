@@ -5,13 +5,14 @@ from __future__ import annotations
 import hashlib
 import os
 import shutil
-import subprocess
 import threading
 import time
 from pathlib import Path
 from typing import Any
 
+from mjr_am_backend.adapters.tools import external_tools
 from mjr_am_backend.shared import Result, classify_file
+from mjr_am_shared.runtime_env import get_env
 
 THUMB_CACHE_VERSION = "thumb-v1"
 THUMB_CACHE_MAX_BYTES = 2 * 1024 * 1024 * 1024
@@ -73,7 +74,7 @@ def _generate_image_thumb(source: Path, target: Path, size: int) -> bool:
 
 
 def _ffmpeg_bin() -> str | None:
-    return shutil.which("ffmpeg") or os.environ.get("FFMPEG")
+    return shutil.which("ffmpeg") or get_env("FFMPEG")
 
 
 def _generate_video_thumb(source: Path, target: Path, size: int) -> bool:
@@ -83,7 +84,7 @@ def _generate_video_thumb(source: Path, target: Path, size: int) -> bool:
     tmp = target.with_name(f"tmp_{target.name}")
     try:
         with _FFMPEG_SEM:
-            proc = subprocess.run(
+            proc = external_tools.run_ffmpeg(
                 [
                     ffmpeg,
                     "-y",

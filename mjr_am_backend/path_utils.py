@@ -7,11 +7,13 @@ from __future__ import annotations
 import os
 from pathlib import Path, PureWindowsPath
 
+from mjr_am_shared.runtime_env import get_env
+
 # Cap on the number of path segments accepted in a subfolder argument.
 # Override via ``MJR_MAX_SUBFOLDER_DEPTH`` if you legitimately have deeply
 # nested asset libraries.
 try:
-    _MAX_SUBFOLDER_DEPTH = int(os.environ.get("MJR_MAX_SUBFOLDER_DEPTH", "10"))
+    _MAX_SUBFOLDER_DEPTH = int(get_env("MJR_MAX_SUBFOLDER_DEPTH", "10"))
 except Exception:
     _MAX_SUBFOLDER_DEPTH = 10
 if _MAX_SUBFOLDER_DEPTH < 1:

@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-import os
 import time
 from typing import Any
 from uuid import uuid4
 
 from aiohttp import web
+from mjr_am_shared.runtime_env import get_env
 
 from .shared import get_logger, request_id_var
 from .utils import env_float
@@ -70,7 +70,7 @@ def _get_request_id(request: web.Request) -> str:
 
 def _env_flag(name: str, default: bool = False) -> bool:
     try:
-        raw = os.environ.get(name)
+        raw = get_env(name)
     except Exception:
         raw = None
     if raw is None:

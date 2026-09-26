@@ -7,9 +7,10 @@ without "guessing" across unrelated nodes.
 
 from __future__ import annotations
 
-import os
 from dataclasses import dataclass
 from typing import Any
+
+from mjr_am_shared.runtime_env import get_env
 
 from ...shared import Result, get_logger
 
@@ -17,7 +18,7 @@ logger = get_logger(__name__)
 
 def _env_int(name: str, default: int, *, minimum: int = 1) -> int:
     try:
-        value = int(os.environ.get(name, str(default)))
+        value = int(get_env(name, str(default)))
     except Exception:
         value = default
     return max(minimum, value)
