@@ -176,8 +176,12 @@ function Xr(e, t) {
 function Zr(e, t) {
 	try {
 		let n = Array.isArray(e?.widgets) ? e.widgets.find((e) => e?.name === "filename_prefix") : null;
-		if (!n || typeof n.serializeValue == "function") return;
-		n.serializeValue = () => Xr(e?.graph || t?.graph, n.value);
+		if (!n) return;
+		let r = n.serializeValue;
+		n.serializeValue = () => {
+			let i = typeof r == "function" ? r.call(n) : n.value;
+			return Xr(e?.graph || t?.graph, i);
+		};
 	} catch {}
 }
 function Qr() {
