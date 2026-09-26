@@ -97,9 +97,15 @@ function installSerializeHook(node: any, app: any): void {
         const widget = Array.isArray(node?.widgets)
             ? node.widgets.find((w: any) => w?.name === "filename_prefix")
             : null;
-        if (!widget || typeof widget.serializeValue === "function") return;
-        widget.serializeValue = () =>
-            applyTextReplacements(node?.graph || app?.graph, widget.value);
+        if (!widget) return;
+        const previousSerialize = widget.serializeValue;
+        widget.serializeValue = () => {
+            const rawValue =
+                typeof previousSerialize === "function"
+                    ? previousSerialize.call(widget)
+                    : widget.value;
+            return applyTextReplacements(node?.graph || app?.graph, rawValue);
+        };
     } catch {
         /* defensive — never break node creation */
     }

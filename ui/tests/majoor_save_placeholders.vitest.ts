@@ -64,4 +64,37 @@ describe("Majoor save placeholders extension", () => {
 
         expect(widget.serializeValue).toBeUndefined();
     });
+
+    it("wraps existing filename serialization", async () => {
+        let extension: any = null;
+        const graph = {
+            nodes: [
+                {
+                    title: "Sampler",
+                    widgets: [{ name: "seed", value: "12/34" }],
+                },
+            ],
+        };
+        state.app = {
+            graph,
+            registerExtension: vi.fn((definition: any) => {
+                extension = definition;
+            }),
+        };
+
+        await import("../integration/majoor_save_placeholders.js");
+
+        const filenameWidget: any = {
+            name: "filename_prefix",
+            value: "ignored",
+            serializeValue: vi.fn(() => "Majoor/%Sampler.seed%"),
+        };
+        extension.nodeCreated({
+            type: "MajoorSaveImage",
+            graph,
+            widgets: [filenameWidget],
+        });
+
+        expect(filenameWidget.serializeValue()).toBe("Majoor/12_34");
+    });
 });
