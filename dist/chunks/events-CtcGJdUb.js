@@ -285,20 +285,20 @@ function oe(e) {
 		}, n = d(e);
 		if (!n) return t;
 		let r = n.toLowerCase(), i = r.indexOf("/output/"), a = r.indexOf("/input/"), o = r.indexOf("/temp/"), s = -1;
-		if (i >= 0 ? (t.type = "output", s = i + 8) : a >= 0 ? (t.type = "input", s = a + 7) : o >= 0 && (t.type = "temp", s = o + 6), s >= 0) {
+		if (i >= 0 ? (t.type = "output", s = i + 8) : r.startsWith("output/") ? (t.type = "output", s = 7) : a >= 0 ? (t.type = "input", s = a + 7) : r.startsWith("input/") ? (t.type = "input", s = 6) : o >= 0 ? (t.type = "temp", s = o + 6) : r.startsWith("temp/") && (t.type = "temp", s = 5), s >= 0) {
 			let e = n.slice(s), r = e.lastIndexOf("/");
 			r >= 0 ? (t.subfolder = e.slice(0, r), t.filename = e.slice(r + 1)) : t.filename = e;
 		} else t.filename = f(n).filename;
 		return t;
 	})(r);
-	if (!s && o.includes("/")) {
+	if (c.filename && c.type && (o = c.filename, s = c.subfolder), !s && o.includes("/")) {
 		let e = o.lastIndexOf("/");
 		e > 0 && (s = o.slice(0, e), o = o.slice(e + 1));
 	}
 	if (!o && c.filename && (o = c.filename), !s && c.subfolder && (s = c.subfolder), !o) return "";
 	let l = String(e?.type || e?.file_info?.type || "").toLowerCase().trim();
-	l !== "input" && l !== "output" && l !== "temp" && l !== "custom" && (l = ""), !l && c.type && (l = c.type), !l && r && (r.includes("/input/") ? l = "input" : r.includes("/output/") ? l = "output" : r.includes("/temp/") && (l = "temp")), l ||= "output";
-	let m = r.includes("/output/") || r.includes("/input/") || r.includes("/temp/"), h = p(s) || s.startsWith("/");
+	l !== "input" && l !== "output" && l !== "temp" && l !== "custom" && (l = ""), !l && c.type && (l = c.type), !l && r && (r.includes("/input/") || r.startsWith("input/") ? l = "input" : r.includes("/output/") || r.startsWith("output/") ? l = "output" : (r.includes("/temp/") || r.startsWith("temp/")) && (l = "temp")), l ||= "output";
+	let m = r.includes("/output/") || r.includes("/input/") || r.includes("/temp/") || r.startsWith("output/") || r.startsWith("input/") || r.startsWith("temp/"), h = p(s) || s.startsWith("/");
 	if (r && l !== "custom" && (h || !m)) return n(se(r, { inline: !0 }));
 	if (l === "custom") {
 		let t = String(u(e) || "").trim();
@@ -307,7 +307,7 @@ function oe(e) {
 		let i = c.type || "output";
 		return n(v(o, s, i));
 	}
-	return r.includes("/output/") && (l = "output"), r.includes("/input/") && (l = "input"), r.includes("/temp/") && (l = "temp"), n(v(o, s, l));
+	return (r.includes("/output/") || r.startsWith("output/")) && (l = "output"), (r.includes("/input/") || r.startsWith("input/")) && (l = "input"), (r.includes("/temp/") || r.startsWith("temp/")) && (l = "temp"), n(v(o, s, l));
 }
 function se(e, t = {}) {
 	if (!e) return "";

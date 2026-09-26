@@ -330,6 +330,41 @@ describe("SidebarWorkflowSection", () => {
         wrapper.unmount();
     });
 
+    it("does not show workflow move controls for non-workflow assets", async () => {
+        const { default: SidebarWorkflowSection } =
+            await import("../vue/components/panel/sidebar/SidebarWorkflowSection.vue");
+
+        const wrapper = mount(SidebarWorkflowSection, {
+            props: {
+                asset: {
+                    filepath: "F:/ComfyUI/output/demo.png",
+                    subfolder: "output",
+                    source: "output",
+                    has_generation_data: true,
+                    workflow: {
+                        nodes: [{ id: 1, pos: [0, 0], size: [180, 80], type: "KSampler" }],
+                        links: [],
+                        groups: [],
+                        extra: {},
+                    },
+                },
+            },
+            attachTo: document.body,
+            global: {
+                stubs: {
+                    MButton: MButtonStub,
+                    MTree: MTreeStub,
+                },
+            },
+        });
+
+        expect(wrapper.find('input[placeholder="Workflow category"]').exists()).toBe(false);
+        expect(wrapper.findAll("button").some((node) => node.text() === "Move")).toBe(false);
+        expect(moveWorkflow).not.toHaveBeenCalled();
+
+        wrapper.unmount();
+    });
+
     it("shows workflow metadata badges for hydrated legacy fields", async () => {
         const { default: SidebarWorkflowSection } =
             await import("../vue/components/panel/sidebar/SidebarWorkflowSection.vue");

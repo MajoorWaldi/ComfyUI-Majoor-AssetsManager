@@ -277,6 +277,13 @@ const workflow = computed(() => {
 const workflowFilepath = computed(() =>
     String(props.asset?.filepath || props.asset?.path || props.asset?.file_info?.filepath || "").trim(),
 );
+const isWorkflowFileAsset = computed(() => {
+    const filepath = workflowFilepath.value.toLowerCase();
+    if (filepath.endsWith(".json")) return true;
+    const kind = String(props.asset?.kind || "").trim().toLowerCase();
+    const source = String(props.asset?.source || "").trim().toLowerCase();
+    return kind === "workflow" || source === "workflow";
+});
 
 const workflowTitle = computed(() =>
     String(props.asset?.display_name || props.asset?.name || props.asset?.filename || props.asset?.title || "Workflow").trim(),
@@ -449,6 +456,7 @@ function syncCategoryDraft() {
 }
 
 async function saveWorkflowCategory() {
+    if (!isWorkflowFileAsset.value) return;
     const filepath = String(props.asset?.filepath || props.asset?.path || props.asset?.file_info?.filepath || "").trim();
     if (!filepath) {
         comfyToast(t("toast.workflowMissingPath", "Workflow file path is missing."), "error");
@@ -1129,7 +1137,10 @@ onBeforeUnmount(() => {
             </div>
         </div>
 
-        <div style="margin-bottom:12px;padding:10px;border-radius:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.10)">
+        <div
+            v-if="isWorkflowFileAsset"
+            style="margin-bottom:12px;padding:10px;border-radius:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.10)"
+        >
             <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px;min-width:0">
                 <div style="min-width:0;flex:1 1 auto">
                     <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.55);text-transform:uppercase;letter-spacing:0.4px">Category</div>
