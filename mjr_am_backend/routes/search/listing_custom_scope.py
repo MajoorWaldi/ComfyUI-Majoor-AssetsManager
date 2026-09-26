@@ -3,19 +3,19 @@
 from __future__ import annotations
 
 import asyncio
-import os
 from collections.abc import Callable
 from typing import Any
 
 from aiohttp import web
 from mjr_am_backend.shared import Result
+from mjr_am_shared.runtime_env import get_env
 
 # Maximum wall-clock duration (seconds) for a single custom-root filesystem
 # listing.  A custom root pointing to an unresponsive network share or to a
 # folder with millions of entries can otherwise pin a request worker
 # indefinitely.  Override via ``MJR_CUSTOM_LIST_TIMEOUT`` for slow drives.
 try:
-    _CUSTOM_LIST_TIMEOUT = float(os.environ.get("MJR_CUSTOM_LIST_TIMEOUT", "20.0"))
+    _CUSTOM_LIST_TIMEOUT = float(get_env("MJR_CUSTOM_LIST_TIMEOUT", "20.0"))
 except Exception:
     _CUSTOM_LIST_TIMEOUT = 20.0
 if _CUSTOM_LIST_TIMEOUT < 1.0:

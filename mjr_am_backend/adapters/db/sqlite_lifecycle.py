@@ -15,6 +15,7 @@ from queue import Empty
 from typing import Any
 
 import aiosqlite
+from mjr_am_shared.runtime_env import get_env
 
 from ...shared import ErrorCode, Result, get_logger
 from .transaction_manager import get_tx_state as tx_get_tx_state
@@ -393,7 +394,7 @@ def is_windows_sharing_violation(exc: Exception) -> bool:
 
 
 def lock_kill_enabled() -> bool:
-    raw = os.getenv("MJR_AM_DB_FORCE_KILL_LOCKERS", os.getenv("MAJOOR_DB_FORCE_KILL_LOCKERS", "1"))
+    raw = get_env("MJR_AM_DB_FORCE_KILL_LOCKERS", get_env("MAJOOR_DB_FORCE_KILL_LOCKERS", "1"))
     return str(raw or "").strip().lower() in {"1", "true", "yes", "on"}
 
 

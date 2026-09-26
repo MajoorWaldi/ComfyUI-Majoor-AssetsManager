@@ -4,8 +4,9 @@ Utility helpers shared across backend modules.
 from __future__ import annotations
 
 import math
-import os
 from typing import Any
+
+from mjr_am_shared.runtime_env import get_env
 
 from .shared import get_logger
 
@@ -37,7 +38,7 @@ def env_bool(name: str, default: bool) -> bool:
     if not name:
         return default
     try:
-        raw = os.environ.get(name)
+        raw = get_env(name)
     except Exception:
         raw = None
     if raw is None:
@@ -49,7 +50,7 @@ def env_float(name: str, default: float) -> float:
     if not name:
         return default
     try:
-        raw = os.environ.get(name)
+        raw = get_env(name)
     except Exception:
         raw = None
     if raw is None:

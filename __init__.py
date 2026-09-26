@@ -7,7 +7,6 @@ from __future__ import annotations
 
 import importlib
 import logging
-import os
 import re
 import sys
 from pathlib import Path
@@ -63,19 +62,20 @@ def _read_version_from_pyproject() -> str:
 
 
 def _detect_branch_from_env() -> str:
+    from mjr_am_shared.runtime_env import get_env
+
     candidates = (
         "MAJOR_ASSETS_MANAGER_BRANCH",
         "MAJOOR_ASSETS_MANAGER_BRANCH",
     )
     for key in candidates:
-        value = os.environ.get(key)
+        value = get_env(key)
         if value:
             return value.strip()
     return "main"
 
 
 __version__ = _read_version_from_pyproject()
-__branch__ = _detect_branch_from_env()
 
 root = Path(__file__).resolve().parent
 if WEB_DIRECTORY is None:
@@ -98,6 +98,8 @@ try:
         sys.path.append(root_str)
 except Exception:
     _logger.debug("failed to ensure extension root on sys.path", exc_info=True)
+
+__branch__ = _detect_branch_from_env()
 
 
 def init_prompt_server() -> None:

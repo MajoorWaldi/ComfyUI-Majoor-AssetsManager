@@ -55,7 +55,8 @@ async def test_releases_route_success_with_fake_github(monkeypatch) -> None:
         async def __aexit__(self, exc_type, exc, tb):
             return False
 
-        def get(self, url, headers=None, timeout=None):
+        def get(self, url, headers=None, timeout=None, allow_redirects=True):
+            assert allow_redirects is False
             _ = (headers, timeout)
             if url.endswith("/tags?per_page=100"):
                 return _Resp([{"name": "v1"}])

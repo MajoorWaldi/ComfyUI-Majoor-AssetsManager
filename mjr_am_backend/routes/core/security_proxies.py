@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 import ipaddress
-import os
 from collections.abc import Mapping
 from functools import lru_cache
 
 from aiohttp import web
 from mjr_am_backend.shared import get_logger
+from mjr_am_shared.runtime_env import get_env
 
 logger = get_logger(__name__)
 
@@ -17,7 +17,7 @@ _DEFAULT_CLIENT_ID_HASH_HEX_CHARS = 16
 
 try:
     _CLIENT_ID_HASH_HEX_CHARS = int(
-        os.environ.get("MAJOOR_CLIENT_ID_HASH_CHARS", str(_DEFAULT_CLIENT_ID_HASH_HEX_CHARS))
+        get_env("MAJOOR_CLIENT_ID_HASH_CHARS", str(_DEFAULT_CLIENT_ID_HASH_HEX_CHARS))
     )
 except Exception:
     _CLIENT_ID_HASH_HEX_CHARS = _DEFAULT_CLIENT_ID_HASH_HEX_CHARS
@@ -48,7 +48,7 @@ def _is_loopback_ip(value: str) -> bool:
 def _parse_trusted_proxies() -> list[ipaddress._BaseNetwork]:
     from .security_policy import _env_truthy
 
-    raw = os.environ.get("MAJOOR_TRUSTED_PROXIES", _DEFAULT_TRUSTED_PROXIES)
+    raw = get_env("MAJOOR_TRUSTED_PROXIES", _DEFAULT_TRUSTED_PROXIES)
     allow_insecure = _env_truthy("MAJOOR_ALLOW_INSECURE_TRUSTED_PROXIES", default=False)
     out: list[ipaddress._BaseNetwork] = []
     for part in (raw or "").split(","):

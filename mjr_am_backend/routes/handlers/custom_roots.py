@@ -1,6 +1,7 @@
 """
 Custom roots management endpoints.
 """
+
 import asyncio
 import errno
 import os
@@ -20,6 +21,7 @@ from mjr_am_backend.custom_roots import (
     resolve_custom_root,
 )
 from mjr_am_backend.shared import Result, get_logger, sanitize_error_message
+from mjr_am_shared.runtime_env import get_env
 
 from ..core import (
     _csrf_error,
@@ -385,7 +387,6 @@ def register_custom_roots_routes(routes: web.RouteTableDef) -> None:
 
     @routes.post("/mjr/sys/browse-folder")
     async def browse_folder_dialog(request):
-        import os
         csrf = _csrf_error(request)
         if csrf:
             return _json_response(Result.Err("CSRF", csrf))
@@ -418,7 +419,7 @@ def register_custom_roots_routes(routes: web.RouteTableDef) -> None:
 
         # Check if we're in a headless environment (Linux only).
         # macOS does not rely on DISPLAY for native dialogs.
-        if os.getenv("DISPLAY") is None and sys.platform.startswith("linux"):
+        if get_env("DISPLAY") is None and sys.platform.startswith("linux"):
             # On Linux systems without a display, tkinter won't work.
             logger.info("Running in headless environment, skipping tkinter dialog")
             return _json_response(Result.Err("HEADLESS_ENV", "No display available for folder browser"))

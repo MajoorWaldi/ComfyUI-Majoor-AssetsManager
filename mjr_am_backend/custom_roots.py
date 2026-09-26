@@ -20,6 +20,8 @@ from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
+from mjr_am_shared.runtime_env import get_env
+
 from .config import INDEX_DIR, OUTPUT_ROOT
 from .shared import Result, get_logger
 
@@ -36,14 +38,14 @@ _USER_SEGMENT_RE = re.compile(r"[^A-Za-z0-9._-]+")
 _OFFLINE_LOCK = threading.Lock()
 _OFFLINE_CACHE: dict[str, tuple[bool, bool, float]] = {}
 try:
-    _OFFLINE_TTL = float(os.environ.get("MJR_CUSTOM_ROOT_OFFLINE_TTL", "8.0"))
+    _OFFLINE_TTL = float(get_env("MJR_CUSTOM_ROOT_OFFLINE_TTL", "8.0"))
 except Exception as _e:
     logger.debug("MJR_CUSTOM_ROOT_OFFLINE_TTL parse error, using default: %s", _e)
     _OFFLINE_TTL = 8.0
 if _OFFLINE_TTL < 0:
     _OFFLINE_TTL = 0.0
 try:
-    _MAX_STORE_BYTES = int(os.environ.get("MJR_CUSTOM_ROOTS_MAX_BYTES", str(_DEFAULT_MAX_STORE_BYTES)))
+    _MAX_STORE_BYTES = int(get_env("MJR_CUSTOM_ROOTS_MAX_BYTES", str(_DEFAULT_MAX_STORE_BYTES)))
 except Exception as _e:
     logger.debug("MJR_CUSTOM_ROOTS_MAX_BYTES parse error, using default: %s", _e)
     _MAX_STORE_BYTES = _DEFAULT_MAX_STORE_BYTES
@@ -142,7 +144,7 @@ def _normalize_dir_path(path: str) -> Path | None:
         return None
     try:
         p = Path(path).expanduser()
-        allow_symlinks = os.environ.get("MJR_ALLOW_SYMLINKS", "").strip().lower() in ("1", "true", "yes", "on")
+        allow_symlinks = get_env("MJR_ALLOW_SYMLINKS", "").strip().lower() in ("1", "true", "yes", "on")
         if not allow_symlinks and _is_symlink_like(p):
             return None
         resolved = p.resolve(strict=False)

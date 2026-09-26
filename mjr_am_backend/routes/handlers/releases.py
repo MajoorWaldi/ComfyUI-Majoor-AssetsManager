@@ -3,6 +3,7 @@ Expose repository refs (tags/branches) and a ZIP template for programmatic insta
 
 Endpoint: GET /mjr/am/releases
 Query params:
+  - channel (optional: stable/nightly; fixed Majoor release metadata)
   - owner (default: MajoorWaldi)
   - repo (default: ComfyUI-Majoor-AssetsManager)
   - per_page (default: 100)
@@ -13,12 +14,13 @@ If GitHub is unreachable, returns a `Result.Err` with code `DEGRADED`.
 from __future__ import annotations
 
 import asyncio
-import os
 import re
 from typing import Any
+from urllib.parse import urlsplit
 
 from aiohttp import ClientSession, ClientTimeout, web
 from mjr_am_backend.shared import Result, get_logger, sanitize_error_message
+from mjr_am_shared.runtime_env import get_env
 
 from ..core import _json_response
 
@@ -49,7 +51,7 @@ def _is_safe_github_segment(value: str) -> bool:
 
 
 def _github_headers() -> dict[str, str]:
-    token = os.environ.get("GITHUB_TOKEN") or os.environ.get("MAJOOR_GITHUB_TOKEN")
+    token = get_env("GITHUB_TOKEN") or get_env("MAJOOR_GITHUB_TOKEN")
     headers = {"Accept": "application/vnd.github.v3+json"}
     if token:
         headers["Authorization"] = f"token {token}"
@@ -75,15 +77,37 @@ def _extract_ref_names(payload: Any) -> list[str]:
 
 
 async def _fetch_github_json(session: ClientSession, url: str, headers: dict[str, str]) -> Any:
-    async with session.get(url, headers=headers, timeout=ClientTimeout(total=30)) as resp:
+    # This feature has exactly one outbound host; redirects must not widen it.
+    parsed = urlsplit(url)
+    if parsed.scheme != "https" or parsed.netloc != "api.github.com":
+        raise ValueError("Unsupported GitHub API host")
+    async with session.get(url, headers=headers, timeout=ClientTimeout(total=10), allow_redirects=False) as resp:
         if resp.status != 200:
             raise RuntimeError(f"GitHub API returned {resp.status}")
         return await resp.json()
 
 
+async def _release_channel_response(channel: str) -> web.Response:
+    if channel not in {"stable", "nightly"}:
+        return _json_response(Result.Err("INVALID_INPUT", "Invalid release channel"))
+    suffix = "latest" if channel == "stable" else "tags/nightly"
+    url = f"https://api.github.com/repos/MajoorWaldi/ComfyUI-Majoor-AssetsManager/releases/{suffix}"
+    try:
+        async with ClientSession() as session:
+            payload = await _fetch_github_json(session, url, _github_headers())
+        if not isinstance(payload, dict) or not isinstance(payload.get("tag_name"), str):
+            raise ValueError("Invalid release payload")
+        fields = ("tag_name", "published_at", "created_at", "updated_at", "target_commitish")
+        return _json_response(Result.Ok({key: payload.get(key) for key in fields}))
+    except Exception:
+        return _json_response(Result.Err("DEGRADED", "Unable to check GitHub releases"))
+
+
 def register_releases_routes(routes: web.RouteTableDef) -> None:
     @routes.get("/mjr/am/releases")
     async def get_releases(request: web.Request) -> web.Response:
+        if "channel" in request.query:
+            return await _release_channel_response(request.query.get("channel", ""))
         owner = (request.query.get("owner") or "MajoorWaldi").strip()
         repo = (request.query.get("repo") or "ComfyUI-Majoor-AssetsManager").strip()
         if not _is_safe_github_segment(owner) or not _is_safe_github_segment(repo):

@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-import os
 import sqlite3
 from typing import Any
+
+from mjr_am_shared.runtime_env import get_env
 
 from .config import get_runtime_index_db_path
 from .shared import log_success
@@ -39,7 +40,7 @@ def startup_log_success(logger: Any, message: str, *, db_path: str | None = None
 def _read_startup_verbose_logs_env() -> bool | None:
     for key in _STARTUP_VERBOSE_LOG_ENV_KEYS:
         try:
-            raw = os.environ.get(key)
+            raw = get_env(key)
         except Exception:
             raw = None
         if raw is None or str(raw).strip() == "":

@@ -23,11 +23,13 @@ def test_validate_probe_path_rejects_invalid_inputs() -> None:
         assert out.code == ErrorCode.INVALID_INPUT
 
 
-def test_validate_probe_path_accepts_normal_file_path() -> None:
+def test_validate_probe_path_accepts_normal_file_path(tmp_path) -> None:
     probe = _new_probe()
-    out = FFProbe._validate_probe_path(probe, "  ./video.mp4  ")
+    path = tmp_path / "video.mp4"
+    path.touch()
+    out = FFProbe._validate_probe_path(probe, f"  {path}  ")
     assert out.ok is True
-    assert out.data == "./video.mp4"
+    assert out.data == str(path.resolve())
 
 
 def test_ffprobe_executable_resolution_helpers(monkeypatch, tmp_path) -> None:

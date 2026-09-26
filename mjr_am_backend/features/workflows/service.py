@@ -22,8 +22,10 @@ from mjr_am_backend.adapters.comfy_core import (
     get_model_filenames,
     get_output_directory,
 )
+from mjr_am_backend.adapters.tools import external_tools
 from mjr_am_backend.config import FFPROBE_BIN, OUTPUT_ROOT, get_runtime_index_db_path
 from mjr_am_shared import Result, get_logger
+from mjr_am_shared.runtime_env import get_env
 
 from .classifier import classify_workflow
 from .parser import parse_workflow, workflow_node_text
@@ -47,8 +49,8 @@ WORKFLOW_INDEX_VERSION = 4
 def _env_path(raw: Any = "") -> Path | None:
     try:
         value = raw if str(raw or "").strip() else (
-            os.getenv("MJR_AM_WORKFLOW_DIRECTORY", "")
-            or os.getenv("MAJOOR_WORKFLOW_DIRECTORY", "")
+            get_env("MJR_AM_WORKFLOW_DIRECTORY", "")
+            or get_env("MAJOOR_WORKFLOW_DIRECTORY", "")
             or ""
         )
         if not str(value or "").strip():
@@ -61,8 +63,8 @@ def _env_path(raw: Any = "") -> Path | None:
 def _env_paths(raw: Any = "") -> list[Path]:
     try:
         value = raw if str(raw or "").strip() else (
-            os.getenv("MJR_AM_WORKFLOW_DIRECTORIES", "")
-            or os.getenv("MAJOOR_WORKFLOW_DIRECTORIES", "")
+            get_env("MJR_AM_WORKFLOW_DIRECTORIES", "")
+            or get_env("MAJOOR_WORKFLOW_DIRECTORIES", "")
             or ""
         )
     except Exception:
@@ -833,10 +835,7 @@ def _is_allowed_thumbnail_source(path: Path) -> bool:
 
 
 def _ffmpeg_bin() -> str:
-    configured = str(FFPROBE_BIN or "ffprobe")
-    if "ffprobe" in configured.lower():
-        return configured.replace("ffprobe", "ffmpeg")
-    return "ffmpeg"
+    return external_tools.ffmpeg_from_probe(FFPROBE_BIN or "ffprobe")
 
 
 def _convert_video_to_workflow_thumbnail(source: Path, target: Path) -> Result[dict[str, Any]]:
@@ -860,7 +859,7 @@ def _convert_video_to_workflow_thumbnail(source: Path, target: Path) -> Result[d
         str(target),
     ]
     try:
-        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=45)
+        proc = external_tools.run_ffmpeg(cmd, capture_output=True, text=True, timeout=45)
     except FileNotFoundError:
         return Result.Err("TOOL_MISSING", "ffmpeg is required to convert video thumbnails")
     except subprocess.TimeoutExpired:

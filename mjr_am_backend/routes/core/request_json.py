@@ -9,12 +9,11 @@ Guarantees:
 from __future__ import annotations
 
 import json
-import os
 from typing import Any
 
 from aiohttp import web
 from mjr_am_backend.shared import ErrorCode, Result, get_logger
-
+from mjr_am_shared.runtime_env import get_env
 logger = get_logger(__name__)
 
 DEFAULT_MAX_JSON_BYTES = 10 * 1024 * 1024  # 10MB
@@ -24,7 +23,7 @@ REQUEST_STREAM_CHUNK_BYTES = 64 * 1024
 
 def _max_json_bytes() -> int:
     try:
-        raw = os.environ.get("MJR_MAX_JSON_SIZE", "")
+        raw = get_env("MJR_MAX_JSON_SIZE", "")
         if raw:
             n = int(raw)
             if n > 0:
