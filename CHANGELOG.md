@@ -4,6 +4,11 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+## [2.5.3] - 2026-09-27
+
+### Fixed
+- **`mjr_am_backend.adapters.tools` missing from Registry installs**: `.comfyignore`'s unanchored `tools/` pattern also matched `mjr_am_backend/adapters/tools/`, stripping the ExifTool/FFProbe adapters out of every Registry-published package and causing `ModuleNotFoundError: No module named 'mjr_am_backend.adapters.tools'` at startup. The pattern is now anchored to the repo-root `/tools/` dev-scripts folder only.
+
 ## [2.5.2] - 2026-09-27
 
 ### Changed

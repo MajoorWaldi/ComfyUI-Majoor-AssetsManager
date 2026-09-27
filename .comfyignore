@@ -6,7 +6,7 @@
 browser_tests/
 tests/
 scripts/
-tools/
+/tools/
 wiki/
 public/
 ui/

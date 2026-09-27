@@ -100,8 +100,8 @@ Move useful assets and workflow context back into ComfyUI:
 
 ## Latest Release
 
-### v2.5.2 Highlights
-- **Automatic GitHub Releases**: The registry publish workflow now packs the node, cuts a matching GitHub Release with the packed archive attached, and un-drafts it once the Comfy Registry publish succeeds.
+### v2.5.3 Highlights
+- **Fixed missing `adapters.tools` module on Registry installs**: an over-broad `.comfyignore` pattern was stripping the ExifTool/FFProbe adapters out of published packages, causing a startup `ModuleNotFoundError`.
 
 See [CHANGELOG.md](CHANGELOG.md) for the complete release notes.
 
@@ -777,4 +777,4 @@ Optional attribution request: See [`NOTICE`](NOTICE) file for details.
 ---
 
 *Last updated: September 27, 2026*
-*Version: 2.5.2*
+*Version: 2.5.3*
