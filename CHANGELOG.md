@@ -4,6 +4,11 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+## [2.5.2] - 2026-09-27
+
+### Changed
+- **Automatic GitHub Releases**: The registry publish workflow now packs the node with `comfy-cli`, cuts a matching GitHub Release with the packed archive attached, and un-drafts it once the Comfy Registry publish succeeds.
+
 ## [2.5.1] - 2026-09-04
 
 ### New Features

@@ -100,13 +100,8 @@ Move useful assets and workflow context back into ComfyUI:
 
 ## Latest Release
 
-### v2.5.1 Highlights
-- **KJNodes Model Preview Override support**: Show KJNodes preview streams in the Floating Viewer with JPEG, PNG, animated WebP, and MP4 payloads.
-- **Top bar Viewer control**: Toggle the ComfyUI top bar Viewer button while keeping the `V` shortcut available.
-- **Folder browsing in Input / Output scopes**: Browse subfolders, navigate back with `..`, move assets with drag-and-drop, and create folders from the context menu.
-- **Collect Files workflow**: Bundle an asset, its workflow JSON, traced prompts, and referenced media inputs into a collected ZIP.
-- **Remote access and search fixes**: Restored full-text prompt search and fixed tokenless remote writes when explicitly allowed.
-- **Viewer stability fixes**: Improved audio compare sync, audio player visuals, top bar Viewer button stability, and Majoor Save filename prefix placeholder handling.
+### v2.5.2 Highlights
+- **Automatic GitHub Releases**: The registry publish workflow now packs the node, cuts a matching GitHub Release with the packed archive attached, and un-drafts it once the Comfy Registry publish succeeds.
 
 See [CHANGELOG.md](CHANGELOG.md) for the complete release notes.
 
@@ -781,5 +776,5 @@ Optional attribution request: See [`NOTICE`](NOTICE) file for details.
 
 ---
 
-*Last updated: September 4, 2026*
-*Version: 2.5.1*
+*Last updated: September 27, 2026*
+*Version: 2.5.2*
