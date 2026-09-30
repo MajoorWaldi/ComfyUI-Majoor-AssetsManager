@@ -1573,7 +1573,7 @@ async def _list_filesystem_folders(
                 "root_id": "",
             })
     except OSError as exc:
-        return Result.Err("LIST_FAILED", f"Failed to list directory: {exc}")
+        return Result.Err("LIST_FAILED", sanitize_error_message(exc, "Failed to list directory"))
 
     folders.sort(key=lambda x: (x.get("filename") != "..", str(x.get("filename") or "").lower()))
     return Result.Ok(folders)

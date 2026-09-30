@@ -26,7 +26,7 @@ from ...features.index.vector_runtime import (
     maybe_unload_vector_runtime_after_use,
 )
 from ...runtime_activity import is_generation_busy
-from ...shared import Result, get_logger
+from ...shared import Result, get_logger, sanitize_error_message
 from ..core import (
     _csrf_error,
     _json_response,
@@ -1196,4 +1196,6 @@ def register_vector_search_routes(routes: web.RouteTableDef) -> None:
 
         except Exception as exc:
             logger.error("Clustering failed: %s", exc)
-            return _json_response(Result.Err("CLUSTERING_FAILED", f"Clustering failed: {exc}"))
+            return _json_response(
+                Result.Err("CLUSTERING_FAILED", sanitize_error_message(exc, "Clustering failed"))
+            )

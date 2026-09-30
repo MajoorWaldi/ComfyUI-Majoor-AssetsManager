@@ -9,7 +9,7 @@ Exposes endpoints:
 from __future__ import annotations
 
 from aiohttp import web
-from mjr_am_backend.shared import Result
+from mjr_am_backend.shared import Result, sanitize_error_message
 
 from ..core import (
     _check_rate_limit,
@@ -52,7 +52,9 @@ def register_plugin_routes(routes: web.RouteTableDef) -> None:
             plugins = metadata.plugin_manager.list_plugins()
             return _json_response(Result.Ok(plugins))
         except Exception as exc:
-            return _json_response(Result.Err("PLUGIN_ERROR", f"Failed to list plugins: {exc}"))
+            return _json_response(
+                Result.Err("PLUGIN_ERROR", sanitize_error_message(exc, "Failed to list plugins"))
+            )
 
     @routes.post("/mjr/am/plugins/{name}/enable")
     async def enable_plugin(request: web.Request):
@@ -75,7 +77,9 @@ def register_plugin_routes(routes: web.RouteTableDef) -> None:
                 return _json_response(Result.Err("NOT_FOUND", f"Plugin not found or could not be enabled: {name}"))
             return _json_response(Result.Ok({"enabled": True}))
         except Exception as exc:
-            return _json_response(Result.Err("PLUGIN_ERROR", f"Failed to enable plugin: {exc}"))
+            return _json_response(
+                Result.Err("PLUGIN_ERROR", sanitize_error_message(exc, "Failed to enable plugin"))
+            )
 
     @routes.post("/mjr/am/plugins/reload")
     async def reload_plugins(request: web.Request):
@@ -95,4 +99,6 @@ def register_plugin_routes(routes: web.RouteTableDef) -> None:
             count = await metadata.plugin_manager.reload()
             return _json_response(Result.Ok({"reloaded": count}))
         except Exception as exc:
-            return _json_response(Result.Err("PLUGIN_ERROR", f"Failed to reload plugins: {exc}"))
+            return _json_response(
+                Result.Err("PLUGIN_ERROR", sanitize_error_message(exc, "Failed to reload plugins"))
+            )

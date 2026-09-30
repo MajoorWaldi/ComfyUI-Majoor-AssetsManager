@@ -11,7 +11,7 @@ import json as _json
 from typing import Any
 
 from aiohttp import web
-from mjr_am_backend.shared import Result, get_logger
+from mjr_am_backend.shared import Result, get_logger, sanitize_error_message
 
 from ..core import _json_response, _require_services
 
@@ -158,7 +158,9 @@ def register_audit_routes(routes: web.RouteTableDef) -> None:
             total_rows = await db.aquery(count_query, tuple(params))
             rows = await db.aquery(query, tuple(page_params))
         except Exception as exc:
-            return _json_response(Result.Err("DB_ERROR", f"Query failed: {exc}"))
+            return _json_response(
+                Result.Err("DB_ERROR", sanitize_error_message(exc, "Query failed"))
+            )
 
         if not total_rows.ok:
             return _json_response(Result.Err("DB_ERROR", total_rows.error or "Count query failed"))
