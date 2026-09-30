@@ -193,10 +193,12 @@ function buildMetadataSuggestions(value: unknown, metadataKeys: MetadataKeysResu
 }
 
 // Autocomplete handler
+let _autocompleteSeq = 0;
 const handleAutocomplete = debounce(async () => {
     const val = (getSearchInputEl()?.value || "").trim();
     if (semanticMode.value || val.length < 1) return;
 
+    const seq = ++_autocompleteSeq;
     try {
         const suggestions = [];
         const metadataKeys = await loadMetadataKeys();
@@ -205,6 +207,9 @@ const handleAutocomplete = debounce(async () => {
             const res = await get("/mjr/am/autocomplete", { q: val, limit: 10 });
             if (res && res.ok && Array.isArray(res.data)) suggestions.push(...res.data);
         }
+        // A newer autocomplete call may have started (and possibly already
+        // resolved) while this one was awaiting; drop the stale response.
+        if (seq !== _autocompleteSeq) return;
         if (dataListRef.value) {
             dataListRef.value.innerHTML = "";
             [...new Set(suggestions)].slice(0, 18).forEach((term) => {

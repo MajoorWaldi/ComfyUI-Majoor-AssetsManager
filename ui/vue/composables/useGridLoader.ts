@@ -1656,10 +1656,17 @@ export function useGridLoader({
                 console.debug?.(e);
             }
         }
+        try {
+            window.removeEventListener("pagehide", dispose);
+        } catch (e) {
+            console.debug?.(e);
+        }
     }
 
     // Abort any in-flight requests before the page unloads so they don't
     // appear as epoch-1 cancelled requests in the next session's network log.
+    // Removed in dispose() too, since a grid host can be created/destroyed
+    // many times within one page session (scope switches, feed panel).
     try {
         window.addEventListener("pagehide", dispose, { once: true });
     } catch (e) {
