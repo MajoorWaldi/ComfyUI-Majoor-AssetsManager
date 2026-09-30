@@ -17,6 +17,7 @@ from mjr_am_shared.runtime_env import get_env
 THUMB_CACHE_VERSION = "thumb-v1"
 THUMB_CACHE_MAX_BYTES = 2 * 1024 * 1024 * 1024
 _FFMPEG_SEM = threading.Semaphore(2)
+_gc_running = threading.Event()
 
 
 def thumbnail_cache_dir() -> Path:
@@ -118,6 +119,9 @@ def _generate_video_thumb(source: Path, target: Path, size: int) -> bool:
 
 
 def gc_thumbnail_cache(max_bytes: int = THUMB_CACHE_MAX_BYTES) -> None:
+    if _gc_running.is_set():
+        return
+    _gc_running.set()
     try:
         entries = []
         total = 0
@@ -140,6 +144,8 @@ def gc_thumbnail_cache(max_bytes: int = THUMB_CACHE_MAX_BYTES) -> None:
                 pass
     except Exception:
         return
+    finally:
+        _gc_running.clear()
 
 
 def get_or_create_thumbnail(source_path: str, *, size: Any = 320) -> Result[dict[str, Any]]:

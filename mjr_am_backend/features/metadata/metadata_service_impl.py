@@ -1060,11 +1060,11 @@ class MetadataService:
 
         ext = os.path.splitext(path)[1].lower()
         if ext == ".png":
-            metadata_result = extract_png_metadata(path, resolved_exif)
+            metadata_result = await asyncio.to_thread(extract_png_metadata, path, resolved_exif)
         elif ext == ".webp":
-            metadata_result = extract_webp_metadata(path, resolved_exif)
+            metadata_result = await asyncio.to_thread(extract_webp_metadata, path, resolved_exif)
         elif ext == ".avif":
-            metadata_result = extract_avif_metadata(path, resolved_exif)
+            metadata_result = await asyncio.to_thread(extract_avif_metadata, path, resolved_exif)
         else:
             metadata_result = Result.Ok(
                 {

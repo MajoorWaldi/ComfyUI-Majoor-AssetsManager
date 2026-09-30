@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import os
 from pathlib import Path
 from typing import Any
@@ -34,6 +35,11 @@ def _path_exists(filepath: str) -> bool:
         return Path(filepath).exists()
     except OSError:
         return False
+
+
+def _find_missing_filepaths(candidates: list[tuple[int, str]]) -> list[int]:
+    """Stat every candidate off the event loop; return asset ids missing from disk."""
+    return [asset_id for asset_id, filepath in candidates if not _path_exists(filepath)]
 
 
 def _source_root_clause(source: str, root_id: str | None) -> tuple[str, list[Any]]:
@@ -111,7 +117,7 @@ async def prune_missing_assets_after_scan(
         return Result.Err(rows_res.code or "DB_ERROR", rows_res.error or "Failed to inspect indexed assets")
 
     root = _normalize_root(directory)
-    stale_ids: list[int] = []
+    candidates: list[tuple[int, str]] = []
     for row in rows_res.data or []:
         filepath = normalize_filepath_str(str(row.get("filepath") or ""))
         if not filepath:
@@ -122,9 +128,13 @@ async def prune_missing_assets_after_scan(
             asset_id = int(row.get("id") or 0)
         except (TypeError, ValueError):
             continue
-        if asset_id > 0 and not _path_exists(filepath):
-            stale_ids.append(asset_id)
+        if asset_id > 0:
+            candidates.append((asset_id, filepath))
 
+    if not candidates:
+        return Result.Ok(0)
+
+    stale_ids = await asyncio.to_thread(_find_missing_filepaths, candidates)
     if not stale_ids:
         return Result.Ok(0)
 
