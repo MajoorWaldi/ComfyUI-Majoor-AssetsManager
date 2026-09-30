@@ -18,6 +18,12 @@ from ...shared import Result, get_logger
 
 logger = get_logger(__name__)
 
+# Similarity scanning compares phash rows pairwise (O(n^2)); cap the candidate
+# set so get_alerts() stays responsive on large libraries. When the library
+# has more eligible images than this, the scan only covers the most recently
+# indexed ones and get_alerts() reports it via "similar_pairs_truncated".
+_SIMILARITY_SCAN_LIMIT = 800
+
 
 def _safe_int(value: Any, default: int = 0) -> int:
     try:
@@ -338,15 +344,32 @@ class DuplicatesService:
                 AND a.kind = 'image'
                 AND a.phash IS NOT NULL
                 ORDER BY a.id DESC
-                LIMIT 800
+                LIMIT {_SIMILARITY_SCAN_LIMIT}
             """
-        return """
+        return f"""
             SELECT a.id, a.filepath, a.filename, a.phash
             FROM assets a
             WHERE a.kind = 'image'
             AND a.phash IS NOT NULL
             ORDER BY a.id DESC
-            LIMIT 800
+            LIMIT {_SIMILARITY_SCAN_LIMIT}
+        """
+
+    @staticmethod
+    def _similarity_count_query(where: str) -> str:
+        if where:
+            return f"""
+                SELECT COUNT(1) AS n
+                FROM assets a
+                {where}
+                AND a.kind = 'image'
+                AND a.phash IS NOT NULL
+            """
+        return """
+            SELECT COUNT(1) AS n
+            FROM assets a
+            WHERE a.kind = 'image'
+            AND a.phash IS NOT NULL
         """
 
     @staticmethod
@@ -436,14 +459,22 @@ class DuplicatesService:
         sim_rows_res = await self._query_similarity_rows(where, params)
         if not sim_rows_res.ok:
             return Result.Err("DB_ERROR", sim_rows_res.error or "Similarity query failed")
+        sim_rows = sim_rows_res.data or []
         similar_pairs = self._build_similar_pairs(
-            sim_rows_res.data or [],
+            sim_rows,
             phash_distance=phash_distance,
             max_pairs=max_pairs,
         )
+        similar_pairs_truncated = False
+        if len(sim_rows) >= _SIMILARITY_SCAN_LIMIT:
+            count_res = await self.db.aquery(self._similarity_count_query(where), tuple(params))
+            if count_res.ok:
+                total = _safe_int((count_res.data or [{}])[0].get("n"), 0)
+                similar_pairs_truncated = total > _SIMILARITY_SCAN_LIMIT
         return Result.Ok({
             "exact_groups": exact_groups_res.data or [],
             "similar_pairs": similar_pairs,
+            "similar_pairs_truncated": similar_pairs_truncated,
             "status": dict(self._status),
         })
 

@@ -676,8 +676,8 @@ class Sqlite:
     def _rows_to_dicts(rows: Any) -> list[dict[str, Any]]:
         return tx_rows_to_dicts(rows)
 
-    async def _with_query_timeout(self, coro):
-        return await exec_runtime.with_query_timeout(self, coro)
+    async def _with_query_timeout(self, coro, *, conn: aiosqlite.Connection | None = None):
+        return await exec_runtime.with_query_timeout(self, coro, conn=conn)
 
     async def _execute_async(
         self,

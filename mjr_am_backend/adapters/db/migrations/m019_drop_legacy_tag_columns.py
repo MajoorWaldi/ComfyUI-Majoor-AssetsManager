@@ -25,6 +25,15 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
+class _MigrationStepFailed(Exception):
+    """Raised inside the v19 transaction to force a rollback on a failed DDL step."""
+
+    def __init__(self, code: str, message: str) -> None:
+        super().__init__(message)
+        self.code = code
+        self.message = message
+
+
 _CREATE_ASSET_METADATA_V19 = """
 CREATE TABLE asset_metadata__v19 (
     asset_id INTEGER PRIMARY KEY,
@@ -103,42 +112,51 @@ class DropLegacyTagColumnsMigration(Migration):
         if not invariant.ok:
             return invariant
 
-        drop_triggers = await db.aexecutescript(_DROP_LEGACY_TRIGGERS)
-        if not drop_triggers.ok:
-            return Result.Err(
-                "MIGRATION_DDL_FAILED",
-                f"v19 drop FTS triggers failed: {drop_triggers.error}",
-            )
+        try:
+            async with db.atransaction(mode="immediate") as tx:
+                if not tx.ok:
+                    return Result.Err("DB_ERROR", tx.error or "Failed to begin transaction")
 
-        rebuild = await db.aexecutescript(
-            f"""
-            DROP TABLE IF EXISTS asset_metadata__v19;
-            {_CREATE_ASSET_METADATA_V19}
-            {_COPY_ASSET_METADATA_V19}
-            DROP TABLE asset_metadata;
-            ALTER TABLE asset_metadata__v19 RENAME TO asset_metadata;
-            {_RECREATE_ASSET_METADATA_INDEXES}
-            """
-        )
-        if not rebuild.ok:
-            return Result.Err(
-                "MIGRATION_DDL_FAILED",
-                f"v19 asset_metadata rebuild failed: {rebuild.error}",
-            )
+                drop_triggers = await db.aexecutescript(_DROP_LEGACY_TRIGGERS)
+                if not drop_triggers.ok:
+                    raise _MigrationStepFailed(
+                        "MIGRATION_DDL_FAILED",
+                        f"v19 drop FTS triggers failed: {drop_triggers.error}",
+                    )
 
-        create_triggers = await db.aexecutescript(_create_triggers_sql())
-        if not create_triggers.ok:
-            return Result.Err(
-                "MIGRATION_DDL_FAILED",
-                f"v19 recreate FTS triggers failed: {create_triggers.error}",
-            )
+                rebuild = await db.aexecutescript(
+                    f"""
+                    DROP TABLE IF EXISTS asset_metadata__v19;
+                    {_CREATE_ASSET_METADATA_V19}
+                    {_COPY_ASSET_METADATA_V19}
+                    DROP TABLE asset_metadata;
+                    ALTER TABLE asset_metadata__v19 RENAME TO asset_metadata;
+                    {_RECREATE_ASSET_METADATA_INDEXES}
+                    """
+                )
+                if not rebuild.ok:
+                    raise _MigrationStepFailed(
+                        "MIGRATION_DDL_FAILED",
+                        f"v19 asset_metadata rebuild failed: {rebuild.error}",
+                    )
 
-        reindex = await db.aexecutescript(_reindex_sql())
-        if not reindex.ok:
-            return Result.Err(
-                "MIGRATION_REINDEX_FAILED",
-                f"v19 FTS reindex failed: {reindex.error}",
-            )
+                create_triggers = await db.aexecutescript(_create_triggers_sql())
+                if not create_triggers.ok:
+                    raise _MigrationStepFailed(
+                        "MIGRATION_DDL_FAILED",
+                        f"v19 recreate FTS triggers failed: {create_triggers.error}",
+                    )
+
+                reindex = await db.aexecutescript(_reindex_sql())
+                if not reindex.ok:
+                    raise _MigrationStepFailed(
+                        "MIGRATION_REINDEX_FAILED",
+                        f"v19 FTS reindex failed: {reindex.error}",
+                    )
+            if not tx.ok:
+                return Result.Err("MIGRATION_DDL_FAILED", tx.error or "v19 commit failed")
+        except _MigrationStepFailed as exc:
+            return Result.Err(exc.code, exc.message)
 
         logger.info("v19: legacy asset_metadata tag columns dropped")
         return Result.Ok(True)

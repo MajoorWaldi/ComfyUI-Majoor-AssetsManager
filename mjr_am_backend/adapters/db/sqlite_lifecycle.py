@@ -394,7 +394,7 @@ def is_windows_sharing_violation(exc: Exception) -> bool:
 
 
 def lock_kill_enabled() -> bool:
-    raw = get_env("MJR_AM_DB_FORCE_KILL_LOCKERS", get_env("MAJOOR_DB_FORCE_KILL_LOCKERS", "1"))
+    raw = get_env("MJR_AM_DB_FORCE_KILL_LOCKERS", get_env("MAJOOR_DB_FORCE_KILL_LOCKERS", "0"))
     return str(raw or "").strip().lower() in {"1", "true", "yes", "on"}
 
 

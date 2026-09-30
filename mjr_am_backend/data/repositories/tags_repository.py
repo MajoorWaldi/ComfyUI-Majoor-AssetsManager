@@ -32,6 +32,15 @@ def _normalize(name: str) -> str:
     return name.strip()
 
 
+class _TagWriteFailed(Exception):
+    """Raised inside a replace_all transaction to force a rollback on a failed write."""
+
+    def __init__(self, code: str, message: str) -> None:
+        super().__init__(message)
+        self.code = code
+        self.message = message
+
+
 class TagsRepository(Repository):
     """CRUD + relationship management for normalized tags."""
 
@@ -186,19 +195,29 @@ class TagsRepository(Repository):
             seen.add(key)
             cleaned.append(name)
 
-        delete = await self._db.aexecute(
-            "DELETE FROM asset_tags WHERE asset_id = ?", (aid,)
-        )
-        if not delete.ok:
-            return Result.Err(delete.code, delete.error or "")
-
         attached: list[Tag] = []
-        for name in cleaned:
-            tag_result = await self.attach(aid, name)
-            if not tag_result.ok:
-                return Result.Err(tag_result.code, tag_result.error or "")
-            if tag_result.data is not None:
-                attached.append(tag_result.data)
+        try:
+            async with self._db.atransaction(mode="immediate") as tx:
+                if not tx.ok:
+                    return Result.Err("DB_ERROR", tx.error or "Failed to begin transaction")
+
+                delete = await self._db.aexecute(
+                    "DELETE FROM asset_tags WHERE asset_id = ?", (aid,)
+                )
+                if not delete.ok:
+                    raise _TagWriteFailed(delete.code, delete.error or "")
+
+                for name in cleaned:
+                    tag_result = await self.attach(aid, name)
+                    if not tag_result.ok:
+                        raise _TagWriteFailed(tag_result.code, tag_result.error or "")
+                    if tag_result.data is not None:
+                        attached.append(tag_result.data)
+            if not tx.ok:
+                return Result.Err(tx.code or "DB_ERROR", tx.error or "Commit failed")
+        except _TagWriteFailed as exc:
+            return Result.Err(exc.code, exc.message)
+
         return Result.Ok(attached)
 
     async def sync_from_legacy_row(self, asset_id: int) -> Result[list[Tag]]:

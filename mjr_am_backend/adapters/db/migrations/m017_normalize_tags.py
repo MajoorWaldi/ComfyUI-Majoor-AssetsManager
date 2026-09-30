@@ -147,46 +147,51 @@ class NormalizeTagsMigration(Migration):
         skipped = 0
         inserted_links = 0
         inserted_tags = 0
-        for row in rows:
-            asset_id = row.get("asset_id")
-            if asset_id is None:
-                skipped += 1
-                continue
-            tags = _parse_tags_json(row.get("tags"))
-            if not tags:
-                continue
-            for tag_name in tags:
-                ins_tag = await db.aexecute(
-                    "INSERT OR IGNORE INTO tags (name) VALUES (?)", (tag_name,)
-                )
-                if not ins_tag.ok:
-                    logger.warning(
-                        "v17 backfill: failed to insert tag %r: %s", tag_name, ins_tag.error
-                    )
+        async with db.atransaction(mode="immediate") as tx:
+            if not tx.ok:
+                return Result.Err("DB_ERROR", tx.error or "Failed to begin transaction")
+            for row in rows:
+                asset_id = row.get("asset_id")
+                if asset_id is None:
+                    skipped += 1
                     continue
-                # rowcount isn't carried in Result; we count via subsequent lookup.
-                id_lookup = await db.aquery(
-                    "SELECT id FROM tags WHERE name = ?", (tag_name,)
-                )
-                if not id_lookup.ok or not id_lookup.data:
+                tags = _parse_tags_json(row.get("tags"))
+                if not tags:
                     continue
-                tag_id = id_lookup.data[0]["id"]
-                before_link = inserted_links
-                ins_link = await db.aexecute(
-                    "INSERT OR IGNORE INTO asset_tags (asset_id, tag_id) VALUES (?, ?)",
-                    (int(asset_id), int(tag_id)),
-                )
-                if ins_link.ok:
-                    inserted_links += 1  # upper bound; INSERT OR IGNORE may have skipped
-                else:
-                    logger.warning(
-                        "v17 backfill: failed to link asset %s -> tag %s: %s",
-                        asset_id,
-                        tag_name,
-                        ins_link.error,
+                for tag_name in tags:
+                    ins_tag = await db.aexecute(
+                        "INSERT OR IGNORE INTO tags (name) VALUES (?)", (tag_name,)
                     )
-                    inserted_links = before_link
-            inserted_tags += len(tags)
+                    if not ins_tag.ok:
+                        logger.warning(
+                            "v17 backfill: failed to insert tag %r: %s", tag_name, ins_tag.error
+                        )
+                        continue
+                    # rowcount isn't carried in Result; we count via subsequent lookup.
+                    id_lookup = await db.aquery(
+                        "SELECT id FROM tags WHERE name = ?", (tag_name,)
+                    )
+                    if not id_lookup.ok or not id_lookup.data:
+                        continue
+                    tag_id = id_lookup.data[0]["id"]
+                    before_link = inserted_links
+                    ins_link = await db.aexecute(
+                        "INSERT OR IGNORE INTO asset_tags (asset_id, tag_id) VALUES (?, ?)",
+                        (int(asset_id), int(tag_id)),
+                    )
+                    if ins_link.ok:
+                        inserted_links += 1  # upper bound; INSERT OR IGNORE may have skipped
+                    else:
+                        logger.warning(
+                            "v17 backfill: failed to link asset %s -> tag %s: %s",
+                            asset_id,
+                            tag_name,
+                            ins_link.error,
+                        )
+                        inserted_links = before_link
+                inserted_tags += len(tags)
+        if not tx.ok:
+            return Result.Err("DB_ERROR", tx.error or "v17 backfill commit failed")
 
         logger.info(
             "v17 backfill: scanned %d rows, processed %d tag-occurrences, skipped %d",

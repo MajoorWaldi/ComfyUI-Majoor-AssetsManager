@@ -165,10 +165,13 @@ def populate_known_columns_from_schema(
         return {c.lower(): c for c in known_columns}
     try:
         with known_columns_lock:
-            with sqlite3.connect(str(db_path)) as conn:
+            conn = sqlite3.connect(str(db_path))
+            try:
                 cursor = conn.cursor()
                 for table, alias in schema_table_aliases.items():
                     populate_table_columns(cursor, table, alias, known_columns)
+            finally:
+                conn.close()
             return {c.lower(): c for c in known_columns}
     except Exception as exc:
         logger.warning("Failed to refresh known columns from schema: %s", exc)

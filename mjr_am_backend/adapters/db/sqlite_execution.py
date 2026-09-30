@@ -15,7 +15,7 @@ from ...shared import ErrorCode, Result
 logger = get_logger(__name__)
 
 
-async def with_query_timeout(self, coro):
+async def with_query_timeout(self, coro, *, conn: aiosqlite.Connection | None = None):
     try:
         timeout = float(self._query_timeout or 0)
     except Exception:
@@ -24,6 +24,15 @@ async def with_query_timeout(self, coro):
         try:
             return await asyncio.wait_for(coro, timeout=timeout)
         except asyncio.TimeoutError:
+            # asyncio.wait_for() only abandons the await; the statement keeps
+            # running on aiosqlite's worker thread until it errors out. Ask
+            # SQLite to interrupt it so the connection isn't left busy for
+            # whoever gets it back from the pool next.
+            if conn is not None:
+                try:
+                    await conn.interrupt()
+                except Exception:
+                    logger.debug("with_query_timeout: interrupt() failed", exc_info=True)
             return Result.Err(ErrorCode.TIMEOUT, "Database operation timed out")
     return await coro
 
@@ -208,7 +217,7 @@ async def execute_on_conn_async(
             logger.error("Unexpected database error: %s", exc)
             return Result.Err(ErrorCode.DB_ERROR, str(exc))
 
-    return await self._with_query_timeout(_execute_inner())
+    return await self._with_query_timeout(_execute_inner(), conn=conn)
 
 
 async def execute_on_conn_locked_async(
@@ -350,7 +359,7 @@ async def executemany_on_conn_async(
             logger.error("Batch execute error: %s", exc)
             return Result.Err(ErrorCode.DB_ERROR, str(exc))
 
-    return await self._with_query_timeout(_execute_inner())
+    return await self._with_query_timeout(_execute_inner(), conn=conn)
 
 
 async def executemany_on_conn_locked_async(
@@ -441,7 +450,7 @@ async def executescript_on_conn_async(
             logger.error("Script execution error: %s", exc)
             return Result.Err(ErrorCode.DB_ERROR, str(exc))
 
-    return await self._with_query_timeout(_execute_inner())
+    return await self._with_query_timeout(_execute_inner(), conn=conn)
 
 
 async def vacuum_async(self, *, logger: Any) -> Result[bool]:
