@@ -1284,29 +1284,6 @@ See [WORKFLOWS.md](WORKFLOWS.md) for the user-facing Workflow tab behavior.
 
 ---
 
-### Releases Information
-```http
-GET /mjr/am/releases
-```
-
-**Response**:
-```json
-{
-  "ok": true,
-  "data": {
-    "current_version": "2.4.9",
-    "branch": "main",
-    "latest_release": {
-      "version": "2.4.9",
-      "date": "2026-04-10",
-      "download_url": "https://github.com/MajoorWaldi/ComfyUI-Majoor-AssetsManager/releases/tag/v2.4.9"
-    },
-    "branches_available": ["main", "dev"],
-    "tags_available": ["v2.4.9", "v2.4.4", "v2.4.3", "v2.4.2"]
-  }
-}
-```
-
 ---
 
 ## Security Notes

@@ -31,15 +31,6 @@ both backend and shared utilities to avoid circular imports. It keeps live
 reads, missing versus empty semantics, non-string defaults, and the existing
 settings updates. It never logs values. API tokens remain environment-configurable.
 
-## Release checks
-
-The frontend uses `/mjr/am/releases?channel=stable` or `channel=nightly` through
-the existing API client. The backend release feature contacts only
-`https://api.github.com`, with a timeout and redirects disabled. Channel checks
-use the fixed Majoor repository and return only version/marker fields. Existing
-tags/branches queries remain compatible. This restriction describes the release
-feature, not optional model downloads in other features.
-
 ## Registry findings
 
 Packaging and explicit boundaries improve auditability; they do not guarantee

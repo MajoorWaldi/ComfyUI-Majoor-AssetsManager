@@ -26,11 +26,6 @@ vi.mock("../app/i18n.js", () => ({
     t: (key, fallback) => fallback || key,
 }));
 
-vi.mock("../app/versionCheck.js", () => ({
-    VERSION_UPDATE_EVENT: "mjr:version-update",
-    getStoredVersionUpdateState: () => ({ available: false }),
-}));
-
 vi.mock("../app/events.js", () => ({
     EVENTS: {
         MFV_TOGGLE: "mjr:mfv-toggle",

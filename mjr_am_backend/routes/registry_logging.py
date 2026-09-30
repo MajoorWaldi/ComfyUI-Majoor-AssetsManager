@@ -90,7 +90,6 @@ def _log_route_registration_summary(verbose: bool) -> None:
     logger.info("  POST /mjr/am/db/cleanup-case-duplicates")
     logger.info("  POST /mjr/am/db/force-delete")
     logger.info("  GET /mjr/am/download")
-    logger.info("  GET /mjr/am/releases")
     logger.info("  GET /mjr/am/duplicates/alerts")
     logger.info("=" * 60)
 

@@ -20,7 +20,6 @@ import { serializeCurrentHostWorkflow } from "../../../app/hostAdapter.js";
 import { t } from "../../../app/i18n.js";
 import { loadMajoorSettings, saveMajoorSettings } from "../../../app/settings.js";
 import { comfyToast } from "../../../app/toast.js";
-import { VERSION_UPDATE_EVENT, getStoredVersionUpdateState } from "../../../app/versionCheck.js";
 import { EVENTS } from "../../../app/events.js";
 import { openMajoorSettings } from "../../../app/openMajoorSettings.js";
 import { openWorkflowSaveInfoDialog } from "../../../features/workflows/workflowSaveInfoState.js";
@@ -141,7 +140,6 @@ const resolveDomElement = (value: MaybeComponentRef): HTMLElement | null => ((va
 
 const versionBadgeText = ref(initialNightly ? "nightly" : "v?");
 const versionBadgeChannel = ref(initialNightly ? "nightly" : "stable");
-const versionDotVisible = ref(false);
 const versionBadgeHover = ref(false);
 const mfvVisible = ref(false);
 
@@ -421,16 +419,6 @@ async function hydrateBackendVersionBadge(isNightly: boolean) {
     }
 }
 
-function applyDotState(state: { channel?: unknown; current?: unknown; latest?: unknown; available?: unknown } | undefined) {
-    const ch = String(state?.channel || "").trim().toLowerCase();
-    const cur = String(state?.current || "").trim().toLowerCase();
-    const lat = String(state?.latest || "").trim().toLowerCase();
-    if (ch === "nightly" || cur === "nightly" || lat === "nightly") {
-        setVersionBadgeText("nightly", { channel: "nightly" });
-    }
-    versionDotVisible.value = Boolean(state?.available);
-}
-
 function syncMfvTooltip() {
     try {
         setTooltipHint(resolveDomElement(mfvBtnRef.value), mfvTitle.value, MFV_TOOLTIP_HINT);
@@ -452,10 +440,6 @@ function handleMfvVisibility(event: Event) {
     mfvVisible.value = Boolean((event as CustomEvent)?.detail?.visible);
 }
 
-function handleVersionUpdate(event: Event) {
-    try { applyDotState((event as CustomEvent)?.detail); } catch (e) { console.debug?.(e); }
-}
-
 function handleMfvToggle() {
     window.dispatchEvent(new CustomEvent(EVENTS.MFV_TOGGLE));
 }
@@ -467,7 +451,6 @@ function handleOpenMajoorSettings() {
 function dispose() {
     try {
         if (typeof window !== "undefined") {
-            window.removeEventListener(VERSION_UPDATE_EVENT, handleVersionUpdate);
             window.removeEventListener(EVENTS.MFV_VISIBILITY_CHANGED, handleMfvVisibility);
         }
     } catch (e) {
@@ -484,8 +467,6 @@ watch(mfvVisible, () => {
 onMounted(async () => {
     await nextTick();
 
-    try { applyDotState(getStoredVersionUpdateState()); } catch (e) { console.debug?.(e); }
-
     syncMfvStateFromDom();
     syncMfvTooltip();
     applyExtensionMetadata(initialNightly);
@@ -493,7 +474,6 @@ onMounted(async () => {
 
     try {
         if (typeof window !== "undefined") {
-            window.addEventListener(VERSION_UPDATE_EVENT, handleVersionUpdate);
             window.addEventListener(EVENTS.MFV_VISIBILITY_CHANGED, handleMfvVisibility);
         }
     } catch (e) {
@@ -610,21 +590,6 @@ defineExpose({
                     @mouseleave="versionBadgeHover = false"
                 >
                     <span :class="VERSION_BADGE_LABEL_CLASS">{{ versionBadgeText }}</span>
-                    <span
-                        aria-hidden="true"
-                        :style="{
-                            position: 'absolute',
-                            top: '2px',
-                            right: '-3px',
-                            width: '6px',
-                            height: '6px',
-                            borderRadius: '50%',
-                            background: '#f44336',
-                            boxShadow: '0 0 0 1px rgba(255,255,255,0.6)',
-                            display: versionDotVisible ? 'block' : 'none',
-                            pointerEvents: 'none',
-                        }"
-                    />
                 </a>
             </div>
 

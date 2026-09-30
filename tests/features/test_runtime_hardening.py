@@ -1,14 +1,10 @@
-import json
 import shutil
 import zlib
 
 import pytest
-from aiohttp import web
-from aiohttp.test_utils import make_mocked_request
 from mjr_am_backend.adapters.tools import external_tools as tools
 from mjr_am_backend.adapters.tools import local_media
 from mjr_am_backend.adapters.tools.ffprobe import FFProbe
-from mjr_am_backend.routes.handlers import releases
 from mjr_am_shared import runtime_env, version
 
 
@@ -173,44 +169,3 @@ def test_newest_annotated_tag_wins_and_loose_ref_overrides_packed(tmp_path, monk
         version._run_git.cache_clear()
 
 
-@pytest.mark.asyncio
-@pytest.mark.parametrize("channel,suffix", [("stable", "latest"), ("nightly", "tags/nightly")])
-async def test_release_check_uses_fixed_repository(monkeypatch, channel, suffix):
-    async def fetch(session, url, headers):
-        assert url == f"https://api.github.com/repos/MajoorWaldi/ComfyUI-Majoor-AssetsManager/releases/{suffix}"
-        return {"tag_name": "v2.5.2", "published_at": "today", "body": "not exposed"}
-
-    monkeypatch.setattr(releases, "_fetch_github_json", fetch)
-    app = web.Application()
-    routes = web.RouteTableDef()
-    releases.register_releases_routes(routes)
-    app.add_routes(routes)
-    req = make_mocked_request("GET", f"/mjr/am/releases?channel={channel}&owner=other", app=app)
-    match = await app.router.resolve(req)
-    response = await match.handler(req)
-    payload = json.loads(response.text)
-    assert payload["ok"]
-    assert payload["data"]["tag_name"] == "v2.5.2"
-    assert "body" not in payload["data"]
-
-
-@pytest.mark.asyncio
-async def test_github_boundary_rejects_other_hosts_and_redirects():
-    class Response:
-        status = 302
-
-        async def __aenter__(self):
-            return self
-
-        async def __aexit__(self, *args):
-            pass
-
-    class Session:
-        def get(self, url, **kwargs):
-            assert kwargs["allow_redirects"] is False
-            return Response()
-
-    with pytest.raises(ValueError):
-        await releases._fetch_github_json(Session(), "https://other.example/release", {})
-    with pytest.raises(RuntimeError):
-        await releases._fetch_github_json(Session(), "https://api.github.com/release", {})

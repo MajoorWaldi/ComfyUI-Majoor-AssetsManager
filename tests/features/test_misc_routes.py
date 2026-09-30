@@ -8,7 +8,6 @@ from aiohttp.test_utils import make_mocked_request
 from mjr_am_backend.routes.handlers import calendar as cal_mod
 from mjr_am_backend.routes.handlers import metadata as meta_mod
 from mjr_am_backend.routes.handlers import plugins as plugins_mod
-from mjr_am_backend.routes.handlers import releases as rel_mod
 from mjr_am_backend.routes.handlers import stacks as stacks_mod
 from mjr_am_backend.shared import Result
 
@@ -27,52 +26,6 @@ async def _call(app, method: str, path: str):
     req._match_info = match
     resp = await match.handler(req)
     return json.loads(resp.text), resp.status
-
-
-@pytest.mark.asyncio
-async def test_releases_route_success_with_fake_github(monkeypatch) -> None:
-    class _Resp:
-        def __init__(self, payload):
-            self.status = 200
-            self._payload = payload
-
-        async def __aenter__(self):
-            return self
-
-        async def __aexit__(self, exc_type, exc, tb):
-            return False
-
-        async def json(self):
-            return self._payload
-
-        async def text(self):
-            return "ok"
-
-    class _Session:
-        async def __aenter__(self):
-            return self
-
-        async def __aexit__(self, exc_type, exc, tb):
-            return False
-
-        def get(self, url, headers=None, timeout=None, allow_redirects=True):
-            assert allow_redirects is False
-            _ = (headers, timeout)
-            if url.endswith("/tags?per_page=100"):
-                return _Resp([{"name": "v1"}])
-            return _Resp([{"name": "main"}])
-
-    monkeypatch.setattr(rel_mod, "ClientSession", lambda: _Session())
-
-    app = _app_with(rel_mod.register_releases_routes)
-    req = make_mocked_request("GET", "/mjr/am/releases", app=app)
-    match = await app.router.resolve(req)
-    resp = await match.handler(req)
-    body = json.loads(resp.text)
-    assert body.get("ok") is True
-    data = body.get("data") or {}
-    assert data.get("tags") == ["v1"]
-    assert data.get("branches") == ["main"]
 
 
 @pytest.mark.asyncio

@@ -27,7 +27,6 @@ import "./features/runtime/earlyFetch.js";
 import "./integration/comfy_send_to_am.js";
 import "./integration/majoor_save_placeholders.js";
 import { testAPI, triggerStartupScan } from "./app/bootstrap.js";
-import { checkMajoorVersion } from "./app/versionCheck.js";
 import { ensureStyleLoaded } from "./app/style.js";
 import { buildMajoorSettings, registerMajoorSettings } from "./app/settings.js";
 import {
@@ -502,11 +501,6 @@ const majoorExtension = {
             triggerStartupScan,
         });
         registerNativeKeybindings(runtimeApp);
-
-        // 8. Version check (deferred so it doesn't slow startup).
-        setTimeout(() => {
-            void checkMajoorVersion();
-        }, 5000);
 
         // 9. Proactive early fetch  -  start the first assets page in the background
         //     so the data is ready (or already in-flight) when the user opens the

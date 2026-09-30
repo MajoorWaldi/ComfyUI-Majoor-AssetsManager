@@ -25,7 +25,6 @@ from .handlers import (
     register_metadata_catalog_routes,
     register_metadata_routes,
     register_plugin_routes,
-    register_releases_routes,
     register_scan_routes,
     register_search_routes,
     register_stacks_routes,
@@ -75,11 +74,6 @@ CORE_ROUTE_REGISTRATIONS: tuple[RouteRegistration, ...] = (
 
 
 OPTIONAL_ROUTE_REGISTRATIONS: tuple[RouteRegistration, ...] = (
-    RouteRegistration(
-        "releases",
-        register_releases_routes,
-        ("  GET /mjr/am/releases (Added)",),
-    ),
     RouteRegistration(
         "version",
         register_version_routes,

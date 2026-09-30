@@ -18,7 +18,6 @@ from .integration import register_integration_routes
 from .metadata import register_metadata_routes
 from .metadata_catalog import register_metadata_catalog_routes
 from .plugins import register_plugin_routes
-from .releases import register_releases_routes
 from .scan import register_scan_routes
 from .search import register_search_routes
 from .stacks import register_stacks_routes
@@ -49,7 +48,6 @@ __all__ = [
     "register_metadata_routes",
     "register_metadata_catalog_routes",
     "register_plugin_routes",
-    "register_releases_routes",
     "register_search_routes",
     "register_stacks_routes",
     "register_thumbnail_routes",
