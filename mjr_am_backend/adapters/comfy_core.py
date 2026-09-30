@@ -426,7 +426,7 @@ class ComfyCoreAdapter:
         if "assets" in flags and not bool(flags.get("assets")):
             return False
         try:
-            from app.assets.services import list_assets_page  # noqa: F401
+            from app.assets.services import get_asset_detail  # noqa: F401
 
             return True
         except Exception:

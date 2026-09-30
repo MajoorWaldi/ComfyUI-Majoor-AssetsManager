@@ -4,12 +4,17 @@ Adapter for ComfyUI core assets system (app.assets).
 Bridges the core `/api/assets` service layer when `--enable-assets` is active.
 All imports are guarded — when the core system is unavailable this module
 degrades gracefully and every public function returns None / empty.
+
+The core service layer (`app.assets.services`, `app.database.db`) is
+synchronous and SQLAlchemy-session-based; every DB-touching call here runs
+through `asyncio.to_thread` so it doesn't block the event loop.
 """
 
 from __future__ import annotations
 
+import asyncio
+import os
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Any
 
 from ..shared import get_logger
@@ -65,7 +70,7 @@ def is_available() -> bool:
 
 
 def _ref_to_info(detail) -> CoreAssetInfo | None:
-    """Convert a core AssetDetailResult / AssetSummaryData into CoreAssetInfo."""
+    """Convert a core AssetDetailResult into CoreAssetInfo."""
     try:
         ref = detail.ref
         asset = detail.asset
@@ -86,6 +91,26 @@ def _ref_to_info(detail) -> CoreAssetInfo | None:
         return None
 
 
+def _fetch_by_path_sync(file_path: str) -> CoreAssetInfo | None:
+    from app.assets.database.queries.records import get_record_by_path_or_none
+    from app.assets.services import get_asset_detail
+    from app.database.db import create_session
+
+    # Core's writer normalizes stored content paths with os.path.abspath()
+    # (create_content_reporting_insert); match that exactly rather than
+    # resolving symlinks, which could miss the stored row.
+    abs_path = os.path.abspath(file_path)
+    with create_session() as session:
+        record = get_record_by_path_or_none(session, abs_path)
+        if record is None:
+            return None
+        reference_id = record.id
+    detail = get_asset_detail(reference_id)
+    if detail is None:
+        return None
+    return _ref_to_info(detail)
+
+
 async def fetch_by_path(file_path: str) -> CoreAssetInfo | None:
     """Look up a core asset reference by its absolute file path.
 
@@ -94,55 +119,49 @@ async def fetch_by_path(file_path: str) -> CoreAssetInfo | None:
     if not is_available():
         return None
     try:
-        direct = await _fetch_by_path_direct(file_path)
-        if direct is not None:
-            return direct
-    except Exception as exc:
-        logger.debug("Direct core asset lookup by path failed: %s", exc)
-    try:
-        from app.assets.services import list_assets_page
-        basename = Path(str(file_path)).name
-        result = await list_assets_page(
-            owner_id="",
-            name_contains=basename or None,
-            include_tags=[],
-            exclude_tags=[],
-            metadata_filter=None,
-            limit=200,
-            offset=0,
-            sort="created_at",
-            order="desc",
-        )
-        # The core API doesn't expose a direct by-path lookup via the service
-        # layer.  Walk the first page and filter — for single-file lookups this
-        # is acceptable; a future version could query the DB directly.
-        for item in result.items:
-            if item.ref.file_path and _paths_equal(item.ref.file_path, file_path):
-                return _ref_to_info(item)
+        return await asyncio.to_thread(_fetch_by_path_sync, str(file_path))
     except Exception as exc:
         logger.debug("Core asset lookup by path failed: %s", exc)
-    return None
+        return None
 
 
-async def _fetch_by_path_direct(file_path: str) -> CoreAssetInfo | None:
-    from app.assets.database import get_session
-    from app.assets.database.queries.asset_reference import get_reference_by_file_path
-    from app.assets.services.schemas import (
-        AssetDetailResult,
-        extract_asset_data,
-        extract_reference_data,
-    )
+def _fetch_by_job_id_sync(job_id: str) -> list[CoreAssetInfo]:
+    import sqlalchemy as sa
+    from app.assets.database.models import Asset, AssetContent
+    from app.assets.services.schemas import AssetData, AssetDetailResult, ReferenceData
+    from app.database.db import create_session
 
-    async with get_session() as session:
-        ref = get_reference_by_file_path(session, str(file_path))
-        if ref is None:
-            return None
-        detail = AssetDetailResult(
-            ref=extract_reference_data(ref),
-            asset=extract_asset_data(ref.asset),
-            tags=[],
-        )
-        return _ref_to_info(detail)
+    infos: list[CoreAssetInfo] = []
+    with create_session() as session:
+        rows = session.execute(
+            sa.select(Asset, AssetContent)
+            .join(AssetContent, Asset.content_id == AssetContent.id)
+            .where(Asset.job_id == job_id, AssetContent.is_missing.is_(False))
+        ).all()
+        for record, content in rows:
+            ref = ReferenceData(
+                id=record.id,
+                name=record.name,
+                file_path=content.path,
+                user_metadata=record.user_metadata,
+                preview_id=record.preview_id,
+                created_at=record.created_at,
+                updated_at=record.updated_at,
+                loader_path=record.loader_path,
+                system_metadata=record.system_metadata,
+                job_id=record.job_id,
+                last_access_time=record.last_access_time,
+            )
+            asset = AssetData(
+                hash=content.hash,
+                size_bytes=content.size_bytes,
+                mime_type=record.mime_type,
+                is_missing=content.is_missing,
+            )
+            info = _ref_to_info(AssetDetailResult(ref=ref, asset=asset, tags=[]))
+            if info is not None:
+                infos.append(info)
+    return infos
 
 
 async def fetch_by_job_id(job_id: str) -> list[CoreAssetInfo]:
@@ -150,30 +169,10 @@ async def fetch_by_job_id(job_id: str) -> list[CoreAssetInfo]:
     if not is_available() or not job_id:
         return []
     try:
-        from app.assets.database import get_session
-        from app.assets.database.queries.asset_reference import (
-            list_references_page,
-        )
-
-        async with get_session() as session:
-            rows = await list_references_page(
-                session,
-                owner_id="",
-                tags=[],
-                name_contains=None,
-                metadata_filter={"job_id": job_id},
-                limit=200,
-                offset=0,
-                sort="created_at",
-                order="asc",
-            )
-        # This is a best-effort path — the core query layer may not support
-        # metadata_filter with job_id directly.  Fall back to a raw query
-        # if the import structure changes.
-        return [info for r in rows if (info := _ref_to_info(r)) is not None]
+        return await asyncio.to_thread(_fetch_by_job_id_sync, str(job_id))
     except Exception as exc:
-        logger.debug("Core asset lookup by job_id failed (expected on older cores): %s", exc)
-    return []
+        logger.debug("Core asset lookup by job_id failed: %s", exc)
+        return []
 
 
 def _clean_sync_tags(tags: list[str] | tuple[str, ...] | None) -> list[str]:
@@ -201,6 +200,22 @@ async def _asset_filepath_by_id(db: Any, asset_id: int) -> str:
     return ""
 
 
+def _update_asset_metadata_sync(
+    reference_id: str,
+    tags: list[str] | None,
+    user_metadata: dict[str, Any] | None,
+) -> bool:
+    from app.assets.services import update_asset_metadata
+
+    update_asset_metadata(
+        reference_id,
+        tags=tags,
+        user_metadata=user_metadata,
+        tag_origin="manual",
+    )
+    return True
+
+
 async def sync_user_metadata_by_asset_id(
     db: Any,
     asset_id: int,
@@ -218,50 +233,27 @@ async def sync_user_metadata_by_asset_id(
     info = await fetch_by_path(filepath)
     if not info:
         return False
-    payload: dict[str, Any] = {}
-    if rating is not None:
-        payload["rating"] = max(0, min(5, int(rating or 0)))
-    if tags is not None:
-        payload["tags"] = _clean_sync_tags(tags)
+
+    # update_asset_metadata() replaces user_metadata wholesale, so merge onto
+    # the current value rather than clobbering fields another tool set.
+    merged_metadata = dict(info.user_metadata or {})
     if metadata:
-        payload["metadata"] = dict(metadata)
-    if not payload:
+        merged_metadata.update(metadata)
+    if rating is not None:
+        merged_metadata["rating"] = max(0, min(5, int(rating or 0)))
+
+    clean_tags = _clean_sync_tags(tags) if tags is not None else None
+    user_metadata_arg = merged_metadata if (metadata or rating is not None) else None
+    if user_metadata_arg is None and clean_tags is None:
         return False
 
     try:
-        from app.assets import services as asset_services  # type: ignore
+        return await asyncio.to_thread(
+            _update_asset_metadata_sync,
+            info.reference_id,
+            clean_tags,
+            user_metadata_arg,
+        )
     except Exception as exc:
-        logger.debug("Core asset services unavailable for metadata sync: %s", exc)
+        logger.debug("Core asset metadata sync failed for %s: %s", info.reference_id, exc)
         return False
-
-    for name in (
-        "update_asset_user_metadata",
-        "update_asset_metadata",
-        "update_asset",
-        "set_asset_metadata",
-    ):
-        fn = getattr(asset_services, name, None)
-        if not callable(fn):
-            continue
-        for args, kwargs in (
-            ((info.reference_id,), payload),
-            ((), {"asset_id": info.reference_id, **payload}),
-            ((), {"reference_id": info.reference_id, **payload}),
-        ):
-            try:
-                result = fn(*args, **kwargs)
-                if hasattr(result, "__await__"):
-                    await result
-                return True
-            except Exception as exc:
-                logger.debug("Core asset metadata sync via %s failed: %s", name, exc)
-    return False
-
-
-def _paths_equal(a: str, b: str) -> bool:
-    """Case-insensitive, separator-normalised path comparison."""
-    import os
-    try:
-        return os.path.normcase(os.path.normpath(a)) == os.path.normcase(os.path.normpath(b))
-    except Exception:
-        return str(a) == str(b)
