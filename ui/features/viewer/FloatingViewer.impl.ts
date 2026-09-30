@@ -118,7 +118,7 @@ export class FloatingViewer {
         this._liveBtn = null;
         this._genBtn = null;
         this._genDropdown = null;
-        this._genSidebarEnabled = true;
+        this._genSidebarEnabled = false;
         this._captureBtn = null;
         this._genInfoSelections = new Set([
             "prompt",

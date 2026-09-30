@@ -85,7 +85,7 @@ export const APP_DEFAULTS = Object.freeze({
     // grid loads, or file I/O. Backend handlers are independent of the prompt
     // queue. Keep this false unless explicitly debugging contention.
     DEFER_GRID_FETCH_DURING_EXECUTION: false,
-    VIEWER_PAUSE_DURING_EXECUTION: true,
+    VIEWER_PAUSE_DURING_EXECUTION: false,
     FLOATING_VIEWER_PAUSE_DURING_EXECUTION: false,
     MFV_SIDEBAR_POSITION: "right",
     MFV_LIVE_DEFAULT: true,
