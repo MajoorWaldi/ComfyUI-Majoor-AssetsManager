@@ -21,6 +21,9 @@ All notable changes to this project are documented in this file.
 - **Single-node prompts** are recognised as prompt graphs.
 - **Live asset kind**: `opus`, `aac`, `m4a`, `aiff` and `exr` outputs are classified correctly in the realtime listener.
 - **Majoor Save Video** first-frame PNG now honours `--disable-metadata`.
+- **Double grid reload**: a global `mjr:reload-grid` event was handled by both the panel and the assets query controller, so every request (for example after each generation) reloaded the grid twice. Only the controller handles it now.
+- **Reload during maintenance**: the DB maintenance guard (restore, reset, delete) was bypassed by the controller listener; the grid no longer reloads while maintenance is active.
+- **Grid paging rate limit**: `/mjr/am/list` limited the local UI to 50 requests per minute, which paging, prefetch and per-generation reloads could exceed on fast workflows. Local clients are no longer throttled; remote clients still are.
 
 ## [2.5.3] - 2026-09-27
 
