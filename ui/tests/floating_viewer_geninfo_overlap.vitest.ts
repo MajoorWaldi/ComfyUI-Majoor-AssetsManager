@@ -69,6 +69,7 @@ describe("floating viewer geninfo sidebar", () => {
         const { FloatingViewer } = await import("../features/viewer/FloatingViewer.js");
 
         const viewer = new FloatingViewer();
+        viewer._genSidebarEnabled = true;
         viewer._contentEl = document.createElement("div");
         viewer._genSidebarEl = document.createElement("aside");
         document.body.appendChild(viewer._contentEl);
@@ -126,6 +127,7 @@ describe("floating viewer geninfo sidebar", () => {
         const { FloatingViewer, MFV_MODES } = await import("../features/viewer/FloatingViewer.js");
 
         const viewer = new FloatingViewer();
+        viewer._genSidebarEnabled = true;
         viewer._genSidebarEl = document.createElement("aside");
         viewer._mediaA = { filename: "a.png", metadata_raw: { prompt: "asset A prompt", seed: 1 } };
         viewer._mediaB = { filename: "b.png", metadata_raw: { prompt: "asset B prompt", seed: 2 } };
@@ -148,6 +150,7 @@ describe("floating viewer geninfo sidebar", () => {
         const { FloatingViewer } = await import("../features/viewer/FloatingViewer.js");
 
         const viewer = new FloatingViewer();
+        viewer._genSidebarEnabled = true;
         const wrapper = document.createElement("div");
         wrapper.className = "mjr-mfv-content-wrapper";
         wrapper.setAttribute("data-sidebar-pos", "bottom");
@@ -187,6 +190,7 @@ describe("floating viewer geninfo sidebar", () => {
         const { FloatingViewer } = await import("../features/viewer/FloatingViewer.js");
 
         const viewer = new FloatingViewer();
+        viewer._genSidebarEnabled = true;
         viewer._genSidebarEl = document.createElement("aside");
         document.body.appendChild(viewer._genSidebarEl);
         viewer._mediaA = {
