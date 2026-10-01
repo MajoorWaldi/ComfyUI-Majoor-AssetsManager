@@ -812,6 +812,7 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
                 (f"{stem_lower}.wav", sf, src, rid),
                 (f"{stem_lower}.ogg", sf, src, rid),
                 (f"{stem_lower}.flac", sf, src, rid),
+                (f"{stem_lower}.opus", sf, src, rid),
                 (stem_lower, sf, src, rid),
             ]
             # Also check for suffixed variants like stem-audio.mp4

@@ -7,6 +7,7 @@ requiring the full metadata payload.
 
 from __future__ import annotations
 
+import asyncio
 import os
 from pathlib import Path
 from urllib.parse import unquote
@@ -15,6 +16,7 @@ from aiohttp import web
 from mjr_am_backend.adapters.comfy_core import get_input_directory
 from mjr_am_backend.config import get_runtime_output_root
 from mjr_am_backend.custom_roots import list_custom_roots, resolve_custom_root
+from mjr_am_backend.features.metadata.thumbnail_cache import PREVIEW_ONLY_EXTENSIONS, get_or_create_preview
 from mjr_am_backend.features.viewer.info import build_viewer_media_info
 from mjr_am_backend.shared import Result, get_logger
 
@@ -384,6 +386,28 @@ async def _resolve_viewer_file_context(
     return await _resolve_by_filename(request)
 
 
+async def _viewer_file_response(request: web.Request, resolved: Path, cache_control: str) -> web.FileResponse:
+    """Stream a viewer file; EXR/TIFF are served as a JPEG preview unless ``?original=1`` is set."""
+    target = resolved
+    content_type = _guess_content_type_for_file(resolved)
+    ext = resolved.suffix.lower()
+    wants_original = str(request.query.get("original", "")).strip().lower() in ("1", "true", "yes")
+    if ext in PREVIEW_ONLY_EXTENSIONS and not wants_original:
+        loop = asyncio.get_running_loop()
+        preview = await loop.run_in_executor(None, get_or_create_preview, str(resolved))
+        preview_path = Path(str((preview.data or {}).get("path") or "")) if preview.ok else None
+        if preview_path is not None and preview_path.is_file():
+            target, content_type = preview_path, "image/jpeg"
+    resp = web.FileResponse(path=str(target))
+    resp.headers["Content-Type"] = content_type
+    resp.headers["Cache-Control"] = cache_control
+    resp.headers["X-Content-Type-Options"] = "nosniff"
+    if ext == ".svg":
+        # SVG may carry script: keep it inert if opened directly instead of through <img>.
+        resp.headers["Content-Security-Policy"] = "sandbox"
+    return resp
+
+
 def register_viewer_routes(routes: web.RouteTableDef) -> None:
     """Register viewer info and file-serving routes."""
 
@@ -403,15 +427,7 @@ def register_viewer_routes(routes: web.RouteTableDef) -> None:
         if not _is_allowed_view_media_file(resolved):
             return _json_response(Result.Err("UNSUPPORTED", "Unsupported file type for viewer"))
 
-        content_type = _guess_content_type_for_file(resolved)
-        resp = web.FileResponse(path=str(resolved))
-        try:
-            resp.headers["Content-Type"] = content_type
-            resp.headers["Cache-Control"] = "private, max-age=3600, stale-while-revalidate=60"
-            resp.headers["X-Content-Type-Options"] = "nosniff"
-        except Exception:
-            logger.debug("viewer_asset: suppressed exception", exc_info=True)
-        return resp
+        return await _viewer_file_response(request, resolved, "private, max-age=3600, stale-while-revalidate=60")
 
     @routes.get("/mjr/am/viewer/info")
     async def viewer_info(request: web.Request):
@@ -564,14 +580,6 @@ def register_viewer_routes(routes: web.RouteTableDef) -> None:
         if resolved is None:
             return _json_response(Result.Err("NOT_FOUND", "Resolved path is None"))
 
-        content_type = _guess_content_type_for_file(resolved)
-        resp = web.FileResponse(path=str(resolved))
-        try:
-            resp.headers["Content-Type"] = content_type
-            # Content-addressed URIs are immutable by definition, so we can cache
-            # aggressively. Browsers honor `immutable` only for max-age responses.
-            resp.headers["Cache-Control"] = "public, max-age=31536000, immutable"
-            resp.headers["X-Content-Type-Options"] = "nosniff"
-        except Exception:
-            logger.debug("viewer_by_hash: suppressed exception", exc_info=True)
-        return resp
+        # Content-addressed URIs are immutable by definition, so we can cache
+        # aggressively. Browsers honor `immutable` only for max-age responses.
+        return await _viewer_file_response(request, resolved, "public, max-age=31536000, immutable")

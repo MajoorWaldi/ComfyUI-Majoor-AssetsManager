@@ -31,7 +31,7 @@ MEDIA_INPUT_EXTS = frozenset(
     {
         ".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp", ".tif", ".tiff", ".avif", ".jxl",
         ".mp4", ".webm", ".mov", ".mkv", ".avi", ".m4v",
-        ".wav", ".mp3", ".flac", ".ogg", ".m4a", ".aac", ".aiff", ".aif",
+        ".wav", ".mp3", ".flac", ".ogg", ".m4a", ".aac", ".aiff", ".aif", ".opus",
     }
 )
 

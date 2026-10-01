@@ -13,6 +13,7 @@ AUDIO_EXTENSIONS = {
     ".aif",
     ".m4a",
     ".aac",
+    ".opus",
 }
 
 AUDIO_VIEW_MIME_TYPES = {
@@ -24,5 +25,6 @@ AUDIO_VIEW_MIME_TYPES = {
     ".aif": "audio/aiff",
     ".m4a": "audio/mp4",
     ".aac": "audio/aac",
+    ".opus": "audio/ogg",
 }
 

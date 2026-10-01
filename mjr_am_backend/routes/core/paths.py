@@ -160,6 +160,8 @@ _ALLOWED_VIEW_EXTS = {
     ".tiff",
     ".avif",
     ".jxl",
+    ".exr",
+    ".svg",
     # Videos
     ".mp4",
     ".webm",
@@ -176,6 +178,7 @@ _ALLOWED_VIEW_EXTS = {
     ".aif",
     ".m4a",
     ".aac",
+    ".opus",
     # 3D
     ".obj",
     ".fbx",
@@ -212,6 +215,8 @@ def _guess_content_type_for_file(path: Path) -> str:
                 ".tiff": "image/tiff",
                 ".avif": "image/avif",
                 ".jxl": "image/jxl",
+                ".svg": "image/svg+xml",
+                ".exr": "image/x-exr",
                 # Videos
                 ".mp4": "video/mp4",
                 ".m4v": "video/x-m4v",
