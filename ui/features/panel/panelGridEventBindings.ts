@@ -7,8 +7,7 @@ import { t } from "../../app/i18n.js";
  *
  * Covered events:
  *   gridContainer  - mjr:reload-grid, mjr:badge-duplicates-focus
- *   window         - mjr:reload-grid (global), mjr:sort-changed,
- *                    mjr:collections-changed
+ *   window         - mjr:sort-changed, mjr:collections-changed
  *
  * All listeners registered on `window` are removed automatically when
  * `panelLifecycleAC` is aborted.  Grid-container listeners are also registered
@@ -108,32 +107,8 @@ export function bindGridEvents({
         console.debug?.(e);
     }
 
-    // -- window: mjr:reload-grid (global) -----------------------------------
-    try {
-        window.addEventListener(
-            "mjr:reload-grid",
-            (event) => {
-                try {
-                    if (panelLifecycleAC?.signal?.aborted) return;
-                } catch (e) {
-                    console.debug?.(e);
-                }
-                try {
-                    if ((globalThis as any)?._mjrMaintenanceActive) return;
-                } catch (e) {
-                    console.debug?.(e);
-                }
-                // Only process explicit, reasoned global reload requests.
-                // This avoids accidental reloads from anonymous CustomEvents emitted elsewhere.
-                const reason = String((event as CustomEvent)?.detail?.reason || "").trim();
-                if (!reason) return;
-                requestQueuedReload();
-            },
-            { signal: panelLifecycleAC?.signal },
-        );
-    } catch (e) {
-        console.debug?.(e);
-    }
+    // Global mjr:reload-grid events are handled by the assets query controller
+    // (visibility-aware, coalesced). Listening here too reloaded the grid twice.
 
     // -- window: mjr:sort-changed -------------------------------------------
     // Handles sort changes dispatched by the Vue SortPopover component.

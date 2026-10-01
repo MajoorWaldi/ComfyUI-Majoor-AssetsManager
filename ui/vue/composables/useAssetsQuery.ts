@@ -195,6 +195,8 @@ export function createAssetsQueryController({
     };
 
     const onGlobalReloadGrid = (event: any) => {
+        // Database maintenance rebuilds the index; the scan that follows reloads the grid.
+        if ((globalThis as any)?._mjrMaintenanceActive) return;
         markGridDirty(event?.detail?.reason || "manual");
     };
 

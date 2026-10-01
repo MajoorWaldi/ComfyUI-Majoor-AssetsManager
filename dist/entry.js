@@ -16319,7 +16319,7 @@ function Hg({ gridContainer: e, gridWrapper: t, readScrollElement: n = () => nul
 	}, j = (e) => {
 		e?.detail?.source !== "assets-query-controller" && A(e?.detail?.reason || "external");
 	}, M = (e) => {
-		A(e?.detail?.reason || "manual");
+		globalThis?._mjrMaintenanceActive || A(e?.detail?.reason || "manual");
 	};
 	try {
 		let e = globalThis?.window ?? globalThis;
@@ -16713,23 +16713,6 @@ function Gg({ gridContainer: e, panelLifecycleAC: t, requestQueuedReload: n, not
 				console.debug?.(e);
 			}
 		});
-	} catch (e) {
-		console.debug?.(e);
-	}
-	try {
-		window.addEventListener("mjr:reload-grid", (e) => {
-			try {
-				if (t?.signal?.aborted) return;
-			} catch (e) {
-				console.debug?.(e);
-			}
-			try {
-				if (globalThis?._mjrMaintenanceActive) return;
-			} catch (e) {
-				console.debug?.(e);
-			}
-			String(e?.detail?.reason || "").trim() && n();
-		}, { signal: t?.signal });
 	} catch (e) {
 		console.debug?.(e);
 	}
