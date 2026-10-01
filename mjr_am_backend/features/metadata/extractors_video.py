@@ -18,6 +18,8 @@ def apply_video_ffprobe_fields(metadata: dict[str, Any], ffprobe_data: dict[str,
 
     tags = format_info.get("tags") if isinstance(format_info, dict) else None
     if isinstance(tags, dict):
+        # Matroska/WebM muxers uppercase tag names (GENERATION_TIME_MS).
+        tags = {str(key).lower(): value for key, value in tags.items()}
         gen_ms_raw = tags.get("generation_time_ms")
         if gen_ms_raw is not None:
             try:

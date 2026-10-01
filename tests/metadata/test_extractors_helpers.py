@@ -308,3 +308,53 @@ def test_priority_helpers():
     assert e._normalized_json_key("Prompt") == "prompt"
     assert e._looks_like_workflow_prefixed("workflow:{", "x") is True
     assert e._looks_like_prompt_prefixed("prompt:{", "x") is True
+
+
+def test_generation_time_ms_is_read_from_uppercase_matroska_tags():
+    assert e._extract_generation_time_ms_from_exif({"GENERATION_TIME_MS": "1500"}) == 1500
+    assert e._extract_generation_time_ms_from_exif({"PNG:Generation_time_ms": "250"}) == 250
+    assert e._extract_generation_time_ms_from_exif({"generation_time_ms": "bad"}) is None
+
+
+def test_opus_is_classified_as_audio_and_served_with_a_mime_type():
+    from mjr_am_backend.features.audio import AUDIO_EXTENSIONS, AUDIO_VIEW_MIME_TYPES
+    from mjr_am_shared.types import classify_file
+
+    assert classify_file("track_00001.opus") == "audio"
+    assert ".opus" in AUDIO_EXTENSIONS
+    assert AUDIO_VIEW_MIME_TYPES[".opus"] == "audio/ogg"
+
+
+def test_video_ffprobe_fields_read_uppercase_matroska_tags():
+    from mjr_am_backend.features.metadata import extractors_video as video
+
+    metadata: dict = {}
+    video.apply_video_ffprobe_fields(
+        metadata,
+        {
+            "video_stream": {"width": 64, "height": 64, "r_frame_rate": "24/1"},
+            "format": {"duration": "1.0", "tags": {"GENERATION_TIME_MS": "4321", "SOURCE_NODE_TYPE": "MajoorSaveVideo", "JOB_ID": "abc"}},
+        },
+    )
+
+    assert metadata["generation_time_ms"] == 4321
+    assert metadata["source_node_type"] == "MajoorSaveVideo"
+    assert metadata["prompt_id"] == "abc"
+
+
+def test_keyed_exif_text_is_expanded_for_avif_and_webp():
+    exif = {
+        "IFD0:Model": 'prompt:{"1": {}}',
+        "IFD0:DocumentName": "generation_time_ms:4321",
+        "IFD0:ImageDescription": 'majoor_geninfo:{"seed": 7}',
+        "IFD0:Make": 'source_node_type:"MajoorSaveImage"',
+    }
+
+    expanded = e._expand_keyed_exif_text(exif)
+
+    assert expanded["generation_time_ms"] == 4321
+    assert expanded["majoor_geninfo"] == '{"seed": 7}'
+    assert expanded["source_node_type"] == "MajoorSaveImage"
+    assert "prompt" not in expanded
+    assert e._extract_generation_time_ms_from_exif(expanded) == 4321
+    assert e._expand_keyed_exif_text(None) is None

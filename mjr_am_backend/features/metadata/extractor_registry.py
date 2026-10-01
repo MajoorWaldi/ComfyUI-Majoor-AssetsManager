@@ -15,6 +15,9 @@ from .extractors import (
 from .extractors_3d import extract_model3d_metadata
 from .parsing_utils import parse_auto1111_params
 
+# Formats that carry ComfyUI/A1111 text (Prompt:/Workflow:/parameters) in EXIF tags, like WebP.
+EXIF_TEXT_IMAGE_EXTS = frozenset({".jpg", ".jpeg", ".tif", ".tiff"})
+
 logger = logging.getLogger(__name__)
 
 
@@ -222,7 +225,7 @@ def extract_workflow_only_payload(kind: str, ext: str, file_path: str, exif_data
     if kind == "image":
         if ext == ".png":
             return extract_png_metadata(file_path, exif_data)
-        if ext == ".webp":
+        if ext == ".webp" or ext in EXIF_TEXT_IMAGE_EXTS:
             return extract_webp_metadata(file_path, exif_data)
         if ext == ".avif":
             return extract_avif_metadata(file_path, exif_data)
@@ -233,7 +236,7 @@ def extract_workflow_only_payload(kind: str, ext: str, file_path: str, exif_data
 def extract_image_by_extension(file_path: str, ext: str, exif_data: dict[str, Any] | None) -> Result[dict[str, Any]]:
     if ext == ".png":
         return extract_png_metadata(file_path, exif_data)
-    if ext == ".webp":
+    if ext == ".webp" or ext in EXIF_TEXT_IMAGE_EXTS:
         return extract_webp_metadata(file_path, exif_data)
     if ext == ".avif":
         return extract_avif_metadata(file_path, exif_data)

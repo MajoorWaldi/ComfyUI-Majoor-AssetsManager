@@ -2,6 +2,7 @@
 Metadata extractors for different file types.
 Extracts ComfyUI workflow and generation parameters from PNG, WEBP, MP4.
 """
+import json
 import os
 import re
 from copy import deepcopy
@@ -1295,8 +1296,10 @@ def _extract_generation_time_ms_from_exif(exif_data: dict[str, Any] | None) -> i
     """Extract generation_time_ms written by MajoorSaveImage/MajoorSaveVideo."""
     if not exif_data:
         return None
-    for key in ("PNG:Generation_time_ms", "generation_time_ms", "Generation_time_ms"):
-        value = exif_data.get(key)
+    # Matroska/WebM muxers uppercase tag names (GENERATION_TIME_MS).
+    lowered = {str(key).lower(): value for key, value in exif_data.items()}
+    for key in ("png:generation_time_ms", "generation_time_ms"):
+        value = lowered.get(key)
         if value is None:
             continue
         try:
@@ -1560,7 +1563,7 @@ def _collect_video_text_candidates(
 def extract_webp_metadata(file_path: str, exif_data: dict | None = None) -> Result[dict[str, Any]]:
     return _webp.extract_webp_metadata_impl(
         file_path,
-        exif_data,
+        _expand_keyed_exif_text(exif_data),
         exists=os.path.exists,
         inspect_json_field=_inspect_json_field,
         webp_workflow_keys=_WEBP_WORKFLOW_KEYS,
@@ -1576,10 +1579,41 @@ def extract_webp_metadata(file_path: str, exif_data: dict | None = None) -> Resu
     )
 
 
+_KEYED_EXIF_FIELDS = (
+    "generation_time_ms",
+    "majoor_geninfo",
+    "job_id",
+    "prompt_id",
+    "workflow_id",
+    "source_node_id",
+    "source_node_type",
+    "asset_id",
+)
+
+
+def _expand_keyed_exif_text(exif_data: dict | None) -> dict | None:
+    """Surface ``key:value`` strings that ComfyUI/Majoor store in AVIF/WebP IFD0 text tags."""
+    if not exif_data:
+        return exif_data
+    expanded = dict(exif_data)
+    for tag, value in exif_data.items():
+        if not isinstance(value, str) or not str(tag).startswith(("IFD0:", "EXIF:", "ExifIFD:")):
+            continue
+        name, sep, payload = value.partition(":")
+        if not sep or name not in _KEYED_EXIF_FIELDS or name in expanded:
+            continue
+        try:
+            parsed = json.loads(payload)
+        except ValueError:
+            parsed = payload
+        expanded[name] = parsed if isinstance(parsed, (str, int, float)) else payload
+    return expanded
+
+
 def extract_avif_metadata(file_path: str, exif_data: dict | None = None) -> Result[dict[str, Any]]:
     return _webp.extract_webp_metadata_impl(
         file_path,
-        exif_data,
+        _expand_keyed_exif_text(exif_data),
         exists=os.path.exists,
         inspect_json_field=_inspect_json_field,
         webp_workflow_keys=_AVIF_WORKFLOW_KEYS,

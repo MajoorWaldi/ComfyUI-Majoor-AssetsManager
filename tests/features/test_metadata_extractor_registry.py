@@ -81,8 +81,11 @@ def test_extract_payload_dispatch_and_batch_tool_data(monkeypatch):
     assert p2.ok and p2.data["kind"] == "video"
     p3 = r.extract_workflow_only_payload("image", ".avif", "a.avif", {"x": 1})
     assert p3.ok and p3.data["kind"] == "avif"
-    p4 = r.extract_image_by_extension("a.jpg", ".jpg", None)
+    p4 = r.extract_image_by_extension("a.bmp", ".bmp", None)
     assert p4.ok and p4.data["quality"] == "none"
+    for ext in (".jpg", ".jpeg", ".tif", ".tiff"):
+        assert r.extract_image_by_extension(f"a{ext}", ext, {"x": 1}).data["kind"] == "webp"
+        assert r.extract_workflow_only_payload("image", ext, f"a{ext}", {"x": 1}).data["kind"] == "webp"
     p5 = r.extract_image_by_extension("a.webp", ".webp", {"x": 1})
     assert p5.ok and p5.data["kind"] == "webp"
     p6 = r.extract_image_by_extension("a.avif", ".avif", {"x": 1})

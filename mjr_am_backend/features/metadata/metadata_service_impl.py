@@ -39,6 +39,7 @@ from .extractor_registry import (
     expand_video_resolution_fields as registry_expand_video_resolution_fields,
 )
 from .extractor_registry import (
+    EXIF_TEXT_IMAGE_EXTS,
     extract_image_by_extension as registry_extract_image_by_extension,
 )
 from .extractor_registry import (
@@ -1061,7 +1062,7 @@ class MetadataService:
         ext = os.path.splitext(path)[1].lower()
         if ext == ".png":
             metadata_result = await asyncio.to_thread(extract_png_metadata, path, resolved_exif)
-        elif ext == ".webp":
+        elif ext == ".webp" or ext in EXIF_TEXT_IMAGE_EXTS:
             metadata_result = await asyncio.to_thread(extract_webp_metadata, path, resolved_exif)
         elif ext == ".avif":
             metadata_result = await asyncio.to_thread(extract_avif_metadata, path, resolved_exif)
