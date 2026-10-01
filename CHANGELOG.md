@@ -4,6 +4,24 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+### New Features
+- **Majoor Save Image formats**: `format` now offers `png 16-bit`, `exr` and `avif` (ComfyUI Save Image (Advanced) encoders) with `input_color_space` and AVIF `crf` options. The node also returns its `images` like the core Save Image node.
+- **Majoor Save Video formats**: MP4, MKV and WebM containers with H.264 or AV1 (`mp4 (av1)`, `mkv (h264)`, `mkv (av1)`, `webm (av1)`). 10-bit and HDR (HLG / PQ) videos keep their bit depth and colour space. The node returns the encoded `images`.
+- **EXR / TIFF / SVG / BMP / AVI / M4V indexing**: these formats are now indexed. EXR and TIFF are served to the viewer as a JPEG preview (EXR tone-mapped from scene-linear to sRGB); add `?original=1` to `/mjr/am/viewer/asset/{id}` for the source file. SVG is served sandboxed.
+- **`.opus` audio**: files written by ComfyUI's Save Audio (Opus) are indexed, played and mined for workflow/prompt metadata.
+- **JPEG and TIFF metadata**: ComfyUI/WAS-style `Prompt:` / `Workflow:` EXIF text and A1111 `parameters` are now read from JPEG and TIFF files (previously only PNG, WebP and AVIF).
+
+### Fixed
+- **Gen info on modern workflows**: workflow JSON now resolves links inside subgraphs (dict-form links), bridges subgraph inputs/outputs, expands nested subgraphs, keeps linked widgets aligned with `widgets_values` (including the `control_after_generate` value), and names widgets from the live node schema. Sampler detection on ComfyUI's bundled templates goes from 147 to 223 of 224, models from 148 to 224.
+- **Sampler selector nodes**: `SamplerEulerAncestral`, `SamplerDPMPP_2M_SDE`, ... now provide the sampler name.
+- **Per-output gen info**: when one prompt writes several files from different branches, each file now gets the gen info of the node that produced it.
+- **Output nodes**: `SaveAnimatedPNG`, `SaveWEBM`, `SaveSVGNode`, `SaveGaussianSplat`, `SavePointCloud` and the 3D previews are recognised as sinks; model-merging savers such as `ImageOnlyCheckpointSave` no longer are.
+- **MKV / WebM metadata**: Matroska uppercases tag names; generation time and execution ids are now read case-insensitively (exiftool and ffprobe paths).
+- **AVIF / WebP Majoor keys**: generation time, geninfo override and execution ids stored in EXIF text tags are read back.
+- **Single-node prompts** are recognised as prompt graphs.
+- **Live asset kind**: `opus`, `aac`, `m4a`, `aiff` and `exr` outputs are classified correctly in the realtime listener.
+- **Majoor Save Video** first-frame PNG now honours `--disable-metadata`.
+
 ## [2.5.3] - 2026-09-27
 
 ### Fixed
