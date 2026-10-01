@@ -48,12 +48,16 @@ async def list_assets(
 ) -> web.Response:
     scope = (request.query.get("scope") or "output").strip().lower()
 
-    allowed, retry_after = check_rate_limit(
-        request,
-        "list_assets",
-        max_requests=list_rate_limit_max_requests,
-        window_seconds=list_rate_limit_window_seconds,
-    )
+    # The local grid pages, prefetches and reloads on every generation; only remote clients are throttled.
+    if is_loopback_request(request):
+        allowed, retry_after = True, None
+    else:
+        allowed, retry_after = check_rate_limit(
+            request,
+            "list_assets",
+            max_requests=list_rate_limit_max_requests,
+            window_seconds=list_rate_limit_window_seconds,
+        )
     if not allowed:
         from mjr_am_backend.shared import Result
 

@@ -1447,3 +1447,33 @@ async def test_workflow_quick_root_id_and_bad_json(monkeypatch) -> None:
     req = make_mocked_request("GET", "/mjr/am/workflow-quick?filename=x.png&root_id=r1", app=app)
     resp = await (await app.router.resolve(req)).handler(req)
     assert json.loads(resp.text).get("workflow") is None
+
+
+async def _list_response_code(monkeypatch, *, loopback: bool) -> str | None:
+    class _Index:
+        async def search_scoped(self, *args, **kwargs):
+            return Result.Ok({"assets": [], "total": 0})
+
+    async def _require_services():
+        return {"index": _Index()}, None
+
+    monkeypatch.setattr(search_impl, "_require_services", _require_services)
+    monkeypatch.setattr(search_impl, "_check_rate_limit", lambda *args, **kwargs: (False, 7))
+    monkeypatch.setattr(search_impl, "_is_loopback_request", lambda _request: loopback)
+    monkeypatch.setattr(search_impl, "_touch_enrichment_pause", lambda *args, **kwargs: None)
+
+    app = _build_search_app()
+    req = make_mocked_request("GET", "/mjr/am/list?scope=output", app=app)
+    match = await app.router.resolve(req)
+    resp = await match.handler(req)
+    return json.loads(resp.text).get("code")
+
+
+@pytest.mark.asyncio
+async def test_list_route_does_not_rate_limit_the_local_grid(monkeypatch) -> None:
+    assert await _list_response_code(monkeypatch, loopback=True) != "RATE_LIMITED"
+
+
+@pytest.mark.asyncio
+async def test_list_route_still_rate_limits_remote_clients(monkeypatch) -> None:
+    assert await _list_response_code(monkeypatch, loopback=False) == "RATE_LIMITED"
