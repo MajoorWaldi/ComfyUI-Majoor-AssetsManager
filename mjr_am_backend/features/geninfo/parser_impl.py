@@ -702,9 +702,11 @@ def _merge_result_override(
     return result
 
 
-def parse_geninfo_from_prompt(prompt_graph: Any, workflow: Any = None) -> Result[dict[str, Any] | None]:
+def parse_geninfo_from_prompt(prompt_graph: Any, workflow: Any = None, sink_node_id: Any = None) -> Result[dict[str, Any] | None]:
     """
     Parse generation information from a ComfyUI prompt graph (dict of nodes).
+    ``sink_node_id`` restricts the parse to the branch feeding that output node
+    (used when a prompt writes several files from different branches).
     Returns Ok(None) when not enough information is available (do-not-lie).
     """
     from .override import build_geninfo_override
@@ -729,6 +731,9 @@ def parse_geninfo_from_prompt(prompt_graph: Any, workflow: Any = None) -> Result
     except Exception as e:
         logger.warning(f"Sink detection failed: {e}")
         sinks = []
+
+    if sink_node_id is not None and str(sink_node_id) in nodes_by_id:
+        sinks = [str(sink_node_id)]
 
     if not sinks:
         return _merge_result_override(_build_no_sampler_result(nodes_by_id, workflow_meta), override)

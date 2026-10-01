@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from collections.abc import Callable
 from typing import Any
 
@@ -226,7 +227,25 @@ def _trace_sampler_name(nodes_by_id: dict[str, dict[str, Any]], link: Any, memo:
             if resolved:
                 return resolved
 
+    class_sampler_name = _sampler_name_from_class_type(_node_type(node))
+    if class_sampler_name:
+        return class_sampler_name, f"{_node_type(node)}:{src_id}"
+
     return _trace_via_fallback_keys(nodes_by_id, ins, memo, _trace_sampler_name)
+
+
+_SAMPLER_CLASS_RE = re.compile(r"^Sampler(?!Custom)([A-Z][A-Za-z0-9_]*)$")
+
+
+def _sampler_name_from_class_type(class_type: str) -> str | None:
+    """SamplerEulerAncestral / SamplerDPMPP_2M_SDE select a sampler by class instead of a sampler_name widget."""
+    match = _SAMPLER_CLASS_RE.match(class_type or "")
+    if not match:
+        return None
+    name = match.group(1)
+    if "_" not in name and not name.isupper():
+        name = re.sub(r"(?<=[a-z0-9])(?=[A-Z])", "_", name)
+    return name.lower()
 
 
 def _trace_noise_seed(nodes_by_id: dict[str, dict[str, Any]], link: Any, memo: set[str] | None = None) -> tuple[Any, str] | None:

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import sys
 from collections import deque
 from typing import Any, TypeGuard, cast
 
@@ -35,15 +36,24 @@ SINK_CLASS_TYPES: set[str] = {
     "saveobj",
     "saveply",
     "voxeltomesh",
+    # ComfyUI core output nodes that the save/media keyword heuristic misses
+    "saveanimatedpng",
+    "savewebm",
+    "savesvgnode",
+    "savegaussiansplat",
+    "savepointcloud",
+    "previewgaussiansplat",
+    "previewpointcloud",
 }
 
-_VIDEO_SINK_TYPES: set[str] = {"savevideo", "vhs_savevideo", "vhs_videocombine"}
+_VIDEO_SINK_TYPES: set[str] = {"savevideo", "savewebm", "vhs_savevideo", "vhs_videocombine"}
 _AUDIO_SINK_TYPES: set[str] = {"saveaudio", "save_audio", "vhs_saveaudio"}
-_IMAGE_SINK_TYPES: set[str] = {"saveimage", "saveimagewebsocket", "saveanimatedwebp", "savegif"}
+_IMAGE_SINK_TYPES: set[str] = {"saveimage", "saveimagewebsocket", "saveanimatedwebp", "saveanimatedpng", "savesvgnode", "savegif"}
 _3D_SINK_TYPES: set[str] = {
     "save_3d_mesh", "save_3dgs", "[comfy3d] save 3d mesh", "[comfy3d] save 3dgs",
     "save3dmesh", "save3dgs", "export_3d_mesh", "export_ply", "export_glb",
     "export_obj", "saveglb", "saveobj", "saveply", "voxeltomesh",
+    "savegaussiansplat", "savepointcloud", "previewgaussiansplat", "previewpointcloud",
 }
 
 
@@ -345,6 +355,8 @@ def _has_sink_media(ct: str) -> bool:
 
 
 def _is_sink_node(ct: str) -> bool:
+    if "checkpoint" in ct:
+        return False  # model-merging savers such as ImageOnlyCheckpointSave write weights, not media
     return ct in SINK_CLASS_TYPES or (_has_sink_action(ct) and _has_sink_media(ct))
 
 
@@ -381,8 +393,8 @@ def _collect_upstream_nodes(nodes_by_id: dict[str, dict[str, Any]], start_node_i
     return dist
 
 
-_3D_SINK_KEYWORDS = ("mesh", "glb", "obj", "ply", "3d", "voxel")
-_VIDEO_SINK_KEYWORDS = ("video", "animate", "gif")
+_3D_SINK_KEYWORDS = ("mesh", "glb", "obj", "ply", "3d", "voxel", "splat", "pointcloud")
+_VIDEO_SINK_KEYWORDS = ("video", "animate", "gif", "webm")
 
 
 def _is_3d_sink(sink_type: str) -> bool:
@@ -546,6 +558,8 @@ def _build_link_source_map(links: Any) -> dict[Any, tuple[Any, int]]:
     for link in links:
         if isinstance(link, list) and len(link) >= 3:
             link_to_source[link[0]] = (link[1], link[2])
+        elif isinstance(link, dict) and link.get("id") is not None:
+            link_to_source[link["id"]] = (link.get("origin_id"), link.get("origin_slot"))
     return link_to_source
 
 
@@ -582,6 +596,17 @@ def _init_litegraph_converted_node(node: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+_CONTROL_AFTER_GENERATE_VALUES = frozenset({"fixed", "increment", "decrement", "randomize"})
+_WIDGET_INPUT_TYPES = frozenset({"INT", "FLOAT", "STRING", "BOOLEAN", "COMBO"})
+
+
+def _skip_control_after_generate(widgets_list: list[Any], widget_idx: int) -> int:
+    """Advance past the control_after_generate value the frontend stores after a seed widget."""
+    if widget_idx < len(widgets_list) and widgets_list[widget_idx] in _CONTROL_AFTER_GENERATE_VALUES:
+        return widget_idx + 1
+    return widget_idx
+
+
 def _populate_converted_inputs_from_list(converted_inputs: dict[str, Any], raw_inputs: list[Any], widgets_list: list[Any], link_to_source: dict[int, tuple[int, int]]) -> None:
     widget_idx = 0
     for inp in raw_inputs:
@@ -590,15 +615,54 @@ def _populate_converted_inputs_from_list(converted_inputs: dict[str, Any], raw_i
         name = inp.get("name")
         if not name:
             continue
+        is_widget = "widget" in inp
         link_id = inp.get("link")
         if link_id is not None and link_id in link_to_source:
             src_node_id, src_slot = link_to_source[link_id]
             converted_inputs[name] = [str(src_node_id), src_slot]
-            continue
-        if "widget" in inp:
-            if widget_idx < len(widgets_list):
-                converted_inputs[name] = widgets_list[widget_idx]
+        elif is_widget and widget_idx < len(widgets_list):
+            converted_inputs[name] = widgets_list[widget_idx]
+        if is_widget:
+            # A widget exposed as a linked socket still owns its slot in widgets_values.
             widget_idx += 1
+            if "seed" in str(name):
+                widget_idx = _skip_control_after_generate(widgets_list, widget_idx)
+
+
+def _schema_widget_names(class_type: Any) -> list[str]:
+    """Widget input names of a registered ComfyUI node class, in widgets_values order."""
+    nodes_module = sys.modules.get("nodes")
+    node_class = getattr(nodes_module, "NODE_CLASS_MAPPINGS", {}).get(str(class_type or ""))
+    if node_class is None:
+        return []
+    try:
+        input_types = node_class.INPUT_TYPES()
+    except Exception:
+        return []
+    names: list[str] = []
+    for group in ("required", "optional"):
+        for name, spec in (input_types.get(group) or {}).items():
+            kind = spec[0] if isinstance(spec, (list, tuple)) and spec else spec
+            options = spec[1] if isinstance(spec, (list, tuple)) and len(spec) > 1 and isinstance(spec[1], dict) else {}
+            if options.get("forceInput"):
+                continue
+            if isinstance(kind, (list, tuple)) or kind in _WIDGET_INPUT_TYPES:
+                names.append(name)
+    return names
+
+
+def _populate_widgets_from_schema(converted_inputs: dict[str, Any], class_type: Any, widgets_list: list[Any]) -> None:
+    """Name widgets_values entries for nodes whose workflow JSON lists no widget inputs."""
+    if not widgets_list:
+        return
+    widget_idx = 0
+    for name in _schema_widget_names(class_type):
+        if widget_idx >= len(widgets_list):
+            return
+        converted_inputs.setdefault(name, widgets_list[widget_idx])
+        widget_idx += 1
+        if "seed" in name:
+            widget_idx = _skip_control_after_generate(widgets_list, widget_idx)
 
 
 def _populate_converted_inputs(converted: dict[str, Any], raw_inputs: Any, widgets_list: list[Any], link_to_source: dict[int, tuple[int, int]]) -> dict[str, Any]:
@@ -645,6 +709,8 @@ def _convert_litegraph_node(node: dict[str, Any], link_to_source: dict[Any, tupl
     widgets_values = node.get("widgets_values", [])
     widgets_list = widgets_values if isinstance(widgets_values, list) else []
     converted_inputs = _populate_converted_inputs(converted, raw_inputs, widgets_list, link_to_source)
+    if not any(isinstance(inp, dict) and "widget" in inp for inp in raw_inputs if isinstance(raw_inputs, list)):
+        _populate_widgets_from_schema(converted_inputs, node.get("type"), widgets_list)
     _merge_widget_dict_inputs(converted_inputs, widgets_values)
     _set_text_fallback_from_widgets(converted_inputs, widgets_list, node)
     return converted
@@ -667,19 +733,57 @@ def _subgraph_definitions_by_id(graph: dict[str, Any]) -> dict[str, dict[str, An
     return out
 
 
-def _prefixed_subgraph_links(links: Any, prefix: str) -> list[Any]:
+_SUBGRAPH_INPUT_NODE_ID = -10
+_SUBGRAPH_OUTPUT_NODE_ID = -20
+
+
+def _subgraph_link_fields(link: Any) -> tuple[Any, Any, Any, Any, Any] | None:
+    """Return (id, origin_id, origin_slot, target_id, target_slot) for list- or dict-form links."""
+    if isinstance(link, list) and len(link) >= 5:
+        return link[0], link[1], link[2], link[3], link[4]
+    if isinstance(link, dict) and link.get("id") is not None:
+        return link["id"], link.get("origin_id"), link.get("origin_slot"), link.get("target_id"), link.get("target_slot")
+    return None
+
+
+def _subgraph_output_sources(subgraph: dict[str, Any], prefix: str, input_sources: dict[int, tuple[Any, Any]]) -> dict[int, tuple[Any, Any]]:
+    """Map each subgraph output slot to the (node id, slot) producing it inside the subgraph."""
+    out: dict[int, tuple[Any, Any]] = {}
+    for link in subgraph.get("links", []) if isinstance(subgraph.get("links"), list) else []:
+        fields = _subgraph_link_fields(link)
+        if fields is None or fields[3] != _SUBGRAPH_OUTPUT_NODE_ID or not isinstance(fields[4], int):
+            continue
+        _, origin_id, origin_slot, _, target_slot = fields
+        if origin_id == _SUBGRAPH_INPUT_NODE_ID:
+            source = input_sources.get(origin_slot) if isinstance(origin_slot, int) else None
+        else:
+            source = (f"{prefix}{origin_id}", origin_slot)
+        if source is not None:
+            out[target_slot] = source
+    return out
+
+
+def _prefixed_subgraph_links(links: Any, prefix: str, input_sources: dict[int, tuple[Any, Any]] | None = None) -> list[Any]:
+    """Prefix subgraph-internal links; links leaving the subgraph input node are wired to the outer sources."""
     if not isinstance(links, list):
         return []
     out: list[Any] = []
     for link in links:
-        if isinstance(link, list) and len(link) >= 5:
-            remapped = list(link)
-            remapped[0] = f"{prefix}link:{remapped[0]}"
-            remapped[1] = f"{prefix}{remapped[1]}"
-            remapped[3] = f"{prefix}{remapped[3]}"
-            out.append(remapped)
-        else:
+        fields = _subgraph_link_fields(link)
+        if fields is None:
             out.append(link)
+            continue
+        link_id, origin_id, origin_slot, target_id, target_slot = fields
+        if target_id == _SUBGRAPH_OUTPUT_NODE_ID:
+            continue
+        if origin_id == _SUBGRAPH_INPUT_NODE_ID:
+            source = (input_sources or {}).get(origin_slot) if isinstance(origin_slot, int) else None
+            if source is None:
+                continue
+            origin_id, origin_slot = source
+        else:
+            origin_id = f"{prefix}{origin_id}"
+        out.append([f"{prefix}link:{link_id}", origin_id, origin_slot, f"{prefix}{target_id}", target_slot])
     return out
 
 
@@ -710,10 +814,64 @@ def _apply_subgraph_mapping(converted: dict[str, Any], raw_type: str, mapped_nam
         props["subgraph_name"] = mapped_name
 
 
-def _nodes_by_id_from_litegraph(target_graph: dict[str, Any]) -> dict[str, dict[str, Any]]:
+def _outer_input_sources(node: dict[str, Any], link_to_source: dict[Any, tuple[Any, Any]]) -> dict[int, tuple[Any, Any]]:
+    sources: dict[int, tuple[Any, Any]] = {}
+    inputs = node.get("inputs")
+    for slot, inp in enumerate(inputs if isinstance(inputs, list) else []):
+        link_id = inp.get("link") if isinstance(inp, dict) else None
+        if link_id is not None and link_id in link_to_source:
+            sources[slot] = link_to_source[link_id]
+    return sources
+
+
+def _bridge_subgraph_outputs(
+    target_graph: dict[str, Any],
+    link_to_source: dict[Any, tuple[Any, Any]],
+    subgraph_defs: dict[str, dict[str, Any]],
+) -> dict[str, dict[int, tuple[Any, Any]]]:
+    """Resolve each subgraph instance's output slots to inner producers and re-point outer links at them."""
+    output_sources: dict[str, dict[int, tuple[Any, Any]]] = {}
+    for node in target_graph["nodes"]:
+        subgraph = subgraph_defs.get(str(node.get("type") or "")) if isinstance(node, dict) else None
+        if not isinstance(subgraph, dict):
+            continue
+        node_id = str(node.get("id"))
+        input_sources = _outer_input_sources(node, link_to_source)
+        output_sources[node_id] = _subgraph_output_sources(subgraph, f"{node_id}:", input_sources)
+    for link_id, (src_id, src_slot) in list(link_to_source.items()):
+        for _ in range(DEFAULT_MAX_GRAPH_DEPTH):
+            inner = output_sources.get(str(src_id), {}).get(src_slot)
+            if inner is None:
+                break
+            src_id, src_slot = inner
+        link_to_source[link_id] = (src_id, src_slot)
+    return output_sources
+
+
+def _resolve_nested_subgraph_outputs(nodes_by_id: dict[str, dict[str, Any]], output_sources: dict[str, dict[int, tuple[Any, Any]]]) -> None:
+    """Re-point links that still target a nested subgraph instance at the inner node producing that output."""
+    for node in nodes_by_id.values():
+        for name, value in _inputs(node).items():
+            if not _is_link(value):
+                continue
+            src_id, src_slot = str(value[0]), value[1]
+            for _ in range(DEFAULT_MAX_GRAPH_DEPTH):
+                inner = output_sources.get(src_id, {}).get(src_slot)
+                if inner is None:
+                    break
+                src_id, src_slot = str(inner[0]), inner[1]
+            node["inputs"][name] = [src_id, src_slot]
+
+
+def _nodes_by_id_from_litegraph(target_graph: dict[str, Any], output_sources: dict[str, dict[int, tuple[Any, Any]]] | None = None) -> dict[str, dict[str, Any]]:
+    is_root = output_sources is None
+    if output_sources is None:
+        output_sources = {}
     link_to_source = _build_link_source_map(target_graph.get("links", []))
     subgraph_name_map = _build_subgraph_name_map(target_graph)
     subgraph_defs = _subgraph_definitions_by_id(target_graph)
+    if subgraph_defs:
+        output_sources.update(_bridge_subgraph_outputs(target_graph, link_to_source, subgraph_defs))
     nodes_by_id: dict[str, dict[str, Any]] = {}
     for node in target_graph["nodes"]:
         if not isinstance(node, dict):
@@ -732,15 +890,18 @@ def _nodes_by_id_from_litegraph(target_graph: dict[str, Any]) -> dict[str, dict[
         prefix = f"{node_id}:"
         child_graph = {
             **subgraph,
-            "links": _prefixed_subgraph_links(subgraph.get("links", []), prefix),
+            "definitions": target_graph.get("definitions"),
+            "links": _prefixed_subgraph_links(subgraph.get("links", []), prefix, _outer_input_sources(node, link_to_source)),
             "nodes": [
                 _prefixed_subgraph_node(child, prefix)
                 for child in subgraph.get("nodes", [])
                 if isinstance(child, dict)
             ],
         }
-        for child_id, child_node in _nodes_by_id_from_litegraph(child_graph).items():
+        for child_id, child_node in _nodes_by_id_from_litegraph(child_graph, output_sources).items():
             nodes_by_id[child_id] = child_node
+    if is_root and output_sources:
+        _resolve_nested_subgraph_outputs(nodes_by_id, output_sources)
     return nodes_by_id
 
 

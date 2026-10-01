@@ -190,7 +190,7 @@ async def _assign_execution_context(
             logger.debug("Failed to assign execution context to indexed output: %s", exc)
 
 
-def _runtime_metadata_payload(prompt_id: str) -> dict[str, Any]:
+def _runtime_metadata_payload(prompt_id: str, sink_node_id: str = "") -> dict[str, Any]:
     payload = get_prompt_metadata_for_prompt(prompt_id)
     if not payload:
         return {}
@@ -199,7 +199,11 @@ def _runtime_metadata_payload(prompt_id: str) -> dict[str, Any]:
     out["job_id"] = prompt_id
     out["prompt_id"] = prompt_id
     try:
-        geninfo_res = parse_geninfo_from_prompt(out.get("prompt"), workflow=out.get("workflow"))
+        geninfo_res = parse_geninfo_from_prompt(
+            out.get("prompt"),
+            workflow=out.get("workflow"),
+            sink_node_id=sink_node_id or None,
+        )
         if geninfo_res.ok and geninfo_res.data:
             out["geninfo"] = geninfo_res.data
     except Exception:
@@ -215,11 +219,18 @@ async def _write_runtime_metadata(
     db = getattr(index_service, "db", None)
     if db is None or not refs:
         return
-    metadata = _runtime_metadata_payload(prompt_id)
-    if not metadata:
-        return
-    metadata_result: Result[dict[str, Any]] = Result.Ok(metadata, quality="full", source="comfy_history")
-    for path, _ref in refs:
+    # One parse per producing node: each Save node on a multi-output prompt has its own branch.
+    metadata_by_node: dict[str, Result[dict[str, Any]] | None] = {}
+    for path, ref in refs:
+        node_id = str(ref.node_id or "")
+        if node_id not in metadata_by_node:
+            metadata = _runtime_metadata_payload(prompt_id, node_id)
+            metadata_by_node[node_id] = (
+                Result.Ok(metadata, quality="full", source="comfy_history") if metadata else None
+            )
+        metadata_result = metadata_by_node[node_id]
+        if metadata_result is None:
+            continue
         try:
             row = await db.aquery("SELECT id FROM assets WHERE filepath = ? LIMIT 1", (str(path),))
             if not row.ok or not row.data:

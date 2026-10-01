@@ -204,7 +204,8 @@ def looks_like_comfyui_prompt_graph(value: dict[str, Any] | None) -> bool:
 
     keys = list(value.keys())[:8]
     digit_keys, valid_nodes = _prompt_graph_key_and_node_counts(value, keys)
-    threshold = max(2, len(keys) // 2)
+    # A single valid node (e.g. a lone Save Text) is a complete prompt; larger graphs need a majority.
+    threshold = 1 if len(keys) == 1 else max(2, len(keys) // 2)
     return digit_keys >= threshold and valid_nodes >= threshold
 
 
