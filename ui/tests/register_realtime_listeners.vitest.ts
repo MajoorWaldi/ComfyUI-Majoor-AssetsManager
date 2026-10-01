@@ -309,6 +309,56 @@ describe("registerRealtimeListeners", () => {
         expect(harness.upsertAsset).not.toHaveBeenCalled();
     });
 
+    it("classe les sorties live opus, aac, m4a et exr avec le bon kind", async () => {
+        ensureBrowserShims();
+        const harness = createRuntimeHarness();
+        harness.grid.dataset = { mjrScope: "output", mjrQuery: "" };
+
+        const registered = [];
+        await registerRealtimeListeners({
+            api: harness.api,
+            runtime: harness.runtime,
+            executionRuntime: harness.executionRuntime,
+            appRef: {},
+            liveStreamModule: null,
+            ensureExecutionRuntime: () => ({ queue_remaining: 0, active_prompt_id: null }),
+            emitRuntimeStatus: () => {},
+            getActiveGridContainer: () => harness.grid,
+            pushGeneratedAsset: harness.pushGeneratedAsset,
+            upsertAsset: harness.upsertAsset,
+            upsertAssetNow: harness.upsertAssetNow,
+            removeAssetsFromGrid: () => {},
+            getEnrichmentState: () => ({ active: false }),
+            setEnrichmentState: () => {},
+            comfyToast: () => {},
+            t: (_k, fallback) => fallback,
+            reportError: () => {},
+            registerCleanableListener: (_runtime, target, event, handler) => {
+                registered.push({ target, event, handler });
+            },
+        });
+        const liveHandler = registered.find(
+            (entry) => entry.target === window && entry.event === EVENTS.NEW_GENERATION_OUTPUT,
+        )?.handler;
+
+        const expectations = {
+            "track_00001.opus": "audio",
+            "track_00002.aac": "audio",
+            "track_00003.m4a": "audio",
+            "render_00001.exr": "image",
+        };
+        for (const [filename, kind] of Object.entries(expectations)) {
+            harness.upsertAssetNow.mockClear();
+            liveHandler({
+                detail: { prompt_id: "job-kinds", files: [{ filename, subfolder: "", type: "output" }] },
+            });
+            expect(harness.upsertAssetNow).toHaveBeenCalledWith(
+                harness.grid,
+                expect.objectContaining({ filename, kind }),
+            );
+        }
+    });
+
     it("synchronise l etat d execution vers le backend au start et a la fin", async () => {
         ensureBrowserShims();
         const harness = createRuntimeHarness();

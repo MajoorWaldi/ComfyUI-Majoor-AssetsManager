@@ -79,12 +79,15 @@ function inferLiveAssetKind(detail: any) {
             "avif",
             "heic",
             "heif",
+            "jxl",
+            "exr",
+            "svg",
         ].includes(ext)
     ) {
         return "image";
     }
     if (["mp4", "webm", "mov", "mkv", "avi", "m4v"].includes(ext)) return "video";
-    if (["mp3", "wav", "flac", "ogg"].includes(ext)) return "audio";
+    if (["mp3", "wav", "flac", "ogg", "m4a", "aac", "opus", "aiff", "aif"].includes(ext)) return "audio";
     if (["glb", "gltf", "obj", "fbx", "ply", "stl", "splat", "ksplat", "spz"].includes(ext)) {
         return "model3d";
     }
