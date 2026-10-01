@@ -36,6 +36,11 @@ from PIL import Image, ImageCms
 from PIL.PngImagePlugin import PngInfo
 
 try:
+    from comfy_api.latest._input_impl.video_types import set_video_color_properties as _set_video_color_properties  # type: ignore[import-untyped]
+except ImportError:
+    _set_video_color_properties = None
+
+try:
     from comfy.utils import ProgressBar as _ComfyProgressBar  # type: ignore[import-untyped]
 except (ImportError, ModuleNotFoundError):
     _ComfyProgressBar = None
@@ -192,6 +197,29 @@ def _next_counter(directory: str, prefix: str) -> int:
     return max_counter + 1
 
 
+def _metadata_items(
+    prompt: Any | None,
+    extra_pnginfo: dict | None,
+    generation_time_ms: int,
+    geninfo_override: Any | None = None,
+    unique_id: Any | None = None,
+) -> dict[str, str]:
+    """Text metadata shared by PNG text chunks and video container tags."""
+    items: dict[str, str] = {}
+    if prompt is not None:
+        items["prompt"] = json.dumps(prompt)
+    if extra_pnginfo is not None:
+        for key in extra_pnginfo:
+            items[key] = json.dumps(extra_pnginfo[key])
+    override_payload = _coerce_geninfo_override_payload(geninfo_override)
+    if override_payload is not None:
+        items["majoor_geninfo"] = json.dumps(override_payload)
+    items.update(_resolve_execution_metadata(prompt, extra_pnginfo, unique_id))
+    items["generation_time_ms"] = str(generation_time_ms)
+    items["CreationTime"] = datetime.datetime.now().isoformat(" ")[:19]
+    return items
+
+
 def _build_metadata(
     prompt: Any | None,
     extra_pnginfo: dict | None,
@@ -200,21 +228,8 @@ def _build_metadata(
     unique_id: Any | None = None,
 ) -> PngInfo:
     metadata = PngInfo()
-    if prompt is not None:
-        metadata.add_text("prompt", json.dumps(prompt))
-    if extra_pnginfo is not None:
-        for key in extra_pnginfo:
-            metadata.add_text(key, json.dumps(extra_pnginfo[key]))
-    override_payload = _coerce_geninfo_override_payload(geninfo_override)
-    if override_payload is not None:
-        metadata.add_text("majoor_geninfo", json.dumps(override_payload))
-    for key, value in _resolve_execution_metadata(prompt, extra_pnginfo, unique_id).items():
+    for key, value in _metadata_items(prompt, extra_pnginfo, generation_time_ms, geninfo_override, unique_id).items():
         metadata.add_text(key, value)
-    metadata.add_text("generation_time_ms", str(generation_time_ms))
-    metadata.add_text(
-        "CreationTime",
-        datetime.datetime.now().isoformat(" ")[:19],
-    )
     return metadata
 
 
@@ -1001,6 +1016,97 @@ class MajoorGenInfoOverride(IO.ComfyNode):
         return IO.NodeOutput(payload, ui={"majoor_geninfo_override": [payload]})
 
 
+_IMAGE_FORMATS = ["png", "png 16-bit", "exr", "avif"]
+_IMAGE_COLOR_SPACES = {
+    "png": ("sRGB",),
+    "png 16-bit": ("sRGB",),
+    "exr": ("sRGB", "HDR", "linear"),
+    "avif": ("sRGB", "HDR", "HDR PQ"),
+}
+
+
+def _png_bytes_with_text(png_bytes: bytes, items: dict[str, str], text_chunk: Any) -> bytes:
+    """Insert text chunks right after IHDR (same layout as the core PNG injector)."""
+    ihdr_end = 8 + 8 + int.from_bytes(png_bytes[8:12], "big") + 4
+    chunks = b"".join(text_chunk(key, value) for key, value in items.items())
+    return png_bytes[:ihdr_end] + chunks + png_bytes[ihdr_end:]
+
+
+def _native_metadata(
+    prompt: Any | None,
+    extra_pnginfo: dict | None,
+    generation_time_ms: int,
+    geninfo_override: Any | None,
+) -> dict[str, Any]:
+    """Unserialized metadata for the core EXR/AVIF injectors, which JSON-encode each value."""
+    extras: dict[str, Any] = dict(extra_pnginfo or {})
+    override_payload = _coerce_geninfo_override_payload(geninfo_override)
+    if override_payload is not None:
+        extras["majoor_geninfo"] = override_payload
+    extras["generation_time_ms"] = generation_time_ms
+    extras["CreationTime"] = datetime.datetime.now().isoformat(" ")[:19]
+    return extras
+
+
+def _save_core_format(
+    images: torch.Tensor,
+    file_format: str,
+    color_space: str,
+    crf: int,
+    output_folder: str,
+    filename: str,
+    subfolder: str,
+    counter: int,
+    prompt: Any | None,
+    extra_pnginfo: dict | None,
+    generation_time_ms: int,
+    geninfo_override: Any | None,
+    unique_id: Any | None,
+    progress: Any,
+) -> list[dict[str, str]]:
+    """Save 16-bit PNG / EXR / AVIF with ComfyUI's own encoders."""
+    try:
+        # Imported lazily: comfy_extras imports ComfyUI's `nodes`, which is not ready when custom nodes load.
+        from comfy_extras.nodes_images import (  # type: ignore[import-untyped]
+            _encode_image as core_encode_image,
+            _png_text_chunk as core_png_text_chunk,
+            _save_avif as core_save_avif,
+            inject_exr_metadata as core_inject_exr_metadata,
+        )
+    except ImportError as exc:
+        raise RuntimeError(f"{file_format} output requires a ComfyUI version with Save Image (Advanced)") from exc
+    if color_space not in _IMAGE_COLOR_SPACES[file_format]:
+        raise ValueError(f"{file_format} does not support input_color_space '{color_space}'")
+
+    write_metadata = not args.disable_metadata
+    native = _native_metadata(prompt, extra_pnginfo, generation_time_ms, geninfo_override)
+    extension = "png" if file_format == "png 16-bit" else file_format
+    results: list[dict[str, str]] = []
+    for batch_number, image in enumerate(images):
+        name = filename.replace("%batch_num%", str(batch_number))
+        file = f"{name}_{counter:05}_.{extension}"
+        path = os.path.join(output_folder, file)
+        if file_format == "avif":
+            avif_metadata = None
+            if write_metadata:
+                avif_metadata = {"prompt": prompt, **native} if prompt is not None else native
+            core_save_avif(image.unsqueeze(0), path, "auto", color_space, crf, metadata=avif_metadata)
+        else:
+            bit_depth = "16-bit" if file_format == "png 16-bit" else "32-bit float"
+            encoded = core_encode_image(image, extension, bit_depth, color_space)
+            if write_metadata and file_format == "exr":
+                encoded = core_inject_exr_metadata(encoded, prompt, native, color_space)
+            elif write_metadata:
+                items = _metadata_items(prompt, extra_pnginfo, generation_time_ms, geninfo_override, unique_id)
+                encoded = _png_bytes_with_text(encoded, items, core_png_text_chunk)
+            with open(path, "wb") as f:
+                f.write(encoded)
+        results.append({"filename": file, "subfolder": subfolder, "type": "output"})
+        counter += 1
+        progress.update(1)
+    return results
+
+
 # ---------------------------------------------------------------------------
 # MajoorSaveImage
 # ---------------------------------------------------------------------------
@@ -1010,7 +1116,8 @@ class MajoorSaveImage(IO.ComfyNode):
     Save images to the ComfyUI output directory with **generation_time_ms**
     persisted in the PNG text metadata.
 
-    Behaves identically to the built-in *SaveImage* node but adds an
+    Behaves like the built-in *SaveImage* node (including the pass-through
+    ``images`` output) but adds an
     optional ``generation_time_ms`` input.  When left unconnected the
     node automatically computes the time elapsed since the prompt started.
     """
@@ -1041,8 +1148,32 @@ class MajoorSaveImage(IO.ComfyNode):
                     optional=True,
                     tooltip="Explicit geninfo override from Majoor Gen Info Override.",
                 ),
+                IO.Combo.Input(
+                    "format",
+                    options=_IMAGE_FORMATS,
+                    optional=True,
+                    default="png",
+                    tooltip="File format. PNG 16-bit, EXR and AVIF are written with ComfyUI's Save Image (Advanced) encoders.",
+                ),
+                IO.Combo.Input(
+                    "input_color_space",
+                    options=["sRGB", "HDR", "HDR PQ", "linear"],
+                    optional=True,
+                    default="sRGB",
+                    advanced=True,
+                    tooltip="Color space of the input images (EXR: sRGB, HDR, linear; AVIF: sRGB, HDR, HDR PQ). Ignored for PNG.",
+                ),
+                IO.Int.Input(
+                    "crf",
+                    optional=True,
+                    default=18,
+                    min=1,
+                    max=63,
+                    advanced=True,
+                    tooltip="AVIF quality (lower = higher quality). Ignored for other formats.",
+                ),
             ],
-            outputs=[],
+            outputs=[IO.Image.Output(display_name="images")],
             hidden=[IO.Hidden.prompt, IO.Hidden.extra_pnginfo, IO.Hidden.unique_id],
             is_output_node=True,
         )
@@ -1054,6 +1185,9 @@ class MajoorSaveImage(IO.ComfyNode):
         filename_prefix: str = "Majoor",
         generation_time_ms: int = -1,
         geninfo_override: Any | None = None,
+        format: str = "png",
+        input_color_space: str = "sRGB",
+        crf: int = 18,
     ) -> IO.NodeOutput:
         prompt = cls.hidden.prompt
         extra_pnginfo = cls.hidden.extra_pnginfo
@@ -1077,6 +1211,12 @@ class MajoorSaveImage(IO.ComfyNode):
 
         results: list[dict[str, str]] = []
         progress = _make_progress_bar(len(images))
+        if format != "png":
+            results = _save_core_format(
+                images, format, input_color_space, crf, full_output_folder, filename, subfolder, counter,
+                prompt, extra_pnginfo, gen_time, geninfo_override, unique_id, progress,
+            )
+            return IO.NodeOutput(images, ui={"images": results})
         for batch_number, image in enumerate(images):
             img = Image.fromarray(_tensor_to_bytes(image))
 
@@ -1098,18 +1238,22 @@ class MajoorSaveImage(IO.ComfyNode):
             counter += 1
             progress.update(1)
 
-        return IO.NodeOutput(ui={"images": results})
+        return IO.NodeOutput(images, ui={"images": results})
 
 
 # ---------------------------------------------------------------------------
 # MajoorSaveVideo
 # ---------------------------------------------------------------------------
 
-_SUPPORTED_VIDEO_FORMATS = [
-    "mp4 (h264)",
-    "gif",
-    "webp",
-]
+# format label -> (container extension, codec); gif/webp go through Pillow.
+_VIDEO_FORMAT_SPECS: dict[str, tuple[str, str]] = {
+    "mp4 (h264)": ("mp4", "h264"),
+    "mp4 (av1)": ("mp4", "av1"),
+    "mkv (h264)": ("mkv", "h264"),
+    "mkv (av1)": ("mkv", "av1"),
+    "webm (av1)": ("webm", "av1"),
+}
+_SUPPORTED_VIDEO_FORMATS = [*_VIDEO_FORMAT_SPECS, "gif", "webp"]
 
 
 def _resolve_video_inputs(
@@ -1117,8 +1261,8 @@ def _resolve_video_inputs(
     images: torch.Tensor | None,
     audio: dict | None,
     frame_rate: float,
-) -> tuple[torch.Tensor, float, dict | None] | None:
-    """Return (images, fps, audio) or None when nothing to encode."""
+) -> tuple[torch.Tensor, float, dict | None, int, str] | None:
+    """Return (images, fps, audio, bit_depth, color_space) or None when nothing to encode."""
     torch_mod = _require_torch()
 
     def _coerce_audio_input(candidate: Any | None) -> dict | None:
@@ -1148,6 +1292,8 @@ def _resolve_video_inputs(
     resolved_images: torch.Tensor | None = None
     resolved_audio: dict | None = audio
     resolved_fps: float = frame_rate
+    bit_depth = 8
+    color_space = "sRGB"
 
     if video is not None:
         get_components = getattr(video, "get_components", None)
@@ -1157,6 +1303,10 @@ def _resolve_video_inputs(
             resolved_fps = float(components.frame_rate) if components.frame_rate else frame_rate
             if resolved_audio is None and components.audio is not None:
                 resolved_audio = components.audio
+            bit_depth = int(video.get_bit_depth())
+            color_space = video.get_color_space()
+            if color_space not in ("sRGB", "HDR", "HDR PQ"):
+                color_space = "sRGB"
         else:
             # Accept AUDIO payloads accidentally/explicitly routed to the video socket.
             if resolved_audio is None:
@@ -1174,7 +1324,7 @@ def _resolve_video_inputs(
         isinstance(resolved_images, torch_mod.Tensor) and resolved_images.size(0) == 0
     ):
         return None
-    return resolved_images, resolved_fps, resolved_audio
+    return resolved_images, resolved_fps, resolved_audio, bit_depth, color_space
 
 
 def _save_animated(
@@ -1217,22 +1367,10 @@ def _build_container_metadata(
     geninfo_override: Any | None = None,
     unique_id: Any | None = None,
 ) -> dict[str, str]:
-    """Build the metadata dict to embed into an MP4 container."""
-    meta: dict[str, str] = {}
+    """Build the metadata dict to embed into a video container."""
     if args.disable_metadata:
-        return meta
-    if prompt is not None:
-        meta["prompt"] = json.dumps(prompt)
-    if extra_pnginfo is not None:
-        for key in extra_pnginfo:
-            meta[key] = json.dumps(extra_pnginfo[key])
-    override_payload = _coerce_geninfo_override_payload(geninfo_override)
-    if override_payload is not None:
-        meta["majoor_geninfo"] = json.dumps(override_payload)
-    meta.update(_resolve_execution_metadata(prompt, extra_pnginfo, unique_id))
-    meta["generation_time_ms"] = str(generation_time_ms)
-    meta["CreationTime"] = datetime.datetime.now().isoformat(" ")[:19]
-    return meta
+        return {}
+    return _metadata_items(prompt, extra_pnginfo, generation_time_ms, geninfo_override, unique_id)
 
 
 def _prepare_audio(
@@ -1313,7 +1451,7 @@ def _prepare_audio(
     return trimmed, int(sample_rate), layout
 
 
-def _encode_mp4(
+def _encode_video(
     out_path: str,
     resolved_images: torch.Tensor,
     fps: float,
@@ -1322,45 +1460,70 @@ def _encode_mp4(
     audio_input: Any | None,
     num_frames: int,
     progress: Any | None = None,
+    bit_depth: int = 8,
+    color_space: str = "sRGB",
+    container_ext: str = "mp4",
+    codec: str = "h264",
 ) -> None:
-    """Encode frames + optional audio into an MP4 via PyAV."""
+    """Encode frames + optional audio into an MP4/MKV/WebM container via PyAV."""
+    is_10bit = bit_depth >= 10
+    is_hdr = color_space != "sRGB" and _set_video_color_properties is not None
+    pix_fmt = "yuv420p10le" if is_10bit else "yuv420p"
+    dst_colorspace = 9 if is_hdr else 1  # FFmpeg NCL: BT.2020 = 9, BT.709 = 1
+    is_webm = container_ext == "webm"
+
     fps_fraction = Fraction(round(fps * 1000), 1000)
     audio_info = _prepare_audio(audio_input, fps_fraction, num_frames)
 
-    with av.open(out_path, mode="w", options={"movflags": "use_metadata_tags"}) as container:
+    open_options = {"movflags": "use_metadata_tags"} if container_ext == "mp4" else None
+    with av.open(out_path, mode="w", options=open_options) as container:
         for key, value in container_meta.items():
             container.metadata[key] = value
 
-        stream = container.add_stream("libx264", rate=fps_fraction)
+        stream = container.add_stream("libsvtav1" if codec == "av1" else "libx264", rate=fps_fraction)
         stream.width = resolved_images.shape[2]
         stream.height = resolved_images.shape[1]
-        stream.pix_fmt = "yuv420p"
+        stream.pix_fmt = pix_fmt
         stream.bit_rate = 0
-        stream.options = {
-            "crf": str(crf),
-            "colorprim": "bt709",
-            "transfer": "bt709",
-            "colormatrix": "bt709",
-            "color_range": "tv",
-        }
-        # FFmpeg enum values: BT.709 = 1; MPEG/TV limited range = 1.
-        # Set codec-context fields as well as x264 options so the MP4 stream
-        # remains correctly tagged across supported PyAV/FFmpeg versions.
-        stream.codec_context.color_primaries = 1
-        stream.codec_context.color_trc = 1
-        stream.codec_context.colorspace = 1
-        stream.codec_context.color_range = 1
+        stream.options = {"crf": str(min(crf, 51) if codec == "h264" else crf)}
+        if is_hdr:
+            _set_video_color_properties(stream.codec_context, color_space)
+        else:
+            if codec == "h264":
+                stream.options.update(
+                    {
+                        "colorprim": "bt709",
+                        "transfer": "bt709",
+                        "colormatrix": "bt709",
+                        "color_range": "tv",
+                    }
+                )
+            # FFmpeg enum values: BT.709 = 1; MPEG/TV limited range = 1.
+            stream.codec_context.color_primaries = 1
+            stream.codec_context.color_trc = 1
+            stream.codec_context.colorspace = 1
+            stream.codec_context.color_range = 1
 
         audio_stream = None
+        audio_resampler = None
         if audio_info is not None:
             waveform, sample_rate, layout = audio_info
-            audio_stream = container.add_stream("aac", rate=sample_rate, layout=layout)
+            audio_rate = 48000 if is_webm else sample_rate
+            audio_stream = container.add_stream("libopus" if is_webm else "aac", rate=audio_rate, layout=layout)
+            if audio_rate != sample_rate:
+                audio_resampler = av.audio.resampler.AudioResampler(format="fltp", layout=layout, rate=audio_rate)
 
         progress = progress or _make_progress_bar(num_frames)
         for frame_tensor in resolved_images:
-            img = (frame_tensor * 255).clamp(0, 255).byte().cpu().numpy()
-            video_frame = av.VideoFrame.from_ndarray(img, format="rgb24")
-            video_frame = video_frame.reformat(format="yuv420p", dst_colorspace="ITU709")
+            if is_10bit:
+                img = (frame_tensor.float() * 65535).clamp(0, 65535).cpu().numpy().astype(np.uint16)
+                video_frame = av.VideoFrame.from_ndarray(img[..., :3], format="rgb48le")
+            else:
+                img = (frame_tensor * 255).clamp(0, 255).byte().cpu().numpy()
+                video_frame = av.VideoFrame.from_ndarray(img[..., :3], format="rgb24")
+            video_frame = video_frame.reformat(format=pix_fmt, dst_colorspace=dst_colorspace)
+            if is_hdr:
+                _set_video_color_properties(video_frame, color_space)
             for packet in stream.encode(video_frame):
                 container.mux(packet)
             progress.update(1)
@@ -1376,8 +1539,14 @@ def _encode_mp4(
             )
             audio_frame.sample_rate = sample_rate
             audio_frame.pts = 0
-            for packet in audio_stream.encode(audio_frame):
-                container.mux(packet)
+            frames = [audio_frame] if audio_resampler is None else audio_resampler.resample(audio_frame)
+            for frame in frames:
+                for packet in audio_stream.encode(frame):
+                    container.mux(packet)
+            if audio_resampler is not None:
+                for frame in audio_resampler.resample(None):
+                    for packet in audio_stream.encode(frame):
+                        container.mux(packet)
             for packet in audio_stream.encode():
                 container.mux(packet)
 
@@ -1386,9 +1555,10 @@ class MajoorSaveVideo(IO.ComfyNode):
     """
     Save a VIDEO or a batch of IMAGE frames as a video file.
 
-    For MP4 output the node uses **PyAV** (same as ComfyUI's native SaveVideo)
-    and writes all metadata – including ``generation_time_ms`` – directly into
-    the MP4 container so it persists long-term.
+    For MP4 / MKV / WebM output (H.264 or AV1) the node uses **PyAV** (same as
+    ComfyUI's native SaveVideo) and writes all metadata – including
+    ``generation_time_ms`` – directly into the container so it persists
+    long-term. 10-bit and HDR (HLG / PQ) videos keep their depth and color space.
 
     For GIF / WebP the node uses Pillow, with a PNG sidecar for metadata.
     """
@@ -1447,7 +1617,7 @@ class MajoorSaveVideo(IO.ComfyNode):
                     tooltip="Save a PNG sidecar of the first frame with full metadata.",
                 ),
             ],
-            outputs=[],
+            outputs=[IO.Image.Output(display_name="images")],
             hidden=[IO.Hidden.prompt, IO.Hidden.extra_pnginfo, IO.Hidden.unique_id],
             is_output_node=True,
         )
@@ -1478,8 +1648,8 @@ class MajoorSaveVideo(IO.ComfyNode):
 
         resolved = _resolve_video_inputs(video, images, audio, frame_rate)
         if resolved is None:
-            return IO.NodeOutput(ui={"videos": []})
-        resolved_images, resolved_fps, resolved_audio = resolved
+            return IO.NodeOutput(images, ui={"videos": []})
+        resolved_images, resolved_fps, resolved_audio, bit_depth, color_space = resolved
 
         gen_time = generation_time_ms if generation_time_ms >= 0 else _get_generation_time_ms()
         num_frames = resolved_images.size(0)
@@ -1496,7 +1666,10 @@ class MajoorSaveVideo(IO.ComfyNode):
         counter = _next_counter(full_output_folder, filename)
 
         # --- PNG sidecar with full metadata ---
-        png_metadata = _build_metadata(prompt, extra_pnginfo, gen_time, geninfo_override, unique_id)
+        png_metadata = (
+            None if args.disable_metadata
+            else _build_metadata(prompt, extra_pnginfo, gen_time, geninfo_override, unique_id)
+        )
 
         sidecar_file: str | None = None
         if save_first_frame:
@@ -1515,15 +1688,16 @@ class MajoorSaveVideo(IO.ComfyNode):
                 resolved_images, format, resolved_fps, loop_count,
                 full_output_folder, filename, counter, progress,
             )
-            return IO.NodeOutput(ui=_build_video_ui(out_file, subfolder, output_type, out_file)["ui"])
+            return IO.NodeOutput(resolved_images, ui=_build_video_ui(out_file, subfolder, output_type, out_file)["ui"])
 
-        # --- MP4 via PyAV ---
+        # --- MP4 / MKV / WebM via PyAV ---
+        container_ext, codec = _VIDEO_FORMAT_SPECS[format]
         container_meta = _build_container_metadata(prompt, extra_pnginfo, gen_time, geninfo_override, unique_id)
-        out_file = f"{filename}_{counter:05}_.mp4"
+        out_file = f"{filename}_{counter:05}_.{container_ext}"
         out_path = os.path.join(full_output_folder, out_file)
 
         progress = _make_progress_bar(num_frames)
-        _encode_mp4(
+        _encode_video(
             out_path,
             resolved_images,
             resolved_fps,
@@ -1532,9 +1706,14 @@ class MajoorSaveVideo(IO.ComfyNode):
             resolved_audio,
             num_frames,
             progress,
+            bit_depth,
+            color_space,
+            container_ext,
+            codec,
         )
 
-        return IO.NodeOutput(ui=_build_video_ui(out_file, subfolder, output_type, sidecar_file)["ui"])
+        return IO.NodeOutput(resolved_images, ui=_build_video_ui(out_file, subfolder, output_type, sidecar_file)["ui"])
+
 
 # ---------------------------------------------------------------------------
 # Registration helpers (ComfyUI Nodes V3 extension entrypoint)

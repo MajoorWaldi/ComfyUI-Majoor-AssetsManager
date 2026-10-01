@@ -115,3 +115,73 @@ def test_progress_bar_uses_comfyui_surface_when_available(monkeypatch, nodes_mod
 
     assert progress.total == 4
     assert updates == [1]
+
+
+class _FakeVideo:
+    def __init__(self, bit_depth, color_space):
+        self._bit_depth = bit_depth
+        self._color_space = color_space
+
+    def get_components(self):
+        return types.SimpleNamespace(images=[object()], frame_rate=24, audio=None)
+
+    def get_bit_depth(self):
+        return self._bit_depth
+
+    def get_color_space(self):
+        return self._color_space
+
+
+def test_resolve_video_inputs_keeps_video_bit_depth_and_color_space(nodes_module):
+    torch_mod = pytest.importorskip("torch")
+    video = _FakeVideo(10, "HDR")
+    video.get_components = lambda: types.SimpleNamespace(
+        images=torch_mod.zeros(1, 2, 2, 3), frame_rate=24, audio=None
+    )
+    _, fps, _, bit_depth, color_space = nodes_module._resolve_video_inputs(video, None, None, 12.0)
+    assert (fps, bit_depth, color_space) == (24.0, 10, "HDR")
+
+    video._color_space = "auto"
+    assert nodes_module._resolve_video_inputs(video, None, None, 12.0)[4] == "sRGB"
+
+
+def test_resolve_video_inputs_defaults_to_8bit_srgb_for_images(nodes_module):
+    torch_mod = pytest.importorskip("torch")
+    _, _, _, bit_depth, color_space = nodes_module._resolve_video_inputs(
+        None, torch_mod.zeros(1, 2, 2, 3), None, 12.0
+    )
+    assert (bit_depth, color_space) == (8, "sRGB")
+
+
+
+def test_video_format_specs_cover_all_containers(nodes_module):
+    specs = nodes_module._VIDEO_FORMAT_SPECS
+    assert specs["mp4 (h264)"] == ("mp4", "h264")
+    assert specs["webm (av1)"] == ("webm", "av1")
+    assert specs["mkv (av1)"] == ("mkv", "av1")
+    assert nodes_module._SUPPORTED_VIDEO_FORMATS[-2:] == ["gif", "webp"]
+
+
+def test_png_bytes_with_text_inserts_chunks_after_ihdr(nodes_module, tmp_path):
+    import io
+
+    buf = io.BytesIO()
+    Image.new("RGB", (2, 2)).save(buf, format="PNG")
+
+    def text_chunk(key, value):
+        import struct
+        import zlib
+
+        data = key.encode("latin-1") + b"\x00" + value.encode("latin-1")
+        return struct.pack(">I", len(data)) + b"tEXt" + data + struct.pack(">I", zlib.crc32(b"tEXt" + data))
+
+    out = nodes_module._png_bytes_with_text(buf.getvalue(), {"generation_time_ms": "42"}, text_chunk)
+    image = Image.open(io.BytesIO(out))
+    assert image.text["generation_time_ms"] == "42"
+
+
+def test_native_metadata_keeps_numeric_generation_time(nodes_module):
+    meta = nodes_module._native_metadata({}, {"workflow": {"id": "w"}}, 1500, {"seed": 7})
+    assert meta["workflow"] == {"id": "w"}
+    assert meta["generation_time_ms"] == 1500
+    assert meta["majoor_geninfo"]["seed"] == 7

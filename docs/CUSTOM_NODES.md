@@ -21,6 +21,9 @@ Drop-in replacement for ComfyUI's built-in `SaveImage` node. Saves PNG files to 
 | `images` | IMAGE | ✅ | — | The image batch to save |
 | `filename_prefix` | STRING | ✅ | `Majoor` | Filename prefix. Supports ComfyUI formatting placeholders (`%date%`, `%batch_num%`, etc.) |
 | `generation_time_ms` | INT | ❌ | `-1` | Generation time in milliseconds. Set to `-1` for automatic detection from the prompt lifecycle |
+| `format` | COMBO | ❌ | `png` | `png`, `png 16-bit`, `exr`, `avif` (the last three use ComfyUI's Save Image (Advanced) encoders) |
+| `input_color_space` | COMBO | ❌ | `sRGB` | EXR: `sRGB`, `HDR`, `linear`. AVIF: `sRGB`, `HDR`, `HDR PQ`. Ignored for PNG; unsupported combinations raise an error |
+| `crf` | INT | ❌ | `18` | AVIF quality (lower = higher quality). Ignored for other formats |
 
 ### Hidden Inputs
 
@@ -47,7 +50,7 @@ Each saved PNG contains the following text chunks:
 
 ### Output
 
-Returns a UI result with the list of saved images (filename, subfolder, type) for ComfyUI's preview system.
+Returns the input `images` unchanged (like the core `SaveImage` node) plus a UI result with the list of saved images (filename, subfolder, type) for ComfyUI's preview system.
 
 ### Example Usage
 
@@ -71,14 +74,14 @@ Saves a **VIDEO** input or a batch of **IMAGE** frames as a video file. Uses **P
 | Input | Type | Required | Default | Description |
 |-------|------|----------|---------|-------------|
 | `filename_prefix` | STRING | ✅ | `MajoorVideo` | Filename prefix |
-| `format` | COMBO | ✅ | `mp4 (h264)` | Output format: `mp4 (h264)`, `gif`, `webp` |
+| `format` | COMBO | ✅ | `mp4 (h264)` | Output format: `mp4 (h264)`, `mp4 (av1)`, `mkv (h264)`, `mkv (av1)`, `webm (av1)`, `gif`, `webp` |
 | `images` | IMAGE | ❌ | — | Batch of frames to encode as video |
 | `video` | VIDEO | ❌ | — | A VIDEO input (from LoadVideo, CreateVideo, etc.) |
 | `frame_rate` | FLOAT | ❌ | `24.0` | Frames per second (1–120). Ignored when `video` input carries its own frame rate |
 | `loop_count` | INT | ❌ | `0` | Loop count for GIF/WebP. 0 = infinite loop |
 | `generation_time_ms` | INT | ❌ | `-1` | Generation time in ms. `-1` = auto-detect |
-| `audio` | AUDIO | ❌ | — | Audio track to mux into the MP4 container |
-| `crf` | INT | ❌ | `19` | Constant Rate Factor (0–63). Lower = higher quality, larger file |
+| `audio` | AUDIO | ❌ | — | Audio track to mux into the container (AAC; Opus at 48 kHz for WebM) |
+| `crf` | INT | ❌ | `19` | Constant Rate Factor (0–63, capped at 51 for H.264). Lower = higher quality, larger file |
 | `save_first_frame` | BOOLEAN | ❌ | `true` | Save a PNG sidecar of the first frame with full metadata |
 
 ### Hidden Inputs
@@ -92,7 +95,7 @@ Saves a **VIDEO** input or a batch of **IMAGE** frames as a video file. Uses **P
 
 At least one of `images` or `video` must be connected:
 
-- **`video` input** (priority): frame tensor, frame rate, and audio are extracted via `video.get_components()`. The `frame_rate` widget is ignored.
+- **`video` input** (priority): frame tensor, frame rate, and audio are extracted via `video.get_components()`. The `frame_rate` widget is ignored. MP4, MKV and WebM output keeps the video's bit depth (8/10-bit) and color space (sRGB, HDR HLG, HDR PQ), as the core `SaveVideo` node does.
 - **`images` input** (fallback): frames are taken from the IMAGE batch, and `frame_rate` / `audio` widgets are used.
 - **Neither connected**: the node produces no output.
 
@@ -129,7 +132,7 @@ Animated GIF and WebP formats do not support arbitrary metadata. When `save_firs
 
 ### Output
 
-Returns a UI result with the saved video file(s) for ComfyUI's preview system.
+Returns the encoded `images` unchanged plus a UI result with the saved video file(s) for ComfyUI's preview system.
 
 ### Example Usage
 
