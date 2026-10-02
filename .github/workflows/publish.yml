@@ -103,7 +103,7 @@ jobs:
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
           echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
           echo "asset=${ASSET}" >> "$GITHUB_OUTPUT"
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v7
         with:
           name: majoor-assetsmanager-${{ steps.release.outputs.version }}
           path: ${{ steps.release.outputs.asset }}
