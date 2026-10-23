@@ -249,7 +249,7 @@ function _findAdjacentGridId(selectedId: any) {
  * the adjacent grid asset is automatically used as slot B.
  * @param {string[]} selectedIds
  */
-async function _loadFromIds(selectedIds: any) {
+async function _loadFromIds(selectedIds: any, selectedAssets: any[] = []) {
     if (!selectedIds.length || !_instance) return;
     _cancelFetch();
 
@@ -276,13 +276,35 @@ async function _loadFromIds(selectedIds: any) {
             if (adjId) ids = [ids[0], adjId];
         }
 
-        const result = await getAssetsBatch(ids, ac ? { signal: ac.signal } : {});
+        const grid = _getSelectionSourceGrid();
+        const gridAssets = grid?._mjrGetAssets?.() || grid?._mjrGetSelectedAssets?.() || [];
+        const localAssets = new Map(
+            [...gridAssets, ...selectedAssets]
+                .filter((asset: any) => asset && asset.kind !== "folder")
+                .map((asset: any) => [String(asset.id), asset]),
+        );
+        // Filesystem and collection cards may have local IDs instead of DB IDs.
+        // Keep their full file descriptors and fetch only indexed assets.
+        const databaseIds = ids.filter(
+            (id: any) => Number.isSafeInteger(Number(id)) && Number(id) > 0,
+        );
+        const result = databaseIds.length
+            ? await getAssetsBatch(databaseIds, ac ? { signal: ac.signal } : {})
+            : { ok: true, data: [] };
         if (ac?.signal.aborted) return;
         if (_loadSeq !== seq) return; // stale  -  a newer _loadFromIds call was made
-        if (!result?.ok || !Array.isArray(result.data) || !result.data.length) return;
         if (!_instance) return; // disposed while fetching
 
-        const assets = result.data;
+        const fetched = new Map(
+            (result?.ok && Array.isArray(result.data) ? result.data : []).map((asset: any) => [
+                String(asset.id),
+                asset,
+            ]),
+        );
+        const assets = ids
+            .map((id: any) => fetched.get(String(id)) || localAssets.get(String(id)))
+            .filter(Boolean);
+        if (!assets.length) return;
 
         // Grid mode: load up to 4 assets
         if (isGrid) {
@@ -365,7 +387,7 @@ function _onSelectionChanged(e: any) {
         ? e.detail.selectedIds.map(String).filter((id: any) => Boolean(id) && !folderIds.has(id))
         : [];
     if (selectedIds.length) {
-        void _loadFromIds(selectedIds);
+        void _loadFromIds(selectedIds, selectedAssets);
         return;
     }
     // Fallback: if payload is missing/empty, read latest selection directly from grid dataset.
@@ -940,7 +962,9 @@ export function removeFloatingViewerGlobalHandlers(): void {
  * Called from entry.js during hot-reload cleanup so the next module instance
  * starts from a clean slate.
  */
-export function teardownFloatingViewerManager({ reinstallGlobalHandlers = false }: { reinstallGlobalHandlers?: boolean } = {}): void {
+export function teardownFloatingViewerManager({
+    reinstallGlobalHandlers = false,
+}: { reinstallGlobalHandlers?: boolean } = {}): void {
     const wasVisible = Boolean(_instance?.isVisible);
     // If the viewer is popped out to a separate window, bring it back first
     try {

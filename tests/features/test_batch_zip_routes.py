@@ -203,3 +203,22 @@ async def test_batch_zip_rejects_inode_swap_to_mitigate_toctou(monkeypatch, tmp_
     body = json.loads(resp.text)
     assert body.get("ok") is False
     assert body.get("code") == "NO_VALID_FILES"
+
+@pytest.mark.parametrize("absolute_subfolder", [False, True])
+def test_batch_zip_resolves_collection_subfolders(monkeypatch, tmp_path, absolute_subfolder):
+    folder = tmp_path / "H&S" / "images"
+    folder.mkdir(parents=True)
+    src = folder / "image.png"
+    src.write_bytes(b"image")
+    monkeypatch.setattr(bz, "OUTPUT_ROOT_PATH", tmp_path)
+    item = {"filename": src.name, "subfolder": str(folder if absolute_subfolder else folder.relative_to(tmp_path))}
+    assert bz._resolve_item_path(item) == (src, tmp_path)
+
+
+def test_batch_zip_rejects_absolute_collection_subfolder_outside_root(monkeypatch, tmp_path):
+    root = tmp_path / "output"
+    root.mkdir()
+    src = tmp_path / "private.png"
+    src.write_bytes(b"private")
+    monkeypatch.setattr(bz, "OUTPUT_ROOT_PATH", root)
+    assert bz._resolve_item_path({"filename": src.name, "subfolder": str(tmp_path)}) == (None, None)

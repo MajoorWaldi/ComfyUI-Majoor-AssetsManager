@@ -316,11 +316,21 @@ def _delete_batch_zip_path(entry: Any, token: str, success_log: str) -> None:
 
 
 def _resolve_item_path(item: dict[str, Any]) -> tuple[Path | None, Path | None]:
-    filename_rel, subfolder_rel, typ = _normalized_batch_zip_item_parts(item)
-    if filename_rel is None or subfolder_rel is None:
-        return None, None
+    # Older collection entries can store an absolute subfolder. Convert it only
+    # against the item's authorized root; never trust an arbitrary absolute path.
+    typ = str(item.get("type") or "output").lower()
     base_dir = _resolve_base_dir(item, typ)
     if base_dir is None:
+        return None, None
+    try:
+        subfolder = Path(str(item.get("subfolder") or ""))
+        if subfolder.is_absolute():
+            subfolder = subfolder.resolve(strict=True).relative_to(base_dir)
+            item = {**item, "subfolder": str(subfolder)}
+    except (OSError, ValueError, RuntimeError):
+        return None, None
+    filename_rel, subfolder_rel, typ = _normalized_batch_zip_item_parts(item)
+    if filename_rel is None or subfolder_rel is None:
         return None, None
     candidate = _resolve_candidate_path(base_dir, subfolder_rel, filename_rel)
     if not _is_valid_candidate_path(candidate, base_dir):
