@@ -141,6 +141,13 @@ export function createRatingHotkeysController({ gridContainer, createRatingBadge
             if (getHotkeysState().scope === "viewer") return;
 
             if (e.defaultPrevented) return;
+            // The floating viewer permits rating from outside the grid. Never
+            // capture digits being entered in ComfyUI node widgets or editors.
+            const isEditing = (target: any) => Boolean(
+                target?.isContentEditable ||
+                target?.closest?.("input, textarea, select, [contenteditable]:not([contenteditable='false'])"),
+            );
+            if (e.isComposing || isEditing(e.target) || isEditing(document.activeElement)) return;
             const k = String(e.key || "");
 
             if (k !== "0" && k !== "1" && k !== "2" && k !== "3" && k !== "4" && k !== "5") return;

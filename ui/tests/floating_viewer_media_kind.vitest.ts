@@ -17,7 +17,24 @@ describe("floating viewer media kind", () => {
     });
 
     it("uses MIME when filenames do not expose a media extension", () => {
-        expect(getFloatingViewerMediaKind({ filename: "preview", mime: "video/mp4" })).toBe("video");
-        expect(getFloatingViewerMediaKind({ filename: "preview.bin", mimetype: "audio/ogg" })).toBe("audio");
+        expect(getFloatingViewerMediaKind({ filename: "preview", mime: "video/mp4" })).toBe(
+            "video",
+        );
+        expect(getFloatingViewerMediaKind({ filename: "preview.bin", mimetype: "audio/ogg" })).toBe(
+            "audio",
+        );
     });
+});
+
+it("resolves collection file paths without a database ID", async () => {
+    const { resolveFloatingViewerMediaUrl } =
+        await import("../features/viewer/floatingViewerMedia.js");
+    const { buildAssetViewURL } = await import("../api/endpoints.js");
+    const asset = {
+        filename: "clip.mp4",
+        filepath: "D:/renders/H&S/clip.mp4",
+        subfolder: "D:/renders/H&S",
+        type: "output",
+    };
+    expect(resolveFloatingViewerMediaUrl(asset)).toBe(buildAssetViewURL(asset));
 });

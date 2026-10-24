@@ -1,5 +1,5 @@
 import { APP_CONFIG } from "../../app/config.js";
-import { buildViewURL, buildAssetViewURL } from "../../api/endpoints.js";
+import { buildAssetViewURL } from "../../api/endpoints.js";
 import { createModel3DMediaElement, MODEL3D_EXTS } from "./model3dRenderer.js";
 import { mountUnifiedMediaControls } from "./mediaPlayer.js";
 import { mountFloatingViewerSimplePlayer } from "./floatingViewerSimplePlayer.js";
@@ -45,14 +45,13 @@ export function getFloatingViewerMediaKind(fileData: any): string {
 export function resolveFloatingViewerMediaUrl(fileData: any): string {
     if (!fileData) return "";
     if (fileData.url) return String(fileData.url);
-    if (fileData.filename && fileData.id == null) {
-        return buildViewURL(fileData.filename, fileData.subfolder || "", fileData.type || "output");
-    }
     if (fileData.filename) return buildAssetViewURL(fileData) || "";
     return "";
 }
 
-export function createFloatingViewerEmptyState(msg: string = "No media  -  select assets in the grid"): HTMLElement {
+export function createFloatingViewerEmptyState(
+    msg: string = "No media  -  select assets in the grid",
+): HTMLElement {
     const div = document.createElement("div");
     div.className = "mjr-mfv-empty";
     div.textContent = msg;
@@ -190,7 +189,11 @@ export function buildFloatingViewerMediaElement(
             host.tabIndex = -1;
             host.addEventListener("pointerdown", (e: any) => {
                 try {
-                    if (e?.target?.closest?.("button, input, textarea, select, a, [contenteditable='true']"))
+                    if (
+                        e?.target?.closest?.(
+                            "button, input, textarea, select, a, [contenteditable='true']",
+                        )
+                    )
                         return;
                     host.focus?.({ preventScroll: true });
                 } catch (err: any) {
@@ -290,7 +293,14 @@ export function buildFloatingViewerMediaElement(
     return img;
 }
 
-export function drawFloatingViewerCanvasRoundRect(ctx: any, x: any, y: any, w: any, h: any, r: any) {
+export function drawFloatingViewerCanvasRoundRect(
+    ctx: any,
+    x: any,
+    y: any,
+    w: any,
+    h: any,
+    r: any,
+) {
     ctx.beginPath();
     if (typeof ctx.roundRect === "function") {
         ctx.roundRect(x, y, w, h, r);

@@ -448,7 +448,10 @@ describe("floatingViewerManager", () => {
         viewer._mediaB = { id: 42, filename: "ref-b.png" };
         viewer.loadMediaPair.mockClear();
 
-        await floatingViewerManager.upsertWithContent({ filename: "live-output.png", type: "output" });
+        await floatingViewerManager.upsertWithContent({
+            filename: "live-output.png",
+            type: "output",
+        });
 
         expect(viewer.loadMediaPair).not.toHaveBeenCalled();
         expect(viewer._mediaA).toEqual({ id: 41, filename: "ref-a.png" });
@@ -674,7 +677,8 @@ describe("floatingViewerManager", () => {
         const target = {
             _insideMfv: true,
             isContentEditable: false,
-            closest: (selector) => (selector === "input, textarea, select, [contenteditable='true']" ? target : null),
+            closest: (selector) =>
+                selector === "input, textarea, select, [contenteditable='true']" ? target : null,
         };
         const event = {
             type: "keydown",
@@ -726,7 +730,8 @@ describe("floatingViewerManager", () => {
     });
 
     it("removes temporary canvas selection wrappers on close when no original handlers existed", async () => {
-        const { floatingViewerManager } = await import("../features/viewer/floatingViewerManager.js");
+        const { floatingViewerManager } =
+            await import("../features/viewer/floatingViewerManager.js");
         const canvas = globalThis.app.canvas;
 
         expect(Object.prototype.hasOwnProperty.call(canvas, "onNodeSelected")).toBe(false);
@@ -747,9 +752,8 @@ describe("floatingViewerManager", () => {
     });
 
     it("removes temporary canvas selection wrappers during teardown", async () => {
-        const { floatingViewerManager, teardownFloatingViewerManager } = await import(
-            "../features/viewer/floatingViewerManager.js"
-        );
+        const { floatingViewerManager, teardownFloatingViewerManager } =
+            await import("../features/viewer/floatingViewerManager.js");
         const canvas = globalThis.app.canvas;
 
         await floatingViewerManager.open();
@@ -856,4 +860,42 @@ describe("floatingViewerManager", () => {
         expect(viewer.isVisible).toBe(true);
         expect(toOffEvent.preventDefault).toHaveBeenCalledTimes(1);
     });
+});
+
+it("loads collection assets with local IDs directly from the selection", async () => {
+    state.getSelectedIdSetMock.mockReturnValue(new Set());
+    const { floatingViewerManager } = await import("../features/viewer/floatingViewerManager.js");
+    await floatingViewerManager.open();
+    const asset = {
+        id: "asset:D:/renders/H&S/clip.mp4",
+        filename: "clip.mp4",
+        filepath: "D:/renders/H&S/clip.mp4",
+        subfolder: "H&S",
+        type: "output",
+    };
+    window.dispatchEvent(
+        new CustomEvent("mjr:selection-changed", {
+            detail: { selectedIds: [asset.id], selectedAssets: [asset] },
+        }),
+    );
+    await flushAsyncWork();
+    expect(state.getLastViewer().loadMediaA).toHaveBeenCalledWith(asset, { autoMode: true });
+    expect(state.getAssetsBatchMock).not.toHaveBeenCalled();
+});
+
+it("loads local assets from the grid when opening the viewer", async () => {
+    const asset = {
+        id: "asset:nested/image.png",
+        filename: "image.png",
+        filepath: "D:/renders/nested/image.png",
+    };
+    const grid = createGrid([asset.id]);
+    grid._mjrGetAssets = () => [asset];
+    state.setActiveGrid(grid);
+    state.getSelectedIdSetMock.mockReturnValue(new Set([asset.id]));
+    const { floatingViewerManager } = await import("../features/viewer/floatingViewerManager.js");
+    await floatingViewerManager.open();
+    await flushAsyncWork();
+    expect(state.getLastViewer().loadMediaA).toHaveBeenCalledWith(asset, { autoMode: true });
+    expect(state.getAssetsBatchMock).not.toHaveBeenCalled();
 });
