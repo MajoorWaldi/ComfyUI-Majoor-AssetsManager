@@ -1,5 +1,6 @@
 from fractions import Fraction
 from pathlib import Path
+from unittest.mock import MagicMock
 
 import pytest
 from aiohttp.test_utils import make_mocked_request
@@ -52,6 +53,24 @@ def test_exr_thumbnail_is_tonemapped_to_srgb_with_correct_channel_order(tmp_path
     # Scene-linear 0.5/0.2/0.05 encode to roughly sRGB 188/124/63.
     assert r > g > b
     assert abs(r - 188) < 10 and abs(g - 124) < 10 and abs(b - 63) < 12
+
+
+def test_decode_grayscale_exr_expands_to_rgb(tmp_path, monkeypatch):
+    av = pytest.importorskip("av")
+    np = pytest.importorskip("numpy")
+    pixels = np.array([[0.0, 0.5, 1.0]], dtype=np.float32)
+    frame = MagicMock()
+    frame.to_ndarray.side_effect = [ValueError("unsupported"), ValueError("unsupported"), pixels]
+    container = MagicMock()
+    container.__enter__.return_value.decode.return_value = iter([frame])
+    monkeypatch.setattr(av, "open", lambda _source: container)
+
+    rgb = thumbs._decode_exr_rgb(tmp_path / "gray.exr")
+
+    assert rgb.shape == (1, 3, 3)
+    assert rgb.dtype == np.uint8
+    np.testing.assert_array_equal(rgb, [[[0, 0, 0], [188, 188, 188], [255, 255, 255]]])
+    assert frame.to_ndarray.call_args.kwargs == {"format": "grayf32le"}
 
 
 def test_tiff_preview_is_a_jpeg(tmp_path, thumb_dir):

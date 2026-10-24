@@ -77,6 +77,7 @@ export const ENDPOINTS = {
     COLLECT_FILES: "/mjr/am/collect-files",
     TOOLS_STATUS: "/mjr/am/tools/status",
     SETTINGS_OUTPUT_DIRECTORY: "/mjr/am/settings/output-directory",
+    SETTINGS_INPUT_DIRECTORY: "/mjr/am/settings/input-directory",
     SETTINGS_INDEX_DIRECTORY: "/mjr/am/settings/index-directory",
     SETTINGS_WORKFLOW_ROOTS: "/mjr/am/settings/workflow-roots",
     SETTINGS_METADATA_FALLBACK: "/mjr/am/settings/metadata-fallback",

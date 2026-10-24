@@ -1,5 +1,5 @@
 import { t as e } from "./rolldown-runtime-CGnMp29N.js";
-import { m as t, mt as n, o as r, r as i } from "./events-BZ0LknTB.js";
+import { m as t, mt as n, o as r, r as i } from "./events-tsQFsZrH.js";
 import { n as a } from "./state-D0Gu1AgG.js";
 // ui/features/viewer/model3dCore.ts
 function o(e, t) {

@@ -559,7 +559,9 @@ def _build_link_source_map(links: Any) -> dict[Any, tuple[Any, int]]:
         if isinstance(link, list) and len(link) >= 3:
             link_to_source[link[0]] = (link[1], link[2])
         elif isinstance(link, dict) and link.get("id") is not None:
-            link_to_source[link["id"]] = (link.get("origin_id"), link.get("origin_slot"))
+            origin_slot = link.get("origin_slot")
+            if isinstance(origin_slot, int):
+                link_to_source[link["id"]] = (link.get("origin_id"), origin_slot)
     return link_to_source
 
 

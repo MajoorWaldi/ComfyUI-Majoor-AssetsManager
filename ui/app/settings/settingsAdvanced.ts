@@ -9,9 +9,11 @@ import {
     setMetadataFallbackSettings,
     getIndexDirectorySetting,
     getOutputDirectorySetting,
+    getInputDirectorySetting,
     getWorkflowRootsSetting,
     setIndexDirectorySetting,
     setOutputDirectorySetting,
+    setInputDirectorySetting,
     setWorkflowRootsSetting,
     vectorStats,
     vectorBackfill,
@@ -35,6 +37,7 @@ import {
 } from "../i18n.js";
 import { _safeNum, _safeOneOf } from "./settingsUtils.js";
 import { DEFAULT_SETTINGS, saveMajoorSettings, applySettingsToConfig } from "./settingsCore.js";
+import { setSettingForApp } from "../hostAdapter.js";
 
 const SETTINGS_PREFIX = "Majoor";
 const SETTINGS_CATEGORY = "Majoor Assets Manager";
@@ -145,6 +148,77 @@ export function registerAdvancedSettings(safeAddSetting: (def: any) => void, set
                     saveMajoorSettings(settings);
                     notifyApplied("paths.outputDirectory");
                 }
+            })
+            .catch(() => {});
+    } catch (e) {
+        console.debug?.(e);
+    }
+
+    // -- InputDirectory ----------------------------------------------------
+
+    let inputDirCommittedValue = String(settings.paths?.inputDirectory || "");
+    let inputDirSaveTimer: ReturnType<typeof setTimeout> | null = null;
+    let inputDirSaveSeq = 0;
+    let inputDirSaveAbort: AbortController | null = null;
+    const applyInputDirectoryValue = (value: string) => {
+        settings.paths = settings.paths || {};
+        settings.paths.inputDirectory = value;
+        saveMajoorSettings(settings);
+        setSettingForApp(app, `${SETTINGS_PREFIX}.Paths.InputDirectory`, value);
+        notifyApplied("paths.inputDirectory");
+    };
+
+    safeAddSetting({
+        id: `${SETTINGS_PREFIX}.Paths.InputDirectory`,
+        category: cat(t("cat.advanced"), "Paths / Input"),
+        name: "Majoor: Input Directory",
+        tooltip:
+            "Override the folder indexed by the Inputs tab. Leave empty to use ComfyUI's input directory (--input-directory). Run a scan after changing it.",
+        type: "text",
+        defaultValue: String(settings.paths?.inputDirectory || ""),
+        attrs: { placeholder: "D:\\ComfyUI\\input" },
+        onChange: (value: any) => {
+            const next = String(value || "").trim();
+            if (next === String(settings.paths?.inputDirectory || "")) return;
+            settings.paths = settings.paths || {};
+            settings.paths.inputDirectory = next;
+            saveMajoorSettings(settings);
+            if (inputDirSaveTimer) clearTimeout(inputDirSaveTimer);
+            const seq = ++inputDirSaveSeq;
+            inputDirSaveAbort?.abort();
+            inputDirSaveTimer = setTimeout(async () => {
+                inputDirSaveTimer = null;
+                inputDirSaveAbort =
+                    typeof AbortController !== "undefined" ? new AbortController() : null;
+                try {
+                    const res = await setInputDirectorySetting(
+                        next,
+                        inputDirSaveAbort ? { signal: inputDirSaveAbort.signal } : {},
+                    );
+                    if (seq !== inputDirSaveSeq) return;
+                    if (!res?.ok) {
+                        throw new Error(res?.error || "Failed to set input directory");
+                    }
+                    const serverValue = String(res?.data?.input_directory ?? next).trim();
+                    inputDirCommittedValue = serverValue;
+                    applyInputDirectoryValue(serverValue);
+                } catch (error: any) {
+                    if (seq !== inputDirSaveSeq) return;
+                    if (error?.name === "AbortError" || error?.code === "ABORTED") return;
+                    applyInputDirectoryValue(inputDirCommittedValue);
+                    comfyToast(error?.message || "Failed to set input directory", "error");
+                }
+            }, 700);
+        },
+    });
+
+    try {
+        getInputDirectorySetting()
+            .then((res) => {
+                if (!res?.ok || inputDirSaveSeq !== 0) return;
+                const serverValue = String(res?.data?.input_directory || "").trim();
+                inputDirCommittedValue = serverValue;
+                applyInputDirectoryValue(serverValue);
             })
             .catch(() => {});
     } catch (e) {

@@ -70,9 +70,8 @@ def _decode_exr_rgb(source: Path) -> Any | None:
                 pixels = frame.to_ndarray(format=pixel_format)
             except Exception:
                 continue
-            if pixels.ndim == 2:
-                pixels = np.stack([pixels] * 3, axis=-1)
-            rgb = _linear_to_srgb(pixels[..., :3])
+            rgb_pixels = np.stack([pixels] * 3, axis=-1) if pixels.ndim == 2 else pixels
+            rgb = _linear_to_srgb(rgb_pixels[..., :3])
             return (rgb * 255.0 + 0.5).astype(np.uint8)
     return None
 

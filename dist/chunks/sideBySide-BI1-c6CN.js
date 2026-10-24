@@ -1,4 +1,4 @@
-import { i as e } from "./model3dRenderer-MB5w-WiJ.js";
+import { i as e } from "./model3dRenderer-B18R8Ewh.js";
 import { i as t, o as n } from "./geninfoParser-CgHp-y-n.js";
 // ui/features/viewer/sideBySide.ts
 function r(e) {
