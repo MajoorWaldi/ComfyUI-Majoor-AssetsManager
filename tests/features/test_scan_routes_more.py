@@ -1576,6 +1576,53 @@ async def test_watcher_scope_restart_success(monkeypatch) -> None:
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("configuration", ["override", "cli", "argv"])
+async def test_scan_scope_input_uses_custom_directory_and_real_allowlist(monkeypatch, tmp_path, configuration):
+    import sys
+
+    from mjr_am_backend import config
+
+    custom = tmp_path / "custom-input"
+    custom.mkdir()
+    seen = []
+
+    class _Index:
+        async def scan_directory(self, directory, recursive, incremental, source, root_id, fast, background_metadata):
+            seen.append((Path(directory), source))
+            return Result.Ok({"scanned": 1, "added": 1, "updated": 0, "skipped": 0, "errors": 0})
+
+    async def services():
+        return {"index": _Index()}, None
+
+    async def read_json(_):
+        return Result.Ok({"scope": "input"})
+
+    for name in config._INPUT_DIR_OVERRIDE_ENV_NAMES:
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setattr(config, "_INPUT_DIR_OVERRIDE_FILE_PATH", tmp_path / "absent-override")
+    if configuration == "override":
+        monkeypatch.setenv("MJR_AM_INPUT_DIRECTORY", str(custom))
+    else:
+        monkeypatch.setitem(sys.modules, "folder_paths", None)
+        cli_args = SimpleNamespace(input_directory=str(custom) if configuration == "cli" else None)
+        monkeypatch.setitem(sys.modules, "comfy.cli_args", SimpleNamespace(args=cli_args))
+        monkeypatch.setattr(sys, "argv", ["main.py", "--input-directory", str(custom)])
+    monkeypatch.setattr(scan_mod, "_require_services", services)
+    monkeypatch.setattr(scan_mod, "is_db_maintenance_active", lambda: False)
+    monkeypatch.setattr(scan_mod, "_csrf_error", lambda _: None)
+    monkeypatch.setattr(scan_mod, "_require_write_access", lambda _: Result.Ok({}))
+    monkeypatch.setattr(scan_mod, "_check_rate_limit", lambda *args, **kwargs: (True, None))
+    monkeypatch.setattr(scan_mod, "_read_json", read_json)
+    app = _app()
+    request = make_mocked_request("POST", "/mjr/am/scan", app=app)
+    response = await (await app.router.resolve(request)).handler(request)
+    result = json.loads(response.text)
+    assert result["ok"], result
+    assert seen[0][0] == custom
+    assert seen[0][1] == "input"
+
+
+@pytest.mark.asyncio
 async def test_scan_route_scope_output_success(monkeypatch, tmp_path: Path) -> None:
     out_root = tmp_path / "out"
     out_root.mkdir()

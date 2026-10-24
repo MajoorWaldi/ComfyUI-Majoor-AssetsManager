@@ -121,6 +121,8 @@ class ComfyCoreAdapter:
         safe_type = str(item_type or "").strip().lower()
         if not safe_type:
             return None
+        if safe_type == "input":
+            return self.get_input_directory()
         try:
             import folder_paths  # type: ignore
 
@@ -133,19 +135,11 @@ class ComfyCoreAdapter:
             logger.debug("Failed to resolve ComfyUI directory type=%s", safe_type, exc_info=True)
         return None
 
-    def get_input_directory(self) -> str | None:
-        """Return ComfyUI input directory when folder_paths is available."""
-        try:
-            import folder_paths  # type: ignore
+    def get_input_directory(self) -> str:
+        """Return the managed input root, falling back to ComfyUI's live root."""
+        from ..config import get_runtime_input_root
 
-            getter = getattr(folder_paths, "get_input_directory", None)
-            if callable(getter):
-                value = getter()
-                if value:
-                    return str(value)
-        except Exception:
-            logger.debug("Failed to resolve ComfyUI input directory", exc_info=True)
-        return None
+        return get_runtime_input_root()
 
     def get_output_directory(self) -> str | None:
         """Return ComfyUI output directory when folder_paths is available."""

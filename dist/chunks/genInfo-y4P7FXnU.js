@@ -1,8 +1,8 @@
 import { t as e } from "./rolldown-runtime-Dy4uBu1J.js";
-import { m as t, o as n } from "./events-DrYpMD-I.js";
-import { h as r } from "./Viewer-DXsFcJRb.js";
-import { i, n as a, r as o, t as s, u as c } from "./SidebarWorkflowSection-BEJKYrrz.js";
-import { D as l, E as u, N as d, O as f, T as p, V as m, dt as h, ft as g, k as _, lt as v } from "./mjr-primevue-BlSRoWcG.js";
+import { m as t, o as n } from "./events-CoI83paj.js";
+import { h as r } from "./Viewer-DWgaGos-.js";
+import { i, n as a, r as o, t as s, u as c } from "./SidebarWorkflowSection-DpoPGJrq.js";
+import { D as l, E as u, N as d, O as f, T as p, V as m, dt as h, ft as g, k as _, lt as v } from "./mjr-primevue-BOf2ACk_.js";
 //#region ui/vue/components/viewer/ViewerMetadataBlock.vue?vue&type=script&setup=true&lang.ts
 var y = { style: {
 	display: "flex",
@@ -109,7 +109,7 @@ var y = { style: {
 				let t = Object.entries(e || {});
 				if (!t.length) return !1;
 				let n = 0;
-				for (let [, e] of t.slice(0, 50)) if (!(!e || typeof e != "object") && (e.inputs && typeof e.inputs == "object" && (n += 1), n >= 2)) return !0;
+				for (let [, e] of t.slice(0, 50)) if (e && typeof e == "object" && (e.inputs && typeof e.inputs == "object" && (n += 1), n >= 2)) return !0;
 			} catch {
 				return !1;
 			}

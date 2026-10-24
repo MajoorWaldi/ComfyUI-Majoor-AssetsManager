@@ -1,4 +1,4 @@
-import { a as e, n as t, s as n } from "./graphTraversal-BIYmTTPW.js";
+import { a as e, n as t, s as n } from "./graphTraversal-C94Q5bJN.js";
 //#region ui/utils/ids.ts
 function r(e) {
 	try {
@@ -106,6 +106,7 @@ var m = 200, h = 0, g = {
 	COLLECT_FILES: "/mjr/am/collect-files",
 	TOOLS_STATUS: "/mjr/am/tools/status",
 	SETTINGS_OUTPUT_DIRECTORY: "/mjr/am/settings/output-directory",
+	SETTINGS_INPUT_DIRECTORY: "/mjr/am/settings/input-directory",
 	SETTINGS_INDEX_DIRECTORY: "/mjr/am/settings/index-directory",
 	SETTINGS_WORKFLOW_ROOTS: "/mjr/am/settings/workflow-roots",
 	SETTINGS_METADATA_FALLBACK: "/mjr/am/settings/metadata-fallback",
@@ -1163,7 +1164,7 @@ function U() {
 }
 function W(e, t, n) {
 	let r = B.get(String(e || ""));
-	if (!(!r || !r.size)) for (let i of Array.from(r)) try {
+	if (r && r.size) for (let i of Array.from(r)) try {
 		i(t, n, e);
 	} catch (e) {
 		console.debug?.(e);

@@ -25,7 +25,7 @@ function a(e, t = e?.graph) {
 	return r ? `${r}:${n}` : n;
 }
 function o(e, t, n, r) {
-	!n || typeof n != "object" || t.has(n) || (t.add(n), e.push({
+	n && typeof n == "object" && !t.has(n) && (t.add(n), e.push({
 		graph: n,
 		label: r
 	}));

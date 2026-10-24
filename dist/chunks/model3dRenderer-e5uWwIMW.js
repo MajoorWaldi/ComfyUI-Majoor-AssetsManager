@@ -1,9 +1,9 @@
 import { t as e } from "./rolldown-runtime-Dy4uBu1J.js";
-import { m as t, mt as n, o as r, r as i } from "./events-DrYpMD-I.js";
+import { m as t, mt as n, o as r, r as i } from "./events-CoI83paj.js";
 import { n as a } from "./state-DPiaUMw1.js";
 //#region ui/features/viewer/model3dCore.ts
 function o(e, t) {
-	if (!(!e || typeof t != "function")) try {
+	if (e && typeof t == "function") try {
 		e.traverse?.((e) => {
 			(e?.isMesh || e?.isPoints || e?.isLine) && t(e);
 		});
@@ -1093,7 +1093,7 @@ function F(e, a, o = {}) {
 		let n = Math.max(1e-4, (Number(e) || 1) / Math.max(1, Number(t) || 1)), r = Ce * n;
 		V.left = -r / 2, V.right = r / 2, V.top = Ce / 2, V.bottom = -Ce / 2, V.updateProjectionMatrix();
 	}, Be = () => {
-		if (!(!G || !H || !K)) {
+		if (G && H && K) {
 			if (q === A.ORTHOGRAPHIC) {
 				let e = _.getBoundingClientRect();
 				Ce = m(V, H, K, Math.max(1e-4, (e.width || 1) / Math.max(1, e.height || 1))) || Ce, z = V;
@@ -1147,7 +1147,7 @@ function F(e, a, o = {}) {
 			}
 		});
 	}, Ue = (e) => {
-		!Se || !I || (u(Te), l(I, Se, e, we, Te), Fe());
+		Se && I && (u(Te), l(I, Se, e, we, Te), Fe());
 	}, We = (e) => {
 		if (!G) return;
 		let t = ce[e] || [
@@ -1201,9 +1201,9 @@ function F(e, a, o = {}) {
 			P.progressSlider.max = String(e);
 		} catch {}
 	}, Je = () => {
-		!X || !Z.length || (je ? (X.timeScale = 0, je = !1, P.playBtn.textContent = t("model3d.play", "Play")) : (X.timeScale = Ae, Q[$]?.isRunning?.() ? (je = !0, P.playBtn.textContent = t("model3d.pause", "Pause")) : qe($)));
+		X && Z.length && (je ? (X.timeScale = 0, je = !1, P.playBtn.textContent = t("model3d.play", "Play")) : (X.timeScale = Ae, Q[$]?.isRunning?.() ? (je = !0, P.playBtn.textContent = t("model3d.pause", "Pause")) : qe($)));
 	}, Ye = (e, t) => {
-		!e || e.length === 0 || !I || (Z = e, X = new I.AnimationMixer(t), ke = new I.Clock(), Q = Array(e.length).fill(null), P.animSel.innerHTML = "", e.forEach((e, t) => {
+		e && e.length !== 0 && I && (Z = e, X = new I.AnimationMixer(t), ke = new I.Clock(), Q = Array(e.length).fill(null), P.animSel.innerHTML = "", e.forEach((e, t) => {
 			let n = document.createElement("option");
 			n.value = String(t), n.textContent = e.name || `Animation ${t + 1}`, P.animSel.appendChild(n);
 		}), P.animSel.style.display = e.length > 1 ? "" : "none", P.bar.style.display = "flex", M.style.bottom = "54px", qe(0), P.playBtn.addEventListener("click", (e) => {
@@ -1597,7 +1597,7 @@ function F(e, a, o = {}) {
 			}
 			Fe();
 			let de = () => {
-				if (!(F || ye || !L || !R || !z)) {
+				if (!F && !ye && L && R && z) {
 					try {
 						if (H?.update?.(), X && ke) {
 							let e = ke.getDelta();

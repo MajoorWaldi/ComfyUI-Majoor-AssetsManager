@@ -21,7 +21,7 @@ The **first** strategy that returns a valid directory wins:
 A log line at startup (level INFO) reports which strategy was selected.
 
 Input/index directory resolution follows a similar pattern; see
-``_resolve_index_dir()``.
+``get_runtime_input_root()`` and ``_resolve_index_dir()``.
 """
 
 import contextlib
@@ -39,6 +39,8 @@ logger = logging.getLogger(__name__)
 _INIT_LOCK = threading.Lock()
 _DIRS_INITIALIZED = False
 _OUTPUT_DIR_OVERRIDE_FILE_PATH = Path(__file__).resolve().parents[1] / ".mjr_output_directory_override"
+_INPUT_DIR_OVERRIDE_FILE_PATH = Path(__file__).resolve().parents[1] / ".mjr_input_directory_override"
+_INPUT_DIR_OVERRIDE_ENV_NAMES = ("MJR_AM_INPUT_DIRECTORY", "MAJOOR_INPUT_DIRECTORY")
 _INDEX_DIR_OVERRIDE_ENV_NAMES = ("MJR_AM_INDEX_DIRECTORY", "MAJOOR_INDEX_DIRECTORY")
 _INDEX_DIR_OVERRIDE_FILE_PATH = Path(__file__).resolve().parents[1] / ".mjr_index_directory_override"
 _INDEX_DIR_LOGGED_SELECTIONS: set[tuple[str, str]] = set()
@@ -126,6 +128,48 @@ def _read_output_dir_override_from_file() -> str | None:
 
 def _read_index_dir_override_from_file() -> str | None:
     return _read_override_from_file(_INDEX_DIR_OVERRIDE_FILE_PATH)
+
+
+def get_runtime_input_root() -> str:
+    """Resolve the managed override, then ComfyUI's live input root and CLI hints."""
+    override = _env_raw(*_INPUT_DIR_OVERRIDE_ENV_NAMES) or _read_override_from_file(_INPUT_DIR_OVERRIDE_FILE_PATH)
+    if override:
+        try:
+            return str(Path(override).expanduser().resolve())
+        except (OSError, RuntimeError, ValueError):
+            logger.warning("Invalid input directory override, using ComfyUI defaults")
+    try:
+        import folder_paths  # type: ignore
+
+        getter = getattr(folder_paths, "get_input_directory", None)
+        value = getter() if callable(getter) else getattr(folder_paths, "input_directory", None)
+        if value:
+            return str(Path(value).expanduser().resolve())
+    except Exception:
+        logger.debug("Failed to resolve live ComfyUI input directory", exc_info=True)
+    try:
+        from comfy.cli_args import args as comfy_args  # type: ignore
+
+        value = getattr(comfy_args, "input_directory", None)
+        if value:
+            return str(Path(value).expanduser().resolve())
+    except Exception:
+        logger.debug("ComfyUI input CLI settings unavailable", exc_info=True)
+    try:
+        argv = list(sys.argv or [])
+        for i, token in enumerate(argv):
+            if token == "--input-directory" and i + 1 < len(argv):
+                return str(Path(argv[i + 1]).expanduser().resolve())
+            if isinstance(token, str) and token.startswith("--input-directory="):
+                value = token.split("=", 1)[1].strip()
+                if value:
+                    return str(Path(value).expanduser().resolve())
+    except (OSError, RuntimeError, TypeError, ValueError):
+        logger.debug("Invalid input directory CLI argument", exc_info=True)
+    fp_mod = sys.modules.get("folder_paths")
+    base = getattr(fp_mod, "base_path", None) or _detect_comfy_root(Path(__file__).resolve())
+    return str((Path(base) / "input" if base else Path.cwd() / "input").resolve())
+
 
 def _resolve_output_root() -> Path:
     resolved = _resolve_output_root_from_env()

@@ -1,4 +1,4 @@
-import { a as e, n as t, r as n, s as r } from "./graphTraversal-BIYmTTPW.js";
+import { a as e, n as t, r as n, s as r } from "./graphTraversal-C94Q5bJN.js";
 import { KnownNodesAdapter as i, t as a } from "./KnownNodesAdapter-D3kDh32d.js";
 //#region ui/features/viewer/nodeStream/NodeStreamRegistry.ts
 var o = [], s = !1;
@@ -454,7 +454,7 @@ function Ce(e) {
 		}
 		if (!(e.depth >= F)) for (let t of ye(e.node)) {
 			let n = String(t?.id ?? "");
-			!n || i.has(n) || (i.add(n), r.push({
+			n && !i.has(n) && (i.add(n), r.push({
 				node: t,
 				depth: e.depth + 1
 			}));
@@ -493,7 +493,7 @@ function Z({ force: e = !1 } = {}) {
 		return;
 	}
 	let i = we(r);
-	!e && n === M && i === j || (M = n, j = i, D(r));
+	(e || n !== M || i !== j) && (M = n, j = i, D(r));
 }
 function Q() {
 	let e = T;

@@ -908,7 +908,7 @@ function vn(e, n, i = t) {
 		};
 	}
 	let C = b ? Array(e.length).fill(mn) : mn, w = (e) => {
-		if (!(!(m.flags & 1) || !m.dirty && !e)) {
+		if (m.flags & 1 && (m.dirty || e)) {
 			if (n) {
 				let t = m.run();
 				if (e || o || y || (b ? t.some((e, t) => oe(e, C[t])) : oe(t, C))) {
@@ -2442,8 +2442,8 @@ function _a(e, i) {
 		m & 8 ? (u & 16 && ye(l, i, a), d !== l && p(n, d)) : u & 16 ? m & 16 ? me(l, d, n, r, i, a, o, s, c) : ye(l, i, a, !0) : (u & 8 && p(n, ""), m & 16 && T(d, n, r, i, a, o, s, c));
 	}, pe = (e, t, r, i, a, o, s, c, l) => {
 		e ||= n, t ||= n;
-		let u = e.length, d = t.length, f = Math.min(u, d), p;
-		for (p = 0; p < f; p++) {
+		let u = e.length, d = t.length, f = Math.min(u, d), p = 0;
+		for (; p < f; p++) {
 			let n = t[p] = l ? Ka(t[p]) : Ga(t[p]);
 			v(e[p], n, r, null, a, o, s, c, l);
 		}
@@ -3033,7 +3033,7 @@ var bo = vo ? (e) => vo.createHTML(e) : (e) => e, xo = "http://www.w3.org/2000/s
 	},
 	insertStaticContent(e, t, n, r, i, a) {
 		let o = n ? n.previousSibling : t.lastChild;
-		if (i && (i === a || i.nextSibling)) for (; t.insertBefore(i.cloneNode(!0), n), !(i === a || !(i = i.nextSibling)););
+		if (i && (i === a || i.nextSibling)) for (; t.insertBefore(i.cloneNode(!0), n), i !== a && (i = i.nextSibling););
 		else {
 			wo.innerHTML = bo(r === "svg" ? `<svg>${e}</svg>` : r === "mathml" ? `<math>${e}</math>` : e);
 			let i = wo.content;
@@ -3318,7 +3318,7 @@ function ys(e, t) {
 }
 var bs = (e) => e.charCodeAt(0) === 111 && e.charCodeAt(1) === 110 && e.charCodeAt(2) > 96 && e.charCodeAt(2) < 123, xs = (e, t, n, r, i, s) => {
 	let c = i === "svg";
-	t === "class" ? Ko(e, r, c) : t === "style" ? $o(e, n, r) : a(t) ? o(t) || fs(e, t, n, r, s) : (t[0] === "." ? (t = t.slice(1), !0) : t[0] === "^" ? (t = t.slice(1), !1) : Ss(e, t, r, c)) ? (cs(e, t, r), !e.tagName.includes("-") && (t === "value" || t === "checked" || t === "selected") && ss(e, t, r, c, s, t !== "value")) : e._isVueCE && (Cs(e, t) || e._def.__asyncLoader && (/[A-Z]/.test(t) || !g(r))) ? cs(e, T(t), r, s, t) : (t === "true-value" ? e._trueValue = r : t === "false-value" && (e._falseValue = r), ss(e, t, r, c));
+	t === "class" ? Ko(e, r, c) : t === "style" ? $o(e, n, r) : a(t) ? o(t) || fs(e, t, n, r, s) : (t[0] === "." ? (t = t.slice(1), 1) : t[0] === "^" ? (t = t.slice(1), 0) : Ss(e, t, r, c)) ? (cs(e, t, r), !e.tagName.includes("-") && (t === "value" || t === "checked" || t === "selected") && ss(e, t, r, c, s, t !== "value")) : e._isVueCE && (Cs(e, t) || e._def.__asyncLoader && (/[A-Z]/.test(t) || !g(r))) ? cs(e, T(t), r, s, t) : (t === "true-value" ? e._trueValue = r : t === "false-value" && (e._falseValue = r), ss(e, t, r, c));
 };
 function Ss(e, t, n, r) {
 	if (r) return !!(t === "innerHTML" || t === "textContent" || t in e && bs(t) && h(n));
@@ -3407,7 +3407,7 @@ function Ms(e, t, n) {
 }
 function Ns(e, t) {
 	let n = e.multiple, r = d(t);
-	if (!(n && !r && !p(t))) {
+	if (!n || r || p(t)) {
 		for (let i = 0, a = e.options.length; i < a; i++) {
 			let a = e.options[i], o = Ps(a);
 			if (n) {
@@ -4818,7 +4818,7 @@ function ru(e) {
 		el: i,
 		css: r,
 		unload: function() {
-			!s || !n.value || (E(), Vc(i.value) && s.head.removeChild(i.value), n.value = !1, i.value = null);
+			s && n.value && (E(), Vc(i.value) && s.head.removeChild(i.value), n.value = !1, i.value = null);
 		},
 		load: ie,
 		isLoaded: /* @__PURE__ */ Gt(n)
@@ -6420,7 +6420,7 @@ var Qd = Vd.extend("ripple", {
 		},
 		onMouseDown: function(e) {
 			var t = this, n = e.currentTarget, r = this.getInk(n);
-			if (!(!r || getComputedStyle(r, null).display === "none")) {
+			if (r && getComputedStyle(r, null).display !== "none") {
 				if (!this.isUnstyled() && Dc(r, "p-ink-active"), r.setAttribute("data-p-ink-active", "false"), !Xc(r) && !nl(r)) {
 					var i = Math.max(Rc(n), $c(n));
 					r.style.height = i + "px", r.style.width = i + "px";
@@ -11262,7 +11262,7 @@ var ag = {
 		bindOutsideClickListener: function() {
 			var e = this;
 			this.outsideClickListener || (this.outsideClickListener = function(t) {
-				var n = e.container && !e.container.contains(t.target), r = !(e.target && (e.target === t.target || e.target.contains(t.target)));
+				var n = e.container && !e.container.contains(t.target), r = !e.target || e.target !== t.target && !e.target.contains(t.target);
 				e.overlayVisible && n && r ? e.hide() : !e.popup && n && r && (e.focusedOptionIndex = -1);
 			}, document.addEventListener("click", this.outsideClickListener, !0));
 		},

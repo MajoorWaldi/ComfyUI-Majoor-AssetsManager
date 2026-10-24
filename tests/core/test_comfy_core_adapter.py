@@ -1,6 +1,7 @@
 import sys
 from types import SimpleNamespace
 
+import pytest
 from mjr_am_backend.adapters.comfy_core import ComfyCoreAdapter
 
 
@@ -140,3 +141,69 @@ def test_comfy_core_adapter_base_path_none_when_unavailable(monkeypatch):
     adapter = ComfyCoreAdapter()
 
     assert adapter.get_base_path() is None
+
+
+@pytest.mark.parametrize(
+    "source",
+    ["env", "file", "live", "attribute", "cli", "argv", "argv_equals", "broken_live", "base", "fallback"],
+)
+def test_input_directory_resolution_sources(monkeypatch, tmp_path, source):
+    from mjr_am_backend import config
+
+    target = tmp_path / "custom-input"
+    override_file = tmp_path / "override"
+    monkeypatch.setattr(config, "_INPUT_DIR_OVERRIDE_FILE_PATH", override_file)
+    for name in config._INPUT_DIR_OVERRIDE_ENV_NAMES:
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setitem(sys.modules, "folder_paths", SimpleNamespace())
+    monkeypatch.setitem(sys.modules, "comfy.cli_args", SimpleNamespace(args=SimpleNamespace()))
+    monkeypatch.setattr(sys, "argv", ["main.py"])
+    monkeypatch.setattr(config, "_detect_comfy_root", lambda _: None)
+    monkeypatch.chdir(tmp_path)
+    if source == "env":
+        monkeypatch.setenv("MAJOOR_INPUT_DIRECTORY", str(target))
+        override_file.write_text(str(tmp_path / "lower-priority"))
+        monkeypatch.setitem(sys.modules, "folder_paths", SimpleNamespace(get_input_directory=lambda: "ignored"))
+    elif source == "file":
+        override_file.write_text(str(target))
+    elif source == "live":
+        monkeypatch.setitem(sys.modules, "folder_paths", SimpleNamespace(get_input_directory=lambda: str(target)))
+        monkeypatch.setitem(sys.modules, "comfy.cli_args", SimpleNamespace(args=SimpleNamespace(input_directory="ignored")))
+    elif source == "attribute":
+        monkeypatch.setitem(sys.modules, "folder_paths", SimpleNamespace(input_directory=str(target)))
+    elif source == "cli":
+        monkeypatch.setitem(sys.modules, "comfy.cli_args", SimpleNamespace(args=SimpleNamespace(input_directory=str(target))))
+    elif source == "argv":
+        monkeypatch.setitem(sys.modules, "folder_paths", None)
+        monkeypatch.setattr(sys, "argv", ["main.py", "--input-directory", str(target)])
+    elif source == "argv_equals":
+        monkeypatch.setattr(sys, "argv", ["main.py", f"--input-directory={target}"])
+    elif source == "broken_live":
+        def broken_getter():
+            raise RuntimeError("ComfyUI not initialized")
+
+        monkeypatch.setitem(sys.modules, "folder_paths", SimpleNamespace(get_input_directory=broken_getter))
+        monkeypatch.setattr(sys, "argv", ["main.py", "--input-directory", str(target)])
+    elif source == "base":
+        monkeypatch.setitem(sys.modules, "folder_paths", SimpleNamespace(base_path=str(tmp_path)))
+        target = tmp_path / "input"
+    else:
+        target = tmp_path / "input"
+    adapter = ComfyCoreAdapter()
+    assert adapter.get_input_directory() == str(target)
+    assert adapter.get_directory_by_type("input") == str(target)
+
+
+def test_input_directory_tracks_live_changes_without_override(monkeypatch, tmp_path):
+    from mjr_am_backend import config
+
+    monkeypatch.setattr(config, "_INPUT_DIR_OVERRIDE_FILE_PATH", tmp_path / "absent")
+    for name in config._INPUT_DIR_OVERRIDE_ENV_NAMES:
+        monkeypatch.delenv(name, raising=False)
+    module = SimpleNamespace(input_directory=str(tmp_path / "first"))
+    module.get_input_directory = lambda: module.input_directory
+    monkeypatch.setitem(sys.modules, "folder_paths", module)
+    adapter = ComfyCoreAdapter()
+    assert adapter.get_input_directory() == str(tmp_path / "first")
+    module.input_directory = str(tmp_path / "second")
+    assert adapter.get_input_directory() == str(tmp_path / "second")

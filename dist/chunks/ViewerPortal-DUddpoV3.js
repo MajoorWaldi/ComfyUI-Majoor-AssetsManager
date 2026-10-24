@@ -1,9 +1,9 @@
-import { a as e, i as t } from "./viewerRuntimeHosts-DyiuTSfr.js";
-import { r as n } from "./events-DrYpMD-I.js";
-import { a as r, c as i, i as a, l as o, o as s, s as c, t as l, u } from "./Viewer-DXsFcJRb.js";
-import { i as d, r as f } from "./floatingViewerManager-Crq2oCKD.js";
-import { B as p, C as m, D as h, E as g, G as _, J as v, K as y, L as b, N as x, O as S, T as C, U as w, V as T, dt as E, ft as D, j as O, k, lt as A, rt as j, ut as M, w as N, z as P } from "./mjr-primevue-BlSRoWcG.js";
-import { t as F } from "./TagsEditor-BiRWztXF.js";
+import { a as e, i as t } from "./viewerRuntimeHosts-BBd8uK6j.js";
+import { r as n } from "./events-CoI83paj.js";
+import { a as r, c as i, i as a, l as o, o as s, s as c, t as l, u } from "./Viewer-DWgaGos-.js";
+import { i as d, r as f } from "./floatingViewerManager-XH4AFW4G.js";
+import { B as p, C as m, D as h, E as g, G as _, J as v, K as y, L as b, N as x, O as S, T as C, U as w, V as T, dt as E, ft as D, j as O, k, lt as A, rt as j, ut as M, w as N, z as P } from "./mjr-primevue-BOf2ACk_.js";
+import { t as F } from "./TagsEditor-BXjsZ3IO.js";
 //#endregion
 //#region ui/vue/components/viewer/FloatingViewerHost.vue
 var I = /* @__PURE__ */ x({
@@ -112,7 +112,7 @@ var I = /* @__PURE__ */ x({
 			});
 		}
 		async function J(e, t, n = "main") {
-			if (!(!e || e.type !== "item" || e.disabled)) {
+			if (e && e.type === "item" && !e.disabled) {
 				if (Array.isArray(e.submenu) && e.submenu.length) {
 					q(e, t);
 					return;

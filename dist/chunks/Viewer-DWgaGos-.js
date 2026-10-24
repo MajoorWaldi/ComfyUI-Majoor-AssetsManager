@@ -1,9 +1,9 @@
-import { H as e, P as t, Zt as n, _ as r, _t as i, c as a, d as o, g as s, ht as c, n as l, o as u, r as d, s as f, x as p, y as m } from "./viewerRuntimeHosts-DyiuTSfr.js";
-import { Ct as h, D as g, a as _, ct as v, h as y, i as b, j as x, k as S, m as C, n as w, o as T, pt as E, r as D, rt as O, t as k } from "./events-DrYpMD-I.js";
-import { T as A, nt as j, rt as M } from "./mjr-primevue-BlSRoWcG.js";
-import { n as N, r as ee } from "./mjr-vue-vendor-Bb2CVJXl.js";
+import { $t as e, H as t, P as n, _ as r, c as i, d as a, g as o, gt as s, n as c, o as l, r as u, s as d, vt as f, x as p, y as m } from "./viewerRuntimeHosts-BBd8uK6j.js";
+import { Ct as h, D as g, a as _, ct as v, h as y, i as b, j as x, k as S, m as C, n as w, o as T, pt as E, r as D, rt as O, t as k } from "./events-CoI83paj.js";
+import { T as A, nt as j, rt as M } from "./mjr-primevue-BOf2ACk_.js";
+import { n as N, r as ee } from "./mjr-vue-vendor-BKZZuiuB.js";
 import { n as P, r as te, t as F } from "./state-DPiaUMw1.js";
-import { a as ne, c as re, i as ie, o as ae, r as oe, s as se } from "./model3dRenderer-CWRtZrSS.js";
+import { a as ne, c as re, i as ie, o as ae, r as oe, s as se } from "./model3dRenderer-e5uWwIMW.js";
 //#region ui/utils/events.ts
 function ce(e, t, { target: n = null, warnPrefix: r = "[Majoor]" } = {}) {
 	let i = n || (typeof window < "u" ? window : null);
@@ -404,7 +404,7 @@ var le = async (e, t = "Majoor", n = {}) => {
 	let r = document.createElement(e);
 	return Object.entries(t || {}).forEach(([e, t]) => {
 		let n = String(e || "");
-		if (!(!n || V.has(n))) {
+		if (n && !V.has(n)) {
 			if (e === "style" && t && typeof t == "object") {
 				Object.assign(r.style, t);
 				return;
@@ -739,7 +739,7 @@ function ze(e, t = [], { assetKey: n = null, preserveHiddenCount: r = !1 } = {})
 	let i = Number(e?.hiddenPngSiblings || 0) || 0;
 	e.seenKeys = /* @__PURE__ */ new Set(), e.assetIdSet = /* @__PURE__ */ new Set(), e.filenameCounts = /* @__PURE__ */ new Map(), e.nonImageSiblingKeys = /* @__PURE__ */ new Set(), e.stemMap = /* @__PURE__ */ new Map(), e.renderedFilenameMap = /* @__PURE__ */ new Map(), e.hiddenPngSiblings = r ? i : 0, typeof n == "function" && (e.assetKeyFn = n);
 	let a = Re(e);
-	for (let r of Array.isArray(t) ? t : []) if (!(!r || typeof r != "object")) {
+	for (let r of Array.isArray(t) ? t : []) if (r && typeof r == "object") {
 		try {
 			let e = r?.id == null ? "" : String(r.id);
 			e && a.assetIdSet.add(e);
@@ -1366,15 +1366,15 @@ function yt(e) {
 		kind: e.kind || ""
 	} : null;
 }
-async function bt({ x: e, y: t, assets: r }) {
+async function bt({ x: t, y: n, assets: r }) {
 	let i = Array.isArray(r) ? r.map(yt).filter(Boolean) : [];
 	if (!i.length) {
-		n(C("toast.noValidAssetsSelected", "No valid assets selected."), "warning");
+		e(C("toast.noValidAssetsSelected", "No valid assets selected."), "warning");
 		return;
 	}
 	_t({
-		x: Number(e) || 0,
-		y: Number(t) || 0,
+		x: Number(t) || 0,
+		y: Number(n) || 0,
 		assets: i
 	});
 }
@@ -1403,23 +1403,23 @@ function wt(e) {
 function Tt() {
 	for (let e of Array.from(St.keys())) wt(e);
 }
-function Et(e, r, { onSuccess: i, onFailure: a, successMessage: s = null, errorMessage: c = null, warnPrefix: l = "[RatingUpdater]" } = {}) {
-	if (!e) return;
-	wt(e);
+function Et(t, r, { onSuccess: i, onFailure: o, successMessage: s = null, errorMessage: c = null, warnPrefix: l = "[RatingUpdater]" } = {}) {
+	if (!t) return;
+	wt(t);
 	let u = new AbortController(), d = setTimeout(async () => {
-		St.delete(String(e));
+		St.delete(String(t));
 		try {
-			let o = await t(e, r, { signal: u.signal });
-			if (!o?.ok) {
-				n(o?.error || c || "Failed to update rating", "error"), a?.(o);
+			let a = await n(t, r, { signal: u.signal });
+			if (!a?.ok) {
+				e(a?.error || c || "Failed to update rating", "error"), o?.(a);
 				return;
 			}
-			s && n(s, "success", 1500), i?.(o);
+			s && e(s, "success", 1500), i?.(a);
 		} catch (e) {
-			o(e, l, { showToast: !0 }), a?.(e);
+			a(e, l, { showToast: !0 }), o?.(e);
 		}
 	}, xt);
-	St.set(String(e), {
+	St.set(String(t), {
 		timer: d,
 		controller: u
 	});
@@ -2179,7 +2179,7 @@ function Qt(e, t = {}) {
 				console.debug?.(e);
 			}
 		}, Le = () => {
-			if (!(!a || !r)) try {
+			if (a && r) try {
 				let t = Number(e?.duration);
 				if (!Number.isFinite(t) || t <= 0) {
 					y.style.backgroundImage = "", b.replaceChildren();
@@ -2716,7 +2716,7 @@ function Qt(e, t = {}) {
 			} catch (e) {
 				console.debug?.(e);
 			}
-			if (!(!(q._ppReverse || !e?.paused) || ve.signal?.aborted)) {
+			if (!(!q._ppReverse && e?.paused || ve.signal?.aborted)) {
 				try {
 					if (typeof e?.requestVideoFrameCallback == "function" && !q._ppReverse) {
 						et.rvfcId = e.requestVideoFrameCallback(nt);
@@ -2734,7 +2734,7 @@ function Qt(e, t = {}) {
 				}
 			}
 		}, rt = () => {
-			tt(), !(!(q._ppReverse || !e?.paused) || ve.signal?.aborted) && nt(0, { mediaTime: Number(e?.currentTime) || 0 });
+			tt(), !(!q._ppReverse && e?.paused || ve.signal?.aborted) && nt(0, { mediaTime: Number(e?.currentTime) || 0 });
 		};
 		K.push(tt), K.push(Z(e, "play", () => {
 			X(Fe), rt();
@@ -3132,10 +3132,10 @@ function xn(e) {
 		return !1;
 	}
 }
-function Sn(e, n, r) {
+function Sn(e, t, r) {
 	let i = e?.id;
 	try {
-		e.rating = n;
+		e.rating = t;
 	} catch (e) {
 		console.debug?.(e);
 	}
@@ -3145,24 +3145,24 @@ function Sn(e, n, r) {
 		console.debug?.(e);
 	}
 	if (i) {
-		Et(String(i), n, {
-			successMessage: n > 0 ? `Rating set to ${n} stars` : "Rating cleared",
+		Et(String(i), t, {
+			successMessage: t > 0 ? `Rating set to ${t} stars` : "Rating cleared",
 			errorMessage: "Failed to update rating",
 			warnPrefix: "[ViewerContextMenu]",
 			onSuccess: () => {
 				ce(k, {
 					assetId: String(i),
-					rating: n
+					rating: t
 				}, { warnPrefix: "[ViewerContextMenu]" });
 			},
 			onFailure: (e) => {
-				o(e, "[ViewerContextMenu] Rating update", { showToast: !0 });
+				a(e, "[ViewerContextMenu] Rating update", { showToast: !0 });
 			}
 		});
 		return;
 	}
-	t(e, n).catch((e) => {
-		o(e, "[ViewerContextMenu] Rating update", { showToast: !0 });
+	n(e, t).catch((e) => {
+		a(e, "[ViewerContextMenu] Rating update", { showToast: !0 });
 	});
 }
 function Cn(e) {
@@ -3186,39 +3186,39 @@ function wn(e, t, n) {
 		Sn(e, 0, t);
 	}, { disabled: !n })), r;
 }
-function Tn({ asset: t, event: r, getCurrentViewUrl: a, onAssetChanged: s }) {
-	let l = typeof a == "function" ? a(t) : O(t), u = !!(t?.id || t?.filepath);
+function Tn({ asset: n, event: r, getCurrentViewUrl: i, onAssetChanged: o }) {
+	let c = typeof i == "function" ? i(n) : O(n), l = !!(n?.id || n?.filepath);
 	return [
 		yn(C("ctx.openInNewTab", "Open in New Tab"), "pi pi-external-link", null, async () => {
-			xn(l) && window.open(l, "_blank", "noopener,noreferrer");
+			xn(c) && window.open(c, "_blank", "noopener,noreferrer");
 		}),
 		yn(C("ctx.copyPath", "Copy path"), "pi pi-copy", mn.COPY_PATH, async () => {
-			let e = t?.filepath ? String(t.filepath) : "";
-			if (!e) {
-				n(C("toast.noFilePath"), "error");
+			let t = n?.filepath ? String(n.filepath) : "";
+			if (!t) {
+				e(C("toast.noFilePath"), "error");
 				return;
 			}
 			try {
-				await navigator.clipboard.writeText(e), n(C("toast.pathCopied"), "success", 2e3);
-			} catch (e) {
-				console.error("[ViewerContextMenu] Copy failed:", e), n(C("toast.pathCopyFailed"), "error");
+				await navigator.clipboard.writeText(t), e(C("toast.pathCopied"), "success", 2e3);
+			} catch (t) {
+				console.error("[ViewerContextMenu] Copy failed:", t), e(C("toast.pathCopyFailed"), "error");
 			}
 		}),
 		yn(C("ctx.downloadOriginal", "Download Original"), "pi pi-download", mn.DOWNLOAD, async () => {
-			if (!t || !t.filepath) return;
-			let e = v(t.filepath), r = document.createElement("a");
-			r.href = e, r.download = t.filename, document.body.appendChild(r), r.click(), document.body.removeChild(r), n(C("toast.downloadingFile", "Downloading {filename}...", { filename: t.filename }), "info", 3e3);
-		}, { disabled: !t?.filepath }),
+			if (!n || !n.filepath) return;
+			let t = v(n.filepath), r = document.createElement("a");
+			r.href = t, r.download = n.filename, document.body.appendChild(r), r.click(), document.body.removeChild(r), e(C("toast.downloadingFile", "Downloading {filename}...", { filename: n.filename }), "info", 3e3);
+		}, { disabled: !n?.filepath }),
 		yn(C("ctx.openInFolder", "Open in folder"), "pi pi-folder-open", mn.OPEN_IN_FOLDER, async () => {
-			let e = await c(t);
-			e?.ok ? n(C("toast.openedInFolder"), "info", 2e3) : n(e?.error || C("toast.openFolderFailed"), "error");
-		}, { disabled: !(t?.id || t?.filepath) }),
+			let t = await s(n);
+			t?.ok ? e(C("toast.openedInFolder"), "info", 2e3) : e(t?.error || C("toast.openFolderFailed"), "error");
+		}, { disabled: !(n?.id || n?.filepath) }),
 		yn(C("ctx.addToCollection", "Add to collection"), "pi pi-bookmark", mn.ADD_TO_COLLECTION, async () => {
 			try {
 				await bt({
 					x: r?.clientX,
 					y: r?.clientY,
-					assets: [t]
+					assets: [n]
 				});
 			} catch (e) {
 				console.error("[ViewerContextMenu] Add to collection failed:", e);
@@ -3229,15 +3229,15 @@ function Tn({ asset: t, event: r, getCurrentViewUrl: a, onAssetChanged: s }) {
 			dn({
 				x: (Number(r?.clientX) || 0) + 6,
 				y: (Number(r?.clientY) || 0) + 6,
-				asset: t,
+				asset: n,
 				onChanged: ((...e) => {
-					let n = e[0];
-					t.tags = n, ce(w, {
-						assetId: String(t.id),
-						tags: n
+					let t = e[0];
+					n.tags = t, ce(w, {
+						assetId: String(n.id),
+						tags: t
 					}, { warnPrefix: "[ViewerContextMenu]" });
 					try {
-						s?.();
+						o?.();
 					} catch (e) {
 						console.debug?.(e);
 					}
@@ -3246,21 +3246,21 @@ function Tn({ asset: t, event: r, getCurrentViewUrl: a, onAssetChanged: s }) {
 		}, { closeOnSelect: !1 }),
 		bn(),
 		yn(C("ctx.setRating", "Set rating"), "pi pi-star", `${mn.RATING_SUBMENU} >`, null, {
-			disabled: !u,
+			disabled: !l,
 			closeOnSelect: !1,
-			submenu: wn(t, s, u)
+			submenu: wn(n, o, l)
 		}),
 		yn(C("ctx.refreshMetadata", "Refresh metadata"), "pi pi-sync", "R", async () => {
-			if (t?.id) try {
-				let e = await p(t.id, { refresh: !0 });
-				if (!e?.ok || !e?.data) {
-					n(e?.error || C("toast.metadataRefreshFailed", "Failed to refresh metadata."), "error");
+			if (n?.id) try {
+				let t = await p(n.id, { refresh: !0 });
+				if (!t?.ok || !t?.data) {
+					e(t?.error || C("toast.metadataRefreshFailed", "Failed to refresh metadata."), "error");
 					return;
 				}
-				let r = e.data;
+				let r = t.data;
 				try {
 					ce(_, {
-						assetId: String(t.id),
+						assetId: String(n.id),
 						info: r
 					}, { warnPrefix: "[ViewerContextMenu]" });
 				} catch (e) {
@@ -3269,45 +3269,45 @@ function Tn({ asset: t, event: r, getCurrentViewUrl: a, onAssetChanged: s }) {
 				let i = [], a = Cn(r?.size_bytes);
 				a && i.push(a), r?.mime && i.push(r.mime);
 				let o = i.length ? ` (${i.join(", ")})` : "";
-				n(C("toast.metadataRefreshed", "Metadata refreshed{suffix}", { suffix: o }), "success", 3e3);
+				e(C("toast.metadataRefreshed", "Metadata refreshed{suffix}", { suffix: o }), "success", 3e3);
 			} catch (e) {
-				o(e, "[ViewerContextMenu] Metadata refresh", { showToast: !0 });
+				a(e, "[ViewerContextMenu] Metadata refresh", { showToast: !0 });
 			}
-		}, { disabled: !t?.id }),
+		}, { disabled: !n?.id }),
 		bn(),
 		yn(C("ctx.rename", "Rename"), "pi pi-pencil", mn.RENAME, async () => {
-			if (!(t?.id || t?.filepath)) return;
-			let e = t.filename || "", r = ut(await L(C("dialog.rename.title", "Rename file"), e), e);
-			if (!r || r === e) return;
-			let a = st(r);
-			if (!a.valid) {
-				n(a.reason, "error");
+			if (!(n?.id || n?.filepath)) return;
+			let t = n.filename || "", r = ut(await L(C("dialog.rename.title", "Rename file"), t), t);
+			if (!r || r === t) return;
+			let i = st(r);
+			if (!i.valid) {
+				e(i.reason, "error");
 				return;
 			}
 			try {
-				let e = await i(t, r);
-				if (e?.ok) {
-					let i = e?.data?.asset;
-					i && typeof i == "object" ? Object.assign(t, i) : (t.filename = r, t.filepath = t.filepath.replace(/[^\\/]+$/, r), t.path &&= String(t.path).replace(/[^\\/]+$/, r), t.file_info && typeof t.file_info == "object" && (t.file_info.filename = r, t.file_info.filepath && (t.file_info.filepath = String(t.file_info.filepath).replace(/[^\\/]+$/, r)), t.file_info.path && (t.file_info.path = String(t.file_info.path).replace(/[^\\/]+$/, r)))), n(C("toast.fileRenamedSuccess"), "success");
+				let t = await f(n, r);
+				if (t?.ok) {
+					let i = t?.data?.asset;
+					i && typeof i == "object" ? Object.assign(n, i) : (n.filename = r, n.filepath = n.filepath.replace(/[^\\/]+$/, r), n.path &&= String(n.path).replace(/[^\\/]+$/, r), n.file_info && typeof n.file_info == "object" && (n.file_info.filename = r, n.file_info.filepath && (n.file_info.filepath = String(n.file_info.filepath).replace(/[^\\/]+$/, r)), n.file_info.path && (n.file_info.path = String(n.file_info.path).replace(/[^\\/]+$/, r)))), e(C("toast.fileRenamedSuccess"), "success");
 					try {
 						window.dispatchEvent(new CustomEvent("mjr:reload-grid", { detail: { reason: "viewer-rename" } }));
 					} catch (e) {
 						console.debug?.(e);
 					}
-					s?.();
-				} else n(e?.error || C("toast.fileRenameFailed"), "error");
-			} catch (e) {
-				n(C("toast.errorRenaming", "Error renaming file: {error}", { error: e?.message || String(e || "") }), "error");
+					o?.();
+				} else e(t?.error || C("toast.fileRenameFailed"), "error");
+			} catch (t) {
+				e(C("toast.errorRenaming", "Error renaming file: {error}", { error: t?.message || String(t || "") }), "error");
 			}
-		}, { disabled: !(t?.id || t?.filepath) }),
+		}, { disabled: !(n?.id || n?.filepath) }),
 		yn(C("ctx.delete", "Delete"), "pi pi-trash", mn.DELETE, async () => {
-			if ((t?.id || t?.filepath) && await mt(1, t?.filename)) try {
-				let r = await e(t);
-				r?.ok ? (n(C("toast.fileDeletedSuccess"), "success"), s?.()) : n(r?.error || C("toast.fileDeleteFailed"), "error");
-			} catch (e) {
-				n(C("toast.errorDeleting", "Error deleting file: {error}", { error: e?.message || String(e || "") }), "error");
+			if ((n?.id || n?.filepath) && await mt(1, n?.filename)) try {
+				let r = await t(n);
+				r?.ok ? (e(C("toast.fileDeletedSuccess"), "success"), o?.()) : e(r?.error || C("toast.fileDeleteFailed"), "error");
+			} catch (t) {
+				e(C("toast.errorDeleting", "Error deleting file: {error}", { error: t?.message || String(t || "") }), "error");
 			}
-		}, { disabled: !(t?.id || t?.filepath) })
+		}, { disabled: !(n?.id || n?.filepath) })
 	];
 }
 function En({ overlayEl: e, getCurrentAsset: t, getCurrentViewUrl: n, onAssetChanged: r } = {}) {
@@ -4853,7 +4853,7 @@ function Wn(e) {
 	}
 	return null;
 }
-function Gn({ overlay: e, _content: t, singleView: r, state: i, VIEWER_MODES: a, computeOneToOneZoom: o, setZoom: s, scheduleOverlayRedraw: c, scheduleApplyGrade: l, syncToolsUIFromState: u, applyDistractionFreeUI: d, navigateViewerAssets: p, closeViewer: m, renderBadges: h, updateAssetRating: g, safeDispatchCustomEvent: _, ASSET_RATING_CHANGED_EVENT: v, probeTooltip: y, loupeWrap: b, getVideoControls: x, lifecycle: S, renderGenInfoPanel: T } = {}) {
+function Gn({ overlay: t, _content: n, singleView: r, state: i, VIEWER_MODES: a, computeOneToOneZoom: o, setZoom: s, scheduleOverlayRedraw: c, scheduleApplyGrade: l, syncToolsUIFromState: u, applyDistractionFreeUI: f, navigateViewerAssets: p, closeViewer: m, renderBadges: h, updateAssetRating: g, safeDispatchCustomEvent: _, ASSET_RATING_CHANGED_EVENT: v, probeTooltip: y, loupeWrap: b, getVideoControls: x, lifecycle: S, renderGenInfoPanel: T } = {}) {
 	let E = S?.unsubs || [], D = null, O = null, k = () => {
 		try {
 			D && clearTimeout(D);
@@ -4861,63 +4861,63 @@ function Gn({ overlay: e, _content: t, singleView: r, state: i, VIEWER_MODES: a,
 			console.debug?.(e);
 		}
 		D = null, O = null;
-	}, A = (e, t) => {
+	}, A = (t, n) => {
 		k(), O = {
-			assetId: e,
-			rating: t
+			assetId: t,
+			rating: n
 		}, D = setTimeout(async () => {
-			let e = O;
-			if (D = null, O = null, e?.assetId) try {
-				let t = await g?.(e.assetId, e.rating);
-				if (!t?.ok) {
-					n(t?.error || C("toast.ratingUpdateFailed"), "error");
+			let t = O;
+			if (D = null, O = null, t?.assetId) try {
+				let n = await g?.(t.assetId, t.rating);
+				if (!n?.ok) {
+					e(n?.error || C("toast.ratingUpdateFailed"), "error");
 					return;
 				}
-				n(C("toast.ratingSetN", { n: e.rating }), "success", 1500), _?.(v, {
-					assetId: String(e.assetId),
-					rating: e.rating
+				e(C("toast.ratingSetN", { n: t.rating }), "success", 1500), _?.(v, {
+					assetId: String(t.assetId),
+					rating: t.rating
 				}, { warnPrefix: "[Viewer]" });
 			} catch {
-				n(C("toast.ratingUpdateError"), "error");
+				e(C("toast.ratingUpdateError"), "error");
 			}
 		}, 300);
 	}, j = () => {
 		try {
-			document.fullscreenElement ? document?.exitFullscreen?.() : e?.requestFullscreen?.();
+			document.fullscreenElement ? document?.exitFullscreen?.() : t?.requestFullscreen?.();
 		} catch (e) {
 			console.debug?.(e);
 		}
-	}, M = (t) => {
+	}, M = (n) => {
 		let g = () => {
 			try {
-				t.preventDefault(), t.stopPropagation(), t.stopImmediatePropagation?.();
+				n.preventDefault(), n.stopPropagation(), n.stopImmediatePropagation?.();
 			} catch (e) {
 				console.debug?.(e);
 			}
 		}, v = i?.mode === a?.SINGLE, S = i?.assets?.[i?.currentIndex], E = () => {
 			try {
-				return !!t?.target?.closest?.(".mjr-viewer-playerbar");
+				return !!n?.target?.closest?.(".mjr-viewer-playerbar");
 			} catch {
 				return !1;
 			}
 		}, D = () => {
-			let e = String(t?.key || "");
+			let e = String(n?.key || "");
 			return e === " " || e === "Spacebar" || e === "ArrowLeft" || e === "ArrowRight" || e === "Home" || e === "End" || e === "[" || e === "{" || e === "]" || e === "}" || e === "\\" || e === "|" || e === "i" || e === "I" || e === "o" || e === "O";
 		};
-		if (f()) return;
+		if (d()) return;
 		try {
-			if (e?.style?.display === "none") return;
+			if (t?.style?.display === "none") return;
 		} catch (e) {
 			console.debug?.(e);
 		}
 		try {
-			let e = t?.target;
+			let e = n?.target;
 			if (e && (e.tagName === "INPUT" || e.tagName === "TEXTAREA" || e.isContentEditable) && !(v && S?.kind === "video" && E() && D())) {
-				if (t.key === "f" || t.key === "F") {
+				if (n.key === "f" || n.key === "F") {
 					g(), j();
 					return;
 				}
-				t.key === "Escape" && (g(), Q.tags.open ? fn() : X(m));
+				n.key === "Escape" && (g(), Q.tags.open ? fn() : X(m));
 				return;
 			}
 		} catch (e) {
@@ -4969,36 +4969,36 @@ function Gn({ overlay: e, _content: t, singleView: r, state: i, VIEWER_MODES: a,
 			} catch {
 				return !0;
 			}
-		}, N = (e, { absolute: t = !1 } = {}) => {
+		}, N = (t, { absolute: n = !1 } = {}) => {
 			try {
 				let r = k();
 				if (!r) return !1;
-				if (t) {
-					let t = r.setPlaybackRate?.(e);
-					return Number.isFinite(Number(t)) ? (i.playbackRate = Number(t), n(C("toast.playbackRate", "Playback {rate}x", { rate: Number(t).toFixed(2) }), "info", 1200), !0) : !1;
+				if (n) {
+					let n = r.setPlaybackRate?.(t);
+					return Number.isFinite(Number(n)) ? (i.playbackRate = Number(n), e(C("toast.playbackRate", "Playback {rate}x", { rate: Number(n).toFixed(2) }), "info", 1200), !0) : !1;
 				}
-				let a = r.adjustPlaybackRate?.(e);
-				return Number.isFinite(Number(a)) ? (i.playbackRate = Number(a), n(C("toast.playbackRate", "Playback {rate}x", { rate: Number(a).toFixed(2) }), "info", 1200), !0) : !1;
+				let a = r.adjustPlaybackRate?.(t);
+				return Number.isFinite(Number(a)) ? (i.playbackRate = Number(a), e(C("toast.playbackRate", "Playback {rate}x", { rate: Number(a).toFixed(2) }), "info", 1200), !0) : !1;
 			} catch {
 				return !1;
 			}
 		};
-		if ((t.ctrlKey || t.metaKey) && (t.key === "c" || t.key === "C")) try {
-			let e = Wn(S);
-			if (e) {
-				g(), navigator.clipboard?.writeText?.(e).then(() => n(C("toast.promptCopied", "Prompt copied to clipboard"), "success", 1500)).catch(() => n(C("toast.copyFailed", "Copy failed"), "error", 1500));
+		if ((n.ctrlKey || n.metaKey) && (n.key === "c" || n.key === "C")) try {
+			let t = Wn(S);
+			if (t) {
+				g(), navigator.clipboard?.writeText?.(t).then(() => e(C("toast.promptCopied", "Prompt copied to clipboard"), "success", 1500)).catch(() => e(C("toast.copyFailed", "Copy failed"), "error", 1500));
 				return;
 			}
 		} catch (e) {
 			console.debug?.(e);
 		}
-		if (v && !t.altKey && !t.ctrlKey && !t.metaKey && (t.key === "0" || t.key === "1" || t.key === "2" || t.key === "3" || t.key === "4" || t.key === "5")) {
-			g(), O(t.key);
+		if (v && !n.altKey && !n.ctrlKey && !n.metaKey && (n.key === "0" || n.key === "1" || n.key === "2" || n.key === "3" || n.key === "4" || n.key === "5")) {
+			g(), O(n.key);
 			return;
 		}
-		switch (t.key) {
+		switch (n.key) {
 			case "1": {
-				if (!t.altKey) break;
+				if (!n.altKey) break;
 				let e = X(o);
 				if (e == null) break;
 				g();
@@ -5041,8 +5041,8 @@ function Gn({ overlay: e, _content: t, singleView: r, state: i, VIEWER_MODES: a,
 			case "T":
 				if (!S?.id) break;
 				g(), dn({
-					x: Number(i?._lastPointerX) || Math.round((e?.clientWidth || 0) / 2),
-					y: Number(i?._lastPointerY) || Math.round((e?.clientHeight || 0) / 2),
+					x: Number(i?._lastPointerX) || Math.round((t?.clientWidth || 0) / 2),
+					y: Number(i?._lastPointerY) || Math.round((t?.clientHeight || 0) / 2),
 					asset: S,
 					onChanged: ((...e) => {
 						let t = e[0];
@@ -5066,7 +5066,7 @@ function Gn({ overlay: e, _content: t, singleView: r, state: i, VIEWER_MODES: a,
 			case "i":
 			case "I":
 				if (v && S?.kind === "video" && k()?.setInPoint?.()) {
-					g(), n(C("toast.inPointSet", "In point set"), "info", 1200);
+					g(), e(C("toast.inPointSet", "In point set"), "info", 1200);
 					break;
 				}
 				g();
@@ -5085,7 +5085,7 @@ function Gn({ overlay: e, _content: t, singleView: r, state: i, VIEWER_MODES: a,
 			case "o":
 			case "O":
 				if (v && S?.kind === "video" && k()?.setOutPoint?.()) {
-					g(), n(C("toast.outPointSet", "Out point set"), "info", 1200);
+					g(), e(C("toast.outPointSet", "Out point set"), "info", 1200);
 					break;
 				}
 				break;
@@ -5124,7 +5124,7 @@ function Gn({ overlay: e, _content: t, singleView: r, state: i, VIEWER_MODES: a,
 				} catch (e) {
 					console.debug?.(e);
 				}
-				X(u), X(d), X(T);
+				X(u), X(f), X(T);
 				break;
 			case "c":
 			case "C": {
@@ -5173,7 +5173,7 @@ function Gn({ overlay: e, _content: t, singleView: r, state: i, VIEWER_MODES: a,
 			case "Tab":
 				g();
 				try {
-					e?.contains?.(document.activeElement) || e?.focus?.();
+					t?.contains?.(document.activeElement) || t?.focus?.();
 				} catch (e) {
 					console.debug?.(e);
 				}
@@ -5182,14 +5182,14 @@ function Gn({ overlay: e, _content: t, singleView: r, state: i, VIEWER_MODES: a,
 				g(), Q.tags.open ? fn() : X(m);
 				break;
 			case "ArrowLeft":
-				if (v && t.target?.closest?.(".mjr-viewer-playerbar")) {
+				if (v && n.target?.closest?.(".mjr-viewer-playerbar")) {
 					g(), M(-1);
 					break;
 				}
 				g(), X(() => p?.(-1));
 				break;
 			case "ArrowRight":
-				if (v && t.target?.closest?.(".mjr-viewer-playerbar")) {
+				if (v && n.target?.closest?.(".mjr-viewer-playerbar")) {
 					g(), M(1);
 					break;
 				}
@@ -5197,15 +5197,15 @@ function Gn({ overlay: e, _content: t, singleView: r, state: i, VIEWER_MODES: a,
 				break;
 			case "[":
 			case "{":
-				g(), N(-.25) || n(C("toast.playbackVideoOnly"), "warning", 1400);
+				g(), N(-.25) || e(C("toast.playbackVideoOnly"), "warning", 1400);
 				break;
 			case "]":
 			case "}":
-				g(), N(.25) || n(C("toast.playbackVideoOnly"), "warning", 1400);
+				g(), N(.25) || e(C("toast.playbackVideoOnly"), "warning", 1400);
 				break;
 			case "\\":
 			case "|":
-				g(), N(1, { absolute: !0 }) || n(C("toast.playbackVideoOnly"), "warning", 1400);
+				g(), N(1, { absolute: !0 }) || e(C("toast.playbackVideoOnly"), "warning", 1400);
 				break;
 			case "+":
 			case "=":
@@ -5309,7 +5309,7 @@ function qn(e, t, { threshold: n = .15, correctionCooldownMs: r = 250 } = {}) {
 		}, m = (e, { force: t = !1 } = {}) => {
 			if (!s) try {
 				let i = Number(e?.currentTime) || 0, a = e?.paused === !1, c = p(), l = Math.max(0, Number(r) || 0), d = t || !a || !u || c - u >= l, f = !1;
-				for (let t of o) if (!(!t || t === e)) try {
+				for (let t of o) if (t && t !== e) try {
 					Math.abs((Number(t.currentTime) || 0) - i) > n && d && (s = !0, t.currentTime = i, s = !1, f = !0);
 				} catch {
 					s = !1;
@@ -5346,7 +5346,7 @@ function qn(e, t, { threshold: n = .15, correctionCooldownMs: r = 250 } = {}) {
 		}
 		let _ = (t = {}) => m(e, t), v = (t, n = e) => {
 			if (!s) {
-				for (let e of o) if (!(!e || e === n)) try {
+				for (let e of o) if (e && e !== n) try {
 					if (t) f(e);
 					else {
 						try {
@@ -5362,7 +5362,7 @@ function qn(e, t, { threshold: n = .15, correctionCooldownMs: r = 250 } = {}) {
 			}
 		}, y = (t = e) => {
 			if (!s) {
-				for (let e of o) if (!(!e || e === t)) try {
+				for (let e of o) if (e && e !== t) try {
 					e.muted = !!t.muted, e.volume = Number(t.volume) || 0;
 				} catch (e) {
 					console.debug?.(e);
@@ -5370,7 +5370,7 @@ function qn(e, t, { threshold: n = .15, correctionCooldownMs: r = 250 } = {}) {
 			}
 		}, b = (t = e) => {
 			if (!s) {
-				for (let e of o) if (!(!e || e === t)) try {
+				for (let e of o) if (e && e !== t) try {
 					e.playbackRate = Number(t.playbackRate) || 1;
 				} catch (e) {
 					console.debug?.(e);
@@ -6176,7 +6176,7 @@ function Zn({ state: e, VIEWER_MODES: t, APP_CONFIG: n, getAssetMetadata: r, get
 			console.debug?.(e);
 		}
 	}, d = (e, t) => {
-		if (!(!e || !t || typeof t != "object")) {
+		if (e && t && typeof t == "object") {
 			try {
 				t.rating !== void 0 && (e.rating = t.rating);
 			} catch (e) {
@@ -6234,7 +6234,10 @@ function Zn({ state: e, VIEWER_MODES: t, APP_CONFIG: n, getAssetMetadata: r, get
 			l = new AbortController();
 			let a = l.signal;
 			try {
-				if (i === t?.SINGLE) return n && await f([n], { signal: a }), void 0;
+				if (i === t?.SINGLE) {
+					n && await f([n], { signal: a });
+					return;
+				}
 				let o = (Array.isArray(e?.assets) ? e.assets.slice(0, 4) : []).slice();
 				r && o.push(r), await f(o, { signal: a });
 			} catch (e) {
@@ -6656,7 +6659,7 @@ function $n({ overlay: e, content: t, singleView: n, abView: r, sideView: i, sta
 			return;
 		}
 		let o = n.button === 0, c = n.button === 1;
-		if (!(!o && !c)) {
+		if (o || c) {
 			try {
 				let e = n.target;
 				if (e && (e.tagName === "INPUT" || e.tagName === "TEXTAREA" || e.tagName === "SELECT" || e.isContentEditable)) return;
@@ -6739,7 +6742,7 @@ function $n({ overlay: e, content: t, singleView: n, abView: r, sideView: i, sta
 			y();
 		}
 	}, N = (n) => {
-		if (!(!e || e.style.display === "none")) {
+		if (e && e.style.display !== "none") {
 			try {
 				if (!t?.contains?.(n.target)) return;
 			} catch (e) {
@@ -7713,7 +7716,7 @@ function dr({ canvas: e, audioEl: t, mode: n, pauseDuringExecution: r = null } =
 				a = null;
 				return;
 			}
-			if (!m && !(!l || !f) && !(e - p < h)) {
+			if (!m && l && f && !(e - p < h)) {
 				p = e;
 				try {
 					_(), l.getByteFrequencyData(u), l.getByteTimeDomainData(d), f.draw(u, d, e);
@@ -8590,7 +8593,7 @@ function br(e, t) {
 //#endregion
 //#region ui/features/viewer/viewerInstanceManager.ts
 function xr(e) {
-	let t = d();
+	let t = u();
 	if (t.length) {
 		let e = t[t.length - 1];
 		for (let n of t) if (n !== e) {
@@ -8613,7 +8616,7 @@ function xr(e) {
 		}
 	}
 	let n = e();
-	return l(n), n._mjrViewerAPI;
+	return c(n), n._mjrViewerAPI;
 }
 //#endregion
 //#region ui/features/viewer/playerBarManager.ts
@@ -9348,7 +9351,7 @@ function Br({ state: e, buildAssetViewURL: t, onNavigate: n, onCompare: r }) {
 			return !1;
 		}
 	}, _ = (e, t = 1.08) => {
-		if (!(!e || g())) {
+		if (e && !g()) {
 			try {
 				e._mjrFilmstripBounce?.cancel?.();
 			} catch (e) {
@@ -9744,13 +9747,13 @@ var Wr = null, Gr = null, Kr = null, qr = null, Jr = null, Yr = null;
 function Xr() {
 	Wr || import("./abCompare-BXOoRlmV.js").then((e) => {
 		Wr = e;
-	}), Gr || import("./sideBySide-BqUyrNow.js").then((e) => {
+	}), Gr || import("./sideBySide-BM4KMMX-.js").then((e) => {
 		Gr = e;
-	}), Kr || import("./model3dRenderer-CWRtZrSS.js").then((e) => e.t).then((e) => {
+	}), Kr || import("./model3dRenderer-e5uWwIMW.js").then((e) => e.t).then((e) => {
 		Kr = e;
 	}), qr || import("./scopes-Dx5cTyCY.js").then((e) => {
 		qr = e;
-	}), Jr || import("./genInfo-D0BtEEbx.js").then((e) => e.n).then((e) => {
+	}), Jr || import("./genInfo-y4P7FXnU.js").then((e) => e.n).then((e) => {
 		Jr = e;
 	}), Yr || import("./frameExport-tksSZ7sb.js").then((e) => {
 		Yr = e;
@@ -9763,11 +9766,11 @@ var $ = {
 };
 function Zr() {
 	Xr(), Er();
-	let e = Vr(), n = In(e), i = n.unsubs || [], o = te();
-	o.mode = $.SINGLE;
+	let e = Vr(), t = In(e), a = t.unsubs || [], s = te();
+	s.mode = $.SINGLE;
 	try {
 		let e = Nn();
-		e && typeof e == "object" && (typeof e.analysisMode == "string" && (o.analysisMode = e.analysisMode || "none"), typeof e.loupeEnabled == "boolean" && (o.loupeEnabled = e.loupeEnabled), typeof e.probeEnabled == "boolean" && (o.probeEnabled = e.probeEnabled), typeof e.hudEnabled == "boolean" && (o.hudEnabled = e.hudEnabled), typeof e.genInfoOpen == "boolean" && (o.genInfoOpen = e.genInfoOpen), typeof e.audioVisualizerMode == "string" && (o.audioVisualizerMode = e.audioVisualizerMode || "artistic"), typeof e.abWipePercent == "number" && Number.isFinite(e.abWipePercent) && e.abWipePercent >= 0 && e.abWipePercent <= 100 && (o._abWipePercent = e.abWipePercent));
+		e && typeof e == "object" && (typeof e.analysisMode == "string" && (s.analysisMode = e.analysisMode || "none"), typeof e.loupeEnabled == "boolean" && (s.loupeEnabled = e.loupeEnabled), typeof e.probeEnabled == "boolean" && (s.probeEnabled = e.probeEnabled), typeof e.hudEnabled == "boolean" && (s.hudEnabled = e.hudEnabled), typeof e.genInfoOpen == "boolean" && (s.genInfoOpen = e.genInfoOpen), typeof e.audioVisualizerMode == "string" && (s.audioVisualizerMode = e.audioVisualizerMode || "artistic"), typeof e.abWipePercent == "number" && Number.isFinite(e.abWipePercent) && e.abWipePercent >= 0 && e.abWipePercent <= 100 && (s._abWipePercent = e.abWipePercent));
 	} catch (e) {
 		console.debug?.(e);
 	}
@@ -9785,52 +9788,52 @@ function Zr() {
 		"hdr",
 		"svg",
 		"apng"
-	]), l = null, d = null;
+	]), u = null, d = null;
 	function f() {
 		try {
-			return l?.mediaTransform?.() || "";
+			return u?.mediaTransform?.() || "";
 		} catch {
 			return "";
 		}
 	}
 	function h() {
 		try {
-			l?.clampPanToBounds?.();
+			u?.clampPanToBounds?.();
 		} catch (e) {
 			console.debug?.(e);
 		}
 	}
 	function g() {
 		try {
-			l?.applyTransform?.();
+			u?.applyTransform?.();
 		} catch (e) {
 			console.debug?.(e);
 		}
 	}
 	function _(e, t) {
 		try {
-			l?.setZoom?.(e, t);
+			u?.setZoom?.(e, t);
 		} catch (e) {
 			console.debug?.(e);
 		}
 	}
 	function v() {
 		try {
-			l?.updatePanCursor?.();
+			u?.updatePanCursor?.();
 		} catch (e) {
 			console.debug?.(e);
 		}
 	}
 	function y() {
 		try {
-			return l?.getPrimaryMedia?.() || null;
+			return u?.getPrimaryMedia?.() || null;
 		} catch {
 			return null;
 		}
 	}
 	function x(e) {
 		try {
-			return l?.getMediaNaturalSize?.(e) || {
+			return u?.getMediaNaturalSize?.(e) || {
 				w: 0,
 				h: 0
 			};
@@ -9843,21 +9846,21 @@ function Zr() {
 	}
 	function S() {
 		try {
-			return l?.getViewportRect?.() || null;
+			return u?.getViewportRect?.() || null;
 		} catch {
 			return null;
 		}
 	}
 	function E() {
 		try {
-			return l?.computeOneToOneZoom?.() ?? null;
+			return u?.computeOneToOneZoom?.() ?? null;
 		} catch {
 			return null;
 		}
 	}
 	function D() {
 		try {
-			l?.updateMediaNaturalSize?.();
+			u?.updateMediaNaturalSize?.();
 		} catch (e) {
 			console.debug?.(e);
 		}
@@ -9879,11 +9882,11 @@ function Zr() {
 	function M() {
 		let e = !1;
 		try {
-			let t = o.mode === $.AB_COMPARE ? V : o.mode === $.SIDE_BY_SIDE ? H : B, n = Array.from(t?.querySelectorAll?.(".mjr-viewer-audio-viz") || []);
+			let t = s.mode === $.AB_COMPARE ? V : s.mode === $.SIDE_BY_SIDE ? H : B, n = Array.from(t?.querySelectorAll?.(".mjr-viewer-audio-viz") || []);
 			for (let t of n) try {
 				let n = t?._mjrProc || null;
 				if (!n?.setMode) continue;
-				n.setMode(o.audioVisualizerMode), e = !0;
+				n.setMode(s.audioVisualizerMode), e = !0;
 			} catch (e) {
 				console.debug?.(e);
 			}
@@ -9907,8 +9910,8 @@ function Zr() {
 	try {
 		N = Un({
 			VIEWER_MODES: $,
-			state: o,
-			lifecycle: n,
+			state: s,
+			lifecycle: t,
 			getCanAB: () => Xe(),
 			onToggleFullscreen: () => {
 				try {
@@ -9930,7 +9933,7 @@ function Zr() {
 			onMode: (e) => {
 				try {
 					if (e === $.AB_COMPARE && !Xe() || e === $.SIDE_BY_SIDE && !Y()) return;
-					o.mode = e, Qe();
+					s.mode = e, Qe();
 					try {
 						N?.syncToolsUIFromState?.();
 					} catch (e) {
@@ -9942,9 +9945,9 @@ function Zr() {
 			},
 			onZoomIn: () => {
 				try {
-					_((Number(o.zoom) || 1) + .25, {
-						clientX: o._lastPointerX,
-						clientY: o._lastPointerY
+					_((Number(s.zoom) || 1) + .25, {
+						clientX: s._lastPointerX,
+						clientY: s._lastPointerY
 					});
 				} catch (e) {
 					console.debug?.(e);
@@ -9952,9 +9955,9 @@ function Zr() {
 			},
 			onZoomOut: () => {
 				try {
-					_((Number(o.zoom) || 1) - .25, {
-						clientX: o._lastPointerX,
-						clientY: o._lastPointerY
+					_((Number(s.zoom) || 1) - .25, {
+						clientX: s._lastPointerX,
+						clientY: s._lastPointerY
 					});
 				} catch (e) {
 					console.debug?.(e);
@@ -9971,9 +9974,9 @@ function Zr() {
 				try {
 					let e = () => {
 						let e = E();
-						return e != null && (_(Math.abs((Number(o.zoom) || 1) - e) < .01 ? 1 : e, {
-							clientX: o._lastPointerX,
-							clientY: o._lastPointerY
+						return e != null && (_(Math.abs((Number(s.zoom) || 1) - e) < .01 ? 1 : e, {
+							clientX: s._lastPointerX,
+							clientY: s._lastPointerY
 						}), !0);
 					};
 					if (e()) return;
@@ -9999,7 +10002,7 @@ function Zr() {
 			},
 			onCompareModeChanged: () => {
 				try {
-					o.mode === $.AB_COMPARE && (et(), st());
+					s.mode === $.AB_COMPARE && (et(), st());
 				} catch (e) {
 					console.debug?.(e);
 				}
@@ -10020,7 +10023,7 @@ function Zr() {
 			},
 			onAudioVizModeChanged: () => {
 				try {
-					let e = o.assets[o.currentIndex];
+					let e = s.assets[s.currentIndex];
 					if (String(e?.kind || "") !== "audio") return;
 					M() || (et(), st());
 				} catch (e) {
@@ -10034,7 +10037,7 @@ function Zr() {
 					console.debug?.(e);
 				}
 				try {
-					Pn(o);
+					Pn(s);
 				} catch (e) {
 					console.debug?.(e);
 				}
@@ -10044,20 +10047,20 @@ function Zr() {
 					console.debug?.(e);
 				}
 				try {
-					if (o.mode === $.AB_COMPARE) {
-						let e = String(o.abCompareMode || "wipe");
+					if (s.mode === $.AB_COMPARE) {
+						let e = String(s.abCompareMode || "wipe");
 						e !== "wipe" && e !== "wipeV" && V?._mjrDiffRequest?.();
 					}
 				} catch (e) {
 					console.debug?.(e);
 				}
 				try {
-					o.probeEnabled || (me.style.display = "none");
+					s.probeEnabled || (me.style.display = "none");
 				} catch (e) {
 					console.debug?.(e);
 				}
 				try {
-					o.loupeEnabled || (he.style.display = "none");
+					s.loupeEnabled || (he.style.display = "none");
 				} catch (e) {
 					console.debug?.(e);
 				}
@@ -10082,24 +10085,24 @@ function Zr() {
 		console.debug?.(e);
 	}
 	let { contentRow: z, content: fe, singleView: B, abView: V, sideView: H, overlayLayer: pe, gridCanvas: U, probeTooltip: me, loupeWrap: he, loupeCanvas: ge, genInfoOverlay: _e, genInfoTitle: W, genInfoBody: G, genInfoOverlayLeft: K, genInfoTitleLeft: ve, genInfoBodyLeft: ye, footer: q, prevBtn: be, indexInfo: xe, nextBtn: Se, navBar: Ce, playerBarHost: we, filmstrip: Te } = Hr({
-		state: o,
+		state: s,
 		buildAssetViewURL: O,
 		onNavigate: (e) => {
 			try {
-				o.compareAsset != null && (o.compareAsset = null, o.mode = $.SINGLE), o.currentIndex = e, Qe();
+				s.compareAsset != null && (s.compareAsset = null, s.mode = $.SINGLE), s.currentIndex = e, Qe();
 			} catch (e) {
 				console.debug?.(e);
 			}
 		},
 		onCompare: (e) => {
 			try {
-				let t = Array.isArray(o.assets) ? o.assets : [], n = t[e];
-				if (!n || n === t[o.currentIndex]) return;
-				if (n === o.compareAsset) {
-					o.compareAsset = null, o.mode = $.SINGLE, Qe();
+				let t = Array.isArray(s.assets) ? s.assets : [], n = t[e];
+				if (!n || n === t[s.currentIndex]) return;
+				if (n === s.compareAsset) {
+					s.compareAsset = null, s.mode = $.SINGLE, Qe();
 					return;
 				}
-				t.length === 2 ? (o.compareAsset = t[1 - o.currentIndex], o.mode = De() ? $.SIDE_BY_SIDE : $.AB_COMPARE) : (o.compareAsset = n, o.mode = Y() ? $.SIDE_BY_SIDE : $.AB_COMPARE), Qe();
+				t.length === 2 ? (s.compareAsset = t[1 - s.currentIndex], s.mode = De() ? $.SIDE_BY_SIDE : $.AB_COMPARE) : (s.compareAsset = n, s.mode = Y() ? $.SIDE_BY_SIDE : $.AB_COMPARE), Qe();
 			} catch (e) {
 				console.debug?.(e);
 			}
@@ -10108,9 +10111,9 @@ function Zr() {
 	e.appendChild(P), e.appendChild(z);
 	function Ee() {
 		try {
-			if (o.compareAsset) return o.compareAsset;
-			let e = Array.isArray(o.assets) ? o.assets : [];
-			if (e.length === 2) return e[1 - (o.currentIndex || 0)] || null;
+			if (s.compareAsset) return s.compareAsset;
+			let e = Array.isArray(s.assets) ? s.assets : [];
+			if (e.length === 2) return e[1 - (s.currentIndex || 0)] || null;
 		} catch (e) {
 			console.debug?.(e);
 		}
@@ -10118,7 +10121,7 @@ function Zr() {
 	}
 	function De() {
 		try {
-			let e = o.assets?.[o.currentIndex] || null;
+			let e = s.assets?.[s.currentIndex] || null;
 			return (Kr?.isModel3DAsset?.(e) ?? !1) || (Kr?.isModel3DAsset?.(Ee()) ?? !1);
 		} catch (e) {
 			console.debug?.(e);
@@ -10130,10 +10133,10 @@ function Zr() {
 		requestClose: () => ee()
 	});
 	let Oe = Zn({
-		state: o,
+		state: s,
 		VIEWER_MODES: $,
 		APP_CONFIG: T,
-		getAssetMetadata: s,
+		getAssetMetadata: o,
 		getAssetsBatch: r
 	}), ke = 3e5, Ae = /* @__PURE__ */ new Map(), je = () => {
 		try {
@@ -10181,19 +10184,19 @@ function Zr() {
 		}
 	};
 	try {
-		l = $n({
+		u = $n({
 			overlay: e,
 			content: fe,
 			singleView: B,
 			abView: V,
 			sideView: H,
-			state: o,
+			state: s,
 			VIEWER_MODES: $,
 			scheduleOverlayRedraw: J,
-			lifecycle: n
+			lifecycle: t
 		});
 	} catch {
-		l = null;
+		u = null;
 	}
 	let Fe = (e, t, n) => {
 		try {
@@ -10230,13 +10233,13 @@ function Zr() {
 	let Le = Jn({
 		gridCanvas: U,
 		content: fe,
-		state: o,
+		state: s,
 		VIEWER_MODES: $,
 		getPrimaryMedia: () => {
 			try {
-				if (o?.mode === $.SINGLE) return B?.querySelector?.(".mjr-viewer-media") || null;
-				if (o?.mode === $.AB_COMPARE) return V?.querySelector?.(".mjr-viewer-media") || null;
-				if (o?.mode === $.SIDE_BY_SIDE) return H?.querySelector?.(".mjr-viewer-media") || null;
+				if (s?.mode === $.SINGLE) return B?.querySelector?.(".mjr-viewer-media") || null;
+				if (s?.mode === $.AB_COMPARE) return V?.querySelector?.(".mjr-viewer-media") || null;
+				if (s?.mode === $.SIDE_BY_SIDE) return H?.querySelector?.(".mjr-viewer-media") || null;
 			} catch (e) {
 				console.debug?.(e);
 			}
@@ -10247,23 +10250,23 @@ function Zr() {
 	}), Re = () => {
 		let t = (() => {
 			try {
-				let e = Number(o?._panHintAt) || 0;
+				let e = Number(s?._panHintAt) || 0;
 				return e > 0 && Date.now() - e < 900;
 			} catch {
 				return !1;
 			}
 		})();
 		try {
-			let e = o?.mode === $.SINGLE && !!o?.hudEnabled, n = String(o?.scopesMode || "off") !== "off", r = !!o?.overlayMaskEnabled;
-			U.style.display = o.gridMode === 0 && !r && !t && !e && !n ? "none" : "";
+			let e = s?.mode === $.SINGLE && !!s?.hudEnabled, n = String(s?.scopesMode || "off") !== "off", r = !!s?.overlayMaskEnabled;
+			U.style.display = s.gridMode === 0 && !r && !t && !e && !n ? "none" : "";
 		} catch (e) {
 			console.debug?.(e);
 		}
 		let n = Le.ensureCanvasSize();
 		if (n.w > 0 && n.h > 0) {
 			if ((() => {
-				let e = o?.mode === $.SINGLE && !!o?.hudEnabled;
-				return (Number(o.gridMode) || 0) !== 0 || !!o?.overlayMaskEnabled || e;
+				let e = s?.mode === $.SINGLE && !!s?.hudEnabled;
+				return (Number(s.gridMode) || 0) !== 0 || !!s?.overlayMaskEnabled || e;
 			})()) Le.redrawGrid(n);
 			else try {
 				let e = U.getContext("2d");
@@ -10274,7 +10277,7 @@ function Zr() {
 			if (t) try {
 				let e = U.getContext("2d");
 				if (e) {
-					let t = fe?.getBoundingClientRect?.(), r = Number(o?._panHintX), i = Number(o?._panHintY), a = t && Number.isFinite(r) ? r - t.left : n.w / 2, s = t && Number.isFinite(i) ? i - t.top : n.h * .78, c = Math.max(10, Math.min(n.w - 10, a)), l = Math.max(10, Math.min(n.h - 10, s));
+					let t = fe?.getBoundingClientRect?.(), r = Number(s?._panHintX), i = Number(s?._panHintY), a = t && Number.isFinite(r) ? r - t.left : n.w / 2, o = t && Number.isFinite(i) ? i - t.top : n.h * .78, c = Math.max(10, Math.min(n.w - 10, a)), l = Math.max(10, Math.min(n.h - 10, o));
 					e.save(), e.font = "12px var(--comfy-font, ui-sans-serif, system-ui)", e.textAlign = "center", e.textBaseline = "middle";
 					let u = "Zoom in to pan", d = e.measureText(u), f = Math.min(n.w - 20, Math.max(140, d.width + 26));
 					e.fillStyle = "rgba(0,0,0,0.65)", e.strokeStyle = "rgba(255,255,255,0.18)", e.lineWidth = 1, e.beginPath();
@@ -10285,26 +10288,26 @@ function Zr() {
 				console.debug?.(e);
 			}
 			try {
-				let t = String(o?.scopesMode || "off");
+				let t = String(s?.scopesMode || "off");
 				if (t !== "off") {
 					let r = U.getContext("2d");
 					if (r) {
 						let i = B;
-						o?.mode === $.AB_COMPARE ? i = V : o?.mode === $.SIDE_BY_SIDE && (i = H);
+						s?.mode === $.AB_COMPARE ? i = V : s?.mode === $.SIDE_BY_SIDE && (i = H);
 						let a = i?.querySelector?.("canvas.mjr-viewer-media") || e?.querySelector?.("canvas.mjr-viewer-media");
 						a && a instanceof HTMLCanvasElement && qr?.drawScopesLight?.(r, {
 							w: n.w,
 							h: n.h
 						}, a, {
 							mode: t,
-							channel: o?.channel
+							channel: s?.channel
 						});
 					}
 				}
 			} catch (e) {
 				console.debug?.(e);
 			}
-			if (o.mode !== $.SINGLE) {
+			if (s.mode !== $.SINGLE) {
 				try {
 					me.style.display = "none";
 				} catch (e) {
@@ -10336,20 +10339,20 @@ function Zr() {
 		}
 	}, Be = () => {
 		try {
-			o._genInfoAbort?.abort?.();
+			s._genInfoAbort?.abort?.();
 		} catch (e) {
 			console.debug?.(e);
 		}
-		o._genInfoAbort = null;
+		s._genInfoAbort = null;
 		try {
-			o._genInfoReqId = (Number(o._genInfoReqId) || 0) + 1;
+			s._genInfoReqId = (Number(s._genInfoReqId) || 0) + 1;
 		} catch (e) {
 			console.debug?.(e);
 		}
 	}, Ve = async (e, { signal: t } = {}) => {
 		try {
 			return await Jr?.ensureViewerMetadataAsset?.(e, {
-				getAssetMetadata: s,
+				getAssetMetadata: o,
 				getFileMetadataScoped: m,
 				metadataCache: Oe,
 				signal: t
@@ -10392,12 +10395,12 @@ function Zr() {
 			return !1;
 		}
 	}, Ke = async () => {
-		let t = Xe(), n = Y(), r = o.mode, i = !!o?.genInfoOpen && !o?.distractionFree, a = o?.assets?.[o?.currentIndex] || null, s = i && (r === $.AB_COMPARE && t || r === $.SIDE_BY_SIDE && n), c = s && r === $.SIDE_BY_SIDE && !o?.compareAsset && (o?.assets?.length ?? 0) > 2;
+		let t = Xe(), n = Y(), r = s.mode, i = !!s?.genInfoOpen && !s?.distractionFree, a = s?.assets?.[s?.currentIndex] || null, o = i && (r === $.AB_COMPARE && t || r === $.SIDE_BY_SIDE && n), c = o && r === $.SIDE_BY_SIDE && !s?.compareAsset && (s?.assets?.length ?? 0) > 2;
 		try {
-			if (_e.style.display = i ? "flex" : "none", K.style.display = s ? "flex" : "none", e.style.paddingRight = i ? wr : "0px", e.style.paddingLeft = s ? wr : "0px", !i) {
+			if (_e.style.display = i ? "flex" : "none", K.style.display = o ? "flex" : "none", e.style.paddingRight = i ? wr : "0px", e.style.paddingLeft = o ? wr : "0px", !i) {
 				Be();
 				try {
-					o._genInfoRenderSignature = "";
+					s._genInfoRenderSignature = "";
 				} catch (e) {
 					console.debug?.(e);
 				}
@@ -10418,49 +10421,49 @@ function Zr() {
 		}
 		let l = "";
 		try {
-			let e = Array.isArray(o?.assets) ? o.assets : [], t = o?.compareAsset ? Ue(o.compareAsset) : "", n = e.slice(0, 4).map(Ue).join("|");
+			let e = Array.isArray(s?.assets) ? s.assets : [], t = s?.compareAsset ? Ue(s.compareAsset) : "", n = e.slice(0, 4).map(Ue).join("|");
 			l = [
 				"open",
 				r,
-				Number(o?.currentIndex) || 0,
+				Number(s?.currentIndex) || 0,
 				Ue(a),
 				t,
 				n,
-				s ? "dual" : "single",
+				o ? "dual" : "single",
 				c ? "grid" : ""
 			].join("::");
-			let i = o?._genInfoAbort?.signal;
-			if (l && o?._genInfoRenderSignature === l && i && !i.aborted && We()) return;
-			o._genInfoRenderSignature = l;
+			let i = s?._genInfoAbort?.signal;
+			if (l && s?._genInfoRenderSignature === l && i && !i.aborted && We()) return;
+			s._genInfoRenderSignature = l;
 		} catch (e) {
 			console.debug?.(e);
 		}
 		Be();
-		let u = (Number(o?._genInfoReqId) || 0) + 1;
+		let u = (Number(s?._genInfoReqId) || 0) + 1;
 		try {
-			o._genInfoReqId = u;
+			s._genInfoReqId = u;
 		} catch (e) {
 			console.debug?.(e);
 		}
 		let d = new AbortController();
-		o._genInfoAbort = d;
+		s._genInfoAbort = d;
 		let f = ({ left: e = null, leftExtra: t = null, right: n = null, rightExtra: r = null, single: i = null } = {}) => {
 			try {
-				if (o._genInfoReqId !== u) return;
+				if (s._genInfoReqId !== u) return;
 				ze(G);
 			} catch (e) {
 				console.debug?.(e);
 			}
 			try {
-				if (o._genInfoReqId !== u) return;
+				if (s._genInfoReqId !== u) return;
 				ze(ye);
 			} catch (e) {
 				console.debug?.(e);
 			}
-			if (o._genInfoReqId !== u) return;
+			if (s._genInfoReqId !== u) return;
 			let a = () => {
 				try {
-					o?.genInfoOpen || (o.genInfoOpen = !0), o._genInfoRenderSignature = "", Ke();
+					s?.genInfoOpen || (s.genInfoOpen = !0), s._genInfoRenderSignature = "", Ke();
 				} catch (e) {
 					console.debug?.(e);
 				}
@@ -10514,7 +10517,7 @@ function Zr() {
 					console.debug?.(e);
 				}
 			};
-			if (s) {
+			if (o) {
 				if (e && (ve.textContent = e.title || "Asset A", l(ye, t ? "Asset A" : "", e.asset, e.loading)), t && l(ye, "Asset C", t.asset, t.loading), n && (W.textContent = n.title || "Asset B", l(G, r ? "Asset B" : "", n.asset, n.loading)), r && l(G, "Asset D", r.asset, r.loading), !c && e?.asset && n?.asset && !e.loading && !n.loading) try {
 					let t = br(e.asset, n.asset);
 					t && G.insertBefore(t, G.firstChild || null);
@@ -10529,10 +10532,10 @@ function Zr() {
 				return;
 			}
 			let e = null, t = null, n = null, i = null, l = null;
-			s ? r === $.SIDE_BY_SIDE ? o?.compareAsset ? (e = a, t = o.compareAsset) : (e = o.assets[0] || null, t = o.assets[1] || null, c && (n = o.assets[2] || null, i = o.assets[3] || null)) : (e = a, t = o?.compareAsset || (o.assets.length === 2 ? o.assets[1 - o.currentIndex] : null)) : l = a;
+			o ? r === $.SIDE_BY_SIDE ? s?.compareAsset ? (e = a, t = s.compareAsset) : (e = s.assets[0] || null, t = s.assets[1] || null, c && (n = s.assets[2] || null, i = s.assets[3] || null)) : (e = a, t = s?.compareAsset || (s.assets.length === 2 ? s.assets[1 - s.currentIndex] : null)) : l = a;
 			let p = (e) => e ? Oe?.getCached?.(e.id)?.data || e : null;
 			if (f({
-				left: s ? {
+				left: o ? {
 					title: c ? "Assets A & C" : "Asset A",
 					asset: p(e),
 					loading: He(p(e))
@@ -10541,7 +10544,7 @@ function Zr() {
 					asset: p(n),
 					loading: He(p(n))
 				} : null,
-				right: s ? {
+				right: o ? {
 					title: c ? "Assets B & D" : "Asset B",
 					asset: p(t),
 					loading: He(p(t))
@@ -10550,23 +10553,23 @@ function Zr() {
 					asset: p(i),
 					loading: He(p(i))
 				} : null,
-				single: s ? null : {
+				single: o ? null : {
 					title: "Generation Info",
 					asset: p(l),
 					loading: He(p(l))
 				}
-			}), o._genInfoReqId !== u) return;
-			if (s) {
-				let r = e ? await Ve(e, { signal: d.signal }) : null, a = t ? await Ve(t, { signal: d.signal }) : null, s = n ? await Ve(n, { signal: d.signal }) : null, l = i ? await Ve(i, { signal: d.signal }) : null;
-				if (o._genInfoReqId !== u) return;
+			}), s._genInfoReqId !== u) return;
+			if (o) {
+				let r = e ? await Ve(e, { signal: d.signal }) : null, a = t ? await Ve(t, { signal: d.signal }) : null, o = n ? await Ve(n, { signal: d.signal }) : null, l = i ? await Ve(i, { signal: d.signal }) : null;
+				if (s._genInfoReqId !== u) return;
 				f({
 					left: {
 						title: c ? "Assets A & C" : "Asset A",
 						asset: r,
 						loading: !1
 					},
-					leftExtra: c && s ? {
-						asset: s,
+					leftExtra: c && o ? {
+						asset: o,
 						loading: !1
 					} : null,
 					right: {
@@ -10581,7 +10584,7 @@ function Zr() {
 				});
 			} else {
 				let e = l ? await Ve(l, { signal: d.signal }) : null;
-				if (o._genInfoReqId !== u) return;
+				if (s._genInfoReqId !== u) return;
 				f({ single: {
 					title: "Generation Info",
 					asset: e,
@@ -10595,7 +10598,7 @@ function Zr() {
 	function Je(e) {
 		try {
 			return !qe && Yr && (qe = Yr.createFrameExporter({
-				state: o,
+				state: s,
 				VIEWER_MODES: $,
 				singleView: B,
 				abView: V,
@@ -10645,9 +10648,9 @@ function Zr() {
 				console.debug?.(e);
 			}
 			return n;
-		}, n = o.mode === $.SINGLE, r = o.mode === $.AB_COMPARE && Xe(), i = o.mode === $.SIDE_BY_SIDE && Y();
+		}, n = s.mode === $.SINGLE, r = s.mode === $.AB_COMPARE && Xe(), i = s.mode === $.SIDE_BY_SIDE && Y();
 		if ((r || i) && ie) {
-			let e = o.assets?.[o.currentIndex] || null, n = i && o.compareAsset != null, a = r ? o.compareAsset == null ? o.assets?.[0] || null : e : n ? e : o.assets?.[0] || null, s = r ? o.compareAsset == null ? o.assets?.[1] || null : o.compareAsset : n ? o.compareAsset : o.assets?.[Math.max(0, (o.assets?.length || 1) - 1)] || null, c = t(a, { showName: !1 }), l = t(s, { showName: !1 });
+			let e = s.assets?.[s.currentIndex] || null, n = i && s.compareAsset != null, a = r ? s.compareAsset == null ? s.assets?.[0] || null : e : n ? e : s.assets?.[0] || null, o = r ? s.compareAsset == null ? s.assets?.[1] || null : s.compareAsset : n ? s.compareAsset : s.assets?.[Math.max(0, (s.assets?.length || 1) - 1)] || null, c = t(a, { showName: !1 }), l = t(o, { showName: !1 });
 			try {
 				c && ne.appendChild(c);
 			} catch (e) {
@@ -10660,7 +10663,7 @@ function Zr() {
 			}
 			return;
 		}
-		let a = n ? [o.assets[o.currentIndex]].filter(Boolean) : Array.isArray(o.assets) ? o.assets.slice(0, 4) : [];
+		let a = n ? [s.assets[s.currentIndex]].filter(Boolean) : Array.isArray(s.assets) ? s.assets.slice(0, 4) : [];
 		for (let e of a) {
 			let r = t(e, { showName: !n });
 			if (r) try {
@@ -10671,14 +10674,14 @@ function Zr() {
 		}
 	};
 	function Xe() {
-		return (o.assets.length === 2 || o.compareAsset != null) && !De();
+		return (s.assets.length === 2 || s.compareAsset != null) && !De();
 	}
 	function Y() {
-		let e = o.assets.length;
-		return e >= 2 && e <= 4 || e >= 1 && o.compareAsset != null;
+		let e = s.assets.length;
+		return e >= 2 && e <= 4 || e >= 1 && s.compareAsset != null;
 	}
 	function Ze() {
-		let t = !!o?.distractionFree;
+		let t = !!s?.distractionFree;
 		try {
 			P.style.display = t ? "none" : "";
 		} catch (e) {
@@ -10701,24 +10704,24 @@ function Zr() {
 		}
 	}
 	function Qe() {
-		o.zoom = 1, o.panX = 0, o.panY = 0, o.targetZoom = 1;
+		s.zoom = 1, s.panX = 0, s.panY = 0, s.targetZoom = 1;
 		try {
-			o.mode !== $.AB_COMPARE && o.mode !== $.SIDE_BY_SIDE && o.compareAsset != null && (o.compareAsset = null);
+			s.mode !== $.AB_COMPARE && s.mode !== $.SIDE_BY_SIDE && s.compareAsset != null && (s.compareAsset = null);
 		} catch (e) {
 			console.debug?.(e);
 		}
-		let e = o.assets[o.currentIndex], t = o.mode === $.AB_COMPARE && Xe(), n = o.mode === $.SIDE_BY_SIDE && Y(), r = t && o.compareAsset != null, i = n && o.compareAsset != null, a = t ? (r ? e : o.assets?.[0]) || null : n ? (i ? e : o.assets?.[0]) || null : e || null, s = t ? (r ? o.compareAsset : o.assets?.[1]) || null : n ? i ? o.compareAsset : Array.isArray(o.assets) && o.assets.length >= 2 ? o.assets[o.assets.length - 1] : null : null;
+		let e = s.assets[s.currentIndex], t = s.mode === $.AB_COMPARE && Xe(), n = s.mode === $.SIDE_BY_SIDE && Y(), r = t && s.compareAsset != null, i = n && s.compareAsset != null, a = t ? (r ? e : s.assets?.[0]) || null : n ? (i ? e : s.assets?.[0]) || null : e || null, o = t ? (r ? s.compareAsset : s.assets?.[1]) || null : n ? i ? s.compareAsset : Array.isArray(s.assets) && s.assets.length >= 2 ? s.assets[s.assets.length - 1] : null : null;
 		try {
 			F.textContent = a?.filename || "";
 		} catch (e) {
 			console.debug?.(e);
 		}
 		try {
-			ae && re && s && s !== a ? (ae.style.display = "flex", oe && (oe.style.display = "flex"), re.textContent = s?.filename || "", se && le && L && (se.style.display = "flex", le.appendChild(L), L.style.justifyContent = "flex-start"), R && (R.style.justifyContent = "center", R.style.paddingLeft = "84px"), I && (I.style.flex = "0 0 auto"), ue && (ue.style.flex = "0 0 auto"), F && (F.style.textAlign = "left")) : ae && re && (ae.style.display = "none", oe && (oe.style.display = "none"), re.textContent = "", se && (se.style.display = "none"), ue && L && de && (ue.insertBefore(L, de), L.style.justifyContent = "center"), R && (R.style.justifyContent = "center", R.style.paddingLeft = "12px"), I && (I.style.flex = "1 1 auto"), ue && (ue.style.flex = ""), F && (F.style.textAlign = "center"));
+			ae && re && o && o !== a ? (ae.style.display = "flex", oe && (oe.style.display = "flex"), re.textContent = o?.filename || "", se && le && L && (se.style.display = "flex", le.appendChild(L), L.style.justifyContent = "flex-start"), R && (R.style.justifyContent = "center", R.style.paddingLeft = "84px"), I && (I.style.flex = "0 0 auto"), ue && (ue.style.flex = "0 0 auto"), F && (F.style.textAlign = "left")) : ae && re && (ae.style.display = "none", oe && (oe.style.display = "none"), re.textContent = "", se && (se.style.display = "none"), ue && L && de && (ue.insertBefore(L, de), L.style.justifyContent = "center"), R && (R.style.justifyContent = "center", R.style.paddingLeft = "12px"), I && (I.style.flex = "1 1 auto"), ue && (ue.style.flex = ""), F && (F.style.textAlign = "center"));
 		} catch (e) {
 			console.debug?.(e);
 		}
-		o.mode === $.AB_COMPARE && Xe() ? xe.textContent = "2 selected" : o.mode === $.SIDE_BY_SIDE && Y() ? xe.textContent = o.compareAsset == null ? `${o.assets.length} selected` : "2 selected" : xe.textContent = `${o.currentIndex + 1} / ${o.assets.length}`, o.mode === $.AB_COMPARE && !Xe() && (o.mode = Y() ? $.SIDE_BY_SIDE : $.SINGLE), o.mode === $.SIDE_BY_SIDE && !Y() && (o.mode = $.SINGLE);
+		s.mode === $.AB_COMPARE && Xe() ? xe.textContent = "2 selected" : s.mode === $.SIDE_BY_SIDE && Y() ? xe.textContent = s.compareAsset == null ? `${s.assets.length} selected` : "2 selected" : xe.textContent = `${s.currentIndex + 1} / ${s.assets.length}`, s.mode === $.AB_COMPARE && !Xe() && (s.mode = Y() ? $.SIDE_BY_SIDE : $.SINGLE), s.mode === $.SIDE_BY_SIDE && !Y() && (s.mode = $.SINGLE);
 		try {
 			N?.syncModeButtons?.({
 				canAB: Xe,
@@ -10727,30 +10730,30 @@ function Zr() {
 		} catch (e) {
 			console.debug?.(e);
 		}
-		B.style.display = o.mode === $.SINGLE ? "flex" : "none", V.style.display = o.mode === $.AB_COMPARE ? "block" : "none", H.style.display = o.mode === $.SIDE_BY_SIDE ? "flex" : "none";
+		B.style.display = s.mode === $.SINGLE ? "flex" : "none", V.style.display = s.mode === $.AB_COMPARE ? "block" : "none", H.style.display = s.mode === $.SIDE_BY_SIDE ? "flex" : "none";
 		try {
-			o.mode !== $.SINGLE && (Fn(B), B.replaceChildren());
+			s.mode !== $.SINGLE && (Fn(B), B.replaceChildren());
 		} catch (e) {
 			console.debug?.(e);
 		}
 		try {
-			o.mode !== $.AB_COMPARE && (Fn(V), V.replaceChildren());
+			s.mode !== $.AB_COMPARE && (Fn(V), V.replaceChildren());
 		} catch (e) {
 			console.debug?.(e);
 		}
 		try {
-			o.mode !== $.SIDE_BY_SIDE && (Fn(H), H.replaceChildren());
+			s.mode !== $.SIDE_BY_SIDE && (Fn(H), H.replaceChildren());
 		} catch (e) {
 			console.debug?.(e);
 		}
 		Ye();
-		let c = o.mode === $.AB_COMPARE && Xe() || o.mode === $.SIDE_BY_SIDE && Y();
+		let c = s.mode === $.AB_COMPARE && Xe() || s.mode === $.SIDE_BY_SIDE && Y();
 		try {
 			be.style.display = c ? "none" : "", Se.style.display = c ? "none" : "";
 		} catch (e) {
 			console.debug?.(e);
 		}
-		et(), tt(o.assets, o.currentIndex), st();
+		et(), tt(s.assets, s.currentIndex), st();
 		try {
 			N?.syncToolsUIFromState?.();
 		} catch (e) {
@@ -10784,14 +10787,14 @@ function Zr() {
 			console.debug?.(e);
 		}
 		try {
-			let e = o.mode === $.SINGLE;
+			let e = s.mode === $.SINGLE;
 			Te.sync({ isSingle: e });
 		} catch (e) {
 			console.debug?.(e);
 		}
 	}
 	function et() {
-		let e = o.assets[o.currentIndex];
+		let e = s.assets[s.currentIndex];
 		if (!e) return;
 		let t = O(e);
 		if (!t) {
@@ -10809,26 +10812,26 @@ function Zr() {
 			}
 			return;
 		}
-		if (o.mode === $.SINGLE) {
+		if (s.mode === $.SINGLE) {
 			try {
 				Fn(B);
 			} catch (e) {
 				console.debug?.(e);
 			}
-			B.innerHTML = "", o._mediaW = 0, o._mediaH = 0;
+			B.innerHTML = "", s._mediaW = 0, s._mediaH = 0;
 			let n = A(e, t);
 			B.appendChild(n);
-		} else o.mode === $.AB_COMPARE ? Xe() && Wr?.renderABCompareView?.({
+		} else s.mode === $.AB_COMPARE ? Xe() && Wr?.renderABCompareView?.({
 			abView: V,
-			state: o,
+			state: s,
 			currentAsset: e,
 			viewUrl: t,
 			buildAssetViewURL: O,
 			createCompareMediaElement: j,
 			destroyMediaProcessorsIn: Fn
-		}) : o.mode === $.SIDE_BY_SIDE && Y() && Gr?.renderSideBySideView?.({
+		}) : s.mode === $.SIDE_BY_SIDE && Y() && Gr?.renderSideBySideView?.({
 			sideView: H,
-			state: o,
+			state: s,
 			currentAsset: e,
 			viewUrl: t,
 			buildAssetViewURL: O,
@@ -10840,9 +10843,9 @@ function Zr() {
 	let { preloadAdjacentAssets: tt, preloadImageForAsset: nt, trackPreloadRef: rt } = pr({
 		buildAssetViewURL: O,
 		IMAGE_PRELOAD_EXTENSIONS: c,
-		state: o
+		state: s
 	}), { destroyPlayerBar: at, syncPlayerBar: ot } = Sr({
-		state: o,
+		state: s,
 		APP_CONFIG: T,
 		VIEWER_MODES: $,
 		overlay: e,
@@ -10862,11 +10865,11 @@ function Zr() {
 		viewerInfoCacheGet: Me,
 		viewerInfoCacheSet: Ne
 	}), st = () => ot(), ct = T.VIEWER_MAX_PROC_PIXELS ?? 12e6, lt = () => ({
-		exposureEV: Number(o.exposureEV) || 0,
-		gamma: Math.max(.1, Math.min(3, Number(o.gamma) || 1)),
-		channel: o.channel || "rgb",
-		analysisMode: o.analysisMode || "none",
-		zebraThreshold: Math.max(0, Math.min(1, Number(o.zebraThreshold) || .95))
+		exposureEV: Number(s.exposureEV) || 0,
+		gamma: Math.max(.1, Math.min(3, Number(s.gamma) || 1)),
+		channel: s.channel || "rgb",
+		analysisMode: s.analysisMode || "none",
+		zebraThreshold: Math.max(0, Math.min(1, Number(s.zebraThreshold) || .95))
 	}), ut = () => {
 		let t = lt();
 		try {
@@ -10881,7 +10884,7 @@ function Zr() {
 			console.debug?.(e);
 		}
 		try {
-			o?.mode === $.AB_COMPARE && V?._mjrDiffRequest?.();
+			s?.mode === $.AB_COMPARE && V?._mjrDiffRequest?.();
 		} catch (e) {
 			console.debug?.(e);
 		}
@@ -10897,7 +10900,7 @@ function Zr() {
 	try {
 		d = fr({
 			overlay: e,
-			state: o,
+			state: s,
 			mediaTransform: f,
 			updateMediaNaturalSize: D,
 			clampPanToBounds: h,
@@ -10916,10 +10919,10 @@ function Zr() {
 	} catch {
 		d = null;
 	}
-	i.push(Z(be, "click", () => {
-		o.currentIndex > 0 && (o.currentIndex--, Qe());
-	})), i.push(Z(Se, "click", () => {
-		o.currentIndex < o.assets.length - 1 && (o.currentIndex++, Qe());
+	a.push(Z(be, "click", () => {
+		s.currentIndex > 0 && (s.currentIndex--, Qe());
+	})), a.push(Z(Se, "click", () => {
+		s.currentIndex < s.assets.length - 1 && (s.currentIndex++, Qe());
 	}));
 	let mt = null, ht = () => {
 		try {
@@ -10942,9 +10945,9 @@ function Zr() {
 			console.debug?.(e);
 		}
 	}, _t = (e) => {
-		if (!Array.isArray(o.assets) || o.assets.length === 0) return !1;
-		let t = o.currentIndex + e;
-		return t < 0 || t >= o.assets.length ? !1 : (o.currentIndex = t, Qe(), !0);
+		if (!Array.isArray(s.assets) || s.assets.length === 0) return !1;
+		let t = s.currentIndex + e;
+		return t < 0 || t >= s.assets.length ? !1 : (s.currentIndex = t, Qe(), !0);
 	}, vt = (t) => {
 		if (e.style.display === "none") return;
 		try {
@@ -10971,7 +10974,7 @@ function Zr() {
 		let n = Number(t.deltaX) || 0, r = Number(t.deltaY) || 0;
 		if (t.shiftKey && r && _t(r > 0 ? 1 : -1) || Math.abs(n) > Math.abs(r) && Math.abs(n) > 30 && _t(n > 0 ? 1 : -1) || !r) return;
 		let i = Math.exp(-r * .0015);
-		_((Number(o.zoom) || 1) * i, {
+		_((Number(s.zoom) || 1) * i, {
 			clientX: t.clientX,
 			clientY: t.clientY
 		});
@@ -10987,7 +10990,7 @@ function Zr() {
 	}, bt = Yn({
 		overlay: e,
 		content: fe,
-		state: o,
+		state: s,
 		VIEWER_MODES: $,
 		getPrimaryMedia: y,
 		getMediaNaturalSize: x,
@@ -10996,13 +10999,13 @@ function Zr() {
 		probeTooltip: me,
 		loupeWrap: he,
 		onLoupeRedraw: Xn({
-			state: o,
+			state: s,
 			loupeCanvas: ge,
 			loupeWrap: he,
 			getMediaNaturalSize: x,
 			positionOverlayBox: yt
 		}).redraw,
-		lifecycle: n
+		lifecycle: t
 	});
 	try {
 		if (!fe._mjrOverlayResizeBound && "ResizeObserver" in window) {
@@ -11013,7 +11016,7 @@ function Zr() {
 			}
 			let t = new ResizeObserver(() => {
 				try {
-					o._viewportCache = null;
+					s._viewportCache = null;
 				} catch (e) {
 					console.debug?.(e);
 				}
@@ -11024,7 +11027,7 @@ function Zr() {
 			} catch (e) {
 				console.debug?.(e);
 			}
-			e._mjrResizeObserver = t, i.push(() => {
+			e._mjrResizeObserver = t, a.push(() => {
 				try {
 					t.disconnect();
 				} catch (e) {
@@ -11039,7 +11042,7 @@ function Zr() {
 		overlay: e,
 		content: fe,
 		singleView: B,
-		state: o,
+		state: s,
 		VIEWER_MODES: $,
 		computeOneToOneZoom: E,
 		setZoom: _,
@@ -11050,7 +11053,7 @@ function Zr() {
 		navigateViewerAssets: _t,
 		closeViewer: Tt,
 		renderBadges: Ye,
-		updateAssetRating: t,
+		updateAssetRating: n,
 		safeDispatchCustomEvent: ce,
 		ASSET_RATING_CHANGED_EVENT: k,
 		probeTooltip: me,
@@ -11058,12 +11061,12 @@ function Zr() {
 		renderGenInfoPanel: Ke,
 		getVideoControls: () => {
 			try {
-				return o?._videoControlsMounted || null;
+				return s?._videoControlsMounted || null;
 			} catch {
 				return null;
 			}
 		},
-		lifecycle: n
+		lifecycle: t
 	}), St = [], Ct = () => {
 		try {
 			for (let e of St) X(e);
@@ -11134,7 +11137,7 @@ function Zr() {
 		try {
 			St.push(Z(fe, "mousemove", (e) => {
 				try {
-					o._lastPointerX = e.clientX, o._lastPointerY = e.clientY;
+					s._lastPointerX = e.clientX, s._lastPointerY = e.clientY;
 				} catch (e) {
 					console.debug?.(e);
 				}
@@ -11152,11 +11155,11 @@ function Zr() {
 		}
 	};
 	try {
-		e._mjrBadgeSyncBound ||= (i.push(Z(window, k, (e) => {
+		e._mjrBadgeSyncBound ||= (a.push(Z(window, k, (e) => {
 			try {
 				let t = e?.detail?.assetId, n = e?.detail?.rating;
 				if (t == null) return;
-				for (let e of o.assets || []) e?.id != null && String(e.id) === String(t) && (e.rating = n);
+				for (let e of s.assets || []) e?.id != null && String(e.id) === String(t) && (e.rating = n);
 				try {
 					Oe?.deleteCached?.(t);
 				} catch (e) {
@@ -11166,11 +11169,11 @@ function Zr() {
 			} catch (e) {
 				console.debug?.(e);
 			}
-		}, { passive: !0 })), i.push(Z(window, w, (e) => {
+		}, { passive: !0 })), a.push(Z(window, w, (e) => {
 			try {
 				let t = e?.detail?.assetId, n = e?.detail?.tags;
 				if (t == null) return;
-				for (let e of o.assets || []) e?.id != null && String(e.id) === String(t) && (e.tags = n);
+				for (let e of s.assets || []) e?.id != null && String(e.id) === String(t) && (e.tags = n);
 				try {
 					Oe?.deleteCached?.(t);
 				} catch (e) {
@@ -11186,13 +11189,13 @@ function Zr() {
 	}
 	function Tt() {
 		try {
-			let e = o.assets?.[o.currentIndex];
+			let e = s.assets?.[s.currentIndex];
 			e?.id && ce(b, { assetId: String(e.id) }, { warnPrefix: "[ViewerRuntime]" });
 		} catch (e) {
 			console.debug?.(e);
 		}
 		try {
-			o.distractionFree = !1, Ze();
+			s.distractionFree = !1, Ze();
 		} catch (e) {
 			console.debug?.(e);
 		}
@@ -11207,19 +11210,19 @@ function Zr() {
 			console.debug?.(e);
 		}
 		try {
-			o._scopesVideoAbort?.abort?.();
+			s._scopesVideoAbort?.abort?.();
 		} catch (e) {
 			console.debug?.(e);
 		}
-		o._scopesVideoAbort = null;
+		s._scopesVideoAbort = null;
 		try {
-			o._panHintTimer && clearTimeout(o._panHintTimer);
+			s._panHintTimer && clearTimeout(s._panHintTimer);
 		} catch (e) {
 			console.debug?.(e);
 		}
-		o._panHintTimer = null;
+		s._panHintTimer = null;
 		try {
-			o._panHintAt = 0;
+			s._panHintAt = 0;
 		} catch (e) {
 			console.debug?.(e);
 		}
@@ -11321,7 +11324,7 @@ function Zr() {
 			console.debug?.(e);
 		}
 		try {
-			o.genInfoOpen = !1;
+			s.genInfoOpen = !1;
 		} catch (e) {
 			console.debug?.(e);
 		}
@@ -11342,33 +11345,33 @@ function Zr() {
 		}
 		e.style.display = "none", e.style.pointerEvents = "none", Ct();
 		try {
-			document.body.style.overflow = o._prevBodyOverflow ?? "";
+			document.body.style.overflow = s._prevBodyOverflow ?? "";
 		} catch {
 			document.body.style.overflow = "";
 		}
 		try {
-			o._prevFocusedElement && typeof o._prevFocusedElement.focus == "function" && o._prevFocusedElement.focus(), o._prevFocusedElement = null;
+			s._prevFocusedElement && typeof s._prevFocusedElement.focus == "function" && s._prevFocusedElement.focus(), s._prevFocusedElement = null;
 		} catch (e) {
 			console.debug?.(e);
 		}
-		let t = o?._prevHotkeyScope;
-		a(t || "panel"), o._prevHotkeyScope = null;
+		let t = s?._prevHotkeyScope;
+		i(t || "panel"), s._prevHotkeyScope = null;
 	}
 	let Et = {
 		open(t, n = 0, r = null) {
-			wt(), o.assets = Array.isArray(t) ? t : [t], o.currentIndex = Math.max(0, Math.min(n, o.assets.length - 1)), o.distractionFree = !1;
+			wt(), s.assets = Array.isArray(t) ? t : [t], s.currentIndex = Math.max(0, Math.min(n, s.assets.length - 1)), s.distractionFree = !1;
 			try {
 				Te.rebuild();
 			} catch (e) {
 				console.debug?.(e);
 			}
-			o.zoom = 1, o.panX = 0, o.panY = 0, o.targetZoom = 1, o._userInteracted = !1, o._panHintAt = 0;
+			s.zoom = 1, s.panX = 0, s.panY = 0, s.targetZoom = 1, s._userInteracted = !1, s._panHintAt = 0;
 			try {
-				o._panHintTimer && clearTimeout(o._panHintTimer);
+				s._panHintTimer && clearTimeout(s._panHintTimer);
 			} catch (e) {
 				console.debug?.(e);
 			}
-			o._panHintTimer = null, o._lastPointerX = null, o._lastPointerY = null, o._mediaW = 0, o._mediaH = 0, o.compareAsset = r, o.gridMode = 0, Be(), o._probe = null;
+			s._panHintTimer = null, s._lastPointerX = null, s._lastPointerY = null, s._mediaW = 0, s._mediaH = 0, s.compareAsset = r, s.gridMode = 0, Be(), s._probe = null;
 			try {
 				me.style.display = "none";
 			} catch (e) {
@@ -11381,17 +11384,17 @@ function Zr() {
 			}
 			e.style.display = "flex", e.style.pointerEvents = "auto";
 			try {
-				o._prevFocusedElement = document.activeElement;
+				s._prevFocusedElement = document.activeElement;
 			} catch {
-				o._prevFocusedElement = null;
+				s._prevFocusedElement = null;
 			}
 			e.focus();
 			try {
-				o._prevBodyOverflow = document.body.style.overflow;
+				s._prevBodyOverflow = document.body.style.overflow;
 			} catch {
-				o._prevBodyOverflow = "";
+				s._prevBodyOverflow = "";
 			}
-			document.body.style.overflow = "hidden", o._prevHotkeyScope = u().scope || null, a("viewer"), Qe();
+			document.body.style.overflow = "hidden", s._prevHotkeyScope = l().scope || null, i("viewer"), Qe();
 			try {
 				gt();
 			} catch (e) {
@@ -11408,10 +11411,10 @@ function Zr() {
 			Tt();
 		},
 		setMode(e) {
-			Object.values($).includes(e) && (o.mode = e, Qe());
+			Object.values($).includes(e) && (s.mode = e, Qe());
 		},
 		setCompareAsset(e) {
-			o.compareAsset = e, Qe();
+			s.compareAsset = e, Qe();
 		},
 		dispose() {
 			try {
@@ -11490,12 +11493,12 @@ function Zr() {
 				console.debug?.(e);
 			}
 			try {
-				o._preloadRefs?.clear?.();
+				s._preloadRefs?.clear?.();
 			} catch (e) {
 				console.debug?.(e);
 			}
 			try {
-				o._preloadedAssetKeys?.clear?.();
+				s._preloadedAssetKeys?.clear?.();
 			} catch (e) {
 				console.debug?.(e);
 			}
@@ -11515,7 +11518,7 @@ function Zr() {
 	try {
 		En({
 			overlayEl: e,
-			getCurrentAsset: () => o.assets[o.currentIndex],
+			getCurrentAsset: () => s.assets[s.currentIndex],
 			getCurrentViewUrl: (e) => O(e),
 			onAssetChanged: () => {
 				try {

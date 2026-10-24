@@ -1,5 +1,5 @@
-import { i as e } from "./model3dRenderer-CWRtZrSS.js";
-import { i as t, o as n } from "./geninfoParser-DS9m_bHm.js";
+import { i as e } from "./model3dRenderer-e5uWwIMW.js";
+import { i as t, o as n } from "./geninfoParser-Bwtqk4p6.js";
 //#region ui/features/viewer/sideBySide.ts
 function r(e) {
 	if (!e) return null;
@@ -143,7 +143,7 @@ function o(e) {
 						for (let t = 0; t < r.length; t++) {
 							if (t === e) continue;
 							let a = r[t], o = a._mjr3D.camera, s = a._mjr3D.controls;
-							!o || !s || (o.position.copy(n.position), o.quaternion.copy(n.quaternion), n.zoom !== void 0 && (o.zoom = n.zoom), o.updateProjectionMatrix(), s.target.copy(i.target), s.update());
+							o && s && (o.position.copy(n.position), o.quaternion.copy(n.quaternion), n.zoom !== void 0 && (o.zoom = n.zoom), o.updateProjectionMatrix(), s.target.copy(i.target), s.update());
 						}
 					} catch (e) {
 						console.debug?.(e);

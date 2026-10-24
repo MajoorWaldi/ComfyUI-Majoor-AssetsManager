@@ -1,6 +1,6 @@
 import { t as e } from "./rolldown-runtime-Dy4uBu1J.js";
-import { _ as t, d as n, o as r, s as i, t as a } from "./viewerRuntimeHosts-DyiuTSfr.js";
-import { o, r as s, z as c } from "./events-DrYpMD-I.js";
+import { _ as t, d as n, o as r, s as i, t as a } from "./viewerRuntimeHosts-BBd8uK6j.js";
+import { o, r as s, z as c } from "./events-CoI83paj.js";
 //#region ui/features/panel/panelRuntimeRefs.ts
 var l = null;
 function u(e) {
@@ -98,11 +98,11 @@ var te = /* @__PURE__ */ e({
 	teardownFloatingViewerManager: () => we
 }), v = null, y = null;
 async function ne() {
-	return v || (y ||= import("./FloatingViewer-C_N3LZxW.js").then((e) => (v = e.FloatingViewer, v)), y);
+	return v || (y ||= import("./FloatingViewer-38MC8yxJ.js").then((e) => (v = e.FloatingViewer, v)), y);
 }
 var b = null, re = null;
 async function ie() {
-	if (!b) return re ||= import("./NodeStreamController-DpGjUOfx.js").then((e) => {
+	if (!b) return re ||= import("./NodeStreamController-DaqaPtXc.js").then((e) => {
 		b = e.setNodeStreamActive;
 	}), re;
 }
@@ -180,7 +180,7 @@ function se() {
 	}
 }
 function F(e) {
-	typeof window > "u" || window.dispatchEvent(new CustomEvent(s.MFV_VISIBILITY_CHANGED, { detail: { visible: !!e } }));
+	typeof window < "u" && window.dispatchEvent(new CustomEvent(s.MFV_VISIBILITY_CHANGED, { detail: { visible: !!e } }));
 }
 function I(e) {
 	e && (e.setLiveActive(T), e.setPreviewActive(E), e.setNodeStreamActive?.(D));
@@ -310,7 +310,7 @@ function B(e) {
 	}
 }
 function V() {
-	k || typeof window > "u" || (window.addEventListener(s.SELECTION_CHANGED, B), k = !0);
+	k || typeof window < "u" && (window.addEventListener(s.SELECTION_CHANGED, B), k = !0);
 }
 function H() {
 	typeof window < "u" && window.removeEventListener(s.SELECTION_CHANGED, B), k = !1, N();
@@ -409,7 +409,7 @@ var Y = {
 	},
 	async upsertWithContent(e) {
 		let t = await M(), n = !!t.isVisible;
-		!n && o.MFV_LIVE_AUTO_OPEN === !1 || (t.show(), I(t), V(), ce(t, e), n || F(!0));
+		(n || o.MFV_LIVE_AUTO_OPEN !== !1) && (t.show(), I(t), V(), ce(t, e), n || F(!0));
 	},
 	setLiveActive(e) {
 		T = !!e, S?.setLiveActive(T);
@@ -433,7 +433,7 @@ var Y = {
 	async feedPreviewBlob(e, t = {}) {
 		if (!Y.canAcceptPreviewBlob()) return;
 		let n = await M(), r = !!n.isVisible;
-		!r && o.MFV_PREVIEW_AUTO_OPEN === !1 || (n.isVisible || n.show(), I(n), n.loadPreviewBlob(e, ...Object.keys(t).length ? [t] : []), r || F(!0));
+		(r || o.MFV_PREVIEW_AUTO_OPEN !== !1) && (n.isVisible || n.show(), I(n), n.loadPreviewBlob(e, ...Object.keys(t).length ? [t] : []), r || F(!0));
 	},
 	toggleNodeStream() {
 		Y.setNodeStreamActive(!D);
@@ -458,7 +458,7 @@ var Y = {
 	async feedNodeStream(e) {
 		if (!D) return;
 		let t = await M(), n = !!t.isVisible;
-		!n && o.MFV_NODE_STREAM_AUTO_OPEN === !1 || (t.isVisible || (t.show(), V()), I(t), L(t), ce(t, e), n || F(!0));
+		(n || o.MFV_NODE_STREAM_AUTO_OPEN !== !1) && (t.isVisible || (t.show(), V()), I(t), L(t), ce(t, e), n || F(!0));
 	}
 }, X = !1, pe = () => Y.open(), me = () => Y.close(), he = () => Y.toggle(), Z = () => Y.toggleLive(), ge = () => Y.togglePreview(), _e = () => Y.toggleNodeStream(), ve = () => Y.popOut(), ye = () => {
 	try {
@@ -520,7 +520,7 @@ var Q = (e) => {
 	}
 };
 function $() {
-	X || typeof window > "u" || !window?.addEventListener || (window.addEventListener(s.MFV_OPEN, pe), window.addEventListener(s.MFV_CLOSE, me), window.addEventListener(s.MFV_TOGGLE, he), window.addEventListener(s.MFV_LIVE_TOGGLE, Z), window.addEventListener(s.MFV_PREVIEW_TOGGLE, ge), window.addEventListener(s.MFV_NODESTREAM_TOGGLE, _e), window.addEventListener(s.MFV_POPOUT, ve), window.addEventListener(s.SETTINGS_CHANGED, be), window.addEventListener("keydown", Q, !0), window.addEventListener("beforeunload", ye), X = !0);
+	X || typeof window < "u" && window?.addEventListener && (window.addEventListener(s.MFV_OPEN, pe), window.addEventListener(s.MFV_CLOSE, me), window.addEventListener(s.MFV_TOGGLE, he), window.addEventListener(s.MFV_LIVE_TOGGLE, Z), window.addEventListener(s.MFV_PREVIEW_TOGGLE, ge), window.addEventListener(s.MFV_NODESTREAM_TOGGLE, _e), window.addEventListener(s.MFV_POPOUT, ve), window.addEventListener(s.SETTINGS_CHANGED, be), window.addEventListener("keydown", Q, !0), window.addEventListener("beforeunload", ye), X = !0);
 }
 function Ce() {
 	if (typeof window > "u" || !window?.removeEventListener) {

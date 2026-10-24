@@ -425,6 +425,13 @@ export function createStatusIndicator(options: Record<string, any> = {}): any {
     header.appendChild(statusDot);
     header.appendChild(titleSpan);
 
+    const scanButton = document.createElement("button");
+    scanButton.id = "mjr-status-scan";
+    scanButton.type = "button";
+    scanButton.textContent = t("btn.scan", "Scan");
+    scanButton.style.cssText = "margin-left: auto; padding: 4px 10px; cursor: pointer;";
+    header.appendChild(scanButton);
+
     // Body container
     const body = document.createElement("div");
     body.id = "mjr-status-body";
@@ -2595,13 +2602,12 @@ export function setupStatusPolling(
     }
     scheduleNext();
 
-    const statusDotEl = section.querySelector("#mjr-status-dot");
-    if (statusDotEl) {
-        statusDotEl.onclick = (event: any) => {
+    for (const control of section.querySelectorAll("#mjr-status-dot, #mjr-status-scan")) {
+        control.onclick = (event: any) => {
             event.stopPropagation();
             const target = typeof getScanTarget === "function" ? getScanTarget() : null;
             triggerScan(statusDot, statusText, capabilitiesSection, target);
         };
-        statusDotEl.title = t("status.clickToScan", "Click to scan");
+        control.title = t("btn.scan", "Scan");
     }
 }

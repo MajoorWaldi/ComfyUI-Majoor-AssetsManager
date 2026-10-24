@@ -14,6 +14,10 @@ async def apply_startup_settings(
     startup_steps = (
         ("Security bootstrap failed: %s", "ensure_security_bootstrap"),
         (
+            "Input directory override restore failed: %s",
+            "apply_input_directory_override_on_startup",
+        ),
+        (
             "Output directory override restore failed: %s",
             "apply_output_directory_override_on_startup",
         ),

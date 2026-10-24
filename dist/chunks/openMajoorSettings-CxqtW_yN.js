@@ -1,6 +1,6 @@
-import { A as e, E as t, J as n, R as r, S as i, Y as a, b as o, j as s, m as c } from "./events-DrYpMD-I.js";
-import { a as l, n as u } from "./graphTraversal-BIYmTTPW.js";
-import { S as d, Y as f, b as p, x as m, y as h } from "./SidebarWorkflowSection-BEJKYrrz.js";
+import { A as e, E as t, J as n, R as r, S as i, Y as a, b as o, j as s, m as c } from "./events-CoI83paj.js";
+import { a as l, n as u } from "./graphTraversal-C94Q5bJN.js";
+import { S as d, Y as f, b as p, x as m, y as h } from "./SidebarWorkflowSection-DpoPGJrq.js";
 //#region ui/features/viewer/floatingViewerProgress.ts
 var g = "progress-update", _ = "__MJR_MFV_PROGRESS_SERVICE__";
 function ee() {
@@ -100,7 +100,7 @@ var te = class {
 		return r ? (this._attachApi(r), r) : null;
 	}
 	_attachApi(e) {
-		!e || typeof e.addEventListener != "function" || this._api !== e && (this.dispose({
+		e && typeof e.addEventListener == "function" && this._api !== e && (this.dispose({
 			resetPatchedQueuePrompt: !1,
 			keepState: !0
 		}), this._api = e, this._patchQueuePrompt(e), this._attachApiListeners(e));
@@ -340,7 +340,7 @@ function k(e) {
 	let t = fe(e), n = e?.properties && typeof e.properties == "object" ? e.properties : null;
 	if (Array.isArray(e?._mjrSubgraphProxyParams)) for (let n of e._mjrSubgraphProxyParams) {
 		let e = String(n?.label || n?.key || "").trim();
-		!e || t.some(([t]) => String(t) === e) || t.push([e, n?.value]);
+		e && !t.some(([t]) => String(t) === e) && t.push([e, n?.value]);
 	}
 	if (n) for (let [e, r] of Object.entries(n)) ge(e) || r != null && typeof r != "object" && t.push([e, r]);
 	return t.slice(0, 160);
@@ -370,7 +370,7 @@ function A(e) {
 	});
 }
 function pe(e) {
-	return !!(e && typeof e == "object" && !Array.isArray(e) && !j(e));
+	return !(!e || typeof e != "object" || Array.isArray(e) || j(e));
 }
 function me(e) {
 	if (Array.isArray(e)) return e;
@@ -415,7 +415,7 @@ function P(e) {
 	let n = [];
 	for (let e of ["required", "optional"]) {
 		let r = t[e];
-		if (!(!r || typeof r != "object")) for (let [e, t] of Object.entries(r)) I(t) && n.push(e);
+		if (r && typeof r == "object") for (let [e, t] of Object.entries(r)) I(t) && n.push(e);
 	}
 	return n.length ? n : N(e);
 }
@@ -642,7 +642,7 @@ function Oe(e, t) {
 		let d = u.find(([e]) => V(e) === V(c)) || u.find(([e]) => V(e) === "value") || (u.length === 1 ? u[0] : null);
 		if (!d) continue;
 		let f = `${String(s)}:${je(t, c, d[0])}`, p = a.get(f) || a.get(String(s)) || Me(l, d[0], c);
-		i.size && !i.has(V(p)) || o.push({
+		(!i.size || i.has(V(p))) && o.push({
 			label: p,
 			value: d[1],
 			innerNodeId: s,
@@ -666,7 +666,7 @@ function Ae(e) {
 		let n = Array.isArray(e) ? e[1] : e?.origin_id ?? e?.originId ?? e?.from;
 		if (String(n) !== "-10") continue;
 		let i = Number(Array.isArray(e) ? e[2] : e?.origin_slot ?? e?.originSlot ?? e?.fromSlot), a = Array.isArray(e) ? e[3] : e?.target_id ?? e?.targetId ?? e?.to, o = Number(Array.isArray(e) ? e[4] : e?.target_slot ?? e?.targetSlot ?? e?.toSlot), s = Number.isFinite(i) ? t[i] : null, c = String(s?.label || s?.localized_name || s?.name || "").trim();
-		!c || a == null || V(c) !== "value" && (r.set(String(a), c), Number.isFinite(o) && r.set(`${String(a)}:${o}`, c));
+		c && a != null && V(c) !== "value" && (r.set(String(a), c), Number.isFinite(o) && r.set(`${String(a)}:${o}`, c));
 	}
 	return r;
 }

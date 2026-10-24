@@ -1,12 +1,12 @@
-import { Zt as e, g as t, y as n } from "./viewerRuntimeHosts-DyiuTSfr.js";
-import { B as r, C as i, I as a, M as o, O as s, P as c, R as l, V as u, j as d, m as f, o as p, r as m, rt as h, v as g, w as _, x as v } from "./events-DrYpMD-I.js";
-import { a as y, i as b, o as x, s as S } from "./graphTraversal-BIYmTTPW.js";
-import { _ as C, g as w, m as T, n as E, p as ee, r as D, w as O } from "./Viewer-DXsFcJRb.js";
-import { r as k, v as A } from "./SidebarWorkflowSection-BEJKYrrz.js";
-import { _ as j, a as M, c as N, d as P, f as F, g as I, h as L, i as te, l as R, m as z, o as ne, p as B, r as re, s as V, t as ie, u as H, v as U } from "./openMajoorSettings-CjYabCh7.js";
-import { a as W, n as ae, r as oe } from "./model3dRenderer-CWRtZrSS.js";
-import { i as se, o as ce, r as le, t as ue } from "./geninfoParser-DS9m_bHm.js";
-import { t as de } from "./genInfo-D0BtEEbx.js";
+import { $t as e, g as t, y as n } from "./viewerRuntimeHosts-BBd8uK6j.js";
+import { B as r, C as i, I as a, M as o, O as s, P as c, R as l, V as u, j as d, m as f, o as p, r as m, rt as h, v as g, w as _, x as v } from "./events-CoI83paj.js";
+import { a as y, i as b, o as x, s as S } from "./graphTraversal-C94Q5bJN.js";
+import { _ as C, g as w, m as T, n as E, p as ee, r as D, w as O } from "./Viewer-DWgaGos-.js";
+import { r as k, v as A } from "./SidebarWorkflowSection-DpoPGJrq.js";
+import { _ as j, a as M, c as N, d as P, f as F, g as I, h as L, i as te, l as R, m as z, o as ne, p as B, r as re, s as V, t as ie, u as H, v as U } from "./openMajoorSettings-CxqtW_yN.js";
+import { a as W, n as ae, r as oe } from "./model3dRenderer-e5uWwIMW.js";
+import { i as se, o as ce, r as le, t as ue } from "./geninfoParser-Bwtqk4p6.js";
+import { t as de } from "./genInfo-y4P7FXnU.js";
 //#region ui/features/viewer/floatingViewerConstants.ts
 var G = Object.freeze({
 	SIMPLE: "simple",
@@ -169,7 +169,7 @@ function Ee(e, t = null, { kind: n = "" } = {}) {
 		} catch (e) {
 			console.debug?.(e);
 		}
-		if (!(!i || e?.paused)) {
+		if (i && !e?.paused) {
 			try {
 				let t = e;
 				if (typeof t?.requestVideoFrameCallback == "function") {
@@ -186,7 +186,7 @@ function Ee(e, t = null, { kind: n = "" } = {}) {
 			}
 		}
 	}, P = () => {
-		M(), !(!i || e?.paused) && N();
+		M(), i && !e?.paused && N();
 	}, F = (e) => {
 		try {
 			e?.stopPropagation?.();
@@ -200,7 +200,7 @@ function Ee(e, t = null, { kind: n = "" } = {}) {
 		}
 		D();
 	}, L = (t, n) => {
-		if (F(n), !(!a || !(e instanceof HTMLVideoElement))) {
+		if (F(n), a && e instanceof HTMLVideoElement) {
 			try {
 				e.pause?.();
 			} catch (e) {
@@ -334,7 +334,7 @@ function J(e, t) {
 	return n.className = `mjr-mfv-label label-${t}`, n.textContent = e, n;
 }
 function je(e) {
-	if (!(!e || typeof e.play != "function")) try {
+	if (e && typeof e.play == "function") try {
 		let t = e.play();
 		t && typeof t.catch == "function" && t.catch(() => {});
 	} catch (e) {
@@ -342,7 +342,7 @@ function je(e) {
 	}
 }
 function Me(e) {
-	if (!(!e || typeof e.play != "function")) try {
+	if (e && typeof e.play == "function") try {
 		let t = e.play();
 		t && typeof t.catch == "function" && t.catch(() => {
 			try {
@@ -646,7 +646,7 @@ var Xe = class {
 		return this._body = c, t.appendChild(c), this._el = t, this._applyExpandedState(), t;
 	}
 	_applyExpandedState() {
-		if (!(!this._el || !this._body)) {
+		if (this._el && this._body) {
 			if (this._el.classList.toggle("is-collapsible", this._collapsible), this._el.classList.toggle("is-collapsed", this._collapsible && !this._expanded), this._toggleBtn) {
 				let e = this._expanded ? "pi pi-chevron-down" : "pi pi-chevron-right";
 				this._toggleBtn.textContent = "";
@@ -939,7 +939,7 @@ function ft(e) {
 				index: o
 			});
 		}
-		!a || c.has(a.index) || te(a.widget, X(e.value), t) && (c.add(a.index), l += 1);
+		a && !c.has(a.index) && te(a.widget, X(e.value), t) && (c.add(a.index), l += 1);
 	}
 	return u(), {
 		ok: l > 0,
@@ -1725,7 +1725,7 @@ function Zt(e) {
 	], r = /* @__PURE__ */ new Set(), i = [];
 	for (let [e, t] of n) {
 		let n = le(t?.name || t?.value || t || "");
-		if (!(!n || r.has(n)) && (r.add(n), i.push(`${e}: ${n}`), i.length >= 3)) break;
+		if (n && !r.has(n) && (r.add(n), i.push(`${e}: ${n}`), i.length >= 3)) break;
 	}
 	return i.join(" | ");
 }
@@ -2414,7 +2414,7 @@ function En(e, t) {
 	].map((t) => Tn(e[`_media${t}`])).filter(Boolean));
 	for (let r of t) {
 		let t = Tn(r);
-		if (!(!t || n.has(t))) {
+		if (t && !n.has(t)) {
 			try {
 				URL.revokeObjectURL(t);
 			} catch {}
@@ -2515,9 +2515,9 @@ function Mn(e, ...t) {
 	return Array.from(new Set([String(e || ""), ...t].join(" ").split(/\s+/).filter(Boolean))).join(" ");
 }
 function Nn(e, t) {
-	if (!(!e || !t)) for (let n of Array.from(e.attributes || [])) {
+	if (e && t) for (let n of Array.from(e.attributes || [])) {
 		let e = String(n?.name || "");
-		if (!(!e || e === "class" || e === "style")) try {
+		if (e && e !== "class" && e !== "style") try {
 			t.setAttribute(e, n.value);
 		} catch (e) {
 			console.debug?.(e);
@@ -2745,7 +2745,7 @@ function Wn(e) {
 	}, 250);
 }
 function Gn(e) {
-	!e._isPopped || e._popoutRestoreGuard || (e._popoutRestoreGuard = !0, window.setTimeout(() => {
+	e._isPopped && !e._popoutRestoreGuard && (e._popoutRestoreGuard = !0, window.setTimeout(() => {
 		try {
 			e.popIn({ closePopupWindow: !1 });
 		} finally {
@@ -3487,7 +3487,7 @@ var dr = 0, fr = class {
 			let i = Math.max(0, Math.min(.92, Number(r) || 0));
 			if (!(i > 0)) return;
 			e.save(), e.fillStyle = `rgba(0,0,0,${i})`, e.fillRect(0, 0, t.width, t.height), e.globalCompositeOperation = "destination-out";
-			for (let t of n) !t || !(t.w > 1 && t.h > 1) || e.fillRect(t.x, t.y, t.w, t.h);
+			for (let t of n) t && t.w > 1 && t.h > 1 && e.fillRect(t.x, t.y, t.w, t.h);
 			e.restore();
 		} catch (e) {
 			console.debug?.(e);
@@ -3550,7 +3550,7 @@ var dr = 0, fr = class {
 	_bindLayoutObserver() {
 		this._unbindLayoutObserver();
 		let e = this._contentEl;
-		if (!(!e || typeof ResizeObserver > "u")) try {
+		if (e && typeof ResizeObserver < "u") try {
 			this._layoutObserver = new ResizeObserver(() => {
 				this._applyTransform();
 			}), this._layoutObserver.observe(e);
@@ -3881,7 +3881,7 @@ var dr = 0, fr = class {
 		return i.childNodes.length ? r : null;
 	}
 	_appendIdeogramGenInfoCards(e, t) {
-		if (!(!e || !t)) {
+		if (e && t) {
 			t.highLevelDescription && e.appendChild(this._buildGenInfoCard({
 				title: "High Level Description",
 				accent: "#4CAF50",
@@ -3967,7 +3967,7 @@ var dr = 0, fr = class {
 		return a.className = "mjr-mfv-gen-field-value", a.textContent = n, r.appendChild(i), r.appendChild(a), r;
 	}
 	_bindGenInfoCopy(e, t) {
-		!e || typeof t != "function" || (e.title = "Click to copy", e.addEventListener("click", async (n) => {
+		e && typeof t == "function" && (e.title = "Click to copy", e.addEventListener("click", async (n) => {
 			n.stopPropagation();
 			let r = String(t() || "").trim();
 			if (r) try {
