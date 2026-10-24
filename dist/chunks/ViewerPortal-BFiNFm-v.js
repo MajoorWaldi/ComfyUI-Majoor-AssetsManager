@@ -1,11 +1,10 @@
-import { a as e, i as t } from "./viewerRuntimeHosts-DyiuTSfr.js";
-import { r as n } from "./events-DrYpMD-I.js";
-import { a as r, c as i, i as a, l as o, o as s, s as c, t as l, u } from "./Viewer-DXsFcJRb.js";
-import { i as d, r as f } from "./floatingViewerManager-Crq2oCKD.js";
-import { B as p, C as m, D as h, E as g, G as _, J as v, K as y, L as b, N as x, O as S, T as C, U as w, V as T, dt as E, ft as D, j as O, k, lt as A, rt as j, ut as M, w as N, z as P } from "./mjr-primevue-BlSRoWcG.js";
-import { t as F } from "./TagsEditor-BiRWztXF.js";
-//#endregion
-//#region ui/vue/components/viewer/FloatingViewerHost.vue
+import { a as e, i as t } from "./viewerRuntimeHosts-C8Q5fKly.js";
+import { r as n } from "./events-BZ0LknTB.js";
+import { a as r, c as i, i as a, l as o, o as s, s as c, t as l, u } from "./Viewer-C94B8p6P.js";
+import { i as d, r as f } from "./floatingViewerManager-dVy1pPN6.js";
+import { B as p, C as m, D as h, E as g, G as _, J as v, K as y, L as b, N as x, O as S, T as C, U as w, V as T, dt as E, ft as D, j as O, k, lt as A, rt as j, ut as M, w as N, z as P } from "./mjr-primevue-BRqtdXzb.js";
+import { t as F } from "./TagsEditor-BDrOPi6F.js";
+// ui/vue/components/viewer/FloatingViewerHost.vue
 var I = /* @__PURE__ */ x({
 	__name: "FloatingViewerHost",
 	setup(e) {
@@ -112,12 +111,9 @@ var I = /* @__PURE__ */ x({
 			});
 		}
 		async function J(e, t, n = "main") {
-			if (!(!e || e.type !== "item" || e.disabled)) {
-				if (Array.isArray(e.submenu) && e.submenu.length) {
-					q(e, t);
-					return;
-				}
-				try {
+			if (e && e.type === "item" && !e.disabled) {
+				if (Array.isArray(e.submenu) && e.submenu.length) q(e, t);
+				else try {
 					await e.action?.();
 				} catch (e) {
 					console.error("[ViewerContextMenu.vue] Action failed:", e);
@@ -127,11 +123,7 @@ var I = /* @__PURE__ */ x({
 			}
 		}
 		function Y(e, t) {
-			if (Array.isArray(e?.submenu) && e.submenu.length) {
-				q(e, t);
-				return;
-			}
-			s();
+			Array.isArray(e?.submenu) && e.submenu.length ? q(e, t) : s();
 		}
 		function X(e) {
 			Array.isArray(e?.submenu) && e.submenu.length && L();
@@ -347,5 +339,4 @@ var I = /* @__PURE__ */ x({
 		], 64));
 	}
 });
-//#endregion
 export { K as default };

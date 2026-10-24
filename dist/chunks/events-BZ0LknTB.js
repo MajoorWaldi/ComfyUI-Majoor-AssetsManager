@@ -1,5 +1,5 @@
-import { a as e, n as t, s as n } from "./graphTraversal-BIYmTTPW.js";
-//#region ui/utils/ids.ts
+import { a as e, n as t, s as n } from "./graphTraversal-DTdQWkn5.js";
+// ui/utils/ids.ts
 function r(e) {
 	try {
 		return String(e ?? "").trim();
@@ -50,8 +50,7 @@ function u(e) {
 		return "";
 	}
 }
-//#endregion
-//#region ui/utils/path.ts
+// ui/utils/path.ts
 function d(e) {
 	return String(e || "").replace(/\\/g, "/");
 }
@@ -73,8 +72,7 @@ function f(e) {
 function p(e) {
 	return /^[a-zA-Z]:\//.test(String(e || ""));
 }
-//#endregion
-//#region ui/api/endpoints.ts
+// ui/api/endpoints.ts
 var m = 200, h = 0, g = {
 	HEALTH: "/mjr/am/health",
 	HEALTH_COUNTERS: "/mjr/am/health/counters",
@@ -335,8 +333,7 @@ function le(e, t = "") {
 function ue(e) {
 	return e ? `${g.DOWNLOAD_CLEAN}?filepath=${encodeURIComponent(e)}` : "";
 }
-//#endregion
-//#region ui/app/comfyApiBridge.ts
+// ui/app/comfyApiBridge.ts
 var w = null, T = null, de = 50;
 function E(e) {
 	return !!e && typeof e == "object";
@@ -581,8 +578,7 @@ async function Ae({ app: e = null, timeoutMs: t = 4e3, intervalMs: n = de, warnO
 	if (r && Oe("waitForComfyApi", o), i) throw Error(`waitForComfyApi timeout after ${o}ms`);
 	return null;
 }
-//#endregion
-//#region ui/app/hostAdapter.ts
+// ui/app/hostAdapter.ts
 var N = null, P = Symbol.for("mjr.host.queuePromptBinding"), je = [
 	"selectionchange",
 	"selection-change",
@@ -1151,8 +1147,7 @@ function bt() {
 		return console.debug?.(e), null;
 	}
 }
-//#endregion
-//#region ui/app/settings/SettingsStore.ts
+// ui/app/settings/SettingsStore.ts
 var B = /* @__PURE__ */ new Map(), V = !1, H = null;
 function U() {
 	try {
@@ -1163,7 +1158,7 @@ function U() {
 }
 function W(e, t, n) {
 	let r = B.get(String(e || ""));
-	if (!(!r || !r.size)) for (let i of Array.from(r)) try {
+	if (r && r.size) for (let i of Array.from(r)) try {
 		i(t, n, e);
 	} catch (e) {
 		console.debug?.(e);
@@ -2920,7 +2915,7 @@ function jt() {
 	});
 }
 function Mt() {
-	return Z ? Promise.resolve() : (kt ||= import("./i18n.generated-DMwEk0Tb.js").then(({ GENERATED_TRANSLATIONS: e }) => {
+	return Z ? Promise.resolve() : (kt ||= import("./i18n.generated-DqByySOH.js").then(({ GENERATED_TRANSLATIONS: e }) => {
 		At(e);
 	}).catch((e) => {
 		console.warn("[Majoor i18n] Failed to load generated translations:", e), jt();
@@ -3264,5 +3259,4 @@ var Bt = (e) => {
 	OPEN_NODE_CONTEXT: "mjr:open-node-context",
 	OPEN_MESSAGE_HISTORY: "mjr:open-message-history"
 });
-//#endregion
 export { Ae as $, F as A, pt as B, mt as C, u as Ct, Pe as D, Ye as E, ut as F, dt as G, Be as H, Je as I, Ue as J, Ie as K, ft as L, rt as M, Fe as N, Xe as O, lt as P, fe as Q, at as R, We as S, l as St, bt as T, Ve as U, z as V, Le as W, A as X, qe as Y, pe as Z, Re as _, S as _t, Xt as a, ue as at, ht as b, o as bt, Ut as c, se as ct, Vt as d, ne as dt, ke as et, $ as f, y as ft, ze as g, le as gt, G as h, ce as ht, Zt as i, ee as it, He as j, Ne as k, Wt as l, b as lt, Gt as m, ie as mt, Yt as n, _ as nt, qt as o, x as ot, Ht as p, v as pt, Me as q, Qt as r, oe as rt, Kt as s, ae as st, Jt as t, g as tt, Bt as u, re as ut, ot as v, C as vt, it as w, ct as x, s as xt, yt as y, d as yt, Ke as z };
