@@ -1,4 +1,4 @@
-//#region ui/features/viewer/state.ts
+// ui/features/viewer/state.ts
 function e(e) {
 	let t = Number(e);
 	return Number.isFinite(t) ? Math.max(0, Math.min(1, t)) : 0;
@@ -55,5 +55,4 @@ function n() {
 		_scopesLastAt: 0
 	};
 }
-//#endregion
 export { e as n, n as r, t };

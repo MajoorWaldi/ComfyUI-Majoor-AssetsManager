@@ -1,4 +1,4 @@
-//#region ui/features/viewer/abCompare.ts
+// ui/features/viewer/abCompare.ts
 function e({ abView: e, state: t, currentAsset: n, viewUrl: r, buildAssetViewURL: i, createCompareMediaElement: a, destroyMediaProcessorsIn: o } = {}) {
 	try {
 		o?.(e);
@@ -310,11 +310,8 @@ function e({ abView: e, state: t, currentAsset: n, viewUrl: r, buildAssetViewURL
 							} catch (e) {
 								console.debug?.(e);
 							}
-							if (!c()) {
-								e = null;
-								return;
-							}
-							try {
+							if (!c()) e = null;
+							else try {
 								e = requestAnimationFrame(u);
 							} catch {
 								e = null;
@@ -451,5 +448,4 @@ function e({ abView: e, state: t, currentAsset: n, viewUrl: r, buildAssetViewURL
 		console.debug?.(e);
 	}
 }
-//#endregion
 export { e as renderABCompareView };

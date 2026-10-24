@@ -1,5 +1,5 @@
-import { Ct as e, St as t, _t as n, gt as r, ht as i, k as a, m as o, nt as s, o as c, tt as l, vt as u, xt as d } from "./events-DrYpMD-I.js";
-//#region ui/app/settingsStore.ts
+import { Ct as e, St as t, _t as n, gt as r, ht as i, k as a, m as o, nt as s, o as c, tt as l, vt as u, xt as d } from "./events-BZ0LknTB.js";
+// ui/app/settingsStore.ts
 var f = "mjrSettings", p = "mjrMinimapSettings", m = /* @__PURE__ */ new Set([
 	"POST",
 	"PUT",
@@ -316,8 +316,7 @@ function ue({ readObsEnabled: e = () => !1, readAuthToken: t = () => "", ensureW
 		post: s
 	};
 }
-//#endregion
-//#region ui/utils/ttlCache.ts
+// ui/utils/ttlCache.ts
 function O({ ttlMs: e = 0, maxSize: t = 100, now: n = () => Date.now() } = {}) {
 	let r = /* @__PURE__ */ new Map();
 	function i() {
@@ -367,11 +366,8 @@ function O({ ttlMs: e = 0, maxSize: t = 100, now: n = () => Date.now() } = {}) {
 			c(t, n);
 			let o = r.get(e);
 			if (o) {
-				if (s(o, t, n)) {
-					r.delete(e);
-					return;
-				}
-				return o.value;
+				if (s(o, t, n)) r.delete(e);
+				else return o.value;
 			}
 		},
 		has(e) {
@@ -404,8 +400,7 @@ function O({ ttlMs: e = 0, maxSize: t = 100, now: n = () => Date.now() } = {}) {
 		}
 	};
 }
-//#endregion
-//#region ui/features/panel/messages/toastHistory.ts
+// ui/features/panel/messages/toastHistory.ts
 var de = "mjr_toast_history_v1", fe = "mjr_toast_history_last_read_v1", pe = 60, me = "mjr:toast-history-changed", k = null;
 function A(e) {
 	return String(e || "").trim();
@@ -524,8 +519,7 @@ function Ee() {
 function De() {
 	M(), k = [], ye(), Se(Date.now()), be();
 }
-//#endregion
-//#region ui/app/toast.ts
+// ui/app/toast.ts
 function Oe(e) {
 	let t = String(e || "info").trim().toLowerCase();
 	return t === "warn" ? "warning" : t === "danger" ? "error" : t === "success" || t === "warning" || t === "error" ? t : "info";
@@ -740,8 +734,7 @@ function N(e, t = "info", n, r) {
 		duration: i ? 0 : n
 	});
 }
-//#endregion
-//#region ui/api/clientAuth.ts
+// ui/api/clientAuth.ts
 var Pe = 2e3, Fe = 15e3, Ie = 8e3, P = "token", F = null, I = null, Le = null, Re = "", L = O({
 	ttlMs: Pe,
 	maxSize: 1
@@ -934,7 +927,7 @@ async function Xe({ force: e = !1, allowCookieRefresh: t = !1 } = {}) {
 	if (e && r?.ok && !r?.token && n) Ve();
 	else if (e && !r?.ok) {
 		let e = Ge(), t = String(e?.code || "").trim().toUpperCase();
-		(!t || !["NETWORK_ERROR", "INVALID_RESPONSE"].includes(t)) && Ve();
+		t && ["NETWORK_ERROR", "INVALID_RESPONSE"].includes(t) || Ve();
 	}
 	let i = z();
 	return !i && t && r?.ok ? !0 : i;
@@ -942,8 +935,7 @@ async function Xe({ force: e = !1, allowCookieRefresh: t = !1 } = {}) {
 function Ze() {
 	L.clear();
 }
-//#endregion
-//#region ui/api/clientOps.ts
+// ui/api/clientOps.ts
 async function Qe(e) {
 	return !e || typeof e != "string" ? {
 		ok: !1,
@@ -1401,8 +1393,7 @@ async function un(e, { topK: t = 50, scope: n = "output", customRootId: r = "", 
 async function dn(e = 8) {
 	return Y(l.VECTOR_SUGGEST_COLLECTIONS, { k: Math.max(2, Math.min(20, e)) });
 }
-//#endregion
-//#region ui/api/client.ts
+// ui/api/client.ts
 var fn = 3e4, pn = "__MJR_API_CLIENT__", mn = 2e3, hn = 200, gn = 1e3, _n = 18e5, vn = 432e5, H = "settings", yn = "available-tags", U = O({
 	ttlMs: mn,
 	maxSize: 1
@@ -1459,7 +1450,7 @@ function Dn(e) {
 		let e = String(r ?? "").trim();
 		if (!e) continue;
 		let i = En(e);
-		!i || n.has(i) || (n.add(i), t.push(e));
+		i && !n.has(i) && (n.add(i), t.push(e));
 	}
 	return t;
 }
@@ -1737,8 +1728,7 @@ async function $n({ filepath: e = "", root_id: t = "", subfolder: n = "" } = {},
 	}
 	return u;
 }
-//#endregion
-//#region ui/utils/logging.ts
+// ui/utils/logging.ts
 function er(e, ...t) {
 	try {
 		c.DEBUG_VERBOSE_ERRORS && console.debug(e, ...t);
@@ -1757,8 +1747,7 @@ function tr(e, t = "Majoor", { showToast: n = !1, toastType: r = "error" } = {})
 		console.debug?.(e);
 	}
 }
-//#endregion
-//#region ui/features/panel/controllers/hotkeysState.ts
+// ui/features/panel/controllers/hotkeysState.ts
 var X = {
 	suspended: !1,
 	scope: null,
@@ -1776,8 +1765,7 @@ function ir() {
 function ar(e) {
 	X.ratingHotkeysActive = !!e;
 }
-//#endregion
-//#region ui/features/viewer/viewerRuntimeHosts.ts
+// ui/features/viewer/viewerRuntimeHosts.ts
 var Z = null, Q = null, or = ".mjr-viewer-overlay", sr = ".mjr-mfv";
 function cr(e) {
 	return !!e && typeof e.appendChild == "function";
@@ -1816,7 +1804,7 @@ function mr(e, t, n = $) {
 		} catch (e) {
 			console.debug?.(e);
 		}
-		for (let e of t) !e || r.includes(e) || r.push(e);
+		for (let e of t) e && !r.includes(e) && r.push(e);
 	}
 	return r;
 }
@@ -1834,13 +1822,13 @@ function gr(e) {
 	return Z = fr(e), hr(or, Z), () => _r(e);
 }
 function _r(e) {
-	(!e || Z === e) && (Z = null);
+	e && Z !== e || (Z = null);
 }
 function vr(e) {
 	return Q = fr(e), hr(sr, Q, pr), () => yr(e);
 }
 function yr(e) {
-	(!e || Q === e) && (Q = null);
+	e && Q !== e || (Q = null);
 }
 function br(e) {
 	let t = $(Z);
@@ -1863,5 +1851,4 @@ function xr(e) {
 function Sr() {
 	return mr(or, Z);
 }
-//#endregion
 export { ht as $, me as $t, Vn as A, Qe as At, kt as B, It as Bt, Yn as C, at as Ct, Gn as D, gt as Dt, Xn as E, vt as Et, Mn as F, Mt as Ft, zt as G, on as Gt, Kt as H, rn as Ht, Rn as I, wt as It, Wt as J, dn as Jt, lt as K, nn as Kt, $t as L, Ut as Lt, qn as M, Et as Mt, Zn as N, mt as Nt, Un as O, et as Ot, jn as P, nt as Pt, _t as Q, je as Qt, Dt as R, Pt as Rt, Ln as S, ot as St, zn as T, St as Tt, qt as U, ln as Ut, Zt as V, cn as Vt, Qt as W, an as Wt, st as X, Ue as Xt, it as Y, We as Yt, xt as Z, N as Zt, In as _, Yt as _t, gr as a, p as an, pt as at, $n as b, Vt as bt, rr as c, Ft as ct, tr as d, un as dt, De as en, $e as et, Wn as f, Xt as ft, Pn as g, en as gt, J as h, Ot as ht, vr as i, O as in, Tt as it, Kn as j, ft as jt, Y as k, bt as kt, ar as l, Nt as lt, Hn as m, Gt as mt, br as n, we as nn, dt as nt, nr as o, f as on, Lt as ot, Bn as p, Bt as pt, tn as q, sn as qt, Sr as r, Ee as rn, Rt as rt, ir as s, tt as st, xr as t, Te as tn, yt as tt, er as u, Ct as ut, Nn as v, jt as vt, Jn as w, ct as wt, Fn as x, ut as xt, Qn as y, Ht as yt, At as z, rt as zt };

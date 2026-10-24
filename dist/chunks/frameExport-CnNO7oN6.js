@@ -1,4 +1,4 @@
-//#region ui/features/viewer/frameExport.ts
+// ui/features/viewer/frameExport.ts
 function e({ state: e, VIEWER_MODES: t, singleView: n, abView: r, sideView: i }) {
 	function a() {
 		try {
@@ -103,5 +103,4 @@ function e({ state: e, VIEWER_MODES: t, singleView: n, abView: r, sideView: i })
 	}
 	return { exportCurrentFrame: s };
 }
-//#endregion
 export { e as createFrameExporter };

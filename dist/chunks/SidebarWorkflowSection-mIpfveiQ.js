@@ -1,12 +1,12 @@
-import { $ as e, At as t, Bt as n, Ct as r, Dt as i, Et as a, I as o, It as s, K as c, Mt as l, N as u, Nt as d, O as f, Ot as p, Pt as m, Q as h, Qt as g, R as _, Rt as v, S as y, St as b, T as x, Tt as S, Ut as C, Vt as ee, Wt as te, X as w, Xt as T, Y as ne, Yt as re, Z as ie, Zt as E, an as ae, at as oe, ct as se, et as ce, ht as le, it as ue, jt as de, k as D, kt as fe, lt as pe, nt as me, on as he, p as ge, qt as _e, rt as ve, st as ye, tt as be, ut as xe, w as Se, wt as Ce, xt as we, zt as Te } from "./viewerRuntimeHosts-DyiuTSfr.js";
-import { Ct as Ee, K as De, N as Oe, T as ke, c as Ae, d as je, f as Me, h as Ne, j as Pe, l as Fe, m as O, o as k, p as Ie, pt as Le, s as A, tt as Re, u as ze, x as Be, y as Ve } from "./events-DrYpMD-I.js";
-import { F as He, K as Ue, P as We, Y as Ge, f as Ke, m as qe, p as Je } from "./Viewer-h3j-Fa-c.js";
-import { t as Ye } from "./floatingViewerManager-Ck9H-cUl.js";
-import { A as Xe, C as j, D as Ze, E as M, G as Qe, J as $e, K as et, N as tt, O as N, R as nt, S as rt, T as P, U as F, V as I, Y as it, _ as at, a as ot, b as st, c as ct, d as lt, dt as L, f as ut, ft as R, g as dt, h as ft, i as pt, j as mt, k as z, l as ht, lt as B, m as gt, n as _t, nt as vt, o as yt, p as bt, r as xt, rt as V, s as St, t as Ct, u as wt, ut as Tt, y as Et, z as Dt } from "./mjr-primevue-BlSRoWcG.js";
-import { t as Ot } from "./mjr-vue-vendor-Bb2CVJXl.js";
-import { t as kt } from "./viewerOpenRequest-DMHMZl65.js";
-import { a as At, i as jt, n as Mt, o as Nt, r as Pt, t as Ft } from "./geninfoParser-DS9m_bHm.js";
-//#region ui/app/settings/settingsUtils.ts
+import { $ as e, At as t, Bt as n, Ct as r, Dt as i, Et as a, I as o, It as s, K as c, Mt as l, N as u, Nt as d, O as f, Ot as p, Pt as m, Q as h, Qt as g, R as _, Rt as v, S as y, St as b, T as x, Tt as S, Ut as C, Vt as ee, Wt as te, X as w, Xt as T, Y as ne, Yt as re, Z as ie, Zt as E, an as ae, at as oe, ct as se, et as ce, ht as le, it as ue, jt as de, k as D, kt as fe, lt as pe, nt as me, on as he, p as ge, qt as _e, rt as ve, st as ye, tt as be, ut as xe, w as Se, wt as Ce, xt as we, zt as Te } from "./viewerRuntimeHosts-C8Q5fKly.js";
+import { Ct as Ee, K as De, N as Oe, T as ke, c as Ae, d as je, f as Me, h as Ne, j as Pe, l as Fe, m as O, o as k, p as Ie, pt as Le, s as A, tt as Re, u as ze, x as Be, y as Ve } from "./events-BZ0LknTB.js";
+import { F as He, K as Ue, P as We, Y as Ge, f as Ke, m as qe, p as Je } from "./Viewer-DSQhqDQA.js";
+import { t as Ye } from "./floatingViewerManager-CFRjC568.js";
+import { A as Xe, C as j, D as Ze, E as M, G as Qe, J as $e, K as et, N as tt, O as N, R as nt, S as rt, T as P, U as F, V as I, Y as it, _ as at, a as ot, b as st, c as ct, d as lt, dt as L, f as ut, ft as R, g as dt, h as ft, i as pt, j as mt, k as z, l as ht, lt as B, m as gt, n as _t, nt as vt, o as yt, p as bt, r as xt, rt as V, s as St, t as Ct, u as wt, ut as Tt, y as Et, z as Dt } from "./mjr-primevue-BRqtdXzb.js";
+import { t as Ot } from "./mjr-vue-vendor-mHY_eIVE.js";
+import { t as kt } from "./viewerOpenRequest-BZ1K2PLr.js";
+import { a as At, i as jt, n as Mt, o as Nt, r as Pt, t as Ft } from "./geninfoParser-CgHp-y-n.js";
+// ui/app/settings/settingsUtils.ts
 var H = (e, t) => {
 	if (typeof e == "boolean") return e;
 	if (typeof e == "string") {
@@ -217,7 +217,7 @@ var H = (e, t) => {
 		let e = Ne.get(he);
 		if (!e) return { ...W };
 		let t = JSON.parse(e), n = t && typeof t == "object" && Number.isInteger(t.version) && t.data && typeof t.data == "object";
-		if (!n && !(t && typeof t == "object" && !Array.isArray(t))) return { ...W };
+		if (!n && (!t || typeof t != "object" || Array.isArray(t))) return { ...W };
 		if (n && Number(t.version) > 1) return console.warn("[Majoor] settings schema version is newer than this build, using defaults"), { ...W };
 		let r = n ? t.data : t, i = /* @__PURE__ */ new Set(/* @__PURE__ */ "debug.grid.infiniteScroll.siblings.autoScan.scan.watcher.status.viewer.rtHydrate.observability.feed.sidebar.probeBackend.i18n.paths.db.ratingTagsSync.cache.search.ai.executionGrouping.workflowMinimap.ui.security.safety".split(".")), a = {};
 		if (r && typeof r == "object") for (let [e, t] of Object.entries(r)) i.has(e) && (a[e] = t);
@@ -345,8 +345,7 @@ async function Jt() {
 		console.warn("[Majoor] failed to sync backend execution grouping settings", e);
 	}
 }
-//#endregion
-//#region ui/app/settings/settingsRuntime.ts
+// ui/app/settings/settingsRuntime.ts
 var Yt = "mjr-runtime-status-dashboard", Xt = 3e4;
 function Zt() {
 	try {
@@ -416,7 +415,7 @@ function nn() {
 		}
 		try {
 			let t = String(getComputedStyle(e).position || "").toLowerCase();
-			(!t || t === "static") && (e.style.position = "relative");
+			t && t !== "static" || (e.style.position = "relative");
 		} catch (e) {
 			console.debug?.(e);
 		}
@@ -466,11 +465,7 @@ function an() {
 			window.__MJR_RUNTIME_STATUS_HIDDEN__ = !0, Qt();
 		}, Xt)), rn().catch(() => {}), window.__MJR_RUNTIME_STATUS_INFLIGHT__ ?? (window.__MJR_RUNTIME_STATUS_INFLIGHT__ = !1), window.__MJR_RUNTIME_STATUS_MISS_COUNT__ ?? (window.__MJR_RUNTIME_STATUS_MISS_COUNT__ = 0), window.__MJR_RUNTIME_STATUS_INTERVAL__ || (window.__MJR_RUNTIME_STATUS_INTERVAL__ = setInterval(() => {
 			window.__MJR_RUNTIME_STATUS_INFLIGHT__ || (window.__MJR_RUNTIME_STATUS_INFLIGHT__ = !0, rn().then((e) => {
-				if (e) {
-					window.__MJR_RUNTIME_STATUS_MISS_COUNT__ = 0;
-					return;
-				}
-				window.__MJR_RUNTIME_STATUS_MISS_COUNT__ = Number(window.__MJR_RUNTIME_STATUS_MISS_COUNT__ || 0) + 1;
+				e ? window.__MJR_RUNTIME_STATUS_MISS_COUNT__ = 0 : window.__MJR_RUNTIME_STATUS_MISS_COUNT__ = Number(window.__MJR_RUNTIME_STATUS_MISS_COUNT__ || 0) + 1;
 			}).catch(() => {}).finally(() => {
 				window.__MJR_RUNTIME_STATUS_INFLIGHT__ = !1;
 			}));
@@ -479,8 +474,7 @@ function an() {
 		console.debug?.(e);
 	}
 }
-//#endregion
-//#region ui/utils/debounce.ts
+// ui/utils/debounce.ts
 var on = 300;
 function sn(e, t = on) {
 	let n, r = (...r) => {
@@ -492,8 +486,7 @@ function sn(e, t = on) {
 		clearTimeout(n), e(...t);
 	}, r;
 }
-//#endregion
-//#region ui/app/settings/settingsGrid.ts
+// ui/app/settings/settingsGrid.ts
 var q = "Majoor", cn = "Majoor Assets Manager";
 function ln(e, t, n) {
 	let r = (e, t) => [
@@ -898,8 +891,7 @@ function ln(e, t, n) {
 		}
 	});
 }
-//#endregion
-//#region ui/app/settings/settingsViewer.ts
+// ui/app/settings/settingsViewer.ts
 var un = "Majoor", dn = "Majoor Assets Manager";
 function fn(t, n, r) {
 	let a = (e, t) => [
@@ -1089,8 +1081,7 @@ function fn(t, n, r) {
 		});
 	})("Enabled", "enabled", "setting.minimap.enabled.name", "setting.minimap.enabled.desc");
 }
-//#endregion
-//#region ui/app/settings/settingsScanning.ts
+// ui/app/settings/settingsScanning.ts
 var pn = "Majoor", mn = "Majoor Assets Manager";
 function hn(e, t, i) {
 	let o = (e, t) => [
@@ -1325,8 +1316,7 @@ function hn(e, t, i) {
 		}
 	});
 }
-//#endregion
-//#region ui/app/settings/settingsFeed.ts
+// ui/app/settings/settingsFeed.ts
 var gn = "Majoor", _n = "Majoor Assets Manager";
 function vn(e, t, n) {
 	let r = (e) => [
@@ -1443,8 +1433,7 @@ function vn(e, t, n) {
 		}
 	});
 }
-//#endregion
-//#region ui/app/settings/settingsSecurity.ts
+// ui/app/settings/settingsSecurity.ts
 var yn = "Majoor", bn = "Majoor Assets Manager", xn = 16, Sn = {
 	safeMode: !1,
 	allowWrite: !0,
@@ -1613,8 +1602,7 @@ function Ln(e, t, n) {
 		}
 	}), i("requireAuth", "setting.sec.requireAuth.name", "setting.sec.requireAuth.desc", "cat.remote"), i("allowRemoteWrite", "setting.sec.remote.name", "setting.sec.remote.desc", "cat.remote"), i("allowInsecureTokenTransport", "setting.sec.insecureTransport.name", "setting.sec.insecureTransport.desc", "cat.remote");
 }
-//#endregion
-//#region ui/app/settings/settingsAdvanced.ts
+// ui/app/settings/settingsAdvanced.ts
 var J = "Majoor", Rn = "Majoor Assets Manager";
 function zn(e, n, r, i) {
 	let a = (e, t) => [
@@ -1775,11 +1763,7 @@ function zn(e, n, r, i) {
 		defaultValue: n.i18n?.followComfyLanguage ? "auto" : Ae(),
 		options: T,
 		onChange: (e) => {
-			if (n.i18n = n.i18n || {}, e === "auto") {
-				n.i18n.followComfyLanguage = !0, je(!0), ze(i), G(n), r("language");
-				return;
-			}
-			te.includes(e) && (n.i18n.followComfyLanguage = !1, je(!1), Me(e), G(n), r("language"));
+			n.i18n = n.i18n || {}, e === "auto" ? (n.i18n.followComfyLanguage = !0, je(!0), ze(i), G(n), r("language")) : te.includes(e) && (n.i18n.followComfyLanguage = !1, je(!1), Me(e), G(n), r("language"));
 		}
 	}), e({
 		id: `${J}.ProbeBackend.Mode`,
@@ -2030,11 +2014,7 @@ function zn(e, n, r, i) {
 			id: `${J}.AI.HuggingFaceToken`,
 			category: a(O("cat.advanced"), t),
 			name: "HuggingFace Token",
-			tooltip: [
-				"Optional token for HuggingFace Hub downloads (higher rate limits).",
-				"Saved server-side and used by CLIP model loading.",
-				"Leave empty to clear the stored token."
-			].join("\n"),
+			tooltip: "Optional token for HuggingFace Hub downloads (higher rate limits).\nSaved server-side and used by CLIP model loading.\nLeave empty to clear the stored token.",
 			type: "text",
 			defaultValue: "",
 			attrs: {
@@ -2118,15 +2098,7 @@ function zn(e, n, r, i) {
 		id: `${J}.AI.VectorBackfillAction`,
 		category: a(O("cat.advanced"), "AI / Vector Search"),
 		name: "Vector Index Action",
-		tooltip: [
-			"Compute CLIP embeddings for all assets that don't have them yet.",
-			"This is required for AI semantic search to work.",
-			"",
-			"Choose 'Run backfill now' to start indexing.",
-			"This may take several minutes for large libraries.",
-			"",
-			"Note: New assets are indexed automatically during scanning."
-		].join("\n"),
+		tooltip: "Compute CLIP embeddings for all assets that don't have them yet.\nThis is required for AI semantic search to work.\n\nChoose 'Run backfill now' to start indexing.\nThis may take several minutes for large libraries.\n\nNote: New assets are indexed automatically during scanning.",
 		type: "combo",
 		defaultValue: "Idle",
 		options: ["Idle", "Run backfill now"],
@@ -2224,8 +2196,7 @@ function zn(e, n, r, i) {
 		}
 	});
 }
-//#endregion
-//#region ui/app/settings/settingsSearch.ts
+// ui/app/settings/settingsSearch.ts
 var Bn = "Majoor", Vn = "Majoor Assets Manager";
 function Hn(e, t, n) {
 	let r = (e, t) => [
@@ -2379,39 +2350,12 @@ function Hn(e, t, n) {
 		id: `${Bn}.EnvVars.Reference`,
 		category: r(O("cat.advanced"), "Environment variables"),
 		name: "Environment variables reference",
-		tooltip: [
-			"Set these env vars before starting ComfyUI to override defaults:",
-			"",
-			"MAJOOR_OUTPUT_DIRECTORY - Override output root directory",
-			"MAJOOR_EXIFTOOL_PATH - Path to exiftool binary",
-			"MAJOOR_FFPROBE_PATH - Path to ffprobe binary",
-			"MAJOOR_MEDIA_PROBE_BACKEND - Probe mode: auto|exiftool|ffprobe|both",
-			"MAJOOR_EXIFTOOL_TIMEOUT - ExifTool timeout in seconds (default: 15)",
-			"MAJOOR_FFPROBE_TIMEOUT - FFprobe timeout in seconds (default: 10)",
-			"MAJOOR_DB_TIMEOUT - Database timeout in seconds (default: 30)",
-			"MAJOOR_DB_MAX_CONNECTIONS - Max DB connections (default: 8)",
-			"MAJOOR_METADATA_CACHE_MAX - Metadata cache max entries (default: 100000)",
-			"MAJOOR_METADATA_EXTRACT_CONCURRENCY - Parallel metadata workers (default: 1)",
-			"MJR_ENABLE_WATCHER - Enable file watcher: 1|0 (default: 1)",
-			"MJR_WATCHER_DEBOUNCE_MS - Watcher debounce delay in ms (default: 3000)",
-			"MJR_WATCHER_DEDUPE_TTL_MS - Watcher dedupe window in ms (default: 3000)",
-			"MJR_WATCHER_MAX_FILE_SIZE_BYTES - Max file size to index (default: 512MB)",
-			"MJR_WATCHER_FLUSH_MAX_FILES - Max files per flush batch (default: 256)",
-			"MJR_WATCHER_PENDING_MAX - Max pending watcher queue (default: 5000)",
-			"MJR_AM_ENABLE_VECTOR_SEARCH - Enable AI vector/semantic search: 1|0 (default: 1)",
-			"MJR_AM_VECTOR_INDEX_ON_SCAN - Compute vectors during scans: 1|0 (default: 0)",
-			"MJR_AM_VECTOR_CAPTION_ON_INDEX - Generate Florence captions during vector indexing: 1|0 (default: 0)",
-			"MJR_VECTOR_CONCURRENCY - Concurrent vector workers (default: 2, use 1 for lower VRAM spikes)",
-			"MJR_AM_VECTOR_UNLOAD_AFTER_USE - Unload Majoor AI models after heavy vector actions: 1|0 (default: 0)",
-			"MAJOOR_SEARCH_MAX_LIMIT - Max search results (default: 500)",
-			"MAJOOR_BG_SCAN_ON_LIST - Scan on directory list: 0|1 (default: 0)"
-		].join("\n"),
+		tooltip: "Set these env vars before starting ComfyUI to override defaults:\n\nMAJOOR_OUTPUT_DIRECTORY - Override output root directory\nMAJOOR_EXIFTOOL_PATH - Path to exiftool binary\nMAJOOR_FFPROBE_PATH - Path to ffprobe binary\nMAJOOR_MEDIA_PROBE_BACKEND - Probe mode: auto|exiftool|ffprobe|both\nMAJOOR_EXIFTOOL_TIMEOUT - ExifTool timeout in seconds (default: 15)\nMAJOOR_FFPROBE_TIMEOUT - FFprobe timeout in seconds (default: 10)\nMAJOOR_DB_TIMEOUT - Database timeout in seconds (default: 30)\nMAJOOR_DB_MAX_CONNECTIONS - Max DB connections (default: 8)\nMAJOOR_METADATA_CACHE_MAX - Metadata cache max entries (default: 100000)\nMAJOOR_METADATA_EXTRACT_CONCURRENCY - Parallel metadata workers (default: 1)\nMJR_ENABLE_WATCHER - Enable file watcher: 1|0 (default: 1)\nMJR_WATCHER_DEBOUNCE_MS - Watcher debounce delay in ms (default: 3000)\nMJR_WATCHER_DEDUPE_TTL_MS - Watcher dedupe window in ms (default: 3000)\nMJR_WATCHER_MAX_FILE_SIZE_BYTES - Max file size to index (default: 512MB)\nMJR_WATCHER_FLUSH_MAX_FILES - Max files per flush batch (default: 256)\nMJR_WATCHER_PENDING_MAX - Max pending watcher queue (default: 5000)\nMJR_AM_ENABLE_VECTOR_SEARCH - Enable AI vector/semantic search: 1|0 (default: 1)\nMJR_AM_VECTOR_INDEX_ON_SCAN - Compute vectors during scans: 1|0 (default: 0)\nMJR_AM_VECTOR_CAPTION_ON_INDEX - Generate Florence captions during vector indexing: 1|0 (default: 0)\nMJR_VECTOR_CONCURRENCY - Concurrent vector workers (default: 2, use 1 for lower VRAM spikes)\nMJR_AM_VECTOR_UNLOAD_AFTER_USE - Unload Majoor AI models after heavy vector actions: 1|0 (default: 0)\nMAJOOR_SEARCH_MAX_LIMIT - Max search results (default: 500)\nMAJOOR_BG_SCAN_ON_LIST - Scan on directory list: 0|1 (default: 0)",
 		type: "text",
 		defaultValue: "Hover for full list of environment variables"
 	});
 }
-//#endregion
-//#region ui/app/settings/SettingsPanel.ts
+// ui/app/settings/SettingsPanel.ts
 var Un = "Majoor Assets Manager", Wn = /^\s*Majoor:\s*/i, Gn = Object.freeze({
 	ASSETS_PANEL: "Assets Panel",
 	GENERATED_FEED: "Generated Feed",
@@ -2545,7 +2489,7 @@ function mr() {
 	}
 }
 function hr(e, t, n) {
-	typeof document > "u" || typeof MutationObserver > "u" || (Xn = {
+	typeof document < "u" && typeof MutationObserver < "u" && (Xn = {
 		app: e,
 		definitions: t,
 		defaultValues: new Map(n.filter((e) => e?.id && e.id !== qn).map((e) => [e.id, e.defaultValue]))
@@ -2579,7 +2523,7 @@ function gr(e, t, { initRuntime: n = !1 } = {}) {
 			let e = Gt();
 			Object.assign(n, e), K(n), u("storage");
 		}, p = (e) => {
-			!e || e.key !== "mjrSettings" || e.newValue !== e.oldValue && f();
+			e && e.key === "mjrSettings" && e.newValue !== e.oldValue && f();
 		};
 		if (!$n) {
 			if (er && typeof window < "u") try {
@@ -2640,8 +2584,7 @@ try {
 } catch (e) {
 	console.debug?.(e);
 }
-//#endregion
-//#region ui/features/contextmenu/gridContextMenuState.ts
+// ui/features/contextmenu/gridContextMenuState.ts
 function yr() {
 	return {
 		open: !1,
@@ -2706,8 +2649,7 @@ function jr() {
 function Mr() {
 	Dr(), jr();
 }
-//#endregion
-//#region ui/features/dnd/utils/constants.ts
+// ui/features/dnd/utils/constants.ts
 var Nr = "application/x-mjr-asset", Pr = "application/x-mjr-assets", Fr = "application/x-comfy-asset-info", Ir = /* @__PURE__ */ new Set([
 	".png",
 	".jpg",
@@ -2825,7 +2767,7 @@ var Nr = "application/x-mjr-asset", Pr = "application/x-mjr-assets", Fr = "appli
 	return null;
 }, li = (e, t, n) => {
 	let r = si(e);
-	!t || r.node === t || (ui(e, n), r.node = t, r.prev = {
+	t && r.node !== t && (ui(e, n), r.node = t, r.prev = {
 		color: t.color,
 		bgcolor: t.bgcolor
 	}, t.bgcolor = "#3355ff", t.color = "#a9c4ff", n(e));
@@ -3320,8 +3262,7 @@ function Ki(e) {
 	let t = Ui(e);
 	return t && !Hi(t) ? t : t ? "Subgraph" : "Node";
 }
-//#endregion
-//#region ui/components/sidebar/utils/minimap.ts
+// ui/components/sidebar/utils/minimap.ts
 var qi = 6, Ji = 1, Yi = 64, Xi = 74, Zi = 42, Qi = [
 	["sampler", "#8e5cff"],
 	["ksampler", "#8e5cff"],
@@ -3462,7 +3403,7 @@ function na(e, t, n = null) {
 		let t = Array.isArray(e?.bounding) && e.bounding.length >= 4 ? e.bounding : null, n = t ? [Number(t[0]), Number(t[1])] : g(e?.pos), r = t ? [Number(t[2]), Number(t[3])] : _(e?.size);
 		if (!n || !r) continue;
 		let i = Number(n[0]), a = Number(n[1]), o = Math.max(1, Number(r[0])), s = Math.max(1, Number(r[1]));
-		!Number.isFinite(i) || !Number.isFinite(a) || !Number.isFinite(o) || !Number.isFinite(s) || m.push({
+		Number.isFinite(i) && Number.isFinite(a) && Number.isFinite(o) && Number.isFinite(s) && m.push({
 			kind: "group",
 			x: i,
 			y: a,
@@ -3507,7 +3448,7 @@ function na(e, t, n = null) {
 		let t = String(e || "").toUpperCase();
 		return t.includes("IMAGE") ? "rgba(145,198,99,0.38)" : t.includes("LATENT") ? "rgba(89,178,118,0.38)" : t.includes("MODEL") ? "rgba(112,155,255,0.38)" : t.includes("CONDITIONING") ? "rgba(191,123,226,0.38)" : t.includes("CLIP") ? "rgba(220,178,77,0.38)" : t.includes("VAE") ? "rgba(72,184,214,0.38)" : t.includes("MASK") ? "rgba(190,190,190,0.36)" : "rgba(255,255,255,0.2)";
 	}, ve = () => {
-		if (i.showLinks && !(!c || c.length === 0)) {
+		if (i.showLinks && c && c.length !== 0) {
 			r.save(), r.globalAlpha = 1, r.lineWidth = 1;
 			for (let e of c) {
 				let t = ge(e), n = t?.originId, i = t?.targetId;
@@ -3873,8 +3814,7 @@ function fa(e, t = null) {
 		extra: { synthetic: !0 }
 	};
 }
-//#endregion
-//#region ui/features/workflows/workflowPickerState.ts
+// ui/features/workflows/workflowPickerState.ts
 var X = vt({
 	open: !1,
 	mode: "workflow",
@@ -3902,8 +3842,7 @@ function ha(e = null) {
 		console.debug?.(e);
 	}
 }
-//#endregion
-//#region ui/vue/majoorPrimeVue.ts
+// ui/vue/majoorPrimeVue.ts
 var ga = {
 	Button: ut,
 	Checkbox: lt,
@@ -3928,8 +3867,7 @@ function _a(e) {
 		e.component(`M${t}`, n);
 	}), e;
 }
-//#endregion
-//#region ui/vue/createVueApp.ts
+// ui/vue/createVueApp.ts
 function va(e, t = void 0) {
 	let n = Ot(), r = at(e, t);
 	return r.use(n), _a(r), {
@@ -3952,7 +3890,7 @@ function xa(e) {
 	return t.dataset.mjrKeepAliveHost = String(e || "_mjrVueApp"), t.style.height = "100%", t.style.width = "100%", t.style.minHeight = "0", t.style.display = "flex", t.style.flexDirection = "column", t.style.overflow = "hidden", t;
 }
 function Sa(e, t) {
-	!e || !t || (e.style.height = "100%", e.style.minHeight = "0", e.style.display = "flex", e.style.flexDirection = "column", e.style.overflow = "hidden", (e.firstChild !== t || e.childNodes.length !== 1) && (e.replaceChildren(t), ba(t?.dataset?.mjrKeepAliveHost, t, e)));
+	e && t && (e.style.height = "100%", e.style.minHeight = "0", e.style.display = "flex", e.style.flexDirection = "column", e.style.overflow = "hidden", (e.firstChild !== t || e.childNodes.length !== 1) && (e.replaceChildren(t), ba(t?.dataset?.mjrKeepAliveHost, t, e)));
 }
 function Ca(e, t, n = "_mjrVueApp", { attachIfExists: r = !0 } = {}) {
 	if (!e) return !1;
@@ -3982,8 +3920,7 @@ function Ta(e, t = "_mjrVueApp") {
 		ya.delete(t);
 	}
 }
-//#endregion
-//#region ui/utils/format.ts
+// ui/utils/format.ts
 function Ea(e) {
 	if (!e) return null;
 	let t = Number(e);
@@ -4111,8 +4048,7 @@ function Na(e) {
 	let t = String(e || "").trim().toLowerCase();
 	return t && Aa.sections.find((e) => e.key === t) || null;
 }
-//#endregion
-//#region ui/vue/components/panel/sidebar/SidebarFileInfoSection.vue?vue&type=script&setup=true&lang.ts
+// ui/vue/components/panel/sidebar/SidebarFileInfoSection.vue?vue&type=script&setup=true&lang.ts
 var Pa = {
 	key: 0,
 	class: "mjr-sidebar-section",
@@ -4405,7 +4341,7 @@ function $a(e) {
 	let t = Za(e), n = {};
 	for (let e of t) {
 		let t = jt(e);
-		!t || typeof t != "object" || Qa(n, t);
+		t && typeof t == "object" && Qa(n, t);
 	}
 	return Object.keys(n).length ? n : null;
 }
@@ -4439,7 +4375,7 @@ function ro(e) {
 	if (n.length) return n.forEach((e) => {
 		if (!e || typeof e != "object") return;
 		let n = Q(e.model), r = Array.isArray(e.loras) ? e.loras.map((e) => Mt(e)).filter(Boolean) : [];
-		!n && !r.length || t.push({
+		(n || r.length) && t.push({
 			key: String(e.key || "").trim() || `group-${t.length + 1}`,
 			label: String(e.label || "").trim() || `Group ${t.length + 1}`,
 			model: n,
@@ -4457,7 +4393,7 @@ function ro(e) {
 		model: Q(r.unet_low_noise)
 	}].forEach((e) => {
 		let n = i.filter((t) => no(t) === e.key).map((e) => Mt(e)).filter(Boolean);
-		!e.model && !n.length || t.push({
+		(e.model || n.length) && t.push({
 			...e,
 			loras: n
 		});
@@ -5087,8 +5023,7 @@ function wo(e) {
 		ideogram: a
 	};
 }
-//#endregion
-//#region ui/vue/components/panel/sidebar/GenerationInputThumb.vue?vue&type=script&setup=true&lang.ts
+// ui/vue/components/panel/sidebar/GenerationInputThumb.vue?vue&type=script&setup=true&lang.ts
 var To = ["title"], Eo = ["src"], Do = {
 	key: 1,
 	style: {
@@ -5143,7 +5078,7 @@ var To = ["title"], Eo = ["src"], Do = {
 	setup(e) {
 		let t = e, n = V(0), r = V(!1), i = null;
 		function a() {
-			return i ||= import("./floatingViewerManager-Ck9H-cUl.js").then((e) => e.n), i;
+			return i ||= import("./floatingViewerManager-CFRjC568.js").then((e) => e.n), i;
 		}
 		function o() {
 			return (Array.isArray(t.inputFile?.previewCandidates) ? t.inputFile.previewCandidates : [])[n.value] || "";
@@ -5236,11 +5171,7 @@ var To = ["title"], Eo = ["src"], Do = {
 		}
 		async function _() {
 			let e = await le(u());
-			if (!e?.ok) {
-				E(e?.error || O("toast.openFolderFailed", "Failed to open folder."), "error");
-				return;
-			}
-			E(O("toast.openedInFolder", "Opened in folder"), "info", 1600);
+			e?.ok ? E(O("toast.openedInFolder", "Opened in folder"), "info", 1600) : E(e?.error || O("toast.openFolderFailed", "Failed to open folder."), "error");
 		}
 		async function v() {
 			let e = u(), t = {
@@ -5255,11 +5186,7 @@ var To = ["title"], Eo = ["src"], Do = {
 				payload: t,
 				index: !1
 			});
-			if (!n?.relativePath) {
-				E(O("toast.loadAssetFailed", "Failed to load asset."), "error");
-				return;
-			}
-			if (!Ni({
+			if (!n?.relativePath || !Ni({
 				app: Pe(),
 				items: [{
 					payload: t,
@@ -5982,7 +5909,7 @@ var To = ["title"], Eo = ["src"], Do = {
 		}
 		async function E(e, t = null, n = "rgba(76, 175, 80, 0.35)") {
 			let r = String(e ?? "").trim();
-			if (!(!r || r === "-")) try {
+			if (r && r !== "-") try {
 				await navigator.clipboard.writeText(r), w(t, n);
 			} catch (e) {
 				console.debug?.(e);
@@ -6007,28 +5934,50 @@ var To = ["title"], Eo = ["src"], Do = {
 		async function se() {
 			l += 1;
 			let e = l;
-			if (!h.value.showAlignment || !t.asset?.id) {
+			if (!h.value.showAlignment || !t.asset?.id) oe();
+			else if (!g.value) ae();
+			else {
 				oe();
-				return;
-			}
-			if (!g.value) {
-				ae();
-				return;
-			}
-			oe();
-			try {
-				let n = await te(t.asset.id);
-				if (e !== l) return;
-				if (!n?.ok && (String(n?.code || "").toUpperCase() === "SERVICE_UNAVAILABLE" || /vector search is not enabled/i.test(String(n?.error || "")))) {
-					ae();
-					return;
-				}
-				let r = n?.ok && n.data != null ? Number(n.data) : null;
-				if (!Number.isFinite(r)) {
+				try {
+					let n = await te(t.asset.id);
+					if (e !== l) return;
+					if (!n?.ok && (String(n?.code || "").toUpperCase() === "SERVICE_UNAVAILABLE" || /vector search is not enabled/i.test(String(n?.error || "")))) {
+						ae();
+						return;
+					}
+					let r = n?.ok && n.data != null ? Number(n.data) : null;
+					if (!Number.isFinite(r)) {
+						c.value = {
+							scoreText: "N/A",
+							scoreColor: "#888",
+							qualityText: O("status.na", "N/A"),
+							qualityColor: "#888",
+							qualityBackground: "rgba(127,127,127,0.3)",
+							fillWidth: "0%",
+							fillColor: "#666",
+							aiStatusVisible: !1,
+							aiStatusText: ""
+						};
+						return;
+					}
+					let i = Math.round(r * 100), a = Wa(r);
 					c.value = {
-						scoreText: "N/A",
+						scoreText: `${i}%`,
+						scoreColor: a,
+						qualityText: Ga(r),
+						qualityColor: a,
+						qualityBackground: `${a}33`,
+						fillWidth: `${i}%`,
+						fillColor: a,
+						aiStatusVisible: !1,
+						aiStatusText: ""
+					};
+				} catch (t) {
+					if (console.debug?.(t), e !== l) return;
+					c.value = {
+						scoreText: "-",
 						scoreColor: "#888",
-						qualityText: O("status.na", "N/A"),
+						qualityText: O("status.unavailable", "Unavailable"),
 						qualityColor: "#888",
 						qualityBackground: "rgba(127,127,127,0.3)",
 						fillWidth: "0%",
@@ -6036,37 +5985,11 @@ var To = ["title"], Eo = ["src"], Do = {
 						aiStatusVisible: !1,
 						aiStatusText: ""
 					};
-					return;
 				}
-				let i = Math.round(r * 100), a = Wa(r);
-				c.value = {
-					scoreText: `${i}%`,
-					scoreColor: a,
-					qualityText: Ga(r),
-					qualityColor: a,
-					qualityBackground: `${a}33`,
-					fillWidth: `${i}%`,
-					fillColor: a,
-					aiStatusVisible: !1,
-					aiStatusText: ""
-				};
-			} catch (t) {
-				if (console.debug?.(t), e !== l) return;
-				c.value = {
-					scoreText: "-",
-					scoreColor: "#888",
-					qualityText: O("status.unavailable", "Unavailable"),
-					qualityColor: "#888",
-					qualityBackground: "rgba(127,127,127,0.3)",
-					fillWidth: "0%",
-					fillColor: "#666",
-					aiStatusVisible: !1,
-					aiStatusText: ""
-				};
 			}
 		}
 		async function ce() {
-			if (!(!y.value || s.value)) {
+			if (y.value && !s.value) {
 				s.value = !0, o.value = O("status.generating", "Generating...");
 				try {
 					let e = await C(t.asset.id);
@@ -7261,7 +7184,7 @@ var To = ["title"], Eo = ["src"], Do = {
 			return Number.isFinite(r) ? Math.max(t, Math.min(n, r)) : t;
 		}
 		function re(e) {
-			!e || typeof e != "object" || (S.value = {
+			e && typeof e == "object" && (S.value = {
 				...S.value,
 				zoom: ne(e.zoom ?? S.value.zoom, Wl, Gl),
 				centerX: Number.isFinite(Number(e.centerX)) ? Number(e.centerX) : null,
@@ -7292,7 +7215,7 @@ var To = ["title"], Eo = ["src"], Do = {
 				let t = Object.entries(e || {});
 				if (!t.length) return !1;
 				let n = 0;
-				for (let [, e] of t.slice(0, 50)) if (!(!e || typeof e != "object") && (e.inputs && typeof e.inputs == "object" && (n += 1), n >= 2)) return !0;
+				for (let [, e] of t.slice(0, 50)) if (e && typeof e == "object" && (e.inputs && typeof e.inputs == "object" && (n += 1), n >= 2)) return !0;
 			} catch {
 				return !1;
 			}
@@ -7546,18 +7469,11 @@ var To = ["title"], Eo = ["src"], Do = {
 				filepath: e,
 				source_filepath: i.filepath
 			}, { timeoutMs: 3e4 });
-			if (!a?.ok) {
-				E(a?.error || O("toast.workflowSaveFailed", "Failed to save workflow."), "error");
-				return;
-			}
-			E(O("toast.workflowUpdated", "Workflow updated"), "success", 1800), window?.dispatchEvent?.(new CustomEvent("mjr:reload-grid", { detail: { reason: "workflow-thumbnail-sidebar" } }));
+			a?.ok ? (E(O("toast.workflowUpdated", "Workflow updated"), "success", 1800), window?.dispatchEvent?.(new CustomEvent("mjr:reload-grid", { detail: { reason: "workflow-thumbnail-sidebar" } }))) : E(a?.error || O("toast.workflowSaveFailed", "Failed to save workflow."), "error");
 		}
 		async function st() {
-			if (await Be(), !D.value) {
-				E(O("toast.workflowLoadFailed", "Failed to load workflow."), "error");
-				return;
-			}
-			try {
+			if (await Be(), !D.value) E(O("toast.workflowLoadFailed", "Failed to load workflow."), "error");
+			else try {
 				await Ye.openAssets({
 					assets: [{
 						...t.asset,
@@ -7573,27 +7489,26 @@ var To = ["title"], Eo = ["src"], Do = {
 		}
 		async function ct() {
 			let e = fe.value;
-			if (!e) {
-				E(O("toast.workflowMissingPath", "Workflow file path is missing."), "error");
-				return;
-			}
-			p.value = !0, m.value = null, h.value = [], g.value = null;
-			try {
-				let [t, n] = await Promise.all([o(e, { timeoutMs: 2e4 }), x(e, { timeoutMs: 15e3 })]);
-				if (!t?.ok) {
-					E(t?.error || O("toast.workflowLoadFailed", "Failed to load workflow."), "error");
-					return;
+			if (!e) E(O("toast.workflowMissingPath", "Workflow file path is missing."), "error");
+			else {
+				p.value = !0, m.value = null, h.value = [], g.value = null;
+				try {
+					let [t, n] = await Promise.all([o(e, { timeoutMs: 2e4 }), x(e, { timeoutMs: 15e3 })]);
+					if (!t?.ok) {
+						E(t?.error || O("toast.workflowLoadFailed", "Failed to load workflow."), "error");
+						return;
+					}
+					m.value = t.data || {}, h.value = Array.isArray(n?.data?.versions) ? n.data.versions : [];
+					let r = h.value[0];
+					if (r?.filepath) {
+						let t = await ge(e, r.filepath, { timeoutMs: 15e3 });
+						t?.ok && (g.value = t.data || null);
+					}
+				} catch (e) {
+					console.debug?.(e), E(O("toast.workflowLoadFailed", "Failed to load workflow."), "error");
+				} finally {
+					p.value = !1;
 				}
-				m.value = t.data || {}, h.value = Array.isArray(n?.data?.versions) ? n.data.versions : [];
-				let r = h.value[0];
-				if (r?.filepath) {
-					let t = await ge(e, r.filepath, { timeoutMs: 15e3 });
-					t?.ok && (g.value = t.data || null);
-				}
-			} catch (e) {
-				console.debug?.(e), E(O("toast.workflowLoadFailed", "Failed to load workflow."), "error");
-			} finally {
-				p.value = !1;
 			}
 		}
 		let lt = P(() => (Array.isArray(D.value?.nodes) ? D.value.nodes : []).slice(0, Kl).map((e, t) => {
@@ -7713,9 +7628,7 @@ var To = ["title"], Eo = ["src"], Do = {
 			if (T !== null && e.pointerId === T) {
 				let t = yt(e);
 				t && xt(t.world), e.preventDefault?.(), e.stopPropagation?.();
-				return;
-			}
-			bt(e);
+			} else bt(e);
 		}
 		function wt(e) {
 			T !== null && e?.pointerId === T && (a.value?.releasePointerCapture?.(T), T = null, C.value = "crosshair"), e?.type === "pointerleave" && (ee.value = "", S.value.hoveredNodeId !== null && (S.value = {
@@ -8265,5 +8178,4 @@ var To = ["title"], Eo = ["src"], Do = {
 		};
 	}
 });
-//#endregion
 export { Gt as $, li as A, Cr as B, Ri as C, Pi as D, Fi as E, Xr as F, Er as G, kr as H, Jr as I, wr as J, Or as K, Fr as L, Si as M, ci as N, wi as O, xi as P, K as Q, Nr as R, Ki as S, Ni as T, Y as U, Mr as V, Tr as W, _r as X, vr as Y, sn as Z, X as _, ja as a, Gi as b, ka as c, wa as d, G as et, Ca as f, pa as g, ma as h, Ra as i, ui as j, Ti as k, Oa as l, ha as m, Mc as n, Ma as o, Ta as p, Ar as q, wo as r, Da as s, ql as t, va as u, na as v, Li as w, Ui as x, fa as y, Pr as z };

@@ -1,7 +1,7 @@
-import { t as e } from "./rolldown-runtime-Dy4uBu1J.js";
-import { _ as t, d as n, o as r, s as i, t as a } from "./viewerRuntimeHosts-DyiuTSfr.js";
-import { o, r as s, z as c } from "./events-DrYpMD-I.js";
-//#region ui/features/panel/panelRuntimeRefs.ts
+import { t as e } from "./rolldown-runtime-CGnMp29N.js";
+import { _ as t, d as n, o as r, s as i, t as a } from "./viewerRuntimeHosts-C8Q5fKly.js";
+import { o, r as s, z as c } from "./events-BZ0LknTB.js";
+// ui/features/panel/panelRuntimeRefs.ts
 var l = null;
 function u(e) {
 	return e ? typeof e?.isConnected != "boolean" || e.isConnected : !1;
@@ -19,13 +19,12 @@ function f(e) {
 	return l = e || null, l;
 }
 function ee(e = null) {
-	(!e || l === e) && (l = null);
+	e && l !== e || (l = null);
 }
 function te() {
 	return u(l) ? l : (l = null, d());
 }
-//#endregion
-//#region ui/features/grid/GridSelectionManager.ts
+// ui/features/grid/GridSelectionManager.ts
 function p(e) {
 	let t = /* @__PURE__ */ new Set();
 	if (!e) return t;
@@ -89,8 +88,7 @@ function re(e, t, { activeId: n = "" } = {}, r) {
 	}
 	return a;
 }
-//#endregion
-//#region ui/features/viewer/floatingViewerManager.ts
+// ui/features/viewer/floatingViewerManager.ts
 var ie = /* @__PURE__ */ e({
 	floatingViewerManager: () => J,
 	installFloatingViewerGlobalHandlers: () => Q,
@@ -98,11 +96,11 @@ var ie = /* @__PURE__ */ e({
 	teardownFloatingViewerManager: () => $
 }), h = null, g = null;
 async function ae() {
-	return h || (g ||= import("./FloatingViewer-DRik82Y8.js").then((e) => (h = e.FloatingViewer, h)), g);
+	return h || (g ||= import("./FloatingViewer-Dv-ffiTX.js").then((e) => (h = e.FloatingViewer, h)), g);
 }
 var _ = null, oe = null;
 async function se() {
-	if (!_) return oe ||= import("./NodeStreamController-DpGjUOfx.js").then((e) => {
+	if (!_) return oe ||= import("./NodeStreamController-CIKDDXJT.js").then((e) => {
 		_ = e.setNodeStreamActive;
 	}), oe;
 }
@@ -180,7 +178,7 @@ function ue() {
 	}
 }
 function M(e) {
-	typeof window > "u" || window.dispatchEvent(new CustomEvent(s.MFV_VISIBILITY_CHANGED, { detail: { visible: !!e } }));
+	typeof window < "u" && window.dispatchEvent(new CustomEvent(s.MFV_VISIBILITY_CHANGED, { detail: { visible: !!e } }));
 }
 function N(e) {
 	e && (e.setLiveActive(S), e.setPreviewActive(C), e.setNodeStreamActive?.(w));
@@ -214,13 +212,7 @@ function de(e, t) {
 		return;
 	}
 	let i = r.has("A"), a = r.has("B");
-	if (!(i && a)) {
-		if (a) {
-			e.loadMediaPair(t, e._mediaB);
-			return;
-		}
-		e.loadMediaPair(e._mediaA, t);
-	}
+	i && a || (a ? e.loadMediaPair(t, e._mediaB) : e.loadMediaPair(e._mediaA, t));
 }
 function fe(e) {
 	try {
@@ -291,11 +283,8 @@ function I() {
 function L(e) {
 	if (!y?.isVisible || y._mode === v.GRAPH) return;
 	let t = Array.isArray(e?.detail?.selectedAssets) ? e.detail.selectedAssets : [], n = new Set(t.filter((e) => String(e?.kind || "").toLowerCase() === "folder").map((e) => String(e?.id || "")).filter(Boolean)), r = Array.isArray(e?.detail?.selectedIds) ? e.detail.selectedIds.map(String).filter((e) => !!e && !n.has(e)) : [];
-	if (r.length) {
-		F(r);
-		return;
-	}
-	try {
+	if (r.length) F(r);
+	else try {
 		let e = j();
 		if (!e) return;
 		let t = Array.from(p(e)).map(String).filter(Boolean);
@@ -306,7 +295,7 @@ function L(e) {
 	}
 }
 function R() {
-	E || typeof window > "u" || (window.addEventListener(s.SELECTION_CHANGED, L), E = !0);
+	E || typeof window < "u" && (window.addEventListener(s.SELECTION_CHANGED, L), E = !0);
 }
 function z() {
 	typeof window < "u" && window.removeEventListener(s.SELECTION_CHANGED, L), E = !1, A();
@@ -318,15 +307,11 @@ function W() {
 function pe() {
 	G();
 	let e = typeof window < "u" ? window : globalThis;
-	if (typeof e.requestAnimationFrame == "function") {
-		U = "raf", H = e.requestAnimationFrame(() => {
-			H = null, U = "", W();
-		});
-		return;
-	}
-	U = "timeout", H = e.setTimeout(() => {
+	typeof e.requestAnimationFrame == "function" ? (U = "raf", H = e.requestAnimationFrame(() => {
 		H = null, U = "", W();
-	}, 16);
+	})) : (U = "timeout", H = e.setTimeout(() => {
+		H = null, U = "", W();
+	}, 16));
 }
 function G() {
 	if (H == null) return;
@@ -405,7 +390,7 @@ var J = {
 	},
 	async upsertWithContent(e) {
 		let t = await k(), n = !!t.isVisible;
-		!n && o.MFV_LIVE_AUTO_OPEN === !1 || (t.show(), N(t), R(), de(t, e), n || M(!0));
+		(n || o.MFV_LIVE_AUTO_OPEN !== !1) && (t.show(), N(t), R(), de(t, e), n || M(!0));
 	},
 	setLiveActive(e) {
 		S = !!e, y?.setLiveActive(S);
@@ -429,7 +414,7 @@ var J = {
 	async feedPreviewBlob(e, t = {}) {
 		if (!J.canAcceptPreviewBlob()) return;
 		let n = await k(), r = !!n.isVisible;
-		!r && o.MFV_PREVIEW_AUTO_OPEN === !1 || (n.isVisible || n.show(), N(n), n.loadPreviewBlob(e, ...Object.keys(t).length ? [t] : []), r || M(!0));
+		(r || o.MFV_PREVIEW_AUTO_OPEN !== !1) && (n.isVisible || n.show(), N(n), n.loadPreviewBlob(e, ...Object.keys(t).length ? [t] : []), r || M(!0));
 	},
 	toggleNodeStream() {
 		J.setNodeStreamActive(!w);
@@ -454,7 +439,7 @@ var J = {
 	async feedNodeStream(e) {
 		if (!w) return;
 		let t = await k(), n = !!t.isVisible;
-		!n && o.MFV_NODE_STREAM_AUTO_OPEN === !1 || (t.isVisible || (t.show(), R()), N(t), P(t), de(t, e), n || M(!0));
+		(n || o.MFV_NODE_STREAM_AUTO_OPEN !== !1) && (t.isVisible || (t.show(), R()), N(t), P(t), de(t, e), n || M(!0));
 	}
 }, Y = !1, me = () => J.open(), he = () => J.close(), X = () => J.toggle(), ge = () => J.toggleLive(), _e = () => J.togglePreview(), ve = () => J.toggleNodeStream(), ye = () => J.popOut(), be = () => {
 	try {
@@ -462,7 +447,7 @@ var J = {
 	} catch {}
 }, xe = (e) => {
 	let t = String(e?.detail?.key || "");
-	(!t || t === "viewer" || t === "viewer.mfvLiveDefault" || t === "viewer.mfvPreviewDefault") && le();
+	t && t !== "viewer" && t !== "viewer.mfvLiveDefault" && t !== "viewer.mfvPreviewDefault" || le();
 };
 function Se(e) {
 	let t = String(e?.key || "");
@@ -512,18 +497,13 @@ var Z = (e) => {
 			return;
 		}
 		t === "c" && (a(), J.toggleCompareAB());
-		return;
 	}
 };
 function Q() {
-	Y || typeof window > "u" || !window?.addEventListener || (window.addEventListener(s.MFV_OPEN, me), window.addEventListener(s.MFV_CLOSE, he), window.addEventListener(s.MFV_TOGGLE, X), window.addEventListener(s.MFV_LIVE_TOGGLE, ge), window.addEventListener(s.MFV_PREVIEW_TOGGLE, _e), window.addEventListener(s.MFV_NODESTREAM_TOGGLE, ve), window.addEventListener(s.MFV_POPOUT, ye), window.addEventListener(s.SETTINGS_CHANGED, xe), window.addEventListener("keydown", Z, !0), window.addEventListener("beforeunload", be), Y = !0);
+	Y || typeof window < "u" && window?.addEventListener && (window.addEventListener(s.MFV_OPEN, me), window.addEventListener(s.MFV_CLOSE, he), window.addEventListener(s.MFV_TOGGLE, X), window.addEventListener(s.MFV_LIVE_TOGGLE, ge), window.addEventListener(s.MFV_PREVIEW_TOGGLE, _e), window.addEventListener(s.MFV_NODESTREAM_TOGGLE, ve), window.addEventListener(s.MFV_POPOUT, ye), window.addEventListener(s.SETTINGS_CHANGED, xe), window.addEventListener("keydown", Z, !0), window.addEventListener("beforeunload", be), Y = !0);
 }
 function we() {
-	if (typeof window > "u" || !window?.removeEventListener) {
-		Y = !1;
-		return;
-	}
-	window.removeEventListener(s.MFV_OPEN, me), window.removeEventListener(s.MFV_CLOSE, he), window.removeEventListener(s.MFV_TOGGLE, X), window.removeEventListener(s.MFV_LIVE_TOGGLE, ge), window.removeEventListener(s.MFV_PREVIEW_TOGGLE, _e), window.removeEventListener(s.MFV_NODESTREAM_TOGGLE, ve), window.removeEventListener(s.MFV_POPOUT, ye), window.removeEventListener(s.SETTINGS_CHANGED, xe), window.removeEventListener("keydown", Z, !0), window.removeEventListener("beforeunload", be), Y = !1;
+	typeof window > "u" || !window?.removeEventListener || (window.removeEventListener(s.MFV_OPEN, me), window.removeEventListener(s.MFV_CLOSE, he), window.removeEventListener(s.MFV_TOGGLE, X), window.removeEventListener(s.MFV_LIVE_TOGGLE, ge), window.removeEventListener(s.MFV_PREVIEW_TOGGLE, _e), window.removeEventListener(s.MFV_NODESTREAM_TOGGLE, ve), window.removeEventListener(s.MFV_POPOUT, ye), window.removeEventListener(s.SETTINGS_CHANGED, xe), window.removeEventListener("keydown", Z, !0), window.removeEventListener("beforeunload", be)), Y = !1;
 }
 function $({ reinstallGlobalHandlers: e = !1 } = {}) {
 	let t = !!y?.isVisible;
@@ -540,5 +520,4 @@ function $({ reinstallGlobalHandlers: e = !1 } = {}) {
 	}
 	ue(), t && M(!1), e && Q();
 }
-//#endregion
 export { p as a, ee as c, $ as i, te as l, ie as n, m as o, Q as r, re as s, J as t, f as u };

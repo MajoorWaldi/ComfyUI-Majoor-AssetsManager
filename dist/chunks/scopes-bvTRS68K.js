@@ -1,5 +1,5 @@
-import { n as e } from "./state-DPiaUMw1.js";
-//#region ui/features/viewer/scopes.ts
+import { n as e } from "./state-D0Gu1AgG.js";
+// ui/features/viewer/scopes.ts
 function t(e, t, n) {
 	return .2126 * e + .7152 * t + .0722 * n;
 }
@@ -184,5 +184,4 @@ function N(e, t, n, r = {}) {
 		console.debug?.(e);
 	}
 }
-//#endregion
 export { N as drawScopesLight };
