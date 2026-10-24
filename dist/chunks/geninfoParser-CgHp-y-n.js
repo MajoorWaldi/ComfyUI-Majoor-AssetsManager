@@ -1,4 +1,4 @@
-//#region ui/components/sidebar/parsers/a1111ParamsParser.ts
+// ui/components/sidebar/parsers/a1111ParamsParser.ts
 function e(e) {
 	if (!e || typeof e != "string") return null;
 	let t = {}, n = e.split(/\nNegative prompt:\s*/i);
@@ -15,8 +15,7 @@ function e(e) {
 	}
 	return Object.keys(t).length > 0 ? t : null;
 }
-//#endregion
-//#region ui/components/sidebar/parsers/comfyWorkflowParser.ts
+// ui/components/sidebar/parsers/comfyWorkflowParser.ts
 function t(e) {
 	try {
 		let t = Object.entries(e || {});
@@ -472,8 +471,7 @@ function N(e) {
 		"ENUM"
 	].includes(t);
 }
-//#endregion
-//#region ui/components/sidebar/parsers/geninfoParser.ts
+// ui/components/sidebar/parsers/geninfoParser.ts
 var P = /^(?:[a-z]:[\\/]|[\\/]{1,2}|\.{1,2}[\\/]|~[\\/]).+?[\\/][^\\/\n]+\.(?:png|jpe?g|webp|gif|bmp|tiff?|avif|heic|heif|apng|hdr|svg|mp4|webm|mov|mkv|avi|m4v|mp3|wav|flac|ogg|glb|gltf|obj|fbx|ply|stl|ckpt|safetensors|pt|pth|bin|gguf|json|ya?ml)$/i, F = /^(?!.*[,;])(?!.*\b(?:cinematic|portrait|landscape|lighting|style|detailed|masterpiece|photo|render)\b).*(?:[\\/][^\\/\n]+){2,}\.(?:png|jpe?g|webp|gif|bmp|tiff?|avif|heic|heif|apng|hdr|svg|mp4|webm|mov|mkv|avi|m4v|mp3|wav|flac|ogg|glb|gltf|obj|fbx|ply|stl|ckpt|safetensors|pt|pth|bin|gguf|json|ya?ml)$/i, I = /* @__PURE__ */ new Set([
 	"workflow",
 	"quicktime:workflow",
@@ -669,22 +667,10 @@ function H(e, t) {
 	return null;
 }
 function U(e, t) {
-	if (t && typeof t == "object") {
-		for (let [n, r] of Object.entries(t)) if (r != null && r !== "") {
-			if (Array.isArray(r) && Array.isArray(e[n])) {
-				e[n] = G(e[n], r);
-				continue;
-			}
-			if (r && typeof r == "object" && !Array.isArray(r) && e[n] && typeof e[n] == "object" && !Array.isArray(e[n])) {
-				e[n] = {
-					...r,
-					...e[n]
-				};
-				continue;
-			}
-			(e[n] === void 0 || e[n] === null || e[n] === "") && (e[n] = r);
-		}
-	}
+	if (t && typeof t == "object") for (let [n, r] of Object.entries(t)) r != null && r !== "" && (Array.isArray(r) && Array.isArray(e[n]) ? e[n] = G(e[n], r) : r && typeof r == "object" && !Array.isArray(r) && e[n] && typeof e[n] == "object" && !Array.isArray(e[n]) ? e[n] = {
+		...r,
+		...e[n]
+	} : (e[n] === void 0 || e[n] === null || e[n] === "") && (e[n] = r));
 }
 function W(e) {
 	if (!e || typeof e != "object") return JSON.stringify(e);
@@ -803,5 +789,4 @@ function ne(e) {
 		workflowBadge: a
 	};
 }
-//#endregion
 export { X as a, R as i, $ as n, Y as o, Z as r, ne as t };

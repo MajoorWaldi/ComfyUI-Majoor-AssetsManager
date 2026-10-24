@@ -1,9 +1,9 @@
-import { t as e } from "./rolldown-runtime-Dy4uBu1J.js";
-import { m as t, o as n } from "./events-CoI83paj.js";
-import { h as r } from "./Viewer-DWgaGos-.js";
-import { i, n as a, r as o, t as s, u as c } from "./SidebarWorkflowSection-DpoPGJrq.js";
-import { D as l, E as u, N as d, O as f, T as p, V as m, dt as h, ft as g, k as _, lt as v } from "./mjr-primevue-BOf2ACk_.js";
-//#region ui/vue/components/viewer/ViewerMetadataBlock.vue?vue&type=script&setup=true&lang.ts
+import { t as e } from "./rolldown-runtime-CGnMp29N.js";
+import { m as t, o as n } from "./events-tsQFsZrH.js";
+import { h as r } from "./Viewer-DHesfEdb.js";
+import { i, n as a, r as o, t as s, u as c } from "./SidebarWorkflowSection-CZBV2aho.js";
+import { D as l, E as u, N as d, O as f, T as p, V as m, dt as h, ft as g, k as _, lt as v } from "./mjr-primevue-BRqtdXzb.js";
+// ui/vue/components/viewer/ViewerMetadataBlock.vue?vue&type=script&setup=true&lang.ts
 var y = { style: {
 	display: "flex",
 	"flex-direction": "column",
@@ -205,13 +205,7 @@ var y = { style: {
 }, N = n?.VIEWER_GENINFO_TTL_MS ?? 3e4, P = n?.VIEWER_GENINFO_ERROR_TTL_MS ?? 8e3, F = n?.VIEWER_GENINFO_MAX_ENTRIES ?? 300, I = /* @__PURE__ */ new Map(), L = /* @__PURE__ */ new Map(), R = /* @__PURE__ */ new Map(), z = (e, t, n) => {
 	try {
 		let r = Date.now();
-		for (let [n, i] of e.entries()) {
-			if (!i) {
-				e.delete(n);
-				continue;
-			}
-			r - (i.at || 0) > t && e.delete(n);
-		}
+		for (let [n, i] of e.entries()) i ? r - (i.at || 0) > t && e.delete(n) : e.delete(n);
 		if (e.size <= n) return;
 		let i = Array.from(e.entries()).sort((e, t) => (e?.[1]?.at || 0) - (t?.[1]?.at || 0)), a = e.size - n;
 		for (let t = 0; t < a; t++) {
@@ -569,5 +563,4 @@ function ee({ title: e, asset: t, ui: n } = {}) {
 	}
 	return i;
 }
-//#endregion
 export { j as n, $ as t };

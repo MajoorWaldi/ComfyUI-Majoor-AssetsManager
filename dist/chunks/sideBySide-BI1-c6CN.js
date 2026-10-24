@@ -1,6 +1,6 @@
-import { i as e } from "./model3dRenderer-e5uWwIMW.js";
-import { i as t, o as n } from "./geninfoParser-Bwtqk4p6.js";
-//#region ui/features/viewer/sideBySide.ts
+import { i as e } from "./model3dRenderer-B18R8Ewh.js";
+import { i as t, o as n } from "./geninfoParser-CgHp-y-n.js";
+// ui/features/viewer/sideBySide.ts
 function r(e) {
 	if (!e) return null;
 	try {
@@ -42,28 +42,7 @@ function i(e, t) {
 	].filter(Boolean).join("  -  ");
 	if (!i && !d) return null;
 	let f = document.createElement("div");
-	f.style.cssText = [
-		"position:absolute",
-		"left:6px",
-		"right:6px",
-		"bottom:6px",
-		"background:rgba(0,0,0,0.68)",
-		"color:#fff",
-		"padding:5px 8px",
-		"border-radius:6px",
-		"font-size:10px",
-		"line-height:1.4",
-		"max-height:38%",
-		"overflow:hidden",
-		"word-break:break-word",
-		"backdrop-filter:blur(4px)",
-		"-webkit-backdrop-filter:blur(4px)",
-		"border:1px solid rgba(255,255,255,0.12)",
-		"box-shadow:0 2px 6px rgba(0,0,0,0.45)",
-		"pointer-events:none",
-		"z-index:2",
-		"box-sizing:border-box"
-	].join(";");
+	f.style.cssText = "position:absolute;left:6px;right:6px;bottom:6px;background:rgba(0,0,0,0.68);color:#fff;padding:5px 8px;border-radius:6px;font-size:10px;line-height:1.4;max-height:38%;overflow:hidden;word-break:break-word;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);border:1px solid rgba(255,255,255,0.12);box-shadow:0 2px 6px rgba(0,0,0,0.45);pointer-events:none;z-index:2;box-sizing:border-box";
 	let p = i.length > 160 ? i.slice(0, 160) + "..." : i, m = document.createElement("div");
 	m.style.cssText = `display:flex;align-items:baseline;gap:5px;flex-wrap:wrap;margin-bottom:${d ? "3" : "0"}px;`;
 	let h = document.createElement("span");
@@ -274,5 +253,4 @@ function s({ sideView: t, state: n, currentAsset: r, viewUrl: s, buildAssetViewU
 	}
 	d(v, "A"), d(b, "B"), e(r) && e(h) && a(_, y);
 }
-//#endregion
 export { s as renderSideBySideView };

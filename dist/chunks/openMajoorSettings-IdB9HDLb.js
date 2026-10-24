@@ -1,7 +1,7 @@
-import { A as e, E as t, J as n, R as r, S as i, Y as a, b as o, j as s, m as c } from "./events-CoI83paj.js";
-import { a as l, n as u } from "./graphTraversal-C94Q5bJN.js";
-import { S as d, Y as f, b as p, x as m, y as h } from "./SidebarWorkflowSection-DpoPGJrq.js";
-//#region ui/features/viewer/floatingViewerProgress.ts
+import { A as e, E as t, J as n, R as r, S as i, Y as a, b as o, j as s, m as c } from "./events-tsQFsZrH.js";
+import { a as l, n as u } from "./graphTraversal-DTdQWkn5.js";
+import { S as d, Y as f, b as p, x as m, y as h } from "./SidebarWorkflowSection-CZBV2aho.js";
+// ui/features/viewer/floatingViewerProgress.ts
 var g = "progress-update", _ = "__MJR_MFV_PROGRESS_SERVICE__";
 function ee() {
 	return typeof globalThis < "u" ? globalThis : typeof window < "u" ? window : {};
@@ -284,8 +284,7 @@ function ce(e) {
 	}
 	e._progressUpdateHandler = null, e._progressCurrentNodeId = null, e._progressEl = null, e._progressNodesEl = null, e._progressStepsEl = null, e._progressTextEl = null, e._mediaProgressEl = null, e._mediaProgressTextEl = null;
 }
-//#endregion
-//#region ui/features/viewer/workflowGraphMap/workflowGraphMapData.ts
+// ui/features/viewer/workflowGraphMap/workflowGraphMapData.ts
 var C = /* @__PURE__ */ new Map(), w = null;
 async function le(e) {
 	let t = Array.from(new Set(T(e).map((e) => O(e)).filter(Boolean)));
@@ -747,8 +746,7 @@ function Pe(e, t) {
 	}
 	return r;
 }
-//#endregion
-//#region ui/features/viewer/workflowSidebar/widgetAdapters.ts
+// ui/features/viewer/workflowSidebar/widgetAdapters.ts
 function Fe(e, t, n = null) {
 	switch (String(e?.type || "").toLowerCase()) {
 		case "number":
@@ -844,8 +842,7 @@ function Ve(e) {
 	let t = document.createElement("input");
 	return t.type = "text", t.className = "mjr-ws-input mjr-ws-readonly", t.value = e.value == null ? "" : String(e.value), t.readOnly = !0, t.tabIndex = -1, t;
 }
-//#endregion
-//#region ui/app/settings/MajoorSettingsDialog.ts
+// ui/app/settings/MajoorSettingsDialog.ts
 var K = "mjr-settings-dialog", q = "mjr-settings-dialog-style", J = "mjr:settings-dialog-visibility", Y = null, He = {
 	Cards: {
 		icon: "pi pi-th-large",
@@ -1230,8 +1227,7 @@ function Ze(e = s()) {
 	}
 	return setTimeout(() => Y?.search?.focus?.(), 0), !0;
 }
-//#endregion
-//#region ui/app/openMajoorSettings.ts
+// ui/app/openMajoorSettings.ts
 function $(e = s()) {
 	return Ze(e);
 }
@@ -1240,5 +1236,4 @@ try {
 } catch (e) {
 	console.debug?.(e);
 }
-//#endregion
 export { x as _, le as a, k as c, A as d, T as f, ce as g, oe as h, G as i, O as l, se as m, J as n, E as o, ue as p, Fe as r, D as s, $ as t, de as u, b as v };

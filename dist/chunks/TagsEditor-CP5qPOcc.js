@@ -1,8 +1,8 @@
-import { $t as e, F as t, v as n } from "./viewerRuntimeHosts-BBd8uK6j.js";
-import { St as r, m as i, n as a } from "./events-CoI83paj.js";
-import { Y as o } from "./Viewer-DWgaGos-.js";
-import { A as s, C as c, E as l, G as u, J as d, K as f, L as ee, N as p, R as te, T as m, U as ne, V as h, Y as g, b as _, ft as v, j as y, k as b, lt as x, rt as S, ut as C, z as w } from "./mjr-primevue-BOf2ACk_.js";
-//#region ui/vue/components/common/TagsEditor.vue?vue&type=script&setup=true&lang.ts
+import { $t as e, F as t, v as n } from "./viewerRuntimeHosts-Ctr8wab-.js";
+import { St as r, m as i, n as a } from "./events-tsQFsZrH.js";
+import { Y as o } from "./Viewer-DHesfEdb.js";
+import { A as s, C as c, E as l, G as u, J as d, K as f, L as ee, N as p, R as te, T as m, U as ne, V as h, Y as g, b as _, ft as v, j as y, k as b, lt as x, rt as S, ut as C, z as w } from "./mjr-primevue-BRqtdXzb.js";
+// ui/vue/components/common/TagsEditor.vue?vue&type=script&setup=true&lang.ts
 var T = ["aria-busy"], E = ["aria-label"], re = {
 	key: 0,
 	class: "mjr-tags-empty"
@@ -179,13 +179,7 @@ var T = ["aria-busy"], E = ["aria-label"], re = {
 			let n = se(t);
 			if (!n) return;
 			let r = A(n);
-			if (r && !I.value.some((e) => A(e) === r)) {
-				if (I.value.length >= D) {
-					e(i("toast.maxTagsReached", "Maximum number of tags reached"), "warning");
-					return;
-				}
-				I.value = [...I.value, n], Q();
-			}
+			r && (I.value.some((e) => A(e) === r) || (I.value.length >= D ? e(i("toast.maxTagsReached", "Maximum number of tags reached"), "warning") : (I.value = [...I.value, n], Q())));
 		}
 		function pe(e) {
 			if (N.disabled || e < 0 || e >= I.value.length) return;
@@ -197,21 +191,10 @@ var T = ["aria-busy"], E = ["aria-label"], re = {
 				e.preventDefault();
 				let t = (z.value && X.value && B.value >= 0 ? Y.value[B.value] : null) || R.value.trim();
 				t && ($(t), R.value = "", z.value = !1, B.value = -1, V.value = null);
-				return;
-			}
-			if (e.key === "Escape") {
-				z.value = !1, B.value = -1, V.value = null;
-				return;
-			}
-			if (e.key === "ArrowDown") {
-				e.preventDefault(), X.value && (B.value = Math.min(B.value + 1, Y.value.length - 1));
-				return;
-			}
-			if (e.key === "ArrowUp") {
-				e.preventDefault(), B.value = Math.max(B.value - 1, 0);
-				return;
-			}
-			if (e.key === "Tab" && X.value) {
+			} else if (e.key === "Escape") z.value = !1, B.value = -1, V.value = null;
+			else if (e.key === "ArrowDown") e.preventDefault(), X.value && (B.value = Math.min(B.value + 1, Y.value.length - 1));
+			else if (e.key === "ArrowUp") e.preventDefault(), B.value = Math.max(B.value - 1, 0);
+			else if (e.key === "Tab" && X.value) {
 				e.preventDefault();
 				let t = Y.value[B.value] || Y.value[0];
 				t && (R.value = t);
@@ -305,5 +288,4 @@ var T = ["aria-busy"], E = ["aria-label"], re = {
 		};
 	}
 });
-//#endregion
 export { O as t };

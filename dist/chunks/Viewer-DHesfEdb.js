@@ -1,10 +1,10 @@
-import { $t as e, H as t, P as n, _ as r, c as i, d as a, g as o, gt as s, n as c, o as l, r as u, s as d, vt as f, x as p, y as m } from "./viewerRuntimeHosts-BBd8uK6j.js";
-import { Ct as h, D as g, a as _, ct as v, h as y, i as b, j as x, k as S, m as C, n as w, o as T, pt as E, r as D, rt as O, t as k } from "./events-CoI83paj.js";
-import { T as A, nt as j, rt as M } from "./mjr-primevue-BOf2ACk_.js";
-import { n as N, r as ee } from "./mjr-vue-vendor-BKZZuiuB.js";
-import { n as P, r as te, t as F } from "./state-DPiaUMw1.js";
-import { a as ne, c as re, i as ie, o as ae, r as oe, s as se } from "./model3dRenderer-e5uWwIMW.js";
-//#region ui/utils/events.ts
+import { $t as e, H as t, P as n, _ as r, c as i, d as a, g as o, gt as s, n as c, o as l, r as u, s as d, vt as f, x as p, y as m } from "./viewerRuntimeHosts-Ctr8wab-.js";
+import { Ct as h, D as g, a as _, ct as v, h as y, i as b, j as x, k as S, m as C, n as w, o as T, pt as E, r as D, rt as O, t as k } from "./events-tsQFsZrH.js";
+import { T as A, nt as j, rt as M } from "./mjr-primevue-BRqtdXzb.js";
+import { n as N, r as ee } from "./mjr-vue-vendor-mHY_eIVE.js";
+import { n as P, r as te, t as F } from "./state-D0Gu1AgG.js";
+import { a as ne, c as re, i as ie, o as ae, r as oe, s as se } from "./model3dRenderer-B18R8Ewh.js";
+// ui/utils/events.ts
 function ce(e, t, { target: n = null, warnPrefix: r = "[Majoor]" } = {}) {
 	let i = n || (typeof window < "u" ? window : null);
 	if (!i || typeof i.dispatchEvent != "function") return !1;
@@ -19,8 +19,7 @@ function ce(e, t, { target: n = null, warnPrefix: r = "[Majoor]" } = {}) {
 		return !1;
 	}
 }
-//#endregion
-//#region ui/app/DialogTemplates.ts
+// ui/app/DialogTemplates.ts
 var le = async (e, t = "Majoor", n = {}) => {
 	let r = de();
 	if (r && typeof r.alert == "function") try {
@@ -60,15 +59,7 @@ var le = async (e, t = "Majoor", n = {}) => {
 		}
 	}
 	let a = me();
-	if (!a) {
-		try {
-			window.alert(e);
-		} catch (e) {
-			console.debug?.(e);
-		}
-		return;
-	}
-	return new Promise((n) => {
+	if (a) return new Promise((n) => {
 		let r = new a();
 		W(r);
 		let i = U("div", { style: {
@@ -135,6 +126,11 @@ var le = async (e, t = "Majoor", n = {}) => {
 			n();
 		}
 	});
+	try {
+		window.alert(e);
+	} catch (e) {
+		console.debug?.(e);
+	}
 }, I = async (e, t = "Majoor") => {
 	let n = de();
 	if (n) try {
@@ -405,31 +401,25 @@ var le = async (e, t = "Majoor", n = {}) => {
 	return Object.entries(t || {}).forEach(([e, t]) => {
 		let n = String(e || "");
 		if (n && !V.has(n)) {
-			if (e === "style" && t && typeof t == "object") {
-				Object.assign(r.style, t);
-				return;
-			}
-			if (e === "className") {
-				r.className = String(t);
-				return;
-			}
-			if (n.startsWith("on")) {
+			if (e === "style" && t && typeof t == "object") Object.assign(r.style, t);
+			else if (e === "className") r.className = String(t);
+			else if (n.startsWith("on")) {
 				if (typeof t == "function") {
 					let e = n.slice(2).toLowerCase();
 					B.has(e) && r.addEventListener(e, t);
 				}
-				return;
-			}
-			if (H.has(n)) try {
-				r[n] = t;
-				return;
-			} catch (e) {
-				console.debug?.(e);
-			}
-			try {
-				r.setAttribute(n, String(t));
-			} catch (e) {
-				console.debug?.(e);
+			} else {
+				if (H.has(n)) try {
+					r[n] = t;
+					return;
+				} catch (e) {
+					console.debug?.(e);
+				}
+				try {
+					r.setAttribute(n, String(t));
+				} catch (e) {
+					console.debug?.(e);
+				}
 			}
 		}
 	}), (Array.isArray(n) ? n : [n]).filter(Boolean).forEach((e) => {
@@ -468,8 +458,7 @@ var le = async (e, t = "Majoor", n = {}) => {
 		console.debug?.(e);
 	}
 };
-//#endregion
-//#region ui/features/status/AssetStatusDotTheme.ts
+// ui/features/status/AssetStatusDotTheme.ts
 function K(e) {
 	return String(e || "").trim().toLowerCase();
 }
@@ -490,8 +479,7 @@ function ye(e, t = {}) {
 	let n = K(e);
 	return ve(t) ? n === "pending" || n === "info" ? "var(--mjr-browser-status-info, #4DB6AC)" : n === "success" ? "var(--mjr-browser-status-success, #2E7D32)" : n === "warning" ? "var(--mjr-browser-status-warning, #FFB74D)" : n === "error" ? "var(--mjr-browser-status-error, #EF5350)" : "var(--mjr-browser-status-neutral, #90A4AE)" : n === "pending" || n === "info" ? "var(--mjr-status-info, #64B5F6)" : n === "success" ? "var(--mjr-status-success, #4CAF50)" : n === "warning" ? "var(--mjr-status-warning, #FFA726)" : n === "error" ? "var(--mjr-status-error, #f44336)" : "var(--mjr-status-neutral, #666)";
 }
-//#endregion
-//#region ui/stores/useRuntimeStore.ts
+// ui/stores/useRuntimeStore.ts
 var q = N("mjr-runtime", () => {
 	let e = M(null), t = M(null), n = M(!1), r = M(0), i = M(null), a = M(null), o = M(null), s = M(null), c = M(null), l = M([]), u = A(() => !!i.value), d = A(() => {
 		let e = s.value, t = c.value;
@@ -539,8 +527,7 @@ var q = N("mjr-runtime", () => {
 		resetExecution: _
 	};
 });
-//#endregion
-//#region ui/stores/getOptionalRuntimeStore.ts
+// ui/stores/getOptionalRuntimeStore.ts
 function be() {
 	try {
 		return ee() ? q() : null;
@@ -548,8 +535,7 @@ function be() {
 		return null;
 	}
 }
-//#endregion
-//#region ui/stores/runtimeEnrichmentState.ts
+// ui/stores/runtimeEnrichmentState.ts
 var xe = Symbol.for("majoor.assets_manager.runtime_state");
 function Se() {
 	return {
@@ -562,7 +548,7 @@ function Se() {
 function Ce() {
 	try {
 		let e = typeof globalThis < "u" ? globalThis : {};
-		return (!e[xe] || typeof e[xe] != "object") && (e[xe] = Se()), e[xe];
+		return e[xe] && typeof e[xe] == "object" || (e[xe] = Se()), e[xe];
 	} catch {
 		return Se();
 	}
@@ -585,8 +571,7 @@ function Te() {
 		queueLength: Math.max(0, Number(t.enrichmentQueueLength || 0) || 0)
 	};
 }
-//#endregion
-//#region ui/features/grid/AssetCardRenderer.ts
+// ui/features/grid/AssetCardRenderer.ts
 function Ee(e) {
 	try {
 		return String(e || "").trim().toLowerCase();
@@ -660,7 +645,7 @@ function Ne(e, t) {
 	let n = t.find((e) => (Number(e?.generation_time_ms ?? e?.metadata?.generation_time_ms ?? 0) || 0) > 0);
 	if (!n) return e;
 	let r = Number(n?.generation_time_ms ?? n?.metadata?.generation_time_ms ?? 0) || 0;
-	return r <= 0 ? e : (e.generation_time_ms = r, !e.has_generation_data && n?.has_generation_data && (e.has_generation_data = n.has_generation_data), e);
+	return r <= 0 || (e.generation_time_ms = r, !e.has_generation_data && n?.has_generation_data && (e.has_generation_data = n.has_generation_data)), e;
 }
 function Pe(e, t) {
 	let n = String(e?.kind || "").toLowerCase();
@@ -935,8 +920,7 @@ function Ue(e, t, n, r) {
 	}
 	return l;
 }
-//#endregion
-//#region ui/components/Badges.ts
+// ui/components/Badges.ts
 function We({ ext: e = "", filename: t = "", count: n = 0, paths: r = [] } = {}) {
 	let i = String(e || "").trim(), a = String(t || "").trim(), o = Math.max(0, Number(n) || 0), s = Array.isArray(r) ? r.map((e) => String(e || "").trim()).filter(Boolean) : [];
 	if (o < 2) return `${i} file`;
@@ -1196,8 +1180,7 @@ function it(e) {
 	let n = et(e);
 	return n.length === 0 ? (t.style.display = "none", t) : (t.textContent = n.join(", "), t.title = `Tags: ${n.join(", ")}`, t.style.cssText = "\n        position: absolute;\n        bottom: 6px;\n        left: 6px;\n        padding: 3px 6px;\n        border-radius: 4px;\n        background: rgba(0,0,0,0.8);\n        color: var(--mjr-tag-color, #90CAF9);\n        font-size: 9px;\n        max-width: 80%;\n        overflow: hidden;\n        text-overflow: ellipsis;\n        white-space: nowrap;\n        pointer-events: none;\n        z-index: 10;\n        box-shadow: 0 2px 4px rgba(0,0,0,0.3);\n    ", t);
 }
-//#endregion
-//#region ui/utils/filenames.ts
+// ui/utils/filenames.ts
 var at = /* @__PURE__ */ new Set([
 	"CON",
 	"PRN",
@@ -1296,8 +1279,7 @@ function ut(e, t) {
 	let r = lt(t);
 	return !lt(n).ext && r.ext ? `${n}${r.ext}` : n;
 }
-//#endregion
-//#region ui/utils/dom.ts
+// ui/utils/dom.ts
 function dt(e, t) {
 	if (!t) return null;
 	try {
@@ -1326,13 +1308,11 @@ async function pt(e) {
 		return !1;
 	}
 }
-//#endregion
-//#region ui/utils/deleteGuard.ts
+// ui/utils/deleteGuard.ts
 async function mt(e, t) {
 	return !T.DELETE_CONFIRMATION || !!await I(e > 1 ? C("dialog.deleteSelectedFiles", "Delete {count} selected files?", { count: e }) : C("dialog.deleteSingleFile", "Delete \"{label}\"?", { label: String(t || C("label.thisFile", "this file")) }), C("dialog.confirmDeleteTitle", "Majoor: Confirm delete"));
 }
-//#endregion
-//#region ui/features/collections/contextmenu/addToCollectionMenuState.ts
+// ui/features/collections/contextmenu/addToCollectionMenuState.ts
 var ht = j({
 	open: !1,
 	x: 0,
@@ -1352,8 +1332,7 @@ function _t({ x: e = 0, y: t = 0, assets: n = [] } = {}) {
 function vt() {
 	ht.open = !1, ht.x = 0, ht.y = 0, ht.assets = [];
 }
-//#endregion
-//#region ui/features/collections/contextmenu/addToCollectionMenu.ts
+// ui/features/collections/contextmenu/addToCollectionMenu.ts
 function yt(e) {
 	if (!e || typeof e != "object") return null;
 	let t = e.filepath || e.path || e?.file_info?.filepath || "";
@@ -1368,18 +1347,13 @@ function yt(e) {
 }
 async function bt({ x: t, y: n, assets: r }) {
 	let i = Array.isArray(r) ? r.map(yt).filter(Boolean) : [];
-	if (!i.length) {
-		e(C("toast.noValidAssetsSelected", "No valid assets selected."), "warning");
-		return;
-	}
-	_t({
+	i.length ? _t({
 		x: Number(t) || 0,
 		y: Number(n) || 0,
 		assets: i
-	});
+	}) : e(C("toast.noValidAssetsSelected", "No valid assets selected."), "warning");
 }
-//#endregion
-//#region ui/features/contextmenu/ratingUpdater.ts
+// ui/features/contextmenu/ratingUpdater.ts
 var xt = 350, St = /* @__PURE__ */ new Map();
 function Ct(e) {
 	let t = St.get(e);
@@ -1424,8 +1398,7 @@ function Et(t, r, { onSuccess: i, onFailure: o, successMessage: s = null, errorM
 		controller: u
 	});
 }
-//#endregion
-//#region ui/utils/tooltipShortcuts.ts
+// ui/utils/tooltipShortcuts.ts
 function Dt(e, t) {
 	let n = String(e || "").trim(), r = String(t || "").trim();
 	if (!r) return n;
@@ -1445,8 +1418,7 @@ function Ot(e, t, n, { setAriaLabel: r = !0, ariaLabel: i = null } = {}) {
 	}
 	return a;
 }
-//#endregion
-//#region ui/utils/safeCall.ts
+// ui/utils/safeCall.ts
 var kt = () => {};
 function At(e) {
 	try {
@@ -1483,8 +1455,7 @@ function Z(e, t, n, r, i = "safeAddListener") {
 		return At("DEBUG_SAFE_LISTENERS") && jt(`${i}:add:${String(t || "")}`, e), kt;
 	}
 }
-//#endregion
-//#region ui/utils/mediaFps.ts
+// ui/utils/mediaFps.ts
 function Mt(e) {
 	try {
 		let t = Number(e);
@@ -1533,8 +1504,7 @@ function It(e, t = 30) {
 	let r = Mt(t);
 	return r == null ? 30 : Math.max(1, Math.round(r * 1e3) / 1e3);
 }
-//#endregion
-//#region ui/components/VideoControls.ts
+// ui/components/VideoControls.ts
 var Lt = 400, Rt = 1e3, zt = 220, Bt = .001;
 function Vt(e, t) {
 	let n = Number(e), r = Math.max(1, Number(t) || 1);
@@ -2140,7 +2110,7 @@ function Qt(e, t = {}) {
 					let e = P((s || 0) / n);
 					Pe();
 					let t = Math.round(e * Ne());
-					!Number.isNaN(t) && !q._seeking && !p.matches?.(":active") && (p.value = String(t));
+					Number.isNaN(t) || q._seeking || p.matches?.(":active") || (p.value = String(t));
 					try {
 						w.style.left = `${e * 100}%`;
 					} catch (e) {
@@ -2211,11 +2181,8 @@ function Qt(e, t = {}) {
 				console.debug?.(e);
 			}
 		}, Re = () => {
-			if (!o) {
-				Le();
-				return;
-			}
-			try {
+			if (!o) Le();
+			else try {
 				let { inF: e, outF: t, maxF: n } = Me();
 				if (!Number.isFinite(n) || n <= 0) return;
 				let i = P(e / n) * 100, a = P(t / n) * 100, o = e <= 0 && t >= n;
@@ -2767,17 +2734,16 @@ function Qt(e, t = {}) {
 				console.debug?.(e);
 			}
 		}, { passive: !0 })), a && (K.push(Z(e, "loadedmetadata", () => {
-			if (!o) {
+			if (!o) Re();
+			else {
+				try {
+					let e = Oe();
+					e > 0 && q.inFrame == null && q.outFrame == null && (q.inFrame = 0, q.outFrame = e, je());
+				} catch (e) {
+					console.debug?.(e);
+				}
 				Re();
-				return;
 			}
-			try {
-				let e = Oe();
-				e > 0 && q.inFrame == null && q.outFrame == null && (q.inFrame = 0, q.outFrame = e, je());
-			} catch (e) {
-				console.debug?.(e);
-			}
-			Re();
 		})), K.push(Z(e, "durationchange", () => X(Re)))), o && K.push(Z(e, "mjr:frameStep", () => {
 			X(we);
 		}));
@@ -3015,8 +2981,7 @@ function Qt(e, t = {}) {
 		};
 	}
 }
-//#endregion
-//#region ui/features/contextmenu/viewerContextMenuState.ts
+// ui/features/contextmenu/viewerContextMenuState.ts
 function $t() {
 	return {
 		open: !1,
@@ -3081,8 +3046,7 @@ function fn() {
 function pn() {
 	cn(), fn();
 }
-//#endregion
-//#region ui/features/viewer/ViewerContextMenu.ts
+// ui/features/viewer/ViewerContextMenu.ts
 var mn = {
 	COPY_PATH: "Ctrl+Shift+C",
 	DOWNLOAD: "S",
@@ -3144,24 +3108,20 @@ function Sn(e, t, r) {
 	} catch (e) {
 		console.debug?.(e);
 	}
-	if (i) {
-		Et(String(i), t, {
-			successMessage: t > 0 ? `Rating set to ${t} stars` : "Rating cleared",
-			errorMessage: "Failed to update rating",
-			warnPrefix: "[ViewerContextMenu]",
-			onSuccess: () => {
-				ce(k, {
-					assetId: String(i),
-					rating: t
-				}, { warnPrefix: "[ViewerContextMenu]" });
-			},
-			onFailure: (e) => {
-				a(e, "[ViewerContextMenu] Rating update", { showToast: !0 });
-			}
-		});
-		return;
-	}
-	n(e, t).catch((e) => {
+	i ? Et(String(i), t, {
+		successMessage: t > 0 ? `Rating set to ${t} stars` : "Rating cleared",
+		errorMessage: "Failed to update rating",
+		warnPrefix: "[ViewerContextMenu]",
+		onSuccess: () => {
+			ce(k, {
+				assetId: String(i),
+				rating: t
+			}, { warnPrefix: "[ViewerContextMenu]" });
+		},
+		onFailure: (e) => {
+			a(e, "[ViewerContextMenu] Rating update", { showToast: !0 });
+		}
+	}) : n(e, t).catch((e) => {
 		a(e, "[ViewerContextMenu] Rating update", { showToast: !0 });
 	});
 }
@@ -3194,11 +3154,8 @@ function Tn({ asset: n, event: r, getCurrentViewUrl: i, onAssetChanged: o }) {
 		}),
 		yn(C("ctx.copyPath", "Copy path"), "pi pi-copy", mn.COPY_PATH, async () => {
 			let t = n?.filepath ? String(n.filepath) : "";
-			if (!t) {
-				e(C("toast.noFilePath"), "error");
-				return;
-			}
-			try {
+			if (!t) e(C("toast.noFilePath"), "error");
+			else try {
 				await navigator.clipboard.writeText(t), e(C("toast.pathCopied"), "success", 2e3);
 			} catch (t) {
 				console.error("[ViewerContextMenu] Copy failed:", t), e(C("toast.pathCopyFailed"), "error");
@@ -3280,11 +3237,8 @@ function Tn({ asset: n, event: r, getCurrentViewUrl: i, onAssetChanged: o }) {
 			let t = n.filename || "", r = ut(await L(C("dialog.rename.title", "Rename file"), t), t);
 			if (!r || r === t) return;
 			let i = st(r);
-			if (!i.valid) {
-				e(i.reason, "error");
-				return;
-			}
-			try {
+			if (!i.valid) e(i.reason, "error");
+			else try {
 				let t = await f(n, r);
 				if (t?.ok) {
 					let i = t?.data?.asset;
@@ -3364,8 +3318,7 @@ function Dn(e) {
 		console.debug?.(e);
 	}
 }
-//#endregion
-//#region ui/features/viewer/mediaPlayer.ts
+// ui/features/viewer/mediaPlayer.ts
 function On(e) {
 	let t = String(e || "").toLowerCase();
 	return t === "video" || t === "audio";
@@ -3398,8 +3351,7 @@ function jn(e, t = {}) {
 		return null;
 	}
 }
-//#endregion
-//#region ui/features/viewer/ViewerState.ts
+// ui/features/viewer/ViewerState.ts
 var Mn = "mjr_viewer_prefs_v1";
 function Nn() {
 	try {
@@ -3428,8 +3380,7 @@ function Pn(e) {
 		console.debug?.(e);
 	}
 }
-//#endregion
-//#region ui/features/viewer/lifecycle.ts
+// ui/features/viewer/lifecycle.ts
 function Fn(e) {
 	if (e) {
 		try {
@@ -3562,8 +3513,7 @@ function In(e) {
 	}
 	return n;
 }
-//#endregion
-//#region ui/components/buttons.ts
+// ui/components/buttons.ts
 function Ln(e, t) {
 	let n = document.createElement("button");
 	n.textContent = e, n.title = t || "";
@@ -3588,8 +3538,7 @@ function Rn(e, t) {
 	}
 	return n.style.cssText = "\n        padding: 4px 12px;\n        background: linear-gradient(180deg, rgba(206, 211, 218, 0.1), rgba(206, 211, 218, 0.03));\n        border: 0.8px solid rgba(196, 202, 210, 0.3);\n        color: rgba(230, 233, 238, 0.95);\n        border-radius: 4px;\n        cursor: pointer;\n        font-size: 12px;\n        transition: all 0.16s;\n    ", n;
 }
-//#endregion
-//#region ui/features/viewer/toolbarControls.ts
+// ui/features/viewer/toolbarControls.ts
 function zn({ VIEWER_MODES: e, state: t, onToolsChanged: n, onCompareModeChanged: r, onExportFrame: i, onCopyFrame: a, onAudioVizModeChanged: o, getCanAB: s } = {}) {
 	let c = {
 		channel: "rgb",
@@ -4109,18 +4058,7 @@ function zn({ VIEWER_MODES: e, state: t, onToolsChanged: n, onCompareModeChanged
 	});
 	G.appendChild(L), p.body.appendChild(G), _.appendChild(ue), _.appendChild(de), _.appendChild(z);
 	let K = document.createElement("div");
-	K.className = "mjr-viewer-tools-group mjr-viewer-tools-group--3d", K.textContent = "LMB rotate | RMB pan | Scroll zoom", K.style.cssText = [
-		"display:none",
-		"align-items:center",
-		"padding:2px 8px",
-		"border-radius:999px",
-		"border:1px solid rgba(255,255,255,0.12)",
-		"background:rgba(255,255,255,0.06)",
-		"color:rgba(255,255,255,0.55)",
-		"font-size:10px",
-		"font-weight:400",
-		"letter-spacing:0.01em"
-	].join(";"), v.appendChild(K);
+	K.className = "mjr-viewer-tools-group mjr-viewer-tools-group--3d", K.textContent = "LMB rotate | RMB pan | Scroll zoom", K.style.cssText = "display:none;align-items:center;padding:2px 8px;border-radius:999px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.55);font-size:10px;font-weight:400;letter-spacing:0.01em", v.appendChild(K);
 	let ve = document.createElement("div");
 	ve.style.cssText = "position: relative; display:inline-flex; align-items:center;", ve.className = "mjr-viewer-tools-action", ve.style.marginLeft = "4px";
 	let ye = document.createElement("button");
@@ -4195,8 +4133,7 @@ function zn({ VIEWER_MODES: e, state: t, onToolsChanged: n, onCompareModeChanged
 		DEFAULT_TOOL_STATE: c
 	};
 }
-//#endregion
-//#region ui/features/viewer/toolbarActions.ts
+// ui/features/viewer/toolbarActions.ts
 function Bn({ unsubs: e, state: t, VIEWER_MODES: n, onMode: r, onClose: i, onToolsChanged: a, onCompareModeChanged: o, onAudioVizModeChanged: s, onExportFrame: c, onCopyFrame: l, singleBtn: u, abBtn: d, sideBtn: f, closeBtn: p, channelsSelect: m, compareModeSelect: h, audioVizModeSelect: g, exposureCtl: _, gammaCtl: v, zebraToggle: y, scopesToggle: b, scopesSelect: x, gridToggle: S, gridModeSelect: C, maskToggle: w, formatSelect: T, maskOpacityCtl: E, probeToggle: D, loupeToggle: O, hudToggle: k, focusToggle: A, genInfoToggle: j, resetGradeBtn: M, exportBtn: N, copyBtn: ee, resetExposure: P, resetGamma: te, resetViewerTools: F, expGroup: ne, gamGroup: re }) {
 	e.push(Z(u, "click", () => r?.(n.SINGLE))), e.push(Z(d, "click", () => r?.(n.AB_COMPARE))), e.push(Z(f, "click", () => r?.(n.SIDE_BY_SIDE))), e.push(Z(p, "click", () => i?.())), e.push(Z(m, "change", () => {
 		try {
@@ -4557,8 +4494,7 @@ function Hn({ state: e, VIEWER_MODES: t, singleBtn: n, abBtn: r, sideBtn: i, can
 		console.debug?.(e);
 	}
 }
-//#endregion
-//#region ui/features/viewer/toolbar.ts
+// ui/features/viewer/toolbar.ts
 function Un({ VIEWER_MODES: e, state: t, lifecycle: n, onClose: r, _onZoomIn: i, _onZoomOut: a, _onZoomReset: o, _onZoomOneToOne: s, onMode: c, onToolsChanged: l, onCompareModeChanged: u, onExportFrame: d, onCopyFrame: f, onAudioVizModeChanged: p, onToggleFullscreen: m, getCanAB: h } = {}) {
 	let g = n?.unsubs || [], _ = document.createElement("div");
 	_.className = "mjr-viewer-header", _.style.cssText = "\n        display: flex;\n        flex-direction: column;\n        gap: 6px;\n        padding: 8px 16px;\n        background: linear-gradient(170deg, rgba(24, 27, 33, 0.96), rgba(17, 19, 25, 0.97));\n        border-bottom: 0.8px solid rgba(196, 202, 210, 0.2);\n        color: white;\n        box-sizing: border-box;\n    ";
@@ -4821,8 +4757,7 @@ function Un({ VIEWER_MODES: e, state: t, lifecycle: n, onClose: r, _onZoomIn: i,
 		syncModeButtons: Re
 	};
 }
-//#endregion
-//#region ui/features/viewer/keyboard.ts
+// ui/features/viewer/keyboard.ts
 function Wn(e) {
 	if (!e) return null;
 	try {
@@ -4992,11 +4927,8 @@ function Gn({ overlay: t, _content: n, singleView: r, state: i, VIEWER_MODES: a,
 		} catch (e) {
 			console.debug?.(e);
 		}
-		if (v && !n.altKey && !n.ctrlKey && !n.metaKey && (n.key === "0" || n.key === "1" || n.key === "2" || n.key === "3" || n.key === "4" || n.key === "5")) {
-			g(), O(n.key);
-			return;
-		}
-		switch (n.key) {
+		if (v && !n.altKey && !n.ctrlKey && !n.metaKey && (n.key === "0" || n.key === "1" || n.key === "2" || n.key === "3" || n.key === "4" || n.key === "5")) g(), O(n.key);
+		else switch (n.key) {
 			case "1": {
 				if (!n.altKey) break;
 				let e = X(o);
@@ -5254,8 +5186,7 @@ function Gn({ overlay: t, _content: n, singleView: r, state: i, VIEWER_MODES: a,
 		}
 	};
 }
-//#endregion
-//#region ui/features/viewer/videoSync.ts
+// ui/features/viewer/videoSync.ts
 var Kn = () => {
 	try {
 		return !!T?.DEBUG_VIEWER;
@@ -5430,20 +5361,12 @@ function qn(e, t, { threshold: n = .15, correctionCooldownMs: r = 250 } = {}) {
 		});
 		for (let t of a) try {
 			t.addEventListener("play", () => {
-				if (c.has(t)) {
-					c.delete(t), g(e);
-					return;
-				}
-				m(t, { force: !0 }), b(t), v(!0, t), g(t);
+				c.has(t) ? (c.delete(t), g(e)) : (m(t, { force: !0 }), b(t), v(!0, t), g(t));
 			}, {
 				signal: i.signal,
 				passive: !0
 			}), t.addEventListener("pause", () => {
-				if (c.has(t)) {
-					c.delete(t);
-					return;
-				}
-				t?.ended || (d(), v(!1, t));
+				c.has(t) ? c.delete(t) : t?.ended || (d(), v(!1, t));
 			}, {
 				signal: i.signal,
 				passive: !0
@@ -5509,8 +5432,7 @@ function qn(e, t, { threshold: n = .15, correctionCooldownMs: r = 250 } = {}) {
 	}
 	return i;
 }
-//#endregion
-//#region ui/features/viewer/grid.ts
+// ui/features/viewer/grid.ts
 function Jn({ gridCanvas: e, content: t, state: n, VIEWER_MODES: r, getPrimaryMedia: i, getViewportRect: a, clearCanvas: o } = {}) {
 	let s = () => {
 		try {
@@ -5923,8 +5845,7 @@ function Jn({ gridCanvas: e, content: t, state: n, VIEWER_MODES: r, getPrimaryMe
 		}
 	};
 }
-//#endregion
-//#region ui/features/viewer/probe.ts
+// ui/features/viewer/probe.ts
 function Yn({ overlay: e, content: t, state: n, VIEWER_MODES: r, getPrimaryMedia: i, getMediaNaturalSize: a, _getViewportRect: o, positionOverlayBox: s, probeTooltip: c, loupeWrap: l, onLoupeRedraw: u, lifecycle: d } = {}) {
 	let f = d?.unsubs || [], p = document.createElement("canvas");
 	p.width = 1, p.height = 1;
@@ -6101,8 +6022,7 @@ function Yn({ overlay: e, content: t, state: n, VIEWER_MODES: r, getPrimaryMedia
 		}
 	};
 }
-//#endregion
-//#region ui/features/viewer/loupe.ts
+// ui/features/viewer/loupe.ts
 function Xn({ state: e, loupeCanvas: t, loupeWrap: n, getMediaNaturalSize: r, positionOverlayBox: i } = {}) {
 	let a = null;
 	try {
@@ -6155,8 +6075,7 @@ function Xn({ state: e, loupeCanvas: t, loupeWrap: n, getMediaNaturalSize: r, po
 		}
 	};
 }
-//#endregion
-//#region ui/features/viewer/metadata.ts
+// ui/features/viewer/metadata.ts
 function Zn({ state: e, VIEWER_MODES: t, APP_CONFIG: n, getAssetMetadata: r, getAssetsBatch: i } = {}) {
 	let a = /* @__PURE__ */ new Map(), o = n?.VIEWER_META_TTL_MS ?? 3e4, s = n?.VIEWER_META_MAX_ENTRIES ?? 500, c = 0, l = null, u = () => {
 		if (a.size <= s) return;
@@ -6194,11 +6113,7 @@ function Zn({ state: e, VIEWER_MODES: t, APP_CONFIG: n, getAssetMetadata: r, get
 			let t = e?.id;
 			if (t == null) continue;
 			let n = String(t), i = a.get(n);
-			if (i && r - (i.at || 0) < o) {
-				d(e, i.data);
-				continue;
-			}
-			s.push(t);
+			i && r - (i.at || 0) < o ? d(e, i.data) : s.push(t);
 		}
 		if (s.length) try {
 			let e = await i?.(s, t ? { signal: t } : {}), o = Array.isArray(e?.data) ? e.data : [];
@@ -6248,11 +6163,8 @@ function Zn({ state: e, VIEWER_MODES: t, APP_CONFIG: n, getAssetMetadata: r, get
 			let n = e?.id;
 			if (n == null) return;
 			let i = String(n), s = Date.now(), c = a.get(i);
-			if (c && s - (c.at || 0) < o) {
-				d(e, c.data);
-				return;
-			}
-			try {
+			if (c && s - (c.at || 0) < o) d(e, c.data);
+			else try {
 				let o = await r?.(n, t ? { signal: t } : {});
 				o?.ok && o.data && (a.set(i, {
 					at: s,
@@ -6299,14 +6211,12 @@ function Zn({ state: e, VIEWER_MODES: t, APP_CONFIG: n, getAssetMetadata: r, get
 		_noop: kt
 	};
 }
-//#endregion
-//#region ui/features/viewer/constants.ts
+// ui/features/viewer/constants.ts
 var Qn = Object.freeze({
 	MIN: .1,
 	MAX: 16
 });
-//#endregion
-//#region ui/features/viewer/panzoom.ts
+// ui/features/viewer/panzoom.ts
 function $n({ overlay: e, content: t, singleView: n, abView: r, sideView: i, state: a, VIEWER_MODES: o, scheduleOverlayRedraw: s, lifecycle: c } = {}) {
 	let l = c?.safeCall || X, u = c?.safeAddListener || Z, d = c?.unsubs || [], f = () => {
 		try {
@@ -6811,8 +6721,7 @@ function $n({ overlay: e, content: t, singleView: n, abView: r, sideView: i, sta
 		}
 	};
 }
-//#endregion
-//#region ui/features/viewer/videoProcessorWebGL.ts
+// ui/features/viewer/videoProcessorWebGL.ts
 var er = "\nattribute vec2 a_position;\nvarying vec2 v_uv;\nvoid main() {\n    // Quad covers -1..1\n    gl_Position = vec4(a_position, 0, 1);\n    // Map -1..1 to 0..1\n    v_uv = a_position * 0.5 + 0.5;\n    // In WebGL, textures are usually flipped relative to Image/Video elements if not handled.\n    // We'll flip Y in fragment shader or here.\n    v_uv.y = 1.0 - v_uv.y;\n}\n", tr = "\nprecision mediump float;\nvarying vec2 v_uv;\nuniform sampler2D u_image;\nuniform float u_exposure_scale;\nuniform float u_gamma_inv;\nuniform int u_channel; // 0=RGB, 1=R, 2=G, 3=B\nuniform int u_analysis; // 0=None, 1=Zebra\nuniform float u_zebra_threshold;\nuniform vec2 u_resolution;\n\nfloat getLuma(vec3 c) { return dot(c, vec3(0.2126, 0.7152, 0.0722)); }\n\nvoid main() {\n    vec4 texColor = texture2D(u_image, v_uv);\n    vec3 color = texColor.rgb;\n\n    // Exposure\n    color *= u_exposure_scale;\n\n    // Analysis (Zebra) or Gamma\n    bool isZebra = false;\n    if (u_analysis == 1) {\n        float luma = getLuma(color);\n        if (luma >= u_zebra_threshold) {\n            isZebra = true;\n            // Stripe pattern: (x + y) % 16 < 8\n            // gl_FragCoord is in window pixels\n            float stripe = mod(gl_FragCoord.x + gl_FragCoord.y, 32.0);\n            if (stripe < 16.0) {\n                 gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0); // Black\n            } else {\n                 gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0); // White\n            }\n        }\n    }\n\n    if (!isZebra) {\n        // Gamma\n        // fast pow?\n        color = pow(clamp(color, 0.0, 1.0), vec3(u_gamma_inv));\n\n        // Channel Selector\n        if (u_channel == 1) color = vec3(color.r);\n        else if (u_channel == 2) color = vec3(color.g);\n        else if (u_channel == 3) color = vec3(color.b);\n\n        gl_FragColor = vec4(color, texColor.a);\n    }\n}\n";
 function nr(e, t, n) {
 	let r = e.createShader(t);
@@ -6987,8 +6896,7 @@ function ar(e) {
 		}
 	};
 }
-//#endregion
-//#region ui/features/viewer/videoProcessor.ts
+// ui/features/viewer/videoProcessor.ts
 function or({ canvas: e, videoEl: t, disableWebGL: n, pauseDuringExecution: r = null, getGradeParams: i, isDefaultGrade: a, _tonemap: o, maxProcPixelsVideo: s, throttleFps: c, safeAddListener: l, safeCall: u, onReady: d } = {}) {
 	let f = r == null ? !!T?.VIEWER_PAUSE_DURING_EXECUTION : !!r, p = null;
 	if (!n && ir()) try {
@@ -7167,11 +7075,8 @@ function or({ canvas: e, videoEl: t, disableWebGL: n, pauseDuringExecution: r = 
 				console.debug?.(e);
 			}
 			if (y._connectRAF == null) {
-				if (y._connectTries = (Number(y._connectTries) || 0) + 1, y._connectTries > 20) {
-					y._connectRAF = null, y._connectTries = 0;
-					return;
-				}
-				try {
+				if (y._connectTries = (Number(y._connectTries) || 0) + 1, y._connectTries > 20) y._connectRAF = null, y._connectTries = 0;
+				else try {
 					y._connectRAF = requestAnimationFrame(() => {
 						y._connectRAF = null, O();
 					});
@@ -7308,11 +7213,7 @@ function or({ canvas: e, videoEl: t, disableWebGL: n, pauseDuringExecution: r = 
 		}
 		y._seekRaf = null, y._rendering = !1;
 	}, ee = () => {
-		if (y._runtimePaused = !1, t?.paused) {
-			A();
-			return;
-		}
-		j(), A();
+		y._runtimePaused = !1, t?.paused || j(), A();
 	}, te = (e, t) => {
 		try {
 			if (y.ready || S(), !y.ready) return null;
@@ -7357,13 +7258,7 @@ function or({ canvas: e, videoEl: t, disableWebGL: n, pauseDuringExecution: r = 
 			console.debug?.(e);
 		}
 	}, ne = (e) => {
-		if (f) {
-			if (String(e?.detail?.active_prompt_id || "").trim()) {
-				N();
-				return;
-			}
-			ee();
-		}
+		f && (String(e?.detail?.active_prompt_id || "").trim() ? N() : ee());
 	};
 	try {
 		let n = () => {
@@ -7499,8 +7394,7 @@ function or({ canvas: e, videoEl: t, disableWebGL: n, pauseDuringExecution: r = 
 		}
 	};
 }
-//#endregion
-//#region ui/features/viewer/audioVisualizer.ts
+// ui/features/viewer/audioVisualizer.ts
 function sr(e, t, n) {
 	let r = Number(e);
 	return Number.isFinite(r) ? Math.max(t, Math.min(n, r)) : t;
@@ -7747,13 +7641,7 @@ function dr({ canvas: e, audioEl: t, mode: n, pauseDuringExecution: r = null } =
 	}, C = () => {
 		x();
 	}, w = () => S(), E = () => S(), O = () => _(), k = (e) => {
-		if (i) {
-			if (m = !!String(e?.detail?.active_prompt_id || "").trim(), m) {
-				S();
-				return;
-			}
-			t?.paused || x();
-		}
+		i && (m = !!String(e?.detail?.active_prompt_id || "").trim(), m ? S() : t?.paused || x());
 	};
 	try {
 		_(), v(g);
@@ -7802,8 +7690,7 @@ function dr({ canvas: e, audioEl: t, mode: n, pauseDuringExecution: r = null } =
 		}
 	};
 }
-//#endregion
-//#region ui/features/viewer/mediaFactory.ts
+// ui/features/viewer/mediaFactory.ts
 function fr({ overlay: e, state: t, mediaTransform: n, updateMediaNaturalSize: r, clampPanToBounds: i, applyTransform: a, scheduleOverlayRedraw: o, getGradeParams: s, isDefaultGrade: c, tonemap: l, maxProcPixels: u, maxProcPixelsVideo: d, disableWebGL: f, videoGradeThrottleFps: p, safeAddListener: m, safeCall: h } = {}) {
 	let g = h || X, _ = m || Z, v = (e) => {
 		try {
@@ -8365,8 +8252,7 @@ function fr({ overlay: e, state: t, mediaTransform: n, updateMediaNaturalSize: r
 		}
 	};
 }
-//#endregion
-//#region ui/features/viewer/imagePreloader.ts
+// ui/features/viewer/imagePreloader.ts
 function pr({ buildAssetViewURL: e, IMAGE_PRELOAD_EXTENSIONS: t, state: n }) {
 	function r(e) {
 		if (!e) return null;
@@ -8449,8 +8335,7 @@ function pr({ buildAssetViewURL: e, IMAGE_PRELOAD_EXTENSIONS: t, state: n }) {
 		trackPreloadRef: a
 	};
 }
-//#endregion
-//#region ui/features/metadata/genInfoCompare.ts
+// ui/features/metadata/genInfoCompare.ts
 function mr(e, t) {
 	for (let n of t) {
 		let t = n.split("."), r = e;
@@ -8553,8 +8438,7 @@ function _r(e, t) {
 		};
 	}).filter((e) => e.left || e.right);
 }
-//#endregion
-//#region ui/features/viewer/metadataCompare.ts
+// ui/features/viewer/metadataCompare.ts
 function vr(e) {
 	return String(e ?? "").trim() || "-";
 }
@@ -8590,8 +8474,7 @@ function br(e, t) {
 	}
 	return r;
 }
-//#endregion
-//#region ui/features/viewer/viewerInstanceManager.ts
+// ui/features/viewer/viewerInstanceManager.ts
 function xr(e) {
 	let t = u();
 	if (t.length) {
@@ -8618,8 +8501,7 @@ function xr(e) {
 	let n = e();
 	return c(n), n._mjrViewerAPI;
 }
-//#endregion
-//#region ui/features/viewer/playerBarManager.ts
+// ui/features/viewer/playerBarManager.ts
 function Sr({ state: e, APP_CONFIG: t, VIEWER_MODES: n, overlay: r, navBar: i, playerBarHost: a, singleView: o, abView: s, sideView: c, metadataHydrator: l, isPlayableViewerKind: u, collectPlayableMediaElements: d, pickPrimaryPlayableMedia: f, mountUnifiedMediaControls: p, installFollowerVideoSync: m, getViewerInfo: h, scheduleOverlayRedraw: g, viewerInfoCacheGet: _, viewerInfoCacheSet: v }) {
 	function y() {
 		try {
@@ -8946,7 +8828,7 @@ function Sr({ state: e, APP_CONFIG: t, VIEWER_MODES: n, overlay: r, navBar: i, p
 							let a = Number(n?.fps);
 							if (!Number.isFinite(a) || a <= 0) return;
 							let o = String(n?.source || "");
-							(o !== "rvfc" || !(Number(e.nativeFps) > 0)) && (e.nativeFps = a), D?.setMediaInfo?.({
+							o === "rvfc" && Number(e.nativeFps) > 0 || (e.nativeFps = a), D?.setMediaInfo?.({
 								fps: a,
 								fpsSource: o
 							});
@@ -8983,8 +8865,7 @@ function Sr({ state: e, APP_CONFIG: t, VIEWER_MODES: n, overlay: r, navBar: i, p
 		syncPlayerBar: b
 	};
 }
-//#endregion
-//#region ui/features/viewer/viewerThemeStyles.ts
+// ui/features/viewer/viewerThemeStyles.ts
 var Cr = "min(400px, 42vw)", wr = `calc(${Cr} + 24px)`, Tr = "mjr-viewer-modern-theme";
 function Er() {
 	try {
@@ -9190,8 +9071,7 @@ function Er() {
 		console.debug?.(e);
 	}
 }
-//#endregion
-//#region ui/features/viewer/filmstrip.ts
+// ui/features/viewer/filmstrip.ts
 var Dr = 84, Or = 56, kr = 74, Ar = .45, jr = "0px 240px 0px 240px", Mr = 3500;
 function Nr(e) {
 	let t = 2166136261, n = String(e || "");
@@ -9528,23 +9408,18 @@ function Br({ state: e, buildAssetViewURL: t, onNavigate: n, onCompare: r }) {
 	let D = () => {
 		h({ releaseSrc: !0 }), a.innerHTML = "", o = [];
 		let t = Array.isArray(e.assets) ? e.assets : [];
-		if (t.length < 2) {
-			i.style.display = "none";
-			return;
+		if (t.length < 2) i.style.display = "none";
+		else {
+			i.style.display = "";
+			for (let e = 0; e < t.length; e++) {
+				let n = v(t[e], e);
+				a.appendChild(n), o.push(n);
+			}
+			k(!1);
 		}
-		i.style.display = "";
-		for (let e = 0; e < t.length; e++) {
-			let n = v(t[e], e);
-			a.appendChild(n), o.push(n);
-		}
-		k(!1);
 	}, O = (t = {}) => {
 		let n = t.isSingle !== !1, a = r != null && e.compareAsset != null, o = Array.isArray(e.assets) ? e.assets : [];
-		if (!n && !a || o.length < 2) {
-			i.style.display = "none", p({ releaseSrc: !1 });
-			return;
-		}
-		i.style.display = "", m(), k(!0);
+		!n && !a || o.length < 2 ? (i.style.display = "none", p({ releaseSrc: !1 })) : (i.style.display = "", m(), k(!0));
 	};
 	function k(t) {
 		let n = Number(e.currentIndex) || 0, a = -1;
@@ -9596,8 +9471,7 @@ function Br({ state: e, buildAssetViewURL: t, onNavigate: n, onCompare: r }) {
 		sync: O
 	};
 }
-//#endregion
-//#region ui/features/viewer/viewerShell.ts
+// ui/features/viewer/viewerShell.ts
 function Vr() {
 	let e = document.createElement("div");
 	return e.className = "mjr-viewer-overlay mjr-assets-manager", e.style.cssText = "\n        position: fixed;\n        top: 0;\n        left: 0;\n        right: 0;\n        bottom: 0;\n        background: linear-gradient(180deg, rgba(6, 8, 12, 0.94), rgba(5, 7, 10, 0.985));\n        z-index: 10000;\n        pointer-events: auto;\n        display: none;\n        flex-direction: column;\n        box-sizing: border-box;\n        overflow: hidden;\n    ", e.tabIndex = -1, e.setAttribute("role", "dialog"), e;
@@ -9709,8 +9583,7 @@ function Hr({ state: e, buildAssetViewURL: t, onNavigate: n, onCompare: r }) {
 		})
 	};
 }
-//#endregion
-//#region ui/features/viewer/viewerOverlayDismiss.ts
+// ui/features/viewer/viewerOverlayDismiss.ts
 function Ur({ overlay: e, requestClose: t }) {
 	try {
 		let n = null;
@@ -9741,21 +9614,20 @@ function Ur({ overlay: e, requestClose: t }) {
 		console.debug?.(e);
 	}
 }
-//#endregion
-//#region ui/components/ViewerRuntime.ts
+// ui/components/ViewerRuntime.ts
 var Wr = null, Gr = null, Kr = null, qr = null, Jr = null, Yr = null;
 function Xr() {
-	Wr || import("./abCompare-BXOoRlmV.js").then((e) => {
+	Wr || import("./abCompare-BUrGm4-x.js").then((e) => {
 		Wr = e;
-	}), Gr || import("./sideBySide-BM4KMMX-.js").then((e) => {
+	}), Gr || import("./sideBySide-BI1-c6CN.js").then((e) => {
 		Gr = e;
-	}), Kr || import("./model3dRenderer-e5uWwIMW.js").then((e) => e.t).then((e) => {
+	}), Kr || import("./model3dRenderer-B18R8Ewh.js").then((e) => e.t).then((e) => {
 		Kr = e;
-	}), qr || import("./scopes-Dx5cTyCY.js").then((e) => {
+	}), qr || import("./scopes-bvTRS68K.js").then((e) => {
 		qr = e;
-	}), Jr || import("./genInfo-y4P7FXnU.js").then((e) => e.n).then((e) => {
+	}), Jr || import("./genInfo-C_5G1vVv.js").then((e) => e.n).then((e) => {
 		Jr = e;
-	}), Yr || import("./frameExport-tksSZ7sb.js").then((e) => {
+	}), Yr || import("./frameExport-CnNO7oN6.js").then((e) => {
 		Yr = e;
 	});
 }
@@ -10797,7 +10669,35 @@ function Zr() {
 		let e = s.assets[s.currentIndex];
 		if (!e) return;
 		let t = O(e);
-		if (!t) {
+		if (t) {
+			if (s.mode === $.SINGLE) {
+				try {
+					Fn(B);
+				} catch (e) {
+					console.debug?.(e);
+				}
+				B.innerHTML = "", s._mediaW = 0, s._mediaH = 0;
+				let n = A(e, t);
+				B.appendChild(n);
+			} else s.mode === $.AB_COMPARE ? Xe() && Wr?.renderABCompareView?.({
+				abView: V,
+				state: s,
+				currentAsset: e,
+				viewUrl: t,
+				buildAssetViewURL: O,
+				createCompareMediaElement: j,
+				destroyMediaProcessorsIn: Fn
+			}) : s.mode === $.SIDE_BY_SIDE && Y() && Gr?.renderSideBySideView?.({
+				sideView: H,
+				state: s,
+				currentAsset: e,
+				viewUrl: t,
+				buildAssetViewURL: O,
+				createMediaElement: A,
+				destroyMediaProcessorsIn: Fn
+			});
+			g(), v();
+		} else {
 			try {
 				Fn(B);
 			} catch (e) {
@@ -10810,35 +10710,7 @@ function Zr() {
 			} catch (e) {
 				console.debug?.(e);
 			}
-			return;
 		}
-		if (s.mode === $.SINGLE) {
-			try {
-				Fn(B);
-			} catch (e) {
-				console.debug?.(e);
-			}
-			B.innerHTML = "", s._mediaW = 0, s._mediaH = 0;
-			let n = A(e, t);
-			B.appendChild(n);
-		} else s.mode === $.AB_COMPARE ? Xe() && Wr?.renderABCompareView?.({
-			abView: V,
-			state: s,
-			currentAsset: e,
-			viewUrl: t,
-			buildAssetViewURL: O,
-			createCompareMediaElement: j,
-			destroyMediaProcessorsIn: Fn
-		}) : s.mode === $.SIDE_BY_SIDE && Y() && Gr?.renderSideBySideView?.({
-			sideView: H,
-			state: s,
-			currentAsset: e,
-			viewUrl: t,
-			buildAssetViewURL: O,
-			createMediaElement: A,
-			destroyMediaProcessorsIn: Fn
-		});
-		g(), v();
 	}
 	let { preloadAdjacentAssets: tt, preloadImageForAsset: nt, trackPreloadRef: rt } = pr({
 		buildAssetViewURL: O,
@@ -11536,5 +11408,4 @@ function Zr() {
 function Qr() {
 	return xr(Zr);
 }
-//#endregion
 export { $e as A, ze as B, mt as C, ut as D, ft as E, rt as F, we as G, He as H, Ke as I, L as J, le as K, Ue as L, Ze as M, nt as N, st as O, tt as P, Ee as R, vt as S, dt as T, Be as U, Me as V, Te as W, ce as Y, Ot as _, pn as a, bt as b, ln as c, Qt as d, Ft as f, Dt as g, X as h, rn as i, it as j, Qe as k, an as l, Pt as m, qn as n, un as o, Nt as p, I as q, jn as r, on as s, Qr as t, Q as u, Tt as v, pt as w, ht as x, Et as y, Ne as z };

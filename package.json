@@ -36,22 +36,22 @@
     "brace-expansion": "5.0.12"
   },
   "devDependencies": {
-    "@comfyorg/comfyui-frontend-types": "^1.55.12",
+    "@comfyorg/comfyui-frontend-types": "^1.57.3",
     "@comfyorg/litegraph": "^0.17.2",
     "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.63.0",
     "@types/node": "^26.6.4",
     "@vitejs/plugin-vue": "^6.0.9",
-    "@vitest/coverage-v8": "^5.0.3",
+    "@vitest/coverage-v8": "^5.0.5",
     "@vue/test-utils": "^2.5.1",
     "eslint": "^10.12.0",
-    "happy-dom": "^20.14.5",
+    "happy-dom": "^21.0.4",
     "knip": "^6.39.0",
     "oxlint": "^1.86.0",
     "prettier": "^3.9.9",
     "typescript": "^7.0.2",
-    "vite": "^8.3.3",
-    "vitest": "^5.0.2"
+    "vite": "^8.3.5",
+    "vitest": "^5.0.5"
   },
   "dependencies": {
     "@tanstack/vue-virtual": "^3.13.39",

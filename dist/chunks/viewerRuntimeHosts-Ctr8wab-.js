@@ -1,5 +1,5 @@
-import { Ct as e, St as t, _t as n, gt as r, ht as i, k as a, m as o, nt as s, o as c, tt as l, vt as u, xt as d } from "./events-CoI83paj.js";
-//#region ui/app/settingsStore.ts
+import { Ct as e, St as t, _t as n, gt as r, ht as i, k as a, m as o, nt as s, o as c, tt as l, vt as u, xt as d } from "./events-tsQFsZrH.js";
+// ui/app/settingsStore.ts
 var f = "mjrSettings", p = "mjrMinimapSettings", m = /* @__PURE__ */ new Set([
 	"POST",
 	"PUT",
@@ -316,8 +316,7 @@ function fe({ readObsEnabled: e = () => !1, readAuthToken: t = () => "", ensureW
 		post: s
 	};
 }
-//#endregion
-//#region ui/utils/ttlCache.ts
+// ui/utils/ttlCache.ts
 function E({ ttlMs: e = 0, maxSize: t = 100, now: n = () => Date.now() } = {}) {
 	let r = /* @__PURE__ */ new Map();
 	function i() {
@@ -367,11 +366,8 @@ function E({ ttlMs: e = 0, maxSize: t = 100, now: n = () => Date.now() } = {}) {
 			c(t, n);
 			let o = r.get(e);
 			if (o) {
-				if (s(o, t, n)) {
-					r.delete(e);
-					return;
-				}
-				return o.value;
+				if (s(o, t, n)) r.delete(e);
+				else return o.value;
 			}
 		},
 		has(e) {
@@ -404,8 +400,7 @@ function E({ ttlMs: e = 0, maxSize: t = 100, now: n = () => Date.now() } = {}) {
 		}
 	};
 }
-//#endregion
-//#region ui/features/panel/messages/toastHistory.ts
+// ui/features/panel/messages/toastHistory.ts
 var pe = "mjr_toast_history_v1", me = "mjr_toast_history_last_read_v1", he = 60, ge = "mjr:toast-history-changed", D = null;
 function O(e) {
 	return String(e || "").trim();
@@ -524,8 +519,7 @@ function De() {
 function Oe() {
 	A(), D = [], xe(), Ce(Date.now()), j();
 }
-//#endregion
-//#region ui/app/toast.ts
+// ui/app/toast.ts
 function ke(e) {
 	let t = String(e || "info").trim().toLowerCase();
 	return t === "warn" ? "warning" : t === "danger" ? "error" : t === "success" || t === "warning" || t === "error" ? t : "info";
@@ -740,8 +734,7 @@ function N(e, t = "info", n, r) {
 		duration: i ? 0 : n
 	});
 }
-//#endregion
-//#region ui/api/clientAuth.ts
+// ui/api/clientAuth.ts
 var Pe = 2e3, Fe = 15e3, Ie = 8e3, P = "token", F = null, I = null, Le = null, Re = "", L = E({
 	ttlMs: Pe,
 	maxSize: 1
@@ -934,7 +927,7 @@ async function Xe({ force: e = !1, allowCookieRefresh: t = !1 } = {}) {
 	if (e && r?.ok && !r?.token && n) Ve();
 	else if (e && !r?.ok) {
 		let e = Ge(), t = String(e?.code || "").trim().toUpperCase();
-		(!t || !["NETWORK_ERROR", "INVALID_RESPONSE"].includes(t)) && Ve();
+		t && ["NETWORK_ERROR", "INVALID_RESPONSE"].includes(t) || Ve();
 	}
 	let i = z();
 	return !i && t && r?.ok ? !0 : i;
@@ -942,8 +935,7 @@ async function Xe({ force: e = !1, allowCookieRefresh: t = !1 } = {}) {
 function Ze() {
 	L.clear();
 }
-//#endregion
-//#region ui/api/clientOps.ts
+// ui/api/clientOps.ts
 async function Qe(e) {
 	return !e || typeof e != "string" ? {
 		ok: !1,
@@ -1408,8 +1400,7 @@ async function fn(e, { topK: t = 50, scope: n = "output", customRootId: r = "", 
 async function pn(e = 8) {
 	return Y(l.VECTOR_SUGGEST_COLLECTIONS, { k: Math.max(2, Math.min(20, e)) });
 }
-//#endregion
-//#region ui/api/client.ts
+// ui/api/client.ts
 var mn = 3e4, hn = "__MJR_API_CLIENT__", gn = 2e3, _n = 200, vn = 1e3, yn = 18e5, bn = 432e5, H = "settings", xn = "available-tags", U = E({
 	ttlMs: gn,
 	maxSize: 1
@@ -1744,8 +1735,7 @@ async function tr({ filepath: e = "", root_id: t = "", subfolder: n = "" } = {},
 	}
 	return u;
 }
-//#endregion
-//#region ui/utils/logging.ts
+// ui/utils/logging.ts
 function nr(e, ...t) {
 	try {
 		c.DEBUG_VERBOSE_ERRORS && console.debug(e, ...t);
@@ -1764,8 +1754,7 @@ function rr(e, t = "Majoor", { showToast: n = !1, toastType: r = "error" } = {})
 		console.debug?.(e);
 	}
 }
-//#endregion
-//#region ui/features/panel/controllers/hotkeysState.ts
+// ui/features/panel/controllers/hotkeysState.ts
 var X = {
 	suspended: !1,
 	scope: null,
@@ -1783,8 +1772,7 @@ function or() {
 function sr(e) {
 	X.ratingHotkeysActive = !!e;
 }
-//#endregion
-//#region ui/features/viewer/viewerRuntimeHosts.ts
+// ui/features/viewer/viewerRuntimeHosts.ts
 var Z = null, Q = null, cr = ".mjr-viewer-overlay", lr = ".mjr-mfv";
 function ur(e) {
 	return !!e && typeof e.appendChild == "function";
@@ -1841,13 +1829,13 @@ function vr(e) {
 	return Z = mr(e), _r(cr, Z), () => yr(e);
 }
 function yr(e) {
-	(!e || Z === e) && (Z = null);
+	e && Z !== e || (Z = null);
 }
 function br(e) {
 	return Q = mr(e), _r(lr, Q, hr), () => xr(e);
 }
 function xr(e) {
-	(!e || Q === e) && (Q = null);
+	e && Q !== e || (Q = null);
 }
 function Sr(e) {
 	let t = $(Z);
@@ -1870,5 +1858,4 @@ function Cr(e) {
 function wr() {
 	return gr(cr, Z);
 }
-//#endregion
 export { _t as $, N as $t, Un as A, et as At, jt as B, It as Bt, Zn as C, ot as Ct, qn as D, xt as Dt, Qn as E, wt as Et, Pn as F, mt as Ft, Vt as G, dn as Gt, Jt as H, Rt as Ht, Bn as I, nt as It, Kt as J, an as Jt, lt as K, sn as Kt, tn as L, Pt as Lt, Yn as M, Qe as Mt, $n as N, ft as Nt, Gn as O, vt as Ot, Nn as P, Ot as Pt, bt as Q, Ue as Qt, kt as R, Et as Rt, zn as S, ut as St, Vn as T, ct as Tt, Yt as U, un as Ut, $t as V, rt as Vt, en as W, on as Wt, st as X, pn as Xt, it as Y, ln as Yt, Ct as Z, We as Zt, Rn as _, nn as _t, vr as a, De as an, Dt as at, tr as b, Wt as bt, ar as c, f as cn, tt as ct, rr as d, Tt as dt, je as en, ht as et, Kn as f, fn as ft, In as g, At as gt, J as h, qt as ht, br as i, Te as in, Bt as it, Jn as j, St as jt, Y as k, gt as kt, sr as l, Lt as lt, Wn as m, Ht as mt, Sr as n, Oe as nn, yt as nt, ir as o, E as on, pt as ot, Hn as p, Qt as pt, rn as q, cn as qt, wr as r, Ee as rn, dt as rt, or as s, p as sn, zt as st, Cr as t, ge as tn, $e as tt, nr as u, Ft as ut, Fn as v, Zt as vt, Xn as w, at as wt, Ln as x, Ut as xt, er as y, Nt as yt, Mt as z, Gt as zt };

@@ -1,12 +1,12 @@
-import { $ as e, $t as t, At as n, Bt as r, Ct as i, Dt as a, Et as o, Ft as s, Gt as c, Ht as l, I as u, It as d, K as f, Kt as p, Mt as m, N as h, Nt as g, O as _, Ot as v, Pt as y, Q as b, Qt as x, R as S, Rt as C, S as ee, St as te, T as ne, Tt as w, Ut as T, Vt as E, X as re, Y as D, Yt as ie, Z as ae, Zt as oe, at as se, cn as ce, ct as le, dt as ue, en as de, et as fe, gt as pe, it as me, jt as he, k as ge, kt as _e, lt as ve, nt as ye, ot as be, p as xe, rt as Se, sn as Ce, tt as we, ut as Te, w as Ee, wt as De } from "./viewerRuntimeHosts-BBd8uK6j.js";
-import { Ct as Oe, K as ke, N as Ae, T as je, c as Me, d as Ne, f as Pe, h as Fe, j as Ie, l as Le, m as O, o as k, p as Re, pt as ze, s as A, tt as Be, u as Ve, x as He, y as Ue } from "./events-CoI83paj.js";
-import { F as We, K as Ge, P as Ke, Y as qe, f as Je, m as Ye, p as Xe } from "./Viewer-DWgaGos-.js";
-import { t as Ze } from "./floatingViewerManager-XH4AFW4G.js";
-import { A as Qe, C as j, D as $e, E as M, G as et, J as tt, K as nt, N as rt, O as N, R as it, S as at, T as P, U as F, V as I, Y as ot, _ as st, a as ct, b as lt, c as ut, d as dt, dt as L, f as ft, ft as R, g as pt, h as mt, i as ht, j as gt, k as z, l as _t, lt as B, m as vt, n as yt, nt as bt, o as xt, p as St, r as Ct, rt as V, s as wt, t as Tt, u as Et, ut as Dt, y as Ot, z as kt } from "./mjr-primevue-BOf2ACk_.js";
-import { t as At } from "./mjr-vue-vendor-BKZZuiuB.js";
-import { t as jt } from "./viewerOpenRequest-CwB6clm0.js";
-import { a as Mt, i as Nt, n as Pt, o as Ft, r as It, t as Lt } from "./geninfoParser-Bwtqk4p6.js";
-//#region ui/app/settings/settingsUtils.ts
+import { $ as e, $t as t, At as n, Bt as r, Ct as i, Dt as a, Et as o, Ft as s, Gt as c, Ht as l, I as u, It as d, K as f, Kt as p, Mt as m, N as h, Nt as g, O as _, Ot as v, Pt as y, Q as b, Qt as x, R as S, Rt as C, S as ee, St as te, T as ne, Tt as w, Ut as T, Vt as E, X as re, Y as D, Yt as ie, Z as ae, Zt as oe, at as se, cn as ce, ct as le, dt as ue, en as de, et as fe, gt as pe, it as me, jt as he, k as ge, kt as _e, lt as ve, nt as ye, ot as be, p as xe, rt as Se, sn as Ce, tt as we, ut as Te, w as Ee, wt as De } from "./viewerRuntimeHosts-Ctr8wab-.js";
+import { Ct as Oe, K as ke, N as Ae, T as je, c as Me, d as Ne, f as Pe, h as Fe, j as Ie, l as Le, m as O, o as k, p as Re, pt as ze, s as A, tt as Be, u as Ve, x as He, y as Ue } from "./events-tsQFsZrH.js";
+import { F as We, K as Ge, P as Ke, Y as qe, f as Je, m as Ye, p as Xe } from "./Viewer-DHesfEdb.js";
+import { t as Ze } from "./floatingViewerManager-DYNfChQt.js";
+import { A as Qe, C as j, D as $e, E as M, G as et, J as tt, K as nt, N as rt, O as N, R as it, S as at, T as P, U as F, V as I, Y as ot, _ as st, a as ct, b as lt, c as ut, d as dt, dt as L, f as ft, ft as R, g as pt, h as mt, i as ht, j as gt, k as z, l as _t, lt as B, m as vt, n as yt, nt as bt, o as xt, p as St, r as Ct, rt as V, s as wt, t as Tt, u as Et, ut as Dt, y as Ot, z as kt } from "./mjr-primevue-BRqtdXzb.js";
+import { t as At } from "./mjr-vue-vendor-mHY_eIVE.js";
+import { t as jt } from "./viewerOpenRequest-Bw0Fm-S5.js";
+import { a as Mt, i as Nt, n as Pt, o as Ft, r as It, t as Lt } from "./geninfoParser-CgHp-y-n.js";
+// ui/app/settings/settingsUtils.ts
 var H = (e, t) => {
 	if (typeof e == "boolean") return e;
 	if (typeof e == "string") {
@@ -346,8 +346,7 @@ async function Xt() {
 		console.warn("[Majoor] failed to sync backend execution grouping settings", e);
 	}
 }
-//#endregion
-//#region ui/app/settings/settingsRuntime.ts
+// ui/app/settings/settingsRuntime.ts
 var Zt = "mjr-runtime-status-dashboard", Qt = 3e4;
 function $t() {
 	try {
@@ -417,7 +416,7 @@ function an() {
 		}
 		try {
 			let t = String(getComputedStyle(e).position || "").toLowerCase();
-			(!t || t === "static") && (e.style.position = "relative");
+			t && t !== "static" || (e.style.position = "relative");
 		} catch (e) {
 			console.debug?.(e);
 		}
@@ -467,11 +466,7 @@ function sn() {
 			window.__MJR_RUNTIME_STATUS_HIDDEN__ = !0, en();
 		}, Qt)), on().catch(() => {}), window.__MJR_RUNTIME_STATUS_INFLIGHT__ ?? (window.__MJR_RUNTIME_STATUS_INFLIGHT__ = !1), window.__MJR_RUNTIME_STATUS_MISS_COUNT__ ?? (window.__MJR_RUNTIME_STATUS_MISS_COUNT__ = 0), window.__MJR_RUNTIME_STATUS_INTERVAL__ || (window.__MJR_RUNTIME_STATUS_INTERVAL__ = setInterval(() => {
 			window.__MJR_RUNTIME_STATUS_INFLIGHT__ || (window.__MJR_RUNTIME_STATUS_INFLIGHT__ = !0, on().then((e) => {
-				if (e) {
-					window.__MJR_RUNTIME_STATUS_MISS_COUNT__ = 0;
-					return;
-				}
-				window.__MJR_RUNTIME_STATUS_MISS_COUNT__ = Number(window.__MJR_RUNTIME_STATUS_MISS_COUNT__ || 0) + 1;
+				e ? window.__MJR_RUNTIME_STATUS_MISS_COUNT__ = 0 : window.__MJR_RUNTIME_STATUS_MISS_COUNT__ = Number(window.__MJR_RUNTIME_STATUS_MISS_COUNT__ || 0) + 1;
 			}).catch(() => {}).finally(() => {
 				window.__MJR_RUNTIME_STATUS_INFLIGHT__ = !1;
 			}));
@@ -480,8 +475,7 @@ function sn() {
 		console.debug?.(e);
 	}
 }
-//#endregion
-//#region ui/utils/debounce.ts
+// ui/utils/debounce.ts
 var cn = 300;
 function ln(e, t = cn) {
 	let n, r = (...r) => {
@@ -493,8 +487,7 @@ function ln(e, t = cn) {
 		clearTimeout(n), e(...t);
 	}, r;
 }
-//#endregion
-//#region ui/app/settings/settingsGrid.ts
+// ui/app/settings/settingsGrid.ts
 var q = "Majoor", un = "Majoor Assets Manager";
 function dn(e, t, n) {
 	let r = (e, t) => [
@@ -899,8 +892,7 @@ function dn(e, t, n) {
 		}
 	});
 }
-//#endregion
-//#region ui/app/settings/settingsViewer.ts
+// ui/app/settings/settingsViewer.ts
 var fn = "Majoor", pn = "Majoor Assets Manager";
 function mn(e, n, r) {
 	let a = (e, t) => [
@@ -1090,8 +1082,7 @@ function mn(e, n, r) {
 		});
 	})("Enabled", "enabled", "setting.minimap.enabled.name", "setting.minimap.enabled.desc");
 }
-//#endregion
-//#region ui/app/settings/settingsScanning.ts
+// ui/app/settings/settingsScanning.ts
 var hn = "Majoor", gn = "Majoor Assets Manager";
 function _n(n, i, a) {
 	let o = (e, t) => [
@@ -1326,8 +1317,7 @@ function _n(n, i, a) {
 		}
 	});
 }
-//#endregion
-//#region ui/app/settings/settingsFeed.ts
+// ui/app/settings/settingsFeed.ts
 var vn = "Majoor", yn = "Majoor Assets Manager";
 function bn(e, t, n) {
 	let r = (e) => [
@@ -1444,8 +1434,7 @@ function bn(e, t, n) {
 		}
 	});
 }
-//#endregion
-//#region ui/app/settings/settingsSecurity.ts
+// ui/app/settings/settingsSecurity.ts
 var xn = "Majoor", Sn = "Majoor Assets Manager", Cn = 16, wn = {
 	safeMode: !1,
 	allowWrite: !0,
@@ -1614,8 +1603,7 @@ function zn(e, n, r) {
 		}
 	}), a("requireAuth", "setting.sec.requireAuth.name", "setting.sec.requireAuth.desc", "cat.remote"), a("allowRemoteWrite", "setting.sec.remote.name", "setting.sec.remote.desc", "cat.remote"), a("allowInsecureTokenTransport", "setting.sec.insecureTransport.name", "setting.sec.insecureTransport.desc", "cat.remote");
 }
-//#endregion
-//#region ui/app/settings/settingsAdvanced.ts
+// ui/app/settings/settingsAdvanced.ts
 var J = "Majoor", Bn = "Majoor Assets Manager";
 function Vn(e, r, i, c) {
 	let l = (e, t) => [
@@ -1816,11 +1804,7 @@ function Vn(e, r, i, c) {
 		defaultValue: r.i18n?.followComfyLanguage ? "auto" : Me(),
 		options: pe,
 		onChange: (e) => {
-			if (r.i18n = r.i18n || {}, e === "auto") {
-				r.i18n.followComfyLanguage = !0, Ne(!0), Ve(c), G(r), i("language");
-				return;
-			}
-			fe.includes(e) && (r.i18n.followComfyLanguage = !1, Ne(!1), Pe(e), G(r), i("language"));
+			r.i18n = r.i18n || {}, e === "auto" ? (r.i18n.followComfyLanguage = !0, Ne(!0), Ve(c), G(r), i("language")) : fe.includes(e) && (r.i18n.followComfyLanguage = !1, Ne(!1), Pe(e), G(r), i("language"));
 		}
 	}), e({
 		id: `${J}.ProbeBackend.Mode`,
@@ -2071,11 +2055,7 @@ function Vn(e, r, i, c) {
 			id: `${J}.AI.HuggingFaceToken`,
 			category: l(O("cat.advanced"), n),
 			name: "HuggingFace Token",
-			tooltip: [
-				"Optional token for HuggingFace Hub downloads (higher rate limits).",
-				"Saved server-side and used by CLIP model loading.",
-				"Leave empty to clear the stored token."
-			].join("\n"),
+			tooltip: "Optional token for HuggingFace Hub downloads (higher rate limits).\nSaved server-side and used by CLIP model loading.\nLeave empty to clear the stored token.",
 			type: "text",
 			defaultValue: "",
 			attrs: {
@@ -2159,15 +2139,7 @@ function Vn(e, r, i, c) {
 		id: `${J}.AI.VectorBackfillAction`,
 		category: l(O("cat.advanced"), "AI / Vector Search"),
 		name: "Vector Index Action",
-		tooltip: [
-			"Compute CLIP embeddings for all assets that don't have them yet.",
-			"This is required for AI semantic search to work.",
-			"",
-			"Choose 'Run backfill now' to start indexing.",
-			"This may take several minutes for large libraries.",
-			"",
-			"Note: New assets are indexed automatically during scanning."
-		].join("\n"),
+		tooltip: "Compute CLIP embeddings for all assets that don't have them yet.\nThis is required for AI semantic search to work.\n\nChoose 'Run backfill now' to start indexing.\nThis may take several minutes for large libraries.\n\nNote: New assets are indexed automatically during scanning.",
 		type: "combo",
 		defaultValue: "Idle",
 		options: ["Idle", "Run backfill now"],
@@ -2265,8 +2237,7 @@ function Vn(e, r, i, c) {
 		}
 	});
 }
-//#endregion
-//#region ui/app/settings/settingsSearch.ts
+// ui/app/settings/settingsSearch.ts
 var Hn = "Majoor", Un = "Majoor Assets Manager";
 function Wn(e, n, r) {
 	let i = (e, t) => [
@@ -2420,39 +2391,12 @@ function Wn(e, n, r) {
 		id: `${Hn}.EnvVars.Reference`,
 		category: i(O("cat.advanced"), "Environment variables"),
 		name: "Environment variables reference",
-		tooltip: [
-			"Set these env vars before starting ComfyUI to override defaults:",
-			"",
-			"MAJOOR_OUTPUT_DIRECTORY - Override output root directory",
-			"MAJOOR_EXIFTOOL_PATH - Path to exiftool binary",
-			"MAJOOR_FFPROBE_PATH - Path to ffprobe binary",
-			"MAJOOR_MEDIA_PROBE_BACKEND - Probe mode: auto|exiftool|ffprobe|both",
-			"MAJOOR_EXIFTOOL_TIMEOUT - ExifTool timeout in seconds (default: 15)",
-			"MAJOOR_FFPROBE_TIMEOUT - FFprobe timeout in seconds (default: 10)",
-			"MAJOOR_DB_TIMEOUT - Database timeout in seconds (default: 30)",
-			"MAJOOR_DB_MAX_CONNECTIONS - Max DB connections (default: 8)",
-			"MAJOOR_METADATA_CACHE_MAX - Metadata cache max entries (default: 100000)",
-			"MAJOOR_METADATA_EXTRACT_CONCURRENCY - Parallel metadata workers (default: 1)",
-			"MJR_ENABLE_WATCHER - Enable file watcher: 1|0 (default: 1)",
-			"MJR_WATCHER_DEBOUNCE_MS - Watcher debounce delay in ms (default: 3000)",
-			"MJR_WATCHER_DEDUPE_TTL_MS - Watcher dedupe window in ms (default: 3000)",
-			"MJR_WATCHER_MAX_FILE_SIZE_BYTES - Max file size to index (default: 512MB)",
-			"MJR_WATCHER_FLUSH_MAX_FILES - Max files per flush batch (default: 256)",
-			"MJR_WATCHER_PENDING_MAX - Max pending watcher queue (default: 5000)",
-			"MJR_AM_ENABLE_VECTOR_SEARCH - Enable AI vector/semantic search: 1|0 (default: 1)",
-			"MJR_AM_VECTOR_INDEX_ON_SCAN - Compute vectors during scans: 1|0 (default: 0)",
-			"MJR_AM_VECTOR_CAPTION_ON_INDEX - Generate Florence captions during vector indexing: 1|0 (default: 0)",
-			"MJR_VECTOR_CONCURRENCY - Concurrent vector workers (default: 2, use 1 for lower VRAM spikes)",
-			"MJR_AM_VECTOR_UNLOAD_AFTER_USE - Unload Majoor AI models after heavy vector actions: 1|0 (default: 0)",
-			"MAJOOR_SEARCH_MAX_LIMIT - Max search results (default: 500)",
-			"MAJOOR_BG_SCAN_ON_LIST - Scan on directory list: 0|1 (default: 0)"
-		].join("\n"),
+		tooltip: "Set these env vars before starting ComfyUI to override defaults:\n\nMAJOOR_OUTPUT_DIRECTORY - Override output root directory\nMAJOOR_EXIFTOOL_PATH - Path to exiftool binary\nMAJOOR_FFPROBE_PATH - Path to ffprobe binary\nMAJOOR_MEDIA_PROBE_BACKEND - Probe mode: auto|exiftool|ffprobe|both\nMAJOOR_EXIFTOOL_TIMEOUT - ExifTool timeout in seconds (default: 15)\nMAJOOR_FFPROBE_TIMEOUT - FFprobe timeout in seconds (default: 10)\nMAJOOR_DB_TIMEOUT - Database timeout in seconds (default: 30)\nMAJOOR_DB_MAX_CONNECTIONS - Max DB connections (default: 8)\nMAJOOR_METADATA_CACHE_MAX - Metadata cache max entries (default: 100000)\nMAJOOR_METADATA_EXTRACT_CONCURRENCY - Parallel metadata workers (default: 1)\nMJR_ENABLE_WATCHER - Enable file watcher: 1|0 (default: 1)\nMJR_WATCHER_DEBOUNCE_MS - Watcher debounce delay in ms (default: 3000)\nMJR_WATCHER_DEDUPE_TTL_MS - Watcher dedupe window in ms (default: 3000)\nMJR_WATCHER_MAX_FILE_SIZE_BYTES - Max file size to index (default: 512MB)\nMJR_WATCHER_FLUSH_MAX_FILES - Max files per flush batch (default: 256)\nMJR_WATCHER_PENDING_MAX - Max pending watcher queue (default: 5000)\nMJR_AM_ENABLE_VECTOR_SEARCH - Enable AI vector/semantic search: 1|0 (default: 1)\nMJR_AM_VECTOR_INDEX_ON_SCAN - Compute vectors during scans: 1|0 (default: 0)\nMJR_AM_VECTOR_CAPTION_ON_INDEX - Generate Florence captions during vector indexing: 1|0 (default: 0)\nMJR_VECTOR_CONCURRENCY - Concurrent vector workers (default: 2, use 1 for lower VRAM spikes)\nMJR_AM_VECTOR_UNLOAD_AFTER_USE - Unload Majoor AI models after heavy vector actions: 1|0 (default: 0)\nMAJOOR_SEARCH_MAX_LIMIT - Max search results (default: 500)\nMAJOOR_BG_SCAN_ON_LIST - Scan on directory list: 0|1 (default: 0)",
 		type: "text",
 		defaultValue: "Hover for full list of environment variables"
 	});
 }
-//#endregion
-//#region ui/app/settings/SettingsPanel.ts
+// ui/app/settings/SettingsPanel.ts
 var Gn = "Majoor Assets Manager", Kn = /^\s*Majoor:\s*/i, qn = Object.freeze({
 	ASSETS_PANEL: "Assets Panel",
 	GENERATED_FEED: "Generated Feed",
@@ -2681,8 +2625,7 @@ try {
 } catch (e) {
 	console.debug?.(e);
 }
-//#endregion
-//#region ui/features/contextmenu/gridContextMenuState.ts
+// ui/features/contextmenu/gridContextMenuState.ts
 function xr() {
 	return {
 		open: !1,
@@ -2747,8 +2690,7 @@ function Nr() {
 function Pr() {
 	kr(), Nr();
 }
-//#endregion
-//#region ui/features/dnd/utils/constants.ts
+// ui/features/dnd/utils/constants.ts
 var Fr = "application/x-mjr-asset", Ir = "application/x-mjr-assets", Lr = "application/x-comfy-asset-info", Rr = /* @__PURE__ */ new Set([
 	".png",
 	".jpg",
@@ -3361,8 +3303,7 @@ function Ji(e) {
 	let t = Gi(e);
 	return t && !Wi(t) ? t : t ? "Subgraph" : "Node";
 }
-//#endregion
-//#region ui/components/sidebar/utils/minimap.ts
+// ui/components/sidebar/utils/minimap.ts
 var Yi = 6, Xi = 1, Zi = 64, Qi = 74, $i = 42, ea = [
 	["sampler", "#8e5cff"],
 	["ksampler", "#8e5cff"],
@@ -3914,8 +3855,7 @@ function ma(e, t = null) {
 		extra: { synthetic: !0 }
 	};
 }
-//#endregion
-//#region ui/features/workflows/workflowPickerState.ts
+// ui/features/workflows/workflowPickerState.ts
 var X = bt({
 	open: !1,
 	mode: "workflow",
@@ -3943,8 +3883,7 @@ function _a(e = null) {
 		console.debug?.(e);
 	}
 }
-//#endregion
-//#region ui/vue/majoorPrimeVue.ts
+// ui/vue/majoorPrimeVue.ts
 var va = {
 	Button: ft,
 	Checkbox: dt,
@@ -3969,8 +3908,7 @@ function ya(e) {
 		e.component(`M${t}`, n);
 	}), e;
 }
-//#endregion
-//#region ui/vue/createVueApp.ts
+// ui/vue/createVueApp.ts
 function ba(e, t = void 0) {
 	let n = At(), r = st(e, t);
 	return r.use(n), ya(r), {
@@ -4023,8 +3961,7 @@ function Da(e, t = "_mjrVueApp") {
 		xa.delete(t);
 	}
 }
-//#endregion
-//#region ui/utils/format.ts
+// ui/utils/format.ts
 function Oa(e) {
 	if (!e) return null;
 	let t = Number(e);
@@ -4152,8 +4089,7 @@ function Fa(e) {
 	let t = String(e || "").trim().toLowerCase();
 	return t && Ma.sections.find((e) => e.key === t) || null;
 }
-//#endregion
-//#region ui/vue/components/panel/sidebar/SidebarFileInfoSection.vue?vue&type=script&setup=true&lang.ts
+// ui/vue/components/panel/sidebar/SidebarFileInfoSection.vue?vue&type=script&setup=true&lang.ts
 var Ia = {
 	key: 0,
 	class: "mjr-sidebar-section",
@@ -5128,8 +5064,7 @@ function Eo(e) {
 		ideogram: a
 	};
 }
-//#endregion
-//#region ui/vue/components/panel/sidebar/GenerationInputThumb.vue?vue&type=script&setup=true&lang.ts
+// ui/vue/components/panel/sidebar/GenerationInputThumb.vue?vue&type=script&setup=true&lang.ts
 var Do = ["title"], Oo = ["src"], ko = {
 	key: 1,
 	style: {
@@ -5184,7 +5119,7 @@ var Do = ["title"], Oo = ["src"], ko = {
 	setup(e) {
 		let n = e, r = V(0), i = V(!1), a = null;
 		function o() {
-			return a ||= import("./floatingViewerManager-XH4AFW4G.js").then((e) => e.n), a;
+			return a ||= import("./floatingViewerManager-DYNfChQt.js").then((e) => e.n), a;
 		}
 		function s() {
 			return (Array.isArray(n.inputFile?.previewCandidates) ? n.inputFile.previewCandidates : [])[r.value] || "";
@@ -5277,11 +5212,7 @@ var Do = ["title"], Oo = ["src"], ko = {
 		}
 		async function v() {
 			let e = await pe(d());
-			if (!e?.ok) {
-				t(e?.error || O("toast.openFolderFailed", "Failed to open folder."), "error");
-				return;
-			}
-			t(O("toast.openedInFolder", "Opened in folder"), "info", 1600);
+			e?.ok ? t(O("toast.openedInFolder", "Opened in folder"), "info", 1600) : t(e?.error || O("toast.openFolderFailed", "Failed to open folder."), "error");
 		}
 		async function y() {
 			let e = d(), n = {
@@ -5296,11 +5227,7 @@ var Do = ["title"], Oo = ["src"], ko = {
 				payload: n,
 				index: !1
 			});
-			if (!r?.relativePath) {
-				t(O("toast.loadAssetFailed", "Failed to load asset."), "error");
-				return;
-			}
-			if (!Fi({
+			if (!r?.relativePath || !Fi({
 				app: Ie(),
 				items: [{
 					payload: n,
@@ -6048,28 +5975,50 @@ var Do = ["title"], Oo = ["src"], ko = {
 		async function oe() {
 			u += 1;
 			let e = u;
-			if (!_.value.showAlignment || !t.asset?.id) {
+			if (!_.value.showAlignment || !t.asset?.id) ae();
+			else if (!v.value) ie();
+			else {
 				ae();
-				return;
-			}
-			if (!v.value) {
-				ie();
-				return;
-			}
-			ae();
-			try {
-				let n = await p(t.asset.id);
-				if (e !== u) return;
-				if (!n?.ok && (String(n?.code || "").toUpperCase() === "SERVICE_UNAVAILABLE" || /vector search is not enabled/i.test(String(n?.error || "")))) {
-					ie();
-					return;
-				}
-				let r = n?.ok && n.data != null ? Number(n.data) : null;
-				if (!Number.isFinite(r)) {
+				try {
+					let n = await p(t.asset.id);
+					if (e !== u) return;
+					if (!n?.ok && (String(n?.code || "").toUpperCase() === "SERVICE_UNAVAILABLE" || /vector search is not enabled/i.test(String(n?.error || "")))) {
+						ie();
+						return;
+					}
+					let r = n?.ok && n.data != null ? Number(n.data) : null;
+					if (!Number.isFinite(r)) {
+						l.value = {
+							scoreText: "N/A",
+							scoreColor: "#888",
+							qualityText: O("status.na", "N/A"),
+							qualityColor: "#888",
+							qualityBackground: "rgba(127,127,127,0.3)",
+							fillWidth: "0%",
+							fillColor: "#666",
+							aiStatusVisible: !1,
+							aiStatusText: ""
+						};
+						return;
+					}
+					let i = Math.round(r * 100), a = Ka(r);
 					l.value = {
-						scoreText: "N/A",
+						scoreText: `${i}%`,
+						scoreColor: a,
+						qualityText: qa(r),
+						qualityColor: a,
+						qualityBackground: `${a}33`,
+						fillWidth: `${i}%`,
+						fillColor: a,
+						aiStatusVisible: !1,
+						aiStatusText: ""
+					};
+				} catch (t) {
+					if (console.debug?.(t), e !== u) return;
+					l.value = {
+						scoreText: "-",
 						scoreColor: "#888",
-						qualityText: O("status.na", "N/A"),
+						qualityText: O("status.unavailable", "Unavailable"),
 						qualityColor: "#888",
 						qualityBackground: "rgba(127,127,127,0.3)",
 						fillWidth: "0%",
@@ -6077,33 +6026,7 @@ var Do = ["title"], Oo = ["src"], ko = {
 						aiStatusVisible: !1,
 						aiStatusText: ""
 					};
-					return;
 				}
-				let i = Math.round(r * 100), a = Ka(r);
-				l.value = {
-					scoreText: `${i}%`,
-					scoreColor: a,
-					qualityText: qa(r),
-					qualityColor: a,
-					qualityBackground: `${a}33`,
-					fillWidth: `${i}%`,
-					fillColor: a,
-					aiStatusVisible: !1,
-					aiStatusText: ""
-				};
-			} catch (t) {
-				if (console.debug?.(t), e !== u) return;
-				l.value = {
-					scoreText: "-",
-					scoreColor: "#888",
-					qualityText: O("status.unavailable", "Unavailable"),
-					qualityColor: "#888",
-					qualityBackground: "rgba(127,127,127,0.3)",
-					fillWidth: "0%",
-					fillColor: "#666",
-					aiStatusVisible: !1,
-					aiStatusText: ""
-				};
 			}
 		}
 		async function se() {
@@ -7587,18 +7510,11 @@ var Do = ["title"], Oo = ["src"], ko = {
 				filepath: e,
 				source_filepath: a.filepath
 			}, { timeoutMs: 3e4 });
-			if (!o?.ok) {
-				t(o?.error || O("toast.workflowSaveFailed", "Failed to save workflow."), "error");
-				return;
-			}
-			t(O("toast.workflowUpdated", "Workflow updated"), "success", 1800), window?.dispatchEvent?.(new CustomEvent("mjr:reload-grid", { detail: { reason: "workflow-thumbnail-sidebar" } }));
+			o?.ok ? (t(O("toast.workflowUpdated", "Workflow updated"), "success", 1800), window?.dispatchEvent?.(new CustomEvent("mjr:reload-grid", { detail: { reason: "workflow-thumbnail-sidebar" } }))) : t(o?.error || O("toast.workflowSaveFailed", "Failed to save workflow."), "error");
 		}
 		async function st() {
-			if (await Be(), !ue.value) {
-				t(O("toast.workflowLoadFailed", "Failed to load workflow."), "error");
-				return;
-			}
-			try {
+			if (await Be(), !ue.value) t(O("toast.workflowLoadFailed", "Failed to load workflow."), "error");
+			else try {
 				await Ze.openAssets({
 					assets: [{
 						...n.asset,
@@ -7614,27 +7530,26 @@ var Do = ["title"], Oo = ["src"], ko = {
 		}
 		async function ct() {
 			let e = de.value;
-			if (!e) {
-				t(O("toast.workflowMissingPath", "Workflow file path is missing."), "error");
-				return;
-			}
-			f.value = !0, p.value = null, m.value = [], g.value = null;
-			try {
-				let [n, r] = await Promise.all([u(e, { timeoutMs: 2e4 }), ne(e, { timeoutMs: 15e3 })]);
-				if (!n?.ok) {
-					t(n?.error || O("toast.workflowLoadFailed", "Failed to load workflow."), "error");
-					return;
+			if (!e) t(O("toast.workflowMissingPath", "Workflow file path is missing."), "error");
+			else {
+				f.value = !0, p.value = null, m.value = [], g.value = null;
+				try {
+					let [n, r] = await Promise.all([u(e, { timeoutMs: 2e4 }), ne(e, { timeoutMs: 15e3 })]);
+					if (!n?.ok) {
+						t(n?.error || O("toast.workflowLoadFailed", "Failed to load workflow."), "error");
+						return;
+					}
+					p.value = n.data || {}, m.value = Array.isArray(r?.data?.versions) ? r.data.versions : [];
+					let i = m.value[0];
+					if (i?.filepath) {
+						let t = await xe(e, i.filepath, { timeoutMs: 15e3 });
+						t?.ok && (g.value = t.data || null);
+					}
+				} catch (e) {
+					console.debug?.(e), t(O("toast.workflowLoadFailed", "Failed to load workflow."), "error");
+				} finally {
+					f.value = !1;
 				}
-				p.value = n.data || {}, m.value = Array.isArray(r?.data?.versions) ? r.data.versions : [];
-				let i = m.value[0];
-				if (i?.filepath) {
-					let t = await xe(e, i.filepath, { timeoutMs: 15e3 });
-					t?.ok && (g.value = t.data || null);
-				}
-			} catch (e) {
-				console.debug?.(e), t(O("toast.workflowLoadFailed", "Failed to load workflow."), "error");
-			} finally {
-				f.value = !1;
 			}
 		}
 		let lt = P(() => (Array.isArray(ue.value?.nodes) ? ue.value.nodes : []).slice(0, Jl).map((e, t) => {
@@ -7754,9 +7669,7 @@ var Do = ["title"], Oo = ["src"], ko = {
 			if (T !== null && e.pointerId === T) {
 				let t = yt(e);
 				t && xt(t.world), e.preventDefault?.(), e.stopPropagation?.();
-				return;
-			}
-			bt(e);
+			} else bt(e);
 		}
 		function wt(e) {
 			T !== null && e?.pointerId === T && (o.value?.releasePointerCapture?.(T), T = null, S.value = "crosshair"), e?.type === "pointerleave" && (C.value = "", x.value.hoveredNodeId !== null && (x.value = {
@@ -8306,5 +8219,4 @@ var Do = ["title"], Oo = ["src"], ko = {
 		};
 	}
 });
-//#endregion
 export { qt as $, di as A, Tr as B, Bi as C, Ii as D, Li as E, Qr as F, Or as G, jr as H, Xr as I, Er as J, Ar as K, Lr as L, wi as M, ui as N, Ei as O, Ci as P, K as Q, Fr as R, Ji as S, Fi as T, Y as U, Pr as V, Dr as W, yr as X, br as Y, ln as Z, X as _, Na as a, qi as b, ja as c, Ea as d, G as et, Ta as f, ha as g, ga as h, Ba as i, fi as j, Di as k, Aa as l, _a as m, Pc as n, Pa as o, Da as p, Mr as q, Eo as r, ka as s, Yl as t, ba as u, ia as v, zi as w, Gi as x, ma as y, Ir as z };

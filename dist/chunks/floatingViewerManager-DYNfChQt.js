@@ -1,7 +1,7 @@
-import { t as e } from "./rolldown-runtime-Dy4uBu1J.js";
-import { _ as t, d as n, o as r, s as i, t as a } from "./viewerRuntimeHosts-BBd8uK6j.js";
-import { o, r as s, z as c } from "./events-CoI83paj.js";
-//#region ui/features/panel/panelRuntimeRefs.ts
+import { t as e } from "./rolldown-runtime-CGnMp29N.js";
+import { _ as t, d as n, o as r, s as i, t as a } from "./viewerRuntimeHosts-Ctr8wab-.js";
+import { o, r as s, z as c } from "./events-tsQFsZrH.js";
+// ui/features/panel/panelRuntimeRefs.ts
 var l = null;
 function u(e) {
 	return e ? typeof e?.isConnected != "boolean" || e.isConnected : !1;
@@ -19,13 +19,12 @@ function f(e) {
 	return l = e || null, l;
 }
 function p(e = null) {
-	(!e || l === e) && (l = null);
+	e && l !== e || (l = null);
 }
 function m() {
 	return u(l) ? l : (l = null, d());
 }
-//#endregion
-//#region ui/features/grid/GridSelectionManager.ts
+// ui/features/grid/GridSelectionManager.ts
 function h(e) {
 	let t = /* @__PURE__ */ new Set();
 	if (!e) return t;
@@ -89,8 +88,7 @@ function _(e, t, { activeId: n = "" } = {}, r) {
 	}
 	return a;
 }
-//#endregion
-//#region ui/features/viewer/floatingViewerManager.ts
+// ui/features/viewer/floatingViewerManager.ts
 var te = /* @__PURE__ */ e({
 	floatingViewerManager: () => Y,
 	installFloatingViewerGlobalHandlers: () => $,
@@ -98,11 +96,11 @@ var te = /* @__PURE__ */ e({
 	teardownFloatingViewerManager: () => we
 }), v = null, y = null;
 async function ne() {
-	return v || (y ||= import("./FloatingViewer-38MC8yxJ.js").then((e) => (v = e.FloatingViewer, v)), y);
+	return v || (y ||= import("./FloatingViewer-D8bHMZQk.js").then((e) => (v = e.FloatingViewer, v)), y);
 }
 var b = null, re = null;
 async function ie() {
-	if (!b) return re ||= import("./NodeStreamController-DaqaPtXc.js").then((e) => {
+	if (!b) return re ||= import("./NodeStreamController-CIKDDXJT.js").then((e) => {
 		b = e.setNodeStreamActive;
 	}), re;
 }
@@ -214,13 +212,7 @@ function ce(e, t) {
 		return;
 	}
 	let i = r.has("A"), a = r.has("B");
-	if (!(i && a)) {
-		if (a) {
-			e.loadMediaPair(t, e._mediaB);
-			return;
-		}
-		e.loadMediaPair(e._mediaA, t);
-	}
+	i && a || (a ? e.loadMediaPair(t, e._mediaB) : e.loadMediaPair(e._mediaA, t));
 }
 function le(e) {
 	try {
@@ -295,11 +287,8 @@ function z() {
 function B(e) {
 	if (!S?.isVisible || S._mode === x.GRAPH) return;
 	let t = Array.isArray(e?.detail?.selectedAssets) ? e.detail.selectedAssets : [], n = new Set(t.filter((e) => String(e?.kind || "").toLowerCase() === "folder").map((e) => String(e?.id || "")).filter(Boolean)), r = Array.isArray(e?.detail?.selectedIds) ? e.detail.selectedIds.map(String).filter((e) => !!e && !n.has(e)) : [];
-	if (r.length) {
-		R(r, t);
-		return;
-	}
-	try {
+	if (r.length) R(r, t);
+	else try {
 		let e = P();
 		if (!e) return;
 		let t = Array.from(h(e)).map(String).filter(Boolean);
@@ -322,15 +311,11 @@ function q() {
 function ue() {
 	de();
 	let e = typeof window < "u" ? window : globalThis;
-	if (typeof e.requestAnimationFrame == "function") {
-		K = "raf", G = e.requestAnimationFrame(() => {
-			G = null, K = "", q();
-		});
-		return;
-	}
-	K = "timeout", G = e.setTimeout(() => {
+	typeof e.requestAnimationFrame == "function" ? (K = "raf", G = e.requestAnimationFrame(() => {
 		G = null, K = "", q();
-	}, 16);
+	})) : (K = "timeout", G = e.setTimeout(() => {
+		G = null, K = "", q();
+	}, 16));
 }
 function de() {
 	if (G == null) return;
@@ -466,7 +451,7 @@ var Y = {
 	} catch {}
 }, be = (e) => {
 	let t = String(e?.detail?.key || "");
-	(!t || t === "viewer" || t === "viewer.mfvLiveDefault" || t === "viewer.mfvPreviewDefault") && oe();
+	t && t !== "viewer" && t !== "viewer.mfvLiveDefault" && t !== "viewer.mfvPreviewDefault" || oe();
 };
 function xe(e) {
 	let t = String(e?.key || "");
@@ -516,18 +501,13 @@ var Q = (e) => {
 			return;
 		}
 		t === "c" && (a(), Y.toggleCompareAB());
-		return;
 	}
 };
 function $() {
 	X || typeof window < "u" && window?.addEventListener && (window.addEventListener(s.MFV_OPEN, pe), window.addEventListener(s.MFV_CLOSE, me), window.addEventListener(s.MFV_TOGGLE, he), window.addEventListener(s.MFV_LIVE_TOGGLE, Z), window.addEventListener(s.MFV_PREVIEW_TOGGLE, ge), window.addEventListener(s.MFV_NODESTREAM_TOGGLE, _e), window.addEventListener(s.MFV_POPOUT, ve), window.addEventListener(s.SETTINGS_CHANGED, be), window.addEventListener("keydown", Q, !0), window.addEventListener("beforeunload", ye), X = !0);
 }
 function Ce() {
-	if (typeof window > "u" || !window?.removeEventListener) {
-		X = !1;
-		return;
-	}
-	window.removeEventListener(s.MFV_OPEN, pe), window.removeEventListener(s.MFV_CLOSE, me), window.removeEventListener(s.MFV_TOGGLE, he), window.removeEventListener(s.MFV_LIVE_TOGGLE, Z), window.removeEventListener(s.MFV_PREVIEW_TOGGLE, ge), window.removeEventListener(s.MFV_NODESTREAM_TOGGLE, _e), window.removeEventListener(s.MFV_POPOUT, ve), window.removeEventListener(s.SETTINGS_CHANGED, be), window.removeEventListener("keydown", Q, !0), window.removeEventListener("beforeunload", ye), X = !1;
+	typeof window > "u" || !window?.removeEventListener || (window.removeEventListener(s.MFV_OPEN, pe), window.removeEventListener(s.MFV_CLOSE, me), window.removeEventListener(s.MFV_TOGGLE, he), window.removeEventListener(s.MFV_LIVE_TOGGLE, Z), window.removeEventListener(s.MFV_PREVIEW_TOGGLE, ge), window.removeEventListener(s.MFV_NODESTREAM_TOGGLE, _e), window.removeEventListener(s.MFV_POPOUT, ve), window.removeEventListener(s.SETTINGS_CHANGED, be), window.removeEventListener("keydown", Q, !0), window.removeEventListener("beforeunload", ye)), X = !1;
 }
 function we({ reinstallGlobalHandlers: e = !1 } = {}) {
 	let t = !!S?.isVisible;
@@ -544,5 +524,4 @@ function we({ reinstallGlobalHandlers: e = !1 } = {}) {
 	}
 	se(), t && F(!1), e && $();
 }
-//#endregion
 export { h as a, p as c, we as i, m as l, te as n, g as o, $ as r, _ as s, Y as t, f as u };

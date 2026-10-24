@@ -1,13 +1,13 @@
-import { $t as e, g as t, y as n } from "./viewerRuntimeHosts-BBd8uK6j.js";
-import { B as r, C as i, I as a, M as o, O as s, P as c, R as l, V as u, j as d, m as f, o as p, r as m, rt as h, v as g, w as _, x as v } from "./events-CoI83paj.js";
-import { a as y, i as b, o as x, s as S } from "./graphTraversal-C94Q5bJN.js";
-import { _ as C, g as w, m as T, n as E, p as ee, r as D, w as O } from "./Viewer-DWgaGos-.js";
-import { r as k, v as A } from "./SidebarWorkflowSection-DpoPGJrq.js";
-import { _ as j, a as M, c as N, d as P, f as F, g as I, h as L, i as te, l as R, m as z, o as ne, p as B, r as re, s as V, t as ie, u as H, v as U } from "./openMajoorSettings-CxqtW_yN.js";
-import { a as W, n as ae, r as oe } from "./model3dRenderer-e5uWwIMW.js";
-import { i as se, o as ce, r as le, t as ue } from "./geninfoParser-Bwtqk4p6.js";
-import { t as de } from "./genInfo-y4P7FXnU.js";
-//#region ui/features/viewer/floatingViewerConstants.ts
+import { $t as e, g as t, y as n } from "./viewerRuntimeHosts-Ctr8wab-.js";
+import { B as r, C as i, I as a, M as o, O as s, P as c, R as l, V as u, j as d, m as f, o as p, r as m, rt as h, v as g, w as _, x as v } from "./events-tsQFsZrH.js";
+import { a as y, i as b, o as x, s as S } from "./graphTraversal-DTdQWkn5.js";
+import { _ as C, g as w, m as T, n as E, p as ee, r as D, w as O } from "./Viewer-DHesfEdb.js";
+import { r as k, v as A } from "./SidebarWorkflowSection-CZBV2aho.js";
+import { _ as j, a as M, c as N, d as P, f as F, g as I, h as L, i as te, l as R, m as z, o as ne, p as B, r as re, s as V, t as ie, u as H, v as U } from "./openMajoorSettings-IdB9HDLb.js";
+import { a as W, n as ae, r as oe } from "./model3dRenderer-B18R8Ewh.js";
+import { i as se, o as ce, r as le, t as ue } from "./geninfoParser-CgHp-y-n.js";
+import { t as de } from "./genInfo-C_5G1vVv.js";
+// ui/features/viewer/floatingViewerConstants.ts
 var G = Object.freeze({
 	SIMPLE: "simple",
 	AB: "ab",
@@ -115,21 +115,9 @@ function Ee(e, t = null, { kind: n = "" } = {}) {
 		console.debug?.(e);
 	}
 	let S = s ? String(e?.src || "") : "", C = !1, w = "", T = null, E = null, D = () => {
-		if (i) {
-			p.className = e.paused ? "pi pi-play" : "pi pi-pause";
-			return;
-		}
-		if (s) {
-			p.className = C ? "pi pi-play" : "pi pi-pause";
-			return;
-		}
-		p.className = "pi pi-play";
+		i ? p.className = e.paused ? "pi pi-play" : "pi pi-pause" : s ? p.className = C ? "pi pi-play" : "pi pi-pause" : p.className = "pi pi-play";
 	}, O = () => {
-		if (e instanceof HTMLMediaElement) {
-			x.className = e.muted ? "pi pi-volume-off" : "pi pi-volume-up";
-			return;
-		}
-		x.className = "pi pi-volume-off", b.disabled = !0, b.classList.add("is-disabled");
+		e instanceof HTMLMediaElement ? x.className = e.muted ? "pi pi-volume-off" : "pi pi-volume-up" : (x.className = "pi pi-volume-off", b.disabled = !0, b.classList.add("is-disabled"));
 	}, k = () => {
 		if (!a || !(e instanceof HTMLVideoElement)) return;
 		let t = ve(e, r), n = ye(e, r);
@@ -239,16 +227,11 @@ function Ee(e, t = null, { kind: n = "" } = {}) {
 	}, B = (e) => {
 		let t = String(e?.key || "");
 		if (!(!t || e?.altKey || e?.ctrlKey || e?.metaKey)) {
-			if (t === " " || t === "Spacebar") {
-				e.preventDefault?.(), I(e);
-				return;
-			}
-			if (t === "ArrowLeft") {
+			if (t === " " || t === "Spacebar") e.preventDefault?.(), I(e);
+			else if (t === "ArrowLeft") {
 				if (!a) return;
 				e.preventDefault?.(), L(-1, e);
-				return;
-			}
-			if (t === "ArrowRight") {
+			} else if (t === "ArrowRight") {
 				if (!a) return;
 				e.preventDefault?.(), L(1, e);
 			}
@@ -279,8 +262,7 @@ function Ee(e, t = null, { kind: n = "" } = {}) {
 	}
 	return c;
 }
-//#endregion
-//#region ui/features/viewer/floatingViewerMedia.ts
+// ui/features/viewer/floatingViewerMedia.ts
 var De = /* @__PURE__ */ new Set([
 	".mp4",
 	".webm",
@@ -469,8 +451,7 @@ function Le(e, t, n, r) {
 	let i = e.measureText(t).width;
 	e.fillStyle = "rgba(0,0,0,0.58)", Ie(e, n, r, i + 10, 18, 4), e.fill(), e.fillStyle = "#fff", e.fillText(t, n + 5, r + 13), e.restore();
 }
-//#endregion
-//#region ui/features/viewer/workflowSidebar/NodeWidgetRenderer.ts
+// ui/features/viewer/workflowSidebar/NodeWidgetRenderer.ts
 var Re = /* @__PURE__ */ new Set([
 	"imageupload",
 	"button",
@@ -678,8 +659,7 @@ var Xe = class {
 function Ze(e) {
 	return e ? e.classList?.contains?.("mjr-ws-text-wrapper") ? e.querySelector?.("textarea") ?? e : e : null;
 }
-//#endregion
-//#region ui/features/viewer/workflowSidebar/WorkflowNodesTab.ts
+// ui/features/viewer/workflowSidebar/WorkflowNodesTab.ts
 var Qe = class {
 	_searchQuery;
 	_expandedNodeIds;
@@ -727,11 +707,8 @@ var Qe = class {
 			let r = String(n._node?.id ?? "") === e;
 			n.el?.classList?.toggle("is-selected-from-graph", r), r && (t = n);
 		}
-		if (!e) {
-			this._lastSelectedId = "";
-			return;
-		}
-		if (e !== this._lastSelectedId && (this._lastSelectedId = e, t)) {
+		if (!e) this._lastSelectedId = "";
+		else if (e !== this._lastSelectedId && (this._lastSelectedId = e, t)) {
 			t._expanded || t.setExpanded(!0);
 			try {
 				let e = t._mjrTreeItemEl || t.el;
@@ -748,18 +725,15 @@ var Qe = class {
 	}
 	_maybeRebuildList() {
 		let e = tt($e()), t = (this._searchQuery || "").toLowerCase().trim(), n = t ? nt(e, t) : e, r = rt(n);
-		if (r === this._lastNodeSig) {
-			this._syncCanvasSelection();
-			return;
+		if (r === this._lastNodeSig) this._syncCanvasSelection();
+		else {
+			this._lastNodeSig = r;
+			for (let e of this._renderers) e.dispose();
+			if (this._renderers = [], this._list.innerHTML = "", !n.length) {
+				let t = document.createElement("div");
+				t.className = "mjr-ws-sidebar-empty", t.textContent = e.length ? "No nodes match your search" : "No nodes in workflow", this._list.appendChild(t);
+			} else this._renderItems(n, this._list, 0, null), this._syncCanvasSelection();
 		}
-		this._lastNodeSig = r;
-		for (let e of this._renderers) e.dispose();
-		if (this._renderers = [], this._list.innerHTML = "", !n.length) {
-			let t = document.createElement("div");
-			t.className = "mjr-ws-sidebar-empty", t.textContent = e.length ? "No nodes match your search" : "No nodes in workflow", this._list.appendChild(t);
-			return;
-		}
-		this._renderItems(n, this._list, 0, null), this._syncCanvasSelection();
 	}
 	_renderItems(e, t, n, r) {
 		for (let { node: i, children: a } of e) {
@@ -869,8 +843,7 @@ function ot() {
 	}
 	return [];
 }
-//#endregion
-//#region ui/features/viewer/workflowGraphMap/workflowGraphMapActions.ts
+// ui/features/viewer/workflowGraphMap/workflowGraphMapActions.ts
 async function st(e) {
 	if (!e) return !1;
 	let t = JSON.stringify(ht(e), null, 2);
@@ -1009,8 +982,7 @@ function X(e) {
 		return e;
 	}
 }
-//#endregion
-//#region ui/features/viewer/workflowGraphMap/WorkflowGraphMapPanel.ts
+// ui/features/viewer/workflowGraphMap/WorkflowGraphMapPanel.ts
 var xt = 64, St = class {
 	constructor({ large: e = !1 } = {}) {
 		this._asset = null, this._workflow = null, this._selectedNodeId = "", this._renderInfo = null, this._resizeObserver = null, this._resizeObservedTarget = null, this._resizeObserverWindow = null, this._large = !!e, this._view = {
@@ -1068,11 +1040,7 @@ var xt = 64, St = class {
 		let t = e.getBoundingClientRect(), n = Math.max(1, Math.floor(t.width || e.clientWidth || 1)), r = Math.max(1, Math.floor(t.height || e.clientHeight || 1)), i = Z(e), a = Math.max(1, Math.min(2, Number(i?.devicePixelRatio) || 1)), o = Math.floor(n * a), s = Math.floor(r * a);
 		(e.width !== o || e.height !== s) && (e.width = o, e.height = s);
 		let c = e.getContext?.("2d");
-		if (c && c.setTransform(a, 0, 0, a, 0, 0), !this._workflow) {
-			c?.clearRect?.(0, 0, n, r), this._renderInfo = null;
-			return;
-		}
-		this._renderInfo = A(e, this._workflow, {
+		c && c.setTransform(a, 0, 0, a, 0, 0), this._workflow ? (this._renderInfo = A(e, this._workflow, {
 			showNodeLabels: !0,
 			showViewport: !1,
 			expandSubgraphs: this._subgraphDisplayMode !== "host",
@@ -1082,7 +1050,7 @@ var xt = 64, St = class {
 				centerX: this._view.centerX,
 				centerY: this._view.centerY
 			}
-		}), this._renderInfo?.resolvedView && (this._view.centerX = this._renderInfo.resolvedView.centerX, this._view.centerY = this._renderInfo.resolvedView.centerY, this._view.zoom = this._renderInfo.resolvedView.zoom);
+		}), this._renderInfo?.resolvedView && (this._view.centerX = this._renderInfo.resolvedView.centerX, this._view.centerY = this._renderInfo.resolvedView.centerY, this._view.zoom = this._renderInfo.resolvedView.zoom)) : (c?.clearRect?.(0, 0, n, r), this._renderInfo = null);
 	}
 	_renderDetails() {
 		let e = this._subgraphDisplayMode !== "host", t = F(this._workflow, { includeSubgraphs: e }).length;
@@ -1404,8 +1372,7 @@ function Ft(e) {
 		id: e.id ?? ""
 	});
 }
-//#endregion
-//#region ui/features/viewer/workflowSidebar/WorkflowSidebar.ts
+// ui/features/viewer/workflowSidebar/WorkflowSidebar.ts
 var It = 16, Lt = 250, Rt = class {
 	_hostEl;
 	_onClose;
@@ -1498,11 +1465,7 @@ var It = 16, Lt = 250, Rt = class {
 			let t = Number.isFinite(Number(e)) ? Number(e) : Bt(this._el);
 			t - this._lastLiveSyncAt >= Lt && (this._lastLiveSyncAt = t, this.syncFromGraph()), this._startLiveSync();
 		};
-		if (typeof e.requestAnimationFrame == "function") {
-			this._liveSyncMode = "raf", this._liveSyncHandle = e.requestAnimationFrame(t);
-			return;
-		}
-		this._liveSyncMode = "timeout", this._liveSyncHandle = e.setTimeout(t, It);
+		typeof e.requestAnimationFrame == "function" ? (this._liveSyncMode = "raf", this._liveSyncHandle = e.requestAnimationFrame(t)) : (this._liveSyncMode = "timeout", this._liveSyncHandle = e.setTimeout(t, It));
 	}
 	_stopLiveSync() {
 		if (this._liveSyncHandle == null) return;
@@ -1554,8 +1517,7 @@ function Bt(e) {
 	}
 	return Date.now();
 }
-//#endregion
-//#region ui/features/viewer/workflowSidebar/sidebarRunButton.ts
+// ui/features/viewer/workflowSidebar/sidebarRunButton.ts
 var Q = Object.freeze({
 	IDLE: "idle",
 	RUNNING: "running",
@@ -1596,23 +1558,14 @@ function Wt() {
 		let n = Math.max(0, Number(e?.queue) || 0), r = e?.prompt || null, i = !!r?.currentlyExecuting, a = !!(r && (r.currentlyExecuting || r.errorDetails)), o = n > 0 || a, s = !!r?.errorDetails;
 		t && n === 0 && !r && (c = !1, l = !1);
 		let u = c || l || i || n > 0;
-		if ((i || o || n > 0) && (c = !1), s) {
-			l = !1, f(), p(Q.ERROR, { canStop: !1 });
-			return;
-		}
-		if (l) {
+		if ((i || o || n > 0) && (c = !1), s) l = !1, f(), p(Q.ERROR, { canStop: !1 });
+		else if (l) {
 			if (!u) {
 				l = !1, h(e);
 				return;
 			}
 			p(Q.STOPPING, { canStop: !1 });
-			return;
-		}
-		if (c || i || o || n > 0) {
-			f(), p(Q.RUNNING, { canStop: !0 });
-			return;
-		}
-		f(), p(Q.IDLE, { canStop: !1 });
+		} else c || i || o || n > 0 ? (f(), p(Q.RUNNING, { canStop: !0 })) : (f(), p(Q.IDLE, { canStop: !1 }));
 	}
 	function g() {
 		c = !1, l = !1, f(), p(Q.ERROR, { canStop: !1 }), u = setTimeout(() => {
@@ -1709,8 +1662,7 @@ async function Xt() {
 		}
 	}) };
 }
-//#endregion
-//#region ui/features/viewer/floatingViewerUi.ts
+// ui/features/viewer/floatingViewerUi.ts
 function Zt(e) {
 	let t = e?.models;
 	if (!t || typeof t != "object") return "";
@@ -2318,8 +2270,7 @@ function gn(e, t) {
 	}
 	return r.childNodes.length > 0 ? r : null;
 }
-//#endregion
-//#region ui/features/viewer/floatingViewerMode.ts
+// ui/features/viewer/floatingViewerMode.ts
 function _n(e) {
 	try {
 		e._controller?.onModeChanged?.(e._mode);
@@ -2479,8 +2430,7 @@ function kn(e, t) {
 	let i = document.createElement("i");
 	i.className = "pi pi-sitemap", i.setAttribute("aria-hidden", "true"), e._nodeStreamBtn.replaceChildren(i), e._nodeStreamBtn.title = r;
 }
-//#endregion
-//#region ui/features/viewer/floatingViewerPopout.ts
+// ui/features/viewer/floatingViewerPopout.ts
 var An = /* @__PURE__ */ "--border-color.--border-default.--button-hover-surface.--button-surface.--comfy-accent.--comfy-font.--comfy-input-bg.--comfy-menu-bg.--comfy-menu-secondary-bg.--comfy-status-error.--comfy-status-success.--comfy-status-warning.--content-bg.--content-fg.--descrip-text.--destructive-background.--font-inter.--input-text.--interface-menu-surface.--interface-panel-hover-surface.--interface-panel-selected-surface.--interface-panel-surface.--modal-card-background.--muted-foreground.--primary-background.--primary-background-hover.--radius-lg.--radius-md.--radius-sm.--success-background.--warning-background".split(".");
 function jn() {
 	try {
@@ -2599,76 +2549,61 @@ function Vn(e) {
 	let t = e.element;
 	e._stopEdgeResize();
 	let n = jn(), r = typeof window < "u" && "documentPictureInPicture" in window, i = String(window?.navigator?.userAgent || globalThis?.navigator?.userAgent || ""), a = Math.max(t.offsetWidth || 520, 400), o = Math.max(t.offsetHeight || 420, 300);
-	if ($("start", {
+	$("start", {
 		isElectronHost: n,
 		hasDocumentPiP: r,
 		userAgent: i,
 		width: a,
 		height: o,
 		desktopPopoutUnsupported: e._desktopPopoutUnsupported
-	}), n && e._desktopPopoutUnsupported) {
-		$("electron-in-app-fallback-reuse", null), e._setDesktopExpanded(!0);
-		return;
-	}
-	if (!(n && ($("electron-popup-request", {
+	}), n && e._desktopPopoutUnsupported ? ($("electron-in-app-fallback-reuse", null), e._setDesktopExpanded(!0)) : n && ($("electron-popup-request", {
 		width: a,
 		height: o
-	}), e._tryElectronPopupFallback(t, a, o, /* @__PURE__ */ Error("Desktop popup requested"))))) {
-		if (n && "documentPictureInPicture" in window) {
-			$("electron-pip-request", {
-				width: a,
-				height: o
-			}), window.documentPictureInPicture.requestWindow({
-				width: a,
-				height: o
-			}).then((n) => {
-				$("electron-pip-opened", { hasDocument: !!n?.document }), e._popoutWindow = n, e._isPopped = !0, e._popoutRestoreGuard = !1;
+	}), e._tryElectronPopupFallback(t, a, o, /* @__PURE__ */ Error("Desktop popup requested"))) || (n && "documentPictureInPicture" in window ? ($("electron-pip-request", {
+		width: a,
+		height: o
+	}), window.documentPictureInPicture.requestWindow({
+		width: a,
+		height: o
+	}).then((n) => {
+		$("electron-pip-opened", { hasDocument: !!n?.document }), e._popoutWindow = n, e._isPopped = !0, e._popoutRestoreGuard = !1;
+		try {
+			e._popoutAC?.abort();
+		} catch (e) {
+			console.debug?.(e);
+		}
+		e._popoutAC = new AbortController();
+		let r = e._popoutAC.signal, i = () => e._schedulePopInFromPopupClose();
+		e._popoutCloseHandler = i;
+		let a = n.document;
+		a.title = "Majoor Viewer", e._installPopoutStyles(a);
+		let o = In(a);
+		if (!o) e._activateDesktopExpandedFallback(/* @__PURE__ */ Error("Popup root creation failed"));
+		else {
+			try {
+				let e = typeof a.adoptNode == "function" ? a.adoptNode(t) : t;
+				o.appendChild(e), $("electron-pip-adopted", { usedAdoptNode: typeof a.adoptNode == "function" });
+			} catch (t) {
+				$("electron-pip-adopt-failed", { message: t?.message || String(t) }, "warn"), console.warn("[MFV] PiP adoptNode failed", t), e._isPopped = !1, e._popoutWindow = null;
 				try {
-					e._popoutAC?.abort();
+					n.close();
 				} catch (e) {
 					console.debug?.(e);
 				}
-				e._popoutAC = new AbortController();
-				let r = e._popoutAC.signal, i = () => e._schedulePopInFromPopupClose();
-				e._popoutCloseHandler = i;
-				let a = n.document;
-				a.title = "Majoor Viewer", e._installPopoutStyles(a);
-				let o = In(a);
-				if (!o) {
-					e._activateDesktopExpandedFallback(/* @__PURE__ */ Error("Popup root creation failed"));
-					return;
-				}
-				try {
-					let e = typeof a.adoptNode == "function" ? a.adoptNode(t) : t;
-					o.appendChild(e), $("electron-pip-adopted", { usedAdoptNode: typeof a.adoptNode == "function" });
-				} catch (t) {
-					$("electron-pip-adopt-failed", { message: t?.message || String(t) }, "warn"), console.warn("[MFV] PiP adoptNode failed", t), e._isPopped = !1, e._popoutWindow = null;
-					try {
-						n.close();
-					} catch (e) {
-						console.debug?.(e);
-					}
-					e._activateDesktopExpandedFallback(t);
-					return;
-				}
-				t.classList.add("is-visible"), e.isVisible = !0, Ln(e), $("electron-pip-ready", { isPopped: e._isPopped }), n.addEventListener("pagehide", i, { signal: r }), e._startPopoutCloseWatch(), e._popoutKeydownHandler = (t) => {
-					let n = String(t?.target?.tagName || "").toLowerCase();
-					t?.defaultPrevented || t?.target?.isContentEditable || n === "input" || n === "textarea" || n === "select" || e._forwardKeydownToController(t);
-				}, n.addEventListener("keydown", e._popoutKeydownHandler, { signal: r });
-			}).catch((t) => {
-				$("electron-pip-request-failed", { message: t?.message || String(t) }, "warn"), e._activateDesktopExpandedFallback(t);
-			});
-			return;
+				e._activateDesktopExpandedFallback(t);
+				return;
+			}
+			t.classList.add("is-visible"), e.isVisible = !0, Ln(e), $("electron-pip-ready", { isPopped: e._isPopped }), n.addEventListener("pagehide", i, { signal: r }), e._startPopoutCloseWatch(), e._popoutKeydownHandler = (t) => {
+				let n = String(t?.target?.tagName || "").toLowerCase();
+				t?.defaultPrevented || t?.target?.isContentEditable || n === "input" || n === "textarea" || n === "select" || e._forwardKeydownToController(t);
+			}, n.addEventListener("keydown", e._popoutKeydownHandler, { signal: r });
 		}
-		if (n) {
-			$("electron-no-pip-api", { hasDocumentPiP: r }), e._activateDesktopExpandedFallback(/* @__PURE__ */ Error("Document Picture-in-Picture unavailable after popup failure"));
-			return;
-		}
-		$("browser-fallback-popup", {
-			width: a,
-			height: o
-		}), e._fallbackPopout(t, a, o);
-	}
+	}).catch((t) => {
+		$("electron-pip-request-failed", { message: t?.message || String(t) }, "warn"), e._activateDesktopExpandedFallback(t);
+	})) : n ? ($("electron-no-pip-api", { hasDocumentPiP: r }), e._activateDesktopExpandedFallback(/* @__PURE__ */ Error("Document Picture-in-Picture unavailable after popup failure"))) : ($("browser-fallback-popup", {
+		width: a,
+		height: o
+	}), e._fallbackPopout(t, a, o)));
 }
 function Hn(e, t, n, r) {
 	$("browser-popup-open", {
@@ -2818,8 +2753,7 @@ function Jn(e) {
 	let n = e._popoutBtn.querySelector("i") || document.createElement("i"), r = t ? f("tooltip.popInViewer", "Return to floating panel") : f("tooltip.popOutViewer", "Pop out viewer to separate window");
 	n.className = t ? "pi pi-sign-in" : "pi pi-external-link", e._popoutBtn.title = r, e._popoutBtn.setAttribute("aria-label", r), e._popoutBtn.setAttribute("aria-pressed", String(t)), e._popoutBtn.contains(n) || e._popoutBtn.replaceChildren(n);
 }
-//#endregion
-//#region ui/features/viewer/floatingViewerPanel.ts
+// ui/features/viewer/floatingViewerPanel.ts
 function Yn(e) {
 	return {
 		n: "ns-resize",
@@ -2960,8 +2894,7 @@ function er(e, t) {
 		d.addEventListener("pointermove", l, { signal: i }), d.addEventListener("pointerup", u, { signal: i }), d.addEventListener("pointercancel", u, { signal: i });
 	}, n ? { signal: n } : void 0);
 }
-//#endregion
-//#region ui/features/viewer/floatingViewerCapture.ts
+// ui/features/viewer/floatingViewerCapture.ts
 async function tr(e, t, n, r, i, a, o, s) {
 	if (!n) return;
 	let c = K(n), l = null;
@@ -3158,8 +3091,7 @@ async function ir(e) {
 		e._captureBtn && (e._captureBtn.disabled = !1, e._captureBtn.setAttribute("aria-label", f("tooltip.captureView", "Save view as image")));
 	}
 }
-//#endregion
-//#region ui/features/viewer/floatingViewerLoader.ts
+// ui/features/viewer/floatingViewerLoader.ts
 var ar = "imageops-live-preview";
 function or(e) {
 	return String(e?._source || "") === ar;
@@ -3230,8 +3162,7 @@ function lr(e, r, i, a, o) {
 		e._refreshGen === c && (e._mediaA = t || null, e._mediaB = n || null, e._mediaC = r || null, e._mediaD = i || null, e._refresh());
 	})();
 }
-//#endregion
-//#region ui/features/viewer/FloatingViewer.impl.ts
+// ui/features/viewer/FloatingViewer.impl.ts
 function ur(e) {
 	try {
 		return !!e?.classList?.contains("mjr-mfv-simple-player") || !!e?.classList?.contains("mjr-mfv-player-host") || !!e?.querySelector?.(".mjr-video-controls, .mjr-mfv-simple-player-controls");
@@ -3724,11 +3655,7 @@ var dr = 0, fr = class {
 			let s = document.createElement("div");
 			s.className = "mjr-mfv-gen-sidebar-body", s.appendChild(i), a.appendChild(o), a.appendChild(s), e.appendChild(a), r += 1;
 		}
-		if (!r) {
-			e.classList.remove("open"), e.setAttribute("hidden", "");
-			return;
-		}
-		e.removeAttribute("hidden"), e.classList.add("open"), this._updateGenBtnUI?.();
+		r ? (e.removeAttribute("hidden"), e.classList.add("open"), this._updateGenBtnUI?.()) : (e.classList.remove("open"), e.setAttribute("hidden", ""));
 	}
 	_getGenInfoSidebarSlots() {
 		let e = {
@@ -4260,5 +4187,4 @@ var dr = 0, fr = class {
 		this._mediaA = null, this._mediaB = null, this._mediaC = null, this._mediaD = null, this.isVisible = !1;
 	}
 };
-//#endregion
 export { fr as FloatingViewer };

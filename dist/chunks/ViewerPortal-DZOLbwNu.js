@@ -1,11 +1,10 @@
-import { a as e, i as t } from "./viewerRuntimeHosts-BBd8uK6j.js";
-import { r as n } from "./events-CoI83paj.js";
-import { a as r, c as i, i as a, l as o, o as s, s as c, t as l, u } from "./Viewer-DWgaGos-.js";
-import { i as d, r as f } from "./floatingViewerManager-XH4AFW4G.js";
-import { B as p, C as m, D as h, E as g, G as _, J as v, K as y, L as b, N as x, O as S, T as C, U as w, V as T, dt as E, ft as D, j as O, k, lt as A, rt as j, ut as M, w as N, z as P } from "./mjr-primevue-BOf2ACk_.js";
-import { t as F } from "./TagsEditor-BXjsZ3IO.js";
-//#endregion
-//#region ui/vue/components/viewer/FloatingViewerHost.vue
+import { a as e, i as t } from "./viewerRuntimeHosts-Ctr8wab-.js";
+import { r as n } from "./events-tsQFsZrH.js";
+import { a as r, c as i, i as a, l as o, o as s, s as c, t as l, u } from "./Viewer-DHesfEdb.js";
+import { i as d, r as f } from "./floatingViewerManager-DYNfChQt.js";
+import { B as p, C as m, D as h, E as g, G as _, J as v, K as y, L as b, N as x, O as S, T as C, U as w, V as T, dt as E, ft as D, j as O, k, lt as A, rt as j, ut as M, w as N, z as P } from "./mjr-primevue-BRqtdXzb.js";
+import { t as F } from "./TagsEditor-CP5qPOcc.js";
+// ui/vue/components/viewer/FloatingViewerHost.vue
 var I = /* @__PURE__ */ x({
 	__name: "FloatingViewerHost",
 	setup(e) {
@@ -113,11 +112,8 @@ var I = /* @__PURE__ */ x({
 		}
 		async function J(e, t, n = "main") {
 			if (e && e.type === "item" && !e.disabled) {
-				if (Array.isArray(e.submenu) && e.submenu.length) {
-					q(e, t);
-					return;
-				}
-				try {
+				if (Array.isArray(e.submenu) && e.submenu.length) q(e, t);
+				else try {
 					await e.action?.();
 				} catch (e) {
 					console.error("[ViewerContextMenu.vue] Action failed:", e);
@@ -127,11 +123,7 @@ var I = /* @__PURE__ */ x({
 			}
 		}
 		function Y(e, t) {
-			if (Array.isArray(e?.submenu) && e.submenu.length) {
-				q(e, t);
-				return;
-			}
-			s();
+			Array.isArray(e?.submenu) && e.submenu.length ? q(e, t) : s();
 		}
 		function X(e) {
 			Array.isArray(e?.submenu) && e.submenu.length && L();
@@ -347,5 +339,4 @@ var I = /* @__PURE__ */ x({
 		], 64));
 	}
 });
-//#endregion
 export { K as default };
