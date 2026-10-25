@@ -1,6 +1,6 @@
 from mjr_am_backend.features.geninfo import graph_converter as gc
-from mjr_am_backend.features.geninfo.sampler_tracer import _sampler_name_from_class_type
 from mjr_am_backend.features.geninfo.parser import parse_geninfo_from_prompt
+from mjr_am_backend.features.geninfo.sampler_tracer import _sampler_name_from_class_type
 
 
 def _inner_subgraph(sg_id: str, name: str) -> dict:

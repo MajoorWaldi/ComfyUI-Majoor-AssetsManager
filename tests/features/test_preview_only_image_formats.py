@@ -4,11 +4,10 @@ from unittest.mock import MagicMock
 
 import pytest
 from aiohttp.test_utils import make_mocked_request
-from PIL import Image
-
 from mjr_am_backend.features.metadata import thumbnail_cache as thumbs
 from mjr_am_backend.routes.handlers import viewer
 from mjr_am_shared.types import classify_file
+from PIL import Image
 
 
 @pytest.fixture()
