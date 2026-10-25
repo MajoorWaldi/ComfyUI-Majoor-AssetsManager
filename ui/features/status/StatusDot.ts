@@ -223,36 +223,43 @@ function applyStatusHighlight(section: any, tone = "neutral", options: Record<st
     const notifyToast = options?.toast !== false;
     const map = {
         neutral: {
+            color: "var(--mjr-status-neutral, #9e9e9e)",
             bg: "var(--bg-color, #1a1a1a)",
             border: "var(--border-color, #333)",
             glow: "transparent",
         },
         info: {
+            color: "var(--mjr-status-info, #64B5F6)",
             bg: "linear-gradient(135deg, rgba(33,150,243,0.14) 0%, rgba(100,181,246,0.08) 100%)",
             border: "rgba(33,150,243,0.55)",
             glow: "rgba(33,150,243,0.15)",
         },
         success: {
+            color: "var(--mjr-status-success, #4CAF50)",
             bg: "linear-gradient(135deg, rgba(76,175,80,0.16) 0%, rgba(139,195,74,0.08) 100%)",
             border: "rgba(76,175,80,0.55)",
             glow: "rgba(76,175,80,0.16)",
         },
         warning: {
+            color: "var(--mjr-status-warning, #FFA726)",
             bg: "linear-gradient(135deg, rgba(255,167,38,0.18) 0%, rgba(255,193,7,0.08) 100%)",
             border: "rgba(255,167,38,0.58)",
             glow: "rgba(255,167,38,0.18)",
         },
         error: {
+            color: "var(--mjr-status-error, #f44336)",
             bg: "linear-gradient(135deg, rgba(244,67,54,0.18) 0%, rgba(239,83,80,0.08) 100%)",
             border: "rgba(244,67,54,0.62)",
             glow: "rgba(244,67,54,0.2)",
         },
         browser: {
+            color: "var(--mjr-status-browser, #26A69A)",
             bg: "linear-gradient(135deg, rgba(0,150,136,0.18) 0%, rgba(38,166,154,0.08) 100%)",
             border: "rgba(0,150,136,0.58)",
             glow: "rgba(0,150,136,0.18)",
         },
         workflow: {
+            color: "var(--mjr-status-workflow, #d481c3)",
             bg: "linear-gradient(135deg, rgba(186,104,200,0.20) 0%, rgba(244,143,177,0.14) 100%)",
             border: "rgba(216,127,186,0.62)",
             glow: "rgba(198,120,194,0.22)",
@@ -260,6 +267,7 @@ function applyStatusHighlight(section: any, tone = "neutral", options: Record<st
     };
     const style = (map as Record<string, any>)[tone] || map.neutral;
     const prevTone = String(section.dataset?.mjrStatusTone || "neutral");
+    section.style.setProperty("--mjr-status-color", style.color);
     section.style.background = style.bg;
     section.style.borderColor = style.border;
     section.style.boxShadow = `0 0 0 1px ${style.glow} inset`;
@@ -427,9 +435,9 @@ export function createStatusIndicator(options: Record<string, any> = {}): any {
 
     const scanButton = document.createElement("button");
     scanButton.id = "mjr-status-scan";
+    scanButton.className = "mjr-btn mjr-status-scan";
     scanButton.type = "button";
     scanButton.textContent = t("btn.scan", "Scan");
-    scanButton.style.cssText = "margin-left: auto; padding: 4px 10px; cursor: pointer;";
     header.appendChild(scanButton);
 
     // Body container
