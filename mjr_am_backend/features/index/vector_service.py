@@ -593,31 +593,48 @@ def _patch_florence_sdpa_support() -> None:
         logger.debug("_patch_florence_sdpa_support: suppressed exception", exc_info=True)
 
 
+@contextlib.contextmanager
+def _filter_florence_optional_generate_log(prompt_model_name: str):
+    hf_logger = logging.getLogger("transformers.dynamic_module_utils")
+    message = f"Could not locate the custom_generate/generate.py inside {prompt_model_name}."
+
+    def _keep_record(record: logging.LogRecord) -> bool:
+        # Transformers probes this optional file and catches its absence during model loading.
+        return record.levelno != logging.INFO or record.getMessage() != message
+
+    hf_logger.addFilter(_keep_record)
+    try:
+        yield
+    finally:
+        hf_logger.removeFilter(_keep_record)
+
+
 def _load_florence_model_with_compat(prompt_model_name: str, AutoModelForCausalLM: Any) -> Any:
     _patch_florence_generation_config_compat()
-    try:
-        model = AutoModelForCausalLM.from_pretrained(
-            prompt_model_name,
-            trust_remote_code=True,
-            attn_implementation="eager",
-        )
-        _patch_florence_generation_config_compat(model)
-        return model
-    except AttributeError as exc:
-        msg = str(exc or "")
-        if "_supports_sdpa" in msg:
-            _patch_florence_sdpa_support()
-        elif any(attr in msg for attr in _FLORENCE_GENERATION_COMPAT_DEFAULTS):
-            _patch_florence_generation_config_compat()
-        else:
-            raise
-        model = AutoModelForCausalLM.from_pretrained(
-            prompt_model_name,
-            trust_remote_code=True,
-            attn_implementation="eager",
-        )
-        _patch_florence_generation_config_compat(model)
-        return model
+    with _filter_florence_optional_generate_log(prompt_model_name):
+        try:
+            model = AutoModelForCausalLM.from_pretrained(
+                prompt_model_name,
+                trust_remote_code=True,
+                attn_implementation="eager",
+            )
+            _patch_florence_generation_config_compat(model)
+            return model
+        except AttributeError as exc:
+            msg = str(exc or "")
+            if "_supports_sdpa" in msg:
+                _patch_florence_sdpa_support()
+            elif any(attr in msg for attr in _FLORENCE_GENERATION_COMPAT_DEFAULTS):
+                _patch_florence_generation_config_compat()
+            else:
+                raise
+            model = AutoModelForCausalLM.from_pretrained(
+                prompt_model_name,
+                trust_remote_code=True,
+                attn_implementation="eager",
+            )
+            _patch_florence_generation_config_compat(model)
+            return model
 
 
 def _load_florence_components_verbose(service: Any, AutoModelForCausalLM: Any, AutoProcessor: Any) -> None:
