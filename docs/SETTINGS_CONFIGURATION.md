@@ -184,6 +184,14 @@ Use that line as the quickest confirmation that the current browser session can 
 
 ## File System Settings
 
+### Input Directory
+
+- **UI location**: Settings -> Majoor Assets Manager -> Advanced -> Paths / Input -> Input Directory
+- **Purpose**: Overrides the folder indexed and browsed by the Inputs tab. Choose an existing directory.
+- **Default behavior**: Leave empty to use ComfyUI's input directory, including `--input-directory`.
+- **After changing it**: Select **Inputs**, then click **Scan** in **Index Status**. The colored status dot also starts a scan.
+- **Security**: The configured input root is allowlisted; files outside configured roots remain blocked.
+
 ### Workflow Roots
 
 - **UI location**: Settings -> Majoor Assets Manager -> Advanced -> Paths / Workflows

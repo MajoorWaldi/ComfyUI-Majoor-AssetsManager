@@ -2410,6 +2410,24 @@
     background: color-mix(in srgb, var(--mjr-surface-2) 70%, var(--mjr-accent) 10%);
 }
 
+.mjr-assets-manager .mjr-btn.mjr-status-scan {
+    margin-left: auto;
+    padding: 4px 10px;
+    color: var(--mjr-status-color, var(--content-fg, #ddd));
+    border-color: color-mix(in srgb, var(--mjr-status-color) 60%, var(--mjr-border));
+    background: color-mix(in srgb, var(--mjr-status-color) 14%, var(--mjr-surface-2));
+}
+
+.mjr-assets-manager .mjr-btn.mjr-status-scan:hover {
+    border-color: var(--mjr-status-color);
+    background: color-mix(in srgb, var(--mjr-status-color) 24%, var(--mjr-surface-2));
+}
+
+.mjr-assets-manager .mjr-btn.mjr-status-scan:focus-visible {
+    outline: 2px solid var(--mjr-status-color);
+    outline-offset: 2px;
+}
+
 /* Inputs / selects (used inside portaled popovers too) */
 .mjr-input,
 .mjr-select,

@@ -745,6 +745,97 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
             ),
         }))
 
+    @routes.get("/mjr/am/settings/input-directory")
+    async def get_input_directory_setting(request):
+        user_auth = _require_authenticated_user(request)
+        if not user_auth.ok:
+            return _json_response(
+                Result.Err(user_auth.code or "AUTH_REQUIRED", user_auth.error or "Authentication required"),
+                status=401,
+            )
+        svc, error_result = await _require_services()
+        if error_result:
+            return _json_response(error_result)
+        settings_service = svc.get("settings")
+        if not settings_service:
+            return _json_response(Result.Err("SERVICE_UNAVAILABLE", "Settings service unavailable"))
+        value = await settings_service.get_input_directory()
+        return _json_response(Result.Ok({"input_directory": value or ""}))
+
+    @routes.post("/mjr/am/settings/input-directory")
+    async def update_input_directory_setting(request):
+        csrf = _csrf_error(request)
+        if csrf:
+            return _json_response(Result.Err("CSRF", csrf))
+        auth = _require_write_access(request)
+        if not auth.ok:
+            return _json_response(auth)
+        svc, error_result = await _require_services()
+        if error_result:
+            return _json_response(error_result)
+        settings_service = svc.get("settings")
+        if not settings_service:
+            return _json_response(Result.Err("SERVICE_UNAVAILABLE", "Settings service unavailable"))
+        body_res = await _read_json(request)
+        if not body_res.ok:
+            return _json_response(body_res)
+        raw_value = (body_res.data or {}).get("input_directory")
+        if raw_value is not None and not isinstance(raw_value, str):
+            return _json_response(Result.Err("INVALID_INPUT", "input_directory must be a string"))
+        value = (raw_value or "").strip()
+        if value:
+            try:
+                normalized_path = Path(value).expanduser().resolve(strict=True)
+                if not normalized_path.is_dir():
+                    return _json_response(Result.Err("INVALID_INPUT", "input_directory must be a directory"))
+                value = str(normalized_path)
+            except (OSError, RuntimeError, ValueError):
+                return _json_response(Result.Err("INVALID_INPUT", "input_directory must be an existing directory"))
+        old_input_dir = get_input_directory()
+        result = await settings_service.set_input_directory(value)
+        if not result.ok:
+            return _json_response(result)
+        new_input_dir = get_input_directory()
+        watcher = svc.get("watcher")
+        if watcher and old_input_dir != new_input_dir:
+            try:
+                # Watcher registrations are keyed by path, not by source.
+                if Path(old_input_dir).resolve() != Path(get_runtime_output_root()).resolve():
+                    watcher.remove_path(old_input_dir)
+            except Exception:
+                logger.debug("Input directory watcher removal failed", exc_info=True)
+            try:
+                watcher.add_path(new_input_dir, source="input", root_id=None)
+            except Exception:
+                logger.debug("Input directory watcher registration failed", exc_info=True)
+        try:
+            await _invalidate_fs_list_cache()
+        except Exception:
+            logger.debug("Input directory listing cache invalidation failed", exc_info=True)
+        if new_input_dir and new_input_dir != old_input_dir:
+            try:
+                await _kickoff_background_scan(
+                    new_input_dir,
+                    source="input",
+                    root_id=None,
+                    recursive=True,
+                    incremental=True,
+                    respect_bg_scan_on_list=False,
+                )
+            except Exception:
+                logger.debug("Input directory initial scan failed", exc_info=True)
+        response_result = Result.Ok({"input_directory": result.data})
+        await _audit_settings_write(
+            svc,
+            request,
+            "settings_input_directory",
+            "settings:input_directory",
+            response_result,
+            previous=old_input_dir,
+            current=str(result.data or ""),
+        )
+        return _json_response(response_result)
+
     @routes.get("/mjr/am/settings/output-directory")
     async def get_output_directory_setting(request):
         user_auth = _require_authenticated_user(request)

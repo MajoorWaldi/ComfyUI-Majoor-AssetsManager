@@ -3,6 +3,7 @@
 import asyncio
 import datetime
 import json
+from pathlib import Path
 
 import pytest
 from aiohttp import web
@@ -915,6 +916,41 @@ async def test_autocomplete_invalid_limit_and_service_error(monkeypatch) -> None
     req = make_mocked_request("GET", "/mjr/am/autocomplete?q=ca&limit=bad", app=app)
     resp = await (await app.router.resolve(req)).handler(req)
     assert json.loads(resp.text).get("code") == "SERVICE_UNAVAILABLE"
+
+
+@pytest.mark.asyncio
+async def test_list_input_uses_custom_directory_without_folder_paths_patch(monkeypatch, tmp_path):
+    custom = tmp_path / "custom-input"
+    custom.mkdir()
+    seen = []
+
+    class _Index:
+        async def search_scoped(self, *args, **kwargs):
+            return Result.Err("DB", "Use filesystem fallback")
+
+    async def services():
+        return {"index": _Index()}, None
+
+    async def filesystem(root, *args, **kwargs):
+        seen.append(Path(root))
+        return Result.Ok({"assets": [{"filename": "custom.png", "filepath": str(custom / "custom.png")}], "total": 1})
+
+    async def scan(*args, **kwargs):
+        return None
+
+    monkeypatch.setenv("MJR_AM_INPUT_DIRECTORY", str(custom))
+    monkeypatch.setattr(search_impl, "_require_services", services)
+    monkeypatch.setattr(search_impl, "_check_rate_limit", lambda *args, **kwargs: (True, None))
+    monkeypatch.setattr(search_impl, "_touch_enrichment_pause", lambda *args, **kwargs: None)
+    monkeypatch.setattr(search_impl, "_list_filesystem_assets", filesystem)
+    monkeypatch.setattr(search_impl, "_kickoff_background_scan", scan)
+    app = _build_search_app()
+    request = make_mocked_request("GET", "/mjr/am/list?scope=input&q=*&offset=0", app=app)
+    response = await (await app.router.resolve(request)).handler(request)
+    result = json.loads(response.text)
+    assert result["ok"]
+    assert seen == [custom]
+    assert result["data"]["assets"][0]["filename"] == "custom.png"
 
 
 @pytest.mark.asyncio

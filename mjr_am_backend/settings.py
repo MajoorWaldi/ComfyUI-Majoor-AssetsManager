@@ -24,6 +24,8 @@ from typing import Any
 from mjr_am_shared.runtime_env import get_env, set_env, unset_env
 
 from .config import (
+    _INPUT_DIR_OVERRIDE_ENV_NAMES,
+    _INPUT_DIR_OVERRIDE_FILE_PATH,
     _OUTPUT_DIR_OVERRIDE_FILE_PATH,
     MEDIA_PROBE_BACKEND,
     OUTPUT_ROOT,
@@ -42,6 +44,7 @@ logger = get_logger(__name__)
 
 _PROBE_BACKEND_KEY = "media_probe_backend"
 _OUTPUT_DIRECTORY_KEY = "output_directory_override"
+_INPUT_DIRECTORY_KEY = "input_directory_override"
 _WORKFLOW_ROOTS_KEY = "workflow_roots"
 _METADATA_FALLBACK_IMAGE_KEY = "metadata_fallback_image"
 _METADATA_FALLBACK_MEDIA_KEY = "metadata_fallback_media"
@@ -1514,6 +1517,64 @@ class AppSettings:
             "image": parse_bool(self._cache.get(image_key), self._default_metadata_fallback_image),
             "media": parse_bool(self._cache.get(media_key), self._default_metadata_fallback_media),
         }
+
+    async def get_input_directory(self) -> str | None:
+        """Return the persisted input directory override, or None when unset."""
+        async with self._lock:
+            return await self._read_setting(_INPUT_DIRECTORY_KEY) or None
+
+    async def set_input_directory(self, path: str) -> Result[str]:
+        """Persist a validated input override without changing ComfyUI globals."""
+        from pathlib import Path
+
+        normalized = str(path or "").strip()
+        if normalized:
+            try:
+                target = Path(normalized).expanduser().resolve(strict=True)
+                if not target.is_dir():
+                    return Result.Err("INVALID_INPUT", "input_directory must be a directory")
+                normalized = str(target)
+            except (OSError, RuntimeError, ValueError):
+                return Result.Err("INVALID_INPUT", "input_directory must be an existing directory")
+        async with self._lock:
+            result = (
+                await self._write_setting(_INPUT_DIRECTORY_KEY, normalized)
+                if normalized
+                else await self._delete_setting(_INPUT_DIRECTORY_KEY)
+            )
+            if not result.ok:
+                return Result.Err("DB_ERROR", result.error or "Failed to persist input directory")
+            self._apply_input_directory_override(normalized)
+            try:
+                if normalized:
+                    _INPUT_DIR_OVERRIDE_FILE_PATH.write_text(normalized + "\n", encoding="utf-8")
+                else:
+                    _INPUT_DIR_OVERRIDE_FILE_PATH.unlink(missing_ok=True)
+            except OSError:
+                logger.warning("Failed to update input directory override file", exc_info=True)
+            await self._warn_if_bump_fails("Failed to bump settings version")
+            return Result.Ok(normalized)
+
+    def _apply_input_directory_override(self, normalized: str) -> None:
+        for name in _INPUT_DIR_OVERRIDE_ENV_NAMES:
+            if normalized:
+                set_env(name, normalized)
+            else:
+                unset_env(name)
+
+    async def apply_input_directory_override_on_startup(self) -> None:
+        """Restore the persisted override before scanning or handling requests."""
+        from pathlib import Path
+
+        try:
+            async with self._lock:
+                raw = await self._read_setting(_INPUT_DIRECTORY_KEY)
+                if raw:
+                    target = Path(raw).expanduser().resolve(strict=True)
+                    if target.is_dir():
+                        self._apply_input_directory_override(str(target))
+        except (OSError, RuntimeError, ValueError) as exc:
+            logger.warning("Failed to restore input directory override on startup: %s", exc)
 
     async def get_output_directory(self) -> str | None:
         """Return persisted output directory override, or None when unset."""

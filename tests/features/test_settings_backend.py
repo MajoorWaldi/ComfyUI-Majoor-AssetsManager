@@ -6,6 +6,7 @@ import pytest
 from mjr_am_backend.routes.core import security as sec
 from mjr_am_backend.settings import (
     _AI_VERBOSE_LOGS_KEY,
+    _INPUT_DIRECTORY_KEY,
     _METADATA_FALLBACK_IMAGE_KEY,
     _METADATA_FALLBACK_MEDIA_KEY,
     _OUTPUT_DIRECTORY_KEY,
@@ -419,6 +420,95 @@ async def test_output_directory_db_errors(tmp_path: Path):
     db.fail_delete = True
     out2 = await s.set_output_directory("")
     assert out2.code == "DB_ERROR"
+
+
+@pytest.fixture
+def input_override_file(tmp_path, monkeypatch):
+    path = tmp_path / "input-override.txt"
+    monkeypatch.setattr("mjr_am_backend.settings._INPUT_DIR_OVERRIDE_FILE_PATH", path)
+    monkeypatch.setattr("mjr_am_backend.config._INPUT_DIR_OVERRIDE_FILE_PATH", path)
+    for name in ("MJR_AM_INPUT_DIRECTORY", "MAJOOR_INPUT_DIRECTORY"):
+        monkeypatch.delenv(name, raising=False)
+    return path
+
+
+@pytest.mark.asyncio
+async def test_input_directory_persistence_restart_clear(tmp_path, monkeypatch, input_override_file):
+    from types import SimpleNamespace
+
+    from mjr_am_backend.adapters.comfy_core import get_input_directory
+    from mjr_am_backend.features.runtime.bootstrap import apply_startup_settings
+    from mjr_am_backend.routes.core import paths
+
+    default = tmp_path / "cli-input"
+    custom = tmp_path / "custom"
+    default.mkdir()
+    custom.mkdir()
+    monkeypatch.setitem(sys.modules, "folder_paths", None)
+    monkeypatch.setitem(sys.modules, "comfy.cli_args", None)
+    monkeypatch.setattr(sys, "argv", ["main.py", "--input-directory", str(default)])
+    monkeypatch.setattr(paths, "get_runtime_output_root", lambda: str(tmp_path / "output"))
+    db = _DB()
+    settings = AppSettings(db)
+    assert await settings.get_input_directory() is None
+    assert get_input_directory() == str(default)
+    assert paths._is_path_allowed(default / "a.png")
+    saved = await settings.set_input_directory(str(custom))
+    assert saved.ok and saved.data == str(custom)
+    assert db.store[_INPUT_DIRECTORY_KEY] == str(custom)
+    assert input_override_file.read_text().strip() == str(custom)
+    assert paths._is_path_allowed(custom / "a.png")
+    assert not paths._is_path_allowed(default / "a.png")
+    assert not paths._is_path_allowed(tmp_path / "outside.png")
+    (custom / "escape").symlink_to(default, target_is_directory=True)
+    assert not paths._is_path_allowed(custom / "escape" / "a.png")
+
+    for name in ("MJR_AM_INPUT_DIRECTORY", "MAJOOR_INPUT_DIRECTORY"):
+        monkeypatch.delenv(name)
+    # The early-startup file resolves before the database is initialized.
+    assert get_input_directory() == str(custom)
+    input_override_file.unlink()
+    restarted = AppSettings(db)
+    warnings = []
+    await apply_startup_settings(
+        SimpleNamespace(apply_input_directory_override_on_startup=restarted.apply_input_directory_override_on_startup),
+        warn=lambda *args: warnings.append(args),
+    )
+    assert not warnings
+    assert await restarted.get_input_directory() == str(custom)
+    assert get_input_directory() == str(custom)
+    cleared = await restarted.set_input_directory("")
+    assert cleared.ok
+    assert _INPUT_DIRECTORY_KEY not in db.store
+    assert not input_override_file.exists()
+    assert await restarted.get_input_directory() is None
+    assert get_input_directory() == str(default)
+    assert not paths._is_path_allowed(custom / "a.png")
+    assert paths._is_path_allowed(default / "a.png")
+
+
+@pytest.mark.asyncio
+async def test_input_directory_validation_and_db_errors(tmp_path, input_override_file):
+    db = _DB()
+    settings = AppSettings(db)
+    not_dir = tmp_path / "file"
+    not_dir.write_text("x")
+    for invalid in (str(tmp_path / "missing"), str(not_dir), "bad\0path"):
+        result = await settings.set_input_directory(invalid)
+        assert result.code == "INVALID_INPUT"
+    assert _INPUT_DIRECTORY_KEY not in db.store
+    assert not input_override_file.exists()
+    db.fail_write = True
+    result = await settings.set_input_directory(str(tmp_path))
+    assert result.code == "DB_ERROR"
+    assert not input_override_file.exists()
+    db.fail_write = False
+    assert (await settings.set_input_directory(str(tmp_path))).ok
+    db.fail_delete = True
+    result = await settings.set_input_directory("")
+    assert result.code == "DB_ERROR"
+    assert input_override_file.exists()
+    assert await settings.get_input_directory() == str(tmp_path)
 
 
 @pytest.mark.asyncio

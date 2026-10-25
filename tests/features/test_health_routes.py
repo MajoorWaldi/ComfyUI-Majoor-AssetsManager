@@ -379,6 +379,116 @@ async def test_update_output_directory_real_csrf_and_auth_guards(monkeypatch) ->
 
 
 @pytest.mark.asyncio
+async def test_input_directory_real_security_guards(monkeypatch):
+    from types import SimpleNamespace
+
+    from mjr_am_backend.routes.core import security_auth_context
+
+    monkeypatch.setenv("MAJOOR_REQUIRE_AUTH", "1")
+    for name in ("MAJOOR_API_TOKEN", "MJR_API_TOKEN", "MAJOOR_API_TOKEN_HASH", "MJR_API_TOKEN_HASH"):
+        monkeypatch.delenv(name, raising=False)
+    app = _build_health_app()
+    monkeypatch.setattr(
+        security_auth_context,
+        "_get_comfy_user_manager",
+        lambda _: SimpleNamespace(enabled=True, get_request_user_id=lambda _: None),
+    )
+    for method, headers, code in (
+        ("GET", {}, "AUTH_REQUIRED"),
+        ("POST", {}, "CSRF"),
+        ("POST", {"X-Requested-With": "XMLHttpRequest"}, "AUTH_REQUIRED"),
+    ):
+        request = make_mocked_request(method, "/mjr/am/settings/input-directory", headers=headers, app=app)
+        response = await (await app.router.resolve(request)).handler(request)
+        assert json.loads(response.text)["code"] == code
+        if method == "GET":
+            assert response.status == 401
+    monkeypatch.setattr(health_mod, "_csrf_error", lambda _: None)
+    monkeypatch.setattr(health_mod, "_require_write_access", lambda _: Result.Err("FORBIDDEN", "Read only"))
+    request = make_mocked_request("POST", "/mjr/am/settings/input-directory", app=app)
+    response = await (await app.router.resolve(request)).handler(request)
+    assert json.loads(response.text)["code"] == "FORBIDDEN"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("shared_output", [False, True])
+async def test_input_directory_routes_validation_and_runtime_refresh(monkeypatch, tmp_path, shared_output):
+    from mjr_am_backend.adapters.comfy_core import get_input_directory
+    from mjr_am_backend.settings import AppSettings
+
+    from .test_settings_backend import _DB
+
+    settings = AppSettings(_DB())
+    override_file = tmp_path / "override"
+    monkeypatch.setattr("mjr_am_backend.settings._INPUT_DIR_OVERRIDE_FILE_PATH", override_file)
+    monkeypatch.setattr("mjr_am_backend.config._INPUT_DIR_OVERRIDE_FILE_PATH", override_file)
+    for name in ("MAJOOR_INPUT_DIRECTORY", "MJR_AM_INPUT_DIRECTORY"):
+        monkeypatch.delenv(name, raising=False)
+    original = get_input_directory()
+    output = original + "/." if shared_output else str(tmp_path / "output")
+    monkeypatch.setattr(health_mod, "get_runtime_output_root", lambda: output)
+    custom = tmp_path / "custom"
+    custom.mkdir()
+    watcher = Mock()
+    calls = {"scan": [], "invalidated": 0, "audit": []}
+    payload = {}
+
+    async def services():
+        return {"settings": settings, "watcher": watcher}, None
+
+    async def read_json(_):
+        return Result.Ok(payload)
+
+    async def scan(*args, **kwargs):
+        calls["scan"].append((args, kwargs))
+
+    async def invalidate():
+        calls["invalidated"] += 1
+
+    async def audit(_svc, **kwargs):
+        calls["audit"].append(kwargs)
+
+    monkeypatch.setattr(health_mod, "_require_services", services)
+    monkeypatch.setattr(health_mod, "_require_authenticated_user", lambda _: Result.Ok({}))
+    monkeypatch.setattr(health_mod, "_csrf_error", lambda _: None)
+    monkeypatch.setattr(health_mod, "_require_write_access", lambda _: Result.Ok({}))
+    monkeypatch.setattr(health_mod, "_read_json", read_json)
+    monkeypatch.setattr(health_mod, "_kickoff_background_scan", scan)
+    monkeypatch.setattr(health_mod, "_invalidate_fs_list_cache", invalidate)
+    monkeypatch.setattr(health_mod, "audit_log_write", audit)
+    app = _build_health_app()
+
+    async def request(method):
+        req = make_mocked_request(method, "/mjr/am/settings/input-directory", app=app)
+        return json.loads((await (await app.router.resolve(req)).handler(req)).text)
+
+    assert (await request("GET"))["data"] == {"input_directory": ""}
+    not_dir = tmp_path / "file"
+    not_dir.write_text("x")
+    for invalid in (str(tmp_path / "missing"), str(not_dir), "bad\0path", [], 123):
+        payload["input_directory"] = invalid
+        assert (await request("POST"))["code"] == "INVALID_INPUT"
+    assert await settings.get_input_directory() is None
+    assert not calls["scan"]
+    payload["input_directory"] = str(custom)
+    assert (await request("POST"))["data"] == {"input_directory": str(custom)}
+    assert (await request("GET"))["data"] == {"input_directory": str(custom)}
+    if shared_output:
+        watcher.remove_path.assert_not_called()
+    else:
+        watcher.remove_path.assert_called_once_with(original)
+    watcher.add_path.assert_called_once_with(str(custom), source="input", root_id=None)
+    assert calls["invalidated"] == 1
+    assert calls["scan"][0][0] == (str(custom),)
+    assert calls["scan"][0][1]["source"] == "input"
+    assert calls["audit"][0]["operation"] == "settings_input_directory"
+    payload["input_directory"] = ""
+    assert (await request("POST"))["data"] == {"input_directory": ""}
+    assert get_input_directory() == original
+    assert calls["scan"][-1][0] == (original,)
+
+
+@pytest.mark.asyncio
 async def test_update_workflow_roots_setting_success(monkeypatch, tmp_path) -> None:
     settings = _Settings()
     workflow_root = tmp_path / "saved-workflows"

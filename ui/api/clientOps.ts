@@ -124,6 +124,15 @@ export async function getOutputDirectorySetting() {
     return get(ENDPOINTS.SETTINGS_OUTPUT_DIRECTORY);
 }
 
+export async function getInputDirectorySetting() {
+    return get(ENDPOINTS.SETTINGS_INPUT_DIRECTORY);
+}
+
+export async function setInputDirectorySetting(inputDirectory: any, options: Record<string, any> = {}) {
+    const value = String(inputDirectory ?? "").trim();
+    return post(ENDPOINTS.SETTINGS_INPUT_DIRECTORY, { input_directory: value }, options);
+}
+
 export async function setOutputDirectorySetting(outputDirectory: any, options: Record<string, any> = {}) {
     const value = String(outputDirectory ?? "").trim();
     return post(ENDPOINTS.SETTINGS_OUTPUT_DIRECTORY, { output_directory: value }, options);

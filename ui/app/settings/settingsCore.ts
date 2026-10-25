@@ -151,6 +151,7 @@ export const DEFAULT_SETTINGS = {
     },
     paths: {
         outputDirectory: "",
+        inputDirectory: "",
         indexDirectory: "",
         workflowRoots: "",
     },

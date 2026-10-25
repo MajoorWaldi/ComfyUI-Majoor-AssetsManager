@@ -1,6 +1,6 @@
 from mjr_am_backend.features.geninfo import graph_converter as gc
-from mjr_am_backend.features.geninfo.sampler_tracer import _sampler_name_from_class_type
 from mjr_am_backend.features.geninfo.parser import parse_geninfo_from_prompt
+from mjr_am_backend.features.geninfo.sampler_tracer import _sampler_name_from_class_type
 
 
 def _inner_subgraph(sg_id: str, name: str) -> dict:
@@ -35,6 +35,19 @@ def test_dict_links_inside_subgraph_bridge_inputs_and_outputs():
 
     assert nodes["2:6"]["inputs"]["text"] == ["1", 0]
     assert nodes["3"]["inputs"]["images"] == ["2:6", 0]
+
+
+def test_link_source_map_requires_integer_slots_for_dict_links():
+    links = [
+        [1, 10, 0, 20, 0, "IMAGE"],
+        {"id": 2, "origin_id": "node-a", "origin_slot": 0},
+        {"id": 3, "origin_id": 10, "origin_slot": 2},
+        {"id": 4, "origin_id": 10},
+        {"id": 5, "origin_id": 10, "origin_slot": None},
+        {"id": 6, "origin_id": 10, "origin_slot": "0"},
+    ]
+
+    assert gc._build_link_source_map(links) == {1: (10, 0), 2: ("node-a", 0), 3: (10, 2)}
 
 
 def test_nested_subgraph_definitions_are_expanded():
