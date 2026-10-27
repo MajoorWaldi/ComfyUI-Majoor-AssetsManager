@@ -1,6 +1,8 @@
+import logging
 import sys
 import types
 
+import pytest
 from mjr_am_backend.features.index import vector_service as m
 
 
@@ -181,3 +183,72 @@ def test_load_florence_model_with_compat_handles_language_config_init_access(mon
 
     assert loaded_model.config.language_config.forced_bos_seen_during_init is None
     assert loaded_model.config.language_config.forced_bos_token_id is None
+
+
+@pytest.mark.parametrize("retry", [False, True])
+def test_florence_load_filters_only_optional_generate_probe(monkeypatch, caplog, retry):
+    hf_logger = logging.getLogger("transformers.dynamic_module_utils")
+    original_filters = list(hf_logger.filters)
+    model_name = "microsoft/Florence-2-base"
+    probe_message = f"Could not locate the custom_generate/generate.py inside {model_name}."
+    required_file_message = f"Could not locate the modeling_florence2.py inside {model_name}."
+    other_model_message = "Could not locate the custom_generate/generate.py inside other/model."
+    fake_model = _FakeModel()
+    calls = []
+
+    class _FakeAutoModelForCausalLM:
+        @staticmethod
+        def from_pretrained(name, **kwargs):
+            calls.append((name, kwargs))
+            hf_logger.info(probe_message)
+            hf_logger.error(probe_message)
+            hf_logger.error(required_file_message)
+            hf_logger.info(other_model_message)
+            if retry and len(calls) == 1:
+                raise AttributeError("missing _supports_sdpa")
+            return fake_model
+
+    monkeypatch.setattr(m, "_patch_florence_generation_config_compat", lambda *_args: None)
+    monkeypatch.setattr(m, "_patch_florence_sdpa_support", lambda: None)
+    with caplog.at_level(logging.INFO, logger=hf_logger.name):
+        loaded_model = m._load_florence_model_with_compat(model_name, _FakeAutoModelForCausalLM)
+        assert not any(
+            record.levelno == logging.INFO and record.getMessage() == probe_message
+            for record in caplog.records
+        )
+        assert caplog.messages.count(probe_message) == len(calls)
+        assert caplog.messages.count(required_file_message) == len(calls)
+        assert caplog.messages.count(other_model_message) == len(calls)
+        assert hf_logger.filters == original_filters
+        hf_logger.info(probe_message)
+        assert caplog.messages.count(probe_message) == len(calls) + 1
+
+    assert loaded_model is fake_model
+    assert calls == [
+        (model_name, {"trust_remote_code": True, "attn_implementation": "eager"})
+    ] * (2 if retry else 1)
+
+
+@pytest.mark.parametrize(
+    "error",
+    [OSError("missing model weights"), AttributeError("unrelated attribute"), RuntimeError("load failed")],
+)
+def test_florence_load_preserves_failures_and_restores_log_filters(monkeypatch, caplog, error):
+    hf_logger = logging.getLogger("transformers.dynamic_module_utils")
+    original_filters = list(hf_logger.filters)
+    failure_message = "Could not locate the modeling_florence2.py inside microsoft/Florence-2-base."
+
+    class _FakeAutoModelForCausalLM:
+        @staticmethod
+        def from_pretrained(*_args, **_kwargs):
+            hf_logger.error(failure_message)
+            raise error
+
+    monkeypatch.setattr(m, "_patch_florence_generation_config_compat", lambda *_args: None)
+    with caplog.at_level(logging.INFO, logger=hf_logger.name):
+        with pytest.raises(type(error), match=str(error)) as exc_info:
+            m._load_florence_model_with_compat("microsoft/Florence-2-base", _FakeAutoModelForCausalLM)
+
+    assert exc_info.value is error
+    assert failure_message in caplog.messages
+    assert hf_logger.filters == original_filters
