@@ -964,22 +964,22 @@ function ut(e, t = null) {
 		mode: "none"
 	};
 }
-function dt(e = null) {
+function dt(t = null) {
 	try {
-		let t = e || N || j();
-		if (typeof t?.graphToPrompt == "function") {
-			let e = t.graphToPrompt();
-			if (e?.workflow && typeof e.workflow == "object") return e.workflow;
-		}
-		let n = L(t);
-		if (typeof n?.serialize == "function") {
-			let e = n.serialize();
-			if (e && typeof e == "object") return e;
-		}
-		let r = t?.rootGraph || t?.graph?.rootGraph || null;
+		let n = t || N || j(), r = e(n);
 		if (typeof r?.serialize == "function") {
 			let e = r.serialize();
 			if (e && typeof e == "object") return e;
+		}
+		let i = L(n);
+		if (i !== r && typeof i?.serialize == "function") {
+			let e = i.serialize();
+			if (e && typeof e == "object") return e;
+		}
+		if (typeof n?.graphToPrompt == "function") {
+			let e = n.graphToPrompt();
+			if (e && typeof e.then == "function") return e.then(void 0, (e) => console.debug?.(e)), null;
+			if (e?.workflow && typeof e.workflow == "object") return e.workflow;
 		}
 	} catch (e) {
 		console.debug?.(e);
@@ -990,7 +990,9 @@ function ft(e = null) {
 	try {
 		let t = e || N || j();
 		if (!t) return null;
-		let n = [
+		let n = t?.extensionManager?.workflow?.activeWorkflow;
+		if (typeof n?.isModified == "boolean") return n.isModified;
+		let r = [
 			t?.isDirty,
 			t?.dirty,
 			t?.graph?.isDirty,
@@ -1000,7 +1002,7 @@ function ft(e = null) {
 			t?.graph?.has_changed,
 			t?.graph?.changed
 		];
-		for (let e of n) {
+		for (let e of r) {
 			if (typeof e == "boolean") return e;
 			if (typeof e == "number") return e !== 0;
 			if (typeof e == "function") try {

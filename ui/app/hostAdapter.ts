@@ -878,19 +878,29 @@ export function importWorkflowPreferHostTab(
 export function serializeCurrentHostWorkflow(app: any = null): any {
     try {
         const runtimeApp = app || _app || getComfyApp();
-        if (typeof runtimeApp?.graphToPrompt === "function") {
-            const data = runtimeApp.graphToPrompt();
-            if (data?.workflow && typeof data.workflow === "object") return data.workflow;
-        }
-        const graph = _getHostGraph(runtimeApp);
-        if (typeof graph?.serialize === "function") {
-            const workflow = graph.serialize();
-            if (workflow && typeof workflow === "object") return workflow;
-        }
-        const rootGraph = runtimeApp?.rootGraph || runtimeApp?.graph?.rootGraph || null;
+        // Prefer the root graph: with subgraphs, `app.canvas.graph` (and on some
+        // builds `app.graph`) can point at the subgraph currently being edited,
+        // which would serialize a fragment instead of the whole workflow.
+        const rootGraph = getHostRootGraph(runtimeApp);
         if (typeof rootGraph?.serialize === "function") {
             const workflow = rootGraph.serialize();
             if (workflow && typeof workflow === "object") return workflow;
+        }
+        const graph = _getHostGraph(runtimeApp);
+        if (graph !== rootGraph && typeof graph?.serialize === "function") {
+            const workflow = graph.serialize();
+            if (workflow && typeof workflow === "object") return workflow;
+        }
+        // Legacy hosts only: modern ComfyUI frontends make graphToPrompt() async
+        // (it returns a Promise), so a synchronous caller cannot use its result.
+        // Never leave a rejected promise unhandled when we discard it.
+        if (typeof runtimeApp?.graphToPrompt === "function") {
+            const data = runtimeApp.graphToPrompt();
+            if (data && typeof data.then === "function") {
+                data.then(undefined, (e: unknown) => console.debug?.(e));
+                return null;
+            }
+            if (data?.workflow && typeof data.workflow === "object") return data.workflow;
         }
     } catch (e) {
         console.debug?.(e);
@@ -908,6 +918,11 @@ export function isHostWorkflowDirty(app: any = null): boolean | null {
     try {
         const runtimeApp = app || _app || getComfyApp();
         if (!runtimeApp) return null;
+
+        // ComfyUI frontend >= 1.2x exposes the workflow store on the extension
+        // manager; its `isModified` flag is the authoritative dirty signal.
+        const activeWorkflow = runtimeApp?.extensionManager?.workflow?.activeWorkflow;
+        if (typeof activeWorkflow?.isModified === "boolean") return activeWorkflow.isModified;
 
         const candidates = [
             runtimeApp?.isDirty,

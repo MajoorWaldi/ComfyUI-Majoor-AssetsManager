@@ -6,6 +6,7 @@ from collections.abc import Awaitable, Callable
 from typing import Any
 
 from aiohttp import web
+from mjr_am_backend.request_keys import REQUEST_USER_ID_KEY
 from mjr_am_backend.shared import Result, get_logger
 
 from .core import (
@@ -178,7 +179,7 @@ def _requires_auth(path: str, method: str) -> bool:
 
 def _store_request_user_id(request: web.Request, user_id: Any) -> None:
     try:
-        request["mjr_user_id"] = str(user_id or "").strip()
+        request[REQUEST_USER_ID_KEY] = str(user_id or "").strip()
     except Exception:
         logger.debug("_store_request_user_id: suppressed exception", exc_info=True)
 

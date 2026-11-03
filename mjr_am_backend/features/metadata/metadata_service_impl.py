@@ -21,6 +21,9 @@ from ..workflows import classify_workflow, parse_workflow, workflow_node_text
 from .dimension_resolver import get_file_info as dims_get_file_info
 from .dimension_resolver import normalize_dimensions
 from .extractor_registry import (
+    EXIF_TEXT_IMAGE_EXTS,
+)
+from .extractor_registry import (
     batch_tool_data as registry_batch_tool_data,
 )
 from .extractor_registry import (
@@ -39,7 +42,6 @@ from .extractor_registry import (
     expand_video_resolution_fields as registry_expand_video_resolution_fields,
 )
 from .extractor_registry import (
-    EXIF_TEXT_IMAGE_EXTS,
     extract_image_by_extension as registry_extract_image_by_extension,
 )
 from .extractor_registry import (

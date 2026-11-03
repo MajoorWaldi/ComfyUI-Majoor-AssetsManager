@@ -380,6 +380,43 @@ describe("hostAdapter contract", () => {
         expect(mod.serializeCurrentHostWorkflow(app)).toEqual(workflow);
     });
 
+    it("prefers the root graph over the active subgraph when serializing", async () => {
+        const mod = await import("../app/hostAdapter.js");
+
+        const rootWorkflow = { last_node_id: 3, nodes: [{ id: 1 }, { id: 2 }, { id: 3 }] };
+        const app = {
+            rootGraph: { serialize: vi.fn(() => rootWorkflow) },
+            canvas: { graph: { serialize: vi.fn(() => ({ nodes: [{ id: 99 }] })) } },
+            graphToPrompt: vi.fn(),
+        };
+        mod.init(app);
+
+        expect(mod.serializeCurrentHostWorkflow(app)).toEqual(rootWorkflow);
+        expect(app.graphToPrompt).not.toHaveBeenCalled();
+    });
+
+    it("does not leak an unhandled rejection from an async graphToPrompt", async () => {
+        const mod = await import("../app/hostAdapter.js");
+
+        const rejection = Promise.reject(new Error("boom"));
+        const app = { graphToPrompt: vi.fn(() => rejection) };
+        mod.init(app);
+
+        expect(mod.serializeCurrentHostWorkflow(app)).toBeNull();
+        await expect(rejection).rejects.toThrow("boom");
+    });
+
+    it("reads dirty state from the frontend workflow store first", async () => {
+        const mod = await import("../app/hostAdapter.js");
+
+        const app = {
+            isDirty: true,
+            extensionManager: { workflow: { activeWorkflow: { isModified: false } } },
+        };
+        mod.init(app);
+        expect(mod.isHostWorkflowDirty(app)).toBe(false);
+    });
+
     it("reads host dirty state from stable and nightly signal shapes", async () => {
         const mod = await import("../app/hostAdapter.js");
 
