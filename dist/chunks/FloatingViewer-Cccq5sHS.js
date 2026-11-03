@@ -1,12 +1,12 @@
-import { $t as e, g as t, y as n } from "./viewerRuntimeHosts-DQcoOjsY.js";
-import { B as r, C as i, I as a, M as o, O as s, P as c, R as l, V as u, j as d, m as f, o as p, r as m, rt as h, v as g, w as _, x as v } from "./events-DxfljH4A.js";
+import { $t as e, g as t, y as n } from "./viewerRuntimeHosts-D3Jyfx0-.js";
+import { C as r, H as i, I as a, M as o, O as s, P as c, V as l, at as u, j as d, m as f, o as p, r as m, v as h, w as g, x as _, z as v } from "./events-BRfpU-6M.js";
 import { a as y, i as b, o as x, s as S } from "./graphTraversal-DTdQWkn5.js";
-import { _ as C, g as w, m as T, n as E, p as ee, r as D, w as O } from "./Viewer-DI9upE3v.js";
-import { r as k, v as A } from "./SidebarWorkflowSection-BHtHjc_k.js";
-import { _ as j, a as M, c as N, d as P, f as F, g as I, h as L, i as te, l as R, m as z, o as ne, p as B, r as re, s as V, t as ie, u as H, v as U } from "./openMajoorSettings-BfOHsVlq.js";
-import { a as W, n as ae, r as oe } from "./model3dRenderer-k0ey48io.js";
+import { _ as C, g as w, m as T, n as E, p as ee, r as D, w as O } from "./Viewer-geJFRz8N.js";
+import { r as k, v as A } from "./SidebarWorkflowSection-BihItyAk.js";
+import { _ as j, a as M, c as N, d as P, f as F, g as I, h as L, i as te, l as R, m as z, o as ne, p as B, r as re, s as V, t as ie, u as H, v as U } from "./openMajoorSettings-Cd5Nutru.js";
+import { a as W, n as ae, r as oe } from "./model3dRenderer-DdPKugXy.js";
 import { i as se, o as ce, r as le, t as ue } from "./geninfoParser-CgHp-y-n.js";
-import { t as de } from "./genInfo-Dxtoun1T.js";
+import { t as de } from "./genInfo-BkEKNdy-.js";
 // ui/features/viewer/floatingViewerConstants.ts
 var G = Object.freeze({
 	SIMPLE: "simple",
@@ -305,7 +305,7 @@ function K(e) {
 	return a === ".gif" ? "gif" : De.has(a) ? "video" : Oe.has(a) ? "audio" : ae.has(a) ? "model3d" : "image";
 }
 function Ae(e) {
-	return e ? e.url ? String(e.url) : e.filename && h(e) || "" : "";
+	return e ? e.url ? String(e.url) : e.filename && u(e) || "" : "";
 }
 function q(e = "No media  -  select assets in the grid") {
 	let t = document.createElement("div");
@@ -600,15 +600,15 @@ var Xe = class {
 				let t = e?.widgets?.[0], i = t?.inputEl ?? t?.element ?? t?.el ?? null;
 				i != null && "value" in i && i.value !== n.value && (i.value = n.value), r();
 				try {
-					l(e);
+					v(e);
 				} catch {}
 			}), n._mjrAutoFit = r, this._noteTextarea = n, this._autoFits.push(r), c.appendChild(n), this._body = c, t.appendChild(c), this._el = t, this._applyExpandedState(), requestAnimationFrame(r), t;
 		}
-		let u = e.widgets ?? [], d = !1;
-		for (let t of u) {
+		let l = e.widgets ?? [], u = !1;
+		for (let t of l) {
 			let n = String(t.type || "").toLowerCase();
 			if (Re.has(n) || t.hidden || t.options?.hidden) continue;
-			d = !0;
+			u = !0;
 			let r = n === "text" || n === "string" || n === "customtext", i = document.createElement("div");
 			i.className = r ? "mjr-ws-widget-row mjr-ws-widget-row--block" : "mjr-ws-widget-row";
 			let a = document.createElement("label");
@@ -620,7 +620,7 @@ var Xe = class {
 			let l = s._mjrAutoFit ?? s.querySelector?.("textarea")?._mjrAutoFit;
 			l && this._autoFits.push(l), i.appendChild(a), i.appendChild(o), c.appendChild(i);
 		}
-		if (!d) {
+		if (!u) {
 			let e = document.createElement("div");
 			e.className = "mjr-ws-node-empty", e.textContent = "No editable parameters", c.appendChild(e);
 		}
@@ -647,7 +647,7 @@ var Xe = class {
 		}
 		let e = this._node;
 		if (e) try {
-			i(e, {
+			r(e, {
 				select: !1,
 				focusCanvas: !1
 			});
@@ -830,7 +830,7 @@ function it(e, t, n) {
 }
 function at(e) {
 	try {
-		i(e);
+		r(e);
 	} catch (e) {
 		console.debug?.("[MFV] _focusNode", e);
 	}
@@ -870,14 +870,14 @@ function dt(e) {
 	if (!e || !t || typeof t.add != "function") return !1;
 	let n = String(e?.type || e?.class_type || e?.comfyClass || "").trim(), r = null;
 	try {
-		r = v(n);
+		r = _(n);
 	} catch (e) {
 		console.debug?.("[MFV Graph Map] createNode failed", e);
 	}
 	if (!r) return !1;
 	try {
 		let t = typeof structuredClone == "function" ? structuredClone(e) : JSON.parse(JSON.stringify(e));
-		return gt(t, e), delete t.id, Array.isArray(t.pos) && (t.pos = [Number(t.pos[0] || 0) + 32, Number(t.pos[1] || 0) + 32]), typeof r.configure == "function" ? r.configure(t) : Object.assign(r, t), g(r);
+		return gt(t, e), delete t.id, Array.isArray(t.pos) && (t.pos = [Number(t.pos[0] || 0) + 32, Number(t.pos[1] || 0) + 32]), typeof r.configure == "function" ? r.configure(t) : Object.assign(r, t), h(r);
 	} catch (e) {
 		return console.debug?.("[MFV Graph Map] import node failed", e), !1;
 	}
@@ -895,34 +895,34 @@ function ft(e) {
 		count: 0,
 		reason: "no-widgets"
 	};
-	let i = /* @__PURE__ */ new Map();
+	let a = /* @__PURE__ */ new Map();
 	r.forEach((e, t) => {
-		for (let n of vt(e)) i.has(n) || i.set(n, {
+		for (let n of vt(e)) a.has(n) || a.set(n, {
 			widget: e,
 			index: t
 		});
 	});
-	let a = bt(R(e)), o = bt(t?.type || t?.comfyClass || t?.class_type), s = !!(a && o && a === o), c = /* @__PURE__ */ new Set(), l = 0;
+	let o = bt(R(e)), s = bt(t?.type || t?.comfyClass || t?.class_type), c = !!(o && s && o === s), l = /* @__PURE__ */ new Set(), u = 0;
 	for (let e of n) {
-		let n = yt(e.label), a = n ? i.get(n) : null, o = e.index;
-		if ((!a || c.has(a.index)) && s && typeof o == "number" && Number.isInteger(o)) {
+		let n = yt(e.label), i = n ? a.get(n) : null, o = e.index;
+		if ((!i || l.has(i.index)) && c && typeof o == "number" && Number.isInteger(o)) {
 			let e = r[o];
-			e && (a = {
+			e && (i = {
 				widget: e,
 				index: o
 			});
 		}
-		a && !c.has(a.index) && te(a.widget, X(e.value), t) && (c.add(a.index), l += 1);
+		i && !l.has(i.index) && te(i.widget, X(e.value), t) && (l.add(i.index), u += 1);
 	}
-	return u(), {
-		ok: l > 0,
-		count: l,
-		reason: l > 0 ? "ok" : "no-match",
+	return i(), {
+		ok: u > 0,
+		count: u,
+		reason: u > 0 ? "ok" : "no-match",
 		targetNode: t
 	};
 }
 function pt() {
-	return _() || null;
+	return g() || null;
 }
 function mt(e) {
 	let t = N(e);
@@ -1648,7 +1648,7 @@ async function Xt() {
 	let e = d();
 	if (!e) throw Error("ComfyUI app not available");
 	let t = Yt(y(e));
-	return { tracked: await r({
+	return { tracked: await l({
 		app: e,
 		forceNativeQueue: t,
 		resolvePromptData(e) {

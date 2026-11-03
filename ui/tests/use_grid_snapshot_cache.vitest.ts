@@ -24,8 +24,8 @@ describe("useGridSnapshotCache", () => {
     beforeEach(() => {
         vi.useRealTimers();
         resetGridSnapshotCacheForTests();
-        globalThis.localStorage = makeStorage();
-        globalThis.sessionStorage = makeStorage();
+        globalThis.localStorage = makeStorage() as any;
+        globalThis.sessionStorage = makeStorage() as any;
     });
 
     it("builds stable keys compatible with existing snapshot inputs", () => {

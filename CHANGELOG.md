@@ -30,6 +30,15 @@ All notable changes to this project are documented in this file.
 ### Fixed
 - **`mjr_am_backend.adapters.tools` missing from Registry installs**: `.comfyignore`'s unanchored `tools/` pattern also matched `mjr_am_backend/adapters/tools/`, stripping the ExifTool/FFProbe adapters out of every Registry-published package and causing `ModuleNotFoundError: No module named 'mjr_am_backend.adapters.tools'` at startup. The pattern is now anchored to the repo-root `/tools/` dev-scripts folder only.
 
+### Changed (ComfyUI integration)
+- **Compat assets API moved to `/mjr/am/compat/assets/*`**: the read-only OpenAPI-aligned surface no longer squats ComfyUI core's `/api` namespace. The old `/api/v2/assets/*` paths are only registered when `MJR_AM_LEGACY_API_V2_ASSETS=1` (deprecated).
+- **Python 3.14**: `requires-python` is now `>=3.10, <3.15`; CI runs the full suite on 3.14.
+- **Execution tracking without wrapping `api.queuePrompt`**: the floating viewer progress reads the running prompt from ComfyUI's Jobs API (`GET /api/jobs/{id}`), then `/queue` and `/history/{id}` on older cores, driven by websocket events. No more conflicts with other extensions that wrap `queuePrompt`.
+- **Optional: hide ComfyUI's native Assets tab** (`Majoor.Integration.HideNativeAssetsTab`, off by default). Uses the official `getSidebarTabs`/`unregisterSidebarTab` API and restores the tab when turned off.
+- **Workflow serialization** uses the root graph instead of the async `graphToPrompt()`; dirty state reads the frontend workflow store.
+- **Typed aiohttp request keys** (`web.RequestKey`) — no more `NotAppKeyWarning` on aiohttp ≥ 3.13.
+- **Frontend test typing**: `tsconfig.test.json` now type-checks with 0 errors (was 913) and runs in CI.
+
 ## [2.5.2] - 2026-09-27
 
 ### Changed

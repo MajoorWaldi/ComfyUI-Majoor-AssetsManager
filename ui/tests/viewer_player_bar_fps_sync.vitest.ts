@@ -28,7 +28,7 @@ describe("playerBarManager FPS sync", () => {
         globalThis.window = {
             addEventListener: vi.fn(),
             removeEventListener: vi.fn(),
-        };
+        } as any;
         globalThis.requestAnimationFrame = vi.fn(() => 1);
         state = {
             assets: [createAsset(1001, "25/2"), createAsset(1002, "25/1")],
@@ -202,7 +202,7 @@ describe("playerBarManager FPS sync", () => {
                 fpsHandler = handler;
             }),
             removeEventListener: vi.fn(),
-        };
+        } as any;
         state.nativeFps = 25;
         const mounted = {
             destroy: vi.fn(),

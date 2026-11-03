@@ -12,6 +12,7 @@
 - **Current API**: `/mjr/am/*` (unversioned, stable)
 - **Version Alias**: `/mjr/am/v1/*` → redirects to `/mjr/am/*` (308 Permanent Redirect)
 - **Legacy Alias**: `/majoor/version` → redirects to `/mjr/am/version`
+- **OpenAPI compat (read-only)**: `/mjr/am/compat/assets/*` mirrors the shape of ComfyUI core `/api/assets/*` (`GET /mjr/am/compat/assets`, `/{id}`, `/{id}/content`, `/{id}/tags`, `/tags/refine`, `/seed/status`, `HEAD /hash/{hash}`). The former `/api/v2/assets/*` paths are deprecated and only served when `MJR_AM_LEGACY_API_V2_ASSETS=1`.
 
 ### Authentication
 Most endpoints require authentication when ComfyUI auth is enabled:

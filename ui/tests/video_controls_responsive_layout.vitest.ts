@@ -8,8 +8,8 @@ vi.mock("../app/i18n.js", () => ({
 describe("video controls responsive layout", () => {
     it("switches to stacked layout when the host is narrow", async () => {
         const window = new Window();
-        globalThis.window = window;
-        globalThis.document = window.document;
+        globalThis.window = window as any;
+        globalThis.document = window.document as any;
         Object.defineProperty(globalThis, "navigator", {
             configurable: true,
             value: window.navigator,
@@ -18,12 +18,12 @@ describe("video controls responsive layout", () => {
         const resizeObservers = [];
         globalThis.ResizeObserver = class {
             constructor(cb) {
-                this.cb = cb;
+                (this as any).cb = cb;
                 resizeObservers.push(this);
             }
             observe() {}
             disconnect() {}
-        };
+        } as any;
 
         const { mountVideoControls } = await import("../components/VideoControls.js");
 

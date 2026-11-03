@@ -48,7 +48,7 @@ describe("audio visualizer modes", () => {
             devicePixelRatio: 1,
             addEventListener: vi.fn(),
             removeEventListener: vi.fn(),
-        };
+        } as any;
         APP_CONFIG.VIEWER_DISABLE_WEBGL_AUDIO = false;
     });
 

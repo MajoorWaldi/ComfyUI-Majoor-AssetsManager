@@ -1,9 +1,9 @@
-import { $t as e, H as t, P as n, _ as r, c as i, d as a, g as o, gt as s, n as c, o as l, r as u, s as d, vt as f, x as p, y as m } from "./viewerRuntimeHosts-DQcoOjsY.js";
-import { Ct as h, D as g, a as _, ct as v, h as y, i as b, j as x, k as S, m as C, n as w, o as T, pt as E, r as D, rt as O, t as k } from "./events-DxfljH4A.js";
+import { $t as e, H as t, P as n, _ as r, c as i, d as a, g as o, gt as s, n as c, o as l, r as u, s as d, vt as f, x as p, y as m } from "./viewerRuntimeHosts-D3Jyfx0-.js";
+import { D as h, Tt as g, a as _, at as v, h as y, ht as b, i as x, j as S, k as C, m as w, n as T, o as E, r as D, t as O, ut as k } from "./events-BRfpU-6M.js";
 import { T as A, nt as j, rt as M } from "./mjr-primevue-BRqtdXzb.js";
 import { n as N, r as ee } from "./mjr-vue-vendor-mHY_eIVE.js";
 import { n as P, r as te, t as F } from "./state-D0Gu1AgG.js";
-import { a as ne, c as re, i as ie, o as ae, r as oe, s as se } from "./model3dRenderer-k0ey48io.js";
+import { a as ne, c as re, i as ie, o as ae, r as oe, s as se } from "./model3dRenderer-DdPKugXy.js";
 // ui/utils/events.ts
 function ce(e, t, { target: n = null, warnPrefix: r = "[Majoor]" } = {}) {
 	let i = n || (typeof window < "u" ? window : null);
@@ -95,7 +95,7 @@ var le = async (e, t = "Majoor", n = {}) => {
 				justifyContent: "flex-end",
 				gap: "10px"
 			} }, [U("button", {
-				textContent: C("dialog.confirm", "Confirm"),
+				textContent: w("dialog.confirm", "Confirm"),
 				onclick: () => {
 					try {
 						r.close();
@@ -135,7 +135,7 @@ var le = async (e, t = "Majoor", n = {}) => {
 	let n = de();
 	if (n) try {
 		let r = {
-			title: String(t || C("dialog.confirm", "Confirm")),
+			title: String(t || w("dialog.confirm", "Confirm")),
 			message: String(e || "")
 		};
 		return !!(typeof n.confirm == "function" && await n.confirm(r));
@@ -191,7 +191,7 @@ var le = async (e, t = "Majoor", n = {}) => {
 				justifyContent: "flex-end",
 				gap: "10px"
 			} }, [U("button", {
-				textContent: C("dialog.cancel", "Cancel"),
+				textContent: w("dialog.cancel", "Cancel"),
 				onclick: () => a(!1),
 				style: {
 					padding: "10px 16px",
@@ -203,7 +203,7 @@ var le = async (e, t = "Majoor", n = {}) => {
 					cursor: "pointer"
 				}
 			}), U("button", {
-				textContent: C("dialog.confirm", "Confirm"),
+				textContent: w("dialog.confirm", "Confirm"),
 				onclick: () => a(!0),
 				style: {
 					padding: "10px 16px",
@@ -230,7 +230,7 @@ var le = async (e, t = "Majoor", n = {}) => {
 	let r = de();
 	if (r) try {
 		let i = {
-			title: String(n || C("dialog.prompt", "Prompt")),
+			title: String(n || w("dialog.prompt", "Prompt")),
 			message: String(e || ""),
 			defaultValue: String(t ?? "")
 		}, a = typeof r.prompt == "function" ? await r.prompt(i) : null;
@@ -299,7 +299,7 @@ var le = async (e, t = "Majoor", n = {}) => {
 				justifyContent: "flex-end",
 				gap: "10px"
 			} }, [U("button", {
-				textContent: C("dialog.cancel", "Cancel"),
+				textContent: w("dialog.cancel", "Cancel"),
 				onclick: () => o(null),
 				style: {
 					padding: "8px 12px",
@@ -310,7 +310,7 @@ var le = async (e, t = "Majoor", n = {}) => {
 					cursor: "pointer"
 				}
 			}), U("button", {
-				textContent: C("dialog.ok", "OK"),
+				textContent: w("dialog.ok", "OK"),
 				onclick: () => o(s.value),
 				style: {
 					padding: "8px 12px",
@@ -340,14 +340,14 @@ var le = async (e, t = "Majoor", n = {}) => {
 	});
 }, ue = () => {
 	try {
-		return x()?.ui || null;
+		return S()?.ui || null;
 	} catch {
 		return null;
 	}
 }, de = () => {
 	let e = (e) => !!e && (typeof e.alert == "function" || typeof e.confirm == "function" || typeof e.prompt == "function");
 	try {
-		let t = g();
+		let t = h();
 		if (e(t)) return t;
 	} catch (e) {
 		console.debug?.(e);
@@ -355,7 +355,7 @@ var le = async (e, t = "Majoor", n = {}) => {
 	return null;
 }, R = () => {
 	try {
-		let e = S();
+		let e = C();
 		if (e && typeof e.add == "function") return e;
 	} catch (e) {
 		console.debug?.(e);
@@ -1310,7 +1310,7 @@ async function pt(e) {
 }
 // ui/utils/deleteGuard.ts
 async function mt(e, t) {
-	return !T.DELETE_CONFIRMATION || !!await I(e > 1 ? C("dialog.deleteSelectedFiles", "Delete {count} selected files?", { count: e }) : C("dialog.deleteSingleFile", "Delete \"{label}\"?", { label: String(t || C("label.thisFile", "this file")) }), C("dialog.confirmDeleteTitle", "Majoor: Confirm delete"));
+	return !E.DELETE_CONFIRMATION || !!await I(e > 1 ? w("dialog.deleteSelectedFiles", "Delete {count} selected files?", { count: e }) : w("dialog.deleteSingleFile", "Delete \"{label}\"?", { label: String(t || w("label.thisFile", "this file")) }), w("dialog.confirmDeleteTitle", "Majoor: Confirm delete"));
 }
 // ui/features/collections/contextmenu/addToCollectionMenuState.ts
 var ht = j({
@@ -1341,7 +1341,7 @@ function yt(e) {
 		filename: e.filename || "",
 		subfolder: e.subfolder || "",
 		type: (e.type || "output").toLowerCase(),
-		root_id: h(e),
+		root_id: g(e),
 		kind: e.kind || ""
 	} : null;
 }
@@ -1351,7 +1351,7 @@ async function bt({ x: t, y: n, assets: r }) {
 		x: Number(t) || 0,
 		y: Number(n) || 0,
 		assets: i
-	}) : e(C("toast.noValidAssetsSelected", "No valid assets selected."), "warning");
+	}) : e(w("toast.noValidAssetsSelected", "No valid assets selected."), "warning");
 }
 // ui/features/contextmenu/ratingUpdater.ts
 var xt = 350, St = /* @__PURE__ */ new Map();
@@ -1422,7 +1422,7 @@ function Ot(e, t, n, { setAriaLabel: r = !0, ariaLabel: i = null } = {}) {
 var kt = () => {};
 function At(e) {
 	try {
-		return !!T?.[e];
+		return !!E?.[e];
 	} catch {
 		return !1;
 	}
@@ -1617,14 +1617,14 @@ function Zt(e, t) {
 	let r = document.createElement("div");
 	r.className = "mjr-video-controls mjr-video-controls--preview";
 	try {
-		r.setAttribute("role", "group"), r.setAttribute("aria-label", C("video.previewControls", "Video preview controls"));
+		r.setAttribute("role", "group"), r.setAttribute("aria-label", w("video.previewControls", "Video preview controls"));
 	} catch (e) {
 		console.debug?.(e);
 	}
 	let i = document.createElement("button");
-	i.type = "button", i.className = "mjr-video-preview-btn", i.title = C("video.playPause", "Play/Pause");
+	i.type = "button", i.className = "mjr-video-preview-btn", i.title = w("video.playPause", "Play/Pause");
 	try {
-		i.setAttribute("aria-label", C("video.playPause", "Play/Pause"));
+		i.setAttribute("aria-label", w("video.playPause", "Play/Pause"));
 	} catch (e) {
 		console.debug?.(e);
 	}
@@ -1712,7 +1712,7 @@ function Qt(e, t = {}) {
 			window.getComputedStyle?.(c)?.position === "static" && (c.style.position = "relative");
 		});
 		let l = document.createElement("div");
-		l.className = `mjr-video-controls mjr-video-controls--${n}`, i && l.classList.add("mjr-video-controls--modern"), r && l.classList.add("mjr-video-controls--audio"), l.dataset.mjrLayout = "regular", l.setAttribute("role", "group"), l.setAttribute("aria-label", r ? C("video.audioControls", "Audio controls") : C("video.controls", "Video controls"));
+		l.className = `mjr-video-controls mjr-video-controls--${n}`, i && l.classList.add("mjr-video-controls--modern"), r && l.classList.add("mjr-video-controls--audio"), l.dataset.mjrLayout = "regular", l.setAttribute("role", "group"), l.setAttribute("aria-label", r ? w("video.audioControls", "Audio controls") : w("video.controls", "Video controls"));
 		let u = document.createElement("div");
 		u.className = "mjr-video-row mjr-video-row--top";
 		let d = document.createElement("div");
@@ -1720,7 +1720,7 @@ function Qt(e, t = {}) {
 		let f = document.createElement("div");
 		f.className = "mjr-video-seek-wrap";
 		let p = document.createElement("input");
-		p.className = "mjr-video-range mjr-video-range--seek", p.type = "range", p.min = "0", p.max = String(Rt), p.step = "1", p.value = "0", p.setAttribute("aria-label", C("video.seek", "Seek")), p.title = r ? C("video.seekThroughAudio", "Seek through audio") : C("video.seekThrough", "Seek through video");
+		p.className = "mjr-video-range mjr-video-range--seek", p.type = "range", p.min = "0", p.max = String(Rt), p.step = "1", p.value = "0", p.setAttribute("aria-label", w("video.seek", "Seek")), p.title = r ? w("video.seekThroughAudio", "Seek through audio") : w("video.seekThrough", "Seek through video");
 		let m = document.createElement("div");
 		m.className = "mjr-video-seek-overlay";
 		let h = null, g = null, _ = null, v = null;
@@ -1733,16 +1733,16 @@ function Qt(e, t = {}) {
 		x.className = "mjr-video-seek-mark mjr-video-seek-mark--in";
 		let S = document.createElement("div");
 		S.className = "mjr-video-seek-mark mjr-video-seek-mark--out";
-		let w = document.createElement("div");
-		w.className = "mjr-video-seek-playhead";
+		let C = document.createElement("div");
+		C.className = "mjr-video-seek-playhead";
 		let T = document.createElement("div");
-		T.className = "mjr-video-seek-playhead-label", m.appendChild(y), m.appendChild(b), m.appendChild(w), m.appendChild(T);
+		T.className = "mjr-video-seek-playhead-label", m.appendChild(y), m.appendChild(b), m.appendChild(C), m.appendChild(T);
 		let E = document.createElement("div");
-		E.className = "mjr-video-seek-handle mjr-video-seek-handle--in", E.title = C("video.dragSetIn", "Drag to set In"), E.setAttribute("aria-label", C("video.dragSetIn", "Drag to set In"));
+		E.className = "mjr-video-seek-handle mjr-video-seek-handle--in", E.title = w("video.dragSetIn", "Drag to set In"), E.setAttribute("aria-label", w("video.dragSetIn", "Drag to set In"));
 		let D = document.createElement("div");
-		D.className = "mjr-video-seek-handle mjr-video-seek-handle--out", D.title = C("video.dragSetOut", "Drag to set Out"), D.setAttribute("aria-label", C("video.dragSetOut", "Drag to set Out")), f.appendChild(p), h && f.appendChild(h), f.appendChild(m), o && (f.appendChild(x), f.appendChild(S), f.appendChild(E), f.appendChild(D));
+		D.className = "mjr-video-seek-handle mjr-video-seek-handle--out", D.title = w("video.dragSetOut", "Drag to set Out"), D.setAttribute("aria-label", w("video.dragSetOut", "Drag to set Out")), f.appendChild(p), h && f.appendChild(h), f.appendChild(m), o && (f.appendChild(x), f.appendChild(S), f.appendChild(E), f.appendChild(D));
 		let O = document.createElement("span");
-		O.className = "mjr-video-time", O.textContent = "0:00 / 0:00", O.title = C("video.currentTimeTotal", "Current time / Total duration");
+		O.className = "mjr-video-time", O.textContent = "0:00 / 0:00", O.title = w("video.currentTimeTotal", "Current time / Total duration");
 		let k = document.createElement("span");
 		k.className = "mjr-video-range-count", k.textContent = "";
 		try {
@@ -1753,37 +1753,37 @@ function Qt(e, t = {}) {
 		let A = document.createElement("div");
 		A.className = "mjr-video-timegroup", A.appendChild(O), o && A.appendChild(k);
 		let j = document.createElement("span");
-		j.className = "mjr-video-frame", j.textContent = "F: 0", j.title = C("video.currentFrame", "Current frame number");
-		let M = Gt("mjr-video-btn--play", C("btn.play", "Play"), C("video.playPauseSpace", "Play/Pause (Space)")), N = Gt("mjr-video-btn--step", "<", C("video.stepBack", "Step back")), ee = Gt("mjr-video-btn--step", ">", C("video.stepForward", "Step forward")), te = Gt("mjr-video-btn--jump mjr-video-btn--in", "|<", C("video.goToIn", "Go to In")), ne = Gt("mjr-video-btn--jump mjr-video-btn--out", ">|", C("video.goToOut", "Go to Out")), re = Gt("mjr-video-btn--mark mjr-video-btn--in", "I", C("video.setInFromCurrent", "Set In from current frame")), ie = Gt("mjr-video-btn--mark mjr-video-btn--out", "O", C("video.setOutFromCurrent", "Set Out from current frame")), ae = Kt("mjr-video-btn--toggle", "pi-refresh", C("video.loopPlaybackInRange", "Loop playback in range"), C("video.loop", "Loop")), oe = ae.btn, se = qt("mjr-video-num--in", {
+		j.className = "mjr-video-frame", j.textContent = "F: 0", j.title = w("video.currentFrame", "Current frame number");
+		let M = Gt("mjr-video-btn--play", w("btn.play", "Play"), w("video.playPauseSpace", "Play/Pause (Space)")), N = Gt("mjr-video-btn--step", "<", w("video.stepBack", "Step back")), ee = Gt("mjr-video-btn--step", ">", w("video.stepForward", "Step forward")), te = Gt("mjr-video-btn--jump mjr-video-btn--in", "|<", w("video.goToIn", "Go to In")), ne = Gt("mjr-video-btn--jump mjr-video-btn--out", ">|", w("video.goToOut", "Go to Out")), re = Gt("mjr-video-btn--mark mjr-video-btn--in", "I", w("video.setInFromCurrent", "Set In from current frame")), ie = Gt("mjr-video-btn--mark mjr-video-btn--out", "O", w("video.setOutFromCurrent", "Set Out from current frame")), ae = Kt("mjr-video-btn--toggle", "pi-refresh", w("video.loopPlaybackInRange", "Loop playback in range"), w("video.loop", "Loop")), oe = ae.btn, se = qt("mjr-video-num--in", {
 			min: 0,
 			step: 1,
 			value: 0,
-			title: C("video.inFrame", "In frame"),
-			ariaLabel: C("video.inFrame", "In frame"),
+			title: w("video.inFrame", "In frame"),
+			ariaLabel: w("video.inFrame", "In frame"),
 			widthPx: 72
 		}), ce = qt("mjr-video-num--out", {
 			min: 0,
 			step: 1,
 			value: 0,
-			title: C("video.outFrame", "Out frame"),
-			ariaLabel: C("video.outFrame", "Out frame"),
+			title: w("video.outFrame", "Out frame"),
+			ariaLabel: w("video.outFrame", "Out frame"),
 			widthPx: 72
 		}), le = qt("mjr-video-num--step", {
 			min: 1,
 			step: 1,
 			value: 1,
-			title: C("video.frameIncrement", "Frame increment"),
-			ariaLabel: C("video.frameIncrement", "Frame increment"),
+			title: w("video.frameIncrement", "Frame increment"),
+			ariaLabel: w("video.frameIncrement", "Frame increment"),
 			widthPx: 56
 		}), I = qt("mjr-video-num--fps", {
 			min: 1,
 			step: .001,
 			value: It(s || 30),
-			title: C("video.fpsStepping", "FPS (used for frame stepping)"),
-			ariaLabel: C("video.fps", "FPS"),
+			title: w("video.fpsStepping", "FPS (used for frame stepping)"),
+			ariaLabel: w("video.fps", "FPS"),
 			widthPx: 56
 		}), L = document.createElement("select");
-		L.className = "mjr-video-num mjr-video-num--speed", L.title = C("video.playbackSpeed", "Playback speed"), L.setAttribute("aria-label", C("video.playbackSpeed", "Playback speed")), L.style.width = "74px";
+		L.className = "mjr-video-num mjr-video-num--speed", L.title = w("video.playbackSpeed", "Playback speed"), L.setAttribute("aria-label", w("video.playbackSpeed", "Playback speed")), L.style.width = "74px";
 		for (let e of [
 			.25,
 			.5,
@@ -1799,10 +1799,10 @@ function Qt(e, t = {}) {
 			let t = document.createElement("option");
 			t.value = String(e), t.textContent = `${e}x`, L.appendChild(t);
 		}
-		let ue = Kt("mjr-video-btn--mute", "pi-volume-up", C("video.mute", "Mute"), C("video.mute", "Mute")), de = ue.btn, R = document.createElement("div");
+		let ue = Kt("mjr-video-btn--mute", "pi-volume-up", w("video.mute", "Mute"), w("video.mute", "Mute")), de = ue.btn, R = document.createElement("div");
 		R.className = "mjr-video-volume-wrap", R.style.cssText = "display:none; align-items:center; position:relative;";
 		let z = null;
-		z = document.createElement("input"), z.className = "mjr-video-range mjr-video-range--volume", z.type = "range", z.min = "0", z.max = "1", z.step = "0.02", z.value = String(P(Number(e.volume) || 0)), z.setAttribute("aria-label", C("video.volume", "Volume")), z.title = C("video.volume", "Volume");
+		z = document.createElement("input"), z.className = "mjr-video-range mjr-video-range--volume", z.type = "range", z.min = "0", z.max = "1", z.step = "0.02", z.value = String(P(Number(e.volume) || 0)), z.setAttribute("aria-label", w("video.volume", "Volume")), z.title = w("video.volume", "Volume");
 		try {
 			z.style.width = "120px";
 		} catch (e) {
@@ -1812,17 +1812,17 @@ function Qt(e, t = {}) {
 		let fe = document.createElement("div");
 		fe.className = "mjr-video-group mjr-video-group--in";
 		let B = document.createElement("span");
-		B.textContent = "In", B.title = C("video.resetInToStart", "Reset In to start"), B.style.cssText = "cursor:pointer; user-select:none;", o && (fe.appendChild(B), fe.appendChild(se));
+		B.textContent = "In", B.title = w("video.resetInToStart", "Reset In to start"), B.style.cssText = "cursor:pointer; user-select:none;", o && (fe.appendChild(B), fe.appendChild(se));
 		let V = document.createElement("div");
 		V.className = "mjr-video-group mjr-video-group--out";
 		let H = document.createElement("span");
-		H.textContent = "Out", H.title = C("video.resetOutToEnd", "Reset Out to end"), H.style.cssText = "cursor:pointer; user-select:none;", o && (V.appendChild(H), V.appendChild(ce));
+		H.textContent = "Out", H.title = w("video.resetOutToEnd", "Reset Out to end"), H.style.cssText = "cursor:pointer; user-select:none;", o && (V.appendChild(H), V.appendChild(ce));
 		let pe = document.createElement("div");
-		pe.className = "mjr-video-group mjr-video-group--adjust-left", o && (pe.appendChild(re), r || (pe.appendChild(document.createTextNode(C("video.step", "Step"))), pe.appendChild(le), pe.appendChild(document.createTextNode(C("video.fps", "FPS"))), pe.appendChild(I)), pe.appendChild(j));
+		pe.className = "mjr-video-group mjr-video-group--adjust-left", o && (pe.appendChild(re), r || (pe.appendChild(document.createTextNode(w("video.step", "Step"))), pe.appendChild(le), pe.appendChild(document.createTextNode(w("video.fps", "FPS"))), pe.appendChild(I)), pe.appendChild(j));
 		let U = document.createElement("div");
 		U.className = "mjr-video-group mjr-video-group--adjust-right", o && (U.appendChild(A), U.appendChild(oe));
 		let me = document.createElement("div");
-		me.className = "mjr-video-group mjr-video-group--speed", me.appendChild(document.createTextNode(C("video.speed", "Speed"))), me.appendChild(L);
+		me.className = "mjr-video-group mjr-video-group--speed", me.appendChild(document.createTextNode(w("video.speed", "Speed"))), me.appendChild(L);
 		let he = document.createElement("div");
 		he.className = "mjr-video-bottom mjr-video-bottom--left";
 		let ge = document.createElement("div");
@@ -1939,7 +1939,7 @@ function Qt(e, t = {}) {
 		}, xe = (e = !1) => {
 			try {
 				if (!I || r) return;
-				let t = Number(q.nativeFps), n = be(), i = C("video.fpsStepping", "FPS (used for frame stepping)");
+				let t = Number(q.nativeFps), n = be(), i = w("video.fpsStepping", "FPS (used for frame stepping)");
 				I.classList.toggle("is-overridden", n), Number.isFinite(t) && t > 0 ? (I.dataset.defaultFps = String(t), I.title = `${i} - Source FPS: ${t}`, n && (I.title += " - Modified")) : (delete I.dataset.defaultFps, I.title = i), e && !I.matches?.(":focus") && (I.value = String(It(q.fps, q.nativeFps || 30)));
 			} catch (e) {
 				console.debug?.(e);
@@ -2018,7 +2018,7 @@ function Qt(e, t = {}) {
 			try {
 				Te(oe, !!(q.loop || q.pingpong));
 				try {
-					ae?.icon && (q.pingpong ? (ae.icon.className = "pi pi-sort-alt", oe.title = C("video.pingpongPlayback", "Ping-pong playback (forward then reverse)")) : (ae.icon.className = "pi pi-refresh", oe.title = C("video.loopPlaybackInRange", "Loop playback in range")));
+					ae?.icon && (q.pingpong ? (ae.icon.className = "pi pi-sort-alt", oe.title = w("video.pingpongPlayback", "Ping-pong playback (forward then reverse)")) : (ae.icon.className = "pi pi-refresh", oe.title = w("video.loopPlaybackInRange", "Loop playback in range")));
 				} catch (e) {
 					console.debug?.(e);
 				}
@@ -2086,7 +2086,7 @@ function Qt(e, t = {}) {
 		}, Fe = () => {
 			try {
 				let t = !e?.paused || q._ppReverse;
-				M.textContent = t ? C("video.pause", "Pause") : C("video.play", "Play");
+				M.textContent = t ? w("video.pause", "Pause") : w("video.play", "Play");
 			} catch (e) {
 				console.debug?.(e);
 			}
@@ -2098,7 +2098,7 @@ function Qt(e, t = {}) {
 				} catch (e) {
 					console.debug?.(e);
 				}
-				let n = t ? C("video.unmute", "Unmute") : C("video.mute", "Mute");
+				let n = t ? w("video.unmute", "Unmute") : w("video.mute", "Mute");
 				de.title = n, de.setAttribute("aria-label", n);
 			} catch (e) {
 				console.debug?.(e);
@@ -2112,14 +2112,14 @@ function Qt(e, t = {}) {
 					let t = Math.round(e * Ne());
 					Number.isNaN(t) || q._seeking || p.matches?.(":active") || (p.value = String(t));
 					try {
-						w.style.left = `${e * 100}%`;
+						C.style.left = `${e * 100}%`;
 					} catch (e) {
 						console.debug?.(e);
 					}
 				} else {
 					p.value = "0";
 					try {
-						w.style.left = "0%";
+						C.style.left = "0%";
 					} catch (e) {
 						console.debug?.(e);
 					}
@@ -2564,7 +2564,7 @@ function Qt(e, t = {}) {
 				W(e), We();
 			}));
 			try {
-				k.title = C("video.resetPlayerControls", "Reset player controls"), k.style.cursor = "pointer", k.style.userSelect = "none";
+				k.title = w("video.resetPlayerControls", "Reset player controls"), k.style.cursor = "pointer", k.style.userSelect = "none";
 			} catch (e) {
 				console.debug?.(e);
 			}
@@ -3113,7 +3113,7 @@ function Sn(e, t, r) {
 		errorMessage: "Failed to update rating",
 		warnPrefix: "[ViewerContextMenu]",
 		onSuccess: () => {
-			ce(k, {
+			ce(O, {
 				assetId: String(i),
 				rating: t
 			}, { warnPrefix: "[ViewerContextMenu]" });
@@ -3142,35 +3142,35 @@ function wn(e, t, n) {
 	].map((r) => yn(`${r} Stars`, "pi pi-star", null, async () => {
 		Sn(e, r, t);
 	}, { disabled: !n }));
-	return r.push(bn()), r.push(yn(C("ctx.resetRating", "Reset rating"), "pi pi-star", "0", async () => {
+	return r.push(bn()), r.push(yn(w("ctx.resetRating", "Reset rating"), "pi pi-star", "0", async () => {
 		Sn(e, 0, t);
 	}, { disabled: !n })), r;
 }
 function Tn({ asset: n, event: r, getCurrentViewUrl: i, onAssetChanged: o }) {
-	let c = typeof i == "function" ? i(n) : O(n), l = !!(n?.id || n?.filepath);
+	let c = typeof i == "function" ? i(n) : v(n), l = !!(n?.id || n?.filepath);
 	return [
-		yn(C("ctx.openInNewTab", "Open in New Tab"), "pi pi-external-link", null, async () => {
+		yn(w("ctx.openInNewTab", "Open in New Tab"), "pi pi-external-link", null, async () => {
 			xn(c) && window.open(c, "_blank", "noopener,noreferrer");
 		}),
-		yn(C("ctx.copyPath", "Copy path"), "pi pi-copy", mn.COPY_PATH, async () => {
+		yn(w("ctx.copyPath", "Copy path"), "pi pi-copy", mn.COPY_PATH, async () => {
 			let t = n?.filepath ? String(n.filepath) : "";
-			if (!t) e(C("toast.noFilePath"), "error");
+			if (!t) e(w("toast.noFilePath"), "error");
 			else try {
-				await navigator.clipboard.writeText(t), e(C("toast.pathCopied"), "success", 2e3);
+				await navigator.clipboard.writeText(t), e(w("toast.pathCopied"), "success", 2e3);
 			} catch (t) {
-				console.error("[ViewerContextMenu] Copy failed:", t), e(C("toast.pathCopyFailed"), "error");
+				console.error("[ViewerContextMenu] Copy failed:", t), e(w("toast.pathCopyFailed"), "error");
 			}
 		}),
-		yn(C("ctx.downloadOriginal", "Download Original"), "pi pi-download", mn.DOWNLOAD, async () => {
+		yn(w("ctx.downloadOriginal", "Download Original"), "pi pi-download", mn.DOWNLOAD, async () => {
 			if (!n || !n.filepath) return;
-			let t = v(n.filepath), r = document.createElement("a");
-			r.href = t, r.download = n.filename, document.body.appendChild(r), r.click(), document.body.removeChild(r), e(C("toast.downloadingFile", "Downloading {filename}...", { filename: n.filename }), "info", 3e3);
+			let t = k(n.filepath), r = document.createElement("a");
+			r.href = t, r.download = n.filename, document.body.appendChild(r), r.click(), document.body.removeChild(r), e(w("toast.downloadingFile", "Downloading {filename}...", { filename: n.filename }), "info", 3e3);
 		}, { disabled: !n?.filepath }),
-		yn(C("ctx.openInFolder", "Open in folder"), "pi pi-folder-open", mn.OPEN_IN_FOLDER, async () => {
+		yn(w("ctx.openInFolder", "Open in folder"), "pi pi-folder-open", mn.OPEN_IN_FOLDER, async () => {
 			let t = await s(n);
-			t?.ok ? e(C("toast.openedInFolder"), "info", 2e3) : e(t?.error || C("toast.openFolderFailed"), "error");
+			t?.ok ? e(w("toast.openedInFolder"), "info", 2e3) : e(t?.error || w("toast.openFolderFailed"), "error");
 		}, { disabled: !(n?.id || n?.filepath) }),
-		yn(C("ctx.addToCollection", "Add to collection"), "pi pi-bookmark", mn.ADD_TO_COLLECTION, async () => {
+		yn(w("ctx.addToCollection", "Add to collection"), "pi pi-bookmark", mn.ADD_TO_COLLECTION, async () => {
 			try {
 				await bt({
 					x: r?.clientX,
@@ -3182,14 +3182,14 @@ function Tn({ asset: n, event: r, getCurrentViewUrl: i, onAssetChanged: o }) {
 			}
 		}),
 		bn(),
-		yn(C("ctx.editTags", "Edit tags"), "pi pi-tags", mn.EDIT_TAGS, async () => {
+		yn(w("ctx.editTags", "Edit tags"), "pi pi-tags", mn.EDIT_TAGS, async () => {
 			dn({
 				x: (Number(r?.clientX) || 0) + 6,
 				y: (Number(r?.clientY) || 0) + 6,
 				asset: n,
 				onChanged: ((...e) => {
 					let t = e[0];
-					n.tags = t, ce(w, {
+					n.tags = t, ce(T, {
 						assetId: String(n.id),
 						tags: t
 					}, { warnPrefix: "[ViewerContextMenu]" });
@@ -3202,16 +3202,16 @@ function Tn({ asset: n, event: r, getCurrentViewUrl: i, onAssetChanged: o }) {
 			});
 		}, { closeOnSelect: !1 }),
 		bn(),
-		yn(C("ctx.setRating", "Set rating"), "pi pi-star", `${mn.RATING_SUBMENU} >`, null, {
+		yn(w("ctx.setRating", "Set rating"), "pi pi-star", `${mn.RATING_SUBMENU} >`, null, {
 			disabled: !l,
 			closeOnSelect: !1,
 			submenu: wn(n, o, l)
 		}),
-		yn(C("ctx.refreshMetadata", "Refresh metadata"), "pi pi-sync", "R", async () => {
+		yn(w("ctx.refreshMetadata", "Refresh metadata"), "pi pi-sync", "R", async () => {
 			if (n?.id) try {
 				let t = await p(n.id, { refresh: !0 });
 				if (!t?.ok || !t?.data) {
-					e(t?.error || C("toast.metadataRefreshFailed", "Failed to refresh metadata."), "error");
+					e(t?.error || w("toast.metadataRefreshFailed", "Failed to refresh metadata."), "error");
 					return;
 				}
 				let r = t.data;
@@ -3226,15 +3226,15 @@ function Tn({ asset: n, event: r, getCurrentViewUrl: i, onAssetChanged: o }) {
 				let i = [], a = Cn(r?.size_bytes);
 				a && i.push(a), r?.mime && i.push(r.mime);
 				let o = i.length ? ` (${i.join(", ")})` : "";
-				e(C("toast.metadataRefreshed", "Metadata refreshed{suffix}", { suffix: o }), "success", 3e3);
+				e(w("toast.metadataRefreshed", "Metadata refreshed{suffix}", { suffix: o }), "success", 3e3);
 			} catch (e) {
 				a(e, "[ViewerContextMenu] Metadata refresh", { showToast: !0 });
 			}
 		}, { disabled: !n?.id }),
 		bn(),
-		yn(C("ctx.rename", "Rename"), "pi pi-pencil", mn.RENAME, async () => {
+		yn(w("ctx.rename", "Rename"), "pi pi-pencil", mn.RENAME, async () => {
 			if (!(n?.id || n?.filepath)) return;
-			let t = n.filename || "", r = ut(await L(C("dialog.rename.title", "Rename file"), t), t);
+			let t = n.filename || "", r = ut(await L(w("dialog.rename.title", "Rename file"), t), t);
 			if (!r || r === t) return;
 			let i = st(r);
 			if (!i.valid) e(i.reason, "error");
@@ -3242,24 +3242,24 @@ function Tn({ asset: n, event: r, getCurrentViewUrl: i, onAssetChanged: o }) {
 				let t = await f(n, r);
 				if (t?.ok) {
 					let i = t?.data?.asset;
-					i && typeof i == "object" ? Object.assign(n, i) : (n.filename = r, n.filepath = n.filepath.replace(/[^\\/]+$/, r), n.path &&= String(n.path).replace(/[^\\/]+$/, r), n.file_info && typeof n.file_info == "object" && (n.file_info.filename = r, n.file_info.filepath && (n.file_info.filepath = String(n.file_info.filepath).replace(/[^\\/]+$/, r)), n.file_info.path && (n.file_info.path = String(n.file_info.path).replace(/[^\\/]+$/, r)))), e(C("toast.fileRenamedSuccess"), "success");
+					i && typeof i == "object" ? Object.assign(n, i) : (n.filename = r, n.filepath = n.filepath.replace(/[^\\/]+$/, r), n.path &&= String(n.path).replace(/[^\\/]+$/, r), n.file_info && typeof n.file_info == "object" && (n.file_info.filename = r, n.file_info.filepath && (n.file_info.filepath = String(n.file_info.filepath).replace(/[^\\/]+$/, r)), n.file_info.path && (n.file_info.path = String(n.file_info.path).replace(/[^\\/]+$/, r)))), e(w("toast.fileRenamedSuccess"), "success");
 					try {
 						window.dispatchEvent(new CustomEvent("mjr:reload-grid", { detail: { reason: "viewer-rename" } }));
 					} catch (e) {
 						console.debug?.(e);
 					}
 					o?.();
-				} else e(t?.error || C("toast.fileRenameFailed"), "error");
+				} else e(t?.error || w("toast.fileRenameFailed"), "error");
 			} catch (t) {
-				e(C("toast.errorRenaming", "Error renaming file: {error}", { error: t?.message || String(t || "") }), "error");
+				e(w("toast.errorRenaming", "Error renaming file: {error}", { error: t?.message || String(t || "") }), "error");
 			}
 		}, { disabled: !(n?.id || n?.filepath) }),
-		yn(C("ctx.delete", "Delete"), "pi pi-trash", mn.DELETE, async () => {
+		yn(w("ctx.delete", "Delete"), "pi pi-trash", mn.DELETE, async () => {
 			if ((n?.id || n?.filepath) && await mt(1, n?.filename)) try {
 				let r = await t(n);
-				r?.ok ? (e(C("toast.fileDeletedSuccess"), "success"), o?.()) : e(r?.error || C("toast.fileDeleteFailed"), "error");
+				r?.ok ? (e(w("toast.fileDeletedSuccess"), "success"), o?.()) : e(r?.error || w("toast.fileDeleteFailed"), "error");
 			} catch (t) {
-				e(C("toast.errorDeleting", "Error deleting file: {error}", { error: t?.message || String(t || "") }), "error");
+				e(w("toast.errorDeleting", "Error deleting file: {error}", { error: t?.message || String(t || "") }), "error");
 			}
 		}, { disabled: !(n?.id || n?.filepath) })
 	];
@@ -3660,7 +3660,7 @@ function zn({ VIEWER_MODES: e, state: t, onToolsChanged: n, onCompareModeChanged
 			b: i,
 			setActive: a
 		};
-	}, w = b("Channel View", [
+	}, C = b("Channel View", [
 		{
 			value: "rgb",
 			label: "RGB"
@@ -3686,7 +3686,7 @@ function zn({ VIEWER_MODES: e, state: t, onToolsChanged: n, onCompareModeChanged
 			label: "Luma"
 		}
 	]);
-	w.title = C("tooltip.colorChannels", "View color channels or luminance");
+	C.title = w("tooltip.colorChannels", "View color channels or luminance");
 	let T = x("Exposure (EV)", {
 		min: -10,
 		max: 10,
@@ -3729,31 +3729,31 @@ function zn({ VIEWER_MODES: e, state: t, onToolsChanged: n, onCompareModeChanged
 	}, A = (e) => {
 		try {
 			let t = String(e || "rgb");
-			if (w.style.boxShadow = "", t === "r") {
-				w.style.borderColor = "rgba(255,90,90,0.60)", w.style.background = "rgba(255,90,90,0.14)", w.style.boxShadow = "0 0 0 1px rgba(255,90,90,0.14) inset";
+			if (C.style.boxShadow = "", t === "r") {
+				C.style.borderColor = "rgba(255,90,90,0.60)", C.style.background = "rgba(255,90,90,0.14)", C.style.boxShadow = "0 0 0 1px rgba(255,90,90,0.14) inset";
 				return;
 			}
 			if (t === "g") {
-				w.style.borderColor = "rgba(90,255,140,0.55)", w.style.background = "rgba(90,255,140,0.12)", w.style.boxShadow = "0 0 0 1px rgba(90,255,140,0.12) inset";
+				C.style.borderColor = "rgba(90,255,140,0.55)", C.style.background = "rgba(90,255,140,0.12)", C.style.boxShadow = "0 0 0 1px rgba(90,255,140,0.12) inset";
 				return;
 			}
 			if (t === "b") {
-				w.style.borderColor = "rgba(90,160,255,0.60)", w.style.background = "rgba(90,160,255,0.12)", w.style.boxShadow = "0 0 0 1px rgba(90,160,255,0.12) inset";
+				C.style.borderColor = "rgba(90,160,255,0.60)", C.style.background = "rgba(90,160,255,0.12)", C.style.boxShadow = "0 0 0 1px rgba(90,160,255,0.12) inset";
 				return;
 			}
 			if (t === "l") {
-				w.style.borderColor = "rgba(255,210,90,0.60)", w.style.background = "rgba(255,210,90,0.12)", w.style.boxShadow = "0 0 0 1px rgba(255,210,90,0.12) inset";
+				C.style.borderColor = "rgba(255,210,90,0.60)", C.style.background = "rgba(255,210,90,0.12)", C.style.boxShadow = "0 0 0 1px rgba(255,210,90,0.12) inset";
 				return;
 			}
 			if (t === "a") {
-				w.style.borderColor = "rgba(220,220,220,0.35)", w.style.background = "rgba(255,255,255,0.10)", w.style.boxShadow = "0 0 0 1px rgba(255,255,255,0.08) inset";
+				C.style.borderColor = "rgba(220,220,220,0.35)", C.style.background = "rgba(255,255,255,0.10)", C.style.boxShadow = "0 0 0 1px rgba(255,255,255,0.08) inset";
 				return;
 			}
 			if (t === "rgb") {
-				w.style.borderColor = "rgba(255,255,255,0.22)", w.style.background = "linear-gradient(90deg, rgba(255,90,90,0.16), rgba(90,255,140,0.14), rgba(90,160,255,0.16))", w.style.boxShadow = "0 0 0 1px rgba(255,255,255,0.10) inset";
+				C.style.borderColor = "rgba(255,255,255,0.22)", C.style.background = "linear-gradient(90deg, rgba(255,90,90,0.16), rgba(90,255,140,0.14), rgba(90,160,255,0.16))", C.style.boxShadow = "0 0 0 1px rgba(255,255,255,0.10) inset";
 				return;
 			}
-			w.style.borderColor = "rgba(255,255,255,0.14)", w.style.background = "rgba(255,255,255,0.08)";
+			C.style.borderColor = "rgba(255,255,255,0.14)", C.style.background = "rgba(255,255,255,0.08)";
 		} catch (e) {
 			console.debug?.(e);
 		}
@@ -3807,7 +3807,7 @@ function zn({ VIEWER_MODES: e, state: t, onToolsChanged: n, onCompareModeChanged
 			label: "Both"
 		}
 	]);
-	P.title = C("tooltip.scopesHistogram", "Show histogram/waveform scopes");
+	P.title = w("tooltip.scopesHistogram", "Show histogram/waveform scopes");
 	let te = S("Grid", "Grid (G)", {
 		iconClass: "pi-th-large",
 		accentRgb: D.overlay
@@ -3833,7 +3833,7 @@ function zn({ VIEWER_MODES: e, state: t, onToolsChanged: n, onCompareModeChanged
 			label: "Golden"
 		}
 	]);
-	F.title = Dt(C("tooltip.gridOverlay", "Grid overlay (rule of thirds, center)"), "G");
+	F.title = Dt(w("tooltip.gridOverlay", "Grid overlay (rule of thirds, center)"), "G");
 	let ne = S("Mask", "Format mask (dim outside)", {
 		iconClass: "pi-stop",
 		accentRgb: D.overlay
@@ -3863,7 +3863,7 @@ function zn({ VIEWER_MODES: e, state: t, onToolsChanged: n, onCompareModeChanged
 			label: "9:16"
 		}
 	]);
-	re.title = C("tooltip.aspectRatioMask", "Aspect ratio overlay mask");
+	re.title = w("tooltip.aspectRatioMask", "Aspect ratio overlay mask");
 	let ie = x("Mask Opacity", {
 		min: 0,
 		max: .9,
@@ -3918,7 +3918,7 @@ function zn({ VIEWER_MODES: e, state: t, onToolsChanged: n, onCompareModeChanged
 			label: "Screen"
 		}
 	]);
-	I.title = C("tooltip.compareBlendMode", "Compare blend mode");
+	I.title = w("tooltip.compareBlendMode", "Compare blend mode");
 	let L = b("Audio Visualizer", [{
 		value: "simple",
 		label: "Simple"
@@ -3926,11 +3926,11 @@ function zn({ VIEWER_MODES: e, state: t, onToolsChanged: n, onCompareModeChanged
 		value: "artistic",
 		label: "Artistic"
 	}]);
-	L.title = C("tooltip.audioVisualizer", "Audio visualizer mode");
-	let ue = Ln("Reset", C("tooltip.resetPlayerControls", "Reset all viewer controls"));
+	L.title = w("tooltip.audioVisualizer", "Audio visualizer mode");
+	let ue = Ln("Reset", w("tooltip.resetPlayerControls", "Reset all viewer controls"));
 	ue.style.height = "26px", ue.style.fontSize = "11px", ue.style.padding = "0 8px", ue.classList?.add?.("mjr-viewer-tool-btn", "mjr-viewer-tool-btn--reset"), ue.classList?.add?.("mjr-viewer-tools-action", "mjr-viewer-tools-action--primary"), ue.style.marginLeft = "auto";
 	let de = document.createElement("button");
-	de.type = "button", de.title = C("tooltip.exportFrame", "Save current frame as PNG"), de.setAttribute("aria-label", C("tooltip.exportFrame", "Save frame as PNG")), de.className = "mjr-viewer-tool-btn mjr-viewer-tool-btn--reset", de.style.cssText = "height:24px; padding:0 8px; display:inline-flex; align-items:center; justify-content:center;";
+	de.type = "button", de.title = w("tooltip.exportFrame", "Save current frame as PNG"), de.setAttribute("aria-label", w("tooltip.exportFrame", "Save frame as PNG")), de.className = "mjr-viewer-tool-btn mjr-viewer-tool-btn--reset", de.style.cssText = "height:24px; padding:0 8px; display:inline-flex; align-items:center; justify-content:center;";
 	let R = document.createElement("span");
 	R.className = "pi pi-download", R.setAttribute("aria-hidden", "true"), R.style.fontSize = "14px", de.appendChild(R), de.classList?.add?.("mjr-viewer-tools-action");
 	try {
@@ -3939,7 +3939,7 @@ function zn({ VIEWER_MODES: e, state: t, onToolsChanged: n, onCompareModeChanged
 		console.debug?.(e);
 	}
 	let z = document.createElement("button");
-	z.type = "button", z.title = C("tooltip.copyFrame", "Copy current frame to clipboard"), z.setAttribute("aria-label", C("tooltip.copyFrame", "Copy frame to clipboard")), z.className = "mjr-viewer-tool-btn mjr-viewer-tool-btn--reset", z.style.cssText = "height:24px; padding:0 8px; display:inline-flex; align-items:center; justify-content:center;";
+	z.type = "button", z.title = w("tooltip.copyFrame", "Copy current frame to clipboard"), z.setAttribute("aria-label", w("tooltip.copyFrame", "Copy frame to clipboard")), z.className = "mjr-viewer-tool-btn mjr-viewer-tool-btn--reset", z.style.cssText = "height:24px; padding:0 8px; display:inline-flex; align-items:center; justify-content:center;";
 	let fe = document.createElement("span");
 	fe.className = "pi pi-copy", fe.setAttribute("aria-hidden", "true"), fe.style.fontSize = "14px", z.appendChild(fe), z.classList?.add?.("mjr-viewer-tools-action");
 	try {
@@ -3952,7 +3952,7 @@ function zn({ VIEWER_MODES: e, state: t, onToolsChanged: n, onCompareModeChanged
 		label: "Channel",
 		accentRgb: D.channel
 	});
-	B.appendChild(w), f.body.appendChild(B);
+	B.appendChild(C), f.body.appendChild(B);
 	let V = y({
 		key: "exposure",
 		label: "EV",
@@ -3999,23 +3999,23 @@ function zn({ VIEWER_MODES: e, state: t, onToolsChanged: n, onCompareModeChanged
 	};
 	try {
 		let e = V.querySelector?.(".mjr-viewer-tools-group-label");
-		e && (e.title = C("tooltip.resetExposure", "Reset EV to 0"), e.style.cursor = "pointer", e.style.userSelect = "none");
+		e && (e.title = w("tooltip.resetExposure", "Reset EV to 0"), e.style.cursor = "pointer", e.style.userSelect = "none");
 	} catch (e) {
 		console.debug?.(e);
 	}
 	try {
-		T.out.title = C("tooltip.resetExposure", "Reset EV to 0"), T.out.style.cursor = "pointer", T.out.style.userSelect = "none";
+		T.out.title = w("tooltip.resetExposure", "Reset EV to 0"), T.out.style.cursor = "pointer", T.out.style.userSelect = "none";
 	} catch (e) {
 		console.debug?.(e);
 	}
 	try {
 		let e = H.querySelector?.(".mjr-viewer-tools-group-label");
-		e && (e.title = C("tooltip.resetGamma", "Reset Gamma to 1.00"), e.style.cursor = "pointer", e.style.userSelect = "none");
+		e && (e.title = w("tooltip.resetGamma", "Reset Gamma to 1.00"), e.style.cursor = "pointer", e.style.userSelect = "none");
 	} catch (e) {
 		console.debug?.(e);
 	}
 	try {
-		E.out.title = C("tooltip.resetGamma", "Reset Gamma to 1.00"), E.out.style.cursor = "pointer", E.out.style.userSelect = "none";
+		E.out.title = w("tooltip.resetGamma", "Reset Gamma to 1.00"), E.out.style.cursor = "pointer", E.out.style.userSelect = "none";
 	} catch (e) {
 		console.debug?.(e);
 	}
@@ -4062,7 +4062,7 @@ function zn({ VIEWER_MODES: e, state: t, onToolsChanged: n, onCompareModeChanged
 	let ve = document.createElement("div");
 	ve.style.cssText = "position: relative; display:inline-flex; align-items:center;", ve.className = "mjr-viewer-tools-action", ve.style.marginLeft = "4px";
 	let ye = document.createElement("button");
-	ye.type = "button", ye.title = C("tooltip.viewerShortcuts", "Viewer shortcuts"), ye.setAttribute("aria-label", C("tooltip.viewerShortcuts", "Viewer shortcuts")), ye.style.cssText = "\n        height: 24px;\n        padding: 0 8px;\n        border-radius: 6px;\n        border: 1px solid rgba(255,255,255,0.14);\n        background: rgba(255,255,255,0.08);\n        color: rgba(255,255,255,0.92);\n        cursor: pointer;\n        display: inline-flex;\n        align-items: center;\n        justify-content: center;\n    ";
+	ye.type = "button", ye.title = w("tooltip.viewerShortcuts", "Viewer shortcuts"), ye.setAttribute("aria-label", w("tooltip.viewerShortcuts", "Viewer shortcuts")), ye.style.cssText = "\n        height: 24px;\n        padding: 0 8px;\n        border-radius: 6px;\n        border: 1px solid rgba(255,255,255,0.14);\n        background: rgba(255,255,255,0.08);\n        color: rgba(255,255,255,0.92);\n        cursor: pointer;\n        display: inline-flex;\n        align-items: center;\n        justify-content: center;\n    ";
 	let q = document.createElement("span");
 	q.className = "pi pi-question-circle", q.setAttribute("aria-hidden", "true"), q.style.fontSize = "14px", ye.appendChild(q);
 	let be = document.createElement("div");
@@ -4101,7 +4101,7 @@ function zn({ VIEWER_MODES: e, state: t, onToolsChanged: n, onCompareModeChanged
 		helpWrap: ve,
 		helpBtn: ye,
 		helpPop: be,
-		channelsSelect: w,
+		channelsSelect: C,
 		exposureCtl: T,
 		gammaCtl: E,
 		zebraToggle: N,
@@ -4508,22 +4508,22 @@ function Un({ VIEWER_MODES: e, state: t, lifecycle: n, onClose: r, _onZoomIn: i,
 	x.className = "mjr-viewer-title-wrap", x.style.cssText = "display:flex; align-items:center; justify-content:center; gap:12px; min-width:0; max-width:min(100%, calc(100vw - 220px)); text-align:center;";
 	let S = document.createElement("span");
 	S.className = "mjr-viewer-filename", S.style.cssText = "font-size: 13px; font-weight: 600; min-width:0; max-width:min(60vw, 820px); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-align:center;";
-	let w = document.createElement("div");
-	w.className = "mjr-viewer-badges", w.style.cssText = "display:flex; gap:6px; align-items:center; flex-wrap:nowrap; min-width:0;";
+	let C = document.createElement("div");
+	C.className = "mjr-viewer-badges", C.style.cssText = "display:flex; gap:6px; align-items:center; flex-wrap:nowrap; min-width:0;";
 	let T = document.createElement("div");
 	T.className = "mjr-viewer-header-meta mjr-viewer-header-meta--right", T.style.cssText = "display:none; align-items:center; gap:10px; min-width:0; justify-content:flex-end; overflow:hidden;";
 	let E = document.createElement("span");
 	E.className = "mjr-viewer-filename mjr-viewer-filename--right", E.style.cssText = "font-size: 14px; font-weight: 500; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-align:right;";
 	let D = document.createElement("div");
-	D.className = "mjr-viewer-badges mjr-viewer-badges--right", D.style.cssText = "display:flex; gap:8px; align-items:center; flex-wrap:wrap; justify-content:flex-end;", b.appendChild(S), b.appendChild(w), x.appendChild(b), T.appendChild(D), T.appendChild(E);
+	D.className = "mjr-viewer-badges mjr-viewer-badges--right", D.style.cssText = "display:flex; gap:8px; align-items:center; flex-wrap:wrap; justify-content:flex-end;", b.appendChild(S), b.appendChild(C), x.appendChild(b), T.appendChild(D), T.appendChild(E);
 	let O = document.createElement("div");
 	O.className = "mjr-viewer-mode-buttons", O.style.cssText = "display: flex; gap: 4px;";
 	let k = Rn("Single", e.SINGLE);
-	k.title = C("tooltip.singleViewMode", "Single view mode (one image)");
+	k.title = w("tooltip.singleViewMode", "Single view mode (one image)");
 	let A = Rn("A/B", e.AB_COMPARE);
-	A.title = C("tooltip.compareOverlayMode", "A/B compare mode (overlay)");
+	A.title = w("tooltip.compareOverlayMode", "A/B compare mode (overlay)");
 	let j = Rn("Side", e.SIDE_BY_SIDE);
-	j.title = C("tooltip.compareSideBySide", "Side-by-side comparison mode"), O.appendChild(k), O.appendChild(A), O.appendChild(j);
+	j.title = w("tooltip.compareSideBySide", "Side-by-side comparison mode"), O.appendChild(k), O.appendChild(A), O.appendChild(j);
 	let M = Ln("X", "Close (Esc)");
 	M.style.fontSize = "18px";
 	try {
@@ -4742,7 +4742,7 @@ function Un({ VIEWER_MODES: e, state: t, lifecycle: n, onClose: r, _onZoomIn: i,
 		headerEl: _,
 		headerTopEl: v,
 		filenameEl: S,
-		badgesBarEl: w,
+		badgesBarEl: C,
 		filenameRightEl: E,
 		badgesBarRightEl: D,
 		leftAreaEl: ee,
@@ -4788,7 +4788,7 @@ function Wn(e) {
 	}
 	return null;
 }
-function Gn({ overlay: t, _content: n, singleView: r, state: i, VIEWER_MODES: a, computeOneToOneZoom: o, setZoom: s, scheduleOverlayRedraw: c, scheduleApplyGrade: l, syncToolsUIFromState: u, applyDistractionFreeUI: f, navigateViewerAssets: p, closeViewer: m, renderBadges: h, updateAssetRating: g, safeDispatchCustomEvent: _, ASSET_RATING_CHANGED_EVENT: v, probeTooltip: y, loupeWrap: b, getVideoControls: x, lifecycle: S, renderGenInfoPanel: T } = {}) {
+function Gn({ overlay: t, _content: n, singleView: r, state: i, VIEWER_MODES: a, computeOneToOneZoom: o, setZoom: s, scheduleOverlayRedraw: c, scheduleApplyGrade: l, syncToolsUIFromState: u, applyDistractionFreeUI: f, navigateViewerAssets: p, closeViewer: m, renderBadges: h, updateAssetRating: g, safeDispatchCustomEvent: _, ASSET_RATING_CHANGED_EVENT: v, probeTooltip: y, loupeWrap: b, getVideoControls: x, lifecycle: S, renderGenInfoPanel: C } = {}) {
 	let E = S?.unsubs || [], D = null, O = null, k = () => {
 		try {
 			D && clearTimeout(D);
@@ -4805,15 +4805,15 @@ function Gn({ overlay: t, _content: n, singleView: r, state: i, VIEWER_MODES: a,
 			if (D = null, O = null, t?.assetId) try {
 				let n = await g?.(t.assetId, t.rating);
 				if (!n?.ok) {
-					e(n?.error || C("toast.ratingUpdateFailed"), "error");
+					e(n?.error || w("toast.ratingUpdateFailed"), "error");
 					return;
 				}
-				e(C("toast.ratingSetN", { n: t.rating }), "success", 1500), _?.(v, {
+				e(w("toast.ratingSetN", { n: t.rating }), "success", 1500), _?.(v, {
 					assetId: String(t.assetId),
 					rating: t.rating
 				}, { warnPrefix: "[Viewer]" });
 			} catch {
-				e(C("toast.ratingUpdateError"), "error");
+				e(w("toast.ratingUpdateError"), "error");
 			}
 		}, 300);
 	}, j = () => {
@@ -4910,10 +4910,10 @@ function Gn({ overlay: t, _content: n, singleView: r, state: i, VIEWER_MODES: a,
 				if (!r) return !1;
 				if (n) {
 					let n = r.setPlaybackRate?.(t);
-					return Number.isFinite(Number(n)) ? (i.playbackRate = Number(n), e(C("toast.playbackRate", "Playback {rate}x", { rate: Number(n).toFixed(2) }), "info", 1200), !0) : !1;
+					return Number.isFinite(Number(n)) ? (i.playbackRate = Number(n), e(w("toast.playbackRate", "Playback {rate}x", { rate: Number(n).toFixed(2) }), "info", 1200), !0) : !1;
 				}
 				let a = r.adjustPlaybackRate?.(t);
-				return Number.isFinite(Number(a)) ? (i.playbackRate = Number(a), e(C("toast.playbackRate", "Playback {rate}x", { rate: Number(a).toFixed(2) }), "info", 1200), !0) : !1;
+				return Number.isFinite(Number(a)) ? (i.playbackRate = Number(a), e(w("toast.playbackRate", "Playback {rate}x", { rate: Number(a).toFixed(2) }), "info", 1200), !0) : !1;
 			} catch {
 				return !1;
 			}
@@ -4921,7 +4921,7 @@ function Gn({ overlay: t, _content: n, singleView: r, state: i, VIEWER_MODES: a,
 		if ((n.ctrlKey || n.metaKey) && (n.key === "c" || n.key === "C")) try {
 			let t = Wn(S);
 			if (t) {
-				g(), navigator.clipboard?.writeText?.(t).then(() => e(C("toast.promptCopied", "Prompt copied to clipboard"), "success", 1500)).catch(() => e(C("toast.copyFailed", "Copy failed"), "error", 1500));
+				g(), navigator.clipboard?.writeText?.(t).then(() => e(w("toast.promptCopied", "Prompt copied to clipboard"), "success", 1500)).catch(() => e(w("toast.copyFailed", "Copy failed"), "error", 1500));
 				return;
 			}
 		} catch (e) {
@@ -4967,7 +4967,7 @@ function Gn({ overlay: t, _content: n, singleView: r, state: i, VIEWER_MODES: a,
 				} catch (e) {
 					console.debug?.(e);
 				}
-				X(u), X(T);
+				X(u), X(C);
 				break;
 			case "t":
 			case "T":
@@ -4978,7 +4978,7 @@ function Gn({ overlay: t, _content: n, singleView: r, state: i, VIEWER_MODES: a,
 					asset: S,
 					onChanged: ((...e) => {
 						let t = e[0];
-						S.tags = t, _(w, {
+						S.tags = t, _(T, {
 							assetId: String(S.id),
 							tags: t
 						}, { warnPrefix: "[ViewerKeyboard]" }), X(h);
@@ -4998,7 +4998,7 @@ function Gn({ overlay: t, _content: n, singleView: r, state: i, VIEWER_MODES: a,
 			case "i":
 			case "I":
 				if (v && S?.kind === "video" && k()?.setInPoint?.()) {
-					g(), e(C("toast.inPointSet", "In point set"), "info", 1200);
+					g(), e(w("toast.inPointSet", "In point set"), "info", 1200);
 					break;
 				}
 				g();
@@ -5017,7 +5017,7 @@ function Gn({ overlay: t, _content: n, singleView: r, state: i, VIEWER_MODES: a,
 			case "o":
 			case "O":
 				if (v && S?.kind === "video" && k()?.setOutPoint?.()) {
-					g(), e(C("toast.outPointSet", "Out point set"), "info", 1200);
+					g(), e(w("toast.outPointSet", "Out point set"), "info", 1200);
 					break;
 				}
 				break;
@@ -5056,7 +5056,7 @@ function Gn({ overlay: t, _content: n, singleView: r, state: i, VIEWER_MODES: a,
 				} catch (e) {
 					console.debug?.(e);
 				}
-				X(u), X(f), X(T);
+				X(u), X(f), X(C);
 				break;
 			case "c":
 			case "C": {
@@ -5129,15 +5129,15 @@ function Gn({ overlay: t, _content: n, singleView: r, state: i, VIEWER_MODES: a,
 				break;
 			case "[":
 			case "{":
-				g(), N(-.25) || e(C("toast.playbackVideoOnly"), "warning", 1400);
+				g(), N(-.25) || e(w("toast.playbackVideoOnly"), "warning", 1400);
 				break;
 			case "]":
 			case "}":
-				g(), N(.25) || e(C("toast.playbackVideoOnly"), "warning", 1400);
+				g(), N(.25) || e(w("toast.playbackVideoOnly"), "warning", 1400);
 				break;
 			case "\\":
 			case "|":
-				g(), N(1, { absolute: !0 }) || e(C("toast.playbackVideoOnly"), "warning", 1400);
+				g(), N(1, { absolute: !0 }) || e(w("toast.playbackVideoOnly"), "warning", 1400);
 				break;
 			case "+":
 			case "=":
@@ -5189,7 +5189,7 @@ function Gn({ overlay: t, _content: n, singleView: r, state: i, VIEWER_MODES: a,
 // ui/features/viewer/videoSync.ts
 var Kn = () => {
 	try {
-		return !!T?.DEBUG_VIEWER;
+		return !!E?.DEBUG_VIEWER;
 	} catch {
 		return !1;
 	}
@@ -6373,7 +6373,7 @@ function $n({ overlay: e, content: t, singleView: n, abView: r, sideView: i, sta
 			let n = Number(a?.zoom) || 1, r = f(), { w: i, h: o } = p(r) || {
 				w: 0,
 				h: 0
-			}, s = m(), c = s && i > 0 && o > 0 ? E(i, o, s.width, s.height, n) : !1;
+			}, s = m(), c = s && i > 0 && o > 0 ? T(i, o, s.width, s.height, n) : !1;
 			if (!(n > 1.01 || c)) {
 				t.style.cursor = "";
 				return;
@@ -6486,7 +6486,7 @@ function $n({ overlay: e, content: t, singleView: n, abView: r, sideView: i, sta
 		} catch {
 			return n || t || null;
 		}
-	}, E = (e, t, n, r, i) => {
+	}, T = (e, t, n, r, i) => {
 		try {
 			let a = S(e, t, n, r);
 			if (!(a.w > 0 && a.h > 0)) return !1;
@@ -6526,7 +6526,7 @@ function $n({ overlay: e, content: t, singleView: n, abView: r, sideView: i, sta
 		if (!e || e.style.display === "none" || ne(n?.target)) return;
 		let r = Number(a?.zoom) || 1, i = (() => {
 			try {
-				return !!T?.VIEWER_ALLOW_PAN_AT_ZOOM_1;
+				return !!E?.VIEWER_ALLOW_PAN_AT_ZOOM_1;
 			} catch {
 				return !1;
 			}
@@ -6538,7 +6538,7 @@ function $n({ overlay: e, content: t, singleView: n, abView: r, sideView: i, sta
 					w: 0,
 					h: 0
 				}, a = m();
-				return !a || !(t > 0 && n > 0) ? r > 1.01 : r > 1.01 || E(t, n, a.width, a.height, r);
+				return !a || !(t > 0 && n > 0) ? r > 1.01 : r > 1.01 || T(t, n, a.width, a.height, r);
 			} catch {
 				return r > 1.01;
 			}
@@ -6898,7 +6898,7 @@ function ar(e) {
 }
 // ui/features/viewer/videoProcessor.ts
 function or({ canvas: e, videoEl: t, disableWebGL: n, pauseDuringExecution: r = null, getGradeParams: i, isDefaultGrade: a, _tonemap: o, maxProcPixelsVideo: s, throttleFps: c, safeAddListener: l, safeCall: u, onReady: d } = {}) {
-	let f = r == null ? !!T?.VIEWER_PAUSE_DURING_EXECUTION : !!r, p = null;
+	let f = r == null ? !!E?.VIEWER_PAUSE_DURING_EXECUTION : !!r, p = null;
 	if (!n && ir()) try {
 		p = ar({
 			canvas: e,
@@ -7050,7 +7050,7 @@ function or({ canvas: e, videoEl: t, disableWebGL: n, pauseDuringExecution: r = 
 		} catch (e) {
 			console.debug?.(e);
 		}
-	}, E = () => {
+	}, T = () => {
 		if (!y._destroyed && e?.isConnected && (y.ready || S(), y.ready)) {
 			try {
 				let e = y.lastParams || i?.() || {};
@@ -7125,7 +7125,7 @@ function or({ canvas: e, videoEl: t, disableWebGL: n, pauseDuringExecution: r = 
 		y._rendering = !0;
 		try {
 			y._rafIdSchedule = requestAnimationFrame(() => {
-				y._rafIdSchedule = null, y._rendering = !1, E();
+				y._rafIdSchedule = null, y._rendering = !1, T();
 				try {
 					r && (y._lastHeavyRenderAt = Date.now());
 				} catch (e) {
@@ -7408,7 +7408,7 @@ function cr(e) {
 		console.debug?.(e);
 	}
 	try {
-		let e = String(T?.VIEWER_AUDIO_VISUALIZER_MODE || "simple").toLowerCase();
+		let e = String(E?.VIEWER_AUDIO_VISUALIZER_MODE || "simple").toLowerCase();
 		if (e === "artistic") return "artistic";
 		if (e === "webgl3d" || e === "webgl") return "simple";
 	} catch (e) {
@@ -7563,7 +7563,7 @@ function ur(e, { pseudo3d: t = !1 } = {}) {
 }
 function dr({ canvas: e, audioEl: t, mode: n, pauseDuringExecution: r = null } = {}) {
 	if (!e || !t) return { destroy() {} };
-	let i = r == null ? !!T?.VIEWER_PAUSE_DURING_EXECUTION : !!r, a = null, o = !1, s = null, c = null, l = null, u = null, d = null, f = null, p = 0, m = !1, h = 1e3 / sr(T?.VIEWER_AUDIO_VIS_FPS ?? 24, 8, 60), g = cr(n), _ = () => {
+	let i = r == null ? !!E?.VIEWER_PAUSE_DURING_EXECUTION : !!r, a = null, o = !1, s = null, c = null, l = null, u = null, d = null, f = null, p = 0, m = !1, h = 1e3 / sr(E?.VIEWER_AUDIO_VIS_FPS ?? 24, 8, 60), g = cr(n), _ = () => {
 		try {
 			let t = sr(window.devicePixelRatio || 1, 1, 2), n = Math.max(32, Math.floor((e.clientWidth || 640) * t)), r = Math.max(24, Math.floor((e.clientHeight || 140) * t));
 			e.width !== n && (e.width = n), e.height !== r && (e.height = r);
@@ -7584,7 +7584,7 @@ function dr({ canvas: e, audioEl: t, mode: n, pauseDuringExecution: r = null } =
 			console.debug?.(e);
 		}
 		try {
-			g === "artistic" && !T?.VIEWER_DISABLE_WEBGL_AUDIO && (f = ur(e, { pseudo3d: !0 }));
+			g === "artistic" && !E?.VIEWER_DISABLE_WEBGL_AUDIO && (f = ur(e, { pseudo3d: !0 }));
 		} catch (e) {
 			console.debug?.(e);
 		}
@@ -7640,7 +7640,7 @@ function dr({ canvas: e, audioEl: t, mode: n, pauseDuringExecution: r = null } =
 		a = null;
 	}, C = () => {
 		x();
-	}, w = () => S(), E = () => S(), O = () => _(), k = (e) => {
+	}, w = () => S(), T = () => S(), O = () => _(), k = (e) => {
 		i && (m = !!String(e?.detail?.active_prompt_id || "").trim(), m ? S() : t?.paused || x());
 	};
 	try {
@@ -7649,7 +7649,7 @@ function dr({ canvas: e, audioEl: t, mode: n, pauseDuringExecution: r = null } =
 		console.debug?.(e);
 	}
 	try {
-		t.addEventListener("play", C, { passive: !0 }), t.addEventListener("pause", w, { passive: !0 }), t.addEventListener("ended", E, { passive: !0 }), window.addEventListener("resize", O, { passive: !0 }), i && (window.addEventListener(D.RUNTIME_STATUS, k), String(window?.__MJR_EXECUTION_RUNTIME__?.active_prompt_id || "").trim() && (m = !0));
+		t.addEventListener("play", C, { passive: !0 }), t.addEventListener("pause", w, { passive: !0 }), t.addEventListener("ended", T, { passive: !0 }), window.addEventListener("resize", O, { passive: !0 }), i && (window.addEventListener(D.RUNTIME_STATUS, k), String(window?.__MJR_EXECUTION_RUNTIME__?.active_prompt_id || "").trim() && (m = !0));
 	} catch (e) {
 		console.debug?.(e);
 	}
@@ -7661,7 +7661,7 @@ function dr({ canvas: e, audioEl: t, mode: n, pauseDuringExecution: r = null } =
 			if (!o) {
 				o = !0, S();
 				try {
-					t.removeEventListener("play", C), t.removeEventListener("pause", w), t.removeEventListener("ended", E), window.removeEventListener("resize", O), window.removeEventListener(D.RUNTIME_STATUS, k);
+					t.removeEventListener("play", C), t.removeEventListener("pause", w), t.removeEventListener("ended", T), window.removeEventListener("resize", O), window.removeEventListener(D.RUNTIME_STATUS, k);
 				} catch (e) {
 					console.debug?.(e);
 				}
@@ -7865,7 +7865,7 @@ function fr({ overlay: e, state: t, mediaTransform: n, updateMediaNaturalSize: r
 		} catch (e) {
 			console.debug?.(e);
 		}
-	}, E = (e, n, { compare: r = !1 } = {}) => {
+	}, T = (e, n, { compare: r = !1 } = {}) => {
 		let i = document.createElement("div");
 		if (i.className = "mjr-viewer-audio-shell", !r) {
 			let t = document.createElement("div");
@@ -7948,7 +7948,7 @@ function fr({ overlay: e, state: t, mediaTransform: n, updateMediaNaturalSize: r
 			}
 			return t;
 		}
-		if (v === "audio") return E(e, m, { compare: !1 });
+		if (v === "audio") return T(e, m, { compare: !1 });
 		if (v === "video") {
 			let u = document.createElement("canvas");
 			u.className = "mjr-viewer-media";
@@ -7975,8 +7975,8 @@ function fr({ overlay: e, state: t, mediaTransform: n, updateMediaNaturalSize: r
 				u._mjrProc = or({
 					canvas: u,
 					videoEl: v,
-					disableWebGL: f || !!T.VIEWER_DISABLE_WEBGL_VIDEO,
-					pauseDuringExecution: T.VIEWER_PAUSE_DURING_EXECUTION,
+					disableWebGL: f || !!E.VIEWER_DISABLE_WEBGL_VIDEO,
+					pauseDuringExecution: E.VIEWER_PAUSE_DURING_EXECUTION,
 					getGradeParams: s,
 					isDefaultGrade: c,
 					tonemap: l,
@@ -8126,7 +8126,7 @@ function fr({ overlay: e, state: t, mediaTransform: n, updateMediaNaturalSize: r
 			}
 			return t;
 		}
-		if (m === "audio") return E(e, f, { compare: !0 });
+		if (m === "audio") return T(e, f, { compare: !0 });
 		if (m === "video") {
 			let u = document.createElement("div");
 			u.style.cssText = "width:100%; height:100%; position:relative; display:flex; align-items:center; justify-content:center;";
@@ -8155,7 +8155,7 @@ function fr({ overlay: e, state: t, mediaTransform: n, updateMediaNaturalSize: r
 				m._mjrProc = or({
 					canvas: m,
 					videoEl: h,
-					pauseDuringExecution: T.VIEWER_PAUSE_DURING_EXECUTION,
+					pauseDuringExecution: E.VIEWER_PAUSE_DURING_EXECUTION,
 					getGradeParams: s,
 					isDefaultGrade: c,
 					tonemap: l,
@@ -8463,7 +8463,7 @@ function br(e, t) {
 	let r = document.createElement("div");
 	r.style.cssText = "display:flex;flex-direction:column;gap:8px;margin:0 0 14px 0;padding:10px;border:1px solid rgba(144,220,220,0.22);border-radius:10px;background:rgba(90,220,220,0.06);";
 	let i = document.createElement("div");
-	i.textContent = C("viewer.metadataCompare", "Metadata compare"), i.style.cssText = "font-size:12px;font-weight:700;color:rgba(255,255,255,0.9);letter-spacing:0.02em", r.appendChild(i);
+	i.textContent = w("viewer.metadataCompare", "Metadata compare"), i.style.cssText = "font-size:12px;font-weight:700;color:rgba(255,255,255,0.9);letter-spacing:0.02em", r.appendChild(i);
 	for (let e of n.slice(0, 24)) {
 		let t = document.createElement("div");
 		t.style.cssText = "display:grid;grid-template-columns:minmax(74px,0.42fr) 1fr 1fr;gap:6px;align-items:start";
@@ -9298,7 +9298,7 @@ function Br({ state: e, buildAssetViewURL: t, onNavigate: n, onCompare: r }) {
 					console.debug?.(e);
 				}
 				zr(e, { releaseSrc: !0 }), y(r);
-			}, { once: !0 }), r.appendChild(e), S(r), f(e), r;
+			}, { once: !0 }), r.appendChild(e), C(r), f(e), r;
 		}
 		if (a === "audio") {
 			let t = String(e?.thumbnail_url || e?.thumb_url || "").trim();
@@ -9310,10 +9310,10 @@ function Br({ state: e, buildAssetViewURL: t, onNavigate: n, onCompare: r }) {
 					} catch (e) {
 						console.debug?.(e);
 					}
-					b(r);
+					x(r);
 				}, { once: !0 }), r.appendChild(n);
-			} else b(r);
-			return T(r), r;
+			} else x(r);
+			return E(r), r;
 		}
 		if (a === "model3d") {
 			let n = (() => {
@@ -9325,7 +9325,7 @@ function Br({ state: e, buildAssetViewURL: t, onNavigate: n, onCompare: r }) {
 						...e,
 						filename: r,
 						kind: "image"
-					}) : E(r, i || null, a);
+					}) : b(r, i || null, a);
 				} catch {
 					return "";
 				}
@@ -9338,10 +9338,10 @@ function Br({ state: e, buildAssetViewURL: t, onNavigate: n, onCompare: r }) {
 					} catch (e) {
 						console.debug?.(e);
 					}
-					C(r);
+					w(r);
 				}, { once: !0 }), r.appendChild(t);
-			} else C(r);
-			return w(r), r;
+			} else w(r);
+			return T(r), r;
 		}
 		if (o) {
 			let e = document.createElement("img");
@@ -9353,7 +9353,7 @@ function Br({ state: e, buildAssetViewURL: t, onNavigate: n, onCompare: r }) {
 				}
 			}, { once: !0 }), r.appendChild(e), r;
 		}
-		return x(r), r;
+		return S(r), r;
 	};
 	function y(e) {
 		let t = document.createElement("div");
@@ -9364,7 +9364,7 @@ function Br({ state: e, buildAssetViewURL: t, onNavigate: n, onCompare: r }) {
 			console.debug?.(e);
 		}
 	}
-	function b(e) {
+	function x(e) {
 		let t = document.createElement("div");
 		t.className = "mjr-filmstrip-audio-thumb";
 		let n = document.createElement("span");
@@ -9375,7 +9375,7 @@ function Br({ state: e, buildAssetViewURL: t, onNavigate: n, onCompare: r }) {
 			console.debug?.(e);
 		}
 	}
-	function x(e) {
+	function S(e) {
 		let t = document.createElement("div");
 		t.style.cssText = "\n            position: absolute; inset: 0;\n            display: flex; align-items: center; justify-content: center;\n            font-size: 18px; color: rgba(255,255,255,0.25);\n            pointer-events: none;\n        ", t.textContent = "?";
 		try {
@@ -9384,11 +9384,11 @@ function Br({ state: e, buildAssetViewURL: t, onNavigate: n, onCompare: r }) {
 			console.debug?.(e);
 		}
 	}
-	function S(e) {
+	function C(e) {
 		let t = document.createElement("div");
 		t.style.cssText = "\n            position: absolute; bottom: 2px; right: 2px;\n            font-size: 7px; line-height: 1;\n            background: rgba(0,0,0,0.55); color: rgba(255,255,255,0.85);\n            padding: 2px 3px; border-radius: 2px;\n            pointer-events: none;\n            letter-spacing: 0.02em;\n        ", t.textContent = "VID", e.appendChild(t);
 	}
-	function C(e) {
+	function w(e) {
 		let t = document.createElement("div");
 		t.style.cssText = "\n            position: absolute; inset: 0;\n            display: flex; align-items: center; justify-content: center;\n            font-size: 10px; font-weight: 700;\n            color: rgba(76, 175, 80, 0.7);\n            pointer-events: none;\n            letter-spacing: 0.04em;\n        ", t.textContent = "3D";
 		try {
@@ -9397,11 +9397,11 @@ function Br({ state: e, buildAssetViewURL: t, onNavigate: n, onCompare: r }) {
 			console.debug?.(e);
 		}
 	}
-	function w(e) {
+	function T(e) {
 		let t = document.createElement("div");
 		t.style.cssText = "\n            position: absolute; bottom: 2px; right: 2px;\n            font-size: 7px; line-height: 1;\n            background: rgba(0,0,0,0.55); color: rgba(76, 175, 80, 0.95);\n            padding: 2px 3px; border-radius: 2px;\n            pointer-events: none;\n            letter-spacing: 0.02em;\n            font-weight: 700;\n        ", t.textContent = "3D", e.appendChild(t);
 	}
-	function T(e) {
+	function E(e) {
 		let t = document.createElement("div");
 		t.style.cssText = "\n            position: absolute; bottom: 2px; right: 2px;\n            font-size: 7px; line-height: 1;\n            background: rgba(0,0,0,0.55); color: rgba(255,255,255,0.85);\n            padding: 2px 3px; border-radius: 2px;\n            pointer-events: none;\n            letter-spacing: 0.02em;\n        ", t.textContent = "AUD", e.appendChild(t);
 	}
@@ -9619,13 +9619,13 @@ var Wr = null, Gr = null, Kr = null, qr = null, Jr = null, Yr = null;
 function Xr() {
 	Wr || import("./abCompare-BUrGm4-x.js").then((e) => {
 		Wr = e;
-	}), Gr || import("./sideBySide-Css6Vh8y.js").then((e) => {
+	}), Gr || import("./sideBySide-sOf24A5X.js").then((e) => {
 		Gr = e;
-	}), Kr || import("./model3dRenderer-k0ey48io.js").then((e) => e.t).then((e) => {
+	}), Kr || import("./model3dRenderer-DdPKugXy.js").then((e) => e.t).then((e) => {
 		Kr = e;
 	}), qr || import("./scopes-bvTRS68K.js").then((e) => {
 		qr = e;
-	}), Jr || import("./genInfo-Dxtoun1T.js").then((e) => e.n).then((e) => {
+	}), Jr || import("./genInfo-BkEKNdy-.js").then((e) => e.n).then((e) => {
 		Jr = e;
 	}), Yr || import("./frameExport-CnNO7oN6.js").then((e) => {
 		Yr = e;
@@ -9689,21 +9689,21 @@ function Zr() {
 			console.debug?.(e);
 		}
 	}
-	function v() {
+	function y() {
 		try {
 			u?.updatePanCursor?.();
 		} catch (e) {
 			console.debug?.(e);
 		}
 	}
-	function y() {
+	function b() {
 		try {
 			return u?.getPrimaryMedia?.() || null;
 		} catch {
 			return null;
 		}
 	}
-	function x(e) {
+	function S(e) {
 		try {
 			return u?.getMediaNaturalSize?.(e) || {
 				w: 0,
@@ -9716,21 +9716,21 @@ function Zr() {
 			};
 		}
 	}
-	function S() {
+	function C() {
 		try {
 			return u?.getViewportRect?.() || null;
 		} catch {
 			return null;
 		}
 	}
-	function E() {
+	function D() {
 		try {
 			return u?.computeOneToOneZoom?.() ?? null;
 		} catch {
 			return null;
 		}
 	}
-	function D() {
+	function k() {
 		try {
 			u?.updateMediaNaturalSize?.();
 		} catch (e) {
@@ -9845,7 +9845,7 @@ function Zr() {
 			onZoomOneToOne: () => {
 				try {
 					let e = () => {
-						let e = E();
+						let e = D();
 						return e != null && (_(Math.abs((Number(s.zoom) || 1) - e) < .01 ? 1 : e, {
 							clientX: s._lastPointerX,
 							clientY: s._lastPointerY
@@ -9855,7 +9855,7 @@ function Zr() {
 					try {
 						requestAnimationFrame(() => {
 							try {
-								D();
+								k();
 							} catch (e) {
 								console.debug?.(e);
 							}
@@ -9958,7 +9958,7 @@ function Zr() {
 	}
 	let { contentRow: z, content: fe, singleView: B, abView: V, sideView: H, overlayLayer: pe, gridCanvas: U, probeTooltip: me, loupeWrap: he, loupeCanvas: ge, genInfoOverlay: _e, genInfoTitle: W, genInfoBody: G, genInfoOverlayLeft: K, genInfoTitleLeft: ve, genInfoBodyLeft: ye, footer: q, prevBtn: be, indexInfo: xe, nextBtn: Se, navBar: Ce, playerBarHost: we, filmstrip: Te } = Hr({
 		state: s,
-		buildAssetViewURL: O,
+		buildAssetViewURL: v,
 		onNavigate: (e) => {
 			try {
 				s.compareAsset != null && (s.compareAsset = null, s.mode = $.SINGLE), s.currentIndex = e, Qe();
@@ -10007,7 +10007,7 @@ function Zr() {
 	let Oe = Zn({
 		state: s,
 		VIEWER_MODES: $,
-		APP_CONFIG: T,
+		APP_CONFIG: E,
 		getAssetMetadata: o,
 		getAssetsBatch: r
 	}), ke = 3e5, Ae = /* @__PURE__ */ new Map(), je = () => {
@@ -10117,7 +10117,7 @@ function Zr() {
 			}
 			return null;
 		},
-		getViewportRect: S,
+		getViewportRect: C,
 		clearCanvas: Fe
 	}), Re = () => {
 		let t = (() => {
@@ -10363,14 +10363,14 @@ function Zr() {
 						e.textContent = t, e.style.cssText = "font-size: 12px; font-weight: 600; letter-spacing: 0.02em; color: rgba(255,255,255,0.86);", i.appendChild(e);
 					}
 					let o = document.createElement("div");
-					o.style.cssText = "padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.72);", o.textContent = C("viewer.noGenerationDataFile", "No generation data found for this file."), i.appendChild(o);
+					o.style.cssText = "padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.72);", o.textContent = w("viewer.noGenerationDataFile", "No generation data found for this file."), i.appendChild(o);
 					try {
 						let e = n?.metadata_raw;
 						if (e != null) {
 							let t = document.createElement("details");
 							t.style.cssText = "border: 1px solid rgba(255,255,255,0.10); border-radius: 10px; background: rgba(255,255,255,0.04); overflow: hidden;";
 							let n = document.createElement("summary");
-							n.textContent = C("msg.rawMetadata", "Raw metadata"), n.style.cssText = "cursor: pointer; padding: 10px 12px; color: rgba(255,255,255,0.78); user-select: none;";
+							n.textContent = w("msg.rawMetadata", "Raw metadata"), n.style.cssText = "cursor: pointer; padding: 10px 12px; color: rgba(255,255,255,0.78); user-select: none;";
 							let r = document.createElement("pre");
 							r.style.cssText = "margin:0; padding: 10px 12px; max-height: 280px; overflow:auto; font-size: 11px; line-height: 1.35; color: rgba(255,255,255,0.86);";
 							let a = "";
@@ -10668,7 +10668,7 @@ function Zr() {
 	function et() {
 		let e = s.assets[s.currentIndex];
 		if (!e) return;
-		let t = O(e);
+		let t = v(e);
 		if (t) {
 			if (s.mode === $.SINGLE) {
 				try {
@@ -10684,7 +10684,7 @@ function Zr() {
 				state: s,
 				currentAsset: e,
 				viewUrl: t,
-				buildAssetViewURL: O,
+				buildAssetViewURL: v,
 				createCompareMediaElement: j,
 				destroyMediaProcessorsIn: Fn
 			}) : s.mode === $.SIDE_BY_SIDE && Y() && Gr?.renderSideBySideView?.({
@@ -10692,11 +10692,11 @@ function Zr() {
 				state: s,
 				currentAsset: e,
 				viewUrl: t,
-				buildAssetViewURL: O,
+				buildAssetViewURL: v,
 				createMediaElement: A,
 				destroyMediaProcessorsIn: Fn
 			});
-			g(), v();
+			g(), y();
 		} else {
 			try {
 				Fn(B);
@@ -10713,12 +10713,12 @@ function Zr() {
 		}
 	}
 	let { preloadAdjacentAssets: tt, preloadImageForAsset: nt, trackPreloadRef: rt } = pr({
-		buildAssetViewURL: O,
+		buildAssetViewURL: v,
 		IMAGE_PRELOAD_EXTENSIONS: c,
 		state: s
 	}), { destroyPlayerBar: at, syncPlayerBar: ot } = Sr({
 		state: s,
-		APP_CONFIG: T,
+		APP_CONFIG: E,
 		VIEWER_MODES: $,
 		overlay: e,
 		navBar: Ce,
@@ -10736,7 +10736,7 @@ function Zr() {
 		scheduleOverlayRedraw: J,
 		viewerInfoCacheGet: Me,
 		viewerInfoCacheSet: Ne
-	}), st = () => ot(), ct = T.VIEWER_MAX_PROC_PIXELS ?? 12e6, lt = () => ({
+	}), st = () => ot(), ct = E.VIEWER_MAX_PROC_PIXELS ?? 12e6, lt = () => ({
 		exposureEV: Number(s.exposureEV) || 0,
 		gamma: Math.max(.1, Math.min(3, Number(s.gamma) || 1)),
 		channel: s.channel || "rgb",
@@ -10768,13 +10768,13 @@ function Zr() {
 		} catch {
 			return !0;
 		}
-	}, ft = T.VIEWER_MAX_PROC_PIXELS_VIDEO ?? 3e6, pt = T.VIEWER_VIDEO_GRADE_THROTTLE_FPS ?? 15;
+	}, ft = E.VIEWER_MAX_PROC_PIXELS_VIDEO ?? 3e6, pt = E.VIEWER_VIDEO_GRADE_THROTTLE_FPS ?? 15;
 	try {
 		d = fr({
 			overlay: e,
 			state: s,
 			mediaTransform: f,
-			updateMediaNaturalSize: D,
+			updateMediaNaturalSize: k,
 			clampPanToBounds: h,
 			applyTransform: g,
 			scheduleOverlayRedraw: J,
@@ -10783,7 +10783,7 @@ function Zr() {
 			tonemap: null,
 			maxProcPixels: ct,
 			maxProcPixelsVideo: ft,
-			disableWebGL: !!T.VIEWER_DISABLE_WEBGL_VIDEO,
+			disableWebGL: !!E.VIEWER_DISABLE_WEBGL_VIDEO,
 			videoGradeThrottleFps: pt,
 			safeAddListener: Z,
 			safeCall: X
@@ -10852,7 +10852,7 @@ function Zr() {
 		});
 	}, yt = (e, t, n, { offsetX: r = 16, offsetY: i = 16 } = {}) => {
 		try {
-			let a = S();
+			let a = C();
 			if (!a) return;
 			let o = fe.getBoundingClientRect(), s = (Number(t) || 0) - o.left, c = (Number(n) || 0) - o.top, l = Number(e.offsetWidth) || 0, u = Number(e.offsetHeight) || 0, d = s + r, f = c + i;
 			d = Math.max(10, Math.min(d, a.width - l - 10)), f = Math.max(10, Math.min(f, a.height - u - 10)), e.style.left = `${Math.round(d)}px`, e.style.top = `${Math.round(f)}px`;
@@ -10864,9 +10864,9 @@ function Zr() {
 		content: fe,
 		state: s,
 		VIEWER_MODES: $,
-		getPrimaryMedia: y,
-		getMediaNaturalSize: x,
-		getViewportRect: S,
+		getPrimaryMedia: b,
+		getMediaNaturalSize: S,
+		getViewportRect: C,
 		positionOverlayBox: yt,
 		probeTooltip: me,
 		loupeWrap: he,
@@ -10874,7 +10874,7 @@ function Zr() {
 			state: s,
 			loupeCanvas: ge,
 			loupeWrap: he,
-			getMediaNaturalSize: x,
+			getMediaNaturalSize: S,
 			positionOverlayBox: yt
 		}).redraw,
 		lifecycle: t
@@ -10916,7 +10916,7 @@ function Zr() {
 		singleView: B,
 		state: s,
 		VIEWER_MODES: $,
-		computeOneToOneZoom: E,
+		computeOneToOneZoom: D,
 		setZoom: _,
 		scheduleOverlayRedraw: J,
 		scheduleApplyGrade: ht,
@@ -10927,7 +10927,7 @@ function Zr() {
 		renderBadges: Ye,
 		updateAssetRating: n,
 		safeDispatchCustomEvent: ce,
-		ASSET_RATING_CHANGED_EVENT: k,
+		ASSET_RATING_CHANGED_EVENT: O,
 		probeTooltip: me,
 		loupeWrap: he,
 		renderGenInfoPanel: Ke,
@@ -11027,7 +11027,7 @@ function Zr() {
 		}
 	};
 	try {
-		e._mjrBadgeSyncBound ||= (a.push(Z(window, k, (e) => {
+		e._mjrBadgeSyncBound ||= (a.push(Z(window, O, (e) => {
 			try {
 				let t = e?.detail?.assetId, n = e?.detail?.rating;
 				if (t == null) return;
@@ -11041,7 +11041,7 @@ function Zr() {
 			} catch (e) {
 				console.debug?.(e);
 			}
-		}, { passive: !0 })), a.push(Z(window, w, (e) => {
+		}, { passive: !0 })), a.push(Z(window, T, (e) => {
 			try {
 				let t = e?.detail?.assetId, n = e?.detail?.tags;
 				if (t == null) return;
@@ -11062,7 +11062,7 @@ function Zr() {
 	function Tt() {
 		try {
 			let e = s.assets?.[s.currentIndex];
-			e?.id && ce(b, { assetId: String(e.id) }, { warnPrefix: "[ViewerRuntime]" });
+			e?.id && ce(x, { assetId: String(e.id) }, { warnPrefix: "[ViewerRuntime]" });
 		} catch (e) {
 			console.debug?.(e);
 		}
@@ -11391,7 +11391,7 @@ function Zr() {
 		En({
 			overlayEl: e,
 			getCurrentAsset: () => s.assets[s.currentIndex],
-			getCurrentViewUrl: (e) => O(e),
+			getCurrentViewUrl: (e) => v(e),
 			onAssetChanged: () => {
 				try {
 					Ye();

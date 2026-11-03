@@ -38,7 +38,7 @@ function createWindowMock() {
         },
         dispatch(type, event) {
             for (const handler of Array.from(listeners.get(type) || [])) {
-                handler(event);
+                (handler as any)(event);
             }
         },
     };
@@ -72,12 +72,12 @@ function createPlayerbarInputEvent(key) {
 describe("viewer keyboard", () => {
     beforeEach(() => {
         const windowMock = createWindowMock();
-        globalThis.window = windowMock;
+        globalThis.window = windowMock as any;
         globalThis.document = {
             fullscreenElement: null,
             exitFullscreen: vi.fn(),
             activeElement: null,
-        };
+        } as any;
         Object.defineProperty(globalThis, "navigator", {
             configurable: true,
             value: { clipboard: { writeText: vi.fn() } },
@@ -122,12 +122,12 @@ describe("viewer keyboard", () => {
         });
 
         keyboard.bind();
-        window.dispatch("keydown", createKeyboardEvent("x"));
+        (window as any).dispatch("keydown", createKeyboardEvent("x"));
         expect(state.distractionFree).toBe(true);
         expect(applyDistractionFreeUI).toHaveBeenCalledTimes(1);
 
         keyboard.unbind();
-        window.dispatch("keydown", createKeyboardEvent("x"));
+        (window as any).dispatch("keydown", createKeyboardEvent("x"));
         expect(state.distractionFree).toBe(true);
         expect(applyDistractionFreeUI).toHaveBeenCalledTimes(1);
         expect(closeViewer).not.toHaveBeenCalled();
@@ -169,11 +169,11 @@ describe("viewer keyboard", () => {
         });
 
         keyboard.bind();
-        window.dispatch("keydown", createKeyboardEvent("Escape"));
+        (window as any).dispatch("keydown", createKeyboardEvent("Escape"));
         expect(closeViewer).toHaveBeenCalledTimes(1);
 
         keyboard.unbind();
-        window.dispatch("keydown", createKeyboardEvent("Escape"));
+        (window as any).dispatch("keydown", createKeyboardEvent("Escape"));
         expect(closeViewer).toHaveBeenCalledTimes(1);
     });
 
@@ -214,8 +214,8 @@ describe("viewer keyboard", () => {
         });
 
         keyboard.bind();
-        window.dispatch("keydown", createPlayerbarInputEvent("ArrowRight"));
-        window.dispatch("keydown", createPlayerbarInputEvent(" "));
+        (window as any).dispatch("keydown", createPlayerbarInputEvent("ArrowRight"));
+        (window as any).dispatch("keydown", createPlayerbarInputEvent(" "));
 
         expect(stepFrames).toHaveBeenCalledWith(1);
         expect(togglePlay).toHaveBeenCalledTimes(1);

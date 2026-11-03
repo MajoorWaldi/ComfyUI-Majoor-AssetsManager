@@ -45,9 +45,9 @@ function ensureCustomEvent() {
     globalThis.CustomEvent = class CustomEvent extends Event {
         constructor(type, init = {}) {
             super(type, init);
-            this.detail = init.detail;
+            (this as any).detail = (init as any).detail;
         }
-    };
+    } as any;
 }
 
 function resetViewerContextState(state, helpers) {

@@ -112,7 +112,7 @@ describe("SettingsPanel", () => {
             watcher: { enabled: true },
             grid: { sample: false },
         };
-        globalThis.window = createWindow();
+        globalThis.window = createWindow() as any;
     });
 
     it("builds normalized settings definitions without runtime bootstrap", async () => {

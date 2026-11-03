@@ -38,16 +38,16 @@ describe("VideoControls FPS override state", () => {
         expect(Number(fpsInput?.value)).toBeCloseTo(23.976, 3);
 
         fpsInput!.value = "12";
-        fpsInput!.dispatchEvent(new window.Event("change", { bubbles: true }));
+        fpsInput!.dispatchEvent(new window.Event("change", { bubbles: true }) as any);
         expect(fpsInput?.classList.contains("is-overridden")).toBe(true);
         expect(fpsInput?.value).toBe("12");
 
-        mounted.setMediaInfo?.({ fps: 24 });
+        (mounted as any).setMediaInfo?.({ fps: 24 });
         expect(fpsInput?.classList.contains("is-overridden")).toBe(true);
         expect(fpsInput?.value).toBe("12");
 
         fpsInput!.value = "24";
-        fpsInput!.dispatchEvent(new window.Event("change", { bubbles: true }));
+        fpsInput!.dispatchEvent(new window.Event("change", { bubbles: true }) as any);
         expect(fpsInput?.classList.contains("is-overridden")).toBe(false);
 
         mounted.destroy();
@@ -86,7 +86,7 @@ describe("VideoControls FPS override state", () => {
         ) as HTMLInputElement | null;
         expect(fpsInput?.value).toBe("25");
 
-        mounted.setMediaInfo?.({ fps: 17.321, fpsSource: "rvfc" });
+        (mounted as any).setMediaInfo?.({ fps: 17.321, fpsSource: "rvfc" });
         expect(fpsInput?.value).toBe("25");
         expect(fpsInput?.classList.contains("is-overridden")).toBe(false);
 

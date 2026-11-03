@@ -460,6 +460,14 @@ Environment variables provide secure configuration without code changes:
   - Options: `1`, `true`, `yes`, `on` to disable
   - Example: `MJR_AM_NO_AUTO_PIP=1`
 
+### API Compatibility
+- **MJR_AM_LEGACY_API_V2_ASSETS**
+  - Purpose: Also serve the deprecated `/api/v2/assets/*` alias of `/mjr/am/compat/assets/*`
+  - Default: Disabled (the `/api` namespace belongs to ComfyUI core)
+  - Security Impact: The alias sits behind the same auth/CSRF middlewares as `/mjr/am/*`
+  - Options: `1`, `true`, `yes`, `on` to enable
+  - Example: `MJR_AM_LEGACY_API_V2_ASSETS=1`
+
 ## Security Testing
 
 ### Self-Assessment Checklist

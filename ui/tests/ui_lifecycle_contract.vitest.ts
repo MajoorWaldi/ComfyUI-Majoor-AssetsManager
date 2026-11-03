@@ -76,7 +76,7 @@ describe("mountKeepAlive — container styling", () => {
 
         const host = container.firstElementChild;
         expect(host).toBeTruthy();
-        expect(host.dataset.mjrKeepAliveHost).toBe(KEY_A);
+        expect((host as any).dataset.mjrKeepAliveHost).toBe(KEY_A);
     });
 });
 

@@ -1,18 +1,18 @@
-import { A as e, E as t, J as n, R as r, S as i, Y as a, b as o, j as s, m as c } from "./events-DxfljH4A.js";
-import { a as l, n as u } from "./graphTraversal-DTdQWkn5.js";
-import { S as d, Y as f, b as p, x as m, y as h } from "./SidebarWorkflowSection-BHtHjc_k.js";
+import { A as e, E as t, S as n, Z as r, b as i, j as a, m as o, z as s } from "./events-BRfpU-6M.js";
+import { a as c, n as l } from "./graphTraversal-DTdQWkn5.js";
+import { S as u, Y as d, b as f, x as p, y as m } from "./SidebarWorkflowSection-BihItyAk.js";
 // ui/features/viewer/floatingViewerProgress.ts
-var g = "progress-update", _ = "__MJR_MFV_PROGRESS_SERVICE__";
+var h = "progress-update", g = "__MJR_MFV_PROGRESS_SERVICE__";
 function ee() {
 	return typeof globalThis < "u" ? globalThis : typeof window < "u" ? window : {};
 }
-function v(e, t) {
+function _(e, t) {
 	if (typeof CustomEvent == "function") return new CustomEvent(e, { detail: t });
 	let n = typeof Event == "function" ? new Event(e) : { type: e };
 	return n.detail = t, n;
 }
 var te = class {
-	constructor(e, t = () => s()) {
+	constructor(e, t = () => a()) {
 		this.id = String(e || ""), this.promptApi = null, this.executedNodeIds = [], this.totalNodes = 0, this.currentlyExecuting = null, this.errorDetails = null, this._getApp = typeof t == "function" ? t : () => null;
 	}
 	setPrompt(e) {
@@ -25,7 +25,7 @@ var te = class {
 	getNodeLabel(e) {
 		let t = this.getApiNode(e), n = t?._meta?.title || t?.class_type || "";
 		if (!n) {
-			let t = this._getApp?.(), r = u(l(t), e);
+			let t = this._getApp?.(), r = l(c(t), e);
 			n = r?.title || r?.type || "";
 		}
 		return String(n || "").trim();
@@ -61,8 +61,8 @@ var te = class {
 		this.errorDetails = e || null;
 	}
 }, ne = class extends EventTarget {
-	constructor({ getApi: t = (t) => e(t), getApp: r = () => s(), waitForApi: i = (e) => n(e) } = {}) {
-		super(), this._getApi = t, this._getApp = r, this._waitForApi = i, this.promptsMap = /* @__PURE__ */ new Map(), this.currentExecution = null, this.lastQueueRemaining = 0, this._api = null, this._listenerEntries = [], this._initPromise = null, this._queuePromptBinding = null;
+	constructor({ getApi: t = (t) => e(t), getApp: n = () => a(), waitForApi: i = (e) => r(e) } = {}) {
+		super(), this._getApi = t, this._getApp = n, this._waitForApi = i, this.promptsMap = /* @__PURE__ */ new Map(), this.currentExecution = null, this.lastQueueRemaining = 0, this._api = null, this._listenerEntries = [], this._initPromise = null, this._hydrations = /* @__PURE__ */ new Map();
 	}
 	getSnapshot() {
 		return {
@@ -100,45 +100,51 @@ var te = class {
 		return r ? (this._attachApi(r), r) : null;
 	}
 	_attachApi(e) {
-		e && typeof e.addEventListener == "function" && this._api !== e && (this.dispose({
-			resetPatchedQueuePrompt: !1,
-			keepState: !0
-		}), this._api = e, this._patchQueuePrompt(e), this._attachApiListeners(e));
+		e && typeof e.addEventListener == "function" && this._api !== e && (this.dispose({ keepState: !0 }), this._api = e, this._attachApiListeners(e));
 	}
-	_patchQueuePrompt(e) {
-		let t = this;
-		this._queuePromptBinding = a({
-			api: e,
-			owner: this,
-			createWrapper(e) {
-				return async function(n, r, ...i) {
-					let a;
-					try {
-						a = await e.apply(this, [
-							n,
-							r,
-							...i
-						]);
-					} catch (e) {
-						let n = t.getOrMakePrompt("error");
-						throw n.error({ exception_type: "Unknown." }), t.currentExecution = n, t.dispatchProgressUpdate(), e;
-					}
-					let o = String(a?.prompt_id || a?.promptId || "").trim();
-					if (o) {
-						let e = t.getOrMakePrompt(o);
-						e.setPrompt(r), t.currentExecution ||= e, t.dispatchEvent(v("queue-prompt", { prompt: e })), t.dispatchProgressUpdate();
-					}
-					return a;
-				};
+	async _hydratePrompt(e, t) {
+		let n = String(t?.id || "").trim();
+		if (!n || n === "unknown" || t.promptApi || !e) return;
+		if (this._hydrations.has(n)) return this._hydrations.get(n);
+		let r = (async () => {
+			let r = await this._findPromptInJob(e, n) || await this._findPromptInQueue(e, n) || await this._findPromptInHistory(e, n);
+			if (r && !t.promptApi) {
+				t.setPrompt({ output: r });
+				let e = t.currentlyExecuting;
+				e?.nodeId && (e.nodeLabel = t.getNodeLabel(e.nodeId) || e.nodeLabel), this.promptsMap.get(n) === t && this.dispatchProgressUpdate();
 			}
-		});
+		})().catch((e) => console.debug?.(e)).finally(() => this._hydrations.delete(n));
+		return this._hydrations.set(n, r), r;
+	}
+	async _findPromptInJob(e, t) {
+		if (typeof e.getJobDetail != "function") return null;
+		try {
+			let n = (await e.getJobDetail(t))?.workflow?.prompt;
+			return n && typeof n == "object" && !Array.isArray(n) ? n : null;
+		} catch (e) {
+			return console.debug?.(e), null;
+		}
+	}
+	async _fetchJson(e, t) {
+		if (typeof e.fetchApi != "function") return null;
+		let n = await e.fetchApi(t, { cache: "no-store" });
+		return !n?.ok || typeof n.json != "function" ? null : n.json();
+	}
+	async _findPromptInQueue(e, t) {
+		let n = await this._fetchJson(e, "/queue"), r = [...Array.isArray(n?.queue_running) ? n.queue_running : [], ...Array.isArray(n?.queue_pending) ? n.queue_pending : []];
+		for (let e of r) if (Array.isArray(e) && String(e[1] || "") === t) return e[2] && typeof e[2] == "object" ? e[2] : null;
+		return null;
+	}
+	async _findPromptInHistory(e, t) {
+		let n = (await this._fetchJson(e, `/history/${encodeURIComponent(t)}`))?.[t]?.prompt;
+		return Array.isArray(n) && n[2] && typeof n[2] == "object" ? n[2] : null;
 	}
 	_attachApiListeners(e) {
 		this._attachListener(e, "status", (e) => {
 			e?.detail?.exec_info && (this.lastQueueRemaining = Number(e.detail.exec_info.queue_remaining) || 0, this.dispatchProgressUpdate());
-		}), this._attachListener(e, "execution_start", (e) => {
-			let t = String(e?.detail?.prompt_id || e?.detail?.promptId || "").trim();
-			t && (this.currentExecution = this.getOrMakePrompt(t), this.dispatchProgressUpdate());
+		}), this._attachListener(e, "execution_start", (t) => {
+			let n = String(t?.detail?.prompt_id || t?.detail?.promptId || "").trim();
+			n && (this.currentExecution = this.getOrMakePrompt(n), this.dispatchProgressUpdate(), this._hydratePrompt(e, this.currentExecution));
 		}), this._attachListener(e, "executing", (e) => {
 			this.currentExecution ||= this.getOrMakePrompt("unknown"), this.currentExecution.executing(e?.detail), e?.detail ?? (this.currentExecution = null), this.dispatchProgressUpdate();
 		}), this._attachListener(e, "progress", (e) => {
@@ -172,25 +178,20 @@ var te = class {
 		});
 	}
 	dispatchProgressUpdate() {
-		this.dispatchEvent(v(g, this.getSnapshot()));
+		this.dispatchEvent(_(h, this.getSnapshot()));
 	}
-	dispose({ resetPatchedQueuePrompt: e = !1, keepState: t = !1 } = {}) {
+	dispose({ keepState: e = !1 } = {}) {
 		for (let { api: e, type: t, handler: n } of this._listenerEntries.splice(0)) try {
 			e?.removeEventListener?.(t, n);
 		} catch (e) {
 			console.debug?.(e);
 		}
-		if (e && this._queuePromptBinding?.owner === this) try {
-			this._queuePromptBinding.restore?.();
-		} catch (e) {
-			console.debug?.(e);
-		}
-		this._queuePromptBinding = null, this._api = null, t || (this.promptsMap.clear(), this.currentExecution = null, this.lastQueueRemaining = 0);
+		this._api = null, e || (this.promptsMap.clear(), this.currentExecution = null, this.lastQueueRemaining = 0);
 	}
-}, y = ee(), b = y[_] || new ne();
-y[_] || (y[_] = b);
-function x(e = {}) {
-	return b.ensureInitialized(e);
+}, v = ee(), y = v[g] || new ne();
+v[g] || (v[g] = y);
+function b(e = {}) {
+	return y.ensureInitialized(e);
 }
 function re(e) {
 	let t = Math.max(0, Number(e?.queue) || 0), n = e?.prompt || null;
@@ -227,7 +228,7 @@ function ie(e) {
 	let r = String(n.nodeLabel || n.nodeId || "Node").trim(), i = Number(n.step), a = Number(n.maxSteps);
 	return Number.isFinite(i) && Number.isFinite(a) && a > 0 ? n.pass > 1 ? `${r} #${n.pass} - ${i}/${a}` : `${r} - ${i}/${a}` : r;
 }
-function S(e, t) {
+function x(e, t) {
 	if (!e?._progressEl && !e?._mediaProgressEl) return;
 	let n = t?.prompt || null, r = String(n?.errorDetails?.node_id || n?.currentlyExecuting?.nodeId || "").trim(), i = "0%", a = "0%", o = !!n?.errorDetails;
 	if (n?.currentlyExecuting) {
@@ -247,7 +248,7 @@ function ae(e, t) {
 	let n = String(t || "").trim();
 	if (!n) return !1;
 	try {
-		return o(n, s());
+		return i(n, a());
 	} catch (e) {
 		return console.debug?.(e), !1;
 	}
@@ -264,78 +265,78 @@ function oe(e) {
 	let a = document.createElement("span");
 	return a.className = "mjr-mfv-progress-text", a.textContent = "Idle", t.appendChild(n), t.appendChild(r), t.appendChild(i), t.appendChild(a), t.addEventListener("pointerdown", (t) => {
 		t.button === 0 && ae(e, e._progressCurrentNodeId) && (t.preventDefault(), t.stopPropagation());
-	}), e._progressEl = t, e._progressNodesEl = n, e._progressStepsEl = r, e._progressTextEl = a, e._progressUpdateHandler && b.removeEventListener(g, e._progressUpdateHandler), e._progressUpdateHandler = (t) => {
-		S(e, t?.detail || b.getSnapshot());
-	}, b.addEventListener(g, e._progressUpdateHandler), x({ timeoutMs: 4e3 }).catch((e) => {
+	}), e._progressEl = t, e._progressNodesEl = n, e._progressStepsEl = r, e._progressTextEl = a, e._progressUpdateHandler && y.removeEventListener(h, e._progressUpdateHandler), e._progressUpdateHandler = (t) => {
+		x(e, t?.detail || y.getSnapshot());
+	}, y.addEventListener(h, e._progressUpdateHandler), b({ timeoutMs: 4e3 }).catch((e) => {
 		console.debug?.(e);
-	}), S(e, b.getSnapshot()), t;
+	}), x(e, y.getSnapshot()), t;
 }
 function se(e) {
 	let t = document.createElement("div");
 	t.className = "mjr-mfv-media-progress", t.setAttribute("aria-hidden", "true");
 	let n = document.createElement("span");
-	return n.className = "mjr-mfv-media-progress-text", t.appendChild(n), e._mediaProgressEl = t, e._mediaProgressTextEl = n, S(e, b.getSnapshot()), t;
+	return n.className = "mjr-mfv-media-progress-text", t.appendChild(n), e._mediaProgressEl = t, e._mediaProgressTextEl = n, x(e, y.getSnapshot()), t;
 }
 function ce(e) {
 	if (e?._progressUpdateHandler) try {
-		b.removeEventListener(g, e._progressUpdateHandler);
+		y.removeEventListener(h, e._progressUpdateHandler);
 	} catch (e) {
 		console.debug?.(e);
 	}
 	e._progressUpdateHandler = null, e._progressCurrentNodeId = null, e._progressEl = null, e._progressNodesEl = null, e._progressStepsEl = null, e._progressTextEl = null, e._mediaProgressEl = null, e._mediaProgressTextEl = null;
 }
 // ui/features/viewer/workflowGraphMap/workflowGraphMapData.ts
-var C = /* @__PURE__ */ new Map(), w = null;
+var S = /* @__PURE__ */ new Map(), C = null;
 async function le(e) {
-	let t = Array.from(new Set(T(e).map((e) => O(e)).filter(Boolean)));
-	if (t.length && t.filter((e) => !C.has(e)).length) try {
-		w ||= i("/object_info").then((e) => e?.ok ? e.json() : null).then((e) => {
-			if (e && typeof e == "object") for (let [t, n] of Object.entries(e)) C.set(String(t), n);
+	let t = Array.from(new Set(w(e).map((e) => D(e)).filter(Boolean)));
+	if (t.length && t.filter((e) => !S.has(e)).length) try {
+		C ||= n("/object_info").then((e) => e?.ok ? e.json() : null).then((e) => {
+			if (e && typeof e == "object") for (let [t, n] of Object.entries(e)) S.set(String(t), n);
 			return e;
-		}).catch(() => null), await w;
+		}).catch(() => null), await C;
 	} catch {}
 }
 function ue(e) {
-	let t = be(e), n = xe(e);
+	let t = ye(e), n = be(e);
 	for (let e of t) {
-		let t = Se(L(e));
-		if (t) return we(t, n), R(t), t;
+		let t = xe(L(e));
+		if (t) return Ce(t, n), R(t), t;
 	}
 	return null;
 }
-function T(e, t = null) {
+function w(e, t = null) {
 	let n = t?.includeSubgraphs !== !1, r = Array.isArray(e?.nodes) ? e.nodes.filter(Boolean) : [];
 	if (!n) return r;
 	let i = [...r], a = H(e);
 	for (let n of r) {
 		let r = W(e, n, a);
-		r && i.push(...T(r, t));
+		r && i.push(...w(r, t));
 	}
 	return i;
 }
-function E(e, t, n = null) {
+function T(e, t, n = null) {
 	let r = n?.includeSubgraphs !== !1, i = String(t ?? "");
 	if (!i) return null;
 	if (!r) return (Array.isArray(e?.nodes) ? e.nodes : []).find((e) => String(e?.id ?? e?.ID ?? "") === i) || null;
-	if (i.includes("::")) return Pe(e, i.split("::").filter(Boolean));
+	if (i.includes("::")) return Ne(e, i.split("::").filter(Boolean));
 	let a = (Array.isArray(e?.nodes) ? e.nodes : []).find((e) => String(e?.id ?? e?.ID ?? "") === i) || null;
 	if (a) return a;
 	for (let t of Array.isArray(e?.nodes) ? e.nodes : []) {
-		let n = W(e, t, H(e)), r = n ? E(n, i) : null;
+		let n = W(e, t, H(e)), r = n ? T(n, i) : null;
 		if (r) return r;
 	}
 	return null;
 }
+function E(e) {
+	return f(e);
+}
 function D(e) {
 	return p(e);
 }
-function O(e) {
-	return m(e);
-}
 function de(e) {
-	return d(e);
+	return u(e);
 }
-function k(e) {
+function O(e) {
 	let t = fe(e), n = e?.properties && typeof e.properties == "object" ? e.properties : null;
 	if (Array.isArray(e?._mjrSubgraphProxyParams)) for (let n of e._mjrSubgraphProxyParams) {
 		let e = String(n?.label || n?.key || "").trim();
@@ -346,21 +347,21 @@ function k(e) {
 }
 function fe(e) {
 	let t = [], n = e?._mjrPromptInputs && typeof e._mjrPromptInputs == "object" ? e._mjrPromptInputs : null, r = e?.inputs && typeof e.inputs == "object" ? e.inputs : null;
-	if (n && !Array.isArray(n)) for (let [e, r] of Object.entries(n)) M(r) || t.push([e, r]);
-	if (r && !Array.isArray(r)) for (let [e, n] of Object.entries(r)) M(n) || t.some(([t]) => String(t) === String(e)) || t.push([e, n]);
-	for (let { label: n, value: r } of A(e)) t.some(([e]) => String(e) === String(n)) || t.push([n, r]);
+	if (n && !Array.isArray(n)) for (let [e, r] of Object.entries(n)) j(r) || t.push([e, r]);
+	if (r && !Array.isArray(r)) for (let [e, n] of Object.entries(r)) j(n) || t.some(([t]) => String(t) === String(e)) || t.push([e, n]);
+	for (let { label: n, value: r } of k(e)) t.some(([e]) => String(e) === String(n)) || t.push([n, r]);
 	return t;
 }
-function A(e) {
+function k(e) {
 	let t = e?.widgets_values;
 	if (pe(t)) return Object.entries(t).map(([e, t], n) => ({
 		label: e,
 		value: t,
 		index: n
 	}));
-	let n = me(t), r = Array.isArray(e?.widgets) ? e.widgets : [], i = P(_e(e)), a = he(e);
+	let n = me(t), r = Array.isArray(e?.widgets) ? e.widgets : [], i = N(_e(e)), a = he(e);
 	return n.map((t, n) => {
-		let o = ye(e, n, t);
+		let o = ve(e, n, t);
 		return {
 			label: a[n] || r[n]?.name || r[n]?.label || i[n] || o || `param ${n + 1}`,
 			value: t,
@@ -369,29 +370,29 @@ function A(e) {
 	});
 }
 function pe(e) {
-	return !(!e || typeof e != "object" || Array.isArray(e) || j(e));
+	return !(!e || typeof e != "object" || Array.isArray(e) || A(e));
 }
 function me(e) {
 	if (Array.isArray(e)) return e;
-	if (!j(e)) return [];
+	if (!A(e)) return [];
 	let t = Math.max(0, Math.floor(Number(e.length) || 0)), n = [];
 	for (let r = 0; r < t; r += 1) n.push(e[r]);
 	return n;
 }
-function j(e) {
+function A(e) {
 	if (!e || typeof e != "object" || Array.isArray(e)) return !1;
 	let t = Number(e.length);
 	return !(!Number.isFinite(t) || t < 0);
 }
 function he(e) {
-	let t = (Array.isArray(e?.inputs) ? e.inputs : []).filter(F), n = [], r = /* @__PURE__ */ new Set(), i = (e) => {
+	let t = (Array.isArray(e?.inputs) ? e.inputs : []).filter(P), n = [], r = /* @__PURE__ */ new Set(), i = (e) => {
 		let t = `${String(e?.name || "")}\u0000${String(e?.label || "")}\u0000${String(e?.link ?? "")}`;
 		r.has(t) || (r.add(t), n.push(e));
 	};
 	for (let e of t) i(e);
 	return n.map((e) => String(e?.label || e?.localized_name || e?.name || e?.widget?.name || e?.widget?.label || "").trim());
 }
-function M(e) {
+function j(e) {
 	return Array.isArray(e) && e.length === 2 && String(e[0] ?? "").trim() !== "" && Number.isFinite(Number(e[1]));
 }
 function ge(e) {
@@ -399,39 +400,39 @@ function ge(e) {
 	return !t || t === "cnr_id" || t === "ver" || t === "node_name_for_s&r" || t === "subgraph_name" || t === "subgraph_id" || t === "enabletabs" || t === "tabwidth" || t === "tabxoffset" || t === "hassecondtab" || t === "secondtabtext" || t === "secondtaboffset" || t === "secondtabwidth" || t.startsWith("ue_");
 }
 function _e(e) {
-	let t = O(e);
-	return t && C.get(t) || null;
+	let t = D(e);
+	return t && S.get(t) || null;
 }
-function N(e) {
+function M(e) {
 	let t = e?.input_order;
 	if (t && typeof t == "object") return [...Array.isArray(t.required) ? t.required : [], ...Array.isArray(t.optional) ? t.optional : []].filter(Boolean);
 	let n = e?.input;
 	return n && typeof n == "object" ? ["required", "optional"].flatMap((e) => n[e] && typeof n[e] == "object" ? Object.keys(n[e]) : []).filter(Boolean) : [];
 }
-function P(e) {
+function N(e) {
 	let t = e?.input;
-	if (!t || typeof t != "object") return N(e);
+	if (!t || typeof t != "object") return M(e);
 	let n = [];
 	for (let e of ["required", "optional"]) {
 		let r = t[e];
-		if (r && typeof r == "object") for (let [e, t] of Object.entries(r)) I(t) && n.push(e);
+		if (r && typeof r == "object") for (let [e, t] of Object.entries(r)) F(t) && n.push(e);
 	}
-	return n.length ? n : N(e);
+	return n.length ? n : M(e);
 }
-function F(e) {
+function P(e) {
 	return !e || typeof e != "object" ? !1 : !!(e.widget === !0 || e.widget && typeof e.widget == "object" || typeof e.widget == "string" && e.widget.trim() || e.widget_index != null || e.widgetIndex != null);
 }
-function I(e) {
+function F(e) {
 	let t = Array.isArray(e) ? e : [], n = t[0], r = t[1] && typeof t[1] == "object" && !Array.isArray(t[1]) ? t[1] : null;
-	return r?.forceInput === !0 || r?.rawLink === !0 ? !1 : r?.widgetType && String(r.widgetType).trim() ? !0 : ve(n);
+	return r?.forceInput === !0 || r?.rawLink === !0 ? !1 : r?.widgetType && String(r.widgetType).trim() ? !0 : I(n);
 }
-function ve(e) {
+function I(e) {
 	if (Array.isArray(e)) return !0;
 	let t = String(e || "").trim().toUpperCase();
 	return t ? t === "INT" || t === "FLOAT" || t === "STRING" || t === "BOOLEAN" || t === "BOOL" || t === "COMBO" || t === "ENUM" : !1;
 }
-function ye(e, t, n) {
-	let r = O(e), i = D(e), a = `${r} ${i}`.toLowerCase(), o = String(n ?? "").toLowerCase();
+function ve(e, t, n) {
+	let r = D(e), i = E(e), a = `${r} ${i}`.toLowerCase(), o = String(n ?? "").toLowerCase();
 	if (a.includes("ksamplerselect")) return "sampler_name";
 	if (a.includes("ksampler")) return [
 		"seed",
@@ -472,7 +473,7 @@ function ye(e, t, n) {
 	}
 	return null;
 }
-function be(e) {
+function ye(e) {
 	let t = L(e?.metadata_raw), n = L(e?.metadata);
 	return [
 		e?.workflow,
@@ -514,7 +515,7 @@ function be(e) {
 		n?.Prompt
 	].filter((e) => e != null);
 }
-function xe(e) {
+function be(e) {
 	let t = L(e?.metadata_raw), n = L(e?.metadata), r = [
 		e?.prompt,
 		e?.Prompt,
@@ -541,16 +542,16 @@ function L(e) {
 		return null;
 	}
 }
-function Se(e) {
+function xe(e) {
 	if (!e || typeof e != "object") return null;
 	if (Array.isArray(e.nodes)) return e;
-	let t = Ce(e);
+	let t = Se(e);
 	if (t) return t;
-	if (e.prompt && typeof e.prompt == "object") return h(e.prompt);
-	let n = h(e);
+	if (e.prompt && typeof e.prompt == "object") return m(e.prompt);
+	let n = m(e);
 	return n && Array.isArray(n.nodes) ? n : null;
 }
-function Ce(e) {
+function Se(e) {
 	for (let t of [
 		"workflow",
 		"Workflow",
@@ -571,14 +572,14 @@ function R(e, t = /* @__PURE__ */ new WeakSet()) {
 	t.add(e);
 	let n = H(e);
 	for (let r of Array.isArray(e?.nodes) ? e.nodes : []) {
-		De(r, n);
+		Ee(r, n);
 		let i = W(e, r, n);
-		i && (Oe(r, i), R(i, t));
+		i && (De(r, i), R(i, t));
 	}
 }
-function we(e, t) {
+function Ce(e, t) {
 	if (!e || typeof e != "object" || !t || typeof t != "object") return;
-	let n = Te(t);
+	let n = we(t);
 	n.length && z(e, n, /* @__PURE__ */ new WeakSet());
 }
 function z(e, t, n) {
@@ -586,13 +587,13 @@ function z(e, t, n) {
 	n.add(e);
 	let r = H(e);
 	for (let i of Array.isArray(e?.nodes) ? e.nodes : []) {
-		let a = Ee(i, t);
+		let a = Te(i, t);
 		a?.inputs && typeof a.inputs == "object" && !Array.isArray(a.inputs) && (i._mjrPromptInputs = a.inputs);
 		let o = W(e, i, r);
 		o && z(o, t, n);
 	}
 }
-function Te(e) {
+function we(e) {
 	if (!e || typeof e != "object" || Array.isArray(e)) return [];
 	let t = [];
 	for (let [n, r] of Object.entries(e)) {
@@ -609,8 +610,8 @@ function Te(e) {
 	}
 	return t;
 }
-function Ee(e, t) {
-	let n = String(e?.id ?? e?.ID ?? "").trim(), r = B(O(e));
+function Te(e, t) {
+	let n = String(e?.id ?? e?.ID ?? "").trim(), r = B(D(e));
 	if (!n || !r) return null;
 	let i = t.find((e) => e.id === n && B(e.classType) === r);
 	if (i) return i;
@@ -620,7 +621,7 @@ function Ee(e, t) {
 function B(e) {
 	return String(e || "").trim().toLowerCase();
 }
-function De(e, t) {
+function Ee(e, t) {
 	if (!e || typeof e != "object") return;
 	let n = U(e).find((e) => t.has(String(e)));
 	if (!n) return;
@@ -629,18 +630,18 @@ function De(e, t) {
 	let a = e?.properties && typeof e.properties == "object" ? e.properties : e.properties = {};
 	String(a.subgraph_name || "").trim() || (a.subgraph_name = i), String(a.subgraph_id || "").trim() || (a.subgraph_id = n);
 }
-function Oe(e, t) {
+function De(e, t) {
 	let n = Array.isArray(e?.properties?.proxyWidgets) ? e.properties.proxyWidgets : [];
 	if (!n.length || !Array.isArray(t?.nodes)) return;
-	let r = new Map(t.nodes.filter(Boolean).map((e) => [String(e?.id ?? e?.ID ?? ""), e])), i = ke(e), a = Ae(t), o = [];
+	let r = new Map(t.nodes.filter(Boolean).map((e) => [String(e?.id ?? e?.ID ?? ""), e])), i = Oe(e), a = ke(t), o = [];
 	for (let e = 0; e < n.length; e += 1) {
 		let t = n[e], s = Array.isArray(t) ? t[0] : t?.nodeId ?? t?.node_id ?? t?.id, c = Array.isArray(t) ? t[1] : t?.widget ?? t?.name ?? t?.widgetName, l = r.get(String(s ?? ""));
 		if (!l) continue;
-		let u = k(l);
+		let u = O(l);
 		if (!u.length) continue;
 		let d = u.find(([e]) => V(e) === V(c)) || u.find(([e]) => V(e) === "value") || (u.length === 1 ? u[0] : null);
 		if (!d) continue;
-		let f = `${String(s)}:${je(t, c, d[0])}`, p = a.get(f) || a.get(String(s)) || Me(l, d[0], c);
+		let f = `${String(s)}:${Ae(t, c, d[0])}`, p = a.get(f) || a.get(String(s)) || je(l, d[0], c);
 		(!i.size || i.has(V(p))) && o.push({
 			label: p,
 			value: d[1],
@@ -650,16 +651,16 @@ function Oe(e, t) {
 	}
 	o.length && (e._mjrSubgraphProxyParams = o);
 }
-function ke(e) {
+function Oe(e) {
 	let t = Array.isArray(e?.inputs) ? e.inputs : [], n = /* @__PURE__ */ new Set();
 	for (let e of t) {
-		if (!F(e)) continue;
+		if (!P(e)) continue;
 		let t = String(e?.label || e?.localized_name || e?.name || "").trim();
 		t && n.add(V(t));
 	}
 	return n;
 }
-function Ae(e) {
+function ke(e) {
 	let t = Array.isArray(e?.inputs) ? e.inputs : [], n = Array.isArray(e?.links) ? e.links : [], r = /* @__PURE__ */ new Map();
 	for (let e of n) {
 		let n = Array.isArray(e) ? e[1] : e?.origin_id ?? e?.originId ?? e?.from;
@@ -669,15 +670,15 @@ function Ae(e) {
 	}
 	return r;
 }
-function je(e, t, n) {
+function Ae(e, t, n) {
 	if (e && typeof e == "object" && !Array.isArray(e)) {
 		let t = e.target_slot ?? e.targetSlot ?? e.slot;
 		if (Number.isFinite(Number(t))) return Number(t);
 	}
 	return 0;
 }
-function Me(e, t, n) {
-	let r = String(D(e) || "").trim(), i = String(t || n || "").trim();
+function je(e, t, n) {
+	let r = String(E(e) || "").trim(), i = String(t || n || "").trim();
 	return r && i && V(i) !== "value" ? `${r} ${i}` : r || i || "param";
 }
 function V(e) {
@@ -689,10 +690,10 @@ function H(e) {
 		...Array.isArray(e?.subgraphs) ? e.subgraphs : [],
 		...Array.isArray(e?.rootGraph?.subgraphs) ? e.rootGraph.subgraphs : []
 	], n = /* @__PURE__ */ new Map();
-	for (let e of t) for (let t of Ne(e)) t != null && n.set(String(t), e);
+	for (let e of t) for (let t of Me(e)) t != null && n.set(String(t), e);
 	return n;
 }
-function Ne(e) {
+function Me(e) {
 	let t = e?.properties && typeof e.properties == "object" ? e.properties : {};
 	return [
 		e?.id,
@@ -734,7 +735,7 @@ function W(e, t, n = H(e)) {
 	for (let e of r) if (e && typeof e == "object" && Array.isArray(e.nodes)) return e;
 	return Array.isArray(t?.nodes) ? { nodes: t.nodes } : null;
 }
-function Pe(e, t) {
+function Ne(e, t) {
 	let n = e, r = null;
 	for (let e = 0; e < t.length; e += 1) {
 		let i = String(t[e] ?? "").trim();
@@ -747,42 +748,42 @@ function Pe(e, t) {
 	return r;
 }
 // ui/features/viewer/workflowSidebar/widgetAdapters.ts
-function Fe(e, t, n = null) {
+function Pe(e, t, n = null) {
 	switch (String(e?.type || "").toLowerCase()) {
 		case "number":
 		case "int":
-		case "float": return Le(e, t, n);
-		case "combo": return Re(e, t, n);
+		case "float": return Ie(e, t, n);
+		case "combo": return Le(e, t, n);
 		case "text":
 		case "string":
-		case "customtext": return ze(e, t, n);
+		case "customtext": return Re(e, t, n);
 		case "toggle":
-		case "boolean": return Be(e, t, n);
-		default: return Ve(e);
+		case "boolean": return ze(e, t, n);
+		default: return Be(e);
 	}
 }
-function G(e, n, i = null) {
+function G(e, n, r = null) {
 	if (!e) return !1;
-	let a = String(e.type || "").toLowerCase();
-	if (a === "number" || a === "int" || a === "float") {
+	let i = String(e.type || "").toLowerCase();
+	if (i === "number" || i === "int" || i === "float") {
 		let t = Number(n);
 		if (Number.isNaN(t)) return !1;
-		let r = e.options ?? {}, i = r.min ?? -Infinity, o = r.max ?? Infinity, s = Math.min(o, Math.max(i, t));
-		(a === "int" || r.precision === 0 || r.round === 1) && (s = Math.round(s)), e.value = s;
-	} else e.value = a === "toggle" || a === "boolean" ? !!n : n;
+		let r = e.options ?? {}, a = r.min ?? -Infinity, o = r.max ?? Infinity, s = Math.min(o, Math.max(a, t));
+		(i === "int" || r.precision === 0 || r.round === 1) && (s = Math.round(s)), e.value = s;
+	} else e.value = i === "toggle" || i === "boolean" ? !!n : n;
 	try {
-		let n = t(), o = i ?? e?.parent ?? null, s = e.value;
-		e.callback?.(e.value, n, o, null, e), (a === "number" || a === "int" || a === "float") && (e.value = s), Ie(e), r(o);
+		let n = t(), a = r ?? e?.parent ?? null, o = e.value;
+		e.callback?.(e.value, n, a, null, e), (i === "number" || i === "int" || i === "float") && (e.value = o), Fe(e), s(a);
 	} catch (e) {
 		console.debug?.("[MFV] writeWidgetValue", e);
 	}
 	return !0;
 }
-function Ie(e) {
+function Fe(e) {
 	let t = String(e.value ?? ""), n = e?.inputEl ?? e?.element ?? e?.el ?? e?.cachedDeepestByFrame?.widget?.inputEl ?? e?.cachedDeepestByFrame?.widget?.element ?? e?.cachedDeepestByFrame?.widget?.el ?? null;
 	n != null && "value" in n && n.value !== t && (n.value = t);
 }
-function Le(e, t, n = null) {
+function Ie(e, t, n = null) {
 	let r = document.createElement("input");
 	r.type = "number", r.className = "mjr-ws-input", r.value = e.value ?? "";
 	let i = e.options ?? {}, a = String(e?.type || "").toLowerCase() === "int" || i.precision === 0 || i.round === 1;
@@ -798,7 +799,7 @@ function Le(e, t, n = null) {
 		G(e, r.value, n) && (r.value = String(e.value), t?.(e.value));
 	}), r;
 }
-function Re(e, t, n = null) {
+function Le(e, t, n = null) {
 	let r = document.createElement("select");
 	r.className = "mjr-ws-input";
 	let i = e.options?.values ?? [];
@@ -816,7 +817,7 @@ function Re(e, t, n = null) {
 		G(e, r.value, n) && t?.(e.value);
 	}), r;
 }
-function ze(e, t, n = null) {
+function Re(e, t, n = null) {
 	let r = document.createElement("div");
 	r.className = "mjr-ws-text-wrapper";
 	let i = document.createElement("textarea");
@@ -830,7 +831,7 @@ function ze(e, t, n = null) {
 		G(e, i.value, n), t?.(e.value), a();
 	}), r.appendChild(i), r._mjrAutoFit = a, i._mjrAutoFit = a, requestAnimationFrame(a), r;
 }
-function Be(e, t, n = null) {
+function ze(e, t, n = null) {
 	let r = document.createElement("label");
 	r.className = "mjr-ws-toggle-label";
 	let i = document.createElement("input");
@@ -838,12 +839,12 @@ function Be(e, t, n = null) {
 		G(e, i.checked, n) && t?.(e.value);
 	}), r.appendChild(i), r;
 }
-function Ve(e) {
+function Be(e) {
 	let t = document.createElement("input");
 	return t.type = "text", t.className = "mjr-ws-input mjr-ws-readonly", t.value = e.value == null ? "" : String(e.value), t.readOnly = !0, t.tabIndex = -1, t;
 }
 // ui/app/settings/MajoorSettingsDialog.ts
-var K = "mjr-settings-dialog", q = "mjr-settings-dialog-style", J = "mjr:settings-dialog-visibility", Y = null, He = {
+var K = "mjr-settings-dialog", q = "mjr-settings-dialog-style", J = "mjr:settings-dialog-visibility", Y = null, Ve = {
 	Cards: {
 		icon: "pi pi-th-large",
 		label: "Cards"
@@ -897,7 +898,7 @@ var K = "mjr-settings-dialog", q = "mjr-settings-dialog-style", J = "mjr:setting
 		label: "General"
 	}
 };
-function Ue() {
+function He() {
 	if (typeof document > "u" || document.getElementById(q)) return;
 	let e = document.createElement("style");
 	e.id = q, e.textContent = `
@@ -1078,23 +1079,23 @@ function Ue() {
 }
 `, document.head.appendChild(e);
 }
-function We(e) {
+function Ue(e) {
 	return String(e || "").replace(/^\s*Majoor:\s*/i, "").trim();
 }
-function Ge(e) {
+function We(e) {
 	let t = Array.isArray(e?.category) ? e.category : [];
 	return String(t[1] || "General").trim() || "General";
 }
-function Ke(e) {
+function X(e) {
 	return (Array.isArray(e?.category) ? e.category : []).slice(2).filter(Boolean).join(" / ") || "General";
 }
-function qe(e) {
-	return He[e] || {
+function Ge(e) {
+	return Ve[e] || {
 		icon: "pi pi-sliders-h",
 		label: e || "General"
 	};
 }
-function X(e, t) {
+function Ke(e, t) {
 	return !t || [
 		e?.id,
 		e?.name,
@@ -1115,7 +1116,7 @@ function Z(e, t) {
 		}
 	}
 }
-function Je(e) {
+function qe(e) {
 	let t = String(e?.type || "text").toLowerCase(), n = e?.defaultValue, r;
 	if (t === "boolean") return r = document.createElement("input"), r.type = "checkbox", r.checked = !!n, r.addEventListener("change", () => Z(e, r.checked)), r;
 	if (t === "combo") {
@@ -1133,20 +1134,20 @@ function Je(e) {
 		Z(e, t === "number" ? Number(r.value) : r.value);
 	}), r;
 }
-function Ye(e, t, n = "") {
+function Je(e, t, n = "") {
 	e.replaceChildren();
 	let r = document.createElement("div");
 	r.className = "mjr-settings-stack", e.appendChild(r);
 	let i = /* @__PURE__ */ new Map();
 	for (let e of t || []) {
-		if (!X(e, n)) continue;
-		let t = Ge(e), r = Ke(e);
+		if (!Ke(e, n)) continue;
+		let t = We(e), r = X(e);
 		i.has(t) || i.set(t, /* @__PURE__ */ new Map());
 		let a = i.get(t);
 		a.has(r) || a.set(r, []), a.get(r).push(e);
 	}
 	for (let [e, t] of i.entries()) {
-		let i = Array.from(t.values()).flat(), a = qe(e), o = document.createElement("details");
+		let i = Array.from(t.values()).flat(), a = Ge(e), o = document.createElement("details");
 		o.className = "mjr-settings-group", o.open = !!n;
 		let s = document.createElement("summary"), c = document.createElement("span");
 		c.className = "mjr-settings-group-icon";
@@ -1169,19 +1170,19 @@ function Ye(e, t, n = "") {
 				let n = document.createElement("label");
 				n.className = "mjr-settings-row";
 				let r = document.createElement("div"), i = document.createElement("div");
-				if (i.className = "mjr-settings-name", i.textContent = We(e?.name) || e?.id || "Setting", r.appendChild(i), e?.tooltip) {
+				if (i.className = "mjr-settings-name", i.textContent = Ue(e?.name) || e?.id || "Setting", r.appendChild(i), e?.tooltip) {
 					let t = document.createElement("div");
 					t.className = "mjr-settings-tip", t.textContent = String(e.tooltip), r.appendChild(t);
 				}
-				n.appendChild(r), n.appendChild(Je(e)), t.appendChild(n);
+				n.appendChild(r), n.appendChild(qe(e)), t.appendChild(n);
 			}
 			p.appendChild(t);
 		}
 		o.appendChild(p), r.appendChild(o);
 	}
 }
-function Xe() {
-	Ue();
+function Ye() {
+	He();
 	let e = document.createElement("div");
 	e.id = K, e.hidden = !0, e.addEventListener("click", (t) => {
 		t.target === e && Q();
@@ -1191,18 +1192,18 @@ function Xe() {
 	let n = document.createElement("div");
 	n.className = "mjr-settings-head";
 	let r = document.createElement("div");
-	r.className = "mjr-settings-title", r.textContent = c("settings.majoor.title", "Majoor Assets Manager Settings");
+	r.className = "mjr-settings-title", r.textContent = o("settings.majoor.title", "Majoor Assets Manager Settings");
 	let i = document.createElement("button");
-	i.type = "button", i.className = "mjr-settings-close", i.textContent = "X", i.setAttribute("aria-label", c("btn.close", "Close")), i.addEventListener("click", Q), n.append(r, i);
+	i.type = "button", i.className = "mjr-settings-close", i.textContent = "X", i.setAttribute("aria-label", o("btn.close", "Close")), i.addEventListener("click", Q), n.append(r, i);
 	let a = document.createElement("div");
 	a.className = "mjr-settings-tools";
-	let o = document.createElement("input");
-	o.type = "search", o.className = "mjr-settings-search", o.placeholder = c("placeholder.searchSettings", "Search settings"), a.appendChild(o);
-	let s = document.createElement("div");
-	return s.className = "mjr-settings-body", t.append(n, a, s), e.appendChild(t), document.body.appendChild(e), {
-		body: s,
+	let s = document.createElement("input");
+	s.type = "search", s.className = "mjr-settings-search", s.placeholder = o("placeholder.searchSettings", "Search settings"), a.appendChild(s);
+	let c = document.createElement("div");
+	return c.className = "mjr-settings-body", t.append(n, a, c), e.appendChild(t), document.body.appendChild(e), {
+		body: c,
 		root: e,
-		search: o
+		search: s
 	};
 }
 function Q() {
@@ -1215,10 +1216,10 @@ function Q() {
 		}
 	}
 }
-function Ze(e = s()) {
+function Xe(e = a()) {
 	if (typeof document > "u") return !1;
-	Y?.root?.isConnected || (Y = Xe());
-	let t = f(e), n = () => Ye(Y.body, t, String(Y.search.value || "").trim().toLowerCase());
+	Y?.root?.isConnected || (Y = Ye());
+	let t = d(e), n = () => Je(Y.body, t, String(Y.search.value || "").trim().toLowerCase());
 	Y.search.oninput = n, Y.search.value = "", n(), Y.root.hidden = !1;
 	try {
 		window.dispatchEvent(new CustomEvent(J, { detail: { open: !0 } }));
@@ -1228,12 +1229,12 @@ function Ze(e = s()) {
 	return setTimeout(() => Y?.search?.focus?.(), 0), !0;
 }
 // ui/app/openMajoorSettings.ts
-function $(e = s()) {
-	return Ze(e);
+function $(e = a()) {
+	return Xe(e);
 }
 try {
 	typeof window < "u" && (window.MajoorAssetsManager = window.MajoorAssetsManager || {}, window.MajoorAssetsManager.openSettings = $);
 } catch (e) {
 	console.debug?.(e);
 }
-export { x as _, le as a, k as c, A as d, T as f, ce as g, oe as h, G as i, O as l, se as m, J as n, E as o, ue as p, Fe as r, D as s, $ as t, de as u, b as v };
+export { b as _, le as a, O as c, k as d, w as f, ce as g, oe as h, G as i, D as l, se as m, J as n, T as o, ue as p, Pe as r, E as s, $ as t, de as u, y as v };

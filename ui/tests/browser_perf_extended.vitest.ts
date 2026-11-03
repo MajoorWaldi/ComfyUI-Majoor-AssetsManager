@@ -29,15 +29,15 @@ function elapsed(fn) {
 /** Build a synthetic asset. */
 function makeAsset(overrides = {}) {
     return {
-        id: overrides.id ?? Math.random().toString(36).slice(2),
-        filename: overrides.filename ?? "image.png",
-        kind: overrides.kind ?? "image",
-        mtime: overrides.mtime ?? Date.now(),
-        size: overrides.size ?? 1024,
-        has_generation_data: overrides.has_generation_data ?? 0,
-        subfolder: overrides.subfolder ?? "",
-        source: overrides.source ?? "output",
-        root_id: overrides.root_id ?? "root1",
+        id: (overrides as any).id ?? Math.random().toString(36).slice(2),
+        filename: (overrides as any).filename ?? "image.png",
+        kind: (overrides as any).kind ?? "image",
+        mtime: (overrides as any).mtime ?? Date.now(),
+        size: (overrides as any).size ?? 1024,
+        has_generation_data: (overrides as any).has_generation_data ?? 0,
+        subfolder: (overrides as any).subfolder ?? "",
+        source: (overrides as any).source ?? "output",
+        root_id: (overrides as any).root_id ?? "root1",
         ...overrides,
     };
 }
@@ -320,7 +320,7 @@ describe("imagePreloader – deduplication and cache eviction", () => {
         preloadImageForAsset(asset, "/view/dup-1.png");
 
         // Only one key should be stored
-        expect(state._preloadedAssetKeys?.size).toBe(1);
+        expect((state as any)._preloadedAssetKeys?.size).toBe(1);
     });
 
     it("clears cache after 250-item limit", async () => {
@@ -332,7 +332,7 @@ describe("imagePreloader – deduplication and cache eviction", () => {
             preloadImageForAsset(asset, `/view/asset-${i}.png`);
         }
         // After clear the set is small (only items added since last clear)
-        expect(state._preloadedAssetKeys?.size).toBeLessThan(20);
+        expect((state as any)._preloadedAssetKeys?.size).toBeLessThan(20);
     });
 
     it("ignores non-image assets", async () => {
@@ -340,7 +340,7 @@ describe("imagePreloader – deduplication and cache eviction", () => {
         const { preloadImageForAsset } = await makePreloader(state);
         const video = makeAsset({ id: "v1", kind: "video", filename: "clip.mp4" });
         preloadImageForAsset(video, "/view/v1.mp4");
-        expect(state._preloadedAssetKeys?.size ?? 0).toBe(0);
+        expect((state as any)._preloadedAssetKeys?.size ?? 0).toBe(0);
     });
 
     it("preloadAdjacentAssets skips out-of-bounds indices", async () => {
@@ -349,7 +349,7 @@ describe("imagePreloader – deduplication and cache eviction", () => {
         const assets = [makeAsset({ id: "only", kind: "image" })];
         preloadAdjacentAssets(assets, 0); // ±3 would go -3…+3 → all OOB except 0
         // The center itself is NOT preloaded (only adjacents)
-        expect(state._preloadedAssetKeys?.size ?? 0).toBe(0);
+        expect((state as any)._preloadedAssetKeys?.size ?? 0).toBe(0);
     });
 
     it("preloadAdjacentAssets preloads ±3 neighbours from a large list", async () => {
@@ -360,7 +360,7 @@ describe("imagePreloader – deduplication and cache eviction", () => {
         );
         preloadAdjacentAssets(assets, 10);
         // Expected: indices 7,8,9,11,12,13 → 6 assets
-        expect(state._preloadedAssetKeys?.size).toBe(6);
+        expect((state as any)._preloadedAssetKeys?.size).toBe(6);
     });
 
     it("preloads 300 unique assets under 100 ms", async () => {
@@ -398,7 +398,7 @@ describe("viewer/keyboard – rapid keydown dispatch", () => {
                 makeAsset({ id: "k2", kind: "image" }),
             ],
             currentIndex: 0,
-            ...overrides.state,
+            ...(overrides as any).state,
         };
         const VIEWER_MODES = { SINGLE: "SINGLE" };
         const navigateCalls = [];

@@ -11,8 +11,8 @@ vi.mock("../app/i18n.js", () => ({
 describe("viewer toolbar", () => {
     it("reset restores all viewer tool defaults", async () => {
         const window = new Window();
-        globalThis.window = window;
-        globalThis.document = window.document;
+        globalThis.window = window as any;
+        globalThis.document = window.document as any;
         Object.defineProperty(globalThis, "navigator", {
             configurable: true,
             value: window.navigator,
@@ -63,12 +63,12 @@ describe("viewer toolbar", () => {
         toolbar.syncToolsUIFromState();
 
         const resetButton = Array.from(toolbar.headerEl.querySelectorAll("button")).find(
-            (button) => (button.textContent || "").trim() === "Reset",
+            (button) => ((button as any).textContent || "").trim() === "Reset",
         );
 
         expect(resetButton).toBeTruthy();
 
-        resetButton.click();
+        (resetButton as any).click();
 
         expect(state.channel).toBe("rgb");
         expect(state.exposureEV).toBe(0);

@@ -19,80 +19,81 @@ const state = vi.hoisted(() => {
 
     class FloatingViewerMock {
         constructor() {
-            this._mode = viewerMode;
-            this._mediaA = null;
-            this._mediaB = null;
-            this._pinnedSlots =
+            (this as any)._mode = viewerMode;
+            (this as any)._mediaA = null;
+            (this as any)._mediaB = null;
+            (this as any)._pinnedSlots =
                 typeof pinnedSlot === "object" && pinnedSlot instanceof Set
                     ? pinnedSlot
                     : pinnedSlot
                       ? new Set([pinnedSlot])
                       : new Set();
-            this._isPopped = viewerPopped;
-            this.isVisible = false;
-            this.show = vi.fn(() => {
-                this.isVisible = true;
+            (this as any)._isPopped = viewerPopped;
+            (this as any).isVisible = false;
+            (this as any).show = vi.fn(() => {
+                (this as any).isVisible = true;
             });
-            this.hide = vi.fn(() => {
-                this.isVisible = false;
+            (this as any).hide = vi.fn(() => {
+                (this as any).isVisible = false;
             });
-            this.loadMediaA = vi.fn((asset, opts) => {
-                this._mediaA = asset;
-                this._lastLoadMediaA = [asset, opts];
+            (this as any).loadMediaA = vi.fn((asset, opts) => {
+                (this as any)._mediaA = asset;
+                (this as any)._lastLoadMediaA = [asset, opts];
             });
-            this.loadMediaPair = vi.fn((assetA, assetB) => {
-                this._mediaA = assetA;
-                this._mediaB = assetB;
-                this._lastLoadMediaPair = [assetA, assetB];
+            (this as any).loadMediaPair = vi.fn((assetA, assetB) => {
+                (this as any)._mediaA = assetA;
+                (this as any)._mediaB = assetB;
+                (this as any)._lastLoadMediaPair = [assetA, assetB];
             });
-            this.setMode = vi.fn((mode) => {
-                this._mode = mode;
+            (this as any).setMode = vi.fn((mode) => {
+                (this as any)._mode = mode;
             });
-            this.setLiveActive = vi.fn();
-            this.setPreviewActive = vi.fn();
-            this.setNodeStreamActive = vi.fn();
-            this.setNodeStreamSelection = vi.fn((selection) => {
-                this._nodeStreamSelection = selection || null;
+            (this as any).setLiveActive = vi.fn();
+            (this as any).setPreviewActive = vi.fn();
+            (this as any).setNodeStreamActive = vi.fn();
+            (this as any).setNodeStreamSelection = vi.fn((selection) => {
+                (this as any)._nodeStreamSelection = selection || null;
             });
-            this.loadPreviewBlob = vi.fn();
-            this.dispose = vi.fn(() => {
-                this.isVisible = false;
+            (this as any).loadPreviewBlob = vi.fn();
+            (this as any).dispose = vi.fn(() => {
+                (this as any).isVisible = false;
             });
-            this._simplePlayerKeydown = vi.fn((event) => {
+            (this as any)._simplePlayerKeydown = vi.fn((event) => {
                 event.preventDefault?.();
                 event.stopPropagation?.();
                 event.stopImmediatePropagation?.();
             });
-            this._simplePlayer = {
-                _mjrSimplePlayerHandleKeydown: this._simplePlayerKeydown,
+            (this as any)._simplePlayer = {
+                _mjrSimplePlayerHandleKeydown: (this as any)._simplePlayerKeydown,
             };
-            this.element = {
+            (this as any).element = {
                 isConnected: true,
-                contains: (target) => target === this._simplePlayer || target?._insideMfv === true,
+                contains: (target) =>
+                    target === (this as any)._simplePlayer || target?._insideMfv === true,
                 querySelector: (selector) =>
-                    selector === ".mjr-mfv-simple-player" ? this._simplePlayer : null,
+                    selector === ".mjr-mfv-simple-player" ? (this as any)._simplePlayer : null,
             };
             lastViewer = this;
         }
 
         render() {
-            return this.element;
+            return (this as any).element;
         }
 
         get isPopped() {
-            return this._isPopped;
+            return (this as any)._isPopped;
         }
 
         getPinnedSlots() {
-            return this._pinnedSlots;
+            return (this as any)._pinnedSlots;
         }
 
         popOut = vi.fn(() => {
-            this._isPopped = true;
+            (this as any)._isPopped = true;
         });
 
         popIn = vi.fn(() => {
-            this._isPopped = false;
+            (this as any)._isPopped = false;
         });
     }
 
@@ -167,7 +168,7 @@ function createWindowStub() {
         dispatchEvent(event) {
             const handlers = Array.from(listeners.get(event?.type) || []);
             for (const handler of handlers) {
-                handler(event);
+                (handler as any)(event);
             }
             return true;
         },
@@ -198,17 +199,17 @@ async function flushAsyncWork() {
 beforeEach(() => {
     vi.resetModules();
     state.reset();
-    globalThis.window = createWindowStub();
+    globalThis.window = createWindowStub() as any;
     globalThis.requestAnimationFrame = (cb) => {
-        cb();
+        (cb as any)();
         return 1;
     };
     globalThis.cancelAnimationFrame = vi.fn();
     globalThis.document = {
         body: {
             appendChild: vi.fn(),
-        },
-    };
+        } as any,
+    } as any;
     globalThis.app = {
         canvas: {
             canvas: {
@@ -221,10 +222,10 @@ beforeEach(() => {
     };
     globalThis.CustomEvent = class {
         constructor(type, init = {}) {
-            this.type = type;
-            this.detail = init.detail;
+            (this as any).type = type;
+            (this as any).detail = (init as any).detail;
         }
-    };
+    } as any;
 });
 
 describe("floatingViewerManager", () => {
@@ -391,7 +392,7 @@ describe("floatingViewerManager", () => {
         APP_CONFIG.MFV_LIVE_AUTO_OPEN = true;
         const seen = [];
         window.addEventListener("mjr:mfv-visibility-changed", (event) => {
-            seen.push(Boolean(event?.detail?.visible));
+            seen.push(Boolean((event as any)?.detail?.visible));
         });
 
         const { floatingViewerManager } =
@@ -531,7 +532,7 @@ describe("floatingViewerManager", () => {
         const seen = [];
         const blob = { fake: "blob" };
         window.addEventListener("mjr:mfv-visibility-changed", (event) => {
-            seen.push(Boolean(event?.detail?.visible));
+            seen.push(Boolean((event as any)?.detail?.visible));
         });
 
         const { floatingViewerManager } =
@@ -584,7 +585,7 @@ describe("floatingViewerManager", () => {
             stopPropagation: vi.fn(),
             stopImmediatePropagation: vi.fn(),
         };
-        window.dispatchEvent(event);
+        window.dispatchEvent(event as any);
 
         expect(viewer.setLiveActive).toHaveBeenLastCalledWith(false);
         expect(floatingViewerManager.getLiveActive()).toBe(false);
@@ -611,7 +612,7 @@ describe("floatingViewerManager", () => {
             stopPropagation: vi.fn(),
             stopImmediatePropagation: vi.fn(),
         };
-        window.dispatchEvent(event);
+        window.dispatchEvent(event as any);
 
         expect(viewer.hide).toHaveBeenCalledTimes(1);
         expect(viewer.isVisible).toBe(false);
@@ -660,7 +661,7 @@ describe("floatingViewerManager", () => {
             stopPropagation: vi.fn(),
             stopImmediatePropagation: vi.fn(),
         };
-        window.dispatchEvent(event);
+        window.dispatchEvent(event as any);
 
         expect(viewer.setPreviewActive).toHaveBeenLastCalledWith(false);
         expect(floatingViewerManager.getPreviewActive()).toBe(false);
@@ -692,7 +693,7 @@ describe("floatingViewerManager", () => {
             stopPropagation: vi.fn(),
             stopImmediatePropagation: vi.fn(),
         };
-        window.dispatchEvent(event);
+        window.dispatchEvent(event as any);
 
         expect(viewer._simplePlayerKeydown).toHaveBeenCalledWith(event);
         expect(event.preventDefault).toHaveBeenCalledTimes(1);
@@ -776,14 +777,14 @@ describe("floatingViewerManager", () => {
 
         floatingViewerManager.close();
 
-        const callsBefore = document.body.appendChild.mock.calls.length;
+        const callsBefore = (document.body.appendChild as any).mock.calls.length;
         viewer.element = { isConnected: false };
 
         await floatingViewerManager.open();
         await flushAsyncWork();
 
         expect(state.getLastViewer()).toBe(viewer);
-        expect(document.body.appendChild.mock.calls.length).toBeGreaterThan(callsBefore);
+        expect((document.body.appendChild as any).mock.calls.length).toBeGreaterThan(callsBefore);
     });
 
     it("cycles compare modes with C as A/B, side-by-side, then compare off without closing", async () => {
@@ -815,7 +816,7 @@ describe("floatingViewerManager", () => {
             stopPropagation: vi.fn(),
             stopImmediatePropagation: vi.fn(),
         };
-        window.dispatchEvent(toCompareEvent);
+        window.dispatchEvent(toCompareEvent as any);
         await flushAsyncWork();
 
         expect(viewer.setMode).toHaveBeenLastCalledWith("ab");
@@ -835,7 +836,7 @@ describe("floatingViewerManager", () => {
             stopPropagation: vi.fn(),
             stopImmediatePropagation: vi.fn(),
         };
-        window.dispatchEvent(toSimpleEvent);
+        window.dispatchEvent(toSimpleEvent as any);
         await flushAsyncWork();
 
         expect(viewer.setMode).toHaveBeenLastCalledWith("side");
@@ -852,7 +853,7 @@ describe("floatingViewerManager", () => {
             stopPropagation: vi.fn(),
             stopImmediatePropagation: vi.fn(),
         };
-        window.dispatchEvent(toOffEvent);
+        window.dispatchEvent(toOffEvent as any);
         await flushAsyncWork();
 
         expect(viewer.setMode).toHaveBeenLastCalledWith("simple");
@@ -890,7 +891,7 @@ it("loads local assets from the grid when opening the viewer", async () => {
         filepath: "D:/renders/nested/image.png",
     };
     const grid = createGrid([asset.id]);
-    grid._mjrGetAssets = () => [asset];
+    (grid as any)._mjrGetAssets = () => [asset];
     state.setActiveGrid(grid);
     state.getSelectedIdSetMock.mockReturnValue(new Set([asset.id]));
     const { floatingViewerManager } = await import("../features/viewer/floatingViewerManager.js");

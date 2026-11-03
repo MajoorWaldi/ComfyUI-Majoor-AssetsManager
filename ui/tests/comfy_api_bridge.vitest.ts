@@ -2,8 +2,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 beforeEach(() => {
     vi.resetModules();
-    globalThis.window = {};
-    globalThis.globalThis = globalThis;
+    globalThis.window = {} as any;
+    (globalThis as any).globalThis = globalThis;
 });
 
 describe("comfyApiBridge", () => {
@@ -231,7 +231,7 @@ describe("comfyApiBridge", () => {
     it("prefers ComfyUI api.fetchApi for HTTP calls and falls back to same-origin fetch", async () => {
         const fetchApi = vi.fn(() => Promise.resolve({ ok: true, source: "comfy" }));
         const fallbackFetch = vi.fn(() => Promise.resolve({ ok: true, source: "fallback" }));
-        globalThis.fetch = fallbackFetch;
+        globalThis.fetch = fallbackFetch as any;
 
         const mod = await import("../app/comfyApiBridge.js");
         mod.setComfyApi({ fetchApi });

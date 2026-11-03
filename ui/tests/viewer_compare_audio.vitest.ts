@@ -28,14 +28,14 @@ describe("viewer compare audio safety", () => {
                 setAttribute: vi.fn(),
                 addEventListener: vi.fn(),
                 remove: vi.fn(),
-            })),
-        };
+            })) as any,
+        } as any;
         globalThis.window = {
             addEventListener: vi.fn(),
             removeEventListener: vi.fn(),
-            CSS: { supports: vi.fn(() => false) },
-        };
-        globalThis.HTMLCanvasElement = class {};
+            CSS: { supports: vi.fn(() => false) } as any,
+        } as any;
+        globalThis.HTMLCanvasElement = class {} as any;
     });
 
     it("mutes the secondary audio track in A/B compare", async () => {
@@ -60,9 +60,9 @@ describe("viewer compare audio safety", () => {
             destroyMediaProcessorsIn: vi.fn(),
         });
 
-        expect(a.audio.dataset.mjrCompareRole).toBe("A");
+        expect((a.audio.dataset as any).mjrCompareRole).toBe("A");
         expect(a.audio.muted).toBe(false);
-        expect(b.audio.dataset.mjrCompareRole).toBe("B");
+        expect((b.audio.dataset as any).mjrCompareRole).toBe("B");
         expect(b.audio.muted).toBe(true);
         expect(b.audio.pause).toHaveBeenCalledTimes(1);
     });
@@ -94,9 +94,9 @@ describe("viewer compare audio safety", () => {
             destroyMediaProcessorsIn: vi.fn(),
         });
 
-        expect(a.audio.dataset.mjrCompareRole).toBe("A");
+        expect((a.audio.dataset as any).mjrCompareRole).toBe("A");
         expect(a.audio.muted).toBe(false);
-        expect(b.audio.dataset.mjrCompareRole).toBe("B");
+        expect((b.audio.dataset as any).mjrCompareRole).toBe("B");
         expect(b.audio.muted).toBe(true);
         expect(b.audio.pause).toHaveBeenCalledTimes(1);
     });

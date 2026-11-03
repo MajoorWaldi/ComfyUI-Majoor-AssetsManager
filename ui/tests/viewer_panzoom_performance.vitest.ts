@@ -69,7 +69,7 @@ describe("viewer panzoom performance", () => {
             height: 600,
             right: 800,
             bottom: 600,
-        }));
+        })) as any;
         media.className = "mjr-viewer-media";
         media._mjrNaturalW = 1600;
         media._mjrNaturalH = 900;

@@ -7,8 +7,8 @@ describe("deepMerge prototype-pollution resistance", () => {
         const malicious = JSON.parse('{"__proto__": {"polluted": true}}');
         const merged = deepMerge(base, malicious);
 
-        expect(merged.polluted).toBeUndefined();
-        expect({}.polluted).toBeUndefined();
+        expect((merged as any).polluted).toBeUndefined();
+        expect(({} as any).polluted).toBeUndefined();
         expect(merged.a).toBe(1);
     });
 
@@ -18,7 +18,7 @@ describe("deepMerge prototype-pollution resistance", () => {
         const merged = deepMerge(base, malicious);
 
         expect(Object.hasOwn(merged, "constructor")).toBe(false);
-        expect({}.polluted).toBeUndefined();
+        expect(({} as any).polluted).toBeUndefined();
     });
 
     it("rejects prototype key in the merge source", () => {
@@ -26,7 +26,7 @@ describe("deepMerge prototype-pollution resistance", () => {
         const malicious = { prototype: { polluted: true } };
         const merged = deepMerge(base, malicious);
 
-        expect(merged.prototype).toBeUndefined();
+        expect((merged as any).prototype).toBeUndefined();
     });
 
     it("rejects nested __proto__ keys recursively", () => {
@@ -34,14 +34,14 @@ describe("deepMerge prototype-pollution resistance", () => {
         const malicious = { nested: JSON.parse('{"__proto__": {"deep": true}}') };
         const merged = deepMerge(base, malicious);
 
-        expect(merged.nested.deep).toBeUndefined();
-        expect({}.deep).toBeUndefined();
+        expect((merged.nested as any).deep).toBeUndefined();
+        expect(({} as any).deep).toBeUndefined();
     });
 
     it("performs normal deep merge for safe keys", () => {
         const base = { a: 1, nested: { x: 10 } };
         const patch = { b: 2, nested: { y: 20 } };
-        const merged = deepMerge(base, patch);
+        const merged = deepMerge(base, patch as any);
 
         expect(merged).toEqual({ a: 1, b: 2, nested: { x: 10, y: 20 } });
     });
@@ -55,7 +55,7 @@ describe("deepMerge prototype-pollution resistance", () => {
     it("does not mutate the original base object", () => {
         const base = { a: 1, nested: { x: 10 } };
         const patch = { nested: { y: 20 } };
-        deepMerge(base, patch);
+        deepMerge(base, patch as any);
 
         expect(base).toEqual({ a: 1, nested: { x: 10 } });
     });

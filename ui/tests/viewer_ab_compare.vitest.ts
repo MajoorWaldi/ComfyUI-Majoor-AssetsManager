@@ -25,18 +25,18 @@ function createMediaWithCanvas(canvas) {
 
 describe("viewer A/B compare", () => {
     beforeEach(() => {
-        globalThis.HTMLCanvasElement = CanvasMock;
-        globalThis.performance = { now: () => 1000 };
+        globalThis.HTMLCanvasElement = CanvasMock as any;
+        globalThis.performance = { now: () => 1000 } as any;
         globalThis.requestAnimationFrame = (callback) => {
-            callback();
+            (callback as any)();
             return 1;
         };
         globalThis.cancelAnimationFrame = vi.fn();
         globalThis.window = {
             addEventListener: vi.fn(),
             removeEventListener: vi.fn(),
-            CSS: { supports: vi.fn(() => false) },
-        };
+            CSS: { supports: vi.fn(() => false) } as any,
+        } as any;
     });
 
     it("renders subtract mode from both source canvases and restores context", async () => {
@@ -79,8 +79,8 @@ describe("viewer A/B compare", () => {
                     addEventListener: vi.fn(),
                     setAttribute: vi.fn(),
                 };
-            }),
-        };
+            }) as any,
+        } as any;
 
         const baseCanvas = createSourceCanvas([
             200, 150, 100, 255, 120, 90, 60, 255, 180, 140, 90, 255, 90, 70, 40, 255,

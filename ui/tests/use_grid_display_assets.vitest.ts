@@ -27,10 +27,10 @@ describe("useGridDisplayAssets", () => {
         const output = buildDisplayAssets([first, second, third]);
 
         expect(output).toEqual([first, third]);
-        expect(first._mjrDupStack).toBe(true);
-        expect(first._mjrDupMembers.map((asset) => asset.id)).toEqual([1, 2]);
-        expect(second._mjrDupStack).toBe(false);
-        expect(third._mjrDupStack).toBe(false);
+        expect((first as any)._mjrDupStack).toBe(true);
+        expect((first as any)._mjrDupMembers.map((asset) => asset.id)).toEqual([1, 2]);
+        expect((second as any)._mjrDupStack).toBe(false);
+        expect((third as any)._mjrDupStack).toBe(false);
     });
 
     it("rebuilds duplicate members from the current asset list only", () => {
@@ -45,7 +45,7 @@ describe("useGridDisplayAssets", () => {
         buildDisplayAssets([first, second]);
 
         expect(first._mjrDupMembers.map((asset) => asset.id)).toEqual([1, 2]);
-        expect(first._mjrDupCount).toBe(2);
+        expect((first as any)._mjrDupCount).toBe(2);
     });
 
     it("ignores stale duplicate-hidden flags left on asset objects", () => {

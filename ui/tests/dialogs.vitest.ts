@@ -24,10 +24,14 @@ beforeEach(() => {
         confirm: vi.fn(() => true),
         prompt: vi.fn(() => "fallback"),
         alert: vi.fn(),
-    };
+    } as any;
     globalThis.document = {
-        createElement: vi.fn(() => ({ style: {}, appendChild: vi.fn(), setAttribute: vi.fn() })),
-    };
+        createElement: vi.fn(() => ({
+            style: {},
+            appendChild: vi.fn(),
+            setAttribute: vi.fn(),
+        })) as any,
+    } as any;
 });
 
 describe("dialogs", () => {

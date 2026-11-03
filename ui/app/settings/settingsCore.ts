@@ -139,6 +139,11 @@ export const DEFAULT_SETTINGS = {
         widthPx: 360,
         assetBadgeEnabled: APP_DEFAULTS.SIDEBAR_ASSET_BADGE_ENABLED,
     },
+    integration: {
+        // Opt-in: hide ComfyUI's native Assets sidebar tab so only one assets
+        // panel is shown. Never enabled by default (no surprise for users).
+        hideNativeAssetsTab: false,
+    },
     probeBackend: {
         mode: "auto",
     },

@@ -7,7 +7,7 @@ vi.mock("../features/viewer/nodeStream/nodeStreamFeatureFlag.js", () => ({
 describe("entryDebugApi", () => {
     beforeEach(() => {
         vi.resetModules();
-        globalThis.window = {};
+        globalThis.window = {} as any;
     });
 
     afterEach(() => {
@@ -23,10 +23,10 @@ describe("entryDebugApi", () => {
         const { exposeDebugApis } = await import("../features/runtime/entryDebugApi.js");
         exposeDebugApis({ resolveNodeStreamModule });
 
-        expect(window.MajoorNodeStream.mode).toBe("selection-only");
-        expect(window.MajoorNodeStream.registerAdapter).toBeUndefined();
-        expect(window.MajoorNodeStream.createAdapter).toBeUndefined();
-        await expect(window.MajoorNodeStream.listAdapters()).resolves.toEqual([
+        expect((window as any).MajoorNodeStream.mode).toBe("selection-only");
+        expect((window as any).MajoorNodeStream.registerAdapter).toBeUndefined();
+        expect((window as any).MajoorNodeStream.createAdapter).toBeUndefined();
+        await expect((window as any).MajoorNodeStream.listAdapters()).resolves.toEqual([
             { name: "video-output", priority: 10 },
         ]);
     });

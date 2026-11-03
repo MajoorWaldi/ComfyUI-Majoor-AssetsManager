@@ -40,8 +40,8 @@ describe("createViewerMediaFactory 3D", () => {
     beforeEach(() => {
         vi.clearAllMocks();
         globalThis.document = {
-            createElement: vi.fn((tag) => createElement(tag)),
-        };
+            createElement: vi.fn((tag) => createElement(tag)) as any,
+        } as any;
     });
 
     it("routes model3d assets to the shared 3D renderer", async () => {
@@ -63,7 +63,7 @@ describe("createViewerMediaFactory 3D", () => {
 
         expect(el).toEqual({ kind: "3d-host" });
         expect(createModel3DMediaElement).toHaveBeenCalledTimes(1);
-        expect(createModel3DMediaElement.mock.calls[0][0]).toBe(asset);
+        expect((createModel3DMediaElement.mock.calls as any)[0][0]).toBe(asset);
     });
 
     it("wraps audio assets in the enhanced audio preview shell", async () => {
@@ -104,7 +104,7 @@ describe("createViewerMediaFactory 3D", () => {
 
         factory.applyTransformToVisibleMedia();
 
-        expect(elA.style.transform).toBe("scale(2)");
-        expect(elB.style.transform).toBeUndefined();
+        expect((elA.style as any).transform).toBe("scale(2)");
+        expect((elB.style as any).transform).toBeUndefined();
     });
 });

@@ -68,7 +68,7 @@ describe("WorkflowSaveInfoDialog", () => {
 
         const name = document.body.querySelector("input[type='text']");
         const notes = document.body.querySelector("textarea");
-        expect(name?.value).toBe("starter workflow");
+        expect((name as any)?.value).toBe("starter workflow");
 
         notes.value = "Render the preview branch before publishing.";
         notes.dispatchEvent(new Event("input", { bubbles: true }));

@@ -8,8 +8,8 @@ vi.mock("../app/i18n.js", () => ({
 describe("audio viewer controls", () => {
     it("uses the advanced viewer controls for audio media without frame-step controls", async () => {
         const window = new Window();
-        globalThis.window = window;
-        globalThis.document = window.document;
+        globalThis.window = window as any;
+        globalThis.document = window.document as any;
         Object.defineProperty(globalThis, "navigator", {
             configurable: true,
             value: window.navigator,
@@ -45,18 +45,18 @@ describe("audio viewer controls", () => {
         expect(mounted.controlsEl.querySelector(".mjr-video-btn--mark")).toBeTruthy();
         expect(mounted.controlsEl.querySelector(".mjr-video-seek-mark")).toBeTruthy();
         expect(mounted.controlsEl.querySelector(".mjr-video-seek-handle")).toBeTruthy();
-        expect(mounted.setInPoint()).toBe(true);
-        expect(mounted.setOutPoint()).toBe(true);
-        expect(mounted.goToIn()).toBe(true);
-        expect(mounted.goToOut()).toBe(true);
+        expect((mounted as any).setInPoint()).toBe(true);
+        expect((mounted as any).setOutPoint()).toBe(true);
+        expect((mounted as any).goToIn()).toBe(true);
+        expect((mounted as any).goToOut()).toBe(true);
 
         mounted.destroy();
     });
 
     it("renders a time ruler for audio media", async () => {
         const window = new Window();
-        globalThis.window = window;
-        globalThis.document = window.document;
+        globalThis.window = window as any;
+        globalThis.document = window.document as any;
         Object.defineProperty(globalThis, "navigator", {
             configurable: true,
             value: window.navigator,
@@ -80,14 +80,16 @@ describe("audio viewer controls", () => {
             hostEl: host,
         });
 
-        audio.dispatchEvent(new window.Event("loadedmetadata"));
+        audio.dispatchEvent(new window.Event("loadedmetadata") as any);
 
         const tickBar = mounted.controlsEl.querySelector(".mjr-video-seek-ticks");
         const labels = [...mounted.controlsEl.querySelectorAll(".mjr-video-seek-label")].map(
             (label) => label.textContent,
         );
 
-        expect(tickBar?.style.backgroundImage || "").toContain("repeating-linear-gradient");
+        expect((tickBar as any)?.style.backgroundImage || "").toContain(
+            "repeating-linear-gradient",
+        );
         expect(labels[0]).toBe("0:00");
         expect(labels).toContain("2:05");
         expect(mounted.controlsEl.querySelector(".mjr-video-seek-mark")).toBeTruthy();
@@ -98,8 +100,8 @@ describe("audio viewer controls", () => {
 
     it("keeps the viewerbar frame readout aligned with actual video frames", async () => {
         const window = new Window();
-        globalThis.window = window;
-        globalThis.document = window.document;
+        globalThis.window = window as any;
+        globalThis.document = window.document as any;
         Object.defineProperty(globalThis, "navigator", {
             configurable: true,
             value: window.navigator,
@@ -145,7 +147,7 @@ describe("audio viewer controls", () => {
         });
 
         paused = false;
-        video.dispatchEvent(new window.Event("play"));
+        video.dispatchEvent(new window.Event("play") as any);
 
         currentTime = 0.5 / 24;
         rvfcCallback?.(0, { mediaTime: currentTime });
@@ -166,8 +168,8 @@ describe("audio viewer controls", () => {
 
     it("expands the frame stepping range when the real frame count arrives after metadata load", async () => {
         const window = new Window();
-        globalThis.window = window;
-        globalThis.document = window.document;
+        globalThis.window = window as any;
+        globalThis.document = window.document as any;
         Object.defineProperty(globalThis, "navigator", {
             configurable: true,
             value: window.navigator,
@@ -200,9 +202,9 @@ describe("audio viewer controls", () => {
             hostEl: host,
         });
 
-        video.dispatchEvent(new window.Event("loadedmetadata"));
-        mounted.setMediaInfo({ frameCount: 41 });
-        mounted.goToOut();
+        video.dispatchEvent(new window.Event("loadedmetadata") as any);
+        (mounted as any).setMediaInfo({ frameCount: 41 });
+        (mounted as any).goToOut();
 
         const frameLabel = mounted.controlsEl.querySelector(".mjr-video-frame");
         expect(frameLabel?.textContent || "").toContain("F: 41 / 41");

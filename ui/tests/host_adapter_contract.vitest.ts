@@ -140,50 +140,6 @@ describe("hostAdapter contract", () => {
         expect(Object.prototype.hasOwnProperty.call(canvas, "onNodeDeselected")).toBe(false);
     });
 
-    it("wrapHostQueuePrompt binds once per owner and restore returns original", async () => {
-        const mod = await import("../app/hostAdapter.js");
-
-        const original = vi.fn(async (count: number) => ({ prompt_id: String(count) }));
-        const api: any = {
-            queuePrompt: original,
-        };
-
-        const ownerA = { id: "A" };
-        const ownerB = { id: "B" };
-
-        const binding = mod.wrapHostQueuePrompt({
-            api,
-            owner: ownerA,
-            createWrapper(originalQueuePrompt: any) {
-                return async function (this: any, ...args: any[]) {
-                    return originalQueuePrompt.apply(this, args);
-                };
-            },
-        });
-
-        expect(binding).toBeTruthy();
-        expect(api.queuePrompt).not.toBe(original);
-
-        const blockedBinding = mod.wrapHostQueuePrompt({
-            api,
-            owner: ownerB,
-            createWrapper(originalQueuePrompt: any) {
-                return async function (this: any, ...args: any[]) {
-                    return originalQueuePrompt.apply(this, args);
-                };
-            },
-        });
-
-        expect(blockedBinding).toBeNull();
-
-        const result = await api.queuePrompt(7);
-        expect(result.prompt_id).toBe("7");
-        expect(original).toHaveBeenCalledTimes(1);
-
-        expect(binding.restore()).toBe(true);
-        expect(api.queuePrompt).toBe(original);
-    });
-
     it("notifies node graph and root canvas graph through host helpers", async () => {
         const mod = await import("../app/hostAdapter.js");
 

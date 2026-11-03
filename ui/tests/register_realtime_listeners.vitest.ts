@@ -10,19 +10,19 @@ import {
 
 function ensureBrowserShims() {
     if (typeof globalThis.CustomEvent === "undefined") {
-        globalThis.CustomEvent = class CustomEvent {
+        globalThis.CustomEvent = (class CustomEvent {
             constructor(type, init = {}) {
-                this.type = type;
-                this.detail = init.detail;
+                (this as any).type = type;
+                (this as any).detail = (init as any).detail;
             }
-        };
+        } as any);
     }
     if (typeof globalThis.window === "undefined") {
-        globalThis.window = {
+        globalThis.window = ({
             dispatchEvent: () => true,
             addEventListener: () => {},
             removeEventListener: () => {},
-        };
+        } as any);
     }
 }
 
@@ -98,7 +98,7 @@ describe("registerRealtimeListeners", () => {
             type: "output",
         };
 
-        harness.api._mjrAssetIndexedHandler({ detail });
+        (harness.api as any)._mjrAssetIndexedHandler({ detail });
 
         expect(harness.pushGeneratedAsset).toHaveBeenCalledTimes(1);
         expect(harness.upsertAsset).toHaveBeenCalledTimes(1);
@@ -132,7 +132,7 @@ describe("registerRealtimeListeners", () => {
             registerCleanableListener: () => {},
         });
 
-        harness.api._mjrAssetIndexedHandler({
+        (harness.api as any)._mjrAssetIndexedHandler({
             detail: {
                 id: 43,
                 kind: "image",
@@ -148,8 +148,8 @@ describe("registerRealtimeListeners", () => {
 
     it("upsert apres generation puis indexation sur la grille active", async () => {
         ensureBrowserShims();
-        window.__mjrLastAssetUpsert = 0;
-        window.__mjrLastAssetUpsertCount = 0;
+        (window as any).__mjrLastAssetUpsert = 0;
+        (window as any).__mjrLastAssetUpsertCount = 0;
 
         const harness = createRuntimeHarness();
         harness.grid.dataset = { mjrScope: "output", mjrQuery: "portrait" };
@@ -183,20 +183,20 @@ describe("registerRealtimeListeners", () => {
         };
 
         // Phase generation live: pousse au feed mais n'upsert pas directement quand la query n'est pas "*".
-        harness.api._mjrAssetAddedHandler({ detail });
+        (harness.api as any)._mjrAssetAddedHandler({ detail });
         expect(harness.pushGeneratedAsset).toHaveBeenCalledTimes(1);
         expect(harness.upsertAsset).toHaveBeenCalledTimes(0);
         expect(getSidebarAssetBadgeCount()).toBe(0);
 
         // Phase indexation: l'asset final est upsert dans la grille active.
-        harness.api._mjrAssetIndexedHandler({ detail });
+        (harness.api as any)._mjrAssetIndexedHandler({ detail });
         expect(harness.pushGeneratedAsset).toHaveBeenCalledTimes(2);
         expect(harness.upsertAsset).toHaveBeenCalledTimes(1);
         expect(harness.upsertAsset).toHaveBeenCalledWith(
             harness.grid,
             expect.objectContaining(detail),
         );
-        expect(Number(window.__mjrLastAssetUpsertCount || 0)).toBeGreaterThan(0);
+        expect(Number((window as any).__mjrLastAssetUpsertCount || 0)).toBeGreaterThan(0);
         expect(getSidebarAssetBadgeCount()).toBe(1);
     });
 
@@ -232,7 +232,7 @@ describe("registerRealtimeListeners", () => {
             type: "output",
         };
 
-        harness.api._mjrAssetIndexedHandler({ detail });
+        (harness.api as any)._mjrAssetIndexedHandler({ detail });
 
         expect(harness.pushGeneratedAsset).toHaveBeenCalledTimes(1);
         expect(harness.pushGeneratedAsset).toHaveBeenCalledWith(expect.objectContaining(detail));
@@ -385,8 +385,8 @@ describe("registerRealtimeListeners", () => {
             syncExecutionBackendState,
         });
 
-        harness.api._mjrExecutionStartHandler({ detail: { prompt_id: "job-1" } });
-        harness.api._mjrExecutionEndHandler({ detail: { prompt_id: "job-1" } });
+        (harness.api as any)._mjrExecutionStartHandler({ detail: { prompt_id: "job-1" } });
+        (harness.api as any)._mjrExecutionEndHandler({ detail: { prompt_id: "job-1" } });
 
         expect(syncExecutionBackendState).toHaveBeenNthCalledWith(1, {
             active: true,
@@ -429,7 +429,7 @@ describe("registerRealtimeListeners", () => {
                 registerCleanableListener: () => {},
             });
 
-            harness.api._mjrCoreExecutionAssetsReadyHandler({
+            (harness.api as any)._mjrCoreExecutionAssetsReadyHandler({
                 detail: { prompt_id: "job-2", indexed: 2 },
             });
         } finally {

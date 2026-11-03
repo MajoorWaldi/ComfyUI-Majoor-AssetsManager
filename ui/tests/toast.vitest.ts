@@ -17,16 +17,16 @@ vi.mock("../app/i18n.js", () => ({
 
 class MemoryStorage {
     constructor() {
-        this.store = new Map();
+        (this as any).store = new Map();
     }
     getItem(key) {
-        return this.store.has(key) ? this.store.get(key) : null;
+        return (this as any).store.has(key) ? (this as any).store.get(key) : null;
     }
     setItem(key, value) {
-        this.store.set(key, String(value));
+        (this as any).store.set(key, String(value));
     }
     clear() {
-        this.store.clear();
+        (this as any).store.clear();
     }
 }
 
@@ -97,10 +97,10 @@ function installRuntimeGlobals() {
     const elementsById = new Map();
 
     globalThis.document = {
-        body,
-        createElement: vi.fn((tag) => createElement(tag)),
+        body: body as any,
+        createElement: vi.fn((tag) => createElement(tag)) as any,
         getElementById: vi.fn((id) => elementsById.get(id) || null),
-    };
+    } as any;
 
     const originalAppend = body.appendChild.bind(body);
     body.appendChild = (child) => {
@@ -110,16 +110,16 @@ function installRuntimeGlobals() {
         return appended;
     };
 
-    globalThis.window = new EventTarget();
-    globalThis.localStorage = new MemoryStorage();
+    globalThis.window = new EventTarget() as any;
+    globalThis.localStorage = new MemoryStorage() as any;
     globalThis.CustomEvent = class CustomEvent extends Event {
         constructor(type, init = {}) {
             super(type);
-            this.detail = init.detail;
+            (this as any).detail = (init as any).detail;
         }
-    };
+    } as any;
     globalThis.requestAnimationFrame = (cb) => {
-        cb();
+        (cb as any)();
         return 1;
     };
 }

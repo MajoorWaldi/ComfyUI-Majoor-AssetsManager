@@ -21,9 +21,10 @@ logger = get_logger(__name__)
 
 API_PREFIX = "/mjr/am/"
 
-# The OpenAPI-aligned read-only compat surface (routes/handlers/api_v2_assets.py).
-# It is part of this extension's HTTP surface and must sit behind the same
-# security boundary as API_PREFIX.
+# Legacy, opt-in alias of the OpenAPI-aligned compat surface
+# (routes/handlers/api_v2_assets.py; canonical path /mjr/am/compat/assets is
+# already covered by API_PREFIX). When enabled it is part of this extension's
+# HTTP surface and must sit behind the same security boundary as API_PREFIX.
 COMPAT_API_PREFIX = "/api/v2/assets"
 
 # ComfyUI's PromptServer mirrors EVERY registered route under an additional

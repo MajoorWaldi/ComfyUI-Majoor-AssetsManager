@@ -1,6 +1,6 @@
 import { t as e } from "./rolldown-runtime-CGnMp29N.js";
-import { _ as t, d as n, o as r, s as i, t as a } from "./viewerRuntimeHosts-DQcoOjsY.js";
-import { o, r as s, z as c } from "./events-DxfljH4A.js";
+import { _ as t, d as n, o as r, s as i, t as a } from "./viewerRuntimeHosts-D3Jyfx0-.js";
+import { B as o, o as s, r as c } from "./events-BRfpU-6M.js";
 // ui/features/panel/panelRuntimeRefs.ts
 var l = null;
 function u(e) {
@@ -96,7 +96,7 @@ var te = /* @__PURE__ */ e({
 	teardownFloatingViewerManager: () => we
 }), v = null, y = null;
 async function ne() {
-	return v || (y ||= import("./FloatingViewer-C99U6UdL.js").then((e) => (v = e.FloatingViewer, v)), y);
+	return v || (y ||= import("./FloatingViewer-Cccq5sHS.js").then((e) => (v = e.FloatingViewer, v)), y);
 }
 var b = null, re = null;
 async function ie() {
@@ -117,10 +117,10 @@ function ae(e) {
 }
 var S = null;
 function C() {
-	return o.MFV_LIVE_DEFAULT !== !1;
+	return s.MFV_LIVE_DEFAULT !== !1;
 }
 function w() {
-	return o.MFV_PREVIEW_DEFAULT !== !1;
+	return s.MFV_PREVIEW_DEFAULT !== !1;
 }
 var T = C(), E = w(), D = !1, O = null, k = !1, A = null, j = 0;
 function oe() {
@@ -178,7 +178,7 @@ function se() {
 	}
 }
 function F(e) {
-	typeof window < "u" && window.dispatchEvent(new CustomEvent(s.MFV_VISIBILITY_CHANGED, { detail: { visible: !!e } }));
+	typeof window < "u" && window.dispatchEvent(new CustomEvent(c.MFV_VISIBILITY_CHANGED, { detail: { visible: !!e } }));
 }
 function I(e) {
 	e && (e.setLiveActive(T), e.setPreviewActive(E), e.setNodeStreamActive?.(D));
@@ -299,10 +299,10 @@ function B(e) {
 	}
 }
 function V() {
-	k || typeof window < "u" && (window.addEventListener(s.SELECTION_CHANGED, B), k = !0);
+	k || typeof window < "u" && (window.addEventListener(c.SELECTION_CHANGED, B), k = !0);
 }
 function H() {
-	typeof window < "u" && window.removeEventListener(s.SELECTION_CHANGED, B), k = !1, N();
+	typeof window < "u" && window.removeEventListener(c.SELECTION_CHANGED, B), k = !1, N();
 }
 var U = !1, W = null, G = null, K = "";
 function q() {
@@ -329,7 +329,7 @@ function de() {
 }
 function J() {
 	if (!U) try {
-		W = c(ue, { includePointerFallback: !0 }), U = typeof W == "function";
+		W = o(ue, { includePointerFallback: !0 }), U = typeof W == "function";
 	} catch (e) {
 		console.debug?.("[MFV] _bindNodeSelectionListener error", e);
 	}
@@ -394,7 +394,7 @@ var Y = {
 	},
 	async upsertWithContent(e) {
 		let t = await M(), n = !!t.isVisible;
-		(n || o.MFV_LIVE_AUTO_OPEN !== !1) && (t.show(), I(t), V(), ce(t, e), n || F(!0));
+		(n || s.MFV_LIVE_AUTO_OPEN !== !1) && (t.show(), I(t), V(), ce(t, e), n || F(!0));
 	},
 	setLiveActive(e) {
 		T = !!e, S?.setLiveActive(T);
@@ -413,12 +413,12 @@ var Y = {
 		return E;
 	},
 	canAcceptPreviewBlob() {
-		return E ? S?.isVisible ? !0 : o.MFV_PREVIEW_AUTO_OPEN !== !1 : !1;
+		return E ? S?.isVisible ? !0 : s.MFV_PREVIEW_AUTO_OPEN !== !1 : !1;
 	},
 	async feedPreviewBlob(e, t = {}) {
 		if (!Y.canAcceptPreviewBlob()) return;
 		let n = await M(), r = !!n.isVisible;
-		(r || o.MFV_PREVIEW_AUTO_OPEN !== !1) && (n.isVisible || n.show(), I(n), n.loadPreviewBlob(e, ...Object.keys(t).length ? [t] : []), r || F(!0));
+		(r || s.MFV_PREVIEW_AUTO_OPEN !== !1) && (n.isVisible || n.show(), I(n), n.loadPreviewBlob(e, ...Object.keys(t).length ? [t] : []), r || F(!0));
 	},
 	toggleNodeStream() {
 		Y.setNodeStreamActive(!D);
@@ -443,7 +443,7 @@ var Y = {
 	async feedNodeStream(e) {
 		if (!D) return;
 		let t = await M(), n = !!t.isVisible;
-		(n || o.MFV_NODE_STREAM_AUTO_OPEN !== !1) && (t.isVisible || (t.show(), V()), I(t), L(t), ce(t, e), n || F(!0));
+		(n || s.MFV_NODE_STREAM_AUTO_OPEN !== !1) && (t.isVisible || (t.show(), V()), I(t), L(t), ce(t, e), n || F(!0));
 	}
 }, X = !1, pe = () => Y.open(), me = () => Y.close(), he = () => Y.toggle(), Z = () => Y.toggleLive(), ge = () => Y.togglePreview(), _e = () => Y.toggleNodeStream(), ve = () => Y.popOut(), ye = () => {
 	try {
@@ -504,10 +504,10 @@ var Q = (e) => {
 	}
 };
 function $() {
-	X || typeof window < "u" && window?.addEventListener && (window.addEventListener(s.MFV_OPEN, pe), window.addEventListener(s.MFV_CLOSE, me), window.addEventListener(s.MFV_TOGGLE, he), window.addEventListener(s.MFV_LIVE_TOGGLE, Z), window.addEventListener(s.MFV_PREVIEW_TOGGLE, ge), window.addEventListener(s.MFV_NODESTREAM_TOGGLE, _e), window.addEventListener(s.MFV_POPOUT, ve), window.addEventListener(s.SETTINGS_CHANGED, be), window.addEventListener("keydown", Q, !0), window.addEventListener("beforeunload", ye), X = !0);
+	X || typeof window < "u" && window?.addEventListener && (window.addEventListener(c.MFV_OPEN, pe), window.addEventListener(c.MFV_CLOSE, me), window.addEventListener(c.MFV_TOGGLE, he), window.addEventListener(c.MFV_LIVE_TOGGLE, Z), window.addEventListener(c.MFV_PREVIEW_TOGGLE, ge), window.addEventListener(c.MFV_NODESTREAM_TOGGLE, _e), window.addEventListener(c.MFV_POPOUT, ve), window.addEventListener(c.SETTINGS_CHANGED, be), window.addEventListener("keydown", Q, !0), window.addEventListener("beforeunload", ye), X = !0);
 }
 function Ce() {
-	typeof window > "u" || !window?.removeEventListener || (window.removeEventListener(s.MFV_OPEN, pe), window.removeEventListener(s.MFV_CLOSE, me), window.removeEventListener(s.MFV_TOGGLE, he), window.removeEventListener(s.MFV_LIVE_TOGGLE, Z), window.removeEventListener(s.MFV_PREVIEW_TOGGLE, ge), window.removeEventListener(s.MFV_NODESTREAM_TOGGLE, _e), window.removeEventListener(s.MFV_POPOUT, ve), window.removeEventListener(s.SETTINGS_CHANGED, be), window.removeEventListener("keydown", Q, !0), window.removeEventListener("beforeunload", ye)), X = !1;
+	typeof window > "u" || !window?.removeEventListener || (window.removeEventListener(c.MFV_OPEN, pe), window.removeEventListener(c.MFV_CLOSE, me), window.removeEventListener(c.MFV_TOGGLE, he), window.removeEventListener(c.MFV_LIVE_TOGGLE, Z), window.removeEventListener(c.MFV_PREVIEW_TOGGLE, ge), window.removeEventListener(c.MFV_NODESTREAM_TOGGLE, _e), window.removeEventListener(c.MFV_POPOUT, ve), window.removeEventListener(c.SETTINGS_CHANGED, be), window.removeEventListener("keydown", Q, !0), window.removeEventListener("beforeunload", ye)), X = !1;
 }
 function we({ reinstallGlobalHandlers: e = !1 } = {}) {
 	let t = !!S?.isVisible;

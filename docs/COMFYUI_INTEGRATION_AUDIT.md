@@ -75,27 +75,26 @@ extensions sur l'objet requête partagé.
 Imports non triés dans 5 fichiers (`ruff --fix`) qui faisaient échouer
 `npm run quality:py`.
 
-## 3. Risques de conflit restants (non modifiés, à décider)
+## 3. Risques de conflit — état
 
-| # | Risque | Gravité | Recommandation |
-| --- | --- | --- | --- |
-| R1 | La couche de compatibilité `/api/v2/assets/*` occupe un espace de noms qui appartient au core (`/api/...`). Si ComfyUI publie un jour `/api/v2/assets`, les routes du core (enregistrées en premier) masqueront silencieusement celles de Majoor. | Moyenne | Exposer la même surface sous `/mjr/am/compat/assets/*`, garder `/api/v2/assets` comme alias déprécié, puis le retirer. |
-| R2 | `api.queuePrompt` est enveloppé (`floatingViewerProgress.ts`) pour suivre les prompts. Fonctionne, mais d'autres extensions font de même et l'ordre d'enveloppement n'est pas garanti. | Faible | Le frontend envoie déjà `execution_start` avec `prompt_id` ; à terme, s'appuyer uniquement sur les événements websocket et l'API Jobs du core (`adapters/comfy_core` détecte déjà `jobs`). |
-| R3 | Les middlewares sont insérés en tête de `app.middlewares`. Ils filtrent bien les chemins Majoor, mais l'insertion échoue si l'app est déjà figée (`freeze()`), ce qui est rattrapé et signalé en « degraded » dans `/mjr/am/health`. | Faible | Garder ; surveiller l'étape `security_middlewares` dans le rapport de démarrage. |
-| R4 | Doublon fonctionnel avec la barre latérale native « Assets » du frontend (onglet média du core). Les ID (`majoor-assets`) ne se chevauchent pas, mais deux panneaux similaires coexistent. | UX | Proposer un réglage « Remplacer l'onglet Assets natif » plutôt que masquer quoi que ce soit par défaut. |
-| R5 | `requires-python = ">=3.10, <3.14"` : bloque les installations ComfyUI en Python 3.14 via le Registry/comfy-cli. | Moyenne | Vérifier les roues `av`, `blake3`, `pywin32` pour 3.14, lancer la CI sur 3.14, puis relever la borne. |
-| R6 | `@comfyorg/litegraph@0.17.2` en devDependency : LiteGraph est désormais intégré au frontend et ses types sont exportés par `comfyui-frontend-types`. | Faible | Importer `LGraph`/`LGraphCanvas` depuis `@comfyorg/comfyui-frontend-types` et retirer le paquet séparé. |
-| R7 | `import { app } from "../../scripts/app.js"` dans `ui/entry.ts` : shim encore supporté, mais le frontend pousse vers `window.comfyAPI` et a déjà déprécié d'autres modules `scripts/*`. | Faible | `comfyApiBridge` sait déjà attendre l'app ; préférer `window.comfyAPI?.app?.app` avec repli sur l'import. |
-| R8 | 913 erreurs de typage dans `tsconfig.test.json` (script « advisory »). | Dette | Les réduire progressivement ; ne bloque pas le runtime. |
+| # | Risque | Statut |
+| --- | --- | --- |
+| R1 | `/api/v2/assets/*` occupait l'espace de noms du core (`/api/...`) et pouvait être masqué sans erreur. | **Corrigé** : surface déplacée vers `/mjr/am/compat/assets/*` ; l'ancien chemin n'est enregistré que si `MJR_AM_LEGACY_API_V2_ASSETS=1` (déprécié, avertissement au démarrage). |
+| R2 | `api.queuePrompt` était enveloppé pour suivre les prompts ; l'ordre d'enveloppement avec d'autres extensions n'est pas garanti. | **Corrigé** : plus aucune interception. Sur `execution_start` (websocket), le prompt est lu via l'API Jobs du core (`api.getJobDetail` → `GET /api/jobs/{id}`, champ `workflow.prompt`), puis `/queue` et `/history/{id}` pour les anciens cores. `wrapHostQueuePrompt` a été retiré. |
+| R3 | Middlewares insérés en tête de `app.middlewares` (filtrés sur les chemins Majoor ; échec rattrapé si l'app est figée). | Inchangé, sans risque : surveiller l'étape `security_middlewares` dans `/mjr/am/health`. |
+| R4 | Doublon fonctionnel avec l'onglet « Assets » natif. | **Corrigé (opt-in)** : réglage `Majoor.Integration.HideNativeAssetsTab` (désactivé par défaut) qui masque l'onglet natif via `getSidebarTabs`/`unregisterSidebarTab` et le restaure à l'identique quand on le désactive. |
+| R5 | `requires-python <3.14` bloquait Python 3.14. | **Corrigé** : `>=3.10, <3.15` ; suite complète validée sous 3.14 (1931 tests OK) ; 3.14 ajouté à la matrice CI et à `tox`. |
+| R6 | `@comfyorg/litegraph` séparé alors que le frontend exporte ses types. | Ouvert (faible). |
+| R7 | `import { app } from "../../scripts/app.js"` (shim encore supporté). | Ouvert (faible). |
+| R8 | 913 erreurs de typage dans `tsconfig.test.json`. | **Corrigé** : 0 erreur ; ajouté à la CI (`python-tests.yml`). Un vrai bug de test trouvé au passage (clé `stubs` dupliquée dans `asset_card_inner.vitest.ts`). |
 
 ## 4. Feuille de route d'évolution (meilleure intégration)
 
 1. **Progression par nœud** — écouter l'événement websocket `progress_state`
    (déclaré dans `comfyui-frontend-types`) pour une progression fiable dans les
    sous-graphes et en exécution parallèle, en complément de `progress`.
-2. **API Jobs du core** — utiliser l'historique/les jobs du core (déjà détectés
-   par `ComfyCoreCapabilities.jobs`) pour rattacher chaque sortie à son prompt,
-   au lieu de reconstruire cet état côté Majoor.
+2. **API Jobs du core** — déjà utilisée pour la progression (R2) ; étendre à
+   `api.getJobAssets` pour rattacher chaque sortie à son prompt.
 3. **API Assets du core** — quand `capabilities.assets` est vrai, synchroniser
    les tags/notes avec `/api/assets` (lecture seule d'abord), afin que les
    assets soient visibles dans les deux panneaux sans double indexation.

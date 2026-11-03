@@ -20,7 +20,7 @@ describe("tooltipShortcuts", () => {
             },
         };
 
-        const tooltip = setTooltipHint(button, "Close viewer", "Esc");
+        const tooltip = setTooltipHint(button as any, "Close viewer", "Esc");
 
         expect(tooltip).toBe("Close viewer (Esc)");
         expect(button.title).toBe("Close viewer (Esc)");

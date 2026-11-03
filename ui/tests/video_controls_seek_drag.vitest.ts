@@ -21,8 +21,8 @@ function makePointerEvent(window, type, props = {}) {
 describe("video controls seek drag", () => {
     it("lets the MFV timeline scrub freely without playback sync overwriting the drag", async () => {
         const window = new Window();
-        globalThis.window = window;
-        globalThis.document = window.document;
+        globalThis.window = window as any;
+        globalThis.document = window.document as any;
         Object.defineProperty(globalThis, "navigator", {
             configurable: true,
             value: window.navigator,
@@ -56,7 +56,7 @@ describe("video controls seek drag", () => {
 
         const seekWrap = mounted.controlsEl.querySelector(".mjr-video-seek-wrap");
         const seek = mounted.controlsEl.querySelector(".mjr-video-range--seek");
-        seekWrap.getBoundingClientRect = () => ({ left: 10, width: 100 });
+        seekWrap.getBoundingClientRect = () => ({ left: 10, width: 100 }) as any;
 
         seekWrap.dispatchEvent(
             makePointerEvent(window, "pointerdown", {
@@ -68,11 +68,11 @@ describe("video controls seek drag", () => {
         );
 
         expect(currentTime).toBeCloseTo(5, 5);
-        expect(seek.value).toBe("500");
+        expect((seek as any).value).toBe("500");
 
         currentTime = 1;
-        video.dispatchEvent(new window.Event("timeupdate"));
-        expect(seek.value).toBe("500");
+        video.dispatchEvent(new window.Event("timeupdate") as any);
+        expect((seek as any).value).toBe("500");
 
         window.dispatchEvent(
             makePointerEvent(window, "pointermove", {
@@ -83,7 +83,7 @@ describe("video controls seek drag", () => {
         );
 
         expect(currentTime).toBeCloseTo(9, 5);
-        expect(seek.value).toBe("900");
+        expect((seek as any).value).toBe("900");
 
         window.dispatchEvent(
             makePointerEvent(window, "pointerup", {
@@ -94,16 +94,16 @@ describe("video controls seek drag", () => {
         );
 
         currentTime = 2;
-        video.dispatchEvent(new window.Event("timeupdate"));
-        expect(seek.value).toBe("200");
+        video.dispatchEvent(new window.Event("timeupdate") as any);
+        expect((seek as any).value).toBe("200");
 
         mounted.destroy();
     });
 
     it("uses frame-count seek precision when metadata exceeds the legacy 1000-step range", async () => {
         const window = new Window();
-        globalThis.window = window;
-        globalThis.document = window.document;
+        globalThis.window = window as any;
+        globalThis.document = window.document as any;
         Object.defineProperty(globalThis, "navigator", {
             configurable: true,
             value: window.navigator,
@@ -139,13 +139,13 @@ describe("video controls seek drag", () => {
 
         const seek = mounted.controlsEl.querySelector(".mjr-video-range--seek");
         currentTime = 30;
-        video.dispatchEvent(new window.Event("timeupdate"));
+        video.dispatchEvent(new window.Event("timeupdate") as any);
 
-        expect(seek.max).toBe("1800");
-        expect(seek.value).toBe("900");
+        expect((seek as any).max).toBe("1800");
+        expect((seek as any).value).toBe("900");
 
-        seek.value = "901";
-        seek.dispatchEvent(new window.Event("input", { bubbles: true, cancelable: true }));
+        (seek as any).value = "901";
+        seek.dispatchEvent(new window.Event("input", { bubbles: true, cancelable: true }) as any);
 
         expect(currentTime).toBeCloseTo((901 / 1800) * 60, 5);
 
