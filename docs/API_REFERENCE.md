@@ -1162,6 +1162,51 @@ POST /mjr/am/db/force-delete
 
 ---
 
+### Trash Status
+```http
+GET /mjr/am/trash
+```
+
+**Purpose**: Report how many freedesktop trash entries came from Majoor's folders (output, input, custom roots). Linux/BSD only; the response never contains file paths. Rate-limited to 20 requests per 60 seconds.
+
+**Response**:
+```json
+{
+  "ok": true,
+  "data": {
+    "supported": true,
+    "count": 3,
+    "bytes": 1048576
+  }
+}
+```
+
+---
+
+### Empty Trash
+```http
+POST /mjr/am/trash/empty
+```
+
+**Purpose**: Permanently remove the freedesktop trash entries whose original location was inside a Majoor folder. Entries from outside Majoor's folders, orphans, and symlink-reachable payloads are never touched; a trash directory is only used when it belongs to the current user and is not group/world-writable. Directories inside the trash are never removed (reported in `skipped_dirs`). Requires the same permission as asset deletion (`allow_delete` / `MAJOOR_ALLOW_DELETE=1`); rate-limited to 3 requests per 60 seconds.
+
+**Response**:
+```json
+{
+  "ok": true,
+  "data": {
+    "removed": 3,
+    "bytes": 1048576,
+    "failed": [],
+    "skipped_dirs": 0
+  }
+}
+```
+
+`failed` lists entries that could not be removed (`name` + `error`); the remaining entries are still removed. `skipped_dirs` counts directory payloads, which are left in place.
+
+---
+
 ## Utilities
 
 ### Date Histogram

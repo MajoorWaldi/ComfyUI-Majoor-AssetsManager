@@ -110,6 +110,7 @@ Safe Mode adds an explicit opt-in layer for operations that modify files or user
   - Allows rating/tags writes while Safe Mode is enabled.
 - `MAJOOR_ALLOW_DELETE=1`
   - Enables asset deletion (disabled by default).
+  - Also gates emptying the freedesktop trash (`POST /mjr/am/trash/empty`), which permanently removes trashed files.
 - `MAJOOR_ALLOW_RENAME=1`
   - Enables asset rename (disabled by default).
 - `MAJOOR_ALLOW_OPEN_IN_FOLDER=1`
