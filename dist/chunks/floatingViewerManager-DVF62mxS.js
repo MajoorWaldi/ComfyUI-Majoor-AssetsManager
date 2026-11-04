@@ -201,7 +201,7 @@ var he = /* @__PURE__ */ e({
 	teardownFloatingViewerManager: () => Ue
 }), S = null, ge = null;
 async function _e() {
-	return S || (ge ||= import("./FloatingViewer-Dv6xClUS.js").then((e) => (S = e.FloatingViewer, S)), ge);
+	return S || (ge ||= import("./FloatingViewer-CexKk67v.js").then((e) => (S = e.FloatingViewer, S)), ge);
 }
 var C = null, ve = null;
 async function ye() {

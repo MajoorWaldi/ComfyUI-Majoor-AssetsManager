@@ -9244,3 +9244,28 @@ body.mjr-mfv-popout-body {
 .mjr-studio-player.is-compact .mjr-studio-player__spectrum {
     height: 90px;
 }
+
+/* Floating viewer A/B with the Studio player on A: A is on top (pointer-through),
+   only its picture is clipped at the divider; B shows underneath. */
+.mjr-mfv-ab-container.has-studio-a {
+    background: #000;
+}
+.mjr-mfv-ab-container.has-studio-a .mjr-mfv-ab-layer:not(.mjr-mfv-ab-layer--b) {
+    z-index: 2;
+    pointer-events: none;
+}
+.mjr-mfv-ab-container.has-studio-a .mjr-mfv-ab-layer:not(.mjr-mfv-ab-layer--b) .mjr-mfv-player-host,
+.mjr-mfv-ab-container.has-studio-a .mjr-mfv-ab-layer:not(.mjr-mfv-ab-layer--b) .mjr-studio-player {
+    background: transparent;
+}
+.mjr-mfv-ab-container.has-studio-a .mjr-studio-player__screen {
+    pointer-events: auto;
+    clip-path: inset(0 calc(100% - var(--mjr-ab-x, 50%)) 0 0);
+}
+.mjr-mfv-ab-container.has-studio-a .mjr-studio-player__controls,
+.mjr-mfv-ab-container.has-studio-a .mjr-studio-player__big-play {
+    pointer-events: auto;
+}
+.mjr-mfv-ab-container.has-studio-a .mjr-mfv-ab-divider {
+    z-index: 10;
+}

@@ -1535,7 +1535,16 @@ export class FloatingViewer {
         const layerB = document.createElement("div");
         layerB.className = "mjr-mfv-ab-layer mjr-mfv-ab-layer--b";
         const pct = Math.round(this._abDividerX * 100);
-        layerB.style.clipPath = `inset(0 0 0 ${pct}%)`;
+        // With the Studio player on A, A sits on top and only its picture is
+        // clipped at the divider, so the player controls are never covered by B.
+        // Otherwise B is clipped from the divider to the right edge.
+        const studioA = !!elA?.classList?.contains?.("mjr-mfv-player-host--studio");
+        if (studioA) container.classList.add("has-studio-a");
+        const applyDivider = (p: number) => {
+            if (studioA) container.style.setProperty("--mjr-ab-x", `${p}%`);
+            else layerB.style.clipPath = `inset(0 0 0 ${p}%)`;
+        };
+        applyDivider(pct);
         layerB.appendChild(elB);
 
         // Draggable divider bar
@@ -1590,7 +1599,7 @@ export class FloatingViewer {
                     const x = Math.max(0.02, Math.min(0.98, (me.clientX - rect.left) / rect.width));
                     this._abDividerX = x;
                     const p = Math.round(x * 100);
-                    layerB.style.clipPath = `inset(0 0 0 ${p}%)`;
+                    applyDivider(p);
                     divider.style.left = `${p}%`;
                     if (genInfoAEl) genInfoAEl.style.right = `calc(${100 - p}% + 8px)`;
                     if (genInfoBEl) genInfoBEl.style.left = `calc(${p}% + 8px)`;

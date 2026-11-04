@@ -4256,33 +4256,37 @@ var _r = 0, vr = class {
 		s.className = "mjr-mfv-ab-layer", n && s.appendChild(n);
 		let c = document.createElement("div");
 		c.className = "mjr-mfv-ab-layer mjr-mfv-ab-layer--b";
-		let l = Math.round(this._abDividerX * 100);
-		c.style.clipPath = `inset(0 0 0 ${l}%)`, c.appendChild(r);
-		let u = document.createElement("div");
-		u.className = "mjr-mfv-ab-divider", u.style.left = `${l}%`;
-		let d = this._buildGenInfoDOM(this._mediaA), f = null;
-		d && (f = document.createElement("div"), f.className = "mjr-mfv-geninfo-a", gr(n) && f.classList.add("mjr-mfv-geninfo--above-player"), f.appendChild(d), f.style.right = `calc(${100 - l}% + 8px)`);
-		let p = this._buildGenInfoDOM(this._mediaB), m = null;
-		p && (m = document.createElement("div"), m.className = "mjr-mfv-geninfo-b", gr(r) && m.classList.add("mjr-mfv-geninfo--above-player"), m.appendChild(p), m.style.left = `calc(${l}% + 8px)`);
-		let h = null;
-		u.addEventListener("pointerdown", (e) => {
-			e.preventDefault(), u.setPointerCapture(e.pointerId);
+		let l = Math.round(this._abDividerX * 100), u = !!n?.classList?.contains?.("mjr-mfv-player-host--studio");
+		u && o.classList.add("has-studio-a");
+		let d = (e) => {
+			u ? o.style.setProperty("--mjr-ab-x", `${e}%`) : c.style.clipPath = `inset(0 0 0 ${e}%)`;
+		};
+		d(l), c.appendChild(r);
+		let f = document.createElement("div");
+		f.className = "mjr-mfv-ab-divider", f.style.left = `${l}%`;
+		let p = this._buildGenInfoDOM(this._mediaA), m = null;
+		p && (m = document.createElement("div"), m.className = "mjr-mfv-geninfo-a", gr(n) && m.classList.add("mjr-mfv-geninfo--above-player"), m.appendChild(p), m.style.right = `calc(${100 - l}% + 8px)`);
+		let h = this._buildGenInfoDOM(this._mediaB), g = null;
+		h && (g = document.createElement("div"), g.className = "mjr-mfv-geninfo-b", gr(r) && g.classList.add("mjr-mfv-geninfo--above-player"), g.appendChild(h), g.style.left = `calc(${l}% + 8px)`);
+		let _ = null;
+		f.addEventListener("pointerdown", (e) => {
+			e.preventDefault(), f.setPointerCapture(e.pointerId);
 			try {
-				h?.abort();
+				_?.abort();
 			} catch {}
-			h = new AbortController();
-			let t = h.signal, n = o.getBoundingClientRect();
-			u.addEventListener("pointermove", (e) => {
+			_ = new AbortController();
+			let t = _.signal, n = o.getBoundingClientRect();
+			f.addEventListener("pointermove", (e) => {
 				let t = Math.max(.02, Math.min(.98, (e.clientX - n.left) / n.width));
 				this._abDividerX = t;
 				let r = Math.round(t * 100);
-				c.style.clipPath = `inset(0 0 0 ${r}%)`, u.style.left = `${r}%`, f && (f.style.right = `calc(${100 - r}% + 8px)`), m && (m.style.left = `calc(${r}% + 8px)`);
-			}, { signal: t }), u.addEventListener("pointerup", () => {
+				d(r), f.style.left = `${r}%`, m && (m.style.right = `calc(${100 - r}% + 8px)`), g && (g.style.left = `calc(${r}% + 8px)`);
+			}, { signal: t }), f.addEventListener("pointerup", () => {
 				try {
-					h?.abort();
+					_?.abort();
 				} catch {}
 			}, { signal: t });
-		}, this._panelAC?.signal ? { signal: this._panelAC.signal } : void 0), o.appendChild(s), o.appendChild(c), o.appendChild(u), f && o.appendChild(f), m && o.appendChild(m), o.appendChild(q("A", "left")), o.appendChild(q("B", "right")), this._contentEl.appendChild(o);
+		}, this._panelAC?.signal ? { signal: this._panelAC.signal } : void 0), o.appendChild(s), o.appendChild(c), o.appendChild(f), m && o.appendChild(m), g && o.appendChild(g), o.appendChild(q("A", "left")), o.appendChild(q("B", "right")), this._contentEl.appendChild(o);
 	}
 	_renderSide() {
 		let e = this._mediaA ? J(this._mediaA, {

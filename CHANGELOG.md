@@ -46,6 +46,7 @@ All notable changes to this project are documented in this file.
 - **Floating viewer: one player everywhere**: A/B, side-by-side and grid compare now also use the Studio player for the primary video / audio (the other slots stay bare, synced elements). The legacy video controls (in/out, Nuke-style bar, ~2 000 lines, their styles and tests) are gone; the asset sidebar keeps its small preview controls. GIF / animated WebP keep their own simple player.
 
 ### Fixed (follow-ups)
+- **Floating viewer A/B hid the player**: with the Studio player on A, the B layer covered the right half of its controls. A now sits on top and only its picture is clipped at the divider, so the controls stay visible and usable everywhere.
 - **Light dismiss in the Studio viewer**: clicking the empty area around the image or video (not the picture, a tool, the inspector or the player bar) closes the viewer again, as the classic viewer did. Dragging to pan never closes it.
 - **Grid selection after closing the viewer**: the Studio viewer now tells the grid which asset you ended on (selection, scroll and focus), as the classic viewer did.
 - **Studio viewer shortcuts after navigating**: moving to another asset focused the tag field, so the next shortcuts were typed into it. The inspector's tag editor no longer grabs focus.
