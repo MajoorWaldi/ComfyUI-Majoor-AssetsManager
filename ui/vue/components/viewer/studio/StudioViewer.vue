@@ -10,7 +10,7 @@
  *
  * Review tools live in a HUD rail on the left of the stage (channels,
  * exposure/gamma, zebra, scopes, guides, aspect mask, probe, loupe, A/B
- * compare, copy). The classic viewer stays reachable through `open-classic`.
+ * compare, copy).
  */
 import { computed, nextTick, onBeforeUnmount, reactive, ref, shallowRef, watch } from "vue";
 
@@ -21,7 +21,10 @@ import {
     updateAssetRating,
 } from "../../../../api/client.js";
 import { buildAssetViewURL, buildThumbnailURL } from "../../../../api/endpoints.js";
-import { ASSET_RATING_CHANGED_EVENT } from "../../../../app/events.js";
+import {
+    ASSET_RATING_CHANGED_EVENT,
+    VIEWER_ACTIVE_ASSET_CHANGED_EVENT,
+} from "../../../../app/events.js";
 import { t } from "../../../../app/i18n.js";
 import { comfyToast } from "../../../../app/toast.js";
 import { ensureViewerMetadataAsset } from "../../../../features/viewer/genInfo.js";
@@ -59,10 +62,6 @@ import StudioProbe from "./StudioProbe.vue";
 import StudioScopesHud from "./StudioScopes.vue";
 import StudioToolRail from "./StudioToolRail.vue";
 import StudioZebra from "./StudioZebra.vue";
-
-const emit = defineEmits<{
-    (e: "open-classic", payload: { assets: unknown[]; index: number; mode: string }): void;
-}>();
 
 type InspectorTab = "generation" | "workflow" | "file";
 
@@ -306,17 +305,16 @@ onBeforeUnmount(() => {
 });
 
 function close() {
+    const current = asset.value;
     closeStudioViewer();
-}
-
-function openClassic(mode = "") {
-    const payload = {
-        assets: studioViewerState.assets.slice(),
-        index: studioViewerState.index,
-        mode,
-    };
-    closeStudioViewer();
-    emit("open-classic", payload);
+    // Let the grid select / scroll to the asset the user ended on.
+    if (current?.id != null) {
+        window.dispatchEvent(
+            new CustomEvent(VIEWER_ACTIVE_ASSET_CHANGED_EVENT, {
+                detail: { assetId: String(current.id) },
+            }),
+        );
+    }
 }
 
 function toggleFullscreen() {
@@ -523,14 +521,6 @@ function thumbUrl(a: any): string {
                     <MButton
                         type="button"
                         class="mjr-studio-btn"
-                        :title="t('viewer.studio.classic', 'Open in the classic viewer')"
-                        @click="openClassic('')"
-                    >
-                        <i class="pi pi-sliders-h" aria-hidden="true" />
-                    </MButton>
-                    <MButton
-                        type="button"
-                        class="mjr-studio-btn"
                         :class="{ 'is-on': inspectorOpen }"
                         :title="t('viewer.studio.inspector', 'Generation info (Tab)')"
                         @click="inspectorOpen = !inspectorOpen"
@@ -639,13 +629,6 @@ function thumbUrl(a: any): string {
                         <span>{{
                             t("viewer.studio.unsupported", "No preview for this file type.")
                         }}</span>
-                        <MButton
-                            type="button"
-                            class="mjr-studio-btn is-text"
-                            @click="openClassic('')"
-                        >
-                            {{ t("viewer.studio.classicShort", "Classic viewer") }}
-                        </MButton>
                     </div>
 
                     <StudioToolRail

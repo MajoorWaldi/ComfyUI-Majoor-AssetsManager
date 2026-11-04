@@ -1,5 +1,6 @@
-import { Z as e, o as t, r as n } from "./events-CttACGx4.js";
-import { t as r } from "./floatingViewerManager-CLgIT9uN.js";
+import { Vn as e, t } from "./config-C9a-wT5M.js";
+import { t as n } from "./floatingViewerManager-QjcrrPd1.js";
+import { r } from "./events-1iwo5blr.js";
 // ui/features/viewer/LiveStreamTracker.ts
 var i = !1, a = null, o = null, s = null, c = null, l = null, u = null, d = null, f = null, p = 0, m = 0, h = !1, g = 400, _ = "kj_preview_override", v = /* @__PURE__ */ new Set([
 	"image/jpeg",
@@ -74,12 +75,12 @@ function O(e) {
 	let t = String(e?.node_id ?? "").trim(), n = Number(e?.step), r = Number(e?.total), i = Number.isFinite(n) && Number.isFinite(r) && r > 0 ? ` · ${n}/${r}` : "";
 	return `KJ Preview Override${t ? ` · Node ${t}` : ""}${i}`;
 }
-async function k(n) {
+async function k(r) {
 	let i = ++p;
 	try {
 		A();
 		let a = await e({
-			app: n,
+			app: r,
 			timeoutMs: 8e3
 		});
 		if (i !== p) return;
@@ -97,40 +98,40 @@ async function k(n) {
 					h = !1;
 					return;
 				}
-				if (!r.canAcceptPreviewBlob()) return;
-				let n = e?.detail || null, i = D(n);
+				if (!n.canAcceptPreviewBlob()) return;
+				let r = e?.detail || null, i = D(r);
 				if (!i) return;
 				h = !0;
-				let a = String(n?.node_id ?? "").trim();
-				r.feedPreviewBlob(i, {
+				let a = String(r?.node_id ?? "").trim();
+				n.feedPreviewBlob(i, {
 					source: "kj-preview-override",
-					sourceLabel: O(n),
+					sourceLabel: O(r),
 					nodeId: a || null,
 					mime: i.type,
-					width: Number(n?.w) || void 0,
-					height: Number(n?.h) || void 0,
-					fps: Number(n?.fps) || void 0,
-					step: Number.isFinite(Number(n?.step)) ? Number(n.step) : null,
-					total: Number.isFinite(Number(n?.total)) ? Number(n.total) : null
+					width: Number(r?.w) || void 0,
+					height: Number(r?.h) || void 0,
+					fps: Number(r?.fps) || void 0,
+					step: Number.isFinite(Number(r?.step)) ? Number(r.step) : null,
+					total: Number.isFinite(Number(r?.total)) ? Number(r.total) : null
 				});
 			} catch (e) {
 				console.debug?.("[MFV] KJNodes preview override error", e);
 			}
 		}, a.addEventListener(_, c), s = (e) => {
 			try {
-				if (h && t.MFV_KJ_PREVIEW_OVERRIDE_ENABLED !== !1 || !r.canAcceptPreviewBlob()) return;
-				let { blob: n, nodeId: i, jobId: a } = e.detail || {};
-				if (!n || !(n instanceof Blob) || (m = Date.now(), f && a && a !== f)) return;
-				r.feedPreviewBlob(n, { sourceLabel: i ? `Node ${i}` : null });
+				if (h && t.MFV_KJ_PREVIEW_OVERRIDE_ENABLED !== !1 || !n.canAcceptPreviewBlob()) return;
+				let { blob: r, nodeId: i, jobId: a } = e.detail || {};
+				if (!r || !(r instanceof Blob) || (m = Date.now(), f && a && a !== f)) return;
+				n.feedPreviewBlob(r, { sourceLabel: i ? `Node ${i}` : null });
 			} catch (e) {
 				console.debug?.("[MFV] b_preview_with_metadata error", e);
 			}
 		}, a.addEventListener("b_preview_with_metadata", s), o = (e) => {
 			try {
-				if (h && t.MFV_KJ_PREVIEW_OVERRIDE_ENABLED !== !1 || T() || !r.canAcceptPreviewBlob()) return;
-				let n = e.detail;
-				if (!n || !(n instanceof Blob)) return;
-				r.feedPreviewBlob(n);
+				if (h && t.MFV_KJ_PREVIEW_OVERRIDE_ENABLED !== !1 || T() || !n.canAcceptPreviewBlob()) return;
+				let r = e.detail;
+				if (!r || !(r instanceof Blob)) return;
+				n.feedPreviewBlob(r);
 			} catch (e) {
 				console.debug?.("[MFV] preview blob error", e);
 			}
@@ -187,17 +188,17 @@ function M(e) {
 function N(e) {
 	a || (i = !0, a = (e) => {
 		try {
-			if (!r.getLiveActive()) return;
+			if (!n.getLiveActive()) return;
 			let t = M(e.detail?.files);
 			if (!t) return;
-			r.upsertWithContent(t);
+			n.upsertWithContent(t);
 		} catch (e) {
 			console.debug?.("[MFV] generation output error", e);
 		}
-	}, typeof window < "u" && window.addEventListener(n.NEW_GENERATION_OUTPUT, a), k(e), console.debug("[Majoor] LiveStreamTracker initialized"));
+	}, typeof window < "u" && window.addEventListener(r.NEW_GENERATION_OUTPUT, a), k(e), console.debug("[Majoor] LiveStreamTracker initialized"));
 }
 function P(e) {
-	a &&= (typeof window < "u" && window.removeEventListener(n.NEW_GENERATION_OUTPUT, a), null), p += 1, A(), f = null, i = !1, console.debug("[Majoor] LiveStreamTracker torn down");
+	a &&= (typeof window < "u" && window.removeEventListener(r.NEW_GENERATION_OUTPUT, a), null), p += 1, A(), f = null, i = !1, console.debug("[Majoor] LiveStreamTracker torn down");
 }
 function F() {
 	return i;

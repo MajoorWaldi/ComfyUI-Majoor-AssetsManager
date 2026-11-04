@@ -1,10 +1,5 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
-vi.mock("../app/settings/settingsCore.js", () => ({
-    loadMajoorSettings: vi.fn(() => ({ viewer: {} })),
-}));
-
-import { loadMajoorSettings } from "../app/settings/settingsCore.js";
 import {
     assetSummary,
     filmstripWindow,
@@ -19,7 +14,6 @@ import {
     totalFrames,
 } from "../features/viewer/studio/studioMedia.js";
 import {
-    shouldUseStudioViewer,
     studioCompareForMode,
 } from "../features/viewer/studio/studioViewerState.js";
 
@@ -81,22 +75,8 @@ describe("studio media helpers", () => {
     });
 });
 
-describe("viewer routing", () => {
-    const image = { id: 1, filename: "a.png", kind: "image" };
-
-    it("uses the Studio viewer by default", () => {
-        expect(shouldUseStudioViewer([image], 0)).toBe(true);
-    });
-
-    it("handles compare modes and 3D; only the classic setting opts out", () => {
-        expect(shouldUseStudioViewer([image, image], 0, "ab")).toBe(true);
-        expect(shouldUseStudioViewer([image, image], 0, "sidebyside")).toBe(true);
-        expect(shouldUseStudioViewer([{ filename: "m.glb" }], 0)).toBe(true);
-        (loadMajoorSettings as any).mockReturnValueOnce({ viewer: { classic: true } });
-        expect(shouldUseStudioViewer([image], 0)).toBe(false);
-    });
-
-    it("maps classic open modes to Studio compare modes", () => {
+describe("compare mode mapping", () => {
+    it("maps open modes to Studio compare modes", () => {
         expect(studioCompareForMode("ab")).toBe("wipe");
         expect(studioCompareForMode("SideBySide")).toBe("side");
         expect(studioCompareForMode("")).toBe("");

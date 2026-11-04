@@ -27,7 +27,7 @@ describe("audio viewer controls", () => {
         });
 
         const mounted = mountVideoControls(audio, {
-            variant: "viewerbar",
+            variant: "viewer",
             mediaKind: "audio",
             hostEl: host,
         });
@@ -75,7 +75,7 @@ describe("audio viewer controls", () => {
         });
 
         const mounted = mountVideoControls(audio, {
-            variant: "viewerbar",
+            variant: "viewer",
             mediaKind: "audio",
             hostEl: host,
         });
@@ -140,7 +140,7 @@ describe("audio viewer controls", () => {
         video.cancelVideoFrameCallback = vi.fn();
 
         const mounted = mountVideoControls(video, {
-            variant: "viewerbar",
+            variant: "viewer",
             mediaKind: "video",
             hostEl: host,
             initialFps: 24,
@@ -197,7 +197,7 @@ describe("audio viewer controls", () => {
         });
 
         const mounted = mountVideoControls(video, {
-            variant: "viewerbar",
+            variant: "viewer",
             mediaKind: "video",
             hostEl: host,
         });

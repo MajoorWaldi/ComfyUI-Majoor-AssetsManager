@@ -2,12 +2,6 @@
 
 import { describe, expect, it, vi } from "vitest";
 
-vi.mock("../app/settings/settingsCore.js", async (importOriginal) => ({
-    ...((await importOriginal()) as object),
-    loadMajoorSettings: vi.fn(() => ({ viewer: {} })),
-}));
-
-import { loadMajoorSettings } from "../app/settings/settingsCore.js";
 import { buildFloatingViewerStudioPlayer } from "../features/viewer/floatingViewerMedia.js";
 
 const VIDEO = { filename: "clip.mp4", kind: "video", type: "output", subfolder: "" };
@@ -45,10 +39,8 @@ describe("floating viewer Studio player", () => {
         host?.remove();
     });
 
-    it("keeps legacy renderers for images and when the classic viewer is selected", () => {
+    it("leaves images to the plain renderer", () => {
         expect(buildFloatingViewerStudioPlayer({ filename: "a.png", kind: "image" })).toBeNull();
-        (loadMajoorSettings as any).mockReturnValueOnce({ viewer: { classic: true } });
-        expect(buildFloatingViewerStudioPlayer(VIDEO)).toBeNull();
     });
 
     it("forces mute for generated preview clips", () => {

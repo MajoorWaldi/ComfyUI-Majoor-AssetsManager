@@ -42,7 +42,7 @@ export const MODEL3D_EXT_TO_LOADER = Object.freeze({
 });
 
 export const MODEL3D_EXTS = new Set(Object.keys(MODEL3D_EXT_TO_LOADER));
-export const PREVIEWABLE_MODEL3D_LOADERS = new Set(["gltf", "obj", "fbx", "stl", "ply"]);
+const PREVIEWABLE_MODEL3D_LOADERS = new Set(["gltf", "obj", "fbx", "stl", "ply"]);
 
 const MODEL3D_VIEWER_DEFAULT_BG = "#282828";
 const MODEL3D_DEFAULT_CONTROL_HINT = t("model3d.controlHint", "Rotate: left drag  Pan: right drag  Zoom: wheel");
@@ -119,34 +119,9 @@ function _resolveLoaderFromAsset(asset: any) {
 
 // --- Settings panel --------------------------------------------------------
 
-export function isModel3DAsset(asset: any): boolean {
-    const kind = String(asset?.kind || "").toLowerCase();
-    if (kind === "model3d") return true;
-    return MODEL3D_EXTS.has(_extOf(asset));
-}
-
 /** Returns the loader type string (e.g. "gltf", "obj", "fbx") for the given asset. */
-export function resolveModel3DLoader(asset: any): string | null {
+function resolveModel3DLoader(asset: any): string | null {
     return _resolveLoaderFromAsset(asset) || "gltf";
-}
-
-/** Returns the default mouse-control hint string shown in the 3D viewport. */
-export function getModel3DDefaultControlHint(): string {
-    return MODEL3D_DEFAULT_CONTROL_HINT;
-}
-
-/** Returns the WebGL canvas element inside a 3D host element, or null if not found. */
-export function findModel3DCanvas(rootEl: any) {
-    try {
-        if (rootEl?.classList?.contains?.("mjr-model3d-render-canvas")) return rootEl;
-    } catch (e: any) {
-        console.debug?.(e);
-    }
-    try {
-        return rootEl?.querySelector?.(".mjr-model3d-render-canvas") || null;
-    } catch {
-        return null;
-    }
 }
 
 /** Returns true if the given DOM element is inside a 3D model host (used to suppress panzoom). */

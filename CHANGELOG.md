@@ -37,7 +37,13 @@ All notable changes to this project are documented in this file.
 
 - **Studio viewer: every tool of the classic viewer, as a HUD**: a tool rail on the left of the stage brings channels (R/G/B/alpha/luma), exposure and gamma, zebra, histogram / waveform scopes, composition guides (thirds, golden, centre, safe areas), aspect-ratio masks, pixel probe, loupe, copy to clipboard and A/B compare (wipe ↔/↕, side by side, difference, add, subtract, multiply, screen) with B selection, pin and swap. Colour tools run on the GPU and work on playing video; video compare keeps both players in sync. 3D models and the grid's A/B / side-by-side actions now open in the Studio viewer too, and audio files show a live spectrum. New shortcuts: `C`, `B`, `X`, `Z`, `S`, `G`, `P`, `L`, `R`, `Ctrl+C`.
 
+### Removed
+- **Classic viewer**: the Studio viewer is now the only main viewer. The classic overlay (toolbar, panzoom, A/B and side-by-side engine, scopes, loupe, probe, grading pipeline, WebGL video processor, filmstrip and its context menu) and about 20 000 lines of code, styles and tests are gone. Everything it did is in the Studio viewer's tool rail; the grid's A/B / side-by-side actions open the Studio viewer with that compare mode on.
+- **Viewer settings**: *Use the classic viewer*, *Pan without zoom* and *Disable WebGL video* (classic-only) are removed, with the internal `videoGradeThrottleFps`, `scopesFps`, `metaTtlMs` and `metaMaxEntries` options. Existing values in saved settings are simply ignored.
+- The unused *viewerbar* variant of the legacy video controls (the floating viewer's compare modes keep the regular variant).
+
 ### Fixed (follow-ups)
+- **Grid selection after closing the viewer**: the Studio viewer now tells the grid which asset you ended on (selection, scroll and focus), as the classic viewer did.
 - **Studio viewer shortcuts after navigating**: moving to another asset focused the tag field, so the next shortcuts were typed into it. The inspector's tag editor no longer grabs focus.
 - **Search by part of a file name**: typing `F` (or `flow`) only found names with a *word starting* with it (`Flux…`, `field…`), never `sunflower.png` or `ComfyUI_…`. Single-word searches now also list file names that contain the text (ranked after word matches); `_` and `%` are matched literally. Multi-word and quoted searches are unchanged.
 - **Sidecar JSON added after a file was indexed** is now picked up: the watcher maps a new/changed `<file>.json` / `<stem>.json` to its media, invalidates that file's metadata cache and scan journal, and forces a re-extraction (a non-incremental re-index no longer trusts an existing metadata row when the cache was invalidated).

@@ -88,19 +88,11 @@ export const DEFAULT_SETTINGS = {
         pollInterval: APP_DEFAULTS.STATUS_POLL_INTERVAL,
     },
     viewer: {
-        // false = Studio viewer (default); true = classic viewer for everything.
-        classic: false,
-        allowPanAtZoom1: APP_DEFAULTS.VIEWER_ALLOW_PAN_AT_ZOOM_1,
-        disableWebGL: APP_DEFAULTS.VIEWER_DISABLE_WEBGL_VIDEO,
         pauseDuringExecution: APP_DEFAULTS.VIEWER_PAUSE_DURING_EXECUTION,
         floatingPauseDuringExecution: APP_DEFAULTS.FLOATING_VIEWER_PAUSE_DURING_EXECUTION,
         mfvLiveDefault: APP_DEFAULTS.MFV_LIVE_DEFAULT,
         mfvPreviewDefault: APP_DEFAULTS.MFV_PREVIEW_DEFAULT,
         mfvTopbarButton: APP_DEFAULTS.MFV_TOPBAR_BUTTON,
-        videoGradeThrottleFps: APP_DEFAULTS.VIEWER_VIDEO_GRADE_THROTTLE_FPS,
-        scopesFps: APP_DEFAULTS.VIEWER_SCOPES_FPS,
-        metaTtlMs: APP_DEFAULTS.VIEWER_META_TTL_MS,
-        metaMaxEntries: APP_DEFAULTS.VIEWER_META_MAX_ENTRIES,
         mfvSidebarPosition: "right",
         mfvPreviewMethod: APP_DEFAULTS.MFV_PREVIEW_METHOD,
         mfvKjPreviewOverrideEnabled: APP_DEFAULTS.MFV_KJ_PREVIEW_OVERRIDE_ENABLED,
@@ -517,8 +509,6 @@ export const applySettingsToConfig = (settings: Record<string, any>): void => {
         ),
     );
 
-    APP_CONFIG.VIEWER_ALLOW_PAN_AT_ZOOM_1 = !!settings.viewer?.allowPanAtZoom1;
-    APP_CONFIG.VIEWER_DISABLE_WEBGL_VIDEO = !!settings.viewer?.disableWebGL;
     APP_CONFIG.VIEWER_PAUSE_DURING_EXECUTION = !!(
         settings.viewer?.pauseDuringExecution ?? APP_DEFAULTS.VIEWER_PAUSE_DURING_EXECUTION
     );
@@ -552,41 +542,6 @@ export const applySettingsToConfig = (settings: Record<string, any>): void => {
         const pos = String(settings.viewer?.mfvSidebarPosition || "right").toLowerCase();
         APP_CONFIG.MFV_SIDEBAR_POSITION = ["left", "right", "bottom"].includes(pos) ? pos : "right";
     }
-    APP_CONFIG.VIEWER_VIDEO_GRADE_THROTTLE_FPS = Math.max(
-        1,
-        Math.min(
-            60,
-            Math.round(
-                _safeNum(
-                    settings.viewer?.videoGradeThrottleFps,
-                    APP_DEFAULTS.VIEWER_VIDEO_GRADE_THROTTLE_FPS,
-                ),
-            ),
-        ),
-    );
-    APP_CONFIG.VIEWER_SCOPES_FPS = Math.max(
-        1,
-        Math.min(
-            60,
-            Math.round(_safeNum(settings.viewer?.scopesFps, APP_DEFAULTS.VIEWER_SCOPES_FPS)),
-        ),
-    );
-    APP_CONFIG.VIEWER_META_TTL_MS = Math.max(
-        1000,
-        Math.min(
-            10 * 60_000,
-            Math.round(_safeNum(settings.viewer?.metaTtlMs, APP_DEFAULTS.VIEWER_META_TTL_MS)),
-        ),
-    );
-    APP_CONFIG.VIEWER_META_MAX_ENTRIES = Math.max(
-        50,
-        Math.min(
-            5000,
-            Math.round(
-                _safeNum(settings.viewer?.metaMaxEntries, APP_DEFAULTS.VIEWER_META_MAX_ENTRIES),
-            ),
-        ),
-    );
 
     APP_CONFIG.WORKFLOW_MINIMAP_ENABLED = !!(
         settings.workflowMinimap?.enabled ?? APP_DEFAULTS.WORKFLOW_MINIMAP_ENABLED

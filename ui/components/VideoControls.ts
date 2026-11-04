@@ -130,7 +130,6 @@ function createNumberInput(className: string, { min, max, step, value, title, ar
 function _resolveVideoControlsVariant(opts: any) {
     try {
         if (opts?.variant === "preview") return "preview";
-        if (opts?.variant === "viewerbar") return "viewerbar";
         return "viewer";
     } catch {
         return "viewer";
@@ -279,7 +278,7 @@ function _mountPreviewControls(video: any, hostEl: any) {
  * Viewer variant adds Nuke-style range + frame controls (in/out, step, loop/once).
  *
  * @param {HTMLMediaElement} video
- * @param {{variant?: 'viewer'|'preview'|'viewerbar', mediaKind?: 'video'|'audio', hostEl?: HTMLElement, fullscreenEl?: HTMLElement, initialFps?: number, initialFrameCount?: number, initialPlaybackRate?: number}} opts
+ * @param {{variant?: 'viewer'|'preview', mediaKind?: 'video'|'audio', hostEl?: HTMLElement, fullscreenEl?: HTMLElement, initialFps?: number, initialFrameCount?: number, initialPlaybackRate?: number}} opts
  * @returns {{controlsEl: HTMLElement|null, destroy: () => void, setMediaInfo?: (info: {fps?: number, frameCount?: number}) => void, setPlaybackRate?: (rate:number)=>number, getPlaybackRate?: ()=>number, adjustPlaybackRate?: (delta:number)=>number, togglePlay?: ()=>boolean, stepFrames?: (direction:number)=>boolean}}
  */
 export function mountVideoControls(video: any, opts: Record<string, any> = {}) {
@@ -287,7 +286,6 @@ export function mountVideoControls(video: any, opts: Record<string, any> = {}) {
         const variant = _resolveVideoControlsVariant(opts);
         const mediaKind = String(opts?.mediaKind || "video").toLowerCase();
         const isAudioMedia = mediaKind === "audio";
-        const isViewerBar = variant === "viewerbar";
         const showTimelineRuler = variant !== "preview";
         const advanced = showTimelineRuler;
         // Volume slider is toggled from the sound icon to keep the bar compact.
@@ -320,7 +318,6 @@ export function mountVideoControls(video: any, opts: Record<string, any> = {}) {
 
         const controls = document.createElement("div");
         controls.className = `mjr-video-controls mjr-video-controls--${variant}`;
-        if (isViewerBar) controls.classList.add("mjr-video-controls--modern");
         if (isAudioMedia) controls.classList.add("mjr-video-controls--audio");
         controls.dataset.mjrLayout = "regular";
         controls.setAttribute("role", "group");
@@ -357,7 +354,7 @@ export function mountVideoControls(video: any, opts: Record<string, any> = {}) {
         seekOverlay.className = "mjr-video-seek-overlay";
 
         // Seekbar range zones (more reliable than styling <input type="range"> across browsers).
-        // Only used in advanced mode (viewer/viewerbar).
+        // Only used in advanced mode (viewer).
         let seekZones: any = null;
         let leftTrimZone: any = null;
         let selectedZone: any = null;
@@ -629,48 +626,15 @@ export function mountVideoControls(video: any, opts: Record<string, any> = {}) {
         if (advanced) bottomRight.appendChild(setOutBtn);
         if (volume) bottomRight.appendChild(volumeWrap);
 
-        if (isViewerBar) {
-            const timelineStrip = document.createElement("div");
-            timelineStrip.className = "mjr-video-bar-timeline";
-            if (advanced) timelineStrip.appendChild(inGroup);
-            timelineStrip.appendChild(seekWrap);
-            if (advanced) timelineStrip.appendChild(outGroup);
+        if (advanced) rowTop.appendChild(frameLabel);
+        if (advanced) rowTop.appendChild(inGroup);
+        rowTop.appendChild(seekWrap);
+        if (advanced) rowTop.appendChild(outGroup);
+        rowTop.appendChild(timeGroup);
 
-            const actionsStrip = document.createElement("div");
-            actionsStrip.className = "mjr-video-bar-actions";
-
-            const actionsLeft = document.createElement("div");
-            actionsLeft.className = "mjr-video-bar-side mjr-video-bar-side--left";
-            if (advanced) actionsLeft.appendChild(leftAdjustGroup);
-
-            const actionsCenter = document.createElement("div");
-            actionsCenter.className = "mjr-video-bar-center";
-            actionsCenter.appendChild(transport);
-
-            const actionsRight = document.createElement("div");
-            actionsRight.className = "mjr-video-bar-side mjr-video-bar-side--right";
-            if (advanced) actionsRight.appendChild(rightAdjustGroup);
-            actionsRight.appendChild(speedGroup);
-            actionsRight.appendChild(muteBtn);
-            if (advanced) actionsRight.appendChild(setOutBtn);
-            if (volume) actionsRight.appendChild(volumeWrap);
-
-            actionsStrip.appendChild(actionsLeft);
-            actionsStrip.appendChild(actionsCenter);
-            actionsStrip.appendChild(actionsRight);
-
-            controls.replaceChildren(timelineStrip, actionsStrip);
-        } else {
-            if (advanced) rowTop.appendChild(frameLabel);
-            if (advanced) rowTop.appendChild(inGroup);
-            rowTop.appendChild(seekWrap);
-            if (advanced) rowTop.appendChild(outGroup);
-            rowTop.appendChild(timeGroup);
-
-            rowBottom.appendChild(bottomLeft);
-            rowBottom.appendChild(transport);
-            rowBottom.appendChild(bottomRight);
-        }
+        rowBottom.appendChild(bottomLeft);
+        rowBottom.appendChild(transport);
+        rowBottom.appendChild(bottomRight);
 
         // Ensure the controls overlay never triggers viewer panning/zoom handlers.
         const stop = (e: any) => {

@@ -49,7 +49,7 @@ describe("video controls seek drag", () => {
         });
 
         const mounted = mountVideoControls(video, {
-            variant: "viewerbar",
+            variant: "viewer",
             mediaKind: "video",
             hostEl: host,
         });
@@ -130,7 +130,7 @@ describe("video controls seek drag", () => {
         });
 
         const mounted = mountVideoControls(video, {
-            variant: "viewerbar",
+            variant: "viewer",
             mediaKind: "video",
             hostEl: host,
             initialFps: 30,

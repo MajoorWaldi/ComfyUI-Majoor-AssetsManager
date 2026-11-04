@@ -9,15 +9,6 @@ export const APP_DEFAULTS = Object.freeze({
     DEBUG_SAFE_LISTENERS: false,
     DEBUG_VIEWER: false,
 
-    // Viewer
-    VIEWER_ALLOW_PAN_AT_ZOOM_1: false,
-    VIEWER_DISABLE_WEBGL_VIDEO: false,
-    VIEWER_DISABLE_WEBGL_AUDIO: false,
-    VIEWER_VIDEO_GRADE_THROTTLE_FPS: 12,
-    VIEWER_AUDIO_VISUALIZER_MODE: "artistic", // simple|artistic
-    VIEWER_AUDIO_VIS_FPS: 18,
-    VIEWER_SCOPES_FPS: 8,
-
     // Grid
     GRID_MIN_SIZE: 150,
     FEED_GRID_MIN_SIZE: 120,
@@ -103,10 +94,6 @@ export const APP_DEFAULTS = Object.freeze({
     RT_HYDRATE_SEEN_MAX: 20000,
     RT_HYDRATE_PRUNE_BUDGET: 250,
     RT_HYDRATE_SEEN_TTL_MS: 10 * 60 * 1000,
-
-    // Viewer metadata cache
-    VIEWER_META_TTL_MS: 30_000,
-    VIEWER_META_MAX_ENTRIES: 500,
 
     // Workflow Minimap
     WORKFLOW_MINIMAP_ENABLED: true,

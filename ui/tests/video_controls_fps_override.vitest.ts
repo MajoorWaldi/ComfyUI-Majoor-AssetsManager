@@ -24,7 +24,7 @@ describe("VideoControls FPS override state", () => {
         });
 
         const mounted = mountVideoControls(video, {
-            variant: "viewerbar",
+            variant: "viewer",
             mediaKind: "video",
             hostEl: host,
             initialFps: 24000 / 1001,
@@ -75,7 +75,7 @@ describe("VideoControls FPS override state", () => {
         });
 
         const mounted = mountVideoControls(video, {
-            variant: "viewerbar",
+            variant: "viewer",
             mediaKind: "video",
             hostEl: host,
             initialFps: 25,
