@@ -17,6 +17,36 @@ export interface EmptyTrashDeps {
 
 export type EmptyTrashOutcome = "empty" | "removed" | "cancelled" | "unsupported" | "error";
 
+/**
+ * Resolve the trash client functions lazily so a partially mocked API module
+ * (e.g. in other suites' tests) never throws or logs during panel init.
+ * Missing functions are reported as undefined and treated as "unsupported".
+ */
+let _trashClientCache: Record<string, any> | null = null;
+
+export async function resolveTrashClient(): Promise<Record<string, any>> {
+    if (_trashClientCache) return _trashClientCache;
+    const resolved: Record<string, any> = {};
+    try {
+        const mod: any = await import("../../api/client.js");
+        const available: string[] = Object.keys(mod);
+        for (const key of ["getTrashStatus", "emptyTrash", "getSecuritySettings"]) {
+            if (available.includes(key)) {
+                try {
+                    const value = mod[key];
+                    resolved[key] = typeof value === "function" ? value : undefined;
+                } catch {
+                    resolved[key] = undefined;
+                }
+            }
+        }
+    } catch {
+        // Module unavailable — leave everything undefined (treated as unsupported).
+    }
+    _trashClientCache = resolved;
+    return resolved;
+}
+
 function _translateDefault(
     deps: EmptyTrashDeps,
     key: string,
