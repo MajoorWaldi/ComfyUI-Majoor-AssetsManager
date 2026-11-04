@@ -395,7 +395,15 @@ export async function deleteAssets(assetIds: any) {
         ? assetIds.map((x) => normalizeAssetId(x)).filter(Boolean)
         : [];
     const res = await post("/mjr/am/assets/delete", { ids });
-    if (res?.ok) _emitAssetsDeleted(ids);
+    if (res?.ok) {
+        const data = res?.data || {};
+        const failedIds = Array.isArray(data?.failed_ids) ? data.failed_ids : [];
+        if (Array.isArray(data?.deleted_ids)) {
+            _emitAssetsDeleted(data.deleted_ids);
+        } else if (!failedIds.length) {
+            _emitAssetsDeleted(ids);
+        }
+    }
     return res;
 }
 

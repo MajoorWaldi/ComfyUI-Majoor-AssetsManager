@@ -17,7 +17,11 @@ def _delete_audit_target(asset_ids: list[int]) -> str:
 
 
 def _result_err(result: Result[Any], default_code: str, default_error: str) -> Result[Any]:
-    return Result.Err(result.code or default_code, str(result.error or default_error))
+    return Result.Err(
+        result.code or default_code,
+        str(result.error or default_error),
+        **(result.meta or {}),
+    )
 
 
 def _coerce_asset_id(value: Any) -> int | None:
@@ -49,7 +53,11 @@ async def _load_found_assets(
     found_ids = {row["id"] for row in found_assets if isinstance(row, dict) and "id" in row}
     missing_ids = set(asset_ids) - found_ids
     if missing_ids:
-        return Result.Err("NOT_FOUND", f"Assets not found: {sorted(missing_ids)}")
+        return Result.Err(
+            "NOT_FOUND",
+            f"Assets not found: {sorted(missing_ids)}",
+            missing_ids=sorted(missing_ids),
+        )
     return Result.Ok(found_assets)
 
 
@@ -66,22 +74,38 @@ def _validate_asset_row(
     if asset_id is None:
         return Result.Err("DB_ERROR", "Missing asset id in DB row")
     if not raw_path or not isinstance(raw_path, str):
-        return Result.Err("INVALID_INPUT", f"Invalid path for asset ID {asset_id}")
+        return Result.Err(
+            "INVALID_INPUT",
+            f"Invalid path for asset ID {asset_id}",
+            rejected_ids=[int(asset_id)],
+        )
 
     candidate = normalize_path(raw_path)
     if not candidate:
-        return Result.Err("INVALID_INPUT", f"Invalid asset path for ID {asset_id}")
+        return Result.Err(
+            "INVALID_INPUT",
+            f"Invalid asset path for ID {asset_id}",
+            rejected_ids=[int(asset_id)],
+        )
 
     allowed_path = is_path_allowed(candidate) or is_path_allowed_custom(candidate)
     if not allowed_path:
-        return Result.Err("FORBIDDEN", f"Path for asset ID {asset_id} is not within allowed roots")
+        return Result.Err(
+            "FORBIDDEN",
+            f"Path for asset ID {asset_id} is not within allowed roots",
+            rejected_ids=[int(asset_id)],
+        )
 
     try:
         resolved = candidate.resolve(strict=True)
     except Exception:
         resolved = None
     if resolved is not None and not is_resolved_path_allowed(resolved):
-        return Result.Err("FORBIDDEN", f"Path for asset ID {asset_id} is not within allowed roots")
+        return Result.Err(
+            "FORBIDDEN",
+            f"Path for asset ID {asset_id} is not within allowed roots",
+            rejected_ids=[int(asset_id)],
+        )
 
     return Result.Ok({"id": int(asset_id), "filepath": str(raw_path), "resolved": resolved})
 
@@ -95,6 +119,8 @@ def _validate_assets_for_deletion(
     is_resolved_path_allowed: Callable[[Path], bool],
 ) -> Result[list[dict[str, Any]]]:
     validated_assets: list[dict[str, Any]] = []
+    first_failure: Result[dict[str, Any]] | None = None
+    rejected_ids: list[int] = []
     for asset_row in found_assets:
         asset_res = _validate_asset_row(
             asset_row,
@@ -104,8 +130,22 @@ def _validate_assets_for_deletion(
             is_resolved_path_allowed=is_resolved_path_allowed,
         )
         if not asset_res.ok:
-            return _result_err(asset_res, "INVALID_INPUT", "Failed to validate asset for deletion")
+            row_rejected = (
+                asset_res.meta.get("rejected_ids")
+                if isinstance(asset_res.meta, dict)
+                else None
+            )
+            if not row_rejected:
+                # Rows without an idable rejection (e.g. DB_ERROR) cannot be aggregated.
+                return _result_err(asset_res, "INVALID_INPUT", "Failed to validate asset for deletion")
+            if first_failure is None:
+                first_failure = asset_res
+            rejected_ids.extend(int(value) for value in row_rejected)
+            continue
         validated_assets.append(asset_res.data or {})
+    if first_failure is not None:
+        first_err = _result_err(first_failure, "INVALID_INPUT", "Failed to validate asset for deletion")
+        return Result.Err(str(first_err.code), str(first_err.error), rejected_ids=sorted(rejected_ids))
     validated_assets.sort(key=lambda item: item["id"])
     return Result.Ok(validated_assets)
 

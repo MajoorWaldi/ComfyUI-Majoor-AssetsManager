@@ -24,6 +24,7 @@ All notable changes to this project are documented in this file.
 - **Double grid reload**: a global `mjr:reload-grid` event was handled by both the panel and the assets query controller, so every request (for example after each generation) reloaded the grid twice. Only the controller handles it now.
 - **Reload during maintenance**: the DB maintenance guard (restore, reset, delete) was bypassed by the controller listener; the grid no longer reloads while maintenance is active.
 - **Grid paging rate limit**: `/mjr/am/list` limited the local UI to 50 requests per minute, which paging, prefetch and per-generation reloads could exceed on fast workflows. Local clients are no longer throttled; remote clients still are.
+- **Multi-card delete**: the grid menu's "Delete N files..." and the Delete/Backspace key now send multi-card selections through the bulk `assets/delete` endpoint in sequential chunks of 500, instead of one rate-limited single-delete request per card. Rate-limited batches are reported as failed; offending entries named by the server (`meta.missing_ids` / `meta.rejected_ids`, now attached additively to `POST /mjr/am/assets/delete` errors) are dropped and the rest retried with a bounded number of bulk attempts; the per-file fallback only runs when the server names no entry (or the retries run out). The `mjr:assets-deleted` event reports only the ids the server actually deleted.
 
 ## [2.5.3] - 2026-09-27
 
