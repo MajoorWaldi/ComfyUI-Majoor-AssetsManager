@@ -258,6 +258,10 @@ def test_write_helpers_and_write_flow(ex, tmp_path: Path, monkeypatch):
 
     cmd, stdin_input = ex._build_write_command(str(p), {"XMP:Rating": 5, "XMP:Keywords": ["a", None, "b"]}, True)
     assert "-tagsFromFile" in cmd
+    assert "-XMP:Keywords=a" in cmd
+    assert "-XMP:Keywords=b" in cmd
+    assert "-XMP:Keywords=" not in cmd
+    assert not any(arg.startswith("-XMP:Keywords+=") for arg in cmd)
     assert isinstance(stdin_input, (str, type(None)))
 
     monkeypatch.setattr(ex, "_run_write_command", lambda *_a, **_k: _mk_completed(0, b"", b""))
@@ -267,6 +271,20 @@ def test_write_helpers_and_write_flow(ex, tmp_path: Path, monkeypatch):
     monkeypatch.setattr(ex, "_run_write_command", lambda *_a, **_k: _mk_completed(1, b"", b"err"))
     out2 = ex.write(str(p), {"XMP:Rating": 5})
     assert out2.code == ErrorCode.EXIFTOOL_ERROR
+
+
+def test_write_command_list_replaces_instead_of_appending(ex, tmp_path: Path):
+    p = tmp_path / "a.png"
+    p.write_text("x")
+
+    cmd, _ = ex._build_write_command(str(p), {"XMP:Subject": []}, False)
+    assert "-XMP:Subject=" in cmd
+    assert not any(arg.startswith("-XMP:Subject+") for arg in cmd)
+    assert "-tagsFromFile" not in cmd
+
+    cmd2, _ = ex._build_write_command(str(p), {"XMP:Subject": [None, ""]}, False)
+    assert "-XMP:Subject=" in cmd2
+    assert not any(arg.startswith("-XMP:Subject+") for arg in cmd2)
 
 
 def test_write_errors_and_tool_missing(tmp_path: Path, monkeypatch):
