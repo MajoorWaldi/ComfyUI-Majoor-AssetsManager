@@ -111,6 +111,22 @@ def test_require_operation_enabled_string_bool_prefs() -> None:
     assert allowed.ok
 
 
+def test_require_operation_enabled_assets_tags_behaves_like_asset_tags(monkeypatch) -> None:
+    monkeypatch.delenv("MAJOOR_SAFE_MODE", raising=False)
+    monkeypatch.delenv("MAJOOR_ALLOW_WRITE", raising=False)
+
+    for prefs in (
+        {"safe_mode": True, "allow_write": True},
+        {"safe_mode": True, "allow_write": False},
+        {"safe_mode": False},
+        {},
+    ):
+        bulk = sec._require_operation_enabled("assets_tags", prefs=prefs)
+        single = sec._require_operation_enabled("asset_tags", prefs=prefs)
+        assert bulk.ok == single.ok, prefs
+        assert bulk.code == single.code, prefs
+
+
 def test_auth_helpers_and_authenticated_user() -> None:
     class _UM:
         enabled = True

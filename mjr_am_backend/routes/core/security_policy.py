@@ -113,7 +113,7 @@ def _require_operation_enabled(
             return Result.Ok(True, operation=op, safe_mode=safe_mode)
         return Result.Err("FORBIDDEN", message, operation=op, safe_mode=safe_mode)
 
-    if op in ("write", "rating", "tags", "asset_rating", "asset_tags"):
+    if op in ("write", "rating", "tags", "asset_rating", "asset_tags", "assets_tags"):
         if _write_allowed_in_context(safe_mode=safe_mode, pref_truthy=_pt):
             return Result.Ok(True, operation=op, safe_mode=safe_mode)
         return Result.Err(
