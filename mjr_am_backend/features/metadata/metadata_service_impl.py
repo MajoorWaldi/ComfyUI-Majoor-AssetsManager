@@ -78,6 +78,7 @@ from .retry_coordinator import (
     log_metadata_issue as retry_log_metadata_issue,
 )
 from .section_catalog import PARSER_FAMILY_VERSION
+from .sidecar import apply_sidecar_fallback
 
 logger = get_logger(__name__)
 _METADATA_TRANSIENT_RETRY_ATTEMPTS = 3
@@ -440,9 +441,19 @@ class MetadataService:
     def _is_transient_metadata_read_error(self, result: Result[dict[str, Any]], file_path: str) -> bool:
         return retry_is_transient_metadata_read_error(result, file_path, _TRANSIENT_ERROR_HINTS)
 
+    async def _apply_sidecar_fallback(self, combined: dict[str, Any]) -> None:
+        """Fill a missing workflow/prompt from ``<file>.json`` / ``<stem>.json``."""
+        try:
+            await asyncio.to_thread(apply_sidecar_fallback, combined)
+        except Exception:
+            logger.debug("_apply_sidecar_fallback: suppressed exception", exc_info=True)
+
     async def _enrich_with_geninfo_async(self, combined: dict[str, Any]) -> None:
         """Helper to parse geninfo from prompt/workflow in combined metadata (Worker Thread)."""
         combined.setdefault("metadata_parser_version", PARSER_FAMILY_VERSION)
+        # Sidecar JSON before geninfo parsing so a JPEG/MP4 whose saver wrote
+        # the workflow next to it still gets a workflow, prompt and geninfo.
+        await self._apply_sidecar_fallback(combined)
         override = build_geninfo_override(combined)
 
         prompt_graph = combined.get("prompt")
@@ -1044,6 +1055,7 @@ class MetadataService:
         metadata_result: Result[dict[str, Any]],
     ) -> Result[dict[str, Any]]:
         combined.setdefault("metadata_parser_version", PARSER_FAMILY_VERSION)
+        await self._apply_sidecar_fallback(combined)
         if registry_should_parse_geninfo(combined):
             await self._enrich_with_geninfo_async(combined)
         elif "geninfo" not in combined:

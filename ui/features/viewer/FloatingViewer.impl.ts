@@ -22,6 +22,7 @@ import {
     findFloatingViewerScrollableAncestor as _findScrollableAncestor,
     getFloatingViewerMediaKind as _mediaKind,
     pauseFloatingViewerMediaIn as _pauseMediaIn,
+    releaseFloatingViewerMediaIn as _releaseMediaIn,
 } from "./floatingViewerMedia.js";
 import {
     applyFloatingViewerSidebarPosition,
@@ -973,7 +974,8 @@ export class FloatingViewer {
         this._destroyPanZoom();
         this._destroyCompareSync();
         this._destroyMediaControls();
-        _pauseMediaIn(this._contentEl);
+        // The content is about to be discarded: release, don't just pause.
+        _releaseMediaIn(this._contentEl);
         const overlayCanvas = this._overlayCanvas || null;
         this._contentEl.replaceChildren();
         this._contentEl.style.overflow = "hidden";
@@ -1904,6 +1906,7 @@ export class FloatingViewer {
             this._onSidebarPosChanged = null;
         }
         try {
+            _releaseMediaIn(this.element);
             this.element?.remove();
         } catch (e: any) {
             console.debug?.(e);

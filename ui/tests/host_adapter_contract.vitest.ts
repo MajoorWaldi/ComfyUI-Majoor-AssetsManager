@@ -336,6 +336,31 @@ describe("hostAdapter contract", () => {
         expect(mod.serializeCurrentHostWorkflow(app)).toEqual(workflow);
     });
 
+    it("loads API prompt graphs with loadApiJson instead of an empty canvas", async () => {
+        const mod = await import("../app/hostAdapter.js");
+        const api = { "3": { class_type: "KSampler", inputs: { seed: 1 } } };
+        const app = { loadApiJson: vi.fn(), loadGraphData: vi.fn() };
+        mod.init(app);
+
+        expect(mod.importWorkflowIntoHostCanvas(api, app, { filename: "api.json" })).toBe(true);
+        expect(app.loadApiJson).toHaveBeenCalledWith(api, "api.json");
+        expect(app.loadGraphData).not.toHaveBeenCalled();
+
+        expect(mod.importWorkflowIntoHostCanvas({ prompt: JSON.stringify(api) }, app)).toBe(true);
+        expect(app.loadApiJson).toHaveBeenLastCalledWith(api, "workflow.json");
+    });
+
+    it("unwraps { workflow } exports before loading", async () => {
+        const mod = await import("../app/hostAdapter.js");
+        const ui = { nodes: [{ id: 1, type: "KSampler" }], links: [] };
+        const app = { loadGraphData: vi.fn(() => Promise.resolve()) };
+        mod.init(app);
+
+        expect(mod.importWorkflowIntoHostCanvas({ workflow: ui }, app)).toBe(true);
+        expect(app.loadGraphData).toHaveBeenCalledWith(ui);
+        expect(mod.resolveHostWorkflowPayload({ theme: "dark" }).format).toBe("");
+    });
+
     it("prefers the root graph over the active subgraph when serializing", async () => {
         const mod = await import("../app/hostAdapter.js");
 

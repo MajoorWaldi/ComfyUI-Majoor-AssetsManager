@@ -155,6 +155,55 @@ Ces deux derniers retiraient de `state.assets` des fichiers distincts d'autres d
 
 **À suivre.** Une pile « même dossier, même nom » correspond à plusieurs lignes en base pour un même fichier. C'est possible avec des index créés par d'anciennes versions, par exemple des variantes de casse sous Windows : les insertions actuelles normalisent le chemin. Une fusion de ces lignes, qui conserverait notes, tags et collections, reste à faire comme opération de maintenance explicite.
 
+## 3 quinquies. Recherche, fichiers JSON, sidecars et viewers
+
+### Recherche (FTS5)
+Testée sur un vrai index avec des noms piégeux.
+
+| Requête | Avant | Après |
+| --- | --- | --- |
+| `at-7` (frappe en cours), `(2)`, `AND`, `NEAR`, `NOT x`, `x` | erreur « Invalid search query syntax » | résultats |
+| `"` seul (début d'une phrase) | erreur | tout afficher |
+| `портрет`, `猫の写真` | caractères supprimés, donc erreur | recherche dans l'écriture d'origine |
+
+Cause : `_sanitize_fts_query` retirait les mots-outils, les jetons d'un caractère et les opérateurs, puis tous les caractères non ASCII. Quand il ne restait rien, SQLite recevait un `MATCH ''` invalide.
+
+Correctif :
+- jetons `\w+` dans toutes les écritures ;
+- repli sur les termes bruts quand le filtrage vide tout ;
+- requête sans caractère de mot traitée comme « tout afficher » ;
+- retrait des accents limité au latin, comme `unicode61`.
+
+Les mots réservés en minuscules sont des mots ordinaires pour FTS5, ses opérateurs n'existant qu'en majuscules.
+
+### Sidecars JSON
+- Avant : uniquement pour la 3D (`<fichier>.json`).
+- Maintenant : pour toutes les images, vidéos et fichiers audio (module `features/metadata/sidecar.py`). On cherche `<fichier>.<ext>.json`, puis `<nom>.json`. Le fichier peut contenir un workflow UI, un prompt API ou un wrapper `{workflow, prompt}` (valeurs éventuellement sous forme de chaîne JSON), plus `parameters`, `geninfo` et `generation_time_ms`. Taille maximale 10 Mo, BOM accepté.
+- Les métadonnées intégrées au fichier restent prioritaires.
+- Un JSON sans rapport (des réglages, par exemple) n'est pas pris pour un sidecar.
+
+Limite connue : un sidecar ajouté **après** l'indexation n'est pris en compte qu'au prochain scan forcé, car la date de modification du média ne change pas.
+
+### Reconnaissance des JSON de workflows (onglet Workflow)
+Vérifié sur un vrai dossier :
+- les instantanés `.history/<nom>/<date>.json` apparaissaient comme workflows ;
+- un `settings.json` quelconque apparaissait comme workflow ;
+- un workflow avec BOM disparaissait ;
+- un prompt API s'affichait avec 0 nœud puis s'ouvrait sur un canvas vide.
+
+Correctif :
+- parcours qui ignore les dossiers et fichiers cachés ;
+- `workflow_json_format()` (`ui`, `api` ou rien), qui accepte aussi un workflow vide et les wrappers ;
+- lecture en `utf-8-sig` ;
+- les JSON invalides sortent de l'index ;
+- ouverture côté frontend par `app.loadApiJson` pour le format API ;
+- `loadGraphData`, devenu asynchrone, n'a plus de rejet non géré.
+
+### Viewers
+- **Viewer principal** : les médias sont correctement libérés (`destroyMediaProcessorsIn` : pause, retrait de `src`, `load()`), et les écouteurs globaux sont retirés.
+- **Viewer flottant** : il ne faisait que mettre en pause avant `replaceChildren()` et `dispose()`. Une `<video>` détachée garde son lecteur, et Chromium en limite le nombre (environ 75). En mode Live, qui se réaffiche à chaque génération, les lecteurs s'accumulaient. Ils sont maintenant libérés (`releaseFloatingViewerMediaIn`) ; `hide()` continue seulement de mettre en pause, pour pouvoir réafficher.
+- **À décider** : quand il est visible, le viewer flottant intercepte en phase de capture les touches simples `v`, `k`, `l` et `c` sur toute la page, hors champs de saisie. Aucun raccourci ComfyUI par défaut n'est touché, mais un raccourci personnalisé sur ces touches serait masqué. On pourrait limiter l'interception aux moments où le focus est dans le viewer.
+
 ## 4. Feuille de route d'évolution (meilleure intégration)
 
 1. **Progression par nœud** — écouter l'événement websocket `progress_state`

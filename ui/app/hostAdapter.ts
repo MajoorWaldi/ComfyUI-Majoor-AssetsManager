@@ -783,8 +783,63 @@ export function createHostNode(nodeType: any, app: any = null): any {
     }
 }
 
-export function importWorkflowIntoHostCanvas(workflow: any, app: any = null): boolean {
+function _isApiPromptGraph(value: any): boolean {
+    if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+    if (Array.isArray(value.nodes)) return false;
+    const entries = Object.values(value).slice(0, 8);
+    if (!entries.length) return false;
+    return entries.every(
+        (node: any) =>
+            node && typeof node === "object" && typeof node.class_type === "string" && node.inputs && typeof node.inputs === "object",
+    );
+}
+
+/**
+ * Normalise what the Workflow tab / context menus hand us: a UI graph export,
+ * a `{ workflow }` / `{ prompt }` wrapper, or an API prompt graph.
+ */
+export function resolveHostWorkflowPayload(workflow: any): { format: "ui" | "api" | ""; data: any } {
+    if (!workflow || typeof workflow !== "object") return { format: "", data: null };
+    if (Array.isArray(workflow.nodes)) return { format: "ui", data: workflow };
+    if (workflow.workflow && typeof workflow.workflow === "object" && Array.isArray(workflow.workflow.nodes)) {
+        return { format: "ui", data: workflow.workflow };
+    }
+    let prompt = workflow.prompt;
+    if (typeof prompt === "string") {
+        try {
+            prompt = JSON.parse(prompt);
+        } catch {
+            prompt = null;
+        }
+    }
+    if (_isApiPromptGraph(prompt)) return { format: "api", data: prompt };
+    if (_isApiPromptGraph(workflow)) return { format: "api", data: workflow };
+    return { format: "", data: null };
+}
+
+export function importWorkflowIntoHostCanvas(
+    workflow: any,
+    app: any = null,
+    options: { filename?: string } = {},
+): boolean {
     const runtimeApp = app || _app || getComfyApp();
+    const resolved = resolveHostWorkflowPayload(workflow);
+    if (resolved.format === "api") {
+        // API prompts have no layout; graph loaders show an empty canvas.
+        // The frontend rebuilds a graph from them with loadApiJson.
+        if (typeof runtimeApp?.loadApiJson !== "function") return false;
+        try {
+            const result = runtimeApp.loadApiJson(resolved.data, String(options.filename || "workflow.json"));
+            if (result && typeof result.then === "function") {
+                result.then(undefined, (e: unknown) => console.debug?.(e));
+            }
+            return true;
+        } catch (e) {
+            console.debug?.(e);
+            return false;
+        }
+    }
+    if (resolved.format === "ui") workflow = resolved.data;
     if (!workflow || typeof workflow !== "object") return false;
     try {
         const importCandidates = [
@@ -805,7 +860,11 @@ export function importWorkflowIntoHostCanvas(workflow: any, app: any = null): bo
             }
         }
         if (typeof runtimeApp?.loadGraphData === "function") {
-            runtimeApp.loadGraphData(workflow);
+            // Async on current frontends: never leave a rejection unhandled.
+            const result = runtimeApp.loadGraphData(workflow);
+            if (result && typeof result.then === "function") {
+                result.then(undefined, (e: unknown) => console.debug?.(e));
+            }
             return true;
         }
         const graph = _getHostGraph(runtimeApp);
@@ -1217,6 +1276,7 @@ export const hostAdapter = {
     refreshHostCanvasGraph,
     notifyHostNodeGraphChanged,
     importWorkflowIntoHostCanvas,
+    resolveHostWorkflowPayload,
     importWorkflowPreferHostTab,
     isHostWorkflowDirty,
     serializeCurrentHostWorkflow,

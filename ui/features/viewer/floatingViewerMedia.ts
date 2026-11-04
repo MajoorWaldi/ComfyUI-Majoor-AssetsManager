@@ -153,6 +153,40 @@ export function pauseFloatingViewerMediaIn(rootEl: any) {
     }
 }
 
+/**
+ * Stop *and release* every video/audio element under `rootEl` before it is
+ * detached. Pausing is not enough: a detached <video> keeps its decoder and
+ * network stream until garbage collection, and Chromium caps live media
+ * players (~75). In Live mode the floating viewer re-renders on every
+ * generation, so paused-only players piled up until new videos refused to
+ * play anywhere in ComfyUI.
+ */
+export function releaseFloatingViewerMediaIn(rootEl: any) {
+    if (!rootEl) return;
+    try {
+        const mediaEls = rootEl.querySelectorAll?.("video, audio");
+        if (!mediaEls || !mediaEls.length) return;
+        for (const el of mediaEls) {
+            try {
+                el.pause?.();
+            } catch (e: any) {
+                console.debug?.(e);
+            }
+            try {
+                el.removeAttribute?.("src");
+                for (const source of Array.from(el.querySelectorAll?.("source") || []) as any[]) {
+                    source.remove?.();
+                }
+                el.load?.();
+            } catch (e: any) {
+                console.debug?.(e);
+            }
+        }
+    } catch (e: any) {
+        console.debug?.(e);
+    }
+}
+
 export function buildFloatingViewerMediaElement(
     fileData: any,
     { fill = false, controls = true, initialMuted = false, initialPlaybackRate = 1 } = {},

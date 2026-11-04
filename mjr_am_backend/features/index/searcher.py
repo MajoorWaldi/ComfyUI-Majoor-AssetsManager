@@ -108,18 +108,40 @@ def _normalize_sort_key(sort: str | None) -> str:
 
 
 def _strip_diacritics(text: str) -> str:
-    normalized = unicodedata.normalize("NFKD", text)
-    return "".join(ch for ch in normalized if not unicodedata.combining(ch))
+    """Fold accents on Latin letters only (``é`` -> ``e``).
+
+    Mirrors FTS5's ``unicode61`` tokenizer (``remove_diacritics``), which folds
+    Latin script only. Folding e.g. Cyrillic ``й`` to ``и`` here would make the
+    query miss an index that still stores ``й``.
+    """
+    out: list[str] = []
+    for ch in text:
+        decomposed = unicodedata.normalize("NFKD", ch)
+        base = "".join(c for c in decomposed if not unicodedata.combining(c))
+        out.append(base if base.isascii() and base.isalpha() else ch)
+    return "".join(out)
+
+
+# Word characters in any script (letters, digits, underscore). Every token
+# built from these is a valid FTS5 bareword once lower-cased: FTS5 operators
+# (AND/OR/NOT/NEAR) are only operators in upper case.
+_SEARCH_TOKEN_RE = re.compile(r"\w+", re.UNICODE)
+
+
+def _is_browse_query(query: str) -> bool:
+    """``*`` or input without any word character (a lone quote while typing a
+    phrase, "--", "()"): nothing to match, so browse instead of erroring."""
+    return not _SEARCH_TOKEN_RE.search(str(query or ""))
+
+
+def _search_tokens(text: str) -> list[str]:
+    return [tok.lower() for tok in _SEARCH_TOKEN_RE.findall(_strip_diacritics(text))]
 
 
 def _extract_quoted_phrases(text: str) -> list[str]:
     phrases: list[str] = []
     for match in re.finditer(r'"([^"]+)"|\'([^\']+)\'', text):
-        phrase = match.group(1) or match.group(2) or ""
-        phrase = _strip_diacritics(phrase)
-        phrase = re.sub(r"[\"'\-:&/\\|;@#*~()\[\]{}\.]+", " ", phrase)
-        phrase = re.sub(r"[^\x20-\x7E]+", " ", phrase)
-        phrase = re.sub(r"\s+", " ", phrase).strip().lower()
+        phrase = " ".join(_search_tokens(match.group(1) or match.group(2) or ""))
         if phrase:
             phrases.append(phrase)
     # Keep phrase clauses bounded for MATCH stability.
@@ -1674,7 +1696,7 @@ class IndexSearcher:
         sort: str | None,
         cursor: str | None = None,
     ):
-        is_browse_all = query.strip() == "*"
+        is_browse_all = _is_browse_query(query)
         if roots is None:
 
             async def _fetch_global_group_rows(raw_limit: int, raw_offset: int) -> Result[dict[str, Any]]:
@@ -1746,7 +1768,7 @@ class IndexSearcher:
         include_highlight: bool,
         cursor: str | None = None,
     ) -> Result[dict[str, Any]]:
-        if query.strip() == "*":
+        if _is_browse_query(query):
             rows_total_res = await self._search_global_browse_rows(
                 limit=limit,
                 offset=offset,
@@ -1793,7 +1815,7 @@ class IndexSearcher:
         cursor: str | None = None,
     ) -> Result[dict[str, Any]]:
         roots_clause, roots_params = _build_roots_where_clause(roots)
-        if query.strip() == "*":
+        if _is_browse_query(query):
             rows_total_res = await self._search_scoped_browse_rows(
                 roots_clause=roots_clause,
                 roots_params=roots_params,
@@ -2108,21 +2130,15 @@ class IndexSearcher:
         phrases = _extract_quoted_phrases(text)
         text_wo_quotes = re.sub(r'"[^"]*"|\'[^\']*\'', " ", text)
 
-        sanitized = _strip_diacritics(text_wo_quotes)
-        # Replace FTS5 special characters with spaces.
-        sanitized = re.sub(r"[\"'\-:&/\\|;@#*~()\[\]{}\.]+", " ", sanitized)
-        # Replace non-printable / control chars
-        sanitized = re.sub(r"[^\x20-\x7E]+", " ", sanitized)
-        # Collapse whitespace
-        sanitized = re.sub(r"\s+", " ", sanitized).strip()
-
-        # Normalize case for stable behavior (FTS is case-insensitive anyway).
-        sanitized = sanitized.lower()
-
-        # Apply prefix matching to every token to allow partial matches.
-        # Avoid FTS reserved operators to prevent malformed MATCH expressions.
-        tokens = [tok for tok in sanitized.split() if _is_meaningful_token(tok)]
-        tokens = _dedupe_tokens(tokens)
+        # Word tokens only: punctuation (- : . ( ) " * ...) never reaches MATCH.
+        raw_tokens = _dedupe_tokens(_search_tokens(text_wo_quotes))
+        # Drop stopwords, 1-char tokens and operator words for relevance...
+        tokens = [tok for tok in raw_tokens if _is_meaningful_token(tok)]
+        if not tokens and not phrases:
+            # ...unless that leaves nothing. "at-7", "(2)", "AND" or a single
+            # letter typed in search-as-you-type used to become an empty MATCH
+            # and fail with "Invalid search query syntax".
+            tokens = raw_tokens
 
         token_expr = _build_token_match_expression(tokens)
         phrase_terms = [f'"{phrase}"' for phrase in phrases]
