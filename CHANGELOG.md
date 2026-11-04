@@ -24,6 +24,7 @@ All notable changes to this project are documented in this file.
 - **Double grid reload**: a global `mjr:reload-grid` event was handled by both the panel and the assets query controller, so every request (for example after each generation) reloaded the grid twice. Only the controller handles it now.
 - **Reload during maintenance**: the DB maintenance guard (restore, reset, delete) was bypassed by the controller listener; the grid no longer reloads while maintenance is active.
 - **Grid paging rate limit**: `/mjr/am/list` limited the local UI to 50 requests per minute, which paging, prefetch and per-generation reloads could exceed on fast workflows. Local clients are no longer throttled; remote clients still are.
+- **Trashed images reappearing as live**: the recursive scan descended into hidden folders such as send2trash's per-volume `.Trash-<uid>` (Unix) and `$RECYCLE.BIN` / `System Volume Information` (Windows), and the internal `_mjr_index`, so deleted images reappeared in the grid after a rescan. The walker now skips hidden and internal folders (shared name list with the watcher); the scan root itself may still sit under a dot-path.
 
 ## [2.5.3] - 2026-09-27
 

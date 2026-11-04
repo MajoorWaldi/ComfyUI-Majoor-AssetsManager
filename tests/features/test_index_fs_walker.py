@@ -158,3 +158,92 @@ def test_jxl_extension_is_experimental_and_disabled_by_default(monkeypatch) -> N
 def test_jxl_extension_can_be_enabled(monkeypatch) -> None:
     monkeypatch.setenv("MAJOOR_ENABLE_JXL", "1")
     assert _is_enabled_extension(".jxl") is True
+
+
+def test_iter_files_recursive_skips_trash_folder(tmp_path: Path) -> None:
+    trash_files = tmp_path / ".Trash-1000" / "files"
+    trash_files.mkdir(parents=True)
+    (trash_files / "a.png").write_bytes(b"png")
+    (tmp_path / "b.png").write_bytes(b"png")
+
+    walker = FileSystemWalker(scan_iops_limit=0.0)
+
+    found = list(walker.iter_files(tmp_path, recursive=True))
+    found_set = {p.name for p in found}
+
+    assert found_set == {"b.png"}
+
+
+def test_iter_files_recursive_skips_windows_recycle_bin(tmp_path: Path) -> None:
+    recycled = tmp_path / "$RECYCLE.BIN" / "S-1-5-21"
+    recycled.mkdir(parents=True)
+    (recycled / "$Rabc.png").write_bytes(b"png")
+    (tmp_path / "b.png").write_bytes(b"png")
+
+    walker = FileSystemWalker(scan_iops_limit=0.0)
+
+    found = list(walker.iter_files(tmp_path, recursive=True))
+    found_set = {p.name for p in found}
+
+    assert found_set == {"b.png"}
+
+
+def test_iter_files_recursive_skips_internal_folders(tmp_path: Path) -> None:
+    index_dir = tmp_path / "_mjr_index"
+    index_dir.mkdir()
+    (index_dir / "x.png").write_bytes(b"png")
+    pycache = tmp_path / "__pycache__"
+    pycache.mkdir()
+    (pycache / "y.png").write_bytes(b"png")
+
+    walker = FileSystemWalker(scan_iops_limit=0.0)
+
+    found = list(walker.iter_files(tmp_path, recursive=True))
+
+    assert found == []
+
+
+def test_iter_files_recursive_internal_folder_match_is_case_insensitive(tmp_path: Path) -> None:
+    index_dir = tmp_path / "_MJR_Index"
+    index_dir.mkdir()
+    (index_dir / "x.png").write_bytes(b"png")
+
+    walker = FileSystemWalker(scan_iops_limit=0.0)
+
+    found = list(walker.iter_files(tmp_path, recursive=True))
+
+    assert found == []
+
+
+def test_iter_files_recursive_still_descends_into_normal_nested_folders(tmp_path: Path) -> None:
+    sub = tmp_path / "sub"
+    sub.mkdir()
+    (sub / "c.png").write_bytes(b"png")
+
+    walker = FileSystemWalker(scan_iops_limit=0.0)
+
+    found = {p.name for p in walker.iter_files(tmp_path, recursive=True)}
+
+    assert found == {"c.png"}
+
+
+def test_iter_files_recursive_scans_dot_path_scan_root(tmp_path: Path) -> None:
+    hidden_root = tmp_path / ".hidden_root"
+    hidden_root.mkdir()
+    (hidden_root / "d.png").write_bytes(b"png")
+
+    walker = FileSystemWalker(scan_iops_limit=0.0)
+
+    found = {p.name for p in walker.iter_files(hidden_root, recursive=True)}
+
+    assert found == {"d.png"}
+
+
+def test_iter_files_dot_prefixed_file_at_root_keeps_current_behaviour(tmp_path: Path) -> None:
+    (tmp_path / ".e.png").write_bytes(b"png")
+
+    walker = FileSystemWalker(scan_iops_limit=0.0)
+
+    found = {p.name for p in walker.iter_files(tmp_path, recursive=True)}
+
+    assert found == {".e.png"}
