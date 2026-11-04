@@ -1,5 +1,5 @@
 import { t as e } from "./rolldown-runtime-CGnMp29N.js";
-import { An as t, Wt as n, c as r, t as i } from "./config-C9a-wT5M.js";
+import { Gt as t, c as n, jn as r, t as i } from "./config-dihyfQy1.js";
 import { r as a } from "./events-1iwo5blr.js";
 // ui/utils/logging.ts
 function o(e, ...t) {
@@ -7,15 +7,15 @@ function o(e, ...t) {
 		i.DEBUG_VERBOSE_ERRORS && console.debug(e, ...t);
 	} catch {}
 }
-function s(e, t = "Majoor", { showToast: r = !1, toastType: a = "error" } = {}) {
+function s(e, n = "Majoor", { showToast: r = !1, toastType: a = "error" } = {}) {
 	let o = e?.message || String(e || "Unknown error");
 	try {
-		i.DEBUG_VERBOSE_ERRORS ? console.error(`[Majoor][${t}]`, o, e) : console.debug(`[Majoor][${t}]`, o);
+		i.DEBUG_VERBOSE_ERRORS ? console.error(`[Majoor][${n}]`, o, e) : console.debug(`[Majoor][${n}]`, o);
 	} catch (e) {
 		console.debug?.(e);
 	}
 	if (r && i.DEBUG_VERBOSE_ERRORS) try {
-		n(`${t}: ${o}`, a, 4e3);
+		t(`${n}: ${o}`, a, 4e3);
 	} catch (e) {
 		console.debug?.(e);
 	}
@@ -201,7 +201,7 @@ var he = /* @__PURE__ */ e({
 	teardownFloatingViewerManager: () => Ue
 }), S = null, ge = null;
 async function _e() {
-	return S || (ge ||= import("./FloatingViewer--x61GAzy.js").then((e) => (S = e.FloatingViewer, S)), ge);
+	return S || (ge ||= import("./FloatingViewer-XL2VdSI7.js").then((e) => (S = e.FloatingViewer, S)), ge);
 }
 var C = null, ve = null;
 async function ye() {
@@ -334,7 +334,7 @@ function Ce(e) {
 async function H(e, t = []) {
 	if (!e.length || !T) return;
 	I();
-	let n = ++P, i = typeof AbortController < "u" ? new AbortController() : null;
+	let r = ++P, i = typeof AbortController < "u" ? new AbortController() : null;
 	N = i;
 	try {
 		let a = T.getPinnedSlots(), o = a.size > 0, s = T._mode, c = s === w.GRID, l = s === w.AB || s === w.SIDE, u = c ? 4 : 2, d = e.slice(0, u);
@@ -345,11 +345,11 @@ async function H(e, t = []) {
 			let e = Ce(d[0]);
 			e && (d = [d[0], e]);
 		}
-		let f = L(), p = f?._mjrGetAssets?.() || f?._mjrGetSelectedAssets?.() || [], m = new Map([...p, ...t].filter((e) => e && e.kind !== "folder").map((e) => [String(e.id), e])), h = d.filter((e) => Number.isSafeInteger(Number(e)) && Number(e) > 0), g = h.length ? await r(h, i ? { signal: i.signal } : {}) : {
+		let f = L(), p = f?._mjrGetAssets?.() || f?._mjrGetSelectedAssets?.() || [], m = new Map([...p, ...t].filter((e) => e && e.kind !== "folder").map((e) => [String(e.id), e])), h = d.filter((e) => Number.isSafeInteger(Number(e)) && Number(e) > 0), g = h.length ? await n(h, i ? { signal: i.signal } : {}) : {
 			ok: !0,
 			data: []
 		};
-		if (i?.signal.aborted || P !== n || !T) return;
+		if (i?.signal.aborted || P !== r || !T) return;
 		let _ = new Map((g?.ok && Array.isArray(g.data) ? g.data : []).map((e) => [String(e.id), e])), v = d.map((e) => _.get(String(e)) || m.get(String(e))).filter(Boolean);
 		if (!v.length) return;
 		if (c) {
@@ -434,7 +434,7 @@ function Oe() {
 }
 function Y() {
 	if (!G) try {
-		K = t(De, { includePointerFallback: !0 }), G = typeof K == "function";
+		K = r(De, { includePointerFallback: !0 }), G = typeof K == "function";
 	} catch (e) {
 		console.debug?.("[MFV] _bindNodeSelectionListener error", e);
 	}
