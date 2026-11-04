@@ -15,9 +15,30 @@ Opening an asset (double-click, Enter, context menu) now shows the **Studio view
 
 - **Header**: previous / next with `n / N`, file name, resolution · format · duration · size, and actions (zoom, fit, 1:1, transparency checkerboard, compare, download, classic viewer, info panel, fullscreen, close).
 - **Image stage**: wheel zooms around the cursor, drag to pan, double-click toggles fit ↔ 100 %, checkerboard to inspect alpha. Above 200 % pixels stay sharp (nearest-neighbour).
-- **Player** (video / audio): big play button, scrubber with buffered range and hover time + frame, frame counter `f n / N · fps`, frame-by-frame stepping, A-B loop, loop, speed 0.25×–2×, volume, fullscreen, **save current frame as PNG**. Controls auto-hide while playing. Media is released when you move on.
+- **Player** (video / audio): big play button, scrubber with buffered range and hover time + frame, frame counter `f n / N · fps`, frame-by-frame stepping, A-B loop, loop, speed 0.25×–2×, volume, fullscreen, **save current frame as PNG**. Controls auto-hide while playing. Audio files show a live spectrum. Media is released when you move on.
+- **3D models** (GLB, glTF, OBJ, STL, PLY, splats…): orbit with left drag, pan with right drag, zoom with the wheel.
 - **Inspector** (right, `Tab`): rating and tags on top, then tabs **Generation** (prompts, models, LoRAs, sampler, seed… — same data as the asset sidebar), **Workflow** (graph preview, load into ComfyUI) and **File**.
 - **Filmstrip**: thumbnails of the current list to jump anywhere.
+
+#### Review tools (HUD rail)
+
+Images and videos get a tool rail on the left of the stage. Each icon toggles a tool; tools with settings open a small panel next to the rail (`Esc` closes it). Colour tools run on the GPU, so they also work on playing video.
+
+| Tool | What it does |
+| --- | --- |
+| **Channels** | RGB, R, G, B, alpha or luma as greyscale |
+| **Exposure / gamma** | ±5 EV and display gamma 0.1–3 (double-click a slider to reset) |
+| **Zebra** (`Z`) | Stripes over highlights above the threshold (50–100 %) |
+| **Scopes** (`S`) | RGB + luma histogram, luma waveform, or both — live on video |
+| **Guides** (`G`) | Rule of thirds, golden ratio, centre cross, action / title safe areas |
+| **Aspect mask** | Darkens outside 16:9, 9:16, 1:1, 4:3 or 2.39 (adjustable opacity) |
+| **Pixel probe** (`P`) | Hex, RGB, luma and pixel coordinates under the cursor |
+| **Loupe** (`L`) | Pixel-accurate magnifier; right-click the icon for zoom 2–32× and size |
+| **Compare A/B** (`C`) | Wipe ↔, wipe ↕, side by side, difference, add, subtract (images), multiply, screen |
+| **Copy** (`Ctrl+C`) | Copies the image or the current video frame to the clipboard as PNG |
+| **Reset** (`R`) | Resets every tool |
+
+**Compare**: B is the next asset of the same kind in the list. In the compare panel, `‹ ›` picks another B, **Set B** (`B`) pins the current asset as B and moves on, **Swap** (`X`) exchanges A and B. Drag the wipe line (double-click it to centre it). Videos are kept in sync (play, pause, seek, speed, loops). Raise the exposure in *difference* mode to make subtle changes visible. Opening an A/B or side-by-side compare from the grid or the floating viewer lands here with that mode already on.
 
 | Key | Action |
 | --- | --- |
@@ -30,12 +51,16 @@ Opening an asset (double-click, Enter, context menu) now shows the **Studio view
 | `M` | Mute |
 | `0`–`5` | Set rating |
 | `+` / `-`, `Alt+0` | Zoom in / out, fit |
-| `C` | Compare with the next asset (classic A/B viewer) |
+| `C` / `B` / `X` | Compare on/off / set current as B / swap A and B |
+| `Z` / `S` / `G` | Zebra / cycle scopes / cycle guides |
+| `P` / `L` | Pixel probe / loupe |
+| `R` | Reset review tools |
+| `Ctrl+C` | Copy image or frame |
 | `Tab` | Show / hide the inspector |
 | `F` | Fullscreen |
-| `Esc` | Close |
+| `Esc` | Close the open tool panel, then the viewer |
 
-The **classic viewer** below is still there: it is used for A/B and side-by-side compare, 3D models, and its analysis tools (scopes, loupe, grading) are one click away with the sliders button. To use it for everything, enable *Settings → Majoor Assets Manager → Viewer → Use the classic viewer*.
+The **classic viewer** below is still available (header sliders button, or *Settings → Majoor Assets Manager → Viewer → Use the classic viewer* to use it for everything).
 
 ### 1. Majoor Floating Viewer (MFV) — NEW! 🎉
 

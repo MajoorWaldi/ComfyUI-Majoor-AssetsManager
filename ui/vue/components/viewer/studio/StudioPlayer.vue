@@ -7,9 +7,13 @@
  * Keyboard shortcuts are handled by the viewer and forwarded through the
  * exposed API so they work wherever the focus is inside the overlay.
  */
-import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 
 import { t } from "../../../../app/i18n.js";
+import {
+    compareBlendMode,
+    type StudioCompare,
+} from "../../../../features/viewer/studio/studioFx.js";
 import {
     PLAYBACK_RATES,
     formatMediaTime,
@@ -31,13 +35,89 @@ const props = defineProps<{
     initialRate?: number;
     /** Tighter controls for small hosts (floating viewer). */
     compact?: boolean;
+    /** CSS filter for the picture (Studio colour tools). */
+    mediaFilter?: string;
+    /** Second video kept in sync for A/B compare. */
+    compareSrc?: string | null;
+    compare?: StudioCompare;
+    wipe?: number;
 }>();
 
-const emit = defineEmits<{ (e: "ended"): void }>();
+const emit = defineEmits<{ (e: "ended"): void; (e: "update:wipe", value: number): void }>();
 
 const media = ref<HTMLVideoElement | HTMLAudioElement | null>(null);
 const root = ref<HTMLElement | null>(null);
 const track = ref<HTMLElement | null>(null);
+const screen = ref<HTMLElement | null>(null);
+const mediaB = ref<HTMLVideoElement | null>(null);
+/** Displayed picture rect inside the screen (object-fit: contain), in px. */
+const contentBox = ref({ x: 0, y: 0, w: 0, h: 0 });
+const wiping = ref(false);
+let screenObserver: ResizeObserver | null = null;
+
+// ── Audio spectrum (audio files only) ──────────────────────────────────
+const spectrum = ref<HTMLCanvasElement | null>(null);
+const spectrumOn = ref(false);
+let audioCtx: AudioContext | null = null;
+let analyser: AnalyserNode | null = null;
+let spectrumRaf = 0;
+
+/**
+ * Route the <audio> through an analyser - only once the AudioContext is
+ * confirmed running, since a suspended context would silence the element.
+ */
+async function ensureSpectrum() {
+    if (props.kind !== "audio" || analyser || audioCtx) return;
+    const m = el();
+    const Ctor = (window as any).AudioContext || (window as any).webkitAudioContext;
+    if (!m || !Ctor) return;
+    try {
+        audioCtx = new Ctor() as AudioContext;
+        await audioCtx.resume?.();
+        if (audioCtx.state !== "running") {
+            void audioCtx.close?.();
+            audioCtx = null;
+            return;
+        }
+        const source = audioCtx.createMediaElementSource(m);
+        analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 256;
+        analyser.smoothingTimeConstant = 0.78;
+        source.connect(analyser);
+        analyser.connect(audioCtx.destination);
+        spectrumOn.value = true;
+        drawSpectrum();
+    } catch (e) {
+        console.debug?.(e);
+    }
+}
+
+function drawSpectrum() {
+    cancelAnimationFrame(spectrumRaf);
+    const c = spectrum.value;
+    const ctx = c?.getContext("2d");
+    if (!c || !ctx || !analyser) return;
+    const w = (c.width = c.clientWidth || 480);
+    const h = (c.height = c.clientHeight || 160);
+    const bins = new Uint8Array(analyser.frequencyBinCount);
+    analyser.getByteFrequencyData(bins);
+    ctx.clearRect(0, 0, w, h);
+    const count = Math.min(64, bins.length);
+    const gap = 3;
+    const bw = Math.max(2, (w - gap * (count - 1)) / count);
+    const accent = getComputedStyle(c).getPropertyValue("--mjr-accent").trim() || "#4fa3ff";
+    ctx.fillStyle = accent;
+    for (let i = 0; i < count; i++) {
+        // Log-ish spread so the low end does not dominate.
+        const idx = Math.min(bins.length - 1, Math.floor(Math.pow(i / count, 1.6) * bins.length));
+        const v = bins[idx] / 255;
+        const bh = Math.max(2, v * h);
+        ctx.globalAlpha = 0.35 + v * 0.65;
+        ctx.fillRect(i * (bw + gap), h - bh, bw, bh);
+    }
+    ctx.globalAlpha = 1;
+    if (playing.value) spectrumRaf = requestAnimationFrame(drawSpectrum);
+}
 
 const playing = ref(false);
 const current = ref(0);
@@ -80,6 +160,90 @@ function el(): HTMLMediaElement | null {
     return media.value as HTMLMediaElement | null;
 }
 
+const comparing = computed(
+    () =>
+        props.kind === "video" && !!props.compareSrc && !!props.compare && props.compare !== "off",
+);
+const isSide = computed(() => comparing.value && props.compare === "side");
+const isWipe = computed(
+    () => comparing.value && (props.compare === "wipe" || props.compare === "wipeV"),
+);
+const wipePct = computed(() => Math.max(0, Math.min(100, Number(props.wipe ?? 50))));
+const bStyle = computed(() => {
+    const blend = comparing.value ? compareBlendMode(props.compare || "off") : null;
+    if (blend) return { mixBlendMode: blend as any };
+    if (isWipe.value) {
+        const b = contentBox.value;
+        if (props.compare === "wipeV")
+            return { clipPath: `inset(${b.y + (b.h * wipePct.value) / 100}px 0 0 0)` };
+        return { clipPath: `inset(0 0 0 ${b.x + (b.w * wipePct.value) / 100}px)` };
+    }
+    return {};
+});
+const boxStyle = computed(() => ({
+    left: `${contentBox.value.x}px`,
+    top: `${contentBox.value.y}px`,
+    width: `${contentBox.value.w}px`,
+    height: `${contentBox.value.h}px`,
+}));
+
+function measureContent() {
+    const v = media.value;
+    if (!(v instanceof HTMLVideoElement) || !screen.value) return;
+    const cw = v.clientWidth;
+    const ch = v.clientHeight;
+    const vw = v.videoWidth;
+    const vh = v.videoHeight;
+    if (!cw || !ch || !vw || !vh) {
+        contentBox.value = { x: v.offsetLeft, y: v.offsetTop, w: cw, h: ch };
+        return;
+    }
+    const s = Math.min(cw / vw, ch / vh);
+    const w = vw * s;
+    const h = vh * s;
+    contentBox.value = { x: v.offsetLeft + (cw - w) / 2, y: v.offsetTop + (ch - h) / 2, w, h };
+}
+
+function syncB(force = false) {
+    const a = el();
+    const b = mediaB.value;
+    if (!a || !b || !comparing.value) return;
+    b.muted = true;
+    if (b.playbackRate !== a.playbackRate) b.playbackRate = a.playbackRate;
+    const target = Math.min(
+        a.currentTime || 0,
+        Number.isFinite(b.duration) ? b.duration : Infinity,
+    );
+    if (force || Math.abs((b.currentTime || 0) - target) > 0.08) {
+        try {
+            b.currentTime = target;
+        } catch (e) {
+            console.debug?.(e);
+        }
+    }
+    if (a.paused && !b.paused) b.pause();
+    else if (!a.paused && b.paused) void b.play()?.catch?.(() => {});
+}
+
+function wipeFromEvent(event: PointerEvent) {
+    const rect = screen.value?.getBoundingClientRect();
+    const b = contentBox.value;
+    if (!rect || b.w <= 0 || b.h <= 0) return;
+    const ratio =
+        props.compare === "wipeV"
+            ? (event.clientY - rect.top - b.y) / b.h
+            : (event.clientX - rect.left - b.x) / b.w;
+    emit("update:wipe", Math.round(Math.max(0, Math.min(1, ratio)) * 1000) / 10);
+}
+function onWipeDown(event: PointerEvent) {
+    wiping.value = true;
+    (event.currentTarget as HTMLElement)?.setPointerCapture?.(event.pointerId);
+    wipeFromEvent(event);
+}
+function onWipeMove(event: PointerEvent) {
+    if (wiping.value) wipeFromEvent(event);
+}
+
 function tick() {
     const m = el();
     if (m) {
@@ -93,6 +257,7 @@ function tick() {
             m.currentTime = wrap;
             current.value = wrap;
         }
+        syncB(wrap != null);
     }
     if (playing.value) rafId = requestAnimationFrame(tick);
 }
@@ -101,11 +266,17 @@ function onPlay() {
     playing.value = true;
     cancelAnimationFrame(rafId);
     rafId = requestAnimationFrame(tick);
+    syncB(true);
+    if (props.kind === "audio") {
+        if (analyser) drawSpectrum();
+        else void ensureSpectrum();
+    }
     scheduleHide();
 }
 function onPause() {
     playing.value = false;
     cancelAnimationFrame(rafId);
+    syncB(true);
     showControls();
 }
 function onLoaded() {
@@ -117,6 +288,7 @@ function onLoaded() {
         m.muted = muted.value;
         m.playbackRate = rate.value;
     }
+    void nextTick(measureContent);
 }
 function onTimeUpdate() {
     const m = el();
@@ -157,6 +329,7 @@ function seek(time: number) {
     const max = duration.value > 0 ? duration.value : time;
     m.currentTime = Math.max(0, Math.min(time, max));
     current.value = m.currentTime;
+    syncB(true);
 }
 
 function stepFrame(delta: number) {
@@ -280,9 +453,7 @@ function scheduleHide() {
     }, 2200);
 }
 
-/** Release the decoder and stream (a detached, merely paused element keeps them). */
-function releaseMedia() {
-    const m = el();
+function releaseElement(m: HTMLMediaElement | null) {
     if (!m) return;
     try {
         m.pause();
@@ -291,6 +462,12 @@ function releaseMedia() {
     } catch (e) {
         console.debug?.(e);
     }
+}
+
+/** Release the decoder and stream (a detached, merely paused element keeps them). */
+function releaseMedia() {
+    releaseElement(mediaB.value);
+    releaseElement(el());
 }
 
 watch(
@@ -321,9 +498,35 @@ function autoplay() {
     }
 }
 
-onMounted(autoplay);
+watch(
+    [comparing, () => props.compareSrc, () => props.compare],
+    () =>
+        void nextTick(() => {
+            measureContent();
+            syncB(true);
+        }),
+);
+
+onMounted(() => {
+    autoplay();
+    try {
+        screenObserver = new ResizeObserver(() => measureContent());
+        if (screen.value) screenObserver.observe(screen.value);
+    } catch (e) {
+        console.debug?.(e);
+    }
+});
 
 onBeforeUnmount(() => {
+    screenObserver?.disconnect();
+    cancelAnimationFrame(spectrumRaf);
+    try {
+        void audioCtx?.close?.();
+    } catch (e) {
+        console.debug?.(e);
+    }
+    audioCtx = null;
+    analyser = null;
     cancelAnimationFrame(rafId);
     if (hideTimer) clearTimeout(hideTimer);
     releaseMedia();
@@ -342,6 +545,12 @@ defineExpose({
     toggleFullscreen,
     exportFrame,
     release: releaseMedia,
+    getSource: () => (media.value instanceof HTMLVideoElement ? media.value : null),
+    getBox: () =>
+        props.kind === "video"
+            ? (screen.value?.querySelector(".mjr-studio-player__box") as HTMLElement | null)
+            : null,
+    isPlaying: () => playing.value,
 });
 </script>
 
@@ -356,25 +565,80 @@ defineExpose({
         }"
         @pointermove="showControls"
     >
-        <video
+        <div
             v-if="kind === 'video'"
-            ref="media"
-            class="mjr-studio-player__media"
-            :src="src"
-            playsinline
-            preload="auto"
+            ref="screen"
+            class="mjr-studio-player__screen"
+            :class="{ 'is-side': isSide }"
             @click="togglePlay"
             @dblclick="toggleFullscreen"
-            @play="onPlay"
-            @pause="onPause"
-            @loadedmetadata="onLoaded"
-            @timeupdate="onTimeUpdate"
-            @progress="onTimeUpdate"
-            @ended="onEnded"
-            @error="onError"
-        />
-        <div v-else class="mjr-studio-player__audio-art" @click="togglePlay">
-            <i class="pi pi-volume-up" aria-hidden="true" />
+        >
+            <div
+                class="mjr-studio-player__layers"
+                :style="mediaFilter ? { filter: mediaFilter } : undefined"
+            >
+                <video
+                    ref="media"
+                    class="mjr-studio-player__media"
+                    :src="src"
+                    playsinline
+                    preload="auto"
+                    @play="onPlay"
+                    @pause="onPause"
+                    @loadedmetadata="onLoaded"
+                    @timeupdate="onTimeUpdate"
+                    @progress="onTimeUpdate"
+                    @ended="onEnded"
+                    @error="onError"
+                />
+                <video
+                    v-if="comparing"
+                    ref="mediaB"
+                    :key="`b:${compareSrc}`"
+                    class="mjr-studio-player__media is-b"
+                    :src="compareSrc || ''"
+                    playsinline
+                    muted
+                    preload="auto"
+                    :style="bStyle"
+                    @loadedmetadata="syncB(true)"
+                />
+            </div>
+            <div class="mjr-studio-player__box" :style="boxStyle">
+                <slot name="overlay" :width="contentBox.w" :height="contentBox.h" />
+                <div
+                    v-if="isWipe"
+                    class="mjr-studio-stage__divider"
+                    :class="{ 'is-vertical': compare === 'wipeV', 'is-active': wiping }"
+                    :style="compare === 'wipeV' ? { top: `${wipePct}%` } : { left: `${wipePct}%` }"
+                    @click.stop
+                    @dblclick.stop="emit('update:wipe', 50)"
+                    @pointerdown.stop="onWipeDown"
+                    @pointermove="onWipeMove"
+                    @pointerup="wiping = false"
+                    @pointercancel="wiping = false"
+                >
+                    <span class="mjr-studio-stage__divider-grip" />
+                </div>
+            </div>
+            <div v-if="comparing" class="mjr-studio-stage__ab">
+                <span>A</span><span class="is-sep">{{ compare === "wipeV" ? "/" : "|" }}</span
+                ><span>B</span>
+            </div>
+        </div>
+        <div
+            v-else
+            class="mjr-studio-player__audio-art"
+            :class="{ 'has-spectrum': spectrumOn }"
+            @click="togglePlay"
+        >
+            <canvas
+                v-show="spectrumOn"
+                ref="spectrum"
+                class="mjr-studio-player__spectrum"
+                aria-hidden="true"
+            />
+            <i v-show="!spectrumOn" class="pi pi-volume-up" aria-hidden="true" />
             <span>{{ filename }}</span>
             <audio
                 ref="media"

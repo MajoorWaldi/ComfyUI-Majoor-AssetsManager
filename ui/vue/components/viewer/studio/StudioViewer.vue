@@ -6,11 +6,13 @@
  * inspector (review, generation data, workflow, file) / filmstrip.
  *
  * It reuses the asset sidebar's components for generation metadata, workflow,
- * rating and tags, so the data shown is identical everywhere. Compare modes
- * (A/B, side-by-side) and 3D models stay in the classic viewer, reached
- * through the `open-classic` event.
+ * rating and tags, so the data shown is identical everywhere.
+ *
+ * Review tools live in a HUD rail on the left of the stage (channels,
+ * exposure/gamma, zebra, scopes, guides, aspect mask, probe, loupe, A/B
+ * compare, copy). The classic viewer stays reachable through `open-classic`.
  */
-import { computed, nextTick, onBeforeUnmount, ref, shallowRef, watch } from "vue";
+import { computed, nextTick, onBeforeUnmount, reactive, ref, shallowRef, watch } from "vue";
 
 import {
     getAssetMetadata,
@@ -23,6 +25,14 @@ import { ASSET_RATING_CHANGED_EVENT } from "../../../../app/events.js";
 import { t } from "../../../../app/i18n.js";
 import { comfyToast } from "../../../../app/toast.js";
 import { ensureViewerMetadataAsset } from "../../../../features/viewer/genInfo.js";
+import {
+    defaultStudioTools,
+    hasColorFx,
+    nextCompareIndex,
+    type StudioGrid,
+    type StudioScopes,
+} from "../../../../features/viewer/studio/studioFx.js";
+import { sourceToPngBlob } from "../../../../features/viewer/studio/studioSampler.js";
 import {
     assetSummary,
     filmstripWindow,
@@ -40,8 +50,15 @@ import TagsEditor from "../../common/TagsEditor.vue";
 import SidebarFileInfoSection from "../../panel/sidebar/SidebarFileInfoSection.vue";
 import SidebarGenerationSection from "../../panel/sidebar/SidebarGenerationSection.vue";
 import SidebarWorkflowSection from "../../panel/sidebar/SidebarWorkflowSection.vue";
+import StudioFxDefs from "./StudioFxDefs.vue";
+import StudioGuides from "./StudioGuides.vue";
 import StudioImageStage from "./StudioImageStage.vue";
+import StudioModel3D from "./StudioModel3D.vue";
 import StudioPlayer from "./StudioPlayer.vue";
+import StudioProbe from "./StudioProbe.vue";
+import StudioScopesHud from "./StudioScopes.vue";
+import StudioToolRail from "./StudioToolRail.vue";
+import StudioZebra from "./StudioZebra.vue";
 
 const emit = defineEmits<{
     (e: "open-classic", payload: { assets: unknown[]; index: number; mode: string }): void;
@@ -52,6 +69,7 @@ type InspectorTab = "generation" | "workflow" | "file";
 const overlay = ref<HTMLElement | null>(null);
 const imageStage = ref<InstanceType<typeof StudioImageStage> | null>(null);
 const player = ref<InstanceType<typeof StudioPlayer> | null>(null);
+const toolRail = ref<InstanceType<typeof StudioToolRail> | null>(null);
 const inspectorOpen = ref(true);
 const tab = ref<InspectorTab>("generation");
 const checker = ref(false);
@@ -76,7 +94,156 @@ const filmstrip = computed(() => {
         .slice(start, end)
         .map((a, i) => ({ asset: a, index: start + i }));
 });
-const canCompare = computed(() => count.value >= 2);
+
+// ── Review tools (HUD rail) ────────────────────────────────────────────
+const tools = reactive(defaultStudioTools());
+const filterId = `mjr-studio-fx-${Math.random().toString(36).slice(2, 9)}`;
+const compareIndex = ref<number | null>(null);
+const tick = ref(0);
+let tickTimer: ReturnType<typeof setInterval> | null = null;
+let lastFrameTime = -1;
+
+const canAnalyse = computed(() => kind.value === "image" || kind.value === "video");
+const bIndex = computed(() => {
+    if (!canAnalyse.value) return null;
+    const pinned = compareIndex.value;
+    const list = studioViewerState.assets;
+    const current = studioViewerState.index;
+    if (
+        pinned != null &&
+        pinned !== current &&
+        list[pinned] &&
+        studioMediaKind(list[pinned]) === kind.value
+    )
+        return pinned;
+    return nextCompareIndex(list, current, 1, (a) => studioMediaKind(a) === kind.value);
+});
+const canCompare = computed(() => bIndex.value != null);
+const compareAsset = computed(() =>
+    bIndex.value != null ? studioViewerState.assets[bIndex.value] : null,
+);
+const comparing = computed(() => tools.compare !== "off" && !!compareAsset.value);
+const compareSrc = computed(() =>
+    comparing.value && compareAsset.value ? buildAssetViewURL(compareAsset.value) : null,
+);
+const subtractSrc = computed(() =>
+    comparing.value && tools.compare === "subtract" && kind.value === "image"
+        ? compareSrc.value
+        : null,
+);
+const mediaFilter = computed(() =>
+    canAnalyse.value && (hasColorFx(tools) || subtractSrc.value) ? `url(#${filterId})` : "",
+);
+const needsTick = computed(() => canAnalyse.value && (tools.zebra || tools.scopes !== "off"));
+
+function getSource() {
+    if (kind.value === "image") return imageStage.value?.getSource?.() ?? null;
+    if (kind.value === "video") return player.value?.getSource?.() ?? null;
+    return null;
+}
+function getBox() {
+    if (kind.value === "image") return imageStage.value?.getBox?.() ?? null;
+    if (kind.value === "video") return player.value?.getBox?.() ?? null;
+    return null;
+}
+
+/** Re-sample zebra / scopes: on image load, and ~8 fps while a video frame changes. */
+function bumpTick() {
+    tick.value += 1;
+}
+function stopTicker() {
+    if (tickTimer) clearInterval(tickTimer);
+    tickTimer = null;
+}
+watch(
+    [needsTick, kind, () => studioViewerState.open],
+    ([need, k, open]) => {
+        stopTicker();
+        if (!need || !open || k !== "video") return;
+        lastFrameTime = -1;
+        tickTimer = setInterval(() => {
+            const v = getSource() as HTMLVideoElement | null;
+            const time = v?.currentTime ?? -1;
+            if (time !== lastFrameTime) {
+                lastFrameTime = time;
+                bumpTick();
+            }
+        }, 120);
+    },
+    { immediate: true },
+);
+watch(needsTick, (need) => {
+    if (need) void nextTick(bumpTick);
+});
+
+function cycleB(delta: number) {
+    const from = bIndex.value ?? studioViewerState.index;
+    const next = nextCompareIndex(
+        studioViewerState.assets,
+        from,
+        delta,
+        (a, i) => i !== studioViewerState.index && studioMediaKind(a) === kind.value,
+    );
+    if (next != null) compareIndex.value = next;
+}
+function pinB() {
+    compareIndex.value = studioViewerState.index;
+    const next = nextCompareIndex(
+        studioViewerState.assets,
+        studioViewerState.index,
+        1,
+        (a) => studioMediaKind(a) === kind.value,
+    );
+    if (next != null) goToStudioIndex(next);
+    if (tools.compare === "off") tools.compare = "wipe";
+}
+function swapAB() {
+    const b = bIndex.value;
+    if (b == null) return;
+    compareIndex.value = studioViewerState.index;
+    goToStudioIndex(b);
+}
+function toggleCompare() {
+    if (!canCompare.value) return;
+    tools.compare = tools.compare === "off" ? "wipe" : "off";
+}
+
+async function copyToClipboard() {
+    const blob = await sourceToPngBlob(getSource());
+    const ClipboardItemCtor = (window as any).ClipboardItem;
+    if (!blob || !ClipboardItemCtor || !navigator.clipboard?.write) {
+        comfyToast(t("viewer.studio.copyFailed", "Could not copy this image"), "error");
+        return;
+    }
+    try {
+        await navigator.clipboard.write([new ClipboardItemCtor({ "image/png": blob })]);
+        comfyToast(t("viewer.studio.copied", "Copied to clipboard"), "success");
+    } catch (e) {
+        console.debug?.(e);
+        comfyToast(t("viewer.studio.copyFailed", "Could not copy this image"), "error");
+    }
+}
+
+const SCOPE_CYCLE: StudioScopes[] = ["off", "hist", "wave", "both"];
+const GRID_CYCLE: StudioGrid[] = ["off", "thirds", "golden", "center", "safe"];
+function cycle<T>(list: T[], value: T): T {
+    return list[(list.indexOf(value) + 1) % list.length];
+}
+
+watch(
+    () => studioViewerState.session,
+    () => {
+        compareIndex.value = null;
+        tools.compare = studioViewerState.compare || "off";
+        // A new open request while already open: take focus back from editors.
+        void nextTick(() => {
+            const active = document.activeElement as HTMLElement | null;
+            if (active && overlay.value?.contains(active) && isTypingTarget(active)) active.blur();
+            overlay.value?.focus?.({ preventScroll: true });
+        });
+    },
+    { immediate: true },
+);
 
 async function hydrate(target: any) {
     hydrateAbort?.abort();
@@ -121,6 +288,7 @@ watch(
             window.addEventListener("keydown", onKeydown, true);
         } else {
             window.removeEventListener("keydown", onKeydown, true);
+            stopTicker();
             player.value?.release?.();
             hydrateAbort?.abort();
             if (document.fullscreenElement && overlay.value?.contains(document.fullscreenElement)) {
@@ -133,6 +301,7 @@ watch(
 
 onBeforeUnmount(() => {
     window.removeEventListener("keydown", onKeydown, true);
+    stopTicker();
     hydrateAbort?.abort();
 });
 
@@ -194,8 +363,15 @@ function onKeydown(event: KeyboardEvent) {
     }
     const isMedia = kind.value === "video" || kind.value === "audio";
     const key = event.key;
+    const lower = key.length === 1 ? key.toLowerCase() : key;
+    const plain = !event.ctrlKey && !event.metaKey && !event.altKey;
+    const tool = canAnalyse.value && plain;
     let handled = true;
-    if (key === "Escape") close();
+    if (key === "Escape" && toolRail.value?.closePanel?.()) {
+        /* closed the open tool panel */
+    } else if (key === "Escape") close();
+    else if (lower === "c" && (event.ctrlKey || event.metaKey) && canAnalyse.value)
+        void copyToClipboard();
     else if (key === "ArrowLeft" && !event.shiftKey) stepStudioViewer(-1);
     else if (key === "ArrowRight" && !event.shiftKey) stepStudioViewer(1);
     else if (key === "ArrowLeft" && event.shiftKey && isMedia) player.value?.seekBy?.(-5);
@@ -219,7 +395,19 @@ function onKeydown(event: KeyboardEvent) {
     else if (key === "0" && kind.value === "image" && event.altKey) imageStage.value?.fit?.();
     else if (/^[0-5]$/.test(key) && !event.ctrlKey && !event.metaKey && !event.altKey)
         void setRating(Number(key));
-    else if ((key === "c" || key === "C") && canCompare.value) openClassic("ab");
+    else if (lower === "c" && plain && canCompare.value) toggleCompare();
+    else if (lower === "b" && plain && canCompare.value) pinB();
+    else if (lower === "x" && plain && comparing.value) swapAB();
+    else if (lower === "z" && tool) tools.zebra = !tools.zebra;
+    else if (lower === "s" && tool) tools.scopes = cycle(SCOPE_CYCLE, tools.scopes);
+    else if (lower === "g" && plain && canAnalyse.value) tools.grid = cycle(GRID_CYCLE, tools.grid);
+    else if (lower === "p" && tool) tools.probe = !tools.probe;
+    else if (lower === "l" && tool) tools.loupe = !tools.loupe;
+    else if (lower === "r" && tool)
+        Object.assign(tools, defaultStudioTools(), {
+            loupeSize: tools.loupeSize,
+            loupeZoom: tools.loupeZoom,
+        });
     else handled = false;
     if (handled) {
         event.preventDefault();
@@ -318,8 +506,9 @@ function thumbUrl(a: any): string {
                         v-if="canCompare"
                         type="button"
                         class="mjr-studio-btn"
-                        :title="t('viewer.studio.compare', 'Compare with next (C)')"
-                        @click="openClassic('ab')"
+                        :class="{ 'is-on': comparing }"
+                        :title="t('viewer.studio.compare', 'Compare A/B (C)')"
+                        @click="toggleCompare"
                     >
                         <i class="pi pi-clone" aria-hidden="true" />
                     </MButton>
@@ -334,12 +523,7 @@ function thumbUrl(a: any): string {
                     <MButton
                         type="button"
                         class="mjr-studio-btn"
-                        :title="
-                            t(
-                                'viewer.studio.classic',
-                                'Open in classic viewer (tools: scopes, loupe, grading)',
-                            )
-                        "
+                        :title="t('viewer.studio.classic', 'Open in the classic viewer')"
                         @click="openClassic('')"
                     >
                         <i class="pi pi-sliders-h" aria-hidden="true" />
@@ -373,25 +557,82 @@ function thumbUrl(a: any): string {
             </header>
 
             <main class="mjr-studio__body">
-                <section class="mjr-studio__stage">
+                <section class="mjr-studio__stage" :class="{ 'has-rail': canAnalyse }">
+                    <StudioFxDefs
+                        v-if="mediaFilter"
+                        :filter-id="filterId"
+                        :channel="tools.channel"
+                        :exposure="tools.exposure"
+                        :gamma="tools.gamma"
+                        :subtract-src="subtractSrc"
+                    />
                     <StudioImageStage
                         v-if="kind === 'image'"
                         ref="imageStage"
                         :key="`img:${mediaUrl}`"
+                        v-model:wipe="tools.wipe"
                         :src="mediaUrl"
                         :alt="asset?.filename"
                         :checker="checker"
+                        :media-filter="mediaFilter"
+                        :compare-src="compareSrc"
+                        :compare="tools.compare"
+                        :class="{ 'is-probing': tools.probe || tools.loupe }"
                         @zoom="zoom = $event"
-                    />
+                        @loaded="bumpTick"
+                    >
+                        <template #overlay="{ width, height }">
+                            <StudioZebra
+                                v-if="tools.zebra"
+                                :get-source="getSource"
+                                :threshold="tools.zebraThreshold"
+                                :tick="tick"
+                            />
+                            <StudioGuides
+                                :width="width"
+                                :height="height"
+                                :grid="tools.grid"
+                                :aspect="tools.aspect"
+                                :mask-opacity="tools.maskOpacity"
+                            />
+                        </template>
+                    </StudioImageStage>
                     <StudioPlayer
                         v-else-if="kind === 'video' || kind === 'audio'"
                         ref="player"
                         :key="`media:${mediaUrl}`"
+                        v-model:wipe="tools.wipe"
                         :src="mediaUrl"
                         :kind="kind"
                         :fps="fps"
                         :frame-count="frameCount"
                         :filename="asset?.filename"
+                        :media-filter="mediaFilter"
+                        :compare-src="compareSrc"
+                        :compare="tools.compare"
+                        :class="{ 'is-probing': tools.probe || tools.loupe }"
+                    >
+                        <template #overlay="{ width, height }">
+                            <StudioZebra
+                                v-if="tools.zebra"
+                                :get-source="getSource"
+                                :threshold="tools.zebraThreshold"
+                                :tick="tick"
+                            />
+                            <StudioGuides
+                                :width="width"
+                                :height="height"
+                                :grid="tools.grid"
+                                :aspect="tools.aspect"
+                                :mask-opacity="tools.maskOpacity"
+                            />
+                        </template>
+                    </StudioPlayer>
+                    <StudioModel3D
+                        v-else-if="kind === 'model3d'"
+                        :key="`3d:${mediaUrl}`"
+                        :asset="asset"
+                        :src="mediaUrl"
                     />
                     <div v-else class="mjr-studio__unsupported">
                         <i class="pi pi-file" aria-hidden="true" />
@@ -406,6 +647,36 @@ function thumbUrl(a: any): string {
                             {{ t("viewer.studio.classicShort", "Classic viewer") }}
                         </MButton>
                     </div>
+
+                    <StudioToolRail
+                        v-if="canAnalyse"
+                        ref="toolRail"
+                        v-model:tools="tools"
+                        :is-video="kind === 'video'"
+                        :can-analyse="canAnalyse"
+                        :can-compare="canCompare"
+                        :compare-name="compareAsset?.filename"
+                        @cycle-b="cycleB"
+                        @pin-b="pinB"
+                        @swap="swapAB"
+                        @copy="copyToClipboard"
+                    />
+                    <StudioScopesHud
+                        v-if="canAnalyse && tools.scopes !== 'off'"
+                        :get-source="getSource"
+                        :mode="tools.scopes"
+                        :tick="tick"
+                    />
+                    <StudioProbe
+                        v-if="canAnalyse && (tools.probe || tools.loupe)"
+                        :get-source="getSource"
+                        :get-box="getBox"
+                        :probe="tools.probe"
+                        :loupe="tools.loupe"
+                        :loupe-size="tools.loupeSize"
+                        :loupe-zoom="tools.loupeZoom"
+                        :media-filter="subtractSrc ? '' : mediaFilter"
+                    />
                 </section>
 
                 <aside v-if="inspectorOpen && shown" class="mjr-studio__inspector" @keydown.stop>
@@ -421,7 +692,12 @@ function thumbUrl(a: any): string {
                                 :size="40"
                             />
                         </div>
-                        <TagsEditor :key="`t:${shown.id}`" :asset="shown" :model-value="tags" />
+                        <TagsEditor
+                            :key="`t:${shown.id}`"
+                            :asset="shown"
+                            :model-value="tags"
+                            :autofocus="false"
+                        />
                     </div>
                     <nav class="mjr-studio__tabs" role="tablist">
                         <MButton

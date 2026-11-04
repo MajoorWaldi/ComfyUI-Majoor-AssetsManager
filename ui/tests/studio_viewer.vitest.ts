@@ -53,9 +53,14 @@ function mountViewer() {
                 SidebarWorkflowSection: true,
                 SidebarFileInfoSection: true,
                 StudioImageStage: {
-                    props: ["src"],
-                    template: '<div class="stage-stub" :data-src="src" />',
+                    props: ["src", "compare", "compareSrc", "mediaFilter"],
+                    template:
+                        '<div class="stage-stub" :data-src="src" :data-compare="compare" :data-compare-src="compareSrc || \'\'" />',
                 },
+                StudioZebra: true,
+                StudioScopes: true,
+                StudioProbe: true,
+                StudioModel3D: true,
                 StudioPlayer: {
                     props: ["src", "fps", "frameCount"],
                     template: '<div class="player-stub" :data-fps="fps" />',
@@ -129,15 +134,56 @@ describe("StudioViewer", () => {
         expect(studioViewerState.index).toBe(0);
     });
 
-    it("hands compare over to the classic viewer", async () => {
+    it("toggles A/B compare in place and picks the next same-kind asset as B", async () => {
         const wrapper = mountViewer();
         openStudioViewer(ASSETS, 1);
         await flushPromises();
 
         press("c");
         await nextTick();
+        expect(studioViewerState.open).toBe(true);
+        expect(wrapper.emitted("open-classic")).toBeUndefined();
+        const stage = wrapper.find(".stage-stub");
+        expect(stage.attributes("data-compare")).toBe("wipe");
+        // B skips the video and wraps to the other image.
+        expect(stage.attributes("data-compare-src")).toMatch(/\/asset\/1$/);
 
-        expect(studioViewerState.open).toBe(false);
-        expect(wrapper.emitted("open-classic")?.[0]?.[0]).toMatchObject({ index: 1, mode: "ab" });
+        press("x");
+        await flushPromises();
+        expect(studioViewerState.index).toBe(0);
+        expect(wrapper.find(".stage-stub").attributes("data-compare-src")).toMatch(/\/asset\/2$/);
+
+        press("c");
+        await nextTick();
+        expect(wrapper.find(".stage-stub").attributes("data-compare")).toBe("off");
+    });
+
+    it("opens with the compare mode requested by the caller", async () => {
+        const wrapper = mountViewer();
+        openStudioViewer(ASSETS, 0, "sidebyside");
+        await flushPromises();
+        expect(wrapper.find(".stage-stub").attributes("data-compare")).toBe("side");
+    });
+
+    it("drives review tools from the rail shortcuts", async () => {
+        const wrapper = mountViewer();
+        openStudioViewer(ASSETS, 0);
+        await flushPromises();
+        expect(wrapper.find(".mjr-studio-rail").exists()).toBe(true);
+
+        press("z");
+        press("g");
+        press("p");
+        await nextTick();
+        const rail = wrapper.findComponent({ name: "StudioToolRail" });
+        const tools = rail.props("tools") as any;
+        expect(tools.zebra).toBe(true);
+        expect(tools.grid).toBe("thirds");
+        expect(tools.probe).toBe(true);
+
+        press("r");
+        await nextTick();
+        expect(tools.zebra).toBe(false);
+        expect(tools.grid).toBe("off");
     });
 });

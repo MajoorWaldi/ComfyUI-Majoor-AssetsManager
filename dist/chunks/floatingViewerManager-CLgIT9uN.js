@@ -1,6 +1,6 @@
 import { t as e } from "./rolldown-runtime-CGnMp29N.js";
-import { _ as t, d as n, o as r, s as i, t as a } from "./viewerRuntimeHosts-CW2DfHq_.js";
-import { B as o, o as s, r as c } from "./events-cBMXVULQ.js";
+import { _ as t, d as n, o as r, s as i, t as a } from "./viewerRuntimeHosts-XPTU8ZhU.js";
+import { B as o, o as s, r as c } from "./events-CttACGx4.js";
 // ui/features/panel/panelRuntimeRefs.ts
 var l = null;
 function u(e) {
@@ -96,7 +96,7 @@ var ne = /* @__PURE__ */ e({
 	teardownFloatingViewerManager: () => Te
 }), _ = null, v = null;
 async function re() {
-	return _ || (v ||= import("./FloatingViewer-DaVFZWfj.js").then((e) => (_ = e.FloatingViewer, _)), v);
+	return _ || (v ||= import("./FloatingViewer-BWnwwSd7.js").then((e) => (_ = e.FloatingViewer, _)), v);
 }
 var y = null, b = null;
 async function ie() {

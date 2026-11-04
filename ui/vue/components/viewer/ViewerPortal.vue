@@ -55,9 +55,9 @@ function _openFromEvent(event: Event) {
     const index = Math.max(0, Math.min(Number(detail?.index) || 0, assets.length - 1));
     const mode = String(detail?.mode || "").trim().toLowerCase();
 
-    // Studio viewer by default; compare modes, 3D and the "classic viewer"
-    // setting go to the classic runtime below.
-    if (shouldUseStudioViewer(assets, index, mode) && openStudioViewer(assets, index)) {
+    // Studio viewer by default (compare modes and 3D included); the
+    // "classic viewer" setting goes to the classic runtime below.
+    if (shouldUseStudioViewer(assets, index, mode) && openStudioViewer(assets, index, mode)) {
         try {
             (_instance as any)?.close?.();
         } catch (e) {

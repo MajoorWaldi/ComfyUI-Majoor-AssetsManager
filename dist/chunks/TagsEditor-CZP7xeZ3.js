@@ -1,7 +1,7 @@
-import { $t as e, F as t, P as n, v as r } from "./viewerRuntimeHosts-CW2DfHq_.js";
-import { m as i, n as a, t as o, wt as ee } from "./events-cBMXVULQ.js";
-import { Z as s } from "./viewerOpenRequest-_DqD1rXA.js";
-import { A as c, B as l, C as u, E as d, H as f, K as p, N as m, R as h, T as g, W as _, X as v, Y as y, b, dt as x, ft as S, it as C, j as w, k as T, pt as E, q as D, ut as O, z as k } from "./mjr-primevue-3mpaVb1C.js";
+import { $t as e, F as t, P as n, v as r } from "./viewerRuntimeHosts-XPTU8ZhU.js";
+import { m as i, n as a, t as o, wt as s } from "./events-CttACGx4.js";
+import { Z as c } from "./viewerOpenRequest-CZXk8yvU.js";
+import { $ as l, B as u, C as d, E as f, H as p, J as m, K as h, M as g, P as _, Q as v, T as y, V as ee, W as b, X as x, b as S, gt as C, ht as w, j as T, k as E, mt as D, pt as O, st as k } from "./mjr-primevue-C07IsEdU.js";
 // ui/vue/components/common/RatingEditor.vue?vue&type=script&setup=true&lang.ts
 var A = [
 	"aria-busy",
@@ -9,7 +9,7 @@ var A = [
 	"aria-label",
 	"aria-valuenow",
 	"tabindex"
-], j = /* @__PURE__ */ m({
+], j = /* @__PURE__ */ _({
 	__name: "RatingEditor",
 	props: {
 		asset: {},
@@ -22,21 +22,21 @@ var A = [
 		function a(e) {
 			return Math.max(0, Math.min(5, Number(e) || 0));
 		}
-		let l = t, d = r, m = a(l.asset?.rating ?? l.modelValue), h = C(m), v = C(0), b = C(!1), x = m, E = m, j = null, M = g(() => v.value > 0 ? v.value : h.value), te = (e) => e <= M.value ? "#FFD45A" : "#555", ne = (e) => e <= M.value ? "scale(1.1)" : "scale(1)", re = g(() => {
+		let l = t, u = r, f = a(l.asset?.rating ?? l.modelValue), p = k(f), _ = k(0), S = k(!1), C = f, D = f, j = null, M = y(() => _.value > 0 ? _.value : p.value), te = (e) => e <= M.value ? "#FFD45A" : "#555", ne = (e) => e <= M.value ? "scale(1.1)" : "scale(1)", re = y(() => {
 			let e = l.size;
 			return typeof e == "number" ? `${Math.max(8, e)}px` : String(e || "").trim() || "16px";
 		}), ie = (e) => Math.min(100 * 2 ** Math.max(0, e - 1), 2e3), ae = (e) => new Promise((t) => setTimeout(t, e));
 		function N(e) {
-			if (b.value) return;
+			if (S.value) return;
 			let t = a(e);
-			x = t, E = t, t !== h.value && (h.value = t);
+			C = t, D = t, t !== p.value && (p.value = t);
 		}
 		function P(t = null) {
-			h.value = x, E = x, d("update:modelValue", x), t && e(t, "error");
+			p.value = C, D = C, u("update:modelValue", C), t && e(t, "error");
 		}
 		async function oe() {
-			if (b.value) return;
-			b.value = !0;
+			if (S.value) return;
+			S.value = !0;
 			let t = Date.now();
 			try {
 				let r = 0;
@@ -46,51 +46,51 @@ var A = [
 						break;
 					}
 					r > 0 && await ae(ie(r)), r += 1;
-					let c = a(E), u = typeof AbortController < "u" ? new AbortController() : null;
-					j = u;
-					let f = null;
+					let d = a(D), f = typeof AbortController < "u" ? new AbortController() : null;
+					j = f;
+					let m = null;
 					try {
-						f = await n(l.asset, c, u ? { signal: u.signal } : {});
+						m = await n(l.asset, d, f ? { signal: f.signal } : {});
 					} catch (e) {
 						console.error("Failed to update rating:", e);
 					}
-					if (!f?.ok) {
-						if (f?.code === "ABORTED" && E !== c) continue;
-						P(f?.error || i("toast.ratingUpdateFailed", "Rating update failed"));
+					if (!m?.ok) {
+						if (m?.code === "ABORTED" && D !== d) continue;
+						P(m?.error || i("toast.ratingUpdateFailed", "Rating update failed"));
 						break;
 					}
 					try {
-						let e = f?.data?.asset_id ?? null;
-						e != null && !ee(l.asset.id) && (l.asset.id = e);
+						let e = m?.data?.asset_id ?? null;
+						e != null && !s(l.asset.id) && (l.asset.id = e);
 					} catch (e) {
 						console.debug?.(e);
 					}
-					x = c, h.value = c;
+					C = d, p.value = d;
 					try {
-						l.asset.rating = c;
+						l.asset.rating = d;
 					} catch (e) {
 						console.debug?.(e);
 					}
-					if (d("update:modelValue", c), d("rating-change", {
+					if (u("update:modelValue", d), u("rating-change", {
 						assetId: l.asset?.id,
-						rating: c
-					}), s(o, {
+						rating: d
+					}), c(o, {
 						assetId: l.asset?.id == null ? "" : String(l.asset.id),
-						rating: c
-					}), E === c) {
-						e(i("toast.ratingSetN", { n: c }), "success", 1e3);
+						rating: d
+					}), D === d) {
+						e(i("toast.ratingSetN", { n: d }), "success", 1e3);
 						break;
 					}
 				}
 				r >= 10 && P(i("toast.ratingUpdateFailed", "Rating update failed"));
 			} finally {
-				j = null, b.value = !1;
+				j = null, S.value = !1;
 			}
 		}
 		function F(e) {
 			if (l.disabled) return;
 			let t = a(e);
-			E = t, h.value = t, v.value = 0, d("update:modelValue", t);
+			D = t, p.value = t, _.value = 0, u("update:modelValue", t);
 			try {
 				j?.abort?.();
 			} catch (e) {
@@ -102,10 +102,10 @@ var A = [
 			F(e);
 		}
 		function L(e) {
-			l.disabled || (v.value = e);
+			l.disabled || (_.value = e);
 		}
 		function R() {
-			v.value = 0;
+			_.value = 0;
 		}
 		function z(e) {
 			if (l.disabled) return;
@@ -113,11 +113,11 @@ var A = [
 			switch (e.key) {
 				case "ArrowRight":
 				case "ArrowUp":
-					e.preventDefault(), t = Math.min(5, h.value + 1);
+					e.preventDefault(), t = Math.min(5, p.value + 1);
 					break;
 				case "ArrowLeft":
 				case "ArrowDown":
-					e.preventDefault(), t = Math.max(0, h.value - 1);
+					e.preventDefault(), t = Math.max(0, p.value - 1);
 					break;
 				case "Home":
 					e.preventDefault(), t = 0;
@@ -127,45 +127,45 @@ var A = [
 					break;
 				default: e.key >= "0" && e.key <= "5" && (e.preventDefault(), t = parseInt(e.key, 10));
 			}
-			t !== null && t !== h.value && F(t);
+			t !== null && t !== p.value && F(t);
 		}
-		return k(() => {
+		return ee(() => {
 			try {
 				j?.abort?.();
 			} catch (e) {
 				console.debug?.(e);
 			}
-		}), D(() => l.modelValue, (e) => {
+		}), x(() => l.modelValue, (e) => {
 			N(e);
-		}), D(() => l.asset?.rating, (e) => {
+		}), x(() => l.asset?.rating, (e) => {
 			N(e);
 		}), (e, n) => {
-			let r = p("MButton");
-			return f(), T("div", {
+			let r = m("MButton");
+			return b(), E("div", {
 				class: "mjr-rating-editor",
-				style: S({
+				style: w({
 					display: "inline-flex",
 					gap: "2px",
 					pointerEvents: t.disabled ? "none" : "auto",
 					opacity: t.disabled ? .6 : 1
 				}),
-				"aria-busy": b.value,
+				"aria-busy": S.value,
 				"aria-disabled": t.disabled,
 				role: "slider",
 				"aria-label": O(i)("rating.label", "Rating"),
 				"aria-valuemin": 0,
 				"aria-valuemax": 5,
-				"aria-valuenow": h.value,
+				"aria-valuenow": p.value,
 				tabindex: t.disabled ? -1 : 0,
 				onKeydown: z
-			}, [(f(), T(u, null, _(5, (e) => w(r, {
+			}, [(b(), E(d, null, h(5, (e) => g(r, {
 				key: e,
 				type: "button",
 				class: "mjr-rating-star",
 				severity: "secondary",
 				text: "",
 				rounded: "",
-				style: S({
+				style: w({
 					color: te(e),
 					transform: ne(e),
 					fontSize: re.value,
@@ -176,13 +176,13 @@ var A = [
 					transition: "all 0.15s ease"
 				}),
 				"aria-label": O(i)("rating.setN", { n: e }),
-				"aria-pressed": e <= h.value,
+				"aria-pressed": e <= p.value,
 				disabled: t.disabled,
 				onClick: (t) => I(e),
 				onMouseenter: (t) => L(e),
 				onMouseleave: R
 			}, {
-				default: y(() => [...n[0] ||= [c(" ★ ", -1)]]),
+				default: v(() => [...n[0] ||= [T(" ★ ", -1)]]),
 				_: 1
 			}, 8, [
 				"style",
@@ -197,16 +197,23 @@ var A = [
 }), M = ["aria-busy"], te = ["aria-label"], ne = {
 	key: 0,
 	class: "mjr-tags-empty"
-}, re = { class: "mjr-tags-input-wrap" }, ie = ["aria-selected", "onMouseenter"], ae = 100, N = 200, P = /* @__PURE__ */ m({
+}, re = { class: "mjr-tags-input-wrap" }, ie = ["aria-selected", "onMouseenter"], ae = 100, N = 200, P = /* @__PURE__ */ _({
 	__name: "TagsEditor",
 	props: {
 		asset: {},
-		modelValue: {},
-		disabled: { type: Boolean }
+		modelValue: { default: void 0 },
+		disabled: {
+			type: Boolean,
+			default: !1
+		},
+		autofocus: {
+			type: Boolean,
+			default: !0
+		}
 	},
 	emits: ["update:modelValue", "tags-change"],
 	setup(n, { emit: o }) {
-		function m(e) {
+		function _(e) {
 			try {
 				let t = String(e ?? "").trim();
 				if (!t || t.length > ae) return null;
@@ -219,7 +226,7 @@ var A = [
 				return null;
 			}
 		}
-		function S(e) {
+		function w(e) {
 			try {
 				return String(e ?? "").replace(/[\x00-\x1f\x7f]/g, "").trim() || null;
 			} catch {
@@ -227,13 +234,13 @@ var A = [
 			}
 		}
 		function A(e) {
-			let t = S(e);
+			let t = w(e);
 			return t ? t.toLowerCase() : "";
 		}
 		function j(e) {
 			let t = [], n = /* @__PURE__ */ new Set();
 			for (let r of Array.isArray(e) ? e : []) {
-				let e = S(r);
+				let e = w(r);
 				if (!e) continue;
 				let i = e.toLowerCase();
 				if (!n.has(i) && (n.add(i), t.push(e), t.length >= N)) break;
@@ -259,7 +266,7 @@ var A = [
 			for (let n = 0; n < e.length; n += 1) if (e[n] !== t[n]) return !1;
 			return !0;
 		}
-		let F = n, I = o, L = P(F.asset?.tags ?? F.modelValue ?? []), R = C([...L]), z = C(null), B = C(""), V = C(!1), H = C(-1), U = C(null), W = C([]), G = C(!1), K = (e) => e?.$el || e || null, q = !1, J = !1, Y = null, X = [...L], se = (e) => Math.min(100 * 2 ** Math.max(0, e - 1), 2e3), ce = (e) => new Promise((t) => setTimeout(t, e)), le = () => setTimeout(() => V.value = !1, 200), Z = g(() => {
+		let F = n, I = o, L = P(F.asset?.tags ?? F.modelValue ?? []), R = k([...L]), z = k(null), B = k(""), V = k(!1), H = k(-1), U = k(null), W = k([]), G = k(!1), K = (e) => e?.$el || e || null, q = !1, J = !1, Y = null, X = [...L], se = (e) => Math.min(100 * 2 ** Math.max(0, e - 1), 2e3), ce = (e) => new Promise((t) => setTimeout(t, e)), le = () => setTimeout(() => V.value = !1, 200), Z = y(() => {
 			let e = B.value.toLowerCase().trim();
 			if (!e) return [];
 			let t = new Set(R.value.map((e) => A(e)).filter(Boolean));
@@ -267,7 +274,7 @@ var A = [
 				let r = A(n);
 				return n.toLowerCase().includes(e) && (!r || !t.has(r));
 			}).slice(0, 10);
-		}), Q = g(() => Z.value.length > 0);
+		}), Q = y(() => Z.value.length > 0);
 		function ue(e) {
 			if (q) return;
 			let t = P(e);
@@ -278,7 +285,7 @@ var A = [
 			I("update:modelValue", t), I("tags-change", {
 				assetId: F.asset?.id,
 				tags: t
-			}), s(a, {
+			}), c(a, {
 				assetId: n,
 				tags: t
 			});
@@ -320,18 +327,18 @@ var A = [
 				}
 				try {
 					let e = o?.data?.asset_id ?? null;
-					e != null && !ee(F.asset.id) && (F.asset.id = e);
+					e != null && !s(F.asset.id) && (F.asset.id = e);
 				} catch (e) {
 					console.debug?.(e);
 				}
-				let s = P(Array.isArray(o?.data?.tags) ? o.data.tags : r);
-				X = [...s];
+				let c = P(Array.isArray(o?.data?.tags) ? o.data.tags : r);
+				X = [...c];
 				try {
-					F.asset.tags = [...s];
+					F.asset.tags = [...c];
 				} catch (e) {
 					console.debug?.(e);
 				}
-				if (J || (R.value = [...s]), de(s), e(i("toast.tagsUpdated", "Tags updated"), "success", 1e3), !J) break;
+				if (J || (R.value = [...c]), de(c), e(i("toast.tagsUpdated", "Tags updated"), "success", 1e3), !J) break;
 				J = !1;
 			}
 			if (n >= 10) {
@@ -346,9 +353,9 @@ var A = [
 			}
 			q = !1, Y = null, G.value = !1;
 		}
-		l(async () => {
+		p(async () => {
 			try {
-				await h(), K(z.value)?.focus();
+				await u(), F.autofocus && K(z.value)?.focus();
 			} catch (e) {
 				console.debug?.(e);
 			}
@@ -358,7 +365,7 @@ var A = [
 			} catch (e) {
 				console.warn("Failed to load available tags:", e);
 			}
-		}), k(() => {
+		}), ee(() => {
 			try {
 				Y?.abort?.();
 			} catch (e) {
@@ -367,7 +374,7 @@ var A = [
 		});
 		function $(t) {
 			if (F.disabled) return;
-			let n = m(t);
+			let n = _(t);
 			if (!n) return;
 			let r = A(n);
 			r && (R.value.some((e) => A(e) === r) || (R.value.length >= N ? e(i("toast.maxTagsReached", "Maximum number of tags reached"), "warning") : (R.value = [...R.value, n], fe())));
@@ -398,24 +405,24 @@ var A = [
 			let t = e?.value ?? U.value;
 			t && he(t);
 		}
-		return D(() => F.modelValue, (e) => {
+		return x(() => F.modelValue, (e) => {
 			ue(e);
-		}), D(() => F.asset?.tags, (e) => {
+		}), x(() => F.asset?.tags, (e) => {
 			ue(e);
 		}), (e, t) => {
-			let r = p("MButton"), a = p("MInputText"), o = p("MListbox");
-			return f(), T("div", {
-				class: x(["mjr-tags-editor", { "is-disabled": n.disabled }]),
+			let r = m("MButton"), a = m("MInputText"), o = m("MListbox");
+			return b(), E("div", {
+				class: D(["mjr-tags-editor", { "is-disabled": n.disabled }]),
 				"aria-busy": G.value
-			}, [d("div", {
+			}, [f("div", {
 				class: "mjr-tags-display",
 				role: "list",
 				"aria-label": O(i)("tags.label", "Tags")
-			}, [R.value.length === 0 ? (f(), T("span", ne, E(O(i)("msg.noTagsYet", "No tags yet...")), 1)) : (f(!0), T(u, { key: 1 }, _(R.value, (e, a) => (f(), T("div", {
+			}, [R.value.length === 0 ? (b(), E("span", ne, C(O(i)("msg.noTagsYet", "No tags yet...")), 1)) : (b(!0), E(d, { key: 1 }, h(R.value, (e, a) => (b(), E("div", {
 				key: e,
 				class: "mjr-tag-chip",
 				role: "listitem"
-			}, [c(E(e) + " ", 1), w(r, {
+			}, [T(C(e) + " ", 1), g(r, {
 				type: "button",
 				class: "mjr-tag-chip-remove",
 				severity: "secondary",
@@ -425,13 +432,13 @@ var A = [
 				disabled: n.disabled,
 				onClick: (e) => pe(a)
 			}, {
-				default: y(() => [...t[4] ||= [c(" x ", -1)]]),
+				default: v(() => [...t[4] ||= [T(" x ", -1)]]),
 				_: 1
 			}, 8, [
 				"aria-label",
 				"disabled",
 				"onClick"
-			])]))), 128))], 8, te), d("div", re, [w(a, {
+			])]))), 128))], 8, te), f("div", re, [g(a, {
 				ref_key: "inputRef",
 				ref: z,
 				modelValue: B.value,
@@ -456,7 +463,7 @@ var A = [
 				"aria-autocomplete",
 				"aria-expanded",
 				"aria-haspopup"
-			]), v(w(o, {
+			]), l(g(o, {
 				modelValue: U.value,
 				"onUpdate:modelValue": t[3] ||= (e) => U.value = e,
 				options: Z.value,
@@ -465,17 +472,17 @@ var A = [
 				"aria-label": O(i)("tags.suggestions", "Tag suggestions"),
 				onChange: ge
 			}, {
-				option: y(({ option: e, index: t }) => [d("div", {
-					class: x(["mjr-tag-suggestion", { "is-active": t === H.value }]),
+				option: v(({ option: e, index: t }) => [f("div", {
+					class: D(["mjr-tag-suggestion", { "is-active": t === H.value }]),
 					"aria-selected": t === H.value,
 					onMouseenter: (e) => H.value = t
-				}, E(e), 43, ie)]),
+				}, C(e), 43, ie)]),
 				_: 1
 			}, 8, [
 				"modelValue",
 				"options",
 				"aria-label"
-			]), [[b, V.value && Q.value]])])], 10, M);
+			]), [[S, V.value && Q.value]])])], 10, M);
 		};
 	}
 });

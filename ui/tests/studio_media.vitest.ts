@@ -18,7 +18,10 @@ import {
     timeForFrame,
     totalFrames,
 } from "../features/viewer/studio/studioMedia.js";
-import { shouldUseStudioViewer } from "../features/viewer/studio/studioViewerState.js";
+import {
+    shouldUseStudioViewer,
+    studioCompareForMode,
+} from "../features/viewer/studio/studioViewerState.js";
 
 describe("studio media helpers", () => {
     it("formats time for short and long media", () => {
@@ -85,11 +88,17 @@ describe("viewer routing", () => {
         expect(shouldUseStudioViewer([image], 0)).toBe(true);
     });
 
-    it("keeps compare modes, 3D and the classic setting on the classic viewer", () => {
-        expect(shouldUseStudioViewer([image, image], 0, "ab")).toBe(false);
-        expect(shouldUseStudioViewer([image, image], 0, "sidebyside")).toBe(false);
-        expect(shouldUseStudioViewer([{ filename: "m.glb" }], 0)).toBe(false);
+    it("handles compare modes and 3D; only the classic setting opts out", () => {
+        expect(shouldUseStudioViewer([image, image], 0, "ab")).toBe(true);
+        expect(shouldUseStudioViewer([image, image], 0, "sidebyside")).toBe(true);
+        expect(shouldUseStudioViewer([{ filename: "m.glb" }], 0)).toBe(true);
         (loadMajoorSettings as any).mockReturnValueOnce({ viewer: { classic: true } });
         expect(shouldUseStudioViewer([image], 0)).toBe(false);
+    });
+
+    it("maps classic open modes to Studio compare modes", () => {
+        expect(studioCompareForMode("ab")).toBe("wipe");
+        expect(studioCompareForMode("SideBySide")).toBe("side");
+        expect(studioCompareForMode("")).toBe("");
     });
 });

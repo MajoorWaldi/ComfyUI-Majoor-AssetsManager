@@ -9,7 +9,6 @@
 import { reactive } from "vue";
 
 import { loadMajoorSettings } from "../../../app/settings/settingsCore.js";
-import { studioMediaKind } from "./studioMedia.js";
 
 export const studioViewerState = reactive({
     open: false,
@@ -17,17 +16,30 @@ export const studioViewerState = reactive({
     index: 0,
     /** Bumped on every open so the overlay can reset per-session UI. */
     session: 0,
+    /** Compare mode requested by the opener ("wipe", "side") or "". */
+    compare: "" as "" | "wipe" | "side",
 });
 
 export function currentStudioAsset(): any {
     return studioViewerState.assets[studioViewerState.index] ?? null;
 }
 
-export function openStudioViewer(assets: unknown[], index = 0): boolean {
+/** Map the classic viewer's open modes to a Studio compare mode. */
+export function studioCompareForMode(mode = ""): "" | "wipe" | "side" {
+    const m = String(mode || "")
+        .trim()
+        .toLowerCase();
+    if (m === "ab") return "wipe";
+    if (m === "sidebyside") return "side";
+    return "";
+}
+
+export function openStudioViewer(assets: unknown[], index = 0, mode = ""): boolean {
     const list = (Array.isArray(assets) ? assets : []).filter(Boolean);
     if (!list.length) return false;
     studioViewerState.assets = list;
     studioViewerState.index = Math.max(0, Math.min(Number(index) || 0, list.length - 1));
+    studioViewerState.compare = list.length > 1 ? studioCompareForMode(mode) : "";
     studioViewerState.session += 1;
     studioViewerState.open = true;
     return true;
@@ -50,14 +62,11 @@ export function stepStudioViewer(delta: number): void {
 /**
  * Whether an open request should use the Studio viewer.
  *
- * The classic viewer keeps the compare modes (A/B, side-by-side), 3D models,
- * and anyone who switched back to it in the settings.
+ * The Studio viewer handles every media kind and the compare modes; only
+ * users who switched back to the classic viewer in the settings (or a
+ * non-media file) go to the classic runtime.
  */
-export function shouldUseStudioViewer(assets: unknown[], index: number, mode = ""): boolean {
-    const normalizedMode = String(mode || "")
-        .trim()
-        .toLowerCase();
-    if (normalizedMode === "ab" || normalizedMode === "sidebyside") return false;
+export function shouldUseStudioViewer(assets: unknown[], index: number, _mode = ""): boolean {
     try {
         if (loadMajoorSettings()?.viewer?.classic === true) return false;
     } catch (e) {
@@ -65,5 +74,5 @@ export function shouldUseStudioViewer(assets: unknown[], index: number, mode = "
     }
     const list = Array.isArray(assets) ? assets : [];
     const asset = list[Math.max(0, Math.min(Number(index) || 0, list.length - 1))];
-    return !!asset && studioMediaKind(asset) !== "model3d";
+    return !!asset;
 }

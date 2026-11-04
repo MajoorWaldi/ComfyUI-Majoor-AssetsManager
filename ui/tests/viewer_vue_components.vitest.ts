@@ -217,8 +217,14 @@ describe("viewer Vue components", () => {
         );
         await flushUi(1);
 
-        expect(instance.open).toHaveBeenCalledWith(assets, 1);
-        expect(instance.setMode).toHaveBeenCalledWith("ab");
+        // Compare modes now open in the Studio viewer, preset to a wipe.
+        const { studioViewerState, closeStudioViewer } =
+            await import("../features/viewer/studio/studioViewerState.js");
+        expect(studioViewerState.open).toBe(true);
+        expect(studioViewerState.index).toBe(1);
+        expect(studioViewerState.compare).toBe("wipe");
+        expect(instance.open).not.toHaveBeenCalled();
+        closeStudioViewer();
 
         wrapper.unmount();
 
@@ -231,7 +237,7 @@ describe("viewer Vue components", () => {
             }),
         );
 
-        expect(instance.open).toHaveBeenCalledTimes(1);
+        expect(instance.open).not.toHaveBeenCalled();
     });
 
     it("renders ViewerContextMenu.vue through Teleport and closes the main menu after an action", async () => {
