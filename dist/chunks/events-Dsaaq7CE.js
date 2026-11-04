@@ -2310,6 +2310,7 @@ var G = {
 		"toast.filesDeletedPartial": "{success} files deleted, {failed} failed.",
 		"toast.filesDeletedShort": "{n} files deleted",
 		"toast.filesDeletedShortPartial": "{success} deleted, {failed} failed",
+		"toast.filesDeletingProgress": "Deleting files... ({done}/{total})",
 		"toast.copiedToClipboardNamed": "{name} copied to clipboard!",
 		"toast.rescanningFile": "Rescanning file",
 		"toast.failedToggleWatcher": "Failed to toggle watcher",

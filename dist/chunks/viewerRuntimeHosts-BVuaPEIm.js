@@ -1,4 +1,4 @@
-import { Ct as e, St as t, _t as n, gt as r, ht as i, k as a, m as o, nt as s, o as c, tt as l, vt as u, xt as d } from "./events-tsQFsZrH.js";
+import { Ct as e, St as t, _t as n, gt as r, ht as i, k as a, m as o, nt as s, o as c, tt as l, vt as u, xt as d } from "./events-Dsaaq7CE.js";
 // ui/app/settingsStore.ts
 var f = "mjrSettings", p = "mjrMinimapSettings", m = /* @__PURE__ */ new Set([
 	"POST",
@@ -1151,13 +1151,17 @@ async function Jt(e) {
 		r = n ? { asset_id: n } : { filepath: i };
 	} else n = t(e), r = { asset_id: n };
 	let i = await Y("/mjr/am/asset/delete", r);
-	return i?.ok && n && Xt([n]), i;
+	return i?.ok && n && H([n]), i;
 }
 async function Yt(e) {
 	let n = Array.isArray(e) ? e.map((e) => t(e)).filter(Boolean) : [], r = await Y("/mjr/am/assets/delete", { ids: n });
-	return r?.ok && Xt(n), r;
+	if (r?.ok) {
+		let e = r?.data || {}, t = Array.isArray(e?.failed_ids) ? e.failed_ids : [];
+		Array.isArray(e?.deleted_ids) ? H(e.deleted_ids) : t.length || H(n);
+	}
+	return r;
 }
-function Xt(e) {
+function H(e) {
 	try {
 		let t = (Array.isArray(e) ? e : [e]).map((e) => String(e || "").trim()).filter(Boolean);
 		if (!t.length) return;
@@ -1166,7 +1170,7 @@ function Xt(e) {
 		console.debug?.(e);
 	}
 }
-async function Zt(e, n) {
+async function Xt(e, n) {
 	let r;
 	if (e && typeof e == "object") {
 		r = t(e.id);
@@ -1204,7 +1208,7 @@ async function Zt(e, n) {
 	}
 	return i;
 }
-async function Qt() {
+async function Zt() {
 	let e = typeof AbortController < "u" ? new AbortController() : null, t = null;
 	try {
 		return e && (t = setTimeout(() => e.abort(), 1e4)), await J("/mjr/am/collections", e ? { signal: e.signal } : {});
@@ -1212,26 +1216,26 @@ async function Qt() {
 		t && clearTimeout(t);
 	}
 }
-async function $t(e) {
+async function Qt(e) {
 	return Y("/mjr/am/collections", { name: String(e || "").trim() });
 }
-async function en(e) {
+async function $t(e) {
 	let t = String(e || "").trim();
 	return Y(`/mjr/am/collections/${encodeURIComponent(t)}/delete`, {});
 }
-async function tn(e, t) {
+async function en(e, t) {
 	let n = String(e || "").trim(), r = Array.isArray(t) ? t : [];
 	return Y(`/mjr/am/collections/${encodeURIComponent(n)}/add`, { assets: r });
 }
-async function nn(e, t) {
+async function tn(e, t) {
 	let n = String(e || "").trim(), r = Array.isArray(t) ? t : [];
 	return Y(`/mjr/am/collections/${encodeURIComponent(n)}/remove`, { filepaths: r });
 }
-async function rn(e) {
+async function nn(e) {
 	let t = String(e || "").trim();
 	return J(`/mjr/am/collections/${encodeURIComponent(t)}/assets`);
 }
-async function an(e, t = 20) {
+async function rn(e, t = 20) {
 	let n = String(e || "").trim();
 	if (!n) return {
 		ok: !1,
@@ -1255,7 +1259,7 @@ async function an(e, t = 20) {
 		dateExact: r?.dateExact ?? null
 	}), J(c, { timeoutMs: 12e4 });
 }
-async function on(e, t = 20) {
+async function an(e, t = 20) {
 	let n = String(e || "").trim();
 	if (!n) return {
 		ok: !1,
@@ -1264,24 +1268,24 @@ async function on(e, t = 20) {
 	let r = t && typeof t == "object" ? t : { topK: Number(t) }, i = Math.max(1, Math.min(200, Number(r?.topK ?? 20) || 20)), a = String(r?.scope || "").trim(), o = String(r?.customRootId || "").trim(), s = `${l.VECTOR_SIMILAR}/${encodeURIComponent(n)}?top_k=${i}`;
 	return a && (s += `&scope=${encodeURIComponent(a)}`), o && (s += `&custom_root_id=${encodeURIComponent(o)}`), J(s, { dedupeKey: `vec:${n}:${i}:${a}:${o}` });
 }
-async function sn(e) {
+async function on(e) {
 	let t = String(e || "").trim();
 	return t ? J(`${l.VECTOR_ALIGNMENT}/${encodeURIComponent(t)}`) : {
 		ok: !1,
 		error: "Missing asset ID"
 	};
 }
-async function cn(e) {
+async function sn(e) {
 	let t = String(e || "").trim();
 	return t ? Y(`${l.VECTOR_INDEX}/${encodeURIComponent(t)}`, {}) : {
 		ok: !1,
 		error: "Missing asset ID"
 	};
 }
-async function ln() {
+async function cn() {
 	return J(l.VECTOR_STATS);
 }
-async function un(e = 64, t = {}) {
+async function ln(e = 64, t = {}) {
 	let n = Math.max(1, Math.min(200, e)), r = typeof t?.onProgress == "function" ? t.onProgress : null, i = String(t?.scope || "").trim().toLowerCase(), a = String(t?.customRootId ?? t?.custom_root_id ?? "").trim(), o = `${l.VECTOR_BACKFILL}?batch_size=${n}&async=1`;
 	i && (o += `&scope=${encodeURIComponent(i)}`), a && (o += `&custom_root_id=${encodeURIComponent(a)}`);
 	let s = await Y(o, {}, { timeoutMs: 3e4 });
@@ -1297,7 +1301,7 @@ async function un(e = 64, t = {}) {
 		"running",
 		"pending"
 	].includes(u)) return s;
-	let f = Number(t?.pollIntervalMs), p = Number(t?.pollTimeoutMs), m = Number.isFinite(f) ? Math.max(500, Math.min(1e4, Math.floor(f))) : vn, h = Number.isFinite(p) ? Math.max(1e4, Math.min(bn, Math.floor(p))) : yn, ee = Date.now(), g = null;
+	let f = Number(t?.pollIntervalMs), p = Number(t?.pollTimeoutMs), m = Number.isFinite(f) ? Math.max(500, Math.min(1e4, Math.floor(f))) : _n, h = Number.isFinite(p) ? Math.max(1e4, Math.min(yn, Math.floor(p))) : vn, ee = Date.now(), g = null;
 	for (; Date.now() - ee < h;) {
 		await S(m);
 		let e = await J(`${l.VECTOR_BACKFILL_STATUS}?backfill_id=${encodeURIComponent(d)}`, { timeoutMs: 3e4 });
@@ -1366,14 +1370,14 @@ async function un(e = 64, t = {}) {
 		status: 408
 	};
 }
-async function dn(e) {
+async function un(e) {
 	let t = String(e || "").trim();
 	return t ? Y(`${l.VECTOR_CAPTION}/${encodeURIComponent(t)}`, {}) : {
 		ok: !1,
 		error: "Missing asset ID"
 	};
 }
-async function fn(e, { topK: t = 50, scope: n = "output", customRootId: r = "", subfolder: i = null, kind: a = null, hasWorkflow: o = null, minRating: c = null, minSizeMB: u = null, maxSizeMB: d = null, minWidth: f = null, minHeight: p = null, maxWidth: m = null, maxHeight: h = null, workflowType: ee = null, workflowId: g = null, dateRange: _ = null, dateExact: v = null } = {}) {
+async function dn(e, { topK: t = 50, scope: n = "output", customRootId: r = "", subfolder: i = null, kind: a = null, hasWorkflow: o = null, minRating: c = null, minSizeMB: u = null, maxSizeMB: d = null, minWidth: f = null, minHeight: p = null, maxWidth: m = null, maxHeight: h = null, workflowType: ee = null, workflowId: g = null, dateRange: _ = null, dateExact: v = null } = {}) {
 	let y = String(e || "").trim();
 	if (!y) return {
 		ok: !1,
@@ -1397,122 +1401,122 @@ async function fn(e, { topK: t = 50, scope: n = "output", customRootId: r = "", 
 		dateExact: v
 	}), J(b, { timeoutMs: 12e4 });
 }
-async function pn(e = 8) {
+async function fn(e = 8) {
 	return Y(l.VECTOR_SUGGEST_COLLECTIONS, { k: Math.max(2, Math.min(20, e)) });
 }
 // ui/api/client.ts
-var mn = 3e4, hn = "__MJR_API_CLIENT__", gn = 2e3, _n = 200, vn = 1e3, yn = 18e5, bn = 432e5, H = "settings", xn = "available-tags", U = E({
-	ttlMs: gn,
-	maxSize: 1
-}), W = E({
-	ttlMs: gn,
+var pn = 3e4, mn = "__MJR_API_CLIENT__", hn = 2e3, gn = 200, _n = 1e3, vn = 18e5, yn = 432e5, U = "settings", bn = "available-tags", W = E({
+	ttlMs: hn,
 	maxSize: 1
 }), G = E({
-	ttlMs: () => Tn(),
+	ttlMs: hn,
 	maxSize: 1
-}), Sn = /* @__PURE__ */ new Set([
+}), K = E({
+	ttlMs: () => wn(),
+	maxSize: 1
+}), xn = /* @__PURE__ */ new Set([
 	"1",
 	"true",
 	"yes",
 	"on"
-]), Cn = /* @__PURE__ */ new Set([
+]), Sn = /* @__PURE__ */ new Set([
 	"0",
 	"false",
 	"no",
 	"off"
 ]);
-function wn(e, t = !1) {
+function Cn(e, t = !1) {
 	if (typeof e == "boolean") return e;
 	if (typeof e == "number") return e !== 0;
 	if (typeof e == "string") {
 		let t = e.trim().toLowerCase();
-		if (Sn.has(t)) return !0;
-		if (Cn.has(t)) return !1;
+		if (xn.has(t)) return !0;
+		if (Sn.has(t)) return !1;
 	}
 	return !!t;
 }
-function Tn() {
+function wn() {
 	try {
 		let e = localStorage?.getItem?.("mjrSettings") || "{}", t = JSON.parse(e), n = t?.cache?.tagsTTLms ?? t?.cache?.tagsTTL ?? t?.cache?.tags_ttl_ms ?? null, r = Number(n);
-		return Number.isFinite(r) ? Math.max(1e3, Math.min(6e5, Math.floor(r))) : mn;
+		return Number.isFinite(r) ? Math.max(1e3, Math.min(6e5, Math.floor(r))) : pn;
 	} catch {
-		return mn;
+		return pn;
 	}
 }
-function En() {
-	U.clear();
-}
-function Dn() {
+function Tn() {
 	W.clear();
 }
-function K() {
+function En() {
 	G.clear();
 }
-function On(e) {
+function q() {
+	K.clear();
+}
+function Dn(e) {
 	return String(e ?? "").trim().toLowerCase() || "";
 }
-function kn(e) {
+function On(e) {
 	let t = [], n = /* @__PURE__ */ new Set();
 	for (let r of Array.isArray(e) ? e : []) {
 		let e = String(r ?? "").trim();
 		if (!e) continue;
-		let i = On(e);
+		let i = Dn(e);
 		i && !n.has(i) && (n.add(i), t.push(e));
 	}
 	return t;
 }
 try {
 	let e = typeof window < "u" ? window : null;
-	e && !e[hn] && (e[hn] = { initialized: !0 }, e.addEventListener?.("storage", (e) => {
+	e && !e[mn] && (e[mn] = { initialized: !0 }, e.addEventListener?.("storage", (e) => {
 		try {
-			e?.key === "mjrSettings" && (En(), Dn(), K(), Ze());
+			e?.key === "mjrSettings" && (Tn(), En(), q(), Ze());
 		} catch (e) {
 			console.debug?.(e);
 		}
 	}), e.addEventListener?.("mjr-settings-changed", () => {
-		En(), Dn(), K(), Ze();
+		Tn(), En(), q(), Ze();
 	}));
 } catch (e) {
 	console.debug?.(e);
 }
-var An = () => {
-	let e = U.get(H);
+var kn = () => {
+	let e = W.get(U);
 	if (e !== void 0) return e;
 	let t = Date.now();
 	try {
 		let e = localStorage?.getItem?.(f);
-		if (!e) return U.set(H, !1, { at: t }), !1;
+		if (!e) return W.set(U, !1, { at: t }), !1;
 		let n = !!JSON.parse(e)?.observability?.enabled;
-		return U.set(H, n, { at: t }), n;
+		return W.set(U, n, { at: t }), n;
 	} catch {
-		return U.set(H, !1, { at: t }), !1;
+		return W.set(U, !1, { at: t }), !1;
 	}
-}, jn = () => {
-	let e = W.get(H);
+}, An = () => {
+	let e = G.get(U);
 	if (e !== void 0) return e;
 	let t = Date.now();
 	try {
 		let e = localStorage?.getItem?.(f);
-		if (!e) return W.set(H, !0, { at: t }), !0;
-		let n = JSON.parse(e)?.ratingTagsSync?.enabled, r = n == null || wn(n, !0);
-		return W.set(H, r, { at: t }), r;
+		if (!e) return G.set(U, !0, { at: t }), !0;
+		let n = JSON.parse(e)?.ratingTagsSync?.enabled, r = n == null || Cn(n, !0);
+		return G.set(U, r, { at: t }), r;
 	} catch {
-		return W.set(H, !0, { at: t }), !0;
+		return G.set(U, !0, { at: t }), !0;
 	}
-}, q = fe({
-	readObsEnabled: An,
+}, jn = fe({
+	readObsEnabled: kn,
 	readAuthToken: z,
 	ensureWriteAuthToken: Xe,
 	normalizeWriteAuthFailure: Je
-}), Mn = q.fetchAPI;
+}), Mn = jn.fetchAPI;
 async function J(e, t = {}) {
-	return q.get(e, t);
+	return jn.get(e, t);
 }
 async function Y(e, t, n = {}) {
-	return q.post(e, t, n);
+	return jn.post(e, t, n);
 }
 async function Nn(n, r, i = {}) {
-	let a = jn(), o = n && typeof n == "object" ? n : null, s = o ? o.id : n, c = t(s), l = { rating: Math.max(0, Math.min(5, Number(r) || 0)) };
+	let a = An(), o = n && typeof n == "object" ? n : null, s = o ? o.id : n, c = t(s), l = { rating: Math.max(0, Math.min(5, Number(r) || 0)) };
 	return c ? l.asset_id = c : o && (l.filepath = o.filepath || o.path || o?.file_info?.filepath || "", l.type = o.type || "output", l.root_id = e(o)), Mn("/mjr/am/asset/rating", {
 		...i,
 		method: "POST",
@@ -1524,7 +1528,7 @@ async function Nn(n, r, i = {}) {
 	});
 }
 async function Pn(n, r, i = {}) {
-	let a = jn(), o = n && typeof n == "object" ? n : null, s = o ? o.id : n, c = t(s), u = String(o?.kind || o?.type || "").trim().toLowerCase() === "workflow", d = String(o?.filepath || o?.path || o?.file_info?.filepath || "").trim(), f = { tags: Array.isArray(r) ? r : [] };
+	let a = An(), o = n && typeof n == "object" ? n : null, s = o ? o.id : n, c = t(s), u = String(o?.kind || o?.type || "").trim().toLowerCase() === "workflow", d = String(o?.filepath || o?.path || o?.file_info?.filepath || "").trim(), f = { tags: Array.isArray(r) ? r : [] };
 	u && d ? f.filepath = d : c ? f.asset_id = c : o && (f.filepath = o.filepath || o.path || o?.file_info?.filepath || "", f.type = o.type || "output", f.root_id = e(o));
 	let p = await Mn(u && d ? l.WORKFLOWS_TAGS : "/mjr/am/asset/tags", {
 		...i,
@@ -1535,10 +1539,10 @@ async function Pn(n, r, i = {}) {
 		},
 		body: JSON.stringify(f)
 	});
-	return p?.ok && K(), p;
+	return p?.ok && q(), p;
 }
 async function Fn() {
-	let e = G.get(xn);
+	let e = K.get(bn);
 	if (Array.isArray(e)) return {
 		ok: !0,
 		data: e,
@@ -1548,8 +1552,8 @@ async function Fn() {
 	};
 	let t = await J("/mjr/am/tags");
 	if (t?.ok && Array.isArray(t.data)) {
-		let e = kn(t.data);
-		return G.set(xn, e), {
+		let e = On(t.data);
+		return K.set(bn, e), {
 			...t,
 			data: e
 		};
@@ -1580,7 +1584,7 @@ async function Rn(e, t = {}) {
 	let n = Array.isArray(e) ? e : [], r = [];
 	for (let e of n) {
 		let t = Number(e);
-		if (Number.isFinite(t) && (r.push(Math.trunc(t)), r.length >= _n)) break;
+		if (Number.isFinite(t) && (r.push(Math.trunc(t)), r.length >= gn)) break;
 	}
 	return r.length ? Y("/mjr/am/assets/batch", { asset_ids: r }, t) : {
 		ok: !0,
@@ -1858,4 +1862,4 @@ function Cr(e) {
 function wr() {
 	return gr(cr, Z);
 }
-export { _t as $, N as $t, Un as A, et as At, jt as B, It as Bt, Zn as C, ot as Ct, qn as D, xt as Dt, Qn as E, wt as Et, Pn as F, mt as Ft, Vt as G, dn as Gt, Jt as H, Rt as Ht, Bn as I, nt as It, Kt as J, an as Jt, lt as K, sn as Kt, tn as L, Pt as Lt, Yn as M, Qe as Mt, $n as N, ft as Nt, Gn as O, vt as Ot, Nn as P, Ot as Pt, bt as Q, Ue as Qt, kt as R, Et as Rt, zn as S, ut as St, Vn as T, ct as Tt, Yt as U, un as Ut, $t as V, rt as Vt, en as W, on as Wt, st as X, pn as Xt, it as Y, ln as Yt, Ct as Z, We as Zt, Rn as _, nn as _t, vr as a, De as an, Dt as at, tr as b, Wt as bt, ar as c, f as cn, tt as ct, rr as d, Tt as dt, je as en, ht as et, Kn as f, fn as ft, In as g, At as gt, J as h, qt as ht, br as i, Te as in, Bt as it, Jn as j, St as jt, Y as k, gt as kt, sr as l, Lt as lt, Wn as m, Ht as mt, Sr as n, Oe as nn, yt as nt, ir as o, E as on, pt as ot, Hn as p, Qt as pt, rn as q, cn as qt, wr as r, Ee as rn, dt as rt, or as s, p as sn, zt as st, Cr as t, ge as tn, $e as tt, nr as u, Ft as ut, Fn as v, Zt as vt, Xn as w, at as wt, Ln as x, Ut as xt, er as y, Nt as yt, Mt as z, Gt as zt };
+export { _t as $, N as $t, Un as A, et as At, jt as B, It as Bt, Zn as C, ot as Ct, qn as D, xt as Dt, Qn as E, wt as Et, Pn as F, mt as Ft, Vt as G, un as Gt, Jt as H, Rt as Ht, Bn as I, nt as It, Kt as J, rn as Jt, lt as K, on as Kt, en as L, Pt as Lt, Yn as M, Qe as Mt, $n as N, ft as Nt, Gn as O, vt as Ot, Nn as P, Ot as Pt, bt as Q, Ue as Qt, kt as R, Et as Rt, zn as S, ut as St, Vn as T, ct as Tt, Yt as U, ln as Ut, Qt as V, rt as Vt, $t as W, an as Wt, st as X, fn as Xt, it as Y, cn as Yt, Ct as Z, We as Zt, Rn as _, tn as _t, vr as a, De as an, Dt as at, tr as b, Wt as bt, ar as c, f as cn, tt as ct, rr as d, Tt as dt, je as en, ht as et, Kn as f, dn as ft, In as g, At as gt, J as h, qt as ht, br as i, Te as in, Bt as it, Jn as j, St as jt, Y as k, gt as kt, sr as l, Lt as lt, Wn as m, Ht as mt, Sr as n, Oe as nn, yt as nt, ir as o, E as on, pt as ot, Hn as p, Zt as pt, nn as q, sn as qt, wr as r, Ee as rn, dt as rt, or as s, p as sn, zt as st, Cr as t, ge as tn, $e as tt, nr as u, Ft as ut, Fn as v, Xt as vt, Xn as w, at as wt, Ln as x, Ut as xt, er as y, Nt as yt, Mt as z, Gt as zt };

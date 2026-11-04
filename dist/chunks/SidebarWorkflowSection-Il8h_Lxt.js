@@ -1,10 +1,10 @@
-import { $ as e, $t as t, At as n, Bt as r, Ct as i, Dt as a, Et as o, Ft as s, Gt as c, Ht as l, I as u, It as d, K as f, Kt as p, Mt as m, N as h, Nt as g, O as _, Ot as v, Pt as y, Q as b, Qt as x, R as S, Rt as C, S as ee, St as te, T as ne, Tt as w, Ut as T, Vt as E, X as re, Y as D, Yt as ie, Z as ae, Zt as oe, at as se, cn as ce, ct as le, dt as ue, en as de, et as fe, gt as pe, it as me, jt as he, k as ge, kt as _e, lt as ve, nt as ye, ot as be, p as xe, rt as Se, sn as Ce, tt as we, ut as Te, w as Ee, wt as De } from "./viewerRuntimeHosts-Ctr8wab-.js";
-import { Ct as Oe, K as ke, N as Ae, T as je, c as Me, d as Ne, f as Pe, h as Fe, j as Ie, l as Le, m as O, o as k, p as Re, pt as ze, s as A, tt as Be, u as Ve, x as He, y as Ue } from "./events-tsQFsZrH.js";
-import { F as We, K as Ge, P as Ke, Y as qe, f as Je, m as Ye, p as Xe } from "./Viewer-DHesfEdb.js";
-import { t as Ze } from "./floatingViewerManager-DYNfChQt.js";
+import { $ as e, $t as t, At as n, Bt as r, Ct as i, Dt as a, Et as o, Ft as s, Gt as c, Ht as l, I as u, It as d, K as f, Kt as p, Mt as m, N as h, Nt as g, O as _, Ot as v, Pt as y, Q as b, Qt as x, R as S, Rt as C, S as ee, St as te, T as ne, Tt as w, Ut as T, Vt as E, X as re, Y as D, Yt as ie, Z as ae, Zt as oe, at as se, cn as ce, ct as le, dt as ue, en as de, et as fe, gt as pe, it as me, jt as he, k as ge, kt as _e, lt as ve, nt as ye, ot as be, p as xe, rt as Se, sn as Ce, tt as we, ut as Te, w as Ee, wt as De } from "./viewerRuntimeHosts-BVuaPEIm.js";
+import { Ct as Oe, K as ke, N as Ae, T as je, c as Me, d as Ne, f as Pe, h as Fe, j as Ie, l as Le, m as O, o as k, p as Re, pt as ze, s as A, tt as Be, u as Ve, x as He, y as Ue } from "./events-Dsaaq7CE.js";
+import { F as We, K as Ge, P as Ke, Y as qe, f as Je, m as Ye, p as Xe } from "./Viewer-CVh8T5Ff.js";
+import { t as Ze } from "./floatingViewerManager-DQlULmZ-.js";
 import { A as Qe, C as j, D as $e, E as M, G as et, J as tt, K as nt, N as rt, O as N, R as it, S as at, T as P, U as F, V as I, Y as ot, _ as st, a as ct, b as lt, c as ut, d as dt, dt as L, f as ft, ft as R, g as pt, h as mt, i as ht, j as gt, k as z, l as _t, lt as B, m as vt, n as yt, nt as bt, o as xt, p as St, r as Ct, rt as V, s as wt, t as Tt, u as Et, ut as Dt, y as Ot, z as kt } from "./mjr-primevue-BRqtdXzb.js";
 import { t as At } from "./mjr-vue-vendor-mHY_eIVE.js";
-import { t as jt } from "./viewerOpenRequest-Bw0Fm-S5.js";
+import { t as jt } from "./viewerOpenRequest-SXvGdj01.js";
 import { a as Mt, i as Nt, n as Pt, o as Ft, r as It, t as Lt } from "./geninfoParser-CgHp-y-n.js";
 // ui/app/settings/settingsUtils.ts
 var H = (e, t) => {
@@ -5119,7 +5119,7 @@ var Do = ["title"], Oo = ["src"], ko = {
 	setup(e) {
 		let n = e, r = V(0), i = V(!1), a = null;
 		function o() {
-			return a ||= import("./floatingViewerManager-DYNfChQt.js").then((e) => e.n), a;
+			return a ||= import("./floatingViewerManager-DQlULmZ-.js").then((e) => e.n), a;
 		}
 		function s() {
 			return (Array.isArray(n.inputFile?.previewCandidates) ? n.inputFile.previewCandidates : [])[r.value] || "";
