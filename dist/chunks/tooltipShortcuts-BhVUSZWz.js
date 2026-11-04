@@ -1,8 +1,8 @@
-import { Cn as e, Sn as t, Un as n, fn as r, jn as i, mn as a, on as o, vn as s } from "./config-D56TZeFo.js";
+import { Bn as e, On as t, bn as n, dn as r, hn as i, ln as a, rn as o, yn as s } from "./client-BvjF14km.js";
 import { a as c, n as l } from "./graphTraversal-DTdQWkn5.js";
-import { C as u, S as d, b as f, x as p, y as m } from "./generationSectionState-BR-TS47u.js";
-import { _ as ee, a as te, c as ne, d as re, f as ie, g as ae, h as oe, i as se, l as ce, m as le, n as ue, o as de, p as fe, r as pe, s as me, t as he, u as ge } from "./mjr-primevue-QrNPJaqR.js";
-import { t as _e } from "./mjr-vue-vendor-Dn5oe7QV.js";
+import { C as u, S as d, b as f, x as p, y as m } from "./generationSectionState-C3QjLGhL.js";
+import { _ as ee, a as te, c as ne, d as re, f as ie, g as ae, h as oe, i as se, l as ce, m as le, n as ue, o as de, p as fe, r as pe, s as me, t as he, u as ge } from "./mjr-primevue-C07IsEdU.js";
+import { t as _e } from "./mjr-vue-vendor-CEDOnn2t.js";
 // ui/features/viewer/floatingViewerProgress.ts
 var h = "progress-update", g = "__MJR_MFV_PROGRESS_SERVICE__";
 function ve() {
@@ -14,8 +14,8 @@ function ye(e, t) {
 	return n.detail = t, n;
 }
 var be = class {
-	constructor(t, n = () => e()) {
-		this.id = String(t || ""), this.promptApi = null, this.executedNodeIds = [], this.totalNodes = 0, this.currentlyExecuting = null, this.errorDetails = null, this._getApp = typeof n == "function" ? n : () => null;
+	constructor(e, t = () => n()) {
+		this.id = String(e || ""), this.promptApi = null, this.executedNodeIds = [], this.totalNodes = 0, this.currentlyExecuting = null, this.errorDetails = null, this._getApp = typeof t == "function" ? t : () => null;
 	}
 	setPrompt(e) {
 		let t = e && typeof e == "object" ? e.output : null;
@@ -63,8 +63,8 @@ var be = class {
 		this.errorDetails = e || null;
 	}
 }, xe = class extends EventTarget {
-	constructor({ getApi: r = (e) => t(e), getApp: i = () => e(), waitForApi: a = (e) => n(e) } = {}) {
-		super(), this._getApi = r, this._getApp = i, this._waitForApi = a, this.promptsMap = /* @__PURE__ */ new Map(), this.currentExecution = null, this.lastQueueRemaining = 0, this._api = null, this._listenerEntries = [], this._initPromise = null, this._hydrations = /* @__PURE__ */ new Map();
+	constructor({ getApi: t = (e) => s(e), getApp: r = () => n(), waitForApi: i = (t) => e(t) } = {}) {
+		super(), this._getApi = t, this._getApp = r, this._waitForApi = i, this.promptsMap = /* @__PURE__ */ new Map(), this.currentExecution = null, this.lastQueueRemaining = 0, this._api = null, this._listenerEntries = [], this._initPromise = null, this._hydrations = /* @__PURE__ */ new Map();
 	}
 	getSnapshot() {
 		return {
@@ -246,11 +246,11 @@ function b(e, t) {
 		e._mediaProgressTextEl.textContent = n, e._mediaProgressEl.title = n || "", e._mediaProgressEl.classList.toggle("is-error", o), e._mediaProgressEl.classList.toggle("is-visible", !!n);
 	}
 }
-function we(t, n) {
-	let i = String(n || "").trim();
-	if (!i) return !1;
+function we(e, t) {
+	let r = String(t || "").trim();
+	if (!r) return !1;
 	try {
-		return r(i, e());
+		return a(r, n());
 	} catch (e) {
 		return console.debug?.(e), !1;
 	}
@@ -321,7 +321,7 @@ var x = /* @__PURE__ */ new Map(), S = null;
 async function C(e) {
 	let t = Array.from(new Set(w(e).map((e) => D(e)).filter(Boolean)));
 	if (t.length && t.filter((e) => !x.has(e)).length) try {
-		S ||= a("/object_info").then((e) => e?.ok ? e.json() : null).then((e) => {
+		S ||= r("/object_info").then((e) => e?.ok ? e.json() : null).then((e) => {
 			if (e && typeof e == "object") for (let [t, n] of Object.entries(e)) x.set(String(t), n);
 			return e;
 		}).catch(() => null), await S;
@@ -871,18 +871,18 @@ function dt(e, t, n = null) {
 		default: return _t(e);
 	}
 }
-function G(e, t, n = null) {
+function G(e, n, r = null) {
 	if (!e) return !1;
-	let r = String(e.type || "").toLowerCase();
-	if (r === "number" || r === "int" || r === "float") {
-		let n = Number(t);
-		if (Number.isNaN(n)) return !1;
-		let i = e.options ?? {}, a = i.min ?? -Infinity, o = i.max ?? Infinity, s = Math.min(o, Math.max(a, n));
-		(r === "int" || i.precision === 0 || i.round === 1) && (s = Math.round(s)), e.value = s;
-	} else e.value = r === "toggle" || r === "boolean" ? !!t : t;
+	let a = String(e.type || "").toLowerCase();
+	if (a === "number" || a === "int" || a === "float") {
+		let t = Number(n);
+		if (Number.isNaN(t)) return !1;
+		let r = e.options ?? {}, i = r.min ?? -Infinity, o = r.max ?? Infinity, s = Math.min(o, Math.max(i, t));
+		(a === "int" || r.precision === 0 || r.round === 1) && (s = Math.round(s)), e.value = s;
+	} else e.value = a === "toggle" || a === "boolean" ? !!n : n;
 	try {
-		let t = s(), a = n ?? e?.parent ?? null, o = e.value;
-		e.callback?.(e.value, t, a, null, e), (r === "number" || r === "int" || r === "float") && (e.value = o), ft(e), i(a);
+		let n = i(), o = r ?? e?.parent ?? null, s = e.value;
+		e.callback?.(e.value, n, o, null, e), (a === "number" || a === "int" || a === "float") && (e.value = s), ft(e), t(o);
 	} catch (e) {
 		console.debug?.("[MFV] writeWidgetValue", e);
 	}
@@ -1325,10 +1325,10 @@ function Z() {
 		}
 	}
 }
-function Ot(t = e()) {
+function Ot(e = n()) {
 	if (typeof document > "u") return !1;
 	Y?.root?.isConnected || (Y = Dt());
-	let n = u(t), r = () => Et(Y.body, n, String(Y.search.value || "").trim().toLowerCase());
+	let t = u(e), r = () => Et(Y.body, t, String(Y.search.value || "").trim().toLowerCase());
 	Y.search.oninput = r, Y.search.value = "", r(), Y.root.hidden = !1;
 	try {
 		window.dispatchEvent(new CustomEvent(J, { detail: { open: !0 } }));
@@ -1338,8 +1338,8 @@ function Ot(t = e()) {
 	return setTimeout(() => Y?.search?.focus?.(), 0), !0;
 }
 // ui/app/openMajoorSettings.ts
-function Q(t = e()) {
-	return Ot(t);
+function Q(e = n()) {
+	return Ot(e);
 }
 try {
 	typeof window < "u" && (window.MajoorAssetsManager = window.MajoorAssetsManager || {}, window.MajoorAssetsManager.openSettings = Q);
