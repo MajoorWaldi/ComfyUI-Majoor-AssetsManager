@@ -31,6 +31,7 @@ All notable changes to this project are documented in this file.
 - **`mjr_am_backend.adapters.tools` missing from Registry installs**: `.comfyignore`'s unanchored `tools/` pattern also matched `mjr_am_backend/adapters/tools/`, stripping the ExifTool/FFProbe adapters out of every Registry-published package and causing `ModuleNotFoundError: No module named 'mjr_am_backend.adapters.tools'` at startup. The pattern is now anchored to the repo-root `/tools/` dev-scripts folder only.
 
 ### Fixed (follow-ups)
+- **Search by part of a file name**: typing `F` (or `flow`) only found names with a *word starting* with it (`Flux…`, `field…`), never `sunflower.png` or `ComfyUI_…`. Single-word searches now also list file names that contain the text (ranked after word matches); `_` and `%` are matched literally. Multi-word and quoted searches are unchanged.
 - **Sidecar JSON added after a file was indexed** is now picked up: the watcher maps a new/changed `<file>.json` / `<stem>.json` to its media, invalidates that file's metadata cache and scan journal, and forces a re-extraction (a non-incremental re-index no longer trusts an existing metadata row when the cache was invalidated).
 - **Duplicate index rows for one file (Windows)**: rows whose paths differ only by case or separator (left by older versions) are merged at startup, keeping the highest rating, all tags, the stack cover, execution ids and the embedding.
 - **Generated feed** drops items deleted from the UI or removed on disk.

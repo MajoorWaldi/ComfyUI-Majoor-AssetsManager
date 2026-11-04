@@ -128,6 +128,44 @@ def _strip_diacritics(text: str) -> str:
 _SEARCH_TOKEN_RE = re.compile(r"\w+", re.UNICODE)
 
 
+# Rank given to rows that only match by substring: worse than any bm25 score
+# (bm25 is negative, lower is better), so word/prefix hits stay on top.
+_SUBSTRING_MATCH_RANK = 50.0
+
+
+def _filename_substring_pattern(query: str) -> str | None:
+    """``LIKE`` pattern for "file name contains <query>" (single-word queries).
+
+    FTS5 only matches words that *start* with the query: typing ``f`` found
+    ``field.png`` but not ``sunflower.png`` or ``ComfyUI_00001_.png``.
+    Single-word searches therefore also match file names containing the text.
+    Multi-word and quoted searches stay pure FTS.
+    """
+    text = str(query or "").strip()
+    if not text or text == "*" or any(ch.isspace() for ch in text) or text[0] in "\"'":
+        return None
+    escaped = text.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+    return f"%{escaped}%"
+
+
+def _substring_matches_sql(pattern: str | None, *, with_rank: bool) -> str:
+    if not pattern:
+        return ""
+    if with_rank:
+        return (
+            "\n                UNION ALL\n\n"
+            f"                SELECT id AS asset_id, {_SUBSTRING_MATCH_RANK} AS rank\n"
+            "                FROM assets\n"
+            "                WHERE filename LIKE ? ESCAPE '\\'\n"
+        )
+    return (
+        "\n                UNION\n\n"
+        "                SELECT id AS asset_id\n"
+        "                FROM assets\n"
+        "                WHERE filename LIKE ? ESCAPE '\\'\n"
+    )
+
+
 def _is_browse_query(query: str) -> bool:
     """``*`` or input without any word character (a lone quote while typing a
     phrase, "--", "()"): nothing to match, so browse instead of erroring."""
@@ -1245,13 +1283,16 @@ class IndexSearcher:
         filters: dict[str, Any] | None,
         include_total: bool,
         metadata_tags_text_clause: str,
+        substring_pattern: str | None = None,
     ) -> Result[dict[str, Any]]:
         # Never use COUNT(*) OVER() here — on large result sets the window
         # function forces SQLite to materialise every matching row before it
         # can return page 1, making first-page loads slow at scale.
         # _global_fts_total_count runs a lean UNION count query instead.
-        sql_parts = [self._global_fts_select_sql("", metadata_tags_text_clause)]
+        sql_parts = [self._global_fts_select_sql("", metadata_tags_text_clause, substring_pattern)]
         params: list[Any] = [fts_query, fts_query]
+        if substring_pattern:
+            params.append(substring_pattern)
 
         filter_clauses, filter_params = self._filter_clauses(filters)
         sql_parts.extend(filter_clauses)
@@ -1271,11 +1312,15 @@ class IndexSearcher:
 
         total: int | None = None
         if include_total:
-            total = await self._global_fts_total_count(fts_query, filter_clauses, filter_params)
+            total = await self._global_fts_total_count(
+                fts_query, filter_clauses, filter_params, substring_pattern=substring_pattern
+            )
         return Result.Ok({"rows": rows, "total": total})
 
     @staticmethod
-    def _global_fts_select_sql(total_field: str, metadata_tags_text_clause: str) -> str:
+    def _global_fts_select_sql(
+        total_field: str, metadata_tags_text_clause: str, substring_pattern: str | None = None
+    ) -> str:
         return f"""
             WITH matches AS (
                 SELECT rowid AS asset_id, bm25(assets_fts, 8.0, 1.25) AS rank
@@ -1287,7 +1332,7 @@ class IndexSearcher:
                 SELECT rowid AS asset_id, (bm25(asset_metadata_fts, 7.0, 4.0, 1.5) + 2.0) AS rank
                 FROM asset_metadata_fts
                 WHERE asset_metadata_fts MATCH ?
-            ),
+{_substring_matches_sql(substring_pattern, with_rank=True)}            ),
             best AS (
                 SELECT asset_id, MIN(rank) AS rank
                 FROM matches
@@ -1319,8 +1364,10 @@ class IndexSearcher:
         fts_query: str,
         filter_clauses: list[str],
         filter_params: list[Any],
+        *,
+        substring_pattern: str | None = None,
     ) -> int:
-        count_sql = """
+        count_sql = f"""
             WITH matches AS (
                 SELECT rowid AS asset_id
                 FROM assets_fts
@@ -1331,7 +1378,7 @@ class IndexSearcher:
                 SELECT rowid AS asset_id
                 FROM asset_metadata_fts
                 WHERE asset_metadata_fts MATCH ?
-            )
+{_substring_matches_sql(substring_pattern, with_rank=False)}            )
             SELECT COUNT(*) as total
             FROM (SELECT DISTINCT asset_id FROM matches) t
             JOIN assets a ON t.asset_id = a.id
@@ -1339,6 +1386,8 @@ class IndexSearcher:
             WHERE 1=1
         """
         count_params: list[Any] = [fts_query, fts_query]
+        if substring_pattern:
+            count_params.append(substring_pattern)
         if filter_clauses:
             count_sql += " " + " ".join(filter_clauses)
             count_params.extend(filter_params)
@@ -1436,6 +1485,7 @@ class IndexSearcher:
         include_total: bool,
         metadata_tags_text_clause: str,
         sort: str | None,
+        substring_pattern: str | None = None,
     ) -> Result[dict[str, Any]]:
         sql_parts = [
             f"""
@@ -1449,7 +1499,7 @@ class IndexSearcher:
                 SELECT rowid AS asset_id, (bm25(asset_metadata_fts, 7.0, 4.0, 1.5) + 2.0) AS rank
                 FROM asset_metadata_fts
                 WHERE asset_metadata_fts MATCH ?
-            ),
+{_substring_matches_sql(substring_pattern, with_rank=True)}            ),
             best AS (
                 SELECT asset_id, MIN(rank) AS rank
                 FROM matches
@@ -1475,6 +1525,8 @@ class IndexSearcher:
             """
         ]
         params: list[Any] = [fts_query, fts_query]
+        if substring_pattern:
+            params.append(substring_pattern)
         params.extend(roots_params)
 
         filter_clauses, filter_params = self._filter_clauses(filters, assert_safe=True)
@@ -1506,7 +1558,7 @@ class IndexSearcher:
                     SELECT rowid AS asset_id
                     FROM asset_metadata_fts
                     WHERE asset_metadata_fts MATCH ?
-                )
+{_substring_matches_sql(substring_pattern, with_rank=False)}                )
                 SELECT COUNT(*) as total
                 FROM (SELECT DISTINCT asset_id FROM matches) t
                 JOIN assets a ON t.asset_id = a.id
@@ -1514,6 +1566,8 @@ class IndexSearcher:
                 WHERE {roots_clause}
             """
             count_params: list[Any] = [fts_query, fts_query]
+            if substring_pattern:
+                count_params.append(substring_pattern)
             count_params.extend(roots_params)
             if filter_clauses:
                 count_sql += " " + " ".join(filter_clauses)
@@ -1715,6 +1769,7 @@ class IndexSearcher:
                     return Result.Err("INVALID_INPUT", "Invalid search query syntax")
                 return await self._search_global_fts_rows(
                     fts_query=fts_query,
+                    substring_pattern=_filename_substring_pattern(query),
                     limit=raw_limit,
                     offset=raw_offset,
                     filters=filters,
@@ -1744,6 +1799,7 @@ class IndexSearcher:
                 return Result.Err("INVALID_INPUT", "Invalid search query syntax")
             return await self._search_scoped_fts_rows(
                 fts_query=fts_query,
+                substring_pattern=_filename_substring_pattern(query),
                 roots_clause=roots_clause,
                 roots_params=roots_params,
                 limit=raw_limit,
@@ -1783,6 +1839,7 @@ class IndexSearcher:
                 return Result.Err("INVALID_INPUT", "Invalid search query syntax")
             rows_total_res = await self._search_global_fts_rows(
                 fts_query=fts_query,
+                substring_pattern=_filename_substring_pattern(query),
                 limit=limit,
                 offset=offset,
                 filters=filters,
@@ -1833,6 +1890,7 @@ class IndexSearcher:
                 return Result.Err("INVALID_INPUT", "Invalid search query syntax")
             rows_total_res = await self._search_scoped_fts_rows(
                 fts_query=fts_query,
+                substring_pattern=_filename_substring_pattern(query),
                 roots_clause=roots_clause,
                 roots_params=roots_params,
                 limit=limit,
