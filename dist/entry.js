@@ -12400,7 +12400,7 @@ function eh(e = {}) {
 		} finally {
 			Hm(!1), O.disabled = !1, E.disabled = !1, w.disabled = !1, O.textContent = t;
 		}
-	}, x.appendChild(D), x.appendChild(w), x.appendChild(E), x.appendChild(O), l.appendChild(S);
+	}, x.appendChild(D), x.appendChild(w), x.appendChild(E), x.appendChild(O), x.appendChild(D), x.appendChild(w), x.appendChild(E), l.appendChild(S);
 	let k = document.createElement("button");
 	k.type = "button", k.textContent = L("btn.deleteDb"), k.title = L("tooltip.deleteDb", "Force-delete database and rebuild from scratch"), k.style.cssText = "\n        padding: 5px 12px;\n        font-size: 11px;\n        border-radius: 6px;\n        border: 1px solid rgba(255,80,80,0.4);\n        background: transparent;\n        color: inherit;\n        cursor: pointer;\n        transition: border 0.2s, background 0.2s;\n    ", k.onmouseenter = () => {
 		k.style.borderColor = "rgba(255,80,80,0.8)", k.style.background = "rgba(255,80,80,0.12)";
