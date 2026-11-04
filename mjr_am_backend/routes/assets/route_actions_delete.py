@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from aiohttp import web
+from mjr_am_backend.config import DELETE_RATE_LIMIT_PER_MIN
 from mjr_am_backend.features.assets.delete_service import delete_asset_and_cleanup
 from mjr_am_backend.features.assets.request_context_service import PrepareAssetPathContext
 from mjr_am_backend.shared import Result
@@ -56,7 +57,7 @@ async def handle_delete_asset(
         request,
         operation="asset_delete",
         rate_limit_endpoint="asset_delete",
-        max_requests=20,
+        max_requests=DELETE_RATE_LIMIT_PER_MIN,
         window_seconds=60,
         require_services=require_services,
         resolve_security_prefs=resolve_security_prefs,
