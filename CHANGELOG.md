@@ -46,6 +46,9 @@ All notable changes to this project are documented in this file.
 - **Floating viewer: one player everywhere**: A/B, side-by-side and grid compare now also use the Studio player for the primary video / audio (the other slots stay bare, synced elements). The legacy video controls (in/out, Nuke-style bar, ~2 000 lines, their styles and tests) are gone; the asset sidebar keeps its small preview controls. GIF / animated WebP keep their own simple player.
 
 ### Fixed (follow-ups)
+- **Floating viewer compare modes ignored the Studio player's video**: zoom, pan, exposure / channel tone and the overlay guides only addressed bare media elements, so in A/B, side-by-side and grid the primary video (the Studio player) stayed untouched while the other slots changed. The player's video now takes part in all of them.
+- **Floating viewer A/B divider drew over the player controls**: it now stops above the control bar (and extends fully again when the controls auto-hide).
+- **Studio compare of different sizes**: B keeps its own aspect ratio instead of being stretched to A's frame (wipe, blend and side by side).
 - **Floating viewer topbar button position**: the *Viewer* button sometimes landed at the far end of the actionbar after reloading the interface. The Run group is rendered asynchronously inside the actionbar and its late arrival was never observed; the button now re-anchors next to Run as soon as it appears.
 - **Floating viewer A/B hid the player**: with the Studio player on A, the B layer covered the right half of its controls. A now sits on top and only its picture is clipped at the divider, so the controls stay visible and usable everywhere.
 - **Light dismiss in the Studio viewer**: clicking the empty area around the image or video (not the picture, a tool, the inspector or the player bar) closes the viewer again, as the classic viewer did. Dragging to pan never closes it.

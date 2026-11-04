@@ -9269,3 +9269,17 @@ body.mjr-mfv-popout-body {
 .mjr-mfv-ab-container.has-studio-a .mjr-mfv-ab-divider {
     z-index: 10;
 }
+/* The divider stops above the player controls instead of drawing over them
+   (clip-path also removes its hit area there). */
+.mjr-mfv-ab-container.has-studio-a .mjr-mfv-ab-divider {
+    clip-path: inset(0 -20px 72px -20px);
+}
+.mjr-mfv-ab-container.has-studio-a:has(.mjr-studio-player.controls-hidden) .mjr-mfv-ab-divider {
+    clip-path: none;
+}
+
+/* B keeps its own aspect ratio inside A's frame (A/B of different sizes). */
+.mjr-studio-stage__img.is-b,
+.mjr-studio-stage__side .mjr-studio-stage__img {
+    object-fit: contain;
+}

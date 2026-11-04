@@ -42,6 +42,8 @@ describe("floating viewer media player bridge", () => {
         expect(root?.classList.contains("mjr-mfv-player-host--studio")).toBe(true);
         expect(root?._mjrMediaControlsHandle?.destroy).toBeTypeOf("function");
         expect(root?.querySelector(".mjr-studio-player video")).toBeTruthy();
+        // Zoom / pan / tone controls address the media through this class.
+        expect(root?.querySelector(".mjr-studio-player video.mjr-mfv-media")).toBeTruthy();
         expect(mountFloatingViewerSimplePlayerMock).not.toHaveBeenCalled();
         root._mjrMediaControlsHandle.destroy();
     });

@@ -4,7 +4,7 @@ import { c as S, l as C, m as w, p as ee, s as T, t as E, u as D, v as O } from 
 import { r as k } from "./events-1iwo5blr.js";
 import { C as A, D as j, E as M, T as N, _ as P, a as F, b as I, d as L, f as R, g as z, h as B, m as te, n as V, o as ne, p as H, r as re, s as ie, t as U, v as ae, w as oe, y as se } from "./tooltipShortcuts-Ury2eTek.js";
 import { I as ce } from "./mjr-primevue-C07IsEdU.js";
-import { C as le, S as ue, n as de, t as fe, w as pe } from "./genInfo-DZ8thzbX.js";
+import { C as le, S as ue, n as de, t as fe, w as pe } from "./genInfo-Dk8cerKp.js";
 // ui/features/viewer/videoSync.ts
 var me = () => {
 	try {
@@ -524,7 +524,8 @@ function je(e) {
 		frameCount: e.frameCount ?? null,
 		initialMuted: !!e.initialMuted,
 		initialRate: e.initialRate,
-		compact: e.compact !== !1
+		compact: e.compact !== !1,
+		mediaClass: e.mediaClass
 	}) });
 	r.mount(t);
 	let i = !1;
@@ -696,7 +697,8 @@ function He(e, { initialMuted: t = !1, initialPlaybackRate: n = 1, fill: r = !1 
 			initialMuted: e?._isPreview ? !0 : t,
 			initialRate: n,
 			compact: !0,
-			fill: r
+			fill: r,
+			mediaClass: "mjr-mfv-media"
 		});
 	} catch (e) {
 		return console.debug?.(e), null;

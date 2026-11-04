@@ -43,6 +43,8 @@ const props = defineProps<{
     wipe?: number;
     /** Clicking the bare background (not the picture) emits `dismiss` instead of toggling play. */
     lightDismiss?: boolean;
+    /** Extra class on the <video> (the floating viewer's zoom / pan / tone controls target it). */
+    mediaClass?: string;
 }>();
 
 const emit = defineEmits<{
@@ -607,6 +609,7 @@ defineExpose({
                 <video
                     ref="media"
                     class="mjr-studio-player__media"
+                    :class="mediaClass"
                     :src="src"
                     playsinline
                     preload="auto"

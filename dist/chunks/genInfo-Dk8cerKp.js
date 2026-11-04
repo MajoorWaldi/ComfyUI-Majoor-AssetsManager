@@ -1536,7 +1536,8 @@ var it = ["src"], at = ["src"], ot = {
 		compareSrc: {},
 		compare: {},
 		wipe: {},
-		lightDismiss: { type: Boolean }
+		lightDismiss: { type: Boolean },
+		mediaClass: {}
 	},
 	emits: [
 		"ended",
@@ -1874,7 +1875,7 @@ var it = ["src"], at = ["src"], ot = {
 					}, [d("video", {
 						ref_key: "media",
 						ref: o,
-						class: "mjr-studio-player__media",
+						class: T(["mjr-studio-player__media", t.mediaClass]),
 						src: t.src,
 						playsinline: "",
 						preload: "auto",
@@ -1885,7 +1886,7 @@ var it = ["src"], at = ["src"], ot = {
 						onProgress: Pe,
 						onEnded: Fe,
 						onError: Ie
-					}, null, 40, it), Se.value ? (y(), w("video", {
+					}, null, 42, it), Se.value ? (y(), w("video", {
 						ref_key: "mediaB",
 						ref: oe,
 						key: `b:${t.compareSrc}`,

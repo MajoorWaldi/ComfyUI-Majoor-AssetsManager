@@ -214,6 +214,9 @@ export function buildFloatingViewerStudioPlayer(
             initialRate: initialPlaybackRate,
             compact: true,
             fill,
+            // Same hook as the bare elements: zoom, pan, exposure / channel tone
+            // and the overlay guides all address `.mjr-mfv-media`.
+            mediaClass: "mjr-mfv-media",
         });
     } catch (e: any) {
         console.debug?.(e);

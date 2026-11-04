@@ -24,6 +24,8 @@ export interface StudioPlayerHostOptions {
     compact?: boolean;
     /** Fill the slot of a compare layout (A/B, side by side, grid). */
     fill?: boolean;
+    /** Extra class for the <video>, so host-level zoom / tone controls can find it. */
+    mediaClass?: string;
 }
 
 export interface StudioPlayerHandle {
@@ -59,6 +61,7 @@ export function mountStudioPlayerHost(options: StudioPlayerHostOptions): HTMLEle
                 initialMuted: !!options.initialMuted,
                 initialRate: options.initialRate,
                 compact: options.compact !== false,
+                mediaClass: options.mediaClass,
             }),
     });
     app.mount(host);
