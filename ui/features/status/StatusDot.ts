@@ -117,14 +117,12 @@ function appendStatusProgressBars(statusText: any, items: any[] = []) {
         const percent = Math.max(0, Math.min(100, Number(item.percent) || 0));
         const row = document.createElement("div");
         row.className = "mjr-status-progress-row";
-        row.style.cssText =
-            "display:grid;grid-template-columns:minmax(72px,0.9fr) 1.8fr auto;gap:7px;align-items:center;";
+        row.style.cssText = "display:grid;grid-template-columns:minmax(72px,0.9fr) 1.8fr auto;gap:7px;align-items:center;";
 
         const label = document.createElement("span");
         label.className = "mjr-status-progress-label";
         label.textContent = String(item.label || "");
-        label.style.cssText =
-            "font-size:10px;opacity:0.72;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;";
+        label.style.cssText = "font-size:10px;opacity:0.72;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;";
 
         const bar = document.createElement("div");
         bar.className = "mjr-status-progress-bar";
@@ -150,10 +148,7 @@ function appendStatusProgressBars(statusText: any, items: any[] = []) {
     statusText.appendChild(wrap);
 }
 
-function buildStatusProgressItems(
-    counters: any,
-    { totalAssets = 0, withWorkflows = 0, withGenerationData = 0 } = {},
-) {
+function buildStatusProgressItems(counters: any, { totalAssets = 0, withWorkflows = 0, withGenerationData = 0 } = {}) {
     const total = Math.max(0, Number(totalAssets || counters?.total_assets || 0) || 0);
     if (total <= 0) return [];
     const pct = (value: any, denominator = total) => {
@@ -302,9 +297,7 @@ function applyStatusHighlight(section: any, tone = "neutral", options: Record<st
                         ? "success"
                         : "info";
             try {
-                comfyToast((messages as Record<string, any>)[tone] || messages.info, level, 1800, {
-                    noHistory: true,
-                });
+                comfyToast((messages as Record<string, any>)[tone] || messages.info, level, 1800, { noHistory: true });
             } catch (e) {
                 console.debug?.(e);
             }
@@ -527,9 +520,7 @@ export function createStatusIndicator(options: Record<string, any> = {}): any {
             _hasBackupChoices = backupSelect.childNodes.length > 0;
             backupSelect.disabled = !_hasBackupChoices;
             if (_hasBackupChoices && !matched && backupSelect.childNodes[0]) {
-                backupSelect.value = String(
-                    (backupSelect.childNodes[0] as HTMLOptionElement)?.value || "",
-                );
+                backupSelect.value = String((backupSelect.childNodes[0] as HTMLOptionElement)?.value || "");
             }
             if (restoreDbBtn) restoreDbBtn.disabled = !_hasBackupChoices;
         } catch {
@@ -1308,6 +1299,9 @@ export function createStatusIndicator(options: Record<string, any> = {}): any {
     actionsRow.appendChild(memoryPurgeBtn);
     actionsRow.appendChild(resetBtn);
     actionsRow.appendChild(emptyTrashBtn);
+    actionsRow.appendChild(backfillBtn);
+    actionsRow.appendChild(memoryPurgeBtn);
+    actionsRow.appendChild(resetBtn);
     body.appendChild(actionLog);
 
     const deleteDbBtn = document.createElement("button");
@@ -1692,16 +1686,14 @@ export async function triggerScan(
                 ? t("scope.custom", "Custom")
                 : desiredScope === "workflow"
                   ? t("scope.workflow", "Workflow")
-                  : t("scope.output", "Outputs");
+                : t("scope.output", "Outputs");
 
     let detail = "";
     if (desiredScope === "input")
         detail = roots?.input_directory ? ` (${roots.input_directory})` : "";
     else if (desiredScope === "custom") {
         const list = Array.isArray(roots?.custom_roots) ? roots.custom_roots : [];
-        const picked = desiredCustomRootId
-            ? list.find((r: any) => r?.id === desiredCustomRootId)
-            : null;
+        const picked = desiredCustomRootId ? list.find((r: any) => r?.id === desiredCustomRootId) : null;
         detail = picked?.path ? ` (${picked.path})` : "";
     } else if (desiredScope === "output")
         detail = roots?.output_directory ? ` (${roots.output_directory})` : "";
@@ -1809,11 +1801,7 @@ function createCapabilityBadge(label: any, available: any, hint: any) {
     return badge;
 }
 
-function renderCapabilities(
-    section: any,
-    toolAvailability: Record<string, any> = {},
-    toolPaths: Record<string, any> = {},
-) {
+function renderCapabilities(section: any, toolAvailability: Record<string, any> = {}, toolPaths: Record<string, any> = {}) {
     if (!section) return;
     section.replaceChildren();
     if (!toolAvailability || Object.keys(toolAvailability).length === 0) {
@@ -1838,11 +1826,7 @@ function renderCapabilities(
     section.appendChild(wrapper);
 }
 
-function renderToolsStatusLine(
-    section: any,
-    toolStatus: any = null,
-    fallbackAvailability: Record<string, any> = {},
-) {
+function renderToolsStatusLine(section: any, toolStatus: any = null, fallbackAvailability: Record<string, any> = {}) {
     if (!section) return;
     const parent = section.parentElement;
     if (!parent) return;
@@ -1872,11 +1856,7 @@ function renderToolsStatusLine(
     container.textContent = segments.join("  |  ");
 }
 
-function createCapabilityNode(
-    { label, hint }: { label: any; hint: any },
-    available: any,
-    path: any,
-) {
+function createCapabilityNode({ label, hint }: { label: any; hint: any }, available: any, path: any) {
     const container = document.createElement("div");
     container.style.cssText = `
         display: flex;
@@ -1945,7 +1925,7 @@ function buildIndexHealthLine(counters: any, desiredScope: any) {
                 ? t("scope.custom", "Custom")
                 : desiredScope === "workflow"
                   ? t("scope.workflow", "Workflow")
-                  : t("scope.output", "Outputs");
+                : t("scope.output", "Outputs");
 
     if (!Number.isFinite(totalAssets) || totalAssets <= 0) {
         return `${t("status.indexHealthEmpty", "Index health: empty")} (${scopeLabel})`;
@@ -2121,13 +2101,13 @@ export async function updateStatus(
         } else if (vectorDegraded) {
             healthTone = "warning";
         }
-        const isWorkflowScope = desiredScope === "workflow";
-        const displayTone =
-            isCustomBrowserMode && healthTone !== "error"
-                ? "browser"
-                : isWorkflowScope && healthTone !== "error"
-                  ? "workflow"
-                  : healthTone;
+                const isWorkflowScope = desiredScope === "workflow";
+                const displayTone =
+                        isCustomBrowserMode && healthTone !== "error"
+                                ? "browser"
+                                : isWorkflowScope && healthTone !== "error"
+                                    ? "workflow"
+                                    : healthTone;
         let watcherInfo = counters.watcher;
         try {
             if (!watcherInfo || typeof watcherInfo.enabled !== "boolean") {
@@ -2148,10 +2128,10 @@ export async function updateStatus(
                   scope: t("scope.workflow", "Workflow"),
               })
             : isCustomBrowserMode
-              ? t("status.watcher.disabledScoped", "Watcher: disabled ({scope})", {
-                    scope: t("scope.customBrowser", "Browser"),
-                })
-              : formatWatcherLine(watcherInfo, desiredScope);
+            ? t("status.watcher.disabledScoped", "Watcher: disabled ({scope})", {
+                  scope: t("scope.customBrowser", "Browser"),
+              })
+            : formatWatcherLine(watcherInfo, desiredScope);
         const enrichmentLine = enrichmentActive
             ? t("status.enrichmentQueue", "Metadata enrichment queue: {count}", {
                   count: enrichmentQueueLength,
@@ -2170,7 +2150,7 @@ export async function updateStatus(
                     ? t("scope.customBrowser", "Browser")
                     : desiredScope === "workflow"
                       ? t("scope.workflow", "Workflow")
-                      : t("scope.output", "Outputs");
+                    : t("scope.output", "Outputs");
 
         if (healthTone === "error") {
             statusDot.style.background = "var(--mjr-status-error, #f44336)";
@@ -2348,12 +2328,7 @@ export async function updateStatus(
     return null;
 }
 
-function createRetryButton(
-    statusDot: any,
-    statusText: any,
-    capabilitiesSection = null,
-    scanTarget = null,
-) {
+function createRetryButton(statusDot: any, statusText: any, capabilitiesSection = null, scanTarget = null) {
     const button = document.createElement("button");
     button.textContent = t("btn.retryServices");
     button.style.cssText = `
