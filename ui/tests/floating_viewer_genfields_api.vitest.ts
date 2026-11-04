@@ -30,8 +30,8 @@ vi.mock("../features/viewer/nodeStream/nodeStreamFeatureFlag.js", () => ({
 vi.mock("../features/viewer/workflowSidebar/WorkflowSidebar.js", () => ({
     WorkflowSidebar: class {
         constructor() {
-            this.el = document.createElement("div");
-            this.isVisible = false;
+            (this as any).el = document.createElement("div");
+            (this as any).isVisible = false;
         }
     },
 }));
@@ -62,8 +62,8 @@ describe("floating viewer gen fields api summary", () => {
             },
         });
 
-        expect(fields.prompt).toBe("girl on a steampunk ship");
-        expect(fields.seed).toBe("123");
-        expect(fields.model).toBe("API Image-to-Video | Happy Horse | happyhorse-1.0-i2v");
+        expect((fields as any).prompt).toBe("girl on a steampunk ship");
+        expect((fields as any).seed).toBe("123");
+        expect((fields as any).model).toBe("API Image-to-Video | Happy Horse | happyhorse-1.0-i2v");
     });
 });

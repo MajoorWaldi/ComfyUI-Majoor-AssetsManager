@@ -1,4 +1,13 @@
-"""Prune indexed assets that disappeared from disk during a directory scan."""
+"""Prune indexed assets that disappeared from disk during a directory scan.
+
+Like ComfyUI core's asset reconciler (``app/assets/scanner_changes.py``), a
+file is only treated as gone when the filesystem positively says so. A stat
+that fails for any other reason (permission error, network share hiccup,
+unmounted drive) is "unknown" and never deletes a row -- deleting it would
+throw away the user's ratings, tags and collections for a file that is
+still there. Removed ids are announced with a ``mjr-assets-removed`` event so
+open grids drop the cards without a full reload.
+"""
 
 from __future__ import annotations
 
@@ -30,16 +39,60 @@ def _is_direct_child(filepath: str, root: str) -> bool:
         return False
 
 
-def _path_exists(filepath: str) -> bool:
+_MAX_REMOVED_IDS_IN_EVENT = 1000
+
+
+def _path_state(filepath: str) -> bool | None:
+    """True = on disk, False = definitely gone, None = could not tell."""
     try:
-        return Path(filepath).exists()
+        os.stat(filepath)
+        return True
+    except (FileNotFoundError, NotADirectoryError):
+        return False
+    except OSError:
+        return None
+    except Exception:
+        return None
+
+
+def _path_exists(filepath: str) -> bool:
+    """Backward-compatible helper: only a *confirmed* absence returns False."""
+    return _path_state(filepath) is not False
+
+
+def _root_is_readable(directory: str) -> bool:
+    """A scan root that cannot be listed (unmounted, offline share) must not be pruned."""
+    try:
+        with os.scandir(directory) as entries:
+            next(entries, None)
+        return True
     except OSError:
         return False
 
 
 def _find_missing_filepaths(candidates: list[tuple[int, str]]) -> list[int]:
-    """Stat every candidate off the event loop; return asset ids missing from disk."""
-    return [asset_id for asset_id, filepath in candidates if not _path_exists(filepath)]
+    """Stat every candidate off the event loop; return asset ids confirmed missing."""
+    return [asset_id for asset_id, filepath in candidates if _path_state(filepath) is False]
+
+
+def _emit_removed(asset_ids: list[int], *, reason: str, directory: str = "") -> None:
+    if not asset_ids:
+        return
+    try:
+        from ...adapters.comfy_events import emit_event
+
+        emit_event(
+            "mjr-assets-removed",
+            {
+                "ids": [int(i) for i in asset_ids[:_MAX_REMOVED_IDS_IN_EVENT]],
+                "count": len(asset_ids),
+                "truncated": len(asset_ids) > _MAX_REMOVED_IDS_IN_EVENT,
+                "reason": reason,
+                "directory": directory,
+            },
+        )
+    except Exception:
+        logger.debug("_emit_removed: suppressed exception", exc_info=True)
 
 
 def _source_root_clause(source: str, root_id: str | None) -> tuple[str, list[Any]]:
@@ -92,10 +145,13 @@ async def _delete_asset_ids(scanner: Any, asset_ids: list[int]) -> Result[int]:
         )
         if not res.ok:
             return Result.Err("DB_ERROR", res.error or "Failed to prune stale assets")
+        # ``res.data`` is SQLite's change count, which also includes rows touched
+        # by ON DELETE CASCADE and FTS triggers; report assets, not rows.
         try:
-            total += int(res.data or 0)
+            changed = int(res.data or 0)
         except Exception:
-            total += len(batch)
+            changed = len(batch)
+        total += min(len(batch), changed) if changed > 0 else 0
     return Result.Ok(total)
 
 
@@ -134,6 +190,15 @@ async def prune_missing_assets_after_scan(
     if not candidates:
         return Result.Ok(0)
 
+    if not await asyncio.to_thread(_root_is_readable, directory):
+        logger.warning(
+            "Skipping prune: scan root %s is not readable (offline or unmounted?); "
+            "%s indexed asset(s) kept",
+            directory,
+            len(candidates),
+        )
+        return Result.Ok(0)
+
     stale_ids = await asyncio.to_thread(_find_missing_filepaths, candidates)
     if not stale_ids:
         return Result.Ok(0)
@@ -145,6 +210,7 @@ async def prune_missing_assets_after_scan(
             int(deleted_res.data or 0),
             directory,
         )
+        _emit_removed(stale_ids, reason="scan_prune", directory=directory)
     return deleted_res
 
 

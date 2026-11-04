@@ -185,7 +185,7 @@ describe("workflow graph map actions", () => {
                 widgets_values: [1, "fixed"],
             }),
         );
-        expect(created.id).toBeUndefined();
+        expect((created as any).id).toBeUndefined();
         expect(graph.add).toHaveBeenCalledWith(created);
     });
 });

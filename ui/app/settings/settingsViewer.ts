@@ -33,39 +33,6 @@ export function registerViewerSettings(safeAddSetting: (def: any) => void, setti
     // ----------------------------------------------
 
     safeAddSetting({
-        id: `${SETTINGS_PREFIX}.Viewer.AllowPanAtZoom1`,
-        category: viewerCat(t("setting.viewer.pan.name").replace("Majoor: ", "")),
-        name: t("setting.viewer.pan.name"),
-        tooltip: t("setting.viewer.pan.desc"),
-        type: "boolean",
-        defaultValue: !!settings.viewer?.allowPanAtZoom1,
-        onChange: (value: any) => {
-            settings.viewer = settings.viewer || {};
-            settings.viewer.allowPanAtZoom1 = !!value;
-            saveMajoorSettings(settings);
-            applySettingsToConfig(settings);
-            notifyApplied("viewer.allowPanAtZoom1");
-        },
-    });
-
-    safeAddSetting({
-        id: `${SETTINGS_PREFIX}.Viewer.DisableWebGL`,
-        category: viewerCat("Disable WebGL Video"),
-        name: "Disable WebGL Video",
-        tooltip:
-            "Use CPU rendering (Canvas 2D) for video playback. Fixes 'black screen' issues on incompatible hardware/browsers.",
-        type: "boolean",
-        defaultValue: !!settings.viewer?.disableWebGL,
-        onChange: (value: any) => {
-            settings.viewer = settings.viewer || {};
-            settings.viewer.disableWebGL = !!value;
-            saveMajoorSettings(settings);
-            applySettingsToConfig(settings);
-            notifyApplied("viewer.disableWebGL");
-        },
-    });
-
-    safeAddSetting({
         id: `${SETTINGS_PREFIX}.Viewer.PauseDuringExecution`,
         category: viewerCat(t("setting.viewer.pauseExecution.name").replace("Majoor: ", "")),
         name: t("setting.viewer.pauseExecution.name"),

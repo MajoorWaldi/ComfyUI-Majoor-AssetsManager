@@ -256,7 +256,7 @@ describe("floating viewer geninfo sidebar", () => {
         });
 
         expect(getAssetMetadata).toHaveBeenCalledWith(10650, {});
-        expect(hydrated.metadata_raw.geninfo.positive.value).toBe("real LTX prompt");
-        expect(hydrated.metadata_raw.geninfo.seed.value).toBe(0);
+        expect((hydrated as any).metadata_raw.geninfo.positive.value).toBe("real LTX prompt");
+        expect((hydrated as any).metadata_raw.geninfo.seed.value).toBe(0);
     });
 });

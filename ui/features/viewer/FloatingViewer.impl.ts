@@ -16,12 +16,14 @@ import {
 } from "./floatingViewerConstants.js";
 import {
     buildFloatingViewerMediaElement as _buildMediaEl,
+    buildFloatingViewerStudioPlayer as _buildStudioPlayer,
     canFloatingViewerWheelScroll as _canWheelScrollElement,
     createFloatingViewerEmptyState as _makeEmptyState,
     createFloatingViewerSlotLabel as _makeLabel,
     findFloatingViewerScrollableAncestor as _findScrollableAncestor,
     getFloatingViewerMediaKind as _mediaKind,
     pauseFloatingViewerMediaIn as _pauseMediaIn,
+    releaseFloatingViewerMediaIn as _releaseMediaIn,
 } from "./floatingViewerMedia.js";
 import {
     applyFloatingViewerSidebarPosition,
@@ -973,7 +975,8 @@ export class FloatingViewer {
         this._destroyPanZoom();
         this._destroyCompareSync();
         this._destroyMediaControls();
-        _pauseMediaIn(this._contentEl);
+        // The content is about to be discarded: release, don't just pause.
+        _releaseMediaIn(this._contentEl);
         const overlayCanvas = this._overlayCanvas || null;
         this._contentEl.replaceChildren();
         this._contentEl.style.overflow = "hidden";
@@ -1467,10 +1470,15 @@ export class FloatingViewer {
             this._contentEl.appendChild(_makeEmptyState());
             return;
         }
-        const rawMediaEl = _buildMediaEl(this._mediaA, {
+        const mediaOptions = {
             initialMuted: this._mfvMuted,
             initialPlaybackRate: this._mfvPlaybackRate,
-        });
+        };
+        // Video / audio use the Studio player (same as the main viewer); images,
+        // GIFs and 3D keep their dedicated renderers.
+        const rawMediaEl =
+            _buildStudioPlayer(this._mediaA, mediaOptions) ||
+            _buildMediaEl(this._mediaA, mediaOptions);
         const mediaEl = this._trackMediaControls?.(rawMediaEl) || rawMediaEl;
         this._bindMfvPersistence?.(mediaEl);
         if (!mediaEl) {
@@ -1527,7 +1535,16 @@ export class FloatingViewer {
         const layerB = document.createElement("div");
         layerB.className = "mjr-mfv-ab-layer mjr-mfv-ab-layer--b";
         const pct = Math.round(this._abDividerX * 100);
-        layerB.style.clipPath = `inset(0 0 0 ${pct}%)`;
+        // With the Studio player on A, A sits on top and only its picture is
+        // clipped at the divider, so the player controls are never covered by B.
+        // Otherwise B is clipped from the divider to the right edge.
+        const studioA = !!elA?.classList?.contains?.("mjr-mfv-player-host--studio");
+        if (studioA) container.classList.add("has-studio-a");
+        const applyDivider = (p: number) => {
+            if (studioA) container.style.setProperty("--mjr-ab-x", `${p}%`);
+            else layerB.style.clipPath = `inset(0 0 0 ${p}%)`;
+        };
+        applyDivider(pct);
         layerB.appendChild(elB);
 
         // Draggable divider bar
@@ -1582,7 +1599,7 @@ export class FloatingViewer {
                     const x = Math.max(0.02, Math.min(0.98, (me.clientX - rect.left) / rect.width));
                     this._abDividerX = x;
                     const p = Math.round(x * 100);
-                    layerB.style.clipPath = `inset(0 0 0 ${p}%)`;
+                    applyDivider(p);
                     divider.style.left = `${p}%`;
                     if (genInfoAEl) genInfoAEl.style.right = `calc(${100 - p}% + 8px)`;
                     if (genInfoBEl) genInfoBEl.style.left = `calc(${p}% + 8px)`;
@@ -1904,6 +1921,7 @@ export class FloatingViewer {
             this._onSidebarPosChanged = null;
         }
         try {
+            _releaseMediaIn(this.element);
             this.element?.remove();
         } catch (e: any) {
             console.debug?.(e);

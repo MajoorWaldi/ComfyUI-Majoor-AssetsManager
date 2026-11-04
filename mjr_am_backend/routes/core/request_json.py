@@ -14,6 +14,7 @@ from typing import Any
 from aiohttp import web
 from mjr_am_backend.shared import ErrorCode, Result, get_logger
 from mjr_am_shared.runtime_env import get_env
+
 logger = get_logger(__name__)
 
 DEFAULT_MAX_JSON_BYTES = 10 * 1024 * 1024  # 10MB

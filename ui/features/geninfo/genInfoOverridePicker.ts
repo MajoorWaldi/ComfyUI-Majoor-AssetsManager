@@ -1,6 +1,7 @@
 import { getRawHostApp } from "../../app/hostAdapter.js";
 import { collectGraphVisits, findGraphNodeById, getGraphNodes } from "../../app/graphTraversal.js";
 import { t } from "../../app/i18n.js";
+import { comfyToast } from "../../app/toast.js";
 import { writeWidgetValue } from "../viewer/workflowSidebar/widgetAdapters.js";
 
 type LooseRecord = Record<string, any>;
@@ -239,12 +240,14 @@ function autoFillFromWorkflow(node: LooseRecord, runtimeApp: any): number {
     }
     runtimeApp?.graph?.setDirtyCanvas?.(true, true);
     runtimeApp?.graph?.change?.();
-    runtimeApp?.extensionManager?.toast?.add?.({
-        severity: count ? "success" : "warn",
-        summary: "Majoor Gen Info",
-        detail: count ? `Filled ${count} empty override fields.` : "No empty matching fields found.",
-        life: 3000,
-    });
+    comfyToast(
+        {
+            summary: "Majoor Gen Info",
+            detail: count ? `Filled ${count} empty override fields.` : "No empty matching fields found.",
+        },
+        count ? "success" : "warning",
+        3000,
+    );
     return count;
 }
 
@@ -291,12 +294,14 @@ function registerExecutedVisualSync(runtimeApp: any): void {
 function showPicker(node: LooseRecord, runtimeApp: any, targetField: string | null = null): void {
     const candidates = collectCandidates(runtimeApp, targetField);
     if (!candidates.length) {
-        runtimeApp?.extensionManager?.toast?.add?.({
-            severity: "warn",
-            summary: "Majoor Gen Info",
-            detail: targetField ? `No widget value found for ${targetField}.` : "No workflow parameters found.",
-            life: 3000,
-        });
+        comfyToast(
+            {
+                summary: "Majoor Gen Info",
+                detail: targetField ? `No widget value found for ${targetField}.` : "No workflow parameters found.",
+            },
+            "warning",
+            3000,
+        );
         return;
     }
     const overlay = document.createElement("div");

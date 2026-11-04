@@ -129,11 +129,11 @@ OPTIONAL_ROUTE_REGISTRATIONS: tuple[RouteRegistration, ...] = (
         "api v2 assets (compat)",
         register_api_v2_asset_routes,
         (
-            "  HEAD /api/v2/assets/hash/{hash} (Added)",
-            "  GET  /api/v2/assets (Added)",
-            "  GET  /api/v2/assets/{id} (Added)",
-            "  GET  /api/v2/assets/{id}/content (Added)",
-            "  GET  /api/v2/assets/{id}/tags (Added)",
+            "  HEAD /mjr/am/compat/assets/hash/{hash} (Added)",
+            "  GET  /mjr/am/compat/assets (Added)",
+            "  GET  /mjr/am/compat/assets/{id} (Added)",
+            "  GET  /mjr/am/compat/assets/{id}/content (Added)",
+            "  GET  /mjr/am/compat/assets/{id}/tags (Added)",
         ),
     ),
 )

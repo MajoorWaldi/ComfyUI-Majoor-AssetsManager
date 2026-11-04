@@ -37,9 +37,7 @@ export const getExtensionManagerDialog = (): MajoorExtensionDialog | null => {
 export const getExtensionManagerToast = (): MajoorExtensionToast | null => {
     try {
         const toast = getHostToastApi();
-        if (toast && typeof toast.add === "function") {
-            return toast;
-        }
+        if (toast) return toast;
     } catch (e) {
         console.debug?.(e);
     }

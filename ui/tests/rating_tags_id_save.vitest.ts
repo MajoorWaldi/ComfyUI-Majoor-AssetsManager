@@ -61,7 +61,7 @@ describe("ID save-back after successful rating/tag update", () => {
     it("saves DB id when asset.id is undefined", () => {
         const asset = { filepath: "/output/img.png" };
         applyIdSaveBack(asset, 456);
-        expect(asset.id).toBe(456);
+        expect((asset as any).id).toBe(456);
     });
 
     it("saves DB id when asset.id is a synthetic string", () => {

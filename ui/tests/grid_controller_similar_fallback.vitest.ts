@@ -53,13 +53,13 @@ describe("gridController similar fallback", () => {
             similarSourceAssetId: "",
             similarTitle: "",
         };
-        globalThis.window = {};
+        globalThis.window = {} as any;
         globalThis.CustomEvent = class {
             constructor(type, init = {}) {
-                this.type = type;
-                this.detail = init.detail;
+                (this as any).type = type;
+                (this as any).detail = (init as any).detail;
             }
-        };
+        } as any;
     });
 
     it("uses state similar results when bridge results are empty", async () => {

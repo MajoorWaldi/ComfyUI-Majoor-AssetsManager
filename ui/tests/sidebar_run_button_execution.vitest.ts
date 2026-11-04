@@ -42,7 +42,7 @@ vi.mock("../app/i18n.js", () => ({
 
 vi.mock("../features/viewer/floatingViewerProgress.js", () => ({
     ensureFloatingViewerProgressTracking: (...args) =>
-        state.ensureFloatingViewerProgressTracking(...args),
+        (state.ensureFloatingViewerProgressTracking as any)(...args),
     floatingViewerProgressService: state.progressService,
 }));
 
@@ -86,7 +86,7 @@ describe("sidebarRunButton execution failures", () => {
         const handle = createRunButton();
         const runBtn = handle.el.querySelector(".mjr-mfv-run-btn");
 
-        runBtn.click();
+        (runBtn as any).click();
 
         await flushMicrotasks();
 

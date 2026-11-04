@@ -20,7 +20,7 @@ describe("runtimeState prototype-pollution resistance", () => {
         const patch = JSON.parse('{"__proto__": {"polluted": true}}');
         setRuntimeStatePatch(patch);
 
-        expect({}.polluted).toBeUndefined();
+        expect(({} as any).polluted).toBeUndefined();
         expect(Object.getPrototypeOf({})).toBe(proto);
     });
 

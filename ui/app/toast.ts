@@ -1,18 +1,12 @@
 /**
  * Toast Element - Majoor Assets Manager
  *
- * Provides transient notification messages (Toasts) that mimic ComfyUI native style.
- * Supports: success, error, warning, info.
- *
- * Priority integration with ComfyUI extensionManager.toast API (ComfyUI v1.3+).
+ * Thin bridge to ComfyUI's core toast manager. Supports success, error,
+ * warning, info, plus `loading` toasts updated in place for tracked operations.
  */
 import { getHostToastApi } from "./hostAdapter.js";
 import { t } from "./i18n.js";
 import { addToastHistory } from "../features/panel/messages/toastHistory.js";
-
-function _dismissAllFallbackErrorToasts() {
-    // Legacy compatibility: no-op since DOM fallback toasts were removed.
-}
 
 function normalizeToastType(type: any): string {
     const raw = String(type || "info")
@@ -421,8 +415,9 @@ function translateToastMessage(message: any) {
 
 /**
  * Shows a toast notification.
- * Integrates with ComfyUI extensionManager.toast when available.
- * Falls back to ComfyUI app.ui.toast for older runtime variants.
+ * Routes to ComfyUI's core toast manager (`app.extensionManager.toast`):
+ * the typed `success/error/info/warning/loading` API on current frontends,
+ * the deprecated `add()` on older ones. Majoor renders no toast of its own.
  *
  * @param {string|object} message - The message to display (or object with summary/detail)
  * @param {'info'|'success'|'warning'|'error'} type - The type of message
@@ -455,56 +450,159 @@ export function comfyToast(message: any, type = "info", duration?: number | null
     // Treat as persistent only when caller explicitly passes 0 or a non-finite value.
     const persistent = !(Number.isFinite(Number(duration)) && Number(duration) > 0);
 
-    // 1. Try ComfyUI extensionManager toast (ComfyUI v1.3+ standard)
+    // ComfyUI core toast is the only notification surface (no Majoor DOM toasts).
     try {
         const toastApi = getHostToastApi();
-        if (toastApi && typeof toastApi.add === "function") {
-            let severity = type;
-            if (severity === "warning") severity = "warn"; // PrimeVue uses "warn" not "warning"
-
-            // Allow passing an object { summary, detail } as message
-            let summary = t("manager.title");
-            let detail = message;
-
-            if (typeof message === "object" && message?.summary) {
-                summary = message.summary;
-                detail = message.detail || "";
-            } else if (typeof message !== "string") {
-                try {
-                    detail = message.message || String(message);
-                } catch (e) {
-                    console.debug?.(e);
-                }
-            }
-
-            // NOTE: Do NOT set `group` - PrimeVue only shows a toast in the <Toast> component
-            // that matches its group. ComfyUI has no custom group component, so any group value
-            // other than the default silently drops the message.
-            const payload: Record<string, any> = { severity, summary, detail };
-            if (!persistent) payload.life = duration;
-            toastApi.add(payload);
+        if (toastApi && emitCoreToast(toastApi, message, type, persistent ? 0 : Number(duration), opts)) {
             return;
         }
     } catch (e) {
         console.debug("Majoor: extensionManager.toast failed", e);
     }
 
-    // 2. Try generic ComfyUI app.ui.toast (Older or alternative implementations)
-    const legacyApp = (globalThis as any)?.app || (typeof window !== "undefined" ? (window as any)?.app : null);
-    if (legacyApp?.ui?.toast) {
-        try {
-            return legacyApp.ui.toast(message, type);
-        } catch (e) {
-            console.debug("Native app.ui.toast failed", e);
-        }
-    }
-
-    // No custom DOM toast fallback: keep notifications on Comfy native channels only.
     console.warn("[Majoor Toast] Native toast API unavailable", {
         type,
         message: serializeToastMessage(message),
         duration: persistent ? 0 : duration,
     });
+}
+
+// -- ComfyUI core toast bridge -------------------------------------------------
+
+/** Statuses of a tracked operation that are still in progress -> `loading` toast. */
+const IN_PROGRESS_STATUSES = new Set([
+    "started",
+    "start",
+    "queued",
+    "pending",
+    "running",
+    "in_progress",
+    "progress",
+    "stopping_workers",
+    "resetting_db",
+    "restarting_scan",
+    "restoring",
+    "deleting",
+]);
+
+/**
+ * "No auto-dismiss" duration. Not `Infinity`: a toast store built on a plain
+ * `setTimeout(duration)` treats values above 2^31-1 as 0 and would close the
+ * toast immediately. 2^31-1 ms (~24.8 days) is the largest safe timer delay.
+ */
+const PERSISTENT_TOAST_MS = 2_147_483_647;
+
+/** trackId -> ToastId of the core toast currently showing that operation. */
+const _trackedToastIds = new Map<string, any>();
+
+function _toastTitleAndDescription(message: any): { title: string; description: string } {
+    if (message && typeof message === "object") {
+        const summary = String(message.summary || "").trim();
+        const detail = String(message.detail || message.message || "").trim();
+        if (summary) return { title: summary, description: detail };
+        return { title: t("manager.title"), description: detail || serializeToastMessage(message) };
+    }
+    return { title: t("manager.title"), description: serializeToastMessage(message) };
+}
+
+function _historyMeta(opts: Record<string, any> | null | undefined): Record<string, any> {
+    return opts?.history && typeof opts.history === "object" ? opts.history : {};
+}
+
+function _buildToastAction(opts: Record<string, any> | null | undefined): any {
+    const history = _historyMeta(opts);
+    const label = String(history.actionLabel || "").trim();
+    const url = String(history.actionUrl || "").trim();
+    if (!label || !url) return undefined;
+    // Only http(s) links or same-origin absolute paths; never javascript: & co.
+    if (!/^(https?:\/\/|\/(?!\/))/i.test(url)) return undefined;
+    return {
+        label,
+        onClick: () => {
+            try {
+                window.open(url, "_blank", "noopener,noreferrer");
+            } catch (e) {
+                console.debug?.(e);
+            }
+        },
+    };
+}
+
+/**
+ * Emit through ComfyUI's toast manager.
+ *
+ * - Current frontends (ToastManager with `success/error/info/warning/loading`):
+ *   typed API, native action button and, for tracked operations
+ *   (`opts.history.trackId`), the same ToastId reused so each step updates one
+ *   toast in place instead of stacking a new one per step.
+ * - Older frontends: the deprecated `add({severity, summary, detail, life})`.
+ *
+ * @returns true when a core toast was shown.
+ */
+function emitCoreToast(
+    toastApi: any,
+    message: any,
+    type: string,
+    durationMs: number,
+    opts: Record<string, any> | null | undefined,
+): boolean {
+    const { title, description } = _toastTitleAndDescription(message);
+    const history = _historyMeta(opts);
+    const trackId = String(history.trackId || "").trim();
+    const status = String(history.status || "").trim().toLowerCase();
+    const inProgress = !!trackId && IN_PROGRESS_STATUSES.has(status);
+    const method = inProgress ? "loading" : type;
+    const fn =
+        typeof toastApi[method] === "function"
+            ? toastApi[method]
+            : typeof toastApi[type] === "function"
+              ? toastApi[type]
+              : null;
+
+    if (fn) {
+        const options: Record<string, any> = { closable: true };
+        if (description && description !== title) options.description = description;
+        // Persistent = no auto-dismiss; in-progress steps stay until the final step.
+        options.duration = durationMs > 0 && !inProgress ? durationMs : PERSISTENT_TOAST_MS;
+        const action = _buildToastAction(opts);
+        if (action) options.action = action;
+        const previousId = trackId ? _trackedToastIds.get(trackId) : undefined;
+        if (previousId != null) options.id = previousId;
+
+        const id = fn.call(toastApi, title, options);
+        if (trackId) {
+            if (inProgress && id != null) _trackedToastIds.set(trackId, id);
+            else _trackedToastIds.delete(trackId);
+        }
+        return true;
+    }
+
+    if (typeof toastApi.add === "function") {
+        // NOTE: Do NOT set `group` - PrimeVue only shows a toast in the <Toast> component
+        // that matches its group; any other value silently drops the message.
+        const payload: Record<string, any> = {
+            severity: type === "warning" ? "warn" : type,
+            summary: title,
+            detail: description,
+        };
+        if (durationMs > 0) payload.life = durationMs;
+        toastApi.add(payload);
+        return true;
+    }
+    return false;
+}
+
+/** Dismiss every core toast Majoor is currently tracking (e.g. on teardown). */
+export function dismissTrackedToasts(): void {
+    const toastApi = getHostToastApi();
+    for (const id of _trackedToastIds.values()) {
+        try {
+            toastApi?.dismiss?.(id);
+        } catch (e) {
+            console.debug?.(e);
+        }
+    }
+    _trackedToastIds.clear();
 }
 
 /**
@@ -557,5 +655,5 @@ export const __toastTestUtils = {
     buildToastHistoryPayload,
     normalizeToastType,
     serializeToastMessage,
-    _dismissAllFallbackErrorToasts,
+    emitCoreToast,
 };

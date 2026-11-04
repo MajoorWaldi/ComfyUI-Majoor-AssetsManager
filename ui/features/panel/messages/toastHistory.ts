@@ -165,7 +165,7 @@ function _writeLastRead(ts: any) {
  * @param {string} type    - "info" | "success" | "warning" | "error"
  * @param {number} [duration] - Display duration in ms; used to filter ephemeral info toasts.
  */
-export function addToastHistory(message: any, type: string, duration?: number): void {
+export function addToastHistory(message: any, type?: string, duration?: number): void {
     _load();
     const entry =
         message && typeof message === "object"

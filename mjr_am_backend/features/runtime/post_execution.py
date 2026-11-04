@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import os
 from pathlib import Path
 from typing import Any
@@ -12,6 +13,7 @@ from ...adapters.comfy_core import (
     get_prompt_output_files,
     get_temp_directory,
     get_workflow_id_for_prompt,
+    has_prompt_history_entry,
     send_event,
 )
 from ...adapters.core_assets import fetch_by_job_id
@@ -21,6 +23,24 @@ from ..geninfo.parser_impl import parse_geninfo_from_prompt
 from ..index.metadata_helpers import MetadataHelpers
 
 logger = get_logger(__name__)
+
+# ComfyUI calls cache providers' ``on_prompt_end`` from the ``finally`` of
+# ``PromptExecutor.execute()``, i.e. *before* the prompt worker stores the
+# result with ``PromptQueue.task_done()`` (see ComfyUI ``main.py``). Ingestion
+# scheduled from that hook can therefore read history before the entry exists
+# and silently index nothing. Wait for the entry with a short backoff first.
+_HISTORY_WAIT_DELAYS_S: tuple[float, ...] = (0.05, 0.1, 0.2, 0.4, 0.8, 1.6, 3.2)
+
+
+async def _wait_for_history_entry(prompt_id: str) -> bool:
+    if has_prompt_history_entry(prompt_id):
+        return True
+    for delay in _HISTORY_WAIT_DELAYS_S:
+        await asyncio.sleep(delay)
+        if has_prompt_history_entry(prompt_id):
+            return True
+    logger.debug("History entry for prompt_id=%s not available after waiting", prompt_id)
+    return False
 
 
 def _existing_refs(refs: list[PromptOutputFile]) -> list[tuple[Path, PromptOutputFile]]:
@@ -90,6 +110,7 @@ async def ingest_prompt_outputs(index_service: Any, prompt_id: str) -> Result[di
     if not safe_prompt_id:
         return Result.Err("INVALID_INPUT", "prompt_id is required")
 
+    await _wait_for_history_entry(safe_prompt_id)
     refs = _existing_refs(await _collect_prompt_output_files(safe_prompt_id))
     if not refs:
         payload = {"prompt_id": safe_prompt_id, "indexed": 0, "paths": []}

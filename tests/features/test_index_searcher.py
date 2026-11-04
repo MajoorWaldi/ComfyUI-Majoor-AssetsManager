@@ -153,7 +153,7 @@ async def test_ensure_vocab_and_autocomplete_paths():
 def test_validate_paths_and_sanitize():
     s = _mk()
     assert s._validate_search_query("   ").code == "EMPTY_QUERY"
-    assert s._sanitize_fts_query("AND OR") == ""
+    assert s._sanitize_fts_query("AND OR") == "and* or*"
     assert s._is_malformed_match_error("fts5: syntax error") is True
     assert s._build_tags_text_clause() == ""
     s2 = _mk(has_tags=False)

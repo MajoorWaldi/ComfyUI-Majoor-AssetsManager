@@ -17,7 +17,6 @@ describe("settingsViewer categories", () => {
     it("keeps MFV settings in a separate Floating Viewer block", async () => {
         const settings = {
             viewer: {
-                allowPanAtZoom1: true,
                 floatingPauseDuringExecution: true,
                 mfvLiveDefault: true,
                 mfvPreviewDefault: true,
@@ -37,8 +36,6 @@ describe("settingsViewer categories", () => {
             definitions.map((definition) => [definition.id, definition.category?.[1]]),
         );
 
-        expect(categoryById.get("Majoor.Viewer.AllowPanAtZoom1")).toBe("Viewer");
-        expect(categoryById.get("Majoor.Viewer.DisableWebGL")).toBe("Viewer");
         expect(categoryById.get("Majoor.Viewer.PauseDuringExecution")).toBe("Viewer");
         expect(categoryById.get("Majoor.WorkflowMinimap.Enabled")).toBe("Viewer");
 

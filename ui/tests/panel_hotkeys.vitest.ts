@@ -27,7 +27,7 @@ function createWindowStub() {
         dispatchEvent(event) {
             const handlers = Array.from(listeners.get(event?.type) || []);
             for (const handler of handlers) {
-                handler(event);
+                (handler as any)(event);
             }
             return true;
         },
@@ -48,7 +48,7 @@ function createBoundElement() {
         emit(type, event = {}) {
             const handlers = Array.from(listeners.get(type) || []);
             for (const handler of handlers) {
-                handler(event);
+                (handler as any)(event);
             }
         },
         contains(target) {
@@ -72,11 +72,11 @@ function createKeyEvent(key, target = null, extras = {}) {
 }
 
 beforeEach(() => {
-    globalThis.window = createWindowStub();
+    globalThis.window = createWindowStub() as any;
     globalThis.document = {
-        body: { nodeName: "BODY" },
+        body: { nodeName: "BODY" } as any,
         activeElement: null,
-    };
+    } as any;
     panelRuntimeState.activeGrid = null;
     setHotkeysSuspended(false);
     setHotkeysScope(null);
@@ -92,7 +92,7 @@ describe("panelHotkeysController", () => {
         boundEl.emit("mouseenter");
 
         const event = createKeyEvent("v", null, { ctrlKey: true });
-        window.dispatchEvent({ type: "keydown", ...event });
+        window.dispatchEvent({ type: "keydown", ...event } as any);
 
         expect(onToggleFloatingViewer).not.toHaveBeenCalled();
         expect(event.preventDefault).not.toHaveBeenCalled();
@@ -104,14 +104,14 @@ describe("panelHotkeysController", () => {
         const onToggleFloatingViewer = vi.fn();
         const controller = createPanelHotkeysController({ onToggleFloatingViewer });
         const boundEl = createBoundElement();
-        boundEl.isConnected = true;
+        (boundEl as any).isConnected = true;
 
         controller.bind(boundEl);
         boundEl.emit("mouseenter");
-        document.activeElement = document.body;
+        (document as any).activeElement = document.body;
 
         const event = createKeyEvent("v");
-        window.dispatchEvent({ type: "keydown", ...event });
+        window.dispatchEvent({ type: "keydown", ...event } as any);
 
         expect(onToggleFloatingViewer).toHaveBeenCalledTimes(1);
         expect(event.preventDefault).toHaveBeenCalledTimes(1);
@@ -121,13 +121,13 @@ describe("panelHotkeysController", () => {
         const onToggleFloatingViewer = vi.fn();
         const controller = createPanelHotkeysController({ onToggleFloatingViewer });
         const boundEl = createBoundElement();
-        boundEl.isConnected = true;
+        (boundEl as any).isConnected = true;
 
         controller.bind(boundEl);
-        document.activeElement = document.body;
+        (document as any).activeElement = document.body;
 
         const event = createKeyEvent("v");
-        window.dispatchEvent({ type: "keydown", ...event });
+        window.dispatchEvent({ type: "keydown", ...event } as any);
 
         expect(onToggleFloatingViewer).not.toHaveBeenCalled();
         expect(event.preventDefault).not.toHaveBeenCalled();
@@ -148,7 +148,7 @@ describe("panelHotkeysController", () => {
             closest: vi.fn(() => ({ tagName: "INPUT" })),
         };
         const event = createKeyEvent("v", target, { ctrlKey: true });
-        window.dispatchEvent({ type: "keydown", ...event });
+        window.dispatchEvent({ type: "keydown", ...event } as any);
 
         expect(onToggleFloatingViewer).not.toHaveBeenCalled();
         expect(event.preventDefault).not.toHaveBeenCalled();
@@ -163,7 +163,7 @@ describe("panelHotkeysController", () => {
         boundEl.emit("mouseenter");
 
         const event = createKeyEvent("v", null, { ctrlKey: true, shiftKey: true });
-        window.dispatchEvent({ type: "keydown", ...event });
+        window.dispatchEvent({ type: "keydown", ...event } as any);
 
         expect(onToggleFloatingViewer).not.toHaveBeenCalled();
         expect(event.preventDefault).not.toHaveBeenCalled();
@@ -176,15 +176,15 @@ describe("panelHotkeysController", () => {
             contains: vi.fn((target) => target === document.body),
         };
         panelRuntimeState.activeGrid = activeGrid;
-        boundEl.isConnected = true;
+        (boundEl as any).isConnected = true;
 
         controller.bind(boundEl);
-        document.activeElement = document.body;
+        (document as any).activeElement = document.body;
 
         const event = createKeyEvent("ArrowRight", {
             closest: vi.fn(() => activeGrid),
         });
-        window.dispatchEvent({ type: "keydown", ...event });
+        window.dispatchEvent({ type: "keydown", ...event } as any);
 
         expect(event.preventDefault).not.toHaveBeenCalled();
         expect(event.stopPropagation).not.toHaveBeenCalled();

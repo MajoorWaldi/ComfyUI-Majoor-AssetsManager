@@ -33,25 +33,25 @@ async function loadAuth() {
 
 beforeEach(() => {
     vi.resetModules();
-    globalThis.localStorage = makeStorage();
-    globalThis.sessionStorage = makeStorage();
+    globalThis.localStorage = makeStorage() as any;
+    globalThis.sessionStorage = makeStorage() as any;
     globalThis.window = {
         addEventListener: vi.fn(),
         removeEventListener: vi.fn(),
         dispatchEvent: vi.fn(),
-        location: { origin: "http://localhost" },
-    };
+        location: { origin: "http://localhost" } as any,
+    } as any;
     globalThis.CustomEvent = class {
         constructor(type, init) {
-            this.type = type;
-            this.detail = init?.detail;
+            (this as any).type = type;
+            (this as any).detail = init?.detail;
         }
-    };
+    } as any;
     globalThis.fetch = vi.fn(async () => ({
         status: 200,
         headers: { get: (name) => (name === "content-type" ? "application/json" : null) },
         json: async () => ({ ok: true, data: {} }),
-    }));
+    })) as any;
     globalThis.app = { extensionManager: { toast: { add: vi.fn() } } };
 });
 
@@ -145,7 +145,7 @@ describe("ensureWriteAuthToken with force=true clears stale runtime token", () =
                 headers: { get: (name) => (name === "content-type" ? "application/json" : null) },
                 json: async () => ({ ok: true, data: null }),
             };
-        });
+        }) as any;
 
         const { ensureWriteAuthToken, setRuntimeSecurityToken, readAuthToken } = await loadAuth();
         setRuntimeSecurityToken("stale_token");

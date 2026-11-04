@@ -22,16 +22,16 @@ describe("gridDomBridge", () => {
             querySelectorAll: vi.fn((selector) => (selector === ".mjr-asset-card" ? cards : [])),
         };
 
-        expect(readRenderedAssetCards(grid)).toEqual(cards);
-        expect(findSelectedAssetCard(grid)).toBe(selected);
-        expect(findAssetCardById(grid, "asset:1")).toBe(byId);
-        expect(readGridShownCount(grid, 0)).toBe(12);
+        expect(readRenderedAssetCards(grid as any)).toEqual(cards);
+        expect(findSelectedAssetCard(grid as any)).toBe(selected);
+        expect(findAssetCardById(grid as any, "asset:1")).toBe(byId);
+        expect(readGridShownCount(grid as any, 0)).toBe(12);
     });
 
     it("falls back safely when the DOM is unavailable", () => {
         expect(readRenderedAssetCards(null)).toEqual([]);
         expect(findSelectedAssetCard(null)).toBeNull();
         expect(findAssetCardById(null, "a")).toBeNull();
-        expect(readGridShownCount({ dataset: { mjrShown: "NaN" } }, 7)).toBe(7);
+        expect(readGridShownCount({ dataset: { mjrShown: "NaN" } } as any, 7)).toBe(7);
     });
 });

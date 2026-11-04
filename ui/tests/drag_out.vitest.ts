@@ -46,9 +46,9 @@ describe("drag-out to OS", () => {
             { id: "a", filename: "one.png", subfolder: "", type: "output" },
             { id: "b", filename: "two.png", subfolder: "set", type: "output" },
         ];
-        container.dataset.mjrSelectedAssetIds = JSON.stringify(["a", "b"]);
+        (container.dataset as any).mjrSelectedAssetIds = JSON.stringify(["a", "b"]);
         container._mjrGetAssets = () => assets;
-        card.dataset.mjrAssetId = "a";
+        (card.dataset as any).mjrAssetId = "a";
         const dt = makeDataTransfer();
 
         applyDragOutToOS({
@@ -147,9 +147,9 @@ describe("drag-out to OS", () => {
         const container = { dataset: {}, _mjrGetAssets: null };
         const card = { dataset: {} };
         const asset = { id: "a", filename: "one.png", type: "output" };
-        container.dataset.mjrSelectedAssetIds = JSON.stringify(["b", "c"]);
+        (container.dataset as any).mjrSelectedAssetIds = JSON.stringify(["b", "c"]);
         container._mjrGetAssets = () => [asset];
-        card.dataset.mjrAssetId = "a";
+        (card.dataset as any).mjrAssetId = "a";
         const dt = makeDataTransfer();
 
         applyDragOutToOS({

@@ -43,6 +43,7 @@ from mjr_am_backend.features.watcher_settings import (  # noqa: F401 — exposed
     get_watcher_settings,
     update_watcher_settings,
 )
+from mjr_am_backend.request_keys import REQUEST_STATS_KEY
 from mjr_am_backend.shared import Result, get_logger, sanitize_error_message
 from mjr_am_backend.utils import parse_bool, sanitize_for_json
 
@@ -373,7 +374,7 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
                 merged = all_scope_result.data or {}
                 try:
                     if isinstance(merged, dict):
-                        request["mjr_stats"] = {
+                        request[REQUEST_STATS_KEY] = {
                             "scanned": merged.get("scanned", 0),
                             "added": merged.get("added", 0),
                             "updated": merged.get("updated", 0),
@@ -472,7 +473,7 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
                 return _json_response(Result.Err("TIMEOUT", "Scan timed out"))
             try:
                 if result.ok and isinstance(result.data, dict):
-                    request["mjr_stats"] = {
+                    request[REQUEST_STATS_KEY] = {
                         "scanned": result.data.get("scanned", 0),
                         "added": result.data.get("added", 0),
                         "updated": result.data.get("updated", 0),
@@ -1246,7 +1247,7 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
 
 
         try:
-            request["mjr_stats"] = {
+            request[REQUEST_STATS_KEY] = {
                 "scanned": total_stats.get("scanned", 0),
                 "added": total_stats.get("added", 0),
                 "updated": total_stats.get("updated", 0),

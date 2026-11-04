@@ -26,28 +26,28 @@ describe("api client security headers", () => {
 
     beforeEach(async () => {
         vi.resetModules();
-        globalThis.localStorage = makeStorage();
-        globalThis.sessionStorage = makeStorage();
+        globalThis.localStorage = makeStorage() as any;
+        globalThis.sessionStorage = makeStorage() as any;
         const toastAdd = vi.fn();
         globalThis.app = { ui: {}, extensionManager: { toast: { add: toastAdd } } };
         globalThis.window = {
             addEventListener: vi.fn(),
             removeEventListener: vi.fn(),
             dispatchEvent: vi.fn(),
-            location: { origin: "http://localhost" },
+            location: { origin: "http://localhost" } as any,
             app: globalThis.app,
-        };
+        } as any;
         globalThis.CustomEvent = class {
             constructor(type, init) {
-                this.type = type;
-                this.detail = init?.detail;
+                (this as any).type = type;
+                (this as any).detail = init?.detail;
             }
-        };
+        } as any;
         globalThis.fetch = vi.fn(async () => ({
             status: 200,
             headers: { get: (name) => (name === "content-type" ? "application/json" : null) },
             json: async () => ({ ok: true, data: {} }),
-        }));
+        })) as any;
         client = await import("../api/client.js");
     });
 
@@ -59,7 +59,7 @@ describe("api client security headers", () => {
         await client.post("/mjr/am/test", { foo: 1 });
 
         // POST may trigger an auth bootstrap fetch before the actual request
-        const calls = globalThis.fetch.mock.calls;
+        const calls = (globalThis.fetch as any).mock.calls;
         const postCall = calls.find(([, opts]) => (opts?.method || "").toUpperCase() === "POST");
         expect(postCall).toBeTruthy();
         const xrw = readHeader(postCall[1].headers, "X-Requested-With");
@@ -70,7 +70,7 @@ describe("api client security headers", () => {
         await client.get("/mjr/am/test");
 
         expect(globalThis.fetch).toHaveBeenCalledTimes(1);
-        const [, callOptions] = globalThis.fetch.mock.calls[0];
+        const [, callOptions] = (globalThis.fetch as any).mock.calls[0];
         const xrw = readHeader(callOptions.headers, "X-Requested-With");
         expect(xrw).toBeNull();
     });
@@ -82,7 +82,7 @@ describe("api client security headers", () => {
         await client.post("/mjr/am/test", {});
 
         expect(globalThis.fetch).toHaveBeenCalledTimes(1);
-        const [, callOptions] = globalThis.fetch.mock.calls[0];
+        const [, callOptions] = (globalThis.fetch as any).mock.calls[0];
         const mjrToken = readHeader(callOptions.headers, "X-MJR-Token");
         const authHeader = readHeader(callOptions.headers, "Authorization");
         expect(mjrToken).toBe(token);
@@ -95,7 +95,7 @@ describe("api client security headers", () => {
 
         await client.post("/mjr/am/test", {});
 
-        const [, callOptions] = globalThis.fetch.mock.calls[0];
+        const [, callOptions] = (globalThis.fetch as any).mock.calls[0];
         const cookie = readHeader(callOptions.headers, "Cookie");
         expect(cookie).toBeNull();
     });
@@ -106,7 +106,7 @@ describe("api client security headers", () => {
 
         await client.get("/mjr/am/assets?page=1");
 
-        const [callUrl] = globalThis.fetch.mock.calls[0];
+        const [callUrl] = (globalThis.fetch as any).mock.calls[0];
         expect(String(callUrl)).not.toContain(token);
     });
 });
