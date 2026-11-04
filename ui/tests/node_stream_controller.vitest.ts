@@ -3,9 +3,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 beforeEach(() => {
     vi.resetModules();
     vi.useFakeTimers();
-    globalThis.window = {
-        location: { href: "http://localhost/" },
-    };
+    globalThis.window = ({
+        location: ({ href: "http://localhost/" } as any),
+    } as any);
 });
 
 afterEach(() => {
@@ -126,12 +126,12 @@ describe("NodeStreamController", () => {
 
     it("streams the ImageOps preview canvas as a cached data URL and re-emits only on signature change", async () => {
         class MockCanvas {}
-        globalThis.HTMLCanvasElement = MockCanvas;
+        globalThis.HTMLCanvasElement = (MockCanvas as any);
 
         const canvas = new MockCanvas();
-        canvas.width = 320;
-        canvas.height = 180;
-        canvas.toDataURL = vi.fn(() => "data:image/png;base64,preview");
+        (canvas as any).width = 320;
+        (canvas as any).height = 180;
+        (canvas as any).toDataURL = vi.fn(() => "data:image/png;base64,preview");
 
         const onOutput = vi.fn();
         const node = {
@@ -170,19 +170,19 @@ describe("NodeStreamController", () => {
                 _source: "imageops-live-preview",
             }),
         );
-        expect(canvas.toDataURL).toHaveBeenCalledTimes(1);
+        expect((canvas as any).toDataURL).toHaveBeenCalledTimes(1);
 
         // Same signature → no re-emit and no re-encode.
         onOutput.mockClear();
         await vi.advanceTimersByTimeAsync(250);
         expect(onOutput).not.toHaveBeenCalled();
-        expect(canvas.toDataURL).toHaveBeenCalledTimes(1);
+        expect((canvas as any).toDataURL).toHaveBeenCalledTimes(1);
 
         // Signature changes → emit + encode again.
         node.__imageops_state.lastKey = "render-b";
         await vi.advanceTimersByTimeAsync(250);
         expect(onOutput).toHaveBeenCalledTimes(1);
-        expect(canvas.toDataURL).toHaveBeenCalledTimes(2);
+        expect((canvas as any).toDataURL).toHaveBeenCalledTimes(2);
 
         mod.teardownNodeStream(app);
     });
@@ -228,7 +228,7 @@ describe("NodeStreamController", () => {
         mod.setNodeStreamActive(true);
         await vi.advanceTimersByTimeAsync(200);
 
-        app.canvas.selected_nodes = {};
+        app.canvas.selected_nodes = ({} as any);
         await vi.advanceTimersByTimeAsync(200);
 
         expect(onStatus).toHaveBeenLastCalledWith("", "");

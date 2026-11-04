@@ -241,7 +241,7 @@ describe("hide siblings", () => {
         expect(state.hiddenPngSiblings).toBe(1);
         expect(state.assets.map((asset) => asset.filename)).toEqual(["clip.mp4"]);
         expect(virtualGrid.items.map((asset) => asset.filename)).toEqual(["clip.mp4"]);
-        expect(gridContainer.dataset.mjrHiddenPngSiblings).toBe("1");
+        expect((gridContainer.dataset as any).mjrHiddenPngSiblings).toBe("1");
     });
 
     it("does not leak a png when the png arrives before its webp sibling in the same batch", () => {
@@ -287,7 +287,7 @@ describe("hide siblings", () => {
         expect(state.hiddenPngSiblings).toBe(1);
         expect(state.assets.map((asset) => asset.filename)).toEqual(["clip.webp"]);
         expect(virtualGrid.items.map((asset) => asset.filename)).toEqual(["clip.webp"]);
-        expect(gridContainer.dataset.mjrHiddenPngSiblings).toBe("1");
+        expect((gridContainer.dataset as any).mjrHiddenPngSiblings).toBe("1");
     });
 
     it("rebuilds hidden sibling indexes from preserved visible assets", () => {
@@ -337,6 +337,6 @@ describe("hide siblings", () => {
         expect(added).toBe(0);
         expect(state.assets.map((asset) => asset.filename)).toEqual(["clip.mp4"]);
         expect(state.hiddenPngSiblings).toBe(3);
-        expect(gridContainer.dataset.mjrHiddenPngSiblings).toBe("3");
+        expect((gridContainer.dataset as any).mjrHiddenPngSiblings).toBe("3");
     });
 });

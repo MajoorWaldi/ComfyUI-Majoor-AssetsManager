@@ -31,6 +31,66 @@ All notable changes to this project are documented in this file.
 ### Fixed
 - **`mjr_am_backend.adapters.tools` missing from Registry installs**: `.comfyignore`'s unanchored `tools/` pattern also matched `mjr_am_backend/adapters/tools/`, stripping the ExifTool/FFProbe adapters out of every Registry-published package and causing `ModuleNotFoundError: No module named 'mjr_am_backend.adapters.tools'` at startup. The pattern is now anchored to the repo-root `/tools/` dev-scripts folder only.
 
+### New Features (viewer)
+- **Studio viewer (new default main viewer)**: a simpler, modern viewer for reviewing generations — header with navigation and file summary, zoom/pan image stage with transparency checkerboard, a new video/audio player (frame stepping, frame counter, A-B loop, speed, volume, fullscreen, save frame as PNG, auto-hiding controls), an inspector with rating, tags and the same Generation / Workflow / File data as the asset sidebar, and a filmstrip. Keyboard-first (see the viewer tutorial). *Viewer → Use the classic viewer* switches back entirely.
+
+- **Floating viewer: Studio player and refreshed look**: in Simple mode, video and audio now play in the Studio player (compact, width-aware controls; same frame stepping, A-B loop, speed, volume, fullscreen and frame export as the main viewer), keeping the floating viewer's keyboard forwarding, mute/speed persistence and media release. The floating window gets the Studio styling (flat buttons that light up on hover or when active, softer window chrome, neutral stage). Compare modes keep their synchronised players; *Use the classic viewer* also restores the legacy floating player.
+
+- **Studio viewer: every tool of the classic viewer, as a HUD**: a tool rail on the left of the stage brings channels (R/G/B/alpha/luma), exposure and gamma, zebra, histogram / waveform scopes, composition guides (thirds, golden, centre, safe areas), aspect-ratio masks, pixel probe, loupe, copy to clipboard and A/B compare (wipe ↔/↕, side by side, difference, add, subtract, multiply, screen) with B selection, pin and swap. Colour tools run on the GPU and work on playing video; video compare keeps both players in sync. 3D models and the grid's A/B / side-by-side actions now open in the Studio viewer too, and audio files show a live spectrum. New shortcuts: `C`, `B`, `X`, `Z`, `S`, `G`, `P`, `L`, `R`, `Ctrl+C`.
+
+### Removed
+- **Classic viewer**: the Studio viewer is now the only main viewer. The classic overlay (toolbar, panzoom, A/B and side-by-side engine, scopes, loupe, probe, grading pipeline, WebGL video processor, filmstrip and its context menu) and about 20 000 lines of code, styles and tests are gone. Everything it did is in the Studio viewer's tool rail; the grid's A/B / side-by-side actions open the Studio viewer with that compare mode on.
+- **Viewer settings**: *Use the classic viewer*, *Pan without zoom* and *Disable WebGL video* (classic-only) are removed, with the internal `videoGradeThrottleFps`, `scopesFps`, `metaTtlMs` and `metaMaxEntries` options. Existing values in saved settings are simply ignored.
+- The unused *viewerbar* variant of the legacy video controls (the floating viewer's compare modes keep the regular variant).
+
+### Changed
+- **Floating viewer: one player everywhere**: A/B, side-by-side and grid compare now also use the Studio player for the primary video / audio (the other slots stay bare, synced elements). The legacy video controls (in/out, Nuke-style bar, ~2 000 lines, their styles and tests) are gone; the asset sidebar keeps its small preview controls. GIF / animated WebP keep their own simple player.
+
+### Fixed (follow-ups)
+- **Floating viewer compare modes ignored the Studio player's video**: zoom, pan, exposure / channel tone and the overlay guides only addressed bare media elements, so in A/B, side-by-side and grid the primary video (the Studio player) stayed untouched while the other slots changed. The player's video now takes part in all of them.
+- **Floating viewer A/B divider drew over the player controls**: it now stops above the control bar (and extends fully again when the controls auto-hide).
+- **Studio compare of different sizes**: B keeps its own aspect ratio instead of being stretched to A's frame (wipe, blend and side by side).
+- **Floating viewer topbar button position**: the *Viewer* button sometimes landed at the far end of the actionbar after reloading the interface. The Run group is rendered asynchronously inside the actionbar and its late arrival was never observed; the button now re-anchors next to Run as soon as it appears.
+- **Floating viewer A/B hid the player**: with the Studio player on A, the B layer covered the right half of its controls. A now sits on top and only its picture is clipped at the divider, so the controls stay visible and usable everywhere.
+- **Light dismiss in the Studio viewer**: clicking the empty area around the image or video (not the picture, a tool, the inspector or the player bar) closes the viewer again, as the classic viewer did. Dragging to pan never closes it.
+- **Grid selection after closing the viewer**: the Studio viewer now tells the grid which asset you ended on (selection, scroll and focus), as the classic viewer did.
+- **Studio viewer shortcuts after navigating**: moving to another asset focused the tag field, so the next shortcuts were typed into it. The inspector's tag editor no longer grabs focus.
+- **Search by part of a file name**: typing `F` (or `flow`) only found names with a *word starting* with it (`Flux…`, `field…`), never `sunflower.png` or `ComfyUI_…`. Single-word searches now also list file names that contain the text (ranked after word matches); `_` and `%` are matched literally. Multi-word and quoted searches are unchanged.
+- **Sidecar JSON added after a file was indexed** is now picked up: the watcher maps a new/changed `<file>.json` / `<stem>.json` to its media, invalidates that file's metadata cache and scan journal, and forces a re-extraction (a non-incremental re-index no longer trusts an existing metadata row when the cache was invalidated).
+- **Duplicate index rows for one file (Windows)**: rows whose paths differ only by case or separator (left by older versions) are merged at startup, keeping the highest rating, all tags, the stack cover, execution ids and the embedding.
+- **Generated feed** drops items deleted from the UI or removed on disk.
+- **Floating viewer shortcuts** (`v`, `k`, `l`, `c`) only act when the pointer or focus is in the viewer (or from its pop-out), instead of swallowing those keys page-wide while it is open.
+- Types now come from `@comfyorg/comfyui-frontend-types` (dropped the separate `@comfyorg/litegraph` package); removed 5 dead frontend files; fixed an order-dependent backend test that leaked an input-directory override.
+
+### Fixed (search, JSON, viewers)
+- **Search errors while typing**: queries such as `at-7`, `(2)`, `AND`, `NOT x`, a single letter or a lone `"` returned "Invalid search query syntax" because every token was filtered out (stopword, 1-char, operator word) and an empty FTS `MATCH` was sent. Search now falls back to the raw words, treats punctuation-only input as browse-all, and keeps non-Latin scripts (Cyrillic, CJK...) that were stripped before; only Latin accents are folded, matching the FTS5 tokenizer.
+- **Sidecar JSON for images, videos and audio**: `<file>.<ext>.json` or `<stem>.json` next to a media file now provides its workflow / prompt / generation data when nothing is embedded (previously 3D models only). Embedded metadata always wins; UTF-8 BOM is accepted.
+- **Workflow tab listed non-workflows and version snapshots**: every `*.json` under a workflow root became a card, including `.history/<name>/<stamp>.json` version snapshots and arbitrary JSON (settings, node configs). Hidden folders are skipped and only UI graph exports, API prompt graphs and `{workflow}`/`{prompt}` wrappers are listed (`workflow_format`: `ui`/`api`). BOM-prefixed workflows are no longer silently dropped; stale rows are purged (workflow index version 5).
+- **API-format workflows opened as an empty canvas**: they are now loaded with ComfyUI's `app.loadApiJson`; `{workflow: ...}` exports are unwrapped.
+- **Floating viewer leaked media players**: re-rendering (every generation in Live mode) and disposing only paused videos before detaching them; Chromium caps live media players, so videos could stop playing. Media is now released (src, `<source>`, `load()`), as the main viewer already did.
+
+### Fixed (duplicate stacks)
+- **Clicking a duplicate-stack badge froze ComfyUI**: three passes (`displayAssets`, the per-card ref callback `syncRenderedDuplicateCards`, the live-upsert dedupe) each rewrote `_mjrDupStack` / `_mjrDupMembers` on reactive assets read by the grid template, with a fresh array on every pass and conflicting representatives. The ref callback ran on every render (a new closure each time), so every write scheduled another render: an endless update loop (production Vue has no recursion limit). Duplicate stacks are now computed in one place with change-guarded writes, card refs are stable, and the other passes no longer touch these fields.
+- **"Corrupted" duplicate stacks**: stacks were also built from the file name alone across folders, so unrelated files sharing a name (e.g. frame grabs `at-7.958s.png` from different videos) were stacked, hidden from the grid and given another file's generation time. A duplicate is now the same name in the same source/root/subfolder only.
+- **Duplicates view collapsed back to one card**: the "Duplicates - N copies" view re-grouped its own members; it now lists every copy, using cycle-free copies of the members.
+
+### Fixed (asset sync)
+- **Renamed / moved files lost their ratings, tags and collections**: the `assets_fts` triggers ran a plain `UPDATE`/`DELETE` on an external-content FTS5 table, so every filename/subfolder change failed with "database disk image is malformed" (and could start a needless DB recovery). The watcher then fell back to delete + re-index, creating a new asset id. Triggers now use FTS5's `'delete'` command (update trigger limited to `filename, subfolder`); existing databases are repaired and the FTS index rebuilt automatically at startup.
+- **Outputs missed after a generation**: ComfyUI calls `on_prompt_end` before it stores the prompt history, so post-execution ingestion could read an empty history and index nothing (prompts queued from the API, another tab or another device). Ingestion now waits briefly for the history entry.
+- **Scan prune could wipe user data**: a stat error (offline share, permission hiccup) counted as "file deleted". Like ComfyUI core's reconciler, only a confirmed absence removes an asset, and an unreadable scan root is never pruned. The `pruned` count no longer includes cascade/trigger rows.
+- **Stale cards after external deletes/moves**: files removed or moved outside Majoor (watcher, scan prune) now emit `mjr-assets-removed` / `mjr-asset-updated`, so open grids update in place.
+- **Background scans never refreshed the grid**: `mjr-scan-complete` now carries `origin` and `needs_refresh`; the grid reloads once when live events could not cover the change, and a finished directory scan shows one ComfyUI core toast ("N new, M removed"). Per-generation index runs stay silent (live cards + sidebar badge).
+
+### Changed (ComfyUI integration)
+- **Compat assets API moved to `/mjr/am/compat/assets/*`**: the read-only OpenAPI-aligned surface no longer squats ComfyUI core's `/api` namespace. The old `/api/v2/assets/*` paths are only registered when `MJR_AM_LEGACY_API_V2_ASSETS=1` (deprecated).
+- **Python 3.14**: `requires-python` is now `>=3.10, <3.15`; CI runs the full suite on 3.14.
+- **Execution tracking without wrapping `api.queuePrompt`**: the floating viewer progress reads the running prompt from ComfyUI's Jobs API (`GET /api/jobs/{id}`), then `/queue` and `/history/{id}` on older cores, driven by websocket events. No more conflicts with other extensions that wrap `queuePrompt`.
+- **Optional: hide ComfyUI's native Assets tab** (`Majoor.Integration.HideNativeAssetsTab`, off by default). Uses the official `getSidebarTabs`/`unregisterSidebarTab` API and restores the tab when turned off.
+- **Workflow serialization** uses the root graph instead of the async `graphToPrompt()`; dirty state reads the frontend workflow store.
+- **Typed aiohttp request keys** (`web.RequestKey`) — no more `NotAppKeyWarning` on aiohttp ≥ 3.13.
+- **Notifications on ComfyUI core toasts only**: Majoor now uses the typed ToastManager API (`success/error/info/warning/loading`) instead of the deprecated `add()` (kept as fallback for older frontends). Long operations (DB restore/reset, vector backfill) show one `loading` toast updated in place instead of stacking a toast per step; links become native toast action buttons; in-progress toasts are dismissed on teardown. Toasts no longer disappear if ComfyUI removes `add()`. The Majoor message center stays as a read-only history (release notes, toast log, shortcuts) and no longer pops open by itself.
+- **Frontend test typing**: `tsconfig.test.json` now type-checks with 0 errors (was 913) and runs in CI.
+
 ## [2.5.2] - 2026-09-27
 
 ### Changed

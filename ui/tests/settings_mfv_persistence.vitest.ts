@@ -50,12 +50,12 @@ describe("MFV settings persistence", () => {
     beforeEach(() => {
         vi.resetModules();
         globalThis.window = {
-            localStorage: createStorage(),
+            localStorage: createStorage() as any,
             addEventListener: vi.fn(),
-        };
+        } as any;
         globalThis.document = {
-            querySelectorAll: vi.fn(() => []),
-        };
+            querySelectorAll: vi.fn(() => []) as any,
+        } as any;
     });
 
     it("persists MFV stream and KJNodes preview defaults across reload-style reads", async () => {

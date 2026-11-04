@@ -6,6 +6,7 @@ from contextvars import ContextVar, Token
 from typing import Any
 
 from aiohttp import web
+from mjr_am_backend.request_keys import REQUEST_USER_ID_KEY
 from mjr_am_backend.shared import Result, get_logger
 
 logger = get_logger(__name__)
@@ -115,7 +116,7 @@ def _get_request_user_id(request: web.Request | None) -> str:
     if request is None:
         return ""
     try:
-        stored = str(request.get("mjr_user_id") or "").strip()
+        stored = str(request.get(REQUEST_USER_ID_KEY) or "").strip()
         if stored:
             return stored
     except Exception:

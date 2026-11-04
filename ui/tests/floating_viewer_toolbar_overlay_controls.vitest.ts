@@ -32,11 +32,11 @@ vi.mock("../features/viewer/nodeStream/nodeStreamFeatureFlag.js", () => ({
 vi.mock("../features/viewer/workflowSidebar/WorkflowSidebar.js", () => ({
     WorkflowSidebar: class {
         constructor() {
-            this.el = document.createElement("div");
-            this.isVisible = false;
+            (this as any).el = document.createElement("div");
+            (this as any).isVisible = false;
         }
         toggle() {
-            this.isVisible = !this.isVisible;
+            (this as any).isVisible = !(this as any).isVisible;
         }
     },
 }));
@@ -86,16 +86,16 @@ describe("floating viewer toolbar overlay controls", () => {
 
         expect(bar.querySelector(".mjr-mfv-guides-trigger")).toBeTruthy();
         expect(bar.querySelector(".mjr-mfv-ch-trigger")).toBeTruthy();
-        expect(viewer._guidesSelect).toBeTruthy();
-        expect(viewer._channelSelect).toBeTruthy();
-        expect(viewer._exposureCtl?.input).toBeTruthy();
-        expect(viewer._formatSelect).toBeTruthy();
-        expect(viewer._formatToggle).toBeTruthy();
-        expect(viewer._maskOpacityCtl?.input).toBeTruthy();
-        expect(viewer._guidesSelect.value).toBe("0");
-        expect(viewer._channelSelect.value).toBe("rgb");
+        expect((viewer as any)._guidesSelect).toBeTruthy();
+        expect((viewer as any)._channelSelect).toBeTruthy();
+        expect((viewer as any)._exposureCtl?.input).toBeTruthy();
+        expect((viewer as any)._formatSelect).toBeTruthy();
+        expect((viewer as any)._formatToggle).toBeTruthy();
+        expect((viewer as any)._maskOpacityCtl?.input).toBeTruthy();
+        expect((viewer as any)._guidesSelect.value).toBe("0");
+        expect((viewer as any)._channelSelect.value).toBe("rgb");
         // When _overlayMaskEnabled is false, format initialises to "off"
-        expect(viewer._formatSelect.value).toBe("off");
+        expect((viewer as any)._formatSelect.value).toBe("off");
     });
 
     it("renders a Majoor settings shortcut beside the MFV stop controls", async () => {

@@ -17,16 +17,16 @@ vi.mock("../app/i18n.js", () => ({
 
 class MemoryStorage {
     constructor() {
-        this.store = new Map();
+        (this as any).store = new Map();
     }
     getItem(key) {
-        return this.store.has(key) ? this.store.get(key) : null;
+        return (this as any).store.has(key) ? (this as any).store.get(key) : null;
     }
     setItem(key, value) {
-        this.store.set(key, String(value));
+        (this as any).store.set(key, String(value));
     }
     clear() {
-        this.store.clear();
+        (this as any).store.clear();
     }
 }
 
@@ -97,10 +97,10 @@ function installRuntimeGlobals() {
     const elementsById = new Map();
 
     globalThis.document = {
-        body,
-        createElement: vi.fn((tag) => createElement(tag)),
+        body: body as any,
+        createElement: vi.fn((tag) => createElement(tag)) as any,
         getElementById: vi.fn((id) => elementsById.get(id) || null),
-    };
+    } as any;
 
     const originalAppend = body.appendChild.bind(body);
     body.appendChild = (child) => {
@@ -110,16 +110,16 @@ function installRuntimeGlobals() {
         return appended;
     };
 
-    globalThis.window = new EventTarget();
-    globalThis.localStorage = new MemoryStorage();
+    globalThis.window = new EventTarget() as any;
+    globalThis.localStorage = new MemoryStorage() as any;
     globalThis.CustomEvent = class CustomEvent extends Event {
         constructor(type, init = {}) {
             super(type);
-            this.detail = init.detail;
+            (this as any).detail = (init as any).detail;
         }
-    };
+    } as any;
     globalThis.requestAnimationFrame = (cb) => {
-        cb();
+        (cb as any)();
         return 1;
     };
 }
@@ -269,5 +269,86 @@ describe("toast", () => {
             type: "success",
         });
         expect(document.getElementById("mjr-toast-container")).toBeNull();
+    });
+    it("uses the typed ToastManager API on current frontends", async () => {
+        const api = { success: vi.fn(() => 1), add: vi.fn() };
+        getExtensionToastApi.mockReturnValue(api as any);
+        const { toastModule } = await loadToastModules();
+
+        toastModule.comfyToast({ summary: "Saved", detail: "3 files" }, "success", 1500);
+
+        expect(api.success).toHaveBeenCalledWith(
+            "Saved",
+            expect.objectContaining({ description: "3 files", duration: 1500, closable: true }),
+        );
+        expect(api.add).not.toHaveBeenCalled();
+    });
+
+    it("updates one loading toast in place for a tracked operation", async () => {
+        let next = 40;
+        const api = {
+            loading: vi.fn(() => next++),
+            success: vi.fn(() => next++),
+            info: vi.fn(),
+        };
+        getExtensionToastApi.mockReturnValue(api as any);
+        const { toastModule } = await loadToastModules();
+        const track = (status: string) => ({
+            history: { trackId: "maintenance:db_restore", status, title: "DB" },
+        });
+
+        toastModule.comfyToast("Restoring", "info", 0, track("started"));
+        toastModule.comfyToast("Still restoring", "info", 0, track("running"));
+        toastModule.comfyToast("Restored", "success", 2000, track("done"));
+
+        expect(api.loading).toHaveBeenCalledTimes(2);
+        expect((api.loading.mock.calls as any)[1][1].id).toBe(40);
+        expect((api.success.mock.calls as any)[0][1]).toMatchObject({ id: 41, duration: 2000 });
+        expect(api.info).not.toHaveBeenCalled();
+
+        // Finished: a new run of the same operation starts a fresh toast.
+        toastModule.comfyToast("Restoring again", "info", 0, track("started"));
+        expect((api.loading.mock.calls as any)[2][1].id).toBeUndefined();
+    });
+
+    it("never auto-dismisses persistent toasts with an unsafe timer value", async () => {
+        const api = { error: vi.fn() };
+        getExtensionToastApi.mockReturnValue(api as any);
+        const { toastModule } = await loadToastModules();
+
+        toastModule.comfyToast("Broken", "error", 0);
+
+        const duration = (api.error.mock.calls as any)[0][1].duration;
+        expect(Number.isFinite(duration)).toBe(true);
+        expect(duration).toBeLessThanOrEqual(2 ** 31 - 1);
+    });
+
+    it("adds a native action button only for safe links", async () => {
+        const api = { info: vi.fn() };
+        getExtensionToastApi.mockReturnValue(api as any);
+        const { toastModule } = await loadToastModules();
+
+        toastModule.comfyToast("Guide", "info", 3000, {
+            history: { actionLabel: "Open", actionUrl: "/mjr/am/user-guide" },
+        });
+        toastModule.comfyToast("Bad", "info", 3000, {
+            history: { actionLabel: "Open", actionUrl: "javascript:alert(1)" },
+        });
+
+        expect((api.info.mock.calls as any)[0][1].action).toMatchObject({ label: "Open" });
+        expect((api.info.mock.calls as any)[1][1].action).toBeUndefined();
+    });
+
+    it("dismisses tracked in-progress toasts on teardown", async () => {
+        const api = { loading: vi.fn(() => 7), dismiss: vi.fn() };
+        getExtensionToastApi.mockReturnValue(api as any);
+        const { toastModule } = await loadToastModules();
+
+        toastModule.comfyToast("Working", "info", 0, {
+            history: { trackId: "vector-backfill:x", status: "running" },
+        });
+        toastModule.dismissTrackedToasts();
+
+        expect(api.dismiss).toHaveBeenCalledWith(7);
     });
 });

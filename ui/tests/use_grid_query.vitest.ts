@@ -112,8 +112,8 @@ describe("useGridQuery helpers", () => {
         };
 
         expect(readGridQueryFromElement(element)).toMatchObject({ q: "fox", sort: "name_desc" });
-        expect(readGridQueryText(element, "*")).toBe("fox");
-        expect(readGridSortKey(element, "mtime_desc")).toBe("name_desc");
+        expect(readGridQueryText((element as any), "*")).toBe("fox");
+        expect(readGridSortKey((element as any), "mtime_desc")).toBe("name_desc");
         expect(readGridQueryText(null, "fallback")).toBe("fallback");
     });
 

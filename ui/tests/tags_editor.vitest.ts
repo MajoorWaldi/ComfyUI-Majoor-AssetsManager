@@ -35,50 +35,50 @@ vi.mock("../utils/events.js", () => ({
 
 class ElementStub {
     constructor(tagName) {
-        this.tagName = String(tagName || "").toUpperCase();
-        this.children = [];
-        this.parentNode = null;
-        this.className = "";
-        this.style = {};
-        this.attributes = new Map();
-        this.listeners = new Map();
-        this.textContent = "";
-        this.value = "";
-        this.type = "";
-        this.placeholder = "";
-        this.disabled = false;
-        this.dataset = {};
-        this.isConnected = true;
+        (this as any).tagName = String(tagName || "").toUpperCase();
+        (this as any).children = [];
+        (this as any).parentNode = null;
+        (this as any).className = "";
+        (this as any).style = {};
+        (this as any).attributes = new Map();
+        (this as any).listeners = new Map();
+        (this as any).textContent = "";
+        (this as any).value = "";
+        (this as any).type = "";
+        (this as any).placeholder = "";
+        (this as any).disabled = false;
+        (this as any).dataset = {};
+        (this as any).isConnected = true;
     }
 
     appendChild(child) {
         child.parentNode = this;
-        this.children.push(child);
+        (this as any).children.push(child);
         return child;
     }
 
     removeChild(child) {
-        const index = this.children.indexOf(child);
+        const index = (this as any).children.indexOf(child);
         if (index >= 0) {
-            this.children.splice(index, 1);
+            (this as any).children.splice(index, 1);
             child.parentNode = null;
         }
         return child;
     }
 
     setAttribute(name, value) {
-        this.attributes.set(String(name), String(value));
+        (this as any).attributes.set(String(name), String(value));
     }
 
     getAttribute(name) {
-        return this.attributes.get(String(name));
+        return (this as any).attributes.get(String(name));
     }
 
     addEventListener(type, handler) {
         const key = String(type);
-        const handlers = this.listeners.get(key) || [];
+        const handlers = (this as any).listeners.get(key) || [];
         handlers.push(handler);
-        this.listeners.set(key, handlers);
+        (this as any).listeners.set(key, handlers);
     }
 
     dispatchEvent(event) {
@@ -94,7 +94,7 @@ class ElementStub {
             });
         payload.stopPropagation = payload.stopPropagation || (() => {});
 
-        for (const handler of this.listeners.get(payload.type) || []) {
+        for (const handler of (this as any).listeners.get(payload.type) || []) {
             handler(payload);
         }
         return !payload.defaultPrevented;
@@ -122,7 +122,7 @@ class ElementStub {
     }
 
     set innerHTML(_value) {
-        this.children = [];
+        (this as any).children = [];
     }
 }
 
@@ -161,8 +161,8 @@ describe("TagsEditor", () => {
         eventsMock.safeDispatchCustomEvent.mockReset();
 
         globalThis.document = {
-            createElement: vi.fn((tagName) => new ElementStub(tagName)),
-        };
+            createElement: vi.fn((tagName) => new ElementStub(tagName)) as any,
+        } as any;
     });
 
     afterEach(() => {
@@ -179,7 +179,7 @@ describe("TagsEditor", () => {
         expect(asset.tags).toEqual(["Cat", "Dog"]);
         expect(editor.querySelectorAll(".mjr-tag-chip")).toHaveLength(2);
 
-        editor._mjrSetTags(["Bird", "bird", "Cat"]);
+        (editor as any)._mjrSetTags(["Bird", "bird", "Cat"]);
 
         expect(asset.tags).toEqual(["Bird", "Cat"]);
         expect(editor.querySelectorAll(".mjr-tag-chip")).toHaveLength(2);
@@ -198,8 +198,8 @@ describe("TagsEditor", () => {
         const editor = createTagsEditor(asset, onUpdate);
         const input = editor.querySelector(".mjr-tag-input");
 
-        input.value = "dog";
-        input.dispatchEvent({ type: "keydown", key: "Enter" });
+        (input as any).value = "dog";
+        input.dispatchEvent({ type: "keydown", key: "Enter" } as any);
         await flushPromises();
 
         expect(apiMock.updateAssetTags).toHaveBeenCalledTimes(1);
@@ -212,8 +212,8 @@ describe("TagsEditor", () => {
             { warnPrefix: "[TagsEditor]" },
         );
 
-        input.value = "DOG";
-        input.dispatchEvent({ type: "keydown", key: "Enter" });
+        (input as any).value = "DOG";
+        input.dispatchEvent({ type: "keydown", key: "Enter" } as any);
         await flushPromises();
 
         expect(apiMock.updateAssetTags).toHaveBeenCalledTimes(1);
@@ -231,8 +231,8 @@ describe("TagsEditor", () => {
         const editor = createTagsEditor(asset, vi.fn());
         const input = editor.querySelector(".mjr-tag-input");
 
-        input.value = "overflow";
-        input.dispatchEvent({ type: "keydown", key: "Enter" });
+        (input as any).value = "overflow";
+        input.dispatchEvent({ type: "keydown", key: "Enter" } as any);
         await flushPromises();
 
         expect(asset.tags).toHaveLength(50);

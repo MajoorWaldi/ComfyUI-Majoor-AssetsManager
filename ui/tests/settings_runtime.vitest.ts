@@ -48,7 +48,7 @@ function createElement(tagName, registry) {
 function createDocument() {
     const registry = new Map();
     const host = createElement("div", registry);
-    host.className = "mjr-assets-manager mjr-am-container";
+    (host as any).className = "mjr-assets-manager mjr-am-container";
     return {
         host,
         createElement: (tagName) => createElement(tagName, registry),
@@ -77,7 +77,7 @@ describe("settingsRuntime", () => {
         vi.resetModules();
         vi.clearAllMocks();
         const document = createDocument();
-        globalThis.document = document;
+        globalThis.document = document as any;
         globalThis.window = {
             __MJR_RUNTIME_STATUS_INTERVAL__: null,
             __MJR_RUNTIME_STATUS_INFLIGHT__: null,
@@ -85,15 +85,15 @@ describe("settingsRuntime", () => {
             __MJR_RUNTIME_STATUS_HIDE_TIMEOUT__: null,
             __MJR_RUNTIME_STATUS_HIDDEN__: null,
             __MJR_RUNTIME_STATUS_SETTINGS_LISTENER__: null,
-            localStorage: createLocalStorage(),
+            localStorage: createLocalStorage() as any,
             addEventListener: vi.fn(),
-        };
+        } as any;
         globalThis.sessionStorage = {
             getItem: vi.fn(() => "token_1234567890abcd"),
-        };
+        } as any;
         hasRuntimeSecurityToken.mockReturnValue(true);
-        globalThis.getComputedStyle = vi.fn(() => ({ position: "static" }));
-        globalThis.setInterval = vi.fn(() => 1);
+        globalThis.getComputedStyle = vi.fn(() => ({ position: "static" })) as any;
+        globalThis.setInterval = vi.fn(() => 1) as any;
         globalThis.clearInterval = vi.fn();
     });
 
@@ -125,11 +125,11 @@ describe("settingsRuntime", () => {
 
         const dashboard = globalThis.document.getElementById("mjr-runtime-status-dashboard");
         expect(dashboard).toBeTruthy();
-        expect(dashboard.__mjrMetricsLine.textContent).toBe(
+        expect((dashboard as any).__mjrMetricsLine.textContent).toBe(
             "DB active: 3 | Enrich Q: 4 | Watcher pending: 5",
         );
-        expect(dashboard.__mjrAuthLine.textContent).toBe("Write auth: active ...abcd");
-        expect(dashboard.__mjrAuthLine.style.color).toBe("#7ee0a0");
+        expect((dashboard as any).__mjrAuthLine.textContent).toBe("Write auth: active ...abcd");
+        expect((dashboard as any).__mjrAuthLine.style.color).toBe("#7ee0a0");
     });
 
     it("does not render the dashboard when the setting is hidden", async () => {
@@ -142,7 +142,7 @@ describe("settingsRuntime", () => {
                     },
                 },
             }),
-        });
+        }) as any;
 
         const mod = await import("../app/settings/settingsRuntime.js");
         mod.startRuntimeStatusDashboard();

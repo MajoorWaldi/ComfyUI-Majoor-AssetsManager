@@ -6,8 +6,10 @@ from functools import lru_cache
 from pathlib import Path
 from typing import TypedDict
 
-from .log import get_logger
 from mjr_am_shared.runtime_env import get_env
+
+from .log import get_logger
+
 logger = get_logger(__name__)
 
 

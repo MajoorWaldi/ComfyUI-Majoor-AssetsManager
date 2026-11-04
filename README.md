@@ -716,7 +716,7 @@ See [`docs/TESTING.md`](docs/TESTING.md), [`tests/README.md`](tests/README.md), 
   - Linux (Ubuntu 22.04+, Fedora, Debian)
 - **Browsers**: Modern browsers with ES2020+ support
 
-The automated CI matrix currently validates Python 3.10-3.13 and the frontend on Ubuntu. Windows and macOS support is maintained through portable code paths and contributor/user testing rather than dedicated hosted CI jobs.
+The automated CI matrix currently validates Python 3.10-3.14 and the frontend on Ubuntu. Windows and macOS support is maintained through portable code paths and contributor/user testing rather than dedicated hosted CI jobs.
 
 ---
 

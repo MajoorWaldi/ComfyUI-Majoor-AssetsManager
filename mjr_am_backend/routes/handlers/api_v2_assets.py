@@ -1,19 +1,23 @@
 """
-``/api/v2/assets/*`` — OpenAPI-aligned read-only compat layer (Phase 3.1).
+``/mjr/am/compat/assets/*`` — OpenAPI-aligned read-only compat layer (Phase 3.1).
+
+Formerly served at ``/api/v2/assets/*``; that path sits in ComfyUI core's
+``/api`` namespace and is now only an opt-in alias
+(``MJR_AM_LEGACY_API_V2_ASSETS=1``).
 
 This module exposes a small, schema-stable REST surface that mirrors the
 ComfyUI core ``/api/assets/*`` endpoints defined in ``openapi.yaml`` (the
-official spec used by Cloud and Desktop clients). We use the ``v2`` prefix
-to avoid colliding with the core's own ``/api/assets/*`` routes when the
-plugin is loaded alongside an asset-aware ComfyUI build.
+official spec used by Cloud and Desktop clients). It lives under the
+extension's own ``/mjr/am/`` prefix so it never collides with the core's
+``/api/assets/*`` routes (or any future versioned core route).
 
 Scope of this first cut (read-only, additive):
 
-* ``HEAD /api/v2/assets/hash/{hash}``       — existence check by content hash
-* ``GET  /api/v2/assets``                   — paginated list with basic filters
-* ``GET  /api/v2/assets/{id}``              — single asset metadata
-* ``GET  /api/v2/assets/{id}/content``      — binary file stream
-* ``GET  /api/v2/assets/{id}/tags``         — tag list for one asset
+* ``HEAD <prefix>/hash/{hash}``       — existence check by content hash
+* ``GET  <prefix>``                   — paginated list with basic filters
+* ``GET  <prefix>/{id}``              — single asset metadata
+* ``GET  <prefix>/{id}/content``      — binary file stream
+* ``GET  <prefix>/{id}/tags``         — tag list for one asset
 
 Mutations (POST/PUT/PATCH/DELETE) are intentionally *not* implemented yet:
 they would duplicate complex side-effecting flows already exposed under
@@ -468,7 +472,7 @@ async def _list_assets(request: web.Request) -> web.Response:
             order=order,
         )
     except Exception as exc:
-        logger.warning("api/v2/assets list failed: %s", exc, exc_info=True)
+        logger.warning("compat assets list failed: %s", exc, exc_info=True)
         return _api_error_response(Result.Err("DB_ERROR", "Asset listing failed"))
 
     assets = [_row_to_asset(row) for row in rows]
@@ -505,7 +509,7 @@ async def _check_asset_by_hash(request: web.Request) -> web.Response:
             (hex_part, f"blake3:{hex_part}"),
         )
     except Exception as exc:
-        logger.warning("api/v2/assets hash check failed: %s", exc, exc_info=True)
+        logger.warning("compat assets hash check failed: %s", exc, exc_info=True)
         return web.Response(status=500)
 
     found = bool(res.ok and res.data)
@@ -524,7 +528,7 @@ async def _get_asset(request: web.Request) -> web.Response:
     try:
         row = await _query_one(services["db"], where, params)
     except Exception as exc:
-        logger.warning("api/v2/assets get failed: %s", exc, exc_info=True)
+        logger.warning("compat assets get failed: %s", exc, exc_info=True)
         return _api_error_response(Result.Err("DB_ERROR", "Asset lookup failed"))
 
     if row is None:
@@ -542,7 +546,7 @@ async def _get_asset_content(request: web.Request) -> web.StreamResponse:
     try:
         row = await _query_one(services["db"], where, params)
     except Exception as exc:
-        logger.warning("api/v2/assets content lookup failed: %s", exc, exc_info=True)
+        logger.warning("compat assets content lookup failed: %s", exc, exc_info=True)
         return web.json_response({"error": "Asset lookup failed"}, status=500)
     if row is None:
         return web.json_response({"error": "Asset not found"}, status=404)
@@ -573,7 +577,7 @@ async def _get_asset_tags(request: web.Request) -> web.Response:
     try:
         row = await _query_one(services["db"], where, params)
     except Exception as exc:
-        logger.warning("api/v2/assets tags lookup failed: %s", exc, exc_info=True)
+        logger.warning("compat assets tags lookup failed: %s", exc, exc_info=True)
         return _api_error_response(Result.Err("DB_ERROR", "Asset lookup failed"))
 
     if row is None:
@@ -582,7 +586,7 @@ async def _get_asset_tags(request: web.Request) -> web.Response:
 
 
 async def _seed_status(request: web.Request) -> web.Response:
-    """Compat shim for ``GET /api/v2/assets/seed/status``.
+    """Compat shim for ``GET <prefix>/seed/status``.
 
     We do not run a background "seeder" the way ComfyUI core does; our
     ingestion pipeline is the scanner + watcher loop. This endpoint reports
@@ -604,7 +608,7 @@ async def _seed_status(request: web.Request) -> web.Response:
             "GROUP BY enrichment_level"
         )
     except Exception as exc:
-        logger.warning("api/v2/assets seed/status failed: %s", exc, exc_info=True)
+        logger.warning("compat assets seed/status failed: %s", exc, exc_info=True)
         return _api_error_response(Result.Err("DB_ERROR", "Seed status lookup failed"))
 
     total = 0
@@ -639,9 +643,9 @@ async def _seed_status(request: web.Request) -> web.Response:
 
 
 async def _tags_refine(request: web.Request) -> web.Response:
-    """``GET /api/v2/assets/tags/refine`` — tag histogram for filtered subset.
+    """``GET <prefix>/tags/refine`` — tag histogram for filtered subset.
 
-    Accepts the same filters as ``GET /api/v2/assets`` (``name_contains``,
+    Accepts the same filters as ``GET <prefix>`` (``name_contains``,
     ``include_tags``, ``exclude_tags``) and returns the most-frequent tags
     among matching assets. Results are read from the normalized
     ``asset_tags`` + ``tags`` tables.
@@ -692,7 +696,7 @@ async def _tags_refine(request: web.Request) -> web.Response:
     try:
         res = await db.aquery(sql, tuple([*params, limit]))
     except Exception as exc:
-        logger.warning("api/v2/assets tags/refine failed: %s", exc, exc_info=True)
+        logger.warning("compat assets tags/refine failed: %s", exc, exc_info=True)
         return _api_error_response(Result.Err("DB_ERROR", "Tag refine failed"))
 
     tags: list[dict[str, Any]] = []
@@ -711,14 +715,52 @@ async def _tags_refine(request: web.Request) -> web.Response:
 # --------------------------------------------------------------------------- #
 
 
-def register_api_v2_asset_routes(routes: web.RouteTableDef) -> None:
-    """Register the ``/api/v2/assets/*`` compat surface."""
-    routes.head("/api/v2/assets/hash/{hash}")(_check_asset_by_hash)
+#: Canonical prefix. Lives under the extension's own ``/mjr/am/`` namespace so
+#: it can never be shadowed by (or shadow) ComfyUI core routes.
+COMPAT_ASSETS_PREFIX = "/mjr/am/compat/assets"
+
+#: Historical prefix. ``/api/...`` belongs to ComfyUI core: if core ever ships
+#: ``/api/v2/assets`` its routes (registered first) would silently win. Kept
+#: only as an opt-in alias for external clients that still call it.
+LEGACY_COMPAT_ASSETS_PREFIX = "/api/v2/assets"
+LEGACY_ALIAS_ENV = "MJR_AM_LEGACY_API_V2_ASSETS"
+
+
+def legacy_alias_enabled() -> bool:
+    from mjr_am_backend.utils import env_bool
+
+    return env_bool(LEGACY_ALIAS_ENV, False)
+
+
+def _register_compat_asset_routes(routes: web.RouteTableDef, prefix: str) -> None:
+    routes.head(prefix + "/hash/{hash}")(_check_asset_by_hash)
     # Static-path routes MUST be declared before the catch-all ``/{id}``
     # variants so aiohttp doesn't route ``seed`` / ``tags`` to ``_get_asset``.
-    routes.get("/api/v2/assets/seed/status")(_seed_status)
-    routes.get("/api/v2/assets/tags/refine")(_tags_refine)
-    routes.get("/api/v2/assets")(_list_assets)
-    routes.get("/api/v2/assets/{id}")(_get_asset)
-    routes.get("/api/v2/assets/{id}/content")(_get_asset_content)
-    routes.get("/api/v2/assets/{id}/tags")(_get_asset_tags)
+    routes.get(prefix + "/seed/status")(_seed_status)
+    routes.get(prefix + "/tags/refine")(_tags_refine)
+    routes.get(prefix)(_list_assets)
+    routes.get(prefix + "/{id}")(_get_asset)
+    routes.get(prefix + "/{id}/content")(_get_asset_content)
+    routes.get(prefix + "/{id}/tags")(_get_asset_tags)
+
+
+def register_api_v2_asset_routes(
+    routes: web.RouteTableDef, *, include_legacy_alias: bool | None = None
+) -> None:
+    """Register the OpenAPI-aligned compat surface.
+
+    Always served under ``/mjr/am/compat/assets/*``. The legacy
+    ``/api/v2/assets/*`` alias is registered only when
+    ``MJR_AM_LEGACY_API_V2_ASSETS=1`` (or ``include_legacy_alias=True``).
+    """
+    _register_compat_asset_routes(routes, COMPAT_ASSETS_PREFIX)
+    if include_legacy_alias is None:
+        include_legacy_alias = legacy_alias_enabled()
+    if include_legacy_alias:
+        logger.warning(
+            "Majoor: legacy /api/v2/assets alias enabled via %s; it is deprecated "
+            "and may be shadowed by ComfyUI core. Use %s instead.",
+            LEGACY_ALIAS_ENV,
+            COMPAT_ASSETS_PREFIX,
+        )
+        _register_compat_asset_routes(routes, LEGACY_COMPAT_ASSETS_PREFIX)

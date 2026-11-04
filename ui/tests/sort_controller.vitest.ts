@@ -54,13 +54,13 @@ function createElementStub() {
 describe("sortController", () => {
     it("syncs sort choice to Pinia and reloads the grid", async () => {
         globalThis.document = {
-            createElement: () => createElementStub(),
-        };
+            createElement: () => createElementStub() as any,
+        } as any;
         setActivePinia(createPinia());
         const panelStore = usePanelStore();
 
         const sortBtn = createElementStub();
-        sortBtn._icon = { className: "" };
+        (sortBtn as any)._icon = { className: "" };
         const sortMenu = createElementStub();
         const sortPopover = { style: { display: "" } };
         const popovers = { close: vi.fn(), toggle: vi.fn() };
@@ -77,7 +77,7 @@ describe("sortController", () => {
         });
 
         controller.bind();
-        expect(sortBtn._icon.className).toBe("pi pi-sort-amount-down");
+        expect((sortBtn as any)._icon.className).toBe("pi pi-sort-amount-down");
 
         const nameAscButton = sortMenu.children.find(
             (child) => child.children?.[0]?.textContent === "A-Z",
@@ -85,7 +85,7 @@ describe("sortController", () => {
         await nameAscButton.dispatchEvent({ type: "click" });
 
         expect(panelStore.sort).toBe("name_asc");
-        expect(sortBtn._icon.className).toBe("pi pi-sort-alpha-down");
+        expect((sortBtn as any)._icon.className).toBe("pi pi-sort-alpha-down");
         expect(popovers.close).toHaveBeenCalledWith(sortPopover);
         expect(reloadGrid).toHaveBeenCalledTimes(1);
     });

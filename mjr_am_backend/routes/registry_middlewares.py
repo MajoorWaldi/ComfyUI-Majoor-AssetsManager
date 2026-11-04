@@ -6,6 +6,7 @@ from collections.abc import Awaitable, Callable
 from typing import Any
 
 from aiohttp import web
+from mjr_am_backend.request_keys import REQUEST_USER_ID_KEY
 from mjr_am_backend.shared import Result, get_logger
 
 from .core import (
@@ -20,9 +21,10 @@ logger = get_logger(__name__)
 
 API_PREFIX = "/mjr/am/"
 
-# The OpenAPI-aligned read-only compat surface (routes/handlers/api_v2_assets.py).
-# It is part of this extension's HTTP surface and must sit behind the same
-# security boundary as API_PREFIX.
+# Legacy, opt-in alias of the OpenAPI-aligned compat surface
+# (routes/handlers/api_v2_assets.py; canonical path /mjr/am/compat/assets is
+# already covered by API_PREFIX). When enabled it is part of this extension's
+# HTTP surface and must sit behind the same security boundary as API_PREFIX.
 COMPAT_API_PREFIX = "/api/v2/assets"
 
 # ComfyUI's PromptServer mirrors EVERY registered route under an additional
@@ -178,7 +180,7 @@ def _requires_auth(path: str, method: str) -> bool:
 
 def _store_request_user_id(request: web.Request, user_id: Any) -> None:
     try:
-        request["mjr_user_id"] = str(user_id or "").strip()
+        request[REQUEST_USER_ID_KEY] = str(user_id or "").strip()
     except Exception:
         logger.debug("_store_request_user_id: suppressed exception", exc_info=True)
 

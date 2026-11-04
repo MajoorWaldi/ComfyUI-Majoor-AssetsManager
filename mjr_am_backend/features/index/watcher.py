@@ -93,6 +93,35 @@ def _is_supported_extension(ext: str) -> bool:
         return False
     return ext in SUPPORTED_EXTENSIONS
 
+def sidecar_media_paths(json_path: str) -> list[str]:
+    """Existing media files a sidecar JSON belongs to.
+
+    ``shot.png.json`` -> ``shot.png``; ``shot.json`` -> every ``shot.<media ext>``
+    in the same folder (case-insensitive stem match).
+    """
+    path = str(json_path or "")
+    if not path.lower().endswith(".json"):
+        return []
+    base = path[: -len(".json")]
+    if _is_supported_extension(Path(base).suffix.lower()):
+        return [base] if os.path.isfile(base) else []
+    folder = os.path.dirname(base) or "."
+    stem = os.path.basename(base).lower()
+    out: list[str] = []
+    try:
+        with os.scandir(folder) as entries:
+            for entry in entries:
+                name = entry.name
+                root, ext = os.path.splitext(name)
+                if root.lower() != stem or not _is_supported_extension(ext.lower()):
+                    continue
+                if entry.is_file():
+                    out.append(os.path.join(folder, name))
+    except OSError:
+        return []
+    return out
+
+
 # Directories to always ignore (case-insensitive on Windows)
 IGNORED_DIRS = {
     "_mjr_index",
@@ -152,9 +181,12 @@ class DebouncedWatchHandler(FileSystemEventHandler):
         debounce_ms: int = 500,
         dedupe_ttl_ms: int = 3000,
         flush_concurrency: int = 1,
+        on_sidecar_changed: Callable[[list], Awaitable[None]] | None = None,
     ):
         super().__init__()
         self._on_files_ready = on_files_ready
+        self._on_sidecar_changed = on_sidecar_changed
+        self._sidecar_recent: dict[str, float] = {}
         self._on_files_removed = on_files_removed
         self._on_files_moved = on_files_moved
         self._loop = loop
@@ -301,6 +333,9 @@ class DebouncedWatchHandler(FileSystemEventHandler):
         """Queue a file for indexing with deduplication."""
         if not path:
             return
+        if path.lower().endswith(".json"):
+            self._handle_sidecar_json(path)
+            return
 
         # Fast rejections — settings refresh happens inside _schedule_flush (MED-03: was double-called)
         if self._is_ignored_path(path):
@@ -341,6 +376,38 @@ class DebouncedWatchHandler(FileSystemEventHandler):
 
             # Schedule flush
             self._schedule_flush()
+
+    def _handle_sidecar_json(self, json_path: str) -> None:
+        """A sidecar ``<file>.json`` / ``<stem>.json`` appeared or changed.
+
+        The media it describes did not change, so an incremental index would
+        skip it and never read the new workflow/prompt. Ask for a forced
+        re-index of the sibling media file(s) instead.
+        """
+        if not self._on_sidecar_changed or self._is_ignored_path(json_path):
+            return
+        media = [m for m in sidecar_media_paths(json_path) if not self._is_ignored_path(m)]
+        if not media:
+            return
+        now = time.time()
+        fresh: list[str] = []
+        with self._lock:
+            for media_path in media:
+                key = self._normalize_path(media_path)
+                if now - self._sidecar_recent.get(key, 0.0) < max(1.0, self._dedupe_ttl_s):
+                    continue
+                self._sidecar_recent[key] = now
+                fresh.append(media_path)
+            if len(self._sidecar_recent) > 2048:
+                cutoff = now - 60.0
+                self._sidecar_recent = {k: t for k, t in self._sidecar_recent.items() if t >= cutoff}
+        if not fresh:
+            return
+        try:
+            coro = cast(Coroutine[Any, Any, None], self._on_sidecar_changed(fresh))
+            asyncio.run_coroutine_threadsafe(coro, self._loop)
+        except Exception:
+            logger.debug("_handle_sidecar_json: suppressed exception", exc_info=True)
 
     def _schedule_flush(self):
         """Schedule a debounced flush of pending files.
@@ -755,12 +822,16 @@ class OutputWatcher:
         index_callback: Callable[[list, str, str | None, str | None], Awaitable[None]],
         remove_callback: Callable[[list, str, str | None, str | None], Awaitable[None]] | None = None,
         move_callback: Callable[[list, str, str | None, str | None], Awaitable[None]] | None = None,
+        reindex_callback: Callable[[list, str, str | None, str | None], Awaitable[None]] | None = None,
     ):
         """
         Args:
             index_callback: async function(filepaths, base_dir, source, root_id) to index files
+            reindex_callback: same signature, forces re-extraction (used when a
+                sidecar JSON next to an unchanged media file appears or changes)
         """
         self._index_callback = index_callback
+        self._reindex_callback = reindex_callback
         self._remove_callback = remove_callback
         self._move_callback = move_callback
         self._observer: Any | None = None
@@ -798,6 +869,7 @@ class OutputWatcher:
             debounce_ms=WATCHER_DEBOUNCE_MS,
             dedupe_ttl_ms=WATCHER_DEDUPE_TTL_MS,
             flush_concurrency=WATCHER_MAX_FLUSH_CONCURRENCY,
+            on_sidecar_changed=self._handle_sidecar_media if self._reindex_callback else None,
         )
         self._observer = Observer()
 
@@ -829,6 +901,12 @@ class OutputWatcher:
             return
         grouped = self._group_files_by_watched_root(files)
         await self._dispatch_file_groups(grouped, self._index_callback, "index")
+
+    async def _handle_sidecar_media(self, files: list) -> None:
+        if not files or not callable(self._reindex_callback):
+            return
+        grouped = self._group_files_by_watched_root(files)
+        await self._dispatch_file_groups(grouped, self._reindex_callback, "reindex")
 
     async def _handle_removed_files(self, files: list) -> None:
         if not files or not callable(self._remove_callback):

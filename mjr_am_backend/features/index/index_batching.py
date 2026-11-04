@@ -399,7 +399,10 @@ async def prepare_single_batch_entry(
             ),
             None,
         )
-    if has_cached_miss and existing_id in has_rich_meta_set:
+    # Incremental shortcut only: a non-incremental re-index (e.g. a sidecar
+    # JSON appeared next to an unchanged file and its cache was invalidated)
+    # must re-extract instead of trusting the existing metadata row.
+    if incremental and has_cached_miss and existing_id in has_rich_meta_set:
         return {"action": "skipped"}, None
 
     if fast:

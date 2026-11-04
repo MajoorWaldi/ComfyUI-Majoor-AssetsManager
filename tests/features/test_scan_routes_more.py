@@ -1448,7 +1448,7 @@ async def test_watcher_toggle_start_success(monkeypatch) -> None:
     monkeypatch.setattr(scan_mod, "build_watch_paths", lambda *_args, **_kwargs: [{"path": "C:/x"}])
 
     class _OutputWatcher:
-        def __init__(self, index_cb, remove_callback=None, move_callback=None):
+        def __init__(self, index_cb, remove_callback=None, move_callback=None, reindex_callback=None):
             self._index_cb = index_cb
             self._remove_cb = remove_callback
             self._move_cb = move_callback
@@ -1546,7 +1546,7 @@ async def test_watcher_scope_restart_success(monkeypatch) -> None:
     monkeypatch.setattr(scan_mod, "build_watch_paths", lambda *_args, **_kwargs: [{"path": "C:/new"}])
 
     class _OutputWatcher:
-        def __init__(self, index_cb, remove_callback=None, move_callback=None):
+        def __init__(self, index_cb, remove_callback=None, move_callback=None, reindex_callback=None):
             self._index_cb = index_cb
             self._remove_cb = remove_callback
             self._move_cb = move_callback

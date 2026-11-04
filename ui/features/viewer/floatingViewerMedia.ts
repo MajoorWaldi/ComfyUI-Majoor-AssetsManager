@@ -1,9 +1,9 @@
 import { APP_CONFIG } from "../../app/config.js";
 import { buildAssetViewURL } from "../../api/endpoints.js";
 import { createModel3DMediaElement, MODEL3D_EXTS } from "./model3dRenderer.js";
-import { mountUnifiedMediaControls } from "./mediaPlayer.js";
 import { mountFloatingViewerSimplePlayer } from "./floatingViewerSimplePlayer.js";
 import { readAssetFps, readAssetFrameCount } from "../../utils/mediaFps.js";
+import { mountStudioPlayerHost } from "./studio/mountStudioPlayer.js";
 
 const VIDEO_EXTS = new Set([".mp4", ".webm", ".mov", ".avi", ".mkv", ".m4v"]);
 const AUDIO_EXTS = new Set([".mp3", ".wav", ".flac", ".ogg", ".m4a", ".aac", ".opus", ".wma"]);
@@ -153,6 +153,77 @@ export function pauseFloatingViewerMediaIn(rootEl: any) {
     }
 }
 
+/**
+ * Stop *and release* every video/audio element under `rootEl` before it is
+ * detached. Pausing is not enough: a detached <video> keeps its decoder and
+ * network stream until garbage collection, and Chromium caps live media
+ * players (~75). In Live mode the floating viewer re-renders on every
+ * generation, so paused-only players piled up until new videos refused to
+ * play anywhere in ComfyUI.
+ */
+export function releaseFloatingViewerMediaIn(rootEl: any) {
+    if (!rootEl) return;
+    try {
+        const mediaEls = rootEl.querySelectorAll?.("video, audio");
+        if (!mediaEls || !mediaEls.length) return;
+        for (const el of mediaEls) {
+            try {
+                el.pause?.();
+            } catch (e: any) {
+                console.debug?.(e);
+            }
+            try {
+                el.removeAttribute?.("src");
+                for (const source of Array.from(el.querySelectorAll?.("source") || []) as any[]) {
+                    source.remove?.();
+                }
+                el.load?.();
+            } catch (e: any) {
+                console.debug?.(e);
+            }
+        }
+    } catch (e: any) {
+        console.debug?.(e);
+    }
+}
+
+/**
+ * Studio player for the floating viewer's single-asset view (video / audio).
+ *
+ * Returns null when it does not apply (images, 3D) or cannot mount, so
+ * callers fall back to the plain media element.
+ */
+export function buildFloatingViewerStudioPlayer(
+    fileData: any,
+    { initialMuted = false, initialPlaybackRate = 1, fill = false } = {},
+): HTMLElement | null {
+    const kind = getFloatingViewerMediaKind(fileData);
+    if (kind !== "video" && kind !== "audio") return null;
+    const url = resolveFloatingViewerMediaUrl(fileData);
+    if (!url) return null;
+    try {
+        const fps = readAssetFps(fileData);
+        return mountStudioPlayerHost({
+            src: url,
+            kind,
+            filename: String(fileData?.filename || ""),
+            fps,
+            frameCount: readAssetFrameCount(fileData, fps) || null,
+            // Generated preview clips are visual-only and must autoplay.
+            initialMuted: fileData?._isPreview ? true : initialMuted,
+            initialRate: initialPlaybackRate,
+            compact: true,
+            fill,
+            // Same hook as the bare elements: zoom, pan, exposure / channel tone
+            // and the overlay guides all address `.mjr-mfv-media`.
+            mediaClass: "mjr-mfv-media",
+        });
+    } catch (e: any) {
+        console.debug?.(e);
+        return null;
+    }
+}
+
 export function buildFloatingViewerMediaElement(
     fileData: any,
     { fill = false, controls = true, initialMuted = false, initialPlaybackRate = 1 } = {},
@@ -165,62 +236,16 @@ export function buildFloatingViewerMediaElement(
     const isAnimatedWebp =
         ext === ".webp" && Number(fileData?.duration ?? fileData?.metadata_raw?.duration ?? 0) > 0;
 
-    const buildPlayableMediaHost = (mediaEl: any, mediaKind: any) => {
-        if (!controls) return mediaEl;
-        const host = document.createElement("div");
-        host.className = `mjr-mfv-player-host${fill ? " mjr-mfv-player-host--fill" : ""}`;
-        if (mediaKind === "audio") {
-            // Audio has no visual frame — give the host a styled backdrop with
-            // the filename so it reads like the video player (parity with the
-            // simple-player audio treatment).
-            host.classList.add("mjr-mfv-player-host--audio");
-            const backdrop = document.createElement("div");
-            backdrop.className = "mjr-mfv-player-audio-backdrop";
-            backdrop.textContent = String(fileData?.filename || "Audio");
-            host.appendChild(backdrop);
-        }
-        host.appendChild(mediaEl);
-
-        // Make the player host focusable so clicking it routes keyboard shortcuts
-        // (Space / ArrowLeft / ArrowRight) to this player instead of the grid/body.
-        // Mirrors the simple-player focus behaviour. tabIndex -1 keeps it out of the
-        // tab order while still allowing programmatic focus.
-        try {
-            host.tabIndex = -1;
-            host.addEventListener("pointerdown", (e: any) => {
-                try {
-                    if (
-                        e?.target?.closest?.(
-                            "button, input, textarea, select, a, [contenteditable='true']",
-                        )
-                    )
-                        return;
-                    host.focus?.({ preventScroll: true });
-                } catch (err: any) {
-                    console.debug?.(err);
-                }
-            });
-        } catch (e: any) {
-            console.debug?.(e);
-        }
-
-        const mounted = mountUnifiedMediaControls(mediaEl, {
-            variant: "viewer",
-            hostEl: host,
-            mediaKind,
-            initialFps: readAssetFps(fileData) || undefined,
-            initialFrameCount: readAssetFrameCount(fileData, readAssetFps(fileData)) || undefined,
+    // Video / audio with controls use the Studio player (same as the main
+    // viewer); the other slots of a compare view are bare, synced elements.
+    if (controls && (kind === "audio" || kind === "video")) {
+        const host = buildFloatingViewerStudioPlayer(fileData, {
+            initialMuted,
             initialPlaybackRate,
+            fill,
         });
-
-        try {
-            if (mounted) (host as any)._mjrMediaControlsHandle = mounted;
-        } catch (e: any) {
-            console.debug?.(e);
-        }
-
-        return host;
-    };
+        if (host) return host;
+    }
 
     if (kind === "audio") {
         const audio = document.createElement("audio");
@@ -241,7 +266,7 @@ export function buildFloatingViewerMediaElement(
             console.debug?.(e);
         }
         autoplay();
-        return buildPlayableMediaHost(audio, "audio");
+        return audio;
     }
 
     if (kind === "video") {
@@ -266,7 +291,7 @@ export function buildFloatingViewerMediaElement(
             console.debug?.(e);
         }
         autoplay();
-        return buildPlayableMediaHost(v, "video");
+        return v;
     }
 
     if (kind === "model3d") {

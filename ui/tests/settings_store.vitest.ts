@@ -26,9 +26,9 @@ function createStorage() {
 describe("SettingsStore (Vitest)", () => {
     it("reads and writes settings through localStorage wrapper", () => {
         globalThis.window = {
-            localStorage: createStorage(),
+            localStorage: createStorage() as any,
             addEventListener() {},
-        };
+        } as any;
 
         expect(SettingsStore.get("missing")).toBe(null);
         expect(SettingsStore.set("k", "v")).toBe(true);

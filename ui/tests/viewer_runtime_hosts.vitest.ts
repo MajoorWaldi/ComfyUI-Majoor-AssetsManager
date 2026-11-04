@@ -6,15 +6,15 @@ describe("viewerRuntimeHosts", () => {
         globalThis.document = {
             body: {
                 appendChild: vi.fn(),
-                querySelectorAll: vi.fn(() => []),
+                querySelectorAll: vi.fn(() => []) as any,
                 isConnected: true,
-            },
+            } as any,
             documentElement: {
                 appendChild: vi.fn(),
-                querySelectorAll: vi.fn(() => []),
+                querySelectorAll: vi.fn(() => []) as any,
                 isConnected: true,
-            },
-        };
+            } as any,
+        } as any;
     });
 
     it("appends the floating viewer to document.body even when a Vue host is registered", async () => {
