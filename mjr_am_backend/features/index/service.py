@@ -319,6 +319,7 @@ class IndexService:
         """
         # ON DELETE CASCADE handles asset_metadata, scan_journal, etc.
         where_sql, where_params = _filepath_match_clause(filepath, column="filepath")
+        removed_ids = await self._asset_ids_where(where_sql, where_params)
         res = await self.db.aexecute(
             f"DELETE FROM assets WHERE {where_sql}",
             where_params,
@@ -333,7 +334,55 @@ class IndexService:
         if deleted_rows <= 0:
             return Result.Err("NOT_FOUND", "Asset not found")
         logger.debug(f"Removed from index: {filepath}")
+        self._emit_assets_removed(removed_ids, reason="file_deleted")
         return Result.Ok(True)
+
+    async def _asset_ids_where(self, where_sql: str, where_params: Any) -> list[int]:
+        try:
+            res = await self.db.aquery(f"SELECT id FROM assets WHERE {where_sql}", where_params)
+        except Exception:
+            return []
+        if not res.ok or not res.data:
+            return []
+        ids: list[int] = []
+        for row in res.data:
+            try:
+                ids.append(int(row["id"] if isinstance(row, dict) else row[0]))
+            except Exception:
+                continue
+        return ids
+
+    @staticmethod
+    def _emit_assets_removed(asset_ids: list[int], *, reason: str) -> None:
+        """Tell open grids that files vanished outside Majoor (watcher, external delete)."""
+        if not asset_ids:
+            return
+        try:
+            from ...adapters.comfy_events import emit_event
+
+            emit_event(
+                "mjr-assets-removed",
+                {"ids": list(asset_ids), "count": len(asset_ids), "reason": reason},
+            )
+        except Exception as exc:
+            logger.debug("Failed to emit mjr-assets-removed: %s", exc)
+
+    async def _emit_asset_moved(self, new_filepath: str) -> None:
+        """A move keeps the asset id; push the new path so cards update in place."""
+        try:
+            from ...adapters.comfy_events import emit_event
+
+            where_sql, where_params = _filepath_match_clause(new_filepath, column="filepath")
+            ids = await self._asset_ids_where(where_sql, where_params)
+            if not ids:
+                return
+            batch_res = await self.get_assets_batch(ids[:BATCH_ASSET_PUSH_LIMIT])
+            if not batch_res.ok or not batch_res.data:
+                return
+            for asset in batch_res.data:
+                emit_event("mjr-asset-updated", sanitize_for_json(dict(asset)))
+        except Exception as exc:
+            logger.debug("Failed to emit moved asset update: %s", exc)
 
     async def rename_file(self, old_filepath: str, new_filepath: str) -> Result[bool]:
         """
@@ -355,13 +404,41 @@ class IndexService:
             return Result.Err("DB_ERROR", str(exc))
 
         logger.debug("Renamed in index: %s -> %s", old_fp, new_fp)
+        await self._emit_asset_moved(new_fp)
         return Result.Ok(True)
+
+    @staticmethod
+    def _scan_complete_payload(data: Any, *, origin: str) -> Any:
+        """Annotate scan stats for the UI.
+
+        ``needs_refresh`` is true when the change cannot be shown with live
+        per-asset events: a directory scan pushes none, and ``index_paths`` only
+        pushes the first ``BATCH_ASSET_PUSH_LIMIT`` new assets. Pruned rows are
+        announced separately with ``mjr-assets-removed``.
+        """
+        if not isinstance(data, dict):
+            return data
+        payload = dict(data)
+        try:
+            added = int(payload.get("added") or 0)
+        except (TypeError, ValueError):
+            added = 0
+        try:
+            pruned = int(payload.get("pruned") or 0)
+        except (TypeError, ValueError):
+            pruned = 0
+        live_limit = 0 if origin == "directory_scan" else BATCH_ASSET_PUSH_LIMIT
+        payload["origin"] = origin
+        payload["needs_refresh"] = added > live_limit or pruned > 0
+        payload.pop("added_ids", None)
+        payload.pop("to_enrich", None)
+        return payload
 
     def _emit_scan_complete_event(self, data: Any) -> None:
         try:
             from ...adapters.comfy_events import emit_event
 
-            emit_event("mjr-scan-complete", data)
+            emit_event("mjr-scan-complete", self._scan_complete_payload(data, origin="directory_scan"))
         except Exception as exc:
             logger.debug("Failed to emit scan-complete event: %s", exc)
 
@@ -386,7 +463,7 @@ class IndexService:
         except Exception:
             return
         try:
-            emit_event("mjr-scan-complete", data)
+            emit_event("mjr-scan-complete", self._scan_complete_payload(data, origin="index_paths"))
             emit_event(
                 "mjr.scan.progress",
                 sanitize_for_json(

@@ -30,6 +30,13 @@ All notable changes to this project are documented in this file.
 ### Fixed
 - **`mjr_am_backend.adapters.tools` missing from Registry installs**: `.comfyignore`'s unanchored `tools/` pattern also matched `mjr_am_backend/adapters/tools/`, stripping the ExifTool/FFProbe adapters out of every Registry-published package and causing `ModuleNotFoundError: No module named 'mjr_am_backend.adapters.tools'` at startup. The pattern is now anchored to the repo-root `/tools/` dev-scripts folder only.
 
+### Fixed (asset sync)
+- **Renamed / moved files lost their ratings, tags and collections**: the `assets_fts` triggers ran a plain `UPDATE`/`DELETE` on an external-content FTS5 table, so every filename/subfolder change failed with "database disk image is malformed" (and could start a needless DB recovery). The watcher then fell back to delete + re-index, creating a new asset id. Triggers now use FTS5's `'delete'` command (update trigger limited to `filename, subfolder`); existing databases are repaired and the FTS index rebuilt automatically at startup.
+- **Outputs missed after a generation**: ComfyUI calls `on_prompt_end` before it stores the prompt history, so post-execution ingestion could read an empty history and index nothing (prompts queued from the API, another tab or another device). Ingestion now waits briefly for the history entry.
+- **Scan prune could wipe user data**: a stat error (offline share, permission hiccup) counted as "file deleted". Like ComfyUI core's reconciler, only a confirmed absence removes an asset, and an unreadable scan root is never pruned. The `pruned` count no longer includes cascade/trigger rows.
+- **Stale cards after external deletes/moves**: files removed or moved outside Majoor (watcher, scan prune) now emit `mjr-assets-removed` / `mjr-asset-updated`, so open grids update in place.
+- **Background scans never refreshed the grid**: `mjr-scan-complete` now carries `origin` and `needs_refresh`; the grid reloads once when live events could not cover the change, and a finished directory scan shows one ComfyUI core toast ("N new, M removed"). Per-generation index runs stay silent (live cards + sidebar badge).
+
 ### Changed (ComfyUI integration)
 - **Compat assets API moved to `/mjr/am/compat/assets/*`**: the read-only OpenAPI-aligned surface no longer squats ComfyUI core's `/api` namespace. The old `/api/v2/assets/*` paths are only registered when `MJR_AM_LEGACY_API_V2_ASSETS=1` (deprecated).
 - **Python 3.14**: `requires-python` is now `>=3.10, <3.15`; CI runs the full suite on 3.14.

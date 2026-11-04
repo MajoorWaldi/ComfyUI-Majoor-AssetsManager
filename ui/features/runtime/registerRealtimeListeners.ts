@@ -497,11 +497,70 @@ export async function registerRealtimeListeners({
         try {
             const detail = event?.detail || {};
             window.dispatchEvent(new CustomEvent(EVENTS.SCAN_COMPLETE, { detail }));
+            handleScanCompleteSurface(detail);
         } catch (e) {
             console.debug?.(e);
         }
     };
     registerCleanableListener(runtime, api, EVENTS.SCAN_COMPLETE, api._mjrScanCompleteHandler);
+
+    /**
+     * Directory scans push no per-asset events, and index_paths only pushes the
+     * first N new assets: the backend flags `needs_refresh` so the grid reloads
+     * once (deferred while hidden). A finished directory scan that changed
+     * something is summarised in one ComfyUI core toast; index_paths runs (each
+     * generation, watcher batches) stay silent - live cards + badge cover them.
+     */
+    function handleScanCompleteSurface(detail: any) {
+        if ((globalThis as any)?._mjrMaintenanceActive) return;
+        const added = Math.max(0, Number(detail?.added) || 0);
+        const removed = Math.max(0, Number(detail?.pruned) || 0);
+        if (detail?.needs_refresh) {
+            window.dispatchEvent(
+                new CustomEvent(EVENTS.RELOAD_GRID, {
+                    detail: { reason: "scan-complete", added, removed },
+                }),
+            );
+        }
+        if (String(detail?.origin || "") !== "directory_scan" || (!added && !removed)) return;
+        comfyToast(
+            {
+                summary: t("toast.scanComplete", "Scan complete"),
+                detail: t("toast.scanCompleteSummary", "{added} new, {removed} removed", {
+                    added,
+                    removed,
+                }),
+            },
+            "success",
+            3500,
+            { history: { source: "scan", operation: "scan", status: "done" } },
+        );
+    }
+
+    api._mjrAssetsRemovedHandler = (event: any) => {
+        try {
+            const detail = event?.detail || {};
+            const ids = Array.isArray(detail?.ids)
+                ? detail.ids.map((x: any) => String(x ?? "").trim()).filter(Boolean)
+                : [];
+            if (ids.length) {
+                // Same path as a delete from the UI: cards disappear in place.
+                window.dispatchEvent(
+                    new CustomEvent(EVENTS.ASSETS_DELETED, {
+                        detail: { ids, source: "backend", reason: detail?.reason || "" },
+                    }),
+                );
+            }
+            if (detail?.truncated) {
+                window.dispatchEvent(
+                    new CustomEvent(EVENTS.RELOAD_GRID, { detail: { reason: "assets-removed" } }),
+                );
+            }
+        } catch (e) {
+            console.debug?.(e);
+        }
+    };
+    registerCleanableListener(runtime, api, EVENTS.ASSETS_REMOVED, api._mjrAssetsRemovedHandler);
 
     api._mjrCoreExecutionAssetsReadyHandler = (event: any) => {
         try {

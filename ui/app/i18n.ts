@@ -1122,6 +1122,7 @@ const DICTIONARY: Record<string, Record<string, string>> = {
         // --- Toasts ---
         "toast.scanStarted": "Scan started",
         "toast.scanComplete": "Scan complete",
+        "toast.scanCompleteSummary": "{added} new, {removed} removed",
         "toast.scanFailed": "Scan failed",
         "toast.resetTriggered": "Reset triggered: Reindexing all files...",
         "toast.resetStarted": "Index reset started. Files will be reindexed in the background.",
@@ -1388,6 +1389,8 @@ const DICTIONARY: Record<string, Record<string, string>> = {
         "dialog.workflowSaveName": "Nom du workflow",
         "dialog.workflowCategory": "Categorie du workflow",
         "dialog.deleteWorkflowConfirm": "Supprimer ce JSON workflow et ses thumbnails adjacents ?",
+        "toast.scanComplete": "Scan terminé",
+        "toast.scanCompleteSummary": "{added} nouveau(x), {removed} retiré(s)",
         "toast.workflowSaved": "Workflow enregistre",
         "toast.workflowSaveFailed": "Echec de l'enregistrement du workflow.",
         "toast.workflowSerializeFailed": "Impossible de lire le workflow ComfyUI courant.",

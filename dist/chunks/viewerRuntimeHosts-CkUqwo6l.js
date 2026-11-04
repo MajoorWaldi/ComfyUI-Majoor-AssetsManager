@@ -1,4 +1,4 @@
-import { Ct as e, Tt as t, _t as n, bt as r, it as i, k as a, m as o, o as s, rt as c, vt as l, wt as u, yt as d } from "./events-ChGln7ff.js";
+import { Ct as e, Tt as t, _t as n, bt as r, it as i, k as a, m as o, o as s, rt as c, vt as l, wt as u, yt as d } from "./events-B9CSrqJ_.js";
 // ui/app/settingsStore.ts
 var f = "mjrSettings", p = "mjrMinimapSettings", m = /* @__PURE__ */ new Set([
 	"POST",

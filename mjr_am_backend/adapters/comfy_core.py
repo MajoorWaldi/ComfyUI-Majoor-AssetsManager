@@ -533,6 +533,17 @@ def get_prompt_output_files(prompt_id: str) -> list[PromptOutputFile]:
     return _ADAPTER.output_files_from_history(prompt_id)
 
 
+def has_prompt_history_entry(prompt_id: str) -> bool:
+    """True once ComfyUI has stored the history entry for ``prompt_id``."""
+    safe_prompt_id = str(prompt_id or "").strip()
+    if not safe_prompt_id:
+        return False
+    try:
+        return isinstance(_ADAPTER.get_prompt_history(safe_prompt_id).get(safe_prompt_id), dict)
+    except Exception:
+        return False
+
+
 def get_workflow_id_for_prompt(prompt_id: str) -> str | None:
     """Best-effort extraction of the workflow id associated with a prompt.
 

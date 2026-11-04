@@ -450,4 +450,90 @@ describe("registerRealtimeListeners", () => {
             }),
         );
     });
+    describe("scan and removal surfaces", () => {
+        let dispatched: any[];
+        let toast: any;
+        let harness: any;
+
+        beforeEach(async () => {
+            ensureBrowserShims();
+            dispatched = [];
+            (globalThis as any).window.dispatchEvent = (event: any) => {
+                dispatched.push(event);
+                return true;
+            };
+            (globalThis as any)._mjrMaintenanceActive = false;
+            toast = vi.fn();
+            harness = createRuntimeHarness();
+            await registerRealtimeListeners({
+                api: harness.api,
+                runtime: harness.runtime,
+                executionRuntime: harness.executionRuntime,
+                appRef: {},
+                liveStreamModule: null,
+                ensureExecutionRuntime: () => ({ queue_remaining: 0, active_prompt_id: null }),
+                emitRuntimeStatus: () => {},
+                getActiveGridContainer: () => harness.grid,
+                pushGeneratedAsset: harness.pushGeneratedAsset,
+                upsertAsset: harness.upsertAsset,
+                removeAssetsFromGrid: () => {},
+                getEnrichmentState: () => ({ active: false }),
+                setEnrichmentState: () => {},
+                comfyToast: toast,
+                t: (_k: any, fallback: any, params: any) =>
+                    String(fallback).replace(/\{(\w+)\}/g, (_m: any, k: any) => String(params?.[k] ?? "")),
+                reportError: () => {},
+                registerCleanableListener: () => {},
+            });
+        });
+
+        const ofType = (type: string) => dispatched.filter((e) => e?.type === type);
+
+        it("summarises a directory scan in one core toast and reloads the grid once", () => {
+            (harness.api as any)._mjrScanCompleteHandler({
+                detail: { origin: "directory_scan", added: 12, pruned: 3, needs_refresh: true },
+            });
+
+            expect(ofType(EVENTS.RELOAD_GRID)).toHaveLength(1);
+            expect(toast).toHaveBeenCalledTimes(1);
+            expect(toast.mock.calls[0][0]).toMatchObject({ detail: "12 new, 3 removed" });
+            expect(toast.mock.calls[0][1]).toBe("success");
+        });
+
+        it("stays silent for per-generation index_paths runs covered by live events", () => {
+            (harness.api as any)._mjrScanCompleteHandler({
+                detail: { origin: "index_paths", added: 1, pruned: 0, needs_refresh: false },
+            });
+
+            expect(ofType(EVENTS.RELOAD_GRID)).toHaveLength(0);
+            expect(toast).not.toHaveBeenCalled();
+        });
+
+        it("does not toast or reload during DB maintenance", () => {
+            (globalThis as any)._mjrMaintenanceActive = true;
+            (harness.api as any)._mjrScanCompleteHandler({
+                detail: { origin: "directory_scan", added: 50, needs_refresh: true },
+            });
+            (globalThis as any)._mjrMaintenanceActive = false;
+
+            expect(ofType(EVENTS.RELOAD_GRID)).toHaveLength(0);
+            expect(toast).not.toHaveBeenCalled();
+        });
+
+        it("turns backend removals into the same in-place card removal as UI deletes", () => {
+            (harness.api as any)._mjrAssetsRemovedHandler({
+                detail: { ids: [7, 9], count: 2, reason: "file_deleted" },
+            });
+
+            const deleted = ofType(EVENTS.ASSETS_DELETED);
+            expect(deleted).toHaveLength(1);
+            expect(deleted[0].detail.ids).toEqual(["7", "9"]);
+            expect(ofType(EVENTS.RELOAD_GRID)).toHaveLength(0);
+
+            (harness.api as any)._mjrAssetsRemovedHandler({
+                detail: { ids: [1], count: 5000, truncated: true, reason: "scan_prune" },
+            });
+            expect(ofType(EVENTS.RELOAD_GRID)).toHaveLength(1);
+        });
+    });
 });

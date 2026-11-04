@@ -25,6 +25,9 @@ export function removeApiHandlers(api: any, reportError: (e: any, ctx?: string) 
         if (api._mjrScanCompleteHandler) {
             api.removeEventListener(EVENTS.SCAN_COMPLETE, api._mjrScanCompleteHandler);
         }
+        if (api._mjrAssetsRemovedHandler) {
+            api.removeEventListener(EVENTS.ASSETS_REMOVED, api._mjrAssetsRemovedHandler);
+        }
         if (api._mjrScanProgressHandler) {
             api.removeEventListener(EVENTS.SCAN_PROGRESS, api._mjrScanProgressHandler);
         }

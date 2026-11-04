@@ -102,6 +102,31 @@ Imports non triés dans 5 fichiers (`ruff --fix`) qui faisaient échouer
 | Démontage | Les toasts en cours restaient affichés. | `dismissTrackedToasts()` à l'arrêt de l'extension. |
 | Centre de messages (cloche) | S'ouvrait tout seul lors d'une réinitialisation ou d'un backfill. | Conservé comme **historique consultable** (notes de version, journal, raccourcis), car ComfyUI n'offre pas de boîte de réception aux extensions ; il ne s'ouvre plus de lui-même. |
 
+## 3 ter. Nouveaux assets, suppressions et scans (comparaison avec ComfyUI core)
+
+Comment fait le core (`app/assets`, `comfy_execution/asset_enrichment.py`) :
+- il enregistre les sorties **au moment où `executed` est émis**, y compris pour les exécutions servies depuis le cache, sans attendre de scan disque ;
+- un fichier disparu est marqué `is_missing` et **récupéré** s'il revient avec le même hash ; un état illisible est « instable » et ne supprime rien ;
+- les scans de fond sont mis en pause pendant une génération et signalés par les événements `assets.seed.*`.
+
+| Constat Majoor | Gravité | Correctif |
+| --- | --- | --- |
+| Triggers `assets_fts` (FTS5 à contenu externe) écrits avec `UPDATE`/`DELETE` : **chaque renommage ou déplacement échouait** (« database disk image is malformed »). Le watcher retombait sur supprimer + réindexer, d'où un nouvel id et la **perte des notes, tags et collections**, plus une fausse « récupération de base corrompue ». | Critique | Triggers avec la commande FTS5 `'delete'`, mise à jour limitée à `filename, subfolder` ; réparation automatique des bases existantes au démarrage, avec reconstruction de l'index (`'rebuild'`). |
+| `on_prompt_end` est appelé **avant** `PromptQueue.task_done()` (`main.py` du core) : l'ingestion post-génération pouvait lire un historique vide et n'indexer rien. Le frontend ne couvre que le client qui a lancé le prompt (`executed` n'est envoyé qu'à lui). | Haute | Attente de l'entrée d'historique (backoff 0,05 à 3,2 s, environ 6 s au maximum). |
+| Prune de scan : une erreur de `stat` (partage réseau, permission) comptait comme « fichier supprimé », et les données utilisateur étaient effacées. | Haute | Existence à trois états (présent / absent / inconnu) ; racine illisible = aucun prune. |
+| Suppressions et déplacements détectés par le watcher ou le prune : aucun événement, cartes périmées dans la grille. | Moyenne | `mjr-assets-removed` (ids) et `mjr-asset-updated` (nouveau chemin) ; le frontend réutilise le retrait en place des suppressions faites depuis l'interface. |
+| Scan de fond terminé : aucun rafraîchissement de grille ni notification ; compteur `pruned` gonflé par les cascades. | Moyenne | `mjr-scan-complete` porte `origin` et `needs_refresh` ; un seul rechargement si nécessaire ; un toast natif « N nouveaux, M retirés » pour un scan de dossier ; silence pour les indexations par génération, déjà couvertes par les cartes en direct et le badge. |
+
+Vérifié sans changement :
+- le badge de la barre latérale et le flux de génération dédupliquent chaque asset ;
+- l'indexation vectorielle automatique est dédupliquée ;
+- le rechargement après `mjr-core-execution-assets-ready` sert à finaliser les piles d'exécution et il est différé quand la grille est cachée.
+
+Pistes restantes :
+- marquage « manquant » réversible façon core, plutôt qu'une suppression définitive, pour récupérer un fichier qui revient ; cela demande une migration de schéma ;
+- retirer aussi du flux de génération les éléments supprimés hors de l'interface ;
+- un seul événement par nouvel asset au lieu de `mjr-asset-added` plus `mjr.asset.indexed` (chacun doublé par l'enveloppe `mjr.event`).
+
 ## 4. Feuille de route d'évolution (meilleure intégration)
 
 1. **Progression par nœud** — écouter l'événement websocket `progress_state`

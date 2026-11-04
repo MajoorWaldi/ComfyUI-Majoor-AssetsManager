@@ -212,7 +212,16 @@ async def _assets_fts_needs_rebuild(db) -> bool:
     ddl_lower = (await _sqlite_object_sql(db, "table", "assets_fts")).lower()
     trig_row = await db.aquery("SELECT name FROM sqlite_master WHERE type='trigger' AND name LIKE 'assets_fts_%'")
     triggers_exist = bool(trig_row.ok and trig_row.data)
-    return bool((not ddl_lower) or ("fts5" not in ddl_lower) or (not triggers_exist))
+    if (not ddl_lower) or ("fts5" not in ddl_lower) or (not triggers_exist):
+        return True
+    # Databases created before the fix carry delete/update triggers that issue a
+    # plain DELETE/UPDATE on this external-content table; that corrupts the
+    # index on every rename/move. Replace them (and rebuild the index) once.
+    for trigger in ("assets_fts_delete", "assets_fts_update"):
+        sql_lower = " ".join((await _sqlite_object_sql(db, "trigger", trigger)).lower().split())
+        if "'delete'" not in sql_lower:
+            return True
+    return False
 
 
 async def _drop_assets_fts_objects(db) -> None:
@@ -248,25 +257,24 @@ async def _create_assets_fts_triggers(db) -> None:
         END;
 
         CREATE TRIGGER IF NOT EXISTS assets_fts_delete AFTER DELETE ON assets BEGIN
-            DELETE FROM assets_fts WHERE rowid = old.id;
+            INSERT INTO assets_fts(assets_fts, rowid, filename, subfolder)
+            VALUES ('delete', old.id, old.filename, old.subfolder);
         END;
 
-        CREATE TRIGGER IF NOT EXISTS assets_fts_update AFTER UPDATE ON assets BEGIN
-            UPDATE assets_fts SET filename = new.filename, subfolder = new.subfolder
-            WHERE rowid = new.id;
+        CREATE TRIGGER IF NOT EXISTS assets_fts_update AFTER UPDATE OF filename, subfolder ON assets BEGIN
+            INSERT INTO assets_fts(assets_fts, rowid, filename, subfolder)
+            VALUES ('delete', old.id, old.filename, old.subfolder);
+            INSERT INTO assets_fts(rowid, filename, subfolder)
+            VALUES (new.id, new.filename, new.subfolder);
         END;
         """
     )
 
 
 async def _rebuild_assets_fts_content(db) -> None:
-    await db.aexecutescript(
-        """
-        DELETE FROM assets_fts;
-        INSERT INTO assets_fts(rowid, filename, subfolder)
-        SELECT id, COALESCE(filename, ''), COALESCE(subfolder, '') FROM assets;
-        """
-    )
+    # External-content FTS5: 'rebuild' re-reads every row of ``assets``; a plain
+    # DELETE FROM would go through the content table and is not allowed here.
+    await db.aexecutescript("INSERT INTO assets_fts(assets_fts) VALUES('rebuild');")
 
 
 async def repair_assets_fts(db) -> Result[bool]:

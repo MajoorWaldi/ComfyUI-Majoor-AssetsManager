@@ -13,6 +13,8 @@ export const EVENTS = Object.freeze({
     ENRICHMENT_STATUS: "mjr-enrichment-status",
     DB_RESTORE_STATUS: "mjr-db-restore-status",
     ASSETS_DELETED: "mjr:assets-deleted",
+    /** WS: assets removed outside the UI (watcher delete, scan prune). detail: { ids, count, truncated?, reason } */
+    ASSETS_REMOVED: "mjr-assets-removed",
     SETTINGS_CHANGED: "mjr-settings-changed",
     SELECTION_CHANGED: "mjr:selection-changed",
     RELOAD_GRID: "mjr:reload-grid",
