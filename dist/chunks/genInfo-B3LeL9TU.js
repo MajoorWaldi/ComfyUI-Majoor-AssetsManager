@@ -1,8 +1,8 @@
 import { t as e } from "./rolldown-runtime-CGnMp29N.js";
 import { m as t, o as n } from "./events-cBMXVULQ.js";
-import { v as r } from "./viewerOpenRequest-BN2VAo8C.js";
-import { i, n as a, r as o, t as s, u as c } from "./SidebarWorkflowSection-D3B5edO6.js";
-import { D as l, E as u, N as d, O as f, T as p, V as m, dt as h, ft as g, k as _, lt as v } from "./mjr-primevue-RN5COnJA.js";
+import { v as r } from "./viewerOpenRequest-_DqD1rXA.js";
+import { i, n as a, r as o, t as s, u as c } from "./SidebarWorkflowSection-F3hoMYG1.js";
+import { D as l, E as u, H as d, N as f, O as p, T as m, ft as h, k as g, pt as _, ut as v } from "./mjr-primevue-3mpaVb1C.js";
 // ui/vue/components/viewer/ViewerMetadataBlock.vue?vue&type=script&setup=true&lang.ts
 var y = { style: {
 	display: "flex",
@@ -71,7 +71,7 @@ var y = { style: {
 	"font-size": "11px",
 	"line-height": "1.35",
 	color: "rgba(255,255,255,0.86)"
-} }, A = /* @__PURE__ */ d({
+} }, A = /* @__PURE__ */ f({
 	__name: "ViewerMetadataBlock",
 	props: {
 		title: {},
@@ -90,7 +90,7 @@ var y = { style: {
 				return null;
 			}
 		}
-		function d(e) {
+		function f(e) {
 			let t = e?.metadata_raw ?? null;
 			if (!t) return null;
 			if (typeof t == "object") return t;
@@ -116,7 +116,7 @@ var y = { style: {
 			return !1;
 		}
 		function j(e) {
-			let t = d(e), n = e?.workflow || e?.Workflow || e?.comfy_workflow || t?.workflow || t?.Workflow || t?.comfy_workflow || null;
+			let t = f(e), n = e?.workflow || e?.Workflow || e?.comfy_workflow || t?.workflow || t?.Workflow || t?.comfy_workflow || null;
 			if (!n) return null;
 			if (typeof n == "object") return n;
 			if (typeof n != "string") return null;
@@ -129,7 +129,7 @@ var y = { style: {
 			}
 		}
 		function M(e) {
-			let t = d(e), n = e?.prompt || e?.Prompt || t?.prompt || t?.Prompt || null;
+			let t = f(e), n = e?.prompt || e?.Prompt || t?.prompt || t?.Prompt || null;
 			if (!n) return null;
 			if (typeof n == "object") return A(n) ? n : null;
 			if (typeof n != "string") return null;
@@ -157,7 +157,7 @@ var y = { style: {
 		function I() {
 			typeof r.onRetry == "function" && r.onRetry();
 		}
-		let L = p(() => c(r.asset)), R = p(() => o(r.asset)), z = p(() => R.value.kind !== "empty"), B = p(() => P(r.asset)), V = p(() => n.WORKFLOW_MINIMAP_ENABLED !== !1 && N(r.asset)), H = p(() => L.value && typeof L.value == "object" && L.value.kind === "fetch_error"), U = p(() => F(r.asset?.metadata_raw)), W = p(() => !r.loading && !H.value && !B.value && !z.value && !V.value), G = p(() => {
+		let L = m(() => c(r.asset)), R = m(() => o(r.asset)), z = m(() => R.value.kind !== "empty"), B = m(() => P(r.asset)), V = m(() => n.WORKFLOW_MINIMAP_ENABLED !== !1 && N(r.asset)), H = m(() => L.value && typeof L.value == "object" && L.value.kind === "fetch_error"), U = m(() => F(r.asset?.metadata_raw)), W = m(() => !r.loading && !H.value && !B.value && !z.value && !V.value), G = m(() => {
 			if (!H.value) return "";
 			let e = String(L.value?.message || L.value?.error || "Failed to load generation data."), n = String(L.value?.code || L.value?.stage || "").trim();
 			return n ? t("viewer.metadataErrorWithCode", "{message}\n\nCode: {code}\nClick to retry.", {
@@ -165,10 +165,10 @@ var y = { style: {
 				code: n
 			}) : t("viewer.metadataErrorRetry", "{message}\n\nClick to retry.", { message: e });
 		});
-		return (e, n) => (m(), _("div", y, [
-			r.title ? (m(), _("div", b, g(r.title), 1)) : f("", !0),
-			r.loading ? (m(), _("div", x, [u("div", S, g(v(t)("status.loading", "Loading")), 1), u("div", C, g(v(t)("viewer.loadingGenerationData", "Loading generation data...")), 1)])) : f("", !0),
-			H.value ? (m(), _("div", {
+		return (e, n) => (d(), g("div", y, [
+			r.title ? (d(), g("div", b, _(r.title), 1)) : p("", !0),
+			r.loading ? (d(), g("div", x, [u("div", S, _(v(t)("status.loading", "Loading")), 1), u("div", C, _(v(t)("viewer.loadingGenerationData", "Loading generation data...")), 1)])) : p("", !0),
+			H.value ? (d(), g("div", {
 				key: 2,
 				style: h([{
 					padding: "10px 12px",
@@ -179,21 +179,21 @@ var y = { style: {
 					"white-space": "pre-wrap"
 				}, { cursor: r.onRetry ? "pointer" : "default" }]),
 				onClick: I
-			}, [u("div", w, g(v(t)("viewer.errorLoadingMetadata", "Error Loading Metadata")), 1), u("div", T, g(G.value), 1)], 4)) : f("", !0),
-			B.value ? (m(), l(i, {
+			}, [u("div", w, _(v(t)("viewer.errorLoadingMetadata", "Error Loading Metadata")), 1), u("div", T, _(G.value), 1)], 4)) : p("", !0),
+			B.value ? (d(), l(i, {
 				key: 3,
 				asset: r.asset
-			}, null, 8, ["asset"])) : f("", !0),
-			z.value ? (m(), l(a, {
+			}, null, 8, ["asset"])) : p("", !0),
+			z.value ? (d(), l(a, {
 				key: 4,
 				asset: r.asset
-			}, null, 8, ["asset"])) : f("", !0),
-			V.value ? (m(), l(s, {
+			}, null, 8, ["asset"])) : p("", !0),
+			V.value ? (d(), l(s, {
 				key: 5,
 				asset: r.asset
-			}, null, 8, ["asset"])) : f("", !0),
-			W.value ? (m(), _("div", E, g(v(t)("viewer.noGenerationDataFile", "No generation data found for this file.")), 1)) : f("", !0),
-			U.value ? (m(), _("details", D, [u("summary", O, g(v(t)("msg.rawMetadata", "Raw metadata")), 1), u("pre", k, g(U.value), 1)])) : f("", !0)
+			}, null, 8, ["asset"])) : p("", !0),
+			W.value ? (d(), g("div", E, _(v(t)("viewer.noGenerationDataFile", "No generation data found for this file.")), 1)) : p("", !0),
+			U.value ? (d(), g("details", D, [u("summary", O, _(v(t)("msg.rawMetadata", "Raw metadata")), 1), u("pre", k, _(U.value), 1)])) : p("", !0)
 		]));
 	}
 }), j = /* @__PURE__ */ e({

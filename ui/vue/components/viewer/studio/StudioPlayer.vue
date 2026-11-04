@@ -26,6 +26,11 @@ const props = defineProps<{
     fps?: number | null;
     frameCount?: number | null;
     filename?: string;
+    /** Start muted / at this speed (the floating viewer carries them across assets). */
+    initialMuted?: boolean;
+    initialRate?: number;
+    /** Tighter controls for small hosts (floating viewer). */
+    compact?: boolean;
 }>();
 
 const emit = defineEmits<{ (e: "ended"): void }>();
@@ -39,8 +44,8 @@ const current = ref(0);
 const duration = ref(0);
 const bufferedEnd = ref(0);
 const volume = ref(1);
-const muted = ref(false);
-const rate = ref(1);
+const muted = ref(!!props.initialMuted);
+const rate = ref(Number(props.initialRate) > 0 ? Number(props.initialRate) : 1);
 const loop = ref(true);
 const loopA = ref<number | null>(null);
 const loopB = ref<number | null>(null);
@@ -299,10 +304,24 @@ watch(
     },
 );
 
-onMounted(() => {
+/** Autoplay; when the browser refuses sound, retry muted (still visible). */
+function autoplay() {
     const m = el();
-    if (m) void m.play()?.catch?.(() => {});
-});
+    if (!m) return;
+    m.muted = muted.value;
+    m.playbackRate = rate.value;
+    const attempt = m.play?.();
+    if (attempt && typeof attempt.catch === "function") {
+        attempt.catch(() => {
+            if (m.muted) return;
+            muted.value = true;
+            m.muted = true;
+            void m.play?.()?.catch?.(() => {});
+        });
+    }
+}
+
+onMounted(autoplay);
 
 onBeforeUnmount(() => {
     cancelAnimationFrame(rafId);
@@ -312,6 +331,7 @@ onBeforeUnmount(() => {
 
 defineExpose({
     togglePlay,
+    play: autoplay,
     stepFrame,
     seekBy,
     cycleRate,
@@ -329,7 +349,11 @@ defineExpose({
     <div
         ref="root"
         class="mjr-studio-player"
-        :class="{ 'is-audio': kind === 'audio', 'controls-hidden': !controlsVisible }"
+        :class="{
+            'is-audio': kind === 'audio',
+            'is-compact': compact,
+            'controls-hidden': !controlsVisible,
+        }"
         @pointermove="showControls"
     >
         <video

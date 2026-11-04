@@ -4,6 +4,8 @@ import { createModel3DMediaElement, MODEL3D_EXTS } from "./model3dRenderer.js";
 import { mountUnifiedMediaControls } from "./mediaPlayer.js";
 import { mountFloatingViewerSimplePlayer } from "./floatingViewerSimplePlayer.js";
 import { readAssetFps, readAssetFrameCount } from "../../utils/mediaFps.js";
+import { loadMajoorSettings } from "../../app/settings/settingsCore.js";
+import { mountStudioPlayerHost } from "./studio/mountStudioPlayer.js";
 
 const VIDEO_EXTS = new Set([".mp4", ".webm", ".mov", ".avi", ".mkv", ".m4v"]);
 const AUDIO_EXTS = new Set([".mp3", ".wav", ".flac", ".ogg", ".m4a", ".aac", ".opus", ".wma"]);
@@ -184,6 +186,44 @@ export function releaseFloatingViewerMediaIn(rootEl: any) {
         }
     } catch (e: any) {
         console.debug?.(e);
+    }
+}
+
+/**
+ * Studio player for the floating viewer's single-asset view (video / audio).
+ *
+ * Returns null when it does not apply (images, 3D, the "classic viewer"
+ * setting) or cannot mount, so callers fall back to the legacy player.
+ */
+export function buildFloatingViewerStudioPlayer(
+    fileData: any,
+    { initialMuted = false, initialPlaybackRate = 1 } = {},
+): HTMLElement | null {
+    try {
+        if (loadMajoorSettings()?.viewer?.classic === true) return null;
+    } catch (e: any) {
+        console.debug?.(e);
+    }
+    const kind = getFloatingViewerMediaKind(fileData);
+    if (kind !== "video" && kind !== "audio") return null;
+    const url = resolveFloatingViewerMediaUrl(fileData);
+    if (!url) return null;
+    try {
+        const fps = readAssetFps(fileData);
+        return mountStudioPlayerHost({
+            src: url,
+            kind,
+            filename: String(fileData?.filename || ""),
+            fps,
+            frameCount: readAssetFrameCount(fileData, fps) || null,
+            // Generated preview clips are visual-only and must autoplay.
+            initialMuted: fileData?._isPreview ? true : initialMuted,
+            initialRate: initialPlaybackRate,
+            compact: true,
+        });
+    } catch (e: any) {
+        console.debug?.(e);
+        return null;
     }
 }
 

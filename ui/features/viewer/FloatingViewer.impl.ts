@@ -16,6 +16,7 @@ import {
 } from "./floatingViewerConstants.js";
 import {
     buildFloatingViewerMediaElement as _buildMediaEl,
+    buildFloatingViewerStudioPlayer as _buildStudioPlayer,
     canFloatingViewerWheelScroll as _canWheelScrollElement,
     createFloatingViewerEmptyState as _makeEmptyState,
     createFloatingViewerSlotLabel as _makeLabel,
@@ -1469,10 +1470,15 @@ export class FloatingViewer {
             this._contentEl.appendChild(_makeEmptyState());
             return;
         }
-        const rawMediaEl = _buildMediaEl(this._mediaA, {
+        const mediaOptions = {
             initialMuted: this._mfvMuted,
             initialPlaybackRate: this._mfvPlaybackRate,
-        });
+        };
+        // Video / audio use the Studio player (same as the main viewer); images,
+        // GIFs and 3D keep their dedicated renderers.
+        const rawMediaEl =
+            _buildStudioPlayer(this._mediaA, mediaOptions) ||
+            _buildMediaEl(this._mediaA, mediaOptions);
         const mediaEl = this._trackMediaControls?.(rawMediaEl) || rawMediaEl;
         this._bindMfvPersistence?.(mediaEl);
         if (!mediaEl) {

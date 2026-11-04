@@ -10387,3 +10387,106 @@ body.mjr-mfv-popout-body {
 .mjr-studio-player__volume-fill {
     background: #fff;
 }
+
+/* Studio player inside the floating viewer (compact, width-aware). */
+.mjr-mfv-player-host--studio {
+    background: #000;
+}
+.mjr-studio-player.is-compact .mjr-studio-player__controls {
+    left: 6px;
+    right: 6px;
+    bottom: 6px;
+    padding: 4px 6px 6px;
+    border-radius: 9px;
+}
+.mjr-studio-player.is-compact .mjr-studio-btn {
+    min-width: 26px;
+    height: 26px;
+    padding: 0 5px;
+    border-radius: 7px;
+}
+.mjr-studio-player.is-compact .mjr-studio-player__time {
+    font-size: 11px;
+    margin: 0 4px;
+}
+.mjr-studio-player.is-compact .mjr-studio-player__big-play {
+    width: 52px;
+    height: 52px;
+    margin: -26px 0 0 -26px;
+    font-size: 18px;
+}
+.mjr-studio-player.is-compact .mjr-studio-player__volume {
+    width: 56px;
+}
+.mjr-studio-player.is-compact .mjr-studio-player__audio-art .pi {
+    font-size: 40px;
+}
+@container (max-width: 520px) {
+    .mjr-studio-player.is-compact .mjr-studio-player__volume,
+    .mjr-studio-player.is-compact .mjr-studio-chip {
+        display: none;
+    }
+}
+@container (max-width: 380px) {
+    .mjr-studio-player.is-compact .mjr-studio-player__group,
+    .mjr-studio-player.is-compact .mjr-studio-player__time .is-dim {
+        display: none;
+    }
+}
+
+/* ==========================================================================
+ * Floating viewer refresh - aligned with the Studio viewer.
+ * Pure visual layer (appended last): flat buttons that light up on hover /
+ * when active, softer window chrome, neutral stage. State colours (live,
+ * preview, node stream) keep their dedicated rules above.
+ * ======================================================================== */
+.mjr-mfv {
+    border-radius: 12px;
+    border: 1px solid color-mix(in srgb, var(--mjr-border) 80%, transparent);
+    box-shadow:
+        0 18px 48px rgba(0, 0, 0, 0.45),
+        0 2px 8px rgba(0, 0, 0, 0.3);
+}
+.mjr-mfv-header {
+    background: color-mix(in srgb, var(--mjr-surface-1) 92%, transparent);
+    backdrop-filter: blur(10px);
+}
+.mjr-mfv-toolbar {
+    background: color-mix(in srgb, var(--mjr-surface-1) 70%, var(--mjr-surface-0) 30%);
+    gap: 2px;
+}
+.mjr-mfv .mjr-icon-btn {
+    border-color: transparent;
+    background: transparent;
+    border-radius: 8px;
+}
+.mjr-mfv .mjr-icon-btn:hover {
+    border-color: transparent;
+    background: color-mix(in srgb, var(--content-fg, #fff) 10%, transparent);
+    transform: none;
+}
+.mjr-mfv .mjr-icon-btn[aria-pressed="true"] {
+    border-color: color-mix(in srgb, var(--mjr-accent) 40%, transparent);
+    background: color-mix(in srgb, var(--mjr-accent) 16%, transparent);
+    box-shadow: none;
+}
+.mjr-mfv .mjr-icon-btn.mjr-live-active {
+    background: color-mix(in srgb, var(--mjr-status-success) 16%, transparent);
+    border-color: color-mix(in srgb, var(--mjr-status-success) 45%, transparent);
+    box-shadow: none;
+}
+.mjr-mfv .mjr-icon-btn.mjr-preview-active {
+    background: color-mix(in srgb, var(--mjr-accent) 16%, transparent);
+    border-color: color-mix(in srgb, var(--mjr-accent) 45%, transparent);
+    box-shadow: none;
+}
+.mjr-mfv .mjr-mfv-simple-container,
+.mjr-mfv .mjr-mfv-player-host {
+    background: #0d0d0f;
+}
+.mjr-mfv.mjr-mfv--popped,
+.mjr-mfv.mjr-mfv--desktop-expanded {
+    border-radius: 0;
+    border: none;
+    box-shadow: none;
+}
