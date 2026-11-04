@@ -1,10 +1,10 @@
 import { $ as e, $t as t, At as n, Bt as r, Ct as i, Dt as a, Et as o, Ft as s, Gt as c, Ht as l, I as u, It as d, K as f, Kt as p, Mt as m, N as h, Nt as g, O as _, Ot as v, Pt as y, Q as b, Qt as x, R as S, Rt as C, S as ee, St as te, T as ne, Tt as w, Ut as T, Vt as re, X as ie, Y as E, Yt as ae, Z as oe, Zt as se, at as ce, cn as le, ct as ue, dt as de, et as D, gt as fe, it as pe, jt as me, k as he, kt as ge, ln as _e, lt as ve, nt as ye, ot as be, p as xe, rt as Se, tn as Ce, tt as we, ut as Te, w as Ee, wt as De } from "./viewerRuntimeHosts-CkUqwo6l.js";
 import { G as Oe, J as ke, N as Ae, R as je, T as Me, Tt as Ne, X as Pe, c as Fe, d as Ie, f as Le, h as Re, ht as ze, j as Be, l as Ve, m as O, o as k, p as He, rt as Ue, s as A, u as We, x as Ge, y as Ke } from "./events-B9CSrqJ_.js";
-import { F as qe, K as Je, P as Ye, Y as Xe, f as Ze, m as Qe, p as $e } from "./Viewer-BEptWhbV.js";
-import { t as et } from "./floatingViewerManager-DI520cRz.js";
+import { F as qe, G as Je, J as Ye, P as Xe, f as Ze, m as Qe, p as $e } from "./Viewer-DCWIIJQl.js";
+import { t as et } from "./floatingViewerManager-B_1xQj1m.js";
 import { A as tt, C as j, D as nt, E as M, G as rt, J as it, K as at, N as ot, O as N, R as st, S as ct, T as P, U as F, V as I, Y as lt, _ as ut, a as dt, b as ft, c as pt, d as mt, dt as L, f as ht, ft as R, g as gt, h as _t, i as vt, j as yt, k as z, l as bt, lt as B, m as xt, n as St, nt as Ct, o as wt, p as Tt, r as Et, rt as V, s as Dt, t as Ot, u as kt, ut as At, y as jt, z as Mt } from "./mjr-primevue-BRqtdXzb.js";
 import { t as Nt } from "./mjr-vue-vendor-mHY_eIVE.js";
-import { t as Pt } from "./viewerOpenRequest-B8IT-KHd.js";
+import { t as Pt } from "./viewerOpenRequest-DaR0P9Y2.js";
 import { a as Ft, i as It, n as Lt, o as Rt, r as zt, t as Bt } from "./geninfoParser-CgHp-y-n.js";
 // ui/app/settings/settingsUtils.ts
 var H = (e, t) => {
@@ -251,7 +251,7 @@ var H = (e, t) => {
 			console.debug?.(e);
 		}
 		try {
-			Xe("mjr-settings-save-failed", { error: String(e?.message || e || "") }, { warnPrefix: "[Majoor]" });
+			Ye("mjr-settings-save-failed", { error: String(e?.message || e || "") }, { warnPrefix: "[Majoor]" });
 		} catch (e) {
 			console.debug?.(e);
 		}
@@ -318,7 +318,7 @@ async function Zt() {
 		} catch (e) {
 			console.debug?.(e);
 		}
-		G(n), K(n), Xe("mjr-settings-changed", { key: "security" }, { warnPrefix: "[Majoor]" });
+		G(n), K(n), Ye("mjr-settings-changed", { key: "security" }, { warnPrefix: "[Majoor]" });
 	} catch (e) {
 		console.warn("[Majoor] failed to sync backend security settings", e);
 	}
@@ -330,7 +330,7 @@ async function Qt() {
 		let t = e.data?.prefs;
 		if (!t || typeof t != "object") return;
 		let n = Xt();
-		n.ai = n.ai || {}, n.ai.vectorSearchEnabled = H(t.enabled, n.ai.vectorSearchEnabled ?? !0), n.ai.vectorCaptionOnIndex = H(t.caption_on_index ?? t.captionOnIndex, n.ai.vectorCaptionOnIndex ?? !1), n.ai.vectorIndexOnScan = H(t.index_on_scan ?? t.indexOnScan, n.ai.vectorIndexOnScan ?? !1), n.ai.vectorUnloadAfterUse = H(t.unload_after_use ?? t.unloadAfterUse, n.ai.vectorUnloadAfterUse ?? !1), n.ai.vectorConcurrency = Math.max(1, Math.min(16, Math.floor(Number(t.concurrency ?? n.ai.vectorConcurrency ?? 1) || 1))), G(n), K(n), Xe("mjr-settings-changed", { key: "ai.vectorSearch" }, { warnPrefix: "[Majoor]" });
+		n.ai = n.ai || {}, n.ai.vectorSearchEnabled = H(t.enabled, n.ai.vectorSearchEnabled ?? !0), n.ai.vectorCaptionOnIndex = H(t.caption_on_index ?? t.captionOnIndex, n.ai.vectorCaptionOnIndex ?? !1), n.ai.vectorIndexOnScan = H(t.index_on_scan ?? t.indexOnScan, n.ai.vectorIndexOnScan ?? !1), n.ai.vectorUnloadAfterUse = H(t.unload_after_use ?? t.unloadAfterUse, n.ai.vectorUnloadAfterUse ?? !1), n.ai.vectorConcurrency = Math.max(1, Math.min(16, Math.floor(Number(t.concurrency ?? n.ai.vectorConcurrency ?? 1) || 1))), G(n), K(n), Ye("mjr-settings-changed", { key: "ai.vectorSearch" }, { warnPrefix: "[Majoor]" });
 	} catch (e) {
 		console.warn("[Majoor] failed to sync backend vector search settings", e);
 	}
@@ -342,7 +342,7 @@ async function $t() {
 		let t = e.data?.prefs;
 		if (!t || typeof t != "object") return;
 		let n = Xt();
-		n.executionGrouping = n.executionGrouping || {}, n.executionGrouping.enabled = H(t.enabled, n.executionGrouping.enabled ?? A.EXECUTION_GROUPING_ENABLED), G(n), K(n), Xe("mjr-settings-changed", { key: "executionGrouping.enabled" }, { warnPrefix: "[Majoor]" });
+		n.executionGrouping = n.executionGrouping || {}, n.executionGrouping.enabled = H(t.enabled, n.executionGrouping.enabled ?? A.EXECUTION_GROUPING_ENABLED), G(n), K(n), Ye("mjr-settings-changed", { key: "executionGrouping.enabled" }, { warnPrefix: "[Majoor]" });
 	} catch (e) {
 		console.warn("[Majoor] failed to sync backend execution grouping settings", e);
 	}
@@ -2602,12 +2602,12 @@ function Mr(e, t, { initRuntime: n = !1 } = {}) {
 			if (!i.size) return;
 			let e = Array.from(i);
 			i.clear();
-			for (let t of e) Xe("mjr-settings-changed", { key: t }, { warnPrefix: "[Majoor]" });
+			for (let t of e) Ye("mjr-settings-changed", { key: t }, { warnPrefix: "[Majoor]" });
 		}, s = () => {
 			if (!a.size) return;
 			let e = Array.from(a);
 			a.clear();
-			for (let t of e) Xe("mjr-settings-changed", { key: t }, { warnPrefix: "[Majoor]" });
+			for (let t of e) Ye("mjr-settings-changed", { key: t }, { warnPrefix: "[Majoor]" });
 		}, c = fn(o, 120), l = fn(s, 450), u = (e) => {
 			typeof e == "string" && i.add(e), c();
 		}, d = (e) => {
@@ -2672,7 +2672,7 @@ try {
 	let e = Xt();
 	e?.watcher && typeof e.watcher.enabled == "boolean" && Te().then((e) => {
 		let t = !!e?.ok && !!e?.data?.enabled, n = Xt();
-		n.watcher = n.watcher || {}, typeof t == "boolean" && t !== !!n.watcher.enabled && (n.watcher.enabled = t, G(n), Xe("mjr-settings-changed", { key: "watcher.enabled" }, { warnPrefix: "[Majoor]" }));
+		n.watcher = n.watcher || {}, typeof t == "boolean" && t !== !!n.watcher.enabled && (n.watcher.enabled = t, G(n), Ye("mjr-settings-changed", { key: "watcher.enabled" }, { warnPrefix: "[Majoor]" }));
 	}).catch(() => {});
 } catch (e) {
 	console.debug?.(e);
@@ -4256,7 +4256,7 @@ var Xa = {
 				label: "Generation Time",
 				value: `${(Number(h) / 1e3).toFixed(1)}s`,
 				tooltip: "Time taken to generate this asset (workflow execution time)",
-				valueStyle: `color: ${Ye(h)}; font-weight: 600;`
+				valueStyle: `color: ${Xe(h)}; font-weight: 600;`
 			});
 			let g = e.generation_time || e.file_creation_time || e.mtime || e.created_at;
 			if (g) {
@@ -5171,7 +5171,7 @@ var Vo = ["title"], Ho = ["src"], Uo = {
 	setup(e) {
 		let n = e, r = V(0), i = V(!1), a = null;
 		function o() {
-			return a ||= import("./floatingViewerManager-DI520cRz.js").then((e) => e.n), a;
+			return a ||= import("./floatingViewerManager-B_1xQj1m.js").then((e) => e.n), a;
 		}
 		function s() {
 			return (Array.isArray(n.inputFile?.previewCandidates) ? n.inputFile.previewCandidates : [])[r.value] || "";

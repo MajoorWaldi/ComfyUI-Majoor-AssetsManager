@@ -4,7 +4,7 @@
  * This centralizes virtualization helpers that were previously split
  * across VirtualScroller.js and InfiniteScroll.js.
  */
-import { getFilenameKey, shouldHideSiblingAsset, unregisterHiddenSibling } from "../../features/grid/AssetCardRenderer.js";
+import { shouldHideSiblingAsset, unregisterHiddenSibling } from "../../features/grid/AssetCardRenderer.js";
 import {
     gridQueryHasActiveFilters,
     readGridQueryFromDataset,
@@ -683,53 +683,28 @@ function _shouldKeepExistingAssetOnFilterMismatch(incomingAsset: any, existingAs
 }
 
 function dedupeAssetsByKey(state: any, deps: any) {
+    // Drop only true duplicates (same id or same asset key). Grouping assets
+    // that merely share a file name is a *display* concern owned by
+    // `buildDisplayAssets` (same folder only); doing it here by file name
+    // alone removed unrelated files in other folders from `state.assets` and
+    // stacked them under the wrong card.
     const seenIds = new Set();
     const seenKeys = new Set();
-    const filenamePrimary = new Map();
     const deduped: any[] = [];
+    let changed = false;
     for (const asset of Array.isArray(state?.assets) ? state.assets : []) {
         const assetId = asset?.id != null ? String(asset.id) : "";
         const key = deps.assetKey(asset);
-        const filenameKey = getFilenameKey(asset?.filename);
-        if (assetId && seenIds.has(assetId)) continue;
-        if (key && seenKeys.has(key)) continue;
-
-        if (filenameKey) {
-            const primary = filenamePrimary.get(filenameKey);
-            if (primary) {
-                const prevMembers = Array.isArray(primary._mjrDupMembers) ? primary._mjrDupMembers : [primary];
-                const prevIds = new Set(prevMembers.map((a: any) => String(a?.id || "")));
-                const merged = [
-                    ...prevMembers,
-                    ...[asset].filter((a) => !prevIds.has(String(a?.id || ""))),
-                ];
-                primary._mjrDupStack = true;
-                primary._mjrDupMembers = merged;
-                primary._mjrDupCount = merged.length;
-                primary._mjrNameCollision = false;
-                delete primary._mjrNameCollisionCount;
-                delete primary._mjrNameCollisionPaths;
-
-                asset._mjrNameCollision = false;
-                delete asset._mjrNameCollisionCount;
-                delete asset._mjrNameCollisionPaths;
-                asset._mjrDupStack = false;
-                asset._mjrDupMembers = null;
-                asset._mjrDupCount = 0;
-                continue;
-            }
+        if ((assetId && seenIds.has(assetId)) || (key && seenKeys.has(key))) {
+            changed = true;
+            continue;
         }
-
         if (assetId) seenIds.add(assetId);
         if (key) seenKeys.add(key);
-        if (filenameKey) filenamePrimary.set(filenameKey, asset);
-
-        asset._mjrNameCollision = false;
-        delete asset._mjrNameCollisionCount;
-        delete asset._mjrNameCollisionPaths;
         deduped.push(asset);
     }
-    state.assets = deduped;
+    if (changed) state.assets = deduped;
+    // Always resync id/key sets: callers rely on it after placeholder merges.
     syncAssetCollectionState(state, { assetKey: deps.assetKey });
 }
 

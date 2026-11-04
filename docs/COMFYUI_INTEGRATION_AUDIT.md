@@ -127,6 +127,34 @@ Pistes restantes :
 - retirer aussi du flux de génération les éléments supprimés hors de l'interface ;
 - un seul événement par nouvel asset au lieu de `mjr-asset-added` plus `mjr.asset.indexed` (chacun doublé par l'enveloppe `mjr.event`).
 
+## 3 quater. Piles de doublons : gel de ComfyUI et piles « corrompues »
+
+**Symptôme.** Un clic sur le badge de doublons (icône de copie suivie d'un nombre) gèle tout l'onglet ComfyUI ; certaines piles empilent des images qui n'ont rien à voir entre elles.
+
+**Cause du gel : une boucle de rendu Vue infinie.**
+1. Le template de `VirtualAssetGridHost.vue` lit `asset._mjrDupStack` et `asset._mjrDupCount`, et passe `:ref="getCardRef(asset)"`, qui crée une nouvelle fonction à chaque rendu. Vue rappelle donc les refs à chaque rendu (`null`, puis l'élément).
+2. `bindCardRef` appelait `syncRenderedDuplicateCards`, qui remettait `_mjrDupStack` à `false` sur tous les membres puis à `true` sur une carte principale, et assignait un nouveau tableau `_mjrDupMembers`.
+3. En parallèle, le `computed` `displayAssets` faisait l'inverse, avec une autre carte principale (`bucket[0]` contre `selectStackRepresentative`).
+4. Chaque écriture relançait le rendu du parent, donc les refs, donc de nouvelles écritures. En production, Vue n'a pas de limite de récursion : l'onglet tourne à l'infini.
+
+La vue « doublons » déclenchait la boucle à coup sûr : elle affiche N cartes de même nom, aussitôt re-regroupées. Un test le reproduit : **31 rendus en 5 passages** avec l'ancien code, contre zéro rendu supplémentaire après correctif.
+
+**Cause de la « corruption ».** Quatre définitions du doublon coexistaient :
+- `AssetCardRenderer` et `displayAssets` : même nom dans le même source / racine / sous-dossier ;
+- `useVirtualGrid.dedupeAssetsByKey` et `syncRenderedDuplicateCards` : **nom seul, tous dossiers confondus**.
+
+Ces deux derniers retiraient de `state.assets` des fichiers distincts d'autres dossiers et les rangeaient sous une mauvaise carte. Celle-ci recevait au passage le temps de génération d'une autre image (`preserveRepresentativeGenerationTime`).
+
+**Correctif**
+- `buildDisplayAssets` est la seule source de vérité. Ses écritures sont gardées (assignation seulement si la valeur brute change, tableau des membres conservé tant que la composition ne change pas), avec une option `collapseDuplicates`.
+- `syncRenderedDuplicateCards` ne touche plus l'état réactif.
+- Une seule fonction de ref par carte (`getCardRef`).
+- `dedupeAssetsByKey` ne retire plus que les vrais doublons (même id ou même clé).
+- `AssetCardRenderer.appendAssets` ne retire plus de copies : il ne fait que compter.
+- La vue « doublons » (scope `similar`) liste toutes les copies, avec des membres copiés sans cycle (`toDuplicateGroupMembers`).
+
+**À suivre.** Une pile « même dossier, même nom » correspond à plusieurs lignes en base pour un même fichier. C'est possible avec des index créés par d'anciennes versions, par exemple des variantes de casse sous Windows : les insertions actuelles normalisent le chemin. Une fusion de ces lignes, qui conserverait notes, tags et collections, reste à faire comme opération de maintenance explicite.
+
 ## 4. Feuille de route d'évolution (meilleure intégration)
 
 1. **Progression par nœud** — écouter l'événement websocket `progress_state`
