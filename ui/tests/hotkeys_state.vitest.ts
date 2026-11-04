@@ -29,7 +29,7 @@ describe("hotkeysState", () => {
         });
 
         it("coerces non-string values to string", () => {
-            setHotkeysScope(42);
+            setHotkeysScope(42 as any);
             expect(getHotkeysState().scope).toBe("42");
         });
 
@@ -57,12 +57,12 @@ describe("hotkeysState", () => {
         });
 
         it("coerces truthy values to boolean", () => {
-            setHotkeysSuspendedFlag(1);
+            setHotkeysSuspendedFlag(1 as any);
             expect(getHotkeysState().suspended).toBe(true);
         });
 
         it("coerces falsy values to boolean", () => {
-            setHotkeysSuspendedFlag(0);
+            setHotkeysSuspendedFlag(0 as any);
             expect(getHotkeysState().suspended).toBe(false);
         });
     });

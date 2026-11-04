@@ -24,19 +24,13 @@ const buttonStub = {
 function assetCardGlobal(overrides = {}) {
     return {
         provide: {},
-        stubs: {
-            MButton: true,
-            RatingBadge: true,
-            TagsBadge: true,
-            GenTimeBadge: true,
-        },
         ...overrides,
         stubs: {
             MButton: true,
             RatingBadge: true,
             TagsBadge: true,
             GenTimeBadge: true,
-            ...(overrides.stubs || {}),
+            ...((overrides as any).stubs || {}),
         },
     };
 }
@@ -155,7 +149,7 @@ describe("AssetCardInner media display", () => {
         await Promise.resolve();
 
         const video = wrapper.find("video.mjr-thumb-media").element;
-        expect(video.getAttribute("src") || video.src).toContain("/api/assets/clip-no-poster");
+        expect(video.getAttribute("src") || (video as any).src).toContain("/api/assets/clip-no-poster");
     });
 
     it("releases and replaces the video source when a virtualized card changes asset", async () => {
@@ -190,7 +184,7 @@ describe("AssetCardInner media display", () => {
 
         const video = wrapper.find("video.mjr-thumb-media").element;
         expect(MediaBlobCache.releaseUrl).toHaveBeenCalledWith("/api/assets/old");
-        expect(video.getAttribute("src") || video.src).toContain("blob:new-video");
+        expect(video.getAttribute("src") || (video as any).src).toContain("blob:new-video");
         wrapper.unmount();
     });
 
@@ -295,7 +289,7 @@ describe("AssetCardInner media display", () => {
 
         const actions = wrapper
             .emitted("workflow-action")
-            ?.map((eventArgs) => String(eventArgs?.[0]?.type || ""));
+            ?.map((eventArgs) => String((eventArgs?.[0] as any)?.type || ""));
         expect(actions).toEqual(["favorite"]);
         expect(buttons[0].classes()).toContain("is-active");
     });

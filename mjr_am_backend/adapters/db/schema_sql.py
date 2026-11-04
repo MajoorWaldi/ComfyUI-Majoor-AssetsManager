@@ -242,13 +242,21 @@ CREATE TRIGGER IF NOT EXISTS assets_fts_insert AFTER INSERT ON assets BEGIN
     VALUES (new.id, new.filename, new.subfolder);
 END;
 
+-- assets_fts is an external-content FTS5 table (content='assets'): rows must be
+-- removed with the special 'delete' command carrying the OLD values. A plain
+-- DELETE/UPDATE on it makes FTS5 re-read the content table, which an AFTER
+-- trigger has already changed, and fails with "database disk image is
+-- malformed" whenever filename/subfolder change (rename, move).
 CREATE TRIGGER IF NOT EXISTS assets_fts_delete AFTER DELETE ON assets BEGIN
-    DELETE FROM assets_fts WHERE rowid = old.id;
+    INSERT INTO assets_fts(assets_fts, rowid, filename, subfolder)
+    VALUES ('delete', old.id, old.filename, old.subfolder);
 END;
 
-CREATE TRIGGER IF NOT EXISTS assets_fts_update AFTER UPDATE ON assets BEGIN
-    UPDATE assets_fts SET filename = new.filename, subfolder = new.subfolder
-    WHERE rowid = new.id;
+CREATE TRIGGER IF NOT EXISTS assets_fts_update AFTER UPDATE OF filename, subfolder ON assets BEGIN
+    INSERT INTO assets_fts(assets_fts, rowid, filename, subfolder)
+    VALUES ('delete', old.id, old.filename, old.subfolder);
+    INSERT INTO assets_fts(rowid, filename, subfolder)
+    VALUES (new.id, new.filename, new.subfolder);
 END;
 
 CREATE TRIGGER IF NOT EXISTS asset_metadata_fts_insert AFTER INSERT ON asset_metadata BEGIN

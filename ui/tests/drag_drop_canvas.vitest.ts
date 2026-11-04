@@ -132,7 +132,7 @@ describe("canvas drag/drop loader creation", () => {
         };
         const container = { _mjrGetSelectedAssets: () => [] };
 
-        createAssetDragStartHandler(container)(makeDragStartEvent(card, dataTransfer));
+        createAssetDragStartHandler((container as any))((makeDragStartEvent(card, dataTransfer) as any));
 
         expect(JSON.parse(data.get("application/x-mjr-asset"))).toMatchObject({
             filename: "clip.mp4",
@@ -179,7 +179,7 @@ describe("canvas drag/drop loader creation", () => {
         };
         const container = { _mjrGetSelectedAssets: () => [] };
 
-        createAssetDragStartHandler(container)(makeDragStartEvent(card, dataTransfer));
+        createAssetDragStartHandler((container as any))((makeDragStartEvent(card, dataTransfer) as any));
 
         expect(JSON.parse(data.get("application/x-mjr-asset"))).toMatchObject({
             filename: "ComfyUI_00690_.png",
@@ -223,7 +223,7 @@ describe("canvas drag/drop loader creation", () => {
         };
         const container = { _mjrGetSelectedAssets: () => [] };
 
-        createAssetDragStartHandler(container)(makeDragStartEvent(card, dataTransfer));
+        createAssetDragStartHandler((container as any))((makeDragStartEvent(card, dataTransfer) as any));
 
         expect(sanitizeDraggedPayload({ filename: "preview.png", type: "temp" })).toMatchObject({
             filename: "preview.png",
@@ -269,7 +269,7 @@ describe("canvas drag/drop loader creation", () => {
         expect(app.loadGraphData).not.toHaveBeenCalled();
         expect(globalThis.LiteGraph.createNode).toHaveBeenCalledWith("LoadImage");
         expect(app.graph.add).toHaveBeenCalledWith(createdNode);
-        expect(createdNode.pos).toEqual([120, 80]);
+        expect((createdNode as any).pos).toEqual([120, 80]);
         expect(createdNode.widgets[0].value).toBe("assets/one.png");
     });
 
@@ -382,7 +382,7 @@ describe("canvas drag/drop loader creation", () => {
             addEventListener: vi.fn(),
         };
 
-        createAssetDragStartHandler({ _mjrGetSelectedAssets: () => [] })(makeDragStartEvent(card, dataTransfer));
+        createAssetDragStartHandler({ _mjrGetSelectedAssets: () => [] } as any)((makeDragStartEvent(card, dataTransfer) as any));
         const payload = JSON.parse(data.get("application/x-mjr-asset"));
         const handlers = createDragDropRuntimeHandlers();
         await handlers.onDrop(makeDropEvent(payload));
@@ -431,7 +431,7 @@ describe("canvas drag/drop loader creation", () => {
         });
 
         expect(created).toBe(1);
-        expect(createdNode.pos).toEqual([100, 100]);
+        expect((createdNode as any).pos).toEqual([100, 100]);
     });
 
     it("L+drop creates loader nodes for the current multi-selection", async () => {
@@ -446,7 +446,7 @@ describe("canvas drag/drop loader creation", () => {
                 return node;
             }),
         });
-        window.__MJR_LAST_SELECTION_GRID__ = {
+        (window as any).__MJR_LAST_SELECTION_GRID__ = {
             _mjrGetSelectedAssets: () => [
                 { filename: "one.png", type: "output", kind: "image" },
                 { filename: "two.png", type: "output", kind: "image" },

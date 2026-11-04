@@ -91,17 +91,17 @@ vi.mock("../app/bootstrap.js", () => ({
 vi.mock("../app/config.js", async (importOriginal) => {
     const actual = await importOriginal();
     return {
-        ...actual,
-        APP_CONFIG: { ...actual.APP_CONFIG, DEFAULT_PAGE_SIZE: 200 },
+        ...(actual as any),
+        APP_CONFIG: { ...(actual as any).APP_CONFIG, DEFAULT_PAGE_SIZE: 200 },
     };
 });
 
 vi.mock("../app/events.js", async (importOriginal) => {
     const actual = await importOriginal();
     return {
-        ...actual,
+        ...(actual as any),
         EVENTS: {
-            ...actual.EVENTS,
+            ...(actual as any).EVENTS,
             OPEN_ASSETS_MANAGER: "mjr:open-assets-manager",
             RELOAD_GRID: "mjr:reload-grid",
             MFV_TOGGLE: "mjr:mfv-toggle",
@@ -163,7 +163,7 @@ describe("render / destroy — keepalive contract", () => {
         tabDef.render(el);
 
         expect(mockMountKeepAlive).toHaveBeenCalledTimes(1);
-        expect(mockMountKeepAlive.mock.calls[0][0]).toBe(el);
+        expect((mockMountKeepAlive.mock.calls as any)[0][0]).toBe(el);
     });
 
     it("destroy() is a no-op — does NOT call unmountKeepAlive", () => {
@@ -187,7 +187,7 @@ describe("render / destroy — keepalive contract", () => {
         tabDef.destroy(el1); // no-op
         tabDef.render(el2); // re-render after tab switch
 
-        const [call1, call2] = mockMountKeepAlive.mock.calls;
+        const [call1, call2] = mockMountKeepAlive.mock.calls as any[];
         expect(call1[2]).toBe(call2[2]); // same mount key both times
     });
 
@@ -253,7 +253,7 @@ describe("mountGlobalRuntime / teardownGlobalRuntime", () => {
     it("mountGlobalRuntime calls mountKeepAlive with the root element", () => {
         mountGlobalRuntime();
         expect(mockMountKeepAlive).toHaveBeenCalledTimes(1);
-        const calledWithEl = mockMountKeepAlive.mock.calls[0][0];
+        const calledWithEl = (mockMountKeepAlive.mock.calls as any)[0][0];
         expect(calledWithEl?.id).toBe(ROOT_ID);
     });
 
@@ -316,9 +316,9 @@ describe("isMajoorTrackableNode — node classifier", () => {
         [undefined, false, "undefined node"],
         [{}, false, "empty object"],
         [{ comfyClass: "" }, false, "empty comfyClass"],
-    ])("(%s) → %s [%s]", (node, expected) => {
+    ])("(%s) → %s [%s]", ((node: any, expected: any) => {
         expect(isMajoorTrackableNode(node)).toBe(expected);
-    });
+    }) as any);
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -330,7 +330,7 @@ describe("native ComfyUI frontend registration payloads", () => {
             {},
             { sidebarTabId: "majoor-assets", triggerStartupScan: vi.fn() },
         );
-        expect(commands.map((command) => command.id)).toEqual([
+        expect(commands.map((command) => (command as any).id)).toEqual([
             "mjr.openAssetsManager",
             "mjr.scanAssets",
             "mjr.toggleFloatingViewer",
@@ -350,7 +350,7 @@ describe("native ComfyUI frontend registration payloads", () => {
             {},
             { sidebarTabId: "majoor-assets", triggerStartupScan: vi.fn() },
         );
-        const byId = new Map(commands.map((command) => [command.id, command]));
+        const byId = new Map(commands.map((command) => [(command as any).id, command]));
 
         for (const id of [
             "mjr.openNodeContext",
@@ -360,9 +360,9 @@ describe("native ComfyUI frontend registration payloads", () => {
             "mjr.openGeneratedFeed",
         ]) {
             const command = byId.get(id);
-            expect(command.tooltip).toBeTruthy();
-            expect(command.title).toBe(command.tooltip);
-            expect(command.description).toBe(command.tooltip);
+            expect((command as any).tooltip).toBeTruthy();
+            expect((command as any).title).toBe((command as any).tooltip);
+            expect((command as any).description).toBe((command as any).tooltip);
         }
     });
 
@@ -385,8 +385,8 @@ describe("native ComfyUI frontend registration payloads", () => {
         registerNativeKeybindings(app);
 
         expect(mockRegisterKeybindingCompat).toHaveBeenCalledTimes(2);
-        expect(mockRegisterKeybindingCompat.mock.calls[0][0]).toBe(app);
-        expect(mockRegisterKeybindingCompat.mock.calls[0][1].commandId).toBe(
+        expect((mockRegisterKeybindingCompat.mock.calls as any)[0][0]).toBe(app);
+        expect((mockRegisterKeybindingCompat.mock.calls as any)[0][1].commandId).toBe(
             "mjr.openAssetsManager",
         );
     });
@@ -394,11 +394,11 @@ describe("native ComfyUI frontend registration payloads", () => {
     it("builds topbar menu commands under Extensions / Majoor Assets Manager", () => {
         const menuCommands = buildNativeMenuCommands();
         expect(menuCommands).toHaveLength(1);
-        expect(menuCommands[0].path).toEqual(["Extensions", "Majoor Assets Manager"]);
-        expect(menuCommands[0].commands).toContain("mjr.openSettings");
-        expect(menuCommands[0].commands).toContain("mjr.openGeneratedFeed");
-        expect(menuCommands[0].commands).toContain("mjr.pickOutputDirectory");
-        expect(menuCommands[0].commands).toContain("mjr.pickIndexDirectory");
+        expect((menuCommands[0] as any).path).toEqual(["Extensions", "Majoor Assets Manager"]);
+        expect((menuCommands[0] as any).commands).toContain("mjr.openSettings");
+        expect((menuCommands[0] as any).commands).toContain("mjr.openGeneratedFeed");
+        expect((menuCommands[0] as any).commands).toContain("mjr.pickOutputDirectory");
+        expect((menuCommands[0] as any).commands).toContain("mjr.pickIndexDirectory");
     });
 
     it("builds official ComfyUI canvas context menu items with a declarative submenu", () => {
@@ -409,8 +409,10 @@ describe("native ComfyUI frontend registration payloads", () => {
         );
 
         expect(items[0]).toBeNull();
-        expect(items[1].content).toBe("Majoor Assets Manager");
-        expect(items[1].submenu.options.map((item) => item?.content).filter(Boolean)).toEqual([
+        expect((items[1] as any).content).toBe("Majoor Assets Manager");
+        expect(
+            (items[1] as any).submenu.options.map((item) => item?.content).filter(Boolean),
+        ).toEqual([
             "Open Majoor Assets Manager",
             "Open floating viewer",
             "Open generated feed",

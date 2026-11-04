@@ -48,10 +48,10 @@ function createNode() {
 
 describe("browserNavigationController", () => {
     it("syncs navigated folder path into Pinia", async () => {
-        globalThis.window = { addEventListener: vi.fn(), removeEventListener: vi.fn() };
+        globalThis.window = { addEventListener: vi.fn(), removeEventListener: vi.fn() } as any;
         globalThis.document = {
-            createElement: () => createNode(),
-        };
+            createElement: () => createNode() as any,
+        } as any;
         setActivePinia(createPinia());
         const panelStore = usePanelStore();
 
@@ -85,7 +85,7 @@ describe("browserNavigationController", () => {
         });
 
         expect(panelStore.currentFolderRelativePath).toBe("animals/cats");
-        expect(gridContainer.dataset.mjrSubfolder).toBe("animals/cats");
+        expect((gridContainer.dataset as any).mjrSubfolder).toBe("animals/cats");
         expect(reloadGrid).toHaveBeenCalledTimes(1);
         expect(onContextChanged).toHaveBeenCalledTimes(1);
         expect(folderBreadcrumbController.setFolderBreadcrumb).toHaveBeenCalledWith(

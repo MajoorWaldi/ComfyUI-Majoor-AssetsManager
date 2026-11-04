@@ -16,7 +16,10 @@ from aiohttp import web
 from mjr_am_backend.adapters.comfy_core import get_input_directory
 from mjr_am_backend.config import get_runtime_output_root
 from mjr_am_backend.custom_roots import list_custom_roots, resolve_custom_root
-from mjr_am_backend.features.metadata.thumbnail_cache import PREVIEW_ONLY_EXTENSIONS, get_or_create_preview
+from mjr_am_backend.features.metadata.thumbnail_cache import (
+    PREVIEW_ONLY_EXTENSIONS,
+    get_or_create_preview,
+)
 from mjr_am_backend.features.viewer.info import build_viewer_media_info
 from mjr_am_backend.shared import Result, get_logger
 

@@ -101,8 +101,8 @@ describe("useGridLoader adaptive paging", () => {
         vi.resetModules();
         vi.clearAllMocks();
         vi.useRealTimers();
-        globalThis.sessionStorage = makeStorage();
-        globalThis.localStorage = makeStorage();
+        globalThis.sessionStorage = (makeStorage() as any);
+        globalThis.localStorage = (makeStorage() as any);
         ensureWindowStub();
     });
 
@@ -407,7 +407,7 @@ describe("useGridLoader adaptive paging", () => {
             statusError: false,
         };
         const scrollElement = createVisibleElement({ scrollTop: 420 });
-        scrollElement.scrollHeight = 2000;
+        (scrollElement as any).scrollHeight = 2000;
         const resetAssets = vi.fn();
         const reconcileSelection = vi.fn();
         const setSelection = vi.fn((ids, activeId) => {
@@ -469,12 +469,12 @@ describe("useGridLoader adaptive paging", () => {
             statusError: false,
         };
         const scrollElement = new EventTarget();
-        scrollElement.scrollTop = 420;
-        scrollElement.scrollHeight = 2000;
-        scrollElement.clientHeight = 500;
-        scrollElement.clientWidth = 320;
-        scrollElement.isConnected = true;
-        scrollElement.getClientRects = vi.fn(() => [{ width: 320, height: 500 }]);
+        (scrollElement as any).scrollTop = 420;
+        (scrollElement as any).scrollHeight = 2000;
+        (scrollElement as any).clientHeight = 500;
+        (scrollElement as any).clientWidth = 320;
+        (scrollElement as any).isConnected = true;
+        (scrollElement as any).getClientRects = vi.fn(() => [{ width: 320, height: 500 }]);
 
         const loader = useGridLoader({
             gridContainerRef: { value: createVisibleElement({ dataset: {} }) },
@@ -492,7 +492,7 @@ describe("useGridLoader adaptive paging", () => {
         });
 
         const pending = loader.appendNextPage();
-        scrollElement.scrollTop = 900;
+        (scrollElement as any).scrollTop = 900;
         scrollElement.dispatchEvent(new Event("scroll"));
         resolvePage({
             ok: true,
@@ -504,7 +504,7 @@ describe("useGridLoader adaptive paging", () => {
         });
         await pending;
 
-        expect(scrollElement.scrollTop).toBe(900);
+        expect((scrollElement as any).scrollTop).toBe(900);
     });
 
     it("does not prune unloaded selections after a partial reload", async () => {
@@ -594,7 +594,7 @@ describe("useGridLoader adaptive paging", () => {
             },
         });
         const scrollElement = createVisibleElement({ scrollTop: 64 });
-        scrollElement.scrollHeight = 512;
+        (scrollElement as any).scrollHeight = 512;
 
         const loader = useGridLoader({
             gridContainerRef: { value: gridContainer },
@@ -773,7 +773,7 @@ describe("useGridLoader adaptive paging", () => {
             statusError: false,
         };
         const resetAssets = vi.fn(({ query = "*", total = null, done = false } = {}) => {
-            state2.query = query;
+            (state2 as any).query = query;
             state2.total = total;
             state2.done = done;
             state2.assets = [];

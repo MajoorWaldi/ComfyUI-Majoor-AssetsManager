@@ -2,7 +2,6 @@
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const mountUnifiedMediaControlsMock = vi.fn(() => ({ destroy: vi.fn() }));
 const mountFloatingViewerSimplePlayerMock = vi.fn((mediaEl) => mediaEl);
 
 vi.mock("../api/endpoints.js", () => ({
@@ -13,10 +12,6 @@ vi.mock("../api/endpoints.js", () => ({
 vi.mock("../features/viewer/model3dRenderer.js", () => ({
     MODEL3D_EXTS: new Set(),
     createModel3DMediaElement: vi.fn(),
-}));
-
-vi.mock("../features/viewer/mediaPlayer.js", () => ({
-    mountUnifiedMediaControls: mountUnifiedMediaControlsMock,
 }));
 
 vi.mock("../features/viewer/floatingViewerSimplePlayer.js", () => ({
@@ -31,60 +26,47 @@ vi.mock("../utils/mediaFps.js", () => ({
 describe("floating viewer media player bridge", () => {
     beforeEach(() => {
         document.body.innerHTML = "";
-        mountUnifiedMediaControlsMock.mockClear();
         mountFloatingViewerSimplePlayerMock.mockClear();
     });
 
-    it("uses unified video controls for video assets", async () => {
+    it("uses the Studio player for video assets", async () => {
         const { buildFloatingViewerMediaElement } =
             await import("../features/viewer/floatingViewerMedia.js");
 
-        const root = buildFloatingViewerMediaElement({
+        const root: any = buildFloatingViewerMediaElement({
             filename: "clip.mp4",
             kind: "video",
         });
 
         expect(root?.classList.contains("mjr-mfv-player-host")).toBe(true);
+        expect(root?.classList.contains("mjr-mfv-player-host--studio")).toBe(true);
         expect(root?._mjrMediaControlsHandle?.destroy).toBeTypeOf("function");
-        expect(root?.querySelector("video")).toBeTruthy();
-        expect(mountUnifiedMediaControlsMock).toHaveBeenCalledWith(
-            expect.any(HTMLVideoElement),
-            expect.objectContaining({
-                variant: "viewer",
-                mediaKind: "video",
-                initialFps: 24,
-                initialFrameCount: 48,
-            }),
-        );
+        expect(root?.querySelector(".mjr-studio-player video")).toBeTruthy();
+        // Zoom / pan / tone controls address the media through this class.
+        expect(root?.querySelector(".mjr-studio-player video.mjr-mfv-media")).toBeTruthy();
         expect(mountFloatingViewerSimplePlayerMock).not.toHaveBeenCalled();
+        root._mjrMediaControlsHandle.destroy();
     });
 
-    it("uses unified video controls for audio assets", async () => {
+    it("uses the Studio player for audio assets and fills compare slots", async () => {
         const { buildFloatingViewerMediaElement } =
             await import("../features/viewer/floatingViewerMedia.js");
 
-        const root = buildFloatingViewerMediaElement({
-            filename: "track.mp3",
-            kind: "audio",
-        });
-
-        expect(root?.classList.contains("mjr-mfv-player-host")).toBe(true);
-        expect(root?.querySelector("audio")).toBeTruthy();
-        expect(mountUnifiedMediaControlsMock).toHaveBeenCalledWith(
-            expect.any(HTMLAudioElement),
-            expect.objectContaining({
-                variant: "viewer",
-                mediaKind: "audio",
-            }),
+        const root: any = buildFloatingViewerMediaElement(
+            { filename: "track.mp3", kind: "audio" },
+            { fill: true },
         );
-        expect(mountFloatingViewerSimplePlayerMock).not.toHaveBeenCalled();
+
+        expect(root?.classList.contains("mjr-mfv-player-host--fill")).toBe(true);
+        expect(root?.querySelector(".mjr-studio-player.is-audio audio")).toBeTruthy();
+        root._mjrMediaControlsHandle.destroy();
     });
 
     it("can render playable compare followers without duplicate controls", async () => {
         const { buildFloatingViewerMediaElement } =
             await import("../features/viewer/floatingViewerMedia.js");
 
-        const video = buildFloatingViewerMediaElement(
+        const video: any = buildFloatingViewerMediaElement(
             {
                 filename: "compare-b.mp4",
                 kind: "video",
@@ -95,7 +77,7 @@ describe("floating viewer media player bridge", () => {
         expect(video).toBeInstanceOf(HTMLVideoElement);
         expect(video.classList.contains("mjr-mfv-media")).toBe(true);
         expect(video.controls).toBe(false);
-        expect(mountUnifiedMediaControlsMock).not.toHaveBeenCalled();
+        expect(video.closest(".mjr-studio-player")).toBeNull();
     });
 
     it("starts generated video previews muted with metadata preload", async () => {
@@ -103,12 +85,14 @@ describe("floating viewer media player bridge", () => {
         const { buildFloatingViewerMediaElement } =
             await import("../features/viewer/floatingViewerMedia.js");
 
-        const root = buildFloatingViewerMediaElement({
-            filename: "preview.mp4",
-            mime: "video/mp4",
-            _isPreview: true,
-        });
-        const video = root?.querySelector("video");
+        const video: any = buildFloatingViewerMediaElement(
+            {
+                filename: "preview.mp4",
+                mime: "video/mp4",
+                _isPreview: true,
+            },
+            { controls: false },
+        );
 
         expect(video?.muted).toBe(true);
         expect(video?.autoplay).toBe(true);

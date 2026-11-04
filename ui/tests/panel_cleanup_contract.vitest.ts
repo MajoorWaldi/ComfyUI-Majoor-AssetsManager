@@ -112,7 +112,7 @@ describe("panel cleanup contract", () => {
             const obj = {};
             let threw = false;
             try {
-                obj?.dispose?.();
+                (obj as any)?.dispose?.();
             } catch {
                 threw = true;
             }

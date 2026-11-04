@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
     FloatingViewerProgressService,
@@ -10,14 +10,30 @@ function ensureCustomEventShim() {
     globalThis.CustomEvent = class CustomEvent extends Event {
         constructor(type, init = {}) {
             super(type);
-            this.detail = init.detail;
+            (this as any).detail = (init as any).detail;
         }
-    };
+    } as any;
 }
 
+const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+/**
+ * Mimics ComfyUI's read-only `/queue` and `/history/{id}` endpoints. The
+ * service must learn the prompt graph from these, never by wrapping
+ * `api.queuePrompt`.
+ */
 class FakeApi extends EventTarget {
-    async queuePrompt(_index, _prompt) {
-        return { prompt_id: "prompt-1" };
+    queue: Record<string, any> = { queue_running: [], queue_pending: [] };
+    history: Record<string, any> = {};
+    queuePrompt = vi.fn();
+
+    run(promptId: string, output: Record<string, any>) {
+        this.queue.queue_running = [[0, promptId, output, {}, []]];
+    }
+
+    async fetchApi(route: string) {
+        const json = route === "/queue" ? this.queue : this.history;
+        return { ok: true, json: async () => json };
     }
 }
 
@@ -42,11 +58,9 @@ describe("floating viewer progress service", () => {
 
         await service.ensureInitialized({ api });
 
-        await api.queuePrompt(0, {
-            output: {
-                1: { class_type: "KSampler", _meta: { title: "KSampler" } },
-                2: { class_type: "SaveImage" },
-            },
+        api.run("prompt-1", {
+            1: { class_type: "KSampler", _meta: { title: "KSampler" } },
+            2: { class_type: "SaveImage" },
         });
         api.dispatchEvent(
             new CustomEvent("status", {
@@ -58,6 +72,7 @@ describe("floating viewer progress service", () => {
                 detail: { prompt_id: "prompt-1" },
             }),
         );
+        await flush();
         api.dispatchEvent(
             new CustomEvent("progress", {
                 detail: {
@@ -89,7 +104,8 @@ describe("floating viewer progress service", () => {
         expect(snapshot.prompt.currentlyExecuting.nodeId).toBe("2");
         expect(snapshot.prompt.currentlyExecuting.nodeLabel).toBe("SaveImage");
 
-        service.dispose({ resetPatchedQueuePrompt: true });
+        service.dispose();
+        expect(api.queuePrompt).not.toHaveBeenCalled();
     });
 
     it("counts cached nodes as executed without replacing the active node", async () => {
@@ -106,18 +122,17 @@ describe("floating viewer progress service", () => {
         });
 
         await service.ensureInitialized({ api });
-        await api.queuePrompt(0, {
-            output: {
-                1: { class_type: "LoadImage" },
-                2: { class_type: "VAEDecode" },
-                3: { class_type: "KSampler" },
-            },
+        api.run("prompt-1", {
+            1: { class_type: "LoadImage" },
+            2: { class_type: "VAEDecode" },
+            3: { class_type: "KSampler" },
         });
         api.dispatchEvent(
             new CustomEvent("execution_start", {
                 detail: { prompt_id: "prompt-1" },
             }),
         );
+        await flush();
         api.dispatchEvent(
             new CustomEvent("progress", {
                 detail: {
@@ -142,7 +157,8 @@ describe("floating viewer progress service", () => {
         expect(snapshot.prompt.currentlyExecuting.nodeId).toBe("3");
         expect(snapshot.prompt.currentlyExecuting.nodeLabel).toBe("KSampler");
 
-        service.dispose({ resetPatchedQueuePrompt: true });
+        service.dispose();
+        expect(api.queuePrompt).not.toHaveBeenCalled();
     });
 
     it("surfaces execution errors and resets to idle on success", async () => {
@@ -153,11 +169,7 @@ describe("floating viewer progress service", () => {
         });
 
         await service.ensureInitialized({ api });
-        await api.queuePrompt(0, {
-            output: {
-                1: { class_type: "KSampler" },
-            },
-        });
+        api.run("prompt-1", { 1: { class_type: "KSampler" } });
         api.dispatchEvent(
             new CustomEvent("execution_start", {
                 detail: { prompt_id: "prompt-1" },
@@ -187,7 +199,58 @@ describe("floating viewer progress service", () => {
         snapshot = service.getSnapshot();
         expect(snapshot.prompt).toBeNull();
 
-        service.dispose({ resetPatchedQueuePrompt: true });
+        service.dispose();
+        expect(api.queuePrompt).not.toHaveBeenCalled();
+    });
+
+    it("never wraps api.queuePrompt and falls back to /history for finished prompts", async () => {
+        const api = new FakeApi();
+        const original = api.queuePrompt;
+        api.history = {
+            "prompt-9": { prompt: [0, "prompt-9", { 5: { class_type: "SaveImage" } }, {}, []] },
+        };
+        const service = new FloatingViewerProgressService({
+            getApi: () => api,
+            getApp: () => ({ graph: { getNodeById: () => null } }),
+        });
+
+        await service.ensureInitialized({ api });
+        expect(api.queuePrompt).toBe(original);
+
+        api.dispatchEvent(
+            new CustomEvent("execution_start", { detail: { prompt_id: "prompt-9" } }),
+        );
+        await flush();
+        expect(service.getSnapshot().prompt.totalNodes).toBe(1);
+        expect(service.getSnapshot().prompt.getNodeLabel("5")).toBe("SaveImage");
+
+        service.dispose();
+    });
+
+    it("prefers the core Jobs API when the frontend exposes getJobDetail", async () => {
+        const api: any = new FakeApi();
+        api.getJobDetail = vi.fn(async (id: string) => ({
+            id,
+            status: "in_progress",
+            workflow: {
+                prompt: { 7: { class_type: "VAEDecode" }, 8: { class_type: "SaveImage" } },
+            },
+        }));
+        const fetchSpy = vi.spyOn(api, "fetchApi");
+        const service = new FloatingViewerProgressService({
+            getApi: () => api,
+            getApp: () => ({ graph: { getNodeById: () => null } }),
+        });
+
+        await service.ensureInitialized({ api });
+        api.dispatchEvent(new CustomEvent("execution_start", { detail: { prompt_id: "job-1" } }));
+        await flush();
+
+        expect(api.getJobDetail).toHaveBeenCalledWith("job-1");
+        expect(fetchSpy).not.toHaveBeenCalled();
+        expect(service.getSnapshot().prompt.totalNodes).toBe(2);
+
+        service.dispose();
     });
 
     it("formats the media overlay label from current node and steps", () => {

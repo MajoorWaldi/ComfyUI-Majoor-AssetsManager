@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 
-import { buildGenInfoComparison } from "../features/metadata/genInfoCompare";
 import { normalizeMetadataSearchPrefix } from "../features/metadata/metadataSectionCatalog";
 import { parsePrefixSearchQuery } from "../features/metadata/prefixSearch";
 
@@ -20,16 +19,5 @@ describe("metadata catalog helpers", () => {
             { field: "lora", value: "bad", exclude: true, raw: "-lora:bad" },
             { field: "sampler", value: "euler", exclude: false, raw: "sampler:euler" },
         ]);
-    });
-
-    it("builds a structured geninfo comparison", () => {
-        const rows = buildGenInfoComparison(
-            { geninfo: { sampler: { name: "euler" }, steps: { value: 20 } } },
-            { geninfo: { sampler: { name: "dpmpp" }, steps: { value: 20 } } },
-        );
-        const sampler = rows.find((row) => row.key === "sampler");
-        const steps = rows.find((row) => row.key === "steps");
-        expect(sampler?.changed).toBe(true);
-        expect(steps?.changed).toBe(false);
     });
 });

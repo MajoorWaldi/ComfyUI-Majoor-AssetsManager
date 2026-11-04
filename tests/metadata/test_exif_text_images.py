@@ -1,7 +1,6 @@
 import json
 
 import pytest
-
 from mjr_am_backend.features.metadata import extractor_registry as reg
 
 PROMPT = {

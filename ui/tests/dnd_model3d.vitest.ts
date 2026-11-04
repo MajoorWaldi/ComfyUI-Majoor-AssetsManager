@@ -69,7 +69,7 @@ describe("3D drag and drop support", () => {
         const picked = pickBestMediaPathWidget(node, { kind: "model3d" }, "glb");
 
         expect(picked).toBe(modelPath);
-        expect(modelPath.__mjrModel3DPickScore).toBeGreaterThan(0);
+        expect((modelPath as any).__mjrModel3DPickScore).toBeGreaterThan(0);
     });
 
     it("prefers image-oriented widgets when dropping an image asset on a LoadImage node", () => {
@@ -88,7 +88,7 @@ describe("3D drag and drop support", () => {
         const picked = pickBestMediaPathWidget(node, { kind: "image" }, "png");
 
         expect(picked).toBe(imagePath);
-        expect(imagePath.__mjrImagePickScore).toBeGreaterThan(0);
+        expect((imagePath as any).__mjrImagePickScore).toBeGreaterThan(0);
     });
 
     it("rejects button and hidden callback widgets when picking a path target", () => {
@@ -117,7 +117,7 @@ describe("3D drag and drop support", () => {
         const picked = pickBestMediaPathWidget(node, { kind: "image" }, "png");
 
         expect(picked).toBe(imagePath);
-        expect(buttonWidget.__mjrImagePickScore).toBeUndefined();
-        expect(hiddenWidget.__mjrImagePickScore).toBeUndefined();
+        expect((buttonWidget as any).__mjrImagePickScore).toBeUndefined();
+        expect((hiddenWidget as any).__mjrImagePickScore).toBeUndefined();
     });
 });

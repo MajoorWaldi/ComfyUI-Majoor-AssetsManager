@@ -1,51 +1,42 @@
 // @vitest-environment happy-dom
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
-const viewerMock = vi.hoisted(() => ({
-    open: vi.fn(),
-    setMode: vi.fn(),
-}));
-
-const getViewerInstanceMock = vi.hoisted(() => vi.fn(() => viewerMock));
-
-vi.mock("../components/Viewer.js", () => ({
-    getViewerInstance: getViewerInstanceMock,
-}));
+import { EVENTS } from "../app/events.js";
+import { requestViewerOpen } from "../features/viewer/viewerOpenRequest.js";
 
 describe("requestViewerOpen", () => {
-    beforeEach(() => {
-        viewerMock.open.mockClear();
-        viewerMock.setMode.mockClear();
-        getViewerInstanceMock.mockClear();
+    const asset = { id: 1, filename: "one.png", kind: "image" };
+
+    it("reports false when no viewer handles the request", () => {
+        expect(requestViewerOpen({ assets: [asset], index: 0 })).toBe(false);
     });
 
-    it("falls back to the viewer singleton when no portal listener handles the event", async () => {
-        const { requestViewerOpen } = await import("../features/viewer/viewerOpenRequest.js");
-        const asset = { id: 1, filename: "one.png", kind: "image" };
-
-        const opened = requestViewerOpen({ assets: [asset], index: 0 });
-
-        expect(opened).toBe(true);
-        expect(getViewerInstanceMock).toHaveBeenCalledTimes(1);
-        expect(viewerMock.open).toHaveBeenCalledWith([asset], 0);
+    it("reports false without assets", () => {
+        expect(requestViewerOpen({ assets: [] })).toBe(false);
     });
 
-    it("does not double-open when the portal marks the event as handled", async () => {
-        const { EVENTS } = await import("../app/events.js");
-        const { requestViewerOpen } = await import("../features/viewer/viewerOpenRequest.js");
-        const asset = { id: 2, filename: "two.png", kind: "image" };
-
-        const onOpen = vi.fn((event) => {
-            event.detail.handled = true;
+    it("dispatches OPEN_VIEWER and returns true once a listener handles it", () => {
+        const onOpen = vi.fn((event: Event) => {
+            (event as CustomEvent).detail.handled = true;
         });
         window.addEventListener(EVENTS.OPEN_VIEWER, onOpen);
         try {
-            const opened = requestViewerOpen({ assets: [asset], index: 0, mode: "ab" });
+            expect(requestViewerOpen({ asset, index: 5, mode: " AB " })).toBe(true);
+            const detail = (onOpen.mock.calls[0][0] as CustomEvent).detail;
+            expect(detail.assets).toEqual([asset]);
+            expect(detail.index).toBe(0);
+            expect(detail.mode).toBe("ab");
+        } finally {
+            window.removeEventListener(EVENTS.OPEN_VIEWER, onOpen);
+        }
+    });
 
-            expect(opened).toBe(true);
-            expect(onOpen).toHaveBeenCalledTimes(1);
-            expect(getViewerInstanceMock).not.toHaveBeenCalled();
-            expect(viewerMock.open).not.toHaveBeenCalled();
+    it("drops unknown modes", () => {
+        const onOpen = vi.fn();
+        window.addEventListener(EVENTS.OPEN_VIEWER, onOpen);
+        try {
+            requestViewerOpen({ assets: [asset], mode: "bogus" });
+            expect((onOpen.mock.calls[0][0] as CustomEvent).detail.mode).toBe("");
         } finally {
             window.removeEventListener(EVENTS.OPEN_VIEWER, onOpen);
         }

@@ -48,7 +48,6 @@ import { findGraphNodeById, getHostRootGraph, walkGraphNodes } from "./graphTrav
 // -- internal state ------------------------------------------------------------
 
 let _app: any = null;
-const HOST_QUEUE_PROMPT_BINDING_KEY = Symbol.for("mjr.host.queuePromptBinding");
 const HOST_CANVAS_SELECTION_EVENT_TYPES = [
     "selectionchange",
     "selection-change",
@@ -247,6 +246,32 @@ export function getHostSettingsApi(): any {
 export function registerSidebarTab(tabDef: any): boolean {
     try {
         return registerSidebarTabCompat(_app || getComfyApp(), tabDef);
+    } catch {
+        return false;
+    }
+}
+
+/**
+ * List every sidebar tab currently registered with the host (core + extensions).
+ * Returns an empty array when the host predates `getSidebarTabs`.
+ */
+export function listHostSidebarTabs(app: any = null): any[] {
+    try {
+        const manager = getExtensionManager(app || _app || getComfyApp());
+        const tabs = typeof manager?.getSidebarTabs === "function" ? manager.getSidebarTabs() : [];
+        return Array.isArray(tabs) ? tabs.filter(Boolean) : [];
+    } catch {
+        return [];
+    }
+}
+
+/** Unregister a sidebar tab by id through the official extension manager API. */
+export function unregisterHostSidebarTab(id: string, app: any = null): boolean {
+    try {
+        const manager = getExtensionManager(app || _app || getComfyApp());
+        if (!id || typeof manager?.unregisterSidebarTab !== "function") return false;
+        manager.unregisterSidebarTab(id);
+        return true;
     } catch {
         return false;
     }
@@ -543,65 +568,6 @@ export function observeHostCanvasSelection(
     };
 }
 
-export function wrapHostQueuePrompt(
-    options: {
-        api?: any;
-        app?: any;
-        owner?: any;
-        createWrapper?: ((originalQueuePrompt: any, api: any) => any) | null;
-    } = {},
-): {
-    api: any;
-    owner: any;
-    originalQueuePrompt: any;
-    wrappedQueuePrompt: any;
-    restore: () => boolean;
-} | null {
-    const api = options.api || getRawHostApi(options.app || _app || getComfyApp());
-    const owner = options.owner || null;
-    const createWrapper =
-        typeof options.createWrapper === "function" ? options.createWrapper : null;
-    if (!api || typeof api.queuePrompt !== "function" || !createWrapper) return null;
-
-    const existingBinding = api.queuePrompt?.[HOST_QUEUE_PROMPT_BINDING_KEY] || null;
-    if (existingBinding?.owner === owner) {
-        return existingBinding;
-    }
-    if (existingBinding?.owner && existingBinding.owner !== owner) {
-        return null;
-    }
-
-    const originalQueuePrompt = api.queuePrompt;
-    const wrappedQueuePrompt = createWrapper(originalQueuePrompt, api);
-    if (typeof wrappedQueuePrompt !== "function") return null;
-
-    const binding = {
-        api,
-        owner,
-        originalQueuePrompt,
-        wrappedQueuePrompt,
-        restore: () => {
-            try {
-                const activeBinding = api.queuePrompt?.[HOST_QUEUE_PROMPT_BINDING_KEY] || null;
-                if (activeBinding?.owner !== owner) return false;
-                api.queuePrompt = originalQueuePrompt;
-                return true;
-            } catch (e) {
-                console.debug?.(e);
-                return false;
-            }
-        },
-    };
-
-    Object.defineProperty(wrappedQueuePrompt, HOST_QUEUE_PROMPT_BINDING_KEY, {
-        configurable: true,
-        value: binding,
-    });
-
-    api.queuePrompt = wrappedQueuePrompt;
-    return binding;
-}
-
 export async function interruptHostExecution(app: any = null): Promise<boolean> {
     const runtimeApp = app || _app || getComfyApp();
     const liveApi = runtimeApp?.api && typeof runtimeApp.api.interrupt === "function" ? runtimeApp.api : null;
@@ -817,8 +783,63 @@ export function createHostNode(nodeType: any, app: any = null): any {
     }
 }
 
-export function importWorkflowIntoHostCanvas(workflow: any, app: any = null): boolean {
+function _isApiPromptGraph(value: any): boolean {
+    if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+    if (Array.isArray(value.nodes)) return false;
+    const entries = Object.values(value).slice(0, 8);
+    if (!entries.length) return false;
+    return entries.every(
+        (node: any) =>
+            node && typeof node === "object" && typeof node.class_type === "string" && node.inputs && typeof node.inputs === "object",
+    );
+}
+
+/**
+ * Normalise what the Workflow tab / context menus hand us: a UI graph export,
+ * a `{ workflow }` / `{ prompt }` wrapper, or an API prompt graph.
+ */
+export function resolveHostWorkflowPayload(workflow: any): { format: "ui" | "api" | ""; data: any } {
+    if (!workflow || typeof workflow !== "object") return { format: "", data: null };
+    if (Array.isArray(workflow.nodes)) return { format: "ui", data: workflow };
+    if (workflow.workflow && typeof workflow.workflow === "object" && Array.isArray(workflow.workflow.nodes)) {
+        return { format: "ui", data: workflow.workflow };
+    }
+    let prompt = workflow.prompt;
+    if (typeof prompt === "string") {
+        try {
+            prompt = JSON.parse(prompt);
+        } catch {
+            prompt = null;
+        }
+    }
+    if (_isApiPromptGraph(prompt)) return { format: "api", data: prompt };
+    if (_isApiPromptGraph(workflow)) return { format: "api", data: workflow };
+    return { format: "", data: null };
+}
+
+export function importWorkflowIntoHostCanvas(
+    workflow: any,
+    app: any = null,
+    options: { filename?: string } = {},
+): boolean {
     const runtimeApp = app || _app || getComfyApp();
+    const resolved = resolveHostWorkflowPayload(workflow);
+    if (resolved.format === "api") {
+        // API prompts have no layout; graph loaders show an empty canvas.
+        // The frontend rebuilds a graph from them with loadApiJson.
+        if (typeof runtimeApp?.loadApiJson !== "function") return false;
+        try {
+            const result = runtimeApp.loadApiJson(resolved.data, String(options.filename || "workflow.json"));
+            if (result && typeof result.then === "function") {
+                result.then(undefined, (e: unknown) => console.debug?.(e));
+            }
+            return true;
+        } catch (e) {
+            console.debug?.(e);
+            return false;
+        }
+    }
+    if (resolved.format === "ui") workflow = resolved.data;
     if (!workflow || typeof workflow !== "object") return false;
     try {
         const importCandidates = [
@@ -839,7 +860,11 @@ export function importWorkflowIntoHostCanvas(workflow: any, app: any = null): bo
             }
         }
         if (typeof runtimeApp?.loadGraphData === "function") {
-            runtimeApp.loadGraphData(workflow);
+            // Async on current frontends: never leave a rejection unhandled.
+            const result = runtimeApp.loadGraphData(workflow);
+            if (result && typeof result.then === "function") {
+                result.then(undefined, (e: unknown) => console.debug?.(e));
+            }
             return true;
         }
         const graph = _getHostGraph(runtimeApp);
@@ -878,19 +903,29 @@ export function importWorkflowPreferHostTab(
 export function serializeCurrentHostWorkflow(app: any = null): any {
     try {
         const runtimeApp = app || _app || getComfyApp();
-        if (typeof runtimeApp?.graphToPrompt === "function") {
-            const data = runtimeApp.graphToPrompt();
-            if (data?.workflow && typeof data.workflow === "object") return data.workflow;
-        }
-        const graph = _getHostGraph(runtimeApp);
-        if (typeof graph?.serialize === "function") {
-            const workflow = graph.serialize();
-            if (workflow && typeof workflow === "object") return workflow;
-        }
-        const rootGraph = runtimeApp?.rootGraph || runtimeApp?.graph?.rootGraph || null;
+        // Prefer the root graph: with subgraphs, `app.canvas.graph` (and on some
+        // builds `app.graph`) can point at the subgraph currently being edited,
+        // which would serialize a fragment instead of the whole workflow.
+        const rootGraph = getHostRootGraph(runtimeApp);
         if (typeof rootGraph?.serialize === "function") {
             const workflow = rootGraph.serialize();
             if (workflow && typeof workflow === "object") return workflow;
+        }
+        const graph = _getHostGraph(runtimeApp);
+        if (graph !== rootGraph && typeof graph?.serialize === "function") {
+            const workflow = graph.serialize();
+            if (workflow && typeof workflow === "object") return workflow;
+        }
+        // Legacy hosts only: modern ComfyUI frontends make graphToPrompt() async
+        // (it returns a Promise), so a synchronous caller cannot use its result.
+        // Never leave a rejected promise unhandled when we discard it.
+        if (typeof runtimeApp?.graphToPrompt === "function") {
+            const data = runtimeApp.graphToPrompt();
+            if (data && typeof data.then === "function") {
+                data.then(undefined, (e: unknown) => console.debug?.(e));
+                return null;
+            }
+            if (data?.workflow && typeof data.workflow === "object") return data.workflow;
         }
     } catch (e) {
         console.debug?.(e);
@@ -908,6 +943,11 @@ export function isHostWorkflowDirty(app: any = null): boolean | null {
     try {
         const runtimeApp = app || _app || getComfyApp();
         if (!runtimeApp) return null;
+
+        // ComfyUI frontend >= 1.2x exposes the workflow store on the extension
+        // manager; its `isModified` flag is the authoritative dirty signal.
+        const activeWorkflow = runtimeApp?.extensionManager?.workflow?.activeWorkflow;
+        if (typeof activeWorkflow?.isModified === "boolean") return activeWorkflow.isModified;
 
         const candidates = [
             runtimeApp?.isDirty,
@@ -1227,7 +1267,6 @@ export const hostAdapter = {
     fetchHostApi,
     queueHostPrompt,
     observeHostCanvasSelection,
-    wrapHostQueuePrompt,
     interruptHostExecution,
     getSelectedHostCanvasNodes,
     getSelectedHostCanvasNodeIds,
@@ -1237,9 +1276,12 @@ export const hostAdapter = {
     refreshHostCanvasGraph,
     notifyHostNodeGraphChanged,
     importWorkflowIntoHostCanvas,
+    resolveHostWorkflowPayload,
     importWorkflowPreferHostTab,
     isHostWorkflowDirty,
     serializeCurrentHostWorkflow,
+    listHostSidebarTabs,
+    unregisterHostSidebarTab,
     addNodeToHostGraph,
     createHostNode,
     focusHostCanvasNode,

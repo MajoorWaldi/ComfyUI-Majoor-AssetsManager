@@ -35,9 +35,15 @@ export const comfyAlert = async (message: any, title = "Majoor", options: Record
     if (extensionToast) {
         try {
             const detail = String(message || "");
-            if (typeof extensionToast.addAlert === "function") {
+            if (typeof extensionToast.info === "function") {
+                extensionToast.info(String(title || "Majoor"), {
+                    description: detail,
+                    duration: 5000,
+                    closable: true,
+                });
+            } else if (typeof extensionToast.addAlert === "function") {
                 extensionToast.addAlert(detail);
-            } else {
+            } else if (typeof extensionToast.add === "function") {
                 extensionToast.add({
                     severity: "info",
                     summary: String(title || "Majoor"),

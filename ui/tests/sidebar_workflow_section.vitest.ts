@@ -109,11 +109,11 @@ describe("SidebarWorkflowSection", () => {
             canvasToWorld: (x, y) => ({ x: 100 + Number(x), y: 200 + Number(y) }),
             hitTestNode: () => null,
         }));
-        globalThis.ResizeObserver = class {
+        globalThis.ResizeObserver = (class {
             observe() {}
             disconnect() {}
-        };
-        globalThis.PointerEvent = globalThis.PointerEvent || MouseEvent;
+        } as any);
+        globalThis.PointerEvent = (globalThis.PointerEvent || MouseEvent as any);
         moveWorkflow.mockReset();
         moveWorkflow.mockImplementation(async () => ({
             ok: true,
@@ -124,19 +124,19 @@ describe("SidebarWorkflowSection", () => {
             },
         }));
         comfyToast.mockReset();
-        window.app = {
-            canvas: {
-                canvas: { width: 1000, height: 800, clientWidth: 1000, clientHeight: 800 },
-                ds: { scale: 1, offset: [0, 0] },
+        window.app = ({
+            canvas: ({
+                canvas: ({ width: 1000, height: 800, clientWidth: 1000, clientHeight: 800 } as any),
+                ds: ({ scale: 1, offset: [0, 0] } as any),
                 setDirty: vi.fn(),
-            },
-            graph: {
+            } as any),
+            graph: ({
                 setDirtyCanvas: vi.fn(),
-            },
-        };
-        HTMLCanvasElement.prototype.getContext = vi.fn(() => ({
+            } as any),
+        } as any);
+        HTMLCanvasElement.prototype.getContext = (vi.fn(() => ({
             setTransform: vi.fn(),
-        }));
+        })) as any);
     });
 
     it("shows workflow stats and persists size and label toggles", async () => {
@@ -215,14 +215,14 @@ describe("SidebarWorkflowSection", () => {
         });
 
         const canvas = wrapper.find("canvas");
-        canvas.element.getBoundingClientRect = () => ({
+        canvas.element.getBoundingClientRect = (() => ({
             left: 10,
             top: 20,
             width: 320,
             height: 160,
             right: 330,
             bottom: 180,
-        });
+        }) as any);
 
         await canvas.trigger("pointerdown", {
             button: 0,
@@ -325,7 +325,7 @@ describe("SidebarWorkflowSection", () => {
         expect(categoryBlock?.text()).not.toContain("PROJECTS");
 
         const input = wrapper.find('input[placeholder="Workflow category"]');
-        expect(input.element.value).toBe("PROJECTS/PERSONAL/02_OUT/VIDEOS/260513/Atopi");
+        expect((input.element as any).value).toBe("PROJECTS/PERSONAL/02_OUT/VIDEOS/260513/Atopi");
 
         wrapper.unmount();
     });

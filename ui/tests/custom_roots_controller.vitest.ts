@@ -6,59 +6,59 @@ import { usePanelStore } from "../stores/usePanelStore.js";
 
 class SelectStub {
     constructor() {
-        this._innerHTML = "";
-        this.value = "";
-        this.disabled = false;
-        this.listeners = new Map();
-        this.options = [];
-        this.selectedIndex = -1;
+        (this as any)._innerHTML = "";
+        (this as any).value = "";
+        (this as any).disabled = false;
+        (this as any).listeners = new Map();
+        (this as any).options = [];
+        (this as any).selectedIndex = -1;
     }
 
     set innerHTML(value) {
-        this._innerHTML = value;
-        this.options = [];
-        this.selectedIndex = -1;
+        (this as any)._innerHTML = value;
+        (this as any).options = [];
+        (this as any).selectedIndex = -1;
     }
 
     get innerHTML() {
-        return this._innerHTML;
+        return (this as any)._innerHTML;
     }
 
     appendChild(option) {
-        this.options.push(option);
-        if (this.selectedIndex < 0) this.selectedIndex = 0;
+        (this as any).options.push(option);
+        if ((this as any).selectedIndex < 0) (this as any).selectedIndex = 0;
         return option;
     }
 
     querySelector(selector) {
         if (selector === 'option[value=""]') {
-            return this.options.find((option) => option.value === "") || null;
+            return (this as any).options.find((option) => option.value === "") || null;
         }
         return null;
     }
 
     addEventListener(type, handler) {
-        const list = this.listeners.get(type) || [];
+        const list = (this as any).listeners.get(type) || [];
         list.push(handler);
-        this.listeners.set(type, list);
+        (this as any).listeners.set(type, list);
     }
 
     removeEventListener(type, handler) {
-        const list = this.listeners.get(type) || [];
-        this.listeners.set(
+        const list = (this as any).listeners.get(type) || [];
+        (this as any).listeners.set(
             type,
             list.filter((item) => item !== handler),
         );
     }
 
     dispatchEvent(event) {
-        for (const handler of this.listeners.get(event.type) || []) {
+        for (const handler of (this as any).listeners.get(event.type) || []) {
             handler(event);
         }
     }
 
     get selectedOptions() {
-        const selected = this.options[this.selectedIndex];
+        const selected = (this as any).options[(this as any).selectedIndex];
         return selected ? [selected] : [];
     }
 }
@@ -66,18 +66,19 @@ class SelectStub {
 describe("customRootsController", () => {
     it("syncs the selected custom root into Pinia", async () => {
         globalThis.document = {
-            createElement: () => ({
-                value: "",
-                textContent: "",
-                get text() {
-                    return this.textContent;
-                },
-                set text(value) {
-                    this.textContent = value;
-                },
-                disabled: false,
-            }),
-        };
+            createElement: () =>
+                ({
+                    value: "",
+                    textContent: "",
+                    get text() {
+                        return this.textContent;
+                    },
+                    set text(value) {
+                        this.textContent = value;
+                    },
+                    disabled: false,
+                }) as any,
+        } as any;
 
         setActivePinia(createPinia());
         const panelStore = usePanelStore();
@@ -131,8 +132,8 @@ describe("customRootsController", () => {
             customRemoveBtn,
         });
 
-        customSelect.value = "root-b";
-        customSelect.selectedIndex = 2;
+        (customSelect as any).value = "root-b";
+        (customSelect as any).selectedIndex = 2;
         await customSelect.dispatchEvent({ type: "change" });
 
         expect(panelStore.customRootId).toBe("root-b");

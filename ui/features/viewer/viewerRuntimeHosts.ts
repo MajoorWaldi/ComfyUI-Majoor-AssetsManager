@@ -1,7 +1,5 @@
-let viewerOverlayHost: any = null;
 let floatingViewerHost: any = null;
 
-const VIEWER_OVERLAY_SELECTOR = ".mjr-viewer-overlay";
 const FLOATING_VIEWER_SELECTOR = ".mjr-mfv";
 
 function canAppendChildren(host: any) {
@@ -75,18 +73,6 @@ function rehomeManagedNodes(selector: any, preferredHost: any, resolvePreferredH
     }
 }
 
-export function registerViewerOverlayHost(host: any) {
-    viewerOverlayHost = normalizeHost(host);
-    rehomeManagedNodes(VIEWER_OVERLAY_SELECTOR, viewerOverlayHost);
-    return () => unregisterViewerOverlayHost(host);
-}
-
-export function unregisterViewerOverlayHost(host: any): void {
-    if (!host || viewerOverlayHost === host) {
-        viewerOverlayHost = null;
-    }
-}
-
 export function registerFloatingViewerHost(host: any) {
     floatingViewerHost = normalizeHost(host);
     rehomeManagedNodes(FLOATING_VIEWER_SELECTOR, floatingViewerHost, resolveFloatingViewerHost);
@@ -99,16 +85,6 @@ export function unregisterFloatingViewerHost(host: any): void {
     }
 }
 
-export function appendViewerOverlayNode(node: any): void {
-    const host = resolveHost(viewerOverlayHost);
-    try {
-        host?.appendChild?.(node);
-    } catch (e: any) {
-        console.debug?.(e);
-    }
-    return host;
-}
-
 export function appendFloatingViewerNode(node: any): void {
     const host = resolveFloatingViewerHost(floatingViewerHost);
     try {
@@ -117,8 +93,4 @@ export function appendFloatingViewerNode(node: any): void {
         console.debug?.(e);
     }
     return host;
-}
-
-export function getManagedViewerOverlayNodes() {
-    return collectNodesAcrossHosts(VIEWER_OVERLAY_SELECTOR, viewerOverlayHost);
 }

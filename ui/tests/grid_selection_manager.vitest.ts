@@ -47,15 +47,15 @@ describe("GridSelectionManager", () => {
         const events = [];
         globalThis.CustomEvent = class {
             constructor(type, init) {
-                this.type = type;
-                this.detail = init?.detail;
+                (this as any).type = type;
+                (this as any).detail = init?.detail;
             }
-        };
+        } as any;
         globalThis.window = {
             dispatchEvent(evt) {
                 events.push(evt);
             },
-        };
+        } as any;
         const grid = {
             dataset: {},
             dispatchEvent(evt) {
@@ -69,7 +69,7 @@ describe("GridSelectionManager", () => {
 
         const selected = setSelectionIds(grid, ["1", 3, "3"], { activeId: "3" }, () => cards);
         expect(selected.sort()).toEqual(["1", "3"]);
-        expect(grid.dataset.mjrSelectedAssetId).toBe("3");
+        expect((grid.dataset as any).mjrSelectedAssetId).toBe("3");
         expect(events.length).toBeGreaterThanOrEqual(1);
     });
 
@@ -83,15 +83,15 @@ describe("GridSelectionManager", () => {
         const events = [];
         globalThis.CustomEvent = class {
             constructor(type, init) {
-                this.type = type;
-                this.detail = init?.detail;
+                (this as any).type = type;
+                (this as any).detail = init?.detail;
             }
-        };
+        } as any;
         globalThis.window = {
             dispatchEvent(evt) {
                 events.push(evt);
             },
-        };
+        } as any;
         const grid = {
             dataset: {
                 mjrSelectedAssetIds: JSON.stringify(["1", "2", "9"]),

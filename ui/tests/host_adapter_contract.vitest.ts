@@ -140,50 +140,6 @@ describe("hostAdapter contract", () => {
         expect(Object.prototype.hasOwnProperty.call(canvas, "onNodeDeselected")).toBe(false);
     });
 
-    it("wrapHostQueuePrompt binds once per owner and restore returns original", async () => {
-        const mod = await import("../app/hostAdapter.js");
-
-        const original = vi.fn(async (count: number) => ({ prompt_id: String(count) }));
-        const api: any = {
-            queuePrompt: original,
-        };
-
-        const ownerA = { id: "A" };
-        const ownerB = { id: "B" };
-
-        const binding = mod.wrapHostQueuePrompt({
-            api,
-            owner: ownerA,
-            createWrapper(originalQueuePrompt: any) {
-                return async function (this: any, ...args: any[]) {
-                    return originalQueuePrompt.apply(this, args);
-                };
-            },
-        });
-
-        expect(binding).toBeTruthy();
-        expect(api.queuePrompt).not.toBe(original);
-
-        const blockedBinding = mod.wrapHostQueuePrompt({
-            api,
-            owner: ownerB,
-            createWrapper(originalQueuePrompt: any) {
-                return async function (this: any, ...args: any[]) {
-                    return originalQueuePrompt.apply(this, args);
-                };
-            },
-        });
-
-        expect(blockedBinding).toBeNull();
-
-        const result = await api.queuePrompt(7);
-        expect(result.prompt_id).toBe("7");
-        expect(original).toHaveBeenCalledTimes(1);
-
-        expect(binding.restore()).toBe(true);
-        expect(api.queuePrompt).toBe(original);
-    });
-
     it("notifies node graph and root canvas graph through host helpers", async () => {
         const mod = await import("../app/hostAdapter.js");
 
@@ -378,6 +334,68 @@ describe("hostAdapter contract", () => {
         mod.init(app);
 
         expect(mod.serializeCurrentHostWorkflow(app)).toEqual(workflow);
+    });
+
+    it("loads API prompt graphs with loadApiJson instead of an empty canvas", async () => {
+        const mod = await import("../app/hostAdapter.js");
+        const api = { "3": { class_type: "KSampler", inputs: { seed: 1 } } };
+        const app = { loadApiJson: vi.fn(), loadGraphData: vi.fn() };
+        mod.init(app);
+
+        expect(mod.importWorkflowIntoHostCanvas(api, app, { filename: "api.json" })).toBe(true);
+        expect(app.loadApiJson).toHaveBeenCalledWith(api, "api.json");
+        expect(app.loadGraphData).not.toHaveBeenCalled();
+
+        expect(mod.importWorkflowIntoHostCanvas({ prompt: JSON.stringify(api) }, app)).toBe(true);
+        expect(app.loadApiJson).toHaveBeenLastCalledWith(api, "workflow.json");
+    });
+
+    it("unwraps { workflow } exports before loading", async () => {
+        const mod = await import("../app/hostAdapter.js");
+        const ui = { nodes: [{ id: 1, type: "KSampler" }], links: [] };
+        const app = { loadGraphData: vi.fn(() => Promise.resolve()) };
+        mod.init(app);
+
+        expect(mod.importWorkflowIntoHostCanvas({ workflow: ui }, app)).toBe(true);
+        expect(app.loadGraphData).toHaveBeenCalledWith(ui);
+        expect(mod.resolveHostWorkflowPayload({ theme: "dark" }).format).toBe("");
+    });
+
+    it("prefers the root graph over the active subgraph when serializing", async () => {
+        const mod = await import("../app/hostAdapter.js");
+
+        const rootWorkflow = { last_node_id: 3, nodes: [{ id: 1 }, { id: 2 }, { id: 3 }] };
+        const app = {
+            rootGraph: { serialize: vi.fn(() => rootWorkflow) },
+            canvas: { graph: { serialize: vi.fn(() => ({ nodes: [{ id: 99 }] })) } },
+            graphToPrompt: vi.fn(),
+        };
+        mod.init(app);
+
+        expect(mod.serializeCurrentHostWorkflow(app)).toEqual(rootWorkflow);
+        expect(app.graphToPrompt).not.toHaveBeenCalled();
+    });
+
+    it("does not leak an unhandled rejection from an async graphToPrompt", async () => {
+        const mod = await import("../app/hostAdapter.js");
+
+        const rejection = Promise.reject(new Error("boom"));
+        const app = { graphToPrompt: vi.fn(() => rejection) };
+        mod.init(app);
+
+        expect(mod.serializeCurrentHostWorkflow(app)).toBeNull();
+        await expect(rejection).rejects.toThrow("boom");
+    });
+
+    it("reads dirty state from the frontend workflow store first", async () => {
+        const mod = await import("../app/hostAdapter.js");
+
+        const app = {
+            isDirty: true,
+            extensionManager: { workflow: { activeWorkflow: { isModified: false } } },
+        };
+        mod.init(app);
+        expect(mod.isHostWorkflowDirty(app)).toBe(false);
     });
 
     it("reads host dirty state from stable and nightly signal shapes", async () => {

@@ -14,7 +14,7 @@ describe("floating viewer panel interactions", () => {
         const handle = {
             ownerDocument: { defaultView: { addEventListener: addWindowListener } },
             addEventListener: vi.fn((type, handler) => {
-                if (type === "pointerdown") handle._down = handler;
+                if (type === "pointerdown") (handle as any)._down = handler;
             }),
             setPointerCapture: vi.fn(),
             releasePointerCapture,
@@ -31,10 +31,10 @@ describe("floating viewer panel interactions", () => {
             _getResizeDirectionFromPoint: () => "",
         };
 
-        globalThis.window = { innerWidth: 800, innerHeight: 600 };
+        globalThis.window = { innerWidth: 800, innerHeight: 600 } as any;
 
-        initFloatingViewerDrag(viewer, handle);
-        handle._down({
+        initFloatingViewerDrag(viewer, handle as any);
+        (handle as any)._down({
             button: 0,
             pointerId: 7,
             clientX: 50,
@@ -50,8 +50,8 @@ describe("floating viewer panel interactions", () => {
         );
 
         windowListeners.get("pointermove")({ clientX: 150, clientY: 180 });
-        expect(el.style.left).toBe("130px");
-        expect(el.style.top).toBe("160px");
+        expect((el.style as any).left).toBe("130px");
+        expect((el.style as any).top).toBe("160px");
 
         windowListeners.get("pointerup")({});
         expect(releasePointerCapture).toHaveBeenCalledWith(7);
@@ -106,17 +106,17 @@ describe("floating viewer panel interactions", () => {
             }),
         };
         const addElementListener = vi.fn((type, handler) => {
-            if (type === "pointerdown") element._down = handler;
+            if (type === "pointerdown") (element as any)._down = handler;
         });
-        element.addEventListener = addElementListener;
+        (element as any).addEventListener = addElementListener;
         globalThis.window = {
             innerWidth: 1000,
             innerHeight: 800,
-            getComputedStyle: () => ({ minWidth: "120", minHeight: "100" }),
-        };
+            getComputedStyle: () => ({ minWidth: "120", minHeight: "100" }) as any,
+        } as any;
 
-        initFloatingViewerEdgeResize(viewer, element);
-        element._down({
+        initFloatingViewerEdgeResize(viewer, element as any);
+        (element as any)._down({
             button: 0,
             pointerId: 11,
             clientX: 298,
@@ -131,8 +131,8 @@ describe("floating viewer panel interactions", () => {
             expect.objectContaining({ signal: expect.any(AbortSignal) }),
         );
         windowListeners.get("pointermove")({ pointerId: 11, clientX: 348, clientY: 288 });
-        expect(element.style.width).toBe("250px");
-        expect(element.style.height).toBe("190px");
+        expect((element.style as any).width).toBe("250px");
+        expect((element.style as any).height).toBe("190px");
     });
 
     it("does not steal clicks from toolbar buttons near a resize edge", () => {
@@ -162,19 +162,19 @@ describe("floating viewer panel interactions", () => {
             _stopEdgeResize: vi.fn(),
         };
         const addElementListener = vi.fn((type, handler) => {
-            if (type === "pointerdown") element._down = handler;
+            if (type === "pointerdown") (element as any)._down = handler;
         });
-        element.addEventListener = addElementListener;
+        (element as any).addEventListener = addElementListener;
         globalThis.window = {
             innerWidth: 1000,
             innerHeight: 800,
-            getComputedStyle: () => ({ minWidth: "120", minHeight: "100" }),
-        };
+            getComputedStyle: () => ({ minWidth: "120", minHeight: "100" }) as any,
+        } as any;
         const preventDefault = vi.fn();
         const stopPropagation = vi.fn();
 
-        initFloatingViewerEdgeResize(viewer, element);
-        element._down({
+        initFloatingViewerEdgeResize(viewer, element as any);
+        (element as any)._down({
             button: 0,
             pointerId: 12,
             clientX: 101,

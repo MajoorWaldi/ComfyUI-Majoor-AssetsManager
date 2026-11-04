@@ -133,6 +133,31 @@ def _filter_recent_generated_files(filepaths: list[Any] | None) -> list[Any]:
         return [f for f in (filepaths or []) if f]
 
 
+def build_sidecar_reindex_callback(index_service: Any):
+    """Force re-extraction of media whose sidecar JSON appeared or changed.
+
+    ``incremental=False``: the media file itself is unchanged, so an
+    incremental pass would skip it and never read the new sidecar.
+    """
+
+    async def reindex_callback(filepaths, base_dir, source=None, root_id=None):
+        paths = [Path(f) for f in (filepaths or []) if f]
+        if not paths:
+            return
+        invalidate = getattr(index_service, "invalidate_cached_metadata", None)
+        if callable(invalidate):
+            await invalidate([str(p) for p in paths])
+        await index_service.index_paths(
+            paths=paths,
+            base_dir=base_dir,
+            incremental=False,
+            source=source or "watcher",
+            root_id=root_id,
+        )
+
+    return reindex_callback
+
+
 def _build_watcher_callbacks(index_service: Any):
     async def index_callback(filepaths, base_dir, source=None, root_id=None):
         if not filepaths:
@@ -195,7 +220,12 @@ async def _start_watcher_for_scope(svc: dict[str, Any], index_service: Any, *, _
     if _build_watch_paths is None:
         _build_watch_paths = build_watch_paths
     index_callback, remove_callback, move_callback = _build_watcher_callbacks(index_service)
-    new_watcher = OutputWatcher(index_callback, remove_callback=remove_callback, move_callback=move_callback)
+    new_watcher = OutputWatcher(
+        index_callback,
+        remove_callback=remove_callback,
+        move_callback=move_callback,
+        reindex_callback=build_sidecar_reindex_callback(index_service),
+    )
     desired_scope, desired_root_id = _watcher_scope_config(svc)
     request_user_id = _current_request_user_id()
     watch_paths = _build_watch_paths_for_context(_build_watch_paths, desired_scope, desired_root_id, request_user_id)
@@ -577,7 +607,12 @@ def register_watcher_routes(routes: web.RouteTableDef, *, deps: dict | None = No
         # Use the shared callback builder so all watcher instances share the same
         # recent-generated filtering logic (BUG-02: was previously duplicated inline).
         index_cb, remove_cb, move_cb = _build_watcher_callbacks(index_service)
-        new_watcher = OutputWatcher(index_cb, remove_callback=remove_cb, move_callback=move_cb)
+        new_watcher = OutputWatcher(
+            index_cb,
+            remove_callback=remove_cb,
+            move_callback=move_cb,
+            reindex_callback=build_sidecar_reindex_callback(index_service),
+        )
         loop = asyncio.get_running_loop()
         await new_watcher.start(watch_paths, loop)
         svc["watcher"] = new_watcher

@@ -6,28 +6,29 @@ import { usePanelStore } from "../stores/usePanelStore.js";
 
 class ElementStub {
     constructor() {
-        this.listeners = new Map();
-        this.dataset = {};
-        this.style = {};
-        this.parentElement = null;
-        this.children = [];
-        this.classList = {
+        (this as any).listeners = new Map();
+        (this as any).dataset = {};
+        (this as any).style = {};
+        (this as any).parentElement = null;
+        (this as any).children = [];
+        (this as any).classList = {
             _set: new Set(),
-            add: (...names) => names.forEach((name) => this.classList._set.add(name)),
-            remove: (...names) => names.forEach((name) => this.classList._set.delete(name)),
-            contains: (name) => this.classList._set.has(name),
+            add: (...names) => names.forEach((name) => (this as any).classList._set.add(name)),
+            remove: (...names) =>
+                names.forEach((name) => (this as any).classList._set.delete(name)),
+            contains: (name) => (this as any).classList._set.has(name),
         };
     }
 
     addEventListener(type, handler) {
-        const list = this.listeners.get(type) || [];
+        const list = (this as any).listeners.get(type) || [];
         list.push(handler);
-        this.listeners.set(type, list);
+        (this as any).listeners.set(type, list);
     }
 
     removeEventListener(type, handler) {
-        const list = this.listeners.get(type) || [];
-        this.listeners.set(
+        const list = (this as any).listeners.get(type) || [];
+        (this as any).listeners.set(
             type,
             list.filter((item) => item !== handler),
         );
@@ -42,46 +43,52 @@ class ElementStub {
                 /* ignore readonly event payloads */
             }
         }
-        for (const handler of this.listeners.get(payload.type) || []) {
+        for (const handler of (this as any).listeners.get(payload.type) || []) {
             handler(payload);
         }
     }
 
     contains(target) {
-        return target === this || this.children.includes(target);
+        return target === this || (this as any).children.includes(target);
     }
 
     appendChild(child) {
-        this.children.push(child);
+        (this as any).children.push(child);
         child.parentElement = this;
         return child;
     }
 
     querySelector(selector) {
         if (selector === ".mjr-asset-card.is-selected") {
-            return this.children.find((child) => child.classList?.contains("is-selected")) || null;
+            return (
+                (this as any).children.find((child) => child.classList?.contains("is-selected")) ||
+                null
+            );
         }
         if (selector.includes('[data-mjr-asset-id="')) {
             const id = selector.split('[data-mjr-asset-id="')[1]?.split('"')[0] || "";
             return (
-                this.children.find((child) => String(child.dataset?.mjrAssetId || "") === id) ||
-                null
+                (this as any).children.find(
+                    (child) => String(child.dataset?.mjrAssetId || "") === id,
+                ) || null
             );
         }
         return null;
     }
 
     querySelectorAll(selector) {
-        if (selector === ".mjr-asset-card") return [...this.children];
+        if (selector === ".mjr-asset-card") return [...(this as any).children];
         if (selector === ".mjr-asset-card.is-selected") {
-            return this.children.filter((child) => child.classList?.contains("is-selected"));
+            return (this as any).children.filter((child) =>
+                child.classList?.contains("is-selected"),
+            );
         }
         return [];
     }
 
     closest(selector) {
         if (selector === ".mjr-asset-card") {
-            return this.classList.contains("mjr-asset-card") ? this : null;
+            return (this as any).classList.contains("mjr-asset-card") ? this : null;
         }
         if (selector === ".mjr-workflow-dot") return null;
         if (selector === "a, button, input, textarea, select, label") return null;
@@ -97,13 +104,13 @@ class ElementStub {
 
 describe("sidebarController", () => {
     it("syncs selected asset ids into Pinia on card click", async () => {
-        globalThis.Element = ElementStub;
+        globalThis.Element = ElementStub as any;
         globalThis.ResizeObserver = class {
             observe() {}
             disconnect() {}
-        };
+        } as any;
         globalThis.requestAnimationFrame = (callback) => {
-            callback();
+            (callback as any)();
             return 1;
         };
         globalThis.cancelAnimationFrame = vi.fn();
@@ -113,11 +120,11 @@ describe("sidebarController", () => {
 
         const gridContainer = new ElementStub();
         const scrollRoot = new ElementStub();
-        gridContainer.parentElement = scrollRoot;
+        (gridContainer as any).parentElement = scrollRoot;
         const card = new ElementStub();
-        card.classList.add("mjr-asset-card");
-        card.dataset.mjrAssetId = "42";
-        card._mjrAsset = { id: 42, filename: "cat.png" };
+        (card as any).classList.add("mjr-asset-card");
+        (card as any).dataset.mjrAssetId = "42";
+        (card as any)._mjrAsset = { id: 42, filename: "cat.png" };
         gridContainer.appendChild(card);
 
         const sidebar = new ElementStub();

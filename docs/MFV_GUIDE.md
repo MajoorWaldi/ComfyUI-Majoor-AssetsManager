@@ -47,6 +47,7 @@ Use this when you want the cleanest single-asset view.
 - one asset visible at a time
 - best for inspection and overlay controls
 - good default when you are reviewing video or a single final image
+- video and audio use the **Studio player** (same as the main viewer): scrubber with buffered range and hover time + frame, frame counter, frame-by-frame stepping (`←` / `→` while the viewer has focus, `Space` to play / pause), A-B loop, loop, speed, volume, fullscreen and *save this frame as PNG*. Secondary controls fold away when the window is narrow. Mute and speed carry over to the next asset. Compare modes keep their synchronised controls.
 
 ### A/B compare
 

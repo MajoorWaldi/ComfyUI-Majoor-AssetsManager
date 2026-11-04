@@ -24,28 +24,28 @@ function readHeader(headers, name) {
 describe("api client request deduplication", () => {
     beforeEach(() => {
         vi.resetModules();
-        globalThis.localStorage = makeStorage();
-        globalThis.sessionStorage = makeStorage();
+        globalThis.localStorage = makeStorage() as any;
+        globalThis.sessionStorage = makeStorage() as any;
         const toastAdd = vi.fn();
         globalThis.app = { ui: {}, extensionManager: { toast: { add: toastAdd } } };
         globalThis.window = {
             addEventListener: vi.fn(),
             removeEventListener: vi.fn(),
             dispatchEvent: vi.fn(),
-            location: { origin: "http://localhost" },
+            location: { origin: "http://localhost" } as any,
             app: globalThis.app,
-        };
+        } as any;
         globalThis.CustomEvent = class {
             constructor(type, init) {
-                this.type = type;
-                this.detail = init?.detail;
+                (this as any).type = type;
+                (this as any).detail = init?.detail;
             }
-        };
+        } as any;
         globalThis.fetch = vi.fn(async () => ({
             status: 200,
             headers: { get: (name) => (name === "content-type" ? "application/json" : null) },
             json: async () => ({ ok: true, data: { id: 7 } }),
-        }));
+        })) as any;
     });
 
     afterEach(() => {
@@ -57,7 +57,7 @@ describe("api client request deduplication", () => {
         const fetchPromise = new Promise((resolve) => {
             resolveFetch = resolve;
         });
-        globalThis.fetch = vi.fn(() => fetchPromise);
+        globalThis.fetch = vi.fn(() => fetchPromise) as any;
 
         const client = await import("../api/client.js");
         const first = client.getAssetMetadata(7);
@@ -85,7 +85,7 @@ describe("api client request deduplication", () => {
             status: 500,
             headers: { get: (name) => (name === "content-type" ? "application/json" : null) },
             json: async () => ({ ok: false, error: "server sad" }),
-        }));
+        })) as any;
 
         const client = await import("../api/client.js");
         const first = await client.vectorFindSimilar(5, 10);
@@ -121,7 +121,7 @@ describe("api client request deduplication", () => {
                 headers: { get: (name) => (name === "content-type" ? "application/json" : null) },
                 json: async () => ({ ok: true, data: null }),
             };
-        });
+        }) as any;
 
         const client = await import("../api/client.js");
 
@@ -132,7 +132,7 @@ describe("api client request deduplication", () => {
         await client.updateAssetTags(7, []);
         await client.getAvailableTags();
 
-        const tagFetches = globalThis.fetch.mock.calls.filter(([url]) =>
+        const tagFetches = (globalThis.fetch as any).mock.calls.filter(([url]) =>
             String(url).includes("/mjr/am/tags"),
         );
         expect(tagFetches).toHaveLength(2);
@@ -171,7 +171,7 @@ describe("api client request deduplication", () => {
                 headers: { get: (name) => (name === "content-type" ? "application/json" : null) },
                 json: async () => ({ ok: true, data: null }),
             };
-        });
+        }) as any;
 
         const client = await import("../api/client.js");
         const result = await client.updateAssetTags(7, ["remote"]);
@@ -214,7 +214,7 @@ describe("api client request deduplication", () => {
                 headers: { get: (name) => (name === "content-type" ? "application/json" : null) },
                 json: async () => ({ ok: true, data: null }),
             };
-        });
+        }) as any;
 
         const client = await import("../api/client.js");
         const result = await client.updateAssetTags(7, ["remote"]);
@@ -235,7 +235,7 @@ describe("api client request deduplication", () => {
         globalThis.window.dispatchEvent = vi.fn((event) => {
             const listener = listeners.get(String(event?.type || ""));
             if (typeof listener === "function") listener(event);
-        });
+        }) as any;
 
         const token = "boot-token-1234567890";
         globalThis.fetch = vi.fn(async (url, options = {}) => {
@@ -270,13 +270,13 @@ describe("api client request deduplication", () => {
                 headers: { get: (name) => (name === "content-type" ? "application/json" : null) },
                 json: async () => ({ ok: true, data: null }),
             };
-        });
+        }) as any;
 
         const client = await import("../api/client.js");
         const result = await client.updateAssetTags(7, ["local"]);
 
         expect(result.ok).toBe(true);
-        const tagCall = globalThis.fetch.mock.calls.find(([url]) =>
+        const tagCall = (globalThis.fetch as any).mock.calls.find(([url]) =>
             String(url).includes("/mjr/am/asset/tags"),
         );
         expect(readHeader(tagCall?.[1]?.headers, "X-MJR-Token")).toBe(token);
@@ -326,7 +326,7 @@ describe("api client request deduplication", () => {
                 headers: { get: (name) => (name === "content-type" ? "application/json" : null) },
                 json: async () => ({ ok: true, data: null }),
             };
-        });
+        }) as any;
 
         const client = await import("../api/client.js");
         client.setRuntimeSecurityToken(staleToken);

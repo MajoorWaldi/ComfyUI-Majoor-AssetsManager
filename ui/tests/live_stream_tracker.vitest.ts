@@ -72,7 +72,7 @@ function createWindowStub() {
         dispatchEvent(event) {
             const handlers = Array.from(listeners.get(event?.type) || []);
             for (const handler of handlers) {
-                handler(event);
+                (handler as any)(event);
             }
             return true;
         },
@@ -83,9 +83,9 @@ function installCustomEventShim() {
     globalThis.CustomEvent = class CustomEvent extends Event {
         constructor(type, init = {}) {
             super(type);
-            this.detail = init.detail;
+            (this as any).detail = (init as any).detail;
         }
-    };
+    } as any;
 }
 
 class FakeApi extends EventTarget {}
@@ -99,7 +99,7 @@ beforeEach(() => {
     vi.resetModules();
     vi.useFakeTimers();
     state.reset();
-    globalThis.window = createWindowStub();
+    globalThis.window = createWindowStub() as any;
     installCustomEventShim();
 });
 

@@ -51,7 +51,7 @@ describe("StackGroupCards overlay buttons", () => {
 
         const button = card.querySelector(".mjr-stack-group-button");
         expect(button).toBeTruthy();
-        expect(button.draggable).toBe(false);
+        expect((button as any).draggable).toBe(false);
 
         const cardMouseDown = vi.fn();
         card.addEventListener("mousedown", cardMouseDown);
@@ -117,7 +117,7 @@ describe("StackGroupCards overlay buttons", () => {
         button.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
 
         expect(getMock).toHaveBeenCalledTimes(1);
-        expect(button.disabled).toBe(true);
+        expect((button as any).disabled).toBe(true);
 
         resolveFetch({
             ok: true,
@@ -130,7 +130,7 @@ describe("StackGroupCards overlay buttons", () => {
         await Promise.resolve();
 
         expect(openStackGroup).toHaveBeenCalledTimes(1);
-        expect(button.disabled).toBe(false);
+        expect((button as any).disabled).toBe(false);
     });
 
     it("skips imperative button creation for Vue cards (_mjrIsVue guard)", async () => {
@@ -141,7 +141,7 @@ describe("StackGroupCards overlay buttons", () => {
         grid.dataset.mjrGroupStacks = "1";
         const card = document.createElement("div");
         card.className = "mjr-asset-card";
-        card._mjrIsVue = true;
+        (card as any)._mjrIsVue = true;
         grid.appendChild(card);
 
         const asset = {
