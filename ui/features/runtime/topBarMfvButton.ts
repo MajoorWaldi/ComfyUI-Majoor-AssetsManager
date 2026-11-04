@@ -56,8 +56,13 @@ function _tryObserveActionbar(container: any) {
         } catch (_) {
             /* noop */
         }
-        _observer = new MutationObserver(() => scheduleSync());
-        _observer.observe(container, { childList: true });
+        // subtree: the Run button group (our anchor) is rendered asynchronously
+        // *inside* the container, so its late arrival must re-trigger placement;
+        // a direct-children observer never saw it and left the button at the end.
+        _observer = new MutationObserver(() => {
+            if (!isCorrectlyPlaced(container)) scheduleSync();
+        });
+        _observer.observe(container, { childList: true, subtree: true });
         _observedTarget = container;
     }
 
@@ -99,6 +104,22 @@ function updateViewerTopOffset(container = getActionbarContainer()) {
 function getAnchor(container: any) {
     if (!container) return null;
     return container.querySelector(".queue-button-group") || null;
+}
+
+/** True when the slot already sits right after the Run group (no work needed). */
+function isCorrectlyPlaced(container: any): boolean {
+    try {
+        const slot = container?.querySelector?.(`[${SLOT_ATTR}]`);
+        const anchor = getAnchor(container);
+        if (!slot || !anchor) return false;
+        return (
+            slot.parentElement === anchor.parentElement &&
+            slot.previousElementSibling === anchor &&
+            !!slot.querySelector(`[${BUTTON_HOST_ATTR}]`)
+        );
+    } catch {
+        return false;
+    }
 }
 
 function ensureSlotMounted(container: any) {

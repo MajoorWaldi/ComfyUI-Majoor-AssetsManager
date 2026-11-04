@@ -24071,7 +24071,7 @@ var px = { class: "mjr-sidebar-preview" }, mx = ["src"], hx = ["src"], gx = ["sr
 function dC(e) {
 	if (!e) {
 		!rC && typeof MutationObserver < "u" && (rC = new MutationObserver(() => {
-			fC() && (rC?.disconnect?.(), rC = null, EC());
+			fC() && (rC?.disconnect?.(), rC = null, DC());
 		}), rC.observe(document.body, {
 			childList: !0,
 			subtree: !0
@@ -24085,14 +24085,19 @@ function dC(e) {
 		try {
 			$S?.disconnect?.();
 		} catch {}
-		$S = new MutationObserver(() => EC()), $S.observe(e, { childList: !0 }), eC = e;
+		$S = new MutationObserver(() => {
+			hC(e) || DC();
+		}), $S.observe(e, {
+			childList: !0,
+			subtree: !0
+		}), eC = e;
 	}
 	let t = e.parentElement;
 	if (t && nC !== t) {
 		try {
 			tC?.disconnect?.();
 		} catch {}
-		tC = new MutationObserver(() => EC()), tC.observe(t, { childList: !0 }), nC = t;
+		tC = new MutationObserver(() => DC()), tC.observe(t, { childList: !0 }), nC = t;
 	}
 }
 function fC() {
@@ -24113,80 +24118,88 @@ function mC(e) {
 	return e && e.querySelector(".queue-button-group") || null;
 }
 function hC(e) {
+	try {
+		let t = e?.querySelector?.(`[${JS}]`), n = mC(e);
+		return !t || !n ? !1 : t.parentElement === n.parentElement && t.previousElementSibling === n && !!t.querySelector(`[${KS}]`);
+	} catch {
+		return !1;
+	}
+}
+function gC(e) {
 	if (!e) return null;
 	let t = e.querySelector(`[${JS}]`);
 	t || (t = document.createElement("div"), t.setAttribute(JS, "1"), t.className = "flex h-full items-center pointer-events-auto", t.style.position = "relative", t.style.zIndex = "10030", t.style.padding = "0 4px");
 	let n = mC(e), r = n?.parentElement || e;
 	return t.parentElement === r ? n && r && t.previousElementSibling !== n ? r.insertBefore(t, n.nextSibling) : !n && t !== r.lastElementChild && r.appendChild(t) : n && r ? r.insertBefore(t, n.nextSibling) : r.appendChild(t), t;
 }
-function gC(e = "pi pi-eye") {
+function _C(e = "pi pi-eye") {
 	let t = document.createElement("i");
 	return t.className = e, t.setAttribute("aria-hidden", "true"), t;
 }
-function _C(e = "Viewer") {
+function vC(e = "Viewer") {
 	let t = document.createElement("span");
 	return t.className = "mjr-topbar-mfv-label", t.textContent = e, t;
 }
-function vC(e) {
+function yC(e) {
 	if (!e) return;
 	let t = lC ? L("tooltip.closeMFV", "Close Floating Viewer") : L("tooltip.openMFV", "Open Floating Viewer");
-	Vt(e, t, ZS, { ariaLabel: t }), e.setAttribute("aria-pressed", lC ? "true" : "false"), e.classList.toggle("primary", lC), e.classList.toggle("mjr-topbar-mfv-active", lC), e.replaceChildren(gC(lC ? "pi pi-eye-slash" : "pi pi-eye"), _C(L(YS, XS)));
+	Vt(e, t, ZS, { ariaLabel: t }), e.setAttribute("aria-pressed", lC ? "true" : "false"), e.classList.toggle("primary", lC), e.classList.toggle("mjr-topbar-mfv-active", lC), e.replaceChildren(_C(lC ? "pi pi-eye-slash" : "pi pi-eye"), vC(L(YS, XS)));
 }
-function yC() {
+function bC() {
 	try {
 		window.dispatchEvent(new Event(B.MFV_TOGGLE));
 	} catch (e) {
 		console.debug?.("[Majoor] top bar MFV launch failed", e);
 	}
-	EC();
-}
-function bC() {
-	let e = document.createElement("button");
-	return e.type = "button", e.setAttribute(qS, "1"), e.className = "comfyui-button mjr-topbar-mfv-button", e.style.position = "relative", e.style.zIndex = "10030", e.style.width = "auto", e.style.height = "32px", e.style.minWidth = "32px", e.style.padding = "0 10px", e.style.gap = "6px", e.style.display = "inline-flex", e.style.alignItems = "center", e.style.justifyContent = "center", e.style.whiteSpace = "nowrap", e.addEventListener("click", yC), vC(e), e;
+	DC();
 }
 function xC() {
-	let e = document.createElement("div");
-	return e.setAttribute(KS, "1"), e.className = "mjr-topbar-mfv-button-host", e.style.position = "relative", e.appendChild(bC()), e;
+	let e = document.createElement("button");
+	return e.type = "button", e.setAttribute(qS, "1"), e.className = "comfyui-button mjr-topbar-mfv-button", e.style.position = "relative", e.style.zIndex = "10030", e.style.width = "auto", e.style.height = "32px", e.style.minWidth = "32px", e.style.padding = "0 10px", e.style.gap = "6px", e.style.display = "inline-flex", e.style.alignItems = "center", e.style.justifyContent = "center", e.style.whiteSpace = "nowrap", e.addEventListener("click", bC), yC(e), e;
 }
 function SC() {
+	let e = document.createElement("div");
+	return e.setAttribute(KS, "1"), e.className = "mjr-topbar-mfv-button-host", e.style.position = "relative", e.appendChild(xC()), e;
+}
+function CC() {
 	if (typeof document > "u" || uC) return;
 	let e = !!document.querySelector(".mjr-mfv.is-visible");
 	lC !== e && (lC = e);
 }
-function CC() {
+function wC() {
 	return R.MFV_TOPBAR_BUTTON !== !1;
 }
-function wC() {
+function TC() {
 	try {
 		document.querySelector(`[${KS}]`)?.remove?.(), document.querySelector(`[${JS}]`)?.remove?.();
 	} catch (e) {
 		console.debug?.(e);
 	}
 }
-function TC() {
+function EC() {
 	let e = fC();
 	if (!e) return pC(null), null;
-	if (!CC()) return wC(), pC(e), null;
-	dC(e), SC();
-	let t = hC(e);
+	if (!wC()) return TC(), pC(e), null;
+	dC(e), CC();
+	let t = gC(e);
 	if (!t) return pC(e), null;
 	let n = t.querySelector(`[${KS}]`);
-	return n ||= xC(), n.parentElement !== t && t.replaceChildren(n), pC(e), vC(n.querySelector(`[${qS}]`)), t;
-}
-function EC() {
-	sC || (sC = !0, cC = window.setTimeout(() => {
-		sC = !1, cC = null, TC();
-	}, 32));
+	return n ||= SC(), n.parentElement !== t && t.replaceChildren(n), pC(e), yC(n.querySelector(`[${qS}]`)), t;
 }
 function DC() {
-	return typeof window > "u" || typeof document > "u" || !document.body ? !1 : (EC(), iC || (iC = (e) => {
-		lC = !!e?.detail?.visible, uC = !0, EC();
-	}, window.addEventListener(B.MFV_VISIBILITY_CHANGED, iC)), aC || (aC = () => EC(), window.addEventListener("resize", aC)), oC || (oC = (e) => {
-		let t = e?.detail?.key;
-		(t === QS || t === "storage") && EC();
-	}, window.addEventListener("mjr-settings-changed", oC)), dC(fC()), !0);
+	sC || (sC = !0, cC = window.setTimeout(() => {
+		sC = !1, cC = null, EC();
+	}, 32));
 }
 function OC() {
+	return typeof window > "u" || typeof document > "u" || !document.body ? !1 : (DC(), iC || (iC = (e) => {
+		lC = !!e?.detail?.visible, uC = !0, DC();
+	}, window.addEventListener(B.MFV_VISIBILITY_CHANGED, iC)), aC || (aC = () => DC(), window.addEventListener("resize", aC)), oC || (oC = (e) => {
+		let t = e?.detail?.key;
+		(t === QS || t === "storage") && DC();
+	}, window.addEventListener("mjr-settings-changed", oC)), dC(fC()), !0);
+}
+function kC() {
 	try {
 		$S?.disconnect?.();
 	} catch (e) {
@@ -24218,31 +24231,31 @@ function OC() {
 	}
 }
 // ui/features/runtime/entryUiRegistration.ts
-var kC = "mjr-global-runtime-root", AC = "_mjrGlobalRuntimeVueApp", jC = "_mjrSidebarVueApp", MC = "_mjrFeedVueApp", NC = "majoor-generated-feed", PC = null;
-function FC() {
-	if (typeof document > "u" || !document?.body) return null;
-	let e = document.getElementById(kC);
-	return e || (e = document.createElement("div"), e.id = kC, e.setAttribute("role", "presentation"), e.style.cssText = "position:fixed;inset:0;overflow:visible;pointer-events:none;z-index:10020;", document.body.appendChild(e), e);
-}
+var AC = "mjr-global-runtime-root", jC = "_mjrGlobalRuntimeVueApp", MC = "_mjrSidebarVueApp", NC = "_mjrFeedVueApp", PC = "majoor-generated-feed", FC = null;
 function IC() {
+	if (typeof document > "u" || !document?.body) return null;
+	let e = document.getElementById(AC);
+	return e || (e = document.createElement("div"), e.id = AC, e.setAttribute("role", "presentation"), e.style.cssText = "position:fixed;inset:0;overflow:visible;pointer-events:none;z-index:10020;", document.body.appendChild(e), e);
+}
+function LC() {
 	try {
-		let e = FC();
+		let e = IC();
 		if (!e) return !1;
-		let t = !!Bt(e, mm, AC);
-		return DC(), t;
+		let t = !!Bt(e, mm, jC);
+		return OC(), t;
 	} catch {
 		return !1;
 	}
 }
-function LC() {
+function RC() {
 	try {
-		OC();
-		let e = document.getElementById(kC);
+		kC();
+		let e = document.getElementById(AC);
 		if (!e) return;
-		Kt(e, AC), e.remove?.();
+		Kt(e, jC), e.remove?.();
 	} catch {}
 }
-function RC(e, t) {
+function zC(e, t) {
 	let n = We(e, t);
 	if (_p(), !n) try {
 		window.dispatchEvent(new Event(B.OPEN_ASSETS_MANAGER));
@@ -24251,15 +24264,15 @@ function RC(e, t) {
 	}
 	return n;
 }
-function zC() {
+function BC() {
 	try {
 		window.dispatchEvent(new CustomEvent(B.RELOAD_GRID, { detail: { reason: "command" } }));
 	} catch (e) {
 		console.debug?.(e);
 	}
 }
-function BC(e) {
-	let t = Fe(e, NC);
+function VC(e) {
+	let t = Fe(e, PC);
 	if (!t) try {
 		df();
 	} catch (e) {
@@ -24267,7 +24280,7 @@ function BC(e) {
 	}
 	return t;
 }
-async function VC() {
+async function HC() {
 	try {
 		let e = await me(p.BROWSE_FOLDER, {});
 		if (e?.ok) return String(e?.data?.path || "").trim();
@@ -24278,8 +24291,8 @@ async function VC() {
 	}
 	return "";
 }
-async function HC(e, { settingId: t, settingsPathKey: n, save: r, successMessage: i, restartRequired: a = !1 }) {
-	let o = await VC();
+async function UC(e, { settingId: t, settingsPathKey: n, save: r, successMessage: i, restartRequired: a = !1 }) {
+	let o = await HC();
 	if (!o) return !1;
 	let s = await r(o);
 	if (!s?.ok) return F(s?.error || L("toast.settingsPathSaveFailed", "Failed to save path"), "error"), !1;
@@ -24294,10 +24307,10 @@ async function HC(e, { settingId: t, settingsPathKey: n, save: r, successMessage
 	}
 	return F(a ? `${i} ${L("toast.restartComfyUiToApply", "Restart ComfyUI to apply.")}` : i, "success", 2800), !0;
 }
-function UC(e) {
-	return fw(e).find(dw) || null;
-}
 function WC(e) {
+	return pw(e).find(fw) || null;
+}
+function GC(e) {
 	let t = String(e?.id ?? e?.nodeId ?? e?.node_id ?? "").trim();
 	if (!t) return null;
 	let n = String(e?.comfyClass || e?.type || e?.constructor?.type || "").trim();
@@ -24309,7 +24322,7 @@ function WC(e) {
 		title: String(e?.title || e?.properties?.title || e?.properties?.name || n || "").trim()
 	};
 }
-async function GC(e) {
+async function KC(e) {
 	if (!e) return [];
 	try {
 		let t = (await import("./chunks/NodeStreamController-CIKDDXJT.js")).extractNodeFileData?.(e), n = String(t?.filename || "").trim();
@@ -24323,7 +24336,7 @@ async function GC(e) {
 		return console.debug?.(e), [];
 	}
 }
-function KC(e) {
+function qC(e) {
 	try {
 		if (typeof window > "u") return;
 		window.MajoorAssetsManager = window.MajoorAssetsManager || {}, window.MajoorAssetsManager.pendingNodeContext = e, window.dispatchEvent(new CustomEvent(B.OPEN_NODE_CONTEXT, { detail: e }));
@@ -24331,16 +24344,16 @@ function KC(e) {
 		console.debug?.(e);
 	}
 }
-async function qC(e, t, n) {
-	RC(e, t);
-	let r = WC(n) || {}, i = await GC(n);
+async function JC(e, t, n) {
+	zC(e, t);
+	let r = GC(n) || {}, i = await KC(n);
 	i.length && (r.files = i);
 	let a = String(n?.comfyClass || n?.type || "").toLowerCase();
-	return i.length && /load|upload/.test(a) && (delete r.source_node_id, delete r.sourceNodeId), !r.source_node_id && !i.length ? (F(L("toast.nodeContextMissing", "Select an output node first."), "info", 2200), !1) : (KC(r), !0);
+	return i.length && /load|upload/.test(a) && (delete r.source_node_id, delete r.sourceNodeId), !r.source_node_id && !i.length ? (F(L("toast.nodeContextMissing", "Select an output node first."), "info", 2200), !1) : (qC(r), !0);
 }
-async function JC(e) {
+async function YC(e) {
 	try {
-		let t = await GC(e);
+		let t = await KC(e);
 		if (t.length) {
 			let { floatingViewerManager: e } = await import("./chunks/floatingViewerManager-DVF62mxS.js").then((e) => e.n);
 			if (await e.openAssets({
@@ -24358,11 +24371,11 @@ async function JC(e) {
 	}
 	return !1;
 }
-function YC(e, t) {
-	let n = PC;
-	return n ? (qC(e, t, n), !0) : (F(L("toast.nodeContextMissing", "Select an output node first."), "info", 2200), !1);
+function XC(e, t) {
+	let n = FC;
+	return n ? (JC(e, t, n), !0) : (F(L("toast.nodeContextMissing", "Select an output node first."), "info", 2200), !1);
 }
-function XC(e, { sidebarTabId: t, triggerStartupScan: n }) {
+function ZC(e, { sidebarTabId: t, triggerStartupScan: n }) {
 	return [
 		{
 			id: "mjr.openAssetsManager",
@@ -24371,7 +24384,7 @@ function XC(e, { sidebarTabId: t, triggerStartupScan: n }) {
 			title: L("tooltip.openAssetsManager", "Open Majoor Assets Manager"),
 			description: L("tooltip.openAssetsManager", "Open Majoor Assets Manager"),
 			icon: "pi pi-folder-open",
-			function: () => RC(e, t)
+			function: () => zC(e, t)
 		},
 		{
 			id: "mjr.scanAssets",
@@ -24395,7 +24408,7 @@ function XC(e, { sidebarTabId: t, triggerStartupScan: n }) {
 			id: "mjr.refreshAssetsGrid",
 			label: L("command.refreshAssetsGrid", "Refresh assets grid"),
 			icon: "pi pi-sync",
-			function: () => zC()
+			function: () => BC()
 		},
 		{
 			id: "mjr.openFloatingViewer",
@@ -24419,7 +24432,7 @@ function XC(e, { sidebarTabId: t, triggerStartupScan: n }) {
 			title: L("tooltip.openGeneratedFeed", "Open the Majoor generated feed panel"),
 			description: L("tooltip.openGeneratedFeed", "Open the Majoor generated feed panel"),
 			icon: "pi pi-list",
-			function: () => BC(e)
+			function: () => VC(e)
 		},
 		{
 			id: "mjr.openSettings",
@@ -24434,7 +24447,7 @@ function XC(e, { sidebarTabId: t, triggerStartupScan: n }) {
 			title: L("tooltip.pickOutputDirectory", "Use the native folder browser to set Majoor's generation output directory"),
 			description: L("tooltip.pickOutputDirectory", "Use the native folder browser to set Majoor's generation output directory"),
 			icon: "pi pi-folder",
-			function: () => HC(e, {
+			function: () => UC(e, {
 				settingId: "Majoor.Paths.OutputDirectory",
 				settingsPathKey: "outputDirectory",
 				save: M,
@@ -24448,7 +24461,7 @@ function XC(e, { sidebarTabId: t, triggerStartupScan: n }) {
 			title: L("tooltip.pickIndexDirectory", "Use the native folder browser to set Majoor's index database directory"),
 			description: L("tooltip.pickIndexDirectory", "Use the native folder browser to set Majoor's index database directory"),
 			icon: "pi pi-database",
-			function: () => HC(e, {
+			function: () => UC(e, {
 				settingId: "Majoor.Paths.IndexDirectory",
 				settingsPathKey: "indexDirectory",
 				save: ue,
@@ -24463,7 +24476,7 @@ function XC(e, { sidebarTabId: t, triggerStartupScan: n }) {
 			title: L("tooltip.openNodeContext", "Show the latest indexed assets produced by this node"),
 			description: L("tooltip.openNodeContext", "Show the latest indexed assets produced by this node"),
 			icon: "pi pi-sitemap",
-			function: () => YC(e, t)
+			function: () => XC(e, t)
 		},
 		{
 			id: "mjr.openNodeInFloatingViewer",
@@ -24473,12 +24486,12 @@ function XC(e, { sidebarTabId: t, triggerStartupScan: n }) {
 			description: L("tooltip.openNodeInFloatingViewer", "Open this node's media in the Majoor floating viewer"),
 			icon: "pi pi-window-maximize",
 			function: () => {
-				JC(PC);
+				YC(FC);
 			}
 		}
 	];
 }
-function ZC() {
+function QC() {
 	return [{
 		combo: {
 			alt: !0,
@@ -24495,7 +24508,7 @@ function ZC() {
 		commandId: "mjr.toggleFloatingViewer"
 	}];
 }
-function QC() {
+function $C() {
 	return [{
 		path: ["Extensions", "Majoor Assets Manager"],
 		commands: [
@@ -24510,13 +24523,13 @@ function QC() {
 		]
 	}];
 }
-function $C(e, { sidebarTabId: t, triggerStartupScan: n }) {
+function ew(e, { sidebarTabId: t, triggerStartupScan: n }) {
 	return [null, {
 		content: "Majoor Assets Manager",
 		submenu: { options: [
 			{
 				content: L("tooltip.openAssetsManager", "Open Majoor Assets Manager"),
-				callback: () => RC(e, t)
+				callback: () => zC(e, t)
 			},
 			{
 				content: L("command.openFloatingViewer", "Open floating viewer"),
@@ -24530,12 +24543,12 @@ function $C(e, { sidebarTabId: t, triggerStartupScan: n }) {
 			},
 			{
 				content: L("command.openGeneratedFeed", "Open generated feed"),
-				callback: () => BC(e)
+				callback: () => VC(e)
 			},
 			null,
 			{
 				content: L("command.refreshAssetsGrid", "Refresh assets grid"),
-				callback: () => zC()
+				callback: () => BC()
 			},
 			{
 				content: L("command.scanAssets", "Scan assets"),
@@ -24548,7 +24561,7 @@ function $C(e, { sidebarTabId: t, triggerStartupScan: n }) {
 		] }
 	}];
 }
-function ew() {
+function tw() {
 	return [
 		{
 			label: "Majoor Assets Manager",
@@ -24565,13 +24578,13 @@ function ew() {
 		}
 	];
 }
-function tw(e, t) {
-	for (let n of XC(e, t)) x(e, n);
+function nw(e, t) {
+	for (let n of ZC(e, t)) x(e, n);
 }
-function nw(e) {
-	for (let t of ZC()) T(e, t);
+function rw(e) {
+	for (let t of QC()) T(e, t);
 }
-function rw(e, { sidebarTabId: t }) {
+function iw(e, { sidebarTabId: t }) {
 	hp({ sidebarTabId: t });
 	try {
 		Mt()?.integration?.hideNativeAssetsTab && Dt(!0);
@@ -24586,7 +24599,7 @@ function rw(e, { sidebarTabId: t }) {
 		tooltip: L("tooltip.sidebarTab"),
 		type: "custom",
 		render(e) {
-			_p(), Xr({ idleOnly: !0 }).catch(() => null), Bt(e, WS, jC), setTimeout(() => {
+			_p(), Xr({ idleOnly: !0 }).catch(() => null), Bt(e, WS, MC), setTimeout(() => {
 				let e = bp();
 				if (e) try {
 					window.dispatchEvent(new CustomEvent(B.RELOAD_GRID, { detail: {
@@ -24601,80 +24614,80 @@ function rw(e, { sidebarTabId: t }) {
 		destroy(e) {}
 	});
 }
-function iw() {
+function aw() {
 	try {
 		Ct();
 	} catch {}
 	try {
-		Kt(null, jC);
+		Kt(null, MC);
 	} catch {}
-	aw = !1;
+	ow = !1;
 	try {
-		document.getElementById(ow)?.remove?.();
+		document.getElementById(sw)?.remove?.();
 	} catch {}
 }
-var aw = !1, ow = "mjr-sidebar-prewarm-host";
-function sw() {
-	if (aw || typeof document > "u" || !document?.body || Rt(jC)) return !1;
-	aw = !0;
+var ow = !1, sw = "mjr-sidebar-prewarm-host";
+function cw() {
+	if (ow || typeof document > "u" || !document?.body || Rt(MC)) return !1;
+	ow = !0;
 	try {
-		let e = document.getElementById(ow);
-		return e || (e = document.createElement("div"), e.id = ow, e.style.cssText = "position:fixed;left:-99999px;top:0;width:360px;height:600px;overflow:hidden;visibility:hidden;pointer-events:none;contain:strict;", e.setAttribute("aria-hidden", "true"), document.body.appendChild(e)), Bt(e, WS, jC, { attachIfExists: !1 }), !0;
+		let e = document.getElementById(sw);
+		return e || (e = document.createElement("div"), e.id = sw, e.style.cssText = "position:fixed;left:-99999px;top:0;width:360px;height:600px;overflow:hidden;visibility:hidden;pointer-events:none;contain:strict;", e.setAttribute("aria-hidden", "true"), document.body.appendChild(e)), Bt(e, WS, MC, { attachIfExists: !1 }), !0;
 	} catch (e) {
-		return console.debug?.(e), aw = !1, !1;
+		return console.debug?.(e), ow = !1, !1;
 	}
 }
-function cw() {
+function lw() {
 	return {
-		id: NC,
+		id: PC,
 		title: L("bottomFeed.title", "Generated Feed"),
 		icon: "pi pi-images",
 		type: "custom",
 		render(e) {
-			Bt(e, GS, MC);
+			Bt(e, GS, NC);
 		},
 		destroy(e) {}
 	};
 }
-function lw() {
-	return [cw()];
-}
 function uw() {
+	return [lw()];
+}
+function dw() {
 	try {
-		Kt(null, MC);
+		Kt(null, NC);
 	} catch {}
 }
-function dw(e) {
+function fw(e) {
 	let t = String(e?.comfyClass || e?.type || e?.constructor?.type || "").trim();
 	return t ? /save|load|preview/i.test(t) : !1;
 }
-function fw(e) {
+function pw(e) {
 	return e ? Array.isArray(e) ? e.filter(Boolean) : e instanceof Set ? Array.from(e).filter(Boolean) : e instanceof Map ? Array.from(e.values()).filter(Boolean) : Array.isArray(e?.items) ? e.items.filter(Boolean) : Array.isArray(e?.nodes) ? e.nodes.filter(Boolean) : [e] : [];
 }
-function pw(e) {
-	return PC = UC(e), PC ? [
+function mw(e) {
+	return FC = WC(e), FC ? [
 		"mjr.openNodeContext",
 		"mjr.openAssetsManager",
 		"mjr.openNodeInFloatingViewer"
 	] : [];
 }
-function mw(e, t) {
+function hw(e, t) {
 	return {
 		content: e,
 		callback: t
 	};
 }
-function hw(e, t, { sidebarTabId: n }) {
-	return dw(e) ? [
-		mw("View in Assets Manager", () => {
-			qC(t, n, e);
+function gw(e, t, { sidebarTabId: n }) {
+	return fw(e) ? [
+		hw("View in Assets Manager", () => {
+			JC(t, n, e);
 		}),
-		mw("Open in Floating Viewer", () => {
-			JC(e);
+		hw("Open in Floating Viewer", () => {
+			YC(e);
 		}),
-		mw("Index Output", () => {
+		hw("Index Output", () => {
 			try {
-				zC(), F(L("toast.rescanningFile", "Rescanning file..."), "info", 1800);
+				BC(), F(L("toast.rescanningFile", "Rescanning file..."), "info", 1800);
 			} catch (e) {
 				console.debug?.(e);
 			}
@@ -24682,15 +24695,15 @@ function hw(e, t, { sidebarTabId: n }) {
 	] : [];
 }
 // ui/features/runtime/entryRuntimeLifecycle.ts
-var gw = "__MJR_ENTRY_RUNTIME__";
-function _w(e, t) {
+var _w = "__MJR_ENTRY_RUNTIME__";
+function vw(e, t) {
 	if (e) try {
 		e._mjrAssetUpdateReloadTimer &&= (clearTimeout(e._mjrAssetUpdateReloadTimer), null), e._mjrExecutedHandler && e.removeEventListener("executed", e._mjrExecutedHandler), e._mjrAssetAddedHandler && e.removeEventListener("mjr-asset-added", e._mjrAssetAddedHandler), e._mjrAssetUpdatedHandler && e.removeEventListener("mjr-asset-updated", e._mjrAssetUpdatedHandler), e._mjrStructuredEventHandler && e.removeEventListener(B.STRUCTURED_EVENT, e._mjrStructuredEventHandler), e._mjrScanCompleteHandler && e.removeEventListener(B.SCAN_COMPLETE, e._mjrScanCompleteHandler), e._mjrAssetsRemovedHandler && e.removeEventListener(B.ASSETS_REMOVED, e._mjrAssetsRemovedHandler), e._mjrScanProgressHandler && e.removeEventListener(B.SCAN_PROGRESS, e._mjrScanProgressHandler), e._mjrAssetIndexingHandler && e.removeEventListener(B.ASSET_INDEXING, e._mjrAssetIndexingHandler), e._mjrAssetIndexedHandler && e.removeEventListener(B.ASSET_INDEXED, e._mjrAssetIndexedHandler), e._mjrExecutionStartHandler && e.removeEventListener("execution_start", e._mjrExecutionStartHandler), e._mjrExecutionEndHandler && (e.removeEventListener("execution_success", e._mjrExecutionEndHandler), e.removeEventListener("execution_error", e._mjrExecutionEndHandler), e.removeEventListener("execution_interrupted", e._mjrExecutionEndHandler)), e._mjrStacksUpdatedHandler && e.removeEventListener("mjr.stacks.updated", e._mjrStacksUpdatedHandler), e._mjrEnrichmentStatusHandler && e.removeEventListener(B.ENRICHMENT_STATUS, e._mjrEnrichmentStatusHandler), e._mjrDbRestoreStatusHandler && e.removeEventListener(B.DB_RESTORE_STATUS, e._mjrDbRestoreStatusHandler), e._mjrRuntimeStatusHandler && (e.removeEventListener("progress", e._mjrRuntimeStatusHandler), e.removeEventListener("status", e._mjrRuntimeStatusHandler), e.removeEventListener(B.RUNTIME_STATUS, e._mjrRuntimeStatusHandler), e.removeEventListener("execution_cached", e._mjrExecutionCachedHandler));
 	} catch (e) {
 		t?.(e, "entry.removeApiHandlers");
 	}
 }
-function vw(e, t) {
+function yw(e, t) {
 	try {
 		let t = e?.assetsDeletedHandler;
 		t && typeof window < "u" && window.removeEventListener(B.ASSETS_DELETED, t);
@@ -24698,7 +24711,7 @@ function vw(e, t) {
 		t?.(e, "entry.removeRuntimeWindowHandlers");
 	}
 }
-function yw(e, { reportError: t } = {}) {
+function bw(e, { reportError: t } = {}) {
 	if (e && typeof e == "object") {
 		try {
 			l();
@@ -24728,13 +24741,13 @@ function yw(e, { reportError: t } = {}) {
 			console.warn("[MJR teardown]", e);
 		}
 		try {
-			_w(e.api || null, t), vw(e, t);
+			vw(e.api || null, t), yw(e, t);
 		} catch (e) {
 			console.warn("[MJR teardown]", e);
 		}
 	}
 }
-function bw(e, t, n, r, i = void 0) {
+function xw(e, t, n, r, i = void 0) {
 	if (!e || !t?.addEventListener || typeof r != "function") return null;
 	let a = i && typeof i == "object" ? { ...i } : i;
 	if (typeof AbortController < "u") try {
@@ -24754,11 +24767,11 @@ function bw(e, t, n, r, i = void 0) {
 		}
 	}), null;
 }
-function xw({ cleanupEntryRuntimeFn: e = yw, teardownLiveStreamTracker: t, teardownNodeStream: n, teardownFloatingViewerManager: r, teardownGeneratedFeed: i, teardownAssetsSidebar: a, teardownGlobalRuntime: o, teardownTopBarMfvButton: s, reportError: c }) {
+function Sw({ cleanupEntryRuntimeFn: e = bw, teardownLiveStreamTracker: t, teardownNodeStream: n, teardownFloatingViewerManager: r, teardownGeneratedFeed: i, teardownAssetsSidebar: a, teardownGlobalRuntime: o, teardownTopBarMfvButton: s, reportError: c }) {
 	try {
 		if (typeof window < "u") {
 			try {
-				let t = window[gw];
+				let t = window[_w];
 				e(t, { reportError: c });
 			} catch (e) {
 				console.warn("[MJR teardown]", e);
@@ -24798,7 +24811,7 @@ function xw({ cleanupEntryRuntimeFn: e = yw, teardownLiveStreamTracker: t, teard
 			} catch (e) {
 				console.warn("[MJR teardown]", e);
 			}
-			window[gw] = {
+			window[_w] = {
 				api: null,
 				assetsDeletedHandler: null,
 				_cleanupControllers: [],
@@ -24810,42 +24823,42 @@ function xw({ cleanupEntryRuntimeFn: e = yw, teardownLiveStreamTracker: t, teard
 	}
 }
 // ui/entry.ts
-var Sw = null, Cw = null, ww = null;
-function Tw() {
-	return ww ||= import("./chunks/floatingViewerManager-DVF62mxS.js").then((e) => e.n), ww;
-}
+var Cw = null, ww = null, Tw = null;
 function Ew() {
-	ww && ww.then((e) => e?.teardownFloatingViewerManager?.()).catch((e) => console.debug?.("[Majoor] MFV teardown skipped", e));
+	return Tw ||= import("./chunks/floatingViewerManager-DVF62mxS.js").then((e) => e.n), Tw;
 }
-var Dw = "majoor-assets", Ow = "__MJR_EXECUTION_RUNTIME__", kw = "Majoor.AssetsManager", Aw = {
+function Dw() {
+	Tw && Tw.then((e) => e?.teardownFloatingViewerManager?.()).catch((e) => console.debug?.("[Majoor] MFV teardown skipped", e));
+}
+var Ow = "majoor-assets", kw = "__MJR_EXECUTION_RUNTIME__", Aw = "Majoor.AssetsManager", jw = {
 	active: null,
 	promptId: ""
-}, jw = null, Mw = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i, Nw = /^[0-9a-f]{20,}$/i;
-function Pw(...e) {
+}, Mw = null, Nw = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i, Pw = /^[0-9a-f]{20,}$/i;
+function Fw(...e) {
 	for (let t of e) {
 		let e = String(t || "").trim();
 		if (e) return e;
 	}
 	return "";
 }
-function Fw(e) {
-	let t = String(e || "").trim();
-	return Mw.test(t) || Nw.test(t);
-}
 function Iw(e) {
-	return Pw(e?.title, e?.properties?.title, e?.properties?.name, e?.properties?.label, e?.name);
+	let t = String(e || "").trim();
+	return Nw.test(t) || Pw.test(t);
 }
 function Lw(e) {
+	return Fw(e?.title, e?.properties?.title, e?.properties?.name, e?.properties?.label, e?.name);
+}
+function Rw(e) {
 	if (!e || typeof e != "object") return [];
 	if (Array.isArray(e.nodes)) return e.nodes.filter(Boolean);
 	if (Array.isArray(e._nodes)) return e._nodes.filter(Boolean);
 	let t = e._nodes_by_id ?? e.nodes_by_id ?? null;
 	return t instanceof Map ? Array.from(t.values()).filter(Boolean) : t && typeof t == "object" ? Object.values(t).filter(Boolean) : [];
 }
-function Rw(e) {
-	return Lw(e).length > 0;
-}
 function zw(e) {
+	return Rw(e).length > 0;
+}
+function Bw(e) {
 	return !e || typeof e != "object" ? !1 : [
 		e.subgraph,
 		e._subgraph,
@@ -24856,13 +24869,13 @@ function zw(e) {
 		e.subgraph_instance?.graph,
 		e.inner_graph,
 		e.subgraph_graph
-	].some(Rw) || Array.isArray(e.nodes) && e.nodes.length > 0 && e.nodes !== e.graph?.nodes ? !0 : Fw(e.type) && !!Iw(e);
+	].some(zw) || Array.isArray(e.nodes) && e.nodes.length > 0 && e.nodes !== e.graph?.nodes ? !0 : Iw(e.type) && !!Lw(e);
 }
-function Bw(e, t) {
-	let n = String(e?.type || t || "").trim(), r = Iw(e);
-	return Fw(n) ? r || "Subgraph" : n || r || "Node";
+function Vw(e, t) {
+	let n = String(e?.type || t || "").trim(), r = Lw(e);
+	return Iw(n) ? r || "Subgraph" : n || r || "Node";
 }
-function Vw() {
+function Hw() {
 	try {
 		return typeof window > "u" ? {
 			active_prompt_id: null,
@@ -24871,30 +24884,30 @@ function Vw() {
 			progress_value: null,
 			progress_max: null,
 			cached_nodes: []
-		} : (window[Ow] && typeof window[Ow] == "object" || (window[Ow] = {
+		} : (window[kw] && typeof window[kw] == "object" || (window[kw] = {
 			active_prompt_id: null,
 			queue_remaining: null,
 			progress_node: null,
 			progress_value: null,
 			progress_max: null,
 			cached_nodes: []
-		}), window[Ow]);
+		}), window[kw]);
 	} catch (e) {
 		return console.debug?.(e), {};
 	}
 }
-function Hw(e = {}) {
+function Uw(e = {}) {
 	try {
-		let t = Vw();
+		let t = Hw();
 		Object.assign(t, e || {}), window.dispatchEvent(new CustomEvent(B.RUNTIME_STATUS, { detail: { ...t } }));
 	} catch (e) {
 		console.debug?.(e);
 	}
 }
-async function Uw({ active: e, promptId: t = "" } = {}) {
+async function Ww({ active: e, promptId: t = "" } = {}) {
 	let n = !!e, r = String(t || "").trim();
-	if (Aw.active !== n || Aw.promptId !== r) {
-		Aw = {
+	if (jw.active !== n || jw.promptId !== r) {
+		jw = {
 			active: n,
 			promptId: r
 		};
@@ -24909,49 +24922,49 @@ async function Uw({ active: e, promptId: t = "" } = {}) {
 		}
 	}
 }
-function Ww() {
+function Gw() {
 	try {
-		return !!String(Vw()?.active_prompt_id || "").trim();
+		return !!String(Hw()?.active_prompt_id || "").trim();
 	} catch (e) {
 		return console.debug?.(e), !1;
 	}
 }
-function Gw(e = 1200) {
+function Kw(e = 1200) {
 	try {
-		jw && clearTimeout(jw);
+		Mw && clearTimeout(Mw);
 	} catch (e) {
 		console.debug?.(e);
 	}
-	jw = setTimeout(() => {
-		if (jw = null, Ww()) {
-			Gw(e);
+	Mw = setTimeout(() => {
+		if (Mw = null, Gw()) {
+			Kw(e);
 			return;
 		}
 		let t = ht();
 		t && oi(t);
 	}, Math.max(250, Number(e) || 0));
 }
-function Kw(e) {
+function qw(e) {
 	import("./chunks/LiveStreamTracker-CEWiXNEL.js").then((t) => {
-		Sw = t;
+		Cw = t;
 		try {
 			t.initLiveStreamTracker(e);
 		} catch (e) {
 			console.warn("[MJR setup] initLiveStreamTracker failed:", e);
 		}
 	}).catch((e) => console.warn("[MJR setup] LiveStreamTracker load failed:", e)), import("./chunks/NodeStreamController-CIKDDXJT.js").then((t) => {
-		Cw = t;
+		ww = t;
 		try {
 			t.initNodeStream({
 				app: e,
 				onOutput: (e) => {
-					Tw().then((t) => t?.floatingViewerManager?.feedNodeStream?.(e)).catch((e) => console.debug?.("[NodeStream] MFV output failed", e));
+					Ew().then((t) => t?.floatingViewerManager?.feedNodeStream?.(e)).catch((e) => console.debug?.("[NodeStream] MFV output failed", e));
 				},
 				onStatus: (t, n) => {
 					try {
-						let r = (e?.graph ?? e?.canvas?.graph ?? null)?.getNodeById?.(Number(t)), i = zw(r), a = Iw(r), o = i ? "Subgraph" : Bw(r, n);
-						Tw().then((e) => {
-							e?.floatingViewerManager?.setNodeStreamSelection?.(t, o, i ? a || Bw(r, n) : a);
+						let r = (e?.graph ?? e?.canvas?.graph ?? null)?.getNodeById?.(Number(t)), i = Bw(r), a = Lw(r), o = i ? "Subgraph" : Vw(r, n);
+						Ew().then((e) => {
+							e?.floatingViewerManager?.setNodeStreamSelection?.(t, o, i ? a || Vw(r, n) : a);
 						}).catch((e) => console.debug?.("[NodeStream] MFV status failed", e));
 					} catch (e) {
 						console.debug?.("[NodeStream] onStatus failed", e);
@@ -24963,7 +24976,7 @@ function Kw(e) {
 		}
 	}).catch((e) => console.warn("[MJR setup] NodeStream load failed:", e));
 }
-async function qw(e, t) {
+async function Jw(e, t) {
 	let n = await c({
 		app: e,
 		timeoutMs: 4e3
@@ -24982,14 +24995,14 @@ async function qw(e, t) {
 	} catch (e) {
 		console.debug?.(e);
 	}
-	_w(r?.api || null, ct), n !== r?.api && _w(n, ct), vw(r, ct), await Np({
+	vw(r?.api || null, ct), n !== r?.api && vw(n, ct), yw(r, ct), await Np({
 		api: n,
 		runtime: r,
 		executionRuntime: t,
 		appRef: wr,
-		liveStreamModule: Sw,
-		ensureExecutionRuntime: Vw,
-		emitRuntimeStatus: Hw,
+		liveStreamModule: Cw,
+		ensureExecutionRuntime: Hw,
+		emitRuntimeStatus: Uw,
 		getActiveGridContainer: ht,
 		pushGeneratedAsset: Df,
 		upsertAsset: mi,
@@ -25000,40 +25013,40 @@ async function qw(e, t) {
 		comfyToast: F,
 		t: L,
 		reportError: ct,
-		registerCleanableListener: bw,
-		syncExecutionBackendState: Uw
+		registerCleanableListener: xw,
+		syncExecutionBackendState: Ww
 	});
 }
-var Jw = Yf({
+var Yw = Yf({
 	post: me,
 	ENDPOINTS: p,
 	reportError: ct,
 	extractOutputFiles: Xf,
-	ensureExecutionRuntime: Vw,
-	emitRuntimeStatus: Hw,
+	ensureExecutionRuntime: Hw,
+	emitRuntimeStatus: Uw,
 	refreshGeneratedFeedHosts: df,
 	getActiveGridContainer: ht
-}), Yw = {
-	name: kw,
+}), Xw = {
+	name: Aw,
 	settings: xt(wr),
-	commands: XC(wr, {
-		sidebarTabId: Dw,
+	commands: ZC(wr, {
+		sidebarTabId: Ow,
 		triggerStartupScan: Jr
 	}),
-	keybindings: ZC(),
-	menuCommands: QC(),
-	aboutPageBadges: ew(),
-	bottomPanelTabs: lw(),
+	keybindings: QC(),
+	menuCommands: $C(),
+	aboutPageBadges: tw(),
+	bottomPanelTabs: uw(),
 	async setup() {
-		xw({
-			cleanupEntryRuntimeFn: yw,
-			teardownLiveStreamTracker: (e) => Sw?.teardownLiveStreamTracker(e),
-			teardownNodeStream: (e) => Cw?.teardownNodeStream(e),
-			teardownFloatingViewerManager: Ew,
-			teardownGeneratedFeed: uw,
-			teardownAssetsSidebar: iw,
-			teardownGlobalRuntime: LC,
-			teardownTopBarMfvButton: OC,
+		Sw({
+			cleanupEntryRuntimeFn: bw,
+			teardownLiveStreamTracker: (e) => Cw?.teardownLiveStreamTracker(e),
+			teardownNodeStream: (e) => ww?.teardownNodeStream(e),
+			teardownFloatingViewerManager: Dw,
+			teardownGeneratedFeed: dw,
+			teardownAssetsSidebar: aw,
+			teardownGlobalRuntime: RC,
+			teardownTopBarMfvButton: kC,
 			reportError: ct
 		}), Lp(), re(wr);
 		let e = await h({ timeoutMs: 12e3 }) || wr;
@@ -25043,17 +25056,17 @@ var Jw = Yf({
 		} catch (e) {
 			console.debug?.(e);
 		}
-		Qr(), ei({ enabled: !0 }), IC(), Kw(e), Nt(e, () => {
+		Qr(), ei({ enabled: !0 }), LC(), qw(e), Nt(e, () => {
 			let e = ht();
-			e && (R.DEFER_GRID_FETCH_DURING_EXECUTION && Ww() ? Gw() : oi(e));
-		}), tw(e, {
-			sidebarTabId: Dw,
+			e && (R.DEFER_GRID_FETCH_DURING_EXECUTION && Gw() ? Kw() : oi(e));
+		}), nw(e, {
+			sidebarTabId: Ow,
 			triggerStartupScan: Jr
-		}), nw(e), qw(e, Jw).catch((e) => ct(e, "entry.api_setup")), rw(e, { sidebarTabId: Dw }) ? ft("[Majoor] Sidebar tab registered (Vue)") : console.warn("Majoor Assets Manager: extensionManager.registerSidebarTab is unavailable");
+		}), rw(e), Jw(e, Yw).catch((e) => ct(e, "entry.api_setup")), iw(e, { sidebarTabId: Ow }) ? ft("[Majoor] Sidebar tab registered (Vue)") : console.warn("Majoor Assets Manager: extensionManager.registerSidebarTab is unavailable");
 		try {
 			let e = typeof window < "u" ? window.requestIdleCallback : null, t = () => {
 				try {
-					sw();
+					cw();
 				} catch (e) {
 					console.debug?.(e);
 				}
@@ -25062,30 +25075,30 @@ var Jw = Yf({
 		} catch (e) {
 			console.debug?.(e);
 		}
-		Pp({ resolveNodeStreamModule: async () => (Cw ||= await import("./chunks/NodeStreamController-CIKDDXJT.js"), Cw) });
+		Pp({ resolveNodeStreamModule: async () => (ww ||= await import("./chunks/NodeStreamController-CIKDDXJT.js"), ww) });
 	},
 	onNodeOutputsUpdated(e) {
 		try {
-			Jw.handleNodeOutputsUpdated(e);
+			Yw.handleNodeOutputsUpdated(e);
 		} catch (e) {
 			console.debug?.("[Majoor] onNodeOutputsUpdated error", e);
 		}
 	},
 	getNodeMenuItems(e) {
-		return hw(e, wr, { sidebarTabId: Dw });
+		return gw(e, wr, { sidebarTabId: Ow });
 	},
 	getCanvasMenuItems(e) {
-		return $C(wr, {
-			sidebarTabId: Dw,
+		return ew(wr, {
+			sidebarTabId: Ow,
 			triggerStartupScan: Jr
 		});
 	},
 	getSelectionToolboxCommands(e) {
-		return pw(e);
+		return mw(e);
 	}
 };
 try {
-	wr.registerExtension(Yw);
+	wr.registerExtension(Xw);
 } catch (e) {
-	console.warn("[Majoor] registerExtension() threw (extension already registered) - re-running setup() directly", e), Yw.setup().catch((e) => ct(e, "entry.setup_after_duplicate_registration"));
+	console.warn("[Majoor] registerExtension() threw (extension already registered) - re-running setup() directly", e), Xw.setup().catch((e) => ct(e, "entry.setup_after_duplicate_registration"));
 }

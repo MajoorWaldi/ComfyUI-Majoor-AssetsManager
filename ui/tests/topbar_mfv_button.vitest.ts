@@ -218,6 +218,39 @@ describe("topBarMfvButton", () => {
         teardownTopBarMfvButton();
     });
 
+    it("moves next to the Run group when it is rendered after the button was mounted", async () => {
+        const actionbar = document.createElement("div");
+        actionbar.className = "actionbar-container";
+        actionbar.getBoundingClientRect = () => ({ bottom: 88 }) as any;
+        const panel = document.createElement("div");
+        panel.className = "flex items-center";
+        const stats = document.createElement("div");
+        stats.className = "stats";
+        panel.appendChild(stats);
+        actionbar.appendChild(panel);
+        document.body.appendChild(actionbar);
+
+        const { mountTopBarMfvButton, teardownTopBarMfvButton } =
+            await import("../features/runtime/topBarMfvButton.js");
+        mountTopBarMfvButton();
+        flushTimers();
+
+        // No Run group yet: the button waits at the end of the actionbar.
+        const slot = actionbar.querySelector("[data-mjr-topbar-mfv-slot]") as HTMLElement;
+        expect(slot.parentElement).toBe(actionbar);
+
+        // The Run group arrives later, nested in the panel.
+        const queueGroup = document.createElement("div");
+        queueGroup.className = "queue-button-group";
+        panel.insertBefore(queueGroup, stats);
+        await Promise.resolve();
+        flushTimers();
+
+        expect(slot.previousElementSibling).toBe(queueGroup);
+        expect(actionbar.querySelectorAll("[data-mjr-topbar-mfv-slot]")).toHaveLength(1);
+        teardownTopBarMfvButton();
+    });
+
     it("ignores other topbar shapes", async () => {
         const unsupportedTopbar = document.createElement("div");
         unsupportedTopbar.setAttribute("data-testid", "topbar");
