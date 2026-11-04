@@ -1,12 +1,12 @@
-import { $t as e, g as t, y as n } from "./viewerRuntimeHosts-Ctr8wab-.js";
-import { B as r, C as i, I as a, M as o, O as s, P as c, R as l, V as u, j as d, m as f, o as p, r as m, rt as h, v as g, w as _, x as v } from "./events-tsQFsZrH.js";
+import { g as e, tn as t, y as n } from "./viewerRuntimeHosts-C-jwQQuE.js";
+import { B as r, C as i, I as a, M as o, O as s, P as c, R as l, V as u, j as d, m as f, o as p, r as m, rt as h, v as g, w as _, x as v } from "./events-7GBcKIuJ.js";
 import { a as y, i as b, o as x, s as S } from "./graphTraversal-DTdQWkn5.js";
-import { _ as C, g as w, m as T, n as E, p as ee, r as D, w as O } from "./Viewer-DHesfEdb.js";
-import { r as k, v as A } from "./SidebarWorkflowSection-CZBV2aho.js";
-import { _ as j, a as M, c as N, d as P, f as F, g as I, h as L, i as te, l as R, m as z, o as ne, p as B, r as re, s as V, t as ie, u as H, v as U } from "./openMajoorSettings-IdB9HDLb.js";
-import { a as W, n as ae, r as oe } from "./model3dRenderer-B18R8Ewh.js";
+import { _ as C, g as w, m as T, n as E, p as ee, r as D, w as O } from "./Viewer-kUNEcWpp.js";
+import { r as k, v as A } from "./SidebarWorkflowSection-CNCP5dlO.js";
+import { _ as j, a as M, c as N, d as P, f as F, g as I, h as L, i as te, l as R, m as z, o as ne, p as B, r as re, s as V, t as ie, u as H, v as U } from "./openMajoorSettings-o-KvlZWK.js";
+import { a as W, n as ae, r as oe } from "./model3dRenderer-C6r7uHPh.js";
 import { i as se, o as ce, r as le, t as ue } from "./geninfoParser-CgHp-y-n.js";
-import { t as de } from "./genInfo-C_5G1vVv.js";
+import { t as de } from "./genInfo-3GnsjPmc.js";
 // ui/features/viewer/floatingViewerConstants.ts
 var G = Object.freeze({
 	SIMPLE: "simple",
@@ -2533,10 +2533,10 @@ function Rn(e, t) {
 	let i = e._desktopExpandRestore;
 	e._desktopExpanded = !1, r.classList.remove("mjr-mfv--desktop-expanded"), i?.styleAttr == null || i.styleAttr === "" ? r.removeAttribute("style") : r.setAttribute("style", i.styleAttr), i?.parent && i.parent.isConnected && (i.nextSibling && i.nextSibling.parentNode === i.parent ? i.parent.insertBefore(r, i.nextSibling) : i.parent.appendChild(r)), e._desktopExpandRestore = null, Ln(e), $("electron-in-app-restored", null);
 }
-function zn(t, n) {
-	t._desktopPopoutUnsupported = !0, $("electron-in-app-fallback", { message: n?.message || String(n || "unknown error") }, "warn"), t._setDesktopExpanded(!0);
+function zn(e, n) {
+	e._desktopPopoutUnsupported = !0, $("electron-in-app-fallback", { message: n?.message || String(n || "unknown error") }, "warn"), e._setDesktopExpanded(!0);
 	try {
-		e(f("toast.popoutElectronInAppFallback", "Desktop PiP is unavailable here. Viewer expanded inside the app instead."), "warning", 4500);
+		t(f("toast.popoutElectronInAppFallback", "Desktop PiP is unavailable here. Viewer expanded inside the app instead."), "warning", 4500);
 	} catch (e) {
 		console.debug?.(e);
 	}
@@ -3096,70 +3096,70 @@ var ar = "imageops-live-preview";
 function or(e) {
 	return String(e?._source || "") === ar;
 }
-function sr(e, r, { autoMode: i = !1 } = {}) {
-	let a = e._mediaA || null, o = or(r), s = o && or(a) && String(a?._nodeId || "") === String(r?._nodeId || "");
-	if (e._mediaA = r || null, En(e, [a]), s || e._resetMfvZoom(), i && e._mode !== G.SIMPLE && e._mode !== G.GRAPH && (e._mode = G.SIMPLE, e._updateModeBtnUI()), e._refresh(), e._mediaA && !o && typeof de == "function") {
-		let r = ++e._refreshGen;
+function sr(t, r, { autoMode: i = !1 } = {}) {
+	let a = t._mediaA || null, o = or(r), s = o && or(a) && String(a?._nodeId || "") === String(r?._nodeId || "");
+	if (t._mediaA = r || null, En(t, [a]), s || t._resetMfvZoom(), i && t._mode !== G.SIMPLE && t._mode !== G.GRAPH && (t._mode = G.SIMPLE, t._updateModeBtnUI()), t._refresh(), t._mediaA && !o && typeof de == "function") {
+		let r = ++t._refreshGen;
 		(async () => {
 			try {
-				let i = await de(e._mediaA, {
-					getAssetMetadata: t,
+				let i = await de(t._mediaA, {
+					getAssetMetadata: e,
 					getFileMetadataScoped: n
 				});
-				if (e._refreshGen !== r) return;
-				i && typeof i == "object" && (e._mediaA = i, e._refresh());
+				if (t._refreshGen !== r) return;
+				i && typeof i == "object" && (t._mediaA = i, t._refresh());
 			} catch (e) {
 				console.debug?.("[MFV] metadata enrich error", e);
 			}
 		})();
 	}
 }
-function cr(e, r, i) {
-	let a = [e._mediaA, e._mediaB];
-	e._mediaA = r || null, e._mediaB = i || null, En(e, a), e._resetMfvZoom(), e._mode === G.SIMPLE && (e._mode = G.AB, e._updateModeBtnUI());
-	let o = ++e._refreshGen, s = async (e) => {
-		if (!e) return e;
+function cr(t, r, i) {
+	let a = [t._mediaA, t._mediaB];
+	t._mediaA = r || null, t._mediaB = i || null, En(t, a), t._resetMfvZoom(), t._mode === G.SIMPLE && (t._mode = G.AB, t._updateModeBtnUI());
+	let o = ++t._refreshGen, s = async (t) => {
+		if (!t) return t;
 		try {
-			return await de(e, {
-				getAssetMetadata: t,
+			return await de(t, {
+				getAssetMetadata: e,
 				getFileMetadataScoped: n
-			}) || e;
+			}) || t;
 		} catch {
-			return e;
+			return t;
 		}
 	};
 	(async () => {
-		let [t, n] = await Promise.all([s(e._mediaA), s(e._mediaB)]);
-		e._refreshGen === o && (e._mediaA = t || null, e._mediaB = n || null, e._refresh());
+		let [e, n] = await Promise.all([s(t._mediaA), s(t._mediaB)]);
+		t._refreshGen === o && (t._mediaA = e || null, t._mediaB = n || null, t._refresh());
 	})();
 }
-function lr(e, r, i, a, o) {
+function lr(t, r, i, a, o) {
 	let s = [
-		e._mediaA,
-		e._mediaB,
-		e._mediaC,
-		e._mediaD
+		t._mediaA,
+		t._mediaB,
+		t._mediaC,
+		t._mediaD
 	];
-	e._mediaA = r || null, e._mediaB = i || null, e._mediaC = a || null, e._mediaD = o || null, En(e, s), e._resetMfvZoom(), e._mode !== G.GRID && (e._mode = G.GRID, e._updateModeBtnUI());
-	let c = ++e._refreshGen, l = async (e) => {
-		if (!e) return e;
+	t._mediaA = r || null, t._mediaB = i || null, t._mediaC = a || null, t._mediaD = o || null, En(t, s), t._resetMfvZoom(), t._mode !== G.GRID && (t._mode = G.GRID, t._updateModeBtnUI());
+	let c = ++t._refreshGen, l = async (t) => {
+		if (!t) return t;
 		try {
-			return await de(e, {
-				getAssetMetadata: t,
+			return await de(t, {
+				getAssetMetadata: e,
 				getFileMetadataScoped: n
-			}) || e;
+			}) || t;
 		} catch {
-			return e;
+			return t;
 		}
 	};
 	(async () => {
-		let [t, n, r, i] = await Promise.all([
-			l(e._mediaA),
-			l(e._mediaB),
-			l(e._mediaC),
-			l(e._mediaD)
+		let [e, n, r, i] = await Promise.all([
+			l(t._mediaA),
+			l(t._mediaB),
+			l(t._mediaC),
+			l(t._mediaD)
 		]);
-		e._refreshGen === c && (e._mediaA = t || null, e._mediaB = n || null, e._mediaC = r || null, e._mediaD = i || null, e._refresh());
+		t._refreshGen === c && (t._mediaA = e || null, t._mediaB = n || null, t._mediaC = r || null, t._mediaD = i || null, t._refresh());
 	})();
 }
 // ui/features/viewer/FloatingViewer.impl.ts

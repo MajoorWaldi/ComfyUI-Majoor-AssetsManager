@@ -1,9 +1,9 @@
-import { $t as e, H as t, P as n, _ as r, c as i, d as a, g as o, gt as s, n as c, o as l, r as u, s as d, vt as f, x as p, y as m } from "./viewerRuntimeHosts-Ctr8wab-.js";
-import { Ct as h, D as g, a as _, ct as v, h as y, i as b, j as x, k as S, m as C, n as w, o as T, pt as E, r as D, rt as O, t as k } from "./events-tsQFsZrH.js";
+import { H as e, P as t, _ as n, bt as r, c as i, d as a, g as o, n as s, o as c, r as l, s as u, tn as d, vt as f, x as p, y as m } from "./viewerRuntimeHosts-C-jwQQuE.js";
+import { Ct as h, D as g, a as _, ct as v, h as y, i as b, j as x, k as S, m as C, n as w, o as T, pt as E, r as D, rt as O, t as k } from "./events-7GBcKIuJ.js";
 import { T as A, nt as j, rt as M } from "./mjr-primevue-BRqtdXzb.js";
 import { n as N, r as ee } from "./mjr-vue-vendor-mHY_eIVE.js";
 import { n as P, r as te, t as F } from "./state-D0Gu1AgG.js";
-import { a as ne, c as re, i as ie, o as ae, r as oe, s as se } from "./model3dRenderer-B18R8Ewh.js";
+import { a as ne, c as re, i as ie, o as ae, r as oe, s as se } from "./model3dRenderer-C6r7uHPh.js";
 // ui/utils/events.ts
 function ce(e, t, { target: n = null, warnPrefix: r = "[Majoor]" } = {}) {
 	let i = n || (typeof window < "u" ? window : null);
@@ -1345,13 +1345,13 @@ function yt(e) {
 		kind: e.kind || ""
 	} : null;
 }
-async function bt({ x: t, y: n, assets: r }) {
-	let i = Array.isArray(r) ? r.map(yt).filter(Boolean) : [];
-	i.length ? _t({
-		x: Number(t) || 0,
-		y: Number(n) || 0,
-		assets: i
-	}) : e(C("toast.noValidAssetsSelected", "No valid assets selected."), "warning");
+async function bt({ x: e, y: t, assets: n }) {
+	let r = Array.isArray(n) ? n.map(yt).filter(Boolean) : [];
+	r.length ? _t({
+		x: Number(e) || 0,
+		y: Number(t) || 0,
+		assets: r
+	}) : d(C("toast.noValidAssetsSelected", "No valid assets selected."), "warning");
 }
 // ui/features/contextmenu/ratingUpdater.ts
 var xt = 350, St = /* @__PURE__ */ new Map();
@@ -1377,25 +1377,25 @@ function wt(e) {
 function Tt() {
 	for (let e of Array.from(St.keys())) wt(e);
 }
-function Et(t, r, { onSuccess: i, onFailure: o, successMessage: s = null, errorMessage: c = null, warnPrefix: l = "[RatingUpdater]" } = {}) {
-	if (!t) return;
-	wt(t);
-	let u = new AbortController(), d = setTimeout(async () => {
-		St.delete(String(t));
+function Et(e, n, { onSuccess: r, onFailure: i, successMessage: o = null, errorMessage: s = null, warnPrefix: c = "[RatingUpdater]" } = {}) {
+	if (!e) return;
+	wt(e);
+	let l = new AbortController(), u = setTimeout(async () => {
+		St.delete(String(e));
 		try {
-			let a = await n(t, r, { signal: u.signal });
+			let a = await t(e, n, { signal: l.signal });
 			if (!a?.ok) {
-				e(a?.error || c || "Failed to update rating", "error"), o?.(a);
+				d(a?.error || s || "Failed to update rating", "error"), i?.(a);
 				return;
 			}
-			s && e(s, "success", 1500), i?.(a);
+			o && d(o, "success", 1500), r?.(a);
 		} catch (e) {
-			a(e, l, { showToast: !0 }), o?.(e);
+			a(e, c, { showToast: !0 }), i?.(e);
 		}
 	}, xt);
-	St.set(String(t), {
-		timer: d,
-		controller: u
+	St.set(String(e), {
+		timer: u,
+		controller: l
 	});
 }
 // ui/utils/tooltipShortcuts.ts
@@ -3096,10 +3096,10 @@ function xn(e) {
 		return !1;
 	}
 }
-function Sn(e, t, r) {
+function Sn(e, n, r) {
 	let i = e?.id;
 	try {
-		e.rating = t;
+		e.rating = n;
 	} catch (e) {
 		console.debug?.(e);
 	}
@@ -3108,20 +3108,20 @@ function Sn(e, t, r) {
 	} catch (e) {
 		console.debug?.(e);
 	}
-	i ? Et(String(i), t, {
-		successMessage: t > 0 ? `Rating set to ${t} stars` : "Rating cleared",
+	i ? Et(String(i), n, {
+		successMessage: n > 0 ? `Rating set to ${n} stars` : "Rating cleared",
 		errorMessage: "Failed to update rating",
 		warnPrefix: "[ViewerContextMenu]",
 		onSuccess: () => {
 			ce(k, {
 				assetId: String(i),
-				rating: t
+				rating: n
 			}, { warnPrefix: "[ViewerContextMenu]" });
 		},
 		onFailure: (e) => {
 			a(e, "[ViewerContextMenu] Rating update", { showToast: !0 });
 		}
-	}) : n(e, t).catch((e) => {
+	}) : t(e, n).catch((e) => {
 		a(e, "[ViewerContextMenu] Rating update", { showToast: !0 });
 	});
 }
@@ -3146,36 +3146,36 @@ function wn(e, t, n) {
 		Sn(e, 0, t);
 	}, { disabled: !n })), r;
 }
-function Tn({ asset: n, event: r, getCurrentViewUrl: i, onAssetChanged: o }) {
-	let c = typeof i == "function" ? i(n) : O(n), l = !!(n?.id || n?.filepath);
+function Tn({ asset: t, event: n, getCurrentViewUrl: i, onAssetChanged: o }) {
+	let s = typeof i == "function" ? i(t) : O(t), c = !!(t?.id || t?.filepath);
 	return [
 		yn(C("ctx.openInNewTab", "Open in New Tab"), "pi pi-external-link", null, async () => {
-			xn(c) && window.open(c, "_blank", "noopener,noreferrer");
+			xn(s) && window.open(s, "_blank", "noopener,noreferrer");
 		}),
 		yn(C("ctx.copyPath", "Copy path"), "pi pi-copy", mn.COPY_PATH, async () => {
-			let t = n?.filepath ? String(n.filepath) : "";
-			if (!t) e(C("toast.noFilePath"), "error");
+			let e = t?.filepath ? String(t.filepath) : "";
+			if (!e) d(C("toast.noFilePath"), "error");
 			else try {
-				await navigator.clipboard.writeText(t), e(C("toast.pathCopied"), "success", 2e3);
-			} catch (t) {
-				console.error("[ViewerContextMenu] Copy failed:", t), e(C("toast.pathCopyFailed"), "error");
+				await navigator.clipboard.writeText(e), d(C("toast.pathCopied"), "success", 2e3);
+			} catch (e) {
+				console.error("[ViewerContextMenu] Copy failed:", e), d(C("toast.pathCopyFailed"), "error");
 			}
 		}),
 		yn(C("ctx.downloadOriginal", "Download Original"), "pi pi-download", mn.DOWNLOAD, async () => {
-			if (!n || !n.filepath) return;
-			let t = v(n.filepath), r = document.createElement("a");
-			r.href = t, r.download = n.filename, document.body.appendChild(r), r.click(), document.body.removeChild(r), e(C("toast.downloadingFile", "Downloading {filename}...", { filename: n.filename }), "info", 3e3);
-		}, { disabled: !n?.filepath }),
+			if (!t || !t.filepath) return;
+			let e = v(t.filepath), n = document.createElement("a");
+			n.href = e, n.download = t.filename, document.body.appendChild(n), n.click(), document.body.removeChild(n), d(C("toast.downloadingFile", "Downloading {filename}...", { filename: t.filename }), "info", 3e3);
+		}, { disabled: !t?.filepath }),
 		yn(C("ctx.openInFolder", "Open in folder"), "pi pi-folder-open", mn.OPEN_IN_FOLDER, async () => {
-			let t = await s(n);
-			t?.ok ? e(C("toast.openedInFolder"), "info", 2e3) : e(t?.error || C("toast.openFolderFailed"), "error");
-		}, { disabled: !(n?.id || n?.filepath) }),
+			let e = await f(t);
+			e?.ok ? d(C("toast.openedInFolder"), "info", 2e3) : d(e?.error || C("toast.openFolderFailed"), "error");
+		}, { disabled: !(t?.id || t?.filepath) }),
 		yn(C("ctx.addToCollection", "Add to collection"), "pi pi-bookmark", mn.ADD_TO_COLLECTION, async () => {
 			try {
 				await bt({
-					x: r?.clientX,
-					y: r?.clientY,
-					assets: [n]
+					x: n?.clientX,
+					y: n?.clientY,
+					assets: [t]
 				});
 			} catch (e) {
 				console.error("[ViewerContextMenu] Add to collection failed:", e);
@@ -3184,14 +3184,14 @@ function Tn({ asset: n, event: r, getCurrentViewUrl: i, onAssetChanged: o }) {
 		bn(),
 		yn(C("ctx.editTags", "Edit tags"), "pi pi-tags", mn.EDIT_TAGS, async () => {
 			dn({
-				x: (Number(r?.clientX) || 0) + 6,
-				y: (Number(r?.clientY) || 0) + 6,
-				asset: n,
+				x: (Number(n?.clientX) || 0) + 6,
+				y: (Number(n?.clientY) || 0) + 6,
+				asset: t,
 				onChanged: ((...e) => {
-					let t = e[0];
-					n.tags = t, ce(w, {
-						assetId: String(n.id),
-						tags: t
+					let n = e[0];
+					t.tags = n, ce(w, {
+						assetId: String(t.id),
+						tags: n
 					}, { warnPrefix: "[ViewerContextMenu]" });
 					try {
 						o?.();
@@ -3203,65 +3203,65 @@ function Tn({ asset: n, event: r, getCurrentViewUrl: i, onAssetChanged: o }) {
 		}, { closeOnSelect: !1 }),
 		bn(),
 		yn(C("ctx.setRating", "Set rating"), "pi pi-star", `${mn.RATING_SUBMENU} >`, null, {
-			disabled: !l,
+			disabled: !c,
 			closeOnSelect: !1,
-			submenu: wn(n, o, l)
+			submenu: wn(t, o, c)
 		}),
 		yn(C("ctx.refreshMetadata", "Refresh metadata"), "pi pi-sync", "R", async () => {
-			if (n?.id) try {
-				let t = await p(n.id, { refresh: !0 });
-				if (!t?.ok || !t?.data) {
-					e(t?.error || C("toast.metadataRefreshFailed", "Failed to refresh metadata."), "error");
+			if (t?.id) try {
+				let e = await p(t.id, { refresh: !0 });
+				if (!e?.ok || !e?.data) {
+					d(e?.error || C("toast.metadataRefreshFailed", "Failed to refresh metadata."), "error");
 					return;
 				}
-				let r = t.data;
+				let n = e.data;
 				try {
 					ce(_, {
-						assetId: String(n.id),
-						info: r
+						assetId: String(t.id),
+						info: n
 					}, { warnPrefix: "[ViewerContextMenu]" });
 				} catch (e) {
 					console.debug?.(e);
 				}
-				let i = [], a = Cn(r?.size_bytes);
-				a && i.push(a), r?.mime && i.push(r.mime);
-				let o = i.length ? ` (${i.join(", ")})` : "";
-				e(C("toast.metadataRefreshed", "Metadata refreshed{suffix}", { suffix: o }), "success", 3e3);
+				let r = [], i = Cn(n?.size_bytes);
+				i && r.push(i), n?.mime && r.push(n.mime);
+				let a = r.length ? ` (${r.join(", ")})` : "";
+				d(C("toast.metadataRefreshed", "Metadata refreshed{suffix}", { suffix: a }), "success", 3e3);
 			} catch (e) {
 				a(e, "[ViewerContextMenu] Metadata refresh", { showToast: !0 });
 			}
-		}, { disabled: !n?.id }),
+		}, { disabled: !t?.id }),
 		bn(),
 		yn(C("ctx.rename", "Rename"), "pi pi-pencil", mn.RENAME, async () => {
-			if (!(n?.id || n?.filepath)) return;
-			let t = n.filename || "", r = ut(await L(C("dialog.rename.title", "Rename file"), t), t);
-			if (!r || r === t) return;
-			let i = st(r);
-			if (!i.valid) e(i.reason, "error");
+			if (!(t?.id || t?.filepath)) return;
+			let e = t.filename || "", n = ut(await L(C("dialog.rename.title", "Rename file"), e), e);
+			if (!n || n === e) return;
+			let i = st(n);
+			if (!i.valid) d(i.reason, "error");
 			else try {
-				let t = await f(n, r);
-				if (t?.ok) {
-					let i = t?.data?.asset;
-					i && typeof i == "object" ? Object.assign(n, i) : (n.filename = r, n.filepath = n.filepath.replace(/[^\\/]+$/, r), n.path &&= String(n.path).replace(/[^\\/]+$/, r), n.file_info && typeof n.file_info == "object" && (n.file_info.filename = r, n.file_info.filepath && (n.file_info.filepath = String(n.file_info.filepath).replace(/[^\\/]+$/, r)), n.file_info.path && (n.file_info.path = String(n.file_info.path).replace(/[^\\/]+$/, r)))), e(C("toast.fileRenamedSuccess"), "success");
+				let e = await r(t, n);
+				if (e?.ok) {
+					let r = e?.data?.asset;
+					r && typeof r == "object" ? Object.assign(t, r) : (t.filename = n, t.filepath = t.filepath.replace(/[^\\/]+$/, n), t.path &&= String(t.path).replace(/[^\\/]+$/, n), t.file_info && typeof t.file_info == "object" && (t.file_info.filename = n, t.file_info.filepath && (t.file_info.filepath = String(t.file_info.filepath).replace(/[^\\/]+$/, n)), t.file_info.path && (t.file_info.path = String(t.file_info.path).replace(/[^\\/]+$/, n)))), d(C("toast.fileRenamedSuccess"), "success");
 					try {
 						window.dispatchEvent(new CustomEvent("mjr:reload-grid", { detail: { reason: "viewer-rename" } }));
 					} catch (e) {
 						console.debug?.(e);
 					}
 					o?.();
-				} else e(t?.error || C("toast.fileRenameFailed"), "error");
-			} catch (t) {
-				e(C("toast.errorRenaming", "Error renaming file: {error}", { error: t?.message || String(t || "") }), "error");
+				} else d(e?.error || C("toast.fileRenameFailed"), "error");
+			} catch (e) {
+				d(C("toast.errorRenaming", "Error renaming file: {error}", { error: e?.message || String(e || "") }), "error");
 			}
-		}, { disabled: !(n?.id || n?.filepath) }),
+		}, { disabled: !(t?.id || t?.filepath) }),
 		yn(C("ctx.delete", "Delete"), "pi pi-trash", mn.DELETE, async () => {
-			if ((n?.id || n?.filepath) && await mt(1, n?.filename)) try {
-				let r = await t(n);
-				r?.ok ? (e(C("toast.fileDeletedSuccess"), "success"), o?.()) : e(r?.error || C("toast.fileDeleteFailed"), "error");
-			} catch (t) {
-				e(C("toast.errorDeleting", "Error deleting file: {error}", { error: t?.message || String(t || "") }), "error");
+			if ((t?.id || t?.filepath) && await mt(1, t?.filename)) try {
+				let n = await e(t);
+				n?.ok ? (d(C("toast.fileDeletedSuccess"), "success"), o?.()) : d(n?.error || C("toast.fileDeleteFailed"), "error");
+			} catch (e) {
+				d(C("toast.errorDeleting", "Error deleting file: {error}", { error: e?.message || String(e || "") }), "error");
 			}
-		}, { disabled: !(n?.id || n?.filepath) })
+		}, { disabled: !(t?.id || t?.filepath) })
 	];
 }
 function En({ overlayEl: e, getCurrentAsset: t, getCurrentViewUrl: n, onAssetChanged: r } = {}) {
@@ -4788,7 +4788,7 @@ function Wn(e) {
 	}
 	return null;
 }
-function Gn({ overlay: t, _content: n, singleView: r, state: i, VIEWER_MODES: a, computeOneToOneZoom: o, setZoom: s, scheduleOverlayRedraw: c, scheduleApplyGrade: l, syncToolsUIFromState: u, applyDistractionFreeUI: f, navigateViewerAssets: p, closeViewer: m, renderBadges: h, updateAssetRating: g, safeDispatchCustomEvent: _, ASSET_RATING_CHANGED_EVENT: v, probeTooltip: y, loupeWrap: b, getVideoControls: x, lifecycle: S, renderGenInfoPanel: T } = {}) {
+function Gn({ overlay: e, _content: t, singleView: n, state: r, VIEWER_MODES: i, computeOneToOneZoom: a, setZoom: o, scheduleOverlayRedraw: s, scheduleApplyGrade: c, syncToolsUIFromState: l, applyDistractionFreeUI: f, navigateViewerAssets: p, closeViewer: m, renderBadges: h, updateAssetRating: g, safeDispatchCustomEvent: _, ASSET_RATING_CHANGED_EVENT: v, probeTooltip: y, loupeWrap: b, getVideoControls: x, lifecycle: S, renderGenInfoPanel: T } = {}) {
 	let E = S?.unsubs || [], D = null, O = null, k = () => {
 		try {
 			D && clearTimeout(D);
@@ -4796,63 +4796,63 @@ function Gn({ overlay: t, _content: n, singleView: r, state: i, VIEWER_MODES: a,
 			console.debug?.(e);
 		}
 		D = null, O = null;
-	}, A = (t, n) => {
+	}, A = (e, t) => {
 		k(), O = {
-			assetId: t,
-			rating: n
+			assetId: e,
+			rating: t
 		}, D = setTimeout(async () => {
-			let t = O;
-			if (D = null, O = null, t?.assetId) try {
-				let n = await g?.(t.assetId, t.rating);
-				if (!n?.ok) {
-					e(n?.error || C("toast.ratingUpdateFailed"), "error");
+			let e = O;
+			if (D = null, O = null, e?.assetId) try {
+				let t = await g?.(e.assetId, e.rating);
+				if (!t?.ok) {
+					d(t?.error || C("toast.ratingUpdateFailed"), "error");
 					return;
 				}
-				e(C("toast.ratingSetN", { n: t.rating }), "success", 1500), _?.(v, {
-					assetId: String(t.assetId),
-					rating: t.rating
+				d(C("toast.ratingSetN", { n: e.rating }), "success", 1500), _?.(v, {
+					assetId: String(e.assetId),
+					rating: e.rating
 				}, { warnPrefix: "[Viewer]" });
 			} catch {
-				e(C("toast.ratingUpdateError"), "error");
+				d(C("toast.ratingUpdateError"), "error");
 			}
 		}, 300);
 	}, j = () => {
 		try {
-			document.fullscreenElement ? document?.exitFullscreen?.() : t?.requestFullscreen?.();
+			document.fullscreenElement ? document?.exitFullscreen?.() : e?.requestFullscreen?.();
 		} catch (e) {
 			console.debug?.(e);
 		}
-	}, M = (n) => {
+	}, M = (t) => {
 		let g = () => {
 			try {
-				n.preventDefault(), n.stopPropagation(), n.stopImmediatePropagation?.();
+				t.preventDefault(), t.stopPropagation(), t.stopImmediatePropagation?.();
 			} catch (e) {
 				console.debug?.(e);
 			}
-		}, v = i?.mode === a?.SINGLE, S = i?.assets?.[i?.currentIndex], E = () => {
+		}, v = r?.mode === i?.SINGLE, S = r?.assets?.[r?.currentIndex], E = () => {
 			try {
-				return !!n?.target?.closest?.(".mjr-viewer-playerbar");
+				return !!t?.target?.closest?.(".mjr-viewer-playerbar");
 			} catch {
 				return !1;
 			}
 		}, D = () => {
-			let e = String(n?.key || "");
+			let e = String(t?.key || "");
 			return e === " " || e === "Spacebar" || e === "ArrowLeft" || e === "ArrowRight" || e === "Home" || e === "End" || e === "[" || e === "{" || e === "]" || e === "}" || e === "\\" || e === "|" || e === "i" || e === "I" || e === "o" || e === "O";
 		};
-		if (d()) return;
+		if (u()) return;
 		try {
-			if (t?.style?.display === "none") return;
+			if (e?.style?.display === "none") return;
 		} catch (e) {
 			console.debug?.(e);
 		}
 		try {
-			let e = n?.target;
+			let e = t?.target;
 			if (e && (e.tagName === "INPUT" || e.tagName === "TEXTAREA" || e.isContentEditable) && !(v && S?.kind === "video" && E() && D())) {
-				if (n.key === "f" || n.key === "F") {
+				if (t.key === "f" || t.key === "F") {
 					g(), j();
 					return;
 				}
-				n.key === "Escape" && (g(), Q.tags.open ? fn() : X(m));
+				t.key === "Escape" && (g(), Q.tags.open ? fn() : X(m));
 				return;
 			}
 		} catch (e) {
@@ -4881,16 +4881,16 @@ function Gn({ overlay: t, _content: n, singleView: r, state: i, VIEWER_MODES: a,
 			} catch (e) {
 				console.debug?.(e);
 			}
-			let t = r?.querySelector?.("video");
+			let t = n?.querySelector?.("video");
 			if (!t) return !1;
 			try {
 				t.pause?.();
 			} catch (e) {
 				console.debug?.(e);
 			}
-			let n = 1 / 30 * e;
+			let r = 1 / 30 * e;
 			try {
-				let r = Number(t.duration), i = Math.max(0, Math.min(Number.isFinite(r) ? r : Infinity, (t.currentTime || 0) + n));
+				let n = Number(t.duration), i = Math.max(0, Math.min(Number.isFinite(n) ? n : Infinity, (t.currentTime || 0) + r));
 				t.currentTime = i;
 				try {
 					t.dispatchEvent?.(new CustomEvent("mjr:frameStep", { detail: {
@@ -4904,41 +4904,41 @@ function Gn({ overlay: t, _content: n, singleView: r, state: i, VIEWER_MODES: a,
 			} catch {
 				return !0;
 			}
-		}, N = (t, { absolute: n = !1 } = {}) => {
+		}, N = (e, { absolute: t = !1 } = {}) => {
 			try {
-				let r = k();
-				if (!r) return !1;
-				if (n) {
-					let n = r.setPlaybackRate?.(t);
-					return Number.isFinite(Number(n)) ? (i.playbackRate = Number(n), e(C("toast.playbackRate", "Playback {rate}x", { rate: Number(n).toFixed(2) }), "info", 1200), !0) : !1;
+				let n = k();
+				if (!n) return !1;
+				if (t) {
+					let t = n.setPlaybackRate?.(e);
+					return Number.isFinite(Number(t)) ? (r.playbackRate = Number(t), d(C("toast.playbackRate", "Playback {rate}x", { rate: Number(t).toFixed(2) }), "info", 1200), !0) : !1;
 				}
-				let a = r.adjustPlaybackRate?.(t);
-				return Number.isFinite(Number(a)) ? (i.playbackRate = Number(a), e(C("toast.playbackRate", "Playback {rate}x", { rate: Number(a).toFixed(2) }), "info", 1200), !0) : !1;
+				let i = n.adjustPlaybackRate?.(e);
+				return Number.isFinite(Number(i)) ? (r.playbackRate = Number(i), d(C("toast.playbackRate", "Playback {rate}x", { rate: Number(i).toFixed(2) }), "info", 1200), !0) : !1;
 			} catch {
 				return !1;
 			}
 		};
-		if ((n.ctrlKey || n.metaKey) && (n.key === "c" || n.key === "C")) try {
-			let t = Wn(S);
-			if (t) {
-				g(), navigator.clipboard?.writeText?.(t).then(() => e(C("toast.promptCopied", "Prompt copied to clipboard"), "success", 1500)).catch(() => e(C("toast.copyFailed", "Copy failed"), "error", 1500));
+		if ((t.ctrlKey || t.metaKey) && (t.key === "c" || t.key === "C")) try {
+			let e = Wn(S);
+			if (e) {
+				g(), navigator.clipboard?.writeText?.(e).then(() => d(C("toast.promptCopied", "Prompt copied to clipboard"), "success", 1500)).catch(() => d(C("toast.copyFailed", "Copy failed"), "error", 1500));
 				return;
 			}
 		} catch (e) {
 			console.debug?.(e);
 		}
-		if (v && !n.altKey && !n.ctrlKey && !n.metaKey && (n.key === "0" || n.key === "1" || n.key === "2" || n.key === "3" || n.key === "4" || n.key === "5")) g(), O(n.key);
-		else switch (n.key) {
+		if (v && !t.altKey && !t.ctrlKey && !t.metaKey && (t.key === "0" || t.key === "1" || t.key === "2" || t.key === "3" || t.key === "4" || t.key === "5")) g(), O(t.key);
+		else switch (t.key) {
 			case "1": {
-				if (!n.altKey) break;
-				let e = X(o);
+				if (!t.altKey) break;
+				let e = X(a);
 				if (e == null) break;
 				g();
 				try {
-					let t = Math.abs((Number(i?.zoom) || 1) - e) < .01;
-					s?.(t ? 1 : e, {
-						clientX: i?._lastPointerX,
-						clientY: i?._lastPointerY
+					let t = Math.abs((Number(r?.zoom) || 1) - e) < .01;
+					o?.(t ? 1 : e, {
+						clientX: r?._lastPointerX,
+						clientY: r?._lastPointerY
 					});
 				} catch (e) {
 					console.debug?.(e);
@@ -4949,11 +4949,11 @@ function Gn({ overlay: t, _content: n, singleView: r, state: i, VIEWER_MODES: a,
 			case "G":
 				g();
 				try {
-					i.gridMode = ((Number(i.gridMode) || 0) + 1) % 5;
+					r.gridMode = ((Number(r.gridMode) || 0) + 1) % 5;
 				} catch (e) {
 					console.debug?.(e);
 				}
-				X(c), X(u);
+				X(s), X(l);
 				break;
 			case "f":
 			case "F":
@@ -4963,18 +4963,18 @@ function Gn({ overlay: t, _content: n, singleView: r, state: i, VIEWER_MODES: a,
 			case "D":
 				g();
 				try {
-					i.genInfoOpen = !i.genInfoOpen;
+					r.genInfoOpen = !r.genInfoOpen;
 				} catch (e) {
 					console.debug?.(e);
 				}
-				X(u), X(T);
+				X(l), X(T);
 				break;
 			case "t":
 			case "T":
 				if (!S?.id) break;
 				g(), dn({
-					x: Number(i?._lastPointerX) || Math.round((t?.clientWidth || 0) / 2),
-					y: Number(i?._lastPointerY) || Math.round((t?.clientHeight || 0) / 2),
+					x: Number(r?._lastPointerX) || Math.round((e?.clientWidth || 0) / 2),
+					y: Number(r?._lastPointerY) || Math.round((e?.clientHeight || 0) / 2),
 					asset: S,
 					onChanged: ((...e) => {
 						let t = e[0];
@@ -4989,35 +4989,35 @@ function Gn({ overlay: t, _content: n, singleView: r, state: i, VIEWER_MODES: a,
 			case "Z":
 				g();
 				try {
-					i.analysisMode = i.analysisMode === "zebra" ? "none" : "zebra";
+					r.analysisMode = r.analysisMode === "zebra" ? "none" : "zebra";
 				} catch (e) {
 					console.debug?.(e);
 				}
-				X(u), X(l);
+				X(l), X(c);
 				break;
 			case "i":
 			case "I":
 				if (v && S?.kind === "video" && k()?.setInPoint?.()) {
-					g(), e(C("toast.inPointSet", "In point set"), "info", 1200);
+					g(), d(C("toast.inPointSet", "In point set"), "info", 1200);
 					break;
 				}
 				g();
 				try {
-					i.probeEnabled = !i.probeEnabled;
+					r.probeEnabled = !r.probeEnabled;
 				} catch (e) {
 					console.debug?.(e);
 				}
 				try {
-					i.probeEnabled || (y.style.display = "none");
+					r.probeEnabled || (y.style.display = "none");
 				} catch (e) {
 					console.debug?.(e);
 				}
-				X(u);
+				X(l);
 				break;
 			case "o":
 			case "O":
 				if (v && S?.kind === "video" && k()?.setOutPoint?.()) {
-					g(), e(C("toast.outPointSet", "Out point set"), "info", 1200);
+					g(), d(C("toast.outPointSet", "Out point set"), "info", 1200);
 					break;
 				}
 				break;
@@ -5037,30 +5037,30 @@ function Gn({ overlay: t, _content: n, singleView: r, state: i, VIEWER_MODES: a,
 			case "L":
 				g();
 				try {
-					i.loupeEnabled = !i.loupeEnabled;
+					r.loupeEnabled = !r.loupeEnabled;
 				} catch (e) {
 					console.debug?.(e);
 				}
 				try {
-					i.loupeEnabled || (b.style.display = "none");
+					r.loupeEnabled || (b.style.display = "none");
 				} catch (e) {
 					console.debug?.(e);
 				}
-				X(u);
+				X(l);
 				break;
 			case "x":
 			case "X":
 				g();
 				try {
-					i.distractionFree = !i.distractionFree;
+					r.distractionFree = !r.distractionFree;
 				} catch (e) {
 					console.debug?.(e);
 				}
-				X(u), X(f), X(T);
+				X(l), X(f), X(T);
 				break;
 			case "c":
 			case "C": {
-				let e = i?._probe;
+				let e = r?._probe;
 				if (!e || e.r == null || e.g == null || e.b == null) break;
 				let t = `#${[
 					e.r,
@@ -5078,7 +5078,7 @@ function Gn({ overlay: t, _content: n, singleView: r, state: i, VIEWER_MODES: a,
 			case " ":
 			case "Spacebar":
 				if (v && S?.kind === "video") {
-					let e = r?.querySelector?.("video");
+					let e = n?.querySelector?.("video");
 					if (e) {
 						g();
 						try {
@@ -5105,7 +5105,7 @@ function Gn({ overlay: t, _content: n, singleView: r, state: i, VIEWER_MODES: a,
 			case "Tab":
 				g();
 				try {
-					t?.contains?.(document.activeElement) || t?.focus?.();
+					e?.contains?.(document.activeElement) || e?.focus?.();
 				} catch (e) {
 					console.debug?.(e);
 				}
@@ -5114,14 +5114,14 @@ function Gn({ overlay: t, _content: n, singleView: r, state: i, VIEWER_MODES: a,
 				g(), Q.tags.open ? fn() : X(m);
 				break;
 			case "ArrowLeft":
-				if (v && n.target?.closest?.(".mjr-viewer-playerbar")) {
+				if (v && t.target?.closest?.(".mjr-viewer-playerbar")) {
 					g(), M(-1);
 					break;
 				}
 				g(), X(() => p?.(-1));
 				break;
 			case "ArrowRight":
-				if (v && n.target?.closest?.(".mjr-viewer-playerbar")) {
+				if (v && t.target?.closest?.(".mjr-viewer-playerbar")) {
 					g(), M(1);
 					break;
 				}
@@ -5129,23 +5129,23 @@ function Gn({ overlay: t, _content: n, singleView: r, state: i, VIEWER_MODES: a,
 				break;
 			case "[":
 			case "{":
-				g(), N(-.25) || e(C("toast.playbackVideoOnly"), "warning", 1400);
+				g(), N(-.25) || d(C("toast.playbackVideoOnly"), "warning", 1400);
 				break;
 			case "]":
 			case "}":
-				g(), N(.25) || e(C("toast.playbackVideoOnly"), "warning", 1400);
+				g(), N(.25) || d(C("toast.playbackVideoOnly"), "warning", 1400);
 				break;
 			case "\\":
 			case "|":
-				g(), N(1, { absolute: !0 }) || e(C("toast.playbackVideoOnly"), "warning", 1400);
+				g(), N(1, { absolute: !0 }) || d(C("toast.playbackVideoOnly"), "warning", 1400);
 				break;
 			case "+":
 			case "=":
 				g();
 				try {
-					s?.((Number(i?.zoom) || 1) + .25, {
-						clientX: i?._lastPointerX,
-						clientY: i?._lastPointerY
+					o?.((Number(r?.zoom) || 1) + .25, {
+						clientX: r?._lastPointerX,
+						clientY: r?._lastPointerY
 					});
 				} catch (e) {
 					console.debug?.(e);
@@ -5155,9 +5155,9 @@ function Gn({ overlay: t, _content: n, singleView: r, state: i, VIEWER_MODES: a,
 			case "_":
 				g();
 				try {
-					s?.((Number(i?.zoom) || 1) - .25, {
-						clientX: i?._lastPointerX,
-						clientY: i?._lastPointerY
+					o?.((Number(r?.zoom) || 1) - .25, {
+						clientX: r?._lastPointerX,
+						clientY: r?._lastPointerY
 					});
 				} catch (e) {
 					console.debug?.(e);
@@ -8476,7 +8476,7 @@ function br(e, t) {
 }
 // ui/features/viewer/viewerInstanceManager.ts
 function xr(e) {
-	let t = u();
+	let t = l();
 	if (t.length) {
 		let e = t[t.length - 1];
 		for (let n of t) if (n !== e) {
@@ -8499,7 +8499,7 @@ function xr(e) {
 		}
 	}
 	let n = e();
-	return c(n), n._mjrViewerAPI;
+	return s(n), n._mjrViewerAPI;
 }
 // ui/features/viewer/playerBarManager.ts
 function Sr({ state: e, APP_CONFIG: t, VIEWER_MODES: n, overlay: r, navBar: i, playerBarHost: a, singleView: o, abView: s, sideView: c, metadataHydrator: l, isPlayableViewerKind: u, collectPlayableMediaElements: d, pickPrimaryPlayableMedia: f, mountUnifiedMediaControls: p, installFollowerVideoSync: m, getViewerInfo: h, scheduleOverlayRedraw: g, viewerInfoCacheGet: _, viewerInfoCacheSet: v }) {
@@ -9619,13 +9619,13 @@ var Wr = null, Gr = null, Kr = null, qr = null, Jr = null, Yr = null;
 function Xr() {
 	Wr || import("./abCompare-BUrGm4-x.js").then((e) => {
 		Wr = e;
-	}), Gr || import("./sideBySide-BI1-c6CN.js").then((e) => {
+	}), Gr || import("./sideBySide-By4kool7.js").then((e) => {
 		Gr = e;
-	}), Kr || import("./model3dRenderer-B18R8Ewh.js").then((e) => e.t).then((e) => {
+	}), Kr || import("./model3dRenderer-C6r7uHPh.js").then((e) => e.t).then((e) => {
 		Kr = e;
 	}), qr || import("./scopes-bvTRS68K.js").then((e) => {
 		qr = e;
-	}), Jr || import("./genInfo-C_5G1vVv.js").then((e) => e.n).then((e) => {
+	}), Jr || import("./genInfo-3GnsjPmc.js").then((e) => e.n).then((e) => {
 		Jr = e;
 	}), Yr || import("./frameExport-CnNO7oN6.js").then((e) => {
 		Yr = e;
@@ -9638,7 +9638,7 @@ var $ = {
 };
 function Zr() {
 	Xr(), Er();
-	let e = Vr(), t = In(e), a = t.unsubs || [], s = te();
+	let e = Vr(), r = In(e), a = r.unsubs || [], s = te();
 	s.mode = $.SINGLE;
 	try {
 		let e = Nn();
@@ -9646,7 +9646,7 @@ function Zr() {
 	} catch (e) {
 		console.debug?.(e);
 	}
-	let c = /* @__PURE__ */ new Set([
+	let l = /* @__PURE__ */ new Set([
 		"png",
 		"jpg",
 		"jpeg",
@@ -9783,7 +9783,7 @@ function Zr() {
 		N = Un({
 			VIEWER_MODES: $,
 			state: s,
-			lifecycle: t,
+			lifecycle: r,
 			getCanAB: () => Xe(),
 			onToggleFullscreen: () => {
 				try {
@@ -10009,7 +10009,7 @@ function Zr() {
 		VIEWER_MODES: $,
 		APP_CONFIG: T,
 		getAssetMetadata: o,
-		getAssetsBatch: r
+		getAssetsBatch: n
 	}), ke = 3e5, Ae = /* @__PURE__ */ new Map(), je = () => {
 		try {
 			let e = Date.now();
@@ -10065,7 +10065,7 @@ function Zr() {
 			state: s,
 			VIEWER_MODES: $,
 			scheduleOverlayRedraw: J,
-			lifecycle: t
+			lifecycle: r
 		});
 	} catch {
 		u = null;
@@ -10714,7 +10714,7 @@ function Zr() {
 	}
 	let { preloadAdjacentAssets: tt, preloadImageForAsset: nt, trackPreloadRef: rt } = pr({
 		buildAssetViewURL: O,
-		IMAGE_PRELOAD_EXTENSIONS: c,
+		IMAGE_PRELOAD_EXTENSIONS: l,
 		state: s
 	}), { destroyPlayerBar: at, syncPlayerBar: ot } = Sr({
 		state: s,
@@ -10877,7 +10877,7 @@ function Zr() {
 			getMediaNaturalSize: x,
 			positionOverlayBox: yt
 		}).redraw,
-		lifecycle: t
+		lifecycle: r
 	});
 	try {
 		if (!fe._mjrOverlayResizeBound && "ResizeObserver" in window) {
@@ -10925,7 +10925,7 @@ function Zr() {
 		navigateViewerAssets: _t,
 		closeViewer: Tt,
 		renderBadges: Ye,
-		updateAssetRating: n,
+		updateAssetRating: t,
 		safeDispatchCustomEvent: ce,
 		ASSET_RATING_CHANGED_EVENT: k,
 		probeTooltip: me,
@@ -10938,7 +10938,7 @@ function Zr() {
 				return null;
 			}
 		},
-		lifecycle: t
+		lifecycle: r
 	}), St = [], Ct = () => {
 		try {
 			for (let e of St) X(e);
@@ -11266,7 +11266,7 @@ function Zr() {
 			} catch {
 				s._prevBodyOverflow = "";
 			}
-			document.body.style.overflow = "hidden", s._prevHotkeyScope = l().scope || null, i("viewer"), Qe();
+			document.body.style.overflow = "hidden", s._prevHotkeyScope = c().scope || null, i("viewer"), Qe();
 			try {
 				gt();
 			} catch (e) {
