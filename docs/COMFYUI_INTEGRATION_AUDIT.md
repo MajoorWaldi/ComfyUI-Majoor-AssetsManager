@@ -88,6 +88,20 @@ Imports non triés dans 5 fichiers (`ruff --fix`) qui faisaient échouer
 | R7 | `import { app } from "../../scripts/app.js"` (shim encore supporté). | Ouvert (faible). |
 | R8 | 913 erreurs de typage dans `tsconfig.test.json`. | **Corrigé** : 0 erreur ; ajouté à la CI (`python-tests.yml`). Un vrai bug de test trouvé au passage (clé `stubs` dupliquée dans `asset_card_inner.vitest.ts`). |
 
+## 3 bis. Audit du système de notifications
+
+| Constat | Avant | Après |
+| --- | --- | --- |
+| API utilisée | `extensionManager.toast.add()` uniquement, **dépréciée** par ComfyUI (`ToastManager` 1.60). | API typée `success/error/info/warning/loading(title, {description, duration, action, closable, id})` ; `add()` seulement en repli pour les anciens frontends. |
+| Détection | `getExtensionToastApi` exigeait `toast.add` : le jour où ComfyUI le retire, **tous les toasts Majoor disparaissent en silence**. | Accepte l'API typée ou `add()`. Test dédié. |
+| Opérations longues (restauration/réinitialisation de la base, backfill vectoriel) | Chaque étape (`started`, `running`, …) **empilait un nouveau toast**. | Un seul toast `loading`, mis à jour en place via le même `ToastId`, puis remplacé par le résultat final (succès ou erreur). |
+| Toasts persistants | `life` omis. | Durée maximale sûre (2³¹−1 ms) au lieu de `Infinity`, qui serait ramené à 0 par `setTimeout` et fermerait le toast immédiatement. |
+| Liens d'action (`actionUrl`) | Ignorés dans le toast. | Bouton d'action natif, limité aux liens `http(s)` et aux chemins relatifs du même site (`javascript:` refusé). |
+| Contournements | `genInfoOverridePicker.ts` appelait `toast.add()` directement ; `comfyAlert` utilisait `addAlert`/`add`. | Tout passe par `comfyToast` ou l'API typée. |
+| Code mort | Repli `app.ui.toast` (API inexistante dans le frontend actuel), `_dismissAllFallbackErrorToasts` vide, CSS `.mjr-toast*` des anciens toasts DOM. | Supprimés. |
+| Démontage | Les toasts en cours restaient affichés. | `dismissTrackedToasts()` à l'arrêt de l'extension. |
+| Centre de messages (cloche) | S'ouvrait tout seul lors d'une réinitialisation ou d'un backfill. | Conservé comme **historique consultable** (notes de version, journal, raccourcis), car ComfyUI n'offre pas de boîte de réception aux extensions ; il ne s'ouvre plus de lui-même. |
+
 ## 4. Feuille de route d'évolution (meilleure intégration)
 
 1. **Progression par nœud** — écouter l'événement websocket `progress_state`

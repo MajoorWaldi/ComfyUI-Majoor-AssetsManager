@@ -37,6 +37,7 @@ All notable changes to this project are documented in this file.
 - **Optional: hide ComfyUI's native Assets tab** (`Majoor.Integration.HideNativeAssetsTab`, off by default). Uses the official `getSidebarTabs`/`unregisterSidebarTab` API and restores the tab when turned off.
 - **Workflow serialization** uses the root graph instead of the async `graphToPrompt()`; dirty state reads the frontend workflow store.
 - **Typed aiohttp request keys** (`web.RequestKey`) — no more `NotAppKeyWarning` on aiohttp ≥ 3.13.
+- **Notifications on ComfyUI core toasts only**: Majoor now uses the typed ToastManager API (`success/error/info/warning/loading`) instead of the deprecated `add()` (kept as fallback for older frontends). Long operations (DB restore/reset, vector backfill) show one `loading` toast updated in place instead of stacking a toast per step; links become native toast action buttons; in-progress toasts are dismissed on teardown. Toasts no longer disappear if ComfyUI removes `add()`. The Majoor message center stays as a read-only history (release notes, toast log, shortcuts) and no longer pops open by itself.
 - **Frontend test typing**: `tsconfig.test.json` now type-checks with 0 errors (was 913) and runs in CI.
 
 ## [2.5.2] - 2026-09-27

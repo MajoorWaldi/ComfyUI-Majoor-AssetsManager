@@ -22,9 +22,27 @@ export interface MajoorSettingDefinition {
     onChange?: (value: unknown, oldValue?: unknown) => void | Promise<void>;
 }
 
+export interface MajoorToastOptions {
+    description?: string;
+    duration?: number;
+    closable?: boolean;
+    id?: unknown;
+    action?: { label: string; onClick: () => unknown };
+}
+
+/** ComfyUI ToastManager: typed methods on current frontends, add() on older ones. */
 export interface MajoorExtensionToast {
-    add(message: unknown): void;
+    /** @deprecated by ComfyUI; kept for older frontends. */
+    add?(message: unknown): void;
+    /** @deprecated by ComfyUI; kept for older frontends. */
     addAlert?(message: string): void;
+    success?(title: string, options?: MajoorToastOptions): unknown;
+    error?(title: string, options?: MajoorToastOptions): unknown;
+    info?(title: string, options?: MajoorToastOptions): unknown;
+    warning?(title: string, options?: MajoorToastOptions): unknown;
+    loading?(title: string, options?: MajoorToastOptions): unknown;
+    dismiss?(id: unknown): boolean;
+    dismissAll?(): void;
 }
 
 export interface MajoorExtensionDialog {

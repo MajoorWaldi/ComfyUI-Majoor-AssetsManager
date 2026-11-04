@@ -7,6 +7,15 @@ beforeEach(() => {
 });
 
 describe("comfyApiBridge", () => {
+    it("accepts a toast manager that only has the typed (non-deprecated) API", async () => {
+        const toast = { success: vi.fn(), error: vi.fn(), info: vi.fn(), warning: vi.fn() };
+        const mod = await import("../app/comfyApiBridge.js");
+        const app = { ui: {}, extensionManager: { toast } };
+        mod.setComfyApp(app);
+        expect(mod.getExtensionToastApi(app)).toBe(toast);
+        expect(mod.getExtensionToastApi({ ui: {}, extensionManager: { toast: {} } })).toBeNull();
+    });
+
     it("discovers extension manager native surfaces from the app", async () => {
         const toast = { add: vi.fn() };
         const dialog = { confirm: vi.fn(), prompt: vi.fn() };

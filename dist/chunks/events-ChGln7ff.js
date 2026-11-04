@@ -465,7 +465,7 @@ function ye(e) {
 }
 function be(e) {
 	let t = M(e)?.toast || null;
-	return t && typeof t.add == "function" ? t : null;
+	return t && (typeof t.add == "function" || typeof t.success == "function" || typeof t.info == "function") ? t : null;
 }
 function xe(e) {
 	let t = M(e)?.dialog || null;
