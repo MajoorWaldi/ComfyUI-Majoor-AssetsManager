@@ -145,6 +145,10 @@ export const ENDPOINTS = {
     DB_BACKUP_SAVE: "/mjr/am/db/backup-save",
     DB_BACKUP_RESTORE: "/mjr/am/db/backup-restore",
 
+    // Trash (freedesktop trash entries from Majoor roots)
+    TRASH: "/mjr/am/trash",
+    TRASH_EMPTY: "/mjr/am/trash/empty",
+
     // Vector / Semantic search
     VECTOR_SEARCH: "/mjr/am/vector/search",
     VECTOR_SIMILAR: "/mjr/am/vector/similar",

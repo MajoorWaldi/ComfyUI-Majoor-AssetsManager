@@ -14,12 +14,16 @@ import {
     restoreDbBackup,
     vectorBackfill,
     unloadVectorModels,
+    getSecuritySettings,
+    getTrashStatus,
+    emptyTrash,
 } from "../../api/client.js";
 import { ENDPOINTS } from "../../api/endpoints.js";
 import { APP_CONFIG } from "../../app/config.js";
 import { comfyConfirm } from "../../app/dialogs.js";
 import { comfyToast, recordToastHistory } from "../../app/toast.js";
 import { t } from "../../app/i18n.js";
+import { runEmptyTrashAction } from "./emptyTrashAction.js";
 import {
     getRuntimeEnrichmentState,
     setRuntimeEnrichmentState,
@@ -1228,9 +1232,82 @@ export function createStatusIndicator(options: Record<string, any> = {}): any {
         }
     };
 
+    const emptyTrashBtn = document.createElement("button");
+    emptyTrashBtn.type = "button";
+    emptyTrashBtn.textContent = t("btn.emptyTrash", "Empty trash");
+    emptyTrashBtn.title = t(
+        "status.emptyTrashHint",
+        "Permanently remove files Majoor sent to the freedesktop trash (requires allowDelete in settings).",
+    );
+    emptyTrashBtn.style.cssText = `
+        padding: 5px 12px;
+        font-size: 11px;
+        border-radius: 6px;
+        border: 1px solid rgba(255,167,38,0.45);
+        background: transparent;
+        color: inherit;
+        cursor: pointer;
+        transition: border 0.2s, background 0.2s;
+    `;
+    emptyTrashBtn.onmouseenter = () => {
+        emptyTrashBtn.style.borderColor = "rgba(255,167,38,0.85)";
+        emptyTrashBtn.style.background = "rgba(255,167,38,0.12)";
+    };
+    emptyTrashBtn.onmouseleave = () => {
+        emptyTrashBtn.style.borderColor = "rgba(255,167,38,0.45)";
+        emptyTrashBtn.style.background = "transparent";
+    };
+    void (async () => {
+        try {
+            const res = await getTrashStatus();
+            if (res?.ok && res?.data?.supported === false) {
+                emptyTrashBtn.style.display = "none";
+                return;
+            }
+            const sec = await getSecuritySettings();
+            if (sec?.ok && sec?.data?.prefs && sec.data.prefs.allow_delete === false) {
+                emptyTrashBtn.disabled = true;
+                emptyTrashBtn.title = t(
+                    "status.emptyTrashDisabled",
+                    "Empty trash is disabled. Enable 'allow_delete' in settings or set MAJOOR_ALLOW_DELETE=1.",
+                );
+            }
+        } catch (e) {
+            console.debug?.(e);
+        }
+    })();
+    emptyTrashBtn.onclick = async (event) => {
+        event.stopPropagation();
+        setMaintenanceActive(true);
+        const originalText = emptyTrashBtn.textContent;
+        emptyTrashBtn.disabled = true;
+        resetBtn.disabled = true;
+        memoryPurgeBtn.disabled = true;
+        emptyTrashBtn.textContent = t("btn.emptyTrashRunning", "Emptying...");
+        try {
+            await runEmptyTrashAction({
+                getStatus: getTrashStatus,
+                empty: emptyTrash,
+                confirm: (message: string, title: string) =>
+                    Promise.resolve(comfyConfirm(message, title)) as Promise<boolean>,
+                toast: (message, level, duration, options) =>
+                    comfyToast(message, level, duration, options),
+                formatBytes,
+                translate: (key, fallback, params) => t(key, fallback, params),
+            });
+        } finally {
+            setMaintenanceActive(false);
+            emptyTrashBtn.disabled = false;
+            resetBtn.disabled = false;
+            memoryPurgeBtn.disabled = false;
+            emptyTrashBtn.textContent = originalText;
+        }
+    };
+
     actionsRow.appendChild(backfillBtn);
     actionsRow.appendChild(memoryPurgeBtn);
     actionsRow.appendChild(resetBtn);
+    actionsRow.appendChild(emptyTrashBtn);
     body.appendChild(actionLog);
 
     const deleteDbBtn = document.createElement("button");
