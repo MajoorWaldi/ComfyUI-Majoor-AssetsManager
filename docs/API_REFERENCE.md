@@ -537,6 +537,46 @@ POST /mjr/am/asset/tags
 
 ---
 
+### Bulk Update Tags (add/remove across assets)
+```http
+POST /mjr/am/assets/tags
+```
+
+Merges tags per asset on the server: `(existing ∪ add) − remove` (case-insensitive; existing tags keep their casing, added tags keep the request's casing). Each asset is updated independently under its own lock — assets that fail (missing id, or the merged set would exceed 50 tags) are reported in `failed` while the rest still succeed (`meta.partial` is `true` in that case).
+
+**Request Body**:
+```json
+{
+  "ids": [1, 2, 3, 4],
+  "add": ["fantasy"],
+  "remove": ["draft"]
+}
+```
+
+- `ids`: 1-500 asset IDs per request
+- `add` / `remove`: tag lists (same sanitising as the single-asset route); at least one non-empty tag after sanitising
+
+**Response**:
+```json
+{
+  "ok": true,
+  "data": {
+    "updated_ids": [1, 2],
+    "unchanged_ids": [3],
+    "failed": [{"id": 4, "code": "NOT_FOUND", "error": "Asset not found: 4"}],
+    "tags": {"1": ["fantasy"], "2": ["fantasy", "character"], "3": ["fantasy"]}
+  },
+  "meta": {"updated": 2, "unchanged": 1, "failed": 1, "partial": true}
+}
+```
+
+**Notes**:
+- Rate limited to 10 requests / 60 s (like bulk delete).
+- Honours `X-MJR-RTSYNC` like the single-asset route (file metadata sync enqueued for updated assets only).
+- One audit log entry per request (`assets_tags`, target truncated to the first 25 ids).
+
+---
+
 ### Rename Asset
 ```http
 POST /mjr/am/asset/rename
