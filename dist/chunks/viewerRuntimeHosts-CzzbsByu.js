@@ -1,4 +1,4 @@
-import { Ct as e, St as t, _t as n, gt as r, ht as i, k as a, m as o, nt as s, o as c, tt as l, vt as u, xt as d } from "./events-tsQFsZrH.js";
+import { Ct as e, St as t, _t as n, gt as r, ht as i, k as a, m as o, nt as s, o as c, tt as l, vt as u, xt as d } from "./events-C9AjbLbS.js";
 // ui/app/settingsStore.ts
 var f = "mjrSettings", p = "mjrMinimapSettings", m = /* @__PURE__ */ new Set([
 	"POST",
@@ -1178,7 +1178,7 @@ async function Zt(e, n) {
 			new_name: n
 		});
 		if (a?.ok && r) try {
-			let e = await In(r);
+			let e = await Ln(r);
 			e?.ok && e?.data && (a.data = {
 				...a.data || {},
 				asset: e.data
@@ -1194,7 +1194,7 @@ async function Zt(e, n) {
 		new_name: n
 	});
 	if (i?.ok && r) try {
-		let e = await In(r);
+		let e = await Ln(r);
 		e?.ok && e?.data && (i.data = {
 			...i.data || {},
 			asset: e.data
@@ -1487,7 +1487,7 @@ var An = () => {
 	} catch {
 		return U.set(H, !1, { at: t }), !1;
 	}
-}, jn = () => {
+}, q = () => {
 	let e = W.get(H);
 	if (e !== void 0) return e;
 	let t = Date.now();
@@ -1499,20 +1499,20 @@ var An = () => {
 	} catch {
 		return W.set(H, !0, { at: t }), !0;
 	}
-}, q = fe({
+}, jn = fe({
 	readObsEnabled: An,
 	readAuthToken: z,
 	ensureWriteAuthToken: Xe,
 	normalizeWriteAuthFailure: Je
-}), Mn = q.fetchAPI;
+}), Mn = jn.fetchAPI;
 async function J(e, t = {}) {
-	return q.get(e, t);
+	return jn.get(e, t);
 }
 async function Y(e, t, n = {}) {
-	return q.post(e, t, n);
+	return jn.post(e, t, n);
 }
 async function Nn(n, r, i = {}) {
-	let a = jn(), o = n && typeof n == "object" ? n : null, s = o ? o.id : n, c = t(s), l = { rating: Math.max(0, Math.min(5, Number(r) || 0)) };
+	let a = q(), o = n && typeof n == "object" ? n : null, s = o ? o.id : n, c = t(s), l = { rating: Math.max(0, Math.min(5, Number(r) || 0)) };
 	return c ? l.asset_id = c : o && (l.filepath = o.filepath || o.path || o?.file_info?.filepath || "", l.type = o.type || "output", l.root_id = e(o)), Mn("/mjr/am/asset/rating", {
 		...i,
 		method: "POST",
@@ -1523,8 +1523,23 @@ async function Nn(n, r, i = {}) {
 		body: JSON.stringify(l)
 	});
 }
-async function Pn(n, r, i = {}) {
-	let a = jn(), o = n && typeof n == "object" ? n : null, s = o ? o.id : n, c = t(s), u = String(o?.kind || o?.type || "").trim().toLowerCase() === "workflow", d = String(o?.filepath || o?.path || o?.file_info?.filepath || "").trim(), f = { tags: Array.isArray(r) ? r : [] };
+async function Pn(e, n, r = {}) {
+	let i = q(), a = (Array.isArray(e) ? e : [e]).map((e) => t(e)).filter(Boolean);
+	return Mn(l.ASSETS_RATING, {
+		...r,
+		method: "POST",
+		headers: {
+			"Content-Type": "application/json",
+			...i ? { "X-MJR-RTSYNC": "on" } : {}
+		},
+		body: JSON.stringify({
+			ids: a,
+			rating: Math.max(0, Math.min(5, Number(n) || 0))
+		})
+	});
+}
+async function Fn(n, r, i = {}) {
+	let a = q(), o = n && typeof n == "object" ? n : null, s = o ? o.id : n, c = t(s), u = String(o?.kind || o?.type || "").trim().toLowerCase() === "workflow", d = String(o?.filepath || o?.path || o?.file_info?.filepath || "").trim(), f = { tags: Array.isArray(r) ? r : [] };
 	u && d ? f.filepath = d : c ? f.asset_id = c : o && (f.filepath = o.filepath || o.path || o?.file_info?.filepath || "", f.type = o.type || "output", f.root_id = e(o));
 	let p = await Mn(u && d ? l.WORKFLOWS_TAGS : "/mjr/am/asset/tags", {
 		...i,
@@ -1537,7 +1552,7 @@ async function Pn(n, r, i = {}) {
 	});
 	return p?.ok && K(), p;
 }
-async function Fn() {
+async function In() {
 	let e = G.get(xn);
 	if (Array.isArray(e)) return {
 		ok: !0,
@@ -1556,14 +1571,14 @@ async function Fn() {
 	}
 	return t;
 }
-async function In(e, n = {}) {
+async function Ln(e, n = {}) {
 	let r = encodeURIComponent(t(e));
 	return J(`/mjr/am/asset/${r}`, {
 		...n,
 		dedupeKey: n?.dedupeKey || `meta:${r}`
 	});
 }
-async function Ln(e, n = {}) {
+async function Rn(e, n = {}) {
 	let r = t(e);
 	if (!r) return {
 		ok: !1,
@@ -1576,7 +1591,7 @@ async function Ln(e, n = {}) {
 	let { refresh: a, ...o } = n;
 	return J(i, o);
 }
-async function Rn(e, t = {}) {
+async function zn(e, t = {}) {
 	let n = Array.isArray(e) ? e : [], r = [];
 	for (let e of n) {
 		let t = Number(e);
@@ -1589,7 +1604,7 @@ async function Rn(e, t = {}) {
 		code: "OK"
 	};
 }
-async function zn(e, t = {}) {
+async function Bn(e, t = {}) {
 	let n = i(e);
 	return n ? J(n, t) : {
 		ok: !1,
@@ -1598,7 +1613,7 @@ async function zn(e, t = {}) {
 		code: "INVALID_INPUT"
 	};
 }
-async function Bn(e, t = {}) {
+async function Vn(e, t = {}) {
 	let r = n(e);
 	return r ? J(r, t) : {
 		ok: !1,
@@ -1607,7 +1622,7 @@ async function Bn(e, t = {}) {
 		code: "INVALID_INPUT"
 	};
 }
-async function Vn(e, t = {}) {
+async function Hn(e, t = {}) {
 	let n = u(e);
 	return n ? J(n, t) : {
 		ok: !1,
@@ -1616,7 +1631,7 @@ async function Vn(e, t = {}) {
 		code: "INVALID_INPUT"
 	};
 }
-async function Hn(e, t = "", n = {}) {
+async function Un(e, t = "", n = {}) {
 	let i = r(e, t);
 	return i ? J(i, n) : {
 		ok: !1,
@@ -1625,7 +1640,7 @@ async function Hn(e, t = "", n = {}) {
 		code: "INVALID_INPUT"
 	};
 }
-async function Un({ workflow: e = null, name: t = "", category: n = "", overwrite: r = !1, filepath: i = "", task: a = "", model_family: o = "", provider: s = "", runs_on: c = "", notes: u = "" } = {}, d = {}) {
+async function Wn({ workflow: e = null, name: t = "", category: n = "", overwrite: r = !1, filepath: i = "", task: a = "", model_family: o = "", provider: s = "", runs_on: c = "", notes: u = "" } = {}, d = {}) {
 	return Y(l.WORKFLOWS_SAVE, {
 		workflow: e,
 		name: t,
@@ -1639,32 +1654,32 @@ async function Un({ workflow: e = null, name: t = "", category: n = "", overwrit
 		notes: u
 	}, d);
 }
-async function Wn({ filepath: e = "", name: t = "" } = {}, n = {}) {
+async function Gn({ filepath: e = "", name: t = "" } = {}, n = {}) {
 	return Y(l.WORKFLOWS_DUPLICATE, {
 		filepath: e,
 		name: t
 	}, n);
 }
-async function Gn({ filepath: e = "", name: t = "", category: n = "" } = {}, r = {}) {
+async function Kn({ filepath: e = "", name: t = "", category: n = "" } = {}, r = {}) {
 	return Y(l.WORKFLOWS_MOVE, {
 		filepath: e,
 		name: t,
 		category: n
 	}, r);
 }
-async function Kn({ filepath: e = "" } = {}, t = {}) {
+async function qn({ filepath: e = "" } = {}, t = {}) {
 	return Y(l.WORKFLOWS_DELETE, { filepath: e }, t);
 }
-async function qn({ filepath: e = "" } = {}, t = {}) {
+async function Jn({ filepath: e = "" } = {}, t = {}) {
 	return Y(l.WORKFLOWS_MARK_LOADED, { filepath: e }, t);
 }
-async function Jn({ filepath: e = "", favorite: t = !1 } = {}, n = {}) {
+async function Yn({ filepath: e = "", favorite: t = !1 } = {}, n = {}) {
 	return Y(l.WORKFLOWS_FAVORITE, {
 		filepath: e,
 		favorite: !!t
 	}, n);
 }
-async function Yn({ filepath: e = "", task: t = "", model_family: n = "", provider: r = "", runs_on: i = "", notes: a = "" } = {}, o = {}) {
+async function Xn({ filepath: e = "", task: t = "", model_family: n = "", provider: r = "", runs_on: i = "", notes: a = "" } = {}, o = {}) {
 	return Y(l.WORKFLOWS_INFO, {
 		filepath: e,
 		task: t,
@@ -1674,24 +1689,24 @@ async function Yn({ filepath: e = "", task: t = "", model_family: n = "", provid
 		notes: a
 	}, o);
 }
-async function Xn({ filepath: e = "", limit: t = 12 } = {}, n = {}) {
+async function Zn({ filepath: e = "", limit: t = 12 } = {}, n = {}) {
 	let r = Math.max(1, Math.min(50, Number(t) || 12));
 	return J(`${l.WORKFLOWS_THUMBNAIL_CANDIDATES}?filepath=${encodeURIComponent(String(e || "").trim())}&limit=${encodeURIComponent(String(r))}`, n);
 }
-async function Zn(e = {}) {
+async function Qn(e = {}) {
 	return J(l.WORKFLOWS_MODEL_FAMILIES, e);
 }
-async function Qn({ q: e = "*", limit: t = 100, offset: n = 0, sort: r = "mtime" } = {}, i = {}) {
+async function $n({ q: e = "*", limit: t = 100, offset: n = 0, sort: r = "mtime" } = {}, i = {}) {
 	let a = Math.max(1, Math.min(500, Number(t) || 100)), o = Math.max(0, Number(n) || 0);
 	return J(`${l.LIST}?scope=workflow&q=${encodeURIComponent(String(e || "*"))}&limit=${encodeURIComponent(String(a))}&offset=${encodeURIComponent(String(o))}&sort=${encodeURIComponent(String(r || "mtime"))}`, i);
 }
-async function $n({ filepath: e = "", source_filepath: t = "" } = {}, n = {}) {
+async function er({ filepath: e = "", source_filepath: t = "" } = {}, n = {}) {
 	return Y(l.WORKFLOWS_THUMBNAIL_SET, {
 		filepath: e,
 		source_filepath: t
 	}, n);
 }
-async function er({ type: e = "output", filename: t = "", subfolder: n = "", root_id: r = "", rootId: i = "", filepath: a = "" } = {}, o = {}) {
+async function tr({ type: e = "output", filename: t = "", subfolder: n = "", root_id: r = "", rootId: i = "", filepath: a = "" } = {}, o = {}) {
 	let s = String(e || "output").trim().toLowerCase() || "output", c = String(t || "").trim(), l = String(n || "").trim(), u = String(r || i || "").trim(), d = String(a || "").trim();
 	if (!c) return {
 		ok: !1,
@@ -1702,7 +1717,7 @@ async function er({ type: e = "output", filename: t = "", subfolder: n = "", roo
 	let f = `/mjr/am/metadata?type=${encodeURIComponent(s)}&filename=${encodeURIComponent(c)}`;
 	return d && (f += `&filepath=${encodeURIComponent(d)}`), l && (f += `&subfolder=${encodeURIComponent(l)}`), u && (f += `&root_id=${encodeURIComponent(u)}`), J(f, o);
 }
-async function tr({ filepath: e = "", root_id: t = "", subfolder: n = "" } = {}, r = {}) {
+async function nr({ filepath: e = "", root_id: t = "", subfolder: n = "" } = {}, r = {}) {
 	try {
 		if (globalThis.__mjrFolderInfoSupported === !1) return {
 			ok: !1,
@@ -1736,12 +1751,12 @@ async function tr({ filepath: e = "", root_id: t = "", subfolder: n = "" } = {},
 	return u;
 }
 // ui/utils/logging.ts
-function nr(e, ...t) {
+function rr(e, ...t) {
 	try {
 		c.DEBUG_VERBOSE_ERRORS && console.debug(e, ...t);
 	} catch {}
 }
-function rr(e, t = "Majoor", { showToast: n = !1, toastType: r = "error" } = {}) {
+function ir(e, t = "Majoor", { showToast: n = !1, toastType: r = "error" } = {}) {
 	let i = e?.message || String(e || "Unknown error");
 	try {
 		c.DEBUG_VERBOSE_ERRORS ? console.error(`[Majoor][${t}]`, i, e) : console.debug(`[Majoor][${t}]`, i);
@@ -1760,47 +1775,47 @@ var X = {
 	scope: null,
 	ratingHotkeysActive: !1
 };
-function ir() {
+function ar() {
 	return X;
 }
-function ar(e) {
+function or(e) {
 	X.scope = e == null ? null : String(e);
 }
-function or() {
+function sr() {
 	return !!X.suspended;
 }
-function sr(e) {
+function cr(e) {
 	X.ratingHotkeysActive = !!e;
 }
 // ui/features/viewer/viewerRuntimeHosts.ts
-var Z = null, Q = null, cr = ".mjr-viewer-overlay", lr = ".mjr-mfv";
-function ur(e) {
+var Z = null, Q = null, lr = ".mjr-viewer-overlay", ur = ".mjr-mfv";
+function dr(e) {
 	return !!e && typeof e.appendChild == "function";
 }
-function dr() {
+function fr() {
 	return typeof document > "u" ? null : document?.body || null;
 }
-function fr() {
+function pr() {
 	return typeof document > "u" ? null : document?.body || document?.documentElement || null;
 }
-function pr(e) {
-	return ur(e) ? e === dr() || typeof e?.isConnected != "boolean" || e.isConnected : !1;
-}
 function mr(e) {
-	return ur(e) ? e : null;
-}
-function $(e) {
-	return pr(e) ? e : dr();
+	return dr(e) ? e === fr() || typeof e?.isConnected != "boolean" || e.isConnected : !1;
 }
 function hr(e) {
-	let t = fr();
-	return pr(t) ? t : $(e);
+	return dr(e) ? e : null;
 }
-function gr(e, t, n = $) {
+function $(e) {
+	return mr(e) ? e : fr();
+}
+function gr(e) {
+	let t = pr();
+	return mr(t) ? t : $(e);
+}
+function _r(e, t, n = $) {
 	let r = [], i = /* @__PURE__ */ new Set();
 	for (let a of [
 		n(t),
-		dr(),
+		fr(),
 		t
 	]) {
 		if (!a || i.has(a)) continue;
@@ -1815,29 +1830,29 @@ function gr(e, t, n = $) {
 	}
 	return r;
 }
-function _r(e, t, n = $) {
+function vr(e, t, n = $) {
 	let r = n(t);
 	if (!r) return;
-	let i = gr(e, t, n);
+	let i = _r(e, t, n);
 	for (let e of i) if (e && e.parentNode !== r) try {
 		r.appendChild(e);
 	} catch (e) {
 		console.debug?.(e);
 	}
 }
-function vr(e) {
-	return Z = mr(e), _r(cr, Z), () => yr(e);
-}
 function yr(e) {
-	e && Z !== e || (Z = null);
+	return Z = hr(e), vr(lr, Z), () => br(e);
 }
 function br(e) {
-	return Q = mr(e), _r(lr, Q, hr), () => xr(e);
+	e && Z !== e || (Z = null);
 }
 function xr(e) {
-	e && Q !== e || (Q = null);
+	return Q = hr(e), vr(ur, Q, gr), () => Sr(e);
 }
 function Sr(e) {
+	e && Q !== e || (Q = null);
+}
+function Cr(e) {
 	let t = $(Z);
 	try {
 		t?.appendChild?.(e);
@@ -1846,8 +1861,8 @@ function Sr(e) {
 	}
 	return t;
 }
-function Cr(e) {
-	let t = hr(Q);
+function wr(e) {
+	let t = gr(Q);
 	try {
 		t?.appendChild?.(e);
 	} catch (e) {
@@ -1855,7 +1870,7 @@ function Cr(e) {
 	}
 	return t;
 }
-function wr() {
-	return gr(cr, Z);
+function Tr() {
+	return _r(lr, Z);
 }
-export { _t as $, N as $t, Un as A, et as At, jt as B, It as Bt, Zn as C, ot as Ct, qn as D, xt as Dt, Qn as E, wt as Et, Pn as F, mt as Ft, Vt as G, dn as Gt, Jt as H, Rt as Ht, Bn as I, nt as It, Kt as J, an as Jt, lt as K, sn as Kt, tn as L, Pt as Lt, Yn as M, Qe as Mt, $n as N, ft as Nt, Gn as O, vt as Ot, Nn as P, Ot as Pt, bt as Q, Ue as Qt, kt as R, Et as Rt, zn as S, ut as St, Vn as T, ct as Tt, Yt as U, un as Ut, $t as V, rt as Vt, en as W, on as Wt, st as X, pn as Xt, it as Y, ln as Yt, Ct as Z, We as Zt, Rn as _, nn as _t, vr as a, De as an, Dt as at, tr as b, Wt as bt, ar as c, f as cn, tt as ct, rr as d, Tt as dt, je as en, ht as et, Kn as f, fn as ft, In as g, At as gt, J as h, qt as ht, br as i, Te as in, Bt as it, Jn as j, St as jt, Y as k, gt as kt, sr as l, Lt as lt, Wn as m, Ht as mt, Sr as n, Oe as nn, yt as nt, ir as o, E as on, pt as ot, Hn as p, Qt as pt, rn as q, cn as qt, wr as r, Ee as rn, dt as rt, or as s, p as sn, zt as st, Cr as t, ge as tn, $e as tt, nr as u, Ft as ut, Fn as v, Zt as vt, Xn as w, at as wt, Ln as x, Ut as xt, er as y, Nt as yt, Mt as z, Gt as zt };
+export { bt as $, Ue as $t, Wn as A, gt as At, Mt as B, Gt as Bt, Qn as C, ut as Ct, Jn as D, wt as Dt, $n as E, ct as Et, Fn as F, Ot as Ft, en as G, on as Gt, $t as H, rt as Ht, Pn as I, mt as It, rn as J, cn as Jt, Vt as K, dn as Kt, Vn as L, nt as Lt, Xn as M, St as Mt, er as N, Qe as Nt, Kn as O, xt as Ot, Nn as P, ft as Pt, Ct as Q, We as Qt, tn as R, Pt as Rt, Bn as S, Ut as St, Hn as T, at as Tt, Jt as U, Rt as Ut, jt as V, It as Vt, Yt as W, un as Wt, it as X, ln as Xt, Kt as Y, an as Yt, st as Z, pn as Zt, zn as _, At as _t, yr as a, Te as an, Bt as at, nr as b, Nt as bt, or as c, p as cn, zt as ct, ir as d, Ft as dt, N as en, _t as et, qn as f, Tt as ft, Ln as g, qt as gt, J as h, Ht as ht, xr as i, Ee as in, dt as it, Yn as j, et as jt, Y as k, vt as kt, cr as l, f as ln, tt as lt, Gn as m, Qt as mt, Cr as n, ge as nn, $e as nt, ar as o, De as on, Dt as ot, Un as p, fn as pt, lt as q, sn as qt, Tr as r, Oe as rn, yt as rt, sr as s, E as sn, pt as st, wr as t, je as tn, ht as tt, rr as u, Lt as ut, In as v, nn as vt, Zn as w, ot as wt, Rn as x, Wt as xt, tr as y, Zt as yt, kt as z, Et as zt };

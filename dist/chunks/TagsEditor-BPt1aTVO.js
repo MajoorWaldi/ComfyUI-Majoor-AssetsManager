@@ -1,6 +1,6 @@
-import { $t as e, F as t, v as n } from "./viewerRuntimeHosts-Ctr8wab-.js";
-import { St as r, m as i, n as a } from "./events-tsQFsZrH.js";
-import { Y as o } from "./Viewer-DHesfEdb.js";
+import { F as e, en as t, v as n } from "./viewerRuntimeHosts-CzzbsByu.js";
+import { St as r, m as i, n as a } from "./events-C9AjbLbS.js";
+import { Y as o } from "./Viewer-DjRdwzYB.js";
 import { A as s, C as c, E as l, G as u, J as d, K as f, L as ee, N as p, R as te, T as m, U as ne, V as h, Y as g, b as _, ft as v, j as y, k as b, lt as x, rt as S, ut as C, z as w } from "./mjr-primevue-BRqtdXzb.js";
 // ui/vue/components/common/TagsEditor.vue?vue&type=script&setup=true&lang.ts
 var T = ["aria-busy"], E = ["aria-label"], re = {
@@ -111,7 +111,7 @@ var T = ["aria-busy"], E = ["aria-label"], re = {
 				q = o;
 				let s = null;
 				try {
-					s = await t(N.asset, a, o ? { signal: o.signal } : {});
+					s = await e(N.asset, a, o ? { signal: o.signal } : {});
 				} catch (e) {
 					console.error("Failed to update tags:", e);
 				}
@@ -123,8 +123,8 @@ var T = ["aria-busy"], E = ["aria-label"], re = {
 						}
 						break;
 					}
-					let t = [...J];
-					I.value = t, P("update:modelValue", t), e(s?.error || i("toast.tagsUpdateFailed", "Failed to update tags"), "error"), G = !1, q = null, U.value = !1;
+					let e = [...J];
+					I.value = e, P("update:modelValue", e), t(s?.error || i("toast.tagsUpdateFailed", "Failed to update tags"), "error"), G = !1, q = null, U.value = !1;
 					return;
 				}
 				try {
@@ -140,18 +140,18 @@ var T = ["aria-busy"], E = ["aria-label"], re = {
 				} catch (e) {
 					console.debug?.(e);
 				}
-				if (K || (I.value = [...c]), fe(c), e(i("toast.tagsUpdated", "Tags updated"), "success", 1e3), !K) break;
+				if (K || (I.value = [...c]), fe(c), t(i("toast.tagsUpdated", "Tags updated"), "success", 1e3), !K) break;
 				K = !1;
 			}
 			if (n >= 10) {
-				let t = [...J];
-				I.value = t;
+				let e = [...J];
+				I.value = e;
 				try {
-					N.asset.tags = [...t];
+					N.asset.tags = [...e];
 				} catch (e) {
 					console.debug?.(e);
 				}
-				P("update:modelValue", t), e(i("toast.tagsUpdateFailed", "Failed to update tags"), "error");
+				P("update:modelValue", e), t(i("toast.tagsUpdateFailed", "Failed to update tags"), "error");
 			}
 			G = !1, q = null, U.value = !1;
 		}
@@ -174,12 +174,12 @@ var T = ["aria-busy"], E = ["aria-label"], re = {
 				console.debug?.(e);
 			}
 		});
-		function $(t) {
+		function $(e) {
 			if (N.disabled) return;
-			let n = se(t);
+			let n = se(e);
 			if (!n) return;
 			let r = A(n);
-			r && (I.value.some((e) => A(e) === r) || (I.value.length >= D ? e(i("toast.maxTagsReached", "Maximum number of tags reached"), "warning") : (I.value = [...I.value, n], Q())));
+			r && (I.value.some((e) => A(e) === r) || (I.value.length >= D ? t(i("toast.maxTagsReached", "Maximum number of tags reached"), "warning") : (I.value = [...I.value, n], Q())));
 		}
 		function pe(e) {
 			if (N.disabled || e < 0 || e >= I.value.length) return;
