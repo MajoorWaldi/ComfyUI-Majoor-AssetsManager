@@ -9552,7 +9552,7 @@ function Kr() {
 		Hr = e;
 	}), Ur || import("./scopes-bvTRS68K.js").then((e) => {
 		Ur = e;
-	}), Wr || import("./genInfo-BDmVkfQ1.js").then((e) => e.n).then((e) => {
+	}), Wr || import("./genInfo-C36CLu4h.js").then((e) => e.n).then((e) => {
 		Wr = e;
 	}), Gr || import("./frameExport-CnNO7oN6.js").then((e) => {
 		Gr = e;

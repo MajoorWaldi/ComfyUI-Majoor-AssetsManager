@@ -30,6 +30,13 @@ All notable changes to this project are documented in this file.
 ### Fixed
 - **`mjr_am_backend.adapters.tools` missing from Registry installs**: `.comfyignore`'s unanchored `tools/` pattern also matched `mjr_am_backend/adapters/tools/`, stripping the ExifTool/FFProbe adapters out of every Registry-published package and causing `ModuleNotFoundError: No module named 'mjr_am_backend.adapters.tools'` at startup. The pattern is now anchored to the repo-root `/tools/` dev-scripts folder only.
 
+### Fixed (follow-ups)
+- **Sidecar JSON added after a file was indexed** is now picked up: the watcher maps a new/changed `<file>.json` / `<stem>.json` to its media, invalidates that file's metadata cache and scan journal, and forces a re-extraction (a non-incremental re-index no longer trusts an existing metadata row when the cache was invalidated).
+- **Duplicate index rows for one file (Windows)**: rows whose paths differ only by case or separator (left by older versions) are merged at startup, keeping the highest rating, all tags, the stack cover, execution ids and the embedding.
+- **Generated feed** drops items deleted from the UI or removed on disk.
+- **Floating viewer shortcuts** (`v`, `k`, `l`, `c`) only act when the pointer or focus is in the viewer (or from its pop-out), instead of swallowing those keys page-wide while it is open.
+- Types now come from `@comfyorg/comfyui-frontend-types` (dropped the separate `@comfyorg/litegraph` package); removed 5 dead frontend files; fixed an order-dependent backend test that leaked an input-directory override.
+
 ### Fixed (search, JSON, viewers)
 - **Search errors while typing**: queries such as `at-7`, `(2)`, `AND`, `NOT x`, a single letter or a lone `"` returned "Invalid search query syntax" because every token was filtered out (stopword, 1-char, operator word) and an empty FTS `MATCH` was sent. Search now falls back to the raw words, treats punctuation-only input as browse-all, and keeps non-Latin scripts (Cyrillic, CJK...) that were stripped before; only Latin accents are folded, matching the FTS5 tokenizer.
 - **Sidecar JSON for images, videos and audio**: `<file>.<ext>.json` or `<stem>.json` next to a media file now provides its workflow / prompt / generation data when nothing is embedded (previously 3D models only). Embedded metadata always wins; UTF-8 BOM is accepted.

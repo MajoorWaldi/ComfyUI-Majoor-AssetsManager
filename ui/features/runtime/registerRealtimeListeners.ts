@@ -2,6 +2,7 @@ import { EVENTS } from "../../app/events.js";
 import { recordToastHistory } from "../../app/toast.js";
 import { vectorIndexAsset } from "../../api/client.js";
 import { incrementSidebarAssetBadge } from "./sidebarAssetBadge.js";
+import { removeGeneratedAssets } from "../bottomPanel/feed/feedHost.js";
 import { markPendingGeneratedAsset } from "./pendingGeneratedAssets.js";
 
 const AUTO_VECTOR_INDEX_DEDUPE_MS = 30_000;
@@ -754,6 +755,8 @@ export async function registerRealtimeListeners({
             if (!ids.length) return;
             const grid = getActiveGridContainer();
             if (grid) removeAssetsFromGrid(grid, ids);
+            // The generated feed keeps its own copies; drop them too.
+            removeGeneratedAssets(ids);
         } catch (e) {
             console.debug?.(e);
         }

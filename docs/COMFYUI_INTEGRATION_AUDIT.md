@@ -204,6 +204,20 @@ Correctif :
 - **Viewer flottant** : il ne faisait que mettre en pause avant `replaceChildren()` et `dispose()`. Une `<video>` détachée garde son lecteur, et Chromium en limite le nombre (environ 75). En mode Live, qui se réaffiche à chaque génération, les lecteurs s'accumulaient. Ils sont maintenant libérés (`releaseFloatingViewerMediaIn`) ; `hide()` continue seulement de mettre en pause, pour pouvoir réafficher.
 - **À décider** : quand il est visible, le viewer flottant intercepte en phase de capture les touches simples `v`, `k`, `l` et `c` sur toute la page, hors champs de saisie. Aucun raccourci ComfyUI par défaut n'est touché, mais un raccourci personnalisé sur ces touches serait masqué. On pourrait limiter l'interception aux moments où le focus est dans le viewer.
 
+## 3 sexies. Correctifs de suivi
+
+| Point ouvert | Correctif |
+| --- | --- |
+| Un sidecar ajouté **après** l'indexation était ignoré. Le cache de métadonnées est indexé par l'état du média seul, et une réindexation non incrémentale sautait les assets ayant déjà des métadonnées « riches ». | Le watcher traite les `.json` (`sidecar_media_paths`) : il invalide le cache et le journal du média (`invalidate_cached_metadata`), puis le réindexe en mode non incrémental (`build_sidecar_reindex_callback`). Le raccourci « métadonnées riches » ne s'applique plus qu'en mode incrémental. |
+| Lignes en double pour un même fichier (casse ou séparateur différents sous Windows, héritage d'anciennes versions), affichées en fausses piles de doublons. | `adapters/db/schema_dedupe.py`, au démarrage, sous Windows seulement : fusion vers l'orthographe canonique, avec note maximale, union des tags (via `INSERT` pour mettre à jour la recherche), couverture de pile, identifiants d'exécution et embedding. Ne fait rien si l'index est propre. |
+| Le flux de génération gardait les éléments supprimés. | `removeGeneratedAssets()`, appelé sur `ASSETS_DELETED` (suppression depuis l'interface ou sur le disque). |
+| Les raccourcis `v`, `k`, `l` et `c` du viewer flottant étaient interceptés sur toute la page. | Actifs seulement si la souris ou le focus sont dans le viewer, ou depuis sa fenêtre pop-out. |
+| R6 : paquet `@comfyorg/litegraph` séparé. | Types repris de `@comfyorg/comfyui-frontend-types`, paquet retiré. |
+| 5 fichiers frontend morts (signalés par knip). | Supprimés. |
+| Test dépendant de l'ordre (`test_comfy_core_adapter_reads_input_output_directories`). | La fixture laissait fuir `MJR_AM_INPUT_DIRECTORY` (restaurée par `monkeypatch.delenv` en fin de test) ; corrigé. |
+
+Reste volontairement inchangé : l'import `../../scripts/app.js` (R7), un shim toujours supporté par ComfyUI.
+
 ## 4. Feuille de route d'évolution (meilleure intégration)
 
 1. **Progression par nœud** — écouter l'événement websocket `progress_state`

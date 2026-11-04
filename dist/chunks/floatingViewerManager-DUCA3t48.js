@@ -18,14 +18,14 @@ function d() {
 function f(e) {
 	return l = e || null, l;
 }
-function p(e = null) {
+function ee(e = null) {
 	e && l !== e || (l = null);
 }
-function m() {
+function p() {
 	return u(l) ? l : (l = null, d());
 }
 // ui/features/grid/GridSelectionManager.ts
-function h(e) {
+function m(e) {
 	let t = /* @__PURE__ */ new Set();
 	if (!e) return t;
 	try {
@@ -46,7 +46,7 @@ function h(e) {
 	}
 	return t;
 }
-function g(e, t, n = "") {
+function h(e, t, n = "") {
 	let r = Array.from(t || []), i = n ? String(n) : r[0] ? String(r[0]) : "";
 	try {
 		r.length ? (e.dataset.mjrSelectedAssetIds = JSON.stringify(r), i ? e.dataset.mjrSelectedAssetId = String(i) : delete e.dataset.mjrSelectedAssetId) : (delete e.dataset.mjrSelectedAssetIds, delete e.dataset.mjrSelectedAssetId);
@@ -55,7 +55,7 @@ function g(e, t, n = "") {
 	}
 	return r;
 }
-function ee(e, t, n) {
+function te(e, t, n) {
 	if (!e) return;
 	let r = t instanceof Set ? t : new Set(Array.from(t || []).map(String));
 	try {
@@ -68,10 +68,10 @@ function ee(e, t, n) {
 		console.debug?.(e);
 	}
 }
-function _(e, t, { activeId: n = "" } = {}, r) {
+function g(e, t, { activeId: n = "" } = {}, r) {
 	if (!e) return [];
-	let i = new Set(Array.from(t || []).map(String).filter(Boolean)), a = g(e, i, n);
-	ee(e, i, r);
+	let i = new Set(Array.from(t || []).map(String).filter(Boolean)), a = h(e, i, n);
+	te(e, i, r);
 	let o = {
 		selectedIds: a,
 		activeId: n || a[0] || ""
@@ -89,20 +89,20 @@ function _(e, t, { activeId: n = "" } = {}, r) {
 	return a;
 }
 // ui/features/viewer/floatingViewerManager.ts
-var te = /* @__PURE__ */ e({
+var ne = /* @__PURE__ */ e({
 	floatingViewerManager: () => Y,
 	installFloatingViewerGlobalHandlers: () => $,
-	removeFloatingViewerGlobalHandlers: () => Ce,
-	teardownFloatingViewerManager: () => we
-}), v = null, y = null;
-async function ne() {
-	return v || (y ||= import("./FloatingViewer-BnQlxpbB.js").then((e) => (v = e.FloatingViewer, v)), y);
+	removeFloatingViewerGlobalHandlers: () => we,
+	teardownFloatingViewerManager: () => Te
+}), _ = null, v = null;
+async function re() {
+	return _ || (v ||= import("./FloatingViewer-CKW6WySt.js").then((e) => (_ = e.FloatingViewer, _)), v);
 }
-var b = null, re = null;
+var y = null, b = null;
 async function ie() {
-	if (!b) return re ||= import("./NodeStreamController-CIKDDXJT.js").then((e) => {
-		b = e.setNodeStreamActive;
-	}), re;
+	if (!y) return b ||= import("./NodeStreamController-CIKDDXJT.js").then((e) => {
+		y = e.setNodeStreamActive;
+	}), b;
 }
 var x = Object.freeze({
 	SIMPLE: "simple",
@@ -128,7 +128,7 @@ function oe() {
 }
 async function M() {
 	if (!S) {
-		let e = await ne();
+		let e = await re();
 		S || (S = new e({ controller: {
 			close: () => Y.close(),
 			toggle: () => Y.toggle(),
@@ -139,7 +139,7 @@ async function M() {
 			onModeChanged: (e) => {
 				S?.isVisible && e !== x.SIMPLE && z();
 			},
-			handleForwardedKeydown: (e) => Q(e)
+			handleForwardedKeydown: (e) => Q(e, { forwarded: !0 })
 		} }), a(S.render()));
 	}
 	try {
@@ -165,7 +165,7 @@ function P() {
 	} catch (e) {
 		console.debug?.(e);
 	}
-	return m();
+	return p();
 }
 function se() {
 	if (S) {
@@ -240,13 +240,13 @@ async function R(e, r = []) {
 			let e = le(d[0]);
 			e && (d = [d[0], e]);
 		}
-		let f = P(), p = f?._mjrGetAssets?.() || f?._mjrGetSelectedAssets?.() || [], m = new Map([...p, ...r].filter((e) => e && e.kind !== "folder").map((e) => [String(e.id), e])), h = d.filter((e) => Number.isSafeInteger(Number(e)) && Number(e) > 0), g = h.length ? await t(h, a ? { signal: a.signal } : {}) : {
+		let f = P(), ee = f?._mjrGetAssets?.() || f?._mjrGetSelectedAssets?.() || [], p = new Map([...ee, ...r].filter((e) => e && e.kind !== "folder").map((e) => [String(e.id), e])), m = d.filter((e) => Number.isSafeInteger(Number(e)) && Number(e) > 0), h = m.length ? await t(m, a ? { signal: a.signal } : {}) : {
 			ok: !0,
 			data: []
 		};
 		if (a?.signal.aborted || j !== i || !S) return;
-		let ee = new Map((g?.ok && Array.isArray(g.data) ? g.data : []).map((e) => [String(e.id), e])), _ = d.map((e) => ee.get(String(e)) || m.get(String(e))).filter(Boolean);
-		if (!_.length) return;
+		let te = new Map((h?.ok && Array.isArray(h.data) ? h.data : []).map((e) => [String(e.id), e])), g = d.map((e) => te.get(String(e)) || p.get(String(e))).filter(Boolean);
+		if (!g.length) return;
 		if (c) {
 			if (o) {
 				let e = {
@@ -260,13 +260,13 @@ async function R(e, r = []) {
 					"C",
 					"D"
 				].filter((e) => !n.has(e)), r = 0;
-				for (let n of t) r < _.length && (e[n] = _[r++]);
+				for (let n of t) r < g.length && (e[n] = g[r++]);
 				S.loadMediaQuad(e.A, e.B, e.C, e.D);
-			} else _.length >= 3 ? S.loadMediaQuad(_[0], _[1], _[2], _[3] || null) : _.length >= 2 ? S.loadMediaPair(_[0], _[1]) : S.loadMediaA(_[0], { autoMode: !0 });
+			} else g.length >= 3 ? S.loadMediaQuad(g[0], g[1], g[2], g[3] || null) : g.length >= 2 ? S.loadMediaPair(g[0], g[1]) : S.loadMediaA(g[0], { autoMode: !0 });
 			return;
 		}
 		if (n.has("A") && n.has("B") && S._mediaA && S._mediaB) return;
-		n.has("A") && S._mediaA ? S.loadMediaPair(S._mediaA, _[0]) : n.has("B") && S._mediaB ? S.loadMediaPair(_[0], S._mediaB) : d.length >= 2 && _.length >= 2 ? S.loadMediaPair(_[0], _[1]) : S.loadMediaA(_[0], { autoMode: !0 });
+		n.has("A") && S._mediaA ? S.loadMediaPair(S._mediaA, g[0]) : n.has("B") && S._mediaB ? S.loadMediaPair(g[0], S._mediaB) : d.length >= 2 && g.length >= 2 ? S.loadMediaPair(g[0], g[1]) : S.loadMediaA(g[0], { autoMode: !0 });
 	} catch (e) {
 		e?.name !== "AbortError" && n(e, "floatingViewerManager._loadFromIds");
 	} finally {
@@ -277,7 +277,7 @@ function z() {
 	try {
 		let e = P();
 		if (!e) return;
-		let t = h(e);
+		let t = m(e);
 		if (!t.size) return;
 		R(Array.from(t));
 	} catch (e) {
@@ -291,7 +291,7 @@ function B(e) {
 	else try {
 		let e = P();
 		if (!e) return;
-		let t = Array.from(h(e)).map(String).filter(Boolean);
+		let t = Array.from(m(e)).map(String).filter(Boolean);
 		if (!t.length) return;
 		R(t);
 	} catch (e) {
@@ -425,7 +425,7 @@ var Y = {
 	},
 	setNodeStreamActive(e) {
 		D = !!e, D || (O = null), ie().then(() => {
-			b && b(D);
+			y && y(D);
 		}), S?.setNodeStreamActive?.(D), D ? S && L(S) : S?.setNodeStreamSelection?.(null);
 	},
 	getNodeStreamActive() {
@@ -445,7 +445,7 @@ var Y = {
 		let t = await M(), n = !!t.isVisible;
 		(n || s.MFV_NODE_STREAM_AUTO_OPEN !== !1) && (t.isVisible || (t.show(), V()), I(t), L(t), ce(t, e), n || F(!0));
 	}
-}, X = !1, pe = () => Y.open(), me = () => Y.close(), he = () => Y.toggle(), Z = () => Y.toggleLive(), ge = () => Y.togglePreview(), _e = () => Y.toggleNodeStream(), ve = () => Y.popOut(), ye = () => {
+}, X = !1, pe = () => Y.open(), me = () => Y.close(), he = () => Y.toggle(), ge = () => Y.toggleLive(), _e = () => Y.togglePreview(), ve = () => Y.toggleNodeStream(), Z = () => Y.popOut(), ye = () => {
 	try {
 		S?.isPopped && S.popIn();
 	} catch {}
@@ -476,52 +476,65 @@ function Se(e) {
 		return console.debug?.(e), !1;
 	}
 }
-var Q = (e) => {
+function Ce(e, t) {
+	if (t) return !0;
+	let n = S?.element;
+	if (!n) return !1;
+	try {
+		if (e?.target && n.contains?.(e.target)) return !0;
+		let t = typeof document < "u" ? document.activeElement : null;
+		return t && t !== document.body && n.contains?.(t) ? !0 : !!n.matches?.(":hover");
+	} catch {
+		return !1;
+	}
+}
+var Q = (e, { forwarded: t = !1 } = {}) => {
 	if (!S?.isVisible || i() || r().scope === "viewer") return;
-	let t = e?.key?.toLowerCase?.() || "", n = e?.target?.isContentEditable || e?.target?.closest?.("input, textarea, select, [contenteditable='true']");
-	if (n && Se(e) || n || Se(e)) return;
-	let a = () => {
+	let n = e?.key?.toLowerCase?.() || "", a = e?.target?.isContentEditable || e?.target?.closest?.("input, textarea, select, [contenteditable='true']");
+	if (a && Se(e) || a || Se(e)) return;
+	let o = () => {
 		e.preventDefault?.(), e.stopPropagation?.(), e.stopImmediatePropagation?.();
 	};
 	if (!e?.ctrlKey && !e?.metaKey && !e?.altKey && !e?.shiftKey) {
-		if (t === "v") {
-			a(), Y.toggle();
+		if (!Ce(e, t)) return;
+		if (n === "v") {
+			o(), Y.toggle();
 			return;
 		}
-		if (t === "k") {
-			a(), Y.togglePreview();
+		if (n === "k") {
+			o(), Y.togglePreview();
 			return;
 		}
-		if (t === "l") {
-			a(), Y.toggleLive();
+		if (n === "l") {
+			o(), Y.toggleLive();
 			return;
 		}
-		if (t === "n") {
-			a(), Y.toggleNodeStream();
+		if (n === "n") {
+			o(), Y.toggleNodeStream();
 			return;
 		}
-		t === "c" && (a(), Y.toggleCompareAB());
+		n === "c" && (o(), Y.toggleCompareAB());
 	}
 };
 function $() {
-	X || typeof window < "u" && window?.addEventListener && (window.addEventListener(c.MFV_OPEN, pe), window.addEventListener(c.MFV_CLOSE, me), window.addEventListener(c.MFV_TOGGLE, he), window.addEventListener(c.MFV_LIVE_TOGGLE, Z), window.addEventListener(c.MFV_PREVIEW_TOGGLE, ge), window.addEventListener(c.MFV_NODESTREAM_TOGGLE, _e), window.addEventListener(c.MFV_POPOUT, ve), window.addEventListener(c.SETTINGS_CHANGED, be), window.addEventListener("keydown", Q, !0), window.addEventListener("beforeunload", ye), X = !0);
+	X || typeof window < "u" && window?.addEventListener && (window.addEventListener(c.MFV_OPEN, pe), window.addEventListener(c.MFV_CLOSE, me), window.addEventListener(c.MFV_TOGGLE, he), window.addEventListener(c.MFV_LIVE_TOGGLE, ge), window.addEventListener(c.MFV_PREVIEW_TOGGLE, _e), window.addEventListener(c.MFV_NODESTREAM_TOGGLE, ve), window.addEventListener(c.MFV_POPOUT, Z), window.addEventListener(c.SETTINGS_CHANGED, be), window.addEventListener("keydown", Q, !0), window.addEventListener("beforeunload", ye), X = !0);
 }
-function Ce() {
-	typeof window > "u" || !window?.removeEventListener || (window.removeEventListener(c.MFV_OPEN, pe), window.removeEventListener(c.MFV_CLOSE, me), window.removeEventListener(c.MFV_TOGGLE, he), window.removeEventListener(c.MFV_LIVE_TOGGLE, Z), window.removeEventListener(c.MFV_PREVIEW_TOGGLE, ge), window.removeEventListener(c.MFV_NODESTREAM_TOGGLE, _e), window.removeEventListener(c.MFV_POPOUT, ve), window.removeEventListener(c.SETTINGS_CHANGED, be), window.removeEventListener("keydown", Q, !0), window.removeEventListener("beforeunload", ye)), X = !1;
+function we() {
+	typeof window > "u" || !window?.removeEventListener || (window.removeEventListener(c.MFV_OPEN, pe), window.removeEventListener(c.MFV_CLOSE, me), window.removeEventListener(c.MFV_TOGGLE, he), window.removeEventListener(c.MFV_LIVE_TOGGLE, ge), window.removeEventListener(c.MFV_PREVIEW_TOGGLE, _e), window.removeEventListener(c.MFV_NODESTREAM_TOGGLE, ve), window.removeEventListener(c.MFV_POPOUT, Z), window.removeEventListener(c.SETTINGS_CHANGED, be), window.removeEventListener("keydown", Q, !0), window.removeEventListener("beforeunload", ye)), X = !1;
 }
-function we({ reinstallGlobalHandlers: e = !1 } = {}) {
+function Te({ reinstallGlobalHandlers: e = !1 } = {}) {
 	let t = !!S?.isVisible;
 	try {
 		S?.isPopped && S.popIn();
 	} catch (e) {
 		console.debug?.(e);
 	}
-	Ce(), H(), fe(), N(), j += 1, T = C(), E = w(), D = !1;
+	we(), H(), fe(), N(), j += 1, T = C(), E = w(), D = !1;
 	try {
-		b && b(!1);
+		y && y(!1);
 	} catch (e) {
 		console.debug?.(e);
 	}
 	se(), t && F(!1), e && $();
 }
-export { h as a, p as c, we as i, m as l, te as n, g as o, $ as r, _ as s, Y as t, f as u };
+export { m as a, ee as c, Te as i, p as l, ne as n, h as o, $ as r, g as s, Y as t, f as u };

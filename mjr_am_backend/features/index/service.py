@@ -337,6 +337,26 @@ class IndexService:
         self._emit_assets_removed(removed_ids, reason="file_deleted")
         return Result.Ok(True)
 
+    async def invalidate_cached_metadata(self, filepaths: list[Any]) -> int:
+        """Forget cached extraction results for ``filepaths``.
+
+        The metadata cache and scan journal are keyed by the media file's own
+        state (path, mtime, size). Data that lives *next to* the file -- a
+        sidecar JSON added or edited later -- does not change that key, so
+        without this a re-index would reuse the stale cached result.
+        """
+        cleared = 0
+        for raw in filepaths or []:
+            for table in ("metadata_cache", "scan_journal"):
+                try:
+                    where_sql, where_params = _filepath_match_clause(str(raw), column="filepath")
+                    res = await self.db.aexecute(f"DELETE FROM {table} WHERE {where_sql}", where_params)
+                    if res.ok:
+                        cleared += int(res.data or 0)
+                except Exception:
+                    logger.debug("invalidate_cached_metadata: suppressed exception", exc_info=True)
+        return cleared
+
     async def _asset_ids_where(self, where_sql: str, where_params: Any) -> list[int]:
         try:
             res = await self.db.aquery(f"SELECT id FROM assets WHERE {where_sql}", where_params)

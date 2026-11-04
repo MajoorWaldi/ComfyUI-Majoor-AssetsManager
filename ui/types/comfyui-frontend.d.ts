@@ -1,5 +1,8 @@
-import type { LGraph, LGraphCanvas } from "@comfyorg/litegraph";
-import type { ComfyApp as OfficialComfyApp } from "@comfyorg/comfyui-frontend-types";
+import type {
+    ComfyApp as OfficialComfyApp,
+    LGraph,
+    LGraphCanvas,
+} from "@comfyorg/comfyui-frontend-types";
 
 // Re-export the upstream host type so new integration code can adopt the
 // official contract incrementally. Majoor's compatibility interfaces below

@@ -116,7 +116,8 @@ async function _getInstance() {
                         if (mode === MFV_MODES.SIMPLE) return;
                         _syncCurrentGridSelection();
                     },
-                    handleForwardedKeydown: (event: any) => _onGlobalKeydown(event),
+                    handleForwardedKeydown: (event: any) =>
+                        _onGlobalKeydown(event, { forwarded: true }),
                 },
             });
             appendFloatingViewerNode(_instance.render());
@@ -870,7 +871,28 @@ function _handleMfvPlayerShortcut(event: any) {
     }
 }
 
-const _onGlobalKeydown = (event: any) => {
+/**
+ * The single-letter toggles (v/k/l/c) only apply while the user is "in" the
+ * floating viewer: pointer over it, focus inside it, or a key forwarded from
+ * its pop-out window. The handler runs in the capture phase on `window`, so
+ * acting on every keypress while the viewer merely sits on screen swallowed
+ * those letters for ComfyUI and any custom keybinding using them.
+ */
+function _isKeyScopedToMfv(event: any, forwarded: boolean): boolean {
+    if (forwarded) return true;
+    const el = _instance?.element;
+    if (!el) return false;
+    try {
+        if (event?.target && el.contains?.(event.target)) return true;
+        const active = typeof document !== "undefined" ? document.activeElement : null;
+        if (active && active !== document.body && el.contains?.(active)) return true;
+        return Boolean(el.matches?.(":hover"));
+    } catch {
+        return false;
+    }
+}
+
+const _onGlobalKeydown = (event: any, { forwarded = false }: { forwarded?: boolean } = {}) => {
     if (!_instance?.isVisible) return;
     if (isHotkeysSuspended()) return;
     if (getHotkeysState().scope === "viewer") return;
@@ -891,6 +913,7 @@ const _onGlobalKeydown = (event: any) => {
     };
 
     if (!event?.ctrlKey && !event?.metaKey && !event?.altKey && !event?.shiftKey) {
+        if (!_isKeyScopedToMfv(event, forwarded)) return;
         if (lower === "v") {
             consume();
             floatingViewerManager.toggle();

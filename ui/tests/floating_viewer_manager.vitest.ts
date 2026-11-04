@@ -577,6 +577,7 @@ describe("floatingViewerManager", () => {
         const event = {
             type: "keydown",
             key: "l",
+            target: { _insideMfv: true },
             ctrlKey: false,
             metaKey: false,
             altKey: false,
@@ -592,6 +593,31 @@ describe("floatingViewerManager", () => {
         expect(event.preventDefault).toHaveBeenCalledTimes(1);
     });
 
+    it("leaves single-letter keys to ComfyUI when focus and pointer are outside the viewer", async () => {
+        const { floatingViewerManager, installFloatingViewerGlobalHandlers } =
+            await import("../features/viewer/floatingViewerManager.js");
+        installFloatingViewerGlobalHandlers();
+        await floatingViewerManager.open();
+
+        const viewer = state.getLastViewer();
+        const event = {
+            type: "keydown",
+            key: "v",
+            target: { _insideMfv: false },
+            ctrlKey: false,
+            metaKey: false,
+            altKey: false,
+            shiftKey: false,
+            preventDefault: vi.fn(),
+            stopPropagation: vi.fn(),
+            stopImmediatePropagation: vi.fn(),
+        };
+        window.dispatchEvent(event as any);
+
+        expect(viewer.hide).not.toHaveBeenCalled();
+        expect(event.preventDefault).not.toHaveBeenCalled();
+    });
+
     it("toggles the floating viewer off with V while it is visible", async () => {
         const { floatingViewerManager, installFloatingViewerGlobalHandlers } =
             await import("../features/viewer/floatingViewerManager.js");
@@ -604,6 +630,7 @@ describe("floatingViewerManager", () => {
         const event = {
             type: "keydown",
             key: "v",
+            target: { _insideMfv: true },
             ctrlKey: false,
             metaKey: false,
             altKey: false,
@@ -653,6 +680,7 @@ describe("floatingViewerManager", () => {
         const event = {
             type: "keydown",
             key: "k",
+            target: { _insideMfv: true },
             ctrlKey: false,
             metaKey: false,
             altKey: false,
@@ -808,6 +836,7 @@ describe("floatingViewerManager", () => {
         const toCompareEvent = {
             type: "keydown",
             key: "c",
+            target: { _insideMfv: true },
             ctrlKey: false,
             metaKey: false,
             altKey: false,
@@ -828,6 +857,7 @@ describe("floatingViewerManager", () => {
         const toSimpleEvent = {
             type: "keydown",
             key: "c",
+            target: { _insideMfv: true },
             ctrlKey: false,
             metaKey: false,
             altKey: false,
@@ -845,6 +875,7 @@ describe("floatingViewerManager", () => {
         const toOffEvent = {
             type: "keydown",
             key: "c",
+            target: { _insideMfv: true },
             ctrlKey: false,
             metaKey: false,
             altKey: false,

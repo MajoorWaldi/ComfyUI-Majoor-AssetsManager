@@ -37,7 +37,6 @@
   },
   "devDependencies": {
     "@comfyorg/comfyui-frontend-types": "^1.60.0",
-    "@comfyorg/litegraph": "^0.17.2",
     "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.63.0",
     "@types/node": "^26.6.4",
