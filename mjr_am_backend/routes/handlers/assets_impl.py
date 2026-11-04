@@ -264,6 +264,31 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
             safe_error_message=_safe_error_message,
         )
 
+    @routes.post("/mjr/am/assets/rating")
+    async def update_assets_rating(request):
+        """
+        Update ratings for multiple assets in one batch (0-5 stars).
+
+        Body: {"ids": [int, ...], "rating": int}
+        """
+        return await _route_actions.handle_update_assets_rating(
+            request,
+            prepare_asset_ids_context=prepare_asset_ids_context,
+            parse_rating_value=parse_rating_value,
+            enqueue_rating_tags_sync=_wired_enqueue_rating_tags_sync,
+            audit_asset_write=_audit_asset_write,
+            json_response=_json_response,
+            require_services=_require_services,
+            resolve_security_prefs=_resolve_security_prefs,
+            require_operation_enabled=_require_operation_enabled,
+            require_write_access=_require_write_access,
+            check_rate_limit=_check_rate_limit,
+            read_json=_read_json,
+            csrf_error=_csrf_error,
+            safe_error_message=_safe_error_message,
+            logger=logger,
+        )
+
     @routes.post("/mjr/am/asset/tags")
     async def update_asset_tags(request):
         """
