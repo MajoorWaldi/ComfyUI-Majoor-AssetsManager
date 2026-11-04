@@ -119,6 +119,7 @@ export const ENDPOINTS = {
     // Asset operations
     ASSET_DELETE: "/mjr/am/asset/delete",
     ASSET_RENAME: "/mjr/am/asset/rename",
+    ASSETS_TAGS: "/mjr/am/assets/tags",
 
     // Watcher
     WATCHER_STATUS: "/mjr/am/watcher/status",

@@ -31,5 +31,7 @@ export interface MjrContextMenuLayer {
 /** The `.tags` layer additionally carries the asset being tagged and its change callback. */
 export interface MjrTagsMenuLayer extends MjrContextMenuLayer {
     asset?: { tags?: unknown; [key: string]: unknown } | null;
+    /** When set (2+ assets), the bulk tags editor replaces the single-asset editor. */
+    assets?: unknown[] | null;
     onChanged?: (tags: unknown) => void;
 }

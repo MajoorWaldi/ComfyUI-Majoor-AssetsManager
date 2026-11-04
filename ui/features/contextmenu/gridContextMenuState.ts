@@ -20,6 +20,7 @@ export const gridContextMenuState = reactive({
         x: 0,
         y: 0,
         asset: null as any,
+        assets: null as any[] | null,
         onChanged: null as ((() => void) | null),
     },
 });
@@ -98,12 +99,26 @@ export function closeGridSubmenu(): void {
     _resetLayer(gridContextMenuState.submenu);
 }
 
-export function openGridTagsPopover({ x = 0, y = 0, asset = null, onChanged = null }: { x?: number; y?: number; asset?: unknown; onChanged?: (() => void) | null } = {}): void {
+export function openGridTagsPopover({
+    x = 0,
+    y = 0,
+    asset = null,
+    assets = null,
+    onChanged = null,
+}: {
+    x?: number;
+    y?: number;
+    asset?: unknown;
+    assets?: unknown[] | null;
+    onChanged?: (() => void) | null;
+} = {}): void {
     closeGridContextMenu();
-    gridContextMenuState.tags.open = !!asset;
+    const bulkAssets = Array.isArray(assets) && assets.length > 1 ? (assets as any[]) : null;
+    gridContextMenuState.tags.open = !!(asset || bulkAssets);
     gridContextMenuState.tags.x = Number(x) || 0;
     gridContextMenuState.tags.y = Number(y) || 0;
-    gridContextMenuState.tags.asset = asset || null;
+    gridContextMenuState.tags.asset = bulkAssets ? (bulkAssets[0] || null) : (asset || null);
+    gridContextMenuState.tags.assets = bulkAssets;
     gridContextMenuState.tags.onChanged = typeof onChanged === "function" ? onChanged : null;
 }
 
@@ -112,6 +127,7 @@ export function closeGridTagsPopover(): void {
     gridContextMenuState.tags.x = 0;
     gridContextMenuState.tags.y = 0;
     gridContextMenuState.tags.asset = null;
+    gridContextMenuState.tags.assets = null;
     gridContextMenuState.tags.onChanged = null;
 }
 
