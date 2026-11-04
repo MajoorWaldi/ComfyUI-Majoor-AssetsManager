@@ -1,8 +1,8 @@
-import { Vn as e, bn as t, fn as n, gn as r, in as i, kn as a, un as o, xn as s } from "./config-C9a-wT5M.js";
+import { Cn as e, Sn as t, Un as n, fn as r, jn as i, mn as a, on as o, vn as s } from "./config-D56TZeFo.js";
 import { a as c, n as l } from "./graphTraversal-DTdQWkn5.js";
-import { C as u, S as d, b as f, x as p, y as m } from "./generationSectionState-DuXxSw-j.js";
-import { _ as ee, a as te, c as ne, d as re, f as ie, g as ae, h as oe, i as se, l as ce, m as le, n as ue, o as de, p as fe, r as pe, s as me, t as he, u as ge } from "./mjr-primevue-C07IsEdU.js";
-import { t as _e } from "./mjr-vue-vendor-CEDOnn2t.js";
+import { C as u, S as d, b as f, x as p, y as m } from "./generationSectionState-BR-TS47u.js";
+import { _ as ee, a as te, c as ne, d as re, f as ie, g as ae, h as oe, i as se, l as ce, m as le, n as ue, o as de, p as fe, r as pe, s as me, t as he, u as ge } from "./mjr-primevue-QrNPJaqR.js";
+import { t as _e } from "./mjr-vue-vendor-Dn5oe7QV.js";
 // ui/features/viewer/floatingViewerProgress.ts
 var h = "progress-update", g = "__MJR_MFV_PROGRESS_SERVICE__";
 function ve() {
@@ -14,8 +14,8 @@ function ye(e, t) {
 	return n.detail = t, n;
 }
 var be = class {
-	constructor(e, t = () => s()) {
-		this.id = String(e || ""), this.promptApi = null, this.executedNodeIds = [], this.totalNodes = 0, this.currentlyExecuting = null, this.errorDetails = null, this._getApp = typeof t == "function" ? t : () => null;
+	constructor(t, n = () => e()) {
+		this.id = String(t || ""), this.promptApi = null, this.executedNodeIds = [], this.totalNodes = 0, this.currentlyExecuting = null, this.errorDetails = null, this._getApp = typeof n == "function" ? n : () => null;
 	}
 	setPrompt(e) {
 		let t = e && typeof e == "object" ? e.output : null;
@@ -63,8 +63,8 @@ var be = class {
 		this.errorDetails = e || null;
 	}
 }, xe = class extends EventTarget {
-	constructor({ getApi: n = (e) => t(e), getApp: r = () => s(), waitForApi: i = (t) => e(t) } = {}) {
-		super(), this._getApi = n, this._getApp = r, this._waitForApi = i, this.promptsMap = /* @__PURE__ */ new Map(), this.currentExecution = null, this.lastQueueRemaining = 0, this._api = null, this._listenerEntries = [], this._initPromise = null, this._hydrations = /* @__PURE__ */ new Map();
+	constructor({ getApi: r = (e) => t(e), getApp: i = () => e(), waitForApi: a = (e) => n(e) } = {}) {
+		super(), this._getApi = r, this._getApp = i, this._waitForApi = a, this.promptsMap = /* @__PURE__ */ new Map(), this.currentExecution = null, this.lastQueueRemaining = 0, this._api = null, this._listenerEntries = [], this._initPromise = null, this._hydrations = /* @__PURE__ */ new Map();
 	}
 	getSnapshot() {
 		return {
@@ -246,11 +246,11 @@ function b(e, t) {
 		e._mediaProgressTextEl.textContent = n, e._mediaProgressEl.title = n || "", e._mediaProgressEl.classList.toggle("is-error", o), e._mediaProgressEl.classList.toggle("is-visible", !!n);
 	}
 }
-function we(e, t) {
-	let n = String(t || "").trim();
-	if (!n) return !1;
+function we(t, n) {
+	let i = String(n || "").trim();
+	if (!i) return !1;
 	try {
-		return o(n, s());
+		return r(i, e());
 	} catch (e) {
 		return console.debug?.(e), !1;
 	}
@@ -321,7 +321,7 @@ var x = /* @__PURE__ */ new Map(), S = null;
 async function C(e) {
 	let t = Array.from(new Set(w(e).map((e) => D(e)).filter(Boolean)));
 	if (t.length && t.filter((e) => !x.has(e)).length) try {
-		S ||= n("/object_info").then((e) => e?.ok ? e.json() : null).then((e) => {
+		S ||= a("/object_info").then((e) => e?.ok ? e.json() : null).then((e) => {
 			if (e && typeof e == "object") for (let [t, n] of Object.entries(e)) x.set(String(t), n);
 			return e;
 		}).catch(() => null), await S;
@@ -873,16 +873,16 @@ function dt(e, t, n = null) {
 }
 function G(e, t, n = null) {
 	if (!e) return !1;
-	let i = String(e.type || "").toLowerCase();
-	if (i === "number" || i === "int" || i === "float") {
+	let r = String(e.type || "").toLowerCase();
+	if (r === "number" || r === "int" || r === "float") {
 		let n = Number(t);
 		if (Number.isNaN(n)) return !1;
-		let r = e.options ?? {}, a = r.min ?? -Infinity, o = r.max ?? Infinity, s = Math.min(o, Math.max(a, n));
-		(i === "int" || r.precision === 0 || r.round === 1) && (s = Math.round(s)), e.value = s;
-	} else e.value = i === "toggle" || i === "boolean" ? !!t : t;
+		let i = e.options ?? {}, a = i.min ?? -Infinity, o = i.max ?? Infinity, s = Math.min(o, Math.max(a, n));
+		(r === "int" || i.precision === 0 || i.round === 1) && (s = Math.round(s)), e.value = s;
+	} else e.value = r === "toggle" || r === "boolean" ? !!t : t;
 	try {
-		let t = r(), o = n ?? e?.parent ?? null, s = e.value;
-		e.callback?.(e.value, t, o, null, e), (i === "number" || i === "int" || i === "float") && (e.value = s), ft(e), a(o);
+		let t = s(), a = n ?? e?.parent ?? null, o = e.value;
+		e.callback?.(e.value, t, a, null, e), (r === "number" || r === "int" || r === "float") && (e.value = o), ft(e), i(a);
 	} catch (e) {
 		console.debug?.("[MFV] writeWidgetValue", e);
 	}
@@ -1301,15 +1301,15 @@ function Dt() {
 	let n = document.createElement("div");
 	n.className = "mjr-settings-head";
 	let r = document.createElement("div");
-	r.className = "mjr-settings-title", r.textContent = i("settings.majoor.title", "Majoor Assets Manager Settings");
-	let a = document.createElement("button");
-	a.type = "button", a.className = "mjr-settings-close", a.textContent = "X", a.setAttribute("aria-label", i("btn.close", "Close")), a.addEventListener("click", Z), n.append(r, a);
-	let o = document.createElement("div");
-	o.className = "mjr-settings-tools";
+	r.className = "mjr-settings-title", r.textContent = o("settings.majoor.title", "Majoor Assets Manager Settings");
+	let i = document.createElement("button");
+	i.type = "button", i.className = "mjr-settings-close", i.textContent = "X", i.setAttribute("aria-label", o("btn.close", "Close")), i.addEventListener("click", Z), n.append(r, i);
+	let a = document.createElement("div");
+	a.className = "mjr-settings-tools";
 	let s = document.createElement("input");
-	s.type = "search", s.className = "mjr-settings-search", s.placeholder = i("placeholder.searchSettings", "Search settings"), o.appendChild(s);
+	s.type = "search", s.className = "mjr-settings-search", s.placeholder = o("placeholder.searchSettings", "Search settings"), a.appendChild(s);
 	let c = document.createElement("div");
-	return c.className = "mjr-settings-body", t.append(n, o, c), e.appendChild(t), document.body.appendChild(e), {
+	return c.className = "mjr-settings-body", t.append(n, a, c), e.appendChild(t), document.body.appendChild(e), {
 		body: c,
 		root: e,
 		search: s
@@ -1325,11 +1325,11 @@ function Z() {
 		}
 	}
 }
-function Ot(e = s()) {
+function Ot(t = e()) {
 	if (typeof document > "u") return !1;
 	Y?.root?.isConnected || (Y = Dt());
-	let t = u(e), n = () => Et(Y.body, t, String(Y.search.value || "").trim().toLowerCase());
-	Y.search.oninput = n, Y.search.value = "", n(), Y.root.hidden = !1;
+	let n = u(t), r = () => Et(Y.body, n, String(Y.search.value || "").trim().toLowerCase());
+	Y.search.oninput = r, Y.search.value = "", r(), Y.root.hidden = !1;
 	try {
 		window.dispatchEvent(new CustomEvent(J, { detail: { open: !0 } }));
 	} catch (e) {
@@ -1338,8 +1338,8 @@ function Ot(e = s()) {
 	return setTimeout(() => Y?.search?.focus?.(), 0), !0;
 }
 // ui/app/openMajoorSettings.ts
-function Q(e = s()) {
-	return Ot(e);
+function Q(t = e()) {
+	return Ot(t);
 }
 try {
 	typeof window < "u" && (window.MajoorAssetsManager = window.MajoorAssetsManager || {}, window.MajoorAssetsManager.openSettings = Q);

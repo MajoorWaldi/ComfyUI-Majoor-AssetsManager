@@ -1,7 +1,7 @@
-import { in as e, or as t, t as n } from "./config-C9a-wT5M.js";
-import { _ as r, f as i, p as a } from "./generationSectionState-DuXxSw-j.js";
+import { cr as e, on as t, t as n } from "./config-D56TZeFo.js";
+import { _ as r, f as i, p as a } from "./generationSectionState-BR-TS47u.js";
 import { r as o } from "./events-1iwo5blr.js";
-import { $ as s, B as c, C as l, D as u, E as d, H as ee, J as te, M as f, O as p, P as m, Q as h, S as g, T as _, V as v, W as y, X as ne, b, gt as x, ht as S, j as C, k as w, mt as T, pt as E, q as re, st as D } from "./mjr-primevue-C07IsEdU.js";
+import { $ as s, B as c, C as l, D as u, E as d, H as ee, J as te, M as f, O as p, P as m, Q as h, S as g, T as _, V as v, W as y, X as ne, b, gt as x, ht as S, j as C, k as w, mt as T, pt as E, q as re, st as D } from "./mjr-primevue-QrNPJaqR.js";
 // ui/features/viewer/model3dCore.ts
 function ie(e, t) {
 	if (e && typeof t == "function") try {
@@ -261,45 +261,45 @@ function R(e) {
 	let t = Math.max(0, Number(e) || 0), n = Math.floor(t / 60), r = Math.floor(t % 60);
 	return n > 0 ? `${n}:${String(r).padStart(2, "0")}` : `${Math.floor(t)}s`;
 }
-function z(t, n) {
+function z(e, n) {
 	let r = document.createElement("button");
-	return r.type = "button", r.textContent = String(t || ""), r.title = String(n || t || ""), r.setAttribute("aria-label", String(n || t || e("model3d.viewportAction", "3D viewport action"))), r.style.cssText = "height:28px;padding:0 10px;border-radius:999px;border:1px solid rgba(255,255,255,0.16);background:rgba(13,15,20,0.78);color:rgba(255,255,255,0.92);font:600 11px system-ui,sans-serif;letter-spacing:0.02em;cursor:pointer;backdrop-filter:blur(8px);display:inline-flex;align-items:center;justify-content:center;box-shadow:0 4px 18px rgba(0,0,0,0.24)", r;
+	return r.type = "button", r.textContent = String(e || ""), r.title = String(n || e || ""), r.setAttribute("aria-label", String(n || e || t("model3d.viewportAction", "3D viewport action"))), r.style.cssText = "height:28px;padding:0 10px;border-radius:999px;border:1px solid rgba(255,255,255,0.16);background:rgba(13,15,20,0.78);color:rgba(255,255,255,0.92);font:600 11px system-ui,sans-serif;letter-spacing:0.02em;cursor:pointer;backdrop-filter:blur(8px);display:inline-flex;align-items:center;justify-content:center;box-shadow:0 4px 18px rgba(0,0,0,0.24)", r;
 }
 function B(e, t) {
 	if (!e) return;
 	let n = !!t;
 	e.dataset.active = n ? "1" : "0", e.style.background = n ? "rgba(76,175,80,0.18)" : "rgba(13,15,20,0.78)", e.style.borderColor = n ? "rgba(76,175,80,0.42)" : "rgba(255,255,255,0.16)", e.style.color = n ? "rgba(230,255,235,0.96)" : "rgba(255,255,255,0.92)";
 }
-function V(t, n, r = "", i = "#4CAF50") {
-	if (!t) return;
+function V(e, n, r = "", i = "#4CAF50") {
+	if (!e) return;
 	try {
-		let e = Math.max(480, Number(t.width) || 960), n = Math.max(270, Number(t.height) || 540);
-		t.width = e, t.height = n;
+		let t = Math.max(480, Number(e.width) || 960), n = Math.max(270, Number(e.height) || 540);
+		e.width = t, e.height = n;
 	} catch (e) {
 		console.debug?.(e);
 	}
 	let a = (() => {
 		try {
-			return t.getContext("2d");
+			return e.getContext("2d");
 		} catch {
 			return null;
 		}
 	})();
 	if (!a) return;
-	let o = Number(t.width) || 960, s = Number(t.height) || 540, c = o / 2, l = s / 2;
+	let o = Number(e.width) || 960, s = Number(e.height) || 540, c = o / 2, l = s / 2;
 	try {
-		let t = a.createLinearGradient(0, 0, o, s);
-		t.addColorStop(0, "#0f1419"), t.addColorStop(1, "#11181f"), a.fillStyle = t, a.fillRect(0, 0, o, s), a.save(), a.translate(c, l - 32), a.strokeStyle = i, a.lineWidth = 3, a.globalAlpha = .95, a.beginPath(), a.moveTo(0, -44), a.lineTo(42, -22), a.lineTo(42, 22), a.lineTo(0, 44), a.lineTo(-42, 22), a.lineTo(-42, -22), a.closePath(), a.stroke(), a.beginPath(), a.moveTo(0, -44), a.lineTo(0, 0), a.lineTo(42, 22), a.moveTo(0, 0), a.lineTo(-42, 22), a.moveTo(-42, -22), a.lineTo(0, 0), a.moveTo(42, -22), a.lineTo(0, 0), a.stroke(), a.restore(), a.fillStyle = "rgba(255,255,255,0.94)", a.font = "600 18px system-ui, sans-serif", a.textAlign = "center", a.textBaseline = "middle", a.fillText(String(n || e("model3d.preview", "3D preview")), c, l + 44), r && (a.fillStyle = "rgba(255,255,255,0.62)", a.font = "13px system-ui, sans-serif", a.fillText(String(r), c, l + 72));
+		let e = a.createLinearGradient(0, 0, o, s);
+		e.addColorStop(0, "#0f1419"), e.addColorStop(1, "#11181f"), a.fillStyle = e, a.fillRect(0, 0, o, s), a.save(), a.translate(c, l - 32), a.strokeStyle = i, a.lineWidth = 3, a.globalAlpha = .95, a.beginPath(), a.moveTo(0, -44), a.lineTo(42, -22), a.lineTo(42, 22), a.lineTo(0, 44), a.lineTo(-42, 22), a.lineTo(-42, -22), a.closePath(), a.stroke(), a.beginPath(), a.moveTo(0, -44), a.lineTo(0, 0), a.lineTo(42, 22), a.moveTo(0, 0), a.lineTo(-42, 22), a.moveTo(-42, -22), a.lineTo(0, 0), a.moveTo(42, -22), a.lineTo(0, 0), a.stroke(), a.restore(), a.fillStyle = "rgba(255,255,255,0.94)", a.font = "600 18px system-ui, sans-serif", a.textAlign = "center", a.textBaseline = "middle", a.fillText(String(n || t("model3d.preview", "3D preview")), c, l + 44), r && (a.fillStyle = "rgba(255,255,255,0.62)", a.font = "13px system-ui, sans-serif", a.fillText(String(r), c, l + 72));
 	} catch (i) {
 		console.debug?.(i);
 		try {
-			P(t, n, r || e("model3d.unavailable", "3D viewer unavailable"));
+			P(e, n, r || t("model3d.unavailable", "3D viewer unavailable"));
 		} catch (e) {
 			console.debug?.(e);
 		}
 	}
 }
-function pe({ defaultBgColor: t, defaultFov: n, defaultLightIntensity: r, hasSkeleton: i } = {}) {
+function pe({ defaultBgColor: e, defaultFov: n, defaultLightIntensity: r, hasSkeleton: i } = {}) {
 	let a = document.createElement("div");
 	a.className = "mjr-model3d-settings", a.style.cssText = "position:absolute;right:0;top:44px;width:210px;max-height:calc(100% - 100px);overflow-y:auto;background:rgba(14,18,26,0.96);border:1px solid rgba(255,255,255,0.10);border-right:none;border-radius:10px 0 0 10px;padding:10px 10px 12px 10px;z-index:4;display:none;box-shadow:-6px 4px 24px rgba(0,0,0,0.5);backdrop-filter:blur(12px);font:13px system-ui,sans-serif;color:rgba(255,255,255,0.88);scrollbar-width:thin", [
 		"pointerdown",
@@ -351,7 +351,7 @@ function pe({ defaultBgColor: t, defaultFov: n, defaultLightIntensity: r, hasSke
 	};
 	o("Scene");
 	let u = document.createElement("input");
-	u.type = "color", u.value = t || "#282828", u.style.cssText = "width:34px;height:24px;cursor:pointer;border:1px solid rgba(255,255,255,0.18);border-radius:4px;padding:1px;background:none;flex-shrink:0;", s(e("model3d.background", "Background"), u), o("Model");
+	u.type = "color", u.value = e || "#282828", u.style.cssText = "width:34px;height:24px;cursor:pointer;border:1px solid rgba(255,255,255,0.18);border-radius:4px;padding:1px;background:none;flex-shrink:0;", s(t("model3d.background", "Background"), u), o("Model");
 	let d = c([
 		["original", "Original"],
 		["normal", "Normal map"],
@@ -359,7 +359,7 @@ function pe({ defaultBgColor: t, defaultFov: n, defaultLightIntensity: r, hasSke
 		["wireframe", "Wireframe"],
 		["pointcloud", "Point cloud"]
 	], "original");
-	s(e("model3d.material", "Material"), d);
+	s(t("model3d.material", "Material"), d);
 	let ee = c([
 		["original", "Original"],
 		["+y", "+Y (default)"],
@@ -371,11 +371,11 @@ function pe({ defaultBgColor: t, defaultFov: n, defaultLightIntensity: r, hasSke
 	], "original");
 	s("Up", ee);
 	let te = null, f = null;
-	i && (f = document.createElement("input"), f.type = "checkbox", f.checked = !1, f.style.cssText = "cursor:pointer;accent-color:#4CAF50;flex-shrink:0;", te = s(e("model3d.skeleton", "Skeleton"), f)), o("Camera");
+	i && (f = document.createElement("input"), f.type = "checkbox", f.checked = !1, f.style.cssText = "cursor:pointer;accent-color:#4CAF50;flex-shrink:0;", te = s(t("model3d.skeleton", "Skeleton"), f)), o("Camera");
 	let p = l(15, 120, 1, n ?? 75);
-	s("FOV", p.wrap), o(e("model3d.lights", "Lights"));
+	s("FOV", p.wrap), o(t("model3d.lights", "Lights"));
 	let m = l(0, 5, .1, r ?? 1);
-	return s(e("model3d.intensity", "Intensity"), m.wrap), {
+	return s(t("model3d.intensity", "Intensity"), m.wrap), {
 		panel: a,
 		bgInput: u,
 		materialSel: d,
@@ -389,8 +389,8 @@ function pe({ defaultBgColor: t, defaultFov: n, defaultLightIntensity: r, hasSke
 	};
 }
 function me() {
-	let t = document.createElement("div");
-	t.className = "mjr-model3d-anim-bar", t.style.cssText = [
+	let e = document.createElement("div");
+	e.className = "mjr-model3d-anim-bar", e.style.cssText = [
 		"position:absolute",
 		"bottom:0",
 		"left:0",
@@ -413,13 +413,13 @@ function me() {
 		"mouseup",
 		"wheel",
 		"click"
-	].forEach((e) => {
-		t.addEventListener(e, (e) => L(e, { preventDefault: !1 }));
+	].forEach((t) => {
+		e.addEventListener(t, (e) => L(e, { preventDefault: !1 }));
 	});
 	let n = document.createElement("button");
-	n.type = "button", n.textContent = e("model3d.play", "Play"), n.title = e("model3d.playPause", "Play / Pause"), n.style.cssText = "width:28px;height:28px;border-radius:50%;border:1px solid rgba(255,255,255,0.18);background:rgba(76,175,80,0.14);color:rgba(255,255,255,0.92);font:600 12px system-ui,sans-serif;cursor:pointer;flex-shrink:0;padding:0;line-height:1;display:flex;align-items:center;justify-content:center";
+	n.type = "button", n.textContent = t("model3d.play", "Play"), n.title = t("model3d.playPause", "Play / Pause"), n.style.cssText = "width:28px;height:28px;border-radius:50%;border:1px solid rgba(255,255,255,0.18);background:rgba(76,175,80,0.14);color:rgba(255,255,255,0.92);font:600 12px system-ui,sans-serif;cursor:pointer;flex-shrink:0;padding:0;line-height:1;display:flex;align-items:center;justify-content:center";
 	let r = document.createElement("select");
-	r.title = e("model3d.playbackSpeed", "Playback speed"), r.style.cssText = "background:rgba(20,24,34,0.9);color:rgba(255,255,255,0.8);border:1px solid rgba(255,255,255,0.14);border-radius:6px;padding:3px 4px;font:11px system-ui,sans-serif;cursor:pointer;width:52px;flex-shrink:0";
+	r.title = t("model3d.playbackSpeed", "Playback speed"), r.style.cssText = "background:rgba(20,24,34,0.9);color:rgba(255,255,255,0.8);border:1px solid rgba(255,255,255,0.14);border-radius:6px;padding:3px 4px;font:11px system-ui,sans-serif;cursor:pointer;width:52px;flex-shrink:0";
 	for (let e of F) {
 		let t = document.createElement("option");
 		t.value = String(e), t.textContent = `${e}x`, e === 1 && (t.selected = !0), r.appendChild(t);
@@ -429,8 +429,8 @@ function me() {
 	let a = document.createElement("input");
 	a.type = "range", a.min = "0", a.max = "1000", a.value = "0", a.style.cssText = "flex:1;min-width:50px;cursor:pointer;accent-color:#4CAF50;height:3px;";
 	let o = document.createElement("span");
-	return o.style.cssText = "font:500 11px system-ui,sans-serif;color:rgba(255,255,255,0.45);white-space:nowrap;flex-shrink:0", o.textContent = "0s / 0s", t.appendChild(n), t.appendChild(r), t.appendChild(i), t.appendChild(a), t.appendChild(o), {
-		bar: t,
+	return o.style.cssText = "font:500 11px system-ui,sans-serif;color:rgba(255,255,255,0.45);white-space:nowrap;flex-shrink:0", o.textContent = "0s / 0s", e.appendChild(n), e.appendChild(r), e.appendChild(i), e.appendChild(a), e.appendChild(o), {
+		bar: e,
 		playBtn: n,
 		speedSel: r,
 		animSel: i,
@@ -455,7 +455,7 @@ var H = Object.freeze({
 	"fbx",
 	"stl",
 	"ply"
-]), ge = "#282828", W = e("model3d.controlHint", "Rotate: left drag  Pan: right drag  Zoom: wheel"), G = Object.freeze({
+]), ge = "#282828", W = t("model3d.controlHint", "Rotate: left drag  Pan: right drag  Zoom: wheel"), G = Object.freeze({
 	PERSPECTIVE: "perspective",
 	ORTHOGRAPHIC: "orthographic"
 });
@@ -576,7 +576,7 @@ function Te(r, i, a = {}) {
 	ee.className = "mjr-model3d-toolbar", ee.style.cssText = "position:absolute;top:10px;right:10px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;pointer-events:none;z-index:5";
 	let te = document.createElement("div");
 	te.style.cssText = "display:flex;align-items:center;gap:6px;flex-wrap:wrap;pointer-events:auto;";
-	let f = z(e("model3d.reset", "Reset"), e("model3d.resetView", "Reset 3D view")), p = z(e("model3d.grid", "Grid"), e("model3d.toggleGrid", "Toggle grid")), m = z(e("model3d.persp", "Persp"), e("model3d.switchCamera", "Switch perspective / orthographic")), h = z(e("model3d.settings", "Settings"), e("model3d.settings", "Settings"));
+	let f = z(t("model3d.reset", "Reset"), t("model3d.resetView", "Reset 3D view")), p = z(t("model3d.grid", "Grid"), t("model3d.toggleGrid", "Toggle grid")), m = z(t("model3d.persp", "Persp"), t("model3d.switchCamera", "Switch perspective / orthographic")), h = z(t("model3d.settings", "Settings"), t("model3d.settings", "Settings"));
 	te.append(f, p, m, h), ee.appendChild(te), c.appendChild(ee);
 	let g = document.createElement("div");
 	g.className = "mjr-model3d-hint", g.textContent = a.hintText || W, g.style.cssText = "position:absolute;right:10px;bottom:10px;padding:5px 10px;border-radius:999px;font:500 11px system-ui,sans-serif;color:rgba(255,255,255,0.75);background:rgba(0,0,0,0.35);backdrop-filter:blur(6px);pointer-events:none;z-index:2;transition:bottom 0.2s", c.appendChild(g);
@@ -710,9 +710,9 @@ function Te(r, i, a = {}) {
 		} catch (e) {
 			console.debug?.(e);
 		}
-	}, qe = (t) => {
+	}, qe = (e) => {
 		if (!J || !Y.length) return;
-		let n = Y[t];
+		let n = Y[e];
 		if (!n) return;
 		X.forEach((e) => {
 			try {
@@ -722,13 +722,13 @@ function Te(r, i, a = {}) {
 			}
 		});
 		let r = J.clipAction(n);
-		r.timeScale = Me, r.clampWhenFinished = !1, r.loop = b?.LoopRepeat ?? 2201, r.play(), X[t] = r, Z = t, Q = !0, v.playBtn.textContent = e("model3d.pause", "Pause");
+		r.timeScale = Me, r.clampWhenFinished = !1, r.loop = b?.LoopRepeat ?? 2201, r.play(), X[e] = r, Z = e, Q = !0, v.playBtn.textContent = t("model3d.pause", "Pause");
 		try {
 			let e = Math.max(100, Math.min(1e4, Math.round((n.duration || 1) * 100)));
 			v.progressSlider.max = String(e);
 		} catch {}
 	}, Je = () => {
-		J && Y.length && (Q ? (J.timeScale = 0, Q = !1, v.playBtn.textContent = e("model3d.play", "Play")) : (J.timeScale = Me, X[Z]?.isRunning?.() ? (Q = !0, v.playBtn.textContent = e("model3d.pause", "Pause")) : qe(Z)));
+		J && Y.length && (Q ? (J.timeScale = 0, Q = !1, v.playBtn.textContent = t("model3d.play", "Play")) : (J.timeScale = Me, X[Z]?.isRunning?.() ? (Q = !0, v.playBtn.textContent = t("model3d.pause", "Pause")) : qe(Z)));
 	}, Ye = (e, t) => {
 		e && e.length !== 0 && b && (Y = e, J = new b.AnimationMixer(t), je = new b.Clock(), X = Array(e.length).fill(null), v.animSel.innerHTML = "", e.forEach((e, t) => {
 			let n = document.createElement("option");
@@ -759,7 +759,7 @@ function Te(r, i, a = {}) {
 			}
 		}));
 	}, Xe = () => {
-		B(p, !!P?.visible), B(m, q === G.ORTHOGRAPHIC), m.textContent = q === G.ORTHOGRAPHIC ? e("model3d.ortho", "Ortho") : e("model3d.persp", "Persp"), B(h, Pe);
+		B(p, !!P?.visible), B(m, q === G.ORTHOGRAPHIC), m.textContent = q === G.ORTHOGRAPHIC ? t("model3d.ortho", "Ortho") : t("model3d.persp", "Persp"), B(h, Pe);
 	};
 	_.bgInput.addEventListener("input", () => {
 		let e = _.bgInput.value;
@@ -936,26 +936,26 @@ function Te(r, i, a = {}) {
 	return $("Preparing 3D preview", Fe), Promise.resolve().then(async () => {
 		let n = Se(r);
 		if (he.has(n)) try {
-			let e = await N();
+			let t = await N();
 			if (y) return;
-			let o = e.THREE;
+			let o = t.THREE;
 			b = o;
 			let s = new o.LoadingManager();
-			s.setURLModifier((e) => {
-				if (!e || xe(e)) return e;
-				let n = t(r, e);
+			s.setURLModifier((t) => {
+				if (!t || xe(t)) return t;
+				let n = e(r, t);
 				if (n) return n;
 				try {
-					return new URL(e, i).href;
+					return new URL(t, i).href;
 				} catch {
-					return e;
+					return t;
 				}
 			}), x = new o.WebGLRenderer({
 				canvas: l,
 				antialias: !0,
 				alpha: !0,
 				preserveDrawingBuffer: !0
-			}), x.outputColorSpace = o.SRGBColorSpace, x.setPixelRatio(Math.min(2, window.devicePixelRatio || 1)), S = new o.Scene(), S.background = new o.Color(ge), w = new o.PerspectiveCamera(ve, 16 / 9, .01, 1e4), T = new o.OrthographicCamera(-1, 1, 1, -1, -1e4, 1e4), C = w, E = new e.OrbitControls(C, l), E.enableDamping = !0, E.dampingFactor = .08, E.rotateSpeed = .82, E.zoomSpeed = 1, E.panSpeed = .9, E.screenSpacePanning = !0, E.mouseButtons = we(null, o.MOUSE), de = Ze(), Oe = new o.AmbientLight(16777215, K.ambient * Ae), S.add(Oe);
+			}), x.outputColorSpace = o.SRGBColorSpace, x.setPixelRatio(Math.min(2, window.devicePixelRatio || 1)), S = new o.Scene(), S.background = new o.Color(ge), w = new o.PerspectiveCamera(ve, 16 / 9, .01, 1e4), T = new o.OrthographicCamera(-1, 1, 1, -1, -1e4, 1e4), C = w, E = new t.OrbitControls(C, l), E.enableDamping = !0, E.dampingFactor = .08, E.rotateSpeed = .82, E.zoomSpeed = 1, E.panSpeed = .9, E.screenSpacePanning = !0, E.mouseButtons = we(null, o.MOUSE), de = Ze(), Oe = new o.AmbientLight(16777215, K.ambient * Ae), S.add(Oe);
 			let u = new o.DirectionalLight(16777215, K.main * Ae);
 			u.position.set(0, 10, 10);
 			let d = new o.DirectionalLight(16777215, K.back * Ae);
@@ -978,14 +978,14 @@ function Te(r, i, a = {}) {
 				x.setSize(t, n, !1), w && (w.aspect = t / n, w.updateProjectionMatrix()), ze(t, n), Re(), Ie();
 			};
 			typeof ResizeObserver < "u" && (ne = new ResizeObserver(() => O()), ne.observe(c));
-			let se = fe(e, n, s);
+			let se = fe(t, n, s);
 			if (!se) {
 				$("3D loader unavailable", `${n.toUpperCase()} loader could not be created.`), g.style.display = "none";
 				return;
 			}
-			if (n === "obj" && e.MTLLoader) try {
-				let t = i.replace(/\.obj(\?.*)?$/i, (e, t) => `.mtl${t || ""}`), n = new e.MTLLoader(s), r = await new Promise((e) => {
-					n.load(t, e, void 0, () => e(null));
+			if (n === "obj" && t.MTLLoader) try {
+				let e = i.replace(/\.obj(\?.*)?$/i, (e, t) => `.mtl${t || ""}`), n = new t.MTLLoader(s), r = await new Promise((t) => {
+					n.load(e, t, void 0, () => t(null));
 				});
 				r && !y && (r.preload(), se.setMaterials(r));
 			} catch (e) {
@@ -1134,8 +1134,8 @@ function Te(r, i, a = {}) {
 			console.warn("[MJR 3D] preview init failed", e), $("Failed to load 3D preview", String(e?.message || "Three.js initialization failed.")), g.style.display = "none";
 		}
 		else if ($("3D preview unavailable", `${n.toUpperCase()} is not supported in the embedded viewer.`), g.style.display = "none", i) try {
-			let t = document.createElement("a");
-			t.href = i, t.download = String(r?.filename || "model"), t.textContent = e("model3d.downloadFile", "Download {file}", { file: String(r?.filename || "file") }), t.style.cssText = "position:absolute;bottom:18px;left:50%;transform:translateX(-50%);padding:7px 16px;border-radius:8px;font:600 12px system-ui,sans-serif;color:#fff;background:rgba(76,175,80,0.85);text-decoration:none;pointer-events:auto;z-index:3", c.appendChild(t);
+			let e = document.createElement("a");
+			e.href = i, e.download = String(r?.filename || "model"), e.textContent = t("model3d.downloadFile", "Download {file}", { file: String(r?.filename || "file") }), e.style.cssText = "position:absolute;bottom:18px;left:50%;transform:translateX(-50%);padding:7px 16px;border-radius:8px;font:600 12px system-ui,sans-serif;color:#fff;background:rgba(76,175,80,0.85);text-decoration:none;pointer-events:auto;z-index:3", c.appendChild(e);
 		} catch {}
 	}).catch((e) => {
 		if (!y) {
@@ -1544,8 +1544,8 @@ var it = ["src"], at = ["src"], ot = {
 		"update:wipe",
 		"dismiss"
 	],
-	setup(t, { expose: n, emit: r }) {
-		let i = t, a = r, o = D(null), m = D(null), ie = D(null), ae = D(null), oe = D(null), O = D({
+	setup(e, { expose: n, emit: r }) {
+		let i = e, a = r, o = D(null), m = D(null), ie = D(null), ae = D(null), oe = D(null), O = D({
 			x: 0,
 			y: 0,
 			w: 0,
@@ -1700,7 +1700,7 @@ var it = ["src"], at = ["src"], ot = {
 			} else a("ended");
 		}
 		function Ie() {
-			U.value = e("viewer.studio.mediaError", "This file cannot be played by the browser.");
+			U.value = t("viewer.studio.mediaError", "This file cannot be played by the browser.");
 		}
 		function $() {
 			let e = q();
@@ -1854,14 +1854,14 @@ var it = ["src"], at = ["src"], ot = {
 				ref_key: "root",
 				ref: m,
 				class: T(["mjr-studio-player", {
-					"is-audio": t.kind === "audio",
-					"is-compact": t.compact,
+					"is-audio": e.kind === "audio",
+					"is-compact": e.compact,
 					"controls-hidden": !H.value
 				}]),
 				onPointermove: wt,
 				onClick: J
 			}, [
-				t.kind === "video" ? (y(), w("div", {
+				e.kind === "video" ? (y(), w("div", {
 					key: 0,
 					ref_key: "screen",
 					ref: ae,
@@ -1871,12 +1871,12 @@ var it = ["src"], at = ["src"], ot = {
 				}, [
 					d("div", {
 						class: "mjr-studio-player__layers",
-						style: S(t.mediaFilter ? { filter: t.mediaFilter } : void 0)
+						style: S(e.mediaFilter ? { filter: e.mediaFilter } : void 0)
 					}, [d("video", {
 						ref_key: "media",
 						ref: o,
-						class: T(["mjr-studio-player__media", t.mediaClass]),
-						src: t.src,
+						class: T(["mjr-studio-player__media", e.mediaClass]),
+						src: e.src,
 						playsinline: "",
 						preload: "auto",
 						onPlay: Me,
@@ -1889,9 +1889,9 @@ var it = ["src"], at = ["src"], ot = {
 					}, null, 42, it), Se.value ? (y(), w("video", {
 						ref_key: "mediaB",
 						ref: oe,
-						key: `b:${t.compareSrc}`,
+						key: `b:${e.compareSrc}`,
 						class: "mjr-studio-player__media is-b",
-						src: t.compareSrc || "",
+						src: e.compareSrc || "",
 						playsinline: "",
 						muted: "",
 						preload: "auto",
@@ -1907,10 +1907,10 @@ var it = ["src"], at = ["src"], ot = {
 					}), we.value ? (y(), w("div", {
 						key: 0,
 						class: T(["mjr-studio-stage__divider", {
-							"is-vertical": t.compare === "wipeV",
+							"is-vertical": e.compare === "wipeV",
 							"is-active": se.value
 						}]),
-						style: S(t.compare === "wipeV" ? { top: `${Te.value}%` } : { left: `${Te.value}%` }),
+						style: S(e.compare === "wipeV" ? { top: `${Te.value}%` } : { left: `${Te.value}%` }),
 						onClick: r[1] ||= g(() => {}, ["stop"]),
 						onDblclick: r[2] ||= g((e) => a("update:wipe", 50), ["stop"]),
 						onPointerdown: g(Y, ["stop"]),
@@ -1920,7 +1920,7 @@ var it = ["src"], at = ["src"], ot = {
 					}, [...r[12] ||= [d("span", { class: "mjr-studio-stage__divider-grip" }, null, -1)]], 38)) : p("", !0)], 4),
 					Se.value ? (y(), w("div", ot, [
 						r[13] ||= d("span", null, "A", -1),
-						d("span", st, x(t.compare === "wipeV" ? "/" : "|"), 1),
+						d("span", st, x(e.compare === "wipeV" ? "/" : "|"), 1),
 						r[14] ||= d("span", null, "B", -1)
 					])) : p("", !0)
 				], 34)) : (y(), w("div", {
@@ -1935,11 +1935,11 @@ var it = ["src"], at = ["src"], ot = {
 						"aria-hidden": "true"
 					}, null, 512), [[b, ue.value]]),
 					s(d("i", ct, null, 512), [[b, !ue.value]]),
-					d("span", null, x(t.filename), 1),
+					d("span", null, x(e.filename), 1),
 					d("audio", {
 						ref_key: "media",
 						ref: o,
-						src: t.src,
+						src: e.src,
 						preload: "auto",
 						onPlay: Me,
 						onPause: Q,
@@ -1954,7 +1954,7 @@ var it = ["src"], at = ["src"], ot = {
 					key: 2,
 					type: "button",
 					class: "mjr-studio-player__big-play",
-					"aria-label": E(e)("viewer.studio.play", "Play"),
+					"aria-label": E(t)("viewer.studio.play", "Play"),
 					onClick: $
 				}, {
 					default: h(() => [...r[15] ||= [d("i", {
@@ -1972,7 +1972,7 @@ var it = ["src"], at = ["src"], ot = {
 					ref: ie,
 					class: "mjr-studio-player__track",
 					role: "slider",
-					"aria-label": E(e)("viewer.studio.seek", "Seek"),
+					"aria-label": E(t)("viewer.studio.seek", "Seek"),
 					"aria-valuemin": 0,
 					"aria-valuemax": P.value,
 					"aria-valuenow": N.value,
@@ -2007,7 +2007,7 @@ var it = ["src"], at = ["src"], ot = {
 					f(i, {
 						type: "button",
 						class: "mjr-studio-btn",
-						title: E(e)("viewer.studio.playPause", "Play / pause (Space)"),
+						title: E(t)("viewer.studio.playPause", "Play / pause (Space)"),
 						onClick: $
 					}, {
 						default: h(() => [d("i", {
@@ -2016,10 +2016,10 @@ var it = ["src"], at = ["src"], ot = {
 						}, null, 2)]),
 						_: 1
 					}, 8, ["title"]),
-					t.kind === "video" ? (y(), w(l, { key: 0 }, [f(i, {
+					e.kind === "video" ? (y(), w(l, { key: 0 }, [f(i, {
 						type: "button",
 						class: "mjr-studio-btn",
-						title: E(e)("viewer.studio.prevFrame", "Previous frame (,)"),
+						title: E(t)("viewer.studio.prevFrame", "Previous frame (,)"),
 						onClick: r[6] ||= (e) => ze(-1)
 					}, {
 						default: h(() => [...r[16] ||= [d("i", {
@@ -2030,7 +2030,7 @@ var it = ["src"], at = ["src"], ot = {
 					}, 8, ["title"]), f(i, {
 						type: "button",
 						class: "mjr-studio-btn",
-						title: E(e)("viewer.studio.nextFrame", "Next frame (.)"),
+						title: E(t)("viewer.studio.nextFrame", "Next frame (.)"),
 						onClick: r[7] ||= (e) => ze(1)
 					}, {
 						default: h(() => [...r[17] ||= [d("i", {
@@ -2040,10 +2040,10 @@ var it = ["src"], at = ["src"], ot = {
 						_: 1
 					}, 8, ["title"])], 64)) : p("", !0),
 					d("span", pt, [C(x(E(Ke)(N.value)) + " ", 1), d("span", mt, "/ " + x(E(Ke)(P.value)), 1)]),
-					t.kind === "video" && W.value ? (y(), w("span", {
+					e.kind === "video" && W.value ? (y(), w("span", {
 						key: 1,
 						class: "mjr-studio-chip",
-						title: E(e)("viewer.studio.frame", "Frame")
+						title: E(t)("viewer.studio.frame", "Frame")
 					}, [
 						C(" f " + x(G.value), 1),
 						_e.value ? (y(), w(l, { key: 0 }, [C(" / " + x(_e.value - 1), 1)], 64)) : p("", !0),
@@ -2052,7 +2052,7 @@ var it = ["src"], at = ["src"], ot = {
 					r[24] ||= d("span", { class: "mjr-studio-player__spacer" }, null, -1),
 					d("div", {
 						class: "mjr-studio-player__group",
-						title: E(e)("viewer.studio.abLoop", "A-B loop (I / O, U to clear)")
+						title: E(t)("viewer.studio.abLoop", "A-B loop (I / O, U to clear)")
 					}, [
 						f(i, {
 							type: "button",
@@ -2074,7 +2074,7 @@ var it = ["src"], at = ["src"], ot = {
 							key: 0,
 							type: "button",
 							class: "mjr-studio-btn",
-							title: E(e)("viewer.studio.clearLoop", "Clear A-B loop"),
+							title: E(t)("viewer.studio.clearLoop", "Clear A-B loop"),
 							onClick: xt
 						}, {
 							default: h(() => [...r[20] ||= [d("i", {
@@ -2087,7 +2087,7 @@ var it = ["src"], at = ["src"], ot = {
 					f(i, {
 						type: "button",
 						class: T(["mjr-studio-btn", { "is-on": z.value }]),
-						title: E(e)("viewer.studio.loop", "Loop"),
+						title: E(t)("viewer.studio.loop", "Loop"),
 						onClick: r[8] ||= (e) => z.value = !z.value
 					}, {
 						default: h(() => [...r[21] ||= [d("i", {
@@ -2099,7 +2099,7 @@ var it = ["src"], at = ["src"], ot = {
 					f(i, {
 						type: "button",
 						class: T(["mjr-studio-btn is-text", { "is-on": R.value !== 1 }]),
-						title: E(e)("viewer.studio.speed", "Speed ([ / ])"),
+						title: E(t)("viewer.studio.speed", "Speed ([ / ])"),
 						onClick: r[9] ||= (e) => Je(1, !0)
 					}, {
 						default: h(() => [C(x(R.value) + "×", 1)]),
@@ -2108,7 +2108,7 @@ var it = ["src"], at = ["src"], ot = {
 					d("div", _t, [f(i, {
 						type: "button",
 						class: "mjr-studio-btn",
-						title: E(e)("viewer.studio.mute", "Mute (M)"),
+						title: E(t)("viewer.studio.mute", "Mute (M)"),
 						onClick: et
 					}, {
 						default: h(() => [d("i", {
@@ -2119,7 +2119,7 @@ var it = ["src"], at = ["src"], ot = {
 					}, 8, ["title"]), d("div", {
 						class: "mjr-studio-player__volume",
 						role: "slider",
-						"aria-label": E(e)("viewer.studio.volume", "Volume"),
+						"aria-label": E(t)("viewer.studio.volume", "Volume"),
 						"aria-valuemin": 0,
 						"aria-valuemax": 1,
 						"aria-valuenow": L.value ? 0 : I.value,
@@ -2130,11 +2130,11 @@ var it = ["src"], at = ["src"], ot = {
 						class: "mjr-studio-player__volume-fill",
 						style: S({ width: `${(L.value ? 0 : I.value) * 100}%` })
 					}, null, 4)], 40, vt)]),
-					t.kind === "video" ? (y(), u(i, {
+					e.kind === "video" ? (y(), u(i, {
 						key: 2,
 						type: "button",
 						class: "mjr-studio-btn",
-						title: E(e)("viewer.studio.exportFrame", "Save this frame as PNG"),
+						title: E(t)("viewer.studio.exportFrame", "Save this frame as PNG"),
 						onClick: Ct
 					}, {
 						default: h(() => [...r[22] ||= [d("i", {
@@ -2143,11 +2143,11 @@ var it = ["src"], at = ["src"], ot = {
 						}, null, -1)]]),
 						_: 1
 					}, 8, ["title"])) : p("", !0),
-					t.kind === "video" ? (y(), u(i, {
+					e.kind === "video" ? (y(), u(i, {
 						key: 3,
 						type: "button",
 						class: "mjr-studio-btn",
-						title: E(e)("viewer.studio.fullscreen", "Fullscreen (F)"),
+						title: E(t)("viewer.studio.fullscreen", "Fullscreen (F)"),
 						onClick: St
 					}, {
 						default: h(() => [...r[23] ||= [d("i", {
