@@ -1,9 +1,9 @@
 import { in as e, or as t, t as n } from "./config-C9a-wT5M.js";
-import { m as r, p as i, v as a } from "./generationSectionState-BQ1Yzk6L.js";
+import { _ as r, f as i, p as a } from "./generationSectionState-DuXxSw-j.js";
 import { r as o } from "./events-1iwo5blr.js";
-import { $ as s, B as c, C as l, D as u, E as d, H as ee, J as te, M as f, O as p, P as ne, Q as m, S as h, T as g, V as _, W as v, X as re, b as y, gt as b, ht as x, j as S, k as C, mt as w, pt as T, q as ie, st as E } from "./mjr-primevue-C07IsEdU.js";
+import { $ as s, B as c, C as l, D as u, E as d, H as ee, J as te, M as f, O as p, P as m, Q as h, S as g, T as _, V as v, W as y, X as ne, b, gt as x, ht as S, j as C, k as w, mt as T, pt as E, q as re, st as D } from "./mjr-primevue-C07IsEdU.js";
 // ui/features/viewer/model3dCore.ts
-function ae(e, t) {
+function ie(e, t) {
 	if (e && typeof t == "function") try {
 		e.traverse?.((e) => {
 			(e?.isMesh || e?.isPoints || e?.isLine) && t(e);
@@ -12,7 +12,7 @@ function ae(e, t) {
 		console.debug?.(e);
 	}
 }
-function oe(e) {
+function ae(e) {
 	let t = !1;
 	try {
 		e.traverse?.((e) => {
@@ -23,14 +23,14 @@ function oe(e) {
 	}
 	return t;
 }
-function se(e) {
+function oe(e) {
 	let t = /* @__PURE__ */ new Map();
-	return ae(e, (e) => {
+	return ie(e, (e) => {
 		t.set(e.uuid, e.material);
 	}), t;
 }
-function D(e, t, n, r, i) {
-	ae(t, (t) => {
+function O(e, t, n, r, i) {
+	ie(t, (t) => {
 		try {
 			if (n === "original") {
 				let e = r?.get(t.uuid);
@@ -61,7 +61,7 @@ function D(e, t, n, r, i) {
 		}
 	});
 }
-function ce(e) {
+function se(e) {
 	if (e) {
 		for (let t of e) try {
 			t?.dispose?.();
@@ -71,7 +71,7 @@ function ce(e) {
 		e.clear();
 	}
 }
-function le(e, t) {
+function ce(e, t) {
 	try {
 		if (t === "gltf" || t === "fbx") return Array.isArray(e?.animations) ? e.animations : [];
 	} catch (e) {
@@ -79,7 +79,7 @@ function le(e, t) {
 	}
 	return [];
 }
-function ue(e, t) {
+function le(e, t) {
 	let n = new e.Box3().setFromObject(t);
 	if (n.isEmpty()) return null;
 	let r = n.getSize(new e.Vector3()), i = n.getCenter(new e.Vector3()), a = Math.max(r.x, r.y, r.z, .01);
@@ -91,12 +91,12 @@ function ue(e, t) {
 		radius: Math.max(a * .72, .5)
 	};
 }
-function de(e, t, n, r) {
+function ue(e, t, n, r) {
 	if (!r || !t || !n) return;
 	let i = t.fov * (Math.PI / 180), a = r.maxDim / (2 * Math.tan(i / 2)) * 1.55, o = new e.Vector3(1, .8, 1).normalize();
 	t.position.copy(r.center).addScaledVector(o, a), t.near = Math.max(.01, a / 250), t.far = Math.max(1e3, a * 60), t.updateProjectionMatrix(), n.target.copy(r.center), n.minDistance = Math.max(.01, a / 25), n.maxDistance = Math.max(10, a * 12), n.minZoom = .25, n.maxZoom = 12, n.update();
 }
-function O(e, t, n, r) {
+function k(e, t, n, r) {
 	if (!n || !e || !t) return null;
 	let i = Math.max(1e-4, Number(r) || 1), a = Math.max(n.maxDim * 1.9, 2), o = a * i;
 	return e.left = -o / 2, e.right = o / 2, e.top = a / 2, e.bottom = -a / 2, e.near = -Math.max(1e3, n.maxDim * 40), e.far = Math.max(1e3, n.maxDim * 40), e.zoom = 1, e.position.copy(n.center).add({
@@ -105,7 +105,7 @@ function O(e, t, n, r) {
 		z: n.radius * 2.1
 	}), e.updateProjectionMatrix(), t.target.copy(n.center), t.minZoom = .25, t.maxZoom = 12, t.minDistance = 0, t.maxDistance = Math.max(10, n.maxDim * 12), t.update(), a;
 }
-function k(e, t, n) {
+function A(e, t, n) {
 	if (!n) return null;
 	if (t === "gltf") return n.scene || null;
 	if (t === "obj" || t === "fbx") return n;
@@ -132,8 +132,8 @@ function k(e, t, n) {
 	return null;
 }
 // ui/features/viewer/model3dLoaders.ts
-var A = "/mjr/am/vendor/three", fe = null;
-function pe(e, t, n) {
+var j = "/mjr/am/vendor/three", de = null;
+function fe(e, t, n) {
 	switch (t) {
 		case "gltf": return new e.GLTFLoader(n);
 		case "obj": return new e.OBJLoader(n);
@@ -143,44 +143,44 @@ function pe(e, t, n) {
 		default: return null;
 	}
 }
-function j(e, t, n) {
+function M(e, t, n) {
 	return new Promise((t, r) => {
 		!e || !n ? r(/* @__PURE__ */ Error("Missing loader or URL")) : typeof e.loadAsync == "function" ? e.loadAsync(n).then(t).catch(r) : e.load(n, t, void 0, r);
 	});
 }
-function M() {
-	return fe || (fe = Promise.all([
+function N() {
+	return de || (de = Promise.all([
 		import(
 			/* @vite-ignore */
-			`${A}/three.module.js`
+			`${j}/three.module.js`
 ),
 		import(
 			/* @vite-ignore */
-			`${A}/addons/controls/OrbitControls.js`
+			`${j}/addons/controls/OrbitControls.js`
 ),
 		import(
 			/* @vite-ignore */
-			`${A}/addons/loaders/GLTFLoader.js`
+			`${j}/addons/loaders/GLTFLoader.js`
 ),
 		import(
 			/* @vite-ignore */
-			`${A}/addons/loaders/FBXLoader.js`
+			`${j}/addons/loaders/FBXLoader.js`
 ),
 		import(
 			/* @vite-ignore */
-			`${A}/addons/loaders/OBJLoader.js`
+			`${j}/addons/loaders/OBJLoader.js`
 ),
 		import(
 			/* @vite-ignore */
-			`${A}/addons/loaders/MTLLoader.js`
+			`${j}/addons/loaders/MTLLoader.js`
 ),
 		import(
 			/* @vite-ignore */
-			`${A}/addons/loaders/STLLoader.js`
+			`${j}/addons/loaders/STLLoader.js`
 ),
 		import(
 			/* @vite-ignore */
-			`${A}/addons/loaders/PLYLoader.js`
+			`${j}/addons/loaders/PLYLoader.js`
 )
 	]).then(([e, t, n, r, i, a, o, s]) => ({
 		THREE: e,
@@ -191,10 +191,10 @@ function M() {
 		MTLLoader: a.MTLLoader,
 		STLLoader: o.STLLoader,
 		PLYLoader: s.PLYLoader
-	})), fe);
+	})), de);
 }
 // ui/features/viewer/imageProcessor.ts
-function N(e, t, n) {
+function P(e, t, n) {
 	if (!e) return;
 	try {
 		e.width > 1 && e.height > 1 || (e.width = 960, e.height = 540);
@@ -236,14 +236,14 @@ function N(e, t, n) {
 	}
 }
 // ui/features/viewer/model3dSupport.ts
-var P = [
+var F = [
 	.25,
 	.5,
 	1,
 	1.5,
 	2
-], F = 44;
-function I(e, { preventDefault: t = !1, immediate: n = !1 } = {}) {
+], I = 44;
+function L(e, { preventDefault: t = !1, immediate: n = !1 } = {}) {
 	if (e) {
 		try {
 			t && e.preventDefault?.();
@@ -257,20 +257,20 @@ function I(e, { preventDefault: t = !1, immediate: n = !1 } = {}) {
 		}
 	}
 }
-function L(e) {
+function R(e) {
 	let t = Math.max(0, Number(e) || 0), n = Math.floor(t / 60), r = Math.floor(t % 60);
 	return n > 0 ? `${n}:${String(r).padStart(2, "0")}` : `${Math.floor(t)}s`;
 }
-function R(t, n) {
+function z(t, n) {
 	let r = document.createElement("button");
 	return r.type = "button", r.textContent = String(t || ""), r.title = String(n || t || ""), r.setAttribute("aria-label", String(n || t || e("model3d.viewportAction", "3D viewport action"))), r.style.cssText = "height:28px;padding:0 10px;border-radius:999px;border:1px solid rgba(255,255,255,0.16);background:rgba(13,15,20,0.78);color:rgba(255,255,255,0.92);font:600 11px system-ui,sans-serif;letter-spacing:0.02em;cursor:pointer;backdrop-filter:blur(8px);display:inline-flex;align-items:center;justify-content:center;box-shadow:0 4px 18px rgba(0,0,0,0.24)", r;
 }
-function z(e, t) {
+function B(e, t) {
 	if (!e) return;
 	let n = !!t;
 	e.dataset.active = n ? "1" : "0", e.style.background = n ? "rgba(76,175,80,0.18)" : "rgba(13,15,20,0.78)", e.style.borderColor = n ? "rgba(76,175,80,0.42)" : "rgba(255,255,255,0.16)", e.style.color = n ? "rgba(230,255,235,0.96)" : "rgba(255,255,255,0.92)";
 }
-function B(t, n, r = "", i = "#4CAF50") {
+function V(t, n, r = "", i = "#4CAF50") {
 	if (!t) return;
 	try {
 		let e = Math.max(480, Number(t.width) || 960), n = Math.max(270, Number(t.height) || 540);
@@ -293,13 +293,13 @@ function B(t, n, r = "", i = "#4CAF50") {
 	} catch (i) {
 		console.debug?.(i);
 		try {
-			N(t, n, r || e("model3d.unavailable", "3D viewer unavailable"));
+			P(t, n, r || e("model3d.unavailable", "3D viewer unavailable"));
 		} catch (e) {
 			console.debug?.(e);
 		}
 	}
 }
-function me({ defaultBgColor: t, defaultFov: n, defaultLightIntensity: r, hasSkeleton: i } = {}) {
+function pe({ defaultBgColor: t, defaultFov: n, defaultLightIntensity: r, hasSkeleton: i } = {}) {
 	let a = document.createElement("div");
 	a.className = "mjr-model3d-settings", a.style.cssText = "position:absolute;right:0;top:44px;width:210px;max-height:calc(100% - 100px);overflow-y:auto;background:rgba(14,18,26,0.96);border:1px solid rgba(255,255,255,0.10);border-right:none;border-radius:10px 0 0 10px;padding:10px 10px 12px 10px;z-index:4;display:none;box-shadow:-6px 4px 24px rgba(0,0,0,0.5);backdrop-filter:blur(12px);font:13px system-ui,sans-serif;color:rgba(255,255,255,0.88);scrollbar-width:thin", [
 		"pointerdown",
@@ -315,7 +315,7 @@ function me({ defaultBgColor: t, defaultFov: n, defaultLightIntensity: r, hasSke
 		"dragover",
 		"drop"
 	].forEach((e) => {
-		a.addEventListener(e, (e) => I(e, { preventDefault: !1 }));
+		a.addEventListener(e, (e) => L(e, { preventDefault: !1 }));
 	});
 	let o = (e) => {
 		let t = document.createElement("div");
@@ -374,8 +374,8 @@ function me({ defaultBgColor: t, defaultFov: n, defaultLightIntensity: r, hasSke
 	i && (f = document.createElement("input"), f.type = "checkbox", f.checked = !1, f.style.cssText = "cursor:pointer;accent-color:#4CAF50;flex-shrink:0;", te = s(e("model3d.skeleton", "Skeleton"), f)), o("Camera");
 	let p = l(15, 120, 1, n ?? 75);
 	s("FOV", p.wrap), o(e("model3d.lights", "Lights"));
-	let ne = l(0, 5, .1, r ?? 1);
-	return s(e("model3d.intensity", "Intensity"), ne.wrap), {
+	let m = l(0, 5, .1, r ?? 1);
+	return s(e("model3d.intensity", "Intensity"), m.wrap), {
 		panel: a,
 		bgInput: u,
 		materialSel: d,
@@ -384,18 +384,18 @@ function me({ defaultBgColor: t, defaultFov: n, defaultLightIntensity: r, hasSke
 		skeletonRow: te,
 		fovSlider: p.slider,
 		fovValLbl: p.valLbl,
-		lightSlider: ne.slider,
-		lightValLbl: ne.valLbl
+		lightSlider: m.slider,
+		lightValLbl: m.valLbl
 	};
 }
-function he() {
+function me() {
 	let t = document.createElement("div");
 	t.className = "mjr-model3d-anim-bar", t.style.cssText = [
 		"position:absolute",
 		"bottom:0",
 		"left:0",
 		"right:0",
-		`height:${F}px`,
+		`height:${I}px`,
 		"display:none",
 		"align-items:center",
 		"gap:7px",
@@ -414,13 +414,13 @@ function he() {
 		"wheel",
 		"click"
 	].forEach((e) => {
-		t.addEventListener(e, (e) => I(e, { preventDefault: !1 }));
+		t.addEventListener(e, (e) => L(e, { preventDefault: !1 }));
 	});
 	let n = document.createElement("button");
 	n.type = "button", n.textContent = e("model3d.play", "Play"), n.title = e("model3d.playPause", "Play / Pause"), n.style.cssText = "width:28px;height:28px;border-radius:50%;border:1px solid rgba(255,255,255,0.18);background:rgba(76,175,80,0.14);color:rgba(255,255,255,0.92);font:600 12px system-ui,sans-serif;cursor:pointer;flex-shrink:0;padding:0;line-height:1;display:flex;align-items:center;justify-content:center";
 	let r = document.createElement("select");
 	r.title = e("model3d.playbackSpeed", "Playback speed"), r.style.cssText = "background:rgba(20,24,34,0.9);color:rgba(255,255,255,0.8);border:1px solid rgba(255,255,255,0.14);border-radius:6px;padding:3px 4px;font:11px system-ui,sans-serif;cursor:pointer;width:52px;flex-shrink:0";
-	for (let e of P) {
+	for (let e of F) {
 		let t = document.createElement("option");
 		t.value = String(e), t.textContent = `${e}x`, e === 1 && (t.selected = !0), r.appendChild(t);
 	}
@@ -439,7 +439,7 @@ function he() {
 	};
 }
 // ui/features/viewer/model3dRenderer.impl.ts
-var V = Object.freeze({
+var H = Object.freeze({
 	".gltf": "gltf",
 	".glb": "gltf",
 	".obj": "obj",
@@ -449,13 +449,13 @@ var V = Object.freeze({
 	".splat": "splat",
 	".ksplat": "splat",
 	".spz": "splat"
-}), H = new Set(Object.keys(V)), ge = /* @__PURE__ */ new Set([
+}), U = new Set(Object.keys(H)), he = /* @__PURE__ */ new Set([
 	"gltf",
 	"obj",
 	"fbx",
 	"stl",
 	"ply"
-]), _e = "#282828", U = e("model3d.controlHint", "Rotate: left drag  Pan: right drag  Zoom: wheel"), W = Object.freeze({
+]), ge = "#282828", W = e("model3d.controlHint", "Rotate: left drag  Pan: right drag  Zoom: wheel"), G = Object.freeze({
 	PERSPECTIVE: "perspective",
 	ORTHOGRAPHIC: "orthographic"
 });
@@ -466,7 +466,7 @@ Object.freeze({
 	WIREFRAME: "wireframe",
 	POINTCLOUD: "pointcloud"
 });
-var ve = Object.freeze({
+var _e = Object.freeze({
 	original: [
 		0,
 		0,
@@ -502,7 +502,7 @@ var ve = Object.freeze({
 		0,
 		-Math.PI / 2
 	]
-}), ye = 75, be = 1, G = Object.freeze({
+}), ve = 75, ye = 1, K = Object.freeze({
 	ambient: .5,
 	main: .8,
 	fill: .3,
@@ -510,7 +510,7 @@ var ve = Object.freeze({
 	rim: .3,
 	bottom: .2
 });
-function xe(e) {
+function be(e) {
 	try {
 		let t = String(e?.ext || "").trim().toLowerCase();
 		if (t) return t.startsWith(".") ? t : `.${t}`;
@@ -525,24 +525,24 @@ function xe(e) {
 	}
 	return "";
 }
-function Se(e) {
+function xe(e) {
 	let t = String(e || "").trim();
 	return t ? t.startsWith("/") || /^[a-z][\w+\-.]*:/i.test(t) : !1;
 }
-function K(e) {
-	return String(e?.loader || e?.viewer_info?.loader || "").trim().toLowerCase() || V[xe(e)] || "";
+function q(e) {
+	return String(e?.loader || e?.viewer_info?.loader || "").trim().toLowerCase() || H[be(e)] || "";
+}
+function Se(e) {
+	return q(e) || "gltf";
 }
 function Ce(e) {
-	return K(e) || "gltf";
-}
-function we(e) {
 	try {
 		return !!e?.closest?.(".mjr-model3d-host, .mjr-viewer-model3d-host, .mjr-mfv-model3d-host");
 	} catch {
 		return !1;
 	}
 }
-function Te(e, t) {
+function we(e, t) {
 	let n = t || {
 		ROTATE: 0,
 		DOLLY: 1,
@@ -554,7 +554,7 @@ function Te(e, t) {
 		RIGHT: n.PAN
 	};
 }
-function Ee(r, i, a = {}) {
+function Te(r, i, a = {}) {
 	let s = a?.pauseDuringExecution == null ? !!n?.VIEWER_PAUSE_DURING_EXECUTION : !!a.pauseDuringExecution, c = document.createElement("div");
 	c.className = a.hostClassName || "mjr-model3d-host mjr-viewer-model3d-host", c.style.cssText = a.hostStyle || "width:100%;height:100%;display:flex;align-items:stretch;justify-content:stretch;position:relative;overflow:hidden;border-radius:12px;background:radial-gradient(circle at top, rgba(76,175,80,0.10), rgba(0,0,0,0) 42%), linear-gradient(180deg, rgba(40,40,40,0.98), rgba(19,22,28,0.99));box-shadow:inset 0 0 0 1px rgba(255,255,255,0.06)", c.setAttribute("data-capture-wheel", "true"), c.tabIndex = -1;
 	let l = document.createElement("canvas");
@@ -567,7 +567,7 @@ function Ee(r, i, a = {}) {
 	c.appendChild(l);
 	let u = document.createElement("canvas");
 	u.className = "mjr-model3d-status", u.style.cssText = "position:absolute;inset:0;display:block;width:100%;height:100%;pointer-events:none;z-index:1", c.appendChild(u);
-	let d = xe(r).replace(".", "").toUpperCase();
+	let d = be(r).replace(".", "").toUpperCase();
 	if (d) {
 		let e = document.createElement("div");
 		e.className = "mjr-model3d-badge", e.textContent = d, e.style.cssText = "position:absolute;top:10px;left:10px;padding:4px 8px;border-radius:999px;font:700 10px system-ui,sans-serif;letter-spacing:0.08em;color:#fff;background:rgba(76,175,80,0.9);pointer-events:none;z-index:2", c.appendChild(e);
@@ -576,33 +576,33 @@ function Ee(r, i, a = {}) {
 	ee.className = "mjr-model3d-toolbar", ee.style.cssText = "position:absolute;top:10px;right:10px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;pointer-events:none;z-index:5";
 	let te = document.createElement("div");
 	te.style.cssText = "display:flex;align-items:center;gap:6px;flex-wrap:wrap;pointer-events:auto;";
-	let f = R(e("model3d.reset", "Reset"), e("model3d.resetView", "Reset 3D view")), p = R(e("model3d.grid", "Grid"), e("model3d.toggleGrid", "Toggle grid")), ne = R(e("model3d.persp", "Persp"), e("model3d.switchCamera", "Switch perspective / orthographic")), m = R(e("model3d.settings", "Settings"), e("model3d.settings", "Settings"));
-	te.append(f, p, ne, m), ee.appendChild(te), c.appendChild(ee);
-	let h = document.createElement("div");
-	h.className = "mjr-model3d-hint", h.textContent = a.hintText || U, h.style.cssText = "position:absolute;right:10px;bottom:10px;padding:5px 10px;border-radius:999px;font:500 11px system-ui,sans-serif;color:rgba(255,255,255,0.75);background:rgba(0,0,0,0.35);backdrop-filter:blur(6px);pointer-events:none;z-index:2;transition:bottom 0.2s", c.appendChild(h);
-	let g = me({
-		defaultBgColor: _e,
-		defaultFov: ye,
-		defaultLightIntensity: be,
+	let f = z(e("model3d.reset", "Reset"), e("model3d.resetView", "Reset 3D view")), p = z(e("model3d.grid", "Grid"), e("model3d.toggleGrid", "Toggle grid")), m = z(e("model3d.persp", "Persp"), e("model3d.switchCamera", "Switch perspective / orthographic")), h = z(e("model3d.settings", "Settings"), e("model3d.settings", "Settings"));
+	te.append(f, p, m, h), ee.appendChild(te), c.appendChild(ee);
+	let g = document.createElement("div");
+	g.className = "mjr-model3d-hint", g.textContent = a.hintText || W, g.style.cssText = "position:absolute;right:10px;bottom:10px;padding:5px 10px;border-radius:999px;font:500 11px system-ui,sans-serif;color:rgba(255,255,255,0.75);background:rgba(0,0,0,0.35);backdrop-filter:blur(6px);pointer-events:none;z-index:2;transition:bottom 0.2s", c.appendChild(g);
+	let _ = pe({
+		defaultBgColor: ge,
+		defaultFov: ve,
+		defaultLightIntensity: ye,
 		hasSkeleton: !1
 	});
-	c.appendChild(g.panel);
-	let _ = he();
-	c.appendChild(_.bar);
-	let v = !1, re = null, y = null, b = null, x = null, S = null, C = null, w = null, T = null, ie = null, E = null, ae = !1, A = null, fe = null, N = null, P = null, F = null, V = null, H = 0, K = W.PERSPECTIVE, we = /* @__PURE__ */ new Map(), Ee = /* @__PURE__ */ new Set(), q = null, De = !1, Oe = null, ke = [], J = be, Y = null, Ae = null, X = [], Z = [], Q = 0, je = 1, $ = !1, Me = !1, Ne = !1, Pe = String(r?.filename || "3D model"), Fe = () => {
+	c.appendChild(_.panel);
+	let v = me();
+	c.appendChild(v.bar);
+	let y = !1, ne = null, b = null, x = null, S = null, C = null, w = null, T = null, E = null, re = null, D = null, ie = !1, j = null, de = null, P = null, F = null, I = null, H = null, U = 0, q = G.PERSPECTIVE, Ce = /* @__PURE__ */ new Map(), Te = /* @__PURE__ */ new Set(), Ee = null, De = !1, Oe = null, ke = [], Ae = ye, J = null, je = null, Y = [], X = [], Z = 0, Me = 1, Q = !1, Ne = !1, Pe = !1, Fe = String(r?.filename || "3D model"), Ie = () => {
 		try {
 			a.scheduleOverlayRedraw?.();
 		} catch (e) {
 			console.debug?.(e);
 		}
-	}, Ie = (e, t = "", n = "#4CAF50") => {
-		A = {
+	}, $ = (e, t = "", n = "#4CAF50") => {
+		j = {
 			title: e,
 			hintText: t,
 			accent: n
-		}, u.style.display = "block", B(u, e, t, n);
+		}, u.style.display = "block", V(u, e, t, n);
 	}, Le = () => {
-		A = null, u.style.display = "none";
+		j = null, u.style.display = "none";
 	}, Re = () => {
 		try {
 			let e = c.getBoundingClientRect();
@@ -611,178 +611,178 @@ function Ee(r, i, a = {}) {
 			console.debug?.(e);
 		}
 		try {
-			A && B(u, A.title, A.hintText, A.accent);
+			j && V(u, j.title, j.hintText, j.accent);
 		} catch (e) {
 			console.debug?.(e);
 		}
 	}, ze = (e, t) => {
-		if (!w || !(H > 0)) return;
-		let n = Math.max(1e-4, (Number(e) || 1) / Math.max(1, Number(t) || 1)), r = H * n;
-		w.left = -r / 2, w.right = r / 2, w.top = H / 2, w.bottom = -H / 2, w.updateProjectionMatrix();
+		if (!T || !(U > 0)) return;
+		let n = Math.max(1e-4, (Number(e) || 1) / Math.max(1, Number(t) || 1)), r = U * n;
+		T.left = -r / 2, T.right = r / 2, T.top = U / 2, T.bottom = -U / 2, T.updateProjectionMatrix();
 	}, Be = () => {
-		if (P && T && V) {
-			if (K === W.ORTHOGRAPHIC) {
+		if (F && E && H) {
+			if (q === G.ORTHOGRAPHIC) {
 				let e = c.getBoundingClientRect();
-				H = O(w, T, V, Math.max(1e-4, (e.width || 1) / Math.max(1, e.height || 1))) || H, S = w;
-			} else de(y, C, T, V), S = C;
+				U = k(T, E, H, Math.max(1e-4, (e.width || 1) / Math.max(1, e.height || 1))) || U, C = T;
+			} else ue(b, w, E, H), C = w;
 			try {
-				T.object = S, T.update();
+				E.object = C, E.update();
 			} catch (e) {
 				console.debug?.(e);
 			}
 		}
 	}, Ve = (e, { refit: t = !0 } = {}) => {
-		K = e === W.ORTHOGRAPHIC ? W.ORTHOGRAPHIC : W.PERSPECTIVE, S = K === W.ORTHOGRAPHIC ? w : C;
+		q = e === G.ORTHOGRAPHIC ? G.ORTHOGRAPHIC : G.PERSPECTIVE, C = q === G.ORTHOGRAPHIC ? T : w;
 		try {
-			T && (T.object = S);
+			E && (E.object = C);
 		} catch (e) {
 			console.debug?.(e);
 		}
 		if (t) Be();
 		else {
 			try {
-				S?.updateProjectionMatrix?.();
+				C?.updateProjectionMatrix?.();
 			} catch (e) {
 				console.debug?.(e);
 			}
 			try {
-				T?.update?.();
+				E?.update?.();
 			} catch (e) {
 				console.debug?.(e);
 			}
 		}
-		Xe(), Fe();
+		Xe(), Ie();
 	}, He = (e) => {
-		J = Math.max(0, Math.min(10, Number(e) || 0));
+		Ae = Math.max(0, Math.min(10, Number(e) || 0));
 		try {
-			Oe && (Oe.intensity = G.ambient * J);
+			Oe && (Oe.intensity = K.ambient * Ae);
 		} catch (e) {
 			console.debug?.(e);
 		}
 		let t = [
-			G.main,
-			G.back,
-			G.fill,
-			G.fill,
-			G.bottom
+			K.main,
+			K.back,
+			K.fill,
+			K.fill,
+			K.bottom
 		];
 		ke.forEach((e, n) => {
 			try {
-				e && (e.intensity = (t[n] ?? G.fill) * J);
+				e && (e.intensity = (t[n] ?? K.fill) * Ae);
 			} catch (e) {
 				console.debug?.(e);
 			}
 		});
 	}, Ue = (e) => {
-		F && y && (ce(Ee), D(y, F, e, we, Ee), Fe());
+		I && b && (se(Te), O(b, I, e, Ce, Te), Ie());
 	}, We = (e) => {
-		if (!P) return;
-		let t = ve[e] || [
+		if (!F) return;
+		let t = _e[e] || [
 			0,
 			0,
 			0
 		];
 		try {
-			P.rotation.set(t[0], t[1], t[2]), P.updateMatrixWorld(!0);
+			F.rotation.set(t[0], t[1], t[2]), F.updateMatrixWorld(!0);
 		} catch (e) {
 			console.debug?.(e);
 		}
-		y && (V = ue(y, P)), Be();
+		b && (H = le(b, F)), Be();
 	}, Ge = (e) => {
-		if (q) try {
-			q.visible = !!e;
+		if (Ee) try {
+			Ee.visible = !!e;
 		} catch (e) {
 			console.debug?.(e);
 		}
 	}, Ke = () => {
-		if (!Y || X.length === 0) return;
-		let e = Z[Q];
+		if (!J || Y.length === 0) return;
+		let e = X[Z];
 		if (!e) return;
-		let t = X[Q]?.duration || 0, n = e.time || 0;
+		let t = Y[Z]?.duration || 0, n = e.time || 0;
 		try {
-			_.timeLbl.textContent = `${L(n)} / ${L(t)}`;
+			v.timeLbl.textContent = `${R(n)} / ${R(t)}`;
 		} catch (e) {
 			console.debug?.(e);
 		}
-		if (!Me && t > 0) try {
-			let e = Number(_.progressSlider.max) || 1e3;
-			_.progressSlider.value = String(Math.round(n / t * e));
+		if (!Ne && t > 0) try {
+			let e = Number(v.progressSlider.max) || 1e3;
+			v.progressSlider.value = String(Math.round(n / t * e));
 		} catch (e) {
 			console.debug?.(e);
 		}
 	}, qe = (t) => {
-		if (!Y || !X.length) return;
-		let n = X[t];
+		if (!J || !Y.length) return;
+		let n = Y[t];
 		if (!n) return;
-		Z.forEach((e) => {
+		X.forEach((e) => {
 			try {
 				e?.stop();
 			} catch (e) {
 				console.debug?.(e);
 			}
 		});
-		let r = Y.clipAction(n);
-		r.timeScale = je, r.clampWhenFinished = !1, r.loop = y?.LoopRepeat ?? 2201, r.play(), Z[t] = r, Q = t, $ = !0, _.playBtn.textContent = e("model3d.pause", "Pause");
+		let r = J.clipAction(n);
+		r.timeScale = Me, r.clampWhenFinished = !1, r.loop = b?.LoopRepeat ?? 2201, r.play(), X[t] = r, Z = t, Q = !0, v.playBtn.textContent = e("model3d.pause", "Pause");
 		try {
 			let e = Math.max(100, Math.min(1e4, Math.round((n.duration || 1) * 100)));
-			_.progressSlider.max = String(e);
+			v.progressSlider.max = String(e);
 		} catch {}
 	}, Je = () => {
-		Y && X.length && ($ ? (Y.timeScale = 0, $ = !1, _.playBtn.textContent = e("model3d.play", "Play")) : (Y.timeScale = je, Z[Q]?.isRunning?.() ? ($ = !0, _.playBtn.textContent = e("model3d.pause", "Pause")) : qe(Q)));
+		J && Y.length && (Q ? (J.timeScale = 0, Q = !1, v.playBtn.textContent = e("model3d.play", "Play")) : (J.timeScale = Me, X[Z]?.isRunning?.() ? (Q = !0, v.playBtn.textContent = e("model3d.pause", "Pause")) : qe(Z)));
 	}, Ye = (e, t) => {
-		e && e.length !== 0 && y && (X = e, Y = new y.AnimationMixer(t), Ae = new y.Clock(), Z = Array(e.length).fill(null), _.animSel.innerHTML = "", e.forEach((e, t) => {
+		e && e.length !== 0 && b && (Y = e, J = new b.AnimationMixer(t), je = new b.Clock(), X = Array(e.length).fill(null), v.animSel.innerHTML = "", e.forEach((e, t) => {
 			let n = document.createElement("option");
-			n.value = String(t), n.textContent = e.name || `Animation ${t + 1}`, _.animSel.appendChild(n);
-		}), _.animSel.style.display = e.length > 1 ? "" : "none", _.bar.style.display = "flex", h.style.bottom = "54px", qe(0), _.playBtn.addEventListener("click", (e) => {
-			I(e), Je();
-		}), _.speedSel.addEventListener("change", () => {
-			je = Number(_.speedSel.value) || 1, Y.timeScale = $ ? je : 0;
-			let e = Z[Q];
-			e && (e.timeScale = je);
-		}), _.animSel.addEventListener("change", () => {
-			let e = Number(_.animSel.value) || 0;
+			n.value = String(t), n.textContent = e.name || `Animation ${t + 1}`, v.animSel.appendChild(n);
+		}), v.animSel.style.display = e.length > 1 ? "" : "none", v.bar.style.display = "flex", g.style.bottom = "54px", qe(0), v.playBtn.addEventListener("click", (e) => {
+			L(e), Je();
+		}), v.speedSel.addEventListener("change", () => {
+			Me = Number(v.speedSel.value) || 1, J.timeScale = Q ? Me : 0;
+			let e = X[Z];
+			e && (e.timeScale = Me);
+		}), v.animSel.addEventListener("change", () => {
+			let e = Number(v.animSel.value) || 0;
 			qe(e);
-		}), _.progressSlider.addEventListener("pointerdown", () => {
-			Me = !0;
-		}), _.progressSlider.addEventListener("pointerup", () => {
-			Me = !1;
-			let e = Z[Q], t = X[Q];
+		}), v.progressSlider.addEventListener("pointerdown", () => {
+			Ne = !0;
+		}), v.progressSlider.addEventListener("pointerup", () => {
+			Ne = !1;
+			let e = X[Z], t = Y[Z];
 			if (e && t) {
-				let n = Number(_.progressSlider.max) || 1e3, r = Number(_.progressSlider.value) / n * t.duration;
+				let n = Number(v.progressSlider.max) || 1e3, r = Number(v.progressSlider.value) / n * t.duration;
 				e.time = Math.max(0, Math.min(r, t.duration));
 			}
-		}), _.progressSlider.addEventListener("input", () => {
-			let e = Z[Q], t = X[Q];
-			if (e && t && Me) {
-				let n = Number(_.progressSlider.max) || 1e3, r = Number(_.progressSlider.value) / n * t.duration;
-				e.time = Math.max(0, Math.min(r, t.duration)), _.timeLbl.textContent = `${L(r)} / ${L(t.duration)}`;
+		}), v.progressSlider.addEventListener("input", () => {
+			let e = X[Z], t = Y[Z];
+			if (e && t && Ne) {
+				let n = Number(v.progressSlider.max) || 1e3, r = Number(v.progressSlider.value) / n * t.duration;
+				e.time = Math.max(0, Math.min(r, t.duration)), v.timeLbl.textContent = `${R(r)} / ${R(t.duration)}`;
 			}
 		}));
 	}, Xe = () => {
-		z(p, !!N?.visible), z(ne, K === W.ORTHOGRAPHIC), ne.textContent = K === W.ORTHOGRAPHIC ? e("model3d.ortho", "Ortho") : e("model3d.persp", "Persp"), z(m, Ne);
+		B(p, !!P?.visible), B(m, q === G.ORTHOGRAPHIC), m.textContent = q === G.ORTHOGRAPHIC ? e("model3d.ortho", "Ortho") : e("model3d.persp", "Persp"), B(h, Pe);
 	};
-	g.bgInput.addEventListener("input", () => {
-		let e = g.bgInput.value;
+	_.bgInput.addEventListener("input", () => {
+		let e = _.bgInput.value;
 		try {
-			x && (x.background = new ((y?.Color) || Object)(e));
+			S && (S.background = new ((b?.Color) || Object)(e));
 		} catch (e) {
 			console.debug?.(e);
 		}
-	}), g.materialSel.addEventListener("change", () => {
-		Ue(g.materialSel.value);
-	}), g.upSel.addEventListener("change", () => {
-		We(g.upSel.value);
-	}), g.skeletonToggle && g.skeletonToggle.addEventListener("change", () => {
-		Ge(g.skeletonToggle.checked);
-	}), g.fovSlider.addEventListener("input", () => {
-		let e = Math.max(1, Math.min(179, Number(g.fovSlider.value) || ye));
+	}), _.materialSel.addEventListener("change", () => {
+		Ue(_.materialSel.value);
+	}), _.upSel.addEventListener("change", () => {
+		We(_.upSel.value);
+	}), _.skeletonToggle && _.skeletonToggle.addEventListener("change", () => {
+		Ge(_.skeletonToggle.checked);
+	}), _.fovSlider.addEventListener("input", () => {
+		let e = Math.max(1, Math.min(179, Number(_.fovSlider.value) || ve));
 		try {
-			C && (C.fov = e, C.updateProjectionMatrix());
+			w && (w.fov = e, w.updateProjectionMatrix());
 		} catch (e) {
 			console.debug?.(e);
 		}
-	}), g.lightSlider.addEventListener("input", () => {
-		He(Number(g.lightSlider.value));
+	}), _.lightSlider.addEventListener("input", () => {
+		He(Number(_.lightSlider.value));
 	});
 	let Ze = () => {
 		let e = [], t = (t, n, r, i) => {
@@ -794,7 +794,7 @@ function Ee(r, i, a = {}) {
 			} catch (e) {
 				console.debug?.(e);
 			}
-		}), t(c, "wheel", (e) => I(e)), t(c, "contextmenu", (e) => I(e, { preventDefault: !0 })), t(c, "dragstart", (e) => I(e, { preventDefault: !0 })), t(c, "dragover", (e) => I(e, { preventDefault: !0 })), t(c, "dragleave", (e) => I(e)), t(c, "drop", (e) => I(e, { preventDefault: !0 })), () => {
+		}), t(c, "wheel", (e) => L(e)), t(c, "contextmenu", (e) => L(e, { preventDefault: !0 })), t(c, "dragstart", (e) => L(e, { preventDefault: !0 })), t(c, "dragover", (e) => L(e, { preventDefault: !0 })), t(c, "dragleave", (e) => L(e)), t(c, "drop", (e) => L(e, { preventDefault: !0 })), () => {
 			for (let t of e) try {
 				t();
 			} catch (e) {
@@ -802,7 +802,7 @@ function Ee(r, i, a = {}) {
 			}
 		};
 	}, Qe = () => {
-		v = !0;
+		y = !0;
 		try {
 			window.removeEventListener(o.RUNTIME_STATUS, tt);
 		} catch {}
@@ -810,57 +810,57 @@ function Ee(r, i, a = {}) {
 			c._mjr3D = null;
 		} catch {}
 		try {
-			ie != null && cancelAnimationFrame(ie);
-		} catch (e) {
-			console.debug?.(e);
-		}
-		ie = null;
-		try {
-			fe?.();
-		} catch (e) {
-			console.debug?.(e);
-		}
-		fe = null;
-		try {
-			re?.disconnect?.();
+			re != null && cancelAnimationFrame(re);
 		} catch (e) {
 			console.debug?.(e);
 		}
 		re = null;
 		try {
-			T?.dispose?.();
+			de?.();
 		} catch (e) {
 			console.debug?.(e);
 		}
-		T = null;
+		de = null;
 		try {
-			Y?.stopAllAction?.(), Y?.uncacheRoot?.(Y.getRoot?.());
+			ne?.disconnect?.();
 		} catch (e) {
 			console.debug?.(e);
 		}
+		ne = null;
 		try {
-			for (let e of Z) try {
-				Y?.uncacheAction?.(e);
-			} catch {}
+			E?.dispose?.();
+		} catch (e) {
+			console.debug?.(e);
+		}
+		E = null;
+		try {
+			J?.stopAllAction?.(), J?.uncacheRoot?.(J.getRoot?.());
 		} catch (e) {
 			console.debug?.(e);
 		}
 		try {
 			for (let e of X) try {
+				J?.uncacheAction?.(e);
+			} catch {}
+		} catch (e) {
+			console.debug?.(e);
+		}
+		try {
+			for (let e of Y) try {
 				e?.dispose?.();
 			} catch {}
 		} catch (e) {
 			console.debug?.(e);
 		}
-		Y = null, Z = [], X = [], ce(Ee);
+		J = null, X = [], Y = [], se(Te);
 		try {
-			q && (x?.remove?.(q), q.dispose?.());
+			Ee && (S?.remove?.(Ee), Ee.dispose?.());
 		} catch (e) {
 			console.debug?.(e);
 		}
-		q = null;
+		Ee = null;
 		try {
-			x?.traverse?.((e) => {
+			S?.traverse?.((e) => {
 				try {
 					e.geometry?.dispose?.();
 				} catch {}
@@ -893,11 +893,11 @@ function Ee(r, i, a = {}) {
 			console.debug?.(e);
 		}
 		try {
-			b?.dispose?.();
+			x?.dispose?.();
 		} catch (e) {
 			console.debug?.(e);
 		}
-		b = null, x = null, S = null, C = null, w = null, F = null, P = null, V = null, E = null;
+		x = null, S = null, C = null, w = null, T = null, I = null, F = null, H = null, D = null;
 		try {
 			let e = l.getContext("webgl2") || l.getContext("webgl");
 			e && e.getExtension("WEBGL_lose_context")?.loseContext?.();
@@ -905,16 +905,16 @@ function Ee(r, i, a = {}) {
 			console.debug?.(e);
 		}
 	}, $e = () => {
-		ae = !0;
+		ie = !0;
 		try {
-			ie != null && cancelAnimationFrame(ie);
+			re != null && cancelAnimationFrame(re);
 		} catch (e) {
 			console.debug?.(e);
 		}
-		ie = null;
+		re = null;
 	}, et = () => {
-		if (ae = !1, !(v || ie != null || typeof E != "function")) try {
-			ie = requestAnimationFrame(E);
+		if (ie = !1, !(y || re != null || typeof D != "function")) try {
+			re = requestAnimationFrame(D);
 		} catch (e) {
 			console.debug?.(e);
 		}
@@ -929,20 +929,20 @@ function Ee(r, i, a = {}) {
 		resume: et
 	};
 	try {
-		s && (window.addEventListener(o.RUNTIME_STATUS, tt), String(window.__MJR_EXECUTION_RUNTIME__?.active_prompt_id || "").trim() && (ae = !0));
+		s && (window.addEventListener(o.RUNTIME_STATUS, tt), String(window.__MJR_EXECUTION_RUNTIME__?.active_prompt_id || "").trim() && (ie = !0));
 	} catch (e) {
 		console.debug?.(e);
 	}
-	return Ie("Preparing 3D preview", Pe), Promise.resolve().then(async () => {
-		let n = Ce(r);
-		if (ge.has(n)) try {
-			let e = await M();
-			if (v) return;
+	return $("Preparing 3D preview", Fe), Promise.resolve().then(async () => {
+		let n = Se(r);
+		if (he.has(n)) try {
+			let e = await N();
+			if (y) return;
 			let o = e.THREE;
-			y = o;
+			b = o;
 			let s = new o.LoadingManager();
 			s.setURLModifier((e) => {
-				if (!e || Se(e)) return e;
+				if (!e || xe(e)) return e;
 				let n = t(r, e);
 				if (n) return n;
 				try {
@@ -950,102 +950,102 @@ function Ee(r, i, a = {}) {
 				} catch {
 					return e;
 				}
-			}), b = new o.WebGLRenderer({
+			}), x = new o.WebGLRenderer({
 				canvas: l,
 				antialias: !0,
 				alpha: !0,
 				preserveDrawingBuffer: !0
-			}), b.outputColorSpace = o.SRGBColorSpace, b.setPixelRatio(Math.min(2, window.devicePixelRatio || 1)), x = new o.Scene(), x.background = new o.Color(_e), C = new o.PerspectiveCamera(ye, 16 / 9, .01, 1e4), w = new o.OrthographicCamera(-1, 1, 1, -1, -1e4, 1e4), S = C, T = new e.OrbitControls(S, l), T.enableDamping = !0, T.dampingFactor = .08, T.rotateSpeed = .82, T.zoomSpeed = 1, T.panSpeed = .9, T.screenSpacePanning = !0, T.mouseButtons = Te(null, o.MOUSE), fe = Ze(), Oe = new o.AmbientLight(16777215, G.ambient * J), x.add(Oe);
-			let u = new o.DirectionalLight(16777215, G.main * J);
+			}), x.outputColorSpace = o.SRGBColorSpace, x.setPixelRatio(Math.min(2, window.devicePixelRatio || 1)), S = new o.Scene(), S.background = new o.Color(ge), w = new o.PerspectiveCamera(ve, 16 / 9, .01, 1e4), T = new o.OrthographicCamera(-1, 1, 1, -1, -1e4, 1e4), C = w, E = new e.OrbitControls(C, l), E.enableDamping = !0, E.dampingFactor = .08, E.rotateSpeed = .82, E.zoomSpeed = 1, E.panSpeed = .9, E.screenSpacePanning = !0, E.mouseButtons = we(null, o.MOUSE), de = Ze(), Oe = new o.AmbientLight(16777215, K.ambient * Ae), S.add(Oe);
+			let u = new o.DirectionalLight(16777215, K.main * Ae);
 			u.position.set(0, 10, 10);
-			let d = new o.DirectionalLight(16777215, G.back * J);
+			let d = new o.DirectionalLight(16777215, K.back * Ae);
 			d.position.set(-10, 0, -10);
-			let ee = new o.DirectionalLight(15266047, G.fill * J);
+			let ee = new o.DirectionalLight(15266047, K.fill * Ae);
 			ee.position.set(10, 5, -5);
-			let te = new o.DirectionalLight(16773352, G.fill * J);
+			let te = new o.DirectionalLight(16773352, K.fill * Ae);
 			te.position.set(-10, 5, 5);
-			let _ = new o.DirectionalLight(16777215, G.bottom * J);
-			_.position.set(0, -10, 0), ke = [
+			let v = new o.DirectionalLight(16777215, K.bottom * Ae);
+			v.position.set(0, -10, 0), ke = [
 				u,
 				d,
 				ee,
 				te,
-				_
-			], ke.forEach((e) => x.add(e)), N = new o.GridHelper(20, 20, 5068128, 3094338), x.add(N);
-			let D = () => {
-				if (v || !b || !S) return;
+				v
+			], ke.forEach((e) => S.add(e)), P = new o.GridHelper(20, 20, 5068128, 3094338), S.add(P);
+			let O = () => {
+				if (y || !x || !C) return;
 				let e = c.getBoundingClientRect(), t = Math.max(1, Math.round(e.width || l.clientWidth || 1)), n = Math.max(1, Math.round(e.height || l.clientHeight || 1));
-				b.setSize(t, n, !1), C && (C.aspect = t / n, C.updateProjectionMatrix()), ze(t, n), Re(), Fe();
+				x.setSize(t, n, !1), w && (w.aspect = t / n, w.updateProjectionMatrix()), ze(t, n), Re(), Ie();
 			};
-			typeof ResizeObserver < "u" && (re = new ResizeObserver(() => D()), re.observe(c));
-			let ce = pe(e, n, s);
-			if (!ce) {
-				Ie("3D loader unavailable", `${n.toUpperCase()} loader could not be created.`), h.style.display = "none";
+			typeof ResizeObserver < "u" && (ne = new ResizeObserver(() => O()), ne.observe(c));
+			let se = fe(e, n, s);
+			if (!se) {
+				$("3D loader unavailable", `${n.toUpperCase()} loader could not be created.`), g.style.display = "none";
 				return;
 			}
 			if (n === "obj" && e.MTLLoader) try {
 				let t = i.replace(/\.obj(\?.*)?$/i, (e, t) => `.mtl${t || ""}`), n = new e.MTLLoader(s), r = await new Promise((e) => {
 					n.load(t, e, void 0, () => e(null));
 				});
-				r && !v && (r.preload(), ce.setMaterials(r));
+				r && !y && (r.preload(), se.setMaterials(r));
 			} catch (e) {
 				console.debug?.("[MJR 3D] MTL load skipped:", e?.message);
 			}
-			let de = await j(ce, n, i);
-			if (v) return;
-			let O = k(o, n, de);
-			if (!O) {
-				Ie("Empty 3D scene", "The loader returned no renderable object."), h.style.display = "none";
+			let ue = await M(se, n, i);
+			if (y) return;
+			let k = A(o, n, ue);
+			if (!k) {
+				$("Empty 3D scene", "The loader returned no renderable object."), g.style.display = "none";
 				return;
 			}
 			try {
-				let e = new o.Box3().setFromObject(O);
+				let e = new o.Box3().setFromObject(k);
 				if (!e.isEmpty()) {
 					let t = e.getSize(new o.Vector3()), n = e.getCenter(new o.Vector3()), r = 5 / Math.max(t.x, t.y, t.z, .001);
-					O.scale.multiplyScalar(r), e.setFromObject(O), e.getCenter(n), O.position.set(-n.x, -e.min.y, -n.z);
+					k.scale.multiplyScalar(r), e.setFromObject(k), e.getCenter(n), k.position.set(-n.x, -e.min.y, -n.z);
 				}
 			} catch (e) {
 				console.debug?.("[MJR 3D] normalize skipped:", e);
 			}
-			if (F = O, P = new o.Group(), P.add(O), x.add(P), we = se(O), De = oe(O), De) {
-				q = new o.SkeletonHelper(O), q.visible = !1, x.add(q);
-				let e = me({
-					defaultBgColor: _e,
-					defaultFov: ye,
-					defaultLightIntensity: be,
+			if (I = k, F = new o.Group(), F.add(k), S.add(F), Ce = oe(k), De = ae(k), De) {
+				Ee = new o.SkeletonHelper(k), Ee.visible = !1, S.add(Ee);
+				let e = pe({
+					defaultBgColor: ge,
+					defaultFov: ve,
+					defaultLightIntensity: ye,
 					hasSkeleton: !0
 				});
-				c.replaceChild(e.panel, g.panel), Object.assign(g, e), g.bgInput.addEventListener("input", () => {
+				c.replaceChild(e.panel, _.panel), Object.assign(_, e), _.bgInput.addEventListener("input", () => {
 					try {
-						x && (x.background = new o.Color(g.bgInput.value));
+						S && (S.background = new o.Color(_.bgInput.value));
 					} catch (e) {
 						console.debug?.(e);
 					}
-				}), g.materialSel.addEventListener("change", () => {
-					Ue(g.materialSel.value);
-				}), g.upSel.addEventListener("change", () => {
-					We(g.upSel.value);
-				}), g.skeletonToggle && g.skeletonToggle.addEventListener("change", () => {
-					Ge(g.skeletonToggle.checked);
-				}), g.fovSlider.addEventListener("input", () => {
-					let e = Math.max(1, Math.min(179, Number(g.fovSlider.value) || ye));
+				}), _.materialSel.addEventListener("change", () => {
+					Ue(_.materialSel.value);
+				}), _.upSel.addEventListener("change", () => {
+					We(_.upSel.value);
+				}), _.skeletonToggle && _.skeletonToggle.addEventListener("change", () => {
+					Ge(_.skeletonToggle.checked);
+				}), _.fovSlider.addEventListener("input", () => {
+					let e = Math.max(1, Math.min(179, Number(_.fovSlider.value) || ve));
 					try {
-						C && (C.fov = e, C.updateProjectionMatrix());
+						w && (w.fov = e, w.updateProjectionMatrix());
 					} catch (e) {
 						console.debug?.(e);
 					}
-				}), g.lightSlider.addEventListener("input", () => {
-					He(Number(g.lightSlider.value));
+				}), _.lightSlider.addEventListener("input", () => {
+					He(Number(_.lightSlider.value));
 				});
 			}
-			V = ue(o, P), V && (N.position.y = V.box.min.y), K = W.PERSPECTIVE, Be(), D(), Le(), Xe();
-			let A = le(de, n);
-			A.length > 0 && Ye(A, O);
-			let L = new o.Scene();
-			c._mjrAxisScene = L;
-			let R = new o.PerspectiveCamera(50, 1, .1, 100);
-			R.position.set(0, 0, 3.2), R.lookAt(0, 0, 0);
-			let z = [
+			H = le(o, F), H && (P.position.y = H.box.min.y), q = G.PERSPECTIVE, Be(), O(), Le(), Xe();
+			let j = ce(ue, n);
+			j.length > 0 && Ye(j, k);
+			let R = new o.Scene();
+			c._mjrAxisScene = R;
+			let z = new o.PerspectiveCamera(50, 1, .1, 100);
+			z.position.set(0, 0, 3.2), z.lookAt(0, 0, 0);
+			let B = [
 				{
 					dir: [
 						1,
@@ -1070,87 +1070,87 @@ function Ee(r, i, a = {}) {
 					],
 					color: 5605631
 				}
-			], B = new o.SphereGeometry(.1, 12, 8), he = new o.SphereGeometry(.08, 10, 6), H = new o.MeshBasicMaterial({ color: 13421772 });
-			L.add(new o.Mesh(he, H));
-			for (let { dir: e, color: t } of z) {
+			], V = new o.SphereGeometry(.1, 12, 8), me = new o.SphereGeometry(.08, 10, 6), U = new o.MeshBasicMaterial({ color: 13421772 });
+			R.add(new o.Mesh(me, U));
+			for (let { dir: e, color: t } of B) {
 				let n = new o.LineBasicMaterial({ color: t }), r = [new o.Vector3(0, 0, 0), new o.Vector3(e[0], e[1], e[2])], i = new o.BufferGeometry().setFromPoints(r);
-				L.add(new o.Line(i, n));
-				let a = new o.MeshBasicMaterial({ color: t }), s = new o.Mesh(B, a);
-				s.position.set(e[0], e[1], e[2]), L.add(s);
+				R.add(new o.Line(i, n));
+				let a = new o.MeshBasicMaterial({ color: t }), s = new o.Mesh(V, a);
+				s.position.set(e[0], e[1], e[2]), R.add(s);
 			}
 			c._mjr3D = {
-				controls: T,
+				controls: E,
 				get camera() {
-					return S;
+					return C;
 				}
 			};
 			try {
 				a.onReady?.({
 					canvas: l,
 					host: c,
-					object: P,
-					renderer: b,
-					camera: S,
-					controls: T
+					object: F,
+					renderer: x,
+					camera: C,
+					controls: E
 				});
 			} catch (e) {
 				console.debug?.(e);
 			}
-			Fe();
-			let ge = () => {
-				if (!v && !ae && b && x && S) {
+			Ie();
+			let he = () => {
+				if (!y && !ie && x && S && C) {
 					try {
-						if (T?.update?.(), Y && Ae) {
-							let e = Ae.getDelta();
-							$ && Y.update(e), Ke();
+						if (E?.update?.(), J && je) {
+							let e = je.getDelta();
+							Q && J.update(e), Ke();
 						}
-						b.setScissorTest(!1), b.setViewport(0, 0, l.width, l.height), b.render(x, S);
+						x.setScissorTest(!1), x.setViewport(0, 0, l.width, l.height), x.render(S, C);
 						let e = Math.min(2, window.devicePixelRatio || 1), t = Math.round(96 * e);
-						b.setScissorTest(!0), b.setScissor(0, 0, t, t), b.setViewport(0, 0, t, t), b.setClearColor(0, 0), b.clear(!0, !0, !1);
-						let n = S.quaternion;
-						R.position.set(0, 0, 3.2).applyQuaternion(n), R.quaternion.copy(n), b.render(L, R), b.setScissorTest(!1);
+						x.setScissorTest(!0), x.setScissor(0, 0, t, t), x.setViewport(0, 0, t, t), x.setClearColor(0, 0), x.clear(!0, !0, !1);
+						let n = C.quaternion;
+						z.position.set(0, 0, 3.2).applyQuaternion(n), z.quaternion.copy(n), x.render(R, z), x.setScissorTest(!1);
 						try {
-							b.setClearColor(x.background || 0, 1);
+							x.setClearColor(S.background || 0, 1);
 						} catch {}
 						Re();
 					} catch (e) {
 						console.debug?.(e);
 					}
-					ae || (ie = requestAnimationFrame(ge));
+					ie || (re = requestAnimationFrame(he));
 				}
 			};
-			E = ge;
-			let U = (e) => I(e, { preventDefault: !0 });
+			D = he;
+			let W = (e) => L(e, { preventDefault: !0 });
 			f.addEventListener("click", (e) => {
-				U(e), Be(), Xe();
+				W(e), Be(), Xe();
 			}), p.addEventListener("click", (e) => {
-				U(e), N && (N.visible = !N.visible), Xe(), Fe();
-			}), ne.addEventListener("click", (e) => {
-				U(e), Ve(K === W.PERSPECTIVE ? W.ORTHOGRAPHIC : W.PERSPECTIVE);
+				W(e), P && (P.visible = !P.visible), Xe(), Ie();
 			}), m.addEventListener("click", (e) => {
-				U(e), Ne = !Ne, g.panel.style.display = Ne ? "block" : "none", Xe();
-			}), ae || ge();
+				W(e), Ve(q === G.PERSPECTIVE ? G.ORTHOGRAPHIC : G.PERSPECTIVE);
+			}), h.addEventListener("click", (e) => {
+				W(e), Pe = !Pe, _.panel.style.display = Pe ? "block" : "none", Xe();
+			}), ie || he();
 		} catch (e) {
-			console.warn("[MJR 3D] preview init failed", e), Ie("Failed to load 3D preview", String(e?.message || "Three.js initialization failed.")), h.style.display = "none";
+			console.warn("[MJR 3D] preview init failed", e), $("Failed to load 3D preview", String(e?.message || "Three.js initialization failed.")), g.style.display = "none";
 		}
-		else if (Ie("3D preview unavailable", `${n.toUpperCase()} is not supported in the embedded viewer.`), h.style.display = "none", i) try {
+		else if ($("3D preview unavailable", `${n.toUpperCase()} is not supported in the embedded viewer.`), g.style.display = "none", i) try {
 			let t = document.createElement("a");
 			t.href = i, t.download = String(r?.filename || "model"), t.textContent = e("model3d.downloadFile", "Download {file}", { file: String(r?.filename || "file") }), t.style.cssText = "position:absolute;bottom:18px;left:50%;transform:translateX(-50%);padding:7px 16px;border-radius:8px;font:600 12px system-ui,sans-serif;color:#fff;background:rgba(76,175,80,0.85);text-decoration:none;pointer-events:auto;z-index:3", c.appendChild(t);
 		} catch {}
 	}).catch((e) => {
-		if (!v) {
+		if (!y) {
 			console.warn("[MJR 3D] preview init unhandled error", e);
 			try {
-				Ie("Failed to load 3D preview", String(e?.message || "Initialization failed."));
+				$("Failed to load 3D preview", String(e?.message || "Initialization failed."));
 			} catch {}
 			try {
-				h.style.display = "none";
+				g.style.display = "none";
 			} catch {}
 		}
 	}), c;
 }
 // ui/features/viewer/studio/studioFx.ts
-function q() {
+function Ee() {
 	return {
 		channel: "rgb",
 		exposure: 0,
@@ -1170,7 +1170,7 @@ function q() {
 	};
 }
 var De = .2126, Oe = .7152, ke = .0722;
-function J(e) {
+function Ae(e) {
 	let t = (e, t, n, r = 0) => [
 		e,
 		t,
@@ -1197,16 +1197,16 @@ function J(e) {
 		default: return null;
 	}
 }
-function Y(e) {
+function J(e) {
 	return 2 ** (Number.isFinite(e) ? Math.max(-10, Math.min(10, e)) : 0);
 }
-function Ae(e) {
+function je(e) {
 	return 1 / (Number.isFinite(e) && e > 0 ? e : 1);
 }
-function X(e) {
+function Y(e) {
 	return e.channel !== "rgb" || Math.abs(e.exposure) > .001 || Math.abs(e.gamma - 1) > .001;
 }
-function Z(e) {
+function X(e) {
 	switch (e) {
 		case "16:9": return 16 / 9;
 		case "1:1": return 1;
@@ -1216,8 +1216,8 @@ function Z(e) {
 		default: return null;
 	}
 }
-function Q(e, t, n) {
-	let r = Z(n);
+function Z(e, t, n) {
+	let r = X(n);
 	if (!r || e <= 0 || t <= 0) return null;
 	let i = e, a = e / r;
 	return a > t && (a = t, i = t * r), {
@@ -1227,7 +1227,7 @@ function Q(e, t, n) {
 		h: a
 	};
 }
-function je(e, t, n) {
+function Me(e, t, n) {
 	let r = [], i = [];
 	if (e <= 0 || t <= 0 || n === "off") return {
 		lines: r,
@@ -1263,12 +1263,12 @@ function je(e, t, n) {
 		rects: i
 	};
 }
-function $(e, t, n) {
+function Q(e, t, n) {
 	return De * e + Oe * t + ke * n;
 }
-function Me(e) {
+function Ne(e) {
 	let t = /* @__PURE__ */ new Uint32Array(256), n = /* @__PURE__ */ new Uint32Array(256), r = /* @__PURE__ */ new Uint32Array(256), i = /* @__PURE__ */ new Uint32Array(256);
-	for (let a = 0; a + 3 < e.length; a += 4) e[a + 3] !== 0 && (t[e[a]] += 1, n[e[a + 1]] += 1, r[e[a + 2]] += 1, i[Math.round($(e[a], e[a + 1], e[a + 2]))] += 1);
+	for (let a = 0; a + 3 < e.length; a += 4) e[a + 3] !== 0 && (t[e[a]] += 1, n[e[a + 1]] += 1, r[e[a + 2]] += 1, i[Math.round(Q(e[a], e[a + 1], e[a + 2]))] += 1);
 	let a = 1;
 	for (let e = 1; e < 255; e++) a = Math.max(a, t[e], n[e], r[e], i[e]);
 	return {
@@ -1279,12 +1279,12 @@ function Me(e) {
 		max: a
 	};
 }
-function Ne(e, t, n, r = 256) {
+function Pe(e, t, n, r = 256) {
 	let i = Math.max(1, Math.min(r, t)), a = new Uint32Array(i * 256), o = 1;
 	for (let r = 0; r < n; r++) for (let n = 0; n < t; n++) {
 		let s = (r * t + n) * 4;
 		if (e[s + 3] === 0) continue;
-		let c = Math.min(i - 1, Math.floor(n * i / t)), l = Math.round($(e[s], e[s + 1], e[s + 2])), u = c * 256 + l;
+		let c = Math.min(i - 1, Math.floor(n * i / t)), l = Math.round(Q(e[s], e[s + 1], e[s + 2])), u = c * 256 + l;
 		a[u] += 1, a[u] > o && (o = a[u]);
 	}
 	return {
@@ -1293,17 +1293,17 @@ function Ne(e, t, n, r = 256) {
 		max: o
 	};
 }
-function Pe(e, t, n, r, i = 0) {
+function Fe(e, t, n, r, i = 0) {
 	let a = new Uint8ClampedArray(/* @__PURE__ */ new ArrayBuffer(t * n * 4)), o = Math.max(0, Math.min(1, r)) * 255;
 	for (let r = 0; r < n; r++) for (let n = 0; n < t; n++) {
 		let s = (r * t + n) * 4;
-		if ($(e[s], e[s + 1], e[s + 2]) < o) continue;
+		if (Q(e[s], e[s + 1], e[s + 2]) < o) continue;
 		let c = Math.floor((n + r + i) / 4) % 2 == 0;
 		a[s] = c ? 255 : 20, a[s + 1] = c ? 40 : 20, a[s + 2] = c ? 40 : 20, a[s + 3] = 200;
 	}
 	return a;
 }
-function Fe(e, t, n = 256) {
+function Ie(e, t, n = 256) {
 	if (e <= 0 || t <= 0) return {
 		w: 0,
 		h: 0
@@ -1314,7 +1314,7 @@ function Fe(e, t, n = 256) {
 		h: Math.max(1, Math.round(t * r))
 	};
 }
-function Ie(e, t, n, r) {
+function $(e, t, n, r) {
 	return {
 		hex: `#${[
 			e,
@@ -1322,7 +1322,7 @@ function Ie(e, t, n, r) {
 			n
 		].map((e) => Math.round(e).toString(16).padStart(2, "0")).join("")}`.toUpperCase(),
 		rgb: `${e}, ${t}, ${n}${r < 255 ? ` · α ${r}` : ""}`,
-		luma: `${Math.round($(e, t, n) / 255 * 100)}%`
+		luma: `${Math.round(Q(e, t, n) / 255 * 100)}%`
 	};
 }
 function Le(e) {
@@ -1468,7 +1468,7 @@ var $e = [
 	2
 ];
 function et(e, t) {
-	return r(e) ?? i(t?.fps_raw ?? t?.fps ?? t?.frame_rate) ?? i(e?.fps);
+	return a(e) ?? i(t?.fps_raw ?? t?.fps ?? t?.frame_rate) ?? i(e?.fps);
 }
 function tt(e) {
 	let t = [], n = Number(e?.width), r = Number(e?.height);
@@ -1521,7 +1521,7 @@ var it = ["src"], at = ["src"], ot = {
 	"aria-label",
 	"aria-valuemax",
 	"aria-valuenow"
-], ft = { class: "mjr-studio-player__row" }, pt = { class: "mjr-studio-player__time" }, mt = { class: "is-dim" }, ht = ["title"], gt = ["title"], _t = { class: "mjr-studio-player__group" }, vt = ["aria-label", "aria-valuenow"], yt = /* @__PURE__ */ ne({
+], ft = { class: "mjr-studio-player__row" }, pt = { class: "mjr-studio-player__time" }, mt = { class: "is-dim" }, ht = ["title"], gt = ["title"], _t = { class: "mjr-studio-player__group" }, vt = ["aria-label", "aria-valuenow"], yt = /* @__PURE__ */ m({
 	__name: "StudioPlayer",
 	props: {
 		src: {},
@@ -1535,78 +1535,83 @@ var it = ["src"], at = ["src"], ot = {
 		mediaFilter: {},
 		compareSrc: {},
 		compare: {},
-		wipe: {}
+		wipe: {},
+		lightDismiss: { type: Boolean }
 	},
-	emits: ["ended", "update:wipe"],
+	emits: [
+		"ended",
+		"update:wipe",
+		"dismiss"
+	],
 	setup(t, { expose: n, emit: r }) {
-		let i = t, a = r, o = E(null), ne = E(null), ae = E(null), oe = E(null), se = E(null), D = E({
+		let i = t, a = r, o = D(null), m = D(null), ie = D(null), ae = D(null), oe = D(null), O = D({
 			x: 0,
 			y: 0,
 			w: 0,
 			h: 0
-		}), ce = E(!1), le = null, ue = E(null), de = E(!1), O = null, k = null, A = 0;
-		async function fe() {
-			if (i.kind !== "audio" || k || O) return;
-			let e = K(), t = window.AudioContext || window.webkitAudioContext;
+		}), se = D(!1), ce = null, le = D(null), ue = D(!1), k = null, A = null, j = 0;
+		async function de() {
+			if (i.kind !== "audio" || A || k) return;
+			let e = q(), t = window.AudioContext || window.webkitAudioContext;
 			if (e && t) try {
-				if (O = new t(), await O.resume?.(), O.state !== "running") {
-					O.close?.(), O = null;
+				if (k = new t(), await k.resume?.(), k.state !== "running") {
+					k.close?.(), k = null;
 					return;
 				}
-				let n = O.createMediaElementSource(e);
-				k = O.createAnalyser(), k.fftSize = 256, k.smoothingTimeConstant = .78, n.connect(k), k.connect(O.destination), de.value = !0, pe();
+				let n = k.createMediaElementSource(e);
+				A = k.createAnalyser(), A.fftSize = 256, A.smoothingTimeConstant = .78, n.connect(A), A.connect(k.destination), ue.value = !0, fe();
 			} catch (e) {
 				console.debug?.(e);
 			}
 		}
-		function pe() {
-			cancelAnimationFrame(A);
-			let e = ue.value, t = e?.getContext("2d");
-			if (!e || !t || !k) return;
-			let n = e.width = e.clientWidth || 480, r = e.height = e.clientHeight || 160, i = new Uint8Array(k.frequencyBinCount);
-			k.getByteFrequencyData(i), t.clearRect(0, 0, n, r);
+		function fe() {
+			cancelAnimationFrame(j);
+			let e = le.value, t = e?.getContext("2d");
+			if (!e || !t || !A) return;
+			let n = e.width = e.clientWidth || 480, r = e.height = e.clientHeight || 160, i = new Uint8Array(A.frequencyBinCount);
+			A.getByteFrequencyData(i), t.clearRect(0, 0, n, r);
 			let a = Math.min(64, i.length), o = Math.max(2, (n - 3 * (a - 1)) / a);
 			t.fillStyle = getComputedStyle(e).getPropertyValue("--mjr-accent").trim() || "#4fa3ff";
 			for (let e = 0; e < a; e++) {
 				let n = i[Math.min(i.length - 1, Math.floor((e / a) ** 1.6 * i.length))] / 255, s = Math.max(2, n * r);
 				t.globalAlpha = .35 + n * .65, t.fillRect(e * (o + 3), r - s, o, s);
 			}
-			t.globalAlpha = 1, j.value && (A = requestAnimationFrame(pe));
+			t.globalAlpha = 1, M.value && (j = requestAnimationFrame(fe));
 		}
-		let j = E(!1), M = E(0), N = E(0), P = E(0), F = E(1), I = E(!!i.initialMuted), L = E(Number(i.initialRate) > 0 ? Number(i.initialRate) : 1), R = E(!0), z = E(null), B = E(null), me = E(null), he = E(!1), V = E(!0), H = E(""), ge = null, _e = 0, U = g(() => i.fps && i.fps > 0 ? i.fps : null), W = g(() => qe(M.value, U.value)), ve = g(() => Xe(N.value, U.value, i.frameCount)), ye = g(() => N.value > 0 ? M.value / N.value * 100 : 0), be = g(() => N.value > 0 ? P.value / N.value * 100 : 0), G = g(() => Ze({
-			a: z.value,
-			b: B.value
-		}, N.value)), xe = g(() => {
-			if (!G.value || N.value <= 0) return null;
-			let e = G.value.a / N.value * 100, t = (G.value.b - G.value.a) / N.value * 100;
+		let M = D(!1), N = D(0), P = D(0), F = D(0), I = D(1), L = D(!!i.initialMuted), R = D(Number(i.initialRate) > 0 ? Number(i.initialRate) : 1), z = D(!0), B = D(null), V = D(null), pe = D(null), me = D(!1), H = D(!0), U = D(""), he = null, ge = 0, W = _(() => i.fps && i.fps > 0 ? i.fps : null), G = _(() => qe(N.value, W.value)), _e = _(() => Xe(P.value, W.value, i.frameCount)), ve = _(() => P.value > 0 ? N.value / P.value * 100 : 0), ye = _(() => P.value > 0 ? F.value / P.value * 100 : 0), K = _(() => Ze({
+			a: B.value,
+			b: V.value
+		}, P.value)), be = _(() => {
+			if (!K.value || P.value <= 0) return null;
+			let e = K.value.a / P.value * 100, t = (K.value.b - K.value.a) / P.value * 100;
 			return {
 				left: `${e}%`,
 				width: `${t}%`
 			};
-		}), Se = g(() => me.value == null || N.value <= 0 ? null : me.value / 100 * N.value);
-		function K() {
+		}), xe = _(() => pe.value == null || P.value <= 0 ? null : pe.value / 100 * P.value);
+		function q() {
 			return o.value;
 		}
-		let Ce = g(() => i.kind === "video" && !!i.compareSrc && !!i.compare && i.compare !== "off"), we = g(() => Ce.value && i.compare === "side"), Te = g(() => Ce.value && (i.compare === "wipe" || i.compare === "wipeV")), Ee = g(() => Math.max(0, Math.min(100, Number(i.wipe ?? 50)))), q = g(() => {
-			let e = Ce.value ? Le(i.compare || "off") : null;
+		let Se = _(() => i.kind === "video" && !!i.compareSrc && !!i.compare && i.compare !== "off"), Ce = _(() => Se.value && i.compare === "side"), we = _(() => Se.value && (i.compare === "wipe" || i.compare === "wipeV")), Te = _(() => Math.max(0, Math.min(100, Number(i.wipe ?? 50)))), Ee = _(() => {
+			let e = Se.value ? Le(i.compare || "off") : null;
 			if (e) return { mixBlendMode: e };
-			if (Te.value) {
-				let e = D.value;
-				return i.compare === "wipeV" ? { clipPath: `inset(${e.y + e.h * Ee.value / 100}px 0 0 0)` } : { clipPath: `inset(0 0 0 ${e.x + e.w * Ee.value / 100}px)` };
+			if (we.value) {
+				let e = O.value;
+				return i.compare === "wipeV" ? { clipPath: `inset(${e.y + e.h * Te.value / 100}px 0 0 0)` } : { clipPath: `inset(0 0 0 ${e.x + e.w * Te.value / 100}px)` };
 			}
 			return {};
-		}), De = g(() => ({
-			left: `${D.value.x}px`,
-			top: `${D.value.y}px`,
-			width: `${D.value.w}px`,
-			height: `${D.value.h}px`
+		}), De = _(() => ({
+			left: `${O.value.x}px`,
+			top: `${O.value.y}px`,
+			width: `${O.value.w}px`,
+			height: `${O.value.h}px`
 		}));
 		function Oe() {
 			let e = o.value;
-			if (!(e instanceof HTMLVideoElement) || !oe.value) return;
+			if (!(e instanceof HTMLVideoElement) || !ae.value) return;
 			let t = e.clientWidth, n = e.clientHeight, r = e.videoWidth, i = e.videoHeight;
 			if (!t || !n || !r || !i) {
-				D.value = {
+				O.value = {
 					x: e.offsetLeft,
 					y: e.offsetTop,
 					w: t,
@@ -1615,7 +1620,7 @@ var it = ["src"], at = ["src"], ot = {
 				return;
 			}
 			let a = Math.min(t / r, n / i), s = r * a, c = i * a;
-			D.value = {
+			O.value = {
 				x: e.offsetLeft + (t - s) / 2,
 				y: e.offsetTop + (n - c) / 2,
 				w: s,
@@ -1623,8 +1628,8 @@ var it = ["src"], at = ["src"], ot = {
 			};
 		}
 		function ke(e = !1) {
-			let t = K(), n = se.value;
-			if (!t || !n || !Ce.value) return;
+			let t = q(), n = oe.value;
+			if (!t || !n || !Se.value) return;
 			n.muted = !0, n.playbackRate !== t.playbackRate && (n.playbackRate = t.playbackRate);
 			let r = Math.min(t.currentTime || 0, Number.isFinite(n.duration) ? n.duration : Infinity);
 			if (e || Math.abs((n.currentTime || 0) - r) > .08) try {
@@ -1634,230 +1639,238 @@ var it = ["src"], at = ["src"], ot = {
 			}
 			t.paused && !n.paused ? n.pause() : !t.paused && n.paused && n.play()?.catch?.(() => {});
 		}
+		function Ae(e) {
+			let t = ae.value?.getBoundingClientRect(), n = O.value, r = e.target?.tagName === "VIDEO" && (Ce.value || !t || e.clientX >= t.left + n.x && e.clientX <= t.left + n.x + n.w && e.clientY >= t.top + n.y && e.clientY <= t.top + n.y + n.h);
+			i.lightDismiss && !r ? a("dismiss") : $();
+		}
 		function J(e) {
-			let t = oe.value?.getBoundingClientRect(), n = D.value;
+			i.lightDismiss && e.target === m.value && a("dismiss");
+		}
+		function je(e) {
+			let t = ae.value?.getBoundingClientRect(), n = O.value;
 			if (!t || n.w <= 0 || n.h <= 0) return;
 			let r = i.compare === "wipeV" ? (e.clientY - t.top - n.y) / n.h : (e.clientX - t.left - n.x) / n.w;
 			a("update:wipe", Math.round(Math.max(0, Math.min(1, r)) * 1e3) / 10);
 		}
 		function Y(e) {
-			ce.value = !0, e.currentTarget?.setPointerCapture?.(e.pointerId), J(e);
+			se.value = !0, e.currentTarget?.setPointerCapture?.(e.pointerId), je(e);
 		}
-		function Ae(e) {
-			ce.value && J(e);
-		}
-		function X() {
-			let e = K();
-			if (e) {
-				M.value = e.currentTime || 0;
-				let t = Qe(M.value, {
-					a: z.value,
-					b: B.value
-				}, N.value);
-				t != null && j.value && (e.currentTime = t, M.value = t), ke(t != null);
-			}
-			j.value && (_e = requestAnimationFrame(X));
+		function X(e) {
+			se.value && je(e);
 		}
 		function Z() {
-			j.value = !0, cancelAnimationFrame(_e), _e = requestAnimationFrame(X), ke(!0), i.kind === "audio" && (k ? pe() : fe()), Ct();
+			let e = q();
+			if (e) {
+				N.value = e.currentTime || 0;
+				let t = Qe(N.value, {
+					a: B.value,
+					b: V.value
+				}, P.value);
+				t != null && M.value && (e.currentTime = t, N.value = t), ke(t != null);
+			}
+			M.value && (ge = requestAnimationFrame(Z));
+		}
+		function Me() {
+			M.value = !0, cancelAnimationFrame(ge), ge = requestAnimationFrame(Z), ke(!0), i.kind === "audio" && (A ? fe() : de()), Tt();
 		}
 		function Q() {
-			j.value = !1, cancelAnimationFrame(_e), ke(!0), St();
+			M.value = !1, cancelAnimationFrame(ge), ke(!0), wt();
 		}
-		function je() {
-			let e = K();
-			N.value = Number.isFinite(e?.duration) ? Number(e?.duration) : 0, H.value = "", e && (e.volume = F.value, e.muted = I.value, e.playbackRate = L.value), c(Oe);
+		function Ne() {
+			let e = q();
+			P.value = Number.isFinite(e?.duration) ? Number(e?.duration) : 0, U.value = "", e && (e.volume = I.value, e.muted = L.value, e.playbackRate = R.value), c(Oe);
 		}
-		function $() {
-			let e = K();
+		function Pe() {
+			let e = q();
 			if (e) {
-				j.value || (M.value = e.currentTime || 0);
+				M.value || (N.value = e.currentTime || 0);
 				try {
 					let t = e.buffered;
-					P.value = t.length ? t.end(t.length - 1) : 0;
+					F.value = t.length ? t.end(t.length - 1) : 0;
 				} catch {
-					P.value = 0;
+					F.value = 0;
 				}
 			}
 		}
-		function Me() {
-			if (R.value && !G.value) {
-				let e = K();
+		function Fe() {
+			if (z.value && !K.value) {
+				let e = q();
 				e && (e.currentTime = 0, e.play()?.catch?.(() => {}));
 			} else a("ended");
 		}
-		function Ne() {
-			H.value = e("viewer.studio.mediaError", "This file cannot be played by the browser.");
+		function Ie() {
+			U.value = e("viewer.studio.mediaError", "This file cannot be played by the browser.");
 		}
-		function Pe() {
-			let e = K();
+		function $() {
+			let e = q();
 			e && (e.paused ? e.play()?.catch?.(() => {}) : e.pause());
 		}
-		function Fe(e) {
-			let t = K();
-			if (!t || !Number.isFinite(e)) return;
-			let n = N.value > 0 ? N.value : e;
-			t.currentTime = Math.max(0, Math.min(e, n)), M.value = t.currentTime, ke(!0);
-		}
-		function Ie(e) {
-			let t = K();
-			t && (t.paused || t.pause(), Fe(Ye(t.currentTime || 0, U.value, e, N.value)));
-		}
 		function Re(e) {
-			Fe((K()?.currentTime || 0) + e);
+			let t = q();
+			if (!t || !Number.isFinite(e)) return;
+			let n = P.value > 0 ? P.value : e;
+			t.currentTime = Math.max(0, Math.min(e, n)), N.value = t.currentTime, ke(!0);
 		}
 		function ze(e) {
-			let t = ae.value?.getBoundingClientRect();
-			return !t || t.width <= 0 ? 0 : Math.max(0, Math.min(100, (e.clientX - t.left) / t.width * 100));
+			let t = q();
+			t && (t.paused || t.pause(), Re(Ye(t.currentTime || 0, W.value, e, P.value)));
 		}
 		function Be(e) {
-			N.value <= 0 || (he.value = !0, e.currentTarget?.setPointerCapture?.(e.pointerId), Fe(ze(e) / 100 * N.value));
+			Re((q()?.currentTime || 0) + e);
 		}
 		function Ve(e) {
-			me.value = ze(e), he.value && Fe(me.value / 100 * N.value);
+			let t = ie.value?.getBoundingClientRect();
+			return !t || t.width <= 0 ? 0 : Math.max(0, Math.min(100, (e.clientX - t.left) / t.width * 100));
 		}
 		function He(e) {
-			he.value = !1, e.currentTarget?.releasePointerCapture?.(e.pointerId);
+			P.value <= 0 || (me.value = !0, e.currentTarget?.setPointerCapture?.(e.pointerId), Re(Ve(e) / 100 * P.value));
 		}
 		function Ue(e) {
-			L.value = e;
-			let t = K();
+			pe.value = Ve(e), me.value && Re(pe.value / 100 * P.value);
+		}
+		function We(e) {
+			me.value = !1, e.currentTarget?.releasePointerCapture?.(e.pointerId);
+		}
+		function Ge(e) {
+			R.value = e;
+			let t = q();
 			t && (t.playbackRate = e);
 		}
-		function We(e = 1, t = !1) {
-			let n = $e, r = n.indexOf(L.value), i = (r < 0 ? n.indexOf(1) : r) + e;
-			t && (i = (i + n.length) % n.length), Ue(n[Math.max(0, Math.min(n.length - 1, i))]);
+		function Je(e = 1, t = !1) {
+			let n = $e, r = n.indexOf(R.value), i = (r < 0 ? n.indexOf(1) : r) + e;
+			t && (i = (i + n.length) % n.length), Ge(n[Math.max(0, Math.min(n.length - 1, i))]);
 		}
-		function Ge() {
-			I.value = !I.value;
-			let e = K();
-			e && (e.muted = I.value);
+		function et() {
+			L.value = !L.value;
+			let e = q();
+			e && (e.muted = L.value);
 		}
-		let Je = E(!1);
-		function et(e) {
-			if (e.type === "pointerdown") Je.value = !0, e.currentTarget?.setPointerCapture?.(e.pointerId);
-			else if (!Je.value) return;
+		let tt = D(!1);
+		function nt(e) {
+			if (e.type === "pointerdown") tt.value = !0, e.currentTarget?.setPointerCapture?.(e.pointerId);
+			else if (!tt.value) return;
 			let t = e.currentTarget.getBoundingClientRect(), n = t.width > 0 ? (e.clientX - t.left) / t.width : 1;
-			tt(Math.round(Math.max(0, Math.min(1, n)) * 20) / 20);
+			rt(Math.round(Math.max(0, Math.min(1, n)) * 20) / 20);
 		}
-		function tt(e) {
-			F.value = e;
-			let t = K();
-			t && (t.volume = F.value, F.value > 0 && I.value && (I.value = !1, t.muted = !1));
-		}
-		function nt() {
-			z.value = M.value, B.value != null && B.value <= z.value && (B.value = null);
-		}
-		function rt() {
-			B.value = M.value, z.value ??= 0;
+		function rt(e) {
+			I.value = e;
+			let t = q();
+			t && (t.volume = I.value, I.value > 0 && L.value && (L.value = !1, t.muted = !1));
 		}
 		function yt() {
-			z.value = null, B.value = null;
+			B.value = N.value, V.value != null && V.value <= B.value && (V.value = null);
 		}
 		function bt() {
-			let e = ne.value;
+			V.value = N.value, B.value ??= 0;
+		}
+		function xt() {
+			B.value = null, V.value = null;
+		}
+		function St() {
+			let e = m.value;
 			e && (document.fullscreenElement ? document.exitFullscreen?.() : e.requestFullscreen?.());
 		}
-		async function xt() {
-			let e = K();
+		async function Ct() {
+			let e = q();
 			if (i.kind !== "video" || !(e instanceof HTMLVideoElement) || !e.videoWidth) return;
 			let t = document.createElement("canvas");
 			t.width = e.videoWidth, t.height = e.videoHeight, t.getContext("2d")?.drawImage(e, 0, 0);
 			let n = await new Promise((e) => t.toBlob(e, "image/png"));
 			if (!n) return;
 			let r = URL.createObjectURL(n), a = String(i.filename || "frame").replace(/\.[^.]+$/, ""), o = document.createElement("a");
-			o.href = r, o.download = `${a}_f${String(W.value).padStart(5, "0")}.png`, o.click(), setTimeout(() => URL.revokeObjectURL(r), 1e3);
+			o.href = r, o.download = `${a}_f${String(G.value).padStart(5, "0")}.png`, o.click(), setTimeout(() => URL.revokeObjectURL(r), 1e3);
 		}
-		function St() {
-			V.value = !0, Ct();
+		function wt() {
+			H.value = !0, Tt();
 		}
-		function Ct() {
-			ge && clearTimeout(ge), ge = setTimeout(() => {
-				j.value && !he.value && i.kind === "video" && (V.value = !1);
+		function Tt() {
+			he && clearTimeout(he), he = setTimeout(() => {
+				M.value && !me.value && i.kind === "video" && (H.value = !1);
 			}, 2200);
 		}
-		function wt(e) {
+		function Et(e) {
 			if (e) try {
 				e.pause(), e.removeAttribute("src"), e.load();
 			} catch (e) {
 				console.debug?.(e);
 			}
 		}
-		function Tt() {
-			wt(se.value), wt(K());
+		function Dt() {
+			Et(oe.value), Et(q());
 		}
-		re(() => i.src, () => {
-			yt(), M.value = 0, N.value = 0, P.value = 0, H.value = "";
+		ne(() => i.src, () => {
+			xt(), N.value = 0, P.value = 0, F.value = 0, U.value = "";
 		});
-		function Et() {
-			let e = K();
+		function Ot() {
+			let e = q();
 			if (!e) return;
-			e.muted = I.value, e.playbackRate = L.value;
+			e.muted = L.value, e.playbackRate = R.value;
 			let t = e.play?.();
 			t && typeof t.catch == "function" && t.catch(() => {
-				e.muted || (I.value = !0, e.muted = !0, e.play?.()?.catch?.(() => {}));
+				e.muted || (L.value = !0, e.muted = !0, e.play?.()?.catch?.(() => {}));
 			});
 		}
-		return re([
-			Ce,
+		return ne([
+			Se,
 			() => i.compareSrc,
 			() => i.compare
 		], () => void c(() => {
 			Oe(), ke(!0);
 		})), ee(() => {
-			Et();
+			Ot();
 			try {
-				le = new ResizeObserver(() => Oe()), oe.value && le.observe(oe.value);
+				ce = new ResizeObserver(() => Oe()), ae.value && ce.observe(ae.value);
 			} catch (e) {
 				console.debug?.(e);
 			}
-		}), _(() => {
-			le?.disconnect(), cancelAnimationFrame(A);
+		}), v(() => {
+			ce?.disconnect(), cancelAnimationFrame(j);
 			try {
-				O?.close?.();
+				k?.close?.();
 			} catch (e) {
 				console.debug?.(e);
 			}
-			O = null, k = null, cancelAnimationFrame(_e), ge && clearTimeout(ge), Tt();
+			k = null, A = null, cancelAnimationFrame(ge), he && clearTimeout(he), Dt();
 		}), n({
-			togglePlay: Pe,
-			play: Et,
-			stepFrame: Ie,
-			seekBy: Re,
-			cycleRate: We,
-			toggleMute: Ge,
-			setLoopA: nt,
-			setLoopB: rt,
-			clearLoop: yt,
-			toggleFullscreen: bt,
-			exportFrame: xt,
-			release: Tt,
+			togglePlay: $,
+			play: Ot,
+			stepFrame: ze,
+			seekBy: Be,
+			cycleRate: Je,
+			toggleMute: et,
+			setLoopA: yt,
+			setLoopB: bt,
+			clearLoop: xt,
+			toggleFullscreen: St,
+			exportFrame: Ct,
+			release: Dt,
 			getSource: () => o.value instanceof HTMLVideoElement ? o.value : null,
-			getBox: () => i.kind === "video" ? oe.value?.querySelector(".mjr-studio-player__box") : null,
-			isPlaying: () => j.value
+			getBox: () => i.kind === "video" ? ae.value?.querySelector(".mjr-studio-player__box") : null,
+			isPlaying: () => M.value
 		}), (n, r) => {
 			let i = te("MButton");
-			return v(), C("div", {
+			return y(), w("div", {
 				ref_key: "root",
-				ref: ne,
-				class: w(["mjr-studio-player", {
+				ref: m,
+				class: T(["mjr-studio-player", {
 					"is-audio": t.kind === "audio",
 					"is-compact": t.compact,
-					"controls-hidden": !V.value
+					"controls-hidden": !H.value
 				}]),
-				onPointermove: St
+				onPointermove: wt,
+				onClick: J
 			}, [
-				t.kind === "video" ? (v(), C("div", {
+				t.kind === "video" ? (y(), w("div", {
 					key: 0,
 					ref_key: "screen",
-					ref: oe,
-					class: w(["mjr-studio-player__screen", { "is-side": we.value }]),
-					onClick: Pe,
-					onDblclick: bt
+					ref: ae,
+					class: T(["mjr-studio-player__screen", { "is-side": Ce.value }]),
+					onClick: Ae,
+					onDblclick: St
 				}, [
 					d("div", {
 						class: "mjr-studio-player__layers",
-						style: x(t.mediaFilter ? { filter: t.mediaFilter } : void 0)
+						style: S(t.mediaFilter ? { filter: t.mediaFilter } : void 0)
 					}, [d("video", {
 						ref_key: "media",
 						ref: o,
@@ -1865,150 +1878,150 @@ var it = ["src"], at = ["src"], ot = {
 						src: t.src,
 						playsinline: "",
 						preload: "auto",
-						onPlay: Z,
+						onPlay: Me,
 						onPause: Q,
-						onLoadedmetadata: je,
-						onTimeupdate: $,
-						onProgress: $,
-						onEnded: Me,
-						onError: Ne
-					}, null, 40, it), Ce.value ? (v(), C("video", {
+						onLoadedmetadata: Ne,
+						onTimeupdate: Pe,
+						onProgress: Pe,
+						onEnded: Fe,
+						onError: Ie
+					}, null, 40, it), Se.value ? (y(), w("video", {
 						ref_key: "mediaB",
-						ref: se,
+						ref: oe,
 						key: `b:${t.compareSrc}`,
 						class: "mjr-studio-player__media is-b",
 						src: t.compareSrc || "",
 						playsinline: "",
 						muted: "",
 						preload: "auto",
-						style: x(q.value),
+						style: S(Ee.value),
 						onLoadedmetadata: r[0] ||= (e) => ke(!0)
 					}, null, 44, at)) : p("", !0)], 4),
 					d("div", {
 						class: "mjr-studio-player__box",
-						style: x(De.value)
-					}, [ie(n.$slots, "overlay", {
-						width: D.value.w,
-						height: D.value.h
-					}), Te.value ? (v(), C("div", {
+						style: S(De.value)
+					}, [re(n.$slots, "overlay", {
+						width: O.value.w,
+						height: O.value.h
+					}), we.value ? (y(), w("div", {
 						key: 0,
-						class: w(["mjr-studio-stage__divider", {
+						class: T(["mjr-studio-stage__divider", {
 							"is-vertical": t.compare === "wipeV",
-							"is-active": ce.value
+							"is-active": se.value
 						}]),
-						style: x(t.compare === "wipeV" ? { top: `${Ee.value}%` } : { left: `${Ee.value}%` }),
-						onClick: r[1] ||= h(() => {}, ["stop"]),
-						onDblclick: r[2] ||= h((e) => a("update:wipe", 50), ["stop"]),
-						onPointerdown: h(Y, ["stop"]),
-						onPointermove: Ae,
-						onPointerup: r[3] ||= (e) => ce.value = !1,
-						onPointercancel: r[4] ||= (e) => ce.value = !1
+						style: S(t.compare === "wipeV" ? { top: `${Te.value}%` } : { left: `${Te.value}%` }),
+						onClick: r[1] ||= g(() => {}, ["stop"]),
+						onDblclick: r[2] ||= g((e) => a("update:wipe", 50), ["stop"]),
+						onPointerdown: g(Y, ["stop"]),
+						onPointermove: X,
+						onPointerup: r[3] ||= (e) => se.value = !1,
+						onPointercancel: r[4] ||= (e) => se.value = !1
 					}, [...r[12] ||= [d("span", { class: "mjr-studio-stage__divider-grip" }, null, -1)]], 38)) : p("", !0)], 4),
-					Ce.value ? (v(), C("div", ot, [
+					Se.value ? (y(), w("div", ot, [
 						r[13] ||= d("span", null, "A", -1),
-						d("span", st, b(t.compare === "wipeV" ? "/" : "|"), 1),
+						d("span", st, x(t.compare === "wipeV" ? "/" : "|"), 1),
 						r[14] ||= d("span", null, "B", -1)
 					])) : p("", !0)
-				], 34)) : (v(), C("div", {
+				], 34)) : (y(), w("div", {
 					key: 1,
-					class: w(["mjr-studio-player__audio-art", { "has-spectrum": de.value }]),
-					onClick: Pe
+					class: T(["mjr-studio-player__audio-art", { "has-spectrum": ue.value }]),
+					onClick: $
 				}, [
 					s(d("canvas", {
 						ref_key: "spectrum",
-						ref: ue,
+						ref: le,
 						class: "mjr-studio-player__spectrum",
 						"aria-hidden": "true"
-					}, null, 512), [[y, de.value]]),
-					s(d("i", ct, null, 512), [[y, !de.value]]),
-					d("span", null, b(t.filename), 1),
+					}, null, 512), [[b, ue.value]]),
+					s(d("i", ct, null, 512), [[b, !ue.value]]),
+					d("span", null, x(t.filename), 1),
 					d("audio", {
 						ref_key: "media",
 						ref: o,
 						src: t.src,
 						preload: "auto",
-						onPlay: Z,
+						onPlay: Me,
 						onPause: Q,
-						onLoadedmetadata: je,
-						onTimeupdate: $,
-						onProgress: $,
-						onEnded: Me,
-						onError: Ne
+						onLoadedmetadata: Ne,
+						onTimeupdate: Pe,
+						onProgress: Pe,
+						onEnded: Fe,
+						onError: Ie
 					}, null, 40, lt)
 				], 2)),
-				!j.value && !H.value ? (v(), u(i, {
+				!M.value && !U.value ? (y(), u(i, {
 					key: 2,
 					type: "button",
 					class: "mjr-studio-player__big-play",
-					"aria-label": T(e)("viewer.studio.play", "Play"),
-					onClick: Pe
+					"aria-label": E(e)("viewer.studio.play", "Play"),
+					onClick: $
 				}, {
-					default: m(() => [...r[15] ||= [d("i", {
+					default: h(() => [...r[15] ||= [d("i", {
 						class: "pi pi-play",
 						"aria-hidden": "true"
 					}, null, -1)]]),
 					_: 1
 				}, 8, ["aria-label"])) : p("", !0),
-				H.value ? (v(), C("div", ut, b(H.value), 1)) : p("", !0),
+				U.value ? (y(), w("div", ut, x(U.value), 1)) : p("", !0),
 				d("div", {
 					class: "mjr-studio-player__controls",
-					onPointerdown: r[11] ||= h(() => {}, ["stop"])
+					onPointerdown: r[11] ||= g(() => {}, ["stop"])
 				}, [d("div", {
 					ref_key: "track",
-					ref: ae,
+					ref: ie,
 					class: "mjr-studio-player__track",
 					role: "slider",
-					"aria-label": T(e)("viewer.studio.seek", "Seek"),
+					"aria-label": E(e)("viewer.studio.seek", "Seek"),
 					"aria-valuemin": 0,
-					"aria-valuemax": N.value,
-					"aria-valuenow": M.value,
-					onPointerdown: Be,
-					onPointermove: Ve,
-					onPointerup: He,
-					onPointerleave: r[5] ||= (e) => me.value = null
+					"aria-valuemax": P.value,
+					"aria-valuenow": N.value,
+					onPointerdown: He,
+					onPointermove: Ue,
+					onPointerup: We,
+					onPointerleave: r[5] ||= (e) => pe.value = null
 				}, [
 					d("div", {
 						class: "mjr-studio-player__buffered",
-						style: x({ width: `${be.value}%` })
+						style: S({ width: `${ye.value}%` })
 					}, null, 4),
-					xe.value ? (v(), C("div", {
+					be.value ? (y(), w("div", {
 						key: 0,
 						class: "mjr-studio-player__loop",
-						style: x(xe.value)
+						style: S(be.value)
 					}, null, 4)) : p("", !0),
 					d("div", {
 						class: "mjr-studio-player__progress",
-						style: x({ width: `${ye.value}%` })
+						style: S({ width: `${ve.value}%` })
 					}, null, 4),
 					d("div", {
 						class: "mjr-studio-player__thumb",
-						style: x({ left: `${ye.value}%` })
+						style: S({ left: `${ve.value}%` })
 					}, null, 4),
-					Se.value == null ? p("", !0) : (v(), C("div", {
+					xe.value == null ? p("", !0) : (y(), w("div", {
 						key: 1,
 						class: "mjr-studio-player__hover",
-						style: x({ left: `${me.value}%` })
-					}, [S(b(T(Ke)(Se.value)), 1), U.value ? (v(), C(l, { key: 0 }, [S(" · f" + b(T(qe)(Se.value, U.value)), 1)], 64)) : p("", !0)], 4))
+						style: S({ left: `${pe.value}%` })
+					}, [C(x(E(Ke)(xe.value)), 1), W.value ? (y(), w(l, { key: 0 }, [C(" · f" + x(E(qe)(xe.value, W.value)), 1)], 64)) : p("", !0)], 4))
 				], 40, dt), d("div", ft, [
 					f(i, {
 						type: "button",
 						class: "mjr-studio-btn",
-						title: T(e)("viewer.studio.playPause", "Play / pause (Space)"),
-						onClick: Pe
+						title: E(e)("viewer.studio.playPause", "Play / pause (Space)"),
+						onClick: $
 					}, {
-						default: m(() => [d("i", {
-							class: w(j.value ? "pi pi-pause" : "pi pi-play"),
+						default: h(() => [d("i", {
+							class: T(M.value ? "pi pi-pause" : "pi pi-play"),
 							"aria-hidden": "true"
 						}, null, 2)]),
 						_: 1
 					}, 8, ["title"]),
-					t.kind === "video" ? (v(), C(l, { key: 0 }, [f(i, {
+					t.kind === "video" ? (y(), w(l, { key: 0 }, [f(i, {
 						type: "button",
 						class: "mjr-studio-btn",
-						title: T(e)("viewer.studio.prevFrame", "Previous frame (,)"),
-						onClick: r[6] ||= (e) => Ie(-1)
+						title: E(e)("viewer.studio.prevFrame", "Previous frame (,)"),
+						onClick: r[6] ||= (e) => ze(-1)
 					}, {
-						default: m(() => [...r[16] ||= [d("i", {
+						default: h(() => [...r[16] ||= [d("i", {
 							class: "pi pi-step-backward",
 							"aria-hidden": "true"
 						}, null, -1)]]),
@@ -2016,54 +2029,54 @@ var it = ["src"], at = ["src"], ot = {
 					}, 8, ["title"]), f(i, {
 						type: "button",
 						class: "mjr-studio-btn",
-						title: T(e)("viewer.studio.nextFrame", "Next frame (.)"),
-						onClick: r[7] ||= (e) => Ie(1)
+						title: E(e)("viewer.studio.nextFrame", "Next frame (.)"),
+						onClick: r[7] ||= (e) => ze(1)
 					}, {
-						default: m(() => [...r[17] ||= [d("i", {
+						default: h(() => [...r[17] ||= [d("i", {
 							class: "pi pi-step-forward",
 							"aria-hidden": "true"
 						}, null, -1)]]),
 						_: 1
 					}, 8, ["title"])], 64)) : p("", !0),
-					d("span", pt, [S(b(T(Ke)(M.value)) + " ", 1), d("span", mt, "/ " + b(T(Ke)(N.value)), 1)]),
-					t.kind === "video" && U.value ? (v(), C("span", {
+					d("span", pt, [C(x(E(Ke)(N.value)) + " ", 1), d("span", mt, "/ " + x(E(Ke)(P.value)), 1)]),
+					t.kind === "video" && W.value ? (y(), w("span", {
 						key: 1,
 						class: "mjr-studio-chip",
-						title: T(e)("viewer.studio.frame", "Frame")
+						title: E(e)("viewer.studio.frame", "Frame")
 					}, [
-						S(" f " + b(W.value), 1),
-						ve.value ? (v(), C(l, { key: 0 }, [S(" / " + b(ve.value - 1), 1)], 64)) : p("", !0),
-						S(" · " + b(Math.round(U.value * 100) / 100) + " fps ", 1)
+						C(" f " + x(G.value), 1),
+						_e.value ? (y(), w(l, { key: 0 }, [C(" / " + x(_e.value - 1), 1)], 64)) : p("", !0),
+						C(" · " + x(Math.round(W.value * 100) / 100) + " fps ", 1)
 					], 8, ht)) : p("", !0),
 					r[24] ||= d("span", { class: "mjr-studio-player__spacer" }, null, -1),
 					d("div", {
 						class: "mjr-studio-player__group",
-						title: T(e)("viewer.studio.abLoop", "A-B loop (I / O, U to clear)")
+						title: E(e)("viewer.studio.abLoop", "A-B loop (I / O, U to clear)")
 					}, [
 						f(i, {
 							type: "button",
-							class: w(["mjr-studio-btn is-text", { "is-on": z.value != null }]),
-							onClick: nt
+							class: T(["mjr-studio-btn is-text", { "is-on": B.value != null }]),
+							onClick: yt
 						}, {
-							default: m(() => [...r[18] ||= [S("A", -1)]]),
+							default: h(() => [...r[18] ||= [C("A", -1)]]),
 							_: 1
 						}, 8, ["class"]),
 						f(i, {
 							type: "button",
-							class: w(["mjr-studio-btn is-text", { "is-on": B.value != null }]),
-							onClick: rt
+							class: T(["mjr-studio-btn is-text", { "is-on": V.value != null }]),
+							onClick: bt
 						}, {
-							default: m(() => [...r[19] ||= [S("B", -1)]]),
+							default: h(() => [...r[19] ||= [C("B", -1)]]),
 							_: 1
 						}, 8, ["class"]),
-						z.value != null || B.value != null ? (v(), u(i, {
+						B.value != null || V.value != null ? (y(), u(i, {
 							key: 0,
 							type: "button",
 							class: "mjr-studio-btn",
-							title: T(e)("viewer.studio.clearLoop", "Clear A-B loop"),
-							onClick: yt
+							title: E(e)("viewer.studio.clearLoop", "Clear A-B loop"),
+							onClick: xt
 						}, {
-							default: m(() => [...r[20] ||= [d("i", {
+							default: h(() => [...r[20] ||= [d("i", {
 								class: "pi pi-times",
 								"aria-hidden": "true"
 							}, null, -1)]]),
@@ -2072,11 +2085,11 @@ var it = ["src"], at = ["src"], ot = {
 					], 8, gt),
 					f(i, {
 						type: "button",
-						class: w(["mjr-studio-btn", { "is-on": R.value }]),
-						title: T(e)("viewer.studio.loop", "Loop"),
-						onClick: r[8] ||= (e) => R.value = !R.value
+						class: T(["mjr-studio-btn", { "is-on": z.value }]),
+						title: E(e)("viewer.studio.loop", "Loop"),
+						onClick: r[8] ||= (e) => z.value = !z.value
 					}, {
-						default: m(() => [...r[21] ||= [d("i", {
+						default: h(() => [...r[21] ||= [d("i", {
 							class: "pi pi-replay",
 							"aria-hidden": "true"
 						}, null, -1)]]),
@@ -2084,59 +2097,59 @@ var it = ["src"], at = ["src"], ot = {
 					}, 8, ["class", "title"]),
 					f(i, {
 						type: "button",
-						class: w(["mjr-studio-btn is-text", { "is-on": L.value !== 1 }]),
-						title: T(e)("viewer.studio.speed", "Speed ([ / ])"),
-						onClick: r[9] ||= (e) => We(1, !0)
+						class: T(["mjr-studio-btn is-text", { "is-on": R.value !== 1 }]),
+						title: E(e)("viewer.studio.speed", "Speed ([ / ])"),
+						onClick: r[9] ||= (e) => Je(1, !0)
 					}, {
-						default: m(() => [S(b(L.value) + "×", 1)]),
+						default: h(() => [C(x(R.value) + "×", 1)]),
 						_: 1
 					}, 8, ["class", "title"]),
 					d("div", _t, [f(i, {
 						type: "button",
 						class: "mjr-studio-btn",
-						title: T(e)("viewer.studio.mute", "Mute (M)"),
-						onClick: Ge
+						title: E(e)("viewer.studio.mute", "Mute (M)"),
+						onClick: et
 					}, {
-						default: m(() => [d("i", {
-							class: w(I.value || F.value === 0 ? "pi pi-volume-off" : "pi pi-volume-up"),
+						default: h(() => [d("i", {
+							class: T(L.value || I.value === 0 ? "pi pi-volume-off" : "pi pi-volume-up"),
 							"aria-hidden": "true"
 						}, null, 2)]),
 						_: 1
 					}, 8, ["title"]), d("div", {
 						class: "mjr-studio-player__volume",
 						role: "slider",
-						"aria-label": T(e)("viewer.studio.volume", "Volume"),
+						"aria-label": E(e)("viewer.studio.volume", "Volume"),
 						"aria-valuemin": 0,
 						"aria-valuemax": 1,
-						"aria-valuenow": I.value ? 0 : F.value,
-						onPointerdown: et,
-						onPointermove: et,
-						onPointerup: r[10] ||= (e) => Je.value = !1
+						"aria-valuenow": L.value ? 0 : I.value,
+						onPointerdown: nt,
+						onPointermove: nt,
+						onPointerup: r[10] ||= (e) => tt.value = !1
 					}, [d("div", {
 						class: "mjr-studio-player__volume-fill",
-						style: x({ width: `${(I.value ? 0 : F.value) * 100}%` })
+						style: S({ width: `${(L.value ? 0 : I.value) * 100}%` })
 					}, null, 4)], 40, vt)]),
-					t.kind === "video" ? (v(), u(i, {
+					t.kind === "video" ? (y(), u(i, {
 						key: 2,
 						type: "button",
 						class: "mjr-studio-btn",
-						title: T(e)("viewer.studio.exportFrame", "Save this frame as PNG"),
-						onClick: xt
+						title: E(e)("viewer.studio.exportFrame", "Save this frame as PNG"),
+						onClick: Ct
 					}, {
-						default: m(() => [...r[22] ||= [d("i", {
+						default: h(() => [...r[22] ||= [d("i", {
 							class: "pi pi-camera",
 							"aria-hidden": "true"
 						}, null, -1)]]),
 						_: 1
 					}, 8, ["title"])) : p("", !0),
-					t.kind === "video" ? (v(), u(i, {
+					t.kind === "video" ? (y(), u(i, {
 						key: 3,
 						type: "button",
 						class: "mjr-studio-btn",
-						title: T(e)("viewer.studio.fullscreen", "Fullscreen (F)"),
-						onClick: bt
+						title: E(e)("viewer.studio.fullscreen", "Fullscreen (F)"),
+						onClick: St
 					}, {
-						default: m(() => [...r[23] ||= [d("i", {
+						default: h(() => [...r[23] ||= [d("i", {
 							class: "pi pi-window-maximize",
 							"aria-hidden": "true"
 						}, null, -1)]]),
@@ -2147,7 +2160,7 @@ var it = ["src"], at = ["src"], ot = {
 		};
 	}
 }), bt = (e, t = null) => {
-	let n = a(e);
+	let n = r(e);
 	return n === void 0 ? t : n;
 }, xt = n?.VIEWER_GENINFO_TTL_MS ?? 3e4, St = n?.VIEWER_GENINFO_ERROR_TTL_MS ?? 8e3, Ct = n?.VIEWER_GENINFO_MAX_ENTRIES ?? 300, wt = /* @__PURE__ */ new Map(), Tt = /* @__PURE__ */ new Map(), Et = /* @__PURE__ */ new Map(), Dt = (e, t, n) => {
 	try {
@@ -2473,4 +2486,4 @@ async function Vt(e, { getAssetMetadata: t, getFileMetadataScoped: n, metadataCa
 	}
 	return await u();
 }
-export { Ee as C, H as S, Ae as _, et as a, ze as b, Q as c, Me as d, Ne as f, Ie as g, Y as h, rt as i, J as l, q as m, yt as n, Ge as o, Pe as p, tt as r, Re as s, Vt as t, Le as u, je as v, we as w, Fe as x, X as y };
+export { Te as C, U as S, je as _, et as a, ze as b, Z as c, Ne as d, Pe as f, $ as g, J as h, rt as i, Ae as l, Ee as m, yt as n, Ge as o, Fe as p, tt as r, Re as s, Vt as t, Le as u, Me as v, Ce as w, Ie as x, Y as y };

@@ -22,6 +22,8 @@ export interface StudioPlayerHostOptions {
     initialMuted?: boolean;
     initialRate?: number;
     compact?: boolean;
+    /** Fill the slot of a compare layout (A/B, side by side, grid). */
+    fill?: boolean;
 }
 
 export interface StudioPlayerHandle {
@@ -33,7 +35,7 @@ export interface StudioPlayerHandle {
 export function mountStudioPlayerHost(options: StudioPlayerHostOptions): HTMLElement | null {
     if (!options?.src || (options.kind !== "video" && options.kind !== "audio")) return null;
     const host = document.createElement("div");
-    host.className = "mjr-mfv-player-host mjr-mfv-player-host--studio";
+    host.className = `mjr-mfv-player-host mjr-mfv-player-host--studio${options.fill ? " mjr-mfv-player-host--fill" : ""}`;
     host.tabIndex = -1;
     host.addEventListener("pointerdown", (event: Event) => {
         const target = event.target as HTMLElement | null;

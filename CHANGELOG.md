@@ -42,7 +42,11 @@ All notable changes to this project are documented in this file.
 - **Viewer settings**: *Use the classic viewer*, *Pan without zoom* and *Disable WebGL video* (classic-only) are removed, with the internal `videoGradeThrottleFps`, `scopesFps`, `metaTtlMs` and `metaMaxEntries` options. Existing values in saved settings are simply ignored.
 - The unused *viewerbar* variant of the legacy video controls (the floating viewer's compare modes keep the regular variant).
 
+### Changed
+- **Floating viewer: one player everywhere**: A/B, side-by-side and grid compare now also use the Studio player for the primary video / audio (the other slots stay bare, synced elements). The legacy video controls (in/out, Nuke-style bar, ~2 000 lines, their styles and tests) are gone; the asset sidebar keeps its small preview controls. GIF / animated WebP keep their own simple player.
+
 ### Fixed (follow-ups)
+- **Light dismiss in the Studio viewer**: clicking the empty area around the image or video (not the picture, a tool, the inspector or the player bar) closes the viewer again, as the classic viewer did. Dragging to pan never closes it.
 - **Grid selection after closing the viewer**: the Studio viewer now tells the grid which asset you ended on (selection, scroll and focus), as the classic viewer did.
 - **Studio viewer shortcuts after navigating**: moving to another asset focused the tag field, so the next shortcuts were typed into it. The inspector's tag editor no longer grabs focus.
 - **Search by part of a file name**: typing `F` (or `flow`) only found names with a *word starting* with it (`Flux…`, `field…`), never `sunflower.png` or `ComfyUI_…`. Single-word searches now also list file names that contain the text (ranked after word matches); `_` and `%` are matched literally. Multi-word and quoted searches are unchanged.

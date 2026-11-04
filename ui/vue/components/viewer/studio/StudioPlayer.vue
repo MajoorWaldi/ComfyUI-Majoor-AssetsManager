@@ -41,9 +41,15 @@ const props = defineProps<{
     compareSrc?: string | null;
     compare?: StudioCompare;
     wipe?: number;
+    /** Clicking the bare background (not the picture) emits `dismiss` instead of toggling play. */
+    lightDismiss?: boolean;
 }>();
 
-const emit = defineEmits<{ (e: "ended"): void; (e: "update:wipe", value: number): void }>();
+const emit = defineEmits<{
+    (e: "ended"): void;
+    (e: "update:wipe", value: number): void;
+    (e: "dismiss"): void;
+}>();
 
 const media = ref<HTMLVideoElement | HTMLAudioElement | null>(null);
 const root = ref<HTMLElement | null>(null);
@@ -223,6 +229,26 @@ function syncB(force = false) {
     }
     if (a.paused && !b.paused) b.pause();
     else if (!a.paused && b.paused) void b.play()?.catch?.(() => {});
+}
+
+/** Click on the picture toggles play; on the bare background it can dismiss the viewer. */
+function onScreenClick(event: MouseEvent) {
+    // The <video> element also covers its letterbox bars, so test the picture rect.
+    const rect = screen.value?.getBoundingClientRect();
+    const b = contentBox.value;
+    const onPicture =
+        (event.target as HTMLElement | null)?.tagName === "VIDEO" &&
+        (isSide.value ||
+            !rect ||
+            (event.clientX >= rect.left + b.x &&
+                event.clientX <= rect.left + b.x + b.w &&
+                event.clientY >= rect.top + b.y &&
+                event.clientY <= rect.top + b.y + b.h));
+    if (props.lightDismiss && !onPicture) emit("dismiss");
+    else togglePlay();
+}
+function onRootClick(event: MouseEvent) {
+    if (props.lightDismiss && event.target === root.value) emit("dismiss");
 }
 
 function wipeFromEvent(event: PointerEvent) {
@@ -564,13 +590,14 @@ defineExpose({
             'controls-hidden': !controlsVisible,
         }"
         @pointermove="showControls"
+        @click="onRootClick"
     >
         <div
             v-if="kind === 'video'"
             ref="screen"
             class="mjr-studio-player__screen"
             :class="{ 'is-side': isSide }"
-            @click="togglePlay"
+            @click="onScreenClick"
             @dblclick="toggleFullscreen"
         >
             <div

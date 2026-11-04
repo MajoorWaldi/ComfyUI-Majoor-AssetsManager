@@ -35,6 +35,8 @@ const emit = defineEmits<{
     (e: "zoom", value: number): void;
     (e: "loaded", size: { width: number; height: number }): void;
     (e: "update:wipe", value: number): void;
+    /** A plain click on the empty stage background (light dismiss). */
+    (e: "dismiss"): void;
 }>();
 
 const stage = ref<HTMLElement | null>(null);
@@ -47,7 +49,7 @@ const fitMode = ref(true);
 const failed = ref(false);
 const dragging = ref(false);
 const wiping = ref(false);
-let drag: { x: number; y: number; ox: number; oy: number; id: number } | null = null;
+let drag: { x: number; y: number; ox: number; oy: number; id: number; t: number } | null = null;
 let resizeObserver: ResizeObserver | null = null;
 
 const MIN_SCALE = 0.05;
@@ -134,6 +136,7 @@ function onPointerDown(event: PointerEvent) {
         ox: offset.value.x,
         oy: offset.value.y,
         id: event.pointerId,
+        t: Date.now(),
     };
     dragging.value = true;
     (event.currentTarget as HTMLElement)?.setPointerCapture?.(event.pointerId);
@@ -145,9 +148,22 @@ function onPointerMove(event: PointerEvent) {
         fitMode.value = false;
 }
 function onPointerUp(event: PointerEvent) {
-    if (drag) (event.currentTarget as HTMLElement)?.releasePointerCapture?.(drag.id);
+    const finished = drag;
+    if (finished) (event.currentTarget as HTMLElement)?.releasePointerCapture?.(finished.id);
     drag = null;
     dragging.value = false;
+    // Light dismiss: a quick click that lands on the bare stage, not on the
+    // media, an overlay or a HUD control (pointer capture hides the real target).
+    if (
+        finished &&
+        event.type === "pointerup" &&
+        event.button === 0 &&
+        Math.hypot(event.clientX - finished.x, event.clientY - finished.y) <= 6 &&
+        Date.now() - finished.t <= 600 &&
+        document.elementFromPoint(event.clientX, event.clientY) === stage.value
+    ) {
+        emit("dismiss");
+    }
 }
 
 function wipeFromEvent(event: PointerEvent) {

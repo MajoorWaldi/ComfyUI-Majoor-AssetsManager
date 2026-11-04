@@ -570,6 +570,7 @@ function thumbUrl(a: any): string {
                         :class="{ 'is-probing': tools.probe || tools.loupe }"
                         @zoom="zoom = $event"
                         @loaded="bumpTick"
+                        @dismiss="close"
                     >
                         <template #overlay="{ width, height }">
                             <StudioZebra
@@ -601,6 +602,8 @@ function thumbUrl(a: any): string {
                         :compare-src="compareSrc"
                         :compare="tools.compare"
                         :class="{ 'is-probing': tools.probe || tools.loupe }"
+                        light-dismiss
+                        @dismiss="close"
                     >
                         <template #overlay="{ width, height }">
                             <StudioZebra

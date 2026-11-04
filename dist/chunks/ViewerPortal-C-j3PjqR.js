@@ -1,9 +1,9 @@
 import { T as e, Wt as t, Yn as n, f as r, in as i, ir as a, s as o, u as s } from "./config-C9a-wT5M.js";
-import { a as c, i as l, r as u } from "./floatingViewerManager-QjcrrPd1.js";
+import { a as c, i as l, r as u } from "./floatingViewerManager-DUSdA55Q.js";
 import { i as d, r as f, t as p } from "./events-1iwo5blr.js";
-import { a as ee, i as m, n as h, r as g, t as _ } from "./TagsEditor-BTatSQT5.js";
+import { a as ee, i as m, n as h, r as g, t as _ } from "./TagsEditor-ByDOsj5L.js";
 import { $ as te, A as v, B as ne, C as y, D as b, E as x, H as S, J as re, K as C, M as w, O as T, P as E, Q as D, S as O, T as k, U as A, V as ie, W as j, X as M, Y as N, b as ae, gt as P, ht as F, j as I, k as L, lt as oe, mt as R, ot as se, pt as z, q as B, rt as ce, st as V, w as le, z as H } from "./mjr-primevue-C07IsEdU.js";
-import { C as U, _ as W, a as ue, b as de, c as G, d as fe, f as pe, g as me, h as he, i as ge, l as _e, m as ve, n as ye, o as K, p as be, r as xe, s as q, t as Se, u as Ce, v as we, x as Te, y as Ee } from "./genInfo-B5E8D0_R.js";
+import { C as U, _ as W, a as ue, b as de, c as G, d as fe, f as pe, g as me, h as he, i as ge, l as _e, m as ve, n as ye, o as K, p as be, r as xe, s as q, t as Se, u as Ce, v as we, x as Te, y as Ee } from "./genInfo-DZ8thzbX.js";
 // ui/vue/components/viewer/FloatingViewerHost.vue
 var De = /* @__PURE__ */ E({
 	__name: "FloatingViewerHost",
@@ -315,7 +315,8 @@ var Re = {
 	emits: [
 		"zoom",
 		"loaded",
-		"update:wipe"
+		"update:wipe",
+		"dismiss"
 	],
 	setup(e, { expose: t, emit: n }) {
 		let r = e, i = n, a = V(null), o = V(null), s = V(null), c = V({
@@ -378,7 +379,8 @@ var Re = {
 				y: e.clientY,
 				ox: u.value.x,
 				oy: u.value.y,
-				id: e.pointerId
+				id: e.pointerId,
+				t: Date.now()
 			}, p.value = !0, e.currentTarget?.setPointerCapture?.(e.pointerId));
 		}
 		function se(e) {
@@ -388,7 +390,8 @@ var Re = {
 			}, Math.abs(e.clientX - m.x) + Math.abs(e.clientY - m.y) > 2 && (d.value = !1));
 		}
 		function z(e) {
-			m && e.currentTarget?.releasePointerCapture?.(m.id), m = null, p.value = !1;
+			let t = m;
+			t && e.currentTarget?.releasePointerCapture?.(t.id), m = null, p.value = !1, t && e.type === "pointerup" && e.button === 0 && Math.hypot(e.clientX - t.x, e.clientY - t.y) <= 6 && Date.now() - t.t <= 600 && document.elementFromPoint(e.clientX, e.clientY) === a.value && i("dismiss");
 		}
 		function ce(e) {
 			let t = o.value?.getBoundingClientRect();
@@ -1700,7 +1703,8 @@ var Re = {
 						compare: z(q).compare,
 						class: R({ "is-probing": z(q).probe || z(q).loupe }),
 						onZoom: t[7] ||= (e) => A.value = e,
-						onLoaded: Be
+						onLoaded: Be,
+						onDismiss: Qe
 					}, {
 						overlay: D(({ width: e, height: t }) => [z(q).zebra ? (j(), b(Yt, {
 							key: 0,
@@ -1744,7 +1748,9 @@ var Re = {
 						"media-filter": Ne.value,
 						"compare-src": Ae.value,
 						compare: z(q).compare,
-						class: R({ "is-probing": z(q).probe || z(q).loupe })
+						class: R({ "is-probing": z(q).probe || z(q).loupe }),
+						"light-dismiss": "",
+						onDismiss: Qe
 					}, {
 						overlay: D(({ width: e, height: t }) => [z(q).zebra ? (j(), b(Yt, {
 							key: 0,

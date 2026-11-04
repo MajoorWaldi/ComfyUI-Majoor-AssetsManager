@@ -54,6 +54,7 @@ function mountViewer() {
                 SidebarFileInfoSection: true,
                 StudioImageStage: {
                     props: ["src", "compare", "compareSrc", "mediaFilter"],
+                    emits: ["dismiss", "zoom", "loaded"],
                     template:
                         '<div class="stage-stub" :data-src="src" :data-compare="compare" :data-compare-src="compareSrc || \'\'" />',
                 },
@@ -185,5 +186,22 @@ describe("StudioViewer", () => {
         await nextTick();
         expect(tools.zebra).toBe(false);
         expect(tools.grid).toBe("off");
+    });
+
+    it("closes on a light dismiss and tells the grid which asset it ended on", async () => {
+        const wrapper = mountViewer();
+        openStudioViewer(ASSETS, 1);
+        await flushPromises();
+        const seen: any[] = [];
+        const onActive = (e: Event) => seen.push((e as CustomEvent).detail);
+        window.addEventListener("mjr:viewer-active-asset-changed", onActive);
+        try {
+            (wrapper.findComponent(".stage-stub") as any).vm.$emit("dismiss");
+            await nextTick();
+            expect(studioViewerState.open).toBe(false);
+            expect(seen).toEqual([{ assetId: "2" }]);
+        } finally {
+            window.removeEventListener("mjr:viewer-active-asset-changed", onActive);
+        }
     });
 });
