@@ -1,9 +1,9 @@
-import { T as e, Wt as t, Yn as n, f as r, in as i, ir as a, s as o, u as s } from "./config-C9a-wT5M.js";
-import { a as c, i as l, r as u } from "./floatingViewerManager-B_I-SRbd.js";
+import { Gt as e, T as t, Xn as n, an as r, ar as i, f as a, s as o, u as s } from "./config-DoJ7zWHb.js";
+import { a as c, i as l, r as u } from "./floatingViewerManager-D3vJdYyO.js";
 import { i as d, r as f, t as p } from "./events-1iwo5blr.js";
-import { a as ee, i as m, n as h, r as g, t as _ } from "./TagsEditor-MUk741GH.js";
-import { $ as te, A as v, B as ne, C as y, D as b, E as x, H as S, J as re, K as C, M as w, O as T, P as E, Q as D, S as O, T as k, U as A, V as ie, W as j, X as M, Y as N, b as ae, gt as P, ht as F, j as I, k as L, lt as oe, mt as R, ot as se, pt as z, q as B, rt as ce, st as V, w as le, z as H } from "./mjr-primevue-C07IsEdU.js";
-import { C as U, _ as W, a as ue, b as de, c as G, d as fe, f as pe, g as me, h as he, i as ge, l as _e, m as ve, n as ye, o as K, p as be, r as xe, s as q, t as Se, u as Ce, v as we, x as Te, y as Ee } from "./genInfo-Dk8cerKp.js";
+import { a as ee, i as m, n as h, r as g, t as _ } from "./TagsEditor-DBGHsTFV.js";
+import { $ as te, A as v, B as ne, C as y, D as b, E as x, H as S, J as re, K as C, M as w, O as T, P as E, Q as D, S as O, T as k, U as A, V as ie, W as j, X as M, Y as N, b as ae, gt as P, ht as F, j as I, k as L, lt as oe, mt as R, ot as se, pt as z, q as B, rt as ce, st as V, w as le, z as H } from "./mjr-primevue-QrNPJaqR.js";
+import { C as U, _ as W, a as ue, b as de, c as G, d as fe, f as pe, g as me, h as he, i as ge, l as _e, m as ve, n as ye, o as K, p as be, r as xe, s as q, t as Se, u as Ce, v as we, x as Te, y as Ee } from "./genInfo--Q4Yy0ms.js";
 // ui/vue/components/viewer/FloatingViewerHost.vue
 var De = /* @__PURE__ */ E({
 	__name: "FloatingViewerHost",
@@ -672,7 +672,7 @@ var Re = {
 		tick: {}
 	},
 	setup(e) {
-		let t = e, n = V(null), r = V(null);
+		let t = e, n = V(null), i = V(null);
 		function a(e) {
 			let t = n.value, r = t?.getContext("2d");
 			if (!t || !r) return;
@@ -693,8 +693,8 @@ var Re = {
 			r.stroke();
 		}
 		function o(e, t, n) {
-			let i = r.value, a = i?.getContext("2d");
-			if (!i || !a) return;
+			let r = i.value, a = r?.getContext("2d");
+			if (!r || !a) return;
 			let o = pe(e, t, n, 256), s = a.createImageData(o.columns, 256);
 			for (let e = 0; e < o.columns; e++) for (let t = 0; t < 256; t++) {
 				let n = o.bins[e * 256 + t];
@@ -702,21 +702,21 @@ var Re = {
 				let r = Math.min(255, 40 + n / o.max * 1200), i = ((255 - t) * o.columns + e) * 4;
 				s.data[i] = 120, s.data[i + 1] = 255, s.data[i + 2] = 150, s.data[i + 3] = r;
 			}
-			i.width = o.columns, i.height = 256, a.putImageData(s, 0, 0);
+			r.width = o.columns, r.height = 256, a.putImageData(s, 0, 0);
 		}
 		function s() {
 			if (t.mode === "off") return;
 			let e = ke(t.getSource(), 256);
 			e && ((t.mode === "hist" || t.mode === "both") && a(e.data), (t.mode === "wave" || t.mode === "both") && o(e.data, e.width, e.height));
 		}
-		return M(() => [t.tick, t.mode], () => requestAnimationFrame(s)), S(s), (t, a) => (j(), L("div", yt, [e.mode === "hist" || e.mode === "both" ? (j(), L("div", bt, [x("span", xt, P(z(i)("viewer.studio.histogram", "Histogram")), 1), x("canvas", {
+		return M(() => [t.tick, t.mode], () => requestAnimationFrame(s)), S(s), (t, a) => (j(), L("div", yt, [e.mode === "hist" || e.mode === "both" ? (j(), L("div", bt, [x("span", xt, P(z(r)("viewer.studio.histogram", "Histogram")), 1), x("canvas", {
 			ref_key: "hist",
 			ref: n,
 			width: "256",
 			height: "110"
-		}, null, 512)])) : T("", !0), e.mode === "wave" || e.mode === "both" ? (j(), L("div", St, [x("span", Ct, P(z(i)("viewer.studio.waveform", "Waveform")), 1), x("canvas", {
+		}, null, 512)])) : T("", !0), e.mode === "wave" || e.mode === "both" ? (j(), L("div", St, [x("span", Ct, P(z(r)("viewer.studio.waveform", "Waveform")), 1), x("canvas", {
 			ref_key: "wave",
-			ref: r,
+			ref: i,
 			width: "256",
 			height: "256",
 			class: "is-wave"
@@ -823,7 +823,7 @@ var Re = {
 		"copy"
 	], ["update:tools"]),
 	setup(e, { expose: t, emit: n }) {
-		let r = N(e, "tools"), a = e, o = n, s = V(null), c = V(0), l = V(null), u = [
+		let i = N(e, "tools"), a = e, o = n, s = V(null), c = V(0), l = V(null), u = [
 			{
 				value: "rgb",
 				label: "RGB"
@@ -911,7 +911,7 @@ var Re = {
 				value: "2.39",
 				label: "2.39"
 			}
-		], ee = k(() => q.filter((e) => !(a.isVideo && e.imageOnly))), m = k(() => Math.abs(r.value.exposure) > .001 || Math.abs(r.value.gamma - 1) > .001);
+		], ee = k(() => q.filter((e) => !(a.isVideo && e.imageOnly))), m = k(() => Math.abs(i.value.exposure) > .001 || Math.abs(i.value.gamma - 1) > .001);
 		function h(e, t) {
 			if (s.value === e) {
 				s.value = null;
@@ -922,18 +922,18 @@ var Re = {
 		}
 		function g() {
 			let e = ve();
-			r.value.exposure = e.exposure, r.value.gamma = e.gamma;
+			i.value.exposure = e.exposure, i.value.gamma = e.gamma;
 		}
 		function _() {
 			let e = ve();
-			Object.assign(r.value, {
+			Object.assign(i.value, {
 				...e,
-				loupeSize: r.value.loupeSize,
-				loupeZoom: r.value.loupeZoom
+				loupeSize: i.value.loupeSize,
+				loupeZoom: i.value.loupeZoom
 			}), s.value = null;
 		}
 		function te(e) {
-			r.value.compare = r.value.compare === e ? "off" : e;
+			i.value.compare = i.value.compare === e ? "off" : e;
 		}
 		function v(e) {
 			s.value && (l.value?.contains(e.target) || (s.value = null));
@@ -959,22 +959,22 @@ var Re = {
 			}, [x("div", {
 				class: "mjr-studio-rail__bar",
 				role: "toolbar",
-				"aria-label": z(i)("viewer.studio.tools", "Review tools")
+				"aria-label": z(r)("viewer.studio.tools", "Review tools")
 			}, [
 				e.canAnalyse ? (j(), L(y, { key: 0 }, [
 					w(a, {
 						type: "button",
 						class: R(["mjr-studio-rail__btn", {
-							"is-on": r.value.channel !== "rgb",
+							"is-on": i.value.channel !== "rgb",
 							"is-open": s.value === "channels"
 						}]),
-						title: z(i)("viewer.studio.channels", "Channels"),
+						title: z(r)("viewer.studio.channels", "Channels"),
 						onClick: n[0] ||= (e) => h("channels", e)
 					}, {
 						default: D(() => [n[27] ||= x("i", {
 							class: "pi pi-palette",
 							"aria-hidden": "true"
-						}, null, -1), r.value.channel === "rgb" ? T("", !0) : (j(), L("span", At, P(r.value.channel.toUpperCase()), 1))]),
+						}, null, -1), i.value.channel === "rgb" ? T("", !0) : (j(), L("span", At, P(i.value.channel.toUpperCase()), 1))]),
 						_: 1
 					}, 8, ["class", "title"]),
 					w(a, {
@@ -983,7 +983,7 @@ var Re = {
 							"is-on": m.value,
 							"is-open": s.value === "exposure"
 						}]),
-						title: z(i)("viewer.studio.exposure", "Exposure / gamma"),
+						title: z(r)("viewer.studio.exposure", "Exposure / gamma"),
 						onClick: n[1] ||= (e) => h("exposure", e)
 					}, {
 						default: D(() => [...n[28] ||= [x("i", {
@@ -995,10 +995,10 @@ var Re = {
 					w(a, {
 						type: "button",
 						class: R(["mjr-studio-rail__btn", {
-							"is-on": r.value.zebra,
+							"is-on": i.value.zebra,
 							"is-open": s.value === "zebra"
 						}]),
-						title: z(i)("viewer.studio.zebra", "Zebra highlights (Z)"),
+						title: z(r)("viewer.studio.zebra", "Zebra highlights (Z)"),
 						onClick: n[2] ||= (e) => h("zebra", e)
 					}, {
 						default: D(() => [...n[29] ||= [x("i", {
@@ -1010,10 +1010,10 @@ var Re = {
 					w(a, {
 						type: "button",
 						class: R(["mjr-studio-rail__btn", {
-							"is-on": r.value.scopes !== "off",
+							"is-on": i.value.scopes !== "off",
 							"is-open": s.value === "scopes"
 						}]),
-						title: z(i)("viewer.studio.scopes", "Scopes (S)"),
+						title: z(r)("viewer.studio.scopes", "Scopes (S)"),
 						onClick: n[3] ||= (e) => h("scopes", e)
 					}, {
 						default: D(() => [...n[30] ||= [x("i", {
@@ -1027,10 +1027,10 @@ var Re = {
 				w(a, {
 					type: "button",
 					class: R(["mjr-studio-rail__btn", {
-						"is-on": r.value.grid !== "off",
+						"is-on": i.value.grid !== "off",
 						"is-open": s.value === "grid"
 					}]),
-					title: z(i)("viewer.studio.grid", "Guides (G)"),
+					title: z(r)("viewer.studio.grid", "Guides (G)"),
 					onClick: n[4] ||= (e) => h("grid", e)
 				}, {
 					default: D(() => [...n[32] ||= [x("i", {
@@ -1042,10 +1042,10 @@ var Re = {
 				w(a, {
 					type: "button",
 					class: R(["mjr-studio-rail__btn", {
-						"is-on": r.value.aspect !== "off",
+						"is-on": i.value.aspect !== "off",
 						"is-open": s.value === "aspect"
 					}]),
-					title: z(i)("viewer.studio.aspect", "Aspect ratio mask"),
+					title: z(r)("viewer.studio.aspect", "Aspect ratio mask"),
 					onClick: n[5] ||= (e) => h("aspect", e)
 				}, {
 					default: D(() => [...n[33] ||= [x("i", {
@@ -1058,9 +1058,9 @@ var Re = {
 					n[36] ||= x("span", { class: "mjr-studio-rail__sep" }, null, -1),
 					w(a, {
 						type: "button",
-						class: R(["mjr-studio-rail__btn", { "is-on": r.value.probe }]),
-						title: z(i)("viewer.studio.probe", "Pixel probe (P)"),
-						onClick: n[6] ||= (e) => r.value.probe = !r.value.probe
+						class: R(["mjr-studio-rail__btn", { "is-on": i.value.probe }]),
+						title: z(r)("viewer.studio.probe", "Pixel probe (P)"),
+						onClick: n[6] ||= (e) => i.value.probe = !i.value.probe
 					}, {
 						default: D(() => [...n[34] ||= [x("i", {
 							class: "pi pi-map-marker",
@@ -1071,11 +1071,11 @@ var Re = {
 					w(a, {
 						type: "button",
 						class: R(["mjr-studio-rail__btn", {
-							"is-on": r.value.loupe,
+							"is-on": i.value.loupe,
 							"is-open": s.value === "loupe"
 						}]),
-						title: z(i)("viewer.studio.loupe", "Loupe (L) - right-click for settings"),
-						onClick: n[7] ||= (e) => r.value.loupe = !r.value.loupe,
+						title: z(r)("viewer.studio.loupe", "Loupe (L) - right-click for settings"),
+						onClick: n[7] ||= (e) => i.value.loupe = !i.value.loupe,
 						onContextmenu: n[8] ||= O((e) => h("loupe", e), ["prevent"])
 					}, {
 						default: D(() => [...n[35] ||= [x("i", {
@@ -1088,10 +1088,10 @@ var Re = {
 				e.canCompare ? (j(), L(y, { key: 2 }, [n[38] ||= x("span", { class: "mjr-studio-rail__sep" }, null, -1), w(a, {
 					type: "button",
 					class: R(["mjr-studio-rail__btn", {
-						"is-on": r.value.compare !== "off",
+						"is-on": i.value.compare !== "off",
 						"is-open": s.value === "compare"
 					}]),
-					title: z(i)("viewer.studio.compareTool", "Compare A/B (C)"),
+					title: z(r)("viewer.studio.compareTool", "Compare A/B (C)"),
 					onClick: n[9] ||= (e) => h("compare", e)
 				}, {
 					default: D(() => [...n[37] ||= [x("i", {
@@ -1105,7 +1105,7 @@ var Re = {
 					key: 3,
 					type: "button",
 					class: "mjr-studio-rail__btn",
-					title: z(i)("viewer.studio.copy", "Copy image / frame to clipboard"),
+					title: z(r)("viewer.studio.copy", "Copy image / frame to clipboard"),
 					onClick: n[10] ||= (e) => o("copy")
 				}, {
 					default: D(() => [...n[39] ||= [x("i", {
@@ -1117,7 +1117,7 @@ var Re = {
 				w(a, {
 					type: "button",
 					class: "mjr-studio-rail__btn",
-					title: z(i)("viewer.studio.resetTools", "Reset all tools (R)"),
+					title: z(r)("viewer.studio.resetTools", "Reset all tools (R)"),
 					onClick: _
 				}, {
 					default: D(() => [...n[40] ||= [x("i", {
@@ -1131,20 +1131,20 @@ var Re = {
 				class: "mjr-studio-rail__panel",
 				style: F({ top: `${c.value}px` }),
 				role: "dialog"
-			}, [s.value === "channels" ? (j(), L(y, { key: 0 }, [x("div", jt, P(z(i)("viewer.studio.channels", "Channels")), 1), x("div", Mt, [(j(), L(y, null, C(u, (e) => w(a, {
+			}, [s.value === "channels" ? (j(), L(y, { key: 0 }, [x("div", jt, P(z(r)("viewer.studio.channels", "Channels")), 1), x("div", Mt, [(j(), L(y, null, C(u, (e) => w(a, {
 				key: e.value,
 				type: "button",
-				class: R({ "is-on": r.value.channel === e.value }),
-				onClick: (t) => r.value.channel = e.value
+				class: R({ "is-on": i.value.channel === e.value }),
+				onClick: (t) => i.value.channel = e.value
 			}, {
 				default: D(() => [I(P(e.label), 1)]),
 				_: 2
 			}, 1032, ["class", "onClick"])), 64))])], 64)) : s.value === "exposure" ? (j(), L(y, { key: 1 }, [
-				x("div", Nt, P(z(i)("viewer.studio.exposure", "Exposure / gamma")), 1),
+				x("div", Nt, P(z(r)("viewer.studio.exposure", "Exposure / gamma")), 1),
 				w($, {
-					modelValue: r.value.exposure,
-					"onUpdate:modelValue": n[11] ||= (e) => r.value.exposure = e,
-					label: z(i)("viewer.studio.ev", "Exposure"),
+					modelValue: i.value.exposure,
+					"onUpdate:modelValue": n[11] ||= (e) => i.value.exposure = e,
+					label: z(r)("viewer.studio.ev", "Exposure"),
 					min: -5,
 					max: 5,
 					step: .05,
@@ -1152,9 +1152,9 @@ var Re = {
 					format: ne
 				}, null, 8, ["modelValue", "label"]),
 				w($, {
-					modelValue: r.value.gamma,
-					"onUpdate:modelValue": n[12] ||= (e) => r.value.gamma = e,
-					label: z(i)("viewer.studio.gamma", "Gamma"),
+					modelValue: i.value.gamma,
+					"onUpdate:modelValue": n[12] ||= (e) => i.value.gamma = e,
+					label: z(r)("viewer.studio.gamma", "Gamma"),
 					min: .1,
 					max: 3,
 					step: .01,
@@ -1166,67 +1166,67 @@ var Re = {
 					class: "mjr-studio-btn is-text",
 					onClick: g
 				}, {
-					default: D(() => [I(P(z(i)("viewer.studio.reset", "Reset")), 1)]),
+					default: D(() => [I(P(z(r)("viewer.studio.reset", "Reset")), 1)]),
 					_: 1
 				})
 			], 64)) : s.value === "zebra" ? (j(), L(y, { key: 2 }, [
-				x("div", Pt, P(z(i)("viewer.studio.zebra", "Zebra highlights (Z)")), 1),
+				x("div", Pt, P(z(r)("viewer.studio.zebra", "Zebra highlights (Z)")), 1),
 				x("div", Ft, [w(a, {
 					type: "button",
-					class: R({ "is-on": !r.value.zebra }),
-					onClick: n[13] ||= (e) => r.value.zebra = !1
+					class: R({ "is-on": !i.value.zebra }),
+					onClick: n[13] ||= (e) => i.value.zebra = !1
 				}, {
 					default: D(() => [...n[42] ||= [I("Off", -1)]]),
 					_: 1
 				}, 8, ["class"]), w(a, {
 					type: "button",
-					class: R({ "is-on": r.value.zebra }),
-					onClick: n[14] ||= (e) => r.value.zebra = !0
+					class: R({ "is-on": i.value.zebra }),
+					onClick: n[14] ||= (e) => i.value.zebra = !0
 				}, {
 					default: D(() => [...n[43] ||= [I("On", -1)]]),
 					_: 1
 				}, 8, ["class"])]),
 				w($, {
-					modelValue: r.value.zebraThreshold,
-					"onUpdate:modelValue": n[15] ||= (e) => r.value.zebraThreshold = e,
-					label: z(i)("viewer.studio.threshold", "Threshold"),
+					modelValue: i.value.zebraThreshold,
+					"onUpdate:modelValue": n[15] ||= (e) => i.value.zebraThreshold = e,
+					label: z(r)("viewer.studio.threshold", "Threshold"),
 					min: .5,
 					max: 1,
 					step: .01,
 					"default-value": .95,
 					format: A
 				}, null, 8, ["modelValue", "label"])
-			], 64)) : s.value === "scopes" ? (j(), L(y, { key: 3 }, [x("div", It, P(z(i)("viewer.studio.scopes", "Scopes (S)")), 1), x("div", Lt, [(j(), L(y, null, C(d, (e) => w(a, {
+			], 64)) : s.value === "scopes" ? (j(), L(y, { key: 3 }, [x("div", It, P(z(r)("viewer.studio.scopes", "Scopes (S)")), 1), x("div", Lt, [(j(), L(y, null, C(d, (e) => w(a, {
 				key: e.value,
 				type: "button",
-				class: R({ "is-on": r.value.scopes === e.value }),
-				onClick: (t) => r.value.scopes = e.value
+				class: R({ "is-on": i.value.scopes === e.value }),
+				onClick: (t) => i.value.scopes = e.value
 			}, {
 				default: D(() => [I(P(e.label), 1)]),
 				_: 2
-			}, 1032, ["class", "onClick"])), 64))])], 64)) : s.value === "grid" ? (j(), L(y, { key: 4 }, [x("div", Rt, P(z(i)("viewer.studio.grid", "Guides (G)")), 1), x("div", zt, [(j(), L(y, null, C(f, (e) => w(a, {
+			}, 1032, ["class", "onClick"])), 64))])], 64)) : s.value === "grid" ? (j(), L(y, { key: 4 }, [x("div", Rt, P(z(r)("viewer.studio.grid", "Guides (G)")), 1), x("div", zt, [(j(), L(y, null, C(f, (e) => w(a, {
 				key: e.value,
 				type: "button",
-				class: R({ "is-on": r.value.grid === e.value }),
-				onClick: (t) => r.value.grid = e.value
+				class: R({ "is-on": i.value.grid === e.value }),
+				onClick: (t) => i.value.grid = e.value
 			}, {
 				default: D(() => [I(P(e.label), 1)]),
 				_: 2
 			}, 1032, ["class", "onClick"])), 64))])], 64)) : s.value === "aspect" ? (j(), L(y, { key: 5 }, [
-				x("div", Bt, P(z(i)("viewer.studio.aspect", "Aspect ratio mask")), 1),
+				x("div", Bt, P(z(r)("viewer.studio.aspect", "Aspect ratio mask")), 1),
 				x("div", Vt, [(j(), L(y, null, C(p, (e) => w(a, {
 					key: e.value,
 					type: "button",
-					class: R({ "is-on": r.value.aspect === e.value }),
-					onClick: (t) => r.value.aspect = e.value
+					class: R({ "is-on": i.value.aspect === e.value }),
+					onClick: (t) => i.value.aspect = e.value
 				}, {
 					default: D(() => [I(P(e.label), 1)]),
 					_: 2
 				}, 1032, ["class", "onClick"])), 64))]),
 				w($, {
-					modelValue: r.value.maskOpacity,
-					"onUpdate:modelValue": n[16] ||= (e) => r.value.maskOpacity = e,
-					label: z(i)("viewer.studio.opacity", "Opacity"),
+					modelValue: i.value.maskOpacity,
+					"onUpdate:modelValue": n[16] ||= (e) => i.value.maskOpacity = e,
+					label: z(r)("viewer.studio.opacity", "Opacity"),
 					min: 0,
 					max: 1,
 					step: .05,
@@ -1234,11 +1234,11 @@ var Re = {
 					format: A
 				}, null, 8, ["modelValue", "label"])
 			], 64)) : s.value === "loupe" ? (j(), L(y, { key: 6 }, [
-				x("div", Ht, P(z(i)("viewer.studio.loupeTitle", "Loupe")), 1),
+				x("div", Ht, P(z(r)("viewer.studio.loupeTitle", "Loupe")), 1),
 				w($, {
-					modelValue: r.value.loupeZoom,
-					"onUpdate:modelValue": n[17] ||= (e) => r.value.loupeZoom = e,
-					label: z(i)("viewer.studio.magnification", "Magnification"),
+					modelValue: i.value.loupeZoom,
+					"onUpdate:modelValue": n[17] ||= (e) => i.value.loupeZoom = e,
+					label: z(r)("viewer.studio.magnification", "Magnification"),
 					min: 2,
 					max: 32,
 					step: 1,
@@ -1246,9 +1246,9 @@ var Re = {
 					format: M
 				}, null, 8, ["modelValue", "label"]),
 				w($, {
-					modelValue: r.value.loupeSize,
-					"onUpdate:modelValue": n[18] ||= (e) => r.value.loupeSize = e,
-					label: z(i)("viewer.studio.size", "Size"),
+					modelValue: i.value.loupeSize,
+					"onUpdate:modelValue": n[18] ||= (e) => i.value.loupeSize = e,
+					label: z(r)("viewer.studio.size", "Size"),
 					min: 80,
 					max: 320,
 					step: 10,
@@ -1256,11 +1256,11 @@ var Re = {
 					format: ae
 				}, null, 8, ["modelValue", "label"])
 			], 64)) : s.value === "compare" ? (j(), L(y, { key: 7 }, [
-				x("div", Ut, P(z(i)("viewer.studio.compareTool", "Compare A/B (C)")), 1),
+				x("div", Ut, P(z(r)("viewer.studio.compareTool", "Compare A/B (C)")), 1),
 				x("div", Wt, [(j(!0), L(y, null, C(ee.value, (e) => (j(), b(a, {
 					key: e.value,
 					type: "button",
-					class: R({ "is-on": r.value.compare === e.value }),
+					class: R({ "is-on": i.value.compare === e.value }),
 					onClick: (t) => te(e.value)
 				}, {
 					default: D(() => [I(P(e.label), 1)]),
@@ -1271,7 +1271,7 @@ var Re = {
 					w(a, {
 						type: "button",
 						class: "mjr-studio-btn",
-						title: z(i)("viewer.studio.prevB", "Previous B"),
+						title: z(r)("viewer.studio.prevB", "Previous B"),
 						onClick: n[19] ||= (e) => o("cycle-b", -1)
 					}, {
 						default: D(() => [...n[44] ||= [x("i", {
@@ -1287,7 +1287,7 @@ var Re = {
 					w(a, {
 						type: "button",
 						class: "mjr-studio-btn",
-						title: z(i)("viewer.studio.nextB", "Next B"),
+						title: z(r)("viewer.studio.nextB", "Next B"),
 						onClick: n[20] ||= (e) => o("cycle-b", 1)
 					}, {
 						default: D(() => [...n[45] ||= [x("i", {
@@ -1299,30 +1299,30 @@ var Re = {
 				]),
 				x("div", qt, [w(a, {
 					type: "button",
-					title: z(i)("viewer.studio.pinB", "Use the current asset as B (B)"),
+					title: z(r)("viewer.studio.pinB", "Use the current asset as B (B)"),
 					onClick: n[21] ||= (e) => o("pin-b")
 				}, {
 					default: D(() => [n[47] ||= x("i", {
 						class: "pi pi-bookmark",
 						"aria-hidden": "true"
-					}, null, -1), I(" " + P(z(i)("viewer.studio.pinBShort", "Set B")), 1)]),
+					}, null, -1), I(" " + P(z(r)("viewer.studio.pinBShort", "Set B")), 1)]),
 					_: 1
 				}, 8, ["title"]), w(a, {
 					type: "button",
-					title: z(i)("viewer.studio.swap", "Swap A and B (X)"),
+					title: z(r)("viewer.studio.swap", "Swap A and B (X)"),
 					onClick: n[22] ||= (e) => o("swap")
 				}, {
 					default: D(() => [n[48] ||= x("i", {
 						class: "pi pi-arrow-right-arrow-left",
 						"aria-hidden": "true"
-					}, null, -1), I(" " + P(z(i)("viewer.studio.swapShort", "Swap")), 1)]),
+					}, null, -1), I(" " + P(z(r)("viewer.studio.swapShort", "Swap")), 1)]),
 					_: 1
 				}, 8, ["title"])]),
-				r.value.compare === "wipe" || r.value.compare === "wipeV" ? (j(), b($, {
+				i.value.compare === "wipe" || i.value.compare === "wipeV" ? (j(), b($, {
 					key: 0,
-					modelValue: r.value.wipe,
-					"onUpdate:modelValue": n[23] ||= (e) => r.value.wipe = e,
-					label: z(i)("viewer.studio.wipe", "Wipe"),
+					modelValue: i.value.wipe,
+					"onUpdate:modelValue": n[23] ||= (e) => i.value.wipe = e,
+					label: z(r)("viewer.studio.wipe", "Wipe"),
 					min: 0,
 					max: 100,
 					step: 1,
@@ -1428,12 +1428,12 @@ var Re = {
 			X.value && (q.compare = q.compare === "off" ? "wipe" : "off");
 		}
 		async function Ke() {
-			let e = await Me(Re()), n = window.ClipboardItem;
-			if (!e || !n || !navigator.clipboard?.write) t(i("viewer.studio.copyFailed", "Could not copy this image"), "error");
+			let t = await Me(Re()), n = window.ClipboardItem;
+			if (!t || !n || !navigator.clipboard?.write) e(r("viewer.studio.copyFailed", "Could not copy this image"), "error");
 			else try {
-				await navigator.clipboard.write([new n({ "image/png": e })]), t(i("viewer.studio.copied", "Copied to clipboard"), "success");
-			} catch (e) {
-				console.debug?.(e), t(i("viewer.studio.copyFailed", "Could not copy this image"), "error");
+				await navigator.clipboard.write([new n({ "image/png": t })]), e(r("viewer.studio.copied", "Copied to clipboard"), "success");
+			} catch (t) {
+				console.debug?.(t), e(r("viewer.studio.copyFailed", "Could not copy this image"), "error");
 			}
 		}
 		let qe = [
@@ -1473,7 +1473,7 @@ var Re = {
 			}
 			let n = K(e);
 			if ((n === "video" || n === "audio") && e?.id != null) try {
-				let n = await r(e.id, t ? { signal: t.signal } : {});
+				let n = await a(e.id, t ? { signal: t.signal } : {});
 				F === t && n?.ok && (ae.value = n.data || null);
 			} catch (e) {
 				console.debug?.(e);
@@ -1497,16 +1497,16 @@ var Re = {
 			e.href = W.value, e.download = String(B.value?.filename || ""), e.click();
 		}
 		async function tt(n) {
-			let r = B.value;
-			if (!r) return;
-			let a = Math.max(0, Math.min(5, n)), o = await e(r, a);
-			o?.ok ? (r.rating = a, N.value = N.value ? {
+			let i = B.value;
+			if (!i) return;
+			let a = Math.max(0, Math.min(5, n)), o = await t(i, a);
+			o?.ok ? (i.rating = a, N.value = N.value ? {
 				...N.value,
 				rating: a
-			} : r, window.dispatchEvent(new CustomEvent(p, { detail: {
-				assetId: r.id == null ? "" : String(r.id),
+			} : i, window.dispatchEvent(new CustomEvent(p, { detail: {
+				assetId: i.id == null ? "" : String(i.id),
 				rating: a
-			} }))) : t(o?.error || i("toast.ratingUpdateFailed", "Rating update failed"), "error");
+			} }))) : e(o?.error || r("toast.ratingUpdateFailed", "Rating update failed"), "error");
 		}
 		function rt(e) {
 			return !!e?.closest?.("input, textarea, select, [contenteditable='true']");
@@ -1524,7 +1524,7 @@ var Re = {
 			}) : o = !1), o && (e.preventDefault(), e.stopPropagation(), e.stopImmediatePropagation?.());
 		}
 		function at(e) {
-			return a(e, 192) || "";
+			return i(e, 192) || "";
 		}
 		return (e, t) => {
 			let n = re("MButton");
@@ -1535,7 +1535,7 @@ var Re = {
 				class: R(["mjr-assets-manager mjr-studio", { "is-inspector-closed": !v.value }]),
 				role: "dialog",
 				"aria-modal": "true",
-				"aria-label": z(i)("viewer.studio.title", "Viewer"),
+				"aria-label": z(r)("viewer.studio.title", "Viewer"),
 				tabindex: "-1"
 			}, [
 				x("header", Zt, [
@@ -1543,7 +1543,7 @@ var Re = {
 						w(n, {
 							type: "button",
 							class: "mjr-studio-btn",
-							title: z(i)("viewer.studio.prev", "Previous (←)"),
+							title: z(r)("viewer.studio.prev", "Previous (←)"),
 							disabled: G.value < 2,
 							onClick: t[0] ||= (e) => z(Le)(-1)
 						}, {
@@ -1557,7 +1557,7 @@ var Re = {
 						w(n, {
 							type: "button",
 							class: "mjr-studio-btn",
-							title: z(i)("viewer.studio.next", "Next (→)"),
+							title: z(r)("viewer.studio.next", "Next (→)"),
 							disabled: G.value < 2,
 							onClick: t[1] ||= (e) => z(Le)(1)
 						}, {
@@ -1576,12 +1576,12 @@ var Re = {
 						U.value === "image" ? (j(), L(y, { key: 0 }, [
 							x("span", {
 								class: "mjr-studio-chip",
-								title: z(i)("viewer.studio.zoomHint", "Wheel to zoom, double-click for fit / 100 %")
+								title: z(r)("viewer.studio.zoomHint", "Wheel to zoom, double-click for fit / 100 %")
 							}, P(Math.round(A.value * 100)) + "%", 9, an),
 							w(n, {
 								type: "button",
 								class: "mjr-studio-btn",
-								title: z(i)("viewer.studio.fit", "Fit"),
+								title: z(r)("viewer.studio.fit", "Fit"),
 								onClick: t[2] ||= (e) => u.value?.fit()
 							}, {
 								default: D(() => [...t[16] ||= [x("i", {
@@ -1593,7 +1593,7 @@ var Re = {
 							w(n, {
 								type: "button",
 								class: "mjr-studio-btn is-text",
-								title: z(i)("viewer.studio.actualSize", "Actual size"),
+								title: z(r)("viewer.studio.actualSize", "Actual size"),
 								onClick: t[3] ||= (e) => u.value?.actualSize()
 							}, {
 								default: D(() => [...t[17] ||= [I("1:1", -1)]]),
@@ -1602,7 +1602,7 @@ var Re = {
 							w(n, {
 								type: "button",
 								class: R(["mjr-studio-btn", { "is-on": E.value }]),
-								title: z(i)("viewer.studio.checker", "Transparency checkerboard"),
+								title: z(r)("viewer.studio.checker", "Transparency checkerboard"),
 								onClick: t[4] ||= (e) => E.value = !E.value
 							}, {
 								default: D(() => [...t[18] ||= [x("i", {
@@ -1616,7 +1616,7 @@ var Re = {
 							key: 1,
 							type: "button",
 							class: R(["mjr-studio-btn", { "is-on": ke.value }]),
-							title: z(i)("viewer.studio.compare", "Compare A/B (C)"),
+							title: z(r)("viewer.studio.compare", "Compare A/B (C)"),
 							onClick: Ge
 						}, {
 							default: D(() => [...t[19] ||= [x("i", {
@@ -1628,7 +1628,7 @@ var Re = {
 						w(n, {
 							type: "button",
 							class: "mjr-studio-btn",
-							title: z(i)("viewer.studio.download", "Download"),
+							title: z(r)("viewer.studio.download", "Download"),
 							onClick: et
 						}, {
 							default: D(() => [...t[20] ||= [x("i", {
@@ -1640,7 +1640,7 @@ var Re = {
 						w(n, {
 							type: "button",
 							class: R(["mjr-studio-btn", { "is-on": v.value }]),
-							title: z(i)("viewer.studio.inspector", "Generation info (Tab)"),
+							title: z(r)("viewer.studio.inspector", "Generation info (Tab)"),
 							onClick: t[5] ||= (e) => v.value = !v.value
 						}, {
 							default: D(() => [...t[21] ||= [x("i", {
@@ -1652,7 +1652,7 @@ var Re = {
 						w(n, {
 							type: "button",
 							class: "mjr-studio-btn",
-							title: z(i)("viewer.studio.fullscreen", "Fullscreen (F)"),
+							title: z(r)("viewer.studio.fullscreen", "Fullscreen (F)"),
 							onClick: $e
 						}, {
 							default: D(() => [...t[22] ||= [x("i", {
@@ -1664,7 +1664,7 @@ var Re = {
 						w(n, {
 							type: "button",
 							class: "mjr-studio-btn is-close",
-							title: z(i)("viewer.studio.close", "Close (Esc)"),
+							title: z(r)("viewer.studio.close", "Close (Esc)"),
 							onClick: Qe
 						}, {
 							default: D(() => [...t[23] ||= [x("i", {
@@ -1789,7 +1789,7 @@ var Re = {
 					}, null, 8, ["asset", "src"])) : (j(), L("div", sn, [t[24] ||= x("i", {
 						class: "pi pi-file",
 						"aria-hidden": "true"
-					}, null, -1), x("span", null, P(z(i)("viewer.studio.unsupported", "No preview for this file type.")), 1)])),
+					}, null, -1), x("span", null, P(z(r)("viewer.studio.unsupported", "No preview for this file type.")), 1)])),
 					J.value ? (j(), b(Jt, {
 						key: 5,
 						ref_key: "toolRail",
@@ -1838,7 +1838,7 @@ var Re = {
 					class: "mjr-studio__inspector",
 					onKeydown: t[13] ||= O(() => {}, ["stop"])
 				}, [
-					x("div", cn, [x("div", ln, [x("span", un, P(z(i)("sidebar.rating", "Rating")), 1), (j(), b(h, {
+					x("div", cn, [x("div", ln, [x("span", un, P(z(r)("sidebar.rating", "Rating")), 1), (j(), b(h, {
 						key: `r:${H.value.id}`,
 						asset: H.value,
 						"model-value": he.value,
@@ -1856,7 +1856,7 @@ var Re = {
 							class: R({ "is-active": S.value === "generation" }),
 							onClick: t[10] ||= (e) => S.value = "generation"
 						}, {
-							default: D(() => [I(P(z(i)("viewer.studio.tabGeneration", "Generation")), 1)]),
+							default: D(() => [I(P(z(r)("viewer.studio.tabGeneration", "Generation")), 1)]),
 							_: 1
 						}, 8, ["class"]),
 						w(n, {
@@ -1865,7 +1865,7 @@ var Re = {
 							class: R({ "is-active": S.value === "workflow" }),
 							onClick: t[11] ||= (e) => S.value = "workflow"
 						}, {
-							default: D(() => [I(P(z(i)("viewer.studio.tabWorkflow", "Workflow")), 1)]),
+							default: D(() => [I(P(z(r)("viewer.studio.tabWorkflow", "Workflow")), 1)]),
 							_: 1
 						}, 8, ["class"]),
 						w(n, {
@@ -1874,7 +1874,7 @@ var Re = {
 							class: R({ "is-active": S.value === "file" }),
 							onClick: t[12] ||= (e) => S.value = "file"
 						}, {
-							default: D(() => [I(P(z(i)("viewer.studio.tabFile", "File")), 1)]),
+							default: D(() => [I(P(z(r)("viewer.studio.tabFile", "File")), 1)]),
 							_: 1
 						}, 8, ["class"])
 					]),
@@ -1893,7 +1893,7 @@ var Re = {
 					key: 0,
 					class: "mjr-studio__filmstrip",
 					role: "listbox",
-					"aria-label": z(i)("viewer.studio.filmstrip", "Filmstrip")
+					"aria-label": z(r)("viewer.studio.filmstrip", "Filmstrip")
 				}, [(j(!0), L(y, null, C(be.value, (e) => (j(), b(n, {
 					key: `${e.index}:${e.asset?.id ?? e.asset?.filename}`,
 					type: "button",
