@@ -153,9 +153,8 @@ export function createRatingHotkeysController({ gridContainer, createRatingBadge
 
             if (k !== "0" && k !== "1" && k !== "2" && k !== "3" && k !== "4" && k !== "5") return;
 
-            // Check if viewer is open - let it handle rating keys
-            const viewerOverlay = document.querySelector(".mjr-viewer-overlay");
-            if (viewerOverlay && (viewerOverlay as HTMLElement).style.display !== "none") return;
+            // Check if the viewer is open - let it handle rating keys
+            if (document.querySelector(".mjr-studio")) return;
 
             // Check if the event target is within our grid container or if the grid container itself has focus/hover
             // This ensures rating hotkeys only work when interacting with the assets manager.

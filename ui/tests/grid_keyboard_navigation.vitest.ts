@@ -50,33 +50,35 @@ function createGridContainer(assetIds) {
     grid.className = "mjr-grid";
 
     const assets = assetIds.map((id) => ({ id }));
-    grid._mjrAssets = assets;
-    grid._mjrGetAssets = () => assets;
-    grid._mjrGetRenderedCards = () =>
+    (grid as any)._mjrAssets = assets;
+    (grid as any)._mjrGetAssets = () => assets;
+    (grid as any)._mjrGetRenderedCards = () =>
         assets.map((asset, index) => {
             const card = document.createElement("div");
             card.className = "mjr-asset-card";
             card.dataset.mjrAssetId = String(asset.id);
-            card._mjrAsset = asset;
-            card.getBoundingClientRect = () => ({
-                top: 0,
-                width: 100,
-                left: index * 100,
-                height: 100,
-                right: index * 100 + 100,
-                bottom: 100,
-            });
+            (card as any)._mjrAsset = asset;
+            card.getBoundingClientRect = () =>
+                ({
+                    top: 0,
+                    width: 100,
+                    left: index * 100,
+                    height: 100,
+                    right: index * 100 + 100,
+                    bottom: 100,
+                }) as any;
             return card;
         });
-    grid.getBoundingClientRect = () => ({
-        top: 0,
-        left: 0,
-        width: 220,
-        height: 100,
-        right: 220,
-        bottom: 100,
-    });
-    grid._mjrSetSelection = (ids, activeId = "") => {
+    grid.getBoundingClientRect = () =>
+        ({
+            top: 0,
+            left: 0,
+            width: 220,
+            height: 100,
+            right: 220,
+            bottom: 100,
+        }) as any;
+    (grid as any)._mjrSetSelection = (ids, activeId = "") => {
         grid.dataset.mjrSelectedAssetIds = JSON.stringify(ids);
         if (activeId) grid.dataset.mjrSelectedAssetId = String(activeId);
         else delete grid.dataset.mjrSelectedAssetId;
@@ -105,7 +107,7 @@ describe("GridKeyboard navigation", () => {
             configurable: true,
             get: () => document.body,
         });
-        delete window.__MJR_LAST_SELECTION_GRID__;
+        delete (window as any).__MJR_LAST_SELECTION_GRID__;
     });
 
     it("handles arrow keys only for the active grid when multiple listeners are installed", async () => {
@@ -114,30 +116,30 @@ describe("GridKeyboard navigation", () => {
         const mainGrid = createGridContainer(["main-1", "main-2", "main-3"]);
         const feedGrid = createGridContainer(["feed-1", "feed-2", "feed-3"]);
 
-        mainGrid._mjrSetSelection(["main-1"], "main-1");
-        feedGrid._mjrSetSelection(["feed-1"], "feed-1");
+        (mainGrid as any)._mjrSetSelection(["main-1"], "main-1");
+        (feedGrid as any)._mjrSetSelection(["feed-1"], "feed-1");
 
         const mainKeyboard = installGridKeyboard({
             gridContainer: mainGrid,
-            getState: () => ({ assets: mainGrid._mjrAssets }),
+            getState: () => ({ assets: (mainGrid as any)._mjrAssets }),
             getSelectedAssets: () =>
-                mainGrid._mjrAssets.filter(
+                (mainGrid as any)._mjrAssets.filter(
                     (asset) => asset.id === mainGrid.dataset.mjrSelectedAssetId,
                 ),
             getActiveAsset: () =>
-                mainGrid._mjrAssets.find(
+                (mainGrid as any)._mjrAssets.find(
                     (asset) => asset.id === mainGrid.dataset.mjrSelectedAssetId,
                 ) || null,
         });
         const feedKeyboard = installGridKeyboard({
             gridContainer: feedGrid,
-            getState: () => ({ assets: feedGrid._mjrAssets }),
+            getState: () => ({ assets: (feedGrid as any)._mjrAssets }),
             getSelectedAssets: () =>
-                feedGrid._mjrAssets.filter(
+                (feedGrid as any)._mjrAssets.filter(
                     (asset) => asset.id === feedGrid.dataset.mjrSelectedAssetId,
                 ),
             getActiveAsset: () =>
-                feedGrid._mjrAssets.find(
+                (feedGrid as any)._mjrAssets.find(
                     (asset) => asset.id === feedGrid.dataset.mjrSelectedAssetId,
                 ) || null,
         });
@@ -152,7 +154,7 @@ describe("GridKeyboard navigation", () => {
         expect(mainGrid.dataset.mjrSelectedAssetId).toBe("main-2");
         expect(feedGrid.dataset.mjrSelectedAssetId).toBe("feed-1");
         expect(panelRuntimeState.activeGrid).toBe(mainGrid);
-        expect(window.__MJR_LAST_SELECTION_GRID__).toBe(mainGrid);
+        expect((window as any).__MJR_LAST_SELECTION_GRID__).toBe(mainGrid);
 
         mainKeyboard.dispose();
         feedKeyboard.dispose();
@@ -162,9 +164,9 @@ describe("GridKeyboard navigation", () => {
         const { installGridKeyboard } = await import("../features/grid/GridKeyboard.js");
 
         const grid = createGridContainer(["asset-1"]);
-        grid._mjrAssets[0].filename = "one.png";
-        grid._mjrAssets[0].filepath = "C:/out/one.png";
-        grid._mjrSetSelection(["asset-1"], "asset-1");
+        (grid as any)._mjrAssets[0].filename = "one.png";
+        (grid as any)._mjrAssets[0].filepath = "C:/out/one.png";
+        (grid as any)._mjrSetSelection(["asset-1"], "asset-1");
 
         const clicks = [];
         const originalCreateElement = document.createElement.bind(document);
@@ -178,9 +180,9 @@ describe("GridKeyboard navigation", () => {
 
         const keyboard = installGridKeyboard({
             gridContainer: grid,
-            getState: () => ({ assets: grid._mjrAssets }),
-            getSelectedAssets: () => grid._mjrAssets,
-            getActiveAsset: () => grid._mjrAssets[0],
+            getState: () => ({ assets: (grid as any)._mjrAssets }),
+            getSelectedAssets: () => (grid as any)._mjrAssets,
+            getActiveAsset: () => (grid as any)._mjrAssets[0],
         });
         keyboard.bind();
 

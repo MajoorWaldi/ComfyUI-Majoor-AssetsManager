@@ -10,19 +10,19 @@ import {
 
 function ensureBrowserShims() {
     if (typeof globalThis.CustomEvent === "undefined") {
-        globalThis.CustomEvent = class CustomEvent {
+        globalThis.CustomEvent = (class CustomEvent {
             constructor(type, init = {}) {
-                this.type = type;
-                this.detail = init.detail;
+                (this as any).type = type;
+                (this as any).detail = (init as any).detail;
             }
-        };
+        } as any);
     }
     if (typeof globalThis.window === "undefined") {
-        globalThis.window = {
+        globalThis.window = ({
             dispatchEvent: () => true,
             addEventListener: () => {},
             removeEventListener: () => {},
-        };
+        } as any);
     }
 }
 
@@ -98,7 +98,7 @@ describe("registerRealtimeListeners", () => {
             type: "output",
         };
 
-        harness.api._mjrAssetIndexedHandler({ detail });
+        (harness.api as any)._mjrAssetIndexedHandler({ detail });
 
         expect(harness.pushGeneratedAsset).toHaveBeenCalledTimes(1);
         expect(harness.upsertAsset).toHaveBeenCalledTimes(1);
@@ -132,7 +132,7 @@ describe("registerRealtimeListeners", () => {
             registerCleanableListener: () => {},
         });
 
-        harness.api._mjrAssetIndexedHandler({
+        (harness.api as any)._mjrAssetIndexedHandler({
             detail: {
                 id: 43,
                 kind: "image",
@@ -148,8 +148,8 @@ describe("registerRealtimeListeners", () => {
 
     it("upsert apres generation puis indexation sur la grille active", async () => {
         ensureBrowserShims();
-        window.__mjrLastAssetUpsert = 0;
-        window.__mjrLastAssetUpsertCount = 0;
+        (window as any).__mjrLastAssetUpsert = 0;
+        (window as any).__mjrLastAssetUpsertCount = 0;
 
         const harness = createRuntimeHarness();
         harness.grid.dataset = { mjrScope: "output", mjrQuery: "portrait" };
@@ -183,20 +183,20 @@ describe("registerRealtimeListeners", () => {
         };
 
         // Phase generation live: pousse au feed mais n'upsert pas directement quand la query n'est pas "*".
-        harness.api._mjrAssetAddedHandler({ detail });
+        (harness.api as any)._mjrAssetAddedHandler({ detail });
         expect(harness.pushGeneratedAsset).toHaveBeenCalledTimes(1);
         expect(harness.upsertAsset).toHaveBeenCalledTimes(0);
         expect(getSidebarAssetBadgeCount()).toBe(0);
 
         // Phase indexation: l'asset final est upsert dans la grille active.
-        harness.api._mjrAssetIndexedHandler({ detail });
+        (harness.api as any)._mjrAssetIndexedHandler({ detail });
         expect(harness.pushGeneratedAsset).toHaveBeenCalledTimes(2);
         expect(harness.upsertAsset).toHaveBeenCalledTimes(1);
         expect(harness.upsertAsset).toHaveBeenCalledWith(
             harness.grid,
             expect.objectContaining(detail),
         );
-        expect(Number(window.__mjrLastAssetUpsertCount || 0)).toBeGreaterThan(0);
+        expect(Number((window as any).__mjrLastAssetUpsertCount || 0)).toBeGreaterThan(0);
         expect(getSidebarAssetBadgeCount()).toBe(1);
     });
 
@@ -232,7 +232,7 @@ describe("registerRealtimeListeners", () => {
             type: "output",
         };
 
-        harness.api._mjrAssetIndexedHandler({ detail });
+        (harness.api as any)._mjrAssetIndexedHandler({ detail });
 
         expect(harness.pushGeneratedAsset).toHaveBeenCalledTimes(1);
         expect(harness.pushGeneratedAsset).toHaveBeenCalledWith(expect.objectContaining(detail));
@@ -385,8 +385,8 @@ describe("registerRealtimeListeners", () => {
             syncExecutionBackendState,
         });
 
-        harness.api._mjrExecutionStartHandler({ detail: { prompt_id: "job-1" } });
-        harness.api._mjrExecutionEndHandler({ detail: { prompt_id: "job-1" } });
+        (harness.api as any)._mjrExecutionStartHandler({ detail: { prompt_id: "job-1" } });
+        (harness.api as any)._mjrExecutionEndHandler({ detail: { prompt_id: "job-1" } });
 
         expect(syncExecutionBackendState).toHaveBeenNthCalledWith(1, {
             active: true,
@@ -429,7 +429,7 @@ describe("registerRealtimeListeners", () => {
                 registerCleanableListener: () => {},
             });
 
-            harness.api._mjrCoreExecutionAssetsReadyHandler({
+            (harness.api as any)._mjrCoreExecutionAssetsReadyHandler({
                 detail: { prompt_id: "job-2", indexed: 2 },
             });
         } finally {
@@ -449,5 +449,91 @@ describe("registerRealtimeListeners", () => {
                 }),
             }),
         );
+    });
+    describe("scan and removal surfaces", () => {
+        let dispatched: any[];
+        let toast: any;
+        let harness: any;
+
+        beforeEach(async () => {
+            ensureBrowserShims();
+            dispatched = [];
+            (globalThis as any).window.dispatchEvent = (event: any) => {
+                dispatched.push(event);
+                return true;
+            };
+            (globalThis as any)._mjrMaintenanceActive = false;
+            toast = vi.fn();
+            harness = createRuntimeHarness();
+            await registerRealtimeListeners({
+                api: harness.api,
+                runtime: harness.runtime,
+                executionRuntime: harness.executionRuntime,
+                appRef: {},
+                liveStreamModule: null,
+                ensureExecutionRuntime: () => ({ queue_remaining: 0, active_prompt_id: null }),
+                emitRuntimeStatus: () => {},
+                getActiveGridContainer: () => harness.grid,
+                pushGeneratedAsset: harness.pushGeneratedAsset,
+                upsertAsset: harness.upsertAsset,
+                removeAssetsFromGrid: () => {},
+                getEnrichmentState: () => ({ active: false }),
+                setEnrichmentState: () => {},
+                comfyToast: toast,
+                t: (_k: any, fallback: any, params: any) =>
+                    String(fallback).replace(/\{(\w+)\}/g, (_m: any, k: any) => String(params?.[k] ?? "")),
+                reportError: () => {},
+                registerCleanableListener: () => {},
+            });
+        });
+
+        const ofType = (type: string) => dispatched.filter((e) => e?.type === type);
+
+        it("summarises a directory scan in one core toast and reloads the grid once", () => {
+            (harness.api as any)._mjrScanCompleteHandler({
+                detail: { origin: "directory_scan", added: 12, pruned: 3, needs_refresh: true },
+            });
+
+            expect(ofType(EVENTS.RELOAD_GRID)).toHaveLength(1);
+            expect(toast).toHaveBeenCalledTimes(1);
+            expect(toast.mock.calls[0][0]).toMatchObject({ detail: "12 new, 3 removed" });
+            expect(toast.mock.calls[0][1]).toBe("success");
+        });
+
+        it("stays silent for per-generation index_paths runs covered by live events", () => {
+            (harness.api as any)._mjrScanCompleteHandler({
+                detail: { origin: "index_paths", added: 1, pruned: 0, needs_refresh: false },
+            });
+
+            expect(ofType(EVENTS.RELOAD_GRID)).toHaveLength(0);
+            expect(toast).not.toHaveBeenCalled();
+        });
+
+        it("does not toast or reload during DB maintenance", () => {
+            (globalThis as any)._mjrMaintenanceActive = true;
+            (harness.api as any)._mjrScanCompleteHandler({
+                detail: { origin: "directory_scan", added: 50, needs_refresh: true },
+            });
+            (globalThis as any)._mjrMaintenanceActive = false;
+
+            expect(ofType(EVENTS.RELOAD_GRID)).toHaveLength(0);
+            expect(toast).not.toHaveBeenCalled();
+        });
+
+        it("turns backend removals into the same in-place card removal as UI deletes", () => {
+            (harness.api as any)._mjrAssetsRemovedHandler({
+                detail: { ids: [7, 9], count: 2, reason: "file_deleted" },
+            });
+
+            const deleted = ofType(EVENTS.ASSETS_DELETED);
+            expect(deleted).toHaveLength(1);
+            expect(deleted[0].detail.ids).toEqual(["7", "9"]);
+            expect(ofType(EVENTS.RELOAD_GRID)).toHaveLength(0);
+
+            (harness.api as any)._mjrAssetsRemovedHandler({
+                detail: { ids: [1], count: 5000, truncated: true, reason: "scan_prune" },
+            });
+            expect(ofType(EVENTS.RELOAD_GRID)).toHaveLength(1);
+        });
     });
 });

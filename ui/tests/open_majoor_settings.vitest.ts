@@ -63,7 +63,7 @@ describe("openMajoorSettings", () => {
         expect(document.querySelector(".mjr-settings-group-meta")?.textContent).toBe(
             "2 settings",
         );
-        expect(document.querySelector(".mjr-settings-group")?.open).toBe(false);
+        expect((document.querySelector(".mjr-settings-group") as any)?.open).toBe(false);
         expect(document.querySelector(".mjr-settings-name")?.textContent).toBe(
             "Show metadata panel",
         );
@@ -76,7 +76,7 @@ describe("openMajoorSettings", () => {
 
         openMajoorSettings({});
         const checkbox = document.querySelector("input[type='checkbox']");
-        checkbox.checked = false;
+        (checkbox as any).checked = false;
         checkbox.dispatchEvent(new Event("change", { bubbles: true }));
 
         expect(definitions[0].onChange).toHaveBeenCalledWith(false);
@@ -102,7 +102,7 @@ describe("openMajoorSettings", () => {
 
         openMajoorSettings({});
         const checkbox = document.querySelector("input[type='checkbox']");
-        checkbox.checked = false;
+        (checkbox as any).checked = false;
         checkbox.dispatchEvent(new Event("change", { bubbles: true }));
         await Promise.resolve();
 
@@ -119,13 +119,13 @@ describe("openMajoorSettings", () => {
 
         openMajoorSettings({});
         const search = document.querySelector(".mjr-settings-search");
-        search.value = "card size";
+        (search as any).value = "card size";
         search.dispatchEvent(new Event("input", { bubbles: true }));
 
         const names = Array.from(document.querySelectorAll(".mjr-settings-name")).map((el) =>
             el.textContent,
         );
         expect(names).toEqual(["Card Size"]);
-        expect(document.querySelector(".mjr-settings-group")?.open).toBe(true);
+        expect((document.querySelector(".mjr-settings-group") as any)?.open).toBe(true);
     });
 });

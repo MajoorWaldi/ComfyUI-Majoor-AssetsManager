@@ -6,7 +6,7 @@ const drawWorkflowMinimapMock = vi.fn(() => null);
 const buildFloatingViewerMediaElementMock = vi.fn((asset) => {
     const root = document.createElement("div");
     root.className = `preview-${String(asset?.filename || "none")}`;
-    root._mjrMediaControlsHandle = { destroy: vi.fn() };
+    (root as any)._mjrMediaControlsHandle = { destroy: vi.fn() };
     const video = document.createElement("video");
     video.pause = vi.fn();
     root.appendChild(video);

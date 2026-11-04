@@ -987,6 +987,39 @@ function _makeHost(container: any, external = {}) {
     return host;
 }
 
+/**
+ * Drop assets from every generated-feed host (deleted from the UI, or removed
+ * on disk and announced by the backend with `mjr-assets-removed`).
+ * Returns how many feed entries were removed.
+ */
+export function removeGeneratedAssets(ids: unknown[]): number {
+    const wanted = new Set(
+        (Array.isArray(ids) ? ids : []).map((id) => String(id ?? "").trim()).filter(Boolean),
+    );
+    if (!wanted.size) return 0;
+    let removed = 0;
+    for (const [key, pending] of Array.from(FEED_STATE.pendingAssets.entries()) as [string, any][]) {
+        if (wanted.has(String(pending?.id ?? "").trim())) FEED_STATE.pendingAssets.delete(key);
+    }
+    for (const host of Array.from(FEED_STATE.hosts) as Record<string, any>[]) {
+        try {
+            const map: Map<string, any> | undefined = host?.assetsByKey;
+            if (!map?.size) continue;
+            let changed = false;
+            for (const [key, asset] of Array.from(map.entries())) {
+                if (!wanted.has(String(asset?.id ?? "").trim())) continue;
+                map.delete(key);
+                removed += 1;
+                changed = true;
+            }
+            if (changed) _scheduleHostRender(host);
+        } catch (e) {
+            console.debug?.(e);
+        }
+    }
+    return removed;
+}
+
 export function pushGeneratedAsset(asset: Record<string, any> | null): void {
     const normalized = _rememberPendingAsset(asset);
     if (!normalized) return;

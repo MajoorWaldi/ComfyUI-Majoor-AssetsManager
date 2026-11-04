@@ -10,10 +10,10 @@ import {
 
 function createFakeElement() {
     const el = new EventTarget();
-    el.dataset = {};
-    el.scrollTop = 0;
-    el.scrollLeft = 0;
-    el.querySelector = vi.fn(() => null);
+    (el as any).dataset = {};
+    (el as any).scrollTop = 0;
+    (el as any).scrollLeft = 0;
+    (el as any).querySelector = vi.fn(() => null);
     return el;
 }
 
@@ -23,14 +23,14 @@ describe("assetsGridHostState", () => {
         vi.restoreAllMocks();
         globalThis.CustomEvent =
             globalThis.CustomEvent ||
-            class extends Event {
+            (class extends Event {
                 constructor(type, init = {}) {
                     super(type);
-                    this.detail = init.detail;
+                    (this as any).detail = (init as any).detail;
                 }
-            };
+            } as any);
         globalThis.requestAnimationFrame = (callback) => {
-            callback();
+            (callback as any)();
             return 1;
         };
         globalThis.cancelAnimationFrame = () => {};
@@ -39,7 +39,7 @@ describe("assetsGridHostState", () => {
     it("syncs scroll, stats, and selection into the panel store", () => {
         const panelStore = usePanelStore();
         const gridWrapper = createFakeElement();
-        gridWrapper.scrollTop = 91;
+        (gridWrapper as any).scrollTop = 91;
 
         const disposeScroll = installGridScrollSync(gridWrapper, panelStore);
         gridWrapper.dispatchEvent(new Event("scroll"));
@@ -85,8 +85,8 @@ describe("assetsGridHostState", () => {
 
         const gridWrapper = createFakeElement();
         const gridContainer = createFakeElement();
-        gridContainer._mjrSetSelection = vi.fn();
-        gridContainer._mjrScrollToAssetId = vi.fn();
+        (gridContainer as any)._mjrSetSelection = vi.fn();
+        (gridContainer as any)._mjrScrollToAssetId = vi.fn();
 
         const onRestoreSidebar = vi.fn();
 
@@ -98,12 +98,15 @@ describe("assetsGridHostState", () => {
             onRestoreSidebar,
         });
 
-        expect(gridWrapper.scrollTop).toBe(33);
-        expect(gridContainer._mjrSetSelection).toHaveBeenCalledWith(["asset-7"], "asset-7");
+        expect((gridWrapper as any).scrollTop).toBe(33);
+        expect((gridContainer as any)._mjrSetSelection).toHaveBeenCalledWith(
+            ["asset-7"],
+            "asset-7",
+        );
         // scrollToAssetId is now always called so the selected card is scrolled into
         // view even when a saved scrollTop was restored (align:"auto" keeps the view
         // stable when the card is already visible).
-        expect(gridContainer._mjrScrollToAssetId).toHaveBeenCalledWith("asset-7");
+        expect((gridContainer as any)._mjrScrollToAssetId).toHaveBeenCalledWith("asset-7");
         expect(onRestoreSidebar).toHaveBeenCalledTimes(1);
     });
 });

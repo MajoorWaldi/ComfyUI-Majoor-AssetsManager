@@ -108,18 +108,78 @@ def _normalize_sort_key(sort: str | None) -> str:
 
 
 def _strip_diacritics(text: str) -> str:
-    normalized = unicodedata.normalize("NFKD", text)
-    return "".join(ch for ch in normalized if not unicodedata.combining(ch))
+    """Fold accents on Latin letters only (``é`` -> ``e``).
+
+    Mirrors FTS5's ``unicode61`` tokenizer (``remove_diacritics``), which folds
+    Latin script only. Folding e.g. Cyrillic ``й`` to ``и`` here would make the
+    query miss an index that still stores ``й``.
+    """
+    out: list[str] = []
+    for ch in text:
+        decomposed = unicodedata.normalize("NFKD", ch)
+        base = "".join(c for c in decomposed if not unicodedata.combining(c))
+        out.append(base if base.isascii() and base.isalpha() else ch)
+    return "".join(out)
+
+
+# Word characters in any script (letters, digits, underscore). Every token
+# built from these is a valid FTS5 bareword once lower-cased: FTS5 operators
+# (AND/OR/NOT/NEAR) are only operators in upper case.
+_SEARCH_TOKEN_RE = re.compile(r"\w+", re.UNICODE)
+
+
+# Rank given to rows that only match by substring: worse than any bm25 score
+# (bm25 is negative, lower is better), so word/prefix hits stay on top.
+_SUBSTRING_MATCH_RANK = 50.0
+
+
+def _filename_substring_pattern(query: str) -> str | None:
+    """``LIKE`` pattern for "file name contains <query>" (single-word queries).
+
+    FTS5 only matches words that *start* with the query: typing ``f`` found
+    ``field.png`` but not ``sunflower.png`` or ``ComfyUI_00001_.png``.
+    Single-word searches therefore also match file names containing the text.
+    Multi-word and quoted searches stay pure FTS.
+    """
+    text = str(query or "").strip()
+    if not text or text == "*" or any(ch.isspace() for ch in text) or text[0] in "\"'":
+        return None
+    escaped = text.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+    return f"%{escaped}%"
+
+
+def _substring_matches_sql(pattern: str | None, *, with_rank: bool) -> str:
+    if not pattern:
+        return ""
+    if with_rank:
+        return (
+            "\n                UNION ALL\n\n"
+            f"                SELECT id AS asset_id, {_SUBSTRING_MATCH_RANK} AS rank\n"
+            "                FROM assets\n"
+            "                WHERE filename LIKE ? ESCAPE '\\'\n"
+        )
+    return (
+        "\n                UNION\n\n"
+        "                SELECT id AS asset_id\n"
+        "                FROM assets\n"
+        "                WHERE filename LIKE ? ESCAPE '\\'\n"
+    )
+
+
+def _is_browse_query(query: str) -> bool:
+    """``*`` or input without any word character (a lone quote while typing a
+    phrase, "--", "()"): nothing to match, so browse instead of erroring."""
+    return not _SEARCH_TOKEN_RE.search(str(query or ""))
+
+
+def _search_tokens(text: str) -> list[str]:
+    return [tok.lower() for tok in _SEARCH_TOKEN_RE.findall(_strip_diacritics(text))]
 
 
 def _extract_quoted_phrases(text: str) -> list[str]:
     phrases: list[str] = []
     for match in re.finditer(r'"([^"]+)"|\'([^\']+)\'', text):
-        phrase = match.group(1) or match.group(2) or ""
-        phrase = _strip_diacritics(phrase)
-        phrase = re.sub(r"[\"'\-:&/\\|;@#*~()\[\]{}\.]+", " ", phrase)
-        phrase = re.sub(r"[^\x20-\x7E]+", " ", phrase)
-        phrase = re.sub(r"\s+", " ", phrase).strip().lower()
+        phrase = " ".join(_search_tokens(match.group(1) or match.group(2) or ""))
         if phrase:
             phrases.append(phrase)
     # Keep phrase clauses bounded for MATCH stability.
@@ -1223,13 +1283,16 @@ class IndexSearcher:
         filters: dict[str, Any] | None,
         include_total: bool,
         metadata_tags_text_clause: str,
+        substring_pattern: str | None = None,
     ) -> Result[dict[str, Any]]:
         # Never use COUNT(*) OVER() here — on large result sets the window
         # function forces SQLite to materialise every matching row before it
         # can return page 1, making first-page loads slow at scale.
         # _global_fts_total_count runs a lean UNION count query instead.
-        sql_parts = [self._global_fts_select_sql("", metadata_tags_text_clause)]
+        sql_parts = [self._global_fts_select_sql("", metadata_tags_text_clause, substring_pattern)]
         params: list[Any] = [fts_query, fts_query]
+        if substring_pattern:
+            params.append(substring_pattern)
 
         filter_clauses, filter_params = self._filter_clauses(filters)
         sql_parts.extend(filter_clauses)
@@ -1249,11 +1312,15 @@ class IndexSearcher:
 
         total: int | None = None
         if include_total:
-            total = await self._global_fts_total_count(fts_query, filter_clauses, filter_params)
+            total = await self._global_fts_total_count(
+                fts_query, filter_clauses, filter_params, substring_pattern=substring_pattern
+            )
         return Result.Ok({"rows": rows, "total": total})
 
     @staticmethod
-    def _global_fts_select_sql(total_field: str, metadata_tags_text_clause: str) -> str:
+    def _global_fts_select_sql(
+        total_field: str, metadata_tags_text_clause: str, substring_pattern: str | None = None
+    ) -> str:
         return f"""
             WITH matches AS (
                 SELECT rowid AS asset_id, bm25(assets_fts, 8.0, 1.25) AS rank
@@ -1265,7 +1332,7 @@ class IndexSearcher:
                 SELECT rowid AS asset_id, (bm25(asset_metadata_fts, 7.0, 4.0, 1.5) + 2.0) AS rank
                 FROM asset_metadata_fts
                 WHERE asset_metadata_fts MATCH ?
-            ),
+{_substring_matches_sql(substring_pattern, with_rank=True)}            ),
             best AS (
                 SELECT asset_id, MIN(rank) AS rank
                 FROM matches
@@ -1297,8 +1364,10 @@ class IndexSearcher:
         fts_query: str,
         filter_clauses: list[str],
         filter_params: list[Any],
+        *,
+        substring_pattern: str | None = None,
     ) -> int:
-        count_sql = """
+        count_sql = f"""
             WITH matches AS (
                 SELECT rowid AS asset_id
                 FROM assets_fts
@@ -1309,7 +1378,7 @@ class IndexSearcher:
                 SELECT rowid AS asset_id
                 FROM asset_metadata_fts
                 WHERE asset_metadata_fts MATCH ?
-            )
+{_substring_matches_sql(substring_pattern, with_rank=False)}            )
             SELECT COUNT(*) as total
             FROM (SELECT DISTINCT asset_id FROM matches) t
             JOIN assets a ON t.asset_id = a.id
@@ -1317,6 +1386,8 @@ class IndexSearcher:
             WHERE 1=1
         """
         count_params: list[Any] = [fts_query, fts_query]
+        if substring_pattern:
+            count_params.append(substring_pattern)
         if filter_clauses:
             count_sql += " " + " ".join(filter_clauses)
             count_params.extend(filter_params)
@@ -1414,6 +1485,7 @@ class IndexSearcher:
         include_total: bool,
         metadata_tags_text_clause: str,
         sort: str | None,
+        substring_pattern: str | None = None,
     ) -> Result[dict[str, Any]]:
         sql_parts = [
             f"""
@@ -1427,7 +1499,7 @@ class IndexSearcher:
                 SELECT rowid AS asset_id, (bm25(asset_metadata_fts, 7.0, 4.0, 1.5) + 2.0) AS rank
                 FROM asset_metadata_fts
                 WHERE asset_metadata_fts MATCH ?
-            ),
+{_substring_matches_sql(substring_pattern, with_rank=True)}            ),
             best AS (
                 SELECT asset_id, MIN(rank) AS rank
                 FROM matches
@@ -1453,6 +1525,8 @@ class IndexSearcher:
             """
         ]
         params: list[Any] = [fts_query, fts_query]
+        if substring_pattern:
+            params.append(substring_pattern)
         params.extend(roots_params)
 
         filter_clauses, filter_params = self._filter_clauses(filters, assert_safe=True)
@@ -1484,7 +1558,7 @@ class IndexSearcher:
                     SELECT rowid AS asset_id
                     FROM asset_metadata_fts
                     WHERE asset_metadata_fts MATCH ?
-                )
+{_substring_matches_sql(substring_pattern, with_rank=False)}                )
                 SELECT COUNT(*) as total
                 FROM (SELECT DISTINCT asset_id FROM matches) t
                 JOIN assets a ON t.asset_id = a.id
@@ -1492,6 +1566,8 @@ class IndexSearcher:
                 WHERE {roots_clause}
             """
             count_params: list[Any] = [fts_query, fts_query]
+            if substring_pattern:
+                count_params.append(substring_pattern)
             count_params.extend(roots_params)
             if filter_clauses:
                 count_sql += " " + " ".join(filter_clauses)
@@ -1674,7 +1750,7 @@ class IndexSearcher:
         sort: str | None,
         cursor: str | None = None,
     ):
-        is_browse_all = query.strip() == "*"
+        is_browse_all = _is_browse_query(query)
         if roots is None:
 
             async def _fetch_global_group_rows(raw_limit: int, raw_offset: int) -> Result[dict[str, Any]]:
@@ -1693,6 +1769,7 @@ class IndexSearcher:
                     return Result.Err("INVALID_INPUT", "Invalid search query syntax")
                 return await self._search_global_fts_rows(
                     fts_query=fts_query,
+                    substring_pattern=_filename_substring_pattern(query),
                     limit=raw_limit,
                     offset=raw_offset,
                     filters=filters,
@@ -1722,6 +1799,7 @@ class IndexSearcher:
                 return Result.Err("INVALID_INPUT", "Invalid search query syntax")
             return await self._search_scoped_fts_rows(
                 fts_query=fts_query,
+                substring_pattern=_filename_substring_pattern(query),
                 roots_clause=roots_clause,
                 roots_params=roots_params,
                 limit=raw_limit,
@@ -1746,7 +1824,7 @@ class IndexSearcher:
         include_highlight: bool,
         cursor: str | None = None,
     ) -> Result[dict[str, Any]]:
-        if query.strip() == "*":
+        if _is_browse_query(query):
             rows_total_res = await self._search_global_browse_rows(
                 limit=limit,
                 offset=offset,
@@ -1761,6 +1839,7 @@ class IndexSearcher:
                 return Result.Err("INVALID_INPUT", "Invalid search query syntax")
             rows_total_res = await self._search_global_fts_rows(
                 fts_query=fts_query,
+                substring_pattern=_filename_substring_pattern(query),
                 limit=limit,
                 offset=offset,
                 filters=filters,
@@ -1793,7 +1872,7 @@ class IndexSearcher:
         cursor: str | None = None,
     ) -> Result[dict[str, Any]]:
         roots_clause, roots_params = _build_roots_where_clause(roots)
-        if query.strip() == "*":
+        if _is_browse_query(query):
             rows_total_res = await self._search_scoped_browse_rows(
                 roots_clause=roots_clause,
                 roots_params=roots_params,
@@ -1811,6 +1890,7 @@ class IndexSearcher:
                 return Result.Err("INVALID_INPUT", "Invalid search query syntax")
             rows_total_res = await self._search_scoped_fts_rows(
                 fts_query=fts_query,
+                substring_pattern=_filename_substring_pattern(query),
                 roots_clause=roots_clause,
                 roots_params=roots_params,
                 limit=limit,
@@ -2108,21 +2188,15 @@ class IndexSearcher:
         phrases = _extract_quoted_phrases(text)
         text_wo_quotes = re.sub(r'"[^"]*"|\'[^\']*\'', " ", text)
 
-        sanitized = _strip_diacritics(text_wo_quotes)
-        # Replace FTS5 special characters with spaces.
-        sanitized = re.sub(r"[\"'\-:&/\\|;@#*~()\[\]{}\.]+", " ", sanitized)
-        # Replace non-printable / control chars
-        sanitized = re.sub(r"[^\x20-\x7E]+", " ", sanitized)
-        # Collapse whitespace
-        sanitized = re.sub(r"\s+", " ", sanitized).strip()
-
-        # Normalize case for stable behavior (FTS is case-insensitive anyway).
-        sanitized = sanitized.lower()
-
-        # Apply prefix matching to every token to allow partial matches.
-        # Avoid FTS reserved operators to prevent malformed MATCH expressions.
-        tokens = [tok for tok in sanitized.split() if _is_meaningful_token(tok)]
-        tokens = _dedupe_tokens(tokens)
+        # Word tokens only: punctuation (- : . ( ) " * ...) never reaches MATCH.
+        raw_tokens = _dedupe_tokens(_search_tokens(text_wo_quotes))
+        # Drop stopwords, 1-char tokens and operator words for relevance...
+        tokens = [tok for tok in raw_tokens if _is_meaningful_token(tok)]
+        if not tokens and not phrases:
+            # ...unless that leaves nothing. "at-7", "(2)", "AND" or a single
+            # letter typed in search-as-you-type used to become an empty MATCH
+            # and fail with "Invalid search query syntax".
+            tokens = raw_tokens
 
         token_expr = _build_token_match_expression(tokens)
         phrase_terms = [f'"{phrase}"' for phrase in phrases]

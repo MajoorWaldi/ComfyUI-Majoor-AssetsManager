@@ -25,18 +25,20 @@ async function elapsedAsync(fn) {
 }
 
 function makeAsset(overrides = {}) {
-    const i = overrides.i ?? 0;
+    const i = (overrides as any).i ?? 0;
     return {
-        id: overrides.id ?? `asset-${i}`,
-        filename: overrides.filename ?? `ComfyUI_${String(i).padStart(5, "0")}_00001_.png`,
-        kind: overrides.kind ?? "image",
-        mtime: overrides.mtime ?? i,
-        size: overrides.size ?? 1024,
-        filepath: overrides.filepath ?? `output/ComfyUI_${String(i).padStart(5, "0")}_00001_.png`,
-        source: overrides.source ?? "output",
-        root_id: overrides.root_id ?? "root1",
-        subfolder: overrides.subfolder ?? "",
-        has_generation_data: overrides.has_generation_data ?? 0,
+        id: (overrides as any).id ?? `asset-${i}`,
+        filename: (overrides as any).filename ?? `ComfyUI_${String(i).padStart(5, "0")}_00001_.png`,
+        kind: (overrides as any).kind ?? "image",
+        mtime: (overrides as any).mtime ?? i,
+        size: (overrides as any).size ?? 1024,
+        filepath:
+            (overrides as any).filepath ??
+            `output/ComfyUI_${String(i).padStart(5, "0")}_00001_.png`,
+        source: (overrides as any).source ?? "output",
+        root_id: (overrides as any).root_id ?? "root1",
+        subfolder: (overrides as any).subfolder ?? "",
+        has_generation_data: (overrides as any).has_generation_data ?? 0,
         ...overrides,
     };
 }

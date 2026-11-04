@@ -24,7 +24,7 @@ describe("topBarMfvButton", () => {
     it("mounts after the queue group and toggles MFV without forcing live or preview", async () => {
         const actionbar = document.createElement("div");
         actionbar.className = "actionbar-container";
-        actionbar.getBoundingClientRect = () => ({ bottom: 88 });
+        actionbar.getBoundingClientRect = () => ({ bottom: 88 }) as any;
 
         const queueGroup = document.createElement("div");
         queueGroup.className = "queue-button-group";
@@ -52,7 +52,7 @@ describe("topBarMfvButton", () => {
         expect(slot.firstElementChild).toBe(host);
         expect(actionbar.lastElementChild).toBe(slot);
 
-        button.click();
+        (button as any).click();
 
         expect(dispatchSpy).toHaveBeenCalledWith(
             expect.objectContaining({ type: "mjr:mfv-toggle" }),
@@ -70,7 +70,7 @@ describe("topBarMfvButton", () => {
     it("syncs pressed state from visibility events and fully tears down", async () => {
         const actionbar = document.createElement("div");
         actionbar.className = "actionbar-container";
-        actionbar.getBoundingClientRect = () => ({ bottom: 72 });
+        actionbar.getBoundingClientRect = () => ({ bottom: 72 }) as any;
         document.body.appendChild(actionbar);
 
         const addSpy = vi.spyOn(window, "addEventListener");
@@ -111,7 +111,7 @@ describe("topBarMfvButton", () => {
     it("recreates a stable dedicated slot when the actionbar is rebuilt", async () => {
         const firstActionbar = document.createElement("div");
         firstActionbar.className = "actionbar-container";
-        firstActionbar.getBoundingClientRect = () => ({ bottom: 64 });
+        firstActionbar.getBoundingClientRect = () => ({ bottom: 64 }) as any;
         document.body.appendChild(firstActionbar);
 
         const { mountTopBarMfvButton, teardownTopBarMfvButton } =
@@ -126,7 +126,7 @@ describe("topBarMfvButton", () => {
 
         const secondActionbar = document.createElement("div");
         secondActionbar.className = "actionbar-container";
-        secondActionbar.getBoundingClientRect = () => ({ bottom: 96 });
+        secondActionbar.getBoundingClientRect = () => ({ bottom: 96 }) as any;
         document.body.appendChild(secondActionbar);
 
         await Promise.resolve();
@@ -148,7 +148,7 @@ describe("topBarMfvButton", () => {
     it("mounts in the actionbar even when a nested queue group exists", async () => {
         const actionbar = document.createElement("div");
         actionbar.className = "actionbar-container";
-        actionbar.getBoundingClientRect = () => ({ bottom: 80 });
+        actionbar.getBoundingClientRect = () => ({ bottom: 80 }) as any;
 
         const left = document.createElement("div");
         left.className = "left items-center";
@@ -180,7 +180,7 @@ describe("topBarMfvButton", () => {
     it("keeps the slot as the last actionbar child after actionbar children change", async () => {
         const actionbar = document.createElement("div");
         actionbar.className = "actionbar-container";
-        actionbar.getBoundingClientRect = () => ({ bottom: 70 });
+        actionbar.getBoundingClientRect = () => ({ bottom: 70 }) as any;
 
         const managerButton = document.createElement("button");
         managerButton.type = "button";
@@ -218,6 +218,39 @@ describe("topBarMfvButton", () => {
         teardownTopBarMfvButton();
     });
 
+    it("moves next to the Run group when it is rendered after the button was mounted", async () => {
+        const actionbar = document.createElement("div");
+        actionbar.className = "actionbar-container";
+        actionbar.getBoundingClientRect = () => ({ bottom: 88 }) as any;
+        const panel = document.createElement("div");
+        panel.className = "flex items-center";
+        const stats = document.createElement("div");
+        stats.className = "stats";
+        panel.appendChild(stats);
+        actionbar.appendChild(panel);
+        document.body.appendChild(actionbar);
+
+        const { mountTopBarMfvButton, teardownTopBarMfvButton } =
+            await import("../features/runtime/topBarMfvButton.js");
+        mountTopBarMfvButton();
+        flushTimers();
+
+        // No Run group yet: the button waits at the end of the actionbar.
+        const slot = actionbar.querySelector("[data-mjr-topbar-mfv-slot]") as HTMLElement;
+        expect(slot.parentElement).toBe(actionbar);
+
+        // The Run group arrives later, nested in the panel.
+        const queueGroup = document.createElement("div");
+        queueGroup.className = "queue-button-group";
+        panel.insertBefore(queueGroup, stats);
+        await Promise.resolve();
+        flushTimers();
+
+        expect(slot.previousElementSibling).toBe(queueGroup);
+        expect(actionbar.querySelectorAll("[data-mjr-topbar-mfv-slot]")).toHaveLength(1);
+        teardownTopBarMfvButton();
+    });
+
     it("ignores other topbar shapes", async () => {
         const unsupportedTopbar = document.createElement("div");
         unsupportedTopbar.setAttribute("data-testid", "topbar");
@@ -225,7 +258,7 @@ describe("topBarMfvButton", () => {
 
         const actionbar = document.createElement("div");
         actionbar.className = "actionbar-container";
-        actionbar.getBoundingClientRect = () => ({ bottom: 74 });
+        actionbar.getBoundingClientRect = () => ({ bottom: 74 }) as any;
         document.body.appendChild(actionbar);
 
         const { mountTopBarMfvButton, teardownTopBarMfvButton } =
@@ -264,7 +297,7 @@ describe("topBarMfvButton", () => {
     it("does not toggle until the button click is committed", async () => {
         const actionbar = document.createElement("div");
         actionbar.className = "actionbar-container";
-        actionbar.getBoundingClientRect = () => ({ bottom: 88 });
+        actionbar.getBoundingClientRect = () => ({ bottom: 88 }) as any;
         document.body.appendChild(actionbar);
 
         const dispatchSpy = vi.spyOn(window, "dispatchEvent");
@@ -296,7 +329,7 @@ describe("topBarMfvButton", () => {
     it("does not toggle when clicking the slot edge around the button", async () => {
         const actionbar = document.createElement("div");
         actionbar.className = "actionbar-container";
-        actionbar.getBoundingClientRect = () => ({ bottom: 88 });
+        actionbar.getBoundingClientRect = () => ({ bottom: 88 }) as any;
         document.body.appendChild(actionbar);
 
         const dispatchSpy = vi.spyOn(window, "dispatchEvent");

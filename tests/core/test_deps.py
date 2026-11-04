@@ -215,7 +215,7 @@ async def test_create_watcher_starts_and_callbacks(monkeypatch):
             return Result.Ok({})
 
     class _Watcher:
-        def __init__(self, index_callback, remove_callback=None, move_callback=None):
+        def __init__(self, index_callback, remove_callback=None, move_callback=None, reindex_callback=None):
             self._index_callback = index_callback
             self._remove_callback = remove_callback
             self._move_callback = move_callback

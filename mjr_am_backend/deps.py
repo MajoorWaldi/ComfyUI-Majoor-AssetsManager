@@ -377,7 +377,14 @@ async def _create_watcher(index_service: IndexService) -> OutputWatcher:
                 logger.debug("Watcher move callback failed (%s -> %s): %s", old_fp, new_fp, exc)
                 continue
 
-    watcher = OutputWatcher(index_callback, remove_callback=remove_callback, move_callback=move_callback)
+    from .routes.handlers.scan_watcher import build_sidecar_reindex_callback
+
+    watcher = OutputWatcher(
+        index_callback,
+        remove_callback=remove_callback,
+        move_callback=move_callback,
+        reindex_callback=build_sidecar_reindex_callback(index_service),
+    )
 
     # Collect directories to watch
     try:

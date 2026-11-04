@@ -1,4 +1,5 @@
 import { EVENTS } from "../../app/events.js";
+import { dismissTrackedToasts } from "../../app/toast.js";
 
 export const ENTRY_RUNTIME_KEY = "__MJR_ENTRY_RUNTIME__";
 
@@ -23,6 +24,9 @@ export function removeApiHandlers(api: any, reportError: (e: any, ctx?: string) 
         }
         if (api._mjrScanCompleteHandler) {
             api.removeEventListener(EVENTS.SCAN_COMPLETE, api._mjrScanCompleteHandler);
+        }
+        if (api._mjrAssetsRemovedHandler) {
+            api.removeEventListener(EVENTS.ASSETS_REMOVED, api._mjrAssetsRemovedHandler);
         }
         if (api._mjrScanProgressHandler) {
             api.removeEventListener(EVENTS.SCAN_PROGRESS, api._mjrScanProgressHandler);
@@ -74,6 +78,12 @@ export function removeRuntimeWindowHandlers(runtime: any, reportError: (e: any, 
 
 export function cleanupEntryRuntime(runtime: any, { reportError }: { reportError?: (e: any, ctx?: string) => void } = {}): void {
     if (!runtime || typeof runtime !== "object") return;
+    try {
+        // Close in-progress core toasts we own (e.g. a running DB maintenance).
+        dismissTrackedToasts();
+    } catch (e) {
+        console.debug?.(e);
+    }
     try {
         const cleanups = Array.isArray(runtime._listenerCleanupFns)
             ? runtime._listenerCleanupFns

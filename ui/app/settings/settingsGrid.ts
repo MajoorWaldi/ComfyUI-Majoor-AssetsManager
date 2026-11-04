@@ -11,6 +11,7 @@ import {
     detectGridSizePreset,
 } from "./settingsUtils.js";
 import { saveMajoorSettings, applySettingsToConfig } from "./settingsCore.js";
+import { setNativeAssetsTabHidden } from "../../features/runtime/nativeAssetsTab.js";
 
 const SETTINGS_PREFIX = "Majoor";
 const SETTINGS_CATEGORY = "Majoor Assets Manager";
@@ -528,6 +529,23 @@ export function registerGridSettings(safeAddSetting: (def: any) => void, setting
             saveMajoorSettings(settings);
             applySettingsToConfig(settings);
             notifyApplied("sidebar.assetBadgeEnabled");
+        },
+    });
+
+    safeAddSetting({
+        id: `${SETTINGS_PREFIX}.Integration.HideNativeAssetsTab`,
+        category: cat(t("cat.grid"), "Hide ComfyUI native Assets tab"),
+        name: "Hide ComfyUI's native Assets sidebar tab",
+        tooltip:
+            "Optional. Removes ComfyUI's built-in Assets tab from the sidebar so only Majoor Assets Manager is shown. Turning it off restores the native tab. Your files and the native tab's data are not affected.",
+        type: "boolean",
+        defaultValue: !!settings.integration?.hideNativeAssetsTab,
+        onChange: (value: any) => {
+            settings.integration = settings.integration || {};
+            settings.integration.hideNativeAssetsTab = !!value;
+            saveMajoorSettings(settings);
+            setNativeAssetsTabHidden(!!value);
+            notifyApplied("integration.hideNativeAssetsTab");
         },
     });
 

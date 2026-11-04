@@ -101,13 +101,13 @@ describe("gridController exiting similar scope", () => {
             lastGridCount: 0,
             lastGridTotal: 0,
         };
-        globalThis.window = {};
+        globalThis.window = {} as any;
         globalThis.CustomEvent = class {
             constructor(type, init = {}) {
-                this.type = type;
-                this.detail = init.detail;
+                (this as any).type = type;
+                (this as any).detail = (init as any).detail;
             }
-        };
+        } as any;
     });
 
     it("does not preserve stale similar cards when switching back to normal scope", async () => {

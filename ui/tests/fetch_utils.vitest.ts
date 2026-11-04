@@ -108,7 +108,7 @@ describe("delay()", () => {
 
 describe("fetchAPI timeout", () => {
     it("returns TIMEOUT when the request exceeds timeoutMs", async () => {
-        globalThis.fetch = makeAbortableFetch();
+        globalThis.fetch = makeAbortableFetch() as any;
         const mod = await importUtils();
         const { fetchAPI } = makeClient(mod);
 
@@ -131,7 +131,7 @@ describe("fetchAPI non-JSON response", () => {
         globalThis.fetch = vi.fn(async () => ({
             status: 500,
             headers: { get: () => "text/plain" },
-        }));
+        })) as any;
 
         const mod = await importUtils();
         const { fetchAPI } = makeClient(mod);
@@ -147,7 +147,7 @@ describe("fetchAPI non-JSON response", () => {
             status: 200,
             headers: { get: (name) => (name === "content-type" ? "application/json" : null) },
             json: async () => null,
-        }));
+        })) as any;
 
         const mod = await importUtils();
         const { fetchAPI } = makeClient(mod);
@@ -164,7 +164,7 @@ describe("fetchAPI non-JSON response", () => {
             json: async () => {
                 throw new SyntaxError("Unexpected token");
             },
-        }));
+        })) as any;
 
         const mod = await importUtils();
         const { fetchAPI } = makeClient(mod);
@@ -185,7 +185,7 @@ describe("fetchAPI non-JSON response", () => {
                 },
             },
             json: async () => ({ ok: false, code: "INVALID_INPUT", error: "Invalid value" }),
-        }));
+        })) as any;
 
         const mod = await importUtils();
         const { fetchAPI } = makeClient(mod);
@@ -215,7 +215,7 @@ describe("fetchAPI retryable HTTP status", () => {
                         ? { ok: false, code: "RATE_LIMIT", error: "Slow down" }
                         : { ok: true, data: { recovered: true } },
             };
-        });
+        }) as any;
 
         const mod = await importUtils();
         const { get } = makeClient(mod);
@@ -229,7 +229,7 @@ describe("fetchAPI retryable HTTP status", () => {
         globalThis.fetch = makeJsonFetch(
             { ok: false, code: "SERVICE_UNAVAILABLE", error: "Try later" },
             503,
-        );
+        ) as any;
 
         const mod = await importUtils();
         const { post } = makeClient(mod);
@@ -255,7 +255,7 @@ describe("fetchAPI retry on network error", () => {
                 headers: { get: (name) => (name === "content-type" ? "application/json" : null) },
                 json: async () => ({ ok: true, data: { retried: true } }),
             };
-        });
+        }) as any;
 
         const mod = await importUtils();
         vi.spyOn(mod, "delay").mockResolvedValue(undefined);
@@ -329,7 +329,7 @@ describe("get() request deduplication", () => {
         const blocker = new Promise((resolve) => {
             resolveFetch = resolve;
         });
-        globalThis.fetch = vi.fn(() => blocker);
+        globalThis.fetch = vi.fn(() => blocker) as any;
 
         const mod = await importUtils();
         const { get } = makeClient(mod);
@@ -352,7 +352,7 @@ describe("get() request deduplication", () => {
     });
 
     it("issues a second fetch after the first completes", async () => {
-        globalThis.fetch = makeJsonFetch({ ok: true, data: [] });
+        globalThis.fetch = makeJsonFetch({ ok: true, data: [] }) as any;
 
         const mod = await importUtils();
         const { get } = makeClient(mod);
@@ -368,7 +368,7 @@ describe("get() request deduplication", () => {
         const blocker = new Promise((resolve) => {
             resolveFetch = resolve;
         });
-        globalThis.fetch = vi.fn(() => blocker);
+        globalThis.fetch = vi.fn(() => blocker) as any;
 
         const mod = await importUtils();
         const { get } = makeClient(mod);
@@ -397,14 +397,14 @@ describe("get() request deduplication", () => {
 
 describe("post()", () => {
     it("sends a JSON body and returns the parsed response", async () => {
-        globalThis.fetch = makeJsonFetch({ ok: true, data: { created: true } });
+        globalThis.fetch = makeJsonFetch({ ok: true, data: { created: true } }) as any;
 
         const mod = await importUtils();
         const { post } = makeClient(mod);
         const result = await post("/mjr/am/asset/rating", { rating: 4 });
 
         expect(result.ok).toBe(true);
-        const [, opts] = globalThis.fetch.mock.calls[0];
+        const [, opts] = (globalThis.fetch as any).mock.calls[0];
         expect(opts.method).toBe("POST");
         expect(JSON.parse(opts.body)).toEqual({ rating: 4 });
         expect(readHeader(opts.headers, "Content-Type")).toBe("application/json");

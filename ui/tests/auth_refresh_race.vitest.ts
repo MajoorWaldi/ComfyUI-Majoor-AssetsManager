@@ -29,20 +29,20 @@ function makeStorage() {
 
 beforeEach(() => {
     vi.resetModules();
-    globalThis.localStorage = makeStorage();
-    globalThis.sessionStorage = makeStorage();
+    globalThis.localStorage = makeStorage() as any;
+    globalThis.sessionStorage = makeStorage() as any;
     globalThis.window = {
         addEventListener: vi.fn(),
         removeEventListener: vi.fn(),
         dispatchEvent: vi.fn(),
-        location: { origin: "http://localhost" },
-    };
+        location: { origin: "http://localhost" } as any,
+    } as any;
     globalThis.CustomEvent = class {
         constructor(type, init) {
-            this.type = type;
-            this.detail = init?.detail;
+            (this as any).type = type;
+            (this as any).detail = init?.detail;
         }
-    };
+    } as any;
     globalThis.app = { extensionManager: { toast: { add: vi.fn() } } };
 });
 
@@ -82,7 +82,7 @@ describe("concurrent auth bootstrap", () => {
                         ? { ok: true, data: { asset_id: 1 } }
                         : { ok: false, code: "AUTH_REQUIRED", error: "no token" },
             };
-        });
+        }) as any;
 
         const { default: client } = await import("../api/client.js")
             .then((m) => ({ default: m }))
@@ -107,7 +107,7 @@ describe("concurrent auth bootstrap", () => {
 
         // Still only one bootstrap call total
         expect(bootstrapCalls).toBe(1);
-        const sentTokens = globalThis.fetch.mock.calls
+        const sentTokens = (globalThis.fetch as any).mock.calls
             .filter(([url]) => String(url).includes("/asset/rating"))
             .map(([_url, options]) => options?.headers?.get?.("X-MJR-Token"));
         expect(sentTokens).toContain("race_token_abc");
@@ -131,7 +131,7 @@ describe("concurrent auth bootstrap", () => {
                 headers: { get: (n) => (n === "content-type" ? "application/json" : null) },
                 json: async () => ({ ok: false, code: "AUTH_REQUIRED", error: "no token" }),
             };
-        });
+        }) as any;
 
         const c = await import("../api/client.js");
 
@@ -163,7 +163,7 @@ describe("concurrent tag writes", () => {
             status: 200,
             headers: { get: (n) => (n === "content-type" ? "application/json" : null) },
             json: async () => ({ ok: true, data: { tags: [] } }),
-        }));
+        })) as any;
 
         const c = await import("../api/client.js");
         c.setRuntimeSecurityToken(token);
@@ -175,7 +175,7 @@ describe("concurrent tag writes", () => {
         ]);
 
         // POST requests are not deduplicated — 3 writes = 3 fetch calls
-        const tagCalls = globalThis.fetch.mock.calls.filter(([url]) =>
+        const tagCalls = (globalThis.fetch as any).mock.calls.filter(([url]) =>
             String(url).includes("/asset/tags"),
         );
         expect(tagCalls).toHaveLength(3);

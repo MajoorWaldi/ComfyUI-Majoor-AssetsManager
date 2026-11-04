@@ -19,27 +19,27 @@ vi.mock("../app/comfyApiBridge.js", () => ({
 vi.mock("../features/viewer/workflowSidebar/NodeWidgetRenderer.js", () => ({
     NodeWidgetRenderer: class NodeWidgetRendererMock {
         constructor(node, opts = {}) {
-            this._node = node;
-            this.node = node;
-            this.opts = opts;
-            this._expanded = opts.expanded !== false;
-            this.el = makeElement("section");
-            this.el.dataset.nodeId = String(node?.id ?? "");
+            (this as any)._node = node;
+            (this as any).node = node;
+            (this as any).opts = opts;
+            (this as any)._expanded = (opts as any).expanded !== false;
+            (this as any).el = makeElement("section");
+            (this as any).el.dataset.nodeId = String(node?.id ?? "");
             rendererState.constructed.push(node?.id ?? null);
             rendererState.instances.push(this);
             rendererState.options.push(opts);
         }
 
         setExpanded(expanded) {
-            this._expanded = Boolean(expanded);
+            (this as any)._expanded = Boolean(expanded);
         }
 
         syncFromGraph() {
-            rendererState.synced.push(this.node?.id ?? null);
+            rendererState.synced.push((this as any).node?.id ?? null);
         }
 
         dispose() {
-            rendererState.disposed.push(this.node?.id ?? null);
+            rendererState.disposed.push((this as any).node?.id ?? null);
         }
     },
 }));
@@ -144,14 +144,14 @@ describe("WorkflowSidebar live sync", () => {
             },
         };
 
-        globalThis.document = doc;
-        globalThis.window = {
+        globalThis.document = (doc as any);
+        globalThis.window = ({
             ...(globalThis.window || {}),
             requestAnimationFrame: vi.fn(() => 1),
             cancelAnimationFrame: vi.fn(),
             setTimeout,
             clearTimeout,
-        };
+        } as any);
 
         bridgeState.app = {
             canvas: {

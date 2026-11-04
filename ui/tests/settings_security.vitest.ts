@@ -36,10 +36,10 @@ describe("settingsSecurity recommended remote LAN preset", () => {
         vi.resetModules();
         vi.unstubAllGlobals();
         vi.clearAllMocks();
-        globalThis.location = {
+        globalThis.location = ({
             protocol: "http:",
             hostname: "192.168.1.10",
-        };
+        } as any);
         vi.stubGlobal("crypto", {
             getRandomValues: vi.fn((buffer) => {
                 for (let index = 0; index < buffer.length; index += 1) {
@@ -107,7 +107,7 @@ describe("settingsSecurity recommended remote LAN preset", () => {
                 allow_insecure_token_transport: true,
             }),
         );
-        expect(String(settings.security.apiToken)).toMatch(/^mjr_[0-9a-f]+$/);
+        expect(String((settings.security as any).apiToken)).toMatch(/^mjr_[0-9a-f]+$/);
         expect(notifyApplied).toHaveBeenCalledWith("security.remoteLanPreset");
         expect(notifyApplied).toHaveBeenCalledWith("security.apiToken");
         expect(syncBackendSecuritySettings).toHaveBeenCalledTimes(1);

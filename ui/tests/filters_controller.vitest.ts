@@ -4,25 +4,25 @@ import { usePanelStore } from "../stores/usePanelStore.js";
 
 class ElementStub {
     constructor() {
-        this.value = "";
-        this.checked = false;
-        this.listeners = new Map();
-        this.classList = {
+        (this as any).value = "";
+        (this as any).checked = false;
+        (this as any).listeners = new Map();
+        (this as any).classList = {
             toggle: vi.fn(),
         };
     }
 
     addEventListener(type, handler) {
         const key = String(type);
-        const handlers = this.listeners.get(key) || [];
+        const handlers = (this as any).listeners.get(key) || [];
         handlers.push(handler);
-        this.listeners.set(key, handlers);
+        (this as any).listeners.set(key, handlers);
     }
 
     removeEventListener(type, handler) {
         const key = String(type);
-        const handlers = this.listeners.get(key) || [];
-        this.listeners.set(
+        const handlers = (this as any).listeners.get(key) || [];
+        (this as any).listeners.set(
             key,
             handlers.filter((item) => item !== handler),
         );
@@ -32,7 +32,7 @@ class ElementStub {
         const payload = event || {};
         payload.type = String(payload.type || "");
         payload.target = payload.target || this;
-        for (const handler of this.listeners.get(payload.type) || []) {
+        for (const handler of (this as any).listeners.get(payload.type) || []) {
             handler(payload);
         }
     }
@@ -76,8 +76,8 @@ describe("filtersController", () => {
         const minHeightInput = createControl();
         const maxWidthInput = createControl();
         const maxHeightInput = createControl();
-        maxWidthInput.value = "1280";
-        maxHeightInput.value = "720";
+        (maxWidthInput as any).value = "1280";
+        (maxHeightInput as any).value = "720";
 
         const reloadGrid = vi.fn(async () => ({}));
         const onFiltersChanged = vi.fn();
@@ -104,17 +104,17 @@ describe("filtersController", () => {
             lifecycleSignal: null,
         });
 
-        resolutionPresetSelect.value = "fhd";
+        (resolutionPresetSelect as any).value = "fhd";
         resolutionPresetSelect.dispatchEvent({ type: "change" });
 
         expect(panelStore.minWidth).toBe(1920);
         expect(panelStore.minHeight).toBe(1080);
         expect(panelStore.maxWidth).toBe(0);
         expect(panelStore.maxHeight).toBe(0);
-        expect(minWidthInput.value).toBe("1920");
-        expect(minHeightInput.value).toBe("1080");
-        expect(maxWidthInput.value).toBe("");
-        expect(maxHeightInput.value).toBe("");
+        expect((minWidthInput as any).value).toBe("1920");
+        expect((minHeightInput as any).value).toBe("1080");
+        expect((maxWidthInput as any).value).toBe("");
+        expect((maxHeightInput as any).value).toBe("");
         expect(onFiltersChanged).toHaveBeenCalledTimes(1);
 
         await vi.advanceTimersByTimeAsync(250);

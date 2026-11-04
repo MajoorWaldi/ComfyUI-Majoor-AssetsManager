@@ -6,6 +6,12 @@ from mjr_am_backend.features.runtime import post_execution as mod
 from mjr_am_backend.shared import Result
 
 
+@pytest.fixture(autouse=True)
+def _history_entry_present(monkeypatch):
+    """Most tests stub history directly; don't wait for a real entry."""
+    monkeypatch.setattr(mod, "has_prompt_history_entry", lambda _prompt_id: True)
+
+
 class _DB:
     def __init__(self):
         self.executed = []
@@ -285,3 +291,61 @@ async def test_ingest_prompt_outputs_assigns_rodin_package_context(monkeypatch, 
     ]
     assert len(rodin_updates) == 2
     assert all(params[0] == "prompt-rodin" for params in rodin_updates)
+
+
+@pytest.mark.asyncio
+async def test_ingest_waits_for_history_written_after_on_prompt_end(monkeypatch, tmp_path: Path):
+    """ComfyUI fires on_prompt_end before task_done() stores history: retry, don't index nothing."""
+    output = tmp_path / "out"
+    output.mkdir()
+    file_path = output / "late.png"
+    file_path.write_bytes(b"png")
+    state = {"checks": 0}
+
+    def _has_entry(_prompt_id):
+        state["checks"] += 1
+        return state["checks"] >= 3  # history appears on the 3rd check
+
+    def _outputs(_prompt_id):
+        if state["checks"] < 3:
+            return []
+        return [PromptOutputFile(path=str(file_path), node_id="9", node_type="SaveImage", item_type="output")]
+
+    sleeps = []
+
+    async def _fake_sleep(delay):
+        sleeps.append(delay)
+
+    monkeypatch.setattr(mod, "has_prompt_history_entry", _has_entry)
+    monkeypatch.setattr(mod, "get_prompt_output_files", _outputs)
+    monkeypatch.setattr(mod.asyncio, "sleep", _fake_sleep)
+    monkeypatch.setattr(mod, "send_event", lambda *_a, **_k: True)
+    monkeypatch.setattr(mod, "get_runtime_output_root", lambda: str(output))
+
+    async def _no_core(_prompt_id):
+        return []
+
+    monkeypatch.setattr(mod, "fetch_by_job_id", _no_core)
+    index = _Index()
+
+    res = await mod.ingest_prompt_outputs(index, "late-prompt")
+
+    assert res.ok
+    assert res.data["indexed"] == 1
+    assert len(sleeps) == 2
+    assert index.calls and index.calls[0][0] == [file_path.resolve()]
+
+
+@pytest.mark.asyncio
+async def test_wait_for_history_gives_up_without_blocking_forever(monkeypatch):
+    sleeps = []
+
+    async def _fake_sleep(delay):
+        sleeps.append(delay)
+
+    monkeypatch.setattr(mod, "has_prompt_history_entry", lambda _prompt_id: False)
+    monkeypatch.setattr(mod.asyncio, "sleep", _fake_sleep)
+
+    assert await mod._wait_for_history_entry("never") is False
+    assert len(sleeps) == len(mod._HISTORY_WAIT_DELAYS_S)
+    assert sum(sleeps) < 10

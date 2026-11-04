@@ -3,6 +3,7 @@ import { get, getAssetMetadata, vectorFindSimilar } from "../../api/client.js";
 import { buildListURL, buildNodeContextMembersURL } from "../../api/endpoints.js";
 import { comfyToast } from "../../app/toast.js";
 import { t } from "../../app/i18n.js";
+import { toDuplicateGroupMembers } from "../../vue/grid/useGridDisplayAssets.js";
 
 const STACK_GROUP_RENDER_LIMIT = 500;
 
@@ -373,9 +374,9 @@ export function bindSimilarSearch({
         }
         const activeAsset = await getActiveAsset();
         const activeId = String(activeAsset?.id || selectedAssetId() || "").trim();
-        const members = Array.isArray(activeAsset?._mjrDupMembers)
-            ? activeAsset._mjrDupMembers
-            : [];
+        const members = toDuplicateGroupMembers(
+            Array.isArray(activeAsset?._mjrDupMembers) ? activeAsset._mjrDupMembers : [],
+        );
         if (members.length >= 2) {
             writePanelValue("similarResults", members);
             writePanelValue("similarSourceAssetId", activeId ? `duplicates:${activeId}` : "duplicates");

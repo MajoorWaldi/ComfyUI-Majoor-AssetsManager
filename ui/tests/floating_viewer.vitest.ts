@@ -46,31 +46,31 @@ describe("FloatingViewer", () => {
         installFollowerVideoSyncMock.mockClear();
         globalThis.document = {
             adoptNode: vi.fn((node) => node),
-            querySelectorAll: vi.fn(() => []),
+            querySelectorAll: vi.fn(() => []) as any,
             documentElement: {
                 className: "",
-                attributes: [],
+                attributes: [] as any,
                 style: {
                     cssText: "",
                     setProperty: vi.fn(),
-                },
-            },
+                } as any,
+            } as any,
             body: {
                 appendChild: vi.fn(),
                 className: "",
-                attributes: [],
+                attributes: [] as any,
                 style: {
                     cssText: "",
                     setProperty: vi.fn(),
-                },
-            },
+                } as any,
+            } as any,
             createElement: vi.fn(() => ({
                 className: "",
                 setAttribute: vi.fn(),
                 appendChild: vi.fn(),
                 replaceChildren: vi.fn(),
-            })),
-        };
+            })) as any,
+        } as any;
     });
 
     it("rebinds panel interactions when popping back into the main document", async () => {
@@ -200,42 +200,42 @@ describe("FloatingViewer", () => {
         expect(closeBtn.addEventListener).toHaveBeenCalledWith(
             "click",
             expect.any(Function),
-            expect.objectContaining({ signal: viewer._btnAC.signal }),
+            expect.objectContaining({ signal: (viewer._btnAC as any).signal }),
         );
         expect(modeSelect.addEventListener).toHaveBeenCalledWith(
             "change",
             expect.any(Function),
-            expect.objectContaining({ signal: viewer._btnAC.signal }),
+            expect.objectContaining({ signal: (viewer._btnAC as any).signal }),
         );
         expect(pinSelect.addEventListener).toHaveBeenCalledWith(
             "click",
             expect.any(Function),
-            expect.objectContaining({ signal: viewer._btnAC.signal }),
+            expect.objectContaining({ signal: (viewer._btnAC as any).signal }),
         );
         expect(liveBtn.addEventListener).toHaveBeenCalledWith(
             "click",
             expect.any(Function),
-            expect.objectContaining({ signal: viewer._btnAC.signal }),
+            expect.objectContaining({ signal: (viewer._btnAC as any).signal }),
         );
         expect(previewBtn.addEventListener).toHaveBeenCalledWith(
             "click",
             expect.any(Function),
-            expect.objectContaining({ signal: viewer._btnAC.signal }),
+            expect.objectContaining({ signal: (viewer._btnAC as any).signal }),
         );
         expect(genBtn.addEventListener).toHaveBeenCalledWith(
             "click",
             expect.any(Function),
-            expect.objectContaining({ signal: viewer._btnAC.signal }),
+            expect.objectContaining({ signal: (viewer._btnAC as any).signal }),
         );
         expect(popoutBtn.addEventListener).toHaveBeenCalledWith(
             "click",
             expect.any(Function),
-            expect.objectContaining({ signal: viewer._btnAC.signal }),
+            expect.objectContaining({ signal: (viewer._btnAC as any).signal }),
         );
         expect(captureBtn.addEventListener).toHaveBeenCalledWith(
             "click",
             expect.any(Function),
-            expect.objectContaining({ signal: viewer._btnAC.signal }),
+            expect.objectContaining({ signal: (viewer._btnAC as any).signal }),
         );
     });
 
@@ -276,8 +276,8 @@ describe("FloatingViewer", () => {
                     return { overflowY: "auto", overflowX: "hidden" };
                 }
                 return { overflowY: "visible", overflowX: "visible" };
-            }),
-        };
+            }) as any,
+        } as any;
 
         try {
             FloatingViewer.prototype._initPanZoom.call(viewer, contentEl);
@@ -365,17 +365,17 @@ describe("FloatingViewer", () => {
                 constructor(type, init = {}) {
                     super(type, init);
                     Object.defineProperties(this, {
-                        key: { value: init.key || "" },
-                        code: { value: init.code || "" },
-                        keyCode: { value: init.keyCode || 0 },
-                        ctrlKey: { value: Boolean(init.ctrlKey) },
-                        shiftKey: { value: Boolean(init.shiftKey) },
-                        altKey: { value: Boolean(init.altKey) },
-                        metaKey: { value: Boolean(init.metaKey) },
-                        repeat: { value: Boolean(init.repeat) },
+                        key: { value: (init as any).key || "" },
+                        code: { value: (init as any).code || "" },
+                        keyCode: { value: (init as any).keyCode || 0 },
+                        ctrlKey: { value: Boolean((init as any).ctrlKey) },
+                        shiftKey: { value: Boolean((init as any).shiftKey) },
+                        altKey: { value: Boolean((init as any).altKey) },
+                        metaKey: { value: Boolean((init as any).metaKey) },
+                        repeat: { value: Boolean((init as any).repeat) },
                     });
                 }
-            };
+            } as any;
         }
         if (typeof window.KeyboardEvent !== "function") {
             window.KeyboardEvent = globalThis.KeyboardEvent;
@@ -432,10 +432,10 @@ describe("FloatingViewer", () => {
         const { FloatingViewer } = await import("../features/viewer/FloatingViewer.js");
 
         const requestWindow = vi.fn(() => Promise.resolve());
-        globalThis.window = {
-            documentPictureInPicture: { requestWindow },
+        (globalThis as any).window = {
+            documentPictureInPicture: { requestWindow } as any,
             open: vi.fn(),
-            navigator: { userAgent: "Mozilla/5.0 Code/1.113.0 Electron/39.8.3" },
+            navigator: { userAgent: "Mozilla/5.0 Code/1.113.0 Electron/39.8.3" } as any,
             screenX: 0,
             screenLeft: 0,
             screenY: 0,
@@ -461,9 +461,9 @@ describe("FloatingViewer", () => {
         const { FloatingViewer } = await import("../features/viewer/FloatingViewer.js");
 
         const requestWindow = vi.fn(() => new Promise(() => {}));
-        globalThis.window = {
-            documentPictureInPicture: { requestWindow },
-            process: { versions: { electron: "39.8.3" } },
+        (globalThis as any).window = {
+            documentPictureInPicture: { requestWindow } as any,
+            process: { versions: { electron: "39.8.3" } as any } as any,
             open: vi.fn(),
             screenX: 0,
             screenLeft: 0,
@@ -495,9 +495,9 @@ describe("FloatingViewer", () => {
         const { FloatingViewer } = await import("../features/viewer/FloatingViewer.js");
 
         const requestWindow = vi.fn(() => new Promise(() => {}));
-        globalThis.window = {
-            documentPictureInPicture: { requestWindow },
-            navigator: { userAgent: "Mozilla/5.0 Electron/39.8.3 Safari/537.36" },
+        (globalThis as any).window = {
+            documentPictureInPicture: { requestWindow } as any,
+            navigator: { userAgent: "Mozilla/5.0 Electron/39.8.3 Safari/537.36" } as any,
             open: vi.fn(),
             screenX: 0,
             screenLeft: 0,
@@ -529,7 +529,7 @@ describe("FloatingViewer", () => {
         const { FloatingViewer } = await import("../features/viewer/FloatingViewer.js");
 
         globalThis.window = {
-            navigator: { userAgent: "Mozilla/5.0 Electron/39.8.3 Safari/537.36" },
+            navigator: { userAgent: "Mozilla/5.0 Electron/39.8.3 Safari/537.36" } as any,
             open: vi.fn(),
             screenX: 0,
             screenLeft: 0,
@@ -537,7 +537,7 @@ describe("FloatingViewer", () => {
             screenTop: 0,
             outerWidth: 1280,
             outerHeight: 900,
-        };
+        } as any;
 
         const viewer = {
             _isPopped: false,
@@ -558,13 +558,13 @@ describe("FloatingViewer", () => {
             _tryElectronPopupFallback: FloatingViewer.prototype._tryElectronPopupFallback,
         };
 
-        viewer.element.classList = { add: vi.fn(), remove: vi.fn(), toggle: vi.fn() };
-        viewer.element.setAttribute = vi.fn();
-        viewer.element.getAttribute = vi.fn(() => null);
-        viewer.element.removeAttribute = vi.fn();
-        viewer.element.style = {};
-        viewer.element.parentNode = null;
-        viewer.element.nextSibling = null;
+        (viewer.element as any).classList = { add: vi.fn(), remove: vi.fn(), toggle: vi.fn() };
+        (viewer.element as any).setAttribute = vi.fn();
+        (viewer.element as any).getAttribute = vi.fn(() => null);
+        (viewer.element as any).removeAttribute = vi.fn();
+        (viewer.element as any).style = {};
+        (viewer.element as any).parentNode = null;
+        (viewer.element as any).nextSibling = null;
 
         FloatingViewer.prototype.popOut.call(viewer);
 
@@ -581,9 +581,9 @@ describe("FloatingViewer", () => {
         const { FloatingViewer } = await import("../features/viewer/FloatingViewer.js");
 
         const requestWindow = vi.fn(() => new Promise(() => {}));
-        globalThis.window = {
-            documentPictureInPicture: { requestWindow },
-            process: { versions: { electron: "39.8.3" } },
+        (globalThis as any).window = {
+            documentPictureInPicture: { requestWindow } as any,
+            process: { versions: { electron: "39.8.3" } as any } as any,
             open: vi.fn(() => null),
             screenX: 0,
             screenLeft: 0,
@@ -622,26 +622,26 @@ describe("FloatingViewer", () => {
 
         globalThis.document = {
             ...globalThis.document,
-            querySelectorAll: vi.fn(() => []),
+            querySelectorAll: vi.fn(() => []) as any,
             documentElement: {
                 className: "comfy-theme dark-mode",
-                attributes: [{ name: "data-theme", value: "obsidian" }],
+                attributes: [{ name: "data-theme", value: "obsidian" }] as any,
                 style: {
                     cssText: "--inline-root: 1;",
                     setProperty: vi.fn(),
-                },
+                } as any,
                 lang: "fr",
                 dir: "ltr",
-            },
+            } as any,
             body: {
                 appendChild: vi.fn(),
                 className: "app-shell",
-                attributes: [{ name: "data-layout", value: "desktop" }],
+                attributes: [{ name: "data-layout", value: "desktop" }] as any,
                 style: {
                     cssText: "",
                     setProperty: vi.fn(),
-                },
-            },
+                } as any,
+            } as any,
         };
 
         globalThis.window = {
@@ -666,8 +666,8 @@ describe("FloatingViewer", () => {
                         }[name] || ""
                     );
                 },
-            })),
-        };
+            })) as any,
+        } as any;
 
         const popupDoc = {
             head: {
@@ -796,9 +796,9 @@ describe("FloatingViewer", () => {
         class HTMLVideoElementMock extends HTMLMediaElementMock {}
         class HTMLAudioElementMock extends HTMLMediaElementMock {}
 
-        globalThis.HTMLMediaElement = HTMLMediaElementMock;
-        globalThis.HTMLVideoElement = HTMLVideoElementMock;
-        globalThis.HTMLAudioElement = HTMLAudioElementMock;
+        globalThis.HTMLMediaElement = HTMLMediaElementMock as any;
+        globalThis.HTMLVideoElement = HTMLVideoElementMock as any;
+        globalThis.HTMLAudioElement = HTMLAudioElementMock as any;
 
         const play = vi.fn(() => Promise.resolve());
         const addEventListener = vi.fn();
