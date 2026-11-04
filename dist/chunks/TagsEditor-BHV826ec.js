@@ -1,9 +1,9 @@
-import { D as e, E as t, It as n, Jn as r, Lt as i, T as a, Wt as o, b as s, dn as c, dr as l, fr as u, g as d, h as f, i as p, in as m, l as h, ln as g, p as _, st as v, ur as y, w as b, xn as x, y as ee } from "./config-C9a-wT5M.js";
-import { t as S } from "./floatingViewerManager-B_I-SRbd.js";
-import { A as te, N as ne, a as C, d as w, i as T, k as E, m as D, n as O, o as re, p as k, r as A, t as j, v as ie, y as M } from "./generationSectionState-DuXxSw-j.js";
+import { D as e, E as t, It as n, Jn as r, Lt as i, T as a, Wt as o, b as s, dn as c, dr as l, fr as u, g as d, h as f, i as p, in as m, l as h, ln as g, p as _, st as v, ur as y, w as b, xn as x, y as ee } from "./config-DuYSTOIQ.js";
+import { t as S } from "./floatingViewerManager-Bt-c8B-o.js";
+import { A as te, N as ne, a as C, d as w, i as T, k as E, m as D, n as O, o as re, p as k, r as A, t as j, v as ie, y as M } from "./generationSectionState-CvxAWtdW.js";
 import { n as N, t as P } from "./events-1iwo5blr.js";
-import { $ as ae, B as oe, C as F, D as se, E as I, H as ce, J as le, K as L, M as R, O as z, P as B, Q as V, S as ue, T as H, V as de, W as U, X as W, b as fe, gt as G, ht as K, j as pe, k as q, mt as me, ot as he, pt as J, st as Y, y as ge } from "./mjr-primevue-C07IsEdU.js";
-import { n as _e, r as ve } from "./mjr-vue-vendor-CEDOnn2t.js";
+import { $ as ae, B as oe, C as F, D as se, E as I, H as ce, J as le, K as L, M as R, O as z, P as B, Q as V, S as ue, T as H, V as de, W as U, X as W, b as fe, gt as G, ht as K, j as pe, k as q, mt as me, ot as he, pt as J, st as Y, y as ge } from "./mjr-primevue-QrNPJaqR.js";
+import { n as _e, r as ve } from "./mjr-vue-vendor-Dn5oe7QV.js";
 import { t as ye } from "./viewerOpenRequest-WOJE90Gn.js";
 // ui/features/status/AssetStatusDotTheme.ts
 function X(e) {
@@ -1385,7 +1385,7 @@ var xn = {
 	setup(e) {
 		let t = e, n = Y(0), i = Y(!1), a = null;
 		function c() {
-			return a ||= import("./floatingViewerManager-B_I-SRbd.js").then((e) => e.n), a;
+			return a ||= import("./floatingViewerManager-Bt-c8B-o.js").then((e) => e.n), a;
 		}
 		function l() {
 			return (Array.isArray(t.inputFile?.previewCandidates) ? t.inputFile.previewCandidates : [])[n.value] || "";
