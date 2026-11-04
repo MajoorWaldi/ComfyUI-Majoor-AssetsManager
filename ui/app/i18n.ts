@@ -1052,6 +1052,7 @@ const DICTIONARY: Record<string, Record<string, string>> = {
         "ctx.download": "Download",
         "ctx.editTags": "Edit tags",
         "ctx.setRating": "Set rating",
+        "ctx.setRatingN": "Set rating ({n} selected)",
         "ctx.resetRating": "Reset rating",
         "ctx.showMetadataPanel": "Show metadata panel",
         "ctx.unpinFolder": "Unpin folder",
@@ -1173,6 +1174,8 @@ const DICTIONARY: Record<string, Record<string, string>> = {
         "toast.metadataRefreshFailed": "Failed to refresh metadata.",
         "toast.ratingCleared": "Rating cleared",
         "toast.ratingSetN": "Rating set to {n} stars",
+        "toast.ratingBulkProgress": "Rating assets ({done}/{total})...",
+        "toast.ratingBulkPartial": "{rated} rated, {failed} failed",
         "toast.tagsUpdated": "Tags updated",
         "toast.remoteLanPresetApplied":
             "Recommended remote LAN setup applied. This browser session is now authorized for Majoor write operations.",
