@@ -1,10 +1,9 @@
 import { $ as e, $t as t, At as n, Bt as r, Ct as i, Dt as a, Et as o, Ft as s, Gt as c, Ht as l, I as u, It as d, K as f, Kt as p, Mt as m, N as h, Nt as g, O as _, Ot as v, Pt as y, Q as b, Qt as x, R as S, Rt as C, S as ee, St as te, T as ne, Tt as w, Ut as T, Vt as re, X as ie, Y as E, Yt as ae, Z as oe, Zt as se, at as ce, cn as le, ct as ue, dt as de, et as D, gt as fe, it as pe, jt as me, k as he, kt as ge, ln as _e, lt as ve, nt as ye, ot as be, p as xe, rt as Se, tn as Ce, tt as we, ut as Te, w as Ee, wt as De } from "./viewerRuntimeHosts-CW2DfHq_.js";
 import { G as Oe, J as ke, N as Ae, R as je, T as Me, Tt as Ne, X as Pe, c as Fe, d as Ie, f as Le, h as Re, ht as ze, j as Be, l as Ve, m as O, o as k, p as He, rt as Ue, s as A, u as We, x as Ge, y as Ke } from "./events-cBMXVULQ.js";
-import { F as qe, G as Je, J as Ye, P as Xe, f as Ze, m as Qe, p as $e } from "./Viewer-DPLbfJnQ.js";
-import { t as et } from "./floatingViewerManager-COGO0Pjd.js";
-import { A as tt, C as j, D as nt, E as M, G as rt, J as it, K as at, N as ot, O as N, R as st, S as ct, T as P, U as F, V as I, Y as lt, _ as ut, a as dt, b as ft, c as pt, d as mt, dt as L, f as ht, ft as R, g as gt, h as _t, i as vt, j as yt, k as z, l as bt, lt as B, m as xt, n as St, nt as Ct, o as wt, p as Tt, r as Et, rt as V, s as Dt, t as Ot, u as kt, ut as At, y as jt, z as Mt } from "./mjr-primevue-RN5COnJA.js";
-import { t as Nt } from "./mjr-vue-vendor-S58gLbdh.js";
-import { t as Pt } from "./viewerOpenRequest-CGbl10Uf.js";
+import { J as qe, L as Je, R as Ye, Z as Xe, _ as Ze, g as Qe, m as $e, t as et } from "./viewerOpenRequest-BN2VAo8C.js";
+import { t as tt } from "./floatingViewerManager-BmnIBEYf.js";
+import { A as nt, C as j, D as rt, E as M, G as it, J as at, K as ot, N as st, O as N, R as ct, S as lt, T as P, U as F, V as I, Y as ut, _ as dt, a as ft, b as pt, c as mt, d as ht, dt as L, f as gt, ft as R, g as _t, h as vt, i as yt, j as bt, k as z, l as xt, lt as B, m as St, n as Ct, nt as wt, o as Tt, p as Et, r as Dt, rt as V, s as Ot, t as kt, u as At, ut as jt, y as Mt, z as Nt } from "./mjr-primevue-RN5COnJA.js";
+import { t as Pt } from "./mjr-vue-vendor-S58gLbdh.js";
 import { a as Ft, i as It, n as Lt, o as Rt, r as zt, t as Bt } from "./geninfoParser-CgHp-y-n.js";
 // ui/app/settings/settingsUtils.ts
 var H = (e, t) => {
@@ -107,6 +106,7 @@ var H = (e, t) => {
 	safety: { confirmDeletion: !0 },
 	status: { pollInterval: A.STATUS_POLL_INTERVAL },
 	viewer: {
+		classic: !1,
 		allowPanAtZoom1: A.VIEWER_ALLOW_PAN_AT_ZOOM_1,
 		disableWebGL: A.VIEWER_DISABLE_WEBGL_VIDEO,
 		pauseDuringExecution: A.VIEWER_PAUSE_DURING_EXECUTION,
@@ -246,12 +246,12 @@ var H = (e, t) => {
 		console.warn("[Majoor] settings save failed", e);
 		try {
 			let e = Date.now();
-			e - (Number(window?._mjrSettingsSaveFailAt || 0) || 0) > 3e4 && (window._mjrSettingsSaveFailAt = e, Je(O("dialog.settingsSaveFailed", "Majoor: Failed to save settings (browser storage full or blocked).")));
+			e - (Number(window?._mjrSettingsSaveFailAt || 0) || 0) > 3e4 && (window._mjrSettingsSaveFailAt = e, qe(O("dialog.settingsSaveFailed", "Majoor: Failed to save settings (browser storage full or blocked).")));
 		} catch (e) {
 			console.debug?.(e);
 		}
 		try {
-			Ye("mjr-settings-save-failed", { error: String(e?.message || e || "") }, { warnPrefix: "[Majoor]" });
+			Xe("mjr-settings-save-failed", { error: String(e?.message || e || "") }, { warnPrefix: "[Majoor]" });
 		} catch (e) {
 			console.debug?.(e);
 		}
@@ -318,7 +318,7 @@ async function Zt() {
 		} catch (e) {
 			console.debug?.(e);
 		}
-		G(n), K(n), Ye("mjr-settings-changed", { key: "security" }, { warnPrefix: "[Majoor]" });
+		G(n), K(n), Xe("mjr-settings-changed", { key: "security" }, { warnPrefix: "[Majoor]" });
 	} catch (e) {
 		console.warn("[Majoor] failed to sync backend security settings", e);
 	}
@@ -330,7 +330,7 @@ async function Qt() {
 		let t = e.data?.prefs;
 		if (!t || typeof t != "object") return;
 		let n = Xt();
-		n.ai = n.ai || {}, n.ai.vectorSearchEnabled = H(t.enabled, n.ai.vectorSearchEnabled ?? !0), n.ai.vectorCaptionOnIndex = H(t.caption_on_index ?? t.captionOnIndex, n.ai.vectorCaptionOnIndex ?? !1), n.ai.vectorIndexOnScan = H(t.index_on_scan ?? t.indexOnScan, n.ai.vectorIndexOnScan ?? !1), n.ai.vectorUnloadAfterUse = H(t.unload_after_use ?? t.unloadAfterUse, n.ai.vectorUnloadAfterUse ?? !1), n.ai.vectorConcurrency = Math.max(1, Math.min(16, Math.floor(Number(t.concurrency ?? n.ai.vectorConcurrency ?? 1) || 1))), G(n), K(n), Ye("mjr-settings-changed", { key: "ai.vectorSearch" }, { warnPrefix: "[Majoor]" });
+		n.ai = n.ai || {}, n.ai.vectorSearchEnabled = H(t.enabled, n.ai.vectorSearchEnabled ?? !0), n.ai.vectorCaptionOnIndex = H(t.caption_on_index ?? t.captionOnIndex, n.ai.vectorCaptionOnIndex ?? !1), n.ai.vectorIndexOnScan = H(t.index_on_scan ?? t.indexOnScan, n.ai.vectorIndexOnScan ?? !1), n.ai.vectorUnloadAfterUse = H(t.unload_after_use ?? t.unloadAfterUse, n.ai.vectorUnloadAfterUse ?? !1), n.ai.vectorConcurrency = Math.max(1, Math.min(16, Math.floor(Number(t.concurrency ?? n.ai.vectorConcurrency ?? 1) || 1))), G(n), K(n), Xe("mjr-settings-changed", { key: "ai.vectorSearch" }, { warnPrefix: "[Majoor]" });
 	} catch (e) {
 		console.warn("[Majoor] failed to sync backend vector search settings", e);
 	}
@@ -342,7 +342,7 @@ async function $t() {
 		let t = e.data?.prefs;
 		if (!t || typeof t != "object") return;
 		let n = Xt();
-		n.executionGrouping = n.executionGrouping || {}, n.executionGrouping.enabled = H(t.enabled, n.executionGrouping.enabled ?? A.EXECUTION_GROUPING_ENABLED), G(n), K(n), Ye("mjr-settings-changed", { key: "executionGrouping.enabled" }, { warnPrefix: "[Majoor]" });
+		n.executionGrouping = n.executionGrouping || {}, n.executionGrouping.enabled = H(t.enabled, n.executionGrouping.enabled ?? A.EXECUTION_GROUPING_ENABLED), G(n), K(n), Xe("mjr-settings-changed", { key: "executionGrouping.enabled" }, { warnPrefix: "[Majoor]" });
 	} catch (e) {
 		console.warn("[Majoor] failed to sync backend execution grouping settings", e);
 	}
@@ -953,6 +953,16 @@ function On(e, n, r) {
 		t
 	], o = (e) => a(O("cat.viewer", "Viewer"), e), s = (e) => a(O("cat.floatingViewer", "Floating Viewer"), e);
 	e({
+		id: `${En}.Viewer.Classic`,
+		category: o(O("setting.viewer.classic.category", "Viewer engine")),
+		name: O("setting.viewer.classic.name", "Use the classic viewer"),
+		tooltip: O("setting.viewer.classic.desc", "Open assets in the classic viewer instead of the Studio viewer. The classic viewer is still used for A/B / side-by-side compare and 3D models."),
+		type: "boolean",
+		defaultValue: !!n.viewer?.classic,
+		onChange: (e) => {
+			n.viewer = n.viewer || {}, n.viewer.classic = !!e, G(n), r("viewer.classic");
+		}
+	}), e({
 		id: `${En}.Viewer.AllowPanAtZoom1`,
 		category: o(O("setting.viewer.pan.name").replace("Majoor: ", "")),
 		name: O("setting.viewer.pan.name"),
@@ -2602,12 +2612,12 @@ function Mr(e, t, { initRuntime: n = !1 } = {}) {
 			if (!i.size) return;
 			let e = Array.from(i);
 			i.clear();
-			for (let t of e) Ye("mjr-settings-changed", { key: t }, { warnPrefix: "[Majoor]" });
+			for (let t of e) Xe("mjr-settings-changed", { key: t }, { warnPrefix: "[Majoor]" });
 		}, s = () => {
 			if (!a.size) return;
 			let e = Array.from(a);
 			a.clear();
-			for (let t of e) Ye("mjr-settings-changed", { key: t }, { warnPrefix: "[Majoor]" });
+			for (let t of e) Xe("mjr-settings-changed", { key: t }, { warnPrefix: "[Majoor]" });
 		}, c = fn(o, 120), l = fn(s, 450), u = (e) => {
 			typeof e == "string" && i.add(e), c();
 		}, d = (e) => {
@@ -2672,7 +2682,7 @@ try {
 	let e = Xt();
 	e?.watcher && typeof e.watcher.enabled == "boolean" && Te().then((e) => {
 		let t = !!e?.ok && !!e?.data?.enabled, n = Xt();
-		n.watcher = n.watcher || {}, typeof t == "boolean" && t !== !!n.watcher.enabled && (n.watcher.enabled = t, G(n), Ye("mjr-settings-changed", { key: "watcher.enabled" }, { warnPrefix: "[Majoor]" }));
+		n.watcher = n.watcher || {}, typeof t == "boolean" && t !== !!n.watcher.enabled && (n.watcher.enabled = t, G(n), Xe("mjr-settings-changed", { key: "watcher.enabled" }, { warnPrefix: "[Majoor]" }));
 	}).catch(() => {});
 } catch (e) {
 	console.debug?.(e);
@@ -2687,7 +2697,7 @@ function Fr() {
 		title: ""
 	};
 }
-var Y = Ct({
+var Y = wt({
 	portalOwnerId: "",
 	mountedPortalIds: [],
 	main: Fr(),
@@ -3908,7 +3918,7 @@ function Oa(e, t = null) {
 	};
 }
 // ui/features/workflows/workflowPickerState.ts
-var X = Ct({
+var X = wt({
 	open: !1,
 	mode: "workflow",
 	title: "",
@@ -3937,32 +3947,32 @@ function ja(e = null) {
 }
 // ui/vue/majoorPrimeVue.ts
 var Ma = {
-	Button: ht,
-	Checkbox: mt,
-	InputText: kt,
-	Textarea: bt,
-	Select: Dt,
-	ToggleButton: wt,
-	Badge: Tt,
-	Tag: dt,
-	Dialog: vt,
-	Menu: Et,
-	Listbox: St,
-	Tree: Ot,
-	VirtualScroller: pt
+	Button: gt,
+	Checkbox: ht,
+	InputText: At,
+	Textarea: xt,
+	Select: Ot,
+	ToggleButton: Tt,
+	Badge: Et,
+	Tag: ft,
+	Dialog: yt,
+	Menu: Dt,
+	Listbox: Ct,
+	Tree: kt,
+	VirtualScroller: mt
 };
 function Na(e) {
-	return e.use(gt, {
+	return e.use(_t, {
 		ripple: !1,
 		unstyled: !0,
 		zIndex: { overlay: 10100 }
-	}), e.use(_t), e.use(xt), Object.entries(Ma).forEach(([t, n]) => {
+	}), e.use(vt), e.use(St), Object.entries(Ma).forEach(([t, n]) => {
 		e.component(`M${t}`, n);
 	}), e;
 }
 // ui/vue/createVueApp.ts
 function Pa(e, t = void 0) {
-	let n = Nt(), r = ut(e, t);
+	let n = Pt(), r = dt(e, t);
 	return r.use(n), Na(r), {
 		app: r,
 		pinia: n
@@ -4155,7 +4165,7 @@ var Xa = {
 	display: "flex",
 	"flex-direction": "column",
 	gap: "6px"
-} }, Qa = ["title"], $a = ["title"], eo = /* @__PURE__ */ ot({
+} }, Qa = ["title"], $a = ["title"], eo = /* @__PURE__ */ st({
 	__name: "SidebarFileInfoSection",
 	props: { asset: {} },
 	setup(e) {
@@ -4211,13 +4221,13 @@ var Xa = {
 				value: Ga(e.duration),
 				tooltip: "Video duration"
 			});
-			let p = $e(e);
+			let p = Qe(e);
 			p != null && f.push({
 				label: "FPS",
-				value: Ze(p),
+				value: $e(p),
 				tooltip: "Native frame rate"
 			});
-			let m = Qe(e, p);
+			let m = Ze(e, p);
 			f.push({
 				label: "Frames",
 				value: m == null ? "N/A" : String(Math.max(0, Math.floor(m))),
@@ -4251,12 +4261,12 @@ var Xa = {
 				value: String(i(u.color_space, c.color_space, c.colorspace) || "N/A"),
 				tooltip: "Encoded color space"
 			});
-			let h = qe(e.generation_time_ms ?? e.metadata?.generation_time_ms ?? 0);
+			let h = Ye(e.generation_time_ms ?? e.metadata?.generation_time_ms ?? 0);
 			h > 0 && f.push({
 				label: "Generation Time",
 				value: `${(Number(h) / 1e3).toFixed(1)}s`,
 				tooltip: "Time taken to generate this asset (workflow execution time)",
-				valueStyle: `color: ${Xe(h)}; font-weight: 600;`
+				valueStyle: `color: ${Je(h)}; font-weight: 600;`
 			});
 			let g = e.generation_time || e.file_creation_time || e.mtime || e.created_at;
 			if (g) {
@@ -5165,13 +5175,13 @@ var Vo = ["title"], Ho = ["src"], Uo = {
 		"font-size": "16px",
 		"pointer-events": "none"
 	}
-}, Jo = /* @__PURE__ */ ot({
+}, Jo = /* @__PURE__ */ st({
 	__name: "GenerationInputThumb",
 	props: { inputFile: {} },
 	setup(e) {
 		let n = e, r = V(0), i = V(!1), a = null;
 		function o() {
-			return a ||= import("./floatingViewerManager-COGO0Pjd.js").then((e) => e.n), a;
+			return a ||= import("./floatingViewerManager-BmnIBEYf.js").then((e) => e.n), a;
 		}
 		function s() {
 			return (Array.isArray(n.inputFile?.previewCandidates) ? n.inputFile.previewCandidates : [])[r.value] || "";
@@ -5240,7 +5250,7 @@ var Vo = ["title"], Ho = ["src"], Uo = {
 		}
 		function g() {
 			let e = d();
-			if (Pt({
+			if (et({
 				asset: e,
 				index: 0
 			})) return;
@@ -5862,7 +5872,7 @@ var Vo = ["title"], Ho = ["src"], Uo = {
 	display: "flex",
 	gap: "8px",
 	"flex-wrap": "wrap"
-} }, Jc = /* @__PURE__ */ ot({
+} }, Jc = /* @__PURE__ */ st({
 	__name: "SidebarGenerationSection",
 	props: { asset: {} },
 	setup(e) {
@@ -6103,9 +6113,9 @@ var Vo = ["title"], Ho = ["src"], Uo = {
 				console.debug?.(e);
 			}
 		}
-		return at(() => t.asset, () => {
+		return ot(() => t.asset, () => {
 			n.value = 0, r.value = 0, i.value = String(t.asset?.enhanced_caption || "").trim(), a.value = O("action.copy", "Copy"), o.value = O("action.generate", "Generate");
-		}, { immediate: !0 }), at(() => [
+		}, { immediate: !0 }), ot(() => [
 			t.asset?.id,
 			_.value.kind,
 			_.value.showAlignment,
@@ -6113,7 +6123,7 @@ var Vo = ["title"], Ho = ["src"], Uo = {
 		], () => {
 			se();
 		}, { immediate: !0 }), (e, t) => {
-			let r = rt("MButton");
+			let r = it("MButton");
 			return _.value.kind === "empty" ? N("", !0) : (I(), z("div", Yo, [
 				_.value.workflowType ? (I(), z("div", Xo, [M("span", Zo, R(B(O)("viewer.workflow", "Workflow")), 1), M("div", Qo, [M("span", {
 					title: B(O)("sidebar.generation.workflowEngine", "Workflow engine: {value}", { value: _.value.workflowType }),
@@ -6219,7 +6229,7 @@ var Vo = ["title"], Ho = ["src"], Uo = {
 								background: "rgba(38,198,218,0.075)",
 								padding: "10px"
 							}
-						}, [M("div", gs, [M("div", _s, R(e.label), 1), M("div", vs, [e.inLabel ? (I(), z("span", ys, " in " + R(e.inLabel), 1)) : N("", !0), e.outLabel ? (I(), z("span", bs, " out " + R(e.outLabel), 1)) : N("", !0)])]), M("div", xs, [e.filename ? (I(), nt(Jo, {
+						}, [M("div", gs, [M("div", _s, R(e.label), 1), M("div", vs, [e.inLabel ? (I(), z("span", ys, " in " + R(e.inLabel), 1)) : N("", !0), e.outLabel ? (I(), z("span", bs, " out " + R(e.outLabel), 1)) : N("", !0)])]), M("div", xs, [e.filename ? (I(), rt(Jo, {
 							key: 0,
 							"input-file": {
 								filename: e.filename,
@@ -6379,7 +6389,7 @@ var Vo = ["title"], Ho = ["src"], Uo = {
 						}))
 					}, [
 						M("div", Gs, R(B(O)("sidebar.generation.promptPipeline", "Prompt Pipeline ({count} variants)", { count: _.value.promptTabs.length })), 1),
-						M("div", Ks, [(I(!0), z(j, null, F(_.value.promptTabs, (e, t) => (I(), nt(r, {
+						M("div", Ks, [(I(!0), z(j, null, F(_.value.promptTabs, (e, t) => (I(), rt(r, {
 							key: e.label,
 							type: "button",
 							severity: "secondary",
@@ -6399,10 +6409,10 @@ var Vo = ["title"], Ho = ["src"], Uo = {
 							}),
 							onClick: (e) => n.value = t
 						}, {
-							default: it(() => [tt(R(e.label), 1)]),
+							default: at(() => [nt(R(e.label), 1)]),
 							_: 2
 						}, 1032, ["style", "onClick"]))), 128))]),
-						(I(!0), z(j, null, F(_.value.promptTabs, (e, t) => lt((I(), z("div", {
+						(I(!0), z(j, null, F(_.value.promptTabs, (e, t) => ut((I(), z("div", {
 							key: `${e.label}-panel`,
 							style: {
 								display: "flex",
@@ -6436,7 +6446,7 @@ var Vo = ["title"], Ho = ["src"], Uo = {
 								},
 								onClick: (t) => E(e.negative, t.currentTarget)
 							}, R(e.negative), 9, Xs)], 64)) : N("", !0)
-						])), [[ft, n.value === t]])), 128))
+						])), [[pt, n.value === t]])), 128))
 					], 4)) : !_.value.ltxDirector && !_.value.ideogram && _.value.positivePrompt ? (I(), z("div", {
 						key: 3,
 						style: L(m("#4CAF50", {
@@ -6495,7 +6505,7 @@ var Vo = ["title"], Ho = ["src"], Uo = {
 						"flex-direction": "column",
 						gap: "10px"
 					},
-					class: At({ "mjr-ai-disabled-block": !v.value })
+					class: jt({ "mjr-ai-disabled-block": !v.value })
 				}, [
 					_.value.showAlignment ? (I(), z(j, { key: 0 }, [
 						M("div", rc, [M("span", { title: B(O)("sidebar.generation.promptAlignmentTooltip", "How closely the generated image matches the prompt (SigLIP2 score)") }, R(B(O)("sidebar.generation.promptAlignment", "Prompt Alignment")), 9, ic)]),
@@ -6528,7 +6538,7 @@ var Vo = ["title"], Ho = ["src"], Uo = {
 						]),
 						l.value.aiStatusVisible ? (I(), z("div", sc, R(l.value.aiStatusText), 1)) : N("", !0)
 					], 64)) : N("", !0),
-					M("div", cc, [M("span", { title: B(O)("sidebar.generation.aiCaptionTooltip", "AI caption generated by Florence-2") }, R(_.value.captionLabel), 9, lc), M("div", uc, [yt(r, {
+					M("div", cc, [M("span", { title: B(O)("sidebar.generation.aiCaptionTooltip", "AI caption generated by Florence-2") }, R(_.value.captionLabel), 9, lc), M("div", uc, [bt(r, {
 						type: "button",
 						class: "mjr-ai-control",
 						severity: "secondary",
@@ -6547,11 +6557,11 @@ var Vo = ["title"], Ho = ["src"], Uo = {
 							opacity: x.value ? "1" : "0.6",
 							cursor: x.value ? "pointer" : "default"
 						}]),
-						onClick: ct(ce, ["stop"])
+						onClick: lt(ce, ["stop"])
 					}, {
-						default: it(() => [tt(R(o.value), 1)]),
+						default: at(() => [nt(R(o.value), 1)]),
 						_: 1
-					}, 8, ["disabled", "style"]), yt(r, {
+					}, 8, ["disabled", "style"]), bt(r, {
 						type: "button",
 						class: "mjr-ai-control",
 						severity: "secondary",
@@ -6570,9 +6580,9 @@ var Vo = ["title"], Ho = ["src"], Uo = {
 							opacity: S.value ? "1" : "0.6",
 							cursor: S.value ? "pointer" : "default"
 						}]),
-						onClick: ct(le, ["stop"])
+						onClick: lt(le, ["stop"])
 					}, {
-						default: it(() => [tt(R(a.value), 1)]),
+						default: at(() => [nt(R(a.value), 1)]),
 						_: 1
 					}, 8, ["disabled", "style"])])]),
 					M("div", {
@@ -6890,7 +6900,7 @@ var Vo = ["title"], Ho = ["src"], Uo = {
 						"letter-spacing": "0.5px",
 						"margin-bottom": "8px"
 					}
-				}, R(B(O)("sidebar.generation.sourceFiles", "Source Files")), 9, Kc), M("div", qc, [(I(!0), z(j, null, F(_.value.inputFiles, (e) => (I(), nt(Jo, {
+				}, R(B(O)("sidebar.generation.sourceFiles", "Source Files")), 9, Kc), M("div", qc, [(I(!0), z(j, null, F(_.value.inputFiles, (e) => (I(), rt(Jo, {
 					key: e.id,
 					"input-file": e
 				}, null, 8, ["input-file"]))), 128))])], 4)) : N("", !0)
@@ -7237,7 +7247,7 @@ var Vo = ["title"], Ho = ["src"], Uo = {
 	margin: "10px 0 0 0",
 	color: "#90CAF9",
 	"font-family": "'Consolas', 'Monaco', monospace"
-} }, ou = 1, su = 8, cu = 250, lu = /* @__PURE__ */ ot({
+} }, ou = 1, su = 8, cu = 250, lu = /* @__PURE__ */ st({
 	__name: "SidebarWorkflowSection",
 	props: { asset: {} },
 	setup(e) {
@@ -7567,7 +7577,7 @@ var Vo = ["title"], Ho = ["src"], Uo = {
 		async function $e() {
 			if (await k(), !D.value) t(O("toast.workflowLoadFailed", "Failed to load workflow."), "error");
 			else try {
-				await et.openAssets({
+				await tt.openAssets({
 					assets: [{
 						...n.asset,
 						workflow: D.value,
@@ -7580,7 +7590,7 @@ var Vo = ["title"], Ho = ["src"], Uo = {
 				console.debug?.(e), t(O("toast.workflowLoadFailed", "Failed to load workflow."), "error");
 			}
 		}
-		async function ot() {
+		async function et() {
 			let e = fe.value;
 			if (!e) t(O("toast.workflowMissingPath", "Workflow file path is missing."), "error");
 			else {
@@ -7604,7 +7614,7 @@ var Vo = ["title"], Ho = ["src"], Uo = {
 				}
 			}
 		}
-		let ct = P(() => (Array.isArray(D.value?.nodes) ? D.value.nodes : []).slice(0, cu).map((e, t) => {
+		let st = P(() => (Array.isArray(D.value?.nodes) ? D.value.nodes : []).slice(0, cu).map((e, t) => {
 			let n = e?.id ?? e?.key ?? t + 1, r = Ye(e);
 			return {
 				key: String(n),
@@ -7615,7 +7625,7 @@ var Vo = ["title"], Ho = ["src"], Uo = {
 					type: r
 				}
 			};
-		})), ut = P(() => Math.max(0, Number(dt.value.nodes || 0) - ct.value.length)), dt = P(() => {
+		})), lt = P(() => Math.max(0, Number(dt.value.nodes || 0) - st.value.length)), dt = P(() => {
 			let e = D.value;
 			return e ? {
 				nodes: Array.isArray(e?.nodes) ? e.nodes.length : 0,
@@ -7698,7 +7708,7 @@ var Vo = ["title"], Ho = ["src"], Uo = {
 				world: w.canvasToWorld(t.x, t.y)
 			};
 		}
-		function bt(e) {
+		function yt(e) {
 			let t = _t(e), n = t && w?.hitTestNode ? w.hitTestNode(t.x, t.y) : null, r = n?.id !== null && n?.id !== void 0 ? String(n.id) : null, i = x.value.hoveredNodeId !== null && x.value.hoveredNodeId !== void 0 ? String(x.value.hoveredNodeId) : null;
 			C.value = n?.label || "", r !== i && (x.value = {
 				...x.value,
@@ -7715,13 +7725,13 @@ var Vo = ["title"], Ho = ["src"], Uo = {
 		function St(e) {
 			if (Number(e?.button ?? 0) !== 0) return;
 			let t = vt(e);
-			t && (T = e.pointerId ?? 1, S.value = "grabbing", o.value?.setPointerCapture?.(T), xt(t.world), bt(e), e.preventDefault?.(), e.stopPropagation?.());
+			t && (T = e.pointerId ?? 1, S.value = "grabbing", o.value?.setPointerCapture?.(T), xt(t.world), yt(e), e.preventDefault?.(), e.stopPropagation?.());
 		}
 		function Ct(e) {
 			if (T !== null && e.pointerId === T) {
 				let t = vt(e);
 				t && xt(t.world), e.preventDefault?.(), e.stopPropagation?.();
-			} else bt(e);
+			} else yt(e);
 		}
 		function wt(e) {
 			T !== null && e?.pointerId === T && (o.value?.releasePointerCapture?.(T), T = null, S.value = "crosshair"), e?.type === "pointerleave" && (C.value = "", x.value.hoveredNodeId !== null && (x.value = {
@@ -7743,7 +7753,7 @@ var Vo = ["title"], Ho = ["src"], Uo = {
 				zoom: a,
 				centerX: Number(t.world.x) + (.5 - c) * o,
 				centerY: Number(t.world.y) + (.5 - l) * s
-			}, ht(), bt(e), e.preventDefault?.(), e.stopPropagation?.();
+			}, ht(), yt(e), e.preventDefault?.(), e.stopPropagation?.();
 		}
 		function Et(e) {
 			let t = vt(e);
@@ -7761,22 +7771,22 @@ var Vo = ["title"], Ho = ["src"], Uo = {
 				size: e
 			}, de(b.value));
 		}
-		return Mt(() => {
+		return Nt(() => {
 			o.value && typeof ResizeObserver == "function" && (te = new ResizeObserver(() => ht()), te.observe(o.value)), Xe(), k(), ht();
-		}), at(D, () => {
+		}), ot(D, () => {
 			E(), ht();
-		}, { flush: "post" }), at(fe, () => {
+		}, { flush: "post" }), ot(fe, () => {
 			d.value = null, k();
-		}, { immediate: !0 }), at(A, () => {
+		}, { immediate: !0 }), ot(A, () => {
 			Xe();
-		}), at(b, () => {
+		}), ot(b, () => {
 			ht();
 		}, {
 			deep: !0,
 			flush: "post"
-		}), at(v, () => {
+		}), ot(v, () => {
 			ht();
-		}, { flush: "post" }), st(() => {
+		}, { flush: "post" }), ct(() => {
 			try {
 				te?.disconnect?.();
 			} catch (e) {
@@ -7784,7 +7794,7 @@ var Vo = ["title"], Ho = ["src"], Uo = {
 			}
 			te = null, T = null;
 		}), (e, t) => {
-			let n = rt("MButton"), r = rt("MTree");
+			let n = it("MButton"), r = it("MTree");
 			return D.value ? (I(), z("div", Yc, [
 				t[18] ||= M("div", { style: {
 					"font-size": "13px",
@@ -7813,7 +7823,7 @@ var Vo = ["title"], Ho = ["src"], Uo = {
 						style: L(ze(e.tone)),
 						title: e.label
 					}, [M("i", {
-						class: At(e.icon),
+						class: jt(e.icon),
 						style: {
 							"font-size": "10px",
 							flex: "0 0 auto"
@@ -7904,7 +7914,7 @@ var Vo = ["title"], Ho = ["src"], Uo = {
 					})
 				}, R(Se.value), 5)) : N("", !0)])) : N("", !0),
 				M("div", yl, [
-					yt(n, {
+					bt(n, {
 						type: "button",
 						severity: "secondary",
 						text: "",
@@ -7924,10 +7934,10 @@ var Vo = ["title"], Ho = ["src"], Uo = {
 						},
 						onClick: Qe
 					}, {
-						default: it(() => [t[8] ||= M("i", { class: "pi pi-image" }, null, -1), M("span", null, R(B(O)("ctx.setWorkflowThumbnail", "Set workflow thumbnail")), 1)]),
+						default: at(() => [t[8] ||= M("i", { class: "pi pi-image" }, null, -1), M("span", null, R(B(O)("ctx.setWorkflowThumbnail", "Set workflow thumbnail")), 1)]),
 						_: 1
 					}),
-					yt(n, {
+					bt(n, {
 						type: "button",
 						severity: "secondary",
 						text: "",
@@ -7947,10 +7957,10 @@ var Vo = ["title"], Ho = ["src"], Uo = {
 						},
 						onClick: $e
 					}, {
-						default: it(() => [t[9] ||= M("i", { class: "pi pi-search" }, null, -1), M("span", null, R(B(O)("ctx.inspect", "Inspect")), 1)]),
+						default: at(() => [t[9] ||= M("i", { class: "pi pi-search" }, null, -1), M("span", null, R(B(O)("ctx.inspect", "Inspect")), 1)]),
 						_: 1
 					}),
-					yt(n, {
+					bt(n, {
 						type: "button",
 						severity: "secondary",
 						text: "",
@@ -7969,9 +7979,9 @@ var Vo = ["title"], Ho = ["src"], Uo = {
 							"justify-content": "center",
 							gap: "7px"
 						},
-						onClick: ot
+						onClick: et
 					}, {
-						default: it(() => [M("i", { class: At(f.value ? "pi pi-spin pi-spinner" : "pi pi-check-circle") }, null, 2), M("span", null, R(f.value ? "Checking" : "Validate"), 1)]),
+						default: at(() => [M("i", { class: jt(f.value ? "pi pi-spin pi-spinner" : "pi pi-check-circle") }, null, 2), M("span", null, R(f.value ? "Checking" : "Validate"), 1)]),
 						_: 1
 					}, 8, ["disabled"])
 				]),
@@ -8005,7 +8015,7 @@ var Vo = ["title"], Ho = ["src"], Uo = {
 						}
 					}, " Missing model: " + R(e), 1))), 128))])) : N("", !0)])) : (I(), z("div", El, " No missing dependencies detected by the current ComfyUI runtime. ")),
 					je.value.length ? (I(), z("div", Dl, R(je.value.join(" | ")), 1)) : N("", !0),
-					Ne.value || Pe.value ? (I(), z("div", Ol, [tt(" Latest version: " + R(Ne.value || "none"), 1), Pe.value ? (I(), z("span", kl, " | Diff: " + R(Pe.value), 1)) : N("", !0)])) : N("", !0)
+					Ne.value || Pe.value ? (I(), z("div", Ol, [nt(" Latest version: " + R(Ne.value || "none"), 1), Pe.value ? (I(), z("span", kl, " | Diff: " + R(Pe.value), 1)) : N("", !0)])) : N("", !0)
 				])) : N("", !0),
 				M("div", Al, [
 					M("div", jl, [t[11] ||= M("div", { style: {
@@ -8075,7 +8085,7 @@ var Vo = ["title"], Ho = ["src"], Uo = {
 						"text-overflow": "ellipsis",
 						"white-space": "nowrap"
 					}
-				}, R(e), 1))), 128))], 8, Vl)) : N("", !0)]), M("div", Hl, [lt(M("input", {
+				}, R(e), 1))), 128))], 8, Vl)) : N("", !0)]), M("div", Hl, [ut(M("input", {
 					"onUpdate:modelValue": t[0] ||= (e) => s.value = e,
 					type: "text",
 					placeholder: B(O)("dialog.workflowCategory", "Workflow category"),
@@ -8089,7 +8099,7 @@ var Vo = ["title"], Ho = ["src"], Uo = {
 						color: "rgba(255,255,255,0.92)",
 						"font-size": "12px"
 					}
-				}, null, 8, Ul), [[jt, s.value]]), yt(n, {
+				}, null, 8, Ul), [[Mt, s.value]]), bt(n, {
 					type: "button",
 					severity: "secondary",
 					text: "",
@@ -8108,13 +8118,13 @@ var Vo = ["title"], Ho = ["src"], Uo = {
 					}),
 					onClick: Ze
 				}, {
-					default: it(() => [tt(R(c.value ? "Saving..." : "Move"), 1)]),
+					default: at(() => [nt(R(c.value ? "Saving..." : "Move"), 1)]),
 					_: 1
 				}, 8, ["disabled", "style"])])])) : N("", !0),
-				ct.value.length ? (I(), z("div", Wl, [
+				st.value.length ? (I(), z("div", Wl, [
 					t[15] ||= M("div", { class: "mjr-section-title" }, " Workflow Nodes ", -1),
-					yt(r, {
-						value: ct.value,
+					bt(r, {
+						value: st.value,
 						class: "mjr-workflow-tree",
 						"scroll-height": "180px",
 						pt: {
@@ -8126,16 +8136,16 @@ var Vo = ["title"], Ho = ["src"], Uo = {
 							nodeLabel: { class: "mjr-workflow-tree-label" }
 						}
 					}, {
-						default: it(({ node: e }) => [M("span", Gl, [
+						default: at(({ node: e }) => [M("span", Gl, [
 							M("span", Kl, R(e.label), 1),
 							e.data?.type ? (I(), z("span", ql, R(e.data.type), 1)) : N("", !0),
 							M("span", Jl, "#" + R(e.data?.id), 1)
 						])]),
 						_: 1
 					}, 8, ["value"]),
-					ut.value ? (I(), z("div", Yl, " +" + R(ut.value) + " more nodes ", 1)) : N("", !0)
+					lt.value ? (I(), z("div", Yl, " +" + R(lt.value) + " more nodes ", 1)) : N("", !0)
 				])) : N("", !0),
-				M("div", Xl, [M("div", Zl, [(I(!0), z(j, null, F(B(a), (e) => (I(), nt(n, {
+				M("div", Xl, [M("div", Zl, [(I(!0), z(j, null, F(B(a), (e) => (I(), rt(n, {
 					key: e.key,
 					type: "button",
 					severity: "secondary",
@@ -8155,13 +8165,13 @@ var Vo = ["title"], Ho = ["src"], Uo = {
 					}),
 					onClick: (t) => Ot(e.key)
 				}, {
-					default: it(() => [tt(R(e.label), 1)]),
+					default: at(() => [nt(R(e.label), 1)]),
 					_: 2
 				}, 1032, [
 					"title",
 					"style",
 					"onClick"
-				]))), 128))]), yt(n, {
+				]))), 128))]), bt(n, {
 					type: "button",
 					class: "mjr-btn mjr-icon-btn",
 					severity: "secondary",
@@ -8182,10 +8192,10 @@ var Vo = ["title"], Ho = ["src"], Uo = {
 					},
 					onClick: t[1] ||= (e) => v.value = !v.value
 				}, {
-					default: it(() => [...t[16] ||= [M("i", { class: "pi pi-sliders-h" }, null, -1)]]),
+					default: at(() => [...t[16] ||= [M("i", { class: "pi pi-sliders-h" }, null, -1)]]),
 					_: 1
 				}, 8, ["title"])]),
-				v.value ? (I(), z("div", Ql, [(I(!0), z(j, null, F(mt.value, (e) => (I(), nt(n, {
+				v.value ? (I(), z("div", Ql, [(I(!0), z(j, null, F(mt.value, (e) => (I(), rt(n, {
 					key: e.key,
 					type: "button",
 					severity: "secondary",
@@ -8204,7 +8214,7 @@ var Vo = ["title"], Ho = ["src"], Uo = {
 					}),
 					onClick: (t) => Dt(e.key)
 				}, {
-					default: it(() => [
+					default: at(() => [
 						M("span", { style: L({
 							width: "22px",
 							height: "22px",
@@ -8223,7 +8233,7 @@ var Vo = ["title"], Ho = ["src"], Uo = {
 							})
 						}, null, 4)], 4),
 						M("i", {
-							class: At(e.iconClass),
+							class: jt(e.iconClass),
 							style: {
 								"font-size": "18px",
 								opacity: "0.9",

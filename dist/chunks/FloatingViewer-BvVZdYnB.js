@@ -1,12 +1,12 @@
 import { $t as e, g as t, y as n } from "./viewerRuntimeHosts-CW2DfHq_.js";
 import { C as r, H as i, I as a, M as o, O as s, P as c, V as l, at as u, j as d, m as f, o as p, r as m, v as h, w as g, x as _, z as v } from "./events-cBMXVULQ.js";
 import { a as y, i as b, o as x, s as S } from "./graphTraversal-DTdQWkn5.js";
-import { _ as C, g as w, m as T, n as E, p as ee, r as D, w as O } from "./Viewer-DPLbfJnQ.js";
-import { r as k, v as A } from "./SidebarWorkflowSection-CPYkJpd5.js";
-import { _ as j, a as M, c as N, d as P, f as F, g as I, h as L, i as te, l as R, m as z, o as ne, p as B, r as re, s as V, t as ie, u as H, v as U } from "./openMajoorSettings-lbvlxZ6n.js";
+import { D as C, _ as w, a as T, b as E, g as ee, i as D, y as O } from "./viewerOpenRequest-BN2VAo8C.js";
+import { r as k, v as A } from "./SidebarWorkflowSection-D3B5edO6.js";
+import { _ as j, a as M, c as N, d as P, f as F, g as I, h as L, i as te, l as R, m as z, o as ne, p as B, r as re, s as V, t as ie, u as H, v as U } from "./openMajoorSettings-XNKAOXAT.js";
 import { a as W, n as ae, r as oe } from "./model3dRenderer-B-J9oQzQ.js";
 import { i as se, o as ce, r as le, t as ue } from "./geninfoParser-CgHp-y-n.js";
-import { t as de } from "./genInfo-UdDuqpt1.js";
+import { t as de } from "./genInfo-Dj9mJcDf.js";
 // ui/features/viewer/floatingViewerConstants.ts
 var G = Object.freeze({
 	SIMPLE: "simple",
@@ -418,12 +418,12 @@ function Y(e, { fill: t = !1, controls: n = !0, initialMuted: r = !1, initialPla
 		} catch (e) {
 			console.debug?.(e);
 		}
-		let s = D(r, {
+		let s = T(r, {
 			variant: "viewer",
 			hostEl: o,
 			mediaKind: a,
 			initialFps: ee(e) || void 0,
-			initialFrameCount: T(e, ee(e)) || void 0,
+			initialFrameCount: w(e, ee(e)) || void 0,
 			initialPlaybackRate: i
 		});
 		try {
@@ -869,10 +869,10 @@ function st() {
 async function ct(e) {
 	if (!e) return !1;
 	let t = JSON.stringify(gt(e), null, 2);
-	return O(t);
+	return C(t);
 }
 async function lt(e) {
-	return O(ut(e));
+	return C(ut(e));
 }
 function ut(e) {
 	if (e == null) return "";
@@ -1800,7 +1800,7 @@ function on(e) {
 	let i = document.createElement("span");
 	i.textContent = "Majoor Floating Viewer", n.append(r, i);
 	let a = document.createElement("button");
-	e._closeBtn = a, a.type = "button", a.className = "mjr-icon-btn mjr-mfv-close-btn", C(a, f("tooltip.closeViewer", "Close viewer"), "Esc");
+	e._closeBtn = a, a.type = "button", a.className = "mjr-icon-btn mjr-mfv-close-btn", E(a, f("tooltip.closeViewer", "Close viewer"), "Esc");
 	let o = document.createElement("i");
 	return o.className = "pi pi-times", o.setAttribute("aria-hidden", "true"), a.appendChild(o), t.appendChild(n), t.appendChild(a), t;
 }
@@ -1938,11 +1938,11 @@ function sn(e) {
 		}
 	}, S = document.createElement("div");
 	S.className = "mjr-mfv-ch-popover", e.element.appendChild(S);
-	let w = document.createElement("div");
-	w.className = "mjr-menu", w.style.cssText = "display:grid;gap:4px;", S.appendChild(w);
-	let T = document.createElement("select");
-	T.style.cssText = "position:absolute;opacity:0;pointer-events:none;width:0;height:0;overflow:hidden;", S.appendChild(T);
-	let E = [
+	let C = document.createElement("div");
+	C.className = "mjr-menu", C.style.cssText = "display:grid;gap:4px;", S.appendChild(C);
+	let w = document.createElement("select");
+	w.style.cssText = "position:absolute;opacity:0;pointer-events:none;width:0;height:0;overflow:hidden;", S.appendChild(w);
+	let T = [
 		{
 			value: "rgb",
 			color: "#e0e0e0",
@@ -1980,9 +1980,9 @@ function sn(e) {
 			label: "L"
 		}
 	], ee = [];
-	for (let e of E) {
+	for (let e of T) {
 		let t = document.createElement("option");
-		t.value = e.value, T.appendChild(t);
+		t.value = e.value, w.appendChild(t);
 		let n = document.createElement("button");
 		n.type = "button", n.className = "mjr-menu-item", n.dataset.value = e.value;
 		let r = document.createElement("span");
@@ -1990,9 +1990,9 @@ function sn(e) {
 		let i = document.createElement("span");
 		i.textContent = e.label, i.style.color = e.color, i.style.fontWeight = e.weight, r.appendChild(i);
 		let a = document.createElement("i");
-		a.className = "pi pi-check mjr-menu-item-check", a.style.opacity = e.value === v ? "1" : "0", n.appendChild(r), n.appendChild(a), w.appendChild(n), ee.push(n), e.value === v && n.classList.add("is-active");
+		a.className = "pi pi-check mjr-menu-item-check", a.style.opacity = e.value === v ? "1" : "0", n.appendChild(r), n.appendChild(a), C.appendChild(n), ee.push(n), e.value === v && n.classList.add("is-active");
 	}
-	T.value = v, x(v), y.classList.toggle("is-on", v !== "rgb"), e._channelSelect = T, e._chBtn = y, e._chPopover = S;
+	w.value = v, x(v), y.classList.toggle("is-on", v !== "rgb"), e._channelSelect = w, e._chBtn = y, e._chPopover = S;
 	let D = () => {
 		let t = y.getBoundingClientRect(), n = e.element.getBoundingClientRect();
 		S.style.left = `${t.left - n.left}px`, S.style.top = `${t.bottom - n.top + 4}px`, S.classList.add("is-open"), y.setAttribute("aria-expanded", "true");
@@ -2001,11 +2001,11 @@ function sn(e) {
 		S.classList.remove("is-open"), y.setAttribute("aria-expanded", "false");
 	}, y.addEventListener("click", (t) => {
 		t.stopPropagation(), S.classList.contains("is-open") ? e._closeChPopover() : (e._closeAllToolbarPopovers?.(), D());
-	}), w.addEventListener("click", (t) => {
+	}), C.addEventListener("click", (t) => {
 		let n = t.target.closest(".mjr-menu-item");
 		if (!n) return;
 		let r = n.dataset.value;
-		T.value = r ?? "", T.dispatchEvent(new Event("change", { bubbles: !0 })), ee.forEach((e) => {
+		w.value = r ?? "", w.dispatchEvent(new Event("change", { bubbles: !0 })), ee.forEach((e) => {
 			let t = e.dataset.value === r;
 			e.classList.toggle("is-active", t), e.querySelector(".mjr-menu-item-check").style.opacity = t ? "1" : "0";
 		}), x(r), y.classList.toggle("is-on", r !== "rgb"), e._closeChPopover();
@@ -2093,7 +2093,7 @@ function sn(e) {
 		}), e._closeFormatPopover();
 	});
 	let te = document.createElement("div");
-	te.className = "mjr-mfv-toolbar-sep", te.setAttribute("aria-hidden", "true"), n.appendChild(te), e._liveBtn = document.createElement("button"), e._liveBtn.type = "button", e._liveBtn.className = "mjr-icon-btn", e._liveBtn.innerHTML = "<i class=\"pi pi-circle\" aria-hidden=\"true\"></i>", e._liveBtn.setAttribute("aria-pressed", "false"), C(e._liveBtn, f("tooltip.liveStreamOff", "Live Stream: OFF - click to follow final generation outputs"), "L"), n.appendChild(e._liveBtn), e._previewBtn = document.createElement("button"), e._previewBtn.type = "button", e._previewBtn.className = "mjr-icon-btn", e._previewBtn.innerHTML = "<i class=\"pi pi-eye\" aria-hidden=\"true\"></i>", e._previewBtn.setAttribute("aria-pressed", "false"), C(e._previewBtn, f("tooltip.previewStreamOff", "KSampler Preview: OFF - click to stream sampler denoising frames"), "K"), n.appendChild(e._previewBtn), e._nodeStreamBtn = document.createElement("button"), e._nodeStreamBtn.type = "button", e._nodeStreamBtn.className = "mjr-icon-btn", e._nodeStreamBtn.innerHTML = "<i class=\"pi pi-sitemap\" aria-hidden=\"true\"></i>", e._nodeStreamBtn.setAttribute("aria-pressed", "false"), C(e._nodeStreamBtn, f("tooltip.nodeStreamOff", "Node Stream: OFF - click to follow selected node previews, including ImageOps live canvases"), "N"), n.appendChild(e._nodeStreamBtn), e._genBtn = document.createElement("button"), e._genBtn.type = "button", e._genBtn.className = "mjr-icon-btn", e._genBtn.setAttribute("aria-pressed", String(!!e._genSidebarEnabled));
+	te.className = "mjr-mfv-toolbar-sep", te.setAttribute("aria-hidden", "true"), n.appendChild(te), e._liveBtn = document.createElement("button"), e._liveBtn.type = "button", e._liveBtn.className = "mjr-icon-btn", e._liveBtn.innerHTML = "<i class=\"pi pi-circle\" aria-hidden=\"true\"></i>", e._liveBtn.setAttribute("aria-pressed", "false"), E(e._liveBtn, f("tooltip.liveStreamOff", "Live Stream: OFF - click to follow final generation outputs"), "L"), n.appendChild(e._liveBtn), e._previewBtn = document.createElement("button"), e._previewBtn.type = "button", e._previewBtn.className = "mjr-icon-btn", e._previewBtn.innerHTML = "<i class=\"pi pi-eye\" aria-hidden=\"true\"></i>", e._previewBtn.setAttribute("aria-pressed", "false"), E(e._previewBtn, f("tooltip.previewStreamOff", "KSampler Preview: OFF - click to stream sampler denoising frames"), "K"), n.appendChild(e._previewBtn), e._nodeStreamBtn = document.createElement("button"), e._nodeStreamBtn.type = "button", e._nodeStreamBtn.className = "mjr-icon-btn", e._nodeStreamBtn.innerHTML = "<i class=\"pi pi-sitemap\" aria-hidden=\"true\"></i>", e._nodeStreamBtn.setAttribute("aria-pressed", "false"), E(e._nodeStreamBtn, f("tooltip.nodeStreamOff", "Node Stream: OFF - click to follow selected node previews, including ImageOps live canvases"), "N"), n.appendChild(e._nodeStreamBtn), e._genBtn = document.createElement("button"), e._genBtn.type = "button", e._genBtn.className = "mjr-icon-btn", e._genBtn.setAttribute("aria-pressed", String(!!e._genSidebarEnabled));
 	let R = document.createElement("i");
 	R.className = "pi pi-info-circle", R.setAttribute("aria-hidden", "true"), e._genBtn.appendChild(R), n.appendChild(e._genBtn), e._updateGenBtnUI(), e._popoutBtn = document.createElement("button"), e._popoutBtn.type = "button", e._popoutBtn.className = "mjr-icon-btn";
 	let z = f("tooltip.popOutViewer", "Pop out viewer to separate window");
@@ -2355,14 +2355,14 @@ function Cn(e) {
 			icon: "pi-sitemap",
 			label: "Mode: Graph Map - click to switch"
 		}
-	}[e._mode] || {}, r = w(n, "C"), i = document.createElement("i");
+	}[e._mode] || {}, r = O(n, "C"), i = document.createElement("i");
 	i.className = `pi ${t}`, i.setAttribute("aria-hidden", "true"), e._modeBtn.replaceChildren(i), e._modeBtn.title = r, e._modeBtn.setAttribute("aria-label", r), e._modeBtn.removeAttribute("aria-pressed"), e._modeBtn.classList.toggle("is-on", e._mode !== G.SIMPLE), e._modeDrop?.selectItem?.(e._mode);
 }
 function wn(e, t) {
 	if (!e._liveBtn) return;
 	let n = !!t;
 	e._liveBtn.classList.toggle("mjr-live-active", n);
-	let r = n ? f("tooltip.liveStreamOn", "Live Stream: ON - follows final generation outputs after execution") : f("tooltip.liveStreamOff", "Live Stream: OFF - click to follow final generation outputs"), i = w(r, "L");
+	let r = n ? f("tooltip.liveStreamOn", "Live Stream: ON - follows final generation outputs after execution") : f("tooltip.liveStreamOff", "Live Stream: OFF - click to follow final generation outputs"), i = O(r, "L");
 	e._liveBtn.setAttribute("aria-pressed", String(n)), e._liveBtn.setAttribute("aria-label", i);
 	let a = document.createElement("i");
 	a.className = n ? "pi pi-circle-fill" : "pi pi-circle", a.setAttribute("aria-hidden", "true"), e._liveBtn.replaceChildren(a), e._liveBtn.title = i;
@@ -2370,7 +2370,7 @@ function wn(e, t) {
 function Tn(e, t) {
 	if (e._previewActive = !!t, !e._previewBtn) return;
 	e._previewBtn.classList.toggle("mjr-preview-active", e._previewActive);
-	let n = e._previewActive ? f("tooltip.previewStreamOn", "KSampler Preview: ON - streams sampler denoising frames during execution") : f("tooltip.previewStreamOff", "KSampler Preview: OFF - click to stream sampler denoising frames"), r = w(n, "K");
+	let n = e._previewActive ? f("tooltip.previewStreamOn", "KSampler Preview: ON - streams sampler denoising frames during execution") : f("tooltip.previewStreamOff", "KSampler Preview: OFF - click to stream sampler denoising frames"), r = O(n, "K");
 	e._previewBtn.setAttribute("aria-pressed", String(e._previewActive)), e._previewBtn.setAttribute("aria-label", r);
 	let i = document.createElement("i");
 	i.className = e._previewActive ? "pi pi-eye" : "pi pi-eye-slash", i.setAttribute("aria-hidden", "true"), e._previewBtn.replaceChildren(i), e._previewBtn.title = r;
@@ -2447,7 +2447,7 @@ function kn(e) {
 function An(e, t) {
 	if (e._nodeStreamActive = !!t, e._nodeStreamActive || e.setNodeStreamSelection?.(null), !e._nodeStreamBtn) return;
 	e._nodeStreamBtn.classList.toggle("mjr-nodestream-active", e._nodeStreamActive);
-	let n = e._nodeStreamActive ? f("tooltip.nodeStreamOn", "Node Stream: ON - follows the selected node preview when frontend media exists") : f("tooltip.nodeStreamOff", "Node Stream: OFF - click to follow selected node previews, including ImageOps live canvases"), r = w(n, "N");
+	let n = e._nodeStreamActive ? f("tooltip.nodeStreamOn", "Node Stream: ON - follows the selected node preview when frontend media exists") : f("tooltip.nodeStreamOff", "Node Stream: OFF - click to follow selected node previews, including ImageOps live canvases"), r = O(n, "N");
 	e._nodeStreamBtn.setAttribute("aria-pressed", String(e._nodeStreamActive)), e._nodeStreamBtn.setAttribute("aria-label", r);
 	let i = document.createElement("i");
 	i.className = "pi pi-sitemap", i.setAttribute("aria-hidden", "true"), e._nodeStreamBtn.replaceChildren(i), e._nodeStreamBtn.title = r;
@@ -3628,7 +3628,7 @@ var fr = 0, pr = class {
 			if (e.length < 2) return;
 			let t = e[0] || null, n = e.slice(1);
 			if (!t || !n.length) return;
-			this._compareSyncAC = E(t, n, { threshold: .08 });
+			this._compareSyncAC = D(t, n, { threshold: .08 });
 		} catch (e) {
 			console.debug?.(e);
 		}

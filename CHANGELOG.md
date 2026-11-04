@@ -30,6 +30,9 @@ All notable changes to this project are documented in this file.
 ### Fixed
 - **`mjr_am_backend.adapters.tools` missing from Registry installs**: `.comfyignore`'s unanchored `tools/` pattern also matched `mjr_am_backend/adapters/tools/`, stripping the ExifTool/FFProbe adapters out of every Registry-published package and causing `ModuleNotFoundError: No module named 'mjr_am_backend.adapters.tools'` at startup. The pattern is now anchored to the repo-root `/tools/` dev-scripts folder only.
 
+### New Features (viewer)
+- **Studio viewer (new default main viewer)**: a simpler, modern viewer for reviewing generations — header with navigation and file summary, zoom/pan image stage with transparency checkerboard, a new video/audio player (frame stepping, frame counter, A-B loop, speed, volume, fullscreen, save frame as PNG, auto-hiding controls), an inspector with rating, tags and the same Generation / Workflow / File data as the asset sidebar, and a filmstrip. Keyboard-first (see the viewer tutorial). Compare modes, 3D models and the analysis tools stay in the classic viewer (one click away); *Viewer → Use the classic viewer* switches back entirely.
+
 ### Fixed (follow-ups)
 - **Search by part of a file name**: typing `F` (or `flow`) only found names with a *word starting* with it (`Flux…`, `field…`), never `sunflower.png` or `ComfyUI_…`. Single-word searches now also list file names that contain the text (ranked after word matches); `_` and `%` are matched literally. Multi-word and quoted searches are unchanged.
 - **Sidecar JSON added after a file was indexed** is now picked up: the watcher maps a new/changed `<file>.json` / `<stem>.json` to its media, invalidates that file's metadata cache and scan journal, and forces a re-extraction (a non-incremental re-index no longer trusts an existing metadata row when the cache was invalidated).

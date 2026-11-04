@@ -33,6 +33,24 @@ export function registerViewerSettings(safeAddSetting: (def: any) => void, setti
     // ----------------------------------------------
 
     safeAddSetting({
+        id: `${SETTINGS_PREFIX}.Viewer.Classic`,
+        category: viewerCat(t("setting.viewer.classic.category", "Viewer engine")),
+        name: t("setting.viewer.classic.name", "Use the classic viewer"),
+        tooltip: t(
+            "setting.viewer.classic.desc",
+            "Open assets in the classic viewer instead of the Studio viewer. The classic viewer is still used for A/B / side-by-side compare and 3D models.",
+        ),
+        type: "boolean",
+        defaultValue: !!settings.viewer?.classic,
+        onChange: (value: any) => {
+            settings.viewer = settings.viewer || {};
+            settings.viewer.classic = !!value;
+            saveMajoorSettings(settings);
+            notifyApplied("viewer.classic");
+        },
+    });
+
+    safeAddSetting({
         id: `${SETTINGS_PREFIX}.Viewer.AllowPanAtZoom1`,
         category: viewerCat(t("setting.viewer.pan.name").replace("Majoor: ", "")),
         name: t("setting.viewer.pan.name"),

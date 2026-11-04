@@ -20,6 +20,12 @@ import {
 import FloatingViewerHost from "./FloatingViewerHost.vue";
 import ViewerOverlayHost from "./ViewerOverlayHost.vue";
 import ViewerContextMenuPortal from "./ViewerContextMenuPortal.vue";
+import StudioViewer from "./studio/StudioViewer.vue";
+import {
+    closeStudioViewer,
+    openStudioViewer,
+    shouldUseStudioViewer,
+} from "../../../features/viewer/studio/studioViewerState.js";
 
 interface OpenViewerEventDetail {
     assets?: unknown[];
@@ -49,13 +55,34 @@ function _openFromEvent(event: Event) {
     const index = Math.max(0, Math.min(Number(detail?.index) || 0, assets.length - 1));
     const mode = String(detail?.mode || "").trim().toLowerCase();
 
+    // Studio viewer by default; compare modes, 3D and the "classic viewer"
+    // setting go to the classic runtime below.
+    if (shouldUseStudioViewer(assets, index, mode) && openStudioViewer(assets, index)) {
+        try {
+            (_instance as any)?.close?.();
+        } catch (e) {
+            console.debug?.(e);
+        }
+        detail.handled = true;
+        return;
+    }
+    _openClassic(assets, index, mode, detail);
+}
+
+function _openClassic(
+    assets: unknown[],
+    index: number,
+    mode: string,
+    detail: OpenViewerEventDetail | null = null,
+) {
+    closeStudioViewer();
     try {
         if (!_instance) _instance = getViewerInstance();
         _instance.open?.(assets, index);
         if (mode === "ab" || mode === "sidebyside") {
             _instance.setMode?.(mode);
         }
-        detail.handled = true;
+        if (detail) detail.handled = true;
     } catch (e) {
         console.debug?.(e);
     }
@@ -100,6 +127,7 @@ onUnmounted(() => {
 </script>
 
 <template>
+    <StudioViewer @open-classic="(p) => _openClassic(p.assets, p.index, p.mode)" />
     <ViewerOverlayHost />
     <FloatingViewerHost />
     <ViewerContextMenuPortal />

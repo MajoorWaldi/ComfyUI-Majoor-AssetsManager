@@ -88,6 +88,8 @@ export const DEFAULT_SETTINGS = {
         pollInterval: APP_DEFAULTS.STATUS_POLL_INTERVAL,
     },
     viewer: {
+        // false = Studio viewer (default); true = classic viewer for everything.
+        classic: false,
         allowPanAtZoom1: APP_DEFAULTS.VIEWER_ALLOW_PAN_AT_ZOOM_1,
         disableWebGL: APP_DEFAULTS.VIEWER_DISABLE_WEBGL_VIDEO,
         pauseDuringExecution: APP_DEFAULTS.VIEWER_PAUSE_DURING_EXECUTION,

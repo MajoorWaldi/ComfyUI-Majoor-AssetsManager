@@ -9,6 +9,34 @@ For a dedicated Majoor Floating Viewer walkthrough with focused screenshots, see
 
 The Majoor Assets Manager provides **two viewer experiences**:
 
+### 0. Studio Viewer (main viewer, default)
+
+Opening an asset (double-click, Enter, context menu) now shows the **Studio viewer**: a clean, review-first view for generated media.
+
+- **Header**: previous / next with `n / N`, file name, resolution · format · duration · size, and actions (zoom, fit, 1:1, transparency checkerboard, compare, download, classic viewer, info panel, fullscreen, close).
+- **Image stage**: wheel zooms around the cursor, drag to pan, double-click toggles fit ↔ 100 %, checkerboard to inspect alpha. Above 200 % pixels stay sharp (nearest-neighbour).
+- **Player** (video / audio): big play button, scrubber with buffered range and hover time + frame, frame counter `f n / N · fps`, frame-by-frame stepping, A-B loop, loop, speed 0.25×–2×, volume, fullscreen, **save current frame as PNG**. Controls auto-hide while playing. Media is released when you move on.
+- **Inspector** (right, `Tab`): rating and tags on top, then tabs **Generation** (prompts, models, LoRAs, sampler, seed… — same data as the asset sidebar), **Workflow** (graph preview, load into ComfyUI) and **File**.
+- **Filmstrip**: thumbnails of the current list to jump anywhere.
+
+| Key | Action |
+| --- | --- |
+| `←` / `→` | Previous / next asset (`Home` / `End`: first / last) |
+| `Space` | Play / pause |
+| `,` / `.` | Previous / next frame |
+| `Shift+←` / `Shift+→` | Seek −5 s / +5 s |
+| `I` / `O` / `U` | Set loop A / set loop B / clear loop |
+| `[` / `]` | Slower / faster |
+| `M` | Mute |
+| `0`–`5` | Set rating |
+| `+` / `-`, `Alt+0` | Zoom in / out, fit |
+| `C` | Compare with the next asset (classic A/B viewer) |
+| `Tab` | Show / hide the inspector |
+| `F` | Fullscreen |
+| `Esc` | Close |
+
+The **classic viewer** below is still there: it is used for A/B and side-by-side compare, 3D models, and its analysis tools (scopes, loupe, grading) are one click away with the sliders button. To use it for everything, enable *Settings → Majoor Assets Manager → Viewer → Use the classic viewer*.
+
 ### 1. Majoor Floating Viewer (MFV) — NEW! 🎉
 
 A lightweight, draggable floating panel for **real-time generation comparison**:
