@@ -1,6 +1,6 @@
 import { t as e } from "./rolldown-runtime-CGnMp29N.js";
-import { r as t } from "./events-tsQFsZrH.js";
-import { t as n } from "./Viewer-DHesfEdb.js";
+import { r as t } from "./events-C65wdOHm.js";
+import { t as n } from "./Viewer-W-G40j3K.js";
 // ui/features/viewer/viewerOpenRequest.ts
 var r = /* @__PURE__ */ e({ requestViewerOpen: () => o });
 function i(e) {
