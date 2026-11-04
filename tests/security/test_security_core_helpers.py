@@ -320,3 +320,26 @@ def monkeypatch():
     _mp = pytest.MonkeyPatch()
     yield _mp
     _mp.undo()
+
+
+def test_require_operation_enabled_trash_empty_shares_delete_gate(monkeypatch) -> None:
+    """trash_empty must ride the delete gate, not fall through to unknown-op."""
+    monkeypatch.delenv("MAJOOR_ALLOW_DELETE", raising=False)
+    monkeypatch.delenv("MAJOOR_SAFE_MODE", raising=False)
+
+    refused = sec._require_operation_enabled(
+        "trash_empty", prefs={"safe_mode": False, "allow_delete": False}
+    )
+    assert not refused.ok
+    assert refused.code == "FORBIDDEN"
+
+    # Recognised operation: allow_delete prefs permit it even in safe mode.
+    allowed = sec._require_operation_enabled(
+        "trash_empty", prefs={"safe_mode": True, "allow_delete": "true"}
+    )
+    assert allowed.ok
+
+    # Env fallback mirrors MAJOOR_ALLOW_DELETE like asset deletion.
+    monkeypatch.setenv("MAJOOR_ALLOW_DELETE", "1")
+    via_env = sec._require_operation_enabled("trash_empty", prefs={"safe_mode": True})
+    assert via_env.ok
