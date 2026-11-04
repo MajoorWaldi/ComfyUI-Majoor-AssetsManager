@@ -64,7 +64,7 @@ export function ensureWindowStub(overrides = {}) {
         typeof current.addEventListener !== "function" ||
         typeof current.removeEventListener !== "function"
     ) {
-        globalThis.window = createWindowStub(overrides);
+        globalThis.window = createWindowStub(overrides) as any;
         ensureNavigatorStub();
         return globalThis.window;
     }

@@ -27,6 +27,7 @@ from mjr_am_backend.config import FFPROBE_BIN, OUTPUT_ROOT, get_runtime_index_db
 from mjr_am_shared import Result, get_logger
 from mjr_am_shared.runtime_env import get_env
 
+from ..metadata.parsing_utils import looks_like_comfyui_prompt_graph, looks_like_comfyui_workflow
 from .classifier import classify_workflow
 from .parser import parse_workflow, workflow_node_text
 
@@ -43,7 +44,7 @@ WORKFLOW_VIDEO_THUMBNAIL_SECONDS = 5
 WORKFLOW_MANAGED_DIRNAME = "workflows"
 WORKFLOW_HISTORY_DIRNAME = ".history"
 SAFE_NAME_RE = re.compile(r"[^A-Za-z0-9._-]+")
-WORKFLOW_INDEX_VERSION = 4
+WORKFLOW_INDEX_VERSION = 5  # 5: skip hidden dirs, validate JSON shape, workflow_format
 
 
 def _env_path(raw: Any = "") -> Path | None:
@@ -252,13 +253,83 @@ def _atomic_write_json(path: Path, payload: dict[str, Any]) -> Result[bool]:
         return Result.Err("WORKFLOW_WRITE_FAILED", f"Failed to write workflow: {exc.__class__.__name__}")
 
 
+_UI_WORKFLOW_MARKER_KEYS = ("links", "last_node_id", "last_link_id", "version", "extra", "definitions", "groups", "state")
+_SKIPPED_WORKFLOW_DIRS = frozenset({"__pycache__", "node_modules"})
+
+
+def workflow_json_format(data: Any) -> str:
+    """``"ui"`` (graph export), ``"api"`` (prompt graph) or ``""`` (not a workflow).
+
+    Any ``.json`` under a workflow root used to become a workflow card, so
+    settings files, node configs and arbitrary JSON showed up in the
+    Workflow tab and failed to load.
+    """
+    if not isinstance(data, dict):
+        return ""
+    if "nodes" not in data:
+        # {"workflow": {...}} / {"prompt": {...}} wrappers (prompt may be a JSON string).
+        wrapped = data.get("workflow")
+        if isinstance(wrapped, dict) and isinstance(wrapped.get("nodes"), list) and workflow_json_format(wrapped) == "ui":
+            return "ui"
+        if _api_prompt_of(data) is not data and _api_prompt_of(data):
+            return "api"
+    nodes = data.get("nodes")
+    if isinstance(nodes, list):
+        if nodes and not looks_like_comfyui_workflow(data):
+            return ""
+        # An empty graph (new workflow) is still a workflow export.
+        return "ui" if (nodes or any(key in data for key in _UI_WORKFLOW_MARKER_KEYS)) else ""
+    if looks_like_comfyui_prompt_graph(data):
+        return "api"
+    return ""
+
+
+def _api_prompt_of(data: Any) -> dict[str, Any]:
+    """The API prompt graph held by ``data`` (itself or its ``prompt`` field)."""
+    if not isinstance(data, dict):
+        return {}
+    prompt = data.get("prompt")
+    if isinstance(prompt, str):
+        try:
+            prompt = json.loads(prompt)
+        except ValueError:
+            prompt = None
+    if isinstance(prompt, dict) and looks_like_comfyui_prompt_graph(prompt):
+        return prompt
+    if looks_like_comfyui_prompt_graph(data):
+        return data
+    return {}
+
+
+def _iter_workflow_json_files(root: Path):
+    """``*.json`` under ``root``, skipping hidden entries.
+
+    Hidden directories hold Majoor's own version snapshots
+    (``.history/<name>/<stamp>.json``) and tool state; ``rglob`` listed every
+    snapshot as a separate workflow.
+    """
+    try:
+        for dirpath, dirnames, filenames in os.walk(root):
+            dirnames[:] = [
+                d for d in dirnames if not d.startswith(".") and d not in _SKIPPED_WORKFLOW_DIRS
+            ]
+            for name in filenames:
+                if name.startswith(".") or not name.lower().endswith(".json"):
+                    continue
+                yield Path(dirpath) / name
+    except OSError:
+        return
+
+
 def _safe_read_workflow_json(path: Path) -> dict[str, Any] | None:
     try:
         if path.stat().st_size > MAX_WORKFLOW_JSON_BYTES:
             return None
-        with path.open("r", encoding="utf-8") as handle:
+        # utf-8-sig: workflows saved by Windows editors often start with a BOM,
+        # which plain utf-8 rejects (the file then silently vanished).
+        with path.open("r", encoding="utf-8-sig") as handle:
             data = json.load(handle)
-        return data if isinstance(data, dict) else None
+        return data if workflow_json_format(data) else None
     except Exception:
         return None
 
@@ -1977,6 +2048,7 @@ def _workflow_to_card(path: Path, root: Path, *, use_library_meta: bool = True) 
     except Exception:
         return None
     parsed = parse_workflow(workflow)
+    workflow_format = workflow_json_format(workflow)
     wf_hash = _workflow_hash(path)
     subfolder = _workflow_subfolder(path, root)
     display_name = str(workflow.get("name") or workflow.get("title") or path.stem).strip()
@@ -2014,7 +2086,10 @@ def _workflow_to_card(path: Path, root: Path, *, use_library_meta: bool = True) 
         "provider": detection["provider"],
         "runs_on": detection["runs_on"],
         **detection,
-        "node_count": parsed.node_count + parsed.subgraph_node_count,
+        "workflow_format": workflow_format,
+        "node_count": (
+            len(_api_prompt_of(workflow)) if workflow_format == "api" else parsed.node_count + parsed.subgraph_node_count
+        ),
         "link_count": parsed.link_count,
         "subgraph_count": parsed.subgraph_count,
         "missing_nodes": missing_nodes,
@@ -2188,7 +2263,9 @@ def _refresh_workflow_index_path(
         use_library_meta=not (force_full_refresh or needs_legacy_hydration),
     )
     if card is None:
-        return filepath, False
+        # Not (or no longer) a workflow: leave it out of `seen` so a row from
+        # an earlier, laxer scan is removed as stale.
+        return None, False
     updates = None
     if force_full_refresh or needs_legacy_hydration:
         updates = {
@@ -2212,11 +2289,7 @@ def _scan_workflow_index_roots(
     indexed = 0
     updated = 0
     for root in scan_roots:
-        try:
-            paths = root.rglob("*.json")
-        except Exception:
-            continue
-        for path in paths:
+        for path in _iter_workflow_json_files(root):
             if indexed >= MAX_WORKFLOW_FILES:
                 break
             filepath, did_update = _refresh_workflow_index_path(
@@ -2421,7 +2494,7 @@ def _list_workflows_from_filesystem(
     safe_subfolder = str(subfolder or "").strip().replace("\\", "/")
     try:
         for root in roots:
-            for path in root.rglob("*.json"):
+            for path in _iter_workflow_json_files(root):
                 if len(cards) >= MAX_WORKFLOW_FILES:
                     break
                 try:

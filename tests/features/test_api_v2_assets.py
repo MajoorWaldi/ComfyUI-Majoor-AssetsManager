@@ -1,4 +1,4 @@
-"""Tests for the ``/api/v2/assets/*`` OpenAPI compat layer."""
+"""Tests for the ``/mjr/am/compat/assets/*`` OpenAPI compat layer."""
 
 import json
 
@@ -143,7 +143,7 @@ async def test_list_endpoint_returns_paginated_payload(monkeypatch):
     monkeypatch.setattr(api_v2_assets, "_require_services", _services)
 
     app = _build_app()
-    req = make_mocked_request("GET", "/api/v2/assets?limit=2&offset=0", app=app)
+    req = make_mocked_request("GET", "/mjr/am/compat/assets?limit=2&offset=0", app=app)
     match = await app.router.resolve(req)
     resp = await match.handler(req)
     payload = json.loads(resp.text)
@@ -166,7 +166,7 @@ async def test_get_endpoint_returns_404_when_missing(monkeypatch):
     monkeypatch.setattr(api_v2_assets, "_require_services", _services)
 
     app = _build_app()
-    req = make_mocked_request("GET", "/api/v2/assets/999", app=app)
+    req = make_mocked_request("GET", "/mjr/am/compat/assets/999", app=app)
     req.match_info["id"] = "999"
     resp = await api_v2_assets._get_asset(req)
     assert resp.status == 404
@@ -181,7 +181,7 @@ async def test_get_endpoint_returns_asset(monkeypatch):
         return {"db": _FakeDB(_handle)}, None
 
     monkeypatch.setattr(api_v2_assets, "_require_services", _services)
-    req = make_mocked_request("GET", "/api/v2/assets/1")
+    req = make_mocked_request("GET", "/mjr/am/compat/assets/1")
     req.match_info["id"] = "1"
     resp = await api_v2_assets._get_asset(req)
     assert resp.status == 200
@@ -199,7 +199,7 @@ async def test_hash_check_returns_200_on_match(monkeypatch):
         return {"db": _FakeDB(_handle)}, None
 
     monkeypatch.setattr(api_v2_assets, "_require_services", _services)
-    req = make_mocked_request("HEAD", f"/api/v2/assets/hash/{'a' * 64}")
+    req = make_mocked_request("HEAD", f"/mjr/am/compat/assets/hash/{'a' * 64}")
     req.match_info["hash"] = "a" * 64
     resp = await api_v2_assets._check_asset_by_hash(req)
     assert resp.status == 200
@@ -214,7 +214,7 @@ async def test_hash_check_returns_404_when_missing(monkeypatch):
         return {"db": _FakeDB(_handle)}, None
 
     monkeypatch.setattr(api_v2_assets, "_require_services", _services)
-    req = make_mocked_request("HEAD", f"/api/v2/assets/hash/blake3:{'b' * 64}")
+    req = make_mocked_request("HEAD", f"/mjr/am/compat/assets/hash/blake3:{'b' * 64}")
     req.match_info["hash"] = "blake3:" + "b" * 64
     resp = await api_v2_assets._check_asset_by_hash(req)
     assert resp.status == 404
@@ -226,7 +226,7 @@ async def test_hash_check_rejects_malformed_input(monkeypatch):
         return {"db": _FakeDB(lambda *_: Result.Ok([]))}, None
 
     monkeypatch.setattr(api_v2_assets, "_require_services", _services)
-    req = make_mocked_request("HEAD", "/api/v2/assets/hash/notahash")
+    req = make_mocked_request("HEAD", "/mjr/am/compat/assets/hash/notahash")
     req.match_info["hash"] = "notahash"
     resp = await api_v2_assets._check_asset_by_hash(req)
     assert resp.status == 404
@@ -241,7 +241,7 @@ async def test_tags_endpoint_returns_tags(monkeypatch):
         return {"db": _FakeDB(_handle)}, None
 
     monkeypatch.setattr(api_v2_assets, "_require_services", _services)
-    req = make_mocked_request("GET", "/api/v2/assets/1/tags")
+    req = make_mocked_request("GET", "/mjr/am/compat/assets/1/tags")
     req.match_info["id"] = "1"
     resp = await api_v2_assets._get_asset_tags(req)
     assert resp.status == 200
@@ -260,7 +260,7 @@ async def test_content_endpoint_returns_404_when_path_disallowed(monkeypatch):
     monkeypatch.setattr(api_v2_assets, "_require_services", _services)
     monkeypatch.setattr(api_v2_assets, "_is_path_allowed", lambda *a, **kw: False)
 
-    req = make_mocked_request("GET", "/api/v2/assets/1/content")
+    req = make_mocked_request("GET", "/mjr/am/compat/assets/1/content")
     req.match_info["id"] = "1"
     resp = await api_v2_assets._get_asset_content(req)
     assert resp.status == 404
@@ -289,7 +289,7 @@ def test_row_to_asset_omits_workflow_id_when_absent_everywhere():
 
 
 # --------------------------------------------------------------------------- #
-# /api/v2/assets/seed/status
+# /mjr/am/compat/assets/seed/status
 # --------------------------------------------------------------------------- #
 
 
@@ -310,7 +310,7 @@ async def test_seed_status_reports_totals_and_breakdown(monkeypatch):
         return {"db": _FakeDB(_handle)}, None
 
     monkeypatch.setattr(api_v2_assets, "_require_services", _services)
-    req = make_mocked_request("GET", "/api/v2/assets/seed/status")
+    req = make_mocked_request("GET", "/mjr/am/compat/assets/seed/status")
     resp = await api_v2_assets._seed_status(req)
     body = json.loads(resp.text)
     if resp.status != 200:
@@ -340,7 +340,7 @@ async def test_seed_status_handles_empty_db(monkeypatch):
         return {"db": _FakeDB(_handle)}, None
 
     monkeypatch.setattr(api_v2_assets, "_require_services", _services)
-    req = make_mocked_request("GET", "/api/v2/assets/seed/status")
+    req = make_mocked_request("GET", "/mjr/am/compat/assets/seed/status")
     resp = await api_v2_assets._seed_status(req)
     body = json.loads(resp.text)
     if resp.status != 200:
@@ -352,7 +352,7 @@ async def test_seed_status_handles_empty_db(monkeypatch):
 
 
 # --------------------------------------------------------------------------- #
-# /api/v2/assets/tags/refine
+# /mjr/am/compat/assets/tags/refine
 # --------------------------------------------------------------------------- #
 
 
@@ -375,7 +375,7 @@ async def test_tags_refine_returns_histogram(monkeypatch):
     monkeypatch.setattr(api_v2_assets, "_require_services", _services)
     req = make_mocked_request(
         "GET",
-        "/api/v2/assets/tags/refine?include_tags=cat&exclude_tags=blurry&limit=10",
+        "/mjr/am/compat/assets/tags/refine?include_tags=cat&exclude_tags=blurry&limit=10",
     )
     resp = await api_v2_assets._tags_refine(req)
     body = json.loads(resp.text)
@@ -401,7 +401,7 @@ async def test_tags_refine_handles_no_filters(monkeypatch):
         return {"db": _FakeDB(_handle)}, None
 
     monkeypatch.setattr(api_v2_assets, "_require_services", _services)
-    req = make_mocked_request("GET", "/api/v2/assets/tags/refine")
+    req = make_mocked_request("GET", "/mjr/am/compat/assets/tags/refine")
     resp = await api_v2_assets._tags_refine(req)
     body = json.loads(resp.text)
     if resp.status != 200:
@@ -424,7 +424,7 @@ async def test_seed_status_is_not_eaten_by_id_route(monkeypatch):
 
     monkeypatch.setattr(api_v2_assets, "_require_services", _services)
     app = _build_app()
-    req = make_mocked_request("GET", "/api/v2/assets/seed/status", app=app)
+    req = make_mocked_request("GET", "/mjr/am/compat/assets/seed/status", app=app)
     match = await app.router.resolve(req)
     if match.handler is not api_v2_assets._seed_status:
         pytest.fail(f"seed/status routed to {match.handler.__name__}")
@@ -437,7 +437,7 @@ async def test_tags_refine_is_not_eaten_by_id_route(monkeypatch):
 
     monkeypatch.setattr(api_v2_assets, "_require_services", _services)
     app = _build_app()
-    req = make_mocked_request("GET", "/api/v2/assets/tags/refine", app=app)
+    req = make_mocked_request("GET", "/mjr/am/compat/assets/tags/refine", app=app)
     match = await app.router.resolve(req)
     if match.handler is not api_v2_assets._tags_refine:
         pytest.fail(f"tags/refine routed to {match.handler.__name__}")
@@ -451,3 +451,29 @@ def test_api_error_response_maps_stable_codes_to_http_statuses():
 
     assert invalid.status == 400
     assert unavailable.status == 503
+
+
+# --------------------------------------------------------------------------- #
+# Namespace: never squat ComfyUI core's /api space by default
+# --------------------------------------------------------------------------- #
+
+
+def _registered_paths(**kwargs) -> set[str]:
+    routes = web.RouteTableDef()
+    api_v2_assets.register_api_v2_asset_routes(routes, **kwargs)
+    return {r.path for r in routes}
+
+
+def test_compat_routes_live_under_extension_namespace(monkeypatch):
+    monkeypatch.delenv(api_v2_assets.LEGACY_ALIAS_ENV, raising=False)
+    paths = _registered_paths()
+    assert paths
+    assert all(p.startswith("/mjr/am/compat/assets") for p in paths)
+
+
+def test_legacy_alias_is_opt_in(monkeypatch):
+    monkeypatch.setenv(api_v2_assets.LEGACY_ALIAS_ENV, "1")
+    paths = _registered_paths()
+    assert "/api/v2/assets" in paths
+    assert "/mjr/am/compat/assets" in paths
+    assert "/api/v2/assets" not in _registered_paths(include_legacy_alias=False)

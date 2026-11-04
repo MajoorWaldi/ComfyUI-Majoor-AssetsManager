@@ -89,7 +89,7 @@ describe("video sync", () => {
         const follower = makeMedia({ currentTime: 0, paused: false });
 
         installFollowerVideoSync(leader, [follower], { threshold: 0.01 });
-        follower.pause.mockClear();
+        (follower.pause as any).mockClear();
 
         leader.pause();
 
@@ -116,7 +116,7 @@ describe("video sync", () => {
         expect(follower.currentTime).toBeCloseTo(1.25, 5);
         expect(globalThis.requestAnimationFrame).toHaveBeenCalled();
 
-        ac.abort();
+        (ac as any).abort();
         expect(globalThis.cancelAnimationFrame).toHaveBeenCalled();
     });
 });

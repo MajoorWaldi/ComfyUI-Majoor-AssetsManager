@@ -429,7 +429,11 @@ def input_override_file(tmp_path, monkeypatch):
     monkeypatch.setattr("mjr_am_backend.config._INPUT_DIR_OVERRIDE_FILE_PATH", path)
     for name in ("MJR_AM_INPUT_DIRECTORY", "MAJOOR_INPUT_DIRECTORY"):
         monkeypatch.delenv(name, raising=False)
-    return path
+    yield path
+    # The code under test writes these into os.environ itself; never let the
+    # override leak into later tests (it made get_input_directory() order-dependent).
+    for name in ("MJR_AM_INPUT_DIRECTORY", "MAJOOR_INPUT_DIRECTORY"):
+        os.environ.pop(name, None)
 
 
 @pytest.mark.asyncio
@@ -464,7 +468,9 @@ async def test_input_directory_persistence_restart_clear(tmp_path, monkeypatch, 
     assert not paths._is_path_allowed(custom / "escape" / "a.png")
 
     for name in ("MJR_AM_INPUT_DIRECTORY", "MAJOOR_INPUT_DIRECTORY"):
-        monkeypatch.delenv(name)
+        # pop, not monkeypatch.delenv: delenv would restore the value the code
+        # set (the custom root) at teardown and leak it into later tests.
+        os.environ.pop(name, None)
     # The early-startup file resolves before the database is initialized.
     assert get_input_directory() == str(custom)
     input_override_file.unlink()

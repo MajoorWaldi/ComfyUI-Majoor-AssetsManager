@@ -74,8 +74,8 @@ describe("messagePopoverController", () => {
     beforeEach(() => {
         vi.useRealTimers();
         const eventTarget = new EventTarget();
-        eventTarget.location = { href: "http://127.0.0.1:8188/" };
-        globalThis.window = eventTarget;
+        (eventTarget as any).location = { href: "http://127.0.0.1:8188/" };
+        globalThis.window = eventTarget as any;
         globalThis.localStorage = {
             _data: new Map(),
             getItem(key) {
@@ -87,16 +87,16 @@ describe("messagePopoverController", () => {
             clear() {
                 this._data.clear();
             },
-        };
+        } as any;
         globalThis.CustomEvent = class CustomEvent extends Event {
             constructor(type, init = {}) {
                 super(type);
-                this.detail = init.detail;
+                (this as any).detail = (init as any).detail;
             }
-        };
+        } as any;
         globalThis.document = {
-            createElement: vi.fn(() => createNode()),
-        };
+            createElement: vi.fn(() => createNode()) as any,
+        } as any;
     });
 
     it("shows only the shortcut panel in shortcut guide tab", async () => {
@@ -140,10 +140,10 @@ describe("messagePopoverController", () => {
 
         expect(title.textContent).toBe("Shortcut Guide");
         expect(messageList.hidden).toBe(true);
-        expect(messageList.style.display).toBe("none");
+        expect((messageList.style as any).display).toBe("none");
         expect(messageList.attributes.get("aria-hidden")).toBe("true");
         expect(shortcutsPanel.hidden).toBe(false);
-        expect(shortcutsPanel.style.display).toBe("");
+        expect((shortcutsPanel.style as any).display).toBe("");
         expect(shortcutsPanel.attributes.get("aria-hidden")).toBe("false");
         expect(markReadBtn.hidden).toBe(true);
 
@@ -151,9 +151,9 @@ describe("messagePopoverController", () => {
 
         expect(title.textContent).toBe("Messages");
         expect(messageList.hidden).toBe(false);
-        expect(messageList.style.display).toBe("");
+        expect((messageList.style as any).display).toBe("");
         expect(shortcutsPanel.hidden).toBe(true);
-        expect(shortcutsPanel.style.display).toBe("none");
+        expect((shortcutsPanel.style as any).display).toBe("none");
         expect(markReadBtn.hidden).toBe(false);
     });
 
@@ -301,7 +301,7 @@ describe("messagePopoverController", () => {
 
         window.dispatchEvent(new CustomEvent(EVENTS.OPEN_MESSAGE_HISTORY));
 
-        expect(messagePopover.style.display).toBe("block");
+        expect((messagePopover.style as any).display).toBe("block");
         expect(title.textContent).toBe("History");
 
         historyModule.addToastHistory({
@@ -316,11 +316,11 @@ describe("messagePopoverController", () => {
             forceStore: true,
         });
 
-        expect(messagePopover.style.display).toBe("block");
+        expect((messagePopover.style as any).display).toBe("block");
         await vi.advanceTimersByTimeAsync(2200);
 
         expect(popovers.close).toHaveBeenCalledWith(messagePopover);
-        expect(messagePopover.style.display).toBe("none");
+        expect((messagePopover.style as any).display).toBe("none");
         vi.useRealTimers();
     });
 });

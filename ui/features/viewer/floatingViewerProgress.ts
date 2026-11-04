@@ -3,7 +3,6 @@ import {
     getRawHostApi,
     getRawHostApp,
     waitForRawHostApi,
-    wrapHostQueuePrompt,
 } from "../../app/hostAdapter.js";
 import { findGraphNodeById, getHostRootGraph } from "../../app/graphTraversal.js";
 
@@ -133,7 +132,7 @@ export class FloatingViewerProgressService extends EventTarget {
         this._api = null;
         this._listenerEntries = [];
         this._initPromise = null;
-        this._queuePromptBinding = null;
+        this._hydrations = new Map();
     }
 
     getSnapshot() {
@@ -188,48 +187,89 @@ export class FloatingViewerProgressService extends EventTarget {
     _attachApi(api: any) {
         if (!api || typeof api.addEventListener !== "function") return;
         if (this._api === api) return;
-        this.dispose({ resetPatchedQueuePrompt: false, keepState: true });
+        this.dispose({ keepState: true });
         this._api = api;
-        this._patchQueuePrompt(api);
         this._attachApiListeners(api);
     }
 
-    _patchQueuePrompt(api: any) {
-        const service = this;
-        this._queuePromptBinding = wrapHostQueuePrompt({
-            api,
-            owner: this,
-            createWrapper(originalQueuePrompt: any) {
-                return async function (this: any, number: any, prompt: any, ...args: any[]) {
-                    let response;
-                    try {
-                        response = await originalQueuePrompt.apply(this, [number, prompt, ...args]);
-                    } catch (error: any) {
-                        const promptExecution = service.getOrMakePrompt("error");
-                        promptExecution.error({ exception_type: "Unknown." });
-                        service.currentExecution = promptExecution;
-                        service.dispatchProgressUpdate();
-                        throw error;
-                    }
+    /**
+     * Resolve the API-format prompt (node ids -> class_type/_meta) for a
+     * prompt that the server just started, using ComfyUI's own read-only
+     * endpoints instead of intercepting `api.queuePrompt`. Wrapping
+     * queuePrompt is fragile: other extensions wrap it too and the order is
+     * not guaranteed.
+     *
+     * Order: core Jobs API (`api.getJobDetail` -> `GET /api/jobs/{id}`, whose
+     * `workflow` carries `{ prompt, extra_data }`), then `/queue` for older
+     * cores, then `/history/{id}` for prompts that already finished.
+     */
+    async _hydratePrompt(api: any, promptExecution: any) {
+        const promptId = String(promptExecution?.id || "").trim();
+        if (!promptId || promptId === "unknown" || promptExecution.promptApi) return;
+        if (!api) return;
+        if (this._hydrations.has(promptId)) return this._hydrations.get(promptId);
 
-                    const promptId = String(response?.prompt_id || response?.promptId || "").trim();
-                    if (promptId) {
-                        const promptExecution = service.getOrMakePrompt(promptId);
-                        promptExecution.setPrompt(prompt);
-                        if (!service.currentExecution) {
-                            service.currentExecution = promptExecution;
-                        }
-                        service.dispatchEvent(
-                            makeCustomEvent("queue-prompt", {
-                                prompt: promptExecution,
-                            }),
-                        );
-                        service.dispatchProgressUpdate();
-                    }
-                    return response;
-                };
-            },
-        });
+        const task = (async () => {
+            const output =
+                (await this._findPromptInJob(api, promptId)) ||
+                (await this._findPromptInQueue(api, promptId)) ||
+                (await this._findPromptInHistory(api, promptId));
+            if (output && !promptExecution.promptApi) {
+                promptExecution.setPrompt({ output });
+                const current = promptExecution.currentlyExecuting;
+                if (current?.nodeId) {
+                    current.nodeLabel =
+                        promptExecution.getNodeLabel(current.nodeId) || current.nodeLabel;
+                }
+                if (this.promptsMap.get(promptId) === promptExecution) {
+                    this.dispatchProgressUpdate();
+                }
+            }
+        })()
+            .catch((e: any) => console.debug?.(e))
+            .finally(() => this._hydrations.delete(promptId));
+        this._hydrations.set(promptId, task);
+        return task;
+    }
+
+    async _findPromptInJob(api: any, promptId: string) {
+        if (typeof api.getJobDetail !== "function") return null;
+        try {
+            const job = await api.getJobDetail(promptId);
+            const prompt = job?.workflow?.prompt;
+            return prompt && typeof prompt === "object" && !Array.isArray(prompt) ? prompt : null;
+        } catch (e: any) {
+            console.debug?.(e);
+            return null;
+        }
+    }
+
+    async _fetchJson(api: any, route: string) {
+        if (typeof api.fetchApi !== "function") return null;
+        const resp = await api.fetchApi(route, { cache: "no-store" });
+        if (!resp?.ok || typeof resp.json !== "function") return null;
+        return resp.json();
+    }
+
+    async _findPromptInQueue(api: any, promptId: string) {
+        const data = await this._fetchJson(api, "/queue");
+        const items = [
+            ...(Array.isArray(data?.queue_running) ? data.queue_running : []),
+            ...(Array.isArray(data?.queue_pending) ? data.queue_pending : []),
+        ];
+        for (const item of items) {
+            // Queue entries are [number, prompt_id, prompt, extra_data, outputs_to_execute, ...]
+            if (Array.isArray(item) && String(item[1] || "") === promptId) {
+                return item[2] && typeof item[2] === "object" ? item[2] : null;
+            }
+        }
+        return null;
+    }
+
+    async _findPromptInHistory(api: any, promptId: string) {
+        const data = await this._fetchJson(api, `/history/${encodeURIComponent(promptId)}`);
+        const prompt = data?.[promptId]?.prompt;
+        return Array.isArray(prompt) && prompt[2] && typeof prompt[2] === "object" ? prompt[2] : null;
     }
 
     _attachApiListeners(api: any) {
@@ -246,6 +286,7 @@ export class FloatingViewerProgressService extends EventTarget {
             if (!promptId) return;
             this.currentExecution = this.getOrMakePrompt(promptId);
             this.dispatchProgressUpdate();
+            void this._hydratePrompt(api, this.currentExecution);
         });
 
         this._attachListener(api, "executing", (event: any) => {
@@ -318,7 +359,7 @@ export class FloatingViewerProgressService extends EventTarget {
         this.dispatchEvent(makeCustomEvent(PROGRESS_UPDATE_EVENT, this.getSnapshot()));
     }
 
-    dispose({ resetPatchedQueuePrompt = false, keepState = false } = {}) {
+    dispose({ keepState = false }: { keepState?: boolean } = {}) {
         for (const { api, type, handler } of this._listenerEntries.splice(0)) {
             try {
                 api?.removeEventListener?.(type, handler);
@@ -327,15 +368,6 @@ export class FloatingViewerProgressService extends EventTarget {
             }
         }
 
-        if (resetPatchedQueuePrompt && this._queuePromptBinding?.owner === this) {
-            try {
-                this._queuePromptBinding.restore?.();
-            } catch (e: any) {
-                console.debug?.(e);
-            }
-        }
-
-        this._queuePromptBinding = null;
         this._api = null;
         if (!keepState) {
             this.promptsMap.clear();

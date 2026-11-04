@@ -4,6 +4,7 @@ import sqlite3
 import pytest
 from aiohttp import web
 from aiohttp.test_utils import make_mocked_request
+from mjr_am_backend.request_keys import REQUEST_USER_ID_KEY
 from mjr_am_backend.routes import registry as r
 from mjr_am_backend.shared import Result
 
@@ -99,7 +100,7 @@ def test_auth_error_response_or_none(monkeypatch):
 
     monkeypatch.setattr(r, "_require_authenticated_user", lambda _req: Result.Ok("u1"))
     out2 = r._auth_error_response_or_none(req)
-    assert out2 is None and req.get("mjr_user_id") == "u1"
+    assert out2 is None and req.get(REQUEST_USER_ID_KEY) == "u1"
 
 
 @pytest.mark.asyncio

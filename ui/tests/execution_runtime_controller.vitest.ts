@@ -8,15 +8,15 @@ describe("createExecutionRuntimeController", () => {
         if (typeof globalThis.CustomEvent === "undefined") {
             globalThis.CustomEvent = class CustomEvent {
                 constructor(type, init = {}) {
-                    this.type = type;
-                    this.detail = init.detail;
+                    (this as any).type = type;
+                    (this as any).detail = (init as any).detail;
                 }
-            };
+            } as any;
         }
         if (typeof globalThis.window === "undefined") {
             globalThis.window = {
                 dispatchEvent: () => true,
-            };
+            } as any;
         }
     });
 

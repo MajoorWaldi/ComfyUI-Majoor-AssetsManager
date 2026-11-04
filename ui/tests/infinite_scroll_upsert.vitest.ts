@@ -79,9 +79,11 @@ describe("InfiniteScroll upsert", () => {
             await fetchPage(gridContainer, query, 100, offset, deps, {
                 requestId: 1,
             });
-            const lastCall = buildListURL.mock.calls[buildListURL.mock.calls.length - 1]?.[0];
+            const lastCall = (buildListURL.mock.calls as any)[
+                (buildListURL.mock.calls as any).length - 1
+            ]?.[0];
             expect(lastCall).toMatchObject({
-                scope: gridContainer.dataset.mjrScope,
+                scope: (gridContainer as any).dataset.mjrScope,
                 offset,
                 includeTotal,
             });
@@ -197,7 +199,7 @@ describe("InfiniteScroll upsert", () => {
         expect(state.seenKeys.has("id:1")).toBe(false);
         expect(state.seenKeys.has("stack:stack-a")).toBe(true);
         expect(state.assets).toHaveLength(1);
-        expect(state.assets[0].stack_id).toBe("stack-a");
+        expect((state.assets[0] as any).stack_id).toBe("stack-a");
         expect(setItems).toHaveBeenCalledTimes(1);
     });
 

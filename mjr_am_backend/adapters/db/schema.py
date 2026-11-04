@@ -259,6 +259,15 @@ async def _ensure_schema(db) -> Result[bool]:
     if not result.ok:
         return result
 
+    # Windows: collapse rows that are one file under different path casing
+    # (shown as bogus duplicate stacks, with ratings/tags split). Best-effort.
+    try:
+        from .schema_dedupe import merge_duplicate_asset_rows
+
+        await merge_duplicate_asset_rows(db)
+    except Exception:
+        logger.debug("merge_duplicate_asset_rows skipped", exc_info=True)
+
     version_result = await db.aset_schema_version(CURRENT_SCHEMA_VERSION)
     if not version_result.ok:
         logger.error("Failed to set schema version: %s", version_result.error)

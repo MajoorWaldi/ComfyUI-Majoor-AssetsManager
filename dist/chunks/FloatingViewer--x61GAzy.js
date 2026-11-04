@@ -1,0 +1,4499 @@
+import { En as e, Mn as t, Sn as n, Wt as r, Yn as i, cn as a, dn as o, in as s, jn as c, kn as l, mn as u, pn as d, s as f, t as p, u as m, vn as h, wn as g, xn as _ } from "./config-C9a-wT5M.js";
+import { a as v, i as y, o as b, s as x } from "./graphTraversal-DTdQWkn5.js";
+import { c as S, l as C, m as w, p as ee, s as T, t as E, u as D, v as O } from "./generationSectionState-DuXxSw-j.js";
+import { r as k } from "./events-1iwo5blr.js";
+import { C as A, D as j, E as M, T as N, _ as P, a as F, b as I, d as L, f as R, g as z, h as B, m as te, n as V, o as ne, p as H, r as re, s as ie, t as U, v as ae, w as oe, y as se } from "./tooltipShortcuts-Ury2eTek.js";
+import { I as ce } from "./mjr-primevue-C07IsEdU.js";
+import { C as le, S as ue, n as de, t as fe, w as pe } from "./genInfo-Dk8cerKp.js";
+// ui/features/viewer/videoSync.ts
+var me = () => {
+	try {
+		return !!p?.DEBUG_VIEWER;
+	} catch {
+		return !1;
+	}
+};
+function he(e, t, { threshold: n = .15, correctionCooldownMs: r = 250 } = {}) {
+	let i = new AbortController();
+	try {
+		if (!e) return i;
+		let a = Array.isArray(t) ? t.filter((t) => t && t !== e) : [];
+		if (!a.length) return i;
+		let o = [e, ...a].filter(Boolean), s = !1, c = /* @__PURE__ */ new WeakSet(), l = {
+			source: null,
+			rafId: null,
+			rvfcId: null
+		}, u = 0, d = () => {
+			try {
+				let e = l.source;
+				l.rvfcId != null && typeof e?.cancelVideoFrameCallback == "function" && e.cancelVideoFrameCallback(l.rvfcId);
+			} catch (e) {
+				console.debug?.(e);
+			}
+			l.rvfcId = null;
+			try {
+				l.rafId != null && typeof cancelAnimationFrame == "function" && cancelAnimationFrame(l.rafId);
+			} catch (e) {
+				console.debug?.(e);
+			}
+			l.rafId = null, l.source = null;
+		}, f = (e) => {
+			try {
+				if (e && e.paused === !1) return;
+				try {
+					c.add(e);
+				} catch (e) {
+					console.debug?.(e);
+				}
+				let t = e.play?.();
+				t && typeof t.catch == "function" && t.catch(() => {});
+			} catch (e) {
+				console.debug?.(e);
+			}
+		}, p = () => {
+			try {
+				return typeof performance < "u" && typeof performance.now == "function" ? performance.now() : Date.now();
+			} catch {
+				return Date.now();
+			}
+		}, m = (e, { force: t = !1 } = {}) => {
+			if (!s) try {
+				let i = Number(e?.currentTime) || 0, a = e?.paused === !1, c = p(), l = Math.max(0, Number(r) || 0), d = t || !a || !u || c - u >= l, f = !1;
+				for (let t of o) if (t && t !== e) try {
+					Math.abs((Number(t.currentTime) || 0) - i) > n && d && (s = !0, t.currentTime = i, s = !1, f = !0);
+				} catch {
+					s = !1;
+				}
+				a && f && (u = c);
+			} catch {
+				s = !1;
+			}
+		}, h = () => {
+			let t = l.source || e;
+			if (l.rafId = null, l.rvfcId = null, !(!t || i.signal.aborted || t.paused)) {
+				m(t);
+				try {
+					if (typeof t?.requestVideoFrameCallback == "function") {
+						l.rvfcId = t.requestVideoFrameCallback(h);
+						return;
+					}
+				} catch (e) {
+					console.debug?.(e);
+				}
+				try {
+					typeof requestAnimationFrame == "function" && (l.rafId = requestAnimationFrame(h));
+				} catch (e) {
+					console.debug?.(e);
+				}
+			}
+		}, g = (t = e) => {
+			d(), l.source = t || e, !(!l.source || l.source.paused || i.signal.aborted) && h();
+		};
+		try {
+			i.signal.addEventListener("abort", d, { once: !0 });
+		} catch (e) {
+			console.debug?.(e);
+		}
+		let _ = (t = {}) => m(e, t), v = (t, n = e) => {
+			if (!s) {
+				for (let e of o) if (e && e !== n) try {
+					if (t) f(e);
+					else {
+						try {
+							c.add(e);
+						} catch (e) {
+							console.debug?.(e);
+						}
+						e.pause?.();
+					}
+				} catch (e) {
+					console.debug?.(e);
+				}
+			}
+		}, y = (t = e) => {
+			if (!s) {
+				for (let e of o) if (e && e !== t) try {
+					e.muted = !!t.muted, e.volume = Number(t.volume) || 0;
+				} catch (e) {
+					console.debug?.(e);
+				}
+			}
+		}, b = (t = e) => {
+			if (!s) {
+				for (let e of o) if (e && e !== t) try {
+					e.playbackRate = Number(t.playbackRate) || 1;
+				} catch (e) {
+					console.debug?.(e);
+				}
+			}
+		};
+		try {
+			for (let e of a) {
+				try {
+					e.muted = !0;
+				} catch (e) {
+					console.debug?.(e);
+				}
+				try {
+					e.loop = !1;
+				} catch (e) {
+					console.debug?.(e);
+				}
+			}
+		} catch (e) {
+			console.debug?.(e);
+		}
+		try {
+			y(), b(), _(), e.paused || (v(!0), g(e));
+		} catch (e) {
+			console.debug?.(e);
+		}
+		e.addEventListener("play", () => v(!0), {
+			signal: i.signal,
+			passive: !0
+		}), e.addEventListener("play", () => g(e), {
+			signal: i.signal,
+			passive: !0
+		}), e.addEventListener("pause", () => {
+			d(), v(!1);
+		}, {
+			signal: i.signal,
+			passive: !0
+		}), e.addEventListener("timeupdate", () => _(), {
+			signal: i.signal,
+			passive: !0
+		}), e.addEventListener("seeking", () => _({ force: !0 }), {
+			signal: i.signal,
+			passive: !0
+		}), e.addEventListener("seeked", () => _({ force: !0 }), {
+			signal: i.signal,
+			passive: !0
+		}), e.addEventListener("ended", () => _({ force: !0 }), {
+			signal: i.signal,
+			passive: !0
+		}), e.addEventListener("volumechange", y, {
+			signal: i.signal,
+			passive: !0
+		}), e.addEventListener("ratechange", b, {
+			signal: i.signal,
+			passive: !0
+		});
+		for (let t of a) try {
+			t.addEventListener("play", () => {
+				c.has(t) ? (c.delete(t), g(e)) : (m(t, { force: !0 }), b(t), v(!0, t), g(t));
+			}, {
+				signal: i.signal,
+				passive: !0
+			}), t.addEventListener("pause", () => {
+				c.has(t) ? c.delete(t) : t?.ended || (d(), v(!1, t));
+			}, {
+				signal: i.signal,
+				passive: !0
+			}), t.addEventListener("seeking", () => m(t, { force: !0 }), {
+				signal: i.signal,
+				passive: !0
+			}), t.addEventListener("seeked", () => m(t, { force: !0 }), {
+				signal: i.signal,
+				passive: !0
+			}), t.addEventListener("ratechange", () => b(t), {
+				signal: i.signal,
+				passive: !0
+			});
+		} catch (e) {
+			console.debug?.(e);
+		}
+		try {
+			for (let t of a) try {
+				t.addEventListener("ended", () => {
+					if (!s) {
+						try {
+							s = !0, t.currentTime = Number(e.currentTime) || 0;
+						} catch (e) {
+							console.debug?.(e);
+						} finally {
+							s = !1;
+						}
+						try {
+							e.paused || f(t);
+						} catch (e) {
+							console.debug?.(e);
+						}
+					}
+				}, {
+					signal: i.signal,
+					passive: !0
+				});
+			} catch (e) {
+				console.debug?.(e);
+			}
+		} catch (e) {
+			console.debug?.(e);
+		}
+		try {
+			for (let e of a) try {
+				e.addEventListener("loadedmetadata", () => _({ force: !0 }), {
+					signal: i.signal,
+					passive: !0,
+					once: !0
+				});
+			} catch (e) {
+				console.debug?.(e);
+			}
+		} catch (e) {
+			console.debug?.(e);
+		}
+	} catch (e) {
+		if (me()) try {
+			console.warn("[Viewer] follower video sync setup failed", e);
+		} catch (e) {
+			console.debug?.(e);
+		}
+	}
+	return i;
+}
+// ui/features/viewer/floatingViewerConstants.ts
+var W = Object.freeze({
+	SIMPLE: "simple",
+	AB: "ab",
+	SIDE: "side",
+	GRID: "grid",
+	GRAPH: "graph"
+}), ge = .25, _e = 8e-4, ve = 30;
+function ye(e) {
+	let t = Number(e);
+	if (!Number.isFinite(t) || t < 0) return "0:00";
+	let n = Math.floor(t), r = Math.floor(n / 3600), i = Math.floor(n % 3600 / 60), a = n % 60;
+	return r > 0 ? `${r}:${String(i).padStart(2, "0")}:${String(a).padStart(2, "0")}` : `${i}:${String(a).padStart(2, "0")}`;
+}
+function be(e) {
+	try {
+		let t = e?.play?.();
+		t && typeof t.catch == "function" && t.catch(() => {});
+	} catch (e) {
+		console.debug?.(e);
+	}
+}
+function xe(e, t) {
+	let n = Math.floor(Number(e) || 0), r = Math.max(0, Math.floor(Number(t) || 0));
+	return n < 0 ? 0 : r > 0 && n > r ? r : n;
+}
+function Se(e, t) {
+	let n = Number(e?.currentTime || 0), r = Number(t) > 0 ? Number(t) : ve;
+	return Math.max(0, Math.floor(n * r));
+}
+function Ce(e, t) {
+	let n = Number(e?.duration || 0), r = Number(t) > 0 ? Number(t) : ve;
+	return !Number.isFinite(n) || n <= 0 ? 0 : Math.max(0, Math.floor(n * r));
+}
+function we(e, t, n) {
+	let r = Number(n) > 0 ? Number(n) : ve, i = xe(t, Ce(e, r)) / r;
+	try {
+		e.currentTime = Math.max(0, i);
+	} catch (e) {
+		console.debug?.(e);
+	}
+}
+function Te(e) {
+	return e instanceof HTMLMediaElement;
+}
+function Ee(e, t) {
+	return String(e || "").toLowerCase() === "video" || t instanceof HTMLVideoElement;
+}
+function De(e, t) {
+	return String(e || "").toLowerCase() === "audio" || t instanceof HTMLAudioElement;
+}
+function Oe(e) {
+	let t = String(e || "").toLowerCase();
+	return t === "gif" || t === "animated-image";
+}
+function ke(e) {
+	try {
+		let t = Number(e?.naturalWidth || e?.width || 0), n = Number(e?.naturalHeight || e?.height || 0);
+		if (!(t > 0 && n > 0)) return "";
+		let r = document.createElement("canvas");
+		r.width = t, r.height = n;
+		let i = r.getContext("2d");
+		return i ? (i.drawImage(e, 0, 0, t, n), r.toDataURL("image/png")) : "";
+	} catch (e) {
+		return console.debug?.(e), "";
+	}
+}
+function Ae(e, t = null, { kind: n = "" } = {}) {
+	if (!e || e._mjrSimplePlayerMounted) return e?.parentElement || null;
+	e._mjrSimplePlayerMounted = !0;
+	let r = ee(t) || ve, i = Te(e), a = Ee(n, e), o = De(n, e), s = Oe(n), c = document.createElement("div");
+	c.className = "mjr-mfv-simple-player", c.tabIndex = 0, c.setAttribute("role", "group"), c.setAttribute("aria-label", "Media player"), o && c.classList.add("is-audio"), s && c.classList.add("is-animated-image");
+	let l = document.createElement("div");
+	l.className = "mjr-mfv-simple-player-controls";
+	let u = document.createElement("input");
+	u.type = "range", u.className = "mjr-mfv-simple-player-seek", u.min = "0", u.max = "1000", u.step = "1", u.value = "0", u.setAttribute("aria-label", "Seek"), i || (u.disabled = !0, u.classList.add("is-disabled"));
+	let d = document.createElement("div");
+	d.className = "mjr-mfv-simple-player-row";
+	let f = document.createElement("button");
+	f.type = "button", f.className = "mjr-icon-btn mjr-mfv-simple-player-btn", f.setAttribute("aria-label", "Play/Pause");
+	let p = document.createElement("i");
+	p.className = "pi pi-pause", p.setAttribute("aria-hidden", "true"), f.appendChild(p);
+	let m = document.createElement("button");
+	m.type = "button", m.className = "mjr-icon-btn mjr-mfv-simple-player-btn", m.setAttribute("aria-label", "Step back");
+	let h = document.createElement("i");
+	h.className = "pi pi-step-backward", h.setAttribute("aria-hidden", "true"), m.appendChild(h);
+	let g = document.createElement("button");
+	g.type = "button", g.className = "mjr-icon-btn mjr-mfv-simple-player-btn", g.setAttribute("aria-label", "Step forward");
+	let _ = document.createElement("i");
+	_.className = "pi pi-step-forward", _.setAttribute("aria-hidden", "true"), g.appendChild(_);
+	let v = document.createElement("div");
+	v.className = "mjr-mfv-simple-player-time", v.textContent = "0:00 / 0:00";
+	let y = document.createElement("div");
+	y.className = "mjr-mfv-simple-player-frame", y.textContent = "F: 0", a || (y.style.display = "none");
+	let b = document.createElement("button");
+	b.type = "button", b.className = "mjr-icon-btn mjr-mfv-simple-player-btn", b.setAttribute("aria-label", "Mute/Unmute");
+	let x = document.createElement("i");
+	if (x.className = "pi pi-volume-up", x.setAttribute("aria-hidden", "true"), b.appendChild(x), a || (m.disabled = !0, g.disabled = !0, m.classList.add("is-disabled"), g.classList.add("is-disabled")), d.appendChild(m), d.appendChild(f), d.appendChild(g), d.appendChild(v), d.appendChild(y), d.appendChild(b), l.appendChild(u), l.appendChild(d), c.appendChild(e), o) {
+		let e = document.createElement("div");
+		e.className = "mjr-mfv-simple-player-audio-backdrop", e.textContent = String(t?.filename || "Audio"), c.appendChild(e);
+	}
+	c.appendChild(l);
+	try {
+		e instanceof HTMLMediaElement && (e.controls = !1, e.playsInline = !0, e.loop = !0, e.muted = !0, e.autoplay = !0);
+	} catch (e) {
+		console.debug?.(e);
+	}
+	let S = s ? String(e?.src || "") : "", C = !1, w = "", T = null, E = null, D = () => {
+		i ? p.className = e.paused ? "pi pi-play" : "pi pi-pause" : s ? p.className = C ? "pi pi-play" : "pi pi-pause" : p.className = "pi pi-play";
+	}, O = () => {
+		e instanceof HTMLMediaElement ? x.className = e.muted ? "pi pi-volume-off" : "pi pi-volume-up" : (x.className = "pi pi-volume-off", b.disabled = !0, b.classList.add("is-disabled"));
+	}, k = () => {
+		if (!a || !(e instanceof HTMLVideoElement)) return;
+		let t = Se(e, r), n = Ce(e, r);
+		y.textContent = n > 0 ? `F: ${t}/${n}` : `F: ${t}`;
+	}, A = () => {
+		let e = Math.max(0, Math.min(100, Number(u.value) / 1e3 * 100));
+		u.style.setProperty("--mjr-seek-pct", `${e}%`);
+	}, j = () => {
+		if (!i) {
+			v.textContent = s ? "Animated" : "Preview", u.value = "0", A();
+			return;
+		}
+		let t = Number(e.currentTime || 0), n = Number(e.duration || 0);
+		if (Number.isFinite(n) && n > 0) {
+			let e = Math.max(0, Math.min(1, t / n));
+			u.value = String(Math.round(e * 1e3)), v.textContent = `${ye(t)} / ${ye(n)}`;
+		} else u.value = "0", v.textContent = `${ye(t)} / 0:00`;
+		A();
+	}, M = () => {
+		try {
+			let t = e;
+			E != null && typeof t?.cancelVideoFrameCallback == "function" && t.cancelVideoFrameCallback(E);
+		} catch (e) {
+			console.debug?.(e);
+		}
+		E = null;
+		try {
+			T != null && typeof cancelAnimationFrame == "function" && cancelAnimationFrame(T);
+		} catch (e) {
+			console.debug?.(e);
+		}
+		T = null;
+	}, N = () => {
+		T = null, E = null;
+		try {
+			k(), j();
+		} catch (e) {
+			console.debug?.(e);
+		}
+		if (i && !e?.paused) {
+			try {
+				let t = e;
+				if (typeof t?.requestVideoFrameCallback == "function") {
+					E = t.requestVideoFrameCallback(N);
+					return;
+				}
+			} catch (e) {
+				console.debug?.(e);
+			}
+			try {
+				typeof requestAnimationFrame == "function" && (T = requestAnimationFrame(N));
+			} catch (e) {
+				console.debug?.(e);
+			}
+		}
+	}, P = () => {
+		M(), i && !e?.paused && N();
+	}, F = (e) => {
+		try {
+			e?.stopPropagation?.();
+		} catch {}
+	}, I = (t) => {
+		F(t);
+		try {
+			i ? e.paused ? be(e) : e.pause?.() : s && (C ? (e.src = S ? `${S}${S.includes("?") ? "&" : "?"}mjr_anim=${Date.now()}` : e.src, C = !1) : (w ||= ke(e), w && (e.src = w), C = !0));
+		} catch (e) {
+			console.debug?.(e);
+		}
+		D();
+	}, L = (t, n) => {
+		if (F(n), a && e instanceof HTMLVideoElement) {
+			try {
+				e.pause?.();
+			} catch (e) {
+				console.debug?.(e);
+			}
+			we(e, Se(e, r) + t, r), D(), k(), j();
+		}
+	}, R = (t) => {
+		if (F(t), e instanceof HTMLMediaElement) {
+			try {
+				e.muted = !e.muted;
+			} catch (e) {
+				console.debug?.(e);
+			}
+			O();
+		}
+	}, z = (t) => {
+		if (F(t), !i) return;
+		A();
+		let n = Number(e.duration || 0);
+		if (!Number.isFinite(n) || n <= 0) return;
+		let r = Math.max(0, Math.min(1, Number(u.value) / 1e3));
+		try {
+			e.currentTime = n * r;
+		} catch (e) {
+			console.debug?.(e);
+		}
+		k(), j();
+	}, B = (e) => F(e), te = (e) => {
+		try {
+			if (e?.target?.closest?.("button, input, textarea, select")) return;
+			c.focus?.({ preventScroll: !0 });
+		} catch (e) {
+			console.debug?.(e);
+		}
+	}, V = (e) => {
+		let t = String(e?.key || "");
+		if (!(!t || e?.altKey || e?.ctrlKey || e?.metaKey)) {
+			if (t === " " || t === "Spacebar") e.preventDefault?.(), I(e);
+			else if (t === "ArrowLeft") {
+				if (!a) return;
+				e.preventDefault?.(), L(-1, e);
+			} else if (t === "ArrowRight") {
+				if (!a) return;
+				e.preventDefault?.(), L(1, e);
+			}
+		}
+	};
+	try {
+		c._mjrSimplePlayerHandleKeydown = V;
+	} catch (e) {
+		console.debug?.(e);
+	}
+	f.addEventListener("click", I), m.addEventListener("click", (e) => L(-1, e)), g.addEventListener("click", (e) => L(1, e)), b.addEventListener("click", R), u.addEventListener("input", z), l.addEventListener("pointerdown", B), l.addEventListener("click", B), l.addEventListener("dblclick", B), c.addEventListener("pointerdown", te), c.addEventListener("keydown", V), e instanceof HTMLMediaElement && (e.addEventListener("play", () => {
+		D(), P();
+	}, { passive: !0 }), e.addEventListener("pause", () => {
+		M(), D(), k(), j();
+	}, { passive: !0 }), e.addEventListener("ended", () => {
+		M(), D(), k(), j();
+	}, { passive: !0 }), e.addEventListener("timeupdate", () => {
+		k(), j();
+	}, { passive: !0 }), e.addEventListener("seeked", () => {
+		k(), j();
+	}, { passive: !0 }), e.addEventListener("loadedmetadata", () => {
+		k(), j();
+	}, { passive: !0 })), be(e), D(), O(), k(), j(), P();
+	try {
+		c._mjrSimplePlayerDestroy = M, c._mjrMediaControlsHandle = { destroy: M };
+	} catch (e) {
+		console.debug?.(e);
+	}
+	return c;
+}
+// ui/features/viewer/studio/mountStudioPlayer.ts
+function je(e) {
+	if (!e?.src || e.kind !== "video" && e.kind !== "audio") return null;
+	let t = document.createElement("div");
+	t.className = `mjr-mfv-player-host mjr-mfv-player-host--studio${e.fill ? " mjr-mfv-player-host--fill" : ""}`, t.tabIndex = -1, t.addEventListener("pointerdown", (e) => {
+		e.target?.closest?.("button, input, textarea, select, a, [contenteditable='true']") || t.focus?.({ preventScroll: !0 });
+	});
+	let n = null, { app: r } = ie({ render: () => ce(de, {
+		ref: (e) => {
+			n = e;
+		},
+		src: e.src,
+		kind: e.kind,
+		filename: e.filename,
+		fps: e.fps ?? null,
+		frameCount: e.frameCount ?? null,
+		initialMuted: !!e.initialMuted,
+		initialRate: e.initialRate,
+		compact: e.compact !== !1,
+		mediaClass: e.mediaClass
+	}) });
+	r.mount(t);
+	let i = !1;
+	return t._mjrMediaControlsHandle = {
+		togglePlay: () => n?.togglePlay?.(),
+		stepFrames: (e) => n?.stepFrame?.(e),
+		destroy: () => {
+			if (!i) {
+				i = !0;
+				try {
+					n?.release?.();
+				} catch (e) {
+					console.debug?.(e);
+				}
+				try {
+					r.unmount();
+				} catch (e) {
+					console.debug?.(e);
+				}
+			}
+		}
+	}, t;
+}
+// ui/features/viewer/floatingViewerMedia.ts
+var Me = /* @__PURE__ */ new Set([
+	".mp4",
+	".webm",
+	".mov",
+	".avi",
+	".mkv",
+	".m4v"
+]), Ne = /* @__PURE__ */ new Set([
+	".mp3",
+	".wav",
+	".flac",
+	".ogg",
+	".m4a",
+	".aac",
+	".opus",
+	".wma"
+]);
+function Pe(e) {
+	try {
+		let t = String(e || "").trim(), n = t.lastIndexOf(".");
+		return n >= 0 ? t.slice(n).toLowerCase() : "";
+	} catch {
+		return "";
+	}
+}
+function G(e) {
+	let t = String(e?.kind || "").toLowerCase();
+	if (t === "video") return "video";
+	if (t === "audio") return "audio";
+	if (t === "model3d") return "model3d";
+	let n = String(e?.type || "").toLowerCase(), r = String(e?.asset_type || e?.media_type || n).toLowerCase();
+	if (r === "video") return "video";
+	if (r === "audio") return "audio";
+	if (r === "model3d") return "model3d";
+	let i = String(e?.mime || e?.mimetype || e?.content_type || "").trim().toLowerCase();
+	if (i.startsWith("video/")) return "video";
+	if (i.startsWith("audio/")) return "audio";
+	if (i.startsWith("image/gif")) return "gif";
+	let a = Pe(e?.filename || "");
+	return a === ".gif" ? "gif" : Me.has(a) ? "video" : Ne.has(a) ? "audio" : ue.has(a) ? "model3d" : "image";
+}
+function Fe(e) {
+	return e ? e.url ? String(e.url) : e.filename && i(e) || "" : "";
+}
+function K(e = "No media  -  select assets in the grid") {
+	let t = document.createElement("div");
+	return t.className = "mjr-mfv-empty", t.textContent = e, t;
+}
+function q(e, t) {
+	let n = document.createElement("div");
+	return n.className = `mjr-mfv-label label-${t}`, n.textContent = e, n;
+}
+function Ie(e) {
+	if (e && typeof e.play == "function") try {
+		let t = e.play();
+		t && typeof t.catch == "function" && t.catch(() => {});
+	} catch (e) {
+		console.debug?.(e);
+	}
+}
+function Le(e) {
+	if (e && typeof e.play == "function") try {
+		let t = e.play();
+		t && typeof t.catch == "function" && t.catch(() => {
+			try {
+				e.muted = !0, Ie(e);
+			} catch (e) {
+				console.debug?.(e);
+			}
+		});
+	} catch (e) {
+		console.debug?.(e);
+	}
+}
+function Re(e, t) {
+	let n = e && e.nodeType === 1 ? e : e?.parentElement || null;
+	for (; n && n !== t;) {
+		try {
+			let e = window.getComputedStyle?.(n), t = /(auto|scroll|overlay)/.test(String(e?.overflowY || "")), r = /(auto|scroll|overlay)/.test(String(e?.overflowX || ""));
+			if (t || r) return n;
+		} catch (e) {
+			console.debug?.(e);
+		}
+		n = n.parentElement || null;
+	}
+	return null;
+}
+function ze(e, t, n) {
+	if (!e) return !1;
+	if (Math.abs(Number(n) || 0) >= Math.abs(Number(t) || 0)) {
+		let t = Number(e.scrollTop || 0), r = Math.max(0, Number(e.scrollHeight || 0) - Number(e.clientHeight || 0));
+		if (n < 0 && t > 0 || n > 0 && t < r) return !0;
+	}
+	let r = Number(e.scrollLeft || 0), i = Math.max(0, Number(e.scrollWidth || 0) - Number(e.clientWidth || 0));
+	return t < 0 && r > 0 || t > 0 && r < i;
+}
+function Be(e) {
+	if (e) try {
+		let t = e.querySelectorAll?.("video, audio");
+		if (!t || !t.length) return;
+		for (let e of t) try {
+			e.pause?.();
+		} catch (e) {
+			console.debug?.(e);
+		}
+	} catch (e) {
+		console.debug?.(e);
+	}
+}
+function Ve(e) {
+	if (e) try {
+		let t = e.querySelectorAll?.("video, audio");
+		if (!t || !t.length) return;
+		for (let e of t) {
+			try {
+				e.pause?.();
+			} catch (e) {
+				console.debug?.(e);
+			}
+			try {
+				e.removeAttribute?.("src");
+				for (let t of Array.from(e.querySelectorAll?.("source") || [])) t.remove?.();
+				e.load?.();
+			} catch (e) {
+				console.debug?.(e);
+			}
+		}
+	} catch (e) {
+		console.debug?.(e);
+	}
+}
+function He(e, { initialMuted: t = !1, initialPlaybackRate: n = 1, fill: r = !1 } = {}) {
+	let i = G(e);
+	if (i !== "video" && i !== "audio") return null;
+	let a = Fe(e);
+	if (!a) return null;
+	try {
+		let o = ee(e);
+		return je({
+			src: a,
+			kind: i,
+			filename: String(e?.filename || ""),
+			fps: o,
+			frameCount: w(e, o) || null,
+			initialMuted: e?._isPreview ? !0 : t,
+			initialRate: n,
+			compact: !0,
+			fill: r,
+			mediaClass: "mjr-mfv-media"
+		});
+	} catch (e) {
+		return console.debug?.(e), null;
+	}
+}
+function J(e, { fill: t = !1, controls: n = !0, initialMuted: r = !1, initialPlaybackRate: i = 1 } = {}) {
+	let a = Fe(e);
+	if (!a) return null;
+	let o = G(e), s = `mjr-mfv-media mjr-mfv-media--fit-height${t ? " mjr-mfv-media--fill" : ""}`, c = Pe(e?.filename || "") === ".webp" && Number(e?.duration ?? e?.metadata_raw?.duration ?? 0) > 0;
+	if (n && (o === "audio" || o === "video")) {
+		let n = He(e, {
+			initialMuted: r,
+			initialPlaybackRate: i,
+			fill: t
+		});
+		if (n) return n;
+	}
+	if (o === "audio") {
+		let e = document.createElement("audio");
+		e.className = s, e.src = a, e.controls = !1, e.autoplay = !0, e.preload = "metadata", e.loop = !0, e.muted = r, e.playbackRate = i;
+		let t = r ? () => Ie(e) : () => Le(e);
+		try {
+			e.addEventListener("loadedmetadata", t, { once: !0 });
+		} catch (e) {
+			console.debug?.(e);
+		}
+		return t(), e;
+	}
+	if (o === "video") {
+		let t = document.createElement("video");
+		t.className = s, t.src = a, t.controls = !1, t.loop = !0, t.preload = "metadata", t.muted = e?._isPreview ? !0 : r, t.playbackRate = i, t.autoplay = !0, t.playsInline = !0;
+		let n = t.muted ? () => Ie(t) : () => Le(t);
+		try {
+			t.addEventListener("loadedmetadata", n, { once: !0 });
+		} catch (e) {
+			console.debug?.(e);
+		}
+		return n(), t;
+	}
+	if (o === "model3d") return le(e, a, {
+		hostClassName: `mjr-model3d-host mjr-mfv-model3d-host${t ? " mjr-mfv-model3d-host--fill" : ""}`,
+		canvasClassName: `mjr-mfv-media mjr-model3d-render-canvas${t ? " mjr-mfv-media--fill" : ""}`,
+		hintText: "Rotate: left drag  Pan: right drag  Zoom: wheel or middle drag",
+		disableViewerTransform: !0,
+		pauseDuringExecution: !!p.FLOATING_VIEWER_PAUSE_DURING_EXECUTION
+	});
+	let l = document.createElement("img");
+	return l.className = s, l.src = a, l.alt = String(e?.filename || ""), l.draggable = !1, (o === "gif" || c) && Ae(l, e, { kind: o === "gif" ? "gif" : "animated-image" }) || l;
+}
+function Ue(e, t, n, r, i, a) {
+	e.beginPath(), typeof e.roundRect == "function" ? e.roundRect(t, n, r, i, a) : (e.moveTo(t + a, n), e.lineTo(t + r - a, n), e.quadraticCurveTo(t + r, n, t + r, n + a), e.lineTo(t + r, n + i - a), e.quadraticCurveTo(t + r, n + i, t + r - a, n + i), e.lineTo(t + a, n + i), e.quadraticCurveTo(t, n + i, t, n + i - a), e.lineTo(t, n + a), e.quadraticCurveTo(t, n, t + a, n), e.closePath());
+}
+function Y(e, t, n, r) {
+	e.save(), e.font = "bold 10px system-ui, sans-serif";
+	let i = e.measureText(t).width;
+	e.fillStyle = "rgba(0,0,0,0.58)", Ue(e, n, r, i + 10, 18, 4), e.fill(), e.fillStyle = "#fff", e.fillText(t, n + 5, r + 13), e.restore();
+}
+// ui/features/viewer/workflowSidebar/NodeWidgetRenderer.ts
+var We = /* @__PURE__ */ new Set([
+	"imageupload",
+	"button",
+	"hidden"
+]), Ge = /\bnote\b|markdown/i;
+function Ke(e) {
+	return Ge.test(String(e?.type || ""));
+}
+function qe(e) {
+	let t = e?.properties ?? {};
+	if (typeof t.text == "string") return t.text;
+	if (typeof t.value == "string") return t.value;
+	if (typeof t.markdown == "string") return t.markdown;
+	let n = e?.widgets?.[0];
+	return n != null && n.value != null ? String(n.value) : "";
+}
+function Je(e, t) {
+	let n = e?.properties;
+	n && ("text" in n ? n.text = t : "value" in n ? n.value = t : "markdown" in n ? n.markdown = t : n.text = t);
+	let r = e?.widgets?.[0];
+	r && (r.value = t);
+}
+var Ye = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i, Xe = /^[0-9a-f]{20,}$/i;
+function Ze(...e) {
+	for (let t of e) {
+		let e = String(t || "").trim();
+		if (e) return e;
+	}
+	return "";
+}
+function Qe(e) {
+	return Ye.test(e) || Xe.test(e);
+}
+function $e(e) {
+	return Ze(e?.title, e?.properties?.title, e?.properties?.name, e?.properties?.label, e?.name);
+}
+function et(e, { isSubgraph: t = !1 } = {}) {
+	let n = String(e?.type || "").trim(), r = $e(e);
+	return (t || Qe(n)) && r ? r : Qe(n) ? "Subgraph" : n || r || `Node #${e?.id}`;
+}
+function tt(e, t, { isSubgraph: n = !1 } = {}) {
+	let r = String(e?.type || "").trim(), i = $e(e);
+	return n && r && !Qe(r) && r !== t ? r : i && i !== r && i !== t ? i : "";
+}
+var nt = class {
+	_node;
+	_onLocate;
+	_onToggle;
+	_collapsible;
+	_expanded;
+	_depth;
+	_isSubgraph;
+	_childCount;
+	_el;
+	_header;
+	_body;
+	_toggleBtn;
+	_inputMap;
+	_autoFits;
+	_noteTextarea;
+	_subgraphHeaderTitle;
+	_mjrTreeItemEl;
+	constructor(e, t = {}) {
+		this._node = e, this._onLocate = t.onLocate ?? null, this._onToggle = typeof t.onToggle == "function" ? t.onToggle : null, this._collapsible = !!t.collapsible, this._expanded = t.expanded !== !1, this._depth = t.depth ?? 0, this._isSubgraph = !!t.isSubgraph, this._childCount = Math.max(0, Number(t.childCount) || 0), this._el = null, this._header = null, this._body = null, this._toggleBtn = null, this._inputMap = /* @__PURE__ */ new Map(), this._autoFits = [], this._noteTextarea = null, this._subgraphHeaderTitle = "";
+	}
+	get el() {
+		return this._el ||= this._render(), this._el;
+	}
+	syncFromGraph() {
+		if (this._noteTextarea) {
+			if ((this._el?.ownerDocument || document)?.activeElement !== this._noteTextarea) {
+				let e = qe(this._node);
+				this._noteTextarea.value !== e && (this._noteTextarea.value = e, this._noteTextarea._mjrAutoFit?.());
+			}
+			return;
+		}
+		if (!this._node?.widgets) return;
+		let e = (this._el?.ownerDocument || document)?.activeElement || null;
+		for (let t of this._node.widgets) {
+			let n = this._inputMap.get(t.name), r = rt(n);
+			if (!r) continue;
+			if (r.type === "checkbox") {
+				let e = !!t.value;
+				r.checked !== e && (r.checked = e);
+				continue;
+			}
+			let i = t.value == null ? "" : String(t.value);
+			String(r.value ?? "") !== i && (e && r === e || (r.value = i, n?._mjrAutoFit?.(), r?._mjrAutoFit?.()));
+		}
+	}
+	dispose() {
+		this._el?.remove(), this._el = null, this._autoFits = [], this._inputMap.clear();
+	}
+	setExpanded(e) {
+		this._expanded = !!e, this._applyExpandedState(), this._expanded && this._autoFits?.length && requestAnimationFrame(() => {
+			for (let e of this._autoFits) e();
+		}), this._onToggle?.(this._expanded);
+	}
+	_render() {
+		let e = this._node, t = document.createElement("section");
+		t.className = "mjr-ws-node", t.dataset.nodeId = String(e.id ?? ""), this._isSubgraph && (t.classList.add("mjr-ws-node--subgraph"), t.dataset.subgraph = "true", t.dataset.childCount = String(this._childCount)), this._depth > 0 && (t.dataset.depth = String(this._depth), t.classList.add("mjr-ws-node--nested"));
+		let n = document.createElement("div");
+		if (n.className = "mjr-ws-node-header", this._collapsible) {
+			this._header = n;
+			let e = document.createElement("button");
+			e.type = "button", e.className = "mjr-icon-btn mjr-ws-node-toggle", e.title = this._expanded ? "Collapse node" : "Expand node", e.addEventListener("click", (e) => {
+				e.stopPropagation(), this.setExpanded(!this._expanded);
+			}), n.appendChild(e), this._toggleBtn = e, n.addEventListener("click", (e) => {
+				e.target?.closest?.("button") || this.setExpanded(!this._expanded);
+			}), n.title = this._expanded ? "Collapse node" : "Expand node";
+		}
+		let r = document.createElement("div");
+		r.className = "mjr-ws-node-title-wrap";
+		let i = document.createElement("span");
+		i.className = "mjr-ws-node-type";
+		let a = et(e, { isSubgraph: this._isSubgraph });
+		i.textContent = a, r.appendChild(i);
+		let o = tt(e, a, { isSubgraph: this._isSubgraph });
+		if (o) {
+			let e = document.createElement("span");
+			e.className = "mjr-ws-node-title", e.textContent = o, r.appendChild(e);
+		}
+		if (n.appendChild(r), this._isSubgraph) {
+			let e = document.createElement("span");
+			e.className = "mjr-ws-node-kind", e.title = `${this._childCount} inner node${this._childCount === 1 ? "" : "s"}`;
+			let t = document.createElement("i");
+			t.className = "pi pi-sitemap", t.setAttribute("aria-hidden", "true"), e.appendChild(t);
+			let r = document.createElement("span");
+			r.textContent = "Subgraph", e.appendChild(r);
+			let i = document.createElement("span");
+			i.className = "mjr-ws-node-kind-count", i.textContent = String(this._childCount), e.appendChild(i), n.appendChild(e), this._subgraphHeaderTitle = `${a} | Subgraph | ${this._childCount} inner node${this._childCount === 1 ? "" : "s"}`, n.title = this._subgraphHeaderTitle;
+		}
+		let s = document.createElement("button");
+		s.type = "button", s.className = "mjr-icon-btn mjr-ws-locate", s.title = "Locate on canvas", s.innerHTML = "<i class=\"pi pi-map-marker\" aria-hidden=\"true\"></i>", s.addEventListener("click", (e) => {
+			e.stopPropagation(), this._locateNode();
+		}), n.appendChild(s), t.appendChild(n);
+		let c = document.createElement("div");
+		if (c.className = "mjr-ws-node-body", Ke(e)) {
+			let n = document.createElement("textarea");
+			n.className = "mjr-ws-input mjr-ws-textarea mjr-ws-note-textarea", n.value = qe(e), n.rows = 4;
+			let r = () => {
+				n.style.height = "auto", n.style.height = n.scrollHeight + "px";
+			};
+			return n.addEventListener("input", () => {
+				Je(e, n.value);
+				let t = e?.widgets?.[0], i = t?.inputEl ?? t?.element ?? t?.el ?? null;
+				i != null && "value" in i && i.value !== n.value && (i.value = n.value), r();
+				try {
+					l(e);
+				} catch {}
+			}), n._mjrAutoFit = r, this._noteTextarea = n, this._autoFits.push(r), c.appendChild(n), this._body = c, t.appendChild(c), this._el = t, this._applyExpandedState(), requestAnimationFrame(r), t;
+		}
+		let u = e.widgets ?? [], d = !1;
+		for (let t of u) {
+			let n = String(t.type || "").toLowerCase();
+			if (We.has(n) || t.hidden || t.options?.hidden) continue;
+			d = !0;
+			let r = n === "text" || n === "string" || n === "customtext", i = document.createElement("div");
+			i.className = r ? "mjr-ws-widget-row mjr-ws-widget-row--block" : "mjr-ws-widget-row";
+			let a = document.createElement("label");
+			a.className = "mjr-ws-widget-label", a.textContent = t.name || "";
+			let o = document.createElement("div");
+			o.className = "mjr-ws-widget-input";
+			let s = F(t, () => {}, e);
+			o.appendChild(s), this._inputMap.set(t.name, s);
+			let l = s._mjrAutoFit ?? s.querySelector?.("textarea")?._mjrAutoFit;
+			l && this._autoFits.push(l), i.appendChild(a), i.appendChild(o), c.appendChild(i);
+		}
+		if (!d) {
+			let e = document.createElement("div");
+			e.className = "mjr-ws-node-empty", e.textContent = "No editable parameters", c.appendChild(e);
+		}
+		return this._body = c, t.appendChild(c), this._el = t, this._applyExpandedState(), t;
+	}
+	_applyExpandedState() {
+		if (this._el && this._body) {
+			if (this._el.classList.toggle("is-collapsible", this._collapsible), this._el.classList.toggle("is-collapsed", this._collapsible && !this._expanded), this._toggleBtn) {
+				let e = this._expanded ? "pi pi-chevron-down" : "pi pi-chevron-right";
+				this._toggleBtn.textContent = "";
+				let t = document.createElement("i");
+				t.className = e, t.setAttribute("aria-hidden", "true"), this._toggleBtn.appendChild(t), this._toggleBtn.title = this._expanded ? "Collapse node" : "Expand node", this._toggleBtn.setAttribute("aria-expanded", String(this._expanded));
+			}
+			if (this._header) {
+				let e = this._expanded ? "Collapse node" : "Expand node";
+				this._header.title = this._subgraphHeaderTitle ? `${this._subgraphHeaderTitle} | ${e}` : e;
+			}
+		}
+	}
+	_locateNode() {
+		if (this._onLocate) {
+			this._onLocate();
+			return;
+		}
+		let e = this._node;
+		if (e) try {
+			d(e, {
+				select: !1,
+				focusCanvas: !1
+			});
+		} catch (e) {
+			console.debug?.("[MFV sidebar] locateNode error", e);
+		}
+	}
+};
+function rt(e) {
+	return e ? e.classList?.contains?.("mjr-ws-text-wrapper") ? e.querySelector?.("textarea") ?? e : e : null;
+}
+// ui/features/viewer/workflowSidebar/WorkflowNodesTab.ts
+var it = class {
+	_searchQuery;
+	_expandedNodeIds;
+	_expandedChildrenIds;
+	_renderers;
+	_el;
+	_searchInput;
+	_list;
+	_lastNodeSig;
+	_lastSelectedId;
+	constructor() {
+		this._searchQuery = "", this._expandedNodeIds = /* @__PURE__ */ new Set(), this._expandedChildrenIds = /* @__PURE__ */ new Set(), this._renderers = [], this._el = this._build(), this._lastNodeSig = "", this._lastSelectedId = "";
+	}
+	get el() {
+		return this._el;
+	}
+	refresh() {
+		this._maybeRebuildList();
+		for (let e of this._renderers) e.syncFromGraph();
+	}
+	forceRebuild() {
+		this._lastNodeSig = "", this._maybeRebuildList();
+	}
+	dispose() {
+		for (let e of this._renderers) e.dispose();
+		this._renderers = [], this._el?.remove?.();
+	}
+	_build() {
+		let e = document.createElement("div");
+		e.className = "mjr-ws-nodes-tab";
+		let t = document.createElement("div");
+		t.className = "mjr-ws-search-wrap";
+		let n = document.createElement("i");
+		n.className = "pi pi-search mjr-ws-search-icon", n.setAttribute("aria-hidden", "true"), t.appendChild(n), this._searchInput = document.createElement("input"), this._searchInput.type = "text", this._searchInput.className = "mjr-ws-search", this._searchInput.placeholder = "Search nodes...", this._searchInput.addEventListener("input", () => {
+			this._searchQuery = this._searchInput.value, this.forceRebuild();
+		}), t.appendChild(this._searchInput);
+		let r = document.createElement("button");
+		return r.type = "button", r.className = "mjr-ws-search-clear", r.title = "Clear search", r.innerHTML = "<i class=\"pi pi-times\" aria-hidden=\"true\"></i>", r.addEventListener("click", () => {
+			this._searchInput.value = "", this._searchQuery = "", this.forceRebuild();
+		}), t.appendChild(r), e.appendChild(t), this._list = document.createElement("div"), this._list.className = "mjr-ws-nodes-list", e.appendChild(this._list), e;
+	}
+	_syncCanvasSelection() {
+		let e = ft()[0] || "", t = null;
+		for (let n of this._renderers) {
+			let r = String(n._node?.id ?? "") === e;
+			n.el?.classList?.toggle("is-selected-from-graph", r), r && (t = n);
+		}
+		if (!e) this._lastSelectedId = "";
+		else if (e !== this._lastSelectedId && (this._lastSelectedId = e, t)) {
+			t._expanded || t.setExpanded(!0);
+			try {
+				let e = t._mjrTreeItemEl || t.el;
+				this._openTreeBranch(e);
+				let n = e?.parentElement;
+				n && n.firstElementChild !== e && n.insertBefore(e, n.firstElementChild), t.el?.scrollIntoView({
+					block: "start",
+					inline: "nearest"
+				});
+			} catch (e) {
+				console.debug?.("[MFV] promote selected node failed", e);
+			}
+		}
+	}
+	_maybeRebuildList() {
+		let e = st(at()), t = (this._searchQuery || "").toLowerCase().trim(), n = t ? ct(e, t) : e, r = lt(n);
+		if (r === this._lastNodeSig) this._syncCanvasSelection();
+		else {
+			this._lastNodeSig = r;
+			for (let e of this._renderers) e.dispose();
+			if (this._renderers = [], this._list.innerHTML = "", !n.length) {
+				let t = document.createElement("div");
+				t.className = "mjr-ws-sidebar-empty", t.textContent = e.length ? "No nodes match your search" : "No nodes in workflow", this._list.appendChild(t);
+			} else this._renderItems(n, this._list, 0, null), this._syncCanvasSelection();
+		}
+	}
+	_renderItems(e, t, n, r) {
+		for (let { node: i, children: a } of e) {
+			let e = String(i?.id ?? ""), o = a.length, s = document.createElement("div");
+			s.className = "mjr-ws-tree-item", s.dataset.nodeId = e, s._mjrNodeId = e, s._mjrParentTreeItem = r || null, o > 0 && s.classList.add("mjr-ws-tree-item--subgraph"), n > 0 && s.classList.add("mjr-ws-tree-item--nested");
+			let c = new nt(i, {
+				collapsible: !0,
+				expanded: this._expandedNodeIds.has(e),
+				depth: n,
+				isSubgraph: o > 0,
+				childCount: o,
+				onLocate: () => dt(i),
+				onToggle: (t) => {
+					if (t) {
+						this._expandedNodeIds = /* @__PURE__ */ new Set([e]);
+						for (let e of this._renderers) e !== c && e.setExpanded(!1);
+					} else this._expandedNodeIds.delete(e);
+				}
+			});
+			if (c._mjrTreeItemEl = s, this._renderers.push(c), s.appendChild(c.el), o > 0) {
+				let t = this._expandedChildrenIds.has(e), r = document.createElement("button");
+				r.type = "button", r.className = "mjr-ws-children-toggle", n > 0 && r.classList.add("mjr-ws-children-toggle--nested"), ut(r, o, t);
+				let i = document.createElement("div");
+				i.className = "mjr-ws-children", i.hidden = !t, s._mjrChildrenToggle = r, s._mjrChildrenEl = i, s._mjrChildCount = o, this._renderItems(a, i, n + 1, s), r.addEventListener("click", () => {
+					this._setTreeItemChildrenOpen(s, i.hidden);
+				}), s.appendChild(r), s.appendChild(i);
+			}
+			t.appendChild(s);
+		}
+	}
+	_setTreeItemChildrenOpen(e, t) {
+		if (!e?._mjrChildrenEl || !e?._mjrChildrenToggle) return;
+		let n = String(e._mjrNodeId || "");
+		e._mjrChildrenEl.hidden = !t, n && (t ? this._expandedChildrenIds.add(n) : this._expandedChildrenIds.delete(n)), ut(e._mjrChildrenToggle, Number(e._mjrChildCount) || 0, t);
+	}
+	_openTreeBranch(e) {
+		let t = e || null;
+		for (; t;) {
+			let e = t._mjrParentTreeItem || null;
+			e && this._setTreeItemChildrenOpen(e, !0), t = e;
+		}
+		this._setTreeItemChildrenOpen(e, !0);
+	}
+};
+function at() {
+	try {
+		return h();
+	} catch {
+		return null;
+	}
+}
+function ot(e) {
+	return b(e);
+}
+function st(e, t = /* @__PURE__ */ new Set()) {
+	if (!e || t.has(e)) return [];
+	t.add(e);
+	let n = y(e), r = [];
+	for (let e of n) {
+		if (!e) continue;
+		let n = ot(e).flatMap((e) => st(e, t));
+		r.push({
+			node: e,
+			children: n
+		});
+	}
+	return r;
+}
+function ct(e, t) {
+	let n = [];
+	for (let { node: r, children: i } of e) {
+		let e = (r.type || "").toLowerCase().includes(t) || (r.title || "").toLowerCase().includes(t), a = ct(i, t);
+		(e || a.length > 0) && n.push({
+			node: r,
+			children: a
+		});
+	}
+	return n;
+}
+function lt(e) {
+	let t = [];
+	function n(e) {
+		for (let { node: r, children: i } of e) t.push(r.id), t.push("["), n(i), t.push("]");
+	}
+	return n(e), t.join(",");
+}
+function ut(e, t, n) {
+	let r = n ? "pi-chevron-down" : "pi-chevron-right";
+	e.textContent = "";
+	let i = document.createElement("i");
+	i.className = `pi ${r}`, i.setAttribute("aria-hidden", "true"), e.appendChild(i);
+	let a = document.createElement("span");
+	a.textContent = `${t} inner node${t === 1 ? "" : "s"}`, e.appendChild(a), e.setAttribute("aria-expanded", String(n));
+}
+function dt(e) {
+	try {
+		d(e);
+	} catch (e) {
+		console.debug?.("[MFV] _focusNode", e);
+	}
+}
+function ft() {
+	try {
+		return n();
+	} catch (e) {
+		console.debug?.("[MFV] _getSelectedNodeIds", e);
+	}
+	return [];
+}
+// ui/features/viewer/workflowGraphMap/workflowGraphMapActions.ts
+async function pt(e) {
+	if (!e) return !1;
+	let t = JSON.stringify(xt(e), null, 2);
+	return I(t);
+}
+async function mt(e) {
+	return I(ht(e));
+}
+function ht(e) {
+	if (e == null) return "";
+	if (typeof e == "string") return e;
+	if (typeof e == "number" || typeof e == "boolean") return String(e);
+	try {
+		return JSON.stringify(e, null, 2);
+	} catch {
+		return String(e);
+	}
+}
+function gt(e) {
+	return g(e);
+}
+function _t(e) {
+	let t = h();
+	if (!e || !t || typeof t.add != "function") return !1;
+	let n = String(e?.type || e?.class_type || e?.comfyClass || "").trim(), r = null;
+	try {
+		r = o(n);
+	} catch (e) {
+		console.debug?.("[MFV Graph Map] createNode failed", e);
+	}
+	if (!r) return !1;
+	try {
+		let t = typeof structuredClone == "function" ? structuredClone(e) : JSON.parse(JSON.stringify(e));
+		return St(t, e), delete t.id, Array.isArray(t.pos) && (t.pos = [Number(t.pos[0] || 0) + 32, Number(t.pos[1] || 0) + 32]), typeof r.configure == "function" ? r.configure(t) : Object.assign(r, t), a(r);
+	} catch (e) {
+		return console.debug?.("[MFV Graph Map] import node failed", e), !1;
+	}
+}
+function vt(e) {
+	let n = yt();
+	if (!e || !n) return {
+		ok: !1,
+		count: 0,
+		reason: "no-target"
+	};
+	let r = bt(e), i = Array.isArray(n.widgets) ? n.widgets : [];
+	if (!r.length || !i.length) return {
+		ok: !1,
+		count: 0,
+		reason: "no-widgets"
+	};
+	let a = /* @__PURE__ */ new Map();
+	i.forEach((e, t) => {
+		for (let n of wt(e)) a.has(n) || a.set(n, {
+			widget: e,
+			index: t
+		});
+	});
+	let o = Et(B(e)), s = Et(n?.type || n?.comfyClass || n?.class_type), c = !!(o && s && o === s), l = /* @__PURE__ */ new Set(), u = 0;
+	for (let e of r) {
+		let t = Tt(e.label), r = t ? a.get(t) : null, o = e.index;
+		if ((!r || l.has(r.index)) && c && typeof o == "number" && Number.isInteger(o)) {
+			let e = i[o];
+			e && (r = {
+				widget: e,
+				index: o
+			});
+		}
+		r && !l.has(r.index) && ne(r.widget, X(e.value), n) && (l.add(r.index), u += 1);
+	}
+	return t(), {
+		ok: u > 0,
+		count: u,
+		reason: u > 0 ? "ok" : "no-match",
+		targetNode: n
+	};
+}
+function yt() {
+	return u() || null;
+}
+function bt(e) {
+	let t = te(e);
+	return Array.isArray(t) && t.length ? t.map(([e, t]) => ({
+		label: e,
+		value: t
+	})) : P(e);
+}
+function xt(e) {
+	let t = typeof structuredClone == "function" ? structuredClone(e) : JSON.parse(JSON.stringify(e));
+	return St(t, e), t;
+}
+function St(e, t) {
+	let n = t?._mjrPromptInputs && typeof t._mjrPromptInputs == "object" ? t._mjrPromptInputs : null;
+	if (n) {
+		let r = Ct(t, n);
+		r && (e.widgets_values = r);
+	}
+	delete e._mjrPromptInputs, delete e._mjrSubgraphProxyParams;
+}
+function Ct(e, t) {
+	let n = Et(B(e)), r = P(e), i = new Map(r.map((e) => [Tt(e.label), e.value]));
+	if (n.includes("ksamplerselect")) return t.sampler_name == null ? null : [X(t.sampler_name)];
+	if (n.includes("ksampler")) {
+		let e = t.control_after_generate ?? i.get("control_after_generate") ?? r[1]?.value;
+		return [
+			X(t.seed),
+			X(e),
+			X(t.steps),
+			X(t.cfg),
+			X(t.sampler_name),
+			X(t.scheduler),
+			X(t.denoise)
+		];
+	}
+	return null;
+}
+function wt(e) {
+	return [
+		e?.name,
+		e?.label,
+		e?.options?.name,
+		e?.options?.label
+	].map(Tt).filter(Boolean);
+}
+function Tt(e) {
+	return String(e ?? "").trim().toLowerCase().replace(/\s+/g, "_");
+}
+function Et(e) {
+	return String(e ?? "").trim().toLowerCase();
+}
+function X(e) {
+	if (typeof e != "object" || !e) return e;
+	try {
+		return typeof structuredClone == "function" ? structuredClone(e) : JSON.parse(JSON.stringify(e));
+	} catch {
+		return e;
+	}
+}
+// ui/features/viewer/workflowGraphMap/WorkflowGraphMapPanel.ts
+var Dt = 64, Ot = class {
+	constructor({ large: e = !1 } = {}) {
+		this._asset = null, this._workflow = null, this._selectedNodeId = "", this._renderInfo = null, this._resizeObserver = null, this._resizeObservedTarget = null, this._resizeObserverWindow = null, this._large = !!e, this._view = {
+			zoom: 1,
+			centerX: null,
+			centerY: null
+		}, this._drag = null, this._previewMedia = null, this._previewKey = "", this._subgraphDisplayMode = "expand", this._modeButtons = /* @__PURE__ */ new Map(), this._el = this._build();
+	}
+	get el() {
+		return this._el;
+	}
+	setAsset(e) {
+		this._asset !== e && (this._asset = e || null, this._workflow = se(this._asset), this._selectedNodeId = "", this._view = {
+			zoom: 1,
+			centerX: null,
+			centerY: null
+		}, this.refresh(), L(this._workflow).then(() => this.refresh()).catch(() => {}));
+	}
+	refresh() {
+		this._ensureResizeObserver(), this._el?.isConnected && (this._renderCanvas(), this._renderDetails());
+	}
+	dispose() {
+		this._disposePreviewMedia(), this._resizeObserver?.disconnect?.(), this._resizeObserver = null, this._el?.remove?.();
+	}
+	_build() {
+		let e = document.createElement("div");
+		e.className = "mjr-wgm", this._large && (e.className += " mjr-wgm--large");
+		let t = document.createElement("div");
+		return t.className = "mjr-wgm-map-wrap", this._mapWrap = t, this._large ? (this._canvas = document.createElement("canvas"), this._canvas.className = "mjr-wgm-canvas", this._canvas.addEventListener?.("click", (e) => this._handleCanvasClick(e)), this._canvas.addEventListener?.("wheel", (e) => this._handleWheel(e), { passive: !1 }), this._canvas.addEventListener?.("dblclick", (e) => this._handleCanvasDblClick(e)), this._canvas.addEventListener?.("pointerdown", (e) => this._handlePointerDown(e)), t.appendChild(this._canvas)) : (this._preview = document.createElement("div"), this._preview.className = "mjr-wgm-preview", t.appendChild(this._preview)), e.appendChild(t), this._status = document.createElement("div"), this._status.className = "mjr-wgm-status", e.appendChild(this._status), this._large && (this._toolbar = document.createElement("div"), this._toolbar.className = "mjr-wgm-toolbar", this._toolbar.appendChild(this._makeModeButton("Expand subgraphs", "expand")), this._toolbar.appendChild(this._makeModeButton("Host nodes only", "host")), e.appendChild(this._toolbar), this._syncModeButtons()), this._details = document.createElement("div"), this._details.className = "mjr-wgm-details", e.appendChild(this._details), this._ensureResizeObserver(), e;
+	}
+	_ensureResizeObserver() {
+		let e = this._mapWrap;
+		if (!e) return;
+		let t = Z(e), n = t?.ResizeObserver || globalThis.ResizeObserver;
+		if (typeof n == "function" && !(this._resizeObserver && this._resizeObservedTarget === e && this._resizeObserverWindow === t)) {
+			try {
+				this._resizeObserver?.disconnect?.();
+			} catch (e) {
+				console.debug?.(e);
+			}
+			try {
+				this._resizeObserver = new n(() => this.refresh()), this._resizeObserver.observe(e), this._resizeObservedTarget = e, this._resizeObserverWindow = t;
+			} catch (e) {
+				console.debug?.(e), this._resizeObserver = null, this._resizeObservedTarget = null, this._resizeObserverWindow = null;
+			}
+		}
+	}
+	_renderCanvas() {
+		if (!this._large) {
+			this._renderPreview();
+			return;
+		}
+		let e = this._canvas;
+		if (!e) return;
+		let t = e.getBoundingClientRect(), n = Math.max(1, Math.floor(t.width || e.clientWidth || 1)), r = Math.max(1, Math.floor(t.height || e.clientHeight || 1)), i = Z(e), a = Math.max(1, Math.min(2, Number(i?.devicePixelRatio) || 1)), o = Math.floor(n * a), s = Math.floor(r * a);
+		(e.width !== o || e.height !== s) && (e.width = o, e.height = s);
+		let c = e.getContext?.("2d");
+		c && c.setTransform(a, 0, 0, a, 0, 0), this._workflow ? (this._renderInfo = O(e, this._workflow, {
+			showNodeLabels: !0,
+			showViewport: !1,
+			expandSubgraphs: this._subgraphDisplayMode !== "host",
+			view: {
+				hoveredNodeId: this._selectedNodeId || null,
+				zoom: this._view.zoom,
+				centerX: this._view.centerX,
+				centerY: this._view.centerY
+			}
+		}), this._renderInfo?.resolvedView && (this._view.centerX = this._renderInfo.resolvedView.centerX, this._view.centerY = this._renderInfo.resolvedView.centerY, this._view.zoom = this._renderInfo.resolvedView.zoom)) : (c?.clearRect?.(0, 0, n, r), this._renderInfo = null);
+	}
+	_renderDetails() {
+		let e = this._subgraphDisplayMode !== "host", t = ae(this._workflow, { includeSubgraphs: e }).length;
+		if (!this._workflow) {
+			this._status.textContent = this._large ? "No workflow graph in selected image" : "Selected asset - no workflow graph", kt(this._details);
+			return;
+		}
+		this._status.textContent = this._large ? this._selectedNodeId ? `${t} nodes (${this._subgraphDisplayMode}) - selected #${this._selectedNodeId}` : `${t} nodes (${this._subgraphDisplayMode}) - select a node` : `${t} nodes - graph opened in viewer`;
+		let n = R(this._workflow, this._selectedNodeId, { includeSubgraphs: e });
+		if (!n) {
+			let e = document.createElement("div");
+			e.className = "mjr-ws-sidebar-empty", e.textContent = this._large ? "Click a node in the graph map" : "Use the large Graph Map in the viewer to select nodes", kt(this._details, e);
+			return;
+		}
+		let r = document.createElement("div");
+		r.className = "mjr-wgm-node-title", r.textContent = H(n);
+		let i = document.createElement("div");
+		i.className = "mjr-wgm-node-meta", i.textContent = `#${this._selectedNodeId} ${z(n) || B(n) || "Node"}`;
+		let a = this._buildBreadcrumb(n), o = document.createElement("div");
+		o.className = "mjr-wgm-actions", o.appendChild(this._makeAction("Copy node", "pi pi-copy", () => pt(n))), o.appendChild(this._makeAction("Import node", "pi pi-plus-circle", () => _t(n))), o.appendChild(this._makeAction("Import workflow", "pi pi-download", () => gt(this._workflow))), o.appendChild(this._makeAction("Transfer params to selected canvas node", "pi pi-arrow-right-arrow-left", () => vt(n)?.ok));
+		let s = this._buildNodeVisual(n);
+		kt(this._details, r, i, a, s, o);
+	}
+	_makeModeButton(e, t) {
+		let n = document.createElement("button");
+		return n.type = "button", n.className = "mjr-wgm-mode", n.textContent = String(e), n.addEventListener?.("click", () => this._setSubgraphDisplayMode(t)), this._modeButtons.set(t, n), n;
+	}
+	_buildBreadcrumb(e) {
+		let t = document.createElement("div");
+		t.className = "mjr-wgm-breadcrumb";
+		let n = ["Workflow"], r = String(e?._mjrSubgraphName || "").trim(), i = String(this._selectedNodeId || "");
+		(r || i.includes("::")) && n.push(r || String(i.split("::")[0] || "Subgraph")), n.push(H(e));
+		for (let e = 0; e < n.length; e += 1) {
+			if (e > 0) {
+				let e = document.createElement("span");
+				e.className = "mjr-wgm-breadcrumb-sep", e.textContent = "/", t.appendChild(e);
+			}
+			let r = document.createElement("span");
+			r.className = "mjr-wgm-breadcrumb-item", r.textContent = n[e], t.appendChild(r);
+		}
+		return t;
+	}
+	_setSubgraphDisplayMode(e) {
+		(e === "expand" || e === "host") && this._subgraphDisplayMode !== e && (this._subgraphDisplayMode = e, e === "host" && String(this._selectedNodeId || "").includes("::") && (this._selectedNodeId = ""), this._syncModeButtons(), this.refresh());
+	}
+	_syncModeButtons() {
+		for (let [e, t] of this._modeButtons.entries()) t.classList?.toggle?.("is-active", e === this._subgraphDisplayMode);
+	}
+	_buildNodeVisual(e) {
+		let t = document.createElement("section");
+		t.className = "mjr-wgm-node-visual", t.classList.add(`is-${zt(e)}`);
+		let n = document.createElement("div");
+		n.className = "mjr-wgm-node-visual-header";
+		let r = document.createElement("span");
+		r.className = "mjr-wgm-node-visual-type", r.textContent = z(e) || B(e) || "Node";
+		let i = document.createElement("span");
+		i.className = "mjr-wgm-node-visual-id", i.textContent = `#${String(e?.id ?? this._selectedNodeId ?? "")}`, n.append(r, i);
+		let a = document.createElement("div");
+		a.className = "mjr-wgm-node-ports";
+		let o = this._buildPortColumn("Inputs", e?.inputs, "in"), s = this._buildPortColumn("Outputs", e?.outputs, "out");
+		a.append(o, s);
+		let c = document.createElement("div");
+		c.className = "mjr-wgm-node-widgets";
+		let l = document.createElement("div");
+		l.className = "mjr-wgm-node-widgets-title", l.textContent = "Widgets", c.appendChild(l);
+		let u = Rt(e);
+		if (u.length) {
+			for (let e of u.slice(0, 12)) {
+				let t = document.createElement("div");
+				t.className = "mjr-wgm-node-widget", t.tabIndex = 0, t.role = "button";
+				let n = String(e?.label || e?.key || "value");
+				t.title = `Copy ${n}`;
+				let r = document.createElement("span");
+				r.className = "mjr-wgm-node-widget-key", r.textContent = n;
+				let i = document.createElement("span");
+				i.className = "mjr-wgm-node-widget-value";
+				let a = jt(e?.value);
+				i.textContent = a, Mt(e?.value, a) && t.classList.add("is-multiline"), Nt(n) && t.classList.add("is-text-field"), t.append(r, i), t.addEventListener("click", () => this._copyParam(t, e?.value)), t.addEventListener("keydown", (n) => {
+					(n.key === "Enter" || n.key === " ") && (n.preventDefault?.(), this._copyParam(t, e?.value));
+				}), c.appendChild(t);
+			}
+			if (u.length > 12) {
+				let e = document.createElement("div");
+				e.className = "mjr-wgm-node-widget-more", e.textContent = `+${u.length - 12} more values`, c.appendChild(e);
+			}
+		} else {
+			let e = document.createElement("div");
+			e.className = "mjr-wgm-node-widget-empty", e.textContent = "No widget values", c.appendChild(e);
+		}
+		return t.append(n, a, c), t;
+	}
+	_buildPortColumn(e, t, n) {
+		let r = document.createElement("div");
+		r.className = "mjr-wgm-node-ports-col";
+		let i = document.createElement("div");
+		i.className = "mjr-wgm-node-ports-title", i.textContent = String(e), r.appendChild(i);
+		let a = document.createElement("div");
+		a.className = "mjr-wgm-node-ports-list";
+		let o = Pt(t).slice(0, 8);
+		if (o.length) for (let e of o) {
+			let t = document.createElement("div");
+			t.className = "mjr-wgm-node-port";
+			let r = document.createElement("span");
+			r.className = `mjr-wgm-node-port-dot is-${n}`;
+			let i = document.createElement("span");
+			i.className = "mjr-wgm-node-port-name";
+			let o = It(e);
+			if (i.textContent = o.label, t.append(r, i), o.type) {
+				let e = document.createElement("span");
+				e.className = "mjr-wgm-node-port-type", e.textContent = o.type, t.appendChild(e);
+			}
+			a.appendChild(t);
+		}
+		else {
+			let e = document.createElement("div");
+			e.className = "mjr-wgm-node-port-empty", e.textContent = "-", a.appendChild(e);
+		}
+		return r.appendChild(a), r;
+	}
+	_makeAction(e, t, n) {
+		let r = document.createElement("button");
+		return r.type = "button", r.className = "mjr-wgm-action", r.title = e, r.innerHTML = `<i class="${t}" aria-hidden="true"></i><span>${e}</span>`, r.addEventListener("click", async () => {
+			try {
+				let e = await n();
+				r.classList.toggle("is-ok", !!e), Z(r).setTimeout(() => r.classList.remove("is-ok"), 700);
+			} catch (e) {
+				console.debug?.("[MFV Graph Map] action failed", e);
+			}
+		}), r;
+	}
+	async _copyParam(e, t) {
+		try {
+			let n = await mt(t);
+			e.classList.toggle("is-ok", !!n), e.classList.toggle("is-error", !n), Z(e).setTimeout(() => {
+				e.classList.remove("is-ok"), e.classList.remove("is-error");
+			}, 750);
+		} catch (t) {
+			e.classList.add("is-error"), Z(e).setTimeout(() => e.classList.remove("is-error"), 750), console.debug?.("[MFV Graph Map] param copy failed", t);
+		}
+	}
+	_renderPreview() {
+		if (!this._preview) return;
+		let e = Bt(this._asset), t = Vt(e);
+		if (this._previewMedia && t && t === this._previewKey) {
+			(this._preview.firstChild !== this._previewMedia || this._preview.childNodes.length !== 1) && kt(this._preview, this._previewMedia);
+			return;
+		}
+		this._disposePreviewMedia();
+		let n = J(e, { fill: !0 });
+		if (n) {
+			n.classList?.add?.("mjr-wgm-preview-media"), this._previewMedia = n, this._previewKey = t, this._preview.appendChild(n);
+			return;
+		}
+		let r = document.createElement("div");
+		r.className = "mjr-wgm-preview-empty", r.textContent = "No preview", kt(this._preview, r);
+	}
+	_disposePreviewMedia() {
+		let e = this._previewMedia;
+		if (this._previewMedia = null, this._previewKey = "", e) {
+			try {
+				e._mjrMediaControlsHandle?.destroy?.();
+			} catch (e) {
+				console.debug?.("[MFV Graph Map] preview cleanup failed", e);
+			}
+			try {
+				let t = e.querySelectorAll?.("video, audio") || [];
+				for (let e of t) e.pause?.();
+			} catch (e) {
+				console.debug?.("[MFV Graph Map] preview pause failed", e);
+			}
+			e.remove?.();
+		}
+	}
+	_handleCanvasClick(e) {
+		if (this._drag?.moved) return;
+		let t = this._canvas.getBoundingClientRect(), n = this._renderInfo?.hitTestNode?.(e.clientX - t.left, e.clientY - t.top);
+		n?.id && (this._selectedNodeId = String(n.id), this.refresh());
+	}
+	_handleWheel(e) {
+		if (!this._workflow) return;
+		e.preventDefault?.();
+		let t = (Number(e.deltaY) > 0 ? -1 : 1) > 0 ? 1.18 : 1 / 1.18, n = Number(this._view.zoom || 1), r = Math.max(1, Math.min(Dt, n * t));
+		if (r === n) return;
+		let i = this._renderInfo?.resolvedView;
+		if (i?.renderScale && i?.viewMinX != null && i?.viewMinY != null) {
+			let t = this._canvas.getBoundingClientRect(), a = e.clientX - t.left, o = e.clientY - t.top, { renderScale: s, viewMinX: c, viewMinY: l, visibleW: u, visibleH: d, pad: f } = i, p = c + (a - f) / s, m = l + (o - f) / s, h = r / n * s, g = n / r * u, _ = n / r * d, v = p - (a - f) / h, y = m - (o - f) / h;
+			this._view.zoom = r, this._view.centerX = v + g / 2, this._view.centerY = y + _ / 2;
+		} else this._view.zoom = r;
+		this.refresh();
+	}
+	_handleCanvasDblClick(e) {
+		if (!this._workflow) return;
+		let t = this._canvas.getBoundingClientRect(), n = this._renderInfo?.hitTestNode?.(e.clientX - t.left, e.clientY - t.top);
+		n?.x != null && n?.w != null ? this._zoomToWorldRect(n.x, n.y, n.w, n.h) : (this._view = {
+			zoom: 1,
+			centerX: null,
+			centerY: null
+		}, this.refresh());
+	}
+	_zoomToWorldRect(e, t, n, r) {
+		let i = this._renderInfo;
+		if (!i?.bounds) return;
+		let { bounds: a } = i, o = Math.max(1, a.maxX - a.minX), s = Math.max(1, a.maxY - a.minY), c = o / Math.max(1, n * 2), l = s / Math.max(1, r * 2);
+		this._view.zoom = Math.max(1, Math.min(Dt, Math.min(c, l))), this._view.centerX = e + n / 2, this._view.centerY = t + r / 2, this.refresh();
+	}
+	_handlePointerDown(e) {
+		if (!this._workflow || e.button !== 0) return;
+		let t = this._renderInfo?.resolvedView;
+		if (!t?.renderScale) return;
+		e.preventDefault?.(), this._canvas.setPointerCapture?.(e.pointerId), this._drag = {
+			pointerId: e.pointerId,
+			startX: e.clientX,
+			startY: e.clientY,
+			centerX: Number(this._view.centerX ?? t.centerX),
+			centerY: Number(this._view.centerY ?? t.centerY),
+			scale: Number(t.renderScale) || 1,
+			moved: !1
+		};
+		let n = (e) => {
+			if (!this._drag || e.pointerId !== this._drag.pointerId) return;
+			let t = e.clientX - this._drag.startX, n = e.clientY - this._drag.startY;
+			Math.abs(t) + Math.abs(n) > 3 && (this._drag.moved = !0), this._view.centerX = this._drag.centerX - t / this._drag.scale, this._view.centerY = this._drag.centerY - n / this._drag.scale, this._renderCanvas(), this._renderDetails();
+		}, r = (e) => {
+			if (!this._drag || e.pointerId !== this._drag.pointerId) return;
+			this._canvas.releasePointerCapture?.(e.pointerId);
+			let t = Z(this._canvas);
+			t.removeEventListener("pointermove", n), t.removeEventListener("pointerup", r), t.removeEventListener("pointercancel", r), t.setTimeout(() => {
+				this._drag = null;
+			}, 0);
+		}, i = Z(this._canvas);
+		i.addEventListener("pointermove", n), i.addEventListener("pointerup", r), i.addEventListener("pointercancel", r);
+	}
+};
+function Z(e) {
+	return e?.ownerDocument?.defaultView || window;
+}
+function kt(e, ...t) {
+	if (e) {
+		for (; e.firstChild;) e.removeChild(e.firstChild);
+		for (let n of t) e.appendChild(n);
+	}
+}
+function At(e) {
+	if (e == null) return "";
+	if (typeof e == "string") return e.replace(/\s+/g, " ").trim();
+	if (typeof e == "number" || typeof e == "boolean") return String(e);
+	try {
+		return JSON.stringify(e);
+	} catch {
+		return String(e);
+	}
+}
+function jt(e) {
+	return e == null ? "" : typeof e == "string" ? e.replace(/\r\n?/g, "\n").trim() : At(e);
+}
+function Mt(e, t) {
+	if (typeof e != "string") return !1;
+	let n = String(t || "");
+	return n.includes("\n") || n.length > 120;
+}
+function Nt(e) {
+	let t = String(e || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+	return t ? t === "text" || t === "prompt" || t === "positive" || t === "negative" || t === "string" || t === "caption" : !1;
+}
+function Pt(e) {
+	return Array.isArray(e) ? e.filter((e) => e && !Ft(e)).map((e) => ({
+		name: String(e?.name || e?.label || "").trim(),
+		type: String(e?.type || e?.slot_type || e?.data_type || "").trim()
+	})) : [];
+}
+function Ft(e) {
+	return !e || typeof e != "object" ? !1 : !!(e.widget === !0 || e.widget && typeof e.widget == "object" || typeof e.widget == "string" && e.widget.trim() || e.widget_index != null || e.widgetIndex != null);
+}
+function It(e) {
+	let t = String(e?.name || e?.label || e?.type || "port").trim() || "port", n = String(e?.type || "").trim(), r = Lt(t), i = Lt(n);
+	return {
+		label: t,
+		type: i && i !== r ? n : ""
+	};
+}
+function Lt(e) {
+	return String(e || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+function Rt(e) {
+	let t = te(e), n = Array.isArray(t) ? t.map(([e, t]) => ({
+		label: e,
+		value: t
+	})) : [];
+	if (n.length) return n.slice(0, 160);
+	let r = P(e);
+	return Array.isArray(r) && r.length ? r.map((e) => ({
+		label: e?.label,
+		key: e?.key,
+		value: e?.value
+	})) : [];
+}
+function zt(e) {
+	let t = `${String(B(e) || "").toLowerCase()} ${String(z(e) || "").toLowerCase()}`;
+	return t.trim() ? /ksampler|sampler|scheduler|cfg|steps|noise|seed/.test(t) ? "sampler" : /checkpoint|clip|vae|unet|lora|model|loader/.test(t) ? "model" : /text|prompt|token|encode|decoder|caption|florence/.test(t) ? "text" : /latent|image|mask|video|audio|preview|save|load|upscale/.test(t) ? "media" : /controlnet|conditioning|guidance|adapter|ipadapter/.test(t) ? "control" : /math|logic|switch|merge|concat|combine|route|branch|reroute/.test(t) ? "logic" : "generic" : "generic";
+}
+function Bt(e) {
+	if (!e || typeof e != "object") return e;
+	let t = (Array.isArray(e.previewCandidates) ? e.previewCandidates : []).find((e) => String(e || "").trim()) || e.url || "", n = String(e.type || "").toLowerCase(), r = String(e.kind || "").toLowerCase(), i = String(e.filename || e.name || ""), a = r || (e.isVideo || n === "video" || /\.(mp4|mov|webm|mkv|avi)$/i.test(i) ? "video" : e.isAudio || n === "audio" || /\.(mp3|wav|flac|ogg|m4a|aac|opus|wma)$/i.test(i) ? "audio" : e.isModel3d || n === "model3d" ? "model3d" : "");
+	return {
+		...e,
+		...t ? { url: t } : null,
+		...a ? {
+			kind: a,
+			asset_type: a
+		} : null
+	};
+}
+function Vt(e) {
+	return !e || typeof e != "object" ? "" : JSON.stringify({
+		url: String(e.url || ""),
+		filename: String(e.filename || e.name || ""),
+		kind: String(e.kind || e.asset_type || e.type || ""),
+		subfolder: String(e.subfolder || ""),
+		id: e.id ?? ""
+	});
+}
+// ui/features/viewer/workflowSidebar/WorkflowSidebar.ts
+var Ht = 16, Ut = 250, Wt = class {
+	_hostEl;
+	_onClose;
+	_onOpenGraphMap;
+	_onCloseGraphMap;
+	_visible;
+	_liveSyncHandle;
+	_liveSyncMode;
+	_lastLiveSyncAt;
+	_resizeCleanup;
+	_nodesTab;
+	_graphMapPanel;
+	_activeMode;
+	_asset;
+	_el;
+	_body;
+	_nodesModeBtn;
+	_graphModeBtn;
+	constructor({ hostEl: e, onClose: t, onOpenGraphMap: n, onCloseGraphMap: r } = {}) {
+		this._hostEl = e, this._onClose = t ?? null, this._onOpenGraphMap = n ?? null, this._onCloseGraphMap = r ?? null, this._visible = !1, this._liveSyncHandle = null, this._liveSyncMode = "", this._lastLiveSyncAt = 0, this._resizeCleanup = null, this._nodesTab = new it(), this._graphMapPanel = new Ot(), this._activeMode = "nodes", this._asset = null, this._body = null, this._nodesModeBtn = null, this._graphModeBtn = null, this._el = this._build();
+	}
+	get el() {
+		return this._el;
+	}
+	get isVisible() {
+		return this._visible;
+	}
+	show() {
+		this._visible = !0, this._el.classList.add("open"), this.refresh(), this._lastLiveSyncAt = Kt(this._el), this._startLiveSync();
+	}
+	hide() {
+		this._visible = !1, this._el.classList.remove("open"), this._stopLiveSync();
+	}
+	toggle() {
+		if (this._visible) {
+			let e = this._activeMode === "graph";
+			this.hide(), e && this._onCloseGraphMap?.(), this._onClose?.();
+		} else this.show();
+	}
+	refresh() {
+		this._visible && (this._activeMode === "graph" ? this._graphMapPanel?.refresh() : this._nodesTab?.refresh());
+	}
+	syncFromGraph() {
+		this._visible && (this._activeMode === "graph" ? this._graphMapPanel?.refresh() : this._nodesTab?.refresh());
+	}
+	setAsset(e) {
+		this._asset = e || null, this._graphMapPanel?.setAsset?.(this._asset);
+	}
+	dispose() {
+		this._stopLiveSync(), this._disposeResize(), this._nodesTab?.dispose?.(), this._graphMapPanel?.dispose?.(), this._nodesTab = null, this._graphMapPanel = null, this._el?.remove();
+	}
+	_build() {
+		let e = document.createElement("div");
+		e.className = "mjr-ws-sidebar";
+		let t = document.createElement("div");
+		t.className = "mjr-ws-sidebar-header";
+		let n = document.createElement("span");
+		n.className = "mjr-ws-sidebar-title", n.textContent = s("workflowSidebar.nodes", "Nodes"), t.appendChild(n);
+		let r = document.createElement("button");
+		r.type = "button", r.className = "mjr-icon-btn", r.title = s("workflowSidebar.close", "Close sidebar"), r.innerHTML = "<i class=\"pi pi-times\" aria-hidden=\"true\"></i>", r.addEventListener("click", () => {
+			let e = this._activeMode === "graph";
+			this.hide(), e && this._onCloseGraphMap?.(), this._onClose?.();
+		}), t.appendChild(r), e.appendChild(t);
+		let i = document.createElement("div");
+		i.className = "mjr-ws-tab-bar", this._nodesModeBtn = this._makeModeButton(s("workflowSidebar.nodes", "Nodes"), "pi pi-sliders-h", "nodes"), this._graphModeBtn = this._makeModeButton(s("workflowSidebar.graphMap", "Graph Map"), "pi pi-sitemap", "graph"), i.appendChild(this._nodesModeBtn), i.appendChild(this._graphModeBtn), e.appendChild(i);
+		let a = document.createElement("div");
+		return a.className = "mjr-ws-sidebar-resizer", a.setAttribute("role", "separator"), a.setAttribute("aria-orientation", "vertical"), a.setAttribute("aria-hidden", "true"), e.appendChild(a), this._bindResize(a), this._body = document.createElement("div"), this._body.className = "mjr-ws-sidebar-body", e.appendChild(this._body), this._renderActiveMode(), e;
+	}
+	_makeModeButton(e, t, n) {
+		let r = document.createElement("button");
+		return r.type = "button", r.className = "mjr-ws-tab", r.dataset.mode = n, r.innerHTML = `<i class="${t}" aria-hidden="true"></i><span>${e}</span>`, r.addEventListener("click", () => this._setMode(n)), r;
+	}
+	_setMode(e) {
+		let t = e === "graph" ? "graph" : "nodes";
+		this._activeMode === t && this._body?.firstElementChild || (this._activeMode = t, this._renderActiveMode(), t === "graph" ? this._onOpenGraphMap?.() : this._onCloseGraphMap?.(), this.refresh());
+	}
+	_renderActiveMode() {
+		if (!this._body) return;
+		this._nodesModeBtn?.classList?.toggle("is-active", this._activeMode === "nodes"), this._graphModeBtn?.classList?.toggle("is-active", this._activeMode === "graph"), this._nodesModeBtn?.setAttribute("aria-pressed", String(this._activeMode === "nodes")), this._graphModeBtn?.setAttribute("aria-pressed", String(this._activeMode === "graph"));
+		let e = this._activeMode === "graph" ? this._graphMapPanel?.el : this._nodesTab?.el;
+		if (e && this._body.firstElementChild !== e) {
+			for (; this._body.firstChild;) this._body.removeChild(this._body.firstChild);
+			this._body.appendChild(e);
+		}
+	}
+	_startLiveSync() {
+		if (this._liveSyncHandle != null) return;
+		let e = Gt(this._el), t = (e) => {
+			if (this._liveSyncHandle = null, this._liveSyncMode = "", !this._visible) return;
+			let t = Number.isFinite(Number(e)) ? Number(e) : Kt(this._el);
+			t - this._lastLiveSyncAt >= Ut && (this._lastLiveSyncAt = t, this.syncFromGraph()), this._startLiveSync();
+		};
+		typeof e.requestAnimationFrame == "function" ? (this._liveSyncMode = "raf", this._liveSyncHandle = e.requestAnimationFrame(t)) : (this._liveSyncMode = "timeout", this._liveSyncHandle = e.setTimeout(t, Ht));
+	}
+	_stopLiveSync() {
+		if (this._liveSyncHandle == null) return;
+		let e = Gt(this._el);
+		try {
+			this._liveSyncMode === "raf" && typeof e.cancelAnimationFrame == "function" ? e.cancelAnimationFrame(this._liveSyncHandle) : typeof e.clearTimeout == "function" && e.clearTimeout(this._liveSyncHandle);
+		} catch (e) {
+			console.debug?.(e);
+		}
+		this._liveSyncHandle = null, this._liveSyncMode = "";
+	}
+	_bindResize(e) {
+		if (!e) return;
+		let t = (e.ownerDocument || document).defaultView || window, n = (n) => {
+			if (n.button !== 0 || !this._el?.classList.contains("open")) return;
+			let r = this._el.parentElement;
+			if (!r) return;
+			let i = this._el.getBoundingClientRect(), a = r.getBoundingClientRect(), o = r.getAttribute("data-sidebar-pos") || "right", s = Math.max(180, Math.floor(a.width * (o === "bottom" ? 1 : .65)));
+			if (o === "bottom") return;
+			n.preventDefault(), n.stopPropagation(), e.classList.add("is-dragging"), this._el.classList.add("is-resizing");
+			let c = n.clientX, l = i.width, u = (e) => {
+				let t = e.clientX - c, n = o === "left" ? l - t : l + t, r = Math.max(180, Math.min(s, n));
+				this._el.style.width = `${Math.round(r)}px`;
+			}, d = () => {
+				e.classList.remove("is-dragging"), this._el.classList.remove("is-resizing"), t.removeEventListener("pointermove", u), t.removeEventListener("pointerup", d), t.removeEventListener("pointercancel", d);
+			};
+			t.addEventListener("pointermove", u), t.addEventListener("pointerup", d), t.addEventListener("pointercancel", d);
+		};
+		e.addEventListener("pointerdown", n), this._resizeCleanup = () => e.removeEventListener("pointerdown", n);
+	}
+	_disposeResize() {
+		try {
+			this._resizeCleanup?.();
+		} catch (e) {
+			console.debug?.(e);
+		}
+		this._resizeCleanup = null;
+	}
+};
+function Gt(e) {
+	return e?.ownerDocument?.defaultView || (typeof window < "u" ? window : globalThis);
+}
+function Kt(e) {
+	let t = Gt(e), n = t?.performance?.now;
+	if (typeof n == "function") try {
+		return Number(n.call(t.performance)) || Date.now();
+	} catch {
+		return Date.now();
+	}
+	return Date.now();
+}
+// ui/features/viewer/workflowSidebar/sidebarRunButton.ts
+var Q = Object.freeze({
+	IDLE: "idle",
+	RUNNING: "running",
+	STOPPING: "stopping",
+	ERROR: "error"
+}), qt = /* @__PURE__ */ new Set([
+	"default",
+	"auto",
+	"latent2rgb",
+	"taesd",
+	"none"
+]), Jt = "progress-update", Yt = (e, t = "") => s(e, t, void 0);
+function Xt() {
+	let t = document.createElement("div");
+	t.className = "mjr-mfv-run-controls";
+	let n = document.createElement("button");
+	n.type = "button", n.className = "mjr-icon-btn mjr-mfv-run-btn";
+	let r = Yt("tooltip.queuePrompt", "Queue Prompt (Run)");
+	n.title = r, n.setAttribute("aria-label", r);
+	let i = document.createElement("i");
+	i.className = "pi pi-play", i.setAttribute("aria-hidden", "true"), n.appendChild(i);
+	let a = document.createElement("button");
+	a.type = "button", a.className = "mjr-icon-btn mjr-mfv-stop-btn";
+	let o = document.createElement("i");
+	o.className = "pi pi-stop", o.setAttribute("aria-hidden", "true"), a.appendChild(o), t.appendChild(n), t.appendChild(a);
+	let s = Q.IDLE, c = !1, l = !1, u = null;
+	function d() {
+		u != null && (clearTimeout(u), u = null);
+	}
+	function f(e, { canStop: t = !1 } = {}) {
+		s = e, n.classList.toggle("running", s === Q.RUNNING), n.classList.toggle("stopping", s === Q.STOPPING), n.classList.toggle("error", s === Q.ERROR), n.disabled = s === Q.RUNNING || s === Q.STOPPING, a.disabled = !t || s === Q.STOPPING, a.classList.toggle("active", t && s !== Q.STOPPING), a.classList.toggle("stopping", s === Q.STOPPING), s === Q.RUNNING || s === Q.STOPPING ? i.className = "pi pi-spin pi-spinner" : i.className = "pi pi-play";
+	}
+	function p() {
+		let e = Yt("tooltip.queueStop", "Stop Generation");
+		a.title = e, a.setAttribute("aria-label", e);
+	}
+	function m(e = j.getSnapshot(), { authoritative: t = !1 } = {}) {
+		let n = Math.max(0, Number(e?.queue) || 0), r = e?.prompt || null, i = !!r?.currentlyExecuting, a = !!(r && (r.currentlyExecuting || r.errorDetails)), o = n > 0 || a, s = !!r?.errorDetails;
+		t && n === 0 && !r && (c = !1, l = !1);
+		let u = c || l || i || n > 0;
+		if ((i || o || n > 0) && (c = !1), s) l = !1, d(), f(Q.ERROR, { canStop: !1 });
+		else if (l) {
+			if (!u) {
+				l = !1, m(e);
+				return;
+			}
+			f(Q.STOPPING, { canStop: !1 });
+		} else c || i || o || n > 0 ? (d(), f(Q.RUNNING, { canStop: !0 })) : (d(), f(Q.IDLE, { canStop: !1 }));
+	}
+	function h() {
+		c = !1, l = !1, d(), f(Q.ERROR, { canStop: !1 }), u = setTimeout(() => {
+			u = null, m();
+		}, 1500);
+	}
+	async function g() {
+		return { tracked: await e(_()) };
+	}
+	async function v() {
+		if (s !== Q.RUNNING && s !== Q.STOPPING) {
+			c = !0, l = !1, m();
+			try {
+				(await nn())?.tracked || (c = !1), m();
+			} catch (e) {
+				console.error?.("[MFV Run]", e), h();
+			}
+		}
+	}
+	async function y() {
+		if (s === Q.RUNNING) {
+			l = !0, m();
+			try {
+				(await g())?.tracked || (l = !1, c = !1), m();
+			} catch (e) {
+				console.error?.("[MFV Stop]", e), l = !1, m();
+			}
+		}
+	}
+	p(), a.disabled = !0, n.addEventListener("click", v), a.addEventListener("click", y);
+	let b = (e) => {
+		m(e?.detail || j.getSnapshot(), { authoritative: !0 });
+	};
+	return j.addEventListener(Jt, b), M({ timeoutMs: 4e3 }).catch((e) => {
+		console.debug?.(e);
+	}), m(), {
+		el: t,
+		dispose() {
+			d(), n.removeEventListener("click", v), a.removeEventListener("click", y), j.removeEventListener(Jt, b);
+		}
+	};
+}
+function Zt(e = p.MFV_PREVIEW_METHOD) {
+	let t = String(e || "").trim().toLowerCase();
+	return qt.has(t) ? t : p.MFV_PREVIEW_METHOD || "auto";
+}
+function Qt(e, t = p.MFV_PREVIEW_METHOD) {
+	let n = Zt(t), r = {
+		...e?.extra_data || {},
+		extra_pnginfo: { ...e?.extra_data?.extra_pnginfo || {} }
+	};
+	return e?.workflow != null && (r.extra_pnginfo.workflow = e.workflow), n === "default" ? delete r.preview_method : r.preview_method = n, {
+		...e,
+		extra_data: r
+	};
+}
+function $t(e, { previewMethod: t = p.MFV_PREVIEW_METHOD, clientId: n = null } = {}) {
+	let r = Qt(e, t), i = {
+		prompt: r?.output,
+		extra_data: r?.extra_data || {}
+	}, a = String(n || "").trim();
+	return a && (i.client_id = a), i;
+}
+function en(e) {
+	let t = e?.constructor;
+	return [
+		e?.type,
+		e?.comfyClass,
+		e?.class_type,
+		t?.type
+	].some((e) => /Api$/i.test(String(e || "").trim()));
+}
+function tn(e) {
+	let t = !1;
+	return x(e, ({ node: e }) => {
+		t ||= en(e);
+	}), t;
+}
+async function nn() {
+	let e = _();
+	if (!e) throw Error("ComfyUI app not available");
+	let t = tn(v(e));
+	return { tracked: await c({
+		app: e,
+		forceNativeQueue: t,
+		resolvePromptData(e) {
+			return typeof e?.graphToPrompt == "function" ? e.graphToPrompt() : null;
+		},
+		enrichPromptData(e) {
+			return Qt(e);
+		},
+		buildPromptRequestBody(e, t) {
+			return $t(e, { clientId: t.clientId });
+		}
+	}) };
+}
+// ui/features/viewer/floatingViewerUi.ts
+function rn(e) {
+	let t = e?.models;
+	if (!t || typeof t != "object") return "";
+	let n = [
+		["HN", t.unet_high_noise],
+		["LN", t.unet_low_noise],
+		["UNet", t.unet],
+		["Diff", t.diffusion],
+		["Upsc", t.upscaler],
+		["CLIP", t.clip],
+		["VAE", t.vae]
+	], r = /* @__PURE__ */ new Set(), i = [];
+	for (let [e, t] of n) {
+		let n = S(t?.name || t?.value || t || "");
+		if (n && !r.has(n) && (r.add(n), i.push(`${e}: ${n}`), i.length >= 3)) break;
+	}
+	return i.join(" | ");
+}
+function an(e) {
+	let t = T(e);
+	return t.workflowLabel ? [t.workflowLabel, t.workflowBadge].filter(Boolean).join(" | ") : "";
+}
+function on(e, t, n, r) {
+	let i = document.createElement("div");
+	i.className = "mjr-mfv-idrop";
+	let a = document.createElement("button");
+	a.type = "button", a.className = "mjr-icon-btn mjr-mfv-idrop-trigger", a.title = t || "", a.innerHTML = e, a.setAttribute("aria-haspopup", "listbox"), a.setAttribute("aria-expanded", "false"), i.appendChild(a);
+	let o = document.createElement("div");
+	o.className = "mjr-mfv-idrop-menu", o.setAttribute("role", "listbox");
+	let s = r?.element || i;
+	s.appendChild(o);
+	let c = document.createElement("select");
+	c.style.cssText = "position:absolute;opacity:0;pointer-events:none;width:0;height:0;overflow:hidden;", i.appendChild(c);
+	let l = [];
+	for (let e of n) {
+		let t = document.createElement("option");
+		t.value = String(e.value), c.appendChild(t);
+		let n = document.createElement("button");
+		n.type = "button", n.className = "mjr-mfv-idrop-item", n.setAttribute("role", "option"), n.dataset.value = String(e.value), n.innerHTML = e.html ?? String(e.label ?? e.value), o.appendChild(n), l.push(n);
+	}
+	let u = () => {
+		o.classList.remove("is-open"), a.setAttribute("aria-expanded", "false");
+	};
+	return a.addEventListener("click", (e) => {
+		e.stopPropagation();
+		let t = o.classList.contains("is-open");
+		if (r?.element?.querySelectorAll?.(".mjr-mfv-idrop-menu.is-open").forEach((e) => e.classList.remove("is-open")), !t) {
+			let e = a.getBoundingClientRect(), t = s.getBoundingClientRect?.() || {
+				left: 0,
+				top: 0
+			};
+			o.style.left = `${e.left - t.left}px`, o.style.top = `${e.bottom - t.top + 4}px`, o.classList.add("is-open"), a.setAttribute("aria-expanded", "true");
+		}
+	}), o.addEventListener("click", (e) => {
+		let t = e.target.closest(".mjr-mfv-idrop-item");
+		t && (c.value = t.dataset.value ?? "", c.dispatchEvent(new Event("change", { bubbles: !0 })), l.forEach((e) => {
+			e.classList.toggle("is-selected", e === t), e.setAttribute("aria-selected", String(e === t));
+		}), u());
+	}), {
+		wrap: i,
+		trigger: a,
+		menu: o,
+		select: c,
+		selectItem: (e) => {
+			c.value = String(e), l.forEach((t) => {
+				t.classList.toggle("is-selected", t.dataset.value === String(e)), t.setAttribute("aria-selected", String(t.dataset.value === String(e)));
+			});
+		}
+	};
+}
+var sn = {
+	rgb: "#e0e0e0",
+	r: "#ff5555",
+	g: "#44dd66",
+	b: "#5599ff",
+	a: "#ffffff",
+	l: "#bbbbbb"
+}, cn = {
+	rgb: "RGB",
+	r: "R",
+	g: "G",
+	b: "B",
+	a: "A",
+	l: "L"
+}, ln = {
+	rgb: "500",
+	r: "700",
+	g: "700",
+	b: "700",
+	a: "700",
+	l: "400"
+};
+function un(e) {
+	let t = document.createElement("div");
+	return t.className = "mjr-mfv", t.setAttribute("role", "dialog"), t.setAttribute("aria-modal", "false"), t.setAttribute("aria-hidden", "true"), e.element = t, t.appendChild(e._buildHeader()), t.setAttribute("aria-labelledby", e._titleId), t.appendChild(e._buildToolbar()), t.appendChild(oe(e)), e._contentWrapper = document.createElement("div"), e._contentWrapper.className = "mjr-mfv-content-wrapper", e._applySidebarPosition(), e._contentEl = document.createElement("div"), e._contentEl.className = "mjr-mfv-content", e._contentWrapper.appendChild(e._contentEl), e._overlayCanvas = document.createElement("canvas"), e._overlayCanvas.className = "mjr-mfv-overlay-canvas", e._contentEl.appendChild(e._overlayCanvas), e._contentEl.appendChild(A(e)), e._genSidebarEl = document.createElement("aside"), e._genSidebarEl.className = "mjr-mfv-gen-sidebar", e._genSidebarEl.setAttribute("aria-label", "Generation info"), e._genSidebarEl.setAttribute("hidden", ""), e._sidebar = new Wt({
+		hostEl: t,
+		onClose: () => e._updateSettingsBtnState(!1),
+		onOpenGraphMap: () => e.setMode?.(W.GRAPH),
+		onCloseGraphMap: () => {
+			e._mode === W.GRAPH && e.setMode?.(W.SIMPLE);
+		}
+	}), e._contentWrapper.appendChild(e._genSidebarEl), e._contentWrapper.appendChild(e._sidebar.el), t.appendChild(e._contentWrapper), e._rebindControlHandlers(), e._bindPanelInteractions(), e._bindDocumentUiHandlers(), e._bindLayoutObserver?.(), e._onSidebarPosChanged = (t) => {
+		t?.detail?.key === "viewer.mfvSidebarPosition" && e._applySidebarPosition();
+	}, window.addEventListener("mjr-settings-changed", e._onSidebarPosChanged), e._refresh(), t;
+}
+function dn(e) {
+	let t = document.createElement("div");
+	t.className = "mjr-mfv-header";
+	let n = document.createElement("span");
+	n.className = "mjr-mfv-header-title", n.id = e._titleId;
+	let r = document.createElement("i");
+	r.className = "mjr-mfv-header-title-icon pi pi-eye", r.setAttribute("aria-hidden", "true");
+	let i = document.createElement("span");
+	i.textContent = "Majoor Floating Viewer", n.append(r, i);
+	let a = document.createElement("button");
+	e._closeBtn = a, a.type = "button", a.className = "mjr-icon-btn mjr-mfv-close-btn", V(a, s("tooltip.closeViewer", "Close viewer"), "Esc");
+	let o = document.createElement("i");
+	return o.className = "pi pi-times", o.setAttribute("aria-hidden", "true"), a.appendChild(o), t.appendChild(n), t.appendChild(a), t;
+}
+function fn(e) {
+	let t = (e, { min: t, max: n, step: r, value: i } = {}) => {
+		let a = document.createElement("div");
+		a.className = "mjr-mfv-toolbar-range";
+		let o = document.createElement("input");
+		o.type = "range", o.min = String(t), o.max = String(n), o.step = String(r), o.value = String(i), o.title = e || "";
+		let s = document.createElement("span");
+		return s.className = "mjr-mfv-toolbar-range-out", s.textContent = Number(i).toFixed(2), a.appendChild(o), a.appendChild(s), {
+			wrap: a,
+			input: o,
+			out: s
+		};
+	}, n = document.createElement("div");
+	n.className = "mjr-mfv-toolbar";
+	let r = on("<i class=\"pi pi-image\" aria-hidden=\"true\"></i>", s("viewer.mode", "Viewer mode"), [
+		{
+			value: W.SIMPLE,
+			html: `<i class="pi pi-image" aria-hidden="true"></i><span>${s("viewer.mode.simple", "Simple")}</span>`
+		},
+		{
+			value: W.AB,
+			html: `<i class="pi pi-clone" aria-hidden="true"></i><span>${s("viewer.mode.abCompare", "A/B Compare")}</span>`
+		},
+		{
+			value: W.SIDE,
+			html: `<i class="pi pi-table" aria-hidden="true"></i><span>${s("viewer.mode.sideBySide", "Side-by-side")}</span>`
+		},
+		{
+			value: W.GRID,
+			html: `<i class="pi pi-th-large" aria-hidden="true"></i><span>${s("viewer.mode.grid", "Grid")}</span>`
+		},
+		{
+			value: W.GRAPH,
+			html: `<i class="pi pi-sitemap" aria-hidden="true"></i><span>${s("workflowSidebar.graphMap", "Graph Map")}</span>`
+		}
+	], e);
+	e._modeDrop = r, e._modeBtn = r.trigger, e._modeSelect = r.select, e._updateModeBtnUI(), n.appendChild(r.wrap);
+	let i = document.createElement("button");
+	i.type = "button", i.className = "mjr-icon-btn mjr-mfv-pin-trigger", i.title = s("viewer.pinSlots", "Pin slots A/B/C/D"), i.setAttribute("aria-haspopup", "dialog"), i.setAttribute("aria-expanded", "false"), i.innerHTML = "<i class=\"pi pi-map-marker\" aria-hidden=\"true\"></i>", n.appendChild(i);
+	let a = document.createElement("div");
+	a.className = "mjr-mfv-pin-popover", e.element.appendChild(a);
+	let o = document.createElement("div");
+	o.className = "mjr-menu", o.style.cssText = "display:grid;gap:4px;", o.setAttribute("role", "group"), o.setAttribute("aria-label", "Pin References"), a.appendChild(o), e._pinGroup = o, e._pinBtns = {};
+	for (let t of [
+		"A",
+		"B",
+		"C",
+		"D"
+	]) {
+		let n = document.createElement("button");
+		n.type = "button", n.className = "mjr-menu-item mjr-mfv-pin-btn", n.dataset.slot = t, n.title = `Pin Asset ${t}`, n.setAttribute("aria-pressed", "false");
+		let r = document.createElement("span");
+		r.className = "mjr-menu-item-label", r.textContent = `Asset ${t}`;
+		let i = document.createElement("i");
+		i.className = "pi pi-map-marker mjr-menu-item-check", i.style.opacity = "0", n.appendChild(r), n.appendChild(i), o.appendChild(n), e._pinBtns[t] = n;
+	}
+	e._updatePinUI(), e._pinBtn = i, e._pinPopover = a;
+	let c = () => {
+		let t = i.getBoundingClientRect(), n = e.element.getBoundingClientRect();
+		a.style.left = `${t.left - n.left}px`, a.style.top = `${t.bottom - n.top + 4}px`, a.classList.add("is-open"), i.setAttribute("aria-expanded", "true");
+	};
+	e._closePinPopover = () => {
+		a.classList.remove("is-open"), i.setAttribute("aria-expanded", "false");
+	}, i.addEventListener("click", (t) => {
+		t.stopPropagation(), a.classList.contains("is-open") ? e._closePinPopover() : (e._closeAllToolbarPopovers?.(), c());
+	});
+	let l = document.createElement("button");
+	l.type = "button", l.className = "mjr-icon-btn mjr-mfv-guides-trigger", l.title = "Guides", l.setAttribute("aria-haspopup", "listbox"), l.setAttribute("aria-expanded", "false");
+	let u = document.createElement("img");
+	u.src = new URL("data:image/png;base64,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", "" + import.meta.url).href, u.className = "mjr-mfv-guides-icon", u.alt = "", u.setAttribute("aria-hidden", "true"), l.appendChild(u), n.appendChild(l);
+	let d = document.createElement("div");
+	d.className = "mjr-mfv-guides-popover", e.element.appendChild(d);
+	let f = document.createElement("div");
+	f.className = "mjr-menu", f.style.cssText = "display:grid;gap:4px;", d.appendChild(f);
+	let p = document.createElement("select");
+	p.style.cssText = "position:absolute;opacity:0;pointer-events:none;width:0;height:0;overflow:hidden;", d.appendChild(p);
+	let m = [
+		{
+			value: "0",
+			label: "Off"
+		},
+		{
+			value: "1",
+			label: "Thirds"
+		},
+		{
+			value: "2",
+			label: "Center"
+		},
+		{
+			value: "3",
+			label: "Safe"
+		}
+	], h = String(e._gridMode || 0), g = [];
+	for (let e of m) {
+		let t = document.createElement("option");
+		t.value = e.value, p.appendChild(t);
+		let n = document.createElement("button");
+		n.type = "button", n.className = "mjr-menu-item", n.dataset.value = e.value;
+		let r = document.createElement("span");
+		r.className = "mjr-menu-item-label", r.textContent = e.label;
+		let i = document.createElement("i");
+		i.className = "pi pi-check mjr-menu-item-check", i.style.opacity = e.value === h ? "1" : "0", n.appendChild(r), n.appendChild(i), f.appendChild(n), g.push(n), e.value === h && n.classList.add("is-active");
+	}
+	p.value = h, l.classList.toggle("is-on", h !== "0"), e._guidesSelect = p, e._guideBtn = l, e._guidePopover = d;
+	let _ = () => {
+		let t = l.getBoundingClientRect(), n = e.element.getBoundingClientRect();
+		d.style.left = `${t.left - n.left}px`, d.style.top = `${t.bottom - n.top + 4}px`, d.classList.add("is-open"), l.setAttribute("aria-expanded", "true");
+	};
+	e._closeGuidePopover = () => {
+		d.classList.remove("is-open"), l.setAttribute("aria-expanded", "false");
+	}, l.addEventListener("click", (t) => {
+		t.stopPropagation(), d.classList.contains("is-open") ? e._closeGuidePopover() : (e._closeAllToolbarPopovers?.(), _());
+	}), f.addEventListener("click", (t) => {
+		let n = t.target.closest(".mjr-menu-item");
+		if (!n) return;
+		let r = n.dataset.value;
+		p.value = r ?? "", p.dispatchEvent(new Event("change", { bubbles: !0 })), g.forEach((e) => {
+			let t = e.dataset.value === r;
+			e.classList.toggle("is-active", t), e.querySelector(".mjr-menu-item-check").style.opacity = t ? "1" : "0";
+		}), l.classList.toggle("is-on", r !== "0"), e._closeGuidePopover();
+	});
+	let v = String(e._channel || "rgb"), y = document.createElement("button");
+	y.type = "button", y.className = "mjr-icon-btn mjr-mfv-ch-trigger", y.title = "Channel", y.setAttribute("aria-haspopup", "listbox"), y.setAttribute("aria-expanded", "false");
+	let b = document.createElement("img");
+	b.src = new URL("data:image/png;base64,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", "" + import.meta.url).href, b.className = "mjr-mfv-ch-icon", b.alt = "", b.setAttribute("aria-hidden", "true"), y.appendChild(b), n.appendChild(y);
+	let x = (e) => {
+		if (!e || e === "rgb") y.replaceChildren(b);
+		else {
+			let t = sn[e] || "#e0e0e0", n = ln[e] || "500", r = cn[e] || e.toUpperCase(), i = document.createElement("span");
+			i.className = "mjr-mfv-ch-label", i.style.color = t, i.style.fontWeight = n, i.textContent = r, y.replaceChildren(i);
+		}
+	}, S = document.createElement("div");
+	S.className = "mjr-mfv-ch-popover", e.element.appendChild(S);
+	let C = document.createElement("div");
+	C.className = "mjr-menu", C.style.cssText = "display:grid;gap:4px;", S.appendChild(C);
+	let w = document.createElement("select");
+	w.style.cssText = "position:absolute;opacity:0;pointer-events:none;width:0;height:0;overflow:hidden;", S.appendChild(w);
+	let ee = [
+		{
+			value: "rgb",
+			color: "#e0e0e0",
+			weight: "500",
+			label: "RGB"
+		},
+		{
+			value: "r",
+			color: "#ff5555",
+			weight: "700",
+			label: "R"
+		},
+		{
+			value: "g",
+			color: "#44dd66",
+			weight: "700",
+			label: "G"
+		},
+		{
+			value: "b",
+			color: "#5599ff",
+			weight: "700",
+			label: "B"
+		},
+		{
+			value: "a",
+			color: "#ffffff",
+			weight: "700",
+			label: "A"
+		},
+		{
+			value: "l",
+			color: "#bbbbbb",
+			weight: "400",
+			label: "L"
+		}
+	], T = [];
+	for (let e of ee) {
+		let t = document.createElement("option");
+		t.value = e.value, w.appendChild(t);
+		let n = document.createElement("button");
+		n.type = "button", n.className = "mjr-menu-item", n.dataset.value = e.value;
+		let r = document.createElement("span");
+		r.className = "mjr-menu-item-label";
+		let i = document.createElement("span");
+		i.textContent = e.label, i.style.color = e.color, i.style.fontWeight = e.weight, r.appendChild(i);
+		let a = document.createElement("i");
+		a.className = "pi pi-check mjr-menu-item-check", a.style.opacity = e.value === v ? "1" : "0", n.appendChild(r), n.appendChild(a), C.appendChild(n), T.push(n), e.value === v && n.classList.add("is-active");
+	}
+	w.value = v, x(v), y.classList.toggle("is-on", v !== "rgb"), e._channelSelect = w, e._chBtn = y, e._chPopover = S;
+	let E = () => {
+		let t = y.getBoundingClientRect(), n = e.element.getBoundingClientRect();
+		S.style.left = `${t.left - n.left}px`, S.style.top = `${t.bottom - n.top + 4}px`, S.classList.add("is-open"), y.setAttribute("aria-expanded", "true");
+	};
+	e._closeChPopover = () => {
+		S.classList.remove("is-open"), y.setAttribute("aria-expanded", "false");
+	}, y.addEventListener("click", (t) => {
+		t.stopPropagation(), S.classList.contains("is-open") ? e._closeChPopover() : (e._closeAllToolbarPopovers?.(), E());
+	}), C.addEventListener("click", (t) => {
+		let n = t.target.closest(".mjr-menu-item");
+		if (!n) return;
+		let r = n.dataset.value;
+		w.value = r ?? "", w.dispatchEvent(new Event("change", { bubbles: !0 })), T.forEach((e) => {
+			let t = e.dataset.value === r;
+			e.classList.toggle("is-active", t), e.querySelector(".mjr-menu-item-check").style.opacity = t ? "1" : "0";
+		}), x(r), y.classList.toggle("is-on", r !== "rgb"), e._closeChPopover();
+	}), e._closeAllToolbarPopovers = () => {
+		e._closeChPopover?.(), e._closeGuidePopover?.(), e._closePinPopover?.(), e._closeFormatPopover?.(), e._closeGenDropdown?.();
+	}, e._exposureCtl = t("Exposure (EV)", {
+		min: -10,
+		max: 10,
+		step: .1,
+		value: Number(e._exposureEV || 0)
+	}), e._exposureCtl.out.textContent = `${Number(e._exposureEV || 0).toFixed(1)}EV`, e._exposureCtl.out.title = "Click to reset to 0 EV", e._exposureCtl.out.style.cursor = "pointer", e._exposureCtl.wrap.classList.toggle("is-active", (e._exposureEV || 0) !== 0), n.appendChild(e._exposureCtl.wrap), e._formatToggle = document.createElement("button"), e._formatToggle.type = "button", e._formatToggle.className = "mjr-icon-btn mjr-mfv-format-trigger", e._formatToggle.setAttribute("aria-haspopup", "dialog"), e._formatToggle.setAttribute("aria-expanded", "false"), e._formatToggle.setAttribute("aria-pressed", "false"), e._formatToggle.title = "Format mask", e._formatToggle.innerHTML = "<i class=\"pi pi-stop\" aria-hidden=\"true\"></i>", n.appendChild(e._formatToggle);
+	let D = document.createElement("div");
+	D.className = "mjr-mfv-format-popover", e.element.appendChild(D);
+	let O = document.createElement("div");
+	O.className = "mjr-menu", O.style.cssText = "display:grid;gap:4px;", D.appendChild(O);
+	let k = document.createElement("select");
+	k.style.cssText = "position:absolute;opacity:0;pointer-events:none;width:0;height:0;overflow:hidden;", D.appendChild(k);
+	let A = [
+		{
+			value: "off",
+			label: "Off"
+		},
+		{
+			value: "image",
+			label: "Image"
+		},
+		{
+			value: "16:9",
+			label: "16:9"
+		},
+		{
+			value: "1:1",
+			label: "1:1"
+		},
+		{
+			value: "4:3",
+			label: "4:3"
+		},
+		{
+			value: "9:16",
+			label: "9:16"
+		},
+		{
+			value: "2.39",
+			label: "2.39"
+		}
+	], j = [], M = e._overlayMaskEnabled ? String(e._overlayFormat || "image") : "off";
+	for (let e of A) {
+		let t = document.createElement("option");
+		t.value = e.value, k.appendChild(t);
+		let n = document.createElement("button");
+		n.type = "button", n.className = "mjr-menu-item", n.dataset.value = e.value;
+		let r = document.createElement("span");
+		r.className = "mjr-menu-item-label", r.textContent = e.label;
+		let i = document.createElement("i");
+		i.className = "pi pi-check mjr-menu-item-check", i.style.opacity = e.value === M ? "1" : "0", n.appendChild(r), n.appendChild(i), O.appendChild(n), j.push(n), e.value === M && n.classList.add("is-active");
+	}
+	k.value = M;
+	let N = document.createElement("div");
+	N.className = "mjr-mfv-format-sep", D.appendChild(N);
+	let P = document.createElement("div");
+	P.className = "mjr-mfv-format-slider-row", D.appendChild(P);
+	let F = document.createElement("span");
+	F.className = "mjr-mfv-format-slider-label", F.textContent = "Opacity", P.appendChild(F), e._maskOpacityCtl = t("Mask opacity", {
+		min: 0,
+		max: .9,
+		step: .01,
+		value: Number(e._overlayMaskOpacity ?? .65)
+	}), P.appendChild(e._maskOpacityCtl.input), P.appendChild(e._maskOpacityCtl.out), e._formatSelect = k, e._formatPopover = D;
+	let I = () => {
+		let t = e._formatToggle.getBoundingClientRect(), n = e.element.getBoundingClientRect();
+		D.style.left = `${t.left - n.left}px`, D.style.top = `${t.bottom - n.top + 4}px`, D.classList.add("is-open"), e._formatToggle.setAttribute("aria-expanded", "true");
+	};
+	e._closeFormatPopover = () => {
+		D.classList.remove("is-open"), e._formatToggle.setAttribute("aria-expanded", "false");
+	}, e._formatToggle.addEventListener("click", (t) => {
+		t.stopPropagation(), D.classList.contains("is-open") ? e._closeFormatPopover() : (e._closeAllToolbarPopovers?.(), I());
+	}), O.addEventListener("click", (t) => {
+		let n = t.target.closest(".mjr-menu-item");
+		if (!n) return;
+		let r = n.dataset.value;
+		k.value = r ?? "", k.dispatchEvent(new Event("change", { bubbles: !0 })), j.forEach((e) => {
+			let t = e.dataset.value === r;
+			e.classList.toggle("is-active", t), e.querySelector(".mjr-menu-item-check").style.opacity = t ? "1" : "0";
+		}), e._closeFormatPopover();
+	});
+	let L = document.createElement("div");
+	L.className = "mjr-mfv-toolbar-sep", L.setAttribute("aria-hidden", "true"), n.appendChild(L), e._liveBtn = document.createElement("button"), e._liveBtn.type = "button", e._liveBtn.className = "mjr-icon-btn", e._liveBtn.innerHTML = "<i class=\"pi pi-circle\" aria-hidden=\"true\"></i>", e._liveBtn.setAttribute("aria-pressed", "false"), V(e._liveBtn, s("tooltip.liveStreamOff", "Live Stream: OFF - click to follow final generation outputs"), "L"), n.appendChild(e._liveBtn), e._previewBtn = document.createElement("button"), e._previewBtn.type = "button", e._previewBtn.className = "mjr-icon-btn", e._previewBtn.innerHTML = "<i class=\"pi pi-eye\" aria-hidden=\"true\"></i>", e._previewBtn.setAttribute("aria-pressed", "false"), V(e._previewBtn, s("tooltip.previewStreamOff", "KSampler Preview: OFF - click to stream sampler denoising frames"), "K"), n.appendChild(e._previewBtn), e._nodeStreamBtn = document.createElement("button"), e._nodeStreamBtn.type = "button", e._nodeStreamBtn.className = "mjr-icon-btn", e._nodeStreamBtn.innerHTML = "<i class=\"pi pi-sitemap\" aria-hidden=\"true\"></i>", e._nodeStreamBtn.setAttribute("aria-pressed", "false"), V(e._nodeStreamBtn, s("tooltip.nodeStreamOff", "Node Stream: OFF - click to follow selected node previews, including ImageOps live canvases"), "N"), n.appendChild(e._nodeStreamBtn), e._genBtn = document.createElement("button"), e._genBtn.type = "button", e._genBtn.className = "mjr-icon-btn", e._genBtn.setAttribute("aria-pressed", String(!!e._genSidebarEnabled));
+	let R = document.createElement("i");
+	R.className = "pi pi-info-circle", R.setAttribute("aria-hidden", "true"), e._genBtn.appendChild(R), n.appendChild(e._genBtn), e._updateGenBtnUI(), e._popoutBtn = document.createElement("button"), e._popoutBtn.type = "button", e._popoutBtn.className = "mjr-icon-btn";
+	let z = s("tooltip.popOutViewer", "Pop out viewer to separate window");
+	e._popoutBtn.title = z, e._popoutBtn.setAttribute("aria-label", z), e._popoutBtn.setAttribute("aria-pressed", "false");
+	let B = document.createElement("i");
+	B.className = "pi pi-external-link", B.setAttribute("aria-hidden", "true"), e._popoutBtn.appendChild(B), n.appendChild(e._popoutBtn), e._captureBtn = document.createElement("button"), e._captureBtn.type = "button", e._captureBtn.className = "mjr-icon-btn";
+	let te = s("tooltip.captureView", "Save view as image");
+	e._captureBtn.title = te, e._captureBtn.setAttribute("aria-label", te);
+	let ne = document.createElement("i");
+	ne.className = "pi pi-download", ne.setAttribute("aria-hidden", "true"), e._captureBtn.appendChild(ne), n.appendChild(e._captureBtn);
+	let H = document.createElement("div");
+	H.className = "mjr-mfv-toolbar-sep", H.style.marginLeft = "auto", H.setAttribute("aria-hidden", "true"), n.appendChild(H), e._settingsBtn = document.createElement("button"), e._settingsBtn.type = "button", e._settingsBtn.className = "mjr-icon-btn mjr-mfv-settings-btn";
+	let re = s("tooltip.nodeParams", "Node Parameters");
+	e._settingsBtn.title = re, e._settingsBtn.setAttribute("aria-label", re), e._settingsBtn.setAttribute("aria-pressed", "false");
+	let ie = document.createElement("i");
+	ie.className = "pi pi-sliders-h", ie.setAttribute("aria-hidden", "true"), e._settingsBtn.appendChild(ie), n.appendChild(e._settingsBtn), e._runHandle = Xt(), n.appendChild(e._runHandle.el), e._majoorSettingsBtn = document.createElement("button"), e._majoorSettingsBtn.type = "button", e._majoorSettingsBtn.className = "mjr-icon-btn mjr-mfv-majoor-settings-btn";
+	let U = s("tooltip.openMajoorSettings", "Open Majoor Assets Manager settings");
+	e._majoorSettingsBtn.title = U, e._majoorSettingsBtn.setAttribute("aria-label", U);
+	let ae = document.createElement("i");
+	return ae.className = "pi pi-cog", ae.setAttribute("aria-hidden", "true"), e._majoorSettingsBtn.appendChild(ae), n.appendChild(e._majoorSettingsBtn), e._handleDocClick = (t) => {
+		let n = t?.target;
+		e._chPopover?.classList?.contains("is-open") && !e._chBtn?.contains?.(n) && !e._chPopover.contains(n) && e._closeChPopover?.(), e._guidePopover?.classList?.contains("is-open") && !e._guideBtn?.contains?.(n) && !e._guidePopover.contains(n) && e._closeGuidePopover?.(), e._pinPopover?.classList?.contains("is-open") && !e._pinBtn?.contains?.(n) && !e._pinPopover.contains(n) && e._closePinPopover?.(), e._formatPopover?.classList?.contains("is-open") && !e._formatToggle?.contains?.(n) && !e._formatPopover.contains(n) && e._closeFormatPopover?.(), n?.closest?.(".mjr-mfv-idrop") || e.element?.querySelectorAll?.(".mjr-mfv-idrop-menu.is-open").forEach((e) => e.classList.remove("is-open"));
+	}, e._bindDocumentUiHandlers(), n;
+}
+function pn(e) {
+	try {
+		e._btnAC?.abort();
+	} catch (e) {
+		console.debug?.(e);
+	}
+	e._btnAC = new AbortController();
+	let t = e._btnAC.signal;
+	e._closeBtn?.addEventListener("click", () => {
+		e._dispatchControllerAction("close", k.MFV_CLOSE);
+	}, { signal: t }), e._modeSelect?.addEventListener("change", () => {
+		let t = e._modeSelect?.value;
+		t && e.setMode(t);
+	}, { signal: t }), e._pinGroup?.addEventListener("click", (t) => {
+		let n = t.target?.closest?.(".mjr-mfv-pin-btn");
+		if (!n) return;
+		let r = n.dataset.slot;
+		r && (e._pinnedSlots.has(r) ? e._pinnedSlots.delete(r) : e._pinnedSlots.add(r), e._pinnedSlots.has("C") || e._pinnedSlots.has("D") ? e._mode !== W.GRID && e.setMode(W.GRID) : e._pinnedSlots.size > 0 && e._mode === W.SIMPLE && e.setMode(W.AB), e._updatePinUI());
+	}, { signal: t }), e._liveBtn?.addEventListener("click", () => {
+		e._dispatchControllerAction("toggleLive", k.MFV_LIVE_TOGGLE);
+	}, { signal: t }), e._previewBtn?.addEventListener("click", () => {
+		e._dispatchControllerAction("togglePreview", k.MFV_PREVIEW_TOGGLE);
+	}, { signal: t }), e._nodeStreamBtn?.addEventListener("click", () => {
+		e._dispatchControllerAction("toggleNodeStream", k.MFV_NODESTREAM_TOGGLE);
+	}, { signal: t }), e._genBtn?.addEventListener("click", (t) => {
+		t.stopPropagation(), e._closeAllToolbarPopovers?.(), e._genSidebarEnabled = !e._genSidebarEnabled, e._updateGenBtnUI(), e._refresh();
+	}, { signal: t }), e._popoutBtn?.addEventListener("click", () => {
+		e._dispatchControllerAction("popOut", k.MFV_POPOUT);
+	}, { signal: t }), e._captureBtn?.addEventListener("click", () => e._captureView(), { signal: t }), e._settingsBtn?.addEventListener("click", () => {
+		e._sidebar?.toggle(), e._updateSettingsBtnState(e._sidebar?.isVisible ?? !1);
+	}, { signal: t }), e._majoorSettingsBtn?.addEventListener("click", (t) => {
+		t.stopPropagation(), e._closeAllToolbarPopovers?.(), re();
+	}, { signal: t }), e._guidesSelect?.addEventListener("change", () => {
+		e._gridMode = Number(e._guidesSelect.value) || 0, e._guideBtn?.classList.toggle("is-on", e._gridMode !== 0), e._redrawOverlayGuides?.();
+	}, { signal: t }), e._channelSelect?.addEventListener("change", () => {
+		e._channel = String(e._channelSelect.value || "rgb"), e._chBtn?.classList.toggle("is-on", e._channel !== "rgb"), e._applyMediaToneControls?.();
+	}, { signal: t }), e._exposureCtl?.input?.addEventListener("input", () => {
+		let t = Math.max(-10, Math.min(10, Number(e._exposureCtl.input.value) || 0));
+		e._exposureEV = Math.round(t * 10) / 10, e._exposureCtl.out.textContent = `${e._exposureEV.toFixed(1)}EV`, e._exposureCtl.wrap.classList.toggle("is-active", e._exposureEV !== 0), e._applyMediaToneControls?.();
+	}, { signal: t }), e._exposureCtl?.out?.addEventListener("click", () => {
+		e._exposureEV = 0, e._exposureCtl.input.value = "0", e._exposureCtl.out.textContent = "0.0EV", e._exposureCtl.wrap.classList.remove("is-active"), e._applyMediaToneControls?.();
+	}, { signal: t }), e._formatSelect?.addEventListener("change", () => {
+		let t = String(e._formatSelect.value || "image");
+		t === "off" ? e._overlayMaskEnabled = !1 : (e._overlayMaskEnabled = !0, e._overlayFormat = t), e._formatToggle?.classList.toggle("is-on", !!e._overlayMaskEnabled), e._formatToggle?.setAttribute("aria-pressed", String(!!e._overlayMaskEnabled)), e._redrawOverlayGuides?.();
+	}, { signal: t }), e._maskOpacityCtl?.input?.addEventListener("input", () => {
+		let t = Number(e._maskOpacityCtl.input.value);
+		e._overlayMaskOpacity = Math.round(Math.max(0, Math.min(.9, Number.isFinite(t) ? t : .65)) * 100) / 100, e._maskOpacityCtl.out.textContent = e._overlayMaskOpacity.toFixed(2), e._redrawOverlayGuides?.();
+	}, { signal: t });
+}
+function mn(e, t) {
+	e._settingsBtn && (e._settingsBtn.classList.toggle("active", !!t), e._settingsBtn.setAttribute("aria-pressed", String(!!t)));
+}
+function hn(e) {
+	if (!e._contentWrapper) return;
+	let t = p.MFV_SIDEBAR_POSITION || "right";
+	e._contentWrapper.setAttribute("data-sidebar-pos", t), e._sidebar?.el && e._contentEl && (t === "left" ? e._contentWrapper.insertBefore(e._sidebar.el, e._contentEl) : e._contentWrapper.appendChild(e._sidebar.el));
+}
+function gn(e) {
+	if (!e._handleDocClick) return;
+	let t = e.element?.ownerDocument || document;
+	if (e._docClickHost !== t) {
+		e._unbindDocumentUiHandlers();
+		try {
+			e._docAC?.abort();
+		} catch (e) {
+			console.debug?.(e);
+		}
+		e._docAC = new AbortController(), t.addEventListener("click", e._handleDocClick, { signal: e._docAC.signal }), e._docClickHost = t;
+	}
+}
+function _n(e) {
+	try {
+		e._docAC?.abort();
+	} catch (e) {
+		console.debug?.(e);
+	}
+	e._docAC = new AbortController(), e._docClickHost = null;
+}
+function vn(e) {
+	if (!e._genBtn) return;
+	let t = !!e._genSidebarEnabled;
+	e._genBtn.classList.toggle("is-on", t), e._genBtn.classList.toggle("is-open", t);
+	let n = t ? "Gen Info sidebar: ON" : "Gen Info sidebar: OFF";
+	e._genBtn.title = n, e._genBtn.setAttribute("aria-label", n), e._genBtn.setAttribute("aria-pressed", String(t)), e._genBtn.removeAttribute("aria-expanded"), e._genBtn.removeAttribute("aria-haspopup"), e._genBtn.removeAttribute("aria-controls");
+}
+function yn(e) {
+	let t = Number(e);
+	return !Number.isFinite(t) || t <= 0 ? "" : t >= 60 ? `${(t / 60).toFixed(1)}m` : `${t.toFixed(1)}s`;
+}
+function bn(e) {
+	let t = String(e || "").trim().toLowerCase();
+	if (!t) return 0;
+	if (t.endsWith("m")) {
+		let e = Number.parseFloat(t.slice(0, -1));
+		return Number.isFinite(e) ? e * 60 : 0;
+	}
+	if (t.endsWith("s")) {
+		let e = Number.parseFloat(t.slice(0, -1));
+		return Number.isFinite(e) ? e : 0;
+	}
+	let n = Number.parseFloat(t);
+	return Number.isFinite(n) ? n : 0;
+}
+function xn(e, t) {
+	if (!t) return {};
+	try {
+		let e = t.geninfo ? { geninfo: t.geninfo } : t.metadata || t.metadata_raw || t, n = C(e) || null, r = {
+			prompt: "",
+			seed: "",
+			model: "",
+			lora: "",
+			sampler: "",
+			scheduler: "",
+			cfg: "",
+			step: "",
+			genTime: ""
+		};
+		if (n && typeof n == "object") {
+			n.prompt && (r.prompt = D(String(n.prompt))), n.seed != null && (r.seed = String(n.seed)), n.model && (r.model = Array.isArray(n.model) ? n.model.join(", ") : String(n.model));
+			let i = an(n), a = rn(n);
+			a && (r.model = a), i && (r.model = [i, r.model].filter(Boolean).join(" | ")), Array.isArray(n.loras) && (r.lora = n.loras.map((e) => typeof e == "string" ? e : e?.name || e?.lora_name || e?.model_name || "").filter(Boolean).join(", ")), n.sampler && (r.sampler = String(n.sampler)), n.scheduler && (r.scheduler = String(n.scheduler)), n.cfg != null && (r.cfg = String(n.cfg)), n.steps != null && (r.step = String(n.steps)), !r.prompt && e?.prompt && (r.prompt = D(String(e.prompt || "")));
+			let o = t.generation_time_ms ?? t.metadata_raw?.generation_time_ms ?? e?.generation_time_ms ?? e?.geninfo?.generation_time_ms ?? 0;
+			return o && Number.isFinite(Number(o)) && o > 0 && o < 864e5 && (r.genTime = yn(Number(o) / 1e3)), r;
+		}
+	} catch (e) {
+		console.debug?.("[MFV] geninfo normalize failed", e);
+	}
+	let n = t?.metadata || t?.metadata_raw || t || {}, r = {
+		prompt: D(String(n?.prompt || n?.positive || "")),
+		seed: n?.seed == null ? "" : String(n.seed),
+		model: n?.checkpoint || n?.ckpt_name || n?.model || "",
+		lora: Array.isArray(n?.loras) ? n.loras.join(", ") : n?.lora || "",
+		sampler: n?.sampler_name || n?.sampler || "",
+		scheduler: n?.scheduler || "",
+		cfg: n?.cfg == null ? n?.cfg_scale == null ? "" : String(n.cfg_scale) : String(n.cfg),
+		step: n?.steps == null ? "" : String(n.steps),
+		genTime: ""
+	}, i = t.generation_time_ms ?? t.metadata_raw?.generation_time_ms ?? n?.generation_time_ms ?? 0;
+	return i && Number.isFinite(Number(i)) && i > 0 && i < 864e5 && (r.genTime = yn(Number(i) / 1e3)), r;
+}
+function Sn(e, t) {
+	let n = e._getGenFields(t);
+	if (!n) return null;
+	let r = document.createDocumentFragment();
+	for (let t of [
+		"prompt",
+		"seed",
+		"model",
+		"lora",
+		"sampler",
+		"scheduler",
+		"cfg",
+		"step",
+		"genTime"
+	]) {
+		if (!e._genInfoSelections.has(t)) continue;
+		let i = n[t] == null ? "" : String(n[t]);
+		if (!i) continue;
+		let a = t.charAt(0).toUpperCase() + t.slice(1);
+		t === "lora" ? a = "LoRA" : t === "cfg" ? a = "CFG" : t === "genTime" && (a = "Gen Time");
+		let o = document.createElement("div");
+		o.dataset.field = t;
+		let s = document.createElement("strong");
+		if (s.textContent = `${a}: `, o.appendChild(s), t === "prompt") o.appendChild(document.createTextNode(i));
+		else if (t === "genTime") {
+			let e = bn(i), t = "#4CAF50";
+			e >= 60 ? t = "#FF9800" : e >= 30 ? t = "#FFC107" : e >= 10 && (t = "#8BC34A");
+			let n = document.createElement("span");
+			n.style.color = t, n.style.fontWeight = "600", n.textContent = i, o.appendChild(n);
+		} else o.appendChild(document.createTextNode(i));
+		r.appendChild(o);
+	}
+	return r.childNodes.length > 0 ? r : null;
+}
+// ui/features/viewer/floatingViewerMode.ts
+function Cn(e) {
+	try {
+		e._controller?.onModeChanged?.(e._mode);
+	} catch (e) {
+		console.debug?.(e);
+	}
+}
+function wn(e) {
+	let t = [
+		W.SIMPLE,
+		W.AB,
+		W.SIDE,
+		W.GRID,
+		W.GRAPH
+	];
+	e._mode = t[(t.indexOf(e._mode) + 1) % t.length], e._updateModeBtnUI(), e._refresh(), e._notifyModeChanged();
+}
+function Tn(e, t) {
+	Object.values(W).includes(t) && (e._mode = t, e._updateModeBtnUI(), e._refresh(), e._notifyModeChanged());
+}
+function En(e) {
+	return e._pinnedSlots;
+}
+function Dn(e) {
+	if (e._pinBtns) {
+		for (let t of [
+			"A",
+			"B",
+			"C",
+			"D"
+		]) {
+			let n = e._pinBtns[t];
+			if (!n) continue;
+			let r = e._pinnedSlots.has(t);
+			n.classList.toggle("is-pinned", r), n.setAttribute("aria-pressed", String(r)), n.title = r ? `Unpin Asset ${t}` : `Pin Asset ${t}`;
+		}
+		e._pinBtn?.classList.toggle("is-on", (e._pinnedSlots?.size ?? 0) > 0);
+	}
+}
+function On(e) {
+	if (!e._modeBtn) return;
+	let { icon: t = "pi-image", label: n = "" } = {
+		[W.SIMPLE]: {
+			icon: "pi-image",
+			label: "Mode: Simple - click to switch"
+		},
+		[W.AB]: {
+			icon: "pi-clone",
+			label: "Mode: A/B Compare - click to switch"
+		},
+		[W.SIDE]: {
+			icon: "pi-table",
+			label: "Mode: Side-by-Side - click to switch"
+		},
+		[W.GRID]: {
+			icon: "pi-th-large",
+			label: "Mode: Grid Compare (up to 4) - click to switch"
+		},
+		[W.GRAPH]: {
+			icon: "pi-sitemap",
+			label: "Mode: Graph Map - click to switch"
+		}
+	}[e._mode] || {}, r = U(n, "C"), i = document.createElement("i");
+	i.className = `pi ${t}`, i.setAttribute("aria-hidden", "true"), e._modeBtn.replaceChildren(i), e._modeBtn.title = r, e._modeBtn.setAttribute("aria-label", r), e._modeBtn.removeAttribute("aria-pressed"), e._modeBtn.classList.toggle("is-on", e._mode !== W.SIMPLE), e._modeDrop?.selectItem?.(e._mode);
+}
+function kn(e, t) {
+	if (!e._liveBtn) return;
+	let n = !!t;
+	e._liveBtn.classList.toggle("mjr-live-active", n);
+	let r = n ? s("tooltip.liveStreamOn", "Live Stream: ON - follows final generation outputs after execution") : s("tooltip.liveStreamOff", "Live Stream: OFF - click to follow final generation outputs"), i = U(r, "L");
+	e._liveBtn.setAttribute("aria-pressed", String(n)), e._liveBtn.setAttribute("aria-label", i);
+	let a = document.createElement("i");
+	a.className = n ? "pi pi-circle-fill" : "pi pi-circle", a.setAttribute("aria-hidden", "true"), e._liveBtn.replaceChildren(a), e._liveBtn.title = i;
+}
+function An(e, t) {
+	if (e._previewActive = !!t, !e._previewBtn) return;
+	e._previewBtn.classList.toggle("mjr-preview-active", e._previewActive);
+	let n = e._previewActive ? s("tooltip.previewStreamOn", "KSampler Preview: ON - streams sampler denoising frames during execution") : s("tooltip.previewStreamOff", "KSampler Preview: OFF - click to stream sampler denoising frames"), r = U(n, "K");
+	e._previewBtn.setAttribute("aria-pressed", String(e._previewActive)), e._previewBtn.setAttribute("aria-label", r);
+	let i = document.createElement("i");
+	i.className = e._previewActive ? "pi pi-eye" : "pi pi-eye-slash", i.setAttribute("aria-hidden", "true"), e._previewBtn.replaceChildren(i), e._previewBtn.title = r;
+}
+function jn(e) {
+	return e?._isPreview ? String(e?._previewBlobUrl || e?.url || "").trim() : "";
+}
+function Mn(e, t) {
+	let n = new Set([
+		"A",
+		"B",
+		"C",
+		"D"
+	].map((t) => jn(e[`_media${t}`])).filter(Boolean));
+	for (let r of t) {
+		let t = jn(r);
+		if (t && !n.has(t)) {
+			try {
+				URL.revokeObjectURL(t);
+			} catch {}
+			String(e._previewBlobUrl || "") === t && (e._previewBlobUrl = null);
+		}
+	}
+}
+function Nn(e, t, n = {}) {
+	if (!t || !(t instanceof Blob)) return;
+	let r = e._mode === W.AB || e._mode === W.SIDE || e._mode === W.GRID, i = "A";
+	if (r) {
+		let t = e.getPinnedSlots();
+		if (i = e._mode === W.GRID ? [
+			"A",
+			"B",
+			"C",
+			"D"
+		].find((e) => !t.has(e)) || "" : t.has("B") ? t.has("A") ? "" : "A" : "B", !i) return;
+	}
+	let a = e[`_media${i}`] || null, o = URL.createObjectURL(t);
+	e._previewBlobUrl = o;
+	let s = String(n?.mime || t.type || "image/jpeg").trim().toLowerCase(), c = s === "video/mp4", l = {
+		url: o,
+		filename: n?.filename || (c ? "preview.mp4" : s === "image/webp" ? "preview.webp" : s === "image/png" ? "preview.png" : "preview.jpg"),
+		kind: c ? "video" : "image",
+		mime: s,
+		width: Number(n?.width) || void 0,
+		height: Number(n?.height) || void 0,
+		fps: Number(n?.fps) || void 0,
+		_isPreview: !0,
+		_sourceLabel: n?.sourceLabel || null,
+		_previewSource: n?.source || "comfy",
+		_previewNodeId: n?.nodeId == null ? null : String(n.nodeId),
+		_previewStep: Number.isFinite(Number(n?.step)) ? Number(n.step) : null,
+		_previewTotal: Number.isFinite(Number(n?.total)) ? Number(n.total) : null,
+		_previewBlobUrl: o
+	};
+	r ? e[`_media${i}`] = l : (e._mediaA = l, e._resetMfvZoom(), e._mode !== W.SIMPLE && (e._mode = W.SIMPLE, e._updateModeBtnUI())), Mn(e, [a]), ++e._refreshGen, e._refresh();
+}
+function Pn(e) {
+	let t = /* @__PURE__ */ new Set();
+	e._previewBlobUrl && t.add(String(e._previewBlobUrl));
+	for (let n of [
+		"A",
+		"B",
+		"C",
+		"D"
+	]) {
+		let r = jn(e[`_media${n}`]);
+		r && t.add(r);
+	}
+	for (let e of t) try {
+		URL.revokeObjectURL(e);
+	} catch {}
+	e._previewBlobUrl = null;
+}
+function Fn(e, t) {
+	if (e._nodeStreamActive = !!t, e._nodeStreamActive || e.setNodeStreamSelection?.(null), !e._nodeStreamBtn) return;
+	e._nodeStreamBtn.classList.toggle("mjr-nodestream-active", e._nodeStreamActive);
+	let n = e._nodeStreamActive ? s("tooltip.nodeStreamOn", "Node Stream: ON - follows the selected node preview when frontend media exists") : s("tooltip.nodeStreamOff", "Node Stream: OFF - click to follow selected node previews, including ImageOps live canvases"), r = U(n, "N");
+	e._nodeStreamBtn.setAttribute("aria-pressed", String(e._nodeStreamActive)), e._nodeStreamBtn.setAttribute("aria-label", r);
+	let i = document.createElement("i");
+	i.className = "pi pi-sitemap", i.setAttribute("aria-hidden", "true"), e._nodeStreamBtn.replaceChildren(i), e._nodeStreamBtn.title = r;
+}
+// ui/features/viewer/floatingViewerPopout.ts
+var In = /* @__PURE__ */ "--border-color.--border-default.--button-hover-surface.--button-surface.--comfy-accent.--comfy-font.--comfy-input-bg.--comfy-menu-bg.--comfy-menu-secondary-bg.--comfy-status-error.--comfy-status-success.--comfy-status-warning.--content-bg.--content-fg.--descrip-text.--destructive-background.--font-inter.--input-text.--interface-menu-surface.--interface-panel-hover-surface.--interface-panel-selected-surface.--interface-panel-surface.--modal-card-background.--muted-foreground.--primary-background.--primary-background-hover.--radius-lg.--radius-md.--radius-sm.--success-background.--warning-background".split(".");
+function Ln() {
+	try {
+		let e = typeof window < "u" ? window : globalThis, t = e?.process?.versions?.electron;
+		if (typeof t == "string" && t.trim() || e?.electron || e?.ipcRenderer || e?.electronAPI) return !0;
+		let n = String(e?.navigator?.userAgent || globalThis?.navigator?.userAgent || ""), r = /\bElectron\//i.test(n), i = /\bCode\//i.test(n);
+		if (r && !i) return !0;
+	} catch (e) {
+		console.debug?.(e);
+	}
+	return !1;
+}
+function $(e, t = null, n = "info") {
+	let r = {
+		stage: String(e || "unknown"),
+		detail: t,
+		ts: Date.now()
+	};
+	try {
+		let e = typeof window < "u" ? window : globalThis, t = "__MJR_MFV_POPOUT_TRACE__", n = Array.isArray(e[t]) ? e[t] : [];
+		n.push(r), e[t] = n.slice(-20), e.__MJR_MFV_POPOUT_LAST__ = r;
+	} catch (e) {
+		console.debug?.(e);
+	}
+	try {
+		(n === "error" ? console.error : n === "warn" ? console.warn : console.info)?.("[MFV popout]", r);
+	} catch (e) {
+		console.debug?.(e);
+	}
+}
+function Rn(e, ...t) {
+	return Array.from(new Set([String(e || ""), ...t].join(" ").split(/\s+/).filter(Boolean))).join(" ");
+}
+function zn(e, t) {
+	if (e && t) for (let n of Array.from(e.attributes || [])) {
+		let e = String(n?.name || "");
+		if (e && e !== "class" && e !== "style") try {
+			t.setAttribute(e, n.value);
+		} catch (e) {
+			console.debug?.(e);
+		}
+	}
+}
+function Bn(e, t) {
+	if (!e || !t?.style) return;
+	let n = typeof window < "u" && window?.getComputedStyle || globalThis?.getComputedStyle;
+	if (typeof n != "function") return;
+	let r = null;
+	try {
+		r = n(e);
+	} catch (e) {
+		console.debug?.(e);
+	}
+	if (r) {
+		for (let e of In) try {
+			let n = String(r.getPropertyValue?.(e) || "").trim();
+			n && t.style.setProperty(e, n);
+		} catch (e) {
+			console.debug?.(e);
+		}
+		try {
+			let e = String(r.getPropertyValue?.("color-scheme") || "").trim();
+			e && (t.style.colorScheme = e);
+		} catch (e) {
+			console.debug?.(e);
+		}
+	}
+}
+function Vn(e) {
+	if (!e?.documentElement || !e?.body || !document?.documentElement) return;
+	let t = document.documentElement, n = document.body, r = e.documentElement, i = e.body;
+	r.className = Rn(t.className, "mjr-mfv-popout-document"), i.className = Rn(n?.className, "mjr-mfv-popout-body"), zn(t, r), zn(n, i), Bn(t, r), Bn(n, i), t?.lang && (r.lang = t.lang), t?.dir && (r.dir = t.dir);
+}
+function Hn(e) {
+	if (!e?.body) return null;
+	try {
+		(e.getElementById?.("mjr-mfv-popout-root"))?.remove?.();
+	} catch (e) {
+		console.debug?.(e);
+	}
+	let t = e.createElement("div");
+	return t.id = "mjr-mfv-popout-root", t.className = "mjr-mfv-popout-root", e.body.appendChild(t), t;
+}
+function Un(e) {
+	e._resetGenDropdownForCurrentDocument(), e._rebindControlHandlers(), e._bindPanelInteractions(), e._bindDocumentUiHandlers(), e._unbindLayoutObserver?.(), e._bindLayoutObserver?.(), e._refresh?.(), e._updatePopoutBtnUI();
+}
+function Wn(e, t) {
+	if (!e.element) return;
+	let n = !!t;
+	if (e._desktopExpanded === n) return;
+	let r = e.element;
+	if (n) {
+		e._desktopExpandRestore = {
+			parent: r.parentNode || null,
+			nextSibling: r.nextSibling || null,
+			styleAttr: r.getAttribute("style")
+		}, r.parentNode !== document.body && document.body.appendChild(r), r.classList.add("mjr-mfv--desktop-expanded", "is-visible"), r.setAttribute("aria-hidden", "false"), r.style.position = "fixed", r.style.top = "12px", r.style.left = "12px", r.style.right = "12px", r.style.bottom = "12px", r.style.width = "auto", r.style.height = "auto", r.style.maxWidth = "none", r.style.maxHeight = "none", r.style.minWidth = "320px", r.style.minHeight = "240px", r.style.resize = "none", r.style.margin = "0", r.style.zIndex = "2147483000", e._desktopExpanded = !0, e.isVisible = !0, Un(e), $("electron-in-app-expanded", { isVisible: e.isVisible });
+		return;
+	}
+	let i = e._desktopExpandRestore;
+	e._desktopExpanded = !1, r.classList.remove("mjr-mfv--desktop-expanded"), i?.styleAttr == null || i.styleAttr === "" ? r.removeAttribute("style") : r.setAttribute("style", i.styleAttr), i?.parent && i.parent.isConnected && (i.nextSibling && i.nextSibling.parentNode === i.parent ? i.parent.insertBefore(r, i.nextSibling) : i.parent.appendChild(r)), e._desktopExpandRestore = null, Un(e), $("electron-in-app-restored", null);
+}
+function Gn(e, t) {
+	e._desktopPopoutUnsupported = !0, $("electron-in-app-fallback", { message: t?.message || String(t || "unknown error") }, "warn"), e._setDesktopExpanded(!0);
+	try {
+		r(s("toast.popoutElectronInAppFallback", "Desktop PiP is unavailable here. Viewer expanded inside the app instead."), "warning", 4500);
+	} catch (e) {
+		console.debug?.(e);
+	}
+}
+function Kn(e, t, n, r, i) {
+	return $("electron-popup-fallback-attempt", { reason: i?.message || String(i || "unknown") }, "warn"), e._fallbackPopout(t, n, r), e._popoutWindow ? (e._desktopPopoutUnsupported = !1, $("electron-popup-fallback-opened", null), !0) : !1;
+}
+function qn(e) {
+	if (e._isPopped || !e.element) return;
+	let t = e.element;
+	e._stopEdgeResize();
+	let n = Ln(), r = typeof window < "u" && "documentPictureInPicture" in window, i = String(window?.navigator?.userAgent || globalThis?.navigator?.userAgent || ""), a = Math.max(t.offsetWidth || 520, 400), o = Math.max(t.offsetHeight || 420, 300);
+	$("start", {
+		isElectronHost: n,
+		hasDocumentPiP: r,
+		userAgent: i,
+		width: a,
+		height: o,
+		desktopPopoutUnsupported: e._desktopPopoutUnsupported
+	}), n && e._desktopPopoutUnsupported ? ($("electron-in-app-fallback-reuse", null), e._setDesktopExpanded(!0)) : n && ($("electron-popup-request", {
+		width: a,
+		height: o
+	}), e._tryElectronPopupFallback(t, a, o, /* @__PURE__ */ Error("Desktop popup requested"))) || (n && "documentPictureInPicture" in window ? ($("electron-pip-request", {
+		width: a,
+		height: o
+	}), window.documentPictureInPicture.requestWindow({
+		width: a,
+		height: o
+	}).then((n) => {
+		$("electron-pip-opened", { hasDocument: !!n?.document }), e._popoutWindow = n, e._isPopped = !0, e._popoutRestoreGuard = !1;
+		try {
+			e._popoutAC?.abort();
+		} catch (e) {
+			console.debug?.(e);
+		}
+		e._popoutAC = new AbortController();
+		let r = e._popoutAC.signal, i = () => e._schedulePopInFromPopupClose();
+		e._popoutCloseHandler = i;
+		let a = n.document;
+		a.title = "Majoor Viewer", e._installPopoutStyles(a);
+		let o = Hn(a);
+		if (!o) e._activateDesktopExpandedFallback(/* @__PURE__ */ Error("Popup root creation failed"));
+		else {
+			try {
+				let e = typeof a.adoptNode == "function" ? a.adoptNode(t) : t;
+				o.appendChild(e), $("electron-pip-adopted", { usedAdoptNode: typeof a.adoptNode == "function" });
+			} catch (t) {
+				$("electron-pip-adopt-failed", { message: t?.message || String(t) }, "warn"), console.warn("[MFV] PiP adoptNode failed", t), e._isPopped = !1, e._popoutWindow = null;
+				try {
+					n.close();
+				} catch (e) {
+					console.debug?.(e);
+				}
+				e._activateDesktopExpandedFallback(t);
+				return;
+			}
+			t.classList.add("is-visible"), e.isVisible = !0, Un(e), $("electron-pip-ready", { isPopped: e._isPopped }), n.addEventListener("pagehide", i, { signal: r }), e._startPopoutCloseWatch(), e._popoutKeydownHandler = (t) => {
+				let n = String(t?.target?.tagName || "").toLowerCase();
+				t?.defaultPrevented || t?.target?.isContentEditable || n === "input" || n === "textarea" || n === "select" || e._forwardKeydownToController(t);
+			}, n.addEventListener("keydown", e._popoutKeydownHandler, { signal: r });
+		}
+	}).catch((t) => {
+		$("electron-pip-request-failed", { message: t?.message || String(t) }, "warn"), e._activateDesktopExpandedFallback(t);
+	})) : n ? ($("electron-no-pip-api", { hasDocumentPiP: r }), e._activateDesktopExpandedFallback(/* @__PURE__ */ Error("Document Picture-in-Picture unavailable after popup failure"))) : ($("browser-fallback-popup", {
+		width: a,
+		height: o
+	}), e._fallbackPopout(t, a, o)));
+}
+function Jn(e, t, n, r) {
+	$("browser-popup-open", {
+		width: n,
+		height: r
+	});
+	let i = `width=${n},height=${r},left=${(window.screenX || window.screenLeft) + Math.round((window.outerWidth - n) / 2)},top=${(window.screenY || window.screenTop) + Math.round((window.outerHeight - r) / 2)},resizable=yes,scrollbars=no,toolbar=no,menubar=no,location=no,status=no`, a = window.open("about:blank", "_mjr_viewer", i);
+	if (!a) {
+		$("browser-popup-blocked", null, "warn"), console.warn("[MFV] Pop-out blocked  -  allow popups for this site.");
+		return;
+	}
+	$("browser-popup-opened", { hasDocument: !!a?.document }), e._popoutWindow = a, e._isPopped = !0, e._popoutRestoreGuard = !1;
+	try {
+		e._popoutAC?.abort();
+	} catch (e) {
+		console.debug?.(e);
+	}
+	e._popoutAC = new AbortController();
+	let o = e._popoutAC.signal, s = () => e._schedulePopInFromPopupClose();
+	e._popoutCloseHandler = s;
+	let c = () => {
+		let n;
+		try {
+			n = a.document;
+		} catch {
+			return;
+		}
+		if (!n) return;
+		n.title = "Majoor Viewer", e._installPopoutStyles(n);
+		let r = Hn(n);
+		if (r) {
+			try {
+				r.appendChild(n.adoptNode(t));
+			} catch (e) {
+				console.warn("[MFV] adoptNode failed", e);
+				return;
+			}
+			t.classList.add("is-visible"), e.isVisible = !0, Un(e);
+		}
+	};
+	try {
+		c();
+	} catch (e) {
+		console.debug?.("[MFV] immediate mount failed, retrying on load", e);
+		try {
+			a.addEventListener("load", c, { signal: o });
+		} catch (e) {
+			console.debug?.("[MFV] pop-out page load listener failed", e);
+		}
+	}
+	a.addEventListener("beforeunload", s, { signal: o }), a.addEventListener("pagehide", s, { signal: o }), a.addEventListener("unload", s, { signal: o }), e._startPopoutCloseWatch(), e._popoutKeydownHandler = (t) => {
+		let n = String(t?.target?.tagName || "").toLowerCase();
+		t?.defaultPrevented || t?.target?.isContentEditable || n === "input" || n === "textarea" || n === "select" || e._forwardKeydownToController(t);
+	}, a.addEventListener("keydown", e._popoutKeydownHandler, { signal: o });
+}
+function Yn(e) {
+	if (e._popoutCloseTimer != null) {
+		try {
+			window.clearInterval(e._popoutCloseTimer);
+		} catch (e) {
+			console.debug?.(e);
+		}
+		e._popoutCloseTimer = null;
+	}
+}
+function Xn(e) {
+	e._clearPopoutCloseWatch(), e._popoutCloseTimer = window.setInterval(() => {
+		if (!e._isPopped) {
+			e._clearPopoutCloseWatch();
+			return;
+		}
+		let t = e._popoutWindow;
+		(!t || t.closed) && (e._clearPopoutCloseWatch(), e._schedulePopInFromPopupClose());
+	}, 250);
+}
+function Zn(e) {
+	e._isPopped && !e._popoutRestoreGuard && (e._popoutRestoreGuard = !0, window.setTimeout(() => {
+		try {
+			e.popIn({ closePopupWindow: !1 });
+		} finally {
+			e._popoutRestoreGuard = !1;
+		}
+	}, 0));
+}
+function Qn(e, t) {
+	if (!t?.head) return;
+	try {
+		for (let e of t.head.querySelectorAll("[data-mjr-popout-cloned-style='1']")) e.remove();
+	} catch (e) {
+		console.debug?.(e);
+	}
+	Vn(t);
+	try {
+		let e = document.documentElement.style.cssText;
+		if (e) {
+			let n = t.createElement("style");
+			n.setAttribute("data-mjr-popout-cloned-style", "1"), n.textContent = `:root { ${e} }`, t.head.appendChild(n);
+		}
+	} catch (e) {
+		console.debug?.(e);
+	}
+	for (let e of document.querySelectorAll("link[rel=\"stylesheet\"], style")) try {
+		let n = null;
+		if (e.tagName === "LINK") {
+			n = t.createElement("link");
+			for (let t of Array.from(e.attributes || [])) t?.name !== "href" && n.setAttribute(t.name, t.value);
+			n.setAttribute("href", e.href || e.getAttribute("href") || "");
+		} else n = t.importNode(e, !0);
+		n.setAttribute("data-mjr-popout-cloned-style", "1"), t.head.appendChild(n);
+	} catch (e) {
+		console.debug?.(e);
+	}
+	let n = t.createElement("style");
+	n.setAttribute("data-mjr-popout-cloned-style", "1"), n.textContent = "\n        html.mjr-mfv-popout-document {\n            min-height: 100%;\n            background:\n                radial-gradient(\n                    1200px 420px at 50% 0%,\n                    color-mix(in srgb, var(--primary-background, var(--comfy-accent, #5fb3ff)) 10%, transparent),\n                    transparent 62%\n                ),\n                linear-gradient(\n                    180deg,\n                    color-mix(in srgb, var(--interface-panel-surface, var(--content-bg, #16191f)) 82%, #000 18%),\n                    color-mix(in srgb, var(--interface-menu-surface, var(--comfy-menu-bg, #1f2227)) 84%, #000 16%)\n                ) !important;\n        }\n        body.mjr-mfv-popout-body {\n            margin: 0 !important;\n            display: flex !important;\n            min-height: 100vh !important;\n            overflow: hidden !important;\n            background: transparent !important;\n        }\n        #mjr-mfv-popout-root,\n        .mjr-mfv-popout-root {\n            flex: 1 !important;\n            min-width: 0 !important;\n            min-height: 0 !important;\n            display: flex !important;\n            isolation: isolate;\n        }\n        body.mjr-mfv-popout-body .mjr-mfv {\n            position: static !important;\n            width: 100% !important;\n            height: 100% !important;\n            min-width: 0 !important;\n            min-height: 0 !important;\n            resize: none !important;\n            border-radius: 0 !important;\n            display: flex !important;\n            opacity: 1 !important;\n            visibility: visible !important;\n            pointer-events: auto !important;\n            transform: none !important;\n            max-width: none !important;\n            max-height: none !important;\n            overflow: hidden !important;\n        }\n    ", t.head.appendChild(n);
+}
+function $n(e, { closePopupWindow: t = !0 } = {}) {
+	if (e._desktopExpanded) {
+		e._setDesktopExpanded(!1);
+		return;
+	}
+	if (!e._isPopped || !e.element) return;
+	let n = e._popoutWindow;
+	e._clearPopoutCloseWatch();
+	try {
+		e._popoutAC?.abort();
+	} catch (e) {
+		console.debug?.(e);
+	}
+	e._popoutAC = null, e._popoutCloseHandler = null, e._popoutKeydownHandler = null, e._isPopped = !1;
+	let r = e.element;
+	try {
+		r = r?.ownerDocument === document ? r : document.adoptNode(r);
+	} catch (e) {
+		console.debug?.("[MFV] pop-in adopt failed", e);
+	}
+	if (document.body.appendChild(r), r.classList.add("is-visible"), r.setAttribute("aria-hidden", "false"), e.isVisible = !0, Un(e), t) try {
+		n?.close();
+	} catch (e) {
+		console.debug?.(e);
+	}
+	e._popoutWindow = null;
+}
+function er(e) {
+	if (!e._popoutBtn) return;
+	let t = e._isPopped || e._desktopExpanded;
+	e.element && e.element.classList.toggle("mjr-mfv--popped", t), e._popoutBtn.classList.toggle("mjr-popin-active", t);
+	let n = e._popoutBtn.querySelector("i") || document.createElement("i"), r = t ? s("tooltip.popInViewer", "Return to floating panel") : s("tooltip.popOutViewer", "Pop out viewer to separate window");
+	n.className = t ? "pi pi-sign-in" : "pi pi-external-link", e._popoutBtn.title = r, e._popoutBtn.setAttribute("aria-label", r), e._popoutBtn.setAttribute("aria-pressed", String(t)), e._popoutBtn.contains(n) || e._popoutBtn.replaceChildren(n);
+}
+// ui/features/viewer/floatingViewerPanel.ts
+function tr(e) {
+	return {
+		n: "ns-resize",
+		s: "ns-resize",
+		e: "ew-resize",
+		w: "ew-resize",
+		ne: "nesw-resize",
+		nw: "nwse-resize",
+		se: "nwse-resize",
+		sw: "nesw-resize"
+	}[e] || "";
+}
+function nr(e, t, n) {
+	if (!n) return "";
+	let r = e <= n.left + 8, i = e >= n.right - 8, a = t <= n.top + 8, o = t >= n.bottom - 8;
+	return a && r ? "nw" : a && i ? "ne" : o && r ? "sw" : o && i ? "se" : a ? "n" : o ? "s" : r ? "w" : i ? "e" : "";
+}
+function rr(e) {
+	if (e.element) {
+		try {
+			e._resizeWindowCleanup?.();
+		} catch (e) {
+			console.debug?.(e);
+		}
+		if (e._resizeWindowCleanup = null, e._resizeState?.pointerId != null) try {
+			e.element.releasePointerCapture(e._resizeState.pointerId);
+		} catch (e) {
+			console.debug?.(e);
+		}
+		e._resizeState = null, e.element.classList.remove("mjr-mfv--resizing"), e.element.style.cursor = "";
+	}
+}
+function ir(e) {
+	if (e.element) {
+		e._stopEdgeResize();
+		try {
+			e._panelAC?.abort();
+		} catch (e) {
+			console.debug?.(e);
+		}
+		e._panelAC = new AbortController(), e._initEdgeResize(e.element), e._initDrag(e.element.querySelector(".mjr-mfv-header"));
+	}
+}
+function ar(e, t) {
+	if (!t) return;
+	let n = (t) => {
+		if (!e.element || e._isPopped) return "";
+		let n = e.element.getBoundingClientRect();
+		return e._getResizeDirectionFromPoint(t.clientX, t.clientY, n);
+	}, r = e._panelAC?.signal, i = null, a = () => {
+		try {
+			i?.abort();
+		} catch (e) {
+			console.debug?.(e);
+		}
+		i = null, e._resizeWindowCleanup = null;
+	}, o = (t) => {
+		if (t.button !== 0 || !e.element || e._isPopped) return;
+		try {
+			if (t.target?.closest?.("button, input, textarea, select, a, [contenteditable='true'], .mjr-mfv-idrop, .mjr-mfv-pin-group")) return;
+		} catch (e) {
+			console.debug?.(e);
+		}
+		let r = n(t);
+		if (!r) return;
+		t.preventDefault(), t.stopPropagation();
+		let o = e.element.getBoundingClientRect(), l = window.getComputedStyle(e.element), u = Math.max(120, Number.parseFloat(l.minWidth) || 0), d = Math.max(100, Number.parseFloat(l.minHeight) || 0);
+		e._resizeState = {
+			pointerId: t.pointerId,
+			dir: r,
+			startX: t.clientX,
+			startY: t.clientY,
+			startLeft: o.left,
+			startTop: o.top,
+			startWidth: o.width,
+			startHeight: o.height,
+			minWidth: u,
+			minHeight: d
+		}, e.element.style.left = `${Math.round(o.left)}px`, e.element.style.top = `${Math.round(o.top)}px`, e.element.style.right = "auto", e.element.style.bottom = "auto", e.element.classList.add("mjr-mfv--resizing"), e.element.style.cursor = e._resizeCursorForDirection(r);
+		try {
+			e.element.setPointerCapture(t.pointerId);
+		} catch (e) {
+			console.debug?.(e);
+		}
+		try {
+			a(), i = new AbortController(), e._resizeWindowCleanup = a;
+			let t = e.element?.ownerDocument?.defaultView || window;
+			t.addEventListener("pointermove", s, { signal: i.signal }), t.addEventListener("pointerup", c, { signal: i.signal }), t.addEventListener("pointercancel", c, { signal: i.signal });
+		} catch (e) {
+			console.debug?.(e);
+		}
+	}, s = (t) => {
+		if (!e.element || e._isPopped) return;
+		let r = e._resizeState;
+		if (!r) {
+			let r = n(t);
+			e.element.style.cursor = r ? e._resizeCursorForDirection(r) : "";
+			return;
+		}
+		if (r.pointerId !== t.pointerId) return;
+		let i = t.clientX - r.startX, a = t.clientY - r.startY, o = r.startWidth, s = r.startHeight, c = r.startLeft, l = r.startTop;
+		r.dir.includes("e") && (o = r.startWidth + i), r.dir.includes("s") && (s = r.startHeight + a), r.dir.includes("w") && (o = r.startWidth - i, c = r.startLeft + i), r.dir.includes("n") && (s = r.startHeight - a, l = r.startTop + a), o < r.minWidth && (r.dir.includes("w") && (c -= r.minWidth - o), o = r.minWidth), s < r.minHeight && (r.dir.includes("n") && (l -= r.minHeight - s), s = r.minHeight), o = Math.min(o, Math.max(r.minWidth, window.innerWidth)), s = Math.min(s, Math.max(r.minHeight, window.innerHeight)), c = Math.min(Math.max(0, c), Math.max(0, window.innerWidth - o)), l = Math.min(Math.max(0, l), Math.max(0, window.innerHeight - s)), e.element.style.width = `${Math.round(o)}px`, e.element.style.height = `${Math.round(s)}px`, e.element.style.left = `${Math.round(c)}px`, e.element.style.top = `${Math.round(l)}px`, e.element.style.right = "auto", e.element.style.bottom = "auto";
+	}, c = (t) => {
+		if (!e.element || !e._resizeState || e._resizeState.pointerId !== t.pointerId) return;
+		let r = n(t);
+		a(), e._stopEdgeResize(), r && (e.element.style.cursor = e._resizeCursorForDirection(r));
+	};
+	t.addEventListener("pointerdown", o, {
+		capture: !0,
+		signal: r
+	}), t.addEventListener("pointermove", s, { signal: r }), t.addEventListener("pointerup", c, { signal: r }), t.addEventListener("pointercancel", c, { signal: r }), t.addEventListener("pointerleave", () => {
+		!e._resizeState && e.element && (e.element.style.cursor = "");
+	}, { signal: r });
+}
+function or(e, t) {
+	if (!t) return;
+	let n = e._panelAC?.signal, r = null;
+	t.addEventListener("pointerdown", (n) => {
+		if (n.button !== 0 || n.target.closest("button") || n.target.closest("select") || e._isPopped || !e.element || e._getResizeDirectionFromPoint(n.clientX, n.clientY, e.element.getBoundingClientRect())) return;
+		n.preventDefault(), t.setPointerCapture(n.pointerId);
+		try {
+			r?.abort();
+		} catch {}
+		r = new AbortController();
+		let i = r.signal, a = e.element, o = a.getBoundingClientRect(), s = n.clientX - o.left, c = n.clientY - o.top, l = (e) => {
+			let t = Math.min(window.innerWidth - a.offsetWidth, Math.max(0, e.clientX - s)), n = Math.min(window.innerHeight - a.offsetHeight, Math.max(0, e.clientY - c));
+			a.style.left = `${t}px`, a.style.top = `${n}px`, a.style.right = "auto", a.style.bottom = "auto";
+		}, u = () => {
+			try {
+				t.releasePointerCapture?.(n.pointerId);
+			} catch (e) {
+				console.debug?.(e);
+			}
+			try {
+				r?.abort();
+			} catch {}
+		}, d = t.ownerDocument?.defaultView || window;
+		d.addEventListener("pointermove", l, { signal: i }), d.addEventListener("pointerup", u, { signal: i }), d.addEventListener("pointercancel", u, { signal: i });
+	}, n ? { signal: n } : void 0);
+}
+// ui/features/viewer/floatingViewerCapture.ts
+async function sr(e, t, n, r, i, a, o, s) {
+	if (!n) return;
+	let c = G(n), l = null;
+	if (c === "video" && (l = s instanceof HTMLVideoElement ? s : e._contentEl?.querySelector("video") || null), !l && c === "model3d") {
+		let t = n?.id == null ? "" : String(n.id);
+		t && (l = e._contentEl?.querySelector?.(`.mjr-model3d-render-canvas[data-mjr-asset-id="${t}"]`) || null), l ||= e._contentEl?.querySelector?.(".mjr-model3d-render-canvas") || null;
+	}
+	if (!l) {
+		let e = Fe(n);
+		if (!e) return;
+		l = await new Promise((t) => {
+			let n = new Image();
+			n.crossOrigin = "anonymous", n.onload = () => t(n), n.onerror = () => t(null), n.src = e;
+		});
+	}
+	if (!l) return;
+	let u = l.videoWidth || l.naturalWidth || a, d = l.videoHeight || l.naturalHeight || o;
+	if (!u || !d) return;
+	let f = Math.min(a / u, o / d);
+	t.drawImage(l, r + (a - u * f) / 2, i + (o - d * f) / 2, u * f, d * f);
+}
+function cr(e, t, n, r) {
+	if (!t || !n || !e._genInfoSelections.size) return 0;
+	let i = e._getGenFields(n), a = [
+		"prompt",
+		"seed",
+		"model",
+		"lora",
+		"sampler",
+		"scheduler",
+		"cfg",
+		"step",
+		"genTime"
+	], o = Math.max(100, Number(r || 0) - 16), s = 0;
+	for (let n of a) {
+		if (!e._genInfoSelections.has(n)) continue;
+		let r = i[n] == null ? "" : String(i[n]);
+		if (!r) continue;
+		let a = n.charAt(0).toUpperCase() + n.slice(1);
+		n === "lora" ? a = "LoRA" : n === "cfg" ? a = "CFG" : n === "genTime" && (a = "Gen Time");
+		let c = `${a}: `;
+		t.font = "bold 11px system-ui, sans-serif";
+		let l = t.measureText(c).width;
+		t.font = "11px system-ui, sans-serif";
+		let u = Math.max(32, o - 16 - l), d = 0, f = "";
+		for (let e of r.split(" ")) {
+			let n = f ? f + " " + e : e;
+			t.measureText(n).width > u && f ? (d += 1, f = e) : f = n;
+		}
+		f && (d += 1), s += d;
+	}
+	return s > 0 ? s * 16 + 16 : 0;
+}
+function lr(e, t, n, r, i, a, o) {
+	if (!n || !e._genInfoSelections.size) return;
+	let s = e._getGenFields(n), c = {
+		prompt: "#7ec8ff",
+		seed: "#ffd47a",
+		model: "#7dda8a",
+		lora: "#d48cff",
+		sampler: "#ff9f7a",
+		scheduler: "#ff7a9f",
+		cfg: "#7a9fff",
+		step: "#7affd4",
+		genTime: "#e0ff7a"
+	}, l = [
+		"prompt",
+		"seed",
+		"model",
+		"lora",
+		"sampler",
+		"scheduler",
+		"cfg",
+		"step",
+		"genTime"
+	], u = [];
+	for (let t of l) {
+		if (!e._genInfoSelections.has(t)) continue;
+		let n = s[t] == null ? "" : String(s[t]);
+		if (!n) continue;
+		let r = t.charAt(0).toUpperCase() + t.slice(1);
+		t === "lora" ? r = "LoRA" : t === "cfg" ? r = "CFG" : t === "genTime" && (r = "Gen Time"), u.push({
+			label: `${r}: `,
+			value: n,
+			color: c[t] || "#ffffff"
+		});
+	}
+	if (!u.length) return;
+	let d = Math.max(100, a - 16);
+	t.save();
+	let f = [];
+	for (let { label: e, value: n, color: r } of u) {
+		t.font = "bold 11px system-ui, sans-serif";
+		let i = t.measureText(e).width;
+		t.font = "11px system-ui, sans-serif";
+		let a = d - 16 - i, o = [], s = "";
+		for (let e of n.split(" ")) {
+			let n = s ? s + " " + e : e;
+			t.measureText(n).width > a && s ? (o.push(s), s = e) : s = n;
+		}
+		s && o.push(s), f.push({
+			label: e,
+			labelW: i,
+			lines: o,
+			color: r
+		});
+	}
+	let p = f.reduce((e, t) => e + t.lines.length, 0) * 16 + 16, m = r + 8, h = i + o - p - 8;
+	t.globalAlpha = .72, t.fillStyle = "#000", Ue(t, m, h, d, p, 6), t.fill(), t.globalAlpha = 1;
+	let g = h + 8 + 11;
+	for (let { label: e, labelW: n, lines: r, color: i } of f) for (let a = 0; a < r.length; a++) a === 0 ? (t.font = "bold 11px system-ui, sans-serif", t.fillStyle = i, t.fillText(e, m + 8, g), t.font = "11px system-ui, sans-serif", t.fillStyle = "rgba(255,255,255,0.88)", t.fillText(r[a], m + 8 + n, g)) : (t.font = "11px system-ui, sans-serif", t.fillStyle = "rgba(255,255,255,0.88)", t.fillText(r[a], m + 8 + n, g)), g += 16;
+	t.restore();
+}
+async function ur(e) {
+	if (!e._contentEl) return;
+	e._captureBtn && (e._captureBtn.disabled = !0, e._captureBtn.setAttribute("aria-label", s("tooltip.capturingView", "Capturing...")));
+	let t = e._contentEl.clientWidth || 480, n = e._contentEl.clientHeight || 360, r = n;
+	if (e._mode === W.SIMPLE && e._mediaA && e._genInfoSelections.size) {
+		let i = document.createElement("canvas");
+		i.width = t, i.height = n;
+		let a = i.getContext("2d"), o = e._estimateGenInfoOverlayHeight(a, e._mediaA, t);
+		if (o > 0) {
+			let e = Math.max(n, o + 24);
+			r = Math.min(e, n * 4);
+		}
+	}
+	let i = document.createElement("canvas");
+	i.width = t, i.height = r;
+	let a = i.getContext("2d");
+	a.fillStyle = "#0d0d0d", a.fillRect(0, 0, t, r);
+	try {
+		if (e._mode === W.SIMPLE) e._mediaA && (await e._drawMediaFit(a, e._mediaA, 0, 0, t, n), e._drawGenInfoOverlay(a, e._mediaA, 0, 0, t, r));
+		else if (e._mode === W.AB) {
+			let n = Math.round(e._abDividerX * t), i = e._contentEl.querySelector(".mjr-mfv-ab-layer:not(.mjr-mfv-ab-layer--b) video"), o = e._contentEl.querySelector(".mjr-mfv-ab-layer--b video");
+			e._mediaA && await e._drawMediaFit(a, e._mediaA, 0, 0, t, r, i), e._mediaB && (a.save(), a.beginPath(), a.rect(n, 0, t - n, r), a.clip(), await e._drawMediaFit(a, e._mediaB, 0, 0, t, r, o), a.restore()), a.save(), a.strokeStyle = "rgba(255,255,255,0.88)", a.lineWidth = 2, a.beginPath(), a.moveTo(n, 0), a.lineTo(n, r), a.stroke(), a.restore(), Y(a, "A", 8, 8), Y(a, "B", n + 8, 8), e._mediaA && e._drawGenInfoOverlay(a, e._mediaA, 0, 0, n, r), e._mediaB && e._drawGenInfoOverlay(a, e._mediaB, n, 0, t - n, r);
+		} else if (e._mode === W.SIDE) {
+			let n = Math.floor(t / 2), i = e._contentEl.querySelector(".mjr-mfv-side-panel:first-child video"), o = e._contentEl.querySelector(".mjr-mfv-side-panel:last-child video");
+			e._mediaA && (await e._drawMediaFit(a, e._mediaA, 0, 0, n, r, i), e._drawGenInfoOverlay(a, e._mediaA, 0, 0, n, r)), a.fillStyle = "#111", a.fillRect(n, 0, 2, r), e._mediaB && (await e._drawMediaFit(a, e._mediaB, n, 0, n, r, o), e._drawGenInfoOverlay(a, e._mediaB, n, 0, n, r)), Y(a, "A", 8, 8), Y(a, "B", n + 8, 8);
+		} else if (e._mode === W.GRID) {
+			let n = Math.floor(t / 2), i = Math.floor(r / 2), o = [
+				{
+					media: e._mediaA,
+					label: "A",
+					x: 0,
+					y: 0,
+					w: n - 1,
+					h: i - 1
+				},
+				{
+					media: e._mediaB,
+					label: "B",
+					x: n + 1,
+					y: 0,
+					w: n - 1,
+					h: i - 1
+				},
+				{
+					media: e._mediaC,
+					label: "C",
+					x: 0,
+					y: i + 1,
+					w: n - 1,
+					h: i - 1
+				},
+				{
+					media: e._mediaD,
+					label: "D",
+					x: n + 1,
+					y: i + 1,
+					w: n - 1,
+					h: i - 1
+				}
+			], s = e._contentEl.querySelectorAll(".mjr-mfv-grid-cell");
+			for (let t = 0; t < o.length; t++) {
+				let n = o[t], r = s[t]?.querySelector("video") || null;
+				n.media && (await e._drawMediaFit(a, n.media, n.x, n.y, n.w, n.h, r), e._drawGenInfoOverlay(a, n.media, n.x, n.y, n.w, n.h)), Y(a, n.label, n.x + 8, n.y + 8);
+			}
+			a.save(), a.fillStyle = "#111", a.fillRect(n - 1, 0, 2, r), a.fillRect(0, i - 1, t, 2), a.restore();
+		}
+	} catch (e) {
+		console.debug("[MFV] capture error:", e);
+	}
+	let o = `${{
+		[W.AB]: "mfv-ab",
+		[W.SIDE]: "mfv-side",
+		[W.GRID]: "mfv-grid"
+	}[e._mode] ?? "mfv"}-${Date.now()}.png`;
+	try {
+		let e = i.toDataURL("image/png"), t = document.createElement("a");
+		t.href = e, t.download = o, document.body.appendChild(t), t.click(), setTimeout(() => document.body.removeChild(t), 100);
+	} catch (e) {
+		console.warn("[MFV] download failed:", e);
+	} finally {
+		e._captureBtn && (e._captureBtn.disabled = !1, e._captureBtn.setAttribute("aria-label", s("tooltip.captureView", "Save view as image")));
+	}
+}
+// ui/features/viewer/floatingViewerLoader.ts
+var dr = "imageops-live-preview";
+function fr(e) {
+	return String(e?._source || "") === dr;
+}
+function pr(e, t, { autoMode: n = !1 } = {}) {
+	let r = e._mediaA || null, i = fr(t), a = i && fr(r) && String(r?._nodeId || "") === String(t?._nodeId || "");
+	if (e._mediaA = t || null, Mn(e, [r]), a || e._resetMfvZoom(), n && e._mode !== W.SIMPLE && e._mode !== W.GRAPH && (e._mode = W.SIMPLE, e._updateModeBtnUI()), e._refresh(), e._mediaA && !i && typeof fe == "function") {
+		let t = ++e._refreshGen;
+		(async () => {
+			try {
+				let n = await fe(e._mediaA, {
+					getAssetMetadata: f,
+					getFileMetadataScoped: m
+				});
+				if (e._refreshGen !== t) return;
+				n && typeof n == "object" && (e._mediaA = n, e._refresh());
+			} catch (e) {
+				console.debug?.("[MFV] metadata enrich error", e);
+			}
+		})();
+	}
+}
+function mr(e, t, n) {
+	let r = [e._mediaA, e._mediaB];
+	e._mediaA = t || null, e._mediaB = n || null, Mn(e, r), e._resetMfvZoom(), e._mode === W.SIMPLE && (e._mode = W.AB, e._updateModeBtnUI());
+	let i = ++e._refreshGen, a = async (e) => {
+		if (!e) return e;
+		try {
+			return await fe(e, {
+				getAssetMetadata: f,
+				getFileMetadataScoped: m
+			}) || e;
+		} catch {
+			return e;
+		}
+	};
+	(async () => {
+		let [t, n] = await Promise.all([a(e._mediaA), a(e._mediaB)]);
+		e._refreshGen === i && (e._mediaA = t || null, e._mediaB = n || null, e._refresh());
+	})();
+}
+function hr(e, t, n, r, i) {
+	let a = [
+		e._mediaA,
+		e._mediaB,
+		e._mediaC,
+		e._mediaD
+	];
+	e._mediaA = t || null, e._mediaB = n || null, e._mediaC = r || null, e._mediaD = i || null, Mn(e, a), e._resetMfvZoom(), e._mode !== W.GRID && (e._mode = W.GRID, e._updateModeBtnUI());
+	let o = ++e._refreshGen, s = async (e) => {
+		if (!e) return e;
+		try {
+			return await fe(e, {
+				getAssetMetadata: f,
+				getFileMetadataScoped: m
+			}) || e;
+		} catch {
+			return e;
+		}
+	};
+	(async () => {
+		let [t, n, r, i] = await Promise.all([
+			s(e._mediaA),
+			s(e._mediaB),
+			s(e._mediaC),
+			s(e._mediaD)
+		]);
+		e._refreshGen === o && (e._mediaA = t || null, e._mediaB = n || null, e._mediaC = r || null, e._mediaD = i || null, e._refresh());
+	})();
+}
+// ui/features/viewer/FloatingViewer.impl.ts
+function gr(e) {
+	try {
+		return !!e?.classList?.contains("mjr-mfv-simple-player") || !!e?.classList?.contains("mjr-mfv-player-host") || !!e?.querySelector?.(".mjr-video-controls, .mjr-mfv-simple-player-controls");
+	} catch (e) {
+		return console.debug?.(e), !1;
+	}
+}
+var _r = 0, vr = class {
+	constructor({ controller: e = null } = {}) {
+		this._instanceId = ++_r, this._controller = e && typeof e == "object" ? { ...e } : null, this.element = null, this.isVisible = !1, this._contentEl = null, this._genSidebarEl = null, this._closeBtn = null, this._modeBtn = null, this._pinGroup = null, this._pinBtns = null, this._liveBtn = null, this._genBtn = null, this._genDropdown = null, this._genSidebarEnabled = !1, this._captureBtn = null, this._genInfoSelections = /* @__PURE__ */ new Set([
+			"prompt",
+			"seed",
+			"model",
+			"lora",
+			"sampler",
+			"scheduler",
+			"cfg",
+			"step",
+			"genTime"
+		]), this._mode = W.SIMPLE, this._mediaA = null, this._mediaB = null, this._mediaC = null, this._mediaD = null, this._pinnedSlots = /* @__PURE__ */ new Set(), this._abDividerX = .5, this._mfvMuted = !1, this._mfvPlaybackRate = 1, this._zoom = 1, this._panX = 0, this._panY = 0, this._panzoomAC = null, this._dragging = !1, this._compareSyncAC = null, this._btnAC = null, this._refreshGen = 0, this._popoutWindow = null, this._popoutBtn = null, this._isPopped = !1, this._desktopExpanded = !1, this._desktopExpandRestore = null, this._desktopPopoutUnsupported = !1, this._popoutCloseHandler = null, this._popoutKeydownHandler = null, this._popoutCloseTimer = null, this._popoutRestoreGuard = !1, this._previewBtn = null, this._previewBlobUrl = null, this._previewActive = !1, this._nodeStreamBtn = null, this._nodeStreamActive = !1, this._nodeStreamSelection = null, this._nodeStreamOverlayEl = null, this._docAC = new AbortController(), this._popoutAC = null, this._panelAC = new AbortController(), this._resizeState = null, this._titleId = `mjr-mfv-title-${this._instanceId}`, this._genDropdownId = `mjr-mfv-gen-dropdown-${this._instanceId}`, this._progressEl = null, this._progressNodesEl = null, this._progressStepsEl = null, this._progressTextEl = null, this._mediaProgressEl = null, this._mediaProgressTextEl = null, this._progressUpdateHandler = null, this._progressCurrentNodeId = null, this._docClickHost = null, this._handleDocClick = null, this._mediaControlHandles = [], this._layoutObserver = null, this._channel = "rgb", this._exposureEV = 0, this._gridMode = 0, this._overlayMaskEnabled = !1, this._overlayMaskOpacity = .65, this._overlayFormat = "image", this._graphMapPanel = new Ot({ large: !0 });
+	}
+	_dispatchControllerAction(e, t) {
+		try {
+			let t = this._controller?.[e];
+			if (typeof t == "function") return t();
+		} catch (e) {
+			console.debug?.(e);
+		}
+		if (t) try {
+			window.dispatchEvent(new Event(t));
+		} catch (e) {
+			console.debug?.(e);
+		}
+	}
+	_forwardKeydownToController(e) {
+		let t = null;
+		try {
+			let n = typeof window < "u" && window.KeyboardEvent || typeof globalThis < "u" && globalThis.KeyboardEvent;
+			if (typeof n != "function") throw Error("KeyboardEvent unavailable");
+			t = new n("keydown", {
+				key: e?.key,
+				code: e?.code,
+				keyCode: e?.keyCode,
+				ctrlKey: e?.ctrlKey,
+				shiftKey: e?.shiftKey,
+				altKey: e?.altKey,
+				metaKey: e?.metaKey,
+				repeat: !!e?.repeat,
+				bubbles: !0,
+				cancelable: !0
+			}), (!window.dispatchEvent(t) || t.defaultPrevented) && (e?.preventDefault?.(), e?.stopPropagation?.(), e?.stopImmediatePropagation?.());
+			return;
+		} catch (e) {
+			console.debug?.(e);
+		}
+		try {
+			let t = this._controller?.handleForwardedKeydown;
+			typeof t == "function" && t(e);
+		} catch (e) {
+			console.debug?.(e);
+		}
+	}
+	render() {
+		return un(this);
+	}
+	_buildHeader() {
+		return dn(this);
+	}
+	_buildToolbar() {
+		return fn(this);
+	}
+	_rebindControlHandlers() {
+		return pn(this);
+	}
+	_updateSettingsBtnState(e) {
+		return mn(this, e);
+	}
+	_applySidebarPosition() {
+		return hn(this);
+	}
+	refreshSidebar() {
+		this._sidebar?.refresh();
+	}
+	_resetGenDropdownForCurrentDocument() {}
+	_bindDocumentUiHandlers() {
+		return gn(this);
+	}
+	_unbindDocumentUiHandlers() {
+		return _n(this);
+	}
+	_isGenDropdownOpen() {
+		return !1;
+	}
+	_openGenDropdown() {}
+	_closeGenDropdown() {}
+	_updateGenBtnUI() {
+		return vn(this);
+	}
+	_buildGenDropdown() {
+		return null;
+	}
+	_getGenFields(e) {
+		return xn(this, e);
+	}
+	_buildGenInfoDOM(e) {
+		return Sn(this, e);
+	}
+	_notifyModeChanged() {
+		return Cn(this);
+	}
+	_cycleMode() {
+		return wn(this);
+	}
+	setMode(e) {
+		return Tn(this, e);
+	}
+	getPinnedSlots() {
+		return En(this);
+	}
+	_updatePinUI() {
+		return Dn(this);
+	}
+	_updateModeBtnUI() {
+		return On(this);
+	}
+	setLiveActive(e) {
+		return kn(this, e);
+	}
+	setPreviewActive(e) {
+		return An(this, e);
+	}
+	loadPreviewBlob(e, t = {}) {
+		return Nn(this, e, t);
+	}
+	_revokePreviewBlob() {
+		return Pn(this);
+	}
+	setNodeStreamActive(e) {
+		return Fn(this, e);
+	}
+	setNodeStreamSelection(e) {
+		this._nodeStreamSelection = e && (e.nodeId != null || e.classType) ? {
+			nodeId: String(e.nodeId ?? ""),
+			classType: String(e.classType || ""),
+			title: e.title ? String(e.title) : ""
+		} : null, this._updateNodeStreamOverlay();
+	}
+	_updateNodeStreamOverlay() {
+		let e = this._contentEl;
+		if (!e) return;
+		let t = this._nodeStreamSelection;
+		if (!t) {
+			this._nodeStreamOverlayEl &&= (this._nodeStreamOverlayEl.remove(), null);
+			return;
+		}
+		if (!this._nodeStreamOverlayEl || !this._nodeStreamOverlayEl.isConnected) {
+			let e = document.createElement("div");
+			e.className = "mjr-mfv-node-overlay", e.setAttribute("aria-live", "polite"), this._nodeStreamOverlayEl = e;
+		}
+		this._nodeStreamOverlayEl.parentNode !== e && e.appendChild(this._nodeStreamOverlayEl);
+		let n = t.nodeId ? `#${t.nodeId}` : "", r = t.classType || "Node", i = t.title && t.title !== t.classType ? ` - ${t.title}` : "";
+		this._nodeStreamOverlayEl.textContent = `${n}  -  ${r}${i}`.trim();
+	}
+	loadMediaA(e, { autoMode: t = !1 } = {}) {
+		return pr(this, e, { autoMode: t });
+	}
+	loadMediaPair(e, t) {
+		return mr(this, e, t);
+	}
+	loadMediaQuad(e, t, n, r) {
+		return hr(this, e, t, n, r);
+	}
+	_applyTransform() {
+		if (!this._contentEl) return;
+		let e = Math.max(ge, Math.min(8, this._zoom)), t = this._contentEl.clientWidth || 0, n = this._contentEl.clientHeight || 0, r = Math.max(0, (e - 1) * t / 2), i = Math.max(0, (e - 1) * n / 2);
+		this._panX = Math.max(-r, Math.min(r, this._panX)), this._panY = Math.max(-i, Math.min(i, this._panY));
+		let a = `translate(${this._panX}px,${this._panY}px) scale(${e})`;
+		for (let e of this._contentEl.querySelectorAll(".mjr-mfv-media")) e?._mjrDisableViewerTransform || (e.style.transform = a, e.style.transformOrigin = "center");
+		this._contentEl.classList.remove("mjr-mfv-content--grab", "mjr-mfv-content--grabbing"), e > 1.01 && this._contentEl.classList.add(this._dragging ? "mjr-mfv-content--grabbing" : "mjr-mfv-content--grab"), this._applyMediaToneControls(), this._redrawOverlayGuides();
+	}
+	_ensureToneFilterDefs() {
+		if (this._toneFilterDefsEl?.isConnected) return this._toneFilterDefsEl;
+		let e = "http://www.w3.org/2000/svg", t = document.createElementNS(e, "svg");
+		t.setAttribute("aria-hidden", "true"), t.style.position = "absolute", t.style.width = "0", t.style.height = "0", t.style.pointerEvents = "none";
+		let n = document.createElementNS(e, "defs");
+		for (let [t, r] of [
+			["mjr-mfv-ch-r", "1 0 0 0 0  1 0 0 0 0  1 0 0 0 0  0 0 0 1 0"],
+			["mjr-mfv-ch-g", "0 1 0 0 0  0 1 0 0 0  0 1 0 0 0  0 0 0 1 0"],
+			["mjr-mfv-ch-b", "0 0 1 0 0  0 0 1 0 0  0 0 1 0 0  0 0 0 1 0"],
+			["mjr-mfv-ch-a", "0 0 0 1 0  0 0 0 1 0  0 0 0 1 0  0 0 0 1 0"],
+			["mjr-mfv-ch-l", "0.2126 0.7152 0.0722 0 0  0.2126 0.7152 0.0722 0 0  0.2126 0.7152 0.0722 0 0  0 0 0 1 0"]
+		]) {
+			let i = document.createElementNS(e, "filter");
+			i.setAttribute("id", t);
+			let a = document.createElementNS(e, "feColorMatrix");
+			a.setAttribute("type", "matrix"), a.setAttribute("values", r), i.appendChild(a), n.appendChild(i);
+		}
+		return t.appendChild(n), this.element?.appendChild(t), this._toneFilterDefsEl = t, t;
+	}
+	_applyMediaToneControls() {
+		if (this._ensureToneFilterDefs(), !this._contentEl) return;
+		let e = String(this._channel || "rgb"), t = 2 ** (Number(this._exposureEV) || 0), n = [e === "rgb" ? "" : `url(#mjr-mfv-ch-${e})`, Math.abs(t - 1) < 1e-4 ? "" : `brightness(${t})`].filter(Boolean).join(" ").trim(), r = this._contentEl.querySelectorAll?.(".mjr-mfv-media") || [];
+		for (let e of r) try {
+			e.style.filter = n || "";
+		} catch (e) {
+			console.debug?.(e);
+		}
+	}
+	_getOverlayAspect(e, t, n) {
+		try {
+			let r = String(e || "image");
+			if (r === "image") {
+				let e = (Number(t?.videoWidth) || Number(t?.naturalWidth) || Number(n?.width) || 1) / (Number(t?.videoHeight) || Number(t?.naturalHeight) || Number(n?.height) || 1);
+				return Number.isFinite(e) && e > 0 ? e : 1;
+			}
+			if (r === "16:9") return 16 / 9;
+			if (r === "9:16") return 9 / 16;
+			if (r === "1:1") return 1;
+			if (r === "4:3") return 4 / 3;
+			if (r === "2.39") return 2.39;
+		} catch (e) {
+			console.debug?.(e);
+		}
+		return 1;
+	}
+	_fitAspectInBox(e, t, n) {
+		try {
+			let r = Number(e) || 0, i = Number(t) || 0, a = Number(n) || 1;
+			if (!(r > 0 && i > 0 && a > 0)) return {
+				x: 0,
+				y: 0,
+				w: r,
+				h: i
+			};
+			let o = r / i, s = r, c = i;
+			return a >= o ? c = r / a : s = i * a, {
+				x: (r - s) / 2,
+				y: (i - c) / 2,
+				w: s,
+				h: c
+			};
+		} catch (n) {
+			return console.debug?.(n), {
+				x: 0,
+				y: 0,
+				w: Number(e) || 0,
+				h: Number(t) || 0
+			};
+		}
+	}
+	_drawMaskOutside(e, t, n, r) {
+		try {
+			let i = Math.max(0, Math.min(.92, Number(r) || 0));
+			if (!(i > 0)) return;
+			e.save(), e.fillStyle = `rgba(0,0,0,${i})`, e.fillRect(0, 0, t.width, t.height), e.globalCompositeOperation = "destination-out";
+			for (let t of n) t && t.w > 1 && t.h > 1 && e.fillRect(t.x, t.y, t.w, t.h);
+			e.restore();
+		} catch (e) {
+			console.debug?.(e);
+		}
+	}
+	_redrawOverlayGuides() {
+		let e = this._overlayCanvas, t = this._contentEl;
+		if (!e || !t) return;
+		let n = e.getContext?.("2d");
+		if (!n) return;
+		let r = Math.max(1, Math.min(3, Number(window.devicePixelRatio) || 1)), i = t.clientWidth || 0, a = t.clientHeight || 0;
+		if (e.width = Math.max(1, Math.floor(i * r)), e.height = Math.max(1, Math.floor(a * r)), e.style.width = `${i}px`, e.style.height = `${a}px`, n.clearRect(0, 0, e.width, e.height), !(this._gridMode || this._overlayMaskEnabled)) return;
+		let o = t.getBoundingClientRect?.();
+		if (!o) return;
+		let s = Array.from(t.querySelectorAll?.(".mjr-mfv-simple-container, .mjr-mfv-side-panel, .mjr-mfv-grid-cell, .mjr-mfv-ab-layer") || []), c = s.length ? s : [t], l = [];
+		for (let e of c) {
+			let t = e.querySelector?.(".mjr-mfv-media");
+			if (!t) continue;
+			let n = e.getBoundingClientRect?.();
+			if (!n?.width || !n?.height) continue;
+			let i = Number(n.width) || 0, a = Number(n.height) || 0, s = this._getOverlayAspect(this._overlayFormat, t, n), c = this._fitAspectInBox(i, a, s), u = n.left - o.left + i / 2, d = n.top - o.top + a / 2, f = Math.max(.1, Math.min(16, Number(this._zoom) || 1)), p = {
+				x: u + c.x * f - i * f / 2 + (Number(this._panX) || 0),
+				y: d + c.y * f - a * f / 2 + (Number(this._panY) || 0),
+				w: c.w * f,
+				h: c.h * f
+			};
+			l.push({
+				x: p.x * r,
+				y: p.y * r,
+				w: p.w * r,
+				h: p.h * r
+			});
+		}
+		if (!l.length) return;
+		if (this._overlayMaskEnabled) {
+			this._drawMaskOutside(n, e, l, this._overlayMaskOpacity), n.save(), n.setLineDash?.([Math.max(2, 4 * r), Math.max(2, 3 * r)]), n.strokeStyle = "rgba(255,255,255,0.22)", n.lineWidth = Math.max(1, Math.floor(r));
+			for (let e of l) n.strokeRect(e.x + .5, e.y + .5, e.w - 1, e.h - 1);
+			n.restore();
+		}
+		if (this._mode !== W.SIMPLE || !this._gridMode) return;
+		let u = l[0];
+		if (!u) return;
+		n.save(), n.translate(u.x, u.y), n.strokeStyle = "rgba(255,255,255,0.22)", n.lineWidth = Math.max(2, Math.round(1.25 * r));
+		let d = (e, t, r, i) => {
+			n.beginPath(), n.moveTo(Math.round(e) + .5, Math.round(t) + .5), n.lineTo(Math.round(r) + .5, Math.round(i) + .5), n.stroke();
+		};
+		this._gridMode === 1 ? (d(u.w / 3, 0, u.w / 3, u.h), d(2 * u.w / 3, 0, 2 * u.w / 3, u.h), d(0, u.h / 3, u.w, u.h / 3), d(0, 2 * u.h / 3, u.w, 2 * u.h / 3)) : this._gridMode === 2 ? (d(u.w / 2, 0, u.w / 2, u.h), d(0, u.h / 2, u.w, u.h / 2)) : this._gridMode === 3 && (n.strokeRect(u.w * .1 + .5, u.h * .1 + .5, u.w * .8 - 1, u.h * .8 - 1), n.strokeRect(u.w * .05 + .5, u.h * .05 + .5, u.w * .9 - 1, u.h * .9 - 1)), n.restore();
+	}
+	_setMfvZoom(e, t, n) {
+		let r = Math.max(ge, Math.min(8, this._zoom)), i = Math.max(ge, Math.min(8, Number(e) || 1));
+		if (t != null && n != null && this._contentEl) {
+			let e = i / r, a = this._contentEl.getBoundingClientRect(), o = t - (a.left + a.width / 2), s = n - (a.top + a.height / 2);
+			this._panX = this._panX * e + (1 - e) * o, this._panY = this._panY * e + (1 - e) * s;
+		}
+		this._zoom = i, Math.abs(i - 1) < .001 && (this._zoom = 1, this._panX = 0, this._panY = 0), this._applyTransform();
+	}
+	_resetMfvZoom() {
+		this._zoom = 1, this._panX = 0, this._panY = 0, this._applyTransform();
+	}
+	_bindLayoutObserver() {
+		this._unbindLayoutObserver();
+		let e = this._contentEl;
+		if (e && typeof ResizeObserver < "u") try {
+			this._layoutObserver = new ResizeObserver(() => {
+				this._applyTransform();
+			}), this._layoutObserver.observe(e);
+		} catch (e) {
+			console.debug?.(e), this._layoutObserver = null;
+		}
+	}
+	_unbindLayoutObserver() {
+		try {
+			this._layoutObserver?.disconnect?.();
+		} catch (e) {
+			console.debug?.(e);
+		}
+		this._layoutObserver = null;
+	}
+	_initPanZoom(e) {
+		if (this._destroyPanZoom(), !e) return;
+		this._panzoomAC = new AbortController();
+		let t = { signal: this._panzoomAC.signal };
+		e.addEventListener("wheel", (t) => {
+			if (t.target?.closest?.("audio") || t.target?.closest?.(".mjr-video-controls, .mjr-mfv-simple-player-controls") || pe(t.target)) return;
+			let n = Re(t.target, e);
+			if (n && ze(n, Number(t.deltaX || 0), Number(t.deltaY || 0))) return;
+			t.preventDefault();
+			let r = 1 - (t.deltaY || t.deltaX || 0) * _e;
+			this._setMfvZoom(this._zoom * r, t.clientX, t.clientY);
+		}, {
+			...t,
+			passive: !1
+		});
+		let n = !1, r = 0, i = 0, a = 0, o = 0;
+		e.addEventListener("pointerdown", (t) => {
+			if ((t.button === 0 || t.button === 1) && !(this._zoom <= 1.01) && !t.target?.closest?.("video") && !t.target?.closest?.("audio") && !t.target?.closest?.(".mjr-video-controls, .mjr-mfv-simple-player-controls") && !t.target?.closest?.(".mjr-mfv-ab-divider") && !pe(t.target)) {
+				t.preventDefault(), n = !0, this._dragging = !0, r = t.clientX, i = t.clientY, a = this._panX, o = this._panY;
+				try {
+					e.setPointerCapture(t.pointerId);
+				} catch (e) {
+					console.debug?.(e);
+				}
+				this._applyTransform();
+			}
+		}, t), e.addEventListener("pointermove", (e) => {
+			n && (this._panX = a + (e.clientX - r), this._panY = o + (e.clientY - i), this._applyTransform());
+		}, t);
+		let s = (t) => {
+			if (n) {
+				n = !1, this._dragging = !1;
+				try {
+					e.releasePointerCapture(t.pointerId);
+				} catch (e) {
+					console.debug?.(e);
+				}
+				this._applyTransform();
+			}
+		};
+		e.addEventListener("pointerup", s, t), e.addEventListener("pointercancel", s, t), e.addEventListener("dblclick", (e) => {
+			if (e.target?.closest?.("video") || e.target?.closest?.("audio") || e.target?.closest?.(".mjr-video-controls, .mjr-mfv-simple-player-controls") || pe(e.target)) return;
+			let t = Math.abs(this._zoom - 1) < .05;
+			this._setMfvZoom(t ? Math.min(4, this._zoom * 4) : 1, e.clientX, e.clientY);
+		}, t);
+	}
+	_destroyPanZoom() {
+		try {
+			this._panzoomAC?.abort();
+		} catch (e) {
+			console.debug?.(e);
+		}
+		this._panzoomAC = null, this._dragging = !1;
+	}
+	_destroyCompareSync() {
+		try {
+			this._compareSyncAC?.abort?.();
+		} catch (e) {
+			console.debug?.(e);
+		}
+		this._compareSyncAC = null;
+	}
+	_destroyMediaControls() {
+		let e = Array.isArray(this._mediaControlHandles) ? this._mediaControlHandles : [];
+		for (let t of e) try {
+			t?.destroy?.();
+		} catch (e) {
+			console.debug?.(e);
+		}
+		this._mediaControlHandles = [];
+	}
+	_trackMediaControls(e) {
+		try {
+			let t = e?._mjrMediaControlsHandle || null;
+			t?.destroy && this._mediaControlHandles.push(t);
+		} catch (e) {
+			console.debug?.(e);
+		}
+		return e;
+	}
+	_bindMfvPersistence(e) {
+		try {
+			let t = e?.matches?.("video, audio") ? e : e?.querySelector?.("video, audio");
+			if (!t) return e;
+			t.addEventListener("volumechange", () => {
+				try {
+					this._mfvMuted = !!t.muted;
+				} catch (e) {
+					console.debug?.(e);
+				}
+			}), t.addEventListener("ratechange", () => {
+				try {
+					let e = Number(t.playbackRate);
+					Number.isFinite(e) && e > 0 && (this._mfvPlaybackRate = e);
+				} catch (e) {
+					console.debug?.(e);
+				}
+			});
+		} catch (e) {
+			console.debug?.(e);
+		}
+		return e;
+	}
+	_initCompareSync() {
+		if (this._destroyCompareSync(), this._contentEl && this._mode !== W.SIMPLE) try {
+			let e = Array.from(this._contentEl.querySelectorAll("video, audio"));
+			if (e.length < 2) return;
+			let t = e[0] || null, n = e.slice(1);
+			if (!t || !n.length) return;
+			this._compareSyncAC = he(t, n, { threshold: .08 });
+		} catch (e) {
+			console.debug?.(e);
+		}
+	}
+	_refresh() {
+		if (!this._contentEl) return;
+		this._sidebar?.setAsset?.(this._mediaA || null), this._destroyPanZoom(), this._destroyCompareSync(), this._destroyMediaControls(), Ve(this._contentEl);
+		let e = this._overlayCanvas || null;
+		switch (this._contentEl.replaceChildren(), this._contentEl.style.overflow = "hidden", this._mode) {
+			case W.SIMPLE:
+				this._renderSimple();
+				break;
+			case W.AB:
+				this._renderAB();
+				break;
+			case W.SIDE:
+				this._renderSide();
+				break;
+			case W.GRID:
+				this._renderGrid();
+				break;
+			case W.GRAPH: this._renderGraphMap();
+		}
+		e && this._contentEl.appendChild(e), this._nodeStreamSelection && this._updateNodeStreamOverlay(), this._mediaProgressEl && this._contentEl.appendChild(this._mediaProgressEl), this._applyMediaToneControls(), this._applyTransform(), this._mode !== W.GRAPH && this._initPanZoom(this._contentEl), this._initCompareSync(), this._renderGenInfoSidebar();
+	}
+	_renderGenInfoSidebar() {
+		let e = this._genSidebarEl;
+		if (!e) return;
+		e.replaceChildren();
+		let t = this._getGenInfoSidebarSlots();
+		if (this._mode === W.GRAPH || !this._genSidebarEnabled || t.length === 0) {
+			e.classList.remove("open"), e.setAttribute("hidden", ""), this._updateGenBtnUI?.();
+			return;
+		}
+		let n = document.createElement("div");
+		n.className = "mjr-mfv-gen-sidebar-title", n.textContent = "Gen Info", e.appendChild(n);
+		let r = 0;
+		for (let n of t) {
+			if (G(n.media) === "audio") continue;
+			let i = this._buildGenInfoSidebarContent(n.media);
+			if (!i) continue;
+			let a = document.createElement("section");
+			a.className = "mjr-mfv-gen-sidebar-section";
+			let o = document.createElement("div");
+			o.className = "mjr-mfv-gen-sidebar-heading", o.textContent = t.length > 1 ? `Asset ${n.label}` : "Current Asset";
+			let s = document.createElement("div");
+			s.className = "mjr-mfv-gen-sidebar-body", s.appendChild(i), a.appendChild(o), a.appendChild(s), e.appendChild(a), r += 1;
+		}
+		r ? (e.removeAttribute("hidden"), e.classList.add("open"), this._updateGenBtnUI?.()) : (e.classList.remove("open"), e.setAttribute("hidden", ""));
+	}
+	_getGenInfoSidebarSlots() {
+		let e = {
+			media: this._mediaA,
+			label: "A"
+		}, t = {
+			media: this._mediaB,
+			label: "B"
+		}, n = {
+			media: this._mediaC,
+			label: "C"
+		}, r = {
+			media: this._mediaD,
+			label: "D"
+		};
+		return (this._mode === W.GRID ? [
+			e,
+			t,
+			n,
+			r
+		] : this._mode === W.AB || this._mode === W.SIDE ? [e, t] : [e]).filter((e) => e.media);
+	}
+	_buildGenInfoSidebarContent(e) {
+		let t = this._getGenFields(e)?.genTime || "", n = null;
+		try {
+			n = E(e);
+		} catch (e) {
+			console.debug?.(e);
+		}
+		if (n && n.kind !== "empty") {
+			let e = document.createDocumentFragment();
+			t && e.appendChild(this._buildGenTimeBadge(t)), n.workflowType && e.appendChild(this._buildGenInfoCard({
+				title: "Workflow",
+				accent: "#2196F3",
+				value: [n.workflowLabel || n.workflowType, n.workflowBadge].filter(Boolean).join("  |  "),
+				compact: !0
+			})), n.positivePrompt && e.appendChild(this._buildGenInfoCard({
+				title: "Positive Prompt",
+				accent: "#4CAF50",
+				value: n.positivePrompt,
+				multiline: !0
+			})), n.negativePrompt && e.appendChild(this._buildGenInfoCard({
+				title: "Negative Prompt",
+				accent: "#F44336",
+				value: n.negativePrompt,
+				multiline: !0
+			}));
+			for (let t of n.promptTabs || []) {
+				let n = [t.positive, t.negative ? `Negative:\n${t.negative}` : ""].filter(Boolean).join("\n\n");
+				e.appendChild(this._buildGenInfoCard({
+					title: t.label || "Prompt",
+					accent: "#4CAF50",
+					value: n,
+					multiline: !0
+				}));
+			}
+			n.ideogram && this._appendIdeogramGenInfoCards(e, n.ideogram);
+			let r = (n.branchCards || []).filter((e) => e?.modelFields?.length || e?.loras?.length), i = (n.branchCards || []).filter((e) => e?.samplingFields?.length);
+			if (r.length) {
+				let t = this._buildGenInfoBranchGroupsCard("Models", "#9C27B0", r, "model");
+				t && e.appendChild(t);
+			} else if (n.modelFields?.length) {
+				let t = this._buildGenInfoFieldsCard("Model & LoRA", "#9C27B0", n.modelFields);
+				t && e.appendChild(t);
+			}
+			if (!r.length) for (let t of n.modelGroups || []) {
+				let n = [{
+					label: "UNet",
+					value: t.model || "-"
+				}, ...(t.loras || []).map((e, t) => ({
+					label: t === 0 ? "LoRA" : `LoRA ${t + 1}`,
+					value: e
+				}))], r = this._buildGenInfoFieldsCard(t.label || "Model Branch", "#AB47BC", n);
+				r && e.appendChild(r);
+			}
+			if (i.length) {
+				let t = this._buildGenInfoBranchGroupsCard("Sampling", "#FF9800", i, "sampling");
+				t && e.appendChild(t);
+			} else if (n.pipelineTabs?.length) for (let t of n.pipelineTabs) {
+				let n = this._buildGenInfoFieldsCard(t.label || "Generation Pipeline", "#FF9800", t.fields || []);
+				n && e.appendChild(n);
+			}
+			else if (n.samplingFields?.length) {
+				let t = this._buildGenInfoFieldsCard("Sampling", "#FF9800", n.samplingFields);
+				t && e.appendChild(t);
+			}
+			for (let t of n.moduleBlocks || []) {
+				if (String(t?.key || "").toLowerCase() === "workflow_engine") continue;
+				let n = this._buildGenInfoFieldsCard(t.title || "Generation Module", t.accent || "#2196F3", t.fields || []);
+				n && e.appendChild(n);
+			}
+			if (n.seed !== null && n.seed !== void 0 && n.seed !== "" && e.appendChild(this._buildGenInfoCard({
+				title: "Seed",
+				accent: "#E91E63",
+				value: String(n.seed),
+				seed: !0
+			})), n.mediaOnlyMessage && e.appendChild(this._buildGenInfoCard({
+				title: "Generation Data",
+				accent: "#9E9E9E",
+				value: n.mediaOnlyMessage,
+				multiline: !0
+			})), e.childNodes.length) return e;
+		}
+		let r = this._buildGenInfoDOM(e);
+		if (!t) return r;
+		let i = document.createDocumentFragment();
+		return i.appendChild(this._buildGenTimeBadge(t)), r && i.appendChild(r), i;
+	}
+	_buildGenTimeBadge(e) {
+		let t = document.createElement("div");
+		t.className = "mjr-mfv-gen-time-badge", this._bindGenInfoCopy(t, () => String(e || ""));
+		let n = document.createElement("span");
+		n.className = "mjr-mfv-gen-time-label", n.textContent = "Generation Time";
+		let r = document.createElement("span");
+		return r.className = "mjr-mfv-gen-time-value", r.textContent = String(e || ""), t.appendChild(n), t.appendChild(r), t;
+	}
+	_buildGenInfoCard({ title: e, accent: t, value: n, multiline: r = !1, compact: i = !1, seed: a = !1 }) {
+		let o = document.createElement("div");
+		o.className = `mjr-mfv-gen-card${a ? " mjr-mfv-gen-card--seed" : ""}${i ? " mjr-mfv-gen-card--compact" : ""}`;
+		let s = String(e || "").toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+		s && o.classList.add(`mjr-mfv-gen-card--${s}`), o.style.setProperty("--mjr-mfv-gen-accent", t || "#2196F3"), this._bindGenInfoCopy(o, () => String(n ?? ""));
+		let c = document.createElement("div");
+		c.className = "mjr-mfv-gen-card-title", c.textContent = e || "";
+		let l = document.createElement("div");
+		return l.className = `mjr-mfv-gen-card-value${r ? " is-multiline" : ""}${i ? " is-compact" : ""}`, l.textContent = String(n ?? ""), o.appendChild(c), o.appendChild(l), o;
+	}
+	_buildGenInfoFieldsCard(e, t, n) {
+		let r = this._buildGenInfoCard({
+			title: e,
+			accent: t,
+			value: ""
+		});
+		this._bindGenInfoCopy(r, () => (n || []).map((e) => {
+			let t = String(e?.label || "").trim(), n = String(e?.value ?? "").trim();
+			return t && n && n !== "-" ? `${t}: ${n}` : "";
+		}).filter(Boolean).join("\n"));
+		let i = r.querySelector(".mjr-mfv-gen-card-value");
+		if (!i) return null;
+		i.replaceChildren(), i.classList.add("is-fields");
+		for (let e of n || []) {
+			let t = String(e?.label || "").trim(), n = String(e?.value ?? "").trim();
+			if (!t || !n || n === "-") continue;
+			let r = document.createElement("div");
+			r.className = "mjr-mfv-gen-field";
+			let a = document.createElement("span");
+			a.className = "mjr-mfv-gen-field-label", a.textContent = t;
+			let o = document.createElement("span");
+			o.className = "mjr-mfv-gen-field-value", o.textContent = n, r.appendChild(a), r.appendChild(o), i.appendChild(r);
+		}
+		return i.childNodes.length ? r : null;
+	}
+	_appendIdeogramGenInfoCards(e, t) {
+		if (e && t) {
+			t.highLevelDescription && e.appendChild(this._buildGenInfoCard({
+				title: "High Level Description",
+				accent: "#4CAF50",
+				value: t.highLevelDescription,
+				multiline: !0
+			})), t.background && e.appendChild(this._buildGenInfoCard({
+				title: "Background",
+				accent: "#2196F3",
+				value: t.background,
+				multiline: !0
+			}));
+			for (let n of t.elements || []) {
+				let t = [
+					n?.description,
+					n?.text ? `Text: ${n.text}` : "",
+					n?.bbox ? `bbox ${n.bbox}` : ""
+				].filter(Boolean).join("\n");
+				t && e.appendChild(this._buildGenInfoCard({
+					title: n.label || "Element",
+					accent: "#FFB300",
+					value: t,
+					multiline: !0
+				}));
+			}
+			t.json && e.appendChild(this._buildGenInfoCard({
+				title: "JSON sent to text encoder",
+				accent: "#FFB300",
+				value: t.json,
+				multiline: !0
+			}));
+		}
+	}
+	_buildGenInfoBranchGroupsCard(e, t, n, r) {
+		let i = this._buildGenInfoCard({
+			title: e,
+			accent: t,
+			value: ""
+		});
+		this._bindGenInfoCopy(i, () => (n || []).map((e) => {
+			let t = [String(e?.label || "").trim()], n = r === "sampling" ? e?.samplingFields || [] : e?.modelFields || [];
+			for (let e of n) {
+				let n = String(e?.label || "").trim(), r = String(e?.value ?? "").trim();
+				n && r && r !== "-" && t.push(`${n}: ${r}`);
+			}
+			if (r !== "sampling") for (let n of e?.loras || []) {
+				let e = String(n ?? "").trim();
+				e && t.push(`LoRA: ${e}`);
+			}
+			return t.filter(Boolean).join("\n");
+		}).filter(Boolean).join("\n\n"));
+		let a = i.querySelector(".mjr-mfv-gen-card-value");
+		if (!a) return null;
+		a.replaceChildren(), a.classList.add("is-fields", "is-branch-groups");
+		for (let t of n || []) {
+			let n = document.createElement("div");
+			n.className = "mjr-mfv-gen-branch-group";
+			let i = document.createElement("div");
+			i.className = "mjr-mfv-gen-branch-title", i.textContent = String(t?.label || "").trim() || e || "", n.appendChild(i);
+			let o = r === "sampling" ? t?.samplingFields || [] : t?.modelFields || [];
+			for (let e of o) {
+				let t = this._buildGenInfoFieldRow(e);
+				t && n.appendChild(t);
+			}
+			if (r !== "sampling") for (let e of t?.loras || []) {
+				let t = this._buildGenInfoFieldRow({
+					label: "LoRA",
+					value: e
+				});
+				t && n.appendChild(t);
+			}
+			n.childNodes.length > 1 && a.appendChild(n);
+		}
+		return a.childNodes.length ? i : null;
+	}
+	_buildGenInfoFieldRow(e) {
+		let t = String(e?.label || "").trim(), n = String(e?.value ?? "").trim();
+		if (!t || !n || n === "-") return null;
+		let r = document.createElement("div");
+		r.className = "mjr-mfv-gen-field";
+		let i = document.createElement("span");
+		i.className = "mjr-mfv-gen-field-label", i.textContent = t;
+		let a = document.createElement("span");
+		return a.className = "mjr-mfv-gen-field-value", a.textContent = n, r.appendChild(i), r.appendChild(a), r;
+	}
+	_bindGenInfoCopy(e, t) {
+		e && typeof t == "function" && (e.title = "Click to copy", e.addEventListener("click", async (n) => {
+			n.stopPropagation();
+			let r = String(t() || "").trim();
+			if (r) try {
+				await navigator.clipboard?.writeText?.(r), e.classList.add("mjr-mfv-gen-copy-flash"), setTimeout(() => e.classList.remove("mjr-mfv-gen-copy-flash"), 450);
+			} catch (e) {
+				console.debug?.(e);
+			}
+		}));
+	}
+	_renderGraphMap() {
+		this._contentEl.style.overflow = "hidden", this._graphMapPanel.setAsset(this._mediaA || null), this._contentEl.appendChild(this._graphMapPanel.el), this._graphMapPanel.refresh();
+	}
+	_renderSimple() {
+		if (!this._mediaA) {
+			this._contentEl.appendChild(K());
+			return;
+		}
+		let e = {
+			initialMuted: this._mfvMuted,
+			initialPlaybackRate: this._mfvPlaybackRate
+		}, t = He(this._mediaA, e) || J(this._mediaA, e), n = this._trackMediaControls?.(t) || t;
+		if (this._bindMfvPersistence?.(n), !n) {
+			this._contentEl.appendChild(K("Could not load media"));
+			return;
+		}
+		let r = document.createElement("div");
+		r.className = "mjr-mfv-simple-container", r.appendChild(n), this._contentEl.appendChild(r);
+	}
+	_renderAB() {
+		let e = this._mediaA ? J(this._mediaA, {
+			fill: !0,
+			initialMuted: this._mfvMuted,
+			initialPlaybackRate: this._mfvPlaybackRate
+		}) : null, t = this._mediaB ? J(this._mediaB, {
+			fill: !0,
+			controls: !1,
+			initialMuted: !0
+		}) : null, n = this._trackMediaControls?.(e) || e, r = this._trackMediaControls?.(t) || t;
+		this._bindMfvPersistence?.(n);
+		let i = this._mediaA ? G(this._mediaA) : "", a = this._mediaB ? G(this._mediaB) : "";
+		if (!n && !r) {
+			this._contentEl.appendChild(K("Select 2 assets for A/B compare"));
+			return;
+		}
+		if (!r) {
+			this._renderSimple();
+			return;
+		}
+		if (i === "audio" || a === "audio" || i === "model3d" || a === "model3d") {
+			this._renderSide();
+			return;
+		}
+		let o = document.createElement("div");
+		o.className = "mjr-mfv-ab-container";
+		let s = document.createElement("div");
+		s.className = "mjr-mfv-ab-layer", n && s.appendChild(n);
+		let c = document.createElement("div");
+		c.className = "mjr-mfv-ab-layer mjr-mfv-ab-layer--b";
+		let l = Math.round(this._abDividerX * 100), u = !!n?.classList?.contains?.("mjr-mfv-player-host--studio");
+		u && o.classList.add("has-studio-a");
+		let d = (e) => {
+			u ? o.style.setProperty("--mjr-ab-x", `${e}%`) : c.style.clipPath = `inset(0 0 0 ${e}%)`;
+		};
+		d(l), c.appendChild(r);
+		let f = document.createElement("div");
+		f.className = "mjr-mfv-ab-divider", f.style.left = `${l}%`;
+		let p = this._buildGenInfoDOM(this._mediaA), m = null;
+		p && (m = document.createElement("div"), m.className = "mjr-mfv-geninfo-a", gr(n) && m.classList.add("mjr-mfv-geninfo--above-player"), m.appendChild(p), m.style.right = `calc(${100 - l}% + 8px)`);
+		let h = this._buildGenInfoDOM(this._mediaB), g = null;
+		h && (g = document.createElement("div"), g.className = "mjr-mfv-geninfo-b", gr(r) && g.classList.add("mjr-mfv-geninfo--above-player"), g.appendChild(h), g.style.left = `calc(${l}% + 8px)`);
+		let _ = null;
+		f.addEventListener("pointerdown", (e) => {
+			e.preventDefault(), f.setPointerCapture(e.pointerId);
+			try {
+				_?.abort();
+			} catch {}
+			_ = new AbortController();
+			let t = _.signal, n = o.getBoundingClientRect();
+			f.addEventListener("pointermove", (e) => {
+				let t = Math.max(.02, Math.min(.98, (e.clientX - n.left) / n.width));
+				this._abDividerX = t;
+				let r = Math.round(t * 100);
+				d(r), f.style.left = `${r}%`, m && (m.style.right = `calc(${100 - r}% + 8px)`), g && (g.style.left = `calc(${r}% + 8px)`);
+			}, { signal: t }), f.addEventListener("pointerup", () => {
+				try {
+					_?.abort();
+				} catch {}
+			}, { signal: t });
+		}, this._panelAC?.signal ? { signal: this._panelAC.signal } : void 0), o.appendChild(s), o.appendChild(c), o.appendChild(f), m && o.appendChild(m), g && o.appendChild(g), o.appendChild(q("A", "left")), o.appendChild(q("B", "right")), this._contentEl.appendChild(o);
+	}
+	_renderSide() {
+		let e = this._mediaA ? J(this._mediaA, {
+			initialMuted: this._mfvMuted,
+			initialPlaybackRate: this._mfvPlaybackRate
+		}) : null, t = this._mediaB ? J(this._mediaB, {
+			controls: !1,
+			initialMuted: !0
+		}) : null, n = this._trackMediaControls?.(e) || e, r = this._trackMediaControls?.(t) || t;
+		this._bindMfvPersistence?.(n);
+		let i = this._mediaA ? G(this._mediaA) : "", a = this._mediaB ? G(this._mediaB) : "";
+		if (!n && !r) {
+			this._contentEl.appendChild(K("Select 2 assets for Side-by-Side"));
+			return;
+		}
+		let o = document.createElement("div");
+		o.className = "mjr-mfv-side-container";
+		let s = document.createElement("div");
+		s.className = "mjr-mfv-side-panel", n ? s.appendChild(n) : s.appendChild(K(" - ")), s.appendChild(q("A", "left"));
+		let c = i === "audio" ? null : this._buildGenInfoDOM(this._mediaA);
+		if (c) {
+			let e = document.createElement("div");
+			e.className = "mjr-mfv-geninfo-a", gr(n) && e.classList.add("mjr-mfv-geninfo--above-player"), e.appendChild(c), s.appendChild(e);
+		}
+		let l = document.createElement("div");
+		l.className = "mjr-mfv-side-panel", r ? l.appendChild(r) : l.appendChild(K(" - ")), l.appendChild(q("B", "right"));
+		let u = a === "audio" ? null : this._buildGenInfoDOM(this._mediaB);
+		if (u) {
+			let e = document.createElement("div");
+			e.className = "mjr-mfv-geninfo-b", gr(r) && e.classList.add("mjr-mfv-geninfo--above-player"), e.appendChild(u), l.appendChild(e);
+		}
+		o.appendChild(s), o.appendChild(l), this._contentEl.appendChild(o);
+	}
+	_renderGrid() {
+		let e = [
+			{
+				media: this._mediaA,
+				label: "A"
+			},
+			{
+				media: this._mediaB,
+				label: "B"
+			},
+			{
+				media: this._mediaC,
+				label: "C"
+			},
+			{
+				media: this._mediaD,
+				label: "D"
+			}
+		];
+		if (!e.filter((e) => e.media).length) {
+			this._contentEl.appendChild(K("Select up to 4 assets for Grid Compare"));
+			return;
+		}
+		let t = document.createElement("div");
+		t.className = "mjr-mfv-grid-container";
+		for (let { media: n, label: r } of e) {
+			let e = document.createElement("div");
+			if (e.className = "mjr-mfv-grid-cell", n) {
+				let t = G(n), i = r === "A", a = J(n, {
+					controls: i,
+					initialMuted: !i || this._mfvMuted,
+					initialPlaybackRate: i ? this._mfvPlaybackRate : 1
+				}), o = this._trackMediaControls?.(a) || a;
+				if (i && this._bindMfvPersistence?.(o), o ? e.appendChild(o) : e.appendChild(K(" - ")), e.appendChild(q(r, r === "A" || r === "C" ? "left" : "right")), t !== "audio") {
+					let t = this._buildGenInfoDOM(n);
+					if (t) {
+						let n = document.createElement("div");
+						n.className = `mjr-mfv-geninfo-${r.toLowerCase()}`, gr(o) && n.classList.add("mjr-mfv-geninfo--above-player"), n.appendChild(t), e.appendChild(n);
+					}
+				}
+			} else e.appendChild(K(" - ")), e.appendChild(q(r, r === "A" || r === "C" ? "left" : "right"));
+			t.appendChild(e);
+		}
+		this._contentEl.appendChild(t);
+	}
+	show() {
+		this.element && (this._bindDocumentUiHandlers(), this.element.classList.add("is-visible"), this.element.setAttribute("aria-hidden", "false"), this.isVisible = !0);
+	}
+	hide() {
+		this.element && (this._destroyPanZoom(), this._destroyCompareSync(), this._stopEdgeResize(), this._closeGenDropdown(), Be(this.element), this.element.classList.remove("is-visible"), this.element.setAttribute("aria-hidden", "true"), this.isVisible = !1);
+	}
+	_setDesktopExpanded(e) {
+		return Wn(this, e);
+	}
+	_activateDesktopExpandedFallback(e) {
+		return Gn(this, e);
+	}
+	_tryElectronPopupFallback(e, t, n, r) {
+		return Kn(this, e, t, n, r);
+	}
+	popOut() {
+		return qn(this);
+	}
+	_fallbackPopout(e, t, n) {
+		return Jn(this, e, t, n);
+	}
+	_clearPopoutCloseWatch() {
+		return Yn(this);
+	}
+	_startPopoutCloseWatch() {
+		return Xn(this);
+	}
+	_schedulePopInFromPopupClose() {
+		return Zn(this);
+	}
+	_installPopoutStyles(e) {
+		return Qn(this, e);
+	}
+	popIn(e) {
+		return $n(this, e);
+	}
+	_updatePopoutBtnUI() {
+		return er(this);
+	}
+	get isPopped() {
+		return this._isPopped || this._desktopExpanded;
+	}
+	_resizeCursorForDirection(e) {
+		return tr(e);
+	}
+	_getResizeDirectionFromPoint(e, t, n) {
+		return nr(e, t, n);
+	}
+	_stopEdgeResize() {
+		return rr(this);
+	}
+	_bindPanelInteractions() {
+		return ir(this);
+	}
+	_initEdgeResize(e) {
+		return ar(this, e);
+	}
+	_initDrag(e) {
+		return or(this, e);
+	}
+	async _drawMediaFit(e, t, n, r, i, a, o) {
+		return sr(this, e, t, n, r, i, a, o);
+	}
+	_estimateGenInfoOverlayHeight(e, t, n) {
+		return cr(this, e, t, n);
+	}
+	_drawGenInfoOverlay(e, t, n, r, i, a) {
+		return lr(this, e, t, n, r, i, a);
+	}
+	async _captureView() {
+		return ur(this);
+	}
+	dispose() {
+		N(this), this._destroyPanZoom(), this._destroyCompareSync(), this._destroyMediaControls(), this._unbindLayoutObserver(), this._stopEdgeResize(), this._clearPopoutCloseWatch();
+		try {
+			this._panelAC?.abort(), this._panelAC = null;
+		} catch (e) {
+			console.debug?.(e);
+		}
+		try {
+			this._btnAC?.abort(), this._btnAC = null;
+		} catch (e) {
+			console.debug?.(e);
+		}
+		try {
+			this._docAC?.abort(), this._docAC = null;
+		} catch (e) {
+			console.debug?.(e);
+		}
+		try {
+			this._popoutAC?.abort(), this._popoutAC = null;
+		} catch (e) {
+			console.debug?.(e);
+		}
+		try {
+			this._panzoomAC?.abort(), this._panzoomAC = null;
+		} catch (e) {
+			console.debug?.(e);
+		}
+		try {
+			this._compareSyncAC?.abort?.(), this._compareSyncAC = null;
+		} catch (e) {
+			console.debug?.(e);
+		}
+		try {
+			this._isPopped && this.popIn();
+		} catch (e) {
+			console.debug?.(e);
+		}
+		this._revokePreviewBlob(), this._onSidebarPosChanged &&= (window.removeEventListener("mjr-settings-changed", this._onSidebarPosChanged), null);
+		try {
+			Ve(this.element), this.element?.remove();
+		} catch (e) {
+			console.debug?.(e);
+		}
+		try {
+			this._graphMapPanel?.dispose?.();
+		} catch (e) {
+			console.debug?.(e);
+		}
+		this._graphMapPanel = null, this.element = null, this._contentEl = null, this._genSidebarEl = null, this._closeBtn = null, this._modeBtn = null, this._pinGroup = null, this._pinBtns = null, this._liveBtn = null, this._nodeStreamBtn = null, this._popoutBtn = null, this._captureBtn = null, this._unbindDocumentUiHandlers();
+		try {
+			this._genDropdown?.remove();
+		} catch (e) {
+			console.debug?.(e);
+		}
+		this._mediaA = null, this._mediaB = null, this._mediaC = null, this._mediaD = null, this.isVisible = !1;
+	}
+};
+export { vr as FloatingViewer };

@@ -35,7 +35,7 @@ describe("floatingViewerSimplePlayer keyboard shortcuts", () => {
             { filename: "clip.mp4" },
             { kind: "video" },
         );
-        document.body.appendChild(root);
+        document.body.appendChild(root as any);
 
         root.dispatchEvent(
             new KeyboardEvent("keydown", { key: " ", bubbles: true, cancelable: true }),
@@ -83,7 +83,7 @@ describe("floatingViewerSimplePlayer keyboard shortcuts", () => {
             { filename: "clip.mp4" },
             { kind: "video" },
         );
-        document.body.appendChild(root);
+        document.body.appendChild(root as any);
 
         root.dispatchEvent(
             new KeyboardEvent("keydown", { key: "ArrowLeft", bubbles: true, cancelable: true }),
@@ -122,7 +122,7 @@ describe("floatingViewerSimplePlayer keyboard shortcuts", () => {
             { filename: "clip.mp4" },
             { kind: "video" },
         );
-        document.body.appendChild(root);
+        document.body.appendChild(root as any);
         const seek = root.querySelector(".mjr-mfv-simple-player-seek");
         const event = new KeyboardEvent("keydown", {
             key: "ArrowLeft",
@@ -181,7 +181,7 @@ describe("floatingViewerSimplePlayer keyboard shortcuts", () => {
             { filename: "clip.mp4" },
             { kind: "video" },
         );
-        document.body.appendChild(root);
+        document.body.appendChild(root as any);
         const seek = root.querySelector(".mjr-mfv-simple-player-seek");
 
         currentTime = 5;

@@ -91,11 +91,16 @@ function areTagsEqual(left: unknown, right: unknown) {
     return true;
 }
 
-const props = defineProps<{
-    asset: MjrAssetLike;
-    modelValue?: string[] | string;
-    disabled?: boolean;
-}>();
+const props = withDefaults(
+    defineProps<{
+        asset: MjrAssetLike;
+        modelValue?: string[] | string;
+        disabled?: boolean;
+        /** Focus the input on mount (off where the editor is always visible). */
+        autofocus?: boolean;
+    }>(),
+    { modelValue: undefined, disabled: false, autofocus: true },
+);
 
 const emit = defineEmits<{
     "update:modelValue": [tags: string[]];
@@ -256,7 +261,7 @@ async function saveTags() {
 onMounted(async () => {
     try {
         await nextTick();
-        resolveDomElement(inputRef.value)?.focus();
+        if (props.autofocus) resolveDomElement(inputRef.value)?.focus();
     } catch (e) {
         console.debug?.(e);
     }

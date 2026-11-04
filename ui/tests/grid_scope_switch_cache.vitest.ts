@@ -105,13 +105,13 @@ describe("gridController scope switch cache behavior", () => {
             lastGridCount: 0,
             lastGridTotal: 0,
         });
-        globalThis.window = {};
+        globalThis.window = {} as any;
         globalThis.CustomEvent = class {
             constructor(type, init = {}) {
-                this.type = type;
-                this.detail = init.detail;
+                (this as any).type = type;
+                (this as any).detail = (init as any).detail;
             }
-        };
+        } as any;
     });
 
     it("writes mjrCollectionId to the dataset during reload", async () => {
@@ -142,7 +142,7 @@ describe("gridController scope switch cache behavior", () => {
 
         await controller.reloadGrid();
 
-        expect(gridContainer.dataset.mjrCollectionId).toBe("col-123");
+        expect((gridContainer.dataset as any).mjrCollectionId).toBe("col-123");
     });
 
     it("loads collection assets when collectionId is set", async () => {
@@ -276,7 +276,7 @@ describe("gridController scope switch cache behavior", () => {
         await controller.reloadGrid();
 
         expect(gridContainer.dataset.mjrScope).toBe("custom");
-        expect(gridContainer.dataset.mjrCustomRootId).toBe("");
+        expect((gridContainer.dataset as any).mjrCustomRootId).toBe("");
         expect(loadAssets).toHaveBeenCalled();
         expect(disposeGrid).not.toHaveBeenCalled();
     });

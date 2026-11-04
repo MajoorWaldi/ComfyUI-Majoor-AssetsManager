@@ -40,6 +40,7 @@ import { mountTopBarMfvButton, teardownTopBarMfvButton } from "./topBarMfvButton
 import { startEarlyFetch, consumeEarlyFetch } from "./earlyFetch.js";
 import { configureSidebarAssetBadge, resetSidebarAssetBadge } from "./sidebarAssetBadge.js";
 import { consumePendingGeneratedAssets } from "./pendingGeneratedAssets.js";
+import { setNativeAssetsTabHidden, teardownNativeAssetsTab } from "./nativeAssetsTab.js";
 import { refreshGeneratedFeedHosts } from "../bottomPanel/feed/feedHost.js";
 
 // -- keep-alive mount keys -----------------------------------------------------
@@ -617,6 +618,12 @@ export function registerNativeKeybindings(runtimeApp: any): void {
  */
 export function registerAssetsSidebar(runtimeApp: any, { sidebarTabId }: { sidebarTabId: string }): any {
     configureSidebarAssetBadge({ sidebarTabId });
+    try {
+        // Opt-in only (default false): see Majoor.Integration.HideNativeAssetsTab.
+        if (loadMajoorSettings()?.integration?.hideNativeAssetsTab) setNativeAssetsTabHidden(true);
+    } catch (e) {
+        console.debug?.(e);
+    }
     return registerSidebarTabForApp(runtimeApp, {
         id: sidebarTabId,
         icon: "pi pi-folder",
@@ -666,6 +673,11 @@ export function registerAssetsSidebar(runtimeApp: any, { sidebarTabId }: { sideb
  * controller on extension cleanup / ComfyUI reload).
  */
 export function teardownAssetsSidebar(): void {
+    try {
+        teardownNativeAssetsTab();
+    } catch {
+        /* ignore */
+    }
     try {
         unmountKeepAlive(null, SIDEBAR_MOUNT_KEY);
     } catch {

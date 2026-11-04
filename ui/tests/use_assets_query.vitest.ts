@@ -39,7 +39,7 @@ function createInputElement(initialValue = "") {
     class InputStub extends EventTarget {
         constructor(value = "") {
             super();
-            this.value = value;
+            (this as any).value = value;
         }
     }
     return new InputStub(initialValue);
@@ -50,12 +50,12 @@ describe("useAssetsQuery", () => {
         vi.clearAllMocks();
         globalThis.CustomEvent =
             globalThis.CustomEvent ||
-            class extends Event {
+            (class extends Event {
                 constructor(type, init = {}) {
                     super(type);
-                    this.detail = init.detail;
+                    (this as any).detail = (init as any).detail;
                 }
-            };
+            } as any);
     });
 
     afterEach(() => {
@@ -145,7 +145,7 @@ describe("useAssetsQuery", () => {
 
         const previousRaf = globalThis.requestAnimationFrame;
         globalThis.requestAnimationFrame = (callback) => {
-            callback();
+            (callback as any)();
             return 1;
         };
 
@@ -234,7 +234,7 @@ describe("useAssetsQuery", () => {
         });
 
         const gridContainer = createGridContainer();
-        gridContainer._mjrGetGridState = vi.fn(() => ({ loading: true, assets: [] }));
+        (gridContainer as any)._mjrGetGridState = vi.fn(() => ({ loading: true, assets: [] }));
         const loadAssets = vi.fn(async () => ({ ok: true }));
 
         const controller = createAssetsQueryController({
@@ -542,7 +542,7 @@ describe("useAssetsQuery", () => {
             reloadGrid,
         });
 
-        searchInputEl.value = "dragon";
+        (searchInputEl as any).value = "dragon";
         searchInputEl.dispatchEvent(new Event("input"));
         expect(onQueryChanged).toHaveBeenCalledTimes(1);
         expect(reloadGrid).toHaveBeenCalledTimes(0);
@@ -552,7 +552,7 @@ describe("useAssetsQuery", () => {
         expect(onBeforeReload).toHaveBeenCalledTimes(1);
         expect(reloadGrid).toHaveBeenCalledTimes(1);
 
-        searchInputEl.value = "";
+        (searchInputEl as any).value = "";
         searchInputEl.dispatchEvent(new Event("input"));
         expect(startSearchTimer).toHaveBeenCalledTimes(2);
         expect(onBeforeReload).toHaveBeenCalledTimes(2);

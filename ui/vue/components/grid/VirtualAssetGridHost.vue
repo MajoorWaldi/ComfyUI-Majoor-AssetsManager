@@ -17,7 +17,6 @@ import { ensureStackGroupCard, ensureDupStackCard } from "../../../features/grid
 import { setSelectedIdsDataset } from "../../../features/grid/GridSelectionManager.js";
 import { applyGridSettingsClasses, configureGridContainer } from "../../../features/grid/gridApi.js";
 import { bindAssetDragStart } from "../../../features/dnd/DragDrop.js";
-import { preserveRepresentativeGenerationTime, selectStackRepresentative } from "../../../features/grid/AssetCardRenderer.js";
 import AssetCardInner from "./AssetCardInner.vue";
 import FolderCard from "./FolderCard.vue";
 import { useGridState } from "../../composables/useGridState.js";
@@ -25,7 +24,11 @@ import { useGridLoader } from "../../composables/useGridLoader.js";
 import { isGridHostVisible } from "../../composables/gridVisibility.js";
 import { buildStaticGridRows, useGridVirtualRows } from "../../grid/useGridVirtualRows.js";
 import { useInfiniteTrigger } from "../../grid/useInfiniteTrigger.js";
-import { buildDisplayAssets, isRenderableAsset } from "../../grid/useGridDisplayAssets.js";
+import {
+    buildDisplayAssets,
+    isRenderableAsset,
+    toDuplicateGroupMembers,
+} from "../../grid/useGridDisplayAssets.js";
 import { readRenderedAssetCards } from "./gridDomBridge.js";
 import type { MjrAssetLike } from "../../../types/asset";
 
@@ -138,7 +141,9 @@ provide("mjrStackService", {
     openDupGroup: (asset) => {
         const gc = gridContainerRef.value;
         if (!gc || !asset) return;
-        const members = Array.isArray(asset._mjrDupMembers) ? asset._mjrDupMembers : [asset];
+        const members = toDuplicateGroupMembers(
+            Array.isArray(asset._mjrDupMembers) ? asset._mjrDupMembers : [asset],
+        );
         gc.dispatchEvent(
             new CustomEvent(EVENTS.OPEN_STACK_GROUP, {
                 bubbles: true,
@@ -426,7 +431,12 @@ function emitSelectionChanged() {
 
 emitSelectionChanged._lastSelectionKey = "";
 
-const displayAssets = computed(() => buildDisplayAssets(state.assets));
+// The "Duplicates - N copies" / similar view must list every copy; collapsing
+// it again would show one card with the same badge and reopen the same view.
+const gridViewScope = ref("");
+const displayAssets = computed(() =>
+    buildDisplayAssets(state.assets, { collapseDuplicates: gridViewScope.value !== "similar" }),
+);
 
 const renderableAssets = computed(() => {
     const assets = Array.isArray(displayAssets.value) ? displayAssets.value : [];
@@ -971,6 +981,10 @@ function readGridScope() {
         .trim()
         .toLowerCase();
     if (gridScope.value !== raw) gridScope.value = raw;
+    const view = String(gridContainerRef.value?.dataset?.mjrViewScope || "")
+        .trim()
+        .toLowerCase();
+    if (gridViewScope.value !== view) gridViewScope.value = view;
 }
 
 function scheduleInitialHostMeasurements() {
@@ -1013,7 +1027,7 @@ watch(
             });
             scopeObserver.observe(element, {
                 attributes: true,
-                attributeFilter: ["data-mjr-scope"],
+                attributeFilter: ["data-mjr-scope", "data-mjr-view-scope"],
             });
         } catch (e) {
             console.debug?.(e);
@@ -1104,65 +1118,20 @@ function unregisterFilenameCard(card) {
 }
 
 function syncRenderedDuplicateCards(filenameKey) {
+    // Duplicate stacks are owned by `displayAssets` (useGridDisplayAssets).
+    // This used to re-derive them here from the *file name alone* (across
+    // folders) on every card ref callback and write `_mjrDupStack` /
+    // `_mjrDupMembers` (a new array each time) onto reactive assets that the
+    // template reads. The ref callback runs on every render, so each write
+    // scheduled another render: an infinite update loop that froze ComfyUI,
+    // and stacks that mixed unrelated files sharing a name. Only the DOM-side
+    // cleanup remains; it never touches reactive state.
     const key = String(filenameKey || "").trim().toLowerCase();
     if (!key) return;
-
     const renderedSet = state.renderedFilenameMap.get(key);
-    const renderedCards = Array.from(renderedSet || []);
-    if (!renderedCards.length) return;
-
-    const allMembers = (Array.isArray(state.assets) ? state.assets : []).filter(
-        (asset) => String(asset?.filename || "").trim().toLowerCase() === key,
-    );
-    const count = Math.max(
-        Number(state.filenameCounts?.get?.(key) || 0) || 0,
-        allMembers.length,
-    );
-
-    // Select the best representative: prefer video_with_audio > video > image.
-    const selectedAsset = selectStackRepresentative(allMembers);
-    const selectedCard = renderedCards.find((card) => {
-        const cardAssetId = String(card._mjrAsset?.id || "");
-        const selectedId = String(selectedAsset?.id || "");
-        return cardAssetId && selectedId && cardAssetId === selectedId;
-    }) || renderedCards[0];
-    const primaryCard = selectedCard || renderedCards[0] || null;
-    const primaryAsset = primaryCard?._mjrAsset || selectedAsset || allMembers[0] || null;
-    preserveRepresentativeGenerationTime(primaryAsset, allMembers);
-
-    for (const card of renderedCards) {
-        delete card.dataset.mjrDupHidden;
-        const asset = card._mjrAsset;
-        if (asset) {
-            asset._mjrNameCollision = false;
-            delete asset._mjrNameCollisionCount;
-            delete asset._mjrNameCollisionPaths;
-            asset._mjrDupStack = false;
-            asset._mjrDupMembers = null;
-            asset._mjrDupCount = 0;
-            asset._mjrDupHidden = false;
-        }
+    for (const card of renderedSet || []) {
+        if (card?.dataset?.mjrDupHidden) delete card.dataset.mjrDupHidden;
     }
-
-    if (!primaryCard || !primaryAsset || count < 2) {
-        for (const card of renderedCards) {
-            try {
-                // ...
-            } catch (e) {
-                console.debug?.(e);
-            }
-        }
-        return;
-    }
-
-    primaryAsset._mjrDupStack = true;
-    primaryAsset._mjrDupMembers = allMembers.length ? allMembers : [primaryAsset];
-    primaryAsset._mjrDupCount = primaryAsset._mjrDupMembers.length;
-    primaryAsset._mjrNameCollision = false;
-
-    // Vue owns duplicate collapsing through `displayAssets`/`renderableAssets`.
-    // Hiding already-mounted flex children here leaves holes in virtual rows
-    // until the asset list recomputes, and can persist with recycled rows.
 }
 
 function syncAllRenderedDuplicateCards() {
@@ -1200,8 +1169,25 @@ function bindCardRef(asset, node) {
     }
 }
 
+// One ref callback per asset id. A fresh closure on every render makes Vue
+// call the old ref with null and the new one with the element each time,
+// which re-ran bindCardRef (and its side effects) on every render.
+const cardRefCallbacks = new Map();
+
 function getCardRef(asset) {
-    return (node) => bindCardRef(asset, node);
+    const id = String(asset?.id ?? "").trim();
+    if (!id) return (node) => bindCardRef(asset, node);
+    let entry = cardRefCallbacks.get(id);
+    if (!entry) {
+        entry = { asset, fn: null };
+        entry.fn = (node) => {
+            bindCardRef(entry.asset, node);
+            if (!node) cardRefCallbacks.delete(id);
+        };
+        cardRefCallbacks.set(id, entry);
+    }
+    entry.asset = asset;
+    return entry.fn;
 }
 
 function isInteractiveTarget(target, currentTarget) {

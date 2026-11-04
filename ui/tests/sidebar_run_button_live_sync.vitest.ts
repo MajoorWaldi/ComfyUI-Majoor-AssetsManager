@@ -125,8 +125,8 @@ describe("sidebar run button live sync", () => {
         ensureTrackingMock.mockClear();
 
         globalThis.document = {
-            createElement: vi.fn((tag) => makeElement(tag)),
-        };
+            createElement: vi.fn((tag) => makeElement(tag)) as any,
+        } as any;
 
         bridgeState.app = {
             rootGraph: { nodes: [{ type: "KSampler" }] },
@@ -150,8 +150,8 @@ describe("sidebar run button live sync", () => {
         const runBtn = handle.el.children[0];
         const stopBtn = handle.el.children[1];
 
-        expect(runBtn.disabled).toBe(false);
-        expect(stopBtn.disabled).toBe(true);
+        expect((runBtn as any).disabled).toBe(false);
+        expect((stopBtn as any).disabled).toBe(true);
         expect(ensureTrackingMock).toHaveBeenCalledTimes(1);
 
         progressService.dispatch({
@@ -159,16 +159,16 @@ describe("sidebar run button live sync", () => {
             prompt: { currentlyExecuting: { nodeId: "11" }, errorDetails: null },
         });
 
-        expect(runBtn.disabled).toBe(true);
+        expect((runBtn as any).disabled).toBe(true);
         expect(runBtn.classList.contains("running")).toBe(true);
-        expect(stopBtn.disabled).toBe(false);
+        expect((stopBtn as any).disabled).toBe(false);
         expect(stopBtn.classList.contains("active")).toBe(true);
 
         progressService.dispatch({ queue: 0, prompt: null });
 
-        expect(runBtn.disabled).toBe(false);
+        expect((runBtn as any).disabled).toBe(false);
         expect(runBtn.classList.contains("running")).toBe(false);
-        expect(stopBtn.disabled).toBe(true);
+        expect((stopBtn as any).disabled).toBe(true);
 
         handle.dispose();
     });
@@ -181,16 +181,16 @@ describe("sidebar run button live sync", () => {
         const runBtn = handle.el.children[0];
         const stopBtn = handle.el.children[1];
 
-        runBtn.click();
+        (runBtn as any).click();
         await Promise.resolve();
 
         expect(bridgeState.app.graphToPrompt).toHaveBeenCalledTimes(1);
         expect(bridgeState.api.queuePrompt).toHaveBeenCalledTimes(1);
-        expect(runBtn.disabled).toBe(true);
+        expect((runBtn as any).disabled).toBe(true);
         expect(runBtn.classList.contains("running")).toBe(true);
-        expect(stopBtn.disabled).toBe(false);
+        expect((stopBtn as any).disabled).toBe(false);
 
-        stopBtn.click();
+        (stopBtn as any).click();
         await Promise.resolve();
 
         expect(bridgeState.api.interrupt).toHaveBeenCalledTimes(1);
@@ -198,9 +198,9 @@ describe("sidebar run button live sync", () => {
 
         progressService.dispatch({ queue: 0, prompt: null });
 
-        expect(runBtn.disabled).toBe(false);
+        expect((runBtn as any).disabled).toBe(false);
         expect(runBtn.classList.contains("stopping")).toBe(false);
-        expect(stopBtn.disabled).toBe(true);
+        expect((stopBtn as any).disabled).toBe(true);
 
         handle.dispose();
     });
@@ -216,7 +216,7 @@ describe("sidebar run button live sync", () => {
         const handle = createRunButton();
         const runBtn = handle.el.children[0];
 
-        runBtn.click();
+        (runBtn as any).click();
         await Promise.resolve();
 
         expect(bridgeState.app.queuePrompt).toHaveBeenCalledWith(0);

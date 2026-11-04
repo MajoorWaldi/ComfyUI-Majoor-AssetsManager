@@ -15,16 +15,14 @@ from typing import Any
 
 from ...shared import Result, get_logger
 from .parsing_utils import (
-    looks_like_comfyui_prompt_graph,
-    looks_like_comfyui_workflow,
     try_parse_json_text,
 )
+from .sidecar import find_sidecar_json, load_sidecar_metadata, read_sidecar_json
 
 logger = get_logger(__name__)
 
 # Limits to prevent unbounded reads
 _MAX_GLB_JSON_CHUNK_BYTES = 10 * 1024 * 1024  # 10 MB (reduced from 50 MB to limit DoS surface)
-_MAX_SIDECAR_FILE_BYTES = 10 * 1024 * 1024  # 10 MB
 
 # GLB binary container constants (glTF 2.0 spec)
 _GLB_MAGIC = 0x46546C67  # "glTF" in little-endian
@@ -135,71 +133,6 @@ def _read_gltf_file(file_path: str) -> dict[str, Any] | None:
         return None
 
 
-def _read_sidecar_json(file_path: str) -> dict[str, Any] | None:
-    """Look for a sidecar JSON file next to the 3D file.
-
-    Checks for ``<file>.json`` (e.g. ``model.glb.json``, ``mesh.obj.json``).
-    """
-    sidecar_path = file_path + ".json"
-    if not os.path.isfile(sidecar_path):
-        return None
-    try:
-        size = os.path.getsize(sidecar_path)
-        if size > _MAX_SIDECAR_FILE_BYTES:
-            logger.warning(f"Sidecar JSON too large ({size} bytes): {sidecar_path}")
-            return None
-        with open(sidecar_path, encoding="utf-8") as f:
-            data = json.load(f)
-        return data if isinstance(data, dict) else None
-    except (OSError, json.JSONDecodeError, UnicodeDecodeError) as exc:
-        logger.debug(f"Failed to read sidecar JSON {sidecar_path}: {exc}")
-        return None
-
-
-def _extract_typed_field(
-    raw: Any,
-    predicate: Any,
-) -> Any | None:
-    if isinstance(raw, dict) and predicate(raw):
-        return raw
-    if isinstance(raw, str):
-        parsed = try_parse_json_text(raw)
-        if parsed and predicate(parsed):
-            return parsed
-    return None
-
-
-def _infer_sidecar_root(
-    data: dict[str, Any],
-) -> tuple[Any | None, Any | None]:
-    if looks_like_comfyui_prompt_graph(data):
-        return None, data
-    if looks_like_comfyui_workflow(data):
-        return data, None
-    return None, None
-
-
-def _classify_sidecar_data(data: dict[str, Any]) -> dict[str, Any]:
-    """Classify sidecar JSON content as workflow, prompt, or parameters."""
-    result: dict[str, Any] = {"workflow": None, "prompt": None}
-
-    result["workflow"] = _extract_typed_field(
-        data.get("workflow"), looks_like_comfyui_workflow
-    )
-    result["prompt"] = _extract_typed_field(
-        data.get("prompt"), looks_like_comfyui_prompt_graph
-    )
-
-    if not result["workflow"] and not result["prompt"]:
-        result["workflow"], result["prompt"] = _infer_sidecar_root(data)
-
-    for key in ("parameters", "geninfo", "generation_time_ms"):
-        if key in data and key not in result:
-            result[key] = data[key]
-
-    return result
-
-
 def _extract_embedded_3d_json(file_path: str, ext: str) -> dict[str, Any] | None:
     if ext == ".glb":
         return _read_glb_json_chunk(file_path)
@@ -208,11 +141,15 @@ def _extract_embedded_3d_json(file_path: str, ext: str) -> dict[str, Any] | None
     return None
 
 
+def _read_sidecar_json(file_path: str) -> dict[str, Any] | None:
+    """Raw sidecar object for ``file_path`` (``<file>.json`` or ``<stem>.json``)."""
+    sidecar_path = find_sidecar_json(file_path)
+    return read_sidecar_json(sidecar_path) if sidecar_path else None
+
+
 def _extract_sidecar_metadata(file_path: str) -> dict[str, Any] | None:
-    sidecar = _read_sidecar_json(file_path)
-    if not sidecar:
-        return None
-    return _classify_sidecar_data(sidecar)
+    # Shared with images/videos/audio: <file>.json, then <stem>.json.
+    return load_sidecar_metadata(file_path)
 
 
 def _determine_quality(workflow: Any, prompt: Any) -> str:

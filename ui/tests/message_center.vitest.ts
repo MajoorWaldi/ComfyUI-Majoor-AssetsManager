@@ -2,37 +2,37 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 class MemoryStorage {
     constructor() {
-        this.store = new Map();
+        (this as any).store = new Map();
     }
 
     clear() {
-        this.store.clear();
+        (this as any).store.clear();
     }
 
     getItem(key) {
-        return this.store.has(key) ? this.store.get(key) : null;
+        return (this as any).store.has(key) ? (this as any).store.get(key) : null;
     }
 
     removeItem(key) {
-        this.store.delete(key);
+        (this as any).store.delete(key);
     }
 
     setItem(key, value) {
-        this.store.set(key, String(value));
+        (this as any).store.set(key, String(value));
     }
 }
 
 function installRuntimeGlobals() {
     const eventTarget = new EventTarget();
-    eventTarget.location = { href: "http://127.0.0.1:8188/" };
-    globalThis.window = eventTarget;
-    globalThis.localStorage = new MemoryStorage();
+    (eventTarget as any).location = { href: "http://127.0.0.1:8188/" };
+    globalThis.window = eventTarget as any;
+    globalThis.localStorage = new MemoryStorage() as any;
     globalThis.CustomEvent = class CustomEvent extends Event {
         constructor(type, init = {}) {
             super(type);
-            this.detail = init.detail;
+            (this as any).detail = (init as any).detail;
         }
-    };
+    } as any;
 }
 
 async function loadMessageCenter() {
@@ -188,9 +188,9 @@ describe("messageCenter", () => {
         });
         const stored = listPanelMessages().find((message) => message.id === "existing-message");
 
-        expect(updated.createdAt).toBe(123456);
-        expect(updated.title).toBe("Updated title");
-        expect(updated.level).toBe("success");
+        expect((updated as any).createdAt).toBe(123456);
+        expect((updated as any).title).toBe("Updated title");
+        expect((updated as any).level).toBe("success");
         expect(stored).toMatchObject({
             id: "existing-message",
             title: "Updated title",

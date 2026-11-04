@@ -13,7 +13,7 @@ This guide covers all active keyboard shortcuts for the Majoor Assets Manager, i
 
 - [Global / Panel Hotkeys](#global--panel-hotkeys)
 - [Grid View Hotkeys](#grid-view-hotkeys)
-- [Standard Viewer Hotkeys](#standard-viewer-hotkeys)
+- [Viewer Hotkeys](#viewer-hotkeys)
 - [Majoor Floating Viewer (MFV) Hotkeys](#majoor-floating-viewer-mfv-hotkeys)
 - [Video Playback Hotkeys](#video-playback-hotkeys)
 - [Drag & Drop Shortcuts](#drag--drop-shortcuts)
@@ -90,63 +90,47 @@ These shortcuts apply when the asset grid has focus.
 
 ---
 
-## Standard Viewer Hotkeys
+## Viewer Hotkeys
 
-These shortcuts apply when the **Standard Viewer** overlay is open (double-click on asset).
+These shortcuts apply when the **Studio viewer** is open (double-click on an asset, or `Enter`).
 
 ### General
 
-| Shortcut  | Action                              |
-| --------- | ----------------------------------- |
-| **Esc**   | Close Viewer                        |
-| **F**     | Toggle Fullscreen                   |
-| **D**     | Toggle Info Panel (Generation Data) |
-| **Space** | Play/Pause Video                    |
-| **S**     | Download Original from context menu |
+| Shortcut | Action |
+| -------- | ------ |
+| **Esc** | Close the open tool panel, then the viewer |
+| **F** | Toggle fullscreen |
+| **Tab** | Show / hide the inspector (generation data) |
+| **0**–**5** | Set rating |
+| **Left / Right Arrow** | Previous / next asset (**Home** / **End**: first / last) |
+| **Mouse Wheel** / **+** / **-** | Zoom in / out (**Alt+0**: fit) |
+| **Click+Drag** | Pan when zoomed in |
+| **Ctrl+C** | Copy the image or current video frame |
 
-### Navigation
+### Video / audio
 
-| Shortcut        | Action          | Notes                                     |
-| --------------- | --------------- | ----------------------------------------- |
-| **Left Arrow**  | Previous Asset  | Default behavior                          |
-| **Right Arrow** | Next Asset      | Default behavior                          |
-| **Left Arrow**  | Step Frame (-1) | **Only when Video Player bar is focused** |
-| **Right Arrow** | Step Frame (+1) | **Only when Video Player bar is focused** |
-| **Mouse Wheel** | Zoom In/Out     |                                           |
-| **Click+Drag**  | Pan Image       | When zoomed in                            |
+| Shortcut | Action |
+| -------- | ------ |
+| **Space** | Play / pause |
+| **,** / **.** | Previous / next frame |
+| **Shift+Left / Right** | Seek -5 s / +5 s |
+| **I** / **O** / **U** | Set loop A / set loop B / clear loop |
+| **[** / **]** | Slower / faster |
+| **M** | Mute |
 
-### Tools & Analysis
+### Review tools (images and videos)
 
-| Shortcut      | Action                                            | Notes             |
-| ------------- | ------------------------------------------------- | ----------------- |
-| **I**         | Set In Point (video) / Toggle Pixel Probe (image) | Context-sensitive |
-| **O**         | Set Out Point                                     | Video only        |
-| **C**         | Copy Probed Color (Hex)                           |                   |
-| **L**         | Toggle Loupe                                      |                   |
-| **Z**         | Toggle Zebra (Exposure)                           |                   |
-| **G**         | Cycle Grid Overlays                               |                   |
-| **Alt+1**     | Toggle 1:1 Pixel View                             |                   |
-| **+** / **-** | Zoom In / Out                                     |                   |
-
-### Enhancement Tools
-
-| Shortcut              | Action                       |
-| --------------------- | ---------------------------- |
-| **E**                 | Toggle Exposure (EV) Control |
-| **M**                 | Toggle Gamma Correction      |
-| **1** / **2** / **3** | Isolate R/G/B Channel        |
-| **0**                 | Reset to RGB (all channels)  |
-| **A**                 | Toggle Alpha Channel View    |
-| **Y**                 | Toggle Luma (Y) View         |
-
-### Analysis Overlays
-
-| Shortcut    | Action             |
-| ----------- | ------------------ |
-| **Shift+Z** | Toggle False Color |
-| **Shift+H** | Toggle Histogram   |
-| **Shift+W** | Toggle Waveform    |
-| **Shift+V** | Toggle Vectorscope |
+| Shortcut | Action |
+| -------- | ------ |
+| **Z** | Toggle zebra (exposure check) |
+| **S** | Cycle scopes (off, histogram, waveform, both) |
+| **G** | Cycle guides (thirds, golden, centre, safe areas) |
+| **P** | Toggle pixel probe |
+| **L** | Toggle loupe |
+| **C** | Toggle A/B compare |
+| **B** | Use the current asset as B |
+| **X** | Swap A and B |
+| **R** | Reset all review tools |
 
 ---
 

@@ -255,13 +255,13 @@ describe("PrimeVue-backed panel controls", () => {
         expect(wrapper.vm.minSizeInput).toBeInstanceOf(HTMLInputElement);
         expect(wrapper.vm.maxSizeInput).toBeInstanceOf(HTMLInputElement);
 
-        wrapper.vm.minSizeInput.value = "2.5";
-        wrapper.vm.maxSizeInput.value = "1";
-        wrapper.vm.minSizeInput.dispatchEvent(new Event("change", { bubbles: true }));
+        (wrapper.vm.minSizeInput as any).value = "2.5";
+        (wrapper.vm.maxSizeInput as any).value = "1";
+        (wrapper.vm.minSizeInput as any).dispatchEvent(new Event("change", { bubbles: true }));
 
         expect(panelStore.minSizeMB).toBe(2.5);
         expect(panelStore.maxSizeMB).toBe(2.5);
-        expect(wrapper.vm.maxSizeInput.value).toBe("2.5");
+        expect((wrapper.vm.maxSizeInput as any).value).toBe("2.5");
         expect(filterEvents.length).toBeGreaterThan(0);
 
         window.removeEventListener("mjr:filters-changed", listener);
@@ -274,15 +274,15 @@ describe("PrimeVue-backed panel controls", () => {
             global: { stubs: GLOBAL_STUBS },
         });
 
-        expect(wrapper.vm.kindSelect.value).toBe("");
-        expect(wrapper.vm.wfCheckbox.checked).toBe(false);
+        expect((wrapper.vm.kindSelect as any).value).toBe("");
+        expect((wrapper.vm.wfCheckbox as any).checked).toBe(false);
 
-        wrapper.vm.kindSelect.value = "video";
-        wrapper.vm.wfCheckbox.checked = true;
-        wrapper.vm.workflowTypeSelect.value = "i2i";
-        wrapper.vm.ratingSelect.value = "4";
-        wrapper.vm.resolutionPresetSelect.value = "fhd";
-        wrapper.vm.dateRangeSelect.value = "today";
+        (wrapper.vm.kindSelect as any).value = "video";
+        (wrapper.vm.wfCheckbox as any).checked = true;
+        (wrapper.vm.workflowTypeSelect as any).value = "i2i";
+        (wrapper.vm.ratingSelect as any).value = "4";
+        (wrapper.vm.resolutionPresetSelect as any).value = "fhd";
+        (wrapper.vm.dateRangeSelect as any).value = "today";
 
         expect(panelStore.kindFilter).toBe("video");
         expect(panelStore.workflowOnly).toBe(true);
@@ -322,12 +322,12 @@ describe("PrimeVue-backed panel controls", () => {
             global: { stubs: GLOBAL_STUBS },
         });
 
-        wrapper.vm.dateExactInput.value = "2026-06-03";
-        wrapper.vm.dateExactInput.dispatchEvent(new Event("change", { bubbles: true }));
+        (wrapper.vm.dateExactInput as any).value = "2026-06-03";
+        (wrapper.vm.dateExactInput as any).dispatchEvent(new Event("change", { bubbles: true }));
 
         expect(panelStore.dateExactFilter).toBe("2026-06-03");
         expect(panelStore.dateRangeFilter).toBe("");
-        expect(wrapper.vm.dateRangeSelect.value).toBe("");
+        expect((wrapper.vm.dateRangeSelect as any).value).toBe("");
 
         wrapper.unmount();
     });
@@ -386,21 +386,21 @@ describe("PrimeVue-backed panel controls", () => {
             global: { stubs: GLOBAL_STUBS },
         });
 
-        expect(wrapper.vm.customSelect.value).toBe("");
-        expect(wrapper.vm.customSelect.options).toHaveLength(1);
+        expect((wrapper.vm.customSelect as any).value).toBe("");
+        expect((wrapper.vm.customSelect as any).options).toHaveLength(1);
         expect(wrapper.vm.customAddBtn).toBeInstanceOf(HTMLButtonElement);
         expect(wrapper.vm.customRemoveBtn).toBeInstanceOf(HTMLButtonElement);
-        expect(wrapper.vm.customRemoveBtn.disabled).toBe(true);
+        expect((wrapper.vm.customRemoveBtn as any).disabled).toBe(true);
 
         const option = document.createElement("option");
         option.value = "root-a";
         option.textContent = "Root A";
-        wrapper.vm.customSelect.innerHTML = "";
-        wrapper.vm.customSelect.appendChild(option);
-        wrapper.vm.customSelect.value = "root-a";
+        (wrapper.vm.customSelect as any).innerHTML = "";
+        (wrapper.vm.customSelect as any).appendChild(option);
+        (wrapper.vm.customSelect as any).value = "root-a";
 
-        expect(wrapper.vm.customSelect.selectedIndex).toBe(0);
-        expect(wrapper.vm.customSelect.selectedOptions[0].text).toBe("Root A");
+        expect((wrapper.vm.customSelect as any).selectedIndex).toBe(0);
+        expect((wrapper.vm.customSelect as any).selectedOptions[0].text).toBe("Root A");
 
         wrapper.unmount();
     });
@@ -429,7 +429,7 @@ describe("PrimeVue-backed panel controls", () => {
             global: { stubs: GLOBAL_STUBS },
         });
 
-        wrapper.vm.setPinnedFolders({
+        (wrapper.vm as any).setPinnedFolders({
             roots: [{ id: "root-a", label: "Root A", path: "C:/assets/root-a" }],
             emptyLabel: "No pinned folders",
             unpinLabel: "Unpin folder",
@@ -468,7 +468,7 @@ describe("PrimeVue-backed panel controls", () => {
             global: { stubs: GLOBAL_STUBS },
         });
 
-        wrapper.vm.setFolderBreadcrumb({
+        (wrapper.vm as any).setFolderBreadcrumb({
             visible: true,
             back: { label: "Back", disabled: false, onClick: back },
             up: { label: "Up", disabled: true, onClick: vi.fn() },

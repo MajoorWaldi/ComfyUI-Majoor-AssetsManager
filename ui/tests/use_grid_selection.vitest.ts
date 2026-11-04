@@ -5,9 +5,9 @@ function createGridContainer() {
     return {
         dataset: {},
         children: [],
-        addEventListener: (...args) => bus.addEventListener(...args),
-        removeEventListener: (...args) => bus.removeEventListener(...args),
-        dispatchEvent: (...args) => bus.dispatchEvent(...args),
+        addEventListener: (...args: any[]) => (bus.addEventListener as any)(...args),
+        removeEventListener: (...args: any[]) => (bus.removeEventListener as any)(...args),
+        dispatchEvent: (...args: any[]) => (bus.dispatchEvent as any)(...args),
         appendChild(child) {
             this.children.push(child);
         },
@@ -31,12 +31,12 @@ describe("useGridSelection", () => {
         vi.restoreAllMocks();
         globalThis.CustomEvent =
             globalThis.CustomEvent ||
-            class extends Event {
+            (class extends Event {
                 constructor(type, init = {}) {
                     super(type);
-                    this.detail = init.detail;
+                    (this as any).detail = (init as any).detail;
                 }
-            };
+            } as any);
     });
 
     it("syncs selection events back to panel state writers", async () => {
@@ -77,8 +77,8 @@ describe("useGridSelection", () => {
         const { bindGridSelectionState } = await import("../vue/composables/useGridSelection.js");
 
         const gridContainer = createGridContainer();
-        gridContainer._mjrSetSelection = vi.fn();
-        gridContainer._mjrScrollToAssetId = vi.fn();
+        (gridContainer as any)._mjrSetSelection = vi.fn();
+        (gridContainer as any)._mjrScrollToAssetId = vi.fn();
 
         const binding = bindGridSelectionState({
             gridContainer,
@@ -88,11 +88,11 @@ describe("useGridSelection", () => {
 
         binding.restoreSelectionState({ scrollTop: 0 });
 
-        expect(gridContainer._mjrSetSelection).toHaveBeenCalledWith(
+        expect((gridContainer as any)._mjrSetSelection).toHaveBeenCalledWith(
             ["asset-1", "asset-2"],
             "asset-2",
         );
-        expect(gridContainer._mjrScrollToAssetId).toHaveBeenCalledWith("asset-2");
+        expect((gridContainer as any)._mjrScrollToAssetId).toHaveBeenCalledWith("asset-2");
     });
 
     it("falls back to scrolling the matching DOM card into view when needed", async () => {

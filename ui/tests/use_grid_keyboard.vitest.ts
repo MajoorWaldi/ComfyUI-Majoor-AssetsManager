@@ -30,7 +30,7 @@ describe("useGridKeyboard", () => {
             _mjrOpenKeyboardDetails: vi.fn(),
         };
 
-        const dispose = bindLegacyGridKeyboard(container);
+        const dispose = bindLegacyGridKeyboard(container as any);
 
         expect(keyboardState.installGridKeyboard).toHaveBeenCalledWith(
             expect.objectContaining({
@@ -43,7 +43,7 @@ describe("useGridKeyboard", () => {
             }),
         );
         expect(keyboard.bind).toHaveBeenCalledTimes(1);
-        expect(container._mjrGridKeyboard).toBe(keyboard);
+        expect((container as any)._mjrGridKeyboard).toBe(keyboard);
 
         const options = keyboardState.installGridKeyboard.mock.calls[0][0];
         expect(options.getState()).toEqual({ assets: [{ id: 1 }] });
@@ -61,6 +61,6 @@ describe("useGridKeyboard", () => {
         dispose();
 
         expect(keyboard.dispose).toHaveBeenCalledTimes(1);
-        expect(container._mjrGridKeyboard).toBeNull();
+        expect((container as any)._mjrGridKeyboard).toBeNull();
     });
 });

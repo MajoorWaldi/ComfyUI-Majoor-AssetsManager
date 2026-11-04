@@ -447,7 +447,7 @@ async def test_prepare_single_batch_entry_cache_miss_rich(tmp_path, monkeypatch)
         scanner,
         file_path=p,
         base_dir=str(tmp_path),
-        incremental=False,
+        incremental=True,
         fast=False,
         journal_map={},
         existing_map={},
@@ -457,6 +457,23 @@ async def test_prepare_single_batch_entry_cache_miss_rich(tmp_path, monkeypatch)
     )
     assert entry == {"action": "skipped"}
     assert meta is None
+
+    # A non-incremental re-index (cache invalidated, e.g. a sidecar JSON was
+    # added next to the unchanged file) must re-extract instead of skipping.
+    entry, meta = await ib.prepare_single_batch_entry(
+        scanner,
+        file_path=p,
+        base_dir=str(tmp_path),
+        incremental=False,
+        fast=False,
+        journal_map={},
+        existing_map={},
+        cache_map={},
+        has_rich_meta_set={3},
+        stats=stats,
+    )
+    assert entry is None
+    assert meta is not None
 
 
 @pytest.mark.asyncio

@@ -210,7 +210,17 @@ function _getBottomPanelController(manager: any | undefined): any {
 export function getExtensionToastApi(app?: any): any {
     const manager = getExtensionManager(app);
     const toastApi = manager?.toast || null;
-    if (toastApi && typeof toastApi.add === "function") return toastApi;
+    if (!toastApi) return null;
+    // Current ToastManager exposes success/error/info/warning/loading and marks
+    // add()/addAlert() deprecated; accept either so toasts keep working once
+    // the deprecated methods are removed.
+    if (
+        typeof toastApi.add === "function" ||
+        typeof toastApi.success === "function" ||
+        typeof toastApi.info === "function"
+    ) {
+        return toastApi;
+    }
     return null;
 }
 
