@@ -401,7 +401,7 @@ describe("deleteAssets deleted event", () => {
 });
 
 function createKeyboardGrid(assetIds: string[]) {
-    const grid = document.createElement("div");
+    const grid: any = document.createElement("div");
     grid.className = "mjr-grid";
     const assets = assetIds.map((id) => ({ id, filename: `file-${id}.png` }));
     grid._mjrAssets = assets;
@@ -460,7 +460,7 @@ describe("grid delete wiring", () => {
         const { gridContextMenuState } =
             await import("../features/contextmenu/gridContextMenuState.js");
 
-        const grid = document.createElement("div");
+        const grid: any = document.createElement("div");
         grid.className = "mjr-grid";
         const assets = idAssets(1, 2, 3);
         grid._mjrAssets = assets;
