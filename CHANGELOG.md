@@ -13,6 +13,7 @@ All notable changes to this project are documented in this file.
 - **JPEG and TIFF metadata**: ComfyUI/WAS-style `Prompt:` / `Workflow:` EXIF text and A1111 `parameters` are now read from JPEG and TIFF files (previously only PNG, WebP and AVIF).
 
 ### Fixed
+- **Security alerts**: workflow JSON reads are confined to the configured workflow roots at the read itself (CodeQL `py/path-injection`), and the dev-only `minimatch` is raised to 11.x (Dependabot #34).
 - **Missing-file download log**: a `/mjr/am/download` 404 (file deleted or moved outside Majoor) is logged at info level and names the file, instead of a bare warning.
 - **Python 3.10 install**: `pillow` is pinned to 13.x on Python 3.11+ and to 12.x on 3.10, where 13 is not available, so `pip install -r requirements.txt` works again there.
 - **Sidebar badge counts temp previews**: one generation with a compare/preview node showed a badge of 3. Temp preview files no longer increment the badge.
