@@ -37,8 +37,9 @@ def test_formats():
     assert svc.workflow_json_format([UI]) == ""
 
 
-def test_listing_skips_snapshots_and_non_workflows(tmp_path: Path):
+def test_listing_skips_snapshots_and_non_workflows(tmp_path: Path, monkeypatch):
     root = tmp_path / "workflows"
+    monkeypatch.setenv("MJR_AM_WORKFLOW_DIRECTORIES", str(root))
     _write(root / "flow.json", UI)
     _write(root / ".history" / "flow" / "20260101-save.json", UI)
     _write(root / "sub" / ".hidden.json", UI)
@@ -61,3 +62,14 @@ def test_invalid_json_is_not_kept_as_seen_in_index(tmp_path: Path):
         None, bogus, root, {}, force_full_refresh=True  # type: ignore[arg-type]
     )
     assert filepath is None and updated is False
+
+
+def test_read_refuses_files_outside_workflow_roots(tmp_path: Path, monkeypatch):
+    root = tmp_path / "workflows"
+    inside = _write(root / "flow.json", UI)
+    outside = _write(tmp_path / "elsewhere" / "flow.json", UI)
+    monkeypatch.setenv("MJR_AM_WORKFLOW_DIRECTORIES", str(root))
+
+    assert svc._safe_read_workflow_json(inside) is not None
+    assert svc._safe_read_workflow_json(outside) is None
+    assert svc._safe_read_workflow_json(root / ".." / "elsewhere" / "flow.json") is None
