@@ -173,7 +173,7 @@ export function configureSidebarAssetBadge({ sidebarTabId }: { sidebarTabId?: st
 }
 
 export function incrementSidebarAssetBadge(asset: any = null): void {
-    if (!isSidebarAssetBadgeEnabled()) return;
+    if (!isSidebarAssetBadgeEnabled() || asset?.source === "temp") return;
     const seenKey = buildAssetSeenKey(asset);
     if (!rememberAssetKey(seenKey)) return;
     _count += 1;

@@ -7,7 +7,11 @@ from typing import Any
 
 from aiohttp import web
 from mjr_am_backend.adapters.comfy_core import get_input_directory as _get_comfy_input_directory
-from mjr_am_backend.config import TO_THREAD_TIMEOUT_S, get_runtime_output_root
+from mjr_am_backend.config import (
+    ASSET_WRITE_RATE_LIMIT_PER_MIN,
+    TO_THREAD_TIMEOUT_S,
+    get_runtime_output_root,
+)
 from mjr_am_backend.custom_roots import list_custom_roots, resolve_custom_root
 from mjr_am_backend.features.assets import (
     STRIP_SUPPORTED_EXTS,
@@ -140,7 +144,7 @@ async def _prepare_asset_op_request(
         request,
         operation=operation,
         rate_limit_endpoint=operation,
-        max_requests=30,
+        max_requests=ASSET_WRITE_RATE_LIMIT_PER_MIN,
         window_seconds=60,
         require_services=_require_services,
         resolve_security_prefs=_resolve_security_prefs,

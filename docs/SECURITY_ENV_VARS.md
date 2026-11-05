@@ -161,6 +161,14 @@ Rate limiting is implemented on expensive endpoints:
 - Configurable thresholds for different operations
 - Resets after specified time intervals
 
+#### Tunable Write Limits
+Two write-path limits are adjustable via environment variables (requests per 60-second window, clamped to 1–10000, invalid values fall back to the default with a warning log):
+
+- `MJR_AM_DELETE_RATE_LIMIT`: single-asset delete (`POST /mjr/am/asset/delete`), default `20`
+- `MJR_AM_ASSET_WRITE_RATE_LIMIT`: rating and tag writes (`POST /mjr/am/asset/rating`, `POST /mjr/am/asset/tags`), default `30`
+
+The UI's multi-card delete and rating hotkeys send one request per card, so a selection larger than the cap fails partway with `RATE_LIMITED`. Raising these limits makes sense for bulk curation on a trusted instance (for example `MJR_AM_DELETE_RATE_LIMIT=600`). Other limits (rename, batch delete) are not affected by these variables.
+
 #### Trusted Proxy Support
 - `X-Forwarded-For` header honored only from trusted proxies
 - Controlled by `MAJOOR_TRUSTED_PROXIES` environment variable

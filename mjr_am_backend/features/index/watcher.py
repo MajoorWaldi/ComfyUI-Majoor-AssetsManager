@@ -43,6 +43,7 @@ from ...config import (
 )
 from ...shared import EXTENSIONS, get_logger
 from ..watcher_settings import get_watcher_settings
+from .fs_walker import IGNORED_DIR_NAMES
 
 logger = get_logger(__name__)
 
@@ -122,16 +123,9 @@ def sidecar_media_paths(json_path: str) -> list[str]:
     return out
 
 
-# Directories to always ignore (case-insensitive on Windows)
-IGNORED_DIRS = {
-    "_mjr_index",
-    ".majoor",
-    "__pycache__",
-    ".git",
-    "node_modules",
-    ".thumbs",
-    ".cache",
-}
+# Directories to always ignore (case-insensitive on Windows); shared with the
+# recursive scan walker in fs_walker so both stay in sync.
+IGNORED_DIRS = IGNORED_DIR_NAMES
 
 # Minimum file size (bytes) to avoid indexing partial/temp writes
 MIN_FILE_SIZE = max(0, int(WATCHER_MIN_FILE_SIZE_BYTES))

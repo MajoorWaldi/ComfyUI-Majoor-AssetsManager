@@ -78,6 +78,9 @@ def _validate_exiftool_file_path(file_path: str) -> Result[Path]:
 
 def _build_exiftool_rating_tags_payload(stars: int, tags_norm: list[str]) -> dict[str, Any]:
     joined = "; ".join(tags_norm)
+    # Unqualified "Keywords"/"Subject" are omitted on purpose: ExifTool resolves
+    # them to the same list tags as XMP:Subject/IPTC:Keywords, which used to add
+    # a joined "a; b" item to the lists on every save.
     payload: dict[str, Any] = {
         "XMP:Rating": stars,
         "xmp:rating": stars,
@@ -89,16 +92,12 @@ def _build_exiftool_rating_tags_payload(stars: int, tags_norm: list[str]) -> dic
         "XMP:Subject": tags_norm,
         "IPTC:Keywords": tags_norm,
         "XPKeywords": joined,
-        "Keywords": joined,
-        "Subject": joined,
     }
     if tags_norm == []:
         payload["XMP:Subject"] = []
         payload["IPTC:Keywords"] = []
         payload["Microsoft:Category"] = ""
         payload["XPKeywords"] = ""
-        payload["Keywords"] = ""
-        payload["Subject"] = ""
     return payload
 
 
@@ -112,7 +111,10 @@ def _exiftool_available(exiftool: ExifTool) -> bool:
 
 def _write_exiftool_payload(exiftool: ExifTool, path: Path, payload: dict[str, Any]) -> Result[bool]:
     try:
-        res = exiftool.write(str(path), payload, preserve_workflow=True)
+        # preserve_workflow=False: "-tagsFromFile @" would copy every existing
+        # tag (including stale list items) back over the values we just wrote,
+        # so old tags would reappear after each save.
+        res = exiftool.write(str(path), payload, preserve_workflow=False)
     except Exception as exc:
         return Result.Err(ErrorCode.EXIFTOOL_ERROR, f"ExifTool write failed: {exc}")
     if not res.ok:

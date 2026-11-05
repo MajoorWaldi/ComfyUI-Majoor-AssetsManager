@@ -323,13 +323,18 @@ def _iter_workflow_json_files(root: Path):
 
 def _safe_read_workflow_json(path: Path) -> dict[str, Any] | None:
     try:
-        if path.stat().st_size > MAX_WORKFLOW_JSON_BYTES:
-            return None
-        # utf-8-sig: workflows saved by Windows editors often start with a BOM,
-        # which plain utf-8 rejects (the file then silently vanished).
-        with path.open("r", encoding="utf-8-sig") as handle:
-            data = json.load(handle)
-        return data if workflow_json_format(data) else None
+        candidate = os.path.normcase(os.path.normpath(os.path.abspath(str(path))))
+        for root in workflow_roots():
+            prefix = os.path.normcase(os.path.normpath(str(root)))
+            if candidate.startswith(prefix + os.sep):
+                if os.stat(candidate).st_size > MAX_WORKFLOW_JSON_BYTES:
+                    return None
+                # utf-8-sig: workflows saved by Windows editors often start with a BOM,
+                # which plain utf-8 rejects (the file then silently vanished).
+                with open(candidate, encoding="utf-8-sig") as handle:
+                    data = json.load(handle)
+                return data if workflow_json_format(data) else None
+        return None
     except Exception:
         return None
 

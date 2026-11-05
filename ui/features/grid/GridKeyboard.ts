@@ -15,10 +15,10 @@ import { comfyPrompt } from "../../app/dialogs.js";
 import {
     openInFolder,
     updateAssetRating,
-    deleteAsset,
     renameAsset,
     removeFilepathsFromCollection,
 } from "../../api/client.js";
+import { deleteAssetsInChunks } from "./bulkDelete.js";
 import { buildDownloadURL } from "../../api/endpoints.js";
 import { ASSET_RATING_CHANGED_EVENT } from "../../app/events.js";
 import { safeDispatchCustomEvent } from "../../utils/events.js";
@@ -806,24 +806,26 @@ export function installGridKeyboard({
             if (asset?.id || selected.length > 0) {
                 consume();
                 const toDelete = selected.length > 0 ? selected : [asset];
-                let successCount = 0;
-                let errorCount = 0;
-                const deletedIds: any[] = [];
-
-                for (const a of toDelete) {
-                    if (!a?.id) continue;
-                    try {
-                        const result = await deleteAsset(a.id);
-                        if (result?.ok) {
-                            successCount++;
-                            deletedIds.push(String(a.id));
-                        } else {
-                            errorCount++;
-                        }
-                    } catch {
-                        errorCount++;
-                    }
-                }
+                const { deletedIds, failedCount } = await deleteAssetsInChunks(
+                    toDelete.filter((a: any) => a?.id),
+                    {
+                        onProgress: ({ done, total }) => {
+                            if (done < total) {
+                                comfyToast(
+                                    t(
+                                        "toast.filesDeletingProgress",
+                                        "Deleting files... ({done}/{total})",
+                                        { done, total },
+                                    ),
+                                    "info",
+                                    1600,
+                                );
+                            }
+                        },
+                    },
+                );
+                const successCount = deletedIds.length;
+                const errorCount = failedCount;
 
                 if (deletedIds.length) {
                     try {
