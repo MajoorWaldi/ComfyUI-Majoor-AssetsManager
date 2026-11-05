@@ -10,7 +10,8 @@ aiosqlite>=0.20.0,<1.0.0
 numpy>=1.24,<3.0.0
 
 # Image processing and thumbnails
-pillow>=13.0.0,<14.0.0
+pillow>=13.0.0,<14.0.0; python_version >= "3.11"
+pillow>=12.3.0,<13.0.0; python_version < "3.11"
 
 # Video encoding/metadata support for the Majoor Save Video node
 av>=12.0.0,<18.0.0

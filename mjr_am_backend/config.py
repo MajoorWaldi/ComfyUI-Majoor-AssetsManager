@@ -651,6 +651,13 @@ SCAN_LOG_PROGRESS_MIN_SECONDS = _env_float(
 # Hard cap protects UI payload size when many entries are eligible for enrichment.
 MAX_TO_ENRICH_ITEMS = _env_int(10000, "MJR_AM_MAX_TO_ENRICH_ITEMS", "MAJOOR_MAX_TO_ENRICH_ITEMS", min_value=1, max_value=1_000_000)
 
+# Per-client single-asset delete cap per 60 s window (requests); raise for bulk curation.
+DELETE_RATE_LIMIT_PER_MIN = _env_int(20, "MJR_AM_DELETE_RATE_LIMIT", min_value=1, max_value=10000)
+# Per-client asset rating/tags write cap per 60 s window (requests); raise for bulk curation.
+ASSET_WRITE_RATE_LIMIT_PER_MIN = _env_int(
+    30, "MJR_AM_ASSET_WRITE_RATE_LIMIT", min_value=1, max_value=10000
+)
+
 # ── Vector / multimodal semantic search (SigLIP2 / X-CLIP) ───────────────
 # Enable the whole subsystem with MJR_AM_ENABLE_VECTOR_SEARCH=1
 # (legacy aliases are still accepted for backward compatibility).

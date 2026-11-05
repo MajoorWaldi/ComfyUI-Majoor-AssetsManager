@@ -116,4 +116,16 @@ describe("sidebarAssetBadge", () => {
 
         expect(mod.getSidebarAssetBadgeCount()).toBe(1);
     });
+
+    it("ignores temp preview assets", async () => {
+        const { APP_CONFIG } = await import("../app/config.js");
+        const mod = await import("../features/runtime/sidebarAssetBadge.js");
+        APP_CONFIG.SIDEBAR_ASSET_BADGE_ENABLED = true;
+
+        mod.configureSidebarAssetBadge({ sidebarTabId: "majoor-assets" });
+        mod.incrementSidebarAssetBadge({ id: 1, source: "temp" });
+        mod.incrementSidebarAssetBadge({ id: 2, source: "output" });
+
+        expect(mod.getSidebarAssetBadgeCount()).toBe(1);
+    });
 });

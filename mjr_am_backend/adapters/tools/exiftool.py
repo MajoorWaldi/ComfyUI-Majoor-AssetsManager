@@ -898,13 +898,20 @@ class ExifTool:
                 cmd.append(f"-{key}=")
                 continue
             if isinstance(value, list):
-                cmd.append(f"-{key}=")
+                items: list[str] = []
                 for item in value:
                     if item is None:
                         continue
                     text = _sanitize_exiftool_value(item)
                     if text:
-                        cmd.append(f"-{key}+={text}")
+                        items.append(text)
+                if items:
+                    # Plain '=' assignments replace the tag; '+=' would append
+                    # to the values already stored in the file.
+                    for text in items:
+                        cmd.append(f"-{key}={text}")
+                else:
+                    cmd.append(f"-{key}=")
                 continue
             cmd.append(f"-{key}={_sanitize_exiftool_value(value)}")
 

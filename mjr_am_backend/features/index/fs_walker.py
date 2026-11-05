@@ -97,6 +97,30 @@ except Exception:
     _EXT_TO_KIND = {}
 
 
+# Directory names never descended into during a recursive scan and never watched:
+# hidden folders (send2trash's per-volume .Trash-<uid> on Unix, the Windows
+# recycle bin and system folders, VCS/tool caches) and Majoor-internal folders
+# (_mjr_index). Shared with the watcher so scan and watch filtering cannot
+# drift apart. Compared lowercased.
+IGNORED_DIR_NAMES: frozenset[str] = frozenset(
+    {
+        "_mjr_index",
+        ".majoor",
+        "__pycache__",
+        ".git",
+        "node_modules",
+        ".thumbs",
+        ".cache",
+        "$recycle.bin",
+        "system volume information",
+    }
+)
+
+
+def _is_ignored_dir_name(name: str) -> bool:
+    return name.startswith(".") or name.lower() in IGNORED_DIR_NAMES
+
+
 def _is_enabled_extension(ext: str) -> bool:
     if ext == ".jxl":
         return str(get_env("MAJOOR_ENABLE_JXL", "")).strip().lower() in {"1", "true", "yes", "on"}
@@ -207,6 +231,8 @@ class FileSystemWalker:
     @staticmethod
     def _next_dir(entry) -> Path | None:
         try:
+            if _is_ignored_dir_name(entry.name):
+                return None
             if entry.is_dir(follow_symlinks=False):
                 return Path(entry.path)
         except (OSError, PermissionError):

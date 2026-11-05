@@ -38,7 +38,34 @@ def test_build_exif_payload_empty_tags():
     payload = sync._build_exiftool_rating_tags_payload(5, [])
     assert payload["XMP:Rating"] == 5
     assert payload["XMP:Subject"] == []
-    assert payload["Keywords"] == ""
+    assert "Keywords" not in payload
+    assert "Subject" not in payload
+
+
+def test_build_exif_payload_has_no_unqualified_list_keys():
+    payload = sync._build_exiftool_rating_tags_payload(3, ["a", "b"])
+    assert payload["XMP:Subject"] == ["a", "b"]
+    assert payload["IPTC:Keywords"] == ["a", "b"]
+    assert "Keywords" not in payload
+    assert "Subject" not in payload
+
+
+def test_write_exif_rating_tags_does_not_preserve_workflow(tmp_path: Path):
+    p = tmp_path / "f.png"
+    p.write_bytes(b"x")
+    seen: dict[str, object] = {}
+
+    class _ExifSpy:
+        def is_available(self):
+            return True
+
+        def write(self, _path, _metadata, preserve_workflow=True):
+            seen["preserve_workflow"] = preserve_workflow
+            return Result.Ok(True)
+
+    res = sync.write_exif_rating_tags(_ExifSpy(), str(p), 4, ["a"])
+    assert res.ok
+    assert seen["preserve_workflow"] is False
 
 
 def test_validate_exiftool_file_path_not_found(tmp_path: Path):

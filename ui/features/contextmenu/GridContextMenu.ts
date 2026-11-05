@@ -38,6 +38,7 @@ import { reportError } from "../../utils/logging.js";
 import { safeClosest, safeEscapeSelector } from "../../utils/dom.js";
 import { safeDispatchCustomEvent } from "../../utils/events.js";
 import { confirmDeletion } from "../../utils/deleteGuard.js";
+import { deleteAssetsInChunks } from "../grid/bulkDelete.js";
 import { showAddToCollectionMenu } from "../collections/contextmenu/addToCollectionMenu.js";
 import { removeAssetsFromGrid } from "../grid/gridApi.js";
 import {
@@ -1741,27 +1742,28 @@ function _buildAssetItems({
                     if (!ok) return;
 
                     try {
-                        let successCount = 0;
-                        let errorCount = 0;
-                        const deletedIds = [];
-                        let deletedByFilepath = 0;
                         const selectionList = selectedAssetsNow.length
                             ? selectedAssetsNow
                             : [asset];
 
-                        for (const selectedAsset of selectionList) {
-                            const result = await deleteAsset(selectedAsset);
-                            if (result?.ok) {
-                                successCount += 1;
-                                if (selectedAsset?.id != null) {
-                                    deletedIds.push(String(selectedAsset.id));
-                                } else {
-                                    deletedByFilepath += 1;
-                                }
-                            } else {
-                                errorCount += 1;
-                            }
-                        }
+                        const { deletedIds, failedCount, deletedByFilepath } =
+                            await deleteAssetsInChunks(selectionList, {
+                                onProgress: ({ done, total }) => {
+                                    if (done < total) {
+                                        comfyToast(
+                                            t(
+                                                "toast.filesDeletingProgress",
+                                                "Deleting files... ({done}/{total})",
+                                                { done, total },
+                                            ),
+                                            "info",
+                                            1600,
+                                        );
+                                    }
+                                },
+                            });
+                        const successCount = deletedIds.length + deletedByFilepath;
+                        const errorCount = failedCount;
 
                         if (deletedIds.length) {
                             const removal = removeAssetsFromGrid(gridContainer, deletedIds);
