@@ -1333,3 +1333,112 @@ async def test_rating_tags_sync_header_modes(monkeypatch, tmp_path: Path):
     req3 = make_mocked_request("POST", "/mjr/am/asset/rating", app=app, headers={"X-MJR-RTSYNC": "both"})
     _ = await (await app.router.resolve(req3)).handler(req3)
     assert worker.calls[-1][-1] == "both"
+
+
+async def _call_delete_route(monkeypatch, knob_value):
+    import mjr_am_backend.routes.assets.route_actions_delete as route_actions_delete
+
+    captured = {}
+
+    async def _capture_prepare(_request, **kwargs):
+        captured.update(kwargs)
+        return Result.Err("SERVICE_UNAVAILABLE", "stop")
+
+    async def _noop(*_args, **_kwargs):
+        return Result.Ok(None)
+
+    def _noop_sync(*_args, **_kwargs):
+        return Result.Ok(None)
+
+    if knob_value is not None:
+        monkeypatch.setattr(route_actions_delete, "DELETE_RATE_LIMIT_PER_MIN", knob_value)
+
+    resp = await route_actions_delete.handle_delete_asset(
+        make_mocked_request("POST", "/mjr/am/asset/delete"),
+        prepare_asset_path_context=_capture_prepare,
+        resolve_delete_target=_noop,
+        load_asset_filepath_by_id=_noop,
+        find_asset_row_by_filepath=lambda *_args, **_kwargs: None,
+        filepath_db_keys=lambda _fp: {},
+        filepath_where_clause=lambda _fp: "1=1",
+        delete_file_safe=lambda _p: Result.Ok(True),
+        audit_asset_write=_noop,
+        json_response=m._json_response,
+        require_services=_noop,
+        resolve_security_prefs=_noop,
+        require_operation_enabled=_noop_sync,
+        require_write_access=_noop_sync,
+        check_rate_limit=lambda *_args, **_kwargs: (True, None),
+        read_json=_noop,
+        csrf_error=lambda _request: None,
+        normalize_path=lambda _v: None,
+        is_path_allowed=lambda _p: True,
+        is_path_allowed_custom=lambda _p: False,
+        is_resolved_path_allowed=lambda _p: True,
+    )
+    _ = resp
+    return captured
+
+
+@pytest.mark.asyncio
+async def test_delete_route_rate_limit_wiring_default(monkeypatch):
+    captured = await _call_delete_route(monkeypatch, knob_value=None)
+    assert captured["operation"] == "asset_delete"
+    assert captured["rate_limit_endpoint"] == "asset_delete"
+    assert captured["max_requests"] == 20
+    assert captured["window_seconds"] == 60
+
+
+@pytest.mark.asyncio
+async def test_delete_route_rate_limit_wiring_uses_knob(monkeypatch):
+    captured = await _call_delete_route(monkeypatch, knob_value=600)
+    assert captured["max_requests"] == 600
+
+
+@pytest.mark.asyncio
+async def test_asset_rating_and_tags_rate_limit_wiring(monkeypatch):
+    from mjr_am_backend.features.assets.models import AssetRouteContext
+
+    captured = {}
+
+    async def _capture_prepare(_request, **kwargs):
+        captured.update(kwargs)
+        return Result.Ok(AssetRouteContext(services={}, body={}))
+
+    monkeypatch.setattr(m, "prepare_asset_route_context", _capture_prepare)
+    monkeypatch.setattr(m, "ASSET_WRITE_RATE_LIMIT_PER_MIN", 600)
+
+    req = make_mocked_request("POST", "/mjr/am/asset/rating")
+
+    res = await m._prepare_asset_op_request(req, operation="asset_rating")
+    assert res.ok
+    assert captured["operation"] == "asset_rating"
+    assert captured["rate_limit_endpoint"] == "asset_rating"
+    assert captured["max_requests"] == 600
+    assert captured["window_seconds"] == 60
+
+    res = await m._prepare_asset_op_request(req, operation="asset_tags")
+    assert res.ok
+    assert captured["operation"] == "asset_tags"
+    assert captured["rate_limit_endpoint"] == "asset_tags"
+    assert captured["max_requests"] == 600
+    assert captured["window_seconds"] == 60
+
+
+@pytest.mark.asyncio
+async def test_asset_rating_and_tags_rate_limit_wiring_default(monkeypatch):
+    from mjr_am_backend.features.assets.models import AssetRouteContext
+
+    captured = {}
+
+    async def _capture_prepare(_request, **kwargs):
+        captured.update(kwargs)
+        return Result.Ok(AssetRouteContext(services={}, body={}))
+
+    monkeypatch.setattr(m, "prepare_asset_route_context", _capture_prepare)
+
+    req = make_mocked_request("POST", "/mjr/am/asset/rating")
+    res = await m._prepare_asset_op_request(req, operation="asset_rating")
+    assert res.ok
+    assert captured["max_requests"] == 30
+    assert captured["window_seconds"] == 60

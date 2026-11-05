@@ -9,6 +9,7 @@ All notable changes to this project are documented in this file.
 - **Majoor Save Video formats**: MP4, MKV and WebM containers with H.264 or AV1 (`mp4 (av1)`, `mkv (h264)`, `mkv (av1)`, `webm (av1)`). 10-bit and HDR (HLG / PQ) videos keep their bit depth and colour space. The node returns the encoded `images`.
 - **EXR / TIFF / SVG / BMP / AVI / M4V indexing**: these formats are now indexed. EXR and TIFF are served to the viewer as a JPEG preview (EXR tone-mapped from scene-linear to sRGB); add `?original=1` to `/mjr/am/viewer/asset/{id}` for the source file. SVG is served sandboxed.
 - **`.opus` audio**: files written by ComfyUI's Save Audio (Opus) are indexed, played and mined for workflow/prompt metadata.
+- **Configurable write rate limits**: the single-asset delete cap (`MJR_AM_DELETE_RATE_LIMIT`, default 20) and the rating/tags write cap (`MJR_AM_ASSET_WRITE_RATE_LIMIT`, default 30) are now environment knobs (requests per 60 s window, clamped to 1–10000), so bulk curation on a trusted instance no longer hits `RATE_LIMITED` partway through a multi-card selection.
 - **JPEG and TIFF metadata**: ComfyUI/WAS-style `Prompt:` / `Workflow:` EXIF text and A1111 `parameters` are now read from JPEG and TIFF files (previously only PNG, WebP and AVIF).
 
 ### Fixed

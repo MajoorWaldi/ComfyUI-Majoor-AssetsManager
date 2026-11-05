@@ -380,6 +380,18 @@ For low-VRAM ComfyUI systems, disable semantic search and automatic vector work,
 
 #### Security & Networking
 
+- **MJR_AM_DELETE_RATE_LIMIT**: Single-asset delete rate limit per 60-second window
+    - Default: 20
+    - Range: 1 to 10000
+    - Impact: Raise for bulk curation on a trusted instance (multi-card delete sends one request per card)
+    - Example: `MJR_AM_DELETE_RATE_LIMIT=600`
+
+- **MJR_AM_ASSET_WRITE_RATE_LIMIT**: Asset rating/tags write rate limit per 60-second window
+    - Default: 30
+    - Range: 1 to 10000
+    - Impact: Raise for bulk curation on a trusted instance (rating hotkeys send one request per card)
+    - Example: `MJR_AM_ASSET_WRITE_RATE_LIMIT=600`
+
 - **MJR_ALLOW_SYMLINKS**: Allow symbolic links in custom roots
     - Options: `on`, `off`, `true`, `false`
     - Default: `off`
