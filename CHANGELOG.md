@@ -12,6 +12,7 @@ All notable changes to this project are documented in this file.
 - **JPEG and TIFF metadata**: ComfyUI/WAS-style `Prompt:` / `Workflow:` EXIF text and A1111 `parameters` are now read from JPEG and TIFF files (previously only PNG, WebP and AVIF).
 
 ### Fixed
+- **Sidebar badge counts temp previews**: one generation with a compare/preview node showed a badge of 3. Temp preview files no longer increment the badge.
 - **Gen info on modern workflows**: workflow JSON now resolves links inside subgraphs (dict-form links), bridges subgraph inputs/outputs, expands nested subgraphs, keeps linked widgets aligned with `widgets_values` (including the `control_after_generate` value), and names widgets from the live node schema. Sampler detection on ComfyUI's bundled templates goes from 147 to 223 of 224, models from 148 to 224.
 - **Sampler selector nodes**: `SamplerEulerAncestral`, `SamplerDPMPP_2M_SDE`, ... now provide the sampler name.
 - **Per-output gen info**: when one prompt writes several files from different branches, each file now gets the gen info of the node that produced it.

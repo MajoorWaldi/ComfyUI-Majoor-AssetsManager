@@ -1,10 +1,10 @@
-import { in as e, or as t, t as n } from "./config-C9a-wT5M.js";
-import { _ as r, f as i, p as a } from "./generationSectionState-DuXxSw-j.js";
-import { r as o } from "./events-1iwo5blr.js";
-import { $ as s, B as c, C as l, D as u, E as d, H as ee, J as te, M as f, O as p, P as m, Q as h, S as g, T as _, V as v, W as y, X as ne, b, gt as x, ht as S, j as C, k as w, mt as T, pt as E, q as re, st as D } from "./mjr-primevue-C07IsEdU.js";
-// ui/features/viewer/model3dCore.ts
+import { in as e, or as t, t as n } from "./config-U3VmNXaW.js";
+import { _ as r, f as i, p as a } from "./generationSectionState-Cv2FicwT.js";
+import { r as o } from "./events-CKNQKBLk.js";
+import { $ as s, B as c, C as l, D as u, E as d, H as ee, J as te, M as f, O as p, P as m, Q as h, S as g, T as _, V as v, W as y, X as ne, b, gt as x, ht as S, j as C, k as w, mt as T, pt as E, q as re, st as D } from "./mjr-primevue-Kjm8dCPS.js";
+//#region ui/features/viewer/model3dCore.ts
 function ie(e, t) {
-	if (e && typeof t == "function") try {
+	if (!(!e || typeof t != "function")) try {
 		e.traverse?.((e) => {
 			(e?.isMesh || e?.isPoints || e?.isLine) && t(e);
 		});
@@ -131,7 +131,8 @@ function A(e, t, n) {
 	}
 	return null;
 }
-// ui/features/viewer/model3dLoaders.ts
+//#endregion
+//#region ui/features/viewer/model3dLoaders.ts
 var j = "/mjr/am/vendor/three", de = null;
 function fe(e, t, n) {
 	switch (t) {
@@ -145,7 +146,15 @@ function fe(e, t, n) {
 }
 function M(e, t, n) {
 	return new Promise((t, r) => {
-		!e || !n ? r(/* @__PURE__ */ Error("Missing loader or URL")) : typeof e.loadAsync == "function" ? e.loadAsync(n).then(t).catch(r) : e.load(n, t, void 0, r);
+		if (!e || !n) {
+			r(/* @__PURE__ */ Error("Missing loader or URL"));
+			return;
+		}
+		if (typeof e.loadAsync == "function") {
+			e.loadAsync(n).then(t).catch(r);
+			return;
+		}
+		e.load(n, t, void 0, r);
 	});
 }
 function N() {
@@ -193,7 +202,8 @@ function N() {
 		PLYLoader: s.PLYLoader
 	})), de);
 }
-// ui/features/viewer/imageProcessor.ts
+//#endregion
+//#region ui/features/viewer/imageProcessor.ts
 function P(e, t, n) {
 	if (!e) return;
 	try {
@@ -235,7 +245,8 @@ function P(e, t, n) {
 		}
 	}
 }
-// ui/features/viewer/model3dSupport.ts
+//#endregion
+//#region ui/features/viewer/model3dSupport.ts
 var F = [
 	.25,
 	.5,
@@ -263,7 +274,22 @@ function R(e) {
 }
 function z(t, n) {
 	let r = document.createElement("button");
-	return r.type = "button", r.textContent = String(t || ""), r.title = String(n || t || ""), r.setAttribute("aria-label", String(n || t || e("model3d.viewportAction", "3D viewport action"))), r.style.cssText = "height:28px;padding:0 10px;border-radius:999px;border:1px solid rgba(255,255,255,0.16);background:rgba(13,15,20,0.78);color:rgba(255,255,255,0.92);font:600 11px system-ui,sans-serif;letter-spacing:0.02em;cursor:pointer;backdrop-filter:blur(8px);display:inline-flex;align-items:center;justify-content:center;box-shadow:0 4px 18px rgba(0,0,0,0.24)", r;
+	return r.type = "button", r.textContent = String(t || ""), r.title = String(n || t || ""), r.setAttribute("aria-label", String(n || t || e("model3d.viewportAction", "3D viewport action"))), r.style.cssText = [
+		"height:28px",
+		"padding:0 10px",
+		"border-radius:999px",
+		"border:1px solid rgba(255,255,255,0.16)",
+		"background:rgba(13,15,20,0.78)",
+		"color:rgba(255,255,255,0.92)",
+		"font:600 11px system-ui,sans-serif",
+		"letter-spacing:0.02em",
+		"cursor:pointer",
+		"backdrop-filter:blur(8px)",
+		"display:inline-flex",
+		"align-items:center",
+		"justify-content:center",
+		"box-shadow:0 4px 18px rgba(0,0,0,0.24)"
+	].join(";"), r;
 }
 function B(e, t) {
 	if (!e) return;
@@ -301,7 +327,26 @@ function V(t, n, r = "", i = "#4CAF50") {
 }
 function pe({ defaultBgColor: t, defaultFov: n, defaultLightIntensity: r, hasSkeleton: i } = {}) {
 	let a = document.createElement("div");
-	a.className = "mjr-model3d-settings", a.style.cssText = "position:absolute;right:0;top:44px;width:210px;max-height:calc(100% - 100px);overflow-y:auto;background:rgba(14,18,26,0.96);border:1px solid rgba(255,255,255,0.10);border-right:none;border-radius:10px 0 0 10px;padding:10px 10px 12px 10px;z-index:4;display:none;box-shadow:-6px 4px 24px rgba(0,0,0,0.5);backdrop-filter:blur(12px);font:13px system-ui,sans-serif;color:rgba(255,255,255,0.88);scrollbar-width:thin", [
+	a.className = "mjr-model3d-settings", a.style.cssText = [
+		"position:absolute",
+		"right:0",
+		"top:44px",
+		"width:210px",
+		"max-height:calc(100% - 100px)",
+		"overflow-y:auto",
+		"background:rgba(14,18,26,0.96)",
+		"border:1px solid rgba(255,255,255,0.10)",
+		"border-right:none",
+		"border-radius:10px 0 0 10px",
+		"padding:10px 10px 12px 10px",
+		"z-index:4",
+		"display:none",
+		"box-shadow:-6px 4px 24px rgba(0,0,0,0.5)",
+		"backdrop-filter:blur(12px)",
+		"font:13px system-ui,sans-serif",
+		"color:rgba(255,255,255,0.88)",
+		"scrollbar-width:thin"
+	].join(";"), [
 		"pointerdown",
 		"pointermove",
 		"pointerup",
@@ -319,7 +364,13 @@ function pe({ defaultBgColor: t, defaultFov: n, defaultLightIntensity: r, hasSke
 	});
 	let o = (e) => {
 		let t = document.createElement("div");
-		t.style.cssText = "font:700 10px system-ui,sans-serif;letter-spacing:0.08em;color:rgba(255,255,255,0.40);text-transform:uppercase;margin:10px 0 6px 0", t.textContent = e, a.appendChild(t);
+		t.style.cssText = [
+			"font:700 10px system-ui,sans-serif",
+			"letter-spacing:0.08em",
+			"color:rgba(255,255,255,0.40)",
+			"text-transform:uppercase",
+			"margin:10px 0 6px 0"
+		].join(";"), t.textContent = e, a.appendChild(t);
 		let n = document.createElement("div");
 		n.style.cssText = "height:1px;background:rgba(255,255,255,0.07);margin-bottom:8px;", a.appendChild(n);
 	}, s = (e, t) => {
@@ -329,7 +380,17 @@ function pe({ defaultBgColor: t, defaultFov: n, defaultLightIntensity: r, hasSke
 		return r.style.cssText = "font:500 11px system-ui,sans-serif;color:rgba(255,255,255,0.65);white-space:nowrap;flex-shrink:0;", r.textContent = e, n.appendChild(r), n.appendChild(t), a.appendChild(n), n;
 	}, c = (e, t) => {
 		let n = document.createElement("select");
-		n.style.cssText = "background:rgba(25,30,42,0.95);color:rgba(255,255,255,0.88);border:1px solid rgba(255,255,255,0.14);border-radius:6px;padding:3px 5px;font:11px system-ui,sans-serif;cursor:pointer;flex:1;min-width:0";
+		n.style.cssText = [
+			"background:rgba(25,30,42,0.95)",
+			"color:rgba(255,255,255,0.88)",
+			"border:1px solid rgba(255,255,255,0.14)",
+			"border-radius:6px",
+			"padding:3px 5px",
+			"font:11px system-ui,sans-serif",
+			"cursor:pointer",
+			"flex:1",
+			"min-width:0"
+		].join(";");
 		for (let [r, i] of e) {
 			let e = document.createElement("option");
 			e.value = r, e.textContent = i, r === t && (e.selected = !0), n.appendChild(e);
@@ -417,19 +478,60 @@ function me() {
 		t.addEventListener(e, (e) => L(e, { preventDefault: !1 }));
 	});
 	let n = document.createElement("button");
-	n.type = "button", n.textContent = e("model3d.play", "Play"), n.title = e("model3d.playPause", "Play / Pause"), n.style.cssText = "width:28px;height:28px;border-radius:50%;border:1px solid rgba(255,255,255,0.18);background:rgba(76,175,80,0.14);color:rgba(255,255,255,0.92);font:600 12px system-ui,sans-serif;cursor:pointer;flex-shrink:0;padding:0;line-height:1;display:flex;align-items:center;justify-content:center";
+	n.type = "button", n.textContent = e("model3d.play", "Play"), n.title = e("model3d.playPause", "Play / Pause"), n.style.cssText = [
+		"width:28px",
+		"height:28px",
+		"border-radius:50%",
+		"border:1px solid rgba(255,255,255,0.18)",
+		"background:rgba(76,175,80,0.14)",
+		"color:rgba(255,255,255,0.92)",
+		"font:600 12px system-ui,sans-serif",
+		"cursor:pointer",
+		"flex-shrink:0",
+		"padding:0",
+		"line-height:1",
+		"display:flex",
+		"align-items:center",
+		"justify-content:center"
+	].join(";");
 	let r = document.createElement("select");
-	r.title = e("model3d.playbackSpeed", "Playback speed"), r.style.cssText = "background:rgba(20,24,34,0.9);color:rgba(255,255,255,0.8);border:1px solid rgba(255,255,255,0.14);border-radius:6px;padding:3px 4px;font:11px system-ui,sans-serif;cursor:pointer;width:52px;flex-shrink:0";
+	r.title = e("model3d.playbackSpeed", "Playback speed"), r.style.cssText = [
+		"background:rgba(20,24,34,0.9)",
+		"color:rgba(255,255,255,0.8)",
+		"border:1px solid rgba(255,255,255,0.14)",
+		"border-radius:6px",
+		"padding:3px 4px",
+		"font:11px system-ui,sans-serif",
+		"cursor:pointer",
+		"width:52px",
+		"flex-shrink:0"
+	].join(";");
 	for (let e of F) {
 		let t = document.createElement("option");
 		t.value = String(e), t.textContent = `${e}x`, e === 1 && (t.selected = !0), r.appendChild(t);
 	}
 	let i = document.createElement("select");
-	i.title = "Animation clip", i.style.cssText = "background:rgba(20,24,34,0.9);color:rgba(255,255,255,0.8);border:1px solid rgba(255,255,255,0.14);border-radius:6px;padding:3px 5px;font:11px system-ui,sans-serif;cursor:pointer;max-width:130px;flex-shrink:1;min-width:0";
+	i.title = "Animation clip", i.style.cssText = [
+		"background:rgba(20,24,34,0.9)",
+		"color:rgba(255,255,255,0.8)",
+		"border:1px solid rgba(255,255,255,0.14)",
+		"border-radius:6px",
+		"padding:3px 5px",
+		"font:11px system-ui,sans-serif",
+		"cursor:pointer",
+		"max-width:130px",
+		"flex-shrink:1",
+		"min-width:0"
+	].join(";");
 	let a = document.createElement("input");
 	a.type = "range", a.min = "0", a.max = "1000", a.value = "0", a.style.cssText = "flex:1;min-width:50px;cursor:pointer;accent-color:#4CAF50;height:3px;";
 	let o = document.createElement("span");
-	return o.style.cssText = "font:500 11px system-ui,sans-serif;color:rgba(255,255,255,0.45);white-space:nowrap;flex-shrink:0", o.textContent = "0s / 0s", t.appendChild(n), t.appendChild(r), t.appendChild(i), t.appendChild(a), t.appendChild(o), {
+	return o.style.cssText = [
+		"font:500 11px system-ui,sans-serif",
+		"color:rgba(255,255,255,0.45)",
+		"white-space:nowrap",
+		"flex-shrink:0"
+	].join(";"), o.textContent = "0s / 0s", t.appendChild(n), t.appendChild(r), t.appendChild(i), t.appendChild(a), t.appendChild(o), {
 		bar: t,
 		playBtn: n,
 		speedSel: r,
@@ -438,7 +540,8 @@ function me() {
 		timeLbl: o
 	};
 }
-// ui/features/viewer/model3dRenderer.impl.ts
+//#endregion
+//#region ui/features/viewer/model3dRenderer.impl.ts
 var H = Object.freeze({
 	".gltf": "gltf",
 	".glb": "gltf",
@@ -556,9 +659,28 @@ function we(e, t) {
 }
 function Te(r, i, a = {}) {
 	let s = a?.pauseDuringExecution == null ? !!n?.VIEWER_PAUSE_DURING_EXECUTION : !!a.pauseDuringExecution, c = document.createElement("div");
-	c.className = a.hostClassName || "mjr-model3d-host mjr-viewer-model3d-host", c.style.cssText = a.hostStyle || "width:100%;height:100%;display:flex;align-items:stretch;justify-content:stretch;position:relative;overflow:hidden;border-radius:12px;background:radial-gradient(circle at top, rgba(76,175,80,0.10), rgba(0,0,0,0) 42%), linear-gradient(180deg, rgba(40,40,40,0.98), rgba(19,22,28,0.99));box-shadow:inset 0 0 0 1px rgba(255,255,255,0.06)", c.setAttribute("data-capture-wheel", "true"), c.tabIndex = -1;
+	c.className = a.hostClassName || "mjr-model3d-host mjr-viewer-model3d-host", c.style.cssText = a.hostStyle || [
+		"width:100%",
+		"height:100%",
+		"display:flex",
+		"align-items:stretch",
+		"justify-content:stretch",
+		"position:relative",
+		"overflow:hidden",
+		"border-radius:12px",
+		"background:radial-gradient(circle at top, rgba(76,175,80,0.10), rgba(0,0,0,0) 42%), linear-gradient(180deg, rgba(40,40,40,0.98), rgba(19,22,28,0.99))",
+		"box-shadow:inset 0 0 0 1px rgba(255,255,255,0.06)"
+	].join(";"), c.setAttribute("data-capture-wheel", "true"), c.tabIndex = -1;
 	let l = document.createElement("canvas");
-	l.className = a.canvasClassName || "mjr-viewer-media mjr-model3d-render-canvas", l.style.cssText = a.canvasStyle || "display:block;width:100%;height:100%;max-width:100%;max-height:100%;outline:none;touch-action:none", l.tabIndex = 0, l._mjrDisableViewerTransform = a.disableViewerTransform !== !1;
+	l.className = a.canvasClassName || "mjr-viewer-media mjr-model3d-render-canvas", l.style.cssText = a.canvasStyle || [
+		"display:block",
+		"width:100%",
+		"height:100%",
+		"max-width:100%",
+		"max-height:100%",
+		"outline:none",
+		"touch-action:none"
+	].join(";"), l.tabIndex = 0, l._mjrDisableViewerTransform = a.disableViewerTransform !== !1;
 	try {
 		r?.id != null && (l.dataset.mjrAssetId = String(r.id));
 	} catch (e) {
@@ -566,20 +688,63 @@ function Te(r, i, a = {}) {
 	}
 	c.appendChild(l);
 	let u = document.createElement("canvas");
-	u.className = "mjr-model3d-status", u.style.cssText = "position:absolute;inset:0;display:block;width:100%;height:100%;pointer-events:none;z-index:1", c.appendChild(u);
+	u.className = "mjr-model3d-status", u.style.cssText = [
+		"position:absolute",
+		"inset:0",
+		"display:block",
+		"width:100%",
+		"height:100%",
+		"pointer-events:none",
+		"z-index:1"
+	].join(";"), c.appendChild(u);
 	let d = be(r).replace(".", "").toUpperCase();
 	if (d) {
 		let e = document.createElement("div");
-		e.className = "mjr-model3d-badge", e.textContent = d, e.style.cssText = "position:absolute;top:10px;left:10px;padding:4px 8px;border-radius:999px;font:700 10px system-ui,sans-serif;letter-spacing:0.08em;color:#fff;background:rgba(76,175,80,0.9);pointer-events:none;z-index:2", c.appendChild(e);
+		e.className = "mjr-model3d-badge", e.textContent = d, e.style.cssText = [
+			"position:absolute",
+			"top:10px",
+			"left:10px",
+			"padding:4px 8px",
+			"border-radius:999px",
+			"font:700 10px system-ui,sans-serif",
+			"letter-spacing:0.08em",
+			"color:#fff",
+			"background:rgba(76,175,80,0.9)",
+			"pointer-events:none",
+			"z-index:2"
+		].join(";"), c.appendChild(e);
 	}
 	let ee = document.createElement("div");
-	ee.className = "mjr-model3d-toolbar", ee.style.cssText = "position:absolute;top:10px;right:10px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;pointer-events:none;z-index:5";
+	ee.className = "mjr-model3d-toolbar", ee.style.cssText = [
+		"position:absolute",
+		"top:10px",
+		"right:10px",
+		"display:flex",
+		"align-items:center",
+		"gap:6px",
+		"flex-wrap:wrap",
+		"pointer-events:none",
+		"z-index:5"
+	].join(";");
 	let te = document.createElement("div");
 	te.style.cssText = "display:flex;align-items:center;gap:6px;flex-wrap:wrap;pointer-events:auto;";
 	let f = z(e("model3d.reset", "Reset"), e("model3d.resetView", "Reset 3D view")), p = z(e("model3d.grid", "Grid"), e("model3d.toggleGrid", "Toggle grid")), m = z(e("model3d.persp", "Persp"), e("model3d.switchCamera", "Switch perspective / orthographic")), h = z(e("model3d.settings", "Settings"), e("model3d.settings", "Settings"));
 	te.append(f, p, m, h), ee.appendChild(te), c.appendChild(ee);
 	let g = document.createElement("div");
-	g.className = "mjr-model3d-hint", g.textContent = a.hintText || W, g.style.cssText = "position:absolute;right:10px;bottom:10px;padding:5px 10px;border-radius:999px;font:500 11px system-ui,sans-serif;color:rgba(255,255,255,0.75);background:rgba(0,0,0,0.35);backdrop-filter:blur(6px);pointer-events:none;z-index:2;transition:bottom 0.2s", c.appendChild(g);
+	g.className = "mjr-model3d-hint", g.textContent = a.hintText || W, g.style.cssText = [
+		"position:absolute",
+		"right:10px",
+		"bottom:10px",
+		"padding:5px 10px",
+		"border-radius:999px",
+		"font:500 11px system-ui,sans-serif",
+		"color:rgba(255,255,255,0.75)",
+		"background:rgba(0,0,0,0.35)",
+		"backdrop-filter:blur(6px)",
+		"pointer-events:none",
+		"z-index:2",
+		"transition:bottom 0.2s"
+	].join(";"), c.appendChild(g);
 	let _ = pe({
 		defaultBgColor: ge,
 		defaultFov: ve,
@@ -620,7 +785,7 @@ function Te(r, i, a = {}) {
 		let n = Math.max(1e-4, (Number(e) || 1) / Math.max(1, Number(t) || 1)), r = U * n;
 		T.left = -r / 2, T.right = r / 2, T.top = U / 2, T.bottom = -U / 2, T.updateProjectionMatrix();
 	}, Be = () => {
-		if (F && E && H) {
+		if (!(!F || !E || !H)) {
 			if (q === G.ORTHOGRAPHIC) {
 				let e = c.getBoundingClientRect();
 				U = k(T, E, H, Math.max(1e-4, (e.width || 1) / Math.max(1, e.height || 1))) || U, C = T;
@@ -674,7 +839,7 @@ function Te(r, i, a = {}) {
 			}
 		});
 	}, Ue = (e) => {
-		I && b && (se(Te), O(b, I, e, Ce, Te), Ie());
+		!I || !b || (se(Te), O(b, I, e, Ce, Te), Ie());
 	}, We = (e) => {
 		if (!F) return;
 		let t = _e[e] || [
@@ -728,9 +893,9 @@ function Te(r, i, a = {}) {
 			v.progressSlider.max = String(e);
 		} catch {}
 	}, Je = () => {
-		J && Y.length && (Q ? (J.timeScale = 0, Q = !1, v.playBtn.textContent = e("model3d.play", "Play")) : (J.timeScale = Me, X[Z]?.isRunning?.() ? (Q = !0, v.playBtn.textContent = e("model3d.pause", "Pause")) : qe(Z)));
+		!J || !Y.length || (Q ? (J.timeScale = 0, Q = !1, v.playBtn.textContent = e("model3d.play", "Play")) : (J.timeScale = Me, X[Z]?.isRunning?.() ? (Q = !0, v.playBtn.textContent = e("model3d.pause", "Pause")) : qe(Z)));
 	}, Ye = (e, t) => {
-		e && e.length !== 0 && b && (Y = e, J = new b.AnimationMixer(t), je = new b.Clock(), X = Array(e.length).fill(null), v.animSel.innerHTML = "", e.forEach((e, t) => {
+		!e || e.length === 0 || !b || (Y = e, J = new b.AnimationMixer(t), je = new b.Clock(), X = Array(e.length).fill(null), v.animSel.innerHTML = "", e.forEach((e, t) => {
 			let n = document.createElement("option");
 			n.value = String(t), n.textContent = e.name || `Animation ${t + 1}`, v.animSel.appendChild(n);
 		}), v.animSel.style.display = e.length > 1 ? "" : "none", v.bar.style.display = "flex", g.style.bottom = "54px", qe(0), v.playBtn.addEventListener("click", (e) => {
@@ -919,7 +1084,13 @@ function Te(r, i, a = {}) {
 			console.debug?.(e);
 		}
 	}, tt = (e) => {
-		s && (String(e?.detail?.active_prompt_id || "").trim() ? $e() : et());
+		if (s) {
+			if (String(e?.detail?.active_prompt_id || "").trim()) {
+				$e();
+				return;
+			}
+			et();
+		}
 	};
 	l._mjrProc = {
 		setParams: () => {},
@@ -935,7 +1106,27 @@ function Te(r, i, a = {}) {
 	}
 	return $("Preparing 3D preview", Fe), Promise.resolve().then(async () => {
 		let n = Se(r);
-		if (he.has(n)) try {
+		if (!he.has(n)) {
+			if ($("3D preview unavailable", `${n.toUpperCase()} is not supported in the embedded viewer.`), g.style.display = "none", i) try {
+				let t = document.createElement("a");
+				t.href = i, t.download = String(r?.filename || "model"), t.textContent = e("model3d.downloadFile", "Download {file}", { file: String(r?.filename || "file") }), t.style.cssText = [
+					"position:absolute",
+					"bottom:18px",
+					"left:50%",
+					"transform:translateX(-50%)",
+					"padding:7px 16px",
+					"border-radius:8px",
+					"font:600 12px system-ui,sans-serif",
+					"color:#fff",
+					"background:rgba(76,175,80,0.85)",
+					"text-decoration:none",
+					"pointer-events:auto",
+					"z-index:3"
+				].join(";"), c.appendChild(t);
+			} catch {}
+			return;
+		}
+		try {
 			let e = await N();
 			if (y) return;
 			let o = e.THREE;
@@ -1098,7 +1289,7 @@ function Te(r, i, a = {}) {
 			}
 			Ie();
 			let he = () => {
-				if (!y && !ie && x && S && C) {
+				if (!(y || ie || !x || !S || !C)) {
 					try {
 						if (E?.update?.(), J && je) {
 							let e = je.getDelta();
@@ -1133,10 +1324,6 @@ function Te(r, i, a = {}) {
 		} catch (e) {
 			console.warn("[MJR 3D] preview init failed", e), $("Failed to load 3D preview", String(e?.message || "Three.js initialization failed.")), g.style.display = "none";
 		}
-		else if ($("3D preview unavailable", `${n.toUpperCase()} is not supported in the embedded viewer.`), g.style.display = "none", i) try {
-			let t = document.createElement("a");
-			t.href = i, t.download = String(r?.filename || "model"), t.textContent = e("model3d.downloadFile", "Download {file}", { file: String(r?.filename || "file") }), t.style.cssText = "position:absolute;bottom:18px;left:50%;transform:translateX(-50%);padding:7px 16px;border-radius:8px;font:600 12px system-ui,sans-serif;color:#fff;background:rgba(76,175,80,0.85);text-decoration:none;pointer-events:auto;z-index:3", c.appendChild(t);
-		} catch {}
 	}).catch((e) => {
 		if (!y) {
 			console.warn("[MJR 3D] preview init unhandled error", e);
@@ -1149,7 +1336,8 @@ function Te(r, i, a = {}) {
 		}
 	}), c;
 }
-// ui/features/viewer/studio/studioFx.ts
+//#endregion
+//#region ui/features/viewer/studio/studioFx.ts
 function Ee() {
 	return {
 		channel: "rgb",
@@ -1379,7 +1567,8 @@ function ze(e, t, n, r = () => !0) {
 	}
 	return null;
 }
-// ui/features/viewer/studio/studioMedia.ts
+//#endregion
+//#region ui/features/viewer/studio/studioMedia.ts
 var Be = /* @__PURE__ */ new Set([
 	"png",
 	"jpg",
@@ -1507,7 +1696,8 @@ function rt(e, t, n = 40) {
 		end: a
 	};
 }
-// ui/vue/components/viewer/studio/StudioPlayer.vue?vue&type=script&setup=true&lang.ts
+//#endregion
+//#region ui/vue/components/viewer/studio/StudioPlayer.vue?vue&type=script&setup=true&lang.ts
 var it = ["src"], at = ["src"], ot = {
 	key: 0,
 	class: "mjr-studio-stage__ab"
@@ -1554,7 +1744,7 @@ var it = ["src"], at = ["src"], ot = {
 		async function de() {
 			if (i.kind !== "audio" || A || k) return;
 			let e = q(), t = window.AudioContext || window.webkitAudioContext;
-			if (e && t) try {
+			if (!(!e || !t)) try {
 				if (k = new t(), await k.resume?.(), k.state !== "running") {
 					k.close?.(), k = null;
 					return;
@@ -1697,7 +1887,9 @@ var it = ["src"], at = ["src"], ot = {
 			if (z.value && !K.value) {
 				let e = q();
 				e && (e.currentTime = 0, e.play()?.catch?.(() => {}));
-			} else a("ended");
+				return;
+			}
+			a("ended");
 		}
 		function Ie() {
 			U.value = e("viewer.studio.mediaError", "This file cannot be played by the browser.");
@@ -2166,7 +2358,13 @@ var it = ["src"], at = ["src"], ot = {
 }, xt = n?.VIEWER_GENINFO_TTL_MS ?? 3e4, St = n?.VIEWER_GENINFO_ERROR_TTL_MS ?? 8e3, Ct = n?.VIEWER_GENINFO_MAX_ENTRIES ?? 300, wt = /* @__PURE__ */ new Map(), Tt = /* @__PURE__ */ new Map(), Et = /* @__PURE__ */ new Map(), Dt = (e, t, n) => {
 	try {
 		let r = Date.now();
-		for (let [n, i] of e.entries()) i ? r - (i.at || 0) > t && e.delete(n) : e.delete(n);
+		for (let [n, i] of e.entries()) {
+			if (!i) {
+				e.delete(n);
+				continue;
+			}
+			r - (i.at || 0) > t && e.delete(n);
+		}
 		if (e.size <= n) return;
 		let i = Array.from(e.entries()).sort((e, t) => (e?.[1]?.at || 0) - (t?.[1]?.at || 0)), a = e.size - n;
 		for (let t = 0; t < a; t++) {
@@ -2487,4 +2685,5 @@ async function Vt(e, { getAssetMetadata: t, getFileMetadataScoped: n, metadataCa
 	}
 	return await u();
 }
+//#endregion
 export { Te as C, U as S, je as _, et as a, ze as b, Z as c, Ne as d, Pe as f, $ as g, J as h, rt as i, Ae as l, Ee as m, yt as n, Ge as o, Fe as p, tt as r, Re as s, Vt as t, Le as u, Me as v, Ce as w, Ie as x, Y as y };

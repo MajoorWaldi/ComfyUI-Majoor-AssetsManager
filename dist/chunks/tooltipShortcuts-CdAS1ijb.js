@@ -1,9 +1,9 @@
-import { Vn as e, bn as t, fn as n, gn as r, in as i, kn as a, un as o, xn as s } from "./config-C9a-wT5M.js";
-import { a as c, n as l } from "./graphTraversal-DTdQWkn5.js";
-import { C as u, S as d, b as f, x as p, y as m } from "./generationSectionState-DuXxSw-j.js";
-import { _ as ee, a as te, c as ne, d as re, f as ie, g as ae, h as oe, i as se, l as ce, m as le, n as ue, o as de, p as fe, r as pe, s as me, t as he, u as ge } from "./mjr-primevue-C07IsEdU.js";
-import { t as _e } from "./mjr-vue-vendor-CEDOnn2t.js";
-// ui/features/viewer/floatingViewerProgress.ts
+import { Vn as e, bn as t, fn as n, gn as r, in as i, kn as a, un as o, xn as s } from "./config-U3VmNXaW.js";
+import { a as c, n as l } from "./graphTraversal-BIYmTTPW.js";
+import { C as u, S as d, b as f, x as p, y as m } from "./generationSectionState-Cv2FicwT.js";
+import { _ as ee, a as te, c as ne, d as re, f as ie, g as ae, h as oe, i as se, l as ce, m as le, n as ue, o as de, p as fe, r as pe, s as me, t as he, u as ge } from "./mjr-primevue-Kjm8dCPS.js";
+import { t as _e } from "./mjr-vue-vendor-Csuv97kz.js";
+//#region ui/features/viewer/floatingViewerProgress.ts
 var h = "progress-update", g = "__MJR_MFV_PROGRESS_SERVICE__";
 function ve() {
 	return typeof globalThis < "u" ? globalThis : typeof window < "u" ? window : {};
@@ -102,7 +102,7 @@ var be = class {
 		return r ? (this._attachApi(r), r) : null;
 	}
 	_attachApi(e) {
-		e && typeof e.addEventListener == "function" && this._api !== e && (this.dispose({ keepState: !0 }), this._api = e, this._attachApiListeners(e));
+		!e || typeof e.addEventListener != "function" || this._api !== e && (this.dispose({ keepState: !0 }), this._api = e, this._attachApiListeners(e));
 	}
 	async _hydratePrompt(e, t) {
 		let n = String(t?.id || "").trim();
@@ -287,7 +287,8 @@ function De(e) {
 	}
 	e._progressUpdateHandler = null, e._progressCurrentNodeId = null, e._progressEl = null, e._progressNodesEl = null, e._progressStepsEl = null, e._progressTextEl = null, e._mediaProgressEl = null, e._mediaProgressTextEl = null;
 }
-// ui/utils/dom.ts
+//#endregion
+//#region ui/utils/dom.ts
 function Oe(e, t) {
 	if (!t) return null;
 	try {
@@ -316,7 +317,8 @@ async function Ae(e) {
 		return !1;
 	}
 }
-// ui/features/viewer/workflowGraphMap/workflowGraphMapData.ts
+//#endregion
+//#region ui/features/viewer/workflowGraphMap/workflowGraphMapData.ts
 var x = /* @__PURE__ */ new Map(), S = null;
 async function C(e) {
 	let t = Array.from(new Set(w(e).map((e) => D(e)).filter(Boolean)));
@@ -371,7 +373,7 @@ function O(e) {
 	let t = Ne(e), n = e?.properties && typeof e.properties == "object" ? e.properties : null;
 	if (Array.isArray(e?._mjrSubgraphProxyParams)) for (let n of e._mjrSubgraphProxyParams) {
 		let e = String(n?.label || n?.key || "").trim();
-		e && !t.some(([t]) => String(t) === e) && t.push([e, n?.value]);
+		!e || t.some(([t]) => String(t) === e) || t.push([e, n?.value]);
 	}
 	if (n) for (let [e, r] of Object.entries(n)) Le(e) || r != null && typeof r != "object" && t.push([e, r]);
 	return t.slice(0, 160);
@@ -401,7 +403,7 @@ function k(e) {
 	});
 }
 function Pe(e) {
-	return !(!e || typeof e != "object" || Array.isArray(e) || A(e));
+	return !!(e && typeof e == "object" && !Array.isArray(e) && !A(e));
 }
 function Fe(e) {
 	if (Array.isArray(e)) return e;
@@ -446,7 +448,7 @@ function ze(e) {
 	let n = [];
 	for (let e of ["required", "optional"]) {
 		let r = t[e];
-		if (r && typeof r == "object") for (let [e, t] of Object.entries(r)) Be(t) && n.push(e);
+		if (!(!r || typeof r != "object")) for (let [e, t] of Object.entries(r)) Be(t) && n.push(e);
 	}
 	return n.length ? n : M(e);
 }
@@ -673,7 +675,7 @@ function Ze(e, t) {
 		let d = u.find(([e]) => z(e) === z(c)) || u.find(([e]) => z(e) === "value") || (u.length === 1 ? u[0] : null);
 		if (!d) continue;
 		let f = `${String(s)}:${$e(t, c, d[0])}`, p = a.get(f) || a.get(String(s)) || et(l, d[0], c);
-		(!i.size || i.has(z(p))) && o.push({
+		i.size && !i.has(z(p)) || o.push({
 			label: p,
 			value: d[1],
 			innerNodeId: s,
@@ -697,7 +699,7 @@ function R(e) {
 		let n = Array.isArray(e) ? e[1] : e?.origin_id ?? e?.originId ?? e?.from;
 		if (String(n) !== "-10") continue;
 		let i = Number(Array.isArray(e) ? e[2] : e?.origin_slot ?? e?.originSlot ?? e?.fromSlot), a = Array.isArray(e) ? e[3] : e?.target_id ?? e?.targetId ?? e?.to, o = Number(Array.isArray(e) ? e[4] : e?.target_slot ?? e?.targetSlot ?? e?.toSlot), s = Number.isFinite(i) ? t[i] : null, c = String(s?.label || s?.localized_name || s?.name || "").trim();
-		c && a != null && z(c) !== "value" && (r.set(String(a), c), Number.isFinite(o) && r.set(`${String(a)}:${o}`, c));
+		!c || a == null || z(c) !== "value" && (r.set(String(a), c), Number.isFinite(o) && r.set(`${String(a)}:${o}`, c));
 	}
 	return r;
 }
@@ -778,7 +780,8 @@ function nt(e, t) {
 	}
 	return r;
 }
-// ui/vue/majoorPrimeVue.ts
+//#endregion
+//#region ui/vue/majoorPrimeVue.ts
 var rt = {
 	Button: ie,
 	Checkbox: re,
@@ -803,7 +806,8 @@ function it(e) {
 		e.component(`M${t}`, n);
 	}), e;
 }
-// ui/vue/createVueApp.ts
+//#endregion
+//#region ui/vue/createVueApp.ts
 function U(e, t = void 0) {
 	let n = _e(), r = ee(e, t);
 	return r.use(n), it(r), {
@@ -826,7 +830,7 @@ function ot(e) {
 	return t.dataset.mjrKeepAliveHost = String(e || "_mjrVueApp"), t.style.height = "100%", t.style.width = "100%", t.style.minHeight = "0", t.style.display = "flex", t.style.flexDirection = "column", t.style.overflow = "hidden", t;
 }
 function st(e, t) {
-	e && t && (e.style.height = "100%", e.style.minHeight = "0", e.style.display = "flex", e.style.flexDirection = "column", e.style.overflow = "hidden", (e.firstChild !== t || e.childNodes.length !== 1) && (e.replaceChildren(t), at(t?.dataset?.mjrKeepAliveHost, t, e)));
+	!e || !t || (e.style.height = "100%", e.style.minHeight = "0", e.style.display = "flex", e.style.flexDirection = "column", e.style.overflow = "hidden", (e.firstChild !== t || e.childNodes.length !== 1) && (e.replaceChildren(t), at(t?.dataset?.mjrKeepAliveHost, t, e)));
 }
 function ct(e, t, n = "_mjrVueApp", { attachIfExists: r = !0 } = {}) {
 	if (!e) return !1;
@@ -856,7 +860,8 @@ function ut(e, t = "_mjrVueApp") {
 		W.delete(t);
 	}
 }
-// ui/features/viewer/workflowSidebar/widgetAdapters.ts
+//#endregion
+//#region ui/features/viewer/workflowSidebar/widgetAdapters.ts
 function dt(e, t, n = null) {
 	switch (String(e?.type || "").toLowerCase()) {
 		case "number":
@@ -952,7 +957,8 @@ function _t(e) {
 	let t = document.createElement("input");
 	return t.type = "text", t.className = "mjr-ws-input mjr-ws-readonly", t.value = e.value == null ? "" : String(e.value), t.readOnly = !0, t.tabIndex = -1, t;
 }
-// ui/app/settings/MajoorSettingsDialog.ts
+//#endregion
+//#region ui/app/settings/MajoorSettingsDialog.ts
 var K = "mjr-settings-dialog", q = "mjr-settings-dialog-style", J = "mjr:settings-dialog-visibility", Y = null, vt = {
 	Cards: {
 		icon: "pi pi-th-large",
@@ -1337,7 +1343,8 @@ function Ot(e = s()) {
 	}
 	return setTimeout(() => Y?.search?.focus?.(), 0), !0;
 }
-// ui/app/openMajoorSettings.ts
+//#endregion
+//#region ui/app/openMajoorSettings.ts
 function Q(e = s()) {
 	return Ot(e);
 }
@@ -1346,7 +1353,8 @@ try {
 } catch (e) {
 	console.debug?.(e);
 }
-// ui/utils/tooltipShortcuts.ts
+//#endregion
+//#region ui/utils/tooltipShortcuts.ts
 function $(e, t) {
 	let n = String(e || "").trim(), r = String(t || "").trim();
 	if (!r) return n;
@@ -1366,4 +1374,5 @@ function kt(e, t, n, { setAriaLabel: r = !0, ariaLabel: i = null } = {}) {
 	}
 	return a;
 }
+//#endregion
 export { Ee as C, v as D, y as E, ke as S, De as T, k as _, dt as a, Ae as b, lt as c, C as d, T as f, Me as g, D as h, J as i, ct as l, O as m, kt as n, G as o, E as p, Q as r, U as s, $ as t, ut as u, w as v, Te as w, Oe as x, je as y };

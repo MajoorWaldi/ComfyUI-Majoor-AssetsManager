@@ -1,7 +1,7 @@
-import { Vn as e, t } from "./config-C9a-wT5M.js";
-import { t as n } from "./floatingViewerManager-B_I-SRbd.js";
-import { r } from "./events-1iwo5blr.js";
-// ui/features/viewer/LiveStreamTracker.ts
+import { Vn as e, t } from "./config-U3VmNXaW.js";
+import { t as n } from "./floatingViewerManager-D8m1KWMk.js";
+import { r } from "./events-CKNQKBLk.js";
+//#region ui/features/viewer/LiveStreamTracker.ts
 var i = !1, a = null, o = null, s = null, c = null, l = null, u = null, d = null, f = null, p = 0, m = 0, h = !1, g = 400, _ = "kj_preview_override", v = /* @__PURE__ */ new Set([
 	"image/jpeg",
 	"image/png",
@@ -203,4 +203,5 @@ function P(e) {
 function F() {
 	return i;
 }
+//#endregion
 export { D as decodeKjPreviewPayload, N as initLiveStreamTracker, F as isLiveStreamTrackerInitialized, j as setCurrentJobId, P as teardownLiveStreamTracker };

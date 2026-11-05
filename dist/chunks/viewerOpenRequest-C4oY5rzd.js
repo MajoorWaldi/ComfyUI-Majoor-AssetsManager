@@ -1,6 +1,6 @@
-import { t as e } from "./rolldown-runtime-CGnMp29N.js";
-import { r as t } from "./events-1iwo5blr.js";
-// ui/features/viewer/viewerOpenRequest.ts
+import { t as e } from "./rolldown-runtime-Dy4uBu1J.js";
+import { r as t } from "./events-CKNQKBLk.js";
+//#region ui/features/viewer/viewerOpenRequest.ts
 var n = /* @__PURE__ */ e({ requestViewerOpen: () => a });
 function r(e) {
 	let t = String(e || "").trim().toLowerCase();
@@ -26,4 +26,5 @@ function a({ assets: e = [], asset: n = null, index: a = 0, mode: o = "" } = {})
 	}
 	return c.handled === !0;
 }
+//#endregion
 export { n, a as t };

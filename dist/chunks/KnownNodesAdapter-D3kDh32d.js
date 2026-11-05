@@ -1,4 +1,4 @@
-// ui/features/viewer/nodeStream/adapters/BaseAdapter.ts
+//#region ui/features/viewer/nodeStream/adapters/BaseAdapter.ts
 function e(e) {
 	return {
 		priority: 0,
@@ -8,7 +8,8 @@ function e(e) {
 		...e
 	};
 }
-// ui/features/viewer/nodeStream/adapters/KnownNodesAdapter.ts
+//#endregion
+//#region ui/features/viewer/nodeStream/adapters/KnownNodesAdapter.ts
 var t = /* @__PURE__ */ new Set([
 	"SaveImage",
 	"PreviewImage",
@@ -97,4 +98,5 @@ function f() {
 		}
 	};
 }
+//#endregion
 export { d as KnownNodesAdapter, f as getKnownNodeSets, e as t };

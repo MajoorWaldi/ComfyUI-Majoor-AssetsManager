@@ -1,10 +1,11 @@
-import { T as e, Wt as t, Yn as n, f as r, in as i, ir as a, s as o, u as s } from "./config-C9a-wT5M.js";
-import { a as c, i as l, r as u } from "./floatingViewerManager-B_I-SRbd.js";
-import { i as d, r as f, t as p } from "./events-1iwo5blr.js";
-import { a as ee, i as m, n as h, r as g, t as _ } from "./TagsEditor-MUk741GH.js";
-import { $ as te, A as v, B as ne, C as y, D as b, E as x, H as S, J as re, K as C, M as w, O as T, P as E, Q as D, S as O, T as k, U as A, V as ie, W as j, X as M, Y as N, b as ae, gt as P, ht as F, j as I, k as L, lt as oe, mt as R, ot as se, pt as z, q as B, rt as ce, st as V, w as le, z as H } from "./mjr-primevue-C07IsEdU.js";
-import { C as U, _ as W, a as ue, b as de, c as G, d as fe, f as pe, g as me, h as he, i as ge, l as _e, m as ve, n as ye, o as K, p as be, r as xe, s as q, t as Se, u as Ce, v as we, x as Te, y as Ee } from "./genInfo-Dk8cerKp.js";
-// ui/vue/components/viewer/FloatingViewerHost.vue
+import { T as e, Wt as t, Yn as n, f as r, in as i, ir as a, s as o, u as s } from "./config-U3VmNXaW.js";
+import { a as c, i as l, r as u } from "./floatingViewerManager-D8m1KWMk.js";
+import { i as d, r as f, t as p } from "./events-CKNQKBLk.js";
+import { a as ee, i as m, n as h, r as g, t as _ } from "./TagsEditor-n877YWOd.js";
+import { $ as te, A as v, B as ne, C as y, D as b, E as x, H as S, J as re, K as C, M as w, O as T, P as E, Q as D, S as O, T as k, U as A, V as ie, W as j, X as M, Y as N, b as ae, gt as P, ht as F, j as I, k as L, lt as oe, mt as R, ot as se, pt as z, q as B, rt as ce, st as V, w as le, z as H } from "./mjr-primevue-Kjm8dCPS.js";
+import { C as U, _ as W, a as ue, b as de, c as G, d as fe, f as pe, g as me, h as he, i as ge, l as _e, m as ve, n as ye, o as K, p as be, r as xe, s as q, t as Se, u as Ce, v as we, x as Te, y as Ee } from "./genInfo-DhAIzKi5.js";
+//#endregion
+//#region ui/vue/components/viewer/FloatingViewerHost.vue
 var De = /* @__PURE__ */ E({
 	__name: "FloatingViewerHost",
 	setup(e) {
@@ -106,7 +107,8 @@ async function Me(e) {
 		return null;
 	}
 }
-// ui/features/viewer/studio/studioViewerState.ts
+//#endregion
+//#region ui/features/viewer/studio/studioViewerState.ts
 var Q = se({
 	open: !1,
 	assets: [],
@@ -132,7 +134,8 @@ function Ie(e) {
 function Le(e) {
 	Ie(Q.index + e);
 }
-// ui/vue/components/viewer/studio/StudioFxDefs.vue?vue&type=script&setup=true&lang.ts
+//#endregion
+//#region ui/vue/components/viewer/studio/StudioFxDefs.vue?vue&type=script&setup=true&lang.ts
 var Re = {
 	class: "mjr-studio-fx-defs",
 	width: "0",
@@ -558,7 +561,7 @@ var Re = {
 			r?.remove(), r = null;
 		}
 		return S(() => {
-			if (n.value && t.src) try {
+			if (!(!n.value || !t.src)) try {
 				r = U(t.asset, t.src, {
 					hostClassName: "mjr-model3d-host mjr-studio-model3d__host",
 					canvasClassName: "mjr-model3d-render-canvas mjr-studio-model3d__canvas",
@@ -1404,7 +1407,7 @@ var Re = {
 			U,
 			() => Q.open
 		], ([e, t, n]) => {
-			Ve(), e && n && t === "video" && (Oe = -1, De = setInterval(() => {
+			Ve(), !(!e || !n || t !== "video") && (Oe = -1, De = setInterval(() => {
 				let e = Re()?.currentTime ?? -1;
 				e !== Oe && (Oe = e, Be());
 			}, 120));
@@ -1429,8 +1432,11 @@ var Re = {
 		}
 		async function Ke() {
 			let e = await Me(Re()), n = window.ClipboardItem;
-			if (!e || !n || !navigator.clipboard?.write) t(i("viewer.studio.copyFailed", "Could not copy this image"), "error");
-			else try {
+			if (!e || !n || !navigator.clipboard?.write) {
+				t(i("viewer.studio.copyFailed", "Could not copy this image"), "error");
+				return;
+			}
+			try {
 				await navigator.clipboard.write([new n({ "image/png": e })]), t(i("viewer.studio.copied", "Copied to clipboard"), "success");
 			} catch (e) {
 				console.debug?.(e), t(i("viewer.studio.copyFailed", "Could not copy this image"), "error");
@@ -1500,13 +1506,17 @@ var Re = {
 			let r = B.value;
 			if (!r) return;
 			let a = Math.max(0, Math.min(5, n)), o = await e(r, a);
-			o?.ok ? (r.rating = a, N.value = N.value ? {
+			if (!o?.ok) {
+				t(o?.error || i("toast.ratingUpdateFailed", "Rating update failed"), "error");
+				return;
+			}
+			r.rating = a, N.value = N.value ? {
 				...N.value,
 				rating: a
 			} : r, window.dispatchEvent(new CustomEvent(p, { detail: {
 				assetId: r.id == null ? "" : String(r.id),
 				rating: a
-			} }))) : t(o?.error || i("toast.ratingUpdateFailed", "Rating update failed"), "error");
+			} }));
 		}
 		function rt(e) {
 			return !!e?.closest?.("input, textarea, select, [contenteditable='true']");
@@ -1952,4 +1962,5 @@ var Re = {
 		}), (e, t) => (j(), L(y, null, [w(_n), w(De)], 64));
 	}
 });
+//#endregion
 export { vn as default };

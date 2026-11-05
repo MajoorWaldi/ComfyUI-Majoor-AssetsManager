@@ -1,4 +1,4 @@
-// ui/app/i18n.generated.js
+//#region ui/app/i18n.generated.js
 var e = {
 	"zh-CN": {
 		"cat.grid": "网格",
@@ -2143,4 +2143,5 @@ var e = {
 		"hotkey.escape": "Закрыть (Esc)"
 	}
 };
+//#endregion
 export { e as GENERATED_TRANSLATIONS };

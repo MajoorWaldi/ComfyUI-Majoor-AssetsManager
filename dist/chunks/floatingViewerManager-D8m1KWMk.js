@@ -1,7 +1,7 @@
-import { t as e } from "./rolldown-runtime-CGnMp29N.js";
-import { An as t, Wt as n, c as r, t as i } from "./config-C9a-wT5M.js";
-import { r as a } from "./events-1iwo5blr.js";
-// ui/utils/logging.ts
+import { t as e } from "./rolldown-runtime-Dy4uBu1J.js";
+import { An as t, Wt as n, c as r, t as i } from "./config-U3VmNXaW.js";
+import { r as a } from "./events-CKNQKBLk.js";
+//#region ui/utils/logging.ts
 function o(e, ...t) {
 	try {
 		i.DEBUG_VERBOSE_ERRORS && console.debug(e, ...t);
@@ -20,7 +20,8 @@ function s(e, t = "Majoor", { showToast: r = !1, toastType: a = "error" } = {}) 
 		console.debug?.(e);
 	}
 }
-// ui/features/panel/panelRuntimeRefs.ts
+//#endregion
+//#region ui/features/panel/panelRuntimeRefs.ts
 var c = null;
 function l(e) {
 	return e ? typeof e?.isConnected != "boolean" || e.isConnected : !1;
@@ -38,12 +39,13 @@ function d(e) {
 	return c = e || null, c;
 }
 function f(e = null) {
-	e && c !== e || (c = null);
+	(!e || c === e) && (c = null);
 }
 function p() {
 	return l(c) ? c : (c = null, u());
 }
-// ui/features/grid/GridSelectionManager.ts
+//#endregion
+//#region ui/features/grid/GridSelectionManager.ts
 function m(e) {
 	let t = /* @__PURE__ */ new Set();
 	if (!e) return t;
@@ -87,7 +89,7 @@ function g(e, t, n) {
 		console.debug?.(e);
 	}
 }
-function _(e, t, { activeId: n = "" } = {}, r) {
+function ee(e, t, { activeId: n = "" } = {}, r) {
 	if (!e) return [];
 	let i = new Set(Array.from(t || []).map(String).filter(Boolean)), a = h(e, i, n);
 	g(e, i, r);
@@ -107,53 +109,55 @@ function _(e, t, { activeId: n = "" } = {}, r) {
 	}
 	return a;
 }
-// ui/features/panel/controllers/hotkeysState.ts
-var v = {
+//#endregion
+//#region ui/features/panel/controllers/hotkeysState.ts
+var _ = {
 	suspended: !1,
 	scope: null,
 	ratingHotkeysActive: !1
 };
-function ee() {
-	return v;
+function te() {
+	return _;
 }
-function te(e) {
-	v.scope = e == null ? null : String(e);
+function ne(e) {
+	_.scope = e == null ? null : String(e);
 }
-function ne() {
-	return !!v.suspended;
+function re() {
+	return !!_.suspended;
 }
-function re(e) {
-	v.ratingHotkeysActive = !!e;
+function ie(e) {
+	_.ratingHotkeysActive = !!e;
 }
-// ui/features/viewer/viewerRuntimeHosts.ts
-var y = null, ie = ".mjr-mfv";
-function ae(e) {
+//#endregion
+//#region ui/features/viewer/viewerRuntimeHosts.ts
+var v = null, ae = ".mjr-mfv";
+function oe(e) {
 	return !!e && typeof e.appendChild == "function";
 }
-function b() {
+function y() {
 	return typeof document > "u" ? null : document?.body || null;
 }
-function oe() {
+function se() {
 	return typeof document > "u" ? null : document?.body || document?.documentElement || null;
 }
-function se(e) {
-	return ae(e) ? e === b() || typeof e?.isConnected != "boolean" || e.isConnected : !1;
+function b(e) {
+	return oe(e) ? e === y() || typeof e?.isConnected != "boolean" || e.isConnected : !1;
 }
 function ce(e) {
-	return ae(e) ? e : null;
+	return oe(e) ? e : null;
 }
 function x(e) {
-	return se(e) ? e : b();
+	return b(e) ? e : y();
 }
 function le(e) {
-	let t = oe();
-	return se(t) ? t : x(e);
+	let t = se();
+	return b(t) ? t : x(e);
 }
 function ue(e, t, n = x) {
 	let r = [], i = /* @__PURE__ */ new Set();
 	for (let a of [
 		n(t),
-		b(),
+		y(),
 		t
 	]) {
 		if (!a || i.has(a)) continue;
@@ -164,7 +168,7 @@ function ue(e, t, n = x) {
 		} catch (e) {
 			console.debug?.(e);
 		}
-		for (let e of t) e && !r.includes(e) && r.push(e);
+		for (let e of t) !e || r.includes(e) || r.push(e);
 	}
 	return r;
 }
@@ -179,13 +183,13 @@ function de(e, t, n = x) {
 	}
 }
 function fe(e) {
-	return y = ce(e), de(ie, y, le), () => pe(e);
+	return v = ce(e), de(ae, v, le), () => pe(e);
 }
 function pe(e) {
-	e && y !== e || (y = null);
+	(!e || v === e) && (v = null);
 }
 function me(e) {
-	let t = le(y);
+	let t = le(v);
 	try {
 		t?.appendChild?.(e);
 	} catch (e) {
@@ -193,48 +197,49 @@ function me(e) {
 	}
 	return t;
 }
-// ui/features/viewer/floatingViewerManager.ts
+//#endregion
+//#region ui/features/viewer/floatingViewerManager.ts
 var he = /* @__PURE__ */ e({
 	floatingViewerManager: () => X,
 	installFloatingViewerGlobalHandlers: () => $,
 	removeFloatingViewerGlobalHandlers: () => He,
 	teardownFloatingViewerManager: () => Ue
-}), S = null, ge = null;
-async function _e() {
-	return S || (ge ||= import("./FloatingViewer--x61GAzy.js").then((e) => (S = e.FloatingViewer, S)), ge);
+}), S = null, C = null;
+async function ge() {
+	return S || (C ||= import("./FloatingViewer-Cgkrzach.js").then((e) => (S = e.FloatingViewer, S)), C);
 }
-var C = null, ve = null;
-async function ye() {
-	if (!C) return ve ||= import("./NodeStreamController-CIKDDXJT.js").then((e) => {
-		C = e.setNodeStreamActive;
-	}), ve;
+var w = null, _e = null;
+async function ve() {
+	if (!w) return _e ||= import("./NodeStreamController-DpGjUOfx.js").then((e) => {
+		w = e.setNodeStreamActive;
+	}), _e;
 }
-var w = Object.freeze({
+var T = Object.freeze({
 	SIMPLE: "simple",
 	AB: "ab",
 	SIDE: "side",
 	GRID: "grid",
 	GRAPH: "graph"
 });
-function be(e) {
+function ye(e) {
 	let t = String(e || "").trim().toLowerCase();
-	return t === "sidebyside" ? w.SIDE : Object.values(w).includes(t) ? t : "";
+	return t === "sidebyside" ? T.SIDE : Object.values(T).includes(t) ? t : "";
 }
-var T = null;
-function E() {
+var E = null;
+function D() {
 	return i.MFV_LIVE_DEFAULT !== !1;
 }
-function D() {
+function O() {
 	return i.MFV_PREVIEW_DEFAULT !== !1;
 }
-var O = E(), k = D(), A = !1, j = null, M = !1, N = null, P = 0;
-function xe() {
-	O = E(), k = D(), T?.setLiveActive(O), T?.setPreviewActive(k);
+var k = D(), A = O(), j = !1, M = null, N = !1, P = null, F = 0;
+function be() {
+	k = D(), A = O(), E?.setLiveActive(k), E?.setPreviewActive(A);
 }
-async function F() {
-	if (!T) {
-		let e = await _e();
-		T || (T = new e({ controller: {
+async function I() {
+	if (!E) {
+		let e = await ge();
+		E || (E = new e({ controller: {
 			close: () => X.close(),
 			toggle: () => X.toggle(),
 			toggleLive: () => X.toggleLive(),
@@ -242,28 +247,28 @@ async function F() {
 			toggleNodeStream: () => X.toggleNodeStream(),
 			popOut: () => X.popOut(),
 			onModeChanged: (e) => {
-				T?.isVisible && e !== w.SIMPLE && U();
+				E?.isVisible && e !== T.SIMPLE && U();
 			},
 			handleForwardedKeydown: (e) => Q(e, { forwarded: !0 })
-		} }), me(T.render()));
+		} }), me(E.render()));
 	}
 	try {
-		let e = T?.element || null;
+		let e = E?.element || null;
 		e?.isConnected === !1 && me(e);
 	} catch (e) {
 		console.debug?.(e);
 	}
-	return T;
+	return E;
 }
-function I() {
+function L() {
 	try {
-		N?.abort();
+		P?.abort();
 	} catch (e) {
 		console.debug?.(e);
 	}
-	N = null;
+	P = null;
 }
-function L() {
+function R() {
 	try {
 		let e = window.__MJR_LAST_SELECTION_GRID__;
 		if (e?.isConnected) return e;
@@ -272,34 +277,34 @@ function L() {
 	}
 	return p();
 }
-function Se() {
-	if (T) {
+function xe() {
+	if (E) {
 		try {
-			T.dispose?.();
+			E.dispose?.();
 		} catch (e) {
 			console.debug?.(e);
 		}
-		T = null;
+		E = null;
 	}
 }
-function R(e) {
-	typeof window < "u" && window.dispatchEvent(new CustomEvent(a.MFV_VISIBILITY_CHANGED, { detail: { visible: !!e } }));
-}
 function z(e) {
-	e && (e.setLiveActive(O), e.setPreviewActive(k), e.setNodeStreamActive?.(A));
+	typeof window > "u" || window.dispatchEvent(new CustomEvent(a.MFV_VISIBILITY_CHANGED, { detail: { visible: !!e } }));
 }
 function B(e) {
-	e?.setNodeStreamSelection && e.setNodeStreamSelection(j || null);
+	e && (e.setLiveActive(k), e.setPreviewActive(A), e.setNodeStreamActive?.(j));
 }
-function V(e, t) {
+function V(e) {
+	e?.setNodeStreamSelection && e.setNodeStreamSelection(M || null);
+}
+function Se(e, t) {
 	if (!e) return;
 	let n = e._mode;
-	if (n !== w.AB && n !== w.SIDE && n !== w.GRID) {
+	if (n !== T.AB && n !== T.SIDE && n !== T.GRID) {
 		e.loadMediaA(t, { autoMode: !0 });
 		return;
 	}
 	let r = e.getPinnedSlots();
-	if (n === w.GRID) {
+	if (n === T.GRID) {
 		let n = [
 			"A",
 			"B",
@@ -317,11 +322,17 @@ function V(e, t) {
 		return;
 	}
 	let i = r.has("A"), a = r.has("B");
-	i && a || (a ? e.loadMediaPair(t, e._mediaB) : e.loadMediaPair(e._mediaA, t));
+	if (!(i && a)) {
+		if (a) {
+			e.loadMediaPair(t, e._mediaB);
+			return;
+		}
+		e.loadMediaPair(e._mediaA, t);
+	}
 }
 function Ce(e) {
 	try {
-		let t = L();
+		let t = R();
 		if (!t) return null;
 		let n = Array.from(t.querySelectorAll("[data-mjr-asset-id]")), r = n.findIndex((t) => t.dataset.mjrAssetId === String(e));
 		if (r < 0) return null;
@@ -332,12 +343,12 @@ function Ce(e) {
 	}
 }
 async function H(e, t = []) {
-	if (!e.length || !T) return;
-	I();
-	let n = ++P, i = typeof AbortController < "u" ? new AbortController() : null;
-	N = i;
+	if (!e.length || !E) return;
+	L();
+	let n = ++F, i = typeof AbortController < "u" ? new AbortController() : null;
+	P = i;
 	try {
-		let a = T.getPinnedSlots(), o = a.size > 0, s = T._mode, c = s === w.GRID, l = s === w.AB || s === w.SIDE, u = c ? 4 : 2, d = e.slice(0, u);
+		let a = E.getPinnedSlots(), o = a.size > 0, s = E._mode, c = s === T.GRID, l = s === T.AB || s === T.SIDE, u = c ? 4 : 2, d = e.slice(0, u);
 		if (o && (l || c)) {
 			let e = u - a.size;
 			d = d.slice(0, Math.max(1, e));
@@ -345,42 +356,42 @@ async function H(e, t = []) {
 			let e = Ce(d[0]);
 			e && (d = [d[0], e]);
 		}
-		let f = L(), p = f?._mjrGetAssets?.() || f?._mjrGetSelectedAssets?.() || [], m = new Map([...p, ...t].filter((e) => e && e.kind !== "folder").map((e) => [String(e.id), e])), h = d.filter((e) => Number.isSafeInteger(Number(e)) && Number(e) > 0), g = h.length ? await r(h, i ? { signal: i.signal } : {}) : {
+		let f = R(), p = f?._mjrGetAssets?.() || f?._mjrGetSelectedAssets?.() || [], m = new Map([...p, ...t].filter((e) => e && e.kind !== "folder").map((e) => [String(e.id), e])), h = d.filter((e) => Number.isSafeInteger(Number(e)) && Number(e) > 0), g = h.length ? await r(h, i ? { signal: i.signal } : {}) : {
 			ok: !0,
 			data: []
 		};
-		if (i?.signal.aborted || P !== n || !T) return;
-		let _ = new Map((g?.ok && Array.isArray(g.data) ? g.data : []).map((e) => [String(e.id), e])), v = d.map((e) => _.get(String(e)) || m.get(String(e))).filter(Boolean);
-		if (!v.length) return;
+		if (i?.signal.aborted || F !== n || !E) return;
+		let ee = new Map((g?.ok && Array.isArray(g.data) ? g.data : []).map((e) => [String(e.id), e])), _ = d.map((e) => ee.get(String(e)) || m.get(String(e))).filter(Boolean);
+		if (!_.length) return;
 		if (c) {
 			if (o) {
 				let e = {
-					A: T._mediaA,
-					B: T._mediaB,
-					C: T._mediaC,
-					D: T._mediaD
+					A: E._mediaA,
+					B: E._mediaB,
+					C: E._mediaC,
+					D: E._mediaD
 				}, t = [
 					"A",
 					"B",
 					"C",
 					"D"
 				].filter((e) => !a.has(e)), n = 0;
-				for (let r of t) n < v.length && (e[r] = v[n++]);
-				T.loadMediaQuad(e.A, e.B, e.C, e.D);
-			} else v.length >= 3 ? T.loadMediaQuad(v[0], v[1], v[2], v[3] || null) : v.length >= 2 ? T.loadMediaPair(v[0], v[1]) : T.loadMediaA(v[0], { autoMode: !0 });
+				for (let r of t) n < _.length && (e[r] = _[n++]);
+				E.loadMediaQuad(e.A, e.B, e.C, e.D);
+			} else _.length >= 3 ? E.loadMediaQuad(_[0], _[1], _[2], _[3] || null) : _.length >= 2 ? E.loadMediaPair(_[0], _[1]) : E.loadMediaA(_[0], { autoMode: !0 });
 			return;
 		}
-		if (a.has("A") && a.has("B") && T._mediaA && T._mediaB) return;
-		a.has("A") && T._mediaA ? T.loadMediaPair(T._mediaA, v[0]) : a.has("B") && T._mediaB ? T.loadMediaPair(v[0], T._mediaB) : d.length >= 2 && v.length >= 2 ? T.loadMediaPair(v[0], v[1]) : T.loadMediaA(v[0], { autoMode: !0 });
+		if (a.has("A") && a.has("B") && E._mediaA && E._mediaB) return;
+		a.has("A") && E._mediaA ? E.loadMediaPair(E._mediaA, _[0]) : a.has("B") && E._mediaB ? E.loadMediaPair(_[0], E._mediaB) : d.length >= 2 && _.length >= 2 ? E.loadMediaPair(_[0], _[1]) : E.loadMediaA(_[0], { autoMode: !0 });
 	} catch (e) {
 		e?.name !== "AbortError" && s(e, "floatingViewerManager._loadFromIds");
 	} finally {
-		N === i && (N = null);
+		P === i && (P = null);
 	}
 }
 function U() {
 	try {
-		let e = L();
+		let e = R();
 		if (!e) return;
 		let t = m(e);
 		if (!t.size) return;
@@ -390,11 +401,14 @@ function U() {
 	}
 }
 function we(e) {
-	if (!T?.isVisible || T._mode === w.GRAPH) return;
+	if (!E?.isVisible || E._mode === T.GRAPH) return;
 	let t = Array.isArray(e?.detail?.selectedAssets) ? e.detail.selectedAssets : [], n = new Set(t.filter((e) => String(e?.kind || "").toLowerCase() === "folder").map((e) => String(e?.id || "")).filter(Boolean)), r = Array.isArray(e?.detail?.selectedIds) ? e.detail.selectedIds.map(String).filter((e) => !!e && !n.has(e)) : [];
-	if (r.length) H(r, t);
-	else try {
-		let e = L();
+	if (r.length) {
+		H(r, t);
+		return;
+	}
+	try {
+		let e = R();
 		if (!e) return;
 		let t = Array.from(m(e)).map(String).filter(Boolean);
 		if (!t.length) return;
@@ -404,23 +418,27 @@ function we(e) {
 	}
 }
 function W() {
-	M || typeof window < "u" && (window.addEventListener(a.SELECTION_CHANGED, we), M = !0);
+	N || typeof window > "u" || (window.addEventListener(a.SELECTION_CHANGED, we), N = !0);
 }
 function Te() {
-	typeof window < "u" && window.removeEventListener(a.SELECTION_CHANGED, we), M = !1, I();
+	typeof window < "u" && window.removeEventListener(a.SELECTION_CHANGED, we), N = !1, L();
 }
 var G = !1, K = null, q = null, J = "";
 function Ee() {
-	T?.isVisible && T.refreshSidebar?.();
+	E?.isVisible && E.refreshSidebar?.();
 }
 function De() {
 	Oe();
 	let e = typeof window < "u" ? window : globalThis;
-	typeof e.requestAnimationFrame == "function" ? (J = "raf", q = e.requestAnimationFrame(() => {
+	if (typeof e.requestAnimationFrame == "function") {
+		J = "raf", q = e.requestAnimationFrame(() => {
+			q = null, J = "", Ee();
+		});
+		return;
+	}
+	J = "timeout", q = e.setTimeout(() => {
 		q = null, J = "", Ee();
-	})) : (J = "timeout", q = e.setTimeout(() => {
-		q = null, J = "", Ee();
-	}, 16));
+	}, 16);
 }
 function Oe() {
 	if (q == null) return;
@@ -452,120 +470,120 @@ function ke() {
 }
 var X = {
 	isGraphModeVisible() {
-		return !!(T?.isVisible && T?._mode === w.GRAPH);
+		return !!(E?.isVisible && E?._mode === T.GRAPH);
 	},
 	async openAssets({ assets: e = [], asset: t = null, index: n = 0, mode: r = "" } = {}) {
 		let i = Array.isArray(e) ? e.filter(Boolean) : t ? [t] : [];
 		if (!i.length) return !1;
-		let a = await F(), o = !!a.isVisible, s = Math.max(0, Math.min(Number(n) || 0, i.length - 1)), c = be(r);
-		c && a.setMode(c), a.show(), z(a), W(), Y();
+		let a = await I(), o = !!a.isVisible, s = Math.max(0, Math.min(Number(n) || 0, i.length - 1)), c = ye(r);
+		c && a.setMode(c), a.show(), B(a), W(), Y();
 		let l = a._mode;
-		return l === w.GRID && i.length >= 3 ? a.loadMediaQuad(i[0], i[1], i[2], i[3] || null) : (l === w.AB || l === w.SIDE) && i.length >= 2 ? a.loadMediaPair(i[0], i[1]) : a.loadMediaA(i[s], { autoMode: !1 }), o || R(!0), !0;
+		return l === T.GRID && i.length >= 3 ? a.loadMediaQuad(i[0], i[1], i[2], i[3] || null) : (l === T.AB || l === T.SIDE) && i.length >= 2 ? a.loadMediaPair(i[0], i[1]) : a.loadMediaA(i[s], { autoMode: !1 }), o || z(!0), !0;
 	},
 	async open() {
-		let e = await F();
-		e.show(), z(e), W(), Y(), G || requestAnimationFrame(() => Y()), U(), A && B(e), R(!0);
+		let e = await I();
+		e.show(), B(e), W(), Y(), G || requestAnimationFrame(() => Y()), U(), j && V(e), z(!0);
 	},
 	close() {
-		if (T) try {
-			T.isPopped && T.popIn(), T.hide();
+		if (E) try {
+			E.isPopped && E.popIn(), E.hide();
 		} catch (e) {
 			console.debug?.(e);
 		}
-		Te(), T?.setNodeStreamSelection?.(null), ke(), R(!1);
+		Te(), E?.setNodeStreamSelection?.(null), ke(), z(!1);
 	},
 	async toggle() {
-		T?.isVisible ? X.close() : await X.open();
+		E?.isVisible ? X.close() : await X.open();
 	},
 	toggleLive() {
-		X.setLiveActive(!O);
+		X.setLiveActive(!k);
 	},
 	togglePreview() {
-		X.setPreviewActive(!k);
+		X.setPreviewActive(!A);
 	},
 	async toggleCompareAB() {
-		let e = await F();
+		let e = await I();
 		if (!e.isVisible) {
-			e.setMode(w.AB), e.show(), z(e), W(), U(), R(!0);
+			e.setMode(T.AB), e.show(), B(e), W(), U(), z(!0);
 			return;
 		}
 		let t = {
-			[w.AB]: w.SIDE,
-			[w.SIDE]: w.SIMPLE,
-			[w.GRID]: w.SIMPLE,
-			[w.SIMPLE]: w.AB
-		}[e._mode] || w.AB;
-		e.setMode(t), t !== w.SIMPLE && U();
+			[T.AB]: T.SIDE,
+			[T.SIDE]: T.SIMPLE,
+			[T.GRID]: T.SIMPLE,
+			[T.SIMPLE]: T.AB
+		}[e._mode] || T.AB;
+		e.setMode(t), t !== T.SIMPLE && U();
 	},
 	async upsertWithContent(e) {
-		let t = await F(), n = !!t.isVisible;
-		(n || i.MFV_LIVE_AUTO_OPEN !== !1) && (t.show(), z(t), W(), V(t, e), n || R(!0));
+		let t = await I(), n = !!t.isVisible;
+		!n && i.MFV_LIVE_AUTO_OPEN === !1 || (t.show(), B(t), W(), Se(t, e), n || z(!0));
 	},
 	setLiveActive(e) {
-		O = !!e, T?.setLiveActive(O);
+		k = !!e, E?.setLiveActive(k);
 	},
 	getLiveActive() {
-		return O;
+		return k;
 	},
 	async popOut() {
-		let e = await F();
+		let e = await I();
 		e.isPopped ? e.popIn() : (e.isVisible || await X.open(), e.popOut());
 	},
 	setPreviewActive(e) {
-		k = !!e, T?.setPreviewActive(k);
+		A = !!e, E?.setPreviewActive(A);
 	},
 	getPreviewActive() {
-		return k;
+		return A;
 	},
 	canAcceptPreviewBlob() {
-		return k ? T?.isVisible ? !0 : i.MFV_PREVIEW_AUTO_OPEN !== !1 : !1;
+		return A ? E?.isVisible ? !0 : i.MFV_PREVIEW_AUTO_OPEN !== !1 : !1;
 	},
 	async feedPreviewBlob(e, t = {}) {
 		if (!X.canAcceptPreviewBlob()) return;
-		let n = await F(), r = !!n.isVisible;
-		(r || i.MFV_PREVIEW_AUTO_OPEN !== !1) && (n.isVisible || n.show(), z(n), n.loadPreviewBlob(e, ...Object.keys(t).length ? [t] : []), r || R(!0));
+		let n = await I(), r = !!n.isVisible;
+		!r && i.MFV_PREVIEW_AUTO_OPEN === !1 || (n.isVisible || n.show(), B(n), n.loadPreviewBlob(e, ...Object.keys(t).length ? [t] : []), r || z(!0));
 	},
 	toggleNodeStream() {
-		X.setNodeStreamActive(!A);
+		X.setNodeStreamActive(!j);
 	},
 	setNodeStreamActive(e) {
-		A = !!e, A || (j = null), ye().then(() => {
-			C && C(A);
-		}), T?.setNodeStreamActive?.(A), A ? T && B(T) : T?.setNodeStreamSelection?.(null);
+		j = !!e, j || (M = null), ve().then(() => {
+			w && w(j);
+		}), E?.setNodeStreamActive?.(j), j ? E && V(E) : E?.setNodeStreamSelection?.(null);
 	},
 	getNodeStreamActive() {
-		return A;
+		return j;
 	},
 	setNodeStreamSelection(e, t, n) {
-		j = e == null || e === "" ? null : {
+		M = e == null || e === "" ? null : {
 			nodeId: e,
 			classType: t,
 			title: n
 		};
-		let r = T;
-		r && B(r);
+		let r = E;
+		r && V(r);
 	},
 	async feedNodeStream(e) {
-		if (!A) return;
-		let t = await F(), n = !!t.isVisible;
-		(n || i.MFV_NODE_STREAM_AUTO_OPEN !== !1) && (t.isVisible || (t.show(), W()), z(t), B(t), V(t, e), n || R(!0));
+		if (!j) return;
+		let t = await I(), n = !!t.isVisible;
+		!n && i.MFV_NODE_STREAM_AUTO_OPEN === !1 || (t.isVisible || (t.show(), W()), B(t), V(t), Se(t, e), n || z(!0));
 	}
 }, Z = !1, Ae = () => X.open(), je = () => X.close(), Me = () => X.toggle(), Ne = () => X.toggleLive(), Pe = () => X.togglePreview(), Fe = () => X.toggleNodeStream(), Ie = () => X.popOut(), Le = () => {
 	try {
-		T?.isPopped && T.popIn();
+		E?.isPopped && E.popIn();
 	} catch {}
 }, Re = (e) => {
 	let t = String(e?.detail?.key || "");
-	t && t !== "viewer" && t !== "viewer.mfvLiveDefault" && t !== "viewer.mfvPreviewDefault" || xe();
+	(!t || t === "viewer" || t === "viewer.mfvLiveDefault" || t === "viewer.mfvPreviewDefault") && be();
 };
 function ze(e) {
 	let t = String(e?.key || "");
 	return t === " " || t === "Spacebar" || t === "ArrowLeft" || t === "ArrowRight";
 }
 function Be(e) {
-	if (!T?.isVisible || !ze(e)) return !1;
+	if (!E?.isVisible || !ze(e)) return !1;
 	try {
-		let t = e?.target, n = T?.element || null, r = !!n?.contains?.(t), i = (t?.closest?.(".mjr-mfv-simple-player") || (r || t == null ? n?.querySelector?.(".mjr-mfv-simple-player") : null))?._mjrSimplePlayerHandleKeydown;
+		let t = e?.target, n = E?.element || null, r = !!n?.contains?.(t), i = (t?.closest?.(".mjr-mfv-simple-player") || (r || t == null ? n?.querySelector?.(".mjr-mfv-simple-player") : null))?._mjrSimplePlayerHandleKeydown;
 		if (typeof i == "function") return i(e), !!e?.defaultPrevented;
 		let a = (t?.closest?.(".mjr-mfv-player-host") || (r || t == null ? n?.querySelector?.(".mjr-mfv-player-host") : null))?._mjrMediaControlsHandle;
 		if (a && typeof a == "object") {
@@ -583,7 +601,7 @@ function Be(e) {
 }
 function Ve(e, t) {
 	if (t) return !0;
-	let n = T?.element;
+	let n = E?.element;
 	if (!n) return !1;
 	try {
 		if (e?.target && n.contains?.(e.target)) return !0;
@@ -594,7 +612,7 @@ function Ve(e, t) {
 	}
 }
 var Q = (e, { forwarded: t = !1 } = {}) => {
-	if (!T?.isVisible || ne() || ee().scope === "viewer") return;
+	if (!E?.isVisible || re() || te().scope === "viewer") return;
 	let n = e?.key?.toLowerCase?.() || "", r = e?.target?.isContentEditable || e?.target?.closest?.("input, textarea, select, [contenteditable='true']");
 	if (r && Be(e) || r || Be(e)) return;
 	let i = () => {
@@ -619,27 +637,33 @@ var Q = (e, { forwarded: t = !1 } = {}) => {
 			return;
 		}
 		n === "c" && (i(), X.toggleCompareAB());
+		return;
 	}
 };
 function $() {
-	Z || typeof window < "u" && window?.addEventListener && (window.addEventListener(a.MFV_OPEN, Ae), window.addEventListener(a.MFV_CLOSE, je), window.addEventListener(a.MFV_TOGGLE, Me), window.addEventListener(a.MFV_LIVE_TOGGLE, Ne), window.addEventListener(a.MFV_PREVIEW_TOGGLE, Pe), window.addEventListener(a.MFV_NODESTREAM_TOGGLE, Fe), window.addEventListener(a.MFV_POPOUT, Ie), window.addEventListener(a.SETTINGS_CHANGED, Re), window.addEventListener("keydown", Q, !0), window.addEventListener("beforeunload", Le), Z = !0);
+	Z || typeof window > "u" || !window?.addEventListener || (window.addEventListener(a.MFV_OPEN, Ae), window.addEventListener(a.MFV_CLOSE, je), window.addEventListener(a.MFV_TOGGLE, Me), window.addEventListener(a.MFV_LIVE_TOGGLE, Ne), window.addEventListener(a.MFV_PREVIEW_TOGGLE, Pe), window.addEventListener(a.MFV_NODESTREAM_TOGGLE, Fe), window.addEventListener(a.MFV_POPOUT, Ie), window.addEventListener(a.SETTINGS_CHANGED, Re), window.addEventListener("keydown", Q, !0), window.addEventListener("beforeunload", Le), Z = !0);
 }
 function He() {
-	typeof window > "u" || !window?.removeEventListener || (window.removeEventListener(a.MFV_OPEN, Ae), window.removeEventListener(a.MFV_CLOSE, je), window.removeEventListener(a.MFV_TOGGLE, Me), window.removeEventListener(a.MFV_LIVE_TOGGLE, Ne), window.removeEventListener(a.MFV_PREVIEW_TOGGLE, Pe), window.removeEventListener(a.MFV_NODESTREAM_TOGGLE, Fe), window.removeEventListener(a.MFV_POPOUT, Ie), window.removeEventListener(a.SETTINGS_CHANGED, Re), window.removeEventListener("keydown", Q, !0), window.removeEventListener("beforeunload", Le)), Z = !1;
+	if (typeof window > "u" || !window?.removeEventListener) {
+		Z = !1;
+		return;
+	}
+	window.removeEventListener(a.MFV_OPEN, Ae), window.removeEventListener(a.MFV_CLOSE, je), window.removeEventListener(a.MFV_TOGGLE, Me), window.removeEventListener(a.MFV_LIVE_TOGGLE, Ne), window.removeEventListener(a.MFV_PREVIEW_TOGGLE, Pe), window.removeEventListener(a.MFV_NODESTREAM_TOGGLE, Fe), window.removeEventListener(a.MFV_POPOUT, Ie), window.removeEventListener(a.SETTINGS_CHANGED, Re), window.removeEventListener("keydown", Q, !0), window.removeEventListener("beforeunload", Le), Z = !1;
 }
 function Ue({ reinstallGlobalHandlers: e = !1 } = {}) {
-	let t = !!T?.isVisible;
+	let t = !!E?.isVisible;
 	try {
-		T?.isPopped && T.popIn();
+		E?.isPopped && E.popIn();
 	} catch (e) {
 		console.debug?.(e);
 	}
-	He(), Te(), ke(), I(), P += 1, O = E(), k = D(), A = !1;
+	He(), Te(), ke(), L(), F += 1, k = D(), A = O(), j = !1;
 	try {
-		C && C(!1);
+		w && w(!1);
 	} catch (e) {
 		console.debug?.(e);
 	}
-	Se(), t && R(!1), e && $();
+	xe(), t && z(!1), e && $();
 }
-export { s as _, fe as a, te as c, h as d, _ as f, o as g, d as h, Ue as i, re as l, p as m, he as n, ee as o, f as p, $ as r, ne as s, X as t, m as u };
+//#endregion
+export { s as _, fe as a, ne as c, h as d, ee as f, o as g, d as h, Ue as i, ie as l, p as m, he as n, te as o, f as p, $ as r, re as s, X as t, m as u };

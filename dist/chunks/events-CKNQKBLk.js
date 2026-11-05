@@ -1,4 +1,4 @@
-// ui/app/events.ts
+//#region ui/app/events.ts
 var e = "mjr:asset-rating-changed", t = "mjr:asset-tags-changed", n = "mjr:viewer-info-refreshed", r = "mjr:viewer-active-asset-changed", i = Object.freeze({
 	ASSET_RATING_CHANGED: e,
 	ASSET_TAGS_CHANGED: t,
@@ -39,4 +39,5 @@ var e = "mjr:asset-rating-changed", t = "mjr:asset-tags-changed", n = "mjr:viewe
 	OPEN_NODE_CONTEXT: "mjr:open-node-context",
 	OPEN_MESSAGE_HISTORY: "mjr:open-message-history"
 });
+//#endregion
 export { r as i, t as n, i as r, e as t };

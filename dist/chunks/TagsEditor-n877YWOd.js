@@ -1,11 +1,11 @@
-import { D as e, E as t, It as n, Jn as r, Lt as i, T as a, Wt as o, b as s, dn as c, dr as l, fr as u, g as d, h as f, i as p, in as m, l as h, ln as g, p as _, st as v, ur as y, w as b, xn as x, y as ee } from "./config-C9a-wT5M.js";
-import { t as S } from "./floatingViewerManager-B_I-SRbd.js";
-import { A as te, N as ne, a as C, d as w, i as T, k as E, m as D, n as O, o as re, p as k, r as A, t as j, v as ie, y as M } from "./generationSectionState-DuXxSw-j.js";
-import { n as N, t as P } from "./events-1iwo5blr.js";
-import { $ as ae, B as oe, C as F, D as se, E as I, H as ce, J as le, K as L, M as R, O as z, P as B, Q as V, S as ue, T as H, V as de, W as U, X as W, b as fe, gt as G, ht as K, j as pe, k as q, mt as me, ot as he, pt as J, st as Y, y as ge } from "./mjr-primevue-C07IsEdU.js";
-import { n as _e, r as ve } from "./mjr-vue-vendor-CEDOnn2t.js";
-import { t as ye } from "./viewerOpenRequest-WOJE90Gn.js";
-// ui/features/status/AssetStatusDotTheme.ts
+import { D as e, E as t, It as n, Jn as r, Lt as i, T as a, Wt as o, b as s, dn as c, dr as l, fr as u, g as d, h as f, i as p, in as m, l as h, ln as g, p as _, st as v, ur as y, w as b, xn as x, y as ee } from "./config-U3VmNXaW.js";
+import { t as S } from "./floatingViewerManager-D8m1KWMk.js";
+import { A as te, N as ne, a as C, d as w, i as T, k as E, m as D, n as O, o as re, p as k, r as A, t as j, v as ie, y as M } from "./generationSectionState-Cv2FicwT.js";
+import { n as N, t as P } from "./events-CKNQKBLk.js";
+import { $ as ae, B as oe, C as F, D as se, E as I, H as ce, J as le, K as L, M as R, O as z, P as B, Q as V, S as ue, T as H, V as de, W as U, X as W, b as fe, gt as G, ht as K, j as pe, k as q, mt as me, ot as he, pt as J, st as Y, y as ge } from "./mjr-primevue-Kjm8dCPS.js";
+import { n as _e, r as ve } from "./mjr-vue-vendor-Csuv97kz.js";
+import { t as ye } from "./viewerOpenRequest-C4oY5rzd.js";
+//#region ui/features/status/AssetStatusDotTheme.ts
 function X(e) {
 	return String(e || "").trim().toLowerCase();
 }
@@ -26,7 +26,8 @@ function xe(e, t = {}) {
 	let n = X(e);
 	return be(t) ? n === "pending" || n === "info" ? "var(--mjr-browser-status-info, #4DB6AC)" : n === "success" ? "var(--mjr-browser-status-success, #2E7D32)" : n === "warning" ? "var(--mjr-browser-status-warning, #FFB74D)" : n === "error" ? "var(--mjr-browser-status-error, #EF5350)" : "var(--mjr-browser-status-neutral, #90A4AE)" : n === "pending" || n === "info" ? "var(--mjr-status-info, #64B5F6)" : n === "success" ? "var(--mjr-status-success, #4CAF50)" : n === "warning" ? "var(--mjr-status-warning, #FFA726)" : n === "error" ? "var(--mjr-status-error, #f44336)" : "var(--mjr-status-neutral, #666)";
 }
-// ui/stores/useRuntimeStore.ts
+//#endregion
+//#region ui/stores/useRuntimeStore.ts
 var Se = _e("mjr-runtime", () => {
 	let e = Y(null), t = Y(null), n = Y(!1), r = Y(0), i = Y(null), a = Y(null), o = Y(null), s = Y(null), c = Y(null), l = Y([]), u = H(() => !!i.value), d = H(() => {
 		let e = s.value, t = c.value;
@@ -74,7 +75,8 @@ var Se = _e("mjr-runtime", () => {
 		resetExecution: _
 	};
 });
-// ui/stores/getOptionalRuntimeStore.ts
+//#endregion
+//#region ui/stores/getOptionalRuntimeStore.ts
 function Ce() {
 	try {
 		return ve() ? Se() : null;
@@ -82,7 +84,8 @@ function Ce() {
 		return null;
 	}
 }
-// ui/stores/runtimeEnrichmentState.ts
+//#endregion
+//#region ui/stores/runtimeEnrichmentState.ts
 var we = Symbol.for("majoor.assets_manager.runtime_state");
 function Te() {
 	return {
@@ -95,7 +98,7 @@ function Te() {
 function Ee() {
 	try {
 		let e = typeof globalThis < "u" ? globalThis : {};
-		return e[we] && typeof e[we] == "object" || (e[we] = Te()), e[we];
+		return (!e[we] || typeof e[we] != "object") && (e[we] = Te()), e[we];
 	} catch {
 		return Te();
 	}
@@ -118,7 +121,8 @@ function Oe() {
 		queueLength: Math.max(0, Number(t.enrichmentQueueLength || 0) || 0)
 	};
 }
-// ui/components/Badges.ts
+//#endregion
+//#region ui/components/Badges.ts
 function ke({ ext: e = "", filename: t = "", count: n = 0, paths: r = [] } = {}) {
 	let i = String(e || "").trim(), a = String(t || "").trim(), o = Math.max(0, Number(n) || 0), s = Array.isArray(r) ? r.map((e) => String(e || "").trim()).filter(Boolean) : [];
 	if (o < 2) return `${i} file`;
@@ -333,7 +337,8 @@ function Ue(e) {
 	let n = ze(e);
 	return n.length === 0 ? (t.style.display = "none", t) : (t.textContent = n.join(", "), t.title = `Tags: ${n.join(", ")}`, t.style.cssText = "\n        position: absolute;\n        bottom: 6px;\n        left: 6px;\n        padding: 3px 6px;\n        border-radius: 4px;\n        background: rgba(0,0,0,0.8);\n        color: var(--mjr-tag-color, #90CAF9);\n        font-size: 9px;\n        max-width: 80%;\n        overflow: hidden;\n        text-overflow: ellipsis;\n        white-space: nowrap;\n        pointer-events: none;\n        z-index: 10;\n        box-shadow: 0 2px 4px rgba(0,0,0,0.3);\n    ", t);
 }
-// ui/features/contextmenu/gridContextMenuState.ts
+//#endregion
+//#region ui/features/contextmenu/gridContextMenuState.ts
 function We() {
 	return {
 		open: !1,
@@ -398,7 +403,8 @@ function nt() {
 function rt() {
 	Qe(), nt();
 }
-// ui/features/dnd/utils/constants.ts
+//#endregion
+//#region ui/features/dnd/utils/constants.ts
 var it = "application/x-mjr-asset", at = "application/x-mjr-assets", ot = "application/x-comfy-asset-info", st = /* @__PURE__ */ new Set([
 	".png",
 	".jpg",
@@ -516,7 +522,7 @@ var it = "application/x-mjr-asset", at = "application/x-mjr-assets", ot = "appli
 	return null;
 }, Nt = (e, t, n) => {
 	let r = jt(e);
-	t && r.node !== t && (Pt(e, n), r.node = t, r.prev = {
+	!t || r.node === t || (Pt(e, n), r.node = t, r.prev = {
 		color: t.color,
 		bgcolor: t.bgcolor
 	}, t.bgcolor = "#3355ff", t.color = "#a9c4ff", n(e));
@@ -1012,7 +1018,8 @@ function fn(e = null) {
 		console.debug?.(e);
 	}
 }
-// ui/utils/format.ts
+//#endregion
+//#region ui/utils/format.ts
 function pn(e) {
 	if (!e) return null;
 	let t = Number(e);
@@ -1140,7 +1147,8 @@ function bn(e) {
 	let t = String(e || "").trim().toLowerCase();
 	return t && _n.sections.find((e) => e.key === t) || null;
 }
-// ui/vue/components/panel/sidebar/SidebarFileInfoSection.vue?vue&type=script&setup=true&lang.ts
+//#endregion
+//#region ui/vue/components/panel/sidebar/SidebarFileInfoSection.vue?vue&type=script&setup=true&lang.ts
 var xn = {
 	key: 0,
 	class: "mjr-sidebar-section",
@@ -1385,7 +1393,7 @@ var xn = {
 	setup(e) {
 		let t = e, n = Y(0), i = Y(!1), a = null;
 		function c() {
-			return a ||= import("./floatingViewerManager-B_I-SRbd.js").then((e) => e.n), a;
+			return a ||= import("./floatingViewerManager-D8m1KWMk.js").then((e) => e.n), a;
 		}
 		function l() {
 			return (Array.isArray(t.inputFile?.previewCandidates) ? t.inputFile.previewCandidates : [])[n.value] || "";
@@ -1478,7 +1486,11 @@ var xn = {
 		}
 		async function S() {
 			let e = await v(p());
-			e?.ok ? o(m("toast.openedInFolder", "Opened in folder"), "info", 1600) : o(e?.error || m("toast.openFolderFailed", "Failed to open folder."), "error");
+			if (!e?.ok) {
+				o(e?.error || m("toast.openFolderFailed", "Failed to open folder."), "error");
+				return;
+			}
+			o(m("toast.openedInFolder", "Opened in folder"), "info", 1600);
 		}
 		async function te() {
 			let e = p(), t = {
@@ -1493,7 +1505,11 @@ var xn = {
 				payload: t,
 				index: !1
 			});
-			if (!n?.relativePath || !rn({
+			if (!n?.relativePath) {
+				o(m("toast.loadAssetFailed", "Failed to load asset."), "error");
+				return;
+			}
+			if (!rn({
 				app: x(),
 				items: [{
 					payload: t,
@@ -2216,7 +2232,7 @@ var xn = {
 		}
 		async function M(e, t = null, n = "rgba(76, 175, 80, 0.35)") {
 			let r = String(e ?? "").trim();
-			if (r && r !== "-") try {
+			if (!(!r || r === "-")) try {
 				await navigator.clipboard.writeText(r), w(t, n);
 			} catch (e) {
 				console.debug?.(e);
@@ -2241,50 +2257,28 @@ var xn = {
 		async function oe() {
 			d += 1;
 			let e = d;
-			if (!v.value.showAlignment || !t.asset?.id) P();
-			else if (!y.value) N();
-			else {
+			if (!v.value.showAlignment || !t.asset?.id) {
 				P();
-				try {
-					let n = await i(t.asset.id);
-					if (e !== d) return;
-					if (!n?.ok && (String(n?.code || "").toUpperCase() === "SERVICE_UNAVAILABLE" || /vector search is not enabled/i.test(String(n?.error || "")))) {
-						N();
-						return;
-					}
-					let r = n?.ok && n.data != null ? Number(n.data) : null;
-					if (!Number.isFinite(r)) {
-						u.value = {
-							scoreText: "N/A",
-							scoreColor: "#888",
-							qualityText: m("status.na", "N/A"),
-							qualityColor: "#888",
-							qualityBackground: "rgba(127,127,127,0.3)",
-							fillWidth: "0%",
-							fillColor: "#666",
-							aiStatusVisible: !1,
-							aiStatusText: ""
-						};
-						return;
-					}
-					let a = Math.round(r * 100), o = O(r);
+				return;
+			}
+			if (!y.value) {
+				N();
+				return;
+			}
+			P();
+			try {
+				let n = await i(t.asset.id);
+				if (e !== d) return;
+				if (!n?.ok && (String(n?.code || "").toUpperCase() === "SERVICE_UNAVAILABLE" || /vector search is not enabled/i.test(String(n?.error || "")))) {
+					N();
+					return;
+				}
+				let r = n?.ok && n.data != null ? Number(n.data) : null;
+				if (!Number.isFinite(r)) {
 					u.value = {
-						scoreText: `${a}%`,
-						scoreColor: o,
-						qualityText: A(r),
-						qualityColor: o,
-						qualityBackground: `${o}33`,
-						fillWidth: `${a}%`,
-						fillColor: o,
-						aiStatusVisible: !1,
-						aiStatusText: ""
-					};
-				} catch (t) {
-					if (console.debug?.(t), e !== d) return;
-					u.value = {
-						scoreText: "-",
+						scoreText: "N/A",
 						scoreColor: "#888",
-						qualityText: m("status.unavailable", "Unavailable"),
+						qualityText: m("status.na", "N/A"),
 						qualityColor: "#888",
 						qualityBackground: "rgba(127,127,127,0.3)",
 						fillWidth: "0%",
@@ -2292,11 +2286,37 @@ var xn = {
 						aiStatusVisible: !1,
 						aiStatusText: ""
 					};
+					return;
 				}
+				let a = Math.round(r * 100), o = O(r);
+				u.value = {
+					scoreText: `${a}%`,
+					scoreColor: o,
+					qualityText: A(r),
+					qualityColor: o,
+					qualityBackground: `${o}33`,
+					fillWidth: `${a}%`,
+					fillColor: o,
+					aiStatusVisible: !1,
+					aiStatusText: ""
+				};
+			} catch (t) {
+				if (console.debug?.(t), e !== d) return;
+				u.value = {
+					scoreText: "-",
+					scoreColor: "#888",
+					qualityText: m("status.unavailable", "Unavailable"),
+					qualityColor: "#888",
+					qualityBackground: "rgba(127,127,127,0.3)",
+					fillWidth: "0%",
+					fillColor: "#666",
+					aiStatusVisible: !1,
+					aiStatusText: ""
+				};
 			}
 		}
 		async function ce() {
-			if (ee.value && !l.value) {
+			if (!(!ee.value || l.value)) {
 				l.value = !0, c.value = m("status.generating", "Generating...");
 				try {
 					let e = await n(t.asset.id);
@@ -3491,7 +3511,7 @@ var xn = {
 			return Number.isFinite(r) ? Math.max(t, Math.min(n, r)) : t;
 		}
 		function oe(e) {
-			e && typeof e == "object" && (O.value = {
+			!e || typeof e != "object" || (O.value = {
 				...O.value,
 				zoom: P(e.zoom ?? O.value.zoom, Ga, Ka),
 				centerX: Number.isFinite(Number(e.centerX)) ? Number(e.centerX) : null,
@@ -3522,7 +3542,7 @@ var xn = {
 				let t = Object.entries(e || {});
 				if (!t.length) return !1;
 				let n = 0;
-				for (let [, e] of t.slice(0, 50)) if (e && typeof e == "object" && (e.inputs && typeof e.inputs == "object" && (n += 1), n >= 2)) return !0;
+				for (let [, e] of t.slice(0, 50)) if (!(!e || typeof e != "object") && (e.inputs && typeof e.inputs == "object" && (n += 1), n >= 2)) return !0;
 			} catch {
 				return !1;
 			}
@@ -3776,11 +3796,18 @@ var xn = {
 				filepath: e,
 				source_filepath: i.filepath
 			}, { timeoutMs: 3e4 });
-			a?.ok ? (o(m("toast.workflowUpdated", "Workflow updated"), "success", 1800), window?.dispatchEvent?.(new CustomEvent("mjr:reload-grid", { detail: { reason: "workflow-thumbnail-sidebar" } }))) : o(a?.error || m("toast.workflowSaveFailed", "Failed to save workflow."), "error");
+			if (!a?.ok) {
+				o(a?.error || m("toast.workflowSaveFailed", "Failed to save workflow."), "error");
+				return;
+			}
+			o(m("toast.workflowUpdated", "Workflow updated"), "success", 1800), window?.dispatchEvent?.(new CustomEvent("mjr:reload-grid", { detail: { reason: "workflow-thumbnail-sidebar" } }));
 		}
 		async function at() {
-			if (await qe(), !X.value) o(m("toast.workflowLoadFailed", "Failed to load workflow."), "error");
-			else try {
+			if (await qe(), !X.value) {
+				o(m("toast.workflowLoadFailed", "Failed to load workflow."), "error");
+				return;
+			}
+			try {
 				await S.openAssets({
 					assets: [{
 						...n.asset,
@@ -3796,26 +3823,27 @@ var xn = {
 		}
 		async function ot() {
 			let t = be.value;
-			if (!t) o(m("toast.workflowMissingPath", "Workflow file path is missing."), "error");
-			else {
-				y.value = !0, x.value = null, ne.value = [], C.value = null;
-				try {
-					let [n, r] = await Promise.all([e(t, { timeoutMs: 2e4 }), d(t, { timeoutMs: 15e3 })]);
-					if (!n?.ok) {
-						o(n?.error || m("toast.workflowLoadFailed", "Failed to load workflow."), "error");
-						return;
-					}
-					x.value = n.data || {}, ne.value = Array.isArray(r?.data?.versions) ? r.data.versions : [];
-					let i = ne.value[0];
-					if (i?.filepath) {
-						let e = await p(t, i.filepath, { timeoutMs: 15e3 });
-						e?.ok && (C.value = e.data || null);
-					}
-				} catch (e) {
-					console.debug?.(e), o(m("toast.workflowLoadFailed", "Failed to load workflow."), "error");
-				} finally {
-					y.value = !1;
+			if (!t) {
+				o(m("toast.workflowMissingPath", "Workflow file path is missing."), "error");
+				return;
+			}
+			y.value = !0, x.value = null, ne.value = [], C.value = null;
+			try {
+				let [n, r] = await Promise.all([e(t, { timeoutMs: 2e4 }), d(t, { timeoutMs: 15e3 })]);
+				if (!n?.ok) {
+					o(n?.error || m("toast.workflowLoadFailed", "Failed to load workflow."), "error");
+					return;
 				}
+				x.value = n.data || {}, ne.value = Array.isArray(r?.data?.versions) ? r.data.versions : [];
+				let i = ne.value[0];
+				if (i?.filepath) {
+					let e = await p(t, i.filepath, { timeoutMs: 15e3 });
+					e?.ok && (C.value = e.data || null);
+				}
+			} catch (e) {
+				console.debug?.(e), o(m("toast.workflowLoadFailed", "Failed to load workflow."), "error");
+			} finally {
+				y.value = !1;
 			}
 		}
 		let st = H(() => (Array.isArray(X.value?.nodes) ? X.value.nodes : []).slice(0, qa).map((e, t) => {
@@ -3935,7 +3963,9 @@ var xn = {
 			if (N !== null && e.pointerId === N) {
 				let t = ht(e);
 				t && _t(t.world), e.preventDefault?.(), e.stopPropagation?.();
-			} else gt(e);
+				return;
+			}
+			gt(e);
 		}
 		function bt(e) {
 			N !== null && e?.pointerId === N && (s.value?.releasePointerCapture?.(N), N = null, re.value = "crosshair"), e?.type === "pointerleave" && (k.value = "", O.value.hoveredNodeId !== null && (O.value = {
@@ -4858,7 +4888,13 @@ var xn = {
 			let t = r(e);
 			if (!t) return;
 			let n = a(t);
-			n && (p.value.some((e) => a(e) === n) || (p.value.length >= ro ? o(m("toast.maxTagsReached", "Maximum number of tags reached"), "warning") : (p.value = [...p.value, t], M())));
+			if (n && !p.value.some((e) => a(e) === n)) {
+				if (p.value.length >= ro) {
+					o(m("toast.maxTagsReached", "Maximum number of tags reached"), "warning");
+					return;
+				}
+				p.value = [...p.value, t], M();
+			}
 		}
 		function se(e) {
 			if (u.disabled || e < 0 || e >= p.value.length) return;
@@ -4870,10 +4906,21 @@ var xn = {
 				e.preventDefault();
 				let t = (v.value && A.value && b.value >= 0 ? k.value[b.value] : null) || _.value.trim();
 				t && (P(t), _.value = "", v.value = !1, b.value = -1, x.value = null);
-			} else if (e.key === "Escape") v.value = !1, b.value = -1, x.value = null;
-			else if (e.key === "ArrowDown") e.preventDefault(), A.value && (b.value = Math.min(b.value + 1, k.value.length - 1));
-			else if (e.key === "ArrowUp") e.preventDefault(), b.value = Math.max(b.value - 1, 0);
-			else if (e.key === "Tab" && A.value) {
+				return;
+			}
+			if (e.key === "Escape") {
+				v.value = !1, b.value = -1, x.value = null;
+				return;
+			}
+			if (e.key === "ArrowDown") {
+				e.preventDefault(), A.value && (b.value = Math.min(b.value + 1, k.value.length - 1));
+				return;
+			}
+			if (e.key === "ArrowUp") {
+				e.preventDefault(), b.value = Math.max(b.value - 1, 0);
+				return;
+			}
+			if (e.key === "Tab" && A.value) {
 				e.preventDefault();
 				let t = k.value[b.value] || k.value[0];
 				t && (_.value = t);
@@ -4967,4 +5014,5 @@ var xn = {
 		};
 	}
 });
+//#endregion
 export { it as A, Ye as B, Pt as C, bt as D, Gt as E, Z as F, Ve as G, Re as H, Xe as I, Ae as J, Be as K, Ze as L, Je as M, rt as N, vt as O, et as P, $e as R, Nt as S, Mt as T, Ue as U, Le as V, Ie as W, De as X, Oe as Y, rn as _, Tn as a, Jt as b, mn as c, fn as d, dn as f, cn as g, ln as h, Ni as i, at as j, ot as k, gn as l, $ as m, Xa as n, vn as o, un as p, He as q, Ja as r, yn as s, io as t, hn as u, on as v, Kt as w, Yt as x, an as y, tt as z };

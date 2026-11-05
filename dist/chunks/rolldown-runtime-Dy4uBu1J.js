@@ -1,4 +1,4 @@
-// \0rolldown/runtime.js
+//#region \0rolldown/runtime.js
 var e = Object.defineProperty, t = (t, n) => {
 	let r = {};
 	for (var i in t) e(r, i, {
@@ -7,4 +7,5 @@ var e = Object.defineProperty, t = (t, n) => {
 	});
 	return n || e(r, Symbol.toStringTag, { value: "Module" }), r;
 };
+//#endregion
 export { t };
