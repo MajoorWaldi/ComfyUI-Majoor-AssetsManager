@@ -1,5 +1,5 @@
-import { $ as e, $t as t, B as n, Bn as r, Bt as i, Cn as a, Ct as o, Dt as s, Et as c, Fn as l, G as u, H as d, Ht as f, J as p, K as m, Kt as h, L as g, Mt as _, Nt as v, On as y, Pt as b, Qt as x, Rn as S, St as C, Tt as ee, U as te, Ut as w, V as ne, W as T, Wt as E, X as D, Y as O, Z as re, _n as ie, _t as ae, an as k, ar as A, bt as j, en as oe, et as se, gt as ce, hn as le, ht as ue, in as M, jt as de, k as fe, kt as pe, mt as me, n as N, nn as he, nt as ge, pr as _e, pt as ve, q as ye, rn as be, t as P, tn as xe, tt as Se, vt as Ce, wt as we, xn as Te, xt as Ee, yn as De, yt as Oe } from "./config-_5PaNI90.js";
-//#region ui/utils/events.ts
+import { $ as e, $t as t, B as n, Bn as r, Bt as i, Cn as a, Ct as o, Dt as s, Et as c, Fn as l, G as u, H as d, Ht as f, J as p, K as m, Kt as h, L as g, Mt as _, Nt as v, On as y, Pt as b, Qt as x, Rn as S, St as C, Tt as ee, U as te, Ut as w, V as ne, W as T, Wt as E, X as D, Y as O, Z as re, _n as ie, _t as ae, an as k, ar as A, bt as j, en as oe, et as se, gt as ce, hn as le, ht as ue, in as M, jt as de, k as fe, kt as pe, mt as me, n as N, nn as he, nt as ge, pr as _e, pt as ve, q as ye, rn as be, t as P, tn as xe, tt as Se, vt as Ce, wt as we, xn as Te, xt as Ee, yn as De, yt as Oe } from "./config-DuYSTOIQ.js";
+// ui/utils/events.ts
 function ke(e, t, { target: n = null, warnPrefix: r = "[Majoor]" } = {}) {
 	let i = n || (typeof window < "u" ? window : null);
 	if (!i || typeof i.dispatchEvent != "function") return !1;
@@ -14,8 +14,7 @@ function ke(e, t, { target: n = null, warnPrefix: r = "[Majoor]" } = {}) {
 		return !1;
 	}
 }
-//#endregion
-//#region ui/app/settings/settingsUtils.ts
+// ui/app/settings/settingsUtils.ts
 var F = (e, t) => {
 	if (typeof e == "boolean") return e;
 	if (typeof e == "string") {
@@ -106,15 +105,7 @@ var F = (e, t) => {
 		}
 	}
 	let a = Ze();
-	if (!a) {
-		try {
-			window.alert(e);
-		} catch (e) {
-			console.debug?.(e);
-		}
-		return;
-	}
-	return new Promise((n) => {
+	if (a) return new Promise((n) => {
 		let r = new a();
 		tt(r);
 		let i = L("div", { style: {
@@ -181,6 +172,11 @@ var F = (e, t) => {
 			n();
 		}
 	});
+	try {
+		window.alert(e);
+	} catch (e) {
+		console.debug?.(e);
+	}
 }, Be = async (e, t = "Majoor") => {
 	let n = Ue();
 	if (n) try {
@@ -450,32 +446,26 @@ var F = (e, t) => {
 	let r = document.createElement(e);
 	return Object.entries(t || {}).forEach(([e, t]) => {
 		let n = String(e || "");
-		if (!(!n || Je.has(n))) {
-			if (e === "style" && t && typeof t == "object") {
-				Object.assign(r.style, t);
-				return;
-			}
-			if (e === "className") {
-				r.className = String(t);
-				return;
-			}
-			if (n.startsWith("on")) {
+		if (n && !Je.has(n)) {
+			if (e === "style" && t && typeof t == "object") Object.assign(r.style, t);
+			else if (e === "className") r.className = String(t);
+			else if (n.startsWith("on")) {
 				if (typeof t == "function") {
 					let e = n.slice(2).toLowerCase();
 					qe.has(e) && r.addEventListener(e, t);
 				}
-				return;
-			}
-			if (Ye.has(n)) try {
-				r[n] = t;
-				return;
-			} catch (e) {
-				console.debug?.(e);
-			}
-			try {
-				r.setAttribute(n, String(t));
-			} catch (e) {
-				console.debug?.(e);
+			} else {
+				if (Ye.has(n)) try {
+					r[n] = t;
+					return;
+				} catch (e) {
+					console.debug?.(e);
+				}
+				try {
+					r.setAttribute(n, String(t));
+				} catch (e) {
+					console.debug?.(e);
+				}
 			}
 		}
 	}), (Array.isArray(n) ? n : [n]).filter(Boolean).forEach((e) => {
@@ -672,7 +662,7 @@ var F = (e, t) => {
 		let e = k.get(_e);
 		if (!e) return { ...R };
 		let t = JSON.parse(e), n = t && typeof t == "object" && Number.isInteger(t.version) && t.data && typeof t.data == "object";
-		if (!n && !(t && typeof t == "object" && !Array.isArray(t))) return { ...R };
+		if (!n && (!t || typeof t != "object" || Array.isArray(t))) return { ...R };
 		if (n && Number(t.version) > 1) return console.warn("[Majoor] settings schema version is newer than this build, using defaults"), { ...R };
 		let r = n ? t.data : t, i = /* @__PURE__ */ new Set(/* @__PURE__ */ "debug.grid.infiniteScroll.siblings.autoScan.scan.watcher.status.viewer.rtHydrate.observability.feed.sidebar.probeBackend.i18n.paths.db.ratingTagsSync.cache.search.ai.executionGrouping.workflowMinimap.ui.security.safety".split(".")), a = {};
 		if (r && typeof r == "object") for (let [e, t] of Object.entries(r)) i.has(e) && (a[e] = t);
@@ -800,8 +790,7 @@ async function at() {
 		console.warn("[Majoor] failed to sync backend execution grouping settings", e);
 	}
 }
-//#endregion
-//#region ui/app/settings/settingsRuntime.ts
+// ui/app/settings/settingsRuntime.ts
 var ot = "mjr-runtime-status-dashboard", st = 3e4;
 function ct() {
 	try {
@@ -871,7 +860,7 @@ function pt() {
 		}
 		try {
 			let t = String(getComputedStyle(e).position || "").toLowerCase();
-			(!t || t === "static") && (e.style.position = "relative");
+			t && t !== "static" || (e.style.position = "relative");
 		} catch (e) {
 			console.debug?.(e);
 		}
@@ -921,11 +910,7 @@ function ht() {
 			window.__MJR_RUNTIME_STATUS_HIDDEN__ = !0, lt();
 		}, st)), mt().catch(() => {}), window.__MJR_RUNTIME_STATUS_INFLIGHT__ ?? (window.__MJR_RUNTIME_STATUS_INFLIGHT__ = !1), window.__MJR_RUNTIME_STATUS_MISS_COUNT__ ?? (window.__MJR_RUNTIME_STATUS_MISS_COUNT__ = 0), window.__MJR_RUNTIME_STATUS_INTERVAL__ || (window.__MJR_RUNTIME_STATUS_INTERVAL__ = setInterval(() => {
 			window.__MJR_RUNTIME_STATUS_INFLIGHT__ || (window.__MJR_RUNTIME_STATUS_INFLIGHT__ = !0, mt().then((e) => {
-				if (e) {
-					window.__MJR_RUNTIME_STATUS_MISS_COUNT__ = 0;
-					return;
-				}
-				window.__MJR_RUNTIME_STATUS_MISS_COUNT__ = Number(window.__MJR_RUNTIME_STATUS_MISS_COUNT__ || 0) + 1;
+				e ? window.__MJR_RUNTIME_STATUS_MISS_COUNT__ = 0 : window.__MJR_RUNTIME_STATUS_MISS_COUNT__ = Number(window.__MJR_RUNTIME_STATUS_MISS_COUNT__ || 0) + 1;
 			}).catch(() => {}).finally(() => {
 				window.__MJR_RUNTIME_STATUS_INFLIGHT__ = !1;
 			}));
@@ -934,8 +919,7 @@ function ht() {
 		console.debug?.(e);
 	}
 }
-//#endregion
-//#region ui/utils/debounce.ts
+// ui/utils/debounce.ts
 var gt = 300;
 function _t(e, t = gt) {
 	let n, r = (...r) => {
@@ -947,8 +931,7 @@ function _t(e, t = gt) {
 		clearTimeout(n), e(...t);
 	}, r;
 }
-//#endregion
-//#region ui/features/runtime/nativeAssetsTab.ts
+// ui/features/runtime/nativeAssetsTab.ts
 var vt = /* @__PURE__ */ new Set([
 	"assets",
 	"media-assets",
@@ -978,20 +961,18 @@ function Et() {
 	for (let [e, t] of [...xt.entries()]) (y().some((t) => String(t?.id || "") === e) || l(t)) && xt.delete(e);
 }
 function Dt(e) {
-	if (bt = !!e, wt(), !bt) {
-		Et();
-		return;
+	if (bt = !!e, wt(), !bt) Et();
+	else {
+		Tt();
+		for (let e of yt) St.push(setTimeout(() => {
+			bt && Tt();
+		}, e));
 	}
-	Tt();
-	for (let e of yt) St.push(setTimeout(() => {
-		bt && Tt();
-	}, e));
 }
 function Ot() {
 	bt = !1, wt(), Et();
 }
-//#endregion
-//#region ui/app/settings/settingsGrid.ts
+// ui/app/settings/settingsGrid.ts
 var H = "Majoor", kt = "Majoor Assets Manager";
 function At(e, t, n) {
 	let r = (e, t) => [
@@ -1406,8 +1387,7 @@ function At(e, t, n) {
 		}
 	});
 }
-//#endregion
-//#region ui/app/settings/settingsViewer.ts
+// ui/app/settings/settingsViewer.ts
 var jt = "Majoor", Mt = "Majoor Assets Manager";
 function Nt(e, t, n) {
 	let r = (e, t) => [
@@ -1577,8 +1557,7 @@ function Nt(e, t, n) {
 		});
 	})("Enabled", "enabled", "setting.minimap.enabled.name", "setting.minimap.enabled.desc");
 }
-//#endregion
-//#region ui/app/settings/settingsScanning.ts
+// ui/app/settings/settingsScanning.ts
 var U = "Majoor", Pt = "Majoor Assets Manager";
 function Ft(e, t, n) {
 	let r = (e, t) => [
@@ -1813,8 +1792,7 @@ function Ft(e, t, n) {
 		}
 	});
 }
-//#endregion
-//#region ui/app/settings/settingsFeed.ts
+// ui/app/settings/settingsFeed.ts
 var It = "Majoor", Lt = "Majoor Assets Manager";
 function Rt(e, t, n) {
 	let r = (e) => [
@@ -1931,8 +1909,7 @@ function Rt(e, t, n) {
 		}
 	});
 }
-//#endregion
-//#region ui/app/settings/settingsSecurity.ts
+// ui/app/settings/settingsSecurity.ts
 var zt = "Majoor", Bt = "Majoor Assets Manager", Vt = 16, Ht = {
 	safeMode: !1,
 	allowWrite: !0,
@@ -2101,8 +2078,7 @@ function rn(e, t, n) {
 		}
 	}), i("requireAuth", "setting.sec.requireAuth.name", "setting.sec.requireAuth.desc", "cat.remote"), i("allowRemoteWrite", "setting.sec.remote.name", "setting.sec.remote.desc", "cat.remote"), i("allowInsecureTokenTransport", "setting.sec.insecureTransport.name", "setting.sec.insecureTransport.desc", "cat.remote");
 }
-//#endregion
-//#region ui/app/settings/settingsAdvanced.ts
+// ui/app/settings/settingsAdvanced.ts
 var W = "Majoor", an = "Majoor Assets Manager";
 function on(e, n, r, a) {
 	let s = (e, t) => [
@@ -2303,11 +2279,7 @@ function on(e, n, r, a) {
 		defaultValue: n.i18n?.followComfyLanguage ? "auto" : x(),
 		options: de,
 		onChange: (e) => {
-			if (n.i18n = n.i18n || {}, e === "auto") {
-				n.i18n.followComfyLanguage = !0, xe(!0), oe(a), B(n), r("language");
-				return;
-			}
-			ue.includes(e) && (n.i18n.followComfyLanguage = !1, xe(!1), he(e), B(n), r("language"));
+			n.i18n = n.i18n || {}, e === "auto" ? (n.i18n.followComfyLanguage = !0, xe(!0), oe(a), B(n), r("language")) : ue.includes(e) && (n.i18n.followComfyLanguage = !1, xe(!1), he(e), B(n), r("language"));
 		}
 	}), e({
 		id: `${W}.ProbeBackend.Mode`,
@@ -2558,11 +2530,7 @@ function on(e, n, r, a) {
 			id: `${W}.AI.HuggingFaceToken`,
 			category: s(M("cat.advanced"), t),
 			name: "HuggingFace Token",
-			tooltip: [
-				"Optional token for HuggingFace Hub downloads (higher rate limits).",
-				"Saved server-side and used by CLIP model loading.",
-				"Leave empty to clear the stored token."
-			].join("\n"),
+			tooltip: "Optional token for HuggingFace Hub downloads (higher rate limits).\nSaved server-side and used by CLIP model loading.\nLeave empty to clear the stored token.",
 			type: "text",
 			defaultValue: "",
 			attrs: {
@@ -2646,15 +2614,7 @@ function on(e, n, r, a) {
 		id: `${W}.AI.VectorBackfillAction`,
 		category: s(M("cat.advanced"), "AI / Vector Search"),
 		name: "Vector Index Action",
-		tooltip: [
-			"Compute CLIP embeddings for all assets that don't have them yet.",
-			"This is required for AI semantic search to work.",
-			"",
-			"Choose 'Run backfill now' to start indexing.",
-			"This may take several minutes for large libraries.",
-			"",
-			"Note: New assets are indexed automatically during scanning."
-		].join("\n"),
+		tooltip: "Compute CLIP embeddings for all assets that don't have them yet.\nThis is required for AI semantic search to work.\n\nChoose 'Run backfill now' to start indexing.\nThis may take several minutes for large libraries.\n\nNote: New assets are indexed automatically during scanning.",
 		type: "combo",
 		defaultValue: "Idle",
 		options: ["Idle", "Run backfill now"],
@@ -2752,8 +2712,7 @@ function on(e, n, r, a) {
 		}
 	});
 }
-//#endregion
-//#region ui/app/settings/settingsSearch.ts
+// ui/app/settings/settingsSearch.ts
 var sn = "Majoor", cn = "Majoor Assets Manager";
 function ln(e, t, n) {
 	let r = (e, t) => [
@@ -2907,39 +2866,12 @@ function ln(e, t, n) {
 		id: `${sn}.EnvVars.Reference`,
 		category: r(M("cat.advanced"), "Environment variables"),
 		name: "Environment variables reference",
-		tooltip: [
-			"Set these env vars before starting ComfyUI to override defaults:",
-			"",
-			"MAJOOR_OUTPUT_DIRECTORY - Override output root directory",
-			"MAJOOR_EXIFTOOL_PATH - Path to exiftool binary",
-			"MAJOOR_FFPROBE_PATH - Path to ffprobe binary",
-			"MAJOOR_MEDIA_PROBE_BACKEND - Probe mode: auto|exiftool|ffprobe|both",
-			"MAJOOR_EXIFTOOL_TIMEOUT - ExifTool timeout in seconds (default: 15)",
-			"MAJOOR_FFPROBE_TIMEOUT - FFprobe timeout in seconds (default: 10)",
-			"MAJOOR_DB_TIMEOUT - Database timeout in seconds (default: 30)",
-			"MAJOOR_DB_MAX_CONNECTIONS - Max DB connections (default: 8)",
-			"MAJOOR_METADATA_CACHE_MAX - Metadata cache max entries (default: 100000)",
-			"MAJOOR_METADATA_EXTRACT_CONCURRENCY - Parallel metadata workers (default: 1)",
-			"MJR_ENABLE_WATCHER - Enable file watcher: 1|0 (default: 1)",
-			"MJR_WATCHER_DEBOUNCE_MS - Watcher debounce delay in ms (default: 3000)",
-			"MJR_WATCHER_DEDUPE_TTL_MS - Watcher dedupe window in ms (default: 3000)",
-			"MJR_WATCHER_MAX_FILE_SIZE_BYTES - Max file size to index (default: 512MB)",
-			"MJR_WATCHER_FLUSH_MAX_FILES - Max files per flush batch (default: 256)",
-			"MJR_WATCHER_PENDING_MAX - Max pending watcher queue (default: 5000)",
-			"MJR_AM_ENABLE_VECTOR_SEARCH - Enable AI vector/semantic search: 1|0 (default: 1)",
-			"MJR_AM_VECTOR_INDEX_ON_SCAN - Compute vectors during scans: 1|0 (default: 0)",
-			"MJR_AM_VECTOR_CAPTION_ON_INDEX - Generate Florence captions during vector indexing: 1|0 (default: 0)",
-			"MJR_VECTOR_CONCURRENCY - Concurrent vector workers (default: 2, use 1 for lower VRAM spikes)",
-			"MJR_AM_VECTOR_UNLOAD_AFTER_USE - Unload Majoor AI models after heavy vector actions: 1|0 (default: 0)",
-			"MAJOOR_SEARCH_MAX_LIMIT - Max search results (default: 500)",
-			"MAJOOR_BG_SCAN_ON_LIST - Scan on directory list: 0|1 (default: 0)"
-		].join("\n"),
+		tooltip: "Set these env vars before starting ComfyUI to override defaults:\n\nMAJOOR_OUTPUT_DIRECTORY - Override output root directory\nMAJOOR_EXIFTOOL_PATH - Path to exiftool binary\nMAJOOR_FFPROBE_PATH - Path to ffprobe binary\nMAJOOR_MEDIA_PROBE_BACKEND - Probe mode: auto|exiftool|ffprobe|both\nMAJOOR_EXIFTOOL_TIMEOUT - ExifTool timeout in seconds (default: 15)\nMAJOOR_FFPROBE_TIMEOUT - FFprobe timeout in seconds (default: 10)\nMAJOOR_DB_TIMEOUT - Database timeout in seconds (default: 30)\nMAJOOR_DB_MAX_CONNECTIONS - Max DB connections (default: 8)\nMAJOOR_METADATA_CACHE_MAX - Metadata cache max entries (default: 100000)\nMAJOOR_METADATA_EXTRACT_CONCURRENCY - Parallel metadata workers (default: 1)\nMJR_ENABLE_WATCHER - Enable file watcher: 1|0 (default: 1)\nMJR_WATCHER_DEBOUNCE_MS - Watcher debounce delay in ms (default: 3000)\nMJR_WATCHER_DEDUPE_TTL_MS - Watcher dedupe window in ms (default: 3000)\nMJR_WATCHER_MAX_FILE_SIZE_BYTES - Max file size to index (default: 512MB)\nMJR_WATCHER_FLUSH_MAX_FILES - Max files per flush batch (default: 256)\nMJR_WATCHER_PENDING_MAX - Max pending watcher queue (default: 5000)\nMJR_AM_ENABLE_VECTOR_SEARCH - Enable AI vector/semantic search: 1|0 (default: 1)\nMJR_AM_VECTOR_INDEX_ON_SCAN - Compute vectors during scans: 1|0 (default: 0)\nMJR_AM_VECTOR_CAPTION_ON_INDEX - Generate Florence captions during vector indexing: 1|0 (default: 0)\nMJR_VECTOR_CONCURRENCY - Concurrent vector workers (default: 2, use 1 for lower VRAM spikes)\nMJR_AM_VECTOR_UNLOAD_AFTER_USE - Unload Majoor AI models after heavy vector actions: 1|0 (default: 0)\nMAJOOR_SEARCH_MAX_LIMIT - Max search results (default: 500)\nMAJOOR_BG_SCAN_ON_LIST - Scan on directory list: 0|1 (default: 0)",
 		type: "text",
 		defaultValue: "Hover for full list of environment variables"
 	});
 }
-//#endregion
-//#region ui/app/settings/SettingsPanel.ts
+// ui/app/settings/SettingsPanel.ts
 var un = "Majoor Assets Manager", dn = /^\s*Majoor:\s*/i, fn = Object.freeze({
 	ASSETS_PANEL: "Assets Panel",
 	GENERATED_FEED: "Generated Feed",
@@ -3073,7 +3005,7 @@ function Fn() {
 	}
 }
 function In(e, t, n) {
-	typeof document > "u" || typeof MutationObserver > "u" || (_n = {
+	typeof document < "u" && typeof MutationObserver < "u" && (_n = {
 		app: e,
 		definitions: t,
 		defaultValues: new Map(n.filter((e) => e?.id && e.id !== mn).map((e) => [e.id, e.defaultValue]))
@@ -3107,7 +3039,7 @@ function Ln(e, t, { initRuntime: n = !1 } = {}) {
 			let e = z();
 			Object.assign(n, e), V(n), u("storage");
 		}, p = (e) => {
-			!e || e.key !== "mjrSettings" || e.newValue !== e.oldValue && f();
+			e && e.key === "mjrSettings" && e.newValue !== e.oldValue && f();
 		};
 		if (!bn) {
 			if (xn && typeof window < "u") try {
@@ -3168,8 +3100,7 @@ try {
 } catch (e) {
 	console.debug?.(e);
 }
-//#endregion
-//#region ui/features/viewer/workflowGraphMap/workflowNodeLabeling.ts
+// ui/features/viewer/workflowGraphMap/workflowNodeLabeling.ts
 var Bn = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i, Vn = /^[0-9a-f]{20,}$/i;
 function Hn(...e) {
 	for (let t of e) {
@@ -3196,8 +3127,7 @@ function qn(e) {
 	let t = Wn(e);
 	return t && !Un(t) ? t : t ? "Subgraph" : "Node";
 }
-//#endregion
-//#region ui/components/sidebar/utils/minimap.ts
+// ui/components/sidebar/utils/minimap.ts
 var Jn = 6, Yn = 1, Xn = 64, Zn = 74, Qn = 42, $n = [
 	["sampler", "#8e5cff"],
 	["ksampler", "#8e5cff"],
@@ -3338,7 +3268,7 @@ function rr(e, t, n = null) {
 		let t = Array.isArray(e?.bounding) && e.bounding.length >= 4 ? e.bounding : null, n = t ? [Number(t[0]), Number(t[1])] : g(e?.pos), r = t ? [Number(t[2]), Number(t[3])] : _(e?.size);
 		if (!n || !r) continue;
 		let i = Number(n[0]), a = Number(n[1]), o = Math.max(1, Number(r[0])), s = Math.max(1, Number(r[1]));
-		!Number.isFinite(i) || !Number.isFinite(a) || !Number.isFinite(o) || !Number.isFinite(s) || m.push({
+		Number.isFinite(i) && Number.isFinite(a) && Number.isFinite(o) && Number.isFinite(s) && m.push({
 			kind: "group",
 			x: i,
 			y: a,
@@ -3383,7 +3313,7 @@ function rr(e, t, n = null) {
 		let t = String(e || "").toUpperCase();
 		return t.includes("IMAGE") ? "rgba(145,198,99,0.38)" : t.includes("LATENT") ? "rgba(89,178,118,0.38)" : t.includes("MODEL") ? "rgba(112,155,255,0.38)" : t.includes("CONDITIONING") ? "rgba(191,123,226,0.38)" : t.includes("CLIP") ? "rgba(220,178,77,0.38)" : t.includes("VAE") ? "rgba(72,184,214,0.38)" : t.includes("MASK") ? "rgba(190,190,190,0.36)" : "rgba(255,255,255,0.2)";
 	}, me = () => {
-		if (i.showLinks && !(!c || c.length === 0)) {
+		if (i.showLinks && c && c.length !== 0) {
 			r.save(), r.globalAlpha = 1, r.lineWidth = 1;
 			for (let e of c) {
 				let t = fe(e), n = t?.originId, i = t?.targetId;
@@ -3749,8 +3679,7 @@ function pr(e, t = null) {
 		extra: { synthetic: !0 }
 	};
 }
-//#endregion
-//#region ui/utils/safeCall.ts
+// ui/utils/safeCall.ts
 var mr = () => {};
 function hr(e) {
 	try {
@@ -3787,8 +3716,7 @@ function vr(e, t, n, r, i = "safeAddListener") {
 		return hr("DEBUG_SAFE_LISTENERS") && gr(`${i}:add:${String(t || "")}`, e), mr;
 	}
 }
-//#endregion
-//#region ui/utils/mediaFps.ts
+// ui/utils/mediaFps.ts
 function yr(e) {
 	try {
 		let t = Number(e);
@@ -3831,8 +3759,7 @@ function Sr(e) {
 	let t = Number(e);
 	return !Number.isFinite(t) || t <= 0 ? "" : Math.abs(t - Math.round(t)) < .001 ? `${Math.round(t)} fps` : `${t.toFixed(3).replace(/\.?0+$/, "")} fps`;
 }
-//#endregion
-//#region ui/components/sidebar/parsers/a1111ParamsParser.ts
+// ui/components/sidebar/parsers/a1111ParamsParser.ts
 function Cr(e) {
 	if (!e || typeof e != "string") return null;
 	let t = {}, n = e.split(/\nNegative prompt:\s*/i);
@@ -3849,14 +3776,13 @@ function Cr(e) {
 	}
 	return Object.keys(t).length > 0 ? t : null;
 }
-//#endregion
-//#region ui/components/sidebar/parsers/comfyWorkflowParser.ts
+// ui/components/sidebar/parsers/comfyWorkflowParser.ts
 function wr(e) {
 	try {
 		let t = Object.entries(e || {});
 		if (!t.length) return !1;
 		let n = 0;
-		for (let [, e] of t.slice(0, 50)) if (!(!e || typeof e != "object") && (e.inputs && typeof e.inputs == "object" && (n += 1), n >= 2)) return !0;
+		for (let [, e] of t.slice(0, 50)) if (e && typeof e == "object" && (e.inputs && typeof e.inputs == "object" && (n += 1), n >= 2)) return !0;
 		return !1;
 	} catch {
 		return !1;
@@ -4029,7 +3955,7 @@ function jr(e, t, n) {
 }
 function Mr(e, t) {
 	let n = Number(e), r = Number(t);
-	if (!(!Number.isFinite(n) || !Number.isFinite(r))) return n + r;
+	if (Number.isFinite(n) && Number.isFinite(r)) return n + r;
 }
 function Nr(e, t) {
 	if (e == null || e === "") return "";
@@ -4061,7 +3987,7 @@ function Fr(e, t, n) {
 }
 function Ir(e) {
 	let t = {};
-	for (let [n, r] of Object.entries(e || {})) r != null && r !== "" && (Array.isArray(r) && r.length === 0 || r && typeof r == "object" && !Array.isArray(r) && Object.keys(r).length === 0 || (t[n] = r));
+	for (let [n, r] of Object.entries(e || {})) r != null && r !== "" && (Array.isArray(r) && r.length === 0 || (!r || typeof r != "object" || Array.isArray(r) || Object.keys(r).length !== 0) && (t[n] = r));
 	return t;
 }
 function Lr(e) {
@@ -4306,8 +4232,7 @@ function ei(e) {
 		"ENUM"
 	].includes(t);
 }
-//#endregion
-//#region ui/components/sidebar/parsers/geninfoParser.ts
+// ui/components/sidebar/parsers/geninfoParser.ts
 var ti = /^(?:[a-z]:[\\/]|[\\/]{1,2}|\.{1,2}[\\/]|~[\\/]).+?[\\/][^\\/\n]+\.(?:png|jpe?g|webp|gif|bmp|tiff?|avif|heic|heif|apng|hdr|svg|mp4|webm|mov|mkv|avi|m4v|mp3|wav|flac|ogg|glb|gltf|obj|fbx|ply|stl|ckpt|safetensors|pt|pth|bin|gguf|json|ya?ml)$/i, ni = /^(?!.*[,;])(?!.*\b(?:cinematic|portrait|landscape|lighting|style|detailed|masterpiece|photo|render)\b).*(?:[\\/][^\\/\n]+){2,}\.(?:png|jpe?g|webp|gif|bmp|tiff?|avif|heic|heif|apng|hdr|svg|mp4|webm|mov|mkv|avi|m4v|mp3|wav|flac|ogg|glb|gltf|obj|fbx|ply|stl|ckpt|safetensors|pt|pth|bin|gguf|json|ya?ml)$/i, ri = /* @__PURE__ */ new Set([
 	"workflow",
 	"quicktime:workflow",
@@ -4329,7 +4254,7 @@ function ai(e) {
 		let t = e.geninfo || e.GenInfo || e.generation || null;
 		if (t && typeof t == "object") {
 			let n = {}, r = /* @__PURE__ */ new Set(), i = (e, t) => {
-				if (!(!t || typeof t != "object") && (t.confidence === "override" || t.source === "majoor_geninfo")) for (let t of Array.isArray(e) ? e : [e]) r.add(t);
+				if (t && typeof t == "object" && (t.confidence === "override" || t.source === "majoor_geninfo")) for (let t of Array.isArray(e) ? e : [e]) r.add(t);
 			}, a = t.positive?.value ?? t.positive?.text ?? null, o = t.negative?.value ?? t.negative?.text ?? null;
 			typeof a == "string" && a.trim() && (n.prompt = a), typeof o == "string" && o.trim() && (n.negative_prompt = o), i("prompt", t.positive), i("negative_prompt", t.negative);
 			let s = t.checkpoint?.name ?? t.checkpoint ?? null;
@@ -4503,22 +4428,10 @@ function li(e, t) {
 	return null;
 }
 function ui(e, t) {
-	if (!(!t || typeof t != "object")) {
-		for (let [n, r] of Object.entries(t)) if (r != null && r !== "") {
-			if (Array.isArray(r) && Array.isArray(e[n])) {
-				e[n] = fi(e[n], r);
-				continue;
-			}
-			if (r && typeof r == "object" && !Array.isArray(r) && e[n] && typeof e[n] == "object" && !Array.isArray(e[n])) {
-				e[n] = {
-					...r,
-					...e[n]
-				};
-				continue;
-			}
-			(e[n] === void 0 || e[n] === null || e[n] === "") && (e[n] = r);
-		}
-	}
+	if (t && typeof t == "object") for (let [n, r] of Object.entries(t)) r != null && r !== "" && (Array.isArray(r) && Array.isArray(e[n]) ? e[n] = fi(e[n], r) : r && typeof r == "object" && !Array.isArray(r) && e[n] && typeof e[n] == "object" && !Array.isArray(e[n]) ? e[n] = {
+		...r,
+		...e[n]
+	} : (e[n] === void 0 || e[n] === null || e[n] === "") && (e[n] = r));
 }
 function di(e) {
 	if (!e || typeof e != "object") return JSON.stringify(e);
@@ -4637,8 +4550,7 @@ function xi(e) {
 		workflowBadge: a
 	};
 }
-//#endregion
-//#region ui/vue/components/panel/sidebar/generationSectionState.ts
+// ui/vue/components/panel/sidebar/generationSectionState.ts
 var Si = /* @__PURE__ */ new Set([
 	"png",
 	"jpg",
@@ -4741,7 +4653,7 @@ function Ii(e) {
 	let t = Pi(e), n = {};
 	for (let e of t) {
 		let t = ai(e);
-		!t || typeof t != "object" || Fi(n, t);
+		t && typeof t == "object" && Fi(n, t);
 	}
 	return Object.keys(n).length ? n : null;
 }
@@ -4775,7 +4687,7 @@ function zi(e) {
 	if (n.length) return n.forEach((e) => {
 		if (!e || typeof e != "object") return;
 		let n = X(e.model), r = Array.isArray(e.loras) ? e.loras.map((e) => vi(e)).filter(Boolean) : [];
-		!n && !r.length || t.push({
+		(n || r.length) && t.push({
 			key: String(e.key || "").trim() || `group-${t.length + 1}`,
 			label: String(e.label || "").trim() || `Group ${t.length + 1}`,
 			model: n,
@@ -4793,7 +4705,7 @@ function zi(e) {
 		model: X(r.unet_low_noise)
 	}].forEach((e) => {
 		let n = i.filter((t) => Ri(t) === e.key).map((e) => vi(e)).filter(Boolean);
-		!e.model && !n.length || t.push({
+		(e.model || n.length) && t.push({
 			...e,
 			loras: n
 		});
@@ -5423,5 +5335,4 @@ function ia(e) {
 		ideogram: a
 	};
 }
-//#endregion
 export { B as A, zn as C, _t as D, Ot as E, Ve as M, ke as N, V as O, qn as S, Dt as T, _r as _, Mi as a, Kn as b, J as c, Sr as d, yr as f, vr as g, mr as h, Ei as i, Be as j, z as k, ai as l, xr as m, Di as n, ki as o, br as p, Oi as r, xi as s, ia as t, q as u, rr as v, Rn as w, Wn as x, pr as y };

@@ -1,6 +1,6 @@
-import { a as e, n as t, r as n, s as r } from "./graphTraversal-BIYmTTPW.js";
-import { KnownNodesAdapter as i, t as a } from "./KnownNodesAdapter-D3kDh32d.js";
-//#region ui/features/viewer/nodeStream/NodeStreamRegistry.ts
+import { a as e, n as t, r as n, s as r } from "./graphTraversal-DTdQWkn5.js";
+import { KnownNodesAdapter as i, t as a } from "./KnownNodesAdapter-ByQUkk5S.js";
+// ui/features/viewer/nodeStream/NodeStreamRegistry.ts
 var o = [], s = !1;
 function c() {
 	s &&= (o.sort((e, t) => (t.priority ?? 0) - (e.priority ?? 0)), !1);
@@ -20,8 +20,7 @@ function u() {
 		description: e.description ?? ""
 	}));
 }
-//#endregion
-//#region ui/features/viewer/nodeStream/adapters/DefaultImageAdapter.ts
+// ui/features/viewer/nodeStream/adapters/DefaultImageAdapter.ts
 var d = /* @__PURE__ */ new Set([
 	".png",
 	".jpg",
@@ -171,8 +170,7 @@ function le(e) {
 		_signature: i
 	};
 }
-//#endregion
-//#region ui/features/viewer/nodeStream/ltxDirectorPreviewBridge.ts
+// ui/features/viewer/nodeStream/ltxDirectorPreviewBridge.ts
 var ue = "ltx-director-live-preview";
 function de(e) {
 	return typeof HTMLCanvasElement < "u" && e instanceof HTMLCanvasElement;
@@ -454,7 +452,7 @@ function Ce(e) {
 		}
 		if (!(e.depth >= F)) for (let t of ye(e.node)) {
 			let n = String(t?.id ?? "");
-			!n || i.has(n) || (i.add(n), r.push({
+			n && !i.has(n) && (i.add(n), r.push({
 				node: t,
 				depth: e.depth + 1
 			}));
@@ -493,17 +491,11 @@ function Z({ force: e = !1 } = {}) {
 		return;
 	}
 	let i = we(r);
-	!e && n === M && i === j || (M = n, j = i, D(r));
+	(e || n !== M || i !== j) && (M = n, j = i, D(r));
 }
 function Q() {
 	let e = T;
-	J();
-	let t = T !== e;
-	if (!E) {
-		X();
-		return;
-	}
-	Z({ force: C !== "pinned" && t });
+	J(), E ? Z({ force: C !== "pinned" && T !== e }) : X();
 }
 function Ee() {
 	A || (A = setInterval(Q, 150), Q());
@@ -523,15 +515,7 @@ function ke({ app: e, onOutput: t, onStatus: n } = {}) {
 	D = t || null, O = n || null, k = e || null, e && J(), console.debug("[NodeStream] Controller initialized (selection-only preview mode)");
 }
 function Ae(e) {
-	if (E = !!e, !E) {
-		T = null, $();
-		return;
-	}
-	if (X(), J(), A) {
-		Q();
-		return;
-	}
-	Ee();
+	E = !!e, E ? (X(), J(), A ? Q() : Ee()) : (T = null, $());
 }
 function je() {
 	return E;
@@ -544,11 +528,7 @@ function Ne() {
 	return C;
 }
 function Pe(e) {
-	if (e == null) {
-		w = null, C === "pinned" && (C = "selected"), X(), E && Z({ force: !0 });
-		return;
-	}
-	w = String(e), C = "pinned", X(), E && Z({ force: !0 });
+	e == null ? (w = null, C === "pinned" && (C = "selected"), X(), E && Z({ force: !0 })) : (w = String(e), C = "pinned", X(), E && Z({ force: !0 }));
 }
 function Fe() {
 	return w;
@@ -559,5 +539,4 @@ function Ie() {
 function Le(e) {
 	E = !1, T = null, w = null, q(null), D = null, O = null, k = null, $(), console.debug("[NodeStream] Controller torn down");
 }
-//#endregion
 export { De as extractNodeFileData, je as getNodeStreamActive, Fe as getPinnedNodeId, Ie as getSelectedNodeId, Ne as getWatchMode, ke as initNodeStream, u as listAdapters, Oe as onNodeOutputs, Pe as pinNode, Ae as setNodeStreamActive, Me as setWatchMode, Le as teardownNodeStream };

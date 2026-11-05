@@ -1,4 +1,4 @@
-//#region ui/app/graphTraversal.ts
+// ui/app/graphTraversal.ts
 function e(e = null) {
 	return e?.rootGraph ?? e?.graph?.rootGraph ?? e?.graph ?? e?.canvas?.graph ?? null;
 }
@@ -25,7 +25,7 @@ function a(e, t = e?.graph) {
 	return r ? `${r}:${n}` : n;
 }
 function o(e, t, n, r) {
-	!n || typeof n != "object" || t.has(n) || (t.add(n), e.push({
+	n && typeof n == "object" && !t.has(n) && (t.add(n), e.push({
 		graph: n,
 		label: r
 	}));
@@ -121,5 +121,4 @@ function f(n, r) {
 		t !== a && String(e?.id ?? e?.ID ?? "") === i && u.push(e);
 	}), u.length === 1 ? u[0] : null;
 }
-//#endregion
 export { e as a, t as i, f as n, c as o, n as r, d as s, u as t };

@@ -1,8 +1,7 @@
-import { a as e, n as t, s as n } from "./graphTraversal-BIYmTTPW.js";
-//#region ui/app/settingsStore.ts
+import { a as e, n as t, s as n } from "./graphTraversal-DTdQWkn5.js";
+// ui/app/settingsStore.ts
 var r = "mjrSettings", i = "mjrMinimapSettings";
-//#endregion
-//#region ui/utils/ids.ts
+// ui/utils/ids.ts
 function a(e) {
 	try {
 		return String(e ?? "").trim();
@@ -53,8 +52,7 @@ function f(e) {
 		return "";
 	}
 }
-//#endregion
-//#region ui/utils/path.ts
+// ui/utils/path.ts
 function p(e) {
 	return String(e || "").replace(/\\/g, "/");
 }
@@ -76,8 +74,7 @@ function m(e) {
 function h(e) {
 	return /^[a-zA-Z]:\//.test(String(e || ""));
 }
-//#endregion
-//#region ui/api/endpoints.ts
+// ui/api/endpoints.ts
 var g = 200, _ = 0, v = {
 	HEALTH: "/mjr/am/health",
 	HEALTH_COUNTERS: "/mjr/am/health/counters",
@@ -339,8 +336,7 @@ function fe(e, t = "") {
 function pe(e) {
 	return e ? `${v.DOWNLOAD_CLEAN}?filepath=${encodeURIComponent(e)}` : "";
 }
-//#endregion
-//#region ui/api/fetchUtils.ts
+// ui/api/fetchUtils.ts
 var me = /* @__PURE__ */ new Set([
 	"POST",
 	"PUT",
@@ -657,8 +653,7 @@ function Le({ readObsEnabled: e = () => !1, readAuthToken: t = () => "", ensureW
 		post: s
 	};
 }
-//#endregion
-//#region ui/utils/ttlCache.ts
+// ui/utils/ttlCache.ts
 function Re({ ttlMs: e = 0, maxSize: t = 100, now: n = () => Date.now() } = {}) {
 	let r = /* @__PURE__ */ new Map();
 	function i() {
@@ -708,11 +703,8 @@ function Re({ ttlMs: e = 0, maxSize: t = 100, now: n = () => Date.now() } = {}) 
 			c(t, n);
 			let o = r.get(e);
 			if (o) {
-				if (s(o, t, n)) {
-					r.delete(e);
-					return;
-				}
-				return o.value;
+				if (s(o, t, n)) r.delete(e);
+				else return o.value;
 			}
 		},
 		has(e) {
@@ -745,8 +737,7 @@ function Re({ ttlMs: e = 0, maxSize: t = 100, now: n = () => Date.now() } = {}) 
 		}
 	};
 }
-//#endregion
-//#region ui/app/comfyApiBridge.ts
+// ui/app/comfyApiBridge.ts
 var ze = null, Be = null, Ve = 50;
 function w(e) {
 	return !!e && typeof e == "object";
@@ -991,8 +982,7 @@ async function ct({ app: e = null, timeoutMs: t = 4e3, intervalMs: n = Ve, warnO
 	if (r && ot("waitForComfyApi", o), i) throw Error(`waitForComfyApi timeout after ${o}ms`);
 	return null;
 }
-//#endregion
-//#region ui/app/hostAdapter.ts
+// ui/app/hostAdapter.ts
 var k = null, lt = [
 	"selectionchange",
 	"selection-change",
@@ -1607,8 +1597,7 @@ function an() {
 		return console.debug?.(e), null;
 	}
 }
-//#endregion
-//#region ui/app/settings/SettingsStore.ts
+// ui/app/settings/SettingsStore.ts
 var N = /* @__PURE__ */ new Map(), on = !1, P = null;
 function sn() {
 	try {
@@ -1619,7 +1608,7 @@ function sn() {
 }
 function cn(e, t, n) {
 	let r = N.get(String(e || ""));
-	if (!(!r || !r.size)) for (let i of Array.from(r)) try {
+	if (r && r.size) for (let i of Array.from(r)) try {
 		i(t, n, e);
 	} catch (e) {
 		console.debug?.(e);
@@ -3471,7 +3460,7 @@ function xn() {
 	});
 }
 function Sn() {
-	return vn ? Promise.resolve() : (yn ||= import("./i18n.generated-Dhv-ZCQc.js").then(({ GENERATED_TRANSLATIONS: e }) => {
+	return vn ? Promise.resolve() : (yn ||= import("./i18n.generated-CezSPtOB.js").then(({ GENERATED_TRANSLATIONS: e }) => {
 		bn(e);
 	}).catch((e) => {
 		console.warn("[Majoor i18n] Failed to load generated translations:", e), xn();
@@ -3804,8 +3793,7 @@ function $n() {
 function er() {
 	Gn(), H = [], Kn(), Yn(Date.now()), qn();
 }
-//#endregion
-//#region ui/app/toast.ts
+// ui/app/toast.ts
 function tr(e) {
 	let t = String(e || "info").trim().toLowerCase();
 	return t === "warn" ? "warning" : t === "danger" ? "error" : t === "success" || t === "warning" || t === "error" ? t : "info";
@@ -4032,7 +4020,7 @@ function ur(e) {
 }
 function dr(e) {
 	let t = ur(e), n = String(t.actionLabel || "").trim(), r = String(t.actionUrl || "").trim();
-	if (!(!n || !r) && /^(https?:\/\/|\/(?!\/))/i.test(r)) return {
+	if (n && r && /^(https?:\/\/|\/(?!\/))/i.test(r)) return {
 		label: n,
 		onClick: () => {
 			try {
@@ -4074,8 +4062,7 @@ function pr() {
 	}
 	G.clear();
 }
-//#endregion
-//#region ui/api/clientAuth.ts
+// ui/api/clientAuth.ts
 var mr = 2e3, hr = 15e3, gr = 8e3, K = "token", _r = null, q = null, vr = null, yr = "", J = Re({
 	ttlMs: mr,
 	maxSize: 1
@@ -4268,7 +4255,7 @@ async function Fr({ force: e = !1, allowCookieRefresh: t = !1 } = {}) {
 	if (e && r?.ok && !r?.token && n) Cr();
 	else if (e && !r?.ok) {
 		let e = Ar(), t = String(e?.code || "").trim().toUpperCase();
-		(!t || !["NETWORK_ERROR", "INVALID_RESPONSE"].includes(t)) && Cr();
+		t && ["NETWORK_ERROR", "INVALID_RESPONSE"].includes(t) || Cr();
 	}
 	let i = wr();
 	return !i && t && r?.ok ? !0 : i;
@@ -4276,8 +4263,7 @@ async function Fr({ force: e = !1, allowCookieRefresh: t = !1 } = {}) {
 function Ir() {
 	J.clear();
 }
-//#endregion
-//#region ui/api/clientOps.ts
+// ui/api/clientOps.ts
 async function Lr(e) {
 	return !e || typeof e != "string" ? {
 		ok: !1,
@@ -4746,8 +4732,7 @@ async function Xi(e, { topK: t = 50, scope: n = "output", customRootId: r = "", 
 async function Zi(e = 8) {
 	return $(v.VECTOR_SUGGEST_COLLECTIONS, { k: Math.max(2, Math.min(20, e)) });
 }
-//#endregion
-//#region ui/api/client.ts
+// ui/api/client.ts
 var Qi = 3e4, $i = "__MJR_API_CLIENT__", ea = 2e3, ta = 200, na = 1e3, ra = 18e5, ia = 432e5, Y = "settings", aa = "available-tags", X = Re({
 	ttlMs: ea,
 	maxSize: 1
@@ -4804,7 +4789,7 @@ function ha(e) {
 		let e = String(r ?? "").trim();
 		if (!e) continue;
 		let i = ma(e);
-		!i || n.has(i) || (n.add(i), t.push(e));
+		i && !n.has(i) && (n.add(i), t.push(e));
 	}
 	return t;
 }
@@ -5082,8 +5067,7 @@ async function Ha({ filepath: e = "", root_id: t = "", subfolder: n = "" } = {},
 	}
 	return l;
 }
-//#endregion
-//#region ui/app/config.ts
+// ui/app/config.ts
 var Ua = Object.freeze({
 	DEBUG_SAFE_CALL: !1,
 	DEBUG_SAFE_LISTENERS: !1,
@@ -5166,5 +5150,4 @@ var Ua = Object.freeze({
 	DEBUG_VERBOSE_ERRORS: !1,
 	SIDEBAR_ASSET_BADGE_ENABLED: !0
 }), Wa = { ...Ua };
-//#endregion
 export { Br as $, se as $n, Fn as $t, _i as A, Ot as An, Ai as At, Ur as B, _t as Bn, qi as Bt, Ia as C, pt as Cn, Lr as Ct, Da as D, Xt as Dn, Vr as Dt, xa as E, kt as En, $r as Et, zi as F, ht as Fn, Wi as Ft, ei as G, ct as Gn, pr as Gt, ci as H, E as Hn, Or as Ht, Ei as I, vt as In, Yi as It, Xr as J, v as Jn, er as Jt, Rr as K, st as Kn, rr as Kt, Jr as L, Yt as Ln, Gi as Lt, Ri as M, M as Mn, Hr as Mt, Ni as N, xt as Nn, Ci as Nt, Bi as O, gt as On, yi as Ot, Pi as P, St as Pn, Ji as Pt, wi as Q, te as Qn, Pn as Qt, Hi as R, mt as Rn, Ki as Rt, Fa as S, zt as Sn, si as St, ba as T, Jt as Tn, pi as Tt, ai as U, Ge as Un, Dr as Ut, Kr as V, Tt as Vn, Zi as Vt, ni as W, We as Wn, or as Wt, fi as X, ne as Xn, Zn as Xt, Ti as Y, ce as Yn, Qn as Yt, Qr as Z, pe as Zn, $n as Zt, za as _, ft as _n, li as _t, ja as a, F as an, b as ar, Di as at, $ as b, wt as bn, ti as bt, Ta as c, Ht as cn, c as cr, Vi as ct, Ha as d, Wt as dn, f as dr, ki as dt, jn as en, le as er, Si as et, wa as f, Et as fn, i as fr, Oi as ft, Oa as g, jt as gn, qr as gt, La as h, an as hn, Wr as ht, ka as i, V as in, x as ir, Li as it, gi as j, Zt as jn, xi as jt, mi as k, Vt as kn, di as kt, Sa as l, rn as ln, l as lr, Ii as lt, Ra as m, Bt as mn, Gr as mt, Ua as n, B as nn, ae as nr, ui as nt, Q as o, bt as on, oe as or, Mi as ot, Ea as p, Qt as pn, r as pr, Yr as pt, ii as q, Re as qn, zn as qt, Na as r, Nn as rn, ie as rr, Xi as rt, Ca as s, yt as sn, p as sr, hi as st, Wa as t, Mn as tn, ee as tr, bi as tt, Va as u, $t as un, d as ur, vi as ut, Pa as v, Mt as vn, oi as vt, Ba as w, qt as wn, Zr as wt, Aa as x, Ct as xn, zr as xt, Ma as y, dt as yn, ri as yt, ji as z, ut as zn, Ui as zt };
