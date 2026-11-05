@@ -132,7 +132,6 @@ var g = 200, _ = 0, v = {
 	DATE_HISTOGRAM: "/mjr/am/date-histogram",
 	ASSET_DELETE: "/mjr/am/asset/delete",
 	ASSET_RENAME: "/mjr/am/asset/rename",
-	ASSETS_RATING: "/mjr/am/assets/rating",
 	WATCHER_STATUS: "/mjr/am/watcher/status",
 	WATCHER_TOGGLE: "/mjr/am/watcher/toggle",
 	WATCHER_SCOPE: "/mjr/am/watcher/scope",
@@ -2557,7 +2556,6 @@ var F = {
 		"ctx.download": "Download",
 		"ctx.editTags": "Edit tags",
 		"ctx.setRating": "Set rating",
-		"ctx.setRatingN": "Set rating ({n} selected)",
 		"ctx.resetRating": "Reset rating",
 		"ctx.showMetadataPanel": "Show metadata panel",
 		"ctx.unpinFolder": "Unpin folder",
@@ -2664,8 +2662,6 @@ var F = {
 		"toast.metadataRefreshFailed": "Failed to refresh metadata.",
 		"toast.ratingCleared": "Rating cleared",
 		"toast.ratingSetN": "Rating set to {n} stars",
-		"toast.ratingBulkProgress": "Rating assets ({done}/{total})...",
-		"toast.ratingBulkPartial": "{rated} rated, {failed} failed",
 		"toast.tagsUpdated": "Tags updated",
 		"toast.remoteLanPresetApplied": "Recommended remote LAN setup applied. This browser session is now authorized for Majoor write operations.",
 		"toast.remoteLanPresetFailed": "Failed to apply the recommended remote LAN setup.",
@@ -2737,6 +2733,7 @@ var F = {
 		"toast.filesDeletedPartial": "{success} files deleted, {failed} failed.",
 		"toast.filesDeletedShort": "{n} files deleted",
 		"toast.filesDeletedShortPartial": "{success} deleted, {failed} failed",
+		"toast.filesDeletingProgress": "Deleting files... ({done}/{total})",
 		"toast.copiedToClipboardNamed": "{name} copied to clipboard!",
 		"toast.rescanningFile": "Rescanning file",
 		"toast.failedToggleWatcher": "Failed to toggle watcher",
@@ -4486,7 +4483,11 @@ async function Ni(e) {
 }
 async function Pi(e) {
 	let t = Array.isArray(e) ? e.map((e) => d(e)).filter(Boolean) : [], n = await $("/mjr/am/assets/delete", { ids: t });
-	return n?.ok && Fi(t), n;
+	if (n?.ok) {
+		let e = n?.data || {}, r = Array.isArray(e?.failed_ids) ? e.failed_ids : [];
+		Array.isArray(e?.deleted_ids) ? Fi(e.deleted_ids) : r.length || Fi(t);
+	}
+	return n;
 }
 function Fi(e) {
 	try {
@@ -4509,7 +4510,7 @@ async function Ii(e, t) {
 			new_name: t
 		});
 		if (i?.ok && n) try {
-			let e = await wa(n);
+			let e = await Ca(n);
 			e?.ok && e?.data && (i.data = {
 				...i.data || {},
 				asset: e.data
@@ -4525,7 +4526,7 @@ async function Ii(e, t) {
 		new_name: t
 	});
 	if (r?.ok && n) try {
-		let e = await wa(n);
+		let e = await Ca(n);
 		e?.ok && e?.data && (r.data = {
 			...r.data || {},
 			asset: e.data
@@ -4855,21 +4856,6 @@ async function ba(e, t, n = {}) {
 	});
 }
 async function xa(e, t, n = {}) {
-	let r = _a(), i = (Array.isArray(e) ? e : [e]).map((e) => d(e)).filter(Boolean);
-	return ya(v.ASSETS_RATING, {
-		...n,
-		method: "POST",
-		headers: {
-			"Content-Type": "application/json",
-			...r ? { "X-MJR-RTSYNC": "on" } : {}
-		},
-		body: JSON.stringify({
-			ids: i,
-			rating: Math.max(0, Math.min(5, Number(t) || 0))
-		})
-	});
-}
-async function Sa(e, t, n = {}) {
 	let r = _a(), i = e && typeof e == "object" ? e : null, a = d(i ? i.id : e), o = String(i?.kind || i?.type || "").trim().toLowerCase() === "workflow", s = String(i?.filepath || i?.path || i?.file_info?.filepath || "").trim(), c = { tags: Array.isArray(t) ? t : [] };
 	o && s ? c.filepath = s : a ? c.asset_id = a : i && (c.filepath = i.filepath || i.path || i?.file_info?.filepath || "", c.type = i.type || "output", c.root_id = f(i));
 	let l = await ya(o && s ? v.WORKFLOWS_TAGS : "/mjr/am/asset/tags", {
@@ -4883,7 +4869,7 @@ async function Sa(e, t, n = {}) {
 	});
 	return l?.ok && pa(), l;
 }
-async function Ca() {
+async function Sa() {
 	let e = oa.get(aa);
 	if (Array.isArray(e)) return {
 		ok: !0,
@@ -4902,14 +4888,14 @@ async function Ca() {
 	}
 	return t;
 }
-async function wa(e, t = {}) {
+async function Ca(e, t = {}) {
 	let n = encodeURIComponent(d(e));
 	return Q(`/mjr/am/asset/${n}`, {
 		...t,
 		dedupeKey: t?.dedupeKey || `meta:${n}`
 	});
 }
-async function Ta(e, t = {}) {
+async function wa(e, t = {}) {
 	let n = d(e);
 	if (!n) return {
 		ok: !1,
@@ -4922,7 +4908,7 @@ async function Ta(e, t = {}) {
 	let { refresh: i, ...a } = t;
 	return Q(r, a);
 }
-async function Ea(e, t = {}) {
+async function Ta(e, t = {}) {
 	let n = Array.isArray(e) ? e : [], r = [];
 	for (let e of n) {
 		let t = Number(e);
@@ -4935,7 +4921,7 @@ async function Ea(e, t = {}) {
 		code: "OK"
 	};
 }
-async function Da(e, t = {}) {
+async function Ea(e, t = {}) {
 	let n = S(e);
 	return n ? Q(n, t) : {
 		ok: !1,
@@ -4944,7 +4930,7 @@ async function Da(e, t = {}) {
 		code: "INVALID_INPUT"
 	};
 }
-async function Oa(e, t = {}) {
+async function Da(e, t = {}) {
 	let n = ue(e);
 	return n ? Q(n, t) : {
 		ok: !1,
@@ -4953,7 +4939,7 @@ async function Oa(e, t = {}) {
 		code: "INVALID_INPUT"
 	};
 }
-async function ka(e, t = {}) {
+async function Oa(e, t = {}) {
 	let n = de(e);
 	return n ? Q(n, t) : {
 		ok: !1,
@@ -4962,7 +4948,7 @@ async function ka(e, t = {}) {
 		code: "INVALID_INPUT"
 	};
 }
-async function Aa(e, t = "", n = {}) {
+async function ka(e, t = "", n = {}) {
 	let r = fe(e, t);
 	return r ? Q(r, n) : {
 		ok: !1,
@@ -4971,7 +4957,7 @@ async function Aa(e, t = "", n = {}) {
 		code: "INVALID_INPUT"
 	};
 }
-async function ja({ workflow: e = null, name: t = "", category: n = "", overwrite: r = !1, filepath: i = "", task: a = "", model_family: o = "", provider: s = "", runs_on: c = "", notes: l = "" } = {}, u = {}) {
+async function Aa({ workflow: e = null, name: t = "", category: n = "", overwrite: r = !1, filepath: i = "", task: a = "", model_family: o = "", provider: s = "", runs_on: c = "", notes: l = "" } = {}, u = {}) {
 	return $(v.WORKFLOWS_SAVE, {
 		workflow: e,
 		name: t,
@@ -4985,32 +4971,32 @@ async function ja({ workflow: e = null, name: t = "", category: n = "", overwrit
 		notes: l
 	}, u);
 }
-async function Ma({ filepath: e = "", name: t = "" } = {}, n = {}) {
+async function ja({ filepath: e = "", name: t = "" } = {}, n = {}) {
 	return $(v.WORKFLOWS_DUPLICATE, {
 		filepath: e,
 		name: t
 	}, n);
 }
-async function Na({ filepath: e = "", name: t = "", category: n = "" } = {}, r = {}) {
+async function Ma({ filepath: e = "", name: t = "", category: n = "" } = {}, r = {}) {
 	return $(v.WORKFLOWS_MOVE, {
 		filepath: e,
 		name: t,
 		category: n
 	}, r);
 }
-async function Pa({ filepath: e = "" } = {}, t = {}) {
+async function Na({ filepath: e = "" } = {}, t = {}) {
 	return $(v.WORKFLOWS_DELETE, { filepath: e }, t);
 }
-async function Fa({ filepath: e = "" } = {}, t = {}) {
+async function Pa({ filepath: e = "" } = {}, t = {}) {
 	return $(v.WORKFLOWS_MARK_LOADED, { filepath: e }, t);
 }
-async function Ia({ filepath: e = "", favorite: t = !1 } = {}, n = {}) {
+async function Fa({ filepath: e = "", favorite: t = !1 } = {}, n = {}) {
 	return $(v.WORKFLOWS_FAVORITE, {
 		filepath: e,
 		favorite: !!t
 	}, n);
 }
-async function La({ filepath: e = "", task: t = "", model_family: n = "", provider: r = "", runs_on: i = "", notes: a = "" } = {}, o = {}) {
+async function Ia({ filepath: e = "", task: t = "", model_family: n = "", provider: r = "", runs_on: i = "", notes: a = "" } = {}, o = {}) {
 	return $(v.WORKFLOWS_INFO, {
 		filepath: e,
 		task: t,
@@ -5020,24 +5006,24 @@ async function La({ filepath: e = "", task: t = "", model_family: n = "", provid
 		notes: a
 	}, o);
 }
-async function Ra({ filepath: e = "", limit: t = 12 } = {}, n = {}) {
+async function La({ filepath: e = "", limit: t = 12 } = {}, n = {}) {
 	let r = Math.max(1, Math.min(50, Number(t) || 12));
 	return Q(`${v.WORKFLOWS_THUMBNAIL_CANDIDATES}?filepath=${encodeURIComponent(String(e || "").trim())}&limit=${encodeURIComponent(String(r))}`, n);
 }
-async function za(e = {}) {
+async function Ra(e = {}) {
 	return Q(v.WORKFLOWS_MODEL_FAMILIES, e);
 }
-async function Ba({ q: e = "*", limit: t = 100, offset: n = 0, sort: r = "mtime" } = {}, i = {}) {
+async function za({ q: e = "*", limit: t = 100, offset: n = 0, sort: r = "mtime" } = {}, i = {}) {
 	let a = Math.max(1, Math.min(500, Number(t) || 100)), o = Math.max(0, Number(n) || 0);
 	return Q(`${v.LIST}?scope=workflow&q=${encodeURIComponent(String(e || "*"))}&limit=${encodeURIComponent(String(a))}&offset=${encodeURIComponent(String(o))}&sort=${encodeURIComponent(String(r || "mtime"))}`, i);
 }
-async function Va({ filepath: e = "", source_filepath: t = "" } = {}, n = {}) {
+async function Ba({ filepath: e = "", source_filepath: t = "" } = {}, n = {}) {
 	return $(v.WORKFLOWS_THUMBNAIL_SET, {
 		filepath: e,
 		source_filepath: t
 	}, n);
 }
-async function Ha({ type: e = "output", filename: t = "", subfolder: n = "", root_id: r = "", rootId: i = "", filepath: a = "" } = {}, o = {}) {
+async function Va({ type: e = "output", filename: t = "", subfolder: n = "", root_id: r = "", rootId: i = "", filepath: a = "" } = {}, o = {}) {
 	let s = String(e || "output").trim().toLowerCase() || "output", c = String(t || "").trim(), l = String(n || "").trim(), u = String(r || i || "").trim(), d = String(a || "").trim();
 	if (!c) return {
 		ok: !1,
@@ -5048,7 +5034,7 @@ async function Ha({ type: e = "output", filename: t = "", subfolder: n = "", roo
 	let f = `/mjr/am/metadata?type=${encodeURIComponent(s)}&filename=${encodeURIComponent(c)}`;
 	return d && (f += `&filepath=${encodeURIComponent(d)}`), l && (f += `&subfolder=${encodeURIComponent(l)}`), u && (f += `&root_id=${encodeURIComponent(u)}`), Q(f, o);
 }
-async function Ua({ filepath: e = "", root_id: t = "", subfolder: n = "" } = {}, r = {}) {
+async function Ha({ filepath: e = "", root_id: t = "", subfolder: n = "" } = {}, r = {}) {
 	try {
 		if (globalThis.__mjrFolderInfoSupported === !1) return {
 			ok: !1,
@@ -5082,7 +5068,7 @@ async function Ua({ filepath: e = "", root_id: t = "", subfolder: n = "" } = {},
 	return l;
 }
 // ui/app/config.ts
-var Wa = Object.freeze({
+var Ua = Object.freeze({
 	DEBUG_SAFE_CALL: !1,
 	DEBUG_SAFE_LISTENERS: !1,
 	DEBUG_VIEWER: !1,
@@ -5163,5 +5149,5 @@ var Wa = Object.freeze({
 	DELETE_CONFIRMATION: !0,
 	DEBUG_VERBOSE_ERRORS: !1,
 	SIDEBAR_ASSET_BADGE_ENABLED: !0
-}), Ga = { ...Wa };
-export { wi as $, te as $n, Pn as $t, mi as A, Vt as An, di as At, ji as B, ut as Bn, Ui as Bt, La as C, zt as Cn, si as Ct, xa as D, kt as Dn, $r as Dt, Sa as E, Jt as En, pi as Et, Pi as F, St as Fn, Ji as Ft, ni as G, We as Gn, or as Gt, Kr as H, Tt as Hn, Zi as Ht, zi as I, ht as In, Wi as It, ii as J, Re as Jn, zn as Jt, ei as K, ct as Kn, pr as Kt, Ei as L, vt as Ln, Yi as Lt, gi as M, Zt as Mn, xi as Mt, Ri as N, M as Nn, Hr as Nt, Oa as O, Xt as On, Vr as Ot, Ni as P, xt as Pn, Ci as Pt, Qr as Q, pe as Qn, $n as Qt, Jr as R, Yt as Rn, Gi as Rt, Ia as S, Ct as Sn, zr as St, ba as T, qt as Tn, Zr as Tt, ci as U, E as Un, Or as Ut, Ur as V, _t as Vn, qi as Vt, ai as W, Ge as Wn, Dr as Wt, Ti as X, ce as Xn, Qn as Xt, Xr as Y, v as Yn, er as Yt, fi as Z, ne as Zn, Zn as Zt, Ba as _, jt as _n, qr as _t, Ma as a, V as an, x as ar, Li as at, $ as b, dt as bn, ri as bt, Ea as c, yt as cn, p as cr, hi as ct, Ua as d, $t as dn, d as dr, vi as dt, Fn as en, se as er, Br as et, Ta as f, Wt as fn, f as fr, ki as ft, ka as g, an as gn, Wr as gt, Ra as h, Bt as hn, Gr as ht, Aa as i, Nn as in, ie as ir, Xi as it, _i as j, Ot as jn, Ai as jt, Bi as k, gt as kn, yi as kt, Ca as l, Ht as ln, c as lr, Vi as lt, za as m, Qt as mn, r as mr, Yr as mt, Wa as n, Mn as nn, ee as nr, bi as nt, Q as o, F as on, b as or, Di as ot, Da as p, Et as pn, i as pr, Oi as pt, Rr as q, st as qn, rr as qt, Pa as r, B as rn, ae as rr, ui as rt, wa as s, bt as sn, oe as sr, Mi as st, Ga as t, jn as tn, le as tr, Si as tt, Ha as u, rn as un, l as ur, Ii as ut, Fa as v, ft as vn, li as vt, Va as w, pt as wn, Lr as wt, ja as x, wt as xn, ti as xt, Na as y, Mt as yn, oi as yt, Hi as z, mt as zn, Ki as zt };
+}), Wa = { ...Ua };
+export { Br as $, se as $n, Fn as $t, _i as A, Ot as An, Ai as At, Ur as B, _t as Bn, qi as Bt, Ia as C, pt as Cn, Lr as Ct, Da as D, Xt as Dn, Vr as Dt, xa as E, kt as En, $r as Et, zi as F, ht as Fn, Wi as Ft, ei as G, ct as Gn, pr as Gt, ci as H, E as Hn, Or as Ht, Ei as I, vt as In, Yi as It, Xr as J, v as Jn, er as Jt, Rr as K, st as Kn, rr as Kt, Jr as L, Yt as Ln, Gi as Lt, Ri as M, M as Mn, Hr as Mt, Ni as N, xt as Nn, Ci as Nt, Bi as O, gt as On, yi as Ot, Pi as P, St as Pn, Ji as Pt, wi as Q, te as Qn, Pn as Qt, Hi as R, mt as Rn, Ki as Rt, Fa as S, zt as Sn, si as St, ba as T, Jt as Tn, pi as Tt, ai as U, Ge as Un, Dr as Ut, Kr as V, Tt as Vn, Zi as Vt, ni as W, We as Wn, or as Wt, fi as X, ne as Xn, Zn as Xt, Ti as Y, ce as Yn, Qn as Yt, Qr as Z, pe as Zn, $n as Zt, za as _, ft as _n, li as _t, ja as a, F as an, b as ar, Di as at, $ as b, wt as bn, ti as bt, Ta as c, Ht as cn, c as cr, Vi as ct, Ha as d, Wt as dn, f as dr, ki as dt, jn as en, le as er, Si as et, wa as f, Et as fn, i as fr, Oi as ft, Oa as g, jt as gn, qr as gt, La as h, an as hn, Wr as ht, ka as i, V as in, x as ir, Li as it, gi as j, Zt as jn, xi as jt, mi as k, Vt as kn, di as kt, Sa as l, rn as ln, l as lr, Ii as lt, Ra as m, Bt as mn, Gr as mt, Ua as n, B as nn, ae as nr, ui as nt, Q as o, bt as on, oe as or, Mi as ot, Ea as p, Qt as pn, r as pr, Yr as pt, ii as q, Re as qn, zn as qt, Na as r, Nn as rn, ie as rr, Xi as rt, Ca as s, yt as sn, p as sr, hi as st, Wa as t, Mn as tn, ee as tr, bi as tt, Va as u, $t as un, d as ur, vi as ut, Pa as v, Mt as vn, oi as vt, Ba as w, qt as wn, Zr as wt, Aa as x, Ct as xn, zr as xt, Ma as y, dt as yn, ri as yt, ji as z, ut as zn, Ui as zt };

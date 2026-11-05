@@ -336,7 +336,12 @@ def _emit_request_log_by_status(status: int | None, fields: dict[str, Any]) -> N
     dur = fields.get("duration_ms")
     dur_part = f" ({dur:.0f}ms)" if isinstance(dur, (int, float)) else ""
     msg = f"Request handled | {method} {path} -> {status}{dur_part}"
-    if status is not None and status >= 500:
+    if status == 404 and str(path).startswith("/mjr/am/download"):
+        # A missing file (deleted or moved outside Majoor) is not a plugin fault.
+        query = fields.get("query")
+        filepath = query.get("filepath") if isinstance(query, dict) else None
+        logger.info(f"{msg} | file not found: {filepath or '?'}", extra=fields)
+    elif status is not None and status >= 500:
         logger.error(msg, extra=fields)
     elif status is not None and status >= 400:
         logger.warning(msg, extra=fields)
