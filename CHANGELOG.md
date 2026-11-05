@@ -13,6 +13,7 @@ All notable changes to this project are documented in this file.
 - **JPEG and TIFF metadata**: ComfyUI/WAS-style `Prompt:` / `Workflow:` EXIF text and A1111 `parameters` are now read from JPEG and TIFF files (previously only PNG, WebP and AVIF).
 
 ### Fixed
+- **Python 3.10 install**: `pillow` is pinned to 13.x on Python 3.11+ and to 12.x on 3.10, where 13 is not available, so `pip install -r requirements.txt` works again there.
 - **Sidebar badge counts temp previews**: one generation with a compare/preview node showed a badge of 3. Temp preview files no longer increment the badge.
 - **Rating/tag writes no longer pile up duplicate XMP/IPTC entries**: saving tags such as `["cat"]`, `["cat","dog"]`, `["dog"]` in sequence used to append to `XMP:Subject`/`IPTC:Keywords` (and add joined `"a; b"` items) instead of replacing the list, so files accumulated every previous tag set. List values are now written as plain assignments and the rating/tags write no longer copies existing tags back over the new values; after any number of saves the file holds exactly the latest tag set, and PNG `prompt`/`workflow` chunks are preserved.
 - **Gen info on modern workflows**: workflow JSON now resolves links inside subgraphs (dict-form links), bridges subgraph inputs/outputs, expands nested subgraphs, keeps linked widgets aligned with `widgets_values` (including the `control_after_generate` value), and names widgets from the live node schema. Sampler detection on ComfyUI's bundled templates goes from 147 to 223 of 224, models from 148 to 224.
