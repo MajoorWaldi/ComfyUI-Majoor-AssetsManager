@@ -2744,6 +2744,7 @@ var F = {
 		"toast.filesDeletedPartial": "{success} files deleted, {failed} failed.",
 		"toast.filesDeletedShort": "{n} files deleted",
 		"toast.filesDeletedShortPartial": "{success} deleted, {failed} failed",
+		"toast.filesDeletingProgress": "Deleting files... ({done}/{total})",
 		"toast.copiedToClipboardNamed": "{name} copied to clipboard!",
 		"toast.rescanningFile": "Rescanning file",
 		"toast.failedToggleWatcher": "Failed to toggle watcher",
@@ -4496,7 +4497,11 @@ async function Ni(e) {
 }
 async function Pi(e) {
 	let t = Array.isArray(e) ? e.map((e) => d(e)).filter(Boolean) : [], n = await $("/mjr/am/assets/delete", { ids: t });
-	return n?.ok && Fi(t), n;
+	if (n?.ok) {
+		let e = n?.data || {}, r = Array.isArray(e?.failed_ids) ? e.failed_ids : [];
+		Array.isArray(e?.deleted_ids) ? Fi(e.deleted_ids) : r.length || Fi(t);
+	}
+	return n;
 }
 function Fi(e) {
 	try {

@@ -589,6 +589,144 @@ async def test_assets_delete_bulk_paths(monkeypatch, tmp_path: Path):
 
 
 @pytest.mark.asyncio
+async def test_assets_delete_bulk_not_found_reports_missing_ids(monkeypatch, tmp_path: Path):
+    app = _app()
+
+    p = tmp_path / "1.png"
+    p.write_bytes(b"x")
+
+    db = _DummyDB()
+
+    async def _svc_ok():
+        return {"db": db}, None
+
+    async def _prefs(_svc):
+        return {}
+
+    async def _read_json_ok(_request):
+        return Result.Ok({"ids": [1, 2]})
+
+    async def _aquery_in(_sql, _col, values):
+        return Result.Ok([{"id": 1, "filepath": str(p)}])
+
+    monkeypatch.setattr(db, "aquery_in", _aquery_in)
+    monkeypatch.setattr(m, "_csrf_error", lambda _request: None)
+    monkeypatch.setattr(m, "_require_services", _svc_ok)
+    monkeypatch.setattr(m, "_resolve_security_prefs", _prefs)
+    monkeypatch.setattr(m, "_require_operation_enabled", lambda *_args, **_kwargs: Result.Ok({}))
+    monkeypatch.setattr(m, "_require_write_access", lambda _request: Result.Ok({}))
+    monkeypatch.setattr(m, "_check_rate_limit", lambda *_args, **_kwargs: (True, None))
+    monkeypatch.setattr(m, "_normalize_path", lambda v: Path(v) if v else None)
+    monkeypatch.setattr(m, "_is_path_allowed", lambda *_args, **_kwargs: True)
+    monkeypatch.setattr(m, "_is_path_allowed_custom", lambda *_args, **_kwargs: False)
+    monkeypatch.setattr(m, "_is_resolved_path_allowed", lambda _p: True)
+    monkeypatch.setattr(m, "_read_json", _read_json_ok)
+
+    req = make_mocked_request("POST", "/mjr/am/assets/delete", app=app)
+    resp = await (await app.router.resolve(req)).handler(req)
+    payload = _json(resp)
+    assert payload.get("code") == "NOT_FOUND"
+    assert payload.get("error") == "Assets not found: [2]"
+    assert payload.get("meta", {}).get("missing_ids") == [2]
+
+
+@pytest.mark.asyncio
+async def test_assets_delete_bulk_forbidden_reports_rejected_ids(monkeypatch, tmp_path: Path):
+    app = _app()
+
+    files = []
+    for i in [1, 2]:
+        p = tmp_path / f"{i}.png"
+        p.write_bytes(b"x")
+        files.append(p)
+
+    db = _DummyDB()
+
+    async def _svc_ok():
+        return {"db": db}, None
+
+    async def _prefs(_svc):
+        return {}
+
+    async def _read_json_ok(_request):
+        return Result.Ok({"ids": [1, 2]})
+
+    async def _aquery_in(_sql, _col, values):
+        return Result.Ok(
+            [{"id": 1, "filepath": str(files[0])}, {"id": 2, "filepath": str(files[1])}]
+        )
+
+    monkeypatch.setattr(db, "aquery_in", _aquery_in)
+    monkeypatch.setattr(m, "_csrf_error", lambda _request: None)
+    monkeypatch.setattr(m, "_require_services", _svc_ok)
+    monkeypatch.setattr(m, "_resolve_security_prefs", _prefs)
+    monkeypatch.setattr(m, "_require_operation_enabled", lambda *_args, **_kwargs: Result.Ok({}))
+    monkeypatch.setattr(m, "_require_write_access", lambda _request: Result.Ok({}))
+    monkeypatch.setattr(m, "_check_rate_limit", lambda *_args, **_kwargs: (True, None))
+    monkeypatch.setattr(m, "_normalize_path", lambda v: Path(v) if v else None)
+    monkeypatch.setattr(m, "_is_path_allowed", lambda p: p != files[1])
+    monkeypatch.setattr(m, "_is_path_allowed_custom", lambda *_args, **_kwargs: False)
+    monkeypatch.setattr(m, "_is_resolved_path_allowed", lambda _p: True)
+    monkeypatch.setattr(m, "_read_json", _read_json_ok)
+
+    req = make_mocked_request("POST", "/mjr/am/assets/delete", app=app)
+    resp = await (await app.router.resolve(req)).handler(req)
+    payload = _json(resp)
+    assert payload.get("code") == "FORBIDDEN"
+    assert payload.get("error") == "Path for asset ID 2 is not within allowed roots"
+    assert payload.get("meta", {}).get("rejected_ids") == [2]
+
+
+@pytest.mark.asyncio
+async def test_assets_delete_bulk_forbidden_collects_all_rejected_ids(
+    monkeypatch, tmp_path: Path
+):
+    app = _app()
+
+    files = []
+    for i in [1, 2]:
+        p = tmp_path / f"{i}.png"
+        p.write_bytes(b"x")
+        files.append(p)
+
+    db = _DummyDB()
+
+    async def _svc_ok():
+        return {"db": db}, None
+
+    async def _prefs(_svc):
+        return {}
+
+    async def _read_json_ok(_request):
+        return Result.Ok({"ids": [1, 2]})
+
+    async def _aquery_in(_sql, _col, values):
+        return Result.Ok(
+            [{"id": 1, "filepath": str(files[0])}, {"id": 2, "filepath": str(files[1])}]
+        )
+
+    monkeypatch.setattr(db, "aquery_in", _aquery_in)
+    monkeypatch.setattr(m, "_csrf_error", lambda _request: None)
+    monkeypatch.setattr(m, "_require_services", _svc_ok)
+    monkeypatch.setattr(m, "_resolve_security_prefs", _prefs)
+    monkeypatch.setattr(m, "_require_operation_enabled", lambda *_args, **_kwargs: Result.Ok({}))
+    monkeypatch.setattr(m, "_require_write_access", lambda _request: Result.Ok({}))
+    monkeypatch.setattr(m, "_check_rate_limit", lambda *_args, **_kwargs: (True, None))
+    monkeypatch.setattr(m, "_normalize_path", lambda v: Path(v) if v else None)
+    monkeypatch.setattr(m, "_is_path_allowed", lambda _p: False)
+    monkeypatch.setattr(m, "_is_path_allowed_custom", lambda *_args, **_kwargs: False)
+    monkeypatch.setattr(m, "_is_resolved_path_allowed", lambda _p: True)
+    monkeypatch.setattr(m, "_read_json", _read_json_ok)
+
+    req = make_mocked_request("POST", "/mjr/am/assets/delete", app=app)
+    resp = await (await app.router.resolve(req)).handler(req)
+    payload = _json(resp)
+    assert payload.get("code") == "FORBIDDEN"
+    assert payload.get("error") == "Path for asset ID 1 is not within allowed roots"
+    assert payload.get("meta", {}).get("rejected_ids") == [1, 2]
+
+
+@pytest.mark.asyncio
 async def test_assets_delete_writes_audit_log(monkeypatch, tmp_path: Path):
     app = _app()
     calls = []

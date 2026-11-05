@@ -603,7 +603,7 @@ POST /mjr/am/assets/delete
 **Request Body**:
 ```json
 {
-  "asset_ids": ["asset_123", "asset_124", "asset_125"]
+  "ids": ["asset_123", "asset_124", "asset_125"]
 }
 ```
 
@@ -612,10 +612,23 @@ POST /mjr/am/assets/delete
 {
   "ok": true,
   "data": {
-    "deleted_count": 3,
-    "deleted_ids": ["asset_123", "asset_124", "asset_125"],
-    "failed": []
+    "deleted": 2,
+    "deleted_ids": ["asset_123", "asset_124"],
+    "failed_ids": ["asset_125"]
   }
+}
+```
+
+**Error Meta**: validation is all-or-nothing (nothing is deleted on rejection). Rejections carry the offending ids in `meta`:
+- `meta.missing_ids` — ids not found (`NOT_FOUND`).
+- `meta.rejected_ids` — ids rejected by path validation (`FORBIDDEN` / `INVALID_INPUT`).
+
+```json
+{
+  "ok": false,
+  "error": "Assets not found: [asset_125]",
+  "code": "NOT_FOUND",
+  "meta": { "missing_ids": ["asset_125"] }
 }
 ```
 
