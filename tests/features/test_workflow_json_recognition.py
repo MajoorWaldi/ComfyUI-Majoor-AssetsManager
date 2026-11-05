@@ -23,6 +23,7 @@ def _listed(root: Path) -> dict[str, dict]:
         roots=[root], query="", limit=100, offset=0, sort="name", subfolder=""
     )
     assert res.ok, res.error
+    assert res.data is not None
     return {f"{c['subfolder']}/{c['filename']}".lstrip("/"): c for c in res.data["assets"]}
 
 
