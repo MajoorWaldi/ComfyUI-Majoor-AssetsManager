@@ -2872,7 +2872,7 @@ function _o({ asset: e, card: t, gridContainer: n, panelState: r, pointerX: i, p
 			e?.ok ? Wa(n) : m(e?.error || L("toast.removeFromCollectionFailed"), "error");
 		}));
 	}
-	let y = !!(e?.id || Ma(e)), b = e?.id == null ? "" : String(e.id), x = u && s.size >= 2 && b && s.has(b) ? Array.from(s) : null, S = x ? L("ctx.setRatingN", "Set rating ({n} selected)", { n: x.length }) : L("ctx.setRating", "Set rating");
+	let y = !!(e?.id || Ma(e)), b = e?.id == null ? "" : String(e.id), x = u && s.size >= 2 && b && s.has(b) ? Array.from(s, String) : null, S = x ? L("ctx.setRatingN", "Set rating ({n} selected)", { n: x.length }) : L("ctx.setRating", "Set rating");
 	return f.push(Oa(), $(L("ctx.editTags", "Edit tags"), "pi pi-tags", fa("EDIT_TAGS"), () => {
 		vo(i + 6, a + 6, e, () => {
 			Ua(e, { tags: Array.isArray(e?.tags) ? [...e.tags] : [] });
