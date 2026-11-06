@@ -1,4 +1,5 @@
-import { $ as e, $t as t, B as n, Bn as r, Bt as i, Cn as a, Ct as o, Dt as s, Et as c, Fn as l, G as u, H as d, Ht as f, J as p, K as m, Kt as h, L as g, Mt as _, Nt as v, On as y, Pt as b, Qt as x, Rn as S, St as C, Tt as ee, U as te, Ut as w, V as ne, W as T, Wt as E, X as D, Y as O, Z as re, _n as ie, _t as ae, an as k, ar as A, bt as j, en as oe, et as se, gt as ce, hn as le, ht as ue, in as M, jt as de, k as fe, kt as pe, mt as me, n as N, nn as he, nt as ge, pr as _e, pt as ve, q as ye, rn as be, t as P, tn as xe, tt as Se, vt as Ce, wt as we, xn as Te, xt as Ee, yn as De, yt as Oe } from "./config-DuYSTOIQ.js";
+import { $ as e, $t as t, At as n, B as r, Ct as i, Dn as a, Et as o, G as s, Gt as c, H as l, Ht as u, I as d, J as f, K as p, Ln as m, Mt as h, Nt as g, O as _, Ot as v, Pn as y, Q as b, Qt as x, Sn as S, St as C, Tt as ee, U as te, Ut as w, V as ne, Vt as T, W as E, X as re, Y as D, Zt as ie, _t as ae, bn as O, bt as oe, en as k, et as A, fr as se, ft as ce, gn as le, gt as ue, ht as de, in as j, ir as fe, jt as pe, mn as me, mt as he, nn as ge, pt as _e, q as ve, rn as M, tn as ye, tt as be, vn as xe, vt as Se, wt as Ce, xt as we, yt as Te, z as Ee, zn as De, zt as Oe } from "./client-DV4Mk4LT.js";
+import { n as N, t as P } from "./config-BFDzOF1N.js";
 // ui/utils/events.ts
 function ke(e, t, { target: n = null, warnPrefix: r = "[Majoor]" } = {}) {
 	let i = n || (typeof window < "u" ? window : null);
@@ -386,14 +387,14 @@ var F = (e, t) => {
 	});
 }, He = () => {
 	try {
-		return Te()?.ui || null;
+		return O()?.ui || null;
 	} catch {
 		return null;
 	}
 }, Ue = () => {
 	let e = (e) => !!e && (typeof e.alert == "function" || typeof e.confirm == "function" || typeof e.prompt == "function");
 	try {
-		let t = ie();
+		let t = le();
 		if (e(t)) return t;
 	} catch (e) {
 		console.debug?.(e);
@@ -401,7 +402,7 @@ var F = (e, t) => {
 	return null;
 }, We = () => {
 	try {
-		let e = De();
+		let e = xe();
 		if (e) return e;
 	} catch (e) {
 		console.debug?.(e);
@@ -659,7 +660,7 @@ var F = (e, t) => {
 	}
 }, z = () => {
 	try {
-		let e = k.get(_e);
+		let e = j.get(se);
 		if (!e) return { ...R };
 		let t = JSON.parse(e), n = t && typeof t == "object" && Number.isInteger(t.version) && t.data && typeof t.data == "object";
 		if (!n && (!t || typeof t != "object" || Array.isArray(t))) return { ...R };
@@ -684,7 +685,7 @@ var F = (e, t) => {
 			version: 1,
 			data: t
 		};
-		if (!k.set("mjrSettings", JSON.stringify(n))) throw Error("SettingsStore rejected the write");
+		if (!j.set("mjrSettings", JSON.stringify(n))) throw Error("SettingsStore rejected the write");
 	} catch (e) {
 		console.warn("[Majoor] settings save failed", e);
 		try {
@@ -756,8 +757,8 @@ async function rt() {
 		if (!t || typeof t != "object") return;
 		let n = z();
 		if (n.security = n.security || {}, n.security.safeMode = F(t.safe_mode, n.security.safeMode), n.security.allowWrite = F(t.allow_write, n.security.allowWrite), n.security.requireAuth = F(t.require_auth, n.security.requireAuth), n.security.allowRemoteWrite = F(t.allow_remote_write, n.security.allowRemoteWrite), n.security.allowInsecureTokenTransport = F(t.allow_insecure_token_transport, n.security.allowInsecureTokenTransport), n.security.allowDelete = F(t.allow_delete, n.security.allowDelete), n.security.allowRename = F(t.allow_rename, n.security.allowRename), n.security.allowOpenInFolder = F(t.allow_open_in_folder, n.security.allowOpenInFolder), n.security.allowResetIndex = F(t.allow_reset_index, n.security.allowResetIndex), n.security.tokenConfigured = F(t.token_configured, n.security.tokenConfigured), n.security.tokenHint = String(t.token_hint || "").trim(), !String(n.security.apiToken || "").trim()) try {
-			let e = await fe(), t = String(e?.data?.token || "").trim();
-			e?.ok && t && w(t);
+			let e = await _(), t = String(e?.data?.token || "").trim();
+			e?.ok && t && u(t);
 		} catch (e) {
 			console.debug?.(e);
 		}
@@ -768,24 +769,24 @@ async function rt() {
 }
 async function it() {
 	try {
-		let t = await e();
-		if (!t?.ok) return;
-		let n = t.data?.prefs;
-		if (!n || typeof n != "object") return;
-		let r = z();
-		r.ai = r.ai || {}, r.ai.vectorSearchEnabled = F(n.enabled, r.ai.vectorSearchEnabled ?? !0), r.ai.vectorCaptionOnIndex = F(n.caption_on_index ?? n.captionOnIndex, r.ai.vectorCaptionOnIndex ?? !1), r.ai.vectorIndexOnScan = F(n.index_on_scan ?? n.indexOnScan, r.ai.vectorIndexOnScan ?? !1), r.ai.vectorUnloadAfterUse = F(n.unload_after_use ?? n.unloadAfterUse, r.ai.vectorUnloadAfterUse ?? !1), r.ai.vectorConcurrency = Math.max(1, Math.min(16, Math.floor(Number(n.concurrency ?? r.ai.vectorConcurrency ?? 1) || 1))), B(r), V(r), ke("mjr-settings-changed", { key: "ai.vectorSearch" }, { warnPrefix: "[Majoor]" });
+		let e = await b();
+		if (!e?.ok) return;
+		let t = e.data?.prefs;
+		if (!t || typeof t != "object") return;
+		let n = z();
+		n.ai = n.ai || {}, n.ai.vectorSearchEnabled = F(t.enabled, n.ai.vectorSearchEnabled ?? !0), n.ai.vectorCaptionOnIndex = F(t.caption_on_index ?? t.captionOnIndex, n.ai.vectorCaptionOnIndex ?? !1), n.ai.vectorIndexOnScan = F(t.index_on_scan ?? t.indexOnScan, n.ai.vectorIndexOnScan ?? !1), n.ai.vectorUnloadAfterUse = F(t.unload_after_use ?? t.unloadAfterUse, n.ai.vectorUnloadAfterUse ?? !1), n.ai.vectorConcurrency = Math.max(1, Math.min(16, Math.floor(Number(t.concurrency ?? n.ai.vectorConcurrency ?? 1) || 1))), B(n), V(n), ke("mjr-settings-changed", { key: "ai.vectorSearch" }, { warnPrefix: "[Majoor]" });
 	} catch (e) {
 		console.warn("[Majoor] failed to sync backend vector search settings", e);
 	}
 }
 async function at() {
 	try {
-		let e = await n();
+		let e = await Ee();
 		if (!e?.ok) return;
 		let t = e.data?.prefs;
 		if (!t || typeof t != "object") return;
-		let r = z();
-		r.executionGrouping = r.executionGrouping || {}, r.executionGrouping.enabled = F(t.enabled, r.executionGrouping.enabled ?? N.EXECUTION_GROUPING_ENABLED), B(r), V(r), ke("mjr-settings-changed", { key: "executionGrouping.enabled" }, { warnPrefix: "[Majoor]" });
+		let n = z();
+		n.executionGrouping = n.executionGrouping || {}, n.executionGrouping.enabled = F(t.enabled, n.executionGrouping.enabled ?? N.EXECUTION_GROUPING_ENABLED), B(n), V(n), ke("mjr-settings-changed", { key: "executionGrouping.enabled" }, { warnPrefix: "[Majoor]" });
 	} catch (e) {
 		console.warn("[Majoor] failed to sync backend execution grouping settings", e);
 	}
@@ -825,7 +826,7 @@ function dt(e, t) {
 	return r.style.whiteSpace = "nowrap", r.style.lineHeight = "1.35", t === "auth" && (r.style.marginTop = "4px", r.style.fontWeight = "600"), e.appendChild(r), e[n] = r, r;
 }
 function ft(e) {
-	let t = String(e?.token_hint || "").trim(), n = f(), r = t || (n ? "(session)" : ""), i = e?.allow_write !== !1, a = e?.require_auth === !0, o = e?.token_configured === !0;
+	let t = String(e?.token_hint || "").trim(), n = T(), r = t || (n ? "(session)" : ""), i = e?.allow_write !== !1, a = e?.require_auth === !0, o = e?.token_configured === !0;
 	return i ? n ? {
 		text: M("runtime.writeAuthActive", "Write auth: active {tokenHint}", { tokenHint: r || "(session)" }),
 		color: "#7ee0a0"
@@ -875,7 +876,7 @@ async function mt() {
 	if (!e) return !1;
 	let t = dt(e, "metrics"), n = dt(e, "auth");
 	try {
-		let [r, i] = await Promise.all([O(), D()]), a = M("runtime.unavailable", "Runtime: unavailable");
+		let [r, i] = await Promise.all([f(), D()]), a = M("runtime.unavailable", "Runtime: unavailable");
 		if (!r?.ok || !r?.data) t.textContent = a;
 		else {
 			let e = r.data.db || {}, n = r.data.index || {}, i = r.data.watcher || {}, o = Number(e.active_connections || 0), s = Number(n.enrichment_queue_length || 0), c = Number(i.pending_files || 0);
@@ -950,15 +951,15 @@ function wt() {
 }
 function Tt() {
 	let e = 0;
-	for (let t of y()) {
+	for (let t of a()) {
 		if (!Ct(t)) continue;
 		let n = String(t.id);
-		r(n) && (xt.set(n, t), e += 1);
+		De(n) && (xt.set(n, t), e += 1);
 	}
 	return e;
 }
 function Et() {
-	for (let [e, t] of [...xt.entries()]) (y().some((t) => String(t?.id || "") === e) || l(t)) && xt.delete(e);
+	for (let [e, t] of [...xt.entries()]) (a().some((t) => String(t?.id || "") === e) || y(t)) && xt.delete(e);
 }
 function Dt(e) {
 	if (bt = !!e, wt(), !bt) Et();
@@ -1426,10 +1427,10 @@ function Nt(e, t, n) {
 			let r = !!e, i = !!(t.browser?.showFolders ?? !1);
 			t.browser = t.browser || {}, t.browser.showFolders = r, B(t), V(t), n("browser.showFolders");
 			try {
-				let e = await me(r);
+				let e = await _e(r);
 				if (!e?.ok) throw Error(e?.error || "Failed to update show folders setting");
 			} catch (e) {
-				t.browser.showFolders = i, B(t), V(t), n("browser.showFolders"), E(e?.message || "Failed to update show folders setting", "error");
+				t.browser.showFolders = i, B(t), V(t), n("browser.showFolders"), w(e?.message || "Failed to update show folders setting", "error");
 			}
 		}
 	}), e({
@@ -1527,15 +1528,15 @@ function Nt(e, t, n) {
 			let r = !!e, i = !!t.viewer?.ltxavRgbFallback;
 			t.viewer = t.viewer || {}, t.viewer.ltxavRgbFallback = r, B(t), V(t), n("viewer.ltxavRgbFallback");
 			try {
-				let e = await j(r);
+				let e = await Te(r);
 				if (!e?.ok) throw Error(e?.error || "Failed to update LTXAV RGB preview fallback setting");
 			} catch (e) {
-				t.viewer.ltxavRgbFallback = i, B(t), V(t), n("viewer.ltxavRgbFallback"), E(e?.message || "Failed to update LTXAV RGB preview fallback setting", "error");
+				t.viewer.ltxavRgbFallback = i, B(t), V(t), n("viewer.ltxavRgbFallback"), w(e?.message || "Failed to update LTXAV RGB preview fallback setting", "error");
 			}
 		}
 	});
 	try {
-		u().then((e) => {
+		E().then((e) => {
 			if (!e?.ok) return;
 			let r = !!e?.data?.prefs?.enabled, i = z();
 			i.viewer = i.viewer || {}, !!i.viewer.ltxavRgbFallback !== r && (i.viewer.ltxavRgbFallback = r, Object.assign(t, i), B(i), V(i), n("viewer.ltxavRgbFallback"));
@@ -1559,236 +1560,236 @@ function Nt(e, t, n) {
 }
 // ui/app/settings/settingsScanning.ts
 var U = "Majoor", Pt = "Majoor Assets Manager";
-function Ft(e, t, n) {
-	let r = (e, t) => [
+function Ft(t, r, i) {
+	let a = (e, t) => [
 		Pt,
 		e,
 		t
 	];
-	e({
+	t({
 		id: `${U}.ExecutionGrouping.Enabled`,
-		category: r(M("cat.scanning"), "Execution grouping"),
+		category: a(M("cat.scanning"), "Execution grouping"),
 		name: "Execution job/stack grouping",
 		tooltip: "Enable or disable all live job_id / stack_id tracking, grouping, and stack finalization logic.",
 		type: "boolean",
-		defaultValue: !!(t.executionGrouping?.enabled ?? N.EXECUTION_GROUPING_ENABLED),
+		defaultValue: !!(r.executionGrouping?.enabled ?? N.EXECUTION_GROUPING_ENABLED),
 		onChange: async (e) => {
-			let r = !!(t.executionGrouping?.enabled ?? N.EXECUTION_GROUPING_ENABLED), i = !!e;
-			t.executionGrouping = t.executionGrouping || {}, t.executionGrouping.enabled = i, B(t), V(t), n("executionGrouping.enabled");
+			let t = !!(r.executionGrouping?.enabled ?? N.EXECUTION_GROUPING_ENABLED), n = !!e;
+			r.executionGrouping = r.executionGrouping || {}, r.executionGrouping.enabled = n, B(r), V(r), i("executionGrouping.enabled");
 			try {
-				let e = await ue(i);
+				let e = await he(n);
 				if (!e?.ok) throw Error(e?.error || "Failed to update execution grouping setting");
-				t.executionGrouping.enabled = !!e?.data?.prefs?.enabled, B(t), V(t), n("executionGrouping.enabled");
+				r.executionGrouping.enabled = !!e?.data?.prefs?.enabled, B(r), V(r), i("executionGrouping.enabled");
 			} catch (e) {
-				t.executionGrouping.enabled = r, B(t), V(t), n("executionGrouping.enabled"), E(e?.message || "Failed to update execution grouping setting", "error");
+				r.executionGrouping.enabled = t, B(r), V(r), i("executionGrouping.enabled"), w(e?.message || "Failed to update execution grouping setting", "error");
 			}
 		}
-	}), e({
+	}), t({
 		id: `${U}.AutoScan.OnStartup`,
-		category: r(M("cat.scanning"), M("setting.scan.startup.name").replace("Majoor: ", "")),
+		category: a(M("cat.scanning"), M("setting.scan.startup.name").replace("Majoor: ", "")),
 		name: M("setting.scan.startup.name"),
 		tooltip: M("setting.scan.startup.desc"),
 		type: "boolean",
-		defaultValue: !!t.autoScan?.onStartup,
+		defaultValue: !!r.autoScan?.onStartup,
 		onChange: (e) => {
-			t.autoScan = t.autoScan || {}, t.autoScan.onStartup = !!e, B(t), V(t), n("autoScan.onStartup");
+			r.autoScan = r.autoScan || {}, r.autoScan.onStartup = !!e, B(r), V(r), i("autoScan.onStartup");
 		}
-	}), e({
+	}), t({
 		id: `${U}.Scan.FastMode`,
-		category: r(M("cat.scanning"), "Scan mode"),
+		category: a(M("cat.scanning"), "Scan mode"),
 		name: "Fast scan mode",
 		tooltip: "Use fast scan mode for manual backfill scans (skip heavier metadata work during scan).",
 		type: "boolean",
-		defaultValue: !!(t.scan?.fastMode ?? !0),
+		defaultValue: !!(r.scan?.fastMode ?? !0),
 		onChange: (e) => {
-			t.scan = t.scan || {}, t.scan.fastMode = !!e, B(t), n("scan.fastMode");
+			r.scan = r.scan || {}, r.scan.fastMode = !!e, B(r), i("scan.fastMode");
 		}
-	}), e({
+	}), t({
 		id: `${U}.Scan.JpegXL`,
-		category: r(M("cat.scanning"), "Image formats"),
+		category: a(M("cat.scanning"), "Image formats"),
 		name: "JPEG XL (JXL) support (Experimental)",
 		tooltip: "Index and preview .jxl images. Preview generation requires JPEG XL support in Pillow or FFmpeg. Run a new scan after enabling.",
 		type: "boolean",
-		defaultValue: !!t.scan?.jxlEnabled,
+		defaultValue: !!r.scan?.jxlEnabled,
 		onChange: async (e) => {
-			let r = !!t.scan?.jxlEnabled, i = !!e;
-			t.scan = t.scan || {}, t.scan.jxlEnabled = i, B(t), n("scan.jxlEnabled");
+			let t = !!r.scan?.jxlEnabled, n = !!e;
+			r.scan = r.scan || {}, r.scan.jxlEnabled = n, B(r), i("scan.jxlEnabled");
 			try {
-				let e = await Oe(i);
+				let e = await Se(n);
 				if (!e?.ok) throw Error(e?.error || "Failed to update JPEG XL support");
 			} catch (e) {
-				t.scan.jxlEnabled = r, B(t), n("scan.jxlEnabled"), E(e?.message || "Failed to update JPEG XL support", "error");
+				r.scan.jxlEnabled = t, B(r), i("scan.jxlEnabled"), w(e?.message || "Failed to update JPEG XL support", "error");
 			}
 		}
-	}), T().then((e) => {
-		e?.ok && (t.scan = t.scan || {}, t.scan.jxlEnabled = !!e?.data?.prefs?.enabled, B(t), n("scan.jxlEnabled"));
-	}).catch(() => {}), e({
+	}), te().then((e) => {
+		e?.ok && (r.scan = r.scan || {}, r.scan.jxlEnabled = !!e?.data?.prefs?.enabled, B(r), i("scan.jxlEnabled"));
+	}).catch(() => {}), t({
 		id: `${U}.RtHydrate.Concurrency`,
-		category: r(M("cat.scanning"), "Hydration"),
+		category: a(M("cat.scanning"), "Hydration"),
 		name: "Hydrate Concurrency",
 		tooltip: "Maximum concurrent hydration requests for rating/tags.",
 		type: "number",
-		defaultValue: Number(t.rtHydrate?.concurrency || N.RT_HYDRATE_CONCURRENCY || 5),
+		defaultValue: Number(r.rtHydrate?.concurrency || N.RT_HYDRATE_CONCURRENCY || 5),
 		attrs: {
 			min: 1,
 			max: 20,
 			step: 1
 		},
 		onChange: (e) => {
-			t.rtHydrate = t.rtHydrate || {}, t.rtHydrate.concurrency = Math.max(1, Math.min(20, Math.round(I(e, N.RT_HYDRATE_CONCURRENCY || 5)))), B(t), V(t), n("rtHydrate.concurrency");
+			r.rtHydrate = r.rtHydrate || {}, r.rtHydrate.concurrency = Math.max(1, Math.min(20, Math.round(I(e, N.RT_HYDRATE_CONCURRENCY || 5)))), B(r), V(r), i("rtHydrate.concurrency");
 		}
 	});
-	let i = (e, t, n, r) => {
+	let o = (e, t, n, r) => {
 		let i = Math.round(I(e, t));
 		return Math.max(n, Math.min(r, i));
-	}, a = (e = {}) => {
-		let r = [];
-		if (t.watcher = t.watcher || {}, typeof e.debounce_ms == "number") {
+	}, s = (e = {}) => {
+		let t = [];
+		if (r.watcher = r.watcher || {}, typeof e.debounce_ms == "number") {
 			let n = Math.max(50, Math.min(5e3, Math.round(e.debounce_ms)));
-			t.watcher.debounceMs !== n && (t.watcher.debounceMs = n, r.push("watcher.debounceMs"));
+			r.watcher.debounceMs !== n && (r.watcher.debounceMs = n, t.push("watcher.debounceMs"));
 		}
 		if (typeof e.dedupe_ttl_ms == "number") {
 			let n = Math.max(100, Math.min(3e4, Math.round(e.dedupe_ttl_ms)));
-			t.watcher.dedupeTtlMs !== n && (t.watcher.dedupeTtlMs = n, r.push("watcher.dedupeTtlMs"));
+			r.watcher.dedupeTtlMs !== n && (r.watcher.dedupeTtlMs = n, t.push("watcher.dedupeTtlMs"));
 		}
-		r.length && (B(t), r.forEach((e) => n(e)));
-	}, o = async () => {
+		t.length && (B(r), t.forEach((e) => i(e)));
+	}, c = async () => {
 		try {
-			let e = await se();
-			if (!e?.ok) return;
-			a(e.data || {});
+			let t = await e();
+			if (!t?.ok) return;
+			s(t.data || {});
 		} catch (e) {
 			console.debug?.(e);
 		}
 	};
-	e({
+	t({
 		id: `${U}.Watcher.Enabled`,
-		category: r(M("cat.scanning"), M("setting.watcher.enabled.label", "Enable watcher")),
+		category: a(M("cat.scanning"), M("setting.watcher.enabled.label", "Enable watcher")),
 		name: M("setting.watcher.name"),
 		tooltip: M("setting.watcher.desc") + " (env: MJR_ENABLE_WATCHER)",
 		type: "boolean",
-		defaultValue: !!t.watcher?.enabled,
+		defaultValue: !!r.watcher?.enabled,
 		onChange: async (e) => {
-			t.watcher = t.watcher || {}, t.watcher.enabled = !!e, B(t), n("watcher.enabled");
+			r.watcher = r.watcher || {}, r.watcher.enabled = !!e, B(r), i("watcher.enabled");
 			try {
-				let r = await de(!!e);
-				r?.ok || (t.watcher.enabled = !e, B(t), n("watcher.enabled"), E(r?.error || M("toast.failedToggleWatcher", "Failed to toggle watcher"), "error"));
+				let t = await n(!!e);
+				t?.ok || (r.watcher.enabled = !e, B(r), i("watcher.enabled"), w(t?.error || M("toast.failedToggleWatcher", "Failed to toggle watcher"), "error"));
 			} catch {
-				t.watcher.enabled = !e, B(t), n("watcher.enabled");
+				r.watcher.enabled = !e, B(r), i("watcher.enabled");
 			}
 		}
-	}), e({
+	}), t({
 		id: `${U}.Watcher.DebounceDelay`,
-		category: r(M("cat.scanning"), M("setting.watcher.debounce.label", "Watcher debounce delay")),
+		category: a(M("cat.scanning"), M("setting.watcher.debounce.label", "Watcher debounce delay")),
 		name: M("setting.watcher.debounce.name"),
 		tooltip: M("setting.watcher.debounce.desc") + " (env: MJR_WATCHER_DEBOUNCE_MS)",
 		type: "number",
-		defaultValue: t.watcher?.debounceMs ?? N.WATCHER_DEBOUNCE_MS,
+		defaultValue: r.watcher?.debounceMs ?? N.WATCHER_DEBOUNCE_MS,
 		attrs: {
 			min: 50,
 			max: 6e4,
 			step: 50
 		},
 		onChange: async (e) => {
-			let r = N.WATCHER_DEBOUNCE_MS, a = i(e, r, 50, 6e4), o = t.watcher?.debounceMs ?? r;
-			if (a !== o) {
-				t.watcher = t.watcher || {}, t.watcher.debounceMs = a, B(t);
+			let t = N.WATCHER_DEBOUNCE_MS, n = o(e, t, 50, 6e4), a = r.watcher?.debounceMs ?? t;
+			if (n !== a) {
+				r.watcher = r.watcher || {}, r.watcher.debounceMs = n, B(r);
 				try {
-					let e = await v({ debounce_ms: a });
+					let e = await h({ debounce_ms: n });
 					if (!e?.ok) throw Error(e?.error || M("setting.watcher.debounce.error"));
-					let r = Math.round(Number(e?.data?.debounce_ms ?? a));
-					t.watcher.debounceMs = r, B(t), n("watcher.debounceMs");
+					let t = Math.round(Number(e?.data?.debounce_ms ?? n));
+					r.watcher.debounceMs = t, B(r), i("watcher.debounceMs");
 				} catch (e) {
-					t.watcher.debounceMs = o, B(t), n("watcher.debounceMs"), E(e?.message || M("setting.watcher.debounce.error"), "error");
+					r.watcher.debounceMs = a, B(r), i("watcher.debounceMs"), w(e?.message || M("setting.watcher.debounce.error"), "error");
 				}
 			}
 		}
-	}), e({
+	}), t({
 		id: `${U}.Watcher.DedupeWindow`,
-		category: r(M("cat.scanning"), M("setting.watcher.dedupe.label", "Watcher dedupe window")),
+		category: a(M("cat.scanning"), M("setting.watcher.dedupe.label", "Watcher dedupe window")),
 		name: M("setting.watcher.dedupe.name"),
 		tooltip: M("setting.watcher.dedupe.desc") + " (env: MJR_WATCHER_DEDUPE_TTL_MS)",
 		type: "number",
-		defaultValue: t.watcher?.dedupeTtlMs ?? N.WATCHER_DEDUPE_TTL_MS,
+		defaultValue: r.watcher?.dedupeTtlMs ?? N.WATCHER_DEDUPE_TTL_MS,
 		attrs: {
 			min: 100,
 			max: 12e4,
 			step: 100
 		},
 		onChange: async (e) => {
-			let r = N.WATCHER_DEDUPE_TTL_MS, a = i(e, r, 100, 12e4), o = t.watcher?.dedupeTtlMs ?? r;
-			if (a !== o) {
-				t.watcher = t.watcher || {}, t.watcher.dedupeTtlMs = a, B(t);
+			let t = N.WATCHER_DEDUPE_TTL_MS, n = o(e, t, 100, 12e4), a = r.watcher?.dedupeTtlMs ?? t;
+			if (n !== a) {
+				r.watcher = r.watcher || {}, r.watcher.dedupeTtlMs = n, B(r);
 				try {
-					let e = await v({ dedupe_ttl_ms: a });
+					let e = await h({ dedupe_ttl_ms: n });
 					if (!e?.ok) throw Error(e?.error || M("setting.watcher.dedupe.error"));
-					let r = Math.round(Number(e?.data?.dedupe_ttl_ms ?? a));
-					t.watcher.dedupeTtlMs = r, B(t), n("watcher.dedupeTtlMs");
+					let t = Math.round(Number(e?.data?.dedupe_ttl_ms ?? n));
+					r.watcher.dedupeTtlMs = t, B(r), i("watcher.dedupeTtlMs");
 				} catch (e) {
-					t.watcher.dedupeTtlMs = o, B(t), n("watcher.dedupeTtlMs"), E(e?.message || M("setting.watcher.dedupe.error"), "error");
+					r.watcher.dedupeTtlMs = a, B(r), i("watcher.dedupeTtlMs"), w(e?.message || M("setting.watcher.dedupe.error"), "error");
 				}
 			}
 		}
-	}), e({
+	}), t({
 		id: `${U}.Watcher.MaxPending`,
-		category: r(M("cat.scanning"), "Watcher queue"),
+		category: a(M("cat.scanning"), "Watcher queue"),
 		name: "Watcher: max pending files",
 		tooltip: "Maximum number of pending watcher files kept in memory.",
 		type: "number",
-		defaultValue: Number(t.watcher?.maxPending ?? 500),
+		defaultValue: Number(r.watcher?.maxPending ?? 500),
 		attrs: {
 			min: 10,
 			max: 5e3,
 			step: 10
 		},
 		onChange: (e) => {
-			t.watcher = t.watcher || {}, t.watcher.maxPending = Math.max(10, Math.min(5e3, Math.round(I(e, 500)))), B(t), V(t), n("watcher.maxPending");
+			r.watcher = r.watcher || {}, r.watcher.maxPending = Math.max(10, Math.min(5e3, Math.round(I(e, 500)))), B(r), V(r), i("watcher.maxPending");
 		}
-	}), e({
+	}), t({
 		id: `${U}.Watcher.MinSize`,
-		category: r(M("cat.scanning"), "Watcher file size"),
+		category: a(M("cat.scanning"), "Watcher file size"),
 		name: "Watcher: min size (bytes)",
 		tooltip: "Minimum file size indexed by watcher.",
 		type: "number",
-		defaultValue: Number(t.watcher?.minSize ?? 100),
+		defaultValue: Number(r.watcher?.minSize ?? 100),
 		attrs: {
 			min: 0,
 			max: 1e6,
 			step: 100
 		},
 		onChange: (e) => {
-			t.watcher = t.watcher || {}, t.watcher.minSize = Math.max(0, Math.min(1e6, Math.round(I(e, 100)))), B(t), V(t), n("watcher.minSize");
+			r.watcher = r.watcher || {}, r.watcher.minSize = Math.max(0, Math.min(1e6, Math.round(I(e, 100)))), B(r), V(r), i("watcher.minSize");
 		}
-	}), e({
+	}), t({
 		id: `${U}.Watcher.MaxSize`,
-		category: r(M("cat.scanning"), "Watcher file size"),
+		category: a(M("cat.scanning"), "Watcher file size"),
 		name: "Watcher: max size (bytes)",
 		tooltip: "Maximum file size indexed by watcher.",
 		type: "number",
-		defaultValue: Number(t.watcher?.maxSize ?? 4294967296),
+		defaultValue: Number(r.watcher?.maxSize ?? 4294967296),
 		attrs: {
 			min: 1e5,
 			max: 17179869184,
 			step: 1e5
 		},
 		onChange: (e) => {
-			t.watcher = t.watcher || {}, t.watcher.maxSize = Math.max(1e5, Math.min(17179869184, Math.round(I(e, 4294967296)))), B(t), V(t), n("watcher.maxSize");
+			r.watcher = r.watcher || {}, r.watcher.maxSize = Math.max(1e5, Math.min(17179869184, Math.round(I(e, 4294967296)))), B(r), V(r), i("watcher.maxSize");
 		}
 	});
 	try {
-		o().catch(() => {});
+		c().catch(() => {});
 	} catch (e) {
 		console.debug?.(e);
 	}
-	e({
+	t({
 		id: `${U}.RatingTagsSync.Enabled`,
-		category: r(M("cat.scanning"), M("setting.sync.rating.name").replace("Majoor: ", "")),
+		category: a(M("cat.scanning"), M("setting.sync.rating.name").replace("Majoor: ", "")),
 		name: M("setting.sync.rating.name"),
 		tooltip: M("setting.sync.rating.desc"),
 		type: "boolean",
-		defaultValue: !!t.ratingTagsSync?.enabled,
+		defaultValue: !!r.ratingTagsSync?.enabled,
 		onChange: (e) => {
-			t.ratingTagsSync = t.ratingTagsSync || {}, t.ratingTagsSync.enabled = !!e, B(t), n("ratingTagsSync.enabled");
+			r.ratingTagsSync = r.ratingTagsSync || {}, r.ratingTagsSync.enabled = !!e, B(r), i("ratingTagsSync.enabled");
 		}
 	});
 }
@@ -1981,7 +1982,7 @@ function en(e) {
 	};
 }
 function tn(e) {
-	return ee(en(e));
+	return Ce(en(e));
 }
 function nn(e) {
 	let t = String(e?.security?.tokenHint || "").trim();
@@ -2043,15 +2044,15 @@ function rn(e, t, n) {
 			try {
 				r = $t(t.security);
 			} catch (e) {
-				E(e?.message || M("toast.remoteLanPresetFailed", "Failed to apply the recommended remote LAN setup."), "error");
+				w(e?.message || M("toast.remoteLanPresetFailed", "Failed to apply the recommended remote LAN setup."), "error");
 				return;
 			}
-			Object.assign(t.security, r), t.security.tokenConfigured = !0, t.security.tokenHint = String(r.apiToken || "").trim() ? `...${String(r.apiToken).trim().slice(-4)}` : "", r.apiToken && w(r.apiToken), B(t), n("security.remoteLanPreset"), n("security.apiToken"), n("security.allowWrite"), n("security.requireAuth"), n("security.allowRemoteWrite"), n("security.allowInsecureTokenTransport");
+			Object.assign(t.security, r), t.security.tokenConfigured = !0, t.security.tokenHint = String(r.apiToken || "").trim() ? `...${String(r.apiToken).trim().slice(-4)}` : "", r.apiToken && u(r.apiToken), B(t), n("security.remoteLanPreset"), n("security.apiToken"), n("security.allowWrite"), n("security.requireAuth"), n("security.allowRemoteWrite"), n("security.allowInsecureTokenTransport");
 			try {
 				tn(t.security).then((e) => {
-					e?.ok && e.data?.prefs ? (rt(), E(M("toast.remoteLanPresetApplied", "Recommended remote LAN setup applied. This browser session is now authorized for Majoor write operations."), "success")) : e && e.ok === !1 && (E(e.error || M("toast.remoteLanPresetFailed", "Failed to apply the recommended remote LAN setup."), "error"), console.warn("[Majoor] backend remote LAN preset update failed", e.error || e));
+					e?.ok && e.data?.prefs ? (rt(), w(M("toast.remoteLanPresetApplied", "Recommended remote LAN setup applied. This browser session is now authorized for Majoor write operations."), "success")) : e && e.ok === !1 && (w(e.error || M("toast.remoteLanPresetFailed", "Failed to apply the recommended remote LAN setup."), "error"), console.warn("[Majoor] backend remote LAN preset update failed", e.error || e));
 				}).catch((e) => {
-					E(e?.message || M("toast.remoteLanPresetFailed", "Failed to apply the recommended remote LAN setup."), "error");
+					w(e?.message || M("toast.remoteLanPresetFailed", "Failed to apply the recommended remote LAN setup."), "error");
 				});
 			} catch (e) {
 				console.debug?.(e);
@@ -2068,8 +2069,8 @@ function rn(e, t, n) {
 		onChange: (e) => {
 			t.security = t.security || {};
 			let r = Gt(e);
-			if (Gt(t.security.apiToken) !== r && (t.security.apiToken = r, t.security.apiToken && (t.security.tokenConfigured = !0, t.security.tokenHint = `...${t.security.apiToken.slice(-4)}`, w(t.security.apiToken)), B(t), n("security.apiToken"), t.security.apiToken)) try {
-				ee({ api_token: t.security.apiToken }).then((e) => {
+			if (Gt(t.security.apiToken) !== r && (t.security.apiToken = r, t.security.apiToken && (t.security.tokenConfigured = !0, t.security.tokenHint = `...${t.security.apiToken.slice(-4)}`, u(t.security.apiToken)), B(t), n("security.apiToken"), t.security.apiToken)) try {
+				Ce({ api_token: t.security.apiToken }).then((e) => {
 					e?.ok && e.data?.prefs ? rt() : e && e.ok === !1 && console.warn("[Majoor] backend token update failed", e.error || e);
 				}).catch(() => {});
 			} catch (e) {
@@ -2080,15 +2081,15 @@ function rn(e, t, n) {
 }
 // ui/app/settings/settingsAdvanced.ts
 var W = "Majoor", an = "Majoor Assets Manager";
-function on(e, n, r, a) {
-	let s = (e, t) => [
+function on(e, n, a, o) {
+	let u = (e, t) => [
 		an,
 		e,
 		t
-	], l = String(n.paths?.outputDirectory || ""), u = null, f = 0, _ = null;
+	], f = String(n.paths?.outputDirectory || ""), h = null, _ = 0, y = null;
 	e({
 		id: `${W}.Paths.OutputDirectory`,
-		category: s(M("cat.advanced"), "Paths / Output"),
+		category: u(M("cat.advanced"), "Paths / Output"),
 		name: "Majoor: Generation Output Directory",
 		tooltip: "Override the ComfyUI generation output directory used by Majoor (equivalent to --output-directory). Leave empty to keep the current backend default.",
 		type: "text",
@@ -2098,47 +2099,47 @@ function on(e, n, r, a) {
 			let t = String(e || "").trim();
 			n.paths = n.paths || {}, n.paths.outputDirectory = t, B(n);
 			try {
-				u &&= (clearTimeout(u), null);
+				h &&= (clearTimeout(h), null);
 			} catch (e) {
 				console.debug?.(e);
 			}
-			u = setTimeout(async () => {
-				u = null;
-				let e = ++f;
+			h = setTimeout(async () => {
+				h = null;
+				let e = ++_;
 				try {
-					_?.abort?.();
+					y?.abort?.();
 				} catch (e) {
 					console.debug?.(e);
 				}
-				_ = typeof AbortController < "u" ? new AbortController() : null;
+				y = typeof AbortController < "u" ? new AbortController() : null;
 				try {
-					let i = await C(t, _ ? { signal: _.signal } : {});
-					if (e !== f) return;
-					if (!i?.ok) throw Error(i?.error || M("toast.failedSetOutputDirectory", "Failed to set output directory"));
-					let a = String(i?.data?.output_directory || t).trim();
-					n.paths.outputDirectory = a, l = a, B(n), r("paths.outputDirectory");
+					let r = await we(t, y ? { signal: y.signal } : {});
+					if (e !== _) return;
+					if (!r?.ok) throw Error(r?.error || M("toast.failedSetOutputDirectory", "Failed to set output directory"));
+					let i = String(r?.data?.output_directory || t).trim();
+					n.paths.outputDirectory = i, f = i, B(n), a("paths.outputDirectory");
 				} catch (t) {
-					if (e !== f || String(t?.name || "") === "AbortError" || String(t?.code || "") === "ABORTED") return;
-					n.paths.outputDirectory = l, B(n), r("paths.outputDirectory"), E(t?.message || M("toast.failedSetOutputDirectory", "Failed to set output directory"), "error");
+					if (e !== _ || String(t?.name || "") === "AbortError" || String(t?.code || "") === "ABORTED") return;
+					n.paths.outputDirectory = f, B(n), a("paths.outputDirectory"), w(t?.message || M("toast.failedSetOutputDirectory", "Failed to set output directory"), "error");
 				}
 			}, 700);
 		}
 	});
 	try {
-		ye().then((e) => {
+		p().then((e) => {
 			if (!e?.ok) return;
 			let t = String(e?.data?.output_directory || "").trim();
-			n.paths = n.paths || {}, n.paths.outputDirectory !== t && (n.paths.outputDirectory = t, l = t, B(n), r("paths.outputDirectory"));
+			n.paths = n.paths || {}, n.paths.outputDirectory !== t && (n.paths.outputDirectory = t, f = t, B(n), a("paths.outputDirectory"));
 		}).catch(() => {});
 	} catch (e) {
 		console.debug?.(e);
 	}
-	let v = String(n.paths?.inputDirectory || ""), y = null, ee = 0, w = null, T = (e) => {
-		n.paths = n.paths || {}, n.paths.inputDirectory = e, B(n), S(a, `${W}.Paths.InputDirectory`, e), r("paths.inputDirectory");
+	let b = String(n.paths?.inputDirectory || ""), S = null, te = 0, T = null, E = (e) => {
+		n.paths = n.paths || {}, n.paths.inputDirectory = e, B(n), m(o, `${W}.Paths.InputDirectory`, e), a("paths.inputDirectory");
 	};
 	e({
 		id: `${W}.Paths.InputDirectory`,
-		category: s(M("cat.advanced"), "Paths / Input"),
+		category: u(M("cat.advanced"), "Paths / Input"),
 		name: "Majoor: Input Directory",
 		tooltip: "Override the folder indexed by the Inputs tab. Leave empty to use ComfyUI's input directory (--input-directory). Run a scan after changing it.",
 		type: "text",
@@ -2147,36 +2148,36 @@ function on(e, n, r, a) {
 		onChange: (e) => {
 			let t = String(e || "").trim();
 			if (t === String(n.paths?.inputDirectory || "")) return;
-			n.paths = n.paths || {}, n.paths.inputDirectory = t, B(n), y && clearTimeout(y);
-			let r = ++ee;
-			w?.abort(), y = setTimeout(async () => {
-				y = null, w = typeof AbortController < "u" ? new AbortController() : null;
+			n.paths = n.paths || {}, n.paths.inputDirectory = t, B(n), S && clearTimeout(S);
+			let r = ++te;
+			T?.abort(), S = setTimeout(async () => {
+				S = null, T = typeof AbortController < "u" ? new AbortController() : null;
 				try {
-					let e = await Ce(t, w ? { signal: w.signal } : {});
-					if (r !== ee) return;
+					let e = await ae(t, T ? { signal: T.signal } : {});
+					if (r !== te) return;
 					if (!e?.ok) throw Error(e?.error || "Failed to set input directory");
 					let n = String(e?.data?.input_directory ?? t).trim();
-					v = n, T(n);
+					b = n, E(n);
 				} catch (e) {
-					if (r !== ee || e?.name === "AbortError" || e?.code === "ABORTED") return;
-					T(v), E(e?.message || "Failed to set input directory", "error");
+					if (r !== te || e?.name === "AbortError" || e?.code === "ABORTED") return;
+					E(b), w(e?.message || "Failed to set input directory", "error");
 				}
 			}, 700);
 		}
 	});
 	try {
-		te().then((e) => {
-			if (!e?.ok || ee !== 0) return;
+		l().then((e) => {
+			if (!e?.ok || te !== 0) return;
 			let t = String(e?.data?.input_directory || "").trim();
-			v = t, T(t);
+			b = t, E(t);
 		}).catch(() => {});
 	} catch (e) {
 		console.debug?.(e);
 	}
-	let D = String(n.paths?.indexDirectory || ""), O = null, ie = 0, k = null;
+	let D = String(n.paths?.indexDirectory || ""), O = null, A = 0, se = null;
 	e({
 		id: `${W}.Paths.IndexDirectory`,
-		category: s(M("cat.advanced"), "Paths / Index"),
+		category: u(M("cat.advanced"), "Paths / Index"),
 		name: "Majoor: Index Database Directory",
 		tooltip: "Override the Majoor index database directory. Use this to keep the SQLite index on a different local disk. Requires restart.",
 		type: "text",
@@ -2192,39 +2193,39 @@ function on(e, n, r, a) {
 			}
 			O = setTimeout(async () => {
 				O = null;
-				let e = ++ie;
+				let e = ++A;
 				try {
-					k?.abort?.();
+					se?.abort?.();
 				} catch (e) {
 					console.debug?.(e);
 				}
-				k = typeof AbortController < "u" ? new AbortController() : null;
+				se = typeof AbortController < "u" ? new AbortController() : null;
 				try {
-					let i = await ae(t, k ? { signal: k.signal } : {});
-					if (e !== ie) return;
-					if (!i?.ok) throw Error(i?.error || M("toast.failedSetIndexDirectory", "Failed to set index directory"));
-					let a = String(i?.data?.index_directory || t).trim(), o = a !== D;
-					n.paths.indexDirectory = a, D = a, B(n), r("paths.indexDirectory"), o && E(M("toast.indexDirectorySavedRestart", "Index directory saved. Restart ComfyUI to apply."), "success", void 0, { history: { trackId: "settings:index-directory-saved" } });
+					let r = await ue(t, se ? { signal: se.signal } : {});
+					if (e !== A) return;
+					if (!r?.ok) throw Error(r?.error || M("toast.failedSetIndexDirectory", "Failed to set index directory"));
+					let i = String(r?.data?.index_directory || t).trim(), o = i !== D;
+					n.paths.indexDirectory = i, D = i, B(n), a("paths.indexDirectory"), o && w(M("toast.indexDirectorySavedRestart", "Index directory saved. Restart ComfyUI to apply."), "success", void 0, { history: { trackId: "settings:index-directory-saved" } });
 				} catch (t) {
-					if (e !== ie || String(t?.name || "") === "AbortError" || String(t?.code || "") === "ABORTED") return;
-					n.paths.indexDirectory = D, B(n), r("paths.indexDirectory"), E(t?.message || M("toast.failedSetIndexDirectory", "Failed to set index directory"), "error");
+					if (e !== A || String(t?.name || "") === "AbortError" || String(t?.code || "") === "ABORTED") return;
+					n.paths.indexDirectory = D, B(n), a("paths.indexDirectory"), w(t?.message || M("toast.failedSetIndexDirectory", "Failed to set index directory"), "error");
 				}
 			}, 700);
 		}
 	});
 	try {
-		d().then((e) => {
+		ne().then((e) => {
 			if (!e?.ok) return;
 			let t = String(e?.data?.index_directory || "").trim();
-			n.paths = n.paths || {}, n.paths.indexDirectory !== t && (n.paths.indexDirectory = t, D = t, B(n), r("paths.indexDirectory"));
+			n.paths = n.paths || {}, n.paths.indexDirectory !== t && (n.paths.indexDirectory = t, D = t, B(n), a("paths.indexDirectory"));
 		}).catch(() => {});
 	} catch (e) {
 		console.debug?.(e);
 	}
-	let A = String(n.paths?.workflowRoots || ""), j = null, se = 0, le = null;
+	let le = String(n.paths?.workflowRoots || ""), j = null, fe = 0, pe = null;
 	e({
 		id: `${W}.Paths.WorkflowRoots`,
-		category: s(M("cat.advanced"), "Paths / Workflows"),
+		category: u(M("cat.advanced"), "Paths / Workflows"),
 		name: "Majoor: Workflow Roots",
 		tooltip: "Folders scanned by the Workflow tab. Use one folder per line, or separate folders with semicolons. Leave empty to use ComfyUI defaults and MJR_AM_WORKFLOW_DIRECTORY.",
 		type: "text",
@@ -2240,50 +2241,50 @@ function on(e, n, r, a) {
 			}
 			j = setTimeout(async () => {
 				j = null;
-				let e = ++se;
+				let e = ++fe;
 				try {
-					le?.abort?.();
+					pe?.abort?.();
 				} catch (e) {
 					console.debug?.(e);
 				}
-				le = typeof AbortController < "u" ? new AbortController() : null;
+				pe = typeof AbortController < "u" ? new AbortController() : null;
 				try {
-					let i = await pe(t, le ? { signal: le.signal } : {});
-					if (e !== se) return;
-					if (!i?.ok) throw Error(i?.error || M("toast.failedSetWorkflowRoots", "Failed to set workflow roots"));
-					let a = String(i?.data?.workflow_roots_text || t).trim();
-					n.paths.workflowRoots = a, A = a, B(n), r("paths.workflowRoots"), E(M("toast.workflowRootsSaved", "Workflow roots saved"), "success", 1800);
+					let r = await v(t, pe ? { signal: pe.signal } : {});
+					if (e !== fe) return;
+					if (!r?.ok) throw Error(r?.error || M("toast.failedSetWorkflowRoots", "Failed to set workflow roots"));
+					let i = String(r?.data?.workflow_roots_text || t).trim();
+					n.paths.workflowRoots = i, le = i, B(n), a("paths.workflowRoots"), w(M("toast.workflowRootsSaved", "Workflow roots saved"), "success", 1800);
 				} catch (t) {
-					if (e !== se || String(t?.name || "") === "AbortError" || String(t?.code || "") === "ABORTED") return;
-					n.paths.workflowRoots = A, B(n), r("paths.workflowRoots"), E(t?.message || M("toast.failedSetWorkflowRoots", "Failed to set workflow roots"), "error");
+					if (e !== fe || String(t?.name || "") === "AbortError" || String(t?.code || "") === "ABORTED") return;
+					n.paths.workflowRoots = le, B(n), a("paths.workflowRoots"), w(t?.message || M("toast.failedSetWorkflowRoots", "Failed to set workflow roots"), "error");
 				}
 			}, 700);
 		}
 	});
 	try {
-		ge().then((e) => {
+		be().then((e) => {
 			if (!e?.ok) return;
 			let t = String(e?.data?.workflow_roots_text || "").trim();
-			n.paths = n.paths || {}, n.paths.workflowRoots !== t && (n.paths.workflowRoots = t, A = t, B(n), r("paths.workflowRoots"));
+			n.paths = n.paths || {}, n.paths.workflowRoots !== t && (n.paths.workflowRoots = t, le = t, B(n), a("paths.workflowRoots"));
 		}).catch(() => {});
 	} catch (e) {
 		console.debug?.(e);
 	}
-	let ue = t().map((e) => e.code), de = ["auto", ...ue];
+	let me = x().map((e) => e.code), he = ["auto", ...me];
 	e({
 		id: `${W}.Language`,
-		category: s(M("cat.advanced"), M("setting.language.name", "Language")),
+		category: u(M("cat.advanced"), M("setting.language.name", "Language")),
 		name: M("setting.language.name", "Majoor: Language"),
 		tooltip: "Use auto to detect and follow ComfyUI language. Or choose a fixed language for Majoor only.",
 		type: "combo",
-		defaultValue: n.i18n?.followComfyLanguage ? "auto" : x(),
-		options: de,
+		defaultValue: n.i18n?.followComfyLanguage ? "auto" : ie(),
+		options: he,
 		onChange: (e) => {
-			n.i18n = n.i18n || {}, e === "auto" ? (n.i18n.followComfyLanguage = !0, xe(!0), oe(a), B(n), r("language")) : ue.includes(e) && (n.i18n.followComfyLanguage = !1, xe(!1), he(e), B(n), r("language"));
+			n.i18n = n.i18n || {}, e === "auto" ? (n.i18n.followComfyLanguage = !0, k(!0), t(o), B(n), a("language")) : me.includes(e) && (n.i18n.followComfyLanguage = !1, k(!1), ye(e), B(n), a("language"));
 		}
 	}), e({
 		id: `${W}.ProbeBackend.Mode`,
-		category: s(M("cat.advanced"), M("setting.probe.mode.name").replace("Majoor: ", "")),
+		category: u(M("cat.advanced"), M("setting.probe.mode.name").replace("Majoor: ", "")),
 		name: M("setting.probe.mode.name"),
 		tooltip: M("setting.probe.mode.desc") + " (env: MAJOOR_MEDIA_PROBE_BACKEND)",
 		type: "combo",
@@ -2301,63 +2302,63 @@ function on(e, n, r, a) {
 				"ffprobe",
 				"both"
 			], R.probeBackend.mode);
-			n.probeBackend = n.probeBackend || {}, n.probeBackend.mode = t, B(n), V(n), r("probeBackend.mode"), o(t).catch(() => {});
+			n.probeBackend = n.probeBackend || {}, n.probeBackend.mode = t, B(n), V(n), a("probeBackend.mode"), C(t).catch(() => {});
 		}
 	}), e({
 		id: `${W}.MetadataFallback.Image`,
-		category: s(M("cat.advanced"), "Metadata"),
+		category: u(M("cat.advanced"), "Metadata"),
 		name: "Majoor: Metadata Fallback (Images)",
 		tooltip: "Enable Pillow fallback when ExifTool is missing or fails.",
 		type: "boolean",
 		defaultValue: n.metadataFallback?.image ?? R.metadataFallback.image,
 		onChange: async (e) => {
-			let t = !!e, i = !!(n.metadataFallback?.image ?? R.metadataFallback.image);
-			n.metadataFallback = n.metadataFallback || {}, n.metadataFallback.image = t, B(n), r("metadataFallback.image");
+			let t = !!e, r = !!(n.metadataFallback?.image ?? R.metadataFallback.image);
+			n.metadataFallback = n.metadataFallback || {}, n.metadataFallback.image = t, B(n), a("metadataFallback.image");
 			try {
-				let e = await Ee({
+				let e = await oe({
 					image: t,
 					media: n.metadataFallback?.media ?? R.metadataFallback.media
 				});
 				if (!e?.ok) throw Error(e?.error || M("toast.failedUpdateMetadataFallback", "Failed to update metadata fallback settings"));
 			} catch (e) {
-				n.metadataFallback.image = i, B(n), r("metadataFallback.image"), E(e?.message || M("toast.failedUpdateMetadataFallback", "Failed to update metadata fallback settings"), "error");
+				n.metadataFallback.image = r, B(n), a("metadataFallback.image"), w(e?.message || M("toast.failedUpdateMetadataFallback", "Failed to update metadata fallback settings"), "error");
 			}
 		}
 	}), e({
 		id: `${W}.MetadataFallback.Media`,
-		category: s(M("cat.advanced"), "Metadata"),
+		category: u(M("cat.advanced"), "Metadata"),
 		name: "Majoor: Metadata Fallback (Audio/Video)",
 		tooltip: "Enable hachoir fallback when ffprobe is missing or fails.",
 		type: "boolean",
 		defaultValue: n.metadataFallback?.media ?? R.metadataFallback.media,
 		onChange: async (e) => {
-			let t = !!e, i = !!(n.metadataFallback?.media ?? R.metadataFallback.media);
-			n.metadataFallback = n.metadataFallback || {}, n.metadataFallback.media = t, B(n), r("metadataFallback.media");
+			let t = !!e, r = !!(n.metadataFallback?.media ?? R.metadataFallback.media);
+			n.metadataFallback = n.metadataFallback || {}, n.metadataFallback.media = t, B(n), a("metadataFallback.media");
 			try {
-				let e = await Ee({
+				let e = await oe({
 					image: n.metadataFallback?.image ?? R.metadataFallback.image,
 					media: t
 				});
 				if (!e?.ok) throw Error(e?.error || M("toast.failedUpdateMetadataFallback", "Failed to update metadata fallback settings"));
 			} catch (e) {
-				n.metadataFallback.media = i, B(n), r("metadataFallback.media"), E(e?.message || M("toast.failedUpdateMetadataFallback", "Failed to update metadata fallback settings"), "error");
+				n.metadataFallback.media = r, B(n), a("metadataFallback.media"), w(e?.message || M("toast.failedUpdateMetadataFallback", "Failed to update metadata fallback settings"), "error");
 			}
 		}
 	});
 	try {
-		m().then((e) => {
+		s().then((e) => {
 			if (!e?.ok || !e?.data?.prefs) return;
-			let t = e.data.prefs || {}, i = !!(t.image ?? R.metadataFallback.image), a = !!(t.media ?? R.metadataFallback.media);
+			let t = e.data.prefs || {}, r = !!(t.image ?? R.metadataFallback.image), i = !!(t.media ?? R.metadataFallback.media);
 			n.metadataFallback = n.metadataFallback || {};
 			let o = !1;
-			n.metadataFallback.image !== i && (n.metadataFallback.image = i, o = !0), n.metadataFallback.media !== a && (n.metadataFallback.media = a, o = !0), o && (B(n), r("metadataFallback"));
+			n.metadataFallback.image !== r && (n.metadataFallback.image = r, o = !0), n.metadataFallback.media !== i && (n.metadataFallback.media = i, o = !0), o && (B(n), a("metadataFallback"));
 		}).catch(() => {});
 	} catch (e) {
 		console.debug?.(e);
 	}
 	e({
 		id: `${W}.Db.Timeout`,
-		category: s(M("cat.advanced"), "Database"),
+		category: u(M("cat.advanced"), "Database"),
 		name: "DB Timeout (ms)",
 		tooltip: "Client-side DB timeout preference (stored locally).",
 		type: "number",
@@ -2368,11 +2369,11 @@ function on(e, n, r, a) {
 			step: 1e3
 		},
 		onChange: (e) => {
-			n.db = n.db || {}, n.db.timeoutMs = Math.max(1e3, Math.min(3e4, Math.round(I(e, 5e3)))), B(n), V(n), r("db.timeoutMs");
+			n.db = n.db || {}, n.db.timeoutMs = Math.max(1e3, Math.min(3e4, Math.round(I(e, 5e3)))), B(n), V(n), a("db.timeoutMs");
 		}
 	}), e({
 		id: `${W}.Db.MaxConnections`,
-		category: s(M("cat.advanced"), "Database"),
+		category: u(M("cat.advanced"), "Database"),
 		name: "DB Max Connections",
 		tooltip: "Client-side DB max connections preference (stored locally).",
 		type: "number",
@@ -2383,11 +2384,11 @@ function on(e, n, r, a) {
 			step: 1
 		},
 		onChange: (e) => {
-			n.db = n.db || {}, n.db.maxConnections = Math.max(1, Math.min(100, Math.round(I(e, 10)))), B(n), V(n), r("db.maxConnections");
+			n.db = n.db || {}, n.db.maxConnections = Math.max(1, Math.min(100, Math.round(I(e, 10)))), B(n), V(n), a("db.maxConnections");
 		}
 	}), e({
 		id: `${W}.Db.QueryTimeout`,
-		category: s(M("cat.advanced"), "Database"),
+		category: u(M("cat.advanced"), "Database"),
 		name: "DB Query Timeout (ms)",
 		tooltip: "Client-side DB query timeout preference (stored locally).",
 		type: "number",
@@ -2398,21 +2399,21 @@ function on(e, n, r, a) {
 			step: 500
 		},
 		onChange: (e) => {
-			n.db = n.db || {}, n.db.queryTimeoutMs = Math.max(500, Math.min(1e4, Math.round(I(e, 1e3)))), B(n), V(n), r("db.queryTimeoutMs");
+			n.db = n.db || {}, n.db.queryTimeoutMs = Math.max(500, Math.min(1e4, Math.round(I(e, 1e3)))), B(n), V(n), a("db.queryTimeoutMs");
 		}
 	}), e({
 		id: `${W}.Observability.Enabled`,
-		category: s(M("cat.advanced"), M("setting.obs.enabled.name").replace("Majoor: ", "")),
+		category: u(M("cat.advanced"), M("setting.obs.enabled.name").replace("Majoor: ", "")),
 		name: M("setting.obs.enabled.name"),
 		tooltip: M("setting.obs.enabled.desc"),
 		type: "boolean",
 		defaultValue: !!n.observability?.enabled,
 		onChange: (e) => {
-			n.observability = n.observability || {}, n.observability.enabled = !!e, B(n), V(n), r("observability.enabled");
+			n.observability = n.observability || {}, n.observability.enabled = !!e, B(n), V(n), a("observability.enabled");
 		}
 	}), e({
 		id: `${W}.Observability.RuntimeDashboardMode`,
-		category: s(M("cat.advanced"), "Runtime metrics badge"),
+		category: u(M("cat.advanced"), "Runtime metrics badge"),
 		name: "Majoor: Runtime metrics badge",
 		tooltip: "Controls the small DB/enrichment/watcher metrics badge in the Assets Manager panel.",
 		type: "combo",
@@ -2428,69 +2429,69 @@ function on(e, n, r, a) {
 				"always",
 				"hidden"
 			], R.observability.runtimeDashboardMode);
-			n.observability = n.observability || {}, n.observability.runtimeDashboardMode = t, B(n), r("observability.runtimeDashboardMode");
+			n.observability = n.observability || {}, n.observability.runtimeDashboardMode = t, B(n), a("observability.runtimeDashboardMode");
 		}
 	}), e({
 		id: `${W}.Observability.VerboseErrors`,
-		category: s(M("cat.advanced"), "Verbose error logging"),
+		category: u(M("cat.advanced"), "Verbose error logging"),
 		name: "Verbose error logging",
 		tooltip: "Show detailed error messages in toasts and console. Useful for debugging.",
 		type: "boolean",
 		defaultValue: !!n.observability?.verboseErrors,
 		onChange: (e) => {
-			n.observability = n.observability || {}, n.observability.verboseErrors = !!e, B(n), V(n), r("observability.verboseErrors");
+			n.observability = n.observability || {}, n.observability.verboseErrors = !!e, B(n), V(n), a("observability.verboseErrors");
 		}
 	}), e({
 		id: `${W}.Observability.VerboseRouteRegistrationLogs`,
-		category: s(M("cat.advanced"), "Logs"),
+		category: u(M("cat.advanced"), "Logs"),
 		name: "Majoor: Verbose route registration logs",
 		tooltip: "When disabled, Majoor prints a compact startup summary instead of listing every registered API route. Takes effect on the next backend restart.",
 		type: "boolean",
 		defaultValue: !!(n.observability?.verboseRouteRegistrationLogs ?? R.observability?.verboseRouteRegistrationLogs ?? !1),
 		onChange: async (e) => {
-			let t = !!e, i = !!(n.observability?.verboseRouteRegistrationLogs ?? R.observability?.verboseRouteRegistrationLogs ?? !1);
-			n.observability = n.observability || {}, n.observability.verboseRouteRegistrationLogs = t, B(n), r("observability.verboseRouteRegistrationLogs");
+			let t = !!e, r = !!(n.observability?.verboseRouteRegistrationLogs ?? R.observability?.verboseRouteRegistrationLogs ?? !1);
+			n.observability = n.observability || {}, n.observability.verboseRouteRegistrationLogs = t, B(n), a("observability.verboseRouteRegistrationLogs");
 			try {
-				let e = await we(t);
+				let e = await i(t);
 				if (!e?.ok) throw Error(e?.error || "Failed to update route logging settings");
 			} catch (e) {
-				n.observability.verboseRouteRegistrationLogs = i, B(n), r("observability.verboseRouteRegistrationLogs"), E(e?.message || "Failed to update route logging settings", "error");
+				n.observability.verboseRouteRegistrationLogs = r, B(n), a("observability.verboseRouteRegistrationLogs"), w(e?.message || "Failed to update route logging settings", "error");
 			}
 		}
 	}), (async () => {
 		try {
-			let e = !!(await p())?.data?.prefs?.enabled;
-			n.observability = n.observability || {}, n.observability.verboseRouteRegistrationLogs !== e && (n.observability.verboseRouteRegistrationLogs = e, B(n), r("observability.verboseRouteRegistrationLogs"));
+			let e = !!(await ve())?.data?.prefs?.enabled;
+			n.observability = n.observability || {}, n.observability.verboseRouteRegistrationLogs !== e && (n.observability.verboseRouteRegistrationLogs = e, B(n), a("observability.verboseRouteRegistrationLogs"));
 		} catch (e) {
 			console.debug?.(e);
 		}
 	})(), e({
 		id: `${W}.Observability.VerboseStartupLogs`,
-		category: s(M("cat.advanced"), "Logs"),
+		category: u(M("cat.advanced"), "Logs"),
 		name: "Majoor: Verbose startup logs",
 		tooltip: "When disabled, Majoor suppresses most informational bootstrap logs during backend startup while keeping warnings and errors. Takes effect on the next backend restart.",
 		type: "boolean",
 		defaultValue: !!(n.observability?.verboseStartupLogs ?? R.observability?.verboseStartupLogs ?? !1),
 		onChange: async (e) => {
-			let t = !!e, i = !!(n.observability?.verboseStartupLogs ?? R.observability?.verboseStartupLogs ?? !1);
-			n.observability = n.observability || {}, n.observability.verboseStartupLogs = t, B(n), r("observability.verboseStartupLogs");
+			let t = !!e, r = !!(n.observability?.verboseStartupLogs ?? R.observability?.verboseStartupLogs ?? !1);
+			n.observability = n.observability || {}, n.observability.verboseStartupLogs = t, B(n), a("observability.verboseStartupLogs");
 			try {
-				let e = await c(t);
+				let e = await ee(t);
 				if (!e?.ok) throw Error(e?.error || "Failed to update startup logging settings");
 			} catch (e) {
-				n.observability.verboseStartupLogs = i, B(n), r("observability.verboseStartupLogs"), E(e?.message || "Failed to update startup logging settings", "error");
+				n.observability.verboseStartupLogs = r, B(n), a("observability.verboseStartupLogs"), w(e?.message || "Failed to update startup logging settings", "error");
 			}
 		}
 	}), (async () => {
 		try {
 			let e = !!(await re())?.data?.prefs?.enabled;
-			n.observability = n.observability || {}, n.observability.verboseStartupLogs !== e && (n.observability.verboseStartupLogs = e, B(n), r("observability.verboseStartupLogs"));
+			n.observability = n.observability || {}, n.observability.verboseStartupLogs !== e && (n.observability.verboseStartupLogs = e, B(n), a("observability.verboseStartupLogs"));
 		} catch (e) {
 			console.debug?.(e);
 		}
 	})();
 	{
-		let t = "HuggingFace Token", i = "", a = null, o = 0, c = !!n.ai?.huggingFaceTokenVisible, l = () => {
+		let t = "HuggingFace Token", i = "", o = null, s = 0, c = !!n.ai?.huggingFaceTokenVisible, l = () => {
 			try {
 				let e = Array.from(document.querySelectorAll("input[data-mjr-hf-token=\"1\"]"));
 				for (let t of e) try {
@@ -2501,7 +2502,7 @@ function on(e, n, r, a) {
 			} catch (e) {
 				console.debug?.(e);
 			}
-		}, u = (e) => {
+		}, f = (e) => {
 			try {
 				let t = String(e || "").trim();
 				if (!t) return;
@@ -2517,18 +2518,18 @@ function on(e, n, r, a) {
 		};
 		e({
 			id: `${W}.AI.HuggingFaceTokenVisible`,
-			category: s(M("cat.advanced"), t),
+			category: u(M("cat.advanced"), t),
 			name: "Show HuggingFace token",
 			tooltip: "Show or hide the HuggingFace token while editing.",
 			type: "boolean",
 			defaultValue: c,
 			onChange: (e) => {
 				let t = !!e;
-				c = t, n.ai = n.ai || {}, n.ai.huggingFaceTokenVisible = t, B(n), r("ai.huggingFaceTokenVisible"), setTimeout(l, 0);
+				c = t, n.ai = n.ai || {}, n.ai.huggingFaceTokenVisible = t, B(n), a("ai.huggingFaceTokenVisible"), setTimeout(l, 0);
 			}
 		}), e({
 			id: `${W}.AI.HuggingFaceToken`,
-			category: s(M("cat.advanced"), t),
+			category: u(M("cat.advanced"), t),
 			name: "HuggingFace Token",
 			tooltip: "Optional token for HuggingFace Hub downloads (higher rate limits).\nSaved server-side and used by CLIP model loading.\nLeave empty to clear the stored token.",
 			type: "text",
@@ -2544,53 +2545,53 @@ function on(e, n, r, a) {
 				let t = String(e || "").trim();
 				if (t !== i) {
 					try {
-						a &&= (clearTimeout(a), null);
+						o &&= (clearTimeout(o), null);
 					} catch (e) {
 						console.debug?.(e);
 					}
-					a = setTimeout(async () => {
-						a = null;
-						let e = ++o;
+					o = setTimeout(async () => {
+						o = null;
+						let e = ++s;
 						try {
-							let n = await ce(t);
-							if (e !== o) return;
+							let n = await de(t);
+							if (e !== s) return;
 							if (!n?.ok) throw Error(n?.error || "Failed to update HuggingFace token");
-							i = t, r("ai.huggingFaceToken"), t ? E("HuggingFace token saved", "success") : E("HuggingFace token cleared", "success", void 0, { noHistory: !0 });
+							i = t, a("ai.huggingFaceToken"), t ? w("HuggingFace token saved", "success") : w("HuggingFace token cleared", "success", void 0, { noHistory: !0 });
 						} catch (t) {
-							if (e !== o) return;
-							E(t?.message || "Failed to update HuggingFace token", "error");
+							if (e !== s) return;
+							w(t?.message || "Failed to update HuggingFace token", "error");
 						}
 					}, 900);
 				}
 			}
 		}), setTimeout(l, 0), (async () => {
 			try {
-				let e = (await ne())?.data?.prefs || {}, t = !!e?.has_token, n = String(e?.token_hint || "").trim(), r = t ? `Configured ${n || "(saved)"}` : "Paste HuggingFace token (hf_...)";
-				u(r);
+				let e = (await r())?.data?.prefs || {}, t = !!e?.has_token, n = String(e?.token_hint || "").trim(), i = t ? `Configured ${n || "(saved)"}` : "Paste HuggingFace token (hf_...)";
+				f(i);
 			} catch (e) {
 				console.debug?.(e);
 			}
 		})(), e({
 			id: `${W}.AI.VerboseLogs`,
-			category: s(M("cat.advanced"), t),
+			category: u(M("cat.advanced"), t),
 			name: "Majoor: Verbose AI logs",
 			tooltip: "Enable detailed HuggingFace/SigLIP2/X-CLIP logs and progress bars during model download/loading.",
 			type: "boolean",
 			defaultValue: !!(n.ai?.verboseAiLogs ?? R.ai?.verboseAiLogs ?? !1),
 			onChange: async (e) => {
-				let t = !!e, i = !!(n.ai?.verboseAiLogs ?? R.ai?.verboseAiLogs ?? !1);
-				n.ai = n.ai || {}, n.ai.verboseAiLogs = t, B(n), r("ai.verboseAiLogs");
+				let t = !!e, r = !!(n.ai?.verboseAiLogs ?? R.ai?.verboseAiLogs ?? !1);
+				n.ai = n.ai || {}, n.ai.verboseAiLogs = t, B(n), a("ai.verboseAiLogs");
 				try {
-					let e = await ve(t);
+					let e = await ce(t);
 					if (!e?.ok) throw Error(e?.error || "Failed to update AI logging settings");
 				} catch (e) {
-					n.ai.verboseAiLogs = i, B(n), r("ai.verboseAiLogs"), E(e?.message || "Failed to update AI logging settings", "error");
+					n.ai.verboseAiLogs = r, B(n), a("ai.verboseAiLogs"), w(e?.message || "Failed to update AI logging settings", "error");
 				}
 			}
 		}), (async () => {
 			try {
-				let e = !!(await g())?.data?.prefs?.enabled;
-				n.ai = n.ai || {}, n.ai.verboseAiLogs !== e && (n.ai.verboseAiLogs = e, B(n), r("ai.verboseAiLogs"));
+				let e = !!(await d())?.data?.prefs?.enabled;
+				n.ai = n.ai || {}, n.ai.verboseAiLogs !== e && (n.ai.verboseAiLogs = e, B(n), a("ai.verboseAiLogs"));
 			} catch (e) {
 				console.debug?.(e);
 			}
@@ -2598,21 +2599,21 @@ function on(e, n, r, a) {
 	}
 	e({
 		id: `${W}.AI.VectorStats`,
-		category: s(M("cat.advanced"), "AI / Vector Search"),
+		category: u(M("cat.advanced"), "AI / Vector Search"),
 		name: "Vector Index Status",
 		tooltip: "Current status of the SigLIP2/X-CLIP vector index used for semantic search",
 		type: "text",
 		defaultValue: "Loading vector status..."
 	}), (async () => {
 		try {
-			let e = await i();
+			let e = await Oe();
 			e?.ok ? console.debug?.("[Majoor] Vector status:", `${e.data?.total || 0} assets indexed | Model: ${e.data?.model || "N/A"}`) : console.debug?.("[Majoor] Vector status unavailable");
 		} catch (e) {
 			console.debug?.("[Majoor] Vector status fetch failed", e);
 		}
 	})(), e({
 		id: `${W}.AI.VectorBackfillAction`,
-		category: s(M("cat.advanced"), "AI / Vector Search"),
+		category: u(M("cat.advanced"), "AI / Vector Search"),
 		name: "Vector Index Action",
 		tooltip: "Compute CLIP embeddings for all assets that don't have them yet.\nThis is required for AI semantic search to work.\n\nChoose 'Run backfill now' to start indexing.\nThis may take several minutes for large libraries.\n\nNote: New assets are indexed automatically during scanning.",
 		type: "combo",
@@ -2628,24 +2629,24 @@ function on(e, n, r, a) {
 				forceStore: !0
 			} };
 			try {
-				E(M("toast.vectorBackfillStarting", "Starting vector backfill... This may take a while."), "info", void 0, { history: {
+				w(M("toast.vectorBackfillStarting", "Starting vector backfill... This may take a while."), "info", void 0, { history: {
 					...t.history,
 					status: "started",
 					detail: "Starting vector backfill... This may take a while."
 				} });
-				let e = await b(64, { onProgress: (e) => {
-					let n = String(e?.status || "running").toLowerCase() || "running", r = e?.progress || e?.result || {}, i = Number(r?.candidates ?? r?.processed ?? 0), a = Number(r?.indexed ?? 0), o = Number(r?.skipped ?? 0), s = Number(r?.errors ?? 0), c = Math.max(i, a + o + s), l = c > 0 ? Math.round((a + o + s) / c * 100) : null, u = n === "queued" ? "Vector backfill queued" : `Candidates ${i}, indexed ${a}, skipped ${o}, errors ${s}`;
-					h({
+				let e = await g(64, { onProgress: (e) => {
+					let n = String(e?.status || "running").toLowerCase() || "running", r = e?.progress || e?.result || {}, i = Number(r?.candidates ?? r?.processed ?? 0), a = Number(r?.indexed ?? 0), o = Number(r?.skipped ?? 0), s = Number(r?.errors ?? 0), l = Math.max(i, a + o + s), u = l > 0 ? Math.round((a + o + s) / l * 100) : null, d = n === "queued" ? "Vector backfill queued" : `Candidates ${i}, indexed ${a}, skipped ${o}, errors ${s}`;
+					c({
 						summary: "Vector Backfill",
-						detail: u
+						detail: d
 					}, n === "failed" ? "error" : n === "succeeded" ? "success" : "info", 0, { history: {
 						...t.history,
 						status: n,
-						detail: u,
+						detail: d,
 						progress: {
 							current: a + o + s,
-							total: c,
-							percent: l,
+							total: l,
+							percent: u,
 							indexed: a,
 							skipped: o,
 							errors: s,
@@ -2654,48 +2655,48 @@ function on(e, n, r, a) {
 					} });
 				} });
 				if (e?.ok) {
-					let n = e.data || {}, r = String(n?.status || "").toLowerCase(), a = !!n?.pending || [
+					let n = e.data || {}, r = String(n?.status || "").toLowerCase(), i = !!n?.pending || [
 						"queued",
 						"running",
 						"pending"
-					].includes(r), o = n?.progress || {}, s = Number(n?.processed ?? o?.candidates ?? 0), c = Number(n?.indexed ?? o?.indexed ?? 0), l = Number(n?.skipped ?? o?.skipped ?? 0);
-					if (a) {
+					].includes(r), a = n?.progress || {}, o = Number(n?.processed ?? a?.candidates ?? 0), s = Number(n?.indexed ?? a?.indexed ?? 0), c = Number(n?.skipped ?? a?.skipped ?? 0);
+					if (i) {
 						let e = String(n?.job_id || "").trim();
-						E(M("toast.vectorBackfillRunning", "Vector backfill still running in background{job}.", { job: e ? ` (job ${e.slice(0, 8)})` : "" }), "info", void 0, { history: {
+						w(M("toast.vectorBackfillRunning", "Vector backfill still running in background{job}.", { job: e ? ` (job ${e.slice(0, 8)})` : "" }), "info", void 0, { history: {
 							...t.history,
 							status: "running",
 							detail: `Vector backfill still running in background${e ? ` (${e.slice(0, 8)})` : ""}.`,
 							progress: {
-								current: c + l,
-								total: Math.max(s, c + l),
-								percent: Math.max(s, c + l) > 0 ? Math.round((c + l) / Math.max(s, c + l) * 100) : null,
-								indexed: c,
-								skipped: l,
+								current: s + c,
+								total: Math.max(o, s + c),
+								percent: Math.max(o, s + c) > 0 ? Math.round((s + c) / Math.max(o, s + c) * 100) : null,
+								indexed: s,
+								skipped: c,
 								label: "running"
 							}
 						} });
 					} else {
 						let e = M("toast.vectorBackfillComplete", "Vector backfill complete! Processed: {processed}, Indexed: {indexed}, Skipped: {skipped}", {
-							processed: s,
-							indexed: c,
-							skipped: l
+							processed: o,
+							indexed: s,
+							skipped: c
 						});
-						E(e, "success", void 0, { history: {
+						w(e, "success", void 0, { history: {
 							...t.history,
 							status: "succeeded",
-							detail: `Processed ${s}, indexed ${c}, skipped ${l}`,
+							detail: `Processed ${o}, indexed ${s}, skipped ${c}`,
 							progress: {
-								current: s,
-								total: s,
-								percent: s > 0 ? 100 : null,
-								indexed: c,
-								skipped: l,
+								current: o,
+								total: o,
+								percent: o > 0 ? 100 : null,
+								indexed: s,
+								skipped: c,
 								label: "done"
 							}
 						} });
 					}
 					try {
-						let e = await i();
+						let e = await Oe();
 						e?.ok && console.debug?.("[Majoor] Vector stats after backfill:", e.data);
 					} catch (e) {
 						console.debug?.("[Majoor] Failed to refresh vector stats:", e);
@@ -2703,7 +2704,7 @@ function on(e, n, r, a) {
 				} else throw Error(e?.error || M("toast.vectorBackfillFailedGeneric", "Backfill failed"));
 			} catch (e) {
 				let n = e?.message || String(e || M("status.unknown", "unknown"));
-				E(M("toast.vectorBackfillFailedDetail", "Vector backfill failed: {error}", { error: n }), "error", void 0, { history: {
+				w(M("toast.vectorBackfillFailedDetail", "Vector backfill failed: {error}", { error: n }), "error", void 0, { history: {
 					...t.history,
 					status: "failed",
 					detail: n
@@ -2732,14 +2733,14 @@ function ln(e, t, n) {
 			let r = !!(t.ai.vectorSearchEnabled ?? !0), i = !!e;
 			t.ai.vectorSearchEnabled = i, B(t), V(t), n("ai.vectorSearchEnabled");
 			try {
-				let e = await s(i);
+				let e = await o(i);
 				if (!e?.ok) {
-					t.ai.vectorSearchEnabled = r, B(t), V(t), n("ai.vectorSearchEnabled"), E(e?.error || "Failed to update AI vector search setting", "error");
+					t.ai.vectorSearchEnabled = r, B(t), V(t), n("ai.vectorSearchEnabled"), w(e?.error || "Failed to update AI vector search setting", "error");
 					return;
 				}
-				E(i ? "AI semantic search enabled" : "AI semantic search disabled", "info", 2200);
+				w(i ? "AI semantic search enabled" : "AI semantic search disabled", "info", 2200);
 			} catch (e) {
-				t.ai.vectorSearchEnabled = r, B(t), V(t), n("ai.vectorSearchEnabled"), E(e?.message || "Failed to update AI vector search setting", "error");
+				t.ai.vectorSearchEnabled = r, B(t), V(t), n("ai.vectorSearchEnabled"), w(e?.message || "Failed to update AI vector search setting", "error");
 			}
 		}
 	}), e({
@@ -2754,14 +2755,14 @@ function ln(e, t, n) {
 			let r = !!(t.ai.vectorCaptionOnIndex ?? !1), i = !!e;
 			t.ai.vectorCaptionOnIndex = i, B(t), V(t), n("ai.vectorCaptionOnIndex");
 			try {
-				let e = await s({ caption_on_index: i });
+				let e = await o({ caption_on_index: i });
 				if (!e?.ok) {
-					t.ai.vectorCaptionOnIndex = r, B(t), V(t), n("ai.vectorCaptionOnIndex"), E(e?.error || "Failed to update AI caption indexing setting", "error");
+					t.ai.vectorCaptionOnIndex = r, B(t), V(t), n("ai.vectorCaptionOnIndex"), w(e?.error || "Failed to update AI caption indexing setting", "error");
 					return;
 				}
-				i && E("AI captions during indexing enabled", "info", 2600);
+				i && w("AI captions during indexing enabled", "info", 2600);
 			} catch (e) {
-				t.ai.vectorCaptionOnIndex = r, B(t), V(t), n("ai.vectorCaptionOnIndex"), E(e?.message || "Failed to update AI caption indexing setting", "error");
+				t.ai.vectorCaptionOnIndex = r, B(t), V(t), n("ai.vectorCaptionOnIndex"), w(e?.message || "Failed to update AI caption indexing setting", "error");
 			}
 		}
 	}), e({
@@ -2776,14 +2777,14 @@ function ln(e, t, n) {
 			let r = !!(t.ai.vectorIndexOnScan ?? !1), i = !!e;
 			t.ai.vectorIndexOnScan = i, B(t), V(t), n("ai.vectorIndexOnScan");
 			try {
-				let e = await s({ index_on_scan: i });
+				let e = await o({ index_on_scan: i });
 				if (!e?.ok) {
-					t.ai.vectorIndexOnScan = r, B(t), V(t), n("ai.vectorIndexOnScan"), E(e?.error || "Failed to update vector scan indexing", "error");
+					t.ai.vectorIndexOnScan = r, B(t), V(t), n("ai.vectorIndexOnScan"), w(e?.error || "Failed to update vector scan indexing", "error");
 					return;
 				}
-				E(i ? "Vector indexing during scans enabled" : "Vector indexing during scans disabled", "info", 2400);
+				w(i ? "Vector indexing during scans enabled" : "Vector indexing during scans disabled", "info", 2400);
 			} catch (e) {
-				t.ai.vectorIndexOnScan = r, B(t), V(t), n("ai.vectorIndexOnScan"), E(e?.message || "Failed to update vector scan indexing", "error");
+				t.ai.vectorIndexOnScan = r, B(t), V(t), n("ai.vectorIndexOnScan"), w(e?.message || "Failed to update vector scan indexing", "error");
 			}
 		}
 	}), e({
@@ -2803,10 +2804,10 @@ function ln(e, t, n) {
 			let r = Number(t.ai.vectorConcurrency || 1), i = Math.max(1, Math.min(16, Math.floor(Number(e) || 1)));
 			t.ai.vectorConcurrency = i, B(t), V(t), n("ai.vectorConcurrency");
 			try {
-				let e = await s({ concurrency: i });
-				e?.ok || (t.ai.vectorConcurrency = r, B(t), V(t), n("ai.vectorConcurrency"), E(e?.error || "Failed to update vector concurrency", "error"));
+				let e = await o({ concurrency: i });
+				e?.ok || (t.ai.vectorConcurrency = r, B(t), V(t), n("ai.vectorConcurrency"), w(e?.error || "Failed to update vector concurrency", "error"));
 			} catch (e) {
-				t.ai.vectorConcurrency = r, B(t), V(t), n("ai.vectorConcurrency"), E(e?.message || "Failed to update vector concurrency", "error");
+				t.ai.vectorConcurrency = r, B(t), V(t), n("ai.vectorConcurrency"), w(e?.message || "Failed to update vector concurrency", "error");
 			}
 		}
 	}), e({
@@ -2821,14 +2822,14 @@ function ln(e, t, n) {
 			let r = !!(t.ai.vectorUnloadAfterUse ?? !1), i = !!e;
 			t.ai.vectorUnloadAfterUse = i, B(t), V(t), n("ai.vectorUnloadAfterUse");
 			try {
-				let e = await s({ unload_after_use: i });
+				let e = await o({ unload_after_use: i });
 				if (!e?.ok) {
-					t.ai.vectorUnloadAfterUse = r, B(t), V(t), n("ai.vectorUnloadAfterUse"), E(e?.error || "Failed to update model unload setting", "error");
+					t.ai.vectorUnloadAfterUse = r, B(t), V(t), n("ai.vectorUnloadAfterUse"), w(e?.error || "Failed to update model unload setting", "error");
 					return;
 				}
-				E(i ? "AI model unload after use enabled" : "AI model unload after use disabled", "info", 2400);
+				w(i ? "AI model unload after use enabled" : "AI model unload after use disabled", "info", 2400);
 			} catch (e) {
-				t.ai.vectorUnloadAfterUse = r, B(t), V(t), n("ai.vectorUnloadAfterUse"), E(e?.message || "Failed to update model unload setting", "error");
+				t.ai.vectorUnloadAfterUse = r, B(t), V(t), n("ai.vectorUnloadAfterUse"), w(e?.message || "Failed to update model unload setting", "error");
 			}
 		}
 	}), e({
@@ -2841,10 +2842,10 @@ function ln(e, t, n) {
 		defaultValue: "Idle",
 		onChange: async (e) => {
 			if (String(e || "") === "Unload now") try {
-				let e = await _();
-				E(e?.ok ? "Majoor AI model cache unloaded" : e?.error || "Failed to unload Majoor AI model cache", e?.ok ? "info" : "error", 2600);
+				let e = await pe();
+				w(e?.ok ? "Majoor AI model cache unloaded" : e?.error || "Failed to unload Majoor AI model cache", e?.ok ? "info" : "error", 2600);
 			} catch (e) {
-				E(e?.message || "Failed to unload Majoor AI model cache", "error");
+				w(e?.message || "Failed to unload Majoor AI model cache", "error");
 			}
 		}
 	}), e({
@@ -2926,7 +2927,7 @@ function En(e, t, n) {
 	if (!r || wn.has(r)) return !1;
 	wn.add(r);
 	try {
-		return S(e, r, n);
+		return m(e, r, n);
 	} finally {
 		wn.delete(r);
 	}
@@ -2974,7 +2975,7 @@ function Nn(e, t, n) {
 	String(e?.id || "").trim() && (En(n, e, t), typeof e?.onChange == "function" && e.onChange(t));
 }
 function Pn(e, t, n, r) {
-	let i = !An(a(r, t.id, t.defaultValue), n);
+	let i = !An(S(r, t.id, t.defaultValue), n);
 	e.disabled = !i, e.style.opacity = i ? "1" : "0.45";
 }
 function Fn() {
@@ -3014,13 +3015,13 @@ function In(e, t, n) {
 		subtree: !0
 	})));
 }
-function Ln(e, t, { initRuntime: n = !1 } = {}) {
-	if (Sn) typeof t == "function" && Sn.onAppliedListeners.add(t), e && !Sn.app && (Sn.app = e);
+function Ln(e, r, { initRuntime: i = !1 } = {}) {
+	if (Sn) typeof r == "function" && Sn.onAppliedListeners.add(r), e && !Sn.app && (Sn.app = e);
 	else {
-		let n = z();
-		n.i18n = n.i18n || {}, typeof n.i18n.followComfyLanguage == "boolean" ? xe(!!n.i18n.followComfyLanguage) : (n.i18n.followComfyLanguage = !0, xe(!0), B(n));
-		let r = /* @__PURE__ */ new Set();
-		typeof t == "function" && r.add(t);
+		let t = z();
+		t.i18n = t.i18n || {}, typeof t.i18n.followComfyLanguage == "boolean" ? k(!!t.i18n.followComfyLanguage) : (t.i18n.followComfyLanguage = !0, k(!0), B(t));
+		let n = /* @__PURE__ */ new Set();
+		typeof r == "function" && n.add(r);
 		let i = /* @__PURE__ */ new Set(), a = /* @__PURE__ */ new Set(), o = () => {
 			if (!i.size) return;
 			let e = Array.from(i);
@@ -3037,7 +3038,7 @@ function Ln(e, t, { initRuntime: n = !1 } = {}) {
 			typeof e == "string" && a.add(e), l();
 		}, f = () => {
 			let e = z();
-			Object.assign(n, e), V(n), u("storage");
+			Object.assign(t, e), V(t), u("storage");
 		}, p = (e) => {
 			e && e.key === "mjrSettings" && e.newValue !== e.oldValue && f();
 		};
@@ -3056,21 +3057,21 @@ function Ln(e, t, { initRuntime: n = !1 } = {}) {
 		Sn = {
 			app: e,
 			notifyApplied: (e) => {
-				for (let t of r) try {
-					t(n, e);
+				for (let r of n) try {
+					r(t, e);
 				} catch (e) {
 					console.debug?.(e);
 				}
 				pn.has(String(e || "")) ? d(e) : u(e);
 			},
-			onAppliedListeners: r,
+			onAppliedListeners: n,
 			refreshFromStorage: f,
-			settings: n
+			settings: t
 		};
 	}
-	if (n && !Cn) {
-		let t = e || Sn.app, n = Sn.settings;
-		oe(t), V(n), be(t), rt(), it(), at(), n?.watcher && typeof n.watcher.enabled == "boolean" && de(!!n.watcher.enabled).catch(() => {}), ht(), Cn = !0;
+	if (i && !Cn) {
+		let r = e || Sn.app, i = Sn.settings;
+		t(r), V(i), ge(r), rt(), it(), at(), i?.watcher && typeof i.watcher.enabled == "boolean" && n(!!i.watcher.enabled).catch(() => {}), ht(), Cn = !0;
 	}
 	return Sn;
 }
@@ -3093,7 +3094,7 @@ var Rn = (e, t) => Ln(e, t, { initRuntime: !0 }).settings, zn = (e, t) => {
 };
 try {
 	let e = z();
-	e?.watcher && typeof e.watcher.enabled == "boolean" && Se().then((e) => {
+	e?.watcher && typeof e.watcher.enabled == "boolean" && A().then((e) => {
 		let t = !!e?.ok && !!e?.data?.enabled, n = z();
 		n.watcher = n.watcher || {}, typeof t == "boolean" && t !== !!n.watcher.enabled && (n.watcher.enabled = t, B(n), ke("mjr-settings-changed", { key: "watcher.enabled" }, { warnPrefix: "[Majoor]" }));
 	}).catch(() => {});
@@ -3281,21 +3282,21 @@ function rr(e, t, n = null) {
 	if (!m.length) return r.clearRect(0, 0, l, u), null;
 	let v = m[0].x, y = m[0].y, b = m[0].x + m[0].w, x = m[0].y + m[0].h;
 	for (let e of m) v = Math.min(v, e.x), y = Math.min(y, e.y), b = Math.max(b, e.x + e.w), x = Math.max(x, e.y + e.h);
-	let S = Math.max(1, b - v), C = Math.max(1, x - y), ee = v + S / 2, te = y + C / 2, w = i.view && typeof i.view == "object" ? i.view : Object.create(null), ne = er(w.zoom ?? 1, Yn, Xn), T = Math.max(1, S / ne), E = Math.max(1, C / ne), D = T / 2, O = E / 2, re = T >= S ? ee : er(w.centerX ?? ee, v + D, b - D), ie = E >= C ? te : er(w.centerY ?? te, y + O, x - O), ae = re - D, k = ie - O, A = Jn, j = Math.min((l - 12) / T, (u - 12) / E), oe = w.hoveredNodeId !== null && w.hoveredNodeId !== void 0 ? String(w.hoveredNodeId) : null;
+	let S = Math.max(1, b - v), C = Math.max(1, x - y), ee = v + S / 2, te = y + C / 2, w = i.view && typeof i.view == "object" ? i.view : Object.create(null), ne = er(w.zoom ?? 1, Yn, Xn), T = Math.max(1, S / ne), E = Math.max(1, C / ne), re = T / 2, D = E / 2, ie = T >= S ? ee : er(w.centerX ?? ee, v + re, b - re), ae = E >= C ? te : er(w.centerY ?? te, y + D, x - D), O = ie - re, oe = ae - D, k = Jn, A = Math.min((l - 12) / T, (u - 12) / E), se = w.hoveredNodeId !== null && w.hoveredNodeId !== void 0 ? String(w.hoveredNodeId) : null;
 	r.clearRect(0, 0, l, u), r.fillStyle = "rgba(0,0,0,0.22)", r.fillRect(0, 0, l, u);
-	let se = (e, t) => ({
-		x: A + (e - ae) * j,
-		y: A + (t - k) * j
-	}), ce = (e, t) => ({
-		x: er(ae + (Number(e) - A) / j, v, b),
-		y: er(k + (Number(t) - A) / j, y, x)
+	let ce = (e, t) => ({
+		x: k + (e - O) * A,
+		y: k + (t - oe) * A
+	}), le = (e, t) => ({
+		x: er(O + (Number(e) - k) / A, v, b),
+		y: er(oe + (Number(t) - k) / A, y, x)
 	}), ue = (e) => ({
-		x: A + (e.x - ae) * j,
-		y: A + (e.y - k) * j,
-		w: Math.max(1, e.w * j),
-		h: Math.max(1, e.h * j)
-	}), M = (e) => Math.max(10, Math.min(24, Math.floor(Number(e) * .2))), de = (e, t, n) => {
-		let r = ue(e), i = M(r.h), a = n === "output" ? e.outputs : e.inputs, o = Math.max(1, Array.isArray(a) ? a.length : Number(e[`${n}Count`]) || 0), s = er(t, 0, Math.max(0, o - 1));
+		x: k + (e.x - O) * A,
+		y: k + (e.y - oe) * A,
+		w: Math.max(1, e.w * A),
+		h: Math.max(1, e.h * A)
+	}), de = (e) => Math.max(10, Math.min(24, Math.floor(Number(e) * .2))), j = (e, t, n) => {
+		let r = ue(e), i = de(r.h), a = n === "output" ? e.outputs : e.inputs, o = Math.max(1, Array.isArray(a) ? a.length : Number(e[`${n}Count`]) || 0), s = er(t, 0, Math.max(0, o - 1));
 		return r.y + i + (r.h - i) * (s + 1) / (o + 1);
 	}, fe = (e) => Array.isArray(e) && e.length >= 5 ? {
 		originId: e[1],
@@ -3312,7 +3313,7 @@ function rr(e, t, n = null) {
 	} : null, pe = (e) => {
 		let t = String(e || "").toUpperCase();
 		return t.includes("IMAGE") ? "rgba(145,198,99,0.38)" : t.includes("LATENT") ? "rgba(89,178,118,0.38)" : t.includes("MODEL") ? "rgba(112,155,255,0.38)" : t.includes("CONDITIONING") ? "rgba(191,123,226,0.38)" : t.includes("CLIP") ? "rgba(220,178,77,0.38)" : t.includes("VAE") ? "rgba(72,184,214,0.38)" : t.includes("MASK") ? "rgba(190,190,190,0.36)" : "rgba(255,255,255,0.2)";
-	}, me = () => {
+	}, he = () => {
 		if (i.showLinks && c && c.length !== 0) {
 			r.save(), r.globalAlpha = 1, r.lineWidth = 1;
 			for (let e of c) {
@@ -3322,17 +3323,17 @@ function rr(e, t, n = null) {
 				if (!a || !o) continue;
 				let s = ue(a), c = ue(o), l = {
 					x: s.x + s.w,
-					y: de(a, t?.originSlot ?? 0, "output")
+					y: j(a, t?.originSlot ?? 0, "output")
 				}, u = {
 					x: c.x,
-					y: de(o, t?.targetSlot ?? 0, "input")
+					y: j(o, t?.targetSlot ?? 0, "input")
 				}, d = Math.max(12, Math.min(80, Math.abs(u.x - l.x) * .35));
 				r.strokeStyle = pe(t?.type), r.beginPath(), r.moveTo(l.x, l.y), r.bezierCurveTo(l.x + d, l.y, u.x - d, u.y, u.x, u.y), r.stroke();
 			}
 			r.restore();
 		}
-	}, N = (e) => {
-		let { x: t, y: n, w: a, h: o } = ue(e), s = e.kind === "node", c = e.kind === "group", l = !!e.bypassed, u = !!e.errored, f = c ? .18 : l && i.renderBypassState ? .14 : .62, p = c ? .55 : l && i.renderBypassState ? .32 : .8, m = d(e.fill, f), h = d(e.stroke, p), g = s && i.showNodeLabels && a >= Zn && o >= Qn, _ = Math.max(2, Math.min(g ? 7 : 8, Math.floor(Math.min(a, o) * .08))), v = s ? M(o) : 0;
+	}, ge = (e) => {
+		let { x: t, y: n, w: a, h: o } = ue(e), s = e.kind === "node", c = e.kind === "group", l = !!e.bypassed, u = !!e.errored, f = c ? .18 : l && i.renderBypassState ? .14 : .62, p = c ? .55 : l && i.renderBypassState ? .32 : .8, m = d(e.fill, f), h = d(e.stroke, p), g = s && i.showNodeLabels && a >= Zn && o >= Qn, _ = Math.max(2, Math.min(g ? 7 : 8, Math.floor(Math.min(a, o) * .08))), v = s ? de(o) : 0;
 		if (r.save(), r.globalAlpha = 1, typeof m == "string" && (m.startsWith("#") || m.startsWith("rgb") || m.startsWith("hsl")) ? (r.fillStyle = m, r.globalAlpha = f) : (r.fillStyle = typeof m == "string" ? m : "rgba(82,88,96,0.72)", r.globalAlpha = f), typeof r.roundRect == "function" ? (r.beginPath(), r.roundRect(t, n, a, o, _), r.fill()) : r.fillRect(t, n, a, o), r.restore(), s && (r.save(), r.fillStyle = d(e.stroke || e.fill, l ? .34 : .9), typeof r.roundRect == "function" ? (r.beginPath(), r.roundRect(t, n, a, v, [
 			_,
 			_,
@@ -3352,11 +3353,11 @@ function rr(e, t, n = null) {
 			let n = Math.min(g ? 16 : 6, Number(e.inputCount) || 0), i = Math.min(g ? 16 : 6, Number(e.outputCount) || 0);
 			r.save(), r.strokeStyle = "rgba(0,0,0,0.48)", r.lineWidth = 1;
 			for (let i = 0; i < n; i += 1) {
-				let n = de(e, i, "input");
+				let n = j(e, i, "input");
 				r.fillStyle = tr(e.inputs?.[i]?.type, !1), r.beginPath(), r.arc(t, n, g ? 3 : 2.2, 0, Math.PI * 2), r.fill(), r.stroke();
 			}
 			for (let n = 0; n < i; n += 1) {
-				let i = de(e, n, "output");
+				let i = j(e, n, "output");
 				r.fillStyle = tr(e.outputs?.[n]?.type, !0), r.beginPath(), r.arc(t + a, i, g ? 3 : 2.2, 0, Math.PI * 2), r.fill(), r.stroke();
 			}
 			r.restore();
@@ -3369,7 +3370,7 @@ function rr(e, t, n = null) {
 			}
 			r.strokeStyle = "rgba(244,67,54,0.95)", r.lineWidth = 1.5, r.strokeRect(t - .5, n - .5, a + 1, o + 1);
 		}
-		if (s && oe && String(e.id || "") === oe) {
+		if (s && se && String(e.id || "") === se) {
 			try {
 				r.setLineDash([]);
 			} catch (e) {
@@ -3400,24 +3401,24 @@ function rr(e, t, n = null) {
 			let i = Math.max(24, a * .34);
 			for (let a = 0; a < Math.min(8, e.inputs?.length || 0); a += 1) {
 				let o = e.inputs[a], s = String(o?.label || o?.localized_name || o?.name || "").trim();
-				s && r.fillText(nr(r, s, i), t + 7, de(e, a, "input") + n * .35, i);
+				s && r.fillText(nr(r, s, i), t + 7, j(e, a, "input") + n * .35, i);
 			}
 			for (let o = 0; o < Math.min(8, e.outputs?.length || 0); o += 1) {
 				let s = e.outputs[o], c = String(s?.label || s?.localized_name || s?.name || "").trim();
 				if (!c) continue;
 				let l = nr(r, c, i);
-				r.fillText(l, t + a - 7 - Math.min(i, r.measureText(l).width), de(e, o, "output") + n * .35, i);
+				r.fillText(l, t + a - 7 - Math.min(i, r.measureText(l).width), j(e, o, "output") + n * .35, i);
 			}
 			r.restore();
 		}
 	};
-	for (let e of m.filter((e) => e.kind === "group")) N(e);
-	me();
-	for (let e of m.filter((e) => e.kind === "node")) N(e);
+	for (let e of m.filter((e) => e.kind === "group")) ge(e);
+	he();
+	for (let e of m.filter((e) => e.kind === "node")) ge(e);
 	if (i.showViewport) try {
-		let e = le();
+		let e = me();
 		if (e) {
-			let t = se(e.x0, e.y0), n = se(e.x1, e.y1), i = Math.min(t.x, n.x), a = Math.min(t.y, n.y), o = Math.abs(n.x - t.x), s = Math.abs(n.y - t.y);
+			let t = ce(e.x0, e.y0), n = ce(e.x1, e.y1), i = Math.min(t.x, n.x), a = Math.min(t.y, n.y), o = Math.abs(n.x - t.x), s = Math.abs(n.y - t.y);
 			r.save(), r.globalAlpha = 1, r.strokeStyle = "rgba(255,255,255,0.9)", r.lineWidth = 1, r.strokeRect(i, a, o, s), r.restore();
 		}
 	} catch (e) {
@@ -3434,19 +3435,19 @@ function rr(e, t, n = null) {
 		},
 		resolvedView: {
 			zoom: ne,
-			centerX: re,
-			centerY: ie,
+			centerX: ie,
+			centerY: ae,
 			visibleW: T,
 			visibleH: E,
-			viewMinX: ae,
-			viewMinY: k,
-			pad: A,
-			renderScale: j
+			viewMinX: O,
+			viewMinY: oe,
+			pad: k,
+			renderScale: A
 		},
-		canvasToWorld: ce,
-		worldToCanvas: se,
+		canvasToWorld: le,
+		worldToCanvas: ce,
 		hitTestNode: (e, t) => {
-			let n = ce(e, t);
+			let n = le(e, t);
 			for (let e = m.length - 1; e >= 0; --e) {
 				let t = m[e];
 				if (t.kind === "node" && n.x >= t.x && n.x <= t.x + t.w && n.y >= t.y && n.y <= t.y + t.h) return t;
@@ -4303,44 +4304,44 @@ function ai(e) {
 			T != null && String(T).trim() && (n.voice_preset = String(T).trim());
 			let E = t.instruct?.value ?? t.instruct ?? null;
 			E != null && String(E).trim() && (n.instruct = String(E).trim());
-			let D = t.dtype?.value ?? t.dtype ?? null;
-			D != null && String(D).trim() && (n.dtype = String(D).trim());
-			let O = t.attn_implementation?.value ?? t.attn_implementation ?? null;
-			O != null && String(O).trim() && (n.attn_implementation = String(O).trim());
-			let re = t.x_vector_only_mode?.value ?? t.x_vector_only_mode ?? null;
-			re != null && (n.x_vector_only_mode = re);
-			let ie = t.use_torch_compile?.value ?? t.use_torch_compile ?? null;
-			ie != null && (n.use_torch_compile = ie);
-			let ae = t.use_cuda_graphs?.value ?? t.use_cuda_graphs ?? null;
-			ae != null && (n.use_cuda_graphs = ae);
-			let k = t.compile_mode?.value ?? t.compile_mode ?? null;
-			k != null && String(k).trim() && (n.compile_mode = String(k).trim());
-			let A = t.enable_chunking?.value ?? t.enable_chunking ?? null;
-			A != null && (n.enable_chunking = A);
-			let j = t.max_chars_per_chunk?.value ?? t.max_chars_per_chunk ?? null;
-			j != null && (n.max_chars_per_chunk = j);
-			let oe = t.chunk_combination_method?.value ?? t.chunk_combination_method ?? null;
-			oe != null && String(oe).trim() && (n.chunk_combination_method = String(oe).trim());
-			let se = t.silence_between_chunks_ms?.value ?? t.silence_between_chunks_ms ?? null;
-			se != null && (n.silence_between_chunks_ms = se);
-			let ce = t.enable_audio_cache?.value ?? t.enable_audio_cache ?? null;
-			ce != null && (n.enable_audio_cache = ce);
-			let le = t.batch_size?.value ?? t.batch_size ?? null;
-			le != null && (n.batch_size = le);
-			let ue = t.denoise?.value ?? t.denoise ?? null;
-			ue != null && (n.denoise = ue), i(["denoise", "denoising"], t.denoise);
-			let M = t.clip_skip?.value ?? t.clip_skip ?? t.clipSkip ?? null;
-			M != null && (n.clip_skip = M);
-			let de = t.inputs;
-			Array.isArray(de) && (n.inputs = de), t.ltx_director && typeof t.ltx_director == "object" && (n.ltx_director = t.ltx_director);
-			let fe = t.lyrics?.value ?? t.lyrics ?? null;
-			typeof fe == "string" && fe.trim() && (n.lyrics = fe);
-			let pe = t.lyrics_strength?.value ?? t.lyrics_strength ?? null;
-			pe != null && (n.lyrics_strength = pe);
-			let me = t.notes?.value ?? t.workflow_notes?.value ?? t.notes ?? t.workflow_notes ?? null;
-			typeof me == "string" && me.trim() && (n.workflow_notes = me.trim()), i(["workflow_notes", "notes"], t.notes ?? t.workflow_notes), Array.isArray(t.custom_info) && (n.custom_info = t.custom_info), Array.isArray(t.custom_info) && t.engine?.mode === "override" && r.add("custom_info"), Array.isArray(t.all_positive_prompts) && t.all_positive_prompts.length > 1 && (n.all_positive_prompts = t.all_positive_prompts), Array.isArray(t.all_negative_prompts) && t.all_negative_prompts.length > 1 && (n.all_negative_prompts = t.all_negative_prompts), Array.isArray(t.all_samplers) && t.all_samplers.length > 1 && (n.all_samplers = t.all_samplers), Array.isArray(t.chained_passes) && t.chained_passes.length > 1 && (n.chained_passes = t.chained_passes), Array.isArray(t.all_checkpoints) && t.all_checkpoints.length > 1 && (n.all_checkpoints = t.all_checkpoints);
-			let N = t.size || null;
-			if (N && typeof N == "object" && (N.width !== void 0 && (n.width = N.width), N.height !== void 0 && (n.height = N.height)), t.engine && typeof t.engine == "object" && (n.engine = t.engine, (t.engine.mode === "override" || t.engine.parser_version === "geninfo-override-v1" || t.engine.source === "majoor_geninfo") && (n.is_override = !0)), r.size && (n.override_fields = Array.from(r)), ui(n, pi(e)), mi(n, e), Object.keys(n).length) return n;
+			let re = t.dtype?.value ?? t.dtype ?? null;
+			re != null && String(re).trim() && (n.dtype = String(re).trim());
+			let D = t.attn_implementation?.value ?? t.attn_implementation ?? null;
+			D != null && String(D).trim() && (n.attn_implementation = String(D).trim());
+			let ie = t.x_vector_only_mode?.value ?? t.x_vector_only_mode ?? null;
+			ie != null && (n.x_vector_only_mode = ie);
+			let ae = t.use_torch_compile?.value ?? t.use_torch_compile ?? null;
+			ae != null && (n.use_torch_compile = ae);
+			let O = t.use_cuda_graphs?.value ?? t.use_cuda_graphs ?? null;
+			O != null && (n.use_cuda_graphs = O);
+			let oe = t.compile_mode?.value ?? t.compile_mode ?? null;
+			oe != null && String(oe).trim() && (n.compile_mode = String(oe).trim());
+			let k = t.enable_chunking?.value ?? t.enable_chunking ?? null;
+			k != null && (n.enable_chunking = k);
+			let A = t.max_chars_per_chunk?.value ?? t.max_chars_per_chunk ?? null;
+			A != null && (n.max_chars_per_chunk = A);
+			let se = t.chunk_combination_method?.value ?? t.chunk_combination_method ?? null;
+			se != null && String(se).trim() && (n.chunk_combination_method = String(se).trim());
+			let ce = t.silence_between_chunks_ms?.value ?? t.silence_between_chunks_ms ?? null;
+			ce != null && (n.silence_between_chunks_ms = ce);
+			let le = t.enable_audio_cache?.value ?? t.enable_audio_cache ?? null;
+			le != null && (n.enable_audio_cache = le);
+			let ue = t.batch_size?.value ?? t.batch_size ?? null;
+			ue != null && (n.batch_size = ue);
+			let de = t.denoise?.value ?? t.denoise ?? null;
+			de != null && (n.denoise = de), i(["denoise", "denoising"], t.denoise);
+			let j = t.clip_skip?.value ?? t.clip_skip ?? t.clipSkip ?? null;
+			j != null && (n.clip_skip = j);
+			let fe = t.inputs;
+			Array.isArray(fe) && (n.inputs = fe), t.ltx_director && typeof t.ltx_director == "object" && (n.ltx_director = t.ltx_director);
+			let pe = t.lyrics?.value ?? t.lyrics ?? null;
+			typeof pe == "string" && pe.trim() && (n.lyrics = pe);
+			let me = t.lyrics_strength?.value ?? t.lyrics_strength ?? null;
+			me != null && (n.lyrics_strength = me);
+			let he = t.notes?.value ?? t.workflow_notes?.value ?? t.notes ?? t.workflow_notes ?? null;
+			typeof he == "string" && he.trim() && (n.workflow_notes = he.trim()), i(["workflow_notes", "notes"], t.notes ?? t.workflow_notes), Array.isArray(t.custom_info) && (n.custom_info = t.custom_info), Array.isArray(t.custom_info) && t.engine?.mode === "override" && r.add("custom_info"), Array.isArray(t.all_positive_prompts) && t.all_positive_prompts.length > 1 && (n.all_positive_prompts = t.all_positive_prompts), Array.isArray(t.all_negative_prompts) && t.all_negative_prompts.length > 1 && (n.all_negative_prompts = t.all_negative_prompts), Array.isArray(t.all_samplers) && t.all_samplers.length > 1 && (n.all_samplers = t.all_samplers), Array.isArray(t.chained_passes) && t.chained_passes.length > 1 && (n.chained_passes = t.chained_passes), Array.isArray(t.all_checkpoints) && t.all_checkpoints.length > 1 && (n.all_checkpoints = t.all_checkpoints);
+			let ge = t.size || null;
+			if (ge && typeof ge == "object" && (ge.width !== void 0 && (n.width = ge.width), ge.height !== void 0 && (n.height = ge.height)), t.engine && typeof t.engine == "object" && (n.engine = t.engine, (t.engine.mode === "override" || t.engine.parser_version === "geninfo-override-v1" || t.engine.source === "majoor_geninfo") && (n.is_override = !0)), r.size && (n.override_fields = Array.from(r)), ui(n, pi(e)), mi(n, e), Object.keys(n).length) return n;
 		}
 		let n = Tr(e);
 		if (n) return n;
@@ -4607,7 +4608,7 @@ function Ai(e) {
 	if (!t) return [];
 	let n = String(e?.subfolder || "").trim(), r = String(e?.folder_type || "input").trim().toLowerCase(), i = [], a = (e) => {
 		if (!e) return;
-		let r = A(t, n, e);
+		let r = fe(t, n, e);
 		r && !i.includes(r) && i.push(r);
 	};
 	return (r === "input" || r === "output") && a(r), a("input"), a("output"), i;
@@ -5283,7 +5284,7 @@ function ia(e) {
 		value: T,
 		override: $(o, "workflow_notes", "notes")
 	});
-	let E = ta(r.custom_info), D = Qi(r, h, v, x), O = $i(r, x, E, l.workflowType), re = Xi(r, x), ie = Array.isArray(r.inputs) ? r.inputs.filter((e) => e && typeof e == "object" && e.filename).map((e, t) => ({
+	let E = ta(r.custom_info), re = Qi(r, h, v, x), D = $i(r, x, E, l.workflowType), ie = Xi(r, x), ae = Array.isArray(r.inputs) ? r.inputs.filter((e) => e && typeof e == "object" && e.filename).map((e, t) => ({
 		id: `${e.filename}-${t}`,
 		filename: String(e.filename || "").trim(),
 		subfolder: String(e.subfolder || "").trim(),
@@ -5315,7 +5316,7 @@ function ia(e) {
 		lyrics: String(r.lyrics || "").trim(),
 		modelFields: f,
 		modelGroups: h,
-		branchCards: D,
+		branchCards: re,
 		pipelineTabs: x,
 		samplingFields: v,
 		ttsFields: S,
@@ -5323,14 +5324,14 @@ function ia(e) {
 		ttsInstruction: String(r.instruct || "").trim(),
 		ttsRuntimeFields: ee,
 		audioFields: te,
-		seed: re,
+		seed: ie,
 		imageFields: w,
-		inputFiles: ie,
+		inputFiles: ae,
 		isOverride: c,
 		overrideLabel: c ? "Gen Info Override" : "",
 		notesFields: ne,
 		customInfoBlocks: E,
-		moduleBlocks: O,
+		moduleBlocks: D,
 		ltxDirector: i,
 		ideogram: a
 	};
