@@ -1,3 +1,4 @@
+# mypy: disable-error-code="arg-type"
 import sys
 import types
 
@@ -136,7 +137,7 @@ def test_require_operation_enabled_assets_rating_gated_like_asset_rating(monkeyp
     assert not denied_batch.ok
     assert denied_batch.code == "FORBIDDEN"
     assert denied_batch.error == denied_single.error
-    assert "unknown operation" not in denied_batch.error
+    assert "unknown operation" not in (denied_batch.error or "")
 
 
 def test_auth_helpers_and_authenticated_user() -> None:

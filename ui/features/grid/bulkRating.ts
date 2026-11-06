@@ -93,7 +93,7 @@ async function _sendBulkRating(assetIds: any, rating: any): Promise<BulkRatingRe
                 ? result.data.updated_ids
                 : [];
             const updatedSet = new Set(updatedIds.map((id: any) => String(id)));
-            const failedSet = new Set(
+            const failedSet = new Set<string>(
                 (Array.isArray(result?.data?.failed) ? result.data.failed : [])
                     .map((entry: any) => (entry?.id != null ? String(entry.id) : ""))
                     .filter(Boolean),

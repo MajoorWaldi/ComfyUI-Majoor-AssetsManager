@@ -1611,7 +1611,7 @@ function _buildAssetItems({
         selectedIds.size >= 2 &&
         !!clickedAssetId &&
         selectedIds.has(clickedAssetId)
-            ? Array.from(selectedIds)
+            ? Array.from(selectedIds, String)
             : null;
     const ratingLabel = ratingBulkIds
         ? t("ctx.setRatingN", "Set rating ({n} selected)", { n: ratingBulkIds.length })

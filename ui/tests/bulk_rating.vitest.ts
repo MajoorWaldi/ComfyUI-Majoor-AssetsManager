@@ -57,7 +57,7 @@ function makeGrid(selectedIds: string[], assetCount: number) {
     const assets: any[] = [];
     for (let i = 0; i < assetCount; i += 1) {
         const id = String(i + 1);
-        const card = document.createElement("div");
+        const card: HTMLDivElement & { _mjrAsset?: unknown } = document.createElement("div");
         card.className = "mjr-asset-card";
         card.dataset.mjrAssetId = id;
         const asset: any = {
