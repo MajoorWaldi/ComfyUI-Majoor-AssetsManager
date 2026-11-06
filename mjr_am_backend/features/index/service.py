@@ -681,6 +681,22 @@ class IndexService:
         """
         return await self._updater.update_asset_tags(asset_id, tags)
 
+    async def merge_asset_tags(
+        self, asset_id: int, add: list[str], remove: list[str]
+    ) -> Result[dict[str, Any]]:
+        """
+        Merge tag additions/removals into an asset's current tag set.
+
+        Args:
+            asset_id: Asset ID
+            add: Tags to add
+            remove: Tags to remove
+
+        Returns:
+            Result with ``{"asset_id", "changed", "tags"}``
+        """
+        return await self._updater.merge_asset_tags(asset_id, add, remove)
+
     async def get_all_tags(self) -> Result[list[str]]:
         """
         Get all unique tags from the database for autocomplete.

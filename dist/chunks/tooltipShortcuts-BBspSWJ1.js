@@ -1,6 +1,6 @@
-import { Vn as e, bn as t, fn as n, gn as r, in as i, kn as a, un as o, xn as s } from "./client-BVwNDRIx.js";
+import { An as e, Hn as t, Sn as n, _n as r, an as i, dn as a, pn as o, xn as s } from "./client-JHhPY9-v.js";
 import { a as c, n as l } from "./graphTraversal-DTdQWkn5.js";
-import { C as u, S as d, b as f, x as p, y as m } from "./generationSectionState-DwIh8vyW.js";
+import { C as u, S as d, b as f, x as p, y as m } from "./generationSectionState-Drz6o8L-.js";
 import { _ as ee, a as te, c as ne, d as re, f as ie, g as ae, h as oe, i as se, l as ce, m as le, n as ue, o as de, p as fe, r as pe, s as me, t as he, u as ge } from "./mjr-primevue-CE8VjDUg.js";
 import { t as _e } from "./mjr-vue-vendor-pJNm95sb.js";
 // ui/features/viewer/floatingViewerProgress.ts
@@ -14,7 +14,7 @@ function ye(e, t) {
 	return n.detail = t, n;
 }
 var be = class {
-	constructor(e, t = () => s()) {
+	constructor(e, t = () => n()) {
 		this.id = String(e || ""), this.promptApi = null, this.executedNodeIds = [], this.totalNodes = 0, this.currentlyExecuting = null, this.errorDetails = null, this._getApp = typeof t == "function" ? t : () => null;
 	}
 	setPrompt(e) {
@@ -63,8 +63,8 @@ var be = class {
 		this.errorDetails = e || null;
 	}
 }, xe = class extends EventTarget {
-	constructor({ getApi: n = (e) => t(e), getApp: r = () => s(), waitForApi: i = (t) => e(t) } = {}) {
-		super(), this._getApi = n, this._getApp = r, this._waitForApi = i, this.promptsMap = /* @__PURE__ */ new Map(), this.currentExecution = null, this.lastQueueRemaining = 0, this._api = null, this._listenerEntries = [], this._initPromise = null, this._hydrations = /* @__PURE__ */ new Map();
+	constructor({ getApi: e = (e) => s(e), getApp: r = () => n(), waitForApi: i = (e) => t(e) } = {}) {
+		super(), this._getApi = e, this._getApp = r, this._waitForApi = i, this.promptsMap = /* @__PURE__ */ new Map(), this.currentExecution = null, this.lastQueueRemaining = 0, this._api = null, this._listenerEntries = [], this._initPromise = null, this._hydrations = /* @__PURE__ */ new Map();
 	}
 	getSnapshot() {
 		return {
@@ -247,10 +247,10 @@ function b(e, t) {
 	}
 }
 function we(e, t) {
-	let n = String(t || "").trim();
-	if (!n) return !1;
+	let r = String(t || "").trim();
+	if (!r) return !1;
 	try {
-		return o(n, s());
+		return a(r, n());
 	} catch (e) {
 		return console.debug?.(e), !1;
 	}
@@ -321,7 +321,7 @@ var x = /* @__PURE__ */ new Map(), S = null;
 async function C(e) {
 	let t = Array.from(new Set(w(e).map((e) => D(e)).filter(Boolean)));
 	if (t.length && t.filter((e) => !x.has(e)).length) try {
-		S ||= n("/object_info").then((e) => e?.ok ? e.json() : null).then((e) => {
+		S ||= o("/object_info").then((e) => e?.ok ? e.json() : null).then((e) => {
 			if (e && typeof e == "object") for (let [t, n] of Object.entries(e)) x.set(String(t), n);
 			return e;
 		}).catch(() => null), await S;
@@ -871,18 +871,18 @@ function dt(e, t, n = null) {
 		default: return _t(e);
 	}
 }
-function G(e, t, n = null) {
-	if (!e) return !1;
-	let i = String(e.type || "").toLowerCase();
-	if (i === "number" || i === "int" || i === "float") {
-		let n = Number(t);
-		if (Number.isNaN(n)) return !1;
-		let r = e.options ?? {}, a = r.min ?? -Infinity, o = r.max ?? Infinity, s = Math.min(o, Math.max(a, n));
-		(i === "int" || r.precision === 0 || r.round === 1) && (s = Math.round(s)), e.value = s;
-	} else e.value = i === "toggle" || i === "boolean" ? !!t : t;
+function G(t, n, i = null) {
+	if (!t) return !1;
+	let a = String(t.type || "").toLowerCase();
+	if (a === "number" || a === "int" || a === "float") {
+		let e = Number(n);
+		if (Number.isNaN(e)) return !1;
+		let r = t.options ?? {}, i = r.min ?? -Infinity, o = r.max ?? Infinity, s = Math.min(o, Math.max(i, e));
+		(a === "int" || r.precision === 0 || r.round === 1) && (s = Math.round(s)), t.value = s;
+	} else t.value = a === "toggle" || a === "boolean" ? !!n : n;
 	try {
-		let t = r(), o = n ?? e?.parent ?? null, s = e.value;
-		e.callback?.(e.value, t, o, null, e), (i === "number" || i === "int" || i === "float") && (e.value = s), ft(e), a(o);
+		let n = r(), o = i ?? t?.parent ?? null, s = t.value;
+		t.callback?.(t.value, n, o, null, t), (a === "number" || a === "int" || a === "float") && (t.value = s), ft(t), e(o);
 	} catch (e) {
 		console.debug?.("[MFV] writeWidgetValue", e);
 	}
@@ -1325,11 +1325,11 @@ function Z() {
 		}
 	}
 }
-function Ot(e = s()) {
+function Ot(e = n()) {
 	if (typeof document > "u") return !1;
 	Y?.root?.isConnected || (Y = Dt());
-	let t = u(e), n = () => Et(Y.body, t, String(Y.search.value || "").trim().toLowerCase());
-	Y.search.oninput = n, Y.search.value = "", n(), Y.root.hidden = !1;
+	let t = u(e), r = () => Et(Y.body, t, String(Y.search.value || "").trim().toLowerCase());
+	Y.search.oninput = r, Y.search.value = "", r(), Y.root.hidden = !1;
 	try {
 		window.dispatchEvent(new CustomEvent(J, { detail: { open: !0 } }));
 	} catch (e) {
@@ -1338,7 +1338,7 @@ function Ot(e = s()) {
 	return setTimeout(() => Y?.search?.focus?.(), 0), !0;
 }
 // ui/app/openMajoorSettings.ts
-function Q(e = s()) {
+function Q(e = n()) {
 	return Ot(e);
 }
 try {

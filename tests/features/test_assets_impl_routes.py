@@ -1790,6 +1790,380 @@ async def test_rating_tags_sync_header_modes(monkeypatch, tmp_path: Path):
     assert worker.calls[-1][-1] == "both"
 
 
+class _BulkTagsIndex:
+    """Fake index service capturing merge_asset_tags calls."""
+
+    def __init__(self, results=None, default_tags=None):
+        self.calls = []
+        self._results = results or {}
+        self._default_tags = list(default_tags or [])
+
+    async def merge_asset_tags(self, asset_id, add, remove):
+        self.calls.append((asset_id, list(add or []), list(remove or [])))
+        preset = self._results.get(asset_id)
+        if preset is not None:
+            return preset
+        return Result.Ok(
+            {"asset_id": asset_id, "changed": True, "tags": list(self._default_tags)}
+        )
+
+
+def _patch_bulk_tags_common(monkeypatch, index, db=None):
+    async def _svc_ok():
+        services = {"index": index}
+        if db is not None:
+            services["db"] = db
+        return services, None
+
+    async def _prefs(_svc):
+        return {}
+
+    monkeypatch.setattr(m, "_csrf_error", lambda _request: None)
+    monkeypatch.setattr(m, "_require_services", _svc_ok)
+    monkeypatch.setattr(m, "_resolve_security_prefs", _prefs)
+    monkeypatch.setattr(m, "_require_operation_enabled", lambda *_args, **_kwargs: Result.Ok({}))
+    monkeypatch.setattr(m, "_require_write_access", lambda _request: Result.Ok({}))
+    monkeypatch.setattr(m, "_check_rate_limit", lambda *_args, **_kwargs: (True, None))
+
+
+@pytest.mark.asyncio
+async def test_assets_tags_bulk_add_to_all(monkeypatch):
+    app = _app()
+    index = _BulkTagsIndex(default_tags=["b"])
+    _patch_bulk_tags_common(monkeypatch, index)
+
+    async def _read_json(_request):
+        return Result.Ok({"ids": [1, 2], "add": ["b"]})
+
+    monkeypatch.setattr(m, "_read_json", _read_json)
+
+    req = make_mocked_request("POST", "/mjr/am/assets/tags", app=app)
+    resp = await (await app.router.resolve(req)).handler(req)
+    payload = _json(resp)
+    assert payload.get("ok") is True
+    assert payload.get("data", {}).get("updated_ids") == [1, 2]
+    assert payload.get("data", {}).get("unchanged_ids") == []
+    assert payload.get("data", {}).get("failed") == []
+    assert payload.get("data", {}).get("tags") == {"1": ["b"], "2": ["b"]}
+    assert index.calls == [(1, ["b"], []), (2, ["b"], [])]
+
+
+@pytest.mark.asyncio
+async def test_assets_tags_bulk_remove_from_all(monkeypatch):
+    app = _app()
+    index = _BulkTagsIndex(default_tags=[])
+    _patch_bulk_tags_common(monkeypatch, index)
+
+    async def _read_json(_request):
+        return Result.Ok({"ids": [1, 2], "remove": ["b"]})
+
+    monkeypatch.setattr(m, "_read_json", _read_json)
+
+    req = make_mocked_request("POST", "/mjr/am/assets/tags", app=app)
+    resp = await (await app.router.resolve(req)).handler(req)
+    payload = _json(resp)
+    assert payload.get("ok") is True
+    assert payload.get("data", {}).get("updated_ids") == [1, 2]
+    assert index.calls == [(1, [], ["b"]), (2, [], ["b"])]
+
+
+@pytest.mark.asyncio
+async def test_assets_tags_bulk_add_and_remove_in_one_request(monkeypatch):
+    app = _app()
+    index = _BulkTagsIndex(default_tags=["b", "c"])
+    _patch_bulk_tags_common(monkeypatch, index)
+
+    async def _read_json(_request):
+        return Result.Ok({"ids": [1], "add": ["c"], "remove": ["a"]})
+
+    monkeypatch.setattr(m, "_read_json", _read_json)
+
+    req = make_mocked_request("POST", "/mjr/am/assets/tags", app=app)
+    resp = await (await app.router.resolve(req)).handler(req)
+    payload = _json(resp)
+    assert payload.get("ok") is True
+    assert payload.get("data", {}).get("tags") == {"1": ["b", "c"]}
+    assert index.calls == [(1, ["c"], ["a"])]
+
+
+@pytest.mark.asyncio
+async def test_assets_tags_bulk_case_insensitive_and_unchanged(monkeypatch):
+    app = _app()
+    index = _BulkTagsIndex(
+        results={
+            1: Result.Ok({"asset_id": 1, "changed": False, "tags": ["Cat"]}),
+            2: Result.Ok({"asset_id": 2, "changed": False, "tags": ["a"]}),
+        }
+    )
+    _patch_bulk_tags_common(monkeypatch, index)
+
+    async def _read_json(_request):
+        return Result.Ok({"ids": [1, 2], "add": [" Cat ", "cat"], "remove": ["z"]})
+
+    monkeypatch.setattr(m, "_read_json", _read_json)
+
+    req = make_mocked_request("POST", "/mjr/am/assets/tags", app=app)
+    resp = await (await app.router.resolve(req)).handler(req)
+    payload = _json(resp)
+    assert payload.get("ok") is True
+    assert payload.get("data", {}).get("updated_ids") == []
+    assert payload.get("data", {}).get("unchanged_ids") == [1, 2]
+    assert payload.get("data", {}).get("tags") == {"1": ["Cat"], "2": ["a"]}
+    assert index.calls[0] == (1, ["Cat"], ["z"])
+
+
+@pytest.mark.asyncio
+async def test_assets_tags_bulk_too_many_tags_partial(monkeypatch):
+    app = _app()
+    index = _BulkTagsIndex(
+        results={
+            1: Result.Err("INVALID_INPUT", "Too many tags (max 50)"),
+            2: Result.Ok({"asset_id": 2, "changed": True, "tags": ["new"]}),
+        }
+    )
+    _patch_bulk_tags_common(monkeypatch, index)
+
+    async def _read_json(_request):
+        return Result.Ok({"ids": [1, 2], "add": ["new"]})
+
+    monkeypatch.setattr(m, "_read_json", _read_json)
+
+    req = make_mocked_request("POST", "/mjr/am/assets/tags", app=app)
+    resp = await (await app.router.resolve(req)).handler(req)
+    payload = _json(resp)
+    assert payload.get("ok") is True
+    assert payload.get("meta", {}).get("partial") is True
+    assert payload.get("data", {}).get("updated_ids") == [2]
+    assert payload.get("data", {}).get("failed") == [
+        {"id": 1, "code": "INVALID_INPUT", "error": "Too many tags (max 50)"}
+    ]
+    assert len(index.calls) == 2
+
+
+@pytest.mark.asyncio
+async def test_assets_tags_bulk_missing_id_partial(monkeypatch):
+    app = _app()
+    index = _BulkTagsIndex(
+        results={
+            1: Result.Ok({"asset_id": 1, "changed": True, "tags": ["b"]}),
+            999: Result.Err("NOT_FOUND", "Asset not found: 999"),
+        }
+    )
+    _patch_bulk_tags_common(monkeypatch, index)
+
+    async def _read_json(_request):
+        return Result.Ok({"ids": [1, 999], "add": ["b"]})
+
+    monkeypatch.setattr(m, "_read_json", _read_json)
+
+    req = make_mocked_request("POST", "/mjr/am/assets/tags", app=app)
+    resp = await (await app.router.resolve(req)).handler(req)
+    payload = _json(resp)
+    assert payload.get("ok") is True
+    assert payload.get("meta", {}).get("partial") is True
+    assert payload.get("data", {}).get("updated_ids") == [1]
+    failed = payload.get("data", {}).get("failed")
+    assert failed == [{"id": 999, "code": "NOT_FOUND", "error": "Asset not found: 999"}]
+
+
+@pytest.mark.asyncio
+async def test_assets_tags_bulk_bad_body_variants(monkeypatch):
+    app = _app()
+    index = _BulkTagsIndex()
+    _patch_bulk_tags_common(monkeypatch, index)
+
+    req = make_mocked_request("GET", "/mjr/am/routes", app=app)
+    routes_resp = await (await app.router.resolve(req)).handler(req)
+    routes_payload = _json(routes_resp)
+    assert any(
+        (r or {}).get("path") == "/mjr/am/assets/tags"
+        for r in routes_payload.get("data", {}).get("routes", [])
+    )
+
+    bodies = [
+        {"ids": [1], "add": [], "remove": []},
+        {"ids": [1], "add": ["  "], "remove": [""]},
+        {"ids": [1], "add": "b"},
+        {"ids": [], "add": ["b"]},
+        {"ids": [i for i in range(501)], "add": ["b"]},
+    ]
+    for body in bodies:
+        async def _read_json(_request, _body=body):
+            return Result.Ok(_body)
+
+        monkeypatch.setattr(m, "_read_json", _read_json)
+        req = make_mocked_request("POST", "/mjr/am/assets/tags", app=app)
+        resp = await (await app.router.resolve(req)).handler(req)
+        payload = _json(resp)
+        assert payload.get("ok") is False, body
+        assert payload.get("code") == "INVALID_INPUT", body
+    assert index.calls == []
+
+
+@pytest.mark.asyncio
+async def test_assets_tags_bulk_rate_limited(monkeypatch):
+    app = _app()
+    index = _BulkTagsIndex()
+    _patch_bulk_tags_common(monkeypatch, index)
+    monkeypatch.setattr(m, "_check_rate_limit", lambda *_args, **_kwargs: (False, 9))
+
+    async def _read_json(_request):
+        return Result.Ok({"ids": [1], "add": ["b"]})
+
+    monkeypatch.setattr(m, "_read_json", _read_json)
+
+    req = make_mocked_request("POST", "/mjr/am/assets/tags", app=app)
+    resp = await (await app.router.resolve(req)).handler(req)
+    payload = _json(resp)
+    assert payload.get("code") == "RATE_LIMITED"
+    assert index.calls == []
+
+
+@pytest.mark.asyncio
+async def test_assets_tags_bulk_sync_enqueue_for_updated_only(monkeypatch, tmp_path: Path):
+    app = _app()
+    f = tmp_path / "sync.png"
+    f.write_bytes(b"x")
+
+    index = _BulkTagsIndex(
+        results={
+            1: Result.Ok({"asset_id": 1, "changed": True, "tags": ["b"]}),
+            2: Result.Ok({"asset_id": 2, "changed": True, "tags": ["b"]}),
+            3: Result.Ok({"asset_id": 3, "changed": False, "tags": ["b"]}),
+        }
+    )
+
+    class _Worker:
+        def __init__(self):
+            self.calls = []
+
+        def enqueue(self, filepath, rating, tags, mode):
+            self.calls.append((filepath, rating, tags, mode))
+
+    class _SyncDB:
+        async def aquery(self, sql, _params=()):
+            if "FROM assets WHERE id" in sql:
+                return Result.Ok([{"filepath": str(f)}])
+            if "FROM asset_metadata" in sql:
+                return Result.Ok([{"rating": 3, "tags": '["b"]'}])
+            return Result.Ok([])
+
+    worker = _Worker()
+    db = _SyncDB()
+    _patch_bulk_tags_common(monkeypatch, index, db=db)
+
+    async def _svc_ok():
+        return {"index": index, "db": db, "rating_tags_sync": worker}, None
+
+    monkeypatch.setattr(m, "_require_services", _svc_ok)
+
+    async def _read_json(_request):
+        return Result.Ok({"ids": [1, 2, 3], "add": ["b"]})
+
+    monkeypatch.setattr(m, "_read_json", _read_json)
+
+    request = make_mocked_request(
+        "POST", "/mjr/am/assets/tags", app=app, headers={"X-MJR-RTSYNC": "on"}
+    )
+    resp = await (await app.router.resolve(request)).handler(request)
+    payload = _json(resp)
+    assert payload.get("ok") is True
+    assert payload.get("data", {}).get("unchanged_ids") == [3]
+    assert len(worker.calls) == 2
+    assert all(call[-1] == "on" for call in worker.calls)
+
+
+@pytest.mark.asyncio
+async def test_assets_tags_bulk_dedupes_ids(monkeypatch):
+    app = _app()
+    index = _BulkTagsIndex(default_tags=["b"])
+    _patch_bulk_tags_common(monkeypatch, index)
+
+    async def _read_json(_request):
+        return Result.Ok({"ids": [1, 1, 2], "add": ["b"]})
+
+    monkeypatch.setattr(m, "_read_json", _read_json)
+
+    req = make_mocked_request("POST", "/mjr/am/assets/tags", app=app)
+    resp = await (await app.router.resolve(req)).handler(req)
+    payload = _json(resp)
+    assert payload.get("ok") is True
+    assert index.calls == [(1, ["b"], []), (2, ["b"], [])]
+    assert payload.get("data", {}).get("updated_ids") == [1, 2]
+    assert payload.get("data", {}).get("tags") == {"1": ["b"], "2": ["b"]}
+
+
+@pytest.mark.asyncio
+async def test_assets_tags_bulk_real_gate_safe_mode_with_allow_write(monkeypatch):
+    """Wires the REAL operation gate: safe mode on + allow_write -> bulk tags allowed."""
+    app = _app()
+    index = _BulkTagsIndex(default_tags=["b"])
+
+    monkeypatch.delenv("MAJOOR_SAFE_MODE", raising=False)
+    monkeypatch.delenv("MAJOOR_ALLOW_WRITE", raising=False)
+
+    async def _svc_ok():
+        return {"index": index}, None
+
+    async def _prefs_allow_write(_svc):
+        return {"allow_write": True}
+
+    monkeypatch.setattr(m, "_csrf_error", lambda _request: None)
+    monkeypatch.setattr(m, "_require_services", _svc_ok)
+    monkeypatch.setattr(m, "_resolve_security_prefs", _prefs_allow_write)
+    monkeypatch.setattr(m, "_require_write_access", lambda _request: Result.Ok({}))
+    monkeypatch.setattr(m, "_check_rate_limit", lambda *_args, **_kwargs: (True, None))
+
+    async def _read_json(_request):
+        return Result.Ok({"ids": [1], "add": ["b"]})
+
+    monkeypatch.setattr(m, "_read_json", _read_json)
+
+    req = make_mocked_request("POST", "/mjr/am/assets/tags", app=app)
+    resp = await (await app.router.resolve(req)).handler(req)
+    payload = _json(resp)
+    assert payload.get("ok") is True
+    assert payload.get("data", {}).get("updated_ids") == [1]
+    assert index.calls == [(1, ["b"], [])]
+
+
+@pytest.mark.asyncio
+async def test_assets_tags_bulk_writes_single_audit_entry(monkeypatch):
+    app = _app()
+    calls = []
+    index = _BulkTagsIndex(
+        results={
+            1: Result.Ok({"asset_id": 1, "changed": True, "tags": ["b"]}),
+            2: Result.Err("NOT_FOUND", "Asset not found: 2"),
+        }
+    )
+    _patch_bulk_tags_common(monkeypatch, index)
+
+    async def _audit_log_write(_services, **kwargs):
+        calls.append(kwargs)
+        return True
+
+    monkeypatch.setattr(m, "audit_log_write", _audit_log_write)
+
+    async def _read_json(_request):
+        return Result.Ok({"ids": [1, 2], "add": ["b"], "remove": ["a"]})
+
+    monkeypatch.setattr(m, "_read_json", _read_json)
+
+    req = make_mocked_request("POST", "/mjr/am/assets/tags", app=app)
+    resp = await (await app.router.resolve(req)).handler(req)
+    payload = _json(resp)
+    assert payload.get("ok") is True
+    assert len(calls) == 1
+    assert calls[0]["operation"] == "assets_tags"
+    assert calls[0]["target"] == "assets:1,2"
+    details = calls[0]["details"]
+    assert details["add_count"] == 1
+    assert details["remove_count"] == 1
+    assert details["updated"] == 1
+    assert details["failed"] == 1
+
+
 async def _call_delete_route(monkeypatch, knob_value):
     import mjr_am_backend.routes.assets.route_actions_delete as route_actions_delete
 

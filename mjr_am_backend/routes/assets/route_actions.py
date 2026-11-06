@@ -12,6 +12,7 @@ from .route_actions_basic import (
 from .route_actions_batch_rating import (  # noqa: F401
     handle_update_assets_rating,
 )
+from .route_actions_batch_tags import handle_update_assets_tags
 from .route_actions_crud import (
     handle_delete_asset,
     handle_delete_assets,
@@ -28,4 +29,5 @@ __all__ = [
     "handle_update_asset_rating",
     "handle_update_assets_rating",
     "handle_update_asset_tags",
+    "handle_update_assets_tags",
 ]

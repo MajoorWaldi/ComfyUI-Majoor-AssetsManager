@@ -57,6 +57,9 @@ class _DummyUpdater:
     async def update_asset_tags(self, _asset_id, _tags):
         return Result.Ok({"id": 1, "tags": ["a"]})
 
+    async def merge_asset_tags(self, _asset_id, _add, _remove):
+        return Result.Ok({"asset_id": 1, "changed": True, "tags": ["a"]})
+
     async def get_all_tags(self):
         return Result.Ok(["a", "b"])
 
@@ -160,6 +163,7 @@ async def test_index_service_delegates_to_components(monkeypatch) -> None:
 
     assert (await svc.update_asset_rating(1, 4)).ok
     assert (await svc.update_asset_tags(1, ["a"])).ok
+    assert (await svc.merge_asset_tags(1, ["a"], [])).ok
     assert (await svc.get_all_tags()).ok
 
 

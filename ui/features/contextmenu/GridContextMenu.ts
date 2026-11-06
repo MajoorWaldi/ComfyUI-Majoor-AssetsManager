@@ -1603,6 +1603,15 @@ function _buildAssetItems({
     }
 
     const canRate = !!(asset?.id || getAssetFilepath(asset));
+    const rightClickAssetId = String(asset?.id ?? "");
+    const bulkTagsSelection =
+        rightClickAssetId &&
+        selectedCount >= 2 &&
+        mediaSelectedAssets.some(
+            (entry: any) => entry && String(entry?.id ?? "") === rightClickAssetId,
+        )
+            ? mediaSelectedAssets
+            : null;
     // Bulk only when the right-clicked card itself is part of a multi-selection;
     // right-clicking an unselected card keeps the single-card path for that card.
     const clickedAssetId = asset?.id != null ? String(asset.id) : "";
@@ -1619,10 +1628,18 @@ function _buildAssetItems({
     items.push(
         createSeparator(),
         createItem(
-            t("ctx.editTags", "Edit tags"),
+            bulkTagsSelection
+                ? t("ctx.editTagsSelected", "Edit tags ({count} selected)", {
+                      count: bulkTagsSelection.length,
+                  })
+                : t("ctx.editTags", "Edit tags"),
             "pi pi-tags",
             getShortcutDisplay("EDIT_TAGS"),
             () => {
+                if (bulkTagsSelection) {
+                    showBulkTagsPopover(pointerX + 6, pointerY + 6, bulkTagsSelection);
+                    return;
+                }
                 showTagsPopover(pointerX + 6, pointerY + 6, asset, () => {
                     syncRenderedCardAsset(asset, {
                         tags: Array.isArray(asset?.tags) ? [...asset.tags] : [],
@@ -1873,6 +1890,16 @@ export function showTagsPopover(x: number, y: number, asset: Record<string, any>
         y,
         asset,
         onChanged,
+    });
+}
+
+export function showBulkTagsPopover(x: number, y: number, assets: Record<string, any>[]): void {
+    const selection = Array.isArray(assets) ? assets.filter(Boolean) : [];
+    if (selection.length < 2) return;
+    openGridTagsPopover({
+        x,
+        y,
+        assets: selection,
     });
 }
 

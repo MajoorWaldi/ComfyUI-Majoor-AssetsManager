@@ -313,6 +313,29 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
             safe_error_message=_safe_error_message,
         )
 
+    @routes.post("/mjr/am/assets/tags")
+    async def update_assets_tags(request):
+        """
+        Add/remove tags across multiple assets by ID.
+
+        Body: {"ids": [int, ...], "add": [str, ...], "remove": [str, ...]}
+        """
+        return await _route_actions.handle_update_assets_tags(
+            request,
+            prepare_asset_ids_context=prepare_asset_ids_context,
+            sanitize_tags=_wired_sanitize_tags,
+            enqueue_rating_tags_sync=_wired_enqueue_rating_tags_sync,
+            audit_asset_write=_audit_asset_write,
+            json_response=_json_response,
+            require_services=_require_services,
+            resolve_security_prefs=_resolve_security_prefs,
+            require_operation_enabled=_require_operation_enabled,
+            require_write_access=_require_write_access,
+            check_rate_limit=_check_rate_limit,
+            read_json=_read_json,
+            csrf_error=_csrf_error,
+        )
+
     @routes.post("/mjr/am/open-in-folder")
     async def open_in_folder(request):
         """

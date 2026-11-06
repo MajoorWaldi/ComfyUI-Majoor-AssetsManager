@@ -7,6 +7,7 @@ import {
     openGridSubmenu,
 } from "../../../features/contextmenu/gridContextMenuState.js";
 import TagsEditor from "../common/TagsEditor.vue";
+import BulkTagsEditor from "./BulkTagsEditor.vue";
 import type { MjrContextMenuItem, MjrContextMenuLayer } from "../../../types/contextMenu";
 
 const mainMenuRef = ref<HTMLElement | null>(null);
@@ -334,7 +335,16 @@ onUnmounted(() => {
         </div>
 
         <div
-            v-if="gridContextMenuState.tags.open && gridContextMenuState.tags.asset"
+            v-if="gridContextMenuState.tags.open && gridContextMenuState.tags.assets"
+            ref="tagsPopoverRef"
+            class="mjr-grid-popover"
+            :style="tagsPopoverStyle"
+        >
+            <BulkTagsEditor :assets="gridContextMenuState.tags.assets" />
+        </div>
+
+        <div
+            v-else-if="gridContextMenuState.tags.open && gridContextMenuState.tags.asset"
             ref="tagsPopoverRef"
             class="mjr-grid-popover"
             :style="tagsPopoverStyle"

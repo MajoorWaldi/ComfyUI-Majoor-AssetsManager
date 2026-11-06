@@ -113,10 +113,16 @@ Tags are stored in normalized database tables:
 4. Add or remove tags as needed
 
 #### Bulk Tagging
-1. Select multiple assets
-2. Right-click and choose "Edit Tags"
-3. Add tags that apply to all selected assets
-4. Tags are applied to all selected items
+1. Select multiple assets (Ctrl/Cmd+click or Shift+click)
+2. Right-click and choose "Edit Tags (N selected)"
+3. The bulk tag editor shows every tag in the selection with its coverage, e.g. `portrait (12/30)` — the tag is on 12 of the 30 selected assets
+4. Type a tag and press Enter to add it to all selected assets
+5. Click a partial tag (coverage below N) to add it to the remaining assets
+6. Click the ✕ on a tag to remove it from all selected assets
+7. Workflow JSON assets are skipped automatically (they use the workflow tags endpoint) and reported in the result toast
+8. Large selections are sent in chunks of 500 assets per request, with a progress toast
+
+Bulk changes are applied server-side per asset (existing tags are kept, only the added/removed tags change), so tags that some assets already have are simply left untouched.
 
 ### Managing Tags
 
