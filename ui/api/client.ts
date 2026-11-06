@@ -255,6 +255,32 @@ export async function updateAssetRating(assetId: any, rating: any, options: Reco
 }
 
 /**
+ * Update ratings for multiple assets in one batch (0-5 stars)
+ */
+export async function updateAssetsRatingBulk(
+    assetIds: any,
+    rating: any,
+    options: Record<string, any> = {},
+) {
+    const enabled = _readRatingTagsSyncEnabled();
+    const ids = (Array.isArray(assetIds) ? assetIds : [assetIds])
+        .map((id: any) => normalizeAssetId(id))
+        .filter(Boolean);
+    return fetchAPI(ENDPOINTS.ASSETS_RATING, {
+        ...options,
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            ...(enabled ? { "X-MJR-RTSYNC": "on" } : {}),
+        },
+        body: JSON.stringify({
+            ids,
+            rating: Math.max(0, Math.min(5, Number(rating) || 0)),
+        }),
+    });
+}
+
+/**
  * Update asset tags
  */
 export async function updateAssetTags(assetId: any, tags: any, options: Record<string, any> = {}) {

@@ -42,7 +42,13 @@ The rating system allows you to assign star ratings from 0 to 5 stars to your as
 #### Bulk Rating
 - Select multiple assets using Ctrl/Cmd+click or Shift+click
 - Apply the same rating to all selected assets
-- Right-click and choose "Rate" to apply to all selections
+- Press 0-5 to rate the whole selection in one batch, or right-click and choose
+  "Set rating (N selected)" — both use the batch endpoint
+  (`POST /mjr/am/assets/rating`) in chunks of at most 500 ids per request, so
+  large selections no longer trip the per-asset rate limit
+- Assets that fail (for example already deleted) are reported in a
+  "N rated, M failed" summary; everything else still gets the rating
+- With only one card selected, the previous single-asset path applies
 
 #### Rating Filters
 - Filter assets by minimum rating threshold

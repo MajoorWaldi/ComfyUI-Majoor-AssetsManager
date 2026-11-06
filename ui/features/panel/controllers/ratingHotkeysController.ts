@@ -4,6 +4,7 @@ import { comfyToast } from "../../../app/toast.js";
 import { t } from "../../../app/i18n.js";
 import { getHotkeysState, isHotkeysSuspended, setRatingHotkeysActive } from "./hotkeysState.js";
 import { getSelectedIdSet } from "../../grid/GridSelectionManager.js";
+import { rateAssetsInBulk } from "../../grid/bulkRating.js";
 
 const EVENT_NAME = ASSET_RATING_CHANGED_EVENT;
 
@@ -175,6 +176,13 @@ export function createRatingHotkeysController({ gridContainer, createRatingBadge
             e.preventDefault();
             e.stopPropagation();
             e.stopImmediatePropagation?.();
+
+            // Multi-card selections go through the batch route (chunked, sequential)
+            // to stay under the per-request id cap and the route's rate limit.
+            if (assetIds.length >= 2) {
+                await rateAssetsInBulk(assetIds, rating);
+                return;
+            }
 
             await runWithConcurrencyLimit(assetIds, (id: any) => applyRatingToAsset(id, rating), 5);
         };

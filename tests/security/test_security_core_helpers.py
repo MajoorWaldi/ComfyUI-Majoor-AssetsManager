@@ -112,6 +112,34 @@ def test_require_operation_enabled_string_bool_prefs() -> None:
     assert allowed.ok
 
 
+def test_require_operation_enabled_assets_rating_gated_like_asset_rating(monkeypatch) -> None:
+    monkeypatch.delenv("MAJOOR_SAFE_MODE", raising=False)
+    monkeypatch.delenv("MAJOOR_ALLOW_WRITE", raising=False)
+
+    # Safe mode with writes allowed: the batch gate must pass like the single gate.
+    allowed_batch = sec._require_operation_enabled(
+        "assets_rating", prefs={"safe_mode": True, "allow_write": True}
+    )
+    allowed_single = sec._require_operation_enabled(
+        "asset_rating", prefs={"safe_mode": True, "allow_write": True}
+    )
+    assert allowed_batch.ok is True
+    assert allowed_single.ok is True
+
+    # Safe mode without allow_write: same FORBIDDEN write-mode refusal, not
+    # the "unknown operation" fallthrough.
+    denied_batch = sec._require_operation_enabled(
+        "assets_rating", prefs={"safe_mode": True, "allow_write": False}
+    )
+    denied_single = sec._require_operation_enabled(
+        "asset_rating", prefs={"safe_mode": True, "allow_write": False}
+    )
+    assert not denied_batch.ok
+    assert denied_batch.code == "FORBIDDEN"
+    assert denied_batch.error == denied_single.error
+    assert "unknown operation" not in (denied_batch.error or "")
+
+
 def test_auth_helpers_and_authenticated_user() -> None:
     class _UM:
         enabled = True
