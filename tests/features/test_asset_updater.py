@@ -66,7 +66,7 @@ class _MergeDb:
 
 
 class _RecordingTagsRepo:
-    instances = []
+    instances: list["_RecordingTagsRepo"] = []
 
     def __init__(self, db):
         self.db = db
