@@ -511,6 +511,56 @@ POST /mjr/am/asset/rating
 
 ---
 
+### Batch Update Ratings
+```http
+POST /mjr/am/assets/rating
+```
+
+Rates many assets in one request. Each asset is updated with the same per-asset
+write path (per-asset lock + Comfy-core write-through); there is no single
+transaction across assets, so missing or failing ids are reported per id.
+
+Rate limit: 10 requests / 60 s. `ids` is capped at 500 per request
+(`INVALID_INPUT` above that). `rating` is clamped to 0-5. Send
+`X-MJR-RTSYNC: on` to enqueue rating/tags file sync for the updated assets.
+
+**Request Body**:
+```json
+{
+  "ids": [1, 2, 3],
+  "rating": 4
+}
+```
+
+**Response**:
+```json
+{
+  "ok": true,
+  "data": {
+    "updated_ids": [1, 2, 3],
+    "failed": [],
+    "rating": 4
+  }
+}
+```
+
+Missing ids are reported in `failed` while the rest are still processed
+(`meta.partial` is `true`):
+
+```json
+{
+  "ok": true,
+  "data": {
+    "updated_ids": [1],
+    "failed": [{ "id": 999, "code": "NOT_FOUND", "error": "Asset not found: 999" }],
+    "rating": 2
+  },
+  "meta": { "partial": true, "attempted": 2, "updated": 1, "failed": 1 }
+}
+```
+
+---
+
 ### Update Tags
 ```http
 POST /mjr/am/asset/tags

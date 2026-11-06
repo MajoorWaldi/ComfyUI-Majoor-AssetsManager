@@ -1418,6 +1418,323 @@ async def test_asset_tags_filepath_resolve_timeout_and_db_error(monkeypatch, tmp
     assert _json(resp2).get("code") == "DB_ERROR"
 
 
+class _BulkRatingIndex:
+    def __init__(self, fail_ids=frozenset()):
+        self.calls = []
+        self.fail_ids = set(fail_ids)
+
+    async def update_asset_rating(self, asset_id, rating):
+        self.calls.append((asset_id, rating))
+        if asset_id in self.fail_ids:
+            return Result.Err("UPDATE_FAILED", "forced")
+        return Result.Ok({"asset_id": asset_id, "rating": rating})
+
+
+class _BulkRatingDB(_DummyDB):
+    def __init__(self, existing_ids=None):
+        super().__init__()
+        self.existing_ids = set(existing_ids) if existing_ids is not None else None
+        self.aquery_in_calls = []
+
+    async def aquery_in(self, _sql, _column, values):
+        self.aquery_in_calls.append(list(values))
+        existing = self.existing_ids
+        rows = [{"id": int(v), "filepath": str(Path("tmp") / f"{int(v)}.png")} for v in values]
+        if existing is not None:
+            rows = [row for row in rows if row["id"] in existing]
+        return Result.Ok(rows)
+
+
+def _patch_bulk_rating_common(monkeypatch, svc, read_json):
+    async def _prefs(_svc):
+        return {}
+
+    monkeypatch.setattr(m, "_csrf_error", lambda _request: None)
+    monkeypatch.setattr(m, "_require_services", svc)
+    monkeypatch.setattr(m, "_resolve_security_prefs", _prefs)
+    monkeypatch.setattr(m, "_require_operation_enabled", lambda *_args, **_kwargs: Result.Ok({}))
+    monkeypatch.setattr(m, "_require_write_access", lambda _request: Result.Ok({}))
+    monkeypatch.setattr(m, "_check_rate_limit", lambda *_args, **_kwargs: (True, None))
+    monkeypatch.setattr(m, "_read_json", read_json)
+
+
+@pytest.mark.asyncio
+async def test_assets_rating_bulk_success(monkeypatch):
+    app = _app()
+    idx = _BulkRatingIndex()
+    db = _BulkRatingDB()
+
+    async def _svc():
+        return {"db": db, "index": idx}, None
+
+    async def _read_json(_request):
+        return Result.Ok({"ids": [1, 2, 3], "rating": 4})
+
+    _patch_bulk_rating_common(monkeypatch, _svc, _read_json)
+
+    req = make_mocked_request("POST", "/mjr/am/assets/rating", app=app)
+    resp = await (await app.router.resolve(req)).handler(req)
+    payload = _json(resp)
+    assert payload.get("ok") is True
+    data = payload.get("data", {})
+    assert data.get("updated_ids") == [1, 2, 3]
+    assert data.get("failed") == []
+    assert data.get("rating") == 4
+    assert sorted(idx.calls) == [(1, 4), (2, 4), (3, 4)]
+
+
+@pytest.mark.asyncio
+async def test_assets_rating_bulk_clamps_rating(monkeypatch):
+    app = _app()
+    idx = _BulkRatingIndex()
+    db = _BulkRatingDB()
+
+    async def _svc():
+        return {"db": db, "index": idx}, None
+
+    async def _read_json(_request):
+        return Result.Ok({"ids": [7], "rating": 9})
+
+    _patch_bulk_rating_common(monkeypatch, _svc, _read_json)
+
+    req = make_mocked_request("POST", "/mjr/am/assets/rating", app=app)
+    resp = await (await app.router.resolve(req)).handler(req)
+    payload = _json(resp)
+    assert payload.get("ok") is True
+    assert payload.get("data", {}).get("rating") == 5
+    assert idx.calls == [(7, 5)]
+
+
+@pytest.mark.asyncio
+async def test_assets_rating_bulk_missing_id_is_partial(monkeypatch):
+    app = _app()
+    idx = _BulkRatingIndex()
+    db = _BulkRatingDB(existing_ids={1})
+
+    async def _svc():
+        return {"db": db, "index": idx}, None
+
+    async def _read_json(_request):
+        return Result.Ok({"ids": [1, 999], "rating": 2})
+
+    _patch_bulk_rating_common(monkeypatch, _svc, _read_json)
+
+    req = make_mocked_request("POST", "/mjr/am/assets/rating", app=app)
+    resp = await (await app.router.resolve(req)).handler(req)
+    payload = _json(resp)
+    assert payload.get("ok") is True
+    assert payload.get("meta", {}).get("partial") is True
+    data = payload.get("data", {})
+    assert data.get("updated_ids") == [1]
+    assert data.get("failed") == [{"id": 999, "code": "NOT_FOUND", "error": "Asset not found: 999"}]
+    assert idx.calls == [(1, 2)]
+
+
+@pytest.mark.asyncio
+async def test_assets_rating_bulk_invalid_bodies_write_nothing(monkeypatch):
+    app = _app()
+    idx = _BulkRatingIndex()
+    db = _BulkRatingDB()
+
+    async def _svc():
+        return {"db": db, "index": idx}, None
+
+    async def _read_empty(_request):
+        return Result.Ok({"ids": [], "rating": 3})
+
+    async def _read_bad_id(_request):
+        return Result.Ok({"ids": ["x"], "rating": 3})
+
+    async def _read_too_many(_request):
+        return Result.Ok({"ids": list(range(1, 502)), "rating": 3})
+
+    async def _read_missing_rating(_request):
+        return Result.Ok({"ids": [1]})
+
+    _patch_bulk_rating_common(monkeypatch, _svc, _read_empty)
+    req1 = make_mocked_request("POST", "/mjr/am/assets/rating", app=app)
+    resp1 = await (await app.router.resolve(req1)).handler(req1)
+    assert _json(resp1).get("code") == "INVALID_INPUT"
+
+    monkeypatch.setattr(m, "_read_json", _read_bad_id)
+    req2 = make_mocked_request("POST", "/mjr/am/assets/rating", app=app)
+    resp2 = await (await app.router.resolve(req2)).handler(req2)
+    assert _json(resp2).get("code") == "INVALID_INPUT"
+
+    monkeypatch.setattr(m, "_read_json", _read_too_many)
+    req3 = make_mocked_request("POST", "/mjr/am/assets/rating", app=app)
+    resp3 = await (await app.router.resolve(req3)).handler(req3)
+    assert _json(resp3).get("code") == "INVALID_INPUT"
+
+    monkeypatch.setattr(m, "_read_json", _read_missing_rating)
+    req4 = make_mocked_request("POST", "/mjr/am/assets/rating", app=app)
+    resp4 = await (await app.router.resolve(req4)).handler(req4)
+    assert _json(resp4).get("code") == "INVALID_INPUT"
+
+    assert idx.calls == []
+    assert db.aquery_in_calls == []
+
+
+@pytest.mark.asyncio
+async def test_assets_rating_bulk_rate_limit(monkeypatch):
+    app = _app()
+    captured = []
+
+    def _rate_limited(_request, endpoint, max_requests, window_seconds):
+        captured.append((endpoint, max_requests, window_seconds))
+        return (False, 9)
+
+    async def _svc():
+        return {"db": _DummyDB(), "index": _BulkRatingIndex()}, None
+
+    async def _read_json(_request):
+        return Result.Ok({"ids": [1], "rating": 3})
+
+    _patch_bulk_rating_common(monkeypatch, _svc, _read_json)
+    monkeypatch.setattr(m, "_check_rate_limit", _rate_limited)
+
+    req = make_mocked_request("POST", "/mjr/am/assets/rating", app=app)
+    resp = await (await app.router.resolve(req)).handler(req)
+    assert _json(resp).get("code") == "RATE_LIMITED"
+    assert captured == [("assets_rating", 10, 60)]
+
+
+@pytest.mark.asyncio
+async def test_assets_rating_bulk_sync_enqueued_for_updated_only(monkeypatch, tmp_path: Path):
+    app = _app()
+    worker_calls = []
+    filepaths = {1: str(tmp_path / "one.png"), 2: str(tmp_path / "two.png")}
+
+    class _SyncDB:
+        async def aquery(self, sql, params=()):
+            if "FROM assets WHERE id" in sql:
+                fp = filepaths.get(params[0] if params else None)
+                return Result.Ok([{"filepath": fp}] if fp else [])
+            return Result.Ok([{"rating": 2, "tags": "[]"}])
+
+        async def aquery_in(self, _sql, _column, values):
+            return Result.Ok([{"id": int(v)} for v in values if int(v) in filepaths])
+
+    class _Worker:
+        def enqueue(self, filepath, rating, tags, mode):
+            worker_calls.append((filepath, rating, tags, mode))
+
+    worker = _Worker()
+    idx = _BulkRatingIndex()
+
+    async def _svc():
+        return {"db": _SyncDB(), "index": idx, "rating_tags_sync": worker}, None
+
+    async def _read_json(_request):
+        return Result.Ok({"ids": [1, 2, 999], "rating": 3})
+
+    _patch_bulk_rating_common(monkeypatch, _svc, _read_json)
+
+    req = make_mocked_request(
+        "POST", "/mjr/am/assets/rating", app=app, headers={"X-MJR-RTSYNC": "on"}
+    )
+    resp = await (await app.router.resolve(req)).handler(req)
+    payload = _json(resp)
+    assert payload.get("ok") is True
+    assert payload.get("data", {}).get("updated_ids") == [1, 2]
+    assert len(worker_calls) == 2
+    assert {worker_calls[0][0], worker_calls[1][0]} == set(filepaths.values())
+    assert all(call[-1] == "on" for call in worker_calls)
+
+    worker_calls.clear()
+    req_off = make_mocked_request(
+        "POST", "/mjr/am/assets/rating", app=app, headers={"X-MJR-RTSYNC": "off"}
+    )
+    _ = await (await app.router.resolve(req_off)).handler(req_off)
+    assert worker_calls == []
+
+
+@pytest.mark.asyncio
+async def test_assets_rating_bulk_writes_audit_log(monkeypatch):
+    app = _app()
+    calls = []
+    idx = _BulkRatingIndex()
+    db = _BulkRatingDB()
+
+    async def _svc():
+        return {"db": db, "index": idx}, None
+
+    async def _read_json(_request):
+        return Result.Ok({"ids": list(range(1, 31)), "rating": 4})
+
+    async def _audit_log_write(_services, **kwargs):
+        calls.append(kwargs)
+        return True
+
+    _patch_bulk_rating_common(monkeypatch, _svc, _read_json)
+    monkeypatch.setattr(m, "audit_log_write", _audit_log_write)
+
+    req = make_mocked_request("POST", "/mjr/am/assets/rating", app=app)
+    resp = await (await app.router.resolve(req)).handler(req)
+    assert _json(resp).get("ok") is True
+    assert len(calls) == 1
+    assert calls[0]["operation"] == "assets_rating"
+    assert calls[0]["target"] == "assets:" + ",".join(str(i) for i in range(1, 26))
+    assert calls[0]["details"]["rating"] == 4
+    assert calls[0]["details"]["updated"] == 30
+    assert calls[0]["details"]["failed"] == 0
+
+
+@pytest.mark.asyncio
+async def test_assets_rating_bulk_update_failure_is_partial(monkeypatch):
+    app = _app()
+    idx = _BulkRatingIndex(fail_ids={2})
+    db = _BulkRatingDB()
+
+    async def _svc():
+        return {"db": db, "index": idx}, None
+
+    async def _read_json(_request):
+        return Result.Ok({"ids": [1, 2], "rating": 5})
+
+    _patch_bulk_rating_common(monkeypatch, _svc, _read_json)
+
+    req = make_mocked_request("POST", "/mjr/am/assets/rating", app=app)
+    resp = await (await app.router.resolve(req)).handler(req)
+    payload = _json(resp)
+    assert payload.get("ok") is True
+    assert payload.get("meta", {}).get("partial") is True
+    data = payload.get("data", {})
+    assert data.get("updated_ids") == [1]
+    assert data.get("failed") == [{"id": 2, "code": "UPDATE_FAILED", "error": "forced"}]
+
+
+@pytest.mark.asyncio
+async def test_assets_rating_bulk_real_operation_gate(monkeypatch):
+    app = _app()
+    idx = _BulkRatingIndex()
+    db = _BulkRatingDB()
+
+    async def _svc():
+        return {"db": db, "index": idx}, None
+
+    async def _read_json(_request):
+        return Result.Ok({"ids": [1, 2], "rating": 3})
+
+    _patch_bulk_rating_common(monkeypatch, _svc, _read_json)
+    # Wire the REAL operation gate (no lambda mock): safe mode + allow_write
+    # must let the batch route through the write-ops tuple.
+    import mjr_am_backend.routes.core.security as _sec
+
+    monkeypatch.setattr(m, "_require_operation_enabled", _sec._require_operation_enabled)
+
+    async def _prefs_safe_allow_write(_svc):
+        return {"safe_mode": True, "allow_write": True}
+
+    monkeypatch.setattr(m, "_resolve_security_prefs", _prefs_safe_allow_write)
+
+    req = make_mocked_request("POST", "/mjr/am/assets/rating", app=app)
+    resp = await (await app.router.resolve(req)).handler(req)
+    payload = _json(resp)
+    assert payload.get("ok") is True
+    assert payload.get("data", {}).get("updated_ids") == [1, 2]
+
+
 @pytest.mark.asyncio
 async def test_rating_tags_sync_header_modes(monkeypatch, tmp_path: Path):
     app = _app()

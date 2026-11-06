@@ -73,6 +73,7 @@ _ROUTES_INFO = (
     {"method": "POST", "path": "/mjr/am/stage-to-input", "description": "Copy files to input directory"},
     {"method": "GET", "path": "/mjr/am/asset/{asset_id}", "description": "Get single asset by ID"},
     {"method": "POST", "path": "/mjr/am/asset/rating", "description": "Update asset rating (0-5 stars)"},
+    {"method": "POST", "path": "/mjr/am/assets/rating", "description": "Batch update asset ratings (0-5 stars) by IDs"},
     {"method": "POST", "path": "/mjr/am/asset/tags", "description": "Update asset tags"},
     {"method": "POST", "path": "/mjr/am/assets/tags", "description": "Bulk add/remove tags across assets"},
     {"method": "POST", "path": "/mjr/am/asset/rename", "description": "Rename a single asset file"},
