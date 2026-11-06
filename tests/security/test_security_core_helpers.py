@@ -1,3 +1,4 @@
+# mypy: disable-error-code="arg-type"
 import sys
 import types
 

@@ -12,7 +12,7 @@ function makeDeps(overrides: Record<string, any> = {}) {
             ok: true,
             data: { removed: 3, bytes: 4096, failed: [] },
         })),
-        confirm: vi.fn(async () => true),
+        confirm: vi.fn(async (_message: string, _title: string) => true),
         toast: vi.fn(),
         formatBytes: vi.fn((n: number) => `${n} B`),
         translate: vi.fn((_key: string, fallback: string, params?: Record<string, any>) => {

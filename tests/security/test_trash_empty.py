@@ -1,3 +1,4 @@
+# mypy: disable-error-code="index"
 """Security tests for emptying Majoor-owned freedesktop trash entries.
 
 Every test builds a synthetic trash tree under pytest's tmp_path. The service

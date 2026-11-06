@@ -1,3 +1,4 @@
+# mypy: disable-error-code="index,union-attr"
 """Unit tests for the freedesktop trash service (synthetic trees only)."""
 
 from __future__ import annotations
