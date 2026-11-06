@@ -1,9 +1,9 @@
-import { Gt as e, T as t, Xn as n, an as r, ar as i, f as a, s as o, u as s } from "./config-D98p5fVn.js";
-import { a as c, i as l, r as u } from "./floatingViewerManager-DbOx9dhE.js";
+import { Wt as e, Yn as t, d as n, in as r, ir as i, l as a, o, w as s } from "./client-BVwNDRIx.js";
+import { a as c, i as l, r as u } from "./floatingViewerManager-Dn53ZRsL.js";
 import { i as d, r as f, t as p } from "./events-1iwo5blr.js";
-import { a as ee, i as m, n as h, r as g, t as _ } from "./TagsEditor-C-qX3Ns8.js";
-import { $ as te, A as v, B as ne, C as y, D as b, E as x, H as S, J as re, K as C, M as w, O as T, P as E, Q as D, S as O, T as k, U as A, V as ie, W as j, X as M, Y as N, b as ae, gt as P, ht as F, j as I, k as L, lt as oe, mt as R, ot as se, pt as z, q as B, rt as ce, st as V, w as le, z as H } from "./mjr-primevue-C07IsEdU.js";
-import { C as U, _ as W, a as ue, b as de, c as G, d as fe, f as pe, g as me, h as he, i as ge, l as _e, m as ve, n as ye, o as K, p as be, r as xe, s as q, t as Se, u as Ce, v as we, x as Te, y as Ee } from "./genInfo-BlwZQHxb.js";
+import { a as ee, i as m, n as h, r as g, t as _ } from "./TagsEditor-BxqU2WEs.js";
+import { $ as te, A as v, B as ne, C as y, D as b, E as x, H as S, J as re, K as C, M as w, O as T, P as E, Q as D, S as O, T as k, U as A, V as ie, W as j, X as M, Y as N, b as ae, gt as P, ht as F, j as I, k as L, lt as oe, mt as R, ot as se, pt as z, q as B, rt as ce, st as V, w as le, z as H } from "./mjr-primevue-CE8VjDUg.js";
+import { C as U, _ as W, a as ue, b as de, c as G, d as fe, f as pe, g as me, h as he, i as ge, l as _e, m as ve, n as ye, o as K, p as be, r as xe, s as q, t as Se, u as Ce, v as we, x as Te, y as Ee } from "./genInfo-BQayEE-N.js";
 // ui/vue/components/viewer/FloatingViewerHost.vue
 var De = /* @__PURE__ */ E({
 	__name: "FloatingViewerHost",
@@ -1376,7 +1376,7 @@ var Re = {
 }, _n = /* @__PURE__ */ E({
 	__name: "StudioViewer",
 	setup(c) {
-		let l = V(null), u = V(null), f = V(null), te = V(null), v = V(!0), S = V("generation"), E = V(!1), A = V(1), N = oe(null), ae = oe(null), F = null, B = k(() => Q.assets[Q.index] ?? null), H = k(() => N.value ?? B.value), U = k(() => K(B.value)), W = k(() => B.value ? n(B.value) : ""), G = k(() => Q.assets.length), fe = k(() => xe(H.value)), pe = k(() => ue(H.value, ae.value)), me = k(() => Number(ae.value?.frame_count) || null), he = k(() => Number(H.value?.rating) || 0), _e = k(() => Array.isArray(H.value?.tags) ? H.value.tags : []), be = k(() => {
+		let l = V(null), u = V(null), f = V(null), te = V(null), v = V(!0), S = V("generation"), E = V(!1), A = V(1), N = oe(null), ae = oe(null), F = null, B = k(() => Q.assets[Q.index] ?? null), H = k(() => N.value ?? B.value), U = k(() => K(B.value)), W = k(() => B.value ? t(B.value) : ""), G = k(() => Q.assets.length), fe = k(() => xe(H.value)), pe = k(() => ue(H.value, ae.value)), me = k(() => Number(ae.value?.frame_count) || null), he = k(() => Number(H.value?.rating) || 0), _e = k(() => Array.isArray(H.value?.tags) ? H.value.tags : []), be = k(() => {
 			let { start: e, end: t } = ge(G.value, Q.index);
 			return Q.assets.slice(e, t).map((t, n) => ({
 				asset: t,
@@ -1386,7 +1386,7 @@ var Re = {
 			if (!J.value) return null;
 			let e = we.value, t = Q.assets, n = Q.index;
 			return e != null && e !== n && t[e] && K(t[e]) === U.value ? e : de(t, n, 1, (e) => K(e) === U.value);
-		}), X = k(() => Y.value != null), Z = k(() => Y.value == null ? null : Q.assets[Y.value]), ke = k(() => q.compare !== "off" && !!Z.value), Ae = k(() => ke.value && Z.value ? n(Z.value) : null), je = k(() => ke.value && q.compare === "subtract" && U.value === "image" ? Ae.value : null), Ne = k(() => J.value && (Ee(q) || je.value) ? `url(#${Ce})` : ""), Pe = k(() => J.value && (q.zebra || q.scopes !== "off"));
+		}), X = k(() => Y.value != null), Z = k(() => Y.value == null ? null : Q.assets[Y.value]), ke = k(() => q.compare !== "off" && !!Z.value), Ae = k(() => ke.value && Z.value ? t(Z.value) : null), je = k(() => ke.value && q.compare === "subtract" && U.value === "image" ? Ae.value : null), Ne = k(() => J.value && (Ee(q) || je.value) ? `url(#${Ce})` : ""), Pe = k(() => J.value && (q.zebra || q.scopes !== "off"));
 		function Re() {
 			return U.value === "image" ? u.value?.getSource?.() ?? null : U.value === "video" ? f.value?.getSource?.() ?? null : null;
 		}
@@ -1464,17 +1464,17 @@ var Re = {
 			try {
 				let n = await Se(e, {
 					getAssetMetadata: o,
-					getFileMetadataScoped: s,
+					getFileMetadataScoped: a,
 					signal: t?.signal
 				});
 				F === t && B.value === e && (N.value = n && typeof n == "object" ? n : e);
 			} catch (e) {
 				console.debug?.(e);
 			}
-			let n = K(e);
-			if ((n === "video" || n === "audio") && e?.id != null) try {
-				let n = await a(e.id, t ? { signal: t.signal } : {});
-				F === t && n?.ok && (ae.value = n.data || null);
+			let r = K(e);
+			if ((r === "video" || r === "audio") && e?.id != null) try {
+				let r = await n(e.id, t ? { signal: t.signal } : {});
+				F === t && r?.ok && (ae.value = r.data || null);
 			} catch (e) {
 				console.debug?.(e);
 			}
@@ -1496,17 +1496,17 @@ var Re = {
 			let e = document.createElement("a");
 			e.href = W.value, e.download = String(B.value?.filename || ""), e.click();
 		}
-		async function tt(n) {
-			let i = B.value;
-			if (!i) return;
-			let a = Math.max(0, Math.min(5, n)), o = await t(i, a);
-			o?.ok ? (i.rating = a, N.value = N.value ? {
+		async function tt(t) {
+			let n = B.value;
+			if (!n) return;
+			let i = Math.max(0, Math.min(5, t)), a = await s(n, i);
+			a?.ok ? (n.rating = i, N.value = N.value ? {
 				...N.value,
-				rating: a
-			} : i, window.dispatchEvent(new CustomEvent(p, { detail: {
-				assetId: i.id == null ? "" : String(i.id),
-				rating: a
-			} }))) : e(o?.error || r("toast.ratingUpdateFailed", "Rating update failed"), "error");
+				rating: i
+			} : n, window.dispatchEvent(new CustomEvent(p, { detail: {
+				assetId: n.id == null ? "" : String(n.id),
+				rating: i
+			} }))) : e(a?.error || r("toast.ratingUpdateFailed", "Rating update failed"), "error");
 		}
 		function rt(e) {
 			return !!e?.closest?.("input, textarea, select, [contenteditable='true']");

@@ -142,7 +142,7 @@ def _operation_static_gates() -> tuple[tuple[tuple[str, ...], str, str, str], ..
             "Reset index is disabled by default. Enable 'allow_reset_index' in settings or set MAJOOR_ALLOW_RESET_INDEX=1.",
         ),
         (
-            ("delete", "asset_delete", "assets_delete"),
+            ("delete", "asset_delete", "assets_delete", "trash_empty"),
             "allow_delete",
             "MAJOOR_ALLOW_DELETE",
             "Delete is disabled by default. Set MAJOOR_ALLOW_DELETE=1 to enable asset deletion.",

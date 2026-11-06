@@ -1,12 +1,13 @@
-import { $ as e, $n as t, At as n, B as r, Bn as i, Bt as a, C as o, Ct as s, D as c, En as l, F as u, Fn as d, Ft as f, Gn as p, Gt as m, Ht as h, I as g, It as _, Jn as v, Jt as y, Kn as b, Kt as x, L as S, Ln as C, M as w, Mt as T, N as E, Nt as D, On as O, P as k, Pn as A, Qn as ee, Qt as j, Rn as M, S as te, Sn as ne, T as N, Un as P, Vt as re, Wn as ie, Xn as F, Xt as ae, Yn as I, Yt as oe, Zn as se, Zt as ce, _ as le, a as ue, an as L, ar as de, at as fe, b as pe, c as me, cn as he, cr as ge, ct as _e, d as ve, dr as ye, dt as be, er as xe, fr as Se, ft as Ce, h as we, ir as Te, it as Ee, j as De, jt as Oe, k as ke, kt as Ae, lr as je, lt as Me, m as Ne, nr as Pe, nt as Fe, o as Ie, or as Le, ot as Re, p as ze, pt as Be, qn as Ve, qt as He, r as Ue, rr as We, s as Ge, sn as Ke, st as qe, t as R, tr as Je, u as Ye, ur as Xe, ut as Ze, v as Qe, vt as z, w as $e, x as et, xn as tt, y as nt, z as rt, zn as it, zt as at } from "./chunks/config-D98p5fVn.js";
-import { a as ot, i as st, n as ct, t as lt } from "./chunks/graphTraversal-DTdQWkn5.js";
-import { _ as ut, c as dt, d as ft, f as pt, g as mt, h as ht, l as gt, m as _t, o as vt, p as yt, s as bt, u as xt } from "./chunks/floatingViewerManager-DbOx9dhE.js";
-import { A as St, C as Ct, D as wt, E as Tt, M as Et, N as Dt, O as Ot, T as kt, _ as At, g as jt, h as Mt, j as Nt, k as Pt, w as Ft } from "./chunks/generationSectionState-BPjCPC13.js";
-import { n as It, r as B, t as Lt } from "./chunks/events-1iwo5blr.js";
-import { E as Rt, S as zt, c as Bt, i as Vt, l as Ht, n as Ut, o as Wt, r as Gt, s as Kt, t as qt, u as Jt, x as Yt, y as Xt } from "./chunks/tooltipShortcuts-jtVskF3l.js";
-import { A as Zt, B as Qt, C as $t, D as en, E as tn, F as nn, G as rn, H as an, I as on, J as sn, K as cn, L as ln, M as un, N as dn, O as fn, P as pn, R as mn, S as hn, T as gn, U as _n, V as vn, W as yn, X as bn, Y as xn, _ as Sn, a as Cn, b as wn, c as Tn, d as En, f as Dn, g as On, h as kn, i as An, j as jn, k as Mn, l as Nn, m as Pn, n as Fn, o as In, p as Ln, q as Rn, r as zn, s as Bn, t as Vn, u as Hn, v as Un, w as Wn, x as Gn, y as Kn, z as qn } from "./chunks/TagsEditor-C-qX3Ns8.js";
-import { $ as Jn, B as Yn, C as V, D as Xn, E as H, F as Zn, G as Qn, H as $n, J as er, K as tr, M as U, N as nr, O as W, P as rr, Q as G, R as ir, S as ar, T as K, U as or, V as sr, W as q, X as cr, Z as lr, at as ur, b as dr, ct as fr, ft as pr, gt as J, ht as mr, j as hr, k as Y, lt as gr, mt as X, ot as _r, pt as Z, q as vr, st as Q, ut as yr, v as br, w as xr, x as Sr, y as Cr } from "./chunks/mjr-primevue-C07IsEdU.js";
-import { n as wr, r as Tr } from "./chunks/mjr-vue-vendor-CEDOnn2t.js";
+import { $n as e, A as t, At as n, Bt as r, C as i, Dn as a, E as o, F as s, Ft as c, Gn as l, Gt as u, Hn as d, I as f, In as p, Jn as m, Jt as h, Kn as g, Kt as _, Ln as v, M as y, Mt as b, N as x, Nn as S, O as C, Ot as w, P as T, Pn as E, Pt as D, Q as O, Qn as k, R as A, Rn as ee, Rt as j, S as M, St as te, Tn as ne, Un as re, Vt as N, Wn as P, Wt as F, Xn as ie, Xt as ae, Yn as oe, Yt as se, Zn as ce, Zt as le, _ as ue, _t as de, a as fe, ar as pe, at as me, b as he, bn as ge, cr as _e, ct as ve, dr as ye, dt as be, er as xe, f as Se, ft as Ce, g as we, i as Te, in as I, ir as Ee, it as De, j as Oe, jt as ke, kt as Ae, l as je, lr as Me, lt as Ne, m as Pe, n as Fe, nr as Ie, o as Le, on as Re, ot as ze, p as Be, qn as Ve, qt as He, rr as Ue, rt as We, s as Ge, sn as Ke, sr as qe, st as Je, tr as Ye, tt as Xe, u as Ze, ur as Qe, ut as $e, v as L, w as et, x as tt, xn as nt, y as rt, z as it, zn as at, zt as ot } from "./chunks/client-BVwNDRIx.js";
+import { a as st, i as ct, n as lt, t as ut } from "./chunks/graphTraversal-DTdQWkn5.js";
+import { t as R } from "./chunks/config-BFDzOF1N.js";
+import { _ as dt, c as ft, d as pt, f as mt, g as ht, h as gt, l as _t, m as vt, o as yt, p as bt, s as xt, u as St } from "./chunks/floatingViewerManager-Dn53ZRsL.js";
+import { A as Ct, C as wt, D as Tt, E as Et, M as Dt, N as Ot, O as kt, T as At, _ as jt, g as Mt, h as Nt, j as Pt, k as Ft, w as It } from "./chunks/generationSectionState-DwIh8vyW.js";
+import { n as Lt, r as z, t as Rt } from "./chunks/events-1iwo5blr.js";
+import { E as zt, S as Bt, c as Vt, i as Ht, l as Ut, n as Wt, o as Gt, r as Kt, s as qt, t as Jt, u as Yt, x as Xt, y as Zt } from "./chunks/tooltipShortcuts-CdiE8JHR.js";
+import { A as Qt, B as $t, C as en, D as tn, E as nn, F as rn, G as an, H as on, I as sn, J as cn, K as ln, L as un, M as dn, N as fn, O as pn, P as mn, R as hn, S as gn, T as _n, U as vn, V as yn, W as bn, X as xn, Y as Sn, _ as Cn, a as wn, b as Tn, c as En, d as Dn, f as On, g as kn, h as An, i as jn, j as Mn, k as Nn, l as Pn, m as Fn, n as In, o as Ln, p as Rn, q as zn, r as Bn, s as Vn, t as Hn, u as Un, v as Wn, w as Gn, x as Kn, y as qn, z as Jn } from "./chunks/TagsEditor-BxqU2WEs.js";
+import { $ as Yn, B as Xn, C as B, D as Zn, E as V, F as Qn, G as $n, H as er, J as tr, K as nr, M as H, N as rr, O as U, P as ir, Q as W, R as ar, S as or, T as G, U as sr, V as cr, W as K, X as q, Z as lr, at as ur, b as dr, ct as fr, ft as pr, gt as J, ht as mr, j as hr, k as Y, lt as gr, mt as X, ot as _r, pt as Z, q as vr, st as Q, ut as yr, v as br, w as xr, x as Sr, y as Cr } from "./chunks/mjr-primevue-CE8VjDUg.js";
+import { n as wr, r as Tr } from "./chunks/mjr-vue-vendor-pJNm95sb.js";
 import { app as Er } from "../../scripts/app.js";
 function Dr(e = null) {
 	return null;
@@ -15,7 +16,7 @@ function Or() {
 	return null;
 }
 try {
-	typeof window < "u" && I && I.LIST;
+	typeof window < "u" && m && m.LIST;
 } catch {}
 // ui/integration/comfy_send_to_am.ts
 var kr = "MajoorAssetsManager.SendTo", Ar = "Send to Asset Manager", jr = /* @__PURE__ */ new Set([
@@ -61,14 +62,14 @@ function Nr(e) {
 	return t;
 }
 async function Pr(e) {
-	let t = ne(), n = tt(t);
-	if (!e.length) i({
+	let t = nt(), n = ge(t);
+	if (!e.length) at({
 		severity: "warn",
 		summary: "Majoor Assets Manager",
 		detail: "No output to send (run the node first).",
 		life: 3500
 	});
-	else if (!n || typeof n.fetchApi != "function") i({
+	else if (!n || typeof n.fetchApi != "function") at({
 		severity: "error",
 		summary: "Majoor Assets Manager",
 		detail: "ComfyUI API unavailable.",
@@ -81,14 +82,14 @@ async function Pr(e) {
 			body: JSON.stringify({ items: e })
 		});
 		if (!r.ok && r.status !== 404) throw Error(`HTTP ${r.status}`);
-		he(t, "majoor-assets"), i({
+		Ke(t, "majoor-assets"), at({
 			severity: "success",
 			summary: "Majoor Assets Manager",
 			detail: `Sent ${e.length} item(s) to the asset grid.`,
 			life: 2500
 		});
 	} catch (e) {
-		i({
+		at({
 			severity: "error",
 			summary: "Majoor Assets Manager",
 			detail: `Failed to send: ${e?.message || e}`,
@@ -97,7 +98,7 @@ async function Pr(e) {
 	}
 }
 function Fr() {
-	let e = ne();
+	let e = nt();
 	!e || typeof e.registerExtension != "function" ? setTimeout(Fr, 100) : e.registerExtension({
 		name: kr,
 		getNodeMenuItems(e) {
@@ -172,7 +173,7 @@ function Ur(e, t) {
 	} catch {}
 }
 function Wr() {
-	let e = ne();
+	let e = nt();
 	!e || typeof e.registerExtension != "function" ? setTimeout(Wr, 100) : e.registerExtension({
 		name: Ir,
 		nodeCreated(t) {
@@ -213,8 +214,8 @@ async function Xr(e = {}) {
 	else {
 		Gr = !0;
 		try {
-			mt("[Majoor] Starting startup scan of output directory...");
-			let e = await pe(I.SCAN, {
+			ht("[Majoor] Starting startup scan of output directory...");
+			let e = await rt(m.SCAN, {
 				recursive: !0,
 				incremental: !0,
 				fast: !0,
@@ -222,7 +223,7 @@ async function Xr(e = {}) {
 			});
 			if (e.ok) {
 				let t = e.data;
-				mt(`[Majoor] Startup scan complete  -  added: ${t.added}, updated: ${t.updated}, skipped: ${t.skipped}`);
+				ht(`[Majoor] Startup scan complete  -  added: ${t.added}, updated: ${t.updated}, skipped: ${t.skipped}`);
 			} else console.warn("[Majoor] Majoor [WARN]: Startup scan failed:", e.error);
 		} catch (e) {
 			console.error("[Majoor] ERROR: Startup scan error:", e);
@@ -232,9 +233,9 @@ async function Xr(e = {}) {
 async function Zr() {
 	try {
 		await Promise.allSettled([
-			Ie(I.HEALTH),
-			Ie(`${I.HEALTH_COUNTERS}?scope=output`),
-			Ie(I.HEALTH_DB)
+			fe(m.HEALTH),
+			fe(`${m.HEALTH_COUNTERS}?scope=output`),
+			fe(m.HEALTH_DB)
 		]);
 	} catch (e) {
 		console.debug?.(e);
@@ -266,9 +267,9 @@ function $r() {
 }
 async function ei() {
 	try {
-		mt("[Majoor] Testing API connection...");
-		let e = await Ie(I.HEALTH);
-		e?.ok ? mt("[Majoor] API connection successful, health:", e.data.overall) : console.error("[Majoor] ERROR: API health check failed:", e?.error);
+		ht("[Majoor] Testing API connection...");
+		let e = await fe(m.HEALTH);
+		e?.ok ? ht("[Majoor] API connection successful, health:", e.data.overall) : console.error("[Majoor] ERROR: API health check failed:", e?.error);
 	} catch (e) {
 		console.error("[Majoor] ERROR: Failed to connect to API:", e);
 	}
@@ -1123,15 +1124,15 @@ function Vi(e, t) {
 // ui/utils/deleteGuard.ts
 async function Hi(e, t) {
 	if (!R.DELETE_CONFIRMATION) return !0;
-	let n = e > 1 ? L("dialog.deleteSelectedFiles", "Delete {count} selected files?", { count: e }) : L("dialog.deleteSingleFile", "Delete \"{label}\"?", { label: String(t || L("label.thisFile", "this file")) });
-	return !!await Nt(n, L("dialog.confirmDeleteTitle", "Majoor: Confirm delete"));
+	let n = e > 1 ? I("dialog.deleteSelectedFiles", "Delete {count} selected files?", { count: e }) : I("dialog.deleteSingleFile", "Delete \"{label}\"?", { label: String(t || I("label.thisFile", "this file")) });
+	return !!await Pt(n, I("dialog.confirmDeleteTitle", "Majoor: Confirm delete"));
 }
 // ui/features/grid/bulkDelete.ts
 var Ui = 3;
 async function Wi(e, { chunkSize: t = 500, onProgress: n = null } = {}) {
 	let r = Array.isArray(e) ? e.filter((e) => e && typeof e == "object") : [], i = [], a = [], o = /* @__PURE__ */ new Set();
 	for (let e of r) {
-		let t = ye(e?.id);
+		let t = Qe(e?.id);
 		t && !o.has(t) ? (o.add(t), i.push({
 			asset: e,
 			id: t
@@ -1139,17 +1140,17 @@ async function Wi(e, { chunkSize: t = 500, onProgress: n = null } = {}) {
 	}
 	let s = [], c = 0, l = 0;
 	for (let e of a) try {
-		(await k(e))?.ok ? l += 1 : c += 1;
+		(await x(e))?.ok ? l += 1 : c += 1;
 	} catch {
 		c += 1;
 	}
-	let d = i.length;
-	if (!d) return {
+	let u = i.length;
+	if (!u) return {
 		deletedIds: s,
 		failedCount: c,
 		deletedByFilepath: l
 	};
-	let f = Math.max(1, Math.floor(Number(t) || 500)), p = 0, m = (e, t) => {
+	let d = Math.max(1, Math.floor(Number(t) || 500)), f = 0, p = (e, t) => {
 		if (e?.ok) {
 			let n = e.data || {};
 			if (Array.isArray(n?.deleted_ids)) {
@@ -1162,42 +1163,42 @@ async function Wi(e, { chunkSize: t = 500, onProgress: n = null } = {}) {
 			return "ok";
 		}
 		return String(e?.code || "") === "RATE_LIMITED" ? "rate-limited" : "rejected";
-	}, h = async (e) => {
+	}, m = async (e) => {
 		for (let t of e) try {
-			(await k(t))?.ok ? s.push(t) : c += 1;
+			(await x(t))?.ok ? s.push(t) : c += 1;
 		} catch {
 			c += 1;
 		}
-	}, g = (e, t) => {
+	}, h = (e, t) => {
 		let n = e?.meta || {}, r = new Set([...Array.isArray(n?.missing_ids) ? n.missing_ids : [], ...Array.isArray(n?.rejected_ids) ? n.rejected_ids : []].map((e) => String(e)));
 		for (let e of t) if (r.has(e)) return r;
 		return null;
 	};
-	for (let e = 0; e < d; e += f) {
-		let t = i.slice(e, e + f).map((e) => e.id), r = t;
+	for (let e = 0; e < u; e += d) {
+		let t = i.slice(e, e + d).map((e) => e.id), r = t;
 		try {
 			for (let e = 0; e < Ui && r.length; e++) {
-				let e = await u(r), t = m(e, r);
+				let e = await T(r), t = p(e, r);
 				if (t === "ok") r = [];
 				else if (t === "rate-limited") c += r.length, r = [];
 				else {
-					let t = g(e, r);
-					if (!t) await h(r), r = [];
+					let t = h(e, r);
+					if (!t) await m(r), r = [];
 					else {
 						for (let e of r) t.has(e) && (c += 1);
 						r = r.filter((e) => !t.has(e));
 					}
 				}
 			}
-			r.length && await h(r);
+			r.length && await m(r);
 		} catch {
 			c += r.length;
 		}
-		p += t.length;
+		f += t.length;
 		try {
 			n?.({
-				done: p,
-				total: d,
+				done: f,
+				total: u,
 				deleted: s.length,
 				failed: c
 			});
@@ -1240,7 +1241,7 @@ function Yi(e) {
 		filename: e.filename || "",
 		subfolder: e.subfolder || "",
 		type: (e.type || "output").toLowerCase(),
-		root_id: Se(e),
+		root_id: ye(e),
 		kind: e.kind || ""
 	} : null;
 }
@@ -1250,7 +1251,7 @@ async function Xi({ x: e, y: t, assets: n }) {
 		x: Number(e) || 0,
 		y: Number(t) || 0,
 		assets: r
-	}) : m(L("toast.noValidAssetsSelected", "No valid assets selected."), "warning");
+	}) : F(I("toast.noValidAssetsSelected", "No valid assets selected."), "warning");
 }
 function Zi(e, t = 500) {
 	let n = Math.max(1, Math.floor(Number(t) || 500)), r = (Array.isArray(e) ? e : []).map((e) => String(e)).filter(Boolean), i = [];
@@ -1259,7 +1260,7 @@ function Zi(e, t = 500) {
 }
 function Qi(e, t) {
 	try {
-		window.dispatchEvent(new CustomEvent(Lt, { detail: {
+		window.dispatchEvent(new CustomEvent(Rt, { detail: {
 			assetId: String(e),
 			rating: t
 		} }));
@@ -1293,38 +1294,38 @@ async function na(e, t) {
 	return $i = a.catch(() => {}), a;
 }
 async function ra(e, t) {
-	let n = Zi(e), r = n.reduce((e, t) => e + t.length, 0), i = [], a = [], o = 0, s = t;
+	let n = Zi(e), r = n.reduce((e, t) => e + t.length, 0), i = [], a = [], s = 0, c = t;
 	for (let e of n) {
 		let l = null;
 		try {
-			l = await c(e, t);
+			l = await o(e, t);
 		} catch (e) {
 			console.debug?.(e);
 		}
-		if (!l?.ok) a.push(...e), o += e.length;
+		if (!l?.ok) a.push(...e), s += e.length;
 		else {
 			let t = l?.data?.rating;
-			typeof t == "number" && Number.isFinite(t) && (s = t);
-			let n = Array.isArray(l?.data?.updated_ids) ? l.data.updated_ids : [], r = new Set(n.map((e) => String(e))), c = new Set((Array.isArray(l?.data?.failed) ? l.data.failed : []).map((e) => e?.id == null ? "" : String(e.id)).filter(Boolean));
+			typeof t == "number" && Number.isFinite(t) && (c = t);
+			let n = Array.isArray(l?.data?.updated_ids) ? l.data.updated_ids : [], r = new Set(n.map((e) => String(e))), o = new Set((Array.isArray(l?.data?.failed) ? l.data.failed : []).map((e) => e?.id == null ? "" : String(e.id)).filter(Boolean));
 			for (let e of n) {
 				let t = String(e);
-				i.push(t), Qi(t, s);
+				i.push(t), Qi(t, c);
 			}
 			for (let t of e) {
 				let e = String(t);
-				!r.has(e) && !c.has(e) && c.add(e);
+				!r.has(e) && !o.has(e) && o.add(e);
 			}
-			a.push(...c), o += e.length;
+			a.push(...o), s += e.length;
 		}
-		n.length > 1 && e !== n[n.length - 1] && m(L("toast.ratingBulkProgress", "Rating assets ({done}/{total})...", {
-			done: o,
+		n.length > 1 && e !== n[n.length - 1] && F(I("toast.ratingBulkProgress", "Rating assets ({done}/{total})...", {
+			done: s,
 			total: r
 		}), "info", 1500);
 	}
-	return i.length && a.length ? m(L("toast.ratingBulkPartial", "{rated} rated, {failed} failed", {
+	return i.length && a.length ? F(I("toast.ratingBulkPartial", "{rated} rated, {failed} failed", {
 		rated: i.length,
 		failed: a.length
-	}), "warning", 2500) : a.length ? m(L("toast.ratingUpdateFailed", "Failed to update rating"), "error") : m(L("toast.ratingSetN", "Rating set to {n} stars", { n: s }), "success", 1500), {
+	}), "warning", 2500) : a.length ? F(I("toast.ratingUpdateFailed", "Failed to update rating"), "error") : F(I("toast.ratingSetN", "Rating set to {n} stars", { n: c }), "success", 1500), {
 		rated: i,
 		failed: a
 	};
@@ -1481,17 +1482,17 @@ function ua(e, t, n) {
 	let a = setTimeout(async () => {
 		try {
 			la.delete(i);
-			let e = await N(r, t);
+			let e = await et(r, t);
 			if (!e?.ok) {
-				m(e?.error || L("toast.ratingUpdateFailed"), "error");
+				F(e?.error || I("toast.ratingUpdateFailed"), "error");
 				return;
 			}
-			m(L("toast.ratingSetN", { n: t }), "success", 1500), Dt(Lt, {
+			F(I("toast.ratingSetN", { n: t }), "success", 1500), Ot(Rt, {
 				assetId: String(r),
 				rating: t
 			}, { warnPrefix: "[GridKeyboard]" });
 		} catch (e) {
-			console.error("[GridKeyboard] Rating update failed:", e), m(L("toast.ratingUpdateError"), "error");
+			console.error("[GridKeyboard] Rating update failed:", e), F(I("toast.ratingUpdateError"), "error");
 		}
 	}, 350);
 	la.set(i, a);
@@ -1502,15 +1503,15 @@ function da({ gridContainer: e, getState: t = () => ({}), getSelectedAssets: n =
 		unbind: () => {},
 		dispose: () => {}
 	};
-	let c = null, l = null, u = null, d = null, f = !1, p = !1, h = ({ assets: e = [], index: t = 0, mode: n = "" } = {}) => {
+	let c = null, l = null, u = null, d = null, f = !1, p = !1, m = ({ assets: e = [], index: t = 0, mode: n = "" } = {}) => {
 		oa().then((r) => r.requestViewerOpen({
 			assets: e,
 			index: t,
 			mode: n
 		})).catch((e) => console.debug?.(e));
-	}, g = () => {
+	}, h = () => {
 		try {
-			ht(e);
+			gt(e);
 		} catch (e) {
 			console.debug?.(e);
 		}
@@ -1519,13 +1520,13 @@ function da({ gridContainer: e, getState: t = () => ({}), getSelectedAssets: n =
 		} catch (e) {
 			console.debug?.(e);
 		}
-	}, _ = () => {
+	}, g = () => {
 		try {
 			return n() || [];
 		} catch {
 			return [];
 		}
-	}, v = () => {
+	}, _ = () => {
 		try {
 			if (typeof e?._mjrGetRenderedCards == "function") {
 				let t = e._mjrGetRenderedCards();
@@ -1539,17 +1540,17 @@ function da({ gridContainer: e, getState: t = () => ({}), getSelectedAssets: n =
 		} catch {
 			return [];
 		}
-	}, y = () => {
+	}, v = () => {
 		try {
-			return r() || _()[0] || null;
+			return r() || g()[0] || null;
 		} catch {
 			return null;
 		}
-	}, b = (e) => {
+	}, y = (e) => {
 		if (!e?.filepath) return !1;
-		let t = Je(e.filepath), n = document.createElement("a");
-		return n.href = t, n.download = e.filename || "download", document.body.appendChild(n), n.click(), document.body.removeChild(n), m(L("toast.downloadingFile", "Downloading {filename}...", { filename: e.filename }), "info", 3e3), !0;
-	}, x = () => {
+		let t = xe(e.filepath), n = document.createElement("a");
+		return n.href = t, n.download = e.filename || "download", document.body.appendChild(n), n.click(), document.body.removeChild(n), F(I("toast.downloadingFile", "Downloading {filename}...", { filename: e.filename }), "info", 3e3), !0;
+	}, b = () => {
 		try {
 			if (Array.isArray(t?.()?.assets) && t().assets.length) return t().assets;
 		} catch (e) {
@@ -1564,13 +1565,13 @@ function da({ gridContainer: e, getState: t = () => ({}), getSelectedAssets: n =
 			console.debug?.(e);
 		}
 		try {
-			return v().map((e) => e?._mjrAsset).filter(Boolean);
+			return _().map((e) => e?._mjrAsset).filter(Boolean);
 		} catch {
 			return [];
 		}
-	}, S = () => {
+	}, x = () => {
 		try {
-			let t = v();
+			let t = _();
 			if (t.length >= 2) {
 				let e = Math.round(t[0].getBoundingClientRect().top), n = t.filter((t) => {
 					try {
@@ -1589,14 +1590,14 @@ function da({ gridContainer: e, getState: t = () => ({}), getSelectedAssets: n =
 			console.debug?.(e);
 		}
 		return 1;
-	}, C = (t, n) => {
+	}, S = (t, n) => {
 		let r = Array.isArray(t) ? t.map(String).filter(Boolean) : [], i = String(n || r[0] || "");
 		try {
 			typeof e?._mjrSetSelection == "function" ? e._mjrSetSelection(r, i) : (e.dataset.mjrSelectedAssetIds = JSON.stringify(r), e.dataset.mjrSelectedAssetId = i);
 		} catch (e) {
 			console.debug?.(e);
 		}
-	}, w = (t) => {
+	}, C = (t) => {
 		let n = String(t || "").trim();
 		if (n) {
 			try {
@@ -1617,57 +1618,57 @@ function da({ gridContainer: e, getState: t = () => ({}), getSelectedAssets: n =
 				console.debug?.(e);
 			}
 		}
-	}, T = (t) => {
+	}, w = (t) => {
 		let n = String(t.key || "");
 		if (n !== "ArrowLeft" && n !== "ArrowRight" && n !== "ArrowUp" && n !== "ArrowDown" && n !== "Home" && n !== "End" || t.ctrlKey || t.altKey || t.metaKey) return !1;
-		let r = x();
+		let r = b();
 		if (!Array.isArray(r) || r.length === 0) return !1;
-		let i = y(), a = String(i?.id || e?.dataset?.mjrSelectedAssetId || ""), s = r.findIndex((e) => String(e?.id || "") === a), c = s >= 0;
+		let i = v(), a = String(i?.id || e?.dataset?.mjrSelectedAssetId || ""), s = r.findIndex((e) => String(e?.id || "") === a), c = s >= 0;
 		s < 0 && (s = 0);
-		let l = Math.max(1, S()), u = s;
+		let l = Math.max(1, x()), u = s;
 		if (n === "ArrowLeft" ? --u : n === "ArrowRight" ? u += 1 : n === "ArrowUp" ? u -= l : n === "ArrowDown" ? u += l : n === "Home" ? u = 0 : n === "End" && (u = r.length - 1), u = Math.max(0, Math.min(r.length - 1, u)), c && u === s && n !== "Home" && n !== "End") return !1;
 		let d = String(r[u]?.id || "");
 		if (!d) return !1;
-		if (g(), t.shiftKey) {
+		if (h(), t.shiftKey) {
 			let t = String(e?._mjrSelectionAnchorId || "");
 			t ||= a || d;
 			let n = r.findIndex((e) => String(e?.id || "") === t), i = n >= 0 ? n : s, o = Math.min(i, u), c = Math.max(i, u), l = r.slice(o, c + 1).map((e) => String(e?.id || "")).filter(Boolean);
-			C(l, d);
-		} else e._mjrSelectionAnchorId = d, C([d], d);
-		w(d);
+			S(l, d);
+		} else e._mjrSelectionAnchorId = d, S([d], d);
+		C(d);
 		try {
 			o?.();
 		} catch (e) {
 			console.debug?.(e);
 		}
 		return !0;
-	}, E = async (n) => {
+	}, T = async (n) => {
 		let r = n.target;
-		if (r && (r.tagName === "INPUT" || r.tagName === "TEXTAREA" || r.isContentEditable) || bt() || vt().scope === "viewer") return;
+		if (r && (r.tagName === "INPUT" || r.tagName === "TEXTAREA" || r.isContentEditable) || xt() || yt().scope === "viewer") return;
 		if (document.activeElement !== document.body) {
 			let t = document.activeElement, n = e.contains(t), r = t && t.contains && t.contains(e), i = t?.closest?.(".mjr-asset-card");
 			if (!n && !r && !i) return;
 		} else {
-			let t = _t();
+			let t = vt();
 			if (t && t !== e) return;
 		}
 		let c = () => {
 			n.preventDefault(), n.stopPropagation();
 		};
 		try {
-			if (T(n)) {
+			if (w(n)) {
 				c();
 				return;
 			}
 		} catch (e) {
 			console.debug?.(e);
 		}
-		let l = _(), u = y(), d = t();
+		let l = g(), u = v(), d = t();
 		if (ca(n, ia.DOWNLOAD) && u?.filepath) {
 			c(), p = !0;
 			return;
 		}
-		let f = !!vt().ratingHotkeysActive;
+		let f = !!yt().ratingHotkeysActive;
 		if (!n.ctrlKey && !n.altKey && !n.metaKey && !n.shiftKey) {
 			if (!f && ca(n, ia.RATING_1) && u?.id) {
 				c(), ua(u, 1, s);
@@ -1697,7 +1698,7 @@ function da({ gridContainer: e, getState: t = () => ({}), getSelectedAssets: n =
 		if ((ca(n, ia.OPEN_VIEWER) || ca(n, ia.OPEN_VIEWER_ALT)) && l.length > 0) {
 			c();
 			try {
-				if (l.length >= 2 && l.length <= 4) h({
+				if (l.length >= 2 && l.length <= 4) m({
 					assets: l,
 					index: 0
 				});
@@ -1707,9 +1708,9 @@ function da({ gridContainer: e, getState: t = () => ({}), getSelectedAssets: n =
 					else if (typeof e?._mjrGetAssets == "function") {
 						let n = e._mjrGetAssets();
 						Array.isArray(n) && n.length && (t = n);
-					} else t = v().map((e) => e._mjrAsset).filter(Boolean);
+					} else t = _().map((e) => e._mjrAsset).filter(Boolean);
 					let n = t.findIndex((e) => String(e?.id) === String(u?.id));
-					h({
+					m({
 						assets: t,
 						index: Math.max(0, n)
 					});
@@ -1721,7 +1722,7 @@ function da({ gridContainer: e, getState: t = () => ({}), getSelectedAssets: n =
 		else if (ca(n, ia.COMPARE_AB) && l.length === 2) {
 			c();
 			try {
-				h({
+				m({
 					assets: l,
 					index: 0,
 					mode: "ab"
@@ -1732,7 +1733,7 @@ function da({ gridContainer: e, getState: t = () => ({}), getSelectedAssets: n =
 		} else if (ca(n, ia.SIDE_BY_SIDE) && l.length >= 2 && l.length <= 4) {
 			c();
 			try {
-				h({
+				m({
 					assets: l,
 					index: 0,
 					mode: "sidebyside"
@@ -1757,12 +1758,12 @@ function da({ gridContainer: e, getState: t = () => ({}), getSelectedAssets: n =
 					try {
 						let t = (l.length > 0 ? l : [u]).map((e) => String(e?.filepath || e?.path || e?.file_info?.filepath || "").trim()).filter(Boolean);
 						if (!t.length) {
-							m(L("toast.removeFromCollectionFailed", "No valid files to remove from collection"), "warning");
+							F(I("toast.removeFromCollectionFailed", "No valid files to remove from collection"), "warning");
 							return;
 						}
-						let n = await Me(e, t);
+						let n = await ve(e, t);
 						if (!n?.ok) {
-							m(n?.error || L("toast.removeFromCollectionFailed", "Failed to remove from collection"), "error");
+							F(n?.error || I("toast.removeFromCollectionFailed", "Failed to remove from collection"), "error");
 							return;
 						}
 						try {
@@ -1770,9 +1771,9 @@ function da({ gridContainer: e, getState: t = () => ({}), getSelectedAssets: n =
 						} catch (e) {
 							console.debug?.(e);
 						}
-						m(L("toast.removedFromCollection", "Removed from collection"), "success", 1400);
+						F(I("toast.removedFromCollection", "Removed from collection"), "success", 1400);
 					} catch (e) {
-						m(L("toast.removeFromCollectionError", "Error removing from collection: {error}", { error: e?.message || String(e || "") }), "error");
+						F(I("toast.removeFromCollectionError", "Error removing from collection: {error}", { error: e?.message || String(e || "") }), "error");
 					}
 					return;
 				}
@@ -1780,43 +1781,43 @@ function da({ gridContainer: e, getState: t = () => ({}), getSelectedAssets: n =
 			if (ca(n, ia.COPY_PATH) && u?.filepath) {
 				c();
 				try {
-					await navigator.clipboard.writeText(u.filepath), m(L("toast.pathCopied"), "success", 2e3);
+					await navigator.clipboard.writeText(u.filepath), F(I("toast.pathCopied"), "success", 2e3);
 				} catch {
-					m(L("toast.pathCopyFailed"), "error");
+					F(I("toast.pathCopyFailed"), "error");
 				}
 			} else if (ca(n, ia.OPEN_IN_FOLDER) && u?.id) {
 				c();
-				let e = await _e(u.id);
-				e?.ok ? m(L("toast.openedInFolder"), "info", 2e3) : m(e?.error || L("toast.openFolderFailed"), "error");
+				let e = await Je(u.id);
+				e?.ok ? F(I("toast.openedInFolder"), "info", 2e3) : F(e?.error || I("toast.openFolderFailed"), "error");
 			} else if (ca(n, ia.RENAME) && u?.id) {
 				c();
-				let e = u.filename || "", t = Vi(await Et(L("dialog.rename.title", "Rename file"), e), e);
+				let e = u.filename || "", t = Vi(await Dt(I("dialog.rename.title", "Rename file"), e), e);
 				if (t && t !== e) {
 					let e = Ri(t);
 					if (!e.valid) {
-						m(e.reason, "error");
+						F(e.reason, "error");
 						return;
 					}
 					try {
-						let e = await Ze(u, t);
+						let e = await Ne(u, t);
 						if (e?.ok) {
 							let n = e?.data?.asset;
-							n && typeof n == "object" ? Object.assign(u, n) : (u.filename = t, u.filepath = u.filepath?.replace(/[^\\/]+$/, t), u.path &&= String(u.path).replace(/[^\\/]+$/, t), u.file_info && typeof u.file_info == "object" && (u.file_info.filename = t, u.file_info.filepath && (u.file_info.filepath = String(u.file_info.filepath).replace(/[^\\/]+$/, t)), u.file_info.path && (u.file_info.path = String(u.file_info.path).replace(/[^\\/]+$/, t)))), m(L("toast.fileRenamedSuccess"), "success");
+							n && typeof n == "object" ? Object.assign(u, n) : (u.filename = t, u.filepath = u.filepath?.replace(/[^\\/]+$/, t), u.path &&= String(u.path).replace(/[^\\/]+$/, t), u.file_info && typeof u.file_info == "object" && (u.file_info.filename = t, u.file_info.filepath && (u.file_info.filepath = String(u.file_info.filepath).replace(/[^\\/]+$/, t)), u.file_info.path && (u.file_info.path = String(u.file_info.path).replace(/[^\\/]+$/, t)))), F(I("toast.fileRenamedSuccess"), "success");
 							try {
 								window.dispatchEvent(new CustomEvent("mjr:reload-grid", { detail: { reason: "rename-keyboard" } }));
 							} catch (e) {
 								console.debug?.(e);
 							}
 							s();
-						} else m(e?.error || L("toast.fileRenameFailed"), "error");
+						} else F(e?.error || I("toast.fileRenameFailed"), "error");
 					} catch (e) {
-						m(L("toast.errorRenaming", "Error renaming file: {error}", { error: e?.message || String(e || "") }), "error");
+						F(I("toast.errorRenaming", "Error renaming file: {error}", { error: e?.message || String(e || "") }), "error");
 					}
 				}
 			} else if ((ca(n, ia.DELETE) || ca(n, ia.DELETE_ALT)) && (u?.id || l.length > 0)) {
 				c();
 				let { deletedIds: t, failedCount: n } = await Wi((l.length > 0 ? l : [u]).filter((e) => e?.id), { onProgress: ({ done: e, total: t }) => {
-					e < t && m(L("toast.filesDeletingProgress", "Deleting files... ({done}/{total})", {
+					e < t && F(I("toast.filesDeletingProgress", "Deleting files... ({done}/{total})", {
 						done: e,
 						total: t
 					}), "info", 1600);
@@ -1828,7 +1829,7 @@ function da({ gridContainer: e, getState: t = () => ({}), getSelectedAssets: n =
 				} catch (e) {
 					console.debug?.(e);
 				}
-				i === 0 ? m(L("toast.filesDeletedShort", "{n} files deleted", { n: r }), "success") : m(L("toast.filesDeletedShortPartial", "{success} deleted, {failed} failed", {
+				i === 0 ? F(I("toast.filesDeletedShort", "{n} files deleted", { n: r }), "success") : F(I("toast.filesDeletedShortPartial", "{success} deleted, {failed} failed", {
 					success: r,
 					failed: i
 				}), "warning");
@@ -1854,12 +1855,12 @@ function da({ gridContainer: e, getState: t = () => ({}), getSelectedAssets: n =
 					console.debug?.(e);
 				}
 				if (!t.length) try {
-					t = v().map((e) => String(e?._mjrAsset?.id || "")).filter(Boolean);
+					t = _().map((e) => String(e?._mjrAsset?.id || "")).filter(Boolean);
 				} catch (e) {
 					console.debug?.(e);
 				}
 				try {
-					typeof e?._mjrSetSelection == "function" ? e._mjrSetSelection(t, t[0] || "") : (v().forEach((e) => {
+					typeof e?._mjrSetSelection == "function" ? e._mjrSetSelection(t, t[0] || "") : (_().forEach((e) => {
 						e.classList.add("is-selected"), e.setAttribute("aria-selected", "true");
 					}), e.dataset.mjrSelectedAssetIds = JSON.stringify(t), e.dataset.mjrSelectedAssetId = String(t[0] || ""));
 				} catch (e) {
@@ -1869,7 +1870,7 @@ function da({ gridContainer: e, getState: t = () => ({}), getSelectedAssets: n =
 			} else if (ca(n, ia.DESELECT_ALL)) {
 				c();
 				try {
-					typeof e?._mjrSetSelection == "function" ? e._mjrSetSelection([], "") : (v().filter((e) => e?.classList?.contains?.("is-selected")).forEach((e) => {
+					typeof e?._mjrSetSelection == "function" ? e._mjrSetSelection([], "") : (_().filter((e) => e?.classList?.contains?.("is-selected")).forEach((e) => {
 						e.classList.remove("is-selected"), e.setAttribute("aria-selected", "false");
 					}), delete e.dataset.mjrSelectedAssetIds, delete e.dataset.mjrSelectedAssetId);
 				} catch (e) {
@@ -1878,19 +1879,19 @@ function da({ gridContainer: e, getState: t = () => ({}), getSelectedAssets: n =
 				o();
 			}
 		}
-	}, D = (e) => {
-		if (String(e?.key || "").toLowerCase() !== "s" || !p || (p = !1, bt()) || vt().scope === "viewer") return;
-		let t = y();
-		t?.filepath && (e.preventDefault?.(), e.stopPropagation?.(), e.stopImmediatePropagation?.(), b(t));
-	}, O = () => {
+	}, E = (e) => {
+		if (String(e?.key || "").toLowerCase() !== "s" || !p || (p = !1, xt()) || yt().scope === "viewer") return;
+		let t = v();
+		t?.filepath && (e.preventDefault?.(), e.stopPropagation?.(), e.stopImmediatePropagation?.(), y(t));
+	}, D = () => {
 		p = !1;
+	}, O = () => {
+		f ||= (c = T, l = E, u = D, d = () => h(), document.addEventListener("keydown", c, !0), document.addEventListener("keyup", l, !0), document.addEventListener("dragstart", u, !0), e.addEventListener("pointerdown", d, !0), e.addEventListener("focusin", d, !0), !0);
 	}, k = () => {
-		f ||= (c = E, l = D, u = O, d = () => g(), document.addEventListener("keydown", c, !0), document.addEventListener("keyup", l, !0), document.addEventListener("dragstart", u, !0), e.addEventListener("pointerdown", d, !0), e.addEventListener("focusin", d, !0), !0);
-	}, A = () => {
 		if (f && c) {
 			document.removeEventListener("keydown", c, !0), l && document.removeEventListener("keyup", l, !0), u && document.removeEventListener("dragstart", u, !0), d && (e.removeEventListener("pointerdown", d, !0), e.removeEventListener("focusin", d, !0)), c = null, l = null, u = null, d = null, p = !1;
 			try {
-				yt(e);
+				bt(e);
 			} catch (e) {
 				console.debug?.(e);
 			}
@@ -1909,10 +1910,10 @@ function da({ gridContainer: e, getState: t = () => ({}), getSelectedAssets: n =
 		}
 	};
 	return {
-		bind: k,
-		unbind: A,
+		bind: O,
+		unbind: k,
 		dispose: () => {
-			A();
+			k();
 			for (let e of la.values()) try {
 				clearTimeout(e);
 			} catch (e) {
@@ -1956,14 +1957,14 @@ function va(e, t, { onSuccess: n, onFailure: r, successMessage: i = null, errorM
 	let s = new AbortController(), c = setTimeout(async () => {
 		ma.delete(String(e));
 		try {
-			let o = await N(e, t, { signal: s.signal });
+			let o = await et(e, t, { signal: s.signal });
 			if (!o?.ok) {
-				m(o?.error || a || "Failed to update rating", "error"), r?.(o);
+				F(o?.error || a || "Failed to update rating", "error"), r?.(o);
 				return;
 			}
-			i && m(i, "success", 1500), n?.(o);
+			i && F(i, "success", 1500), n?.(o);
 		} catch (e) {
-			ut(e, o, { showToast: !0 }), r?.(e);
+			dt(e, o, { showToast: !0 }), r?.(e);
 		}
 	}, pa);
 	ma.set(String(e), {
@@ -1988,7 +1989,7 @@ function Ta() {
 	return Ca ||= import("./chunks/viewerOpenRequest-WOJE90Gn.js").then((e) => e.n), Ca;
 }
 function Ea() {
-	return wa ||= import("./chunks/floatingViewerManager-DbOx9dhE.js").then((e) => e.n), wa;
+	return wa ||= import("./chunks/floatingViewerManager-Dn53ZRsL.js").then((e) => e.n), wa;
 }
 function Da(e) {
 	let t = String(e || "").trim().toLowerCase();
@@ -2076,7 +2077,7 @@ async function ja(e) {
 	let t = String(e?.filepath || e?.path || e?.full_path || "").trim();
 	if (!t) return e;
 	try {
-		let n = await ze(t, { timeoutMs: 25e3 }), r = n?.data?.workflow || n?.workflow || null, i = n?.data?.prompt || n?.prompt || null;
+		let n = await Se(t, { timeoutMs: 25e3 }), r = n?.data?.workflow || n?.workflow || null, i = n?.data?.prompt || n?.prompt || null;
 		return !r && !i ? e : {
 			...e,
 			workflow: r || e?.workflow,
@@ -2105,7 +2106,7 @@ var Ma = (e) => {
 		filename: t,
 		subfolder: e.subfolder || "",
 		type: String(e.type || e.source || "output").toLowerCase(),
-		root_id: Se(e) || void 0,
+		root_id: ye(e) || void 0,
 		kind: String(e.kind || "").toLowerCase()
 	} : null;
 }, Pa = (e) => {
@@ -2115,7 +2116,7 @@ var Ma = (e) => {
 		filename: t,
 		subfolder: e.subfolder || "",
 		type: String(e.type || e.source || "output").toLowerCase(),
-		root_id: Se(e) || void 0
+		root_id: ye(e) || void 0
 	} : null;
 };
 function Fa(e, t = "") {
@@ -2126,36 +2127,36 @@ function Fa(e, t = "") {
 async function Ia(e) {
 	let t = (Array.isArray(e) ? e.filter((e) => !Xa(e)) : []).map(Pa).filter(Boolean);
 	if (t.length < 2) {
-		m("Select at least two files to download a ZIP.", "warning", 2600);
+		F("Select at least two files to download a ZIP.", "warning", 2600);
 		return;
 	}
 	let n = "";
 	try {
-		n = je("mjr_", 24);
+		n = _e("mjr_", 24);
 	} catch (e) {
-		ut(e, "[GridContextMenu] Batch ZIP token", { showToast: R.DEBUG_VERBOSE_ERRORS }), m("Could not create a secure ZIP token.", "error");
+		dt(e, "[GridContextMenu] Batch ZIP token", { showToast: R.DEBUG_VERBOSE_ERRORS }), F("Could not create a secure ZIP token.", "error");
 		return;
 	}
-	m(`Preparing ZIP for ${t.length} files...`, "info", 1800);
-	let r = await pe(I.BATCH_ZIP_CREATE, {
+	F(`Preparing ZIP for ${t.length} files...`, "info", 1800);
+	let r = await rt(m.BATCH_ZIP_CREATE, {
 		token: n,
 		items: t,
 		strip_metadata: !1
 	});
 	if (!r?.ok) {
-		m(r?.error || "Failed to create ZIP.", "error");
+		F(r?.error || "Failed to create ZIP.", "error");
 		return;
 	}
 	let i = r?.data?.filename || `Majoor_Batch_${t.length}.zip`;
-	Fa(se(n), i), m(`Downloading ${i}...`, "info", 3e3);
+	Fa(ie(n), i), F(`Downloading ${i}...`, "info", 3e3);
 }
 async function La(e) {
 	let t = Array.isArray(e) ? e.filter(Boolean) : [], n = await Promise.all(t.map(async (e) => {
 		let t = Na(e);
 		if (!t) return null;
-		let n = (await On({
-			post: pe,
-			endpoint: I.STAGE_TO_INPUT,
+		let n = (await kn({
+			post: rt,
+			endpoint: m.STAGE_TO_INPUT,
 			payload: t,
 			index: !1
 		}))?.relativePath;
@@ -2165,8 +2166,8 @@ async function La(e) {
 			droppedExt: String(t.filename || "").split(".").pop() || ""
 		} : null;
 	}));
-	return Sn({
-		app: ne(),
+	return Cn({
+		app: nt(),
 		items: n.filter(Boolean),
 		event: null
 	});
@@ -2183,7 +2184,7 @@ var Ra = (e) => {
 		} catch (e) {
 			console.debug?.(e);
 		}
-		Dt("mjr:selection-changed", { selectedIds: [] }, {
+		Ot("mjr:selection-changed", { selectedIds: [] }, {
 			target: e,
 			warnPrefix: "[GridContextMenu]"
 		});
@@ -2244,7 +2245,7 @@ var Ra = (e) => {
 function Ha(e) {
 	if (e == null) return null;
 	try {
-		return document.querySelector(`[data-mjr-asset-id="${zt(e)}"]`);
+		return document.querySelector(`[data-mjr-asset-id="${Bt(e)}"]`);
 	} catch (e) {
 		return console.debug?.(e), null;
 	}
@@ -2282,7 +2283,7 @@ async function Ga(e, t) {
 		ok: !1,
 		error: "Missing filename"
 	};
-	let r = await pe(I.INDEX_FILES, {
+	let r = await rt(m.INDEX_FILES, {
 		files: [n],
 		incremental: !1
 	});
@@ -2291,12 +2292,12 @@ async function Ga(e, t) {
 		error: "Index refresh failed"
 	};
 	if (e?.id != null) try {
-		let t = await Ge(e.id);
+		let t = await Le(e.id);
 		if (t?.ok && t?.data && typeof t.data == "object") {
 			Object.assign(e, t.data);
 			let n = Ua(e, t.data), r = n?.querySelector?.(".mjr-workflow-dot");
 			if (r) {
-				let e = yn(n._mjrAsset);
+				let e = bn(n._mjrAsset);
 				e && r.replaceWith(e);
 			}
 		}
@@ -2325,16 +2326,16 @@ function Ka(e, t, n) {
 		errorMessage: "Failed to update rating",
 		warnPrefix: "[GridContextMenu]",
 		onSuccess: () => {
-			Dt(Lt, {
+			Ot(Rt, {
 				assetId: String(r),
 				rating: t
 			}, { warnPrefix: "[GridContextMenu]" });
 		},
 		onFailure: (e) => {
-			ut(e, "[GridContextMenu] Rating update", { showToast: R.DEBUG_VERBOSE_ERRORS });
+			dt(e, "[GridContextMenu] Rating update", { showToast: R.DEBUG_VERBOSE_ERRORS });
 		}
-	}) : N(e, t).catch((e) => {
-		ut(e, "[GridContextMenu] Rating update", { showToast: R.DEBUG_VERBOSE_ERRORS });
+	}) : et(e, t).catch((e) => {
+		dt(e, "[GridContextMenu] Rating update", { showToast: R.DEBUG_VERBOSE_ERRORS });
 	});
 }
 function qa(e) {
@@ -2343,7 +2344,7 @@ function qa(e) {
 }
 function Ja() {
 	try {
-		return !!(Pt()?.browser?.showFolders ?? !1);
+		return !!(Ft()?.browser?.showFolders ?? !1);
 	} catch {
 		return !1;
 	}
@@ -2380,13 +2381,13 @@ function Qa(e) {
 }
 async function $a(e) {
 	if (!e || Xa(e)) return null;
-	let t = Xt(e);
+	let t = Zt(e);
 	if (t) return t;
 	let n = e?.id;
 	if (n == null || n === "") return null;
 	try {
-		let t = await Ge(n, { timeoutMs: 3e4 }), r = t?.data;
-		if (t?.ok && r && typeof r == "object") return Object.assign(e, r), Xt(e);
+		let t = await Le(n, { timeoutMs: 3e4 }), r = t?.data;
+		if (t?.ok && r && typeof r == "object") return Object.assign(e, r), Zt(e);
 	} catch (e) {
 		console.debug?.(e);
 	}
@@ -2395,46 +2396,46 @@ async function $a(e) {
 async function eo(e) {
 	let t = await $a(e);
 	if (!t || typeof t != "object") {
-		m(L("toast.assetWorkflowMissing", "No embedded ComfyUI workflow was found for this asset."), "warn", 2600);
+		F(I("toast.assetWorkflowMissing", "No embedded ComfyUI workflow was found for this asset."), "warn", 2600);
 		return;
 	}
-	let n = ne(), r = l(t, n);
+	let n = nt(), r = ne(t, n);
 	if (!r.ok) {
-		m(L("toast.workflowImportUnavailable", "ComfyUI workflow import is unavailable in this frontend."), "error");
+		F(I("toast.workflowImportUnavailable", "ComfyUI workflow import is unavailable in this frontend."), "error");
 		return;
 	}
-	let i = r.mode === "new-tab" ? L("toast.workflowLoadedNewTab", "Workflow loaded in a new ComfyUI tab.") : L("toast.workflowLoaded", "Workflow loaded");
-	m(i, "success", 1800);
+	let i = r.mode === "new-tab" ? I("toast.workflowLoadedNewTab", "Workflow loaded in a new ComfyUI tab.") : I("toast.workflowLoaded", "Workflow loaded");
+	F(i, "success", 1800);
 }
 async function to(e) {
 	let t = String(e?.filepath || e?.path || e?.full_path || "").trim();
 	if (!t) {
-		m(L("toast.workflowMissingPath", "Workflow file path is missing."), "error");
+		F(I("toast.workflowMissingPath", "Workflow file path is missing."), "error");
 		return;
 	}
-	let n = ne();
-	if (O(n) === !0 && !await Nt(L("dialog.workflowLoadReplaceDirty", "Current canvas has unsaved changes. Replace it with this workflow?"), L("tab.workflow", "Workflow"))) return;
-	let r = await ze(t, { timeoutMs: 3e4 }), i = r?.data?.workflow || r?.workflow || null;
+	let n = nt();
+	if (a(n) === !0 && !await Pt(I("dialog.workflowLoadReplaceDirty", "Current canvas has unsaved changes. Replace it with this workflow?"), I("tab.workflow", "Workflow"))) return;
+	let r = await Se(t, { timeoutMs: 3e4 }), i = r?.data?.workflow || r?.workflow || null;
 	if (!r?.ok || !i || typeof i != "object") {
-		m(r?.error || L("toast.workflowLoadFailed", "Failed to load workflow."), "error");
+		F(r?.error || I("toast.workflowLoadFailed", "Failed to load workflow."), "error");
 		return;
 	}
-	let a = l(i, n);
-	if (a.ok) {
+	let o = ne(i, n);
+	if (o.ok) {
 		try {
-			await Qe({ filepath: t }, { timeoutMs: 1e4 });
+			await ue({ filepath: t }, { timeoutMs: 1e4 });
 		} catch (e) {
 			console.debug?.(e);
 		}
-		m(L("toast.workflowLoaded", "Workflow loaded"), "success", 1800);
+		F(I("toast.workflowLoaded", "Workflow loaded"), "success", 1800);
 	} else {
-		let e = Je(t, { inline: !0 });
+		let e = xe(t, { inline: !0 });
 		try {
 			e && typeof window < "u" && window.open(e, "_blank", "noopener,noreferrer");
 		} catch (e) {
 			console.debug?.(e);
 		}
-		m(L("toast.workflowImportFallback", "ComfyUI workflow import is unavailable in this frontend. Opened workflow JSON for manual import."), "warn"), a.mode === "new-tab" && m(L("toast.workflowLoadedNewTab", "Workflow loaded in a new ComfyUI tab."), "success");
+		F(I("toast.workflowImportFallback", "ComfyUI workflow import is unavailable in this frontend. Opened workflow JSON for manual import."), "warn"), o.mode === "new-tab" && F(I("toast.workflowLoadedNewTab", "Workflow loaded in a new ComfyUI tab."), "success");
 	}
 }
 function no(e) {
@@ -2445,78 +2446,78 @@ function no(e) {
 	}
 }
 async function ro(e) {
-	let t = String(e?.filepath || "").trim(), n = await ue({ filepath: t }, { timeoutMs: 3e4 });
-	n?.ok ? (m(L("toast.workflowSaved", "Workflow saved"), "success", 1800), no("workflow-duplicate")) : m(n?.error || L("toast.workflowSaveFailed", "Failed to save workflow."), "error");
+	let t = String(e?.filepath || "").trim(), n = await Te({ filepath: t }, { timeoutMs: 3e4 });
+	n?.ok ? (F(I("toast.workflowSaved", "Workflow saved"), "success", 1800), no("workflow-duplicate")) : F(n?.error || I("toast.workflowSaveFailed", "Failed to save workflow."), "error");
 }
 async function io(e) {
-	let t = String(e?.filepath || "").trim(), n = String(e?.display_name || e?.filename || "").replace(/\.json$/i, ""), r = await Et(L("ctx.renameWorkflow", "Rename workflow"), n, L("tab.workflow", "Workflow")), i = String(r || "").trim();
+	let t = String(e?.filepath || "").trim(), n = String(e?.display_name || e?.filename || "").replace(/\.json$/i, ""), r = await Dt(I("ctx.renameWorkflow", "Rename workflow"), n, I("tab.workflow", "Workflow")), i = String(r || "").trim();
 	if (!i) return;
-	let a = await nt({
+	let a = await L({
 		filepath: t,
 		name: i
 	}, { timeoutMs: 3e4 });
-	a?.ok ? (m(L("toast.workflowUpdated", "Workflow updated"), "success", 1800), no("workflow-rename")) : m(a?.error || L("toast.workflowSaveFailed", "Failed to save workflow."), "error");
+	a?.ok ? (F(I("toast.workflowUpdated", "Workflow updated"), "success", 1800), no("workflow-rename")) : F(a?.error || I("toast.workflowSaveFailed", "Failed to save workflow."), "error");
 }
 async function ao(e) {
-	let t = String(e?.filepath || "").trim(), n = String(e?.subfolder || "").trim(), r = await Et(L("dialog.workflowCategory", "Workflow category"), n, L("tab.workflow", "Workflow"));
+	let t = String(e?.filepath || "").trim(), n = String(e?.subfolder || "").trim(), r = await Dt(I("dialog.workflowCategory", "Workflow category"), n, I("tab.workflow", "Workflow"));
 	if (r == null) return;
-	let i = await nt({
+	let i = await L({
 		filepath: t,
 		category: String(r || "")
 	}, { timeoutMs: 3e4 });
-	i?.ok ? (m(L("toast.workflowUpdated", "Workflow updated"), "success", 1800), no("workflow-categorize")) : m(i?.error || L("toast.workflowSaveFailed", "Failed to save workflow."), "error");
+	i?.ok ? (F(I("toast.workflowUpdated", "Workflow updated"), "success", 1800), no("workflow-categorize")) : F(i?.error || I("toast.workflowSaveFailed", "Failed to save workflow."), "error");
 }
 async function oo(e) {
 	let t = String(e?.filepath || "").trim();
 	if (!t) {
-		m(L("toast.noFilePath"), "error");
+		F(I("toast.noFilePath"), "error");
 		return;
 	}
-	let n = await we({
+	let n = await Pe({
 		filepath: t,
 		limit: 12
 	}, { timeoutMs: 15e3 });
 	if (!n?.ok) {
-		m(n?.error || L("toast.workflowLoadFailed", "Failed to load workflow."), "error");
+		F(n?.error || I("toast.workflowLoadFailed", "Failed to load workflow."), "error");
 		return;
 	}
 	let r = Array.isArray(n.data) ? n.data : [];
 	if (!r.length) {
-		m(L("toast.workflowThumbnailNoCandidates", "No linked outputs are available for this workflow yet."), "warning", 2600);
+		F(I("toast.workflowThumbnailNoCandidates", "No linked outputs are available for this workflow yet."), "warning", 2600);
 		return;
 	}
-	let i = await Dn({
-		title: L("ctx.setWorkflowThumbnail", "Set workflow thumbnail"),
+	let a = await On({
+		title: I("ctx.setWorkflowThumbnail", "Set workflow thumbnail"),
 		workflow: e,
 		items: r
 	});
-	if (!i?.filepath) return;
-	let a = await $e({
+	if (!a?.filepath) return;
+	let o = await i({
 		filepath: t,
-		source_filepath: i.filepath
+		source_filepath: a.filepath
 	}, { timeoutMs: 3e4 });
-	a?.ok ? (m(L("toast.workflowUpdated", "Workflow updated"), "success", 1800), no("workflow-thumbnail")) : m(a?.error || L("toast.workflowSaveFailed", "Failed to save workflow."), "error");
+	o?.ok ? (F(I("toast.workflowUpdated", "Workflow updated"), "success", 1800), no("workflow-thumbnail")) : F(o?.error || I("toast.workflowSaveFailed", "Failed to save workflow."), "error");
 }
 async function so(e) {
 	let t = String(e?.filepath || "").trim();
 	if (!t) {
-		m(L("toast.workflowMissingPath", "Workflow file path is missing."), "error");
+		F(I("toast.workflowMissingPath", "Workflow file path is missing."), "error");
 		return;
 	}
-	let n = await ze(t, { timeoutMs: 3e4 });
+	let n = await Se(t, { timeoutMs: 3e4 });
 	if (!n?.ok) {
-		m(n?.error || L("toast.workflowLoadFailed", "Failed to load workflow."), "error");
+		F(n?.error || I("toast.workflowLoadFailed", "Failed to load workflow."), "error");
 		return;
 	}
 	let r = n?.data?.workflow || n?.workflow || null;
 	if (!r || typeof r != "object") {
-		m(L("toast.workflowLoadFailed", "Failed to load workflow."), "error");
+		F(I("toast.workflowLoadFailed", "Failed to load workflow."), "error");
 		return;
 	}
 	let i = String(e?.filename || e?.display_name || "workflow.json").replace(/[\\/:*?"<>|]+/g, "_").replace(/\.json$/i, "") || "workflow", a = new Blob([`${JSON.stringify(r, null, 2)}\n`], { type: "application/json" }), o = URL.createObjectURL(a);
 	try {
 		let e = document.createElement("a");
-		e.href = o, e.download = `${i}.json`, e.rel = "noopener", document.body.appendChild(e), e.click(), e.remove(), m(L("toast.workflowExported", "Workflow exported"), "success", 1800);
+		e.href = o, e.download = `${i}.json`, e.rel = "noopener", document.body.appendChild(e), e.click(), e.remove(), F(I("toast.workflowExported", "Workflow exported"), "success", 1800);
 	} finally {
 		setTimeout(() => URL.revokeObjectURL(o), 5e3);
 	}
@@ -2524,36 +2525,36 @@ async function so(e) {
 async function co(e) {
 	let t = String(e?.filepath || "").trim();
 	if (!t) {
-		m(L("toast.workflowMissingPath", "Workflow file path is missing."), "error");
+		F(I("toast.workflowMissingPath", "Workflow file path is missing."), "error");
 		return;
 	}
-	let n = await _e({ filepath: t });
-	n?.ok ? m(L("toast.openedInFolder", "Opened in folder"), "success", 1600) : m(n?.error || L("toast.openFolderFailed", "Failed to open folder."), "error");
+	let n = await Je({ filepath: t });
+	n?.ok ? F(I("toast.openedInFolder", "Opened in folder"), "success", 1600) : F(n?.error || I("toast.openFolderFailed", "Failed to open folder."), "error");
 }
 async function lo(e) {
 	let t = Ma(e);
 	if (!t) {
-		m(L("toast.noFilePath"), "error");
+		F(I("toast.noFilePath"), "error");
 		return;
 	}
-	let n = await Ln({
-		title: L("ctx.assignAsWorkflowThumbnail", "Use as workflow thumbnail"),
+	let n = await Rn({
+		title: I("ctx.assignAsWorkflowThumbnail", "Use as workflow thumbnail"),
 		sourceAsset: e
 	}), r = String(n?.filepath || "").trim();
 	if (!r) return;
-	let i = String(e?.kind || "").toLowerCase() === "video" || /\.(mp4|webm|mov|mkv|avi|m4v)$/i.test(t);
-	m(i ? L("toast.workflowThumbnailConverting", "Preparing a 5 second animated workflow thumbnail...") : L("toast.workflowThumbnailApplying", "Applying workflow thumbnail..."), "info", 2200);
-	let a = await $e({
+	let a = String(e?.kind || "").toLowerCase() === "video" || /\.(mp4|webm|mov|mkv|avi|m4v)$/i.test(t);
+	F(a ? I("toast.workflowThumbnailConverting", "Preparing a 5 second animated workflow thumbnail...") : I("toast.workflowThumbnailApplying", "Applying workflow thumbnail..."), "info", 2200);
+	let o = await i({
 		filepath: r,
 		source_filepath: t
-	}, { timeoutMs: i ? 75e3 : 3e4 });
-	a?.ok ? (m(L("toast.workflowUpdated", "Workflow updated"), "success", 1800), no("workflow-thumbnail-assign")) : m(a?.error || L("toast.workflowSaveFailed", "Failed to save workflow."), "error");
+	}, { timeoutMs: a ? 75e3 : 3e4 });
+	o?.ok ? (F(I("toast.workflowUpdated", "Workflow updated"), "success", 1800), no("workflow-thumbnail-assign")) : F(o?.error || I("toast.workflowSaveFailed", "Failed to save workflow."), "error");
 }
 async function uo(e) {
 	let t = String(e?.filepath || "").trim();
-	if (!await Nt(L("dialog.deleteWorkflowConfirm", "Delete this workflow JSON and its adjacent thumbnail files?"), L("ctx.deleteWorkflow", "Delete workflow"))) return;
-	let n = await Ue({ filepath: t }, { timeoutMs: 3e4 });
-	n?.ok ? (m(L("toast.workflowDeleted", "Workflow deleted"), "success", 1800), no("workflow-delete")) : m(n?.error || L("toast.fileDeleteFailed", "Failed to delete file."), "error");
+	if (!await Pt(I("dialog.deleteWorkflowConfirm", "Delete this workflow JSON and its adjacent thumbnail files?"), I("ctx.deleteWorkflow", "Delete workflow"))) return;
+	let n = await Fe({ filepath: t }, { timeoutMs: 3e4 });
+	n?.ok ? (F(I("toast.workflowDeleted", "Workflow deleted"), "success", 1800), no("workflow-delete")) : F(n?.error || I("toast.fileDeleteFailed", "Failed to delete file."), "error");
 }
 function fo(e) {
 	let t = ka(e), n = Aa(e), r = n.length || t.size;
@@ -2572,7 +2573,7 @@ function po(e, t, n = null) {
 		if (a) try {
 			await na(n, t);
 		} catch (e) {
-			ut(e, "[GridContextMenu] Bulk rating", { showToast: R.DEBUG_VERBOSE_ERRORS });
+			dt(e, "[GridContextMenu] Bulk rating", { showToast: R.DEBUG_VERBOSE_ERRORS });
 		}
 		else Ka(e, t, () => i(t));
 	};
@@ -2593,7 +2594,7 @@ function po(e, t, n = null) {
 			await o(1);
 		}, { disabled: !t }),
 		Oa(),
-		$(L("ctx.resetRating", "Reset rating"), "pi pi-star", "0", async () => {
+		$(I("ctx.resetRating", "Reset rating"), "pi pi-star", "0", async () => {
 			await o(0);
 		}, { disabled: !t })
 	];
@@ -2604,48 +2605,48 @@ function mo(e, t) {
 	let r = String(e || "").trim().replaceAll("\\", "/");
 	return r ? `mjr://${n}/${r}` : `mjr://${n}`;
 }
-function ho({ currentPath: e, gridContainer: t } = {}) {
-	return [$(L("ctx.createFolderHere", "Create folder here..."), "pi pi-plus", null, async () => {
+function ho({ currentPath: e, gridContainer: n } = {}) {
+	return [$(I("ctx.createFolderHere", "Create folder here..."), "pi pi-plus", null, async () => {
 		try {
-			let n = await Et(L("dialog.newFolderName", "New folder name"), ""), r = String(n || "").trim();
-			if (!r) return;
-			let i = await De({
+			let r = await Dt(I("dialog.newFolderName", "New folder name"), ""), i = String(r || "").trim();
+			if (!i) return;
+			let a = await t({
 				op: "create",
-				path: mo(e, t),
-				name: r
+				path: mo(e, n),
+				name: i
 			});
-			if (!i?.ok) {
-				m(i?.error || "Failed to create folder", "error");
+			if (!a?.ok) {
+				F(a?.error || "Failed to create folder", "error");
 				return;
 			}
-			Wa(t), m(L("toast.folderCreated", "Folder created: {name}", { name: r }), "success");
+			Wa(n), F(I("toast.folderCreated", "Folder created: {name}", { name: i }), "success");
 		} catch (e) {
-			m(L("toast.createFolderFailedDetail", "Create folder failed: {error}", { error: e?.message || String(e || "") }), "error");
+			F(I("toast.createFolderFailedDetail", "Create folder failed: {error}", { error: e?.message || String(e || "") }), "error");
 		}
 	})];
 }
-function go({ asset: e, gridContainer: t, panelState: n } = {}) {
-	let r = String(e?.filepath || "").trim(), i = [$(L("ctx.openFolder", "Open folder"), "pi pi-folder-open", null, () => {
+function go({ asset: e, gridContainer: n, panelState: r } = {}) {
+	let i = String(e?.filepath || "").trim(), a = [$(I("ctx.openFolder", "Open folder"), "pi pi-folder-open", null, () => {
 		try {
-			t.dispatchEvent(new CustomEvent("mjr:open-folder-asset", {
+			n.dispatchEvent(new CustomEvent("mjr:open-folder-asset", {
 				bubbles: !0,
 				detail: { asset: e }
 			}));
 		} catch (e) {
 			console.debug?.(e);
 		}
-	}), $(L("ctx.pinAsBrowserRoot"), "pi pi-bookmark", null, async () => {
-		if (!r) {
-			m(L("toast.unableResolveFolderPath"), "error");
+	}), $(I("ctx.pinAsBrowserRoot"), "pi pi-bookmark", null, async () => {
+		if (!i) {
+			F(I("toast.unableResolveFolderPath"), "error");
 			return;
 		}
-		let t = await Et(L("dialog.browserRootLabelOptional"), String(e?.filename || "")), n = await pe(I.CUSTOM_ROOTS, {
-			path: r,
+		let t = await Dt(I("dialog.browserRootLabelOptional"), String(e?.filename || "")), n = await rt(m.CUSTOM_ROOTS, {
+			path: i,
 			label: String(t || "").trim() || void 0
 		});
-		if (!n?.ok) m(n?.error || L("toast.pinFolderFailed"), "error");
+		if (!n?.ok) F(n?.error || I("toast.pinFolderFailed"), "error");
 		else {
-			m(L("toast.folderPinnedAsBrowserRoot"), "success");
+			F(I("toast.folderPinnedAsBrowserRoot"), "success");
 			try {
 				window.dispatchEvent(new CustomEvent("mjr:custom-roots-changed", { detail: { preferredId: String(n?.data?.id || "") } }));
 			} catch (e) {
@@ -2653,84 +2654,84 @@ function go({ asset: e, gridContainer: t, panelState: n } = {}) {
 			}
 		}
 	})];
-	return qa(n) && r && i.push(Oa(), $(L("ctx.createFolderHere"), "pi pi-plus", null, async () => {
+	return qa(r) && i && a.push(Oa(), $(I("ctx.createFolderHere"), "pi pi-plus", null, async () => {
 		try {
-			let e = await Et(L("dialog.newFolderName"), ""), n = String(e || "").trim();
-			if (!n) return;
-			let i = await De({
+			let e = await Dt(I("dialog.newFolderName"), ""), r = String(e || "").trim();
+			if (!r) return;
+			let a = await t({
 				op: "create",
-				path: r,
-				name: n
+				path: i,
+				name: r
 			});
-			if (!i?.ok) {
-				m(i?.error || L("toast.createFolderFailed"), "error");
+			if (!a?.ok) {
+				F(a?.error || I("toast.createFolderFailed"), "error");
 				return;
 			}
-			Wa(t), m(L("toast.folderCreated", { name: n }), "success");
+			Wa(n), F(I("toast.folderCreated", { name: r }), "success");
 		} catch (e) {
-			m(L("toast.createFolderFailedDetail", { error: e?.message || String(e || "") }), "error");
+			F(I("toast.createFolderFailedDetail", { error: e?.message || String(e || "") }), "error");
 		}
-	}), $(L("ctx.renameFolder"), "pi pi-pencil", null, async () => {
+	}), $(I("ctx.renameFolder"), "pi pi-pencil", null, async () => {
 		try {
-			let n = String(e?.filename || "").trim(), i = await Et(L("dialog.renameFolder"), n), a = String(i || "").trim();
-			if (!a || a === n) return;
-			let o = await De({
+			let r = String(e?.filename || "").trim(), a = await Dt(I("dialog.renameFolder"), r), o = String(a || "").trim();
+			if (!o || o === r) return;
+			let s = await t({
 				op: "rename",
-				path: r,
-				name: a
+				path: i,
+				name: o
 			});
-			if (!o?.ok) {
-				m(o?.error || L("toast.renameFolderFailed"), "error");
+			if (!s?.ok) {
+				F(s?.error || I("toast.renameFolderFailed"), "error");
 				return;
 			}
-			Wa(t), m(L("toast.folderRenamed"), "success");
+			Wa(n), F(I("toast.folderRenamed"), "success");
 		} catch (e) {
-			m(L("toast.renameFolderFailedDetail", { error: e?.message || String(e || "") }), "error");
+			F(I("toast.renameFolderFailedDetail", { error: e?.message || String(e || "") }), "error");
 		}
-	}), $(L("ctx.moveFolder"), "pi pi-arrow-right", null, async () => {
+	}), $(I("ctx.moveFolder"), "pi pi-arrow-right", null, async () => {
 		try {
-			let e = await Et(L("dialog.destinationDirectoryPath"), ""), n = String(e || "").trim();
-			if (!n) return;
-			let i = await De({
+			let e = await Dt(I("dialog.destinationDirectoryPath"), ""), r = String(e || "").trim();
+			if (!r) return;
+			let a = await t({
 				op: "move",
-				path: r,
-				destination: n
+				path: i,
+				destination: r
 			});
-			if (!i?.ok) {
-				m(i?.error || L("toast.moveFolderFailed"), "error");
+			if (!a?.ok) {
+				F(a?.error || I("toast.moveFolderFailed"), "error");
 				return;
 			}
-			Wa(t), m(L("toast.folderMoved"), "success");
+			Wa(n), F(I("toast.folderMoved"), "success");
 		} catch (e) {
-			m(L("toast.moveFolderFailedDetail", { error: e?.message || String(e || "") }), "error");
+			F(I("toast.moveFolderFailedDetail", { error: e?.message || String(e || "") }), "error");
 		}
-	}), $(L("ctx.deleteFolder"), "pi pi-trash", null, async () => {
+	}), $(I("ctx.deleteFolder"), "pi pi-trash", null, async () => {
 		try {
-			let n = String(e?.filename || L("label.thisFolder", "this folder"));
-			if (!await Nt(L("dialog.deleteFolderRecursive", { name: n }))) return;
-			let i = await De({
+			let r = String(e?.filename || I("label.thisFolder", "this folder"));
+			if (!await Pt(I("dialog.deleteFolderRecursive", { name: r }))) return;
+			let a = await t({
 				op: "delete",
-				path: r,
+				path: i,
 				recursive: !0
 			});
-			if (!i?.ok) {
-				m(i?.error || L("toast.deleteFolderFailed"), "error");
+			if (!a?.ok) {
+				F(a?.error || I("toast.deleteFolderFailed"), "error");
 				return;
 			}
-			Wa(t), m(L("toast.folderDeleted"), "success");
+			Wa(n), F(I("toast.folderDeleted"), "success");
 		} catch (e) {
-			m(L("toast.deleteFolderFailedDetail", { error: e?.message || String(e || "") }), "error");
+			F(I("toast.deleteFolderFailedDetail", { error: e?.message || String(e || "") }), "error");
 		}
-	})), i;
+	})), a;
 }
 function _o({ asset: e, card: t, gridContainer: n, panelState: r, pointerX: i, pointerY: a, selection: o } = {}) {
-	let { selectedIds: s, selectedAssetsNow: c, effectiveSelectionCount: l, isMultiSelected: u, hasSelection: d } = o, f = [], p = Ya(r), h = ({ assets: e = [], index: t = 0, mode: n = "" } = {}) => Ta().then((r) => r.requestViewerOpen({
+	let { selectedIds: s, selectedAssetsNow: c, effectiveSelectionCount: l, isMultiSelected: u, hasSelection: d } = o, f = [], p = Ya(r), m = ({ assets: e = [], index: t = 0, mode: n = "" } = {}) => Ta().then((r) => r.requestViewerOpen({
 		assets: e,
 		index: t,
 		mode: n
 	})).catch((e) => console.debug?.(e));
 	if (Za(e)) {
-		if (f.push($(L("ctx.loadWorkflow", "Load workflow"), "pi pi-sitemap", null, () => to(e)), $(L("ctx.duplicateWorkflow", "Duplicate workflow"), "pi pi-copy", null, () => ro(e)), $(L("ctx.renameWorkflow", "Rename workflow"), "pi pi-pencil", null, () => io(e)), $(L("ctx.categorizeWorkflow", "Set workflow category"), "pi pi-folder", null, () => ao(e)), $(L("ctx.setWorkflowThumbnail", "Set workflow thumbnail"), "pi pi-image", null, () => oo(e)), $(L("ctx.editWorkflowInfo", "Edit infos"), "pi pi-info-circle", null, () => ba(e)), $(L("ctx.exportWorkflow", "Export workflow"), "pi pi-download", null, () => so(e)), $(L("ctx.showInExplorer", "Show in Explorer"), "pi pi-folder-open", null, () => co(e)), $(L("ctx.deleteWorkflow", "Delete workflow"), "pi pi-trash", null, () => uo(e)), Oa()), p) return f.push($("Open Graph Map", "pi pi-sitemap", null, async () => {
+		if (f.push($(I("ctx.loadWorkflow", "Load workflow"), "pi pi-sitemap", null, () => to(e)), $(I("ctx.duplicateWorkflow", "Duplicate workflow"), "pi pi-copy", null, () => ro(e)), $(I("ctx.renameWorkflow", "Rename workflow"), "pi pi-pencil", null, () => io(e)), $(I("ctx.categorizeWorkflow", "Set workflow category"), "pi pi-folder", null, () => ao(e)), $(I("ctx.setWorkflowThumbnail", "Set workflow thumbnail"), "pi pi-image", null, () => oo(e)), $(I("ctx.editWorkflowInfo", "Edit infos"), "pi pi-info-circle", null, () => ba(e)), $(I("ctx.exportWorkflow", "Export workflow"), "pi pi-download", null, () => so(e)), $(I("ctx.showInExplorer", "Show in Explorer"), "pi pi-folder-open", null, () => co(e)), $(I("ctx.deleteWorkflow", "Delete workflow"), "pi pi-trash", null, () => uo(e)), Oa()), p) return f.push($("Open Graph Map", "pi pi-sitemap", null, async () => {
 			try {
 				let t = await ja(e), { floatingViewerManager: n } = await Ea();
 				await n.openAssets({
@@ -2747,7 +2748,7 @@ function _o({ asset: e, card: t, gridContainer: n, panelState: r, pointerX: i, p
 		try {
 			let t = (d ? Aa(n) : []).filter((e) => !Xa(e)), r = t.length;
 			if (r >= 2 && r <= 4) {
-				h({
+				m({
 					assets: t,
 					index: 0
 				});
@@ -2755,7 +2756,7 @@ function _o({ asset: e, card: t, gridContainer: n, panelState: r, pointerX: i, p
 			}
 			let i = Ba(n).filter((e) => !Xa(e)), a = Va(i, e?.id);
 			if (!i.length || a < 0) return;
-			h({
+			m({
 				assets: i,
 				index: Math.max(0, a)
 			});
@@ -2781,7 +2782,7 @@ function _o({ asset: e, card: t, gridContainer: n, panelState: r, pointerX: i, p
 		}
 	}), $("Load Asset", "pi pi-upload", "L / L+Drop", async () => {
 		let t = (d ? Aa(n) : []).filter((e) => !Xa(e));
-		await La(t.length ? t : [e]) || m("Failed to create a loader node for this asset.", "error");
+		await La(t.length ? t : [e]) || F("Failed to create a loader node for this asset.", "error");
 	}), $("Open Graph Map", "pi pi-sitemap", null, async () => {
 		try {
 			let t = await ja(e), { floatingViewerManager: n } = await Ea();
@@ -2793,7 +2794,7 @@ function _o({ asset: e, card: t, gridContainer: n, panelState: r, pointerX: i, p
 		} catch (e) {
 			console.debug?.(e);
 		}
-	}), $(L("ctx.showMetadataPanel", "Show metadata panel"), "pi pi-info-circle", fa("METADATA_PANEL"), () => {
+	}), $(I("ctx.showMetadataPanel", "Show metadata panel"), "pi pi-info-circle", fa("METADATA_PANEL"), () => {
 		try {
 			za(n, t, e, r);
 			let i = n?._mjrOpenDetails;
@@ -2801,58 +2802,58 @@ function _o({ asset: e, card: t, gridContainer: n, panelState: r, pointerX: i, p
 		} catch (e) {
 			console.debug?.(e);
 		}
-	})), Qa(e) && f.push($(L("ctx.assignAsWorkflowThumbnail", "Use as workflow thumbnail"), "pi pi-image", null, () => lo(e)));
-	let g = (d ? c : []).filter((e) => !Xa(e)), _ = g.length;
-	_ === 2 && f.push($("Compare A/B (2 selected)", "pi pi-clone", fa("COMPARE_AB"), () => {
+	})), Qa(e) && f.push($(I("ctx.assignAsWorkflowThumbnail", "Use as workflow thumbnail"), "pi pi-image", null, () => lo(e)));
+	let h = (d ? c : []).filter((e) => !Xa(e)), g = h.length;
+	g === 2 && f.push($("Compare A/B (2 selected)", "pi pi-clone", fa("COMPARE_AB"), () => {
 		try {
-			h({
-				assets: g,
+			m({
+				assets: h,
 				index: 0,
 				mode: "ab"
 			});
 		} catch (e) {
 			console.debug?.(e);
 		}
-	})), _ >= 2 && _ <= 4 && f.push($(`Side-by-side (2x2) (${_} selected)`, "pi pi-table", fa("SIDE_BY_SIDE"), () => {
+	})), g >= 2 && g <= 4 && f.push($(`Side-by-side (2x2) (${g} selected)`, "pi pi-table", fa("SIDE_BY_SIDE"), () => {
 		try {
-			h({
-				assets: g,
+			m({
+				assets: h,
 				index: 0,
 				mode: "sidebyside"
 			});
 		} catch (e) {
 			console.debug?.(e);
 		}
-	})), f.push($(L("ctx.openInFolder", "Open in folder"), "pi pi-folder-open", fa("OPEN_IN_FOLDER"), async () => {
-		let t = await _e(e);
-		t?.ok ? m(L("toast.openedInFolder"), "info", 2e3) : m(t?.error || L("toast.openFolderFailed"), "error");
-	}, { disabled: !(e?.id || Ma(e)) }), $(L("ctx.collectFiles", "Collect files"), "pi pi-box", null, async () => {
-		m(L("toast.collectingFiles", "Collecting files..."), "info", 2500);
-		let t = await w(e);
+	})), f.push($(I("ctx.openInFolder", "Open in folder"), "pi pi-folder-open", fa("OPEN_IN_FOLDER"), async () => {
+		let t = await Je(e);
+		t?.ok ? F(I("toast.openedInFolder"), "info", 2e3) : F(t?.error || I("toast.openFolderFailed"), "error");
+	}, { disabled: !(e?.id || Ma(e)) }), $(I("ctx.collectFiles", "Collect files"), "pi pi-box", null, async () => {
+		F(I("toast.collectingFiles", "Collecting files..."), "info", 2500);
+		let t = await Oe(e);
 		if (!t?.ok) {
-			m(t?.error || L("toast.collectFilesFailed", "Collect files failed"), "error");
+			F(t?.error || I("toast.collectFilesFailed", "Collect files failed"), "error");
 			return;
 		}
-		let n = t?.data || {}, r = Array.isArray(n.missing) ? n.missing.length : 0, i = n.fallback_used ? L("toast.collectFallbackDir", "output folder (source folder not writable)") : L("toast.collectSameDir", "asset folder"), a = L("toast.collectedFiles", "Collected {name} in {where}", {
+		let n = t?.data || {}, r = Array.isArray(n.missing) ? n.missing.length : 0, i = n.fallback_used ? I("toast.collectFallbackDir", "output folder (source folder not writable)") : I("toast.collectSameDir", "asset folder"), a = I("toast.collectedFiles", "Collected {name} in {where}", {
 			name: String(n.zip_name || "zip"),
 			where: i
 		});
-		r > 0 && (a += ` — ${r} ${L("toast.collectMissingInputs", "input(s) missing")}`), m(a, r > 0 ? "warning" : "success", 6e3);
-	}, { disabled: !Ma(e) }), $(L("ctx.copyPath", "Copy path"), "pi pi-copy", fa("COPY_PATH"), async () => {
+		r > 0 && (a += ` — ${r} ${I("toast.collectMissingInputs", "input(s) missing")}`), F(a, r > 0 ? "warning" : "success", 6e3);
+	}, { disabled: !Ma(e) }), $(I("ctx.copyPath", "Copy path"), "pi pi-copy", fa("COPY_PATH"), async () => {
 		let t = e?.filepath ? String(e.filepath) : "";
-		if (!t) m(L("toast.noFilePath"), "error");
+		if (!t) F(I("toast.noFilePath"), "error");
 		else try {
-			await navigator.clipboard.writeText(t), m(L("toast.pathCopied"), "success", 2e3);
+			await navigator.clipboard.writeText(t), F(I("toast.pathCopied"), "success", 2e3);
 		} catch (e) {
-			console.warn(L("log.clipboardCopyFailed", "Clipboard copy failed"), e), m(L("toast.pathCopyFailed"), "error");
+			console.warn(I("log.clipboardCopyFailed", "Clipboard copy failed"), e), F(I("toast.pathCopyFailed"), "error");
 		}
-	}), $(L("ctx.download", "Download"), "pi pi-download", fa("DOWNLOAD"), () => {
+	}), $(I("ctx.download", "Download"), "pi pi-download", fa("DOWNLOAD"), () => {
 		if (!e?.filepath) return;
-		let t = Je(e.filepath), n = e.filename || "download";
-		Fa(t, n), m(L("toast.downloadingFile", "Downloading {filename}...", { filename: n }), "info", 3e3);
-	}, { disabled: !e?.filepath }), $(`Download selected as ZIP (${_})`, "pi pi-file-zip", null, async () => {
-		await Ia(g);
-	}, { disabled: _ < 2 }), $("Add to collection...", "pi pi-bookmark", fa("ADD_TO_COLLECTION"), async () => {
+		let t = xe(e.filepath), n = e.filename || "download";
+		Fa(t, n), F(I("toast.downloadingFile", "Downloading {filename}...", { filename: n }), "info", 3e3);
+	}, { disabled: !e?.filepath }), $(`Download selected as ZIP (${g})`, "pi pi-file-zip", null, async () => {
+		await Ia(h);
+	}, { disabled: g < 2 }), $("Add to collection...", "pi pi-bookmark", fa("ADD_TO_COLLECTION"), async () => {
 		let t = Aa(n);
 		await Xi({
 			x: i,
@@ -2860,47 +2861,47 @@ function _o({ asset: e, card: t, gridContainer: n, panelState: r, pointerX: i, p
 			assets: t.length ? t : [e]
 		});
 	}));
-	let v = String(r?.collectionId || "").trim();
-	if (v) {
+	let _ = String(r?.collectionId || "").trim();
+	if (_) {
 		let t = Aa(n), r = (t.length ? t : [e]).map(Ma).filter(Boolean), i = r.length > 1 ? `Remove from collection (${r.length})` : "Remove from collection";
 		f.push($(i, "pi pi-bookmark", null, async () => {
 			if (!r.length) {
-				m(L("toast.noFilePath"), "error");
+				F(I("toast.noFilePath"), "error");
 				return;
 			}
-			let e = await Me(v, r);
-			e?.ok ? Wa(n) : m(e?.error || L("toast.removeFromCollectionFailed"), "error");
+			let e = await ve(_, r);
+			e?.ok ? Wa(n) : F(e?.error || I("toast.removeFromCollectionFailed"), "error");
 		}));
 	}
-	let y = !!(e?.id || Ma(e)), b = e?.id == null ? "" : String(e.id), x = u && s.size >= 2 && b && s.has(b) ? Array.from(s) : null, S = x ? L("ctx.setRatingN", "Set rating ({n} selected)", { n: x.length }) : L("ctx.setRating", "Set rating");
-	return f.push(Oa(), $(L("ctx.editTags", "Edit tags"), "pi pi-tags", fa("EDIT_TAGS"), () => {
+	let v = !!(e?.id || Ma(e)), y = e?.id == null ? "" : String(e.id), b = u && s.size >= 2 && y && s.has(y) ? Array.from(s, String) : null, S = b ? I("ctx.setRatingN", "Set rating ({n} selected)", { n: b.length }) : I("ctx.setRating", "Set rating");
+	return f.push(Oa(), $(I("ctx.editTags", "Edit tags"), "pi pi-tags", fa("EDIT_TAGS"), () => {
 		vo(i + 6, a + 6, e, () => {
 			Ua(e, { tags: Array.isArray(e?.tags) ? [...e.tags] : [] });
 		});
 	}, { closeOnSelect: !1 }), Oa(), $(S, "pi pi-star", "1-5 >", null, {
-		disabled: !y,
+		disabled: !v,
 		closeOnSelect: !1,
-		submenu: po(e, y, x)
-	}), Oa(), $(L("ctx.resetIndexFile", "Reset index (this file)"), "pi pi-refresh", null, async () => {
+		submenu: po(e, v, b)
+	}), Oa(), $(I("ctx.resetIndexFile", "Reset index (this file)"), "pi pi-refresh", null, async () => {
 		if (e?.filename || e?.id) {
-			m(L("toast.rescanningFile", "Rescanning file..."), "info", 1600);
+			F(I("toast.rescanningFile", "Rescanning file..."), "info", 1600);
 			try {
 				let t = await Ga(e, n);
-				t?.ok ? m(L("toast.metadataRefreshed", "Metadata refreshed{suffix}", { suffix: "" }), "success", 1800) : m(t?.error || L("toast.resetFailed", "Failed to reset index"), "error");
+				t?.ok ? F(I("toast.metadataRefreshed", "Metadata refreshed{suffix}", { suffix: "" }), "success", 1800) : F(t?.error || I("toast.resetFailed", "Failed to reset index"), "error");
 			} catch (e) {
-				m(`${L("toast.resetFailed", "Failed to reset index")}: ${e?.message || String(e || "")}`, "error");
+				F(`${I("toast.resetFailed", "Failed to reset index")}: ${e?.message || String(e || "")}`, "error");
 			}
 		}
 	}, { disabled: !(e?.filename || e?.id) }), $("Rename...", "pi pi-pencil", fa("RENAME"), async () => {
 		if (!(e?.id || Ma(e))) return;
-		let t = e.filename || "", r = Vi(await Et(L("dialog.rename.title", "Rename file"), t), t);
+		let t = e.filename || "", r = Vi(await Dt(I("dialog.rename.title", "Rename file"), t), t);
 		if (!r || r === t) return;
 		let i = Ri(r);
-		if (!i.valid) m(i.reason, "error");
+		if (!i.valid) F(i.reason, "error");
 		else try {
-			let t = await Ze(e, r);
+			let t = await Ne(e, r);
 			if (!t?.ok) {
-				m(t?.error || L("toast.fileRenameFailed"), "error");
+				F(t?.error || I("toast.fileRenameFailed"), "error");
 				return;
 			}
 			let i = t?.data?.asset;
@@ -2911,14 +2912,14 @@ function _o({ asset: e, card: t, gridContainer: n, panelState: r, pointerX: i, p
 				file_info: e.file_info
 			}));
 			let a = Ha(e.id)?.querySelector?.(".mjr-filename");
-			a && (a.textContent = e.filename || r), m(L("toast.fileRenamedSuccess"), "success"), Wa(n);
+			a && (a.textContent = e.filename || r), F(I("toast.fileRenamedSuccess"), "success"), Wa(n);
 		} catch (e) {
-			m(L("toast.errorRenaming", "Error renaming file: {error}", { error: e?.message || String(e || "") }), "error");
+			F(I("toast.errorRenaming", "Error renaming file: {error}", { error: e?.message || String(e || "") }), "error");
 		}
 	}, { disabled: !(e?.id || Ma(e)) })), u ? f.push($(`Delete ${l} files...`, "pi pi-trash", fa("DELETE"), async () => {
 		if (await Hi(Number(l) || 0)) try {
 			let { deletedIds: t, failedCount: i, deletedByFilepath: a } = await Wi(c.length ? c : [e], { onProgress: ({ done: e, total: t }) => {
-				e < t && m(L("toast.filesDeletingProgress", "Deleting files... ({done}/{total})", {
+				e < t && F(I("toast.filesDeletingProgress", "Deleting files... ({done}/{total})", {
 					done: e,
 					total: t
 				}), "info", 1600);
@@ -2927,32 +2928,32 @@ function _o({ asset: e, card: t, gridContainer: n, panelState: r, pointerX: i, p
 				let e = hi(n, t);
 				r && Array.isArray(e?.selectedIds) && (r.selectedAssetIds = e.selectedIds, r.activeAssetId = e.selectedIds[0] || "");
 			}
-			a > 0 && Wa(n), s === 0 ? m(L("toast.filesDeletedSuccessN", "{n} files deleted successfully!", { n: o }), "success") : m(L("toast.filesDeletedPartial", "{success} files deleted, {failed} failed.", {
+			a > 0 && Wa(n), s === 0 ? F(I("toast.filesDeletedSuccessN", "{n} files deleted successfully!", { n: o }), "success") : F(I("toast.filesDeletedPartial", "{success} files deleted, {failed} failed.", {
 				success: o,
 				failed: s
 			}), "warning");
 		} catch (e) {
-			m(L("toast.errorDeleting", "Error deleting file: {error}", { error: e?.message || String(e || "") }), "error");
+			F(I("toast.errorDeleting", "Error deleting file: {error}", { error: e?.message || String(e || "") }), "error");
 		}
-	})) : f.push($(L("ctx.delete", "Delete"), "pi pi-trash", fa("DELETE"), async () => {
+	})) : f.push($(I("ctx.delete", "Delete"), "pi pi-trash", fa("DELETE"), async () => {
 		if (await Hi(1, e?.filename)) try {
-			let t = await k(e);
+			let t = await x(e);
 			if (!t?.ok) {
-				m(t?.error || L("toast.fileDeleteFailed"), "error");
+				F(t?.error || I("toast.fileDeleteFailed"), "error");
 				return;
 			}
 			if (e?.id) {
 				let t = hi(n, [String(e.id)]);
 				r && Array.isArray(t?.selectedIds) && (r.selectedAssetIds = t.selectedIds, r.activeAssetId = t.selectedIds[0] || "");
 			} else Wa(n);
-			m(L("toast.fileDeletedSuccess"), "success");
+			F(I("toast.fileDeletedSuccess"), "success");
 		} catch (e) {
-			m(L("toast.errorDeleting", "Error deleting file: {error}", { error: e?.message || String(e || "") }), "error");
+			F(I("toast.errorDeleting", "Error deleting file: {error}", { error: e?.message || String(e || "") }), "error");
 		}
 	}, { disabled: !(e?.id || Ma(e)) })), f;
 }
 function vo(e, t, n, r) {
-	n && qn({
+	n && Jn({
 		x: e,
 		y: t,
 		asset: n,
@@ -2969,12 +2970,12 @@ function yo({ gridContainer: e, getState: t = () => ({}) } = {}) {
 			} catch {
 				return {};
 			}
-		})(), i = Yt(n.target, ".mjr-asset-card");
+		})(), i = Xt(n.target, ".mjr-asset-card");
 		if (!i) {
 			if (!qa(r)) return;
 			let t = String(e?.dataset?.mjrScope || "").toLowerCase(), i = String(e?.dataset?.mjrSubfolder || "").trim(), a = (t === "input" || t === "output") && Ja();
 			if (!i && !a) return;
-			n.preventDefault(), n.stopPropagation(), ln({
+			n.preventDefault(), n.stopPropagation(), un({
 				x: n.clientX,
 				y: n.clientY,
 				items: ho({
@@ -3000,7 +3001,7 @@ function yo({ gridContainer: e, getState: t = () => ({}) } = {}) {
 			pointerY: n.clientY,
 			selection: o
 		});
-		ln({
+		un({
 			x: n.clientX,
 			y: n.clientY,
 			items: s
@@ -3034,7 +3035,7 @@ function yo({ gridContainer: e, getState: t = () => ({}) } = {}) {
 			console.debug?.(e);
 		}
 		try {
-			dn();
+			fn();
 		} catch (e) {
 			console.debug?.(e);
 		}
@@ -3042,7 +3043,7 @@ function yo({ gridContainer: e, getState: t = () => ({}) } = {}) {
 	return e._mjrGridContextMenuUnbind = r, r;
 }
 // ui/features/panel/controllers/ratingHotkeysController.ts
-var bo = Lt;
+var bo = Rt;
 function xo(e) {
 	let t = String(e ?? "");
 	try {
@@ -3055,7 +3056,7 @@ function xo(e) {
 function So(e, t = null) {
 	if (!e) return [];
 	try {
-		let t = Array.from(xt(e));
+		let t = Array.from(St(e));
 		if (t.length) return t;
 	} catch (e) {
 		console.debug?.(e);
@@ -3107,14 +3108,14 @@ function Eo({ gridContainer: e, createRatingBadge: t } = {}) {
 	let n = !1, r = null, i = null, a = async (e, t) => {
 		if (e != null) {
 			try {
-				let n = await N(e, t);
+				let n = await et(e, t);
 				if (!n?.ok) {
-					m(n?.error || L("toast.ratingUpdateFailed"), "error");
+					F(n?.error || I("toast.ratingUpdateFailed"), "error");
 					return;
 				}
-				m(L("toast.ratingSetN", { n: t }), "success", 1500);
+				F(I("toast.ratingSetN", { n: t }), "success", 1500);
 			} catch {
-				m(L("toast.ratingUpdateError"), "error");
+				F(I("toast.ratingUpdateError"), "error");
 				return;
 			}
 			try {
@@ -3130,8 +3131,8 @@ function Eo({ gridContainer: e, createRatingBadge: t } = {}) {
 	return {
 		bind: () => {
 			if (!n && e) {
-				n = !0, gt(!0), r = async (t) => {
-					if (bt() || vt().scope === "viewer" || t.defaultPrevented) return;
+				n = !0, _t(!0), r = async (t) => {
+					if (xt() || yt().scope === "viewer" || t.defaultPrevented) return;
 					let n = (e) => !!(e?.isContentEditable || e?.closest?.("input, textarea, select, [contenteditable]:not([contenteditable='false'])"));
 					if (t.isComposing || n(t.target) || n(document.activeElement)) return;
 					let r = String(t.key || "");
@@ -3162,7 +3163,7 @@ function Eo({ gridContainer: e, createRatingBadge: t } = {}) {
 		},
 		dispose: () => {
 			if (n) {
-				n = !1, gt(!1);
+				n = !1, _t(!1);
 				try {
 					window.removeEventListener("keydown", r, { capture: !0 });
 				} catch (e) {
@@ -3239,7 +3240,7 @@ function No(e, t, n) {
 			let e = a?._mjrGridContainer, t = a?._mjrAsset;
 			if (!e || !t) return;
 			let n = Array.isArray(t._mjrDupMembers) ? t._mjrDupMembers : [t], r = n.length;
-			e.dispatchEvent(new CustomEvent(B.OPEN_STACK_GROUP, {
+			e.dispatchEvent(new CustomEvent(z.OPEN_STACK_GROUP, {
 				bubbles: !0,
 				detail: {
 					asset: t,
@@ -3272,7 +3273,7 @@ var Po = () => {
 	Po() && console.debug("[Majoor.DnD]", ...e);
 }, Io = (e, { buildCustomViewURL: t, buildViewURL: n }) => {
 	let r = String(e?.type || "output").toLowerCase();
-	return r === "custom" ? t(e?.filename || "", e?.subfolder || "", Se(e)) : r === "input" ? n(e?.filename || "", e?.subfolder || "", "input") : r === "temp" ? n(e?.filename || "", e?.subfolder || "", "temp") : n(e?.filename || "", e?.subfolder || "", "output");
+	return r === "custom" ? t(e?.filename || "", e?.subfolder || "", ye(e)) : r === "input" ? n(e?.filename || "", e?.subfolder || "", "input") : r === "temp" ? n(e?.filename || "", e?.subfolder || "", "temp") : n(e?.filename || "", e?.subfolder || "", "output");
 }, Lo = (e) => {
 	if (!e || typeof e != "object") return null;
 	let t = String(e.filename || "").trim();
@@ -3320,7 +3321,7 @@ var Jo = (e) => {
 	} catch {
 		return String(e || "");
 	}
-}, Yo = () => je("mjr_", 24), Xo = (e) => {
+}, Yo = () => _e("mjr_", 24), Xo = (e) => {
 	let t = e && typeof e == "object" ? e : null;
 	if (!t) return null;
 	let n = t.filename || t.name;
@@ -3328,7 +3329,7 @@ var Jo = (e) => {
 		filename: n,
 		subfolder: t.subfolder || "",
 		type: String(t.type || "output").toLowerCase(),
-		root_id: Se(t) || void 0
+		root_id: ye(t) || void 0
 	} : null;
 }, Zo = (e, t) => {
 	let n = [];
@@ -3398,7 +3399,7 @@ var Jo = (e) => {
 			}
 			if (n) {
 				try {
-					pe(I.BATCH_ZIP_CREATE, {
+					rt(m.BATCH_ZIP_CREATE, {
 						token: n,
 						items: t,
 						strip_metadata: !!a
@@ -3406,7 +3407,7 @@ var Jo = (e) => {
 				} catch (e) {
 					console.debug?.(e);
 				}
-				let r = Jo(se(n)), i = a ? `Majoor_Clean_Batch_${t.length}.zip` : `Majoor_Batch_${t.length}.zip`;
+				let r = Jo(ie(n)), i = a ? `Majoor_Clean_Batch_${t.length}.zip` : `Majoor_Batch_${t.length}.zip`;
 				try {
 					e.setData("text/uri-list", r), e.setData("DownloadURL", `application/zip:${i}:${r}`), e.effectAllowed = "copyMove";
 				} catch (e) {
@@ -3418,7 +3419,7 @@ var Jo = (e) => {
 	}
 	let s = t.filename || t.name;
 	if (!s) return;
-	let c = a ? Qo(t) : "", l = Jo((c ? ee(c) : "") || i), u = en(s);
+	let c = a ? Qo(t) : "", l = Jo((c ? ce(c) : "") || i), u = tn(s);
 	try {
 		e.setData("text/uri-list", l), e.setData("DownloadURL", `${u}:${s}:${l}`), e.effectAllowed = "copyMove";
 	} catch (e) {
@@ -3433,11 +3434,11 @@ var Jo = (e) => {
 		console.debug?.(e);
 	}
 }, ts = () => {
-	let e = ne();
+	let e = nt();
 	return e && typeof e == "object" ? e : null;
 }, ns = (e) => Io(e, {
-	buildCustomViewURL: t,
-	buildViewURL: Le
+	buildCustomViewURL: k,
+	buildViewURL: pe
 }), rs = !1, is = !1, as = (e) => {
 	try {
 		return !!e?.closest?.("input, textarea, select, [contenteditable='true']");
@@ -3448,10 +3449,10 @@ var Jo = (e) => {
 	String(e?.type || "output"),
 	String(e?.filename || ""),
 	String(e?.subfolder || ""),
-	String(Se(e) || "")
+	String(ye(e) || "")
 ].join("\n"), ls = (e, t) => {
 	if (String(e?.type || e?.file_info?.type || "").toLowerCase() === "custom") return null;
-	let n = ge(String(e?.filepath || e?.path || e?.fullpath || e?.full_path || e?.file_info?.filepath || e?.file_info?.path || "")).trim();
+	let n = qe(String(e?.filepath || e?.path || e?.fullpath || e?.full_path || e?.file_info?.filepath || e?.file_info?.path || "")).trim();
 	if (!n || !t) return null;
 	let r = n.toLowerCase(), i = t.toLowerCase();
 	for (let e of [
@@ -3488,7 +3489,7 @@ var Jo = (e) => {
 		filename: t,
 		subfolder: n?.subfolder ?? e.subfolder ?? "",
 		type: n?.type ?? String(e.type || "output").toLowerCase(),
-		root_id: Se(e) || void 0,
+		root_id: ye(e) || void 0,
 		kind: String(e.kind || "").toLowerCase(),
 		filepath: String(e.filepath || e.path || e?.file_info?.filepath || "").trim() || void 0
 	};
@@ -3525,14 +3526,14 @@ var Jo = (e) => {
 		},
 		tags: Array.isArray(t.tags) ? t.tags : []
 	};
-	ds(e, Mn, JSON.stringify(a)), r && ds(e, "text/uri-list", r);
+	ds(e, Nn, JSON.stringify(a)), r && ds(e, "text/uri-list", r);
 }, ps = (e) => {
 	let t = e && typeof e == "object" ? e : null;
 	if (!t) return [];
 	try {
 		let e = window?.__MJR_LAST_SELECTION_GRID__, n = typeof e?._mjrGetSelectedAssets == "function" ? e._mjrGetSelectedAssets() : [];
 		if (Array.isArray(n) && n.length > 1) {
-			let e = n.map(us).filter(fn), r = cs(t);
+			let e = n.map(us).filter(pn), r = cs(t);
 			if (e.some((e) => cs(e) === r)) return e;
 		}
 	} catch (e) {
@@ -3543,7 +3544,7 @@ var Jo = (e) => {
 	try {
 		let n = typeof e?._mjrGetSelectedAssets == "function" ? e._mjrGetSelectedAssets() : [];
 		if (!Array.isArray(n) || n.length <= 1) return [];
-		let r = n.map(us).filter(fn), i = cs(t);
+		let r = n.map(us).filter(pn), i = cs(t);
 		return r.some((e) => cs(e) === i) ? r : [];
 	} catch (e) {
 		return console.debug?.(e), [];
@@ -3552,7 +3553,7 @@ var Jo = (e) => {
 	try {
 		let t = e?.dataTransfer?.getData?.("application/x-mjr-assets") || "";
 		if (t) {
-			let e = JSON.parse(t), n = (Array.isArray(e?.items) ? e.items : Array.isArray(e) ? e : []).map(Ro).filter(fn);
+			let e = JSON.parse(t), n = (Array.isArray(e?.items) ? e.items : Array.isArray(e) ? e : []).map(Ro).filter(pn);
 			if (n.length) return n;
 		}
 	} catch (e) {
@@ -3562,9 +3563,9 @@ var Jo = (e) => {
 }, gs = async (e) => {
 	let t = Array.isArray(e) ? e.filter(Boolean) : [];
 	return t.length ? (await Promise.all(t.map(async (e) => {
-		let t = (await On({
-			post: pe,
-			endpoint: I.STAGE_TO_INPUT,
+		let t = (await kn({
+			post: rt,
+			endpoint: m.STAGE_TO_INPUT,
 			payload: e,
 			index: !1
 		}))?.relativePath;
@@ -3606,7 +3607,7 @@ var Jo = (e) => {
 	for (let [t, n] of _s.entries()) e - (n?.at || 0) > vs && _s.delete(t);
 	_s.size > ys && Array.from(_s.entries()).sort((e, t) => (e[1]?.at || 0) - (t[1]?.at || 0)).slice(0, _s.size - ys).forEach(([e]) => _s.delete(e));
 }, Ns = async (e, t = null) => {
-	let n = e && typeof e == "object" ? e : null, r = Se(n), i = ts(), a = n?.filename ? `${n.type || "output"}:${n.filename}:${n.subfolder || ""}:${r}` : t ? `path:${t}` : null;
+	let n = e && typeof e == "object" ? e : null, r = ye(n), i = ts(), a = n?.filename ? `${n.type || "output"}:${n.filename}:${n.subfolder || ""}:${r}` : t ? `path:${t}` : null;
 	if (a) {
 		let e = _s.get(a);
 		if (e && Date.now() - (e.at || 0) < vs) {
@@ -3631,14 +3632,14 @@ var Jo = (e) => {
 	try {
 		let e = null, o = null;
 		if (String(n?.kind || "").toLowerCase() === "workflow" && n?.filepath) {
-			let e = await ze(String(n.filepath), { timeoutMs: 3e4 });
+			let e = await Se(String(n.filepath), { timeoutMs: 3e4 });
 			o = e?.ok && (e?.data?.workflow || e?.workflow) || null;
 		} else if (n?.filename) {
-			let t = `${I.WORKFLOW_QUICK}?type=${encodeURIComponent(n.type || "output")}&filename=${encodeURIComponent(n.filename)}&subfolder=${encodeURIComponent(n.subfolder || "")}` + (r ? `&root_id=${encodeURIComponent(r)}` : ""), i = await Ie(t);
-			i?.ok && i.workflow && (o = i.workflow), o || (e = `${I.METADATA}?workflow_only=1&type=${encodeURIComponent(n.type || "output")}&filename=${encodeURIComponent(n.filename)}&subfolder=${encodeURIComponent(n.subfolder || "")}&root_id=${encodeURIComponent(r)}`);
-		} else t && (e = `${I.METADATA}?workflow_only=1&path=${encodeURIComponent(String(t))}`);
+			let t = `${m.WORKFLOW_QUICK}?type=${encodeURIComponent(n.type || "output")}&filename=${encodeURIComponent(n.filename)}&subfolder=${encodeURIComponent(n.subfolder || "")}` + (r ? `&root_id=${encodeURIComponent(r)}` : ""), i = await fe(t);
+			i?.ok && i.workflow && (o = i.workflow), o || (e = `${m.METADATA}?workflow_only=1&type=${encodeURIComponent(n.type || "output")}&filename=${encodeURIComponent(n.filename)}&subfolder=${encodeURIComponent(n.subfolder || "")}&root_id=${encodeURIComponent(r)}`);
+		} else t && (e = `${m.METADATA}?workflow_only=1&path=${encodeURIComponent(String(t))}`);
 		if (!o && e) {
-			let t = await Ie(e);
+			let t = await fe(e);
 			if (!t?.ok || !t.data) return !1;
 			o = t.data?.workflow;
 		}
@@ -3674,15 +3675,15 @@ function Ps(e) {
 			filename: i.filename,
 			subfolder: o?.subfolder ?? i.subfolder ?? "",
 			type: s,
-			root_id: Se(i) || void 0,
+			root_id: ye(i) || void 0,
 			kind: a,
 			filepath: String(i.filepath || i.path || i?.file_info?.filepath || "").trim() || void 0
 		};
 		try {
 			let t = os();
-			ds(n, Zt, JSON.stringify(c));
+			ds(n, Qt, JSON.stringify(c));
 			let o = ms(e, c);
-			o.length > 1 && ds(n, jn, JSON.stringify({ items: o })), ds(n, "text/plain", String(i.filename || ""));
+			o.length > 1 && ds(n, Mn, JSON.stringify({ items: o })), ds(n, "text/plain", String(i.filename || ""));
 			let s = a === "workflow" ? "" : ns(c);
 			fs({
 				dt: n,
@@ -3816,14 +3817,14 @@ function Rs() {
 			t && (i = t.resolvedStart === void 0 ? t.start : t.resolvedStart);
 		}
 		e._ghostSegmentId = null, e._ghostTrack = null, e._ghostInitialTimeline = null, e._previewSegments = null, e.render?.();
-		let s = String(n || "").toLowerCase(), c = r.has(s), l = await On({
-			post: pe,
-			endpoint: I.STAGE_TO_INPUT,
+		let s = String(n || "").toLowerCase(), c = r.has(s), l = await kn({
+			post: rt,
+			endpoint: m.STAGE_TO_INPUT,
 			payload: t,
 			index: !1
 		});
 		if (!l?.name) {
-			m(`Failed to stage: "${t?.filename}"`, "error");
+			F(`Failed to stage: "${t?.filename}"`, "error");
 			return;
 		}
 		let { name: u, subfolder: d = "" } = l, f = d ? `${d}/${u}` : u, p = `/view?filename=${encodeURIComponent(u)}&type=input&subfolder=${encodeURIComponent(d)}`;
@@ -3849,8 +3850,8 @@ function Rs() {
 						d = Math.max(d, e.start + e.length);
 					}
 				}
-				let h = Date.now().toString(36) + Math.random().toString(36).slice(2, 7), g = {
-					id: h,
+				let m = Date.now().toString(36) + Math.random().toString(36).slice(2, 7), h = {
+					id: m,
 					type: "audio",
 					start: d,
 					length: o,
@@ -3864,12 +3865,12 @@ function Rs() {
 					Fo("ltxdirector inject: no audioSegments", {});
 					return;
 				}
-				e.timeline.audioSegments.push(g), e.timeline.audioSegments.sort((e, t) => e.start - t.start), e.selectionType = "audio", e.selectedIndex = e.timeline.audioSegments.findIndex((e) => e.id === h), e.updateUIFromSelection?.(), e.commitChanges?.(!0), e.render?.(), m(`Added audio to LTX Director: ${u}`, "success", 3e3), Fo("drop ltxdirector inject audio", {
+				e.timeline.audioSegments.push(h), e.timeline.audioSegments.sort((e, t) => e.start - t.start), e.selectionType = "audio", e.selectedIndex = e.timeline.audioSegments.findIndex((e) => e.id === m), e.updateUIFromSelection?.(), e.commitChanges?.(!0), e.render?.(), F(`Added audio to LTX Director: ${u}`, "success", 3e3), Fo("drop ltxdirector inject audio", {
 					file: u,
 					start: d
 				});
 			} catch (e) {
-				console.error("[Majoor] LTX Director audio inject failed", e), m(`Audio decode failed for: ${u}`, "error");
+				console.error("[Majoor] LTX Director audio inject failed", e), F(`Audio decode failed for: ${u}`, "error");
 			}
 			return;
 		}
@@ -3922,7 +3923,7 @@ function Rs() {
 			}, t.src = p;
 		}
 		let x = e.timeline.segments.findIndex((e) => e.id === y), S = g ? e.timeline.segments.findIndex((e) => e.id === b.id) : x;
-		S >= 0 && (e.selectionType = "image", e.selectedIndex = S, e.updateUIFromSelection?.()), e.commitChanges?.(!0), e.render?.(), m(`Added ${g ? "video" : "image"} to LTX Director: ${u}`, "success", 3e3), Fo("drop ltxdirector inject", {
+		S >= 0 && (e.selectionType = "image", e.selectedIndex = S, e.updateUIFromSelection?.()), e.commitChanges?.(!0), e.render?.(), F(`Added ${g ? "video" : "image"} to LTX Director: ${u}`, "success", 3e3), Fo("drop ltxdirector inject", {
 			file: u,
 			start: v,
 			ext: s,
@@ -3936,16 +3937,16 @@ function Rs() {
 		onDragOver: (e) => {
 			let t = ts();
 			if (!Array.from(e?.dataTransfer?.types || []).includes("application/x-mjr-asset")) return;
-			let n = zo(e, Zt);
-			if (!fn(n)) return;
-			let r = gn(t, e.clientX, e.clientY), i = r ? Wn(t, r, e.clientX, e.clientY) : null, a = String(n?.filename || "").split(".").pop() || "", o = r && !i ? tn(r, n, a) : null, s = r && !i && !o && !!r._timelineEditor;
-			r && (i || o || s) ? (e.preventDefault(), s || (e.stopImmediatePropagation?.(), e.stopPropagation()), hn(t, r, Gn), e.dataTransfer.dropEffect = "copy", i ? Fo("dragover slot", {
+			let n = zo(e, Qt);
+			if (!pn(n)) return;
+			let r = _n(t, e.clientX, e.clientY), i = r ? Gn(t, r, e.clientX, e.clientY) : null, a = String(n?.filename || "").split(".").pop() || "", o = r && !i ? nn(r, n, a) : null, s = r && !i && !o && !!r._timelineEditor;
+			r && (i || o || s) ? (e.preventDefault(), s || (e.stopImmediatePropagation?.(), e.stopPropagation()), gn(t, r, Kn), e.dataTransfer.dropEffect = "copy", i ? Fo("dragover slot", {
 				node: r?.title,
 				slot: i.input?.name
 			}) : s ? Fo("dragover ltxdirector", { node: r?.title }) : Fo("dragover widget", {
 				node: r?.title,
 				widget: o?.name
-			})) : ($t(t, Gn), wn(t, e) && (e.preventDefault(), e.dataTransfer.dropEffect = "copy"));
+			})) : (en(t, Kn), Tn(t, e) && (e.preventDefault(), e.dataTransfer.dropEffect = "copy"));
 		},
 		onDrop: async (e) => {
 			let t = ts();
@@ -3953,20 +3954,20 @@ function Rs() {
 			try {
 				if ((e?.target)?.closest?.(".mjr-folder-card")) return;
 			} catch {}
-			let n = zo(e, Zt);
-			if (!fn(n) || !wn(t, e)) return;
+			let n = zo(e, Qt);
+			if (!pn(n) || !Tn(t, e)) return;
 			Go();
-			let r = ss(), i = r ? hs(e, n) : [n], a = gn(t, e.clientX, e.clientY), o = a ? Wn(t, a, e.clientX, e.clientY) : null, c = String(n?.filename || "").split(".").pop() || "", l = a && !o ? tn(a, n, c) : null;
+			let r = ss(), i = r ? hs(e, n) : [n], a = _n(t, e.clientX, e.clientY), o = a ? Gn(t, a, e.clientX, e.clientY) : null, c = String(n?.filename || "").split(".").pop() || "", l = a && !o ? nn(a, n, c) : null;
 			if (a && o) {
-				e.preventDefault(), e.stopImmediatePropagation?.(), e.stopPropagation(), $t(t, Gn);
-				let r = await kn({
-					post: pe,
-					endpoint: I.STAGE_TO_INPUT,
+				e.preventDefault(), e.stopImmediatePropagation?.(), e.stopPropagation(), en(t, Kn);
+				let r = await An({
+					post: rt,
+					endpoint: m.STAGE_TO_INPUT,
 					payload: n,
 					index: !1
 				});
 				if (!r) return;
-				if (Un({
+				if (Wn({
 					app: t,
 					payload: n,
 					relativePath: r,
@@ -3981,16 +3982,16 @@ function Rs() {
 					});
 					return;
 				}
-				m(`Staged to input: ${r}`, "success", 4e3);
+				F(`Staged to input: ${r}`, "success", 4e3);
 				return;
 			}
 			if (a && !o && !l && a._timelineEditor && !r) {
-				e.preventDefault(), e.stopImmediatePropagation?.(), e.stopPropagation(), $t(t, Gn), await s(a._timelineEditor, n, c);
+				e.preventDefault(), e.stopImmediatePropagation?.(), e.stopPropagation(), en(t, Kn), await s(a._timelineEditor, n, c);
 				return;
 			}
 			if (!a || !l) {
-				if ($t(t, Gn), e.preventDefault(), e.stopImmediatePropagation?.(), e.stopPropagation(), r) {
-					let r = await gs(i), a = Sn({
+				if (en(t, Kn), e.preventDefault(), e.stopImmediatePropagation?.(), e.stopPropagation(), r) {
+					let r = await gs(i), a = Cn({
 						app: t,
 						items: r,
 						event: e
@@ -3999,7 +4000,7 @@ function Rs() {
 						Fo("drop canvas created loaders", { count: a });
 						return;
 					}
-					m(`Failed to load file: "${n?.filename}". Staging failed.`, "error");
+					F(`Failed to load file: "${n?.filename}". Staging failed.`, "error");
 					return;
 				}
 				if (String(n?.kind || "").toLowerCase() === "workflow") {
@@ -4007,12 +4008,12 @@ function Rs() {
 						Fo("drop canvas loaded workflow", { file: n?.filename });
 						return;
 					}
-					m(`Failed to load workflow: "${n?.filename}".`, "error");
+					F(`Failed to load workflow: "${n?.filename}".`, "error");
 					return;
 				}
-				let o = !a && !r, s = On({
-					post: pe,
-					endpoint: I.STAGE_TO_INPUT,
+				let o = !a && !r, s = kn({
+					post: rt,
+					endpoint: m.STAGE_TO_INPUT,
 					payload: n,
 					index: !1
 				}), l = o ? Ns(n) : Promise.resolve(!1), [u, d] = await Promise.all([l, s]);
@@ -4022,10 +4023,10 @@ function Rs() {
 				}
 				let f = d?.relativePath;
 				if (!f) {
-					Fo("drop canvas stage failed"), m(`Failed to load file: "${n?.filename}". Staging failed.`, "error");
+					Fo("drop canvas stage failed"), F(`Failed to load file: "${n?.filename}". Staging failed.`, "error");
 					return;
 				}
-				if (Fo("drop canvas staged", { value: f }), Sn({
+				if (Fo("drop canvas staged", { value: f }), Cn({
 					app: t,
 					items: [{
 						payload: n,
@@ -4037,17 +4038,17 @@ function Rs() {
 					Fo("drop canvas created loader", { value: f });
 					return;
 				}
-				m(`Staged to input: ${f}`, "success", 4e3);
+				F(`Staged to input: ${f}`, "success", 4e3);
 				return;
 			}
-			e.preventDefault(), e.stopImmediatePropagation?.(), e.stopPropagation(), $t(t, Gn);
-			let u = await kn({
-				post: pe,
-				endpoint: I.STAGE_TO_INPUT,
+			e.preventDefault(), e.stopImmediatePropagation?.(), e.stopPropagation(), en(t, Kn);
+			let u = await An({
+				post: rt,
+				endpoint: m.STAGE_TO_INPUT,
 				payload: n,
 				index: !1
 			});
-			u && (Kn(l, u), Gn(t), Fo("drop inject", {
+			u && (qn(l, u), Kn(t), Fo("drop inject", {
 				node: a?.title,
 				widget: l?.name,
 				value: u
@@ -4055,7 +4056,7 @@ function Rs() {
 		},
 		onDragLeave: () => {
 			let e = ts();
-			$t(e, Gn), Fo("dragleave");
+			en(e, Kn), Fo("dragleave");
 		}
 	};
 }
@@ -4070,7 +4071,7 @@ function zs() {
 		}
 		rs = !1, is = !1;
 		try {
-			$t(ts(), Gn);
+			en(ts(), Kn);
 		} catch (e) {
 			console.debug?.(e);
 		}
@@ -4264,7 +4265,7 @@ function Zs() {
 	}
 	return e;
 }
-var Qs = Zs(), $s = ["title"], ec = /* @__PURE__ */ rr({
+var Qs = Zs(), $s = ["title"], ec = /* @__PURE__ */ ir({
 	__name: "RatingBadge",
 	props: { rating: {
 		type: [Number, String],
@@ -4275,27 +4276,27 @@ var Qs = Zs(), $s = ["title"], ec = /* @__PURE__ */ rr({
 		}
 	} },
 	setup(e) {
-		let t = e, n = K(() => Math.max(0, Math.min(5, Number(t.rating) || 0))), r = K(() => n.value > 0), i = K(() => L("rating.title", "Rating: {n} star{n, plural, one {} other {s}}", { n: n.value }));
-		return (e, t) => r.value ? (q(), Y("div", {
+		let t = e, n = G(() => Math.max(0, Math.min(5, Number(t.rating) || 0))), r = G(() => n.value > 0), i = G(() => I("rating.title", "Rating: {n} star{n, plural, one {} other {s}}", { n: n.value }));
+		return (e, t) => r.value ? (K(), Y("div", {
 			key: 0,
 			class: "mjr-rating-badge",
 			title: i.value
-		}, [(q(!0), Y(V, null, tr(n.value, (e) => (q(), Y("span", {
+		}, [(K(!0), Y(B, null, nr(n.value, (e) => (K(), Y("span", {
 			key: e,
 			style: mr({
 				color: "var(--mjr-rating-color, var(--mjr-star-active, #FFD45A))",
 				marginRight: e < n.value ? "2px" : "0"
 			})
-		}, " ★ ", 4))), 128))], 8, $s)) : W("", !0);
+		}, " ★ ", 4))), 128))], 8, $s)) : U("", !0);
 	}
-}), tc = ["title"], nc = /* @__PURE__ */ rr({
+}), tc = ["title"], nc = /* @__PURE__ */ ir({
 	__name: "TagsBadge",
 	props: { tags: {
 		type: [Array, String],
 		default: () => []
 	} },
 	setup(e) {
-		let t = e, n = K(() => {
+		let t = e, n = G(() => {
 			if (Array.isArray(t.tags)) return t.tags.map((e) => String(e ?? "").trim()).filter(Boolean).slice(0, 10);
 			if (typeof t.tags == "string") {
 				let e = t.tags.trim();
@@ -4308,28 +4309,28 @@ var Qs = Zs(), $s = ["title"], ec = /* @__PURE__ */ rr({
 				}
 			}
 			return [];
-		}), r = K(() => n.value.length > 0), i = K(() => L("tags.title", "Tags: {tags}", { tags: n.value.join(", ") })), a = K(() => {
+		}), r = G(() => n.value.length > 0), i = G(() => I("tags.title", "Tags: {tags}", { tags: n.value.join(", ") })), a = G(() => {
 			let e = n.value;
 			return e.length <= 5 ? e.join(", ") : e.slice(0, 5).join(", ") + ` +${e.length - 5}`;
 		});
-		return (e, t) => r.value ? (q(), Y("div", {
+		return (e, t) => r.value ? (K(), Y("div", {
 			key: 0,
 			class: "mjr-tags-badge",
 			title: i.value,
 			style: { color: "var(--mjr-tag-color, #90CAF9)" }
-		}, J(a.value), 9, tc)) : W("", !0);
+		}, J(a.value), 9, tc)) : U("", !0);
 	}
-}), rc = ["title"], ic = /* @__PURE__ */ rr({
+}), rc = ["title"], ic = /* @__PURE__ */ ir({
 	__name: "GenTimeBadge",
 	props: { genTimeMs: { default: 0 } },
 	setup(e) {
-		let t = e, n = K(() => Rn(t.genTimeMs)), r = K(() => n.value > 0), i = K(() => rn(n.value)), a = K(() => cn(n.value));
-		return (e, t) => r.value ? (q(), Y("div", {
+		let t = e, n = G(() => zn(t.genTimeMs)), r = G(() => n.value > 0), i = G(() => an(n.value)), a = G(() => ln(n.value));
+		return (e, t) => r.value ? (K(), Y("div", {
 			key: 0,
 			class: "mjr-gentime-badge",
 			title: i.value.title,
 			style: mr({ color: a.value })
-		}, J(i.value.text), 13, rc)) : W("", !0);
+		}, J(i.value.text), 13, rc)) : U("", !0);
 	}
 }), ac = {
 	key: 0,
@@ -4390,7 +4391,7 @@ var Qs = Zs(), $s = ["title"], ec = /* @__PURE__ */ rr({
 		opacity: "0.55",
 		margin: "0 3px"
 	}
-}, zc = ["title"], Bc = { class: "mjr-stack-group-button-count" }, Vc = { class: "mjr-dup-stack-count" }, Hc = /* @__PURE__ */ rr({
+}, zc = ["title"], Bc = { class: "mjr-stack-group-button-count" }, Vc = { class: "mjr-dup-stack-count" }, Hc = /* @__PURE__ */ ir({
 	__name: "AssetCardInner",
 	props: { asset: {} },
 	emits: ["workflow-action"],
@@ -4526,83 +4527,71 @@ var Qs = Zs(), $s = ["title"], ec = /* @__PURE__ */ rr({
 		function f(e) {
 			e && (u(e), s(e));
 		}
-		let p = e, m = t, h = K(() => String(p.asset.kind || "image").toLowerCase()), g = K(() => h.value === "workflow"), _ = K(() => h.value === "image"), v = K(() => h.value === "video"), y = K(() => h.value === "audio"), b = K(() => h.value === "model3d"), x = K(() => F(p.asset) || ""), S = K(() => String(p.asset.thumbnail_url || p.asset.graph_map_thumbnail_url || p.asset.thumb_url || p.asset.poster || "").trim()), C = K(() => !!String(p.asset.thumbnail_url || p.asset.thumb_url || p.asset.poster || "").trim()), w = K(() => g.value && !C.value && !!String(p.asset.graph_map_thumbnail_url || "").trim()), T = K(() => String(p.asset.preview_url || p.asset.previewUrl || p.asset.url || "").trim()), E = K(() => x.value), D = K(() => T.value || x.value), O = K(() => !v.value && !g.value ? "" : de(p.asset, 384)), k = K(() => S.value || O.value), A = K(() => String(p.asset.filename || "")), ee = K(() => String(p.asset.display_name || p.asset.displayName || p.asset.name || A.value || "").trim()), j = K(() => {
+		let p = e, m = t, h = G(() => String(p.asset.kind || "image").toLowerCase()), g = G(() => h.value === "workflow"), _ = G(() => h.value === "image"), v = G(() => h.value === "video"), y = G(() => h.value === "audio"), b = G(() => h.value === "model3d"), x = G(() => oe(p.asset) || ""), S = G(() => String(p.asset.thumbnail_url || p.asset.graph_map_thumbnail_url || p.asset.thumb_url || p.asset.poster || "").trim()), C = G(() => !!String(p.asset.thumbnail_url || p.asset.thumb_url || p.asset.poster || "").trim()), w = G(() => g.value && !C.value && !!String(p.asset.graph_map_thumbnail_url || "").trim()), T = G(() => String(p.asset.preview_url || p.asset.previewUrl || p.asset.url || "").trim()), E = G(() => x.value), D = G(() => T.value || x.value), O = G(() => !v.value && !g.value ? "" : Ee(p.asset, 384)), k = G(() => S.value || O.value), A = G(() => String(p.asset.filename || "")), ee = G(() => String(p.asset.display_name || p.asset.displayName || p.asset.name || A.value || "").trim()), j = G(() => {
 			let e = A.value;
 			return e.includes(".") ? e.split(".").pop().toUpperCase() : "";
-		}), M = K(() => {
+		}), M = G(() => {
 			let e = ee.value || A.value;
 			return e.includes(".") ? e.slice(0, e.lastIndexOf(".")) : e;
-		}), te = K(() => String(p.asset.notes || "").trim()), ne = K(() => r(`${p.asset.id || ""}:${A.value}:${p.asset.duration || ""}`)), N = K(() => M.value || A.value || "Audio"), P = K(() => [me.value, j.value].filter(Boolean).join(" / ") || "Audio"), re = K(() => {
+		}), te = G(() => String(p.asset.notes || "").trim()), ne = G(() => r(`${p.asset.id || ""}:${A.value}:${p.asset.duration || ""}`)), re = G(() => M.value || A.value || "Audio"), N = G(() => [he.value, j.value].filter(Boolean).join(" / ") || "Audio"), P = G(() => {
 			let e = [A.value || ee.value], t = String(p.asset.subfolder || p.asset.file_info?.subfolder || "").trim(), n = String(p.asset.type || p.asset.source || p.asset.file_info?.type || "").trim();
 			return t && e.push(`Subfolder: ${t}`), n && e.push(`Type: ${n}`), te.value && e.push(`Notes: ${te.value}`), e.filter(Boolean).join("\n");
-		}), ie = K(() => Number(p.asset.rating) || 0), ae = K(() => p.asset.tags || []), I = K(() => {
+		}), F = G(() => Number(p.asset.rating) || 0), ie = G(() => p.asset.tags || []), ae = G(() => {
 			let e = p.asset.generation_time_ms ?? p.asset.metadata?.generation_time_ms ?? 0;
-			return Rn(e);
-		}), oe = K(() => I.value > 0), se = K(() => rn(I.value)), ce = K(() => cn(I.value)), le = K(() => String(p.asset.positive_prompt || "").trim()), ue = K(() => p.asset?._mjrLivePlaceholder === !0 || p.asset?.is_live_placeholder === !0 || String(p.asset?.id || "").trim().toLowerCase().startsWith("live:")), L = K(() => String(p.asset?._mjrLiveLabel || "In progress").trim() || "In progress"), fe = K(() => `${L.value}: waiting for indexed asset data`), pe = K(() => {
+			return zn(e);
+		}), se = G(() => ae.value > 0), ce = G(() => an(ae.value)), le = G(() => ln(ae.value)), ue = G(() => String(p.asset.positive_prompt || "").trim()), de = G(() => p.asset?._mjrLivePlaceholder === !0 || p.asset?.is_live_placeholder === !0 || String(p.asset?.id || "").trim().toLowerCase().startsWith("live:")), fe = G(() => String(p.asset?._mjrLiveLabel || "In progress").trim() || "In progress"), pe = G(() => `${fe.value}: waiting for indexed asset data`), me = G(() => {
 			let { width: e, height: t } = p.asset;
 			return e && t ? `${e}x${t}` : "";
-		}), me = K(() => p.asset.duration ? Nn(p.asset.duration) : ""), he = K(() => String(p.asset.task || p.asset.workflow_task || "").trim()), ge = K(() => String(p.asset.model_family || p.asset.modelFamily || "").trim()), _e = K(() => String(p.asset.runs_on || p.asset.runsOn || "").trim()), ve = K(() => Number(p.asset.node_count || p.asset.nodeCount || 0) || 0), ye = K(() => !!p.asset.favorite), be = K(() => Number(p.asset.subgraph_count || p.asset.subgraphCount || 0) || 0), xe = K(() => Number(p.asset.missing_nodes_count || p.asset.missingNodesCount || 0) || 0), Se = K(() => Number(p.asset.missing_models_count || p.asset.missingModelsCount || 0) || 0), Ce = K(() => xe.value > 0 || Se.value > 0), we = K(() => {
-			if (!Ce.value) return "";
+		}), he = G(() => p.asset.duration ? Pn(p.asset.duration) : ""), ge = G(() => String(p.asset.task || p.asset.workflow_task || "").trim()), _e = G(() => String(p.asset.model_family || p.asset.modelFamily || "").trim()), ve = G(() => String(p.asset.runs_on || p.asset.runsOn || "").trim()), ye = G(() => Number(p.asset.node_count || p.asset.nodeCount || 0) || 0), be = G(() => !!p.asset.favorite), xe = G(() => Number(p.asset.subgraph_count || p.asset.subgraphCount || 0) || 0), Se = G(() => Number(p.asset.missing_nodes_count || p.asset.missingNodesCount || 0) || 0), Ce = G(() => Number(p.asset.missing_models_count || p.asset.missingModelsCount || 0) || 0), we = G(() => Se.value > 0 || Ce.value > 0), Te = G(() => {
+			if (!we.value) return "";
 			let e = [];
-			return xe.value > 0 && e.push(`${xe.value} node`), Se.value > 0 && e.push(`${Se.value} model`), `Missing: ${e.join(" / ")}`;
-		}), Te = K(() => p.asset.generation_time || p.asset.file_creation_time || p.asset.mtime || p.asset.created_at), Ee = K(() => Te.value ? Tn(Te.value) : ""), De = K(() => Te.value ? Hn(Te.value) : ""), Oe = K(() => [
-			pe.value ? {
+			return Se.value > 0 && e.push(`${Se.value} node`), Ce.value > 0 && e.push(`${Ce.value} model`), `Missing: ${e.join(" / ")}`;
+		}), I = G(() => p.asset.generation_time || p.asset.file_creation_time || p.asset.mtime || p.asset.created_at), De = G(() => I.value ? En(I.value) : ""), Oe = G(() => I.value ? Un(I.value) : ""), ke = G(() => [
+			me.value ? {
 				key: "resolution",
 				className: "mjr-meta-res",
-				title: `Resolution: ${pe.value}`,
-				text: pe.value
-			} : null,
-			me.value ? {
-				key: "duration",
-				className: "mjr-meta-duration",
-				title: `Duration: ${me.value}`,
+				title: `Resolution: ${me.value}`,
 				text: me.value
 			} : null,
-			Ee.value ? {
-				key: "date",
-				className: "mjr-meta-date",
-				title: `Date: ${Ee.value}`,
-				text: Ee.value
+			he.value ? {
+				key: "duration",
+				className: "mjr-meta-duration",
+				title: `Duration: ${he.value}`,
+				text: he.value
 			} : null,
 			De.value ? {
-				key: "time",
-				className: "mjr-meta-date mjr-meta-time-val",
-				title: `Time: ${De.value}`,
+				key: "date",
+				className: "mjr-meta-date",
+				title: `Date: ${De.value}`,
 				text: De.value
 			} : null,
-			oe.value ? {
+			Oe.value ? {
+				key: "time",
+				className: "mjr-meta-date mjr-meta-time-val",
+				title: `Time: ${Oe.value}`,
+				text: Oe.value
+			} : null,
+			se.value ? {
 				key: "gentime",
 				className: "mjr-meta-gentime",
-				title: se.value.title,
-				text: se.value.text,
+				title: ce.value.title,
+				text: ce.value.text,
 				style: {
-					color: ce.value,
+					color: le.value,
 					fontWeight: "500"
 				}
 			} : null
-		].filter(Boolean)), ke = K(() => !!p.asset._mjrNameCollision && !p.asset._mjrDupStack), Ae = K(() => ke.value ? "var(--mjr-badge-duplicate-alert, #ff1744)" : {
+		].filter(Boolean)), Ae = G(() => !!p.asset._mjrNameCollision && !p.asset._mjrDupStack), je = G(() => Ae.value ? "var(--mjr-badge-duplicate-alert, #ff1744)" : {
 			image: "var(--mjr-badge-image, #2196F3)",
 			video: "var(--mjr-badge-video, #F44336)",
 			audio: "var(--mjr-badge-audio, #4CAF50)",
 			model3d: "var(--mjr-badge-model3d, #9C27B0)"
-		}[h.value] || "var(--mjr-badge-image, #888)"), je = ir("mjrStackService", null), Me = K(() => !je || !String(p.asset.stack_id || "").trim() ? !1 : Number(p.asset.stack_asset_count || p.asset._mjrFeedGroupCount || 0) > 1), Ne = K(() => Number(p.asset.stack_asset_count || p.asset._mjrFeedGroupCount || 0) || 0), Pe = K(() => !!p.asset._mjrDupStack && Number(p.asset._mjrDupCount || 0) >= 2), Fe = K(() => Number(p.asset._mjrDupCount || 0) || 0), Ie = K(() => Pe.value && !Me.value), Le = Q(!1), Re = Q(!1);
-		async function ze(e) {
-			if (e.preventDefault(), e.stopPropagation(), !Le.value) {
-				Le.value = !0;
-				try {
-					await je?.openStackGroup?.(p.asset);
-				} catch (e) {
-					console.debug?.(e);
-				} finally {
-					Le.value = !1;
-				}
-			}
-		}
-		function Be(e) {
+		}[h.value] || "var(--mjr-badge-image, #888)"), Me = ar("mjrStackService", null), Ne = G(() => !Me || !String(p.asset.stack_id || "").trim() ? !1 : Number(p.asset.stack_asset_count || p.asset._mjrFeedGroupCount || 0) > 1), Pe = G(() => Number(p.asset.stack_asset_count || p.asset._mjrFeedGroupCount || 0) || 0), Fe = G(() => !!p.asset._mjrDupStack && Number(p.asset._mjrDupCount || 0) >= 2), Ie = G(() => Number(p.asset._mjrDupCount || 0) || 0), Le = G(() => Fe.value && !Ne.value), Re = Q(!1), ze = Q(!1);
+		async function Be(e) {
 			if (e.preventDefault(), e.stopPropagation(), !Re.value) {
 				Re.value = !0;
 				try {
-					je?.openDupGroup?.(p.asset);
+					await Me?.openStackGroup?.(p.asset);
 				} catch (e) {
 					console.debug?.(e);
 				} finally {
@@ -4610,92 +4599,104 @@ var Qs = Zs(), $s = ["title"], ec = /* @__PURE__ */ rr({
 				}
 			}
 		}
-		let Ve = Q(null), He = Q(null), Ue = Q(null), We = Q(null), Ge = Q(!1), Ke = Q(!1), qe = Q(""), Je = 0, Ye = "", Xe = "", Ze = "";
-		function Qe() {
+		function Ve(e) {
+			if (e.preventDefault(), e.stopPropagation(), !ze.value) {
+				ze.value = !0;
+				try {
+					Me?.openDupGroup?.(p.asset);
+				} catch (e) {
+					console.debug?.(e);
+				} finally {
+					ze.value = !1;
+				}
+			}
+		}
+		let He = Q(null), Ue = Q(null), We = Q(null), Ge = Q(null), Ke = Q(!1), qe = Q(!1), Je = Q(""), Ye = 0, Xe = "", Ze = "", Qe = "";
+		function $e() {
 			try {
-				Ye && Qs.releaseUrl(Ye);
+				Xe && Qs.releaseUrl(Xe);
 			} catch (e) {
 				console.debug?.(e);
 			}
-			Ye = "";
+			Xe = "";
 		}
-		cr(() => g.value ? S.value : _.value ? E.value : "", (e) => {
-			let t = String(e || "").trim();
-			t && t !== Xe && (Ge.value = !1, Xe = "");
-		}, { immediate: !0 }), cr(() => b.value ? k.value : "", (e) => {
+		q(() => g.value ? S.value : _.value ? E.value : "", (e) => {
 			let t = String(e || "").trim();
 			t && t !== Ze && (Ke.value = !1, Ze = "");
-		}, { immediate: !0 }), cr(() => [_.value ? Ue.value : null, _.value ? E.value : ""], async ([e, t], n, r) => {
-			if (!e || !t || Ge.value) return;
-			let o = Je += 1, s = new AbortController(), c = !1;
+		}, { immediate: !0 }), q(() => b.value ? k.value : "", (e) => {
+			let t = String(e || "").trim();
+			t && t !== Qe && (qe.value = !1, Qe = "");
+		}, { immediate: !0 }), q(() => [_.value ? We.value : null, _.value ? E.value : ""], async ([e, t], n, r) => {
+			if (!e || !t || Ke.value) return;
+			let o = Ye += 1, s = new AbortController(), c = !1;
 			r(() => {
 				c = !0, s.abort();
 			});
 			try {
-				let n = Ye || String(e.dataset?.mjrSourceKey || "");
-				if (qe.value && n === t || (e.dataset.mjrSourceKey = t, await a(), c || o !== Je || !e.isConnected)) return;
+				let n = Xe || String(e.dataset?.mjrSourceKey || "");
+				if (Je.value && n === t || (e.dataset.mjrSourceKey = t, await a(), c || o !== Ye || !e.isConnected)) return;
 				let r = await i(t, { signal: s.signal });
-				if (c || o !== Je || !e.isConnected) {
+				if (c || o !== Ye || !e.isConnected) {
 					r && r !== t && Qs.releaseUrl(t);
 					return;
 				}
-				if (r && r !== qe.value) {
-					let e = Ye;
-					qe.value = r, Ye = r === t ? "" : t, e && e !== Ye && Qs.releaseUrl(e);
-				} else !r && Ye && Ye !== t && (Qe(), qe.value = "");
+				if (r && r !== Je.value) {
+					let e = Xe;
+					Je.value = r, Xe = r === t ? "" : t, e && e !== Xe && Qs.releaseUrl(e);
+				} else !r && Xe && Xe !== t && ($e(), Je.value = "");
 			} catch {}
 		}, { immediate: !0 });
-		let z = Q(R.GRID_VIDEO_AUTOPLAY_MODE || "hover");
-		function $e() {
-			z.value = R.GRID_VIDEO_AUTOPLAY_MODE || "hover";
+		let L = Q(R.GRID_VIDEO_AUTOPLAY_MODE || "hover");
+		function et() {
+			L.value = R.GRID_VIDEO_AUTOPLAY_MODE || "hover";
 		}
-		$n(() => {
-			window.addEventListener("mjr-settings-changed", $e);
-		}), cr(He, (e, t) => {
+		er(() => {
+			window.addEventListener("mjr-settings-changed", et);
+		}), q(Ue, (e, t) => {
 			if (t) try {
 				f(t);
 			} catch {}
-			if (e && Ve.value) try {
-				d(Ve.value, e, z.value);
+			if (e && He.value) try {
+				d(He.value, e, L.value);
 			} catch {}
-		}), cr(z, (e) => {
-			let t = He.value, n = Ve.value;
+		}), q(L, (e) => {
+			let t = Ue.value, n = He.value;
 			t && n && d(n, t, e);
-		}), cr(D, (e, t) => {
+		}), q(D, (e, t) => {
 			if (e === t) return;
-			let n = He.value, r = Ve.value;
-			n && r && (f(n), d(r, n, z.value));
-		}, { flush: "post" }), sr(() => {
-			window.removeEventListener("mjr-settings-changed", $e), Je += 1, Qe();
-			let e = He.value;
+			let n = Ue.value, r = He.value;
+			n && r && (f(n), d(r, n, L.value));
+		}, { flush: "post" }), cr(() => {
+			window.removeEventListener("mjr-settings-changed", et), Ye += 1, $e();
+			let e = Ue.value;
 			if (e) try {
 				f(e);
 			} catch {}
-		}), or(() => {
-			window.removeEventListener("mjr-settings-changed", $e);
+		}), sr(() => {
+			window.removeEventListener("mjr-settings-changed", et);
 		}), lr(() => {
-			let e = We.value;
+			let e = Ge.value;
 			if (!e) return;
 			let t = p.asset;
 			t?.has_workflow ?? t?.hasWorkflow, t?.has_generation_data ?? t?.hasGenerationData, t?.has_ai_info ?? t?.hasAiInfo ?? t?.ai_indexed, t?.has_ai_auto_tags ?? t?.hasAiAutoTags ?? t?.auto_tags ?? t?.autoTags, t?.has_ai_enhanced_caption ?? t?.hasAiEnhancedCaption ?? t?.enhanced_caption ?? t?.enhancedCaption, t?.has_ai_vector ?? t?.hasAiVector ?? t?.vector_indexed ?? t?.vectorIndexed;
 			try {
 				e.textContent = "";
-				let n = yn(t);
+				let n = bn(t);
 				n && e.appendChild(n);
 			} catch {}
 		});
-		function et(e) {
-			Ge.value = !0;
+		function tt(e) {
+			Ke.value = !0;
 			try {
 				let e = g.value ? S.value : E.value;
-				Xe = String(e || "").trim(), Qs.markError(e);
+				Ze = String(e || "").trim(), Qs.markError(e);
 			} catch {}
 		}
-		function tt() {
-			Ke.value = !0, Ze = String(k.value || "").trim();
+		function nt() {
+			qe.value = !0, Qe = String(k.value || "").trim();
 		}
-		function nt(e) {
-			if (!ke.value) return;
+		function rt(e) {
+			if (!Ae.value) return;
 			e.preventDefault(), e.stopPropagation();
 			let t = e.target?.closest?.(".mjr-asset-card");
 			t && t.dispatchEvent(new CustomEvent("mjr:badge-duplicates-focus", {
@@ -4708,7 +4709,7 @@ var Qs = Zs(), $s = ["title"], ec = /* @__PURE__ */ rr({
 				}
 			}));
 		}
-		function rt(e, t) {
+		function it(e, t) {
 			try {
 				t?.preventDefault?.(), t?.stopPropagation?.();
 			} catch (e) {
@@ -4721,61 +4722,61 @@ var Qs = Zs(), $s = ["title"], ec = /* @__PURE__ */ rr({
 			});
 		}
 		return (t, n) => {
-			let r = er("MButton");
-			return q(), Y(V, null, [
-				H("div", {
+			let r = tr("MButton");
+			return K(), Y(B, null, [
+				V("div", {
 					class: X(["mjr-thumb", { "mjr-thumb-workflow": g.value }]),
 					ref_key: "thumbRef",
-					ref: Ve
+					ref: He
 				}, [
-					ue.value ? (q(), Y("div", ac)) : W("", !0),
-					g.value ? (q(), Y(V, { key: 1 }, [
-						H("div", {
+					de.value ? (K(), Y("div", ac)) : U("", !0),
+					g.value ? (K(), Y(B, { key: 1 }, [
+						V("div", {
 							class: "mjr-workflow-card-actions",
-							onClick: n[1] ||= ar(() => {}, ["stop"]),
-							onDblclick: n[2] ||= ar(() => {}, ["stop"])
-						}, [H("button", {
+							onClick: n[1] ||= or(() => {}, ["stop"]),
+							onDblclick: n[2] ||= or(() => {}, ["stop"])
+						}, [V("button", {
 							type: "button",
-							class: X(["mjr-workflow-action-btn", { "is-active": ye.value }]),
-							title: ye.value ? "Remove favorite" : "Add favorite",
-							"aria-label": ye.value ? "Remove favorite" : "Add favorite",
-							onClick: n[0] ||= (e) => rt("favorite", e)
-						}, [H("i", { class: X(ye.value ? "pi pi-star-fill" : "pi pi-star") }, null, 2)], 10, oc)], 32),
-						k.value && !Ge.value ? (q(), Y("img", {
+							class: X(["mjr-workflow-action-btn", { "is-active": be.value }]),
+							title: be.value ? "Remove favorite" : "Add favorite",
+							"aria-label": be.value ? "Remove favorite" : "Add favorite",
+							onClick: n[0] ||= (e) => it("favorite", e)
+						}, [V("i", { class: X(be.value ? "pi pi-star-fill" : "pi pi-star") }, null, 2)], 10, oc)], 32),
+						k.value && !Ke.value ? (K(), Y("img", {
 							key: 0,
 							class: X(["mjr-thumb-media", { "mjr-workflow-graph-map-preview": w.value }]),
 							alt: A.value,
 							decoding: "async",
 							loading: "lazy",
 							src: k.value,
-							onError: et
-						}, null, 42, sc)) : W("", !0),
-						H("div", { class: X(["mjr-workflow-thumb", {
-							"has-thumbnail": k.value && !Ge.value,
-							"has-graph-map": w.value && !Ge.value
+							onError: tt
+						}, null, 42, sc)) : U("", !0),
+						V("div", { class: X(["mjr-workflow-thumb", {
+							"has-thumbnail": k.value && !Ke.value,
+							"has-graph-map": w.value && !Ke.value
 						}]) }, [
-							n[15] ||= H("i", { class: "pi pi-sitemap" }, null, -1),
-							H("div", cc, J(he.value || "Workflow"), 1),
-							H("div", lc, [
-								ge.value ? (q(), Y("span", uc, J(ge.value), 1)) : W("", !0),
-								_e.value ? (q(), Y("span", dc, J(_e.value), 1)) : W("", !0),
-								ve.value ? (q(), Y("span", fc, J(ve.value) + " nodes", 1)) : W("", !0),
-								Ce.value ? (q(), Y("span", pc, J(we.value), 1)) : W("", !0)
+							n[15] ||= V("i", { class: "pi pi-sitemap" }, null, -1),
+							V("div", cc, J(ge.value || "Workflow"), 1),
+							V("div", lc, [
+								_e.value ? (K(), Y("span", uc, J(_e.value), 1)) : U("", !0),
+								ve.value ? (K(), Y("span", dc, J(ve.value), 1)) : U("", !0),
+								ye.value ? (K(), Y("span", fc, J(ye.value) + " nodes", 1)) : U("", !0),
+								we.value ? (K(), Y("span", pc, J(Te.value), 1)) : U("", !0)
 							])
 						], 2)
-					], 64)) : _.value ? (q(), Y(V, { key: 2 }, [Ge.value ? W("", !0) : (q(), Y("img", {
+					], 64)) : _.value ? (K(), Y(B, { key: 2 }, [Ke.value ? U("", !0) : (K(), Y("img", {
 						key: 0,
 						ref_key: "imgRef",
-						ref: Ue,
+						ref: We,
 						class: "mjr-thumb-media",
 						alt: A.value,
 						decoding: "async",
 						loading: "lazy",
-						src: qe.value || E.value || void 0,
-						onError: et
-					}, null, 40, mc)), Ge.value ? (q(), Y("div", hc, [...n[16] ||= [H("i", { class: "pi pi-image" }, null, -1)]])) : W("", !0)], 64)) : v.value ? (q(), Y(V, { key: 3 }, [H("video", {
+						src: Je.value || E.value || void 0,
+						onError: tt
+					}, null, 40, mc)), Ke.value ? (K(), Y("div", hc, [...n[16] ||= [V("i", { class: "pi pi-image" }, null, -1)]])) : U("", !0)], 64)) : v.value ? (K(), Y(B, { key: 3 }, [V("video", {
 						ref_key: "videoRef",
-						ref: He,
+						ref: Ue,
 						class: "mjr-thumb-media",
 						"data-src": D.value,
 						poster: k.value || void 0,
@@ -4787,78 +4788,78 @@ var Qs = Zs(), $s = ["title"], ec = /* @__PURE__ */ rr({
 						draggable: !1,
 						tabindex: -1,
 						style: { "pointer-events": "none" }
-					}, null, 8, gc), n[17] ||= H("div", { class: "mjr-thumb-play" }, [H("i", { class: "pi pi-play" })], -1)], 64)) : y.value ? (q(), Y(V, { key: 4 }, [k.value ? (q(), Y("img", {
+					}, null, 8, gc), n[17] ||= V("div", { class: "mjr-thumb-play" }, [V("i", { class: "pi pi-play" })], -1)], 64)) : y.value ? (K(), Y(B, { key: 4 }, [k.value ? (K(), Y("img", {
 						key: 0,
 						class: "mjr-thumb-media",
 						src: k.value,
 						draggable: !1,
 						alt: ""
-					}, null, 8, _c)) : W("", !0), H("div", { class: X(["mjr-audio-thumb", { "has-poster": k.value }]) }, [
-						H("div", vc, [n[18] ||= H("span", { class: "mjr-audio-thumb-icon" }, [H("i", { class: "pi pi-volume-up" })], -1), H("span", yc, J(j.value || "AUDIO"), 1)]),
-						H("div", bc, [(q(!0), Y(V, null, tr(ne.value, (e, t) => (q(), Y("span", {
+					}, null, 8, _c)) : U("", !0), V("div", { class: X(["mjr-audio-thumb", { "has-poster": k.value }]) }, [
+						V("div", vc, [n[18] ||= V("span", { class: "mjr-audio-thumb-icon" }, [V("i", { class: "pi pi-volume-up" })], -1), V("span", yc, J(j.value || "AUDIO"), 1)]),
+						V("div", bc, [(K(!0), Y(B, null, nr(ne.value, (e, t) => (K(), Y("span", {
 							key: t,
 							style: mr({
 								height: `${e.height}%`,
 								opacity: e.opacity
 							})
 						}, null, 4))), 128))]),
-						H("div", xc, [H("span", Sc, J(N.value), 1), H("span", Cc, J(P.value), 1)])
-					], 2)], 64)) : b.value ? (q(), Y(V, { key: 5 }, [k.value && !Ke.value ? (q(), Y("img", {
+						V("div", xc, [V("span", Sc, J(re.value), 1), V("span", Cc, J(N.value), 1)])
+					], 2)], 64)) : b.value ? (K(), Y(B, { key: 5 }, [k.value && !qe.value ? (K(), Y("img", {
 						key: 0,
 						class: "mjr-thumb-media",
 						src: k.value,
 						draggable: !1,
 						alt: A.value,
-						onError: tt
-					}, null, 40, wc)) : (q(), Y("div", Tc, [...n[19] ||= [H("i", {
+						onError: nt
+					}, null, 40, wc)) : (K(), Y("div", Tc, [...n[19] ||= [V("i", {
 						class: "pi pi-box",
 						style: { "font-size": "2.5rem" }
-					}, null, -1)]]))], 64)) : W("", !0),
-					H("div", {
+					}, null, -1)]]))], 64)) : U("", !0),
+					V("div", {
 						class: "mjr-file-badge mjr-badge-ext",
 						"data-mjr-ext": j.value,
-						"data-mjr-badge-bg": Ae.value,
+						"data-mjr-badge-bg": je.value,
 						style: mr({
 							position: "absolute",
 							top: "6px",
 							left: "6px",
 							zIndex: 10,
-							background: Ae.value,
+							background: je.value,
 							color: "#fff",
 							padding: "2px 5px",
 							borderRadius: "4px",
 							fontSize: "10px",
 							fontWeight: "700",
-							pointerEvents: ke.value ? "auto" : "none",
-							cursor: ke.value ? "pointer" : "default"
+							pointerEvents: Ae.value ? "auto" : "none",
+							cursor: Ae.value ? "pointer" : "default"
 						}),
-						title: ke.value ? `${j.value} - duplicate filename (${e.asset._mjrNameCollisionCount || 2} files)` : `${j.value} file`,
-						onClick: nt
-					}, J(j.value) + J(ke.value ? "+" : ""), 13, Ec),
-					U(ec, {
-						rating: ie.value,
+						title: Ae.value ? `${j.value} - duplicate filename (${e.asset._mjrNameCollisionCount || 2} files)` : `${j.value} file`,
+						onClick: rt
+					}, J(j.value) + J(Ae.value ? "+" : ""), 13, Ec),
+					H(ec, {
+						rating: F.value,
 						class: "mjr-badge-rating"
 					}, null, 8, ["rating"]),
-					U(nc, {
-						tags: ae.value,
+					H(nc, {
+						tags: ie.value,
 						class: "mjr-badge-tags"
 					}, null, 8, ["tags"]),
-					U(ic, { "gen-time-ms": I.value }, null, 8, ["gen-time-ms"]),
-					ue.value ? (q(), Y("div", {
+					H(ic, { "gen-time-ms": ae.value }, null, 8, ["gen-time-ms"]),
+					de.value ? (K(), Y("div", {
 						key: 6,
 						class: "mjr-live-pill",
-						title: fe.value
-					}, [n[20] ||= H("span", {
+						title: pe.value
+					}, [n[20] ||= V("span", {
 						class: "mjr-live-pill-dot",
 						"aria-hidden": "true"
-					}, null, -1), H("span", null, J(L.value), 1)], 8, Dc)) : W("", !0),
-					le.value || g.value && te.value || oe.value ? (q(), Y("div", Oc, [
-						le.value ? (q(), Y("div", kc, J(le.value), 1)) : W("", !0),
-						g.value && te.value ? (q(), Y("div", Ac, J(te.value), 1)) : W("", !0),
-						oe.value ? (q(), Y("div", jc, "Time " + J(se.value.text), 1)) : W("", !0)
-					])) : W("", !0)
+					}, null, -1), V("span", null, J(fe.value), 1)], 8, Dc)) : U("", !0),
+					ue.value || g.value && te.value || se.value ? (K(), Y("div", Oc, [
+						ue.value ? (K(), Y("div", kc, J(ue.value), 1)) : U("", !0),
+						g.value && te.value ? (K(), Y("div", Ac, J(te.value), 1)) : U("", !0),
+						se.value ? (K(), Y("div", jc, "Time " + J(ce.value.text), 1)) : U("", !0)
+					])) : U("", !0)
 				], 2),
-				H("div", {
+				V("div", {
 					class: "mjr-card-info mjr-card-meta",
 					"data-mjr-kind": g.value ? "workflow" : void 0,
 					style: {
@@ -4867,9 +4868,9 @@ var Qs = Zs(), $s = ["title"], ec = /* @__PURE__ */ rr({
 						"min-width": "0"
 					}
 				}, [
-					H("div", {
+					V("div", {
 						class: "mjr-card-filename",
-						title: re.value,
+						title: P.value,
 						style: {
 							overflow: "hidden",
 							"text-overflow": "ellipsis",
@@ -4878,30 +4879,30 @@ var Qs = Zs(), $s = ["title"], ec = /* @__PURE__ */ rr({
 							"padding-right": "12px"
 						}
 					}, J(M.value), 9, Nc),
-					H("div", Pc, [g.value ? (q(), Y(V, { key: 0 }, [
-						he.value ? (q(), Y("span", {
+					V("div", Pc, [g.value ? (K(), Y(B, { key: 0 }, [
+						ge.value ? (K(), Y("span", {
 							key: 0,
 							class: "mjr-meta-workflow-task",
-							title: `Task: ${he.value}`
-						}, J(he.value), 9, Fc)) : W("", !0),
-						be.value ? (q(), Y("span", {
+							title: `Task: ${ge.value}`
+						}, J(ge.value), 9, Fc)) : U("", !0),
+						xe.value ? (K(), Y("span", {
 							key: 1,
 							class: "mjr-meta-workflow-subgraphs",
-							title: `${be.value} subgraph${be.value > 1 ? "s" : ""}`
-						}, J(be.value) + " sub", 9, Ic)) : W("", !0),
-						Ce.value ? (q(), Y("span", {
+							title: `${xe.value} subgraph${xe.value > 1 ? "s" : ""}`
+						}, J(xe.value) + " sub", 9, Ic)) : U("", !0),
+						we.value ? (K(), Y("span", {
 							key: 2,
 							class: "mjr-meta-workflow-missing",
-							title: we.value
-						}, J(we.value), 9, Lc)) : W("", !0)
-					], 64)) : W("", !0), (q(!0), Y(V, null, tr(Oe.value, (e, t) => (q(), Y(V, { key: e.key }, [t > 0 ? (q(), Y("span", Rc, "/")) : W("", !0), H("span", {
+							title: Te.value
+						}, J(Te.value), 9, Lc)) : U("", !0)
+					], 64)) : U("", !0), (K(!0), Y(B, null, nr(ke.value, (e, t) => (K(), Y(B, { key: e.key }, [t > 0 ? (K(), Y("span", Rc, "/")) : U("", !0), V("span", {
 						class: X(e.className),
 						style: mr(e.style || null),
 						title: e.title
 					}, J(e.text), 15, zc)], 64))), 128))]),
-					H("div", {
+					V("div", {
 						ref_key: "dotWrapperRef",
-						ref: We,
+						ref: Ge,
 						class: "mjr-card-dot-wrapper",
 						style: {
 							position: "absolute",
@@ -4911,60 +4912,60 @@ var Qs = Zs(), $s = ["title"], ec = /* @__PURE__ */ rr({
 						}
 					}, null, 512)
 				], 8, Mc),
-				Me.value ? (q(), Xn(r, {
+				Ne.value ? (K(), Zn(r, {
 					key: 0,
 					type: "button",
 					class: "mjr-stack-group-button",
 					severity: "secondary",
 					text: "",
 					rounded: "",
-					disabled: Le.value,
-					"aria-busy": Le.value ? "true" : "false",
-					"aria-label": `Open generation group in grid (${Ne.value} assets)`,
-					title: `Open generation group in grid (${Ne.value} assets)`,
-					onClick: ze,
-					onPointerdown: n[3] ||= ar(() => {}, ["stop"]),
-					onMousedown: n[4] ||= ar(() => {}, ["stop", "prevent"]),
-					onTouchstartPassive: n[5] ||= ar(() => {}, ["stop"]),
-					onDblclick: n[6] ||= ar(() => {}, ["stop"]),
-					onKeydown: n[7] ||= ar(() => {}, ["stop"]),
-					onDragstart: n[8] ||= ar(() => {}, ["stop", "prevent"])
+					disabled: Re.value,
+					"aria-busy": Re.value ? "true" : "false",
+					"aria-label": `Open generation group in grid (${Pe.value} assets)`,
+					title: `Open generation group in grid (${Pe.value} assets)`,
+					onClick: Be,
+					onPointerdown: n[3] ||= or(() => {}, ["stop"]),
+					onMousedown: n[4] ||= or(() => {}, ["stop", "prevent"]),
+					onTouchstartPassive: n[5] ||= or(() => {}, ["stop"]),
+					onDblclick: n[6] ||= or(() => {}, ["stop"]),
+					onKeydown: n[7] ||= or(() => {}, ["stop"]),
+					onDragstart: n[8] ||= or(() => {}, ["stop", "prevent"])
 				}, {
-					default: G(() => [n[21] ||= H("span", { class: "pi pi-clone" }, null, -1), H("span", Bc, J(Ne.value), 1)]),
+					default: W(() => [n[21] ||= V("span", { class: "pi pi-clone" }, null, -1), V("span", Bc, J(Pe.value), 1)]),
 					_: 1
 				}, 8, [
 					"disabled",
 					"aria-busy",
 					"aria-label",
 					"title"
-				])) : W("", !0),
-				Ie.value ? (q(), Xn(r, {
+				])) : U("", !0),
+				Le.value ? (K(), Zn(r, {
 					key: 1,
 					type: "button",
 					class: "mjr-dup-stack-button",
 					severity: "secondary",
 					text: "",
 					rounded: "",
-					disabled: Re.value,
-					"aria-busy": Re.value ? "true" : "false",
-					"aria-label": `${Fe.value} duplicate${Fe.value > 1 ? "s" : ""} - click to compare all copies`,
-					title: `${Fe.value} duplicate${Fe.value > 1 ? "s" : ""} - click to compare all copies`,
-					onClick: Be,
-					onPointerdown: n[9] ||= ar(() => {}, ["stop"]),
-					onMousedown: n[10] ||= ar(() => {}, ["stop", "prevent"]),
-					onTouchstartPassive: n[11] ||= ar(() => {}, ["stop"]),
-					onDblclick: n[12] ||= ar(() => {}, ["stop"]),
-					onKeydown: n[13] ||= ar(() => {}, ["stop"]),
-					onDragstart: n[14] ||= ar(() => {}, ["stop", "prevent"])
+					disabled: ze.value,
+					"aria-busy": ze.value ? "true" : "false",
+					"aria-label": `${Ie.value} duplicate${Ie.value > 1 ? "s" : ""} - click to compare all copies`,
+					title: `${Ie.value} duplicate${Ie.value > 1 ? "s" : ""} - click to compare all copies`,
+					onClick: Ve,
+					onPointerdown: n[9] ||= or(() => {}, ["stop"]),
+					onMousedown: n[10] ||= or(() => {}, ["stop", "prevent"]),
+					onTouchstartPassive: n[11] ||= or(() => {}, ["stop"]),
+					onDblclick: n[12] ||= or(() => {}, ["stop"]),
+					onKeydown: n[13] ||= or(() => {}, ["stop"]),
+					onDragstart: n[14] ||= or(() => {}, ["stop", "prevent"])
 				}, {
-					default: G(() => [n[22] ||= H("span", { class: "pi pi-copy" }, null, -1), H("span", Vc, J(Fe.value), 1)]),
+					default: W(() => [n[22] ||= V("span", { class: "pi pi-copy" }, null, -1), V("span", Vc, J(Ie.value), 1)]),
 					_: 1
 				}, 8, [
 					"disabled",
 					"aria-busy",
 					"aria-label",
 					"title"
-				])) : W("", !0)
+				])) : U("", !0)
 			], 64);
 		};
 	}
@@ -4984,7 +4985,7 @@ var Qs = Zs(), $s = ["title"], ec = /* @__PURE__ */ rr({
 	let n = e.__vccOpts || e;
 	for (let [e, r] of t) n[e] = r;
 	return n;
-})(/* @__PURE__ */ rr({
+})(/* @__PURE__ */ ir({
 	__name: "FolderCard",
 	props: {
 		asset: {},
@@ -5013,7 +5014,7 @@ var Qs = Zs(), $s = ["title"], ec = /* @__PURE__ */ rr({
 				folderPath: a
 			});
 		}
-		return (t, n) => (q(), Y("div", {
+		return (t, n) => (K(), Y("div", {
 			class: X(["mjr-asset-card mjr-card mjr-folder-card", {
 				"is-selected": e.selected,
 				"drop-active": i.value
@@ -5021,9 +5022,9 @@ var Qs = Zs(), $s = ["title"], ec = /* @__PURE__ */ rr({
 			role: "button",
 			tabindex: 0,
 			draggable: "true",
-			onDragover: ar(a, ["prevent"]),
+			onDragover: or(a, ["prevent"]),
 			onDragleave: o,
-			onDrop: ar(s, ["stop", "prevent"]),
+			onDrop: or(s, ["stop", "prevent"]),
 			"data-mjr-asset-id": String(e.asset.id ?? ""),
 			"data-mjr-filename-key": String(e.asset.filename || "").toLowerCase(),
 			"data-mjr-ext": "FOLDER",
@@ -5031,25 +5032,25 @@ var Qs = Zs(), $s = ["title"], ec = /* @__PURE__ */ rr({
 			"data-mjr-kind": "folder",
 			"aria-label": `Folder ${e.asset.filename}`,
 			"aria-selected": e.selected ? "true" : "false"
-		}, [n[1] ||= H("div", {
+		}, [n[1] ||= V("div", {
 			class: "mjr-thumb",
 			style: {
 				display: "flex",
 				"align-items": "center",
 				"justify-content": "center"
 			}
-		}, [H("svg", {
+		}, [V("svg", {
 			width: "64",
 			height: "64",
 			viewBox: "0 0 24 24",
 			"aria-hidden": "true"
-		}, [H("path", {
+		}, [V("path", {
 			fill: "#F4C74A",
 			d: "M10 4H4c-1.1 0-2 .9-2 2v1h20V8c0-1.1-.9-2-2-2h-8l-2-2z"
-		}), H("path", {
+		}), V("path", {
 			fill: "#D9A730",
 			d: "M20 6H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2z"
-		})])], -1), H("div", Wc, [H("div", {
+		})])], -1), V("div", Wc, [V("div", {
 			class: "mjr-card-filename",
 			title: e.asset.filename,
 			style: {
@@ -5058,7 +5059,7 @@ var Qs = Zs(), $s = ["title"], ec = /* @__PURE__ */ rr({
 				"white-space": "nowrap",
 				"margin-bottom": "4px"
 			}
-		}, J(e.asset.filename), 9, Gc), n[0] ||= H("div", { class: "mjr-card-meta-row" }, null, -1)])], 42, Uc));
+		}, J(e.asset.filename), 9, Gc), n[0] ||= V("div", { class: "mjr-card-meta-row" }, null, -1)])], 42, Uc));
 	}
 }), [["__scopeId", "data-v-252fa951"]]);
 // ui/vue/composables/useGridState.ts
@@ -5095,7 +5096,7 @@ function Jc() {
 	e.virtualGrid = { setItems(t) {
 		e.assets = Array.isArray(t) ? t.slice() : [];
 	} };
-	let t = K(() => new Set(qc(e.selectedIds)));
+	let t = G(() => new Set(qc(e.selectedIds)));
 	function n(t = "", { error: n = !1 } = {}) {
 		e.statusMessage = String(t || ""), e.statusError = !!n;
 	}
@@ -5684,7 +5685,7 @@ function eu({ query: e, collection: t, fetchPage: n, pageSize: r = 80, getPageSi
 		error: null,
 		done: !1,
 		requestId: 0
-	}), o = K(() => t?.items?.value || []), s = K(() => !a.loading && !a.done);
+	}), o = G(() => t?.items?.value || []), s = G(() => !a.loading && !a.done);
 	function c() {
 		return e && typeof e == "object" && "value" in e ? e.value : e;
 	}
@@ -5849,7 +5850,7 @@ async function nu(e, t, n, r, i, { requestId: a = 0, signal: o = null, cursor: s
 		let t = String(u || "").toLowerCase() === "output", c = sl({
 			...l,
 			q: M
-		}), ee = t && Number(r ?? 0) === 0 && M === "*" && !c && String(A || "mtime_desc").toLowerCase() === "mtime_desc", j = !(t && (Number(r ?? 0) > 0 || ee)), te = !!l.groupStacks, ne = Number(r ?? 0) > 0 ? null : s || null, N = i.buildListURL({
+		}), ee = t && Number(r ?? 0) === 0 && M === "*" && !c && String(A || "mtime_desc").toLowerCase() === "mtime_desc", j = !(t && (Number(r ?? 0) > 0 || ee)), te = !!l.groupStacks, ne = Number(r ?? 0) > 0 ? null : s || null, re = i.buildListURL({
 			q: M,
 			limit: n,
 			offset: r,
@@ -5877,7 +5878,7 @@ async function nu(e, t, n, r, i, { requestId: a = 0, signal: o = null, cursor: s
 			includeTotal: j,
 			groupStacks: te,
 			metadataMode: k || null
-		}), P = await i.get(N, {
+		}), N = await i.get(re, {
 			timeoutMs: 12e4,
 			...o ? { signal: o } : {}
 		});
@@ -5891,23 +5892,23 @@ async function nu(e, t, n, r, i, { requestId: a = 0, signal: o = null, cursor: s
 		} catch (e) {
 			console.debug?.(e);
 		}
-		if (P.ok) {
-			let e = P.data?.assets || [], t = Array.isArray(e) ? e.length : 0, n = P.data?.total;
+		if (N.ok) {
+			let e = N.data?.assets || [], t = Array.isArray(e) ? e.length : 0, n = N.data?.total;
 			return {
 				ok: !0,
 				assets: e,
 				total: n == null ? null : Number(n ?? 0) || 0,
 				count: t,
-				limit: Math.max(0, Number(P.data?.limit) || 0),
-				offset: Math.max(0, Number(P.data?.offset) || 0),
-				nextCursor: P.data?.next_cursor || P.data?.nextCursor || null,
-				hasMore: typeof P.data?.has_more == "boolean" ? P.data.has_more : null,
+				limit: Math.max(0, Number(N.data?.limit) || 0),
+				offset: Math.max(0, Number(N.data?.offset) || 0),
+				nextCursor: N.data?.next_cursor || N.data?.nextCursor || null,
+				hasMore: typeof N.data?.has_more == "boolean" ? N.data.has_more : null,
 				sortKey: A,
 				safeQuery: M
 			};
 		}
 		try {
-			if (String(P?.code || "") === "ABORTED") return {
+			if (String(N?.code || "") === "ABORTED") return {
 				ok: !1,
 				aborted: !0,
 				error: "Aborted"
@@ -5917,7 +5918,7 @@ async function nu(e, t, n, r, i, { requestId: a = 0, signal: o = null, cursor: s
 		}
 		return {
 			ok: !1,
-			error: P.error
+			error: N.error
 		};
 	} catch (e) {
 		try {
@@ -6169,7 +6170,7 @@ function Du(e) {
 function Ou(e) {
 	if (!e || typeof e != "object") return "";
 	if (e.id != null && String(e.id).trim()) return `id:${String(e.id).trim()}`;
-	let t = String(e?.type || e?.source || "output").trim().toLowerCase(), n = String(Se(e) || "").trim().toLowerCase(), r = String(e?.subfolder || "").trim().toLowerCase(), i = String(e?.filename || "").trim().toLowerCase();
+	let t = String(e?.type || e?.source || "output").trim().toLowerCase(), n = String(ye(e) || "").trim().toLowerCase(), r = String(e?.subfolder || "").trim().toLowerCase(), i = String(e?.filename || "").trim().toLowerCase();
 	if (i) return `${t}|${n}|${r}|${i}`;
 	let a = String(e?.filepath || e?.path || e?.fullpath || e?.full_path || "").trim().toLowerCase();
 	return a ? `${t}|${n}|path|${a}` : "";
@@ -6199,7 +6200,7 @@ function ju(e) {
 	return e ? typeof e == "object" && "value" in e ? e.value || null : e : null;
 }
 async function Mu() {
-	await Yn();
+	await Xn();
 }
 function Nu(e, t) {
 	let n = String(e || "Failed to load");
@@ -6388,7 +6389,7 @@ function Ru({ gridContainerRef: e, state: t, setLoadingMessage: n, clearLoadingM
 			console.debug?.(e);
 		}
 		try {
-			m?.listener && window.removeEventListener(B.RUNTIME_STATUS, m.listener);
+			m?.listener && window.removeEventListener(z.RUNTIME_STATUS, m.listener);
 		} catch (e) {
 			console.debug?.(e);
 		}
@@ -6407,7 +6408,7 @@ function Ru({ gridContainerRef: e, state: t, setLoadingMessage: n, clearLoadingM
 		M();
 		let r = Math.max(0, Number(n) || 0);
 		h = setTimeout(() => {
-			h = null, !(t.requestId !== e || t.done || t.loading) && pe().catch((e) => {
+			h = null, !(t.requestId !== e || t.done || t.loading) && ge().catch((e) => {
 				console.debug?.("[AssetsManager][GridLoader] Delayed prefetch failed", e);
 			});
 		}, r);
@@ -6442,12 +6443,12 @@ function Ru({ gridContainerRef: e, state: t, setLoadingMessage: n, clearLoadingM
 					console.debug?.(e);
 				}
 				if (e && e !== n) {
-					mt("[Grid] Deferred execution reload skipped  -  scope/filter changed during execution");
+					ht("[Grid] Deferred execution reload skipped  -  scope/filter changed during execution");
 					return;
 				}
 			}
 			let a = il(i, e);
-			Promise.resolve().then(() => ge(a, {
+			Promise.resolve().then(() => be(a, {
 				...t || {},
 				reset: !0,
 				preserveVisibleUntilReady: !0
@@ -6460,31 +6461,31 @@ function Ru({ gridContainerRef: e, state: t, setLoadingMessage: n, clearLoadingM
 			timer: setTimeout(r, 1250)
 		};
 		try {
-			window.addEventListener(B.RUNTIME_STATUS, i);
+			window.addEventListener(z.RUNTIME_STATUS, i);
 		} catch (e) {
 			console.debug?.(e);
 		}
 	}
-	function N(e, t = null) {
+	function re(e, t = null) {
 		if (!e || typeof e != "object") return "";
-		let n = e.id == null ? `${e.type || ""}|${Se(e)}|${e.filepath || ""}|${e.subfolder || ""}|${e.filename || ""}` : `id:${e.id}`;
+		let n = e.id == null ? `${e.type || ""}|${ye(e)}|${e.filepath || ""}|${e.subfolder || ""}|${e.filename || ""}` : `id:${e.id}`;
 		try {
 			return jo(t || y() || globalThis?.__MJR_LAST_ASSETKEY_GRID__, e, n);
 		} catch (e) {
 			return console.debug?.(e), n;
 		}
 	}
-	function P() {
+	function N() {
 		try {
-			let e = Pt?.() || {}, t = e.grid || {};
+			let e = Ft?.() || {}, t = e.grid || {};
 			return t.snapshotCacheEnabled === !0 || t.enableSnapshotCache === !0 || e.snapshotCacheEnabled === !0 || e.enableSnapshotCache === !0;
 		} catch (e) {
 			return console.debug?.(e), !1;
 		}
 	}
-	function re(e = "") {
+	function P(e = "") {
 		try {
-			if (!P()) return;
+			if (!N()) return;
 			let n = y(), r = Array.isArray(t.assets) ? t.assets : [];
 			if (!n || !r.length) return;
 			let i = r.map(Il).filter(Boolean);
@@ -6506,7 +6507,7 @@ function Ru({ gridContainerRef: e, state: t, setLoadingMessage: n, clearLoadingM
 			console.debug?.(e);
 		}
 	}
-	function ie() {
+	function F() {
 		let e = y();
 		if (e) try {
 			let t = wu.get(e);
@@ -6516,15 +6517,15 @@ function Ru({ gridContainerRef: e, state: t, setLoadingMessage: n, clearLoadingM
 			console.debug?.(e);
 		}
 	}
-	function F(e, n) {
+	function ie(e, n) {
 		let r = _(), i = Array.isArray(n) ? n.length : 0, o = Mi(e, n, t, {
-			loadMajoorSettings: Pt,
+			loadMajoorSettings: Ft,
 			clearGridMessage: () => {
 				a();
 			},
 			ensureVirtualGrid: () => t.virtualGrid,
-			setFileBadgeCollision: sn,
-			assetKey: (t) => N(t, e),
+			setFileBadgeCollision: cn,
+			assetKey: (t) => re(t, e),
 			ensureDupStackCard: (e, t, n) => No(e, t, n)
 		});
 		return g.renderTimeMs += Math.max(0, _() - r), g.assetsReceived += i, g.visibleAssetsAdded += Number(o || 0) || 0, g.hiddenOrDedupedAssets += Math.max(0, i - (Number(o || 0) || 0)), o;
@@ -6533,22 +6534,22 @@ function Ru({ gridContainerRef: e, state: t, setLoadingMessage: n, clearLoadingM
 		let n = String(t || "*").trim() || "*";
 		return ol(rl(e?.dataset || {}, { q: n }));
 	}
-	function I(e) {
+	function oe(e) {
 		let t = C(), n = ku(Au(e).trim() || "*") || "*";
 		return cl({
 			...t,
 			q: n
 		});
 	}
-	function oe(e, { query: t = "*", limit: n = 0, offset: r = 0 } = {}) {
-		if (!e?.ok || e.total == null || !I(t)) return e;
+	function se(e, { query: t = "*", limit: n = 0, offset: r = 0 } = {}) {
+		if (!e?.ok || e.total == null || !oe(t)) return e;
 		let i = Number(e.total), a = Number(e.count ?? e.assets?.length ?? 0) || 0, o = Math.max(1, Number(n) || 1), s = Math.max(0, Number(r) || 0) + a;
 		return Number.isFinite(i) && i > 0 && i <= s && a > 0 && a < o ? {
 			...e,
 			total: null
 		} : e;
 	}
-	async function se(e, n, r, { requestId: i = 0, signal: a = null } = {}) {
+	async function ce(e, n, r, { requestId: i = 0, signal: a = null } = {}) {
 		let o = y();
 		if (!o) return {
 			ok: !1,
@@ -6572,9 +6573,9 @@ function Ru({ gridContainerRef: e, state: t, setLoadingMessage: n, clearLoadingM
 					};
 					let c = s?.data?.assets;
 					if (s?.ok && Array.isArray(c)) {
-						mt("[Grid] Using early-fetched data:", c.length, "assets");
+						ht("[Grid] Using early-fetched data:", c.length, "assets");
 						let t = s.data?.total ?? s.meta?.total ?? null;
-						return oe({
+						return se({
 							ok: !0,
 							assets: c,
 							total: t == null ? null : Number(t) || 0,
@@ -6589,14 +6590,14 @@ function Ru({ gridContainerRef: e, state: t, setLoadingMessage: n, clearLoadingM
 						});
 					}
 				} catch (e) {
-					mt("[Grid] Early fetch failed, falling back to normal fetch", e);
+					ht("[Grid] Early fetch failed, falling back to normal fetch", e);
 				}
 			}
 		}
-		return oe(await nu(o, e, n, r, {
+		return se(await nu(o, e, n, r, {
 			sanitizeQuery: ku,
-			buildListURL: Pe,
-			get: Ie,
+			buildListURL: Ye,
+			get: fe,
 			getGridState: () => t
 		}, {
 			requestId: i,
@@ -6608,7 +6609,7 @@ function Ru({ gridContainerRef: e, state: t, setLoadingMessage: n, clearLoadingM
 			offset: r
 		});
 	}
-	let ce = eu({
+	let le = eu({
 		query: {
 			get value() {
 				return t.query || "*";
@@ -6620,14 +6621,14 @@ function Ru({ gridContainerRef: e, state: t, setLoadingMessage: n, clearLoadingM
 		collection: {
 			append(e = []) {
 				let t = y();
-				return t && e.length && Number(F(t, e) || 0) || 0;
+				return t && e.length && Number(ie(t, e) || 0) || 0;
 			},
 			reset() {}
 		},
 		fetchPage: async ({ query: e, limit: n, offset: r, requestId: i }) => {
 			let a = _();
 			g.pagesRequested += 1;
-			let o = await se(e, n, r, {
+			let o = await ce(e, n, r, {
 				requestId: i,
 				signal: t.abortController?.signal || null
 			});
@@ -6635,8 +6636,8 @@ function Ru({ gridContainerRef: e, state: t, setLoadingMessage: n, clearLoadingM
 		},
 		pageSize: R.DEFAULT_PAGE_SIZE
 	});
-	function le() {
-		ce.setPageState({
+	function ue() {
+		le.setPageState({
 			offset: t.offset,
 			cursor: t.cursor,
 			total: t.total,
@@ -6646,22 +6647,22 @@ function Ru({ gridContainerRef: e, state: t, setLoadingMessage: n, clearLoadingM
 			error: null
 		});
 	}
-	function ue(e = {}, { syncPaged: n = !0 } = {}) {
-		e && typeof e == "object" && (Object.prototype.hasOwnProperty.call(e, "offset") && (t.offset = Math.max(0, Number(e.offset || 0) || 0)), Object.prototype.hasOwnProperty.call(e, "cursor") && (t.cursor = e.cursor || null), Object.prototype.hasOwnProperty.call(e, "total") && (t.total = e.total == null ? null : Math.max(0, Number(e.total) || 0)), Object.prototype.hasOwnProperty.call(e, "done") && (t.done = !!e.done), n && le());
+	function de(e = {}, { syncPaged: n = !0 } = {}) {
+		e && typeof e == "object" && (Object.prototype.hasOwnProperty.call(e, "offset") && (t.offset = Math.max(0, Number(e.offset || 0) || 0)), Object.prototype.hasOwnProperty.call(e, "cursor") && (t.cursor = e.cursor || null), Object.prototype.hasOwnProperty.call(e, "total") && (t.total = e.total == null ? null : Math.max(0, Number(e.total) || 0)), Object.prototype.hasOwnProperty.call(e, "done") && (t.done = !!e.done), n && ue());
 	}
-	function L() {
-		ue(ce.getPageState(), { syncPaged: !1 });
+	function pe() {
+		de(le.getPageState(), { syncPaged: !1 });
 	}
-	function de() {
+	function me() {
 		let e = Array.isArray(t.assets) ? t.assets.length : 0;
-		e <= 0 || t.done || Number(t.offset || 0) >= e || ue({ offset: e }, { syncPaged: !0 });
+		e <= 0 || t.done || Number(t.offset || 0) >= e || de({ offset: e }, { syncPaged: !0 });
 	}
-	function fe({ title: e = "", showEmptyMessage: n = !0 } = {}) {
-		r(), Array.isArray(t.assets) && t.assets.length ? (a(), re(e || t.query)) : !n || t.statusMessage && t.statusError || i("No assets found");
+	function he({ title: e = "", showEmptyMessage: n = !0 } = {}) {
+		r(), Array.isArray(t.assets) && t.assets.length ? (a(), P(e || t.query)) : !n || t.statusMessage && t.statusError || i("No assets found");
 		let o = (Array.isArray(t.assets) ? t.assets : []).map((e) => String(e?.id || "")).filter(Boolean);
 		(t.done || Number.isFinite(Number(t.total)) && Number(t.total || 0) <= o.length) && c(o, { activeId: t.activeId });
 	}
-	async function pe() {
+	async function ge() {
 		let e = y();
 		if (!e || t.loading || t.done) return {
 			ok: !0,
@@ -6698,8 +6699,8 @@ function Ru({ gridContainerRef: e, state: t, setLoadingMessage: n, clearLoadingM
 					skipped: !0,
 					hidden: !0
 				};
-				p || de(), le();
-				let n = t.requestId, r = await ce.loadUntilVisible({
+				p || me(), ue();
+				let n = t.requestId, r = await le.loadUntilVisible({
 					maxEmptyPages: 6,
 					canContinue: () => A(),
 					getLimit: (e) => Pu(h, e),
@@ -6715,12 +6716,12 @@ function Ru({ gridContainerRef: e, state: t, setLoadingMessage: n, clearLoadingM
 							query: t.query || "*",
 							total: null,
 							done: !1
-						}), ue({
+						}), de({
 							offset: 0,
 							cursor: null,
 							total: null,
 							done: !1
-						}), Lu(t), g.resetCount += 1, p = !1, null) : Array.isArray(t.assets) && t.assets.length ? (mt("[Grid LoadPage] empty response with cached visible assets  -  preserving cached view", {
+						}), Lu(t), g.resetCount += 1, p = !1, null) : Array.isArray(t.assets) && t.assets.length ? (ht("[Grid LoadPage] empty response with cached visible assets  -  preserving cached view", {
 							offset: t.offset,
 							query: t.query
 						}), {
@@ -6731,18 +6732,18 @@ function Ru({ gridContainerRef: e, state: t, setLoadingMessage: n, clearLoadingM
 						}) : null;
 					},
 					onEmptyPage: (e) => {
-						e.emptyPageIndex <= 0 || mt(`[Grid LoadPage] fetched adaptive page with no visible additions: offset=${t.offset}, fetched=${e.count}, consumed=${e.advanced}, added=${e.added}, limit=${e.limit}, done=${t.done}, visibleCount=${t.assets.length}, total=${t.total}`);
+						e.emptyPageIndex <= 0 || ht(`[Grid LoadPage] fetched adaptive page with no visible additions: offset=${t.offset}, fetched=${e.count}, consumed=${e.advanced}, added=${e.added}, limit=${e.limit}, done=${t.done}, visibleCount=${t.assets.length}, total=${t.total}`);
 					}
 				});
-				if (L(), de(), !r.ok) return r.aborted || r.stale || (ue({ done: !0 }), i(Nu("Failed to load assets", r?.error || "Unknown error"), { error: !0 })), r;
+				if (pe(), me(), !r.ok) return r.aborted || r.stale || (de({ done: !0 }), i(Nu("Failed to load assets", r?.error || "Unknown error"), { error: !0 })), r;
 				if (r.preservedCached) return r;
-				if (t.done || r.added > 0) return re(t.query || il(e, "*")), {
+				if (t.done || r.added > 0) return P(t.query || il(e, "*")), {
 					ok: !0,
 					count: r.count,
 					total: t.total
 				};
 				let a = r.lastResult || r.firstResult || r;
-				return mt(`[Grid LoadPage] fetched one page with no visible additions: offset=${t.offset}, fetched=${r.count}, consumed=${a.advanced}, added=${a.added}, limit=${a.limit || h}, done=${t.done}, visibleCount=${t.assets.length}, total=${t.total}`), !t.done && Iu() && te(Number(t.requestId ?? 0) || 0, Math.min(R.PREFETCH_NEXT_PAGE_DELAY_MS ?? 700, 250)), {
+				return ht(`[Grid LoadPage] fetched one page with no visible additions: offset=${t.offset}, fetched=${r.count}, consumed=${a.advanced}, added=${a.added}, limit=${a.limit || h}, done=${t.done}, visibleCount=${t.assets.length}, total=${t.total}`), !t.done && Iu() && te(Number(t.requestId ?? 0) || 0, Math.min(R.PREFETCH_NEXT_PAGE_DELAY_MS ?? 700, 250)), {
 					ok: !0,
 					count: r.count,
 					total: t.total,
@@ -6793,11 +6794,11 @@ function Ru({ gridContainerRef: e, state: t, setLoadingMessage: n, clearLoadingM
 			t.loading = !1, r();
 		}
 	}
-	let me = null;
-	function he(e = 250) {
+	let _e = null;
+	function ve(e = 250) {
 		v("refreshHead", { appendReason: "snapshotHeadRefresh" });
 		try {
-			me && clearTimeout(me);
+			_e && clearTimeout(_e);
 		} catch (e) {
 			console.debug?.(e);
 		}
@@ -6807,8 +6808,8 @@ function Ru({ gridContainerRef: e, state: t, setLoadingMessage: n, clearLoadingM
 		} catch (e) {
 			console.debug?.(e);
 		}
-		me = setTimeout(async () => {
-			if (me = null, Number(t.requestId) !== Number(n) || ee() || !y()) return;
+		_e = setTimeout(async () => {
+			if (_e = null, Number(t.requestId) !== Number(n) || ee() || !y()) return;
 			if (r) {
 				let e = null;
 				try {
@@ -6817,13 +6818,13 @@ function Ru({ gridContainerRef: e, state: t, setLoadingMessage: n, clearLoadingM
 					console.debug?.(e);
 				}
 				if (e && e !== r) {
-					mt("[Grid] Snapshot head refresh skipped  -  context changed");
+					ht("[Grid] Snapshot head refresh skipped  -  context changed");
 					return;
 				}
 			}
 			let e = Math.max(1, Math.min(R.MAX_PAGE_SIZE, R.DEFAULT_PAGE_SIZE));
 			try {
-				let i = await se(t.query || "*", e, 0, {
+				let i = await ce(t.query || "*", e, 0, {
 					requestId: n,
 					signal: t.abortController?.signal || null
 				});
@@ -6836,22 +6837,22 @@ function Ru({ gridContainerRef: e, state: t, setLoadingMessage: n, clearLoadingM
 						console.debug?.(e);
 					}
 					if (e && e !== r) {
-						mt("[Grid] Snapshot head refresh discarded  -  context changed mid-fetch");
+						ht("[Grid] Snapshot head refresh discarded  -  context changed mid-fetch");
 						return;
 					}
 				}
 				if (!i?.ok) return;
 				let a = Array.isArray(i.assets) ? i.assets : [];
-				if (i.total != null && ue({ total: i.total }), !a.length) return;
+				if (i.total != null && de({ total: i.total }), !a.length) return;
 				let o = 0;
-				for (let e of a) e && e.id != null && Ee(e) && (o += 1);
-				o > 0 && (re(t.query || "*"), mt("[Grid] Snapshot head refresh: inserted", o, "new asset(s)"));
+				for (let e of a) e && e.id != null && Oe(e) && (o += 1);
+				o > 0 && (P(t.query || "*"), ht("[Grid] Snapshot head refresh: inserted", o, "new asset(s)"));
 			} catch (e) {
 				console.debug?.("[Grid] Snapshot head refresh failed", e);
 			}
 		}, Math.max(0, Number(e) || 0));
 	}
-	async function ge(e = "*", i = {}) {
+	async function be(e = "*", i = {}) {
 		let s = t.requestId, { reset: c = !0, preserveVisibleUntilReady: l = !0 } = i || {}, u = y();
 		if (!u) return {
 			ok: !1,
@@ -6878,7 +6879,7 @@ function Ru({ gridContainerRef: e, state: t, setLoadingMessage: n, clearLoadingM
 				let n = C();
 				n.query = m;
 				let r = Fl(n);
-				if (P() && Kl(r) && (e = await we(n, { allowReplaceExisting: !0 }), t.requestId > s + +!!e)) return console.debug?.("[Grid] loadAssets aborted during deferral due to scope switch"), {
+				if (N() && Kl(r) && (e = await Ee(n, { allowReplaceExisting: !0 }), t.requestId > s + +!!e)) return console.debug?.("[Grid] loadAssets aborted during deferral due to scope switch"), {
 					ok: !1,
 					aborted: !0
 				};
@@ -6912,7 +6913,7 @@ function Ru({ gridContainerRef: e, state: t, setLoadingMessage: n, clearLoadingM
 			} catch {
 				t.abortController = null;
 			}
-			t.requestId = (Number(t.requestId) || 0) + 1, M(), ie(), a(), p ? (t.query = m, ue({
+			t.requestId = (Number(t.requestId) || 0) + 1, M(), F(), a(), p ? (t.query = m, de({
 				offset: 0,
 				cursor: null,
 				total: null,
@@ -6920,20 +6921,20 @@ function Ru({ gridContainerRef: e, state: t, setLoadingMessage: n, clearLoadingM
 			}), Lu(t, {
 				rebuildFromVisible: !0,
 				preserveHiddenCount: !0,
-				assetKey: (e) => N(e, u)
+				assetKey: (e) => re(e, u)
 			})) : (o({
 				query: m,
 				total: null,
 				done: !1
-			}), ue({
+			}), de({
 				offset: 0,
 				cursor: null,
 				total: null,
 				done: !1
 			}), Lu(t), g.resetCount += 1), n(m === "*" ? "Loading assets..." : `Searching for "${m}"...`);
 		}
-		let _ = await pe();
-		return de(), Iu() && _?.ok && !_?.skipped && !t.done && !_?.aborted && te(t.requestId), c && (fe({
+		let _ = await ge();
+		return me(), Iu() && _?.ok && !_?.skipped && !t.done && !_?.aborted && te(t.requestId), c && (he({
 			title: m,
 			showEmptyMessage: !(_?.skipped || _?.hidden || _?.aborted || _?.stale || _?.preservedCached || _?.busy)
 		}), O(h.nextContext)), {
@@ -6944,7 +6945,7 @@ function Ru({ gridContainerRef: e, state: t, setLoadingMessage: n, clearLoadingM
 			aborted: !!_?.aborted
 		};
 	}
-	async function _e(e, s = {}) {
+	async function xe(e, s = {}) {
 		let { title: c = "Collection", reset: l = !0, showLoading: u = !0, preserveVisibleUntilReady: d = !0 } = s || {};
 		v("reload", { reloadReason: s?.resetReason || s?.reason || "collection" });
 		let f = y();
@@ -6968,7 +6969,7 @@ function Ru({ gridContainerRef: e, state: t, setLoadingMessage: n, clearLoadingM
 			} catch {
 				t.abortController = null;
 			}
-			t.requestId = (Number(t.requestId) || 0) + 1, ie(), a(), h ? (t.query = String(c || "Collection"), ue({
+			t.requestId = (Number(t.requestId) || 0) + 1, F(), a(), h ? (t.query = String(c || "Collection"), de({
 				offset: 0,
 				cursor: null,
 				total: p.length,
@@ -6977,7 +6978,7 @@ function Ru({ gridContainerRef: e, state: t, setLoadingMessage: n, clearLoadingM
 				query: String(c || "Collection"),
 				total: p.length,
 				done: !0
-			}), ue({
+			}), de({
 				offset: 0,
 				cursor: null,
 				total: p.length,
@@ -6990,12 +6991,12 @@ function Ru({ gridContainerRef: e, state: t, setLoadingMessage: n, clearLoadingM
 				query: String(c || "Collection"),
 				total: p.length,
 				done: !0
-			}), Lu(t), g.resetCount += 1), F(f, n), ue({
+			}), Lu(t), g.resetCount += 1), ie(f, n), de({
 				offset: n.length,
 				cursor: null,
 				total: n.length,
 				done: !0
-			}), fe({ title: c }), O(w(String(c || "Collection"))), {
+			}), he({ title: c }), O(w(String(c || "Collection"))), {
 				ok: !0,
 				count: n.length,
 				total: n.length
@@ -7015,7 +7016,7 @@ function Ru({ gridContainerRef: e, state: t, setLoadingMessage: n, clearLoadingM
 			t.loading = !1, u && r();
 		}
 	}
-	function ve() {
+	function Se() {
 		v("reload", { reloadReason: "scopeSwitch" });
 		try {
 			Mo(y());
@@ -7027,19 +7028,19 @@ function Ru({ gridContainerRef: e, state: t, setLoadingMessage: n, clearLoadingM
 		} catch (e) {
 			console.debug?.(e);
 		}
-		t.abortController = null, t.requestId = (Number(t.requestId) || 0) + 1, t.loading = !0, ue({
+		t.abortController = null, t.requestId = (Number(t.requestId) || 0) + 1, t.loading = !0, de({
 			offset: 0,
 			cursor: null,
 			total: null,
 			done: !1
-		}), M(), ie(), r(), a(), p = !0, s([], "");
+		}), M(), F(), r(), a(), p = !0, s([], "");
 	}
-	function ye() {
+	function Ce() {
 		t.virtualGrid?.setItems?.(t.assets || []);
 	}
-	function be(e, { updateSelection: n = !0 } = {}) {
-		let r = Zl(t, e, { assetKey: (e) => N(e, y()) });
-		return r ? (Number.isFinite(Number(t.total)) && ue({ total: Math.max(0, Number(t.total || 0) - r) }), n && c(t.assets.map((e) => String(e?.id || "")).filter(Boolean), { activeId: t.activeId }), !t.assets.length && !t.loading && i("No assets found"), {
+	function we(e, { updateSelection: n = !0 } = {}) {
+		let r = Zl(t, e, { assetKey: (e) => re(e, y()) });
+		return r ? (Number.isFinite(Number(t.total)) && de({ total: Math.max(0, Number(t.total || 0) - r) }), n && c(t.assets.map((e) => String(e?.id || "")).filter(Boolean), { activeId: t.activeId }), !t.assets.length && !t.loading && i("No assets found"), {
 			ok: !0,
 			removed: r,
 			selectedIds: t.selectedIds.slice()
@@ -7049,7 +7050,7 @@ function Ru({ gridContainerRef: e, state: t, setLoadingMessage: n, clearLoadingM
 			selectedIds: t.selectedIds.slice()
 		};
 	}
-	function xe() {
+	function Te() {
 		let e = y(), t = l();
 		if (!e || !t) return null;
 		let n = (e) => {
@@ -7073,7 +7074,7 @@ function Ru({ gridContainerRef: e, state: t, setLoadingMessage: n, clearLoadingM
 			return console.debug?.(e), null;
 		}
 	}
-	async function Ce(e) {
+	async function I(e) {
 		let t = y(), n = l();
 		if (!t || !n || !e) return;
 		await Mu();
@@ -7092,9 +7093,9 @@ function Ru({ gridContainerRef: e, state: t, setLoadingMessage: n, clearLoadingM
 			console.debug?.(t), n.scrollTop = Number(e.scrollTop || 0) || 0, g.scrollRestoreCount += 1;
 		}
 	}
-	async function we(e = {}, n = {}) {
+	async function Ee(e = {}, n = {}) {
 		let i = y();
-		if (!i || !P()) return !1;
+		if (!i || !N()) return !1;
 		let s = Fl(e), c = Gl(s);
 		if (!c || !Array.isArray(c.assets) || !c.assets.length || !n.allowReplaceExisting && Array.isArray(t.assets) && t.assets.length) return !1;
 		g.lastResetReason = "snapshot";
@@ -7108,11 +7109,11 @@ function Ru({ gridContainerRef: e, state: t, setLoadingMessage: n, clearLoadingM
 		} catch {
 			t.abortController = null;
 		}
-		return t.requestId = (Number(t.requestId) || 0) + 1, M(), ie(), o({
+		return t.requestId = (Number(t.requestId) || 0) + 1, M(), F(), o({
 			query: c.query || n.title || "Cached",
 			total: Number(c.total ?? c.assets.length) || c.assets.length,
 			done: !!c.done
-		}), Lu(t), g.resetCount += 1, a(), r(), t.loading = !1, F(i, c.assets), ue({
+		}), Lu(t), g.resetCount += 1, a(), r(), t.loading = !1, ie(i, c.assets), de({
 			offset: Math.max(Number(c.assets.length || 0) || 0, Number(c.offset || c.assets.length) || c.assets.length),
 			cursor: c.cursor || null,
 			total: Number(c.total ?? c.assets.length) || c.assets.length,
@@ -7120,38 +7121,38 @@ function Ru({ gridContainerRef: e, state: t, setLoadingMessage: n, clearLoadingM
 		}), t._mjrLastHydrateKey = s, t._mjrLastHydrateAt = Date.now(), O({
 			...e,
 			query: c.query || e.query || "*"
-		}), p = !1, fe({ title: c.title || n.title || "Cached" }), !0;
+		}), p = !1, he({ title: c.title || n.title || "Cached" }), !0;
 	}
-	function Te(e) {
+	function De(e) {
 		return {
 			getOrCreateState: () => t,
 			ensureVirtualGrid: () => t.virtualGrid,
 			upsertState: wu,
 			maxBatchSize: Cu,
 			debounceMs: Su,
-			assetKey: (t) => Ou(t) || N(t, e),
-			loadMajoorSettings: Pt
+			assetKey: (t) => Ou(t) || re(t, e),
+			loadMajoorSettings: Ft
 		};
 	}
-	function Ee(e) {
+	function Oe(e) {
 		v("upsertRealtime", { appendReason: "realtime" });
 		let t = y();
-		return !t || !e || !e.id ? !1 : gu(t, e, Te(t));
+		return !t || !e || !e.id ? !1 : gu(t, e, De(t));
 	}
-	let De = !1;
-	function Oe(e) {
+	let ke = !1;
+	function Ae(e) {
 		v("upsertRealtime", { appendReason: "realtimeImmediate" });
 		let t = y();
 		if (!t || !e || !e.id) return !1;
-		let n = gu(t, e, Te(t));
-		return n && !De && (De = !0, queueMicrotask(() => {
-			De = !1;
+		let n = gu(t, e, De(t));
+		return n && !ke && (ke = !0, queueMicrotask(() => {
+			ke = !1;
 			let e = y();
-			e && hu(e, Te(e));
+			e && hu(e, De(e));
 		})), n;
 	}
-	function ke() {
-		re(t.query || "Cached");
+	function je() {
+		P(t.query || "Cached");
 		try {
 			Wl();
 		} catch (e) {
@@ -7171,38 +7172,38 @@ function Ru({ gridContainerRef: e, state: t, setLoadingMessage: n, clearLoadingM
 			console.debug?.(e);
 		}
 		try {
-			window.removeEventListener("pagehide", ke);
+			window.removeEventListener("pagehide", je);
 		} catch (e) {
 			console.debug?.(e);
 		}
 	}
 	try {
-		window.addEventListener("pagehide", ke, { once: !0 });
+		window.addEventListener("pagehide", je, { once: !0 });
 	} catch (e) {
 		console.debug?.(e);
 	}
 	return {
-		reload: ge,
-		appendNextPage: pe,
-		refreshHead: he,
-		upsertRealtime: Oe,
-		loadAssets: ge,
-		loadAssetsFromList: _e,
-		loadNextPage: pe,
-		prepareGridForScopeSwitch: ve,
-		refreshGrid: ye,
-		removeAssets: be,
-		captureAnchor: xe,
-		restoreAnchor: Ce,
-		hydrateFromSnapshot: we,
-		upsertAsset: Ee,
-		upsertAssetNow: Oe,
+		reload: be,
+		appendNextPage: ge,
+		refreshHead: ve,
+		upsertRealtime: Ae,
+		loadAssets: be,
+		loadAssetsFromList: xe,
+		loadNextPage: ge,
+		prepareGridForScopeSwitch: Se,
+		refreshGrid: Ce,
+		removeAssets: we,
+		captureAnchor: Te,
+		restoreAnchor: I,
+		hydrateFromSnapshot: Ee,
+		upsertAsset: Oe,
+		upsertAssetNow: Ae,
 		getCanonicalState: x,
 		getDebugSnapshot: S,
-		dispose: ke
+		dispose: je
 	};
 }
-// node_modules/@tanstack/virtual-core/dist/esm/lazy-measurements.js
+// ../../../../../../../../ComfyUI-Installs/ComfyUI (from Portable)/ComfyUI/custom_nodes/ComfyUI-Majoor-AssetsManager/node_modules/@tanstack/virtual-core/dist/esm/lazy-measurements.js
 function zu(e) {
 	return typeof e == "object" ? e.key : e;
 }
@@ -7234,7 +7235,7 @@ function Bu(e, t) {
 		return Reflect.get(e, r, i);
 	} });
 }
-// node_modules/@tanstack/virtual-core/dist/esm/utils.js
+// ../../../../../../../../ComfyUI-Installs/ComfyUI (from Portable)/ComfyUI/custom_nodes/ComfyUI-Majoor-AssetsManager/node_modules/@tanstack/virtual-core/dist/esm/utils.js
 function Vu(e, t, n) {
 	let r = n.initialDeps ?? [], i, a = !0;
 	function o() {
@@ -7917,12 +7918,12 @@ function sd(e, t, n, r, i) {
 		endIndex: s
 	};
 }
-// node_modules/@tanstack/vue-virtual/dist/esm/index.js
+// ../../../../../../../../ComfyUI-Installs/ComfyUI (from Portable)/ComfyUI/custom_nodes/ComfyUI-Majoor-AssetsManager/node_modules/@tanstack/vue-virtual/dist/esm/index.js
 function cd(e) {
 	let t = new id(Z(e)), n = gr(t), r = t._didMount();
-	return cr(() => Z(e).getScrollElement(), (e) => {
+	return q(() => Z(e).getScrollElement(), (e) => {
 		e && t._willUpdate();
-	}, { immediate: !0 }), cr(() => Z(e), (e) => {
+	}, { immediate: !0 }), q(() => Z(e), (e) => {
 		t.setOptions({
 			...e,
 			onChange: (t, r) => {
@@ -7933,7 +7934,7 @@ function cd(e) {
 	}, { immediate: !0 }), ur(r), n;
 }
 function ld(e) {
-	return cd(K(() => ({
+	return cd(G(() => ({
 		observeElementRect: Xu,
 		observeElementOffset: ed,
 		scrollToFn: nd,
@@ -7958,13 +7959,13 @@ function fd(e = [], t = 0, n = 1) {
 	return r.slice(a, a + i);
 }
 function pd({ scrollRef: e, items: t, rows: n, columnCount: r, estimateRowHeight: i, overscan: a = 8, enabled: o = !0, measure: s = td } = {}) {
-	let c = K(() => {
+	let c = G(() => {
 		if (!Z(o)) return 0;
 		let e = Z(n);
 		if (Array.isArray(e)) return e.length;
 		let i = Z(t) || [], a = Math.max(1, ud(r, 1));
 		return Math.ceil((Array.isArray(i) ? i.length : 0) / a);
-	}), l = ld(K(() => ({
+	}), l = ld(G(() => ({
 		count: c.value,
 		getScrollElement: () => Z(e) || null,
 		estimateSize: () => Math.max(1, ud(i, 120)),
@@ -7974,7 +7975,7 @@ function pd({ scrollRef: e, items: t, rows: n, columnCount: r, estimateRowHeight
 	return {
 		rowCount: c,
 		virtualizer: l,
-		virtualRows: K(() => {
+		virtualRows: G(() => {
 			let e = Z(n);
 			if (Array.isArray(e)) return l.value.getVirtualItems().map((t) => {
 				let n = e[t.index] || {};
@@ -7999,7 +8000,7 @@ function pd({ scrollRef: e, items: t, rows: n, columnCount: r, estimateRowHeight
 				groupKey: ""
 			}));
 		}),
-		totalSize: K(() => l.value.getTotalSize()),
+		totalSize: G(() => l.value.getTotalSize()),
 		getRowItems: (e) => fd(Z(t) || [], e, ud(r, 1))
 	};
 }
@@ -8039,7 +8040,7 @@ function hd({ rootRef: e, enabled: t = !0, canLoad: n = !0, loadMore: r, rootMar
 			threshold: a
 		}), s.observe(t));
 	}
-	return Zn() && ($n(d), sr(l), cr(() => [Z(e), o.value], () => d(), { flush: "post" })), {
+	return Qn() && (er(d), cr(l), q(() => [Z(e), o.value], () => d(), { flush: "post" })), {
 		sentinelRef: o,
 		connect: d,
 		disconnect: l,
@@ -8190,7 +8191,7 @@ var Ed = {
 	"onMousedown",
 	"onClick",
 	"onDblclick"
-], zd = 501, Bd = /* @__PURE__ */ rr({
+], zd = 501, Bd = /* @__PURE__ */ ir({
 	__name: "VirtualAssetGridHost",
 	props: {
 		scrollElement: { default: null },
@@ -8215,15 +8216,15 @@ var Ed = {
 			default: !0
 		}
 	},
-	setup(e, { expose: t }) {
-		let n = e, r = Q(null), i = Q(1024);
+	setup(e, { expose: n }) {
+		let r = e, i = Q(null), o = Q(1024);
 		Q(!0);
-		let a = Q(0), o = Q(0), s = /* @__PURE__ */ new WeakMap(), c = 0, u = 0, d = 0, f = 0, p = 0, h = /* @__PURE__ */ new Map(), g = null, _ = null;
+		let s = Q(0), c = Q(0), l = /* @__PURE__ */ new WeakMap(), u = 0, d = 0, f = 0, p = 0, m = 0, h = /* @__PURE__ */ new Map(), g = null, _ = null;
 		function v() {
 			return g ||= import("./chunks/viewerOpenRequest-WOJE90Gn.js").then((e) => e.n), g;
 		}
 		function y() {
-			return _ ||= import("./chunks/floatingViewerManager-DbOx9dhE.js").then((e) => e.n), _;
+			return _ ||= import("./chunks/floatingViewerManager-Dn53ZRsL.js").then((e) => e.n), _;
 		}
 		function b(e) {
 			return (Array.isArray(e) ? e : []).slice().sort((e, t) => {
@@ -8231,26 +8232,26 @@ var Ed = {
 				return (Number(t?.mtime || t?.created_at || 0) || 0) - n;
 			});
 		}
-		Qn("mjrStackService", {
+		$n("mjrStackService", {
 			openStackGroup: async (e) => {
-				let t = r.value;
+				let t = i.value;
 				if (!t || !e) return;
 				let n = String(e.stack_id || "").trim();
 				if (!n) return;
-				let i = `stack:${n}`;
+				let r = `stack:${n}`;
 				t._mjrStackMembersCache ||= /* @__PURE__ */ new Map();
-				let a = t._mjrStackMembersCache.get(i);
+				let a = t._mjrStackMembersCache.get(r);
 				if (!Array.isArray(a)) {
-					let e = h.get(i);
-					e || (e = Ie(Te(n, { limit: zd }), { timeoutMs: 3e4 }).finally(() => {
-						h.delete(i);
-					}), h.set(i, e));
-					let r = await e;
-					if (r?.ok && Array.isArray(r?.data)) a = r.data, t._mjrStackMembersCache.set(i, a);
+					let e = h.get(r);
+					e || (e = fe(Ue(n, { limit: zd }), { timeoutMs: 3e4 }).finally(() => {
+						h.delete(r);
+					}), h.set(r, e));
+					let i = await e;
+					if (i?.ok && Array.isArray(i?.data)) a = i.data, t._mjrStackMembersCache.set(r, a);
 					else return;
 				}
 				let o = b(a);
-				t.dispatchEvent(new CustomEvent(B.OPEN_STACK_GROUP, {
+				t.dispatchEvent(new CustomEvent(z.OPEN_STACK_GROUP, {
 					bubbles: !0,
 					detail: {
 						asset: e,
@@ -8261,10 +8262,10 @@ var Ed = {
 				}));
 			},
 			openDupGroup: (e) => {
-				let t = r.value;
+				let t = i.value;
 				if (!t || !e) return;
 				let n = Td(Array.isArray(e._mjrDupMembers) ? e._mjrDupMembers : [e]);
-				t.dispatchEvent(new CustomEvent(B.OPEN_STACK_GROUP, {
+				t.dispatchEvent(new CustomEvent(z.OPEN_STACK_GROUP, {
 					bubbles: !0,
 					detail: {
 						asset: e,
@@ -8275,28 +8276,28 @@ var Ed = {
 				}));
 			}
 		});
-		let { state: x, selectedIdSet: S, setLoadingMessage: C, clearLoadingMessage: w, setStatusMessage: T, clearStatusMessage: E, resetAssets: D, setSelection: k, reconcileSelection: A, getSelectedAssets: ee, getActiveAsset: j } = Jc();
-		function M(e) {
+		let { state: x, selectedIdSet: S, setLoadingMessage: C, clearLoadingMessage: w, setStatusMessage: T, clearStatusMessage: E, resetAssets: D, setSelection: O, reconcileSelection: k, getSelectedAssets: A, getActiveAsset: ee } = Jc();
+		function j(e) {
 			return e ? typeof e == "object" && "value" in e ? e.value || null : e : null;
 		}
-		let N = K(() => M(n.scrollElement));
-		function P() {
-			return vu(r.value);
+		let M = G(() => j(r.scrollElement));
+		function te() {
+			return vu(i.value);
 		}
 		function re(e, { align: t = "auto" } = {}) {
-			let r = String(e || "").trim();
-			if (!r) return;
-			let i = (Array.isArray(Se.value) ? Se.value : []).findIndex((e) => String(e?.id || "") === r);
+			let n = String(e || "").trim();
+			if (!n) return;
+			let i = (Array.isArray(Te.value) ? Te.value : []).findIndex((e) => String(e?.id || "") === n);
 			if (!(i < 0)) {
-				if (n.virtualize) {
-					let e = Math.floor(i / Math.max(1, He.value));
+				if (r.virtualize) {
+					let e = Math.floor(i / Math.max(1, Ve.value));
 					try {
-						z.value.scrollToIndex(e, { align: t });
+						Qe.value.scrollToIndex(e, { align: t });
 					} catch (e) {
 						console.debug?.(e);
 					}
 				} else try {
-					x.cardElements.get(r)?.scrollIntoView?.({
+					x.cardElements.get(n)?.scrollIntoView?.({
 						block: "nearest",
 						inline: "nearest"
 					});
@@ -8305,31 +8306,31 @@ var Ed = {
 				}
 			}
 		}
-		function ie() {
-			return Qc(r.value, N.value);
+		function N() {
+			return Qc(i.value, M.value);
 		}
-		let F = Ru({
-			gridContainerRef: r,
+		let P = Ru({
+			gridContainerRef: i,
 			state: x,
 			setLoadingMessage: C,
 			clearLoadingMessage: w,
 			setStatusMessage: T,
 			clearStatusMessage: E,
 			resetAssets: D,
-			setSelection: k,
-			reconcileSelection: A,
-			readScrollElement: () => N.value,
-			readRenderedCards: P,
+			setSelection: O,
+			reconcileSelection: k,
+			readScrollElement: () => M.value,
+			readRenderedCards: te,
 			scrollToAssetId: re,
-			canLoadMore: ie
-		}), { sentinelRef: ae } = hd({
-			rootRef: N,
+			canLoadMore: N
+		}), { sentinelRef: ie } = hd({
+			rootRef: M,
 			enabled: !0,
-			canLoad: K(() => !x.loading && !x.done && ie()),
-			loadMore: () => F.loadNextPage(),
+			canLoad: G(() => !x.loading && !x.done && N()),
+			loadMore: () => P.loadNextPage(),
 			rootMargin: "900px"
 		});
-		function I(e) {
+		function ae(e) {
 			let t = String(e?.filename || ""), n = t.lastIndexOf(".");
 			return n >= 0 ? t.slice(n + 1).toUpperCase() : "";
 		}
@@ -8346,10 +8347,10 @@ var Ed = {
 		function le(e) {
 			return String(e?.kind || "").toLowerCase() === "workflow";
 		}
-		function ue() {
-			return String(we.value || "").trim().toLowerCase() === "workflow";
+		function de() {
+			return String(De.value || "").trim().toLowerCase() === "workflow";
 		}
-		function de(e) {
+		function pe(e) {
 			let t = String(e || "none").trim().toLowerCase();
 			return [
 				"task",
@@ -8357,29 +8358,29 @@ var Ed = {
 				"category"
 			].includes(t) ? t : "none";
 		}
-		function fe(e) {
+		function me(e) {
 			let t = String(e || ""), n = 0;
 			for (let e = 0; e < t.length; e += 1) n = (n << 5) - n + t.charCodeAt(e), n |= 0;
 			return `hsl(${Math.abs(n) % 360}deg 68% 60%)`;
 		}
-		function pe(e, t) {
+		function he(e, t) {
 			return !e || typeof e != "object" ? "Ungrouped" : t === "task" ? String(e?.task || e?.workflow_task || "").trim() || "Task: Unknown" : t === "model" ? String(e?.model_family || e?.workflow_model_family || e?.workflow_model || e?.model || "").trim() || "Model: Unknown" : t === "category" ? String(e?.category || e?.subfolder || e?.workflow_category || "").trim() || "Category: Uncategorized" : "Ungrouped";
 		}
-		function me(e, t) {
+		function ge(e, t) {
 			return (Array.isArray(e) ? e : []).slice().sort((e, n) => {
-				let r = pe(e, t).toLowerCase(), i = pe(n, t).toLowerCase();
+				let r = he(e, t).toLowerCase(), i = he(n, t).toLowerCase();
 				if (r < i) return -1;
 				if (r > i) return 1;
 				let a = Number(e?.mtime || e?.created_at || 0) || 0;
 				return (Number(n?.mtime || n?.created_at || 0) || 0) - a;
 			});
 		}
-		function he(e, t, n) {
-			let r = me(e, n), i = [];
+		function _e(e, t, n) {
+			let r = ge(e, n), i = [];
 			if (!r.length) return i;
 			let a = /* @__PURE__ */ new Map();
 			for (let e of r) {
-				let t = le(e) ? pe(e, n) : "Other";
+				let t = le(e) ? he(e, n) : "Other";
 				a.has(t) || a.set(t, []), a.get(t).push(e);
 			}
 			let o = Array.from(a.keys());
@@ -8390,7 +8391,7 @@ var Ed = {
 					title: e,
 					groupKey: e,
 					groupCount: n.length,
-					accent: fe(e),
+					accent: me(e),
 					items: []
 				});
 				for (let r = 0; r < n.length; r += t) i.push({
@@ -8398,104 +8399,104 @@ var Ed = {
 					title: "",
 					groupKey: e,
 					groupCount: n.length,
-					accent: fe(e),
+					accent: me(e),
 					items: n.slice(r, r + t)
 				});
 			}
 			return i;
 		}
-		function ge(e) {
-			let t = r.value;
+		function ve(e) {
+			let t = i.value;
 			return !t || String(t.dataset?.mjrGroupStacks || "") !== "1" ? !1 : !!String(e?.stack_id || "").trim() && Number(e?.stack_asset_count || 0) > 1;
 		}
-		function _e(e) {
+		function ye(e) {
 			return e?._mjrLivePlaceholder === !0 || e?.is_live_placeholder === !0 || String(e?.id || "").trim().toLowerCase().startsWith("live:");
 		}
-		function ve() {
-			let e = r.value;
+		function be() {
+			let e = i.value;
 			if (!e) return;
 			let t = new Set((Array.isArray(x.selectedIds) ? x.selectedIds : []).map((e) => String(e || "").trim()).filter(Boolean));
-			ft(e, t, x.activeId || "");
+			pt(e, t, x.activeId || "");
 			try {
 				t.size ? e.dataset.mjrSelectedAssetId = String(x.activeId || Array.from(t)[0] || "") : delete e.dataset.mjrSelectedAssetId;
 			} catch (e) {
 				console.debug?.(e);
 			}
 		}
-		function ye() {
-			let e = r.value;
+		function xe() {
+			let e = i.value;
 			if (!e) return;
-			let t = Array.isArray(x.selectedIds) ? x.selectedIds.slice() : [], i = String(x.activeId || ""), a = `${t.join("|")}::${i}`;
-			if (a === ye._lastSelectionKey) return;
-			ye._lastSelectionKey = a;
+			let t = Array.isArray(x.selectedIds) ? x.selectedIds.slice() : [], n = String(x.activeId || ""), a = `${t.join("|")}::${n}`;
+			if (a === xe._lastSelectionKey) return;
+			xe._lastSelectionKey = a;
 			let o = {
 				selectedIds: t,
-				activeId: i,
-				selectedAssets: ee()
+				activeId: n,
+				selectedAssets: A()
 			};
 			try {
 				e.dispatchEvent(new CustomEvent("mjr:selection-changed", { detail: o }));
 			} catch (e) {
 				console.debug?.(e);
 			}
-			if (n.emitWindowSelectionEvents) try {
+			if (r.emitWindowSelectionEvents) try {
 				window.dispatchEvent(new CustomEvent("mjr:selection-changed", { detail: o }));
 			} catch (e) {
 				console.debug?.(e);
 			}
 		}
-		ye._lastSelectionKey = "";
-		let be = Q(""), xe = K(() => wd(x.assets, { collapseDuplicates: be.value !== "similar" })), Se = K(() => (Array.isArray(xe.value) ? xe.value : []).filter((e) => vd(e))), Ce = Q(/* @__PURE__ */ new Set()), we = Q(""), Ee = K(() => {
-			a.value;
-			let e = de(R.WORKFLOW_GRID_GROUP_BY);
-			return e === "none" || we.value !== "workflow" ? "none" : e;
-		}), Oe = K(() => {
-			let e = Array.isArray(Se.value) ? Se.value : [];
+		xe._lastSelectionKey = "";
+		let Ce = Q(""), we = G(() => wd(x.assets, { collapseDuplicates: Ce.value !== "similar" })), Te = G(() => (Array.isArray(we.value) ? we.value : []).filter((e) => vd(e))), Ee = Q(/* @__PURE__ */ new Set()), De = Q(""), Oe = G(() => {
+			s.value;
+			let e = pe(R.WORKFLOW_GRID_GROUP_BY);
+			return e === "none" || De.value !== "workflow" ? "none" : e;
+		}), ke = G(() => {
+			let e = Array.isArray(Te.value) ? Te.value : [];
 			if (!e.length) return [];
-			let t = Ee.value;
-			return t === "none" ? [] : he(e, He.value, t);
+			let t = Oe.value;
+			return t === "none" ? [] : _e(e, Ve.value, t);
 		});
-		cr(() => `${Ee.value}::${Oe.value.map((e) => `${e.kind}:${e.groupKey}`).join("|")}`, () => {
-			if (Ee.value === "none") {
-				Ce.value = /* @__PURE__ */ new Set();
+		q(() => `${Oe.value}::${ke.value.map((e) => `${e.kind}:${e.groupKey}`).join("|")}`, () => {
+			if (Oe.value === "none") {
+				Ee.value = /* @__PURE__ */ new Set();
 				return;
 			}
-			let e = /* @__PURE__ */ new Set(), t = Ce.value;
-			for (let n of Oe.value) {
+			let e = /* @__PURE__ */ new Set(), t = Ee.value;
+			for (let n of ke.value) {
 				if (n?.kind !== "header") continue;
 				let r = String(n.groupKey || "");
 				r && t.has(r) && e.add(r);
 			}
-			Ce.value = e;
+			Ee.value = e;
 		}, { immediate: !0 });
-		function ke(e) {
-			let t = String(e || "");
-			return t ? Ce.value.has(t) : !1;
-		}
 		function Ae(e) {
 			let t = String(e || "");
-			if (!t) return;
-			let n = new Set(Ce.value);
-			n.has(t) ? n.delete(t) : n.add(t), Ce.value = n;
+			return t ? Ee.value.has(t) : !1;
 		}
 		function je(e) {
+			let t = String(e || "");
+			if (!t) return;
+			let n = new Set(Ee.value);
+			n.has(t) ? n.delete(t) : n.add(t), Ee.value = n;
+		}
+		function Me(e) {
 			let t = String(e?.groupKey || e?.title || ""), n = 0;
 			for (let e = 0; e < t.length; e += 1) n = (n << 5) - n + t.charCodeAt(e) | 0;
 			return `mjr-grid-group-separator--accent-${Math.abs(n) % 8}`;
 		}
-		let Me = K(() => {
-			let e = Array.isArray(Se.value) ? Se.value : [];
+		let Ne = G(() => {
+			let e = Array.isArray(Te.value) ? Te.value : [];
 			if (!e.length) return [];
-			if (Ee.value === "none") return dd(e, He.value);
-			let t = Array.isArray(Oe.value) ? Oe.value : [], n = [];
-			for (let e of t) e?.kind === "header" ? n.push(e) : ke(String(e?.groupKey || "")) || n.push(e);
+			if (Oe.value === "none") return dd(e, Ve.value);
+			let t = Array.isArray(ke.value) ? ke.value : [], n = [];
+			for (let e of t) e?.kind === "header" ? n.push(e) : Ae(String(e?.groupKey || "")) || n.push(e);
 			return n;
 		});
-		function Ne() {
-			let e = r.value;
+		function Pe() {
+			let e = i.value;
 			if (!e) return;
 			let t = {
-				count: Array.isArray(Se.value) ? Se.value.length : 0,
+				count: Array.isArray(Te.value) ? Te.value.length : 0,
 				total: Number(x.total || 0) || 0
 			};
 			try {
@@ -8509,7 +8510,7 @@ var Ed = {
 				console.debug?.(e);
 			}
 		}
-		function Pe(e) {
+		function Fe(e) {
 			if (!e?.id) return;
 			let t = (Array.isArray(x.assets) ? x.assets : []).find((t) => String(t?.id || "") === String(e.id));
 			if (t) try {
@@ -8518,7 +8519,7 @@ var Ed = {
 				console.debug?.(e);
 			}
 		}
-		function Fe() {
+		function Ie() {
 			try {
 				window.dispatchEvent(new CustomEvent("mjr:open-sidebar", { detail: { tab: "details" } }));
 			} catch (e) {
@@ -8536,9 +8537,9 @@ var Ed = {
 		}
 		function Re(e) {
 			let t = e?.detail || {}, n = String(t.assetId ?? t.id ?? "").trim();
-			n && (Array.isArray(Se.value) ? Se.value : []).some((e) => String(e?.id || "") === n) && (k([n], n), ve(), ye(), re(n, { align: "center" }), setTimeout(() => Le(n), 0));
+			n && (Array.isArray(Te.value) ? Te.value : []).some((e) => String(e?.id || "") === n) && (O([n], n), be(), xe(), re(n, { align: "center" }), setTimeout(() => Le(n), 0));
 		}
-		function Be(e) {
+		function ze(e) {
 			if (!e) return;
 			e._mjrSelectionManagedByVue = !0;
 			try {
@@ -8547,140 +8548,140 @@ var Ed = {
 				console.debug?.(e);
 			}
 			try {
-				gt?.();
+				_t?.();
 			} catch (e) {
 				console.debug?.(e);
 			}
-			ai(e, { applySettingsClasses: n.applyDefaultSettingsClasses });
+			ai(e, { applySettingsClasses: r.applyDefaultSettingsClasses });
 			try {
-				gt = Fs(e);
+				_t = Fs(e);
 			} catch (e) {
-				console.debug?.(e), gt = null;
+				console.debug?.(e), _t = null;
 			}
-			e._mjrPrimaryPointerSelectionUnbind = () => {}, e._mjrGetAssets = () => Array.isArray(Se.value) ? Se.value : [], e._mjrSetSelection = (e, t = "") => {
-				let n = k(e, t);
-				return ve(), ye(), n.selectedIds;
+			e._mjrPrimaryPointerSelectionUnbind = () => {}, e._mjrGetAssets = () => Array.isArray(Te.value) ? Te.value : [], e._mjrSetSelection = (e, t = "") => {
+				let n = O(e, t);
+				return be(), xe(), n.selectedIds;
 			};
 			let t = (e, t = {}) => {
-				let n = F.removeAssets(e, t);
-				return Ne(), n;
+				let n = P.removeAssets(e, t);
+				return Pe(), n;
 			};
-			e._mjrRemoveAssets = t, e._mjrGetRenderedCards = () => P(), e._mjrScrollToAssetId = (e, t = {}) => {
+			e._mjrRemoveAssets = t, e._mjrGetRenderedCards = () => te(), e._mjrScrollToAssetId = (e, t = {}) => {
 				re(e, t);
-			}, e._mjrHasAssetId = (e) => (Array.isArray(x.assets) ? x.assets : []).some((t) => String(t?.id || "") === String(e || "")), e._mjrGetGridState = () => x, e._mjrGetSelectedAssets = () => ee(), e._mjrGetActiveAsset = () => j(), e._mjrOnKeyboardAssetChanged = (e) => Pe(e), e._mjrOpenKeyboardDetails = () => Fe();
-			let r = () => (n.applyDefaultSettingsClasses && (ii(e), a.value += 1), F.refreshGrid()), i = () => {
-				F.prepareGridForScopeSwitch(), F.dispose(), x.cardElements.clear(), e._mjrGridApi = null;
+			}, e._mjrHasAssetId = (e) => (Array.isArray(x.assets) ? x.assets : []).some((t) => String(t?.id || "") === String(e || "")), e._mjrGetGridState = () => x, e._mjrGetSelectedAssets = () => A(), e._mjrGetActiveAsset = () => ee(), e._mjrOnKeyboardAssetChanged = (e) => Fe(e), e._mjrOpenKeyboardDetails = () => Ie();
+			let n = () => (r.applyDefaultSettingsClasses && (ii(e), s.value += 1), P.refreshGrid()), i = () => {
+				P.prepareGridForScopeSwitch(), P.dispose(), x.cardElements.clear(), e._mjrGridApi = null;
 			};
 			e._mjrGridApi = {
-				reload: (...e) => F.reload(...e),
-				loadAssetsFromList: (...e) => F.loadAssetsFromList(...e),
-				appendNextPage: (...e) => F.appendNextPage(...e),
-				refreshHead: (...e) => F.refreshHead(...e),
-				upsertRealtime: (...e) => F.upsertRealtime(...e),
-				upsertRealtimeNow: (...e) => F.upsertAssetNow(...e),
-				prepareForScopeSwitch: () => F.prepareGridForScopeSwitch(),
-				refreshGrid: r,
-				captureAnchor: () => F.captureAnchor(),
-				restoreAnchor: (e) => F.restoreAnchor(e),
-				hydrateFromSnapshot: (...e) => F.hydrateFromSnapshot(...e),
+				reload: (...e) => P.reload(...e),
+				loadAssetsFromList: (...e) => P.loadAssetsFromList(...e),
+				appendNextPage: (...e) => P.appendNextPage(...e),
+				refreshHead: (...e) => P.refreshHead(...e),
+				upsertRealtime: (...e) => P.upsertRealtime(...e),
+				upsertRealtimeNow: (...e) => P.upsertAssetNow(...e),
+				prepareForScopeSwitch: () => P.prepareGridForScopeSwitch(),
+				refreshGrid: n,
+				captureAnchor: () => P.captureAnchor(),
+				restoreAnchor: (e) => P.restoreAnchor(e),
+				hydrateFromSnapshot: (...e) => P.hydrateFromSnapshot(...e),
 				removeAssets: t,
 				dispose: i,
-				getCanonicalState: () => F.getCanonicalState(),
-				getDebugSnapshot: () => F.getDebugSnapshot()
-			}, e._mjrLoadAssets = (...e) => F.loadAssets(...e), e._mjrLoadAssetsFromList = (...e) => F.loadAssetsFromList(...e), e._mjrPrepareForScopeSwitch = () => F.prepareGridForScopeSwitch(), e._mjrRefreshGrid = r, e._mjrCaptureAnchor = () => F.captureAnchor(), e._mjrRestoreAnchor = (e) => F.restoreAnchor(e), e._mjrHydrateFromSnapshot = (...e) => F.hydrateFromSnapshot(...e), e._mjrUpsertAsset = (e) => F.upsertAsset(e), e._mjrUpsertAssetNow = (e) => F.upsertAssetNow(e), e._mjrGetCanonicalState = () => F.getCanonicalState(), e._mjrGetDebugSnapshot = () => F.getDebugSnapshot(), e._mjrDispose = i;
+				getCanonicalState: () => P.getCanonicalState(),
+				getDebugSnapshot: () => P.getDebugSnapshot()
+			}, e._mjrLoadAssets = (...e) => P.loadAssets(...e), e._mjrLoadAssetsFromList = (...e) => P.loadAssetsFromList(...e), e._mjrPrepareForScopeSwitch = () => P.prepareGridForScopeSwitch(), e._mjrRefreshGrid = n, e._mjrCaptureAnchor = () => P.captureAnchor(), e._mjrRestoreAnchor = (e) => P.restoreAnchor(e), e._mjrHydrateFromSnapshot = (...e) => P.hydrateFromSnapshot(...e), e._mjrUpsertAsset = (e) => P.upsertAsset(e), e._mjrUpsertAssetNow = (e) => P.upsertAssetNow(e), e._mjrGetCanonicalState = () => P.getCanonicalState(), e._mjrGetDebugSnapshot = () => P.getDebugSnapshot(), e._mjrDispose = i;
 		}
-		cr(r, (e) => {
-			e && (Be(e), ve(), Ne());
-		}, { immediate: !0 }), cr(() => `${(x.selectedIds || []).join("|")}::${String(x.activeId || "")}`, () => {
-			r.value && (ve(), ye());
-		}, { flush: "post" }), cr(() => `${Array.isArray(Se.value) ? Se.value.length : 0}::${Number(x.total || 0)}::${Number(x.hiddenPngSiblings || 0)}`, () => {
-			r.value && Ne();
+		q(i, (e) => {
+			e && (ze(e), be(), Pe());
+		}, { immediate: !0 }), q(() => `${(x.selectedIds || []).join("|")}::${String(x.activeId || "")}`, () => {
+			i.value && (be(), xe());
+		}, { flush: "post" }), q(() => `${Array.isArray(Te.value) ? Te.value.length : 0}::${Number(x.total || 0)}::${Number(x.hiddenPngSiblings || 0)}`, () => {
+			i.value && Pe();
 		}, {
 			flush: "post",
 			immediate: !0
 		});
-		function Ve() {
-			let e = r.value, t = String(e?.dataset?.mjrBottomFeed || "").toLowerCase() === "true", n = Number(R.GRID_MIN_SIZE || 120) || 120;
-			return t ? Math.max(80, Number(R.FEED_GRID_MIN_SIZE || n) || n) : ue() ? Math.max(180, n) : Math.max(80, n);
+		function Be() {
+			let e = i.value, t = String(e?.dataset?.mjrBottomFeed || "").toLowerCase() === "true", n = Number(R.GRID_MIN_SIZE || 120) || 120;
+			return t ? Math.max(80, Number(R.FEED_GRID_MIN_SIZE || n) || n) : de() ? Math.max(180, n) : Math.max(80, n);
 		}
-		let He = K(() => {
-			a.value;
-			let e = Math.max(0, Number(R.GRID_GAP || 10) || 10), t = Ve(), n = Number(i.value || 0) || Number(N.value?.clientWidth || 0) || 0;
+		let Ve = G(() => {
+			s.value;
+			let e = Math.max(0, Number(R.GRID_GAP || 10) || 10), t = Be(), n = Number(o.value || 0) || Number(M.value?.clientWidth || 0) || 0;
 			return n <= 0 ? 1 : Math.max(1, Math.floor((n + e) / (t + e)));
-		}), Ue = K(() => (Number(i.value || 0) || Number(N.value?.clientWidth || 0) || 0) > 0), We = K(() => (a.value, Math.max(0, Number(R.GRID_GAP || 10) || 10))), Ge = K(() => {
-			let e = Math.max(1, He.value), t = Number(i.value || 0) || Number(N.value?.clientWidth || 0) || 0;
-			return t <= 0 ? Ve() : Math.max(80, Math.floor((t - We.value * Math.max(0, e - 1)) / e));
-		}), Ke = K(() => {
-			a.value;
+		}), He = G(() => (Number(o.value || 0) || Number(M.value?.clientWidth || 0) || 0) > 0), We = G(() => (s.value, Math.max(0, Number(R.GRID_GAP || 10) || 10))), Ge = G(() => {
+			let e = Math.max(1, Ve.value), t = Number(o.value || 0) || Number(M.value?.clientWidth || 0) || 0;
+			return t <= 0 ? Be() : Math.max(80, Math.floor((t - We.value * Math.max(0, e - 1)) / e));
+		}), Ke = G(() => {
+			s.value;
 			let e = !!R.GRID_SHOW_DETAILS, t = Ge.value, n = e ? 82 : 0;
-			return Ee.value === "none" ? t + n + We.value : Math.max(48, t + n + We.value);
-		}), qe = K(() => n.virtualize ? [] : Array.isArray(Me.value) ? Me.value : []);
+			return Oe.value === "none" ? t + n + We.value : Math.max(48, t + n + We.value);
+		}), qe = G(() => r.virtualize ? [] : Array.isArray(Ne.value) ? Ne.value : []);
 		function Je(e) {
-			if (!u) try {
-				u = requestAnimationFrame(() => {
-					u = 0;
+			if (!d) try {
+				d = requestAnimationFrame(() => {
+					d = 0;
 					try {
-						let t = typeof performance < "u" && typeof performance.now == "function" ? performance.now() : Date.now(), n = Number(e?.scrollTop || 0) || 0, r = Math.max(16, t - Number(p || t)), i = Math.abs(n - Number(f || n)) / Math.max(1, Ke.value) * (16 / r);
-						o.value = Math.max(0, Math.min(20, i)), f = n, p = t, d && clearTimeout(d), d = setTimeout(() => {
-							d = 0, o.value = 0;
+						let t = typeof performance < "u" && typeof performance.now == "function" ? performance.now() : Date.now(), n = Number(e?.scrollTop || 0) || 0, r = Math.max(16, t - Number(m || t)), i = Math.abs(n - Number(p || n)) / Math.max(1, Ke.value) * (16 / r);
+						c.value = Math.max(0, Math.min(20, i)), p = n, m = t, f && clearTimeout(f), f = setTimeout(() => {
+							f = 0, c.value = 0;
 						}, 140);
 					} catch (e) {
 						console.debug?.(e);
 					}
 				});
 			} catch (e) {
-				console.debug?.(e), u = 0;
+				console.debug?.(e), d = 0;
 			}
 		}
 		function Ye() {
-			if (u) {
-				try {
-					cancelAnimationFrame(u);
-				} catch (e) {
-					console.debug?.(e);
-				}
-				u = 0;
-			}
 			if (d) {
 				try {
-					clearTimeout(d);
+					cancelAnimationFrame(d);
 				} catch (e) {
 					console.debug?.(e);
 				}
 				d = 0;
 			}
-			o.value = 0;
+			if (f) {
+				try {
+					clearTimeout(f);
+				} catch (e) {
+					console.debug?.(e);
+				}
+				f = 0;
+			}
+			c.value = 0;
 		}
 		let Xe = pd({
-			scrollRef: N,
-			items: Se,
-			rows: Me,
-			columnCount: He,
+			scrollRef: M,
+			items: Te,
+			rows: Ne,
+			columnCount: Ve,
 			estimateRowHeight: Ke,
-			overscan: K(() => {
-				let e = Math.max(1, Ke.value), t = N.value?.clientHeight || 0;
+			overscan: G(() => {
+				let e = Math.max(1, Ke.value), t = M.value?.clientHeight || 0;
 				if (t <= 0) return 6;
-				let n = Math.ceil(t / e), r = Math.ceil(o.value * 3);
+				let n = Math.ceil(t / e), r = Math.ceil(c.value * 3);
 				return Math.max(3, Math.min(30, n + r));
 			}),
-			enabled: K(() => n.virtualize)
-		}), Ze = Xe.rowCount, z = Xe.virtualizer, $e = Xe.virtualRows, et = Xe.totalSize, tt = K(() => {
+			enabled: G(() => r.virtualize)
+		}), Ze = Xe.rowCount, Qe = Xe.virtualizer, $e = Xe.virtualRows, L = Xe.totalSize, et = G(() => {
 			let e = /* @__PURE__ */ new Map();
 			for (let t of $e.value) e.set(t.index, t.virtual || t);
 			return e;
-		}), nt = K(() => (a.value, !!R.GRID_SHOW_DETAILS)), rt = K(() => {
-			let e = Math.max(1, Number(He.value || 1));
+		}), rt = G(() => (s.value, !!R.GRID_SHOW_DETAILS)), it = G(() => {
+			let e = Math.max(1, Number(Ve.value || 1));
 			return Math.max(12, Math.min(36, e * 4));
-		}), it = K(() => Array.from({ length: Number(rt.value || 12) }, (e, t) => t)), at = K(() => {
+		}), at = G(() => Array.from({ length: Number(it.value || 12) }, (e, t) => t)), ot = G(() => {
 			let e = Math.max(80, Number(Ke.value || 0) - Number(We.value || 0)), t = Math.max(80, Number(Ge.value || 0));
 			return Math.max(0, e - t);
-		}), ot = K(() => ({
+		}), st = G(() => ({
 			display: "grid",
-			gridTemplateColumns: `repeat(${Math.max(1, Number(He.value || 1))}, minmax(0, ${Math.max(80, Number(Ge.value || 0))}px))`,
+			gridTemplateColumns: `repeat(${Math.max(1, Number(Ve.value || 1))}, minmax(0, ${Math.max(80, Number(Ge.value || 0))}px))`,
 			gap: `${We.value}px`,
 			justifyContent: "start",
 			boxSizing: "border-box"
-		})), st = K(() => ({
+		})), ct = G(() => ({
 			width: "100%",
 			minWidth: "0",
 			height: `${Math.max(80, Number(Ke.value || 0) - Number(We.value || 0))}px`,
@@ -8690,13 +8691,13 @@ var Ed = {
 			overflow: "hidden",
 			boxShadow: "0 6px 18px rgba(0,0,0,0.24)",
 			boxSizing: "border-box"
-		})), ct = K(() => ({
+		})), lt = G(() => ({
 			width: "100%",
 			height: `${Math.max(80, Number(Ge.value || 0))}px`,
 			background: "linear-gradient(90deg, rgba(168,174,182,0.40) 0%, rgba(220,225,232,0.54) 50%, rgba(168,174,182,0.40) 100%)",
 			backgroundSize: "220% 100%",
 			animation: "mjr-skeleton-shimmer 2.2s ease-in-out infinite"
-		})), lt = K(() => ({
+		})), ut = G(() => ({
 			height: "10px",
 			margin: "10px 10px 6px",
 			borderRadius: "8px",
@@ -8704,7 +8705,7 @@ var Ed = {
 			background: "linear-gradient(90deg, rgba(162,168,176,0.38) 0%, rgba(214,219,226,0.52) 50%, rgba(162,168,176,0.38) 100%)",
 			backgroundSize: "220% 100%",
 			animation: "mjr-skeleton-shimmer 2.2s ease-in-out infinite"
-		})), ut = K(() => ({
+		})), dt = G(() => ({
 			height: "10px",
 			margin: "0 10px 10px",
 			borderRadius: "8px",
@@ -8712,25 +8713,25 @@ var Ed = {
 			background: "linear-gradient(90deg, rgba(160,166,173,0.34) 0%, rgba(208,214,221,0.48) 50%, rgba(160,166,173,0.34) 100%)",
 			backgroundSize: "220% 100%",
 			animation: "mjr-skeleton-shimmer 2.2s ease-in-out infinite"
-		})), dt = K(() => ({
-			display: nt.value ? "block" : "none",
-			minHeight: `${Math.max(0, Number(at.value || 0))}px`
+		})), ft = G(() => ({
+			display: rt.value ? "block" : "none",
+			minHeight: `${Math.max(0, Number(ot.value || 0))}px`
 		}));
-		function pt() {
-			let e = Number(N.value?.clientWidth || 0) || Number(r.value?.clientWidth || 0) || 0;
-			e > 0 && (i.value = e);
+		function mt() {
+			let e = Number(M.value?.clientWidth || 0) || Number(i.value?.clientWidth || 0) || 0;
+			e > 0 && (o.value = e);
 		}
-		let mt = null, ht = null, gt = null, _t = !1;
-		function vt() {
-			let e = String(r.value?.dataset?.mjrScope || "").trim().toLowerCase();
-			we.value !== e && (we.value = e);
-			let t = String(r.value?.dataset?.mjrViewScope || "").trim().toLowerCase();
-			be.value !== t && (be.value = t);
-		}
+		let ht = null, gt = null, _t = null, vt = !1;
 		function yt() {
-			Ut();
+			let e = String(i.value?.dataset?.mjrScope || "").trim().toLowerCase();
+			De.value !== e && (De.value = e);
+			let t = String(i.value?.dataset?.mjrViewScope || "").trim().toLowerCase();
+			Ce.value !== t && (Ce.value = t);
+		}
+		function bt() {
+			Wt();
 			let e = () => {
-				Ut(), Jt();
+				Wt(), Yt();
 			};
 			try {
 				requestAnimationFrame(() => {
@@ -8745,112 +8746,112 @@ var Ed = {
 				400
 			]) setTimeout(e, t);
 		}
-		$n(() => {
-			yt(), window.addEventListener(B.VIEWER_ACTIVE_ASSET_CHANGED, Re);
-		}), cr(r, (e) => {
+		er(() => {
+			bt(), window.addEventListener(z.VIEWER_ACTIVE_ASSET_CHANGED, Re);
+		}), q(i, (e) => {
+			try {
+				gt?.disconnect?.();
+			} catch (e) {
+				console.debug?.(e);
+			}
+			if (gt = null, e) {
+				yt();
+				try {
+					gt = new MutationObserver(() => {
+						yt();
+					}), gt.observe(e, {
+						attributes: !0,
+						attributeFilter: ["data-mjr-scope", "data-mjr-view-scope"]
+					});
+				} catch (e) {
+					console.debug?.(e), gt = null;
+				}
+			}
+		}, { immediate: !0 }), q(M, (e, t) => {
 			try {
 				ht?.disconnect?.();
 			} catch (e) {
 				console.debug?.(e);
 			}
-			if (ht = null, e) {
-				vt();
+			if (e) {
+				mt();
 				try {
-					ht = new MutationObserver(() => {
-						vt();
-					}), ht.observe(e, {
-						attributes: !0,
-						attributeFilter: ["data-mjr-scope", "data-mjr-view-scope"]
-					});
+					ht = new ResizeObserver(() => {
+						mt();
+					}), ht.observe(e);
 				} catch (e) {
 					console.debug?.(e), ht = null;
 				}
 			}
-		}, { immediate: !0 }), cr(N, (e, t) => {
-			try {
-				mt?.disconnect?.();
-			} catch (e) {
-				console.debug?.(e);
-			}
-			if (e) {
-				pt();
-				try {
-					mt = new ResizeObserver(() => {
-						pt();
-					}), mt.observe(e);
-				} catch (e) {
-					console.debug?.(e), mt = null;
-				}
-			}
-		}, { immediate: !0 }), cr(() => Ze.value, async () => {
-			Ue.value && (await Yn(), Ct(), Wt());
-		}), cr(() => x.assets, async (e) => {
+		}, { immediate: !0 }), q(() => Ze.value, async () => {
+			He.value && (await Xn(), wt(), Gt());
+		}), q(() => x.assets, async (e) => {
 			if (!Array.isArray(e) || e.length === 0) {
-				let e = r.value;
+				let e = i.value;
 				e?._mjrStackMembersCache && e._mjrStackMembersCache.clear();
 			}
-			await Yn(), Ct();
+			await Xn(), wt();
 		});
-		function bt(e, t) {
-			let n = String(t?.filename || "").trim().toLowerCase(), r = s.get(e);
+		function xt(e, t) {
+			let n = String(t?.filename || "").trim().toLowerCase(), r = l.get(e);
 			if (r && r !== n) {
 				let t = x.renderedFilenameMap.get(r);
 				t && (t.delete(e), t.size || x.renderedFilenameMap.delete(r));
 			}
 			if (!n) {
-				s.delete(e);
+				l.delete(e);
 				return;
 			}
 			let i = x.renderedFilenameMap.get(n);
-			i || (i = /* @__PURE__ */ new Set(), x.renderedFilenameMap.set(n, i)), i.add(e), s.set(e, n);
-		}
-		function xt(e) {
-			if (!e) return;
-			let t = s.get(e);
-			if (!t) return;
-			let n = x.renderedFilenameMap.get(t);
-			n && (n.delete(e), n.size || x.renderedFilenameMap.delete(t)), s.delete(e);
+			i || (i = /* @__PURE__ */ new Set(), x.renderedFilenameMap.set(n, i)), i.add(e), l.set(e, n);
 		}
 		function St(e) {
+			if (!e) return;
+			let t = l.get(e);
+			if (!t) return;
+			let n = x.renderedFilenameMap.get(t);
+			n && (n.delete(e), n.size || x.renderedFilenameMap.delete(t)), l.delete(e);
+		}
+		function Ct(e) {
 			let t = String(e || "").trim().toLowerCase();
 			if (!t) return;
 			let n = x.renderedFilenameMap.get(t);
 			for (let e of n || []) e?.dataset?.mjrDupHidden && delete e.dataset.mjrDupHidden;
 		}
-		function Ct() {
-			for (let e of x.renderedFilenameMap.keys()) St(e);
+		function wt() {
+			for (let e of x.renderedFilenameMap.keys()) Ct(e);
 		}
-		function wt(e, t) {
-			let i = String(e?.id || "").trim();
-			if (!i) return;
+		function Tt(e, t) {
+			let n = String(e?.id || "").trim();
+			if (!n) return;
 			if (!t) {
-				let e = x.cardElements.get(i), t = e ? s.get(e) : "";
-				xt(e), x.cardElements.delete(i), St(t);
+				let e = x.cardElements.get(n), t = e ? l.get(e) : "";
+				St(e), x.cardElements.delete(n), Ct(t);
 				return;
 			}
 			let a = t?.$el ?? t;
 			if (a instanceof HTMLElement) {
-				x.cardElements.set(i, a), a._mjrIsVue = !0, a._mjrAsset = e, a._mjrReactiveAsset = e, a.dataset.mjrKind = String(e?.kind || ""), bt(a, e), St(String(e?.filename || "").trim().toLowerCase());
+				x.cardElements.set(n, a), a._mjrIsVue = !0, a._mjrAsset = e, a._mjrReactiveAsset = e, a.dataset.mjrKind = String(e?.kind || ""), xt(a, e), Ct(String(e?.filename || "").trim().toLowerCase());
 				try {
-					n.onCardRendered?.(a, e, r.value);
+					r.onCardRendered?.(a, e, i.value);
 				} catch (e) {
 					console.debug?.(e);
 				}
 			}
 		}
-		let Tt = /* @__PURE__ */ new Map();
-		function Et(e) {
+		let Et = /* @__PURE__ */ new Map();
+		function Dt(e) {
 			let t = String(e?.id ?? "").trim();
-			if (!t) return (t) => wt(e, t);
-			let n = Tt.get(t);
+			if (!t) return (t) => Tt(e, t);
+			let n = Et.get(t);
 			return n || (n = {
 				asset: e,
 				fn: null
 			}, n.fn = (e) => {
-				wt(n.asset, e), e || Tt.delete(t);
-			}, Tt.set(t, n)), n.asset = e, n.fn;
+				Tt(n.asset, e), e || Et.delete(t);
+			}, Et.set(t, n)), n.asset = e, n.fn;
 		}
-		function Dt(e, t) {
+		function Ot(e, t) {
 			try {
 				let n = e?.closest?.("a, button, input, textarea, select, label");
 				return !!(n && t?.contains?.(n));
@@ -8858,48 +8859,48 @@ var Ed = {
 				return !1;
 			}
 		}
-		let Ot = {
+		let kt = {
 			assetId: "",
 			at: 0
 		};
-		function kt(e, t) {
+		function At(e, t) {
 			let n = String(t?.id || "").trim();
 			if (!n) return;
 			if (e?.type === "click" && Number(e?.detail || 0) > 0) {
-				let e = Date.now() - Number(Ot.at || 0);
-				if (Ot.assetId === n && e >= 0 && e < 500) {
-					Ot.assetId = "", Ot.at = 0;
+				let e = Date.now() - Number(kt.at || 0);
+				if (kt.assetId === n && e >= 0 && e < 500) {
+					kt.assetId = "", kt.at = 0;
 					return;
 				}
 			}
-			if (Dt(e?.target, e?.currentTarget)) return;
+			if (Ot(e?.target, e?.currentTarget)) return;
 			let r = Array.isArray(x.assets) ? x.assets : [], i = r.findIndex((e) => String(e?.id || "") === n), a = Array.isArray(x.selectedIds) ? x.selectedIds.slice() : [];
 			if (e?.shiftKey && i >= 0) {
 				let e = String(x.selectionAnchorId || x.activeId || n).trim(), t = r.findIndex((t) => String(t?.id || "") === e), a = t >= 0 ? t : i, o = Math.min(a, i), s = Math.max(a, i), c = r.slice(o, s + 1).map((e) => String(e?.id || "")).filter(Boolean);
-				k(c, n);
+				O(c, n);
 			} else if (e?.ctrlKey || e?.metaKey) {
 				let e = new Set(a.map(String));
 				e.has(n) ? e.delete(n) : e.add(n);
 				let t = Array.from(e);
-				k(t, e.has(n) ? n : t[0] || "");
+				O(t, e.has(n) ? n : t[0] || "");
 			} else {
-				k([n], n);
+				O([n], n);
 				try {
 					x.cardElements.get(n)?.focus?.({ preventScroll: !0 });
 				} catch (e) {
 					console.debug?.(e);
 				}
-				ue() && le(t) && y().then((e) => e?.floatingViewerManager?.isGraphModeVisible?.() ? Pt(t) : null).catch((e) => console.debug?.(e));
+				de() && le(t) && y().then((e) => e?.floatingViewerManager?.isGraphModeVisible?.() ? Ft(t) : null).catch((e) => console.debug?.(e));
 			}
 		}
-		function At(e, t) {
+		function jt(e, t) {
 			if (Number(e?.button ?? 0) !== 0) return;
 			let n = String(t?.id || "").trim();
 			if (!n) return;
 			let r = Array.isArray(x.selectedIds) ? x.selectedIds.map(String).filter(Boolean) : [];
-			r.includes(n) && r.length > 1 && !e?.ctrlKey && !e?.metaKey && !e?.shiftKey ? (Ot.assetId = n, Ot.at = Date.now()) : (Ot.assetId = n, Ot.at = Date.now(), kt(e, t));
+			r.includes(n) && r.length > 1 && !e?.ctrlKey && !e?.metaKey && !e?.shiftKey ? (kt.assetId = n, kt.at = Date.now()) : (kt.assetId = n, kt.at = Date.now(), At(e, t));
 		}
-		async function jt(e) {
+		async function Mt(e) {
 			let t = (Array.isArray(x.assets) ? x.assets : []).filter((e) => !ce(e)), n = t.findIndex((t) => String(t?.id || "") === String(e?.id || ""));
 			if (!t.length || n < 0) return;
 			let { requestViewerOpen: r } = await v();
@@ -8908,7 +8909,7 @@ var Ed = {
 				index: n
 			});
 		}
-		function Mt(e, t = null) {
+		function Nt(e, t = null) {
 			let n = String(e?.id || "").trim();
 			if (!n) return;
 			let r = x.cardElements.get(n);
@@ -8925,13 +8926,13 @@ var Ed = {
 				console.debug?.(e);
 			}
 		}
-		async function Pt(e, { select: t = !1 } = {}) {
+		async function Ft(e, { select: t = !1 } = {}) {
 			try {
 				let n = String(e?.id || "").trim();
-				t && n && k([n], n);
+				t && n && O([n], n);
 				let r = String(e?.filepath || e?.path || e?.full_path || "").trim(), i = e;
 				if (r) try {
-					let t = await ze(r, { timeoutMs: 25e3 }), n = t?.data?.workflow || t?.workflow || null, a = t?.data?.prompt || t?.prompt || null;
+					let t = await Se(r, { timeoutMs: 25e3 }), n = t?.data?.workflow || t?.workflow || null, a = t?.data?.prompt || t?.prompt || null;
 					(n || a) && (i = {
 						...e,
 						workflow: n || e?.workflow,
@@ -8952,26 +8953,26 @@ var Ed = {
 					mode: "graph"
 				});
 			} catch (e) {
-				console.debug?.(e), Fe();
+				console.debug?.(e), Ie();
 			}
 		}
-		async function Ft(e, t) {
+		async function It(e, t) {
 			let n = String(e?.type || "").trim().toLowerCase();
 			if (n && String(t?.kind || "").toLowerCase() === "workflow") {
-				if (n === "load") await It(t);
-				else if (n === "inspect") await Pt(t, { select: !0 });
+				if (n === "load") await Lt(t);
+				else if (n === "inspect") await Ft(t, { select: !0 });
 				else if (n === "favorite") {
 					let e = !!t.favorite, n = !e;
 					try {
 						t.favorite = n;
 						let e = String(t?.filepath || t?.path || t?.full_path || "").trim();
 						if (!e) throw Error("Missing workflow filepath");
-						let i = await te({
+						let r = await tt({
 							filepath: e,
 							favorite: n
 						}, { timeoutMs: 12e3 });
-						if (!i?.ok) throw Error(String(i?.error || "Failed to save workflow favorite"));
-						r.value?.dispatchEvent?.(new CustomEvent("mjr:workflow-favorite-changed", {
+						if (!r?.ok) throw Error(String(r?.error || "Failed to save workflow favorite"));
+						i.value?.dispatchEvent?.(new CustomEvent("mjr:workflow-favorite-changed", {
 							bubbles: !0,
 							detail: {
 								asset: t,
@@ -8979,38 +8980,38 @@ var Ed = {
 							}
 						}));
 					} catch (n) {
-						console.debug?.(n), t.favorite = e, m(L("toast.workflowFavoriteFailed", "Failed to update workflow favorite."), "error");
+						console.debug?.(n), t.favorite = e, F(I("toast.workflowFavoriteFailed", "Failed to update workflow favorite."), "error");
 					}
-				} else n === "menu" && Mt(t, e?.event || null);
+				} else n === "menu" && Nt(t, e?.event || null);
 			}
 		}
-		async function It(e) {
+		async function Lt(e) {
 			let t = String(e?.filepath || e?.path || e?.full_path || "").trim();
 			if (!t) {
-				m(L("toast.workflowMissingPath", "Workflow file path is missing."), "error");
+				F(I("toast.workflowMissingPath", "Workflow file path is missing."), "error");
 				return;
 			}
-			let n = ne();
-			if (O(n) === !0 && !await Nt(L("dialog.workflowLoadReplaceDirty", "Current canvas has unsaved changes. Replace it with this workflow?"), L("tab.workflow", "Workflow"))) return;
-			let r = await ze(t, { timeoutMs: 3e4 }), i = r?.data?.workflow || r?.workflow || null;
-			if (!r?.ok || !i || typeof i != "object") m(r?.error || L("toast.workflowLoadFailed", "Failed to load workflow."), "error");
-			else if (!l(i, n).ok) m(L("toast.workflowImportUnavailable", "ComfyUI workflow import is unavailable in this frontend."), "error");
+			let n = nt();
+			if (a(n) === !0 && !await Pt(I("dialog.workflowLoadReplaceDirty", "Current canvas has unsaved changes. Replace it with this workflow?"), I("tab.workflow", "Workflow"))) return;
+			let r = await Se(t, { timeoutMs: 3e4 }), i = r?.data?.workflow || r?.workflow || null;
+			if (!r?.ok || !i || typeof i != "object") F(r?.error || I("toast.workflowLoadFailed", "Failed to load workflow."), "error");
+			else if (!ne(i, n).ok) F(I("toast.workflowImportUnavailable", "ComfyUI workflow import is unavailable in this frontend."), "error");
 			else {
 				try {
-					await Qe({ filepath: t }, { timeoutMs: 1e4 });
+					await ue({ filepath: t }, { timeoutMs: 1e4 });
 				} catch (e) {
 					console.debug?.(e);
 				}
-				m(L("toast.workflowLoaded", "Workflow loaded"), "success", 1800);
+				F(I("toast.workflowLoaded", "Workflow loaded"), "success", 1800);
 			}
 		}
-		function Lt(e) {
+		function Rt(e) {
 			try {
-				if (typeof n.onCardDblclick == "function") {
-					n.onCardDblclick({
+				if (typeof r.onCardDblclick == "function") {
+					r.onCardDblclick({
 						asset: e,
 						assets: Array.isArray(x.assets) ? x.assets : [],
-						gridContainer: r.value
+						gridContainer: i.value
 					});
 					return;
 				}
@@ -9018,78 +9019,78 @@ var Ed = {
 				console.debug?.(e);
 			}
 			if (ce(e)) try {
-				r.value?.dispatchEvent?.(new CustomEvent("mjr:open-folder-asset", {
+				i.value?.dispatchEvent?.(new CustomEvent("mjr:open-folder-asset", {
 					bubbles: !0,
 					detail: { asset: e }
 				}));
 			} catch (e) {
 				console.debug?.(e);
 			}
-			else String(e?.kind || "").toLowerCase() === "workflow" ? It(e) : jt(e);
+			else String(e?.kind || "").toLowerCase() === "workflow" ? Lt(e) : Mt(e);
 		}
-		async function Rt({ asset: e, folderPath: t }) {
-			let n = String(e?.filepath || "").trim();
-			if (n && t) try {
-				let e = await De({
+		async function zt({ asset: e, folderPath: n }) {
+			let r = String(e?.filepath || "").trim();
+			if (r && n) try {
+				let e = await t({
 					op: "move_file",
-					path: n,
-					destination: t
+					path: r,
+					destination: n
 				});
-				e?.ok ? (m("Moved to folder", "success"), F.reload()) : m(e?.error || "Failed to move file", "error");
+				e?.ok ? (F("Moved to folder", "success"), P.reload()) : F(e?.error || "Failed to move file", "error");
 			} catch (e) {
-				m(e?.message || "Failed to move file", "error");
+				F(e?.message || "Failed to move file", "error");
 			}
 		}
-		let zt = null, Bt = null, Vt = 0, Ht = "";
-		function Ut() {
-			pt();
+		let Bt = null, Vt = null, Ht = 0, Ut = "";
+		function Wt() {
+			mt();
 			try {
-				z.value?.measure?.();
+				Qe.value?.measure?.();
 			} catch (e) {
 				console.debug?.(e);
 			}
 		}
-		function Wt() {
-			if (!c) try {
-				c = requestAnimationFrame(() => {
-					c = 0;
+		function Gt() {
+			if (!u) try {
+				u = requestAnimationFrame(() => {
+					u = 0;
 					try {
-						z.value?.measure?.();
+						Qe.value?.measure?.();
 					} catch (e) {
 						console.debug?.(e);
 					}
 				});
 			} catch (e) {
-				console.debug?.(e), c = 0;
+				console.debug?.(e), u = 0;
 				try {
-					z.value?.measure?.();
+					Qe.value?.measure?.();
 				} catch (e) {
 					console.debug?.(e);
 				}
 			}
 		}
-		function Gt() {
-			Ut(), requestAnimationFrame(() => {
+		function Kt() {
+			Wt(), requestAnimationFrame(() => {
 				requestAnimationFrame(() => {
-					Ut(), Jt();
+					Wt(), Yt();
 				});
 			}), setTimeout(() => {
-				Ut(), Jt();
+				Wt(), Yt();
 			}, 150);
 		}
-		function Kt(e) {
-			if (!e || !n.virtualize) return () => {};
+		function qt(e) {
+			if (!e || !r.virtualize) return () => {};
 			let t = () => {
 				Je(e);
 			};
 			e.addEventListener("scroll", t, { passive: !0 });
 			try {
 				requestAnimationFrame(() => {
-					t(), Jt();
+					t(), Yt();
 				});
 			} catch {
 				setTimeout(() => {
-					t(), Jt();
+					t(), Yt();
 				}, 0);
 			}
 			return () => {
@@ -9101,18 +9102,18 @@ var Ed = {
 				Ye();
 			};
 		}
-		cr(N, (e) => {
+		q(M, (e) => {
 			try {
-				zt?.();
+				Bt?.();
 			} catch (e) {
 				console.debug?.(e);
 			}
-			zt = Kt(e);
+			Bt = qt(e);
 		}, { immediate: !0 });
-		function qt(e) {
+		function Jt(e) {
 			let t = Number(e?.clientHeight || 0) || 0;
 			if (t > 0) return t;
-			let n = Number(r.value?.clientHeight || 0) || 0;
+			let n = Number(i.value?.clientHeight || 0) || 0;
 			if (n > 0) return n;
 			try {
 				return Math.max(0, Math.floor(Number(window?.innerHeight || 0) * .7));
@@ -9120,43 +9121,43 @@ var Ed = {
 				return 0;
 			}
 		}
-		async function Jt() {
-			if (!n.virtualize || !Ue.value || x.loading || x.done) return;
-			let e = N.value;
+		async function Yt() {
+			if (!r.virtualize || !He.value || x.loading || x.done) return;
+			let e = M.value;
 			if (!e) return;
-			let t = Array.isArray(x.assets) ? x.assets.length : 0, r = `${t}::${He.value}`;
-			if (!Bt && !(r === Ht && Date.now() - Vt < 500) && (await Yn(), (Number(e.scrollHeight || 0) || 0) <= qt(e) + 40)) {
+			let t = Array.isArray(x.assets) ? x.assets.length : 0, n = `${t}::${Ve.value}`;
+			if (!Vt && !(n === Ut && Date.now() - Ht < 500) && (await Xn(), (Number(e.scrollHeight || 0) || 0) <= Jt(e) + 40)) {
 				let e = t;
-				Bt = Promise.resolve(F.loadNextPage()).catch((e) => console.debug?.(e)).finally(() => {
+				Vt = Promise.resolve(P.loadNextPage()).catch((e) => console.debug?.(e)).finally(() => {
 					let t = Array.isArray(x.assets) ? x.assets.length : 0;
-					Vt = Date.now(), Ht = t === e ? r : "", Bt = null, setTimeout(() => {
-						Jt();
+					Ht = Date.now(), Ut = t === e ? n : "", Vt = null, setTimeout(() => {
+						Yt();
 					}, 0);
 				});
 			}
 		}
-		cr(() => `${Array.isArray(x.assets) ? x.assets.length : 0}::${He.value}::${x.loading}::${x.done}`, () => {
-			Jt();
+		q(() => `${Array.isArray(x.assets) ? x.assets.length : 0}::${Ve.value}::${x.loading}::${x.done}`, () => {
+			Yt();
 		}, { flush: "post" });
-		function Yt(e) {
-			if (e && n.virtualize) try {
-				z.value.measureElement(e);
+		function Xt(e) {
+			if (e && r.virtualize) try {
+				Qe.value.measureElement(e);
 			} catch (e) {
 				console.debug?.(e);
 			}
 		}
-		function Xt() {
+		function Zt() {
 			return {
 				width: `${Ge.value}px`,
 				flex: `0 0 ${Ge.value}px`,
 				minWidth: `${Ge.value}px`
 			};
 		}
-		function Zt(e) {
-			return tt.value.get(e) || null;
-		}
 		function Qt(e) {
-			let t = Zt(e);
+			return et.value.get(e) || null;
+		}
+		function $t(e) {
+			let t = Qt(e);
 			return {
 				position: "absolute",
 				left: "0",
@@ -9169,7 +9170,7 @@ var Ed = {
 				boxSizing: "border-box"
 			};
 		}
-		function $t() {
+		function en() {
 			return {
 				display: "flex",
 				gap: `${We.value}px`,
@@ -9177,29 +9178,24 @@ var Ed = {
 				boxSizing: "border-box"
 			};
 		}
-		function en() {
-			a.value += 1, n.applyDefaultSettingsClasses && r.value && ii(r.value);
+		function tn() {
+			s.value += 1, r.applyDefaultSettingsClasses && i.value && ii(i.value);
 		}
-		return cr(() => n.applyDefaultSettingsClasses, () => {
-			r.value && n.applyDefaultSettingsClasses && ii(r.value);
-		}, { immediate: !0 }), sr(() => {
+		return q(() => r.applyDefaultSettingsClasses, () => {
+			i.value && r.applyDefaultSettingsClasses && ii(i.value);
+		}, { immediate: !0 }), cr(() => {
 			try {
-				window.removeEventListener(B.VIEWER_ACTIVE_ASSET_CHANGED, Re);
+				window.removeEventListener(z.VIEWER_ACTIVE_ASSET_CHANGED, Re);
 			} catch (e) {
 				console.debug?.(e);
 			}
 			try {
-				r.value?._mjrPrimaryPointerSelectionUnbind?.();
+				i.value?._mjrPrimaryPointerSelectionUnbind?.();
 			} catch (e) {
 				console.debug?.(e);
 			}
 			try {
-				r.value && (r.value._mjrPrimaryPointerSelectionUnbind = null, r.value._mjrSelectionManagedByVue = !1);
-			} catch (e) {
-				console.debug?.(e);
-			}
-			try {
-				mt?.disconnect?.();
+				i.value && (i.value._mjrPrimaryPointerSelectionUnbind = null, i.value._mjrSelectionManagedByVue = !1);
 			} catch (e) {
 				console.debug?.(e);
 			}
@@ -9209,97 +9205,102 @@ var Ed = {
 				console.debug?.(e);
 			}
 			try {
-				zt?.();
+				gt?.disconnect?.();
 			} catch (e) {
 				console.debug?.(e);
 			}
 			try {
-				c && cancelAnimationFrame(c);
-			} catch (e) {
-				console.debug?.(e);
-			}
-			c = 0, Ye();
-			try {
-				F.dispose();
+				Bt?.();
 			} catch (e) {
 				console.debug?.(e);
 			}
 			try {
-				gt?.();
+				u && cancelAnimationFrame(u);
 			} catch (e) {
 				console.debug?.(e);
 			}
-			gt = null;
+			u = 0, Ye();
 			try {
-				window.removeEventListener("mjr-settings-changed", en), _t = !1;
+				P.dispose();
 			} catch (e) {
 				console.debug?.(e);
 			}
 			try {
-				window.removeEventListener("mjr:keepalive-attached", Gt);
+				_t?.();
 			} catch (e) {
 				console.debug?.(e);
 			}
-		}), cr(r, (e) => {
-			e && (_t ||= (window.addEventListener("mjr-settings-changed", en), window.addEventListener("mjr:keepalive-attached", Gt), !0));
-		}, { immediate: !0 }), t({
+			_t = null;
+			try {
+				window.removeEventListener("mjr-settings-changed", tn), vt = !1;
+			} catch (e) {
+				console.debug?.(e);
+			}
+			try {
+				window.removeEventListener("mjr:keepalive-attached", Kt);
+			} catch (e) {
+				console.debug?.(e);
+			}
+		}), q(i, (e) => {
+			e && (vt ||= (window.addEventListener("mjr-settings-changed", tn), window.addEventListener("mjr:keepalive-attached", Kt), !0));
+		}, { immediate: !0 }), n({
 			get gridContainer() {
-				return r.value;
+				return i.value;
 			},
 			get assets() {
 				return Array.isArray(x.assets) ? x.assets : [];
 			},
 			loadAssets(...e) {
-				return F.loadAssets(...e);
+				return P.loadAssets(...e);
 			},
 			loadAssetsFromList(...e) {
-				return F.loadAssetsFromList(...e);
+				return P.loadAssetsFromList(...e);
 			},
 			loadNextPage(...e) {
-				return F.loadNextPage(...e);
+				return P.loadNextPage(...e);
 			},
 			appendNextPage(...e) {
-				return F.appendNextPage(...e);
+				return P.appendNextPage(...e);
 			},
 			refreshHead(...e) {
-				return F.refreshHead(...e);
+				return P.refreshHead(...e);
 			},
 			upsertRealtime(...e) {
-				return F.upsertRealtime(...e);
+				return P.upsertRealtime(...e);
 			},
 			prepareGridForScopeSwitch(...e) {
-				return F.prepareGridForScopeSwitch(...e);
+				return P.prepareGridForScopeSwitch(...e);
 			},
 			refreshGrid(...e) {
-				return F.refreshGrid(...e);
+				return P.refreshGrid(...e);
 			},
 			removeAssets(...e) {
-				return F.removeAssets(...e);
+				return P.removeAssets(...e);
 			},
 			upsertAsset(...e) {
-				return F.upsertAsset(...e);
+				return P.upsertAsset(...e);
 			},
 			getCanonicalState(...e) {
-				return F.getCanonicalState(...e);
+				return P.getCanonicalState(...e);
 			},
 			getDebugSnapshot(...e) {
-				return F.getDebugSnapshot(...e);
+				return P.getDebugSnapshot(...e);
 			},
 			captureAnchor(...e) {
-				return F.captureAnchor(...e);
+				return P.captureAnchor(...e);
 			},
 			restoreAnchor(...e) {
-				return F.restoreAnchor(...e);
+				return P.restoreAnchor(...e);
 			},
 			hydrateFromSnapshot(...e) {
-				return F.hydrateFromSnapshot(...e);
+				return P.hydrateFromSnapshot(...e);
 			},
 			dispose() {
-				return F.dispose();
+				return P.dispose();
 			}
-		}), (t, n) => (q(), Y("div", {
+		}), (t, n) => (K(), Y("div", {
 			ref_key: "gridContainerRef",
-			ref: r,
+			ref: i,
 			class: "mjr-grid",
 			tabindex: "0",
 			role: "grid",
@@ -9308,24 +9309,24 @@ var Ed = {
 				"min-height": "100%"
 			}
 		}, [
-			Z(x).loading && !Z(x).assets.length ? (q(), Y("div", Ed, [H("div", Dd, [H("div", {
+			Z(x).loading && !Z(x).assets.length ? (K(), Y("div", Ed, [V("div", Dd, [V("div", {
 				class: "mjr-grid-skeleton-layout",
-				style: mr(ot.value)
-			}, [(q(!0), Y(V, null, tr(it.value, (e) => (q(), Y("div", {
+				style: mr(st.value)
+			}, [(K(!0), Y(B, null, nr(at.value, (e) => (K(), Y("div", {
 				key: `sk-${e}`,
 				class: "mjr-grid-skeleton-card",
-				style: mr(st.value)
-			}, [H("div", {
-				class: "mjr-grid-skeleton-thumb mjr-grid-skeleton-shimmer",
 				style: mr(ct.value)
-			}, null, 4), H("div", { style: mr(dt.value) }, [H("div", {
-				class: "mjr-grid-skeleton-line mjr-grid-skeleton-line--title mjr-grid-skeleton-shimmer",
+			}, [V("div", {
+				class: "mjr-grid-skeleton-thumb mjr-grid-skeleton-shimmer",
 				style: mr(lt.value)
-			}, null, 4), H("div", {
-				class: "mjr-grid-skeleton-line mjr-grid-skeleton-line--meta mjr-grid-skeleton-shimmer",
+			}, null, 4), V("div", { style: mr(ft.value) }, [V("div", {
+				class: "mjr-grid-skeleton-line mjr-grid-skeleton-line--title mjr-grid-skeleton-shimmer",
 				style: mr(ut.value)
-			}, null, 4)], 4)], 4))), 128))], 4), H("div", Od, J(Z(x).loadingMessage || "Loading assets..."), 1)])])) : W("", !0),
-			Z(x).statusMessage && !Z(x).assets.length && !Z(x).loading ? (q(), Y("div", {
+			}, null, 4), V("div", {
+				class: "mjr-grid-skeleton-line mjr-grid-skeleton-line--meta mjr-grid-skeleton-shimmer",
+				style: mr(dt.value)
+			}, null, 4)], 4)], 4))), 128))], 4), V("div", Od, J(Z(x).loadingMessage || "Loading assets..."), 1)])])) : U("", !0),
+			Z(x).statusMessage && !Z(x).assets.length && !Z(x).loading ? (K(), Y("div", {
 				key: 1,
 				class: "mjr-grid-message",
 				style: mr({
@@ -9343,39 +9344,39 @@ var Ed = {
 					color: Z(x).statusError ? "var(--error-text, #f44336)" : "var(--muted-text, #bdbdbd)",
 					background: "rgba(0, 0, 0, 0.35)"
 				})
-			}, J(Z(x).statusMessage), 5)) : W("", !0),
-			e.virtualize ? (q(), Y("div", {
+			}, J(Z(x).statusMessage), 5)) : U("", !0),
+			e.virtualize ? (K(), Y("div", {
 				key: 2,
 				style: mr({
-					height: `${Z(et)}px`,
+					height: `${Z(L)}px`,
 					position: "relative",
 					width: "100%",
 					gridColumn: "1 / -1"
 				})
-			}, [(q(!0), Y(V, null, tr(Z($e), (e) => (q(), Y("div", {
+			}, [(K(!0), Y(B, null, nr(Z($e), (e) => (K(), Y("div", {
 				key: e.key,
 				ref_for: !0,
-				ref: Yt,
+				ref: Xt,
 				"data-index": e.index,
-				style: mr(Qt(e.index))
-			}, [e.kind === "header" ? (q(), Y("button", {
+				style: mr($t(e.index))
+			}, [e.kind === "header" ? (K(), Y("button", {
 				key: 0,
 				type: "button",
-				class: X(["mjr-grid-group-separator", je(e)]),
-				"aria-expanded": ke(e.groupKey) ? "false" : "true",
-				title: `${ke(e.groupKey) ? "Open" : "Close"} group`,
-				onClick: (t) => Ae(e.groupKey)
-			}, [H("span", jd, [H("i", { class: X(["pi", ke(e.groupKey) ? "pi-chevron-down" : "pi-chevron-up"]) }, null, 2)]), H("span", Md, J(e.title), 1)], 10, Ad)) : e.items.length ? (q(!0), Y(V, { key: 1 }, tr(e.items, (e) => (q(), Y(V, { key: String(e.id) }, [ce(e) ? (q(), Xn(Kc, {
+				class: X(["mjr-grid-group-separator", Me(e)]),
+				"aria-expanded": Ae(e.groupKey) ? "false" : "true",
+				title: `${Ae(e.groupKey) ? "Open" : "Close"} group`,
+				onClick: (t) => je(e.groupKey)
+			}, [V("span", jd, [V("i", { class: X(["pi", Ae(e.groupKey) ? "pi-chevron-down" : "pi-chevron-up"]) }, null, 2)]), V("span", Md, J(e.title), 1)], 10, Ad)) : e.items.length ? (K(!0), Y(B, { key: 1 }, nr(e.items, (e) => (K(), Y(B, { key: String(e.id) }, [ce(e) ? (K(), Zn(Kc, {
 				key: 0,
 				ref_for: !0,
-				ref: Et(e),
+				ref: Dt(e),
 				asset: e,
 				selected: se(e),
-				style: mr(Xt()),
-				onMousedown: ar((t) => At(t, e), ["left"]),
-				onClick: (t) => kt(t, e),
-				onDblclick: ar((t) => Lt(e), ["stop"]),
-				onDropAsset: Rt
+				style: mr(Zt()),
+				onMousedown: or((t) => jt(t, e), ["left"]),
+				onClick: (t) => At(t, e),
+				onDblclick: or((t) => Rt(e), ["stop"]),
+				onDropAsset: zt
 			}, null, 8, [
 				"asset",
 				"selected",
@@ -9383,57 +9384,57 @@ var Ed = {
 				"onMousedown",
 				"onClick",
 				"onDblclick"
-			])) : (q(), Y("div", {
+			])) : (K(), Y("div", {
 				key: 1,
 				ref_for: !0,
-				ref: Et(e),
+				ref: Dt(e),
 				class: X(["mjr-asset-card mjr-card", {
 					"is-selected": se(e),
-					"mjr-live-placeholder": _e(e)
+					"mjr-live-placeholder": ye(e)
 				}]),
 				role: "button",
 				tabindex: "0",
 				draggable: "true",
-				style: mr(Xt()),
+				style: mr(Zt()),
 				"data-mjr-asset-id": String(e.id ?? ""),
 				"data-mjr-filename-key": String(e.filename || "").toLowerCase(),
-				"data-mjr-ext": I(e),
+				"data-mjr-ext": ae(e),
 				"data-mjr-stem": oe(e),
 				"data-mjr-kind": String(e.kind || ""),
-				"data-mjr-live-placeholder": _e(e) ? "true" : void 0,
-				"data-mjr-stacked": ge(e) ? "true" : void 0,
-				"data-mjr-stack-count": ge(e) ? String(e.stack_asset_count || 0) : void 0,
+				"data-mjr-live-placeholder": ye(e) ? "true" : void 0,
+				"data-mjr-stacked": ve(e) ? "true" : void 0,
+				"data-mjr-stack-count": ve(e) ? String(e.stack_asset_count || 0) : void 0,
 				"data-mjr-dup-stacked": e._mjrDupStack ? "true" : void 0,
 				"data-mjr-dup-count": e._mjrDupStack ? String(e._mjrDupCount || 0) : void 0,
 				"aria-label": `Asset ${e.filename || ""}`,
 				"aria-selected": se(e) ? "true" : "false",
-				onMousedown: ar((t) => At(t, e), ["left"]),
-				onClick: (t) => kt(t, e),
-				onDblclick: ar((t) => Lt(e), ["stop"])
-			}, [U(Hc, {
+				onMousedown: or((t) => jt(t, e), ["left"]),
+				onClick: (t) => At(t, e),
+				onDblclick: or((t) => Rt(e), ["stop"])
+			}, [H(Hc, {
 				asset: e,
-				onWorkflowAction: (t) => Ft(t, e)
-			}, null, 8, ["asset", "onWorkflowAction"])], 46, Nd))], 64))), 128)) : W("", !0)], 12, kd))), 128))], 4)) : (q(), Y("div", Pd, [(q(!0), Y(V, null, tr(qe.value, (e) => (q(), Y("div", {
+				onWorkflowAction: (t) => It(t, e)
+			}, null, 8, ["asset", "onWorkflowAction"])], 46, Nd))], 64))), 128)) : U("", !0)], 12, kd))), 128))], 4)) : (K(), Y("div", Pd, [(K(!0), Y(B, null, nr(qe.value, (e) => (K(), Y("div", {
 				key: `${e.kind || "assets"}-${e.groupKey || ""}-${e.index ?? ""}`,
-				style: mr($t())
-			}, [e.kind === "header" ? (q(), Y("button", {
+				style: mr(en())
+			}, [e.kind === "header" ? (K(), Y("button", {
 				key: 0,
 				type: "button",
-				class: X(["mjr-grid-group-separator", je(e)]),
-				"aria-expanded": ke(e.groupKey) ? "false" : "true",
-				title: `${ke(e.groupKey) ? "Open" : "Close"} group`,
-				onClick: (t) => Ae(e.groupKey)
-			}, [H("span", Id, [H("i", { class: X(["pi", ke(e.groupKey) ? "pi-chevron-down" : "pi-chevron-up"]) }, null, 2)]), H("span", Ld, J(e.title), 1)], 10, Fd)) : (q(!0), Y(V, { key: 1 }, tr(e.items, (e) => (q(), Y(V, { key: String(e.id) }, [ce(e) ? (q(), Xn(Kc, {
+				class: X(["mjr-grid-group-separator", Me(e)]),
+				"aria-expanded": Ae(e.groupKey) ? "false" : "true",
+				title: `${Ae(e.groupKey) ? "Open" : "Close"} group`,
+				onClick: (t) => je(e.groupKey)
+			}, [V("span", Id, [V("i", { class: X(["pi", Ae(e.groupKey) ? "pi-chevron-down" : "pi-chevron-up"]) }, null, 2)]), V("span", Ld, J(e.title), 1)], 10, Fd)) : (K(!0), Y(B, { key: 1 }, nr(e.items, (e) => (K(), Y(B, { key: String(e.id) }, [ce(e) ? (K(), Zn(Kc, {
 				key: 0,
 				ref_for: !0,
-				ref: Et(e),
+				ref: Dt(e),
 				asset: e,
 				selected: se(e),
-				style: mr(Xt()),
-				onMousedown: ar((t) => At(t, e), ["left"]),
-				onClick: (t) => kt(t, e),
-				onDblclick: ar((t) => Lt(e), ["stop"]),
-				onDropAsset: Rt
+				style: mr(Zt()),
+				onMousedown: or((t) => jt(t, e), ["left"]),
+				onClick: (t) => At(t, e),
+				onDblclick: or((t) => Rt(e), ["stop"]),
+				onDropAsset: zt
 			}, null, 8, [
 				"asset",
 				"selected",
@@ -9441,40 +9442,40 @@ var Ed = {
 				"onMousedown",
 				"onClick",
 				"onDblclick"
-			])) : (q(), Y("div", {
+			])) : (K(), Y("div", {
 				key: 1,
 				ref_for: !0,
-				ref: Et(e),
+				ref: Dt(e),
 				class: X(["mjr-asset-card mjr-card", {
 					"is-selected": se(e),
-					"mjr-live-placeholder": _e(e)
+					"mjr-live-placeholder": ye(e)
 				}]),
 				role: "button",
 				tabindex: "0",
 				draggable: "true",
-				style: mr(Xt()),
+				style: mr(Zt()),
 				"data-mjr-asset-id": String(e.id ?? ""),
 				"data-mjr-filename-key": String(e.filename || "").toLowerCase(),
-				"data-mjr-ext": I(e),
+				"data-mjr-ext": ae(e),
 				"data-mjr-stem": oe(e),
 				"data-mjr-kind": String(e.kind || ""),
-				"data-mjr-live-placeholder": _e(e) ? "true" : void 0,
-				"data-mjr-stacked": ge(e) ? "true" : void 0,
-				"data-mjr-stack-count": ge(e) ? String(e.stack_asset_count || 0) : void 0,
+				"data-mjr-live-placeholder": ye(e) ? "true" : void 0,
+				"data-mjr-stacked": ve(e) ? "true" : void 0,
+				"data-mjr-stack-count": ve(e) ? String(e.stack_asset_count || 0) : void 0,
 				"data-mjr-dup-stacked": e._mjrDupStack ? "true" : void 0,
 				"data-mjr-dup-count": e._mjrDupStack ? String(e._mjrDupCount || 0) : void 0,
 				"aria-label": `Asset ${e.filename || ""}`,
 				"aria-selected": se(e) ? "true" : "false",
-				onMousedown: ar((t) => At(t, e), ["left"]),
-				onClick: (t) => kt(t, e),
-				onDblclick: ar((t) => Lt(e), ["stop"])
-			}, [U(Hc, {
+				onMousedown: or((t) => jt(t, e), ["left"]),
+				onClick: (t) => At(t, e),
+				onDblclick: or((t) => Rt(e), ["stop"])
+			}, [H(Hc, {
 				asset: e,
-				onWorkflowAction: (t) => Ft(t, e)
+				onWorkflowAction: (t) => It(t, e)
 			}, null, 8, ["asset", "onWorkflowAction"])], 46, Rd))], 64))), 128))], 4))), 128))])),
-			H("div", {
+			V("div", {
 				ref_key: "infiniteSentinelRef",
-				ref: ae,
+				ref: ie,
 				"aria-hidden": "true",
 				style: {
 					height: "1px",
@@ -9490,7 +9491,7 @@ function Kd() {
 	return Wd ||= import("./chunks/viewerOpenRequest-WOJE90Gn.js").then((e) => e.n), Wd;
 }
 function qd() {
-	return Gd ||= import("./chunks/floatingViewerManager-DbOx9dhE.js").then((e) => e.n), Gd;
+	return Gd ||= import("./chunks/floatingViewerManager-Dn53ZRsL.js").then((e) => e.n), Gd;
 }
 function Jd(e) {
 	let t = document.createElement("button");
@@ -9520,7 +9521,7 @@ function Yd(e) {
 }
 function Xd(e, t, n = "") {
 	let r = Array.isArray(t) ? t.map(String).filter(Boolean) : [];
-	return pt(e, r, { activeId: n || r[0] || "" }, Yd);
+	return mt(e, r, { activeId: n || r[0] || "" }, Yd);
 }
 function Zd(e) {
 	let t = e?.grid;
@@ -9538,7 +9539,7 @@ function Zd(e) {
 		} catch (e) {
 			console.debug?.(e);
 		}
-		let a = Yd(t), o = a.indexOf(n), s = xt(t);
+		let a = Yd(t), o = a.indexOf(n), s = St(t);
 		if (e.shiftKey && o >= 0) {
 			let n = Number.isFinite(Number(t._mjrLastSelectedIndex)) ? Number(t._mjrLastSelectedIndex) : o, r = Math.min(n, o), s = Math.max(n, o), c = a.slice(r, s + 1).map((e) => String(e?.dataset?.mjrAssetId || "").trim()).filter(Boolean);
 			Xd(t, c, i), t._mjrLastSelectedIndex = o, e.preventDefault(), e.stopPropagation();
@@ -9675,7 +9676,7 @@ function df(e, t) {
 	let n = document.createElement("div");
 	n.className = "mjr-popover mjr-feed-group-popover", n.style.cssText = "display:none; width:min(440px, 92vw); padding:10px;";
 	let r = document.createElement("div");
-	r.className = "mjr-feed-group-popover-title", r.textContent = L("bottomFeed.groupTitle", "Generation group"), r.style.cssText = "font-size:12px; font-weight:700; opacity:0.92; margin-bottom:8px;", n.appendChild(r);
+	r.className = "mjr-feed-group-popover-title", r.textContent = I("bottomFeed.groupTitle", "Generation group"), r.style.cssText = "font-size:12px; font-weight:700; opacity:0.92; margin-bottom:8px;", n.appendChild(r);
 	let i = document.createElement("div");
 	i.className = "mjr-feed-group-popover-grid", i.style.cssText = "display:grid; grid-template-columns:repeat(auto-fill, minmax(110px, 1fr)); gap:8px; max-height:360px; overflow-y:auto; overscroll-behavior:contain;";
 	let a = Array.isArray(t?._mjrFeedGroupAssets) ? t._mjrFeedGroupAssets : [];
@@ -9692,7 +9693,7 @@ function ff(e, t, n) {
 	let r = Number(n?._mjrFeedGroupCount || 0) || 0;
 	if (r <= 1 || (t.dataset.mjrFeedGrouped = "true", t.dataset.mjrFeedGroupCount = String(r), t.dataset.mjrStacked = "true", t.dataset.mjrStackCount = String(r), t.querySelector(".mjr-feed-group-button"))) return;
 	let i = document.createElement("button");
-	i.type = "button", i.className = "mjr-feed-group-button", i.title = L("bottomFeed.groupOpen", "Show other assets from this generation"), i.setAttribute("aria-label", `${r} assets`);
+	i.type = "button", i.className = "mjr-feed-group-button", i.title = I("bottomFeed.groupOpen", "Show other assets from this generation"), i.setAttribute("aria-label", `${r} assets`);
 	let a = document.createElement("span");
 	a.className = "mjr-feed-group-button-icon pi pi-clone", i.appendChild(a);
 	let o = document.createElement("span");
@@ -9723,10 +9724,10 @@ async function mf(e) {
 		console.debug?.(e);
 	}
 	let t = ef(tf(e)), n = await li(e.grid, t, {
-		title: L("bottomFeed.title", "Generated Feed"),
+		title: I("bottomFeed.title", "Generated Feed"),
 		reset: !0
 	});
-	pf(e, t), Number(n?.count || 0) <= 0 ? (e.empty.textContent = L("bottomFeed.empty", "No generated assets yet."), e.empty.style.display = "") : e.empty.style.display = "none";
+	pf(e, t), Number(n?.count || 0) <= 0 ? (e.empty.textContent = I("bottomFeed.empty", "No generated assets yet."), e.empty.style.display = "") : e.empty.style.display = "none";
 }
 function hf(e) {
 	let t = String(e?.id || "").trim();
@@ -9788,19 +9789,19 @@ function yf() {
 }
 async function bf(e) {
 	if (e?.grid) {
-		e.empty.style.display = "none", e.empty.textContent = L("bottomFeed.loading", "Loading recent assets...");
+		e.empty.style.display = "none", e.empty.textContent = I("bottomFeed.loading", "Loading recent assets...");
 		try {
 			e.assetsByKey = /* @__PURE__ */ new Map();
 			let t = [], n = 0;
 			for (; n < Vd;) {
-				let r = Pe({
+				let r = Ye({
 					q: "*",
 					limit: Math.min(Hd, Vd - n),
 					offset: n,
 					scope: "output",
 					sort: "mtime_desc",
 					includeTotal: n === 0
-				}), i = await Ie(r, { timeoutMs: 3e4 });
+				}), i = await fe(r, { timeoutMs: 3e4 });
 				if (!i?.ok) throw Error(String(i?.error || "Failed to load feed assets"));
 				let a = Array.isArray(i?.data?.assets) ? i.data.assets : [];
 				if (!a.length) break;
@@ -9814,12 +9815,12 @@ async function bf(e) {
 			for (let t of yf()) cf(e, t);
 			Qd.pendingAssets.clear();
 			let r = ef(tf(e)), i = await li(e.grid, r, {
-				title: L("bottomFeed.title", "Generated Feed"),
+				title: I("bottomFeed.title", "Generated Feed"),
 				reset: !0
 			});
-			pf(e, r), Number(i?.count || 0) <= 0 ? (e.empty.textContent = L("bottomFeed.empty", "No generated assets yet."), e.empty.style.display = "") : e.empty.style.display = "none";
+			pf(e, r), Number(i?.count || 0) <= 0 ? (e.empty.textContent = I("bottomFeed.empty", "No generated assets yet."), e.empty.style.display = "") : e.empty.style.display = "none";
 		} catch (t) {
-			console.debug?.(t), e.empty.textContent = L("bottomFeed.loadFailed", "Failed to load generated assets."), e.empty.style.display = "";
+			console.debug?.(t), e.empty.textContent = I("bottomFeed.loadFailed", "Failed to load generated assets."), e.empty.style.display = "";
 		} finally {
 			e.loaded = !0;
 		}
@@ -9837,7 +9838,7 @@ function Sf() {
 }
 function Cf(e) {
 	let t = document.createElement("div");
-	t.textContent = L("bottomFeed.loading", "Loading recent assets..."), t.style.cssText = "font-size:11px; opacity:0.65; padding:4px 2px 8px 2px;", e.root.appendChild(t), e.empty = t;
+	t.textContent = I("bottomFeed.loading", "Loading recent assets..."), t.style.cssText = "font-size:11px; opacity:0.65; padding:4px 2px 8px 2px;", e.root.appendChild(t), e.empty = t;
 }
 function wf(e) {
 	if (!e) return;
@@ -9876,13 +9877,13 @@ function Ef(e, t = null) {
 	}, i = () => {
 		r();
 		try {
-			window.dispatchEvent(new Event(B.MFV_OPEN));
+			window.dispatchEvent(new Event(z.MFV_OPEN));
 		} catch (e) {
 			console.debug?.(e);
 		}
 	}, a = document.createElement("div");
 	n.appendChild(a), e.root.appendChild(n);
-	let { app: o } = Kt(Bd, {
+	let { app: o } = qt(Bd, {
 		scrollElement: n,
 		virtualize: !1,
 		applyDefaultSettingsClasses: !1,
@@ -9932,7 +9933,7 @@ function Ef(e, t = null) {
 function Df(e) {
 	let t = e?.grid;
 	if (!t) return [];
-	let n = xt(t);
+	let n = St(t);
 	return n.size ? tf(e).filter((e) => n.has(String(e?.id || ""))) : [];
 }
 function Of(e) {
@@ -9977,7 +9978,7 @@ function Af(e) {
 		onAssetChanged: n
 	}), e.keyboard.bind(), e.ratingHotkeys = Eo({
 		gridContainer: t,
-		createRatingBadge: an
+		createRatingBadge: on
 	}), e.ratingHotkeys.bind();
 }
 var jf = 60, Mf = 600, Nf = 10;
@@ -9990,8 +9991,8 @@ function Pf(e, t) {
 	}
 	R.FEED_GRID_MIN_SIZE = n;
 	try {
-		let e = Pt();
-		e.feed.minSize = n, St(e), Ot(e);
+		let e = Ft();
+		e.feed.minSize = n, Ct(e), kt(e);
 	} catch (e) {
 		console.debug?.(e);
 	}
@@ -10012,13 +10013,13 @@ function Ff(e) {
 	let t = Math.max(jf, Number(R.FEED_GRID_MIN_SIZE || 120) || 120), n = document.createElement("div");
 	n.className = "mjr-feed-toolbar", n.style.cssText = "display:flex; align-items:center; gap:5px; padding:0 2px 5px 2px; flex-shrink:0; user-select:none;";
 	let r = document.createElement("span");
-	r.textContent = L("bottomFeed.cardSize", "Cards:"), r.style.cssText = "font-size:11px; opacity:0.65; white-space:nowrap; flex-shrink:0;", n.appendChild(r);
+	r.textContent = I("bottomFeed.cardSize", "Cards:"), r.style.cssText = "font-size:11px; opacity:0.65; white-space:nowrap; flex-shrink:0;", n.appendChild(r);
 	let i = document.createElement("button");
-	i.type = "button", i.className = "mjr-feed-size-btn", i.textContent = "-", i.title = L("bottomFeed.cardSizeDecrease", "Decrease card size"), i.style.cssText = "width:20px; height:20px; padding:0; border:1px solid var(--mjr-border,#555); border-radius:4px; background:var(--mjr-surface,#2a2a2a); color:inherit; cursor:pointer; font-size:14px; line-height:1; flex-shrink:0; display:flex; align-items:center; justify-content:center;", n.appendChild(i);
+	i.type = "button", i.className = "mjr-feed-size-btn", i.textContent = "-", i.title = I("bottomFeed.cardSizeDecrease", "Decrease card size"), i.style.cssText = "width:20px; height:20px; padding:0; border:1px solid var(--mjr-border,#555); border-radius:4px; background:var(--mjr-surface,#2a2a2a); color:inherit; cursor:pointer; font-size:14px; line-height:1; flex-shrink:0; display:flex; align-items:center; justify-content:center;", n.appendChild(i);
 	let a = document.createElement("input");
-	a.type = "range", a.className = "mjr-feed-size-slider", a.min = String(jf), a.max = String(Mf), a.step = String(Nf), a.value = String(t), a.title = L("bottomFeed.cardSizeSlider", "Card size"), a.style.cssText = "flex:1 1 auto; min-width:40px; max-width:180px; height:4px; cursor:pointer; accent-color:var(--mjr-accent,#64b5f6);", n.appendChild(a);
+	a.type = "range", a.className = "mjr-feed-size-slider", a.min = String(jf), a.max = String(Mf), a.step = String(Nf), a.value = String(t), a.title = I("bottomFeed.cardSizeSlider", "Card size"), a.style.cssText = "flex:1 1 auto; min-width:40px; max-width:180px; height:4px; cursor:pointer; accent-color:var(--mjr-accent,#64b5f6);", n.appendChild(a);
 	let o = document.createElement("button");
-	o.type = "button", o.className = "mjr-feed-size-btn", o.textContent = "+", o.title = L("bottomFeed.cardSizeIncrease", "Increase card size"), o.style.cssText = i.style.cssText, n.appendChild(o);
+	o.type = "button", o.className = "mjr-feed-size-btn", o.textContent = "+", o.title = I("bottomFeed.cardSizeIncrease", "Increase card size"), o.style.cssText = i.style.cssText, n.appendChild(o);
 	let s = document.createElement("span");
 	s.className = "mjr-feed-size-display", s.textContent = `${t}px`, s.style.cssText = "font-size:11px; opacity:0.65; white-space:nowrap; min-width:36px; text-align:right; flex-shrink:0; font-variant-numeric:tabular-nums;", n.appendChild(s), i.addEventListener("click", () => {
 		Pf(e, Number(a.value) - Nf);
@@ -10324,10 +10325,10 @@ var Yf = 2e3, Xf = 2e3, Zf = /* @__PURE__ */ new Set([
 	"SERVICE_UNAVAILABLE"
 ]), Qf = 8, $f = 1200, ep = 15e3, tp = 6e5, np = 500, rp = 6, ip = 3e4, ap = 500;
 function op({ post: e, ENDPOINTS: t, reportError: n, extractOutputFiles: r, ensureExecutionRuntime: i, emitRuntimeStatus: a, refreshGeneratedFeedHosts: o, getActiveGridContainer: s }) {
-	let c = v({
+	let c = Ve({
 		ttlMs: Yf,
 		maxSize: Xf
-	}), l = v({
+	}), l = Ve({
 		ttlMs: tp,
 		maxSize: np
 	}), u = Math.max(0, Number(R.EXECUTION_IDLE_GRACE_MS) || 6e3), d = /* @__PURE__ */ new Map(), f = Uf(), p = Jf(), m = "", h = 0, g = null;
@@ -10338,18 +10339,18 @@ function op({ post: e, ENDPOINTS: t, reportError: n, extractOutputFiles: r, ensu
 			return console.debug?.(e), !1;
 		}
 	}
-	function y(e, t = {}) {
+	function v(e, t = {}) {
 		if (_()) try {
 			console.debug("[Majoor][job-tracking]", e, t);
 		} catch (e) {
 			console.debug?.(e);
 		}
 	}
-	function b() {
+	function y() {
 		return !!R.EXECUTION_GROUPING_ENABLED;
 	}
-	function x() {
-		let e = b();
+	function b() {
+		let e = y();
 		return {
 			groupingEnabled: e,
 			useExecutionBuffer: e,
@@ -10357,8 +10358,8 @@ function op({ post: e, ENDPOINTS: t, reportError: n, extractOutputFiles: r, ensu
 			allowLiveStackFinalize: e
 		};
 	}
-	function S(e = {}) {
-		y("stacks-updated", {
+	function x(e = {}) {
+		v("stacks-updated", {
 			targeted_job_id: String(e?.targeted_job_id || ""),
 			stacks: Array.isArray(e?.stacks) ? e.stacks.map((e) => ({
 				job_id: String(e?.job_id || ""),
@@ -10402,10 +10403,10 @@ function op({ post: e, ENDPOINTS: t, reportError: n, extractOutputFiles: r, ensu
 			console.debug?.(e);
 		}
 	}
-	let C = Wf({
+	let S = Wf({
 		defaultDelayMs: 900,
 		async postJob(r) {
-			y("auto-stack:start", { job_id: r });
+			v("auto-stack:start", { job_id: r });
 			try {
 				let i = await e(t.STACKS_AUTO_STACK, {
 					mode: "job_id",
@@ -10415,21 +10416,21 @@ function op({ post: e, ENDPOINTS: t, reportError: n, extractOutputFiles: r, ensu
 					p.clearPendingJob(r), n(Error(String(i?.error || "Auto stack failed")), "executionRuntime.execution_end.auto_stack");
 					return;
 				}
-				y("auto-stack:done", {
+				v("auto-stack:done", {
 					job_id: r,
 					stacks: Array.isArray(i?.data?.stacks) ? i.data.stacks.length : 0
-				}), S(i?.data || { targeted_job_id: r });
+				}), x(i?.data || { targeted_job_id: r });
 			} catch (e) {
 				n(e, "executionRuntime.execution_end.auto_stack");
 			}
 		}
 	});
-	function w(e, t) {
+	function C(e, t) {
 		if (!e) return;
 		let n = Number(t) || Date.now();
 		l.set(String(e), n, { at: n }), l.prune();
 	}
-	function T(e) {
+	function w(e) {
 		c.prune();
 		let t = [];
 		for (let n of e) {
@@ -10438,16 +10439,16 @@ function op({ post: e, ENDPOINTS: t, reportError: n, extractOutputFiles: r, ensu
 		}
 		return t;
 	}
-	function E(e) {
+	function T(e) {
 		let t = Math.max(1, Number(e) || 1), n = Math.min(6, t - 1);
 		return Math.min(ep, $f * 2 ** n);
 	}
-	function D() {
+	function E() {
 		g &&= (clearTimeout(g), null);
 	}
-	function O(e, t = u) {
+	function D(e, t = u) {
 		let r = Math.max(0, Number(t) || 0);
-		D(), g = setTimeout(() => {
+		E(), g = setTimeout(() => {
 			g = null;
 			try {
 				e?.();
@@ -10456,26 +10457,26 @@ function op({ post: e, ENDPOINTS: t, reportError: n, extractOutputFiles: r, ensu
 			}
 		}, r);
 	}
-	function k(e) {
+	function O(e) {
 		let t = String(e?.code || "").trim().toUpperCase();
 		return Zf.has(t);
 	}
-	function A(r, i = 1, a = {}) {
+	function k(r, i = 1, a = {}) {
 		let o = Array.isArray(r) ? r : [];
 		if (!o.length) return;
 		let s = {
 			files: o,
 			origin: "generation"
 		};
-		(a?.prompt_id || a?.promptId) && (s.prompt_id = String(a.prompt_id || a.promptId)), y("index:direct", {
+		(a?.prompt_id || a?.promptId) && (s.prompt_id = String(a.prompt_id || a.promptId)), v("index:direct", {
 			prompt_id: String(s.prompt_id || ""),
 			attempt: i,
 			files: o.map((e) => String(e?.filename || e?.filepath || ""))
 		}), e(t.INDEX_FILES, s).then((e) => {
 			if (!e?.ok) {
-				if (k(e) && i < Qf) {
-					let e = E(i);
-					setTimeout(() => A(o, i + 1, a), e);
+				if (O(e) && i < Qf) {
+					let e = T(i);
+					setTimeout(() => k(o, i + 1, a), e);
 				} else try {
 					let t = String(e?.code || "INDEX_FAILED"), r = String(e?.error || "Indexing generated files failed");
 					n(/* @__PURE__ */ Error(`${t}: ${r}`), "executionRuntime.executed.index");
@@ -10485,7 +10486,7 @@ function op({ post: e, ENDPOINTS: t, reportError: n, extractOutputFiles: r, ensu
 			}
 		}).catch((e) => n(e, "executionRuntime.executed.index"));
 	}
-	function ee(e = {}) {
+	function A(e = {}) {
 		let t = String(e?.prompt_id || e?.promptId || "").trim();
 		if (t) return t;
 		try {
@@ -10494,26 +10495,26 @@ function op({ post: e, ENDPOINTS: t, reportError: n, extractOutputFiles: r, ensu
 			return console.debug?.(e), "";
 		}
 	}
-	function j(e) {
+	function ee(e) {
 		return !Array.isArray(e) || !e.length ? "" : e.map((e) => String(e?.filepath || e?.filename || "")).filter(Boolean).sort().join("|");
 	}
-	function M(e, t = {}, n = 1) {
+	function j(e, t = {}, n = 1) {
 		let r = Array.isArray(e) ? e : [];
 		if (!r.length) return;
-		let i = j(r);
+		let i = ee(r);
 		if (!i) {
-			A(r, 1, t);
+			k(r, 1, t);
 			return;
 		}
 		let a = d.get(i);
 		a?.timer && clearTimeout(a.timer);
 		let o = a?.firstAttemptAt ?? Date.now();
 		if (Date.now() - o >= ip) {
-			A(r, 1, t);
+			k(r, 1, t);
 			return;
 		}
 		let s = Math.max(1, Number(n) || 1), c = Math.min(2e3, 250 * s), l = setTimeout(() => {
-			d.delete(i), N(r, t, s + 1);
+			d.delete(i), ne(r, t, s + 1);
 		}, c);
 		d.set(i, {
 			files: r,
@@ -10523,7 +10524,7 @@ function op({ post: e, ENDPOINTS: t, reportError: n, extractOutputFiles: r, ensu
 			firstAttemptAt: o
 		});
 	}
-	function te(e) {
+	function M(e) {
 		let t = String(e || "").trim();
 		if (!(!t || d.size <= 0)) for (let [e, n] of Array.from(d.entries())) {
 			try {
@@ -10534,7 +10535,7 @@ function op({ post: e, ENDPOINTS: t, reportError: n, extractOutputFiles: r, ensu
 			d.delete(e), f.add(t, n?.files || []);
 		}
 	}
-	function ne() {
+	function te() {
 		for (let [e, t] of Array.from(d.entries())) {
 			try {
 				t?.timer && clearTimeout(t.timer);
@@ -10544,9 +10545,9 @@ function op({ post: e, ENDPOINTS: t, reportError: n, extractOutputFiles: r, ensu
 			d.delete(e);
 		}
 	}
-	function N(e, t = {}, n = 1) {
-		let r = ee(t);
-		if (y("buffer:add", {
+	function ne(e, t = {}, n = 1) {
+		let r = A(t);
+		if (v("buffer:add", {
 			prompt_id: r,
 			explicit_prompt_id: String(t?.prompt_id || t?.promptId || ""),
 			attempt: n,
@@ -10554,23 +10555,23 @@ function op({ post: e, ENDPOINTS: t, reportError: n, extractOutputFiles: r, ensu
 			files: Array.isArray(e) ? e.map((e) => String(e?.filename || e?.filepath || "")) : []
 		}), !r) {
 			if (n < rp) {
-				M(e, t, n);
+				j(e, t, n);
 				return;
 			}
-			A(e, 1, t);
+			k(e, 1, t);
 		} else f.add(r, e);
 	}
-	function P(e, t = 900) {
-		b() && (y("finalize:schedule", {
+	function re(e, t = 900) {
+		y() && (v("finalize:schedule", {
 			job_id: String(e || ""),
 			delay_ms: t
-		}), C.schedule(e, t));
+		}), S.schedule(e, t));
 	}
-	function re(r) {
-		let i = x(), a = String(r || "").trim();
+	function N(r) {
+		let i = b(), a = String(r || "").trim();
 		if (!a) return;
 		let o = f.take(a);
-		y("buffer:flush", {
+		v("buffer:flush", {
 			prompt_id: a,
 			file_count: o.length,
 			files: o.map((e) => String(e?.filename || e?.filepath || ""))
@@ -10582,15 +10583,15 @@ function op({ post: e, ENDPOINTS: t, reportError: n, extractOutputFiles: r, ensu
 			origin: "generation",
 			prompt_id: a
 		}).then((e) => {
-			e?.ok ? (y("index:flush:done", {
+			e?.ok ? (v("index:flush:done", {
 				prompt_id: a,
 				file_count: o.length
-			}), i.allowLiveStackFinalize && P(a, 1800)) : (i.allowLiveStackFinalize && p.clearPendingJob(a), n(Error(String(e?.error || "Indexing generated files failed")), "executionRuntime.executed.index"));
+			}), i.allowLiveStackFinalize && re(a, 1800)) : (i.allowLiveStackFinalize && p.clearPendingJob(a), n(Error(String(e?.error || "Indexing generated files failed")), "executionRuntime.executed.index"));
 		}).catch((e) => {
 			i.allowLiveStackFinalize && p.clearPendingJob(a), n(e, "executionRuntime.executed.index");
-		}) : i.allowLiveStackFinalize && P(a);
+		}) : i.allowLiveStackFinalize && re(a);
 	}
-	function ie(e) {
+	function P(e) {
 		let t = String(e || "").trim();
 		if (!t) return !1;
 		try {
@@ -10601,7 +10602,7 @@ function op({ post: e, ENDPOINTS: t, reportError: n, extractOutputFiles: r, ensu
 		}
 	}
 	function F(e) {
-		if (!b()) return {
+		if (!y()) return {
 			detail: e,
 			jobId: "",
 			defer: !1
@@ -10616,18 +10617,18 @@ function op({ post: e, ENDPOINTS: t, reportError: n, extractOutputFiles: r, ensu
 			};
 		}
 	}
-	function ae(e) {
+	function ie(e) {
 		let t = String(e?.kind || "").trim(), n = String(e?.filename || "").trim(), r = String(e?.filepath || "").trim();
 		return !!t && (!!n || !!r);
 	}
-	function I(e, { appRef: t }) {
-		if (!x().useExecutionBuffer) return;
-		let n = T(r(e?.detail?.output));
+	function ae(e, { appRef: t }) {
+		if (!b().useExecutionBuffer) return;
+		let n = w(r(e?.detail?.output));
 		if (!n.length) return;
 		let i = e?.detail?.prompt_id || e?.detail?.promptId, a = String(e?.detail?.node || e?.detail?.display_node || "").trim(), o = i ? l.get(String(i)) : null, s = o ? Math.max(0, Date.now() - o) : 0, c = "";
 		try {
 			if (a && t !== void 0) {
-				let e = ct(ot(t), a);
+				let e = lt(st(t), a);
 				e && (c = String(e.type || e.comfyClass || "").trim());
 			}
 		} catch (e) {
@@ -10639,7 +10640,7 @@ function op({ post: e, ENDPOINTS: t, reportError: n, extractOutputFiles: r, ensu
 			...a ? { source_node_id: a } : {},
 			...c ? { source_node_type: c } : {}
 		}));
-		y("executed:event", {
+		v("executed:event", {
 			prompt_id: String(i || ""),
 			source_node_id: a,
 			source_node_type: c,
@@ -10647,7 +10648,7 @@ function op({ post: e, ENDPOINTS: t, reportError: n, extractOutputFiles: r, ensu
 			files: u.map((e) => String(e?.filename || e?.filepath || ""))
 		});
 		try {
-			window.dispatchEvent(new CustomEvent(B.NEW_GENERATION_OUTPUT, { detail: {
+			window.dispatchEvent(new CustomEvent(z.NEW_GENERATION_OUTPUT, { detail: {
 				files: u,
 				prompt_id: String(i || ""),
 				promptId: String(i || "")
@@ -10656,24 +10657,24 @@ function op({ post: e, ENDPOINTS: t, reportError: n, extractOutputFiles: r, ensu
 			console.debug?.(e);
 		}
 		let d = u.length > 0 ? [u[0]] : [], f = u.length > 1 ? u.slice(1) : [];
-		d.length > 0 && A(d, 1, { prompt_id: i }), f.length > 0 && N(f, { prompt_id: i });
+		d.length > 0 && k(d, 1, { prompt_id: i }), f.length > 0 && ne(f, { prompt_id: i });
 	}
 	function oe(e, { setCurrentJobId: t }) {
 		let n = e?.detail?.prompt_id || e?.detail?.promptId, r = e?.detail?.timestamp;
-		y("execution:start", {
+		v("execution:start", {
 			prompt_id: String(n || ""),
 			timestamp: Number(r) || null
-		}), w(n, r), D(), t?.(n || null), a({
+		}), C(n, r), E(), t?.(n || null), a({
 			active_prompt_id: n || null,
 			cached_nodes: [],
 			progress_node: null,
 			progress_value: null,
 			progress_max: null
-		}), n && te(n);
+		}), n && M(n);
 	}
 	function se(e, { setCurrentJobId: t }) {
-		let n = x(), r = e?.detail?.prompt_id || e?.detail?.promptId;
-		y("execution:end", {
+		let n = b(), r = e?.detail?.prompt_id || e?.detail?.promptId;
+		v("execution:end", {
 			type: String(e?.type || ""),
 			prompt_id: String(r || "")
 		}), r && l.delete(String(r)), l.prune(), t?.(null), a({
@@ -10682,30 +10683,30 @@ function op({ post: e, ENDPOINTS: t, reportError: n, extractOutputFiles: r, ensu
 			progress_node: null,
 			progress_value: null,
 			progress_max: null
-		}), r && String(e?.type || "") !== "execution_success" && (y("buffer:clear", {
+		}), r && String(e?.type || "") !== "execution_success" && (v("buffer:clear", {
 			prompt_id: String(r || ""),
 			reason: String(e?.type || "")
-		}), D(), f.clear(r), n.allowLiveStackFinalize && p.clearPendingJob(r), ne()), String(e?.type || "") === "execution_success" && O(() => {
-			r && te(r), re(r);
-		}, ie(r) ? Math.min(u, ap) : u);
+		}), E(), f.clear(r), n.allowLiveStackFinalize && p.clearPendingJob(r), te()), String(e?.type || "") === "execution_success" && D(() => {
+			r && M(r), N(r);
+		}, P(r) ? Math.min(u, ap) : u);
 	}
 	function ce(e) {
-		if (!b()) return;
+		if (!y()) return;
 		let t = [];
 		for (let [, n] of e instanceof Map ? e.entries() : []) {
 			let e = r(n);
 			if (e?.length) for (let n of e) t.push(n);
 		}
-		t.length && b() && (y("node-outputs:updated", {
-			prompt_id: ee(),
+		t.length && y() && (v("node-outputs:updated", {
+			prompt_id: A(),
 			file_count: t.length
-		}), N(t, { prompt_id: ee() }));
+		}), ne(t, { prompt_id: A() }));
 	}
 	return {
-		notifyStacksUpdated: S,
+		notifyStacksUpdated: x,
 		prepareLiveAssetEvent: F,
-		isRenderableLiveAsset: ae,
-		handleExecutedEvent: I,
+		isRenderableLiveAsset: ie,
+		handleExecutedEvent: ae,
 		handleExecutionStart: oe,
 		handleExecutionEnd: se,
 		handleNodeOutputsUpdated: ce
@@ -10954,7 +10955,7 @@ function Lp(e) {
 }
 function Rp(e) {
 	let t = String(e?.id || "").trim();
-	t && (Ip(e) || Lp(t) || at(t).catch((e) => console.debug?.("[Majoor] auto vector index failed", e)));
+	t && (Ip(e) || Lp(t) || j(t).catch((e) => console.debug?.("[Majoor] auto vector index failed", e)));
 }
 function zp(e) {
 	let t = String(e?.kind || "").trim().toLowerCase();
@@ -11086,16 +11087,16 @@ function Up(e, t) {
 		label: r.replace(/[_-]+/g, " ")
 	};
 }
-async function Wp({ api: e, runtime: t, executionRuntime: n, appRef: r, liveStreamModule: i, ensureExecutionRuntime: a, emitRuntimeStatus: o, getActiveGridContainer: s, pushGeneratedAsset: c, upsertAsset: l, upsertAssetNow: u, removeAssetsFromGrid: d, getEnrichmentState: f, setEnrichmentState: p, comfyToast: m, t: h, reportError: g, registerCleanableListener: _, syncExecutionBackendState: v }) {
+async function Wp({ api: e, runtime: t, executionRuntime: n, appRef: r, liveStreamModule: i, ensureExecutionRuntime: a, emitRuntimeStatus: o, getActiveGridContainer: s, pushGeneratedAsset: c, upsertAsset: l, upsertAssetNow: u, removeAssetsFromGrid: d, getEnrichmentState: f, setEnrichmentState: p, comfyToast: m, t: h, reportError: g, registerCleanableListener: v, syncExecutionBackendState: y }) {
 	e._mjrExecutedHandler = (e) => {
 		try {
 			n.handleExecutedEvent(e, { appRef: r });
 		} catch (e) {
 			g(e, "entry.executed");
 		}
-	}, _(t, e, "executed", e._mjrExecutedHandler), e._mjrExecutionStartHandler = (e) => {
+	}, v(t, e, "executed", e._mjrExecutedHandler), e._mjrExecutionStartHandler = (e) => {
 		try {
-			n.handleExecutionStart(e, { setCurrentJobId: (e) => i?.setCurrentJobId(e) }), v?.({
+			n.handleExecutionStart(e, { setCurrentJobId: (e) => i?.setCurrentJobId(e) }), y?.({
 				active: !0,
 				promptId: e?.detail?.prompt_id || e?.detail?.promptId || ""
 			});
@@ -11104,7 +11105,7 @@ async function Wp({ api: e, runtime: t, executionRuntime: n, appRef: r, liveStre
 		}
 	}, e._mjrExecutionEndHandler = (e) => {
 		try {
-			n.handleExecutionEnd(e, { setCurrentJobId: (e) => i?.setCurrentJobId(e) }), v?.({
+			n.handleExecutionEnd(e, { setCurrentJobId: (e) => i?.setCurrentJobId(e) }), y?.({
 				active: !1,
 				promptId: e?.detail?.prompt_id || e?.detail?.promptId || ""
 			});
@@ -11139,15 +11140,15 @@ async function Wp({ api: e, runtime: t, executionRuntime: n, appRef: r, liveStre
 		} catch (e) {
 			g(e, "entry.execution_cached");
 		}
-	}, _(t, e, "execution_start", e._mjrExecutionStartHandler), _(t, e, "execution_success", e._mjrExecutionEndHandler), _(t, e, "execution_error", e._mjrExecutionEndHandler), _(t, e, "execution_interrupted", e._mjrExecutionEndHandler), _(t, e, "mjr.stacks.updated", e._mjrStacksUpdatedHandler), _(t, e, "progress", e._mjrRuntimeStatusHandler), _(t, e, "status", e._mjrRuntimeStatusHandler), _(t, e, B.RUNTIME_STATUS, e._mjrRuntimeStatusHandler), _(t, e, "execution_cached", e._mjrExecutionCachedHandler);
-	function y() {
+	}, v(t, e, "execution_start", e._mjrExecutionStartHandler), v(t, e, "execution_success", e._mjrExecutionEndHandler), v(t, e, "execution_error", e._mjrExecutionEndHandler), v(t, e, "execution_interrupted", e._mjrExecutionEndHandler), v(t, e, "mjr.stacks.updated", e._mjrStacksUpdatedHandler), v(t, e, "progress", e._mjrRuntimeStatusHandler), v(t, e, "status", e._mjrRuntimeStatusHandler), v(t, e, z.RUNTIME_STATUS, e._mjrRuntimeStatusHandler), v(t, e, "execution_cached", e._mjrExecutionCachedHandler);
+	function b() {
 		try {
 			window.__mjrLastAssetUpsert = Date.now(), window.__mjrLastAssetUpsertCount = (Number(window.__mjrLastAssetUpsertCount || 0) || 0) + 1;
 		} catch (e) {
 			console.debug?.(e);
 		}
 	}
-	function b(e, t, { immediate: n = !1, force: r = !1 } = {}) {
+	function x(e, t, { immediate: n = !1, force: r = !1 } = {}) {
 		let i = String(t?.id || "").trim(), a = String(t?.kind || "").trim(), o = String(t?.filename || "").trim(), s = String(t?.filepath || "").trim(), c = !!a && (!!o || !!s), d = !1;
 		if (i) try {
 			d = typeof e?._mjrHasAssetId == "function" ? !!e._mjrHasAssetId(i) : !!e.querySelector(`.mjr-asset-card[data-mjr-asset-id="${Vp(i)}"]`);
@@ -11169,7 +11170,7 @@ async function Wp({ api: e, runtime: t, executionRuntime: n, appRef: r, liveStre
 			});
 		}
 		let m = f ? !!(n && typeof u == "function" ? u : l)(e, p) : !1;
-		return m && y(), m;
+		return m && b(), m;
 	}
 	e._mjrNewGenerationOutputHandler = (e) => {
 		try {
@@ -11180,7 +11181,7 @@ async function Wp({ api: e, runtime: t, executionRuntime: n, appRef: r, liveStre
 			let r = Array.isArray(e?.detail?.files) ? e.detail.files : [], i = String(e?.detail?.prompt_id || e?.detail?.promptId || "").trim();
 			for (let e of r) {
 				let n = Bp(e, { jobId: i });
-				n && b(t, n, {
+				n && x(t, n, {
 					immediate: !0,
 					force: !0
 				});
@@ -11188,7 +11189,7 @@ async function Wp({ api: e, runtime: t, executionRuntime: n, appRef: r, liveStre
 		} catch (e) {
 			g(e, "entry.new_generation_output");
 		}
-	}, _(t, window, B.NEW_GENERATION_OUTPUT, e._mjrNewGenerationOutputHandler), e._mjrAssetAddedHandler = (e) => {
+	}, v(t, window, z.NEW_GENERATION_OUTPUT, e._mjrNewGenerationOutputHandler), e._mjrAssetAddedHandler = (e) => {
 		try {
 			if (!e?.detail) return;
 			let t = n.prepareLiveAssetEvent(e.detail), r = t?.detail || e.detail;
@@ -11206,11 +11207,11 @@ async function Wp({ api: e, runtime: t, executionRuntime: n, appRef: r, liveStre
 				return;
 			}
 			let l = a.dataset?.mjrQuery || "*";
-			String(l).trim() === "*" && i ? b(a, r, { immediate: !0 }) || Ap() : i && Ap();
+			String(l).trim() === "*" && i ? x(a, r, { immediate: !0 }) || Ap() : i && Ap();
 		} catch (e) {
 			g(e, "entry.asset_added");
 		}
-	}, _(t, e, "mjr-asset-added", e._mjrAssetAddedHandler), e._mjrAssetUpdatedHandler = (e) => {
+	}, v(t, e, "mjr-asset-added", e._mjrAssetAddedHandler), e._mjrAssetUpdatedHandler = (e) => {
 		try {
 			if (!e?.detail) return;
 			let t = n.prepareLiveAssetEvent(e.detail), r = t?.detail || e.detail;
@@ -11218,29 +11219,29 @@ async function Wp({ api: e, runtime: t, executionRuntime: n, appRef: r, liveStre
 			n.isRenderableLiveAsset(r) && c(r);
 			let i = s();
 			if (!i) return;
-			b(i, r, { immediate: !0 });
+			x(i, r, { immediate: !0 });
 		} catch (e) {
 			g(e, "entry.asset_updated");
 		}
-	}, _(t, e, "mjr-asset-updated", e._mjrAssetUpdatedHandler), e._mjrStructuredEventHandler = (e) => {
+	}, v(t, e, "mjr-asset-updated", e._mjrAssetUpdatedHandler), e._mjrStructuredEventHandler = (e) => {
 		try {
 			let t = e?.detail || {};
-			window.dispatchEvent(new CustomEvent(B.STRUCTURED_EVENT, { detail: t }));
+			window.dispatchEvent(new CustomEvent(z.STRUCTURED_EVENT, { detail: t }));
 		} catch (e) {
 			console.debug?.(e);
 		}
-	}, _(t, e, B.STRUCTURED_EVENT, e._mjrStructuredEventHandler), e._mjrScanCompleteHandler = (e) => {
+	}, v(t, e, z.STRUCTURED_EVENT, e._mjrStructuredEventHandler), e._mjrScanCompleteHandler = (e) => {
 		try {
 			let t = e?.detail || {};
-			window.dispatchEvent(new CustomEvent(B.SCAN_COMPLETE, { detail: t })), x(t);
+			window.dispatchEvent(new CustomEvent(z.SCAN_COMPLETE, { detail: t })), S(t);
 		} catch (e) {
 			console.debug?.(e);
 		}
-	}, _(t, e, B.SCAN_COMPLETE, e._mjrScanCompleteHandler);
-	function x(e) {
+	}, v(t, e, z.SCAN_COMPLETE, e._mjrScanCompleteHandler);
+	function S(e) {
 		if (globalThis?._mjrMaintenanceActive) return;
 		let t = Math.max(0, Number(e?.added) || 0), n = Math.max(0, Number(e?.pruned) || 0);
-		e?.needs_refresh && window.dispatchEvent(new CustomEvent(B.RELOAD_GRID, { detail: {
+		e?.needs_refresh && window.dispatchEvent(new CustomEvent(z.RELOAD_GRID, { detail: {
 			reason: "scan-complete",
 			added: t,
 			removed: n
@@ -11259,20 +11260,20 @@ async function Wp({ api: e, runtime: t, executionRuntime: n, appRef: r, liveStre
 	e._mjrAssetsRemovedHandler = (e) => {
 		try {
 			let t = e?.detail || {}, n = Array.isArray(t?.ids) ? t.ids.map((e) => String(e ?? "").trim()).filter(Boolean) : [];
-			n.length && window.dispatchEvent(new CustomEvent(B.ASSETS_DELETED, { detail: {
+			n.length && window.dispatchEvent(new CustomEvent(z.ASSETS_DELETED, { detail: {
 				ids: n,
 				source: "backend",
 				reason: t?.reason || ""
-			} })), t?.truncated && window.dispatchEvent(new CustomEvent(B.RELOAD_GRID, { detail: { reason: "assets-removed" } }));
+			} })), t?.truncated && window.dispatchEvent(new CustomEvent(z.RELOAD_GRID, { detail: { reason: "assets-removed" } }));
 		} catch (e) {
 			console.debug?.(e);
 		}
-	}, _(t, e, B.ASSETS_REMOVED, e._mjrAssetsRemovedHandler), e._mjrCoreExecutionAssetsReadyHandler = (e) => {
+	}, v(t, e, z.ASSETS_REMOVED, e._mjrAssetsRemovedHandler), e._mjrCoreExecutionAssetsReadyHandler = (e) => {
 		try {
 			let t = e?.detail || {};
-			window.dispatchEvent(new CustomEvent(B.CORE_EXECUTION_ASSETS_READY, { detail: t }));
+			window.dispatchEvent(new CustomEvent(z.CORE_EXECUTION_ASSETS_READY, { detail: t }));
 			let n = Number(t?.indexed || 0);
-			Number.isFinite(n) && n > 0 && window.dispatchEvent(new CustomEvent(B.RELOAD_GRID, { detail: {
+			Number.isFinite(n) && n > 0 && window.dispatchEvent(new CustomEvent(z.RELOAD_GRID, { detail: {
 				reason: "core-execution-assets-ready",
 				prompt_id: t?.prompt_id || t?.promptId || "",
 				indexed: n
@@ -11280,47 +11281,47 @@ async function Wp({ api: e, runtime: t, executionRuntime: n, appRef: r, liveStre
 		} catch (e) {
 			console.debug?.(e);
 		}
-	}, _(t, e, B.CORE_EXECUTION_ASSETS_READY, e._mjrCoreExecutionAssetsReadyHandler), e._mjrScanProgressHandler = (e) => {
+	}, v(t, e, z.CORE_EXECUTION_ASSETS_READY, e._mjrCoreExecutionAssetsReadyHandler), e._mjrScanProgressHandler = (e) => {
 		try {
 			let t = e?.detail || {};
-			window.dispatchEvent(new CustomEvent(B.SCAN_PROGRESS, { detail: t }));
+			window.dispatchEvent(new CustomEvent(z.SCAN_PROGRESS, { detail: t }));
 		} catch (e) {
 			console.debug?.(e);
 		}
-	}, _(t, e, B.SCAN_PROGRESS, e._mjrScanProgressHandler), e._mjrAssetIndexingHandler = (e) => {
+	}, v(t, e, z.SCAN_PROGRESS, e._mjrScanProgressHandler), e._mjrAssetIndexingHandler = (e) => {
 		try {
 			let t = e?.detail || {};
-			window.dispatchEvent(new CustomEvent(B.ASSET_INDEXING, { detail: t }));
+			window.dispatchEvent(new CustomEvent(z.ASSET_INDEXING, { detail: t }));
 		} catch (e) {
 			console.debug?.(e);
 		}
-	}, _(t, e, B.ASSET_INDEXING, e._mjrAssetIndexingHandler), e._mjrAssetIndexedHandler = (e) => {
+	}, v(t, e, z.ASSET_INDEXING, e._mjrAssetIndexingHandler), e._mjrAssetIndexedHandler = (e) => {
 		try {
 			let t = e?.detail || {};
-			if (window.dispatchEvent(new CustomEvent(B.ASSET_INDEXED, { detail: t })), !t) return;
+			if (window.dispatchEvent(new CustomEvent(z.ASSET_INDEXED, { detail: t })), !t) return;
 			let r = n.prepareLiveAssetEvent(t), i = r?.detail || t;
 			if (r?.defer) return;
 			n.isRenderableLiveAsset(i) && (c(i), Dp(i)), Rp(i);
 			let a = s();
 			if (!a) return;
-			b(a, i, {
+			x(a, i, {
 				immediate: !0,
 				force: !0
 			});
 		} catch (e) {
 			console.debug?.(e);
 		}
-	}, _(t, e, B.ASSET_INDEXED, e._mjrAssetIndexedHandler), e._mjrEnrichmentStatusHandler = (e) => {
+	}, v(t, e, z.ASSET_INDEXED, e._mjrAssetIndexedHandler), e._mjrEnrichmentStatusHandler = (e) => {
 		try {
 			let t = e?.detail || {}, n = Number(t?.queued), r = Number(t?.queue_left), i = Number.isFinite(n) ? Math.max(0, Math.floor(n)) : Number.isFinite(r) ? Math.max(0, Math.floor(r)) : 0, a = !!t?.active || i > 0, o = f().active;
-			p(a, i), window.dispatchEvent(new CustomEvent(B.ENRICHMENT_STATUS, { detail: t })), o && !a && m(h("toast.enrichmentComplete", "Metadata enrichment complete"), "success", 2600);
+			p(a, i), window.dispatchEvent(new CustomEvent(z.ENRICHMENT_STATUS, { detail: t })), o && !a && m(h("toast.enrichmentComplete", "Metadata enrichment complete"), "success", 2600);
 		} catch (e) {
 			console.debug?.(e);
 		}
-	}, _(t, e, B.ENRICHMENT_STATUS, e._mjrEnrichmentStatusHandler), e._mjrDbRestoreStatusHandler = (e) => {
+	}, v(t, e, z.ENRICHMENT_STATUS, e._mjrEnrichmentStatusHandler), e._mjrDbRestoreStatusHandler = (e) => {
 		try {
 			let t = e?.detail || {}, n = String(t?.step || ""), r = String(t?.level || "info"), i = String(t?.operation || "");
-			window.dispatchEvent(new CustomEvent(B.DB_RESTORE_STATUS, { detail: t }));
+			window.dispatchEvent(new CustomEvent(z.DB_RESTORE_STATUS, { detail: t }));
 			let a = i === "delete_db", o = i === "reset_index", s = {
 				started: a ? h("toast.dbDeleteTriggered", "Deleting database and rebuilding...") : o ? h("toast.resetTriggered", "Reset triggered: Reindexing all files...") : h("toast.dbRestoreStarted", "DB restore started"),
 				stopping_workers: h("toast.dbRestoreStopping", "Stopping running workers"),
@@ -11348,15 +11349,15 @@ async function Wp({ api: e, runtime: t, executionRuntime: n, appRef: r, liveStre
 				"done",
 				"failed"
 			].includes(n)) {
-				He(s, c, 0, l);
+				_(s, c, 0, l);
 				return;
 			}
 			m(s, c, n === "done" || n === "failed" ? 2800 : 1800, l);
 		} catch (e) {
 			console.debug?.(e);
 		}
-	}, _(t, e, B.DB_RESTORE_STATUS, e._mjrDbRestoreStatusHandler);
-	let S = (e) => {
+	}, v(t, e, z.DB_RESTORE_STATUS, e._mjrDbRestoreStatusHandler);
+	let C = (e) => {
 		try {
 			let t = Array.isArray(e?.detail?.ids) ? e.detail.ids.map((e) => String(e || "")).filter(Boolean) : [];
 			if (!t.length) return;
@@ -11366,7 +11367,7 @@ async function Wp({ api: e, runtime: t, executionRuntime: n, appRef: r, liveStre
 			console.debug?.(e);
 		}
 	};
-	_(t, window, B.ASSETS_DELETED, S), t && typeof t == "object" && (t.api = e, t.assetsDeletedHandler = S), console.debug("[Majoor] Real-time listener registered");
+	v(t, window, z.ASSETS_DELETED, C), t && typeof t == "object" && (t.api = e, t.assetsDeletedHandler = C), console.debug("[Majoor] Real-time listener registered");
 }
 // ui/features/runtime/entryDebugApi.ts
 function Gp({ resolveNodeStreamModule: e }) {
@@ -11433,7 +11434,7 @@ function Jp() {
 	return window.__MJR_BENIGN_CONSOLE_NOISE_FILTER__ = r, r;
 }
 // ui/features/geninfo/genInfoOverridePicker.ts
-var Yp = "Majoor.GenInfoOverridePicker", Xp = "MajoorGenInfoOverride", Zp = L("genInfoOverride.autoFillFromWorkflow", "Auto fill from workflow"), Qp = L("genInfoOverride.pick", "Pick"), $p = {
+var Yp = "Majoor.GenInfoOverridePicker", Xp = "MajoorGenInfoOverride", Zp = I("genInfoOverride.autoFillFromWorkflow", "Auto fill from workflow"), Qp = I("genInfoOverride.pick", "Pick"), $p = {
 	positive_prompt: [
 		"positive_prompt",
 		"prompt",
@@ -11524,7 +11525,7 @@ function om(e, t, n) {
 }
 function sm(e, t = null) {
 	let n = [], r = /* @__PURE__ */ new Set();
-	for (let { graph: i, label: a } of lt(e)) for (let e of st(i)) {
+	for (let { graph: i, label: a } of ut(e)) for (let e of ct(i)) {
 		if (String(e?.comfyClass || e?.type || "") === Xp) continue;
 		let i = String(e?.title || e?.comfyClass || e?.type || `Node ${e?.id ?? ""}`).trim(), o = a === "Workflow" ? i : `${a} / ${i}`;
 		for (let [t, i] of Object.entries($p)) for (let a of i) am(n, r, t, im(e, a), o);
@@ -11580,7 +11581,7 @@ function dm(e, t) {
 }
 function fm(e, t, n, r) {
 	if (r !== "seed") {
-		Wt(e, t, n);
+		Gt(e, t, n);
 		return;
 	}
 	let i = Number(t);
@@ -11592,7 +11593,7 @@ function fm(e, t, n, r) {
 			control_after_generate: !1
 		}, e.value = Math.trunc(i);
 		try {
-			e.callback?.(e.value, ne()?.canvas ?? null, n, null, e);
+			e.callback?.(e.value, nt()?.canvas ?? null, n, null, e);
 		} catch {}
 	}
 }
@@ -11630,7 +11631,7 @@ function _m(e, t) {
 		let a = n.find((e) => e.field === t);
 		a && (fm(i, a.value, e, t), pm(i, a.value), r += 1);
 	}
-	return t?.graph?.setDirtyCanvas?.(!0, !0), t?.graph?.change?.(), m({
+	return t?.graph?.setDirtyCanvas?.(!0, !0), t?.graph?.change?.(), F({
 		summary: "Majoor Gen Info",
 		detail: r ? `Filled ${r} empty override fields.` : "No empty matching fields found."
 	}, r ? "success" : "warning", 3e3), r;
@@ -11657,14 +11658,14 @@ function bm(e) {
 	t && typeof t.addEventListener == "function" && (rm = !0, t.addEventListener("executed", (t) => {
 		let n = t?.detail?.node ?? t?.detail?.display_node;
 		if (!n) return;
-		let r = ct(e, n);
+		let r = lt(e, n);
 		r && String(r?.comfyClass || r?.type || "") === Xp && mm(r, t?.detail?.output, e);
 	}));
 }
 function xm(e, t, n = null) {
 	let r = sm(t, n);
 	if (!r.length) {
-		m({
+		F({
 			summary: "Majoor Gen Info",
 			detail: n ? `No widget value found for ${n}.` : "No workflow parameters found."
 		}, "warning", 3e3);
@@ -11674,12 +11675,12 @@ function xm(e, t, n = null) {
 	i.style.cssText = "position:fixed;inset:0;z-index:1000000;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center";
 	let a = document.createElement("div");
 	a.style.cssText = "width:min(720px,92vw);max-height:80vh;overflow:auto;background:#202020;color:#eee;border:1px solid #555;border-radius:8px;padding:12px;box-shadow:0 16px 48px rgba(0,0,0,.55);font:12px sans-serif";
-	let o = n ? L("genInfoOverride.pickField", "Pick {field}", { field: n.replace(/_/g, " ") }) : L("genInfoOverride.pickFromWorkflow", "Pick Gen Info from workflow");
+	let o = n ? I("genInfoOverride.pickField", "Pick {field}", { field: n.replace(/_/g, " ") }) : I("genInfoOverride.pickFromWorkflow", "Pick Gen Info from workflow");
 	a.innerHTML = "<div style=\"display:flex;justify-content:space-between;align-items:center;margin-bottom:10px\"><strong></strong><button data-close style=\"background:#333;color:#eee;border:1px solid #555;border-radius:4px;padding:4px 8px;cursor:pointer\"></button></div>";
 	let s = a.querySelector("strong");
 	s && (s.textContent = o);
 	let c = a.querySelector("[data-close]");
-	c && (c.textContent = L("dialog.close", "Close"));
+	c && (c.textContent = I("dialog.close", "Close"));
 	for (let t of r) {
 		let r = document.createElement("button");
 		r.type = "button", r.style.cssText = "width:100%;display:grid;grid-template-columns:130px 1fr 150px;gap:8px;text-align:left;background:#2b2b2b;color:#eee;border:1px solid #3d3d3d;border-radius:5px;padding:7px;margin:5px 0;cursor:pointer", r.innerHTML = `<span style="color:#7ec8ff">${t.label}</span><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></span><span style="opacity:.7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></span>`, r.children[1].textContent = String(t.value), r.children[2].textContent = t.source, r.onclick = () => {
@@ -11693,7 +11694,7 @@ function xm(e, t, n = null) {
 function Sm(e, t) {
 	if (String(e?.comfyClass || e?.type || "") !== Xp) return [];
 	let n = [{
-		content: L("genInfoOverride.pickFromWorkflow", "Pick Gen Info from workflow"),
+		content: I("genInfoOverride.pickFromWorkflow", "Pick Gen Info from workflow"),
 		callback: () => xm(e, t)
 	}];
 	for (let r of em) n.push({
@@ -11707,7 +11708,7 @@ function Sm(e, t) {
 }
 function Cm(e = null) {
 	if (nm) return;
-	let t = e || ne();
+	let t = e || nt();
 	!t || typeof t.registerExtension != "function" ? setTimeout(() => Cm(e), 100) : (nm = !0, bm(t), t.registerExtension({
 		name: Yp,
 		async nodeCreated(e) {
@@ -11717,19 +11718,19 @@ function Cm(e = null) {
 			return Sm(e, t);
 		}
 	}), setTimeout(() => {
-		for (let { graph: e } of lt(t)) for (let n of st(e)) vm(n, t);
+		for (let { graph: e } of ut(t)) for (let n of ct(e)) vm(n, t);
 	}, 0));
 }
 // ui/vue/composables/useDragDrop.ts
 function wm() {
 	let e = null;
-	$n(() => {
+	er(() => {
 		try {
 			e = Bs() ?? null;
 		} catch (e) {
 			console.warn("[Majoor] useDragDrop: init failed", e);
 		}
-	}), or(() => {
+	}), sr(() => {
 		try {
 			e?.({ force: !0 });
 		} catch (e) {
@@ -11744,23 +11745,23 @@ function wm() {
 	});
 }
 // ui/vue/GlobalRuntime.vue
-var Tm = /* @__PURE__ */ rr({
+var Tm = /* @__PURE__ */ ir({
 	__name: "GlobalRuntime",
 	setup(e) {
-		let t = nr(() => import("./chunks/ViewerPortal-jLKIaZxO.js")), n = Q(!1), r = [
-			B.OPEN_VIEWER,
-			B.MFV_OPEN,
-			B.MFV_TOGGLE,
-			B.MFV_LIVE_TOGGLE,
-			B.MFV_PREVIEW_TOGGLE,
-			B.MFV_NODESTREAM_TOGGLE,
-			B.MFV_POPOUT
+		let t = rr(() => import("./chunks/ViewerPortal-zbO5V8L8.js")), n = Q(!1), r = [
+			z.OPEN_VIEWER,
+			z.MFV_OPEN,
+			z.MFV_TOGGLE,
+			z.MFV_LIVE_TOGGLE,
+			z.MFV_PREVIEW_TOGGLE,
+			z.MFV_NODESTREAM_TOGGLE,
+			z.MFV_POPOUT
 		];
 		function i(e) {
 			if (n.value) return;
 			n.value = !0;
 			let t = String(e?.type || ""), r = e?.detail ?? null;
-			t && t !== B.OPEN_VIEWER && Yn(() => {
+			t && t !== z.OPEN_VIEWER && Xn(() => {
 				try {
 					window.dispatchEvent(new CustomEvent(t, { detail: r }));
 				} catch (e) {
@@ -11768,19 +11769,19 @@ var Tm = /* @__PURE__ */ rr({
 				}
 			});
 		}
-		return wm(), $n(() => {
+		return wm(), er(() => {
 			for (let e of r) try {
 				window.addEventListener(e, i, { once: !1 });
 			} catch (e) {
 				console.debug?.(e);
 			}
-		}), or(() => {
+		}), sr(() => {
 			for (let e of r) try {
 				window.removeEventListener(e, i);
 			} catch (e) {
 				console.debug?.(e);
 			}
-		}), (e, r) => n.value ? (q(), Xn(Z(t), { key: 0 })) : W("", !0);
+		}), (e, r) => n.value ? (K(), Zn(Z(t), { key: 0 })) : U("", !0);
 	}
 }), Em = {
 	gridRenderCount: 0,
@@ -11903,8 +11904,70 @@ typeof window < "u" && (window.MajoorMetrics = {
 	resetMetrics: Bm,
 	exportMetrics: Vm
 });
+// ui/features/status/emptyTrashAction.ts
+var Hm = null;
+async function Um() {
+	if (Hm) return Hm;
+	let e = {};
+	try {
+		let t = await import("./chunks/client-BVwNDRIx.js").then((e) => e.t), n = Object.keys(t);
+		for (let r of [
+			"getTrashStatus",
+			"emptyTrash",
+			"getSecuritySettings"
+		]) if (n.includes(r)) try {
+			let n = t[r];
+			e[r] = typeof n == "function" ? n : void 0;
+		} catch {
+			e[r] = void 0;
+		}
+	} catch {}
+	return Hm = e, e;
+}
+function Wm(e, t, n, r) {
+	try {
+		return e.translate(t, n, r);
+	} catch {
+		return n;
+	}
+}
+async function Gm(e) {
+	let t = (t, n, r) => Wm(e, t, n, r), n = null;
+	try {
+		n = await e.getStatus();
+	} catch (n) {
+		return e.toast(String(n?.message || n || t("toast.trashStatusFailed", "Failed to check trash")), "error", 4500), "error";
+	}
+	if (!n?.ok) return e.toast(String(n?.error || t("toast.trashStatusFailed", "Failed to check trash")), "error", 4500), "error";
+	let r = n?.data || {};
+	if (r?.supported === !1) return e.toast(t("toast.trashUnsupported", "Trash is not supported on this platform"), "info", 3e3), "unsupported";
+	let i = Number(r?.count) || 0;
+	if (!i) return e.toast(t("toast.trashIsEmpty", "Trash is empty"), "info", 2200), "empty";
+	let a = Number(r?.bytes) || 0, o = t("dialog.emptyTrash.confirm", "Permanently delete {count} trashed files ({size}) that came from Majoor's folders? This cannot be undone.", {
+		count: i,
+		size: e.formatBytes(a)
+	}), s = !1;
+	try {
+		s = !!await e.confirm(o, t("dialog.emptyTrash.title", "Empty trash?"));
+	} catch {
+		s = !1;
+	}
+	if (!s) return "cancelled";
+	let c = null;
+	try {
+		c = await e.empty();
+	} catch (n) {
+		return e.toast(String(n?.message || n || t("toast.trashEmptyFailed", "Failed to empty trash")), "error", 4500), "error";
+	}
+	if (!c?.ok) return e.toast(String(c?.error || t("toast.trashEmptyFailed", "Failed to empty trash")), "error", 4500), "error";
+	let l = Number(c?.data?.removed) || 0, u = Array.isArray(c?.data?.failed) ? c.data.failed : [], d = Number(c?.data?.skipped_dirs) || 0;
+	return e.toast(t("toast.trashRemoved", "{count} files removed ({size})", {
+		count: l,
+		size: e.formatBytes(Number(c?.data?.bytes) || 0)
+	}), "success", 3200), u.length && e.toast(t("toast.trashFailures", "{count} entries could not be removed", { count: u.length }), "warning", 4500), d > 0 && e.toast(t("toast.trashSkippedDirs", "{count} directories in the trash were not removed", { count: d }), "warning", 4500), "removed";
+}
 // ui/features/status/StatusDot.ts
-var Hm = [{
+var Km = [{
 	key: "exiftool",
 	labelKey: "tool.exiftool",
 	hintKey: "tool.exiftool.hint"
@@ -11912,24 +11975,24 @@ var Hm = [{
 	key: "ffprobe",
 	labelKey: "tool.ffprobe",
 	hintKey: "tool.ffprobe.hint"
-}], Um = !1, Wm = null, Gm = null, Km = "__MJR_STATUS_DOT_CACHE__", qm = {
+}], qm = !1, Jm = null, Ym = null, Xm = "__MJR_STATUS_DOT_CACHE__", Zm = {
 	ACTIVE: "active",
 	COOLDOWN: "cooldown",
 	IDLE: "idle"
-}, Jm = {
-	[qm.ACTIVE]: 2e3,
-	[qm.COOLDOWN]: 1e4,
-	[qm.IDLE]: 6e4
+}, Qm = {
+	[Zm.ACTIVE]: 2e3,
+	[Zm.COOLDOWN]: 1e4,
+	[Zm.IDLE]: 6e4
 };
-function Ym(e) {
-	Um = !!e;
+function $m(e) {
+	qm = !!e;
 	try {
-		globalThis._mjrMaintenanceActive = Um;
+		globalThis._mjrMaintenanceActive = qm;
 	} catch (e) {
 		console.debug?.(e);
 	}
 }
-function Xm(e) {
+function eh(e) {
 	let t = Number(e);
 	if (!Number.isFinite(t) || t <= 0) return "0 B";
 	let n = [
@@ -11943,7 +12006,7 @@ function Xm(e) {
 	let a = r >= 100 ? 0 : r >= 10 ? 1 : 2;
 	return `${r.toFixed(a)} ${n[i]}`;
 }
-function Zm(e, t, n = null) {
+function th(e, t, n = null) {
 	if (e && (e.replaceChildren(), (Array.isArray(t) ? t.filter((e) => e != null && String(e).trim() !== "") : []).forEach((t, n) => {
 		n > 0 && e.appendChild(document.createElement("br")), e.appendChild(document.createTextNode(String(t)));
 	}), n != null && String(n).trim() !== "")) {
@@ -11952,7 +12015,7 @@ function Zm(e, t, n = null) {
 		t.style.fontSize = "11px", t.style.opacity = "0.6", t.textContent = String(n), e.appendChild(t);
 	}
 }
-function Qm(e, t = []) {
+function nh(e, t = []) {
 	if (!e) return;
 	let n = Array.isArray(t) ? t.filter((e) => e && String(e.label || "").trim()) : [];
 	if (!n.length) return;
@@ -11972,7 +12035,7 @@ function Qm(e, t = []) {
 	}
 	e.appendChild(r);
 }
-function $m(e, { totalAssets: t = 0, withWorkflows: n = 0, withGenerationData: r = 0 } = {}) {
+function rh(e, { totalAssets: t = 0, withWorkflows: n = 0, withGenerationData: r = 0 } = {}) {
 	let i = Math.max(0, Number(t || e?.total_assets || 0) || 0);
 	if (i <= 0) return [];
 	let a = (e, t = i) => {
@@ -12018,13 +12081,13 @@ function $m(e, { totalAssets: t = 0, withWorkflows: n = 0, withGenerationData: r
 		} : null
 	].filter(Boolean);
 }
-function eh(e, t, n) {
+function ih(e, t, n) {
 	if (!e) return;
 	e.replaceChildren(), e.appendChild(document.createTextNode(String(t || ""))), e.appendChild(document.createElement("br"));
 	let r = document.createElement("span");
 	r.style.fontSize = "11px", r.style.opacity = "0.7", r.textContent = String(n || ""), e.appendChild(r);
 }
-function th(e, t = "neutral", n = {}) {
+function ah(e, t = "neutral", n = {}) {
 	if (!e) return;
 	let r = n?.toast !== !1, i = {
 		neutral: {
@@ -12075,38 +12138,38 @@ function th(e, t = "neutral", n = {}) {
 		if (n - (Number(e._mjrStatusToastAt || 0) || 0) >= 4e3) {
 			e._mjrStatusToastAt = n;
 			let r = {
-				info: L("status.toast.info", "Index status: checking"),
-				success: L("status.toast.success", "Index status: ready"),
-				warning: L("status.toast.warning", "Index status: attention needed"),
-				error: L("status.toast.error", "Index status: error"),
-				browser: L("status.toast.browser", "Index status: browser scope"),
-				workflow: L("status.toast.workflow", "Index status: workflow scope")
+				info: I("status.toast.info", "Index status: checking"),
+				success: I("status.toast.success", "Index status: ready"),
+				warning: I("status.toast.warning", "Index status: attention needed"),
+				error: I("status.toast.error", "Index status: error"),
+				browser: I("status.toast.browser", "Index status: browser scope"),
+				workflow: I("status.toast.workflow", "Index status: workflow scope")
 			}, i = t === "error" ? "error" : t === "warning" ? "warning" : t === "success" ? "success" : "info";
 			try {
-				m(r[t] || r.info, i, 1800, { noHistory: !0 });
+				F(r[t] || r.info, i, 1800, { noHistory: !0 });
 			} catch (e) {
 				console.debug?.(e);
 			}
 		}
 	}
 }
-function nh(e) {
+function oh(e) {
 	let t = String(e || "").toLowerCase();
-	return t === "all" ? L("scope.allFull", "All (Inputs + Outputs)") : t === "input" || t === "inputs" ? L("scope.input", "Inputs") : t === "custom" ? L("scope.custom", "Browser") : t === "workflow" ? L("scope.workflow", "Workflow") : L("scope.output", "Outputs");
+	return t === "all" ? I("scope.allFull", "All (Inputs + Outputs)") : t === "input" || t === "inputs" ? I("scope.input", "Inputs") : t === "custom" ? I("scope.custom", "Browser") : t === "workflow" ? I("scope.workflow", "Workflow") : I("scope.output", "Outputs");
 }
-function rh(e, t = "") {
-	if (!e || typeof e != "object") return t ? L("status.watcher.disabledScoped", "Watcher: disabled ({scope})", { scope: nh(t) }) : L("status.watcher.disabled", "Watcher: disabled");
+function sh(e, t = "") {
+	if (!e || typeof e != "object") return t ? I("status.watcher.disabledScoped", "Watcher: disabled ({scope})", { scope: oh(t) }) : I("status.watcher.disabled", "Watcher: disabled");
 	let n = !!e.enabled, r = e.scope ? String(e.scope) : "";
-	return n ? r ? L("status.watcher.enabledScoped", `Watcher: enabled (${r})`, { scope: nh(r) }) : L("status.watcher.enabled", "Watcher: enabled") : r || t ? L("status.watcher.disabledScoped", "Watcher: disabled ({scope})", { scope: nh(t && r && r !== t ? t : r || t) }) : L("status.watcher.disabled", "Watcher: disabled");
+	return n ? r ? I("status.watcher.enabledScoped", `Watcher: enabled (${r})`, { scope: oh(r) }) : I("status.watcher.enabled", "Watcher: enabled") : r || t ? I("status.watcher.disabledScoped", "Watcher: disabled ({scope})", { scope: oh(t && r && r !== t ? t : r || t) }) : I("status.watcher.disabled", "Watcher: disabled");
 }
-function ih(e = "status-action") {
+function ch(e = "status-action") {
 	try {
 		window?.dispatchEvent?.(new CustomEvent("mjr:reload-grid", { detail: { reason: String(e || "status-action") } }));
 	} catch (e) {
 		console.debug?.(e);
 	}
 }
-function ah(e = "status-action", t = {}) {
+function lh(e = "status-action", t = {}) {
 	try {
 		window?.dispatchEvent?.(new CustomEvent("mjr-grid-dirty", { detail: {
 			reason: String(e || "status-action"),
@@ -12116,14 +12179,14 @@ function ah(e = "status-action", t = {}) {
 		console.debug?.(e);
 	}
 }
-async function oh(e = "") {
-	return await Nt(L("dialog.vectorsReset.keepQuestion", "Keep existing AI vectors?\n\nConfirm = keep vectors\nCancel = continue without vectors"), e || L("dialog.vectorsReset.title", "AI vectors"));
+async function uh(e = "") {
+	return await Pt(I("dialog.vectorsReset.keepQuestion", "Keep existing AI vectors?\n\nConfirm = keep vectors\nCancel = continue without vectors"), e || I("dialog.vectorsReset.title", "AI vectors"));
 }
-function sh(e = {}) {
+function dh(e = {}) {
 	let t = typeof e?.getScanContext == "function" ? e.getScanContext : null;
-	Ym(!1);
+	$m(!1);
 	let n = document.createElement("div");
-	n.style.cssText = "margin-bottom: 20px; padding: 12px; background: var(--bg-color, #1a1a1a); border-radius: 6px; border: 1px solid var(--border-color, #333); cursor: pointer; transition: all 0.2s;", th(n, "info", { toast: !1 });
+	n.style.cssText = "margin-bottom: 20px; padding: 12px; background: var(--bg-color, #1a1a1a); border-radius: 6px; border: 1px solid var(--border-color, #333); cursor: pointer; transition: all 0.2s;", ah(n, "info", { toast: !1 });
 	let r = document.createElement("div");
 	r.style.cssText = "display: flex; align-items: center; gap: 10px; margin-bottom: 8px;";
 	let i = document.createElement("span");
@@ -12131,140 +12194,140 @@ function sh(e = {}) {
 	let a = document.createElement("span");
 	a.id = "mjr-status-title", a.style.cssText = "font-weight: 500; font-size: 13px; cursor: pointer;";
 	let o = document.createElement("span");
-	o.id = "mjr-status-title-indicator", o.style.marginRight = "6px", o.textContent = "v", a.appendChild(o), a.appendChild(document.createTextNode(L("status.indexStatus", "Index Status"))), r.appendChild(i), r.appendChild(a);
+	o.id = "mjr-status-title-indicator", o.style.marginRight = "6px", o.textContent = "v", a.appendChild(o), a.appendChild(document.createTextNode(I("status.indexStatus", "Index Status"))), r.appendChild(i), r.appendChild(a);
 	let s = document.createElement("button");
-	s.id = "mjr-status-scan", s.className = "mjr-btn mjr-status-scan", s.type = "button", s.textContent = L("btn.scan", "Scan"), r.appendChild(s);
+	s.id = "mjr-status-scan", s.className = "mjr-btn mjr-status-scan", s.type = "button", s.textContent = I("btn.scan", "Scan"), r.appendChild(s);
 	let c = document.createElement("div");
 	c.id = "mjr-status-body", c.style.marginLeft = "22px";
 	let l = document.createElement("div");
-	l.id = "mjr-status-text", l.style.cssText = "font-size: 12px; opacity: 0.8;", l.textContent = L("status.checking");
+	l.id = "mjr-status-text", l.style.cssText = "font-size: 12px; opacity: 0.8;", l.textContent = I("status.checking");
 	let u = document.createElement("div");
-	u.id = "mjr-status-capabilities", u.style.cssText = "font-size: 11px; opacity: 0.75; margin-top: 10px; display: flex; gap: 6px; flex-wrap: wrap;", u.textContent = L("status.discoveringTools"), c.appendChild(l), c.appendChild(u);
+	u.id = "mjr-status-capabilities", u.style.cssText = "font-size: 11px; opacity: 0.75; margin-top: 10px; display: flex; gap: 6px; flex-wrap: wrap;", u.textContent = I("status.discoveringTools"), c.appendChild(l), c.appendChild(u);
 	let d = document.createElement("div");
-	d.id = "mjr-tools-status", d.style.cssText = "font-size: 11px; opacity: 0.7; margin-top: 10px;", d.textContent = L("status.toolStatusChecking", "Tool status: checking..."), c.appendChild(d);
+	d.id = "mjr-tools-status", d.style.cssText = "font-size: 11px; opacity: 0.7; margin-top: 10px;", d.textContent = I("status.toolStatusChecking", "Tool status: checking..."), c.appendChild(d);
 	let p = document.createElement("div");
 	p.style.cssText = "margin-top: 10px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap;";
-	let h = document.createElement("select");
-	h.style.cssText = "\n        min-width: 240px;\n        padding: 4px 8px;\n        font-size: 11px;\n        border-radius: 6px;\n        border: 1px solid rgba(255,255,255,0.2);\n        background: rgba(255,255,255,0.04);\n        color: inherit;\n    ", h.title = L("status.dbBackupSelectHint", "Select a DB backup to restore");
-	let g = !1, _ = null, v = (e) => {
-		h.replaceChildren();
+	let m = document.createElement("select");
+	m.style.cssText = "\n        min-width: 240px;\n        padding: 4px 8px;\n        font-size: 11px;\n        border-radius: 6px;\n        border: 1px solid rgba(255,255,255,0.2);\n        background: rgba(255,255,255,0.04);\n        color: inherit;\n    ", m.title = I("status.dbBackupSelectHint", "Select a DB backup to restore");
+	let h = !1, g = null, v = (e) => {
+		m.replaceChildren();
 		let t = document.createElement("option");
-		t.value = "", t.textContent = String(e || ""), t.disabled = !0, t.selected = !0, h.appendChild(t), g = !1, h.disabled = !0, _ && (_.disabled = !0);
+		t.value = "", t.textContent = String(e || ""), t.disabled = !0, t.selected = !0, m.appendChild(t), h = !1, m.disabled = !0, g && (g.disabled = !0);
 	};
-	v(L("status.dbBackupLoading", "Loading DB backups..."));
+	v(I("status.dbBackupLoading", "Loading DB backups..."));
 	let y = async (e = "") => {
 		try {
-			let t = await Re();
+			let t = await me();
 			if (!t?.ok) {
-				v(L("status.dbBackupNone", "No DB backup found"));
+				v(I("status.dbBackupNone", "No DB backup found"));
 				return;
 			}
 			let n = Array.isArray(t?.data?.items) ? t.data.items : [];
 			if (!n.length) {
-				v(L("status.dbBackupNone", "No DB backup found"));
+				v(I("status.dbBackupNone", "No DB backup found"));
 				return;
 			}
-			h.replaceChildren();
+			m.replaceChildren();
 			let r = !1;
 			for (let t of n) {
 				let n = String(t?.name || "");
 				if (!n) continue;
-				let i = Number(t?.mtime || 0), a = Number(t?.size_bytes || 0), o = i > 0 ? (/* @__PURE__ */ new Date(i * 1e3)).toLocaleString() : "", s = `${n}${o ? ` (${o}` : ""}${a > 0 ? `, ${Xm(a)}` : ""}${o ? ")" : ""}`, c = document.createElement("option");
-				c.value = n, c.textContent = s, e && e === n && (c.selected = !0, r = !0), h.appendChild(c);
+				let i = Number(t?.mtime || 0), a = Number(t?.size_bytes || 0), o = i > 0 ? (/* @__PURE__ */ new Date(i * 1e3)).toLocaleString() : "", s = `${n}${o ? ` (${o}` : ""}${a > 0 ? `, ${eh(a)}` : ""}${o ? ")" : ""}`, c = document.createElement("option");
+				c.value = n, c.textContent = s, e && e === n && (c.selected = !0, r = !0), m.appendChild(c);
 			}
-			g = h.childNodes.length > 0, h.disabled = !g, g && !r && h.childNodes[0] && (h.value = String(h.childNodes[0]?.value || "")), _ && (_.disabled = !g);
+			h = m.childNodes.length > 0, m.disabled = !h, h && !r && m.childNodes[0] && (m.value = String(m.childNodes[0]?.value || "")), g && (g.disabled = !h);
 		} catch {
-			v(L("status.dbBackupNone", "No DB backup found"));
+			v(I("status.dbBackupNone", "No DB backup found"));
 		}
 	};
-	y(), p.appendChild(h);
-	let b = document.createElement("button");
-	b.type = "button", b.textContent = L("btn.dbSave", "Save DB"), b.title = L("status.dbSaveHint", "Save a DB snapshot into archive folder"), b.style.cssText = "\n        padding: 5px 10px;\n        font-size: 11px;\n        border-radius: 6px;\n        border: 1px solid rgba(120,200,255,0.35);\n        background: transparent;\n        color: inherit;\n        cursor: pointer;\n    ", b.onclick = async (e) => {
-		e.stopPropagation(), Ym(!0);
-		let r = b.textContent, a = !!_?.disabled;
-		b.disabled = !0, _ && (_.disabled = !0), b.textContent = L("btn.saving", "Saving..."), i.style.background = "var(--mjr-status-info, #64B5F6)", th(n, "info");
+	y(), p.appendChild(m);
+	let x = document.createElement("button");
+	x.type = "button", x.textContent = I("btn.dbSave", "Save DB"), x.title = I("status.dbSaveHint", "Save a DB snapshot into archive folder"), x.style.cssText = "\n        padding: 5px 10px;\n        font-size: 11px;\n        border-radius: 6px;\n        border: 1px solid rgba(120,200,255,0.35);\n        background: transparent;\n        color: inherit;\n        cursor: pointer;\n    ", x.onclick = async (e) => {
+		e.stopPropagation(), $m(!0);
+		let r = x.textContent, a = !!g?.disabled;
+		x.disabled = !0, g && (g.disabled = !0), x.textContent = I("btn.saving", "Saving..."), i.style.background = "var(--mjr-status-info, #64B5F6)", ah(n, "info");
 		try {
-			let e = await Be();
+			let e = await Ce();
 			if (e?.ok) {
 				let t = String(e?.data?.name || "").trim(), n = Number(e?.data?.size_bytes || 0);
-				m(L("toast.dbSaveSuccess", "Database backup saved"), "success", 2200, { history: {
-					title: L("btn.dbSave", "Save DB"),
-					detail: t ? `${t}${n > 0 ? ` | ${Xm(n)}` : ""}` : L("toast.dbSaveSuccess", "Database backup saved"),
+				F(I("toast.dbSaveSuccess", "Database backup saved"), "success", 2200, { history: {
+					title: I("btn.dbSave", "Save DB"),
+					detail: t ? `${t}${n > 0 ? ` | ${eh(n)}` : ""}` : I("toast.dbSaveSuccess", "Database backup saved"),
 					operation: "save_db",
 					source: t || "archive",
 					forceStore: !0
 				} }), await y(t);
-			} else m(e?.error || L("toast.dbSaveFailed", "Failed to save DB backup"), "error");
+			} else F(e?.error || I("toast.dbSaveFailed", "Failed to save DB backup"), "error");
 		} catch (e) {
-			m(e?.message || L("toast.dbSaveFailed", "Failed to save DB backup"), "error");
+			F(e?.message || I("toast.dbSaveFailed", "Failed to save DB backup"), "error");
 		} finally {
-			Ym(!1), b.disabled = !1, _ && (_.disabled = a || !g), b.textContent = r;
+			$m(!1), x.disabled = !1, g && (g.disabled = a || !h), x.textContent = r;
 			try {
 				let e = t ? t() : null;
-				await gh(i, l, u, e, null, { force: !0 });
+				await bh(i, l, u, e, null, { force: !0 });
 			} catch (e) {
 				console.debug?.(e);
 			}
 		}
-	}, p.appendChild(b), _ = document.createElement("button"), _.type = "button", _.textContent = L("btn.dbRestore", "Restore"), _.title = L("status.dbRestoreHint", "Restore selected DB backup"), _.style.cssText = "\n        padding: 5px 10px;\n        font-size: 11px;\n        border-radius: 6px;\n        border: 1px solid rgba(255,180,80,0.35);\n        background: transparent;\n        color: inherit;\n        cursor: pointer;\n    ", _.onclick = async (e) => {
+	}, p.appendChild(x), g = document.createElement("button"), g.type = "button", g.textContent = I("btn.dbRestore", "Restore"), g.title = I("status.dbRestoreHint", "Restore selected DB backup"), g.style.cssText = "\n        padding: 5px 10px;\n        font-size: 11px;\n        border-radius: 6px;\n        border: 1px solid rgba(255,180,80,0.35);\n        background: transparent;\n        color: inherit;\n        cursor: pointer;\n    ", g.onclick = async (e) => {
 		e.stopPropagation();
-		let r = String(h.value || "");
+		let r = String(m.value || "");
 		if (!r) {
-			m(L("toast.dbRestoreSelect", "Select a DB backup first"), "warning", 2e3);
+			F(I("toast.dbRestoreSelect", "Select a DB backup first"), "warning", 2e3);
 			return;
 		}
-		if (!await Nt(`${L("dialog.dbRestore.confirm", "Restore selected DB backup? Current DB will be replaced.")}\n\n${r}`, L("btn.dbRestore", "Restore DB"))) return;
-		m(L("toast.dbRestoreStarted", "DB restore started"), "info", 1800, { history: {
+		if (!await Pt(`${I("dialog.dbRestore.confirm", "Restore selected DB backup? Current DB will be replaced.")}\n\n${r}`, I("btn.dbRestore", "Restore DB"))) return;
+		F(I("toast.dbRestoreStarted", "DB restore started"), "info", 1800, { history: {
 			trackId: "maintenance:restore_db",
-			title: L("btn.dbRestore", "Restore DB"),
+			title: I("btn.dbRestore", "Restore DB"),
 			detail: r,
 			operation: "restore_db",
 			source: r,
 			status: "started",
 			forceStore: !0
-		} }), Ym(!0);
-		let a = _.textContent, o = !!b.disabled;
-		_.disabled = !0, b.disabled = !0, h.disabled = !0, _.textContent = L("btn.restoring", "Restoring..."), i.style.background = "var(--mjr-status-warning, #FFA726)", th(n, "warning");
+		} }), $m(!0);
+		let a = g.textContent, o = !!x.disabled;
+		g.disabled = !0, x.disabled = !0, m.disabled = !0, g.textContent = I("btn.restoring", "Restoring..."), i.style.background = "var(--mjr-status-warning, #FFA726)", ah(n, "warning");
 		try {
-			let e = await Ce({
+			let e = await be({
 				name: r,
 				useLatest: !1
 			});
-			e?.ok ? await y(String(e?.data?.name || r || "")) : m(e?.error || L("toast.dbRestoreFailed", "Failed to restore DB backup"), "error");
+			e?.ok ? await y(String(e?.data?.name || r || "")) : F(e?.error || I("toast.dbRestoreFailed", "Failed to restore DB backup"), "error");
 		} catch (e) {
-			m(e?.message || L("toast.dbRestoreFailed", "Failed to restore DB backup"), "error");
+			F(e?.message || I("toast.dbRestoreFailed", "Failed to restore DB backup"), "error");
 		} finally {
-			Ym(!1), _.disabled = !g, b.disabled = o, h.disabled = !g, _.textContent = a, ih("db-restore");
+			$m(!1), g.disabled = !h, x.disabled = o, m.disabled = !h, g.textContent = a, ch("db-restore");
 			try {
 				let e = t ? t() : null;
-				await gh(i, l, u, e, null, { force: !0 });
+				await bh(i, l, u, e, null, { force: !0 });
 			} catch (e) {
 				console.debug?.(e);
 			}
 		}
-	}, p.appendChild(_), c.appendChild(p);
-	let x = document.createElement("div");
-	x.style.cssText = "margin-top: 10px; display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap;";
+	}, p.appendChild(g), c.appendChild(p);
+	let S = document.createElement("div");
+	S.style.cssText = "margin-top: 10px; display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap;";
 	let C = document.createElement("div");
 	C.style.cssText = "margin-top: 8px; font-size: 11px; opacity: 0.9; line-height: 1.35; white-space: pre-wrap;", C.textContent = "";
 	let w = (e, t = "neutral") => {
 		let n = String(e || "").trim();
 		C.textContent = n, n ? t === "error" ? (C.style.color = "var(--error-text-color, #ff8a80)", C.style.opacity = "1") : t === "success" ? (C.style.color = "var(--success-text-color, #a5d6a7)", C.style.opacity = "1") : t === "info" ? (C.style.color = "var(--input-text, #cfd8dc)", C.style.opacity = "0.95") : (C.style.color = "inherit", C.style.opacity = "0.9") : (C.style.color = "inherit", C.style.opacity = "0.9");
 	}, T, E = document.createElement("button");
-	E.type = "button", E.textContent = L("btn.resetIndex"), E.title = L("status.resetIndexHint", "Reset index cache (requires allowResetIndex in settings)."), E.style.cssText = "\n        padding: 5px 12px;\n        font-size: 11px;\n        border-radius: 6px;\n        border: 1px solid rgba(255,255,255,0.25);\n        background: transparent;\n        color: inherit;\n        cursor: pointer;\n        transition: border 0.2s, background 0.2s;\n    ", E.onmouseenter = () => {
+	E.type = "button", E.textContent = I("btn.resetIndex"), E.title = I("status.resetIndexHint", "Reset index cache (requires allowResetIndex in settings)."), E.style.cssText = "\n        padding: 5px 12px;\n        font-size: 11px;\n        border-radius: 6px;\n        border: 1px solid rgba(255,255,255,0.25);\n        background: transparent;\n        color: inherit;\n        cursor: pointer;\n        transition: border 0.2s, background 0.2s;\n    ", E.onmouseenter = () => {
 		E.style.borderColor = "rgba(255,255,255,0.6)", E.style.background = "rgba(255,255,255,0.08)";
 	}, E.onmouseleave = () => {
 		E.style.borderColor = "rgba(255,255,255,0.25)", E.style.background = "transparent";
 	}, E.onclick = async (e) => {
 		e.stopPropagation();
-		let r = await oh(L("btn.resetIndex", "Reset index"));
-		if (!await Nt(r ? L("dialog.resetIndex.confirmKeepVectors", "This will reset index data and rescan files while keeping existing AI vectors.\n\nContinue?") : L("dialog.resetIndex.msg", "This will delete the database and rescan all files. Continue?"), L("dialog.resetIndex.title", "Reset index?"))) return;
-		Ym(!0);
+		let r = await uh(I("btn.resetIndex", "Reset index"));
+		if (!await Pt(r ? I("dialog.resetIndex.confirmKeepVectors", "This will reset index data and rescan files while keeping existing AI vectors.\n\nContinue?") : I("dialog.resetIndex.msg", "This will delete the database and rescan all files. Continue?"), I("dialog.resetIndex.title", "Reset index?"))) return;
+		$m(!0);
 		let a = E.textContent;
-		E.disabled = !0, T.disabled = !0, E.textContent = L("btn.resetting"), i.style.background = "var(--mjr-status-info, #64B5F6)", th(n, "info");
+		E.disabled = !0, T.disabled = !0, E.textContent = I("btn.resetting"), i.style.background = "var(--mjr-status-info, #64B5F6)", ah(n, "info");
 		try {
 			let e = t ? t() : {}, a = String(e?.scope || "output").toLowerCase(), o = e?.customRootId || e?.custom_root_id || e?.root_id || null, s = a === "custom" && !o;
-			(await be({
+			(await $e({
 				scope: s ? "all" : a,
 				customRootId: s ? null : o,
 				reindex: !0,
@@ -12276,14 +12339,14 @@ function sh(e = {}) {
 				clear_assets: !r,
 				preserve_vectors: r,
 				rebuild_fts: !0
-			}))?.ok ? (i.style.background = "var(--mjr-status-success, #4CAF50)", th(n, "success")) : (i.style.background = "var(--mjr-status-error, #f44336)", th(n, "error"));
+			}))?.ok ? (i.style.background = "var(--mjr-status-success, #4CAF50)", ah(n, "success")) : (i.style.background = "var(--mjr-status-error, #f44336)", ah(n, "error"));
 		} catch {
-			i.style.background = "var(--mjr-status-error, #f44336)", th(n, "error");
+			i.style.background = "var(--mjr-status-error, #f44336)", ah(n, "error");
 		} finally {
-			Ym(!1), E.disabled = !1, T.disabled = !1, E.textContent = a, ih("index-reset");
+			$m(!1), E.disabled = !1, T.disabled = !1, E.textContent = a, ch("index-reset");
 			try {
 				let e = t ? t() : null;
-				await gh(i, l, u, e, null, { force: !0 });
+				await bh(i, l, u, e, null, { force: !0 });
 			} catch (e) {
 				console.debug?.(e);
 			}
@@ -12298,32 +12361,32 @@ function sh(e = {}) {
 		e.stopPropagation();
 		let r = t ? t() : {}, a = String(r?.scope || "output").toLowerCase(), o = String(r?.customRootId || r?.custom_root_id || r?.root_id || "").trim();
 		if (a === "custom" && !o) {
-			m(L("status.customBrowserScanDisabledHint", "Use Outputs, Inputs, or All to run indexing scans"), "warning", 2600), w("Backfill skipped - Browser scope has no selected custom root.", "warning");
+			F(I("status.customBrowserScanDisabledHint", "Use Outputs, Inputs, or All to run indexing scans"), "warning", 2600), w("Backfill skipped - Browser scope has no selected custom root.", "warning");
 			return;
 		}
-		let s = a || "output", c = nh(s), d = { history: {
+		let s = a || "output", c = oh(s), d = { history: {
 			trackId: `vector-backfill:status:${s}:${o || "default"}`,
 			title: "Vector Backfill",
 			source: c,
 			operation: "vector_backfill",
 			forceStore: !0
 		} };
-		Ym(!0);
-		let p = O.textContent, h = E.textContent;
-		O.disabled = !0, E.disabled = !0, T.disabled = !0, O.textContent = "Backfilling...", w(`Backfill started (${c})...`, "info"), He({
+		$m(!0);
+		let f = O.textContent, p = E.textContent;
+		O.disabled = !0, E.disabled = !0, T.disabled = !0, O.textContent = "Backfilling...", w(`Backfill started (${c})...`, "info"), _({
 			summary: "Vector Backfill",
 			detail: `Started (${c})`
 		}, "info", 0, { history: {
 			...d.history,
 			status: "started",
 			detail: `Started (${c})`
-		} }), i.style.background = "var(--mjr-status-info, #64B5F6)", th(n, "info");
+		} }), i.style.background = "var(--mjr-status-info, #64B5F6)", ah(n, "info");
 		try {
 			let e = {
 				scope: s,
 				onProgress: (e) => {
 					let t = String(e?.status || "").toLowerCase(), n = e?.progress || e?.result || {}, r = Number(n?.candidates || n?.processed || 0), i = Number(n?.candidate_total || r || 0), a = Number(n?.eligible_total || n?.total_assets || 0), o = Number(n?.indexed || 0), s = Number(n?.skipped || 0), l = Number(n?.errors || 0);
-					if (t === "queued") w("Backfill queued...", "info"), He({
+					if (t === "queued") w("Backfill queued...", "info"), _({
 						summary: "Vector Backfill",
 						detail: `Queued (${c})`
 					}, "info", 0, { history: {
@@ -12339,7 +12402,7 @@ function sh(e = {}) {
 					} });
 					else if (t === "running" || r > 0 || i > 0 || a > 0 || o > 0 || s > 0 || l > 0) {
 						let e = a > 0 ? `Indexed ${o}/${a} assets, candidates ${i}, skipped ${s}, errors ${l}` : `Candidates ${r}, indexed ${o}, skipped ${s}, errors ${l}`;
-						w(a > 0 ? `Backfill running - indexed ${o}/${a} assets, candidates ${i}, skipped ${s}, errors ${l}` : `Backfill running - candidates ${r}, indexed ${o}, skipped ${s}, errors ${l}`, "info"), He({
+						w(a > 0 ? `Backfill running - indexed ${o}/${a} assets, candidates ${i}, skipped ${s}, errors ${l}` : `Backfill running - candidates ${r}, indexed ${o}, skipped ${s}, errors ${l}`, "info"), _({
 							summary: "Vector Backfill",
 							detail: e
 						}, "info", 0, { history: {
@@ -12362,7 +12425,7 @@ function sh(e = {}) {
 				}
 			};
 			s === "custom" && o && (e.customRootId = o);
-			let t = await f(64, e);
+			let t = await D(64, e);
 			if (t?.ok) {
 				let e = String(t?.data?.status || "").toLowerCase(), r = !!t?.data?.pending || [
 					"queued",
@@ -12370,8 +12433,8 @@ function sh(e = {}) {
 					"pending"
 				].includes(e), a = t?.data?.progress || {}, o = Number(t?.data?.processed ?? a?.candidates ?? 0), s = Number(t?.data?.indexed ?? a?.indexed ?? 0), c = Number(t?.data?.skipped ?? a?.skipped ?? 0), l = Number(t?.data?.errors ?? a?.errors ?? 0);
 				if (r) {
-					let e = String(t?.data?.backfill_id || "").trim(), r = L("toast.vectorBackfillRunning", "Vector backfill still running in background{job}.", { job: e ? ` (${e.slice(0, 8)})` : "" });
-					m(r, "info", 4200, { history: {
+					let e = String(t?.data?.backfill_id || "").trim(), r = I("toast.vectorBackfillRunning", "Vector backfill still running in background{job}.", { job: e ? ` (${e.slice(0, 8)})` : "" });
+					F(r, "info", 4200, { history: {
 						...d.history,
 						status: "running",
 						detail: `Running in background${e ? ` (${e.slice(0, 8)})` : ""}.`,
@@ -12384,8 +12447,8 @@ function sh(e = {}) {
 							errors: l,
 							label: "running"
 						}
-					} }), w(`Backfill running in background - candidates ${o}, indexed ${s}, skipped ${c}, errors ${l}`, "info"), i.style.background = "var(--mjr-status-info, #64B5F6)", th(n, "info");
-				} else m(L("toast.vectorBackfillComplete", "Vector backfill complete! Processed: {processed}, Indexed: {indexed}, Skipped: {skipped}", {
+					} }), w(`Backfill running in background - candidates ${o}, indexed ${s}, skipped ${c}, errors ${l}`, "info"), i.style.background = "var(--mjr-status-info, #64B5F6)", ah(n, "info");
+				} else F(I("toast.vectorBackfillComplete", "Vector backfill complete! Processed: {processed}, Indexed: {indexed}, Skipped: {skipped}", {
 					processed: o,
 					indexed: s,
 					skipped: c
@@ -12402,14 +12465,14 @@ function sh(e = {}) {
 						errors: l,
 						label: "done"
 					}
-				} }), w(`Backfill OK - processed ${o}, indexed ${s}, skipped ${c}`, "success"), i.style.background = "var(--mjr-status-success, #4CAF50)", th(n, "success");
+				} }), w(`Backfill OK - processed ${o}, indexed ${s}, skipped ${c}`, "success"), i.style.background = "var(--mjr-status-success, #4CAF50)", ah(n, "success");
 			} else {
-				let e = String(t?.error || L("toast.vectorBackfillFailedGeneric", "Backfill failed")), r = String(t?.code || "").trim(), a = Number(t?.status || 0) || 0, o = [
+				let e = String(t?.error || I("toast.vectorBackfillFailedGeneric", "Backfill failed")), r = String(t?.code || "").trim(), a = Number(t?.status || 0) || 0, o = [
 					r ? `code=${r}` : "",
 					a ? `status=${a}` : "",
 					e
 				].filter(Boolean).join(" | ");
-				m(o, "error", 4500, { history: {
+				F(o, "error", 4500, { history: {
 					...d.history,
 					status: "failed",
 					detail: o,
@@ -12417,11 +12480,11 @@ function sh(e = {}) {
 						label: "failed",
 						errors: 1
 					}
-				} }), w(`Backfill ? - ${o}\nSee console for full payload.`, "error"), console.error("[Majoor] Vector backfill failed response", t), i.style.background = "var(--mjr-status-error, #f44336)", th(n, "error");
+				} }), w(`Backfill ? - ${o}\nSee console for full payload.`, "error"), console.error("[Majoor] Vector backfill failed response", t), i.style.background = "var(--mjr-status-error, #f44336)", ah(n, "error");
 			}
 		} catch (e) {
 			let t = String(e?.message || e || "Backfill failed");
-			m(t, "error", 4500, { history: {
+			F(t, "error", 4500, { history: {
 				...d.history,
 				status: "failed",
 				detail: t,
@@ -12429,60 +12492,102 @@ function sh(e = {}) {
 					label: "failed",
 					errors: 1
 				}
-			} }), w(`Backfill EXCEPTION - ${t}\nSee console for stack trace.`, "error"), console.error("[Majoor] Vector backfill exception", e), i.style.background = "var(--mjr-status-error, #f44336)", th(n, "error");
+			} }), w(`Backfill EXCEPTION - ${t}\nSee console for stack trace.`, "error"), console.error("[Majoor] Vector backfill exception", e), i.style.background = "var(--mjr-status-error, #f44336)", ah(n, "error");
 		} finally {
-			Ym(!1), O.disabled = !1, E.disabled = !1, T.disabled = !1, O.textContent = p, E.textContent = h, ih("vector-backfill");
+			$m(!1), O.disabled = !1, E.disabled = !1, T.disabled = !1, O.textContent = f, E.textContent = p, ch("vector-backfill");
 			try {
 				let e = t ? t() : null;
-				await gh(i, l, u, e, null, { force: !0 });
+				await bh(i, l, u, e, null, { force: !0 });
 			} catch (e) {
 				console.debug?.(e);
 			}
 		}
-	}, T = document.createElement("button"), T.type = "button", T.textContent = L("btn.memoryPurge", "Memory purge"), T.title = L("tooltip.memoryPurge", "Unload Majoor AI models, ask ComfyUI to unload loaded models, and clear torch cache when idle."), T.style.cssText = "\n        padding: 5px 12px;\n        font-size: 11px;\n        border-radius: 6px;\n        border: 1px solid rgba(156, 204, 101, 0.45);\n        background: transparent;\n        color: inherit;\n        cursor: pointer;\n        transition: border 0.2s, background 0.2s;\n    ", T.onmouseenter = () => {
+	}, T = document.createElement("button"), T.type = "button", T.textContent = I("btn.memoryPurge", "Memory purge"), T.title = I("tooltip.memoryPurge", "Unload Majoor AI models, ask ComfyUI to unload loaded models, and clear torch cache when idle."), T.style.cssText = "\n        padding: 5px 12px;\n        font-size: 11px;\n        border-radius: 6px;\n        border: 1px solid rgba(156, 204, 101, 0.45);\n        background: transparent;\n        color: inherit;\n        cursor: pointer;\n        transition: border 0.2s, background 0.2s;\n    ", T.onmouseenter = () => {
 		T.style.borderColor = "rgba(156, 204, 101, 0.85)", T.style.background = "rgba(156, 204, 101, 0.12)";
 	}, T.onmouseleave = () => {
 		T.style.borderColor = "rgba(156, 204, 101, 0.45)", T.style.background = "transparent";
 	}, T.onclick = async (e) => {
 		e.stopPropagation();
 		let r = T.textContent;
-		T.disabled = !0, O.disabled = !0, E.disabled = !0, T.textContent = L("btn.memoryPurging", "Purging..."), w(L("status.memoryPurgeStarted", "Memory purge started..."), "info"), i.style.background = "var(--mjr-status-info, #64B5F6)", th(n, "info");
+		T.disabled = !0, O.disabled = !0, E.disabled = !0, T.textContent = I("btn.memoryPurging", "Purging..."), w(I("status.memoryPurgeStarted", "Memory purge started..."), "info"), i.style.background = "var(--mjr-status-info, #64B5F6)", ah(n, "info");
 		try {
-			let e = await D();
+			let e = await b();
 			if (e?.ok) {
-				let t = e?.data?.comfy_models ? L("toast.memoryPurgeComplete", "Memory purge complete. Majoor AI and ComfyUI model caches were released.") : L("toast.memoryPurgeCompleteMajoorOnly", "Memory purge complete. Majoor AI caches were released.");
-				m(t, "success", 3200), w(t, "success"), i.style.background = "var(--mjr-status-success, #4CAF50)", th(n, "success");
+				let t = e?.data?.comfy_models ? I("toast.memoryPurgeComplete", "Memory purge complete. Majoor AI and ComfyUI model caches were released.") : I("toast.memoryPurgeCompleteMajoorOnly", "Memory purge complete. Majoor AI caches were released.");
+				F(t, "success", 3200), w(t, "success"), i.style.background = "var(--mjr-status-success, #4CAF50)", ah(n, "success");
 			} else {
 				let t = String(e?.error || "Memory purge failed");
-				m(t, "error", 4500), w(t, "error"), i.style.background = "var(--mjr-status-error, #f44336)", th(n, "error");
+				F(t, "error", 4500), w(t, "error"), i.style.background = "var(--mjr-status-error, #f44336)", ah(n, "error");
 			}
 		} catch (e) {
 			let t = String(e?.message || e || "Memory purge failed");
-			m(t, "error", 4500), w(t, "error"), i.style.background = "var(--mjr-status-error, #f44336)", th(n, "error");
+			F(t, "error", 4500), w(t, "error"), i.style.background = "var(--mjr-status-error, #f44336)", ah(n, "error");
 		} finally {
 			T.disabled = !1, O.disabled = !1, E.disabled = !1, T.textContent = r;
 			try {
 				let e = t ? t() : null;
-				await gh(i, l, u, e, null, { force: !0 });
+				await bh(i, l, u, e, null, { force: !0 });
 			} catch (e) {
 				console.debug?.(e);
 			}
 		}
-	}, x.appendChild(O), x.appendChild(T), x.appendChild(E), c.appendChild(C);
+	};
 	let k = document.createElement("button");
-	k.type = "button", k.textContent = L("btn.deleteDb"), k.title = L("tooltip.deleteDb", "Force-delete database and rebuild from scratch"), k.style.cssText = "\n        padding: 5px 12px;\n        font-size: 11px;\n        border-radius: 6px;\n        border: 1px solid rgba(255,80,80,0.4);\n        background: transparent;\n        color: inherit;\n        cursor: pointer;\n        transition: border 0.2s, background 0.2s;\n    ", k.onmouseenter = () => {
-		k.style.borderColor = "rgba(255,80,80,0.8)", k.style.background = "rgba(255,80,80,0.12)";
+	k.type = "button", k.textContent = I("btn.emptyTrash", "Empty trash"), k.title = I("status.emptyTrashHint", "Permanently remove files Majoor sent to the freedesktop trash (requires allowDelete in settings)."), k.style.cssText = "\n        padding: 5px 12px;\n        font-size: 11px;\n        border-radius: 6px;\n        border: 1px solid rgba(255,167,38,0.45);\n        background: transparent;\n        color: inherit;\n        cursor: pointer;\n        transition: border 0.2s, background 0.2s;\n    ", k.onmouseenter = () => {
+		k.style.borderColor = "rgba(255,167,38,0.85)", k.style.background = "rgba(255,167,38,0.12)";
 	}, k.onmouseleave = () => {
-		k.style.borderColor = "rgba(255,80,80,0.4)", k.style.background = "transparent";
-	}, k.onclick = async (e) => {
-		e.stopPropagation();
-		let r = await oh(L("btn.deleteDb", "Delete DB"));
-		if (!await Nt(r ? L("dialog.dbDelete.keepVectorsConfirm", "This will reset index data and keep existing AI vectors. Database files will not be force-deleted.\n\nContinue?") : L("dialog.dbDelete.confirm", "This will permanently delete the index database and rebuild it from scratch. All ratings, tags, and cached metadata will be lost.\n\nContinue?"), L("btn.deleteDb", "Delete DB"))) return;
-		Ym(!0);
-		let a = k.textContent;
-		k.disabled = !0, k.textContent = r ? L("btn.resetting", "Resetting...") : L("btn.deletingDb"), E.disabled = !0, T.disabled = !0, i.style.background = "var(--mjr-status-info, #64B5F6)", th(n, "info");
+		k.style.borderColor = "rgba(255,167,38,0.45)", k.style.background = "transparent";
+	}, (async () => {
 		try {
-			(r ? await be({
+			let e = await Um();
+			if (typeof e.getTrashStatus != "function") {
+				k.style.display = "none";
+				return;
+			}
+			let t = await e.getTrashStatus();
+			if (t?.ok && t?.data?.supported === !1) {
+				k.style.display = "none";
+				return;
+			}
+			if (typeof e.getSecuritySettings == "function") {
+				let t = await e.getSecuritySettings();
+				t?.ok && t?.data?.prefs && t.data.prefs.allow_delete === !1 && (k.disabled = !0, k.title = I("status.emptyTrashDisabled", "Empty trash is disabled. Enable 'allow_delete' in settings or set MAJOOR_ALLOW_DELETE=1."));
+			}
+		} catch (e) {
+			console.debug?.(e);
+		}
+	})(), k.onclick = async (e) => {
+		e.stopPropagation(), $m(!0);
+		let t = k.textContent;
+		k.disabled = !0, E.disabled = !0, T.disabled = !0, k.textContent = I("btn.emptyTrashRunning", "Emptying...");
+		try {
+			let e = await Um();
+			await Gm({
+				getStatus: e.getTrashStatus,
+				empty: e.emptyTrash,
+				confirm: (e, t) => Promise.resolve(Pt(e, t)),
+				toast: (e, t, n, r) => F(e, t, n, r),
+				formatBytes: eh,
+				translate: (e, t, n) => I(e, t, n)
+			});
+		} finally {
+			$m(!1), k.disabled = !1, E.disabled = !1, T.disabled = !1, k.textContent = t;
+		}
+	}, S.appendChild(O), S.appendChild(T), S.appendChild(E), S.appendChild(k), S.appendChild(O), S.appendChild(T), S.appendChild(E), c.appendChild(C);
+	let A = document.createElement("button");
+	A.type = "button", A.textContent = I("btn.deleteDb"), A.title = I("tooltip.deleteDb", "Force-delete database and rebuild from scratch"), A.style.cssText = "\n        padding: 5px 12px;\n        font-size: 11px;\n        border-radius: 6px;\n        border: 1px solid rgba(255,80,80,0.4);\n        background: transparent;\n        color: inherit;\n        cursor: pointer;\n        transition: border 0.2s, background 0.2s;\n    ", A.onmouseenter = () => {
+		A.style.borderColor = "rgba(255,80,80,0.8)", A.style.background = "rgba(255,80,80,0.12)";
+	}, A.onmouseleave = () => {
+		A.style.borderColor = "rgba(255,80,80,0.4)", A.style.background = "transparent";
+	}, A.onclick = async (e) => {
+		e.stopPropagation();
+		let r = await uh(I("btn.deleteDb", "Delete DB"));
+		if (!await Pt(r ? I("dialog.dbDelete.keepVectorsConfirm", "This will reset index data and keep existing AI vectors. Database files will not be force-deleted.\n\nContinue?") : I("dialog.dbDelete.confirm", "This will permanently delete the index database and rebuild it from scratch. All ratings, tags, and cached metadata will be lost.\n\nContinue?"), I("btn.deleteDb", "Delete DB"))) return;
+		$m(!0);
+		let a = A.textContent;
+		A.disabled = !0, A.textContent = r ? I("btn.resetting", "Resetting...") : I("btn.deletingDb"), E.disabled = !0, T.disabled = !0, i.style.background = "var(--mjr-status-info, #64B5F6)", ah(n, "info");
+		try {
+			(r ? await $e({
 				scope: "all",
 				reindex: !0,
 				maintenance_force: !0,
@@ -12493,53 +12598,53 @@ function sh(e = {}) {
 				clear_assets: !1,
 				preserve_vectors: !0,
 				rebuild_fts: !0
-			}) : await S())?.ok ? (globalThis._mjrCorruptToastShown = !1, i.style.background = "var(--mjr-status-success, #4CAF50)", th(n, "success")) : (i.style.background = "var(--mjr-status-error, #f44336)", th(n, "error"));
+			}) : await f())?.ok ? (globalThis._mjrCorruptToastShown = !1, i.style.background = "var(--mjr-status-success, #4CAF50)", ah(n, "success")) : (i.style.background = "var(--mjr-status-error, #f44336)", ah(n, "error"));
 		} catch {
-			i.style.background = "var(--mjr-status-error, #f44336)", th(n, "error");
+			i.style.background = "var(--mjr-status-error, #f44336)", ah(n, "error");
 		} finally {
-			Ym(!1), k.disabled = !1, k.textContent = a, E.disabled = !1, T.disabled = !1, ih(r ? "index-reset-preserve-vectors" : "db-force-delete");
+			$m(!1), A.disabled = !1, A.textContent = a, E.disabled = !1, T.disabled = !1, ch(r ? "index-reset-preserve-vectors" : "db-force-delete");
 			try {
 				let e = t ? t() : null;
-				await gh(i, l, u, e, null, { force: !0 });
+				await bh(i, l, u, e, null, { force: !0 });
 			} catch (e) {
 				console.debug?.(e);
 			}
 		}
-	}, x.appendChild(k), c.appendChild(x), n.appendChild(r), n.appendChild(c);
-	let A = n.querySelector("#mjr-status-title");
-	A && A.addEventListener("click", (e) => {
+	}, S.appendChild(A), c.appendChild(S), n.appendChild(r), n.appendChild(c);
+	let ee = n.querySelector("#mjr-status-title");
+	ee && ee.addEventListener("click", (e) => {
 		e.stopPropagation();
 		let t = n.querySelector("#mjr-status-body");
 		if (!t) return;
 		let r = t.style.display === "none";
-		ph(n, !r);
-	}), ph(n, !0), n.onmouseenter = () => {
+		_h(n, !r);
+	}), _h(n, !0), n.onmouseenter = () => {
 		n.style.transform = "translateY(-1px)";
 	}, n.onmouseleave = () => {
-		n.style.transform = "", th(n, n.dataset?.mjrStatusTone || "neutral", { toast: !1 });
+		n.style.transform = "", ah(n, n.dataset?.mjrStatusTone || "neutral", { toast: !1 });
 	};
-	let ee = async (e) => {
+	let j = async (e) => {
 		try {
 			let r = e?.detail || {}, a = String(r?.step || "");
 			if (!a) return;
 			let o = a === "started" || a === "stopping_workers" || a === "resetting_db" || a === "delete_db" || a === "recreate_db" || a === "replacing_files" || a === "restarting_scan";
-			if (o ? Ym(!0) : (a === "failed" || a === "done") && Ym(!1), !n?.isConnected || !i?.isConnected || !l?.isConnected) return;
+			if (o ? $m(!0) : (a === "failed" || a === "done") && $m(!1), !n?.isConnected || !i?.isConnected || !l?.isConnected) return;
 			if (o) {
-				i.style.background = "var(--mjr-status-info, #64B5F6)", th(n, "info", { toast: !1 }), eh(l, L("status.pending", "Pending..."), L("status.dbRestoreInProgress", "Database restore in progress"));
+				i.style.background = "var(--mjr-status-info, #64B5F6)", ah(n, "info", { toast: !1 }), ih(l, I("status.pending", "Pending..."), I("status.dbRestoreInProgress", "Database restore in progress"));
 				return;
 			}
 			if (a === "failed") {
-				i.style.background = "var(--mjr-status-error, #f44336)", th(n, "error", { toast: !1 }), Zm(l, [L("status.error", "Error"), String(r?.message || L("toast.dbRestoreFailed", "Failed to restore DB backup"))]);
+				i.style.background = "var(--mjr-status-error, #f44336)", ah(n, "error", { toast: !1 }), th(l, [I("status.error", "Error"), String(r?.message || I("toast.dbRestoreFailed", "Failed to restore DB backup"))]);
 				return;
 			}
 			if (a === "done") {
-				i.style.background = "var(--mjr-status-success, #4CAF50)", th(n, "success", { toast: !1 });
-				let e = String(r?.operation || ""), a = e === "delete_db" ? L("toast.dbDeleteSuccess", "Database deleted and rebuilt. Files are being reindexed.") : e === "reset_index" ? L("toast.resetStarted", "Index reset started. Files will be reindexed in the background.") : L("toast.dbRestoreSuccess", "Database backup restored");
-				eh(l, L("status.ready", "Ready"), a);
+				i.style.background = "var(--mjr-status-success, #4CAF50)", ah(n, "success", { toast: !1 });
+				let e = String(r?.operation || ""), a = e === "delete_db" ? I("toast.dbDeleteSuccess", "Database deleted and rebuilt. Files are being reindexed.") : e === "reset_index" ? I("toast.resetStarted", "Index reset started. Files will be reindexed in the background.") : I("toast.dbRestoreSuccess", "Database backup restored");
+				ih(l, I("status.ready", "Ready"), a);
 				try {
 					let e = t ? t() : null;
 					setTimeout(() => {
-						gh(i, l, u, e, null, { force: !0 });
+						bh(i, l, u, e, null, { force: !0 });
 					}, 600);
 				} catch (e) {
 					console.debug?.(e);
@@ -12550,45 +12655,45 @@ function sh(e = {}) {
 		}
 	};
 	try {
-		let e = Wm;
-		typeof e == "function" && window.removeEventListener("mjr-db-restore-status", e), Wm = ee, n._mjrDbRestoreStatusHandler = ee, window.addEventListener("mjr-db-restore-status", ee);
+		let e = Jm;
+		typeof e == "function" && window.removeEventListener("mjr-db-restore-status", e), Jm = j, n._mjrDbRestoreStatusHandler = j, window.addEventListener("mjr-db-restore-status", j);
 	} catch (e) {
 		console.debug?.(e);
 	}
-	let j = (e) => {
+	let M = (e) => {
 		try {
 			let t = e?.detail || {}, n = Number(t?.queue_remaining), r = Number(t?.progress_value), i = Number(t?.progress_max), a = Array.isArray(t?.cached_nodes) ? t.cached_nodes.length : 0, o = String(t?.active_prompt_id || "").trim(), s = [
-				Number.isFinite(r) && Number.isFinite(i) && i > 0 ? L("status.runtimeProgress", "Runtime progress: {value}/{max}", {
+				Number.isFinite(r) && Number.isFinite(i) && i > 0 ? I("status.runtimeProgress", "Runtime progress: {value}/{max}", {
 					value: r,
 					max: i
 				}) : "",
-				Number.isFinite(n) ? L("status.queueRemaining", "Queue remaining: {count}", { count: Math.max(0, n) }) : "",
-				a > 0 ? L("status.executionCached", "Cached nodes reused: {count}", { count: a }) : "",
-				o ? L("status.activePrompt", "Active prompt: {id}", { id: o }) : ""
+				Number.isFinite(n) ? I("status.queueRemaining", "Queue remaining: {count}", { count: Math.max(0, n) }) : "",
+				a > 0 ? I("status.executionCached", "Cached nodes reused: {count}", { count: a }) : "",
+				o ? I("status.activePrompt", "Active prompt: {id}", { id: o }) : ""
 			].filter(Boolean);
 			if (!s.length) return;
 			let c = l?.querySelector?.("span");
-			c ? c.textContent = s.join("  |  ") : eh(l, L("status.ready", "Ready"), s.join("  |  "));
+			c ? c.textContent = s.join("  |  ") : ih(l, I("status.ready", "Ready"), s.join("  |  "));
 		} catch (e) {
 			console.debug?.(e);
 		}
 	};
 	try {
-		let e = Gm;
-		typeof e == "function" && window.removeEventListener(B.RUNTIME_STATUS, e), Gm = j, window.addEventListener(B.RUNTIME_STATUS, j);
+		let e = Ym;
+		typeof e == "function" && window.removeEventListener(z.RUNTIME_STATUS, e), Ym = M, window.addEventListener(z.RUNTIME_STATUS, M);
 	} catch (e) {
 		console.debug?.(e);
 	}
 	return n;
 }
-async function ch(e, t, n = null, r = null) {
-	if (Um) {
-		m(L("status.maintenanceBusy", "Database maintenance in progress. Please wait."), "warning", 2200);
+async function fh(e, t, n = null, r = null) {
+	if (qm) {
+		F(I("status.maintenanceBusy", "Database maintenance in progress. Please wait."), "warning", 2200);
 		return;
 	}
 	let i = t?.closest?.("#mjr-status-body")?.parentElement || t?.closest?.("div"), a = String(r?.scope || "output").toLowerCase(), o = r?.customRootId || r?.custom_root_id || r?.root_id || null;
 	if (a === "custom" && !o) {
-		e.style.background = "var(--mjr-status-info, #64B5F6)", th(i, "info"), eh(t, L("status.customBrowserScanDisabled", "Custom browser mode: scan is disabled"), L("status.customBrowserScanDisabledHint", "Use Outputs, Inputs, or All to run indexing scans"));
+		e.style.background = "var(--mjr-status-info, #64B5F6)", ah(i, "info"), ih(t, I("status.customBrowserScanDisabled", "Custom browser mode: scan is disabled"), I("status.customBrowserScanDisabledHint", "Use Outputs, Inputs, or All to run indexing scans"));
 		return;
 	}
 	try {
@@ -12596,7 +12701,7 @@ async function ch(e, t, n = null, r = null) {
 		if (n && typeof n == "object") {
 			let r = e - Number(n.at || 0);
 			if (r >= 0 && r < 6e5) {
-				eh(t, L("status.scanInProgress", "Scan already running..."), L("status.scanInProgressHint", "Please wait for the current scan to finish"));
+				ih(t, I("status.scanInProgress", "Scan already running..."), I("status.scanInProgressHint", "Please wait for the current scan to finish"));
 				return;
 			}
 		}
@@ -12616,249 +12721,249 @@ async function ch(e, t, n = null, r = null) {
 		}
 	}, c = null;
 	try {
-		let e = await Ie(I.ROOTS);
+		let e = await fe(m.ROOTS);
 		e.ok && (c = e.data);
 	} catch (e) {
 		console.debug?.(e);
 	}
 	if (!c) {
-		let n = await Ie(I.CONFIG);
+		let n = await fe(m.CONFIG);
 		if (!n.ok) {
-			e.style.background = "var(--mjr-status-error, #f44336)", th(i, "error"), t.textContent = L("status.errorGetConfig"), s();
+			e.style.background = "var(--mjr-status-error, #f44336)", ah(i, "error"), t.textContent = I("status.errorGetConfig"), s();
 			return;
 		}
 		c = { output_directory: n.data.output_directory };
 	}
-	let l = a === "all" ? L("scope.all", "Inputs + Outputs") : a === "input" ? L("scope.input", "Inputs") : a === "custom" ? L("scope.custom", "Custom") : a === "workflow" ? L("scope.workflow", "Workflow") : L("scope.output", "Outputs"), u = "";
+	let l = a === "all" ? I("scope.all", "Inputs + Outputs") : a === "input" ? I("scope.input", "Inputs") : a === "custom" ? I("scope.custom", "Custom") : a === "workflow" ? I("scope.workflow", "Workflow") : I("scope.output", "Outputs"), u = "";
 	if (a === "input") u = c?.input_directory ? ` (${c.input_directory})` : "";
 	else if (a === "custom") {
 		let e = Array.isArray(c?.custom_roots) ? c.custom_roots : [], t = o ? e.find((e) => e?.id === o) : null;
 		u = t?.path ? ` (${t.path})` : "";
 	} else a === "output" && (u = c?.output_directory ? ` (${c.output_directory})` : "");
-	e.style.background = "var(--mjr-status-info, #64B5F6)", th(i, "info"), eh(t, L("status.scanningScope", `Scanning ${l}${u}...`, {
+	e.style.background = "var(--mjr-status-info, #64B5F6)", ah(i, "info"), ih(t, I("status.scanningScope", `Scanning ${l}${u}...`, {
 		scope: l,
 		detail: u
-	}), L("status.scanningHint", "This may take a while"));
+	}), I("status.scanningHint", "This may take a while"));
 	let d = {
 		scope: a,
 		recursive: !0,
 		incremental: !0,
-		fast: !!(Pt()?.scan?.fastMode ?? !0),
+		fast: !!(Ft()?.scan?.fastMode ?? !0),
 		background_metadata: !0
 	};
 	if (a === "custom") {
 		if (!o) {
-			e.style.background = "var(--mjr-status-error, #f44336)", th(i, "error"), t.textContent = L("status.selectCustomFolder"), s();
+			e.style.background = "var(--mjr-status-error, #f44336)", ah(i, "error"), t.textContent = I("status.selectCustomFolder"), s();
 			return;
 		}
 		d.custom_root_id = o;
 	}
 	let f;
 	try {
-		f = await pe(I.SCAN, d);
+		f = await rt(m.SCAN, d);
 	} finally {
 		s();
 	}
 	if (f?.ok) {
 		let r = f.data;
-		e.style.background = "var(--mjr-status-success, #4CAF50)", th(i, "success"), eh(t, L("toast.scanComplete"), L("status.scanStats", `Added: ${r.added || 0}  -  Updated: ${r.updated || 0}  -  Skipped: ${r.skipped || 0}`, {
+		e.style.background = "var(--mjr-status-success, #4CAF50)", ah(i, "success"), ih(t, I("toast.scanComplete"), I("status.scanStats", `Added: ${r.added || 0}  -  Updated: ${r.updated || 0}  -  Skipped: ${r.skipped || 0}`, {
 			added: r.added || 0,
 			updated: r.updated || 0,
 			skipped: r.skipped || 0
-		})), ah("scan-complete", { stats: {
+		})), lh("scan-complete", { stats: {
 			added: r.added || 0,
 			updated: r.updated || 0,
 			skipped: r.skipped || 0
 		} }), setTimeout(() => {
-			gh(e, t, n);
+			bh(e, t, n);
 		}, 2e3);
-	} else e.style.background = "var(--mjr-status-error, #f44336)", th(i, "error"), Zm(t, [L("toast.scanFailed") + `: ${f?.error || "Unknown error"}`]), setTimeout(() => {
-		gh(e, t, n);
+	} else e.style.background = "var(--mjr-status-error, #f44336)", ah(i, "error"), th(t, [I("toast.scanFailed") + `: ${f?.error || "Unknown error"}`]), setTimeout(() => {
+		bh(e, t, n);
 	}, 3e3);
 }
-function lh(e, t, n) {
+function ph(e, t, n) {
 	let r = document.createElement("span");
-	return r.style.cssText = "\n        display: inline-flex;\n        align-items: center;\n        gap: 4px;\n        padding: 2px 6px;\n        border-radius: 999px;\n        background: rgba(255, 255, 255, 0.05);\n        border: 1px solid rgba(255, 255, 255, 0.1);\n    ", r.textContent = `${t ? "OK" : "ERR"} ${e}`, r.title = t ? L("status.toolAvailable", `${e} available`, { tool: e }) : n || L("status.toolUnavailable", `${e} unavailable`, { tool: e }), r.style.opacity = t ? "1" : "0.75", r;
+	return r.style.cssText = "\n        display: inline-flex;\n        align-items: center;\n        gap: 4px;\n        padding: 2px 6px;\n        border-radius: 999px;\n        background: rgba(255, 255, 255, 0.05);\n        border: 1px solid rgba(255, 255, 255, 0.1);\n    ", r.textContent = `${t ? "OK" : "ERR"} ${e}`, r.title = t ? I("status.toolAvailable", `${e} available`, { tool: e }) : n || I("status.toolUnavailable", `${e} unavailable`, { tool: e }), r.style.opacity = t ? "1" : "0.75", r;
 }
-function uh(e, t = {}, n = {}) {
+function mh(e, t = {}, n = {}) {
 	if (!e) return;
 	if (e.replaceChildren(), !t || Object.keys(t).length === 0) {
-		e.textContent = L("status.discoveringTools");
+		e.textContent = I("status.discoveringTools");
 		return;
 	}
 	let r = document.createElement("div");
-	r.style.display = "flex", r.style.flexWrap = "wrap", r.style.gap = "10px", r.style.alignItems = "flex-start", Hm.forEach(({ key: e, labelKey: i, hintKey: a }) => {
-		let o = !!t[e], s = n[e], c = L(i, e), l = L(a, "");
-		r.appendChild(fh({
+	r.style.display = "flex", r.style.flexWrap = "wrap", r.style.gap = "10px", r.style.alignItems = "flex-start", Km.forEach(({ key: e, labelKey: i, hintKey: a }) => {
+		let o = !!t[e], s = n[e], c = I(i, e), l = I(a, "");
+		r.appendChild(gh({
 			label: c,
 			hint: l
 		}, o, s));
 	}), e.appendChild(r);
 }
-function dh(e, t = null, n = {}) {
+function hh(e, t = null, n = {}) {
 	if (!e) return;
 	let r = e.parentElement;
 	if (!r) return;
 	let i = r.querySelector("#mjr-tools-status");
 	if (!i) return;
 	let a = n && Object.keys(n).length > 0;
-	i.textContent = !t && !a ? L("status.toolStatusChecking", "Tool status: checking...") : Hm.map(({ key: e, labelKey: r }) => {
-		let i = L(r, e), a = t && e in t ? t[e] : void 0, o = e in n ? n[e] : void 0, s = a === void 0 ? o : a, c = s == null ? L("status.unknown", "unknown") : s ? L("status.available", "available") : L("status.missing", "missing"), l = t?.versions?.[e];
+	i.textContent = !t && !a ? I("status.toolStatusChecking", "Tool status: checking...") : Km.map(({ key: e, labelKey: r }) => {
+		let i = I(r, e), a = t && e in t ? t[e] : void 0, o = e in n ? n[e] : void 0, s = a === void 0 ? o : a, c = s == null ? I("status.unknown", "unknown") : s ? I("status.available", "available") : I("status.missing", "missing"), l = t?.versions?.[e];
 		return l ? `${i}: ${c} - ${l}` : `${i}: ${c}`;
 	}).join("  |  ");
 }
-function fh({ label: e, hint: t }, n, r) {
+function gh({ label: e, hint: t }, n, r) {
 	let i = document.createElement("div");
 	i.style.cssText = "\n        display: flex;\n        flex-direction: column;\n        gap: 3px;\n        padding: 6px 8px;\n        border-radius: 8px;\n        background: rgba(255, 255, 255, 0.03);\n        border: 1px solid rgba(255, 255, 255, 0.08);\n        min-width: 170px;\n    ";
-	let a = lh(e, n, t);
+	let a = ph(e, n, t);
 	a.style.fontWeight = "500", i.appendChild(a);
 	let o = document.createElement("span");
-	return o.style.fontSize = "10px", o.style.opacity = "0.7", o.style.wordBreak = "break-all", o.textContent = L("status.path", "Path") + `: ${r || L("status.pathAuto", "auto / not configured")}`, i.appendChild(o), i;
+	return o.style.fontSize = "10px", o.style.opacity = "0.7", o.style.wordBreak = "break-all", o.textContent = I("status.path", "Path") + `: ${r || I("status.pathAuto", "auto / not configured")}`, i.appendChild(o), i;
 }
-function ph(e, t) {
+function _h(e, t) {
 	let n = e.querySelector("#mjr-status-body"), r = e.querySelector("#mjr-status-title-indicator");
 	n && r && (t ? (n.style.display = "none", r.textContent = ">") : (n.style.display = "", r.textContent = "v"));
 }
-function mh(e, t) {
+function vh(e, t) {
 	let n = !!e?.database?.available, r = t?.diagnostics || {}, i = !!r?.malformed, a = !!r?.locked;
-	return !n || i ? L("status.dbHealthError", "DB health: error") : a ? L("status.dbHealthLocked", "DB health: locked") : L("status.dbHealthOk", "DB health: ok");
+	return !n || i ? I("status.dbHealthError", "DB health: error") : a ? I("status.dbHealthLocked", "DB health: locked") : I("status.dbHealthOk", "DB health: ok");
 }
-function hh(e, t) {
-	let n = Number(e?.total_assets || 0), r = e?.last_index_end, i = e?.last_scan_end, a = t === "all" ? L("scope.all", "Inputs + Outputs") : t === "input" ? L("scope.input", "Inputs") : t === "custom" ? L("scope.custom", "Custom") : t === "workflow" ? L("scope.workflow", "Workflow") : L("scope.output", "Outputs");
-	return !Number.isFinite(n) || n <= 0 ? `${L("status.indexHealthEmpty", "Index health: empty")} (${a})` : !r && !i ? `${L("status.indexHealthPartial", "Index health: partial")} (${a})` : `${L("status.indexHealthOk", "Index health: ok")} (${a})`;
+function yh(e, t) {
+	let n = Number(e?.total_assets || 0), r = e?.last_index_end, i = e?.last_scan_end, a = t === "all" ? I("scope.all", "Inputs + Outputs") : t === "input" ? I("scope.input", "Inputs") : t === "custom" ? I("scope.custom", "Custom") : t === "workflow" ? I("scope.workflow", "Workflow") : I("scope.output", "Outputs");
+	return !Number.isFinite(n) || n <= 0 ? `${I("status.indexHealthEmpty", "Index health: empty")} (${a})` : !r && !i ? `${I("status.indexHealthPartial", "Index health: partial")} (${a})` : `${I("status.indexHealthOk", "Index health: ok")} (${a})`;
 }
-async function gh(t, n, r = null, i = null, a = null, o = {}) {
-	let s = n?.closest?.("#mjr-status-body")?.parentElement || n?.closest?.("div"), c = o?.signal || null, l = !!o?.force;
+async function bh(e, t, n = null, r = null, i = null, a = {}) {
+	let o = t?.closest?.("#mjr-status-body")?.parentElement || t?.closest?.("div"), s = a?.signal || null, c = !!a?.force;
 	try {
-		if (!t?.isConnected || !n?.isConnected) return null;
+		if (!e?.isConnected || !t?.isConnected) return null;
 	} catch (e) {
 		console.debug?.(e);
 	}
 	try {
-		if (!l && Um) return null;
+		if (!c && qm) return null;
 	} catch (e) {
 		console.debug?.(e);
 	}
-	a && typeof a == "object" && (a.lastCode = null, a.lastStatus = null);
-	let u = String(i?.scope || "output").toLowerCase(), d = u === "workflow" ? "all" : u, f = i?.customRootId || i?.custom_root_id || i?.root_id || null, p = u === "custom" && !f, h = p ? `${I.HEALTH_COUNTERS}?scope=all` : d === "custom" ? `${I.HEALTH_COUNTERS}?scope=custom&custom_root_id=${encodeURIComponent(String(f || ""))}` : `${I.HEALTH_COUNTERS}?scope=${encodeURIComponent(d || "output")}`, g = !!o?.lightweight, _ = !(!l && a && typeof a == "object" && Number(a._scanAuxBackoffUntil || 0) > Date.now()) && (l || !g || !(a && typeof a == "object" && a._auxCached)), v, y, b, x = null;
-	if (_) {
-		let [t, n, r] = await Promise.all([
-			Ie(h, c ? { signal: c } : void 0),
-			Ie(I.HEALTH, c ? { signal: c } : void 0),
-			Ie(I.HEALTH_DB, c ? { signal: c } : void 0)
+	i && typeof i == "object" && (i.lastCode = null, i.lastStatus = null);
+	let l = String(r?.scope || "output").toLowerCase(), u = l === "workflow" ? "all" : l, d = r?.customRootId || r?.custom_root_id || r?.root_id || null, f = l === "custom" && !d, p = f ? `${m.HEALTH_COUNTERS}?scope=all` : u === "custom" ? `${m.HEALTH_COUNTERS}?scope=custom&custom_root_id=${encodeURIComponent(String(d || ""))}` : `${m.HEALTH_COUNTERS}?scope=${encodeURIComponent(u || "output")}`, h = !!a?.lightweight, g = !(!c && i && typeof i == "object" && Number(i._scanAuxBackoffUntil || 0) > Date.now()) && (c || !h || !(i && typeof i == "object" && i._auxCached)), _, v, y, b = null;
+	if (g) {
+		let [e, t, n] = await Promise.all([
+			fe(p, s ? { signal: s } : void 0),
+			fe(m.HEALTH, s ? { signal: s } : void 0),
+			fe(m.HEALTH_DB, s ? { signal: s } : void 0)
 		]);
-		v = t, y = n, b = r;
+		_ = e, v = t, y = n;
 		try {
-			let t = await e(c ? { signal: c } : void 0);
-			t?.ok && (x = t.data);
+			let e = await O(s ? { signal: s } : void 0);
+			e?.ok && (b = e.data);
 		} catch (e) {
 			console.debug?.(e);
 		}
-		a && typeof a == "object" && (a._auxCached = !0, a._healthCache = y, a._dbDiagCache = b, a._toolsCache = x);
-	} else v = await Ie(h, c ? { signal: c } : void 0), y = a?._healthCache || null, b = a?._dbDiagCache || null, x = a?._toolsCache || null;
+		i && typeof i == "object" && (i._auxCached = !0, i._healthCache = v, i._dbDiagCache = y, i._toolsCache = b);
+	} else _ = await fe(p, s ? { signal: s } : void 0), v = i?._healthCache || null, y = i?._dbDiagCache || null, b = i?._toolsCache || null;
 	try {
-		if (c?.aborted) return null;
+		if (s?.aborted) return null;
 	} catch (e) {
 		console.debug?.(e);
 	}
 	try {
-		if (!t?.isConnected || !n?.isConnected) return null;
+		if (!e?.isConnected || !t?.isConnected) return null;
 	} catch (e) {
 		console.debug?.(e);
 	}
-	if (a && typeof a == "object" && (a.lastCode = v?.code || null, a.lastStatus = typeof v?.status == "number" ? v.status : null), v.ok) {
-		let e = v.data;
-		a && typeof a == "object" && (a._scanAuxBackoffUntil = e?.scan_active ? Date.now() + 3e4 : 0);
-		let i = e.total_assets || 0, o = e.with_workflows - 0, l = e.with_generation_data - 0, d = Math.max(0, Number(o || 0) || 0), m = e.last_scan_end, h = m ? new Date(m).toLocaleString() : "N/A", g = e.tool_availability || {}, _ = e.tool_paths || {}, S = L("status.dbSize", "Database size: {size}", { size: Xm(e.db_size_bytes || 0) }), C = y?.ok && y?.data && y.data.vector || {}, w = C?.enabled !== !1, T = !!C?.loaded, E = !!C?.degraded, D = String(C?.last_error || "").trim(), O = w ? E ? `AI vector: degraded${D ? ` (${D})` : ""}` : T ? "AI vector: loaded" : "AI vector: initializing" : "AI vector: disabled", k = mh(y?.data || null, b?.data || null), A = hh(e, p ? "all" : u), ee = !!(y?.ok && y?.data?.database?.available), j = b?.ok && b?.data?.diagnostics || {}, M = !!j?.malformed, te = !!j?.locked, ne = !!j?.maintenance_active;
-		Ym(ne);
-		let N = Math.max(0, Number(e?.enrichment_queue_length || 0) || 0), P = xn().active || N > 0;
-		bn(P, N);
-		let re = Number(i) > 0, ie = !!(e?.last_index_end || e?.last_scan_end), F = re && ie, ae = "success";
-		ne || P ? ae = "info" : !ee || M ? ae = "error" : (te || !F || E) && (ae = "warning");
-		let I = u === "workflow", oe = p && ae !== "error" ? "browser" : I && ae !== "error" ? "workflow" : ae, se = e.watcher;
+	if (i && typeof i == "object" && (i.lastCode = _?.code || null, i.lastStatus = typeof _?.status == "number" ? _.status : null), _.ok) {
+		let r = _.data;
+		i && typeof i == "object" && (i._scanAuxBackoffUntil = r?.scan_active ? Date.now() + 3e4 : 0);
+		let a = r.total_assets || 0, c = r.with_workflows - 0, u = r.with_generation_data - 0, p = Math.max(0, Number(c || 0) || 0), m = r.last_scan_end, h = m ? new Date(m).toLocaleString() : "N/A", g = r.tool_availability || {}, x = r.tool_paths || {}, S = I("status.dbSize", "Database size: {size}", { size: eh(r.db_size_bytes || 0) }), C = v?.ok && v?.data && v.data.vector || {}, w = C?.enabled !== !1, T = !!C?.loaded, E = !!C?.degraded, D = String(C?.last_error || "").trim(), O = w ? E ? `AI vector: degraded${D ? ` (${D})` : ""}` : T ? "AI vector: loaded" : "AI vector: initializing" : "AI vector: disabled", k = vh(v?.data || null, y?.data || null), A = yh(r, f ? "all" : l), ee = !!(v?.ok && v?.data?.database?.available), j = y?.ok && y?.data?.diagnostics || {}, M = !!j?.malformed, te = !!j?.locked, ne = !!j?.maintenance_active;
+		$m(ne);
+		let re = Math.max(0, Number(r?.enrichment_queue_length || 0) || 0), N = Sn().active || re > 0;
+		xn(N, re);
+		let P = Number(a) > 0, F = !!(r?.last_index_end || r?.last_scan_end), ie = P && F, ae = "success";
+		ne || N ? ae = "info" : !ee || M ? ae = "error" : (te || !ie || E) && (ae = "warning");
+		let oe = l === "workflow", se = f && ae !== "error" ? "browser" : oe && ae !== "error" ? "workflow" : ae, ce = r.watcher;
 		try {
-			if (!se || typeof se.enabled != "boolean") {
-				let t = await Fe(c ? { signal: c } : void 0);
-				t?.ok && t.data && (se = {
-					enabled: !!t.data.enabled,
-					scope: e?.watcher?.scope || u,
-					custom_root_id: f || null
+			if (!ce || typeof ce.enabled != "boolean") {
+				let e = await Xe(s ? { signal: s } : void 0);
+				e?.ok && e.data && (ce = {
+					enabled: !!e.data.enabled,
+					scope: r?.watcher?.scope || l,
+					custom_root_id: d || null
 				});
 			}
 		} catch (e) {
 			console.debug?.(e);
 		}
-		let ce = I ? L("status.watcher.disabledScoped", "Watcher: disabled ({scope})", { scope: L("scope.workflow", "Workflow") }) : p ? L("status.watcher.disabledScoped", "Watcher: disabled ({scope})", { scope: L("scope.customBrowser", "Browser") }) : rh(se, u), le = P ? L("status.enrichmentQueue", "Metadata enrichment queue: {count}", { count: N }) : L("status.enrichmentIdle", "Metadata enrichment: idle");
-		uh(r, g, _), dh(r, x, g);
-		let ue = u === "all" ? L("scope.allFull", "All (Inputs + Outputs)") : u === "input" ? L("scope.input", "Inputs") : u === "custom" ? L("scope.customBrowser", "Browser") : u === "workflow" ? L("scope.workflow", "Workflow") : L("scope.output", "Outputs");
-		return ae === "error" ? (t.style.background = "var(--mjr-status-error, #f44336)", th(s, "error"), eh(n, L("status.dbCorrupted", "Database appears corrupted or unavailable."), [
+		let le = oe ? I("status.watcher.disabledScoped", "Watcher: disabled ({scope})", { scope: I("scope.workflow", "Workflow") }) : f ? I("status.watcher.disabledScoped", "Watcher: disabled ({scope})", { scope: I("scope.customBrowser", "Browser") }) : sh(ce, l), ue = N ? I("status.enrichmentQueue", "Metadata enrichment queue: {count}", { count: re }) : I("status.enrichmentIdle", "Metadata enrichment: idle");
+		mh(n, g, x), hh(n, b, g);
+		let de = l === "all" ? I("scope.allFull", "All (Inputs + Outputs)") : l === "input" ? I("scope.input", "Inputs") : l === "custom" ? I("scope.customBrowser", "Browser") : l === "workflow" ? I("scope.workflow", "Workflow") : I("scope.output", "Outputs");
+		return ae === "error" ? (e.style.background = "var(--mjr-status-error, #f44336)", ah(o, "error"), ih(t, I("status.dbCorrupted", "Database appears corrupted or unavailable."), [
 			k,
 			A,
 			S,
-			ce
-		].filter(Boolean).join("  |  ")), e) : p ? (t.style.background = "var(--mjr-status-browser, #26A69A)", th(s, "browser"), eh(n, L("status.ready", "Ready"), [L("status.browserMetricsHidden", "Browser mode: global DB/index metrics hidden"), ce].filter(Boolean).join("  |  ")), e) : I ? (t.style.background = "#d481c3", th(s, oe), Zm(n, [
-			L("status.workflowsIndexed", `${d.toLocaleString()} workflows indexed (${ue})`, {
-				count: d.toLocaleString(),
-				scope: ue
+			le
+		].filter(Boolean).join("  |  ")), r) : f ? (e.style.background = "var(--mjr-status-browser, #26A69A)", ah(o, "browser"), ih(t, I("status.ready", "Ready"), [I("status.browserMetricsHidden", "Browser mode: global DB/index metrics hidden"), le].filter(Boolean).join("  |  ")), r) : oe ? (e.style.background = "#d481c3", ah(o, se), th(t, [
+			I("status.workflowsIndexed", `${p.toLocaleString()} workflows indexed (${de})`, {
+				count: p.toLocaleString(),
+				scope: de
 			}),
-			L("status.assetsCountReference", `Asset records in DB: ${i.toLocaleString()}`, { count: i.toLocaleString() }),
-			le,
+			I("status.assetsCountReference", `Asset records in DB: ${a.toLocaleString()}`, { count: a.toLocaleString() }),
+			ue,
 			O,
 			k,
 			A,
 			S,
-			ce
-		], L("status.lastScan", `Last scan: ${h}`, { date: h })), e) : (i === 0 ? (t.style.background = oe === "browser" ? "var(--mjr-status-browser, #26A69A)" : ae === "info" ? "var(--mjr-status-info, #64B5F6)" : ae === "warning" ? "var(--mjr-status-warning, #FFA726)" : "var(--mjr-status-success, #4CAF50)", th(s, oe), eh(n, L("status.noAssets", `No assets indexed yet (${ue})`, { scope: ue }), [
-			L("status.clickToScan", "Click the dot to start a scan"),
+			le
+		], I("status.lastScan", `Last scan: ${h}`, { date: h })), r) : (a === 0 ? (e.style.background = se === "browser" ? "var(--mjr-status-browser, #26A69A)" : ae === "info" ? "var(--mjr-status-info, #64B5F6)" : ae === "warning" ? "var(--mjr-status-warning, #FFA726)" : "var(--mjr-status-success, #4CAF50)", ah(o, se), ih(t, I("status.noAssets", `No assets indexed yet (${de})`, { scope: de }), [
+			I("status.clickToScan", "Click the dot to start a scan"),
 			O,
 			k,
 			A,
 			S,
-			ce
-		].filter(Boolean).join("  |  "))) : (t.style.background = oe === "browser" ? "var(--mjr-status-browser, #26A69A)" : ae === "info" ? "var(--mjr-status-info, #64B5F6)" : ae === "warning" ? "var(--mjr-status-warning, #FFA726)" : "var(--mjr-status-success, #4CAF50)", th(s, oe), Zm(n, [
-			L("status.assetsIndexed", `${i.toLocaleString()} assets indexed (${ue})`, {
-				count: i.toLocaleString(),
-				scope: ue
+			le
+		].filter(Boolean).join("  |  "))) : (e.style.background = se === "browser" ? "var(--mjr-status-browser, #26A69A)" : ae === "info" ? "var(--mjr-status-info, #64B5F6)" : ae === "warning" ? "var(--mjr-status-warning, #FFA726)" : "var(--mjr-status-success, #4CAF50)", ah(o, se), th(t, [
+			I("status.assetsIndexed", `${a.toLocaleString()} assets indexed (${de})`, {
+				count: a.toLocaleString(),
+				scope: de
 			}),
-			Sh(e),
-			L("status.withWorkflows", `With workflows: ${o}  -  Generation data: ${l}`, {
-				workflows: o,
-				gendata: l
+			Eh(r),
+			I("status.withWorkflows", `With workflows: ${c}  -  Generation data: ${u}`, {
+				workflows: c,
+				gendata: u
 			}),
-			le,
+			ue,
 			O,
 			k,
 			A,
 			S,
-			ce
-		], L("status.lastScan", `Last scan: ${h}`, { date: h })), Qm(n, $m(e, {
-			totalAssets: i,
-			withWorkflows: o,
-			withGenerationData: l
-		}))), e);
+			le
+		], I("status.lastScan", `Last scan: ${h}`, { date: h })), nh(t, rh(r, {
+			totalAssets: a,
+			withWorkflows: c,
+			withGenerationData: u
+		}))), r);
 	}
-	if (uh(r, {}, {}), dh(r, x), t.style.background = "var(--mjr-status-error, #f44336)", th(s, "error"), v?.code === "INVALID_RESPONSE" && v?.status === 404) eh(n, L("status.apiNotFound", "Majoor API endpoints not found (404)"), L("status.apiNotFoundHint", "Backend routes are not loaded. Restart ComfyUI and check the terminal for Majoor import errors."));
+	if (mh(n, {}, {}), hh(n, b), e.style.background = "var(--mjr-status-error, #f44336)", ah(o, "error"), _?.code === "INVALID_RESPONSE" && _?.status === 404) ih(t, I("status.apiNotFound", "Majoor API endpoints not found (404)"), I("status.apiNotFoundHint", "Backend routes are not loaded. Restart ComfyUI and check the terminal for Majoor import errors."));
 	else {
-		let e = String(v?.error || "").toLowerCase();
-		e.includes("malform") || e.includes("corrupt") || e.includes("disk image") ? (eh(n, L("status.dbCorrupted"), L("status.dbCorruptedHint")), globalThis._mjrCorruptToastShown || (globalThis._mjrCorruptToastShown = !0, m(L("toast.resetFailedCorrupt"), "error", 8e3))) : Zm(n, [v.error || L("status.errorChecking", "Error checking status")]);
+		let e = String(_?.error || "").toLowerCase();
+		e.includes("malform") || e.includes("corrupt") || e.includes("disk image") ? (ih(t, I("status.dbCorrupted"), I("status.dbCorruptedHint")), globalThis._mjrCorruptToastShown || (globalThis._mjrCorruptToastShown = !0, F(I("toast.resetFailedCorrupt"), "error", 8e3))) : th(t, [_.error || I("status.errorChecking", "Error checking status")]);
 	}
-	if (v.code === "SERVICE_UNAVAILABLE") {
-		let e = _h(t, n, r, i);
-		n.appendChild(document.createElement("br")), n.appendChild(e);
+	if (_.code === "SERVICE_UNAVAILABLE") {
+		let i = xh(e, t, n, r);
+		t.appendChild(document.createElement("br")), t.appendChild(i);
 	}
 	return null;
 }
-function _h(e, t, n = null, r = null) {
+function xh(e, t, n = null, r = null) {
 	let i = document.createElement("button");
-	return i.textContent = L("btn.retryServices"), i.style.cssText = "\n        padding: 4px 10px;\n        margin-top: 6px;\n        font-size: 11px;\n        border-radius: 4px;\n        border: 1px solid rgba(255,255,255,0.3);\n        background: transparent;\n        color: white;\n        cursor: pointer;\n    ", i.onclick = async () => {
-		i.disabled = !0, i.textContent = L("btn.retrying");
-		let a = await pe(I.RETRY_SERVICES, {});
-		i.disabled = !1, i.textContent = L("btn.retryServices"), a.ok ? gh(e, t, n, r) : (Zm(t, [a.error || L("status.retryFailed", "Retry failed")]), t.appendChild(document.createElement("br")), t.appendChild(i));
+	return i.textContent = I("btn.retryServices"), i.style.cssText = "\n        padding: 4px 10px;\n        margin-top: 6px;\n        font-size: 11px;\n        border-radius: 4px;\n        border: 1px solid rgba(255,255,255,0.3);\n        background: transparent;\n        color: white;\n        cursor: pointer;\n    ", i.onclick = async () => {
+		i.disabled = !0, i.textContent = I("btn.retrying");
+		let a = await rt(m.RETRY_SERVICES, {});
+		i.disabled = !1, i.textContent = I("btn.retryServices"), a.ok ? bh(e, t, n, r) : (th(t, [a.error || I("status.retryFailed", "Retry failed")]), t.appendChild(document.createElement("br")), t.appendChild(i));
 	}, i;
 }
-function vh() {
+function Sh() {
 	try {
-		let e = localStorage?.getItem?.(Km);
+		let e = localStorage?.getItem?.(Xm);
 		if (!e) return null;
 		let t = JSON.parse(e);
 		return t && typeof t == "object" ? t : null;
@@ -12866,15 +12971,15 @@ function vh() {
 		return console.debug?.(e), null;
 	}
 }
-function yh(e) {
+function Ch(e) {
 	try {
 		if (!e || typeof e != "object") return;
-		localStorage?.setItem?.(Km, JSON.stringify(e));
+		localStorage?.setItem?.(Xm, JSON.stringify(e));
 	} catch (e) {
 		console.debug?.(e);
 	}
 }
-function bh(e) {
+function wh(e) {
 	let t = [], n = (e, r = 0) => {
 		if (!(!e || r > 2)) {
 			if (typeof e == "number" && Number.isFinite(e)) t.push(e);
@@ -12887,23 +12992,23 @@ function bh(e) {
 	};
 	return n(e, 0), t;
 }
-function xh(e) {
+function Th(e) {
 	if (!e || typeof e != "object") return !1;
-	if (Um) return !0;
+	if (qm) return !0;
 	try {
-		if (xn()?.active) return !0;
+		if (Sn()?.active) return !0;
 	} catch (e) {
 		console.debug?.(e);
 	}
-	return bh(e).some((e) => Number(e) > 0);
+	return wh(e).some((e) => Number(e) > 0);
 }
-function Sh(e) {
+function Eh(e) {
 	let t = [];
 	e.images && t.push(`Images: ${e.images}`), e.videos && t.push(`Videos: ${e.videos}`), e.audio && t.push(`Audio: ${e.audio}`);
 	let n = e.model3d || e.by_kind?.model3d || 0;
 	return n && t.push(`3D: ${n}`), t.length ? t.join("  -  ") : "Images: 0  -  Videos: 0";
 }
-function Ch(e) {
+function Dh(e) {
 	if (!e || typeof e != "object") return "";
 	let t = (e) => e == null ? null : typeof e == "number" ? Number.isFinite(e) ? e : null : typeof e == "boolean" || typeof e == "string" ? e : null;
 	return JSON.stringify({
@@ -12921,23 +13026,23 @@ function Ch(e) {
 		}
 	});
 }
-function wh(e, t, n) {
-	let r = vh();
+function Oh(e, t, n) {
+	let r = Sh();
 	if (!r) return !1;
 	try {
-		uh(n, r.tool_availability || {}, r.tool_paths || {});
+		mh(n, r.tool_availability || {}, r.tool_paths || {});
 	} catch (e) {
 		console.debug?.(e);
 	}
 	try {
-		return e.style.background = "var(--mjr-status-info, #64B5F6)", eh(t, L("status.cached", "Last known status"), L("status.checking", "Checking status...")), !0;
+		return e.style.background = "var(--mjr-status-info, #64B5F6)", ih(t, I("status.cached", "Last known status"), I("status.checking", "Checking status...")), !0;
 	} catch (e) {
 		return console.debug?.(e), !1;
 	}
 }
-function Th(e, t, n) {
-	let r = Ch(t), i = r && r !== String(n?.lastSignature || ""), a = xh(t), o = e || qm.ACTIVE, s = Number(n?.cooldownStablePolls || 0) || 0;
-	return a || i ? (o = qm.ACTIVE, s = 0) : o === qm.ACTIVE ? (o = qm.COOLDOWN, s = 0) : o === qm.COOLDOWN ? (s += 1, s >= 3 && (o = qm.IDLE, s = 0)) : (o = i ? qm.ACTIVE : qm.IDLE, s = 0), {
+function kh(e, t, n) {
+	let r = Dh(t), i = r && r !== String(n?.lastSignature || ""), a = Th(t), o = e || Zm.ACTIVE, s = Number(n?.cooldownStablePolls || 0) || 0;
+	return a || i ? (o = Zm.ACTIVE, s = 0) : o === Zm.ACTIVE ? (o = Zm.COOLDOWN, s = 0) : o === Zm.COOLDOWN ? (s += 1, s >= 3 && (o = Zm.IDLE, s = 0)) : (o = i ? Zm.ACTIVE : Zm.IDLE, s = 0), {
 		nextState: o,
 		signature: r,
 		hasChange: i,
@@ -12945,14 +13050,14 @@ function Th(e, t, n) {
 		cooldownStablePolls: s
 	};
 }
-function Eh(e, t, n, r = null, i = null, a = null) {
+function Ah(e, t, n, r = null, i = null, a = null) {
 	let o = "__MJR_STATUS_POLL_DISPOSE__", s = {
 		lastCode: null,
 		lastStatus: null,
 		_pollTick: 0,
 		_auxCached: !1
 	}, c = {
-		mode: qm.ACTIVE,
+		mode: Zm.ACTIVE,
 		cooldownStablePolls: 0,
 		lastSignature: ""
 	}, l = typeof AbortController < "u" ? new AbortController() : null, u = async () => {
@@ -12962,14 +13067,14 @@ function Eh(e, t, n, r = null, i = null, a = null) {
 			console.debug?.(e);
 		}
 		s._pollTick = Number(s._pollTick || 0) + 1;
-		let n = s._pollTick > 1 && s._pollTick % 4 != 0, o = await gh(e, t, r, typeof a == "function" ? a() : null, s, {
+		let n = s._pollTick > 1 && s._pollTick % 4 != 0, o = await bh(e, t, r, typeof a == "function" ? a() : null, s, {
 			signal: l?.signal || null,
 			lightweight: n,
-			force: !!Um || s._pollTick <= 1
+			force: !!qm || s._pollTick <= 1
 		});
 		if (o && typeof o == "object") {
-			yh(o);
-			let e = Th(c.mode, o, c);
+			Ch(o);
+			let e = kh(c.mode, o, c);
 			c.mode = e.nextState, c.lastSignature = e.signature, c.cooldownStablePolls = e.cooldownStablePolls;
 		}
 		if (o && typeof i == "function") try {
@@ -12979,7 +13084,7 @@ function Eh(e, t, n, r = null, i = null, a = null) {
 		}
 		return o;
 	};
-	wh(e, t, r), u();
+	Oh(e, t, r), u();
 	try {
 		n._mjrStatusPollDispose?.();
 	} catch (e) {
@@ -13000,7 +13105,7 @@ function Eh(e, t, n, r = null, i = null, a = null) {
 		}
 		return 1;
 	}, h = () => {
-		let e = Jm[c.mode] || Math.max(250, Number(R.STATUS_POLL_INTERVAL) || 2e3), t = p ? Math.max(3e4, e) : f > 0 ? Math.min(6e4, Math.round(e * Math.min(8, 1 + f))) : e, r = Math.min(12e4, Math.round(t * m()));
+		let e = Qm[c.mode] || Math.max(250, Number(R.STATUS_POLL_INTERVAL) || 2e3), t = p ? Math.max(3e4, e) : f > 0 ? Math.min(6e4, Math.round(e * Math.min(8, 1 + f))) : e, r = Math.min(12e4, Math.round(t * m()));
 		d = setTimeout(async () => {
 			try {
 				if (l?.signal?.aborted) return;
@@ -13008,7 +13113,7 @@ function Eh(e, t, n, r = null, i = null, a = null) {
 				console.debug?.(e);
 			}
 			let e = await u();
-			if (p = s.lastCode === "INVALID_RESPONSE" && s.lastStatus === 404, e ? f = 0 : p ? f = Math.min(999, f + 1) : (f = Math.min(999, f + 1), c.mode = qm.ACTIVE, c.cooldownStablePolls = 0), p && f >= 3) try {
+			if (p = s.lastCode === "INVALID_RESPONSE" && s.lastStatus === 404, e ? f = 0 : p ? f = Math.min(999, f + 1) : (f = Math.min(999, f + 1), c.mode = Zm.ACTIVE, c.cooldownStablePolls = 0), p && f >= 3) try {
 				n._mjrStatusPollDispose?.();
 			} catch (e) {
 				console.debug?.(e);
@@ -13031,54 +13136,54 @@ function Eh(e, t, n, r = null, i = null, a = null) {
 	}
 	h();
 	for (let i of n.querySelectorAll("#mjr-status-dot, #mjr-status-scan")) i.onclick = (n) => {
-		n.stopPropagation(), ch(e, t, r, typeof a == "function" ? a() : null);
-	}, i.title = L("btn.scan", "Scan");
+		n.stopPropagation(), fh(e, t, r, typeof a == "function" ? a() : null);
+	}, i.title = I("btn.scan", "Scan");
 }
 // ui/vue/composables/useActiveAsset.ts
-var Dh = gr(null), Oh = gr(null);
-function kh() {
+var jh = gr(null), Mh = gr(null);
+function Nh() {
 	return {
-		activeAsset: Dh,
-		onUpdateCallback: Oh
+		activeAsset: jh,
+		onUpdateCallback: Mh
 	};
 }
-function Ah(e, t) {
-	Oh.value = typeof t == "function" ? t : null, Dh.value = e ?? null;
+function Ph(e, t) {
+	Mh.value = typeof t == "function" ? t : null, jh.value = e ?? null;
 }
-function jh() {
-	Dh.value = null, Oh.value = null;
+function Fh() {
+	jh.value = null, Mh.value = null;
 }
-function Mh(e, t) {
-	if (Dh.value && e) {
-		Dh.value = {
-			...Dh.value,
+function Ih(e, t) {
+	if (jh.value && e) {
+		jh.value = {
+			...jh.value,
 			...e
 		};
 		try {
-			let e = t ?? Oh.value;
-			typeof e == "function" && e(Dh.value);
+			let e = t ?? Mh.value;
+			typeof e == "function" && e(jh.value);
 		} catch {}
 	}
 }
 // ui/components/sidebar/SidebarView.ts
-var Nh = 360, Ph = 240, Fh = 640;
-function Ih() {
+var Lh = 360, Rh = 240, zh = 640;
+function Bh() {
 	try {
-		let e = Pt(), t = Number(e?.sidebar?.widthPx);
-		return Number.isFinite(t) ? Math.max(Ph, Math.min(Fh, Math.round(t))) : Nh;
+		let e = Ft(), t = Number(e?.sidebar?.widthPx);
+		return Number.isFinite(t) ? Math.max(Rh, Math.min(zh, Math.round(t))) : Lh;
 	} catch {
-		return Nh;
+		return Lh;
 	}
 }
-function Lh(e, t) {
+function Vh(e, t) {
 	if (!e) return;
 	let n = String(e?.dataset?.position || "right").toLowerCase() === "left", r = "var(--mjr-border, rgba(255,255,255,0.12))";
 	if (t) {
-		let t = `${Ih()}px`;
+		let t = `${Bh()}px`;
 		e.style.flex = `0 0 ${t}`, e.style.width = t, e.style.maxWidth = t, e.style.minWidth = "0", e.style.overflow = "hidden", e.style.borderLeft = n ? "none" : `1px solid ${r}`, e.style.borderRight = n ? `1px solid ${r}` : "none";
 	} else e.style.flex = "0 0 0px", e.style.width = "0", e.style.maxWidth = "0", e.style.minWidth = "0", e.style.overflow = "hidden", e.style.borderLeft = "none", e.style.borderRight = "none";
 }
-function Rh(e) {
+function Hh(e) {
 	if (e == null) return !1;
 	let t = e;
 	if (typeof e == "string") {
@@ -13097,10 +13202,10 @@ function Rh(e) {
 	}
 	return !1;
 }
-function zh(e) {
-	return e ? !!(e.geninfo || e.prompt || Rh(e.metadata_raw)) : !1;
+function Uh(e) {
+	return e ? !!(e.geninfo || e.prompt || Hh(e.metadata_raw)) : !1;
 }
-async function Bh(e, t, n) {
+async function Wh(e, t, n) {
 	if (!e || !t) return;
 	let r = String(t?.kind || "").toLowerCase() === "folder";
 	try {
@@ -13109,7 +13214,7 @@ async function Bh(e, t, n) {
 		console.debug?.(e);
 	}
 	let i = e._requestSeq = (e._requestSeq || 0) + 1;
-	e._currentFetchAbortController?.abort?.(), e._currentFetchAbortController = null, e.classList.add("is-open"), Lh(e, !0), e._currentAsset = t, e._currentFullAsset = t, e._ratingTagsSection = null, Ah(t, n);
+	e._currentFetchAbortController?.abort?.(), e._currentFetchAbortController = null, e.classList.add("is-open"), Vh(e, !0), e._currentAsset = t, e._currentFullAsset = t, e._ratingTagsSection = null, Ph(t, n);
 	let a = () => {
 		e._currentFetchAbortController?.abort?.();
 		let t = typeof AbortController < "u" ? new AbortController() : null;
@@ -13118,14 +13223,14 @@ async function Bh(e, t, n) {
 		e._requestSeq === i && e._currentAsset === t && (e._currentFullAsset = {
 			...e._currentFullAsset ?? t,
 			...r
-		}, Mh(r, n));
+		}, Ih(r, n));
 	};
 	(async () => {
 		if (e._requestSeq !== i || e._currentAsset !== t) return;
 		let n = a(), s = n.signal;
 		if (r) {
 			try {
-				let e = String(t?.filepath || t?.subfolder || "").trim(), r = String(t?.root_id || t?.rootId || "").trim(), i = r ? String(t?.subfolder || "").trim() : "", a = await ve({
+				let e = String(t?.filepath || t?.subfolder || "").trim(), r = String(t?.root_id || t?.rootId || "").trim(), i = r ? String(t?.subfolder || "").trim() : "", a = await Ze({
 					filepath: e,
 					root_id: r,
 					subfolder: i
@@ -13140,8 +13245,8 @@ async function Bh(e, t, n) {
 		}
 		let c = () => e._currentFullAsset ?? t;
 		try {
-			if (t.id && !zh(c())) {
-				let e = await Ge(t.id, n);
+			if (t.id && !Uh(c())) {
+				let e = await Le(t.id, n);
 				if (s?.aborted) return;
 				e?.ok && e.data && o(e.data);
 			}
@@ -13149,10 +13254,10 @@ async function Bh(e, t, n) {
 			s?.aborted || console.warn("Failed to load full asset metadata:", e);
 		}
 		if (!s?.aborted) {
-			if (!zh(c())) {
+			if (!Uh(c())) {
 				let e = String(c()?.filename || "").trim(), t = String(c()?.type || "output").trim().toLowerCase(), r = String(c()?.subfolder || "").trim(), i = String(c()?.root_id || c()?.rootId || "").trim();
 				if (e) try {
-					let a = await Ye({
+					let a = await je({
 						type: t,
 						filename: e,
 						subfolder: r,
@@ -13178,9 +13283,9 @@ async function Bh(e, t, n) {
 		}
 	})();
 }
-function Vh(e) {
+function Gh(e) {
 	if (e) {
-		e._requestSeq = (e._requestSeq || 0) + 1, e.classList.remove("is-open"), Lh(e, !1), e._currentAsset = null, e._currentFullAsset = null, e._currentFetchAbortController?.abort?.(), e._currentFetchAbortController = null, jh();
+		e._requestSeq = (e._requestSeq || 0) + 1, e.classList.remove("is-open"), Vh(e, !1), e._currentAsset = null, e._currentFullAsset = null, e._currentFetchAbortController?.abort?.(), e._currentFetchAbortController = null, Fh();
 		try {
 			e.dispatchEvent?.(new CustomEvent("mjr:sidebar-closed", { bubbles: !0 }));
 		} catch (e) {
@@ -13189,14 +13294,14 @@ function Vh(e) {
 	}
 }
 // ui/stores/usePanelStore.ts
-var Hh = "mjr_panel_state", Uh = /* @__PURE__ */ new Set([
+var Kh = "mjr_panel_state", qh = /* @__PURE__ */ new Set([
 	"output",
 	"input",
 	"all",
 	"custom",
 	"workflow"
 ]);
-function Wh(e, t = !1) {
+function Jh(e, t = !1) {
 	if (typeof e == "boolean") return e;
 	if (typeof e == "string") {
 		let t = e.trim().toLowerCase();
@@ -13215,71 +13320,71 @@ function Wh(e, t = !1) {
 	}
 	return !!t;
 }
-function Gh(e, t = 0) {
+function Yh(e, t = 0) {
 	let n = Number(e);
 	return Number.isFinite(n) ? n : t;
 }
-function Kh(e, t = "") {
+function Xh(e, t = "") {
 	return e == null ? t : String(e);
 }
-function qh(e, t = 0, n = Infinity) {
-	return Math.max(t, Math.min(n, Math.floor(Gh(e, t))));
+function Zh(e, t = 0, n = Infinity) {
+	return Math.max(t, Math.min(n, Math.floor(Yh(e, t))));
 }
-function Jh(e) {
-	let t = Kh(e || "output").toLowerCase(), n = t === "outputs" ? "output" : t === "inputs" ? "input" : t;
-	return Uh.has(n) ? n : "output";
+function Qh(e) {
+	let t = Xh(e || "output").toLowerCase(), n = t === "outputs" ? "output" : t === "inputs" ? "input" : t;
+	return qh.has(n) ? n : "output";
 }
-function Yh(e) {
+function $h(e) {
 	if (!e || typeof e != "object") return {};
 	let t = e;
 	return {
-		scope: Jh(t.scope),
-		customRootId: Kh(t.customRootId),
-		customRootLabel: Kh(t.customRootLabel),
-		currentFolderRelativePath: Kh(t.currentFolderRelativePath || t.subfolder),
-		collectionId: Kh(t.collectionId),
-		collectionName: Kh(t.collectionName),
-		kindFilter: Kh(t.kindFilter),
-		dateRangeFilter: Kh(t.dateRangeFilter),
-		dateExactFilter: Kh(t.dateExactFilter),
-		workflowOnly: Wh(t.workflowOnly, !1),
-		minRating: qh(t.minRating, 0, 5),
-		minSizeMB: Math.max(0, Gh(t.minSizeMB, 0)),
-		maxSizeMB: Math.max(0, Gh(t.maxSizeMB, 0)),
+		scope: Qh(t.scope),
+		customRootId: Xh(t.customRootId),
+		customRootLabel: Xh(t.customRootLabel),
+		currentFolderRelativePath: Xh(t.currentFolderRelativePath || t.subfolder),
+		collectionId: Xh(t.collectionId),
+		collectionName: Xh(t.collectionName),
+		kindFilter: Xh(t.kindFilter),
+		dateRangeFilter: Xh(t.dateRangeFilter),
+		dateExactFilter: Xh(t.dateExactFilter),
+		workflowOnly: Jh(t.workflowOnly, !1),
+		minRating: Zh(t.minRating, 0, 5),
+		minSizeMB: Math.max(0, Yh(t.minSizeMB, 0)),
+		maxSizeMB: Math.max(0, Yh(t.maxSizeMB, 0)),
 		resolutionCompare: t.resolutionCompare === "lte" ? "lte" : "gte",
-		minWidth: qh(t.minWidth),
-		minHeight: qh(t.minHeight),
-		maxWidth: qh(t.maxWidth),
-		maxHeight: qh(t.maxHeight),
-		workflowType: Kh(t.workflowType),
-		workflowId: Kh(t.workflowId || t.workflow_id),
-		workflowModelFilter: Kh(t.workflowModelFilter || t.workflowModel || t.workflow_model),
-		workflowRunsOnFilter: Kh(t.workflowRunsOnFilter || t.workflowRunsOn || t.runs_on),
-		sort: Kh(t.sort || "mtime_desc"),
-		searchQuery: Kh(t.searchQuery),
+		minWidth: Zh(t.minWidth),
+		minHeight: Zh(t.minHeight),
+		maxWidth: Zh(t.maxWidth),
+		maxHeight: Zh(t.maxHeight),
+		workflowType: Xh(t.workflowType),
+		workflowId: Xh(t.workflowId || t.workflow_id),
+		workflowModelFilter: Xh(t.workflowModelFilter || t.workflowModel || t.workflow_model),
+		workflowRunsOnFilter: Xh(t.workflowRunsOnFilter || t.workflowRunsOn || t.runs_on),
+		sort: Xh(t.sort || "mtime_desc"),
+		searchQuery: Xh(t.searchQuery),
 		metadataSearchMode: String(t.metadataSearchMode || "AND").toUpperCase() === "OR" ? "OR" : "AND",
-		scrollTop: qh(t.scrollTop),
-		activeAssetId: Kh(t.activeAssetId),
-		selectedAssetIds: Array.isArray(t.selectedAssetIds) ? t.selectedAssetIds.map((e) => Kh(e).trim()).filter(Boolean).slice(0, 5e3) : [],
-		sidebarOpen: Wh(t.sidebarOpen, !1)
+		scrollTop: Zh(t.scrollTop),
+		activeAssetId: Xh(t.activeAssetId),
+		selectedAssetIds: Array.isArray(t.selectedAssetIds) ? t.selectedAssetIds.map((e) => Xh(e).trim()).filter(Boolean).slice(0, 5e3) : [],
+		sidebarOpen: Jh(t.sidebarOpen, !1)
 	};
 }
-function Xh() {
+function eg() {
 	try {
-		let e = localStorage.getItem(Hh);
-		if (e) return Yh(JSON.parse(e));
+		let e = localStorage.getItem(Kh);
+		if (e) return $h(JSON.parse(e));
 	} catch {}
 	return {};
 }
-function Zh(e) {
+function tg(e) {
 	try {
 		let t = { ...e };
-		delete t.lastGridCount, delete t.lastGridTotal, delete t.viewScope, delete t.similarResults, delete t.similarTitle, delete t.similarSourceAssetId, localStorage.setItem(Hh, JSON.stringify(t));
+		delete t.lastGridCount, delete t.lastGridTotal, delete t.viewScope, delete t.similarResults, delete t.similarTitle, delete t.similarSourceAssetId, localStorage.setItem(Kh, JSON.stringify(t));
 	} catch {}
 }
-var Qh = wr("mjr-panel", () => {
-	let e = Xh(), t = Q(e.scope || "output"), n = Q(e.customRootId || ""), r = Q(e.customRootLabel || ""), i = Q(e.currentFolderRelativePath || ""), a = Q(e.collectionId || ""), o = Q(e.collectionName || ""), s = Q(e.kindFilter || ""), c = Q(e.dateRangeFilter || ""), l = Q(e.dateExactFilter || ""), u = Q(e.workflowOnly || !1), d = Q(e.minRating || 0), f = Q(e.minSizeMB || 0), p = Q(e.maxSizeMB || 0), m = Q(e.resolutionCompare || "gte"), h = Q(e.minWidth || 0), g = Q(e.minHeight || 0), _ = Q(e.maxWidth || 0), v = Q(e.maxHeight || 0), y = Q(e.workflowType || ""), b = Q(e.workflowId || ""), x = Q(e.workflowModelFilter || ""), S = Q(e.workflowRunsOnFilter || ""), C = Q(e.sort || "mtime_desc"), w = Q(e.searchQuery || ""), T = Q(e.metadataSearchMode || "AND"), E = Q(e.scrollTop || 0), D = Q(e.activeAssetId || ""), O = Q(e.selectedAssetIds || []), k = Q(e.sidebarOpen || !1), A = Q(0), ee = Q(0), j = Q(""), M = Q([]), te = Q(""), ne = Q(""), N = null;
-	cr([
+var ng = wr("mjr-panel", () => {
+	let e = eg(), t = Q(e.scope || "output"), n = Q(e.customRootId || ""), r = Q(e.customRootLabel || ""), i = Q(e.currentFolderRelativePath || ""), a = Q(e.collectionId || ""), o = Q(e.collectionName || ""), s = Q(e.kindFilter || ""), c = Q(e.dateRangeFilter || ""), l = Q(e.dateExactFilter || ""), u = Q(e.workflowOnly || !1), d = Q(e.minRating || 0), f = Q(e.minSizeMB || 0), p = Q(e.maxSizeMB || 0), m = Q(e.resolutionCompare || "gte"), h = Q(e.minWidth || 0), g = Q(e.minHeight || 0), _ = Q(e.maxWidth || 0), v = Q(e.maxHeight || 0), y = Q(e.workflowType || ""), b = Q(e.workflowId || ""), x = Q(e.workflowModelFilter || ""), S = Q(e.workflowRunsOnFilter || ""), C = Q(e.sort || "mtime_desc"), w = Q(e.searchQuery || ""), T = Q(e.metadataSearchMode || "AND"), E = Q(e.scrollTop || 0), D = Q(e.activeAssetId || ""), O = Q(e.selectedAssetIds || []), k = Q(e.sidebarOpen || !1), A = Q(0), ee = Q(0), j = Q(""), M = Q([]), te = Q(""), ne = Q(""), re = null;
+	q([
 		t,
 		n,
 		r,
@@ -13310,8 +13415,8 @@ var Qh = wr("mjr-panel", () => {
 		O,
 		k
 	], () => {
-		N && clearTimeout(N), N = setTimeout(() => {
-			N = null, Zh({
+		re && clearTimeout(re), re = setTimeout(() => {
+			re = null, tg({
 				scope: t.value,
 				customRootId: n.value,
 				customRootLabel: r.value,
@@ -13344,36 +13449,36 @@ var Qh = wr("mjr-panel", () => {
 			});
 		}, 750);
 	}, { deep: !0 });
-	let P = (e) => {
-		if (e.key === Hh && e.newValue) try {
-			let n = Yh(JSON.parse(e.newValue));
+	let N = (e) => {
+		if (e.key === Kh && e.newValue) try {
+			let n = $h(JSON.parse(e.newValue));
 			n.scope !== void 0 && (t.value = n.scope), n.customRootLabel !== void 0 && (r.value = n.customRootLabel), n.searchQuery !== void 0 && (w.value = n.searchQuery), n.metadataSearchMode !== void 0 && (T.value = n.metadataSearchMode), n.sort !== void 0 && (C.value = n.sort), n.sidebarOpen !== void 0 && (k.value = n.sidebarOpen);
 		} catch {}
 	};
 	try {
-		window.addEventListener("storage", P);
+		window.addEventListener("storage", N);
 	} catch {}
 	ur(() => {
 		try {
-			window.removeEventListener("storage", P);
+			window.removeEventListener("storage", N);
 		} catch {}
 	});
-	function re() {
+	function P() {
 		s.value = "", c.value = "", l.value = "", u.value = !1, d.value = 0, f.value = 0, p.value = 0, m.value = "gte", h.value = 0, g.value = 0, _.value = 0, v.value = 0, y.value = "", b.value = "", x.value = "", S.value = "", w.value = "";
 	}
-	function ie() {
+	function F() {
 		O.value = [], D.value = "";
 	}
-	function F(e, t = "") {
+	function ie(e, t = "") {
 		O.value = Array.isArray(e) ? e.map(String).filter(Boolean) : [], D.value = t || O.value[0] || "";
 	}
 	function ae(e, s = {}) {
-		t.value = e, i.value = s.folder || "", a.value = s.collectionId || "", o.value = s.collectionName || "", n.value = s.customRootId || "", r.value = s.customRootLabel || "", j.value = "", M.value = [], te.value = "", ne.value = "", ie();
+		t.value = e, i.value = s.folder || "", a.value = s.collectionId || "", o.value = s.collectionName || "", n.value = s.customRootId || "", r.value = s.customRootLabel || "", j.value = "", M.value = [], te.value = "", ne.value = "", F();
 	}
-	async function I() {
+	async function oe() {
 		let e = String(n.value || "").trim();
 		if (e) try {
-			let a = await Ie("/mjr/am/custom-roots"), o = (Array.isArray(a?.data) ? a.data : []).find((t) => String(t?.id || "") === e);
+			let a = await fe("/mjr/am/custom-roots"), o = (Array.isArray(a?.data) ? a.data : []).find((t) => String(t?.id || "") === e);
 			if (!o) {
 				n.value = "", r.value = "", t.value === "custom" && (t.value = "output", i.value = "");
 				return;
@@ -13418,24 +13523,24 @@ var Qh = wr("mjr-panel", () => {
 		similarResults: M,
 		similarTitle: te,
 		similarSourceAssetId: ne,
-		resetFilters: re,
-		clearSelection: ie,
-		setSelection: F,
+		resetFilters: P,
+		clearSelection: F,
+		setSelection: ie,
 		navigateToScope: ae,
-		validatePersistedCustomRoot: I
+		validatePersistedCustomRoot: oe
 	};
 });
 // ui/stores/getOptionalPanelStore.ts
-function $h() {
+function rg() {
 	try {
-		return Tr() ? Qh() : null;
+		return Tr() ? ng() : null;
 	} catch {
 		return null;
 	}
 }
 // ui/stores/panelStateBridge.ts
-function eg(e, t = []) {
-	let n = $h();
+function ig(e, t = []) {
+	let n = rg();
 	return {
 		panelStore: n,
 		hydrateStoreFromLegacy: () => {},
@@ -13462,12 +13567,12 @@ function eg(e, t = []) {
 	};
 }
 // ui/features/panel/messages/messageCenter.ts
-var tg = "mjr_panel_messages_v1", ng = "mjr_panel_messages_last_read_v1", rg = "mjr_panel_messages_dismissed_builtin_ids_v1", ig = 120, ag = "/mjr/am/user-guide", og = /* @__PURE__ */ new Set([
+var ag = "mjr_panel_messages_v1", og = "mjr_panel_messages_last_read_v1", sg = "mjr_panel_messages_dismissed_builtin_ids_v1", cg = 120, lg = "/mjr/am/user-guide", ug = /* @__PURE__ */ new Set([
 	"info",
 	"success",
 	"warning",
 	"error"
-]), sg = "mjr:panel-messages-changed", cg = !1, lg = [], ug = Object.freeze([
+]), dg = "mjr:panel-messages-changed", fg = !1, pg = [], mg = Object.freeze([
 	{
 		id: "whats-new-2026-07-09-version-2-5-0",
 		title: "New Version 2.5.0",
@@ -13590,7 +13695,7 @@ var tg = "mjr_panel_messages_v1", ng = "mjr_panel_messages_last_read_v1", rg = "
 		bodyKey: "msg.whatsNew.body.localUserGuide",
 		actionLabel: "User Guide",
 		actionLabelKey: "label.userGuide",
-		actionUrl: ag
+		actionUrl: lg
 	},
 	{
 		id: "tip-2026-04-07-output-folder-override",
@@ -13772,27 +13877,27 @@ var tg = "mjr_panel_messages_v1", ng = "mjr_panel_messages_last_read_v1", rg = "
 		actionLabelKey: "label.settingsGuide",
 		actionUrl: "docs/SETTINGS_CONFIGURATION.md"
 	}
-]), dg = new Set(ug.map((e) => String(e?.id || "").trim()).filter(Boolean));
-function fg(e, t = 0) {
+]), hg = new Set(mg.map((e) => String(e?.id || "").trim()).filter(Boolean));
+function gg(e, t = 0) {
 	let n = Number(e);
 	return Number.isFinite(n) ? n : t;
 }
-function pg() {
+function _g() {
 	return Date.now();
 }
-function mg() {
-	return Xe(`msg-${pg()}-`, 6);
+function vg() {
+	return Me(`msg-${_g()}-`, 6);
 }
-function hg(e) {
+function yg(e) {
 	let t = String(e || "").trim().toLowerCase();
-	return t === "warn" ? "warning" : t === "danger" ? "error" : og.has(t) ? t : "info";
+	return t === "warn" ? "warning" : t === "danger" ? "error" : ug.has(t) ? t : "info";
 }
-function gg(e) {
-	return dg.has(String(e || "").trim());
+function bg(e) {
+	return hg.has(String(e || "").trim());
 }
-function _g(e = {}) {
+function xg(e = {}) {
 	return {
-		id: String(e?.id || "").trim() || mg(),
+		id: String(e?.id || "").trim() || vg(),
 		title: String(e?.title || "").trim() || "Info",
 		titleKey: String(e?.titleKey || "").trim(),
 		emoji: String(e?.emoji || "").trim(),
@@ -13800,14 +13905,14 @@ function _g(e = {}) {
 		bodyKey: String(e?.bodyKey || "").trim(),
 		category: String(e?.category || "").trim() || "Info",
 		categoryKey: String(e?.categoryKey || "").trim(),
-		createdAt: fg(e?.createdAt, pg()),
-		level: hg(e?.level),
+		createdAt: gg(e?.createdAt, _g()),
+		level: yg(e?.level),
 		actionLabel: String(e?.actionLabel || "").trim(),
 		actionLabelKey: String(e?.actionLabelKey || "").trim(),
 		actionUrl: String(e?.actionUrl || "").trim()
 	};
 }
-function vg(e, t) {
+function Sg(e, t) {
 	try {
 		let n = localStorage.getItem(e);
 		return n ? JSON.parse(n) : t;
@@ -13815,87 +13920,87 @@ function vg(e, t) {
 		return t;
 	}
 }
-function yg(e, t) {
+function Cg(e, t) {
 	try {
 		localStorage.setItem(e, JSON.stringify(t));
 	} catch {}
 }
-function bg() {
+function wg() {
 	try {
-		return fg(localStorage.getItem(ng), 0);
+		return gg(localStorage.getItem(og), 0);
 	} catch {
 		return 0;
 	}
 }
-function xg(e) {
+function Tg(e) {
 	try {
-		localStorage.setItem(ng, String(fg(e, pg())));
+		localStorage.setItem(og, String(gg(e, _g())));
 	} catch {}
 }
-function Sg() {
-	let e = vg(rg, []);
-	return new Set((Array.isArray(e) ? e : []).map((e) => String(e || "").trim()).filter((e) => gg(e)));
+function Eg() {
+	let e = Sg(sg, []);
+	return new Set((Array.isArray(e) ? e : []).map((e) => String(e || "").trim()).filter((e) => bg(e)));
 }
-function Cg() {
-	lg.sort((e, t) => Number(t.createdAt || 0) - Number(e.createdAt || 0)), lg.length > ig && (lg = lg.slice(0, ig));
+function Dg() {
+	pg.sort((e, t) => Number(t.createdAt || 0) - Number(e.createdAt || 0)), pg.length > cg && (pg = pg.slice(0, cg));
 }
-function wg() {
-	yg(tg, lg);
+function Og() {
+	Cg(ag, pg);
 }
-function Tg() {
-	let e = Sg(), t = !1;
-	for (let n of ug) {
-		let r = _g(n);
+function kg() {
+	let e = Eg(), t = !1;
+	for (let n of mg) {
+		let r = xg(n);
 		if (e.has(r.id)) continue;
-		let i = lg.findIndex((e) => e.id === r.id);
+		let i = pg.findIndex((e) => e.id === r.id);
 		if (i < 0) {
-			lg.push(r), t = !0;
+			pg.push(r), t = !0;
 			continue;
 		}
-		let a = lg[i], o = {
+		let a = pg[i], o = {
 			...a,
 			...r,
-			createdAt: fg(a?.createdAt, r.createdAt)
+			createdAt: gg(a?.createdAt, r.createdAt)
 		};
-		JSON.stringify(a) !== JSON.stringify(o) && (lg[i] = o, t = !0);
+		JSON.stringify(a) !== JSON.stringify(o) && (pg[i] = o, t = !0);
 	}
-	return t ? (Cg(), wg(), !0) : !1;
+	return t ? (Dg(), Og(), !0) : !1;
 }
-function Eg() {
+function Ag() {
 	try {
-		window.dispatchEvent(new CustomEvent(sg, { detail: {
-			total: lg.length,
-			unread: Ag()
+		window.dispatchEvent(new CustomEvent(dg, { detail: {
+			total: pg.length,
+			unread: Pg()
 		} }));
 	} catch (e) {
 		console.debug?.(e);
 	}
 }
-function Dg() {
-	if (cg) return;
-	cg = !0;
-	let e = vg(tg, []);
-	lg = (Array.isArray(e) ? e : []).map(_g), Cg();
-}
-function Og() {
-	Dg(), Tg() && Eg();
-}
-function kg() {
-	return Dg(), lg.map((e) => ({ ...e }));
-}
-function Ag() {
-	Dg();
-	let e = bg();
-	return lg.reduce((t, n) => t + +(Number(n.createdAt || 0) > e), 0);
-}
 function jg() {
-	return Dg(), bg();
+	if (fg) return;
+	fg = !0;
+	let e = Sg(ag, []);
+	pg = (Array.isArray(e) ? e : []).map(xg), Dg();
 }
-function Mg({ upTo: e = pg() } = {}) {
-	Dg(), xg(fg(e, pg())), Eg();
+function Mg() {
+	jg(), kg() && Ag();
+}
+function Ng() {
+	return jg(), pg.map((e) => ({ ...e }));
+}
+function Pg() {
+	jg();
+	let e = wg();
+	return pg.reduce((t, n) => t + +(Number(n.createdAt || 0) > e), 0);
+}
+function Fg() {
+	return jg(), wg();
+}
+function Ig({ upTo: e = _g() } = {}) {
+	jg(), Tg(gg(e, _g())), Ag();
 }
 // ui/features/panel/messages/shortcutGuide.ts
-var Ng = Object.freeze([
+var Lg = Object.freeze([
 	{
 		id: "panel",
 		titleKey: "msg.shortcuts.section.panel",
@@ -14104,22 +14209,22 @@ var Ng = Object.freeze([
 		])
 	}
 ]);
-function Pg() {
-	return Ng.map((e) => ({
+function Rg() {
+	return Lg.map((e) => ({
 		...e,
 		items: Array.isArray(e.items) ? e.items.map((e) => ({ ...e })) : []
 	}));
 }
-function Fg() {
+function zg() {
 	let e = document.createElement("div");
 	e.className = "mjr-shortcut-guide";
 	let t = document.createElement("div");
-	t.className = "mjr-shortcut-guide-intro", t.textContent = L("msg.shortcuts.intro", "Current keyboard shortcuts grouped by section for quick reference."), e.appendChild(t);
-	for (let t of Pg()) {
+	t.className = "mjr-shortcut-guide-intro", t.textContent = I("msg.shortcuts.intro", "Current keyboard shortcuts grouped by section for quick reference."), e.appendChild(t);
+	for (let t of Rg()) {
 		let n = document.createElement("section");
 		n.className = "mjr-shortcut-section";
 		let r = document.createElement("div");
-		r.className = "mjr-shortcut-section-title", r.textContent = L(t.titleKey, t.title), n.appendChild(r);
+		r.className = "mjr-shortcut-section-title", r.textContent = I(t.titleKey, t.title), n.appendChild(r);
 		let i = document.createElement("div");
 		i.className = "mjr-shortcut-list";
 		for (let e of t.items) {
@@ -14135,18 +14240,18 @@ function Fg() {
 	return e;
 }
 // ui/features/panel/messages/messagePopoverController.ts
-var Ig = /* @__PURE__ */ new Set([
+var Bg = /* @__PURE__ */ new Set([
 	"info",
 	"success",
 	"warning",
 	"error"
-]), Lg = 2200, Rg = /* @__PURE__ */ new Set([
+]), Vg = 2200, Hg = /* @__PURE__ */ new Set([
 	"started",
 	"queued",
 	"running",
 	"pending",
 	"in_progress"
-]), zg = /* @__PURE__ */ new Set([
+]), Ug = /* @__PURE__ */ new Set([
 	"succeeded",
 	"success",
 	"complete",
@@ -14157,7 +14262,7 @@ var Ig = /* @__PURE__ */ new Set([
 	"cancelled",
 	"canceled"
 ]);
-function Bg(e) {
+function Wg(e) {
 	let t = Number(e);
 	if (!Number.isFinite(t) || t <= 0) return "";
 	try {
@@ -14172,15 +14277,15 @@ function Bg(e) {
 		return "";
 	}
 }
-function Vg(e, t, n, r) {
+function Gg(e, t, n, r) {
 	let i = String(e?.[t] || "").trim(), a = String(e?.[n] || r || "").trim() || String(r || "");
-	return i ? L(i, a) : a;
+	return i ? I(i, a) : a;
 }
-function Hg(e) {
+function Kg(e) {
 	let t = String(e || "").trim().toLowerCase();
-	return t === "warn" ? "warning" : t === "danger" ? "error" : Ig.has(t) ? t : "info";
+	return t === "warn" ? "warning" : t === "danger" ? "error" : Bg.has(t) ? t : "info";
 }
-function Ug(e) {
+function qg(e) {
 	let t = String(e || "").trim();
 	if (!t) return "";
 	try {
@@ -14190,13 +14295,13 @@ function Ug(e) {
 		return "";
 	}
 }
-function Wg(e) {
+function Jg(e) {
 	let t = String(e?.emoji || "").trim();
 	if (t) return t;
-	let n = Hg(e?.level);
+	let n = Kg(e?.level);
 	return n === "success" ? "OK" : n === "warning" ? "WARN" : n === "error" ? "ERR" : "INFO";
 }
-function Gg(e) {
+function Yg(e) {
 	switch (String(e || "").toLowerCase()) {
 		case "success": return "OK";
 		case "warning": return "WARN";
@@ -14204,22 +14309,22 @@ function Gg(e) {
 		default: return "Tip";
 	}
 }
-function Kg(e) {
+function Xg(e) {
 	if (e?.persistent) return "persistent";
 	let t = Number(e?.durationMs);
 	return !Number.isFinite(t) || t <= 0 ? "" : t < 1e4 ? `${(t / 1e3).toFixed(1)}s` : `${Math.round(t / 1e3)}s`;
 }
-function qg(e) {
+function Zg(e) {
 	let t = String(e || "").trim().toLowerCase();
 	return t ? t.replace(/[_-]+/g, " ") : "";
 }
-function Jg(e) {
+function Qg(e) {
 	let t = e?.progress;
 	if (!t || typeof t != "object") return "";
 	let n = String(t.label || "").trim(), r = Number(t.current), i = Number(t.total), a = Number(t.indexed), o = Number(t.skipped), s = Number(t.errors), c = [];
 	return n && c.push(n), Number.isFinite(r) && Number.isFinite(i) && i > 0 && c.push(`${r}/${i}`), Number.isFinite(a) && c.push(`indexed ${a}`), Number.isFinite(o) && c.push(`skipped ${o}`), Number.isFinite(s) && s > 0 && c.push(`errors ${s}`), c.join(" | ");
 }
-function Yg(e) {
+function $g(e) {
 	let t = e?.progress;
 	if (!t || typeof t != "object") return null;
 	let n = Number(t.percent);
@@ -14227,15 +14332,15 @@ function Yg(e) {
 	let r = Number(t.current), i = Number(t.total);
 	return Number.isFinite(r) && Number.isFinite(i) && i > 0 ? Math.max(0, Math.min(100, Math.round(r / i * 100))) : null;
 }
-function Xg(e) {
+function e_(e) {
 	return String(e?.trackId || "").trim() || [
 		String(e?.operation || "").trim(),
 		String(e?.source || "").trim(),
 		String(e?.title || "").trim()
 	].filter(Boolean).join(":");
 }
-function Zg({ activeTab: e = "messages", title: t = null, messagePopover: n = null, messageTabBtn: r = null, historyTabBtn: i = null, shortcutsTabBtn: a = null, messageList: o = null, historyPanel: s = null, shortcutsPanel: c = null, markReadBtn: l = null } = {}) {
-	let u = e === "messages", d = e === "history", f = e === "shortcuts", p = u ? L("label.messages", "Messages") : d ? L("label.toastHistory", "History") : L("msg.shortcuts.title", "Shortcut Guide");
+function t_({ activeTab: e = "messages", title: t = null, messagePopover: n = null, messageTabBtn: r = null, historyTabBtn: i = null, shortcutsTabBtn: a = null, messageList: o = null, historyPanel: s = null, shortcutsPanel: c = null, markReadBtn: l = null } = {}) {
+	let u = e === "messages", d = e === "history", f = e === "shortcuts", p = u ? I("label.messages", "Messages") : d ? I("label.toastHistory", "History") : I("msg.shortcuts.title", "Shortcut Guide");
 	try {
 		r?.classList.toggle("is-active", u), r?.setAttribute("aria-selected", u ? "true" : "false"), r?.setAttribute("tabindex", u ? "0" : "-1"), i?.classList.toggle("is-active", d), i?.setAttribute("aria-selected", d ? "true" : "false"), i?.setAttribute("tabindex", d ? "0" : "-1"), a?.classList.toggle("is-active", f), a?.setAttribute("aria-selected", f ? "true" : "false"), a?.setAttribute("tabindex", f ? "0" : "-1");
 	} catch (e) {
@@ -14247,28 +14352,28 @@ function Zg({ activeTab: e = "messages", title: t = null, messagePopover: n = nu
 		console.debug?.(e);
 	}
 }
-function Qg({ messageBtn: e = null, messagePopover: t = null, title: n = null, messageList: r = null, historyTabBtn: i = null, historyTabBadge: a = null, historyTabCount: o = null, historyPanel: s = null, shortcutsPanel: c = null, messageTabBtn: l = null, messageTabBadge: u = null, shortcutsTabBtn: d = null, markReadBtn: f = null, popovers: p = null, onBeforeToggle: m = null, signal: h = null } = {}) {
-	Og();
-	let g = "messages", _ = !1, v = null, b = /* @__PURE__ */ new Set(), x = () => {
-		if (v) {
+function n_({ messageBtn: e = null, messagePopover: t = null, title: n = null, messageList: r = null, historyTabBtn: i = null, historyTabBadge: a = null, historyTabCount: o = null, historyPanel: s = null, shortcutsPanel: c = null, messageTabBtn: l = null, messageTabBadge: u = null, shortcutsTabBtn: d = null, markReadBtn: f = null, popovers: p = null, onBeforeToggle: m = null, signal: g = null } = {}) {
+	Mg();
+	let _ = "messages", v = !1, y = null, b = /* @__PURE__ */ new Set(), x = () => {
+		if (y) {
 			try {
-				clearTimeout(v);
+				clearTimeout(y);
 			} catch (e) {
 				console.debug?.(e);
 			}
-			v = null;
+			y = null;
 		}
 	}, S = () => {
-		if (!_ || g !== "history" || t?.style?.display !== "block") return;
-		let e = ce();
+		if (!v || _ !== "history" || t?.style?.display !== "block") return;
+		let e = ae();
 		for (let n of e) {
-			let e = Xg(n);
+			let e = e_(n);
 			if (!e || !b.has(e)) continue;
 			let r = String(n?.status || "").trim().toLowerCase();
-			if (zg.has(r)) {
-				x(), v = setTimeout(() => {
-					v = null, _ && g === "history" && t?.style?.display === "block" && (p?.close?.(t), _ = !1, b.clear(), C(), A());
-				}, Lg);
+			if (Ug.has(r)) {
+				x(), y = setTimeout(() => {
+					y = null, v && _ === "history" && t?.style?.display === "block" && (p?.close?.(t), v = !1, b.clear(), C(), A());
+				}, Vg);
 				return;
 			}
 		}
@@ -14286,14 +14391,14 @@ function Qg({ messageBtn: e = null, messagePopover: t = null, title: n = null, m
 		}
 	}, w = () => {
 		if (!r) return;
-		let e = kg(), t = jg();
+		let e = Ng(), t = Fg();
 		if (r.replaceChildren(), !e.length) {
 			let e = document.createElement("div");
-			e.className = "mjr-messages-empty", e.textContent = L("msg.noMessages", "No messages for now."), r.appendChild(e);
+			e.className = "mjr-messages-empty", e.textContent = I("msg.noMessages", "No messages for now."), r.appendChild(e);
 		} else for (let n of e) {
 			let e = document.createElement("article");
 			e.className = "mjr-message-item";
-			let i = Hg(n?.level);
+			let i = Kg(n?.level);
 			e.classList.add(`mjr-message-item--${i}`);
 			let a = Number(n?.createdAt || 0);
 			a > Number(t || 0) && e.classList.add("mjr-message-item--unread");
@@ -14302,16 +14407,16 @@ function Qg({ messageBtn: e = null, messagePopover: t = null, title: n = null, m
 			let s = document.createElement("div");
 			s.className = "mjr-message-item-title-wrap";
 			let c = document.createElement("span");
-			c.className = "mjr-message-item-emoji", c.textContent = Wg(n), c.setAttribute("aria-hidden", "true");
+			c.className = "mjr-message-item-emoji", c.textContent = Jg(n), c.setAttribute("aria-hidden", "true");
 			let l = document.createElement("div");
-			l.className = "mjr-message-item-title", l.textContent = Vg(n, "titleKey", "title", L("label.info", "Info"));
+			l.className = "mjr-message-item-title", l.textContent = Gg(n, "titleKey", "title", I("label.info", "Info"));
 			let u = document.createElement("span");
-			u.className = "mjr-message-item-category", u.textContent = Vg(n, "categoryKey", "category", L("label.info", "Info")), s.appendChild(c), s.appendChild(l), o.appendChild(s), o.appendChild(u);
+			u.className = "mjr-message-item-category", u.textContent = Gg(n, "categoryKey", "category", I("label.info", "Info")), s.appendChild(c), s.appendChild(l), o.appendChild(s), o.appendChild(u);
 			let d = document.createElement("div");
-			d.className = "mjr-message-item-meta", d.textContent = Bg(a);
+			d.className = "mjr-message-item-meta", d.textContent = Wg(a);
 			let f = document.createElement("div");
-			f.className = "mjr-message-item-body", f.textContent = Vg(n, "bodyKey", "body", ""), e.appendChild(o), d.textContent && e.appendChild(d), f.textContent && e.appendChild(f);
-			let p = Ug(n?.actionUrl), m = Vg(n, "actionLabelKey", "actionLabel", L("label.readMe", "Read Me"));
+			f.className = "mjr-message-item-body", f.textContent = Gg(n, "bodyKey", "body", ""), e.appendChild(o), d.textContent && e.appendChild(d), f.textContent && e.appendChild(f);
+			let p = qg(n?.actionUrl), m = Gg(n, "actionLabelKey", "actionLabel", I("label.readMe", "Read Me"));
 			if (p && m) {
 				let t = document.createElement("a");
 				t.className = "mjr-message-item-action", t.href = p, t.target = "_blank", t.rel = "noopener noreferrer", t.textContent = m, e.appendChild(t);
@@ -14320,25 +14425,25 @@ function Qg({ messageBtn: e = null, messagePopover: t = null, title: n = null, m
 		}
 	}, T = () => {
 		if (!s) return;
-		let e = ce(), t = s.querySelector(".mjr-history-list");
+		let e = ae(), t = s.querySelector(".mjr-history-list");
 		if (!t) {
 			let e = document.createElement("div");
 			e.className = "mjr-history-head";
 			let n = document.createElement("span");
-			n.className = "mjr-history-head-label", n.textContent = L("label.recentActivity", "Recent activity");
+			n.className = "mjr-history-head-label", n.textContent = I("label.recentActivity", "Recent activity");
 			let r = document.createElement("button");
-			r.type = "button", r.className = "mjr-btn mjr-history-clear-btn", r.textContent = L("btn.clearHistory", "Clear"), r.title = L("tooltip.clearToastHistory", "Clear toast history"), r.addEventListener("click", (e) => {
-				e.stopPropagation(), oe(), T();
-			}, h ? { signal: h } : void 0), e.appendChild(n), e.appendChild(r), t = document.createElement("div"), t.className = "mjr-history-list", s.replaceChildren(e, t);
+			r.type = "button", r.className = "mjr-btn mjr-history-clear-btn", r.textContent = I("btn.clearHistory", "Clear"), r.title = I("tooltip.clearToastHistory", "Clear toast history"), r.addEventListener("click", (e) => {
+				e.stopPropagation(), h(), T();
+			}, g ? { signal: g } : void 0), e.appendChild(n), e.appendChild(r), t = document.createElement("div"), t.className = "mjr-history-list", s.replaceChildren(e, t);
 		}
 		if (t.replaceChildren(), !e.length) {
 			let e = document.createElement("div");
-			e.className = "mjr-messages-empty", e.textContent = L("msg.noHistory", "No recent activity."), t.appendChild(e);
+			e.className = "mjr-messages-empty", e.textContent = I("msg.noHistory", "No recent activity."), t.appendChild(e);
 		} else for (let n of e) {
 			let e = document.createElement("div");
 			e.className = `mjr-history-item mjr-history-item--${String(n.type || "info")}`;
 			let r = document.createElement("span");
-			r.className = "mjr-history-item-icon", r.textContent = Gg(n.type), r.setAttribute("aria-hidden", "true");
+			r.className = "mjr-history-item-icon", r.textContent = Yg(n.type), r.setAttribute("aria-hidden", "true");
 			let i = document.createElement("div");
 			i.className = "mjr-history-item-content";
 			let a = String(n.title || "").trim(), o = String(n.detail || "").trim(), s = String(n.message || "").trim(), c = a || s, l = a && o ? o : a ? "" : o, u = document.createElement("div");
@@ -14348,14 +14453,14 @@ function Qg({ messageBtn: e = null, messagePopover: t = null, title: n = null, m
 			let f = document.createElement("div");
 			f.className = "mjr-history-item-meta";
 			let p = document.createElement("span");
-			p.className = "mjr-history-item-time", p.textContent = Bg(n.createdAt);
+			p.className = "mjr-history-item-time", p.textContent = Wg(n.createdAt);
 			let m = document.createElement("span");
-			m.className = "mjr-history-item-chip", m.textContent = Kg(n);
+			m.className = "mjr-history-item-chip", m.textContent = Xg(n);
 			let h = document.createElement("span");
 			h.className = "mjr-history-item-chip", h.textContent = String(n.source || "").trim();
 			let g = document.createElement("span");
-			g.className = "mjr-history-item-chip", g.textContent = qg(n.status), i.appendChild(u), d.textContent && i.appendChild(d), p.textContent && f.appendChild(p), m.textContent && f.appendChild(m), g.textContent && f.appendChild(g), h.textContent && f.appendChild(h), f.childNodes.length && i.appendChild(f);
-			let _ = Jg(n), v = Yg(n);
+			g.className = "mjr-history-item-chip", g.textContent = Zg(n.status), i.appendChild(u), d.textContent && i.appendChild(d), p.textContent && f.appendChild(p), m.textContent && f.appendChild(m), g.textContent && f.appendChild(g), h.textContent && f.appendChild(h), f.childNodes.length && i.appendChild(f);
+			let _ = Qg(n), v = $g(n);
 			if (_ || v !== null) {
 				let e = document.createElement("div");
 				if (e.className = "mjr-history-item-progress", _) {
@@ -14370,7 +14475,7 @@ function Qg({ messageBtn: e = null, messagePopover: t = null, title: n = null, m
 				}
 				i.appendChild(e);
 			}
-			let y = Ug(n?.actionUrl), b = String(n?.actionLabel || "").trim();
+			let y = qg(n?.actionUrl), b = String(n?.actionLabel || "").trim();
 			if (y && b) {
 				let e = document.createElement("a");
 				e.className = "mjr-history-item-action", e.href = y, e.target = "_blank", e.rel = "noopener noreferrer", e.textContent = b, i.appendChild(e);
@@ -14382,39 +14487,39 @@ function Qg({ messageBtn: e = null, messagePopover: t = null, title: n = null, m
 		let n = Math.max(0, Number(t || 0) || 0);
 		n <= 0 ? (e.style.display = "none", e.textContent = "") : (e.style.display = "inline-flex", e.textContent = n > 99 ? "99+" : String(n));
 	}, D = () => {
-		let e = ae();
+		let e = se();
 		a && (a.style.display = e > 0 ? "inline-block" : "none"), E(o, e);
 	}, O = () => {
-		c && (c.childNodes.length > 0 || c.replaceChildren(Fg()));
+		c && (c.childNodes.length > 0 || c.replaceChildren(zg()));
 	}, k = () => {
 		if (!f) return;
-		let e = Math.max(0, Number(Ag() || 0) || 0);
-		f.disabled = e <= 0, f.title = e > 0 ? L("tooltip.markMessagesRead", "Mark all messages as read") : L("tooltip.noUnreadMessages", "No unread messages");
+		let e = Math.max(0, Number(Pg() || 0) || 0);
+		f.disabled = e <= 0, f.title = e > 0 ? I("tooltip.markMessagesRead", "Mark all messages as read") : I("tooltip.noUnreadMessages", "No unread messages");
 	}, A = () => {
-		let t = Math.max(0, Number(Ag() || 0) || 0);
+		let t = Math.max(0, Number(Pg() || 0) || 0);
 		if (e) {
-			let n = e.querySelector(".mjr-message-badge"), r = t > 0 ? L("tooltip.openMessagesUnread", "Messages ({count} unread)", { count: t }) : L("tooltip.openMessages", "Messages and updates");
+			let n = e.querySelector(".mjr-message-badge"), r = t > 0 ? I("tooltip.openMessagesUnread", "Messages ({count} unread)", { count: t }) : I("tooltip.openMessages", "Messages and updates");
 			e.classList.toggle("mjr-message-has-unread", t > 0), e.title = r, e.setAttribute("aria-label", r), n && (t <= 0 ? (n.style.display = "none", n.textContent = "") : (n.style.display = "inline-flex", n.textContent = t > 9 ? "9+" : String(t)));
 		}
 		E(u, t), k();
 	}, ee = () => {
-		A(), D(), t?.style?.display === "block" && (g === "messages" && w(), g === "history" && T());
-	}, M = h ? { signal: h } : void 0;
+		A(), D(), t?.style?.display === "block" && (_ === "messages" && w(), _ === "history" && T());
+	}, j = g ? { signal: g } : void 0;
 	try {
-		window.addEventListener(sg, ee, M);
+		window.addEventListener(dg, ee, j);
 	} catch (e) {
 		console.debug?.(e);
 	}
 	try {
-		window.addEventListener(y, () => {
-			if (D(), t?.style?.display === "block" && g === "history" && T(), _) {
-				for (let e of ce()) {
-					let t = String(e?.status || "").trim().toLowerCase(), n = Xg(e);
-					n && Rg.has(t) && b.add(n);
+		window.addEventListener(He, () => {
+			if (D(), t?.style?.display === "block" && _ === "history" && T(), v) {
+				for (let e of ae()) {
+					let t = String(e?.status || "").trim().toLowerCase(), n = e_(e);
+					n && Hg.has(t) && b.add(n);
 				}
 				S();
 			}
-		}, M);
+		}, j);
 	} catch (e) {
 		console.debug?.(e);
 	}
@@ -14423,9 +14528,9 @@ function Qg({ messageBtn: e = null, messagePopover: t = null, title: n = null, m
 	} catch (e) {
 		console.debug?.(e);
 	}
-	let te = null;
+	let M = null;
 	try {
-		typeof MutationObserver < "u" && t && (te = new MutationObserver(C), te.observe(t, {
+		typeof MutationObserver < "u" && t && (M = new MutationObserver(C), M.observe(t, {
 			attributes: !0,
 			attributeFilter: ["style"]
 		}));
@@ -14433,12 +14538,12 @@ function Qg({ messageBtn: e = null, messagePopover: t = null, title: n = null, m
 		console.debug?.(e);
 	}
 	try {
-		h?.addEventListener?.("abort", () => te?.disconnect?.(), { once: !0 });
+		g?.addEventListener?.("abort", () => M?.disconnect?.(), { once: !0 });
 	} catch (e) {
 		console.debug?.(e);
 	}
-	A(), D(), C(), Zg({
-		activeTab: g,
+	A(), D(), C(), t_({
+		activeTab: _,
 		title: n,
 		messagePopover: t,
 		messageTabBtn: l,
@@ -14449,9 +14554,9 @@ function Qg({ messageBtn: e = null, messagePopover: t = null, title: n = null, m
 		shortcutsPanel: c,
 		markReadBtn: f
 	});
-	let ne = () => {
-		g = "messages", Zg({
-			activeTab: g,
+	let te = () => {
+		_ = "messages", t_({
+			activeTab: _,
 			title: n,
 			messagePopover: t,
 			messageTabBtn: l,
@@ -14461,10 +14566,10 @@ function Qg({ messageBtn: e = null, messagePopover: t = null, title: n = null, m
 			historyPanel: s,
 			shortcutsPanel: c,
 			markReadBtn: f
-		}), w(), Mg(), A();
-	}, N = () => {
-		g = "history", Zg({
-			activeTab: g,
+		}), w(), Ig(), A();
+	}, ne = () => {
+		_ = "history", t_({
+			activeTab: _,
 			title: n,
 			messagePopover: t,
 			messageTabBtn: l,
@@ -14474,10 +14579,10 @@ function Qg({ messageBtn: e = null, messagePopover: t = null, title: n = null, m
 			historyPanel: s,
 			shortcutsPanel: c,
 			markReadBtn: f
-		}), T(), j(), D();
-	}, P = () => {
-		g = "shortcuts", Zg({
-			activeTab: g,
+		}), T(), le(), D();
+	}, re = () => {
+		_ = "shortcuts", t_({
+			activeTab: _,
 			title: n,
 			messagePopover: t,
 			messageTabBtn: l,
@@ -14488,9 +14593,9 @@ function Qg({ messageBtn: e = null, messagePopover: t = null, title: n = null, m
 			shortcutsPanel: c,
 			markReadBtn: f
 		}), O();
-	}, re = (e) => {
-		e === "messages" ? ne() : e === "history" ? N() : P();
-	}, ie = () => {
+	}, N = (e) => {
+		e === "messages" ? te() : e === "history" ? ne() : re();
+	}, P = () => {
 		if (t && p && e) {
 			if (t?.style?.display !== "block") {
 				try {
@@ -14500,18 +14605,18 @@ function Qg({ messageBtn: e = null, messagePopover: t = null, title: n = null, m
 				}
 				p.toggle(t, e);
 			}
-			N(), _ = !0, x(), b.clear();
-			for (let e of ce()) {
-				let t = String(e?.status || "").trim().toLowerCase(), n = Xg(e);
-				n && Rg.has(t) && b.add(n);
+			ne(), v = !0, x(), b.clear();
+			for (let e of ae()) {
+				let t = String(e?.status || "").trim().toLowerCase(), n = e_(e);
+				n && Hg.has(t) && b.add(n);
 			}
 			S(), C(), A();
 		}
 	};
 	try {
-		window.addEventListener(B.OPEN_MESSAGE_HISTORY, () => {
-			ie();
-		}, M);
+		window.addEventListener(z.OPEN_MESSAGE_HISTORY, () => {
+			P();
+		}, j);
 	} catch (e) {
 		console.debug?.(e);
 	}
@@ -14519,24 +14624,24 @@ function Qg({ messageBtn: e = null, messagePopover: t = null, title: n = null, m
 		"messages",
 		"history",
 		"shortcuts"
-	], I = (e, t) => {
+	], ie = (e, t) => {
 		let n = String(e?.key || "").toLowerCase(), r = F.indexOf(String(t || "").toLowerCase());
 		if (!(r < 0)) {
 			if (n === "arrowright") {
 				e.preventDefault();
 				let t = F[(r + 1) % F.length];
-				re(t), t === "messages" && l?.focus?.(), t === "history" && i?.focus?.(), t === "shortcuts" && d?.focus?.();
+				N(t), t === "messages" && l?.focus?.(), t === "history" && i?.focus?.(), t === "shortcuts" && d?.focus?.();
 			} else if (n === "arrowleft") {
 				e.preventDefault();
 				let t = F[(r + F.length - 1) % F.length];
-				re(t), t === "messages" && l?.focus?.(), t === "history" && i?.focus?.(), t === "shortcuts" && d?.focus?.();
-			} else n === "home" ? (e.preventDefault(), ne(), l?.focus?.()) : n === "end" ? (e.preventDefault(), P(), d?.focus?.()) : (n === " " || n === "enter") && (e.preventDefault(), re(t));
+				N(t), t === "messages" && l?.focus?.(), t === "history" && i?.focus?.(), t === "shortcuts" && d?.focus?.();
+			} else n === "home" ? (e.preventDefault(), te(), l?.focus?.()) : n === "end" ? (e.preventDefault(), re(), d?.focus?.()) : (n === " " || n === "enter") && (e.preventDefault(), N(t));
 		}
 	};
 	return e?.addEventListener("click", (a) => {
 		if (t && p && e) {
-			a.stopPropagation(), _ = !1, b.clear(), x(), g = "messages", w(), O(), Zg({
-				activeTab: g,
+			a.stopPropagation(), v = !1, b.clear(), x(), _ = "messages", w(), O(), t_({
+				activeTab: _,
 				title: n,
 				messagePopover: t,
 				messageTabBtn: l,
@@ -14552,31 +14657,31 @@ function Qg({ messageBtn: e = null, messagePopover: t = null, title: n = null, m
 			} catch (e) {
 				console.debug?.(e);
 			}
-			p.toggle(t, e), t?.style?.display === "block" && Mg(), C(), A();
+			p.toggle(t, e), t?.style?.display === "block" && Ig(), C(), A();
 		}
-	}, M), l?.addEventListener("click", (e) => {
-		e.preventDefault(), e.stopPropagation(), ne();
-	}, M), l?.addEventListener("keydown", (e) => I(e, "messages"), M), i?.addEventListener("click", (e) => {
-		e.preventDefault(), e.stopPropagation(), _ = !1, b.clear(), x(), N();
-	}, M), i?.addEventListener("keydown", (e) => I(e, "history"), M), d?.addEventListener("click", (e) => {
-		e.preventDefault(), e.stopPropagation(), P();
-	}, M), d?.addEventListener("keydown", (e) => I(e, "shortcuts"), M), f?.addEventListener("click", (e) => {
-		e.preventDefault(), e.stopPropagation(), Mg(), w(), A();
-	}, M), {
+	}, j), l?.addEventListener("click", (e) => {
+		e.preventDefault(), e.stopPropagation(), te();
+	}, j), l?.addEventListener("keydown", (e) => ie(e, "messages"), j), i?.addEventListener("click", (e) => {
+		e.preventDefault(), e.stopPropagation(), v = !1, b.clear(), x(), ne();
+	}, j), i?.addEventListener("keydown", (e) => ie(e, "history"), j), d?.addEventListener("click", (e) => {
+		e.preventDefault(), e.stopPropagation(), re();
+	}, j), d?.addEventListener("keydown", (e) => ie(e, "shortcuts"), j), f?.addEventListener("click", (e) => {
+		e.preventDefault(), e.stopPropagation(), Ig(), w(), A();
+	}, j), {
 		refresh: ee,
 		render: w,
 		updateButtonState: A,
-		showMessagesTab: ne,
-		showHistoryTab: N,
-		showShortcutsTab: P,
-		openHistoryPopover: ie,
+		showMessagesTab: te,
+		showHistoryTab: ne,
+		showShortcutsTab: re,
+		openHistoryPopover: P,
 		close: () => {
-			t && p && (p.close(t), _ = !1, b.clear(), x(), C());
+			t && p && (p.close(t), v = !1, b.clear(), x(), C());
 		}
 	};
 }
 // ui/features/panel/controllers/query.ts
-function $g(e) {
+function r_(e) {
 	let t = e;
 	for (let e = 0; e < 3 && t && typeof t == "object" && "value" in t; e += 1) {
 		let e = t.value;
@@ -14585,8 +14690,8 @@ function $g(e) {
 	}
 	return t;
 }
-function e_(e) {
-	let t = $g(e);
+function i_(e) {
+	let t = r_(e);
 	if (!t) return null;
 	let n = String(t?.tagName || "").toUpperCase();
 	if (n === "INPUT" || n === "TEXTAREA") return t;
@@ -14600,13 +14705,13 @@ function e_(e) {
 	}
 	return null;
 }
-function t_(e) {
-	let t = e_(e), n = t ? t.value : typeof e?.value == "string" ? e.value : "";
+function a_(e) {
+	let t = i_(e), n = t ? t.value : typeof e?.value == "string" ? e.value : "";
 	return String(n || "").trim() || "*";
 }
 // ui/features/panel/controllers/gridController.ts
-function n_({ gridContainer: e, loadAssets: t, loadAssetsFromList: n, getCollectionAssets: r, disposeGrid: i, getQuery: o, searchInputEl: s, state: c }) {
-	let { read: l, write: u } = eg(c, /* @__PURE__ */ "scope.customRootId.currentFolderRelativePath.kindFilter.workflowOnly.minRating.minSizeMB.maxSizeMB.resolutionCompare.minWidth.minHeight.maxWidth.maxHeight.workflowType.workflowId.workflowModelFilter.workflowRunsOnFilter.dateRangeFilter.dateExactFilter.sort.activeAssetId.selectedAssetIds.collectionId.collectionName.viewScope.similarResults.similarTitle.similarSourceAssetId.lastGridCount.lastGridTotal".split(".")), d = !1, f = !1, p = {}, h = 0, g = 0, _ = 3e4, v = async (e, t = _) => {
+function o_({ gridContainer: e, loadAssets: t, loadAssetsFromList: n, getCollectionAssets: i, disposeGrid: a, getQuery: o, searchInputEl: s, state: c }) {
+	let { read: l, write: u } = ig(c, /* @__PURE__ */ "scope.customRootId.currentFolderRelativePath.kindFilter.workflowOnly.minRating.minSizeMB.maxSizeMB.resolutionCompare.minWidth.minHeight.maxWidth.maxHeight.workflowType.workflowId.workflowModelFilter.workflowRunsOnFilter.dateRangeFilter.dateExactFilter.sort.activeAssetId.selectedAssetIds.collectionId.collectionName.viewScope.similarResults.similarTitle.similarSourceAssetId.lastGridCount.lastGridTotal".split(".")), d = !1, f = !1, p = {}, m = 0, h = 0, g = 3e4, _ = async (e, t = g) => {
 		let n = null;
 		try {
 			let r = new Promise((e, r) => {
@@ -14619,19 +14724,19 @@ function n_({ gridContainer: e, loadAssets: t, loadAssetsFromList: n, getCollect
 		} finally {
 			n && clearTimeout(n);
 		}
-	}, y = () => {
+	}, v = () => {
 		try {
 			return s?.dataset?.mjrSemanticMode === "1";
 		} catch {
 			return !1;
 		}
-	}, b = () => {
+	}, y = () => {
 		try {
-			return !!(Pt()?.ai?.vectorSearchEnabled ?? !0);
+			return !!(Ft()?.ai?.vectorSearchEnabled ?? !0);
 		} catch {
 			return !0;
 		}
-	}, x = (e, t = "") => {
+	}, b = (e, t = "") => {
 		try {
 			if (e && typeof e == "object") return String(e.error || e.message || t || "").trim();
 		} catch {}
@@ -14640,11 +14745,11 @@ function n_({ gridContainer: e, loadAssets: t, loadAssetsFromList: n, getCollect
 		} catch {
 			return String(t || "").trim();
 		}
-	}, S = (e = []) => !Array.isArray(e) || e.length === 0 ? !1 : e.some((e) => {
+	}, x = (e = []) => !Array.isArray(e) || e.length === 0 ? !1 : e.some((e) => {
 		if (String(e?._matchType || e?.matchType || "").trim().toLowerCase().includes("semantic")) return !0;
 		let t = Number(e?._vectorScore ?? e?.vectorScore ?? NaN);
 		return Number.isFinite(t) && t > 0;
-	}), C = () => {
+	}), S = () => {
 		let e = String(l("currentFolderRelativePath", "") || "").trim();
 		return {
 			subfolder: (l("scope", "output") !== "custom" || l("customRootId", "")) && e ? e : null,
@@ -14664,20 +14769,20 @@ function n_({ gridContainer: e, loadAssets: t, loadAssetsFromList: n, getCollect
 			dateRange: String(l("dateRangeFilter", "") || "").trim().toLowerCase() || null,
 			dateExact: String(l("dateExactFilter", "") || "").trim() || null
 		};
-	}, w = async (e = "") => {
+	}, C = async (e = "") => {
 		let t = Date.now();
-		if (t - Number(g || 0) < 15e3) return;
-		g = t;
+		if (t - Number(h || 0) < 15e3) return;
+		h = t;
 		try {
-			let e = await re();
+			let e = await r();
 			if (e?.ok && e?.data) {
 				let t = Number(e.data?.total || 0) || 0, n = Number(e.data?.eligible_total || 0) || 0, r = Number(e.data?.coverage_ratio ?? NaN);
 				if (t <= 10) {
-					m(L("toast.aiSearchNeedsBackfill", "AI search index is almost empty ({count} vectors). Run Enrich, then Vector Backfill for existing assets.", { count: t }), "warn", 6500);
+					F(I("toast.aiSearchNeedsBackfill", "AI search index is almost empty ({count} vectors). Run Enrich, then Vector Backfill for existing assets.", { count: t }), "warn", 6500);
 					return;
 				}
 				if (n > 0 && Number.isFinite(r) && r > 0 && r < .75) {
-					m(L("toast.aiSearchPartiallyIndexed", "AI search index is only partially built ({indexed}/{eligible}, {percent}%). Run Vector Backfill for existing assets.", {
+					F(I("toast.aiSearchPartiallyIndexed", "AI search index is only partially built ({indexed}/{eligible}, {percent}%). Run Vector Backfill for existing assets.", {
 						indexed: t,
 						eligible: n,
 						percent: Math.round(r * 100)
@@ -14686,57 +14791,57 @@ function n_({ gridContainer: e, loadAssets: t, loadAssetsFromList: n, getCollect
 				}
 			}
 		} catch {}
-		let n = x(e, L("toast.aiSearchUnavailable", "AI search is currently unavailable. Falling back to normal search."));
-		m(n, "warn", 5200);
-	}, T = async (r, i = {}) => {
-		let o = String(r || "").trim(), s = /^ai:\s*/i.test(o);
-		s && (o = o.replace(/^ai:\s*/i, "").trim());
-		let c = b(), u = c && y();
-		if (!c) return await t(e, o || "*", i);
-		let d = u || s, f = !1, p = "";
-		if (d && o && o !== "*") {
-			f = !0;
-			let t = C();
+		let n = b(e, I("toast.aiSearchUnavailable", "AI search is currently unavailable. Falling back to normal search."));
+		F(n, "warn", 5200);
+	}, w = async (r, i = {}) => {
+		let a = String(r || "").trim(), o = /^ai:\s*/i.test(a);
+		o && (a = a.replace(/^ai:\s*/i, "").trim());
+		let s = y(), c = s && v();
+		if (!s) return await t(e, a || "*", i);
+		let u = c || o, d = !1, f = "";
+		if (u && a && a !== "*") {
+			d = !0;
+			let t = S();
 			try {
-				let r = await Ee(o, {
+				let r = await We(a, {
 					topK: 100,
 					scope: l("scope", "output") || "output",
 					customRootId: l("customRootId", "") || "",
 					...t
 				});
-				if (r?.ok && Array.isArray(r.data) && r.data.length > 0 && S(r.data)) return await n(e, r.data, {
-					title: `AI Search: "${o}" (${r.data.length} results)`,
+				if (r?.ok && Array.isArray(r.data) && r.data.length > 0 && x(r.data)) return await n(e, r.data, {
+					title: `AI Search: "${a}" (${r.data.length} results)`,
 					reset: !0,
 					...i
 				});
-				r?.ok === !1 && (p = x(r?.error || r?.message, p));
+				r?.ok === !1 && (f = b(r?.error || r?.message, f));
 			} catch (e) {
-				p = x(e, p), console.debug?.("[Majoor] Hybrid search failed, trying pure semantic", e);
+				f = b(e, f), console.debug?.("[Majoor] Hybrid search failed, trying pure semantic", e);
 			}
 			try {
-				let r = await a(o, {
+				let r = await ot(a, {
 					topK: 100,
 					scope: l("scope", "output") || "output",
 					customRootId: l("customRootId", "") || "",
 					...t
 				});
 				if (r?.ok && Array.isArray(r.data) && r.data.length > 0) return await n(e, r.data, {
-					title: `AI Search: "${o}" (${r.data.length} results)`,
+					title: `AI Search: "${a}" (${r.data.length} results)`,
 					reset: !0,
 					...i
 				});
-				r?.ok === !1 && (p = x(r?.error || r?.message, p));
+				r?.ok === !1 && (f = b(r?.error || r?.message, f));
 			} catch (e) {
-				p = x(e, p), console.debug?.("[Majoor] Semantic search failed, falling back to FTS", e);
+				f = b(e, f), console.debug?.("[Majoor] Semantic search failed, falling back to FTS", e);
 			}
 		}
-		let m = await t(e, o || "*", i);
-		return f && p && (Number(m?.count || 0) || 0) === 0 && w(p), m;
-	}, E = async (t = {}) => {
-		let i = String(e.dataset.mjrViewScope || "").trim().toLowerCase(), a = String(l("viewScope", c?.viewScope || "") || "").trim().toLowerCase();
+		let p = await t(e, a || "*", i);
+		return d && f && (Number(p?.count || 0) || 0) === 0 && C(f), p;
+	}, T = async (t = {}) => {
+		let r = String(e.dataset.mjrViewScope || "").trim().toLowerCase(), a = String(l("viewScope", c?.viewScope || "") || "").trim().toLowerCase();
 		e.dataset.mjrScope = l("scope", "output"), e.dataset.mjrViewScope = a, e.dataset.mjrCustomRootId = l("customRootId", "") || "";
 		let s = l("currentFolderRelativePath", "") || "";
-		e.dataset.mjrSubfolder = s, e.dataset.mjrFilterKind = l("kindFilter", "") || "", e.dataset.mjrFilterWorkflowOnly = l("workflowOnly", !1) ? "1" : "0", e.dataset.mjrFilterMinRating = String(l("minRating", 0) || 0), e.dataset.mjrFilterMinSizeMB = String(l("minSizeMB", 0) || 0), e.dataset.mjrFilterMaxSizeMB = String(l("maxSizeMB", 0) || 0), e.dataset.mjrFilterResolutionCompare = String(l("resolutionCompare", "gte") || "gte"), e.dataset.mjrFilterMinWidth = String(l("minWidth", 0) || 0), e.dataset.mjrFilterMinHeight = String(l("minHeight", 0) || 0), e.dataset.mjrFilterMaxWidth = String(l("maxWidth", 0) || 0), e.dataset.mjrFilterMaxHeight = String(l("maxHeight", 0) || 0), e.dataset.mjrFilterWorkflowType = String(l("workflowType", "") || ""), e.dataset.mjrFilterWorkflowId = String(l("workflowId", "") || ""), e.dataset.mjrFilterWorkflowModel = String(l("workflowModelFilter", "") || ""), e.dataset.mjrFilterWorkflowRunsOn = String(l("workflowRunsOnFilter", "") || ""), e.dataset.mjrFilterDateRange = l("dateRangeFilter", "") || "", e.dataset.mjrFilterDateExact = l("dateExactFilter", "") || "", e.dataset.mjrSort = l("sort", "mtime_desc") || "mtime_desc", e.dataset.mjrCollectionId = l("collectionId", "") || "", e.dataset.mjrSemanticMode = y() ? "1" : "0";
+		e.dataset.mjrSubfolder = s, e.dataset.mjrFilterKind = l("kindFilter", "") || "", e.dataset.mjrFilterWorkflowOnly = l("workflowOnly", !1) ? "1" : "0", e.dataset.mjrFilterMinRating = String(l("minRating", 0) || 0), e.dataset.mjrFilterMinSizeMB = String(l("minSizeMB", 0) || 0), e.dataset.mjrFilterMaxSizeMB = String(l("maxSizeMB", 0) || 0), e.dataset.mjrFilterResolutionCompare = String(l("resolutionCompare", "gte") || "gte"), e.dataset.mjrFilterMinWidth = String(l("minWidth", 0) || 0), e.dataset.mjrFilterMinHeight = String(l("minHeight", 0) || 0), e.dataset.mjrFilterMaxWidth = String(l("maxWidth", 0) || 0), e.dataset.mjrFilterMaxHeight = String(l("maxHeight", 0) || 0), e.dataset.mjrFilterWorkflowType = String(l("workflowType", "") || ""), e.dataset.mjrFilterWorkflowId = String(l("workflowId", "") || ""), e.dataset.mjrFilterWorkflowModel = String(l("workflowModelFilter", "") || ""), e.dataset.mjrFilterWorkflowRunsOn = String(l("workflowRunsOnFilter", "") || ""), e.dataset.mjrFilterDateRange = l("dateRangeFilter", "") || "", e.dataset.mjrFilterDateExact = l("dateExactFilter", "") || "", e.dataset.mjrSort = l("sort", "mtime_desc") || "mtime_desc", e.dataset.mjrCollectionId = l("collectionId", "") || "", e.dataset.mjrSemanticMode = v() ? "1" : "0";
 		try {
 			e.dataset.mjrQuery = String(o?.() ?? "*") || "*";
 		} catch (e) {
@@ -14750,7 +14855,7 @@ function n_({ gridContainer: e, loadAssets: t, loadAssetsFromList: n, getCollect
 			console.debug?.(e);
 		}
 		if (l("scope", "output") === "custom" && !l("customRootId", "") && !l("currentFolderRelativePath", "") && u("currentFolderRelativePath", ""), l("collectionId", "")) {
-			let t = await r?.(l("collectionId", ""));
+			let t = await i?.(l("collectionId", ""));
 			if (t?.ok && t.data && Array.isArray(t.data.assets)) {
 				let r = l("collectionName", "") ? `Collection: ${l("collectionName", "")}` : "Collection", i = await n(e, t.data.assets, {
 					title: r,
@@ -14768,7 +14873,7 @@ function n_({ gridContainer: e, loadAssets: t, loadAssetsFromList: n, getCollect
 		let d = a;
 		if (d === "similar") {
 			let r = Array.isArray(l("similarResults", [])) ? l("similarResults", []) : [], i = Array.isArray(c?.similarResults) ? c.similarResults : [], a = r.length > 0 ? r : i, o = String(l("similarSourceAssetId", c?.similarSourceAssetId || "") || "").trim(), s = await n(e, a, {
-				title: String(l("similarTitle", c?.similarTitle || "") || L("search.similarResults", "Similar to asset #{id} ({n} results)", {
+				title: String(l("similarTitle", c?.similarTitle || "") || I("search.similarResults", "Similar to asset #{id} ({n} results)", {
 					id: o || "?",
 					n: a.length
 				})).trim() || "Similar",
@@ -14782,7 +14887,7 @@ function n_({ gridContainer: e, loadAssets: t, loadAssetsFromList: n, getCollect
 			}
 			return;
 		}
-		let f = i === "similar" && d !== "similar", p = await T(o(), {
+		let f = r === "similar" && d !== "similar", p = await w(o(), {
 			...t,
 			preserveVisibleUntilReady: t.preserveVisibleUntilReady ?? !f
 		});
@@ -14797,7 +14902,7 @@ function n_({ gridContainer: e, loadAssets: t, loadAssetsFromList: n, getCollect
 		} catch (e) {
 			console.debug?.(e);
 		}
-	}, D = null, O = async () => {
+	}, E = null, D = async () => {
 		if (f = !0, !d) {
 			d = !0;
 			try {
@@ -14805,12 +14910,12 @@ function n_({ gridContainer: e, loadAssets: t, loadAssetsFromList: n, getCollect
 					let e = { ...p || {} };
 					p = {}, f = !1;
 					try {
-						let t = b() && (y() || String(o?.() || "").length >= 12);
-						await v(() => E(e), t ? 15e4 : _);
+						let t = y() && (v() || String(o?.() || "").length >= 12);
+						await _(() => T(e), t ? 15e4 : g);
 					} catch (e) {
 						try {
 							let t = Date.now();
-							t - Number(h || 0) > 2e3 && (h = t, console.warn("[Majoor] Grid reload failed", e));
+							t - Number(m || 0) > 2e3 && (m = t, console.warn("[Majoor] Grid reload failed", e));
 						} catch (e) {
 							console.debug?.(e);
 						}
@@ -14825,14 +14930,14 @@ function n_({ gridContainer: e, loadAssets: t, loadAssetsFromList: n, getCollect
 		p = {
 			...p || {},
 			...e || {}
-		}, D && clearTimeout(D), D = setTimeout(() => {
-			D = null, O().then(t).catch(n);
+		}, E && clearTimeout(E), E = setTimeout(() => {
+			E = null, D().then(t).catch(n);
 		}, 30);
 	}) };
 }
 // ui/features/panel/controllers/browserNavigationController.ts
-function r_({ state: e, gridContainer: t, folderBreadcrumb: n, folderBreadcrumbController: r = null, customSelect: i, reloadGrid: a, clearSelection: o = null, onContextChanged: s = null, lifecycleSignal: c = null } = {}) {
-	let { read: l, write: u } = eg(e, [
+function s_({ state: e, gridContainer: t, folderBreadcrumb: n, folderBreadcrumbController: r = null, customSelect: i, reloadGrid: a, clearSelection: o = null, onContextChanged: s = null, lifecycleSignal: c = null } = {}) {
+	let { read: l, write: u } = ig(e, [
 		"scope",
 		"customRootId",
 		"currentFolderRelativePath"
@@ -14959,7 +15064,7 @@ function r_({ state: e, gridContainer: t, folderBreadcrumb: n, folderBreadcrumbC
 			onClick: async () => {
 				e === "Computer" && String(l("customRootId", "") || "").trim() ? await C() : await S(t);
 			}
-		}), T = [x(L("label.computer", "Computer"), "", !t)];
+		}), T = [x(I("label.computer", "Computer"), "", !t)];
 		if (a && T.push(x(o || a, "", !t)), t) {
 			let e = t.split("/").filter(Boolean), n = "";
 			for (let t = 0; t < e.length; t++) n = n ? `${n}/${e[t]}`.replace(/\/{2,}/g, "/") : p(e[t]) ? `${e[t]}/` : e[t], T.push(x(e[t], n, t === e.length - 1));
@@ -14967,12 +15072,12 @@ function r_({ state: e, gridContainer: t, folderBreadcrumb: n, folderBreadcrumbC
 		if (w({
 			visible: !0,
 			back: {
-				label: L("btn.back", "Back"),
+				label: I("btn.back", "Back"),
 				disabled: h,
 				onClick: v
 			},
 			up: {
-				label: L("btn.up", "Up"),
+				label: I("btn.up", "Up"),
 				disabled: _,
 				onClick: b
 			},
@@ -14980,9 +15085,9 @@ function r_({ state: e, gridContainer: t, folderBreadcrumb: n, folderBreadcrumbC
 		})) return;
 		n.style.display = "flex", n.replaceChildren();
 		let E = document.createElement("button");
-		E.type = "button", E.textContent = L("btn.back", "Back"), E.className = "mjr-btn-link mjr-folder-breadcrumb-action", E.disabled = h, E.addEventListener("click", v, { signal: c || void 0 }), n.appendChild(E);
+		E.type = "button", E.textContent = I("btn.back", "Back"), E.className = "mjr-btn-link mjr-folder-breadcrumb-action", E.disabled = h, E.addEventListener("click", v, { signal: c || void 0 }), n.appendChild(E);
 		let D = document.createElement("button");
-		D.type = "button", D.textContent = L("btn.up", "Up"), D.className = "mjr-btn-link mjr-folder-breadcrumb-action", D.disabled = _, D.addEventListener("click", b, { signal: c || void 0 }), n.appendChild(D);
+		D.type = "button", D.textContent = I("btn.up", "Up"), D.className = "mjr-btn-link mjr-folder-breadcrumb-action", D.disabled = _, D.addEventListener("click", b, { signal: c || void 0 }), n.appendChild(D);
 		let O = document.createElement("span");
 		O.textContent = "|", O.className = "mjr-folder-breadcrumb-separator", n.appendChild(O);
 		let k = (e, t, n = !1) => {
@@ -15065,8 +15170,8 @@ function r_({ state: e, gridContainer: t, folderBreadcrumb: n, folderBreadcrumbC
 	};
 }
 // ui/features/panel/controllers/scopeController.ts
-function i_({ state: e, tabButtons: t, customMenuBtn: n, customPopover: r, popovers: i, reloadGrid: a, reconcileSelection: o = null, onChanged: s = null, onScopeChanged: c = null, onBeforeReload: l = null }) {
-	let u = 0, { panelStore: d, read: f, write: p, controllerState: m } = eg(e, [
+function c_({ state: e, tabButtons: t, customMenuBtn: n, customPopover: r, popovers: i, reloadGrid: a, reconcileSelection: o = null, onChanged: s = null, onScopeChanged: c = null, onBeforeReload: l = null }) {
+	let u = 0, { panelStore: d, read: f, write: p, controllerState: m } = ig(e, [
 		"scope",
 		"customRootId",
 		"currentFolderRelativePath",
@@ -15181,21 +15286,21 @@ function i_({ state: e, tabButtons: t, customMenuBtn: n, customPopover: r, popov
 	};
 }
 // ui/features/panel/controllers/contextController.ts
-var a_ = (e, t) => {
+var l_ = (e, t) => {
 	if (e) try {
 		e.value = t;
 	} catch (e) {
 		console.debug?.(e);
 	}
-}, o_ = (e, t) => {
+}, u_ = (e, t) => {
 	if (e) try {
 		e.checked = !!t;
 	} catch (e) {
 		console.debug?.(e);
 	}
 };
-function s_({ state: e, gridContainer: t, filterBtn: n, sortBtn: r, collectionsBtn: i, searchInputEl: a, kindSelect: o, wfCheckbox: s, workflowTypeSelect: c, workflowIdInput: l, workflowModelInput: u, workflowRunsOnSelect: d, ratingSelect: f, minSizeInput: p, maxSizeInput: m, minWidthInput: h, minHeightInput: g, maxWidthInput: _, maxHeightInput: v, resolutionPresetSelect: y, dateRangeSelect: b, dateExactInput: x, scopeController: S, sortController: C, updateSummaryBar: w, reloadGrid: T, extraActions: E = null, getExtraContext: D = null } = {}) {
-	let O = e && typeof e == "object" ? e : {}, { read: k, write: A, controllerState: ee } = eg(e, /* @__PURE__ */ "searchQuery.scope.collectionId.collectionName.customRootId.customRootLabel.currentFolderRelativePath.kindFilter.workflowOnly.minRating.minSizeMB.maxSizeMB.minWidth.minHeight.maxWidth.maxHeight.resolutionCompare.workflowType.workflowId.workflowModelFilter.workflowRunsOnFilter.dateRangeFilter.dateExactFilter.sort.viewScope.similarResults.similarTitle.similarSourceAssetId".split(".")), j = (e, t) => {
+function d_({ state: e, gridContainer: t, filterBtn: n, sortBtn: r, collectionsBtn: i, searchInputEl: a, kindSelect: o, wfCheckbox: s, workflowTypeSelect: c, workflowIdInput: l, workflowModelInput: u, workflowRunsOnSelect: d, ratingSelect: f, minSizeInput: p, maxSizeInput: m, minWidthInput: h, minHeightInput: g, maxWidthInput: _, maxHeightInput: v, resolutionPresetSelect: y, dateRangeSelect: b, dateExactInput: x, scopeController: S, sortController: C, updateSummaryBar: w, reloadGrid: T, extraActions: E = null, getExtraContext: D = null } = {}) {
+	let O = e && typeof e == "object" ? e : {}, { read: k, write: A, controllerState: ee } = ig(e, /* @__PURE__ */ "searchQuery.scope.collectionId.collectionName.customRootId.customRootLabel.currentFolderRelativePath.kindFilter.workflowOnly.minRating.minSizeMB.maxSizeMB.minWidth.minHeight.maxWidth.maxHeight.resolutionCompare.workflowType.workflowId.workflowModelFilter.workflowRunsOnFilter.dateRangeFilter.dateExactFilter.sort.viewScope.similarResults.similarTitle.similarSourceAssetId".split(".")), j = (e, t) => {
 		A(e, t);
 	}, M = (e, t = "") => k(e, t), te = () => ({
 		...O || {},
@@ -15207,7 +15312,7 @@ function s_({ state: e, gridContainer: t, filterBtn: n, sortBtn: r, collectionsB
 		} catch (e) {
 			console.debug?.(e);
 		}
-	}, N = () => {
+	}, re = () => {
 		try {
 			let e = t?.closest?.(".mjr-assets-manager") || document.querySelector?.(".mjr-assets-manager") || document.documentElement;
 			if (!e?.style?.setProperty) return;
@@ -15215,10 +15320,10 @@ function s_({ state: e, gridContainer: t, filterBtn: n, sortBtn: r, collectionsB
 		} catch (e) {
 			console.debug?.(e);
 		}
-	}, P = {
+	}, N = {
 		clearQuery: async () => {
 			try {
-				a_(a, ""), j("searchQuery", "");
+				l_(a, ""), j("searchQuery", "");
 			} catch (e) {
 				console.debug?.(e);
 			}
@@ -15287,7 +15392,7 @@ function s_({ state: e, gridContainer: t, filterBtn: n, sortBtn: r, collectionsB
 		},
 		clearKind: async () => {
 			try {
-				j("kindFilter", ""), a_(o, "");
+				j("kindFilter", ""), l_(o, "");
 			} catch (e) {
 				console.debug?.(e);
 			}
@@ -15299,7 +15404,7 @@ function s_({ state: e, gridContainer: t, filterBtn: n, sortBtn: r, collectionsB
 		},
 		clearMinRating: async () => {
 			try {
-				j("minRating", 0), a_(f, "0");
+				j("minRating", 0), l_(f, "0");
 			} catch (e) {
 				console.debug?.(e);
 			}
@@ -15311,7 +15416,7 @@ function s_({ state: e, gridContainer: t, filterBtn: n, sortBtn: r, collectionsB
 		},
 		clearWorkflowOnly: async () => {
 			try {
-				j("workflowOnly", !1), o_(s, !1);
+				j("workflowOnly", !1), u_(s, !1);
 			} catch (e) {
 				console.debug?.(e);
 			}
@@ -15323,7 +15428,7 @@ function s_({ state: e, gridContainer: t, filterBtn: n, sortBtn: r, collectionsB
 		},
 		clearWorkflowType: async () => {
 			try {
-				j("workflowType", ""), a_(c, "");
+				j("workflowType", ""), l_(c, "");
 			} catch (e) {
 				console.debug?.(e);
 			}
@@ -15335,7 +15440,7 @@ function s_({ state: e, gridContainer: t, filterBtn: n, sortBtn: r, collectionsB
 		},
 		clearWorkflowId: async () => {
 			try {
-				j("workflowId", ""), a_(l, "");
+				j("workflowId", ""), l_(l, "");
 			} catch (e) {
 				console.debug?.(e);
 			}
@@ -15347,7 +15452,7 @@ function s_({ state: e, gridContainer: t, filterBtn: n, sortBtn: r, collectionsB
 		},
 		clearWorkflowModel: async () => {
 			try {
-				j("workflowModelFilter", ""), a_(u, "");
+				j("workflowModelFilter", ""), l_(u, "");
 			} catch (e) {
 				console.debug?.(e);
 			}
@@ -15359,7 +15464,7 @@ function s_({ state: e, gridContainer: t, filterBtn: n, sortBtn: r, collectionsB
 		},
 		clearWorkflowRunsOn: async () => {
 			try {
-				j("workflowRunsOnFilter", ""), a_(d, "");
+				j("workflowRunsOnFilter", ""), l_(d, "");
 			} catch (e) {
 				console.debug?.(e);
 			}
@@ -15371,7 +15476,7 @@ function s_({ state: e, gridContainer: t, filterBtn: n, sortBtn: r, collectionsB
 		},
 		clearSize: async () => {
 			try {
-				j("minSizeMB", 0), j("maxSizeMB", 0), a_(p, ""), a_(m, "");
+				j("minSizeMB", 0), j("maxSizeMB", 0), l_(p, ""), l_(m, "");
 			} catch (e) {
 				console.debug?.(e);
 			}
@@ -15383,7 +15488,7 @@ function s_({ state: e, gridContainer: t, filterBtn: n, sortBtn: r, collectionsB
 		},
 		clearResolution: async () => {
 			try {
-				j("minWidth", 0), j("minHeight", 0), j("maxWidth", 0), j("maxHeight", 0), a_(h, ""), a_(g, ""), a_(_, ""), a_(v, ""), a_(y, "");
+				j("minWidth", 0), j("minHeight", 0), j("maxWidth", 0), j("maxHeight", 0), l_(h, ""), l_(g, ""), l_(_, ""), l_(v, ""), l_(y, "");
 			} catch (e) {
 				console.debug?.(e);
 			}
@@ -15395,7 +15500,7 @@ function s_({ state: e, gridContainer: t, filterBtn: n, sortBtn: r, collectionsB
 		},
 		clearDateRange: async () => {
 			try {
-				j("dateRangeFilter", ""), a_(b, "");
+				j("dateRangeFilter", ""), l_(b, "");
 			} catch (e) {
 				console.debug?.(e);
 			}
@@ -15407,7 +15512,7 @@ function s_({ state: e, gridContainer: t, filterBtn: n, sortBtn: r, collectionsB
 		},
 		clearDateExact: async () => {
 			try {
-				j("dateExactFilter", ""), a_(x, "");
+				j("dateExactFilter", ""), l_(x, "");
 			} catch (e) {
 				console.debug?.(e);
 			}
@@ -15432,7 +15537,7 @@ function s_({ state: e, gridContainer: t, filterBtn: n, sortBtn: r, collectionsB
 		clearAll: async () => {
 			let e = !1;
 			try {
-				a_(a, "");
+				l_(a, "");
 			} catch (e) {
 				console.debug?.(e);
 			}
@@ -15448,7 +15553,7 @@ function s_({ state: e, gridContainer: t, filterBtn: n, sortBtn: r, collectionsB
 				console.debug?.(e);
 			}
 			try {
-				a_(o, ""), o_(s, !1), a_(c, ""), a_(l, ""), a_(u, ""), a_(d, ""), a_(f, "0"), a_(p, ""), a_(m, ""), a_(h, ""), a_(g, ""), a_(_, ""), a_(v, ""), a_(y, ""), a_(b, ""), a_(x, "");
+				l_(o, ""), u_(s, !1), l_(c, ""), l_(l, ""), l_(u, ""), l_(d, ""), l_(f, "0"), l_(p, ""), l_(m, ""), l_(h, ""), l_(g, ""), l_(_, ""), l_(v, ""), l_(y, ""), l_(b, ""), l_(x, "");
 			} catch (e) {
 				console.debug?.(e);
 			}
@@ -15470,11 +15575,11 @@ function s_({ state: e, gridContainer: t, filterBtn: n, sortBtn: r, collectionsB
 			"constructor",
 			"prototype"
 		]);
-		for (let [t, n] of Object.entries(E)) e.has(String(t)) || (P[t] = n);
+		for (let [t, n] of Object.entries(E)) e.has(String(t)) || (N[t] = n);
 	}
 	return {
 		update: () => {
-			let e = String(a?.value || "").trim(), o = t_(a), s = te(), c = !!(M("kindFilter", "") || M("workflowOnly", !1) || (Number(M("minRating", 0) || 0) || 0) > 0 || (Number(M("minSizeMB", 0) || 0) || 0) > 0 || (Number(M("maxSizeMB", 0) || 0) || 0) > 0 || (Number(M("minWidth", 0) || 0) || 0) > 0 || (Number(M("minHeight", 0) || 0) || 0) > 0 || (Number(M("maxWidth", 0) || 0) || 0) > 0 || (Number(M("maxHeight", 0) || 0) || 0) > 0 || String(M("workflowType", "") || "").trim().length > 0 || String(M("workflowId", "") || "").trim().length > 0 || String(M("workflowModelFilter", "") || "").trim().length > 0 || String(M("workflowRunsOnFilter", "") || "").trim().length > 0 || M("dateRangeFilter", "") || M("dateExactFilter", "")), l = String(M("sort", "mtime_desc") || "mtime_desc") !== "mtime_desc", u = !!M("collectionId", "");
+			let e = String(a?.value || "").trim(), o = a_(a), s = te(), c = !!(M("kindFilter", "") || M("workflowOnly", !1) || (Number(M("minRating", 0) || 0) || 0) > 0 || (Number(M("minSizeMB", 0) || 0) || 0) > 0 || (Number(M("maxSizeMB", 0) || 0) || 0) > 0 || (Number(M("minWidth", 0) || 0) || 0) > 0 || (Number(M("minHeight", 0) || 0) || 0) > 0 || (Number(M("maxWidth", 0) || 0) || 0) > 0 || (Number(M("maxHeight", 0) || 0) || 0) > 0 || String(M("workflowType", "") || "").trim().length > 0 || String(M("workflowId", "") || "").trim().length > 0 || String(M("workflowModelFilter", "") || "").trim().length > 0 || String(M("workflowRunsOnFilter", "") || "").trim().length > 0 || M("dateRangeFilter", "") || M("dateExactFilter", "")), l = String(M("sort", "mtime_desc") || "mtime_desc") !== "mtime_desc", u = !!M("collectionId", "");
 			try {
 				n?.classList?.toggle?.("mjr-context-active", c), r?.classList?.toggle?.("mjr-context-active", l), i?.classList?.toggle?.("mjr-context-active", u);
 			} catch (e) {
@@ -15489,29 +15594,29 @@ function s_({ state: e, gridContainer: t, filterBtn: n, sortBtn: r, collectionsB
 						rawQuery: e || o,
 						...n
 					},
-					actions: P
+					actions: N
 				});
 			} catch (e) {
 				console.debug?.(e);
 			}
-			N();
+			re();
 		},
-		actions: P
+		actions: N
 	};
 }
 // ui/features/panel/controllers/customRootsController.ts
-function c_({ state: e, customSelect: t, customRemoveBtn: n, comfyConfirm: r, comfyPrompt: i, comfyToast: a, get: o, post: s, ENDPOINTS: c, reloadGrid: l, onRootChanged: u = null }) {
-	let d = e && typeof e == "object" ? e : {}, { read: f, write: p } = eg(e, [
+function f_({ state: e, customSelect: t, customRemoveBtn: n, comfyConfirm: r, comfyPrompt: i, comfyToast: a, get: o, post: s, ENDPOINTS: c, reloadGrid: l, onRootChanged: u = null }) {
+	let d = e && typeof e == "object" ? e : {}, { read: f, write: p } = ig(e, [
 		"customRootId",
 		"customRootLabel",
 		"currentFolderRelativePath"
 	]), m = (e) => {
 		p("customRootLabel", String(e || ""));
 	}, h = async (e = null) => {
-		let r = t.querySelector("option[value=\"\"]")?.textContent || L("label.selectFolder", "Select folder...");
+		let r = t.querySelector("option[value=\"\"]")?.textContent || I("label.selectFolder", "Select folder...");
 		t.innerHTML = "";
 		let i = document.createElement("option");
-		i.value = "", i.textContent = L("msg.loading"), i.disabled = !0, t.appendChild(i), t.disabled = !0;
+		i.value = "", i.textContent = I("msg.loading"), i.disabled = !0, t.appendChild(i), t.disabled = !0;
 		try {
 			let i = await o(c.CUSTOM_ROOTS), a = i && i.ok && Array.isArray(i.data) ? i.data : [];
 			t.innerHTML = "";
@@ -15534,7 +15639,7 @@ function c_({ state: e, customSelect: t, customRemoveBtn: n, comfyConfirm: r, co
 		} catch (e) {
 			console.warn("Majoor: failed to load custom roots", e), t.innerHTML = "";
 			let n = document.createElement("option");
-			n.value = "", n.textContent = L("msg.errorLoadingFolders"), n.disabled = !0, t.appendChild(n);
+			n.value = "", n.textContent = I("msg.errorLoadingFolders"), n.disabled = !0, t.appendChild(n);
 		} finally {
 			t.disabled = !1;
 		}
@@ -15575,7 +15680,7 @@ function c_({ state: e, customSelect: t, customRemoveBtn: n, comfyConfirm: r, co
 					}
 					await l();
 				}
-			}), n && (n.disabled = !1, n.title = L("btn.add", "Add")), _(n, "click", async () => {
+			}), n && (n.disabled = !1, n.title = I("btn.add", "Add")), _(n, "click", async () => {
 				let t = "";
 				try {
 					let e = await s(c.BROWSE_FOLDER, {});
@@ -15584,16 +15689,16 @@ function c_({ state: e, customSelect: t, customRemoveBtn: n, comfyConfirm: r, co
 					console.debug?.(e);
 				}
 				if (!t) {
-					let e = await i(L("dialog.enterFolderPath", "Enter folder path"), "");
+					let e = await i(I("dialog.enterFolderPath", "Enter folder path"), "");
 					t = String(e || "").trim();
 				}
 				if (!t) return;
-				let n = await i(L("dialog.folderLabelOptional", "Folder label (optional)"), ""), r = await s(c.CUSTOM_ROOTS, {
+				let n = await i(I("dialog.folderLabelOptional", "Folder label (optional)"), ""), r = await s(c.CUSTOM_ROOTS, {
 					path: t,
 					label: String(n || "").trim() || void 0
 				});
 				if (!r?.ok) {
-					a(r?.error || L("toast.failedAddFolder", "Failed to add browser folder"), "error");
+					a(r?.error || I("toast.failedAddFolder", "Failed to add browser folder"), "error");
 					return;
 				}
 				let o = String(r?.data?.id || "").trim() || null;
@@ -15603,23 +15708,23 @@ function c_({ state: e, customSelect: t, customRemoveBtn: n, comfyConfirm: r, co
 				} catch (e) {
 					console.debug?.(e);
 				}
-				await l(), a(L("toast.folderAdded", "Folder added"), "success");
+				await l(), a(I("toast.folderAdded", "Folder added"), "success");
 			}), _(o, "click", async () => {
 				if (!f("customRootId", "")) return;
-				let e = t.options[t.selectedIndex], n = e ? e.text : L("label.thisFolder", "this folder");
-				if (await r(L("dialog.removeFolder", `Remove the browser folder "${n}"?`, { name: n }), L("dialog.customFoldersTitle", "Majoor: Browser Folders"))) {
-					o.disabled = !0, o.textContent = L("btn.removing");
+				let e = t.options[t.selectedIndex], n = e ? e.text : I("label.thisFolder", "this folder");
+				if (await r(I("dialog.removeFolder", `Remove the browser folder "${n}"?`, { name: n }), I("dialog.customFoldersTitle", "Majoor: Browser Folders"))) {
+					o.disabled = !0, o.textContent = I("btn.removing");
 					try {
 						let e = await s(c.CUSTOM_ROOTS_REMOVE, { id: f("customRootId", "") });
 						if (!e?.ok) {
-							a(e?.error || L("toast.failedRemoveFolder", "Failed to remove browser folder"), "error");
+							a(e?.error || I("toast.failedRemoveFolder", "Failed to remove browser folder"), "error");
 							return;
 						}
-						a(L("toast.folderRemoved", "Folder removed"), "success"), p("customRootId", ""), m(""), p("currentFolderRelativePath", ""), await h(), await l();
+						a(I("toast.folderRemoved", "Folder removed"), "success"), p("customRootId", ""), m(""), p("currentFolderRelativePath", ""), await h(), await l();
 					} catch (e) {
-						console.warn("Majoor: remove custom root failed", e), a(L("toast.errorRemovingFolder", "An error occurred while removing the browser folder"), "error");
+						console.warn("Majoor: remove custom root failed", e), a(I("toast.errorRemovingFolder", "An error occurred while removing the browser folder"), "error");
 					} finally {
-						o.disabled = !f("customRootId", ""), o.textContent = L("btn.remove");
+						o.disabled = !f("customRootId", ""), o.textContent = I("btn.remove");
 					}
 				}
 			}), () => {
@@ -15633,35 +15738,35 @@ function c_({ state: e, customSelect: t, customRemoveBtn: n, comfyConfirm: r, co
 	};
 }
 // ui/features/panel/controllers/sortController.ts
-function l_({ state: e, sortBtn: t, sortMenu: n, sortPopover: r, popovers: i, reloadGrid: a, onChanged: o = null }) {
-	let { read: s, write: c } = eg(e, ["sort"]), l = () => [
+function p_({ state: e, sortBtn: t, sortMenu: n, sortPopover: r, popovers: i, reloadGrid: a, onChanged: o = null }) {
+	let { read: s, write: c } = ig(e, ["sort"]), l = () => [
 		{
 			key: "mtime_desc",
-			label: L("sort.newest")
+			label: I("sort.newest")
 		},
 		{
 			key: "mtime_asc",
-			label: L("sort.oldest")
+			label: I("sort.oldest")
 		},
 		{
 			key: "name_asc",
-			label: L("sort.nameAZ")
+			label: I("sort.nameAZ")
 		},
 		{
 			key: "name_desc",
-			label: L("sort.nameZA")
+			label: I("sort.nameZA")
 		},
 		{
 			key: "rating_desc",
-			label: L("sort.ratingHigh")
+			label: I("sort.ratingHigh")
 		},
 		{
 			key: "size_desc",
-			label: L("sort.sizeDesc")
+			label: I("sort.sizeDesc")
 		},
 		{
 			key: "size_asc",
-			label: L("sort.sizeAsc")
+			label: I("sort.sizeAsc")
 		}
 	], u = (e) => {
 		let n = t.querySelector("i");
@@ -15719,24 +15824,24 @@ function l_({ state: e, sortBtn: t, sortMenu: n, sortPopover: r, popovers: i, re
 	};
 }
 // ui/features/panel/controllers/sidebarController.ts
-var u_ = "_mjrRescanning", d_ = 1500, f_ = (e) => /^\d+$/.test(String(e ?? "").trim());
-async function p_({ card: e, asset: t, sidebar: n, onAssetUpdated: r }) {
+var m_ = "_mjrRescanning", h_ = 1500, g_ = (e) => /^\d+$/.test(String(e ?? "").trim());
+async function __({ card: e, asset: t, sidebar: n, onAssetUpdated: r }) {
 	if (!e || !t || globalThis._mjrMaintenanceActive) return;
 	try {
 		let t = Date.now();
-		if (t - (Number(e[u_] || 0) || 0) < d_) return;
-		e[u_] = t;
+		if (t - (Number(e[m_] || 0) || 0) < h_) return;
+		e[m_] = t;
 	} catch (e) {
 		console.debug?.(e);
 	}
 	let i = e.querySelector(".mjr-workflow-dot");
 	try {
-		i && (vn(i, "pending", "Pending: metadata refresh in progress", { asset: t }), i.classList.add("mjr-pulse-animation"), i.style.cursor = "progress", i.title = L("tooltip.pendingRefresh", "Pending: metadata refresh in progress"));
+		i && (yn(i, "pending", "Pending: metadata refresh in progress", { asset: t }), i.classList.add("mjr-pulse-animation"), i.style.cursor = "progress", i.title = I("tooltip.pendingRefresh", "Pending: metadata refresh in progress"));
 	} catch (e) {
 		console.debug?.(e);
 	}
 	try {
-		m(L("toast.rescanUpdatingAiIndex", "Rescanning file + updating AI index..."), "info", 2200);
+		F(I("toast.rescanUpdatingAiIndex", "Rescanning file + updating AI index..."), "info", 2200);
 	} catch (e) {
 		console.debug?.(e);
 	}
@@ -15744,22 +15849,22 @@ async function p_({ card: e, asset: t, sidebar: n, onAssetUpdated: r }) {
 		filename: t.filename,
 		subfolder: t.subfolder || "",
 		type: String(t.type || "output").toLowerCase(),
-		root_id: Se(t) || void 0
+		root_id: ye(t) || void 0
 	}, o = null, s = !1, c = !1, l = !1;
 	try {
-		if (s = !!(await pe(I.INDEX_FILES, {
+		if (s = !!(await rt(m.INDEX_FILES, {
 			files: [a],
 			incremental: !1
-		}))?.ok, !s && i && (vn(i, "error", "Error: metadata refresh failed", { asset: t }), i.classList.remove("mjr-pulse-animation"), i.style.cursor = ""), f_(t?.id)) {
+		}))?.ok, !s && i && (yn(i, "error", "Error: metadata refresh failed", { asset: t }), i.classList.remove("mjr-pulse-animation"), i.style.cursor = ""), g_(t?.id)) {
 			c = !0;
 			try {
-				l = !!(await at(t.id))?.ok;
+				l = !!(await j(t.id))?.ok;
 			} catch (e) {
 				console.debug?.(e);
 			}
 		}
 		if (s && t.id != null) {
-			let e = await Ge(t.id);
+			let e = await Le(t.id);
 			e?.ok && e.data && (o = {
 				...t,
 				...e.data
@@ -15767,7 +15872,7 @@ async function p_({ card: e, asset: t, sidebar: n, onAssetUpdated: r }) {
 		}
 	} catch {
 		try {
-			i && (vn(i, "error", "Error: metadata refresh failed", { asset: t }), i.classList.remove("mjr-pulse-animation"), i.style.cursor = "");
+			i && (yn(i, "error", "Error: metadata refresh failed", { asset: t }), i.classList.remove("mjr-pulse-animation"), i.style.cursor = "");
 		} catch (e) {
 			console.debug?.(e);
 		}
@@ -15787,7 +15892,7 @@ async function p_({ card: e, asset: t, sidebar: n, onAssetUpdated: r }) {
 	} finally {
 		try {
 			if (i && i.isConnected) {
-				let e = yn(o || t);
+				let e = bn(o || t);
 				e && i.replaceWith(e);
 			}
 		} catch {
@@ -15799,13 +15904,13 @@ async function p_({ card: e, asset: t, sidebar: n, onAssetUpdated: r }) {
 		}
 	}
 	try {
-		s && l ? m(L("toast.metadataVectorUpdated", "Metadata + AI vector index updated for this asset."), "success", 2200) : s && c && !l && m(L("toast.metadataUpdatedVectorFailed", "Metadata updated. AI vector index could not be updated."), "warning", 2600);
+		s && l ? F(I("toast.metadataVectorUpdated", "Metadata + AI vector index updated for this asset."), "success", 2200) : s && c && !l && F(I("toast.metadataUpdatedVectorFailed", "Metadata updated. AI vector index could not be updated."), "warning", 2600);
 	} catch (e) {
 		console.debug?.(e);
 	}
 	return o;
 }
-function m_(e, t) {
+function v_(e, t) {
 	if (e) {
 		try {
 			let n = e.querySelector(".mjr-asset-card.is-selected");
@@ -15841,7 +15946,7 @@ function m_(e, t) {
 		}
 	}
 }
-var h_ = (e) => {
+var y_ = (e) => {
 	if (e == null) return "";
 	try {
 		if (typeof CSS < "u" && typeof CSS.escape == "function") return CSS.escape(String(e));
@@ -15850,32 +15955,32 @@ var h_ = (e) => {
 	}
 	return String(e).replace(/([!"#$%&'()*+,./:;<=>?@[\\\]^`{|}~])/g, "\\$1");
 };
-function g_(e, t) {
+function b_(e, t) {
 	if (!e || !t) return null;
 	try {
-		return e.querySelector(`.mjr-asset-card[data-mjr-asset-id="${h_(t)}"]`);
+		return e.querySelector(`.mjr-asset-card[data-mjr-asset-id="${y_(t)}"]`);
 	} catch (e) {
 		console.debug?.(e);
 	}
 	try {
-		return e.querySelector(`.mjr-asset-card[data-mjr-asset-id="${h_(t)}"]`);
+		return e.querySelector(`.mjr-asset-card[data-mjr-asset-id="${y_(t)}"]`);
 	} catch (e) {
 		console.debug?.(e);
 	}
 	return null;
 }
-function __(e) {
+function x_(e) {
 	if (!e) return null;
 	let t = e.dataset?.mjrSelectedAssetId;
 	if (t) {
-		let n = g_(e, t);
+		let n = b_(e, t);
 		if (n) return n;
 	}
 	let n = e.dataset?.mjrSelectedAssetIds;
 	if (n) try {
 		let t = JSON.parse(n);
 		if (Array.isArray(t) && t.length) {
-			let n = g_(e, t[0]);
+			let n = b_(e, t[0]);
 			if (n) return n;
 		}
 	} catch (e) {
@@ -15883,7 +15988,7 @@ function __(e) {
 	}
 	return e.querySelector(".mjr-asset-card.is-selected");
 }
-function v_(e, { preventScroll: t = !0 } = {}) {
+function S_(e, { preventScroll: t = !0 } = {}) {
 	if (e) try {
 		e.focus?.({ preventScroll: t });
 	} catch {
@@ -15894,14 +15999,14 @@ function v_(e, { preventScroll: t = !0 } = {}) {
 		}
 	}
 }
-function y_(e, { force: t = !1 } = {}) {
+function C_(e, { force: t = !1 } = {}) {
 	if (!e || !t && !e._mjrFocusWithin) return;
-	let n = __(e);
-	n && (v_(n), e._mjrFocusWithin = !0);
+	let n = x_(e);
+	n && (S_(n), e._mjrFocusWithin = !0);
 }
-function b_(e) {
+function w_(e) {
 	if (e) try {
-		let t = __(e);
+		let t = x_(e);
 		if (!t) return;
 		let n = e.parentElement;
 		if (n && typeof n.getBoundingClientRect == "function" && typeof t.getBoundingClientRect == "function") {
@@ -15916,7 +16021,7 @@ function b_(e) {
 		console.debug?.(e);
 	}
 }
-function x_(e) {
+function T_(e) {
 	if (e) try {
 		e._mjrAutoRevealSelectionUntil = Date.now() + 900;
 	} catch (e) {
@@ -15924,12 +16029,12 @@ function x_(e) {
 	}
 	let t = () => {
 		try {
-			b_(e);
+			w_(e);
 		} catch (e) {
 			console.debug?.(e);
 		}
 		try {
-			y_(e);
+			C_(e);
 		} catch (e) {
 			console.debug?.(e);
 		}
@@ -15944,10 +16049,10 @@ function x_(e) {
 		t();
 	}
 }
-function S_(e, t) {
+function E_(e, t) {
 	e && (t ? (e.classList.add("is-selected"), e.setAttribute?.("aria-selected", "true")) : (e.classList.remove("is-selected"), e.setAttribute?.("aria-selected", "false")));
 }
-function C_(e) {
+function D_(e) {
 	try {
 		if (typeof e?._mjrGetRenderedCards == "function") {
 			let t = e._mjrGetRenderedCards();
@@ -15962,15 +16067,15 @@ function C_(e) {
 		return [];
 	}
 }
-function w_(e) {
+function O_(e) {
 	if (e) try {
-		let t = C_(e).filter((e) => e?.classList?.contains?.("is-selected")).map((e) => e?.dataset?.mjrAssetId).filter(Boolean);
+		let t = D_(e).filter((e) => e?.classList?.contains?.("is-selected")).map((e) => e?.dataset?.mjrAssetId).filter(Boolean);
 		t.length ? (e.dataset.mjrSelectedAssetIds = JSON.stringify(t), !e.dataset.mjrSelectedAssetId && t[0] && (e.dataset.mjrSelectedAssetId = String(t[0]))) : (delete e.dataset.mjrSelectedAssetIds, delete e.dataset.mjrSelectedAssetId);
 	} catch (e) {
 		console.debug?.(e);
 	}
 }
-function T_(e, t, n = "") {
+function k_(e, t, n = "") {
 	if (!e) return [];
 	let r = Array.from(t || []).map(String).filter(Boolean);
 	try {
@@ -15984,9 +16089,9 @@ function T_(e, t, n = "") {
 		console.debug?.(e);
 	}
 	try {
-		for (let t of C_(e)) {
+		for (let t of D_(e)) {
 			let e = t?.dataset?.mjrAssetId;
-			S_(t, !!(e && r.includes(String(e))));
+			E_(t, !!(e && r.includes(String(e))));
 		}
 	} catch (e) {
 		console.debug?.(e);
@@ -16001,7 +16106,7 @@ function T_(e, t, n = "") {
 	}
 	return r;
 }
-function E_({ gridContainer: e, state: t, activeId: n, readState: r = null, writeState: i = null } = {}) {
+function A_({ gridContainer: e, state: t, activeId: n, readState: r = null, writeState: i = null } = {}) {
 	if ((t || i) && e) try {
 		let a = [];
 		if (e.dataset?.mjrSelectedAssetIds) try {
@@ -16010,7 +16115,7 @@ function E_({ gridContainer: e, state: t, activeId: n, readState: r = null, writ
 		} catch (e) {
 			console.debug?.(e);
 		}
-		else a = e.dataset?.mjrSelectedAssetId ? [String(e.dataset.mjrSelectedAssetId)].filter(Boolean) : C_(e).filter((e) => e?.classList?.contains?.("is-selected")).map((e) => e?.dataset?.mjrAssetId).filter(Boolean).map(String);
+		else a = e.dataset?.mjrSelectedAssetId ? [String(e.dataset.mjrSelectedAssetId)].filter(Boolean) : D_(e).filter((e) => e?.classList?.contains?.("is-selected")).map((e) => e?.dataset?.mjrAssetId).filter(Boolean).map(String);
 		typeof i == "function" ? i("selectedAssetIds", a) : t.selectedAssetIds = a;
 		let o = String(typeof r == "function" ? r("activeAssetId", "") || "" : t?.activeAssetId || "");
 		n == null ? o && a.includes(o) || (typeof i == "function" ? i("activeAssetId", a[0] || "") : t.activeAssetId = a[0] || "") : typeof i == "function" ? i("activeAssetId", String(n)) : t.activeAssetId = String(n);
@@ -16018,8 +16123,8 @@ function E_({ gridContainer: e, state: t, activeId: n, readState: r = null, writ
 		console.debug?.(e);
 	}
 }
-function D_({ gridContainer: e, sidebar: t, createRatingBadge: n, createTagsBadge: r, showAssetInSidebar: i, closeSidebar: a, state: o }) {
-	let { read: s, write: c } = eg(o, [
+function j_({ gridContainer: e, sidebar: t, createRatingBadge: n, createTagsBadge: r, showAssetInSidebar: i, closeSidebar: a, state: o }) {
+	let { read: s, write: c } = ig(o, [
 		"activeAssetId",
 		"selectedAssetIds",
 		"sidebarOpen"
@@ -16029,7 +16134,7 @@ function D_({ gridContainer: e, sidebar: t, createRatingBadge: n, createTagsBadg
 	e._mjrSidebarOpenBound = !0;
 	let l = (t) => {
 		e._mjrFocusWithin = !0;
-		let n = Yt(t.target, ".mjr-asset-card");
+		let n = Xt(t.target, ".mjr-asset-card");
 		if (n) try {
 			e._mjrLastFocusedCardId = n.dataset?.mjrAssetId || "";
 		} catch (e) {
@@ -16054,9 +16159,9 @@ function D_({ gridContainer: e, sidebar: t, createRatingBadge: n, createTagsBadg
 				}
 			}, a = () => {
 				n && cancelAnimationFrame(n), r && clearTimeout(r), n = requestAnimationFrame(() => {
-					n = null, i() && b_(e);
+					n = null, i() && w_(e);
 				}), r = setTimeout(() => {
-					r = null, i() && b_(e);
+					r = null, i() && w_(e);
 				}, 160);
 			}, o = new ResizeObserver(() => a());
 			t && o.observe(t), o.observe(e), e._mjrSelectionResizeObserver = o;
@@ -16068,7 +16173,7 @@ function D_({ gridContainer: e, sidebar: t, createRatingBadge: n, createTagsBadg
 		try {
 			let n = i?.has_workflow ?? i?.hasWorkflow ?? t.has_workflow, r = i?.has_generation_data ?? i?.hasGenerationData ?? t.has_generation_data;
 			n !== void 0 && (t.has_workflow = n), r !== void 0 && (t.has_generation_data = r);
-			let a = e.querySelector(".mjr-workflow-dot"), o = yn(t);
+			let a = e.querySelector(".mjr-workflow-dot"), o = bn(t);
 			a && o && a.replaceWith(o);
 		} catch (e) {
 			console.debug?.(e);
@@ -16088,22 +16193,22 @@ function D_({ gridContainer: e, sidebar: t, createRatingBadge: n, createTagsBadg
 		}
 	}, f = async (n) => {
 		if (n.defaultPrevented) return;
-		let r = Yt(n.target, ".mjr-asset-card");
+		let r = Xt(n.target, ".mjr-asset-card");
 		if (!r) return;
-		let a = Yt(n.target, ".mjr-workflow-dot");
+		let a = Xt(n.target, ".mjr-workflow-dot");
 		if (a && r.contains(a)) {
 			let a = r._mjrAsset;
 			if (!a) return;
 			n.preventDefault(), n.stopPropagation();
 			let l = r?.dataset?.mjrAssetId || "";
-			T_(e, l ? [l] : [], l), E_({
+			k_(e, l ? [l] : [], l), A_({
 				gridContainer: e,
 				state: o,
 				activeId: l,
 				readState: s,
 				writeState: c
 			});
-			let u = await p_({
+			let u = await __({
 				card: r,
 				asset: a,
 				sidebar: t,
@@ -16117,12 +16222,12 @@ function D_({ gridContainer: e, sidebar: t, createRatingBadge: n, createTagsBadg
 			}
 			return;
 		}
-		let l = Yt(n.target, "a, button, input, textarea, select, label");
+		let l = Xt(n.target, "a, button, input, textarea, select, label");
 		if (l && r.contains(l)) return;
 		let u = r._mjrAsset;
 		if (u) {
 			if (e?._mjrSelectionManagedByVue) {
-				E_({
+				A_({
 					gridContainer: e,
 					state: o,
 					activeId: String(r?.dataset?.mjrAssetId || "").trim(),
@@ -16142,7 +16247,7 @@ function D_({ gridContainer: e, sidebar: t, createRatingBadge: n, createTagsBadg
 					console.debug?.(e);
 				}
 			} else if (n.preventDefault(), n.stopPropagation(), n.ctrlKey || n.metaKey || n.shiftKey) {
-				let t = C_(e), i = t.indexOf(r);
+				let t = D_(e), i = t.indexOf(r);
 				if (n.shiftKey) {
 					let t = [];
 					try {
@@ -16154,7 +16259,7 @@ function D_({ gridContainer: e, sidebar: t, createRatingBadge: n, createTagsBadg
 						let n = r?.dataset?.mjrAssetId || "", i = t.findIndex((e) => String(e?.id || "") === String(n)), a = Number(e._mjrLastSelectedIndex), l = Number.isFinite(a) ? a : i;
 						if (i >= 0 && l >= 0) {
 							let r = Math.min(l, i), a = Math.max(l, i), u = t.slice(r, a + 1).map((e) => String(e?.id || "")).filter(Boolean);
-							T_(e, u, n || u[0] || ""), e._mjrLastSelectedIndex = i, E_({
+							k_(e, u, n || u[0] || ""), e._mjrLastSelectedIndex = i, A_({
 								gridContainer: e,
 								state: o,
 								activeId: n || "",
@@ -16189,7 +16294,7 @@ function D_({ gridContainer: e, sidebar: t, createRatingBadge: n, createTagsBadg
 				}
 				a && (l.has(a) ? l.delete(a) : l.add(a));
 				let u = Array.from(l), d = l.has(a) ? a : u[0] || "";
-				T_(e, u, d), E_({
+				k_(e, u, d), A_({
 					gridContainer: e,
 					state: o,
 					activeId: d,
@@ -16199,7 +16304,7 @@ function D_({ gridContainer: e, sidebar: t, createRatingBadge: n, createTagsBadg
 			} else {
 				{
 					if (r.classList.contains("is-selected")) {
-						T_(e, [], ""), E_({
+						k_(e, [], ""), A_({
 							gridContainer: e,
 							state: o,
 							activeId: "",
@@ -16209,7 +16314,7 @@ function D_({ gridContainer: e, sidebar: t, createRatingBadge: n, createTagsBadg
 						return;
 					}
 					let n = r?.dataset?.mjrAssetId;
-					T_(e, n ? [n] : [], n || ""), E_({
+					k_(e, n ? [n] : [], n || ""), A_({
 						gridContainer: e,
 						state: o,
 						activeId: n || "",
@@ -16223,7 +16328,7 @@ function D_({ gridContainer: e, sidebar: t, createRatingBadge: n, createTagsBadg
 					}
 				}
 				try {
-					b_(e), r?.focus?.({ preventScroll: !0 });
+					w_(e), r?.focus?.({ preventScroll: !0 });
 				} catch (e) {
 					console.debug?.(e);
 				}
@@ -16234,10 +16339,10 @@ function D_({ gridContainer: e, sidebar: t, createRatingBadge: n, createTagsBadg
 	let p = async () => {
 		let n = String(s("activeAssetId", "") || ""), r = null;
 		if (n) try {
-			r = e.querySelector(`.mjr-asset-card[data-mjr-asset-id="${h_(n)}"]`);
+			r = e.querySelector(`.mjr-asset-card[data-mjr-asset-id="${y_(n)}"]`);
 		} catch {
 			try {
-				r = e.querySelector(`.mjr-asset-card[data-mjr-asset-id="${h_(n)}"]`);
+				r = e.querySelector(`.mjr-asset-card[data-mjr-asset-id="${y_(n)}"]`);
 			} catch (e) {
 				console.debug?.(e);
 			}
@@ -16245,7 +16350,7 @@ function D_({ gridContainer: e, sidebar: t, createRatingBadge: n, createTagsBadg
 		r ||= e.querySelector(".mjr-asset-card.is-selected");
 		let l = r?._mjrAsset;
 		if (l) {
-			m_(e, r), w_(e), E_({
+			v_(e, r), O_(e), A_({
 				gridContainer: e,
 				state: o,
 				activeId: r?.dataset?.mjrAssetId,
@@ -16261,7 +16366,7 @@ function D_({ gridContainer: e, sidebar: t, createRatingBadge: n, createTagsBadg
 					} catch (e) {
 						console.debug?.(e);
 					}
-					y_(e, { force: !0 }), x_(e);
+					C_(e, { force: !0 }), T_(e);
 					return;
 				}
 			} catch (e) {
@@ -16274,7 +16379,7 @@ function D_({ gridContainer: e, sidebar: t, createRatingBadge: n, createTagsBadg
 				} catch (e) {
 					console.debug?.(e);
 				}
-				x_(e), r?.focus?.({ preventScroll: !0 });
+				T_(e), r?.focus?.({ preventScroll: !0 });
 			} catch (e) {
 				console.debug?.(e);
 			}
@@ -16289,7 +16394,7 @@ function D_({ gridContainer: e, sidebar: t, createRatingBadge: n, createTagsBadg
 		if (!n) return !1;
 		let r = null;
 		try {
-			r = g_(e, n);
+			r = b_(e, n);
 		} catch (e) {
 			console.debug?.(e);
 		}
@@ -16325,8 +16430,8 @@ function D_({ gridContainer: e, sidebar: t, createRatingBadge: n, createTagsBadg
 	e.addEventListener("mjr:selection-changed", g);
 	let _ = (t) => {
 		if (t.defaultPrevented || (t.key?.toLowerCase?.() || "") !== "d" || t.ctrlKey || t.metaKey || t.altKey || t.target?.isContentEditable || t.target?.closest?.("input, textarea, select, [contenteditable='true']")) return;
-		let n = Yt(t.target, ".mjr-asset-card");
-		n && n._mjrAsset && (t.preventDefault(), t.stopPropagation(), m_(e, n), w_(e), E_({
+		let n = Xt(t.target, ".mjr-asset-card");
+		n && n._mjrAsset && (t.preventDefault(), t.stopPropagation(), v_(e, n), O_(e), A_({
 			gridContainer: e,
 			state: o,
 			activeId: n?.dataset?.mjrAssetId,
@@ -16412,7 +16517,7 @@ function D_({ gridContainer: e, sidebar: t, createRatingBadge: n, createTagsBadg
 	};
 }
 // ui/features/panel/controllers/panelHotkeysController.ts
-function O_({ onTriggerScan: e, getScanContext: t, onToggleDetails: n, onToggleFloatingViewer: r, onFocusSearch: i, onClearSearch: a, allowListKeys: o } = {}) {
+function M_({ onTriggerScan: e, getScanContext: t, onToggleDetails: n, onToggleFloatingViewer: r, onFocusSearch: i, onClearSearch: a, allowListKeys: o } = {}) {
 	let s = !1, c = !1, l = null, u = o instanceof Set ? o : /* @__PURE__ */ new Set([
 		" ",
 		"ArrowUp",
@@ -16447,7 +16552,7 @@ function O_({ onTriggerScan: e, getScanContext: t, onToggleDetails: n, onToggleF
 			console.debug?.(e);
 		}
 		try {
-			let e = _t();
+			let e = vt();
 			return e && (document.activeElement === document.body || e.contains?.(document.activeElement)) || !1;
 		} catch (e) {
 			return console.debug?.(e), !1;
@@ -16466,7 +16571,7 @@ function O_({ onTriggerScan: e, getScanContext: t, onToggleDetails: n, onToggleF
 			c = !1;
 		},
 		keydown: (o) => {
-			if (bt() || vt().scope === "viewer") return;
+			if (xt() || yt().scope === "viewer") return;
 			if (o.key?.toLowerCase?.() === "v" && !o.ctrlKey && !o.metaKey && !o.altKey && !o.shiftKey && !(o.target?.isContentEditable || o.target?.closest?.("input, textarea, select, [contenteditable='true']")) && l?.isConnected && f(o)) {
 				let e = !1;
 				try {
@@ -16543,7 +16648,7 @@ function O_({ onTriggerScan: e, getScanContext: t, onToggleDetails: n, onToggleF
 			} catch (e) {
 				console.debug?.(e);
 			}
-			dt("panel");
+			ft("panel");
 		}
 	}, g = () => {
 		if (l) {
@@ -16557,7 +16662,7 @@ function O_({ onTriggerScan: e, getScanContext: t, onToggleDetails: n, onToggleF
 			} catch (e) {
 				console.debug?.(e);
 			}
-			vt().scope === "panel" && dt(null), l = null;
+			yt().scope === "panel" && ft(null), l = null;
 		}
 	};
 	return {
@@ -16566,17 +16671,17 @@ function O_({ onTriggerScan: e, getScanContext: t, onToggleDetails: n, onToggleF
 	};
 }
 // ui/vue/composables/useGridSelection.ts
-function k_(e) {
+function N_(e) {
 	return Array.isArray(e) ? e.map((e) => String(e || "").trim()).filter(Boolean) : [];
 }
-function A_({ gridContainer: e, readSelectedAssetIds: t = () => [], readActiveAssetId: n = () => "", writeSelectedAssetIds: r = (e) => {}, writeActiveAssetId: i = (e) => {}, onSelectionChanged: a = () => {}, lifecycleSignal: o = null } = {}) {
+function P_({ gridContainer: e, readSelectedAssetIds: t = () => [], readActiveAssetId: n = () => "", writeSelectedAssetIds: r = (e) => {}, writeActiveAssetId: i = (e) => {}, onSelectionChanged: a = () => {}, lifecycleSignal: o = null } = {}) {
 	if (!e) return {
 		restoreSelectionState() {},
 		dispose() {}
 	};
 	let s = (e) => {
 		try {
-			let t = e?.detail || {}, n = k_(t.selectedIds);
+			let t = e?.detail || {}, n = N_(t.selectedIds);
 			r(n), i(String(t.activeId || n[0] || "").trim());
 		} catch (e) {
 			console.debug?.(e);
@@ -16594,7 +16699,7 @@ function A_({ gridContainer: e, readSelectedAssetIds: t = () => [], readActiveAs
 	}
 	return {
 		restoreSelectionState: ({ scrollTop: r = 0 } = {}) => {
-			let i = k_(t()), a = String(n() || i[0] || "").trim();
+			let i = N_(t()), a = String(n() || i[0] || "").trim();
 			if (i.length || a) {
 				try {
 					typeof e?._mjrSetSelection == "function" && e._mjrSetSelection(i, a);
@@ -16631,7 +16736,7 @@ function A_({ gridContainer: e, readSelectedAssetIds: t = () => [], readActiveAs
 	};
 }
 // ui/vue/composables/useAssetsQuery.ts
-function j_(e) {
+function F_(e) {
 	try {
 		if (typeof requestAnimationFrame == "function") {
 			requestAnimationFrame(e);
@@ -16642,28 +16747,28 @@ function j_(e) {
 	}
 	setTimeout(e, 0);
 }
-function M_(e = {}, t = "*") {
+function I_(e = {}, t = "*") {
 	return e.scope === "output" && !e.collectionId && t === "*" && !e.kindFilter && !e.workflowOnly && !(Number(e.minRating || 0) > 0) && !(Number(e.minSizeMB || 0) > 0) && !(Number(e.maxSizeMB || 0) > 0) && !(Number(e.minWidth || 0) > 0) && !(Number(e.minHeight || 0) > 0) && !(Number(e.maxWidth || 0) > 0) && !(Number(e.maxHeight || 0) > 0) && !String(e.workflowType || "").trim() && !String(e.workflowId || "").trim() && !e.dateRangeFilter && !e.dateExactFilter;
 }
-function N_({ gridContainer: e, gridWrapper: t, readScrollElement: n = () => null, gridController: r, captureAnchor: i, restoreAnchor: a, restoreGridUiState: o = null, readScrollTop: s = () => 0, restoreSelectionState: c = () => {}, readActiveAssetId: l = () => "", isSidebarOpen: u = () => !1, toggleSidebarDetails: d = () => {}, getQuery: f = () => "*", getScope: p = () => "output", loadAssets: m = null, lifecycleSignal: h = null } = {}) {
-	let g = 0, _ = !1, v = null, y = null, b = null, x = 0, S = !0, C = "", w = Date.now(), T = () => {
+function L_({ gridContainer: e, gridWrapper: t, readScrollElement: n = () => null, gridController: r, captureAnchor: i, restoreAnchor: a, restoreGridUiState: o = null, readScrollTop: s = () => 0, restoreSelectionState: c = () => {}, readActiveAssetId: l = () => "", isSidebarOpen: u = () => !1, toggleSidebarDetails: d = () => {}, getQuery: f = () => "*", getScope: p = () => "output", loadAssets: h = null, lifecycleSignal: g = null } = {}) {
+	let _ = 0, v = !1, y = null, b = null, x = null, S = 0, C = !0, w = "", T = Date.now(), E = () => {
 		try {
 			return Qc(e, (typeof n == "function" ? n() : t) || t || null);
 		} catch (e) {
 			return console.debug?.(e), !1;
 		}
-	}, E = (e = null, { resumeQueuedReload: t = !0 } = {}) => {
-		if (S = typeof e == "boolean" ? e : T(), !S) return v &&= (clearTimeout(v), null), S;
-		if (t && C && !_) {
-			let e = C;
-			C = "", k({ reason: e }).catch((e) => console.debug?.(e));
+	}, D = (e = null, { resumeQueuedReload: t = !0 } = {}) => {
+		if (C = typeof e == "boolean" ? e : E(), !C) return y &&= (clearTimeout(y), null), C;
+		if (t && w && !v) {
+			let e = w;
+			w = "", A({ reason: e }).catch((e) => console.debug?.(e));
 		}
-		if (b && !v) {
-			let e = b, t = x || 50;
-			b = null, x = 0, ne(e, Math.min(t, 50));
+		if (x && !y) {
+			let e = x, t = S || 50;
+			x = null, S = 0, re(e, Math.min(t, 50));
 		}
-		return t && g > 0 && !_ && k().catch((e) => console.debug?.(e)), S;
-	}, D = () => {
+		return t && _ > 0 && !v && A().catch((e) => console.debug?.(e)), C;
+	}, O = () => {
 		try {
 			let t = e?._mjrGetGridState?.();
 			if (Array.isArray(t?.assets) && t.assets.length > 0) return !0;
@@ -16681,21 +16786,21 @@ function N_({ gridContainer: e, gridWrapper: t, readScrollElement: n = () => nul
 		} catch (e) {
 			return console.debug?.(e), !1;
 		}
-	}, O = () => {
+	}, k = () => {
 		try {
 			return !!e?._mjrGetGridState?.()?.loading;
 		} catch (e) {
 			return console.debug?.(e), !1;
 		}
-	}, k = async (t = {}) => {
-		if (e && r?.reloadGrid && (g += 1, E(null, { resumeQueuedReload: !1 }) && !_)) {
-			_ = !0;
+	}, A = async (t = {}) => {
+		if (e && r?.reloadGrid && (_ += 1, D(null, { resumeQueuedReload: !1 }) && !v)) {
+			v = !0;
 			try {
-				for (; g > 0;) {
-					if (!E(null, { resumeQueuedReload: !1 })) return;
-					g = 0;
+				for (; _ > 0;) {
+					if (!D(null, { resumeQueuedReload: !1 })) return;
+					_ = 0;
 					let t = typeof i == "function" ? i(e) : null;
-					if (await r.reloadGrid(), !E(null, { resumeQueuedReload: !1 })) return;
+					if (await r.reloadGrid(), !D(null, { resumeQueuedReload: !1 })) return;
 					if (t && typeof a == "function") try {
 						if ((Number(s() || 0) || 0) > (Number(t?.scrollTop || 0) || 0) + 8) continue;
 						await a(e, t);
@@ -16704,40 +16809,40 @@ function N_({ gridContainer: e, gridWrapper: t, readScrollElement: n = () => nul
 					}
 				}
 			} finally {
-				_ = !1;
+				v = !1;
 			}
 		}
-	}, A = (e = "external") => {
-		C = String(e || "external");
+	}, ee = (e = "external") => {
+		w = String(e || "external");
 		try {
 			let e = globalThis?.window ?? globalThis;
 			e.__mjrGridDirty = !0;
 		} catch (e) {
 			console.debug?.(e);
 		}
-		if (E(null, { resumeQueuedReload: !1 }) && !_) {
-			let e = C;
-			C = "", k({ reason: e }).catch((e) => console.debug?.(e));
+		if (D(null, { resumeQueuedReload: !1 }) && !v) {
+			let e = w;
+			w = "", A({ reason: e }).catch((e) => console.debug?.(e));
 		}
-	}, ee = (e) => {
-		e?.detail?.source !== "assets-query-controller" && A(e?.detail?.reason || "external");
 	}, j = (e) => {
-		globalThis?._mjrMaintenanceActive || A(e?.detail?.reason || "manual");
+		e?.detail?.source !== "assets-query-controller" && ee(e?.detail?.reason || "external");
+	}, M = (e) => {
+		globalThis?._mjrMaintenanceActive || ee(e?.detail?.reason || "manual");
 	};
 	try {
 		let e = globalThis?.window ?? globalThis;
-		e?.addEventListener?.("mjr-grid-dirty", ee, { signal: h || void 0 }), e?.addEventListener?.("mjr:reload-grid", j, { signal: h || void 0 });
+		e?.addEventListener?.("mjr-grid-dirty", j, { signal: g || void 0 }), e?.addEventListener?.("mjr:reload-grid", M, { signal: g || void 0 });
 	} catch (e) {
 		console.debug?.(e);
 	}
-	let M = async (e) => {
+	let te = async (e) => {
 		if (typeof o == "function") return o(e);
 		try {
 			await e;
 		} catch (e) {
 			console.debug?.(e);
 		}
-		j_(() => {
+		F_(() => {
 			let e = Number(s() || 0) || 0;
 			if (e > 0) try {
 				t.scrollTop = e;
@@ -16755,28 +16860,28 @@ function N_({ gridContainer: e, gridWrapper: t, readScrollElement: n = () => nul
 				console.debug?.(e);
 			}
 		});
-	}, te = async (t) => {
+	}, ne = async (t) => {
 		try {
 			await t;
 		} catch (e) {
 			console.debug?.(e);
 		}
-		if (e && typeof m == "function" && !h?.aborted) {
-			if (!E()) b = t, x = 50;
-			else if (!D() && !O() && String(p() || "output") === "output" && String(f() || "*") === "*") try {
-				let t = await Ie(`${I.HEALTH_COUNTERS}?scope=output`, { signal: h || void 0 });
-				t?.ok && (t.data?.total_assets || 0) > 0 && await m(e);
+		if (e && typeof h == "function" && !g?.aborted) {
+			if (!D()) x = t, S = 50;
+			else if (!O() && !k() && String(p() || "output") === "output" && String(f() || "*") === "*") try {
+				let t = await fe(`${m.HEALTH_COUNTERS}?scope=output`, { signal: g || void 0 });
+				t?.ok && (t.data?.total_assets || 0) > 0 && await h(e);
 			} catch (e) {
 				console.debug?.(e);
 			}
 		}
-	}, ne = (e, t = 2e3) => (v && clearTimeout(v), E() ? (b = null, x = 0, v = setTimeout(() => {
-		v = null, te(e).catch(() => {});
-	}, t), v) : (b = e, x = t, null));
+	}, re = (e, t = 2e3) => (y && clearTimeout(y), D() ? (x = null, S = 0, y = setTimeout(() => {
+		y = null, ne(e).catch(() => {});
+	}, t), y) : (x = e, S = t, null));
 	return {
-		queuedReload: k,
-		restoreUiState: M,
-		scheduleAutoLoad: ne,
+		queuedReload: A,
+		restoreUiState: te,
+		scheduleAutoLoad: re,
 		createCountersUpdateHandler: ({ state: t = {}, getStableQuery: n = () => String(e?.dataset?.mjrQuery || "*").trim() || "*", getRecentUserInteractionAt: r = () => 0 } = {}) => {
 			let i = globalThis?.window ?? globalThis, a = null, o = null, s = null, c = !1;
 			return async (e = {}) => {
@@ -16784,12 +16889,12 @@ function N_({ gridContainer: e, gridWrapper: t, readScrollElement: n = () => nul
 					c = !0, a = e.last_scan_end, o = e.last_index_end, s = Number(e.total_assets ?? null);
 					return;
 				}
-				let l = e.last_scan_end && e.last_scan_end !== a, u = e.last_index_end && e.last_index_end !== o, d = Number(e.total_assets ?? null), f = M_(t, String(n() || "*").trim() || "*"), p = Date.now() - w < 8e3, m = Number.isFinite(d) && Number.isFinite(s) ? d - s : 0, h = Math.max(0, Number(i?.__mjrLastAssetUpsertCount || 0) || 0), g = m >= 20;
-				if (Number.isFinite(d) && (s = d), !f || p && D() && !u && !g) {
+				let l = e.last_scan_end && e.last_scan_end !== a, u = e.last_index_end && e.last_index_end !== o, d = Number(e.total_assets ?? null), f = I_(t, String(n() || "*").trim() || "*"), p = Date.now() - T < 8e3, m = Number.isFinite(d) && Number.isFinite(s) ? d - s : 0, h = Math.max(0, Number(i?.__mjrLastAssetUpsertCount || 0) || 0), g = m >= 20;
+				if (Number.isFinite(d) && (s = d), !f || p && O() && !u && !g) {
 					a = e.last_scan_end, o = e.last_index_end;
 					return;
 				}
-				let _ = Date.now() - Number(i?.__mjrLastAssetUpsert || 0) < 15e3, v = _ && m > 0 && h > 0 && m <= h + 8, y = g && !l && !u && D();
+				let _ = Date.now() - Number(i?.__mjrLastAssetUpsert || 0) < 15e3, v = _ && m > 0 && h > 0 && m <= h + 8, y = g && !l && !u && O();
 				u && (o = e.last_index_end);
 				let b = u && !l && !g && !_;
 				if (v) {
@@ -16819,7 +16924,7 @@ function N_({ gridContainer: e, gridWrapper: t, readScrollElement: n = () => nul
 				}
 				try {
 					let e = Date.now() - Math.max(0, Number(r() || 0) || 0);
-					D() || (e > 1500 ? A(x) : C = x);
+					O() || (e > 1500 ? ee(x) : w = x);
 				} catch (e) {
 					console.debug?.(e);
 				}
@@ -16857,15 +16962,15 @@ function N_({ gridContainer: e, gridWrapper: t, readScrollElement: n = () => nul
 					} catch (e) {
 						console.debug?.(e);
 					}
-					y && clearTimeout(y), t.length === 0 || t === "*" ? c() : y = setTimeout(() => {
-						y = null, c();
+					b && clearTimeout(b), t.length === 0 || t === "*" ? c() : b = setTimeout(() => {
+						b = null, c();
 					}, n);
 				}
 			}, u = (e) => {
-				e?.key === "Enter" && (y &&= (clearTimeout(y), null), c());
+				e?.key === "Enter" && (b &&= (clearTimeout(b), null), c());
 			};
 			return e.addEventListener("input", l, { signal: t || void 0 }), e.addEventListener("keypress", u, { signal: t || void 0 }), () => {
-				y &&= (clearTimeout(y), null);
+				b &&= (clearTimeout(b), null);
 				try {
 					e.removeEventListener("input", l);
 				} catch (e) {
@@ -16878,23 +16983,23 @@ function N_({ gridContainer: e, gridWrapper: t, readScrollElement: n = () => nul
 				}
 			};
 		},
-		markGridDirty: A,
+		markGridDirty: ee,
 		setVisibility(e = null) {
-			return E(e);
+			return D(e);
 		},
 		dispose() {
 			try {
 				let e = globalThis?.window ?? globalThis;
-				e?.removeEventListener?.("mjr-grid-dirty", ee), e?.removeEventListener?.("mjr:reload-grid", j);
+				e?.removeEventListener?.("mjr-grid-dirty", j), e?.removeEventListener?.("mjr:reload-grid", M);
 			} catch (e) {
 				console.debug?.(e);
 			}
-			v &&= (clearTimeout(v), null), b = null, x = 0, y &&= (clearTimeout(y), null);
+			y &&= (clearTimeout(y), null), x = null, S = 0, b &&= (clearTimeout(b), null);
 		}
 	};
 }
 // ui/features/panel/panelBootstrap.ts
-function P_(e, { useComfyThemeUI: t }) {
+function R_(e, { useComfyThemeUI: t }) {
 	t ? e.classList.add("mjr-assets-manager") : e.classList.remove("mjr-assets-manager");
 	let n = e.parentElement || null, r = n ? {
 		height: n.style.height,
@@ -16906,7 +17011,7 @@ function P_(e, { useComfyThemeUI: t }) {
 	} catch (e) {
 		console.debug?.(e);
 	}
-	yt();
+	bt();
 	for (let t of [
 		() => e._eventCleanup?.(),
 		() => e._mjrPopoverManager?.dispose?.(),
@@ -16933,10 +17038,10 @@ function P_(e, { useComfyThemeUI: t }) {
 	};
 }
 // ui/features/panel/panelSettingsSync.ts
-function F_({ container: e, state: t, sidebar: n, browseSection: r, gridWrapper: i, similarBtn: a, setSemanticEnabled: o, similarEnabledTitle: s, similarDisabledTitle: c, refreshGridFn: l, isSidebarOpen: u, readActiveAssetId: d, getSidebarController: f, panelLifecycleAC: p }) {
+function z_({ container: e, state: t, sidebar: n, browseSection: r, gridWrapper: i, similarBtn: a, setSemanticEnabled: o, similarEnabledTitle: s, similarDisabledTitle: c, refreshGridFn: l, isSidebarOpen: u, readActiveAssetId: d, getSidebarController: f, panelLifecycleAC: p }) {
 	let m = "", h = () => {
 		try {
-			return !!(Pt()?.ai?.vectorSearchEnabled ?? !0);
+			return !!(Ft()?.ai?.vectorSearchEnabled ?? !0);
 		} catch {
 			return !0;
 		}
@@ -16995,20 +17100,20 @@ function F_({ container: e, state: t, sidebar: n, browseSection: r, gridWrapper:
 			}
 		}
 	}, v = async (e) => {
-		let n = String(e || t.scope || "output").toLowerCase(), r = !!Pt()?.watcher?.enabled;
+		let n = String(e || t.scope || "output").toLowerCase(), r = !!Ft()?.watcher?.enabled;
 		if (n === "custom") try {
-			await T(!1);
+			await ke(!1);
 		} catch (e) {
 			console.debug?.(e);
 		}
 		else {
 			try {
-				await T(r);
+				await ke(r);
 			} catch (e) {
 				console.debug?.(e);
 			}
 			if (r) try {
-				await Ae({
+				await w({
 					scope: n,
 					customRootId: ""
 				});
@@ -17019,9 +17124,9 @@ function F_({ container: e, state: t, sidebar: n, browseSection: r, gridWrapper:
 	}, y = (e) => {
 		let n = String(e?.detail?.key || "").trim(), r = n === "__init__", i = r || n.startsWith("grid.") || n.startsWith("infiniteScroll.") || n.startsWith("siblings.") || n.startsWith("search.") || n.startsWith("rtHydrate.") || n.startsWith("workflowMinimap."), a = r || n.startsWith("sidebar.") || n.startsWith("ai."), o = r || n.startsWith("watcher.");
 		try {
-			let e = Pt(), t = !!(e?.ai?.vectorSearchEnabled ?? !0), o = String(e?.ui?.cardHoverColor || "").trim(), s = String(e?.ui?.cardSelectionColor || "").trim(), c = String(e?.ui?.ratingColor || "").trim(), p = String(e?.ui?.tagColor || "").trim();
+			let e = Ft(), t = !!(e?.ai?.vectorSearchEnabled ?? !0), o = String(e?.ui?.cardHoverColor || "").trim(), s = String(e?.ui?.cardSelectionColor || "").trim(), c = String(e?.ui?.ratingColor || "").trim(), p = String(e?.ui?.tagColor || "").trim();
 			if (/^#[0-9a-fA-F]{3,8}$/.test(o) && document.documentElement.style.setProperty("--mjr-card-hover-color", o), /^#[0-9a-fA-F]{3,8}$/.test(s) && document.documentElement.style.setProperty("--mjr-card-selection-color", s), /^#[0-9a-fA-F]{3,8}$/.test(c) && document.documentElement.style.setProperty("--mjr-rating-color", c), /^#[0-9a-fA-F]{3,8}$/.test(p) && document.documentElement.style.setProperty("--mjr-tag-color", p), _(e.sidebar?.position || "right"), g(t), i) {
-				let e = _t() || null;
+				let e = vt() || null;
 				if (!r && n.startsWith("siblings.")) try {
 					e?.dispatchEvent(new CustomEvent("mjr:reload-grid"));
 				} catch {
@@ -17058,7 +17163,7 @@ function F_({ container: e, state: t, sidebar: n, browseSection: r, gridWrapper:
 	};
 }
 // ui/features/panel/panelGridEventBindings.ts
-function I_({ gridContainer: e, panelLifecycleAC: t, requestQueuedReload: n, notifyContextChanged: r, markUserInteraction: i, writePanelValue: a, popovers: o, collectionsPopover: s, gridController: c, registerSummaryDispose: l }) {
+function B_({ gridContainer: e, panelLifecycleAC: t, requestQueuedReload: n, notifyContextChanged: r, markUserInteraction: i, writePanelValue: a, popovers: o, collectionsPopover: s, gridController: c, registerSummaryDispose: l }) {
 	let u = null;
 	try {
 		u = () => n(), e.addEventListener("mjr:reload-grid", u, { signal: t?.signal }), l(() => {
@@ -17086,7 +17191,7 @@ function I_({ gridContainer: e, panelLifecycleAC: t, requestQueuedReload: n, not
 				}), i(), r();
 				let l = Number(n?.count || s.length || o.length || 0);
 				try {
-					m(L("toast.nameCollisionInView", "Name collision in view: {n} item(s) selected", { n: l }), "info", 1800);
+					F(I("toast.nameCollisionInView", "Name collision in view: {n} item(s) selected", { n: l }), "info", 1800);
 				} catch (e) {
 					console.debug?.(e);
 				}
@@ -17151,39 +17256,39 @@ function I_({ gridContainer: e, panelLifecycleAC: t, requestQueuedReload: n, not
 	}
 }
 // ui/features/panel/panelSimilarSearch.ts
-var L_ = 500;
-function R_(e) {
+var V_ = 500;
+function H_(e) {
 	return Number(e?.status || 0) === 404 && String(e?.error || "").toLowerCase().includes("non-json");
 }
-function z_(e, t = "") {
+function U_(e, t = "") {
 	let n = Array.isArray(e) ? e : [];
-	return n.length <= L_ ? {
+	return n.length <= V_ ? {
 		list: n,
 		title: t,
 		truncated: !1,
 		total: n.length
 	} : {
-		list: n.slice(0, L_),
-		title: `${String(t || "").trim() || "Generation group"} - showing first ${L_}/${n.length}`,
+		list: n.slice(0, V_),
+		title: `${String(t || "").trim() || "Generation group"} - showing first ${V_}/${n.length}`,
 		truncated: !0,
 		total: n.length
 	};
 }
-function B_(e = {}) {
+function W_(e = {}) {
 	let t = String(e?.stackId || e?.stack_id || "").trim();
 	if (t) return `stack:${t}`;
 	let n = String(e?.asset?.id || "").trim();
 	return e?.isDupGroup ? n ? `duplicates:${n}` : "duplicates" : n ? `group:${n}` : "group";
 }
-function V_(e, t) {
+function G_(e, t) {
 	return String(e?.[t] ?? e?.file_info?.[t] ?? "").trim();
 }
-function H_({ similarBtn: e, similarPopover: t, similarFindBtn: n, similarDuplicatesBtn: r, similarSameNodeBtn: i, similarSameWorkflowBtn: a, gridContainer: o, state: s, panelLifecycleAC: c, isAiEnabled: l, similarDisabledTitle: u, readActiveAssetId: d, readSelectedAssetIds: f, readPanelValue: p, writePanelValue: h, scopeController: g, closePopovers: v, closePeerPopovers: y, popovers: b, workflowIdInput: x, reloadGrid: S, getDuplicatesAlert: C }) {
-	let w = () => String(d() || f()[0] || "").trim(), T = () => {
-		let e = Number(w());
+function K_({ similarBtn: e, similarPopover: t, similarFindBtn: n, similarDuplicatesBtn: r, similarSameNodeBtn: i, similarSameWorkflowBtn: a, gridContainer: o, state: s, panelLifecycleAC: l, isAiEnabled: u, similarDisabledTitle: d, readActiveAssetId: f, readSelectedAssetIds: p, readPanelValue: m, writePanelValue: h, scopeController: g, closePopovers: _, closePeerPopovers: v, popovers: y, workflowIdInput: b, reloadGrid: x, getDuplicatesAlert: S }) {
+	let C = () => String(f() || p()[0] || "").trim(), w = () => {
+		let e = Number(C());
 		return Number.isFinite(e) && e > 0 ? e : 0;
-	}, E = () => {
-		let e = w();
+	}, T = () => {
+		let e = C();
 		if (!e) return null;
 		try {
 			let t = o?._mjrGetAssets, n = typeof t == "function" ? t() : [];
@@ -17191,29 +17296,29 @@ function H_({ similarBtn: e, similarPopover: t, similarFindBtn: n, similarDuplic
 		} catch (e) {
 			return console.debug?.(e), null;
 		}
-	}, D = async () => {
-		let e = E();
+	}, E = async () => {
+		let e = T();
 		if (e) return e;
-		let t = T();
-		return t ? O(t) : null;
-	}, O = async (e = T()) => {
+		let t = w();
+		return t ? D(t) : null;
+	}, D = async (e = w()) => {
 		if (!e) return null;
 		try {
-			let t = await Ge(e, { timeoutMs: 3e4 });
+			let t = await Le(e, { timeoutMs: 3e4 });
 			return t?.ok && t.data || null;
 		} catch (e) {
 			return console.debug?.(e), null;
 		}
-	}, k = async (e, t) => e && t.some((t) => V_(e, t)) ? e : await O() || e, A = (e = {}) => (Array.isArray(e?.files) ? e.files : []).map((e) => ({
+	}, O = async (e, t) => e && t.some((t) => G_(e, t)) ? e : await D() || e, k = (e = {}) => (Array.isArray(e?.files) ? e.files : []).map((e) => ({
 		filename: String(e?.filename || "").trim(),
 		subfolder: String(e?.subfolder || "").trim().replace(/\\/g, "/"),
 		type: String(e?.type || "").trim().toLowerCase()
-	})).filter((e) => e.filename), ee = async (e, t) => {
+	})).filter((e) => e.filename), A = async (e, t) => {
 		let n = [], r = /* @__PURE__ */ new Set();
 		for (let e of t.slice(0, 4)) {
 			let t = e.type === "input" ? "input" : "output";
 			try {
-				let i = await Ie(Pe({
+				let i = await fe(Ye({
 					q: e.filename,
 					scope: t,
 					limit: 50,
@@ -17234,134 +17339,134 @@ function H_({ similarBtn: e, similarPopover: t, similarFindBtn: n, similarDuplic
 			}
 		}
 		if (!n.length) {
-			m(L("nodeContext.fileNotIndexed", "The node file is not indexed yet. Run a scan first."), "info", 3200);
+			F(I("nodeContext.fileNotIndexed", "The node file is not indexed yet. Run a scan first."), "info", 3200);
 			return;
 		}
 		let i = String(e?.title || e?.sourceNodeType || e?.source_node_type || t[0]?.filename || "").trim();
-		h("similarResults", n), h("similarSourceAssetId", `node-file:${t[0]?.filename || ""}`), h("similarTitle", L("nodeContext.fileResultsTitle", "Node {node} file ({n} assets)", {
+		h("similarResults", n), h("similarSourceAssetId", `node-file:${t[0]?.filename || ""}`), h("similarTitle", I("nodeContext.fileResultsTitle", "Node {node} file ({n} assets)", {
 			node: i || t[0]?.filename || "",
 			n: n.length
 		})), await g?.setScope?.("similar");
-	}, j = async (e = {}) => {
-		let t = String(e?.sourceNodeId || e?.source_node_id || "").trim(), n = A(e);
+	}, ee = async (e = {}) => {
+		let t = String(e?.sourceNodeId || e?.source_node_id || "").trim(), n = k(e);
 		if (t || n.length) {
 			try {
-				v?.();
+				_?.();
 			} catch (e) {
 				console.debug?.(e);
 			}
-			if (!t) await ee(e, n);
+			if (!t) await A(e, n);
 			else try {
-				let r = await Ie(We(t, {
+				let r = await fe(Ie(t, {
 					jobId: e?.jobId || e?.job_id || "",
 					latest: e?.latest !== !1,
 					limit: 500
 				}), { timeoutMs: 3e4 });
 				if (!r?.ok) {
-					if (R_(r)) {
+					if (H_(r)) {
 						if (n.length) {
-							await ee(e, n);
+							await A(e, n);
 							return;
 						}
 						let t = window.MajoorAssetsManager ||= {};
-						t.nodeContextRouteMissingToastShown || (t.nodeContextRouteMissingToastShown = !0, m(L("nodeContext.routeMissing", "Node context backend route is not loaded yet. Restart ComfyUI after updating Majoor Assets Manager."), "warn", 7e3));
+						t.nodeContextRouteMissingToastShown || (t.nodeContextRouteMissingToastShown = !0, F(I("nodeContext.routeMissing", "Node context backend route is not loaded yet. Restart ComfyUI after updating Majoor Assets Manager."), "warn", 7e3));
 						return;
 					}
 					if (n.length) {
-						await ee(e, n);
+						await A(e, n);
 						return;
 					}
-					m(String(r?.error || L("nodeContext.loadFailed", "Failed to load node assets")), "error", 3e3);
+					F(String(r?.error || I("nodeContext.loadFailed", "Failed to load node assets")), "error", 3e3);
 					return;
 				}
 				let i = Array.isArray(r?.data) ? r.data : [];
 				if (!i.length) {
 					if (n.length) {
-						await ee(e, n);
+						await A(e, n);
 						return;
 					}
-					m(L("nodeContext.noAssets", "No indexed assets found for this node yet."), "info", 2600);
+					F(I("nodeContext.noAssets", "No indexed assets found for this node yet."), "info", 2600);
 					return;
 				}
 				let a = String(e?.title || e?.sourceNodeType || e?.source_node_type || t).trim();
-				h("similarResults", i), h("similarSourceAssetId", `node:${t}`), h("similarTitle", L("nodeContext.resultsTitle", "Node {node} outputs ({n} assets)", {
+				h("similarResults", i), h("similarSourceAssetId", `node:${t}`), h("similarTitle", I("nodeContext.resultsTitle", "Node {node} outputs ({n} assets)", {
 					node: a || t,
 					n: i.length
 				})), await g?.setScope?.("similar");
 			} catch (e) {
-				console.debug?.(e), m(L("nodeContext.loadFailed", "Failed to load node assets"), "error", 3e3);
+				console.debug?.(e), F(I("nodeContext.loadFailed", "Failed to load node assets"), "error", 3e3);
 			}
 		}
-	}, M = async () => {
-		if (!l()) {
-			m(u, "info", 2200);
+	}, j = async () => {
+		if (!u()) {
+			F(d, "info", 2200);
 			return;
 		}
 		try {
-			v();
+			_();
 		} catch (e) {
 			console.debug?.(e);
 		}
-		let t = T();
+		let t = w();
 		if (!t) {
-			m(L("search.selectAssetForSimilar", "Select an asset first to find similar images/videos."), "info", 2500);
+			F(I("search.selectAssetForSimilar", "Select an asset first to find similar images/videos."), "info", 2500);
 			return;
 		}
 		let n = e.title;
-		e.disabled = !0, e.title = L("search.findingSimilar", "Finding similar assets...");
+		e.disabled = !0, e.title = I("search.findingSimilar", "Finding similar assets...");
 		try {
-			let e = await _(t, {
+			let e = await c(t, {
 				topK: 100,
 				scope: s.scope || "output",
 				customRootId: s.customRootId || ""
 			});
 			if (!e?.ok) {
-				m(String(e?.error || L("search.findSimilarFailed", "Failed to find similar assets")), "error", 3e3);
+				F(String(e?.error || I("search.findSimilarFailed", "Failed to find similar assets")), "error", 3e3);
 				return;
 			}
 			let n = Array.isArray(e?.data) ? e.data : [];
-			h("similarResults", n), h("similarSourceAssetId", String(t)), h("similarTitle", L("search.similarResults", "Similar to asset #{id} ({n} results)", {
+			h("similarResults", n), h("similarSourceAssetId", String(t)), h("similarTitle", I("search.similarResults", "Similar to asset #{id} ({n} results)", {
 				id: t,
 				n: n.length
 			})), await g?.setScope?.("similar");
 		} catch (e) {
-			console.debug?.(e), m(L("search.findSimilarFailed", "Failed to find similar assets"), "error", 3e3);
+			console.debug?.(e), F(I("search.findSimilarFailed", "Failed to find similar assets"), "error", 3e3);
 		} finally {
 			e.disabled = !1, e.title = n;
 		}
-	}, te = async () => {
+	}, M = async () => {
 		try {
-			v?.();
+			_?.();
 		} catch (e) {
 			console.debug?.(e);
 		}
-		let e = await D(), t = String(e?.id || w() || "").trim(), n = Td(Array.isArray(e?._mjrDupMembers) ? e._mjrDupMembers : []);
+		let e = await E(), t = String(e?.id || C() || "").trim(), n = Td(Array.isArray(e?._mjrDupMembers) ? e._mjrDupMembers : []);
 		if (n.length >= 2) {
-			h("similarResults", n), h("similarSourceAssetId", t ? `duplicates:${t}` : "duplicates"), h("similarTitle", L("search.duplicateResults", "Duplicates ({n} assets)", { n: n.length })), await g?.setScope?.("similar");
+			h("similarResults", n), h("similarSourceAssetId", t ? `duplicates:${t}` : "duplicates"), h("similarTitle", I("search.duplicateResults", "Duplicates ({n} assets)", { n: n.length })), await g?.setScope?.("similar");
 			return;
 		}
-		let r = (C?.() || {})?.firstGroup;
-		r && Array.isArray(r.assets) && r.assets.length >= 2 ? (h("similarResults", r.assets), h("similarSourceAssetId", "duplicates"), h("similarTitle", L("search.duplicateResults", "Duplicates ({n} assets)", { n: r.assets.length })), await g?.setScope?.("similar")) : m(L("search.noKnownDuplicates", "No duplicate group is available yet. Run duplicate analysis from the duplicate alert first."), "info", 3200);
-	}, ne = async () => {
-		let e = await k(await D(), ["source_node_id", "source_node_type"]), t = V_(e, "source_node_id");
-		t ? await j({
+		let r = (S?.() || {})?.firstGroup;
+		r && Array.isArray(r.assets) && r.assets.length >= 2 ? (h("similarResults", r.assets), h("similarSourceAssetId", "duplicates"), h("similarTitle", I("search.duplicateResults", "Duplicates ({n} assets)", { n: r.assets.length })), await g?.setScope?.("similar")) : F(I("search.noKnownDuplicates", "No duplicate group is available yet. Run duplicate analysis from the duplicate alert first."), "info", 3200);
+	}, te = async () => {
+		let e = await O(await E(), ["source_node_id", "source_node_type"]), t = G_(e, "source_node_id");
+		t ? await ee({
 			sourceNodeId: t,
-			sourceNodeType: V_(e, "source_node_type"),
-			jobId: V_(e, "job_id"),
-			title: V_(e, "source_node_type") || t
-		}) : m(L("search.noSourceNode", "Selected asset has no persisted source node id."), "info", 2600);
-	}, N = async () => {
+			sourceNodeType: G_(e, "source_node_type"),
+			jobId: G_(e, "job_id"),
+			title: G_(e, "source_node_type") || t
+		}) : F(I("search.noSourceNode", "Selected asset has no persisted source node id."), "info", 2600);
+	}, ne = async () => {
 		try {
-			v?.();
+			_?.();
 		} catch (e) {
 			console.debug?.(e);
 		}
-		let e = V_(await k(await D(), ["workflow_id"]), "workflow_id");
-		if (!e) m(L("search.noWorkflowId", "Selected asset has no persisted workflow id."), "info", 2600);
+		let e = G_(await O(await E(), ["workflow_id"]), "workflow_id");
+		if (!e) F(I("search.noWorkflowId", "Selected asset has no persisted workflow id."), "info", 2600);
 		else {
 			h("workflowId", e);
 			try {
-				x && (x.value = e);
+				b && (b.value = e);
 			} catch (e) {
 				console.debug?.(e);
 			}
@@ -17370,50 +17475,50 @@ function H_({ similarBtn: e, similarPopover: t, similarFindBtn: n, similarDuplic
 			} catch (e) {
 				console.debug?.(e);
 			}
-			await S?.();
+			await x?.();
 		}
 	};
 	e?.addEventListener("click", (n) => {
 		n.stopPropagation();
 		try {
-			y?.();
+			v?.();
 		} catch (e) {
 			console.debug?.(e);
 		}
-		b?.toggle?.(t, e);
-	}, { signal: c?.signal });
-	let P = (e, t) => {
+		y?.toggle?.(t, e);
+	}, { signal: l?.signal });
+	let re = (e, t) => {
 		e?.addEventListener("click", (e) => {
 			e.stopPropagation(), t();
-		}, { signal: c?.signal });
+		}, { signal: l?.signal });
 	};
-	P(n, M), P(r, te), P(i, ne), P(a, N), o?.addEventListener(B.OPEN_STACK_GROUP, async (e) => {
+	re(n, j), re(r, M), re(i, te), re(a, ne), o?.addEventListener(z.OPEN_STACK_GROUP, async (e) => {
 		try {
-			let t = e?.detail || {}, n = Array.isArray(t?.members) ? t.members : [], r = `Generation group (${n.length} assets)`, i = z_(n, String(t?.title || "").trim() || r);
-			i.truncated && m(`Large stack truncated to ${L_}/${i.total} assets to keep the grid responsive.`, "warn", 5e3), h("similarResults", i.list), h("similarSourceAssetId", B_(t)), h("similarTitle", i.title || r), await Promise.resolve(), await g?.setScope?.("similar");
+			let t = e?.detail || {}, n = Array.isArray(t?.members) ? t.members : [], r = `Generation group (${n.length} assets)`, i = U_(n, String(t?.title || "").trim() || r);
+			i.truncated && F(`Large stack truncated to ${V_}/${i.total} assets to keep the grid responsive.`, "warn", 5e3), h("similarResults", i.list), h("similarSourceAssetId", W_(t)), h("similarTitle", i.title || r), await Promise.resolve(), await g?.setScope?.("similar");
 		} catch (e) {
 			console.debug?.(e);
 		}
-	}, { signal: c?.signal }), window.addEventListener(B.OPEN_NODE_CONTEXT, (e) => {
+	}, { signal: l?.signal }), window.addEventListener(z.OPEN_NODE_CONTEXT, (e) => {
 		try {
 			let e = window.MajoorAssetsManager;
 			e?.pendingNodeContext && (e.pendingNodeContext = null);
 		} catch (e) {
 			console.debug?.(e);
 		}
-		j(e?.detail || {});
-	}, { signal: c?.signal });
+		ee(e?.detail || {});
+	}, { signal: l?.signal });
 	try {
 		let e = window.MajoorAssetsManager?.pendingNodeContext || null;
 		e && (window.MajoorAssetsManager.pendingNodeContext = null, setTimeout(() => {
-			j(e);
+			ee(e);
 		}, 0));
 	} catch (e) {
 		console.debug?.(e);
 	}
 }
 // ui/features/panel/panelPinnedFolders.ts
-function U_({ pinnedFoldersBtn: e, pinnedFoldersController: t = null, pinnedFoldersMenu: n = null, pinnedFoldersPopover: r, popovers: i, closeOtherPopovers: a, state: o, gridContainer: s, customSelect: c, scopeController: l, customRootsController: u, gridController: d, applyWatcherForScope: f, refreshDuplicateAlerts: p, notifyContextChanged: h, panelLifecycleAC: g }) {
+function q_({ pinnedFoldersBtn: e, pinnedFoldersController: t = null, pinnedFoldersMenu: n = null, pinnedFoldersPopover: r, popovers: i, closeOtherPopovers: a, state: o, gridContainer: s, customSelect: c, scopeController: l, customRootsController: u, gridController: d, applyWatcherForScope: f, refreshDuplicateAlerts: p, notifyContextChanged: h, panelLifecycleAC: g }) {
 	let _ = (e) => {
 		let t = String(e?.id || "").trim();
 		if (!t) return null;
@@ -17425,7 +17530,7 @@ function U_({ pinnedFoldersBtn: e, pinnedFoldersController: t = null, pinnedFold
 		};
 	}, v = async () => {
 		try {
-			let e = await Ie(I.CUSTOM_ROOTS, g?.signal ? { signal: g.signal } : void 0);
+			let e = await fe(m.CUSTOM_ROOTS, g?.signal ? { signal: g.signal } : void 0);
 			return e?.ok && Array.isArray(e.data) ? e.data.map(_).filter(Boolean) : [];
 		} catch (e) {
 			return console.debug?.(e), [];
@@ -17472,9 +17577,9 @@ function U_({ pinnedFoldersBtn: e, pinnedFoldersController: t = null, pinnedFold
 		let n = String(e?.id || "").trim();
 		if (!n) return;
 		let r = String(e?.label || e?.path || n).trim();
-		if (!await Nt(L("dialog.unpinFolder", "Unpin folder \"{name}\"?", { name: r }))) return;
-		let i = await pe(I.CUSTOM_ROOTS_REMOVE, { id: n });
-		if (!i?.ok) m(i?.error || L("toast.unpinFolderFailed", "Failed to unpin folder"), "error");
+		if (!await Pt(I("dialog.unpinFolder", "Unpin folder \"{name}\"?", { name: r }))) return;
+		let i = await rt(m.CUSTOM_ROOTS_REMOVE, { id: n });
+		if (!i?.ok) F(i?.error || I("toast.unpinFolderFailed", "Failed to unpin folder"), "error");
 		else {
 			String(o.customRootId || "") === n && (o.customRootId = "", o.customRootLabel = "", o.currentFolderRelativePath = "");
 			try {
@@ -17486,9 +17591,9 @@ function U_({ pinnedFoldersBtn: e, pinnedFoldersController: t = null, pinnedFold
 		}
 	}, x = (e) => typeof t?.setPinnedFolders == "function" && (t.setPinnedFolders({
 		roots: e,
-		emptyLabel: L("msg.noPinnedFolders", "No pinned folders"),
-		loadingLabel: L("status.loading", "Loading..."),
-		unpinLabel: L("ctx.unpinFolder", "Unpin folder"),
+		emptyLabel: I("msg.noPinnedFolders", "No pinned folders"),
+		loadingLabel: I("status.loading", "Loading..."),
+		unpinLabel: I("ctx.unpinFolder", "Unpin folder"),
 		onOpen: y,
 		onUnpin: b,
 		loading: !1
@@ -17505,17 +17610,17 @@ function U_({ pinnedFoldersBtn: e, pinnedFoldersController: t = null, pinnedFold
 				let r = document.createElement("button");
 				r.type = "button", r.className = "mjr-menu-item mjr-pinned-folder-open", r.textContent = t.label, r.addEventListener("click", () => y(t), { signal: g?.signal });
 				let i = document.createElement("button");
-				i.type = "button", i.className = "mjr-menu-item mjr-pinned-folder-unpin", i.title = L("ctx.unpinFolder", "Unpin folder"), i.textContent = "x", i.addEventListener("click", (e) => b(t, e), { signal: g?.signal }), e.appendChild(r), e.appendChild(i), n.appendChild(e);
+				i.type = "button", i.className = "mjr-menu-item mjr-pinned-folder-unpin", i.title = I("ctx.unpinFolder", "Unpin folder"), i.textContent = "x", i.addEventListener("click", (e) => b(t, e), { signal: g?.signal }), e.appendChild(r), e.appendChild(i), n.appendChild(e);
 			}
 			else {
 				let e = document.createElement("div");
-				e.className = "mjr-muted", e.style.cssText = "padding:10px 12px; opacity:0.75;", e.textContent = L("msg.noPinnedFolders", "No pinned folders"), n.appendChild(e);
+				e.className = "mjr-muted", e.style.cssText = "padding:10px 12px; opacity:0.75;", e.textContent = I("msg.noPinnedFolders", "No pinned folders"), n.appendChild(e);
 			}
 		}
 	};
 	async function C() {
 		try {
-			t?.setPinnedFoldersLoading?.(!0, L("status.loading", "Loading..."));
+			t?.setPinnedFoldersLoading?.(!0, I("status.loading", "Loading..."));
 		} catch (e) {
 			console.debug?.(e);
 		}
@@ -17533,8 +17638,8 @@ function U_({ pinnedFoldersBtn: e, pinnedFoldersController: t = null, pinnedFold
 	}, { signal: g?.signal });
 }
 // ui/features/filters/calendar/AgendaCalendar.ts
-var W_ = (e) => String(e).padStart(2, "0");
-function G_(e) {
+var J_ = (e) => String(e).padStart(2, "0");
+function Y_(e) {
 	try {
 		let t = String(e || "").trim();
 		if (!/^\d{4}-\d{2}-\d{2}$/.test(t)) return null;
@@ -17546,50 +17651,50 @@ function G_(e) {
 		return null;
 	}
 }
-function K_(e) {
+function X_(e) {
 	try {
 		let t = e.getFullYear(), n = e.getMonth() + 1, r = e.getDate();
-		return `${t}-${W_(n)}-${W_(r)}`;
+		return `${t}-${J_(n)}-${J_(r)}`;
 	} catch {
 		return "";
 	}
 }
-function q_(e) {
+function Z_(e) {
 	try {
-		return `${e.getFullYear()}-${W_(e.getMonth() + 1)}`;
+		return `${e.getFullYear()}-${J_(e.getMonth() + 1)}`;
 	} catch {
 		return "";
 	}
 }
-function J_(e) {
+function Q_(e) {
 	try {
 		return new Date(e.getFullYear(), e.getMonth(), 1);
 	} catch {
 		return /* @__PURE__ */ new Date();
 	}
 }
-function Y_(e, t) {
+function $_(e, t) {
 	try {
 		return new Date(e.getFullYear(), e.getMonth() + t, 1);
 	} catch {
 		return /* @__PURE__ */ new Date();
 	}
 }
-function X_(e) {
+function ev(e) {
 	try {
 		return new Date(e.getFullYear(), e.getMonth() + 1, 0).getDate();
 	} catch {
 		return 31;
 	}
 }
-function Z_(e) {
+function tv(e) {
 	try {
 		return (e.getDay() + 6) % 7;
 	} catch {
 		return 0;
 	}
 }
-function Q_(e, t) {
+function nv(e, t) {
 	if (e) try {
 		let n = String(e.value || "");
 		e.value = t || "", n !== e.value && e.dispatchEvent?.(new Event("change", { bubbles: !0 }));
@@ -17597,37 +17702,37 @@ function Q_(e, t) {
 		console.debug?.(e);
 	}
 }
-async function $_({ state: e, monthKey: t }) {
+async function rv({ state: t, monthKey: n }) {
 	try {
-		let n = String(e?.scope || "output");
-		if (n === "collection") return {
+		let r = String(t?.scope || "output");
+		if (r === "collection") return {
 			ok: !0,
 			days: {}
 		};
-		let r = String(e?.currentFolderRelativePath || "").trim(), i = n === "custom" && !e?.customRootId ? null : r || null, a = xe({
-			scope: n,
-			customRootId: e?.customRootId || null,
-			subfolder: i,
-			month: t,
-			kind: e?.kindFilter || null,
-			hasWorkflow: e?.workflowOnly ? !0 : null,
-			minRating: Number(e?.minRating || 0) || 0,
-			minSizeMB: Number(e?.minSizeMB || 0) || 0,
-			maxSizeMB: Number(e?.maxSizeMB || 0) || 0,
-			minWidth: Number(e?.minWidth || 0) || 0,
-			minHeight: Number(e?.minHeight || 0) || 0,
-			maxWidth: Number(e?.maxWidth || 0) || 0,
-			maxHeight: Number(e?.maxHeight || 0) || 0,
-			workflowType: String(e?.workflowType || "").trim().toUpperCase() || null,
+		let i = String(t?.currentFolderRelativePath || "").trim(), a = r === "custom" && !t?.customRootId ? null : i || null, o = e({
+			scope: r,
+			customRootId: t?.customRootId || null,
+			subfolder: a,
+			month: n,
+			kind: t?.kindFilter || null,
+			hasWorkflow: t?.workflowOnly ? !0 : null,
+			minRating: Number(t?.minRating || 0) || 0,
+			minSizeMB: Number(t?.minSizeMB || 0) || 0,
+			maxSizeMB: Number(t?.maxSizeMB || 0) || 0,
+			minWidth: Number(t?.minWidth || 0) || 0,
+			minHeight: Number(t?.minHeight || 0) || 0,
+			maxWidth: Number(t?.maxWidth || 0) || 0,
+			maxHeight: Number(t?.maxHeight || 0) || 0,
+			workflowType: String(t?.workflowType || "").trim().toUpperCase() || null,
 			dateRange: null,
 			dateExact: null
-		}), o = await Ie(a);
-		return !o || !o.ok ? {
+		}), s = await fe(o);
+		return !s || !s.ok ? {
 			ok: !1,
-			error: o?.error || "Histogram error"
+			error: s?.error || "Histogram error"
 		} : {
 			ok: !0,
-			days: o?.data?.days && typeof o.data.days == "object" ? o.data.days : {}
+			days: s?.data?.days && typeof s.data.days == "object" ? s.data.days : {}
 		};
 	} catch (e) {
 		return {
@@ -17636,7 +17741,7 @@ async function $_({ state: e, monthKey: t }) {
 		};
 	}
 }
-function ev({ container: e, hiddenInput: t, state: n, onRequestReloadGrid: r = null } = {}) {
+function iv({ container: e, hiddenInput: t, state: n, onRequestReloadGrid: r = null } = {}) {
 	if (!e || !(e instanceof HTMLElement) || !t) return {
 		dispose() {},
 		refresh() {}
@@ -17656,10 +17761,10 @@ function ev({ container: e, hiddenInput: t, state: n, onRequestReloadGrid: r = n
 	let u = document.createElement("div");
 	u.className = "mjr-agenda-footer";
 	let d = document.createElement("button");
-	d.type = "button", d.className = "mjr-btn mjr-agenda-clear", d.textContent = L("action.clear", "Clear");
+	d.type = "button", d.className = "mjr-btn mjr-agenda-clear", d.textContent = I("action.clear", "Clear");
 	let f = document.createElement("button");
-	f.type = "button", f.className = "mjr-btn mjr-agenda-refresh", f.textContent = L("action.refresh", "Refresh"), u.appendChild(d), u.appendChild(f), i.appendChild(a), i.appendChild(l), i.appendChild(u), e.appendChild(i);
-	let p = J_(G_(t.value) || /* @__PURE__ */ new Date()), m = {}, h = 0, g = !1, _ = () => {
+	f.type = "button", f.className = "mjr-btn mjr-agenda-refresh", f.textContent = I("action.refresh", "Refresh"), u.appendChild(d), u.appendChild(f), i.appendChild(a), i.appendChild(l), i.appendChild(u), e.appendChild(i);
+	let p = Q_(Y_(t.value) || /* @__PURE__ */ new Date()), m = {}, h = 0, g = !1, _ = () => {
 		if (g) return;
 		let e = p.getFullYear(), n = p.getMonth();
 		s.textContent = p.toLocaleString(void 0, {
@@ -17667,53 +17772,53 @@ function ev({ container: e, hiddenInput: t, state: n, onRequestReloadGrid: r = n
 			year: "numeric"
 		}), l.innerHTML = "";
 		let r = [
-			L("weekday.monShort", "Mon"),
-			L("weekday.tueShort", "Tue"),
-			L("weekday.wedShort", "Wed"),
-			L("weekday.thuShort", "Thu"),
-			L("weekday.friShort", "Fri"),
-			L("weekday.satShort", "Sat"),
-			L("weekday.sunShort", "Sun")
+			I("weekday.monShort", "Mon"),
+			I("weekday.tueShort", "Tue"),
+			I("weekday.wedShort", "Wed"),
+			I("weekday.thuShort", "Thu"),
+			I("weekday.friShort", "Fri"),
+			I("weekday.satShort", "Sat"),
+			I("weekday.sunShort", "Sun")
 		];
 		for (let e of r) {
 			let t = document.createElement("div");
 			t.className = "mjr-agenda-weekday", t.textContent = e, l.appendChild(t);
 		}
-		let i = Z_(new Date(e, n, 1)), a = X_(p), o = G_(t.value), c = o ? K_(o) : "";
+		let i = tv(new Date(e, n, 1)), a = ev(p), o = Y_(t.value), c = o ? X_(o) : "";
 		for (let e = 0; e < i; e++) {
 			let e = document.createElement("div");
 			e.className = "mjr-agenda-day mjr-agenda-day--blank", l.appendChild(e);
 		}
 		for (let r = 1; r <= a; r++) {
-			let i = K_(new Date(e, n, r)), a = Number(m?.[i] || 0) || 0, o = document.createElement("button");
+			let i = X_(new Date(e, n, r)), a = Number(m?.[i] || 0) || 0, o = document.createElement("button");
 			if (o.type = "button", o.className = "mjr-agenda-day", o.textContent = String(r), o.dataset.date = i, a > 0) {
 				o.classList.add("mjr-agenda-day--has-assets");
-				let e = L(a === 1 ? "tooltip.assetsDaySingular" : "tooltip.assetsDayPlural", a === 1 ? "{count} asset" : "{count} assets", { count: a });
+				let e = I(a === 1 ? "tooltip.assetsDaySingular" : "tooltip.assetsDayPlural", a === 1 ? "{count} asset" : "{count} assets", { count: a });
 				o.title = e;
 				let t = document.createElement("span");
 				t.className = "mjr-agenda-day-badge", t.textContent = a > 99 ? "99+" : String(a), t.setAttribute("aria-label", e), o.appendChild(t);
-			} else o.title = L("tooltip.noAssetsDay", "No assets on this day");
+			} else o.title = I("tooltip.noAssetsDay", "No assets on this day");
 			i === c && o.classList.add("mjr-agenda-day--selected"), o.addEventListener("click", () => {
-				Q_(t, String(t.value || "").trim() === i ? "" : i);
+				nv(t, String(t.value || "").trim() === i ? "" : i);
 			}), l.appendChild(o);
 		}
 	}, v = async () => {
 		if (g) return;
-		let e = q_(p);
+		let e = Z_(p);
 		if (!e) return;
 		h += 1;
-		let t = h, r = await $_({
+		let t = h, r = await rv({
 			state: n,
 			monthKey: e
 		});
 		g || t === h && (m = r.ok && r.days || {}, _());
 	};
 	return o.addEventListener("click", async () => {
-		p = Y_(p, -1), await v();
+		p = $_(p, -1), await v();
 	}), c.addEventListener("click", async () => {
-		p = Y_(p, 1), await v();
+		p = $_(p, 1), await v();
 	}), d.addEventListener("click", () => {
-		Q_(t, "");
+		nv(t, "");
 		try {
 			r?.();
 		} catch (e) {
@@ -17722,9 +17827,9 @@ function ev({ container: e, hiddenInput: t, state: n, onRequestReloadGrid: r = n
 	}), f.addEventListener("click", async () => {
 		await v();
 	}), t.addEventListener("change", () => {
-		let e = G_(t.value);
+		let e = Y_(t.value);
 		if (e) {
-			let t = J_(e);
+			let t = Q_(e);
 			(t.getFullYear() !== p.getFullYear() || t.getMonth() !== p.getMonth()) && (p = t);
 		}
 		_();
@@ -17741,14 +17846,14 @@ function ev({ container: e, hiddenInput: t, state: n, onRequestReloadGrid: r = n
 	};
 }
 // ui/features/panel/controllers/filtersController.ts
-var tv = (e) => {
+var av = (e) => {
 	let t = String(e ?? "").trim();
 	if (!t) return 0;
 	let n = t.replace(",", "."), r = Number(n);
 	return Number.isFinite(r) ? r : 0;
 };
-function nv({ state: e, kindSelect: t, wfCheckbox: n, workflowTypeSelect: r, workflowIdInput: i, workflowModelInput: a, workflowRunsOnSelect: o, ratingSelect: s, minSizeInput: c, maxSizeInput: l, resolutionPresetSelect: u, minWidthInput: d, minHeightInput: f, maxWidthInput: p, maxHeightInput: m, dateRangeSelect: h, dateExactInput: g, reloadGrid: _, reconcileSelection: v = null, onFiltersChanged: y = null, lifecycleSignal: b = null }) {
-	let { write: x } = eg(e, [
+function ov({ state: e, kindSelect: t, wfCheckbox: n, workflowTypeSelect: r, workflowIdInput: i, workflowModelInput: a, workflowRunsOnSelect: o, ratingSelect: s, minSizeInput: c, maxSizeInput: l, resolutionPresetSelect: u, minWidthInput: d, minHeightInput: f, maxWidthInput: p, maxHeightInput: m, dateRangeSelect: h, dateExactInput: g, reloadGrid: _, reconcileSelection: v = null, onFiltersChanged: y = null, lifecycleSignal: b = null }) {
+	let { write: x } = ig(e, [
 		"kindFilter",
 		"workflowOnly",
 		"minRating",
@@ -17860,7 +17965,7 @@ function nv({ state: e, kindSelect: t, wfCheckbox: n, workflowTypeSelect: r, wor
 		C();
 	}, b ? { signal: b } : void 0);
 	let E = () => {
-		let e = tv(c?.value || 0), t = tv(l?.value || 0), n = Number.isFinite(e) && e > 0 ? e : 0, r = Number.isFinite(t) && t > 0 ? t : 0;
+		let e = av(c?.value || 0), t = av(l?.value || 0), n = Number.isFinite(e) && e > 0 ? e : 0, r = Number.isFinite(t) && t > 0 ? t : 0;
 		r > 0 && n > 0 && r < n && (r = n, l && (l.value = String(r))), x("minSizeMB", n), x("maxSizeMB", r);
 		try {
 			y?.();
@@ -17871,7 +17976,7 @@ function nv({ state: e, kindSelect: t, wfCheckbox: n, workflowTypeSelect: r, wor
 	};
 	T(c, "change", E, b ? { signal: b } : void 0), T(l, "change", E, b ? { signal: b } : void 0);
 	let D = () => {
-		let e = tv(d?.value || 0), t = tv(f?.value || 0), n = tv(p?.value || 0), r = tv(m?.value || 0), i = Number.isFinite(e) && e > 0 ? Math.round(e) : 0, a = Number.isFinite(t) && t > 0 ? Math.round(t) : 0, o = Number.isFinite(n) && n > 0 ? Math.round(n) : 0, s = Number.isFinite(r) && r > 0 ? Math.round(r) : 0;
+		let e = av(d?.value || 0), t = av(f?.value || 0), n = av(p?.value || 0), r = av(m?.value || 0), i = Number.isFinite(e) && e > 0 ? Math.round(e) : 0, a = Number.isFinite(t) && t > 0 ? Math.round(t) : 0, o = Number.isFinite(n) && n > 0 ? Math.round(n) : 0, s = Number.isFinite(r) && r > 0 ? Math.round(r) : 0;
 		o > 0 && i > 0 && o < i && (o = i, p && (p.value = String(o))), s > 0 && a > 0 && s < a && (s = a, m && (m.value = String(s))), x("minWidth", i), x("minHeight", a), x("maxWidth", o), x("maxHeight", s);
 		try {
 			u && (u.value = {
@@ -17955,7 +18060,7 @@ function nv({ state: e, kindSelect: t, wfCheckbox: n, workflowTypeSelect: r, wor
 	};
 }
 // ui/features/panel/panelFiltersInit.ts
-function rv({ state: e, hasVueHeaderSection: t, kindSelect: n, wfCheckbox: r, workflowTypeSelect: i, workflowIdInput: a, workflowModelInput: o, workflowRunsOnSelect: s, ratingSelect: c, minSizeInput: l, maxSizeInput: u, resolutionPresetSelect: d, minWidthInput: f, minHeightInput: p, maxWidthInput: m, maxHeightInput: h, dateRangeSelect: g, dateExactInput: _, agendaContainer: v, gridController: y, reconcileVisibleSelection: b, exitSimilarViewIfActive: x, notifyContextChanged: S, panelLifecycleAC: C, popovers: w = null, filterPopover: T = null }) {
+function sv({ state: e, hasVueHeaderSection: t, kindSelect: n, wfCheckbox: r, workflowTypeSelect: i, workflowIdInput: a, workflowModelInput: o, workflowRunsOnSelect: s, ratingSelect: c, minSizeInput: l, maxSizeInput: u, resolutionPresetSelect: d, minWidthInput: f, minHeightInput: p, maxWidthInput: m, maxHeightInput: h, dateRangeSelect: g, dateExactInput: _, agendaContainer: v, gridController: y, reconcileVisibleSelection: b, exitSimilarViewIfActive: x, notifyContextChanged: S, panelLifecycleAC: C, popovers: w = null, filterPopover: T = null }) {
 	let E = null;
 	try {
 		try {
@@ -17965,7 +18070,7 @@ function rv({ state: e, hasVueHeaderSection: t, kindSelect: n, wfCheckbox: r, wo
 		} catch (e) {
 			console.debug?.(e);
 		}
-		E = ev({
+		E = iv({
 			container: v,
 			hiddenInput: _,
 			state: e,
@@ -18006,7 +18111,7 @@ function rv({ state: e, hasVueHeaderSection: t, kindSelect: n, wfCheckbox: r, wo
 		D = () => {
 			e &&= (clearTimeout(e), null);
 		};
-	} else D = nv({
+	} else D = ov({
 		state: e,
 		kindSelect: n,
 		wfCheckbox: r,
@@ -18043,7 +18148,7 @@ function rv({ state: e, hasVueHeaderSection: t, kindSelect: n, wfCheckbox: r, wo
 	};
 }
 // ui/features/panel/panelContextMenuExtraActions.ts
-function iv({ state: e, scopeController: t, browserNav: n, gridController: r, getDuplicatesAlert: i, refreshDuplicateAlerts: a }) {
+function cv({ state: e, scopeController: t, browserNav: r, gridController: i, getDuplicatesAlert: a, refreshDuplicateAlerts: o }) {
 	return {
 		clearSimilarScope: async () => {
 			try {
@@ -18061,48 +18166,48 @@ function iv({ state: e, scopeController: t, browserNav: n, gridController: r, ge
 		},
 		resetBrowserHistory: () => {
 			try {
-				n?.resetHistory?.();
+				r?.resetHistory?.();
 			} catch (e) {
 				console.debug?.(e);
 			}
 		},
 		onDuplicateAlertClick: async (e) => {
-			let t = (e || i() || {}).firstGroup;
+			let t = (e || a() || {}).firstGroup;
 			if (t && Array.isArray(t.assets) && t.assets.length >= 2) {
 				let e = t.assets[0] || {}, n = t.assets.slice(1).map((e) => Number(e?.id || 0)).filter((e) => e > 0);
 				if (n.length) {
-					if (await Nt(L("dialog.mergeDuplicateTags", "Exact duplicates detected ({count}). Merge tags into \"{target}\"?", {
+					if (await Pt(I("dialog.mergeDuplicateTags", "Exact duplicates detected ({count}). Merge tags into \"{target}\"?", {
 						count: t.assets.length,
 						target: e?.filename || e?.id
 					}))) {
-						let t = await qe(Number(e?.id || 0), n);
-						t?.ok ? m(L("toast.tagsMerged", "Tags merged"), "success", 2200) : m(L("toast.tagMergeFailed", "Tag merge failed: {error}", { error: t?.error || "error" }), "warning", 3500);
+						let t = await ze(Number(e?.id || 0), n);
+						t?.ok ? F(I("toast.tagsMerged", "Tags merged"), "success", 2200) : F(I("toast.tagMergeFailed", "Tag merge failed: {error}", { error: t?.error || "error" }), "warning", 3500);
 					}
-					if (await Nt(L("dialog.deleteExactDuplicates", "Delete {count} exact duplicate(s)?", { count: n.length }))) {
-						let e = await u(n);
-						e?.ok ? (m(L("toast.duplicatesDeleted", "Duplicates deleted"), "success", 2200), await r.reloadGrid()) : m(L("toast.deleteFailed", "Delete failed: {error}", { error: e?.error || "error" }), "warning", 3500);
+					if (await Pt(I("dialog.deleteExactDuplicates", "Delete {count} exact duplicate(s)?", { count: n.length }))) {
+						let e = await T(n);
+						e?.ok ? (F(I("toast.duplicatesDeleted", "Duplicates deleted"), "success", 2200), await i.reloadGrid()) : F(I("toast.deleteFailed", "Delete failed: {error}", { error: e?.error || "error" }), "warning", 3500);
 					}
-					await a();
+					await o();
 					return;
 				}
 			}
-			if (!await Nt(L("dialog.startDuplicateAnalysis", "Start duplicate analysis in background?"))) return;
-			let n = await Oe(500);
-			n?.ok ? m(L("toast.dupAnalysisStarted", "Duplicate analysis started"), "info", 2200) : m(L("toast.analysisNotStarted", "Analysis not started: {error}", { error: n?.error || "error" }), "warning", 3500), await a();
+			if (!await Pt(I("dialog.startDuplicateAnalysis", "Start duplicate analysis in background?"))) return;
+			let r = await n(500);
+			r?.ok ? F(I("toast.dupAnalysisStarted", "Duplicate analysis started"), "info", 2200) : F(I("toast.analysisNotStarted", "Analysis not started: {error}", { error: r?.error || "error" }), "warning", 3500), await o();
 		}
 	};
 }
 // ui/features/panel/panelRuntime.ts
-async function av(e, { useComfyThemeUI: t = !0, external: n = {} } = {}) {
-	return ov(e, {
+async function lv(e, { useComfyThemeUI: t = !0, external: n = {} } = {}) {
+	return uv(e, {
 		useComfyThemeUI: t,
 		external: n
 	});
 }
-async function ov(e, { useComfyThemeUI: t = !0, external: n = {} } = {}) {
+async function uv(e, { useComfyThemeUI: t = !0, external: n = {} } = {}) {
 	Om("panelRender"), jm("panelRender");
-	let i = typeof AbortController < "u" ? new AbortController() : null, { popovers: a, hostWrapper: o, hostWrapperPrevStyle: s } = P_(e, { useComfyThemeUI: t }), c = $h();
-	if (!c) throw Error("[Majoor] mountAssetsManagerPanelRuntime requires an active Pinia panel store");
+	let r = typeof AbortController < "u" ? new AbortController() : null, { popovers: i, hostWrapper: a, hostWrapperPrevStyle: o } = R_(e, { useComfyThemeUI: t }), s = rg();
+	if (!s) throw Error("[Majoor] mountAssetsManagerPanelRuntime requires an active Pinia panel store");
 	for (let e of [
 		"statusSection",
 		"statusDot",
@@ -18117,7 +18222,7 @@ async function ov(e, { useComfyThemeUI: t = !0, external: n = {} } = {}) {
 		"gridContainer",
 		"sidebar"
 	]) if (!n?.[e]) throw Error(`[Majoor] mountAssetsManagerPanelRuntime now requires external.${e}`);
-	let l = eg(null, [
+	let c = ig(null, [
 		"searchQuery",
 		"scrollTop",
 		"scope",
@@ -18137,49 +18242,49 @@ async function ov(e, { useComfyThemeUI: t = !0, external: n = {} } = {}) {
 		"similarTitle",
 		"similarSourceAssetId"
 	]);
-	c.viewScope = String(c.viewScope || "").trim().toLowerCase() === "similar" ? "similar" : "", c.similarResults = Array.isArray(c.similarResults) ? c.similarResults : [], c.similarTitle = String(c.similarTitle || ""), c.similarSourceAssetId = String(c.similarSourceAssetId || "");
-	let u = (e, t = "") => l.read(e, c?.[e] ?? t), d = (e, t) => l.write(e, t), f = () => {
-		let e = u("selectedAssetIds", []);
+	s.viewScope = String(s.viewScope || "").trim().toLowerCase() === "similar" ? "similar" : "", s.similarResults = Array.isArray(s.similarResults) ? s.similarResults : [], s.similarTitle = String(s.similarTitle || ""), s.similarSourceAssetId = String(s.similarSourceAssetId || "");
+	let l = (e, t = "") => c.read(e, s?.[e] ?? t), u = (e, t) => c.write(e, t), d = () => {
+		let e = l("selectedAssetIds", []);
 		return Array.isArray(e) ? e.map(String).filter(Boolean) : [];
-	}, p = () => String(u("activeAssetId", "") || "").trim(), h = () => !!u("sidebarOpen", !1), { header: g, tabButtons: _, customMenuBtn: v, filterBtn: y, sortBtn: b, collectionsBtn: x, pinnedFoldersBtn: S, messageBtn: C, settingsBtn: w, customPopover: T, customSelect: E, customAddBtn: D, customRemoveBtn: O, filterPopover: k, kindSelect: A, wfCheckbox: ee, workflowTypeSelect: j, workflowIdInput: M, workflowModelInput: te, workflowRunsOnSelect: ne, ratingSelect: N, minSizeInput: P, maxSizeInput: re, resolutionPresetSelect: ie, minWidthInput: F, minHeightInput: ae, maxWidthInput: oe, maxHeightInput: se, dateRangeSelect: ce, dateExactInput: le, agendaContainer: ue, sortPopover: de, sortMenu: fe, collectionsPopover: me, pinnedFoldersPopover: he, pinnedFoldersController: ge, pinnedFoldersMenu: _e, messagePopoverTitle: ve, messagePopover: ye, messageTabBtn: be, messageTabBadge: xe, historyTabBtn: Se, historyTabBadge: Ce, historyTabCount: we, historyPanel: Te, shortcutsTabBtn: Ee, messageList: De, shortcutsPanel: Oe, markReadBtn: ke, searchSection: Ae, searchInputEl: je, similarBtn: Me, similarPopover: Ne, similarFindBtn: Pe, similarDuplicatesBtn: Fe, similarSameNodeBtn: Le, similarSameWorkflowBtn: Re, setSemanticEnabled: ze, _headerDispose: Be } = n.headerSection, Ve = !!n?.headerSection?.isVueHeader;
-	l.read("searchQuery", "") && (je.value = l.read("searchQuery", "")), je.addEventListener("input", (e) => {
-		l.write("searchQuery", e.target.value);
-	}, { signal: i?.signal });
-	let He = n.summaryBar, Ue = n.updateSummaryBar, We = n.folderBreadcrumb, Ge = n.folderBreadcrumbController || null, Ke = n.statusSection, qe = n.statusDot, R = n.statusText, Je = n.capabilitiesSection, Ye = n.browseSection, Xe = n.gridWrapper, Ze = n.sidebar;
-	Pt();
-	let Qe = document.createElement("div");
-	Qe.classList.add("mjr-am-content");
-	let z = null, $e = null;
+	}, f = () => String(l("activeAssetId", "") || "").trim(), p = () => !!l("sidebarOpen", !1), { header: h, tabButtons: g, customMenuBtn: _, filterBtn: v, sortBtn: y, collectionsBtn: b, pinnedFoldersBtn: x, messageBtn: S, settingsBtn: C, customPopover: w, customSelect: T, customAddBtn: E, customRemoveBtn: D, filterPopover: O, kindSelect: k, wfCheckbox: ee, workflowTypeSelect: j, workflowIdInput: M, workflowModelInput: te, workflowRunsOnSelect: ne, ratingSelect: re, minSizeInput: N, maxSizeInput: P, resolutionPresetSelect: ie, minWidthInput: ae, minHeightInput: oe, maxWidthInput: se, maxHeightInput: ce, dateRangeSelect: le, dateExactInput: ue, agendaContainer: de, sortPopover: pe, sortMenu: me, collectionsPopover: he, pinnedFoldersPopover: ge, pinnedFoldersController: _e, pinnedFoldersMenu: ve, messagePopoverTitle: ye, messagePopover: be, messageTabBtn: xe, messageTabBadge: Se, historyTabBtn: Ce, historyTabBadge: we, historyTabCount: Te, historyPanel: Ee, shortcutsTabBtn: De, messageList: Oe, shortcutsPanel: ke, markReadBtn: Ae, searchSection: je, searchInputEl: Me, similarBtn: Ne, similarPopover: Pe, similarFindBtn: Fe, similarDuplicatesBtn: Ie, similarSameNodeBtn: Le, similarSameWorkflowBtn: Re, setSemanticEnabled: ze, _headerDispose: Be } = n.headerSection, Ve = !!n?.headerSection?.isVueHeader;
+	c.read("searchQuery", "") && (Me.value = c.read("searchQuery", "")), Me.addEventListener("input", (e) => {
+		c.write("searchQuery", e.target.value);
+	}, { signal: r?.signal });
+	let He = n.summaryBar, Ue = n.updateSummaryBar, We = n.folderBreadcrumb, Ge = n.folderBreadcrumbController || null, Ke = n.statusSection, qe = n.statusDot, Je = n.statusText, Ye = n.capabilitiesSection, Xe = n.browseSection, Ze = n.gridWrapper, Qe = n.sidebar;
+	Ft();
+	let $e = document.createElement("div");
+	$e.classList.add("mjr-am-content");
+	let L = null, et = null;
 	e.tabIndex = -1;
-	let et = null, tt = 0, nt = () => {
+	let tt = null, nt = 0, at = () => {
 		try {
-			tt = Date.now();
+			nt = Date.now();
 		} catch {
-			tt = 0;
+			nt = 0;
 		}
-	}, it = typeof n?.bindGridHostState == "function" && typeof n?.restoreGridUiState == "function", at = !it;
-	Xe.addEventListener("scroll", () => {
-		nt(), at && (et && clearTimeout(et), et = setTimeout(() => {
+	}, ot = typeof n?.bindGridHostState == "function" && typeof n?.restoreGridUiState == "function", st = !ot;
+	Ze.addEventListener("scroll", () => {
+		at(), st && (tt && clearTimeout(tt), tt = setTimeout(() => {
 			try {
-				l.write("scrollTop", Xe.scrollTop);
+				c.write("scrollTop", Ze.scrollTop);
 			} catch (e) {
 				console.debug?.(e);
 			}
 		}, 100));
 	}, {
 		passive: !0,
-		signal: i?.signal
-	}), z = n.gridContainer, z.parentElement !== Xe && Xe.appendChild(z), ht(z);
+		signal: r?.signal
+	}), L = n.gridContainer, L.parentElement !== Ze && Ze.appendChild(L), gt(L);
 	try {
-		z.dataset.mjrScope = String(u("scope", c.scope || "output") || "output");
+		L.dataset.mjrScope = String(l("scope", s.scope || "output") || "output");
 	} catch (e) {
 		console.debug?.(e);
 	}
-	let ot = [], st = (e) => {
-		typeof e == "function" && ot.push(e);
+	let ct = [], lt = (e) => {
+		typeof e == "function" && ct.push(e);
 	};
-	z._mjrSummaryBarDispose = () => {
-		for (let e of ot.splice(0)) try {
+	L._mjrSummaryBarDispose = () => {
+		for (let e of ct.splice(0)) try {
 			e();
 		} catch (e) {
 			console.debug?.(e);
@@ -18189,16 +18294,16 @@ async function ov(e, { useComfyThemeUI: t = !0, external: n = {} } = {}) {
 		let e = () => {
 			try {
 				Ue?.({
-					state: c,
-					gridContainer: z
+					state: s,
+					gridContainer: L
 				});
 			} catch (e) {
 				console.debug?.(e);
 			}
 		};
-		z.addEventListener("mjr:grid-stats", e, { signal: i?.signal }), st(() => {
+		L.addEventListener("mjr:grid-stats", e, { signal: r?.signal }), lt(() => {
 			try {
-				z.removeEventListener("mjr:grid-stats", e);
+				L.removeEventListener("mjr:grid-stats", e);
 			} catch (e) {
 				console.debug?.(e);
 			}
@@ -18206,151 +18311,151 @@ async function ov(e, { useComfyThemeUI: t = !0, external: n = {} } = {}) {
 	} catch (e) {
 		console.debug?.(e);
 	}
-	let ct = n.loadAssets ?? ci, lt = n.loadAssetsFromList ?? li, ut = n.prepareGridForScopeSwitch ?? ui, ft = n.disposeGrid ?? di, pt = n.refreshGrid ?? fi, mt = n.captureAnchor ?? pi, gt = n.restoreAnchor ?? mi, _t = n.hydrateGridFromSnapshot ?? si;
+	let ut = n.loadAssets ?? ci, R = n.loadAssetsFromList ?? li, dt = n.prepareGridForScopeSwitch ?? ui, pt = n.disposeGrid ?? di, mt = n.refreshGrid ?? fi, ht = n.captureAnchor ?? pi, _t = n.restoreAnchor ?? mi, vt = n.hydrateGridFromSnapshot ?? si;
 	if (typeof n?.onGridContainerReady == "function") try {
-		n.onGridContainerReady(z, { getState: () => c });
+		n.onGridContainerReady(L, { getState: () => s });
 	} catch (e) {
 		console.debug?.(e);
 	}
 	else e._mjrGridContextMenuUnbind = yo({
-		gridContainer: z,
-		getState: () => c
+		gridContainer: L,
+		getState: () => s
 	});
-	let bt = L("search.findSimilar", "Find Similar"), xt = L("search.similarDisabled", "AI features are disabled in settings"), { applyWatcherForScope: St, isAiEnabled: Ct } = F_({
+	let xt = I("search.findSimilar", "Find Similar"), St = I("search.similarDisabled", "AI features are disabled in settings"), { applyWatcherForScope: Ct, isAiEnabled: wt } = z_({
 		container: e,
-		state: c,
-		sidebar: Ze,
-		browseSection: Ye,
-		gridWrapper: Xe,
-		similarBtn: Me,
+		state: s,
+		sidebar: Qe,
+		browseSection: Xe,
+		gridWrapper: Ze,
+		similarBtn: Ne,
 		setSemanticEnabled: ze,
-		similarEnabledTitle: bt,
-		similarDisabledTitle: xt,
-		refreshGridFn: pt,
-		isSidebarOpen: h,
-		readActiveAssetId: p,
-		getSidebarController: () => $e,
-		panelLifecycleAC: i
+		similarEnabledTitle: xt,
+		similarDisabledTitle: St,
+		refreshGridFn: mt,
+		isSidebarOpen: p,
+		readActiveAssetId: f,
+		getSidebarController: () => et,
+		panelLifecycleAC: r
 	});
-	Qe.appendChild(Ke), Qe.appendChild(Ae), Qe.appendChild(We), Qe.appendChild(He), Qe.appendChild(Ye), e.appendChild(g);
+	$e.appendChild(Ke), $e.appendChild(je), $e.appendChild(We), $e.appendChild(He), $e.appendChild(Xe), e.appendChild(h);
 	try {
 		e._mjrVersionUpdateCleanup?.();
 	} catch (e) {
 		console.debug?.(e);
 	}
-	e._mjrVersionUpdateCleanup = Be || g._mjrVersionUpdateCleanup, e.appendChild(Qe);
-	let wt = () => t_(je), Tt = n_({
-		gridContainer: z,
-		loadAssets: ct,
-		loadAssetsFromList: lt,
-		getCollectionAssets: rt,
-		disposeGrid: ft,
-		getQuery: wt,
-		searchInputEl: je,
-		state: c
-	}), Dt = null, Ot = null, kt = null, At = null, jt = null, Mt = null, Ft = null, It = null, Lt = null, Rt = !1, zt = (e) => !!e && String(e?.style?.display || "").toLowerCase() === "block", Bt = () => {
+	e._mjrVersionUpdateCleanup = Be || h._mjrVersionUpdateCleanup, e.appendChild($e);
+	let Tt = () => a_(Me), Et = o_({
+		gridContainer: L,
+		loadAssets: ut,
+		loadAssetsFromList: R,
+		getCollectionAssets: A,
+		disposeGrid: pt,
+		getQuery: Tt,
+		searchInputEl: Me,
+		state: s
+	}), Ot = null, kt = null, At = null, jt = null, Mt = null, Nt = null, It = null, Lt = null, Rt = null, zt = !1, Bt = (e) => !!e && String(e?.style?.display || "").toLowerCase() === "block", Vt = () => {
 		let e = [
-			[y, k],
-			[b, de],
-			[x, me],
-			[S, he],
-			[C, ye],
-			[Me, Ne]
+			[v, O],
+			[y, pe],
+			[b, he],
+			[x, ge],
+			[S, be],
+			[Ne, Pe]
 		];
 		for (let [t, n] of e) try {
-			t?.classList?.toggle?.("mjr-popover-open", zt(n)), t?.setAttribute?.("aria-expanded", zt(n) ? "true" : "false");
+			t?.classList?.toggle?.("mjr-popover-open", Bt(n)), t?.setAttribute?.("aria-expanded", Bt(n) ? "true" : "false");
 		} catch (e) {
 			console.debug?.(e);
 		}
 		try {
-			w?.classList?.toggle?.("mjr-popover-open", Rt), w?.setAttribute?.("aria-expanded", Rt ? "true" : "false");
+			C?.classList?.toggle?.("mjr-popover-open", zt), C?.setAttribute?.("aria-expanded", zt ? "true" : "false");
 		} catch (e) {
 			console.debug?.(e);
 		}
-	}, Ht = () => {
+	}, Ut = () => {
 		try {
-			Ot?.update?.();
+			kt?.update?.();
 		} catch (e) {
 			console.debug?.(e);
 		}
 		try {
-			Mt?.renderBreadcrumb?.();
+			Nt?.renderBreadcrumb?.();
 		} catch (e) {
 			console.debug?.(e);
 		}
-		Bt();
+		Vt();
 	};
-	it || (It = A_({
-		gridContainer: z,
-		readSelectedAssetIds: f,
-		readActiveAssetId: () => p(),
-		writeSelectedAssetIds: (e) => d("selectedAssetIds", e),
-		writeActiveAssetId: (e) => d("activeAssetId", e),
+	ot || (Lt = P_({
+		gridContainer: L,
+		readSelectedAssetIds: d,
+		readActiveAssetId: () => f(),
+		writeSelectedAssetIds: (e) => u("selectedAssetIds", e),
+		writeActiveAssetId: (e) => u("activeAssetId", e),
 		onSelectionChanged: () => {
-			nt(), Ht();
+			at(), Ut();
 		},
-		lifecycleSignal: i?.signal || null
-	})), Mt = r_({
-		state: c,
-		gridContainer: z,
+		lifecycleSignal: r?.signal || null
+	})), Nt = s_({
+		state: s,
+		gridContainer: L,
 		folderBreadcrumb: We,
 		folderBreadcrumbController: Ge,
-		customSelect: E,
-		reloadGrid: () => Tt.reloadGrid(),
+		customSelect: T,
+		reloadGrid: () => Et.reloadGrid(),
 		clearSelection: () => {
 			try {
-				z?._mjrSetSelection?.([], "");
+				L?._mjrSetSelection?.([], "");
 			} catch (e) {
 				console.debug?.(e);
 			}
 		},
 		onContextChanged: () => {
 			try {
-				Ot?.update?.();
+				kt?.update?.();
 			} catch (e) {
 				console.debug?.(e);
 			}
 		},
-		lifecycleSignal: i?.signal || null
+		lifecycleSignal: r?.signal || null
 	});
 	try {
-		Ft = Mt.bindGridFolderNavigation();
+		It = Nt.bindGridFolderNavigation();
 	} catch (e) {
 		console.debug?.(e);
 	}
-	let Ut = async () => {
-		let e = String(u("scope", c.scope || "output") || "output").toLowerCase(), t = String(u("customRootId", c.customRootId || "") || "").trim();
-		if (e === "custom" && !t) kt = null, Ht();
+	let Wt = async () => {
+		let e = String(l("scope", s.scope || "output") || "output").toLowerCase(), t = String(l("customRootId", s.customRootId || "") || "").trim();
+		if (e === "custom" && !t) At = null, Ut();
 		else try {
-			let n = await r({
+			let n = await it({
 				scope: e,
 				customRootId: t,
 				maxGroups: 4,
 				maxPairs: 4
-			}, { signal: i?.signal });
+			}, { signal: r?.signal });
 			if (!n?.ok) return;
-			let a = n.data || {};
-			kt = {
-				exactCount: Array.isArray(a.exact_groups) ? a.exact_groups.length : 0,
-				similarCount: Array.isArray(a.similar_pairs) ? a.similar_pairs.length : 0,
-				firstGroup: Array.isArray(a.exact_groups) ? a.exact_groups[0] : null,
-				firstPair: Array.isArray(a.similar_pairs) ? a.similar_pairs[0] : null
-			}, Ht();
+			let i = n.data || {};
+			At = {
+				exactCount: Array.isArray(i.exact_groups) ? i.exact_groups.length : 0,
+				similarCount: Array.isArray(i.similar_pairs) ? i.similar_pairs.length : 0,
+				firstGroup: Array.isArray(i.exact_groups) ? i.exact_groups[0] : null,
+				firstPair: Array.isArray(i.similar_pairs) ? i.similar_pairs[0] : null
+			}, Ut();
 		} catch (e) {
 			console.debug?.(e);
 		}
-	}, Wt = null;
-	I_({
-		gridContainer: z,
-		panelLifecycleAC: i,
+	}, Gt = null;
+	B_({
+		gridContainer: L,
+		panelLifecycleAC: r,
 		requestQueuedReload: () => {
 			try {
-				Wt && clearTimeout(Wt);
+				Gt && clearTimeout(Gt);
 			} catch (e) {
 				console.debug?.(e);
 			}
-			Wt = setTimeout(() => {
-				Wt = null, rn().catch((e) => {
+			Gt = setTimeout(() => {
+				Gt = null, an().catch((e) => {
 					try {
 						console.warn("[Majoor] queuedReload failed", e);
 					} catch (e) {
@@ -18359,322 +18464,322 @@ async function ov(e, { useComfyThemeUI: t = !0, external: n = {} } = {}) {
 				});
 			}, 120);
 		},
-		notifyContextChanged: Ht,
-		markUserInteraction: nt,
-		writePanelValue: d,
-		popovers: a,
-		collectionsPopover: me,
-		gridController: Tt,
-		registerSummaryDispose: st
+		notifyContextChanged: Ut,
+		markUserInteraction: at,
+		writePanelValue: u,
+		popovers: i,
+		collectionsPopover: he,
+		gridController: Et,
+		registerSummaryDispose: lt
 	});
-	let Gt = c_({
-		state: c,
-		customSelect: E,
-		customRemoveBtn: O,
-		comfyConfirm: Nt,
-		comfyPrompt: Et,
-		comfyToast: m,
-		get: Ie,
-		post: pe,
-		ENDPOINTS: I,
-		reloadGrid: Tt.reloadGrid,
+	let Kt = f_({
+		state: s,
+		customSelect: T,
+		customRemoveBtn: D,
+		comfyConfirm: Pt,
+		comfyPrompt: Dt,
+		comfyToast: F,
+		get: fe,
+		post: rt,
+		ENDPOINTS: m,
+		reloadGrid: Et.reloadGrid,
 		onRootChanged: async () => {
 			try {
-				Mt?.resetHistory?.();
+				Nt?.resetHistory?.();
 			} catch (e) {
 				console.debug?.(e);
 			}
 			try {
-				await St(c.scope);
+				await Ct(s.scope);
 			} catch (e) {
 				console.debug?.(e);
 			}
 			try {
-				await Ut();
+				await Wt();
 			} catch (e) {
 				console.debug?.(e);
 			}
 		}
-	}), Kt = Gt.bind({
-		customAddBtn: D,
-		customRemoveBtn: O
+	}), qt = Kt.bind({
+		customAddBtn: E,
+		customRemoveBtn: D
 	});
 	try {
 		window.addEventListener("mjr:custom-roots-changed", async (e) => {
 			let t = String(e?.detail?.preferredId || "").trim() || null;
-			await Gt.refreshCustomRoots(t);
-		}, { signal: i?.signal });
+			await Kt.refreshCustomRoots(t);
+		}, { signal: r?.signal });
 	} catch (e) {
 		console.debug?.(e);
 	}
-	let qt = () => {
+	let Jt = () => {
 		try {
-			let e = z?._mjrGetAssets, t = z?._mjrSetSelection;
+			let e = L?._mjrGetAssets, t = L?._mjrSetSelection;
 			if (typeof e != "function" || typeof t != "function") return;
-			let n = (Array.isArray(e()) ? e() : []).map((e) => String(e?.id ?? "").trim()).filter(Boolean), r = f(), i = r.filter((e) => n.includes(e)), a = r.length - i.length;
+			let n = (Array.isArray(e()) ? e() : []).map((e) => String(e?.id ?? "").trim()).filter(Boolean), r = d(), i = r.filter((e) => n.includes(e)), a = r.length - i.length;
 			if (a <= 0) return;
-			let o = p();
-			t(i, i.includes(o) ? o : i[0] || ""), m(L("toast.selectionPruned", "{count} items deselected - not visible in current view", { count: a }), "info", 2600, { noHistory: !0 });
+			let o = f();
+			t(i, i.includes(o) ? o : i[0] || ""), F(I("toast.selectionPruned", "{count} items deselected - not visible in current view", { count: a }), "info", 2600, { noHistory: !0 });
 		} catch (e) {
 			console.debug?.(e);
 		}
 	};
-	Dt = i_({
-		state: c,
-		tabButtons: _,
-		customMenuBtn: v,
-		customPopover: T,
-		popovers: a,
-		refreshCustomRoots: Gt.refreshCustomRoots,
-		reloadGrid: Tt.reloadGrid,
-		reconcileSelection: qt,
+	Ot = c_({
+		state: s,
+		tabButtons: g,
+		customMenuBtn: _,
+		customPopover: w,
+		popovers: i,
+		refreshCustomRoots: Kt.refreshCustomRoots,
+		reloadGrid: Et.reloadGrid,
+		reconcileSelection: Jt,
 		onChanged: () => {
 			try {
-				z && (z.dataset.mjrScope = String(u("scope", c.scope || "output") || "output"));
+				L && (L.dataset.mjrScope = String(l("scope", s.scope || "output") || "output"));
 			} catch (e) {
 				console.debug?.(e);
 			}
-			Ht();
+			Ut();
 		},
 		onScopeChanged: async () => {
 			try {
-				await St(String(u("scope", c.scope || "output") || "output"));
+				await Ct(String(l("scope", s.scope || "output") || "output"));
 			} catch (e) {
 				console.debug?.(e);
 			}
 			try {
-				await Ut();
+				await Wt();
 			} catch (e) {
 				console.debug?.(e);
 			}
 		},
 		onBeforeReload: async () => {
 			try {
-				z.dataset.mjrScope = u("scope", "output"), z.dataset.mjrCustomRootId = u("customRootId", "") || "", z.dataset.mjrSubfolder = u("currentFolderRelativePath", "") || "", z.dataset.mjrCollectionId = u("collectionId", "") || "", z.dataset.mjrViewScope = u("viewScope", "") || "";
+				L.dataset.mjrScope = l("scope", "output"), L.dataset.mjrCustomRootId = l("customRootId", "") || "", L.dataset.mjrSubfolder = l("currentFolderRelativePath", "") || "", L.dataset.mjrCollectionId = l("collectionId", "") || "", L.dataset.mjrViewScope = l("viewScope", "") || "";
 			} catch (e) {
 				console.debug?.(e);
 			}
 			try {
-				ut(z);
+				dt(L);
 			} catch (e) {
 				console.debug?.(e);
 			}
 			try {
-				await gh(qe, R, Je, {
-					scope: u("scope", c.scope || "output"),
-					customRootId: u("customRootId", c.customRootId || "")
-				}, null, { signal: i?.signal || null });
+				await bh(qe, Je, Ye, {
+					scope: l("scope", s.scope || "output"),
+					customRootId: l("customRootId", s.customRootId || "")
+				}, null, { signal: r?.signal || null });
 			} catch (e) {
 				console.debug?.(e);
 			}
 		}
 	});
-	let Jt = async ({ reload: e = !1 } = {}) => {
+	let Yt = async ({ reload: e = !1 } = {}) => {
 		try {
-			if (String(u("viewScope", c.viewScope || "") || "").trim().toLowerCase() !== "similar") return;
-			await Dt?.clearSimilarScope?.({ reload: e });
+			if (String(l("viewScope", s.viewScope || "") || "").trim().toLowerCase() !== "similar") return;
+			await Ot?.clearSimilarScope?.({ reload: e });
 		} catch (e) {
 			console.debug?.(e);
 		}
 	};
-	Object.values(_).forEach((e) => {
-		e.addEventListener("click", () => Dt.setScope(e.dataset.scope), { signal: i?.signal });
-	}), Qg({
-		messageBtn: C,
-		messagePopover: ye,
-		title: ve,
-		messageList: De,
-		historyTabBtn: Se,
-		historyTabBadge: Ce,
-		historyTabCount: we,
-		historyPanel: Te,
-		shortcutsPanel: Oe,
-		messageTabBtn: be,
-		messageTabBadge: xe,
-		shortcutsTabBtn: Ee,
-		markReadBtn: ke,
-		popovers: a,
-		signal: i?.signal,
+	Object.values(g).forEach((e) => {
+		e.addEventListener("click", () => Ot.setScope(e.dataset.scope), { signal: r?.signal });
+	}), n_({
+		messageBtn: S,
+		messagePopover: be,
+		title: ye,
+		messageList: Oe,
+		historyTabBtn: Ce,
+		historyTabBadge: we,
+		historyTabCount: Te,
+		historyPanel: Ee,
+		shortcutsPanel: ke,
+		messageTabBtn: xe,
+		messageTabBadge: Se,
+		shortcutsTabBtn: De,
+		markReadBtn: Ae,
+		popovers: i,
+		signal: r?.signal,
 		onBeforeToggle: () => {
-			a.close(T), a.close(k), a.close(de), a.close(me), a.close(he);
+			i.close(w), i.close(O), i.close(pe), i.close(he), i.close(ge);
 		}
-	}), a.setDismissWhitelist([
-		T,
-		k,
-		de,
-		me,
+	}), i.setDismissWhitelist([
+		w,
+		O,
+		pe,
 		he,
-		ye,
-		Ne,
+		ge,
+		be,
+		Pe,
+		_,
 		v,
 		y,
 		b,
 		x,
 		S,
-		C,
-		Me
-	]), a.setOnVisibilityChanged?.(() => Bt());
+		Ne
+	]), i.setOnVisibilityChanged?.(() => Vt());
 	try {
-		window.addEventListener(Vt, (e) => {
-			Rt = !!e?.detail?.open, Bt();
-		}, { signal: i?.signal });
+		window.addEventListener(Ht, (e) => {
+			zt = !!e?.detail?.open, Vt();
+		}, { signal: r?.signal });
 	} catch (e) {
 		console.debug?.(e);
 	}
-	Bt(), v.addEventListener("click", (e) => {
-		e.stopPropagation(), a.close(k), a.close(de), a.close(me), a.close(ye), a.close(Ne), a.toggle(T, v);
-	}, { signal: i?.signal }), y.addEventListener("click", (e) => {
-		e.stopPropagation(), a.close(T), a.close(de), a.close(me), a.close(ye), a.close(Ne), a.toggle(k, y);
-	}, { signal: i?.signal }), x.addEventListener("click", (e) => {
-		e.stopPropagation(), a.close(T), a.close(k), a.close(de), a.close(ye), a.close(Ne), a.toggle(me, x);
-	}, { signal: i?.signal });
-	let Yt = Ve ? null : l_({
-		state: c,
-		sortBtn: b,
-		sortMenu: fe,
-		sortPopover: de,
-		popovers: a,
-		reloadGrid: Tt.reloadGrid,
-		onChanged: () => Ht()
+	Vt(), _.addEventListener("click", (e) => {
+		e.stopPropagation(), i.close(O), i.close(pe), i.close(he), i.close(be), i.close(Pe), i.toggle(w, _);
+	}, { signal: r?.signal }), v.addEventListener("click", (e) => {
+		e.stopPropagation(), i.close(w), i.close(pe), i.close(he), i.close(be), i.close(Pe), i.toggle(O, v);
+	}, { signal: r?.signal }), b.addEventListener("click", (e) => {
+		e.stopPropagation(), i.close(w), i.close(O), i.close(pe), i.close(be), i.close(Pe), i.toggle(he, b);
+	}, { signal: r?.signal });
+	let Xt = Ve ? null : p_({
+		state: s,
+		sortBtn: y,
+		sortMenu: me,
+		sortPopover: pe,
+		popovers: i,
+		reloadGrid: Et.reloadGrid,
+		onChanged: () => Ut()
 	});
-	Yt ? Yt.bind({ onBeforeToggle: () => {
-		a.close(T), a.close(k), a.close(me), a.close(ye), a.close(Ne);
-	} }) : b.addEventListener("click", (e) => {
-		e.stopPropagation(), a.close(T), a.close(k), a.close(me), a.close(ye), a.close(Ne), a.toggle(de, b);
-	}, { signal: i?.signal }), H_({
-		similarBtn: Me,
-		similarPopover: Ne,
-		similarFindBtn: Pe,
-		similarDuplicatesBtn: Fe,
+	Xt ? Xt.bind({ onBeforeToggle: () => {
+		i.close(w), i.close(O), i.close(he), i.close(be), i.close(Pe);
+	} }) : y.addEventListener("click", (e) => {
+		e.stopPropagation(), i.close(w), i.close(O), i.close(he), i.close(be), i.close(Pe), i.toggle(pe, y);
+	}, { signal: r?.signal }), K_({
+		similarBtn: Ne,
+		similarPopover: Pe,
+		similarFindBtn: Fe,
+		similarDuplicatesBtn: Ie,
 		similarSameNodeBtn: Le,
 		similarSameWorkflowBtn: Re,
-		gridContainer: z,
-		state: c,
-		panelLifecycleAC: i,
-		isAiEnabled: Ct,
-		similarDisabledTitle: xt,
-		readActiveAssetId: p,
-		readSelectedAssetIds: f,
-		readPanelValue: u,
-		writePanelValue: d,
-		scopeController: Dt,
+		gridContainer: L,
+		state: s,
+		panelLifecycleAC: r,
+		isAiEnabled: wt,
+		similarDisabledTitle: St,
+		readActiveAssetId: f,
+		readSelectedAssetIds: d,
+		readPanelValue: l,
+		writePanelValue: u,
+		scopeController: Ot,
 		closePopovers: () => {
-			a.close(T), a.close(k), a.close(de), a.close(me), a.close(ye), a.close(Ne);
+			i.close(w), i.close(O), i.close(pe), i.close(he), i.close(be), i.close(Pe);
 		},
 		closePeerPopovers: () => {
-			a.close(T), a.close(k), a.close(de), a.close(me), a.close(ye), a.close(he);
+			i.close(w), i.close(O), i.close(pe), i.close(he), i.close(be), i.close(ge);
 		},
-		popovers: a,
+		popovers: i,
 		workflowIdInput: M,
-		reloadGrid: () => Tt.reloadGrid(),
-		getDuplicatesAlert: () => kt
-	}), U_({
-		pinnedFoldersBtn: S,
-		pinnedFoldersController: ge,
-		pinnedFoldersMenu: _e,
-		pinnedFoldersPopover: he,
-		popovers: a,
+		reloadGrid: () => Et.reloadGrid(),
+		getDuplicatesAlert: () => At
+	}), q_({
+		pinnedFoldersBtn: x,
+		pinnedFoldersController: _e,
+		pinnedFoldersMenu: ve,
+		pinnedFoldersPopover: ge,
+		popovers: i,
 		closeOtherPopovers: () => {
-			a.close(T), a.close(k), a.close(de), a.close(me), a.close(ye), a.close(Ne);
+			i.close(w), i.close(O), i.close(pe), i.close(he), i.close(be), i.close(Pe);
 		},
-		state: c,
-		gridContainer: z,
-		customSelect: E,
-		scopeController: Dt,
-		customRootsController: Gt,
-		gridController: Tt,
-		applyWatcherForScope: St,
-		refreshDuplicateAlerts: Ut,
-		notifyContextChanged: Ht,
-		panelLifecycleAC: i
+		state: s,
+		gridContainer: L,
+		customSelect: T,
+		scopeController: Ot,
+		customRootsController: Kt,
+		gridController: Et,
+		applyWatcherForScope: Ct,
+		refreshDuplicateAlerts: Wt,
+		notifyContextChanged: Ut,
+		panelLifecycleAC: r
 	});
-	let { agendaCalendar: Xt, disposeFilters: Zt } = rv({
-		state: c,
+	let { agendaCalendar: Zt, disposeFilters: Qt } = sv({
+		state: s,
 		hasVueHeaderSection: Ve,
-		kindSelect: A,
+		kindSelect: k,
 		wfCheckbox: ee,
 		workflowTypeSelect: j,
 		workflowIdInput: M,
 		workflowModelInput: te,
 		workflowRunsOnSelect: ne,
-		ratingSelect: N,
-		minSizeInput: P,
-		maxSizeInput: re,
+		ratingSelect: re,
+		minSizeInput: N,
+		maxSizeInput: P,
 		resolutionPresetSelect: ie,
-		minWidthInput: F,
-		minHeightInput: ae,
-		maxWidthInput: oe,
-		maxHeightInput: se,
-		dateRangeSelect: ce,
-		dateExactInput: le,
-		agendaContainer: ue,
-		gridController: Tt,
-		reconcileVisibleSelection: qt,
-		exitSimilarViewIfActive: Jt,
-		notifyContextChanged: Ht,
-		panelLifecycleAC: i,
-		popovers: a,
-		filterPopover: k
-	}), Qt = iv({
-		state: c,
-		scopeController: Dt,
-		browserNav: Mt,
-		gridController: Tt,
-		getDuplicatesAlert: () => kt,
-		refreshDuplicateAlerts: Ut
+		minWidthInput: ae,
+		minHeightInput: oe,
+		maxWidthInput: se,
+		maxHeightInput: ce,
+		dateRangeSelect: le,
+		dateExactInput: ue,
+		agendaContainer: de,
+		gridController: Et,
+		reconcileVisibleSelection: Jt,
+		exitSimilarViewIfActive: Yt,
+		notifyContextChanged: Ut,
+		panelLifecycleAC: r,
+		popovers: i,
+		filterPopover: O
+	}), $t = cv({
+		state: s,
+		scopeController: Ot,
+		browserNav: Nt,
+		gridController: Et,
+		getDuplicatesAlert: () => At,
+		refreshDuplicateAlerts: Wt
 	});
 	try {
-		Ot = s_({
-			state: c,
-			gridContainer: z,
-			filterBtn: y,
-			sortBtn: b,
-			collectionsBtn: x,
-			searchInputEl: je,
-			kindSelect: A,
+		kt = d_({
+			state: s,
+			gridContainer: L,
+			filterBtn: v,
+			sortBtn: y,
+			collectionsBtn: b,
+			searchInputEl: Me,
+			kindSelect: k,
 			wfCheckbox: ee,
 			workflowTypeSelect: j,
 			workflowIdInput: M,
 			workflowModelInput: te,
 			workflowRunsOnSelect: ne,
-			ratingSelect: N,
-			minSizeInput: P,
-			maxSizeInput: re,
-			minWidthInput: F,
-			minHeightInput: ae,
-			maxWidthInput: oe,
-			maxHeightInput: se,
+			ratingSelect: re,
+			minSizeInput: N,
+			maxSizeInput: P,
+			minWidthInput: ae,
+			minHeightInput: oe,
+			maxWidthInput: se,
+			maxHeightInput: ce,
 			resolutionPresetSelect: ie,
-			dateRangeSelect: ce,
-			dateExactInput: le,
-			scopeController: Dt,
-			sortController: Yt,
+			dateRangeSelect: le,
+			dateExactInput: ue,
+			scopeController: Ot,
+			sortController: Xt,
 			updateSummaryBar: Ue,
-			reloadGrid: () => Tt.reloadGrid(),
-			getExtraContext: () => ({ duplicatesAlert: kt }),
-			extraActions: Qt
+			reloadGrid: () => Et.reloadGrid(),
+			getExtraContext: () => ({ duplicatesAlert: At }),
+			extraActions: $t
 		});
 	} catch (e) {
 		console.debug?.(e);
 	}
 	try {
-		if (Ht(), it) st(n.bindGridHostState({
-			onContextChanged: Ht,
-			markUserInteraction: nt
+		if (Ut(), ot) lt(n.bindGridHostState({
+			onContextChanged: Ut,
+			markUserInteraction: at
 		}));
 		else {
-			let e = () => Ht();
-			z.addEventListener("mjr:grid-stats", e, { signal: i?.signal }), window.addEventListener?.("mjr-settings-changed", e, { signal: i?.signal });
-			let t = null, n = null, r = () => {
+			let e = () => Ut();
+			L.addEventListener("mjr:grid-stats", e, { signal: r?.signal }), window.addEventListener?.("mjr-settings-changed", e, { signal: r?.signal });
+			let t = null, n = null, i = () => {
 				n && clearTimeout(n), n = setTimeout(() => {
 					n = null, t && cancelAnimationFrame(t), t = requestAnimationFrame(() => {
-						t = null, Ht();
+						t = null, Ut();
 					});
 				}, 250);
-			}, a = new MutationObserver(() => r());
-			a.observe(z, { childList: !0 }), z._mjrSummaryBarObserver = a, st(() => {
+			}, a = new MutationObserver(() => i());
+			a.observe(L, { childList: !0 }), L._mjrSummaryBarObserver = a, lt(() => {
 				try {
-					z.removeEventListener("mjr:grid-stats", e);
+					L.removeEventListener("mjr:grid-stats", e);
 				} catch (e) {
 					console.debug?.(e);
 				}
@@ -18698,98 +18803,98 @@ async function ov(e, { useComfyThemeUI: t = !0, external: n = {} } = {}) {
 	} catch (e) {
 		console.debug?.(e);
 	}
-	$e = D_({
-		gridContainer: z,
-		sidebar: Ze,
-		createRatingBadge: an,
-		createTagsBadge: _n,
-		showAssetInSidebar: Bh,
-		closeSidebar: Vh,
-		state: c
+	et = j_({
+		gridContainer: L,
+		sidebar: Qe,
+		createRatingBadge: on,
+		createTagsBadge: vn,
+		showAssetInSidebar: Wh,
+		closeSidebar: Gh,
+		state: s
 	});
-	let $t = {
-		gridController: Tt,
-		captureAnchor: mt,
-		restoreAnchor: gt,
-		restoreGridUiState: it ? (e) => n.restoreGridUiState(e, { onRestoreSidebar: () => {
+	let en = {
+		gridController: Et,
+		captureAnchor: ht,
+		restoreAnchor: _t,
+		restoreGridUiState: ot ? (e) => n.restoreGridUiState(e, { onRestoreSidebar: () => {
 			try {
-				$e?.toggleDetails?.();
+				et?.toggleDetails?.();
 			} catch (e) {
 				console.debug?.(e);
 			}
 		} }) : null,
-		readScrollTop: () => l.read("scrollTop", c.scrollTop || 0),
+		readScrollTop: () => c.read("scrollTop", s.scrollTop || 0),
 		restoreSelectionState: ({ scrollTop: e } = {}) => {
-			It?.restoreSelectionState?.({ scrollTop: e });
+			Lt?.restoreSelectionState?.({ scrollTop: e });
 		},
-		readActiveAssetId: p,
-		isSidebarOpen: h,
+		readActiveAssetId: f,
+		isSidebarOpen: p,
 		toggleSidebarDetails: () => {
-			$e?.toggleDetails?.();
+			et?.toggleDetails?.();
 		},
-		getQuery: wt,
-		getScope: () => l.read("scope", c.scope),
-		loadAssets: ct,
-		lifecycleSignal: i?.signal || null
+		getQuery: Tt,
+		getScope: () => c.read("scope", s.scope),
+		loadAssets: ut,
+		lifecycleSignal: r?.signal || null
 	};
-	Lt = typeof n?.initAssetsQueryController == "function" ? n.initAssetsQueryController($t) : N_({
-		gridContainer: z,
-		gridWrapper: Xe,
-		...$t
+	Rt = typeof n?.initAssetsQueryController == "function" ? n.initAssetsQueryController(en) : L_({
+		gridContainer: L,
+		gridWrapper: Ze,
+		...en
 	});
-	let en = O_({
+	let tn = M_({
 		onTriggerScan: (e) => {
-			ch(qe, R, Je, e || {});
+			fh(qe, Je, Ye, e || {});
 		},
 		onToggleDetails: () => {
-			$e?.toggleDetails?.();
+			et?.toggleDetails?.();
 		},
 		onToggleFloatingViewer: () => {
 			try {
-				window.dispatchEvent(new Event(B.MFV_TOGGLE));
+				window.dispatchEvent(new Event(z.MFV_TOGGLE));
 			} catch (e) {
 				console.debug?.(e);
 			}
 		},
 		onFocusSearch: () => {
 			try {
-				je?.focus?.();
-				let e = je?.value?.length || 0;
-				je?.setSelectionRange?.(e, e);
+				Me?.focus?.();
+				let e = Me?.value?.length || 0;
+				Me?.setSelectionRange?.(e, e);
 			} catch (e) {
 				console.debug?.(e);
 			}
 		},
 		onClearSearch: () => {
 			try {
-				if (!je) return;
-				d("searchQuery", ""), je.value = "", je.dispatchEvent?.(new Event("input", { bubbles: !0 }));
+				if (!Me) return;
+				u("searchQuery", ""), Me.value = "", Me.dispatchEvent?.(new Event("input", { bubbles: !0 }));
 			} catch (e) {
 				console.debug?.(e);
 			}
 		},
 		getScanContext: () => ({
-			scope: l.read("scope", c.scope),
-			customRootId: l.read("customRootId", c.customRootId)
+			scope: c.read("scope", s.scope),
+			customRootId: c.read("customRootId", s.customRootId)
 		})
-	}), tn = Eo({
-		gridContainer: z,
-		createRatingBadge: an
-	}), nn = null;
+	}), nn = Eo({
+		gridContainer: L,
+		createRatingBadge: on
+	}), rn = null;
 	if (e._eventCleanup) try {
 		e._eventCleanup();
 	} catch (e) {
 		console.debug?.(e);
 	}
-	en.bind(Qe), tn.bind(), dt("grid");
+	tn.bind($e), nn.bind(), ft("grid");
 	try {
-		e._mjrHotkeys = en, e._mjrRatingHotkeys = tn, e._mjrSidebarController = $e;
+		e._mjrHotkeys = tn, e._mjrRatingHotkeys = nn, e._mjrSidebarController = et;
 	} catch (e) {
 		console.debug?.(e);
 	}
 	e._eventCleanup = () => {
 		try {
-			i?.abort?.();
+			r?.abort?.();
 		} catch (e) {
 			console.debug?.(e);
 		}
@@ -18805,12 +18910,7 @@ async function ov(e, { useComfyThemeUI: t = !0, external: n = {} } = {}) {
 		}
 		e._mjrVersionUpdateCleanup = null;
 		try {
-			et && clearTimeout(et), et = null;
-		} catch (e) {
-			console.debug?.(e);
-		}
-		try {
-			en.dispose();
+			tt && clearTimeout(tt), tt = null;
 		} catch (e) {
 			console.debug?.(e);
 		}
@@ -18819,43 +18919,54 @@ async function ov(e, { useComfyThemeUI: t = !0, external: n = {} } = {}) {
 		} catch (e) {
 			console.debug?.(e);
 		}
-		vt().scope === "grid" && dt(null);
 		try {
-			Xt?.dispose?.();
+			nn.dispose();
+		} catch (e) {
+			console.debug?.(e);
+		}
+		yt().scope === "grid" && ft(null);
+		try {
+			Zt?.dispose?.();
 		} catch (e) {
 			console.debug?.(e);
 		}
 		try {
-			Zt?.();
+			Qt?.();
 		} catch (e) {
 			console.debug?.(e);
 		}
 		try {
-			nn?.();
+			rn?.();
 		} catch (e) {
 			console.debug?.(e);
 		}
-		nn = null;
+		rn = null;
 		try {
-			Ze?.dispose?.();
-		} catch (e) {
-			console.debug?.(e);
-		}
-		try {
-			$e?.dispose?.();
+			Qe?.dispose?.();
 		} catch (e) {
 			console.debug?.(e);
 		}
 		try {
-			At && clearInterval(At), At = null;
+			et?.dispose?.();
 		} catch (e) {
 			console.debug?.(e);
 		}
 		try {
-			jt && clearTimeout(jt), jt = null;
+			jt && clearInterval(jt), jt = null;
 		} catch (e) {
 			console.debug?.(e);
 		}
+		try {
+			Mt && clearTimeout(Mt), Mt = null;
+		} catch (e) {
+			console.debug?.(e);
+		}
+		try {
+			Rt?.dispose?.();
+		} catch (e) {
+			console.debug?.(e);
+		}
+		Rt = null;
 		try {
 			Lt?.dispose?.();
 		} catch (e) {
@@ -18863,170 +18974,164 @@ async function ov(e, { useComfyThemeUI: t = !0, external: n = {} } = {}) {
 		}
 		Lt = null;
 		try {
-			It?.dispose?.();
-		} catch (e) {
-			console.debug?.(e);
-		}
-		It = null;
-		try {
-			z?._mjrSummaryBarDispose?.();
+			L?._mjrSummaryBarDispose?.();
 		} catch (e) {
 			console.debug?.(e);
 		}
 		try {
-			z?._mjrSummaryBarObserver?.disconnect?.();
+			L?._mjrSummaryBarObserver?.disconnect?.();
 		} catch (e) {
 			console.debug?.(e);
 		}
 		try {
-			z?._mjrGridContextMenuUnbind?.();
+			L?._mjrGridContextMenuUnbind?.();
 		} catch (e) {
 			console.debug?.(e);
 		}
 		try {
-			Kt?.();
+			qt?.();
 		} catch (e) {
 			console.debug?.(e);
 		}
 		try {
-			Ft?.();
+			It?.();
 		} catch (e) {
 			console.debug?.(e);
 		}
 		try {
-			z && ft(z);
+			L && pt(L);
 		} catch (e) {
 			console.debug?.(e);
 		}
-		yt(z), z = null;
+		bt(L), L = null;
 		try {
-			a.dispose();
-		} catch (e) {
-			console.debug?.(e);
-		}
-		try {
-			e._mjrPopoverManager === a && (e._mjrPopoverManager = null);
+			i.dispose();
 		} catch (e) {
 			console.debug?.(e);
 		}
 		try {
-			o && s && (o.style.height = s.height, o.style.minHeight = s.minHeight, o.style.width = s.width);
+			e._mjrPopoverManager === i && (e._mjrPopoverManager = null);
+		} catch (e) {
+			console.debug?.(e);
+		}
+		try {
+			a && o && (a.style.height = o.height, a.style.minHeight = o.minHeight, a.style.width = o.width);
 		} catch (e) {
 			console.debug?.(e);
 		}
 	};
-	let rn = async () => {
-		await Lt?.queuedReload?.();
+	let an = async () => {
+		await Rt?.queuedReload?.();
 	};
-	Eh(qe, R, Ke, Je, Lt?.createCountersUpdateHandler?.({
-		state: c,
-		getStableQuery: () => String(z?.dataset?.mjrQuery || "*").trim() || "*",
-		getRecentUserInteractionAt: () => Number(tt || 0)
+	Ah(qe, Je, Ke, Ye, Rt?.createCountersUpdateHandler?.({
+		state: s,
+		getStableQuery: () => String(L?.dataset?.mjrQuery || "*").trim() || "*",
+		getRecentUserInteractionAt: () => Number(nt || 0)
 	}) ?? (async () => {
-		await rn();
+		await an();
 	}), () => ({
-		scope: l.read("scope", c.scope),
-		customRootId: l.read("customRootId", c.customRootId)
-	})), Dt.setActiveTabStyles(), Mt?.renderBreadcrumb?.(), Gt.refreshCustomRoots().catch(() => {}), nn = Lt?.bindSearchInput?.({
-		searchInputEl: je,
-		lifecycleSignal: i?.signal || null,
+		scope: c.read("scope", s.scope),
+		customRootId: c.read("customRootId", s.customRootId)
+	})), Ot.setActiveTabStyles(), Nt?.renderBreadcrumb?.(), Kt.refreshCustomRoots().catch(() => {}), rn = Rt?.bindSearchInput?.({
+		searchInputEl: Me,
+		lifecycleSignal: r?.signal || null,
 		debounceMs: 120,
 		onQueryChanged: () => {
-			Jt({ reload: !1 }), Ht();
+			Yt({ reload: !1 }), Ut();
 		},
 		onBeforeReload: () => {
-			Jt({ reload: !1 }), Ht();
+			Yt({ reload: !1 }), Ut();
 		},
 		startSearchTimer: () => {
 			Om("searchQuery");
 		},
 		reloadGrid: () => {
-			Tt.reloadGrid();
+			Et.reloadGrid();
 		}
 	});
-	let on = !1;
-	try {
-		on = await _t(z, {
-			scope: u("scope", c.scope || "output") || "output",
-			query: String(t_(l.read("searchQuery", c.searchQuery || "*") || "*") || "*"),
-			customRootId: u("customRootId", c.customRootId || "") || "",
-			subfolder: u("currentFolderRelativePath", c.currentFolderRelativePath || "") || "",
-			collectionId: u("collectionId", c.collectionId || "") || "",
-			viewScope: u("viewScope", c.viewScope || "") || "",
-			kind: u("kindFilter", c.kindFilter || "") || "",
-			workflowOnly: !!u("workflowOnly", c.workflowOnly),
-			minRating: u("minRating", c.minRating || "") || "",
-			minSizeMB: u("minSizeMB", c.minSizeMB || "") || "",
-			maxSizeMB: u("maxSizeMB", c.maxSizeMB || "") || "",
-			resolutionCompare: u("resolutionCompare", c.resolutionCompare || "") || "",
-			minWidth: u("minWidth", c.minWidth || "") || "",
-			minHeight: u("minHeight", c.minHeight || "") || "",
-			maxWidth: u("maxWidth", c.maxWidth || "") || "",
-			maxHeight: u("maxHeight", c.maxHeight || "") || "",
-			workflowType: u("workflowType", c.workflowType || "") || "",
-			workflowId: u("workflowId", c.workflowId || "") || "",
-			workflowModel: u("workflowModelFilter", c.workflowModelFilter || "") || "",
-			workflowRunsOn: u("workflowRunsOnFilter", c.workflowRunsOnFilter || "") || "",
-			dateRange: u("dateRangeFilter", c.dateRangeFilter || "") || "",
-			dateExact: u("dateExactFilter", c.dateExactFilter || "") || "",
-			sort: u("sort", c.sort || "mtime_desc") || "mtime_desc"
-		}, { title: u("collectionName", c.collectionName || "") || l.read("searchQuery", c.searchQuery || "") || "Cached" });
-	} catch (e) {
-		console.debug?.(e);
-	}
 	let sn = !1;
 	try {
-		sn = !!z?.querySelector?.(".mjr-asset-card");
+		sn = await vt(L, {
+			scope: l("scope", s.scope || "output") || "output",
+			query: String(a_(c.read("searchQuery", s.searchQuery || "*") || "*") || "*"),
+			customRootId: l("customRootId", s.customRootId || "") || "",
+			subfolder: l("currentFolderRelativePath", s.currentFolderRelativePath || "") || "",
+			collectionId: l("collectionId", s.collectionId || "") || "",
+			viewScope: l("viewScope", s.viewScope || "") || "",
+			kind: l("kindFilter", s.kindFilter || "") || "",
+			workflowOnly: !!l("workflowOnly", s.workflowOnly),
+			minRating: l("minRating", s.minRating || "") || "",
+			minSizeMB: l("minSizeMB", s.minSizeMB || "") || "",
+			maxSizeMB: l("maxSizeMB", s.maxSizeMB || "") || "",
+			resolutionCompare: l("resolutionCompare", s.resolutionCompare || "") || "",
+			minWidth: l("minWidth", s.minWidth || "") || "",
+			minHeight: l("minHeight", s.minHeight || "") || "",
+			maxWidth: l("maxWidth", s.maxWidth || "") || "",
+			maxHeight: l("maxHeight", s.maxHeight || "") || "",
+			workflowType: l("workflowType", s.workflowType || "") || "",
+			workflowId: l("workflowId", s.workflowId || "") || "",
+			workflowModel: l("workflowModelFilter", s.workflowModelFilter || "") || "",
+			workflowRunsOn: l("workflowRunsOnFilter", s.workflowRunsOnFilter || "") || "",
+			dateRange: l("dateRangeFilter", s.dateRangeFilter || "") || "",
+			dateExact: l("dateExactFilter", s.dateExactFilter || "") || "",
+			sort: l("sort", s.sort || "mtime_desc") || "mtime_desc"
+		}, { title: l("collectionName", s.collectionName || "") || c.read("searchQuery", s.searchQuery || "") || "Cached" });
 	} catch (e) {
 		console.debug?.(e);
 	}
-	let cn = jp(), ln = !cn && (on || sn) ? Promise.resolve({
+	let cn = !1;
+	try {
+		cn = !!L?.querySelector?.(".mjr-asset-card");
+	} catch (e) {
+		console.debug?.(e);
+	}
+	let ln = jp(), un = !ln && (sn || cn) ? Promise.resolve({
 		ok: !0,
-		hydrated: !!on,
-		cached: !!sn
-	}) : Tt.reloadGrid({
-		reason: cn ? "pending-generated-assets" : "initial-load",
-		preserveVisibleUntilReady: !cn
+		hydrated: !!sn,
+		cached: !!cn
+	}) : Et.reloadGrid({
+		reason: ln ? "pending-generated-assets" : "initial-load",
+		preserveVisibleUntilReady: !ln
 	});
-	if (on) try {
+	if (sn) try {
 		setTimeout(() => {
 			try {
-				if (i?.signal?.aborted) return;
+				if (r?.signal?.aborted) return;
 			} catch (e) {
 				console.debug?.(e);
 			}
-			Tt.reloadGrid().catch(() => {});
+			Et.reloadGrid().catch(() => {});
 		}, 200);
 	} catch (e) {
 		console.debug?.(e);
 	}
-	Ut().catch(() => {});
+	Wt().catch(() => {});
 	try {
-		At = setInterval(() => {
+		jt = setInterval(() => {
 			try {
-				if (i?.signal?.aborted) return;
+				if (r?.signal?.aborted) return;
 			} catch (e) {
 				console.debug?.(e);
 			}
-			Ut().catch(() => {});
+			Wt().catch(() => {});
 		}, 15e3);
 	} catch (e) {
 		console.debug?.(e);
 	}
-	Lt?.restoreUiState?.(ln);
+	Rt?.restoreUiState?.(un);
 	try {
 		window.__mjrLastAssetUpsert = 0, window.__mjrLastAssetUpsertCount = 0;
 	} catch (e) {
 		console.debug?.(e);
 	}
-	return Pm(km("panelRender", "gridRender") ?? 0), { gridContainer: z };
+	return Pm(km("panelRender", "gridRender") ?? 0), { gridContainer: L };
 }
 // ui/vue/components/status/StatusSection.vue
-var sv = /* @__PURE__ */ rr({
+var dv = /* @__PURE__ */ ir({
 	__name: "StatusSection",
 	setup(e, { expose: t }) {
-		let n = sh({ getScanContext: null }), r = n.querySelector("#mjr-status-dot"), i = n.querySelector("#mjr-status-text"), a = n.querySelector("#mjr-status-capabilities");
-		return or(() => {
+		let n = dh({ getScanContext: null }), r = n.querySelector("#mjr-status-dot"), i = n.querySelector("#mjr-status-text"), a = n.querySelector("#mjr-status-capabilities");
+		return sr(() => {
 			try {
 				n?._mjrStatusPollDispose?.();
 			} catch {}
@@ -19037,25 +19142,25 @@ var sv = /* @__PURE__ */ rr({
 			capabilitiesSection: a
 		}), (e, t) => null;
 	}
-}), cv = _r({
+}), fv = _r({
 	open: !1,
 	initial: null,
 	resolve: null
 });
-function lv(e = {}) {
-	return cv.open = !0, cv.initial = e || {}, new Promise((e) => {
-		cv.resolve = e;
+function pv(e = {}) {
+	return fv.open = !0, fv.initial = e || {}, new Promise((e) => {
+		fv.resolve = e;
 	});
 }
-function uv(e = null) {
-	let t = cv.resolve;
-	cv.open = !1, cv.initial = null, cv.resolve = null, t && t(e);
+function mv(e = null) {
+	let t = fv.resolve;
+	fv.open = !1, fv.initial = null, fv.resolve = null, t && t(e);
 }
 // ui/vue/components/panel/SimilarSearchPopover.vue?vue&type=script&setup=true&lang.ts
-var dv = {
+var hv = {
 	class: "mjr-popover mjr-similar-popover",
 	style: { display: "none" }
-}, fv = { class: "mjr-menu mjr-similar-menu" }, pv = { class: "mjr-menu-item-label mjr-menu-item-label--icon" }, mv = { class: "mjr-menu-item-label mjr-menu-item-label--icon" }, hv = { class: "mjr-menu-item-label mjr-menu-item-label--icon" }, gv = { class: "mjr-menu-item-label mjr-menu-item-label--icon" }, _v = /* @__PURE__ */ rr({
+}, gv = { class: "mjr-menu mjr-similar-menu" }, _v = { class: "mjr-menu-item-label mjr-menu-item-label--icon" }, vv = { class: "mjr-menu-item-label mjr-menu-item-label--icon" }, yv = { class: "mjr-menu-item-label mjr-menu-item-label--icon" }, bv = { class: "mjr-menu-item-label mjr-menu-item-label--icon" }, xv = /* @__PURE__ */ ir({
 	__name: "SimilarSearchPopover",
 	setup(e, { expose: t }) {
 		let n = Q(null), r = Q(null), i = Q(null), a = Q(null), o = (e) => e?.$el || e || null;
@@ -19073,24 +19178,24 @@ var dv = {
 				return o(a.value);
 			}
 		}), (e, t) => {
-			let o = er("MButton");
-			return q(), Y("div", dv, [H("div", fv, [
-				U(o, {
+			let o = tr("MButton");
+			return K(), Y("div", hv, [V("div", gv, [
+				H(o, {
 					ref_key: "findSimilarBtnRef",
 					ref: n,
 					type: "button",
 					class: "mjr-menu-item",
 					severity: "secondary",
 					text: "",
-					title: Z(L)("search.findSimilarWarning", "Find similar assets. This may be heavy on very large libraries.")
+					title: Z(I)("search.findSimilarWarning", "Find similar assets. This may be heavy on very large libraries.")
 				}, {
-					default: G(() => [H("span", pv, [t[0] ||= H("i", {
+					default: W(() => [V("span", _v, [t[0] ||= V("i", {
 						class: "pi pi-sparkles",
 						"aria-hidden": "true"
-					}, null, -1), H("span", null, J(Z(L)("search.findSimilar", "Find Similar")), 1)])]),
+					}, null, -1), V("span", null, J(Z(I)("search.findSimilar", "Find Similar")), 1)])]),
 					_: 1
 				}, 8, ["title"]),
-				U(o, {
+				H(o, {
 					ref_key: "findDuplicatesBtnRef",
 					ref: r,
 					type: "button",
@@ -19098,14 +19203,14 @@ var dv = {
 					severity: "secondary",
 					text: ""
 				}, {
-					default: G(() => [H("span", mv, [t[1] ||= H("i", {
+					default: W(() => [V("span", vv, [t[1] ||= V("i", {
 						class: "pi pi-clone",
 						"aria-hidden": "true"
-					}, null, -1), H("span", null, J(Z(L)("search.findDuplicates", "Find Duplicate")), 1)])]),
+					}, null, -1), V("span", null, J(Z(I)("search.findDuplicates", "Find Duplicate")), 1)])]),
 					_: 1
 				}, 512),
-				t[4] ||= H("div", { class: "mjr-menu-divider" }, null, -1),
-				U(o, {
+				t[4] ||= V("div", { class: "mjr-menu-divider" }, null, -1),
+				H(o, {
 					ref_key: "sameNodeBtnRef",
 					ref: i,
 					type: "button",
@@ -19113,13 +19218,13 @@ var dv = {
 					severity: "secondary",
 					text: ""
 				}, {
-					default: G(() => [H("span", hv, [t[2] ||= H("i", {
+					default: W(() => [V("span", yv, [t[2] ||= V("i", {
 						class: "pi pi-share-alt",
 						"aria-hidden": "true"
-					}, null, -1), H("span", null, J(Z(L)("search.generatedWithSameSaveNode", "Generated with same save node")), 1)])]),
+					}, null, -1), V("span", null, J(Z(I)("search.generatedWithSameSaveNode", "Generated with same save node")), 1)])]),
 					_: 1
 				}, 512),
-				U(o, {
+				H(o, {
 					ref_key: "sameWorkflowBtnRef",
 					ref: a,
 					type: "button",
@@ -19127,20 +19232,20 @@ var dv = {
 					severity: "secondary",
 					text: ""
 				}, {
-					default: G(() => [H("span", gv, [t[3] ||= H("i", {
+					default: W(() => [V("span", bv, [t[3] ||= V("i", {
 						class: "pi pi-sitemap",
 						"aria-hidden": "true"
-					}, null, -1), H("span", null, J(Z(L)("search.generatedFromSameWorkflow", "Generated from same workflow")), 1)])]),
+					}, null, -1), V("span", null, J(Z(I)("search.generatedFromSameWorkflow", "Generated from same workflow")), 1)])]),
 					_: 1
 				}, 512)
 			])]);
 		};
 	}
-}), vv = { class: "mjr-am-search-pill" }, yv = ["id"], bv = { class: "mjr-am-search-tools" }, xv = { class: "mjr-popover-anchor" }, Sv = { class: "mjr-popover-anchor" }, Cv = "Ctrl/Cmd+F, Ctrl/Cmd+K, Ctrl/Cmd+H", wv = "AND", Tv = /* @__PURE__ */ rr({
+}), Sv = { class: "mjr-am-search-pill" }, Cv = ["id"], wv = { class: "mjr-am-search-tools" }, Tv = { class: "mjr-popover-anchor" }, Ev = { class: "mjr-popover-anchor" }, Dv = "Ctrl/Cmd+F, Ctrl/Cmd+K, Ctrl/Cmd+H", Ov = "AND", kv = /* @__PURE__ */ ir({
 	__name: "SearchBar",
 	emits: ["search-change"],
 	setup(e, { expose: t, emit: n }) {
-		let r = n, i = Qh(), a = Q(null), o = Q(null), s = Q(null), c = Q(null), l = Q(null), u = Q(null), d = Xe("mjr-search-autocomplete-", 8), f = (e) => e?.$el || e || null, p = () => f(o.value), m = Q(!1), h = Q(!0), g = Q(wv), _ = null, v = null, y = K(() => m.value ? L("search.semanticPlaceholder", "Describe what you're looking for...") : L("search.placeholder", "Search assets...")), b = K(() => m.value ? qt(L("search.semanticTitle", "AI semantic search — describe your image in natural language"), Cv) : qt(L("search.title", "Search by filename, tags, or attributes (e.g. rating:5, ext:png)"), Cv)), x = K(() => m.value ? {
+		let r = n, i = ng(), a = Q(null), o = Q(null), s = Q(null), c = Q(null), l = Q(null), u = Q(null), d = Me("mjr-search-autocomplete-", 8), f = (e) => e?.$el || e || null, p = () => f(o.value), h = Q(!1), g = Q(!0), _ = Q(Ov), v = null, y = null, b = G(() => h.value ? I("search.semanticPlaceholder", "Describe what you're looking for...") : I("search.placeholder", "Search assets...")), x = G(() => h.value ? Jt(I("search.semanticTitle", "AI semantic search — describe your image in natural language"), Dv) : Jt(I("search.title", "Search by filename, tags, or attributes (e.g. rating:5, ext:png)"), Dv)), S = G(() => h.value ? {
 			background: "rgba(0, 188, 212, 0.2)",
 			borderColor: "rgba(0, 188, 212, 0.6)",
 			color: "#00BCD4",
@@ -19150,96 +19255,96 @@ var dv = {
 			borderColor: "rgba(0, 188, 212, 0.25)",
 			color: "rgba(0, 188, 212, 0.5)",
 			boxShadow: "none"
-		}), S = () => {
+		}), C = () => {
 			try {
 				let e = p();
 				if (!e) return;
-				e.dataset.mjrSemanticMode = m.value ? "1" : "0", e.dataset.mjrMetadataMode = g.value;
+				e.dataset.mjrSemanticMode = h.value ? "1" : "0", e.dataset.mjrMetadataMode = _.value;
 			} catch (e) {
 				console.debug?.(e);
 			}
-		}, C = (e = {}) => {
+		}, w = (e = {}) => {
 			r("search-change", {
 				query: p()?.value || "",
-				semantic: m.value,
-				metadataMode: g.value,
+				semantic: h.value,
+				metadataMode: _.value,
 				...e
 			});
-		}, w = () => {
-			if (h.value) {
-				m.value = !m.value, S();
+		}, T = () => {
+			if (g.value) {
+				h.value = !h.value, C();
 				try {
 					p()?.dispatchEvent?.(new Event("input", { bubbles: !0 }));
 				} catch (e) {
 					console.debug?.(e);
 				}
-				C({ semantic: m.value });
+				w({ semantic: h.value });
 			}
-		}, T = async (e) => {
+		}, E = async (e) => {
 			let t = e.target?.value || "";
-			i.searchQuery = t, i.metadataSearchMode = wv, S(), C({ query: t }), await ee();
-		}, E = (e) => {
+			i.searchQuery = t, i.metadataSearchMode = Ov, C(), w({ query: t }), await j();
+		}, D = (e) => {
 			let t = String(e || "").split(/\s+/);
 			return t[t.length - 1] || "";
 		};
-		async function D() {
-			return _ || (v ||= Ie(I.METADATA_KEYS, { limit: 600 }).then((e) => {
+		async function O() {
+			return v || (y ||= fe(m.METADATA_KEYS, { limit: 600 }).then((e) => {
 				let t = e?.data || {};
-				return _ = t, t;
-			}), v);
+				return v = t, t;
+			}), y);
 		}
-		function O(e, t) {
+		function k(e, t) {
 			let n = String(e || "").match(/^(.*?)(\S*)$/);
 			return `${n ? n[1] : ""}${t}`.trimStart();
 		}
-		function k(e, t) {
-			let n = E(e), r = n.replace(/^-/, ""), i = In();
+		function A(e, t) {
+			let n = D(e), r = n.replace(/^-/, ""), i = Ln();
 			if (!r.includes(":")) {
 				let t = r.toLowerCase();
-				return Object.keys(i).filter((e) => e.startsWith(t)).slice(0, 12).map((t) => O(e, `${n.startsWith("-") ? "-" : ""}${t}:`));
+				return Object.keys(i).filter((e) => e.startsWith(t)).slice(0, 12).map((t) => k(e, `${n.startsWith("-") ? "-" : ""}${t}:`));
 			}
 			let [a, o = ""] = r.split(/:(.*)/s);
-			if (!Bn(a)) return [];
+			if (!Vn(a)) return [];
 			let s = o.toLowerCase(), c = Array.isArray(t?.keys) ? t.keys : [], l = t?.workflow_nodes || {};
-			return [...c, ...Object.keys(l).flatMap((e) => (l[e] || []).map((t) => `workflow_nodes.${e}.${t}`))].filter((e) => String(e || "").toLowerCase().includes(s)).slice(0, 16).map((t) => O(e, `${n.startsWith("-") ? "-" : ""}${a}:${t}`));
+			return [...c, ...Object.keys(l).flatMap((e) => (l[e] || []).map((t) => `workflow_nodes.${e}.${t}`))].filter((e) => String(e || "").toLowerCase().includes(s)).slice(0, 16).map((t) => k(e, `${n.startsWith("-") ? "-" : ""}${a}:${t}`));
 		}
-		let A = 0, ee = wt(async () => {
+		let ee = 0, j = Tt(async () => {
 			let e = (p()?.value || "").trim();
-			if (m.value || e.length < 1) return;
-			let t = ++A;
+			if (h.value || e.length < 1) return;
+			let t = ++ee;
 			try {
-				let n = [], r = await D();
-				if (n.push(...k(e, r)), !e.includes(":") && e.length >= 2) {
-					let t = await Ie("/mjr/am/autocomplete", {
+				let n = [], r = await O();
+				if (n.push(...A(e, r)), !e.includes(":") && e.length >= 2) {
+					let t = await fe("/mjr/am/autocomplete", {
 						q: e,
 						limit: 10
 					});
 					t && t.ok && Array.isArray(t.data) && n.push(...t.data);
 				}
-				if (t !== A) return;
+				if (t !== ee) return;
 				s.value && (s.value.innerHTML = "", [...new Set(n)].slice(0, 18).forEach((e) => {
 					let t = document.createElement("option");
 					t.value = e, s.value.appendChild(t);
 				}));
 			} catch {}
 		}, 300);
-		return cr(() => i.searchQuery, (e) => {
+		return q(() => i.searchQuery, (e) => {
 			let t = p();
 			t && t.value !== e && (t.value = e);
-		}), cr(h, (e) => {
-			!e && m.value && (m.value = !1), S();
-		}), cr(m, () => {
-			S();
-		}), cr(() => i.metadataSearchMode, (e) => {
-			String(e || "").toUpperCase() !== wv && (i.metadataSearchMode = wv), g.value !== wv && (g.value = wv), S();
-		}), $n(() => {
+		}), q(g, (e) => {
+			!e && h.value && (h.value = !1), C();
+		}), q(h, () => {
+			C();
+		}), q(() => i.metadataSearchMode, (e) => {
+			String(e || "").toUpperCase() !== Ov && (i.metadataSearchMode = Ov), _.value !== Ov && (_.value = Ov), C();
+		}), er(() => {
 			try {
 				let e = p();
-				e && (e.value = i.searchQuery || ""), i.metadataSearchMode = wv;
+				e && (e.value = i.searchQuery || ""), i.metadataSearchMode = Ov;
 			} catch (e) {
 				console.debug?.(e);
 			}
-			S();
+			C();
 		}), t({
 			get searchSection() {
 				return a.value;
@@ -19269,38 +19374,38 @@ var dv = {
 				return f(u.value);
 			},
 			setSemanticEnabled: (e) => {
-				h.value = !!e, S();
+				g.value = !!e, C();
 			}
 		}), (e, t) => {
-			let n = er("MInputText"), r = er("MButton");
-			return q(), Y("div", {
+			let n = tr("MInputText"), r = tr("MButton");
+			return K(), Y("div", {
 				ref_key: "searchSectionRef",
 				ref: a,
 				class: "mjr-am-search"
-			}, [H("div", vv, [
-				t[0] ||= H("span", { class: "mjr-am-search-icon" }, [H("i", { class: "pi pi-search" })], -1),
-				U(n, {
+			}, [V("div", Sv, [
+				t[0] ||= V("span", { class: "mjr-am-search-icon" }, [V("i", { class: "pi pi-search" })], -1),
+				H(n, {
 					ref_key: "searchInputRef",
 					ref: o,
 					id: "mjr-search-input",
 					class: "mjr-input",
 					type: "text",
-					placeholder: y.value,
-					title: b.value,
+					placeholder: b.value,
+					title: x.value,
 					list: Z(d),
-					onInput: T
+					onInput: E
 				}, null, 8, [
 					"placeholder",
 					"title",
 					"list"
 				]),
-				H("datalist", {
+				V("datalist", {
 					ref_key: "dataListRef",
 					ref: s,
 					id: Z(d)
-				}, null, 8, yv)
-			]), H("div", bv, [
-				H("div", xv, [U(r, {
+				}, null, 8, Cv)
+			]), V("div", wv, [
+				V("div", Tv, [H(r, {
 					ref_key: "semanticBtnRef",
 					ref: u,
 					type: "button",
@@ -19308,13 +19413,13 @@ var dv = {
 					severity: "secondary",
 					text: "",
 					rounded: "",
-					disabled: !h.value,
-					"aria-disabled": !h.value,
-					title: h.value ? Z(L)("search.semanticToggle", "Toggle AI semantic search (CLIP-based)") : Z(L)("search.semanticDisabled", "AI semantic search is disabled in settings"),
-					style: mr(x.value),
-					onClick: w
+					disabled: !g.value,
+					"aria-disabled": !g.value,
+					title: g.value ? Z(I)("search.semanticToggle", "Toggle AI semantic search (CLIP-based)") : Z(I)("search.semanticDisabled", "AI semantic search is disabled in settings"),
+					style: mr(S.value),
+					onClick: T
 				}, {
-					default: G(() => [...t[1] ||= [H("i", { class: "pi pi-sparkles" }, null, -1)]]),
+					default: W(() => [...t[1] ||= [V("i", { class: "pi pi-sparkles" }, null, -1)]]),
 					_: 1
 				}, 8, [
 					"disabled",
@@ -19322,7 +19427,7 @@ var dv = {
 					"title",
 					"style"
 				])]),
-				H("div", Sv, [U(r, {
+				V("div", Ev, [H(r, {
 					ref_key: "similarBtnRef",
 					ref: c,
 					type: "button",
@@ -19330,11 +19435,11 @@ var dv = {
 					severity: "secondary",
 					text: "",
 					rounded: "",
-					title: Z(L)("search.findSimilar", "Find Similar")
+					title: Z(I)("search.findSimilar", "Find Similar")
 				}, {
-					default: G(() => [...t[2] ||= [H("i", { class: "pi pi-search" }, null, -1)]]),
+					default: W(() => [...t[2] ||= [V("i", { class: "pi pi-search" }, null, -1)]]),
 					_: 1
-				}, 8, ["title"]), U(_v, {
+				}, 8, ["title"]), H(xv, {
 					ref_key: "similarPopoverRef",
 					ref: l
 				}, null, 512)]),
@@ -19345,53 +19450,53 @@ var dv = {
 			])], 512);
 		};
 	}
-}), Ev = {
+}), Av = {
 	class: "mjr-popover mjr-sort-popover",
 	style: { display: "none" }
-}, Dv = { class: "mjr-menu-item-label" }, Ov = /* @__PURE__ */ rr({
+}, jv = { class: "mjr-menu-item-label" }, Mv = /* @__PURE__ */ ir({
 	__name: "SortPopover",
 	setup(e) {
-		let t = Qh(), n = K(() => t.sort || "mtime_desc"), r = (e) => {
+		let t = ng(), n = G(() => t.sort || "mtime_desc"), r = (e) => {
 			t.sort = e;
 			try {
 				window.dispatchEvent(new CustomEvent("mjr:sort-changed", { detail: { sort: e } }));
 			} catch (e) {
 				console.debug?.(e);
 			}
-		}, i = K(() => [
+		}, i = G(() => [
 			{
 				key: "mtime_desc",
-				label: L("sort.newest"),
+				label: I("sort.newest"),
 				icon: "pi pi-sort-amount-down"
 			},
 			{
 				key: "mtime_asc",
-				label: L("sort.oldest"),
+				label: I("sort.oldest"),
 				icon: "pi pi-sort-amount-up-alt"
 			},
 			{
 				key: "name_asc",
-				label: L("sort.nameAZ"),
+				label: I("sort.nameAZ"),
 				icon: "pi pi-sort-alpha-down"
 			},
 			{
 				key: "name_desc",
-				label: L("sort.nameZA"),
+				label: I("sort.nameZA"),
 				icon: "pi pi-sort-alpha-up"
 			},
 			{
 				key: "rating_desc",
-				label: L("sort.ratingHigh"),
+				label: I("sort.ratingHigh"),
 				icon: "pi pi-star-fill"
 			},
 			{
 				key: "size_desc",
-				label: L("sort.sizeDesc"),
+				label: I("sort.sizeDesc"),
 				icon: "pi pi-sort-numeric-down-alt"
 			},
 			{
 				key: "size_asc",
-				label: L("sort.sizeAsc"),
+				label: I("sort.sizeAsc"),
 				icon: "pi pi-sort-numeric-up-alt"
 			}
 		].map((e) => ({
@@ -19400,13 +19505,13 @@ var dv = {
 			command: () => r(e.key)
 		})));
 		return (e, t) => {
-			let r = er("MMenu");
-			return q(), Y("div", Ev, [U(r, {
+			let r = tr("MMenu");
+			return K(), Y("div", Av, [H(r, {
 				model: i.value,
 				class: "mjr-menu mjr-prime-menu mjr-sort-menu",
 				pt: { list: { class: "mjr-menu mjr-prime-menu-list" } }
 			}, {
-				item: G(({ item: e }) => [H("div", { class: X(["mjr-menu-item", { "is-active": n.value === e.key }]) }, [H("span", Dv, J(e.label), 1), H("i", {
+				item: W(({ item: e }) => [V("div", { class: X(["mjr-menu-item", { "is-active": n.value === e.key }]) }, [V("span", jv, J(e.label), 1), V("i", {
 					class: X([e.icon, "mjr-menu-item-check"]),
 					style: mr({ opacity: +(n.value === e.key) })
 				}, null, 6)], 2)]),
@@ -19414,20 +19519,20 @@ var dv = {
 			}, 8, ["model"])]);
 		};
 	}
-}), kv = { class: "mjr-popover mjr-filter-popover mjr-popover--hidden" }, Av = { class: "mjr-filter-head" }, jv = { class: "mjr-filter-head-left" }, Mv = { class: "mjr-filter-kicker" }, Nv = { class: "mjr-filter-subtitle" }, Pv = { class: "mjr-filter-head-actions" }, Fv = { class: "mjr-filter-active-count" }, Iv = { class: "mjr-filter-group-title" }, Lv = {
+}), Nv = { class: "mjr-popover mjr-filter-popover mjr-popover--hidden" }, Pv = { class: "mjr-filter-head" }, Fv = { class: "mjr-filter-head-left" }, Iv = { class: "mjr-filter-kicker" }, Lv = { class: "mjr-filter-subtitle" }, Rv = { class: "mjr-filter-head-actions" }, zv = { class: "mjr-filter-active-count" }, Bv = { class: "mjr-filter-group-title" }, Vv = {
 	class: "mjr-filter-group-chevron",
 	"aria-hidden": "true"
-}, Rv = { class: "mjr-filter-group-body" }, zv = { class: "mjr-filter-card" }, Bv = { class: "mjr-popover-row" }, Vv = { class: "mjr-popover-label" }, Hv = { class: "mjr-popover-row" }, Uv = { class: "mjr-popover-label" }, Wv = ["title"], Gv = { class: "mjr-filter-card" }, Kv = { class: "mjr-popover-row" }, qv = { class: "mjr-popover-label" }, Jv = { class: "mjr-popover-row" }, Yv = { class: "mjr-popover-label" }, Xv = { class: "mjr-popover-row" }, Zv = { class: "mjr-popover-label" }, Qv = { class: "mjr-filter-stack" }, $v = { class: "mjr-popover-row" }, ey = { class: "mjr-popover-label" }, ty = { class: "mjr-popover-row" }, ny = { class: "mjr-popover-label" }, ry = { class: "mjr-filter-group-title" }, iy = {
+}, Hv = { class: "mjr-filter-group-body" }, Uv = { class: "mjr-filter-card" }, Wv = { class: "mjr-popover-row" }, Gv = { class: "mjr-popover-label" }, Kv = { class: "mjr-popover-row" }, qv = { class: "mjr-popover-label" }, Jv = ["title"], Yv = { class: "mjr-filter-card" }, Xv = { class: "mjr-popover-row" }, Zv = { class: "mjr-popover-label" }, Qv = { class: "mjr-popover-row" }, $v = { class: "mjr-popover-label" }, ey = { class: "mjr-popover-row" }, ty = { class: "mjr-popover-label" }, ny = { class: "mjr-filter-stack" }, ry = { class: "mjr-popover-row" }, iy = { class: "mjr-popover-label" }, ay = { class: "mjr-popover-row" }, oy = { class: "mjr-popover-label" }, sy = { class: "mjr-filter-group-title" }, cy = {
 	class: "mjr-filter-group-chevron",
 	"aria-hidden": "true"
-}, ay = { class: "mjr-filter-group-body" }, oy = { class: "mjr-filter-card" }, sy = { class: "mjr-popover-row mjr-popover-row--3col" }, cy = { class: "mjr-popover-label" }, ly = { class: "mjr-popover-row" }, uy = { class: "mjr-popover-label" }, dy = { class: "mjr-popover-row mjr-popover-row--3col" }, fy = { class: "mjr-popover-label" }, py = { class: "mjr-popover-row mjr-popover-row--3col" }, my = { class: "mjr-popover-label" }, hy = { class: "mjr-filter-group-title" }, gy = {
+}, ly = { class: "mjr-filter-group-body" }, uy = { class: "mjr-filter-card" }, dy = { class: "mjr-popover-row mjr-popover-row--3col" }, fy = { class: "mjr-popover-label" }, py = { class: "mjr-popover-row" }, my = { class: "mjr-popover-label" }, hy = { class: "mjr-popover-row mjr-popover-row--3col" }, gy = { class: "mjr-popover-label" }, _y = { class: "mjr-popover-row mjr-popover-row--3col" }, vy = { class: "mjr-popover-label" }, yy = { class: "mjr-filter-group-title" }, by = {
 	class: "mjr-filter-group-chevron",
 	"aria-hidden": "true"
-}, _y = { class: "mjr-filter-group-body" }, vy = { class: "mjr-filter-card mjr-filter-card--agenda" }, yy = { class: "mjr-popover-row" }, by = { class: "mjr-popover-label" }, xy = { class: "mjr-popover-row" }, Sy = { class: "mjr-popover-label" }, Cy = /* @__PURE__ */ rr({
+}, xy = { class: "mjr-filter-group-body" }, Sy = { class: "mjr-filter-card mjr-filter-card--agenda" }, Cy = { class: "mjr-popover-row" }, wy = { class: "mjr-popover-label" }, Ty = { class: "mjr-popover-row" }, Ey = { class: "mjr-popover-label" }, Dy = /* @__PURE__ */ ir({
 	__name: "FilterPopover",
 	setup(e, { expose: t }) {
-		let n = Qh(), r = Q(null), i = Q(null), a = Q(null), o = Q(null), s = Q(null), c = Q(null), l = Q(null), u = Q(null), d = Q(null), f = Q(null), p = Q([{
-			label: L("filter.any", "Any"),
+		let n = ng(), r = Q(null), i = Q(null), a = Q(null), o = Q(null), s = Q(null), c = Q(null), l = Q(null), u = Q(null), d = Q(null), f = Q(null), p = Q([{
+			label: I("filter.any", "Any"),
 			value: ""
 		}]), m = (e) => e?.$el || e || null, h = (e) => m(e.value)?.value || "", g = (e, t) => {
 			let n = m(e.value);
@@ -19436,30 +19541,30 @@ var dv = {
 			core: !0,
 			media: !1,
 			time: !0
-		}), v = K(() => [
+		}), v = G(() => [
 			{
-				label: L("filter.all"),
+				label: I("filter.all"),
 				value: ""
 			},
 			{
-				label: L("filter.images", "Images"),
+				label: I("filter.images", "Images"),
 				value: "image"
 			},
 			{
-				label: L("filter.videos", "Videos"),
+				label: I("filter.videos", "Videos"),
 				value: "video"
 			},
 			{
-				label: L("filter.audio", "Audio"),
+				label: I("filter.audio", "Audio"),
 				value: "audio"
 			},
 			{
 				label: "3D",
 				value: "model3d"
 			}
-		]), y = K(() => [
+		]), y = G(() => [
 			{
-				label: L("filter.any", "Any"),
+				label: I("filter.any", "Any"),
 				value: ""
 			},
 			{
@@ -19502,9 +19607,9 @@ var dv = {
 				label: "A2A (Audio to Audio)",
 				value: "A2A"
 			}
-		]), b = K(() => [
+		]), b = G(() => [
 			{
-				label: L("filter.any", "Any"),
+				label: I("filter.any", "Any"),
 				value: ""
 			},
 			{
@@ -19523,13 +19628,13 @@ var dv = {
 				label: "Unknown",
 				value: "unknown"
 			}
-		]), x = K(() => {
+		]), x = G(() => {
 			let e = Array.isArray(p.value) ? p.value.slice() : [{
-				label: L("filter.any", "Any"),
+				label: I("filter.any", "Any"),
 				value: ""
 			}];
 			e.length && String(e[0]?.value || "") === "" || e.unshift({
-				label: L("filter.any", "Any"),
+				label: I("filter.any", "Any"),
 				value: ""
 			});
 			let t = String(n.workflowModelFilter || "").trim();
@@ -19537,9 +19642,9 @@ var dv = {
 				label: t,
 				value: t
 			}), e;
-		}), S = K(() => [
+		}), S = G(() => [
 			{
-				label: L("filter.anyRating"),
+				label: I("filter.anyRating"),
 				value: "0"
 			},
 			{
@@ -19562,9 +19667,9 @@ var dv = {
 				label: "★ 5",
 				value: "5"
 			}
-		]), C = K(() => [
+		]), C = G(() => [
 			{
-				label: L("filter.any", "Any"),
+				label: I("filter.any", "Any"),
 				value: ""
 			},
 			{
@@ -19583,27 +19688,27 @@ var dv = {
 				label: "4K (3840x2160)",
 				value: "uhd"
 			}
-		]), w = K(() => [
+		]), w = G(() => [
 			{
-				label: L("filter.anytime"),
+				label: I("filter.anytime"),
 				value: ""
 			},
 			{
-				label: L("filter.today"),
+				label: I("filter.today"),
 				value: "today"
 			},
 			{
-				label: L("filter.thisWeek"),
+				label: I("filter.thisWeek"),
 				value: "this_week"
 			},
 			{
-				label: L("filter.thisMonth"),
+				label: I("filter.thisMonth"),
 				value: "this_month"
 			}
-		]), T = K(() => {
+		]), T = G(() => {
 			let e = Number(n.minWidth || 0) || 0, t = Number(n.minHeight || 0) || 0;
 			return e >= 3840 && t >= 2160 ? "uhd" : e >= 2560 && t >= 1440 ? "qhd" : e >= 1920 && t >= 1080 ? "fhd" : e >= 1280 && t >= 720 ? "hd" : "";
-		}), E = K(() => {
+		}), E = G(() => {
 			let e = String(n.dateExactFilter || "").trim().length > 0;
 			return {
 				"mjr-agenda-filled": e,
@@ -19622,21 +19727,21 @@ var dv = {
 			}
 		}, k = async () => {
 			try {
-				let e = await Ne();
+				let e = await Be();
 				if (!e?.ok) return;
 				let t = (Array.isArray(e.data?.model_families) ? e.data.model_families : []).map((e) => ({
 					label: String(e?.label || e?.value || "").trim(),
 					value: String(e?.value || e?.label || "").trim()
 				})).filter((e) => e.value).slice(0, 200);
 				p.value = [{
-					label: L("filter.any", "Any"),
+					label: I("filter.any", "Any"),
 					value: ""
 				}, ...t];
 			} catch (e) {
 				console.debug?.(e);
 			}
 		};
-		$n(() => {
+		er(() => {
 			k();
 		});
 		let A = (e, { emit: t = !0 } = {}) => {
@@ -19651,15 +19756,15 @@ var dv = {
 			n.workflowModelFilter = String(e || "").trim(), t && O();
 		}, ne = (e, { emit: t = !0 } = {}) => {
 			n.workflowRunsOnFilter = String(e || "").trim().toLowerCase(), t && O();
-		}, N = (e, { emit: t = !0 } = {}) => {
+		}, re = (e, { emit: t = !0 } = {}) => {
 			n.minRating = Number(e || 0) || 0, t && O();
-		}, P = () => {
+		}, N = () => {
 			let e = D(h(r) || 0), t = D(h(i) || 0);
 			t > 0 && e > 0 && t < e && (t = e, g(i, t)), n.minSizeMB = e > 0 ? e : 0, n.maxSizeMB = t > 0 ? t : 0, O();
-		}, re = () => {
+		}, P = () => {
 			let e = Math.max(0, Math.round(D(h(a) || 0))), t = Math.max(0, Math.round(D(h(o) || 0))), r = Math.max(0, Math.round(D(h(s) || 0))), i = Math.max(0, Math.round(D(h(c) || 0)));
 			r > 0 && e > 0 && r < e && (r = e, g(s, r)), i > 0 && t > 0 && i < t && (i = t, g(c, i)), n.minWidth = e, n.minHeight = t, n.maxWidth = r, n.maxHeight = i, O();
-		}, ie = (e, { emit: t = !0 } = {}) => {
+		}, F = (e, { emit: t = !0 } = {}) => {
 			let [r, i] = {
 				hd: [1280, 720],
 				fhd: [1920, 1080],
@@ -19667,17 +19772,17 @@ var dv = {
 				uhd: [3840, 2160]
 			}[String(e || "").trim()] || [0, 0];
 			n.minWidth = Number(r || 0), n.minHeight = Number(i || 0), n.maxWidth = 0, n.maxHeight = 0, g(a, n.minWidth || ""), g(o, n.minHeight || ""), g(s, ""), g(c, ""), t && O();
-		}, F = (e, { emit: t = !0 } = {}) => {
+		}, ie = (e, { emit: t = !0 } = {}) => {
 			n.dateRangeFilter = String(e || ""), n.dateRangeFilter && n.dateExactFilter && (n.dateExactFilter = "", g(u, "")), t && O();
 		}, ae = (e) => {
 			n.dateExactFilter = String(e?.target?.value || "").trim(), n.dateExactFilter && n.dateRangeFilter && (n.dateRangeFilter = ""), O();
-		}, I = (e) => {
+		}, oe = (e) => {
 			let t = String(e || "").trim().toLowerCase();
 			t && t in _.value && (_.value = {
 				..._.value,
 				[t]: !_.value[t]
 			});
-		}, oe = (e) => !!_.value[String(e || "").trim().toLowerCase()], se = ({ getValue: e, setValue: t }) => ({
+		}, se = (e) => !!_.value[String(e || "").trim().toLowerCase()], ce = ({ getValue: e, setValue: t }) => ({
 			get value() {
 				return e();
 			},
@@ -19689,7 +19794,7 @@ var dv = {
 			dispatchEvent() {
 				return !0;
 			}
-		}), ce = ({ getChecked: e, setChecked: t }) => ({
+		}), le = ({ getChecked: e, setChecked: t }) => ({
 			get checked() {
 				return e();
 			},
@@ -19701,63 +19806,63 @@ var dv = {
 			dispatchEvent() {
 				return !0;
 			}
-		}), le = se({
+		}), ue = ce({
 			getValue: () => String(n.kindFilter || ""),
 			setValue: A
-		}), ue = ce({
+		}), de = le({
 			getChecked: () => !!n.workflowOnly,
 			setChecked: ee
-		}), de = se({
+		}), fe = ce({
 			getValue: () => String(n.workflowType || "").trim().toUpperCase(),
 			setValue: j
-		}), fe = se({
+		}), pe = ce({
 			getValue: () => String(n.workflowId || "").trim(),
 			setValue: M
-		}), pe = se({
+		}), me = ce({
 			getValue: () => String(n.workflowModelFilter || "").trim(),
 			setValue: te
-		}), me = se({
+		}), he = ce({
 			getValue: () => String(n.workflowRunsOnFilter || "").trim().toLowerCase(),
 			setValue: ne
-		}), he = se({
+		}), ge = ce({
 			getValue: () => String(Number(n.minRating || 0) || 0),
-			setValue: N
-		}), ge = se({
+			setValue: re
+		}), _e = ce({
 			getValue: () => T.value,
-			setValue: ie
-		}), _e = se({
-			getValue: () => String(n.dateRangeFilter || ""),
 			setValue: F
-		}), ve = K(() => {
+		}), ve = ce({
+			getValue: () => String(n.dateRangeFilter || ""),
+			setValue: ie
+		}), ye = G(() => {
 			let e = 0;
 			return String(n.kindFilter || "").trim() && (e += 1), n.workflowOnly && (e += 1), String(n.workflowType || "").trim() && (e += 1), String(n.workflowId || "").trim() && (e += 1), String(n.workflowModelFilter || "").trim() && (e += 1), String(n.workflowRunsOnFilter || "").trim() && (e += 1), (Number(n.minRating || 0) || 0) > 0 && (e += 1), ((Number(n.minSizeMB || 0) || 0) > 0 || (Number(n.maxSizeMB || 0) || 0) > 0) && (e += 1), ((Number(n.minWidth || 0) || 0) > 0 || (Number(n.minHeight || 0) || 0) > 0 || (Number(n.maxWidth || 0) || 0) > 0 || (Number(n.maxHeight || 0) || 0) > 0) && (e += 1), String(n.dateRangeFilter || "").trim() && (e += 1), String(n.dateExactFilter || "").trim() && (e += 1), e;
-		}), ye = () => {
+		}), be = () => {
 			n.kindFilter = "", n.workflowOnly = !1, n.workflowType = "", n.workflowId = "", n.workflowModelFilter = "", n.workflowRunsOnFilter = "", n.minRating = 0, n.minSizeMB = 0, n.maxSizeMB = 0, n.minWidth = 0, n.minHeight = 0, n.maxWidth = 0, n.maxHeight = 0, n.dateRangeFilter = "", n.dateExactFilter = "", g(r, ""), g(i, ""), g(a, ""), g(o, ""), g(s, ""), g(c, ""), g(u, ""), g(d, ""), g(f, ""), O();
 		};
 		return t({
 			get kindSelect() {
-				return le;
-			},
-			get wfCheckbox() {
 				return ue;
 			},
-			get workflowTypeSelect() {
+			get wfCheckbox() {
 				return de;
 			},
-			get workflowIdInput() {
+			get workflowTypeSelect() {
 				return fe;
 			},
-			get workflowModelInput() {
+			get workflowIdInput() {
 				return pe;
+			},
+			get workflowModelInput() {
+				return me;
 			},
 			get workflowModelFamilyOptions() {
 				return x.value;
 			},
 			get workflowRunsOnSelect() {
-				return me;
+				return he;
 			},
 			get ratingSelect() {
-				return he;
+				return ge;
 			},
 			get minSizeInput() {
 				return m(r.value);
@@ -19766,7 +19871,7 @@ var dv = {
 				return m(i.value);
 			},
 			get resolutionPresetSelect() {
-				return ge;
+				return _e;
 			},
 			get minWidthInput() {
 				return m(a.value);
@@ -19781,7 +19886,7 @@ var dv = {
 				return m(c.value);
 			},
 			get dateRangeSelect() {
-				return _e;
+				return ve;
 			},
 			get dateExactInput() {
 				return m(u.value);
@@ -19790,33 +19895,33 @@ var dv = {
 				return l.value;
 			}
 		}), (e, t) => {
-			let p = er("MButton"), m = er("MSelect"), h = er("MCheckbox"), g = er("MInputText");
-			return q(), Y("div", kv, [
-				H("div", Av, [H("div", jv, [H("div", Mv, J(Z(L)("label.filters", "Filters")), 1), H("div", Nv, J(Z(L)("label.refineResults", "Refine your results")), 1)]), H("div", Pv, [H("span", Fv, J(ve.value), 1), U(p, {
+			let p = tr("MButton"), m = tr("MSelect"), h = tr("MCheckbox"), g = tr("MInputText");
+			return K(), Y("div", Nv, [
+				V("div", Pv, [V("div", Fv, [V("div", Iv, J(Z(I)("label.filters", "Filters")), 1), V("div", Lv, J(Z(I)("label.refineResults", "Refine your results")), 1)]), V("div", Rv, [V("span", zv, J(ye.value), 1), H(p, {
 					type: "button",
 					class: "mjr-filter-clear-all",
 					severity: "secondary",
 					text: "",
-					disabled: ve.value === 0,
-					onClick: ye
+					disabled: ye.value === 0,
+					onClick: be
 				}, {
-					default: G(() => [hr(J(Z(L)("action.clearAll", "Clear all")), 1)]),
+					default: W(() => [hr(J(Z(I)("action.clearAll", "Clear all")), 1)]),
 					_: 1
 				}, 8, ["disabled"])])]),
-				H("div", { class: X(["mjr-filter-group mjr-filter-group--core", { "is-open": oe("core") }]) }, [U(p, {
+				V("div", { class: X(["mjr-filter-group mjr-filter-group--core", { "is-open": se("core") }]) }, [H(p, {
 					type: "button",
 					class: "mjr-filter-group-toggle",
 					severity: "secondary",
 					text: "",
-					"aria-expanded": String(oe("core")),
-					onClick: t[0] ||= (e) => I("core")
+					"aria-expanded": String(se("core")),
+					onClick: t[0] ||= (e) => oe("core")
 				}, {
-					default: G(() => [H("span", Iv, J(Z(L)("group.core", "Core")), 1), H("span", Lv, J(oe("core") ? "▾" : "▸"), 1)]),
+					default: W(() => [V("span", Bv, J(Z(I)("group.core", "Core")), 1), V("span", Vv, J(se("core") ? "▾" : "▸"), 1)]),
 					_: 1
-				}, 8, ["aria-expanded"]), Jn(H("div", Rv, [H("div", zv, [H("div", Bv, [H("div", Vv, J(Z(L)("label.type")), 1), U(m, {
+				}, 8, ["aria-expanded"]), Yn(V("div", Hv, [V("div", Uv, [V("div", Wv, [V("div", Gv, J(Z(I)("label.type")), 1), H(m, {
 					class: "mjr-select mjr-filter-select",
 					"panel-class": "mjr-filter-select-panel",
-					title: Z(L)("tooltip.filterByFileType", "Filter by file type"),
+					title: Z(I)("tooltip.filterByFileType", "Filter by file type"),
 					"model-value": String(Z(n).kindFilter || ""),
 					options: v.value,
 					"option-label": "label",
@@ -19826,16 +19931,16 @@ var dv = {
 					"title",
 					"model-value",
 					"options"
-				])]), H("div", Hv, [H("div", Uv, J(Z(L)("label.workflow")), 1), H("label", {
+				])]), V("div", Kv, [V("div", qv, J(Z(I)("label.workflow")), 1), V("label", {
 					class: "mjr-popover-toggle",
-					title: Z(L)("tooltip.filterWorkflowOnly", "Show only assets with embedded workflow data")
-				}, [U(h, {
+					title: Z(I)("tooltip.filterWorkflowOnly", "Show only assets with embedded workflow data")
+				}, [H(h, {
 					class: "mjr-checkbox",
 					"model-value": !!Z(n).workflowOnly,
 					binary: "",
 					"onUpdate:modelValue": ee
-				}, null, 8, ["model-value"]), H("span", null, J(Z(L)("filter.onlyWithWorkflow")), 1)], 8, Wv)])]), H("div", Gv, [
-					H("div", Kv, [H("div", qv, J(Z(L)("label.workflowType", "Workflow type")), 1), U(m, {
+				}, null, 8, ["model-value"]), V("span", null, J(Z(I)("filter.onlyWithWorkflow")), 1)], 8, Jv)])]), V("div", Yv, [
+					V("div", Xv, [V("div", Zv, J(Z(I)("label.workflowType", "Workflow type")), 1), H(m, {
 						class: "mjr-select mjr-filter-select",
 						"panel-class": "mjr-filter-select-panel",
 						"model-value": String(Z(n).workflowType || "").trim().toUpperCase(),
@@ -19844,12 +19949,12 @@ var dv = {
 						"option-value": "value",
 						"onUpdate:modelValue": j
 					}, null, 8, ["model-value", "options"])]),
-					H("div", Jv, [H("div", Yv, J(Z(L)("label.sameWorkflow", "Generated with Same Workflow")), 1), U(g, {
+					V("div", Qv, [V("div", $v, J(Z(I)("label.sameWorkflow", "Generated with Same Workflow")), 1), H(g, {
 						ref_key: "workflowIdInputRef",
 						ref: d,
 						class: "mjr-input",
-						title: Z(L)("tooltip.filterWorkflowId", "Filter assets generated from the same embedded workflow id"),
-						placeholder: Z(L)("placeholder.workflowId", "Workflow ID"),
+						title: Z(I)("tooltip.filterWorkflowId", "Filter assets generated from the same embedded workflow id"),
+						placeholder: Z(I)("placeholder.workflowId", "Workflow ID"),
 						"model-value": String(Z(n).workflowId || ""),
 						"onUpdate:modelValue": M,
 						onChange: t[1] ||= (e) => M(e?.target?.value)
@@ -19858,7 +19963,7 @@ var dv = {
 						"placeholder",
 						"model-value"
 					])]),
-					H("div", Xv, [H("div", Zv, J(Z(L)("label.workflowModelFamily", "Model family")), 1), H("div", Qv, [U(m, {
+					V("div", ey, [V("div", ty, J(Z(I)("label.workflowModelFamily", "Model family")), 1), V("div", ny, [H(m, {
 						class: "mjr-select mjr-filter-select",
 						"panel-class": "mjr-filter-select-panel",
 						"model-value": String(Z(n).workflowModelFilter || ""),
@@ -19866,16 +19971,16 @@ var dv = {
 						"option-label": "label",
 						"option-value": "value",
 						"onUpdate:modelValue": te
-					}, null, 8, ["model-value", "options"]), U(g, {
+					}, null, 8, ["model-value", "options"]), H(g, {
 						ref_key: "workflowModelInputRef",
 						ref: f,
 						class: "mjr-input",
-						placeholder: Z(L)("placeholder.workflowModelFamily", "Flux, Wan, SDXL..."),
+						placeholder: Z(I)("placeholder.workflowModelFamily", "Flux, Wan, SDXL..."),
 						"model-value": String(Z(n).workflowModelFilter || ""),
 						"onUpdate:modelValue": te,
 						onChange: t[2] ||= (e) => te(e?.target?.value)
 					}, null, 8, ["placeholder", "model-value"])])]),
-					H("div", $v, [H("div", ey, J(Z(L)("label.workflowRunsOn", "Runs on")), 1), U(m, {
+					V("div", ry, [V("div", iy, J(Z(I)("label.workflowRunsOn", "Runs on")), 1), H(m, {
 						class: "mjr-select mjr-filter-select",
 						"panel-class": "mjr-filter-select-panel",
 						"model-value": String(Z(n).workflowRunsOnFilter || "").trim().toLowerCase(),
@@ -19884,176 +19989,176 @@ var dv = {
 						"option-value": "value",
 						"onUpdate:modelValue": ne
 					}, null, 8, ["model-value", "options"])]),
-					H("div", ty, [H("div", ny, J(Z(L)("label.rating")), 1), U(m, {
+					V("div", ay, [V("div", oy, J(Z(I)("label.rating")), 1), H(m, {
 						class: "mjr-select mjr-filter-select",
 						"panel-class": "mjr-filter-select-panel",
-						title: Z(L)("tooltip.filterMinRating", "Filter by minimum rating"),
+						title: Z(I)("tooltip.filterMinRating", "Filter by minimum rating"),
 						"model-value": String(Number(Z(n).minRating || 0) || 0),
 						options: S.value,
 						"option-label": "label",
 						"option-value": "value",
-						"onUpdate:modelValue": N
+						"onUpdate:modelValue": re
 					}, null, 8, [
 						"title",
 						"model-value",
 						"options"
 					])])
-				])], 512), [[dr, oe("core")]])], 2),
-				H("div", { class: X(["mjr-filter-group mjr-filter-group--media", { "is-open": oe("media") }]) }, [U(p, {
+				])], 512), [[dr, se("core")]])], 2),
+				V("div", { class: X(["mjr-filter-group mjr-filter-group--media", { "is-open": se("media") }]) }, [H(p, {
 					type: "button",
 					class: "mjr-filter-group-toggle",
 					severity: "secondary",
 					text: "",
-					"aria-expanded": String(oe("media")),
-					onClick: t[3] ||= (e) => I("media")
+					"aria-expanded": String(se("media")),
+					onClick: t[3] ||= (e) => oe("media")
 				}, {
-					default: G(() => [H("span", ry, J(Z(L)("group.media", "Media")), 1), H("span", iy, J(oe("media") ? "▾" : "▸"), 1)]),
+					default: W(() => [V("span", sy, J(Z(I)("group.media", "Media")), 1), V("span", cy, J(se("media") ? "▾" : "▸"), 1)]),
 					_: 1
-				}, 8, ["aria-expanded"]), Jn(H("div", ay, [H("div", oy, [
-					H("div", sy, [
-						H("div", cy, J(Z(L)("label.fileSizeMB", "File size (MB)")), 1),
-						U(g, {
+				}, 8, ["aria-expanded"]), Yn(V("div", ly, [V("div", uy, [
+					V("div", dy, [
+						V("div", fy, J(Z(I)("label.fileSizeMB", "File size (MB)")), 1),
+						H(g, {
 							ref_key: "minSizeInputRef",
 							ref: r,
 							type: "number",
 							min: "0",
 							step: "0.1",
 							class: "mjr-input",
-							placeholder: Z(L)("label.min", "Min"),
+							placeholder: Z(I)("label.min", "Min"),
 							value: Z(n).minSizeMB || "",
-							onChange: P
+							onChange: N
 						}, null, 8, ["placeholder", "value"]),
-						U(g, {
+						H(g, {
 							ref_key: "maxSizeInputRef",
 							ref: i,
 							type: "number",
 							min: "0",
 							step: "0.1",
 							class: "mjr-input",
-							placeholder: Z(L)("label.max", "Max"),
+							placeholder: Z(I)("label.max", "Max"),
 							value: Z(n).maxSizeMB || "",
-							onChange: P
+							onChange: N
 						}, null, 8, ["placeholder", "value"])
 					]),
-					H("div", ly, [H("div", uy, J(Z(L)("label.resolutionPx", "Resolution (px)")), 1), U(m, {
+					V("div", py, [V("div", my, J(Z(I)("label.resolutionPx", "Resolution (px)")), 1), H(m, {
 						class: "mjr-select mjr-filter-select",
 						"panel-class": "mjr-filter-select-panel",
 						"model-value": T.value,
 						options: C.value,
 						"option-label": "label",
 						"option-value": "value",
-						"onUpdate:modelValue": ie
+						"onUpdate:modelValue": F
 					}, null, 8, ["model-value", "options"])]),
-					H("div", dy, [
-						H("div", fy, J(Z(L)("label.resolutionMinWxH", "Min WxH (px)")), 1),
-						U(g, {
+					V("div", hy, [
+						V("div", gy, J(Z(I)("label.resolutionMinWxH", "Min WxH (px)")), 1),
+						H(g, {
 							ref_key: "minWidthInputRef",
 							ref: a,
 							type: "number",
 							min: "0",
 							step: "1",
 							class: "mjr-input",
-							placeholder: Z(L)("label.widthPx", "W (px)"),
-							title: Z(L)("tooltip.widthPx", "Minimum width in pixels"),
+							placeholder: Z(I)("label.widthPx", "W (px)"),
+							title: Z(I)("tooltip.widthPx", "Minimum width in pixels"),
 							value: Z(n).minWidth || "",
-							onChange: re
+							onChange: P
 						}, null, 8, [
 							"placeholder",
 							"title",
 							"value"
 						]),
-						U(g, {
+						H(g, {
 							ref_key: "minHeightInputRef",
 							ref: o,
 							type: "number",
 							min: "0",
 							step: "1",
 							class: "mjr-input",
-							placeholder: Z(L)("label.heightPx", "H (px)"),
-							title: Z(L)("tooltip.heightPx", "Minimum height in pixels"),
+							placeholder: Z(I)("label.heightPx", "H (px)"),
+							title: Z(I)("tooltip.heightPx", "Minimum height in pixels"),
 							value: Z(n).minHeight || "",
-							onChange: re
+							onChange: P
 						}, null, 8, [
 							"placeholder",
 							"title",
 							"value"
 						])
 					]),
-					H("div", py, [
-						H("div", my, J(Z(L)("label.resolutionMaxWxH", "Max WxH (px)")), 1),
-						U(g, {
+					V("div", _y, [
+						V("div", vy, J(Z(I)("label.resolutionMaxWxH", "Max WxH (px)")), 1),
+						H(g, {
 							ref_key: "maxWidthInputRef",
 							ref: s,
 							type: "number",
 							min: "0",
 							step: "1",
 							class: "mjr-input",
-							placeholder: Z(L)("label.widthPx", "W (px)"),
-							title: Z(L)("tooltip.widthPx", "Maximum width in pixels"),
+							placeholder: Z(I)("label.widthPx", "W (px)"),
+							title: Z(I)("tooltip.widthPx", "Maximum width in pixels"),
 							value: Z(n).maxWidth || "",
-							onChange: re
+							onChange: P
 						}, null, 8, [
 							"placeholder",
 							"title",
 							"value"
 						]),
-						U(g, {
+						H(g, {
 							ref_key: "maxHeightInputRef",
 							ref: c,
 							type: "number",
 							min: "0",
 							step: "1",
 							class: "mjr-input",
-							placeholder: Z(L)("label.heightPx", "H (px)"),
-							title: Z(L)("tooltip.heightPx", "Maximum height in pixels"),
+							placeholder: Z(I)("label.heightPx", "H (px)"),
+							title: Z(I)("tooltip.heightPx", "Maximum height in pixels"),
 							value: Z(n).maxHeight || "",
-							onChange: re
+							onChange: P
 						}, null, 8, [
 							"placeholder",
 							"title",
 							"value"
 						])
 					])
-				])], 512), [[dr, oe("media")]])], 2),
-				H("div", { class: X(["mjr-filter-group mjr-filter-group--time", { "is-open": oe("time") }]) }, [U(p, {
+				])], 512), [[dr, se("media")]])], 2),
+				V("div", { class: X(["mjr-filter-group mjr-filter-group--time", { "is-open": se("time") }]) }, [H(p, {
 					type: "button",
 					class: "mjr-filter-group-toggle",
 					severity: "secondary",
 					text: "",
-					"aria-expanded": String(oe("time")),
-					onClick: t[4] ||= (e) => I("time")
+					"aria-expanded": String(se("time")),
+					onClick: t[4] ||= (e) => oe("time")
 				}, {
-					default: G(() => [H("span", hy, J(Z(L)("group.time", "Time")), 1), H("span", gy, J(oe("time") ? "▾" : "▸"), 1)]),
+					default: W(() => [V("span", yy, J(Z(I)("group.time", "Time")), 1), V("span", by, J(se("time") ? "▾" : "▸"), 1)]),
 					_: 1
-				}, 8, ["aria-expanded"]), Jn(H("div", _y, [H("div", vy, [H("div", yy, [H("div", by, J(Z(L)("label.dateRange")), 1), U(m, {
+				}, 8, ["aria-expanded"]), Yn(V("div", xy, [V("div", Sy, [V("div", Cy, [V("div", wy, J(Z(I)("label.dateRange")), 1), H(m, {
 					class: "mjr-select mjr-filter-select",
 					"panel-class": "mjr-filter-select-panel",
-					title: Z(L)("tooltip.filterByDateRange", "Filter by date range"),
+					title: Z(I)("tooltip.filterByDateRange", "Filter by date range"),
 					"model-value": String(Z(n).dateRangeFilter || ""),
 					options: w.value,
 					"option-label": "label",
 					"option-value": "value",
-					"onUpdate:modelValue": F
+					"onUpdate:modelValue": ie
 				}, null, 8, [
 					"title",
 					"model-value",
 					"options"
-				])]), H("div", xy, [H("div", Sy, J(Z(L)("label.agenda")), 1), H("div", {
+				])]), V("div", Ty, [V("div", Ey, J(Z(I)("label.agenda")), 1), V("div", {
 					ref_key: "agendaContainerRef",
 					ref: l,
 					class: "mjr-agenda-container"
-				}, [U(g, {
+				}, [H(g, {
 					ref_key: "dateExactInputRef",
 					ref: u,
 					type: "date",
 					class: X(["mjr-input mjr-agenda-input", E.value]),
 					value: Z(n).dateExactFilter,
 					onChange: ae
-				}, null, 8, ["class", "value"])], 512)])])], 512), [[dr, oe("time")]])], 2)
+				}, null, 8, ["class", "value"])], 512)])])], 512), [[dr, se("time")]])], 2)
 			]);
 		};
 	}
-}), wy = 128, Ty = Object.freeze([
+}), Oy = 128, ky = Object.freeze([
 	{
 		key: "portraits",
 		label: "Portraits",
@@ -20091,10 +20196,10 @@ var dv = {
 		iconClass: "pi pi-circle"
 	}
 ]);
-function Ey(e) {
+function Ay(e) {
 	try {
 		let t = String(e ?? "").trim();
-		if (!t || t.length > wy || t.includes("\0")) return "";
+		if (!t || t.length > Oy || t.includes("\0")) return "";
 		for (let e = 0; e < t.length; e += 1) {
 			let n = t.charCodeAt(e);
 			if (n <= 31 || n === 127) return "";
@@ -20104,7 +20209,7 @@ function Ey(e) {
 		return "";
 	}
 }
-function Dy(e) {
+function jy(e) {
 	if (!e || typeof e != "object") return null;
 	let t = String(e.filepath || "").trim();
 	return t ? {
@@ -20116,10 +20221,10 @@ function Dy(e) {
 		root_id: String(e.root_id || e.rootId || e.custom_root_id || "").trim() || void 0
 	} : null;
 }
-function Oy(e) {
+function My(e) {
 	let t = [], n = [], r = /* @__PURE__ */ new Set();
 	for (let i of Array.isArray(e) ? e : []) {
-		let e = Dy(i);
+		let e = jy(i);
 		if (e?.filepath) {
 			let n = e.filepath.toLowerCase();
 			if (r.has(n)) continue;
@@ -20134,24 +20239,24 @@ function Oy(e) {
 		missingIds: n
 	};
 }
-async function ky(e) {
+async function Ny(e) {
 	let t = Array.from(new Set((Array.isArray(e) ? e : []).map((e) => Number(e)).filter((e) => Number.isFinite(e) && e > 0)));
 	if (!t.length) return {
 		ok: !0,
 		data: []
 	};
-	let n = await me(t);
+	let n = await Ge(t);
 	if (!n?.ok) return {
 		ok: !1,
 		error: String(n?.error || "Failed to fetch assets")
 	};
-	let { assets: r } = Oy(Array.isArray(n?.data) ? n.data : Array.isArray(n?.data?.assets) ? n.data.assets : []);
+	let { assets: r } = My(Array.isArray(n?.data) ? n.data : Array.isArray(n?.data?.assets) ? n.data.assets : []);
 	return {
 		ok: !0,
 		data: r
 	};
 }
-function Ay(e) {
+function Py(e) {
 	let t = String(e?.label || "").trim();
 	if (t && !/^group\b/i.test(t)) return t;
 	let n = (Array.isArray(e?.dominant_tags) ? e.dominant_tags : []).map((e) => String(e || "").trim()).filter(Boolean);
@@ -20169,43 +20274,43 @@ function Ay(e) {
 	let s = Object.entries(o).sort((e, t) => t[1] - e[1])[0]?.[0] || "other", c = s === "image" ? "Images" : s === "video" ? "Videos" : s === "audio" ? "Audio" : "Media", l = Number(e?.cluster_id), u = Number.isFinite(l) ? ` ${l + 1}` : "";
 	return a ? `${a} - ${c}` : `${c} Cluster${u}`;
 }
-function jy() {
+function Fy() {
 	try {
-		return !!(Pt()?.ai?.vectorSearchEnabled ?? !0);
+		return !!(Ft()?.ai?.vectorSearchEnabled ?? !0);
 	} catch {
 		return !0;
 	}
 }
 // ui/vue/components/panel/CollectionsPopover.vue?vue&type=script&setup=true&lang.ts
-var My = { class: "mjr-menu mjr-collections-menu" }, Ny = { class: "mjr-menu-item-label" }, Py = { class: "mjr-menu-item-label" }, Fy = { class: "mjr-menu-item-right" }, Iy = {
+var Iy = { class: "mjr-menu mjr-collections-menu" }, Ly = { class: "mjr-menu-item-label" }, Ry = { class: "mjr-menu-item-label" }, zy = { class: "mjr-menu-item-right" }, By = {
 	key: 0,
 	class: "mjr-menu-item-hint"
-}, Ly = {
+}, Vy = {
 	key: 1,
 	class: "mjr-muted"
-}, Ry = {
+}, Hy = {
 	key: 2,
 	class: "mjr-state-block is-error"
-}, zy = {
+}, Uy = {
 	key: 3,
 	class: "mjr-muted"
-}, By = { class: "mjr-collection-row" }, Vy = { class: "mjr-menu-item-label" }, Hy = { class: "mjr-menu-item-right" }, Uy = {
+}, Wy = { class: "mjr-collection-row" }, Gy = { class: "mjr-menu-item-label" }, Ky = { class: "mjr-menu-item-right" }, qy = {
 	key: 0,
 	class: "mjr-menu-item-hint"
-}, Wy = { class: "mjr-state-block" }, Gy = { class: "mjr-section-title mjr-section-title--cyan" }, Ky = { class: "mjr-section-hint" }, qy = { class: "mjr-menu-item-label mjr-menu-item-label--icon" }, Jy = { class: "mjr-section-title mjr-section-title--violet" }, Yy = { class: "mjr-section-hint" }, Xy = { class: "mjr-menu-item-label mjr-menu-item-label--icon" }, Zy = {
+}, Jy = { class: "mjr-state-block" }, Yy = { class: "mjr-section-title mjr-section-title--cyan" }, Xy = { class: "mjr-section-hint" }, Zy = { class: "mjr-menu-item-label mjr-menu-item-label--icon" }, Qy = { class: "mjr-section-title mjr-section-title--violet" }, $y = { class: "mjr-section-hint" }, eb = { class: "mjr-menu-item-label mjr-menu-item-label--icon" }, tb = {
 	key: 0,
 	class: "mjr-state-block is-error"
-}, Qy = { class: "mjr-cluster-thumbs" }, $y = ["src", "alt"], eb = { class: "mjr-cluster-info" }, tb = ["title"], nb = { class: "mjr-cluster-count" }, rb = "mjr:collections-changed", ib = /* @__PURE__ */ rr({
+}, nb = { class: "mjr-cluster-thumbs" }, rb = ["src", "alt"], ib = { class: "mjr-cluster-info" }, ab = ["title"], ob = { class: "mjr-cluster-count" }, sb = "mjr:collections-changed", cb = /* @__PURE__ */ ir({
 	__name: "CollectionsPopover",
 	setup(e, { expose: t }) {
-		let n = Qh(), r = Q(null), i = Q([]), o = Q(!1), s = Q(""), c = Q(!1), l = Q(!0), u = Q(!1), d = Q(!1), f = Q(!1), p = Q([]), _ = Q(""), v = Q(""), y = 0, b = null, x = !1, S = K(() => String(n.collectionId || "").trim()), C = K(() => String(n.collectionName || "").trim()), w = K(() => !!S.value), T = K(() => !l.value || d.value), D = K(() => l.value && u.value), O = K(() => `${Math.max(1, Math.min(i.value.length, 6)) * 48}px`);
-		function k() {
-			let e = r.value;
+		let n = ng(), i = Q(null), a = Q([]), o = Q(!1), c = Q(""), l = Q(!1), u = Q(!0), d = Q(!1), f = Q(!1), p = Q(!1), m = Q([]), h = Q(""), g = Q(""), _ = 0, v = null, b = !1, x = G(() => String(n.collectionId || "").trim()), S = G(() => String(n.collectionName || "").trim()), w = G(() => !!x.value), T = G(() => !u.value || f.value), E = G(() => u.value && d.value), D = G(() => `${Math.max(1, Math.min(a.value.length, 6)) * 48}px`);
+		function O() {
+			let e = i.value;
 			return !!e && String(e.style.display || "").toLowerCase() !== "none";
 		}
-		function A({ collectionId: e = S.value, collectionName: t = C.value, close: n = !0, reload: r = !0 } = {}) {
+		function k({ collectionId: e = x.value, collectionName: t = S.value, close: n = !0, reload: r = !0 } = {}) {
 			try {
-				window.dispatchEvent(new CustomEvent(rb, { detail: {
+				window.dispatchEvent(new CustomEvent(sb, { detail: {
 					collectionId: String(e || ""),
 					collectionName: String(t || ""),
 					close: n !== !1,
@@ -20215,21 +20320,21 @@ var My = { class: "mjr-menu mjr-collections-menu" }, Ny = { class: "mjr-menu-ite
 				console.debug?.(e);
 			}
 		}
-		function ee(e) {
+		function A(e) {
 			try {
-				return F(e) || "";
+				return oe(e) || "";
 			} catch (e) {
 				return console.debug?.(e), "";
 			}
 		}
-		async function j() {
-			if (!jy()) return {
+		async function ee() {
+			if (!Fy()) return {
 				enabled: !1,
 				vectorAvailable: !1,
 				vectorDisabled: !1
 			};
 			try {
-				let e = await re(), t = !e?.ok && (String(e?.code || "").toUpperCase() === "SERVICE_UNAVAILABLE" || /vector search is not enabled/i.test(String(e?.error || "")));
+				let e = await r(), t = !e?.ok && (String(e?.code || "").toUpperCase() === "SERVICE_UNAVAILABLE" || /vector search is not enabled/i.test(String(e?.error || "")));
 				return {
 					enabled: !0,
 					vectorAvailable: !!(e?.ok && e?.data?.total > 0),
@@ -20243,7 +20348,7 @@ var My = { class: "mjr-menu mjr-collections-menu" }, Ny = { class: "mjr-menu-ite
 				};
 			}
 		}
-		function M(...e) {
+		function j(...e) {
 			let t = [], n = /* @__PURE__ */ new Set();
 			for (let r of e) for (let e of Array.isArray(r) ? r : []) {
 				let r = String(e?.filepath || "").trim().toLowerCase();
@@ -20251,259 +20356,259 @@ var My = { class: "mjr-menu mjr-collections-menu" }, Ny = { class: "mjr-menu-ite
 			}
 			return t;
 		}
-		async function te() {
-			let e = ++y;
-			o.value = !0, c.value = !0, s.value = "", _.value = "";
+		async function M() {
+			let e = ++_;
+			o.value = !0, l.value = !0, c.value = "", h.value = "";
 			try {
-				let [t, n] = await Promise.all([fe(), j()]);
-				if (e !== y) return;
-				t?.ok ? i.value = Array.isArray(t?.data) ? t.data : [] : (s.value = String(t?.error || L("msg.failedLoadCollections", "Failed to load collections")), i.value = []), l.value = !!n.enabled, u.value = !!n.vectorAvailable, d.value = !!n.vectorDisabled, u.value || (p.value = [], f.value = !1);
+				let [t, n] = await Promise.all([De(), ee()]);
+				if (e !== _) return;
+				t?.ok ? a.value = Array.isArray(t?.data) ? t.data : [] : (c.value = String(t?.error || I("msg.failedLoadCollections", "Failed to load collections")), a.value = []), u.value = !!n.enabled, d.value = !!n.vectorAvailable, f.value = !!n.vectorDisabled, d.value || (m.value = [], p.value = !1);
 			} catch (t) {
-				if (e !== y) return;
-				console.debug?.(t), s.value = L("msg.failedLoadCollections", "Failed to load collections"), i.value = [];
+				if (e !== _) return;
+				console.debug?.(t), c.value = I("msg.failedLoadCollections", "Failed to load collections"), a.value = [];
 			} finally {
-				e === y && (o.value = !1, c.value = !1);
+				e === _ && (o.value = !1, l.value = !1);
 			}
 		}
-		function ne(e, t) {
+		function te(e, t) {
 			return async (...n) => {
-				if (!v.value) {
-					v.value = e;
+				if (!g.value) {
+					g.value = e;
 					try {
 						await t(...n);
 					} finally {
-						v.value === e && (v.value = "");
+						g.value === e && (g.value = "");
 					}
 				}
 			};
 		}
-		let N = ne("create", async () => {
-			let e = await Et(L("dialog.createCollection", "Create collection"), L("dialog.collectionPlaceholder", "Collection name"));
+		let ne = te("create", async () => {
+			let e = await Dt(I("dialog.createCollection", "Create collection"), I("dialog.collectionPlaceholder", "Collection name"));
 			if (!e) return;
-			let t = Ey(e);
+			let t = Ay(e);
 			if (!t) {
-				m(L("toast.invalidCollectionName", "Invalid collection name"), "error");
+				F(I("toast.invalidCollectionName", "Invalid collection name"), "error");
 				return;
 			}
-			let n = await E(t);
-			n?.ok ? A({
+			let n = await y(t);
+			n?.ok ? k({
 				collectionId: String(n?.data?.id || ""),
 				collectionName: String(n?.data?.name || t)
-			}) : m(n?.error || L("toast.failedCreateCollection", "Failed to create collection"), "error");
-		}), P = ne("exit", async () => {
-			A({
+			}) : F(n?.error || I("toast.failedCreateCollection", "Failed to create collection"), "error");
+		}), re = te("exit", async () => {
+			k({
 				collectionId: "",
 				collectionName: ""
 			});
-		}), ie = ne("open", async (e) => {
+		}), P = te("open", async (e) => {
 			let t = String(e?.id || ""), n = String(e?.name || t);
-			t && (t === S.value ? A({
+			t && (t === x.value ? k({
 				collectionId: t,
 				collectionName: n,
 				reload: !1
-			}) : A({
+			}) : k({
 				collectionId: t,
 				collectionName: n
 			}));
-		}), ae = ne("delete", async (e) => {
+		}), ie = te("delete", async (e) => {
 			let t = String(e?.id || ""), n = String(e?.name || t);
-			if (!t || !await Nt(L("dialog.deleteCollection", "Delete collection \"{name}\"?", { name: n }))) return;
-			let r = await g(t);
-			r?.ok ? t === S.value ? A({
+			if (!t || !await Pt(I("dialog.deleteCollection", "Delete collection \"{name}\"?", { name: n }))) return;
+			let r = await s(t);
+			r?.ok ? t === x.value ? k({
 				collectionId: "",
 				collectionName: ""
-			}) : await te() : m(r?.error || L("toast.failedDeleteCollection", "Failed to delete collection"), "error");
+			}) : await M() : F(r?.error || I("toast.failedDeleteCollection", "Failed to delete collection"), "error");
 		});
-		async function I(e) {
+		async function ae(e) {
 			let t = String(e?.label || "").trim();
 			if (!t) return;
-			let n = await E(t);
+			let n = await y(t);
 			if (!n?.ok) {
-				m(n?.error || L("toast.failedCreateSmartCollection", "Failed to create smart collection"), "error");
+				F(n?.error || I("toast.failedCreateSmartCollection", "Failed to create smart collection"), "error");
 				return;
 			}
 			let r = String(n?.data?.id || "");
 			if (!r) return;
-			let i = await a(String(e?.query || ""), 50);
+			let i = await ot(String(e?.query || ""), 50);
 			if (i?.ok && Array.isArray(i?.data) && i.data.length > 0) {
-				let e = Oy(i.data), n = e.assets;
+				let e = My(i.data), n = e.assets;
 				if (e.missingIds.length) {
-					let t = await ky(e.missingIds);
-					t.ok && Array.isArray(t.data) && (n = M(n, t.data));
+					let t = await Ny(e.missingIds);
+					t.ok && Array.isArray(t.data) && (n = j(n, t.data));
 				}
 				if (n.length) {
-					let e = await ke(r, n);
+					let e = await C(r, n);
 					if (!e?.ok) {
-						m(e?.error || L("toast.failedAddAssetsToSmartCollection", "Failed to add assets to smart collection"), "error");
+						F(e?.error || I("toast.failedAddAssetsToSmartCollection", "Failed to add assets to smart collection"), "error");
 						return;
 					}
 					let i = Number(e?.data?.added || n.length || 0);
-					m(L("toast.smartCollectionCreated", "Smart collection \"{name}\" created with {count} assets!", {
+					F(I("toast.smartCollectionCreated", "Smart collection \"{name}\" created with {count} assets!", {
 						name: t,
 						count: i
 					}), "success", 3e3);
-				} else m(L("toast.smartCollectionEmpty", "Collection \"{name}\" created but no matching assets found. Index more assets first.", { name: t }), "info", 3e3);
-			} else m(L("toast.smartCollectionEmpty", "Collection \"{name}\" created but no matching assets found. Index more assets first.", { name: t }), "info", 3e3);
-			A({
+				} else F(I("toast.smartCollectionEmpty", "Collection \"{name}\" created but no matching assets found. Index more assets first.", { name: t }), "info", 3e3);
+			} else F(I("toast.smartCollectionEmpty", "Collection \"{name}\" created but no matching assets found. Index more assets first.", { name: t }), "info", 3e3);
+			k({
 				collectionId: r,
 				collectionName: t
 			});
 		}
-		async function oe(e) {
+		async function se(e) {
 			if (!e?.key) return;
 			let t = `smart:${e.key}`;
-			if (!v.value) {
-				v.value = t;
+			if (!g.value) {
+				g.value = t;
 				try {
-					await I(e);
+					await ae(e);
 				} catch (e) {
-					console.error("[Majoor] Smart collection creation failed:", e), m(L("toast.failedCreateSmartCollection", "Failed to create smart collection"), "error");
+					console.error("[Majoor] Smart collection creation failed:", e), F(I("toast.failedCreateSmartCollection", "Failed to create smart collection"), "error");
 				} finally {
-					v.value === t && (v.value = "");
+					g.value === t && (g.value = "");
 				}
 			}
 		}
-		async function se() {
-			if (!(f.value || v.value)) {
-				f.value = !0, _.value = "", p.value = [];
+		async function ce() {
+			if (!(p.value || g.value)) {
+				p.value = !0, h.value = "", m.value = [];
 				try {
-					let e = await h(8);
+					let e = await N(8);
 					if (!e?.ok || !Array.isArray(e?.data) || !e.data.length) {
-						m(L("toast.noGroupsFoundIndexFirst", "No groups found. Index more assets first."), "info", 3e3);
+						F(I("toast.noGroupsFoundIndexFirst", "No groups found. Index more assets first."), "info", 3e3);
 						return;
 					}
-					p.value = e.data.map((e) => ({
+					m.value = e.data.map((e) => ({
 						...e,
-						_label: Ay(e)
+						_label: Py(e)
 					}));
 				} catch (e) {
-					console.error("[Majoor] Discover groups failed:", e), _.value = L("toast.clusterAnalysisFailed", "Cluster analysis failed"), m(L("toast.clusterAnalysisFailed", "Cluster analysis failed"), "error");
+					console.error("[Majoor] Discover groups failed:", e), h.value = I("toast.clusterAnalysisFailed", "Cluster analysis failed"), F(I("toast.clusterAnalysisFailed", "Cluster analysis failed"), "error");
 				} finally {
-					f.value = !1;
+					p.value = !1;
 				}
 			}
 		}
-		async function ce(e) {
+		async function le(e) {
 			let t = `cluster:${String(e?.cluster_id ?? "")}`;
-			if (!v.value) {
-				v.value = t;
+			if (!g.value) {
+				g.value = t;
 				try {
-					let t = String(e?._label || Ay(e) || "").trim();
+					let t = String(e?._label || Py(e) || "").trim();
 					if (!t) return;
-					let n = await E(t);
+					let n = await y(t);
 					if (!n?.ok) {
-						m(n?.error || L("toast.failedCreateCollection", "Failed to create collection"), "error");
+						F(n?.error || I("toast.failedCreateCollection", "Failed to create collection"), "error");
 						return;
 					}
 					let r = String(n?.data?.id || ""), i = Array.isArray(e?.all_asset_ids) ? e.all_asset_ids : [];
 					if (r && i.length) {
-						let e = await ky(i);
+						let e = await Ny(i);
 						if (!e.ok) {
-							m(e.error || L("toast.failedLoadClusterAssets", "Failed to load cluster assets"), "error");
+							F(e.error || I("toast.failedLoadClusterAssets", "Failed to load cluster assets"), "error");
 							return;
 						}
-						let n = await ke(r, e.data || []);
+						let n = await C(r, e.data || []);
 						if (!n?.ok) {
-							m(n?.error || L("toast.failedAddAssetsToCollection", "Failed to add assets to collection"), "error");
+							F(n?.error || I("toast.failedAddAssetsToCollection", "Failed to add assets to collection"), "error");
 							return;
 						}
 						let a = Number(n?.data?.added || e.data?.length || 0);
-						m(L("toast.collectionCreatedWithAssets", "Collection \"{name}\" created with {count} assets!", {
+						F(I("toast.collectionCreatedWithAssets", "Collection \"{name}\" created with {count} assets!", {
 							name: t,
 							count: a
 						}), "success", 3e3);
-					} else m(L("toast.collectionCreatedNamed", "Collection \"{name}\" created.", { name: t }), "success", 2200);
-					A({
+					} else F(I("toast.collectionCreatedNamed", "Collection \"{name}\" created.", { name: t }), "success", 2200);
+					k({
 						collectionId: r,
 						collectionName: t
 					});
 				} catch (e) {
-					console.error("[Majoor] Cluster collection creation failed:", e), m(L("toast.failedCreateCollection", "Failed to create collection"), "error");
+					console.error("[Majoor] Cluster collection creation failed:", e), F(I("toast.failedCreateCollection", "Failed to create collection"), "error");
 				} finally {
-					v.value === t && (v.value = "");
+					g.value === t && (g.value = "");
 				}
 			}
 		}
-		function le() {
-			let e = k();
-			e && !x && te().catch(() => {}), x = e;
+		function ue() {
+			let e = O();
+			e && !b && M().catch(() => {}), b = e;
 		}
-		return $n(() => {
-			le(), typeof MutationObserver < "u" && r.value && (b = new MutationObserver(() => le()), b.observe(r.value, {
+		return er(() => {
+			ue(), typeof MutationObserver < "u" && i.value && (v = new MutationObserver(() => ue()), v.observe(i.value, {
 				attributes: !0,
 				attributeFilter: ["style"]
 			}));
-		}), or(() => {
+		}), sr(() => {
 			try {
-				b?.disconnect?.();
+				v?.disconnect?.();
 			} catch (e) {
 				console.debug?.(e);
 			}
-			b = null;
-		}), t({ refresh: te }), (e, t) => {
-			let n = er("MButton"), a = er("MVirtualScroller");
-			return q(), Y("div", {
+			v = null;
+		}), t({ refresh: M }), (e, t) => {
+			let n = tr("MButton"), r = tr("MVirtualScroller");
+			return K(), Y("div", {
 				ref_key: "rootRef",
-				ref: r,
+				ref: i,
 				class: "mjr-popover mjr-collections-popover",
 				style: { display: "none" }
-			}, [H("div", My, [
-				U(n, {
+			}, [V("div", Iy, [
+				H(n, {
 					type: "button",
 					class: "mjr-menu-item",
 					severity: "secondary",
 					text: "",
-					disabled: v.value !== "",
-					onClick: Z(N)
+					disabled: g.value !== "",
+					onClick: Z(ne)
 				}, {
-					default: G(() => [H("span", Ny, J(Z(L)("ctx.createCollection", "Create collection")), 1), t[0] ||= H("i", { class: "pi pi-plus mjr-menu-item-check mjr-menu-item-check--visible" }, null, -1)]),
+					default: W(() => [V("span", Ly, J(Z(I)("ctx.createCollection", "Create collection")), 1), t[0] ||= V("i", { class: "pi pi-plus mjr-menu-item-check mjr-menu-item-check--visible" }, null, -1)]),
 					_: 1
 				}, 8, ["disabled", "onClick"]),
-				w.value ? (q(), Xn(n, {
+				w.value ? (K(), Zn(n, {
 					key: 0,
 					type: "button",
 					class: "mjr-menu-item",
 					severity: "secondary",
 					text: "",
-					disabled: v.value !== "",
-					onClick: Z(P)
+					disabled: g.value !== "",
+					onClick: Z(re)
 				}, {
-					default: G(() => [H("span", Py, J(Z(L)("ctx.exitCollection", "Exit collection")), 1), H("span", Fy, [C.value ? (q(), Y("span", Iy, J(C.value), 1)) : W("", !0), t[1] ||= H("i", { class: "pi pi-times mjr-menu-item-check mjr-menu-item-check--visible" }, null, -1)])]),
+					default: W(() => [V("span", Ry, J(Z(I)("ctx.exitCollection", "Exit collection")), 1), V("span", zy, [S.value ? (K(), Y("span", By, J(S.value), 1)) : U("", !0), t[1] ||= V("i", { class: "pi pi-times mjr-menu-item-check mjr-menu-item-check--visible" }, null, -1)])]),
 					_: 1
-				}, 8, ["disabled", "onClick"])) : W("", !0),
-				t[9] ||= H("div", { class: "mjr-menu-divider" }, null, -1),
-				o.value ? (q(), Y("div", Ly, J(Z(L)("label.loading", "Loading...")), 1)) : s.value ? (q(), Y("div", Ry, J(s.value), 1)) : i.value.length ? (q(), Xn(a, {
+				}, 8, ["disabled", "onClick"])) : U("", !0),
+				t[9] ||= V("div", { class: "mjr-menu-divider" }, null, -1),
+				o.value ? (K(), Y("div", Vy, J(Z(I)("label.loading", "Loading...")), 1)) : c.value ? (K(), Y("div", Hy, J(c.value), 1)) : a.value.length ? (K(), Zn(r, {
 					key: 4,
-					items: i.value,
+					items: a.value,
 					"item-size": 48,
-					"scroll-height": O.value,
+					"scroll-height": D.value,
 					"num-tolerated-items": 4,
 					class: "mjr-collections-virtual-list"
 				}, {
-					item: G(({ item: e }) => [H("div", By, [U(n, {
+					item: W(({ item: e }) => [V("div", Wy, [H(n, {
 						type: "button",
-						class: X(["mjr-menu-item", { "is-active": S.value === String(e.id || "") }]),
+						class: X(["mjr-menu-item", { "is-active": x.value === String(e.id || "") }]),
 						severity: "secondary",
 						text: "",
-						disabled: v.value !== "",
-						onClick: (t) => Z(ie)(e)
+						disabled: g.value !== "",
+						onClick: (t) => Z(P)(e)
 					}, {
-						default: G(() => [H("span", Vy, J(e.name || e.id), 1), H("span", Hy, [Number(e.count || 0) ? (q(), Y("span", Uy, J(Number(e.count || 0)), 1)) : W("", !0), t[2] ||= H("i", { class: "pi pi-check mjr-menu-item-check" }, null, -1)])]),
+						default: W(() => [V("span", Gy, J(e.name || e.id), 1), V("span", Ky, [Number(e.count || 0) ? (K(), Y("span", qy, J(Number(e.count || 0)), 1)) : U("", !0), t[2] ||= V("i", { class: "pi pi-check mjr-menu-item-check" }, null, -1)])]),
 						_: 2
 					}, 1032, [
 						"class",
 						"disabled",
 						"onClick"
-					]), U(n, {
+					]), H(n, {
 						type: "button",
 						class: "mjr-menu-item mjr-delete-btn",
 						severity: "secondary",
 						text: "",
-						disabled: v.value !== "",
-						title: Z(L)("tooltip.deleteCollection", "Delete collection"),
-						onClick: ar((t) => Z(ae)(e), ["stop", "prevent"])
+						disabled: g.value !== "",
+						title: Z(I)("tooltip.deleteCollection", "Delete collection"),
+						onClick: or((t) => Z(ie)(e), ["stop", "prevent"])
 					}, {
-						default: G(() => [...t[3] ||= [H("i", { class: "pi pi-trash" }, null, -1)]]),
+						default: W(() => [...t[3] ||= [V("i", { class: "pi pi-trash" }, null, -1)]]),
 						_: 1
 					}, 8, [
 						"disabled",
@@ -20511,63 +20616,63 @@ var My = { class: "mjr-menu mjr-collections-menu" }, Ny = { class: "mjr-menu-ite
 						"onClick"
 					])])]),
 					_: 1
-				}, 8, ["items", "scroll-height"])) : (q(), Y("div", zy, J(Z(L)("msg.noCollections", "No collections yet")), 1)),
-				!c.value && T.value ? (q(), Y(V, { key: 5 }, [t[4] ||= H("div", { class: "mjr-menu-divider" }, null, -1), H("div", Wy, J(l.value ? "AI Smart Collections are disabled (enable vector search env var)." : "AI Smart Collections are disabled in settings."), 1)], 64)) : W("", !0),
-				!c.value && D.value ? (q(), Y(V, { key: 6 }, [
-					t[7] ||= H("div", { class: "mjr-menu-divider" }, null, -1),
-					H("div", Gy, J(Z(L)("label.smartSuggestions", "Smart Suggestions")), 1),
-					H("div", Ky, J(Z(L)("label.smartCollectionsHint", "Create collections from AI-detected themes")), 1),
-					(q(!0), Y(V, null, tr(Z(Ty), (e) => (q(), Xn(n, {
+				}, 8, ["items", "scroll-height"])) : (K(), Y("div", Uy, J(Z(I)("msg.noCollections", "No collections yet")), 1)),
+				!l.value && T.value ? (K(), Y(B, { key: 5 }, [t[4] ||= V("div", { class: "mjr-menu-divider" }, null, -1), V("div", Jy, J(u.value ? "AI Smart Collections are disabled (enable vector search env var)." : "AI Smart Collections are disabled in settings."), 1)], 64)) : U("", !0),
+				!l.value && E.value ? (K(), Y(B, { key: 6 }, [
+					t[7] ||= V("div", { class: "mjr-menu-divider" }, null, -1),
+					V("div", Yy, J(Z(I)("label.smartSuggestions", "Smart Suggestions")), 1),
+					V("div", Xy, J(Z(I)("label.smartCollectionsHint", "Create collections from AI-detected themes")), 1),
+					(K(!0), Y(B, null, nr(Z(ky), (e) => (K(), Zn(n, {
 						key: e.key,
 						type: "button",
 						class: "mjr-menu-item mjr-menu-item--smart",
 						severity: "secondary",
 						text: "",
-						disabled: v.value !== "",
-						onClick: (t) => oe(e)
+						disabled: g.value !== "",
+						onClick: (t) => se(e)
 					}, {
-						default: G(() => [H("span", qy, [H("i", { class: X(e.iconClass) }, null, 2), H("span", null, J(e.label), 1)]), t[5] ||= H("i", { class: "pi pi-plus mjr-menu-item-check mjr-menu-item-check--visible" }, null, -1)]),
+						default: W(() => [V("span", Zy, [V("i", { class: X(e.iconClass) }, null, 2), V("span", null, J(e.label), 1)]), t[5] ||= V("i", { class: "pi pi-plus mjr-menu-item-check mjr-menu-item-check--visible" }, null, -1)]),
 						_: 2
 					}, 1032, ["disabled", "onClick"]))), 128)),
-					t[8] ||= H("div", { class: "mjr-menu-divider" }, null, -1),
-					H("div", Jy, J(Z(L)("label.discoverGroups", "Discover Groups")), 1),
-					H("div", Yy, J(Z(L)("label.discoverGroupsHint", "AI clusters assets by visual similarity")), 1),
-					U(n, {
+					t[8] ||= V("div", { class: "mjr-menu-divider" }, null, -1),
+					V("div", Qy, J(Z(I)("label.discoverGroups", "Discover Groups")), 1),
+					V("div", $y, J(Z(I)("label.discoverGroupsHint", "AI clusters assets by visual similarity")), 1),
+					H(n, {
 						type: "button",
 						class: "mjr-menu-item mjr-menu-item--cluster",
 						severity: "secondary",
 						text: "",
-						disabled: f.value || v.value !== "",
-						onClick: se
+						disabled: p.value || g.value !== "",
+						onClick: ce
 					}, {
-						default: G(() => [H("span", Xy, [t[6] ||= H("i", { class: "pi pi-search" }, null, -1), H("span", null, J(f.value ? Z(L)("label.analyzing", "Analyzing...") : Z(L)("label.analyzeLibrary", "Analyze library")), 1)])]),
+						default: W(() => [V("span", eb, [t[6] ||= V("i", { class: "pi pi-search" }, null, -1), V("span", null, J(p.value ? Z(I)("label.analyzing", "Analyzing...") : Z(I)("label.analyzeLibrary", "Analyze library")), 1)])]),
 						_: 1
 					}, 8, ["disabled"]),
-					_.value ? (q(), Y("div", Zy, J(_.value), 1)) : W("", !0),
-					(q(!0), Y(V, null, tr(p.value, (e) => (q(), Y("div", {
+					h.value ? (K(), Y("div", tb, J(h.value), 1)) : U("", !0),
+					(K(!0), Y(B, null, nr(m.value, (e) => (K(), Y("div", {
 						key: e.cluster_id,
 						class: "mjr-cluster-row"
 					}, [
-						H("div", Qy, [(q(!0), Y(V, null, tr(Array.isArray(e.sample_assets) ? e.sample_assets.slice(0, 3) : [], (t, n) => (q(), Y("img", {
+						V("div", nb, [(K(!0), Y(B, null, nr(Array.isArray(e.sample_assets) ? e.sample_assets.slice(0, 3) : [], (t, n) => (K(), Y("img", {
 							key: `${e.cluster_id}-${n}`,
 							class: "mjr-cluster-thumb",
-							src: ee(t),
+							src: A(t),
 							alt: String(t?.filename || e._label || ""),
 							loading: "lazy"
-						}, null, 8, $y))), 128))]),
-						H("div", eb, [H("div", {
+						}, null, 8, rb))), 128))]),
+						V("div", ib, [V("div", {
 							class: "mjr-cluster-name",
 							title: e._label
-						}, J(e._label), 9, tb), H("div", nb, J(Number(e.size || 0)) + " " + J(Z(L)("label.assets", "assets")), 1)]),
-						U(n, {
+						}, J(e._label), 9, ab), V("div", ob, J(Number(e.size || 0)) + " " + J(Z(I)("label.assets", "assets")), 1)]),
+						H(n, {
 							type: "button",
 							class: "mjr-cluster-create-btn",
 							severity: "secondary",
-							disabled: v.value !== "",
-							title: Z(L)("ctx.createCollection", "Create collection"),
-							onClick: (t) => ce(e)
+							disabled: g.value !== "",
+							title: Z(I)("ctx.createCollection", "Create collection"),
+							onClick: (t) => le(e)
 						}, {
-							default: G(() => [hr(J(v.value === `cluster:${String(e.cluster_id ?? "")}` ? Z(L)("label.loading", "Loading...") : Z(L)("label.create", "Create")), 1)]),
+							default: W(() => [hr(J(g.value === `cluster:${String(e.cluster_id ?? "")}` ? Z(I)("label.loading", "Loading...") : Z(I)("label.create", "Create")), 1)]),
 							_: 2
 						}, 1032, [
 							"disabled",
@@ -20575,20 +20680,20 @@ var My = { class: "mjr-menu mjr-collections-menu" }, Ny = { class: "mjr-menu-ite
 							"onClick"
 						])
 					]))), 128))
-				], 64)) : W("", !0)
+				], 64)) : U("", !0)
 			])], 512);
 		};
 	}
-}), ab = { class: "mjr-popover mjr-pinned-folders-popover mjr-popover--hidden" }, ob = {
+}), lb = { class: "mjr-popover mjr-pinned-folders-popover mjr-popover--hidden" }, ub = {
 	key: 0,
 	class: "mjr-muted mjr-pinned-folders-empty"
-}, sb = {
+}, db = {
 	key: 1,
 	class: "mjr-muted mjr-pinned-folders-empty"
-}, cb = { class: "mjr-pinned-folder-label" }, lb = {
+}, fb = { class: "mjr-pinned-folder-label" }, pb = {
 	key: 0,
 	class: "mjr-menu-item-hint mjr-pinned-folder-path"
-}, ub = /* @__PURE__ */ rr({
+}, mb = /* @__PURE__ */ ir({
 	__name: "PinnedFoldersPopover",
 	setup(e, { expose: t }) {
 		let n = Q(null), r = Q([]), i = Q(!1), a = Q("No pinned folders"), o = Q("Loading..."), s = Q("Unpin folder"), c = Q(null), l = Q(null);
@@ -20619,25 +20724,25 @@ var My = { class: "mjr-menu mjr-collections-menu" }, Ny = { class: "mjr-menu-ite
 			setPinnedFolders: d,
 			setPinnedFoldersLoading: f
 		}), (e, t) => {
-			let c = er("MButton");
-			return q(), Y("div", ab, [H("div", {
+			let c = tr("MButton");
+			return K(), Y("div", lb, [V("div", {
 				ref_key: "menuRef",
 				ref: n,
 				class: "mjr-menu mjr-pinned-folders-menu",
 				role: "menu"
-			}, [i.value ? (q(), Y("div", ob, J(o.value), 1)) : r.value.length ? (q(!0), Y(V, { key: 2 }, tr(r.value, (e) => (q(), Y("div", {
+			}, [i.value ? (K(), Y("div", ub, J(o.value), 1)) : r.value.length ? (K(!0), Y(B, { key: 2 }, nr(r.value, (e) => (K(), Y("div", {
 				key: e.id,
 				class: "mjr-pinned-folder-row"
-			}, [U(c, {
+			}, [H(c, {
 				type: "button",
 				class: "mjr-menu-item mjr-pinned-folder-open",
 				role: "menuitem",
 				severity: "secondary",
 				onClick: (t) => p(e)
 			}, {
-				default: G(() => [H("span", cb, J(e.label), 1), e.path ? (q(), Y("span", lb, J(e.path), 1)) : W("", !0)]),
+				default: W(() => [V("span", fb, J(e.label), 1), e.path ? (K(), Y("span", pb, J(e.path), 1)) : U("", !0)]),
 				_: 2
-			}, 1032, ["onClick"]), U(c, {
+			}, 1032, ["onClick"]), H(c, {
 				type: "button",
 				class: "mjr-menu-item mjr-pinned-folder-unpin",
 				role: "menuitem",
@@ -20646,7 +20751,7 @@ var My = { class: "mjr-menu mjr-collections-menu" }, Ny = { class: "mjr-menu-ite
 				"aria-label": `${s.value}: ${e.label}`,
 				onClick: (t) => m(e, t)
 			}, {
-				default: G(() => [...t[0] ||= [H("i", {
+				default: W(() => [...t[0] ||= [V("i", {
 					class: "pi pi-times",
 					"aria-hidden": "true"
 				}, null, -1)]]),
@@ -20655,17 +20760,17 @@ var My = { class: "mjr-menu mjr-collections-menu" }, Ny = { class: "mjr-menu-ite
 				"title",
 				"aria-label",
 				"onClick"
-			])]))), 128)) : (q(), Y("div", sb, J(a.value), 1))], 512)]);
+			])]))), 128)) : (K(), Y("div", db, J(a.value), 1))], 512)]);
 		};
 	}
-}), db = {
+}), hb = {
 	class: "mjr-popover mjr-custom-popover",
 	style: { display: "none" }
-}, fb = { class: "mjr-popover-row" }, pb = { class: "mjr-popover-label" }, mb = { class: "mjr-popover-row mjr-popover-row--actions" }, hb = /* @__PURE__ */ rr({
+}, gb = { class: "mjr-popover-row" }, _b = { class: "mjr-popover-label" }, vb = { class: "mjr-popover-row mjr-popover-row--actions" }, yb = /* @__PURE__ */ ir({
 	__name: "CustomRootsPopover",
 	setup(e, { expose: t }) {
 		let n = Q([{
-			label: L("label.selectFolder", "Select folder..."),
+			label: I("label.selectFolder", "Select folder..."),
 			value: "",
 			disabled: !1
 		}]), r = Q(""), i = Q(!1), a = Q(null), o = Q(null), s = (e) => e?.$el || e || null, c = new EventTarget(), l = (e) => ({
@@ -20744,8 +20849,8 @@ var My = { class: "mjr-menu mjr-collections-menu" }, Ny = { class: "mjr-menu-ite
 				return s(o.value);
 			}
 		}), (e, t) => {
-			let s = er("MSelect"), c = er("MButton");
-			return q(), Y("div", db, [H("div", fb, [H("div", pb, J(Z(L)("label.folder")), 1), U(s, {
+			let s = tr("MSelect"), c = tr("MButton");
+			return K(), Y("div", hb, [V("div", gb, [V("div", _b, J(Z(I)("label.folder")), 1), H(s, {
 				class: "mjr-select",
 				"model-value": r.value,
 				options: n.value,
@@ -20757,16 +20862,16 @@ var My = { class: "mjr-menu mjr-collections-menu" }, Ny = { class: "mjr-menu-ite
 				"model-value",
 				"options",
 				"disabled"
-			])]), H("div", mb, [U(c, {
+			])]), V("div", vb, [H(c, {
 				ref_key: "customAddBtnRef",
 				ref: a,
 				type: "button",
 				class: "mjr-btn",
 				severity: "secondary"
 			}, {
-				default: G(() => [hr(J(Z(L)("btn.add")), 1)]),
+				default: W(() => [hr(J(Z(I)("btn.add")), 1)]),
 				_: 1
-			}, 512), U(c, {
+			}, 512), H(c, {
 				ref_key: "customRemoveBtnRef",
 				ref: o,
 				type: "button",
@@ -20774,15 +20879,15 @@ var My = { class: "mjr-menu mjr-collections-menu" }, Ny = { class: "mjr-menu-ite
 				severity: "secondary",
 				disabled: ""
 			}, {
-				default: G(() => [hr(J(Z(L)("btn.remove")), 1)]),
+				default: W(() => [hr(J(Z(I)("btn.remove")), 1)]),
 				_: 1
 			}, 512)])]);
 		};
 	}
-}), gb = ["aria-label"], _b = { class: "mjr-messages-head" }, vb = { class: "mjr-messages-actions" }, yb = ["title"], bb = { class: "mjr-messages-star-label" }, xb = {
+}), bb = ["aria-label"], xb = { class: "mjr-messages-head" }, Sb = { class: "mjr-messages-actions" }, Cb = ["title"], wb = { class: "mjr-messages-star-label" }, Tb = {
 	class: "mjr-messages-tabs",
 	role: "tablist"
-}, Sb = { class: "mjr-messages-panels" }, Cb = { class: "mjr-messages-empty" }, wb = "https://github.com/MajoorWaldi/ComfyUI-Majoor-AssetsManager", Tb = /* @__PURE__ */ rr({
+}, Eb = { class: "mjr-messages-panels" }, Db = { class: "mjr-messages-empty" }, Ob = "https://github.com/MajoorWaldi/ComfyUI-Majoor-AssetsManager", kb = /* @__PURE__ */ ir({
 	__name: "MessagePopover",
 	setup(e, { expose: t }) {
 		let n = Q(null), r = Q(null), i = Q(null), a = Q(null), o = Q(null), s = Q(null), c = Q(null), l = Q(null), u = Q(null), d = Q(null), f = Q(null), p = (e) => e?.$el || e || null;
@@ -20821,16 +20926,16 @@ var My = { class: "mjr-menu mjr-collections-menu" }, Ny = { class: "mjr-menu-ite
 				return f.value;
 			}
 		}), (e, t) => {
-			let p = er("MButton"), m = er("MDialog");
-			return q(), Y("div", {
+			let p = tr("MButton"), m = tr("MDialog");
+			return K(), Y("div", {
 				class: "mjr-popover mjr-messages-popover",
 				id: "mjr-messages-popover",
 				role: "dialog",
-				"aria-label": Z(L)("label.messages", "Messages"),
+				"aria-label": Z(I)("label.messages", "Messages"),
 				"aria-hidden": "true",
 				tabindex: "-1",
 				style: { display: "none" }
-			}, [U(m, {
+			}, [H(m, {
 				visible: !0,
 				modal: !1,
 				"show-header": !1,
@@ -20846,33 +20951,33 @@ var My = { class: "mjr-menu mjr-collections-menu" }, Ny = { class: "mjr-menu-ite
 					root: { class: "mjr-inline-dialog-root" }
 				}
 			}, {
-				default: G(() => [
-					H("div", _b, [H("div", {
+				default: W(() => [
+					V("div", xb, [V("div", {
 						ref_key: "titleRef",
 						ref: n,
 						class: "mjr-messages-title"
-					}, J(Z(L)("label.messages", "Messages")), 513), H("div", vb, [H("a", {
-						href: wb,
+					}, J(Z(I)("label.messages", "Messages")), 513), V("div", Sb, [V("a", {
+						href: Ob,
 						target: "_blank",
 						rel: "noopener noreferrer",
 						class: "mjr-btn mjr-messages-star-link",
-						title: Z(L)("tooltip.starGithub", "Open GitHub and give a star")
-					}, [t[0] ||= H("span", {
+						title: Z(I)("tooltip.starGithub", "Open GitHub and give a star")
+					}, [t[0] ||= V("span", {
 						class: "mjr-messages-star-icon",
 						"aria-hidden": "true"
-					}, "★", -1), H("span", bb, J(Z(L)("btn.giveStar", "Give a star")), 1)], 8, yb), U(p, {
+					}, "★", -1), V("span", wb, J(Z(I)("btn.giveStar", "Give a star")), 1)], 8, Cb), H(p, {
 						ref_key: "markReadBtnRef",
 						ref: r,
 						type: "button",
 						class: "mjr-btn mjr-messages-mark-read-btn",
 						severity: "secondary",
-						title: Z(L)("tooltip.markMessagesRead", "Mark all messages as read")
+						title: Z(I)("tooltip.markMessagesRead", "Mark all messages as read")
 					}, {
-						default: G(() => [hr(J(Z(L)("btn.markAllRead", "Mark all read")), 1)]),
+						default: W(() => [hr(J(Z(I)("btn.markAllRead", "Mark all read")), 1)]),
 						_: 1
 					}, 8, ["title"])])]),
-					H("div", xb, [
-						U(p, {
+					V("div", Tb, [
+						H(p, {
 							ref_key: "messageTabBtnRef",
 							ref: i,
 							type: "button",
@@ -20884,7 +20989,7 @@ var My = { class: "mjr-menu mjr-collections-menu" }, Ny = { class: "mjr-menu-ite
 							"aria-controls": "mjr-messages-panel",
 							id: "mjr-messages-tab"
 						}, {
-							default: G(() => [H("span", null, J(Z(L)("label.messages", "Messages")), 1), H("span", {
+							default: W(() => [V("span", null, J(Z(I)("label.messages", "Messages")), 1), V("span", {
 								ref_key: "messageTabBadgeRef",
 								ref: a,
 								class: "mjr-tab-count-badge",
@@ -20893,7 +20998,7 @@ var My = { class: "mjr-menu mjr-collections-menu" }, Ny = { class: "mjr-menu-ite
 							}, null, 512)]),
 							_: 1
 						}, 512),
-						U(p, {
+						H(p, {
 							ref_key: "historyTabBtnRef",
 							ref: o,
 							type: "button",
@@ -20905,16 +21010,16 @@ var My = { class: "mjr-menu mjr-collections-menu" }, Ny = { class: "mjr-menu-ite
 							"aria-controls": "mjr-history-panel",
 							id: "mjr-history-tab"
 						}, {
-							default: G(() => [
-								H("span", null, J(Z(L)("label.toastHistory", "History")), 1),
-								H("span", {
+							default: W(() => [
+								V("span", null, J(Z(I)("label.toastHistory", "History")), 1),
+								V("span", {
 									ref_key: "historyTabCountRef",
 									ref: c,
 									class: "mjr-tab-count-badge",
 									"aria-hidden": "true",
 									style: { display: "none" }
 								}, null, 512),
-								H("span", {
+								V("span", {
 									ref_key: "historyTabBadgeRef",
 									ref: s,
 									class: "mjr-tab-unread-dot",
@@ -20924,7 +21029,7 @@ var My = { class: "mjr-menu mjr-collections-menu" }, Ny = { class: "mjr-menu-ite
 							]),
 							_: 1
 						}, 512),
-						U(p, {
+						H(p, {
 							ref_key: "shortcutsTabBtnRef",
 							ref: l,
 							type: "button",
@@ -20936,20 +21041,20 @@ var My = { class: "mjr-menu mjr-collections-menu" }, Ny = { class: "mjr-menu-ite
 							"aria-controls": "mjr-shortcuts-panel",
 							id: "mjr-shortcuts-tab"
 						}, {
-							default: G(() => [hr(J(Z(L)("msg.shortcuts.title", "Shortcut Guide")), 1)]),
+							default: W(() => [hr(J(Z(I)("msg.shortcuts.title", "Shortcut Guide")), 1)]),
 							_: 1
 						}, 512)
 					]),
-					H("div", Sb, [
-						H("div", {
+					V("div", Eb, [
+						V("div", {
 							ref_key: "messageListRef",
 							ref: u,
 							class: "mjr-messages-list",
 							id: "mjr-messages-panel",
 							role: "tabpanel",
 							"aria-labelledby": "mjr-messages-tab"
-						}, [H("div", Cb, J(Z(L)("msg.noMessages", "No messages for now.")), 1)], 512),
-						H("div", {
+						}, [V("div", Db, J(Z(I)("msg.noMessages", "No messages for now.")), 1)], 512),
+						V("div", {
 							ref_key: "historyPanelRef",
 							ref: d,
 							class: "mjr-messages-history-panel",
@@ -20958,7 +21063,7 @@ var My = { class: "mjr-menu mjr-collections-menu" }, Ny = { class: "mjr-menu-ite
 							"aria-labelledby": "mjr-history-tab",
 							hidden: ""
 						}, null, 512),
-						H("div", {
+						V("div", {
 							ref_key: "shortcutsPanelRef",
 							ref: f,
 							class: "mjr-messages-shortcuts-panel",
@@ -20970,22 +21075,22 @@ var My = { class: "mjr-menu mjr-collections-menu" }, Ny = { class: "mjr-menu-ite
 					])
 				]),
 				_: 1
-			})], 8, gb);
+			})], 8, bb);
 		};
 	}
-}), Eb = { class: "mjr-am-header-row" }, Db = { class: "mjr-am-header-left" }, Ob = { class: "mjr-am-header-title" }, kb = ["data-mjr-version-channel", "title"], Ab = { class: "mjr-tabs" }, jb = { class: "mjr-am-header-tools" }, Mb = {
+}), Ab = { class: "mjr-am-header-row" }, jb = { class: "mjr-am-header-left" }, Mb = { class: "mjr-am-header-title" }, Nb = ["data-mjr-version-channel", "title"], Pb = { class: "mjr-tabs" }, Fb = { class: "mjr-am-header-tools" }, Ib = {
 	class: "mjr-popover-anchor",
 	style: { display: "none" }
-}, Nb = { class: "mjr-popover-anchor" }, Pb = { class: "mjr-popover-anchor" }, Fb = { class: "mjr-popover-anchor" }, Ib = { class: "mjr-popover-anchor" }, Lb = { class: "mjr-popover-anchor" }, Rb = "mjr-am-version-badge-label", zb = "V", Bb = /* @__PURE__ */ rr({
+}, Lb = { class: "mjr-popover-anchor" }, Rb = { class: "mjr-popover-anchor" }, zb = { class: "mjr-popover-anchor" }, Bb = { class: "mjr-popover-anchor" }, Vb = { class: "mjr-popover-anchor" }, Hb = "mjr-am-version-badge-label", Ub = "V", Wb = /* @__PURE__ */ ir({
 	__name: "HeaderSection",
 	setup(e, { expose: t }) {
-		let r = null;
-		function i() {
-			return r ||= Promise.resolve({}).catch((e) => {
-				throw r = null, e;
-			}), r;
+		let n = null;
+		function r() {
+			return n ||= Promise.resolve({}).catch((e) => {
+				throw n = null, e;
+			}), n;
 		}
-		function a(e, t = "") {
+		function i(e, t = "") {
 			let n = String(e || "").trim().toLowerCase(), r = String(t || "").trim().toLowerCase();
 			return [
 				"nightly",
@@ -20994,7 +21099,7 @@ var My = { class: "mjr-menu mjr-collections-menu" }, Ny = { class: "mjr-menu-ite
 				"experimental"
 			].some((e) => n.includes(e) || r.includes(e)) || n.includes("+") || n.length > 10 && /^[a-f0-9]+$/i.test(n);
 		}
-		function o() {
+		function a() {
 			try {
 				if (typeof window < "u" && window?.MajoorAssetsManagerBranch) return String(window.MajoorAssetsManagerBranch);
 			} catch (e) {
@@ -21007,36 +21112,36 @@ var My = { class: "mjr-menu mjr-collections-menu" }, Ny = { class: "mjr-menu-ite
 			}
 			return "";
 		}
-		let s = {
+		let o = {
 			name_asc: "pi pi-sort-alpha-down",
 			name_desc: "pi pi-sort-alpha-up",
 			mtime_asc: "pi pi-sort-amount-up-alt",
 			rating_desc: "pi pi-star-fill",
 			size_desc: "pi pi-sort-numeric-down-alt",
 			size_asc: "pi pi-sort-numeric-up-alt"
-		}, c = Qh(), l = o() === "nightly", u = Q(null), d = Q(null), f = Q(null), p = Q(null), h = Q(null), g = Q(null), _ = Q(null), v = Q(null), y = Q(null), b = Q(null), x = Q(null), S = Q(null), C = Q(null), w = Q(null), T = Q(null), E = Q(null), D = Q(null), O = Q(null), k = Q(null), A = Q(null), ee = Q(null), j = Q(null), te = Q(null), ne = Q(null), N = Q(null), P = Q(null), re = (e) => e?.$el || e || null, ie = Q(l ? "nightly" : "v?"), F = Q(l ? "nightly" : "stable"), ae = Q(!1), oe = Q(!1), se = K(() => s[c.sort] ?? "pi pi-sort-amount-down"), ce = K(() => String(c.viewScope || c.scope || "output").toLowerCase()), le = K(() => ce.value === "similar" || Array.isArray(c.similarResults) && c.similarResults.length > 0 || !!c.similarTitle), ue = K(() => {
-			let e = String(c.similarSourceAssetId || "");
+		}, s = ng(), c = a() === "nightly", l = Q(null), u = Q(null), d = Q(null), f = Q(null), p = Q(null), h = Q(null), g = Q(null), _ = Q(null), y = Q(null), b = Q(null), x = Q(null), S = Q(null), C = Q(null), w = Q(null), T = Q(null), E = Q(null), D = Q(null), O = Q(null), k = Q(null), A = Q(null), ee = Q(null), j = Q(null), M = Q(null), te = Q(null), ne = Q(null), re = Q(null), N = (e) => e?.$el || e || null, P = Q(c ? "nightly" : "v?"), ie = Q(c ? "nightly" : "stable"), ae = Q(!1), oe = Q(!1), se = G(() => o[s.sort] ?? "pi pi-sort-amount-down"), ce = G(() => String(s.viewScope || s.scope || "output").toLowerCase()), le = G(() => ce.value === "similar" || Array.isArray(s.similarResults) && s.similarResults.length > 0 || !!s.similarTitle), ue = G(() => {
+			let e = String(s.similarSourceAssetId || "");
 			return e.startsWith("stack:") || e.startsWith("duplicates:") || e.startsWith("group:") || e.startsWith("node:") ? "group" : "similar";
-		}), de = K(() => ue.value === "group" ? L("tab.group", "Group") : L("tab.similar", "Similar")), fe = K(() => ue.value === "group" ? L("tooltip.tab.group", "Browse current grouped assets") : L("tooltip.tab.similar", "Browse current similar findings")), me = {
+		}), de = G(() => ue.value === "group" ? I("tab.group", "Group") : I("tab.similar", "Similar")), pe = G(() => ue.value === "group" ? I("tooltip.tab.group", "Browse current grouped assets") : I("tooltip.tab.similar", "Browse current similar findings")), me = {
 			get tabAll() {
-				return re(ee.value);
+				return N(ee.value);
 			},
 			get tabInputs() {
-				return re(j.value);
+				return N(j.value);
 			},
 			get tabOutputs() {
-				return re(te.value);
+				return N(M.value);
 			},
 			get tabCustom() {
-				return re(ne.value);
+				return N(te.value);
 			},
 			get tabWorkflow() {
-				return re(N.value);
+				return N(ne.value);
 			},
 			get tabSimilar() {
-				return re(P.value);
+				return N(re.value);
 			}
-		}, he = K(() => ({
+		}, ge = G(() => ({
 			position: "relative",
 			fontSize: "10px",
 			opacity: ae.value ? "1" : "0.6",
@@ -21049,19 +21154,19 @@ var My = { class: "mjr-menu mjr-collections-menu" }, Ny = { class: "mjr-menu-ite
 			cursor: "pointer",
 			transition: "opacity 0.2s, background 0.2s",
 			verticalAlign: "middle"
-		})), ge = K(() => oe.value ? L("tooltip.closeMFV", "Close Majoor Floating Viewer") : L("tooltip.openMFV", "Open Majoor Floating Viewer")), _e = K(() => "pi pi-eye"), ve = K(() => L("tooltip.openMajoorSettings", "Open Majoor Assets Manager settings"));
-		async function ye() {
-			let e = M();
+		})), _e = G(() => oe.value ? I("tooltip.closeMFV", "Close Majoor Floating Viewer") : I("tooltip.openMFV", "Open Majoor Floating Viewer")), ve = G(() => "pi pi-eye"), ye = G(() => I("tooltip.openMajoorSettings", "Open Majoor Assets Manager settings"));
+		async function be() {
+			let e = v();
 			if (!e || typeof e != "object") {
-				m(L("toast.workflowSerializeFailed", "Could not read the current ComfyUI workflow."), "error");
+				F(I("toast.workflowSerializeFailed", "Could not read the current ComfyUI workflow."), "error");
 				return;
 			}
-			let t = await lv({
+			let t = await pv({
 				workflow: e,
 				name: String(e?.name || e?.title || "workflow").trim()
 			}), n = String(t?.name || "").trim();
 			if (!n) return;
-			let r = await et({
+			let r = await he({
 				workflow: e,
 				name: n,
 				task: t?.task || "",
@@ -21070,9 +21175,9 @@ var My = { class: "mjr-menu mjr-collections-menu" }, Ny = { class: "mjr-menu-ite
 				runs_on: t?.runs_on || "",
 				notes: t?.notes || ""
 			}, { timeoutMs: 3e4 });
-			if (!r?.ok) m(r?.error || L("toast.workflowSaveFailed", "Failed to save workflow."), "error");
+			if (!r?.ok) F(r?.error || I("toast.workflowSaveFailed", "Failed to save workflow."), "error");
 			else {
-				m(L("toast.workflowSaved", "Workflow saved"), "success", 1800);
+				F(I("toast.workflowSaved", "Workflow saved"), "success", 1800);
 				try {
 					window.dispatchEvent(new CustomEvent("mjr:reload-grid", { detail: { reason: "workflow-save" } }));
 				} catch (e) {
@@ -21080,35 +21185,35 @@ var My = { class: "mjr-menu mjr-collections-menu" }, Ny = { class: "mjr-menu-ite
 				}
 			}
 		}
-		async function be() {
+		async function xe() {
 			let e = "";
 			try {
-				let t = await pe(I.BROWSE_FOLDER, {});
+				let t = await rt(m.BROWSE_FOLDER, {});
 				t?.ok && (e = String(t?.data?.path || "").trim());
 			} catch (e) {
 				console.debug?.(e);
 			}
 			if (!e) {
-				let t = await Et(L("dialog.enterWorkflowRootPath", "Workflow root folder"), "", L("tab.workflow", "Workflow"));
+				let t = await Dt(I("dialog.enterWorkflowRootPath", "Workflow root folder"), "", I("tab.workflow", "Workflow"));
 				e = String(t || "").trim();
 			}
 			if (!e) return;
-			let t = await n(e, { timeoutMs: 3e4 });
-			if (!t?.ok) m(t?.error || L("toast.failedSetWorkflowRoots", "Failed to set workflow roots"), "error");
+			let t = await Ae(e, { timeoutMs: 3e4 });
+			if (!t?.ok) F(t?.error || I("toast.failedSetWorkflowRoots", "Failed to set workflow roots"), "error");
 			else {
 				try {
-					let n = Pt();
-					n.paths = n.paths || {}, n.paths.workflowRoots = String(t?.data?.workflow_roots_text || e).trim(), St(n), window.dispatchEvent(new CustomEvent("mjr-settings-changed", { detail: {
+					let n = Ft();
+					n.paths = n.paths || {}, n.paths.workflowRoots = String(t?.data?.workflow_roots_text || e).trim(), Ct(n), window.dispatchEvent(new CustomEvent("mjr-settings-changed", { detail: {
 						key: "paths.workflowRoots",
 						value: e
 					} })), window.dispatchEvent(new CustomEvent("mjr:reload-grid", { detail: { reason: "workflow-root-pick" } }));
 				} catch (e) {
 					console.debug?.(e);
 				}
-				m(L("toast.workflowRootsSaved", "Workflow roots saved"), "success", 1800);
+				F(I("toast.workflowRootsSaved", "Workflow roots saved"), "success", 1800);
 			}
 		}
-		function xe() {
+		function Se() {
 			let e = C.value;
 			if (e) try {
 				e.value = "", e.click();
@@ -21116,7 +21221,7 @@ var My = { class: "mjr-menu mjr-collections-menu" }, Ny = { class: "mjr-menu-ite
 				console.debug?.(e);
 			}
 		}
-		function Se(e) {
+		function Ce(e) {
 			return new Promise((t, n) => {
 				let r = new FileReader();
 				r.onload = () => {
@@ -21128,30 +21233,30 @@ var My = { class: "mjr-menu mjr-collections-menu" }, Ny = { class: "mjr-menu-ite
 				}, r.onerror = () => n(r.error || /* @__PURE__ */ Error("Failed to read workflow file")), r.readAsText(e, "utf-8");
 			});
 		}
-		async function Ce(e) {
+		async function we(e) {
 			let t = Array.from(e?.target?.files || []).filter((e) => String(e?.name || "").toLowerCase().endsWith(".json"));
 			if (!t.length) return;
 			let n = 0;
 			for (let e of t) try {
-				let t = await Se(e);
+				let t = await Ce(e);
 				if (!t || typeof t != "object") {
-					m(L("toast.workflowImportInvalid", "Invalid workflow JSON."), "error");
+					F(I("toast.workflowImportInvalid", "Invalid workflow JSON."), "error");
 					continue;
 				}
-				let r = String(e.name || "workflow.json").replace(/\.json$/i, "").trim() || "workflow", i = await et({
+				let r = String(e.name || "workflow.json").replace(/\.json$/i, "").trim() || "workflow", i = await he({
 					workflow: t,
 					name: r
 				}, { timeoutMs: 3e4 });
 				if (!i?.ok) {
-					m(i?.error || L("toast.workflowSaveFailed", "Failed to save workflow."), "error");
+					F(i?.error || I("toast.workflowSaveFailed", "Failed to save workflow."), "error");
 					continue;
 				}
 				n += 1;
 			} catch (e) {
-				console.debug?.(e), m(L("toast.workflowImportInvalid", "Invalid workflow JSON."), "error");
+				console.debug?.(e), F(I("toast.workflowImportInvalid", "Invalid workflow JSON."), "error");
 			}
 			if (n > 0) {
-				m(n === 1 ? L("toast.workflowImported", "Workflow imported") : L("toast.workflowsImported", "{count} workflows imported", { count: n }), "success", 1800);
+				F(n === 1 ? I("toast.workflowImported", "Workflow imported") : I("toast.workflowsImported", "{count} workflows imported", { count: n }), "success", 1800);
 				try {
 					window.dispatchEvent(new CustomEvent("mjr:reload-grid", { detail: { reason: "workflow-import" } }));
 				} catch (e) {
@@ -21159,40 +21264,40 @@ var My = { class: "mjr-menu mjr-collections-menu" }, Ny = { class: "mjr-menu-ite
 				}
 			}
 		}
-		function we(e, { channel: t = "" } = {}) {
-			ie.value = String(e || ""), t && (F.value = t);
+		function Te(e, { channel: t = "" } = {}) {
+			P.value = String(e || ""), t && (ie.value = t);
 		}
-		function Te(e) {
-			i().then((t) => {
-				let n = F.value.toLowerCase() === "nightly" || ie.value.toLowerCase() === "nightly";
+		function Ee(e) {
+			r().then((t) => {
+				let n = ie.value.toLowerCase() === "nightly" || P.value.toLowerCase() === "nightly";
 				if (!e && !n) {
 					let e = (typeof t?.version == "string" ? t.version.trim() : "") || "";
-					e && we(`v${e}`, { channel: "stable" });
+					e && Te(`v${e}`, { channel: "stable" });
 				}
 			}).catch(() => {
-				r = null;
+				n = null;
 			});
 		}
-		async function Ee(e) {
+		async function De(e) {
 			try {
-				let t = await Ie(I.VERSION, { cache: "no-cache" });
+				let t = await fe(m.VERSION, { cache: "no-cache" });
 				if (!t?.ok) return;
 				let n = String(t.data?.version || "").trim();
-				if (a(n, String(t.data?.branch || "").trim().toLowerCase()) || e) {
-					we("nightly", { channel: "nightly" });
+				if (i(n, String(t.data?.branch || "").trim().toLowerCase()) || e) {
+					Te("nightly", { channel: "nightly" });
 					return;
 				}
-				n && we(n.startsWith("v") ? n : `v${n}`, { channel: "stable" });
+				n && Te(n.startsWith("v") ? n : `v${n}`, { channel: "stable" });
 			} catch {}
 		}
-		function De() {
+		function Oe() {
 			try {
-				Ut(re(v.value), ge.value, zb);
+				Wt(N(_.value), _e.value, Ub);
 			} catch (e) {
 				console.debug?.(e);
 			}
 		}
-		function Oe() {
+		function ke() {
 			try {
 				if (typeof document > "u") return;
 				oe.value = !!document.querySelector(".mjr-mfv.is-visible");
@@ -21200,69 +21305,69 @@ var My = { class: "mjr-menu mjr-collections-menu" }, Ny = { class: "mjr-menu-ite
 				console.debug?.(e);
 			}
 		}
-		function ke(e) {
+		function je(e) {
 			oe.value = !!e?.detail?.visible;
 		}
-		function Ae() {
-			window.dispatchEvent(new CustomEvent(B.MFV_TOGGLE));
-		}
-		function je() {
-			Gt();
-		}
 		function Me() {
+			window.dispatchEvent(new CustomEvent(z.MFV_TOGGLE));
+		}
+		function Ne() {
+			Kt();
+		}
+		function Pe() {
 			try {
-				typeof window < "u" && window.removeEventListener(B.MFV_VISIBILITY_CHANGED, ke);
+				typeof window < "u" && window.removeEventListener(z.MFV_VISIBILITY_CHANGED, je);
 			} catch (e) {
 				console.debug?.(e);
 			}
 		}
-		return cr(oe, () => {
-			De();
-		}), $n(async () => {
-			await Yn(), Oe(), De(), Te(l), Ee(l);
+		return q(oe, () => {
+			Oe();
+		}), er(async () => {
+			await Xn(), ke(), Oe(), Ee(c), De(c);
 			try {
-				typeof window < "u" && window.addEventListener(B.MFV_VISIBILITY_CHANGED, ke);
+				typeof window < "u" && window.addEventListener(z.MFV_VISIBILITY_CHANGED, je);
 			} catch (e) {
 				console.debug?.(e);
 			}
 			try {
-				u.value._mjrVersionUpdateCleanup = Me;
+				l.value._mjrVersionUpdateCleanup = Pe;
 			} catch (e) {
 				console.debug?.(e);
 			}
-		}), or(() => {
-			Me();
+		}), sr(() => {
+			Pe();
 		}), t({
 			isVueHeader: !0,
 			get header() {
-				return u.value;
+				return l.value;
 			},
 			get headerActions() {
-				return d.value;
+				return u.value;
 			},
 			get tabButtons() {
 				return me;
 			},
 			get customMenuBtn() {
-				return re(f.value);
+				return N(d.value);
 			},
 			get filterBtn() {
-				return re(p.value);
+				return N(f.value);
 			},
 			get sortBtn() {
-				return re(h.value);
+				return N(p.value);
 			},
 			get collectionsBtn() {
-				return re(g.value);
+				return N(h.value);
 			},
 			get pinnedFoldersBtn() {
-				return re(_.value);
+				return N(g.value);
 			},
 			get messageBtn() {
-				return re(y.value);
+				return N(y.value);
 			},
 			get settingsBtn() {
-				return re(b.value);
+				return N(b.value);
 			},
 			get customPopover() {
 				return k.value?.$el ?? null;
@@ -21412,36 +21517,36 @@ var My = { class: "mjr-menu mjr-collections-menu" }, Ny = { class: "mjr-menu-ite
 			setSemanticEnabled(e) {
 				w.value?.setSemanticEnabled?.(e);
 			},
-			_headerDispose: Me
+			_headerDispose: Pe
 		}), (e, t) => {
-			let n = er("MButton");
-			return q(), Y(V, null, [H("div", {
+			let n = tr("MButton");
+			return K(), Y(B, null, [V("div", {
 				ref_key: "headerRef",
-				ref: u,
+				ref: l,
 				class: "mjr-am-header"
-			}, [H("div", Eb, [H("div", Db, [
-				t[2] ||= H("i", {
+			}, [V("div", Ab, [V("div", jb, [
+				t[2] ||= V("i", {
 					class: "mjr-am-header-icon pi pi-folder",
 					"aria-hidden": "true"
 				}, null, -1),
-				H("div", Ob, J(Z(L)("manager.title")), 1),
-				H("a", {
+				V("div", Mb, J(Z(I)("manager.title")), 1),
+				V("a", {
 					href: "https://ko-fi.com/majoorwaldi",
 					target: "_blank",
 					rel: "noopener noreferrer",
 					class: "mjr-am-version-badge",
-					"data-mjr-version-channel": F.value,
-					title: Z(L)("tooltip.supportKofi"),
-					style: mr(he.value),
+					"data-mjr-version-channel": ie.value,
+					title: Z(I)("tooltip.supportKofi"),
+					style: mr(ge.value),
 					onMouseenter: t[0] ||= (e) => ae.value = !0,
 					onMouseleave: t[1] ||= (e) => ae.value = !1
-				}, [H("span", { class: X(Rb) }, J(ie.value), 1)], 44, kb)
-			]), H("div", {
+				}, [V("span", { class: X(Hb) }, J(P.value), 1)], 44, Nb)
+			]), V("div", {
 				ref_key: "headerActionsRef",
-				ref: d,
+				ref: u,
 				class: "mjr-am-header-actions"
-			}, [H("div", Ab, [
-				U(n, {
+			}, [V("div", Pb, [
+				H(n, {
 					ref_key: "tabAllRef",
 					ref: ee,
 					type: "button",
@@ -21449,12 +21554,12 @@ var My = { class: "mjr-menu mjr-collections-menu" }, Ny = { class: "mjr-menu-ite
 					severity: "secondary",
 					text: "",
 					"data-scope": "all",
-					title: Z(L)("tooltip.tab.all")
+					title: Z(I)("tooltip.tab.all")
 				}, {
-					default: G(() => [hr(J(Z(L)("tab.all")), 1)]),
+					default: W(() => [hr(J(Z(I)("tab.all")), 1)]),
 					_: 1
 				}, 8, ["class", "title"]),
-				U(n, {
+				H(n, {
 					ref_key: "tabInputsRef",
 					ref: j,
 					type: "button",
@@ -21462,70 +21567,70 @@ var My = { class: "mjr-menu mjr-collections-menu" }, Ny = { class: "mjr-menu-ite
 					severity: "secondary",
 					text: "",
 					"data-scope": "input",
-					title: Z(L)("tooltip.tab.input")
+					title: Z(I)("tooltip.tab.input")
 				}, {
-					default: G(() => [hr(J(Z(L)("tab.input")), 1)]),
+					default: W(() => [hr(J(Z(I)("tab.input")), 1)]),
 					_: 1
 				}, 8, ["class", "title"]),
-				U(n, {
+				H(n, {
 					ref_key: "tabOutputsRef",
-					ref: te,
+					ref: M,
 					type: "button",
 					class: X(["mjr-tab", { "is-active": ce.value === "output" }]),
 					severity: "secondary",
 					text: "",
 					"data-scope": "output",
-					title: Z(L)("tooltip.tab.output")
+					title: Z(I)("tooltip.tab.output")
 				}, {
-					default: G(() => [hr(J(Z(L)("tab.output")), 1)]),
+					default: W(() => [hr(J(Z(I)("tab.output")), 1)]),
 					_: 1
 				}, 8, ["class", "title"]),
-				U(n, {
+				H(n, {
 					ref_key: "tabCustomRef",
-					ref: ne,
+					ref: te,
 					type: "button",
 					class: X(["mjr-tab", { "is-active": ce.value === "custom" }]),
 					severity: "secondary",
 					text: "",
 					"data-scope": "custom",
-					title: Z(L)("tooltip.tab.custom")
+					title: Z(I)("tooltip.tab.custom")
 				}, {
-					default: G(() => [hr(J(Z(L)("tab.custom")), 1)]),
+					default: W(() => [hr(J(Z(I)("tab.custom")), 1)]),
 					_: 1
 				}, 8, ["class", "title"]),
-				U(n, {
+				H(n, {
 					ref_key: "tabWorkflowRef",
-					ref: N,
+					ref: ne,
 					type: "button",
 					class: X(["mjr-tab", { "is-active": ce.value === "workflow" }]),
 					severity: "secondary",
 					text: "",
 					"data-scope": "workflow",
-					title: Z(L)("tooltip.tab.workflow", "Browse saved workflows")
+					title: Z(I)("tooltip.tab.workflow", "Browse saved workflows")
 				}, {
-					default: G(() => [hr(J(Z(L)("tab.workflow", "Workflow")), 1)]),
+					default: W(() => [hr(J(Z(I)("tab.workflow", "Workflow")), 1)]),
 					_: 1
 				}, 8, ["class", "title"]),
-				U(n, {
+				H(n, {
 					ref_key: "tabSimilarRef",
-					ref: P,
+					ref: re,
 					type: "button",
 					class: X(["mjr-tab", { "is-active": ce.value === "similar" }]),
 					severity: "secondary",
 					text: "",
 					"data-scope": "similar",
 					style: mr({ display: le.value ? "" : "none" }),
-					title: fe.value
+					title: pe.value
 				}, {
-					default: G(() => [hr(J(de.value), 1)]),
+					default: W(() => [hr(J(de.value), 1)]),
 					_: 1
 				}, 8, [
 					"class",
 					"style",
 					"title"
 				])
-			]), H("div", jb, [
-				ce.value === "workflow" ? (q(), Xn(n, {
+			]), V("div", Fb, [
+				ce.value === "workflow" ? (K(), Zn(n, {
 					key: 0,
 					ref_key: "saveWorkflowBtnRef",
 					ref: x,
@@ -21534,17 +21639,17 @@ var My = { class: "mjr-menu mjr-collections-menu" }, Ny = { class: "mjr-menu-ite
 					severity: "secondary",
 					text: "",
 					rounded: "",
-					title: Z(L)("tooltip.saveCurrentWorkflow", "Save current workflow"),
-					"aria-label": Z(L)("tooltip.saveCurrentWorkflow", "Save current workflow"),
-					onClick: ye
+					title: Z(I)("tooltip.saveCurrentWorkflow", "Save current workflow"),
+					"aria-label": Z(I)("tooltip.saveCurrentWorkflow", "Save current workflow"),
+					onClick: be
 				}, {
-					default: G(() => [...t[3] ||= [H("i", {
+					default: W(() => [...t[3] ||= [V("i", {
 						class: "pi pi-save",
 						"aria-hidden": "true"
 					}, null, -1)]]),
 					_: 1
-				}, 8, ["title", "aria-label"])) : W("", !0),
-				ce.value === "workflow" ? (q(), Xn(n, {
+				}, 8, ["title", "aria-label"])) : U("", !0),
+				ce.value === "workflow" ? (K(), Zn(n, {
 					key: 1,
 					ref_key: "pickWorkflowRootBtnRef",
 					ref: S,
@@ -21553,76 +21658,76 @@ var My = { class: "mjr-menu mjr-collections-menu" }, Ny = { class: "mjr-menu-ite
 					severity: "secondary",
 					text: "",
 					rounded: "",
-					title: Z(L)("tooltip.pickWorkflowRoot", "Pick saved workflow root"),
-					"aria-label": Z(L)("tooltip.pickWorkflowRoot", "Pick saved workflow root"),
-					onClick: be
+					title: Z(I)("tooltip.pickWorkflowRoot", "Pick saved workflow root"),
+					"aria-label": Z(I)("tooltip.pickWorkflowRoot", "Pick saved workflow root"),
+					onClick: xe
 				}, {
-					default: G(() => [...t[4] ||= [H("i", {
+					default: W(() => [...t[4] ||= [V("i", {
 						class: "pi pi-folder-plus",
 						"aria-hidden": "true"
 					}, null, -1)]]),
 					_: 1
-				}, 8, ["title", "aria-label"])) : W("", !0),
-				ce.value === "workflow" ? (q(), Xn(n, {
+				}, 8, ["title", "aria-label"])) : U("", !0),
+				ce.value === "workflow" ? (K(), Zn(n, {
 					key: 2,
 					type: "button",
 					class: "mjr-icon-btn mjr-import-workflow-btn",
 					severity: "secondary",
 					text: "",
 					rounded: "",
-					title: Z(L)("tooltip.importWorkflow", "Import workflow"),
-					"aria-label": Z(L)("tooltip.importWorkflow", "Import workflow"),
-					onClick: xe
+					title: Z(I)("tooltip.importWorkflow", "Import workflow"),
+					"aria-label": Z(I)("tooltip.importWorkflow", "Import workflow"),
+					onClick: Se
 				}, {
-					default: G(() => [...t[5] ||= [H("i", {
+					default: W(() => [...t[5] ||= [V("i", {
 						class: "pi pi-upload",
 						"aria-hidden": "true"
 					}, null, -1)]]),
 					_: 1
-				}, 8, ["title", "aria-label"])) : W("", !0),
-				H("input", {
+				}, 8, ["title", "aria-label"])) : U("", !0),
+				V("input", {
 					ref_key: "importWorkflowInputRef",
 					ref: C,
 					type: "file",
 					accept: ".json,application/json",
 					multiple: "",
 					style: { display: "none" },
-					onChange: Ce
+					onChange: we
 				}, null, 544),
-				H("div", Mb, [U(n, {
+				V("div", Ib, [H(n, {
 					ref_key: "customMenuBtnRef",
-					ref: f,
+					ref: d,
 					type: "button",
 					class: "mjr-icon-btn",
 					severity: "secondary",
 					text: "",
 					rounded: "",
-					title: Z(L)("tooltip.browserFolders"),
-					"aria-label": Z(L)("tooltip.browserFolders")
+					title: Z(I)("tooltip.browserFolders"),
+					"aria-label": Z(I)("tooltip.browserFolders")
 				}, {
-					default: G(() => [...t[6] ||= [H("i", {
+					default: W(() => [...t[6] ||= [V("i", {
 						class: "pi pi-folder-open",
 						"aria-hidden": "true"
 					}, null, -1)]]),
 					_: 1
-				}, 8, ["title", "aria-label"]), U(hb, {
+				}, 8, ["title", "aria-label"]), H(yb, {
 					ref_key: "customPopoverRef",
 					ref: k
 				}, null, 512)]),
-				U(n, {
+				H(n, {
 					ref_key: "mfvBtnRef",
-					ref: v,
+					ref: _,
 					type: "button",
 					class: X(["mjr-icon-btn", { "mjr-mfv-btn-active": oe.value }]),
 					severity: "secondary",
 					text: "",
 					rounded: "",
-					title: ge.value,
-					"aria-label": ge.value,
-					onClick: Ae
+					title: _e.value,
+					"aria-label": _e.value,
+					onClick: Me
 				}, {
-					default: G(() => [H("i", {
-						class: X(_e.value),
+					default: W(() => [V("i", {
+						class: X(ve.value),
 						"aria-hidden": "true"
 					}, null, 2)]),
 					_: 1
@@ -21631,7 +21736,7 @@ var My = { class: "mjr-menu mjr-collections-menu" }, Ny = { class: "mjr-menu-ite
 					"title",
 					"aria-label"
 				]),
-				H("div", Nb, [U(n, {
+				V("div", Lb, [H(n, {
 					ref_key: "messageBtnRef",
 					ref: y,
 					type: "button",
@@ -21639,23 +21744,23 @@ var My = { class: "mjr-menu mjr-collections-menu" }, Ny = { class: "mjr-menu-ite
 					severity: "secondary",
 					text: "",
 					rounded: "",
-					title: Z(L)("tooltip.openMessages", "Messages and updates"),
-					"aria-label": Z(L)("tooltip.openMessages", "Messages and updates")
+					title: Z(I)("tooltip.openMessages", "Messages and updates"),
+					"aria-label": Z(I)("tooltip.openMessages", "Messages and updates")
 				}, {
-					default: G(() => [...t[7] ||= [H("i", {
+					default: W(() => [...t[7] ||= [V("i", {
 						class: "pi pi-info-circle",
 						"aria-hidden": "true"
-					}, null, -1), H("span", {
+					}, null, -1), V("span", {
 						class: "mjr-message-badge",
 						style: { display: "none" },
 						"aria-hidden": "true"
 					}, null, -1)]]),
 					_: 1
-				}, 8, ["title", "aria-label"]), U(Tb, {
+				}, 8, ["title", "aria-label"]), H(kb, {
 					ref_key: "messagePopoverRef",
 					ref: A
 				}, null, 512)]),
-				U(n, {
+				H(n, {
 					ref_key: "settingsBtnRef",
 					ref: b,
 					type: "button",
@@ -21663,97 +21768,97 @@ var My = { class: "mjr-menu mjr-collections-menu" }, Ny = { class: "mjr-menu-ite
 					severity: "secondary",
 					text: "",
 					rounded: "",
-					title: ve.value,
-					"aria-label": ve.value,
-					onClick: je
+					title: ye.value,
+					"aria-label": ye.value,
+					onClick: Ne
 				}, {
-					default: G(() => [...t[8] ||= [H("i", {
+					default: W(() => [...t[8] ||= [V("i", {
 						class: "pi pi-cog",
 						"aria-hidden": "true"
 					}, null, -1)]]),
 					_: 1
 				}, 8, ["title", "aria-label"])
-			])], 512)])], 512), U(Tv, {
+			])], 512)])], 512), H(kv, {
 				ref_key: "searchBarRef",
 				ref: w
 			}, {
-				"filter-anchor": G(() => [H("div", Pb, [U(n, {
+				"filter-anchor": W(() => [V("div", Rb, [H(n, {
 					ref_key: "filterBtnRef",
+					ref: f,
+					type: "button",
+					class: "mjr-icon-btn",
+					severity: "secondary",
+					text: "",
+					rounded: "",
+					title: Z(I)("label.filters"),
+					"aria-label": Z(I)("label.filters")
+				}, {
+					default: W(() => [...t[9] ||= [V("i", {
+						class: "pi pi-filter",
+						"aria-hidden": "true"
+					}, null, -1)]]),
+					_: 1
+				}, 8, ["title", "aria-label"]), H(Dy, {
+					ref_key: "filterPopoverRef",
+					ref: E
+				}, null, 512)])]),
+				"sort-anchor": W(() => [V("div", zb, [H(n, {
+					ref_key: "sortBtnRef",
 					ref: p,
 					type: "button",
 					class: "mjr-icon-btn",
 					severity: "secondary",
 					text: "",
 					rounded: "",
-					title: Z(L)("label.filters"),
-					"aria-label": Z(L)("label.filters")
+					title: Z(I)("label.sort"),
+					"aria-label": Z(I)("label.sort")
 				}, {
-					default: G(() => [...t[9] ||= [H("i", {
-						class: "pi pi-filter",
+					default: W(() => [V("i", {
+						class: X(se.value),
 						"aria-hidden": "true"
-					}, null, -1)]]),
+					}, null, 2)]),
 					_: 1
-				}, 8, ["title", "aria-label"]), U(Cy, {
-					ref_key: "filterPopoverRef",
-					ref: E
+				}, 8, ["title", "aria-label"]), H(Mv, {
+					ref_key: "sortPopoverRef",
+					ref: T
 				}, null, 512)])]),
-				"sort-anchor": G(() => [H("div", Fb, [U(n, {
-					ref_key: "sortBtnRef",
+				"collections-anchor": W(() => [V("div", Bb, [H(n, {
+					ref_key: "collectionsBtnRef",
 					ref: h,
 					type: "button",
 					class: "mjr-icon-btn",
 					severity: "secondary",
 					text: "",
 					rounded: "",
-					title: Z(L)("label.sort"),
-					"aria-label": Z(L)("label.sort")
+					title: Z(I)("label.collections"),
+					"aria-label": Z(I)("label.collections")
 				}, {
-					default: G(() => [H("i", {
-						class: X(se.value),
+					default: W(() => [...t[10] ||= [V("i", {
+						class: "pi pi-bookmark",
 						"aria-hidden": "true"
-					}, null, 2)]),
+					}, null, -1)]]),
 					_: 1
-				}, 8, ["title", "aria-label"]), U(Ov, {
-					ref_key: "sortPopoverRef",
-					ref: T
+				}, 8, ["title", "aria-label"]), H(cb, {
+					ref_key: "collectionsPopoverRef",
+					ref: D
 				}, null, 512)])]),
-				"collections-anchor": G(() => [H("div", Ib, [U(n, {
-					ref_key: "collectionsBtnRef",
+				"pinned-folders-anchor": W(() => [V("div", Vb, [H(n, {
+					ref_key: "pinnedFoldersBtnRef",
 					ref: g,
 					type: "button",
 					class: "mjr-icon-btn",
 					severity: "secondary",
 					text: "",
 					rounded: "",
-					title: Z(L)("label.collections"),
-					"aria-label": Z(L)("label.collections")
+					title: Z(I)("tooltip.pinnedFolders"),
+					"aria-label": Z(I)("tooltip.pinnedFolders")
 				}, {
-					default: G(() => [...t[10] ||= [H("i", {
-						class: "pi pi-bookmark",
-						"aria-hidden": "true"
-					}, null, -1)]]),
-					_: 1
-				}, 8, ["title", "aria-label"]), U(ib, {
-					ref_key: "collectionsPopoverRef",
-					ref: D
-				}, null, 512)])]),
-				"pinned-folders-anchor": G(() => [H("div", Lb, [U(n, {
-					ref_key: "pinnedFoldersBtnRef",
-					ref: _,
-					type: "button",
-					class: "mjr-icon-btn",
-					severity: "secondary",
-					text: "",
-					rounded: "",
-					title: Z(L)("tooltip.pinnedFolders"),
-					"aria-label": Z(L)("tooltip.pinnedFolders")
-				}, {
-					default: G(() => [...t[11] ||= [H("i", {
+					default: W(() => [...t[11] ||= [V("i", {
 						class: "pi pi-folder",
 						"aria-hidden": "true"
 					}, null, -1)]]),
 					_: 1
-				}, 8, ["title", "aria-label"]), U(ub, {
+				}, 8, ["title", "aria-label"]), H(mb, {
 					ref_key: "pinnedFoldersPopoverRef",
 					ref: O
 				}, null, 512)])]),
@@ -21761,26 +21866,26 @@ var My = { class: "mjr-menu mjr-collections-menu" }, Ny = { class: "mjr-menu-ite
 			}, 512)], 64);
 		};
 	}
-}), Vb = (e) => {
+}), Gb = (e) => {
 	try {
 		return String(e ?? "");
 	} catch {
 		return "";
 	}
-}, Hb = (e) => {
+}, Kb = (e) => {
 	let t = String(e || "");
-	return L(t === "name_asc" ? "sort.nameAZ" : t === "name_desc" ? "sort.nameZA" : t === "mtime_asc" ? "sort.oldest" : "sort.newest");
-}, Ub = (e) => {
+	return I(t === "name_asc" ? "sort.nameAZ" : t === "name_desc" ? "sort.nameZA" : t === "mtime_asc" ? "sort.oldest" : "sort.newest");
+}, qb = (e) => {
 	let t = String(e || "").toLowerCase();
-	return t === "similar" ? L("scope.similar", "Similar") : t === "custom" ? L("scope.customBrowser") : t === "workflow" ? L("scope.workflow", "Workflow") : L(t === "all" ? "tab.all" : t === "input" || t === "inputs" ? "scope.input" : "scope.output");
+	return t === "similar" ? I("scope.similar", "Similar") : t === "custom" ? I("scope.customBrowser") : t === "workflow" ? I("scope.workflow", "Workflow") : I(t === "all" ? "tab.all" : t === "input" || t === "inputs" ? "scope.input" : "scope.output");
 };
-function Wb({ label: e, value: t, onClear: n } = {}) {
+function Jb({ label: e, value: t, onClear: n } = {}) {
 	let r = document.createElement("div");
 	r.className = "mjr-context-pill";
 	let i = document.createElement("span");
 	if (i.className = "mjr-context-pill-text", i.textContent = t != null && String(t).length ? `${e}: ${String(t)}` : String(e || ""), r.appendChild(i), typeof n == "function") {
 		let t = document.createElement("button");
-		t.type = "button", t.className = "mjr-context-pill-x", t.title = L("tooltip.clearFilter", { label: e || L("label.filters") }), t.setAttribute("aria-label", L("tooltip.clearFilter", { label: e || L("label.filters") })), t.textContent = "x", t.addEventListener("click", (e) => {
+		t.type = "button", t.className = "mjr-context-pill-x", t.title = I("tooltip.clearFilter", { label: e || I("label.filters") }), t.setAttribute("aria-label", I("tooltip.clearFilter", { label: e || I("label.filters") })), t.textContent = "x", t.addEventListener("click", (e) => {
 			try {
 				e.preventDefault(), e.stopPropagation();
 			} catch (e) {
@@ -21795,93 +21900,93 @@ function Wb({ label: e, value: t, onClear: n } = {}) {
 	}
 	return r;
 }
-function Gb() {
+function Yb() {
 	let e = document.createElement("div");
 	return e.className = "mjr-am-context-pills", {
 		wrap: e,
 		update: ({ state: t, rawQuery: n = "", actions: r = null } = {}) => {
-			let i = r && typeof r == "object" ? r : {}, a = Vb(n || "").trim(), o = a.length > 0 && a !== "*", s = !!(Vb(t?.kindFilter || "").trim() || t?.workflowOnly || (Number(t?.minRating || 0) || 0) > 0 || (Number(t?.minSizeMB || 0) || 0) > 0 || (Number(t?.maxSizeMB || 0) || 0) > 0 || (Number(t?.minWidth || 0) || 0) > 0 || (Number(t?.minHeight || 0) || 0) > 0 || (Number(t?.maxWidth || 0) || 0) > 0 || (Number(t?.maxHeight || 0) || 0) > 0 || Vb(t?.workflowType || "").trim() || Vb(t?.workflowId || "").trim() || Vb(t?.workflowModelFilter || "").trim() || Vb(t?.workflowRunsOnFilter || "").trim() || Vb(t?.dateRangeFilter || "").trim() || Vb(t?.dateExactFilter || "").trim()), c = Vb(t?.sort || "mtime_desc").trim() !== "mtime_desc", l = Vb(t?.collectionId || "").trim().length > 0, u = String(t?.viewScope || t?.scope || "output").toLowerCase(), d = u === "similar", f = u === "custom", p = u !== "output", m = Vb(t?.similarSourceAssetId || "").trim();
+			let i = r && typeof r == "object" ? r : {}, a = Gb(n || "").trim(), o = a.length > 0 && a !== "*", s = !!(Gb(t?.kindFilter || "").trim() || t?.workflowOnly || (Number(t?.minRating || 0) || 0) > 0 || (Number(t?.minSizeMB || 0) || 0) > 0 || (Number(t?.maxSizeMB || 0) || 0) > 0 || (Number(t?.minWidth || 0) || 0) > 0 || (Number(t?.minHeight || 0) || 0) > 0 || (Number(t?.maxWidth || 0) || 0) > 0 || (Number(t?.maxHeight || 0) || 0) > 0 || Gb(t?.workflowType || "").trim() || Gb(t?.workflowId || "").trim() || Gb(t?.workflowModelFilter || "").trim() || Gb(t?.workflowRunsOnFilter || "").trim() || Gb(t?.dateRangeFilter || "").trim() || Gb(t?.dateExactFilter || "").trim()), c = Gb(t?.sort || "mtime_desc").trim() !== "mtime_desc", l = Gb(t?.collectionId || "").trim().length > 0, u = String(t?.viewScope || t?.scope || "output").toLowerCase(), d = u === "similar", f = u === "custom", p = u !== "output", m = Gb(t?.similarSourceAssetId || "").trim();
 			if (o || s || c || l || p || d || e.childElementCount) {
 				try {
 					e.replaceChildren();
 				} catch (e) {
 					console.debug?.(e);
 				}
-				if (!f && l && e.appendChild(Wb({
-					label: L("label.collections"),
-					value: Vb(t?.collectionName || t?.collectionId || "").trim(),
+				if (!f && l && e.appendChild(Jb({
+					label: I("label.collections"),
+					value: Gb(t?.collectionName || t?.collectionId || "").trim(),
 					onClear: () => i?.clearCollection?.()
-				})), d && e.appendChild(Wb({
-					label: L("search.findSimilar", "Find Similar"),
-					value: m ? L("search.similarReference", "Reference #{id}", { id: m }) : L("scope.similar", "Similar"),
+				})), d && e.appendChild(Jb({
+					label: I("search.findSimilar", "Find Similar"),
+					value: m ? I("search.similarReference", "Reference #{id}", { id: m }) : I("scope.similar", "Similar"),
 					onClear: () => i?.clearSimilarScope?.()
-				})), p && e.appendChild(Wb({
-					label: L("label.scope"),
-					value: Ub(u || "output"),
+				})), p && e.appendChild(Jb({
+					label: I("label.scope"),
+					value: qb(u || "output"),
 					onClear: () => d ? i?.clearSimilarScope?.() : i?.clearScope?.()
-				})), o && e.appendChild(Wb({
-					label: L("label.query"),
+				})), o && e.appendChild(Jb({
+					label: I("label.query"),
 					value: a,
 					onClear: () => i?.clearQuery?.()
-				})), Vb(t?.kindFilter || "").trim() && e.appendChild(Wb({
-					label: L("label.type"),
-					value: Vb(t?.kindFilter || "").trim(),
+				})), Gb(t?.kindFilter || "").trim() && e.appendChild(Jb({
+					label: I("label.type"),
+					value: Gb(t?.kindFilter || "").trim(),
 					onClear: () => i?.clearKind?.()
-				})), Number(t?.minRating || 0) > 0 && e.appendChild(Wb({
-					label: L("label.rating"),
+				})), Number(t?.minRating || 0) > 0 && e.appendChild(Jb({
+					label: I("label.rating"),
 					value: `>= ${Number(t?.minRating || 0)}`,
 					onClear: () => i?.clearMinRating?.()
-				})), t?.workflowOnly && e.appendChild(Wb({
-					label: L("label.workflow"),
-					value: L("label.only"),
+				})), t?.workflowOnly && e.appendChild(Jb({
+					label: I("label.workflow"),
+					value: I("label.only"),
 					onClear: () => i?.clearWorkflowOnly?.()
-				})), Vb(t?.workflowType || "").trim() && e.appendChild(Wb({
-					label: L("label.workflowType"),
-					value: Vb(t?.workflowType || "").trim(),
+				})), Gb(t?.workflowType || "").trim() && e.appendChild(Jb({
+					label: I("label.workflowType"),
+					value: Gb(t?.workflowType || "").trim(),
 					onClear: () => i?.clearWorkflowType?.()
-				})), Vb(t?.workflowId || "").trim()) {
-					let n = Vb(t?.workflowId || "").trim();
-					e.appendChild(Wb({
-						label: L("label.sameWorkflow", "Generated with Same Workflow"),
+				})), Gb(t?.workflowId || "").trim()) {
+					let n = Gb(t?.workflowId || "").trim();
+					e.appendChild(Jb({
+						label: I("label.sameWorkflow", "Generated with Same Workflow"),
 						value: n.length > 18 ? `${n.slice(0, 8)}...${n.slice(-6)}` : n,
 						onClear: () => i?.clearWorkflowId?.()
 					}));
 				}
-				if (Vb(t?.workflowModelFilter || "").trim() && e.appendChild(Wb({
-					label: L("label.workflowModelFamily", "Model family"),
-					value: Vb(t?.workflowModelFilter || "").trim(),
+				if (Gb(t?.workflowModelFilter || "").trim() && e.appendChild(Jb({
+					label: I("label.workflowModelFamily", "Model family"),
+					value: Gb(t?.workflowModelFilter || "").trim(),
 					onClear: () => i?.clearWorkflowModel?.()
-				})), Vb(t?.workflowRunsOnFilter || "").trim() && e.appendChild(Wb({
-					label: L("label.workflowRunsOn", "Runs on"),
-					value: Vb(t?.workflowRunsOnFilter || "").trim(),
+				})), Gb(t?.workflowRunsOnFilter || "").trim() && e.appendChild(Jb({
+					label: I("label.workflowRunsOn", "Runs on"),
+					value: Gb(t?.workflowRunsOnFilter || "").trim(),
 					onClear: () => i?.clearWorkflowRunsOn?.()
 				})), (Number(t?.minSizeMB || 0) || 0) > 0 || (Number(t?.maxSizeMB || 0) || 0) > 0) {
 					let n = Number(t?.minSizeMB || 0) || 0, r = Number(t?.maxSizeMB || 0) || 0, a = n > 0 && r > 0 ? `${n}-${r} MB` : n > 0 ? `>= ${n} MB` : `<= ${r} MB`;
-					e.appendChild(Wb({
-						label: L("sidebar.size"),
+					e.appendChild(Jb({
+						label: I("sidebar.size"),
 						value: a,
 						onClear: () => i?.clearSize?.()
 					}));
 				}
 				if ((Number(t?.minWidth || 0) || 0) > 0 || (Number(t?.minHeight || 0) || 0) > 0 || (Number(t?.maxWidth || 0) || 0) > 0 || (Number(t?.maxHeight || 0) || 0) > 0) {
 					let n = String(t?.resolutionCompare || "gte") === "lte", r = Number(n ? t?.maxWidth : t?.minWidth || 0) || 0, a = Number(n ? t?.maxHeight : t?.minHeight || 0) || 0;
-					e.appendChild(Wb({
-						label: L("label.resolution"),
+					e.appendChild(Jb({
+						label: I("label.resolution"),
 						value: `${n ? "<=" : ">="} ${r || 0}x${a || 0} px`,
 						onClear: () => i?.clearResolution?.()
 					}));
 				}
-				Vb(t?.dateRangeFilter || "").trim() && e.appendChild(Wb({
-					label: L("sidebar.date"),
-					value: Vb(t?.dateRangeFilter || "").trim(),
+				Gb(t?.dateRangeFilter || "").trim() && e.appendChild(Jb({
+					label: I("sidebar.date"),
+					value: Gb(t?.dateRangeFilter || "").trim(),
 					onClear: () => i?.clearDateRange?.()
-				})), Vb(t?.dateExactFilter || "").trim() && e.appendChild(Wb({
-					label: L("label.day"),
-					value: Vb(t?.dateExactFilter || "").trim(),
+				})), Gb(t?.dateExactFilter || "").trim() && e.appendChild(Jb({
+					label: I("label.day"),
+					value: Gb(t?.dateExactFilter || "").trim(),
 					onClear: () => i?.clearDateExact?.()
-				})), c && e.appendChild(Wb({
-					label: L("label.sort"),
-					value: Hb(t?.sort),
+				})), c && e.appendChild(Jb({
+					label: I("label.sort"),
+					value: Kb(t?.sort),
 					onClear: () => i?.clearSort?.()
 				}));
 			}
@@ -21889,17 +21994,17 @@ function Gb() {
 	};
 }
 // ui/vue/components/panel/summaryBarState.ts
-var Kb = (e, t = "") => L(e, t, void 0), qb = (e) => {
+var Xb = (e, t = "") => I(e, t, void 0), Zb = (e) => {
 	try {
 		return String(e ?? "");
 	} catch {
 		return "";
 	}
-}, Jb = (e) => {
+}, Qb = (e) => {
 	let t = String(e || "").toLowerCase();
-	return t === "similar" ? Kb("scope.similar", "Similar") : t === "workflow" ? Kb("scope.workflow", "Workflow") : Kb(t === "input" || t === "inputs" ? "scope.input" : t === "custom" ? "scope.customBrowser" : t === "all" ? "tab.all" : "scope.output");
+	return t === "similar" ? Xb("scope.similar", "Similar") : t === "workflow" ? Xb("scope.workflow", "Workflow") : Xb(t === "input" || t === "inputs" ? "scope.input" : t === "custom" ? "scope.customBrowser" : t === "all" ? "tab.all" : "scope.output");
 };
-function Yb(e) {
+function $b(e) {
 	try {
 		let t = e?._mjrGetRenderedCards;
 		if (typeof t == "function") {
@@ -21911,7 +22016,7 @@ function Yb(e) {
 	}
 	return [];
 }
-function Xb(e) {
+function ex(e) {
 	try {
 		let t = String(e?.dataset?.mjrSelectedAssetIds || "").trim();
 		if (t) {
@@ -21928,8 +22033,8 @@ function Xb(e) {
 	}
 	return 0;
 }
-function Zb({ state: e, gridContainer: t, context: n = null } = {}) {
-	let r = Yb(t), i = (() => {
+function tx({ state: e, gridContainer: t, context: n = null } = {}) {
+	let r = $b(t), i = (() => {
 		try {
 			let e = 0;
 			for (let t of r) String(t?._mjrAsset?.kind || "").toLowerCase() === "folder" && (e += 1);
@@ -21950,12 +22055,12 @@ function Zb({ state: e, gridContainer: t, context: n = null } = {}) {
 		} catch (e) {
 			console.debug?.(e);
 		}
-		return Xb(t);
-	})(), s = Number(t?.dataset?.mjrTotal || 0) || Math.max(0, Number(e?.lastGridTotal ?? 0) || 0), c = Number(t?.dataset?.mjrShown || 0) || Math.max(0, Number(e?.lastGridCount ?? 0) || 0) || a, l = String(e?.viewScope || e?.scope || t?.dataset?.mjrScope || "output").toLowerCase(), u = s && s >= c ? `${c}/${s}` : `${c}`, d = [`${c > 0 && i.total > 0 && i.folders === i.total ? Kb("summary.folders") : Kb("summary.assets")}: ${u}`];
-	o > 0 && d.push(`${Kb("summary.selected")}: ${o}`), d.push(Jb(l));
+		return ex(t);
+	})(), s = Number(t?.dataset?.mjrTotal || 0) || Math.max(0, Number(e?.lastGridTotal ?? 0) || 0), c = Number(t?.dataset?.mjrShown || 0) || Math.max(0, Number(e?.lastGridCount ?? 0) || 0) || a, l = String(e?.viewScope || e?.scope || t?.dataset?.mjrScope || "output").toLowerCase(), u = s && s >= c ? `${c}/${s}` : `${c}`, d = [`${c > 0 && i.total > 0 && i.folders === i.total ? Xb("summary.folders") : Xb("summary.assets")}: ${u}`];
+	o > 0 && d.push(`${Xb("summary.selected")}: ${o}`), d.push(Qb(l));
 	try {
 		let e = Number(t?.dataset?.mjrHiddenPngSiblings || 0) || 0;
-		String(t?.dataset?.mjrHidePngSiblingsEnabled || "") === "1" && e > 0 && d.push(`${Kb("summary.hidden")}: ${e}`);
+		String(t?.dataset?.mjrHidePngSiblingsEnabled || "") === "1" && e > 0 && d.push(`${Xb("summary.hidden")}: ${e}`);
 	} catch (e) {
 		console.debug?.(e);
 	}
@@ -21965,38 +22070,38 @@ function Zb({ state: e, gridContainer: t, context: n = null } = {}) {
 		total: s,
 		activeScope: l,
 		summaryText: d.filter(Boolean).join(" | "),
-		duplicateText: h ? `${Kb("summary.duplicates")}: ${p} | ${Kb("summary.similar")}: ${m}` : "",
+		duplicateText: h ? `${Xb("summary.duplicates")}: ${p} | ${Xb("summary.similar")}: ${m}` : "",
 		showDuplicates: h,
-		rawQuery: qb(n?.rawQuery || "").trim()
+		rawQuery: Zb(n?.rawQuery || "").trim()
 	};
 }
 // ui/vue/components/panel/SummaryBarSection.vue?vue&type=script&setup=true&lang.ts
-var Qb = {
+var nx = {
 	key: 2,
 	class: "mjr-folder-breadcrumb-separator"
-}, $b = {
+}, rx = {
 	key: 0,
 	class: "mjr-folder-breadcrumb-separator"
-}, ex = { class: "mjr-am-summary-left" }, tx = { class: "mjr-am-summary-text" }, nx = { class: "mjr-am-summary-right" }, rx = ["aria-label"], ix = /* @__PURE__ */ rr({
+}, ix = { class: "mjr-am-summary-left" }, ax = { class: "mjr-am-summary-text" }, ox = { class: "mjr-am-summary-right" }, sx = ["aria-label"], cx = /* @__PURE__ */ ir({
 	__name: "SummaryBarSection",
 	setup(e, { expose: t }) {
-		let n = Qh(), r = Q(null), i = Q(null), a = Q(null), o = Q(""), s = Q(""), c = Q(!1), l = Q(!1), u = Q(null), d = Q(null), f = Q([]), p = Gb(), m = K(() => String(n.kindFilter || "").trim().toLowerCase()), h = K(() => {
-			let e = L("label.type", "Type");
+		let n = ng(), r = Q(null), i = Q(null), a = Q(null), o = Q(""), s = Q(""), c = Q(!1), l = Q(!1), u = Q(null), d = Q(null), f = Q([]), p = Yb(), m = G(() => String(n.kindFilter || "").trim().toLowerCase()), h = G(() => {
+			let e = I("label.type", "Type");
 			return [
 				{
 					kind: "image",
 					icon: "pi pi-image",
-					title: `${e}: ${L("filter.images", "Images")}`
+					title: `${e}: ${I("filter.images", "Images")}`
 				},
 				{
 					kind: "video",
 					icon: "pi pi-video",
-					title: `${e}: ${L("filter.videos", "Videos")}`
+					title: `${e}: ${I("filter.videos", "Videos")}`
 				},
 				{
 					kind: "audio",
 					icon: "pi pi-volume-up",
-					title: `${e}: ${L("filter.audio", "Audio")}`
+					title: `${e}: ${I("filter.audio", "Audio")}`
 				},
 				{
 					kind: "model3d",
@@ -22027,7 +22132,7 @@ var Qb = {
 			t && (n.kindFilter = v(t) ? "" : t, y());
 		}
 		function x({ state: e, gridContainer: t, context: r = null, actions: i = null } = {}) {
-			let a = Zb({
+			let a = tx({
 				state: e,
 				gridContainer: t,
 				context: r
@@ -22065,7 +22170,7 @@ var Qb = {
 				console.debug?.(e);
 			}
 		}
-		return $n(() => {
+		return er(() => {
 			try {
 				a.value?.appendChild?.(p.wrap);
 			} catch (e) {
@@ -22077,14 +22182,14 @@ var Qb = {
 			folderBreadcrumb: i,
 			setFolderBreadcrumb: S
 		}), (e, t) => {
-			let n = er("MButton");
-			return q(), Y(V, null, [H("div", {
+			let n = tr("MButton");
+			return K(), Y(B, null, [V("div", {
 				ref_key: "folderBreadcrumb",
 				ref: i,
 				class: X(["mjr-folder-breadcrumb", { "is-visible": l.value }]),
 				"aria-label": "Folder breadcrumb"
 			}, [
-				u.value ? (q(), Xn(n, {
+				u.value ? (K(), Zn(n, {
 					key: 0,
 					type: "button",
 					class: "mjr-btn-link mjr-folder-breadcrumb-action",
@@ -22093,10 +22198,10 @@ var Qb = {
 					disabled: u.value.disabled,
 					onClick: t[0] ||= (e) => C(u.value)
 				}, {
-					default: G(() => [hr(J(u.value.label), 1)]),
+					default: W(() => [hr(J(u.value.label), 1)]),
 					_: 1
-				}, 8, ["disabled"])) : W("", !0),
-				d.value ? (q(), Xn(n, {
+				}, 8, ["disabled"])) : U("", !0),
+				d.value ? (K(), Zn(n, {
 					key: 1,
 					type: "button",
 					class: "mjr-btn-link mjr-folder-breadcrumb-action",
@@ -22105,11 +22210,11 @@ var Qb = {
 					disabled: d.value.disabled,
 					onClick: t[1] ||= (e) => C(d.value)
 				}, {
-					default: G(() => [hr(J(d.value.label), 1)]),
+					default: W(() => [hr(J(d.value.label), 1)]),
 					_: 1
-				}, 8, ["disabled"])) : W("", !0),
-				u.value || d.value ? (q(), Y("span", Qb, " | ")) : W("", !0),
-				(q(!0), Y(V, null, tr(f.value, (e, t) => (q(), Y(V, { key: `${e.target}:${t}` }, [t > 0 ? (q(), Y("span", $b, "/")) : W("", !0), U(n, {
+				}, 8, ["disabled"])) : U("", !0),
+				u.value || d.value ? (K(), Y("span", nx, " | ")) : U("", !0),
+				(K(!0), Y(B, null, nr(f.value, (e, t) => (K(), Y(B, { key: `${e.target}:${t}` }, [t > 0 ? (K(), Y("span", rx, "/")) : U("", !0), H(n, {
 					type: "button",
 					class: X(["mjr-btn-link mjr-folder-breadcrumb-segment", { "is-current": e.current }]),
 					severity: "secondary",
@@ -22117,24 +22222,24 @@ var Qb = {
 					disabled: e.current,
 					onClick: (t) => C(e)
 				}, {
-					default: G(() => [hr(J(e.label), 1)]),
+					default: W(() => [hr(J(e.label), 1)]),
 					_: 2
 				}, 1032, [
 					"class",
 					"disabled",
 					"onClick"
 				])], 64))), 128))
-			], 2), H("div", {
+			], 2), V("div", {
 				ref_key: "summaryBar",
 				ref: r,
 				class: "mjr-am-summary",
 				"aria-live": "polite"
-			}, [H("div", ex, [H("div", tx, J(o.value), 1)]), H("div", nx, [
-				H("div", {
+			}, [V("div", ix, [V("div", ax, J(o.value), 1)]), V("div", ox, [
+				V("div", {
 					class: "mjr-media-shortcuts",
-					"aria-label": Z(L)("label.type", "Type"),
+					"aria-label": Z(I)("label.type", "Type"),
 					role: "group"
-				}, [(q(!0), Y(V, null, tr(h.value, (e) => (q(), Xn(n, {
+				}, [(K(!0), Y(B, null, nr(h.value, (e) => (K(), Zn(n, {
 					key: e.kind,
 					type: "button",
 					class: X(["mjr-icon-btn mjr-media-shortcut-btn", { "mjr-context-active": v(e.kind) }]),
@@ -22146,7 +22251,7 @@ var Qb = {
 					"aria-pressed": String(v(e.kind)),
 					onClick: (t) => b(e.kind)
 				}, {
-					default: G(() => [H("i", {
+					default: W(() => [V("i", {
 						class: X(e.icon),
 						"aria-hidden": "true"
 					}, null, 2)]),
@@ -22157,8 +22262,8 @@ var Qb = {
 					"aria-pressed",
 					"class",
 					"onClick"
-				]))), 128))], 8, rx),
-				c.value ? (q(), Xn(n, {
+				]))), 128))], 8, sx),
+				c.value ? (K(), Zn(n, {
 					key: 0,
 					type: "button",
 					class: "mjr-am-dup-alert",
@@ -22167,10 +22272,10 @@ var Qb = {
 					title: s.value,
 					onClick: _
 				}, {
-					default: G(() => [hr(J(s.value), 1)]),
+					default: W(() => [hr(J(s.value), 1)]),
 					_: 1
-				}, 8, ["title"])) : W("", !0),
-				H("div", {
+				}, 8, ["title"])) : U("", !0),
+				V("div", {
 					ref_key: "pillsHost",
 					ref: a
 				}, null, 512)
@@ -22179,7 +22284,7 @@ var Qb = {
 	}
 });
 // ui/vue/composables/useGridContextMenu.ts
-function ax(e, t) {
+function lx(e, t) {
 	let n = null;
 	function r(e) {
 		if (e && !e._mjrGridContextMenuBound) try {
@@ -22197,12 +22302,12 @@ function ax(e, t) {
 		} catch {}
 		n = null;
 	}
-	cr(e, (e, t) => {
+	q(e, (e, t) => {
 		t && i(), e && r(e);
-	}, { immediate: !0 }), or(i);
+	}, { immediate: !0 }), sr(i);
 }
 // ui/vue/composables/useGridKeyboard.ts
-function ox(e) {
+function ux(e) {
 	if (!e) return () => {};
 	let t = e;
 	try {
@@ -22241,7 +22346,7 @@ function ox(e) {
 		return console.debug?.("[useGridKeyboard] bind failed", e), () => {};
 	}
 }
-function sx(e) {
+function dx(e) {
 	let t = null, n = () => {
 		try {
 			t?.();
@@ -22250,13 +22355,13 @@ function sx(e) {
 		}
 		t = null;
 	};
-	cr(e, (e, r) => {
-		r && n(), e && (t = ox(e));
-	}, { immediate: !0 }), or(n);
+	q(e, (e, r) => {
+		r && n(), e && (t = ux(e));
+	}, { immediate: !0 }), sr(n);
 }
 // ui/vue/components/grid/assetsGridHostState.ts
-function cx() {}
-function lx() {
+function fx() {}
+function px() {
 	return new Promise((e) => {
 		try {
 			if (typeof requestAnimationFrame == "function") {
@@ -22269,7 +22374,7 @@ function lx() {
 		e();
 	});
 }
-function ux(e, ...t) {
+function mx(e, ...t) {
 	try {
 		return typeof e == "function" ? e(...t) : void 0;
 	} catch (e) {
@@ -22277,21 +22382,21 @@ function ux(e, ...t) {
 		return;
 	}
 }
-function dx(e = {}) {
+function hx(e = {}) {
 	let t = Array.isArray(e.selectedIds) ? e.selectedIds.map(String).filter(Boolean) : [];
 	return {
 		ids: t,
 		activeId: String(e.activeId || t[0] || "").trim()
 	};
 }
-function fx(e, t = {}, n = null) {
+function gx(e, t = {}, n = null) {
 	return {
 		count: Number(t.count ?? t.shown ?? e?.dataset?.mjrShown ?? n?.lastGridCount ?? 0) || 0,
 		total: Number(t.total ?? e?.dataset?.mjrTotal ?? n?.lastGridTotal ?? 0) || 0
 	};
 }
-function px(e, t = $h()) {
-	if (!e || !t) return cx;
+function _x(e, t = rg()) {
+	if (!e || !t) return fx;
 	let n = 0, r = () => {
 		if (!n) try {
 			n = requestAnimationFrame(() => {
@@ -22317,8 +22422,8 @@ function px(e, t = $h()) {
 		}
 	};
 }
-function mx(e, { panelStore: t = $h(), onContextChanged: n = null, markUserInteraction: r = null } = {}) {
-	if (!e) return cx;
+function vx(e, { panelStore: t = rg(), onContextChanged: n = null, markUserInteraction: r = null } = {}) {
+	if (!e) return fx;
 	let i = 0, a = () => {
 		if (i) try {
 			cancelAnimationFrame(i);
@@ -22327,24 +22432,24 @@ function mx(e, { panelStore: t = $h(), onContextChanged: n = null, markUserInter
 		}
 		try {
 			i = requestAnimationFrame(() => {
-				i = 0, ux(n);
+				i = 0, mx(n);
 			});
 		} catch (e) {
-			console.debug?.(e), i = 0, ux(n);
+			console.debug?.(e), i = 0, mx(n);
 		}
 	}, o = (r) => {
 		let i = r?.detail || {};
 		if (t) {
-			let { count: n, total: r } = fx(e, i, t);
+			let { count: n, total: r } = gx(e, i, t);
 			t.lastGridCount = n, t.lastGridTotal = r;
 		}
-		ux(n);
+		mx(n);
 	}, s = (e) => {
-		if (ux(r), t) {
-			let { ids: n, activeId: r } = dx(e?.detail || {});
+		if (mx(r), t) {
+			let { ids: n, activeId: r } = hx(e?.detail || {});
 			t.selectedAssetIds = n, t.activeAssetId = r;
 		}
-		ux(n);
+		mx(n);
 	};
 	e.addEventListener("mjr:grid-stats", o), e.addEventListener("mjr:selection-changed", s);
 	try {
@@ -22392,14 +22497,14 @@ function mx(e, { panelStore: t = $h(), onContextChanged: n = null, markUserInter
 		}
 	};
 }
-async function hx({ initialLoadPromise: e, gridWrapper: t, gridContainer: n, panelStore: r = $h(), onRestoreSidebar: i = null } = {}) {
+async function yx({ initialLoadPromise: e, gridWrapper: t, gridContainer: n, panelStore: r = rg(), onRestoreSidebar: i = null } = {}) {
 	if (!t || !n || !r) return;
 	try {
 		await e;
 	} catch (e) {
 		console.debug?.(e);
 	}
-	await lx();
+	await px();
 	let a = Number(r.scrollTop || 0) || 0;
 	if (a > 0) try {
 		t.scrollTop = a;
@@ -22427,13 +22532,13 @@ async function hx({ initialLoadPromise: e, gridWrapper: t, gridContainer: n, pan
 			e(), setTimeout(e, 160);
 		}
 	}
-	r.sidebarOpen && s && ux(i);
+	r.sidebarOpen && s && mx(i);
 }
 // ui/vue/components/grid/AssetsGrid.vue
-var gx = /* @__PURE__ */ rr({
+var bx = /* @__PURE__ */ ir({
 	__name: "AssetsGrid",
 	setup(e, { expose: t }) {
-		let n = Q(null), r = Q(null), i = Q(null), a = Qh(), o = K(() => i.value?.gridContainer ?? null), s = null, c = null, l = null, u = null;
+		let n = Q(null), r = Q(null), i = Q(null), a = ng(), o = G(() => i.value?.gridContainer ?? null), s = null, c = null, l = null, u = null;
 		function d() {
 			try {
 				l?.setVisibility?.();
@@ -22444,7 +22549,7 @@ var gx = /* @__PURE__ */ rr({
 		function f() {
 			try {
 				let e = o.value;
-				e && ht(e);
+				e && gt(e);
 			} catch (e) {
 				console.debug?.(e);
 			}
@@ -22527,7 +22632,7 @@ var gx = /* @__PURE__ */ rr({
 				}
 			};
 		}
-		Qn("mjr-grid-container-ref", o), ax(o, () => a), sx(o);
+		$n("mjr-grid-container-ref", o), lx(o, () => a), dx(o);
 		function m() {
 			return o.value || null;
 		}
@@ -22539,23 +22644,23 @@ var gx = /* @__PURE__ */ rr({
 				} catch (e) {
 					console.debug?.(e);
 				}
-				c = mx(t, {
+				c = vx(t, {
 					panelStore: a,
 					...e
 				});
 			}
 		}
-		return $n(() => {
-			s = px(r.value, a), r.value && Number(a.scrollTop || 0) > 0 && (r.value.scrollTop = Number(a.scrollTop || 0)), p();
+		return er(() => {
+			s = _x(r.value, a), r.value && Number(a.scrollTop || 0) > 0 && (r.value.scrollTop = Number(a.scrollTop || 0)), p();
 			try {
 				window.addEventListener("mjr:keepalive-attached", f), document.addEventListener("visibilitychange", d);
 			} catch (e) {
 				console.debug?.(e);
 			}
 			d();
-		}), sr(() => {
+		}), cr(() => {
 			try {
-				yt(m());
+				bt(m());
 			} catch (e) {
 				console.debug?.(e);
 			}
@@ -22588,14 +22693,14 @@ var gx = /* @__PURE__ */ rr({
 			} catch (e) {
 				console.debug?.(e);
 			}
-		}), cr(o, (e, t) => {
+		}), q(o, (e, t) => {
 			try {
-				t && t !== e && yt(t);
+				t && t !== e && bt(t);
 			} catch (e) {
 				console.debug?.(e);
 			}
 			try {
-				e && ht(e);
+				e && gt(e);
 			} catch (e) {
 				console.debug?.(e);
 			}
@@ -22623,7 +22728,7 @@ var gx = /* @__PURE__ */ rr({
 				};
 			},
 			restoreGridUiState(e, t = {}) {
-				return hx({
+				return yx({
 					initialLoadPromise: e,
 					gridWrapper: r.value,
 					gridContainer: m(),
@@ -22639,7 +22744,7 @@ var gx = /* @__PURE__ */ rr({
 				} catch (e) {
 					console.debug?.(e);
 				}
-				return l = N_({
+				return l = L_({
 					gridContainer: t,
 					gridWrapper: r.value,
 					...e
@@ -22675,7 +22780,7 @@ var gx = /* @__PURE__ */ rr({
 			disposeGrid(...e) {
 				return i.value?.dispose?.(...e);
 			}
-		}), (e, t) => (q(), Y("div", {
+		}), (e, t) => (K(), Y("div", {
 			ref_key: "browseSectionRef",
 			ref: n,
 			class: "mjr-am-browse",
@@ -22685,7 +22790,7 @@ var gx = /* @__PURE__ */ rr({
 				"flex-direction": "row",
 				overflow: "hidden"
 			}
-		}, [H("div", {
+		}, [V("div", {
 			ref_key: "gridWrapperRef",
 			ref: r,
 			class: "mjr-am-grid-scroll",
@@ -22694,13 +22799,13 @@ var gx = /* @__PURE__ */ rr({
 				overflow: "auto",
 				position: "relative"
 			}
-		}, [U(Bd, {
+		}, [H(Bd, {
 			ref_key: "gridHostRef",
 			ref: i,
 			"scroll-element": r.value
 		}, null, 8, ["scroll-element"])], 512)], 512));
 	}
-}), _x = {
+}), xx = {
 	class: "mjr-sidebar-header",
 	style: {
 		display: "flex",
@@ -22711,15 +22816,15 @@ var gx = /* @__PURE__ */ rr({
 		"flex-shrink": "0",
 		background: "var(--mjr-surface-2,#2e2e2e)"
 	}
-}, vx = ["title"], yx = /* @__PURE__ */ rr({
+}, Sx = ["title"], Cx = /* @__PURE__ */ ir({
 	__name: "SidebarHeaderSection",
 	props: { asset: {} },
 	emits: ["close"],
 	setup(e, { emit: t }) {
 		let n = t;
 		return (t, r) => {
-			let i = er("MButton");
-			return q(), Y("div", _x, [H("div", {
+			let i = tr("MButton");
+			return K(), Y("div", xx, [V("div", {
 				class: "mjr-sidebar-filename",
 				title: e.asset.filename,
 				style: {
@@ -22732,7 +22837,7 @@ var gx = /* @__PURE__ */ rr({
 					"min-width": "0",
 					"padding-right": "8px"
 				}
-			}, J(e.asset.filename), 9, vx), U(i, {
+			}, J(e.asset.filename), 9, Sx), H(i, {
 				type: "button",
 				class: "mjr-sidebar-close",
 				severity: "secondary",
@@ -22756,21 +22861,21 @@ var gx = /* @__PURE__ */ rr({
 				onMouseenter: r[1] ||= (e) => (e.currentTarget.style.background = "rgba(255,255,255,0.1)") && (e.currentTarget.style.borderColor = "rgba(255,255,255,0.2)"),
 				onMouseleave: r[2] ||= (e) => (e.currentTarget.style.background = "none") && (e.currentTarget.style.borderColor = "transparent")
 			}, {
-				default: G(() => [...r[3] ||= [hr("x", -1)]]),
+				default: W(() => [...r[3] ||= [hr("x", -1)]]),
 				_: 1
 			})]);
 		};
 	}
 });
 // ui/components/sidebar/utils/format.ts
-function bx(e) {
+function wx(e) {
 	if (!e) return "Unknown";
 	let t = e / 1024;
 	if (t < 1024) return `${t.toFixed(1)} KB`;
 	let n = t / 1024;
 	return n < 1024 ? `${n.toFixed(1)} MB` : `${(n / 1024).toFixed(2)} GB`;
 }
-function xx(e) {
+function Tx(e) {
 	if (!e) return "";
 	let t = /* @__PURE__ */ new Date(Number(e) * 1e3);
 	if (Number.isNaN(t.getTime())) return "";
@@ -22778,7 +22883,7 @@ function xx(e) {
 	return `${t.getFullYear()}-${n(t.getMonth() + 1)}-${n(t.getDate())} ${n(t.getHours())}:${n(t.getMinutes())}`;
 }
 // ui/components/VideoControls.ts
-function Sx(e, t) {
+function Ex(e, t) {
 	let n = [];
 	try {
 		e.controls = !1, e.loop = !0, e.muted = !0, e.playsInline = !0, e.autoplay = !0;
@@ -22788,14 +22893,14 @@ function Sx(e, t) {
 	let r = document.createElement("div");
 	r.className = "mjr-video-controls mjr-video-controls--preview";
 	try {
-		r.setAttribute("role", "group"), r.setAttribute("aria-label", L("video.previewControls", "Video preview controls"));
+		r.setAttribute("role", "group"), r.setAttribute("aria-label", I("video.previewControls", "Video preview controls"));
 	} catch (e) {
 		console.debug?.(e);
 	}
 	let i = document.createElement("button");
-	i.type = "button", i.className = "mjr-video-preview-btn", i.title = L("video.playPause", "Play/Pause");
+	i.type = "button", i.className = "mjr-video-preview-btn", i.title = I("video.playPause", "Play/Pause");
 	try {
-		i.setAttribute("aria-label", L("video.playPause", "Play/Pause"));
+		i.setAttribute("aria-label", I("video.playPause", "Play/Pause"));
 	} catch (e) {
 		console.debug?.(e);
 	}
@@ -22844,7 +22949,7 @@ function Sx(e, t) {
 	} catch (e) {
 		console.debug?.(e);
 	}
-	n.push(jt(e, "loadedmetadata", () => s(), { passive: !0 })), n.push(jt(e, "canplay", () => s(), { passive: !0 })), n.push(jt(i, "click", c)), n.push(jt(e, "play", o, { passive: !0 })), n.push(jt(e, "pause", o, { passive: !0 })), n.push(jt(e, "ended", () => s(), { passive: !0 }));
+	n.push(Mt(e, "loadedmetadata", () => s(), { passive: !0 })), n.push(Mt(e, "canplay", () => s(), { passive: !0 })), n.push(Mt(i, "click", c)), n.push(Mt(e, "play", o, { passive: !0 })), n.push(Mt(e, "pause", o, { passive: !0 })), n.push(Mt(e, "ended", () => s(), { passive: !0 }));
 	try {
 		o();
 	} catch (e) {
@@ -22854,7 +22959,7 @@ function Sx(e, t) {
 		controlsEl: r,
 		destroy: () => {
 			try {
-				for (let e of n) At(() => e?.());
+				for (let e of n) jt(() => e?.());
 			} catch (e) {
 				console.debug?.(e);
 			}
@@ -22866,28 +22971,28 @@ function Sx(e, t) {
 		}
 	};
 }
-function Cx(e, t = {}) {
+function Dx(e, t = {}) {
 	try {
 		let n = t?.hostEl || e?.parentElement;
 		return !e || !n ? {
 			controlsEl: null,
-			destroy: Mt
-		} : Sx(e, n);
+			destroy: Nt
+		} : Ex(e, n);
 	} catch (e) {
 		return console.debug?.(e), {
 			controlsEl: null,
-			destroy: Mt
+			destroy: Nt
 		};
 	}
 }
 // ui/vue/components/panel/sidebar/SidebarPreviewSection.vue?vue&type=script&setup=true&lang.ts
-var wx = { class: "mjr-sidebar-preview" }, Tx = ["src"], Ex = ["src"], Dx = ["src"], Ox = {
+var Ox = { class: "mjr-sidebar-preview" }, kx = ["src"], Ax = ["src"], jx = ["src"], Mx = {
 	key: 3,
 	style: {
 		color: "rgba(255, 255, 255, 0.4)",
 		"font-size": "14px"
 	}
-}, kx = {
+}, Nx = {
 	class: "mjr-sidebar-preview-meta",
 	style: {
 		"margin-top": "10px",
@@ -22901,7 +23006,7 @@ var wx = { class: "mjr-sidebar-preview" }, Tx = ["src"], Ex = ["src"], Dx = ["sr
 		"padding-bottom": "12px",
 		"border-bottom": "1px solid var(--mjr-border, rgba(255, 255, 255, 0.12))"
 	}
-}, Ax = /* @__PURE__ */ rr({
+}, Px = /* @__PURE__ */ ir({
 	__name: "SidebarPreviewSection",
 	props: {
 		asset: {},
@@ -22911,15 +23016,15 @@ var wx = { class: "mjr-sidebar-preview" }, Tx = ["src"], Ex = ["src"], Dx = ["sr
 		}
 	},
 	setup(e) {
-		let t = e, n = Q(null), r = null, i = K(() => F(t.asset) || ""), a = K(() => {
+		let t = e, n = Q(null), r = null, i = G(() => oe(t.asset) || ""), a = G(() => {
 			let e = String(t.asset?.filename || ""), n = e.lastIndexOf(".");
 			return n === -1 ? "" : e.slice(n + 1).toUpperCase();
-		}), o = K(() => {
+		}), o = G(() => {
 			let e = [];
 			a.value && e.push(a.value), t.asset?.kind && e.push(String(t.asset.kind).toLowerCase());
-			let n = bx(t.asset?.size);
+			let n = wx(t.asset?.size);
 			n && e.push(n);
-			let r = xx(t.asset?.mtime);
+			let r = Tx(t.asset?.mtime);
 			return r && e.push(r), e.join(" | ");
 		});
 		function s() {
@@ -22944,7 +23049,7 @@ var wx = { class: "mjr-sidebar-preview" }, Tx = ["src"], Ex = ["src"], Dx = ["sr
 			if (e && i) {
 				c(i);
 				try {
-					r = Cx(i, {
+					r = Dx(i, {
 						variant: "preview",
 						hostEl: e
 					});
@@ -22953,17 +23058,17 @@ var wx = { class: "mjr-sidebar-preview" }, Tx = ["src"], Ex = ["src"], Dx = ["sr
 				}
 			}
 		}
-		return cr(() => [t.asset, t.showPreviewThumb], () => {
+		return q(() => [t.asset, t.showPreviewThumb], () => {
 			s();
-		}, { flush: "post" }), cr(i, () => {
+		}, { flush: "post" }), q(i, () => {
 			setTimeout(() => {
 				l();
 			}, 0);
-		}), $n(() => {
+		}), er(() => {
 			l();
-		}), sr(() => {
+		}), cr(() => {
 			s();
-		}), (t, r) => (q(), Y("div", wx, [e.showPreviewThumb ? (q(), Y("div", {
+		}), (t, r) => (K(), Y("div", Ox, [e.showPreviewThumb ? (K(), Y("div", {
 			key: 0,
 			ref_key: "previewContainerRef",
 			ref: n,
@@ -22978,7 +23083,7 @@ var wx = { class: "mjr-sidebar-preview" }, Tx = ["src"], Ex = ["src"], Dx = ["sr
 				"justify-content": "center",
 				position: "relative"
 			}
-		}, [e.asset.kind === "image" ? (q(), Y("img", {
+		}, [e.asset.kind === "image" ? (K(), Y("img", {
 			key: 0,
 			src: i.value,
 			style: {
@@ -22986,7 +23091,7 @@ var wx = { class: "mjr-sidebar-preview" }, Tx = ["src"], Ex = ["src"], Dx = ["sr
 				"max-height": "100%",
 				"object-fit": "contain"
 			}
-		}, null, 8, Tx)) : e.asset.kind === "video" ? (q(), Y("video", {
+		}, null, 8, kx)) : e.asset.kind === "video" ? (K(), Y("video", {
 			key: 1,
 			src: i.value,
 			muted: !0,
@@ -22999,7 +23104,7 @@ var wx = { class: "mjr-sidebar-preview" }, Tx = ["src"], Ex = ["src"], Dx = ["sr
 				"max-height": "100%",
 				"object-fit": "contain"
 			}
-		}, null, 8, Ex)) : e.asset.kind === "audio" ? (q(), Y("audio", {
+		}, null, 8, Ax)) : e.asset.kind === "audio" ? (K(), Y("audio", {
 			key: 2,
 			src: i.value,
 			controls: "",
@@ -23008,9 +23113,9 @@ var wx = { class: "mjr-sidebar-preview" }, Tx = ["src"], Ex = ["src"], Dx = ["sr
 				width: "92%",
 				"max-width": "560px"
 			}
-		}, null, 8, Dx)) : (q(), Y("div", Ox, J(String(e.asset.kind || "PREVIEW").toUpperCase()), 1))], 512)) : W("", !0), H("div", kx, J(o.value), 1)]));
+		}, null, 8, jx)) : (K(), Y("div", Mx, J(String(e.asset.kind || "PREVIEW").toUpperCase()), 1))], 512)) : U("", !0), V("div", Nx, J(o.value), 1)]));
 	}
-}), jx = {
+}), Fx = {
 	class: "mjr-sidebar-section",
 	style: {
 		background: "rgba(255, 255, 255, 0.03)",
@@ -23018,22 +23123,22 @@ var wx = { class: "mjr-sidebar-preview" }, Tx = ["src"], Ex = ["src"], Dx = ["sr
 		"border-radius": "8px",
 		padding: "10px"
 	}
-}, Mx = { style: {
+}, Ix = { style: {
 	"font-size": "12px",
 	"font-weight": "700",
 	color: "#26a69a",
 	"margin-bottom": "8px",
 	"text-transform": "uppercase",
 	"letter-spacing": "0.4px"
-} }, Nx = { style: {
+} }, Lx = { style: {
 	display: "flex",
 	"flex-direction": "column",
 	gap: "6px"
-} }, Px = { style: {
+} }, Rx = { style: {
 	"font-size": "12px",
 	opacity: "0.68",
 	"min-width": "92px"
-} }, Fx = ["title"], Ix = /* @__PURE__ */ rr({
+} }, zx = ["title"], Bx = /* @__PURE__ */ ir({
 	__name: "SidebarFolderSection",
 	props: { asset: {} },
 	setup(e) {
@@ -23051,42 +23156,42 @@ var wx = { class: "mjr-sidebar-preview" }, Tx = ["src"], Ex = ["src"], Dx = ["sr
 			for (; r >= 1024 && i < n.length - 1;) r /= 1024, i += 1;
 			return `${r.toFixed(+(i > 0))} ${n[i]}`;
 		}
-		let r = K(() => {
+		let r = G(() => {
 			let e = t.asset || {}, r = e.folder_info || e.folderInfo || {}, i = String(r.path || e.filepath || e.subfolder || ""), a = String(r.name || e.filename || "").trim(), o = Number(r.files ?? 0), s = Number(r.folders ?? 0), c = Number(r.size ?? 0), l = Number(r.mtime ?? e.mtime ?? 0), u = Number(r.ctime ?? 0), d = !!r.truncated, f = [
 				{
-					label: L("sidebar.folder.name", "Name"),
+					label: I("sidebar.folder.name", "Name"),
 					value: a || "-"
 				},
 				{
-					label: L("sidebar.folder.path", "Path"),
+					label: I("sidebar.folder.path", "Path"),
 					value: i || "-"
 				},
 				{
-					label: L("sidebar.folder.folders", "Folders"),
+					label: I("sidebar.folder.folders", "Folders"),
 					value: Number.isFinite(s) ? String(s) : "-"
 				},
 				{
-					label: L("sidebar.folder.files", "Files"),
+					label: I("sidebar.folder.files", "Files"),
 					value: Number.isFinite(o) ? String(o) : "-"
 				},
 				{
-					label: L("sidebar.size", "Size"),
+					label: I("sidebar.size", "Size"),
 					value: n(c)
 				}
 			];
 			return u > 0 && f.push({
-				label: L("sidebar.folder.created", "Created"),
-				value: `${Tn(u) || "-"} ${Hn(u) || ""}`.trim()
+				label: I("sidebar.folder.created", "Created"),
+				value: `${En(u) || "-"} ${Un(u) || ""}`.trim()
 			}), l > 0 && f.push({
-				label: L("sidebar.folder.modified", "Modified"),
-				value: `${Tn(l) || "-"} ${Hn(l) || ""}`.trim()
+				label: I("sidebar.folder.modified", "Modified"),
+				value: `${En(l) || "-"} ${Un(l) || ""}`.trim()
 			}), d && f.push({
-				label: L("sidebar.folder.note", "Note"),
-				value: L("sidebar.folder.scanTruncated", "Scan was truncated for performance"),
+				label: I("sidebar.folder.note", "Note"),
+				value: I("sidebar.folder.scanTruncated", "Scan was truncated for performance"),
 				valueStyle: "color:#FFB74D;font-weight:600;"
 			}), f;
 		});
-		return (e, t) => (q(), Y("div", jx, [H("div", Mx, J(Z(L)("sidebar.folder.details", "Folder Details")), 1), H("div", Nx, [(q(!0), Y(V, null, tr(r.value, (e) => (q(), Y("div", {
+		return (e, t) => (K(), Y("div", Fx, [V("div", Ix, J(Z(I)("sidebar.folder.details", "Folder Details")), 1), V("div", Lx, [(K(!0), Y(B, null, nr(r.value, (e) => (K(), Y("div", {
 			key: e.label,
 			style: {
 				display: "flex",
@@ -23094,39 +23199,39 @@ var wx = { class: "mjr-sidebar-preview" }, Tx = ["src"], Ex = ["src"], Dx = ["sr
 				"align-items": "flex-start",
 				"justify-content": "space-between"
 			}
-		}, [H("div", Px, J(e.label), 1), H("div", {
+		}, [V("div", Rx, J(e.label), 1), V("div", {
 			style: mr(e.valueStyle || "font-size: 12px; text-align: right; word-break: break-word"),
 			title: String(e.value || "")
-		}, J(e.value), 13, Fx)]))), 128))])]));
+		}, J(e.value), 13, zx)]))), 128))])]));
 	}
-}), Lx = ["aria-label"], Rx = { class: "mjr-context-menu-title" }, zx = { class: "mjr-context-menu-item-left" }, Bx = {
+}), Vx = ["aria-label"], Hx = { class: "mjr-context-menu-title" }, Ux = { class: "mjr-context-menu-item-left" }, Wx = {
 	key: 0,
 	class: "mjr-context-menu-note"
-}, Vx = {
+}, Gx = {
 	key: 1,
 	class: "mjr-context-menu-note is-error"
-}, Hx = {
+}, Kx = {
 	key: 2,
 	class: "mjr-context-menu-note"
-}, Ux = { class: "mjr-context-menu-item-left" }, Wx = {
+}, qx = { class: "mjr-context-menu-item-left" }, Jx = {
 	key: 0,
 	class: "mjr-context-menu-hint"
-}, Gx = /* @__PURE__ */ rr({
+}, Yx = /* @__PURE__ */ ir({
 	__name: "AddToCollectionMenu",
 	setup(e) {
-		let t = Q(null), n = Q(!1), r = Q([]), i = Q(""), a = 0, o = null, s = K(() => ({
+		let t = Q(null), n = Q(!1), r = Q([]), i = Q(""), a = 0, o = null, s = G(() => ({
 			position: "fixed",
 			left: `${Math.round(Number(Gi.x) || 0)}px`,
 			top: `${Math.round(Number(Gi.y) || 0)}px`,
 			display: "block",
 			zIndex: "10004"
-		})), c = K(() => Gi.assets.length || 0), l = K(() => L("ctx.addToCollection", "Add to collection") + (c.value > 1 ? ` (${c.value})` : ""));
+		})), c = G(() => Gi.assets.length || 0), l = G(() => I("ctx.addToCollection", "Add to collection") + (c.value > 1 ? ` (${c.value})` : ""));
 		function u({ collectionName: e, selectedCount: t, addRes: n }) {
-			let r = Number(n?.data?.added ?? 0) || 0, i = Number(n?.data?.skipped_existing ?? 0) || 0, a = Number(n?.data?.skipped_duplicate ?? 0) || 0, o = String(e || "").trim() || L("label.collection", "collection"), s = L("msg.collectionAdd.added", "Added {added} item(s) to \"{name}\".", {
+			let r = Number(n?.data?.added ?? 0) || 0, i = Number(n?.data?.skipped_existing ?? 0) || 0, a = Number(n?.data?.skipped_duplicate ?? 0) || 0, o = String(e || "").trim() || I("label.collection", "collection"), s = I("msg.collectionAdd.added", "Added {added} item(s) to \"{name}\".", {
 				added: r,
 				name: o
 			});
-			return i > 0 && (s += `\n\n${L("msg.collectionAdd.skippedExisting", "Skipped {count} item(s): already present in the collection.", { count: i })}`), a > 0 && (s += `\n\n${L("msg.collectionAdd.skippedDuplicate", "Ignored {count} duplicate(s) in selection.", { count: a })}`), r === 0 && i > 0 && t > 0 && (s = L("msg.collectionAdd.noneAddedExisting", "No new items added to \"{name}\" (all exist).", { name: o })), s;
+			return i > 0 && (s += `\n\n${I("msg.collectionAdd.skippedExisting", "Skipped {count} item(s): already present in the collection.", { count: i })}`), a > 0 && (s += `\n\n${I("msg.collectionAdd.skippedDuplicate", "Ignored {count} duplicate(s) in selection.", { count: a })}`), r === 0 && i > 0 && t > 0 && (s = I("msg.collectionAdd.noneAddedExisting", "No new items added to \"{name}\" (all exist).", { name: o })), s;
 		}
 		function d() {
 			let e = t.value;
@@ -23138,15 +23243,15 @@ var wx = { class: "mjr-sidebar-preview" }, Tx = ["src"], Ex = ["src"], Dx = ["sr
 			let e = ++a;
 			n.value = !0, i.value = "";
 			try {
-				let t = await fe();
+				let t = await De();
 				if (e !== a) return;
 				r.value = Array.isArray(t?.data) ? t.data : [];
 			} catch (t) {
 				if (console.error("[AddToCollectionMenu.vue] listCollections failed:", t), e !== a) return;
-				r.value = [], i.value = L("toast.failedLoadCollections", "Failed to load collections.");
+				r.value = [], i.value = I("toast.failedLoadCollections", "Failed to load collections.");
 			} finally {
 				if (e === a) {
-					n.value = !1, await Yn(), d();
+					n.value = !1, await Xn(), d();
 					try {
 						t.value?.querySelector?.(".mjr-context-menu-item:not([aria-disabled=\"true\"])")?.focus?.();
 					} catch (e) {
@@ -23158,56 +23263,56 @@ var wx = { class: "mjr-sidebar-preview" }, Tx = ["src"], Ex = ["src"], Dx = ["sr
 		async function p(e, t) {
 			let n = Array.isArray(Gi.assets) ? Gi.assets : [];
 			Ji();
-			let r = await ke(e, n);
-			r?.ok ? m(u({
+			let r = await C(e, n);
+			r?.ok ? F(u({
 				collectionName: t,
 				selectedCount: n.length,
 				addRes: r
-			}), "success", 4e3) : m(r?.error || L("toast.failedAddAssetsToCollection", "Failed to add assets to collection."), "error");
+			}), "success", 4e3) : F(r?.error || I("toast.failedAddAssetsToCollection", "Failed to add assets to collection."), "error");
 		}
-		async function h() {
+		async function m() {
 			let e = Array.isArray(Gi.assets) ? Gi.assets : [];
 			Ji();
-			let t = await Et(L("dialog.createCollection", "Create collection"), L("dialog.collectionPlaceholder", "My collection"));
+			let t = await Dt(I("dialog.createCollection", "Create collection"), I("dialog.collectionPlaceholder", "My collection"));
 			if (!t) return;
-			let n = await E(t);
+			let n = await y(t);
 			if (!n?.ok) {
-				m(n?.error || L("toast.failedCreateCollectionDot", "Failed to create collection."), "error");
+				F(n?.error || I("toast.failedCreateCollectionDot", "Failed to create collection."), "error");
 				return;
 			}
-			let r = n.data?.id, i = await ke(r, e);
-			i?.ok ? m(u({
+			let r = n.data?.id, i = await C(r, e);
+			i?.ok ? F(u({
 				collectionName: n.data?.name || t,
 				selectedCount: e.length,
 				addRes: i
-			}), "success", 4e3) : m(i?.error || L("toast.failedAddAssetsToCollection", "Failed to add assets to collection."), "error");
+			}), "success", 4e3) : F(i?.error || I("toast.failedAddAssetsToCollection", "Failed to add assets to collection."), "error");
 		}
-		function g(e) {
+		function h(e) {
 			t.value?.contains?.(e?.target) || Ji();
 		}
-		function _(e) {
+		function g(e) {
 			e?.key === "Escape" && Ji();
 		}
-		function v() {
+		function _() {
 			Ji();
 		}
-		return cr(() => Gi.open, async (e) => {
+		return q(() => Gi.open, async (e) => {
 			e && (r.value = [], await f());
-		}), $n(() => {
+		}), er(() => {
 			o = new AbortController();
 			let e = {
 				capture: !0,
 				passive: !0,
 				signal: o.signal
 			};
-			window.addEventListener("pointerdown", g, e), window.addEventListener("keydown", _, {
+			window.addEventListener("pointerdown", h, e), window.addEventListener("keydown", g, {
 				capture: !0,
 				signal: o.signal
-			}), window.addEventListener("scroll", v, e), window.addEventListener("wheel", v, e), window.addEventListener("resize", v, {
+			}), window.addEventListener("scroll", _, e), window.addEventListener("wheel", _, e), window.addEventListener("resize", _, {
 				passive: !0,
 				signal: o.signal
-			}), window.addEventListener("mjr-close-all-menus", v, { signal: o.signal });
-		}), or(() => {
+			}), window.addEventListener("mjr-close-all-menus", _, { signal: o.signal });
+		}), sr(() => {
 			try {
 				o?.abort();
 			} catch (e) {
@@ -23215,8 +23320,8 @@ var wx = { class: "mjr-sidebar-preview" }, Tx = ["src"], Ex = ["src"], Dx = ["sr
 			}
 			o = null, Ji();
 		}), (e, a) => {
-			let o = er("MButton");
-			return q(), Xn(xr, { to: "body" }, [Z(Gi).open ? (q(), Y("div", {
+			let o = tr("MButton");
+			return K(), Zn(xr, { to: "body" }, [Z(Gi).open ? (K(), Y("div", {
 				key: 0,
 				ref_key: "menuRef",
 				ref: t,
@@ -23225,21 +23330,21 @@ var wx = { class: "mjr-sidebar-preview" }, Tx = ["src"], Ex = ["src"], Dx = ["sr
 				role: "menu",
 				"aria-label": l.value
 			}, [
-				H("div", Rx, J(l.value), 1),
-				U(o, {
+				V("div", Hx, J(l.value), 1),
+				H(o, {
 					type: "button",
 					class: "mjr-context-menu-item",
 					severity: "secondary",
 					text: "",
 					role: "menuitem",
-					onClick: h
+					onClick: m
 				}, {
-					default: G(() => [H("span", zx, [a[0] ||= H("i", { class: "pi pi-plus" }, null, -1), H("span", null, J(Z(L)("dialog.createCollection", "Create collection")) + "...", 1)])]),
+					default: W(() => [V("span", Ux, [a[0] ||= V("i", { class: "pi pi-plus" }, null, -1), V("span", null, J(Z(I)("dialog.createCollection", "Create collection")) + "...", 1)])]),
 					_: 1
 				}),
-				a[2] ||= H("div", { class: "mjr-context-menu-separator" }, null, -1),
-				n.value ? (q(), Y("div", Bx, J(Z(L)("msg.loadingCollections", "Loading collections...")), 1)) : i.value ? (q(), Y("div", Vx, J(i.value), 1)) : r.value.length ? W("", !0) : (q(), Y("div", Hx, J(Z(L)("msg.noCollections", "No collections yet.")), 1)),
-				(q(!0), Y(V, null, tr(r.value, (e) => (q(), Xn(o, {
+				a[2] ||= V("div", { class: "mjr-context-menu-separator" }, null, -1),
+				n.value ? (K(), Y("div", Wx, J(Z(I)("msg.loadingCollections", "Loading collections...")), 1)) : i.value ? (K(), Y("div", Gx, J(i.value), 1)) : r.value.length ? U("", !0) : (K(), Y("div", Kx, J(Z(I)("msg.noCollections", "No collections yet.")), 1)),
+				(K(!0), Y(B, null, nr(r.value, (e) => (K(), Zn(o, {
 					key: String(e?.id || ""),
 					type: "button",
 					class: "mjr-context-menu-item",
@@ -23248,31 +23353,31 @@ var wx = { class: "mjr-sidebar-preview" }, Tx = ["src"], Ex = ["src"], Dx = ["sr
 					role: "menuitem",
 					onClick: (t) => p(String(e?.id || ""), String(e?.name || e?.id || ""))
 				}, {
-					default: G(() => [H("span", Ux, [a[1] ||= H("i", { class: "pi pi-bookmark" }, null, -1), H("span", null, J(String(e?.name || e?.id || "")), 1)]), Number(e?.count || 0) > 0 ? (q(), Y("span", Wx, J(Number(e?.count || 0)), 1)) : W("", !0)]),
+					default: W(() => [V("span", qx, [a[1] ||= V("i", { class: "pi pi-bookmark" }, null, -1), V("span", null, J(String(e?.name || e?.id || "")), 1)]), Number(e?.count || 0) > 0 ? (K(), Y("span", Jx, J(Number(e?.count || 0)), 1)) : U("", !0)]),
 					_: 2
 				}, 1032, ["onClick"]))), 128))
-			], 12, Lx)) : W("", !0)]);
+			], 12, Vx)) : U("", !0)]);
 		};
 	}
-}), Kx = {
+}), Xx = {
 	key: 0,
 	class: "mjr-context-menu-separator"
-}, qx = { class: "mjr-context-menu-item-left" }, Jx = { class: "mjr-context-menu-item-right" }, Yx = {
+}, Zx = { class: "mjr-context-menu-item-left" }, Qx = { class: "mjr-context-menu-item-right" }, $x = {
 	key: 0,
 	class: "mjr-context-menu-hint"
-}, Xx = {
+}, eS = {
 	key: 1,
 	class: "mjr-context-menu-submenu-arrow"
-}, Zx = {
+}, tS = {
 	key: 0,
 	class: "mjr-context-menu-separator"
-}, Qx = { class: "mjr-context-menu-item-left" }, $x = {
+}, nS = { class: "mjr-context-menu-item-left" }, rS = {
 	key: 0,
 	class: "mjr-context-menu-hint"
-}, eS = /* @__PURE__ */ rr({
+}, iS = /* @__PURE__ */ ir({
 	__name: "GridContextMenu",
 	setup(e) {
-		let t = Q(null), n = Q(null), r = Q(null), i = null, a = null, o = K(() => l(nn.main, 10031)), s = K(() => l(nn.submenu, 10032)), c = K(() => l(nn.tags, 10033));
+		let t = Q(null), n = Q(null), r = Q(null), i = null, a = null, o = G(() => l(rn.main, 10031)), s = G(() => l(rn.submenu, 10032)), c = G(() => l(rn.tags, 10033));
 		function l(e, t) {
 			return {
 				position: "fixed",
@@ -23287,7 +23392,7 @@ var wx = { class: "mjr-sidebar-preview" }, Tx = ["src"], Ex = ["src"], Dx = ["sr
 		}
 		function d() {
 			u(), i = setTimeout(() => {
-				pn();
+				mn();
 			}, 180);
 		}
 		function f(e, t) {
@@ -23296,7 +23401,7 @@ var wx = { class: "mjr-sidebar-preview" }, Tx = ["src"], Ex = ["src"], Dx = ["sr
 			a + n.width > r && (a = Math.max(8, r - n.width - 10)), o + n.height > i && (o = Math.max(8, i - n.height - 10)), a < 8 && (a = 8), o < 8 && (o = 8), e.x = a, e.y = o;
 		}
 		async function p(e, t) {
-			await Yn(), f(e, t?.value || null);
+			await Xn(), f(e, t?.value || null);
 		}
 		function m(e) {
 			try {
@@ -23307,14 +23412,14 @@ var wx = { class: "mjr-sidebar-preview" }, Tx = ["src"], Ex = ["src"], Dx = ["sr
 		}
 		function h(e, t) {
 			if (!Array.isArray(e?.submenu) || !e.submenu.length) {
-				pn();
+				mn();
 				return;
 			}
 			u();
 			let n = (t?.currentTarget)?.getBoundingClientRect?.();
-			mn({
-				x: Math.round((n?.right || nn.main.x || 0) + 6),
-				y: Math.round((n?.top || nn.main.y || 0) - 4),
+			hn({
+				x: Math.round((n?.right || rn.main.x || 0) + 6),
+				y: Math.round((n?.top || rn.main.y || 0) - 4),
 				items: e.submenu,
 				title: e.label || ""
 			});
@@ -23327,12 +23432,12 @@ var wx = { class: "mjr-sidebar-preview" }, Tx = ["src"], Ex = ["src"], Dx = ["sr
 				} catch (e) {
 					console.error("[GridContextMenu.vue] Action failed:", e);
 				} finally {
-					e.closeOnSelect === !1 ? n === "submenu" && pn() : dn();
+					e.closeOnSelect === !1 ? n === "submenu" && mn() : fn();
 				}
 			}
 		}
 		function _(e, t) {
-			Array.isArray(e?.submenu) && e.submenu.length ? h(e, t) : pn();
+			Array.isArray(e?.submenu) && e.submenu.length ? h(e, t) : mn();
 		}
 		function v(e) {
 			Array.isArray(e?.submenu) && e.submenu.length && d();
@@ -23345,37 +23450,37 @@ var wx = { class: "mjr-sidebar-preview" }, Tx = ["src"], Ex = ["src"], Dx = ["sr
 		}
 		function x(e) {
 			let i = e?.target;
-			t.value?.contains?.(i) || n.value?.contains?.(i) || r.value?.contains?.(i) || dn();
+			t.value?.contains?.(i) || n.value?.contains?.(i) || r.value?.contains?.(i) || fn();
 		}
 		function S(e) {
-			e?.key === "Escape" && dn();
+			e?.key === "Escape" && fn();
 		}
 		function C() {
-			dn();
+			fn();
 		}
 		function w(e) {
 			let t = e?.detail;
-			String(t?.source || "") !== "grid" && dn();
+			String(t?.source || "") !== "grid" && fn();
 		}
 		function T(e) {
-			let t = nn.tags.asset;
+			let t = rn.tags.asset;
 			t && (t.tags = Array.isArray(e) ? [...e] : []);
 		}
 		function E(e) {
 			let t = Array.isArray(e?.tags) ? e.tags : [];
 			try {
-				nn.tags.onChanged?.(t);
+				rn.tags.onChanged?.(t);
 			} catch (e) {
 				console.debug?.(e);
 			}
 		}
-		return cr(() => nn.main.open, async (e) => {
-			e && (await p(nn.main, t), m(t));
-		}), cr(() => nn.submenu.open, async (e) => {
-			e && (await p(nn.submenu, n), m(n));
-		}), cr(() => nn.tags.open, async (e) => {
-			e && await p(nn.tags, r);
-		}), $n(() => {
+		return q(() => rn.main.open, async (e) => {
+			e && (await p(rn.main, t), m(t));
+		}), q(() => rn.submenu.open, async (e) => {
+			e && (await p(rn.submenu, n), m(n));
+		}), q(() => rn.tags.open, async (e) => {
+			e && await p(rn.tags, r);
+		}), er(() => {
 			a = new AbortController();
 			let e = {
 				capture: !0,
@@ -23389,18 +23494,18 @@ var wx = { class: "mjr-sidebar-preview" }, Tx = ["src"], Ex = ["src"], Dx = ["sr
 				passive: !0,
 				signal: a.signal
 			}), window.addEventListener("mjr-close-all-menus", w, { signal: a.signal });
-		}), or(() => {
+		}), sr(() => {
 			u();
 			try {
 				a?.abort();
 			} catch (e) {
 				console.debug?.(e);
 			}
-			a = null, dn();
+			a = null, fn();
 		}), (e, i) => {
-			let a = er("MButton");
-			return q(), Xn(xr, { to: "body" }, [
-				Z(nn).main.open ? (q(), Y("div", {
+			let a = tr("MButton");
+			return K(), Zn(xr, { to: "body" }, [
+				Z(rn).main.open ? (K(), Y("div", {
 					key: 0,
 					ref_key: "mainMenuRef",
 					ref: t,
@@ -23408,7 +23513,7 @@ var wx = { class: "mjr-sidebar-preview" }, Tx = ["src"], Ex = ["src"], Dx = ["sr
 					style: mr(o.value),
 					role: "menu",
 					"aria-label": "Grid context menu"
-				}, [(q(!0), Y(V, null, tr(Z(nn).main.items, (e) => (q(), Y(V, { key: e.id }, [e.type === "separator" ? (q(), Y("div", Kx)) : (q(), Xn(a, {
+				}, [(K(!0), Y(B, null, nr(Z(rn).main.items, (e) => (K(), Y(B, { key: e.id }, [e.type === "separator" ? (K(), Y("div", Xx)) : (K(), Zn(a, {
 					key: 1,
 					type: "button",
 					class: X(["mjr-context-menu-item", {
@@ -23428,10 +23533,10 @@ var wx = { class: "mjr-sidebar-preview" }, Tx = ["src"], Ex = ["src"], Dx = ["sr
 					onMouseenter: (t) => _(e, t),
 					onMouseleave: (t) => v(e)
 				}, {
-					default: G(() => [H("span", qx, [e.iconClass ? (q(), Y("i", {
+					default: W(() => [V("span", Zx, [e.iconClass ? (K(), Y("i", {
 						key: 0,
 						class: X(e.iconClass)
-					}, null, 2)) : W("", !0), H("span", null, J(e.label), 1)]), H("span", Jx, [e.rightHint ? (q(), Y("span", Yx, J(e.rightHint), 1)) : W("", !0), Array.isArray(e.submenu) && e.submenu.length ? (q(), Y("span", Xx, " > ")) : W("", !0)])]),
+					}, null, 2)) : U("", !0), V("span", null, J(e.label), 1)]), V("span", Qx, [e.rightHint ? (K(), Y("span", $x, J(e.rightHint), 1)) : U("", !0), Array.isArray(e.submenu) && e.submenu.length ? (K(), Y("span", eS, " > ")) : U("", !0)])]),
 					_: 2
 				}, 1032, [
 					"class",
@@ -23440,8 +23545,8 @@ var wx = { class: "mjr-sidebar-preview" }, Tx = ["src"], Ex = ["src"], Dx = ["sr
 					"onClick",
 					"onMouseenter",
 					"onMouseleave"
-				]))], 64))), 128))], 4)) : W("", !0),
-				Z(nn).submenu.open ? (q(), Y("div", {
+				]))], 64))), 128))], 4)) : U("", !0),
+				Z(rn).submenu.open ? (K(), Y("div", {
 					key: 1,
 					ref_key: "submenuRef",
 					ref: n,
@@ -23451,7 +23556,7 @@ var wx = { class: "mjr-sidebar-preview" }, Tx = ["src"], Ex = ["src"], Dx = ["sr
 					"aria-label": "Grid context submenu",
 					onMouseenter: y,
 					onMouseleave: b
-				}, [(q(!0), Y(V, null, tr(Z(nn).submenu.items, (e) => (q(), Y(V, { key: e.id }, [e.type === "separator" ? (q(), Y("div", Zx)) : (q(), Xn(a, {
+				}, [(K(!0), Y(B, null, nr(Z(rn).submenu.items, (e) => (K(), Y(B, { key: e.id }, [e.type === "separator" ? (K(), Y("div", tS)) : (K(), Zn(a, {
 					key: 1,
 					type: "button",
 					class: X(["mjr-context-menu-item", {
@@ -23468,33 +23573,33 @@ var wx = { class: "mjr-sidebar-preview" }, Tx = ["src"], Ex = ["src"], Dx = ["sr
 					tabindex: e.disabled ? -1 : 0,
 					onClick: (t) => g(e, t, "submenu")
 				}, {
-					default: G(() => [H("span", Qx, [e.iconClass ? (q(), Y("i", {
+					default: W(() => [V("span", nS, [e.iconClass ? (K(), Y("i", {
 						key: 0,
 						class: X(e.iconClass)
-					}, null, 2)) : W("", !0), H("span", null, J(e.label), 1)]), e.rightHint ? (q(), Y("span", $x, J(e.rightHint), 1)) : W("", !0)]),
+					}, null, 2)) : U("", !0), V("span", null, J(e.label), 1)]), e.rightHint ? (K(), Y("span", rS, J(e.rightHint), 1)) : U("", !0)]),
 					_: 2
 				}, 1032, [
 					"class",
 					"aria-disabled",
 					"tabindex",
 					"onClick"
-				]))], 64))), 128))], 36)) : W("", !0),
-				Z(nn).tags.open && Z(nn).tags.asset ? (q(), Y("div", {
+				]))], 64))), 128))], 36)) : U("", !0),
+				Z(rn).tags.open && Z(rn).tags.asset ? (K(), Y("div", {
 					key: 2,
 					ref_key: "tagsPopoverRef",
 					ref: r,
 					class: "mjr-grid-popover",
 					style: mr(c.value)
-				}, [U(Vn, {
-					asset: Z(nn).tags.asset,
-					"model-value": Z(nn).tags.asset?.tags || [],
+				}, [H(Hn, {
+					asset: Z(rn).tags.asset,
+					"model-value": Z(rn).tags.asset?.tags || [],
 					"onUpdate:modelValue": T,
 					onTagsChange: E
-				}, null, 8, ["asset", "model-value"])], 4)) : W("", !0)
+				}, null, 8, ["asset", "model-value"])], 4)) : U("", !0)
 			]);
 		};
 	}
-}), tS = { class: "mjr-workflow-picker-dialog mjr-workflow-info-dialog" }, nS = { class: "mjr-workflow-picker-header" }, rS = { class: "mjr-workflow-picker-title" }, iS = { class: "mjr-workflow-picker-subtitle" }, aS = { class: "mjr-workflow-info-form" }, oS = { class: "is-wide" }, sS = { class: "mjr-workflow-picker-footer" }, cS = /* @__PURE__ */ rr({
+}), aS = { class: "mjr-workflow-picker-dialog mjr-workflow-info-dialog" }, oS = { class: "mjr-workflow-picker-header" }, sS = { class: "mjr-workflow-picker-title" }, cS = { class: "mjr-workflow-picker-subtitle" }, lS = { class: "mjr-workflow-info-form" }, uS = { class: "is-wide" }, dS = { class: "mjr-workflow-picker-footer" }, fS = /* @__PURE__ */ ir({
 	__name: "WorkflowInfoDialog",
 	setup(e) {
 		let t = _r({
@@ -23503,8 +23608,8 @@ var wx = { class: "mjr-sidebar-preview" }, Tx = ["src"], Ex = ["src"], Dx = ["sr
 			provider: "",
 			runs_on: "",
 			notes: ""
-		}), n = K(() => ya.workflow || null), r = K(() => String(n.value?.display_name || n.value?.filename || "Workflow"));
-		cr(() => ya.open, (e) => {
+		}), n = G(() => ya.workflow || null), r = G(() => String(n.value?.display_name || n.value?.filename || "Workflow"));
+		q(() => ya.open, (e) => {
 			if (!e) return;
 			let r = n.value || {};
 			t.task = String(r.user_task || r.task || ""), t.model_family = String(r.user_model_family || r.model_family || ""), t.provider = String(r.user_provider || r.provider || ""), t.runs_on = String(r.user_runs_on || r.runs_on || ""), t.notes = String(r.notes || "");
@@ -23515,83 +23620,83 @@ var wx = { class: "mjr-sidebar-preview" }, Tx = ["src"], Ex = ["src"], Dx = ["sr
 		async function a() {
 			let e = String(n.value?.filepath || "").trim();
 			if (!e) {
-				m(L("toast.workflowMissingPath", "Workflow file path is missing."), "error");
+				F(I("toast.workflowMissingPath", "Workflow file path is missing."), "error");
 				return;
 			}
-			let r = await o({
+			let r = await M({
 				filepath: e,
 				...t
 			}, { timeoutMs: 2e4 });
-			r?.ok ? (m(L("toast.workflowUpdated", "Workflow updated"), "success", 1800), window?.dispatchEvent?.(new CustomEvent("mjr:reload-grid", { detail: { reason: "workflow-info" } })), i()) : m(r?.error || L("toast.workflowSaveFailed", "Failed to save workflow."), "error");
+			r?.ok ? (F(I("toast.workflowUpdated", "Workflow updated"), "success", 1800), window?.dispatchEvent?.(new CustomEvent("mjr:reload-grid", { detail: { reason: "workflow-info" } })), i()) : F(r?.error || I("toast.workflowSaveFailed", "Failed to save workflow."), "error");
 		}
-		return (e, n) => (q(), Xn(xr, { to: "body" }, [Z(ya).open ? (q(), Y("div", {
+		return (e, n) => (K(), Zn(xr, { to: "body" }, [Z(ya).open ? (K(), Y("div", {
 			key: 0,
 			class: "mjr-workflow-picker-backdrop",
-			onClick: ar(i, ["self"])
-		}, [H("section", tS, [
-			H("header", nS, [H("div", null, [H("div", rS, J(Z(L)("ctx.editWorkflowInfo", "Edit infos")), 1), H("div", iS, J(r.value), 1)]), H("button", {
+			onClick: or(i, ["self"])
+		}, [V("section", aS, [
+			V("header", oS, [V("div", null, [V("div", sS, J(Z(I)("ctx.editWorkflowInfo", "Edit infos")), 1), V("div", cS, J(r.value), 1)]), V("button", {
 				type: "button",
 				class: "mjr-workflow-picker-close",
 				onClick: i
-			}, [...n[5] ||= [H("i", { class: "pi pi-times" }, null, -1)]])]),
-			H("div", aS, [
-				H("label", null, [n[6] ||= H("span", null, "Task", -1), Jn(H("input", {
+			}, [...n[5] ||= [V("i", { class: "pi pi-times" }, null, -1)]])]),
+			V("div", lS, [
+				V("label", null, [n[6] ||= V("span", null, "Task", -1), Yn(V("input", {
 					"onUpdate:modelValue": n[0] ||= (e) => t.task = e,
 					type: "text",
 					placeholder: "I2V, I2I, T2V, Image Edit..."
 				}, null, 512), [[Cr, t.task]])]),
-				H("label", null, [n[7] ||= H("span", null, "Model family", -1), Jn(H("input", {
+				V("label", null, [n[7] ||= V("span", null, "Model family", -1), Yn(V("input", {
 					"onUpdate:modelValue": n[1] ||= (e) => t.model_family = e,
 					type: "text",
 					placeholder: "Flux, Qwen, Wan..."
 				}, null, 512), [[Cr, t.model_family]])]),
-				H("label", null, [n[8] ||= H("span", null, "Provider", -1), Jn(H("input", {
+				V("label", null, [n[8] ||= V("span", null, "Provider", -1), Yn(V("input", {
 					"onUpdate:modelValue": n[2] ||= (e) => t.provider = e,
 					type: "text",
 					placeholder: "Google, ByteDance, local..."
 				}, null, 512), [[Cr, t.provider]])]),
-				H("label", null, [n[10] ||= H("span", null, "Runs on", -1), Jn(H("select", { "onUpdate:modelValue": n[3] ||= (e) => t.runs_on = e }, [...n[9] ||= [
-					H("option", { value: "" }, "Auto", -1),
-					H("option", { value: "local" }, "local", -1),
-					H("option", { value: "api" }, "api", -1),
-					H("option", { value: "cloud" }, "cloud", -1)
+				V("label", null, [n[10] ||= V("span", null, "Runs on", -1), Yn(V("select", { "onUpdate:modelValue": n[3] ||= (e) => t.runs_on = e }, [...n[9] ||= [
+					V("option", { value: "" }, "Auto", -1),
+					V("option", { value: "local" }, "local", -1),
+					V("option", { value: "api" }, "api", -1),
+					V("option", { value: "cloud" }, "cloud", -1)
 				]], 512), [[br, t.runs_on]])]),
-				H("label", oS, [n[11] ||= H("span", null, "Notes", -1), Jn(H("textarea", {
+				V("label", uS, [n[11] ||= V("span", null, "Notes", -1), Yn(V("textarea", {
 					"onUpdate:modelValue": n[4] ||= (e) => t.notes = e,
 					rows: "5",
 					placeholder: "Notes displayed on workflow hover"
 				}, null, 512), [[Cr, t.notes]])])
 			]),
-			H("footer", sS, [H("button", {
+			V("footer", dS, [V("button", {
 				type: "button",
 				class: "mjr-workflow-picker-secondary",
 				onClick: i
-			}, J(Z(L)("btn.cancel", "Cancel")), 1), H("button", {
+			}, J(Z(I)("btn.cancel", "Cancel")), 1), V("button", {
 				type: "button",
 				class: "mjr-workflow-picker-primary",
 				onClick: a
-			}, J(Z(L)("btn.apply", "Apply")), 1)])
-		])])) : W("", !0)]));
+			}, J(Z(I)("btn.apply", "Apply")), 1)])
+		])])) : U("", !0)]));
 	}
-}), lS = { class: "mjr-workflow-picker-header" }, uS = { class: "mjr-workflow-picker-title" }, dS = {
+}), pS = { class: "mjr-workflow-picker-header" }, mS = { class: "mjr-workflow-picker-title" }, hS = {
 	key: 0,
 	class: "mjr-workflow-picker-source"
-}, fS = { class: "mjr-workflow-picker-toolbar" }, pS = { class: "mjr-workflow-picker-search" }, mS = ["placeholder"], hS = { value: "" }, gS = ["value"], _S = { value: "" }, vS = ["value"], yS = { value: "" }, bS = ["value"], xS = { class: "mjr-workflow-picker-body" }, SS = {
+}, gS = { class: "mjr-workflow-picker-toolbar" }, _S = { class: "mjr-workflow-picker-search" }, vS = ["placeholder"], yS = { value: "" }, bS = ["value"], xS = { value: "" }, SS = ["value"], CS = { value: "" }, wS = ["value"], TS = { class: "mjr-workflow-picker-body" }, ES = {
 	key: 0,
 	class: "mjr-workflow-picker-empty"
-}, CS = {
+}, DS = {
 	key: 1,
 	class: "mjr-workflow-picker-empty is-error"
-}, wS = {
+}, OS = {
 	key: 2,
 	class: "mjr-workflow-picker-empty"
-}, TS = ["onClick"], ES = { class: "mjr-workflow-picker-thumb" }, DS = ["src", "alt"], OS = {
+}, kS = ["onClick"], AS = { class: "mjr-workflow-picker-thumb" }, jS = ["src", "alt"], MS = {
 	key: 1,
 	class: "pi pi-sitemap"
-}, kS = { class: "mjr-workflow-picker-card-info" }, AS = ["disabled"], jS = { class: "mjr-workflow-picker-card-info" }, MS = { class: "mjr-workflow-picker-footer" }, NS = ["disabled"], PS = 120, FS = /* @__PURE__ */ rr({
+}, NS = { class: "mjr-workflow-picker-card-info" }, PS = ["disabled"], FS = { class: "mjr-workflow-picker-card-info" }, IS = { class: "mjr-workflow-picker-footer" }, LS = ["disabled"], RS = 120, zS = /* @__PURE__ */ ir({
 	__name: "WorkflowPickerDialog",
 	setup(e) {
-		let t = Q(""), n = Q(!1), r = Q(!1), i = Q(""), a = Q([]), o = Q(""), s = Q(0), c = Q(!1), l = 0, u = K(() => Pn.sourceAsset || null), d = K(() => Pn.workflow || null), f = K(() => String(Pn.mode || "") === "asset"), p = K(() => String(u.value?.filename || u.value?.display_name || d.value?.display_name || d.value?.filename || u.value?.filepath || d.value?.filepath || "")), m = K(() => b("task")), h = K(() => b("model_family")), g = K(() => b("runs_on")), _ = Q(""), v = Q(""), y = Q("");
+		let t = Q(""), n = Q(!1), r = Q(!1), i = Q(""), a = Q([]), o = Q(""), s = Q(0), c = Q(!1), l = 0, u = G(() => Fn.sourceAsset || null), d = G(() => Fn.workflow || null), f = G(() => String(Fn.mode || "") === "asset"), p = G(() => String(u.value?.filename || u.value?.display_name || d.value?.display_name || d.value?.filename || u.value?.filepath || d.value?.filepath || "")), m = G(() => b("task")), h = G(() => b("model_family")), g = G(() => b("runs_on")), _ = Q(""), v = Q(""), y = Q("");
 		function b(e) {
 			let t = /* @__PURE__ */ new Set();
 			for (let n of a.value || []) {
@@ -23600,7 +23705,7 @@ var wx = { class: "mjr-sidebar-preview" }, Tx = ["src"], Ex = ["src"], Dx = ["sr
 			}
 			return Array.from(t).sort((e, t) => e.localeCompare(t));
 		}
-		let x = K(() => {
+		let x = G(() => {
 			let e = t.value.trim().toLowerCase();
 			return (a.value || []).filter((t) => !f.value && (_.value && String(t?.task || "") !== _.value || v.value && String(t?.model_family || "") !== v.value || y.value && String(t?.runs_on || "") !== y.value) ? !1 : !e || [
 				t?.display_name,
@@ -23613,7 +23718,7 @@ var wx = { class: "mjr-sidebar-preview" }, Tx = ["src"], Ex = ["src"], Dx = ["sr
 				t?.kind,
 				t?.filepath
 			].join(" ").toLowerCase().includes(e));
-		}), S = K(() => (a.value || []).find((e) => String(e?.filepath || "") === o.value) || null);
+		}), S = G(() => (a.value || []).find((e) => String(e?.filepath || "") === o.value) || null);
 		function C(e) {
 			return String(e?.display_name || e?.name || e?.filename || "Workflow");
 		}
@@ -23635,12 +23740,12 @@ var wx = { class: "mjr-sidebar-preview" }, Tx = ["src"], Ex = ["src"], Dx = ["sr
 			e ? n.value = !0 : r.value = !0, i.value = "";
 			try {
 				if (f.value) {
-					a.value = Array.isArray(Pn.items) ? Pn.items.filter((e) => String(e?.filepath || "").trim()) : [], !o.value && a.value[0]?.filepath && (o.value = String(a.value[0].filepath));
+					a.value = Array.isArray(Fn.items) ? Fn.items.filter((e) => String(e?.filepath || "").trim()) : [], !o.value && a.value[0]?.filepath && (o.value = String(a.value[0].filepath));
 					return;
 				}
-				let n = await le({
+				let n = await we({
 					q: "*",
-					limit: PS,
+					limit: RS,
 					offset: u,
 					sort: "mtime"
 				}, { timeoutMs: 2e4 });
@@ -23650,7 +23755,7 @@ var wx = { class: "mjr-sidebar-preview" }, Tx = ["src"], Ex = ["src"], Dx = ["sr
 					return;
 				}
 				let r = (Array.isArray(n?.data?.assets) ? n.data.assets : Array.isArray(n?.data) ? n.data : []).filter((e) => String(e?.filepath || "").trim());
-				a.value = e ? r : [...a.value, ...r], s.value = u + r.length, c.value = r.length >= PS, !o.value && a.value[0]?.filepath && (o.value = String(a.value[0].filepath));
+				a.value = e ? r : [...a.value, ...r], s.value = u + r.length, c.value = r.length >= RS, !o.value && a.value[0]?.filepath && (o.value = String(a.value[0].filepath));
 			} catch (e) {
 				t === l && (i.value = String(e?.message || e || "Failed to load workflows"), a.value = []);
 			} finally {
@@ -23664,15 +23769,15 @@ var wx = { class: "mjr-sidebar-preview" }, Tx = ["src"], Ex = ["src"], Dx = ["sr
 			if (!(n.value || r.value || !c.value)) return E({ reset: !1 });
 		}
 		function k() {
-			S.value && En(S.value);
+			S.value && Dn(S.value);
 		}
 		function A() {
-			En(null);
+			Dn(null);
 		}
 		function ee(e) {
 			e.key === "Escape" && (e.preventDefault(), A());
 		}
-		return cr(() => Pn.open, (e) => {
+		return q(() => Fn.open, (e) => {
 			if (e) {
 				o.value = "", s.value = 0, c.value = !1, t.value = "", _.value = "", v.value = "", y.value = "", D();
 				try {
@@ -23681,92 +23786,92 @@ var wx = { class: "mjr-sidebar-preview" }, Tx = ["src"], Ex = ["src"], Dx = ["sr
 			} else try {
 				window.removeEventListener("keydown", ee);
 			} catch {}
-		}), sr(() => {
+		}), cr(() => {
 			try {
 				window.removeEventListener("keydown", ee);
 			} catch {}
-		}), (e, a) => (q(), Xn(xr, { to: "body" }, [Z(Pn).open ? (q(), Y("div", {
+		}), (e, a) => (K(), Zn(xr, { to: "body" }, [Z(Fn).open ? (K(), Y("div", {
 			key: 0,
 			class: "mjr-workflow-picker-backdrop",
-			onMousedown: ar(A, ["self"])
-		}, [H("section", {
+			onMousedown: or(A, ["self"])
+		}, [V("section", {
 			class: X(["mjr-workflow-picker-dialog", { "is-asset-mode": f.value }]),
 			role: "dialog",
 			"aria-modal": "true"
 		}, [
-			H("header", lS, [H("div", uS, [a[4] ||= H("i", { class: "pi pi-sitemap" }, null, -1), H("span", null, J(Z(Pn).title), 1)]), H("button", {
+			V("header", pS, [V("div", mS, [a[4] ||= V("i", { class: "pi pi-sitemap" }, null, -1), V("span", null, J(Z(Fn).title), 1)]), V("button", {
 				class: "mjr-workflow-picker-icon-btn",
 				type: "button",
 				onClick: A
-			}, [...a[5] ||= [H("i", { class: "pi pi-times" }, null, -1)]])]),
-			p.value ? (q(), Y("div", dS, [H("span", null, J(f.value ? Z(L)("tab.workflow", "Workflow") : Z(L)("dialog.workflowThumbnailSource", "Source")), 1), H("strong", null, J(p.value), 1)])) : W("", !0),
-			H("div", fS, [
-				H("label", pS, [a[6] ||= H("i", { class: "pi pi-search" }, null, -1), Jn(H("input", {
+			}, [...a[5] ||= [V("i", { class: "pi pi-times" }, null, -1)]])]),
+			p.value ? (K(), Y("div", hS, [V("span", null, J(f.value ? Z(I)("tab.workflow", "Workflow") : Z(I)("dialog.workflowThumbnailSource", "Source")), 1), V("strong", null, J(p.value), 1)])) : U("", !0),
+			V("div", gS, [
+				V("label", _S, [a[6] ||= V("i", { class: "pi pi-search" }, null, -1), Yn(V("input", {
 					"onUpdate:modelValue": a[0] ||= (e) => t.value = e,
 					type: "search",
-					placeholder: Z(L)("search.workflows", "Search workflows...")
-				}, null, 8, mS), [[Cr, t.value]])]),
-				f.value ? W("", !0) : Jn((q(), Y("select", {
+					placeholder: Z(I)("search.workflows", "Search workflows...")
+				}, null, 8, vS), [[Cr, t.value]])]),
+				f.value ? U("", !0) : Yn((K(), Y("select", {
 					key: 0,
 					"onUpdate:modelValue": a[1] ||= (e) => _.value = e
-				}, [H("option", hS, J(Z(L)("filter.task", "Task")), 1), (q(!0), Y(V, null, tr(m.value, (e) => (q(), Y("option", {
+				}, [V("option", yS, J(Z(I)("filter.task", "Task")), 1), (K(!0), Y(B, null, nr(m.value, (e) => (K(), Y("option", {
 					key: e,
 					value: e
-				}, J(e), 9, gS))), 128))], 512)), [[br, _.value]]),
-				f.value ? W("", !0) : Jn((q(), Y("select", {
+				}, J(e), 9, bS))), 128))], 512)), [[br, _.value]]),
+				f.value ? U("", !0) : Yn((K(), Y("select", {
 					key: 1,
 					"onUpdate:modelValue": a[2] ||= (e) => v.value = e
-				}, [H("option", _S, J(Z(L)("filter.model", "Model")), 1), (q(!0), Y(V, null, tr(h.value, (e) => (q(), Y("option", {
+				}, [V("option", xS, J(Z(I)("filter.model", "Model")), 1), (K(!0), Y(B, null, nr(h.value, (e) => (K(), Y("option", {
 					key: e,
 					value: e
-				}, J(e), 9, vS))), 128))], 512)), [[br, v.value]]),
-				f.value ? W("", !0) : Jn((q(), Y("select", {
+				}, J(e), 9, SS))), 128))], 512)), [[br, v.value]]),
+				f.value ? U("", !0) : Yn((K(), Y("select", {
 					key: 2,
 					"onUpdate:modelValue": a[3] ||= (e) => y.value = e
-				}, [H("option", yS, J(Z(L)("filter.runsOn", "Runs on")), 1), (q(!0), Y(V, null, tr(g.value, (e) => (q(), Y("option", {
+				}, [V("option", CS, J(Z(I)("filter.runsOn", "Runs on")), 1), (K(!0), Y(B, null, nr(g.value, (e) => (K(), Y("option", {
 					key: e,
 					value: e
-				}, J(e), 9, bS))), 128))], 512)), [[br, y.value]])
+				}, J(e), 9, wS))), 128))], 512)), [[br, y.value]])
 			]),
-			H("div", xS, [n.value ? (q(), Y("div", SS, J(Z(L)("status.loading", "Loading...")), 1)) : i.value ? (q(), Y("div", CS, J(i.value), 1)) : x.value.length ? (q(), Y(V, { key: 3 }, [(q(!0), Y(V, null, tr(x.value, (e) => (q(), Y("button", {
+			V("div", TS, [n.value ? (K(), Y("div", ES, J(Z(I)("status.loading", "Loading...")), 1)) : i.value ? (K(), Y("div", DS, J(i.value), 1)) : x.value.length ? (K(), Y(B, { key: 3 }, [(K(!0), Y(B, null, nr(x.value, (e) => (K(), Y("button", {
 				key: e.filepath,
 				type: "button",
 				class: X(["mjr-workflow-picker-card", { "is-selected": o.value === String(e.filepath || "") }]),
 				onClick: (t) => o.value = String(e.filepath || ""),
 				onDblclick: k
-			}, [H("div", ES, [T(e) ? (q(), Y("img", {
+			}, [V("div", AS, [T(e) ? (K(), Y("img", {
 				key: 0,
 				src: T(e),
 				alt: C(e),
 				loading: "lazy"
-			}, null, 8, DS)) : (q(), Y("i", OS))]), H("div", kS, [
-				H("strong", null, J(C(e)), 1),
-				H("span", null, J(w(e)), 1),
-				H("small", null, J(e.filename), 1)
-			])], 42, TS))), 128)), !f.value && c.value ? (q(), Y("button", {
+			}, null, 8, jS)) : (K(), Y("i", MS))]), V("div", NS, [
+				V("strong", null, J(C(e)), 1),
+				V("span", null, J(w(e)), 1),
+				V("small", null, J(e.filename), 1)
+			])], 42, kS))), 128)), !f.value && c.value ? (K(), Y("button", {
 				key: 0,
 				type: "button",
 				class: "mjr-workflow-picker-card mjr-workflow-picker-load-more",
 				disabled: r.value,
 				onClick: O
-			}, [a[7] ||= H("div", { class: "mjr-workflow-picker-thumb" }, [H("i", { class: "pi pi-angle-down" })], -1), H("div", jS, [
-				H("strong", null, J(r.value ? Z(L)("status.loading", "Loading...") : Z(L)("action.loadMore", "Load more")), 1),
-				H("span", null, J(Z(L)("tab.workflow", "Workflow")), 1),
-				H("small", null, J(s.value) + " loaded", 1)
-			])], 8, AS)) : W("", !0)], 64)) : (q(), Y("div", wS, J(Z(L)("toast.noWorkflowsFound", "No workflows found.")), 1))]),
-			H("footer", MS, [H("button", {
+			}, [a[7] ||= V("div", { class: "mjr-workflow-picker-thumb" }, [V("i", { class: "pi pi-angle-down" })], -1), V("div", FS, [
+				V("strong", null, J(r.value ? Z(I)("status.loading", "Loading...") : Z(I)("action.loadMore", "Load more")), 1),
+				V("span", null, J(Z(I)("tab.workflow", "Workflow")), 1),
+				V("small", null, J(s.value) + " loaded", 1)
+			])], 8, PS)) : U("", !0)], 64)) : (K(), Y("div", OS, J(Z(I)("toast.noWorkflowsFound", "No workflows found.")), 1))]),
+			V("footer", IS, [V("button", {
 				type: "button",
 				class: "mjr-workflow-picker-btn",
 				onClick: A
-			}, J(Z(L)("action.cancel", "Cancel")), 1), H("button", {
+			}, J(Z(I)("action.cancel", "Cancel")), 1), V("button", {
 				type: "button",
 				class: "mjr-workflow-picker-btn is-primary",
 				disabled: !S.value,
 				onClick: k
-			}, J(Z(L)("action.apply", "Apply")), 9, NS)])
-		], 2)], 32)) : W("", !0)]));
+			}, J(Z(I)("action.apply", "Apply")), 9, LS)])
+		], 2)], 32)) : U("", !0)]));
 	}
-}), IS = { class: "mjr-workflow-picker-dialog mjr-workflow-info-dialog" }, LS = { class: "mjr-workflow-picker-header" }, RS = { class: "mjr-workflow-picker-title" }, zS = { class: "mjr-workflow-picker-subtitle" }, BS = { class: "mjr-workflow-info-form" }, VS = { class: "is-wide" }, HS = { class: "is-wide" }, US = { class: "mjr-workflow-picker-footer" }, WS = /* @__PURE__ */ rr({
+}), BS = { class: "mjr-workflow-picker-dialog mjr-workflow-info-dialog" }, VS = { class: "mjr-workflow-picker-header" }, HS = { class: "mjr-workflow-picker-title" }, US = { class: "mjr-workflow-picker-subtitle" }, WS = { class: "mjr-workflow-info-form" }, GS = { class: "is-wide" }, KS = { class: "is-wide" }, qS = { class: "mjr-workflow-picker-footer" }, JS = /* @__PURE__ */ ir({
 	__name: "WorkflowSaveInfoDialog",
 	setup(e) {
 		let t = _r({
@@ -23776,18 +23881,18 @@ var wx = { class: "mjr-sidebar-preview" }, Tx = ["src"], Ex = ["src"], Dx = ["sr
 			provider: "",
 			runs_on: "",
 			notes: ""
-		}), n = K(() => cv.initial || {}), r = K(() => L("dialog.saveWorkflowWithInfo", "Save workflow")), i = K(() => L("dialog.workflowInfoAutoFallback", "Leave fields empty to use automatic workflow detection."));
-		cr(() => cv.open, (e) => {
+		}), n = G(() => fv.initial || {}), r = G(() => I("dialog.saveWorkflowWithInfo", "Save workflow")), i = G(() => I("dialog.workflowInfoAutoFallback", "Leave fields empty to use automatic workflow detection."));
+		q(() => fv.open, (e) => {
 			if (!e) return;
 			let r = n.value || {};
 			t.name = String(r.name || r.workflow?.name || r.workflow?.title || "workflow").trim(), t.task = String(r.task || ""), t.model_family = String(r.model_family || ""), t.provider = String(r.provider || ""), t.runs_on = String(r.runs_on || ""), t.notes = String(r.notes || "");
 		});
 		function a() {
-			uv(null);
+			mv(null);
 		}
 		function o() {
 			let e = String(t.name || "").trim();
-			e && uv({
+			e && mv({
 				name: e,
 				task: String(t.task || "").trim(),
 				model_family: String(t.model_family || "").trim(),
@@ -23797,47 +23902,47 @@ var wx = { class: "mjr-sidebar-preview" }, Tx = ["src"], Ex = ["src"], Dx = ["sr
 			});
 		}
 		return (e, n) => {
-			let s = er("MButton"), c = er("MInputText"), l = er("MSelect"), u = er("MTextarea");
-			return q(), Xn(xr, { to: "body" }, [Z(cv).open ? (q(), Y("div", {
+			let s = tr("MButton"), c = tr("MInputText"), l = tr("MSelect"), u = tr("MTextarea");
+			return K(), Zn(xr, { to: "body" }, [Z(fv).open ? (K(), Y("div", {
 				key: 0,
 				class: "mjr-workflow-picker-backdrop",
-				onClick: ar(a, ["self"])
-			}, [H("section", IS, [
-				H("header", LS, [H("div", null, [H("div", RS, J(r.value), 1), H("div", zS, J(i.value), 1)]), U(s, {
+				onClick: or(a, ["self"])
+			}, [V("section", BS, [
+				V("header", VS, [V("div", null, [V("div", HS, J(r.value), 1), V("div", US, J(i.value), 1)]), H(s, {
 					type: "button",
 					class: "mjr-workflow-picker-close",
 					onClick: a
 				}, {
-					default: G(() => [...n[6] ||= [H("i", { class: "pi pi-times" }, null, -1)]]),
+					default: W(() => [...n[6] ||= [V("i", { class: "pi pi-times" }, null, -1)]]),
 					_: 1
 				})]),
-				H("div", BS, [
-					H("label", VS, [H("span", null, J(Z(L)("dialog.workflowSaveName", "Workflow name")), 1), U(c, {
+				V("div", WS, [
+					V("label", GS, [V("span", null, J(Z(I)("dialog.workflowSaveName", "Workflow name")), 1), H(c, {
 						modelValue: t.name,
 						"onUpdate:modelValue": n[0] ||= (e) => t.name = e,
 						type: "text",
 						placeholder: "workflow",
-						onKeydown: Sr(ar(o, ["prevent"]), ["enter"])
+						onKeydown: Sr(or(o, ["prevent"]), ["enter"])
 					}, null, 8, ["modelValue", "onKeydown"])]),
-					H("label", null, [n[7] ||= H("span", null, "Task", -1), U(c, {
+					V("label", null, [n[7] ||= V("span", null, "Task", -1), H(c, {
 						modelValue: t.task,
 						"onUpdate:modelValue": n[1] ||= (e) => t.task = e,
 						type: "text",
 						placeholder: "Auto"
 					}, null, 8, ["modelValue"])]),
-					H("label", null, [n[8] ||= H("span", null, "Model family", -1), U(c, {
+					V("label", null, [n[8] ||= V("span", null, "Model family", -1), H(c, {
 						modelValue: t.model_family,
 						"onUpdate:modelValue": n[2] ||= (e) => t.model_family = e,
 						type: "text",
 						placeholder: "Auto"
 					}, null, 8, ["modelValue"])]),
-					H("label", null, [n[9] ||= H("span", null, "Provider", -1), U(c, {
+					V("label", null, [n[9] ||= V("span", null, "Provider", -1), H(c, {
 						modelValue: t.provider,
 						"onUpdate:modelValue": n[3] ||= (e) => t.provider = e,
 						type: "text",
 						placeholder: "Auto"
 					}, null, 8, ["modelValue"])]),
-					H("label", null, [n[10] ||= H("span", null, "Runs on", -1), U(l, {
+					V("label", null, [n[10] ||= V("span", null, "Runs on", -1), H(l, {
 						modelValue: t.runs_on,
 						"onUpdate:modelValue": n[4] ||= (e) => t.runs_on = e,
 						options: [
@@ -23862,49 +23967,49 @@ var wx = { class: "mjr-sidebar-preview" }, Tx = ["src"], Ex = ["src"], Dx = ["sr
 						"option-value": "value",
 						placeholder: "Auto"
 					}, null, 8, ["modelValue"])]),
-					H("label", HS, [n[11] ||= H("span", null, "Notes", -1), U(u, {
+					V("label", KS, [n[11] ||= V("span", null, "Notes", -1), H(u, {
 						modelValue: t.notes,
 						"onUpdate:modelValue": n[5] ||= (e) => t.notes = e,
 						rows: "5",
 						placeholder: "Notes displayed on workflow hover"
 					}, null, 8, ["modelValue"])])
 				]),
-				H("footer", US, [U(s, {
+				V("footer", qS, [H(s, {
 					type: "button",
 					class: "mjr-workflow-picker-secondary",
 					onClick: a
 				}, {
-					default: G(() => [hr(J(Z(L)("btn.cancel", "Cancel")), 1)]),
+					default: W(() => [hr(J(Z(I)("btn.cancel", "Cancel")), 1)]),
 					_: 1
-				}), U(s, {
+				}), H(s, {
 					type: "button",
 					class: "mjr-workflow-picker-primary",
 					disabled: !String(t.name || "").trim(),
 					onClick: o
 				}, {
-					default: G(() => [hr(J(Z(L)("btn.save", "Save")), 1)]),
+					default: W(() => [hr(J(Z(I)("btn.save", "Save")), 1)]),
 					_: 1
 				}, 8, ["disabled"])])
-			])])) : W("", !0)]);
+			])])) : U("", !0)]);
 		};
 	}
-}), GS = /* @__PURE__ */ rr({
+}), YS = /* @__PURE__ */ ir({
 	__name: "ContextMenuPortal",
 	setup(e) {
-		let t = Q(""), n = K(() => on(t.value));
-		return $n(() => {
-			t.value = un();
-		}), or(() => {
-			Qt(t.value), t.value = "";
-		}), (e, t) => n.value ? (q(), Y(V, { key: 0 }, [
-			U(eS),
-			U(Gx),
-			U(FS),
-			U(cS),
-			U(WS)
-		], 64)) : W("", !0);
+		let t = Q(""), n = G(() => sn(t.value));
+		return er(() => {
+			t.value = dn();
+		}), sr(() => {
+			$t(t.value), t.value = "";
+		}), (e, t) => n.value ? (K(), Y(B, { key: 0 }, [
+			H(iS),
+			H(Yx),
+			H(zS),
+			H(fS),
+			H(JS)
+		], 64)) : U("", !0);
 	}
-}), KS = {
+}), XS = {
 	class: "mjr-sidebar-content",
 	style: {
 		flex: "1",
@@ -23914,29 +24019,29 @@ var wx = { class: "mjr-sidebar-preview" }, Tx = ["src"], Ex = ["src"], Dx = ["sr
 		"flex-direction": "column",
 		gap: "16px"
 	}
-}, qS = {
+}, ZS = {
 	class: "mjr-sidebar-rating-tags",
 	style: {
 		display: "flex",
 		"flex-direction": "column",
 		gap: "10px"
 	}
-}, JS = { style: {
+}, QS = { style: {
 	display: "flex",
 	"align-items": "center",
 	gap: "8px"
-} }, YS = { style: {
+} }, $S = { style: {
 	"font-size": "0.8em",
 	opacity: "0.6",
 	"min-width": "44px"
-} }, XS = { style: {
+} }, eC = { style: {
 	display: "flex",
 	"flex-direction": "column",
 	gap: "4px"
-} }, ZS = { style: {
+} }, tC = { style: {
 	"font-size": "0.8em",
 	opacity: "0.6"
-} }, QS = /* @__PURE__ */ rr({
+} }, nC = /* @__PURE__ */ ir({
 	__name: "AssetSidebarContent",
 	props: {
 		asset: {},
@@ -23945,78 +24050,78 @@ var wx = { class: "mjr-sidebar-preview" }, Tx = ["src"], Ex = ["src"], Dx = ["sr
 	},
 	emits: ["close"],
 	setup(e, { emit: t }) {
-		let n = e, r = t, i = K(() => String(n.asset?.kind || "").toLowerCase() === "folder"), a = K(() => {
+		let n = e, r = t, i = G(() => String(n.asset?.kind || "").toLowerCase() === "folder"), a = G(() => {
 			let e = String(n.asset?.kind || "").toLowerCase(), t = String(n.asset?.source || n.asset?.scope || "").toLowerCase(), r = String(n.asset?.filepath || n.asset?.path || "").toLowerCase();
 			return e === "workflow" || t === "workflow" || r.endsWith(".json");
-		}), o = K(() => Number(n.asset?.rating) || 0), s = K(() => n.asset?.tags || []), c = K(() => {
+		}), o = G(() => Number(n.asset?.rating) || 0), s = G(() => n.asset?.tags || []), c = G(() => {
 			try {
-				return !!(Pt()?.sidebar?.showPreviewThumb ?? !0);
+				return !!(Ft()?.sidebar?.showPreviewThumb ?? !0);
 			} catch {
 				return !0;
 			}
 		});
 		function l() {
 			if (n.sidebar) try {
-				Vh(n.sidebar);
+				Gh(n.sidebar);
 			} catch (e) {
 				console.debug?.(e);
 			}
 			else r("close");
 		}
-		let u = Q(!1), d = K(() => String(n.asset?.filepath || n.asset?.path || n.asset?.file_info?.filepath || "").trim());
+		let u = Q(!1), d = G(() => String(n.asset?.filepath || n.asset?.path || n.asset?.file_info?.filepath || "").trim());
 		async function f() {
 			if (!u.value && d.value) {
 				u.value = !0;
 				try {
-					m(L("toast.collectingFiles", "Collecting files..."), "info", 2500);
-					let e = await w(d.value);
+					F(I("toast.collectingFiles", "Collecting files..."), "info", 2500);
+					let e = await Oe(d.value);
 					if (!e?.ok) {
-						m(e?.error || L("toast.collectFilesFailed", "Collect files failed"), "error");
+						F(e?.error || I("toast.collectFilesFailed", "Collect files failed"), "error");
 						return;
 					}
-					let t = e?.data || {}, n = Array.isArray(t.missing) ? t.missing.length : 0, r = t.fallback_used ? L("toast.collectFallbackDir", "output folder (source folder not writable)") : L("toast.collectSameDir", "asset folder"), i = L("toast.collectedFiles", "Collected {name} in {where}", {
+					let t = e?.data || {}, n = Array.isArray(t.missing) ? t.missing.length : 0, r = t.fallback_used ? I("toast.collectFallbackDir", "output folder (source folder not writable)") : I("toast.collectSameDir", "asset folder"), i = I("toast.collectedFiles", "Collected {name} in {where}", {
 						name: String(t.zip_name || "zip"),
 						where: r
 					});
-					n > 0 && (i += ` \u2014 ${n} ${L("toast.collectMissingInputs", "input(s) missing")}`), m(i, n > 0 ? "warning" : "success", 6e3);
+					n > 0 && (i += ` \u2014 ${n} ${I("toast.collectMissingInputs", "input(s) missing")}`), F(i, n > 0 ? "warning" : "success", 6e3);
 				} catch (e) {
-					console.debug?.(e), m(L("toast.collectFilesFailed", "Collect files failed"), "error");
+					console.debug?.(e), F(I("toast.collectFilesFailed", "Collect files failed"), "error");
 				} finally {
 					u.value = !1;
 				}
 			}
 		}
 		return (t, n) => {
-			let r = er("MButton");
-			return q(), Y(V, null, [
-				U(yx, {
+			let r = tr("MButton");
+			return K(), Y(B, null, [
+				H(Cx, {
 					asset: e.asset,
 					onClose: l
 				}, null, 8, ["asset"]),
-				H("div", KS, [i.value ? (q(), Xn(Ix, {
+				V("div", XS, [i.value ? (K(), Zn(Bx, {
 					key: 0,
 					asset: e.asset
-				}, null, 8, ["asset"])) : (q(), Y(V, { key: 1 }, [a.value ? W("", !0) : (q(), Y(V, { key: 0 }, [
-					U(Ax, {
+				}, null, 8, ["asset"])) : (K(), Y(B, { key: 1 }, [a.value ? U("", !0) : (K(), Y(B, { key: 0 }, [
+					H(Px, {
 						asset: e.asset,
 						"show-preview-thumb": c.value
 					}, null, 8, ["asset", "show-preview-thumb"]),
-					H("div", qS, [H("div", JS, [H("span", YS, J(Z(L)("sidebar.rating", "Rating")), 1), U(Fn, {
+					V("div", ZS, [V("div", QS, [V("span", $S, J(Z(I)("sidebar.rating", "Rating")), 1), H(In, {
 						asset: e.asset,
 						"model-value": o.value,
 						size: 60
-					}, null, 8, ["asset", "model-value"])]), H("div", XS, [H("span", ZS, J(Z(L)("sidebar.tags", "Tags")), 1), U(Vn, {
+					}, null, 8, ["asset", "model-value"])]), V("div", eC, [V("span", tC, J(Z(I)("sidebar.tags", "Tags")), 1), H(Hn, {
 						asset: e.asset,
 						"model-value": s.value
 					}, null, 8, ["asset", "model-value"])])]),
-					U(Cn, { asset: e.asset }, null, 8, ["asset"]),
-					d.value ? (q(), Xn(r, {
+					H(wn, { asset: e.asset }, null, 8, ["asset"]),
+					d.value ? (K(), Zn(r, {
 						key: 0,
 						type: "button",
 						class: "mjr-btn mjr-sidebar-collect-btn",
 						severity: "secondary",
 						disabled: u.value,
-						title: Z(L)("sidebar.collectFilesTooltip", "Create a ZIP next to this asset with the workflow JSON, its media inputs and a manifest"),
+						title: Z(I)("sidebar.collectFilesTooltip", "Create a ZIP next to this asset with the workflow JSON, its media inputs and a manifest"),
 						style: {
 							display: "flex",
 							"align-items": "center",
@@ -24026,16 +24131,16 @@ var wx = { class: "mjr-sidebar-preview" }, Tx = ["src"], Ex = ["src"], Dx = ["sr
 						},
 						onClick: f
 					}, {
-						default: G(() => [H("i", { class: X(u.value ? "pi pi-spin pi-spinner" : "pi pi-box") }, null, 2), H("span", null, J(u.value ? Z(L)("sidebar.collectingFiles", "Collecting...") : Z(L)("sidebar.collectFiles", "Collect files")), 1)]),
+						default: W(() => [V("i", { class: X(u.value ? "pi pi-spin pi-spinner" : "pi pi-box") }, null, 2), V("span", null, J(u.value ? Z(I)("sidebar.collectingFiles", "Collecting...") : Z(I)("sidebar.collectFiles", "Collect files")), 1)]),
 						_: 1
-					}, 8, ["disabled", "title"])) : W("", !0),
-					U(An, { asset: e.asset }, null, 8, ["asset"])
-				], 64)), U(zn, { asset: e.asset }, null, 8, ["asset"])], 64))]),
-				U(GS)
+					}, 8, ["disabled", "title"])) : U("", !0),
+					H(jn, { asset: e.asset }, null, 8, ["asset"])
+				], 64)), H(Bn, { asset: e.asset }, null, 8, ["asset"])], 64))]),
+				H(YS)
 			], 64);
 		};
 	}
-}), $S = {
+}), rC = {
 	key: 1,
 	class: "mjr-sidebar-placeholder",
 	style: {
@@ -24048,11 +24153,11 @@ var wx = { class: "mjr-sidebar-preview" }, Tx = ["src"], Ex = ["src"], Dx = ["sr
 		"font-size": "0.85em",
 		"text-align": "center"
 	}
-}, eC = /* @__PURE__ */ rr({
+}, iC = /* @__PURE__ */ ir({
 	__name: "SidebarSection",
 	setup(e, { expose: t }) {
-		let n = Q(null), { activeAsset: r, onUpdateCallback: i } = kh();
-		return $n(() => {
+		let n = Q(null), { activeAsset: r, onUpdateCallback: i } = Nh();
+		return er(() => {
 			let e = n.value;
 			if (!e) return;
 			e.style.flex = "0 0 0px", e.style.width = "0", e.style.maxWidth = "0", e.style.minWidth = "0", e.style.overflow = "hidden", e.style.borderLeft = "none", e.style.borderRight = "none", e._requestSeq = 0, e._currentAsset = null, e._currentFullAsset = null, e._ratingTagsSection = null;
@@ -24062,7 +24167,7 @@ var wx = { class: "mjr-sidebar-preview" }, Tx = ["src"], Ex = ["src"], Dx = ["sr
 			}, a = (n) => {
 				let r = n?.detail || {}, a = r.assetId ?? r.id ?? null, o = Number(r.rating);
 				if (t(a) && Number.isFinite(o)) {
-					Mh({ rating: o }, i.value);
+					Ih({ rating: o }, i.value);
 					try {
 						e._currentAsset && (e._currentAsset.rating = o), e._currentFullAsset && (e._currentFullAsset.rating = o);
 					} catch (e) {
@@ -24072,7 +24177,7 @@ var wx = { class: "mjr-sidebar-preview" }, Tx = ["src"], Ex = ["src"], Dx = ["sr
 			}, o = (n) => {
 				let r = n?.detail || {}, a = r.assetId ?? r.id ?? null, o = Array.isArray(r.tags) ? r.tags : null;
 				if (t(a) && o) {
-					Mh({ tags: o }, i.value);
+					Ih({ tags: o }, i.value);
 					try {
 						e._currentAsset && (e._currentAsset.tags = o), e._currentFullAsset && (e._currentFullAsset.tags = o);
 					} catch (e) {
@@ -24094,16 +24199,16 @@ var wx = { class: "mjr-sidebar-preview" }, Tx = ["src"], Ex = ["src"], Dx = ["sr
 			}, e._dispose = e.dispose;
 			let l = c ? { signal: c.signal } : void 0;
 			try {
-				window.addEventListener(Lt, a, l), window.addEventListener(It, o, l);
+				window.addEventListener(Rt, a, l), window.addEventListener(Lt, o, l);
 			} catch (e) {
 				console.debug?.(e);
 				try {
-					window.addEventListener(Lt, a), window.addEventListener(It, o), s.push(() => window.removeEventListener(Lt, a)), s.push(() => window.removeEventListener(It, o));
+					window.addEventListener(Rt, a), window.addEventListener(Lt, o), s.push(() => window.removeEventListener(Rt, a)), s.push(() => window.removeEventListener(Lt, o));
 				} catch (e) {
 					console.debug?.(e);
 				}
 			}
-		}), or(() => {
+		}), sr(() => {
 			try {
 				n.value?.dispose?.();
 			} catch {}
@@ -24112,7 +24217,7 @@ var wx = { class: "mjr-sidebar-preview" }, Tx = ["src"], Ex = ["src"], Dx = ["sr
 			} catch {}
 		}), t({ get sidebar() {
 			return n.value;
-		} }), (e, t) => (q(), Y("div", {
+		} }), (e, t) => (K(), Y("div", {
 			ref_key: "sidebarEl",
 			ref: n,
 			class: "mjr-inline-sidebar",
@@ -24124,7 +24229,7 @@ var wx = { class: "mjr-sidebar-preview" }, Tx = ["src"], Ex = ["src"], Dx = ["sr
 				transition: "width 140ms ease,max-width 140ms ease,flex-basis 140ms ease,border-color 140ms ease",
 				contain: "layout paint style"
 			}
-		}, [Z(r) ? (q(), Xn(QS, {
+		}, [Z(r) ? (K(), Zn(nC, {
 			key: 0,
 			asset: Z(r),
 			"on-update": Z(i),
@@ -24133,18 +24238,18 @@ var wx = { class: "mjr-sidebar-preview" }, Tx = ["src"], Ex = ["src"], Dx = ["sr
 			"asset",
 			"on-update",
 			"sidebar"
-		])) : (q(), Y("div", $S, J(Z(L)("sidebar.placeholderSelectAsset", "Select an asset to view details")), 1))], 512));
+		])) : (K(), Y("div", rC, J(Z(I)("sidebar.placeholderSelectAsset", "Select an asset to view details")), 1))], 512));
 	}
-}), tC = /* @__PURE__ */ rr({
+}), aC = /* @__PURE__ */ ir({
 	__name: "App",
 	setup(e) {
 		let t = Q(null), n = Q(null), r = Q(null), i = Q(null), a = Q(null), o = Q(null), s = null;
-		return $n(async () => {
+		return er(async () => {
 			if (!t.value) return;
 			let e = {};
 			n.value && (e.statusSection = n.value.statusSection, e.statusDot = n.value.statusDot, e.statusText = n.value.statusText, e.capabilitiesSection = n.value.capabilitiesSection), r.value && (e.headerSection = r.value), i.value && (e.summaryBar = i.value.summaryBar, e.updateSummaryBar = i.value.updateSummaryBar, e.folderBreadcrumb = i.value.folderBreadcrumb, e.folderBreadcrumbController = i.value), a.value && (e.browseSection = a.value.browseSection, e.gridWrapper = a.value.gridWrapper, e.gridContainer = a.value.gridContainer, e.onGridContainerReady = (...e) => a.value?.onGridContainerReady?.(...e), e.bindGridHostState = (...e) => a.value?.bindGridHostState?.(...e), e.restoreGridUiState = (...e) => a.value?.restoreGridUiState?.(...e), e.initAssetsQueryController = (...e) => a.value?.initAssetsQueryController?.(...e), e.loadAssets = (e, t = "*", n = {}) => a.value?.loadAssets?.(t, n), e.loadAssetsFromList = (e, t = [], n = {}) => a.value?.loadAssetsFromList?.(t, n), e.prepareGridForScopeSwitch = (e) => a.value?.prepareGridForScopeSwitch?.(), e.refreshGrid = (e) => a.value?.refreshGrid?.(), e.captureAnchor = (e) => a.value?.captureAnchor?.(), e.restoreAnchor = (e, t) => a.value?.restoreAnchor?.(t), e.hydrateGridFromSnapshot = (e, t = {}, n = {}) => a.value?.hydrateGridFromSnapshot?.(t, n), e.upsertAsset = (e, t) => a.value?.upsertAsset?.(t), e.removeAssets = (e, t = [], n = {}) => a.value?.removeAssets?.(t, n), e.disposeGrid = (e) => a.value?.disposeGrid?.()), o.value && (e.sidebar = o.value.sidebar);
 			try {
-				s = await av(t.value, {
+				s = await lv(t.value, {
 					useComfyThemeUI: !0,
 					external: e
 				});
@@ -24152,36 +24257,36 @@ var wx = { class: "mjr-sidebar-preview" }, Tx = ["src"], Ex = ["src"], Dx = ["sr
 				console.warn("[Majoor] App.vue: mountAssetsManagerPanelRuntime failed", e);
 			}
 			try {
-				Qh().validatePersistedCustomRoot?.();
+				ng().validatePersistedCustomRoot?.();
 			} catch {}
-		}), or(() => {
+		}), sr(() => {
 			try {
 				s?.dispose?.();
 			} catch {}
 			s = null;
-		}), (e, s) => (q(), Y(V, null, [
-			U(sv, {
+		}), (e, s) => (K(), Y(B, null, [
+			H(dv, {
 				ref_key: "statusSectionRef",
 				ref: n
 			}, null, 512),
-			U(Bb, {
+			H(Wb, {
 				ref_key: "headerSectionRef",
 				ref: r
 			}, null, 512),
-			U(ix, {
+			H(cx, {
 				ref_key: "summaryBarSectionRef",
 				ref: i
 			}, null, 512),
-			U(gx, {
+			H(bx, {
 				ref_key: "assetsGridRef",
 				ref: a
 			}, null, 512),
-			U(eC, {
+			H(iC, {
 				ref_key: "sidebarSectionRef",
 				ref: o
 			}, null, 512),
-			U(GS),
-			H("div", {
+			H(YS),
+			V("div", {
 				ref_key: "containerRef",
 				ref: t,
 				class: "mjr-vue-root",
@@ -24194,7 +24299,7 @@ var wx = { class: "mjr-sidebar-preview" }, Tx = ["src"], Ex = ["src"], Dx = ["sr
 			}, null, 512)
 		], 64));
 	}
-}), nC = /* @__PURE__ */ rr({
+}), oC = /* @__PURE__ */ ir({
 	__name: "GeneratedFeedApp",
 	setup(e) {
 		let t = Q(null), n = null;
@@ -24214,18 +24319,18 @@ var wx = { class: "mjr-sidebar-preview" }, Tx = ["src"], Ex = ["src"], Dx = ["sr
 				}
 			}
 		}
-		return $n(() => {
+		return er(() => {
 			if (t.value) try {
 				r(t.value), n = zf(t.value);
 			} catch (e) {
 				console.warn("[Majoor] GeneratedFeedApp.vue: createGeneratedFeedHost failed", e);
 			}
-		}), or(() => {
+		}), sr(() => {
 			try {
 				Bf(n);
 			} catch {}
 			n = null;
-		}), (e, n) => (q(), Y(V, null, [U(GS), H("div", {
+		}), (e, n) => (K(), Y(B, null, [H(YS), V("div", {
 			ref_key: "containerRef",
 			ref: t,
 			class: "mjr-vue-feed-root",
@@ -24240,43 +24345,43 @@ var wx = { class: "mjr-sidebar-preview" }, Tx = ["src"], Ex = ["src"], Dx = ["sr
 			}
 		}, null, 512)], 64));
 	}
-}), rC = "data-mjr-topbar-mfv-host", iC = "data-mjr-topbar-mfv-button", aC = "data-mjr-topbar-mfv-slot", oC = "label.floatingViewer", sC = "Viewer", cC = "V", lC = "viewer.mfvTopbarButton", uC = null, dC = null, fC = null, pC = null, mC = null, hC = null, gC = null, _C = null, vC = !1, yC = null, bC = !1, xC = !1;
-function SC(e) {
+}), sC = "data-mjr-topbar-mfv-host", cC = "data-mjr-topbar-mfv-button", lC = "data-mjr-topbar-mfv-slot", uC = "label.floatingViewer", dC = "Viewer", fC = "V", pC = "viewer.mfvTopbarButton", mC = null, hC = null, gC = null, _C = null, vC = null, yC = null, bC = null, xC = null, SC = !1, CC = null, wC = !1, TC = !1;
+function EC(e) {
 	if (!e) {
-		!mC && typeof MutationObserver < "u" && (mC = new MutationObserver(() => {
-			CC() && (mC?.disconnect?.(), mC = null, RC());
-		}), mC.observe(document.body, {
+		!vC && typeof MutationObserver < "u" && (vC = new MutationObserver(() => {
+			DC() && (vC?.disconnect?.(), vC = null, HC());
+		}), vC.observe(document.body, {
 			childList: !0,
 			subtree: !0
 		}));
 		return;
 	}
 	try {
-		mC?.disconnect?.();
+		vC?.disconnect?.();
 	} catch {}
-	if (mC = null, dC !== e) {
+	if (vC = null, hC !== e) {
 		try {
-			uC?.disconnect?.();
+			mC?.disconnect?.();
 		} catch {}
-		uC = new MutationObserver(() => {
-			EC(e) || RC();
-		}), uC.observe(e, {
+		mC = new MutationObserver(() => {
+			AC(e) || HC();
+		}), mC.observe(e, {
 			childList: !0,
 			subtree: !0
-		}), dC = e;
+		}), hC = e;
 	}
 	let t = e.parentElement;
-	if (t && pC !== t) {
+	if (t && _C !== t) {
 		try {
-			fC?.disconnect?.();
+			gC?.disconnect?.();
 		} catch {}
-		fC = new MutationObserver(() => RC()), fC.observe(t, { childList: !0 }), pC = t;
+		gC = new MutationObserver(() => HC()), gC.observe(t, { childList: !0 }), _C = t;
 	}
 }
-function CC() {
+function DC() {
 	return typeof document > "u" ? null : document.querySelector(".actionbar-container");
 }
-function wC(e = CC()) {
+function OC(e = DC()) {
 	if (typeof document > "u") return;
 	let t = document.documentElement?.style;
 	if (!t) return;
@@ -24287,165 +24392,165 @@ function wC(e = CC()) {
 	let n = e.getBoundingClientRect(), r = Math.max(60, Math.ceil(n.bottom + 12));
 	t.setProperty("--mjr-mfv-top-offset", `${r}px`);
 }
-function TC(e) {
+function kC(e) {
 	return e && e.querySelector(".queue-button-group") || null;
 }
-function EC(e) {
+function AC(e) {
 	try {
-		let t = e?.querySelector?.(`[${aC}]`), n = TC(e);
-		return !t || !n ? !1 : t.parentElement === n.parentElement && t.previousElementSibling === n && !!t.querySelector(`[${rC}]`);
+		let t = e?.querySelector?.(`[${lC}]`), n = kC(e);
+		return !t || !n ? !1 : t.parentElement === n.parentElement && t.previousElementSibling === n && !!t.querySelector(`[${sC}]`);
 	} catch {
 		return !1;
 	}
 }
-function DC(e) {
+function jC(e) {
 	if (!e) return null;
-	let t = e.querySelector(`[${aC}]`);
-	t || (t = document.createElement("div"), t.setAttribute(aC, "1"), t.className = "flex h-full items-center pointer-events-auto", t.style.position = "relative", t.style.zIndex = "10030", t.style.padding = "0 4px");
-	let n = TC(e), r = n?.parentElement || e;
+	let t = e.querySelector(`[${lC}]`);
+	t || (t = document.createElement("div"), t.setAttribute(lC, "1"), t.className = "flex h-full items-center pointer-events-auto", t.style.position = "relative", t.style.zIndex = "10030", t.style.padding = "0 4px");
+	let n = kC(e), r = n?.parentElement || e;
 	return t.parentElement === r ? n && r && t.previousElementSibling !== n ? r.insertBefore(t, n.nextSibling) : !n && t !== r.lastElementChild && r.appendChild(t) : n && r ? r.insertBefore(t, n.nextSibling) : r.appendChild(t), t;
 }
-function OC(e = "pi pi-eye") {
+function MC(e = "pi pi-eye") {
 	let t = document.createElement("i");
 	return t.className = e, t.setAttribute("aria-hidden", "true"), t;
 }
-function kC(e = "Viewer") {
+function NC(e = "Viewer") {
 	let t = document.createElement("span");
 	return t.className = "mjr-topbar-mfv-label", t.textContent = e, t;
 }
-function AC(e) {
+function PC(e) {
 	if (!e) return;
-	let t = bC ? L("tooltip.closeMFV", "Close Floating Viewer") : L("tooltip.openMFV", "Open Floating Viewer");
-	Ut(e, t, cC, { ariaLabel: t }), e.setAttribute("aria-pressed", bC ? "true" : "false"), e.classList.toggle("primary", bC), e.classList.toggle("mjr-topbar-mfv-active", bC), e.replaceChildren(OC(bC ? "pi pi-eye-slash" : "pi pi-eye"), kC(L(oC, sC)));
+	let t = wC ? I("tooltip.closeMFV", "Close Floating Viewer") : I("tooltip.openMFV", "Open Floating Viewer");
+	Wt(e, t, fC, { ariaLabel: t }), e.setAttribute("aria-pressed", wC ? "true" : "false"), e.classList.toggle("primary", wC), e.classList.toggle("mjr-topbar-mfv-active", wC), e.replaceChildren(MC(wC ? "pi pi-eye-slash" : "pi pi-eye"), NC(I(uC, dC)));
 }
-function jC() {
+function FC() {
 	try {
-		window.dispatchEvent(new Event(B.MFV_TOGGLE));
+		window.dispatchEvent(new Event(z.MFV_TOGGLE));
 	} catch (e) {
 		console.debug?.("[Majoor] top bar MFV launch failed", e);
 	}
-	RC();
-}
-function MC() {
-	let e = document.createElement("button");
-	return e.type = "button", e.setAttribute(iC, "1"), e.className = "comfyui-button mjr-topbar-mfv-button", e.style.position = "relative", e.style.zIndex = "10030", e.style.width = "auto", e.style.height = "32px", e.style.minWidth = "32px", e.style.padding = "0 10px", e.style.gap = "6px", e.style.display = "inline-flex", e.style.alignItems = "center", e.style.justifyContent = "center", e.style.whiteSpace = "nowrap", e.addEventListener("click", jC), AC(e), e;
-}
-function NC() {
-	let e = document.createElement("div");
-	return e.setAttribute(rC, "1"), e.className = "mjr-topbar-mfv-button-host", e.style.position = "relative", e.appendChild(MC()), e;
-}
-function PC() {
-	if (typeof document > "u" || xC) return;
-	let e = !!document.querySelector(".mjr-mfv.is-visible");
-	bC !== e && (bC = e);
-}
-function FC() {
-	return R.MFV_TOPBAR_BUTTON !== !1;
+	HC();
 }
 function IC() {
-	try {
-		document.querySelector(`[${rC}]`)?.remove?.(), document.querySelector(`[${aC}]`)?.remove?.();
-	} catch (e) {
-		console.debug?.(e);
-	}
+	let e = document.createElement("button");
+	return e.type = "button", e.setAttribute(cC, "1"), e.className = "comfyui-button mjr-topbar-mfv-button", e.style.position = "relative", e.style.zIndex = "10030", e.style.width = "auto", e.style.height = "32px", e.style.minWidth = "32px", e.style.padding = "0 10px", e.style.gap = "6px", e.style.display = "inline-flex", e.style.alignItems = "center", e.style.justifyContent = "center", e.style.whiteSpace = "nowrap", e.addEventListener("click", FC), PC(e), e;
 }
 function LC() {
-	let e = CC();
-	if (!e) return wC(null), null;
-	if (!FC()) return IC(), wC(e), null;
-	SC(e), PC();
-	let t = DC(e);
-	if (!t) return wC(e), null;
-	let n = t.querySelector(`[${rC}]`);
-	return n ||= NC(), n.parentElement !== t && t.replaceChildren(n), wC(e), AC(n.querySelector(`[${iC}]`)), t;
+	let e = document.createElement("div");
+	return e.setAttribute(sC, "1"), e.className = "mjr-topbar-mfv-button-host", e.style.position = "relative", e.appendChild(IC()), e;
 }
 function RC() {
-	vC || (vC = !0, yC = window.setTimeout(() => {
-		vC = !1, yC = null, LC();
-	}, 32));
+	if (typeof document > "u" || TC) return;
+	let e = !!document.querySelector(".mjr-mfv.is-visible");
+	wC !== e && (wC = e);
 }
 function zC() {
-	return typeof window > "u" || typeof document > "u" || !document.body ? !1 : (RC(), hC || (hC = (e) => {
-		bC = !!e?.detail?.visible, xC = !0, RC();
-	}, window.addEventListener(B.MFV_VISIBILITY_CHANGED, hC)), gC || (gC = () => RC(), window.addEventListener("resize", gC)), _C || (_C = (e) => {
-		let t = e?.detail?.key;
-		(t === lC || t === "storage") && RC();
-	}, window.addEventListener("mjr-settings-changed", _C)), SC(CC()), !0);
+	return R.MFV_TOPBAR_BUTTON !== !1;
 }
 function BC() {
 	try {
-		uC?.disconnect?.();
+		document.querySelector(`[${sC}]`)?.remove?.(), document.querySelector(`[${lC}]`)?.remove?.();
 	} catch (e) {
 		console.debug?.(e);
 	}
-	uC = null, dC = null;
-	try {
-		fC?.disconnect?.();
-	} catch (e) {
-		console.debug?.(e);
-	}
-	fC = null, pC = null;
+}
+function VC() {
+	let e = DC();
+	if (!e) return OC(null), null;
+	if (!zC()) return BC(), OC(e), null;
+	EC(e), RC();
+	let t = jC(e);
+	if (!t) return OC(e), null;
+	let n = t.querySelector(`[${sC}]`);
+	return n ||= LC(), n.parentElement !== t && t.replaceChildren(n), OC(e), PC(n.querySelector(`[${cC}]`)), t;
+}
+function HC() {
+	SC || (SC = !0, CC = window.setTimeout(() => {
+		SC = !1, CC = null, VC();
+	}, 32));
+}
+function UC() {
+	return typeof window > "u" || typeof document > "u" || !document.body ? !1 : (HC(), yC || (yC = (e) => {
+		wC = !!e?.detail?.visible, TC = !0, HC();
+	}, window.addEventListener(z.MFV_VISIBILITY_CHANGED, yC)), bC || (bC = () => HC(), window.addEventListener("resize", bC)), xC || (xC = (e) => {
+		let t = e?.detail?.key;
+		(t === pC || t === "storage") && HC();
+	}, window.addEventListener("mjr-settings-changed", xC)), EC(DC()), !0);
+}
+function WC() {
 	try {
 		mC?.disconnect?.();
 	} catch (e) {
 		console.debug?.(e);
 	}
-	mC = null;
+	mC = null, hC = null;
 	try {
-		yC && window.clearTimeout(yC);
+		gC?.disconnect?.();
 	} catch (e) {
 		console.debug?.(e);
 	}
-	yC = null, hC && typeof window < "u" && window.removeEventListener(B.MFV_VISIBILITY_CHANGED, hC), hC = null, gC && typeof window < "u" && window.removeEventListener("resize", gC), gC = null, _C && typeof window < "u" && window.removeEventListener("mjr-settings-changed", _C), _C = null, vC = !1, bC = !1, xC = !1;
+	gC = null, _C = null;
 	try {
-		document.documentElement?.style?.setProperty("--mjr-mfv-top-offset", "60px"), document.querySelector(`[${rC}]`)?.remove?.(), document.querySelector(`[${aC}]`)?.remove?.();
+		vC?.disconnect?.();
+	} catch (e) {
+		console.debug?.(e);
+	}
+	vC = null;
+	try {
+		CC && window.clearTimeout(CC);
+	} catch (e) {
+		console.debug?.(e);
+	}
+	CC = null, yC && typeof window < "u" && window.removeEventListener(z.MFV_VISIBILITY_CHANGED, yC), yC = null, bC && typeof window < "u" && window.removeEventListener("resize", bC), bC = null, xC && typeof window < "u" && window.removeEventListener("mjr-settings-changed", xC), xC = null, SC = !1, wC = !1, TC = !1;
+	try {
+		document.documentElement?.style?.setProperty("--mjr-mfv-top-offset", "60px"), document.querySelector(`[${sC}]`)?.remove?.(), document.querySelector(`[${lC}]`)?.remove?.();
 	} catch (e) {
 		console.debug?.(e);
 	}
 }
 // ui/features/runtime/entryUiRegistration.ts
-var VC = "mjr-global-runtime-root", HC = "_mjrGlobalRuntimeVueApp", UC = "_mjrSidebarVueApp", WC = "_mjrFeedVueApp", GC = "majoor-generated-feed", KC = null;
-function qC() {
+var GC = "mjr-global-runtime-root", KC = "_mjrGlobalRuntimeVueApp", qC = "_mjrSidebarVueApp", JC = "_mjrFeedVueApp", YC = "majoor-generated-feed", XC = null;
+function ZC() {
 	if (typeof document > "u" || !document?.body) return null;
-	let e = document.getElementById(VC);
-	return e || (e = document.createElement("div"), e.id = VC, e.setAttribute("role", "presentation"), e.style.cssText = "position:fixed;inset:0;overflow:visible;pointer-events:none;z-index:10020;", document.body.appendChild(e), e);
+	let e = document.getElementById(GC);
+	return e || (e = document.createElement("div"), e.id = GC, e.setAttribute("role", "presentation"), e.style.cssText = "position:fixed;inset:0;overflow:visible;pointer-events:none;z-index:10020;", document.body.appendChild(e), e);
 }
-function JC() {
+function QC() {
 	try {
-		let e = qC();
+		let e = ZC();
 		if (!e) return !1;
-		let t = !!Ht(e, Tm, HC);
-		return zC(), t;
+		let t = !!Ut(e, Tm, KC);
+		return UC(), t;
 	} catch {
 		return !1;
 	}
 }
-function YC() {
+function $C() {
 	try {
-		BC();
-		let e = document.getElementById(VC);
+		WC();
+		let e = document.getElementById(GC);
 		if (!e) return;
-		Jt(e, HC), e.remove?.();
+		Yt(e, KC), e.remove?.();
 	} catch {}
 }
-function XC(e, t) {
-	let n = he(e, t);
+function ew(e, t) {
+	let n = Ke(e, t);
 	if (Op(), !n) try {
-		window.dispatchEvent(new Event(B.OPEN_ASSETS_MANAGER));
+		window.dispatchEvent(new Event(z.OPEN_ASSETS_MANAGER));
 	} catch (e) {
 		console.debug?.(e);
 	}
 	return n;
 }
-function ZC() {
+function tw() {
 	try {
-		window.dispatchEvent(new CustomEvent(B.RELOAD_GRID, { detail: { reason: "command" } }));
+		window.dispatchEvent(new CustomEvent(z.RELOAD_GRID, { detail: { reason: "command" } }));
 	} catch (e) {
 		console.debug?.(e);
 	}
 }
-function QC(e) {
-	let t = Ke(e, GC);
+function nw(e) {
+	let t = Re(e, YC);
 	if (!t) try {
 		Sf();
 	} catch (e) {
@@ -24453,37 +24558,37 @@ function QC(e) {
 	}
 	return t;
 }
-async function $C() {
+async function rw() {
 	try {
-		let e = await pe(I.BROWSE_FOLDER, {});
+		let e = await rt(m.BROWSE_FOLDER, {});
 		if (e?.ok) return String(e?.data?.path || "").trim();
 		let t = String(e?.code || "").trim();
-		t && t !== "CANCELLED" && m(e?.error || L("toast.nativeFolderBrowserUnavailable", "Native folder browser unavailable. Please enter path manually."), "warning", 3500);
+		t && t !== "CANCELLED" && F(e?.error || I("toast.nativeFolderBrowserUnavailable", "Native folder browser unavailable. Please enter path manually."), "warning", 3500);
 	} catch (e) {
-		console.debug?.(e), m(L("toast.nativeFolderBrowserUnavailable", "Native folder browser unavailable. Please enter path manually."), "warning", 3500);
+		console.debug?.(e), F(I("toast.nativeFolderBrowserUnavailable", "Native folder browser unavailable. Please enter path manually."), "warning", 3500);
 	}
 	return "";
 }
-async function ew(e, { settingId: t, settingsPathKey: n, save: r, successMessage: i, restartRequired: a = !1 }) {
-	let o = await $C();
+async function iw(e, { settingId: t, settingsPathKey: n, save: r, successMessage: i, restartRequired: a = !1 }) {
+	let o = await rw();
 	if (!o) return !1;
 	let s = await r(o);
-	if (!s?.ok) return m(s?.error || L("toast.settingsPathSaveFailed", "Failed to save path"), "error"), !1;
+	if (!s?.ok) return F(s?.error || I("toast.settingsPathSaveFailed", "Failed to save path"), "error"), !1;
 	try {
-		let r = Pt();
-		r.paths = r.paths || {}, r.paths[n] = o, St(r), it(e, t, o), window.dispatchEvent(new CustomEvent(B.SETTINGS_CHANGED, { detail: {
+		let r = Ft();
+		r.paths = r.paths || {}, r.paths[n] = o, Ct(r), ee(e, t, o), window.dispatchEvent(new CustomEvent(z.SETTINGS_CHANGED, { detail: {
 			key: `paths.${n}`,
 			value: o
 		} }));
 	} catch (e) {
 		console.debug?.(e);
 	}
-	return m(a ? `${i} ${L("toast.restartComfyUiToApply", "Restart ComfyUI to apply.")}` : i, "success", 2800), !0;
+	return F(a ? `${i} ${I("toast.restartComfyUiToApply", "Restart ComfyUI to apply.")}` : i, "success", 2800), !0;
 }
-function tw(e) {
-	return ww(e).find(Cw) || null;
+function aw(e) {
+	return Ow(e).find(Dw) || null;
 }
-function nw(e) {
+function ow(e) {
 	let t = String(e?.id ?? e?.nodeId ?? e?.node_id ?? "").trim();
 	if (!t) return null;
 	let n = String(e?.comfyClass || e?.type || e?.constructor?.type || "").trim();
@@ -24495,7 +24600,7 @@ function nw(e) {
 		title: String(e?.title || e?.properties?.title || e?.properties?.name || n || "").trim()
 	};
 }
-async function rw(e) {
+async function sw(e) {
 	if (!e) return [];
 	try {
 		let t = (await import("./chunks/NodeStreamController-CIKDDXJT.js")).extractNodeFileData?.(e), n = String(t?.filename || "").trim();
@@ -24509,26 +24614,26 @@ async function rw(e) {
 		return console.debug?.(e), [];
 	}
 }
-function iw(e) {
+function cw(e) {
 	try {
 		if (typeof window > "u") return;
-		window.MajoorAssetsManager = window.MajoorAssetsManager || {}, window.MajoorAssetsManager.pendingNodeContext = e, window.dispatchEvent(new CustomEvent(B.OPEN_NODE_CONTEXT, { detail: e }));
+		window.MajoorAssetsManager = window.MajoorAssetsManager || {}, window.MajoorAssetsManager.pendingNodeContext = e, window.dispatchEvent(new CustomEvent(z.OPEN_NODE_CONTEXT, { detail: e }));
 	} catch (e) {
 		console.debug?.(e);
 	}
 }
-async function aw(e, t, n) {
-	XC(e, t);
-	let r = nw(n) || {}, i = await rw(n);
+async function lw(e, t, n) {
+	ew(e, t);
+	let r = ow(n) || {}, i = await sw(n);
 	i.length && (r.files = i);
 	let a = String(n?.comfyClass || n?.type || "").toLowerCase();
-	return i.length && /load|upload/.test(a) && (delete r.source_node_id, delete r.sourceNodeId), !r.source_node_id && !i.length ? (m(L("toast.nodeContextMissing", "Select an output node first."), "info", 2200), !1) : (iw(r), !0);
+	return i.length && /load|upload/.test(a) && (delete r.source_node_id, delete r.sourceNodeId), !r.source_node_id && !i.length ? (F(I("toast.nodeContextMissing", "Select an output node first."), "info", 2200), !1) : (cw(r), !0);
 }
-async function ow(e) {
+async function uw(e) {
 	try {
-		let t = await rw(e);
+		let t = await sw(e);
 		if (t.length) {
-			let { floatingViewerManager: e } = await import("./chunks/floatingViewerManager-DbOx9dhE.js").then((e) => e.n);
+			let { floatingViewerManager: e } = await import("./chunks/floatingViewerManager-Dn53ZRsL.js").then((e) => e.n);
 			if (await e.openAssets({
 				assets: t,
 				index: 0
@@ -24538,40 +24643,40 @@ async function ow(e) {
 		console.debug?.(e);
 	}
 	try {
-		window.dispatchEvent(new Event(B.MFV_OPEN));
+		window.dispatchEvent(new Event(z.MFV_OPEN));
 	} catch (e) {
 		console.debug?.(e);
 	}
 	return !1;
 }
-function sw(e, t) {
-	let n = KC;
-	return n ? (aw(e, t, n), !0) : (m(L("toast.nodeContextMissing", "Select an output node first."), "info", 2200), !1);
+function dw(e, t) {
+	let n = XC;
+	return n ? (lw(e, t, n), !0) : (F(I("toast.nodeContextMissing", "Select an output node first."), "info", 2200), !1);
 }
-function cw(e, { sidebarTabId: t, triggerStartupScan: n }) {
+function fw(e, { sidebarTabId: t, triggerStartupScan: n }) {
 	return [
 		{
 			id: "mjr.openAssetsManager",
-			label: L("manager.title", "Assets Manager"),
-			tooltip: L("tooltip.openAssetsManager", "Open Majoor Assets Manager"),
-			title: L("tooltip.openAssetsManager", "Open Majoor Assets Manager"),
-			description: L("tooltip.openAssetsManager", "Open Majoor Assets Manager"),
+			label: I("manager.title", "Assets Manager"),
+			tooltip: I("tooltip.openAssetsManager", "Open Majoor Assets Manager"),
+			title: I("tooltip.openAssetsManager", "Open Majoor Assets Manager"),
+			description: I("tooltip.openAssetsManager", "Open Majoor Assets Manager"),
 			icon: "pi pi-folder-open",
-			function: () => XC(e, t)
+			function: () => ew(e, t)
 		},
 		{
 			id: "mjr.scanAssets",
-			label: L("command.scanAssets", "Scan assets"),
+			label: I("command.scanAssets", "Scan assets"),
 			icon: "pi pi-refresh",
 			function: () => n()
 		},
 		{
 			id: "mjr.toggleFloatingViewer",
-			label: L("command.toggleFloatingViewer", "Toggle floating viewer"),
+			label: I("command.toggleFloatingViewer", "Toggle floating viewer"),
 			icon: "pi pi-images",
 			function: () => {
 				try {
-					window.dispatchEvent(new Event(B.MFV_TOGGLE));
+					window.dispatchEvent(new Event(z.MFV_TOGGLE));
 				} catch (e) {
 					console.debug?.(e);
 				}
@@ -24579,20 +24684,20 @@ function cw(e, { sidebarTabId: t, triggerStartupScan: n }) {
 		},
 		{
 			id: "mjr.refreshAssetsGrid",
-			label: L("command.refreshAssetsGrid", "Refresh assets grid"),
+			label: I("command.refreshAssetsGrid", "Refresh assets grid"),
 			icon: "pi pi-sync",
-			function: () => ZC()
+			function: () => tw()
 		},
 		{
 			id: "mjr.openFloatingViewer",
-			label: L("command.openFloatingViewer", "Open floating viewer"),
-			tooltip: L("tooltip.openFloatingViewer", "Open Majoor floating viewer"),
-			title: L("tooltip.openFloatingViewer", "Open Majoor floating viewer"),
-			description: L("tooltip.openFloatingViewer", "Open Majoor floating viewer"),
+			label: I("command.openFloatingViewer", "Open floating viewer"),
+			tooltip: I("tooltip.openFloatingViewer", "Open Majoor floating viewer"),
+			title: I("tooltip.openFloatingViewer", "Open Majoor floating viewer"),
+			description: I("tooltip.openFloatingViewer", "Open Majoor floating viewer"),
 			icon: "pi pi-window-maximize",
 			function: () => {
 				try {
-					window.dispatchEvent(new Event(B.MFV_OPEN));
+					window.dispatchEvent(new Event(z.MFV_OPEN));
 				} catch (e) {
 					console.debug?.(e);
 				}
@@ -24600,71 +24705,71 @@ function cw(e, { sidebarTabId: t, triggerStartupScan: n }) {
 		},
 		{
 			id: "mjr.openGeneratedFeed",
-			label: L("command.openGeneratedFeed", "Open generated feed"),
-			tooltip: L("tooltip.openGeneratedFeed", "Open the Majoor generated feed panel"),
-			title: L("tooltip.openGeneratedFeed", "Open the Majoor generated feed panel"),
-			description: L("tooltip.openGeneratedFeed", "Open the Majoor generated feed panel"),
+			label: I("command.openGeneratedFeed", "Open generated feed"),
+			tooltip: I("tooltip.openGeneratedFeed", "Open the Majoor generated feed panel"),
+			title: I("tooltip.openGeneratedFeed", "Open the Majoor generated feed panel"),
+			description: I("tooltip.openGeneratedFeed", "Open the Majoor generated feed panel"),
 			icon: "pi pi-list",
-			function: () => QC(e)
+			function: () => nw(e)
 		},
 		{
 			id: "mjr.openSettings",
-			label: L("command.openSettings", "Open Majoor settings"),
+			label: I("command.openSettings", "Open Majoor settings"),
 			icon: "pi pi-cog",
-			function: () => Gt(e)
+			function: () => Kt(e)
 		},
 		{
 			id: "mjr.pickOutputDirectory",
-			label: L("command.pickOutputDirectory", "Pick output directory"),
-			tooltip: L("tooltip.pickOutputDirectory", "Use the native folder browser to set Majoor's generation output directory"),
-			title: L("tooltip.pickOutputDirectory", "Use the native folder browser to set Majoor's generation output directory"),
-			description: L("tooltip.pickOutputDirectory", "Use the native folder browser to set Majoor's generation output directory"),
+			label: I("command.pickOutputDirectory", "Pick output directory"),
+			tooltip: I("tooltip.pickOutputDirectory", "Use the native folder browser to set Majoor's generation output directory"),
+			title: I("tooltip.pickOutputDirectory", "Use the native folder browser to set Majoor's generation output directory"),
+			description: I("tooltip.pickOutputDirectory", "Use the native folder browser to set Majoor's generation output directory"),
 			icon: "pi pi-folder",
-			function: () => ew(e, {
+			function: () => iw(e, {
 				settingId: "Majoor.Paths.OutputDirectory",
 				settingsPathKey: "outputDirectory",
-				save: s,
-				successMessage: L("toast.outputDirectorySaved", "Output directory saved.")
+				save: te,
+				successMessage: I("toast.outputDirectorySaved", "Output directory saved.")
 			})
 		},
 		{
 			id: "mjr.pickIndexDirectory",
-			label: L("command.pickIndexDirectory", "Pick index directory"),
-			tooltip: L("tooltip.pickIndexDirectory", "Use the native folder browser to set Majoor's index database directory"),
-			title: L("tooltip.pickIndexDirectory", "Use the native folder browser to set Majoor's index database directory"),
-			description: L("tooltip.pickIndexDirectory", "Use the native folder browser to set Majoor's index database directory"),
+			label: I("command.pickIndexDirectory", "Pick index directory"),
+			tooltip: I("tooltip.pickIndexDirectory", "Use the native folder browser to set Majoor's index database directory"),
+			title: I("tooltip.pickIndexDirectory", "Use the native folder browser to set Majoor's index database directory"),
+			description: I("tooltip.pickIndexDirectory", "Use the native folder browser to set Majoor's index database directory"),
 			icon: "pi pi-database",
-			function: () => ew(e, {
+			function: () => iw(e, {
 				settingId: "Majoor.Paths.IndexDirectory",
 				settingsPathKey: "indexDirectory",
-				save: z,
-				successMessage: L("toast.indexDirectorySaved", "Index directory saved."),
+				save: de,
+				successMessage: I("toast.indexDirectorySaved", "Index directory saved."),
 				restartRequired: !0
 			})
 		},
 		{
 			id: "mjr.openNodeContext",
-			label: L("command.openNodeContext", "Show assets from selected node"),
-			tooltip: L("tooltip.openNodeContext", "Show the latest indexed assets produced by this node"),
-			title: L("tooltip.openNodeContext", "Show the latest indexed assets produced by this node"),
-			description: L("tooltip.openNodeContext", "Show the latest indexed assets produced by this node"),
+			label: I("command.openNodeContext", "Show assets from selected node"),
+			tooltip: I("tooltip.openNodeContext", "Show the latest indexed assets produced by this node"),
+			title: I("tooltip.openNodeContext", "Show the latest indexed assets produced by this node"),
+			description: I("tooltip.openNodeContext", "Show the latest indexed assets produced by this node"),
 			icon: "pi pi-sitemap",
-			function: () => sw(e, t)
+			function: () => dw(e, t)
 		},
 		{
 			id: "mjr.openNodeInFloatingViewer",
-			label: L("command.openNodeInFloatingViewer", "Open node media in floating viewer"),
-			tooltip: L("tooltip.openNodeInFloatingViewer", "Open this node's media in the Majoor floating viewer"),
-			title: L("tooltip.openNodeInFloatingViewer", "Open this node's media in the Majoor floating viewer"),
-			description: L("tooltip.openNodeInFloatingViewer", "Open this node's media in the Majoor floating viewer"),
+			label: I("command.openNodeInFloatingViewer", "Open node media in floating viewer"),
+			tooltip: I("tooltip.openNodeInFloatingViewer", "Open this node's media in the Majoor floating viewer"),
+			title: I("tooltip.openNodeInFloatingViewer", "Open this node's media in the Majoor floating viewer"),
+			description: I("tooltip.openNodeInFloatingViewer", "Open this node's media in the Majoor floating viewer"),
 			icon: "pi pi-window-maximize",
 			function: () => {
-				ow(KC);
+				uw(XC);
 			}
 		}
 	];
 }
-function lw() {
+function pw() {
 	return [{
 		combo: {
 			alt: !0,
@@ -24681,7 +24786,7 @@ function lw() {
 		commandId: "mjr.toggleFloatingViewer"
 	}];
 }
-function uw() {
+function mw() {
 	return [{
 		path: ["Extensions", "Majoor Assets Manager"],
 		commands: [
@@ -24696,45 +24801,45 @@ function uw() {
 		]
 	}];
 }
-function dw(e, { sidebarTabId: t, triggerStartupScan: n }) {
+function hw(e, { sidebarTabId: t, triggerStartupScan: n }) {
 	return [null, {
 		content: "Majoor Assets Manager",
 		submenu: { options: [
 			{
-				content: L("tooltip.openAssetsManager", "Open Majoor Assets Manager"),
-				callback: () => XC(e, t)
+				content: I("tooltip.openAssetsManager", "Open Majoor Assets Manager"),
+				callback: () => ew(e, t)
 			},
 			{
-				content: L("command.openFloatingViewer", "Open floating viewer"),
+				content: I("command.openFloatingViewer", "Open floating viewer"),
 				callback: () => {
 					try {
-						window.dispatchEvent(new Event(B.MFV_OPEN));
+						window.dispatchEvent(new Event(z.MFV_OPEN));
 					} catch (e) {
 						console.debug?.(e);
 					}
 				}
 			},
 			{
-				content: L("command.openGeneratedFeed", "Open generated feed"),
-				callback: () => QC(e)
+				content: I("command.openGeneratedFeed", "Open generated feed"),
+				callback: () => nw(e)
 			},
 			null,
 			{
-				content: L("command.refreshAssetsGrid", "Refresh assets grid"),
-				callback: () => ZC()
+				content: I("command.refreshAssetsGrid", "Refresh assets grid"),
+				callback: () => tw()
 			},
 			{
-				content: L("command.scanAssets", "Scan assets"),
+				content: I("command.scanAssets", "Scan assets"),
 				callback: () => n()
 			},
 			{
-				content: L("command.openSettings", "Open Majoor settings"),
-				callback: () => Gt(e)
+				content: I("command.openSettings", "Open Majoor settings"),
+				callback: () => Kt(e)
 			}
 		] }
 	}];
 }
-function fw() {
+function gw() {
 	return [
 		{
 			label: "Majoor Assets Manager",
@@ -24751,31 +24856,31 @@ function fw() {
 		}
 	];
 }
-function pw(e, t) {
-	for (let n of cw(e, t)) A(e, n);
+function _w(e, t) {
+	for (let n of fw(e, t)) S(e, n);
 }
-function mw(e) {
-	for (let t of lw()) d(e, t);
+function vw(e) {
+	for (let t of pw()) E(e, t);
 }
-function hw(e, { sidebarTabId: t }) {
+function yw(e, { sidebarTabId: t }) {
 	Ep({ sidebarTabId: t });
 	try {
-		Pt()?.integration?.hideNativeAssetsTab && kt(!0);
+		Ft()?.integration?.hideNativeAssetsTab && At(!0);
 	} catch (e) {
 		console.debug?.(e);
 	}
-	return C(e, {
+	return p(e, {
 		id: t,
 		icon: "pi pi-folder",
-		title: L("manager.title"),
-		label: L("manager.sidebarLabel"),
-		tooltip: L("tooltip.sidebarTab"),
+		title: I("manager.title"),
+		label: I("manager.sidebarLabel"),
+		tooltip: I("tooltip.sidebarTab"),
 		type: "custom",
 		render(e) {
-			Op(), Qr({ idleOnly: !0 }).catch(() => null), Ht(e, tC, UC), setTimeout(() => {
+			Op(), Qr({ idleOnly: !0 }).catch(() => null), Ut(e, aC, qC), setTimeout(() => {
 				let e = jp();
 				if (e) try {
-					window.dispatchEvent(new CustomEvent(B.RELOAD_GRID, { detail: {
+					window.dispatchEvent(new CustomEvent(z.RELOAD_GRID, { detail: {
 						reason: "pending-generated-assets",
 						pending: e
 					} }));
@@ -24787,80 +24892,80 @@ function hw(e, { sidebarTabId: t }) {
 		destroy(e) {}
 	});
 }
-function gw() {
+function bw() {
 	try {
-		Tt();
+		Et();
 	} catch {}
 	try {
-		Jt(null, UC);
+		Yt(null, qC);
 	} catch {}
-	_w = !1;
+	xw = !1;
 	try {
-		document.getElementById(vw)?.remove?.();
+		document.getElementById(Sw)?.remove?.();
 	} catch {}
 }
-var _w = !1, vw = "mjr-sidebar-prewarm-host";
-function yw() {
-	if (_w || typeof document > "u" || !document?.body || Bt(UC)) return !1;
-	_w = !0;
+var xw = !1, Sw = "mjr-sidebar-prewarm-host";
+function Cw() {
+	if (xw || typeof document > "u" || !document?.body || Vt(qC)) return !1;
+	xw = !0;
 	try {
-		let e = document.getElementById(vw);
-		return e || (e = document.createElement("div"), e.id = vw, e.style.cssText = "position:fixed;left:-99999px;top:0;width:360px;height:600px;overflow:hidden;visibility:hidden;pointer-events:none;contain:strict;", e.setAttribute("aria-hidden", "true"), document.body.appendChild(e)), Ht(e, tC, UC, { attachIfExists: !1 }), !0;
+		let e = document.getElementById(Sw);
+		return e || (e = document.createElement("div"), e.id = Sw, e.style.cssText = "position:fixed;left:-99999px;top:0;width:360px;height:600px;overflow:hidden;visibility:hidden;pointer-events:none;contain:strict;", e.setAttribute("aria-hidden", "true"), document.body.appendChild(e)), Ut(e, aC, qC, { attachIfExists: !1 }), !0;
 	} catch (e) {
-		return console.debug?.(e), _w = !1, !1;
+		return console.debug?.(e), xw = !1, !1;
 	}
 }
-function bw() {
+function ww() {
 	return {
-		id: GC,
-		title: L("bottomFeed.title", "Generated Feed"),
+		id: YC,
+		title: I("bottomFeed.title", "Generated Feed"),
 		icon: "pi pi-images",
 		type: "custom",
 		render(e) {
-			Ht(e, nC, WC);
+			Ut(e, oC, JC);
 		},
 		destroy(e) {}
 	};
 }
-function xw() {
-	return [bw()];
+function Tw() {
+	return [ww()];
 }
-function Sw() {
+function Ew() {
 	try {
-		Jt(null, WC);
+		Yt(null, JC);
 	} catch {}
 }
-function Cw(e) {
+function Dw(e) {
 	let t = String(e?.comfyClass || e?.type || e?.constructor?.type || "").trim();
 	return t ? /save|load|preview/i.test(t) : !1;
 }
-function ww(e) {
+function Ow(e) {
 	return e ? Array.isArray(e) ? e.filter(Boolean) : e instanceof Set ? Array.from(e).filter(Boolean) : e instanceof Map ? Array.from(e.values()).filter(Boolean) : Array.isArray(e?.items) ? e.items.filter(Boolean) : Array.isArray(e?.nodes) ? e.nodes.filter(Boolean) : [e] : [];
 }
-function Tw(e) {
-	return KC = tw(e), KC ? [
+function kw(e) {
+	return XC = aw(e), XC ? [
 		"mjr.openNodeContext",
 		"mjr.openAssetsManager",
 		"mjr.openNodeInFloatingViewer"
 	] : [];
 }
-function Ew(e, t) {
+function Aw(e, t) {
 	return {
 		content: e,
 		callback: t
 	};
 }
-function Dw(e, t, { sidebarTabId: n }) {
-	return Cw(e) ? [
-		Ew("View in Assets Manager", () => {
-			aw(t, n, e);
+function jw(e, t, { sidebarTabId: n }) {
+	return Dw(e) ? [
+		Aw("View in Assets Manager", () => {
+			lw(t, n, e);
 		}),
-		Ew("Open in Floating Viewer", () => {
-			ow(e);
+		Aw("Open in Floating Viewer", () => {
+			uw(e);
 		}),
-		Ew("Index Output", () => {
+		Aw("Index Output", () => {
 			try {
-				ZC(), m(L("toast.rescanningFile", "Rescanning file..."), "info", 1800);
+				tw(), F(I("toast.rescanningFile", "Rescanning file..."), "info", 1800);
 			} catch (e) {
 				console.debug?.(e);
 			}
@@ -24868,26 +24973,26 @@ function Dw(e, t, { sidebarTabId: n }) {
 	] : [];
 }
 // ui/features/runtime/entryRuntimeLifecycle.ts
-var Ow = "__MJR_ENTRY_RUNTIME__";
-function kw(e, t) {
+var Mw = "__MJR_ENTRY_RUNTIME__";
+function Nw(e, t) {
 	if (e) try {
-		e._mjrAssetUpdateReloadTimer &&= (clearTimeout(e._mjrAssetUpdateReloadTimer), null), e._mjrExecutedHandler && e.removeEventListener("executed", e._mjrExecutedHandler), e._mjrAssetAddedHandler && e.removeEventListener("mjr-asset-added", e._mjrAssetAddedHandler), e._mjrAssetUpdatedHandler && e.removeEventListener("mjr-asset-updated", e._mjrAssetUpdatedHandler), e._mjrStructuredEventHandler && e.removeEventListener(B.STRUCTURED_EVENT, e._mjrStructuredEventHandler), e._mjrScanCompleteHandler && e.removeEventListener(B.SCAN_COMPLETE, e._mjrScanCompleteHandler), e._mjrAssetsRemovedHandler && e.removeEventListener(B.ASSETS_REMOVED, e._mjrAssetsRemovedHandler), e._mjrScanProgressHandler && e.removeEventListener(B.SCAN_PROGRESS, e._mjrScanProgressHandler), e._mjrAssetIndexingHandler && e.removeEventListener(B.ASSET_INDEXING, e._mjrAssetIndexingHandler), e._mjrAssetIndexedHandler && e.removeEventListener(B.ASSET_INDEXED, e._mjrAssetIndexedHandler), e._mjrExecutionStartHandler && e.removeEventListener("execution_start", e._mjrExecutionStartHandler), e._mjrExecutionEndHandler && (e.removeEventListener("execution_success", e._mjrExecutionEndHandler), e.removeEventListener("execution_error", e._mjrExecutionEndHandler), e.removeEventListener("execution_interrupted", e._mjrExecutionEndHandler)), e._mjrStacksUpdatedHandler && e.removeEventListener("mjr.stacks.updated", e._mjrStacksUpdatedHandler), e._mjrEnrichmentStatusHandler && e.removeEventListener(B.ENRICHMENT_STATUS, e._mjrEnrichmentStatusHandler), e._mjrDbRestoreStatusHandler && e.removeEventListener(B.DB_RESTORE_STATUS, e._mjrDbRestoreStatusHandler), e._mjrRuntimeStatusHandler && (e.removeEventListener("progress", e._mjrRuntimeStatusHandler), e.removeEventListener("status", e._mjrRuntimeStatusHandler), e.removeEventListener(B.RUNTIME_STATUS, e._mjrRuntimeStatusHandler), e.removeEventListener("execution_cached", e._mjrExecutionCachedHandler));
+		e._mjrAssetUpdateReloadTimer &&= (clearTimeout(e._mjrAssetUpdateReloadTimer), null), e._mjrExecutedHandler && e.removeEventListener("executed", e._mjrExecutedHandler), e._mjrAssetAddedHandler && e.removeEventListener("mjr-asset-added", e._mjrAssetAddedHandler), e._mjrAssetUpdatedHandler && e.removeEventListener("mjr-asset-updated", e._mjrAssetUpdatedHandler), e._mjrStructuredEventHandler && e.removeEventListener(z.STRUCTURED_EVENT, e._mjrStructuredEventHandler), e._mjrScanCompleteHandler && e.removeEventListener(z.SCAN_COMPLETE, e._mjrScanCompleteHandler), e._mjrAssetsRemovedHandler && e.removeEventListener(z.ASSETS_REMOVED, e._mjrAssetsRemovedHandler), e._mjrScanProgressHandler && e.removeEventListener(z.SCAN_PROGRESS, e._mjrScanProgressHandler), e._mjrAssetIndexingHandler && e.removeEventListener(z.ASSET_INDEXING, e._mjrAssetIndexingHandler), e._mjrAssetIndexedHandler && e.removeEventListener(z.ASSET_INDEXED, e._mjrAssetIndexedHandler), e._mjrExecutionStartHandler && e.removeEventListener("execution_start", e._mjrExecutionStartHandler), e._mjrExecutionEndHandler && (e.removeEventListener("execution_success", e._mjrExecutionEndHandler), e.removeEventListener("execution_error", e._mjrExecutionEndHandler), e.removeEventListener("execution_interrupted", e._mjrExecutionEndHandler)), e._mjrStacksUpdatedHandler && e.removeEventListener("mjr.stacks.updated", e._mjrStacksUpdatedHandler), e._mjrEnrichmentStatusHandler && e.removeEventListener(z.ENRICHMENT_STATUS, e._mjrEnrichmentStatusHandler), e._mjrDbRestoreStatusHandler && e.removeEventListener(z.DB_RESTORE_STATUS, e._mjrDbRestoreStatusHandler), e._mjrRuntimeStatusHandler && (e.removeEventListener("progress", e._mjrRuntimeStatusHandler), e.removeEventListener("status", e._mjrRuntimeStatusHandler), e.removeEventListener(z.RUNTIME_STATUS, e._mjrRuntimeStatusHandler), e.removeEventListener("execution_cached", e._mjrExecutionCachedHandler));
 	} catch (e) {
 		t?.(e, "entry.removeApiHandlers");
 	}
 }
-function Aw(e, t) {
+function Pw(e, t) {
 	try {
 		let t = e?.assetsDeletedHandler;
-		t && typeof window < "u" && window.removeEventListener(B.ASSETS_DELETED, t);
+		t && typeof window < "u" && window.removeEventListener(z.ASSETS_DELETED, t);
 	} catch (e) {
 		t?.(e, "entry.removeRuntimeWindowHandlers");
 	}
 }
-function jw(e, { reportError: t } = {}) {
+function Fw(e, { reportError: t } = {}) {
 	if (e && typeof e == "object") {
 		try {
-			x();
+			u();
 		} catch (e) {
 			console.debug?.(e);
 		}
@@ -24914,13 +25019,13 @@ function jw(e, { reportError: t } = {}) {
 			console.warn("[MJR teardown]", e);
 		}
 		try {
-			kw(e.api || null, t), Aw(e, t);
+			Nw(e.api || null, t), Pw(e, t);
 		} catch (e) {
 			console.warn("[MJR teardown]", e);
 		}
 	}
 }
-function Mw(e, t, n, r, i = void 0) {
+function Iw(e, t, n, r, i = void 0) {
 	if (!e || !t?.addEventListener || typeof r != "function") return null;
 	let a = i && typeof i == "object" ? { ...i } : i;
 	if (typeof AbortController < "u") try {
@@ -24940,11 +25045,11 @@ function Mw(e, t, n, r, i = void 0) {
 		}
 	}), null;
 }
-function Nw({ cleanupEntryRuntimeFn: e = jw, teardownLiveStreamTracker: t, teardownNodeStream: n, teardownFloatingViewerManager: r, teardownGeneratedFeed: i, teardownAssetsSidebar: a, teardownGlobalRuntime: o, teardownTopBarMfvButton: s, reportError: c }) {
+function Lw({ cleanupEntryRuntimeFn: e = Fw, teardownLiveStreamTracker: t, teardownNodeStream: n, teardownFloatingViewerManager: r, teardownGeneratedFeed: i, teardownAssetsSidebar: a, teardownGlobalRuntime: o, teardownTopBarMfvButton: s, reportError: c }) {
 	try {
 		if (typeof window < "u") {
 			try {
-				let t = window[Ow];
+				let t = window[Mw];
 				e(t, { reportError: c });
 			} catch (e) {
 				console.warn("[MJR teardown]", e);
@@ -24984,7 +25089,7 @@ function Nw({ cleanupEntryRuntimeFn: e = jw, teardownLiveStreamTracker: t, teard
 			} catch (e) {
 				console.warn("[MJR teardown]", e);
 			}
-			window[Ow] = {
+			window[Mw] = {
 				api: null,
 				assetsDeletedHandler: null,
 				_cleanupControllers: [],
@@ -24996,42 +25101,42 @@ function Nw({ cleanupEntryRuntimeFn: e = jw, teardownLiveStreamTracker: t, teard
 	}
 }
 // ui/entry.ts
-var Pw = null, Fw = null, Iw = null;
-function Lw() {
-	return Iw ||= import("./chunks/floatingViewerManager-DbOx9dhE.js").then((e) => e.n), Iw;
+var Rw = null, zw = null, Bw = null;
+function Vw() {
+	return Bw ||= import("./chunks/floatingViewerManager-Dn53ZRsL.js").then((e) => e.n), Bw;
 }
-function Rw() {
-	Iw && Iw.then((e) => e?.teardownFloatingViewerManager?.()).catch((e) => console.debug?.("[Majoor] MFV teardown skipped", e));
+function Hw() {
+	Bw && Bw.then((e) => e?.teardownFloatingViewerManager?.()).catch((e) => console.debug?.("[Majoor] MFV teardown skipped", e));
 }
-var zw = "majoor-assets", Bw = "__MJR_EXECUTION_RUNTIME__", Vw = "Majoor.AssetsManager", Hw = {
+var Uw = "majoor-assets", Ww = "__MJR_EXECUTION_RUNTIME__", Gw = "Majoor.AssetsManager", Kw = {
 	active: null,
 	promptId: ""
-}, Uw = null, Ww = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i, Gw = /^[0-9a-f]{20,}$/i;
-function Kw(...e) {
+}, qw = null, Jw = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i, Yw = /^[0-9a-f]{20,}$/i;
+function Xw(...e) {
 	for (let t of e) {
 		let e = String(t || "").trim();
 		if (e) return e;
 	}
 	return "";
 }
-function qw(e) {
+function Zw(e) {
 	let t = String(e || "").trim();
-	return Ww.test(t) || Gw.test(t);
+	return Jw.test(t) || Yw.test(t);
 }
-function Jw(e) {
-	return Kw(e?.title, e?.properties?.title, e?.properties?.name, e?.properties?.label, e?.name);
+function Qw(e) {
+	return Xw(e?.title, e?.properties?.title, e?.properties?.name, e?.properties?.label, e?.name);
 }
-function Yw(e) {
+function $w(e) {
 	if (!e || typeof e != "object") return [];
 	if (Array.isArray(e.nodes)) return e.nodes.filter(Boolean);
 	if (Array.isArray(e._nodes)) return e._nodes.filter(Boolean);
 	let t = e._nodes_by_id ?? e.nodes_by_id ?? null;
 	return t instanceof Map ? Array.from(t.values()).filter(Boolean) : t && typeof t == "object" ? Object.values(t).filter(Boolean) : [];
 }
-function Xw(e) {
-	return Yw(e).length > 0;
+function eT(e) {
+	return $w(e).length > 0;
 }
-function Zw(e) {
+function tT(e) {
 	return !e || typeof e != "object" ? !1 : [
 		e.subgraph,
 		e._subgraph,
@@ -25042,13 +25147,13 @@ function Zw(e) {
 		e.subgraph_instance?.graph,
 		e.inner_graph,
 		e.subgraph_graph
-	].some(Xw) || Array.isArray(e.nodes) && e.nodes.length > 0 && e.nodes !== e.graph?.nodes ? !0 : qw(e.type) && !!Jw(e);
+	].some(eT) || Array.isArray(e.nodes) && e.nodes.length > 0 && e.nodes !== e.graph?.nodes ? !0 : Zw(e.type) && !!Qw(e);
 }
-function Qw(e, t) {
-	let n = String(e?.type || t || "").trim(), r = Jw(e);
-	return qw(n) ? r || "Subgraph" : n || r || "Node";
+function nT(e, t) {
+	let n = String(e?.type || t || "").trim(), r = Qw(e);
+	return Zw(n) ? r || "Subgraph" : n || r || "Node";
 }
-function $w() {
+function rT() {
 	try {
 		return typeof window > "u" ? {
 			active_prompt_id: null,
@@ -25057,87 +25162,87 @@ function $w() {
 			progress_value: null,
 			progress_max: null,
 			cached_nodes: []
-		} : (window[Bw] && typeof window[Bw] == "object" || (window[Bw] = {
+		} : (window[Ww] && typeof window[Ww] == "object" || (window[Ww] = {
 			active_prompt_id: null,
 			queue_remaining: null,
 			progress_node: null,
 			progress_value: null,
 			progress_max: null,
 			cached_nodes: []
-		}), window[Bw]);
+		}), window[Ww]);
 	} catch (e) {
 		return console.debug?.(e), {};
 	}
 }
-function eT(e = {}) {
+function iT(e = {}) {
 	try {
-		let t = $w();
-		Object.assign(t, e || {}), window.dispatchEvent(new CustomEvent(B.RUNTIME_STATUS, { detail: { ...t } }));
+		let t = rT();
+		Object.assign(t, e || {}), window.dispatchEvent(new CustomEvent(z.RUNTIME_STATUS, { detail: { ...t } }));
 	} catch (e) {
 		console.debug?.(e);
 	}
 }
-async function tT({ active: e, promptId: t = "" } = {}) {
+async function aT({ active: e, promptId: t = "" } = {}) {
 	let n = !!e, r = String(t || "").trim();
-	if (Hw.active !== n || Hw.promptId !== r) {
-		Hw = {
+	if (Kw.active !== n || Kw.promptId !== r) {
+		Kw = {
 			active: n,
 			promptId: r
 		};
 		try {
-			await pe(I.RUNTIME_EXECUTION, {
+			await rt(m.RUNTIME_EXECUTION, {
 				active: n,
 				prompt_id: r || void 0,
 				cooldown_ms: Number(R.EXECUTION_IDLE_GRACE_MS) || 6e3
 			});
 		} catch (e) {
-			ut(e, "entry.execution_state_sync");
+			dt(e, "entry.execution_state_sync");
 		}
 	}
 }
-function nT() {
+function oT() {
 	try {
-		return !!String($w()?.active_prompt_id || "").trim();
+		return !!String(rT()?.active_prompt_id || "").trim();
 	} catch (e) {
 		return console.debug?.(e), !1;
 	}
 }
-function rT(e = 1200) {
+function sT(e = 1200) {
 	try {
-		Uw && clearTimeout(Uw);
+		qw && clearTimeout(qw);
 	} catch (e) {
 		console.debug?.(e);
 	}
-	Uw = setTimeout(() => {
-		if (Uw = null, nT()) {
-			rT(e);
+	qw = setTimeout(() => {
+		if (qw = null, oT()) {
+			sT(e);
 			return;
 		}
-		let t = _t();
+		let t = vt();
 		t && ci(t);
 	}, Math.max(250, Number(e) || 0));
 }
-function iT(e) {
-	import("./chunks/LiveStreamTracker-BCHtyEKv.js").then((t) => {
-		Pw = t;
+function cT(e) {
+	import("./chunks/LiveStreamTracker-OgSegW1O.js").then((t) => {
+		Rw = t;
 		try {
 			t.initLiveStreamTracker(e);
 		} catch (e) {
 			console.warn("[MJR setup] initLiveStreamTracker failed:", e);
 		}
 	}).catch((e) => console.warn("[MJR setup] LiveStreamTracker load failed:", e)), import("./chunks/NodeStreamController-CIKDDXJT.js").then((t) => {
-		Fw = t;
+		zw = t;
 		try {
 			t.initNodeStream({
 				app: e,
 				onOutput: (e) => {
-					Lw().then((t) => t?.floatingViewerManager?.feedNodeStream?.(e)).catch((e) => console.debug?.("[NodeStream] MFV output failed", e));
+					Vw().then((t) => t?.floatingViewerManager?.feedNodeStream?.(e)).catch((e) => console.debug?.("[NodeStream] MFV output failed", e));
 				},
 				onStatus: (t, n) => {
 					try {
-						let r = (e?.graph ?? e?.canvas?.graph ?? null)?.getNodeById?.(Number(t)), i = Zw(r), a = Jw(r), o = i ? "Subgraph" : Qw(r, n);
-						Lw().then((e) => {
-							e?.floatingViewerManager?.setNodeStreamSelection?.(t, o, i ? a || Qw(r, n) : a);
+						let r = (e?.graph ?? e?.canvas?.graph ?? null)?.getNodeById?.(Number(t)), i = tT(r), a = Qw(r), o = i ? "Subgraph" : nT(r, n);
+						Vw().then((e) => {
+							e?.floatingViewerManager?.setNodeStreamSelection?.(t, o, i ? a || nT(r, n) : a);
 						}).catch((e) => console.debug?.("[NodeStream] MFV status failed", e));
 					} catch (e) {
 						console.debug?.("[NodeStream] onStatus failed", e);
@@ -25149,16 +25254,16 @@ function iT(e) {
 		}
 	}).catch((e) => console.warn("[MJR setup] NodeStream load failed:", e));
 }
-async function aT(e, t) {
-	let n = await b({
+async function lT(e, t) {
+	let n = await l({
 		app: e,
 		timeoutMs: 4e3
-	}) || P(e);
-	if (ie(n || null), !n) {
+	}) || d(e);
+	if (re(n || null), !n) {
 		console.warn("Majoor API not available, real-time updates disabled");
 		return;
 	}
-	Rt({
+	zt({
 		api: n,
 		app: e
 	}).catch((e) => console.debug?.("[Majoor] MFV progress tracking init failed", e));
@@ -25168,78 +25273,78 @@ async function aT(e, t) {
 	} catch (e) {
 		console.debug?.(e);
 	}
-	kw(r?.api || null, ut), n !== r?.api && kw(n, ut), Aw(r, ut), await Wp({
+	Nw(r?.api || null, dt), n !== r?.api && Nw(n, dt), Pw(r, dt), await Wp({
 		api: n,
 		runtime: r,
 		executionRuntime: t,
 		appRef: Er,
-		liveStreamModule: Pw,
-		ensureExecutionRuntime: $w,
-		emitRuntimeStatus: eT,
-		getActiveGridContainer: _t,
+		liveStreamModule: Rw,
+		ensureExecutionRuntime: rT,
+		emitRuntimeStatus: iT,
+		getActiveGridContainer: vt,
 		pushGeneratedAsset: Rf,
 		upsertAsset: gi,
 		upsertAssetNow: _i,
 		removeAssetsFromGrid: hi,
-		getEnrichmentState: xn,
-		setEnrichmentState: bn,
-		comfyToast: m,
-		t: L,
-		reportError: ut,
-		registerCleanableListener: Mw,
-		syncExecutionBackendState: tT
+		getEnrichmentState: Sn,
+		setEnrichmentState: xn,
+		comfyToast: F,
+		t: I,
+		reportError: dt,
+		registerCleanableListener: Iw,
+		syncExecutionBackendState: aT
 	});
 }
-var oT = op({
-	post: pe,
-	ENDPOINTS: I,
-	reportError: ut,
+var uT = op({
+	post: rt,
+	ENDPOINTS: m,
+	reportError: dt,
 	extractOutputFiles: sp,
-	ensureExecutionRuntime: $w,
-	emitRuntimeStatus: eT,
+	ensureExecutionRuntime: rT,
+	emitRuntimeStatus: iT,
 	refreshGeneratedFeedHosts: Sf,
-	getActiveGridContainer: _t
-}), sT = {
-	name: Vw,
-	settings: Ct(Er),
-	commands: cw(Er, {
-		sidebarTabId: zw,
+	getActiveGridContainer: vt
+}), dT = {
+	name: Gw,
+	settings: wt(Er),
+	commands: fw(Er, {
+		sidebarTabId: Uw,
 		triggerStartupScan: Xr
 	}),
-	keybindings: lw(),
-	menuCommands: uw(),
-	aboutPageBadges: fw(),
-	bottomPanelTabs: xw(),
+	keybindings: pw(),
+	menuCommands: mw(),
+	aboutPageBadges: gw(),
+	bottomPanelTabs: Tw(),
 	async setup() {
-		Nw({
-			cleanupEntryRuntimeFn: jw,
-			teardownLiveStreamTracker: (e) => Pw?.teardownLiveStreamTracker(e),
-			teardownNodeStream: (e) => Fw?.teardownNodeStream(e),
-			teardownFloatingViewerManager: Rw,
-			teardownGeneratedFeed: Sw,
-			teardownAssetsSidebar: gw,
-			teardownGlobalRuntime: YC,
-			teardownTopBarMfvButton: BC,
-			reportError: ut
-		}), Jp(), p(Er);
-		let e = await Ve({ timeoutMs: 12e3 }) || Er;
-		p(e), Cm(e);
+		Lw({
+			cleanupEntryRuntimeFn: Fw,
+			teardownLiveStreamTracker: (e) => Rw?.teardownLiveStreamTracker(e),
+			teardownNodeStream: (e) => zw?.teardownNodeStream(e),
+			teardownFloatingViewerManager: Hw,
+			teardownGeneratedFeed: Ew,
+			teardownAssetsSidebar: bw,
+			teardownGlobalRuntime: $C,
+			teardownTopBarMfvButton: WC,
+			reportError: dt
+		}), Jp(), P(Er);
+		let e = await g({ timeoutMs: 12e3 }) || Er;
+		P(e), Cm(e);
 		try {
 			typeof window < "u" && (window.__MJR_RUNTIME_APP__ = e);
 		} catch (e) {
 			console.debug?.(e);
 		}
-		ei(), ni({ enabled: !0 }), JC(), iT(e), Ft(e, () => {
-			let e = _t();
-			e && (R.DEFER_GRID_FETCH_DURING_EXECUTION && nT() ? rT() : ci(e));
-		}), pw(e, {
-			sidebarTabId: zw,
+		ei(), ni({ enabled: !0 }), QC(), cT(e), It(e, () => {
+			let e = vt();
+			e && (R.DEFER_GRID_FETCH_DURING_EXECUTION && oT() ? sT() : ci(e));
+		}), _w(e, {
+			sidebarTabId: Uw,
 			triggerStartupScan: Xr
-		}), mw(e), aT(e, oT).catch((e) => ut(e, "entry.api_setup")), hw(e, { sidebarTabId: zw }) ? mt("[Majoor] Sidebar tab registered (Vue)") : console.warn("Majoor Assets Manager: extensionManager.registerSidebarTab is unavailable");
+		}), vw(e), lT(e, uT).catch((e) => dt(e, "entry.api_setup")), yw(e, { sidebarTabId: Uw }) ? ht("[Majoor] Sidebar tab registered (Vue)") : console.warn("Majoor Assets Manager: extensionManager.registerSidebarTab is unavailable");
 		try {
 			let e = typeof window < "u" ? window.requestIdleCallback : null, t = () => {
 				try {
-					yw();
+					Cw();
 				} catch (e) {
 					console.debug?.(e);
 				}
@@ -25248,30 +25353,30 @@ var oT = op({
 		} catch (e) {
 			console.debug?.(e);
 		}
-		Gp({ resolveNodeStreamModule: async () => (Fw ||= await import("./chunks/NodeStreamController-CIKDDXJT.js"), Fw) });
+		Gp({ resolveNodeStreamModule: async () => (zw ||= await import("./chunks/NodeStreamController-CIKDDXJT.js"), zw) });
 	},
 	onNodeOutputsUpdated(e) {
 		try {
-			oT.handleNodeOutputsUpdated(e);
+			uT.handleNodeOutputsUpdated(e);
 		} catch (e) {
 			console.debug?.("[Majoor] onNodeOutputsUpdated error", e);
 		}
 	},
 	getNodeMenuItems(e) {
-		return Dw(e, Er, { sidebarTabId: zw });
+		return jw(e, Er, { sidebarTabId: Uw });
 	},
 	getCanvasMenuItems(e) {
-		return dw(Er, {
-			sidebarTabId: zw,
+		return hw(Er, {
+			sidebarTabId: Uw,
 			triggerStartupScan: Xr
 		});
 	},
 	getSelectionToolboxCommands(e) {
-		return Tw(e);
+		return kw(e);
 	}
 };
 try {
-	Er.registerExtension(sT);
+	Er.registerExtension(dT);
 } catch (e) {
-	console.warn("[Majoor] registerExtension() threw (extension already registered) - re-running setup() directly", e), sT.setup().catch((e) => ut(e, "entry.setup_after_duplicate_registration"));
+	console.warn("[Majoor] registerExtension() threw (extension already registered) - re-running setup() directly", e), dT.setup().catch((e) => dt(e, "entry.setup_after_duplicate_registration"));
 }

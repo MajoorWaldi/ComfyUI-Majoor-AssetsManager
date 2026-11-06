@@ -367,6 +367,8 @@ const DICTIONARY: Record<string, Record<string, string>> = {
         "btn.close": "Close",
         "btn.dbSave": "Save DB",
         "btn.dbRestore": "Restore DB",
+        "btn.emptyTrash": "Empty trash",
+        "btn.emptyTrashRunning": "Emptying...",
         "btn.back": "Back",
         "btn.up": "Up",
         "btn.saving": "Saving...",
@@ -558,6 +560,10 @@ const DICTIONARY: Record<string, Record<string, string>> = {
         "status.memoryPurgeStarted": "Memory purge started...",
         "status.toolStatusChecking": "Tool status: checking...",
         "status.resetIndexHint": "Reset index cache (requires allowResetIndex in settings).",
+        "status.emptyTrashHint":
+            "Permanently remove files Majoor sent to the freedesktop trash (requires allowDelete in settings).",
+        "status.emptyTrashDisabled":
+            "Empty trash is disabled. Enable 'allow_delete' in settings or set MAJOOR_ALLOW_DELETE=1.",
         "status.scanningHint": "This may take a while",
         "status.toolAvailable": "{tool} available",
         "status.toolUnavailable": "{tool} unavailable",
@@ -1049,6 +1055,9 @@ const DICTIONARY: Record<string, Record<string, string>> = {
         "dialog.newCollection.placeholder": "Collection name",
         "dialog.resetIndex.title": "Reset index?",
         "dialog.resetIndex.msg": "This will delete the database and rescan all files. Continue?",
+        "dialog.emptyTrash.title": "Empty trash?",
+        "dialog.emptyTrash.confirm":
+            "Permanently delete {count} trashed files ({size}) that came from Majoor's folders? This cannot be undone.",
         "dialog.securityWarning":
             "This looks like a system or very broad directory.\n\nAdding it can expose sensitive files via the viewer/custom roots feature.\n\nContinue?",
         "dialog.securityWarningTitle": "Majoor: Security Warning",
@@ -1180,6 +1189,13 @@ const DICTIONARY: Record<string, Record<string, string>> = {
         "toast.dbRestoreReplacing": "Replacing database files",
         "toast.dbRestoreRescan": "Restarting scan",
         "toast.dbRestoreSuccess": "Database backup restored",
+        "toast.trashIsEmpty": "Trash is empty",
+        "toast.trashRemoved": "{count} files removed ({size})",
+        "toast.trashFailures": "{count} entries could not be removed",
+        "toast.trashSkippedDirs": "{count} directories in the trash were not removed",
+        "toast.trashStatusFailed": "Failed to check trash",
+        "toast.trashEmptyFailed": "Failed to empty trash",
+        "toast.trashUnsupported": "Trash is not supported on this platform",
         "toast.nameCollisionInView": "Name collision in current view",
         "toast.fileRenamedSuccess": "File renamed successfully!",
         "toast.fileRenameFailed": "Failed to rename file.",

@@ -88,6 +88,25 @@ Open the Assets Manager panel and expand the **Index Status** section. Maintenan
 | **Memory purge** | Unloads Majoor AI models, asks ComfyUI to unload loaded models, and clears torch cache when the queue is idle. |
 | **Reset index** | Clears cached data inside the existing database and triggers a background rescan. Requires the database to be readable. |
 | **Delete DB** | Force-deletes the database files from disk (bypassing all DB-dependent checks) and rebuilds from scratch. Works even when the database is corrupted. |
+| **Empty trash** | Permanently removes the files Majoor sent to the freedesktop trash. Linux/BSD only; requires the delete permission (`allow_delete` / `MAJOOR_ALLOW_DELETE=1`). |
+
+## Empty Trash
+
+Majoor deletes files through the system trash (`send2trash`). On Linux and the BSDs those files land in the freedesktop trash (`~/.local/share/Trash` or `<mount>/.Trash-<uid>`), and on a headless server nothing ever clears it — so deleting assets never actually frees disk space.
+
+The **Empty trash** button in the Status panel fixes that:
+
+1. It counts only trash entries whose original location (recorded in each `.trashinfo` file) was inside one of Majoor's folders (output, input, or a custom root).
+2. It asks for confirmation showing the count and total size.
+3. On confirm it permanently deletes those entries — payload **and** metadata — via `POST /mjr/am/trash/empty`.
+
+Notes:
+
+- Selection is by original location, so files you trashed from those same folders with **other tools are included** and will be permanently deleted too.
+- Entries from outside Majoor's folders, orphans without trash metadata, and anything reachable only through a symlink are never touched.
+- **Directories in the trash are never removed.** Majoor only ever trashes files; a trashed directory (and its contents) is left in place and reported as skipped. Clear those by hand if needed.
+- **Ownership requirement:** a trash directory is only used when it belongs to the user running ComfyUI and is not group- or world-writable. Trash state planted by another user on a shared mount is ignored.
+- The button is hidden on non-freedesktop platforms (Windows/macOS) and disabled when deletion is disabled, because emptying shares the `allow_delete` gate with asset deletion.
 
 ## Reset Index
 

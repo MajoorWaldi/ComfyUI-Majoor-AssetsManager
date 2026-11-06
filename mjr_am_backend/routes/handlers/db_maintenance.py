@@ -14,13 +14,16 @@ from typing import Any
 
 from aiohttp import web
 from mjr_am_backend.config import INDEX_DB_PATH, get_runtime_output_root, is_vector_search_enabled
-from mjr_am_backend.custom_roots import resolve_custom_root
+from mjr_am_backend.custom_roots import list_custom_roots, resolve_custom_root
+from mjr_am_backend.features.assets import trash_service
 from mjr_am_backend.features.index.vector_runtime import maybe_unload_vector_runtime_after_use
 from mjr_am_backend.runtime_activity import is_generation_busy
 from mjr_am_backend.shared import FileKind, Result, get_logger
 
 from ..core import (
+    _check_rate_limit,
     _csrf_error,
+    _get_allowed_directories,
     _json_response,
     _read_json,
     _require_operation_enabled,
@@ -261,6 +264,29 @@ def _sqlite_backup_file(src: Path, dst: Path) -> None:
 
 def _emit_restore_status(step: str, level: str = "info", message: str | None = None, **extra) -> None:
     return archive_runtime.emit_restore_status(step, level, message, **extra)
+
+
+def _trash_roots() -> list[Path]:
+    """Resolve the Majoor roots (output, input, custom) for trash scanning."""
+    roots: list[Path] = []
+    try:
+        roots.extend(_get_allowed_directories())
+    except Exception:
+        logger.debug("trash: failed to enumerate allowed directories", exc_info=True)
+    try:
+        custom = list_custom_roots()
+        if custom.ok:
+            for item in custom.data or []:
+                raw = item.get("path") if isinstance(item, dict) else None
+                if not raw:
+                    continue
+                try:
+                    roots.append(Path(str(raw)).resolve(strict=False))
+                except (OSError, ValueError, RuntimeError):
+                    continue
+    except Exception:
+        logger.debug("trash: failed to enumerate custom roots", exc_info=True)
+    return roots
 
 
 async def _remove_with_retry(path: Path, attempts: int = 6) -> None:
@@ -1443,5 +1469,85 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
             result,
             name=src.name,
             scans=len(scans_triggered if "scans_triggered" in locals() else []),
+        )
+        return _json_response(result)
+
+    @routes.get("/mjr/am/trash")
+    async def trash_status(request: web.Request):
+        """Report how many trashed files came from Majoor's roots (no paths)."""
+        auth = _require_write_access(request)
+        if not auth.ok:
+            return _json_response(auth)
+        allowed, retry_after = _check_rate_limit(
+            request, "trash_status", max_requests=20, window_seconds=60
+        )
+        if not allowed:
+            return _json_response(
+                Result.Err(
+                    "RATE_LIMITED",
+                    f"Too many trash status requests. Retry in {int(retry_after or 60)} seconds.",
+                )
+            )
+        if not trash_service.is_supported():
+            return _json_response(Result.Ok({"supported": False, "count": 0, "bytes": 0}))
+        try:
+            scan = await asyncio.to_thread(lambda: trash_service.scan(_trash_roots()))
+        except Exception as exc:
+            return _json_response(
+                Result.Err("TRASH_ERROR", safe_error_message(exc, "Failed to scan trash"))
+            )
+        return _json_response(
+            Result.Ok({"supported": True, "count": scan.count, "bytes": scan.bytes})
+        )
+
+    @routes.post("/mjr/am/trash/empty")
+    async def trash_empty(request: web.Request):
+        """Permanently remove trash entries that came from Majoor's roots."""
+        csrf = _csrf_error(request)
+        if csrf:
+            return _json_response(Result.Err("CSRF", csrf))
+        auth = _require_write_access(request)
+        if not auth.ok:
+            return _json_response(auth)
+        if not trash_service.is_supported():
+            return _json_response(
+                Result.Err(
+                    "UNSUPPORTED",
+                    "Trash operations are only supported on Linux and BSD platforms.",
+                )
+            )
+        allowed, retry_after = _check_rate_limit(
+            request, "trash_empty", max_requests=3, window_seconds=60
+        )
+        if not allowed:
+            return _json_response(
+                Result.Err(
+                    "RATE_LIMITED",
+                    f"Too many empty-trash requests. Retry in {int(retry_after or 60)} seconds.",
+                )
+            )
+
+        svc, error_result = await _require_services()
+        if error_result:
+            return _json_response(error_result)
+        prefs = await _resolve_security_prefs(svc if isinstance(svc, dict) else None)
+        op = _require_operation_enabled("trash_empty", prefs=prefs)
+        if not op.ok:
+            return _json_response(op)
+
+        try:
+            result = await asyncio.to_thread(lambda: trash_service.empty(_trash_roots()))
+        except Exception as exc:
+            result = Result.Err("TRASH_ERROR", safe_error_message(exc, "Failed to empty trash"))
+        await _audit_db_maintenance_write(
+            svc if isinstance(svc, dict) else {},
+            request,
+            "trash_empty",
+            "trash:empty",
+            result,
+            removed=int((result.data or {}).get("removed") or 0) if result.ok else 0,
+            bytes=int((result.data or {}).get("bytes") or 0) if result.ok else 0,
+            failed=len((result.data or {}).get("failed") or []) if result.ok else 0,
+            skipped_dirs=int((result.data or {}).get("skipped_dirs") or 0) if result.ok else 0,
         )
         return _json_response(result)
