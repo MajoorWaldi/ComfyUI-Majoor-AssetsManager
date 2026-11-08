@@ -1,13 +1,13 @@
 import { $ as e, $n as t, At as n, B as r, Bn as i, Bt as a, C as o, Ct as s, D as c, E as l, En as u, F as d, Fn as f, Ft as p, Gn as m, Gt as h, Ht as g, I as _, It as v, Jn as y, Jt as b, Kn as x, Kt as S, L as C, Ln as w, M as T, Mt as E, N as D, Nt as O, On as k, P as A, Pn as ee, Qn as j, Qt as M, Rn as N, S as te, Sn as ne, Un as P, Vt as re, Wn as F, Xn as ie, Xt as ae, Yn as I, Yt as oe, Zn as se, Zt as ce, _ as le, a as ue, an as L, ar as de, at as fe, b as pe, cn as me, cr as he, ct as ge, dr as _e, dt as ve, er as ye, f as be, fr as xe, ft as Se, g as Ce, i as we, ir as Te, it as Ee, j as De, jt as Oe, k as ke, kt as Ae, l as je, lr as Me, lt as Ne, m as Pe, n as Fe, nr as Ie, nt as Le, o as Re, or as ze, ot as Be, p as Ve, pt as He, qn as Ue, qt as We, rr as Ge, s as Ke, sn as qe, st as Je, tr as Ye, u as Xe, ur as Ze, ut as Qe, v as R, vt as $e, w as et, x as tt, xn as nt, y as rt, z as it, zn as at, zt as ot } from "./chunks/client-JHhPY9-v.js";
 import { a as st, i as ct, n as lt, t as ut } from "./chunks/graphTraversal-DTdQWkn5.js";
 import { t as z } from "./chunks/config-BFDzOF1N.js";
-import { _ as dt, c as ft, d as pt, f as mt, g as ht, h as gt, l as _t, m as vt, o as yt, p as bt, s as xt, u as St } from "./chunks/floatingViewerManager-BdAMRhP5.js";
+import { _ as dt, c as ft, d as pt, f as mt, g as ht, h as gt, l as _t, m as vt, o as yt, p as bt, s as xt, u as St } from "./chunks/floatingViewerManager-ZGSEDtjq.js";
 import { A as Ct, C as wt, D as Tt, E as Et, M as Dt, N as Ot, O as kt, T as At, _ as jt, g as Mt, h as Nt, j as Pt, k as Ft, w as It } from "./chunks/generationSectionState-Drz6o8L-.js";
 import { n as Lt, r as B, t as Rt } from "./chunks/events-1iwo5blr.js";
-import { E as zt, S as Bt, c as Vt, i as Ht, l as Ut, n as Wt, o as Gt, r as Kt, s as qt, t as Jt, u as Yt, x as Xt, y as Zt } from "./chunks/tooltipShortcuts-BBspSWJ1.js";
-import { A as Qt, B as $t, C as en, D as tn, E as nn, F as rn, G as an, H as on, I as sn, J as cn, K as ln, L as un, M as dn, N as fn, O as pn, P as mn, R as hn, S as gn, T as _n, U as vn, V as yn, W as bn, X as xn, Y as Sn, _ as Cn, a as wn, b as Tn, c as En, d as Dn, f as On, g as kn, h as An, i as jn, j as Mn, k as Nn, l as Pn, m as Fn, n as In, o as Ln, p as Rn, q as zn, r as Bn, s as Vn, t as Hn, u as Un, v as Wn, w as Gn, x as Kn, y as qn, z as Jn } from "./chunks/TagsEditor-DI1KulUp.js";
-import { $ as Yn, B as Xn, C as V, D as Zn, E as H, F as Qn, G as $n, H as er, J as tr, K as nr, M as U, N as rr, O as W, P as ir, Q as G, R as ar, S as or, T as K, U as sr, V as cr, W as q, X as lr, Z as ur, at as dr, b as fr, ct as pr, ft as mr, gt as J, ht as hr, j as gr, k as Y, lt as _r, mt as X, ot as vr, pt as Z, q as yr, st as Q, ut as br, v as xr, w as Sr, x as Cr, y as wr } from "./chunks/mjr-primevue-CE8VjDUg.js";
-import { n as Tr, r as Er } from "./chunks/mjr-vue-vendor-pJNm95sb.js";
+import { E as zt, S as Bt, c as Vt, i as Ht, l as Ut, n as Wt, o as Gt, r as Kt, s as qt, t as Jt, u as Yt, x as Xt, y as Zt } from "./chunks/tooltipShortcuts-5jaDyQtF.js";
+import { A as Qt, B as $t, C as en, D as tn, E as nn, F as rn, G as an, H as on, I as sn, J as cn, K as ln, L as un, M as dn, N as fn, O as pn, P as mn, R as hn, S as gn, T as _n, U as vn, V as yn, W as bn, X as xn, Y as Sn, _ as Cn, a as wn, b as Tn, c as En, d as Dn, f as On, g as kn, h as An, i as jn, j as Mn, k as Nn, l as Pn, m as Fn, n as In, o as Ln, p as Rn, q as zn, r as Bn, s as Vn, t as Hn, u as Un, v as Wn, w as Gn, x as Kn, y as qn, z as Jn } from "./chunks/TagsEditor-CNhgF9LZ.js";
+import { $ as Yn, B as Xn, C as V, D as Zn, E as H, F as Qn, G as $n, H as er, J as tr, K as nr, M as U, N as rr, O as W, P as ir, Q as G, R as ar, S as or, T as K, U as sr, V as cr, W as q, X as lr, Z as ur, at as dr, b as fr, ct as pr, ft as mr, gt as J, ht as hr, j as gr, k as Y, lt as _r, mt as X, ot as vr, pt as Z, q as yr, st as Q, ut as br, v as xr, w as Sr, x as Cr, y as wr } from "./chunks/mjr-primevue-C07IsEdU.js";
+import { n as Tr, r as Er } from "./chunks/mjr-vue-vendor-CEDOnn2t.js";
 import { app as Dr } from "../../scripts/app.js";
 function Or(e = null) {
 	return null;
@@ -1989,7 +1989,7 @@ function Ea() {
 	return wa ||= import("./chunks/viewerOpenRequest-WOJE90Gn.js").then((e) => e.n), wa;
 }
 function Da() {
-	return Ta ||= import("./chunks/floatingViewerManager-BdAMRhP5.js").then((e) => e.n), Ta;
+	return Ta ||= import("./chunks/floatingViewerManager-ZGSEDtjq.js").then((e) => e.n), Ta;
 }
 function Oa(e) {
 	let t = String(e || "").trim().toLowerCase();
@@ -7211,7 +7211,7 @@ function Bu({ gridContainerRef: e, state: t, setLoadingMessage: n, clearLoadingM
 		dispose: Ae
 	};
 }
-// ../../../../../../../../ComfyUI-Installs/ComfyUI (from Portable)/ComfyUI/custom_nodes/ComfyUI-Majoor-AssetsManager/node_modules/@tanstack/virtual-core/dist/esm/lazy-measurements.js
+// node_modules/@tanstack/virtual-core/dist/esm/lazy-measurements.js
 function Vu(e) {
 	return typeof e == "object" ? e.key : e;
 }
@@ -7243,7 +7243,7 @@ function Hu(e, t) {
 		return Reflect.get(e, r, i);
 	} });
 }
-// ../../../../../../../../ComfyUI-Installs/ComfyUI (from Portable)/ComfyUI/custom_nodes/ComfyUI-Majoor-AssetsManager/node_modules/@tanstack/virtual-core/dist/esm/utils.js
+// node_modules/@tanstack/virtual-core/dist/esm/utils.js
 function Uu(e, t, n) {
 	let r = n.initialDeps ?? [], i, a = !0;
 	function o() {
@@ -7926,7 +7926,7 @@ function ld(e, t, n, r, i) {
 		endIndex: s
 	};
 }
-// ../../../../../../../../ComfyUI-Installs/ComfyUI (from Portable)/ComfyUI/custom_nodes/ComfyUI-Majoor-AssetsManager/node_modules/@tanstack/vue-virtual/dist/esm/index.js
+// node_modules/@tanstack/vue-virtual/dist/esm/index.js
 function ud(e) {
 	let t = new od(Z(e)), n = _r(t), r = t._didMount();
 	return lr(() => Z(e).getScrollElement(), (e) => {
@@ -8232,7 +8232,7 @@ var Od = {
 			return g ||= import("./chunks/viewerOpenRequest-WOJE90Gn.js").then((e) => e.n), g;
 		}
 		function y() {
-			return _ ||= import("./chunks/floatingViewerManager-BdAMRhP5.js").then((e) => e.n), _;
+			return _ ||= import("./chunks/floatingViewerManager-ZGSEDtjq.js").then((e) => e.n), _;
 		}
 		function b(e) {
 			return (Array.isArray(e) ? e : []).slice().sort((e, t) => {
@@ -9499,7 +9499,7 @@ function Jd() {
 	return Kd ||= import("./chunks/viewerOpenRequest-WOJE90Gn.js").then((e) => e.n), Kd;
 }
 function Yd() {
-	return qd ||= import("./chunks/floatingViewerManager-BdAMRhP5.js").then((e) => e.n), qd;
+	return qd ||= import("./chunks/floatingViewerManager-ZGSEDtjq.js").then((e) => e.n), qd;
 }
 function Xd(e) {
 	let t = document.createElement("button");
@@ -11756,7 +11756,7 @@ function Em() {
 var Dm = /* @__PURE__ */ ir({
 	__name: "GlobalRuntime",
 	setup(e) {
-		let t = rr(() => import("./chunks/ViewerPortal-DexC8rRC.js")), n = Q(!1), r = [
+		let t = rr(() => import("./chunks/ViewerPortal-BQ_o9QLI.js")), n = Q(!1), r = [
 			B.OPEN_VIEWER,
 			B.MFV_OPEN,
 			B.MFV_TOGGLE,
@@ -24863,7 +24863,7 @@ async function Cw(e) {
 	try {
 		let t = await bw(e);
 		if (t.length) {
-			let { floatingViewerManager: e } = await import("./chunks/floatingViewerManager-BdAMRhP5.js").then((e) => e.n);
+			let { floatingViewerManager: e } = await import("./chunks/floatingViewerManager-ZGSEDtjq.js").then((e) => e.n);
 			if (await e.openAssets({
 				assets: t,
 				index: 0
@@ -25333,7 +25333,7 @@ function Xw({ cleanupEntryRuntimeFn: e = Jw, teardownLiveStreamTracker: t, teard
 // ui/entry.ts
 var Zw = null, Qw = null, $w = null;
 function eT() {
-	return $w ||= import("./chunks/floatingViewerManager-BdAMRhP5.js").then((e) => e.n), $w;
+	return $w ||= import("./chunks/floatingViewerManager-ZGSEDtjq.js").then((e) => e.n), $w;
 }
 function tT() {
 	$w && $w.then((e) => e?.teardownFloatingViewerManager?.()).catch((e) => console.debug?.("[Majoor] MFV teardown skipped", e));
@@ -25453,7 +25453,7 @@ function bT(e = 1200) {
 	}, Math.max(250, Number(e) || 0));
 }
 function xT(e) {
-	import("./chunks/LiveStreamTracker-BHt_Ildu.js").then((t) => {
+	import("./chunks/LiveStreamTracker-AgvwMU3i.js").then((t) => {
 		Zw = t;
 		try {
 			t.initLiveStreamTracker(e);
