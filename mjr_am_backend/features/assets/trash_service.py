@@ -50,7 +50,9 @@ _TRASH_INFO_HEADER = "[Trash Info]"
 _INFO_SUFFIX = ".trashinfo"
 _MAX_INFO_BYTES = 64 * 1024
 _FORBIDDEN_WRITE_BITS = 0o022
-_OPEN_DIR_FLAGS = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
+# Only used on freedesktop platforms (see is_supported); Windows lacks these flags.
+_O_NOFOLLOW = getattr(os, "O_NOFOLLOW", 0)
+_OPEN_DIR_FLAGS = os.O_RDONLY | getattr(os, "O_DIRECTORY", 0) | _O_NOFOLLOW
 
 
 def is_supported(platform: str | None = None) -> bool:
@@ -227,7 +229,7 @@ def _parse_trashinfo(info_path: Path) -> str | None:
     fails and is treated as malformed.
     """
     try:
-        info_fd = os.open(info_path, os.O_RDONLY | os.O_NOFOLLOW)
+        info_fd = os.open(info_path, os.O_RDONLY | _O_NOFOLLOW)
     except OSError:
         return None
     try:
