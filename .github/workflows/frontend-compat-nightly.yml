@@ -32,13 +32,20 @@ jobs:
               run: npm ci --ignore-scripts
 
             - name: Build types from latest ComfyUI frontend source
+              id: upstream_types
+              continue-on-error: true
               working-directory: _upstream/ComfyUI_frontend
               run: |
                   corepack enable
                   pnpm install --frozen-lockfile
                   pnpm build:types
 
+            - name: Report upstream types build failure
+              if: steps.upstream_types.outcome == 'failure'
+              run: echo "::warning title=Upstream broken::ComfyUI_frontend main failed to build its types (pnpm build:types). Not an extension failure - skipping the latest-types typecheck."
+
             - name: Activate latest generated ComfyUI frontend types
+              if: steps.upstream_types.outcome == 'success'
               shell: bash
               run: |
                   set -euo pipefail
@@ -82,6 +89,7 @@ jobs:
                   } > "$pkg_dir/index.d.ts"
 
             - name: Typecheck against latest official ComfyUI frontend types
+              if: steps.upstream_types.outcome == 'success'
               run: npx tsc -p tsconfig.json --noEmit --pretty false
 
             - name: Run ComfyUI integration contract tests
