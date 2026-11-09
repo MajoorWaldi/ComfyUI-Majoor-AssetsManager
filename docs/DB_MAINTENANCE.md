@@ -1,6 +1,6 @@
 # Database Maintenance
 
-**Version**: 2.4.9
+**Version**: 2.5.4
 **Last Updated**: April 7, 2026
 
 Majoor Assets Manager stores its index in an SQLite database. By default this is at `<output>/_mjr_index/assets.sqlite`, but the index directory can be relocated to any local path — useful when your output folder is on a network share. This document covers the maintenance tools available in the UI, the recovery procedures for corruption scenarios, and how to configure the index directory.

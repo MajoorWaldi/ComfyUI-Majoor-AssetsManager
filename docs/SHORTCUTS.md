@@ -1,6 +1,6 @@
 # Keyboard Shortcuts
 
-**Version**: 2.4.9
+**Version**: 2.5.4
 **Last Updated**: May 18, 2026
 
 Quick reference for Majoor Assets Manager shortcuts. For full details including MFV shortcuts, see [HOTKEYS_SHORTCUTS.md](HOTKEYS_SHORTCUTS.md).

@@ -1,6 +1,6 @@
 # Majoor Assets Manager - Viewer Feature Tutorial
 
-**Version**: 2.4.9
+**Version**: 2.5.4
 **Last Updated**: April 15, 2026
 
 ## Overview
@@ -430,5 +430,5 @@ See [HOTKEYS_SHORTCUTS.md](HOTKEYS_SHORTCUTS.md) for complete shortcut list.
 
 ---
 
-_Viewer Feature Tutorial Version: 2.4.9_
+_Viewer Feature Tutorial Version: 2.5.4_
 _Last Updated: April 14, 2026_

@@ -1,7 +1,7 @@
 # Majoor API Reference
 
 **Base Path**: `/mjr/am`
-**Version**: 2.4.9
+**Version**: 2.5.4
 **Last Updated**: April 7, 2026
 
 ---

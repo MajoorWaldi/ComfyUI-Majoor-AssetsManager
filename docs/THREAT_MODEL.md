@@ -1,6 +1,6 @@
 # Threat Model — Majoor Assets Manager
 
-**Version**: 2.4.9
+**Version**: 2.5.4
 **Date**: April 5, 2026 (Updated from 2026-01-24)
 
 ## Scope

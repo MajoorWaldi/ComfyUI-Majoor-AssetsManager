@@ -13,6 +13,21 @@ let _loaded = false;
 let _messages: any[] = [];
 const BUILTIN_PANEL_MESSAGES = Object.freeze([
     {
+        id: "whats-new-2026-11-09-version-2-5-4-curation-trash",
+        title: "New Version 2.5.4 - Bulk Curation & Empty Trash",
+        titleKey: "msg.whatsNew.title.version254",
+        emoji: "Info",
+        category: "Release",
+        categoryKey: "msg.category.release",
+        level: "success",
+        createdAt: Date.parse("2026-11-09T09:00:00Z"),
+        body: "Version 2.5.4 released. Bulk curation: rate (0-5), tag and delete whole multi-card selections in batched requests; the tag editor shows each tag's coverage across the selection. Empty trash: new button in the Status panel (Linux/BSD) that only removes files Majoor sent to the trash. Save nodes: Majoor Save Image adds png 16-bit, exr and avif; Majoor Save Video adds MKV/WebM, AV1 and 10-bit/HDR. Indexing: EXR, TIFF, SVG, BMP, AVI, M4V and .opus files, plus JPEG/TIFF metadata. Fixed: Windows startup failure that prevented Majoor routes from loading, search by part of a file name, renamed files keeping their ratings and tags, trashed images reappearing in the grid, and the grid reloading twice.",
+        bodyKey: "msg.whatsNew.body.version254",
+        actionLabel: "Changelog",
+        actionLabelKey: "label.changelog",
+        actionUrl: "CHANGELOG.md",
+    },
+    {
         id: "whats-new-2026-07-09-version-2-5-0",
         title: "New Version 2.5.0",
         titleKey: "msg.whatsNew.title.version250",
@@ -457,9 +472,14 @@ function _persistMessages() {
     _writeStorageJson(STORAGE_MESSAGES_KEY, _messages);
 }
 
+// Built-in messages renamed before release; drop copies already stored in the browser.
+const RETIRED_BUILTIN_IDS = new Set(["whats-new-2026-11-09-version-2-5-3-curation-trash"]);
+
 function _seedBuiltinMessages() {
     const dismissedBuiltinIds = _readDismissedBuiltinIds();
-    let changed = false;
+    const before = _messages.length;
+    _messages = _messages.filter((m) => !RETIRED_BUILTIN_IDS.has(m.id));
+    let changed = _messages.length !== before;
     for (const raw of BUILTIN_PANEL_MESSAGES) {
         const normalized = _normalizeMessage(raw);
         if (dismissedBuiltinIds.has(normalized.id)) {

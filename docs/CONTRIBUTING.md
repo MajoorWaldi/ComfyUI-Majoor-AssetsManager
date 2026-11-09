@@ -115,7 +115,7 @@ majoor-assetsmanager/
 4. **Security**: Safe mode by default; write/delete operations require explicit opt-in
 5. **Error Handling**: `Result[T]` pattern everywhere — no exceptions bubble to UI
 
-See [`docs/ARCHITECTURE_MAP.md`](docs/ARCHITECTURE_MAP.md) and [`docs/adr/`](docs/adr/) for detailed design decisions.
+See [`docs/ARCHITECTURE_MAP.md`](ARCHITECTURE_MAP.md) and [`docs/adr/`](adr/) for detailed design decisions.
 
 ---
 
@@ -128,7 +128,7 @@ See [`docs/ARCHITECTURE_MAP.md`](docs/ARCHITECTURE_MAP.md) and [`docs/adr/`](doc
 - **Type Checking**: [MyPy](https://mypy.readthedocs.io/) + [Pyright](https://github.com/microsoft/pyright) (standard mode)
 - **Imports**: Organized by Ruff `I` rule (isort-compatible)
 - **Error Handling**: Use `Result[T]` from `mjr_am_shared/result.py` — never raise to UI
-- **Security**: Never import `ComfyUI/server.py` (see [ADR-002](docs/adr/0002-comfyui-server-import-safety.md))
+- **Security**: Never import `ComfyUI/server.py` (see [ADR-002](adr/0002-comfyui-server-import-safety.md))
 
 **Example**:
 
@@ -381,7 +381,7 @@ Update documentation when:
 - **Language**: English (all user-facing docs)
 - **Format**: Markdown (`.md` files)
 - **Location**: `docs/` directory
-- **Index**: Update [`docs/DOCUMENTATION_INDEX.md`](docs/DOCUMENTATION_INDEX.md) for new docs
+- **Index**: Update [`docs/DOCUMENTATION_INDEX.md`](DOCUMENTATION_INDEX.md) for new docs
 
 ### Types of Documentation
 
@@ -409,10 +409,10 @@ See existing ADRs for examples.
 
 ### Resources
 
-- **Documentation**: [`docs/DOCUMENTATION_INDEX.md`](docs/DOCUMENTATION_INDEX.md)
-- **API Reference**: [`docs/API_REFERENCE.md`](docs/API_REFERENCE.md)
-- **Architecture**: [`docs/ARCHITECTURE_MAP.md`](docs/ARCHITECTURE_MAP.md)
-- **Changelog**: [`CHANGELOG.md`](CHANGELOG.md)
+- **Documentation**: [`docs/DOCUMENTATION_INDEX.md`](DOCUMENTATION_INDEX.md)
+- **API Reference**: [`docs/API_REFERENCE.md`](API_REFERENCE.md)
+- **Architecture**: [`docs/ARCHITECTURE_MAP.md`](ARCHITECTURE_MAP.md)
+- **Changelog**: [`CHANGELOG.md`](../CHANGELOG.md)
 
 ### Contact
 
@@ -462,6 +462,6 @@ Contributors are recognized in:
 
 ## License
 
-By contributing, you agree that your contributions will be licensed under the project's [LICENSE](LICENSE).
+By contributing, you agree that your contributions will be licensed under the project's [LICENSE](../LICENSE).
 
 Thank you for helping make Majoor Assets Manager better! 🎉

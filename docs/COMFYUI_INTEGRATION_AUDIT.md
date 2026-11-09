@@ -1,7 +1,7 @@
 # Audit d'intégration ComfyUI — novembre 2026
 
 Audit du code backend (aiohttp / PromptServer / nœuds V3) et frontend (extension
-Vue/TS) de Majoor Assets Manager v2.5.3, face aux versions récentes de ComfyUI
+Vue/TS) de Majoor Assets Manager v2.5.4, face aux versions récentes de ComfyUI
 (core avec API Assets/Jobs, frontend 1.5x–1.60, sous-graphes, nœuds V3).
 
 Objectif : faire évoluer l'extension **sans conflit** avec le core et avec les

@@ -1,6 +1,6 @@
 # Testing
 
-**Version**: 2.4.9
+**Version**: 2.5.4
 **Last Updated**: April 5, 2026
 
 This project uses **pytest** (backend) and **Vitest** (frontend) for comprehensive test coverage. On Windows, batch runners are provided for convenience and generate both:

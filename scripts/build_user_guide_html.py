@@ -686,7 +686,7 @@ def _render_html_page(title: str, docs: list[Doc], rendered_sections: list[str])
       </div>
       <div class="pillrow">
         <div class="pill"><span class="dot"></span> Docs: {len(docs)}</div>
-        <div class="pill"><span class="dot"></span> Updated: January 2026</div>
+        <div class="pill"><span class="dot"></span> Updated: November 2026</div>
       </div>
     </header>
 
@@ -711,7 +711,7 @@ def _render_html_page(title: str, docs: list[Doc], rendered_sections: list[str])
       {''.join(rendered_sections)}
 
       <div style="text-align:center; color: var(--muted); font-size: 12px; margin-top: 10px;">
-        Majoor Assets Manager • Documentation • January 2026
+        Majoor Assets Manager • Documentation • November 2026
       </div>
     </main>
   </div>

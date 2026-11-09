@@ -75,6 +75,8 @@ Use Assets Manager as a fast library for ComfyUI media:
 - folder cards in Input / Output scopes: open subfolders, navigate back with `..`, drag assets onto a folder to move them, and create folders from the right-click menu (opt-in via **Show folders in Input / Output panels** in Settings → Browser, disabled by default)
 - full-text search and structured filters
 - ratings, tags, collections, duplicate awareness, and generation stacks
+- bulk curation on multi-card selections: star rating (`0`-`5`), tag editor with per-tag coverage, and delete, each in batched requests
+- indexing of PNG, JPEG, WebP, AVIF, JPEG XL (experimental, opt-in), EXR, TIFF, SVG, BMP, GIF, common video containers (MP4, MKV, WebM, AVI, M4V, MOV), audio (including `.opus`) and 3D files
 - right-click actions for rename, delete, open folder, copy path, download, and ZIP export
 - Collect Files: one click bundles an asset, its workflow JSON, traced prompt text, and all referenced media inputs into a ZIP next to the file ([`docs/COLLECT_FILES.md`](docs/COLLECT_FILES.md))
 
@@ -101,7 +103,16 @@ Move useful assets and workflow context back into ComfyUI:
 ## Latest Release
 
 ### v2.5.3 Highlights
+- **Studio viewer** is the only main viewer: tool rail (channels, exposure, scopes, guides, probe, loupe, A/B compare), a new video/audio player and an inspector; the floating viewer uses the same player.
 - **Fixed missing `adapters.tools` module on Registry installs**: an over-broad `.comfyignore` pattern was stripping the ExifTool/FFProbe adapters out of published packages, causing a startup `ModuleNotFoundError`.
+- Search by part of a file name, sidecar JSON metadata, workflow tab cleanup, duplicate-stack and asset-sync fixes.
+
+### v2.5.4 Highlights
+- **Bulk curation**: rate, tag and delete whole selections in one batched request (`POST /mjr/am/assets/rating`, `/assets/tags`, `/assets/delete`).
+- **Empty trash** button in the Status panel (Linux/BSD freedesktop trash, Majoor folders only).
+- **Majoor Save Image / Save Video**: `png 16-bit`, `exr`, `avif`, plus MP4/MKV/WebM with H.264 or AV1 and 10-bit/HDR support.
+- New indexed formats (EXR, TIFF, SVG, BMP, AVI, M4V, `.opus`), JPEG/TIFF metadata, configurable write rate limits.
+- Fixed a Windows startup failure where all Majoor routes failed to register (`os.O_DIRECTORY` does not exist on Windows).
 
 See [CHANGELOG.md](CHANGELOG.md) for the complete release notes.
 
@@ -776,5 +787,5 @@ Optional attribution request: See [`NOTICE`](NOTICE) file for details.
 
 ---
 
-*Last updated: September 27, 2026*
-*Version: 2.5.3*
+*Last updated: November 9, 2026*
+*Version: 2.5.4*

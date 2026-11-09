@@ -8,8 +8,8 @@ Majoor is best understood as one workflow:
 2. **Inspect** prompts, metadata, workflows, and visual details.
 3. **Reuse** useful assets and workflow context back in ComfyUI.
 
-**Current Version**: 2.5.3
-**Last Updated**: September 27, 2026
+**Current Version**: 2.5.4
+**Last Updated**: November 9, 2026
 
 ## Start Here
 
@@ -78,6 +78,14 @@ These are powerful capabilities, but they are not required for the basic Browse 
 | **[TESTING.md](TESTING.md)** | Tests, reports, and quality gate |
 | **[CONTRIBUTING.md](CONTRIBUTING.md)** | Developer onboarding and contribution guidance |
 | **[DEPENDENCY_POLICY.md](DEPENDENCY_POLICY.md)** | Runtime, optional, and contributor dependency rules |
+| **[REGISTRY_RUNTIME_BOUNDARIES.md](REGISTRY_RUNTIME_BOUNDARIES.md)** | What ships in Registry installs vs. the repository |
+| **[FRONTEND_LIFECYCLE_CONVENTIONS.md](FRONTEND_LIFECYCLE_CONVENTIONS.md)** | Frontend mount/dispose conventions |
+| **[FRONTEND_IMPERATIVE_DESIGN.md](FRONTEND_IMPERATIVE_DESIGN.md)** | Imperative frontend design notes |
+| **[MIGRATION_TS_TRACKER.md](MIGRATION_TS_TRACKER.md)** | TypeScript migration tracker |
+| **[COMFYUI_INTEGRATION_AUDIT.md](COMFYUI_INTEGRATION_AUDIT.md)** | ComfyUI frontend integration audit |
+| **[DESKTOP_POPUP_WORKAROUND.md](DESKTOP_POPUP_WORKAROUND.md)** | ComfyUI Desktop popup workaround for the Floating Viewer |
+| **[node-stream-reactivation.md](node-stream-reactivation.md)** | Node Stream reactivation notes |
+| **[WORKFLOW_SCOPE_IMPLEMENTATION_PLAN.md](WORKFLOW_SCOPE_IMPLEMENTATION_PLAN.md)** | Workflow scope implementation plan |
 | **[adr/](adr/)** | Architecture Decision Records |
 
 ## Plugin System

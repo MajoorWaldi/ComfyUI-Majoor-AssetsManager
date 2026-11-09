@@ -1,6 +1,6 @@
 # Majoor Assets Manager - Security Model & Environment Variables Guide
 
-**Version**: 2.4.9
+**Version**: 2.5.4
 **Last Updated**: April 7, 2026
 
 ## Overview
