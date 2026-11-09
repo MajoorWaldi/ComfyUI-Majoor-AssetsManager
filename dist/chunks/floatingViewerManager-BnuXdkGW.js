@@ -1,5 +1,5 @@
 import { t as e } from "./rolldown-runtime-CGnMp29N.js";
-import { Gt as t, jn as n, s as r } from "./client-JHhPY9-v.js";
+import { Gt as t, jn as n, s as r } from "./client-ClvOFaLi.js";
 import { t as i } from "./config-BFDzOF1N.js";
 import { r as a } from "./events-1iwo5blr.js";
 // ui/utils/logging.ts
@@ -202,7 +202,7 @@ var he = /* @__PURE__ */ e({
 	teardownFloatingViewerManager: () => Ue
 }), S = null, ge = null;
 async function _e() {
-	return S || (ge ||= import("./FloatingViewer-XWeeSMmR.js").then((e) => (S = e.FloatingViewer, S)), ge);
+	return S || (ge ||= import("./FloatingViewer-Cp-o4i8G.js").then((e) => (S = e.FloatingViewer, S)), ge);
 }
 var C = null, ve = null;
 async function ye() {
