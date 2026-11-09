@@ -4,6 +4,8 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+## [2.5.4] - 2026-11-09
+
 ### New Features
 - **Bulk tag editing**: selecting two or more assets and choosing "Edit tags (N selected)" opens a bulk tag editor that shows each tag's coverage across the selection (`tag (k/N)`), adds a typed tag to every asset, removes a tag from all, and completes partial tags with one click. Changes are merged per asset by the new `POST /mjr/am/assets/tags` batch route (`{ids, add, remove}`, up to 500 ids per request, 10 req/min), which keeps every other tag untouched, reports per-asset failures (missing asset, 50-tag limit) without aborting the rest, and syncs file metadata for updated assets via `X-MJR-RTSYNC` as usual. Workflow assets are excluded and reported as skipped.
 - **Bulk star rating across a selection**: new batch route `POST /mjr/am/assets/rating` (`{ids, rating}`, max 500 ids, 10 req/min, per-id partial results) and the 0-5 hotkeys plus the grid "Set rating" submenu now rate multi-card selections in one batched, chunked request instead of one request per card (progress toast on large selections, `N rated, M failed` summary on partial failures, single-card behaviour unchanged).
@@ -16,6 +18,8 @@ All notable changes to this project are documented in this file.
 - **JPEG and TIFF metadata**: ComfyUI/WAS-style `Prompt:` / `Workflow:` EXIF text and A1111 `parameters` are now read from JPEG and TIFF files (previously only PNG, WebP and AVIF).
 
 ### Fixed
+- **Windows startup**: `trash_service` read `os.O_DIRECTORY` / `os.O_NOFOLLOW` at import time, which do not exist on Windows, so importing the routes registry failed (`failed to initialize prompt server routes`) and no Majoor route was registered. The flags now default to 0 where the platform lacks them; the trash code itself still only runs on Linux/BSD.
+- **CI**: the committed `dist/` is rebuilt to match the source (the release check compares it with a fresh build), and the nightly `frontend-compat-nightly` workflow no longer fails when ComfyUI_frontend `main` cannot build its own types: it reports an "Upstream broken" warning and skips only the latest-types typecheck.
 - **Security alerts**: workflow JSON reads are confined to the configured workflow roots at the read itself (CodeQL `py/path-injection`), and the dev-only `minimatch` is raised to 11.x (Dependabot #34).
 - **Missing-file download log**: a `/mjr/am/download` 404 (file deleted or moved outside Majoor) is logged at info level and names the file, instead of a bare warning.
 - **Python 3.10 install**: `pillow` is pinned to 13.x on Python 3.11+ and to 12.x on 3.10, where 13 is not available, so `pip install -r requirements.txt` works again there.
