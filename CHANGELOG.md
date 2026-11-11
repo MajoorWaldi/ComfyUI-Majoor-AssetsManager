@@ -18,6 +18,7 @@ All notable changes to this project are documented in this file.
 - **JPEG and TIFF metadata**: ComfyUI/WAS-style `Prompt:` / `Workflow:` EXIF text and A1111 `parameters` are now read from JPEG and TIFF files (previously only PNG, WebP and AVIF).
 
 ### Fixed
+- **First double-click after a page load did not open the viewer**: `GlobalRuntime` mounted the viewer on the first `OPEN_VIEWER` request but dropped that request, so only a second double-click opened it. The request is now replayed once the viewer has mounted and is listening.
 - **Windows startup**: `trash_service` read `os.O_DIRECTORY` / `os.O_NOFOLLOW` at import time, which do not exist on Windows, so importing the routes registry failed (`failed to initialize prompt server routes`) and no Majoor route was registered. The flags now default to 0 where the platform lacks them; the trash code itself still only runs on Linux/BSD.
 - **CI**: the committed `dist/` is rebuilt to match the source (the release check compares it with a fresh build), and the nightly `frontend-compat-nightly` workflow no longer fails when ComfyUI_frontend `main` cannot build its own types: it reports an "Upstream broken" warning and skips only the latest-types typecheck.
 - **Security alerts**: workflow JSON reads are confined to the configured workflow roots at the read itself (CodeQL `py/path-injection`), and the dev-only `minimatch` is raised to 11.x (Dependabot #34).

@@ -19,6 +19,8 @@ import FloatingViewerHost from "./FloatingViewerHost.vue";
 import StudioViewer from "./studio/StudioViewer.vue";
 import { openStudioViewer } from "../../../features/viewer/studio/studioViewerState.js";
 
+const emit = defineEmits<{ ready: [] }>();
+
 interface OpenViewerEventDetail {
     assets?: unknown[];
     asset?: unknown;
@@ -54,6 +56,8 @@ onMounted(() => {
     } catch (e) {
         console.debug?.(e);
     }
+    // Listeners are installed: let GlobalRuntime replay the event that booted us.
+    emit("ready");
 });
 
 onUnmounted(() => {
