@@ -1922,8 +1922,10 @@ var Re = {
 	}
 }), vn = /* @__PURE__ */ E({
 	__name: "ViewerPortal",
-	setup(e) {
-		function t(e) {
+	emits: ["ready"],
+	setup(e, { emit: t }) {
+		let n = t;
+		function r(e) {
 			let t = e?.detail || {}, n = Array.isArray(t?.assets) ? t.assets.filter(Boolean) : t?.asset ? [t.asset] : [];
 			n.length && Pe(n, Math.max(0, Math.min(Number(t?.index) || 0, n.length - 1)), String(t?.mode || "").trim().toLowerCase()) && (t.handled = !0);
 		}
@@ -1934,13 +1936,14 @@ var Re = {
 				console.debug?.(e);
 			}
 			try {
-				window.addEventListener(f.OPEN_VIEWER, t);
+				window.addEventListener(f.OPEN_VIEWER, r);
 			} catch (e) {
 				console.debug?.(e);
 			}
+			n("ready");
 		}), A(() => {
 			try {
-				window.removeEventListener(f.OPEN_VIEWER, t);
+				window.removeEventListener(f.OPEN_VIEWER, r);
 			} catch (e) {
 				console.debug?.(e);
 			}

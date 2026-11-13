@@ -11756,7 +11756,7 @@ function Em() {
 var Dm = /* @__PURE__ */ ir({
 	__name: "GlobalRuntime",
 	setup(e) {
-		let t = rr(() => import("./chunks/ViewerPortal-BYWAyMUo.js")), n = Q(!1), r = [
+		let t = rr(() => import("./chunks/ViewerPortal-CUiQ2tiF.js")), n = Q(!1), r = [
 			B.OPEN_VIEWER,
 			B.MFV_OPEN,
 			B.MFV_TOGGLE,
@@ -11764,32 +11764,38 @@ var Dm = /* @__PURE__ */ ir({
 			B.MFV_PREVIEW_TOGGLE,
 			B.MFV_NODESTREAM_TOGGLE,
 			B.MFV_POPOUT
-		];
-		function i(e) {
-			if (n.value) return;
-			n.value = !0;
-			let t = String(e?.type || ""), r = e?.detail ?? null;
-			t && t !== B.OPEN_VIEWER && Xn(() => {
-				try {
-					window.dispatchEvent(new CustomEvent(t, { detail: r }));
-				} catch (e) {
-					console.debug?.(e);
-				}
-			});
+		], i = [];
+		function a(e) {
+			let t = String(e?.type || "");
+			t && (!n.value || i.length) && (i.push({
+				type: t,
+				detail: e?.detail ?? null
+			}), n.value = !0);
+		}
+		function o() {
+			let e = i.splice(0);
+			for (let { type: t, detail: n } of e) try {
+				window.dispatchEvent(new CustomEvent(t, { detail: n }));
+			} catch (e) {
+				console.debug?.(e);
+			}
 		}
 		return Em(), er(() => {
 			for (let e of r) try {
-				window.addEventListener(e, i, { once: !1 });
+				window.addEventListener(e, a, { once: !1 });
 			} catch (e) {
 				console.debug?.(e);
 			}
 		}), sr(() => {
 			for (let e of r) try {
-				window.removeEventListener(e, i);
+				window.removeEventListener(e, a);
 			} catch (e) {
 				console.debug?.(e);
 			}
-		}), (e, r) => n.value ? (q(), Zn(Z(t), { key: 0 })) : W("", !0);
+		}), (e, r) => n.value ? (q(), Zn(Z(t), {
+			key: 0,
+			onReady: o
+		})) : W("", !0);
 	}
 }), Om = {
 	gridRenderCount: 0,

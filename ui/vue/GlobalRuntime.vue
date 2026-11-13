@@ -6,7 +6,7 @@
  * tab has not been opened yet. This is the Vue-owned home for extension-wide
  * runtime UI/services that must outlive any specific panel mount.
  */
-import { defineAsyncComponent, nextTick, onMounted, onUnmounted, ref } from "vue";
+import { defineAsyncComponent, onMounted, onUnmounted, ref } from "vue";
 import { EVENTS } from "../app/events.js";
 import { useDragDrop } from "./composables/useDragDrop.js";
 
@@ -22,19 +22,27 @@ const VIEWER_BOOT_EVENTS = [
     EVENTS.MFV_POPOUT,
 ];
 
+// Events that arrived before ViewerPortal finished loading; replayed once it listens.
+const pendingEvents: Array<{ type: string; detail: unknown }> = [];
+
 function ensureViewerRuntime(event: Event) {
-    if (viewerRuntimeActive.value) return;
-    viewerRuntimeActive.value = true;
     const type = String(event?.type || "");
-    const detail = (event as CustomEvent)?.detail ?? null;
-    if (!type || type === EVENTS.OPEN_VIEWER) return;
-    void nextTick(() => {
+    if (!type) return;
+    if (viewerRuntimeActive.value && !pendingEvents.length) return;
+    // Keep the same detail object: OPEN_VIEWER reports `handled` back through it.
+    pendingEvents.push({ type, detail: (event as CustomEvent)?.detail ?? null });
+    viewerRuntimeActive.value = true;
+}
+
+function replayPendingEvents() {
+    const queued = pendingEvents.splice(0);
+    for (const { type, detail } of queued) {
         try {
             window.dispatchEvent(new CustomEvent(type, { detail }));
         } catch (e) {
             console.debug?.(e);
         }
-    });
+    }
 }
 
 useDragDrop();
@@ -61,5 +69,5 @@ onUnmounted(() => {
 </script>
 
 <template>
-    <ViewerPortal v-if="viewerRuntimeActive" />
+    <ViewerPortal v-if="viewerRuntimeActive" @ready="replayPendingEvents" />
 </template>
