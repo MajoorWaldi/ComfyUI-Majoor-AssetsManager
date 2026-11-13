@@ -39,7 +39,7 @@
   "devDependencies": {
     "@comfyorg/comfyui-frontend-types": "^1.60.0",
     "@eslint/js": "^10.0.1",
-    "@playwright/test": "^1.64.1",
+    "@playwright/test": "^1.65.0",
     "@types/node": "^26.6.6",
     "@vitejs/plugin-vue": "^6.0.10",
     "@vitest/coverage-v8": "^5.1.0",
